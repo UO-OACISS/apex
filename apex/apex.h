@@ -13,7 +13,6 @@
  * The C API is not required for HPX support. 
  * But don't delete it just yet. 
  */
-#error "The C API is unsupported for now. Please use the C++ API only."
 
 #ifndef APEX_H
 #define APEX_H

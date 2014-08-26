@@ -11,42 +11,64 @@
 #include <string>
 #include <vector>
 #include <stdint.h>
+#include "apex_types.h"
 #include "handler.hpp"
 #include "event_listener.hpp"
 #include "policy_handler.hpp"
+//#include <chrono.h>
 
 //using namespace std;
 
-namespace apex {
+namespace apex
+{
 
-class apex {
+///////////////////////////////////////////////////////////////////////
+// Main class for the APEX project
+class apex
+{
 private:
 // private constructors cannot be called
-  apex() : m_argc(0), m_argv(NULL), m_node_id(0) {_initialize();};
-  apex(int argc, char**argv) : m_argc(argc), m_argv(argv) {_initialize();};
-  apex(apex const&){};             // copy constructor is private
-  apex& operator=(apex const& a){ return const_cast<apex&>(a); };  // assignment operator is private
-  static apex* m_pInstance;
-  int m_argc;
-  char** m_argv;
-  int m_node_id;
-  bool m_profiling;
-  void _initialize();
-  policy_handler * m_policy_handler;
-  std::map<int, policy_handler*> period_handlers;
-  std::vector<event_listener*> listeners;
+    apex() : m_argc(0), m_argv(NULL), m_node_id(0)
+    {
+        _initialize();
+    };
+    apex(int argc, char**argv) : m_argc(argc), m_argv(argv)
+    {
+        _initialize();
+    };
+    apex(apex const&) {};            // copy constructor is private
+    apex& operator=(apex const& a)
+    {
+        return const_cast<apex&>(a);
+    };  // assignment operator is private
+// member variables
+    static apex* m_pInstance;
+    int m_argc;
+    char** m_argv;
+    int m_node_id;
+    bool m_profiling;
+    void _initialize();
+    policy_handler * m_policy_handler;
+    std::map<int, policy_handler*> period_handlers;
+    std::vector<event_listener*> listeners;
 public:
-  string* m_my_locality;
-  static apex* instance(); // singleton instance
-  static apex* instance(int argc, char** argv); // singleton instance
-  void set_node_id(int id);
-  int get_node_id(void);
-  void notify_listeners(event_data* event_data_);
-  policy_handler * get_policy_handler(void) const;
-  policy_handler * get_policy_handler(int period);
-  ~apex();
+    string* m_my_locality;
+    static apex* instance(); // singleton instance
+    static apex* instance(int argc, char** argv); // singleton instance
+    void set_node_id(int id);
+    int get_node_id(void);
+    void notify_listeners(event_data* event_data_);
+    policy_handler * get_policy_handler(void) const;
+/*
+    template <typename Rep, typename Period>
+    policy_handler * get_policy_handler(std::chrono::duration<Rep, Period> const& period);
+*/
+    policy_handler * get_policy_handler(uint64_t const& period_microseconds);
+    ~apex();
 };
 
+// These are all static functions for the class. There should be only
+// one APEX object in the process space.
 void init(void);
 void init(int argc, char** argv);
 void finalize(void);
@@ -62,10 +84,18 @@ void track_power_here(void);
 void enable_tracking_power(void);
 void disable_tracking_power(void);
 void set_interrupt_interval(int seconds);
-int register_event_policy(const std::set<_event_type> & when,
-  bool (*test_function)(void* arg1), void (*action_function)(void* arg2));
-int register_periodic_policy(int period, bool (*test_function)(void* arg1),
-  void (*action_function)(void* arg2));
+// Method for registering event-based policy
+apex_policy_handle* register_policy(const apex_event_type when,
+                    std::function<bool(apex_context const&)> f);
+// Method for registering periodic policy
+/*
+template <typename Rep, typename Period>
+apex_policy_handle register_policy(
+    std::chrono::duration<Rep, Period> const& period,
+    std::function<bool(apex_context const&)> f);
+*/
+
+apex_policy_handle* register_periodic_policy(unsigned long period, std::function<bool(apex_context const&)> f);
 }
 
 #endif //APEX_HPP

@@ -8,7 +8,7 @@
 
 #include <iostream>
 
-using namespace std;
+#include <boost/make_shared.hpp>
 
 namespace apex {
 
@@ -16,9 +16,19 @@ policy_handler::policy_handler (void) : handler() {
   _init();
 }
 
-policy_handler::policy_handler (unsigned int period) : handler(period) {
-  _init();
+/*
+template <typename Rep, typename Period>
+policy_handler::policy_handler (duration<Rep, Period> const& period) : handler(period)
+{
+    _init();
 }
+*/
+
+policy_handler::policy_handler (uint64_t period_microseconds) : handler(period_microseconds)
+{
+    _init();
+}
+
 
 void policy_handler::_handler(void) {
   periodic_event_data data;
@@ -40,139 +50,163 @@ inline void policy_handler::reset(void) {
   }
 }
 
-int policy_handler::register_policy(const std::set<_event_type> & when,
-    bool (*test_function)(void* arg1),
-    void (*action_function)(void* arg2)) {
+int policy_handler::register_policy(const apex_event_type & when,
+    std::function<bool(apex_context const&)> f) {
   int id = next_id++;
-  policy_instance * instance = new policy_instance(id, test_function,
-    action_function);
-  for(event_type type : when) {
-    switch(type) {
+  boost::shared_ptr<policy_instance> instance(
+    boost::make_shared<policy_instance>(id, f));
+    switch(when) {
       case STARTUP: {
-        startup_mutex.lock();
+        boost::unique_lock<mutex_type> l(startup_mutex);
         startup_policies.push_back(instance);
-        startup_mutex.unlock();
         break;
       }
       case SHUTDOWN: {
-        shutdown_mutex.lock();
+        boost::unique_lock<mutex_type> l(shutdown_mutex);
         shutdown_policies.push_back(instance);
-        shutdown_mutex.unlock();
         break;
       }
       case NEW_NODE: {
-        new_node_mutex.lock();
+        boost::unique_lock<mutex_type> l(new_node_mutex);
         new_node_policies.push_back(instance);
-        new_node_mutex.unlock();
         break;
       }
       case NEW_THREAD: {
-        new_thread_mutex.lock();
+        boost::unique_lock<mutex_type> l(new_thread_mutex);
         new_thread_policies.push_back(instance);
-        new_thread_mutex.unlock();
         break;
       }
       case START_EVENT: {
-        start_event_mutex.lock();
+        boost::unique_lock<mutex_type> l(start_event_mutex);
         start_event_policies.push_back(instance);
-        start_event_mutex.unlock();
         break;
       }
       case STOP_EVENT: {
-        stop_event_mutex.lock();
+        boost::unique_lock<mutex_type> l(stop_event_mutex);
         stop_event_policies.push_back(instance);
-        stop_event_mutex.unlock();
         break;
       }
       case SAMPLE_VALUE: {
-        sample_value_mutex.lock();
+        boost::unique_lock<mutex_type> l(sample_value_mutex);
         sample_value_policies.push_back(instance);
-        sample_value_mutex.unlock();
         break;
       }
       case PERIODIC: {
-        periodic_mutex.lock();
+        boost::unique_lock<mutex_type> l(periodic_mutex);
         periodic_policies.push_back(instance);
-        periodic_mutex.unlock();
         break;
       }
-
-    }
   }
   return id;
 
 }
 
-void policy_handler::call_policies(const std::list<policy_instance*> & policies,
-                   event_data* event_data_) {
-  for(const policy_instance * policy : policies) {
-    const bool result = policy->test_function(event_data_);
-    if(result) {
-      policy->action_function(event_data_);
+void policy_handler::call_policies(
+    const std::list<boost::shared_ptr<policy_instance> > & policies,
+    event_data* event_data_) {
+  for(const boost::shared_ptr<policy_instance>& policy : policies) {
+    apex_context my_context;
+    my_context.event_type = event_data_->event_type_;
+    my_context.policy_handle = NULL;
+    const bool result = policy->func(my_context);
+    if(!result) {
+      printf("Warning: registered policy function failed!\n");
     }
   }
 }
 
 void policy_handler::on_event(event_data* event_data_) {
-  unsigned int tid = thread_instance::get_id();
+  //unsigned int tid = thread_instance::get_id();
   if (!_terminate) {
     switch(event_data_->event_type_) {
     case STARTUP: {
-        startup_mutex.lock_shared();
-        const std::list<policy_instance*> policies(startup_policies);
-        startup_mutex.unlock_shared();
+        std::list<boost::shared_ptr<policy_instance> > policies;
+        {
+            boost::shared_lock<mutex_type> l(startup_mutex);
+            if (startup_policies.empty())
+                return;
+            policies = startup_policies;
+        }
         call_policies(policies, event_data_);
-    	break;
+        break;
     }
     case SHUTDOWN: {
-    	_terminate = true;
-        shutdown_mutex.lock_shared();
-        const std::list<policy_instance*> policies(shutdown_policies);
-        shutdown_mutex.unlock_shared();
+        _terminate = true;
+        std::list<boost::shared_ptr<policy_instance> > policies;
+        {
+            boost::shared_lock<mutex_type> l(shutdown_mutex);
+            if (shutdown_policies.empty())
+                return;
+            policies = shutdown_policies;
+        }
         call_policies(policies, event_data_);
-    	break;
+        break;
     }
     case NEW_NODE: {
-        new_node_mutex.lock_shared();
-        const std::list<policy_instance*> policies(new_node_policies);
-        new_node_mutex.unlock_shared();
+        std::list<boost::shared_ptr<policy_instance> > policies;
+        {
+            boost::shared_lock<mutex_type> l(new_node_mutex);
+            if (new_node_policies.empty())
+                return;
+            policies = new_node_policies;
+        }
         call_policies(policies, event_data_);
-    	break;
+        break;
     }
     case NEW_THREAD: {
-        new_thread_mutex.lock_shared();
-        const std::list<policy_instance*> policies(new_thread_policies);
-        new_thread_mutex.unlock_shared();
+        std::list<boost::shared_ptr<policy_instance> > policies;
+        {
+            boost::shared_lock<mutex_type> l(new_thread_mutex);
+            if (new_thread_policies.empty())
+                return;
+            policies = new_thread_policies;
+        }
         call_policies(policies, event_data_);
-    	break;
+        break;
     }
     case START_EVENT: {
-        start_event_mutex.lock_shared();
-        const std::list<policy_instance*> policies(start_event_policies);
-        start_event_mutex.unlock_shared();
+        std::list<boost::shared_ptr<policy_instance> > policies;
+        {
+            boost::shared_lock<mutex_type> l(start_event_mutex);
+            if (start_event_policies.empty())
+                return;
+            policies = start_event_policies;
+        }
         call_policies(policies, event_data_);
-    	break;
+        break;
     }
     case STOP_EVENT: {
-        stop_event_mutex.lock_shared();
-        const std::list<policy_instance*> policies(stop_event_policies);
-        stop_event_mutex.unlock_shared();
+        std::list<boost::shared_ptr<policy_instance> > policies;
+        {
+            boost::shared_lock<mutex_type> l(stop_event_mutex);
+            if (stop_event_policies.empty())
+                return;
+            policies = stop_event_policies;
+        }
         call_policies(policies, event_data_);
-    	break;
+        break;
     }
     case SAMPLE_VALUE: {
-        sample_value_mutex.lock_shared();
-        const std::list<policy_instance*> policies(sample_value_policies);
-        sample_value_mutex.unlock_shared();
+        std::list<boost::shared_ptr<policy_instance> > policies;
+        {
+            boost::shared_lock<mutex_type> l(sample_value_mutex);
+            if (sample_value_policies.empty())
+                return;
+            policies = sample_value_policies;
+        }
         call_policies(policies, event_data_);
-    	break;
+        break;
     }
     case PERIODIC: {
-        periodic_mutex.lock_shared();
-        const std::list<policy_instance*> policies(periodic_policies);
-        periodic_mutex.unlock_shared();
+        std::list<boost::shared_ptr<policy_instance> > policies;
+        {
+            boost::shared_lock<mutex_type> l(periodic_mutex);
+            if (periodic_policies.empty())
+                return;
+            policies = periodic_policies;
+        }
         call_policies(policies, event_data_);
-    	break;
+        break;
     }
     } //end switch
   } // end if

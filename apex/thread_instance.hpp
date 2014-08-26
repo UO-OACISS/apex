@@ -6,10 +6,10 @@
 #ifndef THREADINSTANCE_H
 #define THREADINSTANCE_H
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <strings.h>
+#include <cstdio>
+#include <cstring>
+#include <cstdlib>
+#include <cstring>
 #include <boost/thread/tss.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/atomic.hpp>
@@ -24,7 +24,7 @@ private:
   // TAU id of the thread
   int _id;
   // "name" of the thread
-  std::string *_top_level_timer_name;
+  std::string _top_level_timer_name;
   // is this an HPX worker thread?
   bool _is_worker;
   // map from name to thread id - common to all threads
@@ -37,9 +37,9 @@ private:
   // thread specific data
   static boost::thread_specific_ptr<thread_instance> _instance;
   // constructor
-  thread_instance (void) : _id(-1), _top_level_timer_name(NULL), _is_worker(false) { };
+  thread_instance (void) : _id(-1), _top_level_timer_name(), _is_worker(false) { };
 public:
-  static thread_instance* instance(void);
+  static thread_instance& instance(void);
   static int get_id(void);
   static std::string get_name(void);
   static void set_name(std::string name);

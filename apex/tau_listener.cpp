@@ -24,7 +24,6 @@ tau_listener::tau_listener (void) : _terminate(false) {
 }
 
 void tau_listener::on_event(event_data * event_data_) {
-  unsigned int tid = thread_instance::get_id();
   if (!_terminate) {
     if (event_data_->event_type_ == START_EVENT) {
       timer_event_data *tmp = (timer_event_data*)event_data_;
@@ -50,7 +49,7 @@ void tau_listener::on_event(event_data * event_data_) {
       startup_event_data *tmp = (startup_event_data*)event_data_;
       TAU_PROFILE_INIT(tmp->argc, tmp->argv);
     } else if (event_data_->event_type_ == SHUTDOWN) {
-      shutdown_event_data *tmp = (shutdown_event_data*)event_data_;
+      //shutdown_event_data *tmp = (shutdown_event_data*)event_data_;
       _terminate = true;
       Tau_profile_exit_all_threads();
       TAU_PROFILE_EXIT("APEX exiting");

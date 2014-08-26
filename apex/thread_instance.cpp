@@ -30,7 +30,7 @@ map<int, bool> thread_instance::_worker_map;
 // Global static mutex to control access to the map
 boost::mutex thread_instance::_worker_map_mutex;
 
-thread_instance* thread_instance::instance(void) {
+thread_instance& thread_instance::instance(void) {
   thread_instance* me = _instance.get();
   if( ! me ) {
     // first time called by this thread
@@ -40,33 +40,33 @@ thread_instance* thread_instance::instance(void) {
     //me->_id = TAU_PROFILE_GET_THREAD();
     me->_id = _num_threads++;
   }
-  return me;
+  return *me;
 }
 
 int thread_instance::get_id(void) {
-  return instance()->_id;
+  return instance()._id;
 }
 
 void thread_instance::set_worker(bool is_worker) {
-  instance()->_is_worker = is_worker;
-  _worker_map_mutex.lock();
-  _worker_map[instance()->get_id()] = is_worker;
-  _worker_map_mutex.unlock();
+  instance()._is_worker = is_worker;
+  boost::unique_lock<boost::mutex> l(_worker_map_mutex);
+  _worker_map[instance().get_id()] = is_worker;
 }
 
 string thread_instance::get_name(void) {
-  return *(instance()->_top_level_timer_name);
+  return instance()._top_level_timer_name;
 }
 
 void thread_instance::set_name(string name) {
-  if (instance()->_top_level_timer_name == NULL)
+  if (instance()._top_level_timer_name.empty())
   {
-    instance()->_top_level_timer_name = new string(name);
-    _name_map_mutex.lock();
-    _name_map[name] = instance()->get_id();
-    _name_map_mutex.unlock();
-    if (name.find("worker-thread") != name.npos) {
-      instance()->set_worker(true);
+    instance()._top_level_timer_name = name;
+    {
+        boost::unique_lock<boost::mutex> l(_name_map_mutex);
+        _name_map[name] = instance().get_id();
+    }
+    if (name.find("worker-thread") != std::string::npos) {
+      instance().set_worker(true);
     }
   }
 }
@@ -74,22 +74,26 @@ void thread_instance::set_name(string name) {
 int thread_instance::map_name_to_id(string name) {
   //cout << "Looking for " << name << endl;
   int tmp = -1;
-  _name_map_mutex.lock();
-  if (_name_map.find(name) != _name_map.end()) {
-    tmp = _name_map[name];
+  {
+    boost::unique_lock<boost::mutex> l(_name_map_mutex);
+    map<string, int>::const_iterator it = _name_map.find(name);
+    if (it != _name_map.end()) {
+      tmp = (*it).second;
+    }
   }
-  _name_map_mutex.unlock();
   return tmp;
 }
 
 bool thread_instance::map_id_to_worker(int id) {
   //cout << "Looking for " << name << endl;
   bool worker = false;
-  _worker_map_mutex.lock();
-  if (_worker_map.find(id) != _worker_map.end()) {
-    worker = _worker_map[id];
+  {
+    boost::unique_lock<boost::mutex> l(_worker_map_mutex);
+    map<int, bool>::const_iterator it = _worker_map.find(id);
+    if (it != _worker_map.end()) {
+      worker = (*it).second;
+    }
   }
-  _worker_map_mutex.unlock();
   return worker;
 }
 

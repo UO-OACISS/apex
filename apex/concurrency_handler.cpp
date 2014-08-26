@@ -11,7 +11,9 @@
 #include <iterator>
 #include <iostream>
 #include <fstream>
+#if defined(__GNUC__)
 #include <cxxabi.h>
+#endif
 
 using namespace std;
 
@@ -44,7 +46,7 @@ void concurrency_handler::_handler(void) {
     }
     tmp = get_event_stack(i);
     if (tmp->size() > 0) {
-	  mut = get_event_stack_mutex(i);
+      mut = get_event_stack_mutex(i);
       mut->lock();
       string func = tmp->top();
       mut->unlock();
@@ -156,19 +158,23 @@ inline void concurrency_handler::add_thread(unsigned int tid) {
 }
 
 string* demangle(string timer_name) {
-  int     status;
   string* demangled = NULL;
+#if defined(__GNUC__)
+  int     status;
   char *realname = abi::__cxa_demangle(timer_name.c_str(), 0, 0, &status);
   if (status == 0) {
     char* index = strstr(realname, "<");
     if (index != NULL) {
-	  *index = 0; // terminate before templates for brevity
-	}
+      *index = 0; // terminate before templates for brevity
+    }
     demangled = new string(realname);
-	free(realname);
+    free(realname);
   } else {
     demangled = new string(timer_name);
   }
+#else
+  demangled = new string(timer_name);
+#endif
   return demangled;
 }
 
@@ -206,42 +212,42 @@ void concurrency_handler::output_samples(int node_id) {
   sort(my_vec.begin(),my_vec.end(),&sort_functions);
   set<string> top_x;
   for (vector<pair<string, int> >::iterator it=my_vec.begin(); it!=my_vec.end(); ++it) {
-	//if (top_x.size() < 15 && (*it).first != "APEX THREAD MAIN")
-	if (top_x.size() < 15)
+    //if (top_x.size() < 15 && (*it).first != "APEX THREAD MAIN")
+    if (top_x.size() < 15)
       top_x.insert((*it).first);
   }
 
   // output the header
   for (set<string>::iterator it=_functions.begin(); it!=_functions.end(); ++it) {
-	if (top_x.find(*it) != top_x.end()) {
-	  string* tmp = demangle(*it);
+    if (top_x.find(*it) != top_x.end()) {
+      string* tmp = demangle(*it);
       myfile << "\"" << *tmp << "\"\t";
-	  delete (tmp);
-	}
+      delete (tmp);
+    }
   }
   myfile << "\"other\"" << endl;
 
-  unsigned int max_Y = 0;
-  unsigned int max_X = _states.size();
-  for (unsigned int i = 0 ; i < max_X ; i++) {
+  size_t max_Y = 0;
+  size_t max_X = _states.size();
+  for (size_t i = 0 ; i < max_X ; i++) {
     unsigned int tmp_max = 0;
-	int other = 0;
+    int other = 0;
     for (set<string>::iterator it=_functions.begin(); it!=_functions.end(); ++it) {
-	  // this is the idle event.
-	  //if (*it == "APEX THREAD MAIN")
-	    //continue;
-	  int value = 0;
-	  // did we see this timer during this sample?
+      // this is the idle event.
+      //if (*it == "APEX THREAD MAIN")
+        //continue;
+      int value = 0;
+      // did we see this timer during this sample?
       if (_states[i]->find(*it) != _states[i]->end()) {
         value = (*(_states[i]))[*it];
       }
-	  // is this timer in the top X?
-	  if (top_x.find(*it) == top_x.end()) {
-	    other = other + value;
-	  } else {
+      // is this timer in the top X?
+      if (top_x.find(*it) == top_x.end()) {
+        other = other + value;
+      } else {
         myfile << (*(_states[i]))[*it] << "\t";
         tmp_max += (*(_states[i]))[*it];
-	  }
+      }
     }
     myfile << other << "\t" << endl;
     tmp_max += other;

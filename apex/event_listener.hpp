@@ -7,29 +7,17 @@
 #define APEX_EVENTLISTENER_H
 
 #include <string>
+#include "apex_types.h"
 
 using namespace std;
 
 namespace apex {
 
-/* Typedef for enumerating the different event types */
-
-typedef enum _event_type {
-  STARTUP,
-  SHUTDOWN,
-  NEW_NODE,
-  NEW_THREAD,
-  START_EVENT,
-  STOP_EVENT,
-  SAMPLE_VALUE,
-  PERIODIC
-} event_type;
-
 /* Class for holding data relevant to generic event */
 
 class event_data {
 public:
-  event_type event_type_;
+  apex_event_type event_type_;
   int thread_id;
   event_data() : thread_id(0) {};
   ~event_data() {};
@@ -40,7 +28,7 @@ public:
 class timer_event_data : public event_data {
 public:
   string * timer_name;
-  timer_event_data(event_type eventType, int thread_id, string timer_name);
+  timer_event_data(apex_event_type eventType, int thread_id, string timer_name);
   ~timer_event_data();
 };
 

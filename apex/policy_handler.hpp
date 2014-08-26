@@ -6,6 +6,7 @@
 #ifndef POLICYHANDLER_HPP
 #define POLICYHANDLER_HPP
 
+#include "apex_types.h"
 #include "handler.hpp"
 #include "event_listener.hpp"
 #include <stack>
@@ -13,7 +14,12 @@
 #include <map>
 #include <set>
 #include <list>
+#include <functional>
+#include <chrono>
+
+#include <boost/atomic/atomic.hpp>
 #include <boost/thread/shared_mutex.hpp>
+#include <boost/shared_ptr.hpp>
 
 #ifdef SIGEV_THREAD_ID
 #ifndef sigev_notify_thread_id
@@ -21,52 +27,57 @@
 #endif /* ifndef sigev_notify_thread_id */
 #endif /* ifdef SIGEV_THREAD_ID */
 
-using namespace std;
+namespace apex
+{
 
-namespace apex {
-
-struct policy_instance {
-  int id;
-  bool (*test_function)(void* arg1);
-  void (*action_function)(void* arg2);
-
-  policy_instance(int id_, bool (*test_function_)(void* arg1),
-    void (*action_function_)(void* arg2)) : id(id_),
-    test_function(test_function_), action_function(action_function_) {};
+class policy_instance
+{
+public:
+    int id;
+    std::function<bool(apex_context const&)> func;
+    policy_instance(int id_, std::function<bool(apex_context const&)> func_) : id(id_),
+        func(func_) {};
 };
 
-class policy_handler : public handler, public event_listener {
+class policy_handler : public handler, public event_listener
+{
 private:
-  void _init(void);
-  std::list<policy_instance*> startup_policies;
-  std::list<policy_instance*> shutdown_policies;
-  std::list<policy_instance*> new_node_policies;
-  std::list<policy_instance*> new_thread_policies;
-  std::list<policy_instance*> start_event_policies;
-  std::list<policy_instance*> stop_event_policies;
-  std::list<policy_instance*> sample_value_policies;
-  std::list<policy_instance*> periodic_policies;
-  boost::shared_mutex startup_mutex;
-  boost::shared_mutex shutdown_mutex;
-  boost::shared_mutex new_node_mutex;
-  boost::shared_mutex new_thread_mutex;
-  boost::shared_mutex start_event_mutex;
-  boost::shared_mutex stop_event_mutex;
-  boost::shared_mutex sample_value_mutex;
-  boost::shared_mutex periodic_mutex;
-  void call_policies(const std::list<policy_instance*> & policies,
-                     event_data * event_data_);
-  std::atomic_int next_id;
+    typedef boost::shared_mutex mutex_type;
+
+    void _init(void);
+    std::list<boost::shared_ptr<policy_instance> > startup_policies;
+    std::list<boost::shared_ptr<policy_instance> > shutdown_policies;
+    std::list<boost::shared_ptr<policy_instance> > new_node_policies;
+    std::list<boost::shared_ptr<policy_instance> > new_thread_policies;
+    std::list<boost::shared_ptr<policy_instance> > start_event_policies;
+    std::list<boost::shared_ptr<policy_instance> > stop_event_policies;
+    std::list<boost::shared_ptr<policy_instance> > sample_value_policies;
+    std::list<boost::shared_ptr<policy_instance> > periodic_policies;
+    mutex_type startup_mutex;
+    mutex_type shutdown_mutex;
+    mutex_type new_node_mutex;
+    mutex_type new_thread_mutex;
+    mutex_type start_event_mutex;
+    mutex_type stop_event_mutex;
+    mutex_type sample_value_mutex;
+    mutex_type periodic_mutex;
+    void call_policies(
+        const std::list<boost::shared_ptr<policy_instance> > & policies,
+        event_data * event_data_);
+    boost::atomic_int next_id;
 public:
-  policy_handler (void);
-  policy_handler (unsigned int period);
-  ~policy_handler (void) { };
-  void on_event(event_data* event_data_);
-  int register_policy(const std::set<_event_type> & when,
-                      bool (*test_function)(void* arg1),
-                      void (*action_function)(void* arg2));
-  void _handler(void);
-  void reset(void);
+    policy_handler (void);
+/*
+    template<Rep, Period>
+    policy_handler (std::chrono::duration<Rep, Period> const& period);
+*/
+    policy_handler(uint64_t period_microseconds);
+    ~policy_handler (void) { };
+    void on_event(event_data* event_data_);
+    int register_policy(const apex_event_type & when,
+                        std::function<bool(apex_context const&)> f);
+    void _handler(void);
+    void reset(void);
 };
 
 }

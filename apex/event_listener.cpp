@@ -14,7 +14,7 @@ using namespace std;
 
 namespace apex {
 
-timer_event_data::timer_event_data(event_type event_type_, int thread_id, string timer_name) {
+timer_event_data::timer_event_data(apex_event_type event_type_, int thread_id, string timer_name) {
   this->event_type_ = event_type_;
   this->thread_id = thread_id;
   this->timer_name = new string(timer_name);
