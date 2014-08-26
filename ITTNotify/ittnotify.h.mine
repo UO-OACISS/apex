@@ -1,0 +1,130 @@
+#ifndef ITT_INTERFACE_H
+#define ITT_INTERFACE_H 0
+
+#include <string>
+#include "apex.hpp"
+
+/*
+ * For details, see http://software.intel.com/sites/products/documentation/gpa/13.1/Overview.htm
+ *
+ */
+
+#ifndef UINT64
+#define UINT64 uint64_t
+#endif
+
+enum __itt_metadata_type {
+  __itt_metadata_u64,
+  __itt_metadata_s64,
+  __itt_metadata_u32,
+  __itt_metadata_s32,
+  __itt_metadata_u16,
+  __itt_metadata_s16,
+  __itt_metadata_float,
+  __itt_metadata_double
+};
+
+enum __itt_relation {
+  __itt_relation_is_dependent_on,
+  __itt_relation_is_sibling_of,
+  __itt_relation_is_parent_of,
+  __itt_relation_is_continuation_of,
+  __itt_relation_is_child_of,
+  __itt_relation_is_continued_by,
+  __itt_relation_is_predecessor_to
+};
+
+enum __itt_scope {
+  __itt_scope_global,
+  __itt_scope_track_group,
+  __itt_scope_track,
+  __itt_scope_task,
+  __itt_scope_marker
+};
+
+enum __itt_track_group_type { __itt_track_group_type_normal = 0 };
+ 
+enum __itt_track_type {__itt_track_type_normal = 0 };
+
+struct __itt_caller {
+  std::string *name;
+};
+
+struct __itt_string_handle {
+  std::string *name;
+};
+
+struct __itt_domain {
+  std::string *name;
+  apex::Apex *theApex;
+};
+
+struct __itt_id {
+  int id;
+};
+
+struct __itt_clock_domain {
+  std::string *name;
+};
+
+struct __itt_marker_scope {
+  std::string *name;
+};
+
+struct __itt_track {
+  std::string *name;
+};
+
+struct __itt_track_group {
+  std::string *name;
+};
+
+typedef int __itt_mark_type;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+  __itt_domain* __itt_domain_create(char const*);
+  void __itt_frame_begin_v3(__itt_domain const* frame, __itt_id* id);
+  void __itt_frame_end_v2(__itt_domain const* frame, __itt_id* id);
+  void __itt_id_create(__itt_domain const*, __itt_id* id);
+  void __itt_id_create_ex(__itt_domain const*, 
+      __itt_clock_domain* clock_domain, UINT64 timestamp, __itt_id* id);
+  void __itt_id_destroy(const __itt_domain * domain, __itt_id* id);
+  void __itt_id_destroy_ex(__itt_domain* domain, 
+      __itt_clock_domain* clock_domain, UINT64 timestamp, __itt_id* id);
+  __itt_id* __itt_id_make(void*, unsigned long);
+  void __itt_metadata_add (const __itt_domain * domain,
+      __itt_id id, __itt_string_handle * name, __itt_marker_scope scope);
+  void _itt_metadata_add_with_scope(const __itt_domain * domain, 
+      __itt_scope scope, __itt_string_handle *key, __itt_metadata_type type,
+      size_t count, void *data);
+  void __itt_metadata_str_add (const __itt_domain * domain,
+      __itt_id id, __itt_string_handle * key, const char * data, size_t length);
+  void _itt_metadata_str_add_with_scope(const __itt_domain * domain, 
+      __itt_scope scope, __itt_string_handle *key, const char * data, size_t length);
+  void __itt_relation_add (const __itt_domain * domain, __itt_id head, 
+      __itt_relation relation, __itt_id tail);
+  void __itt_relation_add_to_current (const __itt_domain * domain, 
+      __itt_relation relation, __itt_id tail);
+  void __itt__set_track(__itt_track * track);
+  __itt_string_handle* __itt_string_handle_create (const char * name);
+  void __itt_task_begin(__itt_domain const*, __itt_string_handle*);
+  void __itt_task_begin_ex(__itt_domain* domain, __itt_clock_domain* clock_domain, 
+      UINT64 timestamp, __itt_id id, __itt_id parentid, __itt_string_handle *name);
+  void __itt_task_begin_fn(const __itt_domain * domain, __itt_id taskid, 
+      __itt_id parentid, void * fn);
+  void __itt_task_end(__itt_domain const*);
+  void __itt_task_end_ex(__itt_domain const*);
+  void __itt_task_group(const __itt_domain * domain, __itt_id id, 
+      __itt_id parentid, __itt_string_handle * name);
+  void __itt_thread_set_nam  (const char * name);
+  __itt_track_group* __itt_track_group_create(__itt_string_handle* name, 
+      __itt_track_group_type type);
+  __itt_track* __itt_track_create(__itt_track_group* track_group, 
+      __itt_string_handle* name, __itt_track_type track_type);
+#ifdef __cplusplus
+}
+#endif
+
+#endif // ITT_INTERFACE_H

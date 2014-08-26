@@ -1,0 +1,11 @@
+#!/bin/bash
+#
+
+cd /opt/tau/hpx.apex.tau/bin
+pbsdsh -v -u /opt/tau/hpx.apex.tau/bin/runme.sh \
+/opt/tau/hpx.apex.tau/bin/gtcx_client -t 12 \
+--hpx:print-counter '/threadqueue{locality#*/worker-thread#*}/length' \
+--hpx:print-counter-interval=4000 \
+--hpx:nodes=`cat $PBS_NODEFILE`
+
+
