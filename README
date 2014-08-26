@@ -1,3 +1,7 @@
+STEP 0: (For the impatient)
+---------------------------------------------------------------
+modify bootstrap.sh as necessary, and run it.
+
 STEP 1: Getting, configuring, and building TAU for APEX support:
 ---------------------------------------------------------------
 wget http://tau.uoregon.edu/tau.tgz
