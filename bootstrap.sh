@@ -21,6 +21,7 @@ mkdir build-$datestamp
 cd build-$datestamp
 
 cmake \
+-G "CodeBlocks - Unix Makefiles" \
 -DBOOST_ROOT=$BOOST_ROOT \
 -DCMAKE_BUILD_TYPE=Debug \
 -DCMAKE_INSTALL_PREFIX=. \
