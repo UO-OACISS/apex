@@ -16,9 +16,16 @@ export HPX_HAVE_ITTNOTIFY=1
 # Get time as a UNIX timestamp (seconds elapsed since Jan 1, 1970 0:00 UTC)
 T="$(date +%s)"
 
+if [ $# -eq 1 ] ; then
+	if [ $1 == "--clean" ] || [ $1 == "-c" ] ; then
+		rm -rf build_*
+	fi
+fi
+
 datestamp=`date +%Y.%m.%d-%H.%M.%S`
-mkdir build-$datestamp
-cd build-$datestamp
+dir="build_$datestamp"
+mkdir $dir
+cd $dir
 
 cmake \
 -G "CodeBlocks - Unix Makefiles" \

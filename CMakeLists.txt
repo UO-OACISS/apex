@@ -66,7 +66,9 @@ persists.")
 set (APEX_VERSION_MAJOR 0)
 set (APEX_VERSION_MINOR 1)
 
-add_definitions(-std=c++11)
+# add_definitions(-std=c++11)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11") 
+
 # configure a header file to pass some of the CMake settings
 # to the source code
 configure_file (
@@ -124,9 +126,7 @@ set (CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib" ${TAU_LIBRARY_DIR})
 add_subdirectory (apex) 
 add_subdirectory (ITTNotify) 
 add_subdirectory (DemoCpp)
-# C support is not required for XPRESS/HPX. 
-# until we need it for some other project, disable C build.
-# add_subdirectory (DemoC)  
+add_subdirectory (DemoC)  
 # Add a test program which actually uses the CPU
 add_subdirectory (Matmult)  
 add_subdirectory (TestITT)
@@ -137,10 +137,7 @@ enable_testing()
 
 # does the application run
 add_test (ApexCppRuns DemoCpp/apexCppDemo)
-
-# C support is not required for XPRESS/HPX. 
-# until we need it for some other project, disable C build.
-# add_test (ApexCRuns DemoC/apexCDemo)
+add_test (ApexCRuns DemoC/apexCDemo)
 
 # Run the test program which actually uses the CPU
 add_test (MatmultRuns Matmult/matmult)  

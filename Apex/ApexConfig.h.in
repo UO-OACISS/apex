@@ -1,3 +1,0 @@
-// the configured options and settings for Apex
-#define Apex_VERSION_MAJOR @Apex_VERSION_MAJOR@
-#define Apex_VERSION_MINOR @Apex_VERSION_MINOR@
