@@ -120,6 +120,17 @@ set(LIBS ${LIBS} ${RCR_LIBRARIES})
 #set (CMAKE_INSTALL_PREFIX ".")
 set (CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib" ${TAU_LIBRARY_DIR})
 
+# needed for apex.pc.in
+SET(prefix ${CMAKE_INSTALL_PREFIX})
+SET(exec_prefix "\${prefix}")
+SET(libdir "\${exec_prefix}/lib")
+SET(bindir "\${exec_prefix}/bin")
+SET(includedir "\${prefix}/include")
+SET(requirements "")
+CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/pkgconfig/apex.pc.in
+               ${CMAKE_BINARY_DIR}/pkgconfig/apex.pc @ONLY)
+INSTALL_FILES(/lib/pkgconfig FILES pkgconfig/apex.pc)
+
 # Recurse into the "Apex" and "Demo" subdirectories. This does not actually 
 # cause another cmake executable to run. The same process will walk through 
 # the project's entire directory structure. 

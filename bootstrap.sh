@@ -42,6 +42,7 @@ fi
 make -j `expr $procs + 1`
 
 make test
+make install
 
 printf "\nSUCCESS!\n"
 T="$(($(date +%s)-T))"
