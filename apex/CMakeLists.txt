@@ -1,7 +1,8 @@
 # Create a library called "Apex" which includes the source file "apex.cxx". 
 # The extension is already found. Any number of sources could be listed here. 
-add_library (apexStatic STATIC apex.cpp thread_instance.cpp event_listener.cpp handler.cpp concurrency_handler.cpp policy_handler.cpp tau_listener.cpp)
-add_library (apexShared SHARED apex.cpp thread_instance.cpp event_listener.cpp handler.cpp concurrency_handler.cpp policy_handler.cpp tau_listener.cpp)
+
+add_library (apexStatic STATIC apex.cpp thread_instance.cpp event_listener.cpp handler.cpp concurrency_handler.cpp policy_handler.cpp tau_listener.cpp RCR.bb.cpp)
+add_library (apexShared SHARED apex.cpp thread_instance.cpp event_listener.cpp handler.cpp concurrency_handler.cpp policy_handler.cpp tau_listener.cpp RCR.bb.cpp)
 
 set_target_properties(apexStatic PROPERTIES OUTPUT_NAME apex)
 set_target_properties(apexShared PROPERTIES OUTPUT_NAME apex)
