@@ -95,7 +95,9 @@ void concurrency_handler::on_event(event_data* event_data_) {
         my_stack = get_event_stack(stopper->thread_id);
         my_mut = get_event_stack_mutex(stopper->thread_id);
         my_mut->lock();
-        my_stack->pop();
+	if (!my_stack->empty()) {
+          my_stack->pop();
+	}
         my_mut->unlock();
         break;
       }

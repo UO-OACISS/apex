@@ -7,6 +7,6 @@ Name: APEX
 Description: Autonomic Performance Environment for eXascale (XPRESS)
 Requires: 
 Version: @PACKAGE_VERSION@
-Libs: -L${libdir} -lapex
+Libs: -L${libdir} -lapex -Wl,-rpath,${libdir}
 Cflags: -I${includedir}
 

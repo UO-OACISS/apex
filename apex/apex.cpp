@@ -37,7 +37,9 @@ cout << __nid << ":" << __tid << " " << __FUNCTION__ << " ["<< __FILE__ << ":" <
 #if 0
 #define APEX_TIMER_TRACER(A, B) {int __nid = TAU_PROFILE_GET_NODE(); \
  int __tid = TAU_PROFILE_GET_THREAD(); \
-cout << __nid << ":" << __tid << " " << (A) << " "<< (B) << endl;}
+ std::stringstream ss; \
+ ss << __nid << ":" << __tid << " " << (A) << " "<< (B) << endl;\
+ cout << ss.str();}
 #else
 #define APEX_TIMER_TRACER(A, B)
 #endif
@@ -122,7 +124,6 @@ void apex::_initialize()
             listeners.push_back(new concurrency_handler(option));
         }
     }
-    set_node_id(0);
 }
 
 /** This function is called to create an instance of the class.
@@ -193,6 +194,7 @@ void init()
     //TAU_PROFILE_INIT(argc, argv);
     startup_event_data* event_data_ = new startup_event_data(argc, argv);
     instance->notify_listeners(event_data_);
+    set_node_id(0);
     start("APEX THREAD MAIN");
 }
 
@@ -204,6 +206,7 @@ void init(int argc, char** argv)
     //TAU_PROFILE_INIT(argc, argv);
     startup_event_data* event_data_ = new startup_event_data(argc, argv);
     instance->notify_listeners(event_data_);
+    set_node_id(0);
     start("APEX THREAD MAIN");
 }
 
@@ -233,6 +236,10 @@ void start(string timer_name)
     */
     event_data_ = new timer_event_data(START_EVENT, thread_instance::get_id(), timer_name);
     instance->notify_listeners(event_data_);
+}
+
+void start(void * function_address) {
+    start(thread_instance::instance().map_addr_to_name(function_address));
 }
 
 void stop(string timer_name)
@@ -265,6 +272,10 @@ void stop()
     string empty = "";
     event_data* event_data_ = new timer_event_data(STOP_EVENT, thread_instance::get_id(), empty);
     instance->notify_listeners(event_data_);
+}
+
+void stop(void * function_address) {
+    stop(thread_instance::instance().map_addr_to_name(function_address));
 }
 
 void sample_value(string name, double value)
@@ -459,7 +470,13 @@ using namespace apex;
 
 extern "C" {
 
-    void apex_init(int argc, char** argv)
+    void apex_init()
+    {
+        APEX_TRACER
+        init();
+    }
+
+    void apex_init_args(int argc, char** argv)
     {
         APEX_TRACER
         init(argc, argv);
@@ -483,10 +500,26 @@ extern "C" {
         start(string(timer_name));
     }
 
+    void apex_start_addr(void * function_address)
+    {
+        APEX_TRACER
+        start(function_address);
+    }
+
     void apex_stop(const char * timer_name)
     {
         APEX_TRACER
-        stop(string(timer_name));
+	if (timer_name == NULL) {
+            stop();
+	} else {
+            stop(string(timer_name));
+	}
+    }
+
+    void apex_stop_addr(void * function_address)
+    {
+        APEX_TRACER
+        stop(function_address);
     }
 
     void apex_sample_value(const char * name, double value)

@@ -75,6 +75,8 @@ void finalize(void);
 double version(void);
 void start(std::string timer_name);
 void stop(std::string timer_name);
+void start(void * function_address);
+void stop(void * function_address);
 void stop(void);
 void sample_value(std::string name, double value);
 void set_node_id(int id);

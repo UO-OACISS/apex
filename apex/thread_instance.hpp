@@ -38,6 +38,8 @@ private:
   static boost::thread_specific_ptr<thread_instance> _instance;
   // constructor
   thread_instance (void) : _id(-1), _top_level_timer_name(), _is_worker(false) { };
+  // map from function address to name - unique to all threads to avoid locking
+  std::map<void *, std::string> _function_map;
 public:
   static thread_instance& instance(void);
   static int get_id(void);
@@ -47,6 +49,7 @@ public:
   static int map_name_to_id(std::string name);
   static bool map_id_to_worker(int id);
   static int get_num_threads(void) { return _num_threads; };
+  std::string map_addr_to_name(void * function_address);
 };
 
 }

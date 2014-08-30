@@ -13,6 +13,9 @@
 #include <TAU.h>
 #endif
 
+#include <stdio.h>
+#include <execinfo.h>
+
 using namespace std;
 
 namespace apex {
@@ -65,7 +68,7 @@ void thread_instance::set_name(string name) {
         boost::unique_lock<boost::mutex> l(_name_map_mutex);
         _name_map[name] = instance().get_id();
     }
-    if (name.find("worker-thread") != std::string::npos) {
+    if (name.find("worker-thread") != string::npos) {
       instance().set_worker(true);
     }
   }
@@ -96,5 +99,35 @@ bool thread_instance::map_id_to_worker(int id) {
   }
   return worker;
 }
+
+char* program_path(void) {
+    char *path = (char*)malloc(PATH_MAX);
+    if (path != NULL) {
+        if (readlink("/proc/self/exe", path, PATH_MAX) == -1) {
+            free(path);
+            path = NULL;
+        }
+    }
+    return path;
+}
+
+string thread_instance::map_addr_to_name(void * function_address) {
+  static std::string progname = string(program_path());
+  auto it = _function_map.find(function_address);
+  if (it != _function_map.end()) {
+    return (*it).second;
+  } // else...
+#if 0
+  char **strings = backtrace_symbols((void* const*)(&function_address),1);
+  string name = string(strings[0]);
+#else
+  stringstream ss;
+  ss << "UNRESOLVED " << progname << " ADDR " << hex << function_address;
+  string name = string(ss.str());
+#endif
+  _function_map[function_address] = name;
+  return name;
+}
+
 
 }
