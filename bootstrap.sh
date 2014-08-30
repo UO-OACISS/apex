@@ -3,12 +3,15 @@
 #configure parameters
 export TAU_ROOT=/usr/local/tau/git
 export BOOST_ROOT=/usr
-export HPX_HAVE_ITTNOTIFY=1
+# this one is only meaningful for HPX-3 from LSU
+# export HPX_HAVE_ITTNOTIFY=1 
 
 # runtime parameters for HPX-3 (LSU)
 export APEX_POLICY=1
+export APEX_CONCURRENCY=0
 export APEX_TAU=1
-export HPX_HAVE_ITTNOTIFY=1
+# this one is only meaningful for HPX-3 from LSU
+# export HPX_HAVE_ITTNOTIFY=1
 
 # NO NEED TO MODIFY ANYTHING BELOW THIS LINE
 # ------------------------------------------------------------------------
