@@ -26,6 +26,9 @@
 #include <TAU.h>
 #endif
 
+__thread bool _registered = false;
+__thread int _level = -1;
+
 #if 0
 #define APEX_TRACER {int __nid = TAU_PROFILE_GET_NODE(); \
  int __tid = thread_instance::getID(); \
@@ -38,7 +41,10 @@ cout << __nid << ":" << __tid << " " << __FUNCTION__ << " ["<< __FILE__ << ":" <
 #define APEX_TIMER_TRACER(A, B) {int __nid = TAU_PROFILE_GET_NODE(); \
  int __tid = TAU_PROFILE_GET_THREAD(); \
  std::stringstream ss; \
- ss << __nid << ":" << __tid << " " << (A) << " "<< (B) << endl;\
+ ss << __nid << ":" << __tid << " " ; \
+ for (int i = 0 ; i < _level ; i++) \
+	ss << "  "; \
+ ss << (A) << " "<< (B) << endl;\
  cout << ss.str();}
 #else
 #define APEX_TIMER_TRACER(A, B)
@@ -185,6 +191,7 @@ policy_handler * apex::get_policy_handler(uint64_t const& period)
 void init()
 {
     APEX_TRACER
+    _registered = true;
     int argc = 1;
     const char *dummy = "APEX Application";
     char* argv[1];
@@ -219,9 +226,9 @@ double version()
 void start(string timer_name)
 {
     APEX_TIMER_TRACER("start", timer_name)
+    _level++;
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
-    //TAU_START(timer_name.c_str());
     event_data* event_data_ = NULL;
     // don't do this now
     /*
@@ -244,7 +251,8 @@ void start(void * function_address) {
 
 void stop(string timer_name)
 {
-    APEX_TIMER_TRACER("stop", timer_name)
+    _level--;
+    APEX_TIMER_TRACER("stop ", timer_name)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     //TAU_STOP(timer_name.c_str());
@@ -265,6 +273,7 @@ void stop(string timer_name)
 
 void stop()
 {
+    _level--;
     APEX_TIMER_TRACER("stop", "?")
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
@@ -407,6 +416,7 @@ void register_thread(string name)
     APEX_TRACER
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
+    if (_registered) return; // protect against multiple registrations on the same thread
     //TAU_REGISTER_THREAD();
     // int nid, tid;
     // nid = TAU_PROFILE_GET_NODE();

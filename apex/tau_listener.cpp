@@ -40,6 +40,7 @@ void tau_listener::on_event(event_data * event_data_) {
       TAU_PROFILE_SET_NODE(tmp->node_id);
     } else if (event_data_->event_type_ == NEW_THREAD) {
       TAU_REGISTER_THREAD();
+      Tau_create_top_level_timer_if_necessary();
       // set the thread id for future listeners to this event
       event_data_->thread_id = TAU_PROFILE_GET_THREAD();
     } else if (event_data_->event_type_ == SAMPLE_VALUE) {
