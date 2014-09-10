@@ -19,7 +19,7 @@ void* someThread(void* tmp)
 }
 
 int main (int argc, char** argv) {
-  init(argc, argv);
+  init(argc, argv, NULL);
   version();
   set_node_id(0);
   start("MAIN");

@@ -6,7 +6,7 @@ void foo(void) {
 }
 
 int main (int argc, char** argv) {
-  apex_init_args(argc, argv);
+  apex_init_args(argc, argv, NULL);
   apex_version();
   apex_set_node_id(0);
   apex_start("Main");

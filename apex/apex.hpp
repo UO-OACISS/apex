@@ -69,14 +69,16 @@ public:
 
 // These are all static functions for the class. There should be only
 // one APEX object in the process space.
-void init(void);
-void init(int argc, char** argv);
+void init(const char * thread_name);
+void init(int argc, char** argv, const char * thread_name);
 void finalize(void);
 double version(void);
 void start(std::string timer_name);
 void stop(std::string timer_name);
+void resume(std::string timer_name);
 void start(void * function_address);
 void stop(void * function_address);
+void resume(void * function_address);
 void stop(void);
 void sample_value(std::string name, double value);
 void set_node_id(int id);

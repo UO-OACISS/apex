@@ -188,7 +188,7 @@ policy_handler * apex::get_policy_handler(uint64_t const& period)
     return period_handlers[period];
 }
 
-void init()
+void init(const char * thread_name)
 {
     APEX_TRACER
     _registered = true;
@@ -202,10 +202,14 @@ void init()
     startup_event_data* event_data_ = new startup_event_data(argc, argv);
     instance->notify_listeners(event_data_);
     set_node_id(0);
-    start("APEX THREAD MAIN");
+    if (thread_name) {
+      start(thread_name);
+    } else {
+      start("APEX MAIN THREAD");
+    }
 }
 
-void init(int argc, char** argv)
+void init(int argc, char** argv, const char * thread_name)
 {
     APEX_TRACER
     apex* instance = apex::instance(argc, argv); // get/create the Apex static instance
@@ -214,7 +218,11 @@ void init(int argc, char** argv)
     startup_event_data* event_data_ = new startup_event_data(argc, argv);
     instance->notify_listeners(event_data_);
     set_node_id(0);
-    start("APEX THREAD MAIN");
+    if (thread_name) {
+      start(thread_name);
+    } else {
+      start("APEX MAIN THREAD");
+    }
 }
 
 double version()
@@ -225,7 +233,7 @@ double version()
 
 void start(string timer_name)
 {
-    APEX_TIMER_TRACER("start", timer_name)
+    APEX_TIMER_TRACER("start ", timer_name)
     _level++;
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
@@ -245,14 +253,29 @@ void start(string timer_name)
     instance->notify_listeners(event_data_);
 }
 
+void resume(string timer_name)
+{
+    APEX_TIMER_TRACER("resume", timer_name)
+    _level++;
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance) return; // protect against calls after finalization
+    event_data* event_data_ = NULL;
+    event_data_ = new timer_event_data(START_EVENT, thread_instance::get_id(), timer_name);
+    instance->notify_listeners(event_data_);
+}
+
 void start(void * function_address) {
     start(thread_instance::instance().map_addr_to_name(function_address));
+}
+
+void resume(void * function_address) {
+    resume(thread_instance::instance().map_addr_to_name(function_address));
 }
 
 void stop(string timer_name)
 {
     _level--;
-    APEX_TIMER_TRACER("stop ", timer_name)
+    APEX_TIMER_TRACER("stop  ", timer_name)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     //TAU_STOP(timer_name.c_str());
@@ -480,16 +503,16 @@ using namespace apex;
 
 extern "C" {
 
-    void apex_init()
+    void apex_init(const char * thread_name)
     {
         APEX_TRACER
-        init();
+        init(thread_name);
     }
 
-    void apex_init_args(int argc, char** argv)
+    void apex_init_args(int argc, char** argv, const char * thread_name)
     {
         APEX_TRACER
-        init(argc, argv);
+        init(argc, argv, thread_name);
     }
 
     void apex_finalize()
@@ -514,6 +537,18 @@ extern "C" {
     {
         APEX_TRACER
         start(function_address);
+    }
+
+    void apex_resume(const char * timer_name)
+    {
+        APEX_TRACER
+        resume(string(timer_name));
+    }
+
+    void apex_resume_addr(void * function_address)
+    {
+        APEX_TRACER
+        resume(function_address);
     }
 
     void apex_stop(const char * timer_name)
@@ -547,7 +582,11 @@ extern "C" {
     void apex_register_thread(const char * name)
     {
         APEX_TRACER
+	if (name) {
         register_thread(string(name));
+	} else {
+        register_thread(string("APEX WORKER THREAD"));
+	}
     }
     void apex_track_power(void)
     {

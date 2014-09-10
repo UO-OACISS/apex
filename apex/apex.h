@@ -21,12 +21,14 @@
 extern "C" {
 #endif
 
-void apex_init();
-void apex_init_args(int argc, char** argv);
+void apex_init(const char * thread_name);
+void apex_init_args(int argc, char** argv, const char * thread_name);
 void apex_finalize();
 void apex_start(const char * timer_name);
+void apex_resume(const char * timer_name);
 void apex_stop(const char * timer_name);
 void apex_start_addr(void * function_address);
+void apex_resume_addr(void * function_address);
 void apex_stop_addr(void * function_address);
 void apex_sample_value(const char * name, double value);
 void apex_set_node_id(int id);
