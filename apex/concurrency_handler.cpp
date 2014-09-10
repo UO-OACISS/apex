@@ -46,10 +46,7 @@ void concurrency_handler::_handler(void) {
     }
     tmp = get_event_stack(i);
     if (tmp->size() > 0) {
-      mut = get_event_stack_mutex(i);
-      mut->lock();
       string func = tmp->top();
-      mut->unlock();
       _function_mutex.lock();
       _functions.insert(func);
       _function_mutex.unlock();
@@ -82,10 +79,7 @@ void concurrency_handler::on_event(event_data* event_data_) {
       {
         timer_event_data *starter = (timer_event_data*)event_data_;
         my_stack = get_event_stack(starter->thread_id);
-        my_mut = get_event_stack_mutex(starter->thread_id);
-        my_mut->lock();
         my_stack->push(*(starter->timer_name));
-        my_mut->unlock();
         break;
       }
 
@@ -93,12 +87,9 @@ void concurrency_handler::on_event(event_data* event_data_) {
       {
         timer_event_data *stopper = (timer_event_data*)event_data_;
         my_stack = get_event_stack(stopper->thread_id);
-        my_mut = get_event_stack_mutex(stopper->thread_id);
-        my_mut->lock();
 	if (!my_stack->empty()) {
           my_stack->pop();
 	}
-        my_mut->unlock();
         break;
       }
 
@@ -129,17 +120,7 @@ void concurrency_handler::on_event(event_data* event_data_) {
 
 inline stack<string>* concurrency_handler::get_event_stack(unsigned int tid) {
   stack<string>* tmp;
-  _vector_mutex.lock();
   tmp = this->_event_stack[tid];
-  _vector_mutex.unlock();
-  return tmp;
-}
-
-inline boost::mutex* concurrency_handler::get_event_stack_mutex(unsigned int tid) {
-  boost::mutex* tmp;
-  _vector_mutex.lock();
-  tmp = this->_stack_mutex[tid];
-  _vector_mutex.unlock();
   return tmp;
 }
 
@@ -154,7 +135,6 @@ inline void concurrency_handler::add_thread(unsigned int tid) {
   _vector_mutex.lock();
   while(_event_stack.size() <= tid) {
     _event_stack.push_back(new stack<string>);
-    _stack_mutex.push_back(new boost::mutex);
   }
   _vector_mutex.unlock();
 }

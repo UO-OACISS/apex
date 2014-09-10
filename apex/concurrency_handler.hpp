@@ -30,7 +30,6 @@ private:
   // vectors and mutex
   std::vector<std::stack<std::string>* > _event_stack;
   boost::mutex _vector_mutex;
-  std::vector<boost::mutex* > _stack_mutex;
   // periodic samples of stack top states
   std::vector<std::map<std::string, unsigned int>* > _states;
   // functions and mutex
@@ -46,7 +45,6 @@ public:
   void on_event(event_data* event_data_);
   void _handler(void);
   std::stack<std::string>* get_event_stack(unsigned int tid);
-  boost::mutex* get_event_stack_mutex(unsigned int tid);
   void add_thread(unsigned int tid) ;
   void reset(void);
   void output_samples(int node_id);
