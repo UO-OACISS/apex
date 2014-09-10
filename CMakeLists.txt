@@ -104,6 +104,12 @@ if(Boost_FOUND)
 endif()
 
 ################################################################################
+# MPI configuration
+################################################################################
+
+find_package(MPI)
+
+################################################################################
 # TAU configuration
 ################################################################################
 
@@ -140,6 +146,9 @@ add_subdirectory (DemoCpp)
 add_subdirectory (DemoC)  
 # Add a test program which actually uses the CPU
 add_subdirectory (Matmult)  
+if(MPI_CXX_FOUND)
+add_subdirectory (MPITest)  
+endif()
 add_subdirectory (TestITT)
 add_subdirectory (TestThreads)
 
@@ -158,3 +167,8 @@ add_test (TestITTRuns TestITT/testITT)
 
 # Run the test program which tests the threads interface
 add_test (TestThreadsRuns TestThreads/testThreads)  
+
+if(MPI_CXX_FOUND)
+# Run the test program which tests the mpi interface
+  add_test (MPITestRuns ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2 ${MPIEXEC_PREFLAGS} MPITest/mpi_test ${MPIEXEC_POSTFLAGS})  
+endif()

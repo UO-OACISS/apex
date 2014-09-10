@@ -27,12 +27,15 @@
 #endif
 
 __thread bool _registered = false;
+static bool _initialized = false;
 __thread int _level = -1;
 
 #if 0
 #define APEX_TRACER {int __nid = TAU_PROFILE_GET_NODE(); \
- int __tid = thread_instance::getID(); \
-cout << __nid << ":" << __tid << " " << __FUNCTION__ << " ["<< __FILE__ << ":" << __LINE__ << "]" << endl;}
+ int __tid = TAU_PROFILE_GET_THREAD(); \
+ std::stringstream ss; \
+ ss << __nid << ":" << __tid << " " << __FUNCTION__ << " ["<< __FILE__ << ":" << __LINE__ << "]" << endl; \
+ cout << ss.str();}
 #else
 #define APEX_TRACER
 #endif
@@ -80,7 +83,7 @@ void apex::set_node_id(int id)
     stringstream ss;
     ss << "locality#" << m_node_id;
     m_my_locality = new string(ss.str());
-    node_event_data* event_data = new node_event_data(0, id);
+    node_event_data* event_data = new node_event_data(id, thread_instance::get_id());
     this->notify_listeners(event_data);
 }
 
@@ -191,14 +194,15 @@ policy_handler * apex::get_policy_handler(uint64_t const& period)
 void init(const char * thread_name)
 {
     APEX_TRACER
+    if (_registered || _initialized) return; // protect against multiple initializations
     _registered = true;
+    _initialized = true;
     int argc = 1;
     const char *dummy = "APEX Application";
     char* argv[1];
     argv[0] = const_cast<char*>(dummy);
     apex* instance = apex::instance(); // get/create the Apex static instance
     if (!instance) return; // protect against calls after finalization
-    //TAU_PROFILE_INIT(argc, argv);
     startup_event_data* event_data_ = new startup_event_data(argc, argv);
     instance->notify_listeners(event_data_);
     set_node_id(0);
@@ -212,9 +216,11 @@ void init(const char * thread_name)
 void init(int argc, char** argv, const char * thread_name)
 {
     APEX_TRACER
+    if (_registered || _initialized) return; // protect against multiple initializations
+    _registered = true;
+    _initialized = true;
     apex* instance = apex::instance(argc, argv); // get/create the Apex static instance
     if (!instance) return; // protect against calls after finalization
-    //TAU_PROFILE_INIT(argc, argv);
     startup_event_data* event_data_ = new startup_event_data(argc, argv);
     instance->notify_listeners(event_data_);
     set_node_id(0);
@@ -278,7 +284,6 @@ void stop(string timer_name)
     APEX_TIMER_TRACER("stop  ", timer_name)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
-    //TAU_STOP(timer_name.c_str());
     event_data* event_data_ = NULL;
     // don't do this now
     /*
@@ -300,7 +305,6 @@ void stop()
     APEX_TIMER_TRACER("stop", "?")
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
-    //TAU_GLOBAL_TIMER_STOP(); // stop the top level timer
     string empty = "";
     event_data* event_data_ = new timer_event_data(STOP_EVENT, thread_instance::get_id(), empty);
     instance->notify_listeners(event_data_);
@@ -354,14 +358,12 @@ void sample_value(string name, double value)
         {
             event_data_ = new sample_value_event_data(0, name, value);
             //Tau_trigger_context_event_thread((char*)name.c_str(), value, 0);
-            //TAU_TRIGGER_CONTEXT_EVENT((char *)(name.c_str()), value);
         }
     }
     else
     {
         // what if it doesn't?
         event_data_ = new sample_value_event_data(0, name, value);
-        //TAU_TRIGGER_CONTEXT_EVENT((char *)(name.c_str()), value);
     }
     instance->notify_listeners(event_data_);
 }
@@ -419,9 +421,6 @@ void finalize()
     APEX_TRACER
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
-    // exit ALL threads
-    //Tau_profile_exit_all_threads();
-    //TAU_PROFILE_EXIT("APEX exiting");
     if (!_finalized)
     {
         _finalized = true;
@@ -440,12 +439,6 @@ void register_thread(string name)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     if (_registered) return; // protect against multiple registrations on the same thread
-    //TAU_REGISTER_THREAD();
-    // int nid, tid;
-    // nid = TAU_PROFILE_GET_NODE();
-    // tid = TAU_PROFILE_GET_THREAD();
-    //cout << "Node " << nid << " registered thread " << tid << endl;
-    // we can't start, because there is no way to stop!
     thread_instance::set_name(name);
     new_thread_event_data* event_data_ = new new_thread_event_data(name);
     instance->notify_listeners(event_data_);
@@ -453,7 +446,6 @@ void register_thread(string name)
     if (index!=std::string::npos)
     {
         string short_name = name.substr(0,index);
-        //cout << "shortening " << name << " to " << shortName << endl;
         start(short_name);
     }
     else
