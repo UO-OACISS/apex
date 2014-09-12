@@ -113,8 +113,8 @@ find_package(MPI)
 # TAU configuration
 ################################################################################
 
-# TAU is required.
-find_package(TAU REQUIRED)
+# TAU is NOT required.
+find_package(TAU)
 include_directories(${TAU_INCLUDE_DIRS})
 set(LIBS ${LIBS} ${TAU_LIBRARIES})
 
