@@ -100,15 +100,20 @@ bool thread_instance::map_id_to_worker(int id) {
   return worker;
 }
 
-char* program_path(void) {
-    char *path = (char*)malloc(PATH_MAX);
-    if (path != NULL) {
-        if (readlink("/proc/self/exe", path, PATH_MAX) == -1) {
-            free(path);
-            path = NULL;
+const char* program_path(void) {
+    static string * the_path = NULL;
+    if (the_path == NULL) {
+        char *path = (char*)malloc(PATH_MAX);
+        if (path != NULL) {
+            if (readlink("/proc/self/exe", path, PATH_MAX) == -1) {
+                free(path);
+                path = NULL;
+            }
         }
+	the_path = new string(path);
+	free (path);
     }
-    return path;
+    return the_path->c_str();
 }
 
 string thread_instance::map_addr_to_name(void * function_address) {

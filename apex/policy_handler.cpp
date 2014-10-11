@@ -32,7 +32,7 @@ policy_handler::policy_handler (uint64_t period_microseconds) : handler(period_m
 
 void policy_handler::_handler(void) {
   periodic_event_data data;
-  this->on_event(&data);
+  this->on_periodic(data);
   this->reset();
 }
 
@@ -101,12 +101,12 @@ int policy_handler::register_policy(const apex_event_type & when,
 
 }
 
-void policy_handler::call_policies(
+inline void policy_handler::call_policies(
     const std::list<boost::shared_ptr<policy_instance> > & policies,
-    event_data* event_data_) {
+    event_data &event_data) {
   for(const boost::shared_ptr<policy_instance>& policy : policies) {
     apex_context my_context;
-    my_context.event_type = event_data_->event_type_;
+    my_context.event_type = event_data.event_type_;
     my_context.policy_handle = NULL;
     const bool result = policy->func(my_context);
     if(!result) {
@@ -115,11 +115,8 @@ void policy_handler::call_policies(
   }
 }
 
-void policy_handler::on_event(event_data* event_data_) {
-  //unsigned int tid = thread_instance::get_id();
-  if (!_terminate) {
-    switch(event_data_->event_type_) {
-    case STARTUP: {
+void policy_handler::on_startup(startup_event_data &event_data) {
+  if (_terminate) return;
         std::list<boost::shared_ptr<policy_instance> > policies;
         {
             boost::shared_lock<mutex_type> l(startup_mutex);
@@ -127,10 +124,11 @@ void policy_handler::on_event(event_data* event_data_) {
                 return;
             policies = startup_policies;
         }
-        call_policies(policies, event_data_);
-        break;
-    }
-    case SHUTDOWN: {
+        call_policies(policies, event_data);
+}
+
+void policy_handler::on_shutdown(shutdown_event_data &event_data) {
+  if (_terminate) return;
         _terminate = true;
         std::list<boost::shared_ptr<policy_instance> > policies;
         {
@@ -139,10 +137,11 @@ void policy_handler::on_event(event_data* event_data_) {
                 return;
             policies = shutdown_policies;
         }
-        call_policies(policies, event_data_);
-        break;
-    }
-    case NEW_NODE: {
+        call_policies(policies, event_data);
+}
+
+void policy_handler::on_new_node(node_event_data &event_data) {
+  if (_terminate) return;
         std::list<boost::shared_ptr<policy_instance> > policies;
         {
             boost::shared_lock<mutex_type> l(new_node_mutex);
@@ -150,10 +149,11 @@ void policy_handler::on_event(event_data* event_data_) {
                 return;
             policies = new_node_policies;
         }
-        call_policies(policies, event_data_);
-        break;
-    }
-    case NEW_THREAD: {
+        call_policies(policies, event_data);
+}
+
+void policy_handler::on_new_thread(new_thread_event_data &event_data) {
+  if (_terminate) return;
         std::list<boost::shared_ptr<policy_instance> > policies;
         {
             boost::shared_lock<mutex_type> l(new_thread_mutex);
@@ -161,10 +161,11 @@ void policy_handler::on_event(event_data* event_data_) {
                 return;
             policies = new_thread_policies;
         }
-        call_policies(policies, event_data_);
-        break;
-    }
-    case START_EVENT: {
+        call_policies(policies, event_data);
+}
+
+void policy_handler::on_start(timer_event_data &event_data) {
+  if (_terminate) return;
         std::list<boost::shared_ptr<policy_instance> > policies;
         {
             boost::shared_lock<mutex_type> l(start_event_mutex);
@@ -172,10 +173,11 @@ void policy_handler::on_event(event_data* event_data_) {
                 return;
             policies = start_event_policies;
         }
-        call_policies(policies, event_data_);
-        break;
-    }
-    case STOP_EVENT: {
+        call_policies(policies, event_data);
+}
+
+void policy_handler::on_stop(timer_event_data &event_data) {
+  if (_terminate) return;
         std::list<boost::shared_ptr<policy_instance> > policies;
         {
             boost::shared_lock<mutex_type> l(stop_event_mutex);
@@ -183,10 +185,15 @@ void policy_handler::on_event(event_data* event_data_) {
                 return;
             policies = stop_event_policies;
         }
-        call_policies(policies, event_data_);
-        break;
-    }
-    case SAMPLE_VALUE: {
+        call_policies(policies, event_data);
+}
+
+void policy_handler::on_resume(timer_event_data &event_data) {
+  if (_terminate) return;
+}
+
+void policy_handler::on_sample_value(sample_value_event_data &event_data) {
+  if (_terminate) return;
         std::list<boost::shared_ptr<policy_instance> > policies;
         {
             boost::shared_lock<mutex_type> l(sample_value_mutex);
@@ -194,10 +201,11 @@ void policy_handler::on_event(event_data* event_data_) {
                 return;
             policies = sample_value_policies;
         }
-        call_policies(policies, event_data_);
-        break;
-    }
-    case PERIODIC: {
+        call_policies(policies, event_data);
+}
+
+void policy_handler::on_periodic(periodic_event_data &event_data) {
+  if (_terminate) return;
         std::list<boost::shared_ptr<policy_instance> > policies;
         {
             boost::shared_lock<mutex_type> l(periodic_mutex);
@@ -205,12 +213,7 @@ void policy_handler::on_event(event_data* event_data_) {
                 return;
             policies = periodic_policies;
         }
-        call_policies(policies, event_data_);
-        break;
-    }
-    } //end switch
-  } // end if
-  return;
+        call_policies(policies, event_data);
 }
 
 } // end namespace apex

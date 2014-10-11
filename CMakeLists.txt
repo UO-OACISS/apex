@@ -96,7 +96,7 @@ endif()
 set(Boost_USE_STATIC_LIBS OFF) 
 set(Boost_USE_MULTITHREADED ON)  
 set(Boost_USE_STATIC_RUNTIME OFF) 
-find_package(Boost 1.54.0 REQUIRED COMPONENTS system thread ) 
+find_package(Boost 1.54.0 REQUIRED COMPONENTS system thread timer ) 
 
 if(Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS}) 
@@ -115,16 +115,18 @@ find_package(MPI)
 
 # TAU is NOT required.
 find_package(TAU)
-include_directories(${TAU_INCLUDE_DIRS})
-set(LIBS ${LIBS} ${TAU_LIBRARIES})
+if (TAU_FOUND)
+	include_directories(${TAU_INCLUDE_DIRS})
+	set(LIBS ${LIBS} ${TAU_LIBRARIES})
+	set (CMAKE_INSTALL_RPATH ${TAU_LIBRARY_DIR})
+endif()
 
 # RCR is NOT required.
 find_package(RCR)
 include_directories(${RCR_INCLUDE_DIRS})
 set(LIBS ${LIBS} ${RCR_LIBRARIES})
 
-#set (CMAKE_INSTALL_PREFIX ".")
-set (CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib" ${TAU_LIBRARY_DIR})
+set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} "${CMAKE_INSTALL_PREFIX}/lib")
 
 # needed for apex.pc.in
 SET(prefix ${CMAKE_INSTALL_PREFIX})

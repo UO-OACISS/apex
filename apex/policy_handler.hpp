@@ -63,7 +63,7 @@ private:
     mutex_type periodic_mutex;
     void call_policies(
         const std::list<boost::shared_ptr<policy_instance> > & policies,
-        event_data * event_data_);
+        event_data &event_data);
     boost::atomic_int next_id;
 public:
     policy_handler (void);
@@ -73,7 +73,16 @@ public:
 */
     policy_handler(uint64_t period_microseconds);
     ~policy_handler (void) { };
-    void on_event(event_data* event_data_);
+    void on_startup(startup_event_data &event_data);
+    void on_shutdown(shutdown_event_data &event_data);
+    void on_new_node(node_event_data &event_data);
+    void on_new_thread(new_thread_event_data &event_data);
+    void on_start(timer_event_data &event_data);
+    void on_stop(timer_event_data &event_data);
+    void on_resume(timer_event_data &event_data);
+    void on_sample_value(sample_value_event_data &event_data);
+    void on_periodic(periodic_event_data &event_data);
+
     int register_policy(const apex_event_type & when,
                         std::function<bool(apex_context const&)> f);
     void _handler(void);

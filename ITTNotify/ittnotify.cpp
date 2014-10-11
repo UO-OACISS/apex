@@ -71,7 +71,7 @@ void __itt_task_begin(__itt_domain const* domain, __itt_id taskid, __itt_id pare
 }
 void __itt_task_end(__itt_domain const*) {
   APEX_TRACER
-  apex::stop();
+  apex::stop(NULL);
 }
 
 void __itt_thread_set_name (const char * name) {

@@ -14,14 +14,24 @@ using namespace std;
 
 namespace apex {
 
-timer_event_data::timer_event_data(apex_event_type event_type_, int thread_id, string timer_name) {
+timer_event_data::timer_event_data(apex_event_type event_type_, int thread_id, string timer_name) : have_name(true) {
   this->event_type_ = event_type_;
   this->thread_id = thread_id;
+  this->my_profiler = NULL;
   this->timer_name = new string(timer_name);
+  this->function_address = NULL;
+}
+
+timer_event_data::timer_event_data(apex_event_type event_type_, int thread_id, void * function_address) : have_name(false) {
+  this->event_type_ = event_type_;
+  this->thread_id = thread_id;
+  this->my_profiler = NULL;
+  this->function_address = function_address;
 }
 
 timer_event_data::~timer_event_data() {
-  delete(timer_name);
+  //if (have_name) 
+    //delete(timer_name);
 }
 
 node_event_data::node_event_data(int node_id, int thread_id) {
@@ -68,7 +78,5 @@ periodic_event_data::periodic_event_data() {
   this->thread_id = thread_instance::get_id();
   this->event_type_ = PERIODIC;
 }
-
-periodic_event_data::~periodic_event_data() {}
 
 }

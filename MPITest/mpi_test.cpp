@@ -52,7 +52,7 @@ master(void)
   unit_of_work_t work;
   unit_result_t result;
   MPI_Status status;
-  apex::start(__func__);
+  void * profiler = apex::start((void*)(master));
 
   /* Find out how many processes there are in the default
      communicator */
@@ -121,7 +121,7 @@ master(void)
   for (rank = 1; rank < ntasks; ++rank) {
     MPI_Send(0, 0, MPI_INT, rank, DIETAG, MPI_COMM_WORLD);
   }
-  apex::stop(__func__);
+  apex::stop(profiler);
 }
 
 
@@ -131,7 +131,7 @@ worker(void)
   unit_of_work_t work;
   unit_result_t results;
   MPI_Status status;
-  apex::start(__func__);
+  void * profiler = apex::start((void*)(worker));
 
   while (1) {
 
@@ -154,7 +154,7 @@ worker(void)
 
     MPI_Send(&result, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
   }
-  apex::stop(__func__);
+  apex::stop(profiler);
 }
 
 

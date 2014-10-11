@@ -69,53 +69,39 @@ void concurrency_handler::_init(void) {
   return;
 }
 
-void concurrency_handler::on_event(event_data* event_data_) {
-  stack<string>* my_stack;
-  boost::mutex* my_mut;
+void concurrency_handler::on_start(timer_event_data &event_data) {
   if (!_terminate) {
-    switch(event_data_->event_type_) {
+    stack<string>* my_stack = get_event_stack(event_data.thread_id);
+    my_stack->push(*(event_data.timer_name));
+  }
+}
 
-      case START_EVENT:
-      {
-        timer_event_data *starter = (timer_event_data*)event_data_;
-        my_stack = get_event_stack(starter->thread_id);
-        my_stack->push(*(starter->timer_name));
-        break;
-      }
+void concurrency_handler::on_resume(timer_event_data &event_data) {
+  if (!_terminate) {
+    stack<string>* my_stack = get_event_stack(event_data.thread_id);
+    my_stack->push(*(event_data.timer_name));
+  }
+}
 
-      case STOP_EVENT:
-      {
-        timer_event_data *stopper = (timer_event_data*)event_data_;
-        my_stack = get_event_stack(stopper->thread_id);
-	if (!my_stack->empty()) {
-          my_stack->pop();
-	}
-        break;
-      }
-
-      case NEW_THREAD:
-      {
-        new_thread_event_data *newthread = (new_thread_event_data*)event_data_;
-        add_thread(newthread->thread_id);
-        break;
-      }
-
-      case SHUTDOWN:
-      {
-        shutdown_event_data *shutdown = (shutdown_event_data*)event_data_;
-        _terminate = true;
-        output_samples(shutdown->node_id);
-        break;
-      }
-
-      default:
-      {
-        break;
-      }
-
+void concurrency_handler::on_stop(timer_event_data &event_data) {
+  if (!_terminate) {
+    stack<string>* my_stack = get_event_stack(event_data.thread_id);
+    if (!my_stack->empty()) {
+      my_stack->pop();
     }
   }
-  return;
+}
+
+void concurrency_handler::on_new_thread(new_thread_event_data &event_data) {
+  if (!_terminate) {
+        add_thread(event_data.thread_id);
+  }
+}
+
+void concurrency_handler::on_shutdown(shutdown_event_data &event_data) {
+  if (!_terminate) {
+        output_samples(event_data.node_id);
+  }
 }
 
 inline stack<string>* concurrency_handler::get_event_stack(unsigned int tid) {

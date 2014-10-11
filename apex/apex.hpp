@@ -15,6 +15,7 @@
 #include "handler.hpp"
 #include "event_listener.hpp"
 #include "policy_handler.hpp"
+#include "profiler_listener.hpp"
 //#include <chrono.h>
 
 //using namespace std;
@@ -50,14 +51,14 @@ private:
     void _initialize();
     policy_handler * m_policy_handler;
     std::map<int, policy_handler*> period_handlers;
-    std::vector<event_listener*> listeners;
 public:
+    std::vector<event_listener*> listeners;
     string* m_my_locality;
     static apex* instance(); // singleton instance
     static apex* instance(int argc, char** argv); // singleton instance
     void set_node_id(int id);
     int get_node_id(void);
-    void notify_listeners(event_data* event_data_);
+    //void notify_listeners(event_data* event_data_);
     policy_handler * get_policy_handler(void) const;
 /*
     template <typename Rep, typename Period>
@@ -73,13 +74,16 @@ void init(const char * thread_name);
 void init(int argc, char** argv, const char * thread_name);
 void finalize(void);
 double version(void);
-void start(std::string timer_name);
-void stop(std::string timer_name);
-void resume(std::string timer_name);
-void start(void * function_address);
-void stop(void * function_address);
-void resume(void * function_address);
-void stop(void);
+void* start(std::string timer_name);
+void* start(void * function_address);
+//void start(void * function_address);
+//void stop(std::string timer_name);
+//void stop_addr(void * function_address);
+//void stop(void);
+void stop(void * profiler);
+//void resume(std::string timer_name);
+//void resume_addr(void * function_address);
+void resume(void * profiler);
 void sample_value(std::string name, double value);
 void set_node_id(int id);
 void register_thread(std::string name);

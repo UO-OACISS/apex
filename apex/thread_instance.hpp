@@ -14,6 +14,7 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/atomic.hpp>
 #include <map>
+#include "profiler.hpp"
 
 //using namespace std;
 
@@ -41,6 +42,7 @@ private:
   // map from function address to name - unique to all threads to avoid locking
   std::map<void *, std::string> _function_map;
 public:
+  profiler * current_timer;
   static thread_instance& instance(void);
   static int get_id(void);
   static std::string get_name(void);

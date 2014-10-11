@@ -10,8 +10,10 @@
 class ApexProxy {
 private:
   std::string _name;
+  void * profiler;
 public:
   ApexProxy(const char * func, const char * file, int line);
+  ApexProxy(void *fpointer);
   ~ApexProxy();
 };
 
@@ -19,11 +21,15 @@ ApexProxy::ApexProxy(const char * func, const char * file, int line) {
   std::ostringstream s;
   s << func << " [" << file << ":" << line << "]";
   _name = std::string(s.str());
-  apex::start(_name);
+  profiler = apex::start(_name);
+}
+
+ApexProxy::ApexProxy(void *fpointer) {
+  profiler = apex::start(fpointer);
 }
 
 ApexProxy::~ApexProxy() {
-  apex::stop(_name);
+  apex::stop(profiler);
 };
 
 typedef void*(*start_routine_t)(void*);
@@ -31,7 +37,8 @@ typedef void*(*start_routine_t)(void*);
 void* someThread(void* tmp)
 {
   apex::register_thread("threadTest thread");
-  ApexProxy proxy = ApexProxy(__func__, __FILE__, __LINE__);
+  //ApexProxy proxy = ApexProxy(__func__, __FILE__, __LINE__);
+  ApexProxy proxy = ApexProxy((void*)someThread);
   printf("PID of this process: %d\n", getpid());
 #if defined (__APPLE__)
   printf("The ID of this thread is: %lu\n", (unsigned long)pthread_self());
@@ -49,6 +56,7 @@ int main(int argc, char **argv)
   apex::init(argc, argv, NULL);
   apex::set_node_id(0);
   //ApexProxy proxy = ApexProxy(__func__, __FILE__, __LINE__);
+  ApexProxy proxy = ApexProxy((void*)main);
   printf("PID of this process: %d\n", getpid());
   pthread_t thread[NUM_THREADS];
   int i;

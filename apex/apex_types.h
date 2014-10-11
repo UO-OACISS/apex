@@ -16,6 +16,7 @@ typedef enum _event_type {
   NEW_NODE,
   NEW_THREAD,
   START_EVENT,
+  RESUME_EVENT,
   STOP_EVENT,
   SAMPLE_VALUE,
   PERIODIC
