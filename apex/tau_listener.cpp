@@ -23,40 +23,80 @@ namespace apex {
 tau_listener::tau_listener (void) : _terminate(false) {
 }
 
-void tau_listener::on_event(event_data * event_data_) {
+void tau_listener::on_startup(startup_event_data &data) {
   if (!_terminate) {
-    if (event_data_->event_type_ == START_EVENT) {
-      timer_event_data *tmp = (timer_event_data*)event_data_;
-      TAU_START(tmp->timer_name->c_str());
-    } else if (event_data_->event_type_ == STOP_EVENT) {
-      timer_event_data *tmp = (timer_event_data*)event_data_;
-      if (*(tmp->timer_name) == string("")) {
-        TAU_GLOBAL_TIMER_STOP(); // stop the top level timer
-      } else {
-        TAU_STOP(tmp->timer_name->c_str());
-      }
-    } else if (event_data_->event_type_ == NEW_NODE) {
-      node_event_data *tmp = (node_event_data*)event_data_;
-      TAU_PROFILE_SET_NODE(tmp->node_id);
-    } else if (event_data_->event_type_ == NEW_THREAD) {
-      TAU_REGISTER_THREAD();
-      Tau_create_top_level_timer_if_necessary();
-      // set the thread id for future listeners to this event
-      event_data_->thread_id = TAU_PROFILE_GET_THREAD();
-    } else if (event_data_->event_type_ == SAMPLE_VALUE) {
-      sample_value_event_data *tmp = (sample_value_event_data*)event_data_;
-      Tau_trigger_context_event_thread((char*)tmp->counter_name->c_str(), tmp->counter_value, tmp->thread_id);
-    } else if (event_data_->event_type_ == STARTUP) {
-      startup_event_data *tmp = (startup_event_data*)event_data_;
-      TAU_PROFILE_INIT(tmp->argc, tmp->argv);
-    } else if (event_data_->event_type_ == SHUTDOWN) {
-      //shutdown_event_data *tmp = (shutdown_event_data*)event_data_;
-      _terminate = true;
-      Tau_profile_exit_all_threads();
-      TAU_PROFILE_EXIT("APEX exiting");
-    }
+      TAU_PROFILE_INIT(data.argc, data.argv);
   }
   return;
 }
+
+void tau_listener::on_shutdown(shutdown_event_data &data) {
+  if (!_terminate) {
+      _terminate = true;
+      Tau_profile_exit_all_threads();
+      TAU_PROFILE_EXIT("APEX exiting");
+  }
+  return;
+}
+
+void tau_listener::on_new_node(node_event_data &data) {
+  if (!_terminate) {
+      TAU_PROFILE_SET_NODE(data.node_id);
+  }
+  return;
+}
+
+void tau_listener::on_new_thread(new_thread_event_data &data) {
+  if (!_terminate) {
+      TAU_REGISTER_THREAD();
+      Tau_create_top_level_timer_if_necessary();
+      // set the thread id for future listeners to this event
+      data.thread_id = TAU_PROFILE_GET_THREAD();
+  }
+  return;
+}
+
+void tau_listener::on_start(timer_event_data &data) {
+  if (!_terminate) {
+      if (data.have_name) {
+      	TAU_START(data.timer_name->c_str());
+      } else {
+      	TAU_START(thread_instance::instance().map_addr_to_name(data.function_address).c_str());
+      }
+  }
+  return;
+}
+
+void tau_listener::on_stop(timer_event_data &data) {
+  if (!_terminate) {
+      if (data.have_name) {
+        TAU_STOP(data.timer_name->c_str());
+      } else {
+        TAU_GLOBAL_TIMER_STOP(); // stop the top level timer
+      }
+  }
+  return;
+}
+
+void tau_listener::on_resume(timer_event_data &data) {
+  if (!_terminate) {
+      TAU_START(data.timer_name->c_str());
+  }
+  return;
+}
+
+void tau_listener::on_sample_value(sample_value_event_data &data) {
+  if (!_terminate) {
+      Tau_trigger_context_event_thread((char*)data.counter_name->c_str(), data.counter_value, data.thread_id);
+  }
+  return;
+}
+
+void tau_listener::on_periodic(periodic_event_data &data) {
+  if (!_terminate) {
+  }
+  return;
+}
+
 
 }
