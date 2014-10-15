@@ -68,11 +68,20 @@ void tau_listener::on_start(timer_event_data &data) {
 }
 
 void tau_listener::on_stop(timer_event_data &data) {
+  static string empty("");
   if (!_terminate) {
       if (data.have_name) {
-        TAU_STOP(data.timer_name->c_str());
+        if (data.timer_name->compare(empty) == 0) {
+          TAU_GLOBAL_TIMER_STOP(); // stop the top level timer
+	} else {
+          TAU_STOP(data.timer_name->c_str());
+	}
       } else {
-        TAU_GLOBAL_TIMER_STOP(); // stop the top level timer
+        if (data.function_address == 0) {
+          TAU_GLOBAL_TIMER_STOP(); // stop the top level timer
+	} else {
+      	  TAU_STOP(thread_instance::instance().map_addr_to_name(data.function_address).c_str());
+	}
       }
   }
   return;
