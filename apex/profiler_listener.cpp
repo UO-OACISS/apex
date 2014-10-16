@@ -248,8 +248,12 @@ void profiler_listener::on_new_node(node_event_data &data) {
 void profiler_listener::on_new_thread(new_thread_event_data &data) {
   if (!_terminate) {
       //cout << "NEW THREAD" << endl;
-      int me = thread_instance::instance().get_id();
-      profiler_queues[me] = new boost::lockfree::spsc_queue<profiler*>(MAX_QUEUE_SIZE);
+      unsigned int me = (unsigned int)thread_instance::instance().get_id();
+      boost::lockfree::spsc_queue<profiler*>* tmp = new boost::lockfree::spsc_queue<profiler*>(MAX_QUEUE_SIZE);
+      if (me >= profiler_queues.size()) {
+	      profiler_queues.resize(profiler_queues.size() + 1);
+      }
+      profiler_queues[me] = tmp;
   }
 }
 
