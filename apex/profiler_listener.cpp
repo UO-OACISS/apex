@@ -17,8 +17,8 @@
 #include <sched.h>
 #include <cstdio>
 
-#define MAX_QUEUE_SIZE 1024*1024
-//#define MAX_QUEUE_SIZE 128
+//#define MAX_QUEUE_SIZE 1024*1024
+#define MAX_QUEUE_SIZE 128
 
 using namespace std;
 
@@ -36,10 +36,8 @@ static map<void*, profile*> address_map;
 profiler * profiler_listener::main_timer(NULL);
 int profiler_listener::node_id(0);
 
-inline void profiler_listener::process_profile(profiler * p, bool sample)
+inline void profiler_listener::process_profile(profiler * p)
 {
-    static int counter = 0;
-    if (sample && counter++ % 100 != 0) { return; }
     profile * theprofile;
     if (p->have_name) {
       map<string, profile*>::iterator it = name_map.find(*(p->timer_name));
@@ -80,6 +78,13 @@ void profiler_listener::delete_profiles(void) {
 #endif
     address_map.clear();
     name_map.clear();
+    int i = 0;
+    for (i = 0 ; i < thread_instance::get_num_threads(); i++) {
+	if (profiler_queues[i]) {
+            delete (profiler_queues[i]);
+	}
+    }
+    profiler_queues.clear();
 }
 
 void profiler_listener::finalize_profiles(void) {
@@ -157,7 +162,7 @@ void profiler_listener::process_profiles(void)
 	for (i = 0 ; i < thread_instance::get_num_threads(); i++) {
 	    if (profiler_queues[i]) {
                 while (profiler_queues[i]->pop(p)) {
-                    process_profile(p, true);
+                    process_profile(p);
                 }
 	    }
 	}
@@ -166,12 +171,12 @@ void profiler_listener::process_profiles(void)
     for (i = 0 ; i < thread_instance::get_num_threads(); i++) {
 	if (profiler_queues[i]) {
             while (profiler_queues[i]->pop(p)) {
-                process_profile(p, false);
+                process_profile(p);
             }
         }
     }
     main_timer->stop();
-    process_profile(main_timer, false);
+    process_profile(main_timer);
 
     char* option = NULL;
     option = getenv("APEX_SCREEN_OUTPUT");
@@ -258,6 +263,8 @@ void profiler_listener::on_new_thread(new_thread_event_data &data) {
 }
 
 void profiler_listener::on_start(timer_event_data &data) {
+    static int counter = 0;
+    if (counter++ % 100 != 0) { return; }
   if (!_terminate) {
       //active_tasks++;
       //cout << "START " << active_tasks << " " <<  *(data.timer_name) << " " << data.function_address << endl;
@@ -273,11 +280,14 @@ void profiler_listener::on_stop(timer_event_data &data) {
   if (!_terminate) {
       //active_tasks--;
       //cout << "STOP " << active_tasks << " " << endl;
-      data.my_profiler->stop();
-      int me = thread_instance::instance().get_id();
-      profiler_queues[me]->push(data.my_profiler);
-      if (me == 0)
-      	queue_signal.post();
+      if (data.my_profiler) {
+          data.my_profiler->stop();
+          int me = thread_instance::instance().get_id();
+          profiler_queues[me]->push(data.my_profiler);
+          if (me == 0) {
+      	    queue_signal.post();
+          }
+      }
   }
 }
 
