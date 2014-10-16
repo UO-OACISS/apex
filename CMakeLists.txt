@@ -78,7 +78,7 @@ configure_file (
 
 # use PIC for shared objects
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC") 
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fPIC -g -O0 -Wextra -Waddress -Warray-bounds -Wuninitialized -Wreturn-type")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fPIC -g -O3 -Wextra -Waddress -Warray-bounds -Wuninitialized -Wreturn-type")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fPIC -O3")
 
 ###############################################################################
@@ -153,6 +153,7 @@ add_subdirectory (MPITest)
 endif()
 add_subdirectory (TestITT)
 add_subdirectory (TestThreads)
+add_subdirectory (Overhead)
 
 # turn on "make test" support
 enable_testing()
@@ -169,6 +170,9 @@ add_test (TestITTRuns TestITT/testITT)
 
 # Run the test program which tests the threads interface
 add_test (TestThreadsRuns TestThreads/testThreads)  
+
+# Run the test program which tests the overhead in the threads interface
+add_test (TestOverhead Overhead/testOverhead)  
 
 if(MPI_CXX_FOUND)
 # Run the test program which tests the mpi interface

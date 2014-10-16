@@ -11,11 +11,14 @@
 #include <fstream>
 
 #include <boost/thread/thread.hpp>
-#include <boost/lockfree/queue.hpp>
+#include <boost/lockfree/spsc_queue.hpp>
 #include <boost/atomic.hpp>
 #include <unistd.h>
 #include <sched.h>
 #include <cstdio>
+
+#define MAX_QUEUE_SIZE 1024*1024
+//#define MAX_QUEUE_SIZE 128
 
 using namespace std;
 
@@ -23,7 +26,7 @@ namespace apex {
 
 boost::atomic<int> profiler_listener::active_tasks(0);
 
-boost::lockfree::queue<profiler*> profiler_queue(128);
+std::vector<boost::lockfree::spsc_queue<profiler*>* > profiler_queues(8);
 boost::thread * consumer_thread;
 boost::atomic<bool> done (false);
 semaphore queue_signal;
@@ -33,8 +36,10 @@ static map<void*, profile*> address_map;
 profiler * profiler_listener::main_timer(NULL);
 int profiler_listener::node_id(0);
 
-void profiler_listener::process_profile(profiler * p)
+inline void profiler_listener::process_profile(profiler * p, bool sample)
 {
+    static int counter = 0;
+    if (sample && counter++ % 100 != 0) { return; }
     profile * theprofile;
     if (p->have_name) {
       map<string, profile*>::iterator it = name_map.find(*(p->timer_name));
@@ -146,18 +151,27 @@ void profiler_listener::write_profile(void) {
 void profiler_listener::process_profiles(void)
 {
     profiler * p;
+    int i;
     while (!done) {
         queue_signal.wait();
-        while (profiler_queue.pop(p)) {
-            process_profile(p);
-        }
+	for (i = 0 ; i < thread_instance::get_num_threads(); i++) {
+	    if (profiler_queues[i]) {
+                while (profiler_queues[i]->pop(p)) {
+                    process_profile(p, true);
+                }
+	    }
+	}
     }
 
-    while (profiler_queue.pop(p)) {
-        process_profile(p);
+    for (i = 0 ; i < thread_instance::get_num_threads(); i++) {
+	if (profiler_queues[i]) {
+            while (profiler_queues[i]->pop(p)) {
+                process_profile(p, false);
+            }
+        }
     }
     main_timer->stop();
-    process_profile(main_timer);
+    process_profile(main_timer, false);
 
     char* option = NULL;
     option = getenv("APEX_SCREEN_OUTPUT");
@@ -176,6 +190,10 @@ void profiler_listener::process_profiles(void)
 void profiler_listener::on_startup(startup_event_data &data) {
   if (!_terminate) {
       //cout << "STARTUP" << endl;
+      // one for the main thread
+      profiler_queues[0] = new boost::lockfree::spsc_queue<profiler*>(MAX_QUEUE_SIZE);
+      // one for the worker thread
+      //profiler_queues[1] = new boost::lockfree::spsc_queue<profiler*>(MAX_QUEUE_SIZE);
       consumer_thread = new boost::thread(process_profiles);
 #if 0
     int retcode;
@@ -230,12 +248,14 @@ void profiler_listener::on_new_node(node_event_data &data) {
 void profiler_listener::on_new_thread(new_thread_event_data &data) {
   if (!_terminate) {
       //cout << "NEW THREAD" << endl;
+      int me = thread_instance::instance().get_id();
+      profiler_queues[me] = new boost::lockfree::spsc_queue<profiler*>(MAX_QUEUE_SIZE);
   }
 }
 
 void profiler_listener::on_start(timer_event_data &data) {
   if (!_terminate) {
-      active_tasks++;
+      //active_tasks++;
       //cout << "START " << active_tasks << " " <<  *(data.timer_name) << " " << data.function_address << endl;
       if (data.have_name) {
         data.my_profiler = new profiler(data.timer_name);
@@ -247,11 +267,13 @@ void profiler_listener::on_start(timer_event_data &data) {
 
 void profiler_listener::on_stop(timer_event_data &data) {
   if (!_terminate) {
-      active_tasks--;
+      //active_tasks--;
       //cout << "STOP " << active_tasks << " " << endl;
       data.my_profiler->stop();
-      profiler_queue.push(data.my_profiler);
-      queue_signal.post();
+      int me = thread_instance::instance().get_id();
+      profiler_queues[me]->push(data.my_profiler);
+      if (me == 0)
+      	queue_signal.post();
   }
 }
 

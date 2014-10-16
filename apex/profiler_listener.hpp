@@ -23,7 +23,7 @@ private:
   static void write_profile(void);
   static void delete_profiles(void);
   static void process_profiles(void);
-  static void process_profile(profiler * p);
+  static void process_profile(profiler * p, bool sample);
   static int node_id;
 public:
   profiler_listener (void)  : _terminate(false) { };

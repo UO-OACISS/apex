@@ -37,19 +37,19 @@ public:
 
 class profile {
 private:
-	int calls;
+	double calls;
 	double accumulated_time;
 	double sum_squares;
 	double minimum;
 	double maximum;
 public:
-	profile(double elapsed) : calls(1), accumulated_time(elapsed), sum_squares(elapsed*elapsed), minimum(elapsed), maximum(elapsed) {};
+	profile(double elapsed) : calls(1.0), accumulated_time(elapsed), sum_squares(elapsed*elapsed), minimum(elapsed), maximum(elapsed) {};
 	void increment(double elapsed) {
 		accumulated_time += elapsed;
 		sum_squares += (elapsed * elapsed);
 		minimum = minimum > elapsed ? elapsed : minimum;
 		maximum = maximum < elapsed ? elapsed : maximum;
-		calls++;
+		calls = calls + 1.0;
 	}
 	void increment_resume(double elapsed) {
 		accumulated_time += elapsed;
