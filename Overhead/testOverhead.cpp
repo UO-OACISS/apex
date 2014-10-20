@@ -63,6 +63,7 @@ int main(int argc, char **argv)
 {
   apex::init(argc, argv, NULL);
   apex::set_node_id(0);
+
   //ApexProxy proxy = ApexProxy(__func__, __FILE__, __LINE__);
   ApexProxy proxy = ApexProxy((void*)main);
   printf("PID of this process: %d\n", getpid());

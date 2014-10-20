@@ -529,7 +529,7 @@ void register_thread(string name)
 #endif
 }
 
-apex_policy_handle* register_policy(const apex_event_type & when,
+apex_policy_handle* register_policy(const apex_event_type when,
                     std::function<bool(apex_context const&)> f)
 {
     APEX_TRACER
@@ -562,6 +562,13 @@ apex_policy_handle* register_periodic_policy(unsigned long period_microseconds,
     apex_policy_handle * handle = new apex_policy_handle();
     handle->id = id;
     return handle;
+}
+
+apex_profile* get_profile(void * action_address) {
+    profile * tmp = profiler_listener::get_profile(action_address);
+    if (tmp != NULL)
+	    return tmp->get_profile();
+    return NULL;
 }
 
 } // apex namespace
@@ -697,6 +704,15 @@ extern "C" {
         set_interrupt_interval(seconds);
     }
 
+apex_policy_handle* apex_register_policy(const apex_event_type when, int (f)(apex_context const)) {
+	return register_policy(when, f);
+}
+apex_policy_handle* apex_register_periodic_policy(unsigned long period, int (f)(apex_context const)) {
+	return register_periodic_policy(period, f);
+}
+apex_profile* apex_get_profile(void * action_address) {
+	return get_profile(action_address);
+}
 
 } // extern "C"
 

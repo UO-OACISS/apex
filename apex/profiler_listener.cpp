@@ -36,6 +36,14 @@ static map<void*, profile*> address_map;
 profiler * profiler_listener::main_timer(NULL);
 int profiler_listener::node_id(0);
 
+profile* profiler_listener::get_profile(void * address) {
+   map<void*, profile*>::iterator it = address_map.find(address);
+   if (it != address_map.end()) {
+     return (*it).second;
+   }
+   return NULL;
+}
+
 inline void profiler_listener::process_profile(profiler * p)
 {
     profile * theprofile;
@@ -136,7 +144,7 @@ void profiler_listener::write_profile(void) {
     map<void*, profile*>::const_iterator it;
     for(it = address_map.begin(); it != address_map.end(); it++) {
       profile * p = it->second;
-      // ".TAU application" 1 8 8658984 8660739 0 GROUP="TAU_USER" 
+      // ".TAU application" 1 8 8658984 8660739 0 GROUP="TAU_USER"
       void * function_address = it->first;
       myfile << "\"" << ti.map_addr_to_name(function_address) << "\" ";
       format_line (myfile, p);
@@ -256,15 +264,15 @@ void profiler_listener::on_new_thread(new_thread_event_data &data) {
       unsigned int me = (unsigned int)thread_instance::instance().get_id();
       boost::lockfree::spsc_queue<profiler*>* tmp = new boost::lockfree::spsc_queue<profiler*>(MAX_QUEUE_SIZE);
       if (me >= profiler_queues.size()) {
-	      profiler_queues.resize(profiler_queues.size() + 1);
+	      profiler_queues.resize(me + 1);
       }
       profiler_queues[me] = tmp;
   }
 }
 
 void profiler_listener::on_start(timer_event_data &data) {
-    static int counter = 0;
-    if (counter++ % 100 != 0) { return; }
+    static __thread int counter = 0; // only do 1/10 of the timers
+    if (counter++ % 10 != 0) { return; }
   if (!_terminate) {
       //active_tasks++;
       //cout << "START " << active_tasks << " " <<  *(data.timer_name) << " " << data.function_address << endl;
@@ -277,6 +285,7 @@ void profiler_listener::on_start(timer_event_data &data) {
 }
 
 void profiler_listener::on_stop(timer_event_data &data) {
+  static __thread int counter = 0; // only do 1/10 of the timers
   if (!_terminate) {
       //active_tasks--;
       //cout << "STOP " << active_tasks << " " << endl;
@@ -284,7 +293,7 @@ void profiler_listener::on_stop(timer_event_data &data) {
           data.my_profiler->stop();
           int me = thread_instance::instance().get_id();
           profiler_queues[me]->push(data.my_profiler);
-          if (me == 0) {
+          if (counter++ % 10 == 0) { // after there are some timers, post.
       	    queue_signal.post();
           }
       }

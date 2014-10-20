@@ -7,6 +7,7 @@
 #define PROFILER_LISTENER_HPP
 
 #include "event_listener.hpp"
+#include "apex_types.h"
 #include <boost/atomic.hpp>
 
 using namespace std;
@@ -37,6 +38,7 @@ public:
   void on_resume(timer_event_data &data);
   void on_sample_value(sample_value_event_data &data);
   void on_periodic(periodic_event_data &data);
+  static profile * get_profile(void * address);
 };
 
 }

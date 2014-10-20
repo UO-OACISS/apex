@@ -93,8 +93,7 @@ void enable_tracking_power(void);
 void disable_tracking_power(void);
 void set_interrupt_interval(int seconds);
 // Method for registering event-based policy
-apex_policy_handle* register_policy(const apex_event_type when,
-                    std::function<bool(apex_context const&)> f);
+apex_policy_handle* register_policy(const apex_event_type when, std::function<bool(apex_context const&)> f);
 // Method for registering periodic policy
 /*
 template <typename Rep, typename Period>
@@ -104,6 +103,7 @@ apex_policy_handle register_policy(
 */
 
 apex_policy_handle* register_periodic_policy(unsigned long period, std::function<bool(apex_context const&)> f);
+apex_profile* get_profile(void * function_address);
 }
 
 #endif //APEX_HPP

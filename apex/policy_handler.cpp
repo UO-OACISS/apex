@@ -13,7 +13,7 @@
 namespace apex {
 
 policy_handler::policy_handler (void) : handler() {
-  _init();
+  //_init();
 }
 
 /*
@@ -81,6 +81,11 @@ int policy_handler::register_policy(const apex_event_type & when,
         start_event_policies.push_back(instance);
         break;
       }
+      case RESUME_EVENT: {
+        boost::unique_lock<mutex_type> l(resume_event_mutex);
+        resume_event_policies.push_back(instance);
+        break;
+      }
       case STOP_EVENT: {
         boost::unique_lock<mutex_type> l(stop_event_mutex);
         stop_event_policies.push_back(instance);
@@ -119,7 +124,7 @@ void policy_handler::on_startup(startup_event_data &event_data) {
   if (_terminate) return;
         std::list<boost::shared_ptr<policy_instance> > policies;
         {
-            boost::shared_lock<mutex_type> l(startup_mutex);
+            //boost::shared_lock<mutex_type> l(startup_mutex);
             if (startup_policies.empty())
                 return;
             policies = startup_policies;
@@ -132,7 +137,7 @@ void policy_handler::on_shutdown(shutdown_event_data &event_data) {
         _terminate = true;
         std::list<boost::shared_ptr<policy_instance> > policies;
         {
-            boost::shared_lock<mutex_type> l(shutdown_mutex);
+            //boost::shared_lock<mutex_type> l(shutdown_mutex);
             if (shutdown_policies.empty())
                 return;
             policies = shutdown_policies;
@@ -144,7 +149,7 @@ void policy_handler::on_new_node(node_event_data &event_data) {
   if (_terminate) return;
         std::list<boost::shared_ptr<policy_instance> > policies;
         {
-            boost::shared_lock<mutex_type> l(new_node_mutex);
+            //boost::shared_lock<mutex_type> l(new_node_mutex);
             if (new_node_policies.empty())
                 return;
             policies = new_node_policies;
@@ -156,7 +161,7 @@ void policy_handler::on_new_thread(new_thread_event_data &event_data) {
   if (_terminate) return;
         std::list<boost::shared_ptr<policy_instance> > policies;
         {
-            boost::shared_lock<mutex_type> l(new_thread_mutex);
+            //boost::shared_lock<mutex_type> l(new_thread_mutex);
             if (new_thread_policies.empty())
                 return;
             policies = new_thread_policies;
@@ -168,7 +173,7 @@ void policy_handler::on_start(timer_event_data &event_data) {
   if (_terminate) return;
         std::list<boost::shared_ptr<policy_instance> > policies;
         {
-            boost::shared_lock<mutex_type> l(start_event_mutex);
+            //boost::shared_lock<mutex_type> l(start_event_mutex);
             if (start_event_policies.empty())
                 return;
             policies = start_event_policies;
@@ -180,7 +185,7 @@ void policy_handler::on_stop(timer_event_data &event_data) {
   if (_terminate) return;
         std::list<boost::shared_ptr<policy_instance> > policies;
         {
-            boost::shared_lock<mutex_type> l(stop_event_mutex);
+            //boost::shared_lock<mutex_type> l(stop_event_mutex);
             if (stop_event_policies.empty())
                 return;
             policies = stop_event_policies;
@@ -196,7 +201,7 @@ void policy_handler::on_sample_value(sample_value_event_data &event_data) {
   if (_terminate) return;
         std::list<boost::shared_ptr<policy_instance> > policies;
         {
-            boost::shared_lock<mutex_type> l(sample_value_mutex);
+            //boost::shared_lock<mutex_type> l(sample_value_mutex);
             if (sample_value_policies.empty())
                 return;
             policies = sample_value_policies;
@@ -208,7 +213,7 @@ void policy_handler::on_periodic(periodic_event_data &event_data) {
   if (_terminate) return;
         std::list<boost::shared_ptr<policy_instance> > policies;
         {
-            boost::shared_lock<mutex_type> l(periodic_mutex);
+            //boost::shared_lock<mutex_type> l(periodic_mutex);
             if (periodic_policies.empty())
                 return;
             policies = periodic_policies;

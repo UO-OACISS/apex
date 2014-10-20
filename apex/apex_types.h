@@ -33,4 +33,18 @@ typedef struct _context
     apex_policy_handle* policy_handle;
 } apex_context;
 
+typedef struct _profiler_handle
+{
+    void * profiler;
+} apex_profiler_handle;
+
+typedef struct _profile
+{
+    double calls;
+    double accumulated_time;
+    double sum_squares;
+    double minimum;
+    double maximum;
+} apex_profile;
+
 #endif //APEX_TYPES_HPP

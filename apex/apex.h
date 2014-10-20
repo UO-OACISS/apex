@@ -17,6 +17,8 @@
 #ifndef APEX_H
 #define APEX_H
 
+#include "apex_types.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -35,14 +37,16 @@ void apex_resume_profiler(void * profiler);
 void apex_sample_value(const char * name, double value);
 void apex_set_node_id(int id);
 double apex_version(void);
-void node_id(int id);
+void apex_node_id(int id);
 void apex_register_thread(const char * name);
 void apex_track_power(void);
 void apex_track_power_here(void);
 void apex_enable_tracking_power(void);
 void apex_disable_tracking_power(void);
 void apex_set_interrupt_interval(int seconds);
-
+apex_policy_handle* apex_register_policy(const apex_event_type when, int (*f)(apex_context const));
+apex_policy_handle* apex_register_periodic_policy(unsigned long period, int (*f)(apex_context const));
+apex_profile* apex_get_profile(void *);
 
 #ifdef __cplusplus
 }

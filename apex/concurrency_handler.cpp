@@ -39,7 +39,7 @@ void concurrency_handler::_handler(void) {
   //cout << "HANDLER: " << endl;
   map<string, unsigned int> *counts = new(map<string, unsigned int>);
   stack<string>* tmp;
-  boost::mutex* mut;
+//  boost::mutex* mut;
   for (unsigned int i = 0 ; i < _event_stack.size() ; i++) {
     if (_option > 1 && !thread_instance::map_id_to_worker(i)) {
       continue;

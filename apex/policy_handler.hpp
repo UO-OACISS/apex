@@ -51,6 +51,7 @@ private:
     std::list<boost::shared_ptr<policy_instance> > new_thread_policies;
     std::list<boost::shared_ptr<policy_instance> > start_event_policies;
     std::list<boost::shared_ptr<policy_instance> > stop_event_policies;
+    std::list<boost::shared_ptr<policy_instance> > resume_event_policies;
     std::list<boost::shared_ptr<policy_instance> > sample_value_policies;
     std::list<boost::shared_ptr<policy_instance> > periodic_policies;
     mutex_type startup_mutex;
@@ -59,6 +60,7 @@ private:
     mutex_type new_thread_mutex;
     mutex_type start_event_mutex;
     mutex_type stop_event_mutex;
+    mutex_type resume_event_mutex;
     mutex_type sample_value_mutex;
     mutex_type periodic_mutex;
     void call_policies(
