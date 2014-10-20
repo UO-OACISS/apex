@@ -293,7 +293,7 @@ void profiler_listener::on_stop(timer_event_data &data) {
           data.my_profiler->stop();
           int me = thread_instance::instance().get_id();
           profiler_queues[me]->push(data.my_profiler);
-          if (counter++ % 10 == 0) { // after there are some timers, post.
+          if (counter++ % 50 == 0) { // after there are some timers, post.
       	    queue_signal.post();
           }
       }
