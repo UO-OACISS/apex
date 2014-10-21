@@ -9,7 +9,7 @@ void* someThread(void* tmp)
   int* tid = (int*)tmp;
   char name[32];
   sprintf(name, "worker-thread#%d", *tid);
-  apex::register_thread(name);
+  register_thread(name);
   void * profiler = start((void*)(someThread));
   sleep(2); // Keep it alive so we're sure the second thread gets a unique ID.
   sample_value("/threadqueue{locality#0/total}/length", 2.0);
