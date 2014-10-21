@@ -1,3 +1,8 @@
+# Make sure that spaces in linker lines don't cause CMake errors
+if (POLICY CMP0004)
+  cmake_policy(SET CMP0004 OLD)
+endif()
+
 # Make sure the compiler can find include files from our Apex library. 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MPI_COMPILE_FLAGS}") 
 include_directories (. ${APEX_SOURCE_DIR}/apex ${MPI_CXX_INCLUDE_PATH}) 

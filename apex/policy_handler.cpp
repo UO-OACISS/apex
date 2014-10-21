@@ -183,14 +183,14 @@ void policy_handler::on_start(timer_event_data &event_data) {
 
 void policy_handler::on_stop(timer_event_data &event_data) {
   if (_terminate) return;
-        std::list<boost::shared_ptr<policy_instance> > policies;
-        {
+        //std::list<boost::shared_ptr<policy_instance> > policies;
+        //{
             //boost::shared_lock<mutex_type> l(stop_event_mutex);
             if (stop_event_policies.empty())
                 return;
-            policies = stop_event_policies;
-        }
-        call_policies(policies, event_data);
+            //policies = stop_event_policies;
+        //}
+        call_policies(stop_event_policies, event_data);
 }
 
 void policy_handler::on_resume(timer_event_data &event_data) {
