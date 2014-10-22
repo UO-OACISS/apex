@@ -65,6 +65,7 @@ public:
 	}
 	double get_calls() { return _profile.calls; }
 	double get_mean() { return (_profile.accumulated_time / _profile.calls); }
+	double get_accumulated() { return (_profile.accumulated_time); }
 	double get_minimum() { return (_profile.minimum); }
 	double get_maximum() { return (_profile.maximum); }
 	double get_variance() {
