@@ -20,7 +20,7 @@ target_link_libraries(apexShared ${LIBS} ${Boost_LIBRARIES})
 # so that we will find ApexConfig.h
 include_directories("${PROJECT_BINARY_DIR}/apex")
 
-INSTALL(FILES apex.h apex.hpp handler.hpp event_listener.hpp DESTINATION include)
+INSTALL(FILES apex.h apex.hpp apex_types.h handler.hpp event_listener.hpp DESTINATION include)
 
 INSTALL(TARGETS apexShared apexStatic
   RUNTIME DESTINATION bin
