@@ -68,8 +68,8 @@ apex_policy_handle apex_register_periodic_policy(unsigned long period, int (*f)(
 
 /*
  */
-apex_profile * apex_get_profile_name(const char * timer_name);
-apex_profile * apex_get_profile_address(apex_function_address function_address);
+apex_profile * apex_get_profile_from_name(const char * timer_name);
+apex_profile * apex_get_profile_from_address(apex_function_address function_address);
 
 #ifdef __cplusplus
 }

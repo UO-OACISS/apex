@@ -36,15 +36,15 @@ static map<void*, profile*> address_map;
 profiler * profiler_listener::main_timer(NULL);
 int profiler_listener::node_id(0);
 
-profile* profiler_listener::get_profile(void * address) {
-   map<void*, profile*>::iterator it = address_map.find(address);
+profile * profiler_listener::get_profile(apex_function_address address) {
+   map<void*, profile*>::iterator it = address_map.find((void*)address);
    if (it != address_map.end()) {
      return (*it).second;
    }
    return NULL;
 }
 
-profile* profiler_listener::get_profile(string &timer_name) {
+profile * profiler_listener::get_profile(string &timer_name) {
    map<string, profile*>::iterator it = name_map.find(timer_name);
    if (it != name_map.end()) {
      return (*it).second;

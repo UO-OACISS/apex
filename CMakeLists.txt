@@ -118,11 +118,13 @@ find_package(MPI)
 ################################################################################
 
 # TAU is NOT required.
+if (DEFINED TAU_ROOT)
 find_package(TAU)
 if (TAU_FOUND)
 	include_directories(${TAU_INCLUDE_DIRS})
 	set(LIBS ${LIBS} ${TAU_LIBRARIES})
 	set (CMAKE_INSTALL_RPATH ${TAU_LIBRARY_DIR})
+endif()
 endif()
 
 # RCR is NOT required.

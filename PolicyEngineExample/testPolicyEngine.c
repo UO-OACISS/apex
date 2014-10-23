@@ -35,7 +35,7 @@ void* someThread(void* tmp)
 }
 
 int policy_periodic(apex_context const context) {
-    apex_profile * p = apex_get_profile_address(foo);
+    apex_profile * p = apex_get_profile_from_address(foo);
     if (p != NULL) {
         printf("Periodic Policy: %p %d %f seconds.\n", foo, (int)p->calls, p->accumulated_time/p->calls);
     }
@@ -45,7 +45,7 @@ int policy_periodic(apex_context const context) {
 int policy_event(apex_context const context) {
     static __thread unsigned int not_every_time = 0;
     if (not_every_time++ % 500000 != 0) return 1;
-    apex_profile * p = apex_get_profile_address(foo);
+    apex_profile * p = apex_get_profile_from_address(foo);
     if (p != NULL) {
         printf("Event Policy: %p %d %f seconds.\n", foo, (int)p->calls, p->accumulated_time/p->calls);
     }

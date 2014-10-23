@@ -103,7 +103,8 @@ apex_policy_handle register_policy(
 */
 
 apex_policy_handle* register_periodic_policy(unsigned long period, std::function<bool(apex_context const&)> f);
-apex_profile* get_profile(void * function_address);
+apex_profile* get_profile(apex_function_address function_address);
+apex_profile* get_profile(string &timer_name);
 }
 
 #endif //APEX_HPP

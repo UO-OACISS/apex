@@ -565,14 +565,14 @@ apex_policy_handle* register_periodic_policy(unsigned long period_microseconds,
     return handle;
 }
 
-apex_profile* get_profile(void * action_address) {
+apex_profile* get_profile(apex_function_address action_address) {
     profile * tmp = profiler_listener::get_profile(action_address);
     if (tmp != NULL)
 	    return tmp->get_profile();
     return NULL;
 }
 
-apex_profile* get_profile(string timer_name) {
+apex_profile* get_profile(string &timer_name) {
     profile * tmp = profiler_listener::get_profile(timer_name);
     if (tmp != NULL)
 	    return tmp->get_profile();
@@ -718,11 +718,12 @@ apex_policy_handle* apex_register_policy(const apex_event_type when, int (f)(ape
 apex_policy_handle* apex_register_periodic_policy(unsigned long period, int (f)(apex_context const)) {
 	return register_periodic_policy(period, f);
 }
-apex_profile* apex_get_profile_address(apex_function_address function_address) {
+apex_profile* apex_get_profile_from_address(apex_function_address function_address) {
 	return get_profile(function_address);
 }
-apex_profile* apex_get_profile_name(const char * timer_name) {
-	return get_profile(string (timer_name));
+apex_profile* apex_get_profile_from_name(const char * timer_name) {
+    string tmp(timer_name);
+	return get_profile(tmp);
 }
 
 } // extern "C"
