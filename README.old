@@ -1,0 +1,108 @@
+STEP 0: (For the impatient)
+---------------------------------------------------------------
+modify bootstrap.sh as necessary, and run it.
+
+STEP 1: Getting, configuring, and building TAU for APEX support:
+---------------------------------------------------------------
+wget http://tau.uoregon.edu/tau.tgz
+tar zxf tau.tgz
+cd tau-2.x
+./configure -pthread -bfd=download -iowrapper
+make install
+
+STEP 2: Configuring and building APEX for HPX:
+---------------------------------------------
+(starting in the apex directory, the root of this tarball)
+
+mkdir build
+cd build
+export TAU_ROOT=$HOME/install/tau-gnu-hpx  (or equivalent)
+export BOOST_ROOT=/usr/local/packages/boost/1.55.0  (or equivalent)
+cmake -DCMAKE_INSTALL_PREFIX=. -DTAU_ROOT=$TAU_ROOT ..
+   (or)
+cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=. -DTAU_ROOT=$TAU_ROOT ..
+make
+make test
+make install
+
+STEP 3: Configuring and building HPX requirements:
+-------------------------------------------------
+Note: you will also need BOOST 1.52.0 (HPX requirement)
+Note: to run the GTCx application, you will also need Configure HDF5 (with fortran support)
+
+STEP 3a: Building HDF5 (modify installation path as necessary):
+--------------------------------------------------------------
+./configure --enable-threadsafe --enable-unsupported --enable-cxx --prefix=/usr/local/packages/hdf5-1.8.9_gcc-4.6.3 --with-pthread=/usr --enable-fortran
+make
+make install
+
+STEP 3b: Building BOOST:
+------------------------
+BOOST 1.52.0
+./bootstrap.sh
+./b2
+
+STEP 4: Configuring and building HPX:
+------------------------------------
+export HDF5_ROOT=<path-to-hdf5-installation>
+export HDF5_CPP=$HDF5_ROOT
+export HDF5_FORTRAN_ROOT=$HDF5_ROOT
+export BOOST_ROOT=<path_to_boost_1.52.0>
+export TAU_ROOT=<path_to_TAU>
+export APEX_ROOT=<path_to_APEX>
+
+(starting in the root of the HPX source tree)
+mkdir build
+cd build
+module load cmake/2.8.6
+cmake -DBOOST_ROOT=$BOOST_ROOT -DCMAKE_INSTALL_PREFIX=. -DAPEX_ROOT=$APEX_ROOT -DHDF5_ROOT=$HDF5_ROOT -DHWLOC_ROOT=$HOME/install/hwloc ..
+make
+make examples.quickstart.fibonacci
+# To generate profiles, set the HPX_USE_ITTNOTIFY environment variable:
+export HPX_HAVE_ITTNOTIFY=1
+./bin/fibonacci --hpx:threads 12
+# to view the profiles, use either TAU pprof or paraprof:
+$TAU_ROOT/$TAU_ARCH/bin/pprof
+$TAU_ROOT/$TAU_ARCH/bin/paraprof
+
+STEP 4b: Configuring and building the GTCx application:
+------------------------------------------------------
+(starting in the HPX build directory)
+make examples.gtcx
+cd bin
+
+./gtcx_client -t 12 --hpx:print-counter '/threadqueue{locality#*/worker-thread#*}/length' --hpx:print-counter-interval=4000 --hpx:print-counter-destination /dev/null
+
+paraprof
+
+to view the data. For further information please contact tau-bugs@cs.uoregon.edu.
+
+
+On Aciss:
+module load cmake/2.8.6 gcc/4.6.3
+setenv TAU_ROOT $HOME/tau2
+setenv APEX_ROOT $HOME/apps/apex
+#git clone https://github.com/STEllAR-GROUP/hpx.git
+
+setenv HDF5_ROOT /usr/local/packages/HPX/apps/hdf5-1.8.9_gcc-4.6.3
+setenv HDF5_CFP $HDF5_ROOT
+setenv HDF5_FORTRAN_ROOT $HDF5_ROOT
+setenv BOOST_ROOT /usr/local/packages/HPX/apps/boost_1_51_0
+setenv PREFIX /usr/local/packages/HPX/apps/hpx.tau
+
+cd hpx/build
+ccmake ..
+change CMAKE_INSTALL_PREFIX to /usr/local/packages/HPX/apps/hpx.tau
+c
+g
+
+make examples.gtcx -j 12; make examples.quickstart -j 12; make install
+
+cd /usr/local/packages/HPX/apps/hpx.tau/bin
+./hello_world --hpx:print-counter="/messages{locality#1/total}/count/sent"
+pprof
+
+./gtcx_client
+pprof
+
+

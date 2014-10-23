@@ -23,30 +23,53 @@
 extern "C" {
 #endif
 
+/*
+ * Initialization, finalization functions
+ */
 void apex_init(const char * thread_name);
 void apex_init_args(int argc, char** argv, const char * thread_name);
 void apex_finalize();
-void* apex_start(const char * timer_name);
-//void apex_resume(const char * timer_name);
-//void apex_stop(const char * timer_name);
-void apex_stop_profiler(void * profiler);
-void* apex_start_addr(void * function_address);
-//void apex_resume_addr(void * function_address);
-void apex_resume_profiler(void * profiler);
-//void apex_stop_addr(void * function_address);
+
+/*
+ * Functions for starting, stopping timers
+ */
+apex_profiler_handle apex_start_name(const char * timer_name);
+apex_profiler_handle apex_start_address(apex_function_address function_address);
+void apex_stop(apex_profiler_handle profiler);
+void apex_resume(apex_profiler_handle profiler);
+
+/*
+ * Function for sampling a counter value
+ */
 void apex_sample_value(const char * name, double value);
+
+/*
+ * Utility functions
+ */
 void apex_set_node_id(int id);
 double apex_version(void);
 void apex_node_id(int id);
 void apex_register_thread(const char * name);
+
+/*
+ * Power-related functions
+ */
 void apex_track_power(void);
 void apex_track_power_here(void);
 void apex_enable_tracking_power(void);
 void apex_disable_tracking_power(void);
 void apex_set_interrupt_interval(int seconds);
-apex_policy_handle* apex_register_policy(const apex_event_type when, int (*f)(apex_context const));
-apex_policy_handle* apex_register_periodic_policy(unsigned long period, int (*f)(apex_context const));
-apex_profile* apex_get_profile(void *);
+
+/*
+ * Policy Engine functions.
+ */
+apex_policy_handle apex_register_policy(const apex_event_type when, int (*f)(apex_context const));
+apex_policy_handle apex_register_periodic_policy(unsigned long period, int (*f)(apex_context const));
+
+/*
+ */
+apex_profile * apex_get_profile_from_name(const char * timer_name);
+apex_profile * apex_get_profile_from_address(apex_function_address function_address);
 
 #ifdef __cplusplus
 }

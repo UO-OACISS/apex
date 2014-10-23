@@ -36,9 +36,17 @@ static map<void*, profile*> address_map;
 profiler * profiler_listener::main_timer(NULL);
 int profiler_listener::node_id(0);
 
-profile* profiler_listener::get_profile(void * address) {
-   map<void*, profile*>::iterator it = address_map.find(address);
+profile * profiler_listener::get_profile(apex_function_address address) {
+   map<void*, profile*>::iterator it = address_map.find((void*)address);
    if (it != address_map.end()) {
+     return (*it).second;
+   }
+   return NULL;
+}
+
+profile * profiler_listener::get_profile(string &timer_name) {
+   map<string, profile*>::iterator it = name_map.find(timer_name);
+   if (it != name_map.end()) {
      return (*it).second;
    }
    return NULL;
@@ -164,7 +172,7 @@ void profiler_listener::write_profile(void) {
 void profiler_listener::process_profiles(void)
 {
     profiler * p;
-    int i;
+    unsigned int i;
     while (!done) {
         queue_signal.wait();
 	for (i = 0 ; i < profiler_queues.size(); i++) {
@@ -262,17 +270,22 @@ void profiler_listener::on_new_thread(new_thread_event_data &data) {
   if (!_terminate) {
       //cout << "NEW THREAD" << endl;
       unsigned int me = (unsigned int)thread_instance::instance().get_id();
-      boost::lockfree::spsc_queue<profiler*>* tmp = new boost::lockfree::spsc_queue<profiler*>(MAX_QUEUE_SIZE);
       if (me >= profiler_queues.size()) {
 	      profiler_queues.resize(me + 1);
       }
-      profiler_queues[me] = tmp;
+	  unsigned int i = 0;
+	  for (i = 0; i < me+1 ; i++) {
+	    if (profiler_queues[i] == NULL) {
+          boost::lockfree::spsc_queue<profiler*>* tmp = new boost::lockfree::spsc_queue<profiler*>(MAX_QUEUE_SIZE);
+          profiler_queues[i] = tmp;
+		}
+	  }
   }
 }
 
 void profiler_listener::on_start(timer_event_data &data) {
     static __thread int counter = 0; // only do 1/10 of the timers
-    if (counter++ % 10 != 0) { return; }
+    //if (counter++ % 10 != 0) { return; }
   if (!_terminate) {
       //active_tasks++;
       //cout << "START " << active_tasks << " " <<  *(data.timer_name) << " " << data.function_address << endl;

@@ -93,7 +93,11 @@ endif()
 # Boost configuration
 ################################################################################
 
+if (APPLE)
+set(Boost_USE_STATIC_LIBS ON) 
+else()
 set(Boost_USE_STATIC_LIBS OFF) 
+endif()
 set(Boost_USE_MULTITHREADED ON)  
 set(Boost_USE_STATIC_RUNTIME OFF) 
 find_package(Boost 1.54.0 REQUIRED COMPONENTS system thread timer chrono) 
@@ -114,11 +118,13 @@ find_package(MPI)
 ################################################################################
 
 # TAU is NOT required.
+if (DEFINED TAU_ROOT)
 find_package(TAU)
 if (TAU_FOUND)
 	include_directories(${TAU_INCLUDE_DIRS})
 	set(LIBS ${LIBS} ${TAU_LIBRARIES})
 	set (CMAKE_INSTALL_RPATH ${TAU_LIBRARY_DIR})
+endif()
 endif()
 
 # RCR is NOT required.
