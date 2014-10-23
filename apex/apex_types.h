@@ -8,8 +8,11 @@
 #ifndef APEX_TYPES_HPP
 #define APEX_TYPES_HPP
 
-/* Typedef for enumerating the different event types */
+#include "stdint.h"
 
+/* 
+ * Typedef for enumerating the different event types 
+ */
 typedef enum _event_type {
   STARTUP,
   SHUTDOWN,
@@ -22,6 +25,9 @@ typedef enum _event_type {
   PERIODIC
 } apex_event_type;
 
+/* A reference to the policy object, 
+ * so that policies can be "unregistered", or paused later 
+ */
 typedef struct _policy_handle
 {
     int id;
@@ -33,11 +39,9 @@ typedef struct _context
     apex_policy_handle* policy_handle;
 } apex_context;
 
-typedef struct _profiler_handle
-{
-    void * profiler;
-} apex_profiler_handle;
-
+/*
+ * The profile object for a timer in APEX.
+ */
 typedef struct _profile
 {
     double calls;
@@ -46,5 +50,16 @@ typedef struct _profile
     double minimum;
     double maximum;
 } apex_profile;
+
+/* The address of a C++ object in APEX.
+ * Not useful for the caller that gets it back, but required
+ * for stopping the timer later.
+ */
+typedef uintptr_t apex_profiler_handle; // address of internal C++ object
+
+/* Rather than use void pointers everywhere, be explicit about
+ * what the functions are expecting.
+ */
+typedef void * apex_function_address; // generic function pointer
 
 #endif //APEX_TYPES_HPP

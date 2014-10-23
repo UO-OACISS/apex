@@ -39,6 +39,7 @@ public:
   void on_sample_value(sample_value_event_data &data);
   void on_periodic(periodic_event_data &data);
   static profile * get_profile(void * address);
+  static profile * get_profile(string &address);
 };
 
 }
