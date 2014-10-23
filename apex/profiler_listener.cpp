@@ -44,6 +44,14 @@ profile* profiler_listener::get_profile(void * address) {
    return NULL;
 }
 
+profile* profiler_listener::get_profile(string &timer_name) {
+   map<string, profile*>::iterator it = name_map.find(timer_name);
+   if (it != name_map.end()) {
+     return (*it).second;
+   }
+   return NULL;
+}
+
 inline void profiler_listener::process_profile(profiler * p)
 {
     profile * theprofile;
@@ -272,7 +280,7 @@ void profiler_listener::on_new_thread(new_thread_event_data &data) {
 
 void profiler_listener::on_start(timer_event_data &data) {
     static __thread int counter = 0; // only do 1/10 of the timers
-    if (counter++ % 10 != 0) { return; }
+    //if (counter++ % 10 != 0) { return; }
   if (!_terminate) {
       //active_tasks++;
       //cout << "START " << active_tasks << " " <<  *(data.timer_name) << " " << data.function_address << endl;

@@ -5,6 +5,7 @@
 
 
 #include "apex.hpp"
+#include "apex_types.h"
 #include "apex_config.h"
 #ifdef APEX_HAVE_RCR
 #include "energy_stat.h"
@@ -571,6 +572,13 @@ apex_profile* get_profile(void * action_address) {
     return NULL;
 }
 
+apex_profile* get_profile(string timer_name) {
+    profile * tmp = profiler_listener::get_profile(timer_name);
+    if (tmp != NULL)
+	    return tmp->get_profile();
+    return NULL;
+}
+
 } // apex namespace
 
 using namespace apex;
@@ -601,7 +609,7 @@ extern "C" {
         return version();
     }
 
-    void* apex_start(const char * timer_name)
+    void* apex_start_name(const char * timer_name)
     {
         APEX_TRACER
 	if (timer_name)
@@ -610,7 +618,7 @@ extern "C" {
           return start(string(""));
     }
 
-    void* apex_start_addr(void * function_address)
+    void* apex_start_address(void * function_address)
     {
         APEX_TRACER
         return start(function_address);
@@ -710,8 +718,11 @@ apex_policy_handle* apex_register_policy(const apex_event_type when, int (f)(ape
 apex_policy_handle* apex_register_periodic_policy(unsigned long period, int (f)(apex_context const)) {
 	return register_periodic_policy(period, f);
 }
-apex_profile* apex_get_profile(void * action_address) {
-	return get_profile(action_address);
+apex_profile* apex_get_profile_address(apex_function_address function_address) {
+	return get_profile(function_address);
+}
+apex_profile* apex_get_profile_name(const char * timer_name) {
+	return get_profile(string (timer_name));
 }
 
 } // extern "C"
