@@ -18,6 +18,9 @@ set(APEX_SOURCE_DIR ${APEX_SOURCE_DIR} PARENT_SCOPE)
 set(APEX_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
 set(APEX_BINARY_DIR ${APEX_BINARY_DIR} PARENT_SCOPE)
 
+hpx_info("apex" "APEX source dir is ${APEX_SOURCE_DIR}")
+hpx_info("apex" "APEX binary dir is ${APEX_BINARY_DIR}")
+
 configure_file (
     "${APEX_SOURCE_DIR}/apex_config.h.in"
     "${APEX_BINARY_DIR}/apex_config.h"
@@ -43,7 +46,9 @@ set(apex_sources
     event_listener.cpp
     handler.cpp
     concurrency_handler.cpp
-    policy_handler.cpp)
+    policy_handler.cpp
+    profiler_listener.cpp)
+
 
 find_package(HPX_RCR)
 
@@ -88,7 +93,7 @@ endif()
 
 # add the binary tree to the search path for include files
 # so that we will find ApexConfig.h
-include_directories("${PROJECT_BINARY_DIR}/apex")
+include_directories("${PROJECT_BINARY_DIR}/apex/apex")
 
 INSTALL(FILES apex.h apex.hpp handler.hpp event_listener.hpp DESTINATION include)
 

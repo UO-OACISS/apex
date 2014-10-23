@@ -49,7 +49,8 @@ set(ittnotify_install_targets ${ittnotify_install_targets} ittnotifyStatic)
 
 # add the binary tree to the search path for include files
 # so that we will find ittnotify.h
-include_directories ("${PROJECT_BINARY_DIR}/apex")
+include_directories ("${PROJECT_BINARY_DIR}/apex/apex")
+include_directories ("${PROJECT_BINARY_DIR}/apex/apex/ITTNotify")
 
 INSTALL(FILES ittnotify.h DESTINATION include)
 INSTALL(FILES legacy/ittnotify.h DESTINATION include/legacy)
