@@ -172,7 +172,7 @@ void profiler_listener::write_profile(void) {
 void profiler_listener::process_profiles(void)
 {
     profiler * p;
-    int i;
+    unsigned int i;
     while (!done) {
         queue_signal.wait();
 	for (i = 0 ; i < profiler_queues.size(); i++) {
