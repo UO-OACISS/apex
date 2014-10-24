@@ -74,7 +74,7 @@ apex::~apex()
     APEX_TRACER
 #ifdef APEX_HAVE_RCR
     cout << "Getting energy..." << endl;
-    energy_daemon_term();
+    energyDaemonTerm();
 #endif
     m_pInstance = NULL;
 }
@@ -111,7 +111,7 @@ void apex::_initialize()
     this->m_policy_handler = nullptr;
 #ifdef APEX_HAVE_RCR
     uint64_t waitTime = 1000000000L; // in nanoseconds, for nanosleep
-    energy_daemon_init(waitTime);
+    energyDaemonInit(waitTime);
 #endif
     char* option = NULL;
 #ifdef APEX_HAVE_TAU
