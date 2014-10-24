@@ -45,7 +45,6 @@ void* someThread(void* tmp)
 #else
   printf("The ID of this thread is: %u\n", (unsigned int)pthread_self());
 #endif
-  sleep(2); // Keep it alive so we're sure the second thread gets a unique ID.
   //apex::finalize();
   return NULL;
 }
@@ -62,7 +61,6 @@ int main(int argc, char **argv)
   int i;
   for (i = 0 ; i < NUM_THREADS ; i++) {
     pthread_create(&(thread[i]), NULL, someThread, NULL);
-    sleep(1); // Hack to avoid race for stdout.
   }
   for (i = 0 ; i < NUM_THREADS ; i++) {
     pthread_join(thread[i], NULL);

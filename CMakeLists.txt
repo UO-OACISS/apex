@@ -128,9 +128,14 @@ endif()
 endif()
 
 # RCR is NOT required.
+if (DEFINED RCR_ROOT)
 find_package(RCR)
-include_directories(${RCR_INCLUDE_DIRS})
-set(LIBS ${LIBS} ${RCR_LIBRARIES})
+if (RCR_FOUND)
+	include_directories(${RCR_INCLUDE_DIRS})
+	set(LIBS ${LIBS} ${RCR_LIBRARIES})
+	set (CMAKE_INSTALL_RPATH ${RCR_LIBRARY_DIR})
+endif()
+endif()
 
 set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} "${CMAKE_INSTALL_PREFIX}/lib")
 
@@ -180,7 +185,16 @@ add_test (TestITTRuns TestITT/testITT)
 add_test (TestThreadsRuns TestThreads/testThreads)  
 
 # Run the test program which tests the overhead in the threads interface
-add_test (TestOverhead Overhead/testOverhead)  
+add_test (TestOverhead_noPolicy Overhead/testOverhead)  
+add_test (TestPolicyC_noPolicy PolicyEngineExample/testPolicyEngine)  
+add_test (TestPolicyCpp_noPolicy PolicyEngineCppExample/testCppPolicyEngine)  
+
+# enable the policy engine and rerun the tests
+SET($ENV{APEX_POLICY} 1)
+# Run the test program which tests the overhead in the threads interface
+add_test (TestOverhead_Policy Overhead/testOverhead)  
+add_test (TestPolicyC_Policy PolicyEngineExample/testPolicyEngine)  
+add_test (TestPolicyCpp_Policy PolicyEngineCppExample/testCppPolicyEngine)  
 
 if(MPI_CXX_FOUND)
 # Run the test program which tests the mpi interface

@@ -1,10 +1,11 @@
 #include "apex.h"
 #include <unistd.h>
 
-void foo(void) {
+int foo(int i) {
   apex_profiler_handle profiler = apex_start_address(foo);
-	sleep(1);
+  int j = i * i;
   apex_stop_profiler(profiler);
+  return j;
 }
 
 int main (int argc, char** argv) {
@@ -12,10 +13,10 @@ int main (int argc, char** argv) {
   apex_version();
   apex_set_node_id(0);
   apex_profiler_handle profiler = apex_start_address(main);
-  sleep(1);
-  int i;
+  //sleep(1);
+  int i,j = 0;
   for (i = 0 ; i < 3 ; i++)
-    foo();
+    j += foo(i);
   apex_sample_value("Apex Version", apex_version());
   apex_stop_profiler(profiler);
   apex_finalize();
