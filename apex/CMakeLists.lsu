@@ -1,0 +1,111 @@
+#  Copyright (c) 2014 University of Oregon
+#
+#  Distributed under the Boost Software License, Version 1.0. (See accompanying
+#  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+
+
+# Create a library called "Apex" which includes the source file "apex.cxx".
+# The extension is already found. Any number of sources could be listed here.
+
+hpx_info("apex" "Will build APEX")
+
+set (APEX_VERSION_MAJOR 0)
+set (APEX_VERSION_MINOR 1)
+
+set(APEX_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+set(APEX_SOURCE_DIR ${APEX_SOURCE_DIR} PARENT_SCOPE)
+set(APEX_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
+set(APEX_BINARY_DIR ${APEX_BINARY_DIR} PARENT_SCOPE)
+
+hpx_info("apex" "APEX source dir is ${APEX_SOURCE_DIR}")
+hpx_info("apex" "APEX binary dir is ${APEX_BINARY_DIR}")
+
+configure_file (
+    "${APEX_SOURCE_DIR}/apex_config.h.in"
+    "${APEX_BINARY_DIR}/apex_config.h"
+)
+
+if(NOT MSVC)
+  add_definitions( -std=c++11 )
+else()
+  add_definitions(-D_WINDOWS)
+  add_definitions(-D_WIN32)
+  add_definitions(-D_WIN32_WINNT=0x0601)
+  add_definitions(-D_SCL_SECURE_NO_WARNINGS)
+  add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+  add_definitions(-D_SCL_SECURE_NO_DEPRECATE)
+  add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
+  add_definitions(-D_CRT_NONSTDC_NO_WARNINGS)
+  add_definitions(-D_WINSOCK_DEPRECATED_NO_WARNINGS)
+endif()
+
+set(apex_sources
+    apex.cpp
+    thread_instance.cpp
+    event_listener.cpp
+    handler.cpp
+    concurrency_handler.cpp
+    policy_handler.cpp
+    profiler_listener.cpp)
+
+
+find_package(HPX_RCR)
+
+if(HAVE_RCR)
+  hpx_add_config_define(HPX_HAVE_RCR 1)
+  set(apex_sources ${apex_sources} RCR.bb.cpp)
+endif()
+
+if(TAU_FOUND)
+    hpx_info("apex" "Building APEX with TAU support")
+    set(apex_sources ${apex_sources}
+        tau_listener.cpp)
+
+    add_library (apexStatic STATIC ${apex_sources})
+    add_definitions(-DAPEX_HAVE_TAU)
+    if(NOT MSVC)
+      add_library (apexShared SHARED ${apex_sources})
+    else()
+      add_definitions(-DTAU_WINDOWS)
+      set(LIBS ${TAU_LIBRARY})
+    endif()
+else()
+    hpx_info("apex" "Building APEX without TAU support")
+
+    add_library (apexStatic STATIC ${apex_sources})
+    if(NOT MSVC)
+      add_library (apexShared SHARED ${apex_sources})
+    else()
+      add_definitions(-DTAU_WINDOWS)
+    endif()
+endif()
+
+set_target_properties(apexStatic PROPERTIES OUTPUT_NAME apex)
+target_link_libraries(apexStatic ${LIBS})
+set(apex_install_targets ${apex_install_targets} apexStatic)
+
+if(NOT MSVC)
+  set_target_properties(apexShared PROPERTIES OUTPUT_NAME apex)
+  target_link_libraries(apexShared ${LIBS})
+  set(apex_install_targets apexShared)
+endif()
+
+# add the binary tree to the search path for include files
+# so that we will find ApexConfig.h
+include_directories("${PROJECT_BINARY_DIR}/apex/apex")
+
+INSTALL(FILES apex.h apex.hpp handler.hpp event_listener.hpp DESTINATION include)
+
+INSTALL(TARGETS ${apex_install_targets}
+  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION lib/hpx
+  ARCHIVE DESTINATION lib/hpx
+)
+
+add_subdirectory(ITTNotify)
+
+set(AMPLIFIER_ROOT ${AMPLIFIER_ROOT} PARENT_SCOPE)
+set(HPX_HAVE_ITTNOTIFY ${HPX_HAVE_ITTNOTIFY} PARENT_SCOPE)
+set(ITTNOTIFY_SOURCE_DIR ${ITTNOTIFY_SOURCE_DIR} PARENT_SCOPE)
+set(ITTNOTIFY_BINARY_DIR ${ITTNOTIFY_BINARY_DIR} PARENT_SCOPE)
