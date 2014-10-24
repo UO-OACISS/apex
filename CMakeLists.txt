@@ -133,7 +133,10 @@ find_package(RCR)
 if (RCR_FOUND)
 	include_directories(${RCR_INCLUDE_DIRS})
 	set(LIBS ${LIBS} ${RCR_LIBRARIES})
+<<<<<<< HEAD
 	set (CMAKE_INSTALL_RPATH ${RCR_LIBRARY_DIR})
+=======
+>>>>>>> d408972d38cf0d1e960940ae408ef298f004a0e7
 endif()
 endif()
 
