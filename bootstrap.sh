@@ -1,7 +1,6 @@
 #!/bin/bash -e
 
 #configure parameters
-export TAU_ROOT=/usr/local/tau/git
 export BOOST_ROOT=/usr
 # this one is only meaningful for HPX-3 from LSU
 # export HPX_HAVE_ITTNOTIFY=1 
@@ -9,7 +8,7 @@ export BOOST_ROOT=/usr
 # runtime parameters for HPX-3 (LSU)
 export APEX_POLICY=1
 export APEX_CONCURRENCY=0
-export APEX_TAU=1
+export APEX_TAU=0
 # this one is only meaningful for HPX-3 from LSU
 # export HPX_HAVE_ITTNOTIFY=1
 
@@ -35,7 +34,6 @@ cmake \
 -DBOOST_ROOT=$BOOST_ROOT \
 -DCMAKE_BUILD_TYPE=Debug \
 -DCMAKE_INSTALL_PREFIX=../install \
--DTAU_ROOT=$TAU_ROOT \
 ..
 
 procs=1
