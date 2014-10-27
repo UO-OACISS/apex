@@ -249,7 +249,7 @@ double version()
     return APEX_VERSION_MAJOR + (APEX_VERSION_MINOR/10.0);
 }
 
-void* start(string timer_name)
+profiler* start(string timer_name)
 {
     APEX_TIMER_TRACER("start ", timer_name)
     _level++;
@@ -262,26 +262,10 @@ void* start(string timer_name)
         }
     }
     thread_instance::instance().current_timer = event_data.my_profiler;
-    return (void*)(event_data.my_profiler);
+    return event_data.my_profiler;
 }
 
-void* resume(string timer_name)
-{
-    APEX_TIMER_TRACER("resume", timer_name)
-    _level++;
-    apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return NULL; // protect against calls after finalization
-    timer_event_data event_data(START_EVENT, thread_instance::get_id(), timer_name);
-    if (_notify_listeners) {
-        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_resume(event_data);
-        }
-    }
-    thread_instance::instance().current_timer = event_data.my_profiler;
-    return (void*)(event_data.my_profiler);
-}
-
-void* start(void * function_address) {
+profiler* start(void * function_address) {
     APEX_TIMER_TRACER("start ", timer_name)
     _level++;
     apex* instance = apex::instance(); // get the Apex static instance
@@ -294,7 +278,7 @@ void* start(void * function_address) {
         }
     }
     thread_instance::instance().current_timer = event_data.my_profiler;
-    return (void*)(event_data.my_profiler);
+    return event_data.my_profiler;
 }
 
 /*
@@ -609,19 +593,19 @@ extern "C" {
         return version();
     }
 
-    void* apex_start_name(const char * timer_name)
+    apex_profiler_handle apex_start_name(const char * timer_name)
     {
         APEX_TRACER
 	if (timer_name)
-          return start(string(timer_name));
+          return (apex_profiler_handle)start(string(timer_name));
 	else
-          return start(string(""));
+          return (apex_profiler_handle)start(string(""));
     }
 
-    void* apex_start_address(void * function_address)
+    apex_profiler_handle apex_start_address(void * function_address)
     {
         APEX_TRACER
-        return start(function_address);
+        return (apex_profiler_handle)start(function_address);
     }
 
     /*

@@ -12,7 +12,7 @@ add_dependencies (testCppPolicyEngine apexStatic apexShared)
 set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
 
 # Link the executable to the Apex library. 
-target_link_libraries (testCppPolicyEngine apex ${Boost_LIBRARIES}) 
+target_link_libraries (testCppPolicyEngine apex ${Boost_LIBRARIES} ${LIBS}) 
 
 INSTALL(TARGETS testCppPolicyEngine
   RUNTIME DESTINATION bin

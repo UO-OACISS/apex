@@ -3,6 +3,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <apex.hpp>
+#include <apex_types.h>
 #include <sstream>
 
 #define NUM_THREADS 8
@@ -34,8 +35,11 @@ ApexProxy::~ApexProxy() {
 };
 
 int foo (int i) {
-  ApexProxy proxy = ApexProxy((void*)foo);
-  return i*i;
+  //ApexProxy proxy = ApexProxy((void*)foo);
+  apex::profiler * profiler = apex::start((void*)foo);
+  int j = i*i;
+  apex::stop(profiler);
+  return j;
 }
 
 typedef void*(*start_routine_t)(void*);
@@ -44,7 +48,8 @@ void* someThread(void* tmp)
 {
   apex::register_thread("threadTest thread");
   //ApexProxy proxy = ApexProxy(__func__, __FILE__, __LINE__);
-  ApexProxy proxy = ApexProxy((void*)someThread);
+  //ApexProxy proxy = ApexProxy((void*)someThread);
+  apex::profiler * profiler = apex::start((void*)someThread);
   printf("PID of this process: %d\n", getpid());
 #if defined (__APPLE__)
   printf("The ID of this thread is: %lu\n", (unsigned long)pthread_self());
@@ -55,6 +60,7 @@ void* someThread(void* tmp)
   for (i = 0 ; i < ITERATIONS ; i++) {
 	  foo(i);
   }
+  apex::stop(profiler);
   return NULL;
 }
 
@@ -62,6 +68,8 @@ int main(int argc, char **argv)
 {
   apex::init(argc, argv, NULL);
   apex::set_node_id(0);
+  //ApexProxy proxy = ApexProxy((void*)main);
+  apex::profiler * profiler = apex::start((void*)main);
   const apex_event_type when = STOP_EVENT;
   apex::register_periodic_policy(1000000, [](apex_context const& context){
        void * foo_addr = (void*)(foo);
@@ -81,7 +89,6 @@ int main(int argc, char **argv)
        }
        return true;
   });
-  ApexProxy proxy = ApexProxy((void*)main);
   printf("PID of this process: %d\n", getpid());
   pthread_t thread[NUM_THREADS];
   int i;
@@ -91,6 +98,7 @@ int main(int argc, char **argv)
   for (i = 0 ; i < NUM_THREADS ; i++) {
     pthread_join(thread[i], NULL);
   }
+  apex::stop(profiler);
   apex::finalize();
   return(0);
 }

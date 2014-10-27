@@ -46,10 +46,6 @@ thread_instance& thread_instance::instance(void) {
   return *me;
 }
 
-int thread_instance::get_id(void) {
-  return instance()._id;
-}
-
 void thread_instance::set_worker(bool is_worker) {
   instance()._is_worker = is_worker;
   boost::unique_lock<boost::mutex> l(_worker_map_mutex);

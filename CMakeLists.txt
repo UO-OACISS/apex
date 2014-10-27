@@ -127,6 +127,10 @@ if (TAU_FOUND)
 endif()
 endif()
 
+################################################################################
+# TAU configuration
+################################################################################
+
 # RCR is NOT required.
 if (DEFINED RCR_ROOT)
 find_package(RCR)
@@ -134,6 +138,16 @@ if (RCR_FOUND)
 	include_directories(${RCR_INCLUDE_DIRS})
 	set(LIBS ${LIBS} ${RCR_LIBRARIES})
 endif()
+endif()
+
+################################################################################
+# TCMalloc configuration
+################################################################################
+
+find_package(Tcmalloc)
+if (Tcmalloc_FOUND)
+	include_directories(${Tcmalloc_INCLUDE_DIRS})
+	set(LIBS ${LIBS} ${Tcmalloc_LIBRARIES})
 endif()
 
 set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} "${CMAKE_INSTALL_PREFIX}/lib")
