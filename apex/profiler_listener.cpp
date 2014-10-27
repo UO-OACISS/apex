@@ -24,8 +24,6 @@ using namespace std;
 
 namespace apex {
 
-boost::atomic<int> profiler_listener::active_tasks(0);
-
 std::vector<boost::lockfree::spsc_queue<profiler*>* > profiler_queues(8);
 boost::thread * consumer_thread;
 boost::atomic<bool> done (false);
@@ -94,8 +92,8 @@ void profiler_listener::delete_profiles(void) {
 #endif
     address_map.clear();
     name_map.clear();
-    int i = 0;
-    for (i = 0 ; i < thread_instance::get_num_threads(); i++) {
+    unsigned int i = 0;
+    for (i = 0 ; i < profiler_queues.size(); i++) {
 	if (profiler_queues[i]) {
             delete (profiler_queues[i]);
 	}
@@ -113,6 +111,7 @@ void profiler_listener::finalize_profiles(void) {
       cout << p->get_minimum() << ", " ;
       cout << p->get_mean() << ", " ;
       cout << p->get_maximum() << ", " ;
+      cout << p->get_accumulated() << ", " ;
       cout << p->get_stddev() << endl;
     }
     map<string, profile*>::const_iterator it2;
@@ -124,6 +123,7 @@ void profiler_listener::finalize_profiles(void) {
       cout << p->get_minimum() << ", " ;
       cout << p->get_mean() << ", " ;
       cout << p->get_maximum() << ", " ;
+      cout << p->get_accumulated() << ", " ;
       cout << p->get_stddev() << endl;
     }
 }
@@ -283,44 +283,34 @@ void profiler_listener::on_new_thread(new_thread_event_data &data) {
   }
 }
 
-void profiler_listener::on_start(timer_event_data &data) {
-    static __thread int counter = 0; // only do 1/10 of the timers
-    //if (counter++ % 10 != 0) { return; }
+void profiler_listener::on_start(apex_function_address function_address, string *timer_name) {
   if (!_terminate) {
-      //active_tasks++;
-      //cout << "START " << active_tasks << " " <<  *(data.timer_name) << " " << data.function_address << endl;
-      if (data.have_name) {
-        data.my_profiler = new profiler(data.timer_name);
+      if (timer_name != NULL) {
+        thread_instance::instance().current_timer = new profiler(timer_name);
       } else {
-        data.my_profiler = new profiler(data.function_address);
+        thread_instance::instance().current_timer = new profiler(function_address);
       }
   }
 }
 
-void profiler_listener::on_stop(timer_event_data &data) {
+void profiler_listener::on_stop(profiler * p) {
   static __thread int counter = 0; // only do 1/10 of the timers
   if (!_terminate) {
-      //active_tasks--;
-      //cout << "STOP " << active_tasks << " " << endl;
-      if (data.my_profiler) {
-          data.my_profiler->stop();
+      if (p) {
+          p->stop();
           int me = thread_instance::instance().get_id();
-          profiler_queues[me]->push(data.my_profiler);
-          if (counter++ % 50 == 0) { // after there are some timers, post.
-      	    queue_signal.post();
-          }
+          profiler_queues[me]->push(p);
+          queue_signal.post();
       }
   }
 }
 
-void profiler_listener::on_resume(timer_event_data &data) {
+void profiler_listener::on_resume(profiler *p) {
   if (!_terminate) {
-      active_tasks++;
-      //cout << "RESUME " << active_tasks << " " <<  *(data.timer_name) << " " << data.function_address << endl;
-      if (data.have_name) {
-        data.my_profiler = new profiler(data.timer_name);
+      if (p->have_name) {
+        thread_instance::instance().current_timer = new profiler(p->timer_name);
       } else {
-        data.my_profiler = new profiler(data.function_address);
+        thread_instance::instance().current_timer = new profiler(p->action_address);
       }
   }
 }

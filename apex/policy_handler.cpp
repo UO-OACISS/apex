@@ -149,21 +149,38 @@ void policy_handler::on_new_thread(new_thread_event_data &event_data) {
         call_policies(new_thread_policies, event_data);
 }
 
-void policy_handler::on_start(timer_event_data &event_data) {
+void policy_handler::on_start(apex_function_address function_address, string *timer_name) {
   if (_terminate) return;
-            if (start_event_policies.empty())
-                return;
-        call_policies(start_event_policies, event_data);
+  if (start_event_policies.empty()) return;
+        //call_policies(start_event_policies, event_data);
+  for(const boost::shared_ptr<policy_instance>& policy : start_event_policies) {
+    apex_context my_context;
+    my_context.event_type = START_EVENT;
+    my_context.policy_handle = NULL;
+    const bool result = policy->func(my_context);
+    if(!result) {
+      printf("Warning: registered policy function failed!\n");
+    }
+  }
 }
 
-void policy_handler::on_stop(timer_event_data &event_data) {
+void policy_handler::on_stop(profiler *p) {
   if (_terminate) return;
             if (stop_event_policies.empty())
                 return;
-        call_policies(stop_event_policies, event_data);
+        //call_policies(stop_event_policies, event_data);
+  for(const boost::shared_ptr<policy_instance>& policy : stop_event_policies) {
+    apex_context my_context;
+    my_context.event_type = STOP_EVENT;
+    my_context.policy_handle = NULL;
+    const bool result = policy->func(my_context);
+    if(!result) {
+      printf("Warning: registered policy function failed!\n");
+    }
+  }
 }
 
-void policy_handler::on_resume(timer_event_data &event_data) {
+void policy_handler::on_resume(profiler * p) {
   if (_terminate) return;
 }
 

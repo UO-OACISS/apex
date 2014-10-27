@@ -69,23 +69,31 @@ void concurrency_handler::_init(void) {
   return;
 }
 
-void concurrency_handler::on_start(timer_event_data &event_data) {
+void concurrency_handler::on_start(apex_function_address function_address, string *timer_name) {
   if (!_terminate) {
-    stack<string>* my_stack = get_event_stack(event_data.thread_id);
-    my_stack->push(*(event_data.timer_name));
+    stack<string>* my_stack = get_event_stack(thread_instance::get_id());
+    if (timer_name != NULL) {
+      my_stack->push(*(timer_name));
+    } else {
+      //my_stack->push(*(event_data.timer_name));
+    }
   }
 }
 
-void concurrency_handler::on_resume(timer_event_data &event_data) {
+void concurrency_handler::on_resume(profiler * p) {
   if (!_terminate) {
-    stack<string>* my_stack = get_event_stack(event_data.thread_id);
-    my_stack->push(*(event_data.timer_name));
+    stack<string>* my_stack = get_event_stack(thread_instance::get_id());
+    if (p->have_name) {
+      my_stack->push(*(p->timer_name));
+    } else {
+      //my_stack->push(*(event_data.timer_name));
+    }
   }
 }
 
-void concurrency_handler::on_stop(timer_event_data &event_data) {
+void concurrency_handler::on_stop(profiler *p) {
   if (!_terminate) {
-    stack<string>* my_stack = get_event_stack(event_data.thread_id);
+    stack<string>* my_stack = get_event_stack(thread_instance::get_id());
     if (!my_stack->empty()) {
       my_stack->pop();
     }
