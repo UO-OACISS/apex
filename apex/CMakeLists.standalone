@@ -2,12 +2,21 @@
 # The extension is already found. Any number of sources could be listed here. 
 
 if (TAU_FOUND)
-add_library (apexStatic STATIC apex.cpp thread_instance.cpp event_listener.cpp handler.cpp concurrency_handler.cpp policy_handler.cpp tau_listener.cpp RCR.bb.cpp profiler_listener.cpp)
-add_library (apexShared SHARED apex.cpp thread_instance.cpp event_listener.cpp handler.cpp concurrency_handler.cpp policy_handler.cpp tau_listener.cpp RCR.bb.cpp profiler_listener.cpp)
-else()
-add_library (apexStatic STATIC apex.cpp thread_instance.cpp event_listener.cpp handler.cpp concurrency_handler.cpp policy_handler.cpp RCR.bb.cpp profiler_listener.cpp)
-add_library (apexShared SHARED apex.cpp thread_instance.cpp event_listener.cpp handler.cpp concurrency_handler.cpp policy_handler.cpp RCR.bb.cpp profiler_listener.cpp)
-endif()
+SET(tau_SOURCE tau_listener.cpp)
+endif(TAU_FOUND)
+
+if (RCR_FOUND)
+SET(rcr_SOURCE RCR.bb.cpp)
+endif(RCR_FOUND)
+
+if (BFD_FOUND)
+SET(bfd_SOURCE apex_bfd.cpp)
+endif(BFD_FOUND)
+
+SET(all_SOURCE apex.cpp thread_instance.cpp event_listener.cpp handler.cpp concurrency_handler.cpp policy_handler.cpp ${tau_SOURCE} ${rcr_SOURCE} profiler_listener.cpp ${bfd_SOURCE})
+
+add_library (apexStatic STATIC ${all_SOURCE})
+add_library (apexShared SHARED ${all_SOURCE})
 
 set_target_properties(apexStatic PROPERTIES OUTPUT_NAME apex)
 set_target_properties(apexShared PROPERTIES OUTPUT_NAME apex)

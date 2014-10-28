@@ -137,6 +137,7 @@ find_package(RCR)
 if (RCR_FOUND)
 	include_directories(${RCR_INCLUDE_DIRS})
 	set(LIBS ${LIBS} ${RCR_LIBRARIES})
+	set (CMAKE_INSTALL_RPATH ${RCR_LIBRARY_DIR})
 endif()
 endif()
 
@@ -148,6 +149,25 @@ find_package(Tcmalloc)
 if (Tcmalloc_FOUND)
 	include_directories(${Tcmalloc_INCLUDE_DIRS})
 	set(LIBS ${LIBS} ${Tcmalloc_LIBRARIES})
+	set (CMAKE_INSTALL_RPATH ${Tcmalloc_LIBRARY_DIR})
+endif()
+
+################################################################################
+# Binutils configuration
+################################################################################
+
+find_package(BFD)
+if (BFD_FOUND)
+	include_directories(${BFD_INCLUDE_DIRS})
+	set(LIBS ${LIBS} ${BFD_LIBRARIES})
+	set (CMAKE_INSTALL_RPATH ${BFD_LIBRARY_DIR})
+endif()
+
+find_package(Demangle)
+if (DEMANGLE_FOUND)
+	include_directories(${DEMANGLE_INCLUDE_DIRS})
+	set(LIBS ${LIBS} ${DEMANGLE_LIBRARIES})
+	set (CMAKE_INSTALL_RPATH ${DEMANGLE_LIBRARY_DIR})
 endif()
 
 set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} "${CMAKE_INSTALL_PREFIX}/lib")

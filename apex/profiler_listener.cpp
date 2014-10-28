@@ -16,6 +16,9 @@
 #include <unistd.h>
 #include <sched.h>
 #include <cstdio>
+#if APEX_HAVE_BFD
+#include "apex_bfd.h"
+#endif
 
 //#define MAX_QUEUE_SIZE 1024*1024
 #define MAX_QUEUE_SIZE 128
@@ -101,12 +104,21 @@ void profiler_listener::delete_profiles(void) {
     profiler_queues.clear();
 }
 
+#if APEX_HAVE_BFD
+extern string * lookup_address(uintptr_t ip);
+#endif
+
 void profiler_listener::finalize_profiles(void) {
     map<void*, profile*>::const_iterator it;
     for(it = address_map.begin(); it != address_map.end(); it++) {
       profile * p = it->second;
       void * function_address = it->first;
+#if APEX_HAVE_BFD
+      string * tmp = lookup_address((uintptr_t)function_address);
+      cout << *tmp << ": " ;
+#else
       cout << function_address << ": " ;
+#endif
       cout << p->get_calls() << ", " ;
       cout << p->get_minimum() << ", " ;
       cout << p->get_mean() << ", " ;
@@ -154,7 +166,12 @@ void profiler_listener::write_profile(void) {
       profile * p = it->second;
       // ".TAU application" 1 8 8658984 8660739 0 GROUP="TAU_USER"
       void * function_address = it->first;
+#if APEX_HAVE_BFD
+      string * tmp = lookup_address((uintptr_t)function_address);
+      myfile << "\"" << *tmp << "\" ";
+#else
       myfile << "\"" << ti.map_addr_to_name(function_address) << "\" ";
+#endif
       format_line (myfile, p);
     }
     map<string, profile*>::const_iterator it2;
@@ -326,5 +343,78 @@ void profiler_listener::on_periodic(periodic_event_data &data) {
       //cout << "PERIODIC" << endl;
   }
 }
+
+#if APEX_HAVE_BFD
+
+/*
+ *-----------------------------------------------------------------------------
+ * Simple hash table to map function addresses to region names/identifier
+ *-----------------------------------------------------------------------------
+ */
+
+struct OmpHashNode
+{
+  OmpHashNode() { }
+
+  ApexBfdInfo info;        ///< Filename, line number, etc.
+  string * location;
+};
+
+extern void Apex_delete_hash_table(void);
+
+struct OmpHashTable : public std::map<uintptr_t, OmpHashNode*>
+{
+  OmpHashTable() { }
+  virtual ~OmpHashTable() {
+    Apex_delete_hash_table();
+  }
+};
+
+static OmpHashTable & OmpTheHashTable()
+{
+  static OmpHashTable htab;
+  return htab;
+}
+
+static apex_bfd_handle_t & OmpTheBfdUnitHandle()
+{
+  static apex_bfd_handle_t OmpbfdUnitHandle = APEX_BFD_NULL_HANDLE;
+  if (OmpbfdUnitHandle == APEX_BFD_NULL_HANDLE) {
+    if (OmpbfdUnitHandle == APEX_BFD_NULL_HANDLE) {
+      OmpbfdUnitHandle = Apex_bfd_registerUnit();
+    }
+  }
+  return OmpbfdUnitHandle;
+}
+
+void Apex_delete_hash_table(void) {
+  // clear the hash map to eliminate memory leaks
+  OmpHashTable & mytab = OmpTheHashTable();
+  for ( std::map<uintptr_t, OmpHashNode*>::iterator it = mytab.begin(); it != mytab.end(); ++it ) {
+    OmpHashNode * node = it->second;
+    if (node->location) {
+        delete (node->location);
+    }
+    delete node;
+  }
+  mytab.clear();
+  Apex_delete_bfd_units();
+}
+
+string * lookup_address(uintptr_t ip) {
+    stringstream location;
+    apex_bfd_handle_t & OmpbfdUnitHandle = OmpTheBfdUnitHandle();
+    OmpHashNode * node = OmpTheHashTable()[ip];
+    if (!node) {
+        node = new OmpHashNode;
+        Apex_bfd_resolveBfdInfo(OmpbfdUnitHandle, ip, node->info);
+        location << node->info.funcname << " [{" << node->info.filename << "} {" << node->info.lineno << ",0}]";
+        node->location = new string(location.str());
+        OmpTheHashTable()[ip] = node;
+    }
+    return node->location;
+}
+
+#endif
 
 }
