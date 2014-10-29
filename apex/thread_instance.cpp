@@ -49,7 +49,7 @@ thread_instance& thread_instance::instance(void) {
 void thread_instance::set_worker(bool is_worker) {
   instance()._is_worker = is_worker;
   boost::unique_lock<boost::mutex> l(_worker_map_mutex);
-  _worker_map[instance().get_id()] = is_worker;
+  _worker_map[get_id()] = is_worker;
 }
 
 string thread_instance::get_name(void) {
@@ -62,7 +62,7 @@ void thread_instance::set_name(string name) {
     instance()._top_level_timer_name = name;
     {
         boost::unique_lock<boost::mutex> l(_name_map_mutex);
-        _name_map[name] = instance().get_id();
+        _name_map[name] = get_id();
     }
     if (name.find("worker-thread") != string::npos) {
       instance().set_worker(true);

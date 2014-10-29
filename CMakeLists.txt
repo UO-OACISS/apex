@@ -45,6 +45,11 @@ set(CMAKE_CONFIGURATION_TYPES "${CMAKE_BUILD_TYPE}" CACHE INTERNAL
 # set the project name
 project (APEX CXX C)
 
+if(APEX_THROTTLE)
+    # add_definitions(-DAPEX_THROTTLE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPEX_THROTTLE") 
+endif(APEX_THROTTLE)
+
 # include additional macro definitions
 include(APEX_Utils)
 

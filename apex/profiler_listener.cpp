@@ -16,6 +16,13 @@
 #include <unistd.h>
 #include <sched.h>
 #include <cstdio>
+
+#if defined(APEX_THROTTLE)
+#define APEX_THROTTLE_CALLS 1000  
+#define APEX_THROTTLE_PERCALL 0.00001 // 10 microseconds. 
+#include <unordered_set>
+#endif
+
 #if APEX_HAVE_BFD
 #include "apex_bfd.h"
 #endif
@@ -33,6 +40,9 @@ boost::atomic<bool> done (false);
 semaphore queue_signal;
 static map<string, profile*> name_map;
 static map<void*, profile*> address_map;
+#if defined(APEX_THROTTLE)
+static unordered_set<void*> throttled_addresses;
+#endif
 
 profiler * profiler_listener::main_timer(NULL);
 int profiler_listener::node_id(0);
@@ -53,6 +63,10 @@ profile * profiler_listener::get_profile(string &timer_name) {
    return NULL;
 }
 
+#if APEX_HAVE_BFD
+extern string * lookup_address(uintptr_t ip);
+#endif
+
 inline void profiler_listener::process_profile(profiler * p)
 {
     profile * theprofile;
@@ -72,6 +86,16 @@ inline void profiler_listener::process_profile(profiler * p)
       if (it2 != address_map.end()) {
         theprofile = (*it2).second;
         theprofile->increment(p->elapsed());
+#if defined(APEX_THROTTLE)
+        if (theprofile->get_calls() > APEX_THROTTLE_CALLS && 
+            theprofile->get_mean() < APEX_THROTTLE_PERCALL) { 
+          unordered_set<void*>::iterator it = throttled_addresses.find(p->action_address);
+          if (it == throttled_addresses.end()) { 
+	    throttled_addresses.insert(p->action_address);
+	    cout << "APEX Throttled " << *(lookup_address((uintptr_t)p->action_address)) << endl;
+	  }
+	}
+#endif
       } else {
         theprofile = new profile(p->elapsed());
         address_map[p->action_address] = theprofile;
@@ -104,15 +128,15 @@ void profiler_listener::delete_profiles(void) {
     profiler_queues.clear();
 }
 
-#if APEX_HAVE_BFD
-extern string * lookup_address(uintptr_t ip);
-#endif
-
 void profiler_listener::finalize_profiles(void) {
     map<void*, profile*>::const_iterator it;
     for(it = address_map.begin(); it != address_map.end(); it++) {
       profile * p = it->second;
       void * function_address = it->first;
+#if defined(APEX_THROTTLE)
+      unordered_set<void*>::const_iterator it = throttled_addresses.find(function_address);
+      if (it != throttled_addresses.end()) { continue; }
+#endif
 #if APEX_HAVE_BFD
       string * tmp = lookup_address((uintptr_t)function_address);
       cout << *tmp << ": " ;
@@ -286,7 +310,7 @@ void profiler_listener::on_new_node(node_event_data &data) {
 void profiler_listener::on_new_thread(new_thread_event_data &data) {
   if (!_terminate) {
       //cout << "NEW THREAD" << endl;
-      unsigned int me = (unsigned int)thread_instance::instance().get_id();
+      unsigned int me = (unsigned int)thread_instance::get_id();
       if (me >= profiler_queues.size()) {
 	      profiler_queues.resize(me + 1);
       }
@@ -305,6 +329,13 @@ void profiler_listener::on_start(apex_function_address function_address, string 
       if (timer_name != NULL) {
         thread_instance::instance().current_timer = new profiler(timer_name);
       } else {
+#if defined(APEX_THROTTLE)
+        unordered_set<void*>::const_iterator it = throttled_addresses.find(function_address);
+        if (it != throttled_addresses.end()) {
+          thread_instance::instance().current_timer = NULL;
+	  return;
+	}
+#endif
         thread_instance::instance().current_timer = new profiler(function_address);
       }
   }
@@ -315,7 +346,7 @@ void profiler_listener::on_stop(profiler * p) {
   if (!_terminate) {
       if (p) {
           p->stop();
-          int me = thread_instance::instance().get_id();
+          int me = thread_instance::get_id();
           profiler_queues[me]->push(p);
           queue_signal.post();
       }
