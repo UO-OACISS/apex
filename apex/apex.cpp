@@ -111,14 +111,13 @@ void apex::_initialize()
     energyDaemonInit(waitTime);
 #endif
     char* option = NULL;
+    listeners.push_back(new profiler_listener());
 #ifdef APEX_HAVE_TAU
     option = getenv("APEX_TAU");
     if (option != NULL)
     {
         listeners.push_back(new tau_listener());
     }
-#else
-    listeners.push_back(new profiler_listener());
 #endif
     option = getenv("APEX_POLICY");
     if (option != NULL)
