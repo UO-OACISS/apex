@@ -23,7 +23,7 @@ concurrency_handler::concurrency_handler (void) : handler() {
   _init();
 }
 
-concurrency_handler::concurrency_handler (char *option) : handler(), _option(atoi(option)) {
+concurrency_handler::concurrency_handler (int option) : handler(), _option(option) {
   _init();
 }
 
@@ -31,7 +31,7 @@ concurrency_handler::concurrency_handler (unsigned int period) : handler(period)
   _init();
 }
 
-concurrency_handler::concurrency_handler (unsigned int period, char *option) : handler(period), _option(atoi(option)) {
+concurrency_handler::concurrency_handler (unsigned int period, int option) : handler(period), _option(option) {
   _init();
 }
 

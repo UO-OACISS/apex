@@ -17,6 +17,7 @@
 #include "policy_handler.hpp"
 #include "profiler_listener.hpp"
 //#include <chrono.h>
+#include "apex_options.hpp"
 
 //using namespace std;
 

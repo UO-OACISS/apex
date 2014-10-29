@@ -9,6 +9,7 @@
 #include "semaphore.hpp"
 #include <iostream>
 #include <fstream>
+#include "apex_options.hpp"
 
 #include <boost/thread/thread.hpp>
 #include <boost/lockfree/spsc_queue.hpp>
@@ -235,14 +236,11 @@ void profiler_listener::process_profiles(void)
     main_timer->stop();
     process_profile(main_timer);
 
-    char* option = NULL;
-    option = getenv("APEX_SCREEN_OUTPUT");
-    if (option != NULL && strcmp(option,"1") == 0)
+    if (apex_options::use_screen_output())
     {
       finalize_profiles();
     }
-    option = getenv("APEX_PROFILE_OUTPUT");
-    if (option != NULL && strcmp(option,"1") == 0)
+    if (apex_options::use_profile_output())
     {
       write_profile();
     }

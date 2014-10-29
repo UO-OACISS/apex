@@ -38,9 +38,9 @@ private:
   int _option;
 public:
   concurrency_handler (void);
-  concurrency_handler (char *option);
+  concurrency_handler (int option);
   concurrency_handler (unsigned int period);
-  concurrency_handler (unsigned int period, char* option);
+  concurrency_handler (unsigned int period, int option);
   ~concurrency_handler (void) { };
   void on_startup(startup_event_data &event_data) { };
   void on_shutdown(shutdown_event_data &event_data);

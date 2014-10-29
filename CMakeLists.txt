@@ -224,13 +224,6 @@ add_test (TestThreadsRuns TestThreads/testThreads)
 
 # Run the test program which tests the overhead in the threads interface
 add_test (TestOverhead_noPolicy Overhead/testOverhead)  
-add_test (TestPolicyC_noPolicy PolicyEngineExample/testPolicyEngine)  
-add_test (TestPolicyCpp_noPolicy PolicyEngineCppExample/testCppPolicyEngine)  
-
-# enable the policy engine and rerun the tests
-SET($ENV{APEX_POLICY} 1)
-# Run the test program which tests the overhead in the threads interface
-add_test (TestOverhead_Policy Overhead/testOverhead)  
 add_test (TestPolicyC_Policy PolicyEngineExample/testPolicyEngine)  
 add_test (TestPolicyCpp_Policy PolicyEngineCppExample/testCppPolicyEngine)  
 
