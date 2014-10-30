@@ -8,6 +8,11 @@
 #ifndef APEX_HPP
 #define APEX_HPP
 
+#ifdef APEX_HAVE_HPX3
+#include <hpx/config.hpp>
+#include <hpx/include/runtime.hpp>
+#endif
+
 #include <string>
 #include <vector>
 #include <stdint.h>
@@ -51,6 +56,9 @@ private:
     void _initialize();
     policy_handler * m_policy_handler;
     std::map<int, policy_handler*> period_handlers;
+#ifdef APEX_HAVE_HPX3
+    hpx::runtime * m_hpx_runtime;
+#endif
 public:
     std::vector<event_listener*> listeners;
     string* m_my_locality;
@@ -58,6 +66,10 @@ public:
     static apex* instance(int argc, char** argv); // singleton instance
     void set_node_id(int id);
     int get_node_id(void);
+#ifdef APEX_HAVE_HPX3
+    void set_hpx_runtime(hpx::runtime * hpx_runtime);
+    hpx::runtime * get_hpx_runtime(void);
+#endif
     //void notify_listeners(event_data* event_data_);
     policy_handler * get_policy_handler(void) const;
 /*
@@ -105,6 +117,9 @@ apex_policy_handle register_policy(
 apex_policy_handle* register_periodic_policy(unsigned long period, std::function<bool(apex_context const&)> f);
 apex_profile* get_profile(apex_function_address function_address);
 apex_profile* get_profile(string &timer_name);
+#ifdef APEX_HAVE_HPX3
+hpx::runtime * get_hpx_runtime_ptr(void);
+#endif
 }
 
 #endif //APEX_HPP

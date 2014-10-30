@@ -19,6 +19,10 @@
 #include "policy_handler.hpp"
 #include "thread_instance.hpp"
 
+#ifdef APEX_HAVE_HPX3
+#include <hpx/hpx_fwd.hpp>
+#endif
+
 #ifdef APEX_HAVE_TAU
 #include "tau_listener.hpp"
 #define PROFILING_ON
@@ -97,6 +101,12 @@ int apex::get_node_id()
     return m_node_id;
 }
 
+static void init_hpx_runtime_ptr(void) {
+    apex * instance = apex::instance();
+    hpx::runtime * runtime = hpx::get_runtime_ptr();
+    instance->set_hpx_runtime(runtime);
+}
+
 /*
  * This private method is used to perform whatever initialization
  * needs to happen.
@@ -106,6 +116,10 @@ void apex::_initialize()
     APEX_TRACER
     this->m_pInstance = this;
     this->m_policy_handler = nullptr;
+#ifdef APEX_HAVE_HPX3
+    this->m_hpx_runtime = nullptr;
+    hpx::register_startup_function(init_hpx_runtime_ptr);
+#endif
 #ifdef APEX_HAVE_RCR
     uint64_t waitTime = 1000000000L; // in nanoseconds, for nanosleep
     energyDaemonInit(waitTime);
@@ -185,6 +199,19 @@ policy_handler * apex::get_policy_handler(uint64_t const& period)
     }
     return period_handlers[period];
 }
+
+#ifdef APEX_HAVE_HPX3
+void apex::set_hpx_runtime(hpx::runtime * hpx_runtime) {
+    m_hpx_runtime = hpx_runtime;
+}
+
+hpx::runtime * apex::get_hpx_runtime(void) {
+    return m_hpx_runtime;
+}
+#endif
+
+
+
 
 void init(const char * thread_name)
 {
@@ -371,6 +398,18 @@ void set_node_id(int id)
     if (!instance) return; // protect against calls after finalization
     instance->set_node_id(id);
 }
+
+#ifdef APEX_HAVE_HPX3
+hpx::runtime * get_hpx_runtime_ptr(void) {
+    APEX_TRACER
+    apex * instance = apex::instance();
+    if (!instance) {
+        return nullptr;
+    }
+    hpx::runtime * runtime = instance->get_hpx_runtime();
+    return runtime;
+}
+#endif
 
 void track_power(void)
 {
@@ -626,6 +665,7 @@ apex_profile* apex_get_profile_from_name(const char * timer_name) {
     string tmp(timer_name);
 	return get_profile(tmp);
 }
+
 
 } // extern "C"
 

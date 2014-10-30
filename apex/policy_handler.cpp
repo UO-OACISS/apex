@@ -3,6 +3,10 @@
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+#include <hpx/config.hpp>
+#include <hpx/include/runtime.hpp>
+
+#include "apex.hpp"
 #include "policy_handler.hpp"
 #include "thread_instance.hpp"
 
@@ -31,6 +35,23 @@ policy_handler::policy_handler (uint64_t period_microseconds) : handler(period_m
 
 
 void policy_handler::_handler(void) {
+#ifdef APEX_HAVE_HPX3
+  static bool _registered = false;
+  if(!_registered) {
+     hpx::runtime * runtime = get_hpx_runtime_ptr();
+     if(runtime != nullptr) {
+         bool status = runtime->register_thread("policy_handler", next_id);
+         if(!status){
+            std::cerr << "Error: failed to register thread." << std::endl;
+         }
+         std::cerr << "Periodic handler thread registered with HPX." << std::endl;
+         _registered = true;
+     } else {
+        this->reset();
+        return;
+     }
+  }
+#endif
   periodic_event_data data;
   this->on_periodic(data);
   this->reset();
