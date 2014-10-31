@@ -44,6 +44,7 @@ endif()
 
 set(apex_sources
     apex.cpp
+    apex_options.cpp
     thread_instance.cpp
     event_listener.cpp
     handler.cpp

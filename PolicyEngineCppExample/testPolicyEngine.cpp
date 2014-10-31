@@ -68,6 +68,9 @@ int main(int argc, char **argv)
 {
   apex::init(argc, argv, NULL);
   apex::set_node_id(0);
+  apex::apex_options::use_policy(true);
+  apex::apex_options::use_screen_output(true);
+  apex::apex_options::use_profile_output(true);
   //ApexProxy proxy = ApexProxy((void*)main);
   apex::profiler * profiler = apex::start((void*)main);
   const apex_event_type when = STOP_EVENT;

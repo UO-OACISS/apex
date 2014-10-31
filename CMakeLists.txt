@@ -45,6 +45,11 @@ set(CMAKE_CONFIGURATION_TYPES "${CMAKE_BUILD_TYPE}" CACHE INTERNAL
 # set the project name
 project (APEX CXX C)
 
+if(APEX_THROTTLE)
+    # add_definitions(-DAPEX_THROTTLE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPEX_THROTTLE") 
+endif(APEX_THROTTLE)
+
 # include additional macro definitions
 include(APEX_Utils)
 
@@ -137,6 +142,7 @@ find_package(RCR)
 if (RCR_FOUND)
 	include_directories(${RCR_INCLUDE_DIRS})
 	set(LIBS ${LIBS} ${RCR_LIBRARIES})
+	set (CMAKE_INSTALL_RPATH ${RCR_LIBRARY_DIR})
 endif()
 endif()
 
@@ -148,6 +154,25 @@ find_package(Tcmalloc)
 if (Tcmalloc_FOUND)
 	include_directories(${Tcmalloc_INCLUDE_DIRS})
 	set(LIBS ${LIBS} ${Tcmalloc_LIBRARIES})
+	set (CMAKE_INSTALL_RPATH ${Tcmalloc_LIBRARY_DIR})
+endif()
+
+################################################################################
+# Binutils configuration
+################################################################################
+
+find_package(BFD)
+if (BFD_FOUND)
+	include_directories(${BFD_INCLUDE_DIRS})
+	set(LIBS ${LIBS} ${BFD_LIBRARIES})
+	set (CMAKE_INSTALL_RPATH ${BFD_LIBRARY_DIR})
+endif()
+
+find_package(Demangle)
+if (DEMANGLE_FOUND)
+	include_directories(${DEMANGLE_INCLUDE_DIRS})
+	set(LIBS ${LIBS} ${DEMANGLE_LIBRARIES})
+	set (CMAKE_INSTALL_RPATH ${DEMANGLE_LIBRARY_DIR})
 endif()
 
 set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} "${CMAKE_INSTALL_PREFIX}/lib")
@@ -199,13 +224,6 @@ add_test (TestThreadsRuns TestThreads/testThreads)
 
 # Run the test program which tests the overhead in the threads interface
 add_test (TestOverhead_noPolicy Overhead/testOverhead)  
-add_test (TestPolicyC_noPolicy PolicyEngineExample/testPolicyEngine)  
-add_test (TestPolicyCpp_noPolicy PolicyEngineCppExample/testCppPolicyEngine)  
-
-# enable the policy engine and rerun the tests
-SET($ENV{APEX_POLICY} 1)
-# Run the test program which tests the overhead in the threads interface
-add_test (TestOverhead_Policy Overhead/testOverhead)  
 add_test (TestPolicyC_Policy PolicyEngineExample/testPolicyEngine)  
 add_test (TestPolicyCpp_Policy PolicyEngineCppExample/testCppPolicyEngine)  
 

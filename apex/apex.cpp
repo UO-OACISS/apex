@@ -124,34 +124,21 @@ void apex::_initialize()
     uint64_t waitTime = 1000000000L; // in nanoseconds, for nanosleep
     energyDaemonInit(waitTime);
 #endif
-    char* option = NULL;
+    listeners.push_back(new profiler_listener());
 #ifdef APEX_HAVE_TAU
-    option = getenv("APEX_TAU");
-    if (option != NULL)
+    if (apex_options::use_tau())
     {
         listeners.push_back(new tau_listener());
     }
-#else
-    listeners.push_back(new profiler_listener());
 #endif
-    option = getenv("APEX_POLICY");
-    if (option != NULL)
+    if (apex_options::use_policy())
     {
         this->m_policy_handler = new policy_handler();
         listeners.push_back(this->m_policy_handler);
     }
-    option = getenv("APEX_CONCURRENCY");
-    if (option != NULL && atoi(option) > 0)
+    if (apex_options::use_concurrency() > 1)
     {
-        char* option2 = getenv("APEX_CONCURRENCY_PERIOD");
-        if (option2 != NULL)
-        {
-            listeners.push_back(new concurrency_handler(atoi(option2), option));
-        }
-        else
-        {
-            listeners.push_back(new concurrency_handler(option));
-        }
+        listeners.push_back(new concurrency_handler(apex_options::concurrency_period(), apex_options::use_concurrency()));
     }
 }
 
@@ -192,8 +179,7 @@ policy_handler * apex::get_policy_handler(std::chrono::duration<Rep, Period> con
 */
 policy_handler * apex::get_policy_handler(uint64_t const& period)
 {
-    char * option = getenv("APEX_POLICY");
-    if(option != nullptr && period_handlers.count(period) == 0)
+    if(apex_options::use_policy() && period_handlers.count(period) == 0)
     {
         period_handlers[period] = new policy_handler(period);
     }

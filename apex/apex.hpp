@@ -22,6 +22,7 @@
 #include "policy_handler.hpp"
 #include "profiler_listener.hpp"
 //#include <chrono.h>
+#include "apex_options.hpp"
 
 //using namespace std;
 
@@ -88,13 +89,7 @@ void finalize(void);
 double version(void);
 profiler* start(std::string timer_name);
 profiler* start(void * function_address);
-//void start(void * function_address);
-//void stop(std::string timer_name);
-//void stop_addr(void * function_address);
-//void stop(void);
 void stop(void * profiler);
-//void resume(std::string timer_name);
-//void resume_addr(void * function_address);
 void resume(void * profiler);
 void sample_value(std::string name, double value);
 void set_node_id(int id);

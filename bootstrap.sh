@@ -33,6 +33,7 @@ cmake \
 -G "CodeBlocks - Unix Makefiles" \
 -DBOOST_ROOT=$BOOST_ROOT \
 -DCMAKE_BUILD_TYPE=Release \
+-DAPEX_THROTTLE=TRUE \
 -DCMAKE_INSTALL_PREFIX=../install \
 ..
 

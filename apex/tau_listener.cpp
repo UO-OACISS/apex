@@ -59,9 +59,9 @@ void tau_listener::on_new_thread(new_thread_event_data &data) {
 void tau_listener::on_start(apex_function_address function_address, string *timer_name) {
   if (!_terminate) {
       if (timer_name != NULL) {
-      	TAU_START(data.timer_name->c_str());
+      	TAU_START(timer_name->c_str());
       } else {
-      	TAU_START(thread_instance::instance().map_addr_to_name(data.function_address).c_str());
+      	TAU_START(thread_instance::instance().map_addr_to_name(function_address).c_str());
       }
   }
   return;
@@ -77,10 +77,10 @@ void tau_listener::on_stop(profiler *p) {
           TAU_STOP(p->timer_name->c_str());
 	}
       } else {
-        if (p->function_address == 0) {
+        if (p->action_address == 0) {
           TAU_GLOBAL_TIMER_STOP(); // stop the top level timer
 	} else {
-      	  TAU_STOP(thread_instance::instance().map_addr_to_name(p->function_address).c_str());
+      	  TAU_STOP(thread_instance::instance().map_addr_to_name(p->action_address).c_str());
 	}
       }
   }
@@ -92,7 +92,7 @@ void tau_listener::on_resume(profiler *p) {
     if (p->have_name) {
       TAU_START(p->timer_name->c_str());
     } else {
-      TAU_START(thread_instance::instance().map_addr_to_name(p->function_address).c_str());
+      TAU_START(thread_instance::instance().map_addr_to_name(p->action_address).c_str());
     }
   }
   return;

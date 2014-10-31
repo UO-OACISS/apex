@@ -71,6 +71,12 @@ apex_policy_handle apex_register_periodic_policy(unsigned long period, int (*f)(
 apex_profile * apex_get_profile_from_name(const char * timer_name);
 apex_profile * apex_get_profile_from_address(apex_function_address function_address);
 
+#define apex_macro(name, member_variable, type, default_value) \
+void apex_set_##member_variable (type inval); \
+type apex_get_##member_variable (void);
+FOREACH_APEX_OPTION(apex_macro)
+#undef apex_macro
+
 #ifdef __cplusplus
 }
 #endif
