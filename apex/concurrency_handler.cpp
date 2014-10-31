@@ -35,7 +35,7 @@ concurrency_handler::concurrency_handler (unsigned int period, char *option) : h
   _init();
 }
 
-void concurrency_handler::_handler(void) {
+bool concurrency_handler::_handler(void) {
   //cout << "HANDLER: " << endl;
   map<string, unsigned int> *counts = new(map<string, unsigned int>);
   stack<string>* tmp;
@@ -59,7 +59,7 @@ void concurrency_handler::_handler(void) {
   }
   _states.push_back(counts);
   this->reset();
-  return;
+  return true;
 }
 
 void concurrency_handler::_init(void) {

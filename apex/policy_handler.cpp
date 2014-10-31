@@ -3,8 +3,10 @@
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+#ifdef APEX_HAVE_HPX3
 #include <hpx/config.hpp>
 #include <hpx/include/runtime.hpp>
+#endif
 
 #include "apex.hpp"
 #include "policy_handler.hpp"
@@ -16,9 +18,11 @@
 
 namespace apex {
 
-policy_handler::policy_handler (void) : handler() {
-  //_init();
-}
+#ifdef APEX_HAVE_HPX3
+policy_handler::policy_handler (void) : handler() { }
+#else
+policy_handler::policy_handler (void) : handler() { }
+#endif
 
 /*
 template <typename Rep, typename Period>
@@ -28,47 +32,41 @@ policy_handler::policy_handler (duration<Rep, Period> const& period) : handler(p
 }
 */
 
-policy_handler::policy_handler (uint64_t period_microseconds) : handler(period_microseconds)
+policy_handler::policy_handler (uint64_t period_microseconds) : handler(period_microseconds), hpx_timer(boost::bind(&policy_handler::_handler, this), _period, "apex_policy_handler") 
 {
     _init();
 }
 
 
-void policy_handler::_handler(void) {
-#ifdef APEX_HAVE_HPX3
-  static bool _registered = false;
-  if(!_registered) {
-     hpx::runtime * runtime = get_hpx_runtime_ptr();
-     if(runtime != nullptr) {
-         bool status = runtime->register_thread("policy_handler", next_id);
-         if(!status){
-            std::cerr << "Error: failed to register thread." << std::endl;
-         }
-         std::cerr << "Periodic handler thread registered with HPX." << std::endl;
-         _registered = true;
-     } else {
-        this->reset();
-        return;
-     }
-  }
-#endif
+bool policy_handler::_handler(void) {
   periodic_event_data data;
   this->on_periodic(data);
   this->reset();
+  return true;
 }
 
 void policy_handler::_init(void) {
   next_id = 0;
+#ifdef APEX_HAVE_HPX3
+  bool status = hpx_timer.start();
+#else
   _timer.async_wait(boost::bind(&policy_handler::_handler, this));
   run();
+#endif
   return;
 }
 
 inline void policy_handler::reset(void) {
+#ifdef APEX_HAVE_HPX3
+  if (_terminate) {
+    bool status = hpx_timer.stop();
+  }
+#else
   if (!_terminate) {
     _timer.expires_at(_timer.expires_at() + boost::posix_time::microseconds(_period));
     _timer.async_wait(boost::bind(&policy_handler::_handler, this));
   }
+#endif
 }
 
 int policy_handler::register_policy(const apex_event_type & when,

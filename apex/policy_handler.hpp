@@ -6,6 +6,11 @@
 #ifndef POLICYHANDLER_HPP
 #define POLICYHANDLER_HPP
 
+#ifdef APEX_HAVE_HPX3
+#include <hpx/hpx_fwd.hpp>
+#include <hpx/util/interval_timer.hpp>
+#endif
+
 #include "apex_types.h"
 #include "handler.hpp"
 #include "event_listener.hpp"
@@ -67,6 +72,9 @@ private:
         const std::list<boost::shared_ptr<policy_instance> > & policies,
         event_data &event_data);
     boost::atomic_int next_id;
+#ifdef APEX_HAVE_HPX3
+    hpx::util::interval_timer hpx_timer;
+#endif
 public:
     policy_handler (void);
 /*
@@ -87,7 +95,7 @@ public:
 
     int register_policy(const apex_event_type & when,
                         std::function<bool(apex_context const&)> f);
-    void _handler(void);
+    bool _handler(void);
     void reset(void);
 };
 

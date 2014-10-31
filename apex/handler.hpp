@@ -43,9 +43,10 @@ public:
   // virtual destructor
   virtual ~handler() {};
   // all methods in the interface that a handler has to override
-  virtual void _handler(void) {
+  virtual bool _handler(void) {
       std::cout << "Default handler" << std::endl;
       this->reset();
+      return true;
   };
 };
 

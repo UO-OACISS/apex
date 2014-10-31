@@ -52,7 +52,7 @@ public:
   void on_sample_value(sample_value_event_data &event_data) { };
   void on_periodic(periodic_event_data &event_data) { };
 
-  void _handler(void);
+  bool _handler(void);
   std::stack<std::string>* get_event_stack(unsigned int tid);
   void add_thread(unsigned int tid) ;
   void reset(void);
