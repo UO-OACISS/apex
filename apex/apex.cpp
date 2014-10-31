@@ -101,11 +101,13 @@ int apex::get_node_id()
     return m_node_id;
 }
 
+#ifdef APEX_HAVE_HPX3
 static void init_hpx_runtime_ptr(void) {
     apex * instance = apex::instance();
     hpx::runtime * runtime = hpx::get_runtime_ptr();
     instance->set_hpx_runtime(runtime);
 }
+#endif
 
 /*
  * This private method is used to perform whatever initialization

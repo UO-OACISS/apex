@@ -32,10 +32,17 @@ policy_handler::policy_handler (duration<Rep, Period> const& period) : handler(p
 }
 */
 
+#ifdef APEX_HAVE_HPX3
 policy_handler::policy_handler (uint64_t period_microseconds) : handler(period_microseconds), hpx_timer(boost::bind(&policy_handler::_handler, this), _period, "apex_policy_handler") 
 {
     _init();
 }
+#else
+policy_handler::policy_handler (uint64_t period_microseconds) : handler(period_microseconds) 
+{
+    _init();
+}
+#endif
 
 
 bool policy_handler::_handler(void) {
