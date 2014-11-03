@@ -29,6 +29,9 @@ dir="build_$datestamp"
 mkdir $dir
 cd $dir
 
+# Enable shared libraries, if desired.
+#-DBUILD_SHARED_LIBS=TRUE \
+
 cmake \
 -G "CodeBlocks - Unix Makefiles" \
 -DBOOST_ROOT=$BOOST_ROOT \
