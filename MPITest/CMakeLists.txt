@@ -13,7 +13,8 @@ link_directories (${APEX_BINARY_DIR}/apex)
 # Add executable called "mpi_test" that is built from the source file
 # "mpi_test.cpp". The extensions are automatically found. 
 add_executable (mpi_test mpi_test.cpp) 
-add_dependencies (mpi_test apexStatic apexShared)
+#add_dependencies (mpi_test apexStatic apexShared)
+add_dependencies (mpi_test apex)
 
 # Link the executable to the Apex library. 
 target_link_libraries (mpi_test apex stdc++ ${LIBS} ${Boost_LIBRARIES} ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES}) 

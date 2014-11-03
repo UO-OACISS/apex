@@ -2,6 +2,8 @@
 
 #configure parameters
 export BOOST_ROOT=/usr
+export BOOST_ROOT=$HOME/install/boost-1.56.0
+export RCR_ROOT=$HOME/src/RCRdaemon
 # this one is only meaningful for HPX-3 from LSU
 # export HPX_HAVE_ITTNOTIFY=1 
 

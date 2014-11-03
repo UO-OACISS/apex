@@ -7,7 +7,8 @@ link_directories (${APEX_BINARY_DIR}/apex ${APEX_BINARY_DIR}/Overhead)
 # Add executable called "testOverhead" that is built from the source file
 # "testOverhead.cpp". The extensions are automatically found. 
 add_executable (testOverhead testOverhead.cpp) 
-add_dependencies (testOverhead apexStatic apexShared)
+#add_dependencies (testOverhead apexStatic apexShared)
+add_dependencies (testOverhead apex)
 
 set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
 

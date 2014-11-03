@@ -82,9 +82,16 @@ configure_file (
 )
 
 # use PIC for shared objects
+if (BUILD_SHARED_LIBS)
+set(CMAKE_POSITION_INDEPENDENT_CODE True)
+set(POSITION_INDEPENDENT_CODE True)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC") 
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fPIC -g -O0 -Wextra -Waddress -Warray-bounds -Wuninitialized -Wreturn-type")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fPIC -O3")
+endif (BUILD_SHARED_LIBS)
+
+#set debugging info
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS} -g -O0
+-Wextra -Waddress -Warray-bounds -Wuninitialized -Wreturn-type -Wall -Werror")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS} -O3")
 
 ###############################################################################
 # reconfigure Boost library information if configuration type has been
@@ -173,6 +180,10 @@ if (DEMANGLE_FOUND)
 	include_directories(${DEMANGLE_INCLUDE_DIRS})
 	set(LIBS ${LIBS} ${DEMANGLE_LIBRARIES})
 	set (CMAKE_INSTALL_RPATH ${DEMANGLE_LIBRARY_DIR})
+else()
+  unset(DEMANGLE_LIBRARY)
+  unset(DEMANGLE_LIBRARIES)
+  unset(DEMANGLE_DIR)
 endif()
 
 set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} "${CMAKE_INSTALL_PREFIX}/lib")

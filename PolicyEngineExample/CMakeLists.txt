@@ -7,7 +7,8 @@ link_directories (${APEX_BINARY_DIR}/apex ${APEX_BINARY_DIR}/PolicyEngineExample
 # Add executable called "testPolicyEngine" that is built from the source file
 # "testPolicyEngine.c". The extensions are automatically found. 
 add_executable (testPolicyEngine testPolicyEngine.c) 
-add_dependencies (testPolicyEngine apexStatic apexShared)
+#add_dependencies (testPolicyEngine apexStatic apexShared)
+add_dependencies (testPolicyEngine apex)
 
 set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
 
