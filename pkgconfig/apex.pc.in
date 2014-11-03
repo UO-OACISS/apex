@@ -8,5 +8,5 @@ Description: Autonomic Performance Environment for eXascale (XPRESS)
 Requires: 
 Version: @PACKAGE_VERSION@
 Libs: -L${libdir} -lapex -Wl,-rpath,${libdir}
-Cflags: -I${includedir}
+Cflags: -I${includedir} -DHAVE_APEX
 

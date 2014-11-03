@@ -26,6 +26,8 @@ configure_file (
     "${APEX_BINARY_DIR}/apex_config.h"
 )
 
+add_definitions(-DAPEX_HAVE_HPX3)
+
 if(NOT MSVC)
   add_definitions( -std=c++11 )
 else()
@@ -42,6 +44,7 @@ endif()
 
 set(apex_sources
     apex.cpp
+    apex_options.cpp
     thread_instance.cpp
     event_listener.cpp
     handler.cpp

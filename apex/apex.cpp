@@ -19,6 +19,10 @@
 #include "policy_handler.hpp"
 #include "thread_instance.hpp"
 
+#ifdef APEX_HAVE_HPX3
+#include <hpx/hpx_fwd.hpp>
+#endif
+
 #ifdef APEX_HAVE_TAU
 #include "tau_listener.hpp"
 #define PROFILING_ON
@@ -31,7 +35,6 @@
 
 __thread bool _registered = false;
 static bool _initialized = false;
-__thread int _level = -1;
 
 #if 0
 #define APEX_TRACER {int __nid = TAU_PROFILE_GET_NODE(); \
@@ -48,8 +51,6 @@ __thread int _level = -1;
  int __tid = TAU_PROFILE_GET_THREAD(); \
  std::stringstream ss; \
  ss << __nid << ":" << __tid << " " ; \
- for (int i = 0 ; i < _level ; i++) \
-	ss << "  "; \
  ss << (A) << " "<< (B) << endl;\
  cout << ss.str();}
 #else
@@ -100,6 +101,14 @@ int apex::get_node_id()
     return m_node_id;
 }
 
+#ifdef APEX_HAVE_HPX3
+static void init_hpx_runtime_ptr(void) {
+    apex * instance = apex::instance();
+    hpx::runtime * runtime = hpx::get_runtime_ptr();
+    instance->set_hpx_runtime(runtime);
+}
+#endif
+
 /*
  * This private method is used to perform whatever initialization
  * needs to happen.
@@ -109,38 +118,29 @@ void apex::_initialize()
     APEX_TRACER
     this->m_pInstance = this;
     this->m_policy_handler = nullptr;
+#ifdef APEX_HAVE_HPX3
+    this->m_hpx_runtime = nullptr;
+    hpx::register_startup_function(init_hpx_runtime_ptr);
+#endif
 #ifdef APEX_HAVE_RCR
     uint64_t waitTime = 1000000000L; // in nanoseconds, for nanosleep
     energyDaemonInit(waitTime);
 #endif
-    char* option = NULL;
+    listeners.push_back(new profiler_listener());
 #ifdef APEX_HAVE_TAU
-    option = getenv("APEX_TAU");
-    if (option != NULL)
+    if (apex_options::use_tau())
     {
         listeners.push_back(new tau_listener());
     }
-#else
-    listeners.push_back(new profiler_listener());
 #endif
-    option = getenv("APEX_POLICY");
-    if (option != NULL)
+    if (apex_options::use_policy())
     {
         this->m_policy_handler = new policy_handler();
         listeners.push_back(this->m_policy_handler);
     }
-    option = getenv("APEX_CONCURRENCY");
-    if (option != NULL && atoi(option) > 0)
+    if (apex_options::use_concurrency() > 1)
     {
-        char* option2 = getenv("APEX_CONCURRENCY_PERIOD");
-        if (option2 != NULL)
-        {
-            listeners.push_back(new concurrency_handler(atoi(option2), option));
-        }
-        else
-        {
-            listeners.push_back(new concurrency_handler(option));
-        }
+        listeners.push_back(new concurrency_handler(apex_options::concurrency_period(), apex_options::use_concurrency()));
     }
 }
 
@@ -181,13 +181,25 @@ policy_handler * apex::get_policy_handler(std::chrono::duration<Rep, Period> con
 */
 policy_handler * apex::get_policy_handler(uint64_t const& period)
 {
-    char * option = getenv("APEX_POLICY");
-    if(option != nullptr && period_handlers.count(period) == 0)
+    if(apex_options::use_policy() && period_handlers.count(period) == 0)
     {
         period_handlers[period] = new policy_handler(period);
     }
     return period_handlers[period];
 }
+
+#ifdef APEX_HAVE_HPX3
+void apex::set_hpx_runtime(hpx::runtime * hpx_runtime) {
+    m_hpx_runtime = hpx_runtime;
+}
+
+hpx::runtime * apex::get_hpx_runtime(void) {
+    return m_hpx_runtime;
+}
+#endif
+
+
+
 
 void init(const char * thread_name)
 {
@@ -249,130 +261,64 @@ double version()
     return APEX_VERSION_MAJOR + (APEX_VERSION_MINOR/10.0);
 }
 
-void* start(string timer_name)
+profiler* start(string timer_name)
 {
     APEX_TIMER_TRACER("start ", timer_name)
-    _level++;
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return NULL; // protect against calls after finalization
-    timer_event_data event_data(START_EVENT, thread_instance::get_id(), timer_name);
     if (_notify_listeners) {
+	string * tmp = new string(timer_name);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_start(event_data);
+            instance->listeners[i]->on_start(0L, tmp);
         }
     }
-    thread_instance::instance().current_timer = event_data.my_profiler;
-    return (void*)(event_data.my_profiler);
+    return thread_instance::instance().current_timer;
 }
 
-void* resume(string timer_name)
-{
-    APEX_TIMER_TRACER("resume", timer_name)
-    _level++;
-    apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return NULL; // protect against calls after finalization
-    timer_event_data event_data(START_EVENT, thread_instance::get_id(), timer_name);
-    if (_notify_listeners) {
-        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_resume(event_data);
-        }
-    }
-    thread_instance::instance().current_timer = event_data.my_profiler;
-    return (void*)(event_data.my_profiler);
-}
-
-void* start(void * function_address) {
+profiler* start(void * function_address) {
     APEX_TIMER_TRACER("start ", timer_name)
-    _level++;
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return NULL; // protect against calls after finalization
-    timer_event_data event_data(START_EVENT, thread_instance::get_id(), function_address);
-    //event_data.function_address = function_address;
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_start(event_data);
+            instance->listeners[i]->on_start(function_address, NULL);
         }
     }
-    thread_instance::instance().current_timer = event_data.my_profiler;
-    return (void*)(event_data.my_profiler);
+    return thread_instance::instance().current_timer;
 }
-
-/*
-void* resume(void * function_address) {
-    return resume(thread_instance::instance().map_addr_to_name(function_address));
-}
-*/
 
 void resume(void * the_profiler) {
     APEX_TIMER_TRACER("resume", timer_name)
-    _level++;
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
-    timer_event_data event_data(START_EVENT, thread_instance::get_id(), NULL);
-    event_data.my_profiler = (profiler *)(the_profiler);
+    thread_instance::instance().current_timer = (profiler *)(the_profiler);
     //instance->notify_listeners(event_data);
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_resume(event_data);
-        }
-    }
-    thread_instance::instance().current_timer = event_data.my_profiler;
-}
-
-#if 0
-void stop(string timer_name)
-{
-    _level--;
-    APEX_TIMER_TRACER("stop  ", timer_name)
-    apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return; // protect against calls after finalization
-    event_data event_data(STOP_EVENT, thread_instance::get_id(), timer_name);
-    if (_notify_listeners) {
-        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_stop(event_data);
+            instance->listeners[i]->on_resume((profiler *)(the_profiler));
         }
     }
 }
 
-void stop()
-{
-    _level--;
-    APEX_TIMER_TRACER("stop", "?")
-    apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return; // protect against calls after finalization
-    string empty = "";
-    event_data* event_data(STOP_EVENT, thread_instance::get_id(), empty);
-    if (_notify_listeners) {
-        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_stop(event_data);
-        }
-    }
-}
-
-void stop(void * function_address) {
-    stop(thread_instance::instance().map_addr_to_name(function_address));
-}
-#else
 void stop(void * the_profiler)
 {
-    _level--;
     APEX_TIMER_TRACER("stop  ", timer_name)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
-    timer_event_data event_data(STOP_EVENT, thread_instance::get_id(), 0L);
+    profiler * p;
     if (the_profiler == NULL) {
-        event_data.my_profiler = thread_instance::instance().current_timer;
+        p = thread_instance::instance().current_timer;
     } else {
-        event_data.my_profiler = (profiler*)the_profiler;
+        p = (profiler*)the_profiler;
     }
+    if (p == NULL) return;
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_stop(event_data);
+            instance->listeners[i]->on_stop(p);
         }
     }
+    thread_instance::instance().current_timer = NULL;
 }
-
-#endif
 
 void sample_value(string name, double value)
 {
@@ -440,6 +386,18 @@ void set_node_id(int id)
     if (!instance) return; // protect against calls after finalization
     instance->set_node_id(id);
 }
+
+#ifdef APEX_HAVE_HPX3
+hpx::runtime * get_hpx_runtime_ptr(void) {
+    APEX_TRACER
+    apex * instance = apex::instance();
+    if (!instance) {
+        return nullptr;
+    }
+    hpx::runtime * runtime = instance->get_hpx_runtime();
+    return runtime;
+}
+#endif
 
 void track_power(void)
 {
@@ -609,57 +567,27 @@ extern "C" {
         return version();
     }
 
-    void* apex_start_name(const char * timer_name)
+    apex_profiler_handle apex_start_name(const char * timer_name)
     {
         APEX_TRACER
 	if (timer_name)
-          return start(string(timer_name));
+          return (apex_profiler_handle)start(string(timer_name));
 	else
-          return start(string(""));
+          return (apex_profiler_handle)start(string(""));
     }
 
-    void* apex_start_address(void * function_address)
+    apex_profiler_handle apex_start_address(void * function_address)
     {
         APEX_TRACER
-        return start(function_address);
+        return (apex_profiler_handle)start(function_address);
     }
 
-    /*
-    void apex_resume(const char * timer_name)
-    {
-        APEX_TRACER
-        resume(string(timer_name));
-    }
-
-    void apex_resume_addr(void * function_address)
-    {
-        APEX_TRACER
-        resume(function_address);
-    }
-    */
     void apex_resume_profiler(void * the_profiler)
     {
         APEX_TRACER
         resume(the_profiler);
     }
 
-    /*
-    void apex_stop(const char * timer_name)
-    {
-        APEX_TRACER
-	if (timer_name == NULL) {
-            stop();
-	} else {
-            stop(string(timer_name));
-	}
-    }
-
-    void apex_stop_addr(void * function_address)
-    {
-        APEX_TRACER
-        stop(function_address);
-    }
-    */
     void apex_stop_profiler(void * the_profiler)
     {
         APEX_TRACER
@@ -725,6 +653,7 @@ apex_profile* apex_get_profile_from_name(const char * timer_name) {
     string tmp(timer_name);
 	return get_profile(tmp);
 }
+
 
 } // extern "C"
 

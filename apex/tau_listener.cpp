@@ -56,40 +56,44 @@ void tau_listener::on_new_thread(new_thread_event_data &data) {
   return;
 }
 
-void tau_listener::on_start(timer_event_data &data) {
+void tau_listener::on_start(apex_function_address function_address, string *timer_name) {
   if (!_terminate) {
-      if (data.have_name) {
-      	TAU_START(data.timer_name->c_str());
+      if (timer_name != NULL) {
+      	TAU_START(timer_name->c_str());
       } else {
-      	TAU_START(thread_instance::instance().map_addr_to_name(data.function_address).c_str());
+      	TAU_START(thread_instance::instance().map_addr_to_name(function_address).c_str());
       }
   }
   return;
 }
 
-void tau_listener::on_stop(timer_event_data &data) {
+void tau_listener::on_stop(profiler *p) {
   static string empty("");
   if (!_terminate) {
-      if (data.have_name) {
-        if (data.timer_name->compare(empty) == 0) {
+      if (p->have_name) {
+        if (p->timer_name->compare(empty) == 0) {
           TAU_GLOBAL_TIMER_STOP(); // stop the top level timer
 	} else {
-          TAU_STOP(data.timer_name->c_str());
+          TAU_STOP(p->timer_name->c_str());
 	}
       } else {
-        if (data.function_address == 0) {
+        if (p->action_address == 0) {
           TAU_GLOBAL_TIMER_STOP(); // stop the top level timer
 	} else {
-      	  TAU_STOP(thread_instance::instance().map_addr_to_name(data.function_address).c_str());
+      	  TAU_STOP(thread_instance::instance().map_addr_to_name(p->action_address).c_str());
 	}
       }
   }
   return;
 }
 
-void tau_listener::on_resume(timer_event_data &data) {
+void tau_listener::on_resume(profiler *p) {
   if (!_terminate) {
-      TAU_START(data.timer_name->c_str());
+    if (p->have_name) {
+      TAU_START(p->timer_name->c_str());
+    } else {
+      TAU_START(thread_instance::instance().map_addr_to_name(p->action_address).c_str());
+    }
   }
   return;
 }

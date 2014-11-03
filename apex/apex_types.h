@@ -9,6 +9,7 @@
 #define APEX_TYPES_HPP
 
 #include "stdint.h"
+#include "stdbool.h"
 
 /* 
  * Typedef for enumerating the different event types 
@@ -61,5 +62,13 @@ typedef uintptr_t apex_profiler_handle; // address of internal C++ object
  * what the functions are expecting.
  */
 typedef void * apex_function_address; // generic function pointer
+
+#define FOREACH_APEX_OPTION(macro) \
+	macro (APEX_TAU, use_tau, bool, false) \
+	macro (APEX_POLICY, use_policy, bool, false) \
+	macro (APEX_CONCURRENCY, use_concurrency, int, 0) \
+	macro (APEX_CONCURRENCY_PERIOD, concurrency_period, int, 1000000) \
+	macro (APEX_SCREEN_OUTPUT, use_screen_output, bool, false) \
+	macro (APEX_PROFILE_OUTPUT, use_profile_output, bool, false) \
 
 #endif //APEX_TYPES_HPP
