@@ -95,7 +95,11 @@ inline void profiler_listener::process_profile(profiler * p)
           unordered_set<void*>::iterator it = throttled_addresses.find(p->action_address);
           if (it == throttled_addresses.end()) { 
 	    throttled_addresses.insert(p->action_address);
-	    cout << "APEX Throttled " << *(lookup_address((uintptr_t)p->action_address)) << endl;
+#if defined(HAVE_BFD)
+	    //cout << "APEX Throttled " << *(lookup_address((uintptr_t)p->action_address)) << endl;
+#else
+	    //cout << "APEX Throttled " << p->action_address << endl;
+#endif
 	  }
 	}
 #endif
