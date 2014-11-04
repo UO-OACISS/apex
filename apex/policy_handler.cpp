@@ -55,7 +55,7 @@ bool policy_handler::_handler(void) {
 void policy_handler::_init(void) {
   next_id = 0;
 #ifdef APEX_HAVE_HPX3
-  bool status = hpx_timer.start();
+  hpx_timer.start();
 #else
   _timer.async_wait(boost::bind(&policy_handler::_handler, this));
   run();
@@ -66,7 +66,7 @@ void policy_handler::_init(void) {
 inline void policy_handler::reset(void) {
 #ifdef APEX_HAVE_HPX3
   if (_terminate) {
-    bool status = hpx_timer.stop();
+    hpx_timer.stop();
   }
 #else
   if (!_terminate) {

@@ -40,13 +40,19 @@ typedef struct _context
     apex_policy_handle* policy_handle;
 } apex_context;
 
+typedef enum _profile_type {
+  TIMER,
+  COUNTER
+} apex_profile_type;
+
 /*
  * The profile object for a timer in APEX.
  */
 typedef struct _profile
 {
+    apex_profile_type type;
     double calls;
-    double accumulated_time;
+    double accumulated;
     double sum_squares;
     double minimum;
     double maximum;

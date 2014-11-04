@@ -74,10 +74,12 @@ inline void profiler_listener::process_profile(profiler * p)
     if (p->have_name) {
       map<string, profile*>::iterator it = name_map.find(*(p->timer_name));
       if (it != name_map.end()) {
+        // A profile for this name already exists.
         theprofile = (*it).second;
         theprofile->increment(p->elapsed());
       } else {
-        theprofile = new profile(p->elapsed());
+        // Create a new profile for this name.
+        theprofile = new profile(p->elapsed(), p->is_counter ? COUNTER : TIMER);
         name_map[*(p->timer_name)] = theprofile;
 	// done with the name now
 	delete(p->timer_name);
@@ -175,17 +177,42 @@ void format_line(ofstream &myfile, profile * p) {
     myfile << endl;
 }
 
+void format_counter_line(ofstream &myfile, profile * p) {
+    myfile << p->get_calls() << " ";       // numevents
+    myfile << p->get_maximum() << " ";     // max
+    myfile << p->get_minimum() << " ";     // min
+    myfile << p->get_mean() << " ";        // mean
+    myfile << p->get_sum_squares() << " "; 
+    myfile << endl;
+}
+
 void profiler_listener::write_profile(void) {
     ofstream myfile;
     stringstream datname;
     datname << "profile." << node_id << ".0.0";
     myfile.open(datname.str().c_str());
-    int function_count = address_map.size() + name_map.size();
+    int counter_events = 0;
+
+    // Determine number of counter events, as these need to be
+    // excluded from the number of normal timers
+    map<string, profile*>::const_iterator it2;
+    for(it2 = name_map.begin(); it2 != name_map.end(); it2++) {
+      profile * p = it2->second;
+      if(p->get_type() == COUNTER) {
+        counter_events++;
+      }
+    }
+    int function_count = address_map.size() + (name_map.size() - counter_events);
+
+    // Print the normal timers to the profile file
     // 1504 templated_functions_MULTI_TIME
     myfile << function_count << " templated_functions_MULTI_TIME" << endl;
     // # Name Calls Subrs Excl Incl ProfileCalls #
     myfile << "# Name Calls Subrs Excl Incl ProfileCalls #" << endl;
     thread_instance ti = thread_instance::instance();
+
+    // Iterate over the profiles which are associated to a function
+    // by address. All of these are regular timers.
     map<void*, profile*>::const_iterator it;
     for(it = address_map.begin(); it != address_map.end(); it++) {
       profile * p = it->second;
@@ -198,16 +225,36 @@ void profiler_listener::write_profile(void) {
       myfile << "\"" << ti.map_addr_to_name(function_address) << "\" ";
 #endif
       format_line (myfile, p);
-    }
-    map<string, profile*>::const_iterator it2;
+    }                                              
+
+    // Iterate over the profiles which are associated to a function
+    // by name. Only output the regular timers now. Counters are
+    // in a separate section, below.
     for(it2 = name_map.begin(); it2 != name_map.end(); it2++) {
       profile * p = it2->second;
-      string action_name = it2->first;
-      myfile << "\"" << action_name << "\" ";
-      format_line (myfile, p);
+      if(p->get_type() == TIMER) {
+        string action_name = it2->first;
+        myfile << "\"" << action_name << "\" ";
+        format_line (myfile, p);
+      }
     }
+
     // 0 aggregates
     myfile << "0 aggregates" << endl;
+
+    // Now process the counters, if there are any.
+    if(counter_events > 0) {
+      myfile << counter_events << " userevents" << endl;
+      myfile << "# eventname numevents max min mean sumsqr" << endl;
+      for(it2 = name_map.begin(); it2 != name_map.end(); it2++) {
+        profile * p = it2->second;
+        if(p->get_type() == COUNTER) {
+            string action_name = it2->first;
+            myfile << "\"" << action_name << "\" ";
+            format_counter_line (myfile, p);
+        }
+      }
+    }
     myfile.close();
 }
 
@@ -340,7 +387,7 @@ void profiler_listener::on_start(apex_function_address function_address, string 
 }
 
 void profiler_listener::on_stop(profiler * p) {
-  static __thread int counter = 0; // only do 1/10 of the timers
+  //static __thread int counter = 0; // only do 1/10 of the timers
   if (!_terminate) {
       if (p) {
           p->stop();
@@ -363,7 +410,10 @@ void profiler_listener::on_resume(profiler *p) {
 
 void profiler_listener::on_sample_value(sample_value_event_data &data) {
   if (!_terminate) {
-      //cout << "SAMPLE VALUE" << endl;
+      profiler * p = new profiler(new string(*data.counter_name), data.counter_value);
+      int me = thread_instance::get_id();
+      profiler_queues[me]->push(p);
+      queue_signal.post();
   }
 }
 
