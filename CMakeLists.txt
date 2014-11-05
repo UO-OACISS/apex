@@ -165,6 +165,17 @@ if (Tcmalloc_FOUND)
 endif()
 
 ################################################################################
+# PAPI configuration
+################################################################################
+
+find_package(PAPI)
+if (PAPI_FOUND)
+	include_directories(${PAPI_INCLUDE_DIRS})
+	set(LIBS ${LIBS} ${PAPI_LIBRARIES})
+	set (CMAKE_INSTALL_RPATH ${PAPI_LIBRARY_DIR})
+endif()
+
+################################################################################
 # Binutils configuration
 ################################################################################
 

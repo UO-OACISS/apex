@@ -2,8 +2,9 @@
 
 #configure parameters
 export BOOST_ROOT=/usr
-export BOOST_ROOT=$HOME/install/boost-1.56.0
-export RCR_ROOT=$HOME/src/RCRdaemon
+#export BOOST_ROOT=$HOME/install/boost-1.56.0
+#export RCR_ROOT=$HOME/src/RCRdaemon
+export PAPI_ROOT=/usr/local/papi/5.3.2
 # this one is only meaningful for HPX-3 from LSU
 # export HPX_HAVE_ITTNOTIFY=1 
 
@@ -39,7 +40,7 @@ cmake \
 -DCMAKE_BUILD_TYPE=Release \
 -DAPEX_THROTTLE=TRUE \
 -DBUILD_SHARED_LIBS=TRUE \
--DUSE_BINUTILS=FALSE \
+-DUSE_BINUTILS=TRUE \
 -DCMAKE_INSTALL_PREFIX=../install \
 ..
 

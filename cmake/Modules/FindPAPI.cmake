@@ -5,11 +5,18 @@
 #  PAPI_LIBRARIES - The libraries needed to use PAPI
 #  PAPI_DEFINITIONS - Compiler switches required for using PAPI
 
+if(NOT DEFINED $PAPI_ROOT)
+	if(DEFINED ENV{PAPI_ROOT})
+		# message("   env PAPI_ROOT is defined as $ENV{PAPI_ROOT}")
+		set(PAPI_ROOT $ENV{PAPI_ROOT})
+	endif()
+endif()
+
 find_path(PAPI_INCLUDE_DIR NAMES papi.h
-	  HINTS ${PAPI_ROOT}/include)
+	HINTS ${PAPI_ROOT}/include $ENV{PAPI_ROOT}/include)
 
 find_library(PAPI_LIBRARY NAMES papi
-             HINTS ${PAPI_ROOT})
+	HINTS ${PAPI_ROOT}/* $ENV{PAPI_ROOT}/*)
 
 include(FindPackageHandleStandardArgs)
 # handle the QUIETLY and REQUIRED arguments and set PAPI_FOUND to TRUE
