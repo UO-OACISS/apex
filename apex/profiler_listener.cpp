@@ -35,116 +35,174 @@ using namespace std;
 
 namespace apex {
 
-std::vector<boost::lockfree::spsc_queue<profiler*>* > profiler_queues(8);
-boost::thread * consumer_thread;
-boost::atomic<bool> done (false);
-semaphore queue_signal;
-static map<string, profile*> name_map;
-static map<void*, profile*> address_map;
+  /* This is the array of profiler queues, one for each worker thread. It
+   * is initialized to a length of 8, there is code in on_new_thread() to
+   * increment it if necessary.  */
+  std::vector<boost::lockfree::spsc_queue<profiler*>* > profiler_queues(8);
+
+  /* This is the thread that will read from the queues of profiler
+   * objects, and update the profiles. */
+  boost::thread * consumer_thread;
+
+  /* Flag indicating that we are done inserting into the queues, so the
+   * consumer knows when to exit */
+  boost::atomic<bool> done (false);
+
+  /* how the workers signal the consumer that there are new profiler objects
+   * on the queue to consume */
+  semaphore queue_signal;
+
+  /* The profiles, mapped by name. Profiles will be in this map or the other
+   * one, not both. It depends whether the timers are identified by name
+   * or address. */
+  static map<string, profile*> name_map;
+
+  /* The profiles, mapped by address */
+  static map<void*, profile*> address_map;
+
+  /* If we are throttling, keep a set of addresses that should not be timed.
+   * We also have a set of names. */
 #if defined(APEX_THROTTLE)
-static unordered_set<void*> throttled_addresses;
+  static unordered_set<void*> throttled_addresses;
+  static unordered_set<string> throttled_names;
 #endif
 
-profiler * profiler_listener::main_timer(NULL);
-int profiler_listener::node_id(0);
+  /* measurement of entire application */
+  profiler * profiler_listener::main_timer(NULL);
 
-profile * profiler_listener::get_profile(apex_function_address address) {
-   map<void*, profile*>::iterator it = address_map.find((void*)address);
-   if (it != address_map.end()) {
-     return (*it).second;
-   }
-   return NULL;
-}
+  /* the node id is needed for profile output. */
+  int profiler_listener::node_id(0);
 
-profile * profiler_listener::get_profile(string &timer_name) {
-   map<string, profile*>::iterator it = name_map.find(timer_name);
-   if (it != name_map.end()) {
-     return (*it).second;
-   }
-   return NULL;
-}
+  /* Return the requested profile object to the user.
+   * Return NULL if doesn't exist. */
+  profile * profiler_listener::get_profile(apex_function_address address) {
+    map<void*, profile*>::iterator it = address_map.find((void*)address);
+    if (it != address_map.end()) {
+      return (*it).second;
+    }
+    return NULL;
+  }
 
+  /* Return the requested profile object to the user.
+   * Return NULL if doesn't exist. */
+  profile * profiler_listener::get_profile(string &timer_name) {
+    map<string, profile*>::iterator it = name_map.find(timer_name);
+    if (it != name_map.end()) {
+      return (*it).second;
+    }
+    return NULL;
+  }
+
+  /* forward declaration, defined below */
 #if APEX_HAVE_BFD
-extern string * lookup_address(uintptr_t ip);
+  extern string * lookup_address(uintptr_t ip);
 #endif
 
-inline void profiler_listener::process_profile(profiler * p)
-{
+  /* After the consumer thread pulls a profiler off of the queue,
+   * process it by updating its profile object in the map of profiles. */
+  inline void profiler_listener::process_profile(profiler * p)
+  {
     profile * theprofile;
+    // Look for the profile object by name, if applicable
     if (p->have_name) {
       map<string, profile*>::iterator it = name_map.find(*(p->timer_name));
       if (it != name_map.end()) {
         // A profile for this name already exists.
         theprofile = (*it).second;
         theprofile->increment(p->elapsed());
+#if defined(APEX_THROTTLE)
+        // Is this a lightweight task? If so, we shouldn't measure it any more,
+        // in order to reduce overhead.
+        if (theprofile->get_calls() > APEX_THROTTLE_CALLS && 
+            theprofile->get_mean() < APEX_THROTTLE_PERCALL) { 
+          unordered_set<string>::iterator it = throttled_names.find(p->timer_name);
+          if (it == throttled_names.end()) { 
+            throttled_names.insert(p->timer_name);
+            cout << "APEX Throttled " << p->timer_name << endl;
+          }
+        }
+#endif
       } else {
         // Create a new profile for this name.
         theprofile = new profile(p->elapsed(), p->is_counter ? COUNTER : TIMER);
         name_map[*(p->timer_name)] = theprofile;
-	// done with the name now
-	delete(p->timer_name);
+        // done with the name now
+        delete(p->timer_name);
       }
     } else {
       map<void*, profile*>::const_iterator it2 = address_map.find(p->action_address);
       if (it2 != address_map.end()) {
+        // A profile for this name already exists.
         theprofile = (*it2).second;
         theprofile->increment(p->elapsed());
 #if defined(APEX_THROTTLE)
+        // Is this a lightweight task? If so, we shouldn't measure it any more,
+        // in order to reduce overhead.
         if (theprofile->get_calls() > APEX_THROTTLE_CALLS && 
             theprofile->get_mean() < APEX_THROTTLE_PERCALL) { 
           unordered_set<void*>::iterator it = throttled_addresses.find(p->action_address);
           if (it == throttled_addresses.end()) { 
-	    throttled_addresses.insert(p->action_address);
+            throttled_addresses.insert(p->action_address);
 #if defined(HAVE_BFD)
-	    //cout << "APEX Throttled " << *(lookup_address((uintptr_t)p->action_address)) << endl;
+            cout << "APEX Throttled " << *(lookup_address((uintptr_t)p->action_address)) << endl;
 #else
-	    //cout << "APEX Throttled " << p->action_address << endl;
+            cout << "APEX Throttled " << p->action_address << endl;
 #endif
-	  }
-	}
+          }
+        }
 #endif
       } else {
+        // Create a new profile for this address.
         theprofile = new profile(p->elapsed());
         address_map[p->action_address] = theprofile;
       }
     }
+    // done with the profiler object
     delete(p);
-}
+  }
 
-void profiler_listener::delete_profiles(void) {
-#if 1
+  /* Cleaning up memory. Not really necessary, because it only gets
+   * called at shutdown. But a good idea to do regardless. */
+  void profiler_listener::delete_profiles(void) {
+    // iterate over the map and free the objects in the map
     map<void*, profile*>::const_iterator it;
     for(it = address_map.begin(); it != address_map.end(); it++) {
-        delete it->second;
-	//address_map.erase(it->first);
+      delete it->second;
     }
+    // iterate over the map and free the objects in the map
     map<string, profile*>::const_iterator it2;
     for(it2 = name_map.begin(); it2 != name_map.end(); it2++) {
-        delete it2->second;
-	//name_map.erase(it2->first);
+      delete it2->second;
     }
-#endif
+    // clear the maps.
     address_map.clear();
     name_map.clear();
+    // iterate over the queues, and delete them
     unsigned int i = 0;
     for (i = 0 ; i < profiler_queues.size(); i++) {
-	if (profiler_queues[i]) {
-            delete (profiler_queues[i]);
-	}
+      if (profiler_queues[i]) {
+        delete (profiler_queues[i]);
+      }
     }
+    // clear the vector of queues.
     profiler_queues.clear();
-}
+  }
 
-void profiler_listener::finalize_profiles(void) {
+  /* At program termination, write the measurements to the screen. */
+  void profiler_listener::finalize_profiles(void) {
+    // iterate over the profiles in the address map 
     map<void*, profile*>::const_iterator it;
     for(it = address_map.begin(); it != address_map.end(); it++) {
       profile * p = it->second;
       void * function_address = it->first;
 #if defined(APEX_THROTTLE)
+      // if this profile was throttled, don't output the measurements.
+      // they are limited and bogus, anyway.
       unordered_set<void*>::const_iterator it = throttled_addresses.find(function_address);
       if (it != throttled_addresses.end()) { continue; }
 #endif
 #if APEX_HAVE_BFD
+      // translate the address to a name
       string * tmp = lookup_address((uintptr_t)function_address);
       cout << *tmp << ": " ;
 #else
@@ -158,9 +216,16 @@ void profiler_listener::finalize_profiles(void) {
       cout << p->get_stddev() << endl;
     }
     map<string, profile*>::const_iterator it2;
+    // iterate over the profiles in the address map 
     for(it2 = name_map.begin(); it2 != name_map.end(); it2++) {
       profile * p = it2->second;
       string action_name = it2->first;
+#if defined(APEX_THROTTLE)
+      // if this profile was throttled, don't output the measurements.
+      // they are limited and bogus, anyway.
+      unordered_set<void*>::const_iterator it = throttled_names.find(action_name);
+      if (it != throttled_names.end()) { continue; }
+#endif
       cout << action_name << ": " ;
       cout << p->get_calls() << ", " ;
       cout << p->get_minimum() << ", " ;
@@ -169,9 +234,10 @@ void profiler_listener::finalize_profiles(void) {
       cout << p->get_accumulated() << ", " ;
       cout << p->get_stddev() << endl;
     }
-}
+  }
 
-void format_line(ofstream &myfile, profile * p) {
+  /* When writing a TAU profile, write out a timer line */
+  void format_line(ofstream &myfile, profile * p) {
     myfile << p->get_calls() << " ";
     myfile << 0 << " ";
     myfile << (p->get_accumulated() * 1000000.0) << " ";
@@ -179,20 +245,24 @@ void format_line(ofstream &myfile, profile * p) {
     myfile << 0 << " ";
     myfile << "GROUP=\"TAU_USER\" ";
     myfile << endl;
-}
+  }
 
-void format_counter_line(ofstream &myfile, profile * p) {
+  /* When writing a TAU profile, write out a counter line */
+  void format_counter_line(ofstream &myfile, profile * p) {
     myfile << p->get_calls() << " ";       // numevents
     myfile << p->get_maximum() << " ";     // max
     myfile << p->get_minimum() << " ";     // min
     myfile << p->get_mean() << " ";        // mean
     myfile << p->get_sum_squares() << " "; 
     myfile << endl;
-}
+  }
 
-void profiler_listener::write_profile(void) {
+  /* Write TAU profiles from the collected data. */
+  void profiler_listener::write_profile(void) {
     ofstream myfile;
     stringstream datname;
+    // name format: profile.nodeid.contextid.threadid
+    // We only write one profile per process (for now).
     datname << "profile." << node_id << ".0.0";
     myfile.open(datname.str().c_str());
     int counter_events = 0;
@@ -253,250 +323,295 @@ void profiler_listener::write_profile(void) {
       for(it2 = name_map.begin(); it2 != name_map.end(); it2++) {
         profile * p = it2->second;
         if(p->get_type() == COUNTER) {
-            string action_name = it2->first;
-            myfile << "\"" << action_name << "\" ";
-            format_counter_line (myfile, p);
+          string action_name = it2->first;
+          myfile << "\"" << action_name << "\" ";
+          format_counter_line (myfile, p);
         }
       }
     }
     myfile.close();
-}
+  }
 
-void profiler_listener::process_profiles(void)
-{
+  /* This is the main function for the consumer thread.
+   * It will wait at a semaphore for pending work. When there is
+   * work on one or more queues, it will iterate over the queues
+   * and process the pending profiler objects, updating the profiles
+   * as it goes. */
+  void profiler_listener::process_profiles(void)
+  {
     profiler * p;
     unsigned int i;
+    // Main loop. Stay in this loop unless "done".
     while (!done) {
-        queue_signal.wait();
-	for (i = 0 ; i < profiler_queues.size(); i++) {
-	    if (profiler_queues[i]) {
-                while (profiler_queues[i]->pop(p)) {
-                    process_profile(p);
-                }
-	    }
-	}
+      queue_signal.wait();
+      for (i = 0 ; i < profiler_queues.size(); i++) {
+        if (profiler_queues[i]) {
+          while (profiler_queues[i]->pop(p)) {
+            process_profile(p);
+          }
+        }
+      }
     }
 
+    // We might be done, but check to make sure the queues are empty
     for (i = 0 ; i < profiler_queues.size(); i++) {
-	if (profiler_queues[i]) {
-            while (profiler_queues[i]->pop(p)) {
-                process_profile(p);
-            }
+      if (profiler_queues[i]) {
+        while (profiler_queues[i]->pop(p)) {
+          process_profile(p);
         }
+      }
     }
+
+    // stop the main timer, and process that profile
     main_timer->stop();
     process_profile(main_timer);
 
+    // output to screen?
     if (apex_options::use_screen_output())
     {
       finalize_profiles();
     }
+
+    // output to TAU profiles?
     if (apex_options::use_profile_output())
     {
       write_profile();
     }
+
+    // cleanup.
     delete_profiles();
-}
+  }
 
-void profiler_listener::on_startup(startup_event_data &data) {
-  if (!_terminate) {
-      //cout << "STARTUP" << endl;
-      // one for the main thread
+  /* When APEX gets a STARTUP event, do some initialization. */
+  void profiler_listener::on_startup(startup_event_data &data) {
+    if (!_terminate) {
+      // Create a profiler queue for this main thread
       profiler_queues[0] = new boost::lockfree::spsc_queue<profiler*>(MAX_QUEUE_SIZE);
-      // one for the worker thread
-      //profiler_queues[1] = new boost::lockfree::spsc_queue<profiler*>(MAX_QUEUE_SIZE);
+      // Start the consumer thread, to process profiler objects.
       consumer_thread = new boost::thread(process_profiles);
+
+      /* This commented out code is to change the priority of the consumer thread.
+       * IDEALLY, I would like to make this a low priority thread, but that is as
+       * yet unsuccessful. */
 #if 0
-    int retcode;
-    int policy;
+      int retcode;
+      int policy;
 
-    pthread_t threadID = (pthread_t) consumer_thread->native_handle();
+      pthread_t threadID = (pthread_t) consumer_thread->native_handle();
 
-    struct sched_param param;
+      struct sched_param param;
 
-    if ((retcode = pthread_getschedparam(threadID, &policy, &param)) != 0)
-    {
+      if ((retcode = pthread_getschedparam(threadID, &policy, &param)) != 0)
+      {
         errno = retcode;
         perror("pthread_getschedparam");
         exit(EXIT_FAILURE);
-    }
-    std::cout << "INHERITED: ";
-    std::cout << "policy=" << ((policy == SCHED_FIFO)  ? "SCHED_FIFO" :
-                               (policy == SCHED_RR)    ? "SCHED_RR" :
-                               (policy == SCHED_OTHER) ? "SCHED_OTHER" :
-                                                         "???")
-              << ", priority=" << param.sched_priority << " of " << sched_get_priority_min(policy) << "," << sched_get_priority_max(policy)  << std::endl;
-    //param.sched_priority = 10;
-    if ((retcode = pthread_setschedparam(threadID, policy, &param)) != 0)
-    {
+      }
+      std::cout << "INHERITED: ";
+      std::cout << "policy=" << ((policy == SCHED_FIFO)  ? "SCHED_FIFO" :
+          (policy == SCHED_RR)    ? "SCHED_RR" :
+          (policy == SCHED_OTHER) ? "SCHED_OTHER" :
+          "???")
+        << ", priority=" << param.sched_priority << " of " << sched_get_priority_min(policy) << "," << sched_get_priority_max(policy)  << std::endl;
+      //param.sched_priority = 10;
+      if ((retcode = pthread_setschedparam(threadID, policy, &param)) != 0)
+      {
         errno = retcode;
         perror("pthread_setschedparam");
         exit(EXIT_FAILURE);
-    }
+      }
 #endif
 
+      // time the whole application.
       main_timer = new profiler(new string("APEX MAIN"));
+    }
   }
-}
 
-void profiler_listener::on_shutdown(shutdown_event_data &data) {
-  if (!_terminate) {
-      //cout << "SHUTDOWN" << endl;
+  /* On the shutdown event, notify the consumer thread that we are done
+   * and set the "terminate" flag. */
+  void profiler_listener::on_shutdown(shutdown_event_data &data) {
+    if (!_terminate) {
       node_id = data.node_id;
       _terminate = true;
       done = true;
       queue_signal.post();
       consumer_thread->join();
+    }
   }
-}
 
-void profiler_listener::on_new_node(node_event_data &data) {
-  if (!_terminate) {
-      //cout << "NEW NODE" << endl;
+  /* When a new node is created */
+  void profiler_listener::on_new_node(node_event_data &data) {
+    if (!_terminate) {
+    }
   }
-}
 
-void profiler_listener::on_new_thread(new_thread_event_data &data) {
-  if (!_terminate) {
-      //cout << "NEW THREAD" << endl;
+  /* When a new thread is registered, expand all of our storage as necessary
+   * to handle the new thread */
+  void profiler_listener::on_new_thread(new_thread_event_data &data) {
+    if (!_terminate) {
+      // resize the vector
       unsigned int me = (unsigned int)thread_instance::get_id();
       if (me >= profiler_queues.size()) {
-	      profiler_queues.resize(me + 1);
+        profiler_queues.resize(me + 1);
       }
-	  unsigned int i = 0;
-	  for (i = 0; i < me+1 ; i++) {
-	    if (profiler_queues[i] == NULL) {
-          boost::lockfree::spsc_queue<profiler*>* tmp = new boost::lockfree::spsc_queue<profiler*>(MAX_QUEUE_SIZE);
+      unsigned int i = 0;
+      // allocate the queue(s)
+      for (i = 0; i < me+1 ; i++) {
+        if (profiler_queues[i] == NULL) {
+          boost::lockfree::spsc_queue<profiler*>* tmp = 
+            new boost::lockfree::spsc_queue<profiler*>(MAX_QUEUE_SIZE);
           profiler_queues[i] = tmp;
-		}
-	  }
+        }
+      }
+    }
   }
-}
 
-void profiler_listener::on_start(apex_function_address function_address, string *timer_name) {
-  if (!_terminate) {
+  /* When a start event happens, create a profiler object. Unless this 
+   * named event is throttled, in which case do nothing, as quickly as possible */
+  void profiler_listener::on_start(apex_function_address function_address, string *timer_name) {
+    if (!_terminate) {
       if (timer_name != NULL) {
+#if defined(APEX_THROTTLE)
+        // if this timer is throttled, return without doing anything
+        unordered_set<void*>::const_iterator it = throttled_names.find(*timer_name);
+        if (it != throttled_names.end()) {
+          thread_instance::instance().current_timer = NULL;
+          return;
+        }
+#endif
+        // start the profiler object, which starts our timers
         thread_instance::instance().current_timer = new profiler(timer_name);
       } else {
 #if defined(APEX_THROTTLE)
+        // if this timer is throttled, return without doing anything
         unordered_set<void*>::const_iterator it = throttled_addresses.find(function_address);
         if (it != throttled_addresses.end()) {
           thread_instance::instance().current_timer = NULL;
-	  return;
-	}
+          return;
+        }
 #endif
+        // start the profiler object, which starts our timers
         thread_instance::instance().current_timer = new profiler(function_address);
       }
+    }
   }
-}
 
-void profiler_listener::on_stop(profiler * p) {
-  //static __thread int counter = 0; // only do 1/10 of the timers
-  if (!_terminate) {
+  /* Stop the timer, if applicable, and queue the profiler object */
+  void profiler_listener::on_stop(profiler * p) {
+    if (!_terminate) {
       if (p) {
-          p->stop();
-          int me = thread_instance::get_id();
-          profiler_queues[me]->push(p);
-          queue_signal.post();
+        p->stop();
+        int me = thread_instance::get_id();
+        profiler_queues[me]->push(p);
+        queue_signal.post();
       }
+    }
   }
-}
 
-void profiler_listener::on_resume(profiler *p) {
-  if (!_terminate) {
+  /* This is just like starting a timer, but don't increment the number of calls
+   * value. That is because we are restarting an existing timer. */
+  void profiler_listener::on_resume(profiler *p) {
+    if (!_terminate) {
       if (p->have_name) {
         thread_instance::instance().current_timer = new profiler(p->timer_name);
       } else {
         thread_instance::instance().current_timer = new profiler(p->action_address);
       }
+    }
   }
-}
 
-void profiler_listener::on_sample_value(sample_value_event_data &data) {
-  if (!_terminate) {
+  /* When a sample value is processed, save it as a profiler object, and queue it. */
+  void profiler_listener::on_sample_value(sample_value_event_data &data) {
+    if (!_terminate) {
       profiler * p = new profiler(new string(*data.counter_name), data.counter_value);
       int me = thread_instance::get_id();
       profiler_queues[me]->push(p);
       queue_signal.post();
+    }
   }
-}
 
-void profiler_listener::on_periodic(periodic_event_data &data) {
-  if (!_terminate) {
-      //cout << "PERIODIC" << endl;
+  /* For periodic stuff. Do something? */
+  void profiler_listener::on_periodic(periodic_event_data &data) {
+    if (!_terminate) {
+    }
   }
-}
 
 #if APEX_HAVE_BFD
 
-/*
- *-----------------------------------------------------------------------------
- * Simple hash table to map function addresses to region names/identifier
- *-----------------------------------------------------------------------------
- */
+  /*
+   *-----------------------------------------------------------------------------
+   * Simple hash table to map function addresses to region names/identifier
+   *-----------------------------------------------------------------------------
+   */
 
-struct OmpHashNode
-{
-  OmpHashNode() { }
+  struct OmpHashNode
+  {
+    OmpHashNode() { }
 
-  ApexBfdInfo info;        ///< Filename, line number, etc.
-  string * location;
-};
+    ApexBfdInfo info;        ///< Filename, line number, etc.
+    string * location;
+  };
 
-extern void Apex_delete_hash_table(void);
+  /* destructor helper */
+  extern void Apex_delete_hash_table(void);
 
-struct OmpHashTable : public std::map<uintptr_t, OmpHashNode*>
-{
-  OmpHashTable() { }
-  virtual ~OmpHashTable() {
-    Apex_delete_hash_table();
+  /* Define the table of addresses to names */
+  struct OmpHashTable : public std::map<uintptr_t, OmpHashNode*>
+  {
+    OmpHashTable() { }
+    virtual ~OmpHashTable() {
+      Apex_delete_hash_table();
+    }
+  };
+
+  /* Static constructor. We only need one. */
+  static OmpHashTable & OmpTheHashTable()
+  {
+    static OmpHashTable htab;
+    return htab;
   }
-};
 
-static OmpHashTable & OmpTheHashTable()
-{
-  static OmpHashTable htab;
-  return htab;
-}
-
-static apex_bfd_handle_t & OmpTheBfdUnitHandle()
-{
-  static apex_bfd_handle_t OmpbfdUnitHandle = APEX_BFD_NULL_HANDLE;
-  if (OmpbfdUnitHandle == APEX_BFD_NULL_HANDLE) {
+  /* Static BFD unit handle generator. We only need one. */
+  static apex_bfd_handle_t & OmpTheBfdUnitHandle()
+  {
+    static apex_bfd_handle_t OmpbfdUnitHandle = APEX_BFD_NULL_HANDLE;
     if (OmpbfdUnitHandle == APEX_BFD_NULL_HANDLE) {
-      OmpbfdUnitHandle = Apex_bfd_registerUnit();
+      if (OmpbfdUnitHandle == APEX_BFD_NULL_HANDLE) {
+        OmpbfdUnitHandle = Apex_bfd_registerUnit();
+      }
     }
+    return OmpbfdUnitHandle;
   }
-  return OmpbfdUnitHandle;
-}
 
-void Apex_delete_hash_table(void) {
-  // clear the hash map to eliminate memory leaks
-  OmpHashTable & mytab = OmpTheHashTable();
-  for ( std::map<uintptr_t, OmpHashNode*>::iterator it = mytab.begin(); it != mytab.end(); ++it ) {
-    OmpHashNode * node = it->second;
-    if (node->location) {
+  /* Delete the hash table. */
+  void Apex_delete_hash_table(void) {
+    // clear the hash map to eliminate memory leaks
+    OmpHashTable & mytab = OmpTheHashTable();
+    for ( std::map<uintptr_t, OmpHashNode*>::iterator it = mytab.begin(); it != mytab.end(); ++it ) {
+      OmpHashNode * node = it->second;
+      if (node->location) {
         delete (node->location);
+      }
+      delete node;
     }
-    delete node;
+    mytab.clear();
+    Apex_delete_bfd_units();
   }
-  mytab.clear();
-  Apex_delete_bfd_units();
-}
 
-string * lookup_address(uintptr_t ip) {
+  /* Map a function address to a name and/or source location */
+  string * lookup_address(uintptr_t ip) {
     stringstream location;
     apex_bfd_handle_t & OmpbfdUnitHandle = OmpTheBfdUnitHandle();
     OmpHashNode * node = OmpTheHashTable()[ip];
     if (!node) {
-        node = new OmpHashNode;
-        Apex_bfd_resolveBfdInfo(OmpbfdUnitHandle, ip, node->info);
-        location << node->info.funcname << " [{" << node->info.filename << "} {" << node->info.lineno << ",0}]";
-        node->location = new string(location.str());
-        OmpTheHashTable()[ip] = node;
+      node = new OmpHashNode;
+      Apex_bfd_resolveBfdInfo(OmpbfdUnitHandle, ip, node->info);
+      location << node->info.funcname << " [{" << node->info.filename << "} {" << node->info.lineno << ",0}]";
+      node->location = new string(location.str());
+      OmpTheHashTable()[ip] = node;
     }
     return node->location;
-}
+  }
 
 #endif
 
