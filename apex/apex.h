@@ -35,7 +35,7 @@ void apex_finalize();
  */
 apex_profiler_handle apex_start_name(const char * timer_name);
 apex_profiler_handle apex_start_address(apex_function_address function_address);
-void apex_stop(apex_profiler_handle profiler);
+void apex_stop_profiler(apex_profiler_handle profiler);
 void apex_resume(apex_profiler_handle profiler);
 
 /*
