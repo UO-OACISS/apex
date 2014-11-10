@@ -62,6 +62,7 @@ int main(int argc, char **argv)
   for (i = 0 ; i < NUM_THREADS ; i++) {
     pthread_create(&(thread[i]), NULL, someThread, NULL);
   }
+  someThread(NULL);
   for (i = 0 ; i < NUM_THREADS ; i++) {
     pthread_join(thread[i], NULL);
   }

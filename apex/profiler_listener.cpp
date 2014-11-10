@@ -28,6 +28,10 @@
 #include "apex_bfd.h"
 #endif
 
+#if APEX_HAVE_PAPI
+#include "papi.h"
+#endif
+
 //#define MAX_QUEUE_SIZE 1024*1024
 #define MAX_QUEUE_SIZE 128
 
@@ -39,6 +43,10 @@ namespace apex {
    * is initialized to a length of 8, there is code in on_new_thread() to
    * increment it if necessary.  */
   std::vector<boost::lockfree::spsc_queue<profiler*>* > profiler_queues(8);
+
+#if APEX_HAVE_PAPI
+  std::vector<int> event_sets(8);
+#endif
 
   /* This is the thread that will read from the queues of profiler
    * objects, and update the profiles. */
@@ -192,6 +200,7 @@ namespace apex {
   void profiler_listener::finalize_profiles(void) {
     // iterate over the profiles in the address map 
     map<void*, profile*>::const_iterator it;
+    cout << "Action, #calls, min, mean, max, total, stddev" << endl;
     for(it = address_map.begin(); it != address_map.end(); it++) {
       profile * p = it->second;
       void * function_address = it->first;
@@ -204,9 +213,9 @@ namespace apex {
 #if APEX_HAVE_BFD
       // translate the address to a name
       string * tmp = lookup_address((uintptr_t)function_address);
-      cout << *tmp << ": " ;
+      cout << "\"" << *tmp << "\", " ;
 #else
-      cout << function_address << ": " ;
+      cout << "\"" << function_address << "\", " ;
 #endif
       cout << p->get_calls() << ", " ;
       cout << p->get_minimum() << ", " ;
@@ -226,7 +235,7 @@ namespace apex {
       unordered_set<void*>::const_iterator it = throttled_names.find(action_name);
       if (it != throttled_names.end()) { continue; }
 #endif
-      cout << action_name << ": " ;
+      cout << "\"" << action_name << "\", " ;
       cout << p->get_calls() << ", " ;
       cout << p->get_minimum() << ", " ;
       cout << p->get_mean() << ", " ;
@@ -382,6 +391,44 @@ namespace apex {
     delete_profiles();
   }
 
+
+#if APEX_HAVE_PAPI
+__thread int EventSet = PAPI_NULL;
+#define PAPI_ERROR_CHECK(name) \
+if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
+
+  void initialize_PAPI(bool first_time) {
+      int rc = 0;
+      if (first_time) {
+        PAPI_library_init( PAPI_VER_CURRENT );
+        PAPI_thread_init( thread_instance::get_id );
+        rc = PAPI_set_domain(PAPI_DOM_ALL);
+        PAPI_ERROR_CHECK(PAPI_set_domain);
+      }
+      rc = PAPI_create_eventset( &EventSet );
+      PAPI_ERROR_CHECK(PAPI_create_eventset);
+      rc = PAPI_assign_eventset_component (EventSet, 0);
+      PAPI_ERROR_CHECK(PAPI_assign_eventset_component);
+      rc = PAPI_set_granularity(PAPI_GRN_THR);
+      PAPI_ERROR_CHECK(PAPI_set_granularity);
+      rc = PAPI_add_event( EventSet, PAPI_TOT_CYC);
+      PAPI_ERROR_CHECK(PAPI_add_event);
+      rc = PAPI_add_event( EventSet, PAPI_TOT_INS);
+      PAPI_ERROR_CHECK(PAPI_add_event);
+      /*
+      rc = PAPI_add_event( EventSet, PAPI_FP_OPS);
+      PAPI_ERROR_CHECK(PAPI_add_event);
+      rc = PAPI_add_event( EventSet, PAPI_FP_INS);
+      PAPI_ERROR_CHECK(PAPI_add_event);
+      */
+      rc = PAPI_add_event( EventSet, PAPI_L2_TCM);
+      PAPI_ERROR_CHECK(PAPI_add_event);
+      rc = PAPI_start( EventSet );
+      PAPI_ERROR_CHECK(PAPI_start);
+  }
+
+#endif
+
   /* When APEX gets a STARTUP event, do some initialization. */
   void profiler_listener::on_startup(startup_event_data &data) {
     if (!_terminate) {
@@ -389,6 +436,11 @@ namespace apex {
       profiler_queues[0] = new boost::lockfree::spsc_queue<profiler*>(MAX_QUEUE_SIZE);
       // Start the consumer thread, to process profiler objects.
       consumer_thread = new boost::thread(process_profiles);
+
+#if APEX_HAVE_PAPI
+      initialize_PAPI(true);
+      event_sets[0] = EventSet;
+#endif
 
       /* This commented out code is to change the priority of the consumer thread.
        * IDEALLY, I would like to make this a low priority thread, but that is as
@@ -436,6 +488,31 @@ namespace apex {
       done = true;
       queue_signal.post();
       consumer_thread->join();
+#if APEX_HAVE_PAPI
+      int rc = 0;
+      int i = 0;
+      long long values[8] {0L};
+      //cout << values[0] << " " << values[1] << " " << values[2] << " " << values[3] << endl;
+      for (i = 0 ; i < thread_instance::get_num_threads() ; i++) {
+        rc = PAPI_accum( event_sets[i], values );
+        PAPI_ERROR_CHECK(PAPI_stop);
+        //cout << values[0] << " " << values[1] << " " << values[2] << " " << values[3] << endl;
+      }
+      if (apex_options::use_screen_output()) {
+        cout << endl << "TOTAL COUNTERS for " << thread_instance::get_num_threads() << " threads:" << endl;
+        cout << "Cycles: " << values[0] ;
+        cout << ", Instructions: " << values[1] ;
+        //cout << ", FPOPS: " << values[2] ;
+        //cout << ", FPINS: " << values[3] ;
+        cout << ", L2TCM: " << values[2] ;
+
+        cout << endl << "IPC: " << (double)(values[1])/(double)(values[0]) ;
+        //cout << endl << "FLOP%INS: " << (double)(values[2])/(double)(values[1]) ;
+        //cout << endl << "FLINS%INS: " << (double)(values[3])/(double)(values[1]) ;
+        cout << endl << "INS/L2TCM: " << (double)(values[1])/(double)(values[2]) ;
+        cout << endl;
+      }
+#endif
     }
   }
 
@@ -463,6 +540,13 @@ namespace apex {
           profiler_queues[i] = tmp;
         }
       }
+#if APEX_HAVE_PAPI
+      initialize_PAPI(false);
+      if (me >= event_sets.size()) {
+        event_sets.resize(me + 1);
+      }
+      event_sets[me] = EventSet;
+#endif
     }
   }
 
@@ -493,6 +577,12 @@ namespace apex {
         // start the profiler object, which starts our timers
         thread_instance::instance().current_timer = new profiler(function_address);
       }
+#if APEX_HAVE_PAPI
+      long long * values = thread_instance::instance().current_timer->papi_start_values;
+      int rc = 0;
+      rc = PAPI_read( EventSet, values );
+      PAPI_ERROR_CHECK(PAPI_read);
+#endif
     }
   }
 
@@ -501,6 +591,27 @@ namespace apex {
     if (!_terminate) {
       if (p) {
         p->stop();
+#if APEX_HAVE_PAPI
+        long long * values = p->papi_stop_values;
+        int rc = 0;
+        rc = PAPI_read( EventSet, values );
+        PAPI_ERROR_CHECK(PAPI_read);
+	/*
+        if (p->have_name)
+          cout << p->timer_name;
+	else
+          cout << *(lookup_address((uintptr_t)p->action_address));
+	cout << endl;
+        cout << "Cycles: " << values[0] ;
+        cout << ", Instructions: " << values[1] ;
+        cout << ", FPOPS: " << values[2] ;
+        cout << ", FPINS: " << values[3] ;
+        cout << endl << "IPC: " << (double)(values[1])/(double)(values[0]) ;
+        cout << endl << "FLOP%INS: " << (double)(values[2])/(double)(values[1]) ;
+        cout << endl << "FLINS%INS: " << (double)(values[3])/(double)(values[1]) ;
+        cout << endl;
+	*/
+#endif
         int me = thread_instance::get_id();
         profiler_queues[me]->push(p);
         queue_signal.post();

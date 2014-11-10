@@ -141,6 +141,7 @@ double do_work(void) {
 
 void * threaded_func(void *data)
 {
+  apex::register_thread("threaded_func");
   do_work();
   return NULL;
 }
@@ -182,6 +183,9 @@ int main (int argc, char *argv[])
 
 #endif /* PTHREADS */
 
+/* On thread 0: */
+  do_work();
+
 #ifdef PTHREADS 
   if (ret = pthread_join(tid1, NULL) )
   {
@@ -201,9 +205,6 @@ int main (int argc, char *argv[])
     exit(1);
   }   
 #endif /* PTHREADS */
-
-/* On thread 0: */
-  do_work();
 
   printf ("Done.\n");
   apex::stop(profiler);

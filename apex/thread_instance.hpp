@@ -44,7 +44,7 @@ private:
 public:
   profiler * current_timer;
   static thread_instance& instance(void);
-  static int get_id(void) { return instance()._id; }
+  static long unsigned int get_id(void) { return instance()._id; }
   static std::string get_name(void);
   static void set_name(std::string name);
   static void set_worker(bool is_worker);

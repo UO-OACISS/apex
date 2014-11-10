@@ -17,6 +17,10 @@ public:
         //boost::timer::cpu_timer t; // starts the timer when profiler is constructed!
 	high_resolution_clock::time_point start;
 	high_resolution_clock::time_point end;
+#if APEX_HAVE_PAPI
+	long long papi_start_values[8];
+	long long papi_stop_values[8];
+#endif
     double value;
 	//boost::timer::cpu_times elapsed_time;
     void * action_address;

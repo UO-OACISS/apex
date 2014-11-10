@@ -4,7 +4,8 @@
 export BOOST_ROOT=/usr
 #export BOOST_ROOT=$HOME/install/boost-1.56.0
 #export RCR_ROOT=$HOME/src/RCRdaemon
-export PAPI_ROOT=/usr/local/papi/5.3.2
+#export PAPI_ROOT=/usr/local/papi/5.3.2
+#export TAU_ROOT=$HOME/src/tau2
 # this one is only meaningful for HPX-3 from LSU
 # export HPX_HAVE_ITTNOTIFY=1 
 
@@ -33,12 +34,13 @@ mkdir $dir
 cd $dir
 
 # Enable shared libraries, if desired.
+#-DTAU_ROOT=$TAU_ROOT \
 
 cmake \
 -G "CodeBlocks - Unix Makefiles" \
 -DBOOST_ROOT=$BOOST_ROOT \
 -DCMAKE_BUILD_TYPE=Release \
--DAPEX_THROTTLE=TRUE \
+-DAPEX_THROTTLE=FALSE \
 -DBUILD_SHARED_LIBS=TRUE \
 -DUSE_BINUTILS=TRUE \
 -DCMAKE_INSTALL_PREFIX=../install \
@@ -55,4 +57,4 @@ make install
 
 printf "\nSUCCESS!\n"
 T="$(($(date +%s)-T))"
-printf "Time to configure and build APEX: %02d days %02d hours %02d minutes %02d seconds.\n" "$((T/86400))" "$((T/3600%24))" "$((T/60%60))" "$((T%60))"
+printf "Time to configure and build APEX: %02d hours %02d minutes %02d seconds.\n" "$((T/3600))" "$((T/60%60))" "$((T%60))"
