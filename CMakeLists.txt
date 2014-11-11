@@ -167,11 +167,17 @@ endif()
 # PAPI configuration
 ################################################################################
 
-find_package(PAPI)
-if (PAPI_FOUND)
-	include_directories(${PAPI_INCLUDE_DIRS})
-	set(LIBS ${LIBS} ${PAPI_LIBRARIES})
-	set (CMAKE_INSTALL_RPATH ${PAPI_LIBRARY_DIR})
+if(DEFINED $PAPI_ROOT)
+	set (USE_PAPI TRUE)
+endif()
+
+if(USE_PAPI)
+	find_package(PAPI)
+	if (PAPI_FOUND)
+		include_directories(${PAPI_INCLUDE_DIRS})
+		set(LIBS ${LIBS} ${PAPI_LIBRARIES})
+		set (CMAKE_INSTALL_RPATH ${PAPI_LIBRARY_DIR})
+	endif()
 endif()
 
 ################################################################################

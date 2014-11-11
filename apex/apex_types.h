@@ -71,7 +71,7 @@ typedef void * apex_function_address; // generic function pointer
 
 #define FOREACH_APEX_OPTION(macro) \
 	macro (APEX_TAU, use_tau, bool, false) \
-	macro (APEX_POLICY, use_policy, bool, false) \
+	macro (APEX_POLICY, use_policy, bool, true) \
 	macro (APEX_CONCURRENCY, use_concurrency, int, 0) \
 	macro (APEX_CONCURRENCY_PERIOD, concurrency_period, int, 1000000) \
 	macro (APEX_SCREEN_OUTPUT, use_screen_output, bool, false) \
