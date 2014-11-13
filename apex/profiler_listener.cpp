@@ -376,7 +376,7 @@ namespace apex {
     process_profile(main_timer);
 
     // output to screen?
-    if (apex_options::use_screen_output())
+    if (apex_options::use_screen_output() && node_id == 0)
     {
       finalize_profiles();
     }
@@ -498,7 +498,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         PAPI_ERROR_CHECK(PAPI_stop);
         //cout << values[0] << " " << values[1] << " " << values[2] << " " << values[3] << endl;
       }
-      if (apex_options::use_screen_output()) {
+      if (apex_options::use_screen_output() && node_id == 0) {
         cout << endl << "TOTAL COUNTERS for " << thread_instance::get_num_threads() << " threads:" << endl;
         cout << "Cycles: " << values[0] ;
         cout << ", Instructions: " << values[1] ;
