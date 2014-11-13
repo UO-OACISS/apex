@@ -74,7 +74,7 @@ typedef void * apex_function_address; // generic function pointer
 	macro (APEX_POLICY, use_policy, bool, true) \
 	macro (APEX_CONCURRENCY, use_concurrency, int, 0) \
 	macro (APEX_CONCURRENCY_PERIOD, concurrency_period, int, 1000000) \
-	macro (APEX_SCREEN_OUTPUT, use_screen_output, bool, false) \
+	macro (APEX_SCREEN_OUTPUT, use_screen_output, bool, true) \
 	macro (APEX_PROFILE_OUTPUT, use_profile_output, bool, false) \
 
 #endif //APEX_TYPES_HPP
