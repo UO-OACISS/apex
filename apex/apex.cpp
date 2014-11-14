@@ -37,8 +37,8 @@ __thread bool _registered = false;
 static bool _initialized = false;
 
 #if 0
-#define APEX_TRACER {int __nid = TAU_PROFILE_GET_NODE(); \
- int __tid = TAU_PROFILE_GET_THREAD(); \
+#define APEX_TRACER {int __nid = apex::instance()->get_node_id(); \
+ int __tid = thread_instance::get_id(); \
  std::stringstream ss; \
  ss << __nid << ":" << __tid << " " << __FUNCTION__ << " ["<< __FILE__ << ":" << __LINE__ << "]" << endl; \
  cout << ss.str();}
@@ -545,31 +545,26 @@ extern "C" {
 
     void apex_init(const char * thread_name)
     {
-        APEX_TRACER
         init(thread_name);
     }
 
     void apex_init_args(int argc, char** argv, const char * thread_name)
     {
-        APEX_TRACER
         init(argc, argv, thread_name);
     }
 
     void apex_finalize()
     {
-        APEX_TRACER
         finalize();
     }
 
     double apex_version()
     {
-        APEX_TRACER
         return version();
     }
 
     apex_profiler_handle apex_start_name(const char * timer_name)
     {
-        APEX_TRACER
 	if (timer_name)
           return (apex_profiler_handle)start(string(timer_name));
 	else
@@ -578,37 +573,31 @@ extern "C" {
 
     apex_profiler_handle apex_start_address(void * function_address)
     {
-        APEX_TRACER
         return (apex_profiler_handle)start(function_address);
     }
 
     void apex_resume_profiler(void * the_profiler)
     {
-        APEX_TRACER
         resume(the_profiler);
     }
 
     void apex_stop_profiler(void * the_profiler)
     {
-        APEX_TRACER
         stop(the_profiler);
     }
 
     void apex_sample_value(const char * name, double value)
     {
-        APEX_TRACER
         sample_value(string(name), value);
     }
 
     void apex_set_node_id(int id)
     {
-        APEX_TRACER
         set_node_id(id);
     }
 
     void apex_register_thread(const char * name)
     {
-        APEX_TRACER
 	if (name) {
         register_thread(string(name));
 	} else {
