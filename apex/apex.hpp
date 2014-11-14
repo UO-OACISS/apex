@@ -112,6 +112,7 @@ apex_policy_handle register_policy(
 apex_policy_handle* register_periodic_policy(unsigned long period, std::function<bool(apex_context const&)> f);
 apex_profile* get_profile(apex_function_address function_address);
 apex_profile* get_profile(string &timer_name);
+std::vector<std::string> get_available_profiles();
 #ifdef APEX_HAVE_HPX3
 hpx::runtime * get_hpx_runtime_ptr(void);
 #endif

@@ -9,6 +9,7 @@
 #include "event_listener.hpp"
 #include "apex_types.h"
 #include <boost/atomic.hpp>
+#include <vector>
 
 using namespace std;
 
@@ -40,6 +41,7 @@ public:
   void on_periodic(periodic_event_data &data);
   static profile * get_profile(apex_function_address address);
   static profile * get_profile(string &timer_name);
+  static std::vector<std::string> get_available_profiles();
 };
 
 }

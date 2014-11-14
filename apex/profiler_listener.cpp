@@ -14,9 +14,13 @@
 #include <boost/thread/thread.hpp>
 #include <boost/lockfree/spsc_queue.hpp>
 #include <boost/atomic.hpp>
+#include <boost/range/adaptor/map.hpp>
+#include <boost/range/algorithm/copy.hpp>
+#include <boost/assign.hpp>
 #include <unistd.h>
 #include <sched.h>
 #include <cstdio>
+#include <vector>
 
 #if defined(APEX_THROTTLE)
 #define APEX_THROTTLE_CALLS 1000  
@@ -99,6 +103,12 @@ namespace apex {
       return (*it).second;
     }
     return NULL;
+  }
+
+  std::vector<std::string> profiler_listener::get_available_profiles() {
+    std::vector<std::string> names;
+    boost::copy(name_map | boost::adaptors::map_keys, std::back_inserter(names));
+    return names;
   }
 
   /* forward declaration, defined below */

@@ -537,6 +537,10 @@ apex_profile* get_profile(string &timer_name) {
     return NULL;
 }
 
+std::vector<std::string> get_available_profiles() {
+    return profiler_listener::get_available_profiles();
+}
+
 } // apex namespace
 
 using namespace apex;
