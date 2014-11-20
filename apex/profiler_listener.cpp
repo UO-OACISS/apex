@@ -317,7 +317,7 @@ namespace apex {
   void format_line(ofstream &myfile, profile * p, double not_main) {
     myfile << p->get_calls() << " ";
     myfile << 0 << " ";
-    myfile << (min((p->get_accumulated() - not_main),0.0) * 1000000.0) << " ";
+    myfile << (max((p->get_accumulated() - not_main),0.0) * 1000000.0) << " ";
     myfile << (p->get_accumulated() * 1000000.0) << " ";
     myfile << 0 << " ";
     myfile << "GROUP=\"TAU_USER\" ";
@@ -398,7 +398,6 @@ namespace apex {
           myfile << "\"" << action_name << "\" ";
           format_line (myfile, p);
 		  not_main += p->get_accumulated();
-		  cout << "not main: " << not_main << endl;
         }
       }
     }
