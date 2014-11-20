@@ -9,6 +9,7 @@
 #include "semaphore.hpp"
 #include <iostream>
 #include <fstream>
+#include <math.h>
 #include "apex_options.hpp"
 
 #include <boost/thread/thread.hpp>
@@ -35,6 +36,8 @@
 //#define MAX_QUEUE_SIZE 1024*1024
 #define MAX_QUEUE_SIZE 128
 #define INITIAL_NUM_THREADS 2
+
+#define APEX_MAIN "APEX MAIN"
 
 using namespace std;
 
@@ -310,6 +313,17 @@ namespace apex {
     myfile << endl;
   }
 
+  /* When writing a TAU profile, write out the main timer line */
+  void format_line(ofstream &myfile, profile * p, double not_main) {
+    myfile << p->get_calls() << " ";
+    myfile << 0 << " ";
+    myfile << (min((p->get_accumulated() - not_main),0.0) * 1000000.0) << " ";
+    myfile << (p->get_accumulated() * 1000000.0) << " ";
+    myfile << 0 << " ";
+    myfile << "GROUP=\"TAU_USER\" ";
+    myfile << endl;
+  }
+
   /* When writing a TAU profile, write out a counter line */
   void format_counter_line(ofstream &myfile, profile * p) {
     myfile << p->get_calls() << " ";       // numevents
@@ -372,14 +386,26 @@ namespace apex {
     // Iterate over the profiles which are associated to a function
     // by name. Only output the regular timers now. Counters are
     // in a separate section, below.
+	profile * mainp = NULL;
+	double not_main = 0.0;
     for(it2 = the_name_map->begin(); it2 != the_name_map->end(); it2++) {
       profile * p = it2->second;
       if(p->get_type() == TIMER) {
         string action_name = it2->first;
-        myfile << "\"" << action_name << "\" ";
-        format_line (myfile, p);
+	    if(strcmp(action_name.c_str(), APEX_MAIN) == 0) {
+		  mainp = p;
+		} else {
+          myfile << "\"" << action_name << "\" ";
+          format_line (myfile, p);
+		  not_main += p->get_accumulated();
+		  cout << "not main: " << not_main << endl;
+        }
       }
     }
+	if (mainp != NULL) {
+      myfile << "\"" << APEX_MAIN << "\" ";
+      format_line (myfile, mainp, not_main);
+	}
 
     // 0 aggregates
     myfile << "0 aggregates" << endl;
@@ -539,7 +565,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 #endif
 
       // time the whole application.
-      main_timer = new profiler(new string("APEX MAIN"));
+      main_timer = new profiler(new string(APEX_MAIN));
     }
   }
 
