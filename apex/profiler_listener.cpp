@@ -18,6 +18,7 @@
 #include <boost/range/adaptor/map.hpp>
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/assign.hpp>
+#include <boost/cstdint.hpp>
 #include <unistd.h>
 #include <sched.h>
 #include <cstdio>
@@ -35,6 +36,10 @@
 
 #if APEX_HAVE_PAPI
 #include "papi.h"
+#endif
+
+#ifdef APEX_HAVE_HPX3
+#include <hpx/include/performance_counters.hpp>
 #endif
 
 //#define MAX_QUEUE_SIZE 1024*1024
@@ -155,6 +160,17 @@ namespace apex {
         // Create a new profile for this name.
         theprofile = new profile(p->elapsed(), p->is_counter ? COUNTER : TIMER);
         name_map[*(p->timer_name)] = theprofile;
+#ifdef APEX_HAVE_HPX3
+        hpx::performance_counters::install_counter_type(
+          std::string("/apex/") + *(p->timer_name),
+          [p](bool r)->boost::int64_t{
+            boost::int64_t value(p->elapsed() * 100000);
+            return value;
+          },
+          std::string("APEX counter ") + *(p->timer_name),
+          ""
+        );
+#endif
       }
       // now do thread-specific measurement.
       map<string, profile*>* the_map = thread_name_maps[tid];
