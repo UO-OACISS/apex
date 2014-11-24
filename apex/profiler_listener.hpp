@@ -14,6 +14,7 @@
 #include "apex_types.h"
 #include <boost/atomic.hpp>
 #include <vector>
+#include <boost/thread.hpp>
 
 using namespace std;
 
@@ -26,11 +27,12 @@ private:
   static boost::atomic<int> active_tasks;
   static profiler * main_timer;
   static void finalize_profiles(void);
-  static void write_profile(void);
+  static void write_profile(unsigned int tid);
   static void delete_profiles(void);
   static void process_profiles(void);
-  static void process_profile(profiler * p);
+  static void process_profile(profiler * p, unsigned int tid);
   static int node_id;
+  static boost::mutex _mtx;
 public:
   profiler_listener (void)  : _terminate(false) { };
   ~profiler_listener (void) { };

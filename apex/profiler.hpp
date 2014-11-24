@@ -22,20 +22,32 @@ public:
 	long long papi_stop_values[8];
 #endif
     double value;
-	//boost::timer::cpu_times elapsed_time;
     void * action_address;
     string * timer_name;
-	bool have_name;
+    bool have_name;
     bool is_counter;
-    profiler(void * address) : start(high_resolution_clock::now()), action_address(address), have_name(false), is_counter(false) {};
-    profiler(string * name) : start(high_resolution_clock::now()), timer_name(name), have_name(true), is_counter(false) {};
-    profiler(string * name, double value_) : value(value_), timer_name(name), have_name(true), is_counter(true) { }; 
-    ~profiler(void) {};
+    bool is_resume;
+    profiler(void * address, bool resume = false) : 
+	    start(high_resolution_clock::now()), 
+	    action_address(address), 
+	    have_name(false), 
+	    is_counter(false),
+            is_resume(resume) {};
+    profiler(string * name, bool resume = false) : 
+	    start(high_resolution_clock::now()), 
+	    timer_name(name), 
+	    have_name(true), 
+	    is_counter(false),
+            is_resume(resume) {};
+    profiler(string * name, double value_) : 
+	    value(value_), 
+	    timer_name(name), 
+	    have_name(true), 
+	    is_counter(true),
+            is_resume(false) { }; 
+    ~profiler(void) { if (have_name) delete timer_name; };
     void stop(void) {
-        //t.stop();
         end = high_resolution_clock::now();
-        //elapsed_time = t.elapsed();
-        //cout << t.format(boost::timer::default_places);
 	};
 	double elapsed(void) {
         if(is_counter) {
