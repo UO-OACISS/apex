@@ -37,10 +37,6 @@
 #include "papi.h"
 #endif
 
-#ifdef APEX_HAVE_HPX3
-#include "apex_hpx_counter.hpp"
-#endif
-
 //#define MAX_QUEUE_SIZE 1024*1024
 #define MAX_QUEUE_SIZE 128
 #define INITIAL_NUM_THREADS 2
