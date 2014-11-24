@@ -50,7 +50,8 @@ set(apex_sources
     handler.cpp
     concurrency_handler.cpp
     policy_handler.cpp
-    profiler_listener.cpp)
+    profiler_listener.cpp
+    apex_hpx_counter.cpp)
 
 
 find_package(HPX_RCR)

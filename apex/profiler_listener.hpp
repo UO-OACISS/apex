@@ -6,6 +6,10 @@
 #ifndef PROFILER_LISTENER_HPP
 #define PROFILER_LISTENER_HPP
 
+#ifdef APEX_HAVE_HPX3
+#include <hpx/config.hpp>
+#endif
+
 #include "event_listener.hpp"
 #include "apex_types.h"
 #include <boost/atomic.hpp>
