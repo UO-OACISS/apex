@@ -3,6 +3,7 @@
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+#include "apex.hpp"
 #include "profiler_listener.hpp"
 #include "profiler.hpp"
 #include "thread_instance.hpp"
@@ -161,15 +162,19 @@ namespace apex {
         theprofile = new profile(p->elapsed(), p->is_counter ? COUNTER : TIMER);
         name_map[*(p->timer_name)] = theprofile;
 #ifdef APEX_HAVE_HPX3
-        hpx::performance_counters::install_counter_type(
+        if(get_hpx_runtime_ptr() != nullptr) {
+          hpx::performance_counters::install_counter_type(
           std::string("/apex/") + *(p->timer_name),
           [p](bool r)->boost::int64_t{
-            boost::int64_t value(p->elapsed() * 100000);
-            return value;
+              boost::int64_t value(p->elapsed() * 100000);
+              return value;
           },
           std::string("APEX counter ") + *(p->timer_name),
           ""
-        );
+          );
+        } else {
+            std::cerr << "HPX runtime not initialized yet." << std::endl;
+        }
 #endif
       }
       // now do thread-specific measurement.
@@ -458,6 +463,15 @@ namespace apex {
    * as it goes. */
   void profiler_listener::process_profiles(void)
   {
+    static bool registered = false;
+    if(!registered) {
+      while(get_hpx_runtime_ptr() == nullptr) {
+        // wait for hpx to start
+      };
+      get_hpx_runtime_ptr()->register_thread("apex_profiler_listener");
+      registered = true;
+    }
+
     profiler * p;
     unsigned int i;
     // Main loop. Stay in this loop unless "done".

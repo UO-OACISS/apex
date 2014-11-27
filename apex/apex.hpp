@@ -116,6 +116,6 @@ std::vector<std::string> get_available_profiles();
 #ifdef APEX_HAVE_HPX3
 hpx::runtime * get_hpx_runtime_ptr(void);
 #endif
-}
+} //namespace apex
 
 #endif //APEX_HPP
