@@ -463,6 +463,7 @@ namespace apex {
    * as it goes. */
   void profiler_listener::process_profiles(void)
   {
+#ifdef APEX_HAVE_HPX3
     static bool registered = false;
     if(!registered) {
       while(get_hpx_runtime_ptr() == nullptr) {
@@ -471,6 +472,7 @@ namespace apex {
       get_hpx_runtime_ptr()->register_thread("apex_profiler_listener");
       registered = true;
     }
+#endif
 
     profiler * p;
     unsigned int i;
