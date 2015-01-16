@@ -12,15 +12,17 @@ if (Tcmalloc_INCLUDE_DIR)
 endif ()
 
 find_path(Tcmalloc_INCLUDE_DIR google/heap-checker.h
+  ${GPERFTOOLS_ROOT}/include
   /opt/local/include
   /usr/local/include
   /usr/include
 )
 
-set(Tcmalloc_NAMES tcmalloc)
+string(REPLACE ":" " " LD_LIBRARY_PATH_STR $ENV{LD_LIBRARY_PATH})
+set(Tcmalloc_NAME tcmalloc)
 find_library(Tcmalloc_LIBRARY
-  NAMES ${Tcmalloc_NAMES}
-  PATHS /usr/lib /usr/local/lib /opt/local/lib
+  NAME ${Tcmalloc_NAME}
+  PATHS ${GPERFTOOLS_ROOT}/lib /usr/lib /usr/local/lib /opt/local/lib ${LD_LIBRARY_PATH_STR}
 )
 
 if (Tcmalloc_INCLUDE_DIR AND Tcmalloc_LIBRARY)
@@ -38,7 +40,7 @@ if (Tcmalloc_FOUND)
 else ()
       message(STATUS "Not Found Tcmalloc: ${Tcmalloc_LIBRARY}")
    if (Tcmalloc_FIND_REQUIRED)
-      message(STATUS "Looked for Tcmalloc libraries named ${TcmallocS_NAMES}.")
+      message(STATUS "Looked for Tcmalloc libraries named ${TcmallocS_NAME}.")
       message(FATAL_ERROR "Could NOT find Tcmalloc library")
    endif ()
 endif ()
