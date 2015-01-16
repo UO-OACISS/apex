@@ -18,6 +18,7 @@
 #define APEX_H
 
 #include "apex_types.h"
+#include "apex_export.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -26,50 +27,50 @@ extern "C" {
 /*
  * Initialization, finalization functions
  */
-void apex_init(const char * thread_name);
-void apex_init_args(int argc, char** argv, const char * thread_name);
-void apex_finalize();
+APEX_EXPORT void apex_init(const char * thread_name);
+APEX_EXPORT void apex_init_args(int argc, char** argv, const char * thread_name);
+APEX_EXPORT void apex_finalize();
 
 /*
  * Functions for starting, stopping timers
  */
-apex_profiler_handle apex_start_name(const char * timer_name);
-apex_profiler_handle apex_start_address(apex_function_address function_address);
-void apex_stop_profiler(apex_profiler_handle profiler);
-void apex_resume(apex_profiler_handle profiler);
+APEX_EXPORT apex_profiler_handle apex_start_name(const char * timer_name);
+APEX_EXPORT apex_profiler_handle apex_start_address(apex_function_address function_address);
+APEX_EXPORT void apex_stop_profiler(apex_profiler_handle profiler);
+APEX_EXPORT void apex_resume(apex_profiler_handle profiler);
 
 /*
  * Function for sampling a counter value
  */
-void apex_sample_value(const char * name, double value);
+APEX_EXPORT void apex_sample_value(const char * name, double value);
 
 /*
  * Utility functions
  */
-void apex_set_node_id(int id);
-double apex_version(void);
-void apex_node_id(int id);
-void apex_register_thread(const char * name);
+APEX_EXPORT void apex_set_node_id(int id);
+APEX_EXPORT double apex_version(void);
+APEX_EXPORT void apex_node_id(int id);
+APEX_EXPORT void apex_register_thread(const char * name);
 
 /*
  * Power-related functions
  */
-void apex_track_power(void);
-void apex_track_power_here(void);
-void apex_enable_tracking_power(void);
-void apex_disable_tracking_power(void);
-void apex_set_interrupt_interval(int seconds);
+APEX_EXPORT void apex_track_power(void);
+APEX_EXPORT void apex_track_power_here(void);
+APEX_EXPORT void apex_enable_tracking_power(void);
+APEX_EXPORT void apex_disable_tracking_power(void);
+APEX_EXPORT void apex_set_interrupt_interval(int seconds);
 
 /*
  * Policy Engine functions.
  */
-apex_policy_handle apex_register_policy(const apex_event_type when, int (*f)(apex_context const));
-apex_policy_handle apex_register_periodic_policy(unsigned long period, int (*f)(apex_context const));
+APEX_EXPORT apex_policy_handle apex_register_policy(const apex_event_type when, int (*f)(apex_context const));
+APEX_EXPORT apex_policy_handle apex_register_periodic_policy(unsigned long period, int (*f)(apex_context const));
 
 /*
  */
-apex_profile * apex_get_profile_from_name(const char * timer_name);
-apex_profile * apex_get_profile_from_address(apex_function_address function_address);
+APEX_EXPORT apex_profile * apex_get_profile_from_name(const char * timer_name);
+APEX_EXPORT apex_profile * apex_get_profile_from_address(apex_function_address function_address);
 
 #define apex_macro(name, member_variable, type, default_value) \
 void apex_set_##member_variable (type inval); \

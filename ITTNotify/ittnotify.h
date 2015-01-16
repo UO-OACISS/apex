@@ -3,6 +3,7 @@
 
 #include <string>
 #include "apex.hpp"
+#include "ittnotify_export.h"
 
 /*
  * For details, see http://software.intel.com/sites/products/documentation/gpa/13.1/Overview.htm
@@ -115,81 +116,81 @@ typedef void* __itt_heap_function;
 #ifdef __cplusplus
 extern "C" {
 #endif
-  __itt_domain* __itt_domain_create(char const*);
-  void __itt_frame_begin_v3(__itt_domain const* frame, __itt_id* id);
-  void __itt_frame_end_v3(__itt_domain const* frame, __itt_id* id);
-  void __itt_id_create(__itt_domain const*, __itt_id id);
-  void __itt_id_create_ex(__itt_domain const*, 
+  ITTNOTIFY_EXPORT __itt_domain* __itt_domain_create(char const*);
+  ITTNOTIFY_EXPORT void __itt_frame_begin_v3(__itt_domain const* frame, __itt_id* id);
+  ITTNOTIFY_EXPORT void __itt_frame_end_v3(__itt_domain const* frame, __itt_id* id);
+  ITTNOTIFY_EXPORT void __itt_id_create(__itt_domain const*, __itt_id id);
+  ITTNOTIFY_EXPORT void __itt_id_create_ex(__itt_domain const*, 
       __itt_clock_domain* clock_domain, UINT64 timestamp, __itt_id* id);
-  void __itt_id_destroy(const __itt_domain * domain, __itt_id* id);
-  void __itt_id_destroy_ex(__itt_domain* domain, 
+  ITTNOTIFY_EXPORT void __itt_id_destroy(const __itt_domain * domain, __itt_id* id);
+  ITTNOTIFY_EXPORT void __itt_id_destroy_ex(__itt_domain* domain, 
       __itt_clock_domain* clock_domain, UINT64 timestamp, __itt_id* id);
-  __itt_id __itt_id_make(void*, unsigned long);
-  void __itt_metadata_add (const __itt_domain * domain,
+  ITTNOTIFY_EXPORT __itt_id __itt_id_make(void*, unsigned long);
+  ITTNOTIFY_EXPORT void __itt_metadata_add (const __itt_domain * domain,
       __itt_id id, __itt_string_handle * name, __itt_marker_scope scope);
-  void _itt_metadata_add_with_scope(const __itt_domain * domain, 
+  ITTNOTIFY_EXPORT void _itt_metadata_add_with_scope(const __itt_domain * domain, 
       __itt_scope scope, __itt_string_handle *key, __itt_metadata_type type,
       size_t count, void *data);
-  void __itt_metadata_str_add (const __itt_domain * domain,
+  ITTNOTIFY_EXPORT void __itt_metadata_str_add (const __itt_domain * domain,
       __itt_id id, __itt_string_handle * key, const char * data, size_t length);
-  void _itt_metadata_str_add_with_scope(const __itt_domain * domain, 
+  ITTNOTIFY_EXPORT void _itt_metadata_str_add_with_scope(const __itt_domain * domain, 
       __itt_scope scope, __itt_string_handle *key, const char * data, size_t length);
-  void __itt_relation_add (const __itt_domain * domain, __itt_id head, 
+  ITTNOTIFY_EXPORT void __itt_relation_add (const __itt_domain * domain, __itt_id head, 
       __itt_relation relation, __itt_id tail);
-  void __itt_relation_add_to_current (const __itt_domain * domain, 
+  ITTNOTIFY_EXPORT void __itt_relation_add_to_current (const __itt_domain * domain, 
       __itt_relation relation, __itt_id tail);
-  void __itt__set_track(__itt_track * track);
-  __itt_string_handle* __itt_string_handle_create (const char * name);
-  void __itt_task_begin(__itt_domain const*, __itt_id, __itt_id, __itt_string_handle*);
-  void __itt_task_begin_ex(__itt_domain* domain, __itt_clock_domain* clock_domain, 
+  ITTNOTIFY_EXPORT void __itt__set_track(__itt_track * track);
+  ITTNOTIFY_EXPORT __itt_string_handle* __itt_string_handle_create (const char * name);
+  ITTNOTIFY_EXPORT void __itt_task_begin(__itt_domain const*, __itt_id, __itt_id, __itt_string_handle*);
+  ITTNOTIFY_EXPORT void __itt_task_begin_ex(__itt_domain* domain, __itt_clock_domain* clock_domain, 
       UINT64 timestamp, __itt_id id, __itt_id parentid, __itt_string_handle *name);
-  void __itt_task_begin_fn(const __itt_domain * domain, __itt_id taskid, 
+  ITTNOTIFY_EXPORT void __itt_task_begin_fn(const __itt_domain * domain, __itt_id taskid, 
       __itt_id parentid, void * fn);
-  void __itt_task_end(__itt_domain const*);
-  void __itt_task_end_ex(__itt_domain const*);
-  void __itt_task_group(const __itt_domain * domain, __itt_id id, 
+  ITTNOTIFY_EXPORT void __itt_task_end(__itt_domain const*);
+  ITTNOTIFY_EXPORT void __itt_task_end_ex(__itt_domain const*);
+  ITTNOTIFY_EXPORT void __itt_task_group(const __itt_domain * domain, __itt_id id, 
       __itt_id parentid, __itt_string_handle * name);
-  void __itt_thread_set_name (const char * name);
-  __itt_track_group* __itt_track_group_create(__itt_string_handle* name, 
+  ITTNOTIFY_EXPORT void __itt_thread_set_name (const char * name);
+  ITTNOTIFY_EXPORT __itt_track_group* __itt_track_group_create(__itt_string_handle* name, 
       __itt_track_group_type type);
-  __itt_track* __itt_track_create(__itt_track_group* track_group, 
+  ITTNOTIFY_EXPORT __itt_track* __itt_track_create(__itt_track_group* track_group, 
       __itt_string_handle* name, __itt_track_type track_type);
 
 // those not mentiond in the documentation
 
-void __itt_sync_create(void*, const char*, const char*, int);
-void __itt_sync_rename(void*, const char*);
-void __itt_sync_prepare(void*);
-void __itt_sync_acquired(void*);
-void __itt_sync_cancel(void*);
-void __itt_sync_releasing(void*);
-void __itt_sync_destroy(void*);
-void __itt_thread_ignore();
-__itt_heap_function __itt_heap_function_create(const char*, const char*);
-void __itt_heap_allocate_begin(__itt_heap_function, std::size_t, int);
-void __itt_heap_allocate_end(__itt_heap_function, void**, std::size_t, int);
-void __itt_heap_free_begin(__itt_heap_function, void*);
-void __itt_heap_free_end(__itt_heap_function, void*);
-void __itt_heap_reallocate_begin(__itt_heap_function, void*, std::size_t, int);
-void __itt_heap_reallocate_end(__itt_heap_function, void*, void**, std::size_t, int);
-void __itt_heap_internal_access_begin();
-void __itt_heap_internal_access_end();
+ITTNOTIFY_EXPORT void __itt_sync_create(void*, const char*, const char*, int);
+ITTNOTIFY_EXPORT void __itt_sync_rename(void*, const char*);
+ITTNOTIFY_EXPORT void __itt_sync_prepare(void*);
+ITTNOTIFY_EXPORT void __itt_sync_acquired(void*);
+ITTNOTIFY_EXPORT void __itt_sync_cancel(void*);
+ITTNOTIFY_EXPORT void __itt_sync_releasing(void*);
+ITTNOTIFY_EXPORT void __itt_sync_destroy(void*);
+ITTNOTIFY_EXPORT void __itt_thread_ignore();
+ITTNOTIFY_EXPORT __itt_heap_function __itt_heap_function_create(const char*, const char*);
+ITTNOTIFY_EXPORT void __itt_heap_allocate_begin(__itt_heap_function, std::size_t, int);
+ITTNOTIFY_EXPORT void __itt_heap_allocate_end(__itt_heap_function, void**, std::size_t, int);
+ITTNOTIFY_EXPORT void __itt_heap_free_begin(__itt_heap_function, void*);
+ITTNOTIFY_EXPORT void __itt_heap_free_end(__itt_heap_function, void*);
+ITTNOTIFY_EXPORT void __itt_heap_reallocate_begin(__itt_heap_function, void*, std::size_t, int);
+ITTNOTIFY_EXPORT void __itt_heap_reallocate_end(__itt_heap_function, void*, void**, std::size_t, int);
+ITTNOTIFY_EXPORT void __itt_heap_internal_access_begin();
+ITTNOTIFY_EXPORT void __itt_heap_internal_access_end();
 
-__itt_mark_type __itt_mark_create(char const* name);
-int __itt_mark_off(__itt_mark_type mark);
-int __itt_mark(__itt_mark_type mark, char const* par);
-__itt_caller __itt_stack_caller_create();
-void __itt_stack_callee_enter(__itt_caller ctx);
-void __itt_stack_callee_leave(__itt_caller ctx);
-void __itt_stack_caller_destroy(__itt_caller ctx);
+ITTNOTIFY_EXPORT __itt_mark_type __itt_mark_create(char const* name);
+ITTNOTIFY_EXPORT int __itt_mark_off(__itt_mark_type mark);
+ITTNOTIFY_EXPORT int __itt_mark(__itt_mark_type mark, char const* par);
+ITTNOTIFY_EXPORT __itt_caller __itt_stack_caller_create();
+ITTNOTIFY_EXPORT void __itt_stack_callee_enter(__itt_caller ctx);
+ITTNOTIFY_EXPORT void __itt_stack_callee_leave(__itt_caller ctx);
+ITTNOTIFY_EXPORT void __itt_stack_caller_destroy(__itt_caller ctx);
 
-extern __itt_mark_type (*__itt_mark_create_ptr_)(char const* name);
-extern int (*__itt_mark_off_ptr_)(__itt_mark_type mark);
-extern int (*__itt_mark_ptr_)(__itt_mark_type mark, char const* par);
-extern __itt_caller (*__itt_stack_callee_create_ptr_)();
-extern void (*__itt_stack_caller_enter_ptr_)(__itt_caller ctx);
-extern void (*__itt_stack_callee_leave_ptr_)(__itt_caller ctx);
-extern void (*__itt_stack_caller_destroy_ptr_)(__itt_caller ctx);
+ITTNOTIFY_EXPORT extern __itt_mark_type (*__itt_mark_create_ptr_)(char const* name);
+ITTNOTIFY_EXPORT extern int (*__itt_mark_off_ptr_)(__itt_mark_type mark);
+ITTNOTIFY_EXPORT extern int (*__itt_mark_ptr_)(__itt_mark_type mark, char const* par);
+ITTNOTIFY_EXPORT extern __itt_caller (*__itt_stack_callee_create_ptr_)();
+ITTNOTIFY_EXPORT extern void (*__itt_stack_caller_enter_ptr_)(__itt_caller ctx);
+ITTNOTIFY_EXPORT extern void (*__itt_stack_callee_leave_ptr_)(__itt_caller ctx);
+ITTNOTIFY_EXPORT extern void (*__itt_stack_caller_destroy_ptr_)(__itt_caller ctx);
 
 #ifdef __cplusplus
 }

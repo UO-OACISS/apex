@@ -53,7 +53,8 @@ set(apex_sources
     profiler_listener.cpp)
 
 
-find_package(HPX_RCR)
+# Disable RCR until FindHPX_RCR.cmake is updated
+#find_package(HPX_RCR)
 
 if(HAVE_RCR)
   hpx_add_config_define(HPX_HAVE_RCR 1)
@@ -84,9 +85,9 @@ else()
     endif()
 endif()
 
-set_target_properties(apexStatic PROPERTIES OUTPUT_NAME apex)
-target_link_libraries(apexStatic ${LIBS})
-set(apex_install_targets ${apex_install_targets} apexStatic)
+#set_target_properties(apexStatic PROPERTIES OUTPUT_NAME apex)
+#target_link_libraries(apexStatic ${LIBS})
+#set(apex_install_targets ${apex_install_targets} apexStatic)
 
 if(NOT MSVC)
   set_target_properties(apexShared PROPERTIES OUTPUT_NAME apex)

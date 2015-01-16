@@ -21,8 +21,8 @@
 #include "event_listener.hpp"
 #include "policy_handler.hpp"
 #include "profiler_listener.hpp"
-//#include <chrono.h>
 #include "apex_options.hpp"
+#include "apex_export.h" 
 
 //using namespace std;
 
@@ -83,36 +83,30 @@ public:
 
 // These are all static functions for the class. There should be only
 // one APEX object in the process space.
-void init(const char * thread_name);
-void init(int argc, char** argv, const char * thread_name);
-void finalize(void);
-double version(void);
-profiler* start(std::string timer_name);
-profiler* start(void * function_address);
-void stop(void * profiler);
-void resume(void * profiler);
-void sample_value(std::string name, double value);
-void set_node_id(int id);
-void register_thread(std::string name);
-void track_power(void);
-void track_power_here(void);
-void enable_tracking_power(void);
-void disable_tracking_power(void);
-void set_interrupt_interval(int seconds);
+APEX_EXPORT void init(const char * thread_name);
+APEX_EXPORT void init(int argc, char** argv, const char * thread_name);
+APEX_EXPORT void finalize(void);
+APEX_EXPORT double version(void);
+APEX_EXPORT profiler* start(std::string timer_name);
+APEX_EXPORT profiler* start(void * function_address);
+APEX_EXPORT void stop(void * profiler);
+APEX_EXPORT void resume(void * profiler);
+APEX_EXPORT void sample_value(std::string name, double value);
+APEX_EXPORT void set_node_id(int id);
+APEX_EXPORT void register_thread(std::string name);
+APEX_EXPORT void track_power(void);
+APEX_EXPORT void track_power_here(void);
+APEX_EXPORT void enable_tracking_power(void);
+APEX_EXPORT void disable_tracking_power(void);
+APEX_EXPORT void set_interrupt_interval(int seconds);
 // Method for registering event-based policy
-apex_policy_handle* register_policy(const apex_event_type when, std::function<bool(apex_context const&)> f);
+APEX_EXPORT apex_policy_handle* register_policy(const apex_event_type when, std::function<bool(apex_context const&)> f);
 // Method for registering periodic policy
-/*
-template <typename Rep, typename Period>
-apex_policy_handle register_policy(
-    std::chrono::duration<Rep, Period> const& period,
-    std::function<bool(apex_context const&)> f);
-*/
+APEX_EXPORT apex_policy_handle* register_periodic_policy(unsigned long period, std::function<bool(apex_context const&)> f);
+APEX_EXPORT apex_profile* get_profile(apex_function_address function_address);
+APEX_EXPORT apex_profile* get_profile(string &timer_name);
+APEX_EXPORT std::vector<std::string> get_available_profiles();
 
-apex_policy_handle* register_periodic_policy(unsigned long period, std::function<bool(apex_context const&)> f);
-apex_profile* get_profile(apex_function_address function_address);
-apex_profile* get_profile(string &timer_name);
-std::vector<std::string> get_available_profiles();
 #ifdef APEX_HAVE_HPX3
 hpx::runtime * get_hpx_runtime_ptr(void);
 #endif
