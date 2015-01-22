@@ -182,8 +182,13 @@ process_results(unit_result_t result)
 static unit_result_t
 do_work(unit_of_work_t work)
 {
+  void * profiler = apex::start((void*)(do_work));
+  int * mywork = (int*)(work);
+  //sleep(*mywork);
+  dummy = dummy + *mywork;
   /* Fill in with whatever is necessary to process the work and
      generate a result */
+  apex::stop(profiler);
 	return &dummy;
 }
 

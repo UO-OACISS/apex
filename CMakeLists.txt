@@ -77,8 +77,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 # configure a header file to pass some of the CMake settings
 # to the source code
 configure_file (
-  "${PROJECT_SOURCE_DIR}/apex/apex_config.h.in"
-  "${PROJECT_BINARY_DIR}/apex/apex_config.h"
+  "${PROJECT_SOURCE_DIR}/src/apex/apex_config.h.in"
+  "${PROJECT_BINARY_DIR}/src/apex/apex_config.h"
 )
 
 # use PIC for shared objects
@@ -225,43 +225,48 @@ INSTALL_FILES(/lib/pkgconfig FILES pkgconfig/apex.pc)
 # Recurse into the "Apex" and "Demo" subdirectories. This does not actually 
 # cause another cmake executable to run. The same process will walk through 
 # the project's entire directory structure. 
-add_subdirectory (apex) 
-add_subdirectory (ITTNotify) 
-add_subdirectory (DemoCpp)
-add_subdirectory (DemoC)  
+add_subdirectory (src/apex) 
+add_subdirectory (src/ITTNotify) 
+add_subdirectory (src/examples/DemoCpp)
+add_subdirectory (src/examples/DemoC)  
 # Add a test program which actually uses the CPU
-add_subdirectory (Matmult)  
+add_subdirectory (src/examples/Matmult)  
 if(MPI_CXX_FOUND)
-add_subdirectory (MPITest)  
+add_subdirectory (src/comm/mpi) 
+add_subdirectory (src/examples/MPITest)  
+add_subdirectory (src/examples/MPIGlobalTest)  
 endif()
-add_subdirectory (TestITT)
-add_subdirectory (TestThreads)
-add_subdirectory (Overhead)
-add_subdirectory (PolicyEngineExample)
-add_subdirectory (PolicyEngineCppExample)
+add_subdirectory (src/examples/TestITT)
+add_subdirectory (src/examples/TestThreads)
+add_subdirectory (src/examples/Overhead)
+add_subdirectory (src/examples/PolicyEngineExample)
+add_subdirectory (src/examples/PolicyEngineCppExample)
 
 # turn on "make test" support
 enable_testing()
 
 # does the application run
-add_test (ApexCppRuns DemoCpp/apexCppDemo)
-add_test (ApexCRuns DemoC/apexCDemo)
+add_test (ApexCppRuns src/examples/DemoCpp/apexCppDemo)
+add_test (ApexCRuns src/examples/DemoC/apexCDemo)
 
 # Run the test program which actually uses the CPU
-add_test (MatmultRuns Matmult/matmult)  
+add_test (MatmultRuns src/examples/Matmult/matmult)  
 
 # Run the test program which tests the ITT interface
-add_test (TestITTRuns TestITT/testITT)  
+add_test (TestITTRuns src/examples/TestITT/testITT)  
 
 # Run the test program which tests the threads interface
-add_test (TestThreadsRuns TestThreads/testThreads)  
+add_test (TestThreadsRuns src/examples/TestThreads/testThreads)  
 
 # Run the test program which tests the overhead in the threads interface
-add_test (TestOverhead_noPolicy Overhead/testOverhead)  
-add_test (TestPolicyC_Policy PolicyEngineExample/testPolicyEngine)  
-add_test (TestPolicyCpp_Policy PolicyEngineCppExample/testCppPolicyEngine)  
+add_test (TestOverhead_noPolicy src/examples/Overhead/testOverhead)  
+add_test (TestPolicyC_Policy src/examples/PolicyEngineExample/testPolicyEngine)  
+add_test (TestPolicyCpp_Policy src/examples/PolicyEngineCppExample/testCppPolicyEngine)  
 
 if(MPI_CXX_FOUND)
 # Run the test program which tests the mpi interface
-  add_test (MPITestRuns ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2 ${MPIEXEC_PREFLAGS} MPITest/mpi_test ${MPIEXEC_POSTFLAGS})  
+  add_test (MPITestRuns ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
+${MPIEXEC_PREFLAGS} src/examples/MPITest/mpi_test ${MPIEXEC_POSTFLAGS})  
+  add_test (MPIGlobalTestRuns ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
+${MPIEXEC_PREFLAGS} src/examples/MPIGlobalTest/mpi_global_test ${MPIEXEC_POSTFLAGS})  
 endif()

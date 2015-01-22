@@ -5,10 +5,10 @@ endif()
 
 # Make sure the compiler can find include files from our Apex library. 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MPI_COMPILE_FLAGS}") 
-include_directories (. ${APEX_SOURCE_DIR}/apex ${MPI_CXX_INCLUDE_PATH}) 
+include_directories (. ${APEX_SOURCE_DIR}/src/apex ${MPI_CXX_INCLUDE_PATH}) 
 
 # Make sure the linker can find the Apex library once it is built. 
-link_directories (${APEX_BINARY_DIR}/apex) 
+link_directories (${APEX_BINARY_DIR}/src/apex) 
 
 # Add executable called "mpi_test" that is built from the source file
 # "mpi_test.cpp". The extensions are automatically found. 

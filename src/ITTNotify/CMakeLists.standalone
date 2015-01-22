@@ -1,9 +1,9 @@
 # Make sure the compiler can find include files from our Apex library. 
-include_directories (${APEX_SOURCE_DIR}/apex)
+include_directories (${APEX_SOURCE_DIR}/src/apex)
 
 # gcc on apple needs the apex library to link the dylib
 # if(APPLE)
-  link_directories (${APEX_BINARY_DIR}/apex)
+  link_directories (${APEX_BINARY_DIR}/src/apex)
 # endif()
 
 # Create a library called "ittnotify" which includes the source file
@@ -30,7 +30,7 @@ add_dependencies (ittnotify apex)
 
 # add the binary tree to the search path for include files
 # so that we will find ittnotify.h
-include_directories ("${PROJECT_BINARY_DIR}/apex")
+include_directories ("${PROJECT_BINARY_DIR}/src/apex")
 
 INSTALL(FILES ittnotify.h DESTINATION include)
 INSTALL(FILES legacy/ittnotify.h DESTINATION include/legacy)
