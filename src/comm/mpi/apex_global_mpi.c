@@ -68,6 +68,7 @@ int action_apex_reduce(void *unused) {
 }
 
 int apex_periodic_output(apex_context const context) {
+  action_apex_reduce(NULL);
   if (rank != 0) return 1;
   double avg = 0.0;
   double stddev = 0.0;
@@ -103,6 +104,8 @@ void apex_global_setup(apex_function_address in_action) {
 }
 
 void apex_global_teardown(void) {
+  printf("\n");
+  fflush(stdout);
   MPI_Win_free(&profile_window); 
   fclose(graph_output);
 }

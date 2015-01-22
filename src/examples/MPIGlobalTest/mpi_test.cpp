@@ -106,7 +106,6 @@ master(void)
              MPI_COMM_WORLD,    /* default communicator */
              &status);          /* info about the received message */
 
-    action_apex_reduce(NULL);
     /* Send the worker a new work unit */
 
     MPI_Send(&work,             /* message buffer */
@@ -173,7 +172,6 @@ worker(void)
     /* Send the result back */
 
     MPI_Send(&result, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
-    action_apex_reduce(NULL);
   }
   apex::stop(profiler);
 }
