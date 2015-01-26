@@ -46,7 +46,7 @@ enum __itt_scope {
 };
 
 enum __itt_track_group_type { __itt_track_group_type_normal = 0 };
- 
+
 enum __itt_track_type {__itt_track_type_normal = 0 };
 
 struct ___itt_caller {
@@ -205,14 +205,14 @@ ITTNOTIFY_EXPORT extern void (*__itt_stack_caller_destroy_ptr_)(__itt_caller ctx
 #define __itt_id_destroy_ptr __itt_id_destroy
 #define __itt_id_destroy_ex_ptr __itt_id_destroy_ex
 #define __itt_id_make_ptr __itt_id_make
-#define __itt_metadata_add_ptr __itt_metadata_add 
+#define __itt_metadata_add_ptr __itt_metadata_add
 #define __itt_metadata_add_with_scope_ptr __itt_metadata_add_with_scope
-#define __itt_metadata_str_add_ptr __itt_metadata_str_add 
+#define __itt_metadata_str_add_ptr __itt_metadata_str_add
 #define __itt_metadata_str_add_with_scope_ptr __itt_metadata_str_add_with_scope
-#define __itt_relation_add_ptr __itt_relation_add 
-#define __itt_relation_add_to_current_ptr __itt_relation_add_to_current 
+#define __itt_relation_add_ptr __itt_relation_add
+#define __itt_relation_add_to_current_ptr __itt_relation_add_to_current
 #define __itt__set_track_ptr __itt__set_track
-#define __itt_string_handle_create_ptr __itt_string_handle_create 
+#define __itt_string_handle_create_ptr __itt_string_handle_create
 #define __itt_task_begin_ptr __itt_task_begin
 #define __itt_task_begin_ex_ptr __itt_task_begin_ex
 #define __itt_task_begin_fn_ptr __itt_task_begin_fn

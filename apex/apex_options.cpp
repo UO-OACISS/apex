@@ -19,9 +19,9 @@ using namespace apex;
 extern "C" {
 
 #define apex_macro(name, member_variable, type, default_value) \
-	void apex_set_##member_variable (type inval) { apex_options::member_variable(inval); } \
-	type apex_get_##member_variable (void) { return apex_options::member_variable(); }
-	FOREACH_APEX_OPTION(apex_macro)
+    void apex_set_##member_variable (type inval) { apex_options::member_variable(inval); } \
+    type apex_get_##member_variable (void) { return apex_options::member_variable(); }
+    FOREACH_APEX_OPTION(apex_macro)
 #undef apex_macro
 
 }

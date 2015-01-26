@@ -28,7 +28,7 @@ void* someThread(void* tmp)
 #endif
   int i = 0;
   for (i = 0 ; i < ITERATIONS ; i++) {
-	  foo(i);
+      foo(i);
   }
   apex_stop_profiler(my_profiler);
   return NULL;
@@ -43,7 +43,7 @@ int policy_periodic(apex_context const context) {
 }
 
 int policy_event(apex_context const context) {
-    static __thread unsigned int not_every_time = 0;
+    static APEX_NATIVE_TLS unsigned int not_every_time = 0;
     if (not_every_time++ % 500000 != 0) return 1;
     apex_profile * p = apex_get_profile_from_address(foo);
     if (p != NULL) {

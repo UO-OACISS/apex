@@ -58,7 +58,7 @@ void* someThread(void* tmp)
 #endif
   int i = 0;
   for (i = 0 ; i < ITERATIONS ; i++) {
-	  foo(i);
+      foo(i);
   }
   apex::stop(profiler);
   return NULL;
@@ -83,7 +83,7 @@ int main(int argc, char **argv)
        return true;
   });
   apex::register_policy(when, [](apex_context const& context){
-       static __thread unsigned int not_all_the_time = 0;
+       static APEX_NATIVE_TLS unsigned int not_all_the_time = 0;
        if (++not_all_the_time % 500000 != 0) return true; // only do 2 out of a million
        void * foo_addr = (void*)(foo);
        apex::profile * p = apex::profiler_listener::get_profile(foo_addr);

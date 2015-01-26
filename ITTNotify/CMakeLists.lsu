@@ -3,18 +3,20 @@
 #  Distributed under the Boost Software License, Version 1.0. (See accompanying
 #  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-# Make sure the compiler can find include files from our Apex library.
-include_directories (${APEX_SOURCE_DIR})
-
-# gcc on apple needs the apex library to link the dylib
-# if(APPLE)
-  link_directories (${APEX_BINARY_DIR})
-# endif()
+hpx_info("ittnotify" "Will build ITTNotify")
 
 set(ITTNOTIFY_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(ITTNOTIFY_SOURCE_DIR ${ITTNOTIFY_SOURCE_DIR} PARENT_SCOPE)
 set(ITTNOTIFY_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
 set(ITTNOTIFY_BINARY_DIR ${ITTNOTIFY_BINARY_DIR} PARENT_SCOPE)
+
+add_definitions(-DAPEX_HAVE_HPX3)
+
+# this will be statically linked to the core HPX library
+add_definitions(-DHPX_EXPORTS)
+add_definitions(-DHPX_COROUTINE_EXPORTS)
+
+link_directories (${APEX_BINARY_DIR})
 
 if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
   set(ittnofify_library_dependencies
@@ -24,46 +26,48 @@ else()
       apex ${LIBS} ${Boost_LIBRARIES})
 endif()
 
-# Create a library called "ittnotify" which includes the source file
-# "ittnotify.cpp".
-# The extension is already found. Any number of sources could be listed here.
 if(NOT MSVC)
-  add_library (ittnotifyShared SHARED ittnotify.cpp)
-  set_target_properties (ittnotifyShared PROPERTIES OUTPUT_NAME ittnotify)
-  target_link_libraries (ittnotifyShared ${ittnofify_library_dependencies})
-  add_dependencies (ittnotifyShared apexShared)
-  set(ittnotify_install_targets ittnotifyShared)
+  add_definitions(-std=c++11)
+else()
+  add_definitions(-D_WINDOWS)
+  add_definitions(-D_WIN32)
+  add_definitions(-D_WIN32_WINNT=0x0601)
+  hpx_add_compile_flag(-wd4800)     # forcing value to bool 'true' or 'false' (performance warning)
+  hpx_add_compile_flag(-wd4244)     # conversion from '...' to '...', possible loss of data
+  hpx_add_compile_flag(-wd4267)     # conversion from '...' to '...', possible loss of data
+
+  # VS2012 and above has a special flag for improving the debug experience by
+  # adding more symbol information to the build (-d2Zi+)
+  hpx_add_compile_flag(-d2Zi+ CONFIGURATIONS RelWithDebInfo)
+
+  # VS2013 and above know how to do link time constant data segment folding
+  # VS2013 update 2 and above know how to remove debug information for
+  #     non-referenced functions and data (-Zc:inline)
+  if(MSVC12 OR MSVC13)
+    hpx_add_compile_flag(-Zc:inline)
+    hpx_add_compile_flag(-Gw CONFIGURATIONS Release RelWithDebInfo MinSizeRelease)
+    hpx_add_compile_flag(-Zo CONFIGURATIONS RelWithDebInfo)
+  endif()
+
+  hpx_add_compile_flag(-bigobj) # Increase the maximum size of object file sections
+  hpx_add_compile_flag(-MP)     # Multiprocessor build
 endif()
 
-# target_link_libraries (ittnotifyStatic ${LIBS} ${Boost_LIBRARIES})
+# target_link_libraries (ittnotify ${LIBS} ${Boost_LIBRARIES})
 # gcc on apple needs the apex library to link the dylib
-# if(APPLE)
-add_library (ittnotifyStatic STATIC ittnotify.cpp)
-set_target_properties (ittnotifyStatic PROPERTIES OUTPUT_NAME ittnotify)
-target_link_libraries (ittnotifyStatic ${ittnofify_library_dependencies})
-add_dependencies (ittnotifyStatic apexStatic)
-set(ittnotify_install_targets ${ittnotify_install_targets} ittnotifyStatic)
-# else()
-# target_link_libraries (ittnotifyShared ${LIBS})
-# endif()
+add_library (ittnotify STATIC ittnotify.cpp)
+add_hpx_library(ittnotify
+  STATIC NOLIB
+  SOURCES ittnotify.cpp
+  HEADERS legacy/ittnotify.h
+  FOLDER "Core/Dependencies")
 
 # add the binary tree to the search path for include files
 # so that we will find ittnotify.h
-include_directories ("${PROJECT_BINARY_DIR}/apex/apex")
-include_directories ("${PROJECT_BINARY_DIR}/apex/apex/ITTNotify")
+include_directories("${PROJECT_BINARY_DIR}/apex/apex")
+include_directories("${PROJECT_BINARY_DIR}/apex/ITTNotify")
 
-INSTALL(FILES ittnotify.h DESTINATION include)
 INSTALL(FILES legacy/ittnotify.h DESTINATION include/legacy)
 
-INSTALL(TARGETS ${ittnotify_install_targets}
-  RUNTIME DESTINATION bin
-  LIBRARY DESTINATION lib/hpx
-  ARCHIVE DESTINATION lib/hpx
-  #LIBRARY DESTINATION lib64
-  #ARCHIVE DESTINATION lib64
-)
-
-if(NOT AMPLIFIER_ROOT)
-  set(AMPLIFIER_ROOT ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
-  set(HPX_HAVE_ITTNOTIFY ON PARENT_SCOPE)
-endif()
+set(AMPLIFIER_ROOT ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
+set(ITTNOTIFY_FOUND ON PARENT_SCOPE)
