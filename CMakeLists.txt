@@ -1,6 +1,6 @@
-# The name of our project is "APEX". CMakeLists files in this project can 
-# refer to the root source directory of the project as ${APEX_SOURCE_DIR} and 
-# to the root binary directory of the project as ${APEX_BINARY_DIR}. 
+# The name of our project is "APEX". CMakeLists files in this project can
+# refer to the root source directory of the project as ${APEX_SOURCE_DIR} and
+# to the root binary directory of the project as ${APEX_BINARY_DIR}.
 cmake_minimum_required (VERSION 2.8.12)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules")
@@ -13,7 +13,7 @@ SET(CMAKE_SKIP_BUILD_RPATH  FALSE)
 
 # when building, don't use the install RPATH already
 # (but later on when installing)
-SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE) 
+SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 
 SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 
@@ -47,7 +47,7 @@ project (APEX CXX C)
 
 if(APEX_THROTTLE)
     # add_definitions(-DAPEX_THROTTLE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPEX_THROTTLE") 
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPEX_THROTTLE")
 endif(APEX_THROTTLE)
 
 # include additional macro definitions
@@ -72,7 +72,7 @@ set (APEX_VERSION_MAJOR 0)
 set (APEX_VERSION_MINOR 1)
 
 # add_definitions(-std=c++11)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11") 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 # configure a header file to pass some of the CMake settings
 # to the source code
@@ -85,7 +85,7 @@ configure_file (
 if (BUILD_SHARED_LIBS)
 set(CMAKE_POSITION_INDEPENDENT_CODE True)
 set(POSITION_INDEPENDENT_CODE True)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC") 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 endif (BUILD_SHARED_LIBS)
 
 #set debugging info
@@ -105,16 +105,16 @@ endif()
 ################################################################################
 
 if (APPLE)
-set(Boost_USE_STATIC_LIBS ON) 
+     set(Boost_USE_STATIC_LIBS ON)
 else()
-set(Boost_USE_STATIC_LIBS OFF) 
+    set(Boost_USE_STATIC_LIBS OFF)
 endif()
-set(Boost_USE_MULTITHREADED ON)  
-set(Boost_USE_STATIC_RUNTIME OFF) 
-find_package(Boost 1.54.0 REQUIRED COMPONENTS system thread timer chrono) 
+set(Boost_USE_MULTITHREADED ON)
+set(Boost_USE_STATIC_RUNTIME OFF)
+find_package(Boost 1.54.0 REQUIRED COMPONENTS system thread timer chrono)
 
 if(Boost_FOUND)
-    include_directories(${Boost_INCLUDE_DIRS}) 
+    include_directories(${Boost_INCLUDE_DIRS})
     # target_link_libraries(progname ${Boost_LIBRARIES})
 endif()
 
@@ -130,12 +130,12 @@ find_package(MPI)
 
 # TAU is NOT required.
 if (DEFINED TAU_ROOT)
-find_package(TAU)
-if (TAU_FOUND)
-	include_directories(${TAU_INCLUDE_DIRS})
-	set(LIBS ${LIBS} ${TAU_LIBRARIES})
-	set (CMAKE_INSTALL_RPATH ${TAU_LIBRARY_DIR})
-endif()
+    find_package(TAU)
+    if (TAU_FOUND)
+        include_directories(${TAU_INCLUDE_DIRS})
+        set(LIBS ${LIBS} ${TAU_LIBRARIES})
+        set (CMAKE_INSTALL_RPATH ${TAU_LIBRARY_DIR})
+    endif()
 endif()
 
 ################################################################################
@@ -144,12 +144,12 @@ endif()
 
 # RCR is NOT required.
 if (DEFINED RCR_ROOT)
-find_package(RCR)
-if (RCR_FOUND)
-	include_directories(${RCR_INCLUDE_DIRS})
-	set(LIBS ${LIBS} ${RCR_LIBRARIES})
-	set (CMAKE_INSTALL_RPATH ${RCR_LIBRARY_DIR})
-endif()
+    find_package(RCR)
+    if (RCR_FOUND)
+        include_directories(${RCR_INCLUDE_DIRS})
+        set(LIBS ${LIBS} ${RCR_LIBRARIES})
+        set (CMAKE_INSTALL_RPATH ${RCR_LIBRARY_DIR})
+    endif()
 endif()
 
 ################################################################################
@@ -158,9 +158,9 @@ endif()
 
 find_package(Tcmalloc)
 if (Tcmalloc_FOUND)
-	include_directories(${Tcmalloc_INCLUDE_DIRS})
-	set(LIBS ${LIBS} ${Tcmalloc_LIBRARIES})
-	set (CMAKE_INSTALL_RPATH ${Tcmalloc_LIBRARY_DIR})
+    include_directories(${Tcmalloc_INCLUDE_DIRS})
+    set(LIBS ${LIBS} ${Tcmalloc_LIBRARIES})
+    set (CMAKE_INSTALL_RPATH ${Tcmalloc_LIBRARY_DIR})
 endif()
 
 ################################################################################
@@ -168,16 +168,16 @@ endif()
 ################################################################################
 
 if(DEFINED $PAPI_ROOT)
-	set (USE_PAPI TRUE)
+    set (USE_PAPI TRUE)
 endif()
 
 if(USE_PAPI)
-	find_package(PAPI)
-	if (PAPI_FOUND)
-		include_directories(${PAPI_INCLUDE_DIRS})
-		set(LIBS ${LIBS} ${PAPI_LIBRARIES})
-		set (CMAKE_INSTALL_RPATH ${PAPI_LIBRARY_DIR})
-	endif()
+    find_package(PAPI)
+    if (PAPI_FOUND)
+        include_directories(${PAPI_INCLUDE_DIRS})
+        set(LIBS ${LIBS} ${PAPI_LIBRARIES})
+        set (CMAKE_INSTALL_RPATH ${PAPI_LIBRARY_DIR})
+    endif()
 endif()
 
 ################################################################################
@@ -185,23 +185,23 @@ endif()
 ################################################################################
 
 if(USE_BINUTILS)
-	find_package(BFD)
-	if (BFD_FOUND)
-		include_directories(${BFD_INCLUDE_DIRS})
-		set(LIBS ${LIBS} ${BFD_LIBRARIES})
-		set (CMAKE_INSTALL_RPATH ${BFD_LIBRARY_DIR})
-	endif()
+    find_package(BFD)
+    if (BFD_FOUND)
+        include_directories(${BFD_INCLUDE_DIRS})
+        set(LIBS ${LIBS} ${BFD_LIBRARIES})
+        set (CMAKE_INSTALL_RPATH ${BFD_LIBRARY_DIR})
+    endif()
 
-	find_package(Demangle)
-	if (DEMANGLE_FOUND)
-		include_directories(${DEMANGLE_INCLUDE_DIRS})
-		set(LIBS ${LIBS} ${DEMANGLE_LIBRARIES})
-		set (CMAKE_INSTALL_RPATH ${DEMANGLE_LIBRARY_DIR})
-	else()
-  	unset(DEMANGLE_LIBRARY)
-  	unset(DEMANGLE_LIBRARIES)
-  	unset(DEMANGLE_DIR)
-	endif()
+    find_package(Demangle)
+    if (DEMANGLE_FOUND)
+        include_directories(${DEMANGLE_INCLUDE_DIRS})
+        set(LIBS ${LIBS} ${DEMANGLE_LIBRARIES})
+        set (CMAKE_INSTALL_RPATH ${DEMANGLE_LIBRARY_DIR})
+    else()
+    unset(DEMANGLE_LIBRARY)
+    unset(DEMANGLE_LIBRARIES)
+    unset(DEMANGLE_DIR)
+    endif()
 endif(USE_BINUTILS)
 
 set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} "${CMAKE_INSTALL_PREFIX}/lib")
@@ -217,17 +217,17 @@ CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/pkgconfig/apex.pc.in
                ${CMAKE_BINARY_DIR}/pkgconfig/apex.pc @ONLY)
 INSTALL_FILES(/lib/pkgconfig FILES pkgconfig/apex.pc)
 
-# Recurse into the "Apex" and "Demo" subdirectories. This does not actually 
-# cause another cmake executable to run. The same process will walk through 
-# the project's entire directory structure. 
-add_subdirectory (apex) 
-add_subdirectory (ITTNotify) 
+# Recurse into the "Apex" and "Demo" subdirectories. This does not actually
+# cause another cmake executable to run. The same process will walk through
+# the project's entire directory structure.
+add_subdirectory (apex)
+add_subdirectory (ITTNotify)
 add_subdirectory (DemoCpp)
-add_subdirectory (DemoC)  
+add_subdirectory (DemoC)
 # Add a test program which actually uses the CPU
-add_subdirectory (Matmult)  
+add_subdirectory (Matmult)
 if(MPI_CXX_FOUND)
-add_subdirectory (MPITest)  
+add_subdirectory (MPITest)
 endif()
 add_subdirectory (TestITT)
 add_subdirectory (TestThreads)
@@ -243,20 +243,20 @@ add_test (ApexCppRuns DemoCpp/apexCppDemo)
 add_test (ApexCRuns DemoC/apexCDemo)
 
 # Run the test program which actually uses the CPU
-add_test (MatmultRuns Matmult/matmult)  
+add_test (MatmultRuns Matmult/matmult)
 
 # Run the test program which tests the ITT interface
-add_test (TestITTRuns TestITT/testITT)  
+add_test (TestITTRuns TestITT/testITT)
 
 # Run the test program which tests the threads interface
-add_test (TestThreadsRuns TestThreads/testThreads)  
+add_test (TestThreadsRuns TestThreads/testThreads)
 
 # Run the test program which tests the overhead in the threads interface
-add_test (TestOverhead_noPolicy Overhead/testOverhead)  
-add_test (TestPolicyC_Policy PolicyEngineExample/testPolicyEngine)  
-add_test (TestPolicyCpp_Policy PolicyEngineCppExample/testCppPolicyEngine)  
+add_test (TestOverhead_noPolicy Overhead/testOverhead)
+add_test (TestPolicyC_Policy PolicyEngineExample/testPolicyEngine)
+add_test (TestPolicyCpp_Policy PolicyEngineCppExample/testCppPolicyEngine)
 
 if(MPI_CXX_FOUND)
 # Run the test program which tests the mpi interface
-  add_test (MPITestRuns ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2 ${MPIEXEC_PREFLAGS} MPITest/mpi_test ${MPIEXEC_POSTFLAGS})  
+  add_test (MPITestRuns ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2 ${MPIEXEC_PREFLAGS} MPITest/mpi_test ${MPIEXEC_POSTFLAGS})
 endif()

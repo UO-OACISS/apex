@@ -46,6 +46,7 @@ private:
     apex(apex const&) {};            // copy constructor is private
     apex& operator=(apex const& a)
     {
+        // FIXME: this does not make any sense
         return const_cast<apex&>(a);
     };  // assignment operator is private
 // member variables

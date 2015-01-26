@@ -3,6 +3,10 @@
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+#ifdef APEX_HAVE_HPX3
+#include <hpx/config.hpp>
+#endif
+
 #include "event_listener.hpp"
 #include "thread_instance.hpp"
 
@@ -30,7 +34,7 @@ timer_event_data::timer_event_data(apex_event_type event_type_, int thread_id, v
 }
 
 timer_event_data::~timer_event_data() {
-  //if (have_name) 
+  //if (have_name)
     //delete(timer_name);
 }
 

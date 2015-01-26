@@ -45,7 +45,7 @@ enum __itt_scope {
 };
 
 enum __itt_track_group_type { __itt_track_group_type_normal = 0 };
- 
+
 enum __itt_track_type {__itt_track_type_normal = 0 };
 
 struct ___itt_caller {
@@ -119,40 +119,40 @@ extern "C" {
   void __itt_frame_begin_v3(__itt_domain const* frame, __itt_id* id);
   void __itt_frame_end_v3(__itt_domain const* frame, __itt_id* id);
   void __itt_id_create(__itt_domain const*, __itt_id id);
-  void __itt_id_create_ex(__itt_domain const*, 
+  void __itt_id_create_ex(__itt_domain const*,
       __itt_clock_domain* clock_domain, UINT64 timestamp, __itt_id* id);
   void __itt_id_destroy(const __itt_domain * domain, __itt_id* id);
-  void __itt_id_destroy_ex(__itt_domain* domain, 
+  void __itt_id_destroy_ex(__itt_domain* domain,
       __itt_clock_domain* clock_domain, UINT64 timestamp, __itt_id* id);
   __itt_id __itt_id_make(void*, unsigned long);
   void __itt_metadata_add (const __itt_domain * domain,
       __itt_id id, __itt_string_handle * name, __itt_marker_scope scope);
-  void _itt_metadata_add_with_scope(const __itt_domain * domain, 
+  void _itt_metadata_add_with_scope(const __itt_domain * domain,
       __itt_scope scope, __itt_string_handle *key, __itt_metadata_type type,
       size_t count, void *data);
   void __itt_metadata_str_add (const __itt_domain * domain,
       __itt_id id, __itt_string_handle * key, const char * data, size_t length);
-  void _itt_metadata_str_add_with_scope(const __itt_domain * domain, 
+  void _itt_metadata_str_add_with_scope(const __itt_domain * domain,
       __itt_scope scope, __itt_string_handle *key, const char * data, size_t length);
-  void __itt_relation_add (const __itt_domain * domain, __itt_id head, 
+  void __itt_relation_add (const __itt_domain * domain, __itt_id head,
       __itt_relation relation, __itt_id tail);
-  void __itt_relation_add_to_current (const __itt_domain * domain, 
+  void __itt_relation_add_to_current (const __itt_domain * domain,
       __itt_relation relation, __itt_id tail);
   void __itt__set_track(__itt_track * track);
   __itt_string_handle* __itt_string_handle_create (const char * name);
   void __itt_task_begin(__itt_domain const*, __itt_id, __itt_id, __itt_string_handle*);
-  void __itt_task_begin_ex(__itt_domain* domain, __itt_clock_domain* clock_domain, 
+  void __itt_task_begin_ex(__itt_domain* domain, __itt_clock_domain* clock_domain,
       UINT64 timestamp, __itt_id id, __itt_id parentid, __itt_string_handle *name);
-  void __itt_task_begin_fn(const __itt_domain * domain, __itt_id taskid, 
+  void __itt_task_begin_fn(const __itt_domain * domain, __itt_id taskid,
       __itt_id parentid, void * fn);
   void __itt_task_end(__itt_domain const*);
   void __itt_task_end_ex(__itt_domain const*);
-  void __itt_task_group(const __itt_domain * domain, __itt_id id, 
+  void __itt_task_group(const __itt_domain * domain, __itt_id id,
       __itt_id parentid, __itt_string_handle * name);
   void __itt_thread_set_name (const char * name);
-  __itt_track_group* __itt_track_group_create(__itt_string_handle* name, 
+  __itt_track_group* __itt_track_group_create(__itt_string_handle* name,
       __itt_track_group_type type);
-  __itt_track* __itt_track_create(__itt_track_group* track_group, 
+  __itt_track* __itt_track_create(__itt_track_group* track_group,
       __itt_string_handle* name, __itt_track_type track_type);
 
 // those not mentiond in the documentation
@@ -183,9 +183,14 @@ void __itt_stack_callee_enter(__itt_caller ctx);
 void __itt_stack_callee_leave(__itt_caller ctx);
 void __itt_stack_caller_destroy(__itt_caller ctx);
 
+#if defined(_WIN32) || defined(_WIN64)
+extern __itt_mark_type (*__itt_mark_createA_ptr_)(char const* name);
+extern int (*__itt_markA_ptr_)(__itt_mark_type mark, char const* par);
+#else
 extern __itt_mark_type (*__itt_mark_create_ptr_)(char const* name);
-extern int (*__itt_mark_off_ptr_)(__itt_mark_type mark);
 extern int (*__itt_mark_ptr_)(__itt_mark_type mark, char const* par);
+#endif
+extern int (*__itt_mark_off_ptr_)(__itt_mark_type mark);
 extern __itt_caller (*__itt_stack_callee_create_ptr_)();
 extern void (*__itt_stack_caller_enter_ptr_)(__itt_caller ctx);
 extern void (*__itt_stack_callee_leave_ptr_)(__itt_caller ctx);
@@ -204,14 +209,14 @@ extern void (*__itt_stack_caller_destroy_ptr_)(__itt_caller ctx);
 #define __itt_id_destroy_ptr __itt_id_destroy
 #define __itt_id_destroy_ex_ptr __itt_id_destroy_ex
 #define __itt_id_make_ptr __itt_id_make
-#define __itt_metadata_add_ptr __itt_metadata_add 
+#define __itt_metadata_add_ptr __itt_metadata_add
 #define __itt_metadata_add_with_scope_ptr __itt_metadata_add_with_scope
-#define __itt_metadata_str_add_ptr __itt_metadata_str_add 
+#define __itt_metadata_str_add_ptr __itt_metadata_str_add
 #define __itt_metadata_str_add_with_scope_ptr __itt_metadata_str_add_with_scope
-#define __itt_relation_add_ptr __itt_relation_add 
-#define __itt_relation_add_to_current_ptr __itt_relation_add_to_current 
+#define __itt_relation_add_ptr __itt_relation_add
+#define __itt_relation_add_to_current_ptr __itt_relation_add_to_current
 #define __itt__set_track_ptr __itt__set_track
-#define __itt_string_handle_create_ptr __itt_string_handle_create 
+#define __itt_string_handle_create_ptr __itt_string_handle_create
 #define __itt_task_begin_ptr __itt_task_begin
 #define __itt_task_begin_ex_ptr __itt_task_begin_ex
 #define __itt_task_begin_fn_ptr __itt_task_begin_fn
