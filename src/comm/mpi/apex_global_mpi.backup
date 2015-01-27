@@ -1,0 +1,112 @@
+#include "apex_global.h"
+#include "mpi.h"
+#include "stdlib.h" // malloc, etc.
+
+// my local value, global to this process
+apex_profile value;
+
+// the global reduced value
+apex_profile reduced_value;
+
+// the profiled function
+apex_function_address profiled_action;
+
+FILE *graph_output;
+
+// global mpi variables
+int rank, size;
+
+#define min(x,y) ((x) < (y) ? (x) : (y))
+#define max(x,y) ((x) > (y) ? (x) : (y))
+
+void apex_sum(int count, apex_profile values[count]) {
+  int i;
+  for (i = 0; i < count; ++i) { 
+    reduced_value.calls += values[i].calls; 
+    reduced_value.accumulated += values[i].accumulated; 
+    reduced_value.sum_squares += values[i].sum_squares; 
+    reduced_value.minimum = min(reduced_value.minimum,values[i].minimum); 
+    reduced_value.maximum = max(reduced_value.maximum,values[i].maximum); 
+  }
+  return ;
+}
+
+// update our local value for the profile
+int action_apex_get_value(void *args) {
+  apex_profile * p = apex_get_profile_from_address(profiled_action);
+  if (p != NULL) {
+    value.calls = p->calls;
+    value.accumulated = p->accumulated;
+    value.sum_squares = p->sum_squares;
+    value.minimum = p->minimum;
+    value.maximum = p->maximum;
+  }
+}
+
+int action_apex_reduce(void *unused) {
+  int target_rank = 0;
+  int message_tag = 1;
+  MPI_Request * requestList, requestNull;
+  MPI_Status status;
+  static apex_profile * inValues = NULL;
+  apex_profile tmp_value;
+
+  if (rank != target_rank) {
+    MPI_Isend(&value, 5, MPI_DOUBLE, target_rank, message_tag, MPI_COMM_WORLD, &requestNull);
+  } else {
+    requestList =(MPI_Request*)malloc((size-1)*sizeof(MPI_Request));
+	int sender;
+    for (sender = 1; sender < size ; sender++) {
+      MPI_Irecv(&value, sizeof(value), MPI_DOUBLE, sender, 
+                message_tag, MPI_COMM_WORLD, &(requestList[sender-1]));
+    }
+    for (sender = 1; sender < size ; sender++) {
+      MPI_Irecv(&tmp_value, sizeof(value), MPI_DOUBLE, sender, 
+                message_tag, MPI_COMM_WORLD, &(requestList[sender-1]));
+    }
+    if (inValues == NULL) {
+      inValues = (apex_profile*)(malloc(sizeof(apex_profile) * size));
+    }
+    inValues[0].calls = value.calls;
+    inValues[0].accumulated = value.accumulated;
+    inValues[0].sum_squares = value.sum_squares;
+    inValues[0].minimum = value.minimum;
+    inValues[0].maximum = value.maximum;
+    int index;
+    for (sender = 1; sender < size ; sender++) {
+      MPI_Waitany(size-1, requestList, &index, &status);
+      inValues[index].calls = tmp_value.calls;
+      inValues[index].accumulated = tmp_value.accumulated;
+      inValues[index].sum_squares = tmp_value.sum_squares;
+      inValues[index].minimum = tmp_value.minimum;
+      inValues[index].maximum = tmp_value.maximum;
+    }
+    apex_sum(size, inValues);
+  }
+  return 0;
+}
+
+int apex_periodic_output(apex_context const context) {
+  if (rank != 0) return 1;
+  double avg = 0.0;
+  double stddev = 0.0;
+  if (value.calls > 0.0) {
+    avg = value.accumulated / value.calls;
+    stddev = sqrt((value.sum_squares / value.calls) - (avg*avg));
+  }
+  printf("Function calls=%lu mean=%f +/- %f\r", (unsigned long)value.calls, avg, stddev);
+  fflush(stdout);
+  fprintf(graph_output,"%f %f\n",avg, stddev);
+  fflush(graph_output);
+  return 1;
+}
+
+void apex_global_setup(apex_function_address in_action) {
+  profiled_action = in_action;
+  apex_register_periodic_policy(100000, apex_periodic_output);
+  apex_set_use_policy(true);
+  graph_output = fopen("./profile_data.txt", "w");
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
+}
+

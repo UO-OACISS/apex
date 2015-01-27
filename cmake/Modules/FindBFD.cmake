@@ -18,11 +18,12 @@ pkg_check_modules(PC_BFD QUIET BFD)
 set(BFD_DEFINITIONS ${PC_BFD_CFLAGS_OTHER})
 
 find_path(BFD_INCLUDE_DIR bfd.h
-          HINTS ${PC_BFD_INCLUDEDIR} ${PC_BFD_INCLUDE_DIRS} ${BFD_ROOT}
+          HINTS ${PC_BFD_INCLUDEDIR} ${PC_BFD_INCLUDE_DIRS} ${BFD_ROOT}/include
           PATH_SUFFIXES BFD )
 
+string(REPLACE ":" " " LD_LIBRARY_PATH_STR $ENV{LD_LIBRARY_PATH})
 find_library(BFD_LIBRARY NAMES bfd z
-             HINTS ${PC_BFD_LIBDIR} ${PC_BFD_LIBRARY_DIRS} ${BFD_ROOT})
+             HINTS ${PC_BFD_LIBDIR} ${PC_BFD_LIBRARY_DIRS} ${BFD_ROOT}/lib ${LD_LIBRARY_PATH_STR})
 
 include(FindPackageHandleStandardArgs)
 # handle the QUIETLY and REQUIRED arguments and set BFD_FOUND to TRUE
