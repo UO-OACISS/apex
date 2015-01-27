@@ -75,7 +75,7 @@ void concurrency_handler::on_start(apex_function_address function_address, strin
     if (timer_name != NULL) {
       my_stack->push(*(timer_name));
     } else {
-      //my_stack->push(*(event_data.timer_name));
+      my_stack->push(thread_instance::instance().map_addr_to_name(function_address));
     }
   }
 }
@@ -86,7 +86,7 @@ void concurrency_handler::on_resume(profiler * p) {
     if (p->have_name) {
       my_stack->push(*(p->timer_name));
     } else {
-      //my_stack->push(*(event_data.timer_name));
+      my_stack->push(thread_instance::instance().map_addr_to_name(p->action_address));
     }
   }
 }
