@@ -8,11 +8,11 @@
 #ifndef APEX_TYPES_HPP
 #define APEX_TYPES_HPP
 
-#include "stdint.h"
-#include "stdbool.h"
+#include <stdint.h>
+#include <stdbool.h>
 
-/* 
- * Typedef for enumerating the different event types 
+/*
+ * Typedef for enumerating the different event types
  */
 typedef enum _event_type {
   STARTUP,
@@ -26,8 +26,8 @@ typedef enum _event_type {
   PERIODIC
 } apex_event_type;
 
-/* A reference to the policy object, 
- * so that policies can be "unregistered", or paused later 
+/* A reference to the policy object,
+ * so that policies can be "unregistered", or paused later
  */
 typedef struct _policy_handle
 {
@@ -70,11 +70,21 @@ typedef uintptr_t apex_profiler_handle; // address of internal C++ object
 typedef void * apex_function_address; // generic function pointer
 
 #define FOREACH_APEX_OPTION(macro) \
-	macro (APEX_TAU, use_tau, bool, false) \
-	macro (APEX_POLICY, use_policy, bool, true) \
-	macro (APEX_CONCURRENCY, use_concurrency, int, 0) \
-	macro (APEX_CONCURRENCY_PERIOD, concurrency_period, int, 1000000) \
-	macro (APEX_SCREEN_OUTPUT, use_screen_output, bool, true) \
-	macro (APEX_PROFILE_OUTPUT, use_profile_output, bool, false) \
+    macro (APEX_TAU, use_tau, bool, false) \
+    macro (APEX_POLICY, use_policy, bool, true) \
+    macro (APEX_CONCURRENCY, use_concurrency, int, 0) \
+    macro (APEX_CONCURRENCY_PERIOD, concurrency_period, int, 1000000) \
+    macro (APEX_SCREEN_OUTPUT, use_screen_output, bool, true) \
+    macro (APEX_PROFILE_OUTPUT, use_profile_output, bool, false) \
+
+#if defined(__linux)
+#  define APEX_NATIVE_TLS __thread
+#elif defined(_WIN32) || defined(_WIN64)
+#  define APEX_NATIVE_TLS __declspec(thread)
+#elif defined(__FreeBSD__) || (defined(__APPLE__) && defined(__MACH__))
+#  define APEX_NATIVE_TLS __thread
+#else
+#  error "Native thread local storage is not supported for this platform"
+#endif
 
 #endif //APEX_TYPES_HPP

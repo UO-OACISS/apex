@@ -1,4 +1,4 @@
-if(HPX_HAVE_APEX)
+if(HPX_WITH_APEX)
     include(CMakeLists.lsu)
     return()
 else()

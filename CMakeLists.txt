@@ -1,6 +1,6 @@
-# The name of our project is "APEX". CMakeLists files in this project can 
-# refer to the root source directory of the project as ${APEX_SOURCE_DIR} and 
-# to the root binary directory of the project as ${APEX_BINARY_DIR}. 
+# The name of our project is "APEX". CMakeLists files in this project can
+# refer to the root source directory of the project as ${APEX_SOURCE_DIR} and
+# to the root binary directory of the project as ${APEX_BINARY_DIR}.
 cmake_minimum_required (VERSION 2.8.12)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules")
@@ -13,7 +13,7 @@ SET(CMAKE_SKIP_BUILD_RPATH  FALSE)
 
 # when building, don't use the install RPATH already
 # (but later on when installing)
-SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE) 
+SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 
 SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 
@@ -47,7 +47,7 @@ project (APEX CXX C)
 
 if(APEX_THROTTLE)
     # add_definitions(-DAPEX_THROTTLE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPEX_THROTTLE") 
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPEX_THROTTLE")
 endif(APEX_THROTTLE)
 
 # include additional macro definitions
@@ -72,7 +72,7 @@ set (APEX_VERSION_MAJOR 0)
 set (APEX_VERSION_MINOR 1)
 
 # add_definitions(-std=c++11)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11") 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 # configure a header file to pass some of the CMake settings
 # to the source code
@@ -85,7 +85,7 @@ configure_file (
 if (BUILD_SHARED_LIBS)
 set(CMAKE_POSITION_INDEPENDENT_CODE True)
 set(POSITION_INDEPENDENT_CODE True)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC") 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 endif (BUILD_SHARED_LIBS)
 
 #set debugging info
@@ -105,16 +105,16 @@ endif()
 ################################################################################
 
 if (APPLE)
-set(Boost_USE_STATIC_LIBS ON) 
+     set(Boost_USE_STATIC_LIBS ON)
 else()
-set(Boost_USE_STATIC_LIBS OFF) 
+    set(Boost_USE_STATIC_LIBS OFF)
 endif()
-set(Boost_USE_MULTITHREADED ON)  
-set(Boost_USE_STATIC_RUNTIME OFF) 
-find_package(Boost 1.54.0 REQUIRED COMPONENTS system thread timer chrono) 
+set(Boost_USE_MULTITHREADED ON)
+set(Boost_USE_STATIC_RUNTIME OFF)
+find_package(Boost 1.54.0 REQUIRED COMPONENTS system thread timer chrono)
 
 if(Boost_FOUND)
-    include_directories(${Boost_INCLUDE_DIRS}) 
+    include_directories(${Boost_INCLUDE_DIRS})
     # target_link_libraries(progname ${Boost_LIBRARIES})
 endif()
 
@@ -168,7 +168,7 @@ endif()
 ################################################################################
 
 if(DEFINED $PAPI_ROOT)
-	set (USE_PAPI TRUE)
+    set (USE_PAPI TRUE)
 endif()
 
 if(USE_PAPI)

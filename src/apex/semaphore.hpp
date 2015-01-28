@@ -4,7 +4,7 @@
  */
 
 #if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
-	/* UNIX-style OS. ------------------------------------------- */
+    /* UNIX-style OS. ------------------------------------------- */
 #include <unistd.h>
 #endif
 
@@ -27,20 +27,20 @@ public:
      * waiting for the post (it is a synchronization point across all threads), don't
      * post if there is already work on the queue.
      */
-    inline void post() { if (work_waiting) return ; 
-	    __sync_fetch_and_add(&work_waiting, 1) ; 
-	    sem_post(&the_semaphore); }
+    inline void post() { if (work_waiting) return ;
+        __sync_fetch_and_add(&work_waiting, 1) ;
+        sem_post(&the_semaphore); }
     /*
      * When the wait is over, clear the "work_waiting" flag, even though we haven't
      * cleared the waiting profilers.
      */
-    inline void wait() { sem_wait(&the_semaphore); 
-	    __sync_fetch_and_sub(&work_waiting, work_waiting); }
+    inline void wait() { sem_wait(&the_semaphore);
+        __sync_fetch_and_sub(&work_waiting, work_waiting); }
 };
 
 }
 
-#else 
+#else
 // Not posix, so use Boost to build a semaphore.
 
 #include <boost/thread/condition.hpp>
@@ -78,5 +78,5 @@ public:
 
 };
 
-#endif 
+#endif
 // end of "No posix"

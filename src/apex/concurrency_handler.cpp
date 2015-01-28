@@ -4,6 +4,10 @@
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 
+#ifdef APEX_HAVE_HPX3
+#include <hpx/config.hpp>
+#endif
+
 #include "concurrency_handler.hpp"
 #include "thread_instance.hpp"
 #include <iostream>

@@ -3,10 +3,9 @@
 #  Distributed under the Boost Software License, Version 1.0. (See accompanying
 #  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+# Create a library called "apex"
 
-
-# Create a library called "Apex" which includes the source file "apex.cxx".
-# The extension is already found. Any number of sources could be listed here.
+set(CMAKE_MODULE_PATH "${hpx_SOURCE_DIR}/apex/cmake/Modules" ${CMAKE_MODULE_PATH})
 
 hpx_info("apex" "Will build APEX")
 
@@ -22,25 +21,54 @@ hpx_info("apex" "APEX source dir is ${APEX_SOURCE_DIR}")
 hpx_info("apex" "APEX binary dir is ${APEX_BINARY_DIR}")
 
 configure_file (
-    "${APEX_SOURCE_DIR}/apex_config.h.in"
-    "${APEX_BINARY_DIR}/apex_config.h"
-)
+  "${APEX_SOURCE_DIR}/apex_config.h.in"
+  "${APEX_BINARY_DIR}/apex_config.h")
 
 add_definitions(-DAPEX_HAVE_HPX3)
 
+# this will be statically linked to the core HPX library
+add_definitions(-DHPX_EXPORTS)
+add_definitions(-DHPX_COROUTINE_EXPORTS)
+
 if(NOT MSVC)
-  add_definitions( -std=c++11 )
+  add_definitions(-std=c++11)
+  add_definitions(-fPIC)
 else()
   add_definitions(-D_WINDOWS)
   add_definitions(-D_WIN32)
   add_definitions(-D_WIN32_WINNT=0x0601)
-  add_definitions(-D_SCL_SECURE_NO_WARNINGS)
-  add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-  add_definitions(-D_SCL_SECURE_NO_DEPRECATE)
-  add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
-  add_definitions(-D_CRT_NONSTDC_NO_WARNINGS)
-  add_definitions(-D_WINSOCK_DEPRECATED_NO_WARNINGS)
+  hpx_add_compile_flag(-wd4800)     # forcing value to bool 'true' or 'false' (performance warning)
+  hpx_add_compile_flag(-wd4244)     # conversion from '...' to '...', possible loss of data
+  hpx_add_compile_flag(-wd4267)     # conversion from '...' to '...', possible loss of data
+
+  # VS2012 and above has a special flag for improving the debug experience by
+  # adding more symbol information to the build (-d2Zi+)
+  hpx_add_compile_flag(-d2Zi+ CONFIGURATIONS RelWithDebInfo)
+
+  # VS2013 and above know how to do link time constant data segment folding
+  # VS2013 update 2 and above know how to remove debug information for
+  #     non-referenced functions and data (-Zc:inline)
+  if(MSVC12 OR MSVC13)
+    hpx_add_compile_flag(-Zc:inline)
+    hpx_add_compile_flag(-Gw CONFIGURATIONS Release RelWithDebInfo MinSizeRelease)
+    hpx_add_compile_flag(-Zo CONFIGURATIONS RelWithDebInfo)
+  endif()
+
+  hpx_add_compile_flag(-bigobj) # Increase the maximum size of object file sections
+  hpx_add_compile_flag(-MP)     # Multiprocessor build
 endif()
+
+set(apex_headers
+    apex.h
+    apex.hpp
+    apex_options.hpp
+    concurrency_handler.hpp
+    event_listener.hpp
+    handler.hpp
+    policy_handler.hpp
+    profiler_listener.hpp
+    semaphore.hpp
+    thread_instance.hpp)
 
 set(apex_sources
     apex.cpp
@@ -52,9 +80,7 @@ set(apex_sources
     policy_handler.cpp
     profiler_listener.cpp)
 
-
-# Disable RCR until FindHPX_RCR.cmake is updated
-#find_package(HPX_RCR)
+find_package(RCR)
 
 if(HAVE_RCR)
   hpx_add_config_define(HPX_HAVE_RCR 1)
@@ -62,54 +88,30 @@ if(HAVE_RCR)
 endif()
 
 if(TAU_FOUND)
-    hpx_info("apex" "Building APEX with TAU support")
-    set(apex_sources ${apex_sources}
-        tau_listener.cpp)
+  hpx_info("apex" "Building APEX with TAU support")
+  set(apex_headers ${apex_headers} tau_listener.hpp)
+  set(apex_sources ${apex_sources} tau_listener.cpp)
 
-    add_library (apexStatic STATIC ${apex_sources})
-    add_definitions(-DAPEX_HAVE_TAU)
-    if(NOT MSVC)
-      add_library (apexShared SHARED ${apex_sources})
-    else()
-      add_definitions(-DTAU_WINDOWS)
-      set(LIBS ${TAU_LIBRARY})
-    endif()
+  add_definitions(-DAPEX_HAVE_TAU)
+  if(MSVC)
+    add_definitions(-DTAU_WINDOWS)
+    set(libs ${TAU_LIBRARY})
+  endif()
 else()
-    hpx_info("apex" "Building APEX without TAU support")
-
-    add_library (apexStatic STATIC ${apex_sources})
-    if(NOT MSVC)
-      add_library (apexShared SHARED ${apex_sources})
-    else()
-      add_definitions(-DTAU_WINDOWS)
-    endif()
+  hpx_info("apex" "Building APEX without TAU support")
 endif()
 
-#set_target_properties(apexStatic PROPERTIES OUTPUT_NAME apex)
-#target_link_libraries(apexStatic ${LIBS})
-#set(apex_install_targets ${apex_install_targets} apexStatic)
-
-if(NOT MSVC)
-  set_target_properties(apexShared PROPERTIES OUTPUT_NAME apex)
-  target_link_libraries(apexShared ${LIBS})
-  set(apex_install_targets apexShared)
-endif()
+add_hpx_library(apex
+  STATIC NOLIBS
+  SOURCES ${apex_sources}
+  HEADERS ${apex_headers}
+  FOLDER "Core/Dependencies")
 
 # add the binary tree to the search path for include files
-# so that we will find ApexConfig.h
-include_directories("${PROJECT_BINARY_DIR}/apex/apex")
+# so that we will find apex_config.h
+include_directories("${PROJECT_BINARY_DIR}/apex/src/apex")
 
-INSTALL(FILES apex.h apex.hpp handler.hpp event_listener.hpp DESTINATION include)
-
-INSTALL(TARGETS ${apex_install_targets}
-  RUNTIME DESTINATION bin
-  LIBRARY DESTINATION lib/hpx
-  ARCHIVE DESTINATION lib/hpx
-)
-
-add_subdirectory(ITTNotify)
+INSTALL(FILES ${apex_headers} DESTINATION include)
 
 set(AMPLIFIER_ROOT ${AMPLIFIER_ROOT} PARENT_SCOPE)
-set(HPX_HAVE_ITTNOTIFY ${HPX_HAVE_ITTNOTIFY} PARENT_SCOPE)
-set(ITTNOTIFY_SOURCE_DIR ${ITTNOTIFY_SOURCE_DIR} PARENT_SCOPE)
-set(ITTNOTIFY_BINARY_DIR ${ITTNOTIFY_BINARY_DIR} PARENT_SCOPE)
+set(APEX_FOUND ON PARENT_SCOPE)

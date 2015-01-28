@@ -3,6 +3,9 @@
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+#ifdef APEX_HAVE_HPX3
+#include <hpx/config.hpp>
+#endif
 
 #include "apex.hpp"
 #include "apex_types.h"
@@ -13,15 +16,11 @@
 #include <iostream>
 #include <stdlib.h>
 #include <string>
-//#include <cxxabi.h> // this is for demangling strings. 
+//#include <cxxabi.h> // this is for demangling strings.
 
 #include "concurrency_handler.hpp"
 #include "policy_handler.hpp"
 #include "thread_instance.hpp"
-
-#ifdef APEX_HAVE_HPX3
-#include <hpx/hpx_fwd.hpp>
-#endif
 
 #ifdef APEX_HAVE_TAU
 #include "tau_listener.hpp"
@@ -33,7 +32,7 @@
 #include "profiler_listener.hpp"
 #endif
 
-__thread bool _registered = false;
+APEX_NATIVE_TLS bool _registered = false;
 static bool _initialized = false;
 
 #if 0
@@ -267,7 +266,7 @@ profiler* start(string timer_name)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return NULL; // protect against calls after finalization
     if (_notify_listeners) {
-	string * tmp = new string(timer_name);
+    string * tmp = new string(timer_name);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_start(0L, tmp);
         }
@@ -450,11 +449,11 @@ void finalize()
         stringstream ss;
         ss << instance->get_node_id();
         shutdown_event_data event_data(instance->get_node_id(), thread_instance::get_id());
-    if (_notify_listeners) {
-        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_shutdown(event_data);
+        if (_notify_listeners) {
+            for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+                instance->listeners[i]->on_shutdown(event_data);
+            }
         }
-    }
         _notify_listeners = false;
     }
     instance->~apex();
@@ -526,14 +525,14 @@ apex_policy_handle* register_periodic_policy(unsigned long period_microseconds,
 apex_profile* get_profile(apex_function_address action_address) {
     profile * tmp = profiler_listener::get_profile(action_address);
     if (tmp != NULL)
-	    return tmp->get_profile();
+        return tmp->get_profile();
     return NULL;
 }
 
 apex_profile* get_profile(string &timer_name) {
     profile * tmp = profiler_listener::get_profile(timer_name);
     if (tmp != NULL)
-	    return tmp->get_profile();
+        return tmp->get_profile();
     return NULL;
 }
 
@@ -569,10 +568,10 @@ extern "C" {
 
     apex_profiler_handle apex_start_name(const char * timer_name)
     {
-	if (timer_name)
-          return (apex_profiler_handle)start(string(timer_name));
-	else
-          return (apex_profiler_handle)start(string(""));
+        if (timer_name)
+            return (apex_profiler_handle)start(string(timer_name));
+        else
+            return (apex_profiler_handle)start(string(""));
     }
 
     apex_profiler_handle apex_start_address(void * function_address)
@@ -602,11 +601,11 @@ extern "C" {
 
     void apex_register_thread(const char * name)
     {
-	if (name) {
-        register_thread(string(name));
-	} else {
-        register_thread(string("APEX WORKER THREAD"));
-	}
+        if (name) {
+            register_thread(string(name));
+        } else {
+            register_thread(string("APEX WORKER THREAD"));
+        }
     }
     void apex_track_power(void)
     {
@@ -634,17 +633,17 @@ extern "C" {
     }
 
 apex_policy_handle* apex_register_policy(const apex_event_type when, int (f)(apex_context const)) {
-	return register_policy(when, f);
+    return register_policy(when, f);
 }
 apex_policy_handle* apex_register_periodic_policy(unsigned long period, int (f)(apex_context const)) {
-	return register_periodic_policy(period, f);
+    return register_periodic_policy(period, f);
 }
 apex_profile* apex_get_profile_from_address(apex_function_address function_address) {
-	return get_profile(function_address);
+    return get_profile(function_address);
 }
 apex_profile* apex_get_profile_from_name(const char * timer_name) {
     string tmp(timer_name);
-	return get_profile(tmp);
+    return get_profile(tmp);
 }
 
 
