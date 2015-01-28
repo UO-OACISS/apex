@@ -1,7 +1,9 @@
 #!/bin/bash -e
 
 #configure parameters
-export BOOST_ROOT=/usr
+export BOOST_ROOT=$BOOST
+export BFD_ROOT=$HOME/install/binutils-2.23.2
+export GPERFTOOLS_ROOT=$HOME/install/google-perftools/2.4
 #export BOOST_ROOT=$HOME/install/boost-1.56.0
 #export RCR_ROOT=$HOME/src/RCRdaemon
 #export PAPI_ROOT=/usr/local/papi/5.3.2
@@ -35,14 +37,18 @@ cd $dir
 
 # Enable shared libraries, if desired.
 #-DTAU_ROOT=$TAU_ROOT \
+#-DUSE_BINUTILS=FALSE \
 
 cmake \
 -G "CodeBlocks - Unix Makefiles" \
 -DBOOST_ROOT=$BOOST_ROOT \
--DCMAKE_BUILD_TYPE=Release \
+-DBFD_ROOT=$BFD_ROOT \
+-DGPERFTOOLS_ROOT=$GPERFTOOLS_ROOT \
+-DUSE_BINUTILS=TRUE \
+-DCMAKE_BUILD_TYPE=Debug \
 -DAPEX_THROTTLE=FALSE \
 -DBUILD_SHARED_LIBS=TRUE \
--DUSE_BINUTILS=TRUE \
+-DUSE_PAPI=FALSE \
 -DCMAKE_INSTALL_PREFIX=../install \
 ..
 

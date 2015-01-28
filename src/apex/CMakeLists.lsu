@@ -108,8 +108,8 @@ add_hpx_library(apex
   FOLDER "Core/Dependencies")
 
 # add the binary tree to the search path for include files
-# so that we will find ApexConfig.h
-include_directories("${PROJECT_BINARY_DIR}/apex/apex")
+# so that we will find apex_config.h
+include_directories("${PROJECT_BINARY_DIR}/apex/src/apex")
 
 INSTALL(FILES ${apex_headers} DESTINATION include)
 

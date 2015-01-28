@@ -50,12 +50,12 @@ typedef enum _profile_type {
  */
 typedef struct _profile
 {
-    apex_profile_type type;
     double calls;
     double accumulated;
     double sum_squares;
     double minimum;
     double maximum;
+    apex_profile_type type;
 } apex_profile;
 
 /* The address of a C++ object in APEX.

@@ -28,6 +28,7 @@ endif()
 
 if(NOT MSVC)
   add_definitions(-std=c++11)
+  add_definitions(-fPIC)
 else()
   add_definitions(-D_WINDOWS)
   add_definitions(-D_WIN32)
@@ -64,8 +65,8 @@ add_hpx_library(ittnotify
 
 # add the binary tree to the search path for include files
 # so that we will find ittnotify.h
-include_directories("${PROJECT_BINARY_DIR}/apex/apex")
-include_directories("${PROJECT_BINARY_DIR}/apex/ITTNotify")
+include_directories("${PROJECT_BINARY_DIR}/apex/src/apex")
+include_directories("${PROJECT_BINARY_DIR}/apex/src/ITTNotify")
 
 INSTALL(FILES legacy/ittnotify.h DESTINATION include/legacy)
 
