@@ -32,6 +32,7 @@ add_definitions(-DHPX_COROUTINE_EXPORTS)
 
 if(NOT MSVC)
   add_definitions(-std=c++11)
+  add_definitions(-fPIC)
 else()
   add_definitions(-D_WINDOWS)
   add_definitions(-D_WIN32)
@@ -101,7 +102,7 @@ else()
 endif()
 
 add_hpx_library(apex
-  STATIC NOLIB
+  STATIC NOLIBS
   SOURCES ${apex_sources}
   HEADERS ${apex_headers}
   FOLDER "Core/Dependencies")

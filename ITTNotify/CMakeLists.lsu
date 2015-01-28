@@ -57,7 +57,7 @@ endif()
 # gcc on apple needs the apex library to link the dylib
 add_library (ittnotify STATIC ittnotify.cpp)
 add_hpx_library(ittnotify
-  STATIC NOLIB
+  STATIC NOLIBS
   SOURCES ittnotify.cpp
   HEADERS legacy/ittnotify.h
   FOLDER "Core/Dependencies")

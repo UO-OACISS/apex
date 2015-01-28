@@ -8,8 +8,8 @@
 #ifndef APEX_TYPES_HPP
 #define APEX_TYPES_HPP
 
-#include "stdint.h"
-#include "stdbool.h"
+#include <stdint.h>
+#include <stdbool.h>
 
 /*
  * Typedef for enumerating the different event types
@@ -77,7 +77,7 @@ typedef void * apex_function_address; // generic function pointer
     macro (APEX_SCREEN_OUTPUT, use_screen_output, bool, true) \
     macro (APEX_PROFILE_OUTPUT, use_profile_output, bool, false) \
 
-#if defined(_GLIBCXX_HAVE_TLS)
+#if defined(__linux)
 #  define APEX_NATIVE_TLS __thread
 #elif defined(_WIN32) || defined(_WIN64)
 #  define APEX_NATIVE_TLS __declspec(thread)
