@@ -255,6 +255,30 @@ void ProcData::sample_values(void) {
   sample_value("CPU User Ratio", user_ratio);
   sample_value("CPU System Ratio", system_ratio);
   sample_value("CPU Idle Ratio", idle_ratio);
+  /* This code below is for detailed measurement from all CPUS. */
+  /*
+  ++iter;
+  while (iter != cpus.end()) {
+    CPUStat* cpu_stat=*iter;
+    sample_value(string(cpu_stat->name) + " User", cpu_stat->user);
+    sample_value(string(cpu_stat->name) + " Nice", cpu_stat->nice);
+    sample_value(string(cpu_stat->name) + " System", cpu_stat->system);
+    sample_value(string(cpu_stat->name) + " Idle", cpu_stat->idle);
+    sample_value(string(cpu_stat->name) + " I/O Wait", cpu_stat->iowait);
+    sample_value(string(cpu_stat->name) + " IRQ", cpu_stat->irq);
+    sample_value(string(cpu_stat->name) + " soft IRQ", cpu_stat->softirq);
+    sample_value(string(cpu_stat->name) + " Steal", cpu_stat->steal);
+    sample_value(string(cpu_stat->name) + " Guest", cpu_stat->guest);
+    total = cpu_stat->user + cpu_stat->nice + cpu_stat->system + cpu_stat->idle;
+    user_ratio = (double)cpu_stat->user / (double)total;
+    system_ratio = (double)cpu_stat->system / (double)total;
+    idle_ratio = (double)cpu_stat->idle / (double)total;
+    sample_value(string(cpu_stat->name) + " User Ratio", user_ratio);
+    sample_value(string(cpu_stat->name) + " System Ratio", system_ratio);
+    sample_value(string(cpu_stat->name) + " Idle Ratio", idle_ratio);
+    ++iter;
+  }
+  */
 }
 
 /* This is the main function for the reader thread. */

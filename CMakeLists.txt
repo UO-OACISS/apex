@@ -152,6 +152,11 @@ if (RCR_FOUND)
 endif()
 endif()
 
+if(EXISTS "/proc/stat")
+	set (APEX_HAVE_PROC TRUE)
+	add_definitions(-DAPEX_HAVE_PROC)
+endif()
+
 ################################################################################
 # TCMalloc configuration
 ################################################################################

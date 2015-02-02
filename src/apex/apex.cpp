@@ -32,6 +32,10 @@
 #include "profiler_listener.hpp"
 #endif
 
+#if APEX_HAVE_PROC
+#include "proc_read.h"
+#endif
+
 APEX_NATIVE_TLS bool _registered = false;
 static bool _initialized = false;
 
@@ -66,6 +70,10 @@ apex* apex::m_pInstance = NULL;
 
 static bool _notify_listeners = true;
 static bool _finalized = false;
+
+#if APEX_HAVE_PROC
+    boost::thread * proc_reader_thread;
+#endif
 
 /** The destructor will request power data from RCRToolkit
  **/
@@ -141,6 +149,9 @@ void apex::_initialize()
     {
         listeners.push_back(new concurrency_handler(apex_options::concurrency_period(), apex_options::use_concurrency()));
     }
+#if APEX_HAVE_PROC
+    proc_reader_thread = new boost::thread(ProcData::read_proc);
+#endif
 }
 
 /** This function is called to create an instance of the class.
@@ -441,6 +452,9 @@ void set_interrupt_interval(int seconds)
 void finalize()
 {
     APEX_TRACER
+#if APEX_HAVE_PROC
+    ProcData::stop_reading();
+#endif
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     if (!_finalized)
