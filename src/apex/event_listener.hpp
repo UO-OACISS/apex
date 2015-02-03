@@ -93,6 +93,7 @@ public:
   virtual void on_resume(profiler *p) = 0;
   virtual void on_sample_value(sample_value_event_data &data) = 0;
   virtual void on_periodic(periodic_event_data &data) = 0;
+  virtual void reset(apex_function_address function_address, string * timer_name) {};
 };
 
 }

@@ -141,6 +141,9 @@ namespace apex {
 
   /* After the consumer thread pulls a profiler off of the queue,
    * process it by updating its profile object in the map of profiles. */
+  // TODO The name-based timer and address-based timer paths through
+  // the code involve a lot of duplication -- this should be refactored
+  // to remove the duplication so it's easier to maintain.
   inline void profiler_listener::process_profile(profiler * p, unsigned int tid)
   {
     profile * theprofile;
@@ -150,7 +153,11 @@ namespace apex {
       if (it != name_map.end()) {
         // A profile for this name already exists.
         theprofile = (*it).second;
-        theprofile->increment(p->elapsed());
+        if(p->is_reset) {
+            theprofile->reset();
+        } else {
+            theprofile->increment(p->elapsed());
+        }
 #if defined(APEX_THROTTLE)
         // Is this a lightweight task? If so, we shouldn't measure it any more,
         // in order to reduce overhead.
@@ -165,7 +172,7 @@ namespace apex {
 #endif
       } else {
         // Create a new profile for this name.
-        theprofile = new profile(p->elapsed(), p->is_counter ? COUNTER : TIMER);
+        theprofile = new profile(p->is_reset ? 0.0 : p->elapsed(), p->is_counter ? COUNTER : TIMER);
         name_map[*(p->timer_name)] = theprofile;
 #ifdef APEX_HAVE_HPX3
         if(get_hpx_runtime_ptr() != nullptr) {
@@ -189,18 +196,26 @@ namespace apex {
       if (it != the_map->end()) {
         // A profile for this name already exists.
         theprofile = (*it).second;
-        theprofile->increment(p->elapsed());
+        if(p->is_reset) {
+            theprofile->reset();
+        } else {
+            theprofile->increment(p->elapsed());
+        }
       } else {
         // Create a new profile for this name.
-        theprofile = new profile(p->elapsed(), p->is_counter ? COUNTER : TIMER);
+        theprofile = new profile(p->is_reset ? 0.0 : p->elapsed(), p->is_counter ? COUNTER : TIMER);
         (*the_map)[*(p->timer_name)] = theprofile;
       }
-    } else {
+    } else { // address rather than name
       map<void*, profile*>::const_iterator it2 = address_map.find(p->action_address);
       if (it2 != address_map.end()) {
         // A profile for this name already exists.
         theprofile = (*it2).second;
-        theprofile->increment(p->elapsed());
+        if(p->is_reset) {
+            theprofile->reset();
+        } else {
+            theprofile->increment(p->elapsed());
+        }
 #if defined(APEX_THROTTLE)
         // Is this a lightweight task? If so, we shouldn't measure it any more,
         // in order to reduce overhead.
@@ -219,7 +234,7 @@ namespace apex {
 #endif
       } else {
         // Create a new profile for this address.
-        theprofile = new profile(p->elapsed());
+        theprofile = new profile(p->is_reset ? 0.0 : p->elapsed());
         address_map[p->action_address] = theprofile;
       }
       // now do thread-specific measurement
@@ -228,10 +243,14 @@ namespace apex {
       if (it2 != the_map->end()) {
         // A profile for this name already exists.
         theprofile = (*it2).second;
-        theprofile->increment(p->elapsed());
+        if(p->is_reset) {
+            theprofile->reset();
+        } else {
+            theprofile->increment(p->elapsed());
+        }
       } else {
         // Create a new profile for this address.
-        theprofile = new profile(p->elapsed());
+        theprofile = new profile(p->is_reset ? 0.0 : p->elapsed());
         (*the_map)[p->action_address] = theprofile;
       }
     }
@@ -793,6 +812,19 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   /* For periodic stuff. Do something? */
   void profiler_listener::on_periodic(periodic_event_data &data) {
     if (!_terminate) {
+    }
+  }
+  
+  void profiler_listener::reset(apex_function_address function_address, string *timer_name) {
+    if (!_terminate) {
+      profiler * p;
+      if(timer_name != nullptr) {
+        p = new profiler(new string(*timer_name), false, true);
+      } else {
+        p = new profiler(function_address, false, true);
+      }
+      profiler_queues[my_tid]->push(p);
+      queue_signal.post();
     }
   }
 
