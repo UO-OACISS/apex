@@ -31,6 +31,8 @@ public:
   long processes;
   long procs_running;
   long procs_blocked;
+  long power;
+  long energy;
   //softirq 10953997190 0 1380880059 1495447920 1585783785 15525789 0 12 661586214 0 1519806115
   ~ProcData();
   ProcData* diff(const ProcData& rhs);

@@ -87,6 +87,22 @@ ProcData* parse_proc_stat(void) {
     }
   }
   fclose (pFile);
+#if defined(APEX_HAVE_CRAY_POWER)
+  pFile = fopen ("/sys/cray/pm_counters/power","r");
+  ProcData* procData = new ProcData();
+  if (pFile == NULL) perror ("Error opening file");
+  else {
+    sscanf(line, "%d %s\n", &procData->power, dummy);
+  }
+  fclose (pFile);
+  pFile = fopen ("/sys/cray/pm_counters/energy","r");
+  ProcData* procData = new ProcData();
+  if (pFile == NULL) perror ("Error opening file");
+  else {
+    sscanf(line, "%d %s\n", &procData->energy, dummy);
+  }
+  fclose (pFile);
+#endif
   return procData;
 }
 
@@ -255,6 +271,10 @@ void ProcData::sample_values(void) {
   sample_value("CPU User Ratio", user_ratio);
   sample_value("CPU System Ratio", system_ratio);
   sample_value("CPU Idle Ratio", idle_ratio);
+#if defined(APEX_HAVE_CRAY_POWER)
+  sample_value("Power", power);
+  sample_value("Energy", energy);
+#endif
   /* This code below is for detailed measurement from all CPUS. */
   /*
   ++iter;
