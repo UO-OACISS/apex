@@ -2,7 +2,8 @@
 #include "mpi.h"
 #include "stdlib.h" // malloc, etc.
 #include <string.h> // memcpy, etc.
-
+#include "math.h"
+#include "stdio.h"
 
 // my local value, global to this process
 apex_profile value;

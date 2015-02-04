@@ -11,6 +11,8 @@
 #define COMMAND_LEN 20
 #define DATA_SIZE 512
 
+#define APEX_GET_ALL_CPUS 0
+
 using namespace std;
 
 namespace apex {
@@ -84,6 +86,10 @@ ProcData* parse_proc_stat(void) {
         // softirq 10953997190 0 1380880059 1495447920 1585783785 15525789 0 12 661586214 0 1519806115
         //sscanf(line, "%s %d\n", dummy, &procData->btime);
       }
+#if !(APEX_GET_ALL_CPUS)
+      // don't waste time parsing anything but the mean
+      break;
+#endif
     }
   }
   fclose (pFile);
@@ -239,6 +245,7 @@ void ProcData::sample_values(void) {
   double system_ratio;
   CPUs::iterator iter = cpus.begin();
   CPUStat* cpu_stat=*iter;
+  // convert all measurements from "Jiffies" to seconds
   sample_value("CPU User", cpu_stat->user);
   sample_value("CPU Nice", cpu_stat->nice);
   sample_value("CPU System", cpu_stat->system);
@@ -256,7 +263,7 @@ void ProcData::sample_values(void) {
   sample_value("CPU System Ratio", system_ratio);
   sample_value("CPU Idle Ratio", idle_ratio);
   /* This code below is for detailed measurement from all CPUS. */
-  /*
+#if APEX_GET_ALL_CPUS
   ++iter;
   while (iter != cpus.end()) {
     CPUStat* cpu_stat=*iter;
@@ -278,7 +285,7 @@ void ProcData::sample_values(void) {
     sample_value(string(cpu_stat->name) + " Idle Ratio", idle_ratio);
     ++iter;
   }
-  */
+#endif
 }
 
 /* This is the main function for the reader thread. */
