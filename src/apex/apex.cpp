@@ -32,6 +32,10 @@
 #include "profiler_listener.hpp"
 #endif
 
+#if APEX_HAVE_PROC
+#include "proc_read.h"
+#endif
+
 APEX_NATIVE_TLS bool _registered = false;
 static bool _initialized = false;
 
@@ -66,6 +70,10 @@ apex* apex::m_pInstance = NULL;
 
 static bool _notify_listeners = true;
 static bool _finalized = false;
+
+#if APEX_HAVE_PROC
+    boost::thread * proc_reader_thread;
+#endif
 
 /** The destructor will request power data from RCRToolkit
  **/
@@ -141,6 +149,9 @@ void apex::_initialize()
     {
         listeners.push_back(new concurrency_handler(apex_options::concurrency_period(), apex_options::use_concurrency()));
     }
+#if APEX_HAVE_PROC
+    proc_reader_thread = new boost::thread(ProcData::read_proc);
+#endif
 }
 
 /** This function is called to create an instance of the class.
@@ -275,7 +286,7 @@ profiler* start(string timer_name)
 }
 
 profiler* start(void * function_address) {
-    APEX_TIMER_TRACER("start ", timer_name)
+    APEX_TIMER_TRACER("start ", function_address)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return NULL; // protect against calls after finalization
     if (_notify_listeners) {
@@ -284,6 +295,29 @@ profiler* start(void * function_address) {
         }
     }
     return thread_instance::instance().current_timer;
+}
+
+void reset(std::string timer_name) {
+    APEX_TIMER_TRACER("reset", timer_name)
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance) return; // protect against calls after finalization
+    if (_notify_listeners) {
+        string * tmp = new string(timer_name);
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            instance->listeners[i]->reset(0L, tmp);
+        }
+    }
+}
+
+void reset(void * function_address) {
+    APEX_TIMER_TRACER("reset", function_address)
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance) return; // protect against calls after finalization
+    if (_notify_listeners) {
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            instance->listeners[i]->reset(function_address, NULL);
+        }
+    }
 }
 
 void resume(void * the_profiler) {
@@ -441,6 +475,9 @@ void set_interrupt_interval(int seconds)
 void finalize()
 {
     APEX_TRACER
+#if APEX_HAVE_PROC
+    ProcData::stop_reading();
+#endif
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     if (!_finalized)
@@ -577,6 +614,19 @@ extern "C" {
     apex_profiler_handle apex_start_address(void * function_address)
     {
         return (apex_profiler_handle)start(function_address);
+    }
+
+
+    void apex_reset_name(const char * timer_name) {
+        if (timer_name) {
+            reset(string(timer_name));       
+        } else {
+            reset(string(""));
+        }
+    }
+    
+    void apex_reset_address(apex_function_address function_address) {
+        reset(function_address);
     }
 
     void apex_resume_profiler(void * the_profiler)

@@ -18,7 +18,10 @@ find_path(Tcmalloc_INCLUDE_DIR google/heap-checker.h
   /usr/include
 )
 
-string(REPLACE ":" " " LD_LIBRARY_PATH_STR $ENV{LD_LIBRARY_PATH})
+set(TMP_PATH $ENV{LD_LIBRARY_PATH})
+if ($TM_PATH)
+  string(REPLACE ":" " " LD_LIBRARY_PATH_STR $TMP_PATH)
+endif()
 set(Tcmalloc_NAME tcmalloc)
 find_library(Tcmalloc_LIBRARY
   NAME ${Tcmalloc_NAME}
