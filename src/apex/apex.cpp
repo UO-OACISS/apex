@@ -286,7 +286,7 @@ profiler* start(string timer_name)
 }
 
 profiler* start(void * function_address) {
-    APEX_TIMER_TRACER("start ", timer_name)
+    APEX_TIMER_TRACER("start ", function_address)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return NULL; // protect against calls after finalization
     if (_notify_listeners) {
@@ -295,6 +295,29 @@ profiler* start(void * function_address) {
         }
     }
     return thread_instance::instance().current_timer;
+}
+
+void reset(std::string timer_name) {
+    APEX_TIMER_TRACER("reset", timer_name)
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance) return; // protect against calls after finalization
+    if (_notify_listeners) {
+        string * tmp = new string(timer_name);
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            instance->listeners[i]->reset(0L, tmp);
+        }
+    }
+}
+
+void reset(void * function_address) {
+    APEX_TIMER_TRACER("reset", function_address)
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance) return; // protect against calls after finalization
+    if (_notify_listeners) {
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            instance->listeners[i]->reset(function_address, NULL);
+        }
+    }
 }
 
 void resume(void * the_profiler) {
@@ -591,6 +614,19 @@ extern "C" {
     apex_profiler_handle apex_start_address(void * function_address)
     {
         return (apex_profiler_handle)start(function_address);
+    }
+
+
+    void apex_reset_name(const char * timer_name) {
+        if (timer_name) {
+            reset(string(timer_name));       
+        } else {
+            reset(string(""));
+        }
+    }
+    
+    void apex_reset_address(apex_function_address function_address) {
+        reset(function_address);
     }
 
     void apex_resume_profiler(void * the_profiler)

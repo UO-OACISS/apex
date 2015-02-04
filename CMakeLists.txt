@@ -246,6 +246,7 @@ add_subdirectory (src/examples/TestThreads)
 add_subdirectory (src/examples/Overhead)
 add_subdirectory (src/examples/PolicyEngineExample)
 add_subdirectory (src/examples/PolicyEngineCppExample)
+add_subdirectory (src/examples/TestReset)
 
 # turn on "make test" support
 enable_testing()
@@ -267,6 +268,7 @@ add_test (TestThreadsRuns src/examples/TestThreads/testThreads)
 add_test (TestOverhead_noPolicy src/examples/Overhead/testOverhead)  
 add_test (TestPolicyC_Policy src/examples/PolicyEngineExample/testPolicyEngine)  
 add_test (TestPolicyCpp_Policy src/examples/PolicyEngineCppExample/testCppPolicyEngine)  
+add_test (TestReset src/examples/TestReset/testReset)
 
 if(MPI_CXX_FOUND)
 # Run the test program which tests the mpi interface

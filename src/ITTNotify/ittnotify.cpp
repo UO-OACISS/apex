@@ -12,7 +12,7 @@
 #include <string.h>
 #include "apex.hpp"
 
-#if 0
+#ifdef APEX_TRACE
 #include <iostream>
 #define APEX_TRACER {cout << __FUNCTION__ << " ["<< __FILE__ << ":" << __LINE__ << "]" << endl;}
 #else

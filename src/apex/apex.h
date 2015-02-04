@@ -40,6 +40,12 @@ APEX_EXPORT void apex_stop_profiler(apex_profiler_handle profiler);
 APEX_EXPORT void apex_resume(apex_profiler_handle profiler);
 
 /*
+ * Functions for resetting timer values
+ */
+APEX_EXPORT void apex_reset_name(const char * timer_name);
+APEX_EXPORT void apex_reset_address(apex_function_address function_address);
+
+/*
  * Function for sampling a counter value
  */
 APEX_EXPORT void apex_sample_value(const char * name, double value);
