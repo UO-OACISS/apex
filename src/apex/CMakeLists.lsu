@@ -60,12 +60,15 @@ endif()
 
 set(apex_headers
     apex.h
+    apex_types.h
+    apex_export.h
     apex.hpp
     apex_options.hpp
     concurrency_handler.hpp
     event_listener.hpp
     handler.hpp
     policy_handler.hpp
+    profiler.hpp
     profiler_listener.hpp
     semaphore.hpp
     thread_instance.hpp)
