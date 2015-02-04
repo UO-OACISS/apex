@@ -100,6 +100,8 @@ APEX_EXPORT void track_power_here(void);
 APEX_EXPORT void enable_tracking_power(void);
 APEX_EXPORT void disable_tracking_power(void);
 APEX_EXPORT void set_interrupt_interval(int seconds);
+APEX_EXPORT void reset(std::string timer_name);
+APEX_EXPORT void reset(void * function_address);
 // Method for registering event-based policy
 APEX_EXPORT apex_policy_handle* register_policy(const apex_event_type when, std::function<bool(apex_context const&)> f);
 // Method for registering periodic policy

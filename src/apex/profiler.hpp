@@ -12,6 +12,10 @@ using namespace std::chrono;
 
 namespace apex {
 
+enum struct reset_type {
+    NONE, CURRENT, ALL    
+};
+
 class profiler {
 public:
         //boost::timer::cpu_timer t; // starts the timer when profiler is constructed!
@@ -27,24 +31,28 @@ public:
     bool have_name;
     bool is_counter;
     bool is_resume;
-    profiler(void * address, bool resume = false) : 
+    reset_type is_reset;
+    profiler(void * address, bool resume = false, reset_type reset = reset_type::NONE) : 
 	    start(high_resolution_clock::now()), 
 	    action_address(address), 
 	    have_name(false), 
 	    is_counter(false),
-            is_resume(resume) {};
-    profiler(string * name, bool resume = false) : 
+        is_resume(resume),
+        is_reset(reset) {};
+    profiler(string * name, bool resume = false, reset_type reset = reset_type::NONE) : 
 	    start(high_resolution_clock::now()), 
 	    timer_name(name), 
 	    have_name(true), 
 	    is_counter(false),
-            is_resume(resume) {};
+        is_resume(resume),
+        is_reset(reset) {};
     profiler(string * name, double value_) : 
 	    value(value_), 
 	    timer_name(name), 
 	    have_name(true), 
 	    is_counter(true),
-            is_resume(false) { }; 
+        is_resume(false),
+        is_reset(reset_type::NONE) { }; 
     ~profiler(void) { if (have_name) delete timer_name; };
     void stop(void) {
         end = high_resolution_clock::now();
@@ -87,6 +95,13 @@ public:
 		maximum = maximum < elapsed ? elapsed : maximum;
 		*/
 	}
+    void reset() {
+        _profile.calls = 0.0;
+        _profile.accumulated = 0.0;
+        _profile.sum_squares = 0.0;
+        _profile.minimum = 0.0;
+        _profile.maximum = 0.0;
+    };
 	double get_calls() { return _profile.calls; }
 	double get_mean() { return (_profile.accumulated / _profile.calls); }
 	double get_accumulated() { return (_profile.accumulated); }
