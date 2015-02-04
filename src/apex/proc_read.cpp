@@ -89,14 +89,12 @@ ProcData* parse_proc_stat(void) {
   fclose (pFile);
 #if defined(APEX_HAVE_CRAY_POWER)
   pFile = fopen ("/sys/cray/pm_counters/power","r");
-  ProcData* procData = new ProcData();
   if (pFile == NULL) perror ("Error opening file");
   else {
     sscanf(line, "%d %s\n", &procData->power, dummy);
   }
   fclose (pFile);
   pFile = fopen ("/sys/cray/pm_counters/energy","r");
-  ProcData* procData = new ProcData();
   if (pFile == NULL) perror ("Error opening file");
   else {
     sscanf(line, "%d %s\n", &procData->energy, dummy);
