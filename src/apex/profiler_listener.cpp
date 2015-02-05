@@ -411,17 +411,27 @@ namespace apex {
   }
 
   /* Write TAU profiles from the collected data. */
-  void profiler_listener::write_profile(unsigned int tid) {
+  void profiler_listener::write_profile(int tid) {
     ofstream myfile;
     stringstream datname;
+    map<string, profile*>* the_name_map = NULL;
+    map<void*, profile*>* the_address_map = NULL;
 
-    if (thread_name_maps[tid] == NULL || thread_address_maps[tid] == NULL) return;
-    map<string, profile*>* the_name_map = thread_name_maps[tid];
-    map<void*, profile*>* the_address_map = thread_address_maps[tid];
+    if (tid == -1) {
+      the_name_map = &name_map;
+      the_address_map = &address_map;
+      // name format: profile.nodeid.contextid.threadid
+      // We only write one profile per process
+      datname << "profile." << node_id << ".0.0";
+    } else {
+      if (thread_name_maps[tid] == NULL || thread_address_maps[tid] == NULL) return;
+      the_name_map = thread_name_maps[tid];
+      the_address_map = thread_address_maps[tid];
+      // name format: profile.nodeid.contextid.threadid
+      datname << "profile." << node_id << ".0." << tid;
+    }
 
     // name format: profile.nodeid.contextid.threadid
-    // We only write one profile per process (for now).
-    datname << "profile." << node_id << ".0." << tid;
     myfile.open(datname.str().c_str());
     int counter_events = 0;
 
@@ -552,12 +562,17 @@ namespace apex {
       finalize_profiles();
     }
 
-    // output to TAU profiles?
-    if (apex_options::use_profile_output())
+    // output to 1 TAU profile per process?
+    if (apex_options::use_profile_output() == 1)
+    {
+      write_profile(-1);
+    }
+    // output to TAU profiles, one per thread per process?
+    else if (apex_options::use_profile_output() > 1)
     {
       // the number of thread_name_maps tells us how many threads there are to process
       for (i = 0 ; i < thread_name_maps.size(); i++) {
-        write_profile(i);
+        write_profile((int)i);
       }
     }
 

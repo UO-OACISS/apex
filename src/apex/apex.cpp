@@ -39,12 +39,14 @@
 APEX_NATIVE_TLS bool _registered = false;
 static bool _initialized = false;
 
-#if 0
-#define APEX_TRACER {int __nid = apex::instance()->get_node_id(); \
+#define APEX_TRACER_DEBUG {int __nid = apex::instance()->get_node_id(); \
  int __tid = thread_instance::get_id(); \
  std::stringstream ss; \
  ss << __nid << ":" << __tid << " " << __FUNCTION__ << " ["<< __FILE__ << ":" << __LINE__ << "]" << endl; \
  cout << ss.str();}
+
+#if 0
+#define APEX_TRACER APEX_TRACER_DEBUG
 #else
 #define APEX_TRACER
 #endif
@@ -233,7 +235,6 @@ void init(const char * thread_name)
             instance->listeners[i]->on_startup(event_data);
         }
     }
-    set_node_id(0);
 #if HAVE_TAU
     // start top-level timers for threads
     if (thread_name) {
@@ -258,7 +259,6 @@ void init(int argc, char** argv, const char * thread_name)
             instance->listeners[i]->on_startup(event_data);
         }
     }
-    set_node_id(0);
 #ifdef APEX_HAVE_TAU
     // start top-level timers for threads
     if (thread_name) {

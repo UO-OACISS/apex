@@ -39,7 +39,7 @@ private:
     {
         _initialize();
     };
-    apex(int argc, char**argv) : m_argc(argc), m_argv(argv)
+    apex(int argc, char**argv) : m_argc(argc), m_argv(argv), m_node_id(0)
     {
         _initialize();
     };

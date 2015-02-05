@@ -27,7 +27,7 @@ private:
   static boost::atomic<int> active_tasks;
   static profiler * main_timer;
   static void finalize_profiles(void);
-  static void write_profile(unsigned int tid);
+  static void write_profile(int tid);
   static void delete_profiles(void);
   static void process_profiles(void);
   static void process_profile(profiler * p, unsigned int tid);
