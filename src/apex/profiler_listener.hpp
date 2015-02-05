@@ -45,6 +45,7 @@ public:
   void on_resume(profiler *p);
   void on_sample_value(sample_value_event_data &data);
   void on_periodic(periodic_event_data &data);
+  void reset(apex_function_address function_address, string *timer_name);
   static profile * get_profile(apex_function_address address);
   static profile * get_profile(string &timer_name);
   static std::vector<std::string> get_available_profiles();
