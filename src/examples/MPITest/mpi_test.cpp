@@ -24,7 +24,13 @@ main(int argc, char **argv)
 
   /* Initialize MPI */
 
-  MPI_Init(&argc, &argv);
+  int required, provided;
+  required = MPI_THREAD_FUNNELED;
+  MPI_Init_thread(&argc, &argv, required, &provided);
+  if (provided < required) {
+    printf ("Your MPI installation doesn't allow multiple threads. Exiting.\n");
+        exit(0);
+  }
   apex::init(argc, argv, "MPI TEST");
 
   /* Find out my identity in the default communicator */
@@ -185,7 +191,8 @@ do_work(unit_of_work_t work)
   void * profiler = apex::start((void*)(do_work));
   int * mywork = (int*)(work);
   //sleep(*mywork);
-  dummy = dummy + *mywork;
+  //dummy = dummy + *mywork;
+  dummy = dummy + 1.0;
   /* Fill in with whatever is necessary to process the work and
      generate a result */
   apex::stop(profiler);
