@@ -75,8 +75,9 @@ static bool _finalized = false;
     boost::thread * proc_reader_thread;
 #endif
 
-/** The destructor will request power data from RCRToolkit
- **/
+/**
+ * The destructor will request power data from RCRToolkit
+ */
 apex::~apex()
 {
     APEX_TRACER
@@ -87,6 +88,9 @@ apex::~apex()
     m_pInstance = NULL;
 }
 
+/**
+ * Set the Node ID
+ */
 void apex::set_node_id(int id)
 {
     APEX_TRACER
