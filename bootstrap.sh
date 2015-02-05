@@ -59,6 +59,7 @@ fi
 make -j `expr $procs + 1`
 
 make test
+make doc
 make install
 
 printf "\nSUCCESS!\n"
