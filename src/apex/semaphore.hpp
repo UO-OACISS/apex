@@ -25,7 +25,7 @@ public:
 #if defined(__APPLE__) // handle the new way on systems like Apple
     semaphore() : work_waiting(0) { the_semaphore_p = sem_open("work waiting", O_CREAT, S_IRWXU, 1); }
 #else
-    semaphore() : work_waiting(0) { the_semaphore_p = &the_semaphore; sem_init(&the_semaphore_p, 1, 1); }
+    semaphore() : work_waiting(0) { the_semaphore_p = &the_semaphore; sem_init(the_semaphore_p, 1, 1); }
 #endif
     /*
      * This function is somewhat optimized. Because we were spending a lot of time
