@@ -30,11 +30,27 @@
 
 //using namespace std;
 
+/**
+ \brief The main APEX namespace.
+ 
+ The C++ interface for APEX uses the apex namespace. In comparison,
+ The C interface has functions that start with "apex_".
+
+ */
 namespace apex
 {
 
 ///////////////////////////////////////////////////////////////////////
 // Main class for the APEX project
+/**
+ \brief The main APEX class.
+ 
+ The APEX class is only instantiated once per process (i.e. it is a
+ singleton object). The instance itself is only used internally. The
+ C++ interface for APEX uses the apex namespace. The C interface
+ has functions that start with "apex_".
+
+ */
 class apex
 {
 private:

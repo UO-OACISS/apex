@@ -7,6 +7,8 @@
 
 /** @file */ 
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS // skip all the header nonsense
+
 #ifdef APEX_HAVE_HPX3
 #include <hpx/config.hpp>
 #endif
@@ -43,14 +45,12 @@
 APEX_NATIVE_TLS bool _registered = false;
 static bool _initialized = false;
 
-#define APEX_TRACER_DEBUG {int __nid = apex::instance()->get_node_id(); \
+#if 0
+#define APEX_TRACER {int __nid = apex::instance()->get_node_id(); \
  int __tid = thread_instance::get_id(); \
  std::stringstream ss; \
  ss << __nid << ":" << __tid << " " << __FUNCTION__ << " ["<< __FILE__ << ":" << __LINE__ << "]" << endl; \
  cout << ss.str();}
-
-#if 0
-#define APEX_TRACER APEX_TRACER_DEBUG
 #else
 #define APEX_TRACER
 #endif
@@ -66,11 +66,15 @@ static bool _initialized = false;
 #define APEX_TIMER_TRACER(A, B)
 #endif
 
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
+
 using namespace std;
 
 /** The main APEX namespace. */ 
 namespace apex
 {
+
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 // Global static pointer used to ensure a single instance of the class.
 apex* apex::m_pInstance = NULL;
@@ -193,10 +197,6 @@ policy_handler * apex::get_policy_handler(void) const
     return this->m_policy_handler;
 }
 
-/*
-template <typename Rep, typename Period>
-policy_handler * apex::get_policy_handler(std::chrono::duration<Rep, Period> const& period)
-*/
 policy_handler * apex::get_policy_handler(uint64_t const& period)
 {
     if(apex_options::use_policy() && period_handlers.count(period) == 0)
@@ -216,7 +216,9 @@ hpx::runtime * apex::get_hpx_runtime(void) {
 }
 #endif
 
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
+/* The functions from here on should all be documented by Doxygen. */
 
 /**
  \brief Intialize APEX.
@@ -1086,3 +1088,19 @@ extern "C" {
 
 } // extern "C"
 
+/** \mainpage APEX: Autonomic Performance Environment for eXascale
+
+\section overview Overview
+
+\section introduction Introduction
+
+\section installation Installation
+\subsection getting Getting the Code
+\subsection bootstrapping Bootstrapping: the "easy" way
+\subsection custom Custom Builds
+
+\section examples Usage Examples
+
+\section acknowledgements Acknowledgements
+
+**/
