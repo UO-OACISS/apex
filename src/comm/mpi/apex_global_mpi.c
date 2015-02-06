@@ -22,6 +22,7 @@ int rank, size;
 // window location
 apex_profile * inValues = NULL;
 MPI_Win profile_window;
+MPI_Group window_group;
 MPI_Datatype profile_type;
 size_t apex_profile_size;
 
@@ -89,11 +90,12 @@ void apex_global_setup(apex_function_address in_action) {
   profiled_action = in_action;
   apex_register_periodic_policy(1000000, apex_periodic_output);
   apex_set_use_policy(true);
-  graph_output = fopen("./profile_data.txt", "w");
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &size);
   apex_profile_size = sizeof(apex_profile);
+  MPI_Comm_group(MPI_COMM_WORLD, &window_group);
   if (rank == 0) {
+    graph_output = fopen("./profile_data.txt", "w");
     //inValues = (apex_profile*)(malloc(apex_profile_size * size));
 	MPI_Alloc_mem(size * apex_profile_size, MPI_INFO_NULL, &inValues);
 	memset(&(inValues[0]), 0, (apex_profile_size * size));
@@ -108,7 +110,11 @@ void apex_global_setup(apex_function_address in_action) {
 void apex_global_teardown(void) {
   printf("\n");
   fflush(stdout);
+  MPI_Barrier(MPI_COMM_WORLD);
   MPI_Win_free(&profile_window); 
-  fclose(graph_output);
+  if (rank == 0) {
+    fclose(graph_output);
+    MPI_Free_mem(inValues);
+  }
 }
 

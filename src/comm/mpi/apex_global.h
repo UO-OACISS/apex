@@ -19,6 +19,9 @@ int apex_periodic_output(apex_context const context) ;
 // The function to set up global reductions
 void apex_global_setup(apex_function_address in_action);
 
+// The function to tear down global reductions
+void apex_global_teardown(void);
+
 #ifdef __cplusplus
 }
 #endif 
