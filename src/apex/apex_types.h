@@ -99,6 +99,10 @@ typedef void * apex_function_address; // generic function pointer
 #  error "Native thread local storage is not supported for this platform"
 #endif
 
+// This macro is to prevent compiler warnings for stub implementations,
+// in particular empty virtual implementations.
+#define APEX_UNUSED(expr) do { (void)(expr); } while (0)
+
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #endif //APEX_TYPES_HPP

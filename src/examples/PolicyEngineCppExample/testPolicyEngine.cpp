@@ -44,8 +44,11 @@ int foo (int i) {
 
 typedef void*(*start_routine_t)(void*);
 
+#define UNUSED(x) (void)(x)
+
 void* someThread(void* tmp)
 {
+  UNUSED(tmp);
   apex::register_thread("threadTest thread");
   //ApexProxy proxy = ApexProxy(__func__, __FILE__, __LINE__);
   //ApexProxy proxy = ApexProxy((void*)someThread);
@@ -75,6 +78,7 @@ int main(int argc, char **argv)
   apex::profiler * profiler = apex::start((void*)main);
   const apex_event_type when = STOP_EVENT;
   apex::register_periodic_policy(1000000, [](apex_context const& context){
+       UNUSED(context);
        void * foo_addr = (void*)(foo);
        apex::profile * p = apex::profiler_listener::get_profile(foo_addr);
        if (p != NULL) {
@@ -83,6 +87,7 @@ int main(int argc, char **argv)
        return true;
   });
   apex::register_policy(when, [](apex_context const& context){
+       UNUSED(context);
        static APEX_NATIVE_TLS unsigned int not_all_the_time = 0;
        if (++not_all_the_time % 500000 != 0) return true; // only do 2 out of a million
        void * foo_addr = (void*)(foo);

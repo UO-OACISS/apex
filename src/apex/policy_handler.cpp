@@ -188,6 +188,8 @@ void policy_handler::on_start(apex_function_address function_address, string *ti
       printf("Warning: registered policy function failed!\n");
     }
   }
+  APEX_UNUSED(function_address);
+  APEX_UNUSED(timer_name);
 }
 
 void policy_handler::on_stop(profiler *p) {
@@ -204,10 +206,12 @@ void policy_handler::on_stop(profiler *p) {
       printf("Warning: registered policy function failed!\n");
     }
   }
+  APEX_UNUSED(p);
 }
 
 void policy_handler::on_resume(profiler * p) {
   if (_terminate) return;
+  APEX_UNUSED(p);
 }
 
 void policy_handler::on_sample_value(sample_value_event_data &event_data) {

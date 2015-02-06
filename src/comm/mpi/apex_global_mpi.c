@@ -51,6 +51,7 @@ int action_apex_get_value(void *args) {
     value.minimum = p->minimum;
     value.maximum = p->maximum;
   }
+  return 0;
 }
 
 int action_apex_reduce(void *unused) {

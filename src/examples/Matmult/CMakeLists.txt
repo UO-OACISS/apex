@@ -14,8 +14,14 @@ add_dependencies (matmult apex)
 target_link_libraries (matmult apex stdc++ ${LIBS} ${Boost_LIBRARIES}) 
 
 ## Compiler flags
+if(APPLE)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPTHREADS")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPTHREADS")
+else()
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread -DPTHREADS")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -DPTHREADS")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
+endif()
 
 INSTALL(TARGETS matmult
   RUNTIME DESTINATION bin

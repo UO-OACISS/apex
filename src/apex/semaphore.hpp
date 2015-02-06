@@ -19,9 +19,14 @@ class semaphore
 {
 private:
     sem_t the_semaphore;
+    sem_t * the_semaphore_p;
     int work_waiting;
 public:
-    semaphore() : work_waiting(0) { sem_init(&the_semaphore, 1, 1); }
+#if defined(__APPLE__) // handle the new way on systems like Apple
+    semaphore() : work_waiting(0) { the_semaphore_p = sem_open("work waiting", O_CREAT, S_IRWXU, 1); }
+#else
+    semaphore() : work_waiting(0) { the_semaphore_p = &the_semaphore; sem_init(&the_semaphore_p, 1, 1); }
+#endif
     /*
      * This function is somewhat optimized. Because we were spending a lot of time
      * waiting for the post (it is a synchronization point across all threads), don't
@@ -29,12 +34,13 @@ public:
      */
     inline void post() { if (work_waiting) return ;
         __sync_fetch_and_add(&work_waiting, 1) ;
-        sem_post(&the_semaphore); }
+        sem_post(the_semaphore_p); 
+		}
     /*
      * When the wait is over, clear the "work_waiting" flag, even though we haven't
      * cleared the waiting profilers.
      */
-    inline void wait() { sem_wait(&the_semaphore);
+    inline void wait() { sem_wait(the_semaphore_p);
         __sync_fetch_and_sub(&work_waiting, work_waiting); }
 };
 

@@ -10,7 +10,14 @@ add_executable (testPolicyEngine testPolicyEngine.c)
 #add_dependencies (testPolicyEngine apexStatic apexShared)
 add_dependencies (testPolicyEngine apex)
 
-set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
+if(APPLE)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPTHREADS")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPTHREADS")
+else()
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread -DPTHREADS")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -DPTHREADS")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
+endif()
 
 # Link the executable to the Apex library. 
 target_link_libraries (testPolicyEngine apex ${Boost_LIBRARIES}) 

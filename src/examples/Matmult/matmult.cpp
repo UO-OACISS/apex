@@ -139,8 +139,11 @@ double do_work(void) {
   return c[0][1]; 
 }
 
+#define UNUSED(x) (void)(x)
+
 void * threaded_func(void *data)
 {
+  UNUSED(data);
   apex::register_thread("threaded_func");
   do_work();
   return NULL;
@@ -160,21 +163,21 @@ int main (int argc, char *argv[])
 #endif /* PTHREADS */
 
 #ifdef PTHREADS
-  if (ret = pthread_create(&tid1, NULL, threaded_func, NULL) )
+  if ((ret = pthread_create(&tid1, NULL, threaded_func, NULL) ))
   {
     printf("Error: pthread_create (1) fails ret = %d\n", ret);
     exit(1);
   }   
   printf("Spawned thread 1...\n");
 
-  if (ret = pthread_create(&tid2, NULL, threaded_func, NULL) )
+  if ((ret = pthread_create(&tid2, NULL, threaded_func, NULL) ))
   {
     printf("Error: pthread_create (2) fails ret = %d\n", ret);
     exit(1);
   }   
   printf("Spawned thread 2...\n");
 
-  if (ret = pthread_create(&tid3, NULL, threaded_func, NULL) )
+  if ((ret = pthread_create(&tid3, NULL, threaded_func, NULL) ))
   {
     printf("Error: pthread_create (3) fails ret = %d\n", ret);
     exit(1);
@@ -187,19 +190,19 @@ int main (int argc, char *argv[])
   do_work();
 
 #ifdef PTHREADS 
-  if (ret = pthread_join(tid1, NULL) )
+  if ((ret = pthread_join(tid1, NULL) ))
   {
     printf("Error: pthread_join (1) fails ret = %d\n", ret);
     exit(1);
   }   
 
-  if (ret = pthread_join(tid2, NULL) )
+  if ((ret = pthread_join(tid2, NULL) ))
   {
     printf("Error: pthread_join (2) fails ret = %d\n", ret);
     exit(1);
   }   
 
-  if (ret = pthread_join(tid3, NULL) )
+  if ((ret = pthread_join(tid3, NULL) ))
   {
     printf("Error: pthread_join (3) fails ret = %d\n", ret);
     exit(1);

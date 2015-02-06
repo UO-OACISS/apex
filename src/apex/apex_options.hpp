@@ -4,8 +4,6 @@
 #include <stdlib.h>
 #include "apex_types.h"
 
-using namespace std;
-
 namespace apex {
 
 class apex_options {

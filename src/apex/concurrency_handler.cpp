@@ -102,6 +102,7 @@ void concurrency_handler::on_stop(profiler *p) {
       my_stack->pop();
     }
   }
+  APEX_UNUSED(p);
 }
 
 void concurrency_handler::on_new_thread(new_thread_event_data &event_data) {

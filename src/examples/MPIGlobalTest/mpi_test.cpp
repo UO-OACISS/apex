@@ -58,8 +58,8 @@ static void
 master(void)
 {
   int ntasks, rank;
-  unit_of_work_t work;
-  unit_result_t result;
+  unit_of_work_t work = NULL;
+  unit_result_t result = NULL;
   MPI_Status status;
   void * profiler = apex::start((void*)(master));
 
@@ -78,7 +78,7 @@ master(void)
 
     /* Send it to each rank */
 
-    MPI_Send(&work,             /* message buffer */
+    MPI_Send(work,             /* message buffer */
              1,                 /* one data item */
              MPI_INT,           /* data item is an integer */
              rank,              /* destination process rank */
@@ -98,9 +98,9 @@ master(void)
 
     /* Receive results from a worker */
 
-    MPI_Recv(&result,           /* message buffer */
+    MPI_Recv(result,           /* message buffer */
              1,                 /* one data item */
-             MPI_DOUBLE,        /* of type double real */
+             MPI_INT,        /* of type double real */
              MPI_ANY_SOURCE,    /* receive from any sender */
              MPI_ANY_TAG,       /* any type of message */
              MPI_COMM_WORLD,    /* default communicator */
@@ -108,7 +108,7 @@ master(void)
 
     /* Send the worker a new work unit */
 
-    MPI_Send(&work,             /* message buffer */
+    MPI_Send(work,             /* message buffer */
              1,                 /* one data item */
              MPI_INT,           /* data item is an integer */
              status.MPI_SOURCE, /* to who we just received from */
@@ -130,7 +130,7 @@ master(void)
      results from the worker. */
 
   for (rank = 1; rank < ntasks; ++rank) {
-    MPI_Recv(&result, 1, MPI_DOUBLE, MPI_ANY_SOURCE,
+    MPI_Recv(result, 1, MPI_INT, MPI_ANY_SOURCE,
              MPI_ANY_TAG, MPI_COMM_WORLD, &status);
   }
 
@@ -147,8 +147,8 @@ master(void)
 static void 
 worker(void)
 {
-  unit_of_work_t work;
-  unit_result_t results;
+  unit_of_work_t work = NULL;
+  unit_result_t results = NULL;
   MPI_Status status;
   void * profiler = apex::start((void*)(worker));
 
@@ -156,7 +156,7 @@ worker(void)
 
     /* Receive a message from the master */
 
-    MPI_Recv(&work, 1, MPI_INT, 0, MPI_ANY_TAG,
+    MPI_Recv(work, 1, MPI_INT, 0, MPI_ANY_TAG,
              MPI_COMM_WORLD, &status);
 
     /* Check the tag of the received message. */
@@ -171,7 +171,7 @@ worker(void)
 
     /* Send the result back */
 
-    MPI_Send(&result, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+    MPI_Send(result, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
   }
   apex::stop(profiler);
 }
@@ -188,12 +188,14 @@ get_next_work_item(void)
 	return NULL;
 }
 
+#define UNUSED(x) (void)(x)
 
 static void 
 process_results(unit_result_t result)
 {
   /* Fill in with whatever is relevant to process the results returned
      by the worker */
+	 UNUSED(result);
 	return ;
 }
 

@@ -42,15 +42,15 @@ public:
   concurrency_handler (unsigned int period);
   concurrency_handler (unsigned int period, int option);
   ~concurrency_handler (void) { };
-  void on_startup(startup_event_data &event_data) { };
+  void on_startup(startup_event_data &event_data) { APEX_UNUSED(event_data); };
   void on_shutdown(shutdown_event_data &event_data);
-  void on_new_node(node_event_data &event_data) { };
+  void on_new_node(node_event_data &event_data) { APEX_UNUSED(event_data); };
   void on_new_thread(new_thread_event_data &event_data);
   void on_start(apex_function_address function_address, string *timer_name);
   void on_stop(profiler * p);
   void on_resume(profiler * p);
-  void on_sample_value(sample_value_event_data &event_data) { };
-  void on_periodic(periodic_event_data &event_data) { };
+  void on_sample_value(sample_value_event_data &event_data) { APEX_UNUSED(event_data); };
+  void on_periodic(periodic_event_data &event_data) { APEX_UNUSED(event_data); };
 
   bool _handler(void);
   std::stack<std::string>* get_event_stack(unsigned int tid);

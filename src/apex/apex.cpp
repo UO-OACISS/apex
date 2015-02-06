@@ -231,6 +231,8 @@ void init(const char * thread_name)
     } else {
       start("APEX MAIN THREAD");
     }
+#else 
+	APEX_UNUSED(thread_name);
 #endif
 }
 
@@ -255,6 +257,8 @@ void init(int argc, char** argv, const char * thread_name)
     } else {
       start("APEX MAIN THREAD");
     }
+#else 
+	APEX_UNUSED(thread_name);
 #endif
 }
 
@@ -462,6 +466,8 @@ void set_interrupt_interval(int seconds)
     APEX_TRACER
 #ifdef APEX_HAVE_TAU
     TAU_SET_INTERRUPT_INTERVAL(seconds);
+#else 
+	APEX_UNUSED(seconds);
 #endif
 }
 

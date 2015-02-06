@@ -5,6 +5,7 @@
 #include <set>
 
 #include "apex_bfd.h"
+#include "apex_types.h"
 #include <bfd.h>
 #if APEX_BFD >= 022300
 #include <elf-bfd.h>
@@ -536,6 +537,8 @@ static char const * Apex_bfd_internal_tryDemangle(bfd * bfdImage, char const * f
       demangled = bfd_demangle(bfdImage, funcname, DEMANGLE_FLAGS);
     }
   }
+#else
+  APEX_UNUSED(bfdImage);
 #endif
   if (demangled) return demangled;
   return funcname;
@@ -551,6 +554,8 @@ static unsigned long getProbeAddr(bfd * bfdImage, unsigned long pc) {
       pc = (pc ^ sign) - sign;
     }
   }
+#else
+  APEX_UNUSED(bfdImage);
 #endif
   return pc;
 }

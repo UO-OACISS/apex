@@ -668,6 +668,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       // time the whole application.
       main_timer = new profiler(new string(APEX_MAIN));
     }
+	APEX_UNUSED(data);
   }
 
   /* On the shutdown event, notify the consumer thread that we are done
@@ -711,6 +712,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   void profiler_listener::on_new_node(node_event_data &data) {
     if (!_terminate) {
     }
+	APEX_UNUSED(data);
   }
 
   /* When a new thread is registered, expand all of our storage as necessary
@@ -753,6 +755,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 #endif
       _mtx.unlock();
     }
+	APEX_UNUSED(data);
   }
 
   /* When a start event happens, create a profiler object. Unless this
@@ -842,12 +845,14 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       profiler_queues[my_tid]->push(p);
       queue_signal.post();
     }
+	APEX_UNUSED(data);
   }
 
   /* For periodic stuff. Do something? */
   void profiler_listener::on_periodic(periodic_event_data &data) {
     if (!_terminate) {
     }
+	APEX_UNUSED(data);
   }
   
   void profiler_listener::reset(apex_function_address function_address, string *timer_name) {

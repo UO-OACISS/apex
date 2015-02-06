@@ -34,8 +34,11 @@ ApexProxy::~ApexProxy() {
 
 typedef void*(*start_routine_t)(void*);
 
+#define UNUSED(x) (void)(x)
+
 void* someThread(void* tmp)
 {
+  UNUSED(tmp);
   apex::register_thread("threadTest thread");
   //ApexProxy proxy = ApexProxy(__func__, __FILE__, __LINE__);
   ApexProxy proxy = ApexProxy((void*)someThread);

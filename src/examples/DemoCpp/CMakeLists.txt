@@ -8,7 +8,14 @@ link_directories (${APEX_BINARY_DIR}/src/apex)
 # "demo.cpp". The extensions are automatically found. 
 add_executable (apexCppDemo demo.cpp) 
 
-set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
+if(APPLE)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPTHREADS")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPTHREADS")
+else()
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread -DPTHREADS")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -DPTHREADS")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
+endif()
 
 # Link the executable to the Apex library. 
 target_link_libraries (apexCppDemo apex ${Boost_LIBRARIES})

@@ -22,42 +22,63 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-void __itt_frame_begin_v3(__itt_domain const* frame, __itt_id* id) { APEX_TRACER }
-void __itt_frame_end_v3(__itt_domain const* frame, __itt_id* id) { APEX_TRACER }
-void __itt_id_create(__itt_domain const*, __itt_id id) { APEX_TRACER }
-void __itt_id_create_ex(__itt_domain const*,
-     __itt_clock_domain* clock_domain, UINT64 timestamp, __itt_id* id) { APEX_TRACER }
-void __itt_id_destroy(const __itt_domain * domain, __itt_id* id) { APEX_TRACER }
+void __itt_frame_begin_v3(__itt_domain const* frame, __itt_id* id) 
+{ APEX_TRACER ; APEX_UNUSED(frame); APEX_UNUSED(id); }
+void __itt_frame_end_v3(__itt_domain const* frame, __itt_id* id) 
+{ APEX_TRACER ; APEX_UNUSED(frame); APEX_UNUSED(id); }
+void __itt_id_create(__itt_domain const* frame, __itt_id id) 
+{ APEX_TRACER ; APEX_UNUSED(frame); APEX_UNUSED(id); }
+void __itt_id_create_ex(__itt_domain const*, __itt_clock_domain* clock_domain, 
+UINT64 timestamp, __itt_id* id) 
+{ APEX_TRACER ; APEX_UNUSED(clock_domain); APEX_UNUSED(timestamp); APEX_UNUSED(id); }
+void __itt_id_destroy(const __itt_domain * domain, __itt_id* id) 
+{ APEX_TRACER ; APEX_UNUSED(domain); APEX_UNUSED(id); }
 void __itt_id_destroy_ex(__itt_domain* domain,
-     __itt_clock_domain* clock_domain, UINT64 timestamp, __itt_id* id) { APEX_TRACER }
-__itt_id __itt_id_make(void*, unsigned long) { APEX_TRACER return __itt_null; }
+     __itt_clock_domain* clock_domain, UINT64 timestamp, __itt_id* id) 
+{ APEX_TRACER ; APEX_UNUSED(domain); APEX_UNUSED(clock_domain); APEX_UNUSED(timestamp); APEX_UNUSED(id); }
+__itt_id __itt_id_make(void* a, unsigned long b) 
+{ APEX_TRACER ; APEX_UNUSED(a) ; APEX_UNUSED(b) ; return __itt_null; }
 void __itt_metadata_add (const __itt_domain * domain,
-      __itt_id id, __itt_string_handle * name, __itt_marker_scope scope) { APEX_TRACER }
+      __itt_id id, __itt_string_handle * name, __itt_marker_scope scope) 
+{ APEX_TRACER ; APEX_UNUSED(domain); APEX_UNUSED(id); APEX_UNUSED(name) ; APEX_UNUSED(scope); }
 void _itt_metadata_add_with_scope(const __itt_domain * domain,
       __itt_scope scope, __itt_string_handle *key, __itt_metadata_type type,
-      size_t count, void *data) { APEX_TRACER }
+      size_t count, void *data) 
+{ APEX_TRACER ; APEX_UNUSED(domain); APEX_UNUSED(scope); APEX_UNUSED(key) ; APEX_UNUSED(type); APEX_UNUSED(count) ; APEX_UNUSED(data); }
 void __itt_metadata_str_add (const __itt_domain * domain,
-      __itt_id id, __itt_string_handle * key, const char * data, size_t length) { APEX_TRACER }
+      __itt_id id, __itt_string_handle * key, const char * data, size_t length) 
+{ APEX_TRACER ; APEX_UNUSED(domain); APEX_UNUSED(id); APEX_UNUSED(key) ; APEX_UNUSED(data); APEX_UNUSED(length); }
 void _itt_metadata_str_add_with_scope(const __itt_domain * domain,
-      __itt_scope scope, __itt_string_handle *key, const char * data, size_t length) { APEX_TRACER }
+      __itt_scope scope, __itt_string_handle *key, const char * data, size_t length) 
+{ APEX_TRACER ; APEX_UNUSED(domain); APEX_UNUSED(scope); APEX_UNUSED(key) ; APEX_UNUSED(data); APEX_UNUSED(length); }
 void __itt_relation_add (const __itt_domain * domain, __itt_id head,
-      __itt_relation relation, __itt_id tail) { APEX_TRACER }
+      __itt_relation relation, __itt_id tail) 
+{ APEX_TRACER ; APEX_UNUSED(domain); APEX_UNUSED(head); APEX_UNUSED(relation) ; APEX_UNUSED(tail); }
 void __itt_relation_add_to_current (const __itt_domain * domain,
-      __itt_relation relation, __itt_id tail) { APEX_TRACER }
-void __itt__set_track(__itt_track * track) { APEX_TRACER }
+      __itt_relation relation, __itt_id tail) 
+{ APEX_TRACER ; APEX_UNUSED(domain); APEX_UNUSED(relation) ; APEX_UNUSED(tail); }
+void __itt__set_track(__itt_track * track) 
+{ APEX_TRACER ; APEX_UNUSED(track); }
 void __itt_task_begin_ex(__itt_domain* domain, __itt_clock_domain* clock_domain,
-      UINT64 timestamp, __itt_id id, __itt_id parentid, __itt_string_handle *name) { APEX_TRACER }
+      UINT64 timestamp, __itt_id id, __itt_id parentid, __itt_string_handle *name) 
+{ APEX_TRACER ; APEX_UNUSED(domain); APEX_UNUSED(clock_domain); APEX_UNUSED(timestamp) ; APEX_UNUSED(id); APEX_UNUSED(parentid); APEX_UNUSED(name); }
 void __itt_task_begin_fn(const __itt_domain * domain, __itt_id taskid,
-      __itt_id parentid, void * fn) { APEX_TRACER }
-void __itt_task_end_ex(__itt_domain const*) { APEX_TRACER }
+      __itt_id parentid, void * fn) 
+{ APEX_TRACER ; APEX_UNUSED(domain); APEX_UNUSED(taskid); APEX_UNUSED(parentid); APEX_UNUSED(fn);}
+void __itt_task_end_ex(__itt_domain const*) 
+{ APEX_TRACER }
 void __itt_task_group(const __itt_domain * domain, __itt_id id,
-      __itt_id parentid, __itt_string_handle * name) { APEX_TRACER }
+      __itt_id parentid, __itt_string_handle * name) 
+{ APEX_TRACER ; APEX_UNUSED(domain); APEX_UNUSED(id); APEX_UNUSED(parentid); APEX_UNUSED(name);}
 __itt_track_group* __itt_track_group_create(__itt_string_handle* name,
-      __itt_track_group_type type) { APEX_TRACER return NULL; }
+      __itt_track_group_type type) 
+{ APEX_TRACER ; APEX_UNUSED(name); APEX_UNUSED(type); return NULL; }
 __itt_track* __itt_track_create(__itt_track_group* track_group,
-      __itt_string_handle* name, __itt_track_type track_type) { APEX_TRACER return NULL; }
+      __itt_string_handle* name, __itt_track_type track_type) 
+{ APEX_TRACER ; APEX_UNUSED(track_group); APEX_UNUSED(name); APEX_UNUSED(track_type); return NULL; }
 
-__itt_domain* __itt_domain_create(char const* name) {
+__itt_domain* __itt_domain_create(char const* name) 
+{
   APEX_TRACER
   __itt_domain *domain = (__itt_domain*)(malloc(sizeof(__itt_domain)));
   domain->nameA = strdup(name);
@@ -75,6 +96,9 @@ __itt_string_handle* __itt_string_handle_create(char const* name) {
 
 void __itt_task_begin(__itt_domain const* domain, __itt_id taskid, __itt_id parentid, __itt_string_handle* handle) {
   APEX_TRACER
+  APEX_UNUSED(domain);
+  APEX_UNUSED(taskid);
+  APEX_UNUSED(parentid);
   std::string tmp = string(handle->strA);
   apex::start(tmp);
 }
@@ -102,17 +126,17 @@ void __itt_heap_allocate_end(__itt_heap_function, void**, std::size_t, int) { AP
 void __itt_heap_free_begin(__itt_heap_function, void*) { APEX_TRACER };
 void __itt_heap_free_end(__itt_heap_function, void*) { APEX_TRACER };
 void __itt_heap_reallocate_begin(__itt_heap_function, void*, std::size_t, int) { APEX_TRACER };
-void __itt_heap_reallocate_end(__itt_heap_function, void*, void**, std::size_t, int) { APEX_TRACER };
+void __itt_heap_reallocate_end(__itt_heap_function a, void* b, void** c, std::size_t d, int e) { APEX_TRACER ;APEX_UNUSED(a); APEX_UNUSED(b); APEX_UNUSED(c); APEX_UNUSED(d); APEX_UNUSED(e); };
 void __itt_heap_internal_access_begin() { APEX_TRACER };
 void __itt_heap_internal_access_end() { APEX_TRACER };
 
-__itt_mark_type __itt_mark_create(char const* name) { APEX_TRACER return 0; };
-int __itt_mark_off(__itt_mark_type mark) { APEX_TRACER return 0; };
-int __itt_mark(__itt_mark_type mark, char const* par) { APEX_TRACER return 0; };
+__itt_mark_type __itt_mark_create(char const* name) { APEX_TRACER ; APEX_UNUSED(name); return 0; };
+int __itt_mark_off(__itt_mark_type mark) { APEX_TRACER ; APEX_UNUSED(mark); return 0; };
+int __itt_mark(__itt_mark_type mark, char const* par) { APEX_TRACER ; APEX_UNUSED(mark); APEX_UNUSED(par); return 0; };
 __itt_caller __itt_stack_caller_create() { APEX_TRACER return NULL; };
-void __itt_stack_callee_enter(__itt_caller ctx) { APEX_TRACER };
-void __itt_stack_callee_leave(__itt_caller ctx) { APEX_TRACER };
-void __itt_stack_caller_destroy(__itt_caller ctx) { APEX_TRACER };
+void __itt_stack_callee_enter(__itt_caller ctx) { APEX_TRACER ; APEX_UNUSED(ctx); };
+void __itt_stack_callee_leave(__itt_caller ctx) { APEX_TRACER ; APEX_UNUSED(ctx); };
+void __itt_stack_caller_destroy(__itt_caller ctx) { APEX_TRACER ; APEX_UNUSED(ctx); };
 
 // assign some function pointers
 #if defined(_WIN32) || defined(_WIN64)
