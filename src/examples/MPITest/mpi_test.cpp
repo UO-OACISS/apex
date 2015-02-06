@@ -4,22 +4,17 @@
 #define WORKTAG 1
 #define DIETAG 2
 
-#define unit_of_work_t int*
-#define unit_result_t int*
-
 /* Local functions */
 
 static void master(void);
 static void worker(void);
-static unit_of_work_t get_next_work_item(void);
-static void process_results(unit_result_t result);
-static unit_result_t do_work(unit_of_work_t work);
+static int get_next_work_item(void);
+static void process_results(int result);
+static int do_work(int work);
 
 static int dummy = 0;
 
-int
-main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
   int myrank;
 
   /* Initialize MPI */
@@ -51,12 +46,10 @@ main(int argc, char **argv)
 }
 
 
-static void
-master(void)
-{
+static void master(void) {
   int ntasks, rank;
-  unit_of_work_t work = NULL;
-  unit_result_t result = NULL;
+  int work = 0;
+  int result = 0;
   MPI_Status status;
   void * profiler = apex::start((void*)(master));
 
@@ -75,7 +68,7 @@ master(void)
 
     /* Send it to each rank */
 
-    MPI_Send(work,              /* message buffer */
+    MPI_Send(&work,              /* message buffer */
              1,                 /* one data item */
              MPI_INT,           /* data item is an integer */
              rank,              /* destination process rank */
@@ -83,15 +76,21 @@ master(void)
              MPI_COMM_WORLD);   /* default communicator */
   }
 
+  // do some work ourselves.
+  work = get_next_work_item();
+  if (work != 0) {
+    do_work(work);
+    work = get_next_work_item();
+  }
+
   /* Loop over getting new work requests until there is no more work
      to be done */
 
-  work = get_next_work_item();
-  while (work != NULL) {
+  while (work != 0) {
 
     /* Receive results from a worker */
 
-    MPI_Recv(result,            /* message buffer */
+    MPI_Recv(&result,            /* message buffer */
              1,                 /* one data item */
              MPI_INT,        /* of type double real */
              MPI_ANY_SOURCE,    /* receive from any sender */
@@ -101,7 +100,7 @@ master(void)
 
     /* Send the worker a new work unit */
 
-    MPI_Send(work,              /* message buffer */
+    MPI_Send(&work,              /* message buffer */
              1,                 /* one data item */
              MPI_INT,           /* data item is an integer */
              status.MPI_SOURCE, /* to who we just received from */
@@ -111,13 +110,17 @@ master(void)
     /* Get the next unit of work to be done */
 
     work = get_next_work_item();
+    if (work != 0) {
+      do_work(work);
+      work = get_next_work_item();
+    }
   }
 
   /* There's no more work to be done, so receive all the outstanding
      results from the worker. */
 
   for (rank = 1; rank < ntasks; ++rank) {
-    MPI_Recv(result, 1, MPI_INT, MPI_ANY_SOURCE,
+    MPI_Recv(&result, 1, MPI_INT, MPI_ANY_SOURCE,
              MPI_ANY_TAG, MPI_COMM_WORLD, &status);
   }
 
@@ -130,12 +133,8 @@ master(void)
   apex::stop(profiler);
 }
 
-
-static void 
-worker(void)
-{
-  unit_of_work_t work = NULL;
-  unit_result_t results = NULL;
+static void worker(void) {
+  int work = 0;
   MPI_Status status;
   void * profiler = apex::start((void*)(worker));
 
@@ -143,7 +142,7 @@ worker(void)
 
     /* Receive a message from the master */
 
-    MPI_Recv(work, 1, MPI_INT, 0, MPI_ANY_TAG,
+    MPI_Recv(&work, 1, MPI_INT, 0, MPI_ANY_TAG,
              MPI_COMM_WORLD, &status);
 
     /* Check the tag of the received message. */
@@ -154,31 +153,29 @@ worker(void)
 
     /* Do the work */
 
-    unit_result_t result = do_work(work);
+    int result = do_work(work);
 
     /* Send the result back */
 
-    MPI_Send(result, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
+    MPI_Send(&result, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
   }
   apex::stop(profiler);
 }
 
 
-static unit_of_work_t 
-get_next_work_item(void)
+static int get_next_work_item(void)
 {
   /* Fill in with whatever is relevant to obtain a new unit of work
      suitable to be given to a worker. */
 	static int data[] = {1,2,3,4,5,6,7,8,9,10};
 	static int index = -1;
-	if (++index < 10) return &(data[index]);
-	return NULL;
+	if (++index < 10) return (data[index]);
+	return 0;
 }
 
 #define UNUSED(x) (void)(x)
 
-static void 
-process_results(unit_result_t result)
+static void process_results(int result)
 {
   /* Fill in with whatever is relevant to process the results returned
      by the worker */
@@ -187,16 +184,14 @@ process_results(unit_result_t result)
 }
 
 
-static unit_result_t
-do_work(unit_of_work_t work)
+static int do_work(int work)
 {
   void * profiler = apex::start((void*)(do_work));
-  int * mywork = (int*)(work);
   //sleep(*mywork);
-  dummy = dummy + *mywork;
+  dummy = dummy + work;
   /* Fill in with whatever is necessary to process the work and
      generate a result */
   apex::stop(profiler);
-	return &dummy;
+	return dummy;
 }
 
