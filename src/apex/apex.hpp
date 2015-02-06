@@ -4,6 +4,10 @@
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
+/* required for Doxygen */
+
+/** @file */ 
+
 // apex main class
 #ifndef APEX_HPP
 #define APEX_HPP

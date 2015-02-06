@@ -4,14 +4,17 @@
  *  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
+/* required for Doxygen */
+
+/** @file */ 
+
 /*
  * APEX external API
  *
  */
 
 /*
- * The C API is not required for HPX support. 
- * But don't delete it just yet. 
+ * The C API is required for HPX5 support. 
  */
 
 #ifndef APEX_H
@@ -26,7 +29,9 @@ extern "C" {
 
 /*
  * Initialization, finalization functions
+ * ----------------------------------------------------
  */
+
 APEX_EXPORT void apex_init(const char * thread_name);
 APEX_EXPORT void apex_init_args(int argc, char** argv, const char * thread_name);
 APEX_EXPORT void apex_finalize();
