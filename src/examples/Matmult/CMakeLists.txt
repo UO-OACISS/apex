@@ -7,7 +7,6 @@ link_directories (${APEX_BINARY_DIR}/src/apex)
 # Add executable called "apexCDemo" that is built from the source file
 # "demo.c". The extensions are automatically found. 
 add_executable (matmult matmult_initialize.cpp matmult.cpp) 
-#add_dependencies (matmult apexStatic apexShared)
 add_dependencies (matmult apex)
 
 # Link the executable to the Apex library. 

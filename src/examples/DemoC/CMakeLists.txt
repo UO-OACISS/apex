@@ -19,7 +19,6 @@ endif()
 
 # Link the executable to the Apex library. 
 target_link_libraries (apexCDemo apex stdc++) 
-#add_dependencies (apexCDemo apexStatic apexShared)
 add_dependencies (apexCDemo apex)
 
 INSTALL(TARGETS apexCDemo

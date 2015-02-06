@@ -7,7 +7,6 @@ link_directories (${APEX_BINARY_DIR}/src/apex ${APEX_BINARY_DIR}/src/ITTNotify)
 # Add executable called "testITT" that is built from the source file
 # "testITT.cpp". The extensions are automatically found. 
 add_executable (testITT testITT.cpp) 
-#add_dependencies (testITT apexStatic apexShared ittnotifyShared ittnotifyStatic)
 add_dependencies (testITT apex ittnotify)
 
 # Link the executable to the Apex library. 

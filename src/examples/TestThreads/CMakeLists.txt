@@ -1,13 +1,12 @@
 # Make sure the compiler can find include files from our Apex library. 
-include_directories (${APEX_SOURCE_DIR}/src/apex ${APEX_SOURCE_DIR}/src/TestThreads) 
+include_directories (${APEX_SOURCE_DIR}/src/apex) 
 
 # Make sure the linker can find the Apex library once it is built. 
-link_directories (${APEX_BINARY_DIR}/src/apex ${APEX_BINARY_DIR}/src/TestThreads) 
+link_directories (${APEX_BINARY_DIR}/src/apex) 
 
 # Add executable called "testThreads" that is built from the source file
 # "testThreads.cpp". The extensions are automatically found. 
 add_executable (testThreads testThreads.cpp) 
-#add_dependencies (testThreads apexStatic apexShared)
 add_dependencies (testThreads apex)
 
 if(APPLE)

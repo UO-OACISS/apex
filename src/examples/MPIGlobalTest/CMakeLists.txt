@@ -13,7 +13,6 @@ link_directories (${APEX_BINARY_DIR}/src/apex ${APEX_BINARY_DIR}/src/comm/mpi)
 # Add executable called "mpi_global_test" that is built from the source file
 # "mpi_test.cpp". The extensions are automatically found. 
 add_executable (mpi_global_test mpi_test.cpp) 
-#add_dependencies (mpi_global_test apexStatic apexShared)
 add_dependencies (mpi_global_test apex apex_mpi)
 
 # Link the executable to the Apex library. 

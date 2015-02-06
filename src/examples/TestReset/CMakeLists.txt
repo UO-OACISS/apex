@@ -19,7 +19,6 @@ endif()
 
 # Link the executable to the Apex library. 
 target_link_libraries (testReset apex ${Boost_LIBRARIES})
-#add_dependencies (testReset apexStatic apexShared)
 add_dependencies (testReset apex)
 
 INSTALL(TARGETS testReset
