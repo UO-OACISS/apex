@@ -542,7 +542,7 @@ int register_policy(std::chrono::duration<Rep, Period> const& period,
 
 apex_policy_handle* register_periodic_policy(unsigned long period_microseconds,
                     std::function<bool(apex_context const&)> f)
- 
+ {
     APEX_TRACER
     int id = -1;
     policy_handler * handler = apex::instance()->get_policy_handler(period_microseconds);
