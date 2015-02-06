@@ -79,6 +79,8 @@ typedef uintptr_t apex_profiler_handle; // address of internal C++ object
  */
 typedef void * apex_function_address; // generic function pointer
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+
 #define FOREACH_APEX_OPTION(macro) \
     macro (APEX_TAU, use_tau, bool, false) \
     macro (APEX_POLICY, use_policy, bool, true) \
@@ -96,5 +98,7 @@ typedef void * apex_function_address; // generic function pointer
 #else
 #  error "Native thread local storage is not supported for this platform"
 #endif
+
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #endif //APEX_TYPES_HPP

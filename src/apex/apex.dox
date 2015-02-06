@@ -1,0 +1,66 @@
+/* required for Doxygen */
+
+/** @file */ 
+
+/** \mainpage APEX: Autonomic Performance Environment for eXascale
+
+\section overview Overview
+
+\section introduction Introduction
+\subsection interfaces Interfaces
+
+APEX has both C and C++ interfaces. While the C interface can be used
+for either, some C++ applications prefer to work with namespaces (i.e.
+apex::*) rather than prefixes (i.e. apex_*). All functionality is
+supported through both interfaces, and the C interface contains inlined
+implementations of the C++ code.
+
+\section installation Installation
+\subsection getting Getting the Code
+\subsection bootstrapping Bootstrapping: the "easy" way
+\subsection custom Custom Builds
+
+\section variables Environment Variables
+
+Apex uses a number of environment variables to control its behavior at
+runtime. These variables are:
+
+<dl>
+
+<dt>APEX_TAU</dt> 
+<dd>If APEX is configured with TAU support, this will enable the TAU profiling
+support. 0 is disabled, 1 is enabled.</dd>
+
+<dt>APEX_POLICY</dt> 
+<dd>Enable policy processing in the APEX event listener. 0 is
+  disabled, 1 is enabled.</dd>
+
+<dt>APEX_CONCURRENCY</dt> 
+<dd>Enable concurrency measurement as an APEX event listener.
+  Concurrency will be collected in each process, and a gnuplot will be 
+  produced at the end of execution showing the sampled concurrency during
+  execution.
+  0 is disabled, 1 is enabled.</dd>
+
+<dt>APEX_CONCURRENCY_PERIOD</dt> 
+<dd>Set the concurrency measurement period. The
+  unit is in microseconds.</dd>
+
+<dt>APEX_SCREEN_OUTPUT</dt> 
+<dd>When the program terminates, the main process will
+  dump a measurement summary to the screen. 
+  0 is disabled, 1 is enabled.</dd>
+
+<dt>APEX_PROFILE_OUTPUT</dt> 
+<dd>When the program terminates, all processes will
+  write TAU profiles to disk. 
+  0 is disabled, 1 is enabled (process summary only), 2 is enabled 
+  (per-thread measurement detail).</dd>
+
+</dl>
+
+\section examples Usage Examples
+
+\section acknowledgements Acknowledgements
+
+**/
