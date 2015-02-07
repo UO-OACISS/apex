@@ -940,7 +940,14 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
     if (!node) {
       node = new OmpHashNode;
       Apex_bfd_resolveBfdInfo(OmpbfdUnitHandle, ip, node->info);
-      location << node->info.funcname << " [{" << node->info.filename << "} {" << node->info.lineno << ",0}]";
+	  if (node->info.funcname) {
+        location << node->info.funcname ;
+	  }
+	  location << " [{" ;
+	  if (node->info.filename) {
+	    location << node->info.filename ;
+      }
+      location << "} {" << node->info.lineno << ",0}]";
       node->location = new string(location.str());
       OmpTheHashTable()[ip] = node;
     }
