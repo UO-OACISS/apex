@@ -8,7 +8,11 @@
 #define ITERATIONS 1000000
 
 int foo (int i) {
+#ifdef __APPLE__
+  apex_profiler_handle my_profiler = apex_start_name("foo");
+#else
   apex_profiler_handle my_profiler = apex_start_address(foo);
+#endif
   int result = i*i;
   apex_stop_profiler(my_profiler);
   return result;
@@ -19,7 +23,11 @@ typedef void*(*start_routine_t)(void*);
 void* someThread(void* tmp)
 {
   apex_register_thread("threadTest thread");
+#ifdef __APPLE__
+  apex_profiler_handle my_profiler = apex_start_name("someThread");
+#else
   apex_profiler_handle my_profiler = apex_start_address((void*)someThread);
+#endif
   printf("PID of this process: %d\n", getpid());
 #if defined (__APPLE__)
   printf("The ID of this thread is: %lu\n", (unsigned long)pthread_self());
@@ -35,7 +43,11 @@ void* someThread(void* tmp)
 }
 
 int policy_periodic(apex_context const context) {
+#ifdef __APPLE__
+    apex_profile * p = apex_get_profile_from_name("foo");
+#else
     apex_profile * p = apex_get_profile_from_address(foo);
+#endif
     if (p != NULL) {
         printf("Periodic Policy: %p %d %f seconds.\n", foo, (int)p->calls, p->accumulated/p->calls);
     }
@@ -45,7 +57,11 @@ int policy_periodic(apex_context const context) {
 int policy_event(apex_context const context) {
     static APEX_NATIVE_TLS unsigned int not_every_time = 0;
     if (not_every_time++ % 500000 != 0) return 1;
+#ifdef __APPLE__
+    apex_profile * p = apex_get_profile_from_name("foo");
+#else
     apex_profile * p = apex_get_profile_from_address(foo);
+#endif
     if (p != NULL) {
         printf("Event Policy: %p %d %f seconds.\n", foo, (int)p->calls, p->accumulated/p->calls);
     }
@@ -62,7 +78,11 @@ int main(int argc, char **argv)
   const apex_event_type when = STOP_EVENT;
   apex_register_periodic_policy(1000000, policy_periodic);
   apex_register_policy(when, policy_event);
+#ifdef __APPLE__
+  apex_profiler_handle my_profiler = apex_start_name("main");
+#else
   apex_profiler_handle my_profiler = apex_start_address((void*)main);
+#endif
   printf("PID of this process: %d\n", getpid());
   pthread_t thread[NUM_THREADS];
   int i;
