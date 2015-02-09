@@ -33,6 +33,12 @@ apex::*) rather than prefixes (i.e. apex_*). All functionality is
 supported through both interfaces, and the C interface contains inlined
 implementations of the C++ code.
 
+The direct links to each API are here:
+<ul>
+<li>C API : @ref apex.h </li>
+<li>C++ API : @ref apex </li>
+</dl>
+
 \section installation Installation
 \subsection getting Getting the Code
 \subsection bootstrapping Bootstrapping: the "easy" way
