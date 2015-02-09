@@ -87,4 +87,11 @@ support. 0 is disabled, 1 is enabled.</dd>
 
 \section acknowledgements Acknowledgements
 
+Support for this work was provided through Scientific Discovery through
+Advanced Computing (SciDAC) program funded by U.S. Department of Energy, Office
+of Science, Advanced Scientific Computing Research (and Basic Energy
+Sciences/Biological and Environmental Research/High Energy Physics/Fusion
+Energy Sciences/Nuclear Physics) under award numbers DE-SC0008638,
+DE-SC0008704, DE-FG02-11ER26050 and DE-SC0006925.
+
 **/
