@@ -54,6 +54,7 @@ cmake \
 -DBUILD_SHARED_LIBS=TRUE \
 -DUSE_PAPI=FALSE \
 -DCMAKE_INSTALL_PREFIX=$pwddir/install \
+-DCMAKE_VERBOSE_MAKEFILE=ON \
 $pwddir
 
 procs=1
