@@ -60,6 +60,18 @@ build. See README.rst. Clean your CMake cache and CMakeFiles if this message
 persists.")
 
 ################################################################################
+# Hostname detection code
+################################################################################
+
+site_name(HOSTNAME)
+string(LENGTH ${HOSTNAME} HOSTNAME_LENGTH)
+if(${HOSTNAME_LENGTH} GREATER 5)
+	string(SUBSTRING ${HOSTNAME} 0 6 HOST_BASENAME)
+else()
+	set (HOST_BASENAME ${HOSTNAME})
+endif()
+
+################################################################################
 # Compiler detection code
 ################################################################################
 
@@ -89,7 +101,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 endif (BUILD_SHARED_LIBS)
 
 #set debugging info
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS} -g -O0 -Wextra -Waddress -Warray-bounds -Wuninitialized -Wreturn-type")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS} -g -O0 -Wextra -Waddress -Warray-bounds -Wuninitialized -Wreturn-type -Wall -Werror")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS} -O3")
 
 ###############################################################################
@@ -151,13 +163,6 @@ if (RCR_FOUND)
 	set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${RCR_LIBRARY_DIR})
 endif()
 else()
-	site_name(HOSTNAME)
-	string(LENGTH ${HOSTNAME} HOSTNAME_LENGTH)
-	if(${HOSTNAME_LENGTH} GREATER 5)
-		string(SUBSTRING ${HOSTNAME} 0 6 HOST_BASENAME)
-	else()
-		set (HOST_BASENAME ${HOSTNAME})
-	endif()
 	#if(EXISTS "/sys/cray/pm_counter/power")
 	IF("${HOST_BASENAME}" STREQUAL "edison")
 		set (APEX_HAVE_CRAY_POWER TRUE)

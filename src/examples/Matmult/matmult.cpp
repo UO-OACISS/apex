@@ -158,7 +158,6 @@ int main (int argc, char *argv[])
 
 #ifdef PTHREADS
   int ret;
-  pthread_attr_t  attr;
   pthread_t       tid1, tid2, tid3;
 #endif /* PTHREADS */
 

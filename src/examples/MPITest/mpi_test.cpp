@@ -9,7 +9,6 @@
 static void master(void);
 static void worker(void);
 static int get_next_work_item(void);
-static void process_results(int result);
 static int do_work(int work);
 
 static int dummy = 0;
@@ -172,17 +171,6 @@ static int get_next_work_item(void)
 	if (++index < 10) return (data[index]);
 	return 0;
 }
-
-#define UNUSED(x) (void)(x)
-
-static void process_results(int result)
-{
-  /* Fill in with whatever is relevant to process the results returned
-     by the worker */
-	 UNUSED(result);
-	return ;
-}
-
 
 static int do_work(int work)
 {

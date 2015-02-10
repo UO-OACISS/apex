@@ -180,10 +180,6 @@ void ProcData::dump(ostream &out) {
 
 void ProcData::dump_mean(ostream &out) {
   CPUs::iterator iter;
-  long long total;
-  double idle_ratio;
-  double user_ratio;
-  double system_ratio;
   iter = cpus.begin();
     CPUStat* cpu_stat=*iter;
     out << cpu_stat->name << "\t" 

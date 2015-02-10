@@ -324,8 +324,6 @@ static void Apex_bfd_internal_updateProcSelfMaps(ApexBfdUnit *unit)
   }
 
   char line[4096];
-  // count is used for printf only
-  int count = 0;
   while (!feof(mapsfile)) {
     if (fgets(line, 4096, mapsfile) == NULL) { break; }
     unsigned long start, end, offset;
@@ -338,8 +336,6 @@ static void Apex_bfd_internal_updateProcSelfMaps(ApexBfdUnit *unit)
     if (*module && ((strcmp(perms, "r-xp") == 0) ||
             (strcmp(perms, "rwxp") == 0)))
     {
-      //printf("[%d] Module: %s, %p-%p (%d)\n",
-          //count++, module, start, end, offset);
       unit->addressMaps.push_back(new ApexBfdAddrMap(start, end, offset, module));
       unit->modules.push_back(new ApexBfdModule);
     }
@@ -405,7 +401,6 @@ static void Apex_bfd_internal_updateWindowsMaps(ApexBfdUnit *unit)
   HANDLE hProc;// A handle on the current process
   DWORD cbNeeded;// Bytes needed to store all handles
   MODULEINFO modInfo;// Information about a module
-  int count = 0;// for printf only
 
   // Get the process handle
   hProc = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
@@ -444,8 +439,6 @@ static void Apex_bfd_internal_updateWindowsMaps(ApexBfdUnit *unit)
       //printf("Apex_bfd_internal_updateWindowsMaps: Cannot get absolute path to module (handle 0x%x).\n", hMod[i]);
       continue;
     }
-
-    //printf("[%d] Module: %s, %p-%p (%d)\n", count++, map->name, map->start, map->end, map->offset);
 
     unit->addressMaps.push_back(map);
     unit->modules.push_back(new ApexBfdModule);
@@ -754,8 +747,7 @@ int Apex_bfd_processBfdExecInfo(apex_bfd_handle_t handle, ApexBfdIterFn fn)
 
   // Only process the executable once.
   if (module->processCode != APEX_BFD_SYMTAB_NOT_LOADED) {
-    //printf("Apex_bfd_processBfdExecInfo: "
-        //"%s already processed (code %d).  Will not reprocess.\n", execName, module->processCode);
+    printf("Apex_bfd_processBfdExecInfo:\n\t%s already processed (code %d).  Will not reprocess.\n", execName, module->processCode);
     return module->processCode;
   }
   //printf("Apex_bfd_processBfdExecInfo: processing executable %s\n", execName);
@@ -786,8 +778,7 @@ int Apex_bfd_processBfdModuleInfo(apex_bfd_handle_t handle, apex_bfd_module_hand
 
   // Only process the module once.
   if (module->processCode != APEX_BFD_SYMTAB_NOT_LOADED) {
-    //printf("Apex_bfd_processBfdModuleInfo: "
-        //"%s already processed (code %d).  Will not reprocess.\n", name, module->processCode);
+    printf("Apex_bfd_processBfdModuleInfo: %s already processed (code %d).  Will not reprocess.\n", name, module->processCode);
     return module->processCode;
   }
   //printf("Apex_bfd_processBfdModuleInfo: processing module %s\n", name);
