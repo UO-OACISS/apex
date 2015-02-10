@@ -6,7 +6,7 @@ endif()
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${MPI_COMPILE_FLAGS}") 
 
 # Make sure the compiler can find include files from our Apex library. 
-include_directories (. ${APEX_SOURCE_DIR}/src/apex ${MPI_C_INCLUDE_PATH}) 
+include_directories (${APEX_SOURCE_DIR}/src/comm ${APEX_SOURCE_DIR}/src/apex ${MPI_C_INCLUDE_PATH}) 
 
 # gcc on apple needs the apex library to link the dylib
 # if(APPLE)
@@ -29,9 +29,7 @@ add_dependencies (apex_mpi apex)
 
 # add the binary tree to the search path for include files
 # so that we will find ittnotify.h
-include_directories ("${PROJECT_BINARY_DIR}/src/apex")
-
-INSTALL(FILES apex_global.h DESTINATION include)
+include_directories ("${PROJECT_BINARY_DIR}/src/apex" ${APEX_BINARY_DIR}/src/comm)
 
 INSTALL(TARGETS apex_mpi 
   RUNTIME DESTINATION bin

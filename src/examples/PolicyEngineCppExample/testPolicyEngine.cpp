@@ -15,7 +15,7 @@ private:
   apex::profiler * p;
 public:
   ApexProxy(const char * func, const char * file, int line);
-  ApexProxy(void *fpointer);
+  ApexProxy(apex_function_address fpointer);
   ~ApexProxy();
 };
 
@@ -26,7 +26,7 @@ ApexProxy::ApexProxy(const char * func, const char * file, int line) {
   p = apex::start(_name);
 }
 
-ApexProxy::ApexProxy(void *fpointer) {
+ApexProxy::ApexProxy(apex_function_address fpointer) {
   p = apex::start(fpointer);
 }
 
@@ -36,13 +36,11 @@ ApexProxy::~ApexProxy() {
 
 int foo (int i) {
   //ApexProxy proxy = ApexProxy((void*)foo);
-  apex::profiler * profiler = apex::start((void*)foo);
+  apex::profiler * profiler = apex::start((apex_function_address)foo);
   int j = i*i;
   apex::stop(profiler);
   return j;
 }
-
-typedef void*(*start_routine_t)(void*);
 
 #define UNUSED(x) (void)(x)
 
@@ -52,7 +50,7 @@ void* someThread(void* tmp)
   apex::register_thread("threadTest thread");
   //ApexProxy proxy = ApexProxy(__func__, __FILE__, __LINE__);
   //ApexProxy proxy = ApexProxy((void*)someThread);
-  apex::profiler * profiler = apex::start((void*)someThread);
+  apex::profiler * profiler = apex::start((apex_function_address)someThread);
   printf("PID of this process: %d\n", getpid());
 #if defined (__APPLE__)
   printf("The ID of this thread is: %lu\n", (unsigned long)pthread_self());
@@ -75,11 +73,11 @@ int main(int argc, char **argv)
   apex::apex_options::use_screen_output(true);
   apex::apex_options::use_profile_output(true);
   //ApexProxy proxy = ApexProxy((void*)main);
-  apex::profiler * profiler = apex::start((void*)main);
+  apex::profiler * profiler = apex::start((apex_function_address)main);
   const apex_event_type when = STOP_EVENT;
   apex::register_periodic_policy(1000000, [](apex_context const& context){
        UNUSED(context);
-       void * foo_addr = (void*)(foo);
+       apex_function_address foo_addr = (apex_function_address)(foo);
        apex::profile * p = apex::profiler_listener::get_profile(foo_addr);
        if (p != NULL) {
            cout << "Periodic: " << foo_addr << " " << p->get_calls() << " " << p->get_mean() << " seconds." << endl;
@@ -90,7 +88,7 @@ int main(int argc, char **argv)
        UNUSED(context);
        static APEX_NATIVE_TLS unsigned int not_all_the_time = 0;
        if (++not_all_the_time % 500000 != 0) return true; // only do 2 out of a million
-       void * foo_addr = (void*)(foo);
+       apex_function_address foo_addr = (apex_function_address)(foo);
        apex::profile * p = apex::profiler_listener::get_profile(foo_addr);
        if (p != NULL) {
            cout << "Event: " << foo_addr << " " << p->get_calls() << " " << p->get_mean() << " seconds." << endl;

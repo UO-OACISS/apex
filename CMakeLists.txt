@@ -255,6 +255,7 @@ add_subdirectory (src/examples/DemoC)
 # Add a test program which actually uses the CPU
 add_subdirectory (src/examples/Matmult)  
 if(MPI_CXX_FOUND)
+add_subdirectory (src/comm) 
 add_subdirectory (src/comm/mpi) 
 add_subdirectory (src/examples/MPITest)  
 add_subdirectory (src/examples/MPIGlobalTest)  

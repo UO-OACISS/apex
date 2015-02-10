@@ -5,7 +5,7 @@ endif()
 
 # Make sure the compiler can find include files from our Apex library. 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MPI_COMPILE_FLAGS}") 
-include_directories (. ${APEX_SOURCE_DIR}/src/apex ${APEX_SOURCE_DIR}/src/comm/mpi ${MPI_CXX_INCLUDE_PATH}) 
+include_directories (. ${APEX_SOURCE_DIR}/src/apex ${APEX_SOURCE_DIR}/src/comm ${MPI_CXX_INCLUDE_PATH}) 
 
 # Make sure the linker can find the Apex library once it is built. 
 link_directories (${APEX_BINARY_DIR}/src/apex ${APEX_BINARY_DIR}/src/comm/mpi) 

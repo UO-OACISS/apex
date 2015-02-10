@@ -89,13 +89,13 @@ namespace apex {
   static vector<map<string, profile*>* > thread_name_maps(INITIAL_NUM_THREADS);
 
   /* The profiles, mapped by address */
-  static map<void*, profile*> address_map;
-  vector<map<void*, profile*>* > thread_address_maps(INITIAL_NUM_THREADS);
+  static map<apex_function_address, profile*> address_map;
+  vector<map<apex_function_address, profile*>* > thread_address_maps(INITIAL_NUM_THREADS);
 
   /* If we are throttling, keep a set of addresses that should not be timed.
    * We also have a set of names. */
 #if defined(APEX_THROTTLE)
-  static unordered_set<void*> throttled_addresses;
+  static unordered_set<apex_function_address> throttled_addresses;
   static unordered_set<string> throttled_names;
 #endif
 
@@ -111,7 +111,7 @@ namespace apex {
   /* Return the requested profile object to the user.
    * Return NULL if doesn't exist. */
   profile * profiler_listener::get_profile(apex_function_address address) {
-    map<void*, profile*>::iterator it = address_map.find((void*)address);
+    map<apex_function_address, profile*>::iterator it = address_map.find(address);
     if (it != address_map.end()) {
       return (*it).second;
     }
@@ -227,7 +227,7 @@ namespace apex {
         (*the_map)[*(p->timer_name)] = theprofile;
       }
     } else { // address rather than name
-      map<void*, profile*>::const_iterator it2 = address_map.find(p->action_address);
+      map<apex_function_address, profile*>::const_iterator it2 = address_map.find(p->action_address);
       if (it2 != address_map.end()) {
         // A profile for this name already exists.
         theprofile = (*it2).second;
@@ -241,7 +241,7 @@ namespace apex {
         // in order to reduce overhead.
         if (theprofile->get_calls() > APEX_THROTTLE_CALLS &&
             theprofile->get_mean() < APEX_THROTTLE_PERCALL) {
-          unordered_set<void*>::iterator it = throttled_addresses.find(p->action_address);
+          unordered_set<apex_function_address>::iterator it = throttled_addresses.find(p->action_address);
           if (it == throttled_addresses.end()) {
             throttled_addresses.insert(p->action_address);
 #if defined(HAVE_BFD)
@@ -258,7 +258,7 @@ namespace apex {
         address_map[p->action_address] = theprofile;
       }
       // now do thread-specific measurement
-      map<void*, profile*>* the_map = thread_address_maps[tid];
+      map<apex_function_address, profile*>* the_map = thread_address_maps[tid];
       it2 = the_map->find(p->action_address);
       if (it2 != the_map->end()) {
         // A profile for this name already exists.
@@ -282,7 +282,7 @@ namespace apex {
    * called at shutdown. But a good idea to do regardless. */
   void profiler_listener::delete_profiles(void) {
     // iterate over the map and free the objects in the map
-    map<void*, profile*>::const_iterator it;
+    map<apex_function_address, profile*>::const_iterator it;
     for(it = address_map.begin(); it != address_map.end(); it++) {
       delete it->second;
     }
@@ -332,7 +332,7 @@ namespace apex {
   /* At program termination, write the measurements to the screen. */
   void profiler_listener::finalize_profiles(void) {
     // iterate over the profiles in the address map
-    map<void*, profile*>::const_iterator it;
+    map<apex_function_address, profile*>::const_iterator it;
     cout << "Action, #calls, min, mean, max, total, stddev" << endl;
     for(it = address_map.begin(); it != address_map.end(); it++) {
       profile * p = it->second;
@@ -340,7 +340,7 @@ namespace apex {
 #if defined(APEX_THROTTLE)
       // if this profile was throttled, don't output the measurements.
       // they are limited and bogus, anyway.
-      unordered_set<void*>::const_iterator it = throttled_addresses.find(function_address);
+      unordered_set<apex_function_address>::const_iterator it = throttled_addresses.find(function_address);
       if (it != throttled_addresses.end()) { continue; }
 #endif
 #if APEX_HAVE_BFD
@@ -365,7 +365,7 @@ namespace apex {
 #if defined(APEX_THROTTLE)
       // if this profile was throttled, don't output the measurements.
       // they are limited and bogus, anyway.
-      unordered_set<void*>::const_iterator it = throttled_names.find(action_name);
+      unordered_set<apex_function_address>::const_iterator it = throttled_names.find(action_name);
       if (it != throttled_names.end()) { continue; }
 #endif
       cout << "\"" << action_name << "\", " ;
@@ -415,7 +415,7 @@ namespace apex {
     ofstream myfile;
     stringstream datname;
     map<string, profile*>* the_name_map = NULL;
-    map<void*, profile*>* the_address_map = NULL;
+    map<apex_function_address, profile*>* the_address_map = NULL;
 
     if (tid == -1) {
       the_name_map = &name_map;
@@ -455,7 +455,7 @@ namespace apex {
 
     // Iterate over the profiles which are associated to a function
     // by address. All of these are regular timers.
-    map<void*, profile*>::const_iterator it;
+    map<apex_function_address, profile*>::const_iterator it;
     for(it = the_address_map->begin(); it != the_address_map->end(); it++) {
       profile * p = it->second;
       // ".TAU application" 1 8 8658984 8660739 0 GROUP="TAU_USER"
@@ -623,7 +623,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
     if (!_terminate) {
       // Create a profiler queue for this main thread
       profiler_queues[0] = new boost::lockfree::spsc_queue<profiler*>(MAX_QUEUE_SIZE);
-      thread_address_maps[0] = new map<void*, profile*>();
+      thread_address_maps[0] = new map<apex_function_address, profile*>();
       thread_name_maps[0] = new map<string, profile*>();
       // Start the consumer thread, to process profiler objects.
       consumer_thread = new boost::thread(process_profiles);
@@ -740,7 +740,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
           profiler_queues[i] = tmp;
         }
     if (thread_address_maps[i] == NULL) {
-          thread_address_maps[i] = new map<void*, profile*>();
+          thread_address_maps[i] = new map<apex_function_address, profile*>();
     }
     if (thread_name_maps[i] == NULL) {
           thread_name_maps[i] = new map<string, profile*>();
@@ -765,7 +765,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       if (timer_name != NULL) {
 #if defined(APEX_THROTTLE)
         // if this timer is throttled, return without doing anything
-        unordered_set<void*>::const_iterator it = throttled_names.find(*timer_name);
+        unordered_set<apex_function_address>::const_iterator it = throttled_names.find(*timer_name);
         if (it != throttled_names.end()) {
           thread_instance::instance().current_timer = NULL;
           return;
@@ -776,7 +776,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       } else {
 #if defined(APEX_THROTTLE)
         // if this timer is throttled, return without doing anything
-        unordered_set<void*>::const_iterator it = throttled_addresses.find(function_address);
+        unordered_set<apex_function_address>::const_iterator it = throttled_addresses.find(function_address);
         if (it != throttled_addresses.end()) {
           thread_instance::instance().current_timer = NULL;
           return;

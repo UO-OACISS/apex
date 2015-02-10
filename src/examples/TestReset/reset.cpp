@@ -8,7 +8,7 @@ int main (int argc, char** argv) {
   init(argc, argv, NULL);
   version();
   set_node_id(0);
-  profiler * main_profiler = start((void*)(main));
+  profiler * main_profiler = start((apex_function_address)(main));
   // Call "foo" 30 times
   for(int i = 0; i < 30; ++i) {
     profiler * p = start("foo");
@@ -20,7 +20,7 @@ int main (int argc, char** argv) {
     stop(p);
   }    
   // Reset everything
-  reset((void *)nullptr);
+  reset(APEX_NULL_FUNCTION_ADDRESS);
   usleep(100);
   // Call "foo" 3 times
   for(int i = 0; i < 3; ++i) {

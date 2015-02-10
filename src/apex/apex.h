@@ -263,7 +263,7 @@ APEX_EXPORT void apex_set_interrupt_interval(int seconds);
  \param f The function to be called when that event is handled by APEX.
  \return A handle to the policy, to be stored if the policy is to be un-registered later.
  */
-APEX_EXPORT apex_policy_handle apex_register_policy(const apex_event_type when, int (*f)(apex_context const));
+APEX_EXPORT apex_policy_handle apex_register_policy(const apex_event_type when, apex_policy_function f);
 
 /**
  \brief Register a policy with APEX.
@@ -276,7 +276,7 @@ APEX_EXPORT apex_policy_handle apex_register_policy(const apex_event_type when, 
  \param f The function to be called when that event is handled by APEX.
  \return A handle to the policy, to be stored if the policy is to be un-registered later.
  */
-APEX_EXPORT apex_policy_handle apex_register_periodic_policy(unsigned long period, int (*f)(apex_context const));
+APEX_EXPORT apex_policy_handle apex_register_periodic_policy(unsigned long period, apex_policy_function f);
 
 /**
  \brief Get the current profile for the specified function address.

@@ -56,7 +56,7 @@ static void master(void) {
   unit_of_work_t work = 0;
   unit_result_t result = 0;
   MPI_Status status;
-  apex::profiler * p = apex::start((void*)(master));
+  apex::profiler * p = apex::start((apex_function_address)(master));
 
   /* Find out how many processes there are in the default
      communicator */
@@ -144,7 +144,7 @@ static void master(void) {
 static void worker(void) {
   unit_of_work_t work = 0;
   MPI_Status status;
-  apex::profiler * p = apex::start((void*)(worker));
+  apex::profiler * p = apex::start((apex_function_address)(worker));
 
   while (1) {
 
@@ -180,7 +180,7 @@ static unit_of_work_t get_next_work_item(void) {
 }
 
 static unit_result_t do_work(unit_of_work_t work) {
-  apex::profiler * p = apex::start((void*)(do_work));
+  apex::profiler * p = apex::start((apex_function_address)(do_work));
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   int i;

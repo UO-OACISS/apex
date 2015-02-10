@@ -83,7 +83,12 @@ typedef uintptr_t apex_profiler_handle; // address of internal C++ object
 /** Rather than use void pointers everywhere, be explicit about
  * what the functions are expecting.
  */
-typedef void * apex_function_address; // generic function pointer
+typedef int (*apex_function_address)(void); // generic function pointer
+
+/** Rather than use void pointers everywhere, be explicit about
+ * what the functions are expecting.
+ */
+typedef int (*apex_policy_function)(apex_context const context);
 
 /** A null pointer representing an APEX function address.
  * Used when a null APEX function address is to be passed in to

@@ -2,7 +2,7 @@
 #include <unistd.h>
 
 int foo(int i) {
-  apex_profiler_handle profiler = apex_start_address(foo);
+  apex_profiler_handle profiler = apex_start_address((apex_function_address)foo);
   int j = i * i;
   apex_stop_profiler(profiler);
   return j;
@@ -12,7 +12,7 @@ int main (int argc, char** argv) {
   apex_init_args(argc, argv, NULL);
   apex_version();
   apex_set_node_id(0);
-  apex_profiler_handle profiler = apex_start_address(main);
+  apex_profiler_handle profiler = apex_start_address((apex_function_address)main);
   int i,j = 0;
   for (i = 0 ; i < 3 ; i++)
     j += foo(i);

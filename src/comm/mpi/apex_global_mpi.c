@@ -70,7 +70,7 @@ int action_apex_reduce(void *unused) {
   return 0;
 }
 
-int apex_periodic_output(apex_context const context) {
+int apex_periodic_policy_func(apex_context const context) {
   action_apex_reduce(NULL);
   if (rank != 0) return 1;
   double avg = 0.0;
@@ -88,7 +88,7 @@ int apex_periodic_output(apex_context const context) {
 
 void apex_global_setup(apex_function_address in_action) {
   profiled_action = in_action;
-  apex_register_periodic_policy(1000000, apex_periodic_output);
+  apex_register_periodic_policy(1000000, apex_periodic_policy_func);
   apex_set_use_policy(true);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &size);
