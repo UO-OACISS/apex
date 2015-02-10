@@ -336,7 +336,7 @@ void stop(profiler* the_profiler)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     profiler * p;
-    if (the_profiler == APEX_NULL_PROFILER_HANDLE) {
+    if (the_profiler == NULL) {
         p = thread_instance::instance().current_timer;
     } else {
         p = (profiler*)the_profiler;
