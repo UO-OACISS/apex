@@ -74,6 +74,9 @@ should auto-detect the MPI settings from the mpicxx compiler in your path.
 <dt>Zlib</dt>
 <dd>Used by some BinUtils implementations.</dd>
 </dl>
+<dt>Doxygen</dt>
+<dd>Used to make this documentation.<dd>
+</dl>
 
 \subsection getting Getting the Code
 \subsection bootstrapping Bootstrapping: the "easy" way
