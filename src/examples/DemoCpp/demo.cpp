@@ -10,12 +10,12 @@ void* someThread(void* tmp)
   char name[32];
   sprintf(name, "worker-thread#%d", *tid);
   register_thread(name);
-  void * profiler = start((void*)(someThread));
+  profiler* p = start((void*)(someThread));
   sample_value("/threadqueue{locality#0/total}/length", 2.0);
   char counter[64];
   sprintf(counter, "/threadqueue{locality#0/%s}/length", name);
   sample_value(counter, 2.0);
-  stop(profiler);
+  stop(p);
   return NULL;
 }
 
@@ -23,7 +23,7 @@ int main (int argc, char** argv) {
   init(argc, argv, NULL);
   version();
   set_node_id(0);
-  void * profiler = start((void*)(main));
+  profiler* p = start((void*)(main));
   pthread_t thread[2];
   int tid = 0;
   pthread_create(&(thread[0]), NULL, someThread, &tid);
@@ -31,7 +31,7 @@ int main (int argc, char** argv) {
   pthread_create(&(thread[1]), NULL, someThread, &tid2);
   pthread_join(thread[0], NULL);
   pthread_join(thread[1], NULL);
-  stop(profiler);
+  stop(p);
   sample_value("Apex Version", version());
   finalize();
   return 0;

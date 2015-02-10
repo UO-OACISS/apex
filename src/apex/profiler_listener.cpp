@@ -336,7 +336,7 @@ namespace apex {
     cout << "Action, #calls, min, mean, max, total, stddev" << endl;
     for(it = address_map.begin(); it != address_map.end(); it++) {
       profile * p = it->second;
-      void * function_address = it->first;
+      apex_function_address function_address = it->first;
 #if defined(APEX_THROTTLE)
       // if this profile was throttled, don't output the measurements.
       // they are limited and bogus, anyway.
@@ -459,7 +459,7 @@ namespace apex {
     for(it = the_address_map->begin(); it != the_address_map->end(); it++) {
       profile * p = it->second;
       // ".TAU application" 1 8 8658984 8660739 0 GROUP="TAU_USER"
-      void * function_address = it->first;
+      apex_function_address function_address = it->first;
 #if APEX_HAVE_BFD
       string * tmp = lookup_address((uintptr_t)function_address);
       myfile << "\"" << *tmp << "\" ";

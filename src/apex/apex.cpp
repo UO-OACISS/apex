@@ -282,7 +282,7 @@ profiler* start(string timer_name)
     return thread_instance::instance().current_timer;
 }
 
-profiler* start(void * function_address) {
+profiler* start(apex_function_address function_address) {
     APEX_TIMER_TRACER("start ", function_address)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return NULL; // protect against calls after finalization
@@ -306,7 +306,7 @@ void reset(std::string timer_name) {
     }
 }
 
-void reset(void * function_address) {
+void reset(apex_function_address function_address) {
     APEX_TIMER_TRACER("reset", function_address)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
@@ -317,7 +317,7 @@ void reset(void * function_address) {
     }
 }
 
-void resume(void * the_profiler) {
+void resume(profiler* the_profiler) {
     APEX_TIMER_TRACER("resume", timer_name)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
@@ -330,13 +330,13 @@ void resume(void * the_profiler) {
     }
 }
 
-void stop(void * the_profiler)
+void stop(profiler* the_profiler)
 {
     APEX_TIMER_TRACER("stop  ", timer_name)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     profiler * p;
-    if (the_profiler == NULL) {
+    if (the_profiler == APEX_NULL_PROFILER_HANDLE) {
         p = thread_instance::instance().current_timer;
     } else {
         p = (profiler*)the_profiler;
@@ -613,7 +613,7 @@ extern "C" {
             return (apex_profiler_handle)start(string(""));
     }
 
-    apex_profiler_handle apex_start_address(void * function_address)
+    apex_profiler_handle apex_start_address(apex_function_address function_address)
     {
         return (apex_profiler_handle)start(function_address);
     }
@@ -630,14 +630,14 @@ extern "C" {
         reset(function_address);
     }
 
-    void apex_resume_profiler(void * the_profiler)
+    void apex_resume_profiler(apex_profiler_handle the_profiler)
     {
-        resume(the_profiler);
+        resume((profiler*)the_profiler);
     }
 
-    void apex_stop_profiler(void * the_profiler)
+    void apex_stop_profiler(apex_profiler_handle the_profiler)
     {
-        stop(the_profiler);
+        stop((profiler*)the_profiler);
     }
 
     void apex_sample_value(const char * name, double value)

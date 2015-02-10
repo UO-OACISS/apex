@@ -50,7 +50,7 @@ static void master(void) {
   int work = 0;
   int result = 0;
   MPI_Status status;
-  void * profiler = apex::start((void*)(master));
+  apex::profiler* p = apex::start((void*)(master));
 
   /* Find out how many processes there are in the default
      communicator */
@@ -129,13 +129,13 @@ static void master(void) {
   for (rank = 1; rank < ntasks; ++rank) {
     MPI_Send(0, 0, MPI_INT, rank, DIETAG, MPI_COMM_WORLD);
   }
-  apex::stop(profiler);
+  apex::stop(p);
 }
 
 static void worker(void) {
   int work = 0;
   MPI_Status status;
-  void * profiler = apex::start((void*)(worker));
+  apex::profiler* p = apex::start((void*)(worker));
 
   while (1) {
 
@@ -158,7 +158,7 @@ static void worker(void) {
 
     MPI_Send(&result, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
   }
-  apex::stop(profiler);
+  apex::stop(p);
 }
 
 
@@ -174,12 +174,12 @@ static int get_next_work_item(void)
 
 static int do_work(int work)
 {
-  void * profiler = apex::start((void*)(do_work));
+  apex::profiler* p = apex::start((void*)(do_work));
   //sleep(*mywork);
   dummy = dummy + work;
   /* Fill in with whatever is necessary to process the work and
      generate a result */
-  apex::stop(profiler);
+  apex::stop(p);
 	return dummy;
 }
 

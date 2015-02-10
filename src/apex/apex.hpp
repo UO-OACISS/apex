@@ -186,7 +186,7 @@ APEX_EXPORT profiler* start(std::string timer_name);
 		 call when the timer should be stopped.
  \sa apex::stop
  */
-APEX_EXPORT profiler* start(void * function_address);
+APEX_EXPORT profiler* start(apex_function_address function_address);
 
 /**
  \brief Stop a timer.
@@ -199,7 +199,7 @@ APEX_EXPORT profiler* start(void * function_address);
  \return No return value.
  \sa apex::start
  */
-APEX_EXPORT void stop(void * profiler);
+APEX_EXPORT void stop(profiler* the_profiler);
 
 /**
  \brief Restart a timer.
@@ -213,7 +213,7 @@ APEX_EXPORT void stop(void * profiler);
  \return No return value.
  \sa apex::start, apex::stop
  */
-APEX_EXPORT void resume(void * profiler);
+APEX_EXPORT void resume(profiler* the_profiler);
 
 /**
  \brief Sample a state value.
@@ -248,7 +248,7 @@ APEX_EXPORT void reset(std::string timer_name);
  \param function_address The function address of the timer.
  \return No return value.
  */
-APEX_EXPORT void reset(void * function_address);
+APEX_EXPORT void reset(apex_function_address function_address);
 
 /**
  \brief Return the APEX version.

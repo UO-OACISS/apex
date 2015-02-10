@@ -8,15 +8,15 @@ int main (int argc, char** argv) {
   init(argc, argv, NULL);
   version();
   set_node_id(0);
-  void * profiler = start((void*)(main));
+  apex::profiler * main_profiler = start((void*)(main));
   // Call "foo" 30 times
   for(int i = 0; i < 30; ++i) {
-    void * p = start("foo");
+    apex::profiler * p = start("foo");
     stop(p);
   }    
   // Call "bar" 40 times
   for(int i = 0; i < 40; ++i) {
-    void * p = start("bar");
+    apex::profiler * p = start("bar");
     stop(p);
   }    
   // Reset everything
@@ -24,12 +24,12 @@ int main (int argc, char** argv) {
   usleep(100);
   // Call "foo" 3 times
   for(int i = 0; i < 3; ++i) {
-    void * p = start("foo");
+    apex::profiler * p = start("foo");
     stop(p);
   }    
   // Call "bar" 4 times
   for(int i = 0; i < 4; ++i) {
-    void * p = start("bar");
+    apex::profiler * p = start("bar");
     stop(p);
   }    
   // The profile should show "foo" was called 3 times
@@ -37,7 +37,7 @@ int main (int argc, char** argv) {
   
   // Call "Test Timer" 100 times
   for(int i = 0; i < 100; ++i) {
-    void * p = start("Test Timer");
+    apex::profiler * p = start("Test Timer");
     stop(p);
   }    
   // Reset "Test Timer"
@@ -45,11 +45,11 @@ int main (int argc, char** argv) {
   usleep(100);
   // Call "Test Timer" 25 times
   for(int i = 0; i < 25; ++i) {
-    void * p = start("Test Timer");
+    apex::profiler * p = start("Test Timer");
     stop(p);
   }    
   // The profile should show "Test Timer" was called 25 times.
-  stop(profiler);
+  stop(main_profiler);
   sample_value("Apex Version", version());
   finalize();
   return 0;

@@ -2,8 +2,8 @@
 #include "apex.hpp"
 
 void initialize(double **matrix, int rows, int cols) {
-  //void * profiler = apex::start((void*)(initialize));
-  void * profiler = apex::start(__func__);
+  //profiler* p = apex::start((void*)(initialize));
+  apex::profiler* p = apex::start(__func__);
   int i,j;
   {
     /*** Initialize matrices ***/
@@ -13,6 +13,6 @@ void initialize(double **matrix, int rows, int cols) {
       }
     }
   }
-  apex::stop(profiler);
+  apex::stop(p);
 }
 

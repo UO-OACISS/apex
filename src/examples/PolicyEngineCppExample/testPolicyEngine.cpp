@@ -12,7 +12,7 @@
 class ApexProxy {
 private:
   std::string _name;
-  void * profiler;
+  apex::profiler * p;
 public:
   ApexProxy(const char * func, const char * file, int line);
   ApexProxy(void *fpointer);
@@ -23,15 +23,15 @@ ApexProxy::ApexProxy(const char * func, const char * file, int line) {
   std::ostringstream s;
   s << func << " [" << file << ":" << line << "]";
   _name = std::string(s.str());
-  profiler = apex::start(_name);
+  p = apex::start(_name);
 }
 
 ApexProxy::ApexProxy(void *fpointer) {
-  profiler = apex::start(fpointer);
+  p = apex::start(fpointer);
 }
 
 ApexProxy::~ApexProxy() {
-  apex::stop(profiler);
+  apex::stop(p);
 };
 
 int foo (int i) {

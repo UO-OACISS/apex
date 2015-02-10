@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
   MPI_Init_thread(&argc, &argv, required, &provided);
   if (provided < required) {
     printf ("Your MPI installation doesn't allow multiple threads to communicate. Exiting.\n");
-	exit(0);
+    exit(0);
   }
   apex::init(argc, argv, "MPI TEST");
   apex_global_setup((apex_function_address)(do_work));
@@ -56,7 +56,7 @@ static void master(void) {
   unit_of_work_t work = 0;
   unit_result_t result = 0;
   MPI_Status status;
-  void * profiler = apex::start((void*)(master));
+  apex::profiler * p = apex::start((void*)(master));
 
   /* Find out how many processes there are in the default
      communicator */
@@ -115,13 +115,13 @@ static void master(void) {
 
     // do some work myself
     work = get_next_work_item();
-	if (work != 0) {
+    if (work != 0) {
       result = do_work(work);
 
     /* Get the next unit of work to be done */
 
       work = get_next_work_item();
-	}
+    }
   }
 
   /* There's no more work to be done, so receive all the outstanding
@@ -138,13 +138,13 @@ static void master(void) {
   for (rank = 1; rank < ntasks; ++rank) {
     MPI_Send(0, 0, MPI_INT, rank, DIETAG, MPI_COMM_WORLD);
   }
-  apex::stop(profiler);
+  apex::stop(p);
 }
 
 static void worker(void) {
   unit_of_work_t work = 0;
   MPI_Status status;
-  void * profiler = apex::start((void*)(worker));
+  apex::profiler * p = apex::start((void*)(worker));
 
   while (1) {
 
@@ -167,32 +167,32 @@ static void worker(void) {
 
     MPI_Send(&result, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
   }
-  apex::stop(profiler);
+  apex::stop(p);
 }
 
 static unit_of_work_t get_next_work_item(void) {
   /* Fill in with whatever is relevant to obtain a new unit of work
      suitable to be given to a worker. */
-	static int data[] = {1,2,3,4,5,6,7,8,9,10};
-	static int index = -1;
-	if (++index < 10) return (data[index]);
-	return 0;
+  static int data[] = {1,2,3,4,5,6,7,8,9,10};
+  static int index = -1;
+  if (++index < 10) return (data[index]);
+  return 0;
 }
 
 static unit_result_t do_work(unit_of_work_t work) {
-  void * profiler = apex::start((void*)(do_work));
+  apex::profiler * p = apex::start((void*)(do_work));
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   int i;
   for (i = 0 ; i < 500000000 ; i++) {
     dummy = dummy * (dummy + work);
-	if (dummy > (INT_MAX >> 1)) {
-	  dummy = 1;
-	}
+    if (dummy > (INT_MAX >> 1)) {
+      dummy = 1;
+    }
   }
   /* Fill in with whatever is necessary to process the work and
      generate a result */
-  apex::stop(profiler);
+  apex::stop(p);
   return dummy;
 }
 

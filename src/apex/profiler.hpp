@@ -26,13 +26,13 @@ public:
 	long long papi_stop_values[8];
 #endif
     double value;
-    void * action_address;
+    apex_function_address action_address;
     string * timer_name;
     bool have_name;
     bool is_counter;
     bool is_resume;
     reset_type is_reset;
-    profiler(void * address, bool resume = false, reset_type reset = reset_type::NONE) : 
+    profiler(apex_function_address address, bool resume = false, reset_type reset = reset_type::NONE) : 
 	    start(high_resolution_clock::now()), 
 	    action_address(address), 
 	    have_name(false), 

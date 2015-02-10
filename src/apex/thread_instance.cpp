@@ -167,7 +167,7 @@ const char* program_path(void) {
     return NULL;
 }
 
-string thread_instance::map_addr_to_name(void * function_address) {
+string thread_instance::map_addr_to_name(apex_function_address function_address) {
   static std::string progname = string(program_path());
   auto it = _function_map.find(function_address);
   if (it != _function_map.end()) {

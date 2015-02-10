@@ -29,11 +29,11 @@ public:
 class timer_event_data : public event_data {
 public:
   string * timer_name;
-  void * function_address;
+  apex_function_address function_address;
   profiler *my_profiler;
   bool have_name;
   timer_event_data(apex_event_type eventType, int thread_id, string timer_name);
-  timer_event_data(apex_event_type eventType, int thread_id, void * function_address);
+  timer_event_data(apex_event_type eventType, int thread_id, apex_function_address function_address);
   ~timer_event_data();
 };
 

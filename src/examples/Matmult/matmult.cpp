@@ -29,27 +29,27 @@
 #define NCB MATRIX_SIZE                 /* number of columns in matrix B */
 
 double** allocateMatrix(int rows, int cols) {
-  //void * profiler = apex::start((void*)(allocateMatrix));
-  void * profiler = apex::start(__func__);
+  //apex::profiler* p = apex::start((void*)(allocateMatrix));
+  apex::profiler* p = apex::start(__func__);
   int i;
   double **matrix = (double**)malloc((sizeof(double*)) * rows);
   for (i=0; i<rows; i++) {
     matrix[i] = (double*)malloc((sizeof(double)) * cols);
   }
-  apex::stop(profiler);
+  apex::stop(p);
   return matrix;
 }
 
 #ifdef APP_USE_INLINE_MULTIPLY
 __inline double multiply(double a, double b) {
-	return a * b;
+  return a * b;
 }
 #endif /* APP_USE_INLINE_MULTIPLY */
 
 // cols_a and rows_b are the same value
 void compute_nested(double **a, double **b, double **c, int rows_a, int cols_a, int cols_b) {
-  //void * profiler = apex::start((void*)(compute_nested));
-  void * profiler = apex::start(__func__);
+  //apex::profiler* p = apex::start((void*)(compute_nested));
+  apex::profiler* p = apex::start(__func__);
   int i,j,k;
   {
     /*** Do matrix multiply sharing iterations on outer loop ***/
@@ -68,13 +68,13 @@ void compute_nested(double **a, double **b, double **c, int rows_a, int cols_a, 
       }
     }
   }   /*** End of parallel region ***/
-  apex::stop(profiler);
+  apex::stop(p);
 }
 
 // cols_a and rows_b are the same value
 void compute(double **a, double **b, double **c, int rows_a, int cols_a, int cols_b) {
-  //void * profiler = apex::start((void*)(compute));
-  void * profiler = apex::start(__func__);
+  //apex::profiler* p = apex::start((void*)(compute));
+  apex::profiler* p = apex::start(__func__);
   int i,j,k;
   {
     /*** Do matrix multiply sharing iterations on outer loop ***/
@@ -91,12 +91,12 @@ void compute(double **a, double **b, double **c, int rows_a, int cols_a, int col
       }
     }
   }   /*** End of parallel region ***/
-  apex::stop(profiler);
+  apex::stop(p);
 }
 
 void compute_interchange(double **a, double **b, double **c, int rows_a, int cols_a, int cols_b) {
-  //void * profiler = apex::start((void*)(compute_interchange));
-  void * profiler = apex::start(__func__);
+  //apex::profiler* p = apex::start((void*)(compute_interchange));
+  apex::profiler* p = apex::start(__func__);
   int i,j,k;
   {
     /*** Do matrix multiply sharing iterations on outer loop ***/
@@ -113,12 +113,12 @@ void compute_interchange(double **a, double **b, double **c, int rows_a, int col
       }
     }
   }   /*** End of parallel region ***/
-  apex::stop(profiler);
+  apex::stop(p);
 }
 
 double do_work(void) {
-  //void * profiler = apex::start((void*)(do_work));
-  void * profiler = apex::start(__func__);
+  //apex::profiler* p = apex::start((void*)(do_work));
+  apex::profiler* p = apex::start(__func__);
   double **a,           /* matrix A to be multiplied */
   **b,           /* matrix B to be multiplied */
   **c;           /* result matrix C */
@@ -135,7 +135,7 @@ double do_work(void) {
   compute(a, b, c, NRA, NCA, NCB);
   compute_interchange(a, b, c, NRA, NCA, NCB);
 
-  apex::stop(profiler);
+  apex::stop(p);
   return c[0][1]; 
 }
 
@@ -153,8 +153,8 @@ int main (int argc, char *argv[])
 {
   apex::init(argc, argv, NULL);
   apex::set_node_id(0);
-  //void * profiler = apex::start((void*)(main));
-  void * profiler = apex::start(__func__);
+  //apex::profiler* p = apex::start((void*)(main));
+  apex::profiler* p = apex::start(__func__);
 
 #ifdef PTHREADS
   int ret;
@@ -209,7 +209,7 @@ int main (int argc, char *argv[])
 #endif /* PTHREADS */
 
   printf ("Done.\n");
-  apex::stop(profiler);
+  apex::stop(p);
   apex::finalize();
   return 0;
 }

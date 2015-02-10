@@ -73,11 +73,13 @@ typedef struct _profile
  * for stopping the timer later.
  */
 typedef uintptr_t apex_profiler_handle; // address of internal C++ object
+#define APEX_NULL_PROFILER_HANDLE (apex_profiler_handle)(NULL) // for comparisons
 
 /** Rather than use void pointers everywhere, be explicit about
  * what the functions are expecting.
  */
 typedef void * apex_function_address; // generic function pointer
+#define APEX_NULL_FUNCTION_ADDRESS (apex_function_address)(NULL) // for comparisons
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
