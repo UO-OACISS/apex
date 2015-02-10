@@ -195,7 +195,7 @@ APEX_EXPORT profiler* start(apex_function_address function_address);
  the profiler to be processed out-of-band. The timer value will 
  eventually added to the profile for the process.
  
- \param profiler The handle of the profiler object.
+ \param the_profiler The handle of the profiler object.
  \return No return value.
  \sa apex::start
  */
@@ -209,7 +209,7 @@ APEX_EXPORT void stop(profiler* the_profiler);
  function is that the number of calls to that
  timer will not be incremented.
  
- \param profiler The handle of the profiler object.
+ \param the_profiler The handle of the profiler object.
  \return No return value.
  \sa apex::start, apex::stop
  */

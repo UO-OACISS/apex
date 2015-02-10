@@ -40,6 +40,41 @@ The direct links to each API are here:
 </dl>
 
 \section installation Installation
+\subsection external_dependencies External Software Dependencies
+\subsubsection required_dependencies Required Software Dependencies
+<dl>
+<dt>CMake version 2.8.12 or newer</dt>
+<dd></dd>
+<dt>Boost 1.54.0</dt>
+<dd>With the headers and the following libraries: system thread timer chrono</dd>
+</dl>
+
+\subsubsection optional_dependencies Optional Software Dependencies
+<dl>
+
+<dt>MPI</dt>
+<dd>If your application / runtime uses MPI for distributed communication,
+enabling MPI support allows APEX to provide global performance data across
+all nodes. The MPI exchanges use MPI2 asynchronous communication, so your
+MPI implementation needs to at least support the MPI2 interface. CMake 
+should auto-detect the MPI settings from the mpicxx compiler in your path.
+</dd>
+<dt>TAU</dt>
+<dd>For collecting post-mortem profile or trace files.</dd>
+<dt>RCR</dt>
+<dd>For accessing system-level privileged information.</dd>
+<dt>Tcmalloc</dt>
+<dd>For faster memory allocation.</dd>
+<dt>PAPI</dt>
+<dd>For Hardware Counter support (without TAU).</dd>
+<dt>BinUtils</dt>
+<dd>For resolving function addresses to name, file, line number(s).</dd>
+<dt>BinUtils Demangle support</dt>
+<dd>Used with BinUtils to demangle C++ function names.</dd>
+<dt>Zlib</dt>
+<dd>Used by some BinUtils implementations.</dd>
+</dl>
+
 \subsection getting Getting the Code
 \subsection bootstrapping Bootstrapping: the "easy" way
 \subsection custom Custom Builds

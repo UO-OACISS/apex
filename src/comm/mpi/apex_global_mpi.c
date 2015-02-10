@@ -110,11 +110,15 @@ void apex_global_setup(apex_function_address in_action) {
 void apex_global_teardown(void) {
   printf("\n");
   fflush(stdout);
+  // This teardown process is causing crashes on some platforms. Disabled for now.
+  return;
+#if 0
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Win_free(&profile_window); 
   if (rank == 0) {
     fclose(graph_output);
     MPI_Free_mem(inValues);
   }
+#endif
 }
 
