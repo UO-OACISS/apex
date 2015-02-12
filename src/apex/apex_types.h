@@ -83,7 +83,8 @@ typedef uintptr_t apex_profiler_handle; // address of internal C++ object
 /** Rather than use void pointers everywhere, be explicit about
  * what the functions are expecting.
  */
-typedef int (*apex_function_address)(void); // generic function pointer
+//typedef int (*apex_function_address)(void); // generic function pointer
+typedef uintptr_t apex_function_address; // generic function pointer
 
 /** Rather than use void pointers everywhere, be explicit about
  * what the functions are expecting.

@@ -7,6 +7,9 @@
 #include "proc_read.h"
 #include "apex.hpp"
 #include <boost/atomic.hpp>
+#include <sstream>
+#include <fstream>
+#include <string>
 
 #define COMMAND_LEN 20
 #define DATA_SIZE 512
@@ -94,18 +97,16 @@ ProcData* parse_proc_stat(void) {
   }
   fclose (pFile);
 #if defined(APEX_HAVE_CRAY_POWER)
-  pFile = fopen ("/sys/cray/pm_counters/power","r");
-  if (pFile == NULL) perror ("Error opening file");
-  else {
-    sscanf(line, "%d %s\n", &procData->power, dummy);
+  int tmpint;
+  std::string tmpstr;
+  std::ifstream infile("/sys/cray/pm_counters/power");
+  while (infile >> tmpint >> tmpstr) {
+    procData->power = tmpint;
   }
-  fclose (pFile);
-  pFile = fopen ("/sys/cray/pm_counters/energy","r");
-  if (pFile == NULL) perror ("Error opening file");
-  else {
-    sscanf(line, "%d %s\n", &procData->energy, dummy);
+  std::ifstream infile2("/sys/cray/pm_counters/energy");
+  while (infile2 >> tmpint >> tmpstr) {
+    procData->energy = tmpint;
   }
-  fclose (pFile);
 #endif
   return procData;
 }
@@ -139,6 +140,8 @@ ProcData* ProcData::diff(ProcData const& rhs) {
   d->processes = processes - rhs.processes;
   d->procs_running = procs_running - rhs.procs_running;
   d->procs_blocked = procs_blocked - rhs.procs_blocked;
+  d->power = power;
+  d->energy = energy - rhs.energy;
   return d;
 }
 

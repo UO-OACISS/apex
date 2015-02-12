@@ -22,7 +22,7 @@ find_path(BFD_INCLUDE_DIR bfd.h
           PATH_SUFFIXES BFD )
 
 set(TMP_PATH $ENV{LD_LIBRARY_PATH})
-if ($TM_PATH)
+if ($TMP_PATH)
 	  string(REPLACE ":" " " LD_LIBRARY_PATH_STR $TMP_PATH)
 endif()
 find_library(BFD_LIBRARY NAMES bfd z

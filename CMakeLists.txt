@@ -94,11 +94,11 @@ configure_file (
 )
 
 # use PIC for shared objects
-if (BUILD_SHARED_LIBS)
+#if (BUILD_SHARED_LIBS)
 set(CMAKE_POSITION_INDEPENDENT_CODE True)
 set(POSITION_INDEPENDENT_CODE True)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
-endif (BUILD_SHARED_LIBS)
+#endif (BUILD_SHARED_LIBS)
 
 #set debugging info
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS} -g -O0 -Wextra -Waddress -Warray-bounds -Wuninitialized -Wreturn-type -Wall")
@@ -240,6 +240,9 @@ SET(exec_prefix "\${prefix}")
 SET(libdir "\${exec_prefix}/lib")
 SET(bindir "\${exec_prefix}/bin")
 SET(includedir "\${prefix}/include")
+string(REPLACE ";" " " TMP_LIBS "${LIBS}")
+string(REPLACE ";" " " TMP_Boost "${Boost_LIBRARIES}")
+SET(extralibs "${TMP_LIBS} ${TMP_Boost} ${CMAKE_EXE_LINKER_FLAGS}")
 SET(requirements "")
 CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/pkgconfig/apex.pc.in
                ${CMAKE_BINARY_DIR}/pkgconfig/apex.pc @ONLY)
