@@ -64,12 +64,8 @@ private:
     {
         _initialize();
     };
-    apex(apex const&) {};            // copy constructor is private
-    apex& operator=(apex const& a)
-    {
-        // FIXME: this does not make any sense
-        return const_cast<apex&>(a);
-    };  // assignment operator is private
+    apex(apex const&);            // copy constructor is private
+    apex& operator=(apex const& a); // assignment operator is private
 // member variables
     static apex* m_pInstance;
     int m_argc;
