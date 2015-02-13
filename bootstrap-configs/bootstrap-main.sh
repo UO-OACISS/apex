@@ -1,34 +1,5 @@
 #!/bin/bash -e
 
-#configure parameters - set what ever you need in this top section!
-
-# REQUIRED libraries
-
-BOOST_ROOT=/usr
-
-# OPTIONAL libraries
-
-BFD_ROOT=$HOME/install/binutils-2.23.2
-GPERFTOOLS_ROOT=$HOME/install/google-perftools/2.4
-#RCR_ROOT=$HOME/src/RCRdaemon
-#PAPI_ROOT=/usr/local/papi/5.3.2
-#TAU_ROOT=$HOME/src/tau2
-
-# other CMake variables
-
-cmake_build_type="-DCMAKE_BUILD_TYPE=Debug" # Debug, Release, RelWithDebInfo, etc.
-cmake_apex_throttle="-DAPEX_THROTTLE=FALSE" # TRUE or FALSE
-cmake_build_shared_libs="-DBUILD_SHARED_LIBS=TRUE" # TRUE or FALSE
-cmake_install_prefix="-DCMAKE_INSTALL_PREFIX=../install" # the installation path
-cmake_use_codeblocks="-G \"CodeBlocks - Unix Makefiles\""
-cmake_make_verbose=""  # for verbose, use -DCMAKE_VERBOSE_MAKEFILE=ON
-
-# runtime parameters for testing HPX
-
-export APEX_POLICY=1
-export APEX_CONCURRENCY=0
-export APEX_TAU=0
-
 # NO NEED TO MODIFY ANYTHING BELOW THIS LINE
 # ------------------------------------------------------------------------
 
@@ -70,7 +41,18 @@ dir="build_$datestamp"
 mkdir $dir
 cd $dir
 
-cmd="cmake $cmake_use_codeblocks $boost_config $bfd_config $gperftools_config $cmake_build_type $cmake_apex_throttle $cmake_build_shared_libs $cmake_install_prefix $cmake_make_verbose .."
+cmd="cmake \
+$cmake_use_codeblocks \
+$boost_config \
+$bfd_config \
+$gperftools_config \
+$cmake_build_type \
+$cmake_apex_throttle \
+$cmake_build_shared_libs \
+$cmake_install_prefix \
+$cmake_make_verbose \
+$cmake_use_mpi \
+.."
 echo $cmd
 eval $cmd
 
