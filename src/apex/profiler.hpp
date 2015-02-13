@@ -34,13 +34,17 @@ public:
     reset_type is_reset;
     profiler(apex_function_address address, bool resume = false, reset_type reset = reset_type::NONE) : 
 	    start(high_resolution_clock::now()), 
+            value(0.0),
 	    action_address(address), 
+	    timer_name(NULL), 
 	    have_name(false), 
 	    is_counter(false),
         is_resume(resume),
         is_reset(reset) {};
     profiler(string * name, bool resume = false, reset_type reset = reset_type::NONE) : 
 	    start(high_resolution_clock::now()), 
+	    value(0.0), 
+	    action_address(0L), 
 	    timer_name(name), 
 	    have_name(true), 
 	    is_counter(false),
@@ -48,6 +52,7 @@ public:
         is_reset(reset) {};
     profiler(string * name, double value_) : 
 	    value(value_), 
+	    action_address(0L), 
 	    timer_name(name), 
 	    have_name(true), 
 	    is_counter(true),

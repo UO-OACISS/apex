@@ -178,7 +178,8 @@ string thread_instance::map_addr_to_name(apex_function_address function_address)
   string name = string(strings[0]);
 #else
   stringstream ss;
-  ss << "UNRESOLVED " << progname << " ADDR " << hex << function_address;
+  //ss << "UNRESOLVED " << progname << " ADDR " << hex << function_address;
+  ss << "UNRESOLVED ADDR " << hex << function_address;
   string name = string(ss.str());
 #endif
   _function_map[function_address] = name;

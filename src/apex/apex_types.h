@@ -95,7 +95,8 @@ typedef int (*apex_policy_function)(apex_context const context);
  * Used when a null APEX function address is to be passed in to
  * any apex functions to represent "all functions". 
  */
-#define APEX_NULL_FUNCTION_ADDRESS (apex_function_address)(NULL) // for comparisons
+#define APEX_NULL_FUNCTION_ADDRESS 0L // for comparisons
+//#define APEX_NULL_FUNCTION_ADDRESS (apex_function_address)(NULL) // for comparisons
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 

@@ -860,10 +860,10 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       profiler * p;
       if(timer_name != nullptr) {
         p = new profiler(new string(*timer_name), false, reset_type::CURRENT);
-      } else if(function_address != nullptr) {
+      } else if(function_address != APEX_NULL_FUNCTION_ADDRESS) {
         p = new profiler(function_address, false, reset_type::CURRENT);
       } else {
-        p = new profiler((apex_function_address)nullptr, false, reset_type::ALL);
+        p = new profiler((apex_function_address)APEX_NULL_FUNCTION_ADDRESS, false, reset_type::ALL);
       }
       profiler_queues[my_tid]->push(p);
       queue_signal.post();

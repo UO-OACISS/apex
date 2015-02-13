@@ -23,7 +23,7 @@ timer_event_data::timer_event_data(apex_event_type event_type_, int thread_id, s
   this->thread_id = thread_id;
   this->my_profiler = NULL;
   this->timer_name = new string(timer_name);
-  this->function_address = NULL;
+  this->function_address = APEX_NULL_FUNCTION_ADDRESS;
 }
 
 timer_event_data::timer_event_data(apex_event_type event_type_, int thread_id, apex_function_address function_address) : have_name(false) {
