@@ -46,13 +46,14 @@ $cmake_use_codeblocks \
 $boost_config \
 $bfd_config \
 $gperftools_config \
+$papi_config \
 $cmake_build_type \
 $cmake_apex_throttle \
 $cmake_build_shared_libs \
 $cmake_install_prefix \
 $cmake_make_verbose \
 $cmake_use_mpi \
-.."
+$DIR/.."
 echo $cmd
 eval $cmd
 
