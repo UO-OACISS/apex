@@ -1,5 +1,8 @@
 #!/bin/bash -e
 
+# where is this script located?
+DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+
 ###################################################################
 #configure parameters - set what ever you need in this top section!
 ###################################################################
@@ -24,7 +27,7 @@ cmake_build_shared_libs="-DBUILD_SHARED_LIBS=TRUE" # TRUE or FALSE
 cmake_install_prefix="-DCMAKE_INSTALL_PREFIX=../install" # the installation path
 cmake_use_codeblocks="-G \"CodeBlocks - Unix Makefiles\"" # if you want to debug in CodeBlocks
 cmake_make_verbose=""  # for verbose, use -DCMAKE_VERBOSE_MAKEFILE=ON
-cmake_use_mpi="-DUSE_MPI=FALSE" # TRUE or FALSE
+cmake_use_mpi="-DUSE_MPI=TRUE" # TRUE or FALSE
 
 # runtime parameters for testing APEX with "make test"
 
@@ -38,7 +41,5 @@ export APEX_TAU=0
 
 # ------------------------------------------------------------------------
 
-# where is this script located?
-DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 # run the main script
 . $DIR/bootstrap-main.sh
