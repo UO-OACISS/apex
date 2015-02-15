@@ -1,0 +1,15 @@
+NOTE: On edison, make sure you make the following module changes
+before running the bootstrap-edison.sh script:
+
+module swap PrgEnv-intel PrgEnv-gnu
+module load gcc/4.9.2
+module load cmake/2.8.12.2
+module load boost
+module load automake/1.14
+module load autoconf
+module load craype-hugepages8M
+module unload cray-shmem
+module unload darshan
+
+When building APEX for use with HPX, do NOT use the MPI bootstrap script. 
+When building APEX for use in an MPI application, DO use the MPI bootstrap script.

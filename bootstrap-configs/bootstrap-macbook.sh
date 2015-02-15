@@ -25,6 +25,7 @@ cmake_install_prefix="-DCMAKE_INSTALL_PREFIX=../install" # the installation path
 #cmake_use_codeblocks="-G \"CodeBlocks - Unix Makefiles\"" # if you want to debug in CodeBlocks
 cmake_make_verbose=""  # for verbose, use -DCMAKE_VERBOSE_MAKEFILE=ON
 cmake_use_mpi="-DUSE_MPI=FALSE" # TRUE or FALSE
+cmake_other_settings="" # anything else?
 
 # runtime parameters for testing APEX with "make test"
 
