@@ -74,13 +74,33 @@ should auto-detect the MPI settings from the mpicxx compiler in your path.
 <dt>Zlib</dt>
 <dd>Used by some BinUtils implementations.</dd>
 </dl>
+<dl>
 <dt>Doxygen</dt>
-<dd>Used to make this documentation.<dd>
+<dd>Used to make this documentation.</dd>
 </dl>
 
 \subsection getting Getting the Code
+
+The code is hosted at https://code.google.com/p/xpress-apex/.  To get the code,
+follow the instructions here: https://code.google.com/p/xpress-apex/source/checkout
+
 \subsection bootstrapping Bootstrapping: the "easy" way
+
+The code contains a "bootstrap-configs" directory with a few examples. 
+
+<ol>
+<li> Start with the example closest to your system </li/>
+<li> Copy that example in the same bootstrap-configs directory </li/>
+<li> Edit as necessary </li/>
+<li> Bootstrap with "./bootstrap-configs/bootstrap-xxx.sh" </li/>
+</ol>
+
 \subsection custom Custom Builds
+
+APEX uses CMake for the build process. In most cases, CMake will use both
+options passed in with -D values and environment variables. APEX can be
+configured by using CMake directly - just create your own build directory
+and run cmake or ccmake with the appropriate configuration settings.
 
 \section variables Environment Variables
 
@@ -122,6 +142,8 @@ support. 0 is disabled, 1 is enabled.</dd>
 </dl>
 
 \section examples Usage Examples
+
+TBD
 
 \section acknowledgements Acknowledgements
 
