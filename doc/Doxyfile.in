@@ -755,6 +755,7 @@ WARN_LOGFILE           =
 # Note: If this tag is empty the current directory is searched.
 
 INPUT                  = @CMAKE_CURRENT_SOURCE_DIR@/../src/apex \
+                         @CMAKE_CURRENT_SOURCE_DIR@/../src/comm \
                          @CMAKE_CURRENT_SOURCE_DIR@/../doc
 
 # This tag can be used to specify the character encoding of the source files
@@ -778,6 +779,7 @@ INPUT_ENCODING         = UTF-8
 FILE_PATTERNS          = apex.h \
                          apex.hpp \
                          apex_types.h \
+                         apex_global.h \
                          apex.dox
 
 # The RECURSIVE tag can be used to specify whether or not subdirectories should

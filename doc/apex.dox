@@ -62,7 +62,8 @@ should auto-detect the MPI settings from the mpicxx compiler in your path.
 <dt>TAU</dt>
 <dd>For collecting post-mortem profile or trace files.</dd>
 <dt>RCR</dt>
-<dd>For accessing system-level privileged information.</dd>
+<dd>For accessing system-level privileged information, such as power measurements
+(on some systems).</dd>
 <dt>Tcmalloc</dt>
 <dd>For faster memory allocation.</dd>
 <dt>PAPI</dt>
@@ -143,7 +144,74 @@ support. 0 is disabled, 1 is enabled.</dd>
 
 \section examples Usage Examples
 
-TBD
+There are several examples in src/examples. Each of the examples is usually
+constructed as a CMake test, but it also serves as a usage example as well.
+
+\subsection DemoC DemoC
+
+This example is a simple example of a C program using APEX.
+
+\subsection DemoCpp DemoCpp
+
+This example is a simple example of a C++ program using APEX.
+
+\subsection Matmult Matmult
+
+This example is a simple example of a C++ program using APEX.
+This example spawns three threads, and all four threads perform
+a matrix multiplication.
+
+\subsection MPIGlobalTest MPIGlobalTest
+
+This example demonstrates how MPI one-sided communication is used
+to perform global reductions of performance data at runtime. This
+example uses the code in src/comm/mpi to perform the reduction.
+This example is provided as an example for other distributed runtimes
+to implement the API in @ref src/comm/apex_global.h.
+
+\subsection MPITest MPITest
+
+This is a simple example using C++ and MPI.
+
+\subsection Overhead Overhead
+
+This is a simple example used to test the overhead of timing a task.
+
+\subsection PolicyEngineCppExample PolicyEngineCppExample
+
+This is a C++ example of a runtime policy. In this example, a periodic
+policy and an event based policy are created.
+
+\subsection PolicyEngineExample PolicyEngineExample
+
+This is a C example of a runtime policy. In this example, a periodic
+policy and an event based policy are created.
+
+\subsection TestITT TestITT
+
+This is an example to demonstrate how APEX implements the Intel
+Instrumentation and Tracing Technology API. If an existing application
+uses the ITT interface, APEX can use that rather than adding additional
+instrumentaion.
+
+\subsection TestGetPower TestGetPower
+
+This is an example that demonstrates the ability to read power and energy
+from user-space on the Cray XC30. APEX will also have the ability to read
+power and energy from either PAPI, RCR or libmsr in the future, and on
+supported platforms.
+
+\subsection TestReset TestReset
+
+This is an example that demonstrates the use of resetting counters
+and timers in APEX. This is especially useful when policies cause changes
+in runtime or application behavior, and the policy wants to check the 
+efficacy of the changed behavior in subsequent iterations.
+
+\subsection TestThreads TestThreads
+
+This is a simple example that demonstrates the use of APEX in multithreaded
+environments.
 
 \section acknowledgements Acknowledgements
 
