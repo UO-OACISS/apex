@@ -302,6 +302,15 @@ APEX_EXPORT apex_profile * apex_get_profile_from_name(const char * timer_name);
  */
 APEX_EXPORT apex_profile * apex_get_profile_from_address(apex_function_address function_address);
 
+/**
+ \brief Get the current power reading
+
+ This function will return the current power level for the node, measured in Watts.
+
+ \return The current power level in Watts.
+ */
+APEX_EXPORT double apex_current_power_high(void);
+
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 #define apex_macro(name, member_variable, type, default_value) \

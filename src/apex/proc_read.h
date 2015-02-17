@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <vector>
 #include <iostream>
+#include <fstream>
 
 namespace apex {
 
@@ -58,6 +59,34 @@ public:
 
 void get_popen_data(char *);
 ProcData* parse_proc_stat(void);
+
+/* Ideally, this will read from RCR. If not available, read it directly. */
+inline int read_power(void) {
+#if defined(APEX_HAVE_CRAY_POWER)
+  // on the cray XC30, we can read the power in watts
+  int tmpint;
+  std::string tmpstr;
+  std::ifstream infile("/sys/cray/pm_counters/power");
+  while (infile >> tmpint >> tmpstr) {
+    return tmpint; // return the first value encountered.
+  }
+#endif
+  return 0;
+}
+
+/* Ideally, this will read from RCR. If not available, read it directly. */
+inline int read_energy(void) {
+#if defined(APEX_HAVE_CRAY_POWER)
+  // on the cray XC30, we can read the energy in Joules
+  int tmpint;
+  std::string tmpstr;
+  std::ifstream infile2("/sys/cray/pm_counters/energy");
+  while (infile2 >> tmpint >> tmpstr) {
+    return tmpint; // return the first value encountered.
+  }
+#endif
+  return 0;
+}
 
 } 
 #endif

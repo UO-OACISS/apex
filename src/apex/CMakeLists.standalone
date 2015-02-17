@@ -5,10 +5,6 @@ if (TAU_FOUND)
 SET(tau_SOURCE tau_listener.cpp)
 endif(TAU_FOUND)
 
-if (RCR_FOUND)
-SET(rcr_SOURCE RCR.bb.cpp)
-endif(RCR_FOUND)
-
 if (BFD_FOUND)
 SET(bfd_SOURCE apex_bfd.cpp)
 endif(BFD_FOUND)
@@ -17,7 +13,7 @@ if (APEX_HAVE_PROC)
 SET(PROC_SOURCE proc_read.cpp)
 endif(APEX_HAVE_PROC)
 
-SET(all_SOURCE apex.cpp thread_instance.cpp event_listener.cpp handler.cpp concurrency_handler.cpp policy_handler.cpp ${tau_SOURCE} ${rcr_SOURCE} profiler_listener.cpp ${bfd_SOURCE} apex_options.cpp ${PROC_SOURCE} )
+SET(all_SOURCE apex.cpp thread_instance.cpp event_listener.cpp handler.cpp concurrency_handler.cpp policy_handler.cpp ${tau_SOURCE} profiler_listener.cpp ${bfd_SOURCE} apex_options.cpp ${PROC_SOURCE} )
 
 #add_library (apexStatic STATIC ${all_SOURCE})
 #add_library (apexShared SHARED ${all_SOURCE})
@@ -34,7 +30,7 @@ target_link_libraries(apex ${LIBS} ${Boost_LIBRARIES})
 
 # add the binary tree to the search path for include files
 # so that we will find ApexConfig.h
-include_directories("${PROJECT_BINARY_DIR}/src/apex")
+include_directories("${PROJECT_BINARY_DIR}/src/apex" ${RCR_INCLUDE_PATH})
 
 INSTALL(FILES apex.h apex.hpp apex_types.h handler.hpp event_listener.hpp apex_export.h DESTINATION include)
 

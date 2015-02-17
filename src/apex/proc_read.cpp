@@ -8,7 +8,6 @@
 #include "apex.hpp"
 #include <boost/atomic.hpp>
 #include <sstream>
-#include <fstream>
 #include <string>
 
 #define COMMAND_LEN 20
@@ -96,18 +95,8 @@ ProcData* parse_proc_stat(void) {
     }
   }
   fclose (pFile);
-#if defined(APEX_HAVE_CRAY_POWER)
-  int tmpint;
-  std::string tmpstr;
-  std::ifstream infile("/sys/cray/pm_counters/power");
-  while (infile >> tmpint >> tmpstr) {
-    procData->power = tmpint;
-  }
-  std::ifstream infile2("/sys/cray/pm_counters/energy");
-  while (infile2 >> tmpint >> tmpstr) {
-    procData->energy = tmpint;
-  }
-#endif
+  procData->power = read_power();
+  procData->energy = read_energy();
   return procData;
 }
 

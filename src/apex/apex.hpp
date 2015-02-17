@@ -28,6 +28,14 @@
 #include "apex_options.hpp"
 #include "apex_export.h" 
 
+#ifdef APEX_HAVE_RCR
+#include "libenergy.h"
+#endif
+
+#if APEX_HAVE_PROC
+#include "proc_read.h" 
+#endif
+
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 //using namespace std;
@@ -351,6 +359,23 @@ APEX_EXPORT apex_profile* get_profile(string &timer_name);
  \return A vector of strings containing the list of names.
  */
 APEX_EXPORT std::vector<std::string> get_available_profiles();
+
+/**
+ \brief Get the current power reading
+
+ This function will return the current power level for the node, measured in Watts.
+
+ \return The current power level in Watts.
+ */
+APEX_EXPORT inline double current_power_high(void) {
+#ifdef APEX_HAVE_RCR
+  return (double)rcr_current_power_high();
+#elif APEX_HAVE_PROC
+  return (double)read_power();
+#else
+  return 0.0;
+#endif
+}
 
 #ifdef APEX_HAVE_HPX3
 hpx::runtime * get_hpx_runtime_ptr(void);

@@ -10,9 +10,6 @@
 #include "apex.hpp"
 #include "apex_types.h"
 #include "apex_config.h"
-#ifdef APEX_HAVE_RCR
-#include "energy_stat.h"
-#endif
 #include <iostream>
 #include <stdlib.h>
 #include <string>
@@ -30,10 +27,6 @@
 #include <TAU.h>
 #else
 #include "profiler_listener.hpp"
-#endif
-
-#if APEX_HAVE_PROC
-#include "proc_read.h"
 #endif
 
 APEX_NATIVE_TLS bool _registered = false;
@@ -82,7 +75,7 @@ apex::~apex()
 {
     APEX_TRACER
 #ifdef APEX_HAVE_RCR
-    cout << "Getting energy..." << endl;
+    //cout << "Getting energy..." << endl;
     energyDaemonTerm();
 #endif
     m_pInstance = NULL;
@@ -132,7 +125,7 @@ void apex::_initialize()
 #endif
 #ifdef APEX_HAVE_RCR
     uint64_t waitTime = 1000000000L; // in nanoseconds, for nanosleep
-    energyDaemonInit(waitTime);
+    energyDaemonInit();
 #endif
     listeners.push_back(new profiler_listener());
 #ifdef APEX_HAVE_TAU
@@ -701,6 +694,9 @@ extern "C" {
         return get_profile(tmp);
     }
 
+    double apex_current_power_high() {
+        return current_power_high();
+    }
 
 } // extern "C"
 

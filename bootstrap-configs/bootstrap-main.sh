@@ -8,6 +8,10 @@ if [ ${BOOST_ROOT+x} ]; then
 	boost_config="-DBOOST_ROOT=$BOOST_ROOT"
 fi
 
+if [ ${RCR_ROOT+x} ]; then
+	rcr_config="-DRCR_ROOT=$RCR_ROOT"
+fi
+
 if [ ${BFD_ROOT+x} ]; then 
 	bfd_config="-DBFD_ROOT=$BFD_ROOT -DUSE_BINUTILS=TRUE"
 else
@@ -44,6 +48,7 @@ cd $dir
 cmd="cmake \
 $cmake_use_codeblocks \
 $boost_config \
+$rcr_config \
 $bfd_config \
 $gperftools_config \
 $papi_config \
