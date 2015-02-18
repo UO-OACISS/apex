@@ -185,6 +185,7 @@ policy_handler * apex::get_policy_handler(uint64_t const& period)
     if(apex_options::use_policy() && period_handlers.count(period) == 0)
     {
         period_handlers[period] = new policy_handler(period);
+        listeners.push_back(period_handlers[period]);
     }
     return period_handlers[period];
 }
