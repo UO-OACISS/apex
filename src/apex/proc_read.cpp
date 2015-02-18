@@ -95,8 +95,13 @@ ProcData* parse_proc_stat(void) {
     }
   }
   fclose (pFile);
+#if defined(APEX_HAVE_CRAY_POWER)
   procData->power = read_power();
+  procData->power_cap = read_power_cap();
   procData->energy = read_energy();
+  procData->freshness = read_freshness();
+  procData->generation = read_generation();
+#endif
   return procData;
 }
 
@@ -129,8 +134,13 @@ ProcData* ProcData::diff(ProcData const& rhs) {
   d->processes = processes - rhs.processes;
   d->procs_running = procs_running - rhs.procs_running;
   d->procs_blocked = procs_blocked - rhs.procs_blocked;
+#if defined(APEX_HAVE_CRAY_POWER)
   d->power = power;
+  d->power_cap = power_cap;
   d->energy = energy - rhs.energy;
+  d->freshness = freshness;
+  d->generation = generation;
+#endif
   return d;
 }
 
@@ -266,7 +276,10 @@ void ProcData::sample_values(void) {
   sample_value("CPU Idle Ratio", idle_ratio);
 #if defined(APEX_HAVE_CRAY_POWER)
   sample_value("Power", power);
+  sample_value("Power Cap", power_cap);
   sample_value("Energy", energy);
+  sample_value("Freshness", freshness);
+  sample_value("Generation", generation);
 #endif
   /* This code below is for detailed measurement from all CPUS. */
 #if APEX_GET_ALL_CPUS
