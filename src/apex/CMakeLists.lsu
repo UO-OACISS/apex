@@ -100,7 +100,6 @@ find_package(RCR)
 
 if(HAVE_RCR)
   hpx_add_config_define(HPX_HAVE_RCR 1)
-  set(apex_sources ${apex_sources} RCR.bb.cpp)
 endif()
 
 if(TAU_FOUND)
@@ -125,7 +124,12 @@ add_hpx_library(apex
 
 # add the binary tree to the search path for include files
 # so that we will find apex_config.h
+if(HAVE_RCR)
+include_directories("${PROJECT_BINARY_DIR}/apex/src/apex" ${RCR_INCLUDE_PATH})
+else()
 include_directories("${PROJECT_BINARY_DIR}/apex/src/apex")
+endif()
+
 
 INSTALL(FILES ${apex_headers} DESTINATION include)
 

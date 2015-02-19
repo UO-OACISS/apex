@@ -55,7 +55,7 @@ public:
   bool _handler(void);
   std::stack<std::string>* get_event_stack(unsigned int tid);
   void add_thread(unsigned int tid) ;
-  void reset(void);
+  void _reset(void);
   void output_samples(int node_id);
 };
 

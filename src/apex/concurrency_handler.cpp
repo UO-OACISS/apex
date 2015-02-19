@@ -62,7 +62,7 @@ bool concurrency_handler::_handler(void) {
     }
   }
   _states.push_back(counts);
-  this->reset();
+  this->_reset();
   return true;
 }
 
@@ -123,7 +123,7 @@ inline stack<string>* concurrency_handler::get_event_stack(unsigned int tid) {
   return tmp;
 }
 
-inline void concurrency_handler::reset(void) {
+inline void concurrency_handler::_reset(void) {
   if (!_terminate) {
     _timer.expires_at(_timer.expires_at() + boost::posix_time::microseconds(_period));
     _timer.async_wait(boost::bind(&concurrency_handler::_handler, this));

@@ -1,4 +1,5 @@
-#include "libenergy.h"
+#ifndef APEX_THROTTLING_H
+#define APEX_THROTTLING_H
 
 extern bool apex_throttleOn;         // Current Throttle status
 extern bool apex_checkThrottling;    // Is thread throttling desired
@@ -15,8 +16,4 @@ int apex_setup_throttling(void);      // initialize
 int apex_shutdown_throttling(void);   // terminate
 int apex_get_thread_cap(void);             // for thread throttling
 
-// RCR functions
-void energyDaemonInit(void);  // function in RCR to setup energy counters
-void energyDaemonTerm(void);  // function in RCR to print final energy usage
-void energyDaemonEnter(void); // function in RCR to start energy collection
-//void setDutyCycle(char option, int rank, int value);  // added akp
+#endif // APEX_THROTTLING_H

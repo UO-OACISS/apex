@@ -48,7 +48,7 @@ policy_handler::policy_handler (uint64_t period_microseconds) : handler(period_m
 bool policy_handler::_handler(void) {
   periodic_event_data data;
   this->on_periodic(data);
-  this->reset();
+  this->_reset();
   return true;
 }
 
@@ -63,7 +63,7 @@ void policy_handler::_init(void) {
   return;
 }
 
-inline void policy_handler::reset(void) {
+inline void policy_handler::_reset(void) {
 #ifdef APEX_HAVE_HPX3
   if (_terminate) {
     hpx_timer.stop();

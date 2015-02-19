@@ -2,9 +2,14 @@
 # include "config.h"
 #endif
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "apex.h"
 #include "apex_throttling.h"
+
+#ifdef APEX_HAVE_RCR
+#include "libenergy.h"
+#endif
 
 // this is the policy engine for APEX used to determine when contention
 // is present on the socket and reduce the number of active threads
@@ -119,10 +124,12 @@ int apex_setup_throttling()
     apex_register_periodic_policy(1000000, apex_throttling_policy_periodic);
     // get an initial power reading
     apex_current_power_high();
+#ifdef APEX_HAVE_RCR
     energyDaemonEnter();
+#endif
   }
   else if (getenv("HPX_ENERGY") != NULL) {
-    energyDaemonInit();
+    // energyDaemonInit();  // this is done in apex initialization
   }
   return(0);
 }
@@ -132,7 +139,7 @@ int apex_shutdown_throttling()
 /*
   if (apex_checkThrottling) energyDaemonTerm(); // prints energy usage
   else if (getenv("HPX_ENERGY") != NULL) {
-    energyDaemonTerm();
+    energyDaemonTerm();  // this is done in apex termination
   }
 */
   apex_final = true;

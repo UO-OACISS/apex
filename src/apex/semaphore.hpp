@@ -18,7 +18,9 @@ namespace apex {
 class semaphore
 {
 private:
+#if !defined(__APPLE__) // handle the new way on systems like Apple
     sem_t the_semaphore;
+#endif
     sem_t * the_semaphore_p;
     int work_waiting;
 public:

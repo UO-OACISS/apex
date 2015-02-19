@@ -96,7 +96,7 @@ public:
     int register_policy(const apex_event_type & when,
                         std::function<bool(apex_context const&)> f);
     bool _handler(void);
-    void reset(void);
+	void _reset(void);
 };
 
 }
