@@ -13,7 +13,11 @@ if (APEX_HAVE_PROC)
 SET(PROC_SOURCE proc_read.cpp)
 endif(APEX_HAVE_PROC)
 
-SET(all_SOURCE apex.cpp thread_instance.cpp event_listener.cpp handler.cpp concurrency_handler.cpp policy_handler.cpp ${tau_SOURCE} profiler_listener.cpp ${bfd_SOURCE} apex_options.cpp apex_throttling.c ${PROC_SOURCE} )
+if (OMPT_FOUND)
+SET(OMPT_SOURCE apex_ompt.cpp)
+endif(OMPT_FOUND)
+
+SET(all_SOURCE apex.cpp thread_instance.cpp event_listener.cpp handler.cpp concurrency_handler.cpp policy_handler.cpp ${tau_SOURCE} profiler_listener.cpp ${bfd_SOURCE} apex_options.cpp apex_throttling.c ${PROC_SOURCE} ${OMPT_SOURCE})
 
 #add_library (apexStatic STATIC ${all_SOURCE})
 #add_library (apexShared SHARED ${all_SOURCE})

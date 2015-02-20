@@ -30,6 +30,12 @@ else
 	papi_config="-DUSE_PAPI=FALSE"
 fi
 
+if [ ${OMPT_ROOT+x} ]; then
+	ompt_config="-DOMPT_ROOT=$OMPT_ROOT"
+else
+	ompt_config="-DUSE_OMPT=FALSE"
+fi
+
 
 # Get time as a UNIX timestamp (seconds elapsed since Jan 1, 1970 0:00 UTC)
 T="$(date +%s)"
@@ -52,6 +58,7 @@ $rcr_config \
 $bfd_config \
 $gperftools_config \
 $papi_config \
+$ompt_config \
 $cmake_build_type \
 $cmake_apex_throttle \
 $cmake_build_shared_libs \

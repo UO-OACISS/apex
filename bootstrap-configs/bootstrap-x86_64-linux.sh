@@ -18,6 +18,7 @@ GPERFTOOLS_ROOT=$HOME/install/google-perftools/2.4
 #RCR_ROOT=$HOME/src/RCRdaemon
 #PAPI_ROOT=/usr/local/papi/5.3.2
 #TAU_ROOT=$HOME/src/tau2
+OMPT_ROOT=$HOME/install/libiomp5
 
 # other CMake variables - for special situations / architectures / compilers.
 
