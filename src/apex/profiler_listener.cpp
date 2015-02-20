@@ -30,6 +30,8 @@
 #endif
 #include <cstdio>
 #include <vector>
+#include <string>
+#include <boost/regex.hpp>
 
 #if defined(APEX_THROTTLE)
 #define APEX_THROTTLE_CALLS 1000
@@ -368,6 +370,20 @@ namespace apex {
       unordered_set<apex_function_address>::const_iterator it = throttled_names.find(action_name);
       if (it != throttled_names.end()) { continue; }
 #endif
+#if APEX_HAVE_BFD
+      boost::regex rx (".*UNRESOLVED ADDR (.*)");
+      if (boost::regex_match (action_name,rx)) {
+        const boost::regex separator(" ADDR ");
+        boost::sregex_token_iterator token(action_name.begin(), action_name.end(), separator, -1);
+        *token++; // ignore
+        string addr_str = *token++;
+	void* addr_addr;
+	sscanf(addr_str.c_str(), "%p", &addr_addr);
+        string * tmp = lookup_address((uintptr_t)addr_addr);
+        boost::regex old_address("UNRESOLVED ADDR " + addr_str);
+	action_name = boost::regex_replace(action_name, old_address, *tmp);
+      }
+#endif
       cout << "\"" << action_name << "\", " ;
       cout << p->get_calls() << ", " ;
       cout << p->get_minimum() << ", " ;
@@ -481,6 +497,20 @@ namespace apex {
         if(strcmp(action_name.c_str(), APEX_MAIN) == 0) {
           mainp = p;
         } else {
+#if APEX_HAVE_BFD
+      boost::regex rx (".*UNRESOLVED ADDR (.*)");
+      if (boost::regex_match (action_name,rx)) {
+        const boost::regex separator(" ADDR ");
+        boost::sregex_token_iterator token(action_name.begin(), action_name.end(), separator, -1);
+        *token++; // ignore
+        string addr_str = *token++;
+	void* addr_addr;
+	sscanf(addr_str.c_str(), "%p", &addr_addr);
+        string * tmp = lookup_address((uintptr_t)addr_addr);
+        boost::regex old_address("UNRESOLVED ADDR " + addr_str);
+	action_name = boost::regex_replace(action_name, old_address, *tmp);
+      }
+#endif
           myfile << "\"" << action_name << "\" ";
           format_line (myfile, p);
           not_main += p->get_accumulated();

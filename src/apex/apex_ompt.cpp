@@ -71,7 +71,7 @@ char * format_name(const char * state, ompt_parallel_id_t parallel_id) {
 }
 
 void my_ompt_start(const char * state, ompt_parallel_id_t parallel_id) {
-  //fprintf(stderr,"start %s : %lu\n",state, parallel_id); fflush(stderr);
+  fprintf(stderr,"start %s : %lu\n",state, parallel_id); fflush(stderr);
   char * regionIDstr = format_name(state, parallel_id);
   apex::profiler* p = apex::start(regionIDstr);
   timer_stack->push(p);
@@ -144,11 +144,20 @@ extern "C" void my_thread_begin(my_ompt_thread_type_t thread_type, ompt_thread_i
   timer_stack = new std::stack<apex::profiler*>();
   status = new status_flags();
   apex::register_thread("OpenMP Thread");
+  apex::profiler* p = apex::start("OpenMP_Thread");
+  timer_stack->push(p);
 }
 
 extern "C" void my_thread_end(my_ompt_thread_type_t thread_type, ompt_thread_id_t thread_id) {
   APEX_UNUSED(thread_type);
   APEX_UNUSED(thread_id);
+  if (timer_stack->empty()) { // uh-oh...
+    apex::stop(NULL);
+  } else {
+    apex::profiler* p = timer_stack->top();
+    apex::stop(p);
+    timer_stack->pop();
+  }
   delete(status);
   delete(timer_stack);
 }
@@ -366,6 +375,8 @@ inline int __ompt_initialize() {
   CHECK(ompt_event_taskgroup_end, my_taskgroup_end, "taskgroup_end");
   CHECK(ompt_event_workshare_begin, my_workshare_begin, "workshare_begin");
   CHECK(ompt_event_workshare_end, my_workshare_end, "workshare_end");
+  CHECK(ompt_event_implicit_task_begin, my_implicit_task_begin, "task_begin");
+  CHECK(ompt_event_implicit_task_end, my_implicit_task_end, "task_end");
 
   CHECK(ompt_event_idle_begin, my_idle_begin, "idle_begin");
   CHECK(ompt_event_idle_end, my_idle_end, "idle_end");
