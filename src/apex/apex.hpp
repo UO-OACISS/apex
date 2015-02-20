@@ -64,11 +64,11 @@ class apex
 {
 private:
 // private constructors cannot be called
-    apex() : m_argc(0), m_argv(NULL), m_node_id(0)
+    apex() : m_argc(0), m_argv(NULL), m_node_id(0), m_my_locality(new string("0"))
     {
         _initialize();
     };
-    apex(int argc, char**argv) : m_argc(argc), m_argv(argv), m_node_id(0)
+    apex(int argc, char**argv) : m_argc(argc), m_argv(argv), m_node_id(0), m_my_locality(new string("0"))
     {
         _initialize();
     };

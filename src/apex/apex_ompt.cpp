@@ -4,6 +4,7 @@
 #include "stdio.h"
 #include "apex.hpp"
 #include "apex_types.h"
+#include <boost/thread/mutex.hpp>
 
 typedef struct status_flags {
     char idle; // 4 bytes
@@ -35,6 +36,8 @@ typedef enum my_ompt_thread_type_e {
 } my_ompt_thread_type_t;
 
 std::unordered_map<ompt_parallel_id_t, void*> parallel_regions;
+boost::mutex _region_mutex;
+
 __thread std::stack<apex::profiler*> *timer_stack;
 __thread status_flags_t *status;
 
@@ -57,11 +60,16 @@ char * format_address(void* ip) {
 char * format_name(const char * state, ompt_parallel_id_t parallel_id) {
     int contextLength = 10;
     char * regionIDstr = NULL;
-    void* ip = parallel_regions[parallel_id];
-    if (ip == 0) {
+    std::unordered_map<ompt_parallel_id_t, void*>::const_iterator got;
+    {
+      boost::unique_lock<boost::mutex> l(_region_mutex);
+      got = parallel_regions.find (parallel_id);
+    }
+    if ( got == parallel_regions.end() ) { // not found.
       regionIDstr = (char*)malloc(strlen(state) + 2);
       sprintf(regionIDstr, "%s", state);
     } else {
+      void* ip = got->second;
       char * tmpStr = format_address(ip);
       contextLength = strlen(tmpStr);
       regionIDstr = (char*)malloc(contextLength + 32);
@@ -108,8 +116,11 @@ extern "C" void my_parallel_region_begin (
   APEX_UNUSED(parent_task_frame);
   APEX_UNUSED(requested_team_size);
   //fprintf(stderr,"begin: %lu, %p, %lu, %u, %p\n", parent_task_id, parent_task_frame, parallel_id, requested_team_size, parallel_function); fflush(stderr);
-  parallel_regions[parallel_id] = parallel_function;
-  my_ompt_start("OpenMP_PARALLEL_REGION", parallel_id);
+  {
+    boost::unique_lock<boost::mutex> l(_region_mutex);
+    parallel_regions[parallel_id] = parallel_function;
+  }
+  //my_ompt_start("OpenMP_PARALLEL_REGION", parallel_id);
 }
 
 extern "C" void my_parallel_region_end (
@@ -117,7 +128,8 @@ extern "C" void my_parallel_region_end (
   ompt_task_id_t parent_task_id)    /* id of parent task            */
 {
   APEX_UNUSED(parent_task_id);
-  my_ompt_stop("OpenMP_PARALLEL_REGION", parallel_id);
+  APEX_UNUSED(parallel_id);
+  //my_ompt_stop("OpenMP_PARALLEL_REGION", parallel_id);
 }
 
 extern "C" void my_task_begin (
@@ -128,7 +140,10 @@ extern "C" void my_task_begin (
 {
   APEX_UNUSED(parent_task_id);
   APEX_UNUSED(parent_task_frame);
-  parallel_regions[new_task_id] = task_function;
+  {
+    boost::unique_lock<boost::mutex> l(_region_mutex);
+    parallel_regions[new_task_id] = task_function;
+  }
   my_ompt_start("OpenMP_TASK", new_task_id);
 }
  
@@ -144,13 +159,20 @@ extern "C" void my_thread_begin(my_ompt_thread_type_t thread_type, ompt_thread_i
   timer_stack = new std::stack<apex::profiler*>();
   status = new status_flags();
   apex::register_thread("OpenMP Thread");
+  apex::profiler* p = apex::start("OpenMP_Thread");
+  timer_stack->push(p);
 }
 
 extern "C" void my_thread_end(my_ompt_thread_type_t thread_type, ompt_thread_id_t thread_id) {
   APEX_UNUSED(thread_type);
   APEX_UNUSED(thread_id);
+  while (!timer_stack->empty()) { // uh-oh...
+    apex::profiler* p = timer_stack->top();
+    apex::stop(p);
+    timer_stack->pop();
+  }
   delete(status);
-  delete(timer_stack);
+  // delete(timer_stack);  // this is a leak, but it's a small one. Sometimes this crashes?
 }
 
 extern "C" void my_control(uint64_t command, uint64_t modifier) {
@@ -251,7 +273,10 @@ extern "C" void END_FUNCTION (ompt_parallel_id_t parallel_id, ompt_task_id_t tas
 extern "C" void BEGIN_FUNCTION (ompt_parallel_id_t parallel_id, ompt_task_id_t task_id, void *parallel_function) { \
   status->regionid = parallel_id; \
   status->taskid = task_id; \
-  parallel_regions[parallel_id] = parallel_function; \
+  { \
+    boost::unique_lock<boost::mutex> l(_region_mutex); \
+    parallel_regions[parallel_id] = parallel_function; \
+  } \
   my_ompt_start(NAME, parallel_id); \
 } \
 \
@@ -312,13 +337,13 @@ extern "C" void my_idle_begin(ompt_thread_id_t thread_id) {
 
 // This macro is for checking that the function registration worked.
 #define CHECK(EVENT,FUNCTION,NAME) \
-  /*fprintf(stderr,"Registering OMPT callback %s...",NAME); */ \
+  fprintf(stderr,"Registering OMPT callback %s...",NAME);  \
   fflush(stderr); \
   if (ompt_set_callback(EVENT, (ompt_callback_t)(FUNCTION)) == 0) { \
     fprintf(stderr,"\n\tFailed to register OMPT callback %s!\n",NAME); \
     fflush(stderr); \
   } else { \
-    /* fprintf(stderr,"success.\n"); */\
+    fprintf(stderr,"success.\n"); \
   } \
 
 inline int __ompt_initialize() {
@@ -367,8 +392,11 @@ inline int __ompt_initialize() {
   CHECK(ompt_event_workshare_begin, my_workshare_begin, "workshare_begin");
   CHECK(ompt_event_workshare_end, my_workshare_end, "workshare_end");
 
-  CHECK(ompt_event_idle_begin, my_idle_begin, "idle_begin");
-  CHECK(ompt_event_idle_end, my_idle_end, "idle_end");
+  /* These are high overhead events! */
+  //CHECK(ompt_event_implicit_task_begin, my_implicit_task_begin, "task_begin");
+  //CHECK(ompt_event_implicit_task_end, my_implicit_task_end, "task_end");
+  //CHECK(ompt_event_idle_begin, my_idle_begin, "idle_begin");
+  //CHECK(ompt_event_idle_end, my_idle_end, "idle_end");
   return 1;
 }
 

@@ -4,7 +4,7 @@
 #include<string.h>
 #include"apex.h"
 
-#define N 1000000
+#define N 4096*4096
 #define MAX_THREADS 32
 
 #if defined(__GNUC__)
@@ -19,7 +19,7 @@ double openmp_reduction(double* x, double* y)
   #pragma omp parallel
   {
    int i;
-   #pragma omp for reduction( + : sum )
+   #pragma omp for reduction( + : sum ) schedule(static)
    for (i = 0; i < N; i++) {
      #pragma omp atomic
      sum += (x[i] * y[i]);
@@ -35,7 +35,7 @@ double true_sharing(double* x, double* y)
   #pragma omp parallel
   {
    int i;
-   #pragma omp for
+   #pragma omp for schedule(static)
    for (i = 0; i < N; i++) {
      #pragma omp atomic
      sum += (x[i] * y[i]);
@@ -54,7 +54,7 @@ double false_sharing(double* x, double* y)
    int me = omp_get_thread_num();
 
    int i;
-   #pragma omp for
+   #pragma omp for schedule(static)
    for (i = 0; i < N; i++) {
      sum_local[me] = sum_local[me] + (x[i] * y[i]);
    }
@@ -74,7 +74,7 @@ double no_sharing(double* x, double* y)
    int me = omp_get_thread_num();
 
    int i;
-   #pragma omp for
+   #pragma omp for schedule(static)
    for (i = 0; i < N; i++) {
      sum_local[me] = sum_local[me] + (x[i] * y[i]);
    }
@@ -91,7 +91,7 @@ void my_init(double* x)
   #pragma omp parallel
   {
    int i;
-   #pragma omp for
+   #pragma omp for schedule(static)
    for (i = 0; i < N; i++) {
      x[i] = randval;
    }
