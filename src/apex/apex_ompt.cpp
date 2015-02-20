@@ -74,6 +74,7 @@ char * format_name(const char * state, ompt_parallel_id_t parallel_id) {
       contextLength = strlen(tmpStr);
       regionIDstr = (char*)malloc(contextLength + 32);
       sprintf(regionIDstr, "%s: %s", state, tmpStr);
+      free (tmpStr);
     }
     return regionIDstr;
 }
