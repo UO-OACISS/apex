@@ -319,7 +319,7 @@ APEX_EXPORT double apex_current_power_high(void);
 
  <dl>
  <dt> HPX_THROTTLING </dt>
- <dd> If set, throttling will be enabled and initialized at startup.<dd>
+ <dd> If set, throttling will be enabled and initialized at startup.</dd>
  <dt> APEX_THROTTLING_MAX_THREADS </dt>
  <dd> The maximum number of threads the throttling system will allow. The default
       value is 48. </dd>
