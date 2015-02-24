@@ -377,6 +377,103 @@ APEX_EXPORT inline double current_power_high(void) {
 #endif
 }
 
+/**
+ \brief Get the current power reading
+
+ This function will return the current power level for the node, measured in Watts.
+
+ \return The current power level in Watts.
+ */
+APEX_EXPORT double current_power_high(void);
+
+/**
+ \brief Initialize the power cap throttling policy.
+
+ This function will initialize APEX for power cap throttling. There are several
+ environment variables that control power cap throttling:
+
+ <dl>
+ <dt> HPX_THROTTLING </dt>
+ <dd> If set, throttling will be enabled and initialized at startup.<dd>
+ <dt> APEX_THROTTLING_MAX_THREADS </dt>
+ <dd> The maximum number of threads the throttling system will allow. The default
+      value is 48. </dd>
+ <dt> APEX_THROTTLING_MIN_THREADS </dt>
+ <dd> The minimum number of threads the throttling system will allow. The default
+      value is 12.  </dd>
+ <dt> APEX_THROTTLING_MAX_WATTS </dt>
+ <dd> The maximum number of Watts the system can consume as an average rate. The
+      default value is 220. </dd>
+ <dt> APEX_THROTTLING_MIN_WATTS </dt>
+ <dd> The minimum number of Watts the system can consume as an average rate. The
+      default value is 180. </dd>
+ <dt> HPX_ENERGY_THROTTLING </dt>
+ <dd> If set, power/energy throttling will be performed.  </dd>
+ <dt> HPX_ENERGY </dt>
+ <dd> TBD </dd>
+ </dl>
+
+ After evaluating the state of the system, the policy will set the thread cap,
+ which can be queried using @ref apex::get_thread_cap().
+ 
+ \return APEX_NOERROR on success, otherwise an error code.
+ */
+APEX_EXPORT int setup_power_cap_throttling(void);      // initialize
+
+/**
+ \brief Setup throttling to optimize for the specified function.
+
+ This function will initialize the throttling policy to optimize for the 
+ specified function. The optimization criteria include maximizing throughput,
+ minimizing or maximizing time spent in the specified function. After
+ evaluating the state of the system, the policy will set the thread cap, which
+ can be queried using @ref apex::get_thread_cap().
+
+ \param the_address The address of the function to be optimized.
+ \param criteria The optimization criteria.
+ \return APEX_NOERROR on success, otherwise an error code.
+ */
+
+APEX_EXPORT int setup_timer_throttling(apex_function_address the_address,
+        apex_optimization_criteria_t criteria);      // initialize
+
+/**
+ \brief Setup throttling to optimize for the specified function or counter.
+
+ This function will initialize the throttling policy to optimize for the 
+ specified function or counter. The optimization criteria include maximizing
+ throughput, minimizing or maximizing time spent in the specified function
+ or value sampled in the counter. After evaluating the state of the system,
+ the policy will set the thread cap, which can be queried using 
+ @ref apex::get_thread_cap().
+
+ \param the_name The name of the function or counter to be optimized.
+ \param criteria The optimization criteria.
+
+ \return APEX_NOERROR on success, otherwise an error code.
+ */
+APEX_EXPORT int setup_timer_throttling(std::string the_name,
+        apex_optimization_criteria_t criteria);      // initialize
+
+/**
+ \brief Terminate the throttling policy.
+
+ This function will terminate the throttling policy.
+
+ \return APEX_NOERROR on success, otherwise an error code.
+ */
+APEX_EXPORT int shutdown_throttling(void);   // terminate
+
+/**
+ \brief Get the current thread cap set by the throttling.
+
+ This function will return the current thread cap based on the throttling
+ policy.
+
+ \return The current thread cap value.
+ */
+APEX_EXPORT int get_thread_cap(void);             // for thread throttling
+
 #ifdef APEX_HAVE_HPX3
 hpx::runtime * get_hpx_runtime_ptr(void);
 #endif

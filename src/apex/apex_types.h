@@ -30,6 +30,15 @@ typedef enum _event_type {
   PERIODIC
 } apex_event_type;
 
+/**
+ * Typedef for enumerating the different optimization strategies
+ * for throttling.
+ */
+typedef enum {APEX_MAXIMIZE_THROUGHPUT,
+	          APEX_MAXIMIZE_ACCUMULATED, 
+	          APEX_MINIMIZE_ACCUMULATED
+} apex_optimization_criteria_t;
+
 /** A reference to the policy object,
  * so that policies can be "unregistered", or paused later
  */
