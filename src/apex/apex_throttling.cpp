@@ -87,7 +87,7 @@ inline void __increase_cap() {
 inline int apex_power_throttling_policy(apex_context const context) 
 {
     APEX_UNUSED(context);
-    if (apex_final) return 1; // we terminated, RCR has shut down.
+    if (apex_final) return APEX_NOERROR; // we terminated, RCR has shut down.
     // read energy counter and memory concurrency to determine system status
     double power = current_power_high();
     moving_average = ((moving_average * (window_size-1)) + power) / window_size;
@@ -112,7 +112,7 @@ inline int apex_power_throttling_policy(apex_context const context)
       }
     }
     test_pp++;
-    return 1;
+    return APEX_NOERROR;
 }
 
 int apex_throughput_throttling_policy(apex_context const context) {
@@ -124,7 +124,7 @@ int apex_throughput_throttling_policy(apex_context const context) {
     if(function_of_interest == APEX_NULL_FUNCTION_ADDRESS &&
        function_name_of_interest == "") { 
         //printf("%d No function.\n", test_pp);
-        return 1; 
+        return APEX_NOERROR; 
     }
 
     throughput_delay--;
@@ -135,7 +135,7 @@ int apex_throughput_throttling_policy(apex_context const context) {
 
     if(throughput_delay > 0) { 
       //printf("%d Waiting...\n", test_pp);
-      return 1; 
+      return APEX_NOERROR; 
     }
 
     if (throughput_delay == 0) {
@@ -146,7 +146,7 @@ int apex_throughput_throttling_policy(apex_context const context) {
       } else {
           reset(function_name_of_interest); // we want new measurements!
       }
-      return 1;
+      return APEX_NOERROR;
     }
 
     apex_profile * function_profile = NULL;
@@ -247,7 +247,7 @@ int apex_throughput_throttling_policy(apex_context const context) {
         last_action = INCREASE;
     }
     throughput_delay = MAX_WINDOW_SIZE;
-    return 1;
+    return APEX_NOERROR;
 }
 
 /// ----------------------------------------------------------------------------
@@ -295,7 +295,7 @@ inline int __setup_power_cap_throttling()
       else if (getenv("HPX_ENERGY") != NULL) {
         // energyDaemonInit();  // this is done in apex initialization
       }
-  return(0);
+  return APEX_NOERROR;
 }
 
 inline int __setup_timer_throttling(apex_function_address the_address, apex_optimization_criteria_t criteria)
@@ -307,7 +307,7 @@ inline int __setup_timer_throttling(apex_function_address the_address, apex_opti
     function_baseline.accumulated = 0.0;
     throttling_criteria = criteria;
     register_periodic_policy(1000000, apex_throughput_throttling_policy);
-    return(0);
+    return APEX_NOERROR;
 }
 
 inline int __setup_timer_throttling(string& the_name, apex_optimization_criteria_t criteria)
@@ -323,7 +323,7 @@ inline int __setup_timer_throttling(string& the_name, apex_optimization_criteria
     function_baseline.accumulated = 0.0;
     throttling_criteria = criteria;
     register_periodic_policy(1000000, apex_throughput_throttling_policy);
-    return(0);
+    return APEX_NOERROR;
 }
 
 inline int __shutdown_throttling(void)
@@ -337,7 +337,7 @@ inline int __shutdown_throttling(void)
   apex_final = true;
   //printf("periodic_policy called %d times\n", test_pp);
   //apex_finalize();
-  return (0);
+  return APEX_NOERROR;
 }
 
 /* These are the external API versions of the above functions. */

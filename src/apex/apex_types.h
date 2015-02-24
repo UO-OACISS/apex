@@ -18,6 +18,14 @@
 /**
  * Typedef for enumerating the different event types
  */
+typedef enum _error_codes {
+  APEX_NOERROR = 0,
+  APEX_ERROR
+} apex_error_code;
+
+/**
+ * Typedef for enumerating the different event types
+ */
 typedef enum _event_type {
   STARTUP,
   SHUTDOWN,
