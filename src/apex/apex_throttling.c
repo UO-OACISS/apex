@@ -3,6 +3,7 @@
 #endif
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "apex.h"
 #include "apex_types.h"
@@ -44,11 +45,13 @@ int delay = 0;
 
 // variables related to throughput throttling
 apex_function_address function_of_interest = APEX_NULL_FUNCTION_ADDRESS;
+char * function_name_of_interest = NULL;
 apex_profile function_baseline;
 apex_profile function_history;
 int throughput_delay = MAX_WINDOW_SIZE; // initialize 
 typedef enum {INITIAL_STATE, BASELINE, INCREASE, DECREASE, NO_CHANGE} last_action_t;
 last_action_t last_action = INITIAL_STATE;
+apex_optimization_criteria_t throttling_criteria = MAXIMIZE_THROUGHPUT;
 
 inline int apex_get_thread_cap(void) {
   return thread_cap;
@@ -113,8 +116,9 @@ int apex_throughput_throttling_policy(apex_context const context) {
 //    No: do nothing, return.
 //    Yes: Get its profile, continue.
     test_pp++;
-    if(function_of_interest == APEX_NULL_FUNCTION_ADDRESS) { 
-        //printf("%d No address.\n", test_pp);
+    if(function_of_interest == APEX_NULL_FUNCTION_ADDRESS &&
+       function_name_of_interest == NULL) { 
+        //printf("%d No function.\n", test_pp);
         return 1; 
     }
 
@@ -132,11 +136,20 @@ int apex_throughput_throttling_policy(apex_context const context) {
     if (throughput_delay == 0) {
       // reset the profile for clean measurement
       //printf("%d Taking measurement...\n", test_pp);
-      apex_reset_address(function_of_interest); // we want new measurements!
+      if(function_of_interest != APEX_NULL_FUNCTION_ADDRESS) {
+          apex_reset_address(function_of_interest); // we want new measurements!
+      } else {
+          apex_reset_name(function_name_of_interest); // we want new measurements!
+      }
       return 1;
     }
 
-    apex_profile * function_profile = apex_get_profile_from_address(function_of_interest);
+    apex_profile * function_profile = NULL;
+    if(function_of_interest != APEX_NULL_FUNCTION_ADDRESS) {
+        function_profile = apex_get_profile_from_address(function_of_interest);
+    } else {
+        function_profile = apex_get_profile_from_name(function_name_of_interest);
+    }
     double current_mean = function_profile->accumulated / function_profile->calls;
     //printf("%d Calls: %f, Accum: %f, Mean: %f\n", test_pp, function_profile->calls, function_profile->accumulated, current_mean);
 
@@ -162,7 +175,7 @@ int apex_throughput_throttling_policy(apex_context const context) {
     // first time, try decreasing the number of threads.
     if (last_action == BASELINE) {
         do_decrease = true;
-    } else {
+    } else if (throttling_criteria == MAXIMIZE_THROUGHPUT) {
         // are we at least 5% more throughput? If so, do more adjustment
         if (function_profile->calls > (1.05*function_history.calls)) {
             if (last_action == INCREASE) { do_increase = true; }
@@ -184,6 +197,32 @@ int apex_throughput_throttling_policy(apex_context const context) {
             } else {
             // otherwise, nothing to do.
             }
+        }
+    } else if (throttling_criteria == MAXIMIZE_ACCUMULATED) {
+        double old_mean = function_history.accumulated / function_history.calls;
+        // are we at least 5% more efficient? If so, do more adjustment
+        if (old_mean > (1.05*current_mean)) {
+            if (last_action == INCREASE) { do_increase = true; }
+            else if (last_action == DECREASE) { do_decrease = true; }
+        // are we at least 5% less efficient? If so, reverse course
+        } else if (old_mean < (0.95*current_mean)) {
+            if (last_action == DECREASE) { do_increase = true; }
+            else if (last_action == INCREASE) { do_decrease = true; }
+        } else {
+        // otherwise, nothing to do.
+        }
+    } else if (throttling_criteria == MINIMIZE_ACCUMULATED) {
+        double old_mean = function_history.accumulated / function_history.calls;
+        // are we at least 5% less efficient? If so, reverse course
+        if (old_mean > (1.05*current_mean)) {
+            if (last_action == DECREASE) { do_increase = true; }
+            else if (last_action == INCREASE) { do_decrease = true; }
+        // are we at least 5% more efficient? If so, do more adjustment
+        } else if (old_mean < (0.95*current_mean)) {
+            if (last_action == INCREASE) { do_increase = true; }
+            else if (last_action == DECREASE) { do_decrease = true; }
+        } else {
+        // otherwise, nothing to do.
         }
     }
 
@@ -216,9 +255,8 @@ int apex_throughput_throttling_policy(apex_context const context) {
 /// how to do this currently AKP 11/01/14
 /// ----------------------------------------------------------------------------
 
-int apex_setup_throttling(apex_function_address the_function)
+int apex_setup_power_cap_throttling()
 {
-  if (the_function == APEX_NULL_FUNCTION_ADDRESS) {
     apex_set_node_id(0);
     // if desired for this execution set up throttling & final print of total energy used 
     if (getenv("HPX_THROTTLING") != NULL) {
@@ -253,15 +291,38 @@ int apex_setup_throttling(apex_function_address the_function)
       else if (getenv("HPX_ENERGY") != NULL) {
         // energyDaemonInit();  // this is done in apex initialization
       }
-    } else {
-      function_of_interest = the_function;
-      function_history.calls = 0.0;
-      function_history.accumulated = 0.0;
-      function_baseline.calls = 0.0;
-      function_baseline.accumulated = 0.0;
-      apex_register_periodic_policy(1000000, apex_throughput_throttling_policy);
-    }
   return(0);
+}
+
+APEX_EXPORT int apex_setup_address_throttling(apex_function_address the_address,
+                apex_optimization_criteria_t criteria)
+{
+    function_of_interest = the_address;
+    function_history.calls = 0.0;
+    function_history.accumulated = 0.0;
+    function_baseline.calls = 0.0;
+    function_baseline.accumulated = 0.0;
+    throttling_criteria = criteria;
+    apex_register_periodic_policy(1000000, apex_throughput_throttling_policy);
+    return(0);
+}
+
+APEX_EXPORT int apex_setup_name_throttling(const char * the_name,
+                apex_optimization_criteria_t criteria)
+{
+    if (the_name == NULL) {
+        fprintf(stderr, "Timer/counter name for throttling is null. Please specify a name.\n");
+        abort();
+    }
+    function_name_of_interest = malloc(sizeof(char) * strlen(the_name));
+    strcpy (function_name_of_interest, the_name);
+    function_history.calls = 0.0;
+    function_history.accumulated = 0.0;
+    function_baseline.calls = 0.0;
+    function_baseline.accumulated = 0.0;
+    throttling_criteria = criteria;
+    apex_register_periodic_policy(1000000, apex_throughput_throttling_policy);
+    return(0);
 }
 
 int apex_shutdown_throttling()

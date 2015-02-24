@@ -64,7 +64,7 @@ int main(int argc, char **argv)
   apex_init_args(argc, argv, NULL);
   apex_set_node_id(0);
 
-  apex_setup_throttling((apex_function_address)foo);
+  apex_setup_address_throttling((apex_function_address)foo, MAXIMIZE_THROUGHPUT);
 
   apex_profiler_handle p = apex_start_address((apex_function_address)main);
   printf("PID of this process: %d\n", getpid());
