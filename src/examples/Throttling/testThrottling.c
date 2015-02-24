@@ -8,7 +8,7 @@
 #include "apex_throttling.h"
 
 #define NUM_THREADS 48
-#define ITERATIONS 10000
+#define ITERATIONS 1000
 #define SLEEPY_TIME 1000000 // 1,000,000
 
 int foo (int i) {
@@ -47,13 +47,14 @@ void* someThread(void* tmp)
         //printf("Thread %d sleeping for a bit.\n", *myid);
         struct timespec tim, tim2;
         tim.tv_sec = 0;
-        tim.tv_nsec = 500000000; // 1/2 second
+        tim.tv_nsec = 100000000; // 1/10 second
         // sleep a bit
         nanosleep(&tim , &tim2);
       } else {
 	    foo(i);
       }
   }
+  printf("Thread done: %d. Current Cap: %d.\n", *myid, apex_get_thread_cap());
   apex_stop_profiler(p);
   return NULL;
 }
