@@ -5,6 +5,7 @@
 #include <stdio.h>
 
 #include "apex.h"
+#include "apex_types.h"
 #include "apex_throttling.h"
 
 #ifdef APEX_HAVE_RCR
@@ -27,6 +28,10 @@ bool apex_checkThrottling = false;    // Is throttling desired
 bool apex_energyThrottling = false;   // Try to save power while throttling
 bool apex_final = false;              // When do we stop?
 
+int test_pp = 0;
+
+#define MAX_WINDOW_SIZE 3
+// variables related to power throttling
 double max_watts = RCR_HIGH_POWER_LIMIT;
 double min_watts = RCR_LOW_POWER_LIMIT;
 int max_threads = RCR_MAX_THREADS;
@@ -34,15 +39,46 @@ int min_threads = RCR_MIN_THREADS;
 int thread_cap = RCR_MAX_THREADS;
 int headroom = 1; //
 double moving_average = 0.0;
-int window_size = 3;
+int window_size = MAX_WINDOW_SIZE;
 int delay = 0;
+
+// variables related to throughput throttling
+apex_function_address function_of_interest = APEX_NULL_FUNCTION_ADDRESS;
+apex_profile function_baseline;
+apex_profile function_history;
+int throughput_delay = MAX_WINDOW_SIZE; // initialize 
+typedef enum {INITIAL_STATE, BASELINE, INCREASE, DECREASE, NO_CHANGE} last_action_t;
+last_action_t last_action = INITIAL_STATE;
 
 inline int apex_get_thread_cap(void) {
   return thread_cap;
 }
 
-int test_pp = 0;
-int apex_throttling_policy_periodic(apex_context const context) 
+inline void decrease_cap() {
+    int amtLower = thread_cap - min_threads;
+    amtLower = amtLower >> 1; // move max half way down
+    if (amtLower <= 0) amtLower = 1;
+    thread_cap -= amtLower;
+    if (thread_cap < min_threads) thread_cap = min_threads;
+    //printf("%d more throttling! new cap: %d\n", test_pp, thread_cap); fflush(stdout);
+    apex_throttleOn = true;
+}
+
+inline void increase_cap() {
+    int amtRaise = max_threads - thread_cap;
+    amtRaise = amtRaise >> 1; // move max half way up
+    if (amtRaise <= 0) {
+        amtRaise = 1;
+    }
+    thread_cap += amtRaise;
+    if (thread_cap > max_threads) {
+        thread_cap = max_threads;
+    }
+    //printf("%d less throttling! new cap: %d\n", test_pp, thread_cap); fflush(stdout);
+    apex_throttleOn = false;
+}
+
+inline int apex_power_throttling_policy(apex_context const context) 
 {
     if (apex_final) return 1; // we terminated, RCR has shut down.
     // read energy counter and memory concurrency to determine system status
@@ -54,28 +90,16 @@ int apex_throttling_policy_periodic(apex_context const context)
          or in our moving average, then we need to adjust */
       if (((power > max_watts) || 
            (moving_average > max_watts)) && --delay <= 0) { 
-          int amtLower = thread_cap - min_threads;
-          amtLower = amtLower >> 1; // move max half way down
-          if (amtLower < 0) amtLower = 1;
-          thread_cap -= amtLower;
-          if (thread_cap < min_threads) thread_cap = min_threads;
-          //printf("power : %f, ma: %f, new cap: %d, throttling\n", power, moving_average, thread_cap);
+          decrease_cap();
           delay = window_size;
-	  apex_throttleOn = true;
       }
       /* this is a softer limit. If we dip below the lower cap
          AND our moving average is also blow the cap, we need 
          to adjust */
       else if ((power < min_watts) && 
                (moving_average < min_watts) && --delay <=0) {
-          int amtRaise = max_threads - thread_cap;
-          amtRaise = amtRaise >> 1; // move max half way up
-          if (amtRaise < 0) amtRaise = 1;
-          thread_cap += amtRaise;
-          if (thread_cap > max_threads) thread_cap = max_threads;
-          //printf("power : %f, ma: %f, new cap: %d, raised %d, NOT throttling\n", power, moving_average, thread_cap, amtRaise);
+          increase_cap();
           delay = window_size;
-	  apex_throttleOn = false;
       //} else {
           //printf("power : %f, ma: %f, cap: %d, no change.\n", power, moving_average, thread_cap);
       }
@@ -84,6 +108,103 @@ int apex_throttling_policy_periodic(apex_context const context)
     return 1;
 }
 
+int apex_throughput_throttling_policy(apex_context const context) {
+// Do we have a function of interest?
+//    No: do nothing, return.
+//    Yes: Get its profile, continue.
+    test_pp++;
+    if(function_of_interest == APEX_NULL_FUNCTION_ADDRESS) { 
+        //printf("%d No address.\n", test_pp);
+        return 1; 
+    }
+
+    throughput_delay--;
+    
+// Do we have sufficient history for this function?
+//    No: save these results, wait for more data (3 iterations, at least), return
+//    Yes: get the profile
+
+    if(throughput_delay > 0) { 
+      //printf("%d Waiting...\n", test_pp);
+      return 1; 
+    }
+
+    if (throughput_delay == 0) {
+      // reset the profile for clean measurement
+      //printf("%d Taking measurement...\n", test_pp);
+      apex_reset_address(function_of_interest); // we want new measurements!
+      return 1;
+    }
+
+    apex_profile * function_profile = apex_get_profile_from_address(function_of_interest);
+    double current_mean = function_profile->accumulated / function_profile->calls;
+    //printf("%d Calls: %f, Accum: %f, Mean: %f\n", test_pp, function_profile->calls, function_profile->accumulated, current_mean);
+
+// first time, take a baseline measurement 
+    if (last_action == INITIAL_STATE) {
+        function_baseline.calls = function_profile->calls;
+        function_baseline.accumulated = function_profile->accumulated;
+        function_history.calls = function_profile->calls;
+        function_history.accumulated = function_profile->accumulated;
+        throughput_delay = MAX_WINDOW_SIZE;
+        last_action = BASELINE;
+        //printf("%d Got baseline.\n", test_pp);
+    }
+
+    //printf("%d Old: %f New %f.\n", test_pp, function_history.calls, function_profile->calls);
+
+//    Subsequent times: Are we doing better than before?
+//       No: compare profile to history, adjust as necessary.
+//       Yes: compare profile to history, adjust as necessary.
+    bool do_decrease = false;
+    bool do_increase = false;
+
+    // first time, try decreasing the number of threads.
+    if (last_action == BASELINE) {
+        do_decrease = true;
+    } else {
+        // are we at least 5% more throughput? If so, do more adjustment
+        if (function_profile->calls > (1.05*function_history.calls)) {
+            if (last_action == INCREASE) { do_increase = true; }
+            else if (last_action == DECREASE) { do_decrease = true; }
+        // are we at least 5% less throughput? If so, reverse course
+        } else if (function_profile->calls < (0.95*function_history.calls)) {
+            if (last_action == DECREASE) { do_increase = true; }
+            else if (last_action == INCREASE) { do_decrease = true; }
+        } else {
+            double old_mean = function_history.accumulated / function_history.calls;
+            // are we at least 5% more efficient? If so, do more adjustment
+            if (old_mean > (1.05*current_mean)) {
+                if (last_action == INCREASE) { do_increase = true; }
+                else if (last_action == DECREASE) { do_decrease = true; }
+            // are we at least 5% less efficient? If so, reverse course
+            } else if (old_mean < (0.95*current_mean)) {
+                if (last_action == DECREASE) { do_increase = true; }
+                else if (last_action == INCREASE) { do_decrease = true; }
+            } else {
+            // otherwise, nothing to do.
+            }
+        }
+    }
+
+    if (do_decrease) {
+        //printf("%d Decreasing.\n", test_pp);
+        // save this as our new history
+        function_history.calls = function_profile->calls;
+        function_history.accumulated = function_profile->accumulated;
+        decrease_cap();
+        last_action = DECREASE;
+    } else if (do_increase) {
+        //printf("%d Increasing.\n", test_pp);
+        // save this as our new history
+        function_history.calls = function_profile->calls;
+        function_history.accumulated = function_profile->accumulated;
+        increase_cap();
+        last_action = INCREASE;
+    }
+    throughput_delay = MAX_WINDOW_SIZE;
+    return 1;
+}
 
 /// ----------------------------------------------------------------------------
 ///
@@ -95,42 +216,51 @@ int apex_throttling_policy_periodic(apex_context const context)
 /// how to do this currently AKP 11/01/14
 /// ----------------------------------------------------------------------------
 
-int apex_setup_throttling()
+int apex_setup_throttling(apex_function_address the_function)
 {
-  apex_set_node_id(0);
-  // if desired for this execution set up throttling & final print of total energy used 
-  if (getenv("HPX_THROTTLING") != NULL) {
-    char * envvar = getenv("APEX_THROTTLING_MAX_THREADS");
-    if (envvar != NULL) {
-      max_threads = atoi(envvar);
-      thread_cap = max_threads;
-    }
-    envvar = getenv("APEX_THROTTLING_MIN_THREADS");
-    if (envvar != NULL) {
-      min_threads = atoi(envvar);
-    }
-    envvar = getenv("APEX_THROTTLING_MAX_WATTS");
-    if (envvar != NULL) {
-      max_watts = atof(envvar);
-    }
-    envvar = getenv("APEX_THROTTLING_MIN_WATTS");
-    if (envvar != NULL) {
-      min_watts = atof(envvar);
-    }
-    apex_checkThrottling = true;
-    if (getenv("HPX_ENERGY_THROTTLING") != NULL) {
-      apex_energyThrottling = true;
-    }
-    apex_register_periodic_policy(1000000, apex_throttling_policy_periodic);
-    // get an initial power reading
-    apex_current_power_high();
+  if (the_function == APEX_NULL_FUNCTION_ADDRESS) {
+    apex_set_node_id(0);
+    // if desired for this execution set up throttling & final print of total energy used 
+    if (getenv("HPX_THROTTLING") != NULL) {
+      char * envvar = getenv("APEX_THROTTLING_MAX_THREADS");
+      if (envvar != NULL) {
+        max_threads = atoi(envvar);
+        thread_cap = max_threads;
+      }
+      envvar = getenv("APEX_THROTTLING_MIN_THREADS");
+      if (envvar != NULL) {
+        min_threads = atoi(envvar);
+      }
+      envvar = getenv("APEX_THROTTLING_MAX_WATTS");
+      if (envvar != NULL) {
+        max_watts = atof(envvar);
+      }
+      envvar = getenv("APEX_THROTTLING_MIN_WATTS");
+      if (envvar != NULL) {
+        min_watts = atof(envvar);
+      }
+      apex_checkThrottling = true;
+      if (getenv("HPX_ENERGY_THROTTLING") != NULL) {
+        apex_energyThrottling = true;
+      }
+      apex_register_periodic_policy(1000000, apex_power_throttling_policy);
+      // get an initial power reading
+      apex_current_power_high();
 #ifdef APEX_HAVE_RCR
-    energyDaemonEnter();
+      energyDaemonEnter();
 #endif
-  }
-  else if (getenv("HPX_ENERGY") != NULL) {
-    // energyDaemonInit();  // this is done in apex initialization
-  }
+      }
+      else if (getenv("HPX_ENERGY") != NULL) {
+        // energyDaemonInit();  // this is done in apex initialization
+      }
+    } else {
+      function_of_interest = the_function;
+      function_history.calls = 0.0;
+      function_history.accumulated = 0.0;
+      function_baseline.calls = 0.0;
+      function_baseline.accumulated = 0.0;
+      apex_register_periodic_policy(1000000, apex_throughput_throttling_policy);
+    }
   return(0);
 }
 
@@ -143,7 +273,7 @@ int apex_shutdown_throttling()
   }
 */
   apex_final = true;
-  printf("periodic_policy called %d times\n", test_pp);
+  //printf("periodic_policy called %d times\n", test_pp);
   //apex_finalize();
   return (0);
 }
