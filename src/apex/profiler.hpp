@@ -76,7 +76,7 @@ class profile {
 private:
 	apex_profile _profile;
 public:
-	profile(double initial, apex_profile_type type = TIMER) {
+	profile(double initial, apex_profile_type type = APEX_TIMER) {
         _profile.type = type;
 		_profile.calls = 1.0;
 		_profile.accumulated = initial;

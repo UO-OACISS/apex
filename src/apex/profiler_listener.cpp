@@ -194,7 +194,7 @@ namespace apex {
 #endif
       } else {
         // Create a new profile for this name.
-        theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_counter ? COUNTER : TIMER);
+        theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_counter ? APEX_COUNTER : APEX_TIMER);
         name_map[*(p->timer_name)] = theprofile;
 #ifdef APEX_HAVE_HPX3
         if(get_hpx_runtime_ptr() != nullptr) {
@@ -225,7 +225,7 @@ namespace apex {
         }
       } else {
         // Create a new profile for this name.
-        theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_counter ? COUNTER : TIMER);
+        theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_counter ? APEX_COUNTER : APEX_TIMER);
         (*the_map)[*(p->timer_name)] = theprofile;
       }
     } else { // address rather than name
@@ -456,7 +456,7 @@ namespace apex {
     map<string, profile*>::const_iterator it2;
     for(it2 = the_name_map->begin(); it2 != the_name_map->end(); it2++) {
       profile * p = it2->second;
-      if(p->get_type() == COUNTER) {
+      if(p->get_type() == APEX_COUNTER) {
         counter_events++;
       }
     }
@@ -492,7 +492,7 @@ namespace apex {
     double not_main = 0.0;
     for(it2 = the_name_map->begin(); it2 != the_name_map->end(); it2++) {
       profile * p = it2->second;
-      if(p->get_type() == TIMER) {
+      if(p->get_type() == APEX_TIMER) {
         string action_name = it2->first;
         if(strcmp(action_name.c_str(), APEX_MAIN) == 0) {
           mainp = p;
@@ -531,7 +531,7 @@ namespace apex {
       myfile << "# eventname numevents max min mean sumsqr" << endl;
       for(it2 = the_name_map->begin(); it2 != the_name_map->end(); it2++) {
         profile * p = it2->second;
-        if(p->get_type() == COUNTER) {
+        if(p->get_type() == APEX_COUNTER) {
           string action_name = it2->first;
           myfile << "\"" << action_name << "\" ";
           format_counter_line (myfile, p);

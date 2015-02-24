@@ -75,7 +75,7 @@ int main(int argc, char **argv)
   apex_set_use_screen_output(true);
   apex_set_use_profile_output(true);
   apex_set_node_id(0);
-  const apex_event_type when = STOP_EVENT;
+  const apex_event_type when = APEX_STOP_EVENT;
   apex_register_periodic_policy(1000000, policy_periodic);
   apex_register_policy(when, policy_event);
 #ifdef __APPLE__

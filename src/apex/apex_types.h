@@ -27,15 +27,15 @@ typedef enum _error_codes {
  * Typedef for enumerating the different event types
  */
 typedef enum _event_type {
-  STARTUP,
-  SHUTDOWN,
-  NEW_NODE,
-  NEW_THREAD,
-  START_EVENT,
-  RESUME_EVENT,
-  STOP_EVENT,
-  SAMPLE_VALUE,
-  PERIODIC
+  APEX_STARTUP,
+  APEX_SHUTDOWN,
+  APEX_NEW_NODE,
+  APEX_NEW_THREAD,
+  APEX_START_EVENT,
+  APEX_RESUME_EVENT,
+  APEX_STOP_EVENT,
+  APEX_SAMPLE_VALUE,
+  APEX_PERIODIC
 } apex_event_type;
 
 /**
@@ -68,8 +68,8 @@ typedef struct _context
  * 
  */
 typedef enum _profile_type {
-  TIMER,
-  COUNTER
+  APEX_TIMER,
+  APEX_COUNTER
 } apex_profile_type;
 
 /**

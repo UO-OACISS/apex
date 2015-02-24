@@ -74,7 +74,7 @@ int main(int argc, char **argv)
   apex::apex_options::use_profile_output(true);
   //ApexProxy proxy = ApexProxy((void*)main);
   apex::profiler * profiler = apex::start((apex_function_address)main);
-  const apex_event_type when = STOP_EVENT;
+  const apex_event_type when = APEX_STOP_EVENT;
   apex::register_periodic_policy(1000000, [](apex_context const& context){
        UNUSED(context);
        apex_function_address foo_addr = (apex_function_address)(foo);

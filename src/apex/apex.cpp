@@ -548,7 +548,7 @@ apex_policy_handle* register_periodic_policy(unsigned long period_microseconds,
     policy_handler * handler = apex::instance()->get_policy_handler(period_microseconds);
     if(handler != nullptr)
     {
-        id = handler->register_policy(PERIODIC, f);
+        id = handler->register_policy(APEX_PERIODIC, f);
     }
     apex_policy_handle * handle = new apex_policy_handle();
     handle->id = id;

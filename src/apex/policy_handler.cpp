@@ -82,47 +82,47 @@ int policy_handler::register_policy(const apex_event_type & when,
   boost::shared_ptr<policy_instance> instance(
     boost::make_shared<policy_instance>(id, f));
     switch(when) {
-      case STARTUP: {
+      case APEX_STARTUP: {
         boost::unique_lock<mutex_type> l(startup_mutex);
         startup_policies.push_back(instance);
         break;
       }
-      case SHUTDOWN: {
+      case APEX_SHUTDOWN: {
         boost::unique_lock<mutex_type> l(shutdown_mutex);
         shutdown_policies.push_back(instance);
         break;
       }
-      case NEW_NODE: {
+      case APEX_NEW_NODE: {
         boost::unique_lock<mutex_type> l(new_node_mutex);
         new_node_policies.push_back(instance);
         break;
       }
-      case NEW_THREAD: {
+      case APEX_NEW_THREAD: {
         boost::unique_lock<mutex_type> l(new_thread_mutex);
         new_thread_policies.push_back(instance);
         break;
       }
-      case START_EVENT: {
+      case APEX_START_EVENT: {
         boost::unique_lock<mutex_type> l(start_event_mutex);
         start_event_policies.push_back(instance);
         break;
       }
-      case RESUME_EVENT: {
+      case APEX_RESUME_EVENT: {
         boost::unique_lock<mutex_type> l(resume_event_mutex);
         resume_event_policies.push_back(instance);
         break;
       }
-      case STOP_EVENT: {
+      case APEX_STOP_EVENT: {
         boost::unique_lock<mutex_type> l(stop_event_mutex);
         stop_event_policies.push_back(instance);
         break;
       }
-      case SAMPLE_VALUE: {
+      case APEX_SAMPLE_VALUE: {
         boost::unique_lock<mutex_type> l(sample_value_mutex);
         sample_value_policies.push_back(instance);
         break;
       }
-      case PERIODIC: {
+      case APEX_PERIODIC: {
         boost::unique_lock<mutex_type> l(periodic_mutex);
         periodic_policies.push_back(instance);
         break;
@@ -181,7 +181,7 @@ void policy_handler::on_start(apex_function_address function_address, string *ti
         //call_policies(start_event_policies, event_data);
   for(const boost::shared_ptr<policy_instance>& policy : start_event_policies) {
     apex_context my_context;
-    my_context.event_type = START_EVENT;
+    my_context.event_type = APEX_START_EVENT;
     my_context.policy_handle = NULL;
     const bool result = policy->func(my_context);
     if(!result) {
@@ -199,7 +199,7 @@ void policy_handler::on_stop(profiler *p) {
         //call_policies(stop_event_policies, event_data);
   for(const boost::shared_ptr<policy_instance>& policy : stop_event_policies) {
     apex_context my_context;
-    my_context.event_type = STOP_EVENT;
+    my_context.event_type = APEX_STOP_EVENT;
     my_context.policy_handle = NULL;
     const bool result = policy->func(my_context);
     if(!result) {
