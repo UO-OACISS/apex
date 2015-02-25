@@ -23,7 +23,7 @@ if(DOXYGEN_FOUND)
             DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/latex/refman.pdf
             COMMENT  "Executing ${PDFLATEX_COMPILER}"
         )
-	    INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/latex/refman.pdf DESTINATION doc )
+        # INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/latex/refman.pdf DESTINATION doc )
     endif()
 else()
     MESSAGE(STATUS "Doxygen not found. Building documentation requires Doxygen.")
