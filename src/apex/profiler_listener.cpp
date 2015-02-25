@@ -553,11 +553,13 @@ namespace apex {
 #ifdef APEX_HAVE_HPX3
     static bool registered = false;
     if(!registered) {
-      while(get_hpx_runtime_ptr() == nullptr) {
+      while(!done && get_hpx_runtime_ptr() == nullptr) {
         // wait for hpx to start
       };
-      get_hpx_runtime_ptr()->register_thread("apex_profiler_listener");
-      registered = true;
+      if(get_hpx_runtime_ptr() != nullptr) {
+        get_hpx_runtime_ptr()->register_thread("apex_profiler_listener");
+        registered = true;
+      }
     }
 #endif
 
