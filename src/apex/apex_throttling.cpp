@@ -60,14 +60,28 @@ inline int __get_thread_cap(void) {
   return thread_cap;
 }
 
+inline void __decrease_cap_gradual() {
+    thread_cap -= 2;
+    if (thread_cap < min_threads) { thread_cap = min_threads; }
+    printf("%d more throttling! new cap: %d\n", test_pp, thread_cap); fflush(stdout);
+    apex_throttleOn = true;
+}
+
 inline void __decrease_cap() {
     int amtLower = thread_cap - min_threads;
     amtLower = amtLower >> 1; // move max half way down
     if (amtLower <= 0) amtLower = 1;
     thread_cap -= amtLower;
     if (thread_cap < min_threads) thread_cap = min_threads;
-    //printf("%d more throttling! new cap: %d\n", test_pp, thread_cap); fflush(stdout);
+    printf("%d more throttling! new cap: %d\n", test_pp, thread_cap); fflush(stdout);
     apex_throttleOn = true;
+}
+
+inline void __increase_cap_gradual() {
+    thread_cap += 2;
+    if (thread_cap > max_threads) { thread_cap = max_threads; }
+    printf("%d less throttling! new cap: %d\n", test_pp, thread_cap); fflush(stdout);
+    apex_throttleOn = false;
 }
 
 inline void __increase_cap() {
@@ -80,7 +94,7 @@ inline void __increase_cap() {
     if (thread_cap > max_threads) {
         thread_cap = max_threads;
     }
-    //printf("%d less throttling! new cap: %d\n", test_pp, thread_cap); fflush(stdout);
+    printf("%d less throttling! new cap: %d\n", test_pp, thread_cap); fflush(stdout);
     apex_throttleOn = false;
 }
 
@@ -156,7 +170,7 @@ int apex_throughput_throttling_policy(apex_context const context) {
         function_profile = get_profile(function_name_of_interest);
     }
     double current_mean = function_profile->accumulated / function_profile->calls;
-    //printf("%d Calls: %f, Accum: %f, Mean: %f\n", test_pp, function_profile->calls, function_profile->accumulated, current_mean);
+    printf("%d Calls: %f, Accum: %f, Mean: %f\n", test_pp, function_profile->calls, function_profile->accumulated, current_mean);
 
 // first time, take a baseline measurement 
     if (last_action == INITIAL_STATE) {
@@ -169,7 +183,7 @@ int apex_throughput_throttling_policy(apex_context const context) {
         //printf("%d Got baseline.\n", test_pp);
     }
 
-    //printf("%d Old: %f New %f.\n", test_pp, function_history.calls, function_profile->calls);
+    printf("%d Old: %f New %f.\n", test_pp, function_history.calls, function_profile->calls);
 
 //    Subsequent times: Are we doing better than before?
 //       No: compare profile to history, adjust as necessary.
@@ -190,6 +204,7 @@ int apex_throughput_throttling_policy(apex_context const context) {
             if (last_action == DECREASE) { do_increase = true; }
             else if (last_action == INCREASE) { do_decrease = true; }
         } else {
+#if 1
             double old_mean = function_history.accumulated / function_history.calls;
             // are we at least 5% more efficient? If so, do more adjustment
             if (old_mean > (1.05*current_mean)) {
@@ -202,6 +217,7 @@ int apex_throughput_throttling_policy(apex_context const context) {
             } else {
             // otherwise, nothing to do.
             }
+#endif
         }
     } else if (throttling_criteria == APEX_MAXIMIZE_ACCUMULATED) {
         double old_mean = function_history.accumulated / function_history.calls;
@@ -236,14 +252,14 @@ int apex_throughput_throttling_policy(apex_context const context) {
         // save this as our new history
         function_history.calls = function_profile->calls;
         function_history.accumulated = function_profile->accumulated;
-        __decrease_cap();
+        __decrease_cap_gradual();
         last_action = DECREASE;
     } else if (do_increase) {
         //printf("%d Increasing.\n", test_pp);
         // save this as our new history
         function_history.calls = function_profile->calls;
         function_history.accumulated = function_profile->accumulated;
-        __increase_cap();
+        __increase_cap_gradual();
         last_action = INCREASE;
     }
     throughput_delay = MAX_WINDOW_SIZE;
