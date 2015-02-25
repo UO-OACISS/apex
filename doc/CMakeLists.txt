@@ -3,7 +3,7 @@ find_package(Doxygen)
 find_package(LATEX COMPONENTS PDFLATEX MAKEINDEX)
 if(DOXYGEN_FOUND)
 	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
-	add_custom_target(doc ALL ${DOXYGEN_EXECUTABLE}
+	add_custom_target(doc ${DOXYGEN_EXECUTABLE}
 		${CMAKE_CURRENT_BINARY_DIR}/Doxyfile WORKING_DIRECTORY
 		${CMAKE_CURRENT_BINARY_DIR} 
         COMMENT "Generating API documentation with Doxygen" VERBATIM)
@@ -19,7 +19,6 @@ if(DOXYGEN_FOUND)
             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/latex
         )
         add_custom_target(refman.pdf
-            ALL
             DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/latex/refman.pdf
             COMMENT  "Executing ${PDFLATEX_COMPILER}"
         )
