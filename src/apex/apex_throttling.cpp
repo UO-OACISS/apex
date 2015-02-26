@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string>
+#include <iostream>
+#include <fstream>
 
 #include "apex.hpp"
 #include "apex_types.h"
@@ -56,6 +58,10 @@ typedef enum {INITIAL_STATE, BASELINE, INCREASE, DECREASE, NO_CHANGE} last_actio
 last_action_t last_action = INITIAL_STATE;
 apex_optimization_criteria_t throttling_criteria = APEX_MAXIMIZE_THROUGHPUT;
 
+// variables for hill climbing
+double * evaluations = NULL;
+ofstream cap_data;
+
 inline int __get_thread_cap(void) {
   return thread_cap;
 }
@@ -63,7 +69,7 @@ inline int __get_thread_cap(void) {
 inline void __decrease_cap_gradual() {
     thread_cap -= 2;
     if (thread_cap < min_threads) { thread_cap = min_threads; }
-    printf("%d more throttling! new cap: %d\n", test_pp, thread_cap); fflush(stdout);
+    //printf("%d more throttling! new cap: %d\n", test_pp, thread_cap); fflush(stdout);
     apex_throttleOn = true;
 }
 
@@ -73,14 +79,14 @@ inline void __decrease_cap() {
     if (amtLower <= 0) amtLower = 1;
     thread_cap -= amtLower;
     if (thread_cap < min_threads) thread_cap = min_threads;
-    printf("%d more throttling! new cap: %d\n", test_pp, thread_cap); fflush(stdout);
+    //printf("%d more throttling! new cap: %d\n", test_pp, thread_cap); fflush(stdout);
     apex_throttleOn = true;
 }
 
 inline void __increase_cap_gradual() {
     thread_cap += 2;
     if (thread_cap > max_threads) { thread_cap = max_threads; }
-    printf("%d less throttling! new cap: %d\n", test_pp, thread_cap); fflush(stdout);
+    //printf("%d less throttling! new cap: %d\n", test_pp, thread_cap); fflush(stdout);
     apex_throttleOn = false;
 }
 
@@ -94,7 +100,7 @@ inline void __increase_cap() {
     if (thread_cap > max_threads) {
         thread_cap = max_threads;
     }
-    printf("%d less throttling! new cap: %d\n", test_pp, thread_cap); fflush(stdout);
+    //printf("%d less throttling! new cap: %d\n", test_pp, thread_cap); fflush(stdout);
     apex_throttleOn = false;
 }
 
@@ -170,7 +176,7 @@ int apex_throughput_throttling_policy(apex_context const context) {
         function_profile = get_profile(function_name_of_interest);
     }
     double current_mean = function_profile->accumulated / function_profile->calls;
-    printf("%d Calls: %f, Accum: %f, Mean: %f\n", test_pp, function_profile->calls, function_profile->accumulated, current_mean);
+    //printf("%d Calls: %f, Accum: %f, Mean: %f\n", test_pp, function_profile->calls, function_profile->accumulated, current_mean);
 
 // first time, take a baseline measurement 
     if (last_action == INITIAL_STATE) {
@@ -183,7 +189,7 @@ int apex_throughput_throttling_policy(apex_context const context) {
         //printf("%d Got baseline.\n", test_pp);
     }
 
-    printf("%d Old: %f New %f.\n", test_pp, function_history.calls, function_profile->calls);
+    //printf("%d Old: %f New %f.\n", test_pp, function_history.calls, function_profile->calls);
 
 //    Subsequent times: Are we doing better than before?
 //       No: compare profile to history, adjust as necessary.
@@ -266,6 +272,77 @@ int apex_throughput_throttling_policy(apex_context const context) {
     return APEX_NOERROR;
 }
 
+/* How about a hill-climbing method for throughput? */
+
+/* Discrete Space Hill Climbing Algorithm */
+int apex_throughput_throttling_dhc_policy(apex_context const context) {
+    APEX_UNUSED(context);
+
+    // initial value for current_cap is 1/2 the distance between min and max
+    static int current_cap = min_threads + ((max_threads - min_threads) >> 1);
+    int low_neighbor = max(current_cap - 1, min_threads);
+    int high_neighbor = min(current_cap + 1, max_threads);
+
+    // get a measurement of our current setting
+    apex_profile * function_profile = NULL;
+    if(function_of_interest != APEX_NULL_FUNCTION_ADDRESS) {
+        function_profile = get_profile(function_of_interest);
+        reset(function_of_interest); // we want new measurements!
+    } else {
+        function_profile = get_profile(function_name_of_interest);
+        reset(function_name_of_interest); // we want new measurements!
+    }
+    // if we have no data yet, return.
+    if (function_profile == NULL) { return APEX_ERROR; }
+
+    evaluations[thread_cap] = function_profile->calls;
+    //printf("%d Calls: %f.\n", thread_cap, function_profile->calls);
+
+    // check if our center has a value
+    if (evaluations[current_cap] == 0.0) {
+        thread_cap = current_cap;
+        //printf("initial throttling. trying cap: %d\n", thread_cap); fflush(stdout);
+        return APEX_NOERROR;
+    }
+    // check if our left of center has a value
+    if (evaluations[low_neighbor] == 0.0) {
+        thread_cap = low_neighbor;
+        //printf("current-1 throttling. trying cap: %d\n", thread_cap); fflush(stdout);
+        return APEX_NOERROR;
+    }
+    // check if our right of center has a value
+    if (evaluations[high_neighbor] == 0.0) {
+        thread_cap = high_neighbor;
+        //printf("current+1 throttling. trying cap: %d\n", thread_cap); fflush(stdout);
+        return APEX_NOERROR;
+    }
+
+    // clear our non-best observations, and set a new cap.
+    int best = current_cap;
+    if (evaluations[low_neighbor] > evaluations[current_cap]) {
+        best = low_neighbor;
+        // left/low is better, clear the current value
+        evaluations[current_cap] = 0.0;
+    }
+    if (evaluations[high_neighbor] > evaluations[best]) {
+        // right/high is better, clear the previous best
+        evaluations[best] = 0.0;
+        best = high_neighbor;
+    } else {
+        // previous best is better, clear the right/high value
+        evaluations[high_neighbor] = 0.0;
+    }
+    //printf("%d Calls: %f.\n", thread_cap, evaluations[best]);
+    //printf("New cap: %d\n", thread_cap); fflush(stdout);
+    if (apex::apex::instance()->get_node_id() == 0) {
+        static int index = 0;
+        cap_data << index++ << "\t" << evaluations[best] << "\t" << best << endl;
+    }
+    // set a new cap
+    thread_cap = current_cap = best;
+    return APEX_NOERROR;
+}
+    
 /// ----------------------------------------------------------------------------
 ///
 /// Functions to setup and shutdown energy measurements during execution
@@ -276,20 +353,31 @@ int apex_throughput_throttling_policy(apex_context const context) {
 /// how to do this currently AKP 11/01/14
 /// ----------------------------------------------------------------------------
 
+inline void __read_common_variables() {
+    char * envvar = getenv("HPX_THROTTLING");
+    if (envvar != NULL) {
+        int tmp = atoi(envvar);
+        if (tmp > 0) {
+            apex_checkThrottling = true;
+            char * envvar = getenv("APEX_THROTTLING_MAX_THREADS");
+            if (envvar != NULL) {
+                max_threads = atoi(envvar);
+                thread_cap = max_threads;
+            }
+            envvar = getenv("APEX_THROTTLING_MIN_THREADS");
+            if (envvar != NULL) {
+                min_threads = atoi(envvar);
+            }
+        }
+    }
+}
+
 inline int __setup_power_cap_throttling()
 {
+    __read_common_variables();
     // if desired for this execution set up throttling & final print of total energy used 
-    if (getenv("HPX_THROTTLING") != NULL) {
-      char * envvar = getenv("APEX_THROTTLING_MAX_THREADS");
-      if (envvar != NULL) {
-        max_threads = atoi(envvar);
-        thread_cap = max_threads;
-      }
-      envvar = getenv("APEX_THROTTLING_MIN_THREADS");
-      if (envvar != NULL) {
-        min_threads = atoi(envvar);
-      }
-      envvar = getenv("APEX_THROTTLING_MAX_WATTS");
+    if (apex_checkThrottling) {
+      char * envvar = getenv("APEX_THROTTLING_MAX_WATTS");
       if (envvar != NULL) {
         max_watts = atof(envvar);
       }
@@ -297,7 +385,6 @@ inline int __setup_power_cap_throttling()
       if (envvar != NULL) {
         min_watts = atof(envvar);
       }
-      apex_checkThrottling = true;
       if (getenv("HPX_ENERGY_THROTTLING") != NULL) {
         apex_energyThrottling = true;
       }
@@ -314,16 +401,28 @@ inline int __setup_power_cap_throttling()
   return APEX_NOERROR;
 }
 
+inline int __common_setup_timer_throttling(apex_optimization_criteria_t criteria)
+{
+    __read_common_variables();
+    if (apex_checkThrottling) {
+        function_history.calls = 0.0;
+        function_history.accumulated = 0.0;
+        function_baseline.calls = 0.0;
+        function_baseline.accumulated = 0.0;
+        throttling_criteria = criteria;
+        evaluations = (double*)(calloc(max_threads, sizeof(double)));
+        if (apex::apex::instance()->get_node_id() == 0) {
+            cap_data.open("cap_data.dat");
+        }
+        register_periodic_policy(250000, apex_throughput_throttling_dhc_policy);
+    }
+    return APEX_NOERROR;
+}
+
 inline int __setup_timer_throttling(apex_function_address the_address, apex_optimization_criteria_t criteria)
 {
     function_of_interest = the_address;
-    function_history.calls = 0.0;
-    function_history.accumulated = 0.0;
-    function_baseline.calls = 0.0;
-    function_baseline.accumulated = 0.0;
-    throttling_criteria = criteria;
-    register_periodic_policy(1000000, apex_throughput_throttling_policy);
-    return APEX_NOERROR;
+    return __common_setup_timer_throttling(criteria);
 }
 
 inline int __setup_timer_throttling(string& the_name, apex_optimization_criteria_t criteria)
@@ -333,13 +432,7 @@ inline int __setup_timer_throttling(string& the_name, apex_optimization_criteria
         abort();
     }
     function_name_of_interest = string(the_name);
-    function_history.calls = 0.0;
-    function_history.accumulated = 0.0;
-    function_baseline.calls = 0.0;
-    function_baseline.accumulated = 0.0;
-    throttling_criteria = criteria;
-    register_periodic_policy(1000000, apex_throughput_throttling_policy);
-    return APEX_NOERROR;
+    return __common_setup_timer_throttling(criteria);
 }
 
 inline int __shutdown_throttling(void)
@@ -353,6 +446,9 @@ inline int __shutdown_throttling(void)
   apex_final = true;
   //printf("periodic_policy called %d times\n", test_pp);
   //apex_finalize();
+    if (apex::apex::instance()->get_node_id() == 0) {
+        cap_data.close();
+    }
   return APEX_NOERROR;
 }
 

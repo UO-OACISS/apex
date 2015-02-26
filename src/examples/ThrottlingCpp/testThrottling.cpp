@@ -8,8 +8,10 @@
 #include "apex_throttling.h"
 
 #define NUM_THREADS 48
-#define ITERATIONS 250
-#define SLEEPY_TIME 1000000 // 1,000,000
+#define ITERATIONS 2500
+#define SLEEPY_TIME 10000 // 10,000
+
+int total_iterations = NUM_THREADS * ITERATIONS;
 
 using namespace apex;
 
@@ -20,7 +22,8 @@ int foo (int i) {
   struct timespec tim, tim2;
   tim.tv_sec = 0;
   // sleep just a bit longer, based on number of active threads.
-  tim.tv_nsec = (unsigned long)(SLEEPY_TIME * randval * get_thread_cap());
+  int cap = min(NUM_THREADS,get_thread_cap());
+  tim.tv_nsec = (unsigned long)(SLEEPY_TIME * cap * cap);
   nanosleep(&tim , &tim2);
   stop(p);
   return j;
@@ -43,9 +46,8 @@ void* someThread(void* tmp)
   printf("The ID of this thread is: %u\n", (unsigned int)pthread_self());
 #endif
   printf("The scheduler ID of this thread: %d\n", *myid);
-  int i = 0;
-  for (i = 0 ; i < ITERATIONS ; i++) {
-      if (apex_throttleOn && *myid >= get_thread_cap()) {
+  while (total_iterations > 0) {
+      if (*myid >= get_thread_cap()) {
         //printf("Thread %d sleeping for a bit.\n", *myid);
         struct timespec tim, tim2;
         tim.tv_sec = 0;
@@ -53,7 +55,8 @@ void* someThread(void* tmp)
         // sleep a bit
         nanosleep(&tim , &tim2);
       } else {
-	    foo(i);
+	    foo(total_iterations);
+        __sync_fetch_and_sub(&(total_iterations),1);
       }
   }
   printf("Thread done: %d. Current Cap: %d.\n", *myid, get_thread_cap());
