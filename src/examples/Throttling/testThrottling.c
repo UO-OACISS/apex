@@ -15,6 +15,8 @@
 #define ITERATIONS 2500
 #define SLEEPY_TIME 100000 // 1,000,000
 
+int total_iterations = NUM_THREADS * ITERATIONS;
+
 int foo (int i) {
   apex_profiler_handle p = apex_start_address((apex_function_address)foo);
   int j = i*i;
@@ -38,25 +40,25 @@ void* someThread(void* tmp)
   apex_register_thread("threadTest thread");
   //ApexProxy proxy = ApexProxy(__func__, __FILE__, __LINE__);
   apex_profiler_handle p = apex_start_address((apex_function_address)someThread);
-  //printf("PID of this process: %d\n", getpid());
+  printf("PID of this process: %d\n", getpid());
 #if defined (__APPLE__)
-  //printf("The ID of this thread is: %lu\n", (unsigned long)pthread_self());
+  printf("The ID of this thread is: %lu\n", (unsigned long)pthread_self());
 #else
-  //printf("The ID of this thread is: %u\n", (unsigned int)pthread_self());
+  printf("The ID of this thread is: %u\n", (unsigned int)pthread_self());
 #endif
-  //printf("The scheduler ID of this thread: %d\n", *myid);
-  int i = 0;
-  for (i = 0 ; i < ITERATIONS ; i++) {
-      //while (apex_throttleOn && *myid >= apex_get_thread_cap()) {
-      while (*myid >= apex_get_thread_cap()) {
+  printf("The scheduler ID of this thread: %d\n", *myid);
+  while (total_iterations > 0) {
+      if (*myid >= apex_get_thread_cap()) {
         //printf("Thread %d sleeping for a bit.\n", *myid);
         struct timespec tim, tim2;
         tim.tv_sec = 0;
         tim.tv_nsec = 100000000; // 1/10 second
         // sleep a bit
         nanosleep(&tim , &tim2);
+      } else {
+	    foo(total_iterations);
+        __sync_fetch_and_sub(&(total_iterations),1);
       }
-	  foo(i);
   }
   printf("Thread done: %d. Current Cap: %d.\n", *myid, apex_get_thread_cap());
   apex_stop_profiler(p);
