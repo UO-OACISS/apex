@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string>
+#include <iostream>
+#include <fstream>
 
 #include "apex.hpp"
 #include "apex_types.h"
@@ -58,6 +60,7 @@ apex_optimization_criteria_t throttling_criteria = APEX_MAXIMIZE_THROUGHPUT;
 
 // variables for hill climbing
 double * evaluations = NULL;
+ofstream cap_data;
 
 inline int __get_thread_cap(void) {
   return thread_cap;
@@ -276,7 +279,7 @@ int apex_throughput_throttling_dhc_policy(apex_context const context) {
     APEX_UNUSED(context);
 
     // initial value for current_cap is 1/2 the distance between min and max
-    static int current_cap = (max_threads - min_threads) / 2;
+    static int current_cap = min_threads + ((max_threads - min_threads) >> 1);
     int low_neighbor = max(current_cap - 1, min_threads);
     int high_neighbor = min(current_cap + 1, max_threads);
 
@@ -289,6 +292,9 @@ int apex_throughput_throttling_dhc_policy(apex_context const context) {
         function_profile = get_profile(function_name_of_interest);
         reset(function_name_of_interest); // we want new measurements!
     }
+    // if we have no data yet, return.
+    if (function_profile == NULL) { return APEX_ERROR; }
+
     evaluations[thread_cap] = function_profile->calls;
     //printf("%d Calls: %f.\n", thread_cap, function_profile->calls);
 
@@ -326,42 +332,17 @@ int apex_throughput_throttling_dhc_policy(apex_context const context) {
         // previous best is better, clear the right/high value
         evaluations[high_neighbor] = 0.0;
     }
+    //printf("%d Calls: %f.\n", thread_cap, evaluations[best]);
     //printf("New cap: %d\n", thread_cap); fflush(stdout);
+    if (apex::apex::instance()->get_node_id() == 0) {
+        static int index = 0;
+        cap_data << index++ << "\t" << evaluations[best] << "\t" << best << endl;
+    }
     // set a new cap
     thread_cap = current_cap = best;
     return APEX_NOERROR;
 }
     
-
-#if 0
-Continuous Space Hill Climbing Algorithm
-   currentPoint = initialPoint;    // the zero-magnitude vector is common
-   stepSize = initialStepSizes;    // a vector of all 1's is common
-   acceleration = someAcceleration; // a value such as 1.2 is common
-   candidate[0] = -acceleration;
-   candidate[1] = -1 / acceleration;
-   candidate[2] = 0;
-   candidate[3] = 1 / acceleration;
-   candidate[4] = acceleration;
-   loop do
-      before = EVAL(currentPoint);
-      for each element i in currentPoint do
-         best = -1;
-         bestScore = -INF;
-         for j from 0 to 4         // try each of 5 candidate locations
-            currentPoint[i] = currentPoint[i] + stepSize[i] * candidate[j];
-            temp = EVAL(currentPoint);
-            currentPoint[i] = currentPoint[i] - stepSize[i] * candidate[j];
-            if(temp > bestScore)
-                 bestScore = temp;
-                 best = j;
-         if candidate[best] is not 0
-            currentPoint[i] = currentPoint[i] + stepSize[i] * candidate[best];
-            stepSize[i] = stepSize[i] * candidate[best]; // accelerate
-      if (EVAL(currentPoint) - before) < epsilon 
-         return currentPoint;
-#endif
-
 /// ----------------------------------------------------------------------------
 ///
 /// Functions to setup and shutdown energy measurements during execution
@@ -372,20 +353,31 @@ Continuous Space Hill Climbing Algorithm
 /// how to do this currently AKP 11/01/14
 /// ----------------------------------------------------------------------------
 
+inline void __read_common_variables() {
+    char * envvar = getenv("HPX_THROTTLING");
+    if (envvar != NULL) {
+        int tmp = atoi(envvar);
+        if (tmp > 0) {
+            apex_checkThrottling = true;
+            char * envvar = getenv("APEX_THROTTLING_MAX_THREADS");
+            if (envvar != NULL) {
+                max_threads = atoi(envvar);
+                thread_cap = max_threads;
+            }
+            envvar = getenv("APEX_THROTTLING_MIN_THREADS");
+            if (envvar != NULL) {
+                min_threads = atoi(envvar);
+            }
+        }
+    }
+}
+
 inline int __setup_power_cap_throttling()
 {
+    __read_common_variables();
     // if desired for this execution set up throttling & final print of total energy used 
-    if (getenv("HPX_THROTTLING") != NULL) {
-      char * envvar = getenv("APEX_THROTTLING_MAX_THREADS");
-      if (envvar != NULL) {
-        max_threads = atoi(envvar);
-        thread_cap = max_threads;
-      }
-      envvar = getenv("APEX_THROTTLING_MIN_THREADS");
-      if (envvar != NULL) {
-        min_threads = atoi(envvar);
-      }
-      envvar = getenv("APEX_THROTTLING_MAX_WATTS");
+    if (apex_checkThrottling) {
+      char * envvar = getenv("APEX_THROTTLING_MAX_WATTS");
       if (envvar != NULL) {
         max_watts = atof(envvar);
       }
@@ -393,7 +385,6 @@ inline int __setup_power_cap_throttling()
       if (envvar != NULL) {
         min_watts = atof(envvar);
       }
-      apex_checkThrottling = true;
       if (getenv("HPX_ENERGY_THROTTLING") != NULL) {
         apex_energyThrottling = true;
       }
@@ -410,17 +401,28 @@ inline int __setup_power_cap_throttling()
   return APEX_NOERROR;
 }
 
+inline int __common_setup_timer_throttling(apex_optimization_criteria_t criteria)
+{
+    __read_common_variables();
+    if (apex_checkThrottling) {
+        function_history.calls = 0.0;
+        function_history.accumulated = 0.0;
+        function_baseline.calls = 0.0;
+        function_baseline.accumulated = 0.0;
+        throttling_criteria = criteria;
+        evaluations = (double*)(calloc(max_threads, sizeof(double)));
+        if (apex::apex::instance()->get_node_id() == 0) {
+            cap_data.open("cap_data.dat");
+        }
+        register_periodic_policy(250000, apex_throughput_throttling_dhc_policy);
+    }
+    return APEX_NOERROR;
+}
+
 inline int __setup_timer_throttling(apex_function_address the_address, apex_optimization_criteria_t criteria)
 {
     function_of_interest = the_address;
-    function_history.calls = 0.0;
-    function_history.accumulated = 0.0;
-    function_baseline.calls = 0.0;
-    function_baseline.accumulated = 0.0;
-    throttling_criteria = criteria;
-    evaluations = (double*)(calloc(max_threads, sizeof(double)));
-    register_periodic_policy(100000, apex_throughput_throttling_dhc_policy);
-    return APEX_NOERROR;
+    return __common_setup_timer_throttling(criteria);
 }
 
 inline int __setup_timer_throttling(string& the_name, apex_optimization_criteria_t criteria)
@@ -430,14 +432,7 @@ inline int __setup_timer_throttling(string& the_name, apex_optimization_criteria
         abort();
     }
     function_name_of_interest = string(the_name);
-    function_history.calls = 0.0;
-    function_history.accumulated = 0.0;
-    function_baseline.calls = 0.0;
-    function_baseline.accumulated = 0.0;
-    throttling_criteria = criteria;
-    evaluations = (double*)(calloc(max_threads, sizeof(double)));
-    register_periodic_policy(1000000, apex_throughput_throttling_policy);
-    return APEX_NOERROR;
+    return __common_setup_timer_throttling(criteria);
 }
 
 inline int __shutdown_throttling(void)
@@ -451,6 +446,9 @@ inline int __shutdown_throttling(void)
   apex_final = true;
   //printf("periodic_policy called %d times\n", test_pp);
   //apex_finalize();
+    if (apex::apex::instance()->get_node_id() == 0) {
+        cap_data.close();
+    }
   return APEX_NOERROR;
 }
 
