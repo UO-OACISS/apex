@@ -281,9 +281,10 @@ int apex_throughput_throttling_dhc_policy(apex_context const context) {
 
     // initial value for current_cap is 1/2 the distance between min and max
     static double previous_value = 0.0; // instead of resetting.
-    static int current_cap = min_threads + ((max_threads - min_threads) >> 1);
-    int low_neighbor = max(current_cap - 2, min_threads);
-    int high_neighbor = min(current_cap + 2, max_threads);
+    //static int current_cap = min_threads + ((max_threads - min_threads) >> 1);
+    static int current_cap = max_threads - 1;
+    int low_neighbor = max(current_cap - 1, min_threads);
+    int high_neighbor = min(current_cap + 1, max_threads);
     static bool got_center = false;
     static bool got_low = false;
     static bool got_high = false;
