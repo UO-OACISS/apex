@@ -57,6 +57,9 @@ void* someThread(void* tmp)
       } else {
 	    foo(total_iterations);
         __sync_fetch_and_sub(&(total_iterations),1);
+        if (total_iterations % 1000 == 0) {
+            printf("%d iterations left, cap is %d\n", total_iterations, get_thread_cap());
+        }
       }
   }
   printf("Thread done: %d. Current Cap: %d.\n", *myid, get_thread_cap());

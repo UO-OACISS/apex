@@ -59,6 +59,9 @@ void* someThread(void* tmp)
       } else {
 	    foo(total_iterations);
         __sync_fetch_and_sub(&(total_iterations),1);
+        if (total_iterations % 1000 == 0) {
+            printf("%d iterations left, cap is %d\n", total_iterations, apex_get_thread_cap());
+        }
       }
   }
   printf("Thread done: %d. Current Cap: %d.\n", *myid, apex_get_thread_cap());
@@ -71,7 +74,7 @@ int main(int argc, char **argv)
   apex_init_args(argc, argv, NULL);
   apex_set_node_id(0);
 
-  apex_setup_timer_address_throttling((apex_function_address)foo, APEX_MAXIMIZE_THROUGHPUT);
+  apex_setup_timer_address_throttling((apex_function_address)foo, APEX_MINIMIZE_ACCUMULATED);
 
   apex_profiler_handle p = apex_start_address((apex_function_address)main);
   //printf("PID of this process: %d\n", getpid());
