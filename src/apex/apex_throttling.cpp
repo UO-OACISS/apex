@@ -60,6 +60,7 @@ apex_optimization_criteria_t throttling_criteria = APEX_MAXIMIZE_THROUGHPUT;
 
 // variables for hill climbing
 double * evaluations = NULL;
+int * observations = NULL;
 ofstream cap_data;
 
 inline int __get_thread_cap(void) {
@@ -279,39 +280,60 @@ int apex_throughput_throttling_dhc_policy(apex_context const context) {
     APEX_UNUSED(context);
 
     // initial value for current_cap is 1/2 the distance between min and max
+    static double previous_value = 0.0; // instead of resetting.
     static int current_cap = min_threads + ((max_threads - min_threads) >> 1);
-    int low_neighbor = max(current_cap - 1, min_threads);
-    int high_neighbor = min(current_cap + 1, max_threads);
+    int low_neighbor = max(current_cap - 2, min_threads);
+    int high_neighbor = min(current_cap + 2, max_threads);
+    static bool got_center = false;
+    static bool got_low = false;
+    static bool got_high = false;
 
     // get a measurement of our current setting
     apex_profile * function_profile = NULL;
     if(function_of_interest != APEX_NULL_FUNCTION_ADDRESS) {
         function_profile = get_profile(function_of_interest);
-        reset(function_of_interest); // we want new measurements!
+        //reset(function_of_interest); // we want new measurements!
     } else {
         function_profile = get_profile(function_name_of_interest);
-        reset(function_name_of_interest); // we want new measurements!
+        //reset(function_name_of_interest); // we want new measurements!
     }
     // if we have no data yet, return.
-    if (function_profile == NULL) { return APEX_ERROR; }
+    if (function_profile == NULL) { 
+        //printf ("No Data?\n");
+        return APEX_ERROR; 
+    //} else {
+        //printf ("Got Data!\n");
+    }
 
-    evaluations[thread_cap] = function_profile->calls;
-    //printf("%d Calls: %f.\n", thread_cap, function_profile->calls);
+    double new_value = function_profile->calls - previous_value;
+    previous_value = function_profile->calls;
+
+    // update the moving average
+    if ((++observations[thread_cap]) < window_size) {
+        evaluations[thread_cap] = ((evaluations[thread_cap] * (observations[thread_cap]-1)) + new_value) / observations[thread_cap];
+    } else {
+        evaluations[thread_cap] = ((evaluations[thread_cap] * (window_size-1)) + new_value) / window_size;
+    }
+    printf("%d Calls: %f, new average: %f.\n", thread_cap, new_value, evaluations[thread_cap]);
+
+    if (thread_cap == current_cap) got_center = true;
+    if (thread_cap == low_neighbor) got_low = true;
+    if (thread_cap == high_neighbor) got_high = true;
 
     // check if our center has a value
-    if (evaluations[current_cap] == 0.0) {
+    if (!got_center) {
         thread_cap = current_cap;
         //printf("initial throttling. trying cap: %d\n", thread_cap); fflush(stdout);
         return APEX_NOERROR;
     }
     // check if our left of center has a value
-    if (evaluations[low_neighbor] == 0.0) {
+    if (!got_low) {
         thread_cap = low_neighbor;
         //printf("current-1 throttling. trying cap: %d\n", thread_cap); fflush(stdout);
         return APEX_NOERROR;
     }
     // check if our right of center has a value
-    if (evaluations[high_neighbor] == 0.0) {
+    if (!got_high) {
         thread_cap = high_neighbor;
         //printf("current+1 throttling. trying cap: %d\n", thread_cap); fflush(stdout);
         return APEX_NOERROR;
@@ -322,24 +344,27 @@ int apex_throughput_throttling_dhc_policy(apex_context const context) {
     if (evaluations[low_neighbor] > evaluations[current_cap]) {
         best = low_neighbor;
         // left/low is better, clear the current value
-        evaluations[current_cap] = 0.0;
+        //evaluations[current_cap] = 0.0;
     }
     if (evaluations[high_neighbor] > evaluations[best]) {
         // right/high is better, clear the previous best
-        evaluations[best] = 0.0;
+        //evaluations[best] = 0.0;
         best = high_neighbor;
     } else {
         // previous best is better, clear the right/high value
-        evaluations[high_neighbor] = 0.0;
+        //evaluations[high_neighbor] = 0.0;
     }
     //printf("%d Calls: %f.\n", thread_cap, evaluations[best]);
-    //printf("New cap: %d\n", thread_cap); fflush(stdout);
+    printf("New cap: %d\n", best); fflush(stdout);
     if (apex::apex::instance()->get_node_id() == 0) {
         static int index = 0;
         cap_data << index++ << "\t" << evaluations[best] << "\t" << best << endl;
     }
     // set a new cap
     thread_cap = current_cap = best;
+    got_center = false;
+    got_low = false;
+    got_high = false;
     return APEX_NOERROR;
 }
     
@@ -411,10 +436,11 @@ inline int __common_setup_timer_throttling(apex_optimization_criteria_t criteria
         function_baseline.accumulated = 0.0;
         throttling_criteria = criteria;
         evaluations = (double*)(calloc(max_threads, sizeof(double)));
+        observations = (int*)(calloc(max_threads, sizeof(int)));
         if (apex::apex::instance()->get_node_id() == 0) {
             cap_data.open("cap_data.dat");
         }
-        register_periodic_policy(250000, apex_throughput_throttling_dhc_policy);
+        register_periodic_policy(1000000, apex_throughput_throttling_dhc_policy);
     }
     return APEX_NOERROR;
 }
