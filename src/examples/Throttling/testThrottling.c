@@ -3,13 +3,19 @@
 #include <pthread.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <math.h>
 
 #include "apex.h"
 #include "apex_throttling.h"
 
+#define MAX(a,b) ((a) > (b) ? a : b)
+#define MIN(a,b) ((a) < (b) ? a : b)
+
 #define NUM_THREADS 48
-#define ITERATIONS 250
-#define SLEEPY_TIME 1000000 // 1,000,000
+#define ITERATIONS 2500
+#define SLEEPY_TIME 10000 // 10,000
+
+int total_iterations = NUM_THREADS * ITERATIONS;
 
 int foo (int i) {
   apex_profiler_handle p = apex_start_address((apex_function_address)foo);
@@ -18,7 +24,8 @@ int foo (int i) {
   struct timespec tim, tim2;
   tim.tv_sec = 0;
   // sleep just a bit longer, based on number of active threads.
-  tim.tv_nsec = (unsigned long)(SLEEPY_TIME * randval * apex_get_thread_cap());
+  int cap = MIN(NUM_THREADS,apex_get_thread_cap());
+  tim.tv_nsec = (unsigned long)(SLEEPY_TIME * cap * cap);
   nanosleep(&tim , &tim2);
   apex_stop_profiler(p);
   return j;
@@ -41,9 +48,8 @@ void* someThread(void* tmp)
   printf("The ID of this thread is: %u\n", (unsigned int)pthread_self());
 #endif
   printf("The scheduler ID of this thread: %d\n", *myid);
-  int i = 0;
-  for (i = 0 ; i < ITERATIONS ; i++) {
-      if (apex_throttleOn && *myid >= apex_get_thread_cap()) {
+  while (total_iterations > 0) {
+      if (*myid >= apex_get_thread_cap()) {
         //printf("Thread %d sleeping for a bit.\n", *myid);
         struct timespec tim, tim2;
         tim.tv_sec = 0;
@@ -51,7 +57,11 @@ void* someThread(void* tmp)
         // sleep a bit
         nanosleep(&tim , &tim2);
       } else {
-	    foo(i);
+	    foo(total_iterations);
+        __sync_fetch_and_sub(&(total_iterations),1);
+        if (total_iterations % 1000 == 0) {
+            printf("%d iterations left, cap is %d\n", total_iterations, apex_get_thread_cap());
+        }
       }
   }
   printf("Thread done: %d. Current Cap: %d.\n", *myid, apex_get_thread_cap());
@@ -64,10 +74,10 @@ int main(int argc, char **argv)
   apex_init_args(argc, argv, NULL);
   apex_set_node_id(0);
 
-  apex_setup_timer_address_throttling((apex_function_address)foo, APEX_MAXIMIZE_THROUGHPUT);
+  apex_setup_timer_address_throttling((apex_function_address)foo, APEX_MINIMIZE_ACCUMULATED);
 
   apex_profiler_handle p = apex_start_address((apex_function_address)main);
-  printf("PID of this process: %d\n", getpid());
+  //printf("PID of this process: %d\n", getpid());
   pthread_t thread[NUM_THREADS];
   int i;
   int ids[NUM_THREADS];

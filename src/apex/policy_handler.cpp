@@ -140,7 +140,7 @@ inline void policy_handler::call_policies(
     my_context.event_type = event_data.event_type_;
     my_context.policy_handle = NULL;
     const bool result = policy->func(my_context);
-    if(!result) {
+    if(result != APEX_NOERROR) {
       printf("Warning: registered policy function failed!\n");
     }
   }
@@ -184,7 +184,7 @@ void policy_handler::on_start(apex_function_address function_address, string *ti
     my_context.event_type = APEX_START_EVENT;
     my_context.policy_handle = NULL;
     const bool result = policy->func(my_context);
-    if(!result) {
+    if(result != APEX_NOERROR) {
       printf("Warning: registered policy function failed!\n");
     }
   }
@@ -202,7 +202,7 @@ void policy_handler::on_stop(profiler *p) {
     my_context.event_type = APEX_STOP_EVENT;
     my_context.policy_handle = NULL;
     const bool result = policy->func(my_context);
-    if(!result) {
+    if(result != APEX_NOERROR) {
       printf("Warning: registered policy function failed!\n");
     }
   }

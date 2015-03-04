@@ -85,8 +85,10 @@ inline int read_##name (void) { \
   int tmpint; \
   std::string tmpstr; \
   std::ifstream infile(filename); \
-  while (infile >> tmpint >> tmpstr) { \
-    return tmpint; /* return the first value encountered. */ \
+  if (infile.good()) { \
+    while (infile >> tmpint >> tmpstr) { \
+      return tmpint; /* return the first value encountered. */ \
+    } \
   } \
   return 0; \
 }

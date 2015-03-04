@@ -197,18 +197,20 @@ namespace apex {
         theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_counter ? APEX_COUNTER : APEX_TIMER);
         name_map[*(p->timer_name)] = theprofile;
 #ifdef APEX_HAVE_HPX3
-        if(get_hpx_runtime_ptr() != nullptr) {
-          hpx::performance_counters::install_counter_type(
-          std::string("/apex/") + *(p->timer_name),
-          [p](bool r)->boost::int64_t{
-              boost::int64_t value(p->elapsed() * 100000);
-              return value;
-          },
-          std::string("APEX counter ") + *(p->timer_name),
-          ""
-          );
-        } else {
-            std::cerr << "HPX runtime not initialized yet." << std::endl;
+        if(!done) {
+            if(get_hpx_runtime_ptr() != nullptr) {
+            hpx::performance_counters::install_counter_type(
+            std::string("/apex/") + *(p->timer_name),
+            [p](bool r)->boost::int64_t{
+                boost::int64_t value(p->elapsed() * 100000);
+                return value;
+            },
+            std::string("APEX counter ") + *(p->timer_name),
+            ""
+            );
+            } else {
+                std::cerr << "HPX runtime not initialized yet." << std::endl;
+            }
         }
 #endif
       }
@@ -551,11 +553,13 @@ namespace apex {
 #ifdef APEX_HAVE_HPX3
     static bool registered = false;
     if(!registered) {
-      while(get_hpx_runtime_ptr() == nullptr) {
+      while(!done && get_hpx_runtime_ptr() == nullptr) {
         // wait for hpx to start
       };
-      get_hpx_runtime_ptr()->register_thread("apex_profiler_listener");
-      registered = true;
+      if(get_hpx_runtime_ptr() != nullptr) {
+        get_hpx_runtime_ptr()->register_thread("apex_profiler_listener");
+        registered = true;
+      }
     }
 #endif
 
