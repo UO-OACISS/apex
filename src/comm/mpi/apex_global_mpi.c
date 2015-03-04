@@ -52,7 +52,7 @@ int action_apex_get_value(void *args) {
     value.minimum = p->minimum;
     value.maximum = p->maximum;
   }
-  return 0;
+  return APEX_NOERROR;
 }
 
 int action_apex_reduce(void *unused) {
@@ -67,12 +67,12 @@ int action_apex_reduce(void *unused) {
     memcpy(&(inValues[0]), &value, apex_profile_size);
     apex_sum(size, inValues);
   }
-  return 0;
+  return APEX_NOERROR;
 }
 
 int apex_periodic_policy_func(apex_context const context) {
   action_apex_reduce(NULL);
-  if (rank != 0) return 1;
+  if (rank != 0) return APEX_NOERROR;
   double avg = 0.0;
   double stddev = 0.0;
   if (reduced_value.calls > 0.0) {
@@ -83,7 +83,7 @@ int apex_periodic_policy_func(apex_context const context) {
   fflush(stdout);
   fprintf(graph_output,"%f %f\n",avg, stddev);
   fflush(graph_output);
-  return 1;
+  return APEX_NOERROR;
 }
 
 void apex_global_setup(apex_function_address in_action) {
