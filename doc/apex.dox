@@ -48,15 +48,15 @@ prefer to work with namespaces (i.e.  apex::*) rather than prefixes (i.e.
 apex_*). All functionality is supported through both interfaces, and the C
 interface contains inlined implementations of the C++ code.
 
-While the main purpose for APEX is supporting the current and future needs 
+While the designed purpose for APEX is supporting the current and future needs 
 of ParalleX runtimes within the XPRESS project (such as HPX3, HPX5),
 experimental support is also available for introspection of current runtimes
-such as OpenMP. APEX could easily be integrated into other runtime systems, such
-as any of a number of lightweight task based systems. The introspection
-provided by APEX is intended to be in the third-person model, rather than
-traditional first-person, per-thread/per-process application profile
-or tracing measurement.  APEX is designed to combine information from the OS,
-Runtime, hardware and application in order to guide policy decisions.
+such as OpenMP. APEX could potentially be integrated into other runtime
+systems, such as any of a number of lightweight task based systems. The
+introspection provided by APEX is intended to be in the third-person model,
+rather than traditional first-person, per-thread/per-process application
+profile or tracing measurement.  APEX is designed to combine information from
+the OS, Runtime, hardware and application in order to guide policy decisions.
 
 For distributed communication, APEX provides an API to be implemented for 
 the required communication for a given application. An MPI implementation
