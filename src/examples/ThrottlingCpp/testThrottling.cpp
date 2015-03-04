@@ -8,7 +8,7 @@
 #include "apex_throttling.h"
 
 #define NUM_THREADS 48
-#define ITERATIONS 2500
+#define ITERATIONS 1000
 #define SLEEPY_TIME 10000 // 10,000
 
 int total_iterations = NUM_THREADS * ITERATIONS;

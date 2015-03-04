@@ -34,6 +34,7 @@ cmake_other_settings="" # anything else?
 # runtime parameters for testing APEX with "make test"
 
 export APEX_POLICY=1
+export APEX_THROTTLING=1
 export APEX_CONCURRENCY=0
 export APEX_TAU=0
 

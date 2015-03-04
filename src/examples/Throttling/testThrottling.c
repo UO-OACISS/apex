@@ -12,7 +12,7 @@
 #define MIN(a,b) ((a) < (b) ? a : b)
 
 #define NUM_THREADS 48
-#define ITERATIONS 2500
+#define ITERATIONS 1000
 #define SLEEPY_TIME 10000 // 10,000
 
 int total_iterations = NUM_THREADS * ITERATIONS;
@@ -25,7 +25,7 @@ int foo (int i) {
   tim.tv_sec = 0;
   // sleep just a bit longer, based on number of active threads.
   int cap = MIN(NUM_THREADS,apex_get_thread_cap());
-  tim.tv_nsec = (unsigned long)(SLEEPY_TIME * cap * cap);
+  tim.tv_nsec = (unsigned long)(SLEEPY_TIME * randval * (cap * cap));
   nanosleep(&tim , &tim2);
   apex_stop_profiler(p);
   return j;
