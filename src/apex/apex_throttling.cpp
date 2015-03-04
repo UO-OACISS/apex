@@ -15,7 +15,6 @@
 #include "libenergy.h"
 #endif
 
-using namespace apex;
 using namespace std;
 
 // this is the policy engine for APEX used to determine when contention
@@ -110,7 +109,7 @@ inline int apex_power_throttling_policy(apex_context const context)
     APEX_UNUSED(context);
     if (apex_final) return APEX_NOERROR; // we terminated, RCR has shut down.
     // read energy counter and memory concurrency to determine system status
-    double power = current_power_high();
+    double power = apex::current_power_high();
     moving_average = ((moving_average * (window_size-1)) + power) / window_size;
 
     if (power != 0.0) {
@@ -163,18 +162,18 @@ int apex_throughput_throttling_policy(apex_context const context) {
       // reset the profile for clean measurement
       //printf("%d Taking measurement...\n", test_pp);
       if(function_of_interest != APEX_NULL_FUNCTION_ADDRESS) {
-          reset(function_of_interest); // we want new measurements!
+          apex::reset(function_of_interest); // we want new measurements!
       } else {
-          reset(function_name_of_interest); // we want new measurements!
+          apex::reset(function_name_of_interest); // we want new measurements!
       }
       return APEX_NOERROR;
     }
 
     apex_profile * function_profile = NULL;
     if(function_of_interest != APEX_NULL_FUNCTION_ADDRESS) {
-        function_profile = get_profile(function_of_interest);
+        function_profile = apex::get_profile(function_of_interest);
     } else {
-        function_profile = get_profile(function_name_of_interest);
+        function_profile = apex::get_profile(function_name_of_interest);
     }
     double current_mean = function_profile->accumulated / function_profile->calls;
     //printf("%d Calls: %f, Accum: %f, Mean: %f\n", test_pp, function_profile->calls, function_profile->accumulated, current_mean);
@@ -292,10 +291,10 @@ int apex_throughput_throttling_dhc_policy(apex_context const context) {
     // get a measurement of our current setting
     apex_profile * function_profile = NULL;
     if(function_of_interest != APEX_NULL_FUNCTION_ADDRESS) {
-        function_profile = get_profile(function_of_interest);
+        function_profile = apex::get_profile(function_of_interest);
         //reset(function_of_interest); // we want new measurements!
     } else {
-        function_profile = get_profile(function_name_of_interest);
+        function_profile = apex::get_profile(function_name_of_interest);
         //reset(function_name_of_interest); // we want new measurements!
     }
     // if we have no data yet, return.
@@ -424,9 +423,9 @@ inline int __setup_power_cap_throttling()
       if (getenv("APEX_ENERGY_THROTTLING") != NULL) {
         apex_energyThrottling = true;
       }
-      register_periodic_policy(1000000, apex_power_throttling_policy);
+      apex::register_periodic_policy(1000000, apex_power_throttling_policy);
       // get an initial power reading
-      current_power_high();
+      apex::current_power_high();
 #ifdef APEX_HAVE_RCR
       energyDaemonEnter();
 #endif
@@ -451,7 +450,7 @@ inline int __common_setup_timer_throttling(apex_optimization_criteria_t criteria
         if (apex::apex::instance()->get_node_id() == 0) {
             cap_data.open("cap_data.dat");
         }
-        register_periodic_policy(1000000, apex_throughput_throttling_dhc_policy);
+        apex::register_periodic_policy(1000000, apex_throughput_throttling_dhc_policy);
     }
     return APEX_NOERROR;
 }
@@ -516,8 +515,6 @@ APEX_EXPORT int get_thread_cap(void) {
 }
 
 }
-
-using namespace apex;
 
 extern "C" {
 

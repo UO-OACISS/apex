@@ -23,7 +23,7 @@ int foo (int i) {
   tim.tv_sec = 0;
   // sleep just a bit longer, based on number of active threads.
   int cap = min(NUM_THREADS,get_thread_cap());
-  tim.tv_nsec = (unsigned long)(SLEEPY_TIME * cap * cap);
+  tim.tv_nsec = (unsigned long)(SLEEPY_TIME * randval * (cap * cap));
   nanosleep(&tim , &tim2);
   stop(p);
   return j;
