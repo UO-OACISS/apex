@@ -203,9 +203,10 @@ APEX_EXPORT void apex_set_node_id(int id);
 /**
  \brief Return the APEX version.
  
- \return A double with the APEX version.
+ \return A character string with the APEX version. This string
+ should be freed after the calling function is done with it.
  */
-APEX_EXPORT double apex_version(void);
+APEX_EXPORT const char * apex_version(void);
 
 /**
  \brief Set this process' node ID.

@@ -10,6 +10,7 @@
 #include "apex.hpp"
 #include "apex_types.h"
 #include "apex_config.h"
+#include "apex_version.h"
 #include <iostream>
 #include <stdlib.h>
 #include <string>
@@ -256,10 +257,19 @@ void init(int argc, char** argv, const char * thread_name)
 #endif
 }
 
-double version()
+string version()
 {
     APEX_TRACER
-    return APEX_VERSION_MAJOR + (APEX_VERSION_MINOR/10.0);
+    stringstream tmp;
+    tmp << APEX_VERSION_MAJOR + (APEX_VERSION_MINOR/10.0);
+#if defined (GIT_COMMIT_HASH)
+    tmp << "-" << GIT_COMMIT_HASH ;
+#endif
+#if defined (GIT_BRANCH)
+    tmp << "-" << GIT_BRANCH ;
+#endif
+    tmp << endl;
+    return tmp.str().c_str();
 }
 
 profiler* start(string timer_name)
@@ -518,7 +528,7 @@ void register_thread(string name)
 }
 
 apex_policy_handle* register_policy(const apex_event_type when,
-                    std::function<bool(apex_context const&)> f)
+                    std::function<int(apex_context const&)> f)
 {
     APEX_TRACER
     int id = -1;
@@ -537,11 +547,11 @@ apex_policy_handle* register_policy(const apex_event_type when,
 /*
 template <typename Rep, typename Period>
 int register_policy(std::chrono::duration<Rep, Period> const& period,
-                    std::function<bool(apex_context const&)> f)
+                    std::function<int(apex_context const&)> f)
 */
 
 apex_policy_handle* register_periodic_policy(unsigned long period_microseconds,
-                    std::function<bool(apex_context const&)> f)
+                    std::function<int(apex_context const&)> f)
  {
     APEX_TRACER
     int id = -1;
@@ -594,9 +604,9 @@ extern "C" {
         finalize();
     }
 
-    double apex_version()
+    const char * apex_version()
     {
-        return version();
+        return version().c_str();
     }
 
     apex_profiler_handle apex_start_name(const char * timer_name)

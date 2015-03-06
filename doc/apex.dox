@@ -27,11 +27,43 @@ operating and runtime system threads.
 \section introduction Introduction
 \subsection interfaces Interfaces
 
-APEX has both C and C++ interfaces. While the C interface can be used
-for either, some C++ applications prefer to work with namespaces (i.e.
-apex::*) rather than prefixes (i.e. apex_*). All functionality is
-supported through both interfaces, and the C interface contains inlined
-implementations of the C++ code.
+Essentially, APEX is both a measurement system for introspection, as well
+as a Policy Engine for modifying runtime behavior based on the 
+observations. While APEX has capabilities for generating profile data
+for post-mortem analysis, the key purpose of the measurement is to 
+provide support for policy enforcement. To that end, APEX is designed
+to have very low overhead and minimize perturbation of runtime worker thread
+productivity. APEX supports both start/stop timers and either 
+event-based or periodic counter samples. Measurements are taken synchronously,
+but profiling statistics and internal state management is performed by
+(preferably lower-priority) threads distinct from the running application. The
+heart of APEX is an event handler that dispatches events to registered
+listeners within APEX.  Policy enforcement can trigger synchronously when
+events are triggered by the OS/RS or application, or can occur asynchronously
+on a periodic basis.
+
+APEX is a library written in C++, and has both C and C++ external interfaces.
+While the C interface can be used for either language, some C++ applications
+prefer to work with namespaces (i.e.  apex::*) rather than prefixes (i.e.
+apex_*). All functionality is supported through both interfaces, and the C
+interface contains inlined implementations of the C++ code.
+
+While the designed purpose for APEX is supporting the current and future needs 
+of ParalleX runtimes within the XPRESS project (such as HPX3, HPX5),
+experimental support is also available for introspection of current runtimes
+such as OpenMP. APEX could potentially be integrated into other runtime
+systems, such as any of a number of lightweight task based systems. The
+introspection provided by APEX is intended to be in the third-person model,
+rather than traditional first-person, per-thread/per-process application
+profile or tracing measurement.  APEX is designed to combine information from
+the OS, Runtime, hardware and application in order to guide policy decisions.
+
+For distributed communication, APEX provides an API to be implemented for 
+the required communication for a given application. An MPI implementation
+is provided as a reference, and both HPX3 and HPX5 implementations have
+been implemented. In this way, APEX is integrated into the observed
+runtime, and asyncrhonous communication is provided at a lower priority,
+in order to minimize perturbation of the application.
 
 The direct links to each API are here:
 <ul>
@@ -46,7 +78,7 @@ The direct links to each API are here:
 <dt>CMake version 2.8.12 or newer</dt>
 <dd></dd>
 <dt>Boost 1.54.0</dt>
-<dd>With the headers and the following libraries: system thread timer chrono</dd>
+<dd>With the headers and the following libraries: system thread timer chrono regex</dd>
 </dl>
 
 \subsubsection optional_dependencies Optional Software Dependencies
@@ -63,17 +95,23 @@ should auto-detect the MPI settings from the mpicxx compiler in your path.
 <dd>For collecting post-mortem profile or trace files.</dd>
 <dt>RCR</dt>
 <dd>For accessing system-level privileged information, such as power measurements
-(on some systems).</dd>
+(on some systems), and communicating policy decisions to the OS/R layer.</dd>
 <dt>Tcmalloc</dt>
 <dd>For faster memory allocation.</dd>
 <dt>PAPI</dt>
 <dd>For Hardware Counter support (without TAU).</dd>
 <dt>BinUtils</dt>
-<dd>For resolving function addresses to name, file, line number(s).</dd>
+<dd>For resolving function addresses to name, file, line number(s). APEX timers
+are identified by either names or function/action/task addresses. Adding BinUtils
+provides a more human-readable output for some analysis.</dd>
 <dt>BinUtils Demangle support</dt>
 <dd>Used with BinUtils to demangle C++ function names.</dd>
 <dt>Zlib</dt>
-<dd>Used by some BinUtils implementations.</dd>
+<dd>Required by some BinUtils implementations.</dd>
+<dt>OpenMP support</dt>
+<dd>APEX provides OpenMP introspection by implementing the OMPT tools
+interface. If your OpenMP runtime has support then APEX will use the OMPT
+API to communicate with the runtime.</dd>
 </dl>
 <dl>
 <dt>Doxygen</dt>
@@ -149,17 +187,19 @@ constructed as a CMake test, but it also serves as a usage example as well.
 
 \subsection DemoC DemoC
 
-This example is a simple example of a C program using APEX.
+This example is a simple example of a C program using APEX. Profile statistics
+are dumped to the screen upon termination.
 
 \subsection DemoCpp DemoCpp
 
-This example is a simple example of a C++ program using APEX.
+This example is a simple example of a C++ program using APEX. Profile
+statistics are dumped to the screen upon termination.
 
 \subsection Matmult Matmult
 
-This example is a simple example of a C++ program using APEX.
-This example spawns three threads, and all four threads perform
-a matrix multiplication.
+This example is a simple example of a C++ program using APEX.  This example
+spawns three threads, and all four threads perform a matrix multiplication.
+Profile statistics are dumped to the screen upon termination.
 
 \subsection MPIGlobalTest MPIGlobalTest
 
@@ -175,7 +215,8 @@ This is a simple example using C++ and MPI.
 
 \subsection Overhead Overhead
 
-This is a simple example used to test the overhead of timing a task.
+This is a simple example used to test the overhead of timing a task, 
+used for testing purposes.
 
 \subsection PolicyEngineCppExample PolicyEngineCppExample
 
@@ -212,6 +253,21 @@ efficacy of the changed behavior in subsequent iterations.
 
 This is a simple example that demonstrates the use of APEX in multithreaded
 environments.
+
+\subsection Throttling Throttling
+
+This is a simple example that demonstrates the use of APEX in multithreaded
+environments. In this example, the threads are throttled in order to maximize
+throughput of the overall application. The process begins with 48 pthreads,
+and the application simulates the situation when the operating system or hardware
+is overutilized, and excess concurrency is causing worse than diminishing
+returns. The policy will use a hillclimbing approach to reduce the amount of
+concurrency until converging on the ideal number of threads, or until application
+termination.
+
+\subsection ThrottlingCpp ThrottlingCpp
+
+This is a C++ version of the Throttling example.
 
 \section acknowledgements Acknowledgements
 

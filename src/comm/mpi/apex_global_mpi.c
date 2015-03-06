@@ -4,6 +4,7 @@
 #include <string.h> // memcpy, etc.
 #include "math.h"
 #include "stdio.h"
+#include <float.h> // DBL_MAX
 
 // my local value, global to this process
 apex_profile value;
@@ -26,19 +27,25 @@ MPI_Group window_group;
 MPI_Datatype profile_type;
 size_t apex_profile_size;
 
+static bool _finalized = false;
+
 #define min(x,y) ((x) < (y) ? (x) : (y))
 #define max(x,y) ((x) > (y) ? (x) : (y))
 
 void apex_sum(int count, apex_profile values[count]) {
   int i;
   memset(&reduced_value, 0, apex_profile_size);
+  reduced_value.minimum = DBL_MAX;
   for (i = 0; i < count; ++i) { 
     reduced_value.calls += values[i].calls; 
     reduced_value.accumulated += values[i].accumulated; 
     reduced_value.sum_squares += values[i].sum_squares; 
-    reduced_value.minimum = min(reduced_value.minimum,values[i].minimum); 
+    if (values[i].minimum > 0.0) {
+      reduced_value.minimum = min(reduced_value.minimum,values[i].minimum); 
+    }
     reduced_value.maximum = max(reduced_value.maximum,values[i].maximum); 
   }
+  if (reduced_value.minimum == DBL_MAX) reduced_value.minimum = 0.0;
   return ;
 }
 
@@ -52,7 +59,7 @@ int action_apex_get_value(void *args) {
     value.minimum = p->minimum;
     value.maximum = p->maximum;
   }
-  return 0;
+  return APEX_NOERROR;
 }
 
 int action_apex_reduce(void *unused) {
@@ -67,23 +74,24 @@ int action_apex_reduce(void *unused) {
     memcpy(&(inValues[0]), &value, apex_profile_size);
     apex_sum(size, inValues);
   }
-  return 0;
+  return APEX_NOERROR;
 }
 
 int apex_periodic_policy_func(apex_context const context) {
+  if (_finalized) return APEX_NOERROR;
   action_apex_reduce(NULL);
-  if (rank != 0) return 1;
+  if (rank != 0) return APEX_NOERROR;
   double avg = 0.0;
   double stddev = 0.0;
   if (reduced_value.calls > 0.0) {
     avg = reduced_value.accumulated / reduced_value.calls;
     stddev = sqrt((reduced_value.sum_squares / reduced_value.calls) - (avg*avg));
   }
-  printf("Function calls=%lu mean=%f +/- %f\r", (unsigned long)reduced_value.calls, avg, stddev);
+  printf("Function calls=%lu min=%f mean=%f max=%f +/- %f\r", (unsigned long)reduced_value.calls, reduced_value.minimum, avg, reduced_value.maximum, stddev);
   fflush(stdout);
   fprintf(graph_output,"%f %f\n",avg, stddev);
   fflush(graph_output);
-  return 1;
+  return APEX_NOERROR;
 }
 
 void apex_global_setup(apex_function_address in_action) {
@@ -108,11 +116,10 @@ void apex_global_setup(apex_function_address in_action) {
 }
 
 void apex_global_teardown(void) {
-  printf("\n");
-  fflush(stdout);
+  _finalized = true;
+  if (rank == 0) { printf("\n"); fflush(stdout); }
   // This teardown process is causing crashes on some platforms. Disabled for now.
-  return;
-#if 0
+#if 1
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Win_free(&profile_window); 
   if (rank == 0) {
@@ -120,5 +127,6 @@ void apex_global_teardown(void) {
     MPI_Free_mem(inValues);
   }
 #endif
+  return;
 }
 

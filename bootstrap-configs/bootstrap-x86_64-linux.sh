@@ -19,6 +19,7 @@ GPERFTOOLS_ROOT=$HOME/install/google-perftools/2.4
 #PAPI_ROOT=/usr/local/papi/5.3.2
 #TAU_ROOT=$HOME/src/tau2
 OMPT_ROOT=$HOME/install/libiomp5
+ACTIVEHARMONY_ROOT=$HOME/install/activeharmony/4.5
 
 # other CMake variables - for special situations / architectures / compilers.
 
@@ -34,6 +35,7 @@ cmake_other_settings="" # anything else?
 # runtime parameters for testing APEX with "make test"
 
 export APEX_POLICY=1
+export APEX_THROTTLING=1
 export APEX_CONCURRENCY=0
 export APEX_TAU=0
 

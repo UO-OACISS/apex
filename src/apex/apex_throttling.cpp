@@ -15,7 +15,6 @@
 #include "libenergy.h"
 #endif
 
-using namespace apex;
 using namespace std;
 
 // this is the policy engine for APEX used to determine when contention
@@ -110,7 +109,7 @@ inline int apex_power_throttling_policy(apex_context const context)
     APEX_UNUSED(context);
     if (apex_final) return APEX_NOERROR; // we terminated, RCR has shut down.
     // read energy counter and memory concurrency to determine system status
-    double power = current_power_high();
+    double power = apex::current_power_high();
     moving_average = ((moving_average * (window_size-1)) + power) / window_size;
 
     if (power != 0.0) {
@@ -163,18 +162,18 @@ int apex_throughput_throttling_policy(apex_context const context) {
       // reset the profile for clean measurement
       //printf("%d Taking measurement...\n", test_pp);
       if(function_of_interest != APEX_NULL_FUNCTION_ADDRESS) {
-          reset(function_of_interest); // we want new measurements!
+          apex::reset(function_of_interest); // we want new measurements!
       } else {
-          reset(function_name_of_interest); // we want new measurements!
+          apex::reset(function_name_of_interest); // we want new measurements!
       }
       return APEX_NOERROR;
     }
 
     apex_profile * function_profile = NULL;
     if(function_of_interest != APEX_NULL_FUNCTION_ADDRESS) {
-        function_profile = get_profile(function_of_interest);
+        function_profile = apex::get_profile(function_of_interest);
     } else {
-        function_profile = get_profile(function_name_of_interest);
+        function_profile = apex::get_profile(function_name_of_interest);
     }
     double current_mean = function_profile->accumulated / function_profile->calls;
     //printf("%d Calls: %f, Accum: %f, Mean: %f\n", test_pp, function_profile->calls, function_profile->accumulated, current_mean);
@@ -281,9 +280,10 @@ int apex_throughput_throttling_dhc_policy(apex_context const context) {
 
     // initial value for current_cap is 1/2 the distance between min and max
     static double previous_value = 0.0; // instead of resetting.
-    static int current_cap = min_threads + ((max_threads - min_threads) >> 1);
-    int low_neighbor = max(current_cap - 2, min_threads);
-    int high_neighbor = min(current_cap + 2, max_threads);
+    //static int current_cap = min_threads + ((max_threads - min_threads) >> 1);
+    static int current_cap = max_threads - 1;
+    int low_neighbor = max(current_cap - 1, min_threads);
+    int high_neighbor = min(current_cap + 1, max_threads);
     static bool got_center = false;
     static bool got_low = false;
     static bool got_high = false;
@@ -291,10 +291,10 @@ int apex_throughput_throttling_dhc_policy(apex_context const context) {
     // get a measurement of our current setting
     apex_profile * function_profile = NULL;
     if(function_of_interest != APEX_NULL_FUNCTION_ADDRESS) {
-        function_profile = get_profile(function_of_interest);
+        function_profile = apex::get_profile(function_of_interest);
         //reset(function_of_interest); // we want new measurements!
     } else {
-        function_profile = get_profile(function_name_of_interest);
+        function_profile = apex::get_profile(function_name_of_interest);
         //reset(function_name_of_interest); // we want new measurements!
     }
     // if we have no data yet, return.
@@ -305,8 +305,14 @@ int apex_throughput_throttling_dhc_policy(apex_context const context) {
         //printf ("Got Data!\n");
     }
 
-    double new_value = function_profile->calls - previous_value;
-    previous_value = function_profile->calls;
+    double new_value = 0.0;
+    if (throttling_criteria == APEX_MAXIMIZE_THROUGHPUT) {
+        new_value = function_profile->calls - previous_value;
+        previous_value = function_profile->calls;
+    } else {
+        new_value = function_profile->accumulated - previous_value;
+        previous_value = function_profile->accumulated;
+    }
 
     // update the moving average
     if ((++observations[thread_cap]) < window_size) {
@@ -314,7 +320,7 @@ int apex_throughput_throttling_dhc_policy(apex_context const context) {
     } else {
         evaluations[thread_cap] = ((evaluations[thread_cap] * (window_size-1)) + new_value) / window_size;
     }
-    printf("%d Calls: %f, new average: %f.\n", thread_cap, new_value, evaluations[thread_cap]);
+    //printf("%d Value: %f, new average: %f.\n", thread_cap, new_value, evaluations[thread_cap]);
 
     if (thread_cap == current_cap) got_center = true;
     if (thread_cap == low_neighbor) got_low = true;
@@ -341,21 +347,25 @@ int apex_throughput_throttling_dhc_policy(apex_context const context) {
 
     // clear our non-best observations, and set a new cap.
     int best = current_cap;
-    if (evaluations[low_neighbor] > evaluations[current_cap]) {
-        best = low_neighbor;
-        // left/low is better, clear the current value
-        //evaluations[current_cap] = 0.0;
-    }
-    if (evaluations[high_neighbor] > evaluations[best]) {
-        // right/high is better, clear the previous best
-        //evaluations[best] = 0.0;
-        best = high_neighbor;
+
+    if ((throttling_criteria == APEX_MAXIMIZE_THROUGHPUT) ||
+        (throttling_criteria == APEX_MAXIMIZE_ACCUMULATED)) {
+        if (evaluations[low_neighbor] > evaluations[current_cap]) {
+            best = low_neighbor;
+        }
+        if (evaluations[high_neighbor] > evaluations[best]) {
+            best = high_neighbor;
+        }
     } else {
-        // previous best is better, clear the right/high value
-        //evaluations[high_neighbor] = 0.0;
+        if (evaluations[low_neighbor] < evaluations[current_cap]) {
+            best = low_neighbor;
+        }
+        if (evaluations[high_neighbor] < evaluations[best]) {
+            best = high_neighbor;
+        }
     }
     //printf("%d Calls: %f.\n", thread_cap, evaluations[best]);
-    printf("New cap: %d\n", best); fflush(stdout);
+    //printf("New cap: %d\n", best); fflush(stdout);
     if (apex::apex::instance()->get_node_id() == 0) {
         static int index = 0;
         cap_data << index++ << "\t" << evaluations[best] << "\t" << best << endl;
@@ -379,7 +389,7 @@ int apex_throughput_throttling_dhc_policy(apex_context const context) {
 /// ----------------------------------------------------------------------------
 
 inline void __read_common_variables() {
-    char * envvar = getenv("HPX_THROTTLING");
+    char * envvar = getenv("APEX_THROTTLING");
     if (envvar != NULL) {
         int tmp = atoi(envvar);
         if (tmp > 0) {
@@ -410,17 +420,17 @@ inline int __setup_power_cap_throttling()
       if (envvar != NULL) {
         min_watts = atof(envvar);
       }
-      if (getenv("HPX_ENERGY_THROTTLING") != NULL) {
+      if (getenv("APEX_ENERGY_THROTTLING") != NULL) {
         apex_energyThrottling = true;
       }
-      register_periodic_policy(1000000, apex_power_throttling_policy);
+      apex::register_periodic_policy(1000000, apex_power_throttling_policy);
       // get an initial power reading
-      current_power_high();
+      apex::current_power_high();
 #ifdef APEX_HAVE_RCR
       energyDaemonEnter();
 #endif
       }
-      else if (getenv("HPX_ENERGY") != NULL) {
+      else if (getenv("APEX_ENERGY") != NULL) {
         // energyDaemonInit();  // this is done in apex initialization
       }
   return APEX_NOERROR;
@@ -440,7 +450,7 @@ inline int __common_setup_timer_throttling(apex_optimization_criteria_t criteria
         if (apex::apex::instance()->get_node_id() == 0) {
             cap_data.open("cap_data.dat");
         }
-        register_periodic_policy(1000000, apex_throughput_throttling_dhc_policy);
+        apex::register_periodic_policy(1000000, apex_throughput_throttling_dhc_policy);
     }
     return APEX_NOERROR;
 }
@@ -465,7 +475,7 @@ inline int __shutdown_throttling(void)
 {
 /*
   if (apex_checkThrottling) energyDaemonTerm(); // prints energy usage
-  else if (getenv("HPX_ENERGY") != NULL) {
+  else if (getenv("APEX_ENERGY") != NULL) {
     energyDaemonTerm();  // this is done in apex termination
   }
 */
@@ -505,8 +515,6 @@ APEX_EXPORT int get_thread_cap(void) {
 }
 
 }
-
-using namespace apex;
 
 extern "C" {
 

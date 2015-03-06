@@ -60,6 +60,29 @@ build. See README.rst. Clean your CMake cache and CMakeFiles if this message
 persists.")
 
 ################################################################################
+# Get the GIT version of the code
+################################################################################
+
+# Get the current working branch
+execute_process(
+  COMMAND git rev-parse --abbrev-ref HEAD
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE GIT_BRANCH
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+# Get the latest abbreviated commit hash of the working branch
+execute_process(
+  COMMAND git log -1 --format=%h
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE GIT_COMMIT_HASH
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+#add_definitions("-DGIT_COMMIT_HASH=${GIT_COMMIT_HASH}")
+#add_definitions("-DGIT_BRANCH=${GIT_BRANCH}")
+
+################################################################################
 # Hostname detection code
 ################################################################################
 
@@ -198,6 +221,17 @@ if (Tcmalloc_FOUND)
 endif()
 
 ################################################################################
+# ActiveHarmony configuration
+################################################################################
+
+find_package(ActiveHarmony)
+if (ACTIVEHARMONY_FOUND)
+    include_directories(${ACTIVEHARMONY_INCLUDE_DIRS})
+    set(LIBS ${LIBS} ${ACTIVEHARMONY_LIBRARIES})
+    set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${ACTIVEHARMONY_LIBRARY_DIR})
+endif()
+
+################################################################################
 # PAPI configuration
 ################################################################################
 
@@ -274,6 +308,7 @@ add_subdirectory (src/comm)
 add_subdirectory (src/comm/mpi) 
 add_subdirectory (src/examples/MPITest)  
 add_subdirectory (src/examples/MPIGlobalTest)  
+add_subdirectory (src/examples/MPIImbalancePolicy)  
 endif()
 add_subdirectory (src/examples/TestITT)
 add_subdirectory (src/examples/TestThreads)
@@ -320,6 +355,8 @@ if(MPI_CXX_FOUND)
 ${MPIEXEC_PREFLAGS} src/examples/MPITest/mpi_test ${MPIEXEC_POSTFLAGS})  
   add_test (MPIGlobalTestRuns ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
 ${MPIEXEC_PREFLAGS} src/examples/MPIGlobalTest/mpi_global_test ${MPIEXEC_POSTFLAGS})  
+  add_test (MPIImbalancePolicyRUns ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
+      ${MPIEXEC_PREFLAGS} src/examples/MPIImbalancePolicy/mpi_imbalance_test ${MPIEXEC_POSTFLAGS})  
 endif()
 
 if(OMPT_FOUND)

@@ -82,7 +82,7 @@ int main(int argc, char **argv)
        if (p != NULL) {
            cout << "Periodic: " << foo_addr << " " << p->get_calls() << " " << p->get_mean() << " seconds." << endl;
        }
-       return true;
+       return APEX_NOERROR;
   });
   apex::register_policy(when, [](apex_context const& context){
        UNUSED(context);
@@ -93,7 +93,7 @@ int main(int argc, char **argv)
        if (p != NULL) {
            cout << "Event: " << foo_addr << " " << p->get_calls() << " " << p->get_mean() << " seconds." << endl;
        }
-       return true;
+       return false;
   });
   printf("PID of this process: %d\n", getpid());
   pthread_t thread[NUM_THREADS];
