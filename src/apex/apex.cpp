@@ -528,7 +528,7 @@ void register_thread(string name)
 }
 
 apex_policy_handle* register_policy(const apex_event_type when,
-                    std::function<bool(apex_context const&)> f)
+                    std::function<int(apex_context const&)> f)
 {
     APEX_TRACER
     int id = -1;
@@ -547,11 +547,11 @@ apex_policy_handle* register_policy(const apex_event_type when,
 /*
 template <typename Rep, typename Period>
 int register_policy(std::chrono::duration<Rep, Period> const& period,
-                    std::function<bool(apex_context const&)> f)
+                    std::function<int(apex_context const&)> f)
 */
 
 apex_policy_handle* register_periodic_policy(unsigned long period_microseconds,
-                    std::function<bool(apex_context const&)> f)
+                    std::function<int(apex_context const&)> f)
  {
     APEX_TRACER
     int id = -1;

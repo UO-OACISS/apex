@@ -51,7 +51,7 @@ int policy_periodic(apex_context const context) {
     if (p != NULL) {
         printf("Periodic Policy: %p %d %f seconds.\n", foo, (int)p->calls, p->accumulated/p->calls);
     }
-    return 1;
+    return APEX_NOERROR;
 }
 
 int policy_event(apex_context const context) {
@@ -65,7 +65,7 @@ int policy_event(apex_context const context) {
     if (p != NULL) {
         printf("Event Policy: %p %d %f seconds.\n", foo, (int)p->calls, p->accumulated/p->calls);
     }
-    return 1;
+    return APEX_NOERROR;
 }
 
 int main(int argc, char **argv)

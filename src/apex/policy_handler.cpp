@@ -77,7 +77,7 @@ inline void policy_handler::_reset(void) {
 }
 
 int policy_handler::register_policy(const apex_event_type & when,
-    std::function<bool(apex_context const&)> f) {
+    std::function<int(apex_context const&)> f) {
   int id = next_id++;
   boost::shared_ptr<policy_instance> instance(
     boost::make_shared<policy_instance>(id, f));
