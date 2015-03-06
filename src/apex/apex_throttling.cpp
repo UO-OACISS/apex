@@ -20,14 +20,6 @@ using namespace std;
 // this is the policy engine for APEX used to determine when contention
 // is present on the socket and reduce the number of active threads
 
-/// ----------------------------------------------------------------------------
-///
-/// Throttling Policy Engine
-///
-/// This probably wants to be ifdef under some flag -- I don't want to figure out
-/// how to do this currently AKP 11/01/14
-/// ----------------------------------------------------------------------------
-
 bool apex_throttleOn = true;          // Current Throttle status
 bool apex_checkThrottling = false;    // Is throttling desired
 bool apex_energyThrottling = false;   // Try to save power while throttling
@@ -378,6 +370,12 @@ int apex_throughput_throttling_dhc_policy(apex_context const context) {
     return APEX_NOERROR;
 }
     
+int apex_throughput_throttling_ah_policy(apex_context const context) {
+    // do something.
+    APEX_UNUSED(context);
+    return APEX_NOERROR;
+}
+
 /// ----------------------------------------------------------------------------
 ///
 /// Functions to setup and shutdown energy measurements during execution
@@ -436,7 +434,8 @@ inline int __setup_power_cap_throttling()
   return APEX_NOERROR;
 }
 
-inline int __common_setup_timer_throttling(apex_optimization_criteria_t criteria)
+inline int __common_setup_timer_throttling(apex_optimization_criteria_t criteria,
+        apex_optimization_method_t method, unsigned long update_interval)
 {
     __read_common_variables();
     if (apex_checkThrottling) {
@@ -450,25 +449,33 @@ inline int __common_setup_timer_throttling(apex_optimization_criteria_t criteria
         if (apex::apex::instance()->get_node_id() == 0) {
             cap_data.open("cap_data.dat");
         }
-        apex::register_periodic_policy(1000000, apex_throughput_throttling_dhc_policy);
+        if (method == APEX_SIMPLE_HYSTERESIS) {
+            apex::register_periodic_policy(update_interval, apex_throughput_throttling_policy);
+        } else if (method == APEX_DISCRETE_HILL_CLIMBING) {
+            apex::register_periodic_policy(update_interval, apex_throughput_throttling_dhc_policy);
+        } else if (method == APEX_ACTIVE_HARMONY) {
+            apex::register_periodic_policy(update_interval, apex_throughput_throttling_ah_policy);
+        }
     }
     return APEX_NOERROR;
 }
 
-inline int __setup_timer_throttling(apex_function_address the_address, apex_optimization_criteria_t criteria)
+inline int __setup_timer_throttling(apex_function_address the_address, apex_optimization_criteria_t criteria,
+        apex_optimization_method_t method, unsigned long update_interval)
 {
     function_of_interest = the_address;
-    return __common_setup_timer_throttling(criteria);
+    return __common_setup_timer_throttling(criteria, method, update_interval);
 }
 
-inline int __setup_timer_throttling(string& the_name, apex_optimization_criteria_t criteria)
+inline int __setup_timer_throttling(string& the_name, apex_optimization_criteria_t criteria,
+        apex_optimization_method_t method, unsigned long update_interval)
 {
     if (the_name == "") {
         fprintf(stderr, "Timer/counter name for throttling is undefined. Please specify a name.\n");
         abort();
     }
     function_name_of_interest = string(the_name);
-    return __common_setup_timer_throttling(criteria);
+    return __common_setup_timer_throttling(criteria, method, update_interval);
 }
 
 inline int __shutdown_throttling(void)
@@ -497,13 +504,15 @@ APEX_EXPORT int setup_power_cap_throttling(void) {
 }
 
 APEX_EXPORT int setup_timer_throttling(apex_function_address the_address,
-        apex_optimization_criteria_t criteria) {
-    return __setup_timer_throttling(the_address, criteria);
+        apex_optimization_criteria_t criteria, apex_optimization_method_t method,
+        unsigned long update_interval) {
+    return __setup_timer_throttling(the_address, criteria, method, update_interval);
 }
 
 APEX_EXPORT int setup_timer_throttling(std::string &the_name,
-        apex_optimization_criteria_t criteria) {
-    return __setup_timer_throttling(the_name, criteria);
+        apex_optimization_criteria_t criteria, apex_optimization_method_t method,
+        unsigned long update_interval) {
+    return __setup_timer_throttling(the_name, criteria, method, update_interval);
 }
 
 APEX_EXPORT int shutdown_throttling(void) {
@@ -522,13 +531,15 @@ APEX_EXPORT int apex_setup_power_cap_throttling(void) {
     return __setup_power_cap_throttling();
 }
 APEX_EXPORT int apex_setup_timer_address_throttling(apex_function_address the_address,
-        apex_optimization_criteria_t criteria) {
-    return __setup_timer_throttling(the_address, criteria);
+        apex_optimization_criteria_t criteria, 
+        apex_optimization_method_t method, unsigned long update_interval) {
+    return __setup_timer_throttling(the_address, criteria, method, update_interval);
 }
 APEX_EXPORT int apex_setup_timer_name_throttling(const char * the_name,
-        apex_optimization_criteria_t criteria) {
+        apex_optimization_criteria_t criteria, 
+        apex_optimization_method_t method, unsigned long update_interval) {
     string tmp(the_name);
-    return __setup_timer_throttling(tmp, criteria);
+    return __setup_timer_throttling(tmp, criteria, method, update_interval);
 }
 APEX_EXPORT int apex_shutdown_throttling(void) {
     return __shutdown_throttling();

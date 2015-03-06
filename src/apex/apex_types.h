@@ -47,6 +47,15 @@ typedef enum {APEX_MAXIMIZE_THROUGHPUT,
 	          APEX_MINIMIZE_ACCUMULATED
 } apex_optimization_criteria_t;
 
+/**
+ * Typedef for enumerating the different optimization methods
+ * for throttling.
+ */
+typedef enum {APEX_SIMPLE_HYSTERESIS,
+	          APEX_DISCRETE_HILL_CLIMBING, 
+	          APEX_ACTIVE_HARMONY
+} apex_optimization_method_t;
+
 /** A reference to the policy object,
  * so that policies can be "unregistered", or paused later
  */
