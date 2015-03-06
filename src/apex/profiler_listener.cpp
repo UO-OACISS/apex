@@ -52,7 +52,7 @@
 #endif
 
 //#define MAX_QUEUE_SIZE 1024*1024
-#define MAX_QUEUE_SIZE 128
+#define MAX_QUEUE_SIZE 1024
 #define INITIAL_NUM_THREADS 2
 
 #define APEX_MAIN "APEX MAIN"
@@ -188,7 +188,7 @@ namespace apex {
           unordered_set<string>::iterator it = throttled_names.find(p->timer_name);
           if (it == throttled_names.end()) {
             throttled_names.insert(p->timer_name);
-            cout << "APEX Throttled " << p->timer_name << endl;
+            cout << "APEX Throttled " << p->timer_name << endl; fflush;
           }
         }
 #endif
@@ -712,6 +712,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       node_id = data.node_id;
       _terminate = true;
       done = true;
+      sleep(1);
       queue_signal.post();
       consumer_thread->join();
 #if APEX_HAVE_PAPI
@@ -854,7 +855,15 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         cout << endl;
     */
 #endif
-        profiler_queues[my_tid]->push(p);
+        bool worked = profiler_queues[my_tid]->push(p);
+        if (!worked) {
+            static bool issued = false;
+            if (!issued) {
+                issued = true;
+                cout << "APEX Warning : failed to push " << p->action_address << endl;
+                cout << "One or more frequently-called, lightweight functions is being timed." << endl;
+            }
+        }
         queue_signal.post();
       }
     }

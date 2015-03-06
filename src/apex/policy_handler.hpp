@@ -94,7 +94,7 @@ public:
     void on_periodic(periodic_event_data &event_data);
 
     int register_policy(const apex_event_type & when,
-                        std::function<bool(apex_context const&)> f);
+                        std::function<int(apex_context const&)> f);
     bool _handler(void);
 	void _reset(void);
 };

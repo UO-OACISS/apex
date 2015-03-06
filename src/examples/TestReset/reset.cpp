@@ -6,7 +6,7 @@ using namespace apex;
 
 int main (int argc, char** argv) {
   init(argc, argv, NULL);
-  version();
+  cout << "APEX Version : " << version() << endl;
   set_node_id(0);
   profiler * main_profiler = start((apex_function_address)(main));
   // Call "foo" 30 times
@@ -50,7 +50,6 @@ int main (int argc, char** argv) {
   }    
   // The profile should show "Test Timer" was called 25 times.
   stop(main_profiler);
-  sample_value("Apex Version", version());
   finalize();
   return 0;
 }
