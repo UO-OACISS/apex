@@ -297,6 +297,7 @@ add_subdirectory (src/comm)
 add_subdirectory (src/comm/mpi) 
 add_subdirectory (src/examples/MPITest)  
 add_subdirectory (src/examples/MPIGlobalTest)  
+add_subdirectory (src/examples/MPIImbalancePolicy)  
 endif()
 add_subdirectory (src/examples/TestITT)
 add_subdirectory (src/examples/TestThreads)
@@ -343,6 +344,8 @@ if(MPI_CXX_FOUND)
 ${MPIEXEC_PREFLAGS} src/examples/MPITest/mpi_test ${MPIEXEC_POSTFLAGS})  
   add_test (MPIGlobalTestRuns ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
 ${MPIEXEC_PREFLAGS} src/examples/MPIGlobalTest/mpi_global_test ${MPIEXEC_POSTFLAGS})  
+  add_test (MPIImbalancePolicyRUns ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
+      ${MPIEXEC_PREFLAGS} src/examples/MPIImbalancePolicy/mpi_imbalance_test ${MPIEXEC_POSTFLAGS})  
 endif()
 
 if(OMPT_FOUND)
