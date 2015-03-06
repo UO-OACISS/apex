@@ -1,6 +1,13 @@
 # Create a library called "Apex" which includes the source file "apex.cxx". 
 # The extension is already found. Any number of sources could be listed here. 
 
+configure_file(
+  ${CMAKE_SOURCE_DIR}/src/apex/apex_version.h.in
+  ${CMAKE_BINARY_DIR}/apex_version.h
+)
+
+include_directories(${CMAKE_BINARY_DIR})
+
 if (TAU_FOUND)
 SET(tau_SOURCE tau_listener.cpp)
 endif(TAU_FOUND)

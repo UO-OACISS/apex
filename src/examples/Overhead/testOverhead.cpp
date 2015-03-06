@@ -6,7 +6,7 @@
 #include <sstream>
 
 #define NUM_THREADS 8
-#define ITERATIONS 1000000
+#define ITERATIONS 1000
 
 class ApexProxy {
 private:
@@ -34,7 +34,6 @@ ApexProxy::~ApexProxy() {
 };
 
 int foo (int i) {
-  ApexProxy proxy = ApexProxy((apex_function_address)foo);
   return i*i;
 }
 
@@ -48,6 +47,26 @@ void* someThread(void* tmp)
   apex::register_thread("threadTest thread");
   //ApexProxy proxy = ApexProxy(__func__, __FILE__, __LINE__);
   ApexProxy proxy = ApexProxy((apex_function_address)someThread);
+  printf("PID of this process: %d\n", getpid());
+#if defined (__APPLE__)
+  printf("The ID of this thread is: %lu\n", (unsigned long)pthread_self());
+#else
+  printf("The ID of this thread is: %u\n", (unsigned int)pthread_self());
+#endif
+  int i = 0;
+  for (i = 0 ; i < ITERATIONS ; i++) {
+    apex::profiler * p = apex::start((apex_function_address)foo);
+    foo(i);
+    apex::stop(p);
+  }
+  return NULL;
+}
+
+void* someUntimedThread(void* tmp)
+{
+  UNUSED(tmp);
+  apex::register_thread("threadTest thread");
+  ApexProxy proxy = ApexProxy((apex_function_address)someUntimedThread);
   printf("PID of this process: %d\n", getpid());
 #if defined (__APPLE__)
   printf("The ID of this thread is: %lu\n", (unsigned long)pthread_self());
@@ -73,7 +92,11 @@ int main(int argc, char **argv)
   pthread_t thread[NUM_THREADS];
   int i;
   for (i = 0 ; i < NUM_THREADS ; i++) {
-    pthread_create(&(thread[i]), NULL, someThread, NULL);
+    if (i % 2 == 0) {
+        pthread_create(&(thread[i]), NULL, someThread, NULL);
+    } else {
+        pthread_create(&(thread[i]), NULL, someUntimedThread, NULL);
+    }
   }
   for (i = 0 ; i < NUM_THREADS ; i++) {
     pthread_join(thread[i], NULL);

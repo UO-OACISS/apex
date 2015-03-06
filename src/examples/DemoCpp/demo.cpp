@@ -21,7 +21,7 @@ void* someThread(void* tmp)
 
 int main (int argc, char** argv) {
   init(argc, argv, NULL);
-  version();
+  cout << "APEX version : " << version() << endl;
   set_node_id(0);
   profiler* p = start((apex_function_address)(main));
   pthread_t thread[2];
@@ -32,7 +32,6 @@ int main (int argc, char** argv) {
   pthread_join(thread[0], NULL);
   pthread_join(thread[1], NULL);
   stop(p);
-  sample_value("Apex Version", version());
   finalize();
   return 0;
 }

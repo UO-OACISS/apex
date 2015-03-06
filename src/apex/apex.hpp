@@ -257,9 +257,9 @@ APEX_EXPORT void reset(apex_function_address function_address);
 /**
  \brief Return the APEX version.
  
- \return A double with the APEX version.
+ \return A string with the APEX version.
  */
-APEX_EXPORT double version(void);
+APEX_EXPORT string version(void);
 
 /**
  \brief Set this process' node ID.
