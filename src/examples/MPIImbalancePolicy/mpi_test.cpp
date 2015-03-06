@@ -5,7 +5,7 @@
 
 #define WORKTAG 1
 #define DIETAG 2
-#define TOTAL_WORK 100
+#define TOTAL_WORK 10
 
 #define unit_of_work_t int
 #define unit_result_t int
@@ -14,10 +14,17 @@
 
 static void master(void);
 static void worker(void);
-static unit_of_work_t get_next_work_item(void);
+static void get_next_work_item(int work[], int rank, int ntasks);
 static unit_result_t do_work(unit_of_work_t work);
 
 static int dummy = 0;
+int * data;
+
+void initialize_work(int * data, int size) {
+    int index = 0;
+    for (index = 0 ; index < size ; index++) { data[index] = index; }
+    return;
+}
 
 int main(int argc, char **argv) {
   int myrank;
@@ -38,9 +45,16 @@ int main(int argc, char **argv) {
 
   MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
   apex::set_node_id(myrank);
+
+  int size = TOTAL_WORK;
+  data = (int*)(malloc(size * sizeof(int)));
+
   if (myrank == 0) {
+    initialize_work(data, size);
+    MPI_Bcast(data, size, MPI_INT, 0, MPI_COMM_WORLD);
     master();
   } else {
+    MPI_Bcast(data, size, MPI_INT, 0, MPI_COMM_WORLD);
     worker();
   }
 
@@ -54,7 +68,7 @@ int main(int argc, char **argv) {
 
 static void master(void) {
   int ntasks, rank;
-  unit_of_work_t work = 0;
+  unit_of_work_t work[2] = {0,0};
   unit_result_t result = 0;
   MPI_Status status;
   apex::profiler * p = apex::start((apex_function_address)(master));
@@ -70,63 +84,16 @@ static void master(void) {
 
     /* Find the next item of work to do */
 
-    work = get_next_work_item();
+    get_next_work_item(work, rank, ntasks);
 
     /* Send it to each rank */
 
-    MPI_Send(&work,             /* message buffer */
-             1,                 /* one data item */
+    MPI_Send(work,             /* message buffer */
+             2,                 /* one data item */
              MPI_INT,           /* data item is an integer */
              rank,              /* destination process rank */
              WORKTAG,           /* user chosen message tag */
              MPI_COMM_WORLD);   /* default communicator */
-  }
-
-  // do some work myself
-  work = get_next_work_item();
-
-#if 0
-  if (work != 0) {
-    result = do_work(work);
-    work = get_next_work_item();
-  }
-#endif
-
-  /* Loop over getting new work requests until there is no more work
-     to be done */
-
-  while (work != 0) {
-
-    /* Receive results from a worker */
-
-    MPI_Recv(&result,           /* message buffer */
-             1,                 /* one data item */
-             MPI_INT,        /* of type double real */
-             MPI_ANY_SOURCE,    /* receive from any sender */
-             MPI_ANY_TAG,       /* any type of message */
-             MPI_COMM_WORLD,    /* default communicator */
-             &status);          /* info about the received message */
-
-    /* Send the worker a new work unit */
-
-    MPI_Send(&work,             /* message buffer */
-             1,                 /* one data item */
-             MPI_INT,           /* data item is an integer */
-             status.MPI_SOURCE, /* to who we just received from */
-             WORKTAG,           /* user chosen message tag */
-             MPI_COMM_WORLD);   /* default communicator */
-
-    // do some work myself
-    work = get_next_work_item();
-#if 0
-    if (work != 0) {
-      result = do_work(work);
-
-    /* Get the next unit of work to be done */
-
-      work = get_next_work_item();
-    }
-#endif
   }
 
   /* There's no more work to be done, so receive all the outstanding
@@ -147,7 +114,7 @@ static void master(void) {
 }
 
 static void worker(void) {
-  unit_of_work_t work = 0;
+  unit_of_work_t work[] = {0,0};
   MPI_Status status;
   apex::profiler * p = apex::start((apex_function_address)(worker));
 
@@ -155,7 +122,7 @@ static void worker(void) {
 
     /* Receive a message from the master */
 
-    MPI_Recv(&work, 1, MPI_INT, 0, MPI_ANY_TAG,
+    MPI_Recv(&work, 2, MPI_INT, 0, MPI_ANY_TAG,
              MPI_COMM_WORLD, &status);
 
     /* Check the tag of the received message. */
@@ -166,7 +133,11 @@ static void worker(void) {
 
     /* Do the work */
 
-    unit_result_t result = do_work(work);
+    unit_result_t result = 0;
+    int workindex;
+    for (workindex = work[0] ; workindex < work[1] ; workindex++) {
+      result += do_work(workindex);
+    }
 
     /* Send the result back */
 
@@ -175,35 +146,33 @@ static void worker(void) {
   apex::stop(p);
 }
 
-static int* initialize_work(int size) {
-    int * data = (int*)(malloc(size * sizeof(int)));
-    int index = 0;
-    for (index = 0 ; index < size ; index++) { data[index] = index; }
-    return data;
-}
 
-static unit_of_work_t get_next_work_item(void) {
+static void get_next_work_item(int work[], int rank, int ntasks) {
   /* Fill in with whatever is relevant to obtain a new unit of work
      suitable to be given to a worker. */
-  //static int data[] = {1,2,3,4,5,6,7,8,9,10};
-  static int size = TOTAL_WORK;
-  static int * data = initialize_work(size);
-  static int index = -1;
-  if (++index < size) return (data[index]);
-  return 0;
+  int range = TOTAL_WORK / ntasks;
+  int lower = range * rank;
+  int upper = min((lower+range),TOTAL_WORK);
+  work[0] = lower;
+  work[1] = upper;
+  return;
 }
 
 static unit_result_t do_work(unit_of_work_t work) {
   apex::profiler * p = apex::start((apex_function_address)(do_work));
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  int i;
-  for (i = 0 ; i < 500000000 ; i++) {
-    dummy = dummy * (dummy + work);
-    if (dummy > (INT_MAX >> 1)) {
-      dummy = 1;
+  int i, multiplier;
+  // introduce an imbalance
+  printf("%d working...\n\n", rank);
+    for (multiplier = 0 ; multiplier < ((rank % 2) + 1) ; multiplier++) {
+      for (i = 0 ; i < 500000000 ; i++) {
+        dummy = dummy * (dummy + data[work]);
+        if (dummy > (INT_MAX >> 1)) {
+          dummy = 1;
+        }
+      }
     }
-  }
   /* Fill in with whatever is necessary to process the work and
      generate a result */
   apex::stop(p);

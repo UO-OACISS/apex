@@ -4,6 +4,7 @@
 #include <string.h> // memcpy, etc.
 #include "math.h"
 #include "stdio.h"
+#include <float.h> // DBL_MAX
 
 // my local value, global to this process
 apex_profile value;
@@ -32,13 +33,17 @@ size_t apex_profile_size;
 void apex_sum(int count, apex_profile values[count]) {
   int i;
   memset(&reduced_value, 0, apex_profile_size);
+  reduced_value.minimum = DBL_MAX;
   for (i = 0; i < count; ++i) { 
     reduced_value.calls += values[i].calls; 
     reduced_value.accumulated += values[i].accumulated; 
     reduced_value.sum_squares += values[i].sum_squares; 
-    reduced_value.minimum = min(reduced_value.minimum,values[i].minimum); 
+    if (values[i].minimum > 0.0) {
+      reduced_value.minimum = min(reduced_value.minimum,values[i].minimum); 
+    }
     reduced_value.maximum = max(reduced_value.maximum,values[i].maximum); 
   }
+  if (reduced_value.minimum == DBL_MAX) reduced_value.minimum = 0.0;
   return ;
 }
 
@@ -79,7 +84,7 @@ int apex_periodic_policy_func(apex_context const context) {
     avg = reduced_value.accumulated / reduced_value.calls;
     stddev = sqrt((reduced_value.sum_squares / reduced_value.calls) - (avg*avg));
   }
-  printf("Function calls=%lu mean=%f +/- %f\r", (unsigned long)reduced_value.calls, avg, stddev);
+  printf("Function calls=%lu min=%f mean=%f max=%f +/- %f\r", (unsigned long)reduced_value.calls, reduced_value.minimum, avg, reduced_value.maximum, stddev);
   fflush(stdout);
   fprintf(graph_output,"%f %f\n",avg, stddev);
   fflush(graph_output);
