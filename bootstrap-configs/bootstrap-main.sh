@@ -30,6 +30,12 @@ else
 	papi_config="-DUSE_PAPI=FALSE"
 fi
 
+if [ ${ACTIVEHARMONY_ROOT+x} ]; then
+	papi_config="-DACTIVEHARMONY_ROOT=$ACTIVEHARMONY_ROOT -DUSE_ACTIVEHARMONY=TRUE"
+else
+	papi_config="-DUSE_ACTIVEHARMONY=FALSE"
+fi
+
 if [ ${OMPT_ROOT+x} ]; then
 	ompt_config="-DOMPT_ROOT=$OMPT_ROOT"
 else

@@ -221,6 +221,17 @@ if (Tcmalloc_FOUND)
 endif()
 
 ################################################################################
+# ActiveHarmony configuration
+################################################################################
+
+find_package(ActiveHarmony)
+if (ACTIVEHARMONY_FOUND)
+    include_directories(${ACTIVEHARMONY_INCLUDE_DIRS})
+    set(LIBS ${LIBS} ${ACTIVEHARMONY_LIBRARIES})
+    set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${ACTIVEHARMONY_LIBRARY_DIR})
+endif()
+
+################################################################################
 # PAPI configuration
 ################################################################################
 
