@@ -38,8 +38,6 @@
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
-//using namespace std;
-
 /**
  \brief The main APEX namespace.
  
@@ -64,11 +62,11 @@ class apex
 {
 private:
 // private constructors cannot be called
-    apex() : m_argc(0), m_argv(NULL), m_node_id(0), m_my_locality(new string("0"))
+    apex() : m_argc(0), m_argv(NULL), m_node_id(0), m_my_locality(new std::string("0"))
     {
         _initialize();
     };
-    apex(int argc, char**argv) : m_argc(argc), m_argv(argv), m_node_id(0), m_my_locality(new string("0"))
+    apex(int argc, char**argv) : m_argc(argc), m_argv(argv), m_node_id(0), m_my_locality(new std::string("0"))
     {
         _initialize();
     };
@@ -88,7 +86,7 @@ private:
 #endif
 public:
     std::vector<event_listener*> listeners;
-    string* m_my_locality;
+    std::string* m_my_locality;
     static apex* instance(); // singleton instance
     static apex* instance(int argc, char** argv); // singleton instance
     void set_node_id(int id);
@@ -259,7 +257,7 @@ APEX_EXPORT void reset(apex_function_address function_address);
  
  \return A string with the APEX version.
  */
-APEX_EXPORT string version(void);
+APEX_EXPORT std::string version(void);
 
 /**
  \brief Set this process' node ID.
@@ -347,7 +345,7 @@ APEX_EXPORT apex_profile* get_profile(apex_function_address function_address);
  \param timer_name The name of the function
  \return The current profile for that timed function or sampled value.
  */
-APEX_EXPORT apex_profile* get_profile(string &timer_name);
+APEX_EXPORT apex_profile* get_profile(std::string &timer_name);
 
 /**
  \brief Get the set of profiles that are identified by name

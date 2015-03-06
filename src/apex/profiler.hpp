@@ -7,9 +7,6 @@
 #include <math.h>
 #include "apex_types.h"
 
-using namespace std;
-using namespace std::chrono;
-
 namespace apex {
 
 enum struct reset_type {
@@ -19,21 +16,21 @@ enum struct reset_type {
 class profiler {
 public:
         //boost::timer::cpu_timer t; // starts the timer when profiler is constructed!
-	high_resolution_clock::time_point start;
-	high_resolution_clock::time_point end;
+    std::chrono::high_resolution_clock::time_point start;
+    std::chrono::high_resolution_clock::time_point end;
 #if APEX_HAVE_PAPI
 	long long papi_start_values[8];
 	long long papi_stop_values[8];
 #endif
     double value;
     apex_function_address action_address;
-    string * timer_name;
+    std::string * timer_name;
     bool have_name;
     bool is_counter;
     bool is_resume;
     reset_type is_reset;
     profiler(apex_function_address address, bool resume = false, reset_type reset = reset_type::NONE) : 
-	    start(high_resolution_clock::now()), 
+	    start(std::chrono::high_resolution_clock::now()), 
             value(0.0),
 	    action_address(address), 
 	    timer_name(NULL), 
@@ -41,8 +38,8 @@ public:
 	    is_counter(false),
         is_resume(resume),
         is_reset(reset) {};
-    profiler(string * name, bool resume = false, reset_type reset = reset_type::NONE) : 
-	    start(high_resolution_clock::now()), 
+    profiler(std::string * name, bool resume = false, reset_type reset = reset_type::NONE) : 
+	    start(std::chrono::high_resolution_clock::now()), 
 	    value(0.0), 
 	    action_address(0L), 
 	    timer_name(name), 
@@ -50,7 +47,7 @@ public:
 	    is_counter(false),
         is_resume(resume),
         is_reset(reset) {};
-    profiler(string * name, double value_) : 
+    profiler(std::string * name, double value_) : 
 	    value(value_), 
 	    action_address(0L), 
 	    timer_name(name), 
@@ -60,13 +57,13 @@ public:
         is_reset(reset_type::NONE) { }; 
     ~profiler(void) { if (have_name) delete timer_name; };
     void stop(void) {
-        end = high_resolution_clock::now();
+        end = std::chrono::high_resolution_clock::now();
 	};
 	double elapsed(void) {
         if(is_counter) {
             return value;
         } else {
-            duration<double> time_span = duration_cast<duration<double>>(end - start);
+            std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
             return time_span.count();
         }
 	}

@@ -6,7 +6,7 @@
 # Create a library called "apex"
 
 configure_file(
-  ${CMAKE_SOURCE_DIR}/src/apex/apex_version.h.in
+  ${CMAKE_SOURCE_DIR}/apex/src/apex/apex_version.h.in
   ${CMAKE_BINARY_DIR}/apex_version.h
 )
 

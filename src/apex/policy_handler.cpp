@@ -16,6 +16,8 @@
 
 #include <boost/make_shared.hpp>
 
+using namespace std;
+
 namespace apex {
 
 #ifdef APEX_HAVE_HPX3
