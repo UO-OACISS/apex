@@ -27,6 +27,8 @@ MPI_Group window_group;
 MPI_Datatype profile_type;
 size_t apex_profile_size;
 
+static bool _finalized = false;
+
 #define min(x,y) ((x) < (y) ? (x) : (y))
 #define max(x,y) ((x) > (y) ? (x) : (y))
 
@@ -76,6 +78,7 @@ int action_apex_reduce(void *unused) {
 }
 
 int apex_periodic_policy_func(apex_context const context) {
+  if (_finalized) return APEX_NOERROR;
   action_apex_reduce(NULL);
   if (rank != 0) return APEX_NOERROR;
   double avg = 0.0;
@@ -113,11 +116,10 @@ void apex_global_setup(apex_function_address in_action) {
 }
 
 void apex_global_teardown(void) {
-  printf("\n");
-  fflush(stdout);
+  _finalized = true;
+  if (rank == 0) { printf("\n"); fflush(stdout); }
   // This teardown process is causing crashes on some platforms. Disabled for now.
-  return;
-#if 0
+#if 1
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Win_free(&profile_window); 
   if (rank == 0) {
@@ -125,5 +127,6 @@ void apex_global_teardown(void) {
     MPI_Free_mem(inValues);
   }
 #endif
+  return;
 }
 

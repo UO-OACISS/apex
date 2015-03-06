@@ -61,8 +61,8 @@ int main(int argc, char **argv) {
   /* Shut down MPI */
 
   apex_global_teardown(); // do this before MPI_Finalize
-  MPI_Finalize();
   apex::finalize();
+  MPI_Finalize();
   return 0;
 }
 
@@ -164,7 +164,7 @@ static unit_result_t do_work(unit_of_work_t work) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   int i, multiplier;
   // introduce an imbalance
-  printf("%d working...\n\n", rank);
+  //printf("%d working...\n\n", rank);
     for (multiplier = 0 ; multiplier < ((rank % 2) + 1) ; multiplier++) {
       for (i = 0 ; i < 500000000 ; i++) {
         dummy = dummy * (dummy + data[work]);

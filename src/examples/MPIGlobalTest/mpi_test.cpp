@@ -46,8 +46,8 @@ int main(int argc, char **argv) {
   /* Shut down MPI */
 
   apex_global_teardown(); // do this before MPI_Finalize
-  MPI_Finalize();
   apex::finalize();
+  MPI_Finalize();
   return 0;
 }
 
@@ -96,6 +96,7 @@ static void master(void) {
 
     /* Receive results from a worker */
 
+    if (ntasks > 1) {
     MPI_Recv(&result,           /* message buffer */
              1,                 /* one data item */
              MPI_INT,        /* of type double real */
@@ -113,8 +114,10 @@ static void master(void) {
              WORKTAG,           /* user chosen message tag */
              MPI_COMM_WORLD);   /* default communicator */
 
-    // do some work myself
     work = get_next_work_item();
+    } 
+    
+    // do some work myself
     if (work != 0) {
       result = do_work(work);
 
