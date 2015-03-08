@@ -14,6 +14,7 @@
 int total_iterations = NUM_THREADS * ITERATIONS;
 
 using namespace apex;
+using namespace std;
 
 int foo (int i) {
   profiler* p = start((apex_function_address)foo);

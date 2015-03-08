@@ -1,8 +1,10 @@
 #include "apex.hpp"
 #include <pthread.h>
 #include <unistd.h>
+#include <iostream>
 
 using namespace apex;
+using namespace std;
 
 void* someThread(void* tmp)
 {

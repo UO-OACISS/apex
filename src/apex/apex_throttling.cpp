@@ -424,13 +424,13 @@ int apex_throughput_throttling_ah_policy(apex_context const context) {
 
     double new_value = 0.0;
     if (throttling_criteria == APEX_MAXIMIZE_THROUGHPUT) {
-        new_value = function_profile->calls - previous_value;
+        new_value = (function_profile->calls - previous_value) * 1.0;
         previous_value = function_profile->calls;
     } else if (throttling_criteria == APEX_MAXIMIZE_ACCUMULATED) {
-        new_value = function_profile->accumulated - previous_value;
+        new_value = (function_profile->accumulated - previous_value) * 1.0;
         previous_value = function_profile->accumulated;
     } else if (throttling_criteria == APEX_MINIMIZE_ACCUMULATED) {
-        new_value = (function_profile->accumulated - previous_value) * -1.0;
+        new_value = function_profile->accumulated - previous_value;
         previous_value = function_profile->accumulated;
     }
 
