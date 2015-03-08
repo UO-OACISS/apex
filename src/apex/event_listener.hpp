@@ -10,8 +10,6 @@
 #include "apex_types.h"
 #include "profiler.hpp"
 
-using namespace std;
-
 namespace apex {
 
 /* Class for holding data relevant to generic event */
@@ -28,11 +26,11 @@ public:
 
 class timer_event_data : public event_data {
 public:
-  string * timer_name;
+  std::string * timer_name;
   apex_function_address function_address;
   profiler *my_profiler;
   bool have_name;
-  timer_event_data(apex_event_type eventType, int thread_id, string timer_name);
+  timer_event_data(apex_event_type eventType, int thread_id, std::string timer_name);
   timer_event_data(apex_event_type eventType, int thread_id, apex_function_address function_address);
   ~timer_event_data();
 };
@@ -45,9 +43,9 @@ public:
 
 class sample_value_event_data : public event_data {
 public:
-  string * counter_name;
+  std::string * counter_name;
   double counter_value;
-  sample_value_event_data(int thread_id, string counter_name, double counter_value);
+  sample_value_event_data(int thread_id, std::string counter_name, double counter_value);
   ~sample_value_event_data();
 };
 
@@ -66,8 +64,8 @@ public:
 
 class new_thread_event_data : public event_data {
 public:
-  string* thread_name;
-  new_thread_event_data(string thread_name);
+  std::string* thread_name;
+  new_thread_event_data(std::string thread_name);
   ~new_thread_event_data();
 };
 
@@ -88,13 +86,13 @@ public:
   virtual void on_shutdown(shutdown_event_data &data) = 0;
   virtual void on_new_node(node_event_data &data) = 0;
   virtual void on_new_thread(new_thread_event_data &data) = 0;
-  virtual void on_start(apex_function_address function_address, string *timer_name) = 0;
+  virtual void on_start(apex_function_address function_address, std::string *timer_name) = 0;
   virtual void on_stop(profiler *p) = 0;
   virtual void on_resume(profiler *p) = 0;
   virtual void on_sample_value(sample_value_event_data &data) = 0;
   virtual void on_periodic(periodic_event_data &data) = 0;
   // this is a stub implementation, so tell the compiler the arguments are unused.
-  virtual void reset(apex_function_address function_address, string * timer_name) 
+  virtual void reset(apex_function_address function_address, std::string * timer_name) 
     {APEX_UNUSED(function_address); APEX_UNUSED(timer_name);};
 };
 

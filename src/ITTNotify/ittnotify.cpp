@@ -12,6 +12,8 @@
 #include <string.h>
 #include "apex.hpp"
 
+using namespace std;
+
 #ifdef APEX_TRACE
 #include <iostream>
 #define APEX_TRACER {cout << __FUNCTION__ << " ["<< __FILE__ << ":" << __LINE__ << "]" << endl;}

@@ -16,8 +16,6 @@
 #include <map>
 #include "profiler.hpp"
 
-//using namespace std;
-
 namespace apex {
 
 class thread_instance {

@@ -6,7 +6,7 @@
 # Create a library called "apex"
 
 configure_file(
-  ${CMAKE_SOURCE_DIR}/src/apex/apex_version.h.in
+  ${CMAKE_SOURCE_DIR}/apex/src/apex/apex_version.h.in
   ${CMAKE_BINARY_DIR}/apex_version.h
 )
 
@@ -79,9 +79,10 @@ if(EXISTS "/proc/stat")
     add_definitions(-DAPEX_HAVE_PROC)
 endif()
 
+
 if("${HOST_BASENAME}" STREQUAL "edison")
     hpx_info("apex" "This is Edison, will build with Cray Power support")
-    set (APEX_HAVE_CRAY_POWER TRUE)
+    set(APEX_HAVE_CRAY_POWER TRUE)
     add_definitions(-DAPEX_HAVE_CRAY_POWER)
 else()
     hpx_info("apex" "This is not edison")
@@ -121,6 +122,20 @@ set(apex_sources
     profiler_listener.cpp
     apex_throttling.cpp
     ${PROC_SOURCE})
+
+
+if(APEX_WITH_PAPI)
+    find_package(PAPI)
+    if(NOT PAPI_FOUND)
+        hpx_error("apex" "Requested APEX_WITH_PAPI but could not find PAPI. Please specify PAPI_ROOT.")
+    endif()
+    hpx_info("apex" "Building APEX with PAPI support.")
+    include_directories(${PAPI_INCLUDE_DIR})
+    set(LIBS ${LIBS} ${PAPI_LIBRARIES})
+    set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${PAPI_LIBRARY_DIR})
+    add_definitions(-DAPEX_HAVE_PAPI)
+    hpx_libraries(${HWLOC_LIBRARIES})
+endif()
 
 find_package(RCR)
 
