@@ -376,6 +376,7 @@ int apex_throughput_throttling_dhc_policy(apex_context const context) {
     return APEX_NOERROR;
 }
     
+#ifdef APEX_HAVE_ACTIVEHARMONY
 int apex_throughput_throttling_ah_policy(apex_context const context) {
     // do something.
     APEX_UNUSED(context);
@@ -442,6 +443,12 @@ int apex_throughput_throttling_ah_policy(apex_context const context) {
 
     return APEX_NOERROR;
 }
+#else // APEX_HAVE_ACTIVEHARMONY
+int apex_throughput_throttling_ah_policy(apex_context const context) { 
+    APEX_UNUSED(context);
+    return APEX_NOERROR; 
+}
+#endif // APEX_HAVE_ACTIVEHARMONY
 
 /// ----------------------------------------------------------------------------
 ///
