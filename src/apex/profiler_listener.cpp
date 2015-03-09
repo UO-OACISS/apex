@@ -199,15 +199,19 @@ namespace apex {
 #ifdef APEX_HAVE_HPX3
         if(!done) {
             if(get_hpx_runtime_ptr() != nullptr) {
-            hpx::performance_counters::install_counter_type(
-            std::string("/apex/") + *(p->timer_name),
-            [p](bool r)->boost::int64_t{
-                boost::int64_t value(p->elapsed() * 100000);
-                return value;
-            },
-            std::string("APEX counter ") + *(p->timer_name),
-            ""
-            );
+                std::string timer_name(*(p->timer_name));
+                // Don't register timers containing "/"
+                if(timer_name.find("/") == std::string::npos) {
+                    hpx::performance_counters::install_counter_type(
+                    std::string("/apex/") + timer_name,
+                    [p](bool r)->boost::int64_t{
+                        boost::int64_t value(p->elapsed() * 100000);
+                        return value;
+                    },
+                    std::string("APEX counter ") + timer_name,
+                    ""
+                    );
+                } 
             } else {
                 std::cerr << "HPX runtime not initialized yet." << std::endl;
             }
