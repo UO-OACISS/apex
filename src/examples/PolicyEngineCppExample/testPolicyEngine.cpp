@@ -9,6 +9,8 @@
 #define NUM_THREADS 8
 #define ITERATIONS 1000000
 
+using namespace std;
+
 class ApexProxy {
 private:
   std::string _name;
@@ -84,7 +86,7 @@ int main(int argc, char **argv)
        }
        return APEX_NOERROR;
   });
-  apex::register_policy(when, [](apex_context const& context){
+  apex::register_policy(when, [](apex_context const& context)->int{
        UNUSED(context);
        static APEX_NATIVE_TLS unsigned int not_all_the_time = 0;
        if (++not_all_the_time % 500000 != 0) return true; // only do 2 out of a million
@@ -93,7 +95,7 @@ int main(int argc, char **argv)
        if (p != NULL) {
            cout << "Event: " << foo_addr << " " << p->get_calls() << " " << p->get_mean() << " seconds." << endl;
        }
-       return false;
+       return APEX_NOERROR;
   });
   printf("PID of this process: %d\n", getpid());
   pthread_t thread[NUM_THREADS];

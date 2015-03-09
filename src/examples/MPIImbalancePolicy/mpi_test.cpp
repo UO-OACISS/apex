@@ -17,6 +17,8 @@ static void worker(void);
 static void get_next_work_item(int work[], int rank, int ntasks);
 static unit_result_t do_work(unit_of_work_t work);
 
+using namespace std;
+
 static int dummy = 0;
 int * data;
 

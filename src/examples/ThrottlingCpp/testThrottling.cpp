@@ -14,6 +14,7 @@
 int total_iterations = NUM_THREADS * ITERATIONS;
 
 using namespace apex;
+using namespace std;
 
 int foo (int i) {
   profiler* p = start((apex_function_address)foo);
@@ -72,7 +73,8 @@ int main(int argc, char **argv)
   init(argc, argv, NULL);
   set_node_id(0);
 
-  setup_timer_throttling((apex_function_address)foo, APEX_MAXIMIZE_THROUGHPUT);
+  setup_timer_throttling((apex_function_address)foo, APEX_MAXIMIZE_THROUGHPUT,
+          APEX_DISCRETE_HILL_CLIMBING, 1000000);
 
   profiler* p = start((apex_function_address)main);
   printf("PID of this process: %d\n", getpid());

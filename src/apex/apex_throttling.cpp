@@ -15,18 +15,15 @@
 #include "libenergy.h"
 #endif
 
+#ifdef APEX_HAVE_ACTIVEHARMONY
+#include "hclient.h"
+hdesc_t *hdesc; // the harmony client descriptor
+#endif
+
 using namespace std;
 
 // this is the policy engine for APEX used to determine when contention
 // is present on the socket and reduce the number of active threads
-
-/// ----------------------------------------------------------------------------
-///
-/// Throttling Policy Engine
-///
-/// This probably wants to be ifdef under some flag -- I don't want to figure out
-/// how to do this currently AKP 11/01/14
-/// ----------------------------------------------------------------------------
 
 bool apex_throttleOn = true;          // Current Throttle status
 bool apex_checkThrottling = false;    // Is throttling desired
@@ -41,7 +38,8 @@ double max_watts = APEX_HIGH_POWER_LIMIT;
 double min_watts = APEX_LOW_POWER_LIMIT;
 int max_threads = APEX_MAX_THREADS;
 int min_threads = APEX_MIN_THREADS;
-int thread_cap = APEX_MAX_THREADS;
+int thread_step = 1;
+long int thread_cap = APEX_MAX_THREADS;
 int headroom = 1; //
 double moving_average = 0.0;
 int window_size = MAX_WINDOW_SIZE;
@@ -63,7 +61,7 @@ int * observations = NULL;
 ofstream cap_data;
 
 inline int __get_thread_cap(void) {
-  return thread_cap;
+  return (int)thread_cap;
 }
 
 inline void __decrease_cap_gradual() {
@@ -378,6 +376,80 @@ int apex_throughput_throttling_dhc_policy(apex_context const context) {
     return APEX_NOERROR;
 }
     
+#ifdef APEX_HAVE_ACTIVEHARMONY
+int apex_throughput_throttling_ah_policy(apex_context const context) {
+    // do something.
+    APEX_UNUSED(context);
+    static double previous_value = 0.0; // instead of resetting.
+    static bool _converged_message = false;
+    if (harmony_converged(hdesc)) {
+        if (!_converged_message) {
+            _converged_message = true;
+            cout << "Thread Cap value optimization has converged." << endl;
+        }
+        return APEX_NOERROR;
+    }
+    int hresult = harmony_fetch(hdesc);
+    if (hresult < 0) {
+        cerr << "Failed to fetch values from server: " << 
+                harmony_error_string(hdesc) << endl;
+        return APEX_ERROR;
+    }
+    else if (hresult == 0) {
+        /* New values were not available at this time.
+         * Bundles remain unchanged by Harmony system.
+         */
+    }
+    else if (hresult > 0) {
+        /* The Harmony system modified the variable values.
+         * Do any systemic updates to deal with such a change.
+         */
+    }
+
+    // get a measurement of our current setting
+    apex_profile * function_profile = NULL;
+    if(function_of_interest != APEX_NULL_FUNCTION_ADDRESS) {
+        function_profile = apex::get_profile(function_of_interest);
+        //reset(function_of_interest); // we want new measurements!
+    } else {
+        function_profile = apex::get_profile(function_name_of_interest);
+        //reset(function_name_of_interest); // we want new measurements!
+    }
+    // if we have no data yet, return.
+    if (function_profile == NULL) { 
+        //printf ("No Data?\n");
+        return APEX_ERROR; 
+    //} else {
+        //printf ("Got Data!\n");
+    }
+
+    double new_value = 0.0;
+    if (throttling_criteria == APEX_MAXIMIZE_THROUGHPUT) {
+        new_value = (function_profile->calls - previous_value) * 1.0;
+        previous_value = function_profile->calls;
+    } else if (throttling_criteria == APEX_MAXIMIZE_ACCUMULATED) {
+        new_value = (function_profile->accumulated - previous_value) * 1.0;
+        previous_value = function_profile->accumulated;
+    } else if (throttling_criteria == APEX_MINIMIZE_ACCUMULATED) {
+        new_value = function_profile->accumulated - previous_value;
+        previous_value = function_profile->accumulated;
+    }
+
+    /* Report the performance we've just measured. */
+    if (harmony_report(hdesc, new_value) != 0) {
+        cerr << "Failed to report performance to server." << endl;
+        return APEX_ERROR;
+    }
+
+    return APEX_NOERROR;
+}
+#else // APEX_HAVE_ACTIVEHARMONY
+int apex_throughput_throttling_ah_policy(apex_context const context) { 
+    APEX_UNUSED(context);
+    return APEX_NOERROR; 
+}
+#endif // APEX_HAVE_ACTIVEHARMONY
+
 /// ----------------------------------------------------------------------------
 ///
 /// Functions to setup and shutdown energy measurements during execution
@@ -436,7 +508,57 @@ inline int __setup_power_cap_throttling()
   return APEX_NOERROR;
 }
 
-inline int __common_setup_timer_throttling(apex_optimization_criteria_t criteria)
+#ifdef APEX_HAVE_ACTIVEHARMONY
+inline void __apex_active_harmony_setup(void) {
+    static const char* session_name = "APEX Throttling";
+    hdesc = harmony_init(NULL, NULL);
+    if (hdesc == NULL) {
+        cerr << "Failed to initialize Active Harmony" << endl;
+        return;
+    }
+    if (harmony_session_name(hdesc, session_name) != 0) {
+        cerr << "Could not set Active Harmony session name" << endl;
+        return;
+    }
+    if (harmony_int(hdesc, "thread_cap", min_threads, max_threads, thread_step) != 0) {
+        cerr << "Failed to define Active Harmony tuning session" << endl;
+        return;
+    }
+    if (harmony_strategy(hdesc, "pro.so") != 0) {
+        cerr << "Failed to set Active Harmony tuning strategy" << endl;
+        return;
+    }
+    if (harmony_launch(hdesc, NULL, 0) != 0) {
+        cerr << "Failed to launch Active Harmony tuning session: " << 
+            endl << harmony_error_string(hdesc) << endl;
+        return;
+    }
+    if (harmony_bind_int(hdesc, "thread_cap", &thread_cap) != 0) {
+        cerr << "Failed to register Active Harmony variable" << endl;
+        return;
+    }
+    if (harmony_join(hdesc, NULL, 0, session_name) != 0) {
+        cerr << "Failed to launch Active Harmony tuning session" << endl;
+        return;
+    }
+}
+
+inline void __apex_active_harmony_shutdown(void) {
+    /* Leave the session */
+    if (harmony_leave(hdesc) != 0) {
+        cerr << "Failed to disconnect from harmony session." << endl;;
+        return;
+    }
+    harmony_fini(hdesc);
+}
+
+#else
+inline void __apex_active_harmony_setup(void) { }
+inline void __apex_active_harmony_shutdown(void) { }
+#endif
+
+inline int __common_setup_timer_throttling(apex_optimization_criteria_t criteria,
+        apex_optimization_method_t method, unsigned long update_interval)
 {
     __read_common_variables();
     if (apex_checkThrottling) {
@@ -450,25 +572,34 @@ inline int __common_setup_timer_throttling(apex_optimization_criteria_t criteria
         if (apex::apex::instance()->get_node_id() == 0) {
             cap_data.open("cap_data.dat");
         }
-        apex::register_periodic_policy(1000000, apex_throughput_throttling_dhc_policy);
+        if (method == APEX_SIMPLE_HYSTERESIS) {
+            apex::register_periodic_policy(update_interval, apex_throughput_throttling_policy);
+        } else if (method == APEX_DISCRETE_HILL_CLIMBING) {
+            apex::register_periodic_policy(update_interval, apex_throughput_throttling_dhc_policy);
+        } else if (method == APEX_ACTIVE_HARMONY) {
+            __apex_active_harmony_setup();
+            apex::register_periodic_policy(update_interval, apex_throughput_throttling_ah_policy);
+        }
     }
     return APEX_NOERROR;
 }
 
-inline int __setup_timer_throttling(apex_function_address the_address, apex_optimization_criteria_t criteria)
+inline int __setup_timer_throttling(apex_function_address the_address, apex_optimization_criteria_t criteria,
+        apex_optimization_method_t method, unsigned long update_interval)
 {
     function_of_interest = the_address;
-    return __common_setup_timer_throttling(criteria);
+    return __common_setup_timer_throttling(criteria, method, update_interval);
 }
 
-inline int __setup_timer_throttling(string& the_name, apex_optimization_criteria_t criteria)
+inline int __setup_timer_throttling(string& the_name, apex_optimization_criteria_t criteria,
+        apex_optimization_method_t method, unsigned long update_interval)
 {
     if (the_name == "") {
         fprintf(stderr, "Timer/counter name for throttling is undefined. Please specify a name.\n");
         abort();
     }
     function_name_of_interest = string(the_name);
-    return __common_setup_timer_throttling(criteria);
+    return __common_setup_timer_throttling(criteria, method, update_interval);
 }
 
 inline int __shutdown_throttling(void)
@@ -497,13 +628,15 @@ APEX_EXPORT int setup_power_cap_throttling(void) {
 }
 
 APEX_EXPORT int setup_timer_throttling(apex_function_address the_address,
-        apex_optimization_criteria_t criteria) {
-    return __setup_timer_throttling(the_address, criteria);
+        apex_optimization_criteria_t criteria, apex_optimization_method_t method,
+        unsigned long update_interval) {
+    return __setup_timer_throttling(the_address, criteria, method, update_interval);
 }
 
 APEX_EXPORT int setup_timer_throttling(std::string &the_name,
-        apex_optimization_criteria_t criteria) {
-    return __setup_timer_throttling(the_name, criteria);
+        apex_optimization_criteria_t criteria, apex_optimization_method_t method,
+        unsigned long update_interval) {
+    return __setup_timer_throttling(the_name, criteria, method, update_interval);
 }
 
 APEX_EXPORT int shutdown_throttling(void) {
@@ -522,13 +655,15 @@ APEX_EXPORT int apex_setup_power_cap_throttling(void) {
     return __setup_power_cap_throttling();
 }
 APEX_EXPORT int apex_setup_timer_address_throttling(apex_function_address the_address,
-        apex_optimization_criteria_t criteria) {
-    return __setup_timer_throttling(the_address, criteria);
+        apex_optimization_criteria_t criteria, 
+        apex_optimization_method_t method, unsigned long update_interval) {
+    return __setup_timer_throttling(the_address, criteria, method, update_interval);
 }
 APEX_EXPORT int apex_setup_timer_name_throttling(const char * the_name,
-        apex_optimization_criteria_t criteria) {
+        apex_optimization_criteria_t criteria, 
+        apex_optimization_method_t method, unsigned long update_interval) {
     string tmp(the_name);
-    return __setup_timer_throttling(tmp, criteria);
+    return __setup_timer_throttling(tmp, criteria, method, update_interval);
 }
 APEX_EXPORT int apex_shutdown_throttling(void) {
     return __shutdown_throttling();

@@ -41,7 +41,6 @@ void* someThread(void* tmp)
   apex_register_thread("threadTest thread");
   //ApexProxy proxy = ApexProxy(__func__, __FILE__, __LINE__);
   apex_profiler_handle p = apex_start_address((apex_function_address)someThread);
-  printf("PID of this process: %d\n", getpid());
 #if defined (__APPLE__)
   printf("The ID of this thread is: %lu\n", (unsigned long)pthread_self());
 #else
@@ -75,10 +74,10 @@ int main(int argc, char **argv)
   apex_set_node_id(0);
 
   apex_setup_timer_address_throttling((apex_function_address)foo, APEX_MINIMIZE_ACCUMULATED,
-          APEX_DISCRETE_HILL_CLIMBING, 1000000);
+          APEX_ACTIVE_HARMONY, 500000);
 
   apex_profiler_handle p = apex_start_address((apex_function_address)main);
-  //printf("PID of this process: %d\n", getpid());
+  printf("PID of this process: %d\n", getpid());
   pthread_t thread[NUM_THREADS];
   int i;
   int ids[NUM_THREADS];

@@ -429,11 +429,14 @@ APEX_EXPORT int setup_power_cap_throttling(void);      // initialize
 
  \param the_address The address of the function to be optimized.
  \param criteria The optimization criteria.
+ \param method The optimization method.
+ \param update_interval The time between observations, in microseconds.
  \return APEX_NOERROR on success, otherwise an error code.
  */
 
 APEX_EXPORT int setup_timer_throttling(apex_function_address the_address,
-        apex_optimization_criteria_t criteria);      // initialize
+        apex_optimization_criteria_t criteria,
+        apex_optimization_method_t method, unsigned long update_interval);
 
 /**
  \brief Setup throttling to optimize for the specified function or counter.
@@ -447,11 +450,14 @@ APEX_EXPORT int setup_timer_throttling(apex_function_address the_address,
 
  \param the_name The name of the function or counter to be optimized.
  \param criteria The optimization criteria.
+ \param method The optimization method.
+ \param update_interval The time between observations, in microseconds.
 
  \return APEX_NOERROR on success, otherwise an error code.
  */
 APEX_EXPORT int setup_timer_throttling(std::string the_name,
-        apex_optimization_criteria_t criteria);      // initialize
+        apex_optimization_criteria_t criteria,
+        apex_optimization_method_t method, unsigned long update_interval);
 
 /**
  \brief Terminate the throttling policy.
