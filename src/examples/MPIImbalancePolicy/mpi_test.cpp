@@ -124,7 +124,7 @@ static void worker(void) {
 
     /* Receive a message from the master */
 
-    MPI_Recv(&work, 2, MPI_INT, 0, MPI_ANY_TAG,
+    MPI_Recv(work, 2, MPI_INT, 0, MPI_ANY_TAG,
              MPI_COMM_WORLD, &status);
 
     /* Check the tag of the received message. */
