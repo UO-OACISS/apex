@@ -189,7 +189,7 @@ APEX_EXPORT void apex_sample_value(const char * name, double value);
  Each listeners' on_custom() event will handle the custom event.
  Policy functions will be passed the custom event name in the event context.
  
- \param name The name of the custom event
+ \param event_name The name of the custom event
  \param custom_data Data specific to the custom event
  \return No return value.
  */

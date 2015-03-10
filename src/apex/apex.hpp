@@ -237,7 +237,7 @@ APEX_EXPORT void sample_value(const std::string &name, double value);
  Each listeners' on_custom_event() event will handle the custom event.
  Policy functions will be passed the custom event name in the event context.
  
- \param name The name of the custom event
+ \param event_name The name of the custom event
  \param custom_data Data relevant to the custom event
  \return No return value.
  */
