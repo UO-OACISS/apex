@@ -18,7 +18,8 @@ class event_data {
 public:
   apex_event_type event_type_;
   int thread_id;
-  event_data() : thread_id(0) {};
+  void * data; /* generic data pointer */
+  event_data() : thread_id(0), data(NULL) {};
   virtual ~event_data() {};
 };
 
@@ -77,7 +78,6 @@ public:
 class custom_event_data : public event_data {
 public:
   std::string* event_name;
-  void * custom_data;
   custom_event_data(const std::string &event_name, void * custom_data);
   ~custom_event_data();
 };

@@ -57,7 +57,7 @@ sample_value_event_data::~sample_value_event_data() {
 
 custom_event_data::custom_event_data(const std::string &event_name, void * custom_data) {
     this->event_name = new std::string(event_name);
-    this->custom_data = custom_data;
+    this->data = custom_data;
 }
 
 custom_event_data::~custom_event_data() {

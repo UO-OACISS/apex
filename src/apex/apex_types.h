@@ -19,42 +19,51 @@
  * Typedef for enumerating the different event types
  */
 typedef enum _error_codes {
-  APEX_NOERROR = 0,
-  APEX_ERROR
+  APEX_NOERROR = 0, /*!< No error occurred */
+  APEX_ERROR        /*!< Some error occurred - check stderr output for details */
 } apex_error_code;
 
 /**
  * Typedef for enumerating the different event types
  */
 typedef enum _event_type {
-  APEX_STARTUP,
-  APEX_SHUTDOWN,
-  APEX_NEW_NODE,
-  APEX_NEW_THREAD,
-  APEX_START_EVENT,
-  APEX_RESUME_EVENT,
-  APEX_STOP_EVENT,
-  APEX_SAMPLE_VALUE,
-  APEX_PERIODIC,
-  APEX_CUSTOM_EVENT
+  APEX_STARTUP,        /*!< APEX is initialized */
+  APEX_SHUTDOWN,       /*!< APEX is terminated */
+  APEX_NEW_NODE,       /*!< APEX has registered a new process ID */
+  APEX_NEW_THREAD,     /*!< APEX has registered a new OS thread */
+  APEX_START_EVENT,    /*!< APEX has processed a timer start event */
+  APEX_RESUME_EVENT,   /*!< APEX has processed a timer resume event (the number
+                           of calls is not incremented) */
+  APEX_STOP_EVENT,     /*!< APEX has processed a timer stop event */
+  APEX_SAMPLE_VALUE,   /*!< APEX has processed a sampled value */
+  APEX_PERIODIC,       /*!< APEX has processed a periodic timer */
+  APEX_CUSTOM_EVENT    /*!< APEX has processed a custom event - useful for large
+                           granularity application control events */
 } apex_event_type;
 
 /**
  * Typedef for enumerating the different optimization strategies
  * for throttling.
  */
-typedef enum {APEX_MAXIMIZE_THROUGHPUT,
-	          APEX_MAXIMIZE_ACCUMULATED, 
-	          APEX_MINIMIZE_ACCUMULATED
+typedef enum {APEX_MAXIMIZE_THROUGHPUT,   /*!< maximize the number of calls to a
+                                              timer/counter */
+              APEX_MAXIMIZE_ACCUMULATED,  /*!< maximize the accumulated value of
+                                              a timer/counter */
+              APEX_MINIMIZE_ACCUMULATED   /*!< minimize the accumulated value of
+                                              a timer/counter */
 } apex_optimization_criteria_t;
 
 /**
  * Typedef for enumerating the different optimization methods
  * for throttling.
  */
-typedef enum {APEX_SIMPLE_HYSTERESIS,
-	          APEX_DISCRETE_HILL_CLIMBING, 
-	          APEX_ACTIVE_HARMONY
+typedef enum {APEX_SIMPLE_HYSTERESIS,      /*!< optimize using sliding window of
+                                               historical observations. A running
+                                               average of the most recent N observations
+                                               are used as the measurement. */
+	          APEX_DISCRETE_HILL_CLIMBING, /*!< Use a discrete hill climbing algorithm
+                                               for optimization */
+	          APEX_ACTIVE_HARMONY          /*!< Use Active Harmony for optimization. */
 } apex_optimization_method_t;
 
 /** A reference to the policy object,
@@ -62,7 +71,7 @@ typedef enum {APEX_SIMPLE_HYSTERESIS,
  */
 typedef struct _policy_handle
 {
-    int id;
+    int id;           /*!< The ID of the policy, used internally to APEX */
 } apex_policy_handle;
 
 /** The APEX context when an event occurs.
@@ -70,16 +79,20 @@ typedef struct _policy_handle
  */
 typedef struct _context
 {
-    apex_event_type event_type;
-    apex_policy_handle* policy_handle;
+    apex_event_type event_type;        /*!< The type of the event currently
+                                           processing */
+    apex_policy_handle* policy_handle; /*!< The policy handle for the current
+                                           policy function */
+    void * data;  /*!< Data associated with the event, such as the custom_data
+                       for a custom_event */
 } apex_context;
 
 /** The type of a profiler object
  * 
  */
 typedef enum _profile_type {
-  APEX_TIMER,
-  APEX_COUNTER
+  APEX_TIMER,        /*!< This profile is a instrumented timer */
+  APEX_COUNTER       /*!< This profile is a sampled counter */
 } apex_profile_type;
 
 /**
@@ -87,12 +100,14 @@ typedef enum _profile_type {
  */
 typedef struct _profile
 {
-    double calls;
-    double accumulated;
-    double sum_squares;
-    double minimum;
-    double maximum;
-    apex_profile_type type;
+    double calls;         /*!< Number of times a timer was called, or the number
+                              of samples collected for a counter */
+    double accumulated;   /*!< Accumulated values for all calls/samples */
+    double sum_squares;   /*!< Running sum of squares calculation for all
+                              calls/samples */
+    double minimum;       /*!< Minimum value seen by the timer or counter */
+    double maximum;       /*!< Maximum value seen by the timer or counter */
+    apex_profile_type type; /*!< Whether this is a timer or a counter */
 } apex_profile;
 
 /** The address of a C++ object in APEX.

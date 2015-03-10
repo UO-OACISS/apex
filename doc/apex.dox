@@ -209,6 +209,12 @@ example uses the code in src/comm/mpi to perform the reduction.
 This example is provided as an example for other distributed runtimes
 to implement the API in @ref src/comm/apex_global.h.
 
+\subsection MPIImbalanceTest MPIImbalanceTest
+
+This example demonstrates how MPI one-sided communication is used
+to perform global reductions of performance data at runtime. 
+This example is similar to MPIGlobalTest, but with an imbalanced load.
+
 \subsection MPITest MPITest
 
 This is a simple example using C++ and MPI.
@@ -242,6 +248,12 @@ from user-space on the Cray XC30. APEX will also have the ability to read
 power and energy from either PAPI, RCR or libmsr in the future, and on
 supported platforms.
 
+\subsection TestOpenMP TestOpenMP
+
+This is an example of using APEX with an OpenMP application, using an
+OpenMP runtime that supports the OMPT interface. One such example is the
+Intel OpenMP Runtime. APEX has implemented a subset of the OMPT events.
+
 \subsection TestReset TestReset
 
 This is an example that demonstrates the use of resetting counters
@@ -264,6 +276,12 @@ is overutilized, and excess concurrency is causing worse than diminishing
 returns. The policy will use a hillclimbing approach to reduce the amount of
 concurrency until converging on the ideal number of threads, or until application
 termination.
+
+\subsection ThrottlingActiveHarmony ThrottlingActiveHarmony
+
+This is a version of the Throttling example that uses Active Harmony for
+optimization. The optimization method is the default method in Active Harmony,
+the Parallel Rank Order method. For more details, see http://www.dyninst.org/harmony
 
 \subsection ThrottlingCpp ThrottlingCpp
 

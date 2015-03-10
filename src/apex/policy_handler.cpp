@@ -146,6 +146,11 @@ inline void policy_handler::call_policies(
     apex_context my_context;
     my_context.event_type = event_data.event_type_;
     my_context.policy_handle = NULL;
+    if (event_data.event_type_ == APEX_CUSTOM_EVENT) {
+        my_context.data = event_data.data;
+    } else {
+        my_context.data = NULL;
+    }
     const bool result = policy->func(my_context);
     if(result != APEX_NOERROR) {
       printf("Warning: registered policy function failed!\n");
