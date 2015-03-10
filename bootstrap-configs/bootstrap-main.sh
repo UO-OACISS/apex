@@ -78,10 +78,15 @@ $DIR/.."
 echo $cmd
 eval $cmd
 
-procs=1
-if [ -f '/proc/cpuinfo' ] ; then
-  procs=`grep -c ^processor /proc/cpuinfo`
+procs=0
+if [ $# -eq 2 ] ; then
+	if [ $2 == "--parallel" ] || [ $2 == "-j" ] ; then
+        if [ -f '/proc/cpuinfo' ] ; then
+            procs=`grep -c ^processor /proc/cpuinfo`
+        fi
+	fi
 fi
+
 make -j `expr $procs + 1`
 
 make test
