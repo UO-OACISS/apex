@@ -272,7 +272,7 @@ string version()
     return tmp.str().c_str();
 }
 
-profiler* start(string timer_name)
+profiler* start(const std::string &timer_name)
 {
     APEX_TIMER_TRACER("start ", timer_name)
     apex* instance = apex::instance(); // get the Apex static instance
@@ -298,7 +298,7 @@ profiler* start(apex_function_address function_address) {
     return thread_instance::instance().current_timer;
 }
 
-void reset(std::string timer_name) {
+void reset(const std::string &timer_name) {
     APEX_TIMER_TRACER("reset", timer_name)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
@@ -354,7 +354,7 @@ void stop(profiler* the_profiler)
     thread_instance::instance().current_timer = NULL;
 }
 
-void sample_value(string name, double value)
+void sample_value(const std::string &name, double value)
 {
     APEX_TRACER
     apex* instance = apex::instance(); // get the Apex static instance
@@ -412,6 +412,20 @@ void sample_value(string name, double value)
     }
     delete(event_data);
 }
+
+void custom_event(const std::string &name, void * custom_data)
+{
+    APEX_TRACER
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance) return; // protect against calls after finalization
+    custom_event_data event_data(name, custom_data);
+    if (_notify_listeners) {
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            instance->listeners[i]->on_custom_event(event_data);
+        }
+    }
+}
+
 
 void set_node_id(int id)
 {
@@ -499,7 +513,7 @@ void finalize()
     instance->~apex();
 }
 
-void register_thread(string name)
+void register_thread(const std::string &name)
 {
     APEX_TRACER
     apex* instance = apex::instance(); // get the Apex static instance
@@ -572,7 +586,7 @@ apex_profile* get_profile(apex_function_address action_address) {
     return NULL;
 }
 
-apex_profile* get_profile(string &timer_name) {
+apex_profile* get_profile(const std::string &timer_name) {
     profile * tmp = profiler_listener::get_profile(timer_name);
     if (tmp != NULL)
         return tmp->get_profile();
@@ -611,10 +625,13 @@ extern "C" {
 
     apex_profiler_handle apex_start_name(const char * timer_name)
     {
-        if (timer_name)
-            return (apex_profiler_handle)start(string(timer_name));
-        else
-            return (apex_profiler_handle)start(string(""));
+        if (timer_name) {
+            string tmp(timer_name);
+            return (apex_profiler_handle)start(tmp);
+        } else {
+            string tmp("");
+            return (apex_profiler_handle)start(tmp);
+        }
     }
 
     apex_profiler_handle apex_start_address(apex_function_address function_address)
@@ -624,9 +641,11 @@ extern "C" {
 
     void apex_reset_name(const char * timer_name) {
         if (timer_name) {
-            reset(string(timer_name));       
+            string tmp(timer_name);
+            reset(tmp);       
         } else {
-            reset(string(""));
+            string tmp("");
+            reset(tmp);
         }
     }
     
@@ -646,7 +665,14 @@ extern "C" {
 
     void apex_sample_value(const char * name, double value)
     {
-        sample_value(string(name), value);
+        string tmp(name);
+        sample_value(tmp, value);
+    }
+
+    void apex_custom_event(const char * name, void * custom_data)
+    {
+        string tmp(name);
+        custom_event(tmp, custom_data);
     }
 
     void apex_set_node_id(int id)
@@ -657,9 +683,11 @@ extern "C" {
     void apex_register_thread(const char * name)
     {
         if (name) {
-            register_thread(string(name));
+            string tmp(name);
+            register_thread(tmp);
         } else {
-            register_thread(string("APEX WORKER THREAD"));
+            string tmp("APEX WORKER THREAD");
+            register_thread(tmp);
         }
     }
 

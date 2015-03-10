@@ -122,7 +122,7 @@ namespace apex {
 
   /* Return the requested profile object to the user.
    * Return NULL if doesn't exist. */
-  profile * profiler_listener::get_profile(string &timer_name) {
+  profile * profiler_listener::get_profile(const string &timer_name) {
     map<string, profile*>::iterator it = name_map.find(timer_name);
     if (it != name_map.end()) {
       return (*it).second;
@@ -897,6 +897,13 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 
   /* For periodic stuff. Do something? */
   void profiler_listener::on_periodic(periodic_event_data &data) {
+    if (!_terminate) {
+    }
+	APEX_UNUSED(data);
+  }
+
+  /* For custom event stuff. Do something? */
+  void profiler_listener::on_custom_event(custom_event_data &data) {
     if (!_terminate) {
     }
 	APEX_UNUSED(data);

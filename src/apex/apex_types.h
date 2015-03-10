@@ -35,7 +35,8 @@ typedef enum _event_type {
   APEX_RESUME_EVENT,
   APEX_STOP_EVENT,
   APEX_SAMPLE_VALUE,
-  APEX_PERIODIC
+  APEX_PERIODIC,
+  APEX_CUSTOM_EVENT
 } apex_event_type;
 
 /**

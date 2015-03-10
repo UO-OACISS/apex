@@ -26,6 +26,7 @@ public:
   void on_resume(profiler *p);
   void on_sample_value(sample_value_event_data &data);
   void on_periodic(periodic_event_data &data);
+  void on_custom_event(custom_event_data &event_data);
 
 };
 

@@ -111,5 +111,11 @@ void tau_listener::on_periodic(periodic_event_data &data) {
   return;
 }
 
+void tau_listener::on_custom(custom_event_data &data) {
+  if (!_terminate) {
+  }
+  return;
+}
+
 
 }

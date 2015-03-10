@@ -182,6 +182,19 @@ APEX_EXPORT void apex_reset_address(apex_function_address function_address);
  */
 APEX_EXPORT void apex_sample_value(const char * name, double value);
 
+/**
+ \brief Trigger a custom event.
+
+ This function will pass a custom event to the APEX event listeners.
+ Each listeners' on_custom() event will handle the custom event.
+ Policy functions will be passed the custom event name in the event context.
+ 
+ \param name The name of the custom event
+ \param custom_data Data specific to the custom event
+ \return No return value.
+ */
+APEX_EXPORT void apex_custom_event(const char * event_name, void * custom_data);
+
 /*
  * Utility functions
  */

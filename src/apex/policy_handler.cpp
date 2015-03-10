@@ -124,6 +124,11 @@ int policy_handler::register_policy(const apex_event_type & when,
         sample_value_policies.push_back(instance);
         break;
       }
+      case APEX_CUSTOM_EVENT: {
+        boost::unique_lock<mutex_type> l(custom_event_mutex);
+        custom_event_policies.push_back(instance);
+        break;
+      }
       case APEX_PERIODIC: {
         boost::unique_lock<mutex_type> l(periodic_mutex);
         periodic_policies.push_back(instance);
@@ -221,6 +226,13 @@ void policy_handler::on_sample_value(sample_value_event_data &event_data) {
             if (sample_value_policies.empty())
                 return;
         call_policies(sample_value_policies, event_data);
+}
+
+void policy_handler::on_custom_event(custom_event_data &event_data) {
+  if (_terminate) return;
+            if (custom_event_policies.empty())
+                return;
+        call_policies(custom_event_policies, event_data);
 }
 
 void policy_handler::on_periodic(periodic_event_data &event_data) {
