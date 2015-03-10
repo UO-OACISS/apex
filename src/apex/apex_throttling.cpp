@@ -279,9 +279,9 @@ int apex_throughput_throttling_dhc_policy(apex_context const context) {
     // initial value for current_cap is 1/2 the distance between min and max
     static double previous_value = 0.0; // instead of resetting.
     //static int current_cap = min_threads + ((max_threads - min_threads) >> 1);
-    static int current_cap = max_threads - 1;
-    int low_neighbor = max(current_cap - 1, min_threads);
-    int high_neighbor = min(current_cap + 1, max_threads);
+    static int current_cap = max_threads - 2;
+    int low_neighbor = max(current_cap - 2, min_threads);
+    int high_neighbor = min(current_cap + 2, max_threads);
     static bool got_center = false;
     static bool got_low = false;
     static bool got_high = false;
@@ -389,22 +389,6 @@ int apex_throughput_throttling_ah_policy(apex_context const context) {
         }
         return APEX_NOERROR;
     }
-    int hresult = harmony_fetch(hdesc);
-    if (hresult < 0) {
-        cerr << "Failed to fetch values from server: " << 
-                harmony_error_string(hdesc) << endl;
-        return APEX_ERROR;
-    }
-    else if (hresult == 0) {
-        /* New values were not available at this time.
-         * Bundles remain unchanged by Harmony system.
-         */
-    }
-    else if (hresult > 0) {
-        /* The Harmony system modified the variable values.
-         * Do any systemic updates to deal with such a change.
-         */
-    }
 
     // get a measurement of our current setting
     apex_profile * function_profile = NULL;
@@ -425,10 +409,10 @@ int apex_throughput_throttling_ah_policy(apex_context const context) {
 
     double new_value = 0.0;
     if (throttling_criteria == APEX_MAXIMIZE_THROUGHPUT) {
-        new_value = (function_profile->calls - previous_value) * 1.0;
+        new_value = (function_profile->calls - previous_value) * -1.0;
         previous_value = function_profile->calls;
     } else if (throttling_criteria == APEX_MAXIMIZE_ACCUMULATED) {
-        new_value = (function_profile->accumulated - previous_value) * 1.0;
+        new_value = (function_profile->accumulated - previous_value) * -1.0;
         previous_value = function_profile->accumulated;
     } else if (throttling_criteria == APEX_MINIMIZE_ACCUMULATED) {
         new_value = function_profile->accumulated - previous_value;
@@ -439,6 +423,23 @@ int apex_throughput_throttling_ah_policy(apex_context const context) {
     if (harmony_report(hdesc, new_value) != 0) {
         cerr << "Failed to report performance to server." << endl;
         return APEX_ERROR;
+    }
+
+    int hresult = harmony_fetch(hdesc);
+    if (hresult < 0) {
+        cerr << "Failed to fetch values from server: " << 
+                harmony_error_string(hdesc) << endl;
+        return APEX_ERROR;
+    }
+    else if (hresult == 0) {
+        /* New values were not available at this time.
+         * Bundles remain unchanged by Harmony system.
+         */
+    }
+    else if (hresult > 0) {
+        /* The Harmony system modified the variable values.
+         * Do any systemic updates to deal with such a change.
+         */
     }
 
     return APEX_NOERROR;
