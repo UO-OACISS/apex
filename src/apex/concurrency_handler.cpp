@@ -14,9 +14,14 @@
 #include <map>
 #include <iterator>
 #include <iostream>
+#include <string>
 #include <fstream>
 #if defined(__GNUC__)
 #include <cxxabi.h>
+#endif
+
+#ifdef APEX_HAVE_BFD
+#include "address_resolution.hpp"
 #endif
 
 using namespace std;
@@ -194,16 +199,35 @@ void concurrency_handler::output_samples(int node_id) {
   set<string> top_x;
   for (vector<pair<string, int> >::iterator it=my_vec.begin(); it!=my_vec.end(); ++it) {
     //if (top_x.size() < 15 && (*it).first != "APEX THREAD MAIN")
-    if (top_x.size() < 15)
+    if (top_x.size() < 5)
       top_x.insert((*it).first);
   }
 
   // output the header
   for (set<string>::iterator it=_functions.begin(); it!=_functions.end(); ++it) {
     if (top_x.find(*it) != top_x.end()) {
-      string* tmp = demangle(*it);
-      myfile << "\"" << *tmp << "\"\t";
-      delete (tmp);
+      //string* tmp = demangle(*it);
+      string tmp = *it;
+#ifdef APEX_HAVE_BFD
+      std::size_t pos = tmp.find("UNRESOLVED ADDR ");
+      if (pos >=0) {
+        string trimmed = tmp.substr(pos+16);
+        uintptr_t function_address = std::stoul(trimmed, nullptr, 16);
+        string * tmp2 = lookup_address(function_address, true);
+        pos = tmp2->find(" [{");
+        if (pos >= 0) {
+            trimmed = tmp2->substr(0, pos);
+            myfile << "\"" << trimmed << "\"\t";
+        } else {
+            myfile << "\"" << *tmp2 << "\"\t";
+        }
+        delete (tmp2);
+      } else {
+        myfile << "\"" << tmp << "\"\t";
+      }
+#else
+      myfile << "\"" << tmp << "\"\t";
+#endif
     }
   }
   myfile << "\"other\"" << endl;

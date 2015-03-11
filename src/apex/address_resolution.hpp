@@ -11,7 +11,7 @@
 #endif
 
 namespace apex {
-    std::string * lookup_address(uintptr_t ip);
+    std::string * lookup_address(uintptr_t ip, bool withFileInfo);
 }
 
 #endif // ADDRESS_RESOLUTION_HPP

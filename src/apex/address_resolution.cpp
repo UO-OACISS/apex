@@ -35,7 +35,7 @@ namespace apex {
   {
     OmpHashTable() { }
     virtual ~OmpHashTable() {
-      delete_hash_table();
+      //delete_hash_table();
     }
   };
 
@@ -80,7 +80,7 @@ namespace apex {
   }
 
   /* Map a function address to a name and/or source location */
-  string * lookup_address(uintptr_t ip) {
+  string * lookup_address(uintptr_t ip, bool withFileInfo) {
     stringstream location;
     apex_bfd_handle_t & OmpbfdUnitHandle = OmpTheBfdUnitHandle();
     OmpHashNode * node = OmpTheHashTable()[ip];
@@ -90,11 +90,13 @@ namespace apex {
 	  if (node->info.funcname) {
         location << node->info.funcname ;
 	  }
-	  location << " [{" ;
-	  if (node->info.filename) {
-	    location << node->info.filename ;
+      if (withFileInfo) {
+	    location << " [{" ;
+	    if (node->info.filename) {
+	        location << node->info.filename ;
+        }
+        location << "} {" << node->info.lineno << ",0}]";
       }
-      location << "} {" << node->info.lineno << ",0}]";
       node->location = new string(location.str());
       OmpTheHashTable()[ip] = node;
     }

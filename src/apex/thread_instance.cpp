@@ -177,16 +177,16 @@ string thread_instance::map_addr_to_name(apex_function_address function_address)
   if (it != _function_map.end()) {
     return (*it).second;
   } // else...
-#if 1
-  string * name = lookup_address(function_address);
+#if 0
+  string * name = lookup_address(function_address, false);
 #else
   stringstream ss;
   //ss << "UNRESOLVED " << progname << " ADDR " << hex << function_address;
   ss << "UNRESOLVED ADDR " << hex << function_address;
   string name = string(ss.str());
 #endif
-  _function_map[function_address] = *name;
-  return *name;
+  _function_map[function_address] = name;
+  return name;
 }
 
 

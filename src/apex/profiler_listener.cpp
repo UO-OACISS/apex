@@ -249,7 +249,7 @@ namespace apex {
           if (it == throttled_addresses.end()) {
             throttled_addresses.insert(p->action_address);
 #if defined(HAVE_BFD)
-            cout << "APEX Throttled " << *(lookup_address((uintptr_t)p->action_address)) << endl;
+            cout << "APEX Throttled " << *(lookup_address((uintptr_t)p->action_address, true)) << endl;
 #else
             cout << "APEX Throttled " << p->action_address << endl;
 #endif
@@ -349,7 +349,7 @@ namespace apex {
 #endif
 #if APEX_HAVE_BFD
       // translate the address to a name
-      string * tmp = lookup_address((uintptr_t)function_address);
+      string * tmp = lookup_address((uintptr_t)function_address, true);
       cout << "\"" << *tmp << "\", " ;
 #else
       cout << "\"" << function_address << "\", " ;
@@ -381,7 +381,7 @@ namespace apex {
         string addr_str = *token++;
 	void* addr_addr;
 	sscanf(addr_str.c_str(), "%p", &addr_addr);
-        string * tmp = lookup_address((uintptr_t)addr_addr);
+        string * tmp = lookup_address((uintptr_t)addr_addr, true);
         boost::regex old_address("UNRESOLVED ADDR " + addr_str);
 	action_name = boost::regex_replace(action_name, old_address, *tmp);
       }
@@ -479,7 +479,7 @@ namespace apex {
       // ".TAU application" 1 8 8658984 8660739 0 GROUP="TAU_USER"
       apex_function_address function_address = it->first;
 #if APEX_HAVE_BFD
-      string * tmp = lookup_address((uintptr_t)function_address);
+      string * tmp = lookup_address((uintptr_t)function_address, true);
       myfile << "\"" << *tmp << "\" ";
 #else
       myfile << "\"" << ti.map_addr_to_name(function_address) << "\" ";
@@ -508,7 +508,7 @@ namespace apex {
         string addr_str = *token++;
 	void* addr_addr;
 	sscanf(addr_str.c_str(), "%p", &addr_addr);
-        string * tmp = lookup_address((uintptr_t)addr_addr);
+        string * tmp = lookup_address((uintptr_t)addr_addr, true);
         boost::regex old_address("UNRESOLVED ADDR " + addr_str);
 	action_name = boost::regex_replace(action_name, old_address, *tmp);
       }
@@ -843,7 +843,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         if (p->have_name)
           cout << p->timer_name;
     else
-          cout << *(lookup_address((uintptr_t)p->action_address));
+          cout << *(lookup_address((uintptr_t)p->action_address, true));
     cout << endl;
         cout << "Cycles: " << values[0] ;
         cout << ", Instructions: " << values[1] ;

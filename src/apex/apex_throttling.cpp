@@ -386,8 +386,9 @@ int apex_throughput_throttling_ah_policy(apex_context const context) {
         if (!_converged_message) {
             _converged_message = true;
             cout << "Thread Cap value optimization has converged." << endl;
+            cout << "Thread Cap value : " << thread_cap << endl;
         }
-        return APEX_NOERROR;
+        //return APEX_NOERROR;
     }
 
     // get a measurement of our current setting
@@ -401,7 +402,7 @@ int apex_throughput_throttling_ah_policy(apex_context const context) {
     }
     // if we have no data yet, return.
     if (function_profile == NULL) { 
-        //printf ("No Data?\n");
+        cerr << "No profile data?" << endl;
         return APEX_ERROR; 
     //} else {
         //printf ("Got Data!\n");
@@ -417,6 +418,12 @@ int apex_throughput_throttling_ah_policy(apex_context const context) {
     } else if (throttling_criteria == APEX_MINIMIZE_ACCUMULATED) {
         new_value = function_profile->accumulated - previous_value;
         previous_value = function_profile->accumulated;
+    }
+    cout << "Cap: " << thread_cap << " New: " << abs(new_value) << " Prev: " << previous_value << endl;
+
+    if (apex::apex::instance()->get_node_id() == 0) {
+        static int index = 0;
+        cap_data << index++ << "\t" << abs(new_value) << "\t" << thread_cap << endl;
     }
 
     /* Report the performance we've just measured. */
