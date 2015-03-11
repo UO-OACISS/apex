@@ -58,6 +58,7 @@ private:
     std::list<boost::shared_ptr<policy_instance> > stop_event_policies;
     std::list<boost::shared_ptr<policy_instance> > resume_event_policies;
     std::list<boost::shared_ptr<policy_instance> > sample_value_policies;
+    std::list<boost::shared_ptr<policy_instance> > custom_event_policies;
     std::list<boost::shared_ptr<policy_instance> > periodic_policies;
     mutex_type startup_mutex;
     mutex_type shutdown_mutex;
@@ -67,6 +68,7 @@ private:
     mutex_type stop_event_mutex;
     mutex_type resume_event_mutex;
     mutex_type sample_value_mutex;
+    mutex_type custom_event_mutex;
     mutex_type periodic_mutex;
     void call_policies(
         const std::list<boost::shared_ptr<policy_instance> > & policies,
@@ -91,6 +93,7 @@ public:
     void on_stop(profiler *p);
     void on_resume(profiler *p);
     void on_sample_value(sample_value_event_data &event_data);
+    void on_custom_event(custom_event_data &event_data);
     void on_periodic(periodic_event_data &event_data);
 
     int register_policy(const apex_event_type & when,

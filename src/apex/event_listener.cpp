@@ -55,6 +55,15 @@ sample_value_event_data::~sample_value_event_data() {
   delete(counter_name);
 }
 
+custom_event_data::custom_event_data(const std::string &event_name, void * custom_data) {
+    this->event_name = new std::string(event_name);
+    this->data = custom_data;
+}
+
+custom_event_data::~custom_event_data() {
+    delete(event_name);
+}
+
 startup_event_data::startup_event_data(int argc, char** argv) {
   this->thread_id = thread_instance::get_id();
   this->event_type_ = APEX_STARTUP;

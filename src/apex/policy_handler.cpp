@@ -124,6 +124,11 @@ int policy_handler::register_policy(const apex_event_type & when,
         sample_value_policies.push_back(instance);
         break;
       }
+      case APEX_CUSTOM_EVENT: {
+        boost::unique_lock<mutex_type> l(custom_event_mutex);
+        custom_event_policies.push_back(instance);
+        break;
+      }
       case APEX_PERIODIC: {
         boost::unique_lock<mutex_type> l(periodic_mutex);
         periodic_policies.push_back(instance);
@@ -141,6 +146,11 @@ inline void policy_handler::call_policies(
     apex_context my_context;
     my_context.event_type = event_data.event_type_;
     my_context.policy_handle = NULL;
+    if (event_data.event_type_ == APEX_CUSTOM_EVENT) {
+        my_context.data = event_data.data;
+    } else {
+        my_context.data = NULL;
+    }
     const bool result = policy->func(my_context);
     if(result != APEX_NOERROR) {
       printf("Warning: registered policy function failed!\n");
@@ -221,6 +231,13 @@ void policy_handler::on_sample_value(sample_value_event_data &event_data) {
             if (sample_value_policies.empty())
                 return;
         call_policies(sample_value_policies, event_data);
+}
+
+void policy_handler::on_custom_event(custom_event_data &event_data) {
+  if (_terminate) return;
+            if (custom_event_policies.empty())
+                return;
+        call_policies(custom_event_policies, event_data);
 }
 
 void policy_handler::on_periodic(periodic_event_data &event_data) {

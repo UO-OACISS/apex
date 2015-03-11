@@ -18,7 +18,8 @@ class event_data {
 public:
   apex_event_type event_type_;
   int thread_id;
-  event_data() : thread_id(0) {};
+  void * data; /* generic data pointer */
+  event_data() : thread_id(0), data(NULL) {};
   virtual ~event_data() {};
 };
 
@@ -74,6 +75,13 @@ public:
   periodic_event_data();
 };
 
+class custom_event_data : public event_data {
+public:
+  std::string* event_name;
+  custom_event_data(const std::string &event_name, void * custom_data);
+  ~custom_event_data();
+};
+
 /* Abstract class for creating an Event Listener class */
 
 class event_listener
@@ -91,6 +99,7 @@ public:
   virtual void on_resume(profiler *p) = 0;
   virtual void on_sample_value(sample_value_event_data &data) = 0;
   virtual void on_periodic(periodic_event_data &data) = 0;
+  virtual void on_custom_event(custom_event_data &data) = 0;
   // this is a stub implementation, so tell the compiler the arguments are unused.
   virtual void reset(apex_function_address function_address, std::string * timer_name) 
     {APEX_UNUSED(function_address); APEX_UNUSED(timer_name);};

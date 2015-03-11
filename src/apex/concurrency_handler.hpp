@@ -49,6 +49,7 @@ public:
   void on_resume(profiler * p);
   void on_sample_value(sample_value_event_data &event_data) { APEX_UNUSED(event_data); };
   void on_periodic(periodic_event_data &event_data) { APEX_UNUSED(event_data); };
+  void on_custom_event(custom_event_data &event_data) { APEX_UNUSED(event_data); };
 
   bool _handler(void);
   std::stack<std::string>* get_event_stack(unsigned int tid);

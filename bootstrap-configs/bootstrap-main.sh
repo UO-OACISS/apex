@@ -32,6 +32,8 @@ fi
 
 if [ ${ACTIVEHARMONY_ROOT+x} ]; then
 	papi_config="-DACTIVEHARMONY_ROOT=$ACTIVEHARMONY_ROOT -DUSE_ACTIVEHARMONY=TRUE"
+elif [ ${HARMONY_HOME+x} ]; then
+	papi_config="-DACTIVEHARMONY_ROOT=$HARMONY_HOME -DUSE_ACTIVEHARMONY=TRUE"
 else
 	papi_config="-DUSE_ACTIVEHARMONY=FALSE"
 fi
@@ -46,7 +48,7 @@ fi
 # Get time as a UNIX timestamp (seconds elapsed since Jan 1, 1970 0:00 UTC)
 T="$(date +%s)"
 
-if [ $# -eq 1 ] ; then
+if [ $# -gt 0 ] ; then
 	if [ $1 == "--clean" ] || [ $1 == "-c" ] ; then
 		rm -rf build_*
 	fi
@@ -76,10 +78,15 @@ $DIR/.."
 echo $cmd
 eval $cmd
 
-procs=1
-if [ -f '/proc/cpuinfo' ] ; then
-  procs=`grep -c ^processor /proc/cpuinfo`
+procs=0
+if [ $# -eq 2 ] ; then
+	if [ $2 == "--parallel" ] || [ $2 == "-j" ] ; then
+        if [ -f '/proc/cpuinfo' ] ; then
+            procs=`grep -c ^processor /proc/cpuinfo`
+        fi
+	fi
 fi
+
 make -j `expr $procs + 1`
 
 make test

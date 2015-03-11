@@ -82,7 +82,7 @@ char * format_name(const char * state, ompt_parallel_id_t parallel_id) {
 void my_ompt_start(const char * state, ompt_parallel_id_t parallel_id) {
   //fprintf(stderr,"start %s : %lu\n",state, parallel_id); fflush(stderr);
   char * regionIDstr = format_name(state, parallel_id);
-  apex::profiler* p = apex::start(regionIDstr);
+  apex::profiler* p = apex::start(std::string(regionIDstr));
   timer_stack->push(p);
   free(regionIDstr);
 }

@@ -172,7 +172,7 @@ APEX_EXPORT void finalize(void);
 		 call when the timer should be stopped.
  \sa apex::stop
  */
-APEX_EXPORT profiler* start(std::string timer_name);
+APEX_EXPORT profiler* start(const std::string &timer_name);
 
 /**
  \brief Start a timer.
@@ -228,7 +228,20 @@ APEX_EXPORT void resume(profiler* the_profiler);
  \param value The sampled value
  \return No return value.
  */
-APEX_EXPORT void sample_value(std::string name, double value);
+APEX_EXPORT void sample_value(const std::string &name, double value);
+
+/**
+ \brief Trigger a custom event.
+
+ This function will pass a custom event to the APEX event listeners.
+ Each listeners' on_custom_event() event will handle the custom event.
+ Policy functions will be passed the custom event name in the event context.
+ 
+ \param event_name The name of the custom event
+ \param custom_data Data relevant to the custom event
+ \return No return value.
+ */
+APEX_EXPORT void custom_event(const std::string &event_name, void * custom_data);
 
 /**
  \brief Reset a timer or counter.
@@ -239,7 +252,7 @@ APEX_EXPORT void sample_value(std::string name, double value);
  \param timer_name The name of the timer.
  \return No return value.
  */
-APEX_EXPORT void reset(std::string timer_name);
+APEX_EXPORT void reset(const std::string &timer_name);
 
 /**
  \brief Reset a timer.
@@ -283,7 +296,7 @@ APEX_EXPORT void set_node_id(int id);
  \param name The name that will be assigned to the new thread.
  \return No return value.
  */
-APEX_EXPORT void register_thread(std::string name);
+APEX_EXPORT void register_thread(const std::string &name);
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS // not sure if these will stay in the API
 
@@ -345,7 +358,7 @@ APEX_EXPORT apex_profile* get_profile(apex_function_address function_address);
  \param timer_name The name of the function
  \return The current profile for that timed function or sampled value.
  */
-APEX_EXPORT apex_profile* get_profile(std::string &timer_name);
+APEX_EXPORT apex_profile* get_profile(const std::string &timer_name);
 
 /**
  \brief Get the set of profiles that are identified by name
@@ -455,7 +468,7 @@ APEX_EXPORT int setup_timer_throttling(apex_function_address the_address,
 
  \return APEX_NOERROR on success, otherwise an error code.
  */
-APEX_EXPORT int setup_timer_throttling(std::string the_name,
+APEX_EXPORT int setup_timer_throttling(const std::string &the_name,
         apex_optimization_criteria_t criteria,
         apex_optimization_method_t method, unsigned long update_interval);
 

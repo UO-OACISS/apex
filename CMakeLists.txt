@@ -1,7 +1,7 @@
 # The name of our project is "APEX". CMakeLists files in this project can
 # refer to the root source directory of the project as ${APEX_SOURCE_DIR} and
 # to the root binary directory of the project as ${APEX_BINARY_DIR}.
-cmake_minimum_required (VERSION 2.8.12)
+cmake_minimum_required (VERSION 2.8.12 FATAL_ERROR)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules")
 
@@ -195,13 +195,13 @@ endif()
 	endif()
 endif()
 
-if (DEFINED OMPT_ROOT)
-	find_package(OMPT)
-	if (OMPT_FOUND)
-		include_directories(${OMPT_INCLUDE_DIRS})
-		set(LIBS ${LIBS} ${OMPT_LIBRARIES})
-		set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${OMPT_LIBRARY_DIR})
-	endif()
+if (USE_OMPT)
+    find_package(OMPT)
+    if (OMPT_FOUND)
+        include_directories(${OMPT_INCLUDE_DIRS})
+        set(LIBS ${LIBS} ${OMPT_LIBRARIES})
+        set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${OMPT_LIBRARY_DIR})
+    endif()
 endif()
 
 if(EXISTS "/proc/stat")
@@ -224,11 +224,13 @@ endif()
 # ActiveHarmony configuration
 ################################################################################
 
-find_package(ActiveHarmony)
-if (ACTIVEHARMONY_FOUND)
-    include_directories(${ACTIVEHARMONY_INCLUDE_DIRS})
-    set(LIBS ${LIBS} ${ACTIVEHARMONY_LIBRARIES})
-    set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${ACTIVEHARMONY_LIBRARY_DIR})
+if(USE_ACTIVEHARMONY)
+    find_package(ActiveHarmony)
+    if (ACTIVEHARMONY_FOUND)
+        include_directories(${ACTIVEHARMONY_INCLUDE_DIRS})
+        set(LIBS ${LIBS} ${ACTIVEHARMONY_LIBRARIES})
+        set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${ACTIVEHARMONY_LIBRARY_DIR})
+    endif()
 endif()
 
 ################################################################################

@@ -42,9 +42,9 @@ void* someThread(void* tmp)
   //ApexProxy proxy = ApexProxy(__func__, __FILE__, __LINE__);
   apex_profiler_handle p = apex_start_address((apex_function_address)someThread);
 #if defined (__APPLE__)
-  printf("The ID of this thread is: %lu\n", (unsigned long)pthread_self());
+  //printf("The ID of this thread is: %lu\n", (unsigned long)pthread_self());
 #else
-  printf("The ID of this thread is: %u\n", (unsigned int)pthread_self());
+  //printf("The ID of this thread is: %u\n", (unsigned int)pthread_self());
 #endif
   printf("The scheduler ID of this thread: %d\n", *myid);
   while (total_iterations > 0) {
@@ -52,7 +52,7 @@ void* someThread(void* tmp)
         //printf("Thread %d sleeping for a bit.\n", *myid);
         struct timespec tim, tim2;
         tim.tv_sec = 0;
-        tim.tv_nsec = 100000000; // 1/10 second
+        tim.tv_nsec = 1000000; // 1/1000 second
         // sleep a bit
         nanosleep(&tim , &tim2);
       } else {
@@ -74,7 +74,7 @@ int main(int argc, char **argv)
   apex_set_node_id(0);
 
   apex_setup_timer_address_throttling((apex_function_address)foo, APEX_MINIMIZE_ACCUMULATED,
-          APEX_ACTIVE_HARMONY, 500000);
+          APEX_ACTIVE_HARMONY, 250000);
 
   apex_profiler_handle p = apex_start_address((apex_function_address)main);
   printf("PID of this process: %d\n", getpid());
