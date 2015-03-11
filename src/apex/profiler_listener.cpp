@@ -52,7 +52,8 @@
 #endif
 
 //#define MAX_QUEUE_SIZE 1024*1024
-#define MAX_QUEUE_SIZE 1024
+//#define MAX_QUEUE_SIZE 1024
+#define MAX_QUEUE_SIZE 4096
 #define INITIAL_NUM_THREADS 2
 
 #define APEX_MAIN "APEX MAIN"
@@ -864,7 +865,11 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
             static bool issued = false;
             if (!issued) {
                 issued = true;
-                cout << "APEX Warning : failed to push " << p->action_address << endl;
+                if(p->have_name) {
+                    cout << "APEX Warning : failed to push " << *(p->timer_name) << endl;
+                } else {
+                    cout << "APEX Warning : failed to push " << p->action_address << endl;
+                }
                 cout << "One or more frequently-called, lightweight functions is being timed." << endl;
             }
         }
