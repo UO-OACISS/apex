@@ -40,7 +40,7 @@
 #endif
 
 #if APEX_HAVE_BFD
-#include "apex_bfd.h"
+#include "address_resolution.hpp"
 #endif
 
 #if APEX_HAVE_PAPI
@@ -58,6 +58,7 @@
 #define APEX_MAIN "APEX MAIN"
 
 using namespace std;
+using namespace apex;
 
 APEX_NATIVE_TLS unsigned int my_tid = 0; // the current thread's TID in APEX
 
@@ -135,11 +136,6 @@ namespace apex {
     boost::copy(name_map | boost::adaptors::map_keys, std::back_inserter(names));
     return names;
   }
-
-  /* forward declaration, defined below */
-#if APEX_HAVE_BFD
-  extern string * lookup_address(uintptr_t ip);
-#endif
 
   void reset_all() {
     for(auto &it : name_map) {
@@ -923,91 +919,5 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       queue_signal.post();
     }
   }
-
-#if APEX_HAVE_BFD
-
-  /*
-   *-----------------------------------------------------------------------------
-   * Simple hash table to map function addresses to region names/identifier
-   *-----------------------------------------------------------------------------
-   */
-
-  struct OmpHashNode
-  {
-    OmpHashNode() { }
-
-    ApexBfdInfo info;        ///< Filename, line number, etc.
-    string * location;
-  };
-
-  /* destructor helper */
-  extern void Apex_delete_hash_table(void);
-
-  /* Define the table of addresses to names */
-  struct OmpHashTable : public std::map<uintptr_t, OmpHashNode*>
-  {
-    OmpHashTable() { }
-    virtual ~OmpHashTable() {
-      Apex_delete_hash_table();
-    }
-  };
-
-  /* Static constructor. We only need one. */
-  static OmpHashTable & OmpTheHashTable()
-  {
-    static OmpHashTable htab;
-    return htab;
-  }
-
-  /* Static BFD unit handle generator. We only need one. */
-  static apex_bfd_handle_t & OmpTheBfdUnitHandle()
-  {
-    static apex_bfd_handle_t OmpbfdUnitHandle = APEX_BFD_NULL_HANDLE;
-    if (OmpbfdUnitHandle == APEX_BFD_NULL_HANDLE) {
-      if (OmpbfdUnitHandle == APEX_BFD_NULL_HANDLE) {
-        OmpbfdUnitHandle = Apex_bfd_registerUnit();
-      }
-    }
-    return OmpbfdUnitHandle;
-  }
-
-  /* Delete the hash table. */
-  void Apex_delete_hash_table(void) {
-    // clear the hash map to eliminate memory leaks
-    OmpHashTable & mytab = OmpTheHashTable();
-    for ( std::map<uintptr_t, OmpHashNode*>::iterator it = mytab.begin(); it != mytab.end(); ++it ) {
-      OmpHashNode * node = it->second;
-      if (node->location) {
-        delete (node->location);
-      }
-      delete node;
-    }
-    mytab.clear();
-    Apex_delete_bfd_units();
-  }
-
-  /* Map a function address to a name and/or source location */
-  string * lookup_address(uintptr_t ip) {
-    stringstream location;
-    apex_bfd_handle_t & OmpbfdUnitHandle = OmpTheBfdUnitHandle();
-    OmpHashNode * node = OmpTheHashTable()[ip];
-    if (!node) {
-      node = new OmpHashNode;
-      Apex_bfd_resolveBfdInfo(OmpbfdUnitHandle, ip, node->info);
-	  if (node->info.funcname) {
-        location << node->info.funcname ;
-	  }
-	  location << " [{" ;
-	  if (node->info.filename) {
-	    location << node->info.filename ;
-      }
-      location << "} {" << node->info.lineno << ",0}]";
-      node->location = new string(location.str());
-      OmpTheHashTable()[ip] = node;
-    }
-    return node->location;
-  }
-
-#endif
 
 }
