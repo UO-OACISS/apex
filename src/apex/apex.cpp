@@ -140,7 +140,7 @@ void apex::_initialize()
         this->m_policy_handler = new policy_handler();
         listeners.push_back(this->m_policy_handler);
     }
-    if (apex_options::use_concurrency() > 1)
+    if (apex_options::use_concurrency() > 0)
     {
         listeners.push_back(new concurrency_handler(apex_options::concurrency_period(), apex_options::use_concurrency()));
     }
