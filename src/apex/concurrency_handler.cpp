@@ -72,7 +72,6 @@ bool concurrency_handler::_handler(void) {
   _states.push_back(counts);
   _thread_cap_samples.push_back(get_thread_cap());
   int power = current_power_high();
-  cout << "Power: " << power << endl;
   _power_samples.push_back(power);
   this->_reset();
   return true;
@@ -270,6 +269,7 @@ void concurrency_handler::output_samples(int node_id) {
     myfile << other << "\t" << endl;
     tmp_max += other;
     if (tmp_max > max_Y) max_Y = tmp_max;
+    if (_thread_cap_samples[i] > max_Y) max_Y = _thread_cap_samples[i];
     if (_power_samples[i] > max_Power) max_Power = _power_samples[i];
   }
   _function_mutex.unlock();
