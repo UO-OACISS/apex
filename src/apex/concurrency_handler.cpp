@@ -47,6 +47,7 @@ concurrency_handler::concurrency_handler (unsigned int period, int option) : han
 }
 
 bool concurrency_handler::_handler(void) {
+  if (_terminate) return true;
   //cout << "HANDLER: " << endl;
   map<string, unsigned int> *counts = new(map<string, unsigned int>);
   stack<string>* tmp;
@@ -124,6 +125,7 @@ void concurrency_handler::on_new_thread(new_thread_event_data &event_data) {
 
 void concurrency_handler::on_shutdown(shutdown_event_data &event_data) {
   if (!_terminate) {
+        _terminate = true;
         output_samples(event_data.node_id);
   }
 }

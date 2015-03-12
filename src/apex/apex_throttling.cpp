@@ -59,6 +59,7 @@ apex_optimization_criteria_t throttling_criteria = APEX_MAXIMIZE_THROUGHPUT;
 double * evaluations = NULL;
 int * observations = NULL;
 ofstream cap_data;
+bool cap_data_open = false;
 
 inline int __get_thread_cap(void) {
   return (int)thread_cap;
@@ -579,6 +580,7 @@ inline int __common_setup_timer_throttling(apex_optimization_criteria_t criteria
         observations = (int*)(calloc(max_threads, sizeof(int)));
         if (apex::apex::instance()->get_node_id() == 0) {
             cap_data.open("cap_data.dat");
+            cap_data_open = true;
         }
         if (method == APEX_SIMPLE_HYSTERESIS) {
             apex::register_periodic_policy(update_interval, apex_throughput_throttling_policy);
@@ -618,10 +620,9 @@ inline int __shutdown_throttling(void)
     energyDaemonTerm();  // this is done in apex termination
   }
 */
-  apex_final = true;
+    apex_final = true;
   //printf("periodic_policy called %d times\n", test_pp);
-  //apex_finalize();
-    if (apex::apex::instance()->get_node_id() == 0) {
+    if (cap_data_open) {
         cap_data.close();
     }
   return APEX_NOERROR;
