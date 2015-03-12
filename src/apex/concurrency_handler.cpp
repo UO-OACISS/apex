@@ -217,12 +217,12 @@ void concurrency_handler::output_samples(int node_id) {
       string tmp = *it;
 #ifdef APEX_HAVE_BFD
       std::size_t pos = tmp.find("UNRESOLVED ADDR ");
-      if (pos >=0) {
+      if (pos != string::npos) {
         string trimmed = tmp.substr(pos+16);
         uintptr_t function_address = std::stoul(trimmed, nullptr, 16);
         string * tmp2 = lookup_address(function_address, true);
         pos = tmp2->find(" [{");
-        if (pos >= 0) {
+        if (pos != string::npos) {
             trimmed = tmp2->substr(0, pos);
             myfile << "\"" << trimmed << "\"\t";
         } else {
