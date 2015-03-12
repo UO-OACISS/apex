@@ -15,7 +15,7 @@ export BOOST_ROOT=$BOOST_DIR
 
 # export BFD_ROOT=/usr # CMake will find it automatically.
 #GPERFTOOLS_ROOT=$HOME/install/google-perftools/2.4 # not necessary, because HPX uses JEMalloc
-#export RCR_ROOT=$HOME/src/RCRdaemon_nersc
+export RCR_ROOT=$HOME/src/RCRdaemon_nersc
 #export PAPI_ROOT=/usr/local/papi/5.3.2
 #export TAU_ROOT=$HOME/src/tau2-edison
 export ACTIVEHARMONY_ROOT=$HOME/install/activeharmony/4.5

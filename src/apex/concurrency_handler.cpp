@@ -9,6 +9,8 @@
 #endif
 
 #include "concurrency_handler.hpp"
+#include "apex.hpp"
+#include "apex_throttling.h"
 #include "thread_instance.hpp"
 #include <iostream>
 #include <map>
@@ -67,6 +69,10 @@ bool concurrency_handler::_handler(void) {
     }
   }
   _states.push_back(counts);
+  _thread_cap_samples.push_back(get_thread_cap());
+  int power = current_power_high();
+  cout << "Power: " << power << endl;
+  _power_samples.push_back(power);
   this->_reset();
   return true;
 }
@@ -204,6 +210,7 @@ void concurrency_handler::output_samples(int node_id) {
   }
 
   // output the header
+  myfile << "\"period\"\t\"thread cap\"\t\"power\"\t";
   for (set<string>::iterator it=_functions.begin(); it!=_functions.end(); ++it) {
     if (top_x.find(*it) != top_x.end()) {
       //string* tmp = demangle(*it);
@@ -233,8 +240,12 @@ void concurrency_handler::output_samples(int node_id) {
   myfile << "\"other\"" << endl;
 
   size_t max_Y = 0;
+  double max_Power = 0.0;
   size_t max_X = _states.size();
   for (size_t i = 0 ; i < max_X ; i++) {
+    myfile << i << "\t";
+    myfile << _thread_cap_samples[i] << "\t";
+    myfile << _power_samples[i] << "\t";
     unsigned int tmp_max = 0;
     int other = 0;
     for (set<string>::iterator it=_functions.begin(); it!=_functions.end(); ++it) {
@@ -257,19 +268,25 @@ void concurrency_handler::output_samples(int node_id) {
     myfile << other << "\t" << endl;
     tmp_max += other;
     if (tmp_max > max_Y) max_Y = tmp_max;
+    if (_power_samples[i] > max_Power) max_Power = _power_samples[i];
   }
   _function_mutex.unlock();
   myfile.close();
 
+  if (max_Power == 0.0) max_Power = 100;
   stringstream plotname;
   plotname << "concurrency." << node_id << ".gnuplot";
   myfile.open(plotname.str().c_str());
   myfile << "set key outside bottom center invert box" << endl;
   myfile << "unset xtics" << endl;
+  myfile << "set ytics 4" << endl;
+  myfile << "set y2tics auto" << endl;
   myfile << "set xrange[0:" << max_X << "]" << endl;
   myfile << "set yrange[0:" << max_Y << "]" << endl;
+  myfile << "set y2range[0:" << max_Power << "]" << endl;
   myfile << "set xlabel \"Time\"" << endl;
   myfile << "set ylabel \"Concurrency\"" << endl;
+  myfile << "set y2label \"Power\"" << endl;
   myfile << "# Select histogram data" << endl;
   myfile << "set style data histogram" << endl;
   myfile << "# Give the bars a plain fill pattern, and draw a solid line around them." << endl;
@@ -278,10 +295,12 @@ void concurrency_handler::output_samples(int node_id) {
   myfile << "set boxwidth 1.0 relative" << endl;
   myfile << "set palette rgb 33,13,10" << endl;
   myfile << "unset colorbox" << endl;
-  myfile << "plot for [COL=1:" << top_x.size()+1;
+  myfile << "plot for [COL=4:" << top_x.size()+4;
   myfile << "] '" << datname.str().c_str();
-  myfile << "' using COL:xticlabels(1) palette frac COL/" << top_x.size()+1;
-  myfile << ". title columnheader" << endl;
+  myfile << "' using COL:xticlabels(1) palette frac (COL-3)/" << top_x.size()+1;
+  myfile << ". title columnheader axes x1y1, '"  << datname.str().c_str();
+  myfile << "' using 2 with linespoints axes x1y1 title columnheader, '" << datname.str().c_str();
+  myfile << "' using 3 with linespoints axes x1y2 title columnheader" << endl;
   myfile.close();
 }
 
