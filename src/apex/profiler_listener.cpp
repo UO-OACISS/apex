@@ -350,12 +350,13 @@ namespace apex {
 #if APEX_HAVE_BFD
       // translate the address to a name
       string * tmp = lookup_address((uintptr_t)function_address, true);
+      string shorter(*tmp);
       // to keep formatting pretty, trim any long timer names
-      if (tmp->size() > 30) {
-        tmp->resize(27);
-        tmp->resize(30, '.');
+      if (shorter.size() > 30) {
+        shorter.resize(27);
+        shorter.resize(30, '.');
       }
-      cout << "\"" << *tmp << "\", " ;
+      cout << "\"" << shorter << "\", " ;
 #else
       cout << "\"" << function_address << "\", " ;
 #endif
@@ -391,12 +392,13 @@ namespace apex {
 	action_name = boost::regex_replace(action_name, old_address, *tmp);
       }
 #endif
+      string shorter(action_name);
       // to keep formatting pretty, trim any long timer names
-      if (action_name.size() > 30) {
-        action_name.resize(27);
-        action_name.resize(30, '.');
+      if (shorter.size() > 30) {
+        shorter.resize(27);
+        shorter.resize(30, '.');
       }
-      cout << "\"" << action_name << "\", " ;
+      cout << "\"" << shorter << "\", " ;
       cout << p->get_calls() << ", " ;
       cout << p->get_minimum() << ", " ;
       cout << p->get_mean() << ", " ;
