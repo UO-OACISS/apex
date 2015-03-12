@@ -26,6 +26,10 @@
 #  include <sys/sysctl.h>
 #endif
 
+#ifdef APEX_HAVE_BFD
+#include "address_resolution.hpp"
+#endif
+
 using namespace std;
 
 namespace apex {
@@ -174,8 +178,7 @@ string thread_instance::map_addr_to_name(apex_function_address function_address)
     return (*it).second;
   } // else...
 #if 0
-  char **strings = backtrace_symbols((void* const*)(&function_address),1);
-  string name = string(strings[0]);
+  string * name = lookup_address(function_address, false);
 #else
   stringstream ss;
   //ss << "UNRESOLVED " << progname << " ADDR " << hex << function_address;

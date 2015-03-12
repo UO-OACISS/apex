@@ -59,6 +59,7 @@ apex_optimization_criteria_t throttling_criteria = APEX_MAXIMIZE_THROUGHPUT;
 double * evaluations = NULL;
 int * observations = NULL;
 ofstream cap_data;
+bool cap_data_open = false;
 
 inline int __get_thread_cap(void) {
   return (int)thread_cap;
@@ -386,8 +387,9 @@ int apex_throughput_throttling_ah_policy(apex_context const context) {
         if (!_converged_message) {
             _converged_message = true;
             cout << "Thread Cap value optimization has converged." << endl;
+            cout << "Thread Cap value : " << thread_cap << endl;
         }
-        return APEX_NOERROR;
+        //return APEX_NOERROR;
     }
 
     // get a measurement of our current setting
@@ -401,7 +403,7 @@ int apex_throughput_throttling_ah_policy(apex_context const context) {
     }
     // if we have no data yet, return.
     if (function_profile == NULL) { 
-        //printf ("No Data?\n");
+        cerr << "No profile data?" << endl;
         return APEX_ERROR; 
     //} else {
         //printf ("Got Data!\n");
@@ -417,6 +419,12 @@ int apex_throughput_throttling_ah_policy(apex_context const context) {
     } else if (throttling_criteria == APEX_MINIMIZE_ACCUMULATED) {
         new_value = function_profile->accumulated - previous_value;
         previous_value = function_profile->accumulated;
+    }
+    cout << "Cap: " << thread_cap << " New: " << abs(new_value) << " Prev: " << previous_value << endl;
+
+    if (apex::apex::instance()->get_node_id() == 0) {
+        static int index = 0;
+        cap_data << index++ << "\t" << abs(new_value) << "\t" << thread_cap << endl;
     }
 
     /* Report the performance we've just measured. */
@@ -572,6 +580,7 @@ inline int __common_setup_timer_throttling(apex_optimization_criteria_t criteria
         observations = (int*)(calloc(max_threads, sizeof(int)));
         if (apex::apex::instance()->get_node_id() == 0) {
             cap_data.open("cap_data.dat");
+            cap_data_open = true;
         }
         if (method == APEX_SIMPLE_HYSTERESIS) {
             apex::register_periodic_policy(update_interval, apex_throughput_throttling_policy);
@@ -611,10 +620,9 @@ inline int __shutdown_throttling(void)
     energyDaemonTerm();  // this is done in apex termination
   }
 */
-  apex_final = true;
+    apex_final = true;
   //printf("periodic_policy called %d times\n", test_pp);
-  //apex_finalize();
-    if (apex::apex::instance()->get_node_id() == 0) {
+    if (cap_data_open) {
         cap_data.close();
     }
   return APEX_NOERROR;

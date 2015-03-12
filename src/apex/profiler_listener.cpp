@@ -40,7 +40,7 @@
 #endif
 
 #if APEX_HAVE_BFD
-#include "apex_bfd.h"
+#include "address_resolution.hpp"
 #endif
 
 #if APEX_HAVE_PAPI
@@ -59,6 +59,7 @@
 #define APEX_MAIN "APEX MAIN"
 
 using namespace std;
+using namespace apex;
 
 APEX_NATIVE_TLS unsigned int my_tid = 0; // the current thread's TID in APEX
 
@@ -136,11 +137,6 @@ namespace apex {
     boost::copy(name_map | boost::adaptors::map_keys, std::back_inserter(names));
     return names;
   }
-
-  /* forward declaration, defined below */
-#if APEX_HAVE_BFD
-  extern string * lookup_address(uintptr_t ip);
-#endif
 
   void reset_all() {
     for(auto &it : name_map) {
@@ -254,7 +250,7 @@ namespace apex {
           if (it == throttled_addresses.end()) {
             throttled_addresses.insert(p->action_address);
 #if defined(HAVE_BFD)
-            cout << "APEX Throttled " << *(lookup_address((uintptr_t)p->action_address)) << endl;
+            cout << "APEX Throttled " << *(lookup_address((uintptr_t)p->action_address, true)) << endl;
 #else
             cout << "APEX Throttled " << p->action_address << endl;
 #endif
@@ -354,7 +350,12 @@ namespace apex {
 #endif
 #if APEX_HAVE_BFD
       // translate the address to a name
-      string * tmp = lookup_address((uintptr_t)function_address);
+      string * tmp = lookup_address((uintptr_t)function_address, true);
+      // to keep formatting pretty, trim any long timer names
+      if (tmp->size() > 30) {
+        tmp->resize(27);
+        tmp->resize(30, '.');
+      }
       cout << "\"" << *tmp << "\", " ;
 #else
       cout << "\"" << function_address << "\", " ;
@@ -386,11 +387,16 @@ namespace apex {
         string addr_str = *token++;
 	void* addr_addr;
 	sscanf(addr_str.c_str(), "%p", &addr_addr);
-        string * tmp = lookup_address((uintptr_t)addr_addr);
+        string * tmp = lookup_address((uintptr_t)addr_addr, true);
         boost::regex old_address("UNRESOLVED ADDR " + addr_str);
 	action_name = boost::regex_replace(action_name, old_address, *tmp);
       }
 #endif
+      // to keep formatting pretty, trim any long timer names
+      if (action_name.size() > 30) {
+        action_name.resize(27);
+        action_name.resize(30, '.');
+      }
       cout << "\"" << action_name << "\", " ;
       cout << p->get_calls() << ", " ;
       cout << p->get_minimum() << ", " ;
@@ -484,7 +490,7 @@ namespace apex {
       // ".TAU application" 1 8 8658984 8660739 0 GROUP="TAU_USER"
       apex_function_address function_address = it->first;
 #if APEX_HAVE_BFD
-      string * tmp = lookup_address((uintptr_t)function_address);
+      string * tmp = lookup_address((uintptr_t)function_address, true);
       myfile << "\"" << *tmp << "\" ";
 #else
       myfile << "\"" << ti.map_addr_to_name(function_address) << "\" ";
@@ -513,7 +519,7 @@ namespace apex {
         string addr_str = *token++;
 	void* addr_addr;
 	sscanf(addr_str.c_str(), "%p", &addr_addr);
-        string * tmp = lookup_address((uintptr_t)addr_addr);
+        string * tmp = lookup_address((uintptr_t)addr_addr, true);
         boost::regex old_address("UNRESOLVED ADDR " + addr_str);
 	action_name = boost::regex_replace(action_name, old_address, *tmp);
       }
@@ -848,7 +854,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         if (p->have_name)
           cout << p->timer_name;
     else
-          cout << *(lookup_address((uintptr_t)p->action_address));
+          cout << *(lookup_address((uintptr_t)p->action_address, true));
     cout << endl;
         cout << "Cycles: " << values[0] ;
         cout << ", Instructions: " << values[1] ;
@@ -928,91 +934,5 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       queue_signal.post();
     }
   }
-
-#if APEX_HAVE_BFD
-
-  /*
-   *-----------------------------------------------------------------------------
-   * Simple hash table to map function addresses to region names/identifier
-   *-----------------------------------------------------------------------------
-   */
-
-  struct OmpHashNode
-  {
-    OmpHashNode() { }
-
-    ApexBfdInfo info;        ///< Filename, line number, etc.
-    string * location;
-  };
-
-  /* destructor helper */
-  extern void Apex_delete_hash_table(void);
-
-  /* Define the table of addresses to names */
-  struct OmpHashTable : public std::map<uintptr_t, OmpHashNode*>
-  {
-    OmpHashTable() { }
-    virtual ~OmpHashTable() {
-      Apex_delete_hash_table();
-    }
-  };
-
-  /* Static constructor. We only need one. */
-  static OmpHashTable & OmpTheHashTable()
-  {
-    static OmpHashTable htab;
-    return htab;
-  }
-
-  /* Static BFD unit handle generator. We only need one. */
-  static apex_bfd_handle_t & OmpTheBfdUnitHandle()
-  {
-    static apex_bfd_handle_t OmpbfdUnitHandle = APEX_BFD_NULL_HANDLE;
-    if (OmpbfdUnitHandle == APEX_BFD_NULL_HANDLE) {
-      if (OmpbfdUnitHandle == APEX_BFD_NULL_HANDLE) {
-        OmpbfdUnitHandle = Apex_bfd_registerUnit();
-      }
-    }
-    return OmpbfdUnitHandle;
-  }
-
-  /* Delete the hash table. */
-  void Apex_delete_hash_table(void) {
-    // clear the hash map to eliminate memory leaks
-    OmpHashTable & mytab = OmpTheHashTable();
-    for ( std::map<uintptr_t, OmpHashNode*>::iterator it = mytab.begin(); it != mytab.end(); ++it ) {
-      OmpHashNode * node = it->second;
-      if (node->location) {
-        delete (node->location);
-      }
-      delete node;
-    }
-    mytab.clear();
-    Apex_delete_bfd_units();
-  }
-
-  /* Map a function address to a name and/or source location */
-  string * lookup_address(uintptr_t ip) {
-    stringstream location;
-    apex_bfd_handle_t & OmpbfdUnitHandle = OmpTheBfdUnitHandle();
-    OmpHashNode * node = OmpTheHashTable()[ip];
-    if (!node) {
-      node = new OmpHashNode;
-      Apex_bfd_resolveBfdInfo(OmpbfdUnitHandle, ip, node->info);
-	  if (node->info.funcname) {
-        location << node->info.funcname ;
-	  }
-	  location << " [{" ;
-	  if (node->info.filename) {
-	    location << node->info.filename ;
-      }
-      location << "} {" << node->info.lineno << ",0}]";
-      node->location = new string(location.str());
-      OmpTheHashTable()[ip] = node;
-    }
-    return node->location;
-  }
-
-#endif
 
 }
