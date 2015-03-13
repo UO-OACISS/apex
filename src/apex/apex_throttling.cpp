@@ -107,7 +107,7 @@ inline int apex_power_throttling_policy(apex_context const context)
 {
     APEX_UNUSED(context);
     if (apex_final) return APEX_NOERROR; // we terminated, RCR has shut down.
-    if (apex::apex::instance()->get_node_id() == 0) return APEX_NOERROR; 
+    //if (apex::apex::instance()->get_node_id() == 0) return APEX_NOERROR; 
     // read energy counter and memory concurrency to determine system status
     double power = apex::current_power_high();
     moving_average = ((moving_average * (window_size-1)) + power) / window_size;
