@@ -321,6 +321,13 @@ void reset(apex_function_address function_address) {
     }
 }
 
+void set_state(apex_thread_state state) {
+    APEX_TIMER_TRACER("set_state", state)
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance) return; // protect against calls after finalization
+    instance->set_state(thread_instance::get_id(), state);
+}
+
 void resume(profiler* the_profiler) {
     APEX_TIMER_TRACER("resume", timer_name)
     apex* instance = apex::instance(); // get the Apex static instance
@@ -520,6 +527,8 @@ void register_thread(const std::string &name)
     if (!instance) return; // protect against calls after finalization
     if (_registered) return; // protect against multiple registrations on the same thread
     thread_instance::set_name(name);
+    instance->resize_state(thread_instance::get_id());
+    instance->set_state(thread_instance::get_id(), APEX_BUSY);
     new_thread_event_data event_data(name);
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -651,6 +660,10 @@ extern "C" {
     
     void apex_reset_address(apex_function_address function_address) {
         reset(function_address);
+    }
+
+    void apex_set_state(apex_thread_state state) {
+        set_state(state);
     }
 
     void apex_resume_profiler(apex_profiler_handle the_profiler)

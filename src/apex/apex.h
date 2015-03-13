@@ -165,6 +165,16 @@ APEX_EXPORT void apex_reset_name(const char * timer_name);
  */
 APEX_EXPORT void apex_reset_address(apex_function_address function_address);
 
+/**
+ \brief Set the thread state
+
+ This function will set the thread state in APEX for 3rd party observation
+ 
+ \param state The state of the thread.
+ \return No return value.
+ */
+APEX_EXPORT void apex_set_state(apex_thread_state state);
+
 /*
  * Function for sampling a counter value
  */

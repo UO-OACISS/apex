@@ -81,6 +81,7 @@ private:
     void _initialize();
     policy_handler * m_policy_handler;
     std::map<int, policy_handler*> period_handlers;
+    std::vector<apex_thread_state> thread_states;
 #ifdef APEX_HAVE_HPX3
     hpx::runtime * m_hpx_runtime;
 #endif
@@ -102,6 +103,9 @@ public:
     policy_handler * get_policy_handler(std::chrono::duration<Rep, Period> const& period);
 */
     policy_handler * get_policy_handler(uint64_t const& period_microseconds);
+    void set_state(int thread_id, apex_thread_state state) { thread_states[thread_id] = state; }
+    apex_thread_state get_state(int thread_id) { return thread_states[thread_id]; }
+    void resize_state(int thread_id) { if ((unsigned int)thread_id >= thread_states.size()) thread_states.resize(thread_id + 1); }
     ~apex();
 };
 
@@ -266,6 +270,16 @@ APEX_EXPORT void reset(const std::string &timer_name);
 APEX_EXPORT void reset(apex_function_address function_address);
 
 /**
+ \brief Set the thread state
+
+ This function will set the thread state in APEX for 3rd party observation
+ 
+ \param state The state of the thread.
+ \return No return value.
+ */
+APEX_EXPORT void set_state(apex_thread_state state);
+
+/**
  \brief Return the APEX version.
  
  \return A string with the APEX version.
@@ -387,15 +401,6 @@ APEX_EXPORT inline double current_power_high(void) {
   return 0.0;
 #endif
 }
-
-/**
- \brief Get the current power reading
-
- This function will return the current power level for the node, measured in Watts.
-
- \return The current power level in Watts.
- */
-APEX_EXPORT double current_power_high(void);
 
 /**
  \brief Initialize the power cap throttling policy.

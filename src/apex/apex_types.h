@@ -41,6 +41,17 @@ typedef enum _event_type {
                            granularity application control events */
 } apex_event_type;
 
+/** 
+ * Typedef for enumerating the thread states. 
+ */
+typedef enum _thread_state {
+    APEX_IDLE,          /*!< Thread is idle */
+    APEX_BUSY,          /*!< Thread is working */
+    APEX_THROTTLED,     /*!< Thread is throttled (sleeping) */
+    APEX_WAITING,       /*!< Thread is waiting for a resource */
+    APEX_BLOCKED        /*!< Thread is blocked */
+} apex_thread_state;
+
 /**
  * Typedef for enumerating the different optimization strategies
  * for throttling.

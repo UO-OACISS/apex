@@ -49,12 +49,14 @@ void* someThread(void* tmp)
   printf("The scheduler ID of this thread: %d\n", *myid);
   while (total_iterations > 0) {
       if (*myid >= apex_get_thread_cap()) {
+        apex_set_state(APEX_THROTTLED);
         //printf("Thread %d sleeping for a bit.\n", *myid);
         struct timespec tim, tim2;
         tim.tv_sec = 0;
         tim.tv_nsec = 1000000; // 1/1000 second
         // sleep a bit
         nanosleep(&tim , &tim2);
+        apex_set_state(APEX_BUSY);
       } else {
 	    foo(total_iterations);
         __sync_fetch_and_sub(&(total_iterations),1);

@@ -107,15 +107,18 @@ inline int apex_power_throttling_policy(apex_context const context)
 {
     APEX_UNUSED(context);
     if (apex_final) return APEX_NOERROR; // we terminated, RCR has shut down.
+    if (apex::apex::instance()->get_node_id() == 0) return APEX_NOERROR; 
     // read energy counter and memory concurrency to determine system status
     double power = apex::current_power_high();
     moving_average = ((moving_average * (window_size-1)) + power) / window_size;
+    //cout << "power in policy is: " << power << endl;
 
     if (power != 0.0) {
       /* this is a hard limit! If we exceed the power cap once
          or in our moving average, then we need to adjust */
-      if (((power > max_watts) || 
-           (moving_average > max_watts)) && --delay <= 0) { 
+      --delay;
+      if (((power > max_watts) && 
+           (moving_average > max_watts)) && delay <= 0) { 
           __decrease_cap();
           delay = window_size;
       }
@@ -123,11 +126,15 @@ inline int apex_power_throttling_policy(apex_context const context)
          AND our moving average is also blow the cap, we need 
          to adjust */
       else if ((power < min_watts) && 
-               (moving_average < min_watts) && --delay <=0) {
-          __increase_cap();
+               (moving_average < min_watts) && delay <=0) {
+          __increase_cap_gradual();
           delay = window_size;
-      //} else {
-          //printf("power : %f, ma: %f, cap: %d, no change.\n", power, moving_average, thread_cap);
+      } else {
+          //printf("power : %f, ma: %f, cap: %d, min: %f, max: %f, delay: %d no change.\n", power, moving_average, thread_cap, min_watts, max_watts, delay);
+      }
+      if (apex::apex::instance()->get_node_id() == 0) {
+        static int index = 0;
+        cap_data << index++ << "\t" << power << "\t" << thread_cap << endl;
       }
     }
     test_pp++;
@@ -484,6 +491,7 @@ inline void __read_common_variables() {
             if (envvar != NULL) {
                 min_threads = atoi(envvar);
             }
+            cout << "APEX Throttling enabled, min threads: " << min_threads << " max threads: " << max_threads << endl;
         }
     }
 }
@@ -504,6 +512,7 @@ inline int __setup_power_cap_throttling()
       if (getenv("APEX_ENERGY_THROTTLING") != NULL) {
         apex_energyThrottling = true;
       }
+      cout << "APEX Throttling for energy savings, min watts: " << min_watts << " max watts: " << max_watts << endl;
       apex::register_periodic_policy(1000000, apex_power_throttling_policy);
       // get an initial power reading
       apex::current_power_high();
