@@ -105,7 +105,14 @@ public:
     policy_handler * get_policy_handler(uint64_t const& period_microseconds);
     void set_state(int thread_id, apex_thread_state state) { thread_states[thread_id] = state; }
     apex_thread_state get_state(int thread_id) { return thread_states[thread_id]; }
-    void resize_state(int thread_id) { if ((unsigned int)thread_id >= thread_states.size()) thread_states.resize(thread_id + 1); }
+    void resize_state(int thread_id) { 
+        static boost::mutex _mtx;
+        _mtx.lock();
+        if ((unsigned int)thread_id >= thread_states.size()) {
+            thread_states.resize(thread_id + 1); 
+        }
+        _mtx.unlock();
+    }
     ~apex();
 };
 
