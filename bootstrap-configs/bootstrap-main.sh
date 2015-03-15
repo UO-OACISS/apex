@@ -8,6 +8,11 @@ if [ ${BOOST_ROOT+x} ]; then
 	boost_config="-DBOOST_ROOT=$BOOST_ROOT"
 fi
 
+tau_config=""
+if [ ${TAU_ROOT+x} ]; then
+	tau_config="-DTAU_ROOT=$TAU_ROOT"
+fi
+
 if [ ${RCR_ROOT+x} ]; then
 	rcr_config="-DRCR_ROOT=$RCR_ROOT"
 fi
@@ -31,11 +36,11 @@ else
 fi
 
 if [ ${ACTIVEHARMONY_ROOT+x} ]; then
-	papi_config="-DACTIVEHARMONY_ROOT=$ACTIVEHARMONY_ROOT -DUSE_ACTIVEHARMONY=TRUE"
+	ah_config="-DACTIVEHARMONY_ROOT=$ACTIVEHARMONY_ROOT -DUSE_ACTIVEHARMONY=TRUE"
 elif [ ${HARMONY_HOME+x} ]; then
-	papi_config="-DACTIVEHARMONY_ROOT=$HARMONY_HOME -DUSE_ACTIVEHARMONY=TRUE"
+	ah_config="-DACTIVEHARMONY_ROOT=$HARMONY_HOME -DUSE_ACTIVEHARMONY=TRUE"
 else
-	papi_config="-DUSE_ACTIVEHARMONY=FALSE"
+	ah_config="-DUSE_ACTIVEHARMONY=FALSE"
 fi
 
 if [ ${OMPT_ROOT+x} ]; then
@@ -62,10 +67,12 @@ cd $dir
 cmd="cmake \
 $cmake_use_codeblocks \
 $boost_config \
+$tau_config \
 $rcr_config \
 $bfd_config \
 $gperftools_config \
 $papi_config \
+$ah_config \
 $ompt_config \
 $cmake_build_type \
 $cmake_apex_throttle \
