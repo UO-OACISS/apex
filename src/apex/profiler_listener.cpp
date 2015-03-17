@@ -115,7 +115,7 @@ namespace apex {
   /* Return the requested profile object to the user.
    * Return NULL if doesn't exist. */
   profile * profiler_listener::get_profile(apex_function_address address) {
-    map<apex_function_address, profile*>::iterator it = address_map.find(address);
+    map<apex_function_address, profile*>::const_iterator it = address_map.find(address);
     if (it != address_map.end()) {
       return (*it).second;
     }
@@ -125,7 +125,7 @@ namespace apex {
   /* Return the requested profile object to the user.
    * Return NULL if doesn't exist. */
   profile * profiler_listener::get_profile(const string &timer_name) {
-    map<string, profile*>::iterator it = name_map.find(timer_name);
+    map<string, profile*>::const_iterator it = name_map.find(timer_name);
     if (it != name_map.end()) {
       return (*it).second;
     }
@@ -168,7 +168,7 @@ namespace apex {
     }
     // Look for the profile object by name, if applicable
     if (p->have_name) {
-      map<string, profile*>::iterator it = name_map.find(*(p->timer_name));
+      map<string, profile*>::const_iterator it = name_map.find(*(p->timer_name));
       if (it != name_map.end()) {
         // A profile for this name already exists.
         theprofile = (*it).second;
@@ -182,7 +182,7 @@ namespace apex {
         // in order to reduce overhead.
         if (theprofile->get_calls() > APEX_THROTTLE_CALLS &&
             theprofile->get_mean() < APEX_THROTTLE_PERCALL) {
-          unordered_set<string>::iterator it = throttled_names.find(p->timer_name);
+          unordered_set<string>::const_iterator it = throttled_names.find(p->timer_name);
           if (it == throttled_names.end()) {
             throttled_names.insert(p->timer_name);
             cout << "APEX Throttled " << p->timer_name << endl; fflush;
@@ -246,7 +246,7 @@ namespace apex {
         // in order to reduce overhead.
         if (theprofile->get_calls() > APEX_THROTTLE_CALLS &&
             theprofile->get_mean() < APEX_THROTTLE_PERCALL) {
-          unordered_set<apex_function_address>::iterator it = throttled_addresses.find(p->action_address);
+          unordered_set<apex_function_address>::const_iterator it = throttled_addresses.find(p->action_address);
           if (it == throttled_addresses.end()) {
             throttled_addresses.insert(p->action_address);
 #if defined(HAVE_BFD)
