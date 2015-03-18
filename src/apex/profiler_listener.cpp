@@ -678,14 +678,16 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       PAPI_ERROR_CHECK(PAPI_add_event);
       rc = PAPI_add_event( EventSet, PAPI_TOT_INS);
       PAPI_ERROR_CHECK(PAPI_add_event);
+      rc = PAPI_add_event( EventSet, PAPI_L2_TCM);
+      PAPI_ERROR_CHECK(PAPI_add_event);
       /*
       rc = PAPI_add_event( EventSet, PAPI_FP_OPS);
       PAPI_ERROR_CHECK(PAPI_add_event);
       rc = PAPI_add_event( EventSet, PAPI_FP_INS);
       PAPI_ERROR_CHECK(PAPI_add_event);
-      */
-      rc = PAPI_add_event( EventSet, PAPI_L2_TCM);
+      rc = PAPI_add_event( EventSet, PAPI_BR_MSP);
       PAPI_ERROR_CHECK(PAPI_add_event);
+      */
       rc = PAPI_start( EventSet );
       PAPI_ERROR_CHECK(PAPI_start);
   }
@@ -772,11 +774,13 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         //cout << ", FPOPS: " << values[2] ;
         //cout << ", FPINS: " << values[3] ;
         cout << ", L2TCM: " << values[2] ;
+        //cout << ", BR_MSP: " << values[3] ;
 
         cout << endl << "IPC: " << (double)(values[1])/(double)(values[0]) ;
         //cout << endl << "FLOP%INS: " << (double)(values[2])/(double)(values[1]) ;
         //cout << endl << "FLINS%INS: " << (double)(values[3])/(double)(values[1]) ;
         cout << endl << "INS/L2TCM: " << (double)(values[1])/(double)(values[2]) ;
+        //cout << endl << "INS/BR_MSP: " << (double)(values[1])/(double)(values[3]) ;
         cout << endl;
       }
 #endif
