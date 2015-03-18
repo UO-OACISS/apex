@@ -201,6 +201,16 @@ hpx::runtime * apex::get_hpx_runtime(void) {
 }
 #endif
 
+int initialize_worker_thread_for_TAU(void) {
+#ifdef APEX_HAVE_TAU
+  if (apex_options::use_tau()) {
+    TAU_REGISTER_THREAD();
+    Tau_create_top_level_timer_if_necessary();
+  }
+#endif
+  return 0;
+}
+
 void init(const char * thread_name)
 {
     APEX_TRACER
@@ -329,7 +339,7 @@ void set_state(apex_thread_state state) {
 }
 
 void resume(profiler* the_profiler) {
-    APEX_TIMER_TRACER("resume", timer_name)
+    APEX_TIMER_TRACER("resume", the_profiler->timer_name->c_str())
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     thread_instance::instance().current_timer = (profiler *)(the_profiler);
@@ -343,7 +353,7 @@ void resume(profiler* the_profiler) {
 
 void stop(profiler* the_profiler)
 {
-    APEX_TIMER_TRACER("stop  ", timer_name)
+    APEX_TIMER_TRACER("stop  ", the_profiler->timer_name->c_str())
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     profiler * p;

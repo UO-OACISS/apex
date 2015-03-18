@@ -309,6 +309,7 @@ void ProcData::sample_values(void) {
 
 /* This is the main function for the reader thread. */
 void ProcData::read_proc(void) {
+  static int dummy = initialize_worker_thread_for_TAU();
   ProcData *oldData = parse_proc_stat();
   ProcData *newData = NULL;
   ProcData *periodData = NULL;

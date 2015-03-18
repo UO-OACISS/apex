@@ -31,6 +31,7 @@ void tau_listener::on_startup(startup_event_data &data) {
 }
 
 void tau_listener::on_shutdown(shutdown_event_data &data) {
+  APEX_UNUSED(data);
   if (!_terminate) {
       _terminate = true;
       Tau_profile_exit_all_threads();
@@ -72,17 +73,21 @@ void tau_listener::on_stop(profiler *p) {
   if (!_terminate) {
       if (p->have_name) {
         if (p->timer_name->compare(empty) == 0) {
+          printf("TAU stopping: GLOBAL\n");
           TAU_GLOBAL_TIMER_STOP(); // stop the top level timer
-	} else {
+	    } else {
+          printf("TAU stopping: '%s'\n", p->timer_name->c_str());
           TAU_STOP(p->timer_name->c_str());
-	}
+	    }
       } else {
         if (p->action_address == 0) {
           TAU_GLOBAL_TIMER_STOP(); // stop the top level timer
-	} else {
+	    } else {
       	  TAU_STOP(thread_instance::instance().map_addr_to_name(p->action_address).c_str());
-	}
+	    }
       }
+      // let the profiler_listener know we are done with this profiler
+      p->safe_to_delete = true;
   }
   return;
 }
@@ -106,12 +111,14 @@ void tau_listener::on_sample_value(sample_value_event_data &data) {
 }
 
 void tau_listener::on_periodic(periodic_event_data &data) {
+  APEX_UNUSED(data);
   if (!_terminate) {
   }
   return;
 }
 
 void tau_listener::on_custom_event(custom_event_data &data) {
+  APEX_UNUSED(data);
   if (!_terminate) {
   }
   return;

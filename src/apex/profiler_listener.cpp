@@ -36,8 +36,8 @@
 #if defined(APEX_THROTTLE)
 #define APEX_THROTTLE_CALLS 1000
 #define APEX_THROTTLE_PERCALL 0.00001 // 10 microseconds.
-#include <unordered_set>
 #endif
+#include <unordered_set>
 
 #if APEX_HAVE_BFD
 #include "address_resolution.hpp"
@@ -112,6 +112,11 @@ namespace apex {
   /* A lock necessary for registering new threads */
   boost::mutex profiler_listener::_mtx ;
 
+  /* This is our garbage collection. This listener could be done with the profiler
+   * object, but the tau_listener may not be. So don't delete it until the tau_listener
+   * is done with it. */
+  static unordered_set<profiler*> my_garbage;
+
   /* Return the requested profile object to the user.
    * Return NULL if doesn't exist. */
   profile * profiler_listener::get_profile(apex_function_address address) {
@@ -163,7 +168,11 @@ namespace apex {
     profile * theprofile;
     if(p->is_reset == reset_type::ALL) {
         reset_all();
-        delete(p);
+        if(p->safe_to_delete) {
+            delete(p);
+        } else {
+            my_garbage.insert(p);
+        }
         return;
     }
     // Look for the profile object by name, if applicable
@@ -280,7 +289,11 @@ namespace apex {
       }
     }
     // done with the profiler object
-    delete(p);
+    if(p->safe_to_delete) {
+        delete(p);
+    } else {
+        my_garbage.insert(p);
+    }
   }
 
   /* Cleaning up memory. Not really necessary, because it only gets
@@ -563,6 +576,7 @@ namespace apex {
    * as it goes. */
   void profiler_listener::process_profiles(void)
   {
+    static int dummy = initialize_worker_thread_for_TAU();
 #ifdef APEX_HAVE_HPX3
     static bool registered = false;
     if(!registered) {
@@ -588,6 +602,19 @@ namespace apex {
           }
         }
       }
+      // do some garbage collection
+      for (std::unordered_set<profiler*>::const_iterator itr = my_garbage.begin(); itr != my_garbage.end();) {
+          profiler* tmp = *itr;
+          if (tmp != nullptr) {
+            if (tmp->safe_to_delete) {
+                my_garbage.erase(itr++);
+                delete(tmp);
+            } else {
+                ++itr;
+            }
+          }
+      }
+
     }
 
     // We might be done, but check to make sure the queues are empty

@@ -49,6 +49,7 @@ concurrency_handler::concurrency_handler (unsigned int period, int option) : han
 }
 
 bool concurrency_handler::_handler(void) {
+  static int dummy = initialize_worker_thread_for_TAU();
   if (_terminate) return true;
   //cout << "HANDLER: " << endl;
   map<string, unsigned int> *counts = new(map<string, unsigned int>);
@@ -272,7 +273,7 @@ void concurrency_handler::output_samples(int node_id) {
     myfile << other << "\t" << endl;
     tmp_max += other;
     if (tmp_max > max_Y) max_Y = tmp_max;
-    if (_thread_cap_samples[i] > max_Y) max_Y = _thread_cap_samples[i];
+    if ((size_t)(_thread_cap_samples[i]) > max_Y) max_Y = _thread_cap_samples[i];
     if (_power_samples[i] > max_Power) max_Power = _power_samples[i];
   }
   _function_mutex.unlock();
