@@ -11,9 +11,7 @@
 #include "apex.hpp"
 #include "policy_handler.hpp"
 #include "thread_instance.hpp"
-
 #include <iostream>
-
 #include <boost/make_shared.hpp>
 
 using namespace std;
@@ -46,8 +44,9 @@ policy_handler::policy_handler (uint64_t period_microseconds) : handler(period_m
 }
 #endif
 
-
 bool policy_handler::_handler(void) {
+  static int dummy = initialize_worker_thread_for_TAU();
+  APEX_UNUSED(dummy);
   if (_terminate) return true;
   periodic_event_data data;
   this->on_periodic(data);

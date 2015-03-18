@@ -121,6 +121,8 @@ public:
     ~apex();
 };
 
+int initialize_worker_thread_for_TAU(void);
+
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 // These are all static functions for the class. There should be only

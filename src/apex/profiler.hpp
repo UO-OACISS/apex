@@ -5,6 +5,7 @@
 #include <chrono>
 #include <iostream>
 #include <math.h>
+#include "apex_options.hpp"
 #include "apex_types.h"
 
 namespace apex {
@@ -28,6 +29,7 @@ public:
     bool have_name;
     bool is_counter;
     bool is_resume;
+    bool safe_to_delete;
     reset_type is_reset;
     profiler(apex_function_address address, bool resume = false, reset_type reset = reset_type::NONE) : 
 	    start(std::chrono::high_resolution_clock::now()), 
@@ -37,6 +39,7 @@ public:
 	    have_name(false), 
 	    is_counter(false),
         is_resume(resume),
+        safe_to_delete(!apex_options::use_tau()),
         is_reset(reset) {};
     profiler(std::string * name, bool resume = false, reset_type reset = reset_type::NONE) : 
 	    start(std::chrono::high_resolution_clock::now()), 
@@ -46,6 +49,7 @@ public:
 	    have_name(true), 
 	    is_counter(false),
         is_resume(resume),
+        safe_to_delete(!apex_options::use_tau()),
         is_reset(reset) {};
     profiler(std::string * name, double value_) : 
 	    value(value_), 
@@ -54,6 +58,7 @@ public:
 	    have_name(true), 
 	    is_counter(true),
         is_resume(false),
+        safe_to_delete(!apex_options::use_tau()),
         is_reset(reset_type::NONE) { }; 
     ~profiler(void) { if (have_name) delete timer_name; };
     void stop(void) {
