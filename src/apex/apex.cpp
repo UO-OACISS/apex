@@ -203,10 +203,8 @@ hpx::runtime * apex::get_hpx_runtime(void) {
 
 int initialize_worker_thread_for_TAU(void) {
 #ifdef APEX_HAVE_TAU
-  if (apex_options::use_tau()) {
-    TAU_REGISTER_THREAD();
-    Tau_create_top_level_timer_if_necessary();
-  }
+  TAU_REGISTER_THREAD();
+  Tau_create_top_level_timer_if_necessary();
 #endif
   return 0;
 }
