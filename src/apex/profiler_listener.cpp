@@ -117,6 +117,8 @@ namespace apex {
    * is done with it. */
   static unordered_set<profiler*> my_garbage;
 
+  static int num_papi_counters = 0;
+
   /* Return the requested profile object to the user.
    * Return NULL if doesn't exist. */
   profile * profiler_listener::get_profile(apex_function_address address) {
@@ -674,19 +676,33 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       PAPI_ERROR_CHECK(PAPI_assign_eventset_component);
       rc = PAPI_set_granularity(PAPI_GRN_THR);
       PAPI_ERROR_CHECK(PAPI_set_granularity);
-      rc = PAPI_add_event( EventSet, PAPI_TOT_CYC);
-      PAPI_ERROR_CHECK(PAPI_add_event);
-      rc = PAPI_add_event( EventSet, PAPI_TOT_INS);
-      PAPI_ERROR_CHECK(PAPI_add_event);
-      rc = PAPI_add_event( EventSet, PAPI_L2_TCM);
-      PAPI_ERROR_CHECK(PAPI_add_event);
+      if (PAPI_query_event (PAPI_TOT_CYC) == PAPI_OK) {
+        rc = PAPI_add_event( EventSet, PAPI_TOT_CYC);
+        PAPI_ERROR_CHECK(PAPI_add_event);
+        num_papi_counters++;
+      }
+      if (PAPI_query_event (PAPI_TOT_INS) == PAPI_OK) {
+        rc = PAPI_add_event( EventSet, PAPI_TOT_INS);
+        PAPI_ERROR_CHECK(PAPI_add_event);
+        num_papi_counters++;
+      }
+      if (PAPI_query_event (PAPI_L2_TCM) == PAPI_OK) {
+        rc = PAPI_add_event( EventSet, PAPI_L2_TCM);
+        PAPI_ERROR_CHECK(PAPI_add_event);
+        num_papi_counters++;
+      }
+      if (PAPI_query_event (PAPI_BR_MSP) == PAPI_OK) {
+        rc = PAPI_add_event( EventSet, PAPI_BR_MSP);
+        PAPI_ERROR_CHECK(PAPI_add_event);
+        num_papi_counters++;
+      }
       /*
-      rc = PAPI_add_event( EventSet, PAPI_FP_OPS);
-      PAPI_ERROR_CHECK(PAPI_add_event);
-      rc = PAPI_add_event( EventSet, PAPI_FP_INS);
-      PAPI_ERROR_CHECK(PAPI_add_event);
-      rc = PAPI_add_event( EventSet, PAPI_BR_MSP);
-      PAPI_ERROR_CHECK(PAPI_add_event);
+      if (PAPI_query_event (PAPI_FP_INS) == PAPI_OK) {
+        //rc = PAPI_add_event( EventSet, PAPI_FP_OPS);
+        rc = PAPI_add_event( EventSet, PAPI_FP_INS);
+        PAPI_ERROR_CHECK(PAPI_add_event);
+        num_papi_counters++;
+      }
       */
       rc = PAPI_start( EventSet );
       PAPI_ERROR_CHECK(PAPI_start);
@@ -771,16 +787,25 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         cout << endl << "TOTAL COUNTERS for " << thread_instance::get_num_threads() << " threads:" << endl;
         cout << "Cycles: " << values[0] ;
         cout << ", Instructions: " << values[1] ;
-        //cout << ", FPOPS: " << values[2] ;
-        //cout << ", FPINS: " << values[3] ;
         cout << ", L2TCM: " << values[2] ;
-        //cout << ", BR_MSP: " << values[3] ;
+        if (num_papi_counters > 3) {
+            cout << ", BR_MSP: " << values[3] ;
+        }
+        //cout << ", FPOPS: " << values[2] ;
+        if (num_papi_counters > 4) {
+            cout << ", FPINS: " << values[4] ;
+        }
 
         cout << endl << "IPC: " << (double)(values[1])/(double)(values[0]) ;
+        cout << endl << "INS/L2TCM: " << (double)(values[1])/(double)(values[2]) ;
+        if (num_papi_counters > 3) {
+            cout << endl << "INS/BR_MSP: " << (double)(values[1])/(double)(values[3]) ;
+        }
+        if (num_papi_counters > 4) {
+            cout << endl << "FLINS%INS: " << (double)(values[4])/(double)(values[1]) ;
+        }
         //cout << endl << "FLOP%INS: " << (double)(values[2])/(double)(values[1]) ;
         //cout << endl << "FLINS%INS: " << (double)(values[3])/(double)(values[1]) ;
-        cout << endl << "INS/L2TCM: " << (double)(values[1])/(double)(values[2]) ;
-        //cout << endl << "INS/BR_MSP: " << (double)(values[1])/(double)(values[3]) ;
         cout << endl;
       }
 #endif
