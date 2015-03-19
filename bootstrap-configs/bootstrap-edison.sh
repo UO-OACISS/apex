@@ -18,7 +18,7 @@ export BOOST_ROOT=$BOOST_DIR
 #export RCR_ROOT=$HOME/src/RCRdaemon_nersc
 export PAPI_ROOT=/opt/cray/papi/5.3.2.1
 #export TAU_ROOT=$HOME/install/tau2-hpx
-export ACTIVEHARMONY_ROOT=$HOME/install/activeharmony/4.5
+#export ACTIVEHARMONY_ROOT=$HOME/install/activeharmony/4.5
 
 # other CMake variables - for special situations / architectures / compilers.
 
