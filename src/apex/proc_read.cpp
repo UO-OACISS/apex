@@ -9,6 +9,7 @@
 #include <boost/atomic.hpp>
 #include <sstream>
 #include <string>
+#include <boost/regex.hpp>
 
 #define COMMAND_LEN 20
 #define DATA_SIZE 512
@@ -307,10 +308,63 @@ void ProcData::sample_values(void) {
 #endif
 }
 
+bool ProcStat::parse_proc_cpuinfo() {
+  FILE *f = fopen("/proc/cpuinfo", "r");
+  if (f) {
+    char line[4096] = {0};
+    while ( fgets( line, 4096, f)) {
+        const boost::regex separator(":");
+        boost::sregex_token_iterator token(line.begin(), line.end(), separator, -1);
+        string name = *token++;
+        string value = *token++;
+        //sample_value(name, value);
+        cpuinfo[name] = value;
+    }
+    fclose(f);
+  } else {
+    return false;
+  }
+  return true;
+}
+
+bool ProcStat::parse_proc_meminfo() {
+  FILE *f = fopen("/proc/meminfo", "r");
+  if (f) {
+    char line[4096] = {0};
+    while ( fgets( line, 4096, f)) {
+        const boost::regex separator(":");
+        boost::sregex_token_iterator token(line.begin(), line.end(), separator, -1);
+        string name = *token++;
+        string value = *token++;
+        //sample_value(name, value);
+        meminfo[name] = value;
+    }
+    fclose(f);
+  } else {
+    return false;
+  }
+  return true;
+}
+
+// there will be N devices, with M sensors per device.
+bool ProcStat::parse_sensor_data() {
+  string prefix = "/Users/khuck/src/xpress-apex/proc/power/"
+  // Find out how many devices have sensors
+  std::set<string> devices;
+  devices.append(string("coretemp.0"));
+  devices.append(string("coretemp.1"));
+  devices.append(string("i5k_amb.0"));
+  for (std::unordered_set<string>::const_iterator it = devices.begin(); it != devices.end(); it++) {
+    // for each device, find out how many sensors there are.
+  }
+}
+
 /* This is the main function for the reader thread. */
 void ProcData::read_proc(void) {
   static int dummy = initialize_worker_thread_for_TAU();
   ProcData *oldData = parse_proc_stat();
+  parse_proc_cpuinfo(); // do this once, it won't change.
+  parse_proc_meminfo(); // some things change, others don't...
   ProcData *newData = NULL;
   ProcData *periodData = NULL;
   struct timespec tim, tim2;
