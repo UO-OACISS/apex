@@ -5,6 +5,7 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <unordered_set>
 
 namespace apex {
 
@@ -54,8 +55,9 @@ public:
   void sample_values();
   static void read_proc(void);
   static void stop_reading(void);
-  void parse_proc_cpuinfo();
-  void parse_proc_meminfo();
+  bool parse_proc_cpuinfo();
+  bool parse_proc_meminfo();
+  bool parse_sensor_data();
 };
 
 class ProcStatistics {
