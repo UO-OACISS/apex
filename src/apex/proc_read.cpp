@@ -105,6 +105,7 @@ ProcData* parse_proc_stat(void) {
   procData->freshness = read_freshness();
   procData->generation = read_generation();
 #endif
+  procData->parse_proc_netdev();
   return procData;
 }
 
@@ -356,6 +357,107 @@ bool ProcData::parse_proc_meminfo() {
             string mname("meminfo:" + name);
             if (pEnd) { sample_value(mname, d1); }
         }
+    }
+    fclose(f);
+  } else {
+    return false;
+  }
+  return true;
+}
+
+bool ProcData::parse_proc_netdev() {
+  FILE *f = fopen("/proc/net/dev", "r");
+  if (f) {
+    char line[4096] = {0};
+    fgets(line, 4096, f); // skip this line
+    fgets(line, 4096, f); // skip this line
+    while (fgets(line, 4096, f)) {
+        string outer_tmp(line);
+        outer_tmp = trim(outer_tmp);
+        const boost::regex separator("[|:\\s]+");
+        boost::sregex_token_iterator token(outer_tmp.begin(), outer_tmp.end(), separator, -1);
+        boost::sregex_token_iterator end;
+        string devname = *token++; // device name
+        string tmp = *token++;
+        char* pEnd;
+        double d1 = strtod (tmp.c_str(), &pEnd);
+        string cname = devname + ".receive.bytes";
+        sample_value(cname, d1);
+
+        tmp = *token++;
+        d1 = strtod (tmp.c_str(), &pEnd);
+        cname = devname + ".receive.packets";
+        sample_value(cname, d1);
+
+        tmp = *token++;
+        d1 = strtod (tmp.c_str(), &pEnd);
+        cname = devname + ".receive.errs";
+        sample_value(cname, d1);
+
+        tmp = *token++;
+        d1 = strtod (tmp.c_str(), &pEnd);
+        cname = devname + ".receive.drop";
+        sample_value(cname, d1);
+
+        tmp = *token++;
+        d1 = strtod (tmp.c_str(), &pEnd);
+        cname = devname + ".receive.fifo";
+        sample_value(cname, d1);
+
+        tmp = *token++;
+        d1 = strtod (tmp.c_str(), &pEnd);
+        cname = devname + ".receive.frame";
+        sample_value(cname, d1);
+
+        tmp = *token++;
+        d1 = strtod (tmp.c_str(), &pEnd);
+        cname = devname + ".receive.compressed";
+        sample_value(cname, d1);
+
+        tmp = *token++;
+        d1 = strtod (tmp.c_str(), &pEnd);
+        cname = devname + ".receive.multicast";
+        sample_value(cname, d1);
+
+        tmp = *token++;
+        d1 = strtod (tmp.c_str(), &pEnd);
+        cname = devname + ".transmit.bytes";
+        sample_value(cname, d1);
+
+        tmp = *token++;
+        d1 = strtod (tmp.c_str(), &pEnd);
+        cname = devname + ".transmit.packets";
+        sample_value(cname, d1);
+
+        tmp = *token++;
+        d1 = strtod (tmp.c_str(), &pEnd);
+        cname = devname + ".transmit.errs";
+        sample_value(cname, d1);
+
+        tmp = *token++;
+        d1 = strtod (tmp.c_str(), &pEnd);
+        cname = devname + ".transmit.drop";
+        sample_value(cname, d1);
+
+        tmp = *token++;
+        d1 = strtod (tmp.c_str(), &pEnd);
+        cname = devname + ".transmit.fifo";
+        sample_value(cname, d1);
+
+        tmp = *token++;
+        d1 = strtod (tmp.c_str(), &pEnd);
+        cname = devname + ".transmit.colls";
+        sample_value(cname, d1);
+
+        tmp = *token++;
+        d1 = strtod (tmp.c_str(), &pEnd);
+        cname = devname + ".transmit.carrier";
+        sample_value(cname, d1);
+
+        tmp = *token++;
+        d1 = strtod (tmp.c_str(), &pEnd);
+        cname = devname + ".transmit.compressed";
+        sample_value(cname, d1);
     }
     fclose(f);
   } else {
