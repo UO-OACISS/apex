@@ -666,16 +666,20 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       int rc = 0;
       if (first_time) {
         PAPI_library_init( PAPI_VER_CURRENT );
+        rc = PAPI_multiplex_init(); // use more counters than allowed
+        PAPI_ERROR_CHECK(PAPI_multiplex_init);
         PAPI_thread_init( thread_instance::get_id );
         rc = PAPI_set_domain(PAPI_DOM_ALL);
         PAPI_ERROR_CHECK(PAPI_set_domain);
       }
-      rc = PAPI_create_eventset( &EventSet );
+      rc = PAPI_create_eventset(&EventSet);
       PAPI_ERROR_CHECK(PAPI_create_eventset);
       rc = PAPI_assign_eventset_component (EventSet, 0);
       PAPI_ERROR_CHECK(PAPI_assign_eventset_component);
       rc = PAPI_set_granularity(PAPI_GRN_THR);
       PAPI_ERROR_CHECK(PAPI_set_granularity);
+      rc = PAPI_set_multiplex(EventSet);
+      PAPI_ERROR_CHECK(PAPI_set_multiplex);
       if (PAPI_query_event (PAPI_TOT_CYC) == PAPI_OK) {
         rc = PAPI_add_event( EventSet, PAPI_TOT_CYC);
         PAPI_ERROR_CHECK(PAPI_add_event);
@@ -696,14 +700,12 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         PAPI_ERROR_CHECK(PAPI_add_event);
         num_papi_counters++;
       }
-      /*
       if (PAPI_query_event (PAPI_FP_INS) == PAPI_OK) {
         //rc = PAPI_add_event( EventSet, PAPI_FP_OPS);
         rc = PAPI_add_event( EventSet, PAPI_FP_INS);
         PAPI_ERROR_CHECK(PAPI_add_event);
         num_papi_counters++;
       }
-      */
       rc = PAPI_start( EventSet );
       PAPI_ERROR_CHECK(PAPI_start);
   }
@@ -791,9 +793,9 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         if (num_papi_counters > 3) {
             cout << ", BR_MSP: " << values[3] ;
         }
-        //cout << ", FPOPS: " << values[2] ;
         if (num_papi_counters > 4) {
             cout << ", FPINS: " << values[4] ;
+            //cout << ", FPOPS: " << values[4] ;
         }
 
         cout << endl << "IPC: " << (double)(values[1])/(double)(values[0]) ;
@@ -803,9 +805,8 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         }
         if (num_papi_counters > 4) {
             cout << endl << "FLINS%INS: " << (double)(values[4])/(double)(values[1]) ;
+            //cout << endl << "FLOP%INS: " << (double)(values[4])/(double)(values[1]) ;
         }
-        //cout << endl << "FLOP%INS: " << (double)(values[2])/(double)(values[1]) ;
-        //cout << endl << "FLINS%INS: " << (double)(values[3])/(double)(values[1]) ;
         cout << endl;
       }
 #endif

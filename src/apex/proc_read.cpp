@@ -11,6 +11,7 @@
 #include <string>
 #include <boost/regex.hpp>
 #include <set>
+#include "utils.hpp"
 
 #define COMMAND_LEN 20
 #define DATA_SIZE 512
@@ -313,19 +314,22 @@ bool ProcData::parse_proc_cpuinfo() {
   FILE *f = fopen("/proc/cpuinfo", "r");
   if (f) {
     char line[4096] = {0};
+    int cpuid = 0;
     while ( fgets( line, 4096, f)) {
         string tmp(line);
         const boost::regex separator(":");
         boost::sregex_token_iterator token(tmp.begin(), tmp.end(), separator, -1);
         boost::sregex_token_iterator end;
-        cout << line;
         string name = *token++;
         if (token != end) {
           string value = *token;
+          name = trim(name);
           char* pEnd;
           double d1 = strtod (value.c_str(), &pEnd);
-          string cname("cpuinfo:" + name);
-          if (pEnd) { sample_value(cname, d1); }
+	      if (strcmp(name.c_str(), "processor") == 0) { cpuid = (int)d1; }
+          stringstream cname;
+          cname << "cpuinfo." << cpuid << ":" << name;
+          if (pEnd) { sample_value(cname.str(), d1); }
         }
     }
     fclose(f);
@@ -400,6 +404,7 @@ void ProcData::read_proc(void) {
     delete(oldData);
     delete(periodData);
     oldData = newData;
+    oldData->parse_proc_meminfo(); // some things change, others don't...
   }
 }
 
