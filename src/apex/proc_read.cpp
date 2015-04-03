@@ -9,6 +9,9 @@
 #include <boost/atomic.hpp>
 #include <sstream>
 #include <string>
+#include <boost/regex.hpp>
+#include <set>
+#include "utils.hpp"
 
 #define COMMAND_LEN 20
 #define DATA_SIZE 512
@@ -102,6 +105,7 @@ ProcData* parse_proc_stat(void) {
   procData->freshness = read_freshness();
   procData->generation = read_generation();
 #endif
+  procData->parse_proc_netdev();
   return procData;
 }
 
@@ -307,9 +311,183 @@ void ProcData::sample_values(void) {
 #endif
 }
 
+bool ProcData::parse_proc_cpuinfo() {
+  FILE *f = fopen("/proc/cpuinfo", "r");
+  if (f) {
+    char line[4096] = {0};
+    int cpuid = 0;
+    while ( fgets( line, 4096, f)) {
+        string tmp(line);
+        const boost::regex separator(":");
+        boost::sregex_token_iterator token(tmp.begin(), tmp.end(), separator, -1);
+        boost::sregex_token_iterator end;
+        string name = *token++;
+        if (token != end) {
+          string value = *token;
+          name = trim(name);
+          char* pEnd;
+          double d1 = strtod (value.c_str(), &pEnd);
+	      if (strcmp(name.c_str(), "processor") == 0) { cpuid = (int)d1; }
+          stringstream cname;
+          cname << "cpuinfo." << cpuid << ":" << name;
+          if (pEnd) { sample_value(cname.str(), d1); }
+        }
+    }
+    fclose(f);
+  } else {
+    return false;
+  }
+  return true;
+}
+
+bool ProcData::parse_proc_meminfo() {
+  FILE *f = fopen("/proc/meminfo", "r");
+  if (f) {
+    char line[4096] = {0};
+    while ( fgets( line, 4096, f)) {
+        string tmp(line);
+        const boost::regex separator(":");
+        boost::sregex_token_iterator token(tmp.begin(), tmp.end(), separator, -1);
+        boost::sregex_token_iterator end;
+        string name = *token++;
+        if (token != end) {
+            string value = *token;
+            char* pEnd;
+            double d1 = strtod (value.c_str(), &pEnd);
+            string mname("meminfo:" + name);
+            if (pEnd) { sample_value(mname, d1); }
+        }
+    }
+    fclose(f);
+  } else {
+    return false;
+  }
+  return true;
+}
+
+bool ProcData::parse_proc_netdev() {
+  FILE *f = fopen("/proc/net/dev", "r");
+  if (f) {
+    char line[4096] = {0};
+    fgets(line, 4096, f); // skip this line
+    fgets(line, 4096, f); // skip this line
+    while (fgets(line, 4096, f)) {
+        string outer_tmp(line);
+        outer_tmp = trim(outer_tmp);
+        const boost::regex separator("[|:\\s]+");
+        boost::sregex_token_iterator token(outer_tmp.begin(), outer_tmp.end(), separator, -1);
+        boost::sregex_token_iterator end;
+        string devname = *token++; // device name
+        string tmp = *token++;
+        char* pEnd;
+        double d1 = strtod (tmp.c_str(), &pEnd);
+        string cname = devname + ".receive.bytes";
+        sample_value(cname, d1);
+
+        tmp = *token++;
+        d1 = strtod (tmp.c_str(), &pEnd);
+        cname = devname + ".receive.packets";
+        sample_value(cname, d1);
+
+        tmp = *token++;
+        d1 = strtod (tmp.c_str(), &pEnd);
+        cname = devname + ".receive.errs";
+        sample_value(cname, d1);
+
+        tmp = *token++;
+        d1 = strtod (tmp.c_str(), &pEnd);
+        cname = devname + ".receive.drop";
+        sample_value(cname, d1);
+
+        tmp = *token++;
+        d1 = strtod (tmp.c_str(), &pEnd);
+        cname = devname + ".receive.fifo";
+        sample_value(cname, d1);
+
+        tmp = *token++;
+        d1 = strtod (tmp.c_str(), &pEnd);
+        cname = devname + ".receive.frame";
+        sample_value(cname, d1);
+
+        tmp = *token++;
+        d1 = strtod (tmp.c_str(), &pEnd);
+        cname = devname + ".receive.compressed";
+        sample_value(cname, d1);
+
+        tmp = *token++;
+        d1 = strtod (tmp.c_str(), &pEnd);
+        cname = devname + ".receive.multicast";
+        sample_value(cname, d1);
+
+        tmp = *token++;
+        d1 = strtod (tmp.c_str(), &pEnd);
+        cname = devname + ".transmit.bytes";
+        sample_value(cname, d1);
+
+        tmp = *token++;
+        d1 = strtod (tmp.c_str(), &pEnd);
+        cname = devname + ".transmit.packets";
+        sample_value(cname, d1);
+
+        tmp = *token++;
+        d1 = strtod (tmp.c_str(), &pEnd);
+        cname = devname + ".transmit.errs";
+        sample_value(cname, d1);
+
+        tmp = *token++;
+        d1 = strtod (tmp.c_str(), &pEnd);
+        cname = devname + ".transmit.drop";
+        sample_value(cname, d1);
+
+        tmp = *token++;
+        d1 = strtod (tmp.c_str(), &pEnd);
+        cname = devname + ".transmit.fifo";
+        sample_value(cname, d1);
+
+        tmp = *token++;
+        d1 = strtod (tmp.c_str(), &pEnd);
+        cname = devname + ".transmit.colls";
+        sample_value(cname, d1);
+
+        tmp = *token++;
+        d1 = strtod (tmp.c_str(), &pEnd);
+        cname = devname + ".transmit.carrier";
+        sample_value(cname, d1);
+
+        tmp = *token++;
+        d1 = strtod (tmp.c_str(), &pEnd);
+        cname = devname + ".transmit.compressed";
+        sample_value(cname, d1);
+    }
+    fclose(f);
+  } else {
+    return false;
+  }
+  return true;
+}
+
+// there will be N devices, with M sensors per device.
+bool ProcData::parse_sensor_data() {
+#if 0
+  string prefix = "/Users/khuck/src/xpress-apex/proc/power/";
+  // Find out how many devices have sensors
+  std::set<string> devices;
+  devices.append(string("coretemp.0"));
+  devices.append(string("coretemp.1"));
+  devices.append(string("i5k_amb.0"));
+  for (std::unordered_set<string>::const_iterator it = devices.begin(); it != devices.end(); it++) {
+    // for each device, find out how many sensors there are.
+  }
+#endif
+  return true;
+}
+
 /* This is the main function for the reader thread. */
 void ProcData::read_proc(void) {
+  static int dummy = initialize_worker_thread_for_TAU();
   ProcData *oldData = parse_proc_stat();
+  oldData->parse_proc_cpuinfo(); // do this once, it won't change.
+  oldData->parse_proc_meminfo(); // some things change, others don't...
   ProcData *newData = NULL;
   ProcData *periodData = NULL;
   struct timespec tim, tim2;
@@ -328,6 +506,7 @@ void ProcData::read_proc(void) {
     delete(oldData);
     delete(periodData);
     oldData = newData;
+    oldData->parse_proc_meminfo(); // some things change, others don't...
   }
 }
 

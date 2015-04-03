@@ -26,6 +26,8 @@
 #include "address_resolution.hpp"
 #endif
 
+#define MAX_FUNCTIONS_IN_CHART 15
+
 using namespace std;
 
 namespace apex {
@@ -47,6 +49,7 @@ concurrency_handler::concurrency_handler (unsigned int period, int option) : han
 }
 
 bool concurrency_handler::_handler(void) {
+  static int dummy = initialize_worker_thread_for_TAU();
   if (_terminate) return true;
   //cout << "HANDLER: " << endl;
   map<string, unsigned int> *counts = new(map<string, unsigned int>);
@@ -185,7 +188,7 @@ void concurrency_handler::output_samples(int node_id) {
   datname << "concurrency." << node_id << ".dat";
   myfile.open(datname.str().c_str());
   _function_mutex.lock();
-  // limit ourselves to 5 functions.
+  // limit ourselves to N functions.
   map<string, int> func_count;
   // initialize the map
   for (set<string>::iterator it=_functions.begin(); it!=_functions.end(); ++it) {
@@ -207,7 +210,7 @@ void concurrency_handler::output_samples(int node_id) {
   set<string> top_x;
   for (vector<pair<string, int> >::iterator it=my_vec.begin(); it!=my_vec.end(); ++it) {
     //if (top_x.size() < 15 && (*it).first != "APEX THREAD MAIN")
-    if (top_x.size() < 5)
+    if (top_x.size() < MAX_FUNCTIONS_IN_CHART)
       top_x.insert((*it).first);
   }
 
@@ -270,7 +273,7 @@ void concurrency_handler::output_samples(int node_id) {
     myfile << other << "\t" << endl;
     tmp_max += other;
     if (tmp_max > max_Y) max_Y = tmp_max;
-    if (_thread_cap_samples[i] > max_Y) max_Y = _thread_cap_samples[i];
+    if ((size_t)(_thread_cap_samples[i]) > max_Y) max_Y = _thread_cap_samples[i];
     if (_power_samples[i] > max_Power) max_Power = _power_samples[i];
   }
   _function_mutex.unlock();

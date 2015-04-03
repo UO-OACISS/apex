@@ -159,7 +159,7 @@ struct ApexBfdModule
 
 struct ApexBfdUnit
 {
-  ApexBfdUnit() : objopen_counter(-1) {
+  ApexBfdUnit() : apex_objopen_counter(-1) {
     executablePath = Apex_bfd_internal_getExecutablePath();
     executableModule = new ApexBfdModule;
   }
@@ -180,7 +180,7 @@ struct ApexBfdUnit
     modules.clear();
   }
 
-  int objopen_counter;
+  int apex_objopen_counter;
   char const * executablePath;
   ApexBfdModule * executableModule;
   vector<ApexBfdAddrMap*> addressMaps;
@@ -241,28 +241,28 @@ void Apex_delete_bfd_units() {
   }
 }
 
-typedef int * (*objopen_counter_t)(void);
-objopen_counter_t objopen_counter = NULL;
+typedef int * (*apex_objopen_counter_t)(void);
+apex_objopen_counter_t apex_objopen_counter = NULL;
 
-int get_objopen_counter(void)
+int get_apex_objopen_counter(void)
 {
-  if (objopen_counter) {
-    return *(objopen_counter());
+  if (apex_objopen_counter) {
+    return *(apex_objopen_counter());
   }
   return 0;
 }
 
-void set_objopen_counter(int value)
+void set_apex_objopen_counter(int value)
 {
-  if (objopen_counter) {
-    *(objopen_counter()) = value;
+  if (apex_objopen_counter) {
+    *(apex_objopen_counter()) = value;
   }
 }
 
 extern "C"
-void Apex_bfd_register_objopen_counter(objopen_counter_t handle)
+void Apex_bfd_register_apex_objopen_counter(apex_objopen_counter_t handle)
 {
-  objopen_counter = handle;
+  apex_objopen_counter = handle;
 }
 
 //
@@ -466,7 +466,7 @@ void Apex_bfd_updateAddressMaps(apex_bfd_handle_t handle)
   Apex_bfd_internal_updateProcSelfMaps(unit);
 #endif
 
-  unit->objopen_counter = get_objopen_counter();
+  unit->apex_objopen_counter = get_apex_objopen_counter();
 
   //printf("Apex_bfd_updateAddressMaps: %d modules discovered\n", unit->modules.size());
 }
@@ -569,7 +569,7 @@ bool Apex_bfd_resolveBfdInfo(apex_bfd_handle_t handle, unsigned long probeAddr, 
   unsigned long addr0;
   unsigned long addr1;
 
-  if (unit->objopen_counter != get_objopen_counter()) {
+  if (unit->apex_objopen_counter != get_apex_objopen_counter()) {
     Apex_bfd_updateAddressMaps(handle);
   }
 

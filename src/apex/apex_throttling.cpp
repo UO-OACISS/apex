@@ -69,7 +69,7 @@ inline int __get_thread_cap(void) {
 }
 
 inline void __decrease_cap_gradual() {
-    thread_cap -= 2;
+    thread_cap -= 1;
     if (thread_cap < min_threads) { thread_cap = min_threads; }
     printf("%d more throttling! new cap: %d\n", test_pp, thread_cap); fflush(stdout);
     apex_throttleOn = true;
@@ -86,7 +86,7 @@ inline void __decrease_cap() {
 }
 
 inline void __increase_cap_gradual() {
-    thread_cap += 2;
+    thread_cap += 1;
     if (thread_cap > max_threads) { thread_cap = max_threads; }
     printf("%d less throttling! new cap: %d\n", test_pp, thread_cap); fflush(stdout);
     apex_throttleOn = false;
@@ -120,7 +120,7 @@ inline int apex_power_throttling_policy(apex_context const context)
       /* this is a hard limit! If we exceed the power cap once
          or in our moving average, then we need to adjust */
       --delay;
-      if (((power > max_watts) && 
+      if (((power > max_watts) ||
            (moving_average > max_watts)) && delay <= 0) { 
           __decrease_cap();
           delay = window_size;
@@ -502,7 +502,9 @@ inline void __read_common_variables() {
             if (envvar != NULL) {
                 min_threads = atoi(envvar);
             }
-            cout << "APEX Throttling enabled, min threads: " << min_threads << " max threads: " << max_threads << endl;
+            if (apex::apex::instance()->get_node_id() == 0) {
+                cout << "APEX Throttling enabled, min threads: " << min_threads << " max threads: " << max_threads << endl;
+            }
         }
     }
 }
@@ -528,7 +530,9 @@ inline int __setup_power_cap_throttling()
       if (getenv("APEX_ENERGY_THROTTLING") != NULL) {
         apex_energyThrottling = true;
       }
-      cout << "APEX Throttling for energy savings, min watts: " << min_watts << " max watts: " << max_watts << endl;
+      if (apex::apex::instance()->get_node_id() == 0) {
+        cout << "APEX Throttling for energy savings, min watts: " << min_watts << " max watts: " << max_watts << endl;
+      }
       apex::register_periodic_policy(1000000, apex_power_throttling_policy);
       // get an initial power reading
       apex::current_power_high();

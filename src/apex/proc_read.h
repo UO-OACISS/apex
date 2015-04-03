@@ -5,6 +5,7 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <unordered_set>
 
 namespace apex {
 
@@ -40,6 +41,9 @@ public:
   long power_cap;
   long startup;
   long version;
+  std::unordered_map<string,string> cpuinfo;
+  std::unordered_map<string,string> meminfo;
+  std::unordered_map<string,double> netdev;
 #endif
   //softirq 10953997190 0 1380880059 1495447920 1585783785 15525789 0 12 661586214 0 1519806115
   ~ProcData();
@@ -52,7 +56,10 @@ public:
   void sample_values();
   static void read_proc(void);
   static void stop_reading(void);
-
+  bool parse_proc_cpuinfo();
+  bool parse_proc_meminfo();
+  bool parse_proc_netdev();
+  bool parse_sensor_data();
 };
 
 class ProcStatistics {
@@ -67,7 +74,10 @@ public:
 void get_popen_data(char *);
 ProcData* parse_proc_stat(void);
 
-/* Ideally, this will read from RCR. If not available, read it directly. */
+/* Ideally, this will read from RCR. If not available, read it directly. 
+   Rather than write the same function seven times for seven different
+   filenames, just write once and use a foreach macro to expand it to
+   all of the versions we need. */
 
 // energy  freshness  generation  power  power_cap  startup  version
 #define FOREACH_APEX_XC30_VALUE(macro) \

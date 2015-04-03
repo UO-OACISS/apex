@@ -36,8 +36,8 @@
 #if defined(APEX_THROTTLE)
 #define APEX_THROTTLE_CALLS 1000
 #define APEX_THROTTLE_PERCALL 0.00001 // 10 microseconds.
-#include <unordered_set>
 #endif
+#include <unordered_set>
 
 #if APEX_HAVE_BFD
 #include "address_resolution.hpp"
@@ -112,6 +112,12 @@ namespace apex {
   /* A lock necessary for registering new threads */
   boost::mutex profiler_listener::_mtx ;
 
+  /* This is our garbage collection. This listener could be done with the profiler
+   * object, but the tau_listener may not be. So don't delete it until the tau_listener
+   * is done with it. */
+  static unordered_set<profiler*> my_garbage;
+
+  static int num_papi_counters = 0;
 
   /* Return the requested profile object to the user.
    * Return NULL if doesn't exist. */
@@ -164,12 +170,16 @@ namespace apex {
     profile * theprofile;
     if(p->is_reset == reset_type::ALL) {
         reset_all();
-        delete(p);
+        if(p->safe_to_delete) {
+            delete(p);
+        } else {
+            my_garbage.insert(p);
+        }
         return;
     }
     // Look for the profile object by name, if applicable
     if (p->have_name) {
-      map<string, profile*>::iterator it = name_map.find(*(p->timer_name));
+      map<string, profile*>::const_iterator it = name_map.find(*(p->timer_name));
       if (it != name_map.end()) {
         // A profile for this name already exists.
         theprofile = (*it).second;
@@ -183,7 +193,7 @@ namespace apex {
         // in order to reduce overhead.
         if (theprofile->get_calls() > APEX_THROTTLE_CALLS &&
             theprofile->get_mean() < APEX_THROTTLE_PERCALL) {
-          unordered_set<string>::iterator it = throttled_names.find(p->timer_name);
+          unordered_set<string>::const_iterator it = throttled_names.find(p->timer_name);
           if (it == throttled_names.end()) {
             throttled_names.insert(p->timer_name);
             cout << "APEX Throttled " << p->timer_name << endl; fflush;
@@ -247,7 +257,7 @@ namespace apex {
         // in order to reduce overhead.
         if (theprofile->get_calls() > APEX_THROTTLE_CALLS &&
             theprofile->get_mean() < APEX_THROTTLE_PERCALL) {
-          unordered_set<apex_function_address>::iterator it = throttled_addresses.find(p->action_address);
+          unordered_set<apex_function_address>::const_iterator it = throttled_addresses.find(p->action_address);
           if (it == throttled_addresses.end()) {
             throttled_addresses.insert(p->action_address);
 #if defined(HAVE_BFD)
@@ -281,7 +291,11 @@ namespace apex {
       }
     }
     // done with the profiler object
-    delete(p);
+    if(p->safe_to_delete) {
+        delete(p);
+    } else {
+        my_garbage.insert(p);
+    }
   }
 
   /* Cleaning up memory. Not really necessary, because it only gets
@@ -564,6 +578,7 @@ namespace apex {
    * as it goes. */
   void profiler_listener::process_profiles(void)
   {
+    static int dummy = initialize_worker_thread_for_TAU();
 #ifdef APEX_HAVE_HPX3
     static bool registered = false;
     if(!registered) {
@@ -589,6 +604,19 @@ namespace apex {
           }
         }
       }
+      // do some garbage collection
+      for (std::unordered_set<profiler*>::const_iterator itr = my_garbage.begin(); itr != my_garbage.end();) {
+          profiler* tmp = *itr;
+          if (tmp != nullptr) {
+            if (tmp->safe_to_delete) {
+                my_garbage.erase(itr++);
+                delete(tmp);
+            } else {
+                ++itr;
+            }
+          }
+      }
+
     }
 
     // We might be done, but check to make sure the queues are empty
@@ -638,28 +666,46 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       int rc = 0;
       if (first_time) {
         PAPI_library_init( PAPI_VER_CURRENT );
+        rc = PAPI_multiplex_init(); // use more counters than allowed
+        PAPI_ERROR_CHECK(PAPI_multiplex_init);
         PAPI_thread_init( thread_instance::get_id );
         rc = PAPI_set_domain(PAPI_DOM_ALL);
         PAPI_ERROR_CHECK(PAPI_set_domain);
       }
-      rc = PAPI_create_eventset( &EventSet );
+      rc = PAPI_create_eventset(&EventSet);
       PAPI_ERROR_CHECK(PAPI_create_eventset);
       rc = PAPI_assign_eventset_component (EventSet, 0);
       PAPI_ERROR_CHECK(PAPI_assign_eventset_component);
       rc = PAPI_set_granularity(PAPI_GRN_THR);
       PAPI_ERROR_CHECK(PAPI_set_granularity);
-      rc = PAPI_add_event( EventSet, PAPI_TOT_CYC);
-      PAPI_ERROR_CHECK(PAPI_add_event);
-      rc = PAPI_add_event( EventSet, PAPI_TOT_INS);
-      PAPI_ERROR_CHECK(PAPI_add_event);
-      /*
-      rc = PAPI_add_event( EventSet, PAPI_FP_OPS);
-      PAPI_ERROR_CHECK(PAPI_add_event);
-      rc = PAPI_add_event( EventSet, PAPI_FP_INS);
-      PAPI_ERROR_CHECK(PAPI_add_event);
-      */
-      rc = PAPI_add_event( EventSet, PAPI_L2_TCM);
-      PAPI_ERROR_CHECK(PAPI_add_event);
+      rc = PAPI_set_multiplex(EventSet);
+      PAPI_ERROR_CHECK(PAPI_set_multiplex);
+      if (PAPI_query_event (PAPI_TOT_CYC) == PAPI_OK) {
+        rc = PAPI_add_event( EventSet, PAPI_TOT_CYC);
+        PAPI_ERROR_CHECK(PAPI_add_event);
+        num_papi_counters++;
+      }
+      if (PAPI_query_event (PAPI_TOT_INS) == PAPI_OK) {
+        rc = PAPI_add_event( EventSet, PAPI_TOT_INS);
+        PAPI_ERROR_CHECK(PAPI_add_event);
+        num_papi_counters++;
+      }
+      if (PAPI_query_event (PAPI_L2_TCM) == PAPI_OK) {
+        rc = PAPI_add_event( EventSet, PAPI_L2_TCM);
+        PAPI_ERROR_CHECK(PAPI_add_event);
+        num_papi_counters++;
+      }
+      if (PAPI_query_event (PAPI_BR_MSP) == PAPI_OK) {
+        rc = PAPI_add_event( EventSet, PAPI_BR_MSP);
+        PAPI_ERROR_CHECK(PAPI_add_event);
+        num_papi_counters++;
+      }
+      if (PAPI_query_event (PAPI_FP_INS) == PAPI_OK) {
+        //rc = PAPI_add_event( EventSet, PAPI_FP_OPS);
+        rc = PAPI_add_event( EventSet, PAPI_FP_INS);
+        PAPI_ERROR_CHECK(PAPI_add_event);
+        num_papi_counters++;
+      }
       rc = PAPI_start( EventSet );
       PAPI_ERROR_CHECK(PAPI_start);
   }
@@ -743,14 +789,24 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         cout << endl << "TOTAL COUNTERS for " << thread_instance::get_num_threads() << " threads:" << endl;
         cout << "Cycles: " << values[0] ;
         cout << ", Instructions: " << values[1] ;
-        //cout << ", FPOPS: " << values[2] ;
-        //cout << ", FPINS: " << values[3] ;
         cout << ", L2TCM: " << values[2] ;
+        if (num_papi_counters > 3) {
+            cout << ", BR_MSP: " << values[3] ;
+        }
+        if (num_papi_counters > 4) {
+            cout << ", FPINS: " << values[4] ;
+            //cout << ", FPOPS: " << values[4] ;
+        }
 
         cout << endl << "IPC: " << (double)(values[1])/(double)(values[0]) ;
-        //cout << endl << "FLOP%INS: " << (double)(values[2])/(double)(values[1]) ;
-        //cout << endl << "FLINS%INS: " << (double)(values[3])/(double)(values[1]) ;
         cout << endl << "INS/L2TCM: " << (double)(values[1])/(double)(values[2]) ;
+        if (num_papi_counters > 3) {
+            cout << endl << "INS/BR_MSP: " << (double)(values[1])/(double)(values[3]) ;
+        }
+        if (num_papi_counters > 4) {
+            cout << endl << "FLINS%INS: " << (double)(values[4])/(double)(values[1]) ;
+            //cout << endl << "FLOP%INS: " << (double)(values[4])/(double)(values[1]) ;
+        }
         cout << endl;
       }
 #endif

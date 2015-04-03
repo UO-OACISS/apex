@@ -332,30 +332,34 @@ add_subdirectory (doc)
 
 # turn on "make test" support
 enable_testing()
-
 # does the application run
 add_test (ApexCppRuns src/examples/DemoCpp/apexCppDemo)
 add_test (ApexCRuns src/examples/DemoC/apexCDemo)
-
 # Run the test program which actually uses the CPU
 add_test (MatmultRuns src/examples/Matmult/matmult)  
-
 # Run the test program which tests the ITT interface
 add_test (TestITTRuns src/examples/TestITT/testITT)  
-
 # Run the test program which tests the threads interface
 add_test (TestThreadsRuns src/examples/TestThreads/testThreads)  
-
 # Run the test program which tests the overhead in the threads interface
 add_test (TestOverhead_noPolicy src/examples/Overhead/testOverhead)  
+# TEst the policy engine support
 add_test (TestPolicyC_Policy src/examples/PolicyEngineExample/testPolicyEngine)  
 add_test (TestPolicyCpp_Policy src/examples/PolicyEngineCppExample/testCppPolicyEngine)  
+set_tests_properties(TestPolicyC_Policy TestPolicyCpp_Policy PROPERTIES ENVIRONMENT "APEX_POLICY=1")
+# Test the resetting of counters and timers
 add_test (TestReset src/examples/TestReset/testReset)
+# Test the power/energy support
 add_test (TestGetPower src/examples/TestGetPower/testpower)
+# Test the throttling support
 add_test (TestThrottling src/examples/Throttling/testThrottling)  
+set_tests_properties(TestThrottling PROPERTIES ENVIRONMENT "APEX_THROTTLING=1")
 add_test (TestThrottlingCpp src/examples/ThrottlingCpp/testThrottlingCpp)  
+set_tests_properties(TestThrottlingCpp PROPERTIES ENVIRONMENT "APEX_THROTTLING=1")
 if (ACTIVEHARMONY_FOUND)
 add_test (TestThrottlingActiveHarmony src/examples/ThrottlingActiveHarmony/testThrottlingActiveHarmony)  
+set_tests_properties(TestThrottlingActiveHarmony PROPERTIES ENVIRONMENT "APEX_THROTTLING=1")
+set_tests_properties(TestThrottlingActiveHarmony PROPERTIES ENVIRONMENT "HARMONY_HOME=${ACTIVEHARMONY_ROOT}")
 endif()
 
 if(MPI_CXX_FOUND)
@@ -371,3 +375,4 @@ endif()
 if(OMPT_FOUND)
 	add_test (TestOpenMP src/examples/TestOpenMP/openmp_test)
 endif()
+
