@@ -71,7 +71,9 @@ inline int __get_thread_cap(void) {
 inline void __decrease_cap_gradual() {
     thread_cap -= 1;
     if (thread_cap < min_threads) { thread_cap = min_threads; }
+#ifdef APEX_DEBUG_THROTTLE
     printf("%d more throttling! new cap: %d\n", test_pp, thread_cap); fflush(stdout);
+#endif
     apex_throttleOn = true;
 }
 
@@ -81,14 +83,18 @@ inline void __decrease_cap() {
     if (amtLower <= 0) amtLower = 1;
     thread_cap -= amtLower;
     if (thread_cap < min_threads) thread_cap = min_threads;
+#ifdef APEX_DEBUG_THROTTLE
     printf("%d more throttling! new cap: %d\n", test_pp, thread_cap); fflush(stdout);
+#endif
     apex_throttleOn = true;
 }
 
 inline void __increase_cap_gradual() {
     thread_cap += 1;
     if (thread_cap > max_threads) { thread_cap = max_threads; }
+#ifdef APEX_DEBUG_THROTTLE
     printf("%d less throttling! new cap: %d\n", test_pp, thread_cap); fflush(stdout);
+#endif
     apex_throttleOn = false;
 }
 
@@ -102,7 +108,9 @@ inline void __increase_cap() {
     if (thread_cap > max_threads) {
         thread_cap = max_threads;
     }
+#ifdef APEX_DEBUG_THROTTLE
     printf("%d less throttling! new cap: %d\n", test_pp, thread_cap); fflush(stdout);
+#endif
     apex_throttleOn = false;
 }
 
@@ -133,7 +141,9 @@ inline int apex_power_throttling_policy(apex_context const context)
           __increase_cap_gradual();
           delay = window_size;
       } else {
+#ifdef APEX_DEBUG_THROTTLE
           printf("power : %f, ma: %f, cap: %d, min: %f, max: %f, delay: %d no change.\n", power, moving_average, thread_cap, min_watts, max_watts, delay);
+#endif
       }
       if (apex::apex::instance()->get_node_id() == 0) {
         static int index = 0;
@@ -286,9 +296,10 @@ int apex_throughput_throttling_policy(apex_context const context) {
 /* Discrete Space Hill Climbing Algorithm */
 int apex_throughput_throttling_dhc_policy(apex_context const context) {
     APEX_UNUSED(context);
-    printf("Policy!\n");
 
+#ifdef APEX_DEBUG_THROTTLE
     printf("Throttling on name: %s\n", function_name_of_interest.c_str());
+#endif
 
     // initial value for current_cap is 1/2 the distance between min and max
     static double previous_value = 0.0; // instead of resetting.
@@ -306,20 +317,23 @@ int apex_throughput_throttling_dhc_policy(apex_context const context) {
         function_profile = apex::get_profile(function_of_interest);
         //reset(function_of_interest); // we want new measurements!
     } else {
-        printf("Will get profile for name %s\n", function_name_of_interest.c_str());
         function_profile = apex::get_profile(function_name_of_interest);
         //reset(function_name_of_interest); // we want new measurements!
     }
     // if we have no data yet, return.
     if (function_profile == NULL) { 
         printf ("No Data?\n");
+#if defined(APEX_HAVE_HPX3) && defined(APEX_DEBUG_THROTTLE)
         std::vector<std::string> available = apex::get_available_profiles();
         for(std::string s : available) {
             printf("\"%s\"\n", s.c_str());
         }
+#endif
         return APEX_ERROR; 
     } else {
+#ifdef APEX_DEBUG_THROTTLE
         printf ("Got Data!\n");
+#endif
     }
 
     double new_value = 0.0;
@@ -337,7 +351,9 @@ int apex_throughput_throttling_dhc_policy(apex_context const context) {
     } else {
         evaluations[thread_cap] = ((evaluations[thread_cap] * (window_size-1)) + new_value) / window_size;
     }
+#ifdef APEX_DEBUG_THROTTLE
     printf("%d Value: %f, new average: %f.\n", thread_cap, new_value, evaluations[thread_cap]);
+#endif
 
     if (thread_cap == current_cap) got_center = true;
     if (thread_cap == low_neighbor) got_low = true;
@@ -346,19 +362,25 @@ int apex_throughput_throttling_dhc_policy(apex_context const context) {
     // check if our center has a value
     if (!got_center) {
         thread_cap = current_cap;
+#ifdef APEX_DEBUG_THROTTLE
         printf("initial throttling. trying cap: %d\n", thread_cap); fflush(stdout);
+#endif
         return APEX_NOERROR;
     }
     // check if our left of center has a value
     if (!got_low) {
         thread_cap = low_neighbor;
+#ifdef APEX_DEBUG_THROTTLE
         printf("current-1 throttling. trying cap: %d\n", thread_cap); fflush(stdout);
+#endif
         return APEX_NOERROR;
     }
     // check if our right of center has a value
     if (!got_high) {
         thread_cap = high_neighbor;
+#ifdef APEX_DEBUG_THROTTLE
         printf("current+1 throttling. trying cap: %d\n", thread_cap); fflush(stdout);
+#endif
         return APEX_NOERROR;
     }
 
@@ -381,8 +403,10 @@ int apex_throughput_throttling_dhc_policy(apex_context const context) {
             best = high_neighbor;
         }
     }
+#ifdef APEX_DEBUG_THROTTLE
     printf("%d Calls: %f.\n", thread_cap, evaluations[best]);
     printf("New cap: %d\n", best); fflush(stdout);
+#endif
     if (apex::apex::instance()->get_node_id() == 0) {
         static int index = 0;
         cap_data << index++ << "\t" << evaluations[best] << "\t" << best << endl;
@@ -614,7 +638,6 @@ inline int __common_setup_timer_throttling(apex_optimization_criteria_t criteria
         if (method == APEX_SIMPLE_HYSTERESIS) {
             apex::register_periodic_policy(update_interval, apex_throughput_throttling_policy);
         } else if (method == APEX_DISCRETE_HILL_CLIMBING) {
-            std::cerr << "Registered DHC policy." << std::endl;
             apex::register_periodic_policy(update_interval, apex_throughput_throttling_dhc_policy);
         } else if (method == APEX_ACTIVE_HARMONY) {
             __apex_active_harmony_setup();
@@ -644,7 +667,9 @@ inline int __setup_timer_throttling(const string& the_name, apex_optimization_cr
         abort();
     }
     function_name_of_interest = the_name;
+#ifdef APEX_DEBUG_THROTTLE
     std::cerr << "Setting up timer throttling for " << the_name << std::endl;
+#endif
     return __common_setup_timer_throttling(criteria, method, update_interval);
 }
 
