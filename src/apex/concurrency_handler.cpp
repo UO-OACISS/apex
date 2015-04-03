@@ -56,7 +56,7 @@ bool concurrency_handler::_handler(void) {
     if (_option > 1 && !thread_instance::map_id_to_worker(i)) {
       continue;
     }
-    if (apex::instance()->get_state(i) == APEX_THROTTLED) { continue; }
+    //if (apex::instance()->get_state(i) == APEX_THROTTLED) { continue; }
     tmp = get_event_stack(i);
     if (tmp->size() > 0) {
       string func = tmp->top();

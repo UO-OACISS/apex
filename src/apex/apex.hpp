@@ -36,6 +36,11 @@
 #include "proc_read.h" 
 #endif
 
+#ifdef APEX_HAVE_MSR
+#include "msr_core.h"
+#include "msr_rapl.h"
+#endif
+
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /**
@@ -395,6 +400,15 @@ APEX_EXPORT std::vector<std::string> get_available_profiles();
 APEX_EXPORT inline double current_power_high(void) {
 #ifdef APEX_HAVE_RCR
   return (double)rcr_current_power_high();
+#elif APEX_HAVE_MSR
+  static struct rapl_data d[NUM_SOCKETS] = {0};
+  double watts = 0;
+  for(int i = 0; i < NUM_SOCKETS; ++i) {
+    read_rapl_data(i, &(d[i]));
+    watts += d[i].pkg_watts;
+  }
+  std::cerr << "Power: " << watts << std::endl;
+  return watts;
 #elif APEX_HAVE_PROC
   return (double)read_power();
 #else

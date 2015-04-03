@@ -112,10 +112,11 @@ namespace apex {
   /* A lock necessary for registering new threads */
   boost::mutex profiler_listener::_mtx ;
 
+
   /* Return the requested profile object to the user.
    * Return NULL if doesn't exist. */
   profile * profiler_listener::get_profile(apex_function_address address) {
-    map<apex_function_address, profile*>::iterator it = address_map.find(address);
+    map<apex_function_address, profile*>::const_iterator it = address_map.find(address);
     if (it != address_map.end()) {
       return (*it).second;
     }
@@ -125,7 +126,7 @@ namespace apex {
   /* Return the requested profile object to the user.
    * Return NULL if doesn't exist. */
   profile * profiler_listener::get_profile(const string &timer_name) {
-    map<string, profile*>::iterator it = name_map.find(timer_name);
+    map<string, profile*>::const_iterator it = name_map.find(timer_name);
     if (it != name_map.end()) {
       return (*it).second;
     }

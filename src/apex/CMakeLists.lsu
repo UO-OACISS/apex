@@ -143,6 +143,21 @@ if(HAVE_RCR)
   hpx_add_config_define(HPX_HAVE_RCR 1)
 endif()
 
+
+if(APEX_WITH_MSR)
+    find_package(MSR)
+    if(NOT MSR_FOUND)
+        hpx_error("apex" "Requested APEX_WITH_MSR but could not find MSR. Please specify MSR_ROOT.")
+    endif()
+    hpx_info("apex" "Building APEX with libmsr support.")
+    include_directories(${MSR_INCLUDE_DIR})
+    set(LIBS ${LIBS} ${MSR_LIBRARIES})
+    set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${MSR_LIBRARY_DIR})
+    add_definitions(-DAPEX_HAVE_MSR)
+    hpx_libraries(${MSR_LIBRARIES})
+endif()
+
+
 if(TAU_FOUND)
   hpx_info("apex" "Building APEX with TAU support")
   set(apex_headers ${apex_headers} tau_listener.hpp)

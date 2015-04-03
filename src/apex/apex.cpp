@@ -30,6 +30,10 @@
 #include "profiler_listener.hpp"
 #endif
 
+#ifdef APEX_HAVE_MSR
+#include "msr_core.h"
+#endif
+
 APEX_NATIVE_TLS bool _registered = false;
 static bool _initialized = false;
 
@@ -118,6 +122,7 @@ static void init_hpx_runtime_ptr(void) {
 void apex::_initialize()
 {
     APEX_TRACER
+    std::cerr << "Apex instance is being initialized..." << std::endl;
     this->m_pInstance = this;
     this->m_policy_handler = nullptr;
 #ifdef APEX_HAVE_HPX3
@@ -127,6 +132,9 @@ void apex::_initialize()
 #ifdef APEX_HAVE_RCR
     uint64_t waitTime = 1000000000L; // in nanoseconds, for nanosleep
     energyDaemonInit();
+#endif
+#ifdef APEX_HAVE_MSR
+    init_msr();
 #endif
     listeners.push_back(new profiler_listener());
 #ifdef APEX_HAVE_TAU
@@ -207,6 +215,7 @@ void init(const char * thread_name)
     if (_registered || _initialized) return; // protect against multiple initializations
     _registered = true;
     _initialized = true;
+    std::cerr << "Initializing APEX(thread_name)" << std::endl;
     int argc = 1;
     const char *dummy = "APEX Application";
     char* argv[1];
@@ -237,6 +246,7 @@ void init(int argc, char** argv, const char * thread_name)
     if (_registered || _initialized) return; // protect against multiple initializations
     _registered = true;
     _initialized = true;
+    std::cerr << "Initializing APEX(argc,argv,thread_name)" << std::endl;
     apex* instance = apex::instance(argc, argv); // get/create the Apex static instance
     if (!instance) return; // protect against calls after finalization
     startup_event_data event_data(argc, argv);
@@ -502,6 +512,9 @@ void finalize()
 #if APEX_HAVE_PROC
     ProcData::stop_reading();
 #endif
+#if APEX_HAVE_MSR
+    finalize_msr();
+#endif
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     if (!_finalized)
@@ -596,6 +609,7 @@ apex_profile* get_profile(apex_function_address action_address) {
 }
 
 apex_profile* get_profile(const std::string &timer_name) {
+    printf("get_profile called for %s\n", timer_name.c_str());
     profile * tmp = profiler_listener::get_profile(timer_name);
     if (tmp != NULL)
         return tmp->get_profile();
