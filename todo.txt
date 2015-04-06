@@ -17,8 +17,7 @@ Todo items:
 Logistical Todo Items:
 ----------------------
 - establish one-on-one communication with LSU for integration with HPX (done)
-- establish one-on-one communication with RENCI for integration with RCR
-  (done)
+- establish one-on-one communication with RENCI for integration with RCR (done)
 - establish one-on-one communication with Sandia for integration with RIOS
 - migrate development to hermione@LSU
 
