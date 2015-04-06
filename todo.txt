@@ -23,3 +23,5 @@ Logistical Todo Items:
   (done)
 - establish one-on-one communication with Sandia for integration with RIOS
 - migrate development to hermione@LSU
+
+move the server
