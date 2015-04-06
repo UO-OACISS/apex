@@ -96,7 +96,7 @@ MPI implementation needs to at least support the MPI2 interface. CMake
 should auto-detect the MPI settings from the mpicxx compiler in your path.
 </dd>
 <dt>TAU</dt>
-<dd>For collecting post-mortem profile or trace files. Set TAU_ROOT and TAU_ARCH environment variables.</dd>
+<dd>For collecting post-mortem profile or trace files. Set TAU_ROOT and TAU_ARCH environment variables while configuring HPX.</dd>
 <dt>RCR</dt>
 <dd>For accessing system-level privileged information, such as power measurements
 (on some systems), and communicating policy decisions to the OS/R layer.</dd>
