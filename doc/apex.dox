@@ -4,6 +4,10 @@
 
 /** \mainpage APEX: Autonomic Performance Environment for eXascale
 
+\section copyright Copyright
+
+\verbinclude LICENSE.txt
+
 \section overview Overview
 
 One of the key components of the XPRESS project is a new approach to
