@@ -12,8 +12,9 @@ find_package(PkgConfig)
 if(NOT TAU_ROOT AND NOT $ENV{HOME_TAU} STREQUAL "")
   set(TAU_ROOT $ENV{HOME_TAU})
 endif()
-if(NOT TAU_ROOT AND NOT $ENV{TAU_ROOT} STREQUAL "")
-  set(TAU_ROOT $ENV{TAU_ROOT})
+
+if(NOT TAU_ARCH AND NOT $ENV{TAU_ARCH} STREQUAL "")
+    set(TAU_ARCH $ENV{TAU_ARCH})
 endif()
 
 pkg_check_modules(PC_TAU QUIET TAU)
@@ -30,9 +31,9 @@ if (${APPLE})
              HINTS ${TAU_ROOT}/apple/lib)
 else()
   find_library(TAU_LIBRARY NAMES TAU 
-             HINTS ${TAU_ROOT}/${CMAKE_SYSTEM_PROCESSOR}/lib  ${TAU_ROOT}/*/lib )
+      HINTS ${TAU_ROOT}/${TAU_ARCH}/lib ${TAU_ROOT}/${CMAKE_SYSTEM_PROCESSOR}/lib  ${TAU_ROOT}/*/lib )
   find_path(TAU_LIBRARY_DIR NAMES libTAU.so libTAU.a libTAU.dylib
-             HINTS ${TAU_ROOT}/${CMAKE_SYSTEM_PROCESSOR}/lib  ${TAU_ROOT}/*/lib )
+      HINTS ${TAU_ROOT}/${TAU_ARCH}/lib ${TAU_ROOT}/${CMAKE_SYSTEM_PROCESSOR}/lib  ${TAU_ROOT}/*/lib )
 endif()
 
 find_path(TAU_LIBRARY_DIR_2 NAMES libTauPthreadWrap.a
