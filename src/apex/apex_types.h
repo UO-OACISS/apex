@@ -158,7 +158,7 @@ typedef int (*apex_policy_function)(apex_context const context);
     macro (APEX_POLICY, use_policy, bool, true) \
     macro (APEX_CONCURRENCY, use_concurrency, int, 0) \
     macro (APEX_CONCURRENCY_PERIOD, concurrency_period, int, 1000000) \
-    macro (APEX_SCREEN_OUTPUT, use_screen_output, bool, true) \
+    macro (APEX_SCREEN_OUTPUT, use_screen_output, bool, false) \
     macro (APEX_PROFILE_OUTPUT, use_profile_output, int, 0) \
 
 #if defined(__linux)
