@@ -1,27 +1,24 @@
 Todo items:
 ------------
-- integrate APEX into HPX
+- integrate APEX into HPX (done)
   - move source files into HPX source directory  (done)
   - update HPX CMake files to find APEX requirements (done)
-- Make TAU optional
+- Make TAU optional (done)
   - make TAU an event listener (done)
-- Make event generation asynchronous
+- Make event generation asynchronous (thinking)
   - multiple generator, single consumer queue of events (done)
 - fix apex::finalize problem (from multiple threads)
-- re-integrate RCR
+- re-integrate RCR (done)
   - RAPL power measurements
   - Memory controller saturation example
-- design policy engine
-  - ? (done)
-- implement policy engine
-  - ? (done)
+- design policy engine (done)
+- implement policy engine (done)
 
 Logistical Todo Items:
 ----------------------
 - establish one-on-one communication with LSU for integration with HPX (done)
-- establish one-on-one communication with RENCI for integration with RCR
-  (done)
+- establish one-on-one communication with RENCI for integration with RCR (done)
 - establish one-on-one communication with Sandia for integration with RIOS
 - migrate development to hermione@LSU
 
-move the server
+- move the server (done)
