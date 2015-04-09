@@ -58,6 +58,12 @@
 
 #define APEX_MAIN "APEX MAIN"
 
+#ifdef APEX_HAVE_TAU
+#define PROFILING_ON
+#define TAU_DOT_H_LESS_HEADERS
+#include <TAU.h>
+#endif
+
 using namespace std;
 using namespace apex;
 
@@ -578,7 +584,16 @@ namespace apex {
    * as it goes. */
   void profiler_listener::process_profiles(void)
   {
-    static int dummy = initialize_worker_thread_for_TAU();
+    static bool _initialized = false;
+    if (!_initialized) {
+      initialize_worker_thread_for_TAU();
+      _initialized = true;
+    }
+#ifdef APEX_HAVE_TAU
+    if (apex_options::use_tau()) {
+      TAU_START("profiler_listener::process_profiles");
+    }
+#endif
 #ifdef APEX_HAVE_HPX3
     static bool registered = false;
     if(!registered) {
@@ -597,6 +612,13 @@ namespace apex {
     // Main loop. Stay in this loop unless "done".
     while (!done) {
       queue_signal.wait();
+#ifdef APEX_HAVE_TAU
+      /*
+    if (apex_options::use_tau()) {
+      TAU_START("profiler_listener::process_profiles: main loop");
+    }
+    */
+#endif
       for (i = 0 ; i < profiler_queues.size(); i++) {
         if (profiler_queues[i]) {
           while (profiler_queues[i]->pop(p)) {
@@ -616,7 +638,13 @@ namespace apex {
             }
           }
       }
-
+#ifdef APEX_HAVE_TAU
+      /*
+      if (apex_options::use_tau()) {
+        TAU_STOP("profiler_listener::process_profiles: main loop");
+      }
+      */
+#endif
     }
 
     // We might be done, but check to make sure the queues are empty
@@ -654,6 +682,11 @@ namespace apex {
 
     // cleanup.
     delete_profiles();
+#ifdef APEX_HAVE_TAU
+    if (apex_options::use_tau()) {
+      TAU_STOP("profiler_listener::process_profiles");
+    }
+#endif
   }
 
 

@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
   /* Initialize MPI */
 
   int required, provided;
-  required = MPI_THREAD_SERIALIZED;
+  required = MPI_THREAD_MULTIPLE;
   MPI_Init_thread(&argc, &argv, required, &provided);
   if (provided < required) {
     printf ("Your MPI installation doesn't allow multiple threads to communicate. Exiting.\n");

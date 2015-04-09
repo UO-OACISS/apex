@@ -14,6 +14,12 @@
 #include <iostream>
 #include <boost/make_shared.hpp>
 
+#ifdef APEX_HAVE_TAU
+#define PROFILING_ON
+#define TAU_DOT_H_LESS_HEADERS
+#include <TAU.h>
+#endif
+
 using namespace std;
 
 namespace apex {
@@ -45,12 +51,25 @@ policy_handler::policy_handler (uint64_t period_microseconds) : handler(period_m
 #endif
 
 bool policy_handler::_handler(void) {
-  static int dummy = initialize_worker_thread_for_TAU();
-  APEX_UNUSED(dummy);
+  static bool _initialized = false;
+  if (!_initialized) {
+      initialize_worker_thread_for_TAU();
+      _initialized = true;
+  }
   if (_terminate) return true;
+#ifdef APEX_HAVE_TAU
+  if (apex_options::use_tau()) {
+    TAU_START("policy_handler::_handler");
+  }
+#endif
   periodic_event_data data;
   this->on_periodic(data);
   this->_reset();
+#ifdef APEX_HAVE_TAU
+  if (apex_options::use_tau()) {
+    TAU_STOP("policy_handler::_handler");
+  }
+#endif
   return true;
 }
 

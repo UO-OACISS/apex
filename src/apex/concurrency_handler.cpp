@@ -26,6 +26,12 @@
 #include "address_resolution.hpp"
 #endif
 
+#ifdef APEX_HAVE_TAU
+#define PROFILING_ON
+#define TAU_DOT_H_LESS_HEADERS
+#include <TAU.h>
+#endif
+
 #define MAX_FUNCTIONS_IN_CHART 15
 
 using namespace std;
@@ -49,8 +55,17 @@ concurrency_handler::concurrency_handler (unsigned int period, int option) : han
 }
 
 bool concurrency_handler::_handler(void) {
-  static int dummy = initialize_worker_thread_for_TAU();
+  static bool _initialized = false;
+  if (!_initialized) {
+      initialize_worker_thread_for_TAU();
+      _initialized = true;
+  }
   if (_terminate) return true;
+#ifdef APEX_HAVE_TAU
+  if (apex_options::use_tau()) {
+    TAU_START("concurrency_handler::_handler");
+  }
+#endif
   //cout << "HANDLER: " << endl;
   map<string, unsigned int> *counts = new(map<string, unsigned int>);
   stack<string>* tmp;
@@ -61,7 +76,7 @@ bool concurrency_handler::_handler(void) {
     }
     //if (apex::instance()->get_state(i) == APEX_THROTTLED) { continue; }
     tmp = get_event_stack(i);
-    if (tmp->size() > 0) {
+    if (tmp != nullptr && tmp->size() > 0) {
       string func = tmp->top();
       _function_mutex.lock();
       _functions.insert(func);
@@ -78,6 +93,11 @@ bool concurrency_handler::_handler(void) {
   int power = current_power_high();
   _power_samples.push_back(power);
   this->_reset();
+#ifdef APEX_HAVE_TAU
+  if (apex_options::use_tau()) {
+    TAU_STOP("concurrency_handler::_handler");
+  }
+#endif
   return true;
 }
 
@@ -135,6 +155,10 @@ void concurrency_handler::on_shutdown(shutdown_event_data &event_data) {
 
 inline stack<string>* concurrency_handler::get_event_stack(unsigned int tid) {
   stack<string>* tmp;
+  // it's possible we could get a "start" event without a "new thread" event.
+  if (_event_stack.size() <= tid) {
+    add_thread(tid);
+  }
   tmp = this->_event_stack[tid];
   return tmp;
 }

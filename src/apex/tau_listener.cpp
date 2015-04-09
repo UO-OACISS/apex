@@ -73,10 +73,10 @@ void tau_listener::on_stop(profiler *p) {
   if (!_terminate) {
       if (p->have_name) {
         if (p->timer_name->compare(empty) == 0) {
-          printf("TAU stopping: GLOBAL\n");
+          //printf("TAU stopping: GLOBAL\n");
           TAU_GLOBAL_TIMER_STOP(); // stop the top level timer
 	    } else {
-          printf("TAU stopping: '%s'\n", p->timer_name->c_str());
+          //printf("TAU stopping: '%s'\n", p->timer_name->c_str());
           TAU_STOP(p->timer_name->c_str());
 	    }
       } else {

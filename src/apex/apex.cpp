@@ -26,9 +26,8 @@
 //#define TAU_GNU
 #define TAU_DOT_H_LESS_HEADERS
 #include <TAU.h>
-#else
-#include "profiler_listener.hpp"
 #endif
+#include "profiler_listener.hpp"
 
 #ifdef APEX_HAVE_MSR
 #include "msr_core.h"

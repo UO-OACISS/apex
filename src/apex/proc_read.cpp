@@ -18,6 +18,12 @@
 
 #define APEX_GET_ALL_CPUS 0
 
+#ifdef APEX_HAVE_TAU
+#define PROFILING_ON
+#define TAU_DOT_H_LESS_HEADERS
+#include <TAU.h>
+#endif
+
 using namespace std;
 
 namespace apex {
@@ -484,9 +490,19 @@ bool ProcData::parse_sensor_data() {
 
 /* This is the main function for the reader thread. */
 void ProcData::read_proc(void) {
-  static int dummy = initialize_worker_thread_for_TAU();
+  static bool _initialized = false;
+  if (!_initialized) {
+      initialize_worker_thread_for_TAU();
+      _initialized = true;
+  }
+#ifdef APEX_HAVE_TAU
+  if (apex_options::use_tau()) {
+    TAU_START("ProcData::read_proc");
+  }
+#endif
   ProcData *oldData = parse_proc_stat();
-  oldData->parse_proc_cpuinfo(); // do this once, it won't change.
+  // disabled for now - not sure that it is useful
+  // oldData->parse_proc_cpuinfo(); // do this once, it won't change.
   oldData->parse_proc_meminfo(); // some things change, others don't...
   ProcData *newData = NULL;
   ProcData *periodData = NULL;
@@ -497,6 +513,11 @@ void ProcData::read_proc(void) {
   while(!proc_done) {
     // sleep until next time
     nanosleep(&tim , &tim2);
+#ifdef APEX_HAVE_TAU
+    if (apex_options::use_tau()) {
+      TAU_START("ProcData::read_proc: main loop");
+    }
+#endif
     // take a reading
     newData = parse_proc_stat();
     periodData = newData->diff(*oldData);
@@ -507,7 +528,17 @@ void ProcData::read_proc(void) {
     delete(periodData);
     oldData = newData;
     oldData->parse_proc_meminfo(); // some things change, others don't...
+#ifdef APEX_HAVE_TAU
+    if (apex_options::use_tau()) {
+      TAU_STOP("ProcData::read_proc: main loop");
+    }
+#endif
   }
+#ifdef APEX_HAVE_TAU
+  if (apex_options::use_tau()) {
+    TAU_STOP("ProcData::read_proc");
+  }
+#endif
 }
 
 }
