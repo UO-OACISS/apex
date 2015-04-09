@@ -26,9 +26,8 @@
 //#define TAU_GNU
 #define TAU_DOT_H_LESS_HEADERS
 #include <TAU.h>
-#else
-#include "profiler_listener.hpp"
 #endif
+#include "profiler_listener.hpp"
 
 APEX_NATIVE_TLS bool _registered = false;
 static bool _initialized = false;

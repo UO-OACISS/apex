@@ -47,7 +47,7 @@ void* someThread(void* tmp)
   apex::register_thread("threadTest thread");
   //ApexProxy proxy = ApexProxy(__func__, __FILE__, __LINE__);
   ApexProxy proxy = ApexProxy((apex_function_address)someThread);
-  printf("PID of this process: %d\n", getpid());
+  //printf("PID of this process: %d\n", getpid());
 #if defined (__APPLE__)
   printf("The ID of this thread is: %lu\n", (unsigned long)pthread_self());
 #else
@@ -67,7 +67,7 @@ void* someUntimedThread(void* tmp)
   UNUSED(tmp);
   apex::register_thread("threadTest thread");
   ApexProxy proxy = ApexProxy((apex_function_address)someUntimedThread);
-  printf("PID of this process: %d\n", getpid());
+  //printf("PID of this process: %d\n", getpid());
 #if defined (__APPLE__)
   printf("The ID of this thread is: %lu\n", (unsigned long)pthread_self());
 #else
