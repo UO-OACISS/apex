@@ -315,6 +315,7 @@ add_subdirectory (src/examples/MPIImbalancePolicy)
 endif()
 add_subdirectory (src/examples/TestITT)
 add_subdirectory (src/examples/TestThreads)
+add_subdirectory (src/examples/CountCalls)
 add_subdirectory (src/examples/Overhead)
 add_subdirectory (src/examples/PolicyEngineExample)
 add_subdirectory (src/examples/PolicyEngineCppExample)
@@ -341,6 +342,8 @@ add_test (MatmultRuns src/examples/Matmult/matmult)
 add_test (TestITTRuns src/examples/TestITT/testITT)  
 # Run the test program which tests the threads interface
 add_test (TestThreadsRuns src/examples/TestThreads/testThreads)  
+# Run the test program which tests the yielding
+add_test (CountCallsRuns src/examples/CountCalls/count_calls)  
 # Run the test program which tests the overhead in the threads interface
 add_test (TestOverhead_noPolicy src/examples/Overhead/testOverhead)  
 # TEst the policy engine support

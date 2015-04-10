@@ -122,7 +122,8 @@ void apex_global_teardown(void) {
 #if 1
   MPI_Barrier(MPI_COMM_WORLD);
   /* Added a call to MPI_WIN_FENCE, per MPI-2.1 11.2.1 */
-  MPI_Win_fence(0, profile_window);
+  /* Removed a call to MPI_WIN_FENCE, because it crashes. */
+  //MPI_Win_fence(0, profile_window);
   MPI_Win_free(&profile_window); 
   if (rank == 0) {
     fclose(graph_output);

@@ -842,6 +842,9 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       }
 #endif
     }
+    /* The cleanup is disabled for now. Why? Because we want to be able
+     * to access the profiles at the end of the run, after APEX has 
+     * finalized. */
     // cleanup.
     // delete_profiles();
   }
