@@ -378,6 +378,26 @@ void stop(profiler* the_profiler)
     thread_instance::instance().current_timer = NULL;
 }
 
+void yield(profiler* the_profiler)
+{
+    APEX_TIMER_TRACER("yield  ", the_profiler->timer_name->c_str())
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance) return; // protect against calls after finalization
+    profiler * p;
+    if (the_profiler == NULL) {
+        p = thread_instance::instance().current_timer;
+    } else {
+        p = (profiler*)the_profiler;
+    }
+    if (p == NULL) return;
+    if (_notify_listeners) {
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            instance->listeners[i]->on_yield(p);
+        }
+    }
+    thread_instance::instance().current_timer = NULL;
+}
+
 void sample_value(const std::string &name, double value)
 {
     APEX_TRACER

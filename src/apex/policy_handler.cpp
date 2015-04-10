@@ -138,6 +138,11 @@ int policy_handler::register_policy(const apex_event_type & when,
         stop_event_policies.push_back(instance);
         break;
       }
+      case APEX_YIELD_EVENT: {
+        boost::unique_lock<mutex_type> l(yield_event_mutex);
+        yield_event_policies.push_back(instance);
+        break;
+      }
       case APEX_SAMPLE_VALUE: {
         boost::unique_lock<mutex_type> l(sample_value_mutex);
         sample_value_policies.push_back(instance);
@@ -224,20 +229,33 @@ void policy_handler::on_start(apex_function_address function_address, string *ti
 }
 
 void policy_handler::on_stop(profiler *p) {
-  if (_terminate) return;
-            if (stop_event_policies.empty())
-                return;
-        //call_policies(stop_event_policies, event_data);
-  for(const boost::shared_ptr<policy_instance>& policy : stop_event_policies) {
-    apex_context my_context;
-    my_context.event_type = APEX_STOP_EVENT;
-    my_context.policy_handle = NULL;
-    const bool result = policy->func(my_context);
-    if(result != APEX_NOERROR) {
-      printf("Warning: registered policy function failed!\n");
+    if (_terminate) return;
+    if (stop_event_policies.empty()) return;
+    for(const boost::shared_ptr<policy_instance>& policy : stop_event_policies) {
+        apex_context my_context;
+        my_context.event_type = APEX_STOP_EVENT;
+        my_context.policy_handle = NULL;
+        const bool result = policy->func(my_context);
+        if(result != APEX_NOERROR) {
+            printf("Warning: registered policy function failed!\n");
+        }
     }
-  }
-  APEX_UNUSED(p);
+    APEX_UNUSED(p);
+}
+
+void policy_handler::on_yield(profiler *p) {
+    if (_terminate) return;
+    if (yield_event_policies.empty()) return;
+    for(const boost::shared_ptr<policy_instance>& policy : yield_event_policies) {
+        apex_context my_context;
+        my_context.event_type = APEX_YIELD_EVENT;
+        my_context.policy_handle = NULL;
+        const bool result = policy->func(my_context);
+        if(result != APEX_NOERROR) {
+            printf("Warning: registered policy function failed!\n");
+        }
+    }
+    APEX_UNUSED(p);
 }
 
 void policy_handler::on_resume(profiler * p) {

@@ -96,6 +96,7 @@ public:
   virtual void on_new_thread(new_thread_event_data &data) = 0;
   virtual void on_start(apex_function_address function_address, std::string *timer_name) = 0;
   virtual void on_stop(profiler *p) = 0;
+  virtual void on_yield(profiler *p) = 0;
   virtual void on_resume(profiler *p) = 0;
   virtual void on_sample_value(sample_value_event_data &data) = 0;
   virtual void on_periodic(periodic_event_data &data) = 0;

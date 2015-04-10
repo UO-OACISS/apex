@@ -35,6 +35,7 @@ typedef enum _event_type {
   APEX_RESUME_EVENT,   /*!< APEX has processed a timer resume event (the number
                            of calls is not incremented) */
   APEX_STOP_EVENT,     /*!< APEX has processed a timer stop event */
+  APEX_YIELD_EVENT,    /*!< APEX has processed a timer yield event */
   APEX_SAMPLE_VALUE,   /*!< APEX has processed a sampled value */
   APEX_PERIODIC,       /*!< APEX has processed a periodic timer */
   APEX_CUSTOM_EVENT    /*!< APEX has processed a custom event - useful for large

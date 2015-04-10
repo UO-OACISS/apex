@@ -126,6 +126,21 @@ APEX_EXPORT apex_profiler_handle apex_start_address(apex_function_address functi
 APEX_EXPORT void apex_stop_profiler(apex_profiler_handle profiler);
 
 /**
+ \brief Stop a timer, but don't increment the number of calls.
+
+ This function will stop the specified profiler object, and queue
+ the profiler to be processed out-of-band. The timer value will 
+ eventually added to the profile for the process. The number of calls
+ will NOT be incremented - this "task" was yielded, not completed.
+ It will be resumed by another thread at a later time.
+ 
+ \param profiler The handle of the profiler object.
+ \return No return value.
+ \sa apex_start_name, apex_start_address
+ */
+APEX_EXPORT void apex_yield_profiler(apex_profiler_handle profiler);
+
+/**
  \brief Resume a timer.
 
  This function will restart the specified profiler object. The
