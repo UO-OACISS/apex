@@ -140,6 +140,10 @@ void concurrency_handler::on_stop(profiler *p) {
   APEX_UNUSED(p);
 }
 
+void concurrency_handler::on_yield(profiler *p) {
+    on_stop(p);
+}
+
 void concurrency_handler::on_new_thread(new_thread_event_data &event_data) {
   if (!_terminate) {
         add_thread(event_data.thread_id);

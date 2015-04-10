@@ -56,6 +56,7 @@ private:
     std::list<boost::shared_ptr<policy_instance> > new_thread_policies;
     std::list<boost::shared_ptr<policy_instance> > start_event_policies;
     std::list<boost::shared_ptr<policy_instance> > stop_event_policies;
+    std::list<boost::shared_ptr<policy_instance> > yield_event_policies;
     std::list<boost::shared_ptr<policy_instance> > resume_event_policies;
     std::list<boost::shared_ptr<policy_instance> > sample_value_policies;
     std::list<boost::shared_ptr<policy_instance> > custom_event_policies;
@@ -66,6 +67,7 @@ private:
     mutex_type new_thread_mutex;
     mutex_type start_event_mutex;
     mutex_type stop_event_mutex;
+    mutex_type yield_event_mutex;
     mutex_type resume_event_mutex;
     mutex_type sample_value_mutex;
     mutex_type custom_event_mutex;
@@ -91,6 +93,7 @@ public:
     void on_new_thread(new_thread_event_data &event_data);
     void on_start(apex_function_address function_address, std::string *timer_name);
     void on_stop(profiler *p);
+    void on_yield(profiler *p);
     void on_resume(profiler *p);
     void on_sample_value(sample_value_event_data &event_data);
     void on_custom_event(custom_event_data &event_data);

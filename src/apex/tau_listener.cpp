@@ -92,6 +92,10 @@ void tau_listener::on_stop(profiler *p) {
   return;
 }
 
+void tau_listener::on_yield(profiler *p) {
+    on_stop(p);
+}
+
 void tau_listener::on_resume(profiler *p) {
   if (!_terminate) {
     if (p->have_name) {
