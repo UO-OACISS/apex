@@ -2,7 +2,11 @@
 #include <array>
 #include <algorithm>
 #include "apex.hpp"
+#if defined (_OPENMP)
 #include "omp.h"
+#else 
+#define omp_get_max_threads() 1
+#endif
 
 #define NUM_CELLS 100000
 #define BLOCK_SIZE NUM_CELLS/100
@@ -101,6 +105,7 @@ int main (int argc, char ** argv) {
     parse_arguments(argc, argv);
     apex::set_node_id(0);
 
+#ifdef APEX_HAVE_ACTIVEHARMONY
     int num_inputs = 2;
     long * inputs[2] = {0L,0L};
     long mins[2] = {1,1};    // all minimums are 1
@@ -115,6 +120,7 @@ int main (int argc, char ** argv) {
     apex::setup_general_tuning((apex_function_address)solve_iteration,
                     APEX_MINIMIZE_ACCUMULATED, APEX_CUSTOM_EVENT, num_inputs,
                     inputs, mins, maxs, steps);
+#endif
     std::cout <<"Running 1D stencil test..." << std::endl;
 
     std::vector<double> * prev = initialize(false);

@@ -528,6 +528,10 @@ int apex_throughput_throttling_ah_policy(apex_context const context) {
     APEX_UNUSED(context);
     return APEX_NOERROR; 
 }
+int apex_general_tuning_policy(apex_context const context) {
+    APEX_UNUSED(context);
+    return APEX_NOERROR; 
+}
 #endif // APEX_HAVE_ACTIVEHARMONY
 
 /// ----------------------------------------------------------------------------
@@ -681,6 +685,13 @@ inline void __apex_active_harmony_shutdown(void) {
 
 #else
 inline void __apex_active_harmony_setup(void) { }
+inline void __active_harmony_general_setup(int num_inputs, long ** inputs, long * mins, long * maxs, long * steps) {
+  APEX_UNUSED(num_inputs);
+  APEX_UNUSED(inputs);
+  APEX_UNUSED(mins);
+  APEX_UNUSED(maxs);
+  APEX_UNUSED(steps);
+}
 inline void __apex_active_harmony_shutdown(void) { }
 #endif
 
