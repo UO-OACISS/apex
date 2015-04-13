@@ -383,7 +383,7 @@ ${MPIEXEC_PREFLAGS} src/examples/MPIGlobalTest/mpi_global_test ${MPIEXEC_POSTFLA
 endif()
 
 if(OPENMP_FOUND)
-  add_subdirectory (src/examples/OpenMP_1D_stencil)
+  add_test (TestOpenMPStencil src/examples/OpenMP_1D_stencil)
   if(OMPT_FOUND)
 	  add_test (TestOpenMP src/examples/TestOpenMP/openmp_test)
   endif()
