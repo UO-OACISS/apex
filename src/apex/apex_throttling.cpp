@@ -459,6 +459,70 @@ int apex_throughput_throttling_ah_policy(apex_context const context) {
 
     return APEX_NOERROR;
 }
+
+int apex_general_tuning_policy(apex_context const context) {
+    // do something.
+    APEX_UNUSED(context);
+    static double previous_value = 0.0; // instead of resetting.
+    static bool _converged_message = false;
+    if (harmony_converged(hdesc)) {
+        if (!_converged_message) {
+            _converged_message = true;
+            cout << "Tuning has converged." << endl;
+        }
+        return APEX_NOERROR;
+    }
+
+    // get a measurement of our current setting
+    apex_profile * function_profile = NULL;
+    if(function_of_interest != APEX_NULL_FUNCTION_ADDRESS) {
+        function_profile = apex::get_profile(function_of_interest);
+    } else {
+        function_profile = apex::get_profile(function_name_of_interest);
+    }
+    // if we have no data yet, return.
+    if (function_profile == NULL) { 
+        cerr << "No profile data?" << endl;
+        return APEX_ERROR; 
+    }
+
+    double new_value = 0.0;
+    if (throttling_criteria == APEX_MAXIMIZE_THROUGHPUT) {
+        new_value = (function_profile->calls - previous_value) * -1.0;
+        previous_value = function_profile->calls;
+    } else if (throttling_criteria == APEX_MAXIMIZE_ACCUMULATED) {
+        new_value = (function_profile->accumulated - previous_value) * -1.0;
+        previous_value = function_profile->accumulated;
+    } else if (throttling_criteria == APEX_MINIMIZE_ACCUMULATED) {
+        new_value = function_profile->accumulated - previous_value;
+        previous_value = function_profile->accumulated;
+    }
+
+    /* Report the performance we've just measured. */
+    if (harmony_report(hdesc, new_value) != 0) {
+        cerr << "Failed to report performance to server." << endl;
+        return APEX_ERROR;
+    }
+
+    int hresult = harmony_fetch(hdesc);
+    if (hresult < 0) {
+        cerr << "Failed to fetch values from server: " << 
+                harmony_error_string(hdesc) << endl;
+        return APEX_ERROR;
+    }
+    else if (hresult == 0) {
+        /* New values were not available at this time.
+         * Bundles remain unchanged by Harmony system.
+         */
+    }
+    else if (hresult > 0) {
+        /* The Harmony system modified the variable values.
+         * Do any systemic updates to deal with such a change.
+         */
+    }
+
+    return APEX_NOERROR;
+}
 #else // APEX_HAVE_ACTIVEHARMONY
 int apex_throughput_throttling_ah_policy(apex_context const context) { 
     APEX_UNUSED(context);
@@ -565,6 +629,47 @@ inline void __apex_active_harmony_setup(void) {
     }
 }
 
+inline void __active_harmony_general_setup(int num_inputs, long ** inputs, long * mins, long * maxs, long * steps) {
+    static const char* session_name = "APEX Throttling";
+    hdesc = harmony_init(NULL, NULL);
+    if (hdesc == NULL) {
+        cerr << "Failed to initialize Active Harmony" << endl;
+        return;
+    }
+    if (harmony_session_name(hdesc, session_name) != 0) {
+        cerr << "Could not set Active Harmony session name" << endl;
+        return;
+    }
+    if (harmony_strategy(hdesc, "pro.so") != 0) {
+        cerr << "Failed to set Active Harmony tuning strategy" << endl;
+        return;
+    }
+    char tmpstr[12] = {0};
+    for (int i = 0 ; i < num_inputs ; i++ ) {
+        sprintf (tmpstr, "param_%d", i);
+        if (harmony_int(hdesc, tmpstr, mins[i], maxs[i], steps[i]) != 0) {
+            cerr << "Failed to define Active Harmony tuning session" << endl;
+            return;
+        }
+    }
+    if (harmony_launch(hdesc, NULL, 0) != 0) {
+        cerr << "Failed to launch Active Harmony tuning session: " << 
+            endl << harmony_error_string(hdesc) << endl;
+        return;
+    }
+    for (int i = 0 ; i < num_inputs ; i++ ) {
+        sprintf (tmpstr, "param_%d", i);
+        if (harmony_bind_int(hdesc, tmpstr, inputs[i]) != 0) {
+            cerr << "Failed to register Active Harmony variable" << endl;
+            return;
+        }
+    }
+    if (harmony_join(hdesc, NULL, 0, session_name) != 0) {
+        cerr << "Failed to join Active Harmony tuning session" << endl;
+        return;
+    }
+}
+
 inline void __apex_active_harmony_shutdown(void) {
     /* Leave the session */
     if (harmony_leave(hdesc) != 0) {
@@ -605,6 +710,32 @@ inline int __common_setup_timer_throttling(apex_optimization_criteria_t criteria
         }
     }
     return APEX_NOERROR;
+}
+
+inline int __common_setup_general_tuning(apex_optimization_criteria_t criteria,
+        apex_event_type event_type, int num_inputs, long ** inputs, long * mins,
+        long * maxs, long * steps)
+{
+    __read_common_variables();
+    if (apex_checkThrottling) {
+        function_history.calls = 0.0;
+        function_history.accumulated = 0.0;
+        function_baseline.calls = 0.0;
+        function_baseline.accumulated = 0.0;
+        throttling_criteria = criteria;
+        evaluations = (double*)(calloc(max_threads, sizeof(double)));
+        observations = (int*)(calloc(max_threads, sizeof(int)));
+        __active_harmony_general_setup(num_inputs, inputs, mins, maxs, steps);
+        apex::register_policy(event_type, apex_general_tuning_policy);
+    }
+    return APEX_NOERROR;
+}
+
+inline int __setup_general_tuning(apex_function_address the_address,
+        apex_optimization_criteria_t criteria, apex_event_type event_type, 
+        int num_inputs, long ** inputs, long * mins, long * maxs, long * steps) {
+    function_of_interest = the_address;
+    return __common_setup_general_tuning(criteria, event_type, num_inputs, inputs, mins, maxs, steps);
 }
 
 inline int __setup_timer_throttling(apex_function_address the_address, apex_optimization_criteria_t criteria,
@@ -653,6 +784,12 @@ APEX_EXPORT int setup_timer_throttling(apex_function_address the_address,
         apex_optimization_criteria_t criteria, apex_optimization_method_t method,
         unsigned long update_interval) {
     return __setup_timer_throttling(the_address, criteria, method, update_interval);
+}
+
+APEX_EXPORT int setup_general_tuning(apex_function_address the_address,
+        apex_optimization_criteria_t criteria, apex_event_type event_type, int num_inputs,
+        long ** inputs, long * mins, long * maxs, long * steps) {
+    return __setup_general_tuning(the_address, criteria, event_type, num_inputs, inputs, mins, maxs, steps);
 }
 
 APEX_EXPORT int setup_timer_throttling(std::string &the_name,

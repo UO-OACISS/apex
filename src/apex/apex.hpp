@@ -485,6 +485,11 @@ APEX_EXPORT int setup_timer_throttling(apex_function_address the_address,
         apex_optimization_criteria_t criteria,
         apex_optimization_method_t method, unsigned long update_interval);
 
+APEX_EXPORT int setup_general_tuning(apex_function_address the_address,
+        apex_optimization_criteria_t criteria,
+        apex_event_type event_type, int num_inputs, long ** inputs, long * mins,
+        long * maxs, long * steps);
+
 /**
  \brief Setup throttling to optimize for the specified function or counter.
 
