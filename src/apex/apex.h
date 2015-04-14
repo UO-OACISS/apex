@@ -228,7 +228,7 @@ APEX_EXPORT int apex_register_custom_event(const char * name);
  \param custom_data Data specific to the custom event
  \return No return value.
  */
-APEX_EXPORT void apex_custom_event(const char * event_name, void * custom_data);
+APEX_EXPORT void apex_custom_event(apex_event_type event_type, void * custom_data);
 
 /*
  * Utility functions

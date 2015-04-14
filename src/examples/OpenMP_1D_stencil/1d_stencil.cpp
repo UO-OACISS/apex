@@ -18,6 +18,7 @@ long block_size = BLOCK_SIZE;
 long active_threads = omp_get_max_threads();
 long num_iterations = NUM_ITERATIONS;
 long update_interval = UPDATE_INTERVAL;
+apex_event_type my_custom_event = APEX_CUSTOM_EVENT;
 
 void parse_arguments(int argc, char ** argv) {
     if (argc < 7) {
@@ -117,8 +118,9 @@ int main (int argc, char ** argv) {
     maxs[1] = num_cells/omp_get_max_threads();
     std::cout <<"Tuning Parameters:" << std::endl;
     std::cout <<"\tmins[0]: " << mins[0] << ", maxs[0]: " << maxs[0] << ", steps[0]: " << steps[0] << std::endl;
+    my_custom_event = apex::register_custom_event("Perform Re-block");
     apex::setup_general_tuning((apex_function_address)solve_iteration,
-                    APEX_MINIMIZE_ACCUMULATED, APEX_CUSTOM_EVENT, num_inputs,
+                    APEX_MINIMIZE_ACCUMULATED, my_custom_event, num_inputs,
                     inputs, mins, maxs, steps);
 #endif
     std::cout <<"Running 1D stencil test..." << std::endl;
@@ -127,7 +129,6 @@ int main (int argc, char ** argv) {
     std::vector<double> * next = initialize(true);
     std::vector<double> * tmp = prev;
     double prev_accumulated = 0.0;
-    std::string reblock_event = std::string("Perform Re-block");
     for (int i = 0 ; i < num_iterations ; i++) {
         solve_iteration(prev, next);
         //dump_array(next);
@@ -141,7 +142,7 @@ int main (int argc, char ** argv) {
                 prev_accumulated = p->accumulated;
                 std::cout << "Iteration: " << i << " accumulated: " << next_accumulated << std::endl;
             }
-            apex::custom_event(reblock_event, NULL);
+            apex::custom_event(my_custom_event, NULL);
             std::cout << "New thread count: " << active_threads;
             std::cout << ", New block size: " << block_size << std::endl;
         }

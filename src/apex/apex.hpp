@@ -288,7 +288,7 @@ APEX_EXPORT apex_event_type register_custom_event(const std::string &name);
  \param custom_data Data relevant to the custom event
  \return No return value.
  */
-APEX_EXPORT void custom_event(const std::string &event_name, void * custom_data);
+APEX_EXPORT void custom_event(apex_event_type event_type, void * custom_data);
 
 /**
  \brief Reset a timer or counter.
