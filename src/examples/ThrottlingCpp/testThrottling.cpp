@@ -75,7 +75,7 @@ int main(int argc, char **argv)
 
   setup_timer_throttling((apex_function_address)foo, APEX_MAXIMIZE_THROUGHPUT,
           APEX_DISCRETE_HILL_CLIMBING, 1000000);
-  int original_cap = apex::get_thread_cap();
+  int original_cap = get_thread_cap();
 
   profiler* p = start((apex_function_address)main);
   printf("PID of this process: %d\n", getpid());
@@ -90,7 +90,7 @@ int main(int argc, char **argv)
     pthread_join(thread[i], NULL);
   }
   stop(p);
-  int final_cap = apex::get_thread_cap();
+  int final_cap = get_thread_cap();
   if (final_cap < original_cap) {
     std::cout << "Test passed." << std::endl;
   }
