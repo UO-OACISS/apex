@@ -674,10 +674,12 @@ extern "C" {
         return version().c_str();
     }
 
-    apex_profiler_handle apex_start_name(const char * timer_name)
+    apex_profiler_handle apex_start(apex_function_address function_address, const char * name)
     {
-        if (timer_name) {
-            string tmp(timer_name);
+        if (function_address != APEX_NULL_FUNCTION_ADDRESS) {
+            return (apex_profiler_handle)start(function_address);
+        } else if (name) {
+            string tmp(name);
             return (apex_profiler_handle)start(tmp);
         } else {
             string tmp("");
@@ -685,14 +687,11 @@ extern "C" {
         }
     }
 
-    apex_profiler_handle apex_start_address(apex_function_address function_address)
-    {
-        return (apex_profiler_handle)start(function_address);
-    }
-
-    void apex_reset_name(const char * timer_name) {
-        if (timer_name) {
-            string tmp(timer_name);
+    void apex_reset(apex_function_address function_address, const char * name) {
+        if (function_address != APEX_NULL_FUNCTION_ADDRESS) {
+            reset(function_address);
+        } else if (name) {
+            string tmp(name);
             reset(tmp);       
         } else {
             string tmp("");
@@ -700,20 +699,16 @@ extern "C" {
         }
     }
     
-    void apex_reset_address(apex_function_address function_address) {
-        reset(function_address);
-    }
-
     void apex_set_state(apex_thread_state state) {
         set_state(state);
     }
 
-    void apex_resume_profiler(apex_profiler_handle the_profiler)
+    void apex_resume(apex_profiler_handle the_profiler)
     {
         resume((profiler*)the_profiler);
     }
 
-    void apex_stop_profiler(apex_profiler_handle the_profiler)
+    void apex_stop(apex_profiler_handle the_profiler)
     {
         stop((profiler*)the_profiler);
     }
@@ -784,13 +779,14 @@ extern "C" {
         return register_periodic_policy(period, f);
     }
 
-    apex_profile* apex_get_profile_from_address(apex_function_address function_address) {
-        return get_profile(function_address);
-    }
-
-    apex_profile* apex_get_profile_from_name(const char * timer_name) {
-        string tmp(timer_name);
-        return get_profile(tmp);
+    apex_profile* apex_get_profile(apex_function_address function_address, const char * name) {
+        if (function_address != APEX_NULL_FUNCTION_ADDRESS) {
+            return get_profile(function_address);
+        } else {
+            string tmp(name);
+            return get_profile(tmp);
+        }
+        return NULL;
     }
 
     double apex_current_power_high() {

@@ -15,6 +15,32 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/** The address of a C++ object in APEX.
+ * Not useful for the caller that gets it back, but required
+ * for stopping the timer later.
+ */
+typedef uintptr_t apex_profiler_handle; // address of internal C++ object
+
+/** A null pointer representing an APEX profiler handle.
+ * Used when a null APEX profile handle is to be passed in to
+ * apex::stop when the profiler object wasn't retained locally.
+ */
+#define APEX_NULL_PROFILER_HANDLE (apex_profiler_handle)(NULL) // for comparisons
+
+/** Rather than use void pointers everywhere, be explicit about
+ * what the functions are expecting.
+ */
+//typedef int (*apex_function_address)(void); // generic function pointer
+typedef uintptr_t apex_function_address; // generic function pointer
+
+/**
+ * Typedef for enumerating the different timer types
+ */
+typedef enum _apex_timer_id_type {
+    APEX_FUNCTION_ADDRESS = 0, /*!< The ID is a function (or instruction) address */
+    APEX_NAME_STRING           /*!< The ID is a character string */
+} apex_timer_id_type;
+
 /**
  * Typedef for enumerating the different event types
  */
@@ -81,6 +107,18 @@ typedef enum {APEX_SIMPLE_HYSTERESIS,      /*!< optimize using sliding window of
 	          APEX_ACTIVE_HARMONY          /*!< Use Active Harmony for optimization. */
 } apex_optimization_method_t;
 
+/**
+ * Structure that holds a timer ID
+ */
+typedef struct _apex_timer_id
+{
+    apex_timer_id_type type;
+    union {
+        struct { apex_function_address address; };
+        struct { char * name; };
+    };
+} apex_timer_id;
+
 /** A reference to the policy object,
  * so that policies can be "unregistered", or paused later
  */
@@ -124,24 +162,6 @@ typedef struct _profile
     double maximum;       /*!< Maximum value seen by the timer or counter */
     apex_profile_type type; /*!< Whether this is a timer or a counter */
 } apex_profile;
-
-/** The address of a C++ object in APEX.
- * Not useful for the caller that gets it back, but required
- * for stopping the timer later.
- */
-typedef uintptr_t apex_profiler_handle; // address of internal C++ object
-
-/** A null pointer representing an APEX profiler handle.
- * Used when a null APEX profile handle is to be passed in to
- * apex::stop when the profiler object wasn't retained locally.
- */
-#define APEX_NULL_PROFILER_HANDLE (apex_profiler_handle)(NULL) // for comparisons
-
-/** Rather than use void pointers everywhere, be explicit about
- * what the functions are expecting.
- */
-//typedef int (*apex_function_address)(void); // generic function pointer
-typedef uintptr_t apex_function_address; // generic function pointer
 
 /** Rather than use void pointers everywhere, be explicit about
  * what the functions are expecting.

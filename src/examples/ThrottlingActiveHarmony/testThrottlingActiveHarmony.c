@@ -18,7 +18,7 @@
 int total_iterations = NUM_THREADS * ITERATIONS;
 
 int foo (int i) {
-  apex_profiler_handle p = apex_start_address((apex_function_address)foo);
+  apex_profiler_handle p = apex_start((apex_function_address)foo, NULL);
   int j = i*i;
   double randval = 1.0 + (((double)(rand())) / RAND_MAX);
   struct timespec tim, tim2;
@@ -27,7 +27,7 @@ int foo (int i) {
   int cap = MIN(NUM_THREADS,apex_get_thread_cap());
   tim.tv_nsec = (unsigned long)(SLEEPY_TIME * randval * (cap * cap));
   nanosleep(&tim , &tim2);
-  apex_stop_profiler(p);
+  apex_stop(p);
   return j;
 }
 
@@ -40,7 +40,7 @@ void* someThread(void* tmp)
   int *myid = (int*)tmp;
   apex_register_thread("threadTest thread");
   //ApexProxy proxy = ApexProxy(__func__, __FILE__, __LINE__);
-  apex_profiler_handle p = apex_start_address((apex_function_address)someThread);
+  apex_profiler_handle p = apex_start((apex_function_address)someThread, NULL);
 #if defined (__APPLE__)
   //printf("The ID of this thread is: %lu\n", (unsigned long)pthread_self());
 #else
@@ -66,7 +66,7 @@ void* someThread(void* tmp)
       }
   }
   printf("Thread done: %d. Current Cap: %d.\n", *myid, apex_get_thread_cap());
-  apex_stop_profiler(p);
+  apex_stop(p);
   return NULL;
 }
 
@@ -80,7 +80,7 @@ int main(int argc, char **argv)
 
   int original_cap = apex_get_thread_cap();
 
-  apex_profiler_handle p = apex_start_address((apex_function_address)main);
+  apex_profiler_handle p = apex_start((apex_function_address)main, NULL);
   printf("PID of this process: %d\n", getpid());
   pthread_t thread[NUM_THREADS];
   int i;
@@ -92,7 +92,7 @@ int main(int argc, char **argv)
   for (i = 0 ; i < NUM_THREADS ; i++) {
     pthread_join(thread[i], NULL);
   }
-  apex_stop_profiler(p);
+  apex_stop(p);
   int final_cap = apex_get_thread_cap();
   if (final_cap < original_cap) {
       printf ("Test passed.\n");
