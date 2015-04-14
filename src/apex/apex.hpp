@@ -27,6 +27,8 @@
 #include "profiler_listener.hpp"
 #include "apex_options.hpp"
 #include "apex_export.h" 
+#include <boost/thread/shared_mutex.hpp>
+#include <unordered_map>
 
 #ifdef APEX_HAVE_RCR
 #include "libenergy.h"
@@ -88,6 +90,8 @@ private:
 public:
     std::vector<event_listener*> listeners;
     std::string* m_my_locality;
+    std::unordered_map<int, std::string> custom_event_names;
+    boost::shared_mutex custom_event_mutex;
     static apex* instance(); // singleton instance
     static apex* instance(int argc, char** argv); // singleton instance
     void set_node_id(int id);
@@ -264,6 +268,16 @@ APEX_EXPORT void resume(profiler* the_profiler);
 APEX_EXPORT void sample_value(const std::string &name, double value);
 
 /**
+ \brief Register an event type with APEX.
+
+ Create a user-defined event type for APEX.
+ 
+ \param name The name of the custom event
+ \return The index of the custom event.
+ */
+APEX_EXPORT apex_event_type register_custom_event(const std::string &name);
+
+/**
  \brief Trigger a custom event.
 
  This function will pass a custom event to the APEX event listeners.
@@ -403,8 +417,11 @@ APEX_EXPORT apex_profile* get_profile(apex_function_address function_address);
  */
 APEX_EXPORT apex_profile* get_profile(const std::string &timer_name);
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+
 /**
  \brief Get the set of profiles that are identified by name
+ \internal
 
  This function will return the names of current profiles for all timers and counters.
  Because profiles are updated out-of-band, it is possible that this profile
@@ -430,6 +447,8 @@ APEX_EXPORT inline double current_power_high(void) {
   return 0.0;
 #endif
 }
+
+#endif // DOXYGEN_SHOULD_SKIP_THIS
 
 /**
  \brief Initialize the power cap throttling policy.

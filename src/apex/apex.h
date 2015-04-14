@@ -208,6 +208,16 @@ APEX_EXPORT void apex_set_state(apex_thread_state state);
 APEX_EXPORT void apex_sample_value(const char * name, double value);
 
 /**
+ \brief Register an event type with APEX.
+
+ Create a user-defined event type for APEX.
+ 
+ \param name The name of the custom event
+ \return The index of the custom event.
+ */
+APEX_EXPORT int apex_register_custom_event(const char * name);
+
+/**
  \brief Trigger a custom event.
 
  This function will pass a custom event to the APEX event listeners.
