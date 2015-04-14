@@ -5,7 +5,7 @@
 #include <apex.h>
 
 #define NUM_THREADS 8
-#define ITERATIONS 1000000
+#define ITERATIONS 500000
 
 int foo (int i) {
 #ifdef __APPLE__
@@ -56,7 +56,7 @@ int policy_periodic(apex_context const context) {
 
 int policy_event(apex_context const context) {
     static APEX_NATIVE_TLS unsigned int not_every_time = 0;
-    if (not_every_time++ % 500000 != 0) return 1;
+    if (not_every_time++ % 500000 != 0) return APEX_NOERROR;
 #ifdef __APPLE__
     apex_profile * p = apex_get_profile_from_name("foo");
 #else

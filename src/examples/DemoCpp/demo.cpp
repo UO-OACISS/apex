@@ -23,7 +23,7 @@ void* someThread(void* tmp)
 
 int main (int argc, char** argv) {
   init(argc, argv, NULL);
-  cout << "APEX version : " << version() << endl;
+  cout << "APEX Version : " << version() << endl;
   set_node_id(0);
   profiler* p = start((apex_function_address)(main));
   pthread_t thread[2];

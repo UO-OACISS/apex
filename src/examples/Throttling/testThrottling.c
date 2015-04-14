@@ -12,7 +12,7 @@
 #define MIN(a,b) ((a) < (b) ? a : b)
 
 #define NUM_THREADS 48
-#define ITERATIONS 1000
+#define ITERATIONS 250
 #define SLEEPY_TIME 10000 // 10,000
 
 int total_iterations = NUM_THREADS * ITERATIONS;
@@ -77,6 +77,8 @@ int main(int argc, char **argv)
   apex_setup_timer_address_throttling((apex_function_address)foo, APEX_MINIMIZE_ACCUMULATED,
           APEX_DISCRETE_HILL_CLIMBING, 1000000);
 
+  int original_cap = apex_get_thread_cap();
+
   apex_profiler_handle p = apex_start_address((apex_function_address)main);
   //printf("PID of this process: %d\n", getpid());
   pthread_t thread[NUM_THREADS];
@@ -90,6 +92,10 @@ int main(int argc, char **argv)
     pthread_join(thread[i], NULL);
   }
   apex_stop_profiler(p);
+  int final_cap = apex_get_thread_cap();
+  if (final_cap < original_cap) {
+    printf("Test passed.\n");
+  }
   apex_finalize();
   return(0);
 }

@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
   /* Initialize MPI */
 
   int required, provided;
-  required = MPI_THREAD_SERIALIZED;
+  required = MPI_THREAD_MULTIPLE;
   MPI_Init_thread(&argc, &argv, required, &provided);
   if (provided < required) {
     printf ("Your MPI installation doesn't allow multiple threads to communicate. Exiting.\n");
@@ -168,7 +168,7 @@ static unit_result_t do_work(unit_of_work_t work) {
   // introduce an imbalance
   //printf("%d working...\n\n", rank);
     for (multiplier = 0 ; multiplier < ((rank % 2) + 1) ; multiplier++) {
-      for (i = 0 ; i < 500000000 ; i++) {
+      for (i = 0 ; i < 250000000 ; i++) {
         dummy = dummy * (dummy + data[work]);
         if (dummy > (INT_MAX >> 1)) {
           dummy = 1;

@@ -21,7 +21,7 @@ long update_interval = UPDATE_INTERVAL;
 apex_event_type my_custom_event = APEX_CUSTOM_EVENT;
 
 void parse_arguments(int argc, char ** argv) {
-    if (argc < 7) {
+    if (argc > 1 && argc < 7) {
         std::cout << "Usage: " << argv[0] << " -c <num_cells> -b <block_size> -i <iterations>" << std::endl;
         exit(0);
     }
