@@ -14,6 +14,12 @@
 #include <iostream>
 #include <boost/make_shared.hpp>
 
+#ifdef APEX_HAVE_TAU
+#define PROFILING_ON
+#define TAU_DOT_H_LESS_HEADERS
+#include <TAU.h>
+#endif
+
 using namespace std;
 
 namespace apex {
@@ -45,12 +51,25 @@ policy_handler::policy_handler (uint64_t period_microseconds) : handler(period_m
 #endif
 
 bool policy_handler::_handler(void) {
-  static int dummy = initialize_worker_thread_for_TAU();
-  APEX_UNUSED(dummy);
+  static bool _initialized = false;
+  if (!_initialized) {
+      initialize_worker_thread_for_TAU();
+      _initialized = true;
+  }
   if (_terminate) return true;
+#ifdef APEX_HAVE_TAU
+  if (apex_options::use_tau()) {
+    TAU_START("policy_handler::_handler");
+  }
+#endif
   periodic_event_data data;
   this->on_periodic(data);
   this->_reset();
+#ifdef APEX_HAVE_TAU
+  if (apex_options::use_tau()) {
+    TAU_STOP("policy_handler::_handler");
+  }
+#endif
   return true;
 }
 
@@ -80,9 +99,9 @@ inline void policy_handler::_reset(void) {
 
 int policy_handler::register_policy(const apex_event_type & when,
     std::function<int(apex_context const&)> f) {
-  int id = next_id++;
-  boost::shared_ptr<policy_instance> instance(
-    boost::make_shared<policy_instance>(id, f));
+    int id = next_id++;
+    boost::shared_ptr<policy_instance> instance(
+        boost::make_shared<policy_instance>(id, f));
     switch(when) {
       case APEX_STARTUP: {
         boost::unique_lock<mutex_type> l(startup_mutex);
@@ -119,19 +138,25 @@ int policy_handler::register_policy(const apex_event_type & when,
         stop_event_policies.push_back(instance);
         break;
       }
+      case APEX_YIELD_EVENT: {
+        boost::unique_lock<mutex_type> l(yield_event_mutex);
+        yield_event_policies.push_back(instance);
+        break;
+      }
       case APEX_SAMPLE_VALUE: {
         boost::unique_lock<mutex_type> l(sample_value_mutex);
         sample_value_policies.push_back(instance);
         break;
       }
-      case APEX_CUSTOM_EVENT: {
-        boost::unique_lock<mutex_type> l(custom_event_mutex);
-        custom_event_policies.push_back(instance);
-        break;
-      }
       case APEX_PERIODIC: {
         boost::unique_lock<mutex_type> l(periodic_mutex);
         periodic_policies.push_back(instance);
+        break;
+      }
+      //case APEX_CUSTOM_EVENT:
+      default: {
+        boost::unique_lock<mutex_type> l(custom_event_mutex);
+        custom_event_policies[when].push_back(instance);
         break;
       }
   }
@@ -205,20 +230,33 @@ void policy_handler::on_start(apex_function_address function_address, string *ti
 }
 
 void policy_handler::on_stop(profiler *p) {
-  if (_terminate) return;
-            if (stop_event_policies.empty())
-                return;
-        //call_policies(stop_event_policies, event_data);
-  for(const boost::shared_ptr<policy_instance>& policy : stop_event_policies) {
-    apex_context my_context;
-    my_context.event_type = APEX_STOP_EVENT;
-    my_context.policy_handle = NULL;
-    const bool result = policy->func(my_context);
-    if(result != APEX_NOERROR) {
-      printf("Warning: registered policy function failed!\n");
+    if (_terminate) return;
+    if (stop_event_policies.empty()) return;
+    for(const boost::shared_ptr<policy_instance>& policy : stop_event_policies) {
+        apex_context my_context;
+        my_context.event_type = APEX_STOP_EVENT;
+        my_context.policy_handle = NULL;
+        const bool result = policy->func(my_context);
+        if(result != APEX_NOERROR) {
+            printf("Warning: registered policy function failed!\n");
+        }
     }
-  }
-  APEX_UNUSED(p);
+    APEX_UNUSED(p);
+}
+
+void policy_handler::on_yield(profiler *p) {
+    if (_terminate) return;
+    if (yield_event_policies.empty()) return;
+    for(const boost::shared_ptr<policy_instance>& policy : yield_event_policies) {
+        apex_context my_context;
+        my_context.event_type = APEX_YIELD_EVENT;
+        my_context.policy_handle = NULL;
+        const bool result = policy->func(my_context);
+        if(result != APEX_NOERROR) {
+            printf("Warning: registered policy function failed!\n");
+        }
+    }
+    APEX_UNUSED(p);
 }
 
 void policy_handler::on_resume(profiler * p) {
@@ -235,9 +273,9 @@ void policy_handler::on_sample_value(sample_value_event_data &event_data) {
 
 void policy_handler::on_custom_event(custom_event_data &event_data) {
   if (_terminate) return;
-            if (custom_event_policies.empty())
+            if (custom_event_policies[event_data.event_type].empty())
                 return;
-        call_policies(custom_event_policies, event_data);
+        call_policies(custom_event_policies[event_data.event_type], event_data);
 }
 
 void policy_handler::on_periodic(periodic_event_data &event_data) {

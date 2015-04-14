@@ -1,26 +1,10 @@
 STEP 0: (For the impatient)
 ---------------------------------------------------------------
-modify bootstrap-notau.sh as necessary, and run it.
+copy and modify ./bootstrap-configs/bootstrap-$arch.sh as necessary, and run it.
 
-STEP 1: Configuring and building APEX for HPX:
+STEP 1: Configuring and building APEX:
 ---------------------------------------------
-(starting in the apex directory, the root of this tarball)
-
-mkdir build
-cd build
-export BOOST_ROOT=/usr/local/packages/boost/1.55.0  (or equivalent)
-cmake -DCMAKE_INSTALL_PREFIX=. ..
-   (or)
-cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=. ..
-make
-make test
-make install
-
-Precursor: Building BOOST:
-------------------------
-BOOST 1.55.0
-./bootstrap.sh
-./b2
-
+A fairly recent version of the documentation is available here:
+http://www.nic.uoregon.edu/~khuck/apex_docs/doc/html/index.html
 
 

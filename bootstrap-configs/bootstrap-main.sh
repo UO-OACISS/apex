@@ -44,7 +44,7 @@ else
 fi
 
 if [ ${OMPT_ROOT+x} ]; then
-	ompt_config="-DOMPT_ROOT=$OMPT_ROOT"
+	ompt_config="-DOMPT_ROOT=$OMPT_ROOT -DUSE_OMPT=TRUE"
 else
 	ompt_config="-DUSE_OMPT=FALSE"
 fi

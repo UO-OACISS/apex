@@ -1,5 +1,5 @@
 if(HPX_WITH_APEX)
-    include(CMakeLists.lsu)
+    include(CMakeLists.hpx)
     return()
 else()
     include(CMakeLists.standalone)

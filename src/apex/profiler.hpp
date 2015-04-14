@@ -90,20 +90,25 @@ class profile {
 private:
 	apex_profile _profile;
 public:
-	profile(double initial, apex_profile_type type = APEX_TIMER) {
+	profile(double initial, bool yielded = false, apex_profile_type type = APEX_TIMER) {
         _profile.type = type;
-		_profile.calls = 1.0;
+        if (!yielded) {
+		    _profile.calls = 1.0;
+        }
 		_profile.accumulated = initial;
 		_profile.sum_squares = initial*initial;
 		_profile.minimum = initial;
 		_profile.maximum = initial;
 	};
-	void increment(double increase) {
+	void increment(double increase, bool yielded) {
 		_profile.accumulated += increase;
 		_profile.sum_squares += (increase * increase);
+        // if not a fully completed task, don't modify these until it is done
 		_profile.minimum = _profile.minimum > increase ? increase : _profile.minimum;
 		_profile.maximum = _profile.maximum < increase ? increase : _profile.maximum;
-		_profile.calls = _profile.calls + 1.0;
+        if (!yielded) {
+		  _profile.calls = _profile.calls + 1.0;
+        } 
 	}
 	void increment_resume(double increase) {
 		_profile.accumulated += increase;

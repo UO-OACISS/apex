@@ -58,6 +58,12 @@
 
 #define APEX_MAIN "APEX MAIN"
 
+#ifdef APEX_HAVE_TAU
+#define PROFILING_ON
+#define TAU_DOT_H_LESS_HEADERS
+#include <TAU.h>
+#endif
+
 using namespace std;
 using namespace apex;
 
@@ -186,7 +192,7 @@ namespace apex {
         if(p->is_reset == reset_type::CURRENT) {
             theprofile->reset();
         } else {
-            theprofile->increment(p->elapsed());
+            theprofile->increment(p->elapsed(), p->is_resume);
         }
 #if defined(APEX_THROTTLE)
         // Is this a lightweight task? If so, we shouldn't measure it any more,
@@ -202,7 +208,7 @@ namespace apex {
 #endif
       } else {
         // Create a new profile for this name.
-        theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_counter ? APEX_COUNTER : APEX_TIMER);
+        theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_resume, p->is_counter ? APEX_COUNTER : APEX_TIMER);
         name_map[*(p->timer_name)] = theprofile;
 #ifdef APEX_HAVE_HPX3
         if(!done) {
@@ -235,11 +241,11 @@ namespace apex {
         if(p->is_reset == reset_type::CURRENT) {
             theprofile->reset();
         } else {
-            theprofile->increment(p->elapsed());
+            theprofile->increment(p->elapsed(), p->is_resume);
         }
       } else {
         // Create a new profile for this name.
-        theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_counter ? APEX_COUNTER : APEX_TIMER);
+        theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_resume, p->is_counter ? APEX_COUNTER : APEX_TIMER);
         (*the_map)[*(p->timer_name)] = theprofile;
       }
     } else { // address rather than name
@@ -250,7 +256,7 @@ namespace apex {
         if(p->is_reset == reset_type::CURRENT) {
             theprofile->reset();
         } else {
-            theprofile->increment(p->elapsed());
+            theprofile->increment(p->elapsed(), p->is_resume);
         }
 #if defined(APEX_THROTTLE)
         // Is this a lightweight task? If so, we shouldn't measure it any more,
@@ -270,7 +276,7 @@ namespace apex {
 #endif
       } else {
         // Create a new profile for this address.
-        theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed());
+        theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_resume);
         address_map[p->action_address] = theprofile;
       }
       // now do thread-specific measurement
@@ -282,11 +288,11 @@ namespace apex {
         if(p->is_reset == reset_type::CURRENT) {
             theprofile->reset();
         } else {
-            theprofile->increment(p->elapsed());
+            theprofile->increment(p->elapsed(), p->is_resume);
         }
       } else {
         // Create a new profile for this address.
-        theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed());
+        theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_resume);
         (*the_map)[p->action_address] = theprofile;
       }
     }
@@ -578,7 +584,16 @@ namespace apex {
    * as it goes. */
   void profiler_listener::process_profiles(void)
   {
-    static int dummy = initialize_worker_thread_for_TAU();
+    static bool _initialized = false;
+    if (!_initialized) {
+      initialize_worker_thread_for_TAU();
+      _initialized = true;
+    }
+#ifdef APEX_HAVE_TAU
+    if (apex_options::use_tau()) {
+      TAU_START("profiler_listener::process_profiles");
+    }
+#endif
 #ifdef APEX_HAVE_HPX3
     static bool registered = false;
     if(!registered) {
@@ -597,6 +612,13 @@ namespace apex {
     // Main loop. Stay in this loop unless "done".
     while (!done) {
       queue_signal.wait();
+#ifdef APEX_HAVE_TAU
+      /*
+    if (apex_options::use_tau()) {
+      TAU_START("profiler_listener::process_profiles: main loop");
+    }
+    */
+#endif
       for (i = 0 ; i < profiler_queues.size(); i++) {
         if (profiler_queues[i]) {
           while (profiler_queues[i]->pop(p)) {
@@ -616,7 +638,13 @@ namespace apex {
             }
           }
       }
-
+#ifdef APEX_HAVE_TAU
+      /*
+      if (apex_options::use_tau()) {
+        TAU_STOP("profiler_listener::process_profiles: main loop");
+      }
+      */
+#endif
     }
 
     // We might be done, but check to make sure the queues are empty
@@ -652,8 +680,11 @@ namespace apex {
       }
     }
 
-    // cleanup.
-    delete_profiles();
+#ifdef APEX_HAVE_TAU
+    if (apex_options::use_tau()) {
+      TAU_STOP("profiler_listener::process_profiles");
+    }
+#endif
   }
 
 
@@ -811,6 +842,11 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       }
 #endif
     }
+    /* The cleanup is disabled for now. Why? Because we want to be able
+     * to access the profiles at the end of the run, after APEX has 
+     * finalized. */
+    // cleanup.
+    // delete_profiles();
   }
 
   /* When a new node is created */
@@ -909,21 +945,36 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         int rc = 0;
         rc = PAPI_read( EventSet, values );
         PAPI_ERROR_CHECK(PAPI_read);
-    /*
-        if (p->have_name)
-          cout << p->timer_name;
-    else
-          cout << *(lookup_address((uintptr_t)p->action_address, true));
-    cout << endl;
-        cout << "Cycles: " << values[0] ;
-        cout << ", Instructions: " << values[1] ;
-        cout << ", FPOPS: " << values[2] ;
-        cout << ", FPINS: " << values[3] ;
-        cout << endl << "IPC: " << (double)(values[1])/(double)(values[0]) ;
-        cout << endl << "FLOP%INS: " << (double)(values[2])/(double)(values[1]) ;
-        cout << endl << "FLINS%INS: " << (double)(values[3])/(double)(values[1]) ;
-        cout << endl;
-    */
+#endif
+        bool worked = profiler_queues[my_tid]->push(p);
+        if (!worked) {
+            static bool issued = false;
+            if (!issued) {
+                issued = true;
+                if(p->have_name) {
+                    cout << "APEX Warning : failed to push " << *(p->timer_name) << endl;
+                } else {
+                    cout << "APEX Warning : failed to push " << p->action_address << endl;
+                }
+                cout << "One or more frequently-called, lightweight functions is being timed." << endl;
+            }
+        }
+        queue_signal.post();
+      }
+    }
+  }
+
+  /* Stop the timer, if applicable, and queue the profiler object */
+  void profiler_listener::on_yield(profiler * p) {
+    if (!_terminate) {
+      if (p) {
+        p->stop();
+        p->is_resume = true;
+#if APEX_HAVE_PAPI
+        long long * values = p->papi_stop_values;
+        int rc = 0;
+        rc = PAPI_read( EventSet, values );
+        PAPI_ERROR_CHECK(PAPI_read);
 #endif
         bool worked = profiler_queues[my_tid]->push(p);
         if (!worked) {

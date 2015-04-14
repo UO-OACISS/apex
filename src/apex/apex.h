@@ -126,6 +126,21 @@ APEX_EXPORT apex_profiler_handle apex_start_address(apex_function_address functi
 APEX_EXPORT void apex_stop_profiler(apex_profiler_handle profiler);
 
 /**
+ \brief Stop a timer, but don't increment the number of calls.
+
+ This function will stop the specified profiler object, and queue
+ the profiler to be processed out-of-band. The timer value will 
+ eventually added to the profile for the process. The number of calls
+ will NOT be incremented - this "task" was yielded, not completed.
+ It will be resumed by another thread at a later time.
+ 
+ \param profiler The handle of the profiler object.
+ \return No return value.
+ \sa apex_start_name, apex_start_address
+ */
+APEX_EXPORT void apex_yield_profiler(apex_profiler_handle profiler);
+
+/**
  \brief Resume a timer.
 
  This function will restart the specified profiler object. The
@@ -193,6 +208,16 @@ APEX_EXPORT void apex_set_state(apex_thread_state state);
 APEX_EXPORT void apex_sample_value(const char * name, double value);
 
 /**
+ \brief Register an event type with APEX.
+
+ Create a user-defined event type for APEX.
+ 
+ \param name The name of the custom event
+ \return The index of the custom event.
+ */
+APEX_EXPORT int apex_register_custom_event(const char * name);
+
+/**
  \brief Trigger a custom event.
 
  This function will pass a custom event to the APEX event listeners.
@@ -203,7 +228,7 @@ APEX_EXPORT void apex_sample_value(const char * name, double value);
  \param custom_data Data specific to the custom event
  \return No return value.
  */
-APEX_EXPORT void apex_custom_event(const char * event_name, void * custom_data);
+APEX_EXPORT void apex_custom_event(apex_event_type event_type, void * custom_data);
 
 /*
  * Utility functions

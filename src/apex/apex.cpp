@@ -26,9 +26,8 @@
 //#define TAU_GNU
 #define TAU_DOT_H_LESS_HEADERS
 #include <TAU.h>
-#else
-#include "profiler_listener.hpp"
 #endif
+#include "profiler_listener.hpp"
 
 #ifdef APEX_HAVE_MSR
 #include "msr_core.h"
@@ -379,6 +378,26 @@ void stop(profiler* the_profiler)
     thread_instance::instance().current_timer = NULL;
 }
 
+void yield(profiler* the_profiler)
+{
+    APEX_TIMER_TRACER("yield  ", the_profiler->timer_name->c_str())
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance) return; // protect against calls after finalization
+    profiler * p;
+    if (the_profiler == NULL) {
+        p = thread_instance::instance().current_timer;
+    } else {
+        p = (profiler*)the_profiler;
+    }
+    if (p == NULL) return;
+    if (_notify_listeners) {
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            instance->listeners[i]->on_yield(p);
+        }
+    }
+    thread_instance::instance().current_timer = NULL;
+}
+
 void sample_value(const std::string &name, double value)
 {
     APEX_TRACER
@@ -438,12 +457,27 @@ void sample_value(const std::string &name, double value)
     delete(event_data);
 }
 
-void custom_event(const std::string &name, void * custom_data)
-{
+boost::atomic<int> custom_event_count(APEX_CUSTOM_EVENT);
+
+apex_event_type register_custom_event(const std::string &name) {
+    APEX_TRACER
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance) return APEX_CUSTOM_EVENT; // protect against calls after finalization
+    if (custom_event_count == APEX_MAX_EVENTS) {
+      std::cerr << "Cannot register more than MAX Events! (set to " << APEX_MAX_EVENTS << ")" << std::endl;
+    }
+    boost::unique_lock<boost::shared_mutex> l(instance->custom_event_mutex);
+    instance->custom_event_names[custom_event_count] = name;
+    int tmp = custom_event_count;
+    custom_event_count++; 
+    return (apex_event_type)tmp;
+}
+
+void custom_event(apex_event_type event_type, void * custom_data) {
     APEX_TRACER
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
-    custom_event_data event_data(name, custom_data);
+    custom_event_data event_data(event_type, custom_data);
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_custom_event(event_data);
@@ -704,10 +738,15 @@ extern "C" {
         sample_value(tmp, value);
     }
 
-    void apex_custom_event(const char * name, void * custom_data)
+    apex_event_type apex_register_custom_event(const char * name)
     {
         string tmp(name);
-        custom_event(tmp, custom_data);
+        return register_custom_event(tmp);
+    }
+
+    void apex_custom_event(apex_event_type event_type, void * custom_data)
+    {
+        custom_event(event_type, custom_data);
     }
 
     void apex_set_node_id(int id)

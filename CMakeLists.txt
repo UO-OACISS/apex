@@ -196,13 +196,17 @@ else()
 	endif()
 endif()
 
-if (USE_OMPT)
-    find_package(OMPT)
-    if (OMPT_FOUND)
-        include_directories(${OMPT_INCLUDE_DIRS})
-        set(LIBS ${LIBS} ${OMPT_LIBRARIES})
-        set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${OMPT_LIBRARY_DIR})
-    endif()
+find_package(OpenMP)
+ 
+if (OPENMP_FOUND)
+  if (USE_OMPT)
+      find_package(OMPT)
+      if (OMPT_FOUND)
+          include_directories(${OMPT_INCLUDE_DIRS})
+          set(LIBS ${LIBS} ${OMPT_LIBRARIES})
+          set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${OMPT_LIBRARY_DIR})
+      endif()
+  endif()
 endif()
 
 if(EXISTS "/proc/stat")
@@ -307,14 +311,15 @@ add_subdirectory (src/examples/DemoC)
 # Add a test program which actually uses the CPU
 add_subdirectory (src/examples/Matmult)  
 if(MPI_CXX_FOUND)
-add_subdirectory (src/comm) 
-add_subdirectory (src/comm/mpi) 
-add_subdirectory (src/examples/MPITest)  
-add_subdirectory (src/examples/MPIGlobalTest)  
-add_subdirectory (src/examples/MPIImbalancePolicy)  
+  add_subdirectory (src/comm) 
+  add_subdirectory (src/comm/mpi) 
+  add_subdirectory (src/examples/MPITest)  
+  add_subdirectory (src/examples/MPIGlobalTest)  
+  add_subdirectory (src/examples/MPIImbalancePolicy)  
 endif()
 add_subdirectory (src/examples/TestITT)
 add_subdirectory (src/examples/TestThreads)
+add_subdirectory (src/examples/CountCalls)
 add_subdirectory (src/examples/Overhead)
 add_subdirectory (src/examples/PolicyEngineExample)
 add_subdirectory (src/examples/PolicyEngineCppExample)
@@ -323,56 +328,95 @@ add_subdirectory (src/examples/TestGetPower)
 add_subdirectory (src/examples/Throttling)
 add_subdirectory (src/examples/ThrottlingCpp)
 if (ACTIVEHARMONY_FOUND)
-add_subdirectory (src/examples/ThrottlingActiveHarmony)
+  add_subdirectory (src/examples/ThrottlingActiveHarmony)
 endif()
-if(OMPT_FOUND)
-add_subdirectory (src/examples/TestOpenMP)
+if(OPENMP_FOUND)
+  add_subdirectory (src/examples/OpenMP_1D_stencil)
+  if(OMPT_FOUND)
+    add_subdirectory (src/examples/TestOpenMP)
+  endif()
 endif()
 add_subdirectory (doc) 
 
 # turn on "make test" support
 enable_testing()
+
 # does the application run
-add_test (ApexCppRuns src/examples/DemoCpp/apexCppDemo)
-add_test (ApexCRuns src/examples/DemoC/apexCDemo)
+add_test (TestDemoC src/examples/DemoC/apexCDemo)
+set_tests_properties(TestDemoC PROPERTIES PASS_REGULAR_EXPRESSION "APEX Version : ")
+add_test (TestDemoCpp src/examples/DemoCpp/apexCppDemo)
+set_tests_properties(TestDemoCpp PROPERTIES PASS_REGULAR_EXPRESSION "APEX Version : ")
+
 # Run the test program which actually uses the CPU
-add_test (MatmultRuns src/examples/Matmult/matmult)  
+add_test (TestMatmult src/examples/Matmult/matmult)  
+set_tests_properties(TestMatmult PROPERTIES PASS_REGULAR_EXPRESSION "Done.")
+
 # Run the test program which tests the ITT interface
-add_test (TestITTRuns src/examples/TestITT/testITT)  
+add_test (TestTestITT src/examples/TestITT/testITT)  
+set_tests_properties(TestTestITT PROPERTIES PASS_REGULAR_EXPRESSION "ITT demo.")
+
 # Run the test program which tests the threads interface
-add_test (TestThreadsRuns src/examples/TestThreads/testThreads)  
+add_test (TestTestThreads src/examples/TestThreads/testThreads)  
+set_tests_properties(TestTestThreads PROPERTIES PASS_REGULAR_EXPRESSION "The ID of this thread is:")
+
+# Run the test program which tests the yielding
+add_test (TestCountCalls src/examples/CountCalls/count_calls)  
+set_tests_properties(TestCountCalls PROPERTIES PASS_REGULAR_EXPRESSION "Test passed.")
+
 # Run the test program which tests the overhead in the threads interface
-add_test (TestOverhead_noPolicy src/examples/Overhead/testOverhead)  
+add_test (TestOverhead src/examples/Overhead/testOverhead)  
+set_tests_properties(TestOverhead PROPERTIES PASS_REGULAR_EXPRESSION "The ID of this thread is:")
+
 # TEst the policy engine support
-add_test (TestPolicyC_Policy src/examples/PolicyEngineExample/testPolicyEngine)  
-add_test (TestPolicyCpp_Policy src/examples/PolicyEngineCppExample/testCppPolicyEngine)  
-set_tests_properties(TestPolicyC_Policy TestPolicyCpp_Policy PROPERTIES ENVIRONMENT "APEX_POLICY=1")
+add_test (TestPolicyEngineExample src/examples/PolicyEngineExample/testPolicyEngine)  
+set_tests_properties(TestPolicyEngineExample PROPERTIES ENVIRONMENT "APEX_POLICY=1")
+set_tests_properties(TestPolicyEngineExample PROPERTIES FAIL_REGULAR_EXPRESSION "Warning: registered policy function failed!")
+
+add_test (TestPolicyEngineCppExample src/examples/PolicyEngineCppExample/testCppPolicyEngine)  
+set_tests_properties(TestPolicyEngineCppExample PROPERTIES ENVIRONMENT "APEX_POLICY=1")
+set_tests_properties(TestPolicyEngineCppExample PROPERTIES FAIL_REGULAR_EXPRESSION "Warning: registered policy function failed!")
+
 # Test the resetting of counters and timers
 add_test (TestReset src/examples/TestReset/testReset)
+set_tests_properties(TestReset PROPERTIES PASS_REGULAR_EXPRESSION "Test passed.")
+
 # Test the power/energy support
 add_test (TestGetPower src/examples/TestGetPower/testpower)
+set_tests_properties(TestGetPower PROPERTIES PASS_REGULAR_EXPRESSION "Power at end:")
+
 # Test the throttling support
 add_test (TestThrottling src/examples/Throttling/testThrottling)  
 set_tests_properties(TestThrottling PROPERTIES ENVIRONMENT "APEX_THROTTLING=1")
+set_tests_properties(TestThrottling PROPERTIES PASS_REGULAR_EXPRESSION "Test passed.")
+
 add_test (TestThrottlingCpp src/examples/ThrottlingCpp/testThrottlingCpp)  
 set_tests_properties(TestThrottlingCpp PROPERTIES ENVIRONMENT "APEX_THROTTLING=1")
+set_tests_properties(TestThrottlingCpp PROPERTIES PASS_REGULAR_EXPRESSION "Test passed.")
+
 if (ACTIVEHARMONY_FOUND)
 add_test (TestThrottlingActiveHarmony src/examples/ThrottlingActiveHarmony/testThrottlingActiveHarmony)  
 set_tests_properties(TestThrottlingActiveHarmony PROPERTIES ENVIRONMENT "APEX_THROTTLING=1")
 set_tests_properties(TestThrottlingActiveHarmony PROPERTIES ENVIRONMENT "HARMONY_HOME=${ACTIVEHARMONY_ROOT}")
+set_tests_properties(TestThrottlingActiveHarmony PROPERTIES PASS_REGULAR_EXPRESSION "Test passed.")
 endif()
 
 if(MPI_CXX_FOUND)
 # Run the test program which tests the mpi interface
-  add_test (MPITestRuns ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
+  add_test (TestMPITest ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
 ${MPIEXEC_PREFLAGS} src/examples/MPITest/mpi_test ${MPIEXEC_POSTFLAGS})  
-  add_test (MPIGlobalTestRuns ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
+  add_test (TestMPIGlobalTest ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
 ${MPIEXEC_PREFLAGS} src/examples/MPIGlobalTest/mpi_global_test ${MPIEXEC_POSTFLAGS})  
-  add_test (MPIImbalancePolicyRUns ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
+  add_test (TestMPIImbalancePolicy ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
       ${MPIEXEC_PREFLAGS} src/examples/MPIImbalancePolicy/mpi_imbalance_test ${MPIEXEC_POSTFLAGS})  
 endif()
 
-if(OMPT_FOUND)
-	add_test (TestOpenMP src/examples/TestOpenMP/openmp_test)
+if(OPENMP_FOUND)
+    add_test (TestOpenMPStencil src/examples/OpenMP_1D_stencil/1d_stencil)
+    set_tests_properties(TestOpenMPStencil PROPERTIES ENVIRONMENT "APEX_THROTTLING=1")
+    set_tests_properties(TestOpenMPStencil PROPERTIES ENVIRONMENT "HARMONY_HOME=${ACTIVEHARMONY_ROOT}")
+    set_tests_properties(TestOpenMPStencil PROPERTIES PASS_REGULAR_EXPRESSION "Tuning has converged.")
+  if(OMPT_FOUND)
+	  add_test (TestOpenMP src/examples/TestOpenMP/openmp_test)
+  endif()
 endif()
 

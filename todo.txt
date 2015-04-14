@@ -1,5 +1,146 @@
-Todo items:
-------------
+ToDo list, as of April 10, 2015:
+--------------------------------
+- collect idle rate, queue length statistics
+    - hpx3 (Nick)
+    - Hpx5 (kevin)
+- clean up MPI implementation
+- Refactor the communication API
+- Refactor the instrumentation API (consistently handle name/address?)
+- Get more application cases for HPX5
+    - miniAMR
+- Find multi-objective optimization case (1D stencil?)
+    - # threads
+    - decomposition granularity
+- Use Cases:
+    - Changing queue order from FIFO -> LIFO
+    - Triggering repartition (1D stencil)
+    - Triggering AMR
+    - Triggering load balance
+    - Triggering algorithm change
+    - Triggering device change (GPU, Phi example)
+    - Throttling for memory (monitor headroom?)
+- Make APEX 0.1 release.
+- Refine OMPT support
+    - make 1D stencil task example?
+    - Polychronopolous OpenMP SC paper
+    - Change OpenMP runtime options at runtime with policy?
+- Make event generation asynchronous? - i.e. return to worker as fast as possible
+- validate PAPI support
+- segregate examples and tests
+- validate test output
+- Verify TAU support
+    - HPX-3
+        - Trace
+    - HPX-5
+        - Profile
+        - Trace
+- set up buildbot to test all configuration combinations?
+    - Active Harmony
+    - TAU
+    - PAPI
+    - MPI
+    - OMPT
+- APEX should do a global reduction before dumping the profile to the screen. 
+  Currently only the master process data is dumped.
+    - Related: the reduction feature should take a list of profiles, not just one.  
+      The list can be just one, of course.
+    - Step 1: worker nodes write number of timers/counters to memory location
+    - Step 2: root node gets number of timers/counters from each node
+    - Step 3: worker nodes write profiles to memory location (strings! how!)
+    - Step 4: root node gets profiles/counters from each node
+- Modify the remote "steal" as a policy?
+- Experiments without APEX:
+    - Run application in parametric mode, with variable numbers of HPX threads.
+        - libPXGL - sssp
+        - miniAMR
+- Apex for MPI_T? Using MPI
+- RIOS - should RIOS be providing power, temperature, network, disk, etc. 
+  status information? That is, should we be going through RCR/RIOS to get these 
+  things, rather than /proc?
+- Get LULESH benchmark for Jesus 
+- ompss example?
+- ARGO opportunities?
+- Dynamic adaption to perturbation/variation?
+- AMR example?
+- APEX API refactoring.  Needs to be done!
+- Items from meeting with LSU:
+    - Need to double check that APEX doesn't lock worker threads
+      (use HPX semaphore)
+    - Need to double-check thread synchronization in APEX in general.
+      (see above)
+    - Set up a build-bot? (buildbot)
+    - Idle rate is a good proxy for memory bandwidth saturation 
+    - Partition size controls work granularity in 1D stencil.
+    - STAR is a good example for load balancing.
+    - profiler_listener should be HPX thread, and use HPX 
+      semaphore (user level signaling) instead of OS level signaling.
+    - get_profile should return a const pointer to an apex_profiler object
+    - Add more self-validating tests to HPX-3, HPX-5 
+    - Add apex_yield() function. (done - April 9, 2015)
+- Move from googlecode to github (done - April 6, 2015)
+- Change HPX-3 APEX integration from submodule to git cmake macro (done - April 9, 2015)
+
+
+Completed ToDo list, as of April 10, 2015:
+------------------------------------------
+- email any/all details for APEX to Martin so we can think about PIPER integration.
+- Write the main page documentation for APEX.
+    - Introduction
+    - Interface links
+    - Installation
+    - Library dependencies
+    - Environment Variables
+    - Usage Examples
+    - Acknowledgements
+- Add lots of comments to code for Doxygen documentation
+- Add doxygen generation
+- instrument HPX3 runtime directly, without ITT interface.
+- "reset counters" support - all or individual or a set. Maybe just a set? hard to do with C interface?
+    - By name
+    - By address
+- integrate HPX5 runtime modifications into a separate library - make it a policy?
+- clean up HPX5 implementation
+- make separate APEX support library in HPX5
+- update to new source code structure in HPX5
+    - make libapex_hpx (move from extras/apex)
+- move throttling code to APEX repo for use in HPX3
+- Get more application cases for HPX3
+    - miniGhost
+    - 1D stencil
+- Get more application cases for HPX5
+    - LULESH
+    - libPXGL - sssp
+- Use Cases:
+    - throttling for memory / power (HPX5 LULESH, SSSP examples)
+    - Changing number of threads dynamically for performance (Patricia Grubel example)
+    - Online monitoring
+- Periodic power measurement on Edison (using RCR or direct) - reads it directly.
+- Periodic /proc/stat data on Edison (using RCR or direct) - APEX reads it directly, when available.
+- OMPT support
+    - Generic event handler interface
+    - With an event stack?
+- Verify TAU support
+    - HPX-3
+        - Profile
+    - HPX-5
+        - Profile
+- Change all void* types in APEX to apex_function or whatever named type is appropriate
+- Test with valgrind to check for leaks and potential memory errors?
+- OMPT example
+- Build everything on Edison
+    - APEX - needs boost libraries added to package.
+    - HPX5
+    - HPX5 with APEX
+    - HPX3
+- When apex_finalize happens, stop all periodic policies!
+- Move the throttling code to the APEX library
+- Experiments without APEX:
+    - Run application in parametric mode, with variable numbers of HPX threads.
+        - LULESH
+
+
+Todo items (prior to April 10, 2015):
+-------------------------------------
 - integrate APEX into HPX (done)
   - move source files into HPX source directory  (done)
   - update HPX CMake files to find APEX requirements (done)
