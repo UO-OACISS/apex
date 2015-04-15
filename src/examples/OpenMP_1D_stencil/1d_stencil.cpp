@@ -101,6 +101,13 @@ void solve_iteration(std::vector<double> * in_array, std::vector<double> * out_a
     apex::stop(p);
 }
 
+void report_stats(void) {
+    double num_blocks = (double)num_cells / (double)block_size;
+    double blocks_per_thread = num_blocks / (double)active_threads;
+    std::cout << "number of blocks: " << num_blocks;
+    std::cout << ", blocks per thread: " << blocks_per_thread << std::endl;
+}
+
 int main (int argc, char ** argv) {
     apex::init(argc, argv, "openmp test");
     parse_arguments(argc, argv);
@@ -148,7 +155,7 @@ int main (int argc, char ** argv) {
         }
     }
     //dump_array(tmp);
-
+    report_stats();
     delete(prev);
     delete(next);
     std::cout << "done." << std::endl;
