@@ -6,7 +6,7 @@
 #include <math.h>
 
 #include "apex.h"
-#include "apex_throttling.h"
+#include "apex_policies.h"
 
 #define MAX(a,b) ((a) > (b) ? a : b)
 #define MIN(a,b) ((a) < (b) ? a : b)
@@ -75,7 +75,7 @@ int main(int argc, char **argv)
   apex_init_args(argc, argv, NULL);
   apex_set_node_id(0);
 
-  apex_setup_timer_address_throttling((apex_function_address)foo, APEX_MINIMIZE_ACCUMULATED,
+  apex_setup_timer_throttling(APEX_FUNCTION_ADDRESS, &foo, APEX_MINIMIZE_ACCUMULATED,
           APEX_ACTIVE_HARMONY, 250000);
 
   int original_cap = apex_get_thread_cap();

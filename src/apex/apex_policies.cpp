@@ -9,7 +9,7 @@
 
 #include "apex.hpp"
 #include "apex_types.h"
-#include "apex_throttling.h"
+#include "apex_policies.h"
 
 #ifdef APEX_HAVE_RCR
 #include "libenergy.h"
@@ -824,16 +824,19 @@ extern "C" {
 APEX_EXPORT int apex_setup_power_cap_throttling(void) {
     return __setup_power_cap_throttling();
 }
-APEX_EXPORT int apex_setup_timer_address_throttling(apex_function_address the_address,
+APEX_EXPORT int apex_setup_timer_throttling(apex_profiler_type type, void * identifier,
         apex_optimization_criteria_t criteria, 
         apex_optimization_method_t method, unsigned long update_interval) {
-    return __setup_timer_throttling(the_address, criteria, method, update_interval);
-}
-APEX_EXPORT int apex_setup_timer_name_throttling(const char * the_name,
-        apex_optimization_criteria_t criteria, 
-        apex_optimization_method_t method, unsigned long update_interval) {
-    string tmp(the_name);
-    return __setup_timer_throttling(tmp, criteria, method, update_interval);
+    assert(identifier);
+    if (type == APEX_FUNCTION_ADDRESS) {
+        apex_function_address the_address = (apex_function_address)identifier;
+        return __setup_timer_throttling(the_address, criteria, method, update_interval);
+    }
+    if (type == APEX_NAME_STRING) {
+        string tmp((const char *)identifier);
+        return __setup_timer_throttling(tmp, criteria, method, update_interval);
+    }
+    return APEX_ERROR;
 }
 APEX_EXPORT int apex_shutdown_throttling(void) {
     return __shutdown_throttling();

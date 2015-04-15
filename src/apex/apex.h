@@ -379,37 +379,46 @@ APEX_EXPORT int apex_setup_power_cap_throttling(void);      // initialize
  evaluating the state of the system, the policy will set the thread cap, which
  can be queried using @ref apex_get_thread_cap().
 
- \param the_address The address of the function to be optimized.
+ \param type The type of the address to be optimized. This can be one of the @ref
+             apex_profiler_type values.
+ \param identifier The function address of the function to be optimized, or a "const
+             char *" pointer to the name of the counter/timer.
  \param criteria The optimization criteria.
  \param method The optimization method.
  \param update_interval The time between observations, in microseconds.
  \return APEX_NOERROR on success, otherwise an error code.
  */
 
-APEX_EXPORT int apex_setup_timer_address_throttling(apex_function_address the_address,
+APEX_EXPORT int apex_setup_timer_throttling(apex_profiler_type type, 
+        void * identifier,
         apex_optimization_criteria_t criteria,
         apex_optimization_method_t method, unsigned long update_interval);
 
 /**
- \brief Setup throttling to optimize for the specified function or counter.
+ \brief Setup throttling to optimize for the specified function, using
+        multiple input criteria.
 
- This function will initialize the throttling policy to optimize for the 
- specified function or counter. The optimization criteria include maximizing
- throughput, minimizing or maximizing time spent in the specified function
- or value sampled in the counter. After evaluating the state of the system,
- the policy will set the thread cap, which can be queried using 
- @ref apex_get_thread_cap().
+ This function will initialize a policy to optimize the specified function, 
+ using the list of tunable inputs for the specified function. The 
+ optimization criteria include maximizing throughput,
+ minimizing or maximizing time spent in the specified function. After
+ evaluating the state of the system, the policy will assign new values to
+ the inputs.
 
- \param the_name The name of the function or counter to be optimized.
+ \param the_address The address of the function to be optimized.
  \param criteria The optimization criteria.
- \param method The optimization method.
- \param update_interval The time between observations, in microseconds.
-
+ \param event_type The @ref apex_event_type that should trigger this policy 
+ \param num_inputs The number of tunable inputs for optimization
+ \param inputs An array of addresses to inputs for optimization
+ \param mins An array of minimum values for each input
+ \param maxs An array of maximum values for each input
+ \param steps An array of step values for each input
  \return APEX_NOERROR on success, otherwise an error code.
  */
-APEX_EXPORT int apex_setup_timer_name_throttling(const char * the_name,
+APEX_EXPORT int apex_setup_general_tuning(apex_function_address the_address,
         apex_optimization_criteria_t criteria,
-        apex_optimization_method_t method, unsigned long update_interval);
+        apex_event_type event_type, int num_inputs, long ** inputs, long * mins,
+        long * maxs, long * steps);
 
 /**
  \brief Terminate the throttling policy.

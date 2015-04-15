@@ -8,7 +8,7 @@
 #define omp_get_max_threads() 1
 #endif
 
-#define NUM_CELLS 100000
+#define NUM_CELLS 500000
 #define BLOCK_SIZE NUM_CELLS/100
 #define NUM_ITERATIONS 1000
 #define UPDATE_INTERVAL NUM_ITERATIONS/100

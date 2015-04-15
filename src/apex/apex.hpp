@@ -234,7 +234,7 @@ APEX_EXPORT void stop(profiler* the_profiler);
  will NOT be incremented - this "task" was yielded, not completed.
  It will be resumed by another thread at a later time.
  
- \param profiler The handle of the profiler object.
+ \param the_profiler The handle of the profiler object.
  \return No return value.
  \sa apex::start
  */
@@ -284,7 +284,7 @@ APEX_EXPORT apex_event_type register_custom_event(const std::string &name);
  Each listeners' on_custom_event() event will handle the custom event.
  Policy functions will be passed the custom event name in the event context.
  
- \param event_name The name of the custom event
+ \param event_type The type of the custom event
  \param custom_data Data relevant to the custom event
  \return No return value.
  */
@@ -499,11 +499,31 @@ APEX_EXPORT int setup_power_cap_throttling(void);      // initialize
  \param update_interval The time between observations, in microseconds.
  \return APEX_NOERROR on success, otherwise an error code.
  */
-
 APEX_EXPORT int setup_timer_throttling(apex_function_address the_address,
         apex_optimization_criteria_t criteria,
         apex_optimization_method_t method, unsigned long update_interval);
 
+/**
+ \brief Setup throttling to optimize for the specified function, using
+        multiple input criteria.
+
+ This function will initialize a policy to optimize the specified function, 
+ using the list of tunable inputs for the specified function. The 
+ optimization criteria include maximizing throughput,
+ minimizing or maximizing time spent in the specified function. After
+ evaluating the state of the system, the policy will assign new values to
+ the inputs.
+
+ \param the_address The address of the function to be optimized.
+ \param criteria The optimization criteria.
+ \param event_type The @ref apex_event_type that should trigger this policy 
+ \param num_inputs The number of tunable inputs for optimization
+ \param inputs An array of addresses to inputs for optimization
+ \param mins An array of minimum values for each input
+ \param maxs An array of maximum values for each input
+ \param steps An array of step values for each input
+ \return APEX_NOERROR on success, otherwise an error code.
+ */
 APEX_EXPORT int setup_general_tuning(apex_function_address the_address,
         apex_optimization_criteria_t criteria,
         apex_event_type event_type, int num_inputs, long ** inputs, long * mins,
