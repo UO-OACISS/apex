@@ -369,6 +369,20 @@ APEX_EXPORT double apex_current_power_high(void);
 APEX_EXPORT int apex_setup_power_cap_throttling(void);      // initialize
 
 /**
+ * \brief Create a timer ID for policy setup.
+
+ This function will create an apex_timer_id object for setting up policy rules.
+ If the address value is non-zero, it will be used. If the address value is
+ zero then the name will be used. If both are zero (null) then the call will
+ fail and will return null.
+
+ \param function_address The address of the function associated with a timer
+ \param name The name of a timer or counter
+ \return an apex_timer_id 
+ */
+APEX_EXPORT apex_timer_id apex_create_timer_id(apex_function_address function_address, const char * name);
+
+/**
  \brief Setup throttling to optimize for the specified function.
 
  This function will initialize the throttling policy to optimize for the 

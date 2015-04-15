@@ -114,9 +114,9 @@ typedef struct _apex_timer_id
 {
     apex_timer_id_type type;
     union {
-        struct { apex_function_address address; };
-        struct { char * name; };
-    };
+        apex_function_address address;
+        const char * name;
+    } id_union;
 } apex_timer_id;
 
 /** A reference to the policy object,

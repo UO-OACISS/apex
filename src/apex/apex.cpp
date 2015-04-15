@@ -789,6 +789,19 @@ extern "C" {
         return NULL;
     }
 
+    apex_timer_id * apex_create_timer_id(apex_function_address function_address, const char * name) {
+        apex_timer_id * id = new(apex_timer_id);
+        if (function_address != APEX_NULL_FUNCTION_ADDRESS) {
+          id->type = APEX_FUNCTION_ADDRESS;
+          id->id_union.address = function_address;
+        } else {
+          id->type = APEX_NAME_STRING;
+          id->id_union.name = name;
+        }
+        return NULL;
+    }
+
+
     double apex_current_power_high() {
         return current_power_high();
     }

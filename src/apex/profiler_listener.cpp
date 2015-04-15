@@ -123,7 +123,9 @@ namespace apex {
    * is done with it. */
   static unordered_set<profiler*> my_garbage;
 
+#if APEX_HAVE_PAPI
   static int num_papi_counters = 0;
+#endif
 
   /* Return the requested profile object to the user.
    * Return NULL if doesn't exist. */
