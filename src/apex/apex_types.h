@@ -36,10 +36,10 @@ typedef uintptr_t apex_function_address; // generic function pointer
 /**
  * Typedef for enumerating the different timer types
  */
-typedef enum _apex_timer_id_type {
+typedef enum _apex_profiler_type {
     APEX_FUNCTION_ADDRESS = 0, /*!< The ID is a function (or instruction) address */
     APEX_NAME_STRING           /*!< The ID is a character string */
-} apex_timer_id_type;
+} apex_profiler_type;
 
 /**
  * Typedef for enumerating the different event types
@@ -49,7 +49,7 @@ typedef enum _error_codes {
   APEX_ERROR        /*!< Some error occurred - check stderr output for details */
 } apex_error_code;
 
-#define APEX_MAX_EVENTS 32
+#define APEX_MAX_EVENTS 32 /*!< The maximum number of event types. Allows for ~20 custom events. */
 
 /**
  * Typedef for enumerating the different event types
@@ -107,17 +107,21 @@ typedef enum {APEX_SIMPLE_HYSTERESIS,      /*!< optimize using sliding window of
 	          APEX_ACTIVE_HARMONY          /*!< Use Active Harmony for optimization. */
 } apex_optimization_method_t;
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+
 /**
- * Structure that holds a timer ID
+ * Structure that holds a profiler ID
  */
-typedef struct _apex_timer_id
+typedef struct _apex_profiler_id
 {
-    apex_timer_id_type type;
+    apex_profiler_type type;
     union {
-        apex_function_address address;
-        const char * name;
-    } id_union;
-} apex_timer_id;
+      apex_function_address address;
+      const char * name;
+    } identifier;
+} apex_profiler_id;
+
+#endif //DOXYGEN_SHOULD_SKIP_THIS
 
 /** A reference to the policy object,
  * so that policies can be "unregistered", or paused later

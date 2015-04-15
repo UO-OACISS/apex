@@ -18,7 +18,7 @@
 int total_iterations = NUM_THREADS * ITERATIONS;
 
 int foo (int i) {
-  apex_profiler_handle p = apex_start((apex_function_address)foo, NULL);
+  apex_profiler_handle p = apex_start(APEX_FUNCTION_ADDRESS, &foo);
   int j = i*i;
   double randval = 1.0 + (((double)(rand())) / RAND_MAX);
   struct timespec tim, tim2;
@@ -40,7 +40,7 @@ void* someThread(void* tmp)
   int *myid = (int*)tmp;
   apex_register_thread("threadTest thread");
   //ApexProxy proxy = ApexProxy(__func__, __FILE__, __LINE__);
-  apex_profiler_handle p = apex_start((apex_function_address)someThread, NULL);
+  apex_profiler_handle p = apex_start(APEX_FUNCTION_ADDRESS, &someThread);
   printf("PID of this process: %d\n", getpid());
 #if defined (__APPLE__)
   printf("The ID of this thread is: %lu\n", (unsigned long)pthread_self());
@@ -79,7 +79,7 @@ int main(int argc, char **argv)
 
   int original_cap = apex_get_thread_cap();
 
-  apex_profiler_handle p = apex_start((apex_function_address)main, NULL);
+  apex_profiler_handle p = apex_start(APEX_FUNCTION_ADDRESS, &main);
   //printf("PID of this process: %d\n", getpid());
   pthread_t thread[NUM_THREADS];
   int i;

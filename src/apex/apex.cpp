@@ -674,28 +674,25 @@ extern "C" {
         return version().c_str();
     }
 
-    apex_profiler_handle apex_start(apex_function_address function_address, const char * name)
+    apex_profiler_handle apex_start(apex_profiler_type type, void * identifier)
     {
-        if (function_address != APEX_NULL_FUNCTION_ADDRESS) {
-            return (apex_profiler_handle)start(function_address);
-        } else if (name) {
-            string tmp(name);
-            return (apex_profiler_handle)start(tmp);
-        } else {
-            string tmp("");
-            return (apex_profiler_handle)start(tmp);
-        }
+      assert(identifier);
+      if (type == APEX_FUNCTION_ADDRESS) {
+          return (apex_profiler_handle)start((apex_function_address)identifier);
+      } else if (type == APEX_NAME_STRING) {
+          string tmp((const char *)identifier);
+          return (apex_profiler_handle)start(tmp);
+      }
+      return (apex_profiler_handle)(NULL);
     }
 
-    void apex_reset(apex_function_address function_address, const char * name) {
-        if (function_address != APEX_NULL_FUNCTION_ADDRESS) {
-            reset(function_address);
-        } else if (name) {
-            string tmp(name);
-            reset(tmp);       
+    void apex_reset(apex_profiler_type type, void * identifier) {
+        assert(identifier);
+        if (type == APEX_FUNCTION_ADDRESS) {
+            reset((apex_function_address)(identifier));
         } else {
-            string tmp("");
-            reset(tmp);
+            string tmp((const char *)identifier);
+            reset(tmp);       
         }
     }
     
@@ -779,28 +776,16 @@ extern "C" {
         return register_periodic_policy(period, f);
     }
 
-    apex_profile* apex_get_profile(apex_function_address function_address, const char * name) {
-        if (function_address != APEX_NULL_FUNCTION_ADDRESS) {
-            return get_profile(function_address);
+    apex_profile* apex_get_profile(apex_profiler_type type, void * identifier) {
+        assert(identifier);
+        if (type == APEX_FUNCTION_ADDRESS) {
+            return get_profile((apex_function_address)(identifier));
         } else {
-            string tmp(name);
+            string tmp((const char *)identifier);
             return get_profile(tmp);
         }
         return NULL;
     }
-
-    apex_timer_id * apex_create_timer_id(apex_function_address function_address, const char * name) {
-        apex_timer_id * id = new(apex_timer_id);
-        if (function_address != APEX_NULL_FUNCTION_ADDRESS) {
-          id->type = APEX_FUNCTION_ADDRESS;
-          id->id_union.address = function_address;
-        } else {
-          id->type = APEX_NAME_STRING;
-          id->id_union.name = name;
-        }
-        return NULL;
-    }
-
 
     double apex_current_power_high() {
         return current_power_high();

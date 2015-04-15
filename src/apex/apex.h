@@ -85,20 +85,20 @@ APEX_EXPORT void apex_finalize();
 
  This function will create a profiler object in APEX, and return a
  handle to the object.  The object will be associated with the address
- or name passed in to this function. If the address value is non-zero,
- it will be used. If the address value is zero then the name will be 
- used. If both are zero (null) then the call will fail and the return 
- value will be null.
+ or name passed in to this function.  If both are zero (null) then the call
+ will fail and the return value will be null.
  
- \param function_address The address of the function to be timed. (optional)
- \param name The name of the timer. (optional)
+ \param type The type of the address to be stored. This can be one of the @ref
+             apex_profiler_type values.
+ \param identifier The function address of the function to be timed, or a "const
+             char *" pointer to the name of the timer.
  \return The handle for the timer object in APEX. Not intended to be
          queried by the application. Should be retained locally, if
-		 possible, and passed in to the matching apex_stop_name()
+		 possible, and passed in to the matching apex_stop()
 		 call when the timer should be stopped.
- \sa apex_stop_name
+ \sa apex_stop
  */
-APEX_EXPORT apex_profiler_handle apex_start(apex_function_address function_address, const char * name);
+APEX_EXPORT apex_profiler_handle apex_start(apex_profiler_type type, void * identifier);
 
 /**
  \brief Stop a timer.
@@ -152,15 +152,15 @@ APEX_EXPORT void apex_resume(apex_profiler_handle profiler);
  \brief Reset a timer.
 
  This function will reset the profile associated with the specified
- timer to zero.  If the address value is non-zero,
- it will be used. If the address value is zero then the name will be 
- used. If both are zero (null) then the call will fail.
+ id to zero.  
  
- \param function_address The function address of the timer.
- \param name The name of the timer.
+ \param type The type of the address to be reset. This can be one of the @ref
+             apex_profiler_type values.
+ \param identifier The function address of the function to be reset, or a "const
+             char *" pointer to the name of the timer / counter.
  \return No return value.
  */
-APEX_EXPORT void apex_reset(apex_function_address function_address, const char * name);
+APEX_EXPORT void apex_reset(apex_profiler_type type, void * identifier);
 
 /**
  \brief Set the thread state
@@ -312,20 +312,20 @@ APEX_EXPORT apex_policy_handle apex_register_policy(const apex_event_type when, 
 APEX_EXPORT apex_policy_handle apex_register_periodic_policy(unsigned long period, apex_policy_function f);
 
 /**
- \brief Get the current profile for the specified function.
+ \brief Get the current profile for the specified id.
 
- This function will return the current profile for the specified address
- or name.  If the address value is non-zero,
- it will be used. If the address value is zero then the name will be 
- used. If both are zero (null) then the call will fail and will return null.
+ This function will return the current profile for the specified profiler id.
  Because profiles are updated out-of-band, it is possible that this profile
  value is out of date.  This profile can be either a timer or a sampled value.
  
- \param function_address The address of the function.
- \param name The name of the function
+ \param type The type of the address to be returned. This can be one of the @ref
+             apex_profiler_type values.
+ \param identifier The function address of the function to be returned, or a "const
+             char *" pointer to the name of the timer / counter.
  \return The current profile for that timed function or sampled value.
+ \sa apex_get_profiler_id
  */
-APEX_EXPORT apex_profile * apex_get_profile(apex_function_address function_address, const char * name);
+APEX_EXPORT apex_profile * apex_get_profile(apex_profiler_type type, void * identifier);
 
 /**
  \brief Get the current power reading
@@ -369,20 +369,6 @@ APEX_EXPORT double apex_current_power_high(void);
  \return APEX_NOERROR on success, otherwise an error code.
  */
 APEX_EXPORT int apex_setup_power_cap_throttling(void);      // initialize
-
-/**
- * \brief Create a timer ID for policy setup.
-
- This function will create an apex_timer_id object for setting up policy rules.
- If the address value is non-zero, it will be used. If the address value is
- zero then the name will be used. If both are zero (null) then the call will
- fail and will return null.
-
- \param function_address The address of the function associated with a timer
- \param name The name of a timer or counter
- \return an apex_timer_id 
- */
-APEX_EXPORT apex_timer_id apex_create_timer_id(apex_function_address function_address, const char * name);
 
 /**
  \brief Setup throttling to optimize for the specified function.
