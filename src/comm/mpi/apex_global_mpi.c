@@ -51,7 +51,7 @@ void apex_sum(int count, apex_profile values[count]) {
 
 // update our local value for the profile
 int action_apex_get_value(void *args) {
-  apex_profile * p = apex_get_profile(profiled_action, NULL);
+  apex_profile * p = apex_get_profile(APEX_FUNCTION_ADDRESS, (void*)profiled_action);
   if (p != NULL) {
     value.calls = p->calls;
     value.accumulated = p->accumulated;
