@@ -196,6 +196,7 @@ APEX_EXPORT void apex_sample_value(const char * name, double value);
  
  \param name The name of the custom event
  \return The index of the custom event.
+ \sa apex_custom_event
  */
 APEX_EXPORT int apex_register_custom_event(const char * name);
 
@@ -206,9 +207,10 @@ APEX_EXPORT int apex_register_custom_event(const char * name);
  Each listeners' on_custom() event will handle the custom event.
  Policy functions will be passed the custom event name in the event context.
  
- \param event_name The name of the custom event
+ \param event_type The type of the custom event
  \param custom_data Data specific to the custom event
  \return No return value.
+ \sa apex_register_custom_event
  */
 APEX_EXPORT void apex_custom_event(apex_event_type event_type, void * custom_data);
 
