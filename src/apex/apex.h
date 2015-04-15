@@ -405,7 +405,10 @@ APEX_EXPORT int apex_setup_timer_throttling(apex_profiler_type type,
  evaluating the state of the system, the policy will assign new values to
  the inputs.
 
- \param the_address The address of the function to be optimized.
+ \param type The type of the address to be optimized. This can be one of the @ref
+             apex_profiler_type values.
+ \param identifier The function address of the function to be optimized, or a "const
+             char *" pointer to the name of the counter/timer.
  \param criteria The optimization criteria.
  \param event_type The @ref apex_event_type that should trigger this policy 
  \param num_inputs The number of tunable inputs for optimization
@@ -415,7 +418,9 @@ APEX_EXPORT int apex_setup_timer_throttling(apex_profiler_type type,
  \param steps An array of step values for each input
  \return APEX_NOERROR on success, otherwise an error code.
  */
-APEX_EXPORT int apex_setup_general_tuning(apex_function_address the_address,
+APEX_EXPORT int apex_setup_general_tuning(
+        apex_profiler_type type,
+        void * identifier,
         apex_optimization_criteria_t criteria,
         apex_event_type event_type, int num_inputs, long ** inputs, long * mins,
         long * maxs, long * steps);

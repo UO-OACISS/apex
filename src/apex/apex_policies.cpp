@@ -749,6 +749,13 @@ inline int __setup_general_tuning(apex_function_address the_address,
     return __common_setup_general_tuning(criteria, event_type, num_inputs, inputs, mins, maxs, steps);
 }
 
+inline int __setup_general_tuning(std::string &the_name,
+        apex_optimization_criteria_t criteria, apex_event_type event_type, 
+        int num_inputs, long ** inputs, long * mins, long * maxs, long * steps) {
+    function_name_of_interest = string(the_name);
+    return __common_setup_general_tuning(criteria, event_type, num_inputs, inputs, mins, maxs, steps);
+}
+
 inline int __setup_timer_throttling(apex_function_address the_address, apex_optimization_criteria_t criteria,
         apex_optimization_method_t method, unsigned long update_interval)
 {
@@ -797,16 +804,22 @@ APEX_EXPORT int setup_timer_throttling(apex_function_address the_address,
     return __setup_timer_throttling(the_address, criteria, method, update_interval);
 }
 
+APEX_EXPORT int setup_timer_throttling(std::string &the_name,
+        apex_optimization_criteria_t criteria, apex_optimization_method_t method,
+        unsigned long update_interval) {
+    return __setup_timer_throttling(the_name, criteria, method, update_interval);
+}
+
 APEX_EXPORT int setup_general_tuning(apex_function_address the_address,
         apex_optimization_criteria_t criteria, apex_event_type event_type, int num_inputs,
         long ** inputs, long * mins, long * maxs, long * steps) {
     return __setup_general_tuning(the_address, criteria, event_type, num_inputs, inputs, mins, maxs, steps);
 }
 
-APEX_EXPORT int setup_timer_throttling(std::string &the_name,
-        apex_optimization_criteria_t criteria, apex_optimization_method_t method,
-        unsigned long update_interval) {
-    return __setup_timer_throttling(the_name, criteria, method, update_interval);
+APEX_EXPORT int setup_general_tuning(std::string &the_name,
+        apex_optimization_criteria_t criteria, apex_event_type event_type, int num_inputs,
+        long ** inputs, long * mins, long * maxs, long * steps) {
+    return __setup_general_tuning(the_name, criteria, event_type, num_inputs, inputs, mins, maxs, steps);
 }
 
 APEX_EXPORT int shutdown_throttling(void) {
@@ -824,6 +837,7 @@ extern "C" {
 APEX_EXPORT int apex_setup_power_cap_throttling(void) {
     return __setup_power_cap_throttling();
 }
+
 APEX_EXPORT int apex_setup_timer_throttling(apex_profiler_type type, void * identifier,
         apex_optimization_criteria_t criteria, 
         apex_optimization_method_t method, unsigned long update_interval) {
@@ -838,9 +852,24 @@ APEX_EXPORT int apex_setup_timer_throttling(apex_profiler_type type, void * iden
     }
     return APEX_ERROR;
 }
+
+APEX_EXPORT int apex_setup_general_tuning( apex_profiler_type type, void * identifier,
+        apex_optimization_criteria_t criteria, apex_event_type event_type, int num_inputs,
+        long ** inputs, long * mins, long * maxs, long * steps) {
+    assert(identifier);
+    if (type == APEX_FUNCTION_ADDRESS) {
+        return __setup_general_tuning((apex_function_address)identifier, criteria, event_type, num_inputs, inputs, mins, maxs, steps);
+    } else if (type == APEX_NAME_STRING) {
+        string tmp((const char *)identifier);
+        return __setup_general_tuning(tmp, criteria, event_type, num_inputs, inputs, mins, maxs, steps);
+    }
+    return APEX_ERROR;
+}
+
 APEX_EXPORT int apex_shutdown_throttling(void) {
     return __shutdown_throttling();
 }
+
 APEX_EXPORT int apex_get_thread_cap(void) {
     return __get_thread_cap();
 }
