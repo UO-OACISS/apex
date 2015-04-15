@@ -5,15 +5,16 @@ ToDo list, as of April 10, 2015:
     - Hpx5 (kevin)
 - clean up MPI implementation
 - Refactor the communication API
-- Refactor the instrumentation API (consistently handle name/address?)
+- Refactor the instrumentation API (consistently handle name/address?) (done: April 15, 2015)
 - Get more application cases for HPX5
     - miniAMR
-- Find multi-objective optimization case (1D stencil?)
-    - # threads
-    - decomposition granularity
+- Find multi-objective optimization case
+- Find multi-input optimization case (1D stencil?) (done: April 13, 2015)
+    - # threads (done: April 13, 2015)
+    - decomposition granularity (done: April 13, 2015)
 - Use Cases:
     - Changing queue order from FIFO -> LIFO
-    - Triggering repartition (1D stencil)
+    - Triggering repartition (1D stencil) (done: April 13, 2015)
     - Triggering AMR
     - Triggering load balance
     - Triggering algorithm change
@@ -21,7 +22,7 @@ ToDo list, as of April 10, 2015:
     - Throttling for memory (monitor headroom?)
 - Make APEX 0.1 release.
 - Refine OMPT support
-    - make 1D stencil task example?
+    - make 1D stencil task example? (done: April 13, 2015)
     - Polychronopolous OpenMP SC paper
     - Change OpenMP runtime options at runtime with policy?
 - Make event generation asynchronous? - i.e. return to worker as fast as possible
@@ -57,12 +58,12 @@ ToDo list, as of April 10, 2015:
 - RIOS - should RIOS be providing power, temperature, network, disk, etc. 
   status information? That is, should we be going through RCR/RIOS to get these 
   things, rather than /proc?
-- Get LULESH benchmark for Jesus 
+- Get LULESH benchmark for Jesus  (done, sort of - not public)
 - ompss example?
 - ARGO opportunities?
 - Dynamic adaption to perturbation/variation?
 - AMR example?
-- APEX API refactoring.  Needs to be done!
+- APEX API refactoring.  Needs to be done! (done, April 15, 2015)
 - Items from meeting with LSU:
     - Need to double check that APEX doesn't lock worker threads
       (use HPX semaphore)
