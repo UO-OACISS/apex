@@ -77,7 +77,6 @@ public:
 
 class custom_event_data : public event_data {
 public:
-  apex_event_type event_type;
   custom_event_data(apex_event_type event_type, void * custom_data);
   ~custom_event_data();
 };

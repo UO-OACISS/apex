@@ -56,7 +56,7 @@ sample_value_event_data::~sample_value_event_data() {
 }
 
 custom_event_data::custom_event_data(apex_event_type event_type, void * custom_data) {
-    this->event_type = event_type;
+    this->event_type_ = event_type;
     this->data = custom_data;
 }
 

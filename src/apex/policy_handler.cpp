@@ -171,7 +171,7 @@ inline void policy_handler::call_policies(
     apex_context my_context;
     my_context.event_type = event_data.event_type_;
     my_context.policy_handle = NULL;
-    if (event_data.event_type_ == APEX_CUSTOM_EVENT) {
+    if (event_data.event_type_ >= APEX_CUSTOM_EVENT) {
         my_context.data = event_data.data;
     } else {
         my_context.data = NULL;
@@ -273,9 +273,9 @@ void policy_handler::on_sample_value(sample_value_event_data &event_data) {
 
 void policy_handler::on_custom_event(custom_event_data &event_data) {
   if (_terminate) return;
-            if (custom_event_policies[event_data.event_type].empty())
+            if (custom_event_policies[event_data.event_type_].empty())
                 return;
-        call_policies(custom_event_policies[event_data.event_type], event_data);
+        call_policies(custom_event_policies[event_data.event_type_], event_data);
 }
 
 void policy_handler::on_periodic(periodic_event_data &event_data) {
