@@ -45,12 +45,15 @@ void* someThread(void* tmp)
 int policy_periodic(apex_context const context) {
 #ifdef __APPLE__
     apex_profile * p = apex_get_profile(APEX_NAME_STRING, "foo");
+    if (p != NULL) {
+        printf("Periodic Policy: 'foo' %d %f seconds.\n", (int)p->calls, p->accumulated/p->calls);
+    }
 #else
     apex_profile * p = apex_get_profile(APEX_FUNCTION_ADDRESS, &foo);
-#endif
     if (p != NULL) {
         printf("Periodic Policy: %p %d %f seconds.\n", foo, (int)p->calls, p->accumulated/p->calls);
     }
+#endif
     return APEX_NOERROR;
 }
 
@@ -59,12 +62,15 @@ int policy_event(apex_context const context) {
     if (not_every_time++ % 500000 != 0) return APEX_NOERROR;
 #ifdef __APPLE__
     apex_profile * p = apex_get_profile(APEX_NAME_STRING, "foo");
+    if (p != NULL) {
+        printf("Event Policy: 'foo' %d %f seconds.\n", (int)p->calls, p->accumulated/p->calls);
+    }
 #else
     apex_profile * p = apex_get_profile(APEX_FUNCTION_ADDRESS, &foo);
-#endif
     if (p != NULL) {
         printf("Event Policy: %p %d %f seconds.\n", foo, (int)p->calls, p->accumulated/p->calls);
     }
+#endif
     return APEX_NOERROR;
 }
 
