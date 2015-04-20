@@ -20,7 +20,7 @@ long block_size = BLOCK_SIZE;
 long active_threads = omp_get_max_threads();
 long num_iterations = NUM_ITERATIONS;
 long update_interval = UPDATE_INTERVAL;
-long method = 1;
+long method = 2;
 const std::string method_names[] = {"divide","multiply"};
 apex_event_type my_custom_event = APEX_CUSTOM_EVENT;
 double accumulated_aggregate;
@@ -201,7 +201,7 @@ int main (int argc, char ** argv) {
     apex::set_node_id(0);
 
 #ifdef APEX_HAVE_ACTIVEHARMONY
-    int num_inputs = 3;
+    int num_inputs = 2; // 2 for threads, block size; 3 for threads, block size, method
     long * inputs[3] = {0L,0L,0L};
     long mins[3] = {1,1,DIVIDE_METHOD};    // all minimums are 1
     long maxs[3] = {0,0,0};    // we'll set these later
