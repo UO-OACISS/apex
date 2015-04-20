@@ -7,6 +7,7 @@
 #define APEX_EVENTLISTENER_H
 
 #include <string>
+#include <chrono>
 #include "apex_types.h"
 #include "profiler.hpp"
 
@@ -31,8 +32,10 @@ public:
   apex_function_address function_address;
   profiler *my_profiler;
   bool have_name;
-  timer_event_data(apex_event_type eventType, int thread_id, std::string timer_name);
+  std::chrono::high_resolution_clock::time_point timestamp;
+  timer_event_data(apex_event_type eventType, int thread_id, const std::string &timer_name);
   timer_event_data(apex_event_type eventType, int thread_id, apex_function_address function_address);
+  timer_event_data(apex_event_type eventType, int thread_id, profiler * the_profiler);
   ~timer_event_data();
 };
 
@@ -93,16 +96,16 @@ public:
   virtual void on_shutdown(shutdown_event_data &data) = 0;
   virtual void on_new_node(node_event_data &data) = 0;
   virtual void on_new_thread(new_thread_event_data &data) = 0;
-  virtual void on_start(apex_function_address function_address, std::string *timer_name) = 0;
-  virtual void on_stop(profiler *p) = 0;
-  virtual void on_yield(profiler *p) = 0;
-  virtual void on_resume(profiler *p) = 0;
+  //virtual void on_start(apex_function_address function_address, std::string *timer_name) = 0;
+  virtual void on_start(timer_event_data &data) = 0;
+  virtual void on_stop(timer_event_data &data) = 0;
+  virtual void on_yield(timer_event_data &data) = 0;
+  virtual void on_resume(timer_event_data &data) = 0;
   virtual void on_sample_value(sample_value_event_data &data) = 0;
   virtual void on_periodic(periodic_event_data &data) = 0;
   virtual void on_custom_event(custom_event_data &data) = 0;
   // this is a stub implementation, so tell the compiler the arguments are unused.
-  virtual void reset(apex_function_address function_address, std::string * timer_name) 
-    {APEX_UNUSED(function_address); APEX_UNUSED(timer_name);};
+  virtual void on_reset(timer_event_data &data) {APEX_UNUSED(data);};
 };
 
 }

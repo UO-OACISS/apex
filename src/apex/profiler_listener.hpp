@@ -32,21 +32,26 @@ private:
   static void process_profile(profiler * p, unsigned int tid);
   static int node_id;
   static boost::mutex _mtx;
+  void _common_start(timer_event_data &data, bool is_resume); // internal, inline function
+  void _common_stop(timer_event_data &data, bool is_yield); // internal, inline function
 public:
   profiler_listener (void)  : _terminate(false) { };
   ~profiler_listener (void) { };
+  // events
   void on_startup(startup_event_data &data);
   void on_shutdown(shutdown_event_data &data);
   void on_new_node(node_event_data &data);
   void on_new_thread(new_thread_event_data &data);
-  void on_start(apex_function_address function_address, std::string *timer_name);
-  void on_stop(profiler *p);
-  void on_yield(profiler *p);
-  void on_resume(profiler *p);
+  void on_start(timer_event_data &data);
+  void on_stop(timer_event_data &data);
+  void on_yield(timer_event_data &data);
+  void on_resume(timer_event_data &data);
   void on_sample_value(sample_value_event_data &data);
   void on_periodic(periodic_event_data &data);
   void on_custom_event(custom_event_data &event_data);
-  void reset(apex_function_address function_address, std::string *timer_name);
+  // other methods
+  static void reset(apex_function_address function_address);
+  static void reset(const std::string &timer_name);
   static profile * get_profile(apex_function_address address);
   static profile * get_profile(const std::string &timer_name);
   static std::vector<std::string> get_available_profiles();

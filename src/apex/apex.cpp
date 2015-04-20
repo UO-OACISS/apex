@@ -285,9 +285,11 @@ profiler* start(const std::string &timer_name)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return NULL; // protect against calls after finalization
     if (_notify_listeners) {
-    string * tmp = new string(timer_name);
+        timer_event_data data(APEX_START_EVENT, thread_instance::get_id(), timer_name);
+        //string * tmp = new string(timer_name);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_start(0L, tmp);
+            //instance->listeners[i]->on_start(0L, tmp);
+            instance->listeners[i]->on_start(data);
         }
     }
     return thread_instance::instance().current_timer;
@@ -298,8 +300,10 @@ profiler* start(apex_function_address function_address) {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return NULL; // protect against calls after finalization
     if (_notify_listeners) {
+        timer_event_data data(APEX_START_EVENT, thread_instance::get_id(), function_address);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_start(function_address, NULL);
+            //instance->listeners[i]->on_start(function_address, NULL);
+            instance->listeners[i]->on_start(data);
         }
     }
     return thread_instance::instance().current_timer;
@@ -309,23 +313,14 @@ void reset(const std::string &timer_name) {
     APEX_TIMER_TRACER("reset", timer_name)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
-    if (_notify_listeners) {
-        string * tmp = new string(timer_name);
-        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->reset(0L, tmp);
-        }
-    }
+    profiler_listener::reset(timer_name);
 }
 
 void reset(apex_function_address function_address) {
     APEX_TIMER_TRACER("reset", function_address)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
-    if (_notify_listeners) {
-        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->reset(function_address, NULL);
-        }
-    }
+    profiler_listener::reset(function_address);
 }
 
 void set_state(apex_thread_state state) {
@@ -341,9 +336,10 @@ void resume(profiler* the_profiler) {
     if (!instance) return; // protect against calls after finalization
     thread_instance::instance().current_timer = (profiler *)(the_profiler);
     //instance->notify_listeners(event_data);
+    timer_event_data data(APEX_RESUME_EVENT, thread_instance::get_id(), the_profiler);
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_resume((profiler *)(the_profiler));
+            instance->listeners[i]->on_resume(data);
         }
     }
 }
@@ -360,9 +356,10 @@ void stop(profiler* the_profiler)
         p = (profiler*)the_profiler;
     }
     if (p == NULL) return;
+    timer_event_data data(APEX_STOP_EVENT, thread_instance::get_id(), p);
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_stop(p);
+            instance->listeners[i]->on_stop(data);
         }
     }
     thread_instance::instance().current_timer = NULL;
@@ -380,9 +377,10 @@ void yield(profiler* the_profiler)
         p = (profiler*)the_profiler;
     }
     if (p == NULL) return;
+    timer_event_data data(APEX_YIELD_EVENT, thread_instance::get_id(), p);
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_yield(p);
+            instance->listeners[i]->on_yield(data);
         }
     }
     thread_instance::instance().current_timer = NULL;

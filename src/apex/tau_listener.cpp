@@ -57,54 +57,47 @@ void tau_listener::on_new_thread(new_thread_event_data &data) {
   return;
 }
 
-void tau_listener::on_start(apex_function_address function_address, string *timer_name) {
+void tau_listener::on_start(timer_event_data &data) {
   if (!_terminate) {
-      if (timer_name != NULL) {
-      	TAU_START(timer_name->c_str());
+      if (data.have_name) {
+      	TAU_START(data.timer_name->c_str());
       } else {
-      	TAU_START(thread_instance::instance().map_addr_to_name(function_address).c_str());
+      	TAU_START(thread_instance::instance().map_addr_to_name(data.function_address).c_str());
       }
   }
   return;
 }
 
-void tau_listener::on_stop(profiler *p) {
+void tau_listener::on_stop(timer_event_data &data) {
   static string empty("");
   if (!_terminate) {
-      if (p->have_name) {
-        if (p->timer_name->compare(empty) == 0) {
+      if (data.have_name) {
+        if (data.timer_name->compare(empty) == 0) {
           //printf("TAU stopping: GLOBAL\n");
           TAU_GLOBAL_TIMER_STOP(); // stop the top level timer
 	    } else {
           //printf("TAU stopping: '%s'\n", p->timer_name->c_str());
-          TAU_STOP(p->timer_name->c_str());
+          TAU_STOP(data.timer_name->c_str());
 	    }
       } else {
-        if (p->action_address == 0) {
+        if (data.action_address == 0) {
           TAU_GLOBAL_TIMER_STOP(); // stop the top level timer
 	    } else {
-      	  TAU_STOP(thread_instance::instance().map_addr_to_name(p->action_address).c_str());
+      	  TAU_STOP(thread_instance::instance().map_addr_to_name(data.action_address).c_str());
 	    }
       }
       // let the profiler_listener know we are done with this profiler
-      p->safe_to_delete = true;
+      data.p->safe_to_delete = true;
   }
   return;
 }
 
-void tau_listener::on_yield(profiler *p) {
-    on_stop(p);
+void tau_listener::on_yield(timer_event_data &data) {
+    on_stop(data);
 }
 
-void tau_listener::on_resume(profiler *p) {
-  if (!_terminate) {
-    if (p->have_name) {
-      TAU_START(p->timer_name->c_str());
-    } else {
-      TAU_START(thread_instance::instance().map_addr_to_name(p->action_address).c_str());
-    }
-  }
-  return;
+void tau_listener::on_resume(timer_event_data &data) {
+    on_start(data);
 }
 
 void tau_listener::on_sample_value(sample_value_event_data &data) {
