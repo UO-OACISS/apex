@@ -201,7 +201,7 @@ int main (int argc, char ** argv) {
     apex::set_node_id(0);
 
 #ifdef APEX_HAVE_ACTIVEHARMONY
-    int num_inputs = 2; // make 3 to tune on method, too
+    int num_inputs = 2; // 2 for threads, block size; 3 for threads, block size, method
     long * inputs[3] = {0L,0L,0L};
     long mins[3] = {1,1,DIVIDE_METHOD};    // all minimums are 1
     long maxs[3] = {0,0,0};    // we'll set these later
