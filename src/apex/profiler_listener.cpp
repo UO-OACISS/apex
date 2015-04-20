@@ -49,6 +49,8 @@
 
 #ifdef APEX_HAVE_HPX3
 #include <hpx/include/performance_counters.hpp>
+#include <hpx/include/actions.hpp>
+#include <hpx/include/util.hpp>
 #endif
 
 //#define MAX_QUEUE_SIZE 1024*1024
@@ -80,17 +82,26 @@ namespace apex {
   std::vector<int> event_sets(8);
 #endif
 
+#ifndef APEX_HAVE_HPX3
   /* This is the thread that will read from the queues of profiler
    * objects, and update the profiles. */
   boost::thread * consumer_thread;
+#endif
 
   /* Flag indicating that we are done inserting into the queues, so the
    * consumer knows when to exit */
   boost::atomic<bool> done (false);
 
+#ifndef APEX_HAVE_HPX3
   /* how the workers signal the consumer that there are new profiler objects
    * on the queue to consume */
   semaphore queue_signal;
+#endif
+
+#ifdef APEX_HAVE_HPX3
+  /* Flag indicating whether a consumer task is currently running */
+  boost::atomic<bool> running (false);  
+#endif
 
   /* The profiles, mapped by name. Profiles will be in this map or the other
    * one, not both. It depends whether the timers are identified by name
@@ -598,24 +609,14 @@ namespace apex {
       TAU_START("profiler_listener::process_profiles");
     }
 #endif
-#ifdef APEX_HAVE_HPX3
-    static bool registered = false;
-    if(!registered) {
-      while(!done && get_hpx_runtime_ptr() == nullptr) {
-        // wait for hpx to start
-      };
-      if(get_hpx_runtime_ptr() != nullptr) {
-        get_hpx_runtime_ptr()->register_thread("apex_profiler_listener");
-        registered = true;
-      }
-    }
-#endif
 
     profiler * p;
     unsigned int i;
     // Main loop. Stay in this loop unless "done".
+#ifndef APEX_HAVE_HPX3
     while (!done) {
       queue_signal.wait();
+#endif
 #ifdef APEX_HAVE_TAU
       /*
     if (apex_options::use_tau()) {
@@ -649,6 +650,7 @@ namespace apex {
       }
       */
 #endif
+#ifndef APEX_HAVE_HPX3
     }
 
     // We might be done, but check to make sure the queues are empty
@@ -683,6 +685,10 @@ namespace apex {
         write_profile((int)i);
       }
     }
+#endif
+#ifdef APEX_HAVE_HPX3
+    running = false;
+#endif
 
 #ifdef APEX_HAVE_TAU
     if (apex_options::use_tau()) {
@@ -691,6 +697,20 @@ namespace apex {
 #endif
   }
 
+#ifdef APEX_HAVE_HPX3
+}
+HPX_PLAIN_ACTION(profiler_listener::process_profiles, apex_internal_process_profiles_action);
+namespace apex{
+
+void schedule_process_profiles() {
+    if(get_hpx_runtime_ptr() == nullptr) return;
+    if(!running) {
+        running = true;
+        apex_internal_process_profiles_action act;
+        hpx::apply(act, hpx::find_here());
+    }
+}
+#endif
 
 #if APEX_HAVE_PAPI
 APEX_NATIVE_TLS int EventSet = PAPI_NULL;
@@ -754,8 +774,10 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       profiler_queues[0] = new boost::lockfree::spsc_queue<profiler*>(MAX_QUEUE_SIZE);
       thread_address_maps[0] = new map<apex_function_address, profile*>();
       thread_name_maps[0] = new map<string, profile*>();
+#ifndef APEX_HAVE_HPX3
       // Start the consumer thread, to process profiler objects.
       consumer_thread = new boost::thread(process_profiles);
+#endif
 
 #if APEX_HAVE_PAPI
       initialize_PAPI(true);
@@ -808,8 +830,35 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       _terminate = true;
       done = true;
       //sleep(1);
+#ifndef APEX_HAVE_HPX3
       queue_signal.post();
       consumer_thread->join();
+#endif
+#ifdef APEX_HAVE_HPX3
+    // stop the main timer, and process that profile
+    main_timer->stop();
+    process_profile(main_timer, my_tid);
+
+    // output to screen?
+    if (apex_options::use_screen_output() && node_id == 0)
+    {
+      finalize_profiles();
+    }
+
+    // output to 1 TAU profile per process?
+    if (apex_options::use_profile_output() == 1)
+    {
+      write_profile(-1);
+    }
+    // output to TAU profiles, one per thread per process?
+    else if (apex_options::use_profile_output() > 1)
+    {
+      // the number of thread_name_maps tells us how many threads there are to process
+      for (unsigned int i = 0 ; i < thread_name_maps.size(); i++) {
+        write_profile((int)i);
+      }
+    }
+#endif
 #if APEX_HAVE_PAPI
       int rc = 0;
       int i = 0;
@@ -965,7 +1014,12 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
             // we couldn't queue it, so delete it.
             delete(p);
         }
+#ifndef APEX_HAVE_HPX3
         queue_signal.post();
+#endif
+#ifdef APEX_HAVE_HPX3
+        schedule_process_profiles();
+#endif
       }
     }
   }
@@ -995,7 +1049,12 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
                 cout << "One or more frequently-called, lightweight functions is being timed." << endl;
             }
         }
+#ifndef APEX_HAVE_HPX3
         queue_signal.post();
+#endif
+#ifdef APEX_HAVE_HPX3
+        schedule_process_profiles();
+#endif
       }
     }
   }
@@ -1017,7 +1076,12 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
     if (!_terminate) {
       profiler * p = new profiler(new string(*data.counter_name), data.counter_value);
       profiler_queues[my_tid]->push(p);
+#ifndef APEX_HAVE_HPX3
       queue_signal.post();
+#endif
+#ifdef APEX_HAVE_HPX3
+        schedule_process_profiles();
+#endif
     }
 	APEX_UNUSED(data);
   }
@@ -1047,7 +1111,12 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         p = new profiler((apex_function_address)APEX_NULL_FUNCTION_ADDRESS, false, reset_type::ALL);
       }
       profiler_queues[my_tid]->push(p);
+#ifndef APEX_HAVE_HPX3
       queue_signal.post();
+#endif
+#ifdef APEX_HAVE_HPX3
+        schedule_process_profiles();
+#endif
     }
   }
 

@@ -14,6 +14,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <string>
+#include <boost/algorithm/string/predicate.hpp>
 //#include <cxxabi.h> // this is for demangling strings.
 
 #include "concurrency_handler.hpp"
@@ -291,6 +292,9 @@ profiler* start(const std::string &timer_name)
     APEX_TIMER_TRACER("start ", timer_name)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return NULL; // protect against calls after finalization
+    if (boost::starts_with(timer_name, "apex_internal")) {
+        return NULL; // don't process our own events
+    }
     if (_notify_listeners) {
     string * tmp = new string(timer_name);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
