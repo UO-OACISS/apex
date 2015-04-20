@@ -7,7 +7,7 @@
 #include <hpx/config.hpp>
 #endif
 
-#include "apex.hpp"
+#include "apex_api.hpp"
 #include "profiler_listener.hpp"
 #include "profiler.hpp"
 #include "thread_instance.hpp"

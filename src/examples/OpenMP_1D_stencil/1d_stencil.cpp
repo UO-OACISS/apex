@@ -1,7 +1,7 @@
 #include <iostream>
 #include <array>
 #include <algorithm>
-#include "apex.hpp"
+#include "apex_api.hpp"
 #if defined (_OPENMP)
 #include "omp.h"
 #else 
