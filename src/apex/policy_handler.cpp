@@ -8,7 +8,7 @@
 #include <hpx/include/runtime.hpp>
 #endif
 
-#include "apex.hpp"
+#include "apex_api.hpp"
 #include "policy_handler.hpp"
 #include "thread_instance.hpp"
 #include <iostream>

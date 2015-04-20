@@ -5,7 +5,7 @@
 #include <string.h>
 #include <iostream>
 #include "proc_read.h"
-#include "apex.hpp"
+#include "apex_api.hpp"
 #include <boost/atomic.hpp>
 #include <sstream>
 #include <string>

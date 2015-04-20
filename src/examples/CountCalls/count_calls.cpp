@@ -2,7 +2,7 @@
 #include <pthread.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <apex.hpp>
+#include <apex_api.hpp>
 #include <sstream>
 #include <iostream>
 

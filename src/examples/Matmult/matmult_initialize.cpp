@@ -1,5 +1,5 @@
 #include "matmult_initialize.h"
-#include "apex.hpp"
+#include "apex_api.hpp"
 
 void initialize(double **matrix, int rows, int cols) {
   //profiler* p = apex::start((void*)(initialize));

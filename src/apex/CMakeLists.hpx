@@ -97,7 +97,7 @@ set(apex_headers
     apex.h
     apex_types.h
     apex_export.h
-    apex.hpp
+    apex_api.hpp
     apex_options.hpp
     concurrency_handler.hpp
     event_listener.hpp
