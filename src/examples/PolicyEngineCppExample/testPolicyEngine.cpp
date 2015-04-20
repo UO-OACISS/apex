@@ -7,7 +7,7 @@
 #include <sstream>
 
 #define NUM_THREADS 8
-#define ITERATIONS 1000000
+#define ITERATIONS 500000
 
 using namespace std;
 
@@ -89,7 +89,7 @@ int main(int argc, char **argv)
   apex::register_policy(when, [](apex_context const& context)->int{
        UNUSED(context);
        static APEX_NATIVE_TLS unsigned int not_all_the_time = 0;
-       if (++not_all_the_time % 500000 != 0) return true; // only do 2 out of a million
+       if (++not_all_the_time % 500000 != 0) return APEX_NOERROR; // only do 2 out of a million
        apex_function_address foo_addr = (apex_function_address)(foo);
        apex::profile * p = apex::profiler_listener::get_profile(foo_addr);
        if (p != NULL) {

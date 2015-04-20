@@ -15,6 +15,32 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/** The address of a C++ object in APEX.
+ * Not useful for the caller that gets it back, but required
+ * for stopping the timer later.
+ */
+typedef uintptr_t apex_profiler_handle; // address of internal C++ object
+
+/** A null pointer representing an APEX profiler handle.
+ * Used when a null APEX profile handle is to be passed in to
+ * apex::stop when the profiler object wasn't retained locally.
+ */
+#define APEX_NULL_PROFILER_HANDLE (apex_profiler_handle)(NULL) // for comparisons
+
+/** Rather than use void pointers everywhere, be explicit about
+ * what the functions are expecting.
+ */
+//typedef int (*apex_function_address)(void); // generic function pointer
+typedef uintptr_t apex_function_address; // generic function pointer
+
+/**
+ * Typedef for enumerating the different timer types
+ */
+typedef enum _apex_profiler_type {
+    APEX_FUNCTION_ADDRESS = 0, /*!< The ID is a function (or instruction) address */
+    APEX_NAME_STRING           /*!< The ID is a character string */
+} apex_profiler_type;
+
 /**
  * Typedef for enumerating the different event types
  */
@@ -23,11 +49,13 @@ typedef enum _error_codes {
   APEX_ERROR        /*!< Some error occurred - check stderr output for details */
 } apex_error_code;
 
+#define APEX_MAX_EVENTS 32 /*!< The maximum number of event types. Allows for ~20 custom events. */
+
 /**
  * Typedef for enumerating the different event types
  */
 typedef enum _event_type {
-  APEX_STARTUP,        /*!< APEX is initialized */
+  APEX_STARTUP = 0,        /*!< APEX is initialized */
   APEX_SHUTDOWN,       /*!< APEX is terminated */
   APEX_NEW_NODE,       /*!< APEX has registered a new process ID */
   APEX_NEW_THREAD,     /*!< APEX has registered a new OS thread */
@@ -38,8 +66,9 @@ typedef enum _event_type {
   APEX_YIELD_EVENT,    /*!< APEX has processed a timer yield event */
   APEX_SAMPLE_VALUE,   /*!< APEX has processed a sampled value */
   APEX_PERIODIC,       /*!< APEX has processed a periodic timer */
-  APEX_CUSTOM_EVENT    /*!< APEX has processed a custom event - useful for large
+  APEX_CUSTOM_EVENT,   /*!< APEX has processed a custom event - useful for large
                            granularity application control events */
+  APEX_UNUSED_EVENT = APEX_MAX_EVENTS // can't have more custom events than this
 } apex_event_type;
 
 /** 
@@ -77,6 +106,22 @@ typedef enum {APEX_SIMPLE_HYSTERESIS,      /*!< optimize using sliding window of
                                                for optimization */
 	          APEX_ACTIVE_HARMONY          /*!< Use Active Harmony for optimization. */
 } apex_optimization_method_t;
+
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+
+/**
+ * Structure that holds a profiler ID
+ */
+typedef struct _apex_profiler_id
+{
+    apex_profiler_type type;
+    union {
+      apex_function_address address;
+      const char * name;
+    } identifier;
+} apex_profiler_id;
+
+#endif //DOXYGEN_SHOULD_SKIP_THIS
 
 /** A reference to the policy object,
  * so that policies can be "unregistered", or paused later
@@ -121,24 +166,6 @@ typedef struct _profile
     double maximum;       /*!< Maximum value seen by the timer or counter */
     apex_profile_type type; /*!< Whether this is a timer or a counter */
 } apex_profile;
-
-/** The address of a C++ object in APEX.
- * Not useful for the caller that gets it back, but required
- * for stopping the timer later.
- */
-typedef uintptr_t apex_profiler_handle; // address of internal C++ object
-
-/** A null pointer representing an APEX profiler handle.
- * Used when a null APEX profile handle is to be passed in to
- * apex::stop when the profiler object wasn't retained locally.
- */
-#define APEX_NULL_PROFILER_HANDLE (apex_profiler_handle)(NULL) // for comparisons
-
-/** Rather than use void pointers everywhere, be explicit about
- * what the functions are expecting.
- */
-//typedef int (*apex_function_address)(void); // generic function pointer
-typedef uintptr_t apex_function_address; // generic function pointer
 
 /** Rather than use void pointers everywhere, be explicit about
  * what the functions are expecting.

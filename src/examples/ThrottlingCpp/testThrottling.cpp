@@ -5,10 +5,10 @@
 #include <unistd.h>
 
 #include "apex.hpp"
-#include "apex_throttling.h"
+#include "apex_policies.h"
 
 #define NUM_THREADS 48
-#define ITERATIONS 1000
+#define ITERATIONS 250
 #define SLEEPY_TIME 10000 // 10,000
 
 int total_iterations = NUM_THREADS * ITERATIONS;
@@ -75,6 +75,7 @@ int main(int argc, char **argv)
 
   setup_timer_throttling((apex_function_address)foo, APEX_MAXIMIZE_THROUGHPUT,
           APEX_DISCRETE_HILL_CLIMBING, 1000000);
+  int original_cap = get_thread_cap();
 
   profiler* p = start((apex_function_address)main);
   printf("PID of this process: %d\n", getpid());
@@ -89,6 +90,10 @@ int main(int argc, char **argv)
     pthread_join(thread[i], NULL);
   }
   stop(p);
+  int final_cap = get_thread_cap();
+  if (final_cap < original_cap) {
+    std::cout << "Test passed." << std::endl;
+  }
   finalize();
   return(0);
 }

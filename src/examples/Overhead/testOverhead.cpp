@@ -6,7 +6,8 @@
 #include <sstream>
 
 #define NUM_THREADS 8
-#define ITERATIONS 1000
+#define ITERATIONS 1024*2
+#define INNER_ITERATION INT_MAX 
 
 class ApexProxy {
 private:
@@ -33,8 +34,15 @@ ApexProxy::~ApexProxy() {
   apex::stop(p);
 };
 
-int foo (int i) {
-  return i*i;
+inline int foo (int i) {
+  int j;
+  int dummy = 0;
+  for (j = 0 ; j < INNER_ITERATION ; j++) {
+    dummy = dummy * (dummy + i);
+    if (dummy > (INT_MAX >> 1)) {
+      dummy = 1;
+    }
+  }
 }
 
 typedef void*(*start_routine_t)(void*);
@@ -85,6 +93,7 @@ int main(int argc, char **argv)
 {
   apex::init(argc, argv, NULL);
   apex::set_node_id(0);
+  sleep(1); // if we don't sleep, the proc_read thread won't have time to read anything.
 
   //ApexProxy proxy = ApexProxy(__func__, __FILE__, __LINE__);
   ApexProxy proxy = ApexProxy((apex_function_address)main);
@@ -102,6 +111,25 @@ int main(int argc, char **argv)
     pthread_join(thread[i], NULL);
   }
   apex::finalize();
+  apex_profile * with = apex::get_profile((apex_function_address)&someThread);
+  apex_profile * without = apex::get_profile((apex_function_address)&someUntimedThread);
+  apex_profile * footime = apex::get_profile((apex_function_address)&foo);
+  apex_profile * mhz = apex::get_profile(std::string("cpuinfo.0:cpu MHz"));
+  std::cout << "Without timing: " << without->accumulated;
+  std::cout << ", with timing: " << with->accumulated << std::endl;
+  std::cout << "Expected calls to 'foo': " << NUM_THREADS*ITERATIONS/2;
+  std::cout << ", timed calls to 'foo': " << footime->calls << std::endl;
+  double percall = (with->accumulated - footime->accumulated) / footime->calls;
+  double milliseconds = percall * 1.0e3;
+  double microseconds = percall * 1.0e6;
+  double nanoseconds = percall * 1.0e9;
+  std::cout << "Overhead per timer: " << milliseconds << " ms" << std::endl;
+  std::cout << "Overhead per timer: " << microseconds << " us" << std::endl;
+  std::cout << "Overhead per timer: " << nanoseconds << " ns" << std::endl;
+  if (mhz) {
+    double cycles = percall * mhz->accumulated * 1.0e6;
+    std::cout << "Overhead per timer: " << cycles << " cycles" << std::endl;
+  }
   return(0);
 }
 

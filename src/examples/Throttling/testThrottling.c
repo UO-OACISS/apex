@@ -6,19 +6,19 @@
 #include <math.h>
 
 #include "apex.h"
-#include "apex_throttling.h"
+#include "apex_policies.h"
 
 #define MAX(a,b) ((a) > (b) ? a : b)
 #define MIN(a,b) ((a) < (b) ? a : b)
 
 #define NUM_THREADS 48
-#define ITERATIONS 1000
+#define ITERATIONS 250
 #define SLEEPY_TIME 10000 // 10,000
 
 int total_iterations = NUM_THREADS * ITERATIONS;
 
 int foo (int i) {
-  apex_profiler_handle p = apex_start_address((apex_function_address)foo);
+  apex_profiler_handle p = apex_start(APEX_FUNCTION_ADDRESS, &foo);
   int j = i*i;
   double randval = 1.0 + (((double)(rand())) / RAND_MAX);
   struct timespec tim, tim2;
@@ -27,7 +27,7 @@ int foo (int i) {
   int cap = MIN(NUM_THREADS,apex_get_thread_cap());
   tim.tv_nsec = (unsigned long)(SLEEPY_TIME * randval * (cap * cap));
   nanosleep(&tim , &tim2);
-  apex_stop_profiler(p);
+  apex_stop(p);
   return j;
 }
 
@@ -40,7 +40,7 @@ void* someThread(void* tmp)
   int *myid = (int*)tmp;
   apex_register_thread("threadTest thread");
   //ApexProxy proxy = ApexProxy(__func__, __FILE__, __LINE__);
-  apex_profiler_handle p = apex_start_address((apex_function_address)someThread);
+  apex_profiler_handle p = apex_start(APEX_FUNCTION_ADDRESS, &someThread);
   printf("PID of this process: %d\n", getpid());
 #if defined (__APPLE__)
   printf("The ID of this thread is: %lu\n", (unsigned long)pthread_self());
@@ -65,7 +65,7 @@ void* someThread(void* tmp)
       }
   }
   printf("Thread done: %d. Current Cap: %d.\n", *myid, apex_get_thread_cap());
-  apex_stop_profiler(p);
+  apex_stop(p);
   return NULL;
 }
 
@@ -74,10 +74,12 @@ int main(int argc, char **argv)
   apex_init_args(argc, argv, NULL);
   apex_set_node_id(0);
 
-  apex_setup_timer_address_throttling((apex_function_address)foo, APEX_MINIMIZE_ACCUMULATED,
+  apex_setup_timer_throttling(APEX_FUNCTION_ADDRESS, &foo, APEX_MINIMIZE_ACCUMULATED,
           APEX_DISCRETE_HILL_CLIMBING, 1000000);
 
-  apex_profiler_handle p = apex_start_address((apex_function_address)main);
+  int original_cap = apex_get_thread_cap();
+
+  apex_profiler_handle p = apex_start(APEX_FUNCTION_ADDRESS, &main);
   //printf("PID of this process: %d\n", getpid());
   pthread_t thread[NUM_THREADS];
   int i;
@@ -89,7 +91,11 @@ int main(int argc, char **argv)
   for (i = 0 ; i < NUM_THREADS ; i++) {
     pthread_join(thread[i], NULL);
   }
-  apex_stop_profiler(p);
+  apex_stop(p);
+  int final_cap = apex_get_thread_cap();
+  if (final_cap < original_cap) {
+    printf("Test passed.\n");
+  }
   apex_finalize();
   return(0);
 }

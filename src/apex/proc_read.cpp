@@ -492,6 +492,7 @@ bool ProcData::parse_sensor_data() {
 void ProcData::read_proc(void) {
   static bool _initialized = false;
   if (!_initialized) {
+      //register_thread("proc_read");
       initialize_worker_thread_for_TAU();
       _initialized = true;
   }
@@ -502,7 +503,7 @@ void ProcData::read_proc(void) {
 #endif
   ProcData *oldData = parse_proc_stat();
   // disabled for now - not sure that it is useful
-  // oldData->parse_proc_cpuinfo(); // do this once, it won't change.
+  oldData->parse_proc_cpuinfo(); // do this once, it won't change.
   oldData->parse_proc_meminfo(); // some things change, others don't...
   ProcData *newData = NULL;
   ProcData *periodData = NULL;

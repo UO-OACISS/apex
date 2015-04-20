@@ -10,7 +10,7 @@
 
 #include "concurrency_handler.hpp"
 #include "apex.hpp"
-#include "apex_throttling.h"
+#include "apex_policies.h"
 #include "thread_instance.hpp"
 #include <iostream>
 #include <map>

@@ -15,6 +15,7 @@ BOOST_ROOT=$HOME/install/boost_1_56_0
 #RCR_ROOT=$HOME/src/RCRdaemon
 #PAPI_ROOT=/usr/local/papi/5.3.2
 #TAU_ROOT=$HOME/src/tau2
+unset TAU_ROOT
 
 # other CMake variables - for special situations / architectures / compilers.
 

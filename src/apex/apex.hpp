@@ -27,6 +27,8 @@
 #include "profiler_listener.hpp"
 #include "apex_options.hpp"
 #include "apex_export.h" 
+#include <boost/thread/shared_mutex.hpp>
+#include <unordered_map>
 
 #ifdef APEX_HAVE_RCR
 #include "libenergy.h"
@@ -93,6 +95,8 @@ private:
 public:
     std::vector<event_listener*> listeners;
     std::string* m_my_locality;
+    std::unordered_map<int, std::string> custom_event_names;
+    boost::shared_mutex custom_event_mutex;
     static apex* instance(); // singleton instance
     static apex* instance(int argc, char** argv); // singleton instance
     void set_node_id(int id);
@@ -235,7 +239,7 @@ APEX_EXPORT void stop(profiler* the_profiler);
  will NOT be incremented - this "task" was yielded, not completed.
  It will be resumed by another thread at a later time.
  
- \param profiler The handle of the profiler object.
+ \param the_profiler The handle of the profiler object.
  \return No return value.
  \sa apex::start
  */
@@ -269,17 +273,27 @@ APEX_EXPORT void resume(profiler* the_profiler);
 APEX_EXPORT void sample_value(const std::string &name, double value);
 
 /**
+ \brief Register an event type with APEX.
+
+ Create a user-defined event type for APEX.
+ 
+ \param name The name of the custom event
+ \return The index of the custom event.
+ */
+APEX_EXPORT apex_event_type register_custom_event(const std::string &name);
+
+/**
  \brief Trigger a custom event.
 
  This function will pass a custom event to the APEX event listeners.
  Each listeners' on_custom_event() event will handle the custom event.
  Policy functions will be passed the custom event name in the event context.
  
- \param event_name The name of the custom event
+ \param event_type The type of the custom event
  \param custom_data Data relevant to the custom event
  \return No return value.
  */
-APEX_EXPORT void custom_event(const std::string &event_name, void * custom_data);
+APEX_EXPORT void custom_event(apex_event_type event_type, void * custom_data);
 
 /**
  \brief Reset a timer or counter.
@@ -408,8 +422,11 @@ APEX_EXPORT apex_profile* get_profile(apex_function_address function_address);
  */
 APEX_EXPORT apex_profile* get_profile(const std::string &timer_name);
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+
 /**
  \brief Get the set of profiles that are identified by name
+ \internal
 
  This function will return the names of current profiles for all timers and counters.
  Because profiles are updated out-of-band, it is possible that this profile
@@ -444,6 +461,8 @@ APEX_EXPORT inline double current_power_high(void) {
   return 0.0;
 #endif
 }
+
+#endif // DOXYGEN_SHOULD_SKIP_THIS
 
 /**
  \brief Initialize the power cap throttling policy.
@@ -494,10 +513,35 @@ APEX_EXPORT int setup_power_cap_throttling(void);      // initialize
  \param update_interval The time between observations, in microseconds.
  \return APEX_NOERROR on success, otherwise an error code.
  */
-
 APEX_EXPORT int setup_timer_throttling(apex_function_address the_address,
         apex_optimization_criteria_t criteria,
         apex_optimization_method_t method, unsigned long update_interval);
+
+/**
+ \brief Setup throttling to optimize for the specified function, using
+        multiple input criteria.
+
+ This function will initialize a policy to optimize the specified function, 
+ using the list of tunable inputs for the specified function. The 
+ optimization criteria include maximizing throughput,
+ minimizing or maximizing time spent in the specified function. After
+ evaluating the state of the system, the policy will assign new values to
+ the inputs.
+
+ \param the_address The address of the function to be optimized.
+ \param criteria The optimization criteria.
+ \param event_type The @ref apex_event_type that should trigger this policy 
+ \param num_inputs The number of tunable inputs for optimization
+ \param inputs An array of addresses to inputs for optimization
+ \param mins An array of minimum values for each input
+ \param maxs An array of maximum values for each input
+ \param steps An array of step values for each input
+ \return APEX_NOERROR on success, otherwise an error code.
+ */
+APEX_EXPORT int setup_general_tuning(apex_function_address the_address,
+        apex_optimization_criteria_t criteria,
+        apex_event_type event_type, int num_inputs, long ** inputs, long * mins,
+        long * maxs, long * steps);
 
 /**
  \brief Setup throttling to optimize for the specified function or counter.

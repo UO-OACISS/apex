@@ -59,8 +59,8 @@ private:
     std::list<boost::shared_ptr<policy_instance> > yield_event_policies;
     std::list<boost::shared_ptr<policy_instance> > resume_event_policies;
     std::list<boost::shared_ptr<policy_instance> > sample_value_policies;
-    std::list<boost::shared_ptr<policy_instance> > custom_event_policies;
     std::list<boost::shared_ptr<policy_instance> > periodic_policies;
+    std::array<std::list<boost::shared_ptr<policy_instance> >,APEX_MAX_EVENTS > custom_event_policies;
     mutex_type startup_mutex;
     mutex_type shutdown_mutex;
     mutex_type new_node_mutex;

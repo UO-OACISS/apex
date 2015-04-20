@@ -457,12 +457,27 @@ void sample_value(const std::string &name, double value)
     delete(event_data);
 }
 
-void custom_event(const std::string &name, void * custom_data)
-{
+boost::atomic<int> custom_event_count(APEX_CUSTOM_EVENT);
+
+apex_event_type register_custom_event(const std::string &name) {
+    APEX_TRACER
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance) return APEX_CUSTOM_EVENT; // protect against calls after finalization
+    if (custom_event_count == APEX_MAX_EVENTS) {
+      std::cerr << "Cannot register more than MAX Events! (set to " << APEX_MAX_EVENTS << ")" << std::endl;
+    }
+    boost::unique_lock<boost::shared_mutex> l(instance->custom_event_mutex);
+    instance->custom_event_names[custom_event_count] = name;
+    int tmp = custom_event_count;
+    custom_event_count++; 
+    return (apex_event_type)tmp;
+}
+
+void custom_event(apex_event_type event_type, void * custom_data) {
     APEX_TRACER
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
-    custom_event_data event_data(name, custom_data);
+    custom_event_data event_data(event_type, custom_data);
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_custom_event(event_data);
@@ -673,46 +688,38 @@ extern "C" {
         return version().c_str();
     }
 
-    apex_profiler_handle apex_start_name(const char * timer_name)
+    apex_profiler_handle apex_start(apex_profiler_type type, void * identifier)
     {
-        if (timer_name) {
-            string tmp(timer_name);
-            return (apex_profiler_handle)start(tmp);
+      assert(identifier);
+      if (type == APEX_FUNCTION_ADDRESS) {
+          return (apex_profiler_handle)start((apex_function_address)identifier);
+      } else if (type == APEX_NAME_STRING) {
+          string tmp((const char *)identifier);
+          return (apex_profiler_handle)start(tmp);
+      }
+      return (apex_profiler_handle)(NULL);
+    }
+
+    void apex_reset(apex_profiler_type type, void * identifier) {
+        assert(identifier);
+        if (type == APEX_FUNCTION_ADDRESS) {
+            reset((apex_function_address)(identifier));
         } else {
-            string tmp("");
-            return (apex_profiler_handle)start(tmp);
-        }
-    }
-
-    apex_profiler_handle apex_start_address(apex_function_address function_address)
-    {
-        return (apex_profiler_handle)start(function_address);
-    }
-
-    void apex_reset_name(const char * timer_name) {
-        if (timer_name) {
-            string tmp(timer_name);
+            string tmp((const char *)identifier);
             reset(tmp);       
-        } else {
-            string tmp("");
-            reset(tmp);
         }
     }
     
-    void apex_reset_address(apex_function_address function_address) {
-        reset(function_address);
-    }
-
     void apex_set_state(apex_thread_state state) {
         set_state(state);
     }
 
-    void apex_resume_profiler(apex_profiler_handle the_profiler)
+    void apex_resume(apex_profiler_handle the_profiler)
     {
         resume((profiler*)the_profiler);
     }
 
-    void apex_stop_profiler(apex_profiler_handle the_profiler)
+    void apex_stop(apex_profiler_handle the_profiler)
     {
         stop((profiler*)the_profiler);
     }
@@ -723,10 +730,15 @@ extern "C" {
         sample_value(tmp, value);
     }
 
-    void apex_custom_event(const char * name, void * custom_data)
+    apex_event_type apex_register_custom_event(const char * name)
     {
         string tmp(name);
-        custom_event(tmp, custom_data);
+        return register_custom_event(tmp);
+    }
+
+    void apex_custom_event(apex_event_type event_type, void * custom_data)
+    {
+        custom_event(event_type, custom_data);
     }
 
     void apex_set_node_id(int id)
@@ -778,13 +790,15 @@ extern "C" {
         return register_periodic_policy(period, f);
     }
 
-    apex_profile* apex_get_profile_from_address(apex_function_address function_address) {
-        return get_profile(function_address);
-    }
-
-    apex_profile* apex_get_profile_from_name(const char * timer_name) {
-        string tmp(timer_name);
-        return get_profile(tmp);
+    apex_profile* apex_get_profile(apex_profiler_type type, void * identifier) {
+        assert(identifier);
+        if (type == APEX_FUNCTION_ADDRESS) {
+            return get_profile((apex_function_address)(identifier));
+        } else {
+            string tmp((const char *)identifier);
+            return get_profile(tmp);
+        }
+        return NULL;
     }
 
     double apex_current_power_high() {

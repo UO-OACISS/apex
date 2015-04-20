@@ -5,16 +5,16 @@
 #include <apex.h>
 
 #define NUM_THREADS 8
-#define ITERATIONS 1000000
+#define ITERATIONS 500000
 
 int foo (int i) {
 #ifdef __APPLE__
-  apex_profiler_handle my_profiler = apex_start_name("foo");
+  apex_profiler_handle my_profiler = apex_start(APEX_NAME_STRING, "foo");
 #else
-  apex_profiler_handle my_profiler = apex_start_address((apex_function_address)foo);
+  apex_profiler_handle my_profiler = apex_start(APEX_FUNCTION_ADDRESS, &foo);
 #endif
   int result = i*i;
-  apex_stop_profiler(my_profiler);
+  apex_stop(my_profiler);
   return result;
 }
 
@@ -24,9 +24,9 @@ void* someThread(void* tmp)
 {
   apex_register_thread("threadTest thread");
 #ifdef __APPLE__
-  apex_profiler_handle my_profiler = apex_start_name("someThread");
+  apex_profiler_handle my_profiler = apex_start(APEX_NAME_STRING, "someThread");
 #else
-  apex_profiler_handle my_profiler = apex_start_address((apex_function_address)someThread);
+  apex_profiler_handle my_profiler = apex_start(APEX_FUNCTION_ADDRESS, &someThread);
 #endif
   printf("PID of this process: %d\n", getpid());
 #if defined (__APPLE__)
@@ -38,33 +38,39 @@ void* someThread(void* tmp)
   for (i = 0 ; i < ITERATIONS ; i++) {
       foo(i);
   }
-  apex_stop_profiler(my_profiler);
+  apex_stop(my_profiler);
   return NULL;
 }
 
 int policy_periodic(apex_context const context) {
 #ifdef __APPLE__
-    apex_profile * p = apex_get_profile_from_name("foo");
+    apex_profile * p = apex_get_profile(APEX_NAME_STRING, "foo");
+    if (p != NULL) {
+        printf("Periodic Policy: 'foo' %d %f seconds.\n", (int)p->calls, p->accumulated/p->calls);
+    }
 #else
-    apex_profile * p = apex_get_profile_from_address((apex_function_address)foo);
-#endif
+    apex_profile * p = apex_get_profile(APEX_FUNCTION_ADDRESS, &foo);
     if (p != NULL) {
         printf("Periodic Policy: %p %d %f seconds.\n", foo, (int)p->calls, p->accumulated/p->calls);
     }
+#endif
     return APEX_NOERROR;
 }
 
 int policy_event(apex_context const context) {
     static APEX_NATIVE_TLS unsigned int not_every_time = 0;
-    if (not_every_time++ % 500000 != 0) return 1;
+    if (not_every_time++ % 500000 != 0) return APEX_NOERROR;
 #ifdef __APPLE__
-    apex_profile * p = apex_get_profile_from_name("foo");
+    apex_profile * p = apex_get_profile(APEX_NAME_STRING, "foo");
+    if (p != NULL) {
+        printf("Event Policy: 'foo' %d %f seconds.\n", (int)p->calls, p->accumulated/p->calls);
+    }
 #else
-    apex_profile * p = apex_get_profile_from_address((apex_function_address)foo);
-#endif
+    apex_profile * p = apex_get_profile(APEX_FUNCTION_ADDRESS, &foo);
     if (p != NULL) {
         printf("Event Policy: %p %d %f seconds.\n", foo, (int)p->calls, p->accumulated/p->calls);
     }
+#endif
     return APEX_NOERROR;
 }
 
@@ -79,9 +85,9 @@ int main(int argc, char **argv)
   apex_register_periodic_policy(1000000, policy_periodic);
   apex_register_policy(when, policy_event);
 #ifdef __APPLE__
-  apex_profiler_handle my_profiler = apex_start_name("main");
+  apex_profiler_handle my_profiler = apex_start(APEX_NAME_STRING, "main");
 #else
-  apex_profiler_handle my_profiler = apex_start_address((apex_function_address)main);
+  apex_profiler_handle my_profiler = apex_start(APEX_FUNCTION_ADDRESS, &main);
 #endif
   printf("PID of this process: %d\n", getpid());
   pthread_t thread[NUM_THREADS];
@@ -92,7 +98,7 @@ int main(int argc, char **argv)
   for (i = 0 ; i < NUM_THREADS ; i++) {
     pthread_join(thread[i], NULL);
   }
-  apex_stop_profiler(my_profiler);
+  apex_stop(my_profiler);
   apex_finalize();
   return(0);
 }

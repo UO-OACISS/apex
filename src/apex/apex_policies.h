@@ -1,5 +1,5 @@
-#ifndef APEX_THROTTLING_H
-#define APEX_THROTTLING_H
+#ifndef APEX_POLICIES_H  
+#define APEX_POLICIES_H  
 
 #include "apex_export.h"
 
@@ -13,4 +13,4 @@ extern bool apex_energyThrottling;   // Try to save power while throttling
 #define APEX_MAX_THREADS 48
 #define APEX_MIN_THREADS 12
 
-#endif // APEX_THROTTLING_H
+#endif // APEX_POLICIES_H  

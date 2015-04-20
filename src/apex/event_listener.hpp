@@ -77,8 +77,7 @@ public:
 
 class custom_event_data : public event_data {
 public:
-  std::string* event_name;
-  custom_event_data(const std::string &event_name, void * custom_data);
+  custom_event_data(apex_event_type event_type, void * custom_data);
   ~custom_event_data();
 };
 

@@ -84,33 +84,21 @@ APEX_EXPORT void apex_finalize();
  \brief Start a timer.
 
  This function will create a profiler object in APEX, and return a
- handle to the object.  The object will be associated with the name
- passed in to this function.
+ handle to the object.  The object will be associated with the address
+ or name passed in to this function.  If both are zero (null) then the call
+ will fail and the return value will be null.
  
- \param timer_name The name of the timer.
+ \param type The type of the address to be stored. This can be one of the @ref
+             apex_profiler_type values.
+ \param identifier The function address of the function to be timed, or a "const
+             char *" pointer to the name of the timer.
  \return The handle for the timer object in APEX. Not intended to be
          queried by the application. Should be retained locally, if
-		 possible, and passed in to the matching apex_stop_name()
+		 possible, and passed in to the matching apex_stop()
 		 call when the timer should be stopped.
- \sa apex_stop_name
+ \sa apex_stop
  */
-APEX_EXPORT apex_profiler_handle apex_start_name(const char * timer_name);
-
-/**
- \brief Start a timer.
-
- This function will create a profiler object in APEX, and return a
- handle to the object.  The object will be associated with the 
- address passed in to this function.
- 
- \param function_address The address of the function to be timed
- \return The handle for the timer object in APEX. Not intended to be
-         queried by the application. Should be retained locally, if
-		 possible, and passed in to the matching apex_stop_profiler()
-		 call when the timer should be stopped.
- \sa apex_stop_profiler
- */
-APEX_EXPORT apex_profiler_handle apex_start_address(apex_function_address function_address);
+APEX_EXPORT apex_profiler_handle apex_start(apex_profiler_type type, void * identifier);
 
 /**
  \brief Stop a timer.
@@ -123,7 +111,7 @@ APEX_EXPORT apex_profiler_handle apex_start_address(apex_function_address functi
  \return No return value.
  \sa apex_start_name, apex_start_address
  */
-APEX_EXPORT void apex_stop_profiler(apex_profiler_handle profiler);
+APEX_EXPORT void apex_stop(apex_profiler_handle profiler);
 
 /**
  \brief Stop a timer, but don't increment the number of calls.
@@ -136,9 +124,9 @@ APEX_EXPORT void apex_stop_profiler(apex_profiler_handle profiler);
  
  \param profiler The handle of the profiler object.
  \return No return value.
- \sa apex_start_name, apex_start_address
+ \sa apex_start, apex_stop, apex_resume
  */
-APEX_EXPORT void apex_yield_profiler(apex_profiler_handle profiler);
+APEX_EXPORT void apex_yield(apex_profiler_handle profiler);
 
 /**
  \brief Resume a timer.
@@ -146,11 +134,13 @@ APEX_EXPORT void apex_yield_profiler(apex_profiler_handle profiler);
  This function will restart the specified profiler object. The
  difference between this function and the apex_start_name or
  apex_start_address functions is that the number of calls to that
- timer will not be incremented.
+ timer will not be incremented.  NOTE: if the timer was previously
+ stopped with apex_yield, then the timer should be restarted with
+ apex_start.
  
  \param profiler The handle of the profiler object.
  \return No return value.
- \sa apex_start_name, apex_start_address, apex_stop_profiler
+ \sa apex_start, apex_stop, apex_yield
  */
 APEX_EXPORT void apex_resume(apex_profiler_handle profiler);
 
@@ -162,23 +152,15 @@ APEX_EXPORT void apex_resume(apex_profiler_handle profiler);
  \brief Reset a timer.
 
  This function will reset the profile associated with the specified
- timer to zero.
+ id to zero.  
  
- \param timer_name The name of the timer.
+ \param type The type of the address to be reset. This can be one of the @ref
+             apex_profiler_type values.
+ \param identifier The function address of the function to be reset, or a "const
+             char *" pointer to the name of the timer / counter.
  \return No return value.
  */
-APEX_EXPORT void apex_reset_name(const char * timer_name);
-
-/**
- \brief Reset a timer.
-
- This function will reset the profile associated with the specified
- timer to zero.
- 
- \param function_address The function address of the timer.
- \return No return value.
- */
-APEX_EXPORT void apex_reset_address(apex_function_address function_address);
+APEX_EXPORT void apex_reset(apex_profiler_type type, void * identifier);
 
 /**
  \brief Set the thread state
@@ -208,17 +190,29 @@ APEX_EXPORT void apex_set_state(apex_thread_state state);
 APEX_EXPORT void apex_sample_value(const char * name, double value);
 
 /**
+ \brief Register an event type with APEX.
+
+ Create a user-defined event type for APEX.
+ 
+ \param name The name of the custom event
+ \return The index of the custom event.
+ \sa apex_custom_event
+ */
+APEX_EXPORT int apex_register_custom_event(const char * name);
+
+/**
  \brief Trigger a custom event.
 
  This function will pass a custom event to the APEX event listeners.
  Each listeners' on_custom() event will handle the custom event.
  Policy functions will be passed the custom event name in the event context.
  
- \param event_name The name of the custom event
+ \param event_type The type of the custom event
  \param custom_data Data specific to the custom event
  \return No return value.
+ \sa apex_register_custom_event
  */
-APEX_EXPORT void apex_custom_event(const char * event_name, void * custom_data);
+APEX_EXPORT void apex_custom_event(apex_event_type event_type, void * custom_data);
 
 /*
  * Utility functions
@@ -318,28 +312,20 @@ APEX_EXPORT apex_policy_handle apex_register_policy(const apex_event_type when, 
 APEX_EXPORT apex_policy_handle apex_register_periodic_policy(unsigned long period, apex_policy_function f);
 
 /**
- \brief Get the current profile for the specified function address.
+ \brief Get the current profile for the specified id.
 
- This function will return the current profile for the specified address.
+ This function will return the current profile for the specified profiler id.
  Because profiles are updated out-of-band, it is possible that this profile
  value is out of date.  This profile can be either a timer or a sampled value.
  
- \param timer_name The name of the function
+ \param type The type of the address to be returned. This can be one of the @ref
+             apex_profiler_type values.
+ \param identifier The function address of the function to be returned, or a "const
+             char *" pointer to the name of the timer / counter.
  \return The current profile for that timed function or sampled value.
+ \sa apex_get_profiler_id
  */
-APEX_EXPORT apex_profile * apex_get_profile_from_name(const char * timer_name);
-
-/**
- \brief Get the current profile for the specified function address.
-
- This function will return the current profile for the specified address.
- Because profiles are updated out-of-band, it is possible that this profile
- value is out of date. 
- 
- \param function_address The address of the function.
- \return The current profile for that timed function.
- */
-APEX_EXPORT apex_profile * apex_get_profile_from_address(apex_function_address function_address);
+APEX_EXPORT apex_profile * apex_get_profile(apex_profiler_type type, void * identifier);
 
 /**
  \brief Get the current power reading
@@ -393,37 +379,51 @@ APEX_EXPORT int apex_setup_power_cap_throttling(void);      // initialize
  evaluating the state of the system, the policy will set the thread cap, which
  can be queried using @ref apex_get_thread_cap().
 
- \param the_address The address of the function to be optimized.
+ \param type The type of the address to be optimized. This can be one of the @ref
+             apex_profiler_type values.
+ \param identifier The function address of the function to be optimized, or a "const
+             char *" pointer to the name of the counter/timer.
  \param criteria The optimization criteria.
  \param method The optimization method.
  \param update_interval The time between observations, in microseconds.
  \return APEX_NOERROR on success, otherwise an error code.
  */
 
-APEX_EXPORT int apex_setup_timer_address_throttling(apex_function_address the_address,
+APEX_EXPORT int apex_setup_timer_throttling(apex_profiler_type type, 
+        void * identifier,
         apex_optimization_criteria_t criteria,
         apex_optimization_method_t method, unsigned long update_interval);
 
 /**
- \brief Setup throttling to optimize for the specified function or counter.
+ \brief Setup throttling to optimize for the specified function, using
+        multiple input criteria.
 
- This function will initialize the throttling policy to optimize for the 
- specified function or counter. The optimization criteria include maximizing
- throughput, minimizing or maximizing time spent in the specified function
- or value sampled in the counter. After evaluating the state of the system,
- the policy will set the thread cap, which can be queried using 
- @ref apex_get_thread_cap().
+ This function will initialize a policy to optimize the specified function, 
+ using the list of tunable inputs for the specified function. The 
+ optimization criteria include maximizing throughput,
+ minimizing or maximizing time spent in the specified function. After
+ evaluating the state of the system, the policy will assign new values to
+ the inputs.
 
- \param the_name The name of the function or counter to be optimized.
+ \param type The type of the address to be optimized. This can be one of the @ref
+             apex_profiler_type values.
+ \param identifier The function address of the function to be optimized, or a "const
+             char *" pointer to the name of the counter/timer.
  \param criteria The optimization criteria.
- \param method The optimization method.
- \param update_interval The time between observations, in microseconds.
-
+ \param event_type The @ref apex_event_type that should trigger this policy 
+ \param num_inputs The number of tunable inputs for optimization
+ \param inputs An array of addresses to inputs for optimization
+ \param mins An array of minimum values for each input
+ \param maxs An array of maximum values for each input
+ \param steps An array of step values for each input
  \return APEX_NOERROR on success, otherwise an error code.
  */
-APEX_EXPORT int apex_setup_timer_name_throttling(const char * the_name,
+APEX_EXPORT int apex_setup_general_tuning(
+        apex_profiler_type type,
+        void * identifier,
         apex_optimization_criteria_t criteria,
-        apex_optimization_method_t method, unsigned long update_interval);
+        apex_event_type event_type, int num_inputs, long ** inputs, long * mins,
+        long * maxs, long * steps);
 
 /**
  \brief Terminate the throttling policy.

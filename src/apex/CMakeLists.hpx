@@ -107,7 +107,7 @@ set(apex_headers
     profiler_listener.hpp
     semaphore.hpp
     thread_instance.hpp
-    apex_throttling.h
+    apex_policies.h
     ${PROC_HEADER})
 
 
@@ -120,7 +120,7 @@ set(apex_sources
     concurrency_handler.cpp
     policy_handler.cpp
     profiler_listener.cpp
-    apex_throttling.cpp
+    apex_policies.cpp
     ${PROC_SOURCE})
 
 

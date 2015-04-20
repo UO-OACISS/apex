@@ -123,7 +123,9 @@ namespace apex {
    * is done with it. */
   static unordered_set<profiler*> my_garbage;
 
+#if APEX_HAVE_PAPI
   static int num_papi_counters = 0;
+#endif
 
   /* Return the requested profile object to the user.
    * Return NULL if doesn't exist. */
@@ -173,6 +175,7 @@ namespace apex {
   // to remove the duplication so it's easier to maintain.
   inline void profiler_listener::process_profile(profiler * p, unsigned int tid)
   {
+    if(p == NULL) return;
     profile * theprofile;
     if(p->is_reset == reset_type::ALL) {
         reset_all();
@@ -958,6 +961,8 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
                 }
                 cout << "One or more frequently-called, lightweight functions is being timed." << endl;
             }
+            // we couldn't queue it, so delete it.
+            delete(p);
         }
         queue_signal.post();
       }
