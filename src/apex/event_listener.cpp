@@ -18,7 +18,8 @@ using namespace std;
 
 namespace apex {
 
-timer_event_data::timer_event_data(apex_event_type event_type_, int thread_id, string timer_name) : have_name(true) {
+timer_event_data::timer_event_data(apex_event_type event_type_, int thread_id, const string &timer_name) : have_name(true) {
+  this->timestamp = std::chrono::high_resolution_clock::now();
   this->event_type_ = event_type_;
   this->thread_id = thread_id;
   this->my_profiler = NULL;
@@ -27,10 +28,26 @@ timer_event_data::timer_event_data(apex_event_type event_type_, int thread_id, s
 }
 
 timer_event_data::timer_event_data(apex_event_type event_type_, int thread_id, apex_function_address function_address) : have_name(false) {
+  this->timestamp = std::chrono::high_resolution_clock::now();
   this->event_type_ = event_type_;
   this->thread_id = thread_id;
   this->my_profiler = NULL;
   this->function_address = function_address;
+}
+
+timer_event_data::timer_event_data(apex_event_type event_type_, int thread_id, profiler * the_profiler) : have_name(false) {
+  this->timestamp = std::chrono::high_resolution_clock::now();
+  this->event_type_ = event_type_;
+  this->thread_id = thread_id;
+  this->my_profiler = the_profiler;
+  if (the_profiler->have_name) {
+    this->have_name = true;
+    this->timer_name = the_profiler->timer_name;
+    this->function_address = APEX_NULL_FUNCTION_ADDRESS;
+  } else {
+    this->timer_name = NULL;
+    this->function_address = the_profiler->action_address;
+  }
 }
 
 timer_event_data::~timer_event_data() {

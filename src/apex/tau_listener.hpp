@@ -21,7 +21,8 @@ public:
   void on_shutdown(shutdown_event_data &data);
   void on_new_node(node_event_data &data);
   void on_new_thread(new_thread_event_data &data);
-  void on_start(apex_function_address function_address, std::string *timer_name);
+  //void on_start(apex_function_address function_address, std::string *timer_name);
+  void on_start(timer_event_data &data);
   void on_stop(profiler *p);
   void on_yield(profiler *p);
   void on_resume(profiler *p);

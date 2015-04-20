@@ -212,7 +212,8 @@ void policy_handler::on_new_thread(new_thread_event_data &event_data) {
         call_policies(new_thread_policies, event_data);
 }
 
-void policy_handler::on_start(apex_function_address function_address, string *timer_name) {
+//void policy_handler::on_start(apex_function_address function_address, string *timer_name) {
+void policy_handler::on_start(timer_event_data &data) {
   if (_terminate) return;
   if (start_event_policies.empty()) return;
         //call_policies(start_event_policies, event_data);
@@ -225,11 +226,12 @@ void policy_handler::on_start(apex_function_address function_address, string *ti
       printf("Warning: registered policy function failed!\n");
     }
   }
-  APEX_UNUSED(function_address);
-  APEX_UNUSED(timer_name);
+  //APEX_UNUSED(function_address);
+  //APEX_UNUSED(timer_name);
+  APEX_UNUSED(data);
 }
 
-void policy_handler::on_stop(profiler *p) {
+void policy_handler::on_stop(timer_event_data &data) {
     if (_terminate) return;
     if (stop_event_policies.empty()) return;
     for(const boost::shared_ptr<policy_instance>& policy : stop_event_policies) {
@@ -241,10 +243,10 @@ void policy_handler::on_stop(profiler *p) {
             printf("Warning: registered policy function failed!\n");
         }
     }
-    APEX_UNUSED(p);
+    APEX_UNUSED(data);
 }
 
-void policy_handler::on_yield(profiler *p) {
+void policy_handler::on_yield(timer_event_data &data) {
     if (_terminate) return;
     if (yield_event_policies.empty()) return;
     for(const boost::shared_ptr<policy_instance>& policy : yield_event_policies) {
@@ -256,12 +258,12 @@ void policy_handler::on_yield(profiler *p) {
             printf("Warning: registered policy function failed!\n");
         }
     }
-    APEX_UNUSED(p);
+    APEX_UNUSED(data);
 }
 
-void policy_handler::on_resume(profiler * p) {
+void policy_handler::on_resume(timer_event_data &data) {
   if (_terminate) return;
-  APEX_UNUSED(p);
+  APEX_UNUSED(data);
 }
 
 void policy_handler::on_sample_value(sample_value_event_data &event_data) {

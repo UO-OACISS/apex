@@ -660,7 +660,7 @@ namespace apex {
     }
 
     // stop the main timer, and process that profile
-    main_timer->stop();
+    main_timer->stop(std::chrono::high_resolution_clock::now());
     process_profile(main_timer, my_tid);
 
     // output to screen?
@@ -794,7 +794,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 #endif
 
       // time the whole application.
-      main_timer = new profiler(new string(APEX_MAIN));
+      main_timer = new profiler(new string(APEX_MAIN), std::chrono::high_resolution_clock::now());
     }
 	APEX_UNUSED(data);
   }
@@ -904,30 +904,30 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 
   /* When a start event happens, create a profiler object. Unless this
    * named event is throttled, in which case do nothing, as quickly as possible */
-  void profiler_listener::on_start(apex_function_address function_address, string *timer_name) {
+  inline void profiler_listener::_common_start(timer_event_data &data, bool is_resume) {
     if (!_terminate) {
-      if (timer_name != NULL) {
+      if (data.have_name) {
 #if defined(APEX_THROTTLE)
         // if this timer is throttled, return without doing anything
-        unordered_set<apex_function_address>::const_iterator it = throttled_names.find(*timer_name);
+        unordered_set<apex_function_address>::const_iterator it = throttled_names.find(*data.timer_name);
         if (it != throttled_names.end()) {
           thread_instance::instance().current_timer = NULL;
           return;
         }
 #endif
         // start the profiler object, which starts our timers
-        thread_instance::instance().current_timer = new profiler(timer_name);
+        thread_instance::instance().current_timer = new profiler(data.timer_name, data.timestamp, is_resume);
       } else {
 #if defined(APEX_THROTTLE)
         // if this timer is throttled, return without doing anything
-        unordered_set<apex_function_address>::const_iterator it = throttled_addresses.find(function_address);
+        unordered_set<apex_function_address>::const_iterator it = throttled_addresses.find(data.function_address);
         if (it != throttled_addresses.end()) {
           thread_instance::instance().current_timer = NULL;
           return;
         }
 #endif
         // start the profiler object, which starts our timers
-        thread_instance::instance().current_timer = new profiler(function_address);
+        thread_instance::instance().current_timer = new profiler(data.function_address, data.timestamp, is_resume);
       }
 #if APEX_HAVE_PAPI
       long long * values = thread_instance::instance().current_timer->papi_start_values;
@@ -939,80 +939,60 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   }
 
   /* Stop the timer, if applicable, and queue the profiler object */
-  void profiler_listener::on_stop(profiler * p) {
+  inline void profiler_listener::_common_stop(timer_event_data &data, bool is_yield) {
     if (!_terminate) {
-      if (p) {
-        p->stop();
+      if (data.my_profiler) {
+        data.my_profiler->stop(data.timestamp);
+        data.my_profiler->is_resume = is_yield;
 #if APEX_HAVE_PAPI
-        long long * values = p->papi_stop_values;
+        long long * values = data.my_profiler->papi_stop_values;
         int rc = 0;
         rc = PAPI_read( EventSet, values );
         PAPI_ERROR_CHECK(PAPI_read);
 #endif
-        bool worked = profiler_queues[my_tid]->push(p);
+        bool worked = profiler_queues[my_tid]->push(data.my_profiler);
         if (!worked) {
             static bool issued = false;
             if (!issued) {
                 issued = true;
-                if(p->have_name) {
-                    cout << "APEX Warning : failed to push " << *(p->timer_name) << endl;
+                if(data.have_name) {
+                    cout << "APEX Warning : failed to push " << *(data.timer_name) << endl;
                 } else {
 #if defined(HAVE_BFD)
-                    cout << "APEX Warning : failed to push " << *(lookup_address((uintptr_t)p->action_address, true) << endl;
+                    cout << "APEX Warning : failed to push " << *(lookup_address((uintptr_t)data.function_address, true) << endl;
 #else
-                    cout << "APEX Warning : failed to push address " << p->action_address << endl;
+                    cout << "APEX Warning : failed to push address " << data.function_address << endl;
 #endif
                 }
                 cout << "One or more frequently-called, lightweight functions is being timed." << endl;
             }
             // we couldn't queue it, so delete it.
-            delete(p);
+            delete(data.my_profiler);
         }
         queue_signal.post();
       }
     }
   }
 
-  /* Stop the timer, if applicable, and queue the profiler object */
-  void profiler_listener::on_yield(profiler * p) {
-    if (!_terminate) {
-      if (p) {
-        p->stop();
-        p->is_resume = true;
-#if APEX_HAVE_PAPI
-        long long * values = p->papi_stop_values;
-        int rc = 0;
-        rc = PAPI_read( EventSet, values );
-        PAPI_ERROR_CHECK(PAPI_read);
-#endif
-        bool worked = profiler_queues[my_tid]->push(p);
-        if (!worked) {
-            static bool issued = false;
-            if (!issued) {
-                issued = true;
-                if(p->have_name) {
-                    cout << "APEX Warning : failed to push " << *(p->timer_name) << endl;
-                } else {
-                    cout << "APEX Warning : failed to push " << p->action_address << endl;
-                }
-                cout << "One or more frequently-called, lightweight functions is being timed." << endl;
-            }
-        }
-        queue_signal.post();
-      }
-    }
+  /* Start the timer */
+  void profiler_listener::on_start(timer_event_data &data) {
+    _common_start(data, false);
   }
 
   /* This is just like starting a timer, but don't increment the number of calls
    * value. That is because we are restarting an existing timer. */
-  void profiler_listener::on_resume(profiler *p) {
-    if (!_terminate) {
-      if (p->have_name) {
-        thread_instance::instance().current_timer = new profiler(p->timer_name, true);
-      } else {
-        thread_instance::instance().current_timer = new profiler(p->action_address, true);
-      }
-    }
+  void profiler_listener::on_resume(timer_event_data &data) {
+    _common_start(data, true);
+  } 
+
+   /* Stop the timer */
+  void profiler_listener::on_stop(timer_event_data &data) {
+    _common_stop(data, false);
+  }
+
+  /* Stop the timer, but don't increment the number of calls */
+  void profiler_listener::on_yield(timer_event_data &data) {
+    _common_stop(data, true);
   }
 
   /* When a sample value is processed, save it as a profiler object, and queue it. */
@@ -1039,19 +1019,24 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 	APEX_UNUSED(data);
   }
   
-  void profiler_listener::reset(apex_function_address function_address, string *timer_name) {
-    if (!_terminate) {
-      profiler * p;
-      if(timer_name != nullptr) {
-        p = new profiler(new string(*timer_name), false, reset_type::CURRENT);
-      } else if(function_address != APEX_NULL_FUNCTION_ADDRESS) {
-        p = new profiler(function_address, false, reset_type::CURRENT);
-      } else {
-        p = new profiler((apex_function_address)APEX_NULL_FUNCTION_ADDRESS, false, reset_type::ALL);
-      }
-      profiler_queues[my_tid]->push(p);
-      queue_signal.post();
+  void profiler_listener::reset(apex_function_address function_address) {
+    profiler * p;
+    std::chrono::high_resolution_clock::time_point dummy;
+    if(function_address != APEX_NULL_FUNCTION_ADDRESS) {
+      p = new profiler(function_address, dummy, false, reset_type::CURRENT);
+    } else {
+      p = new profiler((apex_function_address)APEX_NULL_FUNCTION_ADDRESS, dummy, false, reset_type::ALL);
     }
+    profiler_queues[my_tid]->push(p);
+    queue_signal.post();
+  }
+
+  void profiler_listener::reset(const std::string &timer_name) {
+    profiler * p;
+    std::chrono::high_resolution_clock::time_point dummy;
+    p = new profiler(new string(timer_name), dummy, false, reset_type::CURRENT);
+    profiler_queues[my_tid]->push(p);
+    queue_signal.post();
   }
 
 }

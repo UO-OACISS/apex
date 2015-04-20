@@ -31,9 +31,12 @@ public:
     bool is_resume;
     bool safe_to_delete;
     reset_type is_reset;
-    profiler(apex_function_address address, bool resume = false, reset_type reset = reset_type::NONE) : 
-	    start(std::chrono::high_resolution_clock::now()), 
-            value(0.0),
+    profiler(apex_function_address address, 
+             const std::chrono::high_resolution_clock::time_point &timestamp, 
+             bool resume = false, 
+             reset_type reset = reset_type::NONE) : 
+	    start(timestamp), 
+      value(0.0),
 	    action_address(address), 
 	    timer_name(NULL), 
 	    have_name(false), 
@@ -45,8 +48,11 @@ public:
         //safe_to_delete(true),
 //#endif
         is_reset(reset) {};
-    profiler(std::string * name, bool resume = false, reset_type reset = reset_type::NONE) : 
-	    start(std::chrono::high_resolution_clock::now()), 
+    profiler(std::string * name, 
+             const std::chrono::high_resolution_clock::time_point &timestamp, 
+             bool resume = false, 
+             reset_type reset = reset_type::NONE) : 
+	    start(timestamp), 
 	    value(0.0), 
 	    action_address(0L), 
 	    timer_name(name), 
@@ -73,8 +79,8 @@ public:
 //#endif
         is_reset(reset_type::NONE) { }; 
     ~profiler(void) { if (have_name) delete timer_name; };
-    void stop(void) {
-        end = std::chrono::high_resolution_clock::now();
+    void stop(const std::chrono::high_resolution_clock::time_point &timestamp) {
+        end = timestamp;
 	};
 	double elapsed(void) {
         if(is_counter) {
