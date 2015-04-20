@@ -121,7 +121,6 @@ static void init_hpx_runtime_ptr(void) {
 void apex::_initialize()
 {
     APEX_TRACER
-    std::cerr << "Apex instance is being initialized..." << std::endl;
     this->m_pInstance = this;
     this->m_policy_handler = nullptr;
 #ifdef APEX_HAVE_HPX3
@@ -222,7 +221,6 @@ void init(const char * thread_name)
     if (_registered || _initialized) return; // protect against multiple initializations
     _registered = true;
     _initialized = true;
-    std::cerr << "Initializing APEX(thread_name)" << std::endl;
     int argc = 1;
     const char *dummy = "APEX Application";
     char* argv[1];
@@ -253,7 +251,6 @@ void init(int argc, char** argv, const char * thread_name)
     if (_registered || _initialized) return; // protect against multiple initializations
     _registered = true;
     _initialized = true;
-    std::cerr << "Initializing APEX(argc,argv,thread_name)" << std::endl;
     apex* instance = apex::instance(argc, argv); // get/create the Apex static instance
     if (!instance) return; // protect against calls after finalization
     startup_event_data event_data(argc, argv);
@@ -651,7 +648,6 @@ apex_profile* get_profile(apex_function_address action_address) {
 }
 
 apex_profile* get_profile(const std::string &timer_name) {
-    printf("get_profile called for %s\n", timer_name.c_str());
     profile * tmp = profiler_listener::get_profile(timer_name);
     if (tmp != NULL)
         return tmp->get_profile();

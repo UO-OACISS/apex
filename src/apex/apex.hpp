@@ -436,6 +436,7 @@ APEX_EXPORT apex_profile* get_profile(const std::string &timer_name);
  */
 APEX_EXPORT std::vector<std::string> get_available_profiles();
 
+
 /**
  \brief Get the current power reading
 

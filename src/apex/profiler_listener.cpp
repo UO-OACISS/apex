@@ -147,6 +147,7 @@ namespace apex {
     return NULL;
   }
 
+  /* Return a vector of all name-based profiles */
   std::vector<std::string> profiler_listener::get_available_profiles() {
     std::vector<std::string> names;
     boost::copy(name_map | boost::adaptors::map_keys, std::back_inserter(names));
@@ -806,7 +807,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       node_id = data.node_id;
       _terminate = true;
       done = true;
-      sleep(1);
+      //sleep(1);
       queue_signal.post();
       consumer_thread->join();
 #if APEX_HAVE_PAPI
