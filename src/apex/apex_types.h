@@ -190,6 +190,10 @@ typedef int (*apex_policy_function)(apex_context const context);
     macro (APEX_SCREEN_OUTPUT, use_screen_output, bool, false) \
     macro (APEX_PROFILE_OUTPUT, use_profile_output, int, 0) \
 
+#define FOREACH_APEX_STRING_OPTION(macro) \
+    macro (APEX_BEACON_HOST, beacon_host, char*, "localhost") \
+    macro (APEX_BEACON_PORT, beacon_port, char*, "5560") \
+
 #if defined(__linux)
 #  define APEX_NATIVE_TLS __thread
 #elif defined(_WIN32) || defined(_WIN64)

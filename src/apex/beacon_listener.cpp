@@ -6,6 +6,7 @@
 #include "beacon_listener.hpp"
 #include <boost/archive/text_oarchive.hpp>
 #include "thread_instance.hpp"
+#include "apex_options.hpp"
 #include <iostream>
 
 using namespace std;
@@ -16,7 +17,7 @@ namespace apex {
 beacon_listener::beacon_listener (void) : _terminate(false) {
     try {
         boost::asio::ip::udp::resolver _resolver(_io_service);
-        boost::asio::ip::udp::resolver::query _query(udp::v4(), "localhost", "5560");
+        boost::asio::ip::udp::resolver::query _query(udp::v4(), apex_options::beacon_host(), apex_options::beacon_port());
         _receiver_endpoint = *_resolver.resolve(_query);
         _socket = new boost::asio::ip::udp::socket(_io_service);
         _socket->open(udp::v4());
