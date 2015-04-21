@@ -146,7 +146,7 @@ else()
 endif()
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
-find_package(Boost 1.54.0 REQUIRED COMPONENTS system thread timer chrono regex)
+find_package(Boost 1.54.0 REQUIRED COMPONENTS system thread timer chrono regex serialization)
 
 if(Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
@@ -336,6 +336,8 @@ if(OPENMP_FOUND)
     add_subdirectory (src/examples/TestOpenMP)
   endif()
 endif()
+add_subdirectory (src/udp_server)
+add_subdirectory (src/examples/Beacon)
 add_subdirectory (doc) 
 
 # turn on "make test" support
@@ -419,4 +421,8 @@ if(OPENMP_FOUND)
 	  add_test (TestOpenMP src/examples/TestOpenMP/openmp_test)
   endif()
 endif()
+
+# Run the test program which tests the beacon network reporting
+add_test (TestBeacon src/examples/Beacon/testBeacon)  
+set_tests_properties(TestBeacon PROPERTIES PASS_REGULAR_EXPRESSION "The ID of this thread is:")
 

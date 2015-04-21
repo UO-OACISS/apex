@@ -20,6 +20,7 @@
 #include "concurrency_handler.hpp"
 #include "policy_handler.hpp"
 #include "thread_instance.hpp"
+#include "beacon_listener.hpp"
 
 #ifdef APEX_HAVE_TAU
 #include "tau_listener.hpp"
@@ -139,6 +140,10 @@ void apex::_initialize()
     {
         this->m_policy_handler = new policy_handler();
         listeners.push_back(this->m_policy_handler);
+    }
+    if (apex_options::use_beacon())
+    {
+        listeners.push_back(new beacon_listener());
     }
     if (apex_options::use_concurrency() > 0)
     {
