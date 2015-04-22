@@ -3,14 +3,12 @@
 
 # start the server
 
-export APEX_SCREEN_OUTPUT=1
-@CMAKE_CURRENT_BINARY_DIR@/../../udp_server/beacon_server &
+# export APEX_SCREEN_OUTPUT=1
+@CMAKE_CURRENT_BINARY_DIR@/../../udp_server/beacon_server -s &
 
 # start the client
 
+unset APEX_SCREEN_OUTPUT
 export APEX_BEACON=1
 @CMAKE_CURRENT_BINARY_DIR@/testBeacon
 
-# kill the server
-
-killall -9 beacon_server

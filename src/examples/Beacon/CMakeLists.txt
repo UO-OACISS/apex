@@ -21,7 +21,11 @@ endif()
 # Link the executable to the Apex library. 
 target_link_libraries (testBeacon apex ${Boost_LIBRARIES} ${LIBS}) 
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/test_script.in ${CMAKE_CURRENT_BINARY_DIR}/test_script.sh @ONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/test_script.in ${CMAKE_CURRENT_BINARY_DIR}/test_script.sh)
+file(COPY ${CMAKE_CURRENT_BINARY_DIR}/test_script.sh
+    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
+    FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ
+      GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 
 INSTALL(TARGETS testBeacon
   RUNTIME DESTINATION bin
