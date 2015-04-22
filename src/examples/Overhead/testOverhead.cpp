@@ -6,8 +6,8 @@
 #include <sstream>
 
 #define NUM_THREADS 8
-#define ITERATIONS 1024*2
-#define INNER_ITERATION INT_MAX 
+#define ITERATIONS 1024
+#define INNER_ITERATION 100000 
 
 class ApexProxy {
 private:
@@ -43,6 +43,7 @@ inline int foo (int i) {
       dummy = 1;
     }
   }
+  return dummy;
 }
 
 typedef void*(*start_routine_t)(void*);

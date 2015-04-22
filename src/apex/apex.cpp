@@ -28,6 +28,9 @@
 #include <TAU.h>
 #endif
 #include "profiler_listener.hpp"
+#ifdef APEX_DEBUG
+#include "apex_error_handling.hpp"
+#endif
 
 APEX_NATIVE_TLS bool _registered = false;
 static bool _initialized = false;
@@ -117,6 +120,9 @@ static void init_hpx_runtime_ptr(void) {
 void apex::_initialize()
 {
     APEX_TRACER
+#ifdef APEX_DEBUG
+    apex_register_signal_handler();
+#endif
     this->m_pInstance = this;
     this->m_policy_handler = nullptr;
 #ifdef APEX_HAVE_HPX3
