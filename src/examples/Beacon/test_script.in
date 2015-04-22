@@ -1,0 +1,16 @@
+#!/bin/bash -e
+
+
+# start the server
+
+export APEX_SCREEN_OUTPUT=1
+@CMAKE_CURRENT_BINARY_DIR@/../../udp_server/beacon_server &
+
+# start the client
+
+export APEX_BEACON=1
+@CMAKE_CURRENT_BINARY_DIR@/testBeacon
+
+# kill the server
+
+killall -9 beacon_server

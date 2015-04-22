@@ -432,6 +432,6 @@ if(OPENMP_FOUND)
 endif()
 
 # Run the test program which tests the beacon network reporting
-add_test (TestBeacon src/examples/Beacon/testBeacon)  
+add_test (TestBeacon src/examples/Beacon/test_script.sh)  
 set_tests_properties(TestBeacon PROPERTIES PASS_REGULAR_EXPRESSION "The ID of this thread is:")
 
