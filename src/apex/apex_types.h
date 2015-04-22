@@ -193,6 +193,7 @@ typedef int (*apex_policy_function)(apex_context const context);
 #define FOREACH_APEX_STRING_OPTION(macro) \
     macro (APEX_BEACON_HOST, beacon_host, char*, "localhost") \
     macro (APEX_BEACON_PORT, beacon_port, char*, "5560") \
+    macro (APEX_BEACON_CLIENTIP, beacon_clientip, char*, "") \
 
 #if defined(__linux)
 #  define APEX_NATIVE_TLS __thread
