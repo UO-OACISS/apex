@@ -7,6 +7,7 @@
 #include <boost/archive/text_oarchive.hpp>
 #include "thread_instance.hpp"
 #include "apex_options.hpp"
+#include "address_resolution.hpp"
 #include <iostream>
 
 using namespace std;
@@ -83,13 +84,17 @@ void beacon_listener::on_stop(timer_event_data &data) {
   if (!_terminate) {
     apex_beacon_event e;
     e.event_type = APEX_STOP_EVENT;
-    e.value = data.my_profiler->elapsed();
+    std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(data.end_timestamp - data.start_timestamp);
+    e.value = time_span.count();
     e.have_name = data.have_name;
     if (data.have_name) {
         e.name = string(data.timer_name->c_str());
     } else {
         e.function_address = data.function_address;
+        //e.name = thread_instance::instance().map_addr_to_name(data.function_address);
+        e.name = *(lookup_address((uintptr_t)data.function_address, false));
     }
+    //std::cout << e.name << " timer: " << e.value << std::endl;
     synchronize_message(e);
   }
   return;

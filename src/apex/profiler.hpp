@@ -29,6 +29,7 @@ public:
     bool have_name;
     bool is_counter;
     bool is_resume;
+    bool is_elapsed;
     bool safe_to_delete;
     reset_type is_reset;
     profiler(apex_function_address address, 
@@ -42,6 +43,7 @@ public:
 	    have_name(false), 
 	    is_counter(false),
         is_resume(resume),
+        is_elapsed(false),
 //#ifdef APEX_HAVE_TAU
         safe_to_delete(false),
 //#else
@@ -59,6 +61,7 @@ public:
 	    have_name(true), 
 	    is_counter(false),
         is_resume(resume),
+        is_elapsed(false),
 //#ifdef APEX_HAVE_TAU
         safe_to_delete(false),
 //#else
@@ -72,6 +75,7 @@ public:
 	    have_name(true), 
 	    is_counter(true),
         is_resume(false),
+        is_elapsed(true),
 //#ifdef APEX_HAVE_TAU
         safe_to_delete(false),
 //#else
@@ -83,7 +87,7 @@ public:
         end = timestamp;
 	};
 	double elapsed(void) {
-        if(is_counter) {
+        if(is_counter || is_elapsed) {
             return value;
         } else {
             std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);

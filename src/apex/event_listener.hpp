@@ -28,14 +28,15 @@ public:
 
 class timer_event_data : public event_data {
 public:
+  bool have_name;
   std::string * timer_name;
   apex_function_address function_address;
-  profiler *my_profiler;
-  bool have_name;
-  std::chrono::high_resolution_clock::time_point timestamp;
-  timer_event_data(apex_event_type eventType, int thread_id, const std::string &timer_name);
-  timer_event_data(apex_event_type eventType, int thread_id, apex_function_address function_address);
-  timer_event_data(apex_event_type eventType, int thread_id, profiler * the_profiler);
+  std::chrono::high_resolution_clock::time_point start_timestamp;
+  std::chrono::high_resolution_clock::time_point end_timestamp;
+  profiler * my_profiler;
+  timer_event_data(const std::string &timer_name);
+  timer_event_data(apex_function_address function_address);
+  timer_event_data(profiler * the_profiler);
   ~timer_event_data();
 };
 
@@ -49,6 +50,7 @@ class sample_value_event_data : public event_data {
 public:
   std::string * counter_name;
   double counter_value;
+  bool is_counter;
   sample_value_event_data(int thread_id, std::string counter_name, double counter_value);
   ~sample_value_event_data();
 };
