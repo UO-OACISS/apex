@@ -17,11 +17,19 @@ namespace apex {
 
 beacon_listener::beacon_listener (void) : _terminate(false) {
     try {
-        boost::asio::ip::udp::resolver _resolver(_io_service);
-        boost::asio::ip::udp::resolver::query _query(udp::v4(), apex_options::beacon_host(), apex_options::beacon_port());
-        _receiver_endpoint = *_resolver.resolve(_query);
+        std::cout << apex_options::beacon_clientip() << " connecting to " << apex_options::beacon_host() << ":" << apex_options::beacon_port() << std::endl;
+        boost::asio::ip::udp::resolver resolver(_io_service);
+        boost::asio::ip::udp::resolver::query query_remote(udp::v4(), apex_options::beacon_host(), apex_options::beacon_port());
+        _receiver_endpoint = *resolver.resolve(query_remote);
         _socket = new boost::asio::ip::udp::socket(_io_service);
         _socket->open(udp::v4());
+        if (strlen(apex_options::beacon_clientip()) > 0) {
+            boost::asio::ip::udp::endpoint localEndpoint(
+                        boost::asio::ip::address::from_string(apex_options::beacon_clientip()), 0);
+            //boost::asio::ip::udp::resolver::query query_local(udp::v4(), apex_options::beacon_clientip());
+            //boost::asio::ip::udp::endpoint localEndpoint = *resolver.resolve(query_local);
+            _socket->bind(localEndpoint);
+        }
     } catch(std::exception& e) {
         std::cerr << e.what() << std::endl;
     }
