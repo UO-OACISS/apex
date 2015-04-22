@@ -28,11 +28,13 @@ private:
 #define apex_macro(name, member_variable, type, default_value) \
     option = getenv(#name); \
     if (option == NULL) { \
-        _##member_variable = (type)(malloc(strlen(default_value))); \
-        strcpy(_##member_variable, default_value); \
+        int length = strlen(default_value) + 1; \
+        _##member_variable = (type)(calloc(length, sizeof(char))); \
+        strncpy(_##member_variable, default_value, length); \
     } else { \
-        _##member_variable = (type)(malloc(strlen(option))); \
-        strcpy(_##member_variable, option); \
+        int length = strlen(option) + 1; \
+        _##member_variable = (type)(calloc(length, sizeof(char))); \
+        strncpy(_##member_variable, option, length); \
     }
     FOREACH_APEX_STRING_OPTION(apex_macro)
 #undef apex_macro

@@ -13,7 +13,7 @@ namespace apex {
         double value;
         apex_event_type event_type;
 
-    template <typename Archive>
+        template <typename Archive>
         void serialize (Archive& ar, const unsigned int version) {
             ar & have_name;
             ar & name;
@@ -22,6 +22,12 @@ namespace apex {
             ar & event_type;
             APEX_UNUSED(version);
         }
+        apex_beacon_event(void) : 
+            have_name(false), 
+            name(""), 
+            function_address(0L), 
+            value(0.0), 
+            event_type(APEX_STOP_EVENT) {};
     };
 }
 

@@ -21,6 +21,7 @@
 #include "policy_handler.hpp"
 #include "thread_instance.hpp"
 #include "beacon_listener.hpp"
+#include "utils.hpp"
 
 #ifdef APEX_HAVE_TAU
 #include "tau_listener.hpp"
@@ -33,27 +34,6 @@
 
 APEX_NATIVE_TLS bool _registered = false;
 static bool _initialized = false;
-
-#if 0
-#define APEX_TRACER {int __nid = apex::instance()->get_node_id(); \
- int __tid = thread_instance::get_id(); \
- std::stringstream ss; \
- ss << __nid << ":" << __tid << " " << __FUNCTION__ << " ["<< __FILE__ << ":" << __LINE__ << "]" << endl; \
- cout << ss.str();}
-#else
-#define APEX_TRACER
-#endif
-
-#if 0
-#define APEX_TIMER_TRACER(A, B) {int __nid = TAU_PROFILE_GET_NODE(); \
- int __tid = TAU_PROFILE_GET_THREAD(); \
- std::stringstream ss; \
- ss << __nid << ":" << __tid << " " ; \
- ss << (A) << " "<< (B) << endl;\
- cout << ss.str();}
-#else
-#define APEX_TIMER_TRACER(A, B)
-#endif
 
 using namespace std;
 
@@ -75,7 +55,6 @@ static bool _finalized = false;
  */
 apex::~apex()
 {
-    APEX_TRACER
 #ifdef APEX_HAVE_RCR
     //cout << "Getting energy..." << endl;
     energyDaemonTerm();
@@ -85,7 +64,6 @@ apex::~apex()
 
 void apex::set_node_id(int id)
 {
-    APEX_TRACER
     m_node_id = id;
     stringstream ss;
     ss << "locality#" << m_node_id;
@@ -100,7 +78,6 @@ void apex::set_node_id(int id)
 
 int apex::get_node_id()
 {
-    APEX_TRACER
     return m_node_id;
 }
 
@@ -118,7 +95,6 @@ static void init_hpx_runtime_ptr(void) {
  */
 void apex::_initialize()
 {
-    APEX_TRACER
     this->m_pInstance = this;
     this->m_policy_handler = nullptr;
 #ifdef APEX_HAVE_HPX3
@@ -129,6 +105,7 @@ void apex::_initialize()
     uint64_t waitTime = 1000000000L; // in nanoseconds, for nanosleep
     energyDaemonInit();
 #endif
+    // this is always the first listener!
     listeners.push_back(new profiler_listener());
 #ifdef APEX_HAVE_TAU
     if (apex_options::use_tau())
@@ -161,7 +138,6 @@ void apex::_initialize()
 */
 apex* apex::instance()
 {
-    //APEX_TRACER
     // Only allow one instance of class to be generated.
     if (m_pInstance == NULL && !_finalized)
     {
@@ -172,7 +148,6 @@ apex* apex::instance()
 
 apex* apex::instance(int argc, char**argv)
 {
-    //APEX_TRACER
     // Only allow one instance of class to be generated.
     if (m_pInstance == NULL && !_finalized)
     {
@@ -216,7 +191,6 @@ int initialize_worker_thread_for_TAU(void) {
 
 void init(const char * thread_name)
 {
-    APEX_TRACER
     if (_registered || _initialized) return; // protect against multiple initializations
     _registered = true;
     _initialized = true;
@@ -246,7 +220,6 @@ void init(const char * thread_name)
 
 void init(int argc, char** argv, const char * thread_name)
 {
-    APEX_TRACER
     if (_registered || _initialized) return; // protect against multiple initializations
     _registered = true;
     _initialized = true;
@@ -272,7 +245,6 @@ void init(int argc, char** argv, const char * thread_name)
 
 string version()
 {
-    APEX_TRACER
     stringstream tmp;
     tmp << APEX_VERSION_MAJOR + (APEX_VERSION_MINOR/10.0);
 #if defined (GIT_COMMIT_HASH)
@@ -287,14 +259,11 @@ string version()
 
 profiler* start(const std::string &timer_name)
 {
-    APEX_TIMER_TRACER("start ", timer_name)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return NULL; // protect against calls after finalization
     if (_notify_listeners) {
-        timer_event_data data(APEX_START_EVENT, thread_instance::get_id(), timer_name);
-        //string * tmp = new string(timer_name);
+        timer_event_data data(timer_name);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            //instance->listeners[i]->on_start(0L, tmp);
             instance->listeners[i]->on_start(data);
         }
     }
@@ -302,13 +271,11 @@ profiler* start(const std::string &timer_name)
 }
 
 profiler* start(apex_function_address function_address) {
-    APEX_TIMER_TRACER("start ", function_address)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return NULL; // protect against calls after finalization
     if (_notify_listeners) {
-        timer_event_data data(APEX_START_EVENT, thread_instance::get_id(), function_address);
+        timer_event_data data(function_address);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            //instance->listeners[i]->on_start(function_address, NULL);
             instance->listeners[i]->on_start(data);
         }
     }
@@ -316,33 +283,28 @@ profiler* start(apex_function_address function_address) {
 }
 
 void reset(const std::string &timer_name) {
-    APEX_TIMER_TRACER("reset", timer_name)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     profiler_listener::reset(timer_name);
 }
 
 void reset(apex_function_address function_address) {
-    APEX_TIMER_TRACER("reset", function_address)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     profiler_listener::reset(function_address);
 }
 
 void set_state(apex_thread_state state) {
-    APEX_TIMER_TRACER("set_state", state)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     instance->set_state(thread_instance::get_id(), state);
 }
 
 void resume(profiler* the_profiler) {
-    APEX_TIMER_TRACER("resume", the_profiler->timer_name->c_str())
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     thread_instance::instance().current_timer = (profiler *)(the_profiler);
-    //instance->notify_listeners(event_data);
-    timer_event_data data(APEX_RESUME_EVENT, thread_instance::get_id(), the_profiler);
+    timer_event_data data(the_profiler);
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_resume(data);
@@ -352,7 +314,6 @@ void resume(profiler* the_profiler) {
 
 void stop(profiler* the_profiler)
 {
-    APEX_TIMER_TRACER("stop  ", the_profiler->timer_name->c_str())
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     profiler * p;
@@ -362,7 +323,7 @@ void stop(profiler* the_profiler)
         p = (profiler*)the_profiler;
     }
     if (p == NULL) return;
-    timer_event_data data(APEX_STOP_EVENT, thread_instance::get_id(), p);
+    timer_event_data data(p);
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_stop(data);
@@ -373,7 +334,6 @@ void stop(profiler* the_profiler)
 
 void yield(profiler* the_profiler)
 {
-    APEX_TIMER_TRACER("yield  ", the_profiler->timer_name->c_str())
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     profiler * p;
@@ -383,7 +343,7 @@ void yield(profiler* the_profiler)
         p = (profiler*)the_profiler;
     }
     if (p == NULL) return;
-    timer_event_data data(APEX_YIELD_EVENT, thread_instance::get_id(), p);
+    timer_event_data data(p);
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_yield(data);
@@ -394,7 +354,6 @@ void yield(profiler* the_profiler)
 
 void sample_value(const std::string &name, double value)
 {
-    APEX_TRACER
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     // parse the counter name
@@ -454,7 +413,6 @@ void sample_value(const std::string &name, double value)
 boost::atomic<int> custom_event_count(APEX_CUSTOM_EVENT);
 
 apex_event_type register_custom_event(const std::string &name) {
-    APEX_TRACER
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return APEX_CUSTOM_EVENT; // protect against calls after finalization
     if (custom_event_count == APEX_MAX_EVENTS) {
@@ -468,7 +426,6 @@ apex_event_type register_custom_event(const std::string &name) {
 }
 
 void custom_event(apex_event_type event_type, void * custom_data) {
-    APEX_TRACER
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     custom_event_data event_data(event_type, custom_data);
@@ -482,7 +439,6 @@ void custom_event(apex_event_type event_type, void * custom_data) {
 
 void set_node_id(int id)
 {
-    APEX_TRACER
     apex* instance = apex::instance();
     if (!instance) return; // protect against calls after finalization
     instance->set_node_id(id);
@@ -490,7 +446,6 @@ void set_node_id(int id)
 
 #ifdef APEX_HAVE_HPX3
 hpx::runtime * get_hpx_runtime_ptr(void) {
-    APEX_TRACER
     apex * instance = apex::instance();
     if (!instance) {
         return nullptr;
@@ -502,7 +457,6 @@ hpx::runtime * get_hpx_runtime_ptr(void) {
 
 void track_power(void)
 {
-    APEX_TRACER
 #ifdef APEX_HAVE_TAU
     TAU_TRACK_POWER();
 #endif
@@ -510,7 +464,6 @@ void track_power(void)
 
 void track_power_here(void)
 {
-    APEX_TRACER
 #ifdef APEX_HAVE_TAU
     TAU_TRACK_POWER_HERE();
 #endif
@@ -518,7 +471,6 @@ void track_power_here(void)
 
 void enable_tracking_power(void)
 {
-    APEX_TRACER
 #ifdef APEX_HAVE_TAU
     TAU_ENABLE_TRACKING_POWER();
 #endif
@@ -526,7 +478,6 @@ void enable_tracking_power(void)
 
 void disable_tracking_power(void)
 {
-    APEX_TRACER
 #ifdef APEX_HAVE_TAU
     TAU_DISABLE_TRACKING_POWER();
 #endif
@@ -534,7 +485,6 @@ void disable_tracking_power(void)
 
 void set_interrupt_interval(int seconds)
 {
-    APEX_TRACER
 #ifdef APEX_HAVE_TAU
     TAU_SET_INTERRUPT_INTERVAL(seconds);
 #else 
@@ -544,7 +494,6 @@ void set_interrupt_interval(int seconds)
 
 void finalize()
 {
-    APEX_TRACER
 #if APEX_HAVE_PROC
     ProcData::stop_reading();
 #endif
@@ -568,7 +517,6 @@ void finalize()
 
 void register_thread(const std::string &name)
 {
-    APEX_TRACER
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     if (_registered) return; // protect against multiple registrations on the same thread
@@ -599,7 +547,6 @@ void register_thread(const std::string &name)
 apex_policy_handle* register_policy(const apex_event_type when,
                     std::function<int(apex_context const&)> f)
 {
-    APEX_TRACER
     int id = -1;
     policy_handler * handler = apex::instance()->get_policy_handler();
     if(handler != nullptr)
@@ -622,7 +569,6 @@ int register_policy(std::chrono::duration<Rep, Period> const& period,
 apex_policy_handle* register_periodic_policy(unsigned long period_microseconds,
                     std::function<int(apex_context const&)> f)
  {
-    APEX_TRACER
     int id = -1;
     policy_handler * handler = apex::instance()->get_policy_handler(period_microseconds);
     if(handler != nullptr)

@@ -19,6 +19,7 @@
 #include "apex_types.h"
 #include "apex_options.hpp"
 #include "beacon_event.hpp"
+#include "profiler_listener.hpp"
 
 using boost::asio::ip::udp;
 
@@ -29,6 +30,9 @@ public:
     : socket_(io_service, udp::endpoint(udp::v4(), atoi(apex::apex_options::beacon_port())))
   {
     start_receive();
+    listener = new apex::profiler_listener();
+    apex::startup_event_data data(0, NULL);
+    listener->on_startup(data);
   }
 
 private:
@@ -54,38 +58,52 @@ private:
             archive >> e;
             switch(e.event_type) {
               case APEX_STARTUP:
+              {
                 std::cout << "Got startup from client. " << std::endl;
+                apex::startup_event_data data(0, NULL);
+                //listener->on_startup(data);
                 break;
+              }
               case APEX_SHUTDOWN:
+              {
                 std::cout << "Got shutdown from client. " << std::endl;
+                apex::shutdown_event_data data(0,0);
+                listener->on_shutdown(data);
                 break;
+              }
               case APEX_NEW_NODE:
+              {
                 std::cout << "Got new node from client. " << std::endl;
+                //apex::node_event_data data(0,0);
+                //listener->on_new_node(data);
                 break;
+              }
               case APEX_NEW_THREAD:
+              {
                 std::cout << "Got new thread from client. " << std::endl;
+                //apex::new_thread_event_data data("");
+                //listener->on_new_thread(data);
                 break;
-              case APEX_START_EVENT:
-                std::cout << "Got start event from client. " << std::endl;
-                break;
-              case APEX_RESUME_EVENT:
-                std::cout << "Got resume event from client. " << std::endl;
-                break;
+              }
               case APEX_STOP_EVENT:
-                std::cout << "Got stop event from client. " << std::endl;
+              {
+                //std::cout << "Got stop event from client. " << e.value << std::endl;
+                apex::sample_value_event_data data(0, e.name, e.value);
+                data.is_counter = false;
+                listener->on_sample_value(data);
                 break;
-              case APEX_YIELD_EVENT:
-                std::cout << "Got yield event from client. " << std::endl;
-                break;
+              }
               case APEX_SAMPLE_VALUE:
-                std::cout << "Got sample value from client. " << std::endl;
+              {
+                //std::cout << "Got sampled value from client. " << std::endl;
+                apex::sample_value_event_data data(0, e.name, e.value);
+                listener->on_sample_value(data);
                 break;
-              case APEX_PERIODIC:
-                std::cout << "Got periodic from client. " << std::endl;
+              }
+              default:
+              {
                 break;
-              case APEX_CUSTOM_EVENT:
-                std::cout << "Got custom event from client. " << std::endl;
-                break;
+              }
             }
          } catch (std::exception& e) {
             std::cerr << e.what() << std::endl;
@@ -103,6 +121,7 @@ private:
   udp::socket socket_;
   udp::endpoint remote_endpoint_;
   char recv_buffer_[1024];
+  apex::profiler_listener * listener;
 };
 
 int main()

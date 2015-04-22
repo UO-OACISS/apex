@@ -228,7 +228,7 @@ namespace apex {
                     std::string("APEX counter ") + timer_name,
                     ""
                     );
-                } 
+                }
             } else {
                 std::cerr << "HPX runtime not initialized yet." << std::endl;
             }
@@ -846,7 +846,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 #endif
     }
     /* The cleanup is disabled for now. Why? Because we want to be able
-     * to access the profiles at the end of the run, after APEX has 
+     * to access the profiles at the end of the run, after APEX has
      * finalized. */
     // cleanup.
     // delete_profiles();
@@ -916,7 +916,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         }
 #endif
         // start the profiler object, which starts our timers
-        thread_instance::instance().current_timer = new profiler(data.timer_name, data.timestamp, is_resume);
+        thread_instance::instance().current_timer = new profiler(data.timer_name, data.start_timestamp, is_resume);
       } else {
 #if defined(APEX_THROTTLE)
         // if this timer is throttled, return without doing anything
@@ -927,7 +927,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         }
 #endif
         // start the profiler object, which starts our timers
-        thread_instance::instance().current_timer = new profiler(data.function_address, data.timestamp, is_resume);
+        thread_instance::instance().current_timer = new profiler(data.function_address, data.start_timestamp, is_resume);
       }
 #if APEX_HAVE_PAPI
       long long * values = thread_instance::instance().current_timer->papi_start_values;
@@ -942,7 +942,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   inline void profiler_listener::_common_stop(timer_event_data &data, bool is_yield) {
     if (!_terminate) {
       if (data.my_profiler) {
-        data.my_profiler->stop(data.timestamp);
+        data.my_profiler->stop(data.end_timestamp);
         data.my_profiler->is_resume = is_yield;
 #if APEX_HAVE_PAPI
         long long * values = data.my_profiler->papi_stop_values;
@@ -979,7 +979,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
    * value. That is because we are restarting an existing timer. */
   void profiler_listener::on_resume(timer_event_data &data) {
     _common_start(data, true);
-  } 
+  }
 
    /* Stop the timer */
   void profiler_listener::on_stop(timer_event_data &data) {
@@ -995,10 +995,10 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   void profiler_listener::on_sample_value(sample_value_event_data &data) {
     if (!_terminate) {
       profiler * p = new profiler(new string(*data.counter_name), data.counter_value);
+      p->is_counter = data.is_counter;
       profiler_queues[my_tid]->push(p);
       queue_signal.post();
     }
-	APEX_UNUSED(data);
   }
 
   /* For periodic stuff. Do something? */
@@ -1014,7 +1014,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
     }
 	APEX_UNUSED(data);
   }
-  
+
   void profiler_listener::reset(apex_function_address function_address) {
     profiler * p;
     std::chrono::high_resolution_clock::time_point dummy;

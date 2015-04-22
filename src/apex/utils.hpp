@@ -36,3 +36,16 @@ inline std::string trim_copy(std::string s, const char* t = " \t\n\r\f\v")
 {
     return trim(s, t);
 }
+
+namespace apex {
+class simple_timer {
+        const double nanoseconds = 1.0e9;
+    public:
+        std::chrono::high_resolution_clock::time_point start;
+        simple_timer() : start(std::chrono::high_resolution_clock::now()) {}
+        ~simple_timer() {
+            std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::high_resolution_clock::now() - start);
+            std::cout << "simple time: " << time_span.count() * nanoseconds << "ns" << std::endl;
+        }
+};
+};
