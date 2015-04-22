@@ -16,10 +16,13 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/asio.hpp>
 #include <boost/archive/text_iarchive.hpp>
+#include <boost/program_options.hpp>
 #include "apex_types.h"
 #include "apex_options.hpp"
 #include "beacon_event.hpp"
 #include "profiler_listener.hpp"
+
+bool shutdown_flag = false;
 
 using boost::asio::ip::udp;
 
@@ -69,6 +72,10 @@ private:
                 std::cout << "Got shutdown from client. " << std::endl;
                 apex::shutdown_event_data data(0,0);
                 listener->on_shutdown(data);
+                if (shutdown_flag) {
+                    std::cout << "Exiting as requested" << std::endl;
+                    exit (APEX_NOERROR);
+                }
                 break;
               }
               case APEX_NEW_NODE:
@@ -124,10 +131,28 @@ private:
   apex::profiler_listener * listener;
 };
 
-int main()
-{
+int main(int argc, char** argv) {
   try
   {
+      namespace po = boost::program_options; 
+      po::options_description desc("Options"); 
+      desc.add_options() 
+      ("help,h", "Print help messages") 
+      ("shutdown,s", "Exit when shutdown event received");
+
+      po::variables_map vm;
+      po::store(po::parse_command_line(argc,argv,desc), vm);
+      po::notify(vm);
+
+      if(vm.count("help")) {
+          std::cout << desc << std::endl;
+          return APEX_NOERROR;
+      }
+
+      if(vm.count("shutdown")) {
+          shutdown_flag = true;
+      }
+               
     boost::asio::io_service io_service;
     udp_server server(io_service);
     io_service.run();
