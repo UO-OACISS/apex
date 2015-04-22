@@ -29,6 +29,9 @@ private:
   static void write_profile(int tid);
   static void delete_profiles(void);
   static void process_profiles(void);
+#ifdef APEX_HAVE_HPX3
+  static void schedule_process_profiles(void);
+#endif
   static void process_profile(profiler * p, unsigned int tid);
   static int node_id;
   static boost::mutex _mtx;

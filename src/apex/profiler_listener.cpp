@@ -20,6 +20,7 @@
 #include <boost/thread/thread.hpp>
 #include <boost/lockfree/spsc_queue.hpp>
 #include <boost/atomic.hpp>
+#include <atomic>
 #include <boost/range/adaptor/map.hpp>
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/assign.hpp>
@@ -51,6 +52,7 @@
 #include <hpx/include/performance_counters.hpp>
 #include <hpx/include/actions.hpp>
 #include <hpx/include/util.hpp>
+#include <hpx/lcos/local/composable_guard.hpp>
 #endif
 
 //#define MAX_QUEUE_SIZE 1024*1024
@@ -100,7 +102,7 @@ namespace apex {
 
 #ifdef APEX_HAVE_HPX3
   /* Flag indicating whether a consumer task is currently running */
-  boost::atomic<bool> running (false);  
+  std::atomic_flag consumer_task_running = ATOMIC_FLAG_INIT;
 #endif
 
   /* The profiles, mapped by name. Profiles will be in this map or the other
@@ -229,7 +231,7 @@ namespace apex {
         if(!done) {
             if(get_hpx_runtime_ptr() != nullptr) {
                 std::string timer_name(*(p->timer_name));
-                // Don't register timers containing "/"
+                 //Don't register timers containing "/"
                 if(timer_name.find("/") == std::string::npos) {
                     hpx::performance_counters::install_counter_type(
                     std::string("/apex/") + timer_name,
@@ -405,7 +407,7 @@ namespace apex {
       cout << p->get_stddev() << endl;
     }
     map<string, profile*>::const_iterator it2;
-    // iterate over the profiles in the address map
+    // iterate over the profiles in the name map
     for(it2 = name_map.begin(); it2 != name_map.end(); it2++) {
       profile * p = it2->second;
       string action_name = it2->first;
@@ -436,6 +438,9 @@ namespace apex {
         shorter.resize(30, '.');
       }
       cout << "\"" << shorter << "\", " ;
+      if(p->get_calls() < 1) {
+        p->get_profile()->calls = 1;
+      }
       cout << p->get_calls() << ", " ;
       cout << p->get_minimum() << ", " ;
       cout << p->get_mean() << ", " ;
@@ -687,7 +692,7 @@ namespace apex {
     }
 #endif
 #ifdef APEX_HAVE_HPX3
-    running = false;
+    consumer_task_running.clear(memory_order_release);
 #endif
 
 #ifdef APEX_HAVE_TAU
@@ -698,17 +703,25 @@ namespace apex {
   }
 
 #ifdef APEX_HAVE_HPX3
-}
+} // end namespace apex (HPX_PLAIN_ACTION needs to be in global namespace)
+
 HPX_PLAIN_ACTION(profiler_listener::process_profiles, apex_internal_process_profiles_action);
+HPX_ACTION_HAS_CRITICAL_PRIORITY(apex_internal_process_profiles_action);
+
 namespace apex{
 
-void schedule_process_profiles() {
+void profiler_listener::schedule_process_profiles() {
     if(get_hpx_runtime_ptr() == nullptr) return;
-    if(!running) {
-        running = true;
+    if(!consumer_task_running.test_and_set(memory_order_acq_rel)) {
         apex_internal_process_profiles_action act;
-        hpx::apply(act, hpx::find_here());
-    }
+        try {
+            hpx::apply(act, hpx::find_here());
+        } catch(...) {
+            // During shutdown, we can't schedule a new task,
+            // so we process profiles ourselves.
+            profiler_listener::process_profiles();
+        }
+    } 
 }
 #endif
 
