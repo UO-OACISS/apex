@@ -8,9 +8,9 @@
 #define omp_get_max_threads() 1
 #endif
 
-#define NUM_CELLS 1000000
+#define NUM_CELLS 800000
 #define BLOCK_SIZE NUM_CELLS/100
-#define NUM_ITERATIONS 1000
+#define NUM_ITERATIONS 2000
 #define UPDATE_INTERVAL NUM_ITERATIONS/100
 #define DIVIDE_METHOD 1
 #define MULTIPLY_METHOD 2
@@ -20,7 +20,7 @@ long block_size = BLOCK_SIZE;
 long active_threads = omp_get_max_threads();
 long num_iterations = NUM_ITERATIONS;
 long update_interval = UPDATE_INTERVAL;
-long method = 1;
+long method = MULTIPLY_METHOD;
 const std::string method_names[] = {"divide","multiply"};
 apex_event_type my_custom_event = APEX_CUSTOM_EVENT;
 double accumulated_aggregate;
@@ -201,7 +201,7 @@ int main (int argc, char ** argv) {
     apex::set_node_id(0);
 
 #ifdef APEX_HAVE_ACTIVEHARMONY
-    int num_inputs = 3;
+    int num_inputs = 2; // make 3 to tune on method, too
     long * inputs[3] = {0L,0L,0L};
     long mins[3] = {1,1,DIVIDE_METHOD};    // all minimums are 1
     long maxs[3] = {0,0,0};    // we'll set these later
@@ -218,6 +218,8 @@ int main (int argc, char ** argv) {
     apex::setup_general_tuning((apex_function_address)solve_iteration,
                     APEX_MINIMIZE_ACCUMULATED, my_custom_event, num_inputs,
                     inputs, mins, maxs, steps);
+    long original_block_size = block_size;
+    long original_active_threads = active_threads;
 #endif
     std::cout <<"Running 1D stencil test..." << std::endl;
 
@@ -249,5 +251,12 @@ int main (int argc, char ** argv) {
     delete(prev);
     delete(next);
     std::cout << "done." << std::endl;
+#ifdef APEX_HAVE_ACTIVEHARMONY
+    if (original_active_threads != active_threads || original_block_size != block_size) {
+        std::cout << "Test passed." << std::endl;
+    }
+#else
+    std::cout << "Test passed." << std::endl;
+#endif
     apex::finalize();
 }

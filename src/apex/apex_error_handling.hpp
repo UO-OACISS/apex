@@ -6,6 +6,7 @@
 
 static void apex_custom_signal_handler(int sig) {
 
+  fflush(stderr);
   std::cerr << std::endl;
   std::cerr  << "********* " << strsignal(sig) << " *********";
   std::cerr << std::endl;
@@ -31,6 +32,7 @@ static void apex_custom_signal_handler(int sig) {
   std::cerr << "***************************************";
   std::cerr << std::endl;
   std::cerr << std::endl;
+  fflush(stderr);
   exit(-1);
 }
 
