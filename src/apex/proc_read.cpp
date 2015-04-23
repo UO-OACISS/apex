@@ -111,7 +111,6 @@ ProcData* parse_proc_stat(void) {
   procData->freshness = read_freshness();
   procData->generation = read_generation();
 #endif
-  procData->parse_proc_netdev();
   return procData;
 }
 
@@ -371,6 +370,34 @@ bool ProcData::parse_proc_meminfo() {
   return true;
 }
 
+bool ProcData::parse_proc_self_status() {
+  FILE *f = fopen("/proc/self/status", "r");
+  const std::string prefix("Vm");
+  if (f) {
+    char line[4096] = {0};
+    while ( fgets( line, 4096, f)) {
+        string tmp(line);
+        if (!tmp.compare(0,prefix.size(),prefix)) {
+            const boost::regex separator(":");
+            boost::sregex_token_iterator token(tmp.begin(), tmp.end(), separator, -1);
+            boost::sregex_token_iterator end;
+            string name = *token++;
+            if (token != end) {
+                string value = *token;
+                char* pEnd;
+                double d1 = strtod (value.c_str(), &pEnd);
+                string mname("self_status:" + name);
+                if (pEnd) { sample_value(mname, d1); }
+            }
+        }
+    }
+    fclose(f);
+  } else {
+    return false;
+  }
+  return true;
+}
+
 bool ProcData::parse_proc_netdev() {
   FILE *f = fopen("/proc/net/dev", "r");
   if (f) {
@@ -505,6 +532,8 @@ void ProcData::read_proc(void) {
   // disabled for now - not sure that it is useful
   oldData->parse_proc_cpuinfo(); // do this once, it won't change.
   oldData->parse_proc_meminfo(); // some things change, others don't...
+  oldData->parse_proc_self_status(); // some things change, others don't...
+  oldData->parse_proc_netdev();
   ProcData *newData = NULL;
   ProcData *periodData = NULL;
   struct timespec tim, tim2;
@@ -529,6 +558,8 @@ void ProcData::read_proc(void) {
     delete(periodData);
     oldData = newData;
     oldData->parse_proc_meminfo(); // some things change, others don't...
+    oldData->parse_proc_self_status(); // some things change, others don't...
+    oldData->parse_proc_netdev();
 #ifdef APEX_HAVE_TAU
     if (apex_options::use_tau()) {
       TAU_STOP("ProcData::read_proc: main loop");
