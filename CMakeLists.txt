@@ -386,43 +386,43 @@ set_tests_properties(TestGetPower PROPERTIES PASS_REGULAR_EXPRESSION "Power at e
 
 # Test the throttling support
 add_test (TestThrottling src/examples/Throttling/testThrottling)  
-set_tests_properties(TestThrottling PROPERTIES ENVIRONMENT "APEX_POLICY=1")
-set_tests_properties(TestThrottling PROPERTIES ENVIRONMENT "APEX_THROTTLING=1")
 set_tests_properties(TestThrottling PROPERTIES PASS_REGULAR_EXPRESSION "Test passed.")
+set_property(TEST TestThrottling PROPERTY ENVIRONMENT "APEX_POLICY=1")
+set_property(TEST TestThrottling APPEND PROPERTY ENVIRONMENT "APEX_THROTTLING=1")
 
 add_test (TestThrottlingCpp src/examples/ThrottlingCpp/testThrottlingCpp)  
-set_tests_properties(TestThrottlingCpp PROPERTIES ENVIRONMENT "APEX_POLICY=1")
-set_tests_properties(TestThrottlingCpp PROPERTIES ENVIRONMENT "APEX_THROTTLING=1")
 set_tests_properties(TestThrottlingCpp PROPERTIES PASS_REGULAR_EXPRESSION "Test passed.")
+set_property(TEST TestThrottlingCpp PROPERTY ENVIRONMENT "APEX_POLICY=1")
+set_property(TEST TestThrottlingCpp APPEND PROPERTY ENVIRONMENT "APEX_THROTTLING=1")
 
 if (ACTIVEHARMONY_FOUND)
 add_test (TestThrottlingActiveHarmony src/examples/ThrottlingActiveHarmony/testThrottlingActiveHarmony)  
-set_tests_properties(TestThrottlingActiveHarmony PROPERTIES ENVIRONMENT "APEX_POLICY=1")
-set_tests_properties(TestThrottlingActiveHarmony PROPERTIES ENVIRONMENT "APEX_THROTTLING=1")
-set_tests_properties(TestThrottlingActiveHarmony PROPERTIES ENVIRONMENT "HARMONY_HOME=${ACTIVEHARMONY_ROOT}")
 set_tests_properties(TestThrottlingActiveHarmony PROPERTIES PASS_REGULAR_EXPRESSION "Test passed.")
+set_property(TEST TestThrottlingActiveHarmony PROPERTY ENVIRONMENT "APEX_POLICY=1")
+set_property(TEST TestThrottlingActiveHarmony APPEND PROPERTY ENVIRONMENT "APEX_THROTTLING=1")
+set_property(TEST TestThrottlingActiveHarmony APPEND PROPERTY ENVIRONMENT "HARMONY_HOME=${ACTIVEHARMONY_ROOT}")
 endif()
 
 if(MPI_CXX_FOUND)
 # Run the test program which tests the mpi interface
   add_test (TestMPITest ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
-${MPIEXEC_PREFLAGS} src/examples/MPITest/mpi_test ${MPIEXEC_POSTFLAGS})  
+    ${MPIEXEC_PREFLAGS} src/examples/MPITest/mpi_test ${MPIEXEC_POSTFLAGS})  
   set_tests_properties(TestMPITest PROPERTIES ENVIRONMENT "APEX_POLICY=1")
   add_test (TestMPIGlobalTest ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
-${MPIEXEC_PREFLAGS} src/examples/MPIGlobalTest/mpi_global_test ${MPIEXEC_POSTFLAGS})  
+    ${MPIEXEC_PREFLAGS} src/examples/MPIGlobalTest/mpi_global_test ${MPIEXEC_POSTFLAGS})  
   set_tests_properties(TestMPIGlobalTest PROPERTIES ENVIRONMENT "APEX_POLICY=1")
   add_test (TestMPIImbalancePolicy ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
-      ${MPIEXEC_PREFLAGS} src/examples/MPIImbalancePolicy/mpi_imbalance_test ${MPIEXEC_POSTFLAGS})  
+    ${MPIEXEC_PREFLAGS} src/examples/MPIImbalancePolicy/mpi_imbalance_test ${MPIEXEC_POSTFLAGS})  
   set_tests_properties(TestMPIImbalancePolicy PROPERTIES ENVIRONMENT "APEX_POLICY=1")
 endif()
 
 if(OPENMP_FOUND)
     add_test (TestOpenMPStencil src/examples/OpenMP_1D_stencil/1d_stencil)
     if (ACTIVEHARMONY_FOUND)
-        set_tests_properties(TestOpenMPStencil PROPERTIES ENVIRONMENT "APEX_POLICY=1")
-        set_tests_properties(TestOpenMPStencil PROPERTIES ENVIRONMENT "APEX_THROTTLING=1")
-        set_tests_properties(TestOpenMPStencil PROPERTIES ENVIRONMENT "HARMONY_HOME=${ACTIVEHARMONY_ROOT}")
         set_tests_properties(TestOpenMPStencil PROPERTIES PASS_REGULAR_EXPRESSION "Test passed.")
+        set_property(TEST TestOpenMPStencil PROPERTY ENVIRONMENT "APEX_POLICY=1")
+        set_property(TEST TestOpenMPStencil APPEND PROPERTY ENVIRONMENT "APEX_THROTTLING=1")
+        set_property(TEST TestOpenMPStencil APPEND PROPERTY ENVIRONMENT "HARMONY_HOME=${ACTIVEHARMONY_ROOT}")
     endif()
   if(OMPT_FOUND)
 	  add_test (TestOpenMP src/examples/TestOpenMP/openmp_test)
