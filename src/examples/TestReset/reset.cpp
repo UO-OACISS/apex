@@ -51,6 +51,7 @@ int main (int argc, char** argv) {
   }    
   // The profile should show "Test Timer" was called 25 times.
   stop(main_profiler);
+  finalize();
   apex_profile * profile = get_profile("Test Timer");
   if (profile) {
     std::cout << "Value Reported : " << profile->calls << std::endl;
@@ -58,7 +59,6 @@ int main (int argc, char** argv) {
         std::cout << "Test passed." << std::endl;
     }
   }
-  finalize();
   return 0;
 }
 
