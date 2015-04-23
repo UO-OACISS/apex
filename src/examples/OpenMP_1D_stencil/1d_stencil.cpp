@@ -122,13 +122,13 @@ inline void solve_cell_b(std::vector<double> & in_array, std::vector<double> & o
  */
 inline void solve_a(std::vector<double> & in_array, std::vector<double> & out_array,
                 long start_index, long end_index) {
-    apex::profiler* p = apex::start((apex_function_address)solve_a);
+    //apex::profiler* p = apex::start((apex_function_address)solve_a);
     long index = 0;
     end_index = std::min(end_index, num_cells);
     for ( index = start_index ; index < end_index ; index++) {
         solve_cell_a(in_array, out_array, index);
     }
-    apex::stop(p);
+    //apex::stop(p);
 }
 
 /**
@@ -136,13 +136,13 @@ inline void solve_a(std::vector<double> & in_array, std::vector<double> & out_ar
  */
 inline void solve_b(std::vector<double> & in_array, std::vector<double> & out_array,
                 long start_index, long end_index) {
-    apex::profiler* p = apex::start((apex_function_address)solve_b);
+    //apex::profiler* p = apex::start((apex_function_address)solve_b);
     long index = 0;
     end_index = std::min(end_index, num_cells);
     for ( index = start_index ; index < end_index ; index++) {
         solve_cell_b(in_array, out_array, index);
     }
-    apex::stop(p);
+    //apex::stop(p);
 }
 
 /**

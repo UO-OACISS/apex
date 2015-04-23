@@ -957,7 +957,11 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
                 if(p->have_name) {
                     cout << "APEX Warning : failed to push " << *(p->timer_name) << endl;
                 } else {
-                    cout << "APEX Warning : failed to push " << p->action_address << endl;
+#if defined(HAVE_BFD)
+                    cout << "APEX Warning : failed to push " << *(lookup_address((uintptr_t)p->action_address, true) << endl;
+#else
+                    cout << "APEX Warning : failed to push address " << p->action_address << endl;
+#endif
                 }
                 cout << "One or more frequently-called, lightweight functions is being timed." << endl;
             }
