@@ -97,9 +97,11 @@ int main(int argc, char **argv)
   std::cout << "Yields         : " << yield_count << std::endl;
   std::cout << "Value Expected : " << (func_count - yield_count) << std::endl;
   apex_profile * profile = apex::get_profile((apex_function_address)(do_work));
-  std::cout << "Value Reported : " << profile->calls << std::endl;
-  if ((func_count - yield_count) == profile->calls) { 
-      std::cout << "Test passed." << std::endl;
+  if (profile) {
+    std::cout << "Value Reported : " << profile->calls << std::endl;
+    if ((func_count - yield_count) == profile->calls) { 
+        std::cout << "Test passed." << std::endl;
+    }
   }
   apex::finalize();
   return(0);

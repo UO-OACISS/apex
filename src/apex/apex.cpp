@@ -371,6 +371,7 @@ void stop(profiler* the_profiler)
             instance->listeners[i]->on_stop(p);
         }
     }
+    p->safe_to_delete = true;
     thread_instance::instance().current_timer = NULL;
 }
 
