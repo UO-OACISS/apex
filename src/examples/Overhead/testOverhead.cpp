@@ -6,8 +6,8 @@
 #include <sstream>
 
 #define NUM_THREADS 8
-#define ITERATIONS 1024
-#define INNER_ITERATION 100000 
+#define ITERATIONS 200
+#define INNER_ITERATION 1000000
 
 class ApexProxy {
 private:
