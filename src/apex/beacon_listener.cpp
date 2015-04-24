@@ -99,8 +99,11 @@ void beacon_listener::on_stop(timer_event_data &data) {
         e.name = string(data.timer_name->c_str());
     } else {
         e.function_address = data.function_address;
-        //e.name = thread_instance::instance().map_addr_to_name(data.function_address);
+#if defined(HAVE_BFD)
         e.name = *(lookup_address((uintptr_t)data.function_address, false));
+#else
+        e.name = thread_instance::instance().map_addr_to_name(data.function_address);
+#endif
     }
     //std::cout << e.name << " timer: " << e.value << std::endl;
     synchronize_message(e);
