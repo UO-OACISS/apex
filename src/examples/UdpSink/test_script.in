@@ -9,7 +9,7 @@ export APEX_BEACON_CLIENTIP=127.0.0.1
 # start the server
 
 # export APEX_SCREEN_OUTPUT=1
-@CMAKE_CURRENT_BINARY_DIR@/../../udp_server/beacon_server -s &
+@CMAKE_CURRENT_BINARY_DIR@/../../udp_server/udp_server -s &
 
 # start the client
 

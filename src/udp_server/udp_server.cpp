@@ -19,7 +19,6 @@
 #include <boost/program_options.hpp>
 #include "apex_types.h"
 #include "apex_options.hpp"
-#include "beacon_event.hpp"
 #include "profiler_listener.hpp"
 #include "profiler.hpp"
 #include <boost/serialization/vector.hpp>
@@ -58,11 +57,6 @@ private:
     {
         try {
             std::string archive_data(&recv_buffer_[0], bytes_transferred);
-            //std::istringstream archive_stream(archive_data);
-            //boost::archive::text_iarchive archive(archive_stream);
-            //archive_stream >> all_profiles;
-            //std::string all_profiles;
-            //archive >> all_profiles;
             //std::cout << "Got profiles (bytes): " << bytes_transferred << std::endl;
             if (bytes_transferred == 0) {
                 if (shutdown_flag) {
@@ -74,63 +68,6 @@ private:
             Reader reader;
             StringStream ss(recv_buffer_);
             reader.Parse(ss, handler);
-#if 0
-            apex::apex_beacon_event e;
-            archive >> e;
-            switch(e.event_type) {
-              case APEX_STARTUP:
-              {
-                std::cout << "Got startup from client. " << std::endl;
-                apex::startup_event_data data(0, NULL);
-                //listener->on_startup(data);
-                break;
-              }
-              case APEX_SHUTDOWN:
-              {
-                std::cout << "Got shutdown from client. " << std::endl;
-                apex::shutdown_event_data data(0,0);
-                listener->on_shutdown(data);
-                if (shutdown_flag) {
-                    std::cout << "Exiting as requested" << std::endl;
-                    exit (APEX_NOERROR);
-                }
-                break;
-              }
-              case APEX_NEW_NODE:
-              {
-                std::cout << "Got new node from client. " << std::endl;
-                //apex::node_event_data data(0,0);
-                //listener->on_new_node(data);
-                break;
-              }
-              case APEX_NEW_THREAD:
-              {
-                std::cout << "Got new thread from client. " << std::endl;
-                //apex::new_thread_event_data data("");
-                //listener->on_new_thread(data);
-                break;
-              }
-              case APEX_STOP_EVENT:
-              {
-                //std::cout << "Got stop event from client. " << e.value << std::endl;
-                apex::sample_value_event_data data(0, e.name, e.value);
-                data.is_counter = false;
-                listener->on_sample_value(data);
-                break;
-              }
-              case APEX_SAMPLE_VALUE:
-              {
-                //std::cout << "Got sampled value from client. " << std::endl;
-                apex::sample_value_event_data data(0, e.name, e.value);
-                listener->on_sample_value(data);
-                break;
-              }
-              default:
-              {
-                break;
-              }
-            }
-#endif
          } catch (std::exception& e) {
             std::cerr << e.what() << std::endl;
         }
