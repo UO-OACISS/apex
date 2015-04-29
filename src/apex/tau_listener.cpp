@@ -59,7 +59,7 @@ void tau_listener::on_new_thread(new_thread_event_data &data) {
 
 void tau_listener::on_start(apex_function_address function_address) {
   if (!_terminate) {
-    TAU_START(thread_instance::instance().map_addr_to_name(data.function_address).c_str());
+    TAU_START(thread_instance::instance().map_addr_to_name(function_address).c_str());
   }
   return;
 }
@@ -98,7 +98,11 @@ void tau_listener::on_yield(profiler * p) {
 }
 
 void tau_listener::on_resume(profiler * p) {
-    on_start(p);
+    if (p->have_name) {
+        on_start(p->timer_name);
+    } else {
+        on_start(p->action_address);
+    }
 }
 
 void tau_listener::on_sample_value(sample_value_event_data &data) {
