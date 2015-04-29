@@ -402,8 +402,16 @@ bool ProcData::parse_proc_netdev() {
   FILE *f = fopen("/proc/net/dev", "r");
   if (f) {
     char line[4096] = {0};
-    fgets(line, 4096, f); // skip this line
-    fgets(line, 4096, f); // skip this line
+    char * rc = fgets(line, 4096, f); // skip this line
+    if (rc == NULL) {
+        fclose(f);
+        return false;
+    }
+    rc = fgets(line, 4096, f); // skip this line
+    if (rc == NULL) {
+        fclose(f);
+        return false;
+    }
     while (fgets(line, 4096, f)) {
         string outer_tmp(line);
         outer_tmp = trim(outer_tmp);
