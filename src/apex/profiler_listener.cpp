@@ -166,11 +166,13 @@ namespace apex {
     for(auto &it : address_map) {
         it.second->reset();
     }
-    for(auto &it1 : *(thread_name_maps[my_tid])) {
-        it1.second->reset();
-    }
-    for(auto &it1 : *(thread_address_maps[my_tid])) {
-        it1.second->reset();
+    if (apex_options::use_profile_output() > 1) {
+        for(auto &it1 : *(thread_name_maps[my_tid])) {
+            it1.second->reset();
+        }
+        for(auto &it1 : *(thread_address_maps[my_tid])) {
+            it1.second->reset();
+        }
     }
   }
 
@@ -241,21 +243,23 @@ namespace apex {
         }
 #endif
       }
-      // now do thread-specific measurement.
-      map<string, profile*>* the_map = thread_name_maps[tid];
-      it = the_map->find(*(p->timer_name));
-      if (it != the_map->end()) {
-        // A profile for this name already exists.
-        theprofile = (*it).second;
-        if(p->is_reset == reset_type::CURRENT) {
-            theprofile->reset();
+      if (apex_options::use_profile_output() > 1) {
+        // now do thread-specific measurement.
+        map<string, profile*>* the_map = thread_name_maps[tid];
+        it = the_map->find(*(p->timer_name));
+        if (it != the_map->end()) {
+            // A profile for this name already exists.
+            theprofile = (*it).second;
+            if(p->is_reset == reset_type::CURRENT) {
+                theprofile->reset();
+            } else {
+                theprofile->increment(p->elapsed(), p->is_resume);
+            }
         } else {
-            theprofile->increment(p->elapsed(), p->is_resume);
+            // Create a new profile for this name.
+            theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_resume, p->is_counter ? APEX_COUNTER : APEX_TIMER);
+            (*the_map)[*(p->timer_name)] = theprofile;
         }
-      } else {
-        // Create a new profile for this name.
-        theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_resume, p->is_counter ? APEX_COUNTER : APEX_TIMER);
-        (*the_map)[*(p->timer_name)] = theprofile;
       }
     } else { // address rather than name
       map<apex_function_address, profile*>::const_iterator it2 = address_map.find(p->action_address);
@@ -288,21 +292,23 @@ namespace apex {
         theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_resume);
         address_map[p->action_address] = theprofile;
       }
-      // now do thread-specific measurement
-      map<apex_function_address, profile*>* the_map = thread_address_maps[tid];
-      it2 = the_map->find(p->action_address);
-      if (it2 != the_map->end()) {
-        // A profile for this name already exists.
-        theprofile = (*it2).second;
-        if(p->is_reset == reset_type::CURRENT) {
-            theprofile->reset();
+      if (apex_options::use_profile_output() > 1) {
+        // now do thread-specific measurement
+        map<apex_function_address, profile*>* the_map = thread_address_maps[tid];
+        it2 = the_map->find(p->action_address);
+        if (it2 != the_map->end()) {
+            // A profile for this name already exists.
+            theprofile = (*it2).second;
+            if(p->is_reset == reset_type::CURRENT) {
+                theprofile->reset();
+            } else {
+                theprofile->increment(p->elapsed(), p->is_resume);
+            }
         } else {
-            theprofile->increment(p->elapsed(), p->is_resume);
+            // Create a new profile for this address.
+            theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_resume);
+            (*the_map)[p->action_address] = theprofile;
         }
-      } else {
-        // Create a new profile for this address.
-        theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_resume);
-        (*the_map)[p->action_address] = theprofile;
       }
     }
     // done with the profiler object
@@ -340,29 +346,31 @@ namespace apex {
     // clear the vector of queues.
     profiler_queues.clear();
 
-    // iterate over the vector of profile objects for per-thread measurement
-    for (i = 0 ; i < thread_address_maps.size(); i++) {
-      if (thread_address_maps[i]) {
-        for(it = thread_address_maps[i]->begin(); it != thread_address_maps[i]->end(); it++) {
-          delete it->second;
+    if (apex_options::use_profile_output() > 1) {
+        // iterate over the vector of profile objects for per-thread measurement
+        for (i = 0 ; i < thread_address_maps.size(); i++) {
+        if (thread_address_maps[i]) {
+            for(it = thread_address_maps[i]->begin(); it != thread_address_maps[i]->end(); it++) {
+            delete it->second;
+            }
+            delete (thread_address_maps[i]);
         }
-        delete (thread_address_maps[i]);
-      }
-    }
-    // clear the vector of maps.
-    thread_address_maps.clear();
+        }
+        // clear the vector of maps.
+        thread_address_maps.clear();
 
-    // iterate over the vector of profile objects for per-thread measurement
-    for (i = 0 ; i < thread_name_maps.size(); i++) {
-      if (thread_name_maps[i]) {
-        for(it2 = thread_name_maps[i]->begin(); it2 != thread_name_maps[i]->end(); it2++) {
-          delete it2->second;
+        // iterate over the vector of profile objects for per-thread measurement
+        for (i = 0 ; i < thread_name_maps.size(); i++) {
+        if (thread_name_maps[i]) {
+            for(it2 = thread_name_maps[i]->begin(); it2 != thread_name_maps[i]->end(); it2++) {
+            delete it2->second;
+            }
+            delete (thread_name_maps[i]);
         }
-        delete (thread_name_maps[i]);
-      }
+        }
+        // clear the vector of maps.
+        thread_name_maps.clear();
     }
-    // clear the vector of maps.
-    thread_name_maps.clear();
   }
 
   /* At program termination, write the measurements to the screen. */
@@ -772,8 +780,10 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
     if (!_terminate) {
       // Create a profiler queue for this main thread
       profiler_queues[0] = new boost::lockfree::spsc_queue<profiler*>(MAX_QUEUE_SIZE);
-      thread_address_maps[0] = new map<apex_function_address, profile*>();
-      thread_name_maps[0] = new map<string, profile*>();
+      if (apex_options::use_profile_output() > 1) {
+        thread_address_maps[0] = new map<apex_function_address, profile*>();
+        thread_name_maps[0] = new map<string, profile*>();
+      }
       // Start the consumer thread, to process profiler objects.
       consumer_thread = new boost::thread(process_profiles,this);
 
@@ -890,11 +900,13 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       if (my_tid >= profiler_queues.size()) {
         profiler_queues.resize(my_tid + 1);
       }
-      if (my_tid >= thread_address_maps.size()) {
-        thread_address_maps.resize(my_tid + 1);
-      }
-      if (my_tid >= thread_name_maps.size()) {
-        thread_name_maps.resize(my_tid + 1);
+      if (apex_options::use_profile_output() > 1) {
+        if (my_tid >= thread_address_maps.size()) {
+            thread_address_maps.resize(my_tid + 1);
+        }
+        if (my_tid >= thread_name_maps.size()) {
+            thread_name_maps.resize(my_tid + 1);
+        }
       }
       unsigned int i = 0;
       // allocate the queue(s)
@@ -904,12 +916,14 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
             new boost::lockfree::spsc_queue<profiler*>(MAX_QUEUE_SIZE);
           profiler_queues[i] = tmp;
         }
-    if (thread_address_maps[i] == NULL) {
-          thread_address_maps[i] = new map<apex_function_address, profile*>();
-    }
-    if (thread_name_maps[i] == NULL) {
-          thread_name_maps[i] = new map<string, profile*>();
-    }
+        if (apex_options::use_profile_output() > 1) {
+            if (thread_address_maps[i] == NULL) {
+                thread_address_maps[i] = new map<apex_function_address, profile*>();
+            }
+            if (thread_name_maps[i] == NULL) {
+                thread_name_maps[i] = new map<string, profile*>();
+            }
+        }
       }
 #if APEX_HAVE_PAPI
       initialize_PAPI(false);
