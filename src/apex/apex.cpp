@@ -99,6 +99,7 @@ void apex::_initialize()
 {
 #ifdef APEX_DEBUG
     apex_register_signal_handler();
+    //apex_test_signal_handler();
 #endif
     this->m_pInstance = this;
     this->m_policy_handler = nullptr;

@@ -17,6 +17,8 @@ static void apex_custom_signal_handler(int sig) {
   char **strings;
 
   size    = backtrace( trace, 32 );
+  /* overwrite sigaction with caller's address */
+  //trace[1] = (void *)ctx.eip;
   strings = backtrace_symbols( trace, size );
 
   std::cerr << std::endl;
@@ -24,8 +26,15 @@ static void apex_custom_signal_handler(int sig) {
   std::cerr << std::endl;
   std::cerr << std::endl;
 
-  for( i = 0; i < size; i++ ){
-   std::cerr << "\t" << strings[i] << std::endl;
+  char exe[256];
+  readlink("/proc/self/exe", exe, 256);
+
+  // skip the first frame, it is this handler
+  for( i = 1; i < size; i++ ){
+   std::cerr << strings[i] << std::endl;
+   char syscom[1024];
+   sprintf(syscom,"addr2line -f -p -i -e %s %p", exe, trace[i]);
+   system(syscom);
   }
 
   std::cerr << std::endl;
@@ -48,3 +57,8 @@ int apex_register_signal_handler() {
   sigaction( SIGBUS, &act, NULL);  
   return 0;
 }
+
+void apex_test_signal_handler() {
+  apex_custom_signal_handler(1);
+}
+
