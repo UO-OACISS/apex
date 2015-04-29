@@ -47,7 +47,7 @@ else()
 include_directories("${PROJECT_BINARY_DIR}/src/apex")
 endif()
 
-INSTALL(FILES apex.h apex_api.hpp apex_types.h apex_policies.h handler.hpp profiler.hpp apex_export.h DESTINATION include)
+INSTALL(FILES apex.h apex_api.hpp apex_types.h apex_policies.h handler.hpp profile.hpp apex_export.h DESTINATION include)
 
 #INSTALL(TARGETS apexShared apexStatic
 INSTALL(TARGETS apex
