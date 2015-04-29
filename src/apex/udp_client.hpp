@@ -19,13 +19,13 @@ namespace apex {
 
 class udp_client {
 private:
-  boost::asio::io_service _io_service;
-  boost::asio::ip::udp::endpoint _receiver_endpoint;
-  boost::asio::ip::udp::socket * _socket;
+  static boost::asio::io_service _io_service;
+  static boost::asio::ip::udp::endpoint _receiver_endpoint;
+  static boost::asio::ip::udp::socket * _socket;
 public:
-  void synchronize_profiles(std::map<std::string, profile*> name_map, std::map<apex_function_address, profile*> address_map);
-  void start_client(void);
-  void stop_client(void);
+  static void synchronize_profiles(std::map<std::string, profile*> name_map, std::map<apex_function_address, profile*> address_map);
+  static void start_client(void);
+  static void stop_client(void);
   udp_client (void) { };
   ~udp_client (void) { };
 };

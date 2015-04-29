@@ -596,7 +596,7 @@ namespace apex {
    * work on one or more queues, it will iterate over the queues
    * and process the pending profiler objects, updating the profiles
    * as it goes. */
-  void profiler_listener::process_profiles(profiler_listener* listener)
+  void profiler_listener::process_profiles(void)
   {
     static bool _initialized = false;
     if (!_initialized) {
@@ -658,7 +658,7 @@ namespace apex {
       } while (!done && processed > 0);
       // are we updating a global profile?
       if (apex_options::use_udp_sink()) {
-          listener->client.synchronize_profiles(name_map, address_map);
+          udp_client::synchronize_profiles(name_map, address_map);
       }
 #ifdef APEX_HAVE_TAU
       /*
@@ -684,8 +684,8 @@ namespace apex {
 
     // are we updating a global profile?
     if (apex_options::use_udp_sink()) {
-        listener->client.synchronize_profiles(name_map, address_map);
-        listener->client.stop_client();
+        udp_client::synchronize_profiles(name_map, address_map);
+        udp_client::stop_client();
     }
 
     // output to screen?
@@ -781,7 +781,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         thread_name_maps[0] = new map<string, profile*>();
       }
       // Start the consumer thread, to process profiler objects.
-      consumer_thread = new boost::thread(process_profiles,this);
+      consumer_thread = new boost::thread(process_profiles);
 
 #if APEX_HAVE_PAPI
       initialize_PAPI(true);
