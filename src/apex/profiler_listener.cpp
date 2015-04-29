@@ -53,9 +53,6 @@
 #include <hpx/include/performance_counters.hpp>
 #endif
 
-#include "rapidjson/writer.h"
-#include "rapidjson/stringbuffer.h"
-
 //#define MAX_QUEUE_SIZE 1024*1024
 //#define MAX_QUEUE_SIZE 1024
 #define MAX_QUEUE_SIZE 4096
@@ -71,7 +68,6 @@
 
 using namespace std;
 using namespace apex;
-using boost::asio::ip::udp;
 
 APEX_NATIVE_TLS unsigned int my_tid = 0; // the current thread's TID in APEX
 

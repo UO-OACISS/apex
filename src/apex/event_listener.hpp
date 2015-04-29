@@ -7,7 +7,6 @@
 #define APEX_EVENTLISTENER_H
 
 #include <string>
-#include <chrono>
 #include "apex_types.h"
 #include "profiler.hpp"
 
@@ -31,8 +30,6 @@ public:
   bool have_name;
   std::string * timer_name;
   apex_function_address function_address;
-  std::chrono::high_resolution_clock::time_point start_timestamp;
-  std::chrono::high_resolution_clock::time_point end_timestamp;
   profiler * my_profiler;
   timer_event_data(const std::string &timer_name);
   timer_event_data(apex_function_address function_address);
