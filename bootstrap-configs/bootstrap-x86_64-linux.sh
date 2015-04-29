@@ -18,7 +18,7 @@ GPERFTOOLS_ROOT=$HOME/install/google-perftools/2.4
 #RCR_ROOT=$HOME/src/RCRdaemon
 #PAPI_ROOT=/usr/local/papi/5.3.2
 #TAU_ROOT=$HOME/install/tau-hpx
-OMPT_ROOT=$HOME/install/libiomp5
+#OMPT_ROOT=$HOME/install/libiomp5
 ACTIVEHARMONY_ROOT=$HOME/install/activeharmony/4.5
 
 # other CMake variables - for special situations / architectures / compilers.

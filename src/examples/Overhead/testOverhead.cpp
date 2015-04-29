@@ -5,11 +5,10 @@
 #include <apex_api.hpp>
 #include <sstream>
 #include <climits>
+#include <thread>
 
-
-#define NUM_THREADS 8
-#define ITERATIONS 200
-#define INNER_ITERATION 1000000
+#define ITERATIONS 1024*128
+#define INNER_ITERATION 1024*4
 
 class ApexProxy {
 private:
@@ -38,7 +37,7 @@ ApexProxy::~ApexProxy() {
 
 inline int foo (int i) {
   int j;
-  int dummy = 0;
+  int dummy = 1;
   for (j = 0 ; j < INNER_ITERATION ; j++) {
     dummy = dummy * (dummy + i);
     if (dummy > (INT_MAX >> 1)) {
@@ -65,11 +64,13 @@ void* someThread(void* tmp)
   printf("The ID of this thread is: %u\n", (unsigned int)pthread_self());
 #endif
   int i = 0;
+  unsigned long total = 0;
   for (i = 0 ; i < ITERATIONS ; i++) {
     apex::profiler * p = apex::start((apex_function_address)foo);
-    foo(i);
+    total += foo(i);
     apex::stop(p);
   }
+  printf("%u computed %lu (timed)\n", (unsigned int)pthread_self(), total);
   return NULL;
 }
 
@@ -85,9 +86,11 @@ void* someUntimedThread(void* tmp)
   printf("The ID of this thread is: %u\n", (unsigned int)pthread_self());
 #endif
   int i = 0;
+  unsigned long total = 0;
   for (i = 0 ; i < ITERATIONS ; i++) {
-	  foo(i);
+	  total += foo(i);
   }
+  printf("%u computed %lu (untimed)\n", (unsigned int)pthread_self(), total);
   return NULL;
 }
 
@@ -101,16 +104,19 @@ int main(int argc, char **argv)
   //ApexProxy proxy = ApexProxy(__func__, __FILE__, __LINE__);
   ApexProxy proxy = ApexProxy((apex_function_address)main);
   printf("PID of this process: %d\n", getpid());
-  pthread_t thread[NUM_THREADS];
+  unsigned numthreads = std::thread::hardware_concurrency();
+  pthread_t thread[numthreads];
   int i;
-  for (i = 0 ; i < NUM_THREADS ; i++) {
-    if (i % 2 == 0) {
-        pthread_create(&(thread[i]), NULL, someThread, NULL);
-    } else {
-        pthread_create(&(thread[i]), NULL, someUntimedThread, NULL);
-    }
+  for (i = 0 ; i < numthreads ; i++) {
+    pthread_create(&(thread[i]), NULL, someUntimedThread, NULL);
   }
-  for (i = 0 ; i < NUM_THREADS ; i++) {
+  for (i = 0 ; i < numthreads ; i++) {
+    pthread_join(thread[i], NULL);
+  }
+  for (i = 0 ; i < numthreads ; i++) {
+    pthread_create(&(thread[i]), NULL, someThread, NULL);
+  }
+  for (i = 0 ; i < numthreads ; i++) {
     pthread_join(thread[i], NULL);
   }
   apex::finalize();
@@ -118,16 +124,16 @@ int main(int argc, char **argv)
   apex_profile * without = apex::get_profile((apex_function_address)&someUntimedThread);
   apex_profile * footime = apex::get_profile((apex_function_address)&foo);
   apex_profile * mhz = apex::get_profile(std::string("cpuinfo.0:cpu MHz"));
-  std::cout << "Without timing: " << without->accumulated;
-  std::cout << ", with timing: " << with->accumulated << std::endl;
-  std::cout << "Expected calls to 'foo': " << NUM_THREADS*ITERATIONS/2;
-  std::cout << ", timed calls to 'foo': " << footime->calls << std::endl;
+  std::cout << "Without timing: " << without->accumulated/without->calls;
+  std::cout << ", with timing: " << with->accumulated/with->calls << std::endl;
+  std::cout << "Expected calls to 'foo': " << numthreads*ITERATIONS;
+  std::cout << ", timed calls to 'foo': " << (int)footime->calls << std::endl;
   double percall = (with->accumulated - footime->accumulated) / footime->calls;
   double milliseconds = percall * 1.0e3;
   double microseconds = percall * 1.0e6;
   double nanoseconds = percall * 1.0e9;
-  std::cout << "Overhead per timer: " << milliseconds << " ms" << std::endl;
-  std::cout << "Overhead per timer: " << microseconds << " us" << std::endl;
+  //std::cout << "Overhead per timer: " << milliseconds << " ms" << std::endl;
+  //std::cout << "Overhead per timer: " << microseconds << " us" << std::endl;
   std::cout << "Overhead per timer: " << nanoseconds << " ns" << std::endl;
   if (mhz) {
     double cycles = percall * mhz->accumulated * 1.0e6;

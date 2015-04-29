@@ -9,6 +9,9 @@
 #include "apex_options.hpp"
 #include "apex_types.h"
 
+#define CLOCK_TYPE steady_clock
+//#define CLOCK_TYPE high_resolution_clock
+
 namespace apex {
 
 enum struct reset_type {
@@ -18,8 +21,8 @@ enum struct reset_type {
 class profiler {
 public:
         //boost::timer::cpu_timer t; // starts the timer when profiler is constructed!
-    std::chrono::high_resolution_clock::time_point start;
-    std::chrono::high_resolution_clock::time_point end;
+    std::chrono::CLOCK_TYPE::time_point start;
+    std::chrono::CLOCK_TYPE::time_point end;
 #if APEX_HAVE_PAPI
 	long long papi_start_values[8];
 	long long papi_stop_values[8];
@@ -36,7 +39,7 @@ public:
     profiler(apex_function_address address, 
              bool resume = false, 
              reset_type reset = reset_type::NONE) : 
-	    start(std::chrono::high_resolution_clock::now()), 
+	    start(std::chrono::CLOCK_TYPE::now()), 
       value(0.0),
 	    action_address(address), 
 	    timer_name(NULL), 
@@ -53,7 +56,7 @@ public:
     profiler(std::string * name, 
              bool resume = false, 
              reset_type reset = reset_type::NONE) : 
-	    start(std::chrono::high_resolution_clock::now()), 
+	    start(std::chrono::CLOCK_TYPE::now()), 
 	    value(0.0), 
 	    action_address(0L), 
 	    timer_name(name), 
@@ -84,7 +87,7 @@ public:
     ~profiler(void) { if (have_name) delete timer_name; };
     void stop(bool is_resume = false) {
         this->is_resume = is_resume;
-        end = std::chrono::high_resolution_clock::now();
+        end = std::chrono::CLOCK_TYPE::now();
 	};
 	double elapsed(void) {
         if(is_counter || is_elapsed) {
