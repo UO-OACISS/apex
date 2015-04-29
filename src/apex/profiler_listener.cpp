@@ -979,6 +979,28 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
     }
   }
 
+  inline void push_profiler(int my_tid, profiler *p) {
+      assert(profiler_queues[my_tid]);
+      bool worked = profiler_queues[my_tid]->push(p);
+      if (!worked) {
+          static bool issued = false;
+          if (!issued) {
+              issued = true;
+              if(p->have_name) {
+                  cout << "APEX Warning : failed to push " << *(p->timer_name) << endl;
+              } else {
+#if defined(HAVE_BFD)
+                  cout << "APEX Warning : failed to push " << *(lookup_address((uintptr_t)p->action_address, true) << endl;
+#else
+                  cout << "APEX Warning : failed to push address " << p->action_address << endl;
+#endif
+              }
+              cout << "One or more frequently-called, lightweight functions is being timed." << endl;
+          }
+      }
+      queue_signal.post();
+  }
+
   /* Stop the timer, if applicable, and queue the profiler object */
   inline void profiler_listener::_common_stop(profiler * p, bool is_yield) {
     if (!_terminate) {
@@ -990,24 +1012,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         rc = PAPI_read( EventSet, values );
         PAPI_ERROR_CHECK(PAPI_read);
 #endif
-        bool worked = profiler_queues[my_tid]->push(p);
-        if (!worked) {
-            static bool issued = false;
-            if (!issued) {
-                issued = true;
-                if(p->have_name) {
-                    cout << "APEX Warning : failed to push " << *(p->timer_name) << endl;
-                } else {
-#if defined(HAVE_BFD)
-                    cout << "APEX Warning : failed to push " << *(lookup_address((uintptr_t)p->action_address, true) << endl;
-#else
-                    cout << "APEX Warning : failed to push address " << p->action_address << endl;
-#endif
-                }
-                cout << "One or more frequently-called, lightweight functions is being timed." << endl;
-            }
-        }
-        queue_signal.post();
+        push_profiler(my_tid, p);
       }
     }
   }
@@ -1047,8 +1052,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
     if (!_terminate) {
       profiler * p = new profiler(new string(*data.counter_name), data.counter_value);
       p->is_counter = data.is_counter;
-      profiler_queues[my_tid]->push(p);
-      queue_signal.post();
+      push_profiler(my_tid, p);
     }
   }
 
@@ -1073,15 +1077,13 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
     } else {
       p = new profiler((apex_function_address)APEX_NULL_FUNCTION_ADDRESS, false, reset_type::ALL);
     }
-    profiler_queues[my_tid]->push(p);
-    queue_signal.post();
+    push_profiler(my_tid, p);
   }
 
   void profiler_listener::reset(const std::string &timer_name) {
     profiler * p;
     p = new profiler(new string(timer_name), false, reset_type::CURRENT);
-    profiler_queues[my_tid]->push(p);
-    queue_signal.post();
+    push_profiler(my_tid, p);
   }
 
 }

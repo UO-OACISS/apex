@@ -64,6 +64,10 @@ dir="build_$datestamp"
 mkdir $dir
 cd $dir
 
+if [[ $cmake_build_type =~ "Debug" ]] ; then
+    export CTEST_OUTPUT_ON_FAILURE=1
+fi
+
 cmd="cmake \
 $cmake_use_codeblocks \
 $boost_config \
