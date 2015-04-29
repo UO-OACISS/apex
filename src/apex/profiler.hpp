@@ -33,7 +33,6 @@ public:
     bool have_name;
     bool is_counter;
     bool is_resume; // for yield or resume
-    bool is_elapsed;
     bool safe_to_delete;
     reset_type is_reset;
     profiler(apex_function_address address, 
@@ -46,12 +45,7 @@ public:
 	    have_name(false), 
 	    is_counter(false),
         is_resume(resume),
-        is_elapsed(false),
-//#ifdef APEX_HAVE_TAU
         safe_to_delete(false),
-//#else
-        //safe_to_delete(true),
-//#endif
         is_reset(reset) {};
     profiler(std::string * name, 
              bool resume = false, 
@@ -63,12 +57,7 @@ public:
 	    have_name(true), 
 	    is_counter(false),
         is_resume(resume),
-        is_elapsed(false),
-//#ifdef APEX_HAVE_TAU
         safe_to_delete(false),
-//#else
-        //safe_to_delete(true),
-//#endif
         is_reset(reset) {};
     profiler(std::string * name, double value_) : 
 	    value(value_), 
@@ -77,12 +66,7 @@ public:
 	    have_name(true), 
 	    is_counter(true),
         is_resume(false),
-        is_elapsed(true),
-//#ifdef APEX_HAVE_TAU
         safe_to_delete(false),
-//#else
-        //safe_to_delete(true),
-//#endif
         is_reset(reset_type::NONE) { }; 
     ~profiler(void) { if (have_name) delete timer_name; };
     void stop(bool is_resume = false) {
@@ -90,7 +74,7 @@ public:
         end = std::chrono::CLOCK_TYPE::now();
 	};
 	double elapsed(void) {
-        if(is_counter || is_elapsed) {
+        if(is_counter) {
             return value;
         } else {
             std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);

@@ -106,7 +106,7 @@ int main(int argc, char **argv)
   printf("PID of this process: %d\n", getpid());
   unsigned numthreads = std::thread::hardware_concurrency();
   pthread_t thread[numthreads];
-  int i;
+  unsigned i;
   for (i = 0 ; i < numthreads ; i++) {
     pthread_create(&(thread[i]), NULL, someUntimedThread, NULL);
   }
@@ -129,11 +129,11 @@ int main(int argc, char **argv)
   std::cout << "Expected calls to 'foo': " << numthreads*ITERATIONS;
   std::cout << ", timed calls to 'foo': " << (int)footime->calls << std::endl;
   double percall = (with->accumulated - footime->accumulated) / footime->calls;
-  double milliseconds = percall * 1.0e3;
-  double microseconds = percall * 1.0e6;
-  double nanoseconds = percall * 1.0e9;
+  //double milliseconds = percall * 1.0e3;
   //std::cout << "Overhead per timer: " << milliseconds << " ms" << std::endl;
+  //double microseconds = percall * 1.0e6;
   //std::cout << "Overhead per timer: " << microseconds << " us" << std::endl;
+  double nanoseconds = percall * 1.0e9;
   std::cout << "Overhead per timer: " << nanoseconds << " ns" << std::endl;
   if (mhz) {
     double cycles = percall * mhz->accumulated * 1.0e6;
