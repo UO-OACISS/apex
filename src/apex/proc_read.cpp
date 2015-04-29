@@ -111,7 +111,7 @@ ProcData* parse_proc_stat(void) {
   procData->freshness = read_freshness();
   procData->generation = read_generation();
 #endif
-  procData->parse_proc_netdev();
+  //procData->parse_proc_netdev();
   return procData;
 }
 
@@ -503,8 +503,8 @@ void ProcData::read_proc(void) {
 #endif
   ProcData *oldData = parse_proc_stat();
   // disabled for now - not sure that it is useful
-  oldData->parse_proc_cpuinfo(); // do this once, it won't change.
-  oldData->parse_proc_meminfo(); // some things change, others don't...
+  //oldData->parse_proc_cpuinfo(); // do this once, it won't change.
+  //oldData->parse_proc_meminfo(); // some things change, others don't...
   ProcData *newData = NULL;
   ProcData *periodData = NULL;
   struct timespec tim, tim2;
