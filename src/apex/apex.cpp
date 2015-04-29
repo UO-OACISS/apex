@@ -124,10 +124,12 @@ void apex::_initialize()
         this->m_policy_handler = new policy_handler();
         listeners.push_back(this->m_policy_handler);
     }
+#if 0
     if (apex_options::use_beacon())
     {
         listeners.push_back(new beacon_listener());
     }
+#endif
     if (apex_options::use_concurrency() > 0)
     {
         listeners.push_back(new concurrency_handler(apex_options::concurrency_period(), apex_options::use_concurrency()));
@@ -259,14 +261,13 @@ string version()
 #if defined (GIT_BRANCH)
     tmp << "-" << GIT_BRANCH ;
 #endif
-    tmp << endl;
     return tmp.str().c_str();
 }
 
-profiler* start(const std::string &timer_name)
+profiler * start(const std::string &timer_name)
 {
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return NULL; // protect against calls after finalization
+    if (!instance) return APEX_NULL_PROFILER_HANDLE; // protect against calls after finalization
     if (_notify_listeners) {
         timer_event_data data(timer_name);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -276,9 +277,9 @@ profiler* start(const std::string &timer_name)
     return thread_instance::instance().current_timer;
 }
 
-profiler* start(apex_function_address function_address) {
+profiler * start(apex_function_address function_address) {
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return NULL; // protect against calls after finalization
+    if (!instance) return APEX_NULL_PROFILER_HANDLE; // protect against calls after finalization
     if (_notify_listeners) {
         timer_event_data data(function_address);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -306,7 +307,7 @@ void set_state(apex_thread_state state) {
     instance->set_state(thread_instance::get_id(), state);
 }
 
-void resume(profiler* the_profiler) {
+void resume(profiler * the_profiler) {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     thread_instance::instance().current_timer = (profiler *)(the_profiler);
@@ -318,12 +319,12 @@ void resume(profiler* the_profiler) {
     }
 }
 
-void stop(profiler* the_profiler)
+void stop(profiler * the_profiler)
 {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     profiler * p;
-    if (the_profiler == NULL) {
+    if (the_profiler == APEX_NULL_PROFILER_HANDLE) {
         p = thread_instance::instance().current_timer;
     } else {
         p = (profiler*)the_profiler;
@@ -339,12 +340,12 @@ void stop(profiler* the_profiler)
     thread_instance::instance().current_timer = NULL;
 }
 
-void yield(profiler* the_profiler)
+void yield(profiler * the_profiler)
 {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     profiler * p;
-    if (the_profiler == NULL) {
+    if (the_profiler == APEX_NULL_PROFILER_HANDLE) {
         p = thread_instance::instance().current_timer;
     } else {
         p = (profiler*)the_profiler;
@@ -659,12 +660,17 @@ extern "C" {
 
     void apex_resume(apex_profiler_handle the_profiler)
     {
-        resume((profiler*)the_profiler);
+        resume((profiler *)the_profiler);
     }
 
     void apex_stop(apex_profiler_handle the_profiler)
     {
-        stop((profiler*)the_profiler);
+        stop((profiler *)the_profiler);
+    }
+
+    void apex_yield(apex_profiler_handle the_profiler)
+    {
+        yield((profiler *)the_profiler);
     }
 
     void apex_sample_value(const char * name, double value)

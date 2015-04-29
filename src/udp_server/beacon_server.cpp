@@ -21,6 +21,9 @@
 #include "apex_options.hpp"
 #include "beacon_event.hpp"
 #include "profiler_listener.hpp"
+#include "profiler.hpp"
+#include <boost/serialization/vector.hpp>
+#include "json_handler.hpp"
 
 bool shutdown_flag = false;
 
@@ -42,7 +45,7 @@ private:
   void start_receive()
   {
     socket_.async_receive_from(
-        boost::asio::buffer(recv_buffer_, 1024), remote_endpoint_,
+        boost::asio::buffer(recv_buffer_, 64*1024), remote_endpoint_,
         boost::bind(&udp_server::handle_receive, this,
           boost::asio::placeholders::error,
           boost::asio::placeholders::bytes_transferred));
@@ -55,8 +58,23 @@ private:
     {
         try {
             std::string archive_data(&recv_buffer_[0], bytes_transferred);
-            std::istringstream archive_stream(archive_data);
-            boost::archive::text_iarchive archive(archive_stream);
+            //std::istringstream archive_stream(archive_data);
+            //boost::archive::text_iarchive archive(archive_stream);
+            //archive_stream >> all_profiles;
+            //std::string all_profiles;
+            //archive >> all_profiles;
+            //std::cout << "Got profiles (bytes): " << bytes_transferred << std::endl;
+            if (bytes_transferred == 0) {
+                if (shutdown_flag) {
+                    std::cout << "Exiting as requested" << std::endl;
+                    exit (APEX_NOERROR);
+                }
+            }
+            json_handler handler;
+            Reader reader;
+            StringStream ss(recv_buffer_);
+            reader.Parse(ss, handler);
+#if 0
             apex::apex_beacon_event e;
             archive >> e;
             switch(e.event_type) {
@@ -112,6 +130,7 @@ private:
                 break;
               }
             }
+#endif
          } catch (std::exception& e) {
             std::cerr << e.what() << std::endl;
         }
@@ -127,7 +146,7 @@ private:
 
   udp::socket socket_;
   udp::endpoint remote_endpoint_;
-  char recv_buffer_[1024];
+  char recv_buffer_[64*1024];
   apex::profiler_listener * listener;
 };
 

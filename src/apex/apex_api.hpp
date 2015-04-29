@@ -21,12 +21,11 @@
 #include <vector>
 #include <stdint.h>
 #include "apex_types.h"
-#include "handler.hpp"
-#include "event_listener.hpp"
-#include "policy_handler.hpp"
-#include "profiler_listener.hpp"
 #include "apex_options.hpp"
 #include "apex_export.h" 
+#include "profiler.hpp" 
+#include "profile.hpp" 
+#include <functional>
 
 #ifdef APEX_HAVE_RCR
 #include "libenergy.h"
@@ -113,7 +112,7 @@ APEX_EXPORT void finalize(void);
 		 call when the timer should be stopped.
  \sa apex::stop
  */
-APEX_EXPORT profiler* start(const std::string &timer_name);
+APEX_EXPORT profiler * start(const std::string &timer_name);
 
 /**
  \brief Start a timer.
@@ -129,7 +128,7 @@ APEX_EXPORT profiler* start(const std::string &timer_name);
 		 call when the timer should be stopped.
  \sa apex::stop
  */
-APEX_EXPORT profiler* start(apex_function_address function_address);
+APEX_EXPORT profiler * start(apex_function_address function_address);
 
 /**
  \brief Stop a timer.
@@ -142,7 +141,7 @@ APEX_EXPORT profiler* start(apex_function_address function_address);
  \return No return value.
  \sa apex::start
  */
-APEX_EXPORT void stop(profiler* the_profiler);
+APEX_EXPORT void stop(profiler * the_profiler);
 
 /**
  \brief Stop a timer, but don't increment the number of calls.
@@ -157,7 +156,7 @@ APEX_EXPORT void stop(profiler* the_profiler);
  \return No return value.
  \sa apex::start
  */
-APEX_EXPORT void yield(profiler* the_profiler);
+APEX_EXPORT void yield(profiler * the_profiler);
 
 /**
  \brief Restart a timer.
@@ -171,7 +170,7 @@ APEX_EXPORT void yield(profiler* the_profiler);
  \return No return value.
  \sa apex::start, apex::stop
  */
-APEX_EXPORT void resume(profiler* the_profiler);
+APEX_EXPORT void resume(profiler * the_profiler);
 
 /**
  \brief Sample a state value.

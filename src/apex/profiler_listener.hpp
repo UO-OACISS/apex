@@ -16,6 +16,10 @@
 #include <vector>
 #include <boost/thread.hpp>
 
+#include <boost/array.hpp>
+#include <boost/asio.hpp>
+#include "profile.hpp"
+#include "udp_client.hpp"
 
 namespace apex {
 
@@ -28,15 +32,24 @@ private:
   static void finalize_profiles(void);
   static void write_profile(int tid);
   static void delete_profiles(void);
-  static void process_profiles(void);
-  static void process_profile(profiler * p, unsigned int tid);
+  static void process_profiles(profiler_listener * listener);
+  static unsigned int process_profile(profiler * p, unsigned int tid);
   static int node_id;
   static boost::mutex _mtx;
   void _common_start(timer_event_data &data, bool is_resume); // internal, inline function
   void _common_stop(timer_event_data &data, bool is_yield); // internal, inline function
+  udp_client client;
 public:
-  profiler_listener (void)  : _terminate(false) { };
-  ~profiler_listener (void) { };
+  profiler_listener (void)  : _terminate(false) {
+      if (apex_options::use_beacon()) {
+        client.start_client();
+      }
+  };
+  ~profiler_listener (void) { 
+      if (apex_options::use_beacon()) {
+        client.stop_client();
+      }
+  };
   // events
   void on_startup(startup_event_data &data);
   void on_shutdown(shutdown_event_data &data);

@@ -5,6 +5,8 @@
 #include <apex_api.hpp>
 #include <sstream>
 #include <iostream>
+#include <climits>
+#include <boost/atomic.hpp>
 
 #define NUM_THREADS 8
 #define NUM_ITERATIONS 100

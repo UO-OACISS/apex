@@ -16,6 +16,8 @@
 #include <fstream>
 #include <math.h>
 #include "apex_options.hpp"
+#include "profiler.hpp"
+#include "profile.hpp"
 
 #include <boost/thread/thread.hpp>
 #include <boost/lockfree/spsc_queue.hpp>
@@ -51,6 +53,9 @@
 #include <hpx/include/performance_counters.hpp>
 #endif
 
+#include "rapidjson/writer.h"
+#include "rapidjson/stringbuffer.h"
+
 //#define MAX_QUEUE_SIZE 1024*1024
 //#define MAX_QUEUE_SIZE 1024
 #define MAX_QUEUE_SIZE 4096
@@ -66,6 +71,7 @@
 
 using namespace std;
 using namespace apex;
+using boost::asio::ip::udp;
 
 APEX_NATIVE_TLS unsigned int my_tid = 0; // the current thread's TID in APEX
 
@@ -173,9 +179,9 @@ namespace apex {
   // TODO The name-based timer and address-based timer paths through
   // the code involve a lot of duplication -- this should be refactored
   // to remove the duplication so it's easier to maintain.
-  inline void profiler_listener::process_profile(profiler * p, unsigned int tid)
+  inline unsigned int profiler_listener::process_profile(profiler * p, unsigned int tid)
   {
-    if(p == NULL) return;
+    if(p == NULL) return 0;
     profile * theprofile;
     if(p->is_reset == reset_type::ALL) {
         reset_all();
@@ -184,7 +190,7 @@ namespace apex {
         } else {
             my_garbage.insert(p);
         }
-        return;
+        return 0;
     }
     // Look for the profile object by name, if applicable
     if (p->have_name) {
@@ -305,6 +311,7 @@ namespace apex {
     } else {
         my_garbage.insert(p);
     }
+    return 1;
   }
 
   /* Cleaning up memory. Not really necessary, because it only gets
@@ -585,7 +592,7 @@ namespace apex {
    * work on one or more queues, it will iterate over the queues
    * and process the pending profiler objects, updating the profiles
    * as it goes. */
-  void profiler_listener::process_profiles(void)
+  void profiler_listener::process_profiles(profiler_listener* listener)
   {
     static bool _initialized = false;
     if (!_initialized) {
@@ -622,24 +629,32 @@ namespace apex {
     }
     */
 #endif
-      for (i = 0 ; i < profiler_queues.size(); i++) {
-        if (profiler_queues[i]) {
-          while (profiler_queues[i]->pop(p)) {
-            process_profile(p, i);
-          }
-        }
-      }
-      // do some garbage collection
-      for (std::unordered_set<profiler*>::const_iterator itr = my_garbage.begin(); itr != my_garbage.end();) {
-          profiler* tmp = *itr;
-          if (tmp != nullptr) {
-            if (tmp->safe_to_delete) {
-                my_garbage.erase(itr++);
-                delete(tmp);
-            } else {
-                ++itr;
+      unsigned int processed = 0;
+      do { // inner while loop, handle all the available work while there is work.
+        processed = 0;
+        for (i = 0 ; i < profiler_queues.size(); i++) {
+            if (profiler_queues[i]) {
+                while (profiler_queues[i]->pop(p)) {
+                    processed += process_profile(p, i);
+                }
             }
-          }
+        }
+        // do some garbage collection
+        for (std::unordered_set<profiler*>::const_iterator itr = my_garbage.begin(); itr != my_garbage.end();) {
+            profiler* tmp = *itr;
+            if (tmp != nullptr) {
+                if (tmp->safe_to_delete) {
+                    my_garbage.erase(itr++);
+                    delete(tmp);
+                } else {
+                    ++itr;
+                }
+            }
+        }
+      } while (!done && processed > 0);
+      // are we updating a global profile?
+      if (apex_options::use_beacon()) {
+          listener->client.synchronize_profiles(name_map, address_map);
       }
 #ifdef APEX_HAVE_TAU
       /*
@@ -662,6 +677,12 @@ namespace apex {
     // stop the main timer, and process that profile
     main_timer->stop(std::chrono::high_resolution_clock::now());
     process_profile(main_timer, my_tid);
+
+    // are we updating a global profile?
+    if (apex_options::use_beacon()) {
+        listener->client.synchronize_profiles(name_map, address_map);
+        listener->client.stop_client();
+    }
 
     // output to screen?
     if (apex_options::use_screen_output() && node_id == 0)
@@ -754,7 +775,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       thread_address_maps[0] = new map<apex_function_address, profile*>();
       thread_name_maps[0] = new map<string, profile*>();
       // Start the consumer thread, to process profiler objects.
-      consumer_thread = new boost::thread(process_profiles);
+      consumer_thread = new boost::thread(process_profiles,this);
 
 #if APEX_HAVE_PAPI
       initialize_PAPI(true);

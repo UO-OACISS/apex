@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <apex_api.hpp>
 #include <sstream>
+#include <climits>
 
 #define NUM_THREADS 8
 #define ITERATIONS 200
