@@ -18,6 +18,7 @@ using namespace std;
 
 namespace apex {
 
+/* this object never actually gets instantiated. too much overhead. */
 timer_event_data::timer_event_data(const string &timer_name) : have_name(true) {
   this->start_timestamp = std::chrono::high_resolution_clock::now();
   this->my_profiler = NULL;
@@ -25,12 +26,14 @@ timer_event_data::timer_event_data(const string &timer_name) : have_name(true) {
   this->function_address = APEX_NULL_FUNCTION_ADDRESS;
 }
 
+/* this object never actually gets instantiated. too much overhead. */
 timer_event_data::timer_event_data(apex_function_address function_address) : have_name(false) {
   this->start_timestamp = std::chrono::high_resolution_clock::now();
   this->my_profiler = NULL;
   this->function_address = function_address;
 }
 
+/* this object never actually gets instantiated. too much overhead. */
 timer_event_data::timer_event_data(profiler * the_profiler) : have_name(false) {
   this->start_timestamp = the_profiler->start;
   this->end_timestamp = std::chrono::high_resolution_clock::now();

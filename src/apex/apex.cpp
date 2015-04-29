@@ -20,7 +20,6 @@
 #include "concurrency_handler.hpp"
 #include "policy_handler.hpp"
 #include "thread_instance.hpp"
-#include "beacon_listener.hpp"
 #include "utils.hpp"
 
 #ifdef APEX_HAVE_TAU
@@ -124,12 +123,6 @@ void apex::_initialize()
         this->m_policy_handler = new policy_handler();
         listeners.push_back(this->m_policy_handler);
     }
-#if 0
-    if (apex_options::use_beacon())
-    {
-        listeners.push_back(new beacon_listener());
-    }
-#endif
     if (apex_options::use_concurrency() > 0)
     {
         listeners.push_back(new concurrency_handler(apex_options::concurrency_period(), apex_options::use_concurrency()));
@@ -264,26 +257,25 @@ string version()
     return tmp.str().c_str();
 }
 
-profiler * start(const std::string &timer_name)
+profiler* start(const std::string &timer_name)
 {
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return APEX_NULL_PROFILER_HANDLE; // protect against calls after finalization
+    if (!instance) return NULL; // protect against calls after finalization
     if (_notify_listeners) {
-        timer_event_data data(timer_name);
+        string * tmp = new string(timer_name);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_start(data);
+            instance->listeners[i]->on_start(tmp);
         }
     }
     return thread_instance::instance().current_timer;
 }
 
-profiler * start(apex_function_address function_address) {
+profiler* start(apex_function_address function_address) {
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return APEX_NULL_PROFILER_HANDLE; // protect against calls after finalization
+    if (!instance) return NULL; // protect against calls after finalization
     if (_notify_listeners) {
-        timer_event_data data(function_address);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_start(data);
+            instance->listeners[i]->on_start(function_address);
         }
     }
     return thread_instance::instance().current_timer;
@@ -307,19 +299,18 @@ void set_state(apex_thread_state state) {
     instance->set_state(thread_instance::get_id(), state);
 }
 
-void resume(profiler * the_profiler) {
+void resume(profiler* the_profiler) {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
-    thread_instance::instance().current_timer = (profiler *)(the_profiler);
-    timer_event_data data(the_profiler);
+    thread_instance::instance().current_timer = the_profiler;
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_resume(data);
+            instance->listeners[i]->on_resume(the_profiler);
         }
     }
 }
 
-void stop(profiler * the_profiler)
+void stop(profiler* the_profiler)
 {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
@@ -330,17 +321,16 @@ void stop(profiler * the_profiler)
         p = (profiler*)the_profiler;
     }
     if (p == NULL) return;
-    timer_event_data data(p);
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_stop(data);
+            instance->listeners[i]->on_stop(p);
         }
     }
     p->safe_to_delete = true;
     thread_instance::instance().current_timer = NULL;
 }
 
-void yield(profiler * the_profiler)
+void yield(profiler* the_profiler)
 {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
@@ -351,12 +341,12 @@ void yield(profiler * the_profiler)
         p = (profiler*)the_profiler;
     }
     if (p == NULL) return;
-    timer_event_data data(p);
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_yield(data);
+            instance->listeners[i]->on_yield(p);
         }
     }
+    p->safe_to_delete = true;
     thread_instance::instance().current_timer = NULL;
 }
 
@@ -660,17 +650,17 @@ extern "C" {
 
     void apex_resume(apex_profiler_handle the_profiler)
     {
-        resume((profiler *)the_profiler);
+        resume((profiler*)the_profiler);
     }
 
     void apex_stop(apex_profiler_handle the_profiler)
     {
-        stop((profiler *)the_profiler);
+        stop((profiler*)the_profiler);
     }
 
     void apex_yield(apex_profiler_handle the_profiler)
     {
-        yield((profiler *)the_profiler);
+        yield((profiler*)the_profiler);
     }
 
     void apex_sample_value(const char * name, double value)

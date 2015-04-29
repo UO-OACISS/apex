@@ -36,8 +36,9 @@ private:
   static unsigned int process_profile(profiler * p, unsigned int tid);
   static int node_id;
   static boost::mutex _mtx;
-  void _common_start(timer_event_data &data, bool is_resume); // internal, inline function
-  void _common_stop(timer_event_data &data, bool is_yield); // internal, inline function
+  void _common_start(apex_function_address function_address, bool is_resume); // internal, inline function
+  void _common_start(std::string * timer_name, bool is_resume); // internal, inline function
+  void _common_stop(profiler * p, bool is_yield); // internal, inline function
   udp_client client;
 public:
   profiler_listener (void)  : _terminate(false) {
@@ -55,10 +56,11 @@ public:
   void on_shutdown(shutdown_event_data &data);
   void on_new_node(node_event_data &data);
   void on_new_thread(new_thread_event_data &data);
-  void on_start(timer_event_data &data);
-  void on_stop(timer_event_data &data);
-  void on_yield(timer_event_data &data);
-  void on_resume(timer_event_data &data);
+  void on_start(apex_function_address function_address);
+  void on_start(std::string *timer_name);
+  void on_stop(profiler * p);
+  void on_yield(profiler * p);
+  void on_resume(profiler * p);
   void on_sample_value(sample_value_event_data &data);
   void on_periodic(periodic_event_data &data);
   void on_custom_event(custom_event_data &event_data);

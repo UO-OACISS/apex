@@ -109,41 +109,43 @@ void concurrency_handler::_init(void) {
   return;
 }
 
-//void concurrency_handler::on_start(apex_function_address function_address, string *timer_name) {
-void concurrency_handler::on_start(timer_event_data &data) {
+void concurrency_handler::on_start(apex_function_address function_address) {
   if (!_terminate) {
     stack<string>* my_stack = get_event_stack(thread_instance::get_id());
-    if (data.have_name) {
-      my_stack->push(*(data.timer_name));
+    my_stack->push(thread_instance::instance().map_addr_to_name(function_address));
+  }
+}
+
+void concurrency_handler::on_start(string *timer_name) {
+  if (!_terminate) {
+    stack<string>* my_stack = get_event_stack(thread_instance::get_id());
+    my_stack->push(*(timer_name));
+  }
+}
+
+void concurrency_handler::on_resume(profiler * p) {
+  if (!_terminate) {
+    stack<string>* my_stack = get_event_stack(thread_instance::get_id());
+    if (p->have_name) {
+      my_stack->push(*(p->timer_name));
     } else {
-      my_stack->push(thread_instance::instance().map_addr_to_name(data.function_address));
+      my_stack->push(thread_instance::instance().map_addr_to_name(p->action_address));
     }
   }
 }
 
-void concurrency_handler::on_resume(timer_event_data &data) {
-  if (!_terminate) {
-    stack<string>* my_stack = get_event_stack(thread_instance::get_id());
-    if (data.have_name) {
-      my_stack->push(*(data.timer_name));
-    } else {
-      my_stack->push(thread_instance::instance().map_addr_to_name(data.function_address));
-    }
-  }
-}
-
-void concurrency_handler::on_stop(timer_event_data &data) {
+void concurrency_handler::on_stop(profiler * p) {
   if (!_terminate) {
     stack<string>* my_stack = get_event_stack(thread_instance::get_id());
     if (!my_stack->empty()) {
       my_stack->pop();
     }
   }
-  APEX_UNUSED(data);
+  APEX_UNUSED(p);
 }
 
-void concurrency_handler::on_yield(timer_event_data &data) {
-    on_stop(data);
+void concurrency_handler::on_yield(profiler * p) {
+    on_stop(p);
 }
 
 void concurrency_handler::on_new_thread(new_thread_event_data &event_data) {
