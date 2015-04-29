@@ -32,7 +32,7 @@ class udp_server
 {
 public:
   udp_server(boost::asio::io_service& io_service)
-    : socket_(io_service, udp::endpoint(udp::v4(), atoi(apex::apex_options::beacon_port())))
+    : socket_(io_service, udp::endpoint(udp::v4(), atoi(apex::apex_options::udp_sink_port())))
   {
     start_receive();
     listener = new apex::profiler_listener();

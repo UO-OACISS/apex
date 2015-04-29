@@ -42,12 +42,12 @@ private:
   udp_client client;
 public:
   profiler_listener (void)  : _terminate(false) {
-      if (apex_options::use_beacon()) {
+      if (apex_options::use_udp_sink()) {
         client.start_client();
       }
   };
   ~profiler_listener (void) { 
-      if (apex_options::use_beacon()) {
+      if (apex_options::use_udp_sink()) {
         client.stop_client();
       }
   };

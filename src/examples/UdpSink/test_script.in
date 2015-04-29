@@ -1,10 +1,10 @@
 #!/bin/bash -e
 
-export APEX_BEACON_HOST=127.0.0.1
-export APEX_BEACON_PORT=5560
-#export APEX_BEACON_CLIENTIP=`hostname`
-#export APEX_BEACON_CLIENTIP=localhost
-export APEX_BEACON_CLIENTIP=127.0.0.1
+export APEX_UDP_SINK_HOST=127.0.0.1
+export APEX_UDP_SINK_PORT=5560
+#export APEX_UDP_SINK_CLIENTIP=`hostname`
+#export APEX_UDP_SINK_CLIENTIP=localhost
+export APEX_UDP_SINK_CLIENTIP=127.0.0.1
 
 # start the server
 
@@ -14,6 +14,6 @@ export APEX_BEACON_CLIENTIP=127.0.0.1
 # start the client
 
 unset APEX_SCREEN_OUTPUT
-export APEX_BEACON=1
+export APEX_UDP_SINK=1
 @CMAKE_CURRENT_BINARY_DIR@/testBeacon
 

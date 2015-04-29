@@ -441,7 +441,7 @@ if(OPENMP_FOUND)
   endif()
 endif()
 
-# Run the test program which tests the beacon network reporting
+# Run the test program which tests the UDP network reporting
 add_test (TestUdpSink src/examples/UdpSink/test_script.sh)  
 set_tests_properties(TestUdpSink PROPERTIES PASS_REGULAR_EXPRESSION "The ID of this thread is:")
 

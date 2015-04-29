@@ -661,7 +661,7 @@ namespace apex {
         }
       } while (!done && processed > 0);
       // are we updating a global profile?
-      if (apex_options::use_beacon()) {
+      if (apex_options::use_udp_sink()) {
           listener->client.synchronize_profiles(name_map, address_map);
       }
 #ifdef APEX_HAVE_TAU
@@ -687,7 +687,7 @@ namespace apex {
     process_profile(main_timer, my_tid);
 
     // are we updating a global profile?
-    if (apex_options::use_beacon()) {
+    if (apex_options::use_udp_sink()) {
         listener->client.synchronize_profiles(name_map, address_map);
         listener->client.stop_client();
     }
