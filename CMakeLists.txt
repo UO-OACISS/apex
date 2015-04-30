@@ -125,7 +125,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 
 #set debugging info
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS} -g -O0 -Wextra -Waddress -Warray-bounds -Wuninitialized -Wreturn-type -Wall -fno-omit-frame-pointer -DAPEX_DEBUG")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS} -O3")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS} -g -O3 -DNDEBUG")
 
 ###############################################################################
 # reconfigure Boost library information if configuration type has been
@@ -225,14 +225,21 @@ if(EXISTS "/proc/stat")
 endif()
 
 ################################################################################
-# TCMalloc configuration
+# JE/TCMalloc configuration
 ################################################################################
 
-find_package(Tcmalloc)
-if (Tcmalloc_FOUND)
-	include_directories(${Tcmalloc_INCLUDE_DIRS})
-	set(LIBS ${LIBS} ${Tcmalloc_LIBRARIES})
-	set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${Tcmalloc_LIBRARY_DIR})
+find_package(JEmalloc)
+if (JEmalloc_FOUND)
+    include_directories(${JEmalloc_INCLUDE_DIRS})
+    set(LIBS ${LIBS} ${JEmalloc_LIBRARIES})
+    set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${JEmalloc_LIBRARY_DIR})
+else()
+    find_package(Tcmalloc)
+    if (Tcmalloc_FOUND)
+	    include_directories(${Tcmalloc_INCLUDE_DIRS})
+	    set(LIBS ${LIBS} ${Tcmalloc_LIBRARIES})
+	    set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${Tcmalloc_LIBRARY_DIR})
+    endif()
 endif()
 
 ################################################################################

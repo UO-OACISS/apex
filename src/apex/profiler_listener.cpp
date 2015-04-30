@@ -125,7 +125,7 @@ namespace apex {
 #endif
 
   /* measurement of entire application */
-  profiler * profiler_listener::main_timer(NULL);
+  profiler * profiler_listener::main_timer(nullptr);
 
   /* the node id is needed for profile output. */
   int profiler_listener::node_id(0);
@@ -143,23 +143,23 @@ namespace apex {
 #endif
 
   /* Return the requested profile object to the user.
-   * Return NULL if doesn't exist. */
+   * Return nullptr if doesn't exist. */
   profile * profiler_listener::get_profile(apex_function_address address) {
     map<apex_function_address, profile*>::const_iterator it = address_map.find(address);
     if (it != address_map.end()) {
       return (*it).second;
     }
-    return NULL;
+    return nullptr;
   }
 
   /* Return the requested profile object to the user.
-   * Return NULL if doesn't exist. */
+   * Return nullptr if doesn't exist. */
   profile * profiler_listener::get_profile(const string &timer_name) {
     map<string, profile*>::const_iterator it = name_map.find(timer_name);
     if (it != name_map.end()) {
       return (*it).second;
     }
-    return NULL;
+    return nullptr;
   }
 
   /* Return a vector of all name-based profiles */
@@ -193,7 +193,7 @@ namespace apex {
   // to remove the duplication so it's easier to maintain.
   inline unsigned int profiler_listener::process_profile(profiler * p, unsigned int tid)
   {
-    if(p == NULL) return 0;
+    if(p == nullptr) return 0;
     profile * theprofile;
     if(p->is_reset == reset_type::ALL) {
         reset_all();
@@ -499,8 +499,8 @@ namespace apex {
   void profiler_listener::write_profile(int tid) {
     ofstream myfile;
     stringstream datname;
-    map<string, profile*>* the_name_map = NULL;
-    map<apex_function_address, profile*>* the_address_map = NULL;
+    map<string, profile*>* the_name_map = nullptr;
+    map<apex_function_address, profile*>* the_address_map = nullptr;
 
     if (tid == -1) {
       the_name_map = &name_map;
@@ -509,7 +509,7 @@ namespace apex {
       // We only write one profile per process
       datname << "profile." << node_id << ".0.0";
     } else {
-      if (thread_name_maps[tid] == NULL || thread_address_maps[tid] == NULL) return;
+      if (thread_name_maps[tid] == nullptr || thread_address_maps[tid] == nullptr) return;
       the_name_map = thread_name_maps[tid];
       the_address_map = thread_address_maps[tid];
       // name format: profile.nodeid.contextid.threadid
@@ -557,7 +557,7 @@ namespace apex {
     // Iterate over the profiles which are associated to a function
     // by name. Only output the regular timers now. Counters are
     // in a separate section, below.
-    profile * mainp = NULL;
+    profile * mainp = nullptr;
     double not_main = 0.0;
     for(it2 = the_name_map->begin(); it2 != the_name_map->end(); it2++) {
       profile * p = it2->second;
@@ -586,7 +586,7 @@ namespace apex {
         }
       }
     }
-    if (mainp != NULL) {
+    if (mainp != nullptr) {
       myfile << "\"" << APEX_MAIN << "\" ";
       format_line (myfile, mainp, not_main);
     }
@@ -619,7 +619,7 @@ namespace apex {
    * work on one or more queues, it will iterate over the queues
    * and process the pending profiler objects, updating the profiles
    * as it goes. */
-  void profiler_listener::process_profiles(profiler_listener * listener)
+  void profiler_listener::process_profiles(void)
   {
     static bool _initialized = false;
     if (!_initialized) {
@@ -659,20 +659,21 @@ namespace apex {
         // do some garbage collection
         for (std::unordered_set<profiler*>::const_iterator itr = my_garbage.begin(); itr != my_garbage.end();) {
             profiler* tmp = *itr;
-            if (tmp != nullptr) {
+            assert (tmp != nullptr);
+            //if (tmp != nullptr) {
                 if (tmp->safe_to_delete) {
                     my_garbage.erase(itr++);
                     delete(tmp);
                 } else {
                     ++itr;
                 }
-            }
+            //}
         }
       } while (!done && processed > 0);
       // are we updating a global profile?
 #ifdef APEX_USE_UDP_CLIENT
-      if (apex_options::use_udp_sink() && listener != nullptr) {
-          listener->client.synchronize_profiles(name_map, address_map);
+      if (apex_options::use_udp_sink()) {
+          udp_client::synchronize_profiles(name_map, address_map);
       }
 #endif
 #ifdef APEX_HAVE_TAU
@@ -701,8 +702,8 @@ namespace apex {
 #ifdef APEX_USE_UDP_CLIENT
     // are we updating a global profile?
     if (apex_options::use_udp_sink()) {
-        listener->client.synchronize_profiles(name_map, address_map);
-        listener->client.stop_client();
+        udp_client::synchronize_profiles(name_map, address_map);
+        udp_client::stop_client();
     }
 #endif
 
@@ -980,16 +981,16 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       unsigned int i = 0;
       // allocate the queue(s)
       for (i = 0; i < my_tid+1 ; i++) {
-        if (profiler_queues[i] == NULL) {
+        if (profiler_queues[i] == nullptr) {
           boost::lockfree::spsc_queue<profiler*>* tmp =
             new boost::lockfree::spsc_queue<profiler*>(MAX_QUEUE_SIZE);
           profiler_queues[i] = tmp;
         }
         if (apex_options::use_profile_output() > 1) {
-            if (thread_address_maps[i] == NULL) {
+            if (thread_address_maps[i] == nullptr) {
                 thread_address_maps[i] = new map<apex_function_address, profile*>();
             }
-            if (thread_name_maps[i] == NULL) {
+            if (thread_name_maps[i] == nullptr) {
                 thread_name_maps[i] = new map<string, profile*>();
             }
         }
@@ -1014,7 +1015,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         // if this timer is throttled, return without doing anything
         unordered_set<apex_function_address>::const_iterator it = throttled_addresses.find(data.function_address);
         if (it != throttled_addresses.end()) {
-          thread_instance::instance().current_timer = NULL;
+          thread_instance::instance().current_timer = nullptr;
           return;
         }
 #endif
@@ -1037,7 +1038,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       // if this timer is throttled, return without doing anything
       unordered_set<apex_function_address>::const_iterator it = throttled_names.find(*timer_name);
       if (it != throttled_names.end()) {
-        thread_instance::instance().current_timer = NULL;
+        thread_instance::instance().current_timer = nullptr;
         return;
       }
 #endif

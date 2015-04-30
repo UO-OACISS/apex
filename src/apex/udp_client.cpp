@@ -16,6 +16,10 @@ using boost::asio::ip::udp;
 
 namespace apex {
 
+boost::asio::io_service udp_client::_io_service;
+boost::asio::ip::udp::endpoint udp_client::_receiver_endpoint;
+boost::asio::ip::udp::socket * udp_client::_socket;
+
   void udp_client::start_client(void) {
     try {
         std::cout << apex_options::udp_sink_clientip() << " connecting to " << apex_options::udp_sink_host() << ":" << apex_options::udp_sink_port() << std::endl;

@@ -57,11 +57,6 @@ public:
   void sample_values();
   static void read_proc(void);
   static void stop_reading(void);
-  bool parse_proc_cpuinfo();
-  bool parse_proc_meminfo();
-  bool parse_proc_self_status();
-  bool parse_proc_netdev();
-  bool parse_sensor_data();
 };
 
 class ProcStatistics {
@@ -75,6 +70,11 @@ public:
 
 void get_popen_data(char *);
 ProcData* parse_proc_stat(void);
+bool parse_proc_cpuinfo();
+bool parse_proc_meminfo();
+bool parse_proc_self_status();
+bool parse_proc_netdev();
+bool parse_sensor_data();
 
 /* Ideally, this will read from RCR. If not available, read it directly. 
    Rather than write the same function seven times for seven different

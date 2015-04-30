@@ -39,7 +39,7 @@ private:
   static void schedule_process_profiles(void);
   static void hpx_process_profiles();
 #endif
-  static void process_profiles(profiler_listener * listener);
+  static void process_profiles(void);
   static unsigned int process_profile(profiler * p, unsigned int tid);
   static int node_id;
   static boost::mutex _mtx;
@@ -54,14 +54,14 @@ public:
   profiler_listener (void)  : _terminate(false) {
 #ifdef APEX_USE_UDP_CLIENT
       if (apex_options::use_udp_sink()) {
-        client.start_client();
+          udp_client::start_client();
       }
 #endif
   };
   ~profiler_listener (void) { 
 #ifdef APEX_USE_UDP_CLIENT
       if (apex_options::use_udp_sink()) {
-        client.stop_client();
+          udp_client::stop_client();
       }
 #endif
   };

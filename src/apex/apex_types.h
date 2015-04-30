@@ -189,6 +189,11 @@ typedef int (*apex_policy_function)(apex_context const context);
     macro (APEX_CONCURRENCY_PERIOD, concurrency_period, int, 1000000) \
     macro (APEX_SCREEN_OUTPUT, use_screen_output, bool, false) \
     macro (APEX_PROFILE_OUTPUT, use_profile_output, int, 0) \
+    macro (APEX_PROC_CPUINFO, use_proc_cpuinfo, bool, 0) \
+    macro (APEX_PROC_MEMINFO, use_proc_meminfo, bool, 0) \
+    macro (APEX_PROC_NET_DEV, use_proc_net_dev, bool, 0) \
+    macro (APEX_PROC_SELF_STATUS, use_proc_self_status, bool, 0) \
+    macro (APEX_PROC_STAT, use_proc_stat, bool, 1) \
 
 #define FOREACH_APEX_STRING_OPTION(macro) \
     macro (APEX_UDP_SINK_HOST, udp_sink_host, char*, "localhost") \

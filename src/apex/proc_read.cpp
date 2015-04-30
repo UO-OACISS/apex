@@ -63,6 +63,8 @@ void get_popen_data(char *cmnd) {
 }
 
 ProcData* parse_proc_stat(void) {
+  if (!apex_options::use_proc_stat()) return NULL;
+
   /*  Reading proc/stat as a file  */
   FILE * pFile;
   char line[128];
@@ -316,7 +318,9 @@ void ProcData::sample_values(void) {
 #endif
 }
 
-bool ProcData::parse_proc_cpuinfo() {
+bool parse_proc_cpuinfo() {
+  if (!apex_options::use_proc_cpuinfo()) return false;
+
   FILE *f = fopen("/proc/cpuinfo", "r");
   if (f) {
     char line[4096] = {0};
@@ -345,7 +349,8 @@ bool ProcData::parse_proc_cpuinfo() {
   return true;
 }
 
-bool ProcData::parse_proc_meminfo() {
+bool parse_proc_meminfo() {
+  if (!apex_options::use_proc_meminfo()) return false;
   FILE *f = fopen("/proc/meminfo", "r");
   if (f) {
     char line[4096] = {0};
@@ -370,7 +375,8 @@ bool ProcData::parse_proc_meminfo() {
   return true;
 }
 
-bool ProcData::parse_proc_self_status() {
+bool parse_proc_self_status() {
+  if (!apex_options::use_proc_self_status()) return false;
   FILE *f = fopen("/proc/self/status", "r");
   const std::string prefix("Vm");
   if (f) {
@@ -398,7 +404,8 @@ bool ProcData::parse_proc_self_status() {
   return true;
 }
 
-bool ProcData::parse_proc_netdev() {
+bool parse_proc_netdev() {
+  if (!apex_options::use_proc_net_dev()) return false;
   FILE *f = fopen("/proc/net/dev", "r");
   if (f) {
     char line[4096] = {0};
@@ -508,7 +515,7 @@ bool ProcData::parse_proc_netdev() {
 }
 
 // there will be N devices, with M sensors per device.
-bool ProcData::parse_sensor_data() {
+bool parse_sensor_data() {
 #if 0
   string prefix = "/Users/khuck/src/xpress-apex/proc/power/";
   // Find out how many devices have sensors
@@ -538,10 +545,10 @@ void ProcData::read_proc(void) {
 #endif
   ProcData *oldData = parse_proc_stat();
   // disabled for now - not sure that it is useful
-  oldData->parse_proc_cpuinfo(); // do this once, it won't change.
-  oldData->parse_proc_meminfo(); // some things change, others don't...
-  oldData->parse_proc_self_status(); // some things change, others don't...
-  oldData->parse_proc_netdev();
+  parse_proc_cpuinfo(); // do this once, it won't change.
+  parse_proc_meminfo(); // some things change, others don't...
+  parse_proc_self_status(); // some things change, others don't...
+  parse_proc_netdev();
   ProcData *newData = NULL;
   ProcData *periodData = NULL;
   struct timespec tim, tim2;
@@ -556,18 +563,20 @@ void ProcData::read_proc(void) {
       TAU_START("ProcData::read_proc: main loop");
     }
 #endif
-    // take a reading
-    newData = parse_proc_stat();
-    periodData = newData->diff(*oldData);
-    // save the values
-    periodData->sample_values();
-    // free the memory
-    delete(oldData);
-    delete(periodData);
-    oldData = newData;
-    oldData->parse_proc_meminfo(); // some things change, others don't...
-    oldData->parse_proc_self_status(); // some things change, others don't...
-    oldData->parse_proc_netdev();
+    if (apex_options::use_proc_stat()) {
+        // take a reading
+        newData = parse_proc_stat();
+        periodData = newData->diff(*oldData);
+        // save the values
+        periodData->sample_values();
+        // free the memory
+        delete(oldData);
+        delete(periodData);
+        oldData = newData;
+    }
+    parse_proc_meminfo(); // some things change, others don't...
+    parse_proc_self_status();
+    parse_proc_netdev();
 #ifdef APEX_HAVE_TAU
     if (apex_options::use_tau()) {
       TAU_STOP("ProcData::read_proc: main loop");
