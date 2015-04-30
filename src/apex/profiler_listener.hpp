@@ -37,7 +37,6 @@ private:
   static void delete_profiles(void);
 #ifdef APEX_HAVE_HPX3
   static void schedule_process_profiles(void);
-  static void hpx_process_profiles();
 #endif
   static void process_profiles(void);
   static unsigned int process_profile(profiler * p, unsigned int tid);

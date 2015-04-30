@@ -610,9 +610,6 @@ namespace apex {
     myfile.close();
   }
 
-  void profiler_listener::hpx_process_profiles() {
-    process_profiles(nullptr);
-  }
 
   /* This is the main function for the consumer thread.
    * It will wait at a semaphore for pending work. When there is
@@ -741,7 +738,7 @@ namespace apex {
 #ifdef APEX_HAVE_HPX3
 } // end namespace apex (HPX_PLAIN_ACTION needs to be in global namespace)
 
-HPX_PLAIN_ACTION(profiler_listener::hpx_process_profiles, apex_internal_process_profiles_action);
+HPX_PLAIN_ACTION(profiler_listener::process_profiles, apex_internal_process_profiles_action);
 HPX_ACTION_HAS_CRITICAL_PRIORITY(apex_internal_process_profiles_action);
 
 namespace apex {
@@ -755,7 +752,7 @@ void profiler_listener::schedule_process_profiles() {
         } catch(...) {
             // During shutdown, we can't schedule a new task,
             // so we process profiles ourselves.
-            profiler_listener::hpx_process_profiles();
+            profiler_listener::process_profiles();
         }
     } 
 }
