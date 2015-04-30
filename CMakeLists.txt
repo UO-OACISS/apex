@@ -225,14 +225,21 @@ if(EXISTS "/proc/stat")
 endif()
 
 ################################################################################
-# TCMalloc configuration
+# JE/TCMalloc configuration
 ################################################################################
 
-find_package(Tcmalloc)
-if (Tcmalloc_FOUND)
-	include_directories(${Tcmalloc_INCLUDE_DIRS})
-	set(LIBS ${LIBS} ${Tcmalloc_LIBRARIES})
-	set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${Tcmalloc_LIBRARY_DIR})
+find_package(JEmalloc)
+if (JEmalloc_FOUND)
+    include_directories(${JEmalloc_INCLUDE_DIRS})
+    set(LIBS ${LIBS} ${JEmalloc_LIBRARIES})
+    set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${JEmalloc_LIBRARY_DIR})
+else()
+    find_package(Tcmalloc)
+    if (Tcmalloc_FOUND)
+	    include_directories(${Tcmalloc_INCLUDE_DIRS})
+	    set(LIBS ${LIBS} ${Tcmalloc_LIBRARIES})
+	    set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${Tcmalloc_LIBRARY_DIR})
+    endif()
 endif()
 
 ################################################################################
