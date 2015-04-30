@@ -8,7 +8,7 @@
 #include <hpx/include/runtime.hpp>
 #endif
 
-#include "apex.hpp"
+#include "apex_api.hpp"
 #include "policy_handler.hpp"
 #include "thread_instance.hpp"
 #include <iostream>
@@ -212,10 +212,9 @@ void policy_handler::on_new_thread(new_thread_event_data &event_data) {
         call_policies(new_thread_policies, event_data);
 }
 
-void policy_handler::on_start(apex_function_address function_address, string *timer_name) {
+void policy_handler::on_start(apex_function_address function_address) {
   if (_terminate) return;
   if (start_event_policies.empty()) return;
-        //call_policies(start_event_policies, event_data);
   for(const boost::shared_ptr<policy_instance>& policy : start_event_policies) {
     apex_context my_context;
     my_context.event_type = APEX_START_EVENT;
@@ -226,10 +225,24 @@ void policy_handler::on_start(apex_function_address function_address, string *ti
     }
   }
   APEX_UNUSED(function_address);
+}
+
+void policy_handler::on_start(string *timer_name) {
+  if (_terminate) return;
+  if (start_event_policies.empty()) return;
+  for(const boost::shared_ptr<policy_instance>& policy : start_event_policies) {
+    apex_context my_context;
+    my_context.event_type = APEX_START_EVENT;
+    my_context.policy_handle = NULL;
+    const bool result = policy->func(my_context);
+    if(result != APEX_NOERROR) {
+      printf("Warning: registered policy function failed!\n");
+    }
+  }
   APEX_UNUSED(timer_name);
 }
 
-void policy_handler::on_stop(profiler *p) {
+void policy_handler::on_stop(profiler * p) {
     if (_terminate) return;
     if (stop_event_policies.empty()) return;
     for(const boost::shared_ptr<policy_instance>& policy : stop_event_policies) {
@@ -244,7 +257,7 @@ void policy_handler::on_stop(profiler *p) {
     APEX_UNUSED(p);
 }
 
-void policy_handler::on_yield(profiler *p) {
+void policy_handler::on_yield(profiler * p) {
     if (_terminate) return;
     if (yield_event_policies.empty()) return;
     for(const boost::shared_ptr<policy_instance>& policy : yield_event_policies) {

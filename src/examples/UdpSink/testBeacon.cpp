@@ -6,7 +6,6 @@
 #include <sstream>
 #include <climits>
 
-
 #define NUM_THREADS 8
 #define ITERATIONS 200
 #define INNER_ITERATION 1000000

@@ -1,5 +1,5 @@
 #include <mpi.h>
-#include "apex.hpp"
+#include "apex_api.hpp"
 
 #define WORKTAG 1
 #define DIETAG 2

@@ -10,7 +10,7 @@
 #include "ittnotify.h"
 #include <stdlib.h>
 #include <string.h>
-#include "apex.hpp"
+#include "apex_api.hpp"
 
 using namespace std;
 

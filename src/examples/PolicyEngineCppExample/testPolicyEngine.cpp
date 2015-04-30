@@ -2,7 +2,7 @@
 #include <pthread.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <apex.hpp>
+#include <apex_api.hpp>
 #include <apex_types.h>
 #include <sstream>
 
@@ -80,9 +80,9 @@ int main(int argc, char **argv)
   apex::register_periodic_policy(1000000, [](apex_context const& context){
        UNUSED(context);
        apex_function_address foo_addr = (apex_function_address)(foo);
-       apex::profile * p = apex::profiler_listener::get_profile(foo_addr);
+       apex_profile * p = apex::get_profile(foo_addr);
        if (p != NULL) {
-           cout << "Periodic: " << foo_addr << " " << p->get_calls() << " " << p->get_mean() << " seconds." << endl;
+           cout << "Periodic: " << foo_addr << " " << p->calls << " " << p->accumulated/p->calls << " seconds." << endl;
        }
        return APEX_NOERROR;
   });
@@ -91,9 +91,9 @@ int main(int argc, char **argv)
        static APEX_NATIVE_TLS unsigned int not_all_the_time = 0;
        if (++not_all_the_time % 500000 != 0) return APEX_NOERROR; // only do 2 out of a million
        apex_function_address foo_addr = (apex_function_address)(foo);
-       apex::profile * p = apex::profiler_listener::get_profile(foo_addr);
+       apex_profile * p = apex::get_profile(foo_addr);
        if (p != NULL) {
-           cout << "Event: " << foo_addr << " " << p->get_calls() << " " << p->get_mean() << " seconds." << endl;
+           cout << "Event: " << foo_addr << " " << p->calls << " " << p->accumulated/p->calls << " seconds." << endl;
        }
        return APEX_NOERROR;
   });

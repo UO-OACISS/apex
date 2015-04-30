@@ -10,6 +10,7 @@
 
 #include "concurrency_handler.hpp"
 #include "apex.hpp"
+#include "apex_api.hpp"
 #include "apex_policies.h"
 #include "thread_instance.hpp"
 #include <iostream>
@@ -108,14 +109,17 @@ void concurrency_handler::_init(void) {
   return;
 }
 
-void concurrency_handler::on_start(apex_function_address function_address, string *timer_name) {
+void concurrency_handler::on_start(apex_function_address function_address) {
   if (!_terminate) {
     stack<string>* my_stack = get_event_stack(thread_instance::get_id());
-    if (timer_name != NULL) {
-      my_stack->push(*(timer_name));
-    } else {
-      my_stack->push(thread_instance::instance().map_addr_to_name(function_address));
-    }
+    my_stack->push(thread_instance::instance().map_addr_to_name(function_address));
+  }
+}
+
+void concurrency_handler::on_start(string *timer_name) {
+  if (!_terminate) {
+    stack<string>* my_stack = get_event_stack(thread_instance::get_id());
+    my_stack->push(*(timer_name));
   }
 }
 
@@ -130,7 +134,7 @@ void concurrency_handler::on_resume(profiler * p) {
   }
 }
 
-void concurrency_handler::on_stop(profiler *p) {
+void concurrency_handler::on_stop(profiler * p) {
   if (!_terminate) {
     stack<string>* my_stack = get_event_stack(thread_instance::get_id());
     if (!my_stack->empty()) {
@@ -140,7 +144,7 @@ void concurrency_handler::on_stop(profiler *p) {
   APEX_UNUSED(p);
 }
 
-void concurrency_handler::on_yield(profiler *p) {
+void concurrency_handler::on_yield(profiler * p) {
     on_stop(p);
 }
 

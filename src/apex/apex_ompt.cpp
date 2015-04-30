@@ -1,8 +1,9 @@
 #include <ompt.h>
 #include <unordered_map>
+#include <stack>
 #include "string.h"
 #include "stdio.h"
-#include "apex.hpp"
+#include "apex_api.hpp"
 #include "apex_types.h"
 #include <boost/thread/mutex.hpp>
 

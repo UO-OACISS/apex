@@ -1,6 +1,6 @@
 #include <mpi.h>
 #include <limits.h>
-#include "apex.hpp"
+#include "apex_api.hpp"
 #include "apex_global.h"
 
 #define WORKTAG 1

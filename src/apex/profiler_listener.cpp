@@ -7,7 +7,7 @@
 #include <hpx/config.hpp>
 #endif
 
-#include "apex.hpp"
+#include "apex_api.hpp"
 #include "profiler_listener.hpp"
 #include "profiler.hpp"
 #include "thread_instance.hpp"
@@ -16,6 +16,8 @@
 #include <fstream>
 #include <math.h>
 #include "apex_options.hpp"
+#include "profiler.hpp"
+#include "profile.hpp"
 
 #include <boost/thread/thread.hpp>
 #include <boost/lockfree/spsc_queue.hpp>
@@ -174,11 +176,13 @@ namespace apex {
     for(auto &it : address_map) {
         it.second->reset();
     }
-    for(auto &it1 : *(thread_name_maps[my_tid])) {
-        it1.second->reset();
-    }
-    for(auto &it1 : *(thread_address_maps[my_tid])) {
-        it1.second->reset();
+    if (apex_options::use_profile_output() > 1) {
+        for(auto &it1 : *(thread_name_maps[my_tid])) {
+            it1.second->reset();
+        }
+        for(auto &it1 : *(thread_address_maps[my_tid])) {
+            it1.second->reset();
+        }
     }
   }
 
@@ -187,9 +191,9 @@ namespace apex {
   // TODO The name-based timer and address-based timer paths through
   // the code involve a lot of duplication -- this should be refactored
   // to remove the duplication so it's easier to maintain.
-  inline void profiler_listener::process_profile(profiler * p, unsigned int tid)
+  inline unsigned int profiler_listener::process_profile(profiler * p, unsigned int tid)
   {
-    if(p == NULL) return;
+    if(p == NULL) return 0;
     profile * theprofile;
     if(p->is_reset == reset_type::ALL) {
         reset_all();
@@ -198,7 +202,7 @@ namespace apex {
         } else {
             my_garbage.insert(p);
         }
-        return;
+        return 0;
     }
     // Look for the profile object by name, if applicable
     if (p->have_name) {
@@ -228,44 +232,46 @@ namespace apex {
         theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_resume, p->is_counter ? APEX_COUNTER : APEX_TIMER);
         name_map[*(p->timer_name)] = theprofile;
 #ifdef APEX_HAVE_HPX3
+#ifdef APEX_REGISTER_HPX3_COUNTERS
         if(!done) {
             if(get_hpx_runtime_ptr() != nullptr) {
-                if(hpx::get_runtime_ptr() != nullptr) {
-                    std::string timer_name(*(p->timer_name));
-                    //Don't register timers containing "/"
-                    if(timer_name.find("/") == std::string::npos) {
-                        hpx::performance_counters::install_counter_type(
-                        std::string("/apex/") + timer_name,
-                        [p](bool r)->boost::int64_t{
-                            boost::int64_t value(p->elapsed() * 100000);
-                            return value;
-                        },
-                        std::string("APEX counter ") + timer_name,
-                        ""
-                        );
-                    }
+                std::string timer_name(*(p->timer_name));
+                //Don't register timers containing "/"
+                if(timer_name.find("/") == std::string::npos) {
+                    hpx::performance_counters::install_counter_type(
+                    std::string("/apex/") + timer_name,
+                    [p](bool r)->boost::int64_t{
+                        boost::int64_t value(p->elapsed() * 100000);
+                        return value;
+                    },
+                    std::string("APEX counter ") + timer_name,
+                    ""
+                    );
                 }
             } else {
                 std::cerr << "HPX runtime not initialized yet." << std::endl;
             }
         }
 #endif
+#endif
       }
-      // now do thread-specific measurement.
-      map<string, profile*>* the_map = thread_name_maps[tid];
-      it = the_map->find(*(p->timer_name));
-      if (it != the_map->end()) {
-        // A profile for this name already exists.
-        theprofile = (*it).second;
-        if(p->is_reset == reset_type::CURRENT) {
-            theprofile->reset();
+      if (apex_options::use_profile_output() > 1) {
+        // now do thread-specific measurement.
+        map<string, profile*>* the_map = thread_name_maps[tid];
+        it = the_map->find(*(p->timer_name));
+        if (it != the_map->end()) {
+            // A profile for this name already exists.
+            theprofile = (*it).second;
+            if(p->is_reset == reset_type::CURRENT) {
+                theprofile->reset();
+            } else {
+                theprofile->increment(p->elapsed(), p->is_resume);
+            }
         } else {
-            theprofile->increment(p->elapsed(), p->is_resume);
+            // Create a new profile for this name.
+            theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_resume, p->is_counter ? APEX_COUNTER : APEX_TIMER);
+            (*the_map)[*(p->timer_name)] = theprofile;
         }
-      } else {
-        // Create a new profile for this name.
-        theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_resume, p->is_counter ? APEX_COUNTER : APEX_TIMER);
-        (*the_map)[*(p->timer_name)] = theprofile;
       }
     } else { // address rather than name
       map<apex_function_address, profile*>::const_iterator it2 = address_map.find(p->action_address);
@@ -298,21 +304,23 @@ namespace apex {
         theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_resume);
         address_map[p->action_address] = theprofile;
       }
-      // now do thread-specific measurement
-      map<apex_function_address, profile*>* the_map = thread_address_maps[tid];
-      it2 = the_map->find(p->action_address);
-      if (it2 != the_map->end()) {
-        // A profile for this name already exists.
-        theprofile = (*it2).second;
-        if(p->is_reset == reset_type::CURRENT) {
-            theprofile->reset();
+      if (apex_options::use_profile_output() > 1) {
+        // now do thread-specific measurement
+        map<apex_function_address, profile*>* the_map = thread_address_maps[tid];
+        it2 = the_map->find(p->action_address);
+        if (it2 != the_map->end()) {
+            // A profile for this name already exists.
+            theprofile = (*it2).second;
+            if(p->is_reset == reset_type::CURRENT) {
+                theprofile->reset();
+            } else {
+                theprofile->increment(p->elapsed(), p->is_resume);
+            }
         } else {
-            theprofile->increment(p->elapsed(), p->is_resume);
+            // Create a new profile for this address.
+            theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_resume);
+            (*the_map)[p->action_address] = theprofile;
         }
-      } else {
-        // Create a new profile for this address.
-        theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_resume);
-        (*the_map)[p->action_address] = theprofile;
       }
     }
     // done with the profiler object
@@ -321,6 +329,7 @@ namespace apex {
     } else {
         my_garbage.insert(p);
     }
+    return 1;
   }
 
   /* Cleaning up memory. Not really necessary, because it only gets
@@ -349,29 +358,31 @@ namespace apex {
     // clear the vector of queues.
     profiler_queues.clear();
 
-    // iterate over the vector of profile objects for per-thread measurement
-    for (i = 0 ; i < thread_address_maps.size(); i++) {
-      if (thread_address_maps[i]) {
-        for(it = thread_address_maps[i]->begin(); it != thread_address_maps[i]->end(); it++) {
-          delete it->second;
+    if (apex_options::use_profile_output() > 1) {
+        // iterate over the vector of profile objects for per-thread measurement
+        for (i = 0 ; i < thread_address_maps.size(); i++) {
+        if (thread_address_maps[i]) {
+            for(it = thread_address_maps[i]->begin(); it != thread_address_maps[i]->end(); it++) {
+            delete it->second;
+            }
+            delete (thread_address_maps[i]);
         }
-        delete (thread_address_maps[i]);
-      }
-    }
-    // clear the vector of maps.
-    thread_address_maps.clear();
+        }
+        // clear the vector of maps.
+        thread_address_maps.clear();
 
-    // iterate over the vector of profile objects for per-thread measurement
-    for (i = 0 ; i < thread_name_maps.size(); i++) {
-      if (thread_name_maps[i]) {
-        for(it2 = thread_name_maps[i]->begin(); it2 != thread_name_maps[i]->end(); it2++) {
-          delete it2->second;
+        // iterate over the vector of profile objects for per-thread measurement
+        for (i = 0 ; i < thread_name_maps.size(); i++) {
+        if (thread_name_maps[i]) {
+            for(it2 = thread_name_maps[i]->begin(); it2 != thread_name_maps[i]->end(); it2++) {
+            delete it2->second;
+            }
+            delete (thread_name_maps[i]);
         }
-        delete (thread_name_maps[i]);
-      }
+        }
+        // clear the vector of maps.
+        thread_name_maps.clear();
     }
-    // clear the vector of maps.
-    thread_name_maps.clear();
   }
 
   /* At program termination, write the measurements to the screen. */
@@ -599,12 +610,16 @@ namespace apex {
     myfile.close();
   }
 
+  void profiler_listener::hpx_process_profiles() {
+    process_profiles(nullptr);
+  }
+
   /* This is the main function for the consumer thread.
    * It will wait at a semaphore for pending work. When there is
    * work on one or more queues, it will iterate over the queues
    * and process the pending profiler objects, updating the profiles
    * as it goes. */
-  void profiler_listener::process_profiles(void)
+  void profiler_listener::process_profiles(profiler_listener * listener)
   {
     static bool _initialized = false;
     if (!_initialized) {
@@ -631,25 +646,35 @@ namespace apex {
     }
     */
 #endif
-      for (i = 0 ; i < profiler_queues.size(); i++) {
-        if (profiler_queues[i]) {
-          while (profiler_queues[i]->pop(p)) {
-            process_profile(p, i);
-          }
-        }
-      }
-      // do some garbage collection
-      for (std::unordered_set<profiler*>::const_iterator itr = my_garbage.begin(); itr != my_garbage.end();) {
-          profiler* tmp = *itr;
-          if (tmp != nullptr) {
-            if (tmp->safe_to_delete) {
-                my_garbage.erase(itr++);
-                delete(tmp);
-            } else {
-                ++itr;
+      unsigned int processed = 0;
+      do { // inner while loop, handle all the available work while there is work.
+        processed = 0;
+        for (i = 0 ; i < profiler_queues.size(); i++) {
+            if (profiler_queues[i]) {
+                while (profiler_queues[i]->pop(p)) {
+                    processed += process_profile(p, i);
+                }
             }
-          }
+        }
+        // do some garbage collection
+        for (std::unordered_set<profiler*>::const_iterator itr = my_garbage.begin(); itr != my_garbage.end();) {
+            profiler* tmp = *itr;
+            if (tmp != nullptr) {
+                if (tmp->safe_to_delete) {
+                    my_garbage.erase(itr++);
+                    delete(tmp);
+                } else {
+                    ++itr;
+                }
+            }
+        }
+      } while (!done && processed > 0);
+      // are we updating a global profile?
+#ifdef APEX_USE_UDP_CLIENT
+      if (apex_options::use_udp_sink() && listener != nullptr) {
+          listener->client.synchronize_profiles(name_map, address_map);
       }
+#endif
 #ifdef APEX_HAVE_TAU
       /*
       if (apex_options::use_tau()) {
@@ -672,6 +697,14 @@ namespace apex {
     // stop the main timer, and process that profile
     main_timer->stop();
     process_profile(main_timer, my_tid);
+
+#ifdef APEX_USE_UDP_CLIENT
+    // are we updating a global profile?
+    if (apex_options::use_udp_sink()) {
+        listener->client.synchronize_profiles(name_map, address_map);
+        listener->client.stop_client();
+    }
+#endif
 
     // output to screen?
     if (apex_options::use_screen_output() && node_id == 0)
@@ -707,10 +740,10 @@ namespace apex {
 #ifdef APEX_HAVE_HPX3
 } // end namespace apex (HPX_PLAIN_ACTION needs to be in global namespace)
 
-HPX_PLAIN_ACTION(profiler_listener::process_profiles, apex_internal_process_profiles_action);
+HPX_PLAIN_ACTION(profiler_listener::hpx_process_profiles, apex_internal_process_profiles_action);
 HPX_ACTION_HAS_CRITICAL_PRIORITY(apex_internal_process_profiles_action);
 
-namespace apex{
+namespace apex {
 
 void profiler_listener::schedule_process_profiles() {
     if(get_hpx_runtime_ptr() == nullptr) return;
@@ -721,7 +754,7 @@ void profiler_listener::schedule_process_profiles() {
         } catch(...) {
             // During shutdown, we can't schedule a new task,
             // so we process profiles ourselves.
-            profiler_listener::process_profiles();
+            profiler_listener::hpx_process_profiles();
         }
     } 
 }
@@ -787,8 +820,10 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
     if (!_terminate) {
       // Create a profiler queue for this main thread
       profiler_queues[0] = new boost::lockfree::spsc_queue<profiler*>(MAX_QUEUE_SIZE);
-      thread_address_maps[0] = new map<apex_function_address, profile*>();
-      thread_name_maps[0] = new map<string, profile*>();
+      if (apex_options::use_profile_output() > 1) {
+        thread_address_maps[0] = new map<apex_function_address, profile*>();
+        thread_name_maps[0] = new map<string, profile*>();
+      }
 #ifndef APEX_HAVE_HPX3
       // Start the consumer thread, to process profiler objects.
       consumer_thread = new boost::thread(process_profiles);
@@ -911,7 +946,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 #endif
     }
     /* The cleanup is disabled for now. Why? Because we want to be able
-     * to access the profiles at the end of the run, after APEX has 
+     * to access the profiles at the end of the run, after APEX has
      * finalized. */
     // cleanup.
     // delete_profiles();
@@ -934,11 +969,13 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       if (my_tid >= profiler_queues.size()) {
         profiler_queues.resize(my_tid + 1);
       }
-      if (my_tid >= thread_address_maps.size()) {
-        thread_address_maps.resize(my_tid + 1);
-      }
-      if (my_tid >= thread_name_maps.size()) {
-        thread_name_maps.resize(my_tid + 1);
+      if (apex_options::use_profile_output() > 1) {
+        if (my_tid >= thread_address_maps.size()) {
+            thread_address_maps.resize(my_tid + 1);
+        }
+        if (my_tid >= thread_name_maps.size()) {
+            thread_name_maps.resize(my_tid + 1);
+        }
       }
       unsigned int i = 0;
       // allocate the queue(s)
@@ -948,12 +985,14 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
             new boost::lockfree::spsc_queue<profiler*>(MAX_QUEUE_SIZE);
           profiler_queues[i] = tmp;
         }
-    if (thread_address_maps[i] == NULL) {
-          thread_address_maps[i] = new map<apex_function_address, profile*>();
-    }
-    if (thread_name_maps[i] == NULL) {
-          thread_name_maps[i] = new map<string, profile*>();
-    }
+        if (apex_options::use_profile_output() > 1) {
+            if (thread_address_maps[i] == NULL) {
+                thread_address_maps[i] = new map<apex_function_address, profile*>();
+            }
+            if (thread_name_maps[i] == NULL) {
+                thread_name_maps[i] = new map<string, profile*>();
+            }
+        }
       }
 #if APEX_HAVE_PAPI
       initialize_PAPI(false);
@@ -969,31 +1008,41 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 
   /* When a start event happens, create a profiler object. Unless this
    * named event is throttled, in which case do nothing, as quickly as possible */
-  void profiler_listener::on_start(apex_function_address function_address, string *timer_name) {
+  inline void profiler_listener::_common_start(apex_function_address function_address, bool is_resume) {
     if (!_terminate) {
-      if (timer_name != NULL) {
 #if defined(APEX_THROTTLE)
         // if this timer is throttled, return without doing anything
-        unordered_set<apex_function_address>::const_iterator it = throttled_names.find(*timer_name);
-        if (it != throttled_names.end()) {
-          thread_instance::instance().current_timer = NULL;
-          return;
-        }
-#endif
-        // start the profiler object, which starts our timers
-        thread_instance::instance().current_timer = new profiler(timer_name);
-      } else {
-#if defined(APEX_THROTTLE)
-        // if this timer is throttled, return without doing anything
-        unordered_set<apex_function_address>::const_iterator it = throttled_addresses.find(function_address);
+        unordered_set<apex_function_address>::const_iterator it = throttled_addresses.find(data.function_address);
         if (it != throttled_addresses.end()) {
           thread_instance::instance().current_timer = NULL;
           return;
         }
 #endif
         // start the profiler object, which starts our timers
-        thread_instance::instance().current_timer = new profiler(function_address);
+        thread_instance::instance().current_timer = new profiler(function_address, is_resume);
+#if APEX_HAVE_PAPI
+        long long * values = thread_instance::instance().current_timer->papi_start_values;
+        int rc = 0;
+        rc = PAPI_read( EventSet, values );
+        PAPI_ERROR_CHECK(PAPI_read);
+#endif
+    }
+  }
+
+  /* When a start event happens, create a profiler object. Unless this
+   * named event is throttled, in which case do nothing, as quickly as possible */
+  inline void profiler_listener::_common_start(std::string * timer_name, bool is_resume) {
+    if (!_terminate) {
+#if defined(APEX_THROTTLE)
+      // if this timer is throttled, return without doing anything
+      unordered_set<apex_function_address>::const_iterator it = throttled_names.find(*timer_name);
+      if (it != throttled_names.end()) {
+        thread_instance::instance().current_timer = NULL;
+        return;
       }
+#endif
+      // start the profiler object, which starts our timers
+      thread_instance::instance().current_timer = new profiler(timer_name, is_resume);
 #if APEX_HAVE_PAPI
       long long * values = thread_instance::instance().current_timer->papi_start_values;
       int rc = 0;
@@ -1003,102 +1052,86 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
     }
   }
 
+  inline void profiler_listener::push_profiler(int my_tid, profiler *p) {
+      assert(profiler_queues[my_tid]);
+      bool worked = profiler_queues[my_tid]->push(p);
+      if (!worked) {
+          static bool issued = false;
+          if (!issued) {
+              issued = true;
+              if(p->have_name) {
+                  cout << "APEX Warning : failed to push " << *(p->timer_name) << endl;
+              } else {
+#if defined(HAVE_BFD)
+                  cout << "APEX Warning : failed to push " << *(lookup_address((uintptr_t)p->action_address, true) << endl;
+#else
+                  cout << "APEX Warning : failed to push address " << p->action_address << endl;
+#endif
+              }
+              cout << "One or more frequently-called, lightweight functions is being timed." << endl;
+          }
+      }
+#ifndef APEX_HAVE_HPX3
+      queue_signal.post();
+#endif
+#ifdef APEX_HAVE_HPX3
+      schedule_process_profiles();
+#endif
+  }
+
   /* Stop the timer, if applicable, and queue the profiler object */
-  void profiler_listener::on_stop(profiler * p) {
+  inline void profiler_listener::_common_stop(profiler * p, bool is_yield) {
     if (!_terminate) {
       if (p) {
-        p->stop();
+        p->stop(is_yield);
 #if APEX_HAVE_PAPI
         long long * values = p->papi_stop_values;
         int rc = 0;
         rc = PAPI_read( EventSet, values );
         PAPI_ERROR_CHECK(PAPI_read);
 #endif
-        bool worked = profiler_queues[my_tid]->push(p);
-        if (!worked) {
-            static bool issued = false;
-            if (!issued) {
-                issued = true;
-                if(p->have_name) {
-                    cout << "APEX Warning : failed to push " << *(p->timer_name) << endl;
-                } else {
-                    cout << "APEX Warning : failed to push " << p->action_address << endl;
-                }
-                cout << "One or more frequently-called, lightweight functions is being timed." << endl;
-            }
-            // we couldn't queue it, so delete it.
-            delete(p);
-        }
-#ifndef APEX_HAVE_HPX3
-        queue_signal.post();
-#endif
-#ifdef APEX_HAVE_HPX3
-        schedule_process_profiles();
-#endif
+        push_profiler(my_tid, p);
       }
     }
   }
 
-  /* Stop the timer, if applicable, and queue the profiler object */
-  void profiler_listener::on_yield(profiler * p) {
-    if (!_terminate) {
-      if (p) {
-        p->stop();
-        p->is_resume = true;
-#if APEX_HAVE_PAPI
-        long long * values = p->papi_stop_values;
-        int rc = 0;
-        rc = PAPI_read( EventSet, values );
-        PAPI_ERROR_CHECK(PAPI_read);
-#endif
-        bool worked = profiler_queues[my_tid]->push(p);
-        if (!worked) {
-            static bool issued = false;
-            if (!issued) {
-                issued = true;
-                if(p->have_name) {
-                    cout << "APEX Warning : failed to push " << *(p->timer_name) << endl;
-                } else {
-                    cout << "APEX Warning : failed to push " << p->action_address << endl;
-                }
-                cout << "One or more frequently-called, lightweight functions is being timed." << endl;
-            }
-        }
-#ifndef APEX_HAVE_HPX3
-        queue_signal.post();
-#endif
-#ifdef APEX_HAVE_HPX3
-        schedule_process_profiles();
-#endif
-      }
-    }
+  /* Start the timer */
+  void profiler_listener::on_start(apex_function_address function_address) {
+    _common_start(function_address, false);
+  }
+
+  /* Start the timer */
+  void profiler_listener::on_start(std::string * timer_name) {
+    _common_start(timer_name, false);
   }
 
   /* This is just like starting a timer, but don't increment the number of calls
    * value. That is because we are restarting an existing timer. */
-  void profiler_listener::on_resume(profiler *p) {
-    if (!_terminate) {
-      if (p->have_name) {
-        thread_instance::instance().current_timer = new profiler(p->timer_name, true);
-      } else {
-        thread_instance::instance().current_timer = new profiler(p->action_address, true);
-      }
+  void profiler_listener::on_resume(profiler * p) {
+    if (p && p->have_name) {
+        _common_start(p->timer_name, true);
+    } else {
+        _common_start(p->action_address, true);
     }
+  }
+
+   /* Stop the timer */
+  void profiler_listener::on_stop(profiler * p) {
+    _common_stop(p, false);
+  }
+
+  /* Stop the timer, but don't increment the number of calls */
+  void profiler_listener::on_yield(profiler * p) {
+    _common_stop(p, true);
   }
 
   /* When a sample value is processed, save it as a profiler object, and queue it. */
   void profiler_listener::on_sample_value(sample_value_event_data &data) {
     if (!_terminate) {
       profiler * p = new profiler(new string(*data.counter_name), data.counter_value);
-      profiler_queues[my_tid]->push(p);
-#ifndef APEX_HAVE_HPX3
-      queue_signal.post();
-#endif
-#ifdef APEX_HAVE_HPX3
-        schedule_process_profiles();
-#endif
+      p->is_counter = data.is_counter;
+      push_profiler(my_tid, p);
     }
-	APEX_UNUSED(data);
   }
 
   /* For periodic stuff. Do something? */
@@ -1114,25 +1147,21 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
     }
 	APEX_UNUSED(data);
   }
-  
-  void profiler_listener::reset(apex_function_address function_address, string *timer_name) {
-    if (!_terminate) {
-      profiler * p;
-      if(timer_name != nullptr) {
-        p = new profiler(new string(*timer_name), false, reset_type::CURRENT);
-      } else if(function_address != APEX_NULL_FUNCTION_ADDRESS) {
-        p = new profiler(function_address, false, reset_type::CURRENT);
-      } else {
-        p = new profiler((apex_function_address)APEX_NULL_FUNCTION_ADDRESS, false, reset_type::ALL);
-      }
-      profiler_queues[my_tid]->push(p);
-#ifndef APEX_HAVE_HPX3
-      queue_signal.post();
-#endif
-#ifdef APEX_HAVE_HPX3
-        schedule_process_profiles();
-#endif
+
+  void profiler_listener::reset(apex_function_address function_address) {
+    profiler * p;
+    if(function_address != APEX_NULL_FUNCTION_ADDRESS) {
+      p = new profiler(function_address, false, reset_type::CURRENT);
+    } else {
+      p = new profiler((apex_function_address)APEX_NULL_FUNCTION_ADDRESS, false, reset_type::ALL);
     }
+    push_profiler(my_tid, p);
+  }
+
+  void profiler_listener::reset(const std::string &timer_name) {
+    profiler * p;
+    p = new profiler(new string(timer_name), false, reset_type::CURRENT);
+    push_profiler(my_tid, p);
   }
 
 }

@@ -2,7 +2,6 @@
 #define ITTNOTIFY_H 1
 
 #include <string>
-#include "apex.hpp"
 #include "ittnotify_export.h"
 
 /*

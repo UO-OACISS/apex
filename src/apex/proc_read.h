@@ -59,6 +59,7 @@ public:
   static void stop_reading(void);
   bool parse_proc_cpuinfo();
   bool parse_proc_meminfo();
+  bool parse_proc_self_status();
   bool parse_proc_netdev();
   bool parse_sensor_data();
 };
