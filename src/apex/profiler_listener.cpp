@@ -633,9 +633,9 @@ namespace apex {
     }
     */
 #endif
-      unsigned int processed = 0;
+      //unsigned int processed = 0;
       //do { // inner while loop, handle all the available work while there is work.
-        processed = 0;
+        //processed = 0;
         for (i = 0 ; i < profiler_queues.size(); i++) {
             if (profiler_queues[i]) {
                 while (profiler_queues[i]->pop(p)) {
