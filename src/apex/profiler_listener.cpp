@@ -634,12 +634,13 @@ namespace apex {
     */
 #endif
       unsigned int processed = 0;
-      do { // inner while loop, handle all the available work while there is work.
+      //do { // inner while loop, handle all the available work while there is work.
         processed = 0;
         for (i = 0 ; i < profiler_queues.size(); i++) {
             if (profiler_queues[i]) {
                 while (profiler_queues[i]->pop(p)) {
-                    processed += process_profile(p, i);
+                    //processed += process_profile(p, i);
+                    process_profile(p, i);
                 }
             }
         }
@@ -656,7 +657,7 @@ namespace apex {
                 }
             //}
         }
-      } while (!done && processed > 0);
+      //} while (!done && processed > 0);
       // are we updating a global profile?
       if (apex_options::use_udp_sink()) {
           udp_client::synchronize_profiles(name_map, address_map);

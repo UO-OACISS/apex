@@ -6,9 +6,10 @@
 #include <sstream>
 #include <climits>
 #include <thread>
+#include <chrono>
 
 #define ITERATIONS 1024*128
-#define INNER_ITERATION 1024*4
+#define INNER_ITERATION 1024*8
 
 class ApexProxy {
 private:
@@ -55,22 +56,21 @@ void* someThread(void* tmp)
 {
   UNUSED(tmp);
   apex::register_thread("threadTest thread");
-  //ApexProxy proxy = ApexProxy(__func__, __FILE__, __LINE__);
-  ApexProxy proxy = ApexProxy((apex_function_address)someThread);
-  //printf("PID of this process: %d\n", getpid());
-#if defined (__APPLE__)
-  printf("The ID of this thread is: %lu\n", (unsigned long)pthread_self());
-#else
-  printf("The ID of this thread is: %u\n", (unsigned int)pthread_self());
-#endif
   int i = 0;
   unsigned long total = 0;
-  for (i = 0 ; i < ITERATIONS ; i++) {
-    apex::profiler * p = apex::start((apex_function_address)foo);
-    total += foo(i);
-    apex::stop(p);
+  { // only time this for loop
+    ApexProxy proxy = ApexProxy((apex_function_address)someThread);
+    for (i = 0 ; i < ITERATIONS ; i++) {
+        apex::profiler * p = apex::start((apex_function_address)foo);
+        total += foo(i);
+        apex::stop(p);
+    }
   }
+#if defined (__APPLE__)
+  printf("%lu computed %lu (timed)\n", (unsigned long)pthread_self(), total);
+#else
   printf("%u computed %lu (timed)\n", (unsigned int)pthread_self(), total);
+#endif
   return NULL;
 }
 
@@ -78,19 +78,19 @@ void* someUntimedThread(void* tmp)
 {
   UNUSED(tmp);
   apex::register_thread("threadTest thread");
-  ApexProxy proxy = ApexProxy((apex_function_address)someUntimedThread);
-  //printf("PID of this process: %d\n", getpid());
-#if defined (__APPLE__)
-  printf("The ID of this thread is: %lu\n", (unsigned long)pthread_self());
-#else
-  printf("The ID of this thread is: %u\n", (unsigned int)pthread_self());
-#endif
   int i = 0;
   unsigned long total = 0;
-  for (i = 0 ; i < ITERATIONS ; i++) {
-	  total += foo(i);
+  { // only time this for loop
+    ApexProxy proxy = ApexProxy((apex_function_address)someUntimedThread);
+    for (i = 0 ; i < ITERATIONS ; i++) {
+	    total += foo(i);
+    }
   }
+#if defined (__APPLE__)
+  printf("%lu computed %lu (untimed)\n", (unsigned long)pthread_self(), total);
+#else
   printf("%u computed %lu (untimed)\n", (unsigned int)pthread_self(), total);
+#endif
   return NULL;
 }
 
@@ -105,6 +105,7 @@ int main(int argc, char **argv)
   ApexProxy proxy = ApexProxy((apex_function_address)main);
   printf("PID of this process: %d\n", getpid());
   unsigned numthreads = std::thread::hardware_concurrency();
+  std::cout << "Expecting " << numthreads << " threads." << std::endl;
   pthread_t thread[numthreads];
   unsigned i;
   for (i = 0 ; i < numthreads ; i++) {
@@ -128,16 +129,24 @@ int main(int argc, char **argv)
   std::cout << ", with timing: " << with->accumulated/with->calls << std::endl;
   std::cout << "Expected calls to 'foo': " << numthreads*ITERATIONS;
   std::cout << ", timed calls to 'foo': " << (int)footime->calls << std::endl;
-  double percall = (with->accumulated - footime->accumulated) / footime->calls;
-  //double milliseconds = percall * 1.0e3;
-  //std::cout << "Overhead per timer: " << milliseconds << " ms" << std::endl;
-  //double microseconds = percall * 1.0e6;
-  //std::cout << "Overhead per timer: " << microseconds << " us" << std::endl;
-  double nanoseconds = percall * 1.0e9;
-  std::cout << "Overhead per timer: " << nanoseconds << " ns" << std::endl;
+  double percall1 = (with->accumulated - without->accumulated) / (numthreads * ITERATIONS);
+  double percent = (with->accumulated / without->accumulated) - 1.0;
+  double foopercall = footime->accumulated / footime->calls;
+  //double percall2 = (with->accumulated - footime->accumulated) / (numthreads * ITERATIONS);
+  int nanoseconds1 = percall1 * 1.0e9;
+  int nanofoo = foopercall * 1.0e9;
+  //int nanoseconds2 = percall2 * 1.0e9;
+  std::cout << "Average overhead per timer: ";
+  std::cout << nanoseconds1;
+  std::cout << " ns (" << percent*100.0 << "%), per call time in foo: " << nanofoo << " ns " << std::endl;
+  //std::cout << "Overhead (2) per timer: ";
+  //std::cout << nanoseconds2;
+  //std::cout << " ns" << std::endl;
   if (mhz) {
-    double cycles = percall * mhz->accumulated * 1.0e6;
-    std::cout << "Overhead per timer: " << cycles << " cycles" << std::endl;
+    double cycles1 = percall1 * mhz->accumulated * 1.0e6;
+    //double cycles2 = percall2 * mhz->accumulated * 1.0e6;
+    std::cout << "Overhead (1) per timer: " << cycles1 << " cycles" << std::endl;
+    //std::cout << "Overhead (2) per timer: " << cycles2 << " cycles" << std::endl;
   }
   return(0);
 }
