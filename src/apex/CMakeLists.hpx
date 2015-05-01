@@ -93,8 +93,18 @@ if(APEX_HAVE_PROC)
     set(PROC_HEADER proc_read.h)
 endif()
 
+include(GitExternal)
+git_external(rapidjson
+    https://github.com/miloyip/rapidjson.git
+    master
+    VERBOSE)
+include_directories("${PROJECT_BINARY_DIR}/apex/src/apex/rapidjson/include")
+include_directories("${PROJECT_SOURCE_DIR}/apex/src/apex/rapidjson/include")
+
 set(apex_headers
     apex.h
+    apex.hpp
+    apex_api.hpp
     apex_types.h
     apex_export.h
     apex_api.hpp
@@ -103,11 +113,13 @@ set(apex_headers
     event_listener.hpp
     handler.hpp
     policy_handler.hpp
+    profile.hpp
     profiler.hpp
     profiler_listener.hpp
     semaphore.hpp
     thread_instance.hpp
     apex_policies.h
+    udp_client.hpp
     ${PROC_HEADER})
 
 
@@ -121,6 +133,7 @@ set(apex_sources
     policy_handler.cpp
     profiler_listener.cpp
     apex_policies.cpp
+    udp_client.cpp
     ${PROC_SOURCE})
 
 
@@ -142,6 +155,21 @@ find_package(RCR)
 if(HAVE_RCR)
   hpx_add_config_define(HPX_HAVE_RCR 1)
 endif()
+
+
+if(APEX_WITH_MSR)
+    find_package(MSR)
+    if(NOT MSR_FOUND)
+        hpx_error("apex" "Requested APEX_WITH_MSR but could not find MSR. Please specify MSR_ROOT.")
+    endif()
+    hpx_info("apex" "Building APEX with libmsr support.")
+    include_directories(${MSR_INCLUDE_DIR})
+    set(LIBS ${LIBS} ${MSR_LIBRARIES})
+    set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${MSR_LIBRARY_DIR})
+    add_definitions(-DAPEX_HAVE_MSR)
+    hpx_libraries(${MSR_LIBRARIES})
+endif()
+
 
 if(TAU_FOUND)
   hpx_info("apex" "Building APEX with TAU support")

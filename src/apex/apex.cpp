@@ -15,6 +15,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <string>
+#include <boost/algorithm/string/predicate.hpp>
 //#include <cxxabi.h> // this is for demangling strings.
 
 #include "concurrency_handler.hpp"
@@ -32,6 +33,10 @@
 #include "profiler_listener.hpp"
 #ifdef APEX_DEBUG
 #include "apex_error_handling.hpp"
+#endif
+
+#ifdef APEX_HAVE_MSR
+#include "msr_core.h"
 #endif
 
 APEX_NATIVE_TLS bool _registered = false;
@@ -110,6 +115,9 @@ void apex::_initialize()
 #ifdef APEX_HAVE_RCR
     uint64_t waitTime = 1000000000L; // in nanoseconds, for nanosleep
     energyDaemonInit();
+#endif
+#ifdef APEX_HAVE_MSR
+    init_msr();
 #endif
     // this is always the first listener!
     listeners.push_back(new profiler_listener());
@@ -205,7 +213,6 @@ void init(const char * thread_name)
     startup_event_data event_data(argc, argv);
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_startup(event_data);
         }
     }
 #if HAVE_TAU
@@ -262,6 +269,9 @@ profiler* start(const std::string &timer_name)
 {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return NULL; // protect against calls after finalization
+    if (boost::starts_with(timer_name, "apex_internal")) {
+        return NULL; // don't process our own events
+    }
     if (_notify_listeners) {
         string * tmp = new string(timer_name);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -316,7 +326,7 @@ void stop(profiler* the_profiler)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     profiler * p;
-    if (the_profiler == APEX_NULL_PROFILER_HANDLE) {
+    if (the_profiler == nullptr) {
         p = thread_instance::instance().current_timer;
     } else {
         p = (profiler*)the_profiler;
@@ -336,7 +346,7 @@ void yield(profiler* the_profiler)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     profiler * p;
-    if (the_profiler == APEX_NULL_PROFILER_HANDLE) {
+    if (the_profiler == nullptr) {
         p = thread_instance::instance().current_timer;
     } else {
         p = (profiler*)the_profiler;
@@ -495,6 +505,9 @@ void finalize()
 {
 #if APEX_HAVE_PROC
     ProcData::stop_reading();
+#endif
+#if APEX_HAVE_MSR
+    finalize_msr();
 #endif
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
