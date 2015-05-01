@@ -76,7 +76,7 @@ int main(int argc, char **argv)
   apex_set_node_id(0);
 
   apex_setup_timer_throttling(APEX_FUNCTION_ADDRESS, &foo, APEX_MINIMIZE_ACCUMULATED,
-          APEX_ACTIVE_HARMONY, 250000);
+          APEX_ACTIVE_HARMONY, 500000);
 
   int original_cap = apex_get_thread_cap();
 

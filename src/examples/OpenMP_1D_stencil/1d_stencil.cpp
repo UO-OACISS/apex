@@ -1,16 +1,16 @@
 #include <iostream>
 #include <array>
 #include <algorithm>
-#include "apex.hpp"
+#include "apex_api.hpp"
 #if defined (_OPENMP)
 #include "omp.h"
 #else 
 #define omp_get_max_threads() 1
 #endif
 
-#define NUM_CELLS 1000000
+#define NUM_CELLS 800000
 #define BLOCK_SIZE NUM_CELLS/100
-#define NUM_ITERATIONS 1000
+#define NUM_ITERATIONS 2000
 #define UPDATE_INTERVAL NUM_ITERATIONS/100
 #define DIVIDE_METHOD 1
 #define MULTIPLY_METHOD 2
@@ -20,7 +20,7 @@ long block_size = BLOCK_SIZE;
 long active_threads = omp_get_max_threads();
 long num_iterations = NUM_ITERATIONS;
 long update_interval = UPDATE_INTERVAL;
-long method = 1;
+long method = MULTIPLY_METHOD;
 const std::string method_names[] = {"divide","multiply"};
 apex_event_type my_custom_event = APEX_CUSTOM_EVENT;
 double accumulated_aggregate;
@@ -122,13 +122,13 @@ inline void solve_cell_b(std::vector<double> & in_array, std::vector<double> & o
  */
 inline void solve_a(std::vector<double> & in_array, std::vector<double> & out_array,
                 long start_index, long end_index) {
-    apex::profiler* p = apex::start((apex_function_address)solve_a);
+    //apex::profiler* p = apex::start((apex_function_address)solve_a);
     long index = 0;
     end_index = std::min(end_index, num_cells);
     for ( index = start_index ; index < end_index ; index++) {
         solve_cell_a(in_array, out_array, index);
     }
-    apex::stop(p);
+    //apex::stop(p);
 }
 
 /**
@@ -136,13 +136,13 @@ inline void solve_a(std::vector<double> & in_array, std::vector<double> & out_ar
  */
 inline void solve_b(std::vector<double> & in_array, std::vector<double> & out_array,
                 long start_index, long end_index) {
-    apex::profiler* p = apex::start((apex_function_address)solve_b);
+    //apex::profiler* p = apex::start((apex_function_address)solve_b);
     long index = 0;
     end_index = std::min(end_index, num_cells);
     for ( index = start_index ; index < end_index ; index++) {
         solve_cell_b(in_array, out_array, index);
     }
-    apex::stop(p);
+    //apex::stop(p);
 }
 
 /**
@@ -201,7 +201,7 @@ int main (int argc, char ** argv) {
     apex::set_node_id(0);
 
 #ifdef APEX_HAVE_ACTIVEHARMONY
-    int num_inputs = 3;
+    int num_inputs = 2; // 2 for threads, block size; 3 for threads, block size, method
     long * inputs[3] = {0L,0L,0L};
     long mins[3] = {1,1,DIVIDE_METHOD};    // all minimums are 1
     long maxs[3] = {0,0,0};    // we'll set these later
@@ -218,6 +218,8 @@ int main (int argc, char ** argv) {
     apex::setup_general_tuning((apex_function_address)solve_iteration,
                     APEX_MINIMIZE_ACCUMULATED, my_custom_event, num_inputs,
                     inputs, mins, maxs, steps);
+    long original_block_size = block_size;
+    long original_active_threads = active_threads;
 #endif
     std::cout <<"Running 1D stencil test..." << std::endl;
 
@@ -249,5 +251,12 @@ int main (int argc, char ** argv) {
     delete(prev);
     delete(next);
     std::cout << "done." << std::endl;
+#ifdef APEX_HAVE_ACTIVEHARMONY
+    if (original_active_threads != active_threads || original_block_size != block_size) {
+        std::cout << "Test passed." << std::endl;
+    }
+#else
+    std::cout << "Test passed." << std::endl;
+#endif
     apex::finalize();
 }

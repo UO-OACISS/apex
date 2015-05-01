@@ -23,6 +23,12 @@ else
 	bfd_config="-DUSE_BINUTILS=FALSE"
 fi
 
+if [ ${JEMALLOC_ROOT+x} ]; then
+	jemalloc_config="-DJEMALLOC_ROOT=$JEMALLOC_ROOT"
+else
+	jemalloc_config=""
+fi
+
 if [ ${GPERFTOOLS_ROOT+x} ]; then
 	gperftools_config="-DGPERFTOOLS_ROOT=$GPERFTOOLS_ROOT"
 else
@@ -64,12 +70,17 @@ dir="build_$datestamp"
 mkdir $dir
 cd $dir
 
+if [[ $cmake_build_type =~ "Debug" ]] ; then
+    export CTEST_OUTPUT_ON_FAILURE=1
+fi
+
 cmd="cmake \
 $cmake_use_codeblocks \
 $boost_config \
 $tau_config \
 $rcr_config \
 $bfd_config \
+$jemalloc_config \
 $gperftools_config \
 $papi_config \
 $ah_config \

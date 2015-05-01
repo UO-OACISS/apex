@@ -27,12 +27,13 @@ public:
 
 class timer_event_data : public event_data {
 public:
+  bool have_name;
   std::string * timer_name;
   apex_function_address function_address;
-  profiler *my_profiler;
-  bool have_name;
-  timer_event_data(apex_event_type eventType, int thread_id, std::string timer_name);
-  timer_event_data(apex_event_type eventType, int thread_id, apex_function_address function_address);
+  profiler * my_profiler;
+  timer_event_data(const std::string &timer_name);
+  timer_event_data(apex_function_address function_address);
+  timer_event_data(profiler * the_profiler);
   ~timer_event_data();
 };
 
@@ -46,6 +47,7 @@ class sample_value_event_data : public event_data {
 public:
   std::string * counter_name;
   double counter_value;
+  bool is_counter;
   sample_value_event_data(int thread_id, std::string counter_name, double counter_value);
   ~sample_value_event_data();
 };
@@ -93,16 +95,14 @@ public:
   virtual void on_shutdown(shutdown_event_data &data) = 0;
   virtual void on_new_node(node_event_data &data) = 0;
   virtual void on_new_thread(new_thread_event_data &data) = 0;
-  virtual void on_start(apex_function_address function_address, std::string *timer_name) = 0;
-  virtual void on_stop(profiler *p) = 0;
-  virtual void on_yield(profiler *p) = 0;
-  virtual void on_resume(profiler *p) = 0;
+  virtual void on_start(apex_function_address function_address) = 0;
+  virtual void on_start(std::string *timer_name) = 0;
+  virtual void on_stop(profiler * p) = 0;
+  virtual void on_yield(profiler * p) = 0;
+  virtual void on_resume(profiler * p) = 0;
   virtual void on_sample_value(sample_value_event_data &data) = 0;
   virtual void on_periodic(periodic_event_data &data) = 0;
   virtual void on_custom_event(custom_event_data &data) = 0;
-  // this is a stub implementation, so tell the compiler the arguments are unused.
-  virtual void reset(apex_function_address function_address, std::string * timer_name) 
-    {APEX_UNUSED(function_address); APEX_UNUSED(timer_name);};
 };
 
 }

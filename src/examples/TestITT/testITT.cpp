@@ -1,7 +1,7 @@
 #include "ittnotify.h"
 #include "legacy/ittnotify.h"
 #include <unistd.h>
-#include "apex.hpp"
+#include "apex_api.hpp"
 #include "stdio.h"
 
 int main (int argc, char** argv) {

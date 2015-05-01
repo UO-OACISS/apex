@@ -57,18 +57,21 @@ void tau_listener::on_new_thread(new_thread_event_data &data) {
   return;
 }
 
-void tau_listener::on_start(apex_function_address function_address, string *timer_name) {
+void tau_listener::on_start(apex_function_address function_address) {
   if (!_terminate) {
-      if (timer_name != NULL) {
-      	TAU_START(timer_name->c_str());
-      } else {
-      	TAU_START(thread_instance::instance().map_addr_to_name(function_address).c_str());
-      }
+    TAU_START(thread_instance::instance().map_addr_to_name(function_address).c_str());
   }
   return;
 }
 
-void tau_listener::on_stop(profiler *p) {
+void tau_listener::on_start(std::string * timer_name) {
+  if (!_terminate) {
+    TAU_START(timer_name->c_str());
+  }
+  return;
+}
+
+void tau_listener::on_stop(profiler * p) {
   static string empty("");
   if (!_terminate) {
       if (p->have_name) {
@@ -86,25 +89,20 @@ void tau_listener::on_stop(profiler *p) {
       	  TAU_STOP(thread_instance::instance().map_addr_to_name(p->action_address).c_str());
 	    }
       }
-      // let the profiler_listener know we are done with this profiler
-      p->safe_to_delete = true;
   }
   return;
 }
 
-void tau_listener::on_yield(profiler *p) {
+void tau_listener::on_yield(profiler * p) {
     on_stop(p);
 }
 
-void tau_listener::on_resume(profiler *p) {
-  if (!_terminate) {
+void tau_listener::on_resume(profiler * p) {
     if (p->have_name) {
-      TAU_START(p->timer_name->c_str());
+        on_start(p->timer_name);
     } else {
-      TAU_START(thread_instance::instance().map_addr_to_name(p->action_address).c_str());
+        on_start(p->action_address);
     }
-  }
-  return;
 }
 
 void tau_listener::on_sample_value(sample_value_event_data &data) {

@@ -18,7 +18,7 @@
 #include <pthread.h>
 #endif /* PTHREADS */
 
-#include "apex.hpp"
+#include "apex_api.hpp"
 
 #ifndef MATRIX_SIZE
 #define MATRIX_SIZE 512

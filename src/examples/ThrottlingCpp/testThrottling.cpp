@@ -4,7 +4,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "apex.hpp"
+#include "apex_api.hpp"
 #include "apex_policies.h"
 
 #define NUM_THREADS 48
