@@ -11,8 +11,14 @@ if (JEmalloc_INCLUDE_DIR)
   set(JEmalloc_FIND_QUIETLY TRUE)
 endif ()
 
-find_path(JEmalloc_INCLUDE_DIR google/heap-checker.h
-  ${GPERFTOOLS_ROOT}/include
+if(NOT DEFINED $JEMALLOC_ROOT)
+    if(DEFINED ENV{JEMALLOC_ROOT})
+        set(JEMALLOC_ROOT $ENV{JEMALLOC_ROOT})
+    endif()
+endif()
+
+find_path(JEmalloc_INCLUDE_DIR jemalloc/jemalloc.h
+  ${JEMALLOC_ROOT}/include
   /opt/local/include
   /usr/local/include
   /usr/include
@@ -25,7 +31,7 @@ endif()
 set(JEmalloc_NAME jemalloc)
 find_library(JEmalloc_LIBRARY
   NAME ${JEmalloc_NAME}
-  PATHS ${GPERFTOOLS_ROOT}/lib /usr/lib /usr/local/lib /opt/local/lib ${LD_LIBRARY_PATH_STR}
+  PATHS ${JEMALLOC_ROOT}/lib /usr/lib /usr/local/lib /opt/local/lib ${LD_LIBRARY_PATH_STR}
 )
 
 if (JEmalloc_INCLUDE_DIR AND JEmalloc_LIBRARY)

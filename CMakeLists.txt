@@ -385,7 +385,7 @@ set_tests_properties(TestCountCalls PROPERTIES PASS_REGULAR_EXPRESSION "Test pas
 
 # Run the test program which tests the overhead in the threads interface
 add_test (TestOverhead src/examples/Overhead/testOverhead)  
-set_tests_properties(TestOverhead PROPERTIES PASS_REGULAR_EXPRESSION "The ID of this thread is:")
+set_tests_properties(TestOverhead PROPERTIES PASS_REGULAR_EXPRESSION "Average overhead per timer")
 
 # TEst the policy engine support
 add_test (TestPolicyEngineExample src/examples/PolicyEngineExample/testPolicyEngine)  
