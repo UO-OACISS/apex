@@ -38,7 +38,6 @@ private:
 #ifdef APEX_HAVE_HPX3
   static void schedule_process_profiles(void);
 #endif
-  static void process_profiles(void);
   static unsigned int process_profile(profiler * p, unsigned int tid);
   static int node_id;
   static boost::mutex _mtx;
@@ -83,6 +82,7 @@ public:
   static profile * get_profile(apex_function_address address);
   static profile * get_profile(const std::string &timer_name);
   static std::vector<std::string> get_available_profiles();
+  static void process_profiles(void);
 };
 
 }

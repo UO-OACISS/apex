@@ -80,7 +80,7 @@ namespace apex {
   /* This is the array of profiler queues, one for each worker thread. It
    * is initialized to a length of 8, there is code in on_new_thread() to
    * increment it if necessary.  */
-  std::vector<boost::lockfree::spsc_queue<profiler*>* > profiler_queues(8);
+  std::vector<boost::lockfree::spsc_queue<profiler*>* > profiler_queues(4);
 
 #if APEX_HAVE_PAPI
   std::vector<int> event_sets(8);
