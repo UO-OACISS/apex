@@ -93,6 +93,14 @@ if(APEX_HAVE_PROC)
     set(PROC_HEADER proc_read.h)
 endif()
 
+include(GitExternal)
+git_external(rapidjson
+    https://github.com/miloyip/rapidjson.git
+    master
+    VERBOSE)
+include_directories("${PROJECT_BINARY_DIR}/apex/src/apex/rapidjson/include")
+include_directories("${PROJECT_SOURCE_DIR}/apex/src/apex/rapidjson/include")
+
 set(apex_headers
     apex.h
     apex.hpp
@@ -111,6 +119,7 @@ set(apex_headers
     semaphore.hpp
     thread_instance.hpp
     apex_policies.h
+    udp_client.hpp
     ${PROC_HEADER})
 
 
@@ -124,6 +133,7 @@ set(apex_sources
     policy_handler.cpp
     profiler_listener.cpp
     apex_policies.cpp
+    udp_client.cpp
     ${PROC_SOURCE})
 
 
