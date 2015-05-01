@@ -45,7 +45,6 @@ private:
   void _common_start(std::string * timer_name, bool is_resume); // internal, inline function
   void _common_stop(profiler * p, bool is_yield); // internal, inline function
   static void push_profiler(int my_tid, profiler * p);
-  udp_client client;
 public:
   profiler_listener (void)  : _terminate(false) {
 #ifdef USE_UDP
