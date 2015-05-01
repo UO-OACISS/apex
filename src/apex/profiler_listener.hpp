@@ -21,6 +21,7 @@
 #include "profile.hpp"
 #include "udp_client.hpp"
 
+
 namespace apex {
 
 class profiler_listener : public event_listener {
@@ -32,13 +33,17 @@ private:
   static void finalize_profiles(void);
   static void write_profile(int tid);
   static void delete_profiles(void);
-  static void process_profiles(void);
+#ifdef APEX_HAVE_HPX3
+  static void schedule_process_profiles(void);
+#endif
   static unsigned int process_profile(profiler * p, unsigned int tid);
   static int node_id;
   static boost::mutex _mtx;
   void _common_start(apex_function_address function_address, bool is_resume); // internal, inline function
   void _common_start(std::string * timer_name, bool is_resume); // internal, inline function
   void _common_stop(profiler * p, bool is_yield); // internal, inline function
+  static void push_profiler(int my_tid, profiler * p);
+  udp_client client;
 public:
   profiler_listener (void)  : _terminate(false) {
       if (apex_options::use_udp_sink()) {
@@ -69,6 +74,7 @@ public:
   static profile * get_profile(apex_function_address address);
   static profile * get_profile(const std::string &timer_name);
   static std::vector<std::string> get_available_profiles();
+  static void process_profiles(void);
 };
 
 }

@@ -15,6 +15,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <string>
+#include <boost/algorithm/string/predicate.hpp>
 //#include <cxxabi.h> // this is for demangling strings.
 
 #include "concurrency_handler.hpp"
@@ -101,7 +102,6 @@ static void init_hpx_runtime_ptr(void) {
  */
 void apex::_initialize()
 {
-    APEX_TRACER
 #ifdef APEX_DEBUG
     apex_register_signal_handler();
     //apex_test_signal_handler();
@@ -204,7 +204,6 @@ void init(const char * thread_name)
     if (_registered || _initialized) return; // protect against multiple initializations
     _registered = true;
     _initialized = true;
-    std::cerr << "Initializing APEX(thread_name)" << std::endl;
     int argc = 1;
     const char *dummy = "APEX Application";
     char* argv[1];
@@ -214,7 +213,6 @@ void init(const char * thread_name)
     startup_event_data event_data(argc, argv);
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_startup(event_data);
         }
     }
 #if HAVE_TAU
@@ -234,7 +232,6 @@ void init(int argc, char** argv, const char * thread_name)
     if (_registered || _initialized) return; // protect against multiple initializations
     _registered = true;
     _initialized = true;
-    std::cerr << "Initializing APEX(argc,argv,thread_name)" << std::endl;
     apex* instance = apex::instance(argc, argv); // get/create the Apex static instance
     if (!instance) return; // protect against calls after finalization
     startup_event_data event_data(argc, argv);
@@ -272,6 +269,9 @@ profiler* start(const std::string &timer_name)
 {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return NULL; // protect against calls after finalization
+    if (boost::starts_with(timer_name, "apex_internal")) {
+        return NULL; // don't process our own events
+    }
     if (_notify_listeners) {
         string * tmp = new string(timer_name);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -326,7 +326,7 @@ void stop(profiler* the_profiler)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     profiler * p;
-    if (the_profiler == APEX_NULL_PROFILER_HANDLE) {
+    if (the_profiler == nullptr) {
         p = thread_instance::instance().current_timer;
     } else {
         p = (profiler*)the_profiler;
@@ -346,7 +346,7 @@ void yield(profiler* the_profiler)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     profiler * p;
-    if (the_profiler == APEX_NULL_PROFILER_HANDLE) {
+    if (the_profiler == nullptr) {
         p = thread_instance::instance().current_timer;
     } else {
         p = (profiler*)the_profiler;
@@ -600,7 +600,6 @@ apex_profile* get_profile(apex_function_address action_address) {
 }
 
 apex_profile* get_profile(const std::string &timer_name) {
-    printf("get_profile called for %s\n", timer_name.c_str());
     profile * tmp = profiler_listener::get_profile(timer_name);
     if (tmp != NULL)
         return tmp->get_profile();

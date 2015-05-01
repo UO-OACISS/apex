@@ -22,6 +22,7 @@
 #include <boost/thread/thread.hpp>
 #include <boost/lockfree/spsc_queue.hpp>
 #include <boost/atomic.hpp>
+#include <atomic>
 #include <boost/range/adaptor/map.hpp>
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/assign.hpp>
@@ -51,6 +52,9 @@
 
 #ifdef APEX_HAVE_HPX3
 #include <hpx/include/performance_counters.hpp>
+#include <hpx/include/actions.hpp>
+#include <hpx/include/util.hpp>
+#include <hpx/lcos/local/composable_guard.hpp>
 #endif
 
 //#define MAX_QUEUE_SIZE 1024*1024
@@ -76,23 +80,32 @@ namespace apex {
   /* This is the array of profiler queues, one for each worker thread. It
    * is initialized to a length of 8, there is code in on_new_thread() to
    * increment it if necessary.  */
-  std::vector<boost::lockfree::spsc_queue<profiler*>* > profiler_queues(8);
+  std::vector<boost::lockfree::spsc_queue<profiler*>* > profiler_queues(4);
 
 #if APEX_HAVE_PAPI
   std::vector<int> event_sets(8);
 #endif
 
+#ifndef APEX_HAVE_HPX3
   /* This is the thread that will read from the queues of profiler
    * objects, and update the profiles. */
   boost::thread * consumer_thread;
+#endif
 
   /* Flag indicating that we are done inserting into the queues, so the
    * consumer knows when to exit */
   boost::atomic<bool> done (false);
 
+#ifndef APEX_HAVE_HPX3
   /* how the workers signal the consumer that there are new profiler objects
    * on the queue to consume */
   semaphore queue_signal;
+#endif
+
+#ifdef APEX_HAVE_HPX3
+  /* Flag indicating whether a consumer task is currently running */
+  std::atomic_flag consumer_task_running = ATOMIC_FLAG_INIT;
+#endif
 
   /* The profiles, mapped by name. Profiles will be in this map or the other
    * one, not both. It depends whether the timers are identified by name
@@ -149,6 +162,7 @@ namespace apex {
     return nullptr;
   }
 
+  /* Return a vector of all name-based profiles */
   std::vector<std::string> profiler_listener::get_available_profiles() {
     std::vector<std::string> names;
     boost::copy(name_map | boost::adaptors::map_keys, std::back_inserter(names));
@@ -218,10 +232,11 @@ namespace apex {
         theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_resume, p->is_counter ? APEX_COUNTER : APEX_TIMER);
         name_map[*(p->timer_name)] = theprofile;
 #ifdef APEX_HAVE_HPX3
+#ifdef APEX_REGISTER_HPX3_COUNTERS
         if(!done) {
             if(get_hpx_runtime_ptr() != nullptr) {
                 std::string timer_name(*(p->timer_name));
-                // Don't register timers containing "/"
+                //Don't register timers containing "/"
                 if(timer_name.find("/") == std::string::npos) {
                     hpx::performance_counters::install_counter_type(
                     std::string("/apex/") + timer_name,
@@ -237,6 +252,7 @@ namespace apex {
                 std::cerr << "HPX runtime not initialized yet." << std::endl;
             }
         }
+#endif
 #endif
       }
       if (apex_options::use_profile_output() > 1) {
@@ -404,7 +420,7 @@ namespace apex {
       cout << p->get_stddev() << endl;
     }
     map<string, profile*>::const_iterator it2;
-    // iterate over the profiles in the address map
+    // iterate over the profiles in the name map
     for(it2 = name_map.begin(); it2 != name_map.end(); it2++) {
       profile * p = it2->second;
       string action_name = it2->first;
@@ -435,6 +451,9 @@ namespace apex {
         shorter.resize(30, '.');
       }
       cout << "\"" << shorter << "\", " ;
+      if(p->get_calls() < 1) {
+        p->get_profile()->calls = 1;
+      }
       cout << p->get_calls() << ", " ;
       cout << p->get_minimum() << ", " ;
       cout << p->get_mean() << ", " ;
@@ -591,6 +610,7 @@ namespace apex {
     myfile.close();
   }
 
+
   /* This is the main function for the consumer thread.
    * It will wait at a semaphore for pending work. When there is
    * work on one or more queues, it will iterate over the queues
@@ -608,24 +628,14 @@ namespace apex {
       TAU_START("profiler_listener::process_profiles");
     }
 #endif
-#ifdef APEX_HAVE_HPX3
-    static bool registered = false;
-    if(!registered) {
-      while(!done && get_hpx_runtime_ptr() == nullptr) {
-        // wait for hpx to start
-      };
-      if(get_hpx_runtime_ptr() != nullptr) {
-        get_hpx_runtime_ptr()->register_thread("apex_profiler_listener");
-        registered = true;
-      }
-    }
-#endif
 
     profiler * p;
     unsigned int i;
     // Main loop. Stay in this loop unless "done".
+#ifndef APEX_HAVE_HPX3
     while (!done) {
       queue_signal.wait();
+#endif
 #ifdef APEX_HAVE_TAU
       /*
     if (apex_options::use_tau()) {
@@ -669,6 +679,7 @@ namespace apex {
       }
       */
 #endif
+#ifndef APEX_HAVE_HPX3
     }
 
     // We might be done, but check to make sure the queues are empty
@@ -709,6 +720,10 @@ namespace apex {
         write_profile((int)i);
       }
     }
+#endif
+#ifdef APEX_HAVE_HPX3
+    consumer_task_running.clear(memory_order_release);
+#endif
 
 #ifdef APEX_HAVE_TAU
     if (apex_options::use_tau()) {
@@ -717,6 +732,28 @@ namespace apex {
 #endif
   }
 
+#ifdef APEX_HAVE_HPX3
+} // end namespace apex (HPX_PLAIN_ACTION needs to be in global namespace)
+
+HPX_PLAIN_ACTION(profiler_listener::process_profiles, apex_internal_process_profiles_action);
+HPX_ACTION_HAS_CRITICAL_PRIORITY(apex_internal_process_profiles_action);
+
+namespace apex {
+
+void profiler_listener::schedule_process_profiles() {
+    if(get_hpx_runtime_ptr() == nullptr) return;
+    if(!consumer_task_running.test_and_set(memory_order_acq_rel)) {
+        apex_internal_process_profiles_action act;
+        try {
+            hpx::apply(act, hpx::find_here());
+        } catch(...) {
+            // During shutdown, we can't schedule a new task,
+            // so we process profiles ourselves.
+            profiler_listener::process_profiles();
+        }
+    } 
+}
+#endif
 
 #if APEX_HAVE_PAPI
 APEX_NATIVE_TLS int EventSet = PAPI_NULL;
@@ -782,8 +819,10 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         thread_address_maps[0] = new map<apex_function_address, profile*>();
         thread_name_maps[0] = new map<string, profile*>();
       }
+#ifndef APEX_HAVE_HPX3
       // Start the consumer thread, to process profiler objects.
       consumer_thread = new boost::thread(process_profiles);
+#endif
 
 #if APEX_HAVE_PAPI
       initialize_PAPI(true);
@@ -835,9 +874,36 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       node_id = data.node_id;
       _terminate = true;
       done = true;
-      sleep(1);
+      //sleep(1);
+#ifndef APEX_HAVE_HPX3
       queue_signal.post();
       consumer_thread->join();
+#endif
+#ifdef APEX_HAVE_HPX3
+    // stop the main timer, and process that profile
+    main_timer->stop();
+    process_profile(main_timer, my_tid);
+
+    // output to screen?
+    if (apex_options::use_screen_output() && node_id == 0)
+    {
+      finalize_profiles();
+    }
+
+    // output to 1 TAU profile per process?
+    if (apex_options::use_profile_output() == 1)
+    {
+      write_profile(-1);
+    }
+    // output to TAU profiles, one per thread per process?
+    else if (apex_options::use_profile_output() > 1)
+    {
+      // the number of thread_name_maps tells us how many threads there are to process
+      for (unsigned int i = 0 ; i < thread_name_maps.size(); i++) {
+        write_profile((int)i);
+      }
+    }
+#endif
 #if APEX_HAVE_PAPI
       int rc = 0;
       int i = 0;
@@ -981,7 +1047,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
     }
   }
 
-  inline void push_profiler(int my_tid, profiler *p) {
+  inline void profiler_listener::push_profiler(int my_tid, profiler *p) {
       assert(profiler_queues[my_tid]);
       bool worked = profiler_queues[my_tid]->push(p);
       if (!worked) {
@@ -1000,7 +1066,12 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
               cout << "One or more frequently-called, lightweight functions is being timed." << endl;
           }
       }
+#ifndef APEX_HAVE_HPX3
       queue_signal.post();
+#endif
+#ifdef APEX_HAVE_HPX3
+      schedule_process_profiles();
+#endif
   }
 
   /* Stop the timer, if applicable, and queue the profiler object */
