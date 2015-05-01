@@ -657,10 +657,12 @@ namespace apex {
             //}
         }
       } while (!done && processed > 0);
+#ifdef USE_UDP
       // are we updating a global profile?
       if (apex_options::use_udp_sink()) {
           udp_client::synchronize_profiles(name_map, address_map);
       }
+#endif
 #ifdef APEX_HAVE_TAU
       /*
       if (apex_options::use_tau()) {
@@ -683,11 +685,13 @@ namespace apex {
     main_timer->stop();
     process_profile(main_timer, my_tid);
 
+#ifdef USE_UDP
     // are we updating a global profile?
     if (apex_options::use_udp_sink()) {
         udp_client::synchronize_profiles(name_map, address_map);
         udp_client::stop_client();
     }
+#endif
 
     // output to screen?
     if (apex_options::use_screen_output() && node_id == 0)

@@ -17,3 +17,6 @@ unset APEX_SCREEN_OUTPUT
 export APEX_UDP_SINK=1
 @CMAKE_CURRENT_BINARY_DIR@/testBeacon
 
+# kill the server, just in case
+
+killall udp_server
