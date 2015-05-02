@@ -243,6 +243,19 @@ else()
 endif()
 
 ################################################################################
+# LM Sensors configuration
+################################################################################
+
+if(USE_LM_SENSORS)
+    find_package(LMSensors)
+    if (LM_SENSORS_FOUND)
+        include_directories(${LM_SENSORS_INCLUDE_DIRS})
+        set(LIBS ${LIBS} ${LM_SENSORS_LIBRARIES})
+        set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${LM_SENSORS_LIBRARY_DIR})
+    endif()
+endif()
+
+################################################################################
 # ActiveHarmony configuration
 ################################################################################
 

@@ -28,7 +28,11 @@ if (USE_UDP_CLIENT)
 SET(UDP_SOURCE udp_client.cpp)
 endif(USE_UDP_CLIENT)
 
-SET(all_SOURCE apex.cpp thread_instance.cpp event_listener.cpp handler.cpp concurrency_handler.cpp policy_handler.cpp ${tau_SOURCE} profiler_listener.cpp ${bfd_SOURCE} apex_options.cpp apex_policies.cpp ${PROC_SOURCE} ${OMPT_SOURCE} ${UDP_SOURCE})
+if (LM_SENSORS_FOUND)
+SET(SENSOR_SOURCE sensor_data.cpp)
+endif(LM_SENSORS_FOUND)
+
+SET(all_SOURCE apex.cpp thread_instance.cpp event_listener.cpp handler.cpp concurrency_handler.cpp policy_handler.cpp ${tau_SOURCE} profiler_listener.cpp ${bfd_SOURCE} apex_options.cpp apex_policies.cpp ${PROC_SOURCE} ${OMPT_SOURCE} ${UDP_SOURCE} ${SENSOR_SOURCE})
 
 #add_library (apexStatic STATIC ${all_SOURCE})
 #add_library (apexShared SHARED ${all_SOURCE})
