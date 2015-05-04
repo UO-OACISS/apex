@@ -91,8 +91,10 @@ int apex::get_node_id()
 #ifdef APEX_HAVE_HPX3
 static void init_hpx_runtime_ptr(void) {
     apex * instance = apex::instance();
-    hpx::runtime * runtime = hpx::get_runtime_ptr();
-    instance->set_hpx_runtime(runtime);
+    if(instance != nullptr) {
+        hpx::runtime * runtime = hpx::get_runtime_ptr();
+        instance->set_hpx_runtime(runtime);
+    }
 }
 #endif
 
@@ -519,14 +521,14 @@ void set_interrupt_interval(int seconds)
 
 void finalize()
 {
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance) return; // protect against calls after finalization
 #if APEX_HAVE_PROC
     ProcData::stop_reading();
 #endif
 #if APEX_HAVE_MSR
     finalize_msr();
 #endif
-    apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return; // protect against calls after finalization
     if (!_finalized)
     {
         _finalized = true;
