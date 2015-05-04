@@ -50,8 +50,8 @@ namespace apex
 // Global static pointer used to ensure a single instance of the class.
 apex* apex::m_pInstance = NULL;
 
-static bool _notify_listeners = true;
-static bool _finalized = false;
+boost::atomic<bool> _notify_listeners(true);
+boost::atomic<bool> _finalized(false);
 
 #if APEX_HAVE_PROC
     boost::thread * proc_reader_thread;
@@ -292,6 +292,33 @@ profiler* start(apex_function_address function_address) {
     return thread_instance::instance().current_timer;
 }
 
+profiler* resume(const std::string &timer_name)
+{
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance) return NULL; // protect against calls after finalization
+    if (boost::starts_with(timer_name, "apex_internal")) {
+        return NULL; // don't process our own events
+    }
+    if (_notify_listeners) {
+        string * tmp = new string(timer_name);
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            instance->listeners[i]->on_resume(tmp);
+        }
+    }
+    return thread_instance::instance().current_timer;
+}
+
+profiler* resume(apex_function_address function_address) {
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance) return NULL; // protect against calls after finalization
+    if (_notify_listeners) {
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            instance->listeners[i]->on_resume(function_address);
+        }
+    }
+    return thread_instance::instance().current_timer;
+}
+
 void reset(const std::string &timer_name) {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
@@ -308,17 +335,6 @@ void set_state(apex_thread_state state) {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     instance->set_state(thread_instance::get_id(), state);
-}
-
-void resume(profiler* the_profiler) {
-    apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return; // protect against calls after finalization
-    thread_instance::instance().current_timer = the_profiler;
-    if (_notify_listeners) {
-        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_resume(the_profiler);
-        }
-    }
 }
 
 void stop(profiler* the_profiler)
@@ -567,6 +583,8 @@ apex_policy_handle* register_policy(const apex_event_type when,
     }
     apex_policy_handle * handle = new apex_policy_handle();
     handle->id = id;
+    handle->event_type = when;
+    handle->period = 0;
     return handle;
 }
 
@@ -589,7 +607,19 @@ apex_policy_handle* register_periodic_policy(unsigned long period_microseconds,
     }
     apex_policy_handle * handle = new apex_policy_handle();
     handle->id = id;
+    handle->event_type = APEX_PERIODIC;
+    handle->period = period_microseconds;
     return handle;
+}
+
+void deregister_policy(apex_policy_handle * handle) {
+    // disable processing of policy for now
+    _notify_listeners = false;
+    policy_handler * handler = apex::instance()->get_policy_handler();
+    if(handler != nullptr) {
+        handler->deregister_policy(handle);
+    }
+    _notify_listeners = true;
 }
 
 apex_profile* get_profile(apex_function_address action_address) {
@@ -648,6 +678,18 @@ extern "C" {
       return (apex_profiler_handle)(NULL);
     }
 
+    apex_profiler_handle apex_resume(apex_profiler_type type, void * identifier)
+    {
+      assert(identifier);
+      if (type == APEX_FUNCTION_ADDRESS) {
+          return (apex_profiler_handle)resume((apex_function_address)identifier);
+      } else if (type == APEX_NAME_STRING) {
+          string tmp((const char *)identifier);
+          return (apex_profiler_handle)resume(tmp);
+      }
+      return (apex_profiler_handle)(NULL);
+    }
+
     void apex_reset(apex_profiler_type type, void * identifier) {
         assert(identifier);
         if (type == APEX_FUNCTION_ADDRESS) {
@@ -660,11 +702,6 @@ extern "C" {
     
     void apex_set_state(apex_thread_state state) {
         set_state(state);
-    }
-
-    void apex_resume(apex_profiler_handle the_profiler)
-    {
-        resume((profiler*)the_profiler);
     }
 
     void apex_stop(apex_profiler_handle the_profiler)
@@ -741,6 +778,10 @@ extern "C" {
 
     apex_policy_handle* apex_register_periodic_policy(unsigned long period, int (f)(apex_context const)) {
         return register_periodic_policy(period, f);
+    }
+
+    void apex_deregister_policy(apex_policy_handle * handle) {
+        return deregister_policy(handle);
     }
 
     apex_profile* apex_get_profile(apex_profiler_type type, void * identifier) {

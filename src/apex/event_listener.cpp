@@ -50,13 +50,13 @@ timer_event_data::~timer_event_data() {
 }
 
 node_event_data::node_event_data(int node_id, int thread_id) {
-  //this->event_type_ = APEX_NEW_NODE;
+  this->event_type_ = APEX_NEW_NODE;
   this->node_id = node_id;
   this->thread_id = thread_id;
 }
 
 sample_value_event_data::sample_value_event_data(int thread_id, string counter_name, double counter_value) {
-  //this->event_type_ = APEX_SAMPLE_VALUE;
+  this->event_type_ = APEX_SAMPLE_VALUE;
   this->is_counter = true;
   this->thread_id = thread_id;
   this->counter_name = new string(counter_name);
@@ -77,20 +77,20 @@ custom_event_data::~custom_event_data() {
 
 startup_event_data::startup_event_data(int argc, char** argv) {
   this->thread_id = thread_instance::get_id();
-  //this->event_type_ = APEX_STARTUP;
+  this->event_type_ = APEX_STARTUP;
   this->argc = argc;
   this->argv = argv;
 }
 
 shutdown_event_data::shutdown_event_data(int node_id, int thread_id) {
-  //this->event_type_ = APEX_SHUTDOWN;
+  this->event_type_ = APEX_SHUTDOWN;
   this->node_id = node_id;
   this->thread_id = thread_id;
 }
 
 new_thread_event_data::new_thread_event_data(string thread_name) {
   this->thread_id = thread_instance::get_id();
-  //this->event_type_ = APEX_NEW_THREAD;
+  this->event_type_ = APEX_NEW_THREAD;
   this->thread_name = new string(thread_name);
 }
 
@@ -100,7 +100,7 @@ new_thread_event_data::~new_thread_event_data() {
 
 periodic_event_data::periodic_event_data() {
   this->thread_id = thread_instance::get_id();
-  //this->event_type_ = APEX_PERIODIC;
+  this->event_type_ = APEX_PERIODIC;
 }
 
 }

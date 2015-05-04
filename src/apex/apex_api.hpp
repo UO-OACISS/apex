@@ -159,18 +159,42 @@ APEX_EXPORT void stop(profiler * the_profiler);
 APEX_EXPORT void yield(profiler * the_profiler);
 
 /**
- \brief Restart a timer.
+ \brief Resume a timer.
 
- This function will restart the specified profiler object. The
- difference between this function and the apex::start 
+ This function will create a profiler object in APEX, and return a
+ handle to the object.  The object will be associated with the name
+ passed in to this function.
+ The difference between this function and the apex::start
  function is that the number of calls to that
  timer will not be incremented.
  
- \param the_profiler The handle of the profiler object.
- \return No return value.
- \sa apex::start, apex::stop
+ \param timer_name The name of the timer.
+ \return The handle for the timer object in APEX. Not intended to be
+         queried by the application. Should be retained locally, if
+		 possible, and passed in to the matching apex::stop()
+		 call when the timer should be stopped.
+ \sa apex::stop, apex::yield, apex::start
  */
-APEX_EXPORT void resume(profiler * the_profiler);
+APEX_EXPORT profiler * resume(const std::string &timer_name);
+
+/**
+ \brief Resume a timer.
+
+ This function will create a profiler object in APEX, and return a
+ handle to the object.  The object will be associated with the 
+ address passed in to this function.
+ The difference between this function and the apex::start
+ function is that the number of calls to that
+ timer will not be incremented.
+ 
+ \param function_address The address of the function to be timed
+ \return The handle for the timer object in APEX. Not intended to be
+         queried by the application. Should be retained locally, if
+		 possible, and passed in to the matching apex::stop
+		 call when the timer should be stopped.
+ \sa apex::stop, apex::yield, apex::start
+ */
+APEX_EXPORT profiler * resume(apex_function_address function_address);
 
 /**
  \brief Sample a state value.
@@ -311,6 +335,17 @@ APEX_EXPORT apex_policy_handle* register_policy(const apex_event_type when, std:
  \return A handle to the policy, to be stored if the policy is to be un-registered later.
  */
 APEX_EXPORT apex_policy_handle* register_periodic_policy(unsigned long period, std::function<int(apex_context const&)> f);
+
+/**
+ \brief Deregister a policy with APEX.
+
+ This function will deregister the specified policy. In order to enable the policy
+ again, it should be registered using @ref apex::register_policy or @ref apex::register_periodic_policy.
+   
+ \param handle The handle of the policy to be deregistered.
+ \sa apex::register_policy, apex::register_periodic_policy
+ */
+APEX_EXPORT void deregister_policy(apex_policy_handle * handle);
 
 /**
  \brief Get the current profile for the specified function address.

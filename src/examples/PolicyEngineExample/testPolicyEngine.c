@@ -82,8 +82,8 @@ int main(int argc, char **argv)
   apex_set_use_profile_output(true);
   apex_set_node_id(0);
   const apex_event_type when = APEX_STOP_EVENT;
-  apex_register_periodic_policy(1000000, policy_periodic);
-  apex_register_policy(when, policy_event);
+  apex_policy_handle * on_periodic = apex_register_periodic_policy(1000000, policy_periodic);
+  apex_policy_handle * on_event = apex_register_policy(when, policy_event);
 #ifdef __APPLE__
   apex_profiler_handle my_profiler = apex_start(APEX_NAME_STRING, "main");
 #else
@@ -92,6 +92,17 @@ int main(int argc, char **argv)
   printf("PID of this process: %d\n", getpid());
   pthread_t thread[NUM_THREADS];
   int i;
+  for (i = 0 ; i < NUM_THREADS ; i++) {
+    pthread_create(&(thread[i]), NULL, someThread, NULL);
+  }
+  for (i = 0 ; i < NUM_THREADS ; i++) {
+    pthread_join(thread[i], NULL);
+  }
+  // now un-register the policies 
+  apex_deregister_policy(on_periodic);
+  apex_deregister_policy(on_event);
+
+  printf("Running without policies now...\n");
   for (i = 0 ; i < NUM_THREADS ; i++) {
     pthread_create(&(thread[i]), NULL, someThread, NULL);
   }

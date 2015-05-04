@@ -35,15 +35,6 @@ public:
 		  _profile.calls = _profile.calls + 1.0;
         } 
 	}
-	void increment_resume(double increase) {
-		_profile.accumulated += increase;
-		// how to handle this?
-		/*
-		sum_squares += (elapsed * elapsed);
-		minimum = minimum > elapsed ? elapsed : minimum;
-		maximum = maximum < elapsed ? elapsed : maximum;
-		*/
-	}
     void reset() {
         _profile.calls = 0.0;
         _profile.accumulated = 0.0;
@@ -58,7 +49,8 @@ public:
 	double get_maximum() { return (_profile.maximum); }
 	double get_variance() {
 		double mean = get_mean();
-		return ((_profile.sum_squares / _profile.calls) - (mean * mean));
+		double variance = ((_profile.sum_squares / _profile.calls) - (mean * mean));
+        return variance >= 0.0 ? variance : 0.0;
 	}
     double get_sum_squares() { return _profile.sum_squares; }
 	double get_stddev() { return sqrt(get_variance()); }

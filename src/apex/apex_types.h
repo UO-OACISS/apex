@@ -129,6 +129,8 @@ typedef struct _apex_profiler_id
 typedef struct _policy_handle
 {
     int id;           /*!< The ID of the policy, used internally to APEX */
+    apex_event_type event_type;    /*!< The type of policy */
+    unsigned long period;       /*!< If periodic, the length of the period */
 } apex_policy_handle;
 
 /** The APEX context when an event occurs.

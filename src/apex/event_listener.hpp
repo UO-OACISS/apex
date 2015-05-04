@@ -99,7 +99,8 @@ public:
   virtual void on_start(std::string *timer_name) = 0;
   virtual void on_stop(profiler * p) = 0;
   virtual void on_yield(profiler * p) = 0;
-  virtual void on_resume(profiler * p) = 0;
+  virtual void on_resume(apex_function_address function_address) = 0;
+  virtual void on_resume(std::string *timer_name) = 0;
   virtual void on_sample_value(sample_value_event_data &data) = 0;
   virtual void on_periodic(periodic_event_data &data) = 0;
   virtual void on_custom_event(custom_event_data &data) = 0;

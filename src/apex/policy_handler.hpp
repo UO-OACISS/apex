@@ -22,7 +22,6 @@
 #include <functional>
 #include <chrono>
 
-#include <boost/atomic/atomic.hpp>
 #include <boost/thread/shared_mutex.hpp>
 #include <boost/shared_ptr.hpp>
 
@@ -75,7 +74,6 @@ private:
     void call_policies(
         const std::list<boost::shared_ptr<policy_instance> > & policies,
         event_data &event_data);
-    boost::atomic_int next_id;
 #ifdef APEX_HAVE_HPX3
     hpx::util::interval_timer hpx_timer;
 #endif
@@ -95,13 +93,15 @@ public:
     void on_start(std::string *timer_name);
     void on_stop(profiler * p);
     void on_yield(profiler * p);
-    void on_resume(profiler * p);
+    void on_resume(apex_function_address function_address);
+    void on_resume(std::string *timer_name);
     void on_sample_value(sample_value_event_data &event_data);
     void on_custom_event(custom_event_data &event_data);
     void on_periodic(periodic_event_data &event_data);
 
     int register_policy(const apex_event_type & when,
                         std::function<int(apex_context const&)> f);
+    int deregister_policy(apex_policy_handle * handle);
     bool _handler(void);
 	void _reset(void);
 };

@@ -96,7 +96,7 @@ APEX_EXPORT void apex_finalize();
          queried by the application. Should be retained locally, if
 		 possible, and passed in to the matching apex_stop()
 		 call when the timer should be stopped.
- \sa apex_stop
+ \sa apex_stop, apex_resume, apex_yield
  */
 APEX_EXPORT apex_profiler_handle apex_start(apex_profiler_type type, void * identifier);
 
@@ -109,7 +109,7 @@ APEX_EXPORT apex_profiler_handle apex_start(apex_profiler_type type, void * iden
  
  \param profiler The handle of the profiler object.
  \return No return value.
- \sa apex_start_name, apex_start_address
+ \sa apex_start, apex_yield, apex_resume
  */
 APEX_EXPORT void apex_stop(apex_profiler_handle profiler);
 
@@ -131,18 +131,22 @@ APEX_EXPORT void apex_yield(apex_profiler_handle profiler);
 /**
  \brief Resume a timer.
 
- This function will restart the specified profiler object. The
- difference between this function and the apex_start_name or
- apex_start_address functions is that the number of calls to that
- timer will not be incremented.  NOTE: if the timer was previously
- stopped with apex_yield, then the timer should be restarted with
- apex_start.
+ This function will "resume" a timer for the specified object.
+ The difference between this function and the apex_start
+ function is that the number of calls to that
+ timer will not be incremented.
  
- \param profiler The handle of the profiler object.
- \return No return value.
+  \param type The type of the address to be stored. This can be one of the @ref
+             apex_profiler_type values.
+ \param identifier The function address of the function to be timed, or a "const
+             char *" pointer to the name of the timer.
+ \return The handle for the timer object in APEX. Not intended to be
+         queried by the application. Should be retained locally, if
+		 possible, and passed in to the matching apex_stop()
+		 call when the timer should be stopped.
  \sa apex_start, apex_stop, apex_yield
- */
-APEX_EXPORT void apex_resume(apex_profiler_handle profiler);
+*/
+APEX_EXPORT apex_profiler_handle apex_resume(apex_profiler_type type, void * identifier);
 
 /*
  * Functions for resetting timer values
@@ -296,7 +300,7 @@ APEX_EXPORT void apex_set_interrupt_interval(int seconds);
  \param f The function to be called when that event is handled by APEX.
  \return A handle to the policy, to be stored if the policy is to be un-registered later.
  */
-APEX_EXPORT apex_policy_handle apex_register_policy(const apex_event_type when, apex_policy_function f);
+APEX_EXPORT apex_policy_handle * apex_register_policy(const apex_event_type when, apex_policy_function f);
 
 /**
  \brief Register a policy with APEX.
@@ -309,7 +313,18 @@ APEX_EXPORT apex_policy_handle apex_register_policy(const apex_event_type when, 
  \param f The function to be called when that event is handled by APEX.
  \return A handle to the policy, to be stored if the policy is to be un-registered later.
  */
-APEX_EXPORT apex_policy_handle apex_register_periodic_policy(unsigned long period, apex_policy_function f);
+APEX_EXPORT apex_policy_handle * apex_register_periodic_policy(unsigned long period, apex_policy_function f);
+
+/**
+ \brief Deregister a policy with APEX.
+
+ This function will deregister the specified policy. In order to enable the policy
+ again, it should be registered using @ref apex_register_policy or @ref apex_register_periodic_policy.
+ 
+ \param handle The handle of the policy to be deregistered.
+ \sa apex_register_policy, apex_register_periodic_policy
+ */
+APEX_EXPORT void apex_deregister_policy(apex_policy_handle * handle);
 
 /**
  \brief Get the current profile for the specified id.

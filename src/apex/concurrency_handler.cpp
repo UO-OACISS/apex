@@ -123,14 +123,17 @@ void concurrency_handler::on_start(string *timer_name) {
   }
 }
 
-void concurrency_handler::on_resume(profiler * p) {
+void concurrency_handler::on_resume(apex_function_address function_address) {
   if (!_terminate) {
     stack<string>* my_stack = get_event_stack(thread_instance::get_id());
-    if (p->have_name) {
-      my_stack->push(*(p->timer_name));
-    } else {
-      my_stack->push(thread_instance::instance().map_addr_to_name(p->action_address));
-    }
+    my_stack->push(thread_instance::instance().map_addr_to_name(function_address));
+  }
+}
+
+void concurrency_handler::on_resume(string *timer_name) {
+  if (!_terminate) {
+    stack<string>* my_stack = get_event_stack(thread_instance::get_id());
+    my_stack->push(*(timer_name));
   }
 }
 

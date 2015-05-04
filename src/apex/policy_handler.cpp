@@ -13,6 +13,7 @@
 #include "thread_instance.hpp"
 #include <iostream>
 #include <boost/make_shared.hpp>
+#include <boost/atomic/atomic.hpp>
 
 #ifdef APEX_HAVE_TAU
 #define PROFILING_ON
@@ -23,6 +24,8 @@
 using namespace std;
 
 namespace apex {
+
+boost::atomic<int> next_id(0);
 
 #ifdef APEX_HAVE_HPX3
 policy_handler::policy_handler (void) : handler() { }
@@ -74,7 +77,6 @@ bool policy_handler::_handler(void) {
 }
 
 void policy_handler::_init(void) {
-  next_id = 0;
 #ifdef APEX_HAVE_HPX3
   hpx_timer.start();
 #else
@@ -164,6 +166,145 @@ int policy_handler::register_policy(const apex_event_type & when,
 
 }
 
+int policy_handler::deregister_policy(apex_policy_handle * handle) {
+    switch(handle->event_type) {
+        case APEX_STARTUP: {
+        boost::unique_lock<mutex_type> l(startup_mutex);
+        std::list<boost::shared_ptr<policy_instance> >::iterator it;
+        for(it = startup_policies.begin() ; it != startup_policies.end() ; it++) {
+            boost::shared_ptr<policy_instance> policy = *it;
+            if (policy->id == handle->id) {
+                startup_policies.erase(it);
+                break;
+            }
+        }
+        break;
+      }
+        case APEX_SHUTDOWN: {
+        boost::unique_lock<mutex_type> l(shutdown_mutex);
+        std::list<boost::shared_ptr<policy_instance> >::iterator it;
+        for(it = shutdown_policies.begin() ; it != shutdown_policies.end() ; it++) {
+            boost::shared_ptr<policy_instance> policy = *it;
+            if (policy->id == handle->id) {
+                shutdown_policies.erase(it);
+                break;
+            }
+        }
+        break;
+      }
+        case APEX_NEW_NODE: {
+        boost::unique_lock<mutex_type> l(new_node_mutex);
+        std::list<boost::shared_ptr<policy_instance> >::iterator it;
+        for(it = new_node_policies.begin() ; it != new_node_policies.end() ; it++) {
+            boost::shared_ptr<policy_instance> policy = *it;
+            if (policy->id == handle->id) {
+                new_node_policies.erase(it);
+                break;
+            }
+        }
+        break;
+      }
+        case APEX_NEW_THREAD: {
+        boost::unique_lock<mutex_type> l(new_thread_mutex);
+        std::list<boost::shared_ptr<policy_instance> >::iterator it;
+        for(it = new_thread_policies.begin() ; it != new_thread_policies.end() ; it++) {
+            boost::shared_ptr<policy_instance> policy = *it;
+            if (policy->id == handle->id) {
+                new_thread_policies.erase(it);
+                break;
+            }
+        }
+        break;
+      }
+        case APEX_START_EVENT: {
+        boost::unique_lock<mutex_type> l(start_event_mutex);
+        std::list<boost::shared_ptr<policy_instance> >::iterator it;
+        for(it = start_event_policies.begin() ; it != start_event_policies.end() ; it++) {
+            boost::shared_ptr<policy_instance> policy = *it;
+            if (policy->id == handle->id) {
+                start_event_policies.erase(it);
+                break;
+            }
+        }
+        break;
+      }
+        case APEX_RESUME_EVENT: {
+        boost::unique_lock<mutex_type> l(resume_event_mutex);
+        std::list<boost::shared_ptr<policy_instance> >::iterator it;
+        for(it = resume_event_policies.begin() ; it != resume_event_policies.end() ; it++) {
+            boost::shared_ptr<policy_instance> policy = *it;
+            if (policy->id == handle->id) {
+                resume_event_policies.erase(it);
+                break;
+            }
+        }
+        break;
+      }
+        case APEX_STOP_EVENT: {
+        boost::unique_lock<mutex_type> l(stop_event_mutex);
+        std::list<boost::shared_ptr<policy_instance> >::iterator it;
+        for(it = stop_event_policies.begin() ; it != stop_event_policies.end() ; it++) {
+            boost::shared_ptr<policy_instance> policy = *it;
+            if (policy->id == handle->id) {
+                stop_event_policies.erase(it);
+                break;
+            }
+        }
+        break;
+      }
+        case APEX_YIELD_EVENT: {
+        boost::unique_lock<mutex_type> l(yield_event_mutex);
+        std::list<boost::shared_ptr<policy_instance> >::iterator it;
+        for(it = yield_event_policies.begin() ; it != yield_event_policies.end() ; it++) {
+            boost::shared_ptr<policy_instance> policy = *it;
+            if (policy->id == handle->id) {
+                yield_event_policies.erase(it);
+                break;
+            }
+        }
+        break;
+      }
+        case APEX_SAMPLE_VALUE: {
+        boost::unique_lock<mutex_type> l(sample_value_mutex);
+        std::list<boost::shared_ptr<policy_instance> >::iterator it;
+        for(it = sample_value_policies.begin() ; it != sample_value_policies.end() ; it++) {
+            boost::shared_ptr<policy_instance> policy = *it;
+            if (policy->id == handle->id) {
+                sample_value_policies.erase(it);
+                break;
+            }
+        }
+        break;
+      }
+        case APEX_PERIODIC: {
+        boost::unique_lock<mutex_type> l(periodic_mutex);
+        std::list<boost::shared_ptr<policy_instance> >::iterator it;
+        for(it = periodic_policies.begin() ; it != periodic_policies.end() ; it++) {
+            boost::shared_ptr<policy_instance> policy = *it;
+            if (policy->id == handle->id) {
+                periodic_policies.erase(it);
+                break;
+            }
+        }
+        break;
+      }
+        //case APEX_CUSTOM_EVENT: {
+        default: {
+        boost::unique_lock<mutex_type> l(custom_event_mutex);
+        std::list<boost::shared_ptr<policy_instance> >::iterator it;
+        for(it = custom_event_policies[handle->event_type].begin() ; it != custom_event_policies[handle->event_type].end() ; it++) {
+            boost::shared_ptr<policy_instance> policy = *it;
+            if (policy->id == handle->id) {
+                custom_event_policies[handle->event_type].erase(it);
+                break;
+            }
+        }
+        break;
+      }
+  }
+    return APEX_NOERROR;
+}
+
 inline void policy_handler::call_policies(
     const std::list<boost::shared_ptr<policy_instance> > & policies,
     event_data &event_data) {
@@ -242,6 +383,36 @@ void policy_handler::on_start(string *timer_name) {
   APEX_UNUSED(timer_name);
 }
 
+void policy_handler::on_resume(apex_function_address function_address) {
+  if (_terminate) return;
+  if (resume_event_policies.empty()) return;
+  for(const boost::shared_ptr<policy_instance>& policy : resume_event_policies) {
+    apex_context my_context;
+    my_context.event_type = APEX_RESUME_EVENT;
+    my_context.policy_handle = NULL;
+    const bool result = policy->func(my_context);
+    if(result != APEX_NOERROR) {
+      printf("Warning: registered policy function failed!\n");
+    }
+  }
+  APEX_UNUSED(function_address);
+}
+
+void policy_handler::on_resume(string *timer_name) {
+  if (_terminate) return;
+  if (resume_event_policies.empty()) return;
+  for(const boost::shared_ptr<policy_instance>& policy : resume_event_policies) {
+    apex_context my_context;
+    my_context.event_type = APEX_RESUME_EVENT;
+    my_context.policy_handle = NULL;
+    const bool result = policy->func(my_context);
+    if(result != APEX_NOERROR) {
+      printf("Warning: registered policy function failed!\n");
+    }
+  }
+  APEX_UNUSED(timer_name);
+}
+
 void policy_handler::on_stop(profiler * p) {
     if (_terminate) return;
     if (stop_event_policies.empty()) return;
@@ -270,11 +441,6 @@ void policy_handler::on_yield(profiler * p) {
         }
     }
     APEX_UNUSED(p);
-}
-
-void policy_handler::on_resume(profiler * p) {
-  if (_terminate) return;
-  APEX_UNUSED(p);
 }
 
 void policy_handler::on_sample_value(sample_value_event_data &event_data) {

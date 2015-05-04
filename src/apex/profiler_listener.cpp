@@ -324,11 +324,11 @@ namespace apex {
       }
     }
     // done with the profiler object
-    if(p->safe_to_delete) {
-        delete(p);
-    } else {
+    //if(p->safe_to_delete) {
+        //delete(p);
+    //} else {
         my_garbage.insert(p);
-    }
+    //}
     return 1;
   }
 
@@ -1106,12 +1106,14 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 
   /* This is just like starting a timer, but don't increment the number of calls
    * value. That is because we are restarting an existing timer. */
-  void profiler_listener::on_resume(profiler * p) {
-    if (p && p->have_name) {
-        _common_start(p->timer_name, true);
-    } else {
-        _common_start(p->action_address, true);
-    }
+  void profiler_listener::on_resume(std::string * timer_name) {
+        _common_start(timer_name, true);
+  }
+
+  /* This is just like starting a timer, but don't increment the number of calls
+   * value. That is because we are restarting an existing timer. */
+  void profiler_listener::on_resume(apex_function_address function_address) {
+        _common_start(function_address, true);
   }
 
    /* Stop the timer */

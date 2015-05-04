@@ -361,6 +361,7 @@ add_subdirectory (src/examples/TestITT)
 add_subdirectory (src/examples/TestThreads)
 add_subdirectory (src/examples/CountCalls)
 add_subdirectory (src/examples/Overhead)
+add_subdirectory (src/examples/PolicyUnitTest)
 add_subdirectory (src/examples/PolicyEngineExample)
 add_subdirectory (src/examples/PolicyEngineCppExample)
 add_subdirectory (src/examples/TestReset)
@@ -411,6 +412,11 @@ set_tests_properties(TestCountCalls PROPERTIES PASS_REGULAR_EXPRESSION "Test pas
 # Run the test program which tests the overhead in the threads interface
 add_test (TestOverhead src/examples/Overhead/testOverhead)  
 set_tests_properties(TestOverhead PROPERTIES PASS_REGULAR_EXPRESSION "Average overhead per timer")
+
+# TEst the policy engine support
+add_test (TestPolicyUnitTest src/examples/PolicyUnitTest/policyUnitTest)  
+set_tests_properties(TestPolicyUnitTest PROPERTIES ENVIRONMENT "APEX_POLICY=1")
+set_tests_properties(TestPolicyUnitTest PROPERTIES FAIL_REGULAR_EXPRESSION "Warning: registered policy function failed!")
 
 # TEst the policy engine support
 add_test (TestPolicyEngineExample src/examples/PolicyEngineExample/testPolicyEngine)  
