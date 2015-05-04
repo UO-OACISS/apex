@@ -19,7 +19,9 @@
 #include <boost/array.hpp>
 #include <boost/asio.hpp>
 #include "profile.hpp"
+#ifdef USE_UDP
 #include "udp_client.hpp"
+#endif
 
 
 namespace apex {
@@ -43,17 +45,20 @@ private:
   void _common_start(std::string * timer_name, bool is_resume); // internal, inline function
   void _common_stop(profiler * p, bool is_yield); // internal, inline function
   static void push_profiler(int my_tid, profiler * p);
-  udp_client client;
 public:
   profiler_listener (void)  : _terminate(false) {
+#ifdef USE_UDP
       if (apex_options::use_udp_sink()) {
           udp_client::start_client();
       }
+#endif
   };
   ~profiler_listener (void) { 
+#ifdef USE_UDP
       if (apex_options::use_udp_sink()) {
           udp_client::stop_client();
       }
+#endif
   };
   // events
   void on_startup(startup_event_data &data);

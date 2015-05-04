@@ -24,6 +24,10 @@
 #include <TAU.h>
 #endif
 
+#ifdef APEX_HAVE_LM_SENSORS
+#include "sensor_data.hpp"
+#endif
+
 using namespace std;
 
 namespace apex {
@@ -543,12 +547,18 @@ void ProcData::read_proc(void) {
     TAU_START("ProcData::read_proc");
   }
 #endif
+#ifdef APEX_HAVE_LM_SENSORS
+  sensor_data * mysensors = new sensor_data();
+#endif
   ProcData *oldData = parse_proc_stat();
   // disabled for now - not sure that it is useful
   parse_proc_cpuinfo(); // do this once, it won't change.
   parse_proc_meminfo(); // some things change, others don't...
   parse_proc_self_status(); // some things change, others don't...
   parse_proc_netdev();
+#ifdef APEX_HAVE_LM_SENSORS
+  mysensors->read_sensors();
+#endif
   ProcData *newData = NULL;
   ProcData *periodData = NULL;
   struct timespec tim, tim2;
@@ -577,17 +587,27 @@ void ProcData::read_proc(void) {
     parse_proc_meminfo(); // some things change, others don't...
     parse_proc_self_status();
     parse_proc_netdev();
+
+#ifdef APEX_HAVE_LM_SENSORS
+    mysensors->read_sensors();
+#endif
+
 #ifdef APEX_HAVE_TAU
     if (apex_options::use_tau()) {
       TAU_STOP("ProcData::read_proc: main loop");
     }
 #endif
   }
+#ifdef APEX_HAVE_LM_SENSORS
+  delete(mysensors);
+#endif
+
 #ifdef APEX_HAVE_TAU
   if (apex_options::use_tau()) {
     TAU_STOP("ProcData::read_proc");
   }
 #endif
+
 }
 
 }

@@ -243,6 +243,19 @@ else()
 endif()
 
 ################################################################################
+# LM Sensors configuration
+################################################################################
+
+if(USE_LM_SENSORS)
+    find_package(LMSensors)
+    if (LM_SENSORS_FOUND)
+        include_directories(${LM_SENSORS_INCLUDE_DIRS})
+        set(LIBS ${LIBS} ${LM_SENSORS_LIBRARIES})
+        set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${LM_SENSORS_LIBRARY_DIR})
+    endif()
+endif()
+
+################################################################################
 # ActiveHarmony configuration
 ################################################################################
 
@@ -301,6 +314,16 @@ if(USE_BINUTILS)
 	endif()
 endif(USE_BINUTILS)
 
+################################################################################
+# UDP configuration
+################################################################################
+
+if(USE_UDP_CLIENT)
+    set (USE_UDP TRUE)
+endif(USE_UDP_CLIENT)
+
+################################################################################
+
 set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} "${CMAKE_INSTALL_PREFIX}/lib")
 
 # needed for apex.pc.in
@@ -353,8 +376,11 @@ if(OPENMP_FOUND)
     add_subdirectory (src/examples/TestOpenMP)
   endif()
 endif()
+if(USE_UDP_CLIENT)
 add_subdirectory (src/udp_server)
 add_subdirectory (src/examples/UdpSink)
+endif(USE_UDP_CLIENT)
+
 add_subdirectory (doc) 
 
 # turn on "make test" support
@@ -448,7 +474,9 @@ if(OPENMP_FOUND)
   endif()
 endif()
 
-# Run the test program which tests the UDP network reporting
-add_test (TestUdpSink src/examples/UdpSink/test_script.sh)  
-set_tests_properties(TestUdpSink PROPERTIES PASS_REGULAR_EXPRESSION "The ID of this thread is:")
+if(USE_UDP_CLIENT)
+    # Run the test program which tests the UDP network reporting
+    add_test (TestUdpSink src/examples/UdpSink/test_script.sh)  
+    set_tests_properties(TestUdpSink PROPERTIES PASS_REGULAR_EXPRESSION "The ID of this thread is:")
+endif(USE_UDP_CLIENT)
 

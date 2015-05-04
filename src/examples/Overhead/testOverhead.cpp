@@ -98,13 +98,16 @@ void* someUntimedThread(void* tmp)
 int main(int argc, char **argv)
 {
   apex::init(argc, argv, NULL);
+  unsigned numthreads = std::thread::hardware_concurrency();
+  if (argc > 1) {
+    numthreads = strtoul(argv[1],NULL,0);
+  }
   apex::set_node_id(0);
   sleep(1); // if we don't sleep, the proc_read thread won't have time to read anything.
 
   //ApexProxy proxy = ApexProxy(__func__, __FILE__, __LINE__);
   ApexProxy proxy = ApexProxy((apex_function_address)main);
   printf("PID of this process: %d\n", getpid());
-  unsigned numthreads = std::thread::hardware_concurrency();
   std::cout << "Expecting " << numthreads << " threads." << std::endl;
   pthread_t thread[numthreads];
   unsigned i;
