@@ -80,7 +80,7 @@ namespace apex {
   /* This is the array of profiler queues, one for each worker thread. It
    * is initialized to a length of 8, there is code in on_new_thread() to
    * increment it if necessary.  */
-  std::vector<boost::lockfree::spsc_queue<profiler*>* > profiler_queues(4);
+  std::vector<boost::lockfree::spsc_queue<profiler*>* > profiler_queues(2);
 
 #if APEX_HAVE_PAPI
   std::vector<int> event_sets(8);
@@ -1146,9 +1146,9 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   void profiler_listener::reset(apex_function_address function_address) {
     profiler * p;
     if(function_address != APEX_NULL_FUNCTION_ADDRESS) {
-      p = new profiler(function_address, false, reset_type::CURRENT);
+    p = new profiler(function_address, false, reset_type::CURRENT);
     } else {
-      p = new profiler((apex_function_address)APEX_NULL_FUNCTION_ADDRESS, false, reset_type::ALL);
+    p = new profiler((apex_function_address)APEX_NULL_FUNCTION_ADDRESS, false, reset_type::ALL);
     }
     push_profiler(my_tid, p);
   }
