@@ -52,8 +52,11 @@ public:
     { }
   // virtual destructor
   virtual ~handler() {
+      _terminate = true; 
       if(_timer_thread != nullptr) {
-        _timer_thread->join();
+        if (_timer_thread->try_join_for(boost::chrono::seconds(1))) {
+            _timer_thread->interrupt();
+        }
         delete(_timer_thread);
         _timer_thread = nullptr;
       }

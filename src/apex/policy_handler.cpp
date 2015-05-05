@@ -9,11 +9,13 @@
 #endif
 
 #include "apex_api.hpp"
+#include "apex.hpp"
 #include "policy_handler.hpp"
 #include "thread_instance.hpp"
 #include <iostream>
 #include <boost/make_shared.hpp>
 #include <boost/atomic/atomic.hpp>
+#include <boost/thread/thread.hpp>
 
 #ifdef APEX_HAVE_TAU
 #define PROFILING_ON
@@ -93,7 +95,7 @@ inline void policy_handler::_reset(void) {
   }
 #else
   if (_terminate) {
-      _timer_thread->interrupt();
+      //_timer_thread->interrupt(); // do this in the shutdown event.
   } else {
     _timer.expires_at(_timer.expires_at() + boost::posix_time::microseconds(_period));
     _timer.async_wait(boost::bind(&policy_handler::_handler, this));
@@ -336,7 +338,9 @@ void policy_handler::on_shutdown(shutdown_event_data &event_data) {
     if (_terminate) return;
     _terminate = true;
     if (_timer_thread != nullptr) { 
-        _timer_thread->join(); 
+        if (_timer_thread->try_join_for(boost::chrono::seconds(1))) {
+            _timer_thread->interrupt();
+        }
         delete(_timer_thread);
         _timer_thread = nullptr;
     }

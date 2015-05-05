@@ -62,7 +62,6 @@ boost::atomic<bool> _measurement_stopped(false);
  */
 apex::~apex()
 {
-    cout << "Destructing APEX...";
 #ifdef APEX_HAVE_RCR
     //cout << "Getting energy..." << endl;
     energyDaemonTerm();
@@ -81,7 +80,6 @@ apex::~apex()
     } 
     delete m_my_locality;
     m_pInstance = nullptr;
-    std::cout << "done." << endl;
 }
 
 void apex::set_node_id(int id)

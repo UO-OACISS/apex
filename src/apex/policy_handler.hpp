@@ -84,9 +84,7 @@ public:
     policy_handler (std::chrono::duration<Rep, Period> const& period);
 */
     policy_handler(uint64_t period_microseconds);
-    ~policy_handler (void) { 
-      //_timer_thread->join();
-    };
+    ~policy_handler (void) { };
     void on_startup(startup_event_data &event_data);
     void on_shutdown(shutdown_event_data &event_data);
     void on_new_node(node_event_data &event_data);

@@ -99,8 +99,8 @@ int main(int argc, char **argv)
     pthread_join(thread[i], NULL);
   }
   // now un-register the policies 
-  apex_deregister_policy(on_periodic);
-  apex_deregister_policy(on_event);
+  //apex_deregister_policy(on_periodic);
+  //apex_deregister_policy(on_event);
 
   printf("Running without policies now...\n");
   for (i = 0 ; i < NUM_THREADS ; i++) {
@@ -110,6 +110,7 @@ int main(int argc, char **argv)
     pthread_join(thread[i], NULL);
   }
   apex_stop(my_profiler);
+  apex_stop_measurement();
   apex_finalize();
   return(0);
 }
