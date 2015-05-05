@@ -93,6 +93,7 @@ private:
     hpx::runtime * m_hpx_runtime;
 #endif
 public:
+    std::string * version_string;
     std::vector<event_listener*> listeners;
     std::string* m_my_locality;
     std::unordered_map<int, std::string> custom_event_names;

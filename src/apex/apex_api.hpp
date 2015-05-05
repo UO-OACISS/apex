@@ -83,6 +83,17 @@ APEX_EXPORT void init(const char * thread_name);
 APEX_EXPORT void init(int argc, char** argv, const char * thread_name);
 
 /**
+ \brief Stop APEX measurement.
+ 
+ The stop measurement method will terminate all measurement and optionally:
+ - print a report to the screen
+ - write a TAU profile to disk
+ \return No return value.
+ \sa apex::init
+ */
+APEX_EXPORT void stop_measurement(void);
+
+/**
  \brief Finalize APEX.
  \warning For best results, this function should be explicitly called 
           before program exit. If not explicitly called from the 
@@ -90,9 +101,7 @@ APEX_EXPORT void init(int argc, char** argv, const char * thread_name);
 		  called when the APEX main singleton object is destructed,
 		  but there are no guarantees that will work correctly.
  
- The finalization method will terminate all measurement and optionally:
- - print a report to the screen
- - write a TAU profile to disk
+ The finalization method will free all allocated memory for APEX.
  \return No return value.
  \sa apex::init
  */
@@ -269,7 +278,7 @@ APEX_EXPORT void set_state(apex_thread_state state);
  
  \return A string with the APEX version.
  */
-APEX_EXPORT std::string version(void);
+APEX_EXPORT std::string& version(void);
 
 /**
  \brief Set this process' node ID.

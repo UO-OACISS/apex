@@ -21,7 +21,7 @@ private:
   static boost::asio::io_service _io;
   static const unsigned int default_period = 100000;
   void _threadfunc(void) {
-    _io.run();
+      _io.run();
   };
 protected:
   unsigned int _period;
@@ -29,17 +29,35 @@ protected:
   boost::asio::deadline_timer _timer;
   boost::thread* _timer_thread;
   void reset(void) {
-      _timer.expires_at(_timer.expires_at() + boost::posix_time::microseconds(_period));
-      _timer.async_wait(boost::bind(&handler::_handler, this));
+      if (!_terminate) {
+        _timer.expires_at(_timer.expires_at() + boost::posix_time::microseconds(_period));
+        _timer.async_wait(boost::bind(&handler::_handler, this));
+      }
   };
   void run(void) {
     _timer_thread = new boost::thread(&handler::_threadfunc, this);
   };
 public:
-  handler() : _period(default_period), _terminate(false), _timer(_io, boost::posix_time::microseconds(_period)) { }
-  handler(unsigned int period) : _period(period), _terminate(false), _timer(_io, boost::posix_time::microseconds(_period)) { }
+  handler() : 
+      _period(default_period), 
+      _terminate(false), 
+      _timer(_io, boost::posix_time::microseconds(_period)),
+      _timer_thread(nullptr)
+    { }
+  handler(unsigned int period) : 
+      _period(period), 
+      _terminate(false), 
+      _timer(_io, boost::posix_time::microseconds(_period)), 
+      _timer_thread(nullptr)
+    { }
   // virtual destructor
-  virtual ~handler() {};
+  virtual ~handler() {
+      if(_timer_thread != nullptr) {
+        _timer_thread->join();
+        delete(_timer_thread);
+        _timer_thread = nullptr;
+      }
+  };
   // all methods in the interface that a handler has to override
   virtual bool _handler(void) {
       std::cout << "Default handler" << std::endl;

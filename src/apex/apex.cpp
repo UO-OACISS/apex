@@ -48,10 +48,10 @@ namespace apex
 {
 
 // Global static pointer used to ensure a single instance of the class.
-apex* apex::m_pInstance = NULL;
+apex* apex::m_pInstance = nullptr;
 
 boost::atomic<bool> _notify_listeners(true);
-boost::atomic<bool> _finalized(false);
+boost::atomic<bool> _measurement_stopped(false);
 
 #if APEX_HAVE_PROC
     boost::thread * proc_reader_thread;
@@ -62,11 +62,26 @@ boost::atomic<bool> _finalized(false);
  */
 apex::~apex()
 {
+    cout << "Destructing APEX...";
 #ifdef APEX_HAVE_RCR
     //cout << "Getting energy..." << endl;
     energyDaemonTerm();
 #endif
-    m_pInstance = NULL;
+    for (unsigned int i = listeners.size(); i > 0 ; i--) {
+        event_listener * el = listeners[i-1];
+        listeners.pop_back();
+        delete el;
+    }
+#if APEX_HAVE_PROC
+    proc_reader_thread->join();
+    delete proc_reader_thread;
+#endif
+    if (version_string != nullptr) {
+        delete version_string;
+    } 
+    delete m_my_locality;
+    m_pInstance = nullptr;
+    std::cout << "done." << endl;
 }
 
 void apex::set_node_id(int id)
@@ -110,6 +125,7 @@ void apex::_initialize()
 #endif
     this->m_pInstance = this;
     this->m_policy_handler = nullptr;
+    this->version_string = nullptr;
 #ifdef APEX_HAVE_HPX3
     this->m_hpx_runtime = nullptr;
     hpx::register_startup_function(init_hpx_runtime_ptr);
@@ -151,7 +167,7 @@ void apex::_initialize()
 apex* apex::instance()
 {
     // Only allow one instance of class to be generated.
-    if (m_pInstance == NULL && !_finalized)
+    if (m_pInstance == nullptr && !_measurement_stopped)
     {
         m_pInstance = new apex;
     }
@@ -161,7 +177,7 @@ apex* apex::instance()
 apex* apex::instance(int argc, char**argv)
 {
     // Only allow one instance of class to be generated.
-    if (m_pInstance == NULL && !_finalized)
+    if (m_pInstance == nullptr && !_measurement_stopped)
     {
         m_pInstance = new apex(argc, argv);
     }
@@ -254,25 +270,29 @@ void init(int argc, char** argv, const char * thread_name)
 #endif
 }
 
-string version()
+string& version()
 {
-    stringstream tmp;
-    tmp << APEX_VERSION_MAJOR + (APEX_VERSION_MINOR/10.0);
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (instance->version_string == nullptr) {
+        stringstream tmp;
+        tmp << APEX_VERSION_MAJOR + (APEX_VERSION_MINOR/10.0);
 #if defined (GIT_COMMIT_HASH)
-    tmp << "-" << GIT_COMMIT_HASH ;
+        tmp << "-" << GIT_COMMIT_HASH ;
 #endif
 #if defined (GIT_BRANCH)
-    tmp << "-" << GIT_BRANCH ;
+        tmp << "-" << GIT_BRANCH ;
 #endif
-    return tmp.str().c_str();
+        instance->version_string = new std::string(tmp.str().c_str());
+    }
+    return *instance->version_string;
 }
 
 profiler* start(const std::string &timer_name)
 {
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return NULL; // protect against calls after finalization
+    if (!instance) return nullptr; // protect against calls after finalization
     if (boost::starts_with(timer_name, "apex_internal")) {
-        return NULL; // don't process our own events
+        return nullptr; // don't process our own events
     }
     if (_notify_listeners) {
         string * tmp = new string(timer_name);
@@ -285,7 +305,7 @@ profiler* start(const std::string &timer_name)
 
 profiler* start(apex_function_address function_address) {
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return NULL; // protect against calls after finalization
+    if (!instance) return nullptr; // protect against calls after finalization
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_start(function_address);
@@ -297,9 +317,9 @@ profiler* start(apex_function_address function_address) {
 profiler* resume(const std::string &timer_name)
 {
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return NULL; // protect against calls after finalization
+    if (!instance) return nullptr; // protect against calls after finalization
     if (boost::starts_with(timer_name, "apex_internal")) {
-        return NULL; // don't process our own events
+        return nullptr; // don't process our own events
     }
     if (_notify_listeners) {
         string * tmp = new string(timer_name);
@@ -312,7 +332,7 @@ profiler* resume(const std::string &timer_name)
 
 profiler* resume(apex_function_address function_address) {
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return NULL; // protect against calls after finalization
+    if (!instance) return nullptr; // protect against calls after finalization
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_resume(function_address);
@@ -349,14 +369,14 @@ void stop(profiler* the_profiler)
     } else {
         p = (profiler*)the_profiler;
     }
-    if (p == NULL) return;
+    if (p == nullptr) return;
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_stop(p);
         }
     }
     p->safe_to_delete = true;
-    thread_instance::instance().current_timer = NULL;
+    thread_instance::instance().current_timer = nullptr;
 }
 
 void yield(profiler* the_profiler)
@@ -369,14 +389,14 @@ void yield(profiler* the_profiler)
     } else {
         p = (profiler*)the_profiler;
     }
-    if (p == NULL) return;
+    if (p == nullptr) return;
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_yield(p);
         }
     }
     p->safe_to_delete = true;
-    thread_instance::instance().current_timer = NULL;
+    thread_instance::instance().current_timer = nullptr;
 }
 
 void sample_value(const std::string &name, double value)
@@ -386,7 +406,7 @@ void sample_value(const std::string &name, double value)
     // parse the counter name
     // either /threadqueue{locality#0/total}/length
     // or     /threadqueue{locality#0/worker-thread#0}/length
-    sample_value_event_data* event_data = NULL;
+    sample_value_event_data* event_data = nullptr;
     if (name.find(*(instance->m_my_locality)) != name.npos)
     {
         if (name.find("worker-thread") != name.npos)
@@ -394,7 +414,7 @@ void sample_value(const std::string &name, double value)
             string tmp_name = string(name.c_str());
             // tokenize by / character
             char* token = strtok((char*)tmp_name.c_str(), "/");
-            while (token!=NULL) {
+            while (token!=nullptr) {
               if (strstr(token, "worker-thread")==NULL)
               {
                 break;
@@ -402,7 +422,7 @@ void sample_value(const std::string &name, double value)
               token = strtok(NULL, "/");
             }
             int tid = 0;
-            if (token != NULL) {
+            if (token != nullptr) {
               // strip the trailing close bracket
               token = strtok(token, "}");
               tid = thread_instance::map_name_to_id(token);
@@ -519,7 +539,7 @@ void set_interrupt_interval(int seconds)
 #endif
 }
 
-void finalize()
+void stop_measurement()
 {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
@@ -529,9 +549,9 @@ void finalize()
 #if APEX_HAVE_MSR
     finalize_msr();
 #endif
-    if (!_finalized)
+    if (!_measurement_stopped)
     {
-        _finalized = true;
+        _measurement_stopped = true;
         stringstream ss;
         ss << instance->get_node_id();
         shutdown_event_data event_data(instance->get_node_id(), thread_instance::get_id());
@@ -542,7 +562,15 @@ void finalize()
         }
         _notify_listeners = false;
     }
-    instance->~apex();
+}
+
+void finalize(void) {
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance) return; // protect against calls after finalization
+    if (!_measurement_stopped) {
+        stop_measurement();
+    }
+    delete(instance);
 }
 
 void register_thread(const std::string &name)
@@ -616,26 +644,27 @@ apex_policy_handle* register_periodic_policy(unsigned long period_microseconds,
 
 void deregister_policy(apex_policy_handle * handle) {
     // disable processing of policy for now
-    _notify_listeners = false;
+    //_notify_listeners = false;
     policy_handler * handler = apex::instance()->get_policy_handler();
     if(handler != nullptr) {
         handler->deregister_policy(handle);
     }
-    _notify_listeners = true;
+    //_notify_listeners = true;
+    delete(handle);
 }
 
 apex_profile* get_profile(apex_function_address action_address) {
     profile * tmp = profiler_listener::get_profile(action_address);
-    if (tmp != NULL)
+    if (tmp != nullptr)
         return tmp->get_profile();
-    return NULL;
+    return nullptr;
 }
 
 apex_profile* get_profile(const std::string &timer_name) {
     profile * tmp = profiler_listener::get_profile(timer_name);
-    if (tmp != NULL)
+    if (tmp != nullptr)
         return tmp->get_profile();
-    return NULL;
+    return nullptr;
 }
 
 std::vector<std::string> get_available_profiles() {
@@ -658,6 +687,11 @@ extern "C" {
         init(argc, argv, thread_name);
     }
 
+    void apex_stop_measurement()
+    {
+        stop_measurement();
+    }
+
     void apex_finalize()
     {
         finalize();
@@ -677,7 +711,7 @@ extern "C" {
           string tmp((const char *)identifier);
           return (apex_profiler_handle)start(tmp);
       }
-      return (apex_profiler_handle)(NULL);
+      return (apex_profiler_handle)(nullptr);
     }
 
     apex_profiler_handle apex_resume(apex_profiler_type type, void * identifier)
@@ -689,7 +723,7 @@ extern "C" {
           string tmp((const char *)identifier);
           return (apex_profiler_handle)resume(tmp);
       }
-      return (apex_profiler_handle)(NULL);
+      return (apex_profiler_handle)(nullptr);
     }
 
     void apex_reset(apex_profiler_type type, void * identifier) {
@@ -794,7 +828,7 @@ extern "C" {
             string tmp((const char *)identifier);
             return get_profile(tmp);
         }
-        return NULL;
+        return nullptr;
     }
 
     double apex_current_power_high() {

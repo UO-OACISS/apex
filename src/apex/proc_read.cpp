@@ -607,6 +607,7 @@ void ProcData::read_proc(void) {
     TAU_STOP("ProcData::read_proc");
   }
 #endif
+  delete(oldData);
 
 }
 

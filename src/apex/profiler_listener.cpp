@@ -882,11 +882,13 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 #ifndef APEX_HAVE_HPX3
       queue_signal.post();
       consumer_thread->join();
+      delete consumer_thread;
 #endif
-#ifdef APEX_HAVE_HPX3
+//#ifdef APEX_HAVE_HPX3 ?
     // stop the main timer, and process that profile
     main_timer->stop();
     process_profile(main_timer, my_tid);
+    delete main_timer;
 
     // output to screen?
     if (apex_options::use_screen_output() && node_id == 0)
@@ -907,7 +909,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         write_profile((int)i);
       }
     }
-#endif
+// #endif ?
 #if APEX_HAVE_PAPI
       int rc = 0;
       int i = 0;
@@ -1132,6 +1134,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       profiler * p = new profiler(new string(*data.counter_name), data.counter_value);
       p->is_counter = data.is_counter;
       push_profiler(my_tid, p);
+      p->safe_to_delete = true;
     }
   }
 
@@ -1164,5 +1167,14 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
     p = new profiler(new string(timer_name), false, reset_type::CURRENT);
     push_profiler(my_tid, p);
   }
+
+  profiler_listener::~profiler_listener (void) { 
+#ifdef USE_UDP
+      if (apex_options::use_udp_sink()) {
+          udp_client::stop_client();
+      }
+#endif
+      delete_profiles();
+  };
 
 }

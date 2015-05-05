@@ -53,13 +53,7 @@ public:
       }
 #endif
   };
-  ~profiler_listener (void) { 
-#ifdef USE_UDP
-      if (apex_options::use_udp_sink()) {
-          udp_client::stop_client();
-      }
-#endif
-  };
+  ~profiler_listener (void);
   // events
   void on_startup(startup_event_data &data);
   void on_shutdown(shutdown_event_data &data);

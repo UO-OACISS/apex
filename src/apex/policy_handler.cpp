@@ -92,7 +92,9 @@ inline void policy_handler::_reset(void) {
     hpx_timer.stop();
   }
 #else
-  if (!_terminate) {
+  if (_terminate) {
+      _timer_thread->interrupt();
+  } else {
     _timer.expires_at(_timer.expires_at() + boost::posix_time::microseconds(_period));
     _timer.async_wait(boost::bind(&policy_handler::_handler, this));
   }
@@ -325,25 +327,27 @@ inline void policy_handler::call_policies(
 }
 
 void policy_handler::on_startup(startup_event_data &event_data) {
-  if (_terminate) return;
-            if (startup_policies.empty())
-                return;
-        call_policies(startup_policies, event_data);
+    if (_terminate) return;
+    if (startup_policies.empty()) return;
+    call_policies(startup_policies, event_data);
 }
 
 void policy_handler::on_shutdown(shutdown_event_data &event_data) {
-  if (_terminate) return;
-        _terminate = true;
-            if (shutdown_policies.empty())
-                return;
-        call_policies(shutdown_policies, event_data);
+    if (_terminate) return;
+    _terminate = true;
+    if (_timer_thread != nullptr) { 
+        _timer_thread->join(); 
+        delete(_timer_thread);
+        _timer_thread = nullptr;
+    }
+    if (shutdown_policies.empty()) return;
+    call_policies(shutdown_policies, event_data);
 }
 
 void policy_handler::on_new_node(node_event_data &event_data) {
-  if (_terminate) return;
-            if (new_node_policies.empty())
-                return;
-        call_policies(new_node_policies, event_data);
+    if (_terminate) return;
+    if (new_node_policies.empty()) return;
+    call_policies(new_node_policies, event_data);
 }
 
 void policy_handler::on_new_thread(new_thread_event_data &event_data) {
