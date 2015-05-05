@@ -110,8 +110,8 @@ int main(int argc, char **argv)
     pthread_join(thread[i], NULL);
   }
   apex_stop(my_profiler);
-  apex_stop_measurement();
   apex_finalize();
+  apex_cleanup();
   return(0);
 }
 

@@ -123,7 +123,7 @@ int main(int argc, char **argv)
   for (i = 0 ; i < numthreads ; i++) {
     pthread_join(thread[i], NULL);
   }
-  apex::stop_measurement();
+  apex::finalize();
   apex_profile * with = apex::get_profile((apex_function_address)&someThread);
   apex_profile * without = apex::get_profile((apex_function_address)&someUntimedThread);
   apex_profile * footime = apex::get_profile((apex_function_address)&foo);
@@ -151,7 +151,7 @@ int main(int argc, char **argv)
     std::cout << "Overhead (1) per timer: " << cycles1 << " cycles" << std::endl;
     //std::cout << "Overhead (2) per timer: " << cycles2 << " cycles" << std::endl;
   }
-  apex::finalize();
+  apex::cleanup();
   return(0);
 }
 

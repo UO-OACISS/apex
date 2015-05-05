@@ -18,8 +18,8 @@ int main (int argc, char** argv) {
   for (i = 0 ; i < 3 ; i++)
     j += foo(i);
   apex_stop(profiler);
-  apex_stop_measurement();
   apex_finalize();
+  apex_cleanup();
   return 0;
 }
 

@@ -537,7 +537,7 @@ void set_interrupt_interval(int seconds)
 #endif
 }
 
-void stop_measurement()
+void finalize()
 {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
@@ -562,11 +562,11 @@ void stop_measurement()
     }
 }
 
-void finalize(void) {
+void cleanup(void) {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     if (!_measurement_stopped) {
-        stop_measurement();
+        finalize();
     }
     delete(instance);
 }
@@ -685,9 +685,9 @@ extern "C" {
         init(argc, argv, thread_name);
     }
 
-    void apex_stop_measurement()
+    void apex_cleanup()
     {
-        stop_measurement();
+        cleanup();
     }
 
     void apex_finalize()

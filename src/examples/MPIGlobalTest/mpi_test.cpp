@@ -46,10 +46,10 @@ int main(int argc, char **argv) {
   /* Shut down MPI */
 
   apex_global_teardown(); // do this before MPI_Finalize
-  std::cout << myrank << " calling apex::stop_measurement()..." << std::endl;
-  apex::stop_measurement();
   std::cout << myrank << " calling apex::finalize()..." << std::endl;
   apex::finalize();
+  std::cout << myrank << " calling apex::cleanup()..." << std::endl;
+  apex::cleanup();
   std::cout << myrank << " calling MPI_Finalize()..." << std::endl;
   MPI_Finalize();
   std::cout << myrank << " exiting." << std::endl;

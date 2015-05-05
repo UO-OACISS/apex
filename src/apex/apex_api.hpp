@@ -83,7 +83,7 @@ APEX_EXPORT void init(const char * thread_name);
 APEX_EXPORT void init(int argc, char** argv, const char * thread_name);
 
 /**
- \brief Stop APEX measurement.
+ \brief Finalize APEX.
  
  The stop measurement method will terminate all measurement and optionally:
  - print a report to the screen
@@ -91,21 +91,21 @@ APEX_EXPORT void init(int argc, char** argv, const char * thread_name);
  \return No return value.
  \sa apex::init
  */
-APEX_EXPORT void stop_measurement(void);
+APEX_EXPORT void finalize(void);
 
 /**
- \brief Finalize APEX.
+ \brief Cleanup APEX.
  \warning For best results, this function should be explicitly called 
           before program exit. If not explicitly called from the 
 		  application or runtime, it will be automatically
 		  called when the APEX main singleton object is destructed,
 		  but there are no guarantees that will work correctly.
  
- The finalization method will free all allocated memory for APEX.
+ The cleanup method will free all allocated memory for APEX.
  \return No return value.
  \sa apex::init
  */
-APEX_EXPORT void finalize(void);
+APEX_EXPORT void cleanup(void);
 
 /**
  \brief Start a timer.
