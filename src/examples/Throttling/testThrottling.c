@@ -16,6 +16,8 @@
 #define SLEEPY_TIME 10000 // 10,000
 
 int total_iterations = NUM_THREADS * ITERATIONS;
+bool test_passed = false;
+int original_cap = NUM_THREADS;
 
 int foo (int i) {
   apex_profiler_handle p = apex_start(APEX_FUNCTION_ADDRESS, &foo);
@@ -25,6 +27,9 @@ int foo (int i) {
   tim.tv_sec = 0;
   // sleep just a bit longer, based on number of active threads.
   int cap = MIN(NUM_THREADS,apex_get_thread_cap());
+	if (cap != original_cap) {
+		test_passed = true;
+  }
   tim.tv_nsec = (unsigned long)(SLEEPY_TIME * randval * (cap * cap));
   nanosleep(&tim , &tim2);
   apex_stop(p);
@@ -77,7 +82,7 @@ int main(int argc, char **argv)
   apex_setup_timer_throttling(APEX_FUNCTION_ADDRESS, &foo, APEX_MINIMIZE_ACCUMULATED,
           APEX_DISCRETE_HILL_CLIMBING, 1000000);
 
-  int original_cap = apex_get_thread_cap();
+  original_cap = apex_get_thread_cap();
 
   apex_profiler_handle p = apex_start(APEX_FUNCTION_ADDRESS, &main);
   //printf("PID of this process: %d\n", getpid());
@@ -93,7 +98,7 @@ int main(int argc, char **argv)
   }
   apex_stop(p);
   int final_cap = apex_get_thread_cap();
-  if (final_cap < original_cap) {
+  if (test_passed) {
     printf("Test passed.\n");
   }
   apex_finalize();
