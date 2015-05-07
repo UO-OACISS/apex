@@ -131,6 +131,8 @@ public:
     ~apex();
 };
 
+int initialize_worker_thread_for_TAU(void);
+
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 } //namespace apex

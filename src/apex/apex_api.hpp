@@ -60,8 +60,7 @@ namespace apex
  \param thread_name The name of the thread, or NULL. The lifetime of the
                     thread will be timed with a timer using this same name.
  \return No return value.
- \sa apex::init
- \sa apex::finalize
+ \sa @ref apex::init @ref apex::finalize
  */
 APEX_EXPORT void init(const char * thread_name);
 
@@ -77,8 +76,7 @@ APEX_EXPORT void init(const char * thread_name);
  \param thread_name The name of the thread, or NULL. The lifetime of the
                     thread will be timed with a timer using this same name.
  \return No return value.
- \sa apex::init
- \sa apex::finalize
+ \sa @ref apex::init @ref apex::finalize
  */
 APEX_EXPORT void init(int argc, char** argv, const char * thread_name);
 
@@ -89,23 +87,27 @@ APEX_EXPORT void init(int argc, char** argv, const char * thread_name);
  - print a report to the screen
  - write a TAU profile to disk
  \return No return value.
- \sa apex::init
+ \sa @ref apex::init
  */
 APEX_EXPORT void finalize(void);
 
 /**
  \brief Cleanup APEX.
  \warning For best results, this function should be explicitly called 
-          before program exit. If not explicitly called from the 
-		  application or runtime, it will be automatically
-		  called when the APEX main singleton object is destructed,
-		  but there are no guarantees that will work correctly.
+					to free all memory allocated by APEX. If not explicitly called from
+					the application or runtime, it will be automatically called when the
+					APEX main singleton object is destructed. apex::finalize will be 
+					automatically called from apex::cleanup if it has not yet been called.
  
  The cleanup method will free all allocated memory for APEX.
  \return No return value.
- \sa apex::init
+ \sa @ref apex::init @ref apex::finalize
  */
 APEX_EXPORT void cleanup(void);
+
+/*
+ * Functions for starting, stopping timers
+ */
 
 /**
  \brief Start a timer.
@@ -119,7 +121,7 @@ APEX_EXPORT void cleanup(void);
          queried by the application. Should be retained locally, if
 		 possible, and passed in to the matching apex::stop()
 		 call when the timer should be stopped.
- \sa apex::stop
+ \sa @ref apex::stop, @ref apex::yield, @ref apex::resume
  */
 APEX_EXPORT profiler * start(const std::string &timer_name);
 
@@ -135,7 +137,7 @@ APEX_EXPORT profiler * start(const std::string &timer_name);
          queried by the application. Should be retained locally, if
 		 possible, and passed in to the matching apex::stop
 		 call when the timer should be stopped.
- \sa apex::stop
+ \sa @ref apex::stop, @ref apex::yield, @ref apex::resume
  */
 APEX_EXPORT profiler * start(apex_function_address function_address);
 
@@ -148,7 +150,7 @@ APEX_EXPORT profiler * start(apex_function_address function_address);
  
  \param the_profiler The handle of the profiler object.
  \return No return value.
- \sa apex::start
+ \sa @ref apex::start, @ref apex::yield, @ref apex::resume
  */
 APEX_EXPORT void stop(profiler * the_profiler);
 
@@ -163,7 +165,7 @@ APEX_EXPORT void stop(profiler * the_profiler);
  
  \param the_profiler The handle of the profiler object.
  \return No return value.
- \sa apex::start
+ \sa @ref apex::start, @ref apex::stop, @ref apex::resume
  */
 APEX_EXPORT void yield(profiler * the_profiler);
 
@@ -182,7 +184,7 @@ APEX_EXPORT void yield(profiler * the_profiler);
          queried by the application. Should be retained locally, if
 		 possible, and passed in to the matching apex::stop()
 		 call when the timer should be stopped.
- \sa apex::stop, apex::yield, apex::start
+ \sa @ref apex::stop, @ref apex::yield, @ref apex::start
  */
 APEX_EXPORT profiler * resume(const std::string &timer_name);
 
@@ -205,41 +207,9 @@ APEX_EXPORT profiler * resume(const std::string &timer_name);
  */
 APEX_EXPORT profiler * resume(apex_function_address function_address);
 
-/**
- \brief Sample a state value.
-
- This function will retain a sample of some value. The profile
- for this sampled value will store the min, mean, max, total
- and standard deviation for this value for all times it is sampled.
- 
- \param name The name of the sampled value
- \param value The sampled value
- \return No return value.
+/*
+ * Functions for resetting timer values
  */
-APEX_EXPORT void sample_value(const std::string &name, double value);
-
-/**
- \brief Register an event type with APEX.
-
- Create a user-defined event type for APEX.
- 
- \param name The name of the custom event
- \return The index of the custom event.
- */
-APEX_EXPORT apex_event_type register_custom_event(const std::string &name);
-
-/**
- \brief Trigger a custom event.
-
- This function will pass a custom event to the APEX event listeners.
- Each listeners' on_custom_event() event will handle the custom event.
- Policy functions will be passed the custom event name in the event context.
- 
- \param event_type The type of the custom event
- \param custom_data Data relevant to the custom event
- \return No return value.
- */
-APEX_EXPORT void custom_event(apex_event_type event_type, void * custom_data);
 
 /**
  \brief Reset a timer or counter.
@@ -249,6 +219,7 @@ APEX_EXPORT void custom_event(apex_event_type event_type, void * custom_data);
  
  \param timer_name The name of the timer.
  \return No return value.
+ \sa @ref apex::get_profile
  */
 APEX_EXPORT void reset(const std::string &timer_name);
 
@@ -272,6 +243,52 @@ APEX_EXPORT void reset(apex_function_address function_address);
  \return No return value.
  */
 APEX_EXPORT void set_state(apex_thread_state state);
+
+/*
+ * Function for sampling a counter value
+ */
+
+/**
+ \brief Sample a state value.
+
+ This function will retain a sample of some value. The profile
+ for this sampled value will store the min, mean, max, total
+ and standard deviation for this value for all times it is sampled.
+ 
+ \param name The name of the sampled value
+ \param value The sampled value
+ \return No return value.
+ */
+APEX_EXPORT void sample_value(const std::string &name, double value);
+
+/**
+ \brief Register an event type with APEX.
+
+ Create a user-defined event type for APEX.
+ 
+ \param name The name of the custom event
+ \return The index of the custom event.
+ \sa @ref apex::custom_event
+ */
+APEX_EXPORT apex_event_type register_custom_event(const std::string &name);
+
+/**
+ \brief Trigger a custom event.
+
+ This function will pass a custom event to the APEX event listeners.
+ Each listeners' custom event handler will handle the custom event.
+ Policy functions will be passed the custom event name in the event context.
+ 
+ \param event_type The type of the custom event
+ \param custom_data Data specific to the custom event
+ \return No return value.
+ \sa @ref apex::register_custom_event
+ */
+APEX_EXPORT void custom_event(apex_event_type event_type, void * custom_data);
+
+/*
+ * Utility functions
+ */
 
 /**
  \brief Return the APEX version.
@@ -308,7 +325,9 @@ APEX_EXPORT void register_thread(const std::string &name);
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS // not sure if these will stay in the API
 
-int initialize_worker_thread_for_TAU(void);
+/*
+ * Power-related functions
+ */
 APEX_EXPORT void track_power(void);
 APEX_EXPORT void track_power_here(void);
 APEX_EXPORT void enable_tracking_power(void);
@@ -316,6 +335,10 @@ APEX_EXPORT void disable_tracking_power(void);
 APEX_EXPORT void set_interrupt_interval(int seconds);
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
+
+/*
+ * Policy Engine functions.
+ */
 
 /**
  \brief Register a policy with APEX.
@@ -329,6 +352,7 @@ APEX_EXPORT void set_interrupt_interval(int seconds);
  \param when The APEX event when this function should be called
  \param f The function to be called when that event is handled by APEX.
  \return A handle to the policy, to be stored if the policy is to be un-registered later.
+ \sa @ref apex::deregister_policy, @ref apex::register_periodic_policy
  */
 APEX_EXPORT apex_policy_handle* register_policy(const apex_event_type when, std::function<int(apex_context const&)> f);
 
