@@ -31,7 +31,7 @@ endif()
 set(LM_SENSORS_NAME sensors)
 find_library(LM_SENSORS_LIBRARY
   NAME ${LM_SENSORS_NAME}
-  PATHS ${LM_SENSORS_ROOT}/lib /usr/lib /usr/local/lib /opt/local/lib ${LD_LIBRARY_PATH_STR}
+  PATHS ${LM_SENSORS_ROOT}/lib /usr/lib /usr/lib64 /usr/local/lib /opt/local/lib ${LD_LIBRARY_PATH_STR}
 )
 
 if (LM_SENSORS_INCLUDE_DIR AND LM_SENSORS_LIBRARY)

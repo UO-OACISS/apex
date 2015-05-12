@@ -8,6 +8,7 @@
 #endif
 
 #include "apex_api.hpp"
+#include "apex.hpp"
 #include "profiler_listener.hpp"
 #include "profiler.hpp"
 #include "thread_instance.hpp"

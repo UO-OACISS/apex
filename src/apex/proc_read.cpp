@@ -6,6 +6,7 @@
 #include <iostream>
 #include "proc_read.h"
 #include "apex_api.hpp"
+#include "apex.hpp"
 #include <boost/atomic.hpp>
 #include <sstream>
 #include <string>
