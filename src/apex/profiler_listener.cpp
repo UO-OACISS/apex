@@ -875,6 +875,8 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   /* On the shutdown event, notify the consumer thread that we are done
    * and set the "terminate" flag. */
   void profiler_listener::on_shutdown(shutdown_event_data &data) {
+    if (_terminate) { return; }
+    _mtx.lock();
     if (!_terminate) {
       node_id = data.node_id;
       _terminate = true;
@@ -882,14 +884,18 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       //sleep(1);
 #ifndef APEX_HAVE_HPX3
       queue_signal.post();
-      consumer_thread->join();
-      delete consumer_thread;
+      if (consumer_thread != nullptr) {
+          consumer_thread->join();
+          delete consumer_thread;
+      }
 #endif
 //#ifdef APEX_HAVE_HPX3 ?
     // stop the main timer, and process that profile
-    main_timer->stop();
-    process_profile(main_timer, my_tid);
-    delete main_timer;
+    if (main_timer != nullptr) {
+        main_timer->stop();
+        process_profile(main_timer, my_tid);
+        delete main_timer;
+    }
 
     // output to screen?
     if (apex_options::use_screen_output() && node_id == 0)
@@ -952,6 +958,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
      * finalized. */
     // cleanup.
     // delete_profiles();
+    _mtx.unlock();
   }
 
   /* When a new node is created */
