@@ -52,6 +52,12 @@ apex* apex::m_pInstance = nullptr;
 
 boost::atomic<bool> _notify_listeners(true);
 boost::atomic<bool> _measurement_stopped(false);
+#ifdef APEX_DEBUG
+boost::atomic<unsigned int> _starts(0L);
+boost::atomic<unsigned int> _stops(0L);
+boost::atomic<unsigned int> _resumes(0L);
+boost::atomic<unsigned int> _yields(0L);
+#endif
 
 #if APEX_HAVE_PROC
     boost::thread * proc_reader_thread;
@@ -229,6 +235,7 @@ void init(const char * thread_name)
     startup_event_data event_data(argc, argv);
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            instance->listeners[i]->on_startup(event_data);
         }
     }
 #if HAVE_TAU
@@ -287,6 +294,9 @@ string& version()
 
 profiler* start(const std::string &timer_name)
 {
+#ifdef APEX_DEBUG
+    _starts++;
+#endif
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return nullptr; // protect against calls after finalization
     if (boost::starts_with(timer_name, "apex_internal")) {
@@ -302,6 +312,9 @@ profiler* start(const std::string &timer_name)
 }
 
 profiler* start(apex_function_address function_address) {
+#ifdef APEX_DEBUG
+    _starts++;
+#endif
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return nullptr; // protect against calls after finalization
     if (_notify_listeners) {
@@ -314,6 +327,9 @@ profiler* start(apex_function_address function_address) {
 
 profiler* resume(const std::string &timer_name)
 {
+#ifdef APEX_DEBUG
+    _resumes++;
+#endif
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return nullptr; // protect against calls after finalization
     if (boost::starts_with(timer_name, "apex_internal")) {
@@ -329,6 +345,9 @@ profiler* resume(const std::string &timer_name)
 }
 
 profiler* resume(apex_function_address function_address) {
+#ifdef APEX_DEBUG
+    _resumes++;
+#endif
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return nullptr; // protect against calls after finalization
     if (_notify_listeners) {
@@ -359,6 +378,9 @@ void set_state(apex_thread_state state) {
 
 void stop(profiler* the_profiler)
 {
+#ifdef APEX_DEBUG
+    _stops++;
+#endif
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     profiler * p;
@@ -379,6 +401,9 @@ void stop(profiler* the_profiler)
 
 void yield(profiler* the_profiler)
 {
+#ifdef APEX_DEBUG
+    _stops++;
+#endif
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     profiler * p;
@@ -549,6 +574,20 @@ void finalize()
 #endif
     if (!_measurement_stopped)
     {
+#ifdef APEX_DEBUG
+        std::cout << "Starts  : " << _starts  << std::endl;
+        std::cout << "Resumes : " << _resumes << std::endl;
+        std::cout << "Yields  : " << _yields  << std::endl;
+        std::cout << "Stops   : " << _stops   << std::endl;
+        unsigned int ins = _starts + _resumes;
+        unsigned int outs = _yields + _stops;
+        if (ins != outs) {
+            std::cout << std::endl;
+            std::cout << " ------->>> ERROR! missing ";
+            std::cout << (ins - outs) << " stops. <<<-------" << std::endl;
+            std::cout << std::endl;
+        }
+#endif
         _measurement_stopped = true;
         stringstream ss;
         ss << instance->get_node_id();
