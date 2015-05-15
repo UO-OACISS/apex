@@ -8,6 +8,7 @@
 #endif
 
 #include "apex_api.hpp"
+#include "apex.hpp"
 #include "profiler_listener.hpp"
 #include "profiler.hpp"
 #include "thread_instance.hpp"
@@ -705,26 +706,8 @@ namespace apex {
     }
 #endif
 
-    // output to screen?
-    if (apex_options::use_screen_output() && node_id == 0)
-    {
-      finalize_profiles();
-    }
+#endif // NOT DEFINED APEX_HAVE_HPX3
 
-    // output to 1 TAU profile per process?
-    if (apex_options::use_profile_output() == 1)
-    {
-      write_profile(-1);
-    }
-    // output to TAU profiles, one per thread per process?
-    else if (apex_options::use_profile_output() > 1)
-    {
-      // the number of thread_name_maps tells us how many threads there are to process
-      for (i = 0 ; i < thread_name_maps.size(); i++) {
-        write_profile((int)i);
-      }
-    }
-#endif
 #ifdef APEX_HAVE_HPX3
     consumer_task_running.clear(memory_order_release);
 #endif
@@ -874,6 +857,8 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   /* On the shutdown event, notify the consumer thread that we are done
    * and set the "terminate" flag. */
   void profiler_listener::on_shutdown(shutdown_event_data &data) {
+    if (_terminate) { return; }
+    _mtx.lock();
     if (!_terminate) {
       node_id = data.node_id;
       _terminate = true;
@@ -881,14 +866,18 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       //sleep(1);
 #ifndef APEX_HAVE_HPX3
       queue_signal.post();
-      consumer_thread->join();
-      delete consumer_thread;
+      if (consumer_thread != nullptr) {
+          consumer_thread->join();
+          delete consumer_thread;
+      }
 #endif
-//#ifdef APEX_HAVE_HPX3 ?
+
     // stop the main timer, and process that profile
-    main_timer->stop();
-    process_profile(main_timer, my_tid);
-    delete main_timer;
+    if (main_timer != nullptr) {
+        main_timer->stop();
+        process_profile(main_timer, my_tid);
+        delete main_timer;
+    }
 
     // output to screen?
     if (apex_options::use_screen_output() && node_id == 0)
@@ -909,7 +898,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         write_profile((int)i);
       }
     }
-// #endif ?
+
 #if APEX_HAVE_PAPI
       int rc = 0;
       int i = 0;
@@ -951,6 +940,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
      * finalized. */
     // cleanup.
     // delete_profiles();
+    _mtx.unlock();
   }
 
   /* When a new node is created */

@@ -43,6 +43,7 @@ extern "C" {
  \param thread_name The name of the thread, or NULL. The lifetime of the
                     thread will be timed with a timer using this same name.
  \return No return value.
+ \sa @ref apex_init_args, @ref apex_finalize
  */
 APEX_EXPORT void apex_init(const char * thread_name);
 
@@ -58,6 +59,7 @@ APEX_EXPORT void apex_init(const char * thread_name);
  \param thread_name The name of the thread, or NULL. The lifetime of the
                     thread will be timed with a timer using this same name.
  \return No return value.
+ \sa @ref apex_init, @ref apex_finalize
  */
 APEX_EXPORT void apex_init_args(int argc, char** argv, const char * thread_name);
 
@@ -68,19 +70,21 @@ APEX_EXPORT void apex_init_args(int argc, char** argv, const char * thread_name)
  - print a report to the screen
  - write a TAU profile to disk
  \return No return value.
+ \sa @ref apex_init, @ref apex_init_args
  */
 APEX_EXPORT void apex_finalize();
 
 /**
  \brief Cleanup APEX.
  \warning For best results, this function should be explicitly called 
-          before program exit. If not explicitly called from the 
-		  application or runtime, it will be automatically
-		  called when the APEX main singleton object is destructed,
-		  but there are no guarantees that will work correctly.
+					to free all memory allocated by APEX. If not explicitly called from
+					the application or runtime, it will be automatically called when the
+					APEX main singleton object is destructed. apex_finalize will be 
+					automatically called from apex_cleanup if it has not yet been called.
  
  The cleanup method will free all allocated memory for APEX.
  \return No return value.
+ \sa @ref apex_finalize
  */
 APEX_EXPORT void apex_cleanup();
 
@@ -102,9 +106,9 @@ APEX_EXPORT void apex_cleanup();
              char *" pointer to the name of the timer.
  \return The handle for the timer object in APEX. Not intended to be
          queried by the application. Should be retained locally, if
-		 possible, and passed in to the matching apex_stop()
+		 possible, and passed in to the matching @ref apex_stop
 		 call when the timer should be stopped.
- \sa apex_stop, apex_resume, apex_yield
+ \sa @ref apex_stop, @ref apex_resume, @ref apex_yield
  */
 APEX_EXPORT apex_profiler_handle apex_start(apex_profiler_type type, void * identifier);
 
@@ -117,7 +121,7 @@ APEX_EXPORT apex_profiler_handle apex_start(apex_profiler_type type, void * iden
  
  \param profiler The handle of the profiler object.
  \return No return value.
- \sa apex_start, apex_yield, apex_resume
+ \sa @ref apex_start, @ref apex_yield, @ref apex_resume
  */
 APEX_EXPORT void apex_stop(apex_profiler_handle profiler);
 
@@ -132,27 +136,29 @@ APEX_EXPORT void apex_stop(apex_profiler_handle profiler);
  
  \param profiler The handle of the profiler object.
  \return No return value.
- \sa apex_start, apex_stop, apex_resume
+ \sa @ref apex_start, @ref apex_stop, @ref apex_resume
  */
 APEX_EXPORT void apex_yield(apex_profiler_handle profiler);
 
 /**
  \brief Resume a timer.
 
- This function will "resume" a timer for the specified object.
+ This function will create a profiler object in APEX, and return a
+ handle to the object.  The object will be associated with the name
+ and/or function address passed in to this function.
  The difference between this function and the apex_start
  function is that the number of calls to that
  timer will not be incremented.
  
-  \param type The type of the address to be stored. This can be one of the @ref
+ \param type The type of the address to be stored. This can be one of the @ref
              apex_profiler_type values.
  \param identifier The function address of the function to be timed, or a "const
              char *" pointer to the name of the timer.
  \return The handle for the timer object in APEX. Not intended to be
          queried by the application. Should be retained locally, if
-		 possible, and passed in to the matching apex_stop()
+		 possible, and passed in to the matching @ref apex_stop
 		 call when the timer should be stopped.
- \sa apex_start, apex_stop, apex_yield
+ \sa @ref apex_start, @ref apex_stop, @ref apex_yield
 */
 APEX_EXPORT apex_profiler_handle apex_resume(apex_profiler_type type, void * identifier);
 
@@ -161,16 +167,17 @@ APEX_EXPORT apex_profiler_handle apex_resume(apex_profiler_type type, void * ide
  */
 
 /**
- \brief Reset a timer.
+ \brief Reset a timer or counter.
 
  This function will reset the profile associated with the specified
- id to zero.  
+ timer or counter id to zero.
  
  \param type The type of the address to be reset. This can be one of the @ref
              apex_profiler_type values.
  \param identifier The function address of the function to be reset, or a "const
              char *" pointer to the name of the timer / counter.
  \return No return value.
+ \sa @ref apex_get_profile
  */
 APEX_EXPORT void apex_reset(apex_profiler_type type, void * identifier);
 
@@ -208,7 +215,7 @@ APEX_EXPORT void apex_sample_value(const char * name, double value);
  
  \param name The name of the custom event
  \return The index of the custom event.
- \sa apex_custom_event
+ \sa @ref apex_custom_event
  */
 APEX_EXPORT int apex_register_custom_event(const char * name);
 
@@ -216,13 +223,13 @@ APEX_EXPORT int apex_register_custom_event(const char * name);
  \brief Trigger a custom event.
 
  This function will pass a custom event to the APEX event listeners.
- Each listeners' on_custom() event will handle the custom event.
+ Each listeners' custom event handler will handle the custom event.
  Policy functions will be passed the custom event name in the event context.
  
  \param event_type The type of the custom event
  \param custom_data Data specific to the custom event
  \return No return value.
- \sa apex_register_custom_event
+ \sa @ref apex_register_custom_event
  */
 APEX_EXPORT void apex_custom_event(apex_event_type event_type, void * custom_data);
 
@@ -230,25 +237,11 @@ APEX_EXPORT void apex_custom_event(apex_event_type event_type, void * custom_dat
  * Utility functions
  */
 
-
-/**
- \brief Set this process' node ID.
-
- For distributed applications, this function will store the
- node ID. Common values are the MPI rank, the HPX locality, etc.
- This ID will be used to identify the process in the global
- performance space.
- 
- \param id The node ID for this process.
- \return No return value.
- */
-APEX_EXPORT void apex_set_node_id(int id);
-
 /**
  \brief Return the APEX version.
  
  \return A character string with the APEX version. This string
- should be freed after the calling function is done with it.
+ should not be freed after the calling function is done with it.
  */
 APEX_EXPORT const char * apex_version(void);
 
@@ -263,7 +256,7 @@ APEX_EXPORT const char * apex_version(void);
  \param id The node ID for this process.
  \return No return value.
  */
-APEX_EXPORT void apex_node_id(int id);
+APEX_EXPORT void apex_set_node_id(int id);
 
 /**
  \brief Register a new thread.
@@ -307,6 +300,7 @@ APEX_EXPORT void apex_set_interrupt_interval(int seconds);
  \param when The APEX event when this function should be called
  \param f The function to be called when that event is handled by APEX.
  \return A handle to the policy, to be stored if the policy is to be un-registered later.
+ \sa @ref apex_deregister_policy, @ref apex_register_periodic_policy
  */
 APEX_EXPORT apex_policy_handle * apex_register_policy(const apex_event_type when, apex_policy_function f);
 
@@ -320,6 +314,7 @@ APEX_EXPORT apex_policy_handle * apex_register_policy(const apex_event_type when
  \param period How frequently the function should be called
  \param f The function to be called when that event is handled by APEX.
  \return A handle to the policy, to be stored if the policy is to be un-registered later.
+ \sa @ref apex_deregister_policy, @ref apex_register_policy
  */
 APEX_EXPORT apex_policy_handle * apex_register_periodic_policy(unsigned long period, apex_policy_function f);
 
@@ -330,7 +325,7 @@ APEX_EXPORT apex_policy_handle * apex_register_periodic_policy(unsigned long per
  again, it should be registered using @ref apex_register_policy or @ref apex_register_periodic_policy.
  
  \param handle The handle of the policy to be deregistered.
- \sa apex_register_policy, apex_register_periodic_policy
+ \sa @ref apex_register_policy, @ref apex_register_periodic_policy
  */
 APEX_EXPORT void apex_deregister_policy(apex_policy_handle * handle);
 
@@ -346,7 +341,6 @@ APEX_EXPORT void apex_deregister_policy(apex_policy_handle * handle);
  \param identifier The function address of the function to be returned, or a "const
              char *" pointer to the name of the timer / counter.
  \return The current profile for that timed function or sampled value.
- \sa apex_get_profiler_id
  */
 APEX_EXPORT apex_profile * apex_get_profile(apex_profiler_type type, void * identifier);
 

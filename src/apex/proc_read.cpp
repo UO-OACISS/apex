@@ -6,6 +6,7 @@
 #include <iostream>
 #include "proc_read.h"
 #include "apex_api.hpp"
+#include "apex.hpp"
 #include <boost/atomic.hpp>
 #include <sstream>
 #include <string>
@@ -283,7 +284,7 @@ void ProcData::sample_values(void) {
   sample_value("CPU Steal", cpu_stat->steal);
   sample_value("CPU Guest", cpu_stat->guest);
   total = cpu_stat->user + cpu_stat->nice + cpu_stat->system + cpu_stat->idle;
-  user_ratio = (double)cpu_stat->user / (double)total;
+  user_ratio = ((double)cpu_stat->user + (double)cpu_stat->nice)/ (double)total;
   system_ratio = (double)cpu_stat->system / (double)total;
   idle_ratio = (double)cpu_stat->idle / (double)total;
   sample_value("CPU User Ratio", user_ratio);
