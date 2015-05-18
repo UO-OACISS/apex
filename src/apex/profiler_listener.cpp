@@ -28,6 +28,7 @@
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/assign.hpp>
 #include <boost/cstdint.hpp>
+#include <boost/format.hpp>
 #if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
 #include <unistd.h>
 #include <sched.h>
@@ -386,11 +387,15 @@ namespace apex {
     }
   }
 
+#define PAD_WITH_SPACES boost::format("%7i")
+#define FORMAT_SCIENTIFIC boost::format("%1.3e")
+
   /* At program termination, write the measurements to the screen. */
   void profiler_listener::finalize_profiles(void) {
     // iterate over the profiles in the address map
     map<apex_function_address, profile*>::const_iterator it;
-    cout << "Action, #calls, min, mean, max, total, stddev" << endl;
+    cout << "Action                         :  #calls |  minimum  |    mean   |  maximum  |   total   |  stddev  " << endl;
+    cout << "----------------------------------------------------------------------------------------------------" << endl;
     for(it = address_map.begin(); it != address_map.end(); it++) {
       profile * p = it->second;
       apex_function_address function_address = it->first;
@@ -409,16 +414,18 @@ namespace apex {
         shorter.resize(27);
         shorter.resize(30, '.');
       }
-      cout << "\"" << shorter << "\", " ;
+      //cout << "\"" << shorter << "\", " ;
+      cout << boost::format("%30s") % shorter << " : ";
 #else
-      cout << "\"" << function_address << "\", " ;
+      //cout << "\"" << function_address << "\", " ;
+      cout << boost::format("%30p") % function_address << " : " ;
 #endif
-      cout << p->get_calls() << ", " ;
-      cout << p->get_minimum() << ", " ;
-      cout << p->get_mean() << ", " ;
-      cout << p->get_maximum() << ", " ;
-      cout << p->get_accumulated() << ", " ;
-      cout << p->get_stddev() << endl;
+      cout << PAD_WITH_SPACES % p->get_calls() << "   " ;
+      cout << FORMAT_SCIENTIFIC % p->get_minimum() << "   " ;
+      cout << FORMAT_SCIENTIFIC % p->get_mean() << "   " ;
+      cout << FORMAT_SCIENTIFIC % p->get_maximum() << "   " ;
+      cout << FORMAT_SCIENTIFIC % p->get_accumulated() << "   " ;
+      cout << FORMAT_SCIENTIFIC % p->get_stddev() << endl;
     }
     map<string, profile*>::const_iterator it2;
     // iterate over the profiles in the name map
@@ -451,16 +458,17 @@ namespace apex {
         shorter.resize(27);
         shorter.resize(30, '.');
       }
-      cout << "\"" << shorter << "\", " ;
+      //cout << "\"" << shorter << "\", " ;
+      cout << boost::format("%30s") % shorter << " : ";
       if(p->get_calls() < 1) {
         p->get_profile()->calls = 1;
       }
-      cout << p->get_calls() << ", " ;
-      cout << p->get_minimum() << ", " ;
-      cout << p->get_mean() << ", " ;
-      cout << p->get_maximum() << ", " ;
-      cout << p->get_accumulated() << ", " ;
-      cout << p->get_stddev() << endl;
+      cout << PAD_WITH_SPACES % p->get_calls() << "   " ;
+      cout << FORMAT_SCIENTIFIC % p->get_minimum() << "   " ;
+      cout << FORMAT_SCIENTIFIC % p->get_mean() << "   " ;
+      cout << FORMAT_SCIENTIFIC % p->get_maximum() << "   " ;
+      cout << FORMAT_SCIENTIFIC % p->get_accumulated() << "   " ;
+      cout << FORMAT_SCIENTIFIC % p->get_stddev() << endl;
     }
   }
 
