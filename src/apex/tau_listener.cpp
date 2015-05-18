@@ -57,6 +57,14 @@ void tau_listener::on_new_thread(new_thread_event_data &data) {
   return;
 }
 
+void tau_listener::on_exit_thread(event_data &data) {
+  if (!_terminate) {
+      TAU_PROFILE_EXIT("APEX exiting");
+  }
+  APEX_UNUSED(data);
+  return;
+}
+
 void tau_listener::on_start(apex_function_address function_address) {
   if (!_terminate) {
     TAU_START(thread_instance::instance().map_addr_to_name(function_address).c_str());

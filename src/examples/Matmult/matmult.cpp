@@ -146,6 +146,7 @@ void * threaded_func(void *data)
   UNUSED(data);
   apex::register_thread("threaded_func");
   do_work();
+  apex::exit_thread();
   return NULL;
 }
 

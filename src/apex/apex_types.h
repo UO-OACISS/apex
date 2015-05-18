@@ -59,6 +59,7 @@ typedef enum _event_type {
   APEX_SHUTDOWN,       /*!< APEX is terminated */
   APEX_NEW_NODE,       /*!< APEX has registered a new process ID */
   APEX_NEW_THREAD,     /*!< APEX has registered a new OS thread */
+  APEX_EXIT_THREAD,    /*!< APEX has exited an OS thread */
   APEX_START_EVENT,    /*!< APEX has processed a timer start event */
   APEX_RESUME_EVENT,   /*!< APEX has processed a timer resume event (the number
                            of calls is not incremented) */

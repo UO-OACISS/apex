@@ -33,6 +33,7 @@
 #include "profiler_listener.hpp"
 #ifdef APEX_DEBUG
 #include "apex_error_handling.hpp"
+#include "address_resolution.hpp"
 #endif
 
 #ifdef APEX_HAVE_MSR
@@ -40,6 +41,7 @@
 #endif
 
 APEX_NATIVE_TLS bool _registered = false;
+APEX_NATIVE_TLS bool _exited = false;
 static bool _initialized = false;
 
 using namespace std;
@@ -94,10 +96,10 @@ void apex::set_node_id(int id)
     stringstream ss;
     ss << "locality#" << m_node_id;
     m_my_locality = new string(ss.str());
-    node_event_data event_data(id, thread_instance::get_id());
+    node_event_data data(id, thread_instance::get_id());
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < listeners.size() ; i++) {
-            listeners[i]->on_new_node(event_data);
+            listeners[i]->on_new_node(data);
         }
     }
 }
@@ -175,6 +177,7 @@ apex* apex::instance()
     {
         m_pInstance = new apex;
     }
+    else if (_measurement_stopped) return nullptr;
     return m_pInstance;
 }
 
@@ -185,6 +188,7 @@ apex* apex::instance(int argc, char**argv)
     {
         m_pInstance = new apex(argc, argv);
     }
+    else if (_measurement_stopped) return nullptr;
     return m_pInstance;
 }
 
@@ -232,10 +236,10 @@ void init(const char * thread_name)
     argv[0] = const_cast<char*>(dummy);
     apex* instance = apex::instance(); // get/create the Apex static instance
     if (!instance) return; // protect against calls after finalization
-    startup_event_data event_data(argc, argv);
+    startup_event_data data(argc, argv);
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_startup(event_data);
+            instance->listeners[i]->on_startup(data);
         }
     }
 #if HAVE_TAU
@@ -257,10 +261,10 @@ void init(int argc, char** argv, const char * thread_name)
     _initialized = true;
     apex* instance = apex::instance(argc, argv); // get/create the Apex static instance
     if (!instance) return; // protect against calls after finalization
-    startup_event_data event_data(argc, argv);
+    startup_event_data data(argc, argv);
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_startup(event_data);
+            instance->listeners[i]->on_startup(data);
         }
     }
 #ifdef APEX_HAVE_TAU
@@ -308,7 +312,7 @@ profiler* start(const std::string &timer_name)
             instance->listeners[i]->on_start(tmp);
         }
     }
-    return thread_instance::instance().current_timer;
+    return thread_instance::instance().get_current_profiler();
 }
 
 profiler* start(apex_function_address function_address) {
@@ -316,13 +320,17 @@ profiler* start(apex_function_address function_address) {
     _starts++;
 #endif
     apex* instance = apex::instance(); // get the Apex static instance
+    if (instance->get_node_id() == 0) { 
+        //printf("%lu Start: %p\n", thread_instance::get_id(), (void*)function_address);
+        fflush(stdout); 
+    }
     if (!instance) return nullptr; // protect against calls after finalization
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_start(function_address);
         }
     }
-    return thread_instance::instance().current_timer;
+    return thread_instance::instance().get_current_profiler();
 }
 
 profiler* resume(const std::string &timer_name)
@@ -341,7 +349,7 @@ profiler* resume(const std::string &timer_name)
             instance->listeners[i]->on_resume(tmp);
         }
     }
-    return thread_instance::instance().current_timer;
+    return thread_instance::instance().get_current_profiler();
 }
 
 profiler* resume(apex_function_address function_address) {
@@ -355,7 +363,7 @@ profiler* resume(apex_function_address function_address) {
             instance->listeners[i]->on_resume(function_address);
         }
     }
-    return thread_instance::instance().current_timer;
+    return thread_instance::instance().get_current_profiler();
 }
 
 void reset(const std::string &timer_name) {
@@ -378,48 +386,64 @@ void set_state(apex_thread_state state) {
 
 void stop(profiler* the_profiler)
 {
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance) return; // protect against calls after finalization
+    profiler * p = nullptr;
+    if (the_profiler == nullptr) {
+        try {
+            p = thread_instance::instance().pop_current_profiler();
+        } catch (empty_stack_exception& e) { }
+    } else {
+        try {
+            p = thread_instance::instance().pop_current_profiler();
+        } catch (empty_stack_exception& e) { assert(p); }
+        assert(p == the_profiler);
+    }
+    //assert(p);
+    if (p == nullptr) {
+        std::cout << thread_instance::get_id() << " NULL PROFILER!" << std::endl; fflush(stdout);
+        return;
+    }
 #ifdef APEX_DEBUG
     _stops++;
 #endif
-    apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return; // protect against calls after finalization
-    profiler * p;
-    if (the_profiler == nullptr) {
-        p = thread_instance::instance().current_timer;
-    } else {
-        p = (profiler*)the_profiler;
+    if (instance->get_node_id() == 0) { 
+        //printf("%lu Stop:  %p\n", thread_instance::get_id(), (void*)p->action_address);
+        fflush(stdout); 
     }
-    if (p == nullptr) return;
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_stop(p);
         }
     }
     p->safe_to_delete = true;
-    thread_instance::instance().current_timer = nullptr;
 }
 
 void yield(profiler* the_profiler)
 {
-#ifdef APEX_DEBUG
-    _stops++;
-#endif
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
-    profiler * p;
+    profiler * p = nullptr;
     if (the_profiler == nullptr) {
-        p = thread_instance::instance().current_timer;
+        try {
+            p = thread_instance::instance().pop_current_profiler();
+        } catch (empty_stack_exception& e) { }
     } else {
-        p = (profiler*)the_profiler;
+        try {
+            p = thread_instance::instance().pop_current_profiler();
+        } catch (empty_stack_exception& e) { assert(p); }
+        assert(p == the_profiler);
     }
     if (p == nullptr) return;
+#ifdef APEX_DEBUG
+    _yields++;
+#endif
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_yield(p);
         }
     }
     p->safe_to_delete = true;
-    thread_instance::instance().current_timer = nullptr;
 }
 
 void sample_value(const std::string &name, double value)
@@ -429,7 +453,7 @@ void sample_value(const std::string &name, double value)
     // parse the counter name
     // either /threadqueue{locality#0/total}/length
     // or     /threadqueue{locality#0/worker-thread#0}/length
-    sample_value_event_data* event_data = nullptr;
+    sample_value_event_data* data = nullptr;
     if (name.find(*(instance->m_my_locality)) != name.npos)
     {
         if (name.find("worker-thread") != name.npos)
@@ -452,32 +476,32 @@ void sample_value(const std::string &name, double value)
             }
             if (tid != -1)
             {
-                event_data = new sample_value_event_data(tid, name, value);
+                data = new sample_value_event_data(tid, name, value);
                 //Tau_trigger_context_event_thread((char*)name.c_str(), value, tid);
             }
             else
             {
-                event_data = new sample_value_event_data(0, name, value);
+                data = new sample_value_event_data(0, name, value);
                 //Tau_trigger_context_event_thread((char*)name.c_str(), value, 0);
             }
         }
         else
         {
-            event_data = new sample_value_event_data(0, name, value);
+            data = new sample_value_event_data(0, name, value);
             //Tau_trigger_context_event_thread((char*)name.c_str(), value, 0);
         }
     }
     else
     {
         // what if it doesn't?
-        event_data = new sample_value_event_data(0, name, value);
+        data = new sample_value_event_data(0, name, value);
     }
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_sample_value(*event_data);
+            instance->listeners[i]->on_sample_value(*data);
         }
     }
-    delete(event_data);
+    delete(data);
 }
 
 boost::atomic<int> custom_event_count(APEX_CUSTOM_EVENT);
@@ -498,10 +522,10 @@ apex_event_type register_custom_event(const std::string &name) {
 void custom_event(apex_event_type event_type, void * custom_data) {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
-    custom_event_data event_data(event_type, custom_data);
+    custom_event_data data(event_type, custom_data);
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_custom_event(event_data);
+            instance->listeners[i]->on_custom_event(data);
         }
     }
 }
@@ -566,6 +590,7 @@ void finalize()
 {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
+    exit_thread();
 #if APEX_HAVE_PROC
     ProcData::stop_reading();
 #endif
@@ -586,15 +611,16 @@ void finalize()
             std::cout << " ------->>> ERROR! missing ";
             std::cout << (ins - outs) << " stops. <<<-------" << std::endl;
             std::cout << std::endl;
+            assert(ins == outs);
         }
 #endif
         _measurement_stopped = true;
         stringstream ss;
         ss << instance->get_node_id();
-        shutdown_event_data event_data(instance->get_node_id(), thread_instance::get_id());
+        shutdown_event_data data(instance->get_node_id(), thread_instance::get_id());
         if (_notify_listeners) {
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-                instance->listeners[i]->on_shutdown(event_data);
+                instance->listeners[i]->on_shutdown(data);
             }
         }
         _notify_listeners = false;
@@ -618,10 +644,10 @@ void register_thread(const std::string &name)
     thread_instance::set_name(name);
     instance->resize_state(thread_instance::get_id());
     instance->set_state(thread_instance::get_id(), APEX_BUSY);
-    new_thread_event_data event_data(name);
+    new_thread_event_data data(name);
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_new_thread(event_data);
+            instance->listeners[i]->on_new_thread(data);
         }
     }
 #ifdef APEX_HAVE_TAU
@@ -637,6 +663,19 @@ void register_thread(const std::string &name)
         start(name);
     }
 #endif
+}
+
+void exit_thread(void)
+{
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance) return; // protect against calls after finalization
+    if (_exited) return; // protect against multiple exits on the same thread
+    event_data data;
+    if (_notify_listeners) {
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            instance->listeners[i]->on_exit_thread(data);
+        }
+    }
 }
 
 apex_policy_handle* register_policy(const apex_event_type when,
@@ -818,6 +857,11 @@ extern "C" {
             string tmp("APEX WORKER THREAD");
             register_thread(tmp);
         }
+    }
+
+    void apex_exit_thread(void)
+    {
+        exit_thread();
     }
 
     void apex_track_power(void)

@@ -14,9 +14,17 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/atomic.hpp>
 #include <map>
+#include <stack>
 #include "profiler.hpp"
+#include <exception>
 
 namespace apex {
+
+class empty_stack_exception : public std::exception {
+    virtual const char* what() const throw() {
+        return "Empty profiler stack.";
+    }
+} ;
 
 class thread_instance {
 private:
@@ -39,8 +47,9 @@ private:
   thread_instance (void) : _id(-1), _top_level_timer_name(), _is_worker(false) { };
   // map from function address to name - unique to all threads to avoid locking
   std::map<apex_function_address, std::string> _function_map;
+  profiler * current_profiler;
+  std::stack<profiler*> current_profilers;
 public:
-  profiler * current_timer;
   static thread_instance& instance(void);
   static long unsigned int get_id(void) { return instance()._id; }
   static std::string get_name(void);
@@ -50,6 +59,9 @@ public:
   static bool map_id_to_worker(int id);
   static int get_num_threads(void) { return _num_threads; };
   std::string map_addr_to_name(apex_function_address function_address);
+  static void set_current_profiler(profiler * the_profiler);
+  static profiler * get_current_profiler(void);
+  static profiler * pop_current_profiler(void);
 };
 
 }

@@ -872,12 +872,17 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       }
 #endif
 
+/* no longer necessary - the exit_thread() will do this for us.
+ * If we do this now, we will end up with two main timers, and the
+ * possibility that one of them will crash in post-processing. */
+#if 0 
     // stop the main timer, and process that profile
     if (main_timer != nullptr) {
         main_timer->stop();
         process_profile(main_timer, my_tid);
         delete main_timer;
     }
+#endif
 
     // output to screen?
     if (apex_options::use_screen_output() && node_id == 0)
@@ -1005,14 +1010,14 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         // if this timer is throttled, return without doing anything
         unordered_set<apex_function_address>::const_iterator it = throttled_addresses.find(data.function_address);
         if (it != throttled_addresses.end()) {
-          thread_instance::instance().current_timer = nullptr;
+          thread_instance::instance().set_current_profiler(nullptr);
           return;
         }
 #endif
         // start the profiler object, which starts our timers
-        thread_instance::instance().current_timer = new profiler(function_address, is_resume);
+        thread_instance::instance().set_current_profiler(new profiler(function_address, is_resume));
 #if APEX_HAVE_PAPI
-        long long * values = thread_instance::instance().current_timer->papi_start_values;
+        long long * values = thread_instance::instance().get_current_profiler()->papi_start_values;
         int rc = 0;
         rc = PAPI_read( EventSet, values );
         PAPI_ERROR_CHECK(PAPI_read);
@@ -1028,14 +1033,14 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       // if this timer is throttled, return without doing anything
       unordered_set<apex_function_address>::const_iterator it = throttled_names.find(*timer_name);
       if (it != throttled_names.end()) {
-        thread_instance::instance().current_timer = nullptr;
+        thread_instance::instance().set_current_profiler(nullptr);
         return;
       }
 #endif
       // start the profiler object, which starts our timers
-      thread_instance::instance().current_timer = new profiler(timer_name, is_resume);
+      thread_instance::instance().set_current_profiler(new profiler(timer_name, is_resume));
 #if APEX_HAVE_PAPI
-      long long * values = thread_instance::instance().current_timer->papi_start_values;
+      long long * values = thread_instance::instance().get_current_profiler()->papi_start_values;
       int rc = 0;
       rc = PAPI_read( EventSet, values );
       PAPI_ERROR_CHECK(PAPI_read);
@@ -1116,6 +1121,24 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   /* Stop the timer, but don't increment the number of calls */
   void profiler_listener::on_yield(profiler * p) {
     _common_stop(p, true);
+  }
+
+  /* When a thread exits, pop and stop all timers. */
+  void profiler_listener::on_exit_thread(event_data &data) {
+    if (!_terminate) {
+        profiler *p = nullptr;
+        while(true) {
+            try {
+                p = thread_instance::instance().pop_current_profiler();
+            } catch (empty_stack_exception& e) { break; }
+            if (p != nullptr) {
+                _common_stop(p, false);
+                // don't delete the profiler, it will be deleted when
+                // the consumer thread processes it.
+            }
+        }
+    }
+    APEX_UNUSED(data);
   }
 
   /* When a sample value is processed, save it as a profiler object, and queue it. */

@@ -18,6 +18,7 @@ void* someThread(void* tmp)
   sprintf(counter, "/threadqueue{locality#0/%s}/length", name);
   sample_value(counter, 2.0);
   stop(p);
+  exit_thread();
   return NULL;
 }
 

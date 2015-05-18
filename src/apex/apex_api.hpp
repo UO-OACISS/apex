@@ -323,6 +323,17 @@ APEX_EXPORT void set_node_id(int id);
  */
 APEX_EXPORT void register_thread(const std::string &name);
 
+/**
+ \brief Exit a thread.
+
+ For multithreaded applications, exit this thread and clean up.
+ \warning Failure to exit a thread with APEX may invalidate
+ statistics.
+ 
+ \return No return value.
+ */
+APEX_EXPORT void exit_thread(void);
+
 #ifndef DOXYGEN_SHOULD_SKIP_THIS // not sure if these will stay in the API
 
 /*

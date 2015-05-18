@@ -189,5 +189,22 @@ string thread_instance::map_addr_to_name(apex_function_address function_address)
   return name;
 }
 
+void thread_instance::set_current_profiler(profiler * the_profiler) {
+    instance().current_profiler = the_profiler;
+    instance().current_profilers.push(the_profiler);
+}
+
+profiler * thread_instance::get_current_profiler(void) {
+    return instance().current_profiler;
+}
+
+profiler * thread_instance::pop_current_profiler(void) {
+    if (instance().current_profilers.size() == 0) {
+        throw empty_stack_exception(); // to be caught by the profiler_listener
+    }
+    instance().current_profiler = instance().current_profilers.top();
+    instance().current_profilers.pop();
+    return instance().current_profiler;
+}
 
 }

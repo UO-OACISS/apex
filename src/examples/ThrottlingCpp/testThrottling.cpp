@@ -38,7 +38,6 @@ void* someThread(void* tmp)
 {
   int *myid = (int*)tmp;
   register_thread("threadTest thread");
-  //ApexProxy proxy = ApexProxy(__func__, __FILE__, __LINE__);
   profiler* p = start((apex_function_address)someThread);
   printf("PID of this process: %d\n", getpid());
 #if defined (__APPLE__)
@@ -65,6 +64,7 @@ void* someThread(void* tmp)
   }
   printf("Thread done: %d. Current Cap: %d.\n", *myid, get_thread_cap());
   stop(p);
+  exit_thread();
   return NULL;
 }
 

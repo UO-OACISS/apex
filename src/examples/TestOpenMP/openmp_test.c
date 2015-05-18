@@ -98,6 +98,18 @@ void my_init(double* x)
   }
 }
 
+void my_exit()
+{
+  #pragma omp parallel
+  {
+   int i;
+   #pragma omp for schedule(static,1)
+   for (i = 0; i < omp_get_num_threads(); i++) {
+        apex_exit_thread();
+   }
+  }
+}
+
 int main(int argc, char** argv)
 {
   static double x[N];
@@ -128,6 +140,7 @@ int main(int argc, char** argv)
   result = no_sharing(x, y);
   printf("Result: %f\n", result);
 
+  //my_exit();
   apex_finalize();
   return 0;
 }
