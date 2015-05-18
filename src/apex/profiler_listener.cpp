@@ -1125,19 +1125,6 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 
   /* When a thread exits, pop and stop all timers. */
   void profiler_listener::on_exit_thread(event_data &data) {
-    if (!_terminate) {
-        profiler *p = nullptr;
-        while(true) {
-            try {
-                p = thread_instance::instance().pop_current_profiler();
-            } catch (empty_stack_exception& e) { break; }
-            if (p != nullptr) {
-                _common_stop(p, false);
-                // don't delete the profiler, it will be deleted when
-                // the consumer thread processes it.
-            }
-        }
-    }
     APEX_UNUSED(data);
   }
 

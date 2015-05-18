@@ -3,12 +3,13 @@
 #include <signal.h>
 #include <stdio.h>
 #include <execinfo.h>
+#include "thread_instance.hpp"
 
 static void apex_custom_signal_handler(int sig) {
 
   fflush(stderr);
   std::cerr << std::endl;
-  std::cerr  << "********* " << strsignal(sig) << " *********";
+  std::cerr << "********* Thread " << apex::thread_instance::get_id() << " " << strsignal(sig) << " *********";
   std::cerr << std::endl;
   std::cerr << std::endl;
 
@@ -27,7 +28,10 @@ static void apex_custom_signal_handler(int sig) {
   std::cerr << std::endl;
 
   char exe[256];
-  readlink("/proc/self/exe", exe, 256);
+  int len = readlink("/proc/self/exe", exe, 256);
+  if (len != -1) {
+    exe[len] = '\0';
+  }
 
   // skip the first frame, it is this handler
   for( i = 1; i < size; i++ ){

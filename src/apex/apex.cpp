@@ -320,10 +320,14 @@ profiler* start(apex_function_address function_address) {
     _starts++;
 #endif
     apex* instance = apex::instance(); // get the Apex static instance
+    /*
+#ifdef APEX_DEBUG
     if (instance->get_node_id() == 0) { 
-        //printf("%lu Start: %p\n", thread_instance::get_id(), (void*)function_address);
+        printf("%lu Start: %p\n", thread_instance::get_id(), (void*)function_address);
         fflush(stdout); 
     }
+#endif
+    */
     if (!instance) return nullptr; // protect against calls after finalization
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -406,11 +410,13 @@ void stop(profiler* the_profiler)
     }
 #ifdef APEX_DEBUG
     _stops++;
-#endif
+    /*
     if (instance->get_node_id() == 0) { 
-        //printf("%lu Stop:  %p\n", thread_instance::get_id(), (void*)p->action_address);
+        printf("%lu Stop:  %p\n", thread_instance::get_id(), (void*)p->action_address);
         fflush(stdout); 
     }
+    */
+#endif
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_stop(p);
@@ -611,7 +617,7 @@ void finalize()
             std::cout << " ------->>> ERROR! missing ";
             std::cout << (ins - outs) << " stops. <<<-------" << std::endl;
             std::cout << std::endl;
-            assert(ins == outs);
+            //assert(ins == outs);
         }
 #endif
         _measurement_stopped = true;
@@ -670,6 +676,24 @@ void exit_thread(void)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     if (_exited) return; // protect against multiple exits on the same thread
+    // pop any remaining timers, and stop them
+    profiler *p = nullptr;
+    while(true) {
+        try {
+            p = thread_instance::instance().pop_current_profiler();
+        } catch (empty_stack_exception& e) { break; }
+        if (p != nullptr) {
+#ifdef APEX_DEBUG
+            _stops++;
+#endif
+            if (_notify_listeners) {
+                for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+                    instance->listeners[i]->on_stop(p);
+                }
+            }
+            p->safe_to_delete = true;
+        }
+    }
     event_data data;
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
