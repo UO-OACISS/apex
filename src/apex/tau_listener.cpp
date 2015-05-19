@@ -93,7 +93,7 @@ void tau_listener::on_resume(std::string * timer_name) {
   return;
 }
 
-void tau_listener::on_stop(profiler * p) {
+void tau_listener::on_stop(std::shared_ptr<profiler> p) {
   static string empty("");
   if (!_terminate) {
       if (p->have_name) {
@@ -115,7 +115,7 @@ void tau_listener::on_stop(profiler * p) {
   return;
 }
 
-void tau_listener::on_yield(profiler * p) {
+void tau_listener::on_yield(std::shared_ptr<profiler> p) {
     on_stop(p);
 }
 

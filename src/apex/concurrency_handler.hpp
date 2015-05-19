@@ -12,6 +12,7 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <memory>
 #include <boost/thread/mutex.hpp>
 
 #ifdef SIGEV_THREAD_ID
@@ -51,8 +52,8 @@ public:
   void on_exit_thread(event_data &data);
   void on_start(apex_function_address function_address);
   void on_start(std::string *timer_name);
-  void on_stop(profiler * p);
-  void on_yield(profiler * p);
+  void on_stop(std::shared_ptr<profiler> p);
+  void on_yield(std::shared_ptr<profiler> p);
   void on_resume(apex_function_address function_address);
   void on_resume(std::string *timer_name);
   void on_sample_value(sample_value_event_data &data) { APEX_UNUSED(data); };

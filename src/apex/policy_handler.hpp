@@ -21,6 +21,7 @@
 #include <list>
 #include <functional>
 #include <chrono>
+#include <memory>
 
 #include <boost/thread/shared_mutex.hpp>
 #include <boost/shared_ptr.hpp>
@@ -94,8 +95,8 @@ public:
     void on_exit_thread(event_data &data);
     void on_start(apex_function_address function_address);
     void on_start(std::string *timer_name);
-    void on_stop(profiler * p);
-    void on_yield(profiler * p);
+    void on_stop(std::shared_ptr<profiler> p);
+    void on_yield(std::shared_ptr<profiler> p);
     void on_resume(apex_function_address function_address);
     void on_resume(std::string *timer_name);
     void on_sample_value(sample_value_event_data &data);
