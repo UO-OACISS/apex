@@ -371,15 +371,15 @@ namespace apex {
     }
   }
 
-#define PAD_WITH_SPACES boost::format("%7i")
+#define PAD_WITH_SPACES boost::format("%9i")
 #define FORMAT_SCIENTIFIC boost::format("%1.3e")
 
   /* At program termination, write the measurements to the screen. */
   void profiler_listener::finalize_profiles(void) {
     // iterate over the profiles in the address map
     map<apex_function_address, profile*>::const_iterator it;
-    cout << "Action                         :  #calls |  minimum  |    mean   |  maximum  |   total   |  stddev  " << endl;
-    cout << "----------------------------------------------------------------------------------------------------" << endl;
+    cout << "Action                         :   #calls  |  minimum  |    mean   |  maximum  |   total   |  stddev  " << endl;
+    cout << "------------------------------------------------------------------------------------------------------" << endl;
     for(it = address_map.begin(); it != address_map.end(); it++) {
       profile * p = it->second;
       apex_function_address function_address = it->first;
@@ -404,7 +404,11 @@ namespace apex {
       //cout << "\"" << function_address << "\", " ;
       cout << boost::format("%30p") % function_address << " : " ;
 #endif
-      cout << PAD_WITH_SPACES % p->get_calls() << "   " ;
+      if (p->get_calls() < 999999) {
+      	cout << PAD_WITH_SPACES % p->get_calls() << "   " ;
+      } else {
+      	cout << FORMAT_SCIENTIFIC % p->get_calls() << "   " ;
+      }
       cout << FORMAT_SCIENTIFIC % p->get_minimum() << "   " ;
       cout << FORMAT_SCIENTIFIC % p->get_mean() << "   " ;
       cout << FORMAT_SCIENTIFIC % p->get_maximum() << "   " ;
