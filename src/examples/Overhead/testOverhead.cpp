@@ -132,8 +132,16 @@ int main(int argc, char **argv)
   apex_profile * without = apex::get_profile((apex_function_address)&someUntimedThread);
   apex_profile * footime = apex::get_profile((apex_function_address)&foo);
   apex_profile * mhz = apex::get_profile(std::string("cpuinfo.0:cpu MHz"));
-  std::cout << "Without timing: " << without->accumulated/without->calls;
-  std::cout << ", with timing: " << with->accumulated/with->calls << std::endl;
+  double mean = without->accumulated/without->calls;
+  double variance = ((without->sum_squares / without->calls) - (mean * mean));
+  double stddev = sqrt(variance);
+  std::cout << "Without timing: " << mean;
+  std::cout << "±" << stddev;
+  mean = with->accumulated/with->calls;
+  variance = ((with->sum_squares / with->calls) - (mean * mean));
+  stddev = sqrt(variance);
+  std::cout << ", with timing: " << mean;
+  std::cout << "±" << stddev << std::endl;
   std::cout << "Expected calls to 'foo': " << numthreads*ITERATIONS;
   std::cout << ", timed calls to 'foo': " << (int)footime->calls << std::endl;
   double percall1 = (with->accumulated - without->accumulated) / (numthreads * ITERATIONS);
