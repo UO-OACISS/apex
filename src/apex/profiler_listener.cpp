@@ -135,11 +135,6 @@ namespace apex {
   /* A lock necessary for registering new threads */
   boost::mutex profiler_listener::_mtx ;
 
-  /* This is our garbage collection. This listener could be done with the profiler
-   * object, but the tau_listener may not be. So don't delete it until the tau_listener
-   * is done with it. */
-  //static unordered_set<profiler*> my_garbage;
-
 #if APEX_HAVE_PAPI
   static int num_papi_counters = 0;
 #endif
@@ -199,13 +194,6 @@ namespace apex {
     profile * theprofile;
     if(p->is_reset == reset_type::ALL) {
         reset_all();
-        /* now done by shared pointer?
-        if(p->safe_to_delete) {
-            delete(p);
-        } else {
-            my_garbage.insert(p);
-        }
-        */
         return 0;
     }
     // Look for the profile object by name, if applicable
@@ -327,12 +315,6 @@ namespace apex {
         }
       }
     }
-    // done with the profiler object
-    //if(p->safe_to_delete) {
-        //delete(p);
-    //} else {
-        //my_garbage.insert(p);
-    //}
     return 1;
   }
 
@@ -665,21 +647,6 @@ namespace apex {
                 }
             }
         }
-        /*
-        // do some garbage collection
-        for (std::unordered_set<profiler*>::const_iterator itr = my_garbage.begin(); itr != my_garbage.end();) {
-            profiler* tmp = *itr;
-            assert (tmp != nullptr);
-            //if (tmp != nullptr) {
-                if (tmp->safe_to_delete) {
-                    my_garbage.erase(itr++);
-                    delete(tmp);
-                } else {
-                    ++itr;
-                }
-            //}
-        }
-        */
       //} while (!done && processed > 0);
 #ifdef USE_UDP
       // are we updating a global profile?
