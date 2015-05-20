@@ -294,14 +294,14 @@ string& version()
 
 profiler* start(const std::string &timer_name)
 {
+    if (boost::starts_with(timer_name, "apex_internal")) {
+        return nullptr; // don't process our own events
+    }
 #ifdef APEX_DEBUG
     _starts++;
 #endif
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return nullptr; // protect against calls after finalization
-    if (boost::starts_with(timer_name, "apex_internal")) {
-        return nullptr; // don't process our own events
-    }
     if (_notify_listeners) {
         string * tmp = new string(timer_name);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
