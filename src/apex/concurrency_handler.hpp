@@ -12,6 +12,7 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <memory>
 #include <boost/thread/mutex.hpp>
 
 #ifdef SIGEV_THREAD_ID
@@ -44,19 +45,20 @@ public:
   concurrency_handler (unsigned int period);
   concurrency_handler (unsigned int period, int option);
   ~concurrency_handler (void) { };
-  void on_startup(startup_event_data &event_data) { APEX_UNUSED(event_data); };
-  void on_shutdown(shutdown_event_data &event_data);
-  void on_new_node(node_event_data &event_data) { APEX_UNUSED(event_data); };
-  void on_new_thread(new_thread_event_data &event_data);
+  void on_startup(startup_event_data &data) { APEX_UNUSED(data); };
+  void on_shutdown(shutdown_event_data &data);
+  void on_new_node(node_event_data &data) { APEX_UNUSED(data); };
+  void on_new_thread(new_thread_event_data &data);
+  void on_exit_thread(event_data &data);
   void on_start(apex_function_address function_address);
   void on_start(std::string *timer_name);
-  void on_stop(profiler * p);
-  void on_yield(profiler * p);
+  void on_stop(std::shared_ptr<profiler> p);
+  void on_yield(std::shared_ptr<profiler> p);
   void on_resume(apex_function_address function_address);
   void on_resume(std::string *timer_name);
-  void on_sample_value(sample_value_event_data &event_data) { APEX_UNUSED(event_data); };
-  void on_periodic(periodic_event_data &event_data) { APEX_UNUSED(event_data); };
-  void on_custom_event(custom_event_data &event_data) { APEX_UNUSED(event_data); };
+  void on_sample_value(sample_value_event_data &data) { APEX_UNUSED(data); };
+  void on_periodic(periodic_event_data &data) { APEX_UNUSED(data); };
+  void on_custom_event(custom_event_data &data) { APEX_UNUSED(data); };
 
   bool _handler(void);
   std::stack<std::string>* get_event_stack(unsigned int tid);

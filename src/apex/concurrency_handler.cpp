@@ -137,7 +137,7 @@ void concurrency_handler::on_resume(string *timer_name) {
   }
 }
 
-void concurrency_handler::on_stop(profiler * p) {
+void concurrency_handler::on_stop(std::shared_ptr<profiler> p) {
   if (!_terminate) {
     stack<string>* my_stack = get_event_stack(thread_instance::get_id());
     if (!my_stack->empty()) {
@@ -147,20 +147,24 @@ void concurrency_handler::on_stop(profiler * p) {
   APEX_UNUSED(p);
 }
 
-void concurrency_handler::on_yield(profiler * p) {
+void concurrency_handler::on_yield(std::shared_ptr<profiler> p) {
     on_stop(p);
 }
 
-void concurrency_handler::on_new_thread(new_thread_event_data &event_data) {
+void concurrency_handler::on_new_thread(new_thread_event_data &data) {
   if (!_terminate) {
-        add_thread(event_data.thread_id);
+        add_thread(data.thread_id);
   }
 }
 
-void concurrency_handler::on_shutdown(shutdown_event_data &event_data) {
+void concurrency_handler::on_exit_thread(event_data &data) {
+  APEX_UNUSED(data);
+}
+
+void concurrency_handler::on_shutdown(shutdown_event_data &data) {
   if (!_terminate) {
         _terminate = true;
-        output_samples(event_data.node_id);
+        output_samples(data.node_id);
   }
 }
 

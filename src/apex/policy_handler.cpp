@@ -129,6 +129,11 @@ int policy_handler::register_policy(const apex_event_type & when,
         new_thread_policies.push_back(instance);
         break;
       }
+      case APEX_EXIT_THREAD: {
+        boost::unique_lock<mutex_type> l(exit_thread_mutex);
+        exit_thread_policies.push_back(instance);
+        break;
+      }
       case APEX_START_EVENT: {
         boost::unique_lock<mutex_type> l(start_event_mutex);
         start_event_policies.push_back(instance);
@@ -215,6 +220,18 @@ int policy_handler::deregister_policy(apex_policy_handle * handle) {
             boost::shared_ptr<policy_instance> policy = *it;
             if (policy->id == handle->id) {
                 new_thread_policies.erase(it);
+                break;
+            }
+        }
+        break;
+      }
+        case APEX_EXIT_THREAD: {
+        boost::unique_lock<mutex_type> l(exit_thread_mutex);
+        std::list<boost::shared_ptr<policy_instance> >::iterator it;
+        for(it = exit_thread_policies.begin() ; it != exit_thread_policies.end() ; it++) {
+            boost::shared_ptr<policy_instance> policy = *it;
+            if (policy->id == handle->id) {
+                exit_thread_policies.erase(it);
                 break;
             }
         }
@@ -311,13 +328,13 @@ int policy_handler::deregister_policy(apex_policy_handle * handle) {
 
 inline void policy_handler::call_policies(
     const std::list<boost::shared_ptr<policy_instance> > & policies,
-    event_data &event_data) {
+    event_data &data) {
   for(const boost::shared_ptr<policy_instance>& policy : policies) {
     apex_context my_context;
-    my_context.event_type = event_data.event_type_;
+    my_context.event_type = data.event_type_;
     my_context.policy_handle = NULL;
-    if (event_data.event_type_ >= APEX_CUSTOM_EVENT) {
-        my_context.data = event_data.data;
+    if (data.event_type_ >= APEX_CUSTOM_EVENT) {
+        my_context.data = data.data;
     } else {
         my_context.data = NULL;
     }
@@ -328,13 +345,13 @@ inline void policy_handler::call_policies(
   }
 }
 
-void policy_handler::on_startup(startup_event_data &event_data) {
+void policy_handler::on_startup(startup_event_data &data) {
     if (_terminate) return;
     if (startup_policies.empty()) return;
-    call_policies(startup_policies, event_data);
+    call_policies(startup_policies, data);
 }
 
-void policy_handler::on_shutdown(shutdown_event_data &event_data) {
+void policy_handler::on_shutdown(shutdown_event_data &data) {
     if (_terminate) return;
     _terminate = true;
     if (_timer_thread != nullptr) { 
@@ -345,20 +362,27 @@ void policy_handler::on_shutdown(shutdown_event_data &event_data) {
         _timer_thread = nullptr;
     }
     if (shutdown_policies.empty()) return;
-    call_policies(shutdown_policies, event_data);
+    call_policies(shutdown_policies, data);
 }
 
-void policy_handler::on_new_node(node_event_data &event_data) {
+void policy_handler::on_new_node(node_event_data &data) {
     if (_terminate) return;
     if (new_node_policies.empty()) return;
-    call_policies(new_node_policies, event_data);
+    call_policies(new_node_policies, data);
 }
 
-void policy_handler::on_new_thread(new_thread_event_data &event_data) {
+void policy_handler::on_new_thread(new_thread_event_data &data) {
   if (_terminate) return;
             if (new_thread_policies.empty())
                 return;
-        call_policies(new_thread_policies, event_data);
+        call_policies(new_thread_policies, data);
+}
+
+void policy_handler::on_exit_thread(event_data &data) {
+  if (_terminate) return;
+            if (exit_thread_policies.empty())
+                return;
+        call_policies(exit_thread_policies, data);
 }
 
 void policy_handler::on_start(apex_function_address function_address) {
@@ -421,7 +445,7 @@ void policy_handler::on_resume(string *timer_name) {
   APEX_UNUSED(timer_name);
 }
 
-void policy_handler::on_stop(profiler * p) {
+void policy_handler::on_stop(std::shared_ptr<profiler> p) {
     if (_terminate) return;
     if (stop_event_policies.empty()) return;
     for(const boost::shared_ptr<policy_instance>& policy : stop_event_policies) {
@@ -436,7 +460,7 @@ void policy_handler::on_stop(profiler * p) {
     APEX_UNUSED(p);
 }
 
-void policy_handler::on_yield(profiler * p) {
+void policy_handler::on_yield(std::shared_ptr<profiler> p) {
     if (_terminate) return;
     if (yield_event_policies.empty()) return;
     for(const boost::shared_ptr<policy_instance>& policy : yield_event_policies) {
@@ -451,25 +475,25 @@ void policy_handler::on_yield(profiler * p) {
     APEX_UNUSED(p);
 }
 
-void policy_handler::on_sample_value(sample_value_event_data &event_data) {
+void policy_handler::on_sample_value(sample_value_event_data &data) {
   if (_terminate) return;
             if (sample_value_policies.empty())
                 return;
-        call_policies(sample_value_policies, event_data);
+        call_policies(sample_value_policies, data);
 }
 
-void policy_handler::on_custom_event(custom_event_data &event_data) {
+void policy_handler::on_custom_event(custom_event_data &data) {
   if (_terminate) return;
-            if (custom_event_policies[event_data.event_type_].empty())
+            if (custom_event_policies[data.event_type_].empty())
                 return;
-        call_policies(custom_event_policies[event_data.event_type_], event_data);
+        call_policies(custom_event_policies[data.event_type_], data);
 }
 
-void policy_handler::on_periodic(periodic_event_data &event_data) {
+void policy_handler::on_periodic(periodic_event_data &data) {
   if (_terminate) return;
             if (periodic_policies.empty())
                 return;
-        call_policies(periodic_policies, event_data);
+        call_policies(periodic_policies, data);
 }
 
 } // end namespace apex

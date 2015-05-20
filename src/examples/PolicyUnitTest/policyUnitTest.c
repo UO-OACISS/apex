@@ -39,6 +39,7 @@ void* someThread(void* tmp)
   }
   apex_custom_event(custom_type_2, NULL);
   apex_stop(my_profiler);
+  apex_exit_thread();
   return NULL;
 }
 

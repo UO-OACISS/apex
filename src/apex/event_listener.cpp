@@ -32,7 +32,7 @@ timer_event_data::timer_event_data(apex_function_address function_address) : hav
 }
 
 /* this object never actually gets instantiated. too much overhead. */
-timer_event_data::timer_event_data(profiler * the_profiler) : have_name(false) {
+timer_event_data::timer_event_data(std::shared_ptr<profiler> the_profiler) : have_name(false) {
   this->my_profiler = the_profiler;
   if (the_profiler->have_name) {
     this->have_name = true;

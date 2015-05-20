@@ -67,6 +67,7 @@ void* someThread(void* tmp)
   }
   printf("Thread done: %d. Current Cap: %d.\n", *myid, apex_get_thread_cap());
   apex_stop(p);
+  apex_exit_thread();
   return NULL;
 }
 

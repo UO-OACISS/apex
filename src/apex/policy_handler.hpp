@@ -21,6 +21,7 @@
 #include <list>
 #include <functional>
 #include <chrono>
+#include <memory>
 
 #include <boost/thread/shared_mutex.hpp>
 #include <boost/shared_ptr.hpp>
@@ -53,6 +54,7 @@ private:
     std::list<boost::shared_ptr<policy_instance> > shutdown_policies;
     std::list<boost::shared_ptr<policy_instance> > new_node_policies;
     std::list<boost::shared_ptr<policy_instance> > new_thread_policies;
+    std::list<boost::shared_ptr<policy_instance> > exit_thread_policies;
     std::list<boost::shared_ptr<policy_instance> > start_event_policies;
     std::list<boost::shared_ptr<policy_instance> > stop_event_policies;
     std::list<boost::shared_ptr<policy_instance> > yield_event_policies;
@@ -64,6 +66,7 @@ private:
     mutex_type shutdown_mutex;
     mutex_type new_node_mutex;
     mutex_type new_thread_mutex;
+    mutex_type exit_thread_mutex;
     mutex_type start_event_mutex;
     mutex_type stop_event_mutex;
     mutex_type yield_event_mutex;
@@ -85,19 +88,20 @@ public:
 */
     policy_handler(uint64_t period_microseconds);
     ~policy_handler (void) { };
-    void on_startup(startup_event_data &event_data);
-    void on_shutdown(shutdown_event_data &event_data);
-    void on_new_node(node_event_data &event_data);
-    void on_new_thread(new_thread_event_data &event_data);
+    void on_startup(startup_event_data &data);
+    void on_shutdown(shutdown_event_data &data);
+    void on_new_node(node_event_data &data);
+    void on_new_thread(new_thread_event_data &data);
+    void on_exit_thread(event_data &data);
     void on_start(apex_function_address function_address);
     void on_start(std::string *timer_name);
-    void on_stop(profiler * p);
-    void on_yield(profiler * p);
+    void on_stop(std::shared_ptr<profiler> p);
+    void on_yield(std::shared_ptr<profiler> p);
     void on_resume(apex_function_address function_address);
     void on_resume(std::string *timer_name);
-    void on_sample_value(sample_value_event_data &event_data);
-    void on_custom_event(custom_event_data &event_data);
-    void on_periodic(periodic_event_data &event_data);
+    void on_sample_value(sample_value_event_data &data);
+    void on_custom_event(custom_event_data &data);
+    void on_periodic(periodic_event_data &data);
 
     int register_policy(const apex_event_type & when,
                         std::function<int(apex_context const&)> f);

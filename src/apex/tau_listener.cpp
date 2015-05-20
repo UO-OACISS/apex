@@ -57,6 +57,14 @@ void tau_listener::on_new_thread(new_thread_event_data &data) {
   return;
 }
 
+void tau_listener::on_exit_thread(event_data &data) {
+  if (!_terminate) {
+      TAU_PROFILE_EXIT("APEX exiting");
+  }
+  APEX_UNUSED(data);
+  return;
+}
+
 void tau_listener::on_start(apex_function_address function_address) {
   if (!_terminate) {
     TAU_START(thread_instance::instance().map_addr_to_name(function_address).c_str());
@@ -85,7 +93,7 @@ void tau_listener::on_resume(std::string * timer_name) {
   return;
 }
 
-void tau_listener::on_stop(profiler * p) {
+void tau_listener::on_stop(std::shared_ptr<profiler> p) {
   static string empty("");
   if (!_terminate) {
       if (p->have_name) {
@@ -107,7 +115,7 @@ void tau_listener::on_stop(profiler * p) {
   return;
 }
 
-void tau_listener::on_yield(profiler * p) {
+void tau_listener::on_yield(std::shared_ptr<profiler> p) {
     on_stop(p);
 }
 

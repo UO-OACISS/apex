@@ -11,13 +11,15 @@ class ApexProxy {
 private:
   std::string _name;
   apex::profiler * p;
+  bool stopped;
 public:
   ApexProxy(const char * func, const char * file, int line);
   ApexProxy(apex_function_address fpointer);
   ~ApexProxy();
+  void stop(void) { stopped = true; apex::stop(p); };
 };
 
-ApexProxy::ApexProxy(const char * func, const char * file, int line) {
+ApexProxy::ApexProxy(const char * func, const char * file, int line) : stopped(false) {
   std::ostringstream s;
   s << func << " [" << file << ":" << line << "]";
   _name = std::string(s.str());
@@ -29,7 +31,7 @@ ApexProxy::ApexProxy(apex_function_address fpointer) {
 }
 
 ApexProxy::~ApexProxy() {
-  apex::stop(p);
+  if (!stopped) apex::stop(p);
 };
 
 #define UNUSED(x) (void)(x)
@@ -46,7 +48,8 @@ void* someThread(void* tmp)
 #else
   printf("The ID of this thread is: %u\n", (unsigned int)pthread_self());
 #endif
-  //apex::finalize();
+  proxy.stop();
+  apex::exit_thread();
   return NULL;
 }
 
@@ -65,12 +68,12 @@ int main(int argc, char **argv)
   for (i = 0 ; i < NUM_THREADS ; i++) {
     pthread_create(&(thread[i]), NULL, someThread, NULL);
   }
-  someThread(NULL);
   for (i = 0 ; i < NUM_THREADS ; i++) {
     pthread_join(thread[i], NULL);
   }
   currentpower = apex::current_power_high();
   printf("Power at end: %f Watts\n", currentpower);
+  proxy.stop();
   apex::finalize();
   return(0);
 }

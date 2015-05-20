@@ -7,6 +7,7 @@
 #define APEX_EVENTLISTENER_H
 
 #include <string>
+#include <memory>
 #include "apex_types.h"
 #include "profiler.hpp"
 
@@ -30,10 +31,10 @@ public:
   bool have_name;
   std::string * timer_name;
   apex_function_address function_address;
-  profiler * my_profiler;
+  std::shared_ptr<profiler> my_profiler;
   timer_event_data(const std::string &timer_name);
   timer_event_data(apex_function_address function_address);
-  timer_event_data(profiler * the_profiler);
+  timer_event_data(std::shared_ptr<profiler> the_profiler);
   ~timer_event_data();
 };
 
@@ -95,10 +96,11 @@ public:
   virtual void on_shutdown(shutdown_event_data &data) = 0;
   virtual void on_new_node(node_event_data &data) = 0;
   virtual void on_new_thread(new_thread_event_data &data) = 0;
+  virtual void on_exit_thread(event_data &data) = 0;
   virtual void on_start(apex_function_address function_address) = 0;
   virtual void on_start(std::string *timer_name) = 0;
-  virtual void on_stop(profiler * p) = 0;
-  virtual void on_yield(profiler * p) = 0;
+  virtual void on_stop(std::shared_ptr<profiler> p) = 0;
+  virtual void on_yield(std::shared_ptr<profiler> p) = 0;
   virtual void on_resume(apex_function_address function_address) = 0;
   virtual void on_resume(std::string *timer_name) = 0;
   virtual void on_sample_value(sample_value_event_data &data) = 0;

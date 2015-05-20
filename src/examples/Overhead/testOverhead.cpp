@@ -15,13 +15,15 @@ class ApexProxy {
 private:
   std::string _name;
   apex::profiler * p;
+  bool stopped;
 public:
   ApexProxy(const char * func, const char * file, int line);
   ApexProxy(apex_function_address fpointer);
   ~ApexProxy();
+  void stop() { stopped = true; apex::stop(p); };
 };
 
-ApexProxy::ApexProxy(const char * func, const char * file, int line) {
+ApexProxy::ApexProxy(const char * func, const char * file, int line) : stopped(false) {
   std::ostringstream s;
   s << func << " [" << file << ":" << line << "]";
   _name = std::string(s.str());
@@ -33,7 +35,7 @@ ApexProxy::ApexProxy(apex_function_address fpointer) {
 }
 
 ApexProxy::~ApexProxy() {
-  apex::stop(p);
+  if (!stopped) apex::stop(p);
 };
 
 inline int foo (int i) {
@@ -71,6 +73,7 @@ void* someThread(void* tmp)
 #else
   printf("%u computed %lu (timed)\n", (unsigned int)pthread_self(), total);
 #endif
+  apex::exit_thread();
   return NULL;
 }
 
@@ -91,6 +94,7 @@ void* someUntimedThread(void* tmp)
 #else
   printf("%u computed %lu (untimed)\n", (unsigned int)pthread_self(), total);
 #endif
+  apex::exit_thread();
   return NULL;
 }
 
@@ -105,7 +109,6 @@ int main(int argc, char **argv)
   apex::set_node_id(0);
   sleep(1); // if we don't sleep, the proc_read thread won't have time to read anything.
 
-  //ApexProxy proxy = ApexProxy(__func__, __FILE__, __LINE__);
   ApexProxy proxy = ApexProxy((apex_function_address)main);
   printf("PID of this process: %d\n", getpid());
   std::cout << "Expecting " << numthreads << " threads." << std::endl;
@@ -123,13 +126,22 @@ int main(int argc, char **argv)
   for (i = 0 ; i < numthreads ; i++) {
     pthread_join(thread[i], NULL);
   }
+  proxy.stop();
   apex::finalize();
   apex_profile * with = apex::get_profile((apex_function_address)&someThread);
   apex_profile * without = apex::get_profile((apex_function_address)&someUntimedThread);
   apex_profile * footime = apex::get_profile((apex_function_address)&foo);
   apex_profile * mhz = apex::get_profile(std::string("cpuinfo.0:cpu MHz"));
-  std::cout << "Without timing: " << without->accumulated/without->calls;
-  std::cout << ", with timing: " << with->accumulated/with->calls << std::endl;
+  double mean = without->accumulated/without->calls;
+  double variance = ((without->sum_squares / without->calls) - (mean * mean));
+  double stddev = sqrt(variance);
+  std::cout << "Without timing: " << mean;
+  std::cout << "±" << stddev;
+  mean = with->accumulated/with->calls;
+  variance = ((with->sum_squares / with->calls) - (mean * mean));
+  stddev = sqrt(variance);
+  std::cout << ", with timing: " << mean;
+  std::cout << "±" << stddev << std::endl;
   std::cout << "Expected calls to 'foo': " << numthreads*ITERATIONS;
   std::cout << ", timed calls to 'foo': " << (int)footime->calls << std::endl;
   double percall1 = (with->accumulated - without->accumulated) / (numthreads * ITERATIONS);

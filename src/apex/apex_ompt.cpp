@@ -173,6 +173,7 @@ extern "C" void my_thread_end(my_ompt_thread_type_t thread_type, ompt_thread_id_
     apex::stop(p);
     timer_stack->pop();
   }
+  apex::exit_thread();
   delete(status);
   // delete(timer_stack);  // this is a leak, but it's a small one. Sometimes this crashes?
 }

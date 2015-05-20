@@ -11,33 +11,7 @@
 
 using namespace std;
 
-class ApexProxy {
-private:
-  std::string _name;
-  apex::profiler * p;
-public:
-  ApexProxy(const char * func, const char * file, int line);
-  ApexProxy(apex_function_address fpointer);
-  ~ApexProxy();
-};
-
-ApexProxy::ApexProxy(const char * func, const char * file, int line) {
-  std::ostringstream s;
-  s << func << " [" << file << ":" << line << "]";
-  _name = std::string(s.str());
-  p = apex::start(_name);
-}
-
-ApexProxy::ApexProxy(apex_function_address fpointer) {
-  p = apex::start(fpointer);
-}
-
-ApexProxy::~ApexProxy() {
-  apex::stop(p);
-};
-
 int foo (int i) {
-  //ApexProxy proxy = ApexProxy((void*)foo);
   apex::profiler * profiler = apex::start((apex_function_address)foo);
   int j = i*i;
   apex::stop(profiler);
@@ -50,8 +24,6 @@ void* someThread(void* tmp)
 {
   UNUSED(tmp);
   apex::register_thread("threadTest thread");
-  //ApexProxy proxy = ApexProxy(__func__, __FILE__, __LINE__);
-  //ApexProxy proxy = ApexProxy((void*)someThread);
   apex::profiler * profiler = apex::start((apex_function_address)someThread);
   printf("PID of this process: %d\n", getpid());
 #if defined (__APPLE__)
@@ -64,6 +36,7 @@ void* someThread(void* tmp)
       foo(i);
   }
   apex::stop(profiler);
+  apex::exit_thread();
   return NULL;
 }
 
@@ -74,7 +47,6 @@ int main(int argc, char **argv)
   apex::apex_options::use_policy(true);
   apex::apex_options::use_screen_output(true);
   apex::apex_options::use_profile_output(true);
-  //ApexProxy proxy = ApexProxy((void*)main);
   apex::profiler * profiler = apex::start((apex_function_address)main);
   const apex_event_type when = APEX_STOP_EVENT;
   apex::register_periodic_policy(1000000, [](apex_context const& context){
