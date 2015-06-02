@@ -280,7 +280,7 @@ APEX_EXPORT void apex_register_thread(const char * name);
  
  \return No return value.
  */
-APEX_EXPORT void register_thread(void);
+APEX_EXPORT void apex_exit_thread(void);
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS // not sure if these will stay in the API
 
