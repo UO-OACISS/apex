@@ -1051,6 +1051,12 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
     if (!_terminate) {
       if (p) {
         p->stop(is_yield);
+        /*
+        try {
+            std::shared_ptr<profiler> parent = thread_instance::instance().get_parent_profiler();
+            parent->children_value += p->elapsed();
+        } catch (empty_stack_exception& e) { } // must be the top level timer.
+        */
 #if APEX_HAVE_PAPI
         long long * values = p->papi_stop_values;
         int rc = 0;

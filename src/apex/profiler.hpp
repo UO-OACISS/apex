@@ -28,6 +28,7 @@ public:
 	long long papi_stop_values[8];
 #endif
     double value;
+    double children_value;
     apex_function_address action_address;
     std::string * timer_name;
     bool have_name;
@@ -39,7 +40,8 @@ public:
              bool resume = false, 
              reset_type reset = reset_type::NONE) : 
 	    start(std::chrono::CLOCK_TYPE::now()), 
-      value(0.0),
+        value(0.0),
+        children_value(0.0),
 	    action_address(address), 
 	    timer_name(NULL), 
 	    have_name(false), 
@@ -52,6 +54,7 @@ public:
              reset_type reset = reset_type::NONE) : 
 	    start(std::chrono::CLOCK_TYPE::now()), 
 	    value(0.0), 
+        children_value(0.0),
 	    action_address(0L), 
 	    timer_name(name), 
 	    have_name(true), 
@@ -61,6 +64,7 @@ public:
         is_reset(reset) {};
     profiler(std::string * name, double value_) : 
 	    value(value_), 
+        children_value(0.0),
 	    action_address(0L), 
 	    timer_name(name), 
 	    have_name(true), 
@@ -81,6 +85,9 @@ public:
             return time_span.count();
         }
 	}
+    double exclusive_elapsed(void) {
+        return elapsed() - children_value;
+    }
 };
 
 }
