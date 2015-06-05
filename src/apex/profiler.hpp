@@ -73,9 +73,13 @@ public:
         safe_to_delete(false),
         is_reset(reset_type::NONE) { }; 
     ~profiler(void) { if (have_name) delete timer_name; };
-    void stop(bool is_resume = false) {
+    // for "yield" support
+    void stop(bool is_resume) {
         this->is_resume = is_resume;
         end = std::chrono::CLOCK_TYPE::now();
+	};
+    void stop() {
+      end = std::chrono::CLOCK_TYPE::now();
 	};
 	double elapsed(void) {
         if(is_counter) {

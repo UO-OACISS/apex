@@ -66,8 +66,18 @@ int * observations = NULL;
 ofstream cap_data;
 bool cap_data_open = false;
 
+// variables for active harmony general tuning
+long int *__ah_inputs[10]; // more than 10 would be pointless
+int __num_ah_inputs;
+
 inline int __get_thread_cap(void) {
   return (int)thread_cap;
+  //return (int)*(__ah_inputs[0]);
+}
+
+inline int __get_inputs(long int **inputs, int * num_inputs) {
+  inputs = &(__ah_inputs[0]);
+	*num_inputs = __num_ah_inputs;
 }
 
 inline void __decrease_cap_gradual() {
@@ -665,6 +675,8 @@ inline void __apex_active_harmony_setup(void) {
             endl << harmony_error_string(hdesc) << endl;
         return;
     }
+		__num_ah_inputs = 1;
+		__ah_inputs[0] = &thread_cap;
     if (harmony_bind_int(hdesc, "thread_cap", &thread_cap) != 0) {
         cerr << "Failed to register Active Harmony variable" << endl;
         return;
@@ -691,6 +703,7 @@ inline void __active_harmony_general_setup(int num_inputs, long ** inputs, long 
         return;
     }
     char tmpstr[12] = {0};
+		__num_ah_inputs = num_inputs;
     for (int i = 0 ; i < num_inputs ; i++ ) {
         sprintf (tmpstr, "param_%d", i);
         if (harmony_int(hdesc, tmpstr, mins[i], maxs[i], steps[i]) != 0) {
@@ -709,6 +722,7 @@ inline void __active_harmony_general_setup(int num_inputs, long ** inputs, long 
             cerr << "Failed to register Active Harmony variable" << endl;
             return;
         }
+				__ah_inputs[i] = inputs[i];
     }
     if (harmony_join(hdesc, NULL, 0, session_name) != 0) {
         cerr << "Failed to join Active Harmony tuning session" << endl;
@@ -835,6 +849,7 @@ inline int __shutdown_throttling(void)
     apex_final = true;
   //printf("periodic_policy called %d times\n", test_pp);
     if (cap_data_open) {
+        cap_data_open = false;
         cap_data.close();
     }
   return APEX_NOERROR;

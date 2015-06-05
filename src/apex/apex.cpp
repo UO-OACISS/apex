@@ -58,6 +58,7 @@ boost::atomic<bool> _measurement_stopped(false);
 #ifdef APEX_DEBUG
 boost::atomic<unsigned int> _starts(0L);
 boost::atomic<unsigned int> _stops(0L);
+boost::atomic<unsigned int> _exit_stops(0L);
 boost::atomic<unsigned int> _resumes(0L);
 boost::atomic<unsigned int> _yields(0L);
 #endif
@@ -320,14 +321,14 @@ profiler* start(apex_function_address function_address) {
     _starts++;
 #endif
     apex* instance = apex::instance(); // get the Apex static instance
-    /*
 #ifdef APEX_DEBUG
+    /*
     if (instance->get_node_id() == 0) { 
-        printf("%lu Start: %p\n", thread_instance::get_id(), (void*)function_address);
+        printf("%lu Start: %s\n", thread_instance::get_id(), lookup_address((uintptr_t)function_address, false)->c_str());
         fflush(stdout); 
     }
-#endif
     */
+#endif
     if (!instance) return nullptr; // protect against calls after finalization
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -362,6 +363,14 @@ profiler* resume(apex_function_address function_address) {
 #endif
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return nullptr; // protect against calls after finalization
+#ifdef APEX_DEBUG
+/*
+    if (instance->get_node_id() == 0) { 
+        printf("%lu Resume: %s\n", thread_instance::get_id(), lookup_address((uintptr_t)function_address, false)->c_str());
+        fflush(stdout); 
+    }
+*/
+#endif
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_resume(function_address);
@@ -401,7 +410,7 @@ void stop(profiler* the_profiler)
         try {
             p = shared_ptr<profiler>(thread_instance::instance().pop_current_profiler());
         } catch (empty_stack_exception& e) { assert(p); }
-        assert(p.get() == the_profiler);
+        //assert(p.get() == the_profiler);
     }
     //assert(p);
     if (p == nullptr) {
@@ -412,7 +421,7 @@ void stop(profiler* the_profiler)
     _stops++;
     /*
     if (instance->get_node_id() == 0) { 
-        printf("%lu Stop:  %p\n", thread_instance::get_id(), (void*)p->action_address);
+        printf("%lu Stop:  %s\n", thread_instance::get_id(), lookup_address((uintptr_t)p->action_address, false)->c_str());
         fflush(stdout); 
     }
     */
@@ -443,6 +452,12 @@ void yield(profiler* the_profiler)
     if (p == nullptr) return;
 #ifdef APEX_DEBUG
     _yields++;
+    /*
+    if (instance->get_node_id() == 0) { 
+        printf("%lu Yield:  %s\n", thread_instance::get_id(), lookup_address((uintptr_t)p->action_address, false)->c_str());
+        fflush(stdout); 
+    }
+    */
 #endif
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -594,6 +609,7 @@ void set_interrupt_interval(int seconds)
 
 void finalize()
 {
+    shutdown_throttling(); // if not done already
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     exit_thread();
@@ -606,12 +622,13 @@ void finalize()
     if (!_measurement_stopped)
     {
 #ifdef APEX_DEBUG
-        std::cout << "Starts  : " << _starts  << std::endl;
-        std::cout << "Resumes : " << _resumes << std::endl;
-        std::cout << "Yields  : " << _yields  << std::endl;
-        std::cout << "Stops   : " << _stops   << std::endl;
+        std::cout << instance->get_node_id() << " Starts  : " << _starts  << std::endl;
+        std::cout << instance->get_node_id() << " Resumes : " << _resumes << std::endl;
+        std::cout << instance->get_node_id() << " Yields  : " << _yields  << std::endl;
+        std::cout << instance->get_node_id() << " Stops   : " << _stops   << std::endl;
+        std::cout << instance->get_node_id() << " Exit Stops   : " << _exit_stops   << std::endl;
         unsigned int ins = _starts + _resumes;
-        unsigned int outs = _yields + _stops;
+        unsigned int outs = _yields + _stops + _exit_stops;
         if (ins != outs) {
             std::cout << std::endl;
             std::cout << " ------->>> ERROR! missing ";
@@ -684,7 +701,13 @@ void exit_thread(void)
         } catch (empty_stack_exception& e) { break; }
         if (p != nullptr) {
 #ifdef APEX_DEBUG
-            _stops++;
+            _exit_stops++;
+    /*
+    if (instance->get_node_id() == 0) { 
+        printf("%lu Exit Stop:  %s\n", thread_instance::get_id(), lookup_address((uintptr_t)p->action_address, false)->c_str());
+        fflush(stdout); 
+    }
+    */
 #endif
             if (_notify_listeners) {
                 for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
