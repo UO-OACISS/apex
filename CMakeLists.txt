@@ -385,6 +385,7 @@ if(USE_UDP_CLIENT)
 add_subdirectory (src/udp_server)
 add_subdirectory (src/examples/UdpSink)
 endif(USE_UDP_CLIENT)
+add_subdirectory (src/examples/CustomTuning)
 
 add_subdirectory (doc) 
 

@@ -301,6 +301,9 @@ profiler* start(const std::string &timer_name)
     if (boost::starts_with(timer_name, "apex_internal")) {
         return nullptr; // don't process our own events
     }
+    if (boost::starts_with(timer_name, "shutdown_all")) {
+        return nullptr;
+    }
 #ifdef APEX_DEBUG
     _starts++;
 #endif

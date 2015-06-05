@@ -215,11 +215,13 @@ int main (int argc, char ** argv) {
     std::cout <<"Tuning Parameters:" << std::endl;
     std::cout <<"\tmins[0]: " << mins[0] << ", maxs[0]: " << maxs[0] << ", steps[0]: " << steps[0] << std::endl;
     my_custom_event = apex::register_custom_event("Perform Re-block");
-    apex::setup_general_tuning((apex_function_address)solve_iteration,
+    apex::setup_throughput_tuning((apex_function_address)solve_iteration,
                     APEX_MINIMIZE_ACCUMULATED, my_custom_event, num_inputs,
                     inputs, mins, maxs, steps);
     long original_block_size = block_size;
     long original_active_threads = active_threads;
+#else
+    std::cerr << "Active Harmony not enabled" << std::endl;
 #endif
     std::cout <<"Running 1D stencil test..." << std::endl;
 
@@ -256,7 +258,7 @@ int main (int argc, char ** argv) {
         std::cout << "Test passed." << std::endl;
     }
 #else
-    std::cout << "Test passed." << std::endl;
+    std::cout << "Test passed (but APEX was built without Active Harmony.)." << std::endl;
 #endif
     apex::finalize();
 }

@@ -446,7 +446,7 @@ APEX_EXPORT int apex_setup_timer_throttling(apex_profiler_type type,
  \param steps An array of step values for each input
  \return APEX_NOERROR on success, otherwise an error code.
  */
-APEX_EXPORT int apex_setup_general_tuning(
+APEX_EXPORT int apex_setup_throughput_tuning(
         apex_profiler_type type,
         void * identifier,
         apex_optimization_criteria_t criteria,
@@ -471,6 +471,8 @@ APEX_EXPORT int apex_shutdown_throttling(void);   // terminate
  \return The current thread cap value.
  */
 APEX_EXPORT int apex_get_thread_cap(void);             // for thread throttling
+
+APEX_EXPORT void apex_set_thread_cap(int c);
 
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
