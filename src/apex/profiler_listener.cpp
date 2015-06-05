@@ -72,6 +72,8 @@
 #include <TAU.h>
 #endif
 
+/* #define EXCLUSIVE // subtract child times from parent timers */
+
 using namespace std;
 using namespace apex;
 
@@ -207,7 +209,11 @@ namespace apex {
         if(p->is_reset == reset_type::CURRENT) {
             theprofile->reset();
         } else {
+#ifdef EXCLUSIVE
+            theprofile->increment(p->exclusive_elapsed(), p->is_resume);
+#else
             theprofile->increment(p->elapsed(), p->is_resume);
+#endif
         }
 #if defined(APEX_THROTTLE)
         // Is this a lightweight task? If so, we shouldn't measure it any more,
@@ -223,7 +229,11 @@ namespace apex {
 #endif
       } else {
         // Create a new profile for this name.
+#ifdef EXCLUSIVE
+        theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->exclusive_elapsed(), p->is_resume, p->is_counter ? APEX_COUNTER : APEX_TIMER);
+#else
         theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_resume, p->is_counter ? APEX_COUNTER : APEX_TIMER);
+#endif
         name_map[*(p->timer_name)] = theprofile;
 #ifdef APEX_HAVE_HPX3
 #ifdef APEX_REGISTER_HPX3_COUNTERS
@@ -235,7 +245,11 @@ namespace apex {
                     hpx::performance_counters::install_counter_type(
                     std::string("/apex/") + timer_name,
                     [p](bool r)->boost::int64_t{
+#ifdef EXCLUSIVE
+                        boost::int64_t value(p->exclusive_elapsed() * 100000);
+#else
                         boost::int64_t value(p->elapsed() * 100000);
+#endif
                         return value;
                     },
                     std::string("APEX counter ") + timer_name,
@@ -259,11 +273,19 @@ namespace apex {
             if(p->is_reset == reset_type::CURRENT) {
                 theprofile->reset();
             } else {
+#ifdef EXCLUSIVE
+                theprofile->increment(p->exclusive_elapsed(), p->is_resume);
+#else
                 theprofile->increment(p->elapsed(), p->is_resume);
+#endif
             }
         } else {
             // Create a new profile for this name.
+#ifdef EXCLUSIVE
+            theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->exclusive_elapsed(), p->is_resume, p->is_counter ? APEX_COUNTER : APEX_TIMER);
+#else
             theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_resume, p->is_counter ? APEX_COUNTER : APEX_TIMER);
+#endif
             (*the_map)[*(p->timer_name)] = theprofile;
         }
       }
@@ -275,7 +297,11 @@ namespace apex {
         if(p->is_reset == reset_type::CURRENT) {
             theprofile->reset();
         } else {
+#ifdef EXCLUSIVE
+            theprofile->increment(p->exclusive_elapsed(), p->is_resume);
+#else
             theprofile->increment(p->elapsed(), p->is_resume);
+#endif
         }
 #if defined(APEX_THROTTLE)
         // Is this a lightweight task? If so, we shouldn't measure it any more,
@@ -295,7 +321,11 @@ namespace apex {
 #endif
       } else {
         // Create a new profile for this address.
+#ifdef EXCLUSIVE
+        theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->exclusive_elapsed(), p->is_resume);
+#else
         theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_resume);
+#endif
         address_map[p->action_address] = theprofile;
       }
       if (apex_options::use_profile_output() > 1) {
@@ -308,11 +338,19 @@ namespace apex {
             if(p->is_reset == reset_type::CURRENT) {
                 theprofile->reset();
             } else {
+#ifdef EXCLUSIVE
+                theprofile->increment(p->exclusive_elapsed(), p->is_resume);
+#else
                 theprofile->increment(p->elapsed(), p->is_resume);
+#endif
             }
         } else {
             // Create a new profile for this address.
+#ifdef EXCLUSIVE
+            theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->exclusive_elapsed(), p->is_resume);
+#else
             theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_resume);
+#endif
             (*the_map)[p->action_address] = theprofile;
         }
       }
@@ -373,15 +411,15 @@ namespace apex {
     }
   }
 
-#define PAD_WITH_SPACES boost::format("%7i")
+#define PAD_WITH_SPACES boost::format("%9i")
 #define FORMAT_SCIENTIFIC boost::format("%1.3e")
 
   /* At program termination, write the measurements to the screen. */
   void profiler_listener::finalize_profiles(void) {
     // iterate over the profiles in the address map
     map<apex_function_address, profile*>::const_iterator it;
-    cout << "Action                         :  #calls |  minimum  |    mean   |  maximum  |   total   |  stddev  " << endl;
-    cout << "----------------------------------------------------------------------------------------------------" << endl;
+    cout << "Action                         :   #calls  |  minimum  |    mean   |  maximum  |   total   |  stddev  " << endl;
+    cout << "------------------------------------------------------------------------------------------------------" << endl;
     for(it = address_map.begin(); it != address_map.end(); it++) {
       profile * p = it->second;
       apex_function_address function_address = it->first;
@@ -406,7 +444,11 @@ namespace apex {
       //cout << "\"" << function_address << "\", " ;
       cout << boost::format("%30p") % function_address << " : " ;
 #endif
-      cout << PAD_WITH_SPACES % p->get_calls() << "   " ;
+      if (p->get_calls() < 999999) {
+      	cout << PAD_WITH_SPACES % p->get_calls() << "   " ;
+      } else {
+      	cout << FORMAT_SCIENTIFIC % p->get_calls() << "   " ;
+      }
       cout << FORMAT_SCIENTIFIC % p->get_minimum() << "   " ;
       cout << FORMAT_SCIENTIFIC % p->get_mean() << "   " ;
       cout << FORMAT_SCIENTIFIC % p->get_maximum() << "   " ;
@@ -676,8 +718,8 @@ namespace apex {
     }
 
     // stop the main timer, and process that profile
-    main_timer->stop();
-    process_profile(main_timer, my_tid);
+    //main_timer->stop();
+    //process_profile(main_timer, my_tid);
 
 #ifdef USE_UDP
     // are we updating a global profile?
@@ -832,7 +874,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 #endif
 
       // time the whole application.
-      main_timer = std::shared_ptr<profiler>(new profiler(new string(APEX_MAIN)));
+      //main_timer = std::shared_ptr<profiler>(new profiler(new string(APEX_MAIN)));
     }
 	APEX_UNUSED(data);
   }
@@ -1051,6 +1093,12 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
     if (!_terminate) {
       if (p) {
         p->stop(is_yield);
+#ifdef EXCLUSIVE
+        try {
+            std::shared_ptr<profiler> parent = thread_instance::instance().get_parent_profiler();
+            parent->children_value += p->elapsed();
+        } catch (empty_stack_exception& e) { } // must be the top level timer.
+#endif
 #if APEX_HAVE_PAPI
         long long * values = p->papi_stop_values;
         int rc = 0;

@@ -42,7 +42,7 @@ int apex_periodic_policy_func(apex_context const context) ;
  This value is used for the example.
  \returns 0 on no error.
  */
-void apex_global_setup(apex_function_address in_action);
+void apex_global_setup(apex_profiler_type type, void* in_action);
 
 /**
  \brief The function to tear down global reductions, if necessary

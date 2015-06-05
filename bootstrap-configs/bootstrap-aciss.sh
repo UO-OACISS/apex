@@ -13,15 +13,17 @@ export BOOST_ROOT=$BOOST
 
 # OPTIONAL libraries - if left undefined, they likely won't be used.
 
-export BFD_ROOT=$HOME/install/binutils-2.23.2
-export GPERFTOOLS_ROOT=$HOME/install/gperftools/2.4
-#export RCR_ROOT=$HOME/src/RCRdaemon
+export BFD_ROOT=/home3/khuck/install/binutils-2.23.2
+export JEMALLOC_ROOT=/home3/khuck/install/jemalloc/3.6.0
+#export GPERFTOOLS_ROOT=/home3/khuck/install/gperftools/2.4
+#export RCR_ROOT=/home3/khuck/src/RCRdaemon
 #export PAPI_ROOT=/usr/local/papi/5.3.2
-#export TAU_ROOT=$HOME/src/tau2
+#export TAU_ROOT=/home3/khuck/src/tau2
+export ACTIVEHARMONY_ROOT=$HOME/install/activeharmony/4.5
 
 # other CMake variables - for special situations / architectures / compilers.
 
-cmake_build_type="-DCMAKE_BUILD_TYPE=Debug" # Debug, Release, RelWithDebInfo, etc.
+cmake_build_type="-DCMAKE_BUILD_TYPE=RelWithDebInfo" # Debug, Release, RelWithDebInfo, etc.
 cmake_apex_throttle="-DAPEX_THROTTLE=FALSE" # TRUE or FALSE
 cmake_build_shared_libs="-DBUILD_SHARED_LIBS=TRUE" # TRUE or FALSE
 cmake_install_prefix="-DCMAKE_INSTALL_PREFIX=$DIR/../install" # the installation path

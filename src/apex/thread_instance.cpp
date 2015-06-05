@@ -198,6 +198,13 @@ std::shared_ptr<profiler> thread_instance::get_current_profiler(void) {
     return instance().current_profiler;
 }
 
+std::shared_ptr<profiler> thread_instance::get_parent_profiler(void) {
+    if (instance().current_profilers.size() == 0) {
+        throw empty_stack_exception(); // to be caught by the profiler_listener
+    }
+    return instance().current_profilers.top();
+}
+
 std::shared_ptr<profiler> thread_instance::pop_current_profiler(void) {
     if (instance().current_profilers.size() == 0) {
         throw empty_stack_exception(); // to be caught by the profiler_listener

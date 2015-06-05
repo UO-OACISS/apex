@@ -61,6 +61,7 @@ public:
   std::string map_addr_to_name(apex_function_address function_address);
   static void set_current_profiler(std::shared_ptr<profiler> the_profiler);
   static std::shared_ptr<profiler> get_current_profiler(void);
+  static std::shared_ptr<profiler> get_parent_profiler(void);
   static std::shared_ptr<profiler> pop_current_profiler(void);
 };
 
