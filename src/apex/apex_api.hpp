@@ -590,7 +590,15 @@ APEX_EXPORT int shutdown_throttling(void);   // terminate
  */
 APEX_EXPORT int get_thread_cap(void);             // for thread throttling
 
-APEX_EXPORT void set_thread_cap(int c);
+/**
+ \brief Set the current thread cap to be used for throttling.
+
+ \param cap The new thread cap.
+
+ */
+APEX_EXPORT void set_thread_cap(int cap);
+
+APEX_EXPORT std::vector<std::pair<std::string,long*>> & get_tunable_params();
 
 #ifdef APEX_HAVE_HPX3
 hpx::runtime * get_hpx_runtime_ptr(void);

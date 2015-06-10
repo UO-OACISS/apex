@@ -35,6 +35,7 @@ private:
   std::vector<double> _power_samples;
   // vector of thread cap values
   std::vector<int> _thread_cap_samples;
+  std::map<std::string, std::vector<long>> _tunable_param_samples;
   // functions and mutex
   std::set<std::string> _functions;
   boost::mutex _function_mutex;

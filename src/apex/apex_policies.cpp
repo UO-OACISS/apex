@@ -50,7 +50,7 @@ double moving_average = 0.0;
 int window_size = MAX_WINDOW_SIZE;
 int delay = 0;
 
-// variables related to throughput throttling
+// variables related to throughput or custom throttling
 apex_function_address function_of_interest = APEX_NULL_FUNCTION_ADDRESS;
 std::string function_name_of_interest = "";
 std::function<double()> metric_of_interest = nullptr;
@@ -60,6 +60,7 @@ int throughput_delay = MAX_WINDOW_SIZE; // initialize
 typedef enum {INITIAL_STATE, BASELINE, INCREASE, DECREASE, NO_CHANGE} last_action_t;
 last_action_t last_action = INITIAL_STATE;
 apex_optimization_criteria_t throttling_criteria = APEX_MAXIMIZE_THROUGHPUT;
+std::vector<std::pair<std::string,long*>> tunable_params;
 
 // variables for hill climbing
 double * evaluations = NULL;
@@ -800,6 +801,7 @@ inline int __active_harmony_custom_setup(int num_inputs, long ** inputs, long * 
     }
     for (int i = 0 ; i < num_inputs ; i++ ) {
         sprintf (tmpstr, "param_%d", i);
+        tunable_params.push_back(std::make_pair(tmpstr, inputs[i]));
         if (harmony_bind_int(hdesc, tmpstr, inputs[i]) != 0) {
             cerr << "Failed to register Active Harmony variable" << endl;
             return APEX_ERROR;
@@ -1005,6 +1007,11 @@ APEX_EXPORT int get_thread_cap(void) {
 
 APEX_EXPORT void set_thread_cap(int c) {
     __set_thread_cap(c);
+}
+
+
+APEX_EXPORT std::vector<std::pair<std::string,long*>> & get_tunable_params() {
+    return tunable_params;
 }
 
 }
