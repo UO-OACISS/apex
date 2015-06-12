@@ -34,8 +34,8 @@
 #include "profiler_listener.hpp"
 #ifdef APEX_DEBUG
 #include "apex_error_handling.hpp"
-#include "address_resolution.hpp"
 #endif
+#include "address_resolution.hpp"
 
 #ifdef APEX_HAVE_MSR
 #include "msr_core.h"
@@ -82,7 +82,6 @@ apex::~apex()
         delete el;
     }
 #if APEX_HAVE_PROC
-    proc_reader_thread->join();
     delete proc_reader_thread;
 #endif
     m_pInstance = nullptr;
@@ -321,20 +320,20 @@ profiler* start(apex_function_address function_address) {
     _starts++;
 #endif
     apex* instance = apex::instance(); // get the Apex static instance
-#ifdef APEX_DEBUG
-    /*
-    if (instance->get_node_id() == 0) { 
-        printf("%lu Start: %s\n", thread_instance::get_id(), lookup_address((uintptr_t)function_address, false)->c_str());
-        fflush(stdout); 
-    }
-    */
-#endif
     if (!instance) return nullptr; // protect against calls after finalization
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_start(function_address);
         }
     }
+#ifdef APEX_DEBUG
+    /*
+    if (instance->get_node_id() == 0) { 
+        printf("%lu Start: %s %p\n", thread_instance::get_id(), lookup_address((uintptr_t)function_address, false)->c_str(), thread_instance::instance().get_current_profiler().get());
+        fflush(stdout); 
+    }
+    */
+#endif
     return thread_instance::instance().get_current_profiler().get();
 }
 
@@ -363,19 +362,19 @@ profiler* resume(apex_function_address function_address) {
 #endif
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return nullptr; // protect against calls after finalization
-#ifdef APEX_DEBUG
-/*
-    if (instance->get_node_id() == 0) { 
-        printf("%lu Resume: %s\n", thread_instance::get_id(), lookup_address((uintptr_t)function_address, false)->c_str());
-        fflush(stdout); 
-    }
-*/
-#endif
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_resume(function_address);
         }
     }
+#ifdef APEX_DEBUG
+/*
+    if (instance->get_node_id() == 0) { 
+        printf("%lu Resume: %s %p\n", thread_instance::get_id(), lookup_address((uintptr_t)function_address, false)->c_str(), thread_instance::instance().get_current_profiler().get());
+        fflush(stdout); 
+    }
+*/
+#endif
     return thread_instance::instance().get_current_profiler().get();
 }
 
@@ -401,6 +400,9 @@ void stop(profiler* the_profiler)
 {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
+    //int tid = thread_instance::get_id();
+    //assert (the_profiler->tid == tid);
+    if (the_profiler != nullptr && the_profiler->stopped) return; // would like to assert this...
     std::shared_ptr<profiler> p = nullptr;
     if (the_profiler == nullptr) {
         try {
@@ -409,7 +411,19 @@ void stop(profiler* the_profiler)
     } else {
         try {
             p = shared_ptr<profiler>(thread_instance::instance().pop_current_profiler());
-        } catch (empty_stack_exception& e) { assert(p); }
+        } catch (empty_stack_exception& e) { 
+          fflush(stdout); 
+          //printf("%lu Stop: null profiler on stack, stopping: %s\n", thread_instance::get_id(), lookup_address((uintptr_t)the_profiler->action_address, false)->c_str());
+          printf("%lu Stop: null profiler on stack\n", thread_instance::get_id());
+          fflush(stdout); 
+        //assert(p); 
+        }
+        profiler * tmp = p.get();
+        if (tmp != the_profiler){
+          fflush(stdout); 
+          printf("%lu Stop: overlap: %s != %s\n", thread_instance::get_id(), lookup_address((uintptr_t)tmp->action_address, false)->c_str(), lookup_address((uintptr_t)the_profiler->action_address, false)->c_str());
+          fflush(stdout); 
+        }
         //assert(p.get() == the_profiler);
     }
     //assert(p);
@@ -421,7 +435,7 @@ void stop(profiler* the_profiler)
     _stops++;
     /*
     if (instance->get_node_id() == 0) { 
-        printf("%lu Stop:  %s\n", thread_instance::get_id(), lookup_address((uintptr_t)p->action_address, false)->c_str());
+        printf("%lu Stop:  %s %p\n", thread_instance::get_id(), lookup_address((uintptr_t)p->action_address, false)->c_str(), the_profiler);
         fflush(stdout); 
     }
     */
@@ -431,7 +445,6 @@ void stop(profiler* the_profiler)
             instance->listeners[i]->on_stop(p);
         }
     }
-    p->safe_to_delete = true;
 }
 
 void yield(profiler* the_profiler)
@@ -464,7 +477,6 @@ void yield(profiler* the_profiler)
             instance->listeners[i]->on_yield(p);
         }
     }
-    p->safe_to_delete = true;
 }
 
 void sample_value(const std::string &name, double value)
@@ -615,12 +627,14 @@ void finalize()
     exit_thread();
 #if APEX_HAVE_PROC
     ProcData::stop_reading();
+    proc_reader_thread->join();
 #endif
 #if APEX_HAVE_MSR
     finalize_msr();
 #endif
     if (!_measurement_stopped)
     {
+        _measurement_stopped = true;
 #ifdef APEX_DEBUG
         std::cout << instance->get_node_id() << " Starts  : " << _starts  << std::endl;
         std::cout << instance->get_node_id() << " Resumes : " << _resumes << std::endl;
@@ -637,16 +651,15 @@ void finalize()
             //assert(ins == outs);
         }
 #endif
-        _measurement_stopped = true;
         stringstream ss;
         ss << instance->get_node_id();
         shutdown_event_data data(instance->get_node_id(), thread_instance::get_id());
-        if (_notify_listeners) {
+        _notify_listeners = false;
+        //if (_notify_listeners) {
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
                 instance->listeners[i]->on_shutdown(data);
             }
-        }
-        _notify_listeners = false;
+        //}
     }
 }
 
@@ -693,6 +706,8 @@ void exit_thread(void)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     if (_exited) return; // protect against multiple exits on the same thread
+    _exited = true;
+    printf("Exiting thread! %d\n", thread_instance::get_id());
     // pop any remaining timers, and stop them
     std::shared_ptr<profiler> p = nullptr;
     while(true) {
@@ -702,11 +717,11 @@ void exit_thread(void)
         if (p != nullptr) {
 #ifdef APEX_DEBUG
             _exit_stops++;
-    /*
     if (instance->get_node_id() == 0) { 
         printf("%lu Exit Stop:  %s\n", thread_instance::get_id(), lookup_address((uintptr_t)p->action_address, false)->c_str());
         fflush(stdout); 
     }
+    /*
     */
 #endif
             if (_notify_listeners) {
@@ -714,7 +729,6 @@ void exit_thread(void)
                     instance->listeners[i]->on_stop(p);
                 }
             }
-            p->safe_to_delete = true;
         }
     }
     event_data data;
@@ -829,24 +843,24 @@ extern "C" {
     {
       assert(identifier);
       if (type == APEX_FUNCTION_ADDRESS) {
-          return (apex_profiler_handle)start((apex_function_address)identifier);
+          return reinterpret_cast<apex_profiler_handle>(start((apex_function_address)identifier));
       } else if (type == APEX_NAME_STRING) {
           string tmp((const char *)identifier);
-          return (apex_profiler_handle)start(tmp);
+          return reinterpret_cast<apex_profiler_handle>(start(tmp));
       }
-      return (apex_profiler_handle)(nullptr);
+      return APEX_NULL_PROFILER_HANDLE;
     }
 
     apex_profiler_handle apex_resume(apex_profiler_type type, void * identifier)
     {
       assert(identifier);
       if (type == APEX_FUNCTION_ADDRESS) {
-          return (apex_profiler_handle)resume((apex_function_address)identifier);
+          return reinterpret_cast<apex_profiler_handle>(resume((apex_function_address)identifier));
       } else if (type == APEX_NAME_STRING) {
           string tmp((const char *)identifier);
-          return (apex_profiler_handle)resume(tmp);
+          return reinterpret_cast<apex_profiler_handle>(resume(tmp));
       }
-      return (apex_profiler_handle)(nullptr);
+      return APEX_NULL_PROFILER_HANDLE;
     }
 
     void apex_reset(apex_profiler_type type, void * identifier) {
@@ -865,12 +879,12 @@ extern "C" {
 
     void apex_stop(apex_profiler_handle the_profiler)
     {
-        stop((profiler*)the_profiler);
+        stop(reinterpret_cast<profiler*>(the_profiler));
     }
 
     void apex_yield(apex_profiler_handle the_profiler)
     {
-        yield((profiler*)the_profiler);
+        yield(reinterpret_cast<profiler*>(the_profiler));
     }
 
     void apex_sample_value(const char * name, double value)
