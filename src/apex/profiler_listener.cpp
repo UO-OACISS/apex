@@ -851,7 +851,6 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       queue_signal.post();
       if (consumer_thread != nullptr) {
           consumer_thread->join();
-          delete consumer_thread;
       }
 #endif
 
@@ -1105,7 +1104,6 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         std::shared_ptr<profiler> p = std::shared_ptr<profiler>(new profiler(new string(*data.counter_name), data.counter_value));
       p->is_counter = data.is_counter;
       push_profiler(my_tid, p);
-      p->safe_to_delete = true;
     }
   }
 
@@ -1146,6 +1144,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       }
 #endif
       delete_profiles();
+      delete consumer_thread;
   };
 
 }
