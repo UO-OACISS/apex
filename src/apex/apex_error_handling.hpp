@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <execinfo.h>
 #include "thread_instance.hpp"
+#include "address_resolution.hpp"
 
 static void apex_custom_signal_handler(int sig) {
 
@@ -36,9 +37,13 @@ static void apex_custom_signal_handler(int sig) {
   // skip the first frame, it is this handler
   for( i = 1; i < size; i++ ){
    std::cerr << strings[i] << std::endl;
-   char syscom[1024];
-   sprintf(syscom,"addr2line -f -p -i -e %s %p", exe, trace[i]);
-   system(syscom);
+   //if (sig != SIGSEGV) {
+     std::cerr << apex::lookup_address((uintptr_t)trace[i], false) << std::endl;
+   //} else {
+     //char syscom[1024];
+     //sprintf(syscom,"addr2line -f -p -i -e %s %p", exe, trace[i]);
+     //system(syscom);
+   //}
   }
 
   std::cerr << std::endl;
