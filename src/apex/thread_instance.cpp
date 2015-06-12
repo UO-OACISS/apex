@@ -190,8 +190,9 @@ string thread_instance::map_addr_to_name(apex_function_address function_address)
 }
 
 void thread_instance::set_current_profiler(std::shared_ptr<profiler> the_profiler) {
+    //assert(instance().current_profilers.empty());
     instance().current_profiler = the_profiler;
-    instance().current_profilers.push(the_profiler);
+    instance().current_profilers.push_back(the_profiler);
 }
 
 std::shared_ptr<profiler> thread_instance::get_current_profiler(void) {
@@ -202,16 +203,39 @@ std::shared_ptr<profiler> thread_instance::get_parent_profiler(void) {
     if (instance().current_profilers.size() == 0) {
         throw empty_stack_exception(); // to be caught by the profiler_listener
     }
-    return instance().current_profilers.top();
+    return instance().current_profilers.back();
 }
 
 std::shared_ptr<profiler> thread_instance::pop_current_profiler(void) {
-    if (instance().current_profilers.size() == 0) {
+    if (instance().current_profilers.empty()) {
         throw empty_stack_exception(); // to be caught by the profiler_listener
     }
-    instance().current_profiler = instance().current_profilers.top();
-    instance().current_profilers.pop();
+    instance().current_profiler = instance().current_profilers.back();
+    instance().current_profilers.pop_back();
     return instance().current_profiler;
+}
+
+std::shared_ptr<profiler> thread_instance::pop_current_profiler(profiler * requested) {
+    if (instance().current_profilers.empty()) {
+        throw empty_stack_exception(); // to be caught by the profiler_listener
+    }
+    if (instance().current_profilers.back().get() == requested) {
+      instance().current_profiler = instance().current_profilers.back();
+      instance().current_profilers.pop_back();
+    } else {
+      // work backward over the vector to find the requested profiler
+      std::vector<std::shared_ptr<profiler> >::const_iterator it;
+      for (it = instance().current_profilers.end() ; it != instance().current_profilers.begin() ; it-- ) {
+        profiler * tmp = (*it).get();
+        if (tmp == requested) {
+          instance().current_profiler = *it;
+          instance().current_profilers.erase(it);
+          return instance().current_profiler;
+        }
+      }
+      throw empty_stack_exception(); // to be caught by the profiler_listener
+    }
+    return instance().current_profiler; // for completeless
 }
 
 }
