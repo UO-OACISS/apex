@@ -34,21 +34,20 @@ public:
     bool have_name;
     bool is_counter;
     bool is_resume; // for yield or resume
-    bool safe_to_delete;
     reset_type is_reset;
-    profiler(apex_function_address address, 
+    bool stopped;
+    profiler(apex_function_address address,
              bool resume = false, 
              reset_type reset = reset_type::NONE) : 
 	    start(std::chrono::CLOCK_TYPE::now()), 
         value(0.0),
         children_value(0.0),
 	    action_address(address), 
-	    timer_name(NULL), 
+	    timer_name(nullptr), 
 	    have_name(false), 
 	    is_counter(false),
         is_resume(resume),
-        safe_to_delete(false),
-        is_reset(reset) {};
+        is_reset(reset), stopped(false) {};
     profiler(std::string * name, 
              bool resume = false, 
              reset_type reset = reset_type::NONE) : 
@@ -60,8 +59,7 @@ public:
 	    have_name(true), 
 	    is_counter(false),
         is_resume(resume),
-        safe_to_delete(false),
-        is_reset(reset) {};
+        is_reset(reset), stopped(false) {};
     profiler(std::string * name, double value_) : 
 	    value(value_), 
         children_value(0.0),
@@ -70,16 +68,17 @@ public:
 	    have_name(true), 
 	    is_counter(true),
         is_resume(false),
-        safe_to_delete(false),
-        is_reset(reset_type::NONE) { }; 
-    ~profiler(void) { if (have_name) delete timer_name; };
+        is_reset(reset_type::NONE), stopped(true) { }; 
+    ~profiler(void) { if (have_name && timer_name != nullptr) delete timer_name; };
     // for "yield" support
     void stop(bool is_resume) {
         this->is_resume = is_resume;
         end = std::chrono::CLOCK_TYPE::now();
+        stopped = true;
 	};
     void stop() {
       end = std::chrono::CLOCK_TYPE::now();
+      stopped = true;
 	};
 	double elapsed(void) {
         if(is_counter) {
