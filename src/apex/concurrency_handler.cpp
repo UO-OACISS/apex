@@ -37,6 +37,8 @@
 
 using namespace std;
 
+std::vector<boost::mutex*> _per_thread_mutex;
+
 namespace apex {
 
 concurrency_handler::concurrency_handler (void) : handler() {
@@ -77,8 +79,16 @@ bool concurrency_handler::_handler(void) {
     }
     //if (apex::instance()->get_state(i) == APEX_THROTTLED) { continue; }
     tmp = get_event_stack(i);
+    string func;
     if (tmp != nullptr && tmp->size() > 0) {
-      string func = tmp->top();
+      _per_thread_mutex[i]->lock();
+      if (tmp->size() > 0) {
+        func = tmp->top();
+      } else {
+        _per_thread_mutex[i]->unlock();
+        continue;
+      }
+      _per_thread_mutex[i]->unlock();
       _function_mutex.lock();
       _functions.insert(func);
       _function_mutex.unlock();
@@ -111,38 +121,53 @@ void concurrency_handler::_init(void) {
 
 void concurrency_handler::on_start(apex_function_address function_address) {
   if (!_terminate) {
-    stack<string>* my_stack = get_event_stack(thread_instance::get_id());
+    int i = thread_instance::get_id();
+    stack<string>* my_stack = get_event_stack(i);
+    _per_thread_mutex[i]->lock();
     my_stack->push(thread_instance::instance().map_addr_to_name(function_address));
+    _per_thread_mutex[i]->unlock();
   }
 }
 
 void concurrency_handler::on_start(string *timer_name) {
   if (!_terminate) {
-    stack<string>* my_stack = get_event_stack(thread_instance::get_id());
+    int i = thread_instance::get_id();
+    stack<string>* my_stack = get_event_stack(i);
+    _per_thread_mutex[i]->lock();
     my_stack->push(*(timer_name));
+    _per_thread_mutex[i]->unlock();
   }
 }
 
 void concurrency_handler::on_resume(apex_function_address function_address) {
   if (!_terminate) {
-    stack<string>* my_stack = get_event_stack(thread_instance::get_id());
+    int i = thread_instance::get_id();
+    stack<string>* my_stack = get_event_stack(i);
+    _per_thread_mutex[i]->lock();
     my_stack->push(thread_instance::instance().map_addr_to_name(function_address));
+    _per_thread_mutex[i]->unlock();
   }
 }
 
 void concurrency_handler::on_resume(string *timer_name) {
   if (!_terminate) {
-    stack<string>* my_stack = get_event_stack(thread_instance::get_id());
+    int i = thread_instance::get_id();
+    stack<string>* my_stack = get_event_stack(i);
+    _per_thread_mutex[i]->lock();
     my_stack->push(*(timer_name));
+    _per_thread_mutex[i]->unlock();
   }
 }
 
 void concurrency_handler::on_stop(std::shared_ptr<profiler> p) {
   if (!_terminate) {
-    stack<string>* my_stack = get_event_stack(thread_instance::get_id());
+    int i = thread_instance::get_id();
+    stack<string>* my_stack = get_event_stack(i);
+    _per_thread_mutex[i]->lock();
     if (!my_stack->empty()) {
       my_stack->pop();
     }
+    _per_thread_mutex[i]->unlock();
   }
   APEX_UNUSED(p);
 }
@@ -189,6 +214,7 @@ inline void concurrency_handler::add_thread(unsigned int tid) {
   _vector_mutex.lock();
   while(_event_stack.size() <= tid) {
     _event_stack.push_back(new stack<string>);
+    _per_thread_mutex.push_back(new boost::mutex());
   }
   _vector_mutex.unlock();
 }
