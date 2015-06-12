@@ -19,7 +19,7 @@
  * Not useful for the caller that gets it back, but required
  * for stopping the timer later.
  */
-typedef uintptr_t apex_profiler_handle; // address of internal C++ object
+typedef void* apex_profiler_handle; // address of internal C++ object
 
 /** A null pointer representing an APEX profiler handle.
  * Used when a null APEX profile handle is to be passed in to
