@@ -433,12 +433,14 @@ void stop(profiler* the_profiler)
           fflush(stdout); 
         //assert(p); 
         }
+        /*
         profiler * tmp = p.get();
         if (tmp != the_profiler){
           fflush(stdout); 
           printf("%lu Stop: overlap: %s != %s\n", thread_instance::get_id(), lookup_address((uintptr_t)tmp->action_address, false)->c_str(), lookup_address((uintptr_t)the_profiler->action_address, false)->c_str());
           fflush(stdout); 
         }
+        */
         //assert(p.get() == the_profiler);
     }
     //assert(p);
@@ -736,11 +738,11 @@ void exit_thread(void)
         if (p != nullptr) {
 #ifdef APEX_DEBUG
             _exit_stops++;
+    /*
     if (instance->get_node_id() == 0) { 
         printf("%lu Exit Stop:  %s\n", thread_instance::get_id(), lookup_address((uintptr_t)p->action_address, false)->c_str());
         fflush(stdout); 
     }
-    /*
     */
 #endif
             if (_notify_listeners) {
