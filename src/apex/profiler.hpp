@@ -80,9 +80,10 @@ public:
     //start = in->start;
     //end = in->start;
 #if APEX_HAVE_PAPI
-#error "FIXME!"
-	papi_start_values[8];
-	papi_stop_values[8];
+        for (int i = 0 ; i < 8 ; i++) {
+	        papi_start_values[i] = in->papi_start_values[i];
+	        papi_stop_values[i] = in->papi_stop_values[i];
+        }
 #endif
     value = in->elapsed();
     children_value = in->children_value;
