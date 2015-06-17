@@ -26,8 +26,8 @@ export BOOST_ROOT=$BOOST_DIR
 # For edison: CMake will get these from the environment
 export LDFLAGS="-dynamic -ldl" # cmake will pick this up
 cmake_build_type="-DCMAKE_BUILD_TYPE=RelWithDebInfo" # Debug, Release, RelWithDebInfo, etc.
-cmake_apex_throttle="-DAPEX_THROTTLE=FALSE" # TRUE or FALSE
-cmake_build_shared_libs="-DBUILD_SHARED_LIBS=FALSE" # TRUE or FALSE
+cmake_apex_throttle="-DAPEX_THROTTLE=TRUE" # TRUE or FALSE
+cmake_build_shared_libs="-DBUILD_SHARED_LIBS=TRUE" # TRUE or FALSE
 cmake_install_prefix="-DCMAKE_INSTALL_PREFIX=../install" # the installation path
 cmake_use_codeblocks="-G \"CodeBlocks - Unix Makefiles\"" # if you want to debug in CodeBlocks
 cmake_make_verbose=""  # for verbose, use -DCMAKE_VERBOSE_MAKEFILE=ON

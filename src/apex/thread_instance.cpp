@@ -190,7 +190,6 @@ string thread_instance::map_addr_to_name(apex_function_address function_address)
 }
 
 void thread_instance::set_current_profiler(std::shared_ptr<profiler> the_profiler) {
-    //assert(instance().current_profilers.empty());
     instance().current_profiler = the_profiler;
     instance().current_profilers.push_back(the_profiler);
 }

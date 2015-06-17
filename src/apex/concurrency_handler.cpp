@@ -64,6 +64,8 @@ bool concurrency_handler::_handler(void) {
       _initialized = true;
   }
   if (_terminate) return true;
+  apex* inst = apex::instance();
+  if (inst == nullptr) return false; // running after finalization!
 #ifdef APEX_HAVE_TAU
   if (apex_options::use_tau()) {
     TAU_START("concurrency_handler::_handler");
@@ -77,7 +79,7 @@ bool concurrency_handler::_handler(void) {
     if (_option > 1 && !thread_instance::map_id_to_worker(i)) {
       continue;
     }
-    //if (apex::instance()->get_state(i) == APEX_THROTTLED) { continue; }
+    if (inst != nullptr && inst->get_state(i) == APEX_THROTTLED) { continue; }
     tmp = get_event_stack(i);
     string func;
     if (tmp != nullptr && tmp->size() > 0) {
@@ -184,13 +186,14 @@ void concurrency_handler::on_new_thread(new_thread_event_data &data) {
 
 void concurrency_handler::on_exit_thread(event_data &data) {
   APEX_UNUSED(data);
+  _terminate = true; // because there are crashes 
 }
 
 void concurrency_handler::on_shutdown(shutdown_event_data &data) {
-  if (!_terminate) {
+  //if (!_terminate) {
         _terminate = true;
         output_samples(data.node_id);
-  }
+  //}
 }
 
 inline stack<string>* concurrency_handler::get_event_stack(unsigned int tid) {

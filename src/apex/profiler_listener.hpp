@@ -39,7 +39,8 @@ private:
 #ifdef APEX_HAVE_HPX3
   static void schedule_process_profiles(void);
 #endif
-  static unsigned int process_profile(std::shared_ptr<profiler> p, unsigned int tid);
+  //static unsigned int process_profile(std::shared_ptr<profiler> p, unsigned int tid);
+  static unsigned int process_profile(profiler* p, unsigned int tid);
   static int node_id;
   static boost::mutex _mtx;
   void _common_start(apex_function_address function_address, bool is_resume); // internal, inline function

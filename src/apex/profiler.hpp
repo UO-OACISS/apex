@@ -18,6 +18,12 @@ enum struct reset_type {
     NONE, CURRENT, ALL    
 };
 
+class disabled_profiler_exception : public std::exception {
+    virtual const char* what() const throw() {
+      return "Disabled profiler.";
+    }
+};
+
 class profiler {
 public:
         //boost::timer::cpu_timer t; // starts the timer when profiler is constructed!
@@ -69,6 +75,27 @@ public:
 	    is_counter(true),
         is_resume(false),
         is_reset(reset_type::NONE), stopped(true) { }; 
+    //copy constructor
+    profiler(profiler* in) : start(in->start), end(in->end) {
+    //start = in->start;
+    //end = in->start;
+#if APEX_HAVE_PAPI
+#error "FIXME!"
+	papi_start_values[8];
+	papi_stop_values[8];
+#endif
+    value = in->elapsed();
+    children_value = in->children_value;
+    action_address = in->action_address;
+    have_name = in->have_name;
+    if (have_name && in->timer_name != nullptr) {
+      timer_name = new std::string(in->timer_name->c_str());
+    }
+    is_counter = in->is_counter;
+    is_resume = in->is_resume; // for yield or resume
+    is_reset = in->is_reset;
+    stopped = in->stopped;
+    }
     ~profiler(void) { if (have_name && timer_name != nullptr) delete timer_name; };
     // for "yield" support
     void stop(bool is_resume) {
@@ -91,6 +118,14 @@ public:
     double exclusive_elapsed(void) {
         return elapsed() - children_value;
     }
+
+    static inline profiler* get_disabled_profiler(void) { 
+        return disabled_profiler;
+    }
+    // default constructor for the dummy profiler
+    profiler(void) {};
+    // dummy profiler to indicate that stop/yield should resume immediately
+    static profiler* disabled_profiler; // initialized in profiler_listener.cpp
 };
 
 }
