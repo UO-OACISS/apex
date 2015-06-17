@@ -83,10 +83,13 @@ inline void __set_thread_cap(int new_cap) {
   return;
 }
 
+#if 0  // unused for now
 inline int __get_inputs(long int **inputs, int * num_inputs) {
   inputs = &(__ah_inputs[0]);
-	*num_inputs = __num_ah_inputs;
+  *num_inputs = __num_ah_inputs;
+  return __num_ah_inputs;
 }
+#endif
 
 inline void __decrease_cap_gradual() {
     thread_cap -= 1;
