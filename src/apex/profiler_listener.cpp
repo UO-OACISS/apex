@@ -1164,7 +1164,9 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       }
 #endif
       delete_profiles();
+#ifndef APEX_HAVE_HPX3
       delete consumer_thread;
+#endif
   };
 
 }
