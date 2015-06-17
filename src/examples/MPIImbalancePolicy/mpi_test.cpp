@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
     exit(0);
   }
   apex::init(argc, argv, "MPI TEST");
-  apex_global_setup((apex_function_address)(do_work));
+  apex_global_setup(APEX_FUNCTION_ADDRESS, (void*)(do_work));
 
   /* Find out my identity in the default communicator */
 

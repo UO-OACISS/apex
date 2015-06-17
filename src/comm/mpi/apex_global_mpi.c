@@ -13,7 +13,9 @@ apex_profile value;
 apex_profile reduced_value;
 
 // the profiled function
+apex_profiler_type profiler_type;
 apex_function_address profiled_action;
+char* profiled_action_name;
 
 FILE *graph_output;
 
@@ -51,7 +53,12 @@ void apex_sum(int count, apex_profile values[count]) {
 
 // update our local value for the profile
 int action_apex_get_value(void *args) {
-  apex_profile * p = apex_get_profile(APEX_FUNCTION_ADDRESS, (void*)profiled_action);
+  apex_profile * p = NULL;
+  if (profiler_type == APEX_FUNCTION_ADDRESS) {
+    p = apex_get_profile(APEX_FUNCTION_ADDRESS, (void*)profiled_action);
+  } else {
+    p = apex_get_profile(APEX_NAME_STRING, profiled_action_name);
+  }
   if (p != NULL) {
     value.calls = p->calls;
     value.accumulated = p->accumulated;
@@ -94,8 +101,15 @@ int apex_periodic_policy_func(apex_context const context) {
   return APEX_NOERROR;
 }
 
-void apex_global_setup(apex_function_address in_action) {
-  profiled_action = in_action;
+void apex_global_setup(apex_profiler_type type, void* in_action) {
+  profiler_type = type;
+  if (type == APEX_FUNCTION_ADDRESS) {
+    profiled_action = (apex_function_address)in_action;
+  } else {
+    char* tmp = (char *)in_action;
+    profiled_action_name = strdup(tmp);
+  }
+    
   apex_register_periodic_policy(1000000, apex_periodic_policy_func);
   apex_set_use_policy(true);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
