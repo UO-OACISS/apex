@@ -7,12 +7,14 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <thread>
 #include <boost/atomic.hpp>
 
 #include "apex.hpp"
 #include "apex_api.hpp"
 #include "apex_types.h"
 #include "apex_policies.h"
+#include "apex_options.hpp"
 
 #ifdef APEX_HAVE_RCR
 #include "libenergy.h"
@@ -44,7 +46,8 @@ double min_watts = APEX_LOW_POWER_LIMIT;
 int max_threads = APEX_MAX_THREADS;
 int min_threads = APEX_MIN_THREADS;
 int thread_step = 1;
-long int thread_cap = APEX_MAX_THREADS;
+long int thread_cap = std::thread::hardware_concurrency();
+//long int thread_cap = APEX_MAX_THREADS;
 int headroom = 1; //
 double moving_average = 0.0;
 int window_size = MAX_WINDOW_SIZE;
@@ -68,13 +71,27 @@ int * observations = NULL;
 ofstream cap_data;
 bool cap_data_open = false;
 
+// variables for active harmony general tuning
+long int *__ah_inputs[10]; // more than 10 would be pointless
+int __num_ah_inputs;
+
 inline int __get_thread_cap(void) {
   return (int)thread_cap;
+  //return (int)*(__ah_inputs[0]);
 }
 
-inline void __set_thread_cap(int c) {
-  thread_cap = c;
+inline void __set_thread_cap(int new_cap) {
+  thread_cap = (long int)new_cap;
+  return;
 }
+
+#if 0  // unused for now
+inline int __get_inputs(long int **inputs, int * num_inputs) {
+  inputs = &(__ah_inputs[0]);
+  *num_inputs = __num_ah_inputs;
+  return __num_ah_inputs;
+}
+#endif
 
 inline void __decrease_cap_gradual() {
     thread_cap -= 1;
@@ -635,6 +652,8 @@ int apex_custom_tuning_policy(apex_context const context) {
 
 inline void __read_common_variables() {
     char * envvar = getenv("APEX_THROTTLING");
+    max_threads = thread_cap = std::thread::hardware_concurrency();
+    min_threads = 1;
     if (envvar != NULL) {
         int tmp = atoi(envvar);
         if (tmp > 0) {
@@ -679,7 +698,8 @@ inline int __setup_power_cap_throttling()
       if (apex::apex::instance()->get_node_id() == 0) {
         cout << "APEX Throttling for energy savings, min watts: " << min_watts << " max watts: " << max_watts << endl;
       }
-      apex::register_periodic_policy(1000000, apex_power_throttling_policy);
+      // disabled for other stuff.
+      //apex::register_periodic_policy(1000000, apex_power_throttling_policy);
       // get an initial power reading
       apex::current_power_high();
 #ifdef APEX_HAVE_RCR
@@ -717,6 +737,8 @@ inline void __apex_active_harmony_setup(void) {
             endl << harmony_error_string(hdesc) << endl;
         return;
     }
+		__num_ah_inputs = 1;
+		__ah_inputs[0] = &thread_cap;
     if (harmony_bind_int(hdesc, "thread_cap", &thread_cap) != 0) {
         cerr << "Failed to register Active Harmony variable" << endl;
         return;
@@ -743,6 +765,7 @@ inline void __active_harmony_throughput_setup(int num_inputs, long ** inputs, lo
         return;
     }
     char tmpstr[12] = {0};
+		__num_ah_inputs = num_inputs;
     for (int i = 0 ; i < num_inputs ; i++ ) {
         sprintf (tmpstr, "param_%d", i);
         if (harmony_int(hdesc, tmpstr, mins[i], maxs[i], steps[i]) != 0) {
@@ -761,6 +784,7 @@ inline void __active_harmony_throughput_setup(int num_inputs, long ** inputs, lo
             cerr << "Failed to register Active Harmony variable" << endl;
             return;
         }
+				__ah_inputs[i] = inputs[i];
     }
     if (harmony_join(hdesc, NULL, 0, session_name) != 0) {
         cerr << "Failed to join Active Harmony tuning session" << endl;
@@ -841,7 +865,7 @@ inline int __common_setup_timer_throttling(apex_optimization_criteria_t criteria
         apex_optimization_method_t method, unsigned long update_interval)
 {
     __read_common_variables();
-    if (apex_checkThrottling) {
+    if (apex::apex_options::throttle_concurrency()) {
         function_history.calls = 0.0;
         function_history.accumulated = 0.0;
         function_baseline.calls = 0.0;
@@ -870,7 +894,7 @@ inline int __common_setup_throughput_tuning(apex_optimization_criteria_t criteri
         long * maxs, long * steps)
 {
     __read_common_variables();
-    if (apex_checkThrottling) {
+    if (apex::apex_options::throttle_concurrency()) {
         function_history.calls = 0.0;
         function_history.accumulated = 0.0;
         function_baseline.calls = 0.0;
@@ -945,7 +969,7 @@ inline int __setup_timer_throttling(const string& the_name, apex_optimization_cr
 inline int __shutdown_throttling(void)
 {
 /*
-  if (apex_checkThrottling) energyDaemonTerm(); // prints energy usage
+  if (apex::apex_options::throttle_concurrency()) energyDaemonTerm(); // prints energy usage
   else if (getenv("APEX_ENERGY") != NULL) {
     energyDaemonTerm();  // this is done in apex termination
   }
@@ -953,6 +977,7 @@ inline int __shutdown_throttling(void)
     apex_final = true;
   //printf("periodic_policy called %d times\n", test_pp);
     if (cap_data_open) {
+        cap_data_open = false;
         cap_data.close();
     }
   return APEX_NOERROR;
@@ -1005,10 +1030,6 @@ APEX_EXPORT int get_thread_cap(void) {
     return __get_thread_cap();
 }
 
-APEX_EXPORT void set_thread_cap(int c) {
-    __set_thread_cap(c);
-}
-
 
 APEX_EXPORT std::vector<std::pair<std::string,long*>> & get_tunable_params() {
     return tunable_params;
@@ -1058,10 +1079,17 @@ APEX_EXPORT int apex_get_thread_cap(void) {
     return __get_thread_cap();
 }
 
+<<<<<<< HEAD
 APEX_EXPORT void apex_set_thread_cap(int c) {
     __set_thread_cap(c);
 }
 
 
+=======
+APEX_EXPORT void apex_set_thread_cap(int new_cap) {
+    return __set_thread_cap(new_cap);
+}
+
+>>>>>>> master
 } // extern "C"
 

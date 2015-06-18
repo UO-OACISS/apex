@@ -37,7 +37,8 @@ int apex_periodic_policy_func(apex_context const context) ;
 /**
  \brief The function to set up global reductions
 
- \param in_action The address of a function.
+ \param type The type of the profiler
+ \param in_action The name of a timer or address of a function.
  This is the function timer that should be reduced globally.
  This value is used for the example.
  \returns 0 on no error.

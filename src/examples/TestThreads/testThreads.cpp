@@ -16,7 +16,7 @@ public:
   ApexProxy(const char * func, const char * file, int line);
   ApexProxy(apex_function_address fpointer);
   ~ApexProxy();
-  void stop() { stopped = false; apex::stop(p); };
+  void stop() { stopped = true; apex::stop(p); };
 };
 
 ApexProxy::ApexProxy(const char * func, const char * file, int line) : stopped(false) {

@@ -472,7 +472,15 @@ APEX_EXPORT int apex_shutdown_throttling(void);   // terminate
  */
 APEX_EXPORT int apex_get_thread_cap(void);             // for thread throttling
 
-APEX_EXPORT void apex_set_thread_cap(int c);
+/**
+ \brief Set the current thread cap for throttling.
+
+ This function will set the current thread cap based on an external throttling
+ policy.
+
+ \param new_cap The current thread cap value.
+ */
+APEX_EXPORT void apex_set_thread_cap(int new_cap);             // for thread throttling
 
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS

@@ -591,13 +591,23 @@ APEX_EXPORT int shutdown_throttling(void);   // terminate
 APEX_EXPORT int get_thread_cap(void);             // for thread throttling
 
 /**
- \brief Set the current thread cap to be used for throttling.
+ \brief Set the current thread cap for throttling.
 
- \param cap The new thread cap.
+ This function will set the current thread cap based on an external throttling
+ policy.
+
+ \param new_cap The current thread cap value.
+ */
+APEX_EXPORT void set_thread_cap(int new_cap);             // for thread throttling
+
+
+/**
+ \brief Return a vector of the current tunable parameters
+
+ \return A vector of pairs; the first element is the name of the tunable parameter,
+ while the second is a pointer to its value.
 
  */
-APEX_EXPORT void set_thread_cap(int cap);
-
 APEX_EXPORT std::vector<std::pair<std::string,long*>> & get_tunable_params();
 
 #ifdef APEX_HAVE_HPX3

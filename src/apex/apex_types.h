@@ -19,7 +19,7 @@
  * Not useful for the caller that gets it back, but required
  * for stopping the timer later.
  */
-typedef uintptr_t apex_profiler_handle; // address of internal C++ object
+typedef void* apex_profiler_handle; // address of internal C++ object
 
 /** A null pointer representing an APEX profiler handle.
  * Used when a null APEX profile handle is to be passed in to
@@ -192,11 +192,17 @@ typedef int (*apex_policy_function)(apex_context const context);
     macro (APEX_CONCURRENCY_PERIOD, concurrency_period, int, 1000000) \
     macro (APEX_SCREEN_OUTPUT, use_screen_output, bool, false) \
     macro (APEX_PROFILE_OUTPUT, use_profile_output, int, 0) \
-    macro (APEX_PROC_CPUINFO, use_proc_cpuinfo, bool, 0) \
-    macro (APEX_PROC_MEMINFO, use_proc_meminfo, bool, 0) \
-    macro (APEX_PROC_NET_DEV, use_proc_net_dev, bool, 0) \
-    macro (APEX_PROC_SELF_STATUS, use_proc_self_status, bool, 0) \
-    macro (APEX_PROC_STAT, use_proc_stat, bool, 1) \
+    macro (APEX_PROC_CPUINFO, use_proc_cpuinfo, bool, false) \
+    macro (APEX_PROC_MEMINFO, use_proc_meminfo, bool, false) \
+    macro (APEX_PROC_NET_DEV, use_proc_net_dev, bool, false) \
+    macro (APEX_PROC_SELF_STATUS, use_proc_self_status, bool, false) \
+    macro (APEX_PROC_STAT, use_proc_stat, bool, true) \
+    macro (APEX_THROTTLE_CONCURRENCY, throttle_concurrency, bool, false) \
+    macro (APEX_THROTTLING_MAX_THREADS, throttling_max_threads, int, 48) \
+    macro (APEX_THROTTLING_MIN_THREADS, throttling_min_threads, int, 1) \
+    macro (APEX_THROTTLE_ENERGY, throttle_energy, bool, false) \
+    macro (APEX_THROTTLING_MAX_WATTS, throttling_max_watts, int, 300) \
+    macro (APEX_THROTTLING_MIN_WATTS, throttling_min_watts, int, 150)
 
 #define FOREACH_APEX_STRING_OPTION(macro) \
     macro (APEX_UDP_SINK_HOST, udp_sink_host, char*, "localhost") \

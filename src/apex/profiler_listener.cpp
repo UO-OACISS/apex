@@ -72,8 +72,6 @@
 #include <TAU.h>
 #endif
 
-/* #define EXCLUSIVE // subtract child times from parent timers */
-
 using namespace std;
 using namespace apex;
 
@@ -81,10 +79,15 @@ APEX_NATIVE_TLS unsigned int my_tid = 0; // the current thread's TID in APEX
 
 namespace apex {
 
+  /* THis is a special profiler, indicating that the timer requested is
+     throttled, and shouldn't be processed. */
+  profiler* profiler::disabled_profiler = new profiler();
+
   /* This is the array of profiler queues, one for each worker thread. It
    * is initialized to a length of 8, there is code in on_new_thread() to
    * increment it if necessary.  */
-  std::vector<boost::lockfree::spsc_queue<std::shared_ptr<profiler> >* > profiler_queues(2);
+  //std::vector<boost::lockfree::spsc_queue<std::shared_ptr<profiler> >* > profiler_queues(2);
+  std::vector<boost::lockfree::spsc_queue<profiler*>* > profiler_queues(2);
 
 #if APEX_HAVE_PAPI
   std::vector<int> event_sets(8);
@@ -192,12 +195,13 @@ namespace apex {
   // TODO The name-based timer and address-based timer paths through
   // the code involve a lot of duplication -- this should be refactored
   // to remove the duplication so it's easier to maintain.
-  inline unsigned int profiler_listener::process_profile(std::shared_ptr<profiler> p, unsigned int tid)
+  inline unsigned int profiler_listener::process_profile(profiler* p, unsigned int tid)
   {
     if(p == nullptr) return 0;
     profile * theprofile;
     if(p->is_reset == reset_type::ALL) {
         reset_all();
+        delete p;
         return 0;
     }
     // Look for the profile object by name, if applicable
@@ -209,31 +213,23 @@ namespace apex {
         if(p->is_reset == reset_type::CURRENT) {
             theprofile->reset();
         } else {
-#ifdef EXCLUSIVE
-            theprofile->increment(p->exclusive_elapsed(), p->is_resume);
-#else
             theprofile->increment(p->elapsed(), p->is_resume);
-#endif
         }
 #if defined(APEX_THROTTLE)
         // Is this a lightweight task? If so, we shouldn't measure it any more,
         // in order to reduce overhead.
         if (theprofile->get_calls() > APEX_THROTTLE_CALLS &&
             theprofile->get_mean() < APEX_THROTTLE_PERCALL) {
-          unordered_set<string>::const_iterator it = throttled_names.find(p->timer_name);
-          if (it == throttled_names.end()) {
-            throttled_names.insert(p->timer_name);
-            cout << "APEX Throttled " << p->timer_name << endl; fflush;
+          unordered_set<string>::const_iterator it2 = throttled_names.find(*(p->timer_name));
+          if (it2 == throttled_names.end()) {
+            throttled_names.insert(*(p->timer_name));
+            cout << "APEX Throttled " << p->timer_name << endl; fflush(stdout);
           }
         }
 #endif
       } else {
         // Create a new profile for this name.
-#ifdef EXCLUSIVE
-        theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->exclusive_elapsed(), p->is_resume, p->is_counter ? APEX_COUNTER : APEX_TIMER);
-#else
         theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_resume, p->is_counter ? APEX_COUNTER : APEX_TIMER);
-#endif
         name_map[*(p->timer_name)] = theprofile;
 #ifdef APEX_HAVE_HPX3
 #ifdef APEX_REGISTER_HPX3_COUNTERS
@@ -245,11 +241,8 @@ namespace apex {
                     hpx::performance_counters::install_counter_type(
                     std::string("/apex/") + timer_name,
                     [p](bool r)->boost::int64_t{
-#ifdef EXCLUSIVE
-                        boost::int64_t value(p->exclusive_elapsed() * 100000);
-#else
                         boost::int64_t value(p->elapsed() * 100000);
-#endif
+                        delete p;
                         return value;
                     },
                     std::string("APEX counter ") + timer_name,
@@ -273,19 +266,11 @@ namespace apex {
             if(p->is_reset == reset_type::CURRENT) {
                 theprofile->reset();
             } else {
-#ifdef EXCLUSIVE
-                theprofile->increment(p->exclusive_elapsed(), p->is_resume);
-#else
                 theprofile->increment(p->elapsed(), p->is_resume);
-#endif
             }
         } else {
             // Create a new profile for this name.
-#ifdef EXCLUSIVE
-            theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->exclusive_elapsed(), p->is_resume, p->is_counter ? APEX_COUNTER : APEX_TIMER);
-#else
             theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_resume, p->is_counter ? APEX_COUNTER : APEX_TIMER);
-#endif
             (*the_map)[*(p->timer_name)] = theprofile;
         }
       }
@@ -297,35 +282,27 @@ namespace apex {
         if(p->is_reset == reset_type::CURRENT) {
             theprofile->reset();
         } else {
-#ifdef EXCLUSIVE
-            theprofile->increment(p->exclusive_elapsed(), p->is_resume);
-#else
             theprofile->increment(p->elapsed(), p->is_resume);
-#endif
         }
 #if defined(APEX_THROTTLE)
         // Is this a lightweight task? If so, we shouldn't measure it any more,
         // in order to reduce overhead.
         if (theprofile->get_calls() > APEX_THROTTLE_CALLS &&
             theprofile->get_mean() < APEX_THROTTLE_PERCALL) {
-          unordered_set<apex_function_address>::const_iterator it = throttled_addresses.find(p->action_address);
-          if (it == throttled_addresses.end()) {
+          unordered_set<apex_function_address>::const_iterator it4 = throttled_addresses.find(p->action_address);
+          if (it4 == throttled_addresses.end()) {
             throttled_addresses.insert(p->action_address);
 #if defined(HAVE_BFD)
-            cout << "APEX Throttled " << *(lookup_address((uintptr_t)p->action_address, true)) << endl;
+            cout << "APEX Throttled " << *(lookup_address((uintptr_t)p->action_address, true)) << endl; fflush(stdout);
 #else
-            cout << "APEX Throttled " << p->action_address << endl;
+            cout << "APEX Throttled " << p->action_address << endl; fflush(stdout);
 #endif
           }
         }
 #endif
       } else {
         // Create a new profile for this address.
-#ifdef EXCLUSIVE
-        theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->exclusive_elapsed(), p->is_resume);
-#else
         theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_resume);
-#endif
         address_map[p->action_address] = theprofile;
       }
       if (apex_options::use_profile_output() > 1) {
@@ -338,23 +315,16 @@ namespace apex {
             if(p->is_reset == reset_type::CURRENT) {
                 theprofile->reset();
             } else {
-#ifdef EXCLUSIVE
-                theprofile->increment(p->exclusive_elapsed(), p->is_resume);
-#else
                 theprofile->increment(p->elapsed(), p->is_resume);
-#endif
             }
         } else {
             // Create a new profile for this address.
-#ifdef EXCLUSIVE
-            theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->exclusive_elapsed(), p->is_resume);
-#else
             theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_resume);
-#endif
             (*the_map)[p->action_address] = theprofile;
         }
       }
     }
+    delete p;
     return 1;
   }
 
@@ -377,7 +347,7 @@ namespace apex {
     // iterate over the queues, and delete them
     unsigned int i = 0;
     for (i = 0 ; i < profiler_queues.size(); i++) {
-      if (profiler_queues[i]) {
+      if (profiler_queues[i] != nullptr) {
         delete (profiler_queues[i]);
       }
     }
@@ -423,12 +393,6 @@ namespace apex {
     for(it = address_map.begin(); it != address_map.end(); it++) {
       profile * p = it->second;
       apex_function_address function_address = it->first;
-#if defined(APEX_THROTTLE)
-      // if this profile was throttled, don't output the measurements.
-      // they are limited and bogus, anyway.
-      unordered_set<apex_function_address>::const_iterator it = throttled_addresses.find(function_address);
-      if (it != throttled_addresses.end()) { continue; }
-#endif
 #if APEX_HAVE_BFD
       // translate the address to a name
       string * tmp = lookup_address((uintptr_t)function_address, true);
@@ -443,6 +407,15 @@ namespace apex {
 #else
       //cout << "\"" << function_address << "\", " ;
       cout << boost::format("%30p") % function_address << " : " ;
+#endif
+#if defined(APEX_THROTTLE)
+      // if this profile was throttled, don't output the measurements.
+      // they are limited and bogus, anyway.
+      unordered_set<apex_function_address>::const_iterator it3 = throttled_addresses.find(function_address);
+      if (it3 != throttled_addresses.end()) { 
+        cout << "THROTTLED (high frequency, short duration)" << endl;
+        continue; 
+      }
 #endif
       if (p->get_calls() < 999999) {
       	cout << PAD_WITH_SPACES % p->get_calls() << "   " ;
@@ -460,12 +433,6 @@ namespace apex {
     for(it2 = name_map.begin(); it2 != name_map.end(); it2++) {
       profile * p = it2->second;
       string action_name = it2->first;
-#if defined(APEX_THROTTLE)
-      // if this profile was throttled, don't output the measurements.
-      // they are limited and bogus, anyway.
-      unordered_set<apex_function_address>::const_iterator it = throttled_names.find(action_name);
-      if (it != throttled_names.end()) { continue; }
-#endif
 #if APEX_HAVE_BFD
       boost::regex rx (".*UNRESOLVED ADDR (.*)");
       if (boost::regex_match (action_name,rx)) {
@@ -488,10 +455,25 @@ namespace apex {
       }
       //cout << "\"" << shorter << "\", " ;
       cout << boost::format("%30s") % shorter << " : ";
+#if defined(APEX_THROTTLE)
+      // if this profile was throttled, don't output the measurements.
+      // they are limited and bogus, anyway.
+      /*
+      unordered_set<string>::const_iterator it4 = throttled_names.find(action_name);
+      if (it4!= throttled_names.end()) { 
+        cout << "THROTTLED (high frequency, short duration)" << endl;
+        continue; 
+      }
+      */
+#endif
       if(p->get_calls() < 1) {
         p->get_profile()->calls = 1;
       }
-      cout << PAD_WITH_SPACES % p->get_calls() << "   " ;
+      if (p->get_calls() < 999999) {
+      	cout << PAD_WITH_SPACES % p->get_calls() << "   " ;
+      } else {
+      	cout << FORMAT_SCIENTIFIC % p->get_calls() << "   " ;
+      }
       cout << FORMAT_SCIENTIFIC % p->get_minimum() << "   " ;
       cout << FORMAT_SCIENTIFIC % p->get_mean() << "   " ;
       cout << FORMAT_SCIENTIFIC % p->get_maximum() << "   " ;
@@ -666,7 +648,7 @@ namespace apex {
     }
 #endif
 
-    std::shared_ptr<profiler> p;
+    profiler* p;
     unsigned int i;
     // Main loop. Stay in this loop unless "done".
 #ifndef APEX_HAVE_HPX3
@@ -826,7 +808,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   void profiler_listener::on_startup(startup_event_data &data) {
     if (!_terminate) {
       // Create a profiler queue for this main thread
-      profiler_queues[0] = new boost::lockfree::spsc_queue<std::shared_ptr<profiler> >(MAX_QUEUE_SIZE);
+      profiler_queues[0] = new boost::lockfree::spsc_queue<profiler*>(MAX_QUEUE_SIZE);
       if (apex_options::use_profile_output() > 1) {
         thread_address_maps[0] = new map<apex_function_address, profile*>();
         thread_name_maps[0] = new map<string, profile*>();
@@ -893,7 +875,6 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       queue_signal.post();
       if (consumer_thread != nullptr) {
           consumer_thread->join();
-          delete consumer_thread;
       }
 #endif
 
@@ -990,8 +971,8 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       // allocate the queue(s)
       for (i = 0; i < my_tid+1 ; i++) {
         if (profiler_queues[i] == nullptr) {
-          boost::lockfree::spsc_queue<std::shared_ptr<profiler> >* tmp =
-            new boost::lockfree::spsc_queue<std::shared_ptr<profiler> >(MAX_QUEUE_SIZE);
+          boost::lockfree::spsc_queue<profiler*>* tmp =
+            new boost::lockfree::spsc_queue<profiler*>(MAX_QUEUE_SIZE);
           profiler_queues[i] = tmp;
         }
         if (apex_options::use_profile_output() > 1) {
@@ -1021,10 +1002,9 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
     if (!_terminate) {
 #if defined(APEX_THROTTLE)
         // if this timer is throttled, return without doing anything
-        unordered_set<apex_function_address>::const_iterator it = throttled_addresses.find(data.function_address);
+        unordered_set<apex_function_address>::const_iterator it = throttled_addresses.find(function_address);
         if (it != throttled_addresses.end()) {
-          thread_instance::instance().set_current_profiler(nullptr);
-          return;
+          throw disabled_profiler_exception(); // to be caught by apex::start/resume
         }
 #endif
         // start the profiler object, which starts our timers
@@ -1044,10 +1024,9 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
     if (!_terminate) {
 #if defined(APEX_THROTTLE)
       // if this timer is throttled, return without doing anything
-      unordered_set<apex_function_address>::const_iterator it = throttled_names.find(*timer_name);
+      unordered_set<string>::const_iterator it = throttled_names.find(*timer_name);
       if (it != throttled_names.end()) {
-        thread_instance::instance().set_current_profiler(nullptr);
-        return;
+        throw disabled_profiler_exception(); // to be caught by apex::start/resume
       }
 #endif
       // start the profiler object, which starts our timers
@@ -1063,7 +1042,9 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 
   inline void profiler_listener::push_profiler(int my_tid, std::shared_ptr<profiler>p) {
       assert(profiler_queues[my_tid]);
-      bool worked = profiler_queues[my_tid]->push(p);
+      // we have to make a local copy, because lockfree queues DO NOT SUPPORT shared_ptrs!
+      profiler* local_p = new profiler(p.get());
+      bool worked = profiler_queues[my_tid]->push(local_p);
       if (!worked) {
           static bool issued = false;
           if (!issued) {
@@ -1093,12 +1074,6 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
     if (!_terminate) {
       if (p) {
         p->stop(is_yield);
-#ifdef EXCLUSIVE
-        try {
-            std::shared_ptr<profiler> parent = thread_instance::instance().get_parent_profiler();
-            parent->children_value += p->elapsed();
-        } catch (empty_stack_exception& e) { } // must be the top level timer.
-#endif
 #if APEX_HAVE_PAPI
         long long * values = p->papi_stop_values;
         int rc = 0;
@@ -1134,7 +1109,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 
    /* Stop the timer */
   void profiler_listener::on_stop(std::shared_ptr<profiler> p) {
-    _common_stop(p, false);
+    _common_stop(p, p->is_resume); // don't change the yield/resume value!
   }
 
   /* Stop the timer, but don't increment the number of calls */
@@ -1153,7 +1128,6 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         std::shared_ptr<profiler> p = std::shared_ptr<profiler>(new profiler(new string(*data.counter_name), data.counter_value));
       p->is_counter = data.is_counter;
       push_profiler(my_tid, p);
-      p->safe_to_delete = true;
     }
   }
 
@@ -1194,6 +1168,9 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       }
 #endif
       delete_profiles();
+#ifndef APEX_HAVE_HPX3
+      delete consumer_thread;
+#endif
   };
 
 }
