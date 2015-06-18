@@ -1079,17 +1079,9 @@ APEX_EXPORT int apex_get_thread_cap(void) {
     return __get_thread_cap();
 }
 
-<<<<<<< HEAD
-APEX_EXPORT void apex_set_thread_cap(int c) {
-    __set_thread_cap(c);
-}
-
-
-=======
 APEX_EXPORT void apex_set_thread_cap(int new_cap) {
     return __set_thread_cap(new_cap);
 }
 
->>>>>>> master
 } // extern "C"
 
