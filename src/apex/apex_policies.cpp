@@ -858,6 +858,15 @@ inline void __active_harmony_throughput_setup(int num_inputs, long ** inputs, lo
   APEX_UNUSED(steps);
   std::cerr << "WARNING: Active Harmony setup attempted but APEX was built without Active Harmony support!" << std::endl;
 }
+inline int __active_harmony_custom_setup(int num_inputs, long ** inputs, long * mins, long * maxs, long * steps) {
+  APEX_UNUSED(num_inputs);
+  APEX_UNUSED(inputs);
+  APEX_UNUSED(mins);
+  APEX_UNUSED(maxs);
+  APEX_UNUSED(steps);
+  std::cerr << "WARNING: Active Harmony setup attempted but APEX was built without Active Harmony support!" << std::endl;
+  return APEX_NOERROR;
+}
 inline void __apex_active_harmony_shutdown(void) { }
 #endif
 
