@@ -33,7 +33,7 @@
 #include <TAU.h>
 #endif
 
-#define MAX_FUNCTIONS_IN_CHART 15
+#define MAX_FUNCTIONS_IN_CHART 5
 
 using namespace std;
 
