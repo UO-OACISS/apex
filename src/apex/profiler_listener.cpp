@@ -59,9 +59,9 @@
 #include <hpx/lcos/local/composable_guard.hpp>
 #endif
 
-//#define MAX_QUEUE_SIZE 1024*1024
+#define MAX_QUEUE_SIZE 1024*1024
 //#define MAX_QUEUE_SIZE 1024
-#define MAX_QUEUE_SIZE 4096
+//#define MAX_QUEUE_SIZE 4096
 #define INITIAL_NUM_THREADS 2
 
 #define APEX_MAIN "APEX MAIN"
@@ -112,6 +112,8 @@ namespace apex {
 #ifdef APEX_HAVE_HPX3
   /* Flag indicating whether a consumer task is currently running */
   std::atomic_flag consumer_task_running = ATOMIC_FLAG_INIT;
+  
+  bool hpx_shutdown = false;
 #endif
 
   /* The profiles, mapped by name. Profiles will be in this map or the other
@@ -732,7 +734,9 @@ namespace apex {
 
 void profiler_listener::schedule_process_profiles() {
     if(get_hpx_runtime_ptr() == nullptr) return;
-    if(!consumer_task_running.test_and_set(memory_order_acq_rel)) {
+    if(hpx_shutdown) {
+        profiler_listener::process_profiles();
+    } else if(!consumer_task_running.test_and_set(memory_order_acq_rel)) {
         apex_internal_process_profiles_action act;
         try {
             hpx::apply(act, hpx::find_here());

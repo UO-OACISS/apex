@@ -446,7 +446,7 @@ APEX_EXPORT int apex_setup_timer_throttling(apex_profiler_type type,
  \param steps An array of step values for each input
  \return APEX_NOERROR on success, otherwise an error code.
  */
-APEX_EXPORT int apex_setup_general_tuning(
+APEX_EXPORT int apex_setup_throughput_tuning(
         apex_profiler_type type,
         void * identifier,
         apex_optimization_criteria_t criteria,

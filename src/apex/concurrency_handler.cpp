@@ -19,6 +19,7 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <utility>
 #if defined(__GNUC__)
 #include <cxxabi.h>
 #endif
@@ -103,6 +104,9 @@ bool concurrency_handler::_handler(void) {
   }
   _states.push_back(counts);
   _thread_cap_samples.push_back(get_thread_cap());
+  for(auto param : get_tunable_params()) {
+    _tunable_param_samples[param.first].push_back(*param.second);
+  }
   int power = current_power_high();
   _power_samples.push_back(power);
   this->_reset();
@@ -284,6 +288,10 @@ void concurrency_handler::output_samples(int node_id) {
 
   // output the header
   myfile << "\"period\"\t\"thread cap\"\t\"power\"\t";
+  // output tunable parameter names
+  for(auto param : _tunable_param_samples) {
+    myfile << "\"" << param.first << "\"\t";
+  }
   for (set<string>::iterator it=_functions.begin(); it!=_functions.end(); ++it) {
     if (top_x.find(*it) != top_x.end()) {
       //string* tmp = demangle(*it);
@@ -315,10 +323,15 @@ void concurrency_handler::output_samples(int node_id) {
   size_t max_Y = 0;
   double max_Power = 0.0;
   size_t max_X = _states.size();
+  int num_params = _tunable_param_samples.size();
   for (size_t i = 0 ; i < max_X ; i++) {
     myfile << i << "\t";
     myfile << _thread_cap_samples[i] << "\t";
     myfile << _power_samples[i] << "\t";
+    for(auto param : _tunable_param_samples) {
+      myfile << param.second[i] << "\t";
+      if(param.second[i] > max_Power) max_Power = param.second[i];
+    }
     unsigned int tmp_max = 0;
     int other = 0;
     for (set<string>::iterator it=_functions.begin(); it!=_functions.end(); ++it) {
@@ -369,12 +382,16 @@ void concurrency_handler::output_samples(int node_id) {
   myfile << "set boxwidth 1.0 relative" << endl;
   myfile << "set palette rgb 33,13,10" << endl;
   myfile << "unset colorbox" << endl;
-  myfile << "plot for [COL=4:" << top_x.size()+4;
+  myfile << "plot for [COL=" << (4+num_params) << ":" << top_x.size()+num_params+4;
   myfile << "] '" << datname.str().c_str();
-  myfile << "' using COL:xticlabels(1) palette frac (COL-3)/" << top_x.size()+1;
+  myfile << "' using COL:xticlabels(1) palette frac (COL-" << (3+num_params) << ")/" << top_x.size()+1;
   myfile << ". title columnheader axes x1y1, '"  << datname.str().c_str();
   myfile << "' using 2 with linespoints axes x1y1 title columnheader, '" << datname.str().c_str();
-  myfile << "' using 3 with linespoints axes x1y2 title columnheader" << endl;
+  myfile << "' using 3 with linespoints axes x1y2 title columnheader,";
+  for(int p = 0; p < num_params; ++p) {
+    myfile << "'" << datname.str().c_str() << "' using " << (4+p) << " with linespoints axes x1y2 title columnheader,";
+  }
+  myfile << endl;
   myfile.close();
 }
 

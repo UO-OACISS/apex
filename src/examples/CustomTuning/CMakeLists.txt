@@ -1,0 +1,19 @@
+# Make sure the compiler can find include files from our Apex library. 
+include_directories (${APEX_SOURCE_DIR}/src/apex) 
+
+# Make sure the linker can find the Apex library once it is built. 
+link_directories (${APEX_BINARY_DIR}/src/apex) 
+
+# Add executable called "custom_tuning" that is built from the source file
+# "custom_tuning.cpp". The extensions are automatically found. 
+add_executable (custom_tuning custom_tuning.cpp) 
+add_dependencies (custom_tuning apex)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+
+# Link the executable to the Apex library. 
+target_link_libraries (custom_tuning apex ${Boost_LIBRARIES}) 
+
+INSTALL(TARGETS custom_tuning
+  RUNTIME DESTINATION bin
+)
