@@ -485,7 +485,7 @@ if(OPENMP_FOUND)
         set_property(TEST TestOpenMPStencil APPEND PROPERTY ENVIRONMENT "HARMONY_HOME=${ACTIVEHARMONY_ROOT}")
     endif()
   if(OMPT_FOUND)
-	  add_test (TestOpenMP src/examples/TestOpenMP/openmp_test)
+      add_test (TestOpenMPSharing src/examples/TestOpenMP/openmp_test)
   endif()
 endif()
 

@@ -9,7 +9,8 @@ link_directories (${APEX_BINARY_DIR}/src/apex)
 add_executable (openmp_test openmp_test.c) 
 add_dependencies (openmp_test apex)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
+set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 
 # Link the executable to the Apex library. 
 target_link_libraries (openmp_test apex ${Boost_LIBRARIES} ${OMPT_LIBRARIES}) 

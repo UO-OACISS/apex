@@ -9,7 +9,8 @@ link_directories (${APEX_BINARY_DIR}/src/apex)
 add_executable (custom_tuning custom_tuning.cpp) 
 add_dependencies (custom_tuning apex)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 
 # Link the executable to the Apex library. 
 target_link_libraries (custom_tuning apex ${Boost_LIBRARIES}) 

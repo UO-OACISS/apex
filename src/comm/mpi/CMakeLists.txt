@@ -27,6 +27,9 @@ add_dependencies (apex_mpi apex)
 # target_link_libraries (ittnotifyShared ${LIBS})
 # endif()
 
+set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+
 # add the binary tree to the search path for include files
 # so that we will find ittnotify.h
 include_directories ("${PROJECT_BINARY_DIR}/src/apex" ${APEX_BINARY_DIR}/src/comm)
