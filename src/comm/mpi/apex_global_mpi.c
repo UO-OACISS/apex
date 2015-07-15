@@ -48,15 +48,15 @@ bool apex_set_new_thread_caps(int count, apex_profile values[count]) {
     return false;
   }
   // divide max by max_threads - or the current thread cap for the max rank
-  //double period_max = (reduced_value.maximum - previous_values[max_rank]);
-  double period_max = reduced_value.maximum;
+  double period_max = (reduced_value.maximum - previous_values[max_rank]);
+  //double period_max = reduced_value.maximum;
   // set each node thread cap to a relative multiple of that
   int i;
   for (i = 0; i < count; ++i) { 
     int old_cap = thread_caps[i];
     // how much accumulated in the last period?
-    //double last_period = values[i].accumulated - previous_values[i];
-    double last_period = values[i].accumulated;
+    double last_period = values[i].accumulated - previous_values[i];
+    //double last_period = values[i].accumulated;
     double ratio = last_period / period_max;
     // if this is the max rank, increase the thread count, limited to max.
     if (i == max_rank) {
@@ -69,7 +69,7 @@ bool apex_set_new_thread_caps(int count, apex_profile values[count]) {
         thread_caps[i] = fmax(apex_get_throttling_min_threads(), new_cap);
       }
     }
-    printf("Locality %d: %f (%f) of new work from %d threads, new cap: %d\n", i, last_period, ratio, old_cap, thread_caps[i]);
+    //printf("Locality %d: %f (%f) of new work from %d threads, new cap: %d    \n", i, last_period, ratio, old_cap, thread_caps[i]);
   }
   return true;
 }
@@ -109,7 +109,7 @@ void apex_sum(int count, apex_profile values[count]) {
       current_values[i] = values[i].accumulated;
       local_good_values = local_good_values + ((values[i].calls > 0) ? 1 : 0);
   }
-  printf("good values: %d of %d\n", local_good_values, count);
+  //printf("good values: %d of %d\n", local_good_values, count);
   if (local_good_values == count) good_values = true;
   return ;
 }
@@ -144,16 +144,16 @@ int action_apex_reduce(void *unused) {
   action_apex_get_value(NULL);
 
   if (rank != 0) {
-    printf("\nRank %d locking window...\n", rank);
+    //printf("\nRank %d locking window...\n", rank);
     MPI_Win_lock(MPI_LOCK_SHARED, 0, MPI_MODE_NOCHECK, profile_window);
     //MPI_Win_lock_all(0, profile_window);
     //MPI_Win_fence(0, profile_window);
-    printf("\nRank %d putting values...\n", rank);
+    //printf("\nRank %d putting values...\n", rank);
     MPI_Put(&value, apex_profile_size, MPI_BYTE, 0, rank, apex_profile_size, MPI_BYTE, profile_window);
-    printf("\nRank %d unlocking window...\n", rank);
+    //printf("\nRank %d unlocking window...\n", rank);
     MPI_Win_unlock(0, profile_window);
     //MPI_Win_unlock_all(profile_window);
-    printf("\nRank %d done.\n", rank);
+    //printf("\nRank %d done.\n", rank);
   } else {
     memcpy(&(inValues[0]), &value, apex_profile_size);
     apex_sum(num_ranks, inValues);
@@ -195,7 +195,7 @@ void apex_global_setup(apex_profiler_type type, void* in_action) {
     profiled_action_name = strdup(tmp);
   }
     
-  apex_register_periodic_policy(1000000, apex_periodic_policy_func);
+  //apex_register_periodic_policy(1000000, apex_periodic_policy_func);
   apex_set_use_policy(true);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);

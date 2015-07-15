@@ -217,7 +217,7 @@ APEX_EXPORT void apex_sample_value(const char * name, double value);
  \return The index of the custom event.
  \sa @ref apex_custom_event
  */
-APEX_EXPORT int apex_register_custom_event(const char * name);
+APEX_EXPORT apex_event_type apex_register_custom_event(const char * name);
 
 /**
  \brief Trigger a custom event.

@@ -20,6 +20,7 @@ export BOOST_ROOT=$BOOST_DIR
 #export PAPI_ROOT=/opt/cray/papi/5.3.2.1
 #export TAU_ROOT=$HOME/install/tau2-hpx
 #export ACTIVEHARMONY_ROOT=$HOME/install/activeharmony/4.5
+# export OMPT_ROOT=$HOME/install/libiomp5-gcc-4.9
 
 # other CMake variables - for special situations / architectures / compilers.
 

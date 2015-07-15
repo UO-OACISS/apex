@@ -699,7 +699,7 @@ inline int __setup_power_cap_throttling()
         cout << "APEX Throttling for energy savings, min watts: " << min_watts << " max watts: " << max_watts << endl;
       }
       // disabled for other stuff.
-      //apex::register_periodic_policy(1000000, apex_power_throttling_policy);
+      apex::register_periodic_policy(1000000, apex_power_throttling_policy);
       // get an initial power reading
       apex::current_power_high();
 #ifdef APEX_HAVE_RCR
