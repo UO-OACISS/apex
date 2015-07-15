@@ -217,7 +217,7 @@ APEX_EXPORT void apex_sample_value(const char * name, double value);
  \return The index of the custom event.
  \sa @ref apex_custom_event
  */
-APEX_EXPORT int apex_register_custom_event(const char * name);
+APEX_EXPORT apex_event_type apex_register_custom_event(const char * name);
 
 /**
  \brief Trigger a custom event.
@@ -280,7 +280,7 @@ APEX_EXPORT void apex_register_thread(const char * name);
  
  \return No return value.
  */
-APEX_EXPORT void register_thread(void);
+APEX_EXPORT void apex_exit_thread(void);
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS // not sure if these will stay in the API
 
@@ -446,7 +446,7 @@ APEX_EXPORT int apex_setup_timer_throttling(apex_profiler_type type,
  \param steps An array of step values for each input
  \return APEX_NOERROR on success, otherwise an error code.
  */
-APEX_EXPORT int apex_setup_general_tuning(
+APEX_EXPORT int apex_setup_throughput_tuning(
         apex_profiler_type type,
         void * identifier,
         apex_optimization_criteria_t criteria,
@@ -471,6 +471,16 @@ APEX_EXPORT int apex_shutdown_throttling(void);   // terminate
  \return The current thread cap value.
  */
 APEX_EXPORT int apex_get_thread_cap(void);             // for thread throttling
+
+/**
+ \brief Set the current thread cap for throttling.
+
+ This function will set the current thread cap based on an external throttling
+ policy.
+
+ \param new_cap The current thread cap value.
+ */
+APEX_EXPORT void apex_set_thread_cap(int new_cap);             // for thread throttling
 
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS

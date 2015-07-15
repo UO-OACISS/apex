@@ -7,12 +7,14 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <thread>
 #include <boost/atomic.hpp>
 
 #include "apex.hpp"
 #include "apex_api.hpp"
 #include "apex_types.h"
 #include "apex_policies.h"
+#include "apex_options.hpp"
 
 #ifdef APEX_HAVE_RCR
 #include "libenergy.h"
@@ -44,21 +46,24 @@ double min_watts = APEX_LOW_POWER_LIMIT;
 int max_threads = APEX_MAX_THREADS;
 int min_threads = APEX_MIN_THREADS;
 int thread_step = 1;
-long int thread_cap = APEX_MAX_THREADS;
+long int thread_cap = std::thread::hardware_concurrency();
+//long int thread_cap = APEX_MAX_THREADS;
 int headroom = 1; //
 double moving_average = 0.0;
 int window_size = MAX_WINDOW_SIZE;
 int delay = 0;
 
-// variables related to throughput throttling
+// variables related to throughput or custom throttling
 apex_function_address function_of_interest = APEX_NULL_FUNCTION_ADDRESS;
 std::string function_name_of_interest = "";
+std::function<double()> metric_of_interest = nullptr;
 apex_profile function_baseline;
 apex_profile function_history;
 int throughput_delay = MAX_WINDOW_SIZE; // initialize 
 typedef enum {INITIAL_STATE, BASELINE, INCREASE, DECREASE, NO_CHANGE} last_action_t;
 last_action_t last_action = INITIAL_STATE;
 apex_optimization_criteria_t throttling_criteria = APEX_MAXIMIZE_THROUGHPUT;
+std::vector<std::pair<std::string,long*>> tunable_params;
 
 // variables for hill climbing
 double * evaluations = NULL;
@@ -66,9 +71,27 @@ int * observations = NULL;
 ofstream cap_data;
 bool cap_data_open = false;
 
+// variables for active harmony general tuning
+long int *__ah_inputs[10]; // more than 10 would be pointless
+int __num_ah_inputs;
+
 inline int __get_thread_cap(void) {
   return (int)thread_cap;
+  //return (int)*(__ah_inputs[0]);
 }
+
+inline void __set_thread_cap(int new_cap) {
+  thread_cap = (long int)new_cap;
+  return;
+}
+
+#if 0  // unused for now
+inline int __get_inputs(long int **inputs, int * num_inputs) {
+  inputs = &(__ah_inputs[0]);
+  *num_inputs = __num_ah_inputs;
+  return __num_ah_inputs;
+}
+#endif
 
 inline void __decrease_cap_gradual() {
     thread_cap -= 1;
@@ -497,7 +520,7 @@ int apex_throughput_throttling_ah_policy(apex_context const context) {
     return APEX_NOERROR;
 }
 
-int apex_general_tuning_policy(apex_context const context) {
+int apex_throughput_tuning_policy(apex_context const context) {
     // do something.
     APEX_UNUSED(context);
     static double previous_value = 0.0; // instead of resetting.
@@ -560,14 +583,60 @@ int apex_general_tuning_policy(apex_context const context) {
 
     return APEX_NOERROR;
 }
+
+
+int apex_custom_tuning_policy(apex_context const context) {
+    APEX_UNUSED(context);
+    static bool _converged_message = false;
+    if (harmony_converged(hdesc)) {
+        if (!_converged_message) {
+            _converged_message = true;
+            cout << "Tuning has converged." << endl;
+        }
+        return APEX_NOERROR;
+    }
+
+    // get a measurement of our current setting
+    double new_value = metric_of_interest();
+
+    /* Report the performance we've just measured. */
+    if (harmony_report(hdesc, new_value) != 0) {
+        cerr << "Failed to report performance to server." << endl;
+        return APEX_ERROR;
+    }
+
+    int hresult = harmony_fetch(hdesc);
+    if (hresult < 0) {
+        cerr << "Failed to fetch values from server: " << 
+                harmony_error_string(hdesc) << endl;
+        return APEX_ERROR;
+    }
+    else if (hresult == 0) {
+        /* New values were not available at this time.
+         * Bundles remain unchanged by Harmony system.
+         */
+    }
+    else if (hresult > 0) {
+        /* The Harmony system modified the variable values.
+         * Do any systemic updates to deal with such a change.
+         */
+    }
+
+    return APEX_NOERROR;
+}
+
 #else // APEX_HAVE_ACTIVEHARMONY
 int apex_throughput_throttling_ah_policy(apex_context const context) { 
     APEX_UNUSED(context);
     return APEX_NOERROR; 
 }
-int apex_general_tuning_policy(apex_context const context) {
+int apex_throughput_tuning_policy(apex_context const context) {
     APEX_UNUSED(context);
     return APEX_NOERROR; 
+}
+int apex_custom_tuning_policy(apex_context const context) {
+    APEX_UNUSED(context);
+    return APEX_NOERROR;
 }
 #endif // APEX_HAVE_ACTIVEHARMONY
 
@@ -583,6 +652,8 @@ int apex_general_tuning_policy(apex_context const context) {
 
 inline void __read_common_variables() {
     char * envvar = getenv("APEX_THROTTLING");
+    max_threads = thread_cap = std::thread::hardware_concurrency();
+    min_threads = 1;
     if (envvar != NULL) {
         int tmp = atoi(envvar);
         if (tmp > 0) {
@@ -627,6 +698,7 @@ inline int __setup_power_cap_throttling()
       if (apex::apex::instance()->get_node_id() == 0) {
         cout << "APEX Throttling for energy savings, min watts: " << min_watts << " max watts: " << max_watts << endl;
       }
+      // disabled for other stuff.
       apex::register_periodic_policy(1000000, apex_power_throttling_policy);
       // get an initial power reading
       apex::current_power_high();
@@ -665,6 +737,8 @@ inline void __apex_active_harmony_setup(void) {
             endl << harmony_error_string(hdesc) << endl;
         return;
     }
+		__num_ah_inputs = 1;
+		__ah_inputs[0] = &thread_cap;
     if (harmony_bind_int(hdesc, "thread_cap", &thread_cap) != 0) {
         cerr << "Failed to register Active Harmony variable" << endl;
         return;
@@ -675,7 +749,7 @@ inline void __apex_active_harmony_setup(void) {
     }
 }
 
-inline void __active_harmony_general_setup(int num_inputs, long ** inputs, long * mins, long * maxs, long * steps) {
+inline void __active_harmony_throughput_setup(int num_inputs, long ** inputs, long * mins, long * maxs, long * steps) {
     static const char* session_name = "APEX Throttling";
     hdesc = harmony_init(NULL, NULL);
     if (hdesc == NULL) {
@@ -691,6 +765,7 @@ inline void __active_harmony_general_setup(int num_inputs, long ** inputs, long 
         return;
     }
     char tmpstr[12] = {0};
+		__num_ah_inputs = num_inputs;
     for (int i = 0 ; i < num_inputs ; i++ ) {
         sprintf (tmpstr, "param_%d", i);
         if (harmony_int(hdesc, tmpstr, mins[i], maxs[i], steps[i]) != 0) {
@@ -709,11 +784,59 @@ inline void __active_harmony_general_setup(int num_inputs, long ** inputs, long 
             cerr << "Failed to register Active Harmony variable" << endl;
             return;
         }
+				__ah_inputs[i] = inputs[i];
     }
     if (harmony_join(hdesc, NULL, 0, session_name) != 0) {
         cerr << "Failed to join Active Harmony tuning session" << endl;
         return;
     }
+}
+
+inline int __active_harmony_custom_setup(int num_inputs, long ** inputs, long * mins, long * maxs, long * steps) {
+    static const char* session_name = "APEX Custom Tuning";
+    hdesc = harmony_init(NULL, NULL);
+    if (hdesc == NULL) {
+        cerr << "Failed to initialize Active Harmony" << endl;
+        return APEX_ERROR;
+    }
+    if (harmony_session_name(hdesc, session_name) != 0) {
+        cerr << "Could not set Active Harmony session name" << endl;
+        return APEX_ERROR;
+    }
+
+    // TODO: Change strategy to support multi-objective optimization
+    // (will need multiple metrics-of-interest)
+    if (harmony_strategy(hdesc, "pro.so") != 0) {
+        cerr << "Failed to set Active Harmony tuning strategy" << endl;
+        return APEX_ERROR;
+    }
+    char tmpstr[12] = {0};
+    for (int i = 0 ; i < num_inputs ; i++ ) {
+        sprintf (tmpstr, "param_%d", i);
+        if (harmony_int(hdesc, tmpstr, mins[i], maxs[i], steps[i]) != 0) {
+            cerr << "Failed to define Active Harmony tuning session" << endl;
+            return APEX_ERROR;
+        }
+    }
+    if (harmony_launch(hdesc, NULL, 0) != 0) {
+        cerr << "Failed to launch Active Harmony tuning session: " << 
+            endl << harmony_error_string(hdesc) << endl;
+        return APEX_ERROR;
+    }
+    for (int i = 0 ; i < num_inputs ; i++ ) {
+        sprintf (tmpstr, "param_%d", i);
+        tunable_params.push_back(std::make_pair(tmpstr, inputs[i]));
+        if (harmony_bind_int(hdesc, tmpstr, inputs[i]) != 0) {
+            cerr << "Failed to register Active Harmony variable" << endl;
+            return APEX_ERROR;
+        }
+    }
+    if (harmony_join(hdesc, NULL, 0, session_name) != 0) {
+        cerr << "Failed to join Active Harmony tuning session" << endl;
+        return APEX_ERROR;
+    }
+
+    return APEX_NOERROR;
 }
 
 inline void __apex_active_harmony_shutdown(void) {
@@ -727,12 +850,22 @@ inline void __apex_active_harmony_shutdown(void) {
 
 #else
 inline void __apex_active_harmony_setup(void) { }
-inline void __active_harmony_general_setup(int num_inputs, long ** inputs, long * mins, long * maxs, long * steps) {
+inline void __active_harmony_throughput_setup(int num_inputs, long ** inputs, long * mins, long * maxs, long * steps) {
   APEX_UNUSED(num_inputs);
   APEX_UNUSED(inputs);
   APEX_UNUSED(mins);
   APEX_UNUSED(maxs);
   APEX_UNUSED(steps);
+  std::cerr << "WARNING: Active Harmony setup attempted but APEX was built without Active Harmony support!" << std::endl;
+}
+inline int __active_harmony_custom_setup(int num_inputs, long ** inputs, long * mins, long * maxs, long * steps) {
+  APEX_UNUSED(num_inputs);
+  APEX_UNUSED(inputs);
+  APEX_UNUSED(mins);
+  APEX_UNUSED(maxs);
+  APEX_UNUSED(steps);
+  std::cerr << "WARNING: Active Harmony setup attempted but APEX was built without Active Harmony support!" << std::endl;
+  return APEX_NOERROR;
 }
 inline void __apex_active_harmony_shutdown(void) { }
 #endif
@@ -741,7 +874,7 @@ inline int __common_setup_timer_throttling(apex_optimization_criteria_t criteria
         apex_optimization_method_t method, unsigned long update_interval)
 {
     __read_common_variables();
-    if (apex_checkThrottling) {
+    if (apex::apex_options::throttle_concurrency()) {
         function_history.calls = 0.0;
         function_history.accumulated = 0.0;
         function_baseline.calls = 0.0;
@@ -765,12 +898,12 @@ inline int __common_setup_timer_throttling(apex_optimization_criteria_t criteria
     return APEX_NOERROR;
 }
 
-inline int __common_setup_general_tuning(apex_optimization_criteria_t criteria,
+inline int __common_setup_throughput_tuning(apex_optimization_criteria_t criteria,
         apex_event_type event_type, int num_inputs, long ** inputs, long * mins,
         long * maxs, long * steps)
 {
     __read_common_variables();
-    if (apex_checkThrottling) {
+    if (apex::apex_options::throttle_concurrency()) {
         function_history.calls = 0.0;
         function_history.accumulated = 0.0;
         function_baseline.calls = 0.0;
@@ -778,24 +911,42 @@ inline int __common_setup_general_tuning(apex_optimization_criteria_t criteria,
         throttling_criteria = criteria;
         evaluations = (double*)(calloc(max_threads, sizeof(double)));
         observations = (int*)(calloc(max_threads, sizeof(int)));
-        __active_harmony_general_setup(num_inputs, inputs, mins, maxs, steps);
-        apex::register_policy(event_type, apex_general_tuning_policy);
+        __active_harmony_throughput_setup(num_inputs, inputs, mins, maxs, steps);
+        apex::register_policy(event_type, apex_throughput_tuning_policy);
     }
     return APEX_NOERROR;
 }
 
-inline int __setup_general_tuning(apex_function_address the_address,
+inline int __common_setup_custom_tuning( apex_event_type event_type, int num_inputs,
+        long ** inputs, long * mins, long * maxs, long * steps)
+{
+    __read_common_variables();
+    int status = __active_harmony_custom_setup(num_inputs, inputs, mins, maxs, steps);
+    if(status == APEX_NOERROR) {
+        apex::register_policy(event_type, apex_custom_tuning_policy);
+    }
+    return status;
+}
+
+inline int __setup_throughput_tuning(apex_function_address the_address,
         apex_optimization_criteria_t criteria, apex_event_type event_type, 
         int num_inputs, long ** inputs, long * mins, long * maxs, long * steps) {
     function_of_interest = the_address;
-    return __common_setup_general_tuning(criteria, event_type, num_inputs, inputs, mins, maxs, steps);
+    return __common_setup_throughput_tuning(criteria, event_type, num_inputs, inputs, mins, maxs, steps);
 }
 
-inline int __setup_general_tuning(std::string &the_name,
+inline int __setup_throughput_tuning(std::string &the_name,
         apex_optimization_criteria_t criteria, apex_event_type event_type, 
         int num_inputs, long ** inputs, long * mins, long * maxs, long * steps) {
     function_name_of_interest = string(the_name);
-    return __common_setup_general_tuning(criteria, event_type, num_inputs, inputs, mins, maxs, steps);
+    return __common_setup_throughput_tuning(criteria, event_type, num_inputs, inputs, mins, maxs, steps);
+}
+
+inline int __setup_custom_tuning(std::function<double()> metric,
+        apex_event_type event_type, int num_inputs, long ** inputs,
+        long * mins, long * maxs, long * steps) {
+    metric_of_interest = metric;
+    return __common_setup_custom_tuning(event_type, num_inputs, inputs, mins, maxs, steps);
 }
 
 inline int __setup_timer_throttling(apex_function_address the_address, apex_optimization_criteria_t criteria,
@@ -827,7 +978,7 @@ inline int __setup_timer_throttling(const string& the_name, apex_optimization_cr
 inline int __shutdown_throttling(void)
 {
 /*
-  if (apex_checkThrottling) energyDaemonTerm(); // prints energy usage
+  if (apex::apex_options::throttle_concurrency()) energyDaemonTerm(); // prints energy usage
   else if (getenv("APEX_ENERGY") != NULL) {
     energyDaemonTerm();  // this is done in apex termination
   }
@@ -835,6 +986,7 @@ inline int __shutdown_throttling(void)
     apex_final = true;
   //printf("periodic_policy called %d times\n", test_pp);
     if (cap_data_open) {
+        cap_data_open = false;
         cap_data.close();
     }
   return APEX_NOERROR;
@@ -860,17 +1012,24 @@ APEX_EXPORT int setup_timer_throttling(const std::string &the_name,
     return __setup_timer_throttling(the_name, criteria, method, update_interval);
 }
 
-APEX_EXPORT int setup_general_tuning(apex_function_address the_address,
+APEX_EXPORT int setup_throughput_tuning(apex_function_address the_address,
         apex_optimization_criteria_t criteria, apex_event_type event_type, int num_inputs,
         long ** inputs, long * mins, long * maxs, long * steps) {
-    return __setup_general_tuning(the_address, criteria, event_type, num_inputs, inputs, mins, maxs, steps);
+    return __setup_throughput_tuning(the_address, criteria, event_type, num_inputs, inputs, mins, maxs, steps);
 }
 
-APEX_EXPORT int setup_general_tuning(std::string &the_name,
+APEX_EXPORT int setup_throughput_tuning(std::string &the_name,
         apex_optimization_criteria_t criteria, apex_event_type event_type, int num_inputs,
         long ** inputs, long * mins, long * maxs, long * steps) {
-    return __setup_general_tuning(the_name, criteria, event_type, num_inputs, inputs, mins, maxs, steps);
+    return __setup_throughput_tuning(the_name, criteria, event_type, num_inputs, inputs, mins, maxs, steps);
 }
+
+APEX_EXPORT int setup_custom_tuning(std::function<double()> metric,
+        apex_event_type event_type, int num_inputs, long ** inputs,
+        long * mins, long * maxs, long * steps) {
+    return __setup_custom_tuning(metric, event_type, num_inputs, inputs, mins, maxs, steps);
+}
+
 
 APEX_EXPORT int shutdown_throttling(void) {
     return __shutdown_throttling();
@@ -878,6 +1037,11 @@ APEX_EXPORT int shutdown_throttling(void) {
 
 APEX_EXPORT int get_thread_cap(void) {
     return __get_thread_cap();
+}
+
+
+APEX_EXPORT std::vector<std::pair<std::string,long*>> & get_tunable_params() {
+    return tunable_params;
 }
 
 }
@@ -903,15 +1067,15 @@ APEX_EXPORT int apex_setup_timer_throttling(apex_profiler_type type, void * iden
     return APEX_ERROR;
 }
 
-APEX_EXPORT int apex_setup_general_tuning( apex_profiler_type type, void * identifier,
+APEX_EXPORT int apex_setup_throughput_tuning( apex_profiler_type type, void * identifier,
         apex_optimization_criteria_t criteria, apex_event_type event_type, int num_inputs,
         long ** inputs, long * mins, long * maxs, long * steps) {
     assert(identifier);
     if (type == APEX_FUNCTION_ADDRESS) {
-        return __setup_general_tuning((apex_function_address)identifier, criteria, event_type, num_inputs, inputs, mins, maxs, steps);
+        return __setup_throughput_tuning((apex_function_address)identifier, criteria, event_type, num_inputs, inputs, mins, maxs, steps);
     } else if (type == APEX_NAME_STRING) {
         string tmp((const char *)identifier);
-        return __setup_general_tuning(tmp, criteria, event_type, num_inputs, inputs, mins, maxs, steps);
+        return __setup_throughput_tuning(tmp, criteria, event_type, num_inputs, inputs, mins, maxs, steps);
     }
     return APEX_ERROR;
 }
@@ -922,6 +1086,10 @@ APEX_EXPORT int apex_shutdown_throttling(void) {
 
 APEX_EXPORT int apex_get_thread_cap(void) {
     return __get_thread_cap();
+}
+
+APEX_EXPORT void apex_set_thread_cap(int new_cap) {
+    return __set_thread_cap(new_cap);
 }
 
 } // extern "C"

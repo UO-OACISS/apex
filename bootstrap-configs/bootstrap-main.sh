@@ -24,7 +24,7 @@ else
 fi
 
 if [ ${JEMALLOC_ROOT+x} ]; then
-	jemalloc_config="-DJEMALLOC_ROOT=$JEMALLOC_ROOT"
+	jemalloc_config="-DJEMALLOC_ROOT=$JEMALLOC_ROOT -DUSE_JEMALLOC=TRUE"
 else
 	jemalloc_config=""
 fi

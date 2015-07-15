@@ -7,7 +7,7 @@
 #include <sstream>
 
 #define NUM_THREADS 8
-#define ITERATIONS 500000
+#define ITERATIONS 50000
 
 using namespace std;
 

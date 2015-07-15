@@ -5,7 +5,7 @@
 #include <apex.h>
 
 #define NUM_THREADS 8
-#define ITERATIONS 500000
+#define ITERATIONS 50000
 
 int foo (int i) {
 #ifdef __APPLE__
@@ -38,8 +38,10 @@ void* someThread(void* tmp)
   for (i = 0 ; i < ITERATIONS ; i++) {
       foo(i);
   }
+  printf("done in foo\n");
   apex_stop(my_profiler);
   apex_exit_thread();
+  printf("done in someThread\n");
   return NULL;
 }
 
@@ -98,10 +100,11 @@ int main(int argc, char **argv)
   }
   for (i = 0 ; i < NUM_THREADS ; i++) {
     pthread_join(thread[i], NULL);
+    printf("Joined thread %d\n", i);
   }
   // now un-register the policies 
-  //apex_deregister_policy(on_periodic);
-  //apex_deregister_policy(on_event);
+  apex_deregister_policy(on_periodic);
+  apex_deregister_policy(on_event);
 
   printf("Running without policies now...\n");
   for (i = 0 ; i < NUM_THREADS ; i++) {
@@ -109,6 +112,7 @@ int main(int argc, char **argv)
   }
   for (i = 0 ; i < NUM_THREADS ; i++) {
     pthread_join(thread[i], NULL);
+    printf("Joined thread %d\n", i);
   }
   apex_stop(my_profiler);
   apex_finalize();

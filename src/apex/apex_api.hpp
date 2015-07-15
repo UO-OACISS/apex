@@ -522,8 +522,31 @@ APEX_EXPORT int setup_timer_throttling(apex_function_address the_address,
  \param steps An array of step values for each input
  \return APEX_NOERROR on success, otherwise an error code.
  */
-APEX_EXPORT int setup_general_tuning(apex_function_address the_address,
+APEX_EXPORT int setup_throughput_tuning(apex_function_address the_address,
         apex_optimization_criteria_t criteria,
+        apex_event_type event_type, int num_inputs, long ** inputs, long * mins,
+        long * maxs, long * steps);
+
+/**
+ \brief Setup tuning of specified parameters to optimize for a custom metric, using
+        multiple input criteria.
+
+ This function will initialize a policy to optimize a custom metric, 
+ using the list of tunable parameters.  
+ The system tries to minimize the custom metric.
+ After evaluating the state of the system, the policy will assign new values to
+ the inputs.
+
+ \param metric A function returning the value to be minimized.
+ \param event_type The @ref apex_event_type that should trigger this policy 
+ \param num_inputs The number of tunable inputs for optimization
+ \param inputs An array of addresses to inputs for optimization
+ \param mins An array of minimum values for each input
+ \param maxs An array of maximum values for each input
+ \param steps An array of step values for each input
+ \return APEX_NOERROR on success, otherwise an error code.
+ */
+APEX_EXPORT int setup_custom_tuning(std::function<double(void)> metric, 
         apex_event_type event_type, int num_inputs, long ** inputs, long * mins,
         long * maxs, long * steps);
 
@@ -566,6 +589,26 @@ APEX_EXPORT int shutdown_throttling(void);   // terminate
  \return The current thread cap value.
  */
 APEX_EXPORT int get_thread_cap(void);             // for thread throttling
+
+/**
+ \brief Set the current thread cap for throttling.
+
+ This function will set the current thread cap based on an external throttling
+ policy.
+
+ \param new_cap The current thread cap value.
+ */
+APEX_EXPORT void set_thread_cap(int new_cap);             // for thread throttling
+
+
+/**
+ \brief Return a vector of the current tunable parameters
+
+ \return A vector of pairs; the first element is the name of the tunable parameter,
+ while the second is a pointer to its value.
+
+ */
+APEX_EXPORT std::vector<std::pair<std::string,long*>> & get_tunable_params();
 
 #ifdef APEX_HAVE_HPX3
 hpx::runtime * get_hpx_runtime_ptr(void);

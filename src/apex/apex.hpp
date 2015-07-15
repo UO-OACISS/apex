@@ -124,8 +124,9 @@ public:
     void resize_state(int thread_id) { 
         static boost::mutex _mtx;
         _mtx.lock();
-        if ((unsigned int)thread_id >= thread_states.size()) {
-            thread_states.resize(thread_id + 1); 
+        while ((unsigned int)thread_id >= thread_states.size()) {
+            thread_states.resize(thread_states.size() + 1); 
+            thread_states[thread_states.size()-1] = APEX_IDLE;
         }
         _mtx.unlock();
     }

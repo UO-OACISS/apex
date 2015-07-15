@@ -20,7 +20,7 @@ public:
         if (!yielded) {
 		    _profile.calls = 1.0;
         } else {
-		    _profile.calls = 0.0;
+            _profile.calls = 0.0;
         }
 		_profile.accumulated = initial;
 		_profile.sum_squares = initial*initial;

@@ -14,7 +14,7 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/atomic.hpp>
 #include <map>
-#include <stack>
+#include <vector>
 #include "profiler.hpp"
 #include <exception>
 
@@ -48,7 +48,7 @@ private:
   // map from function address to name - unique to all threads to avoid locking
   std::map<apex_function_address, std::string> _function_map;
   std::shared_ptr<profiler> current_profiler;
-  std::stack<std::shared_ptr<profiler> > current_profilers;
+  std::vector<std::shared_ptr<profiler> > current_profilers;
 public:
   static thread_instance& instance(void);
   static long unsigned int get_id(void) { return instance()._id; }
@@ -61,7 +61,9 @@ public:
   std::string map_addr_to_name(apex_function_address function_address);
   static void set_current_profiler(std::shared_ptr<profiler> the_profiler);
   static std::shared_ptr<profiler> get_current_profiler(void);
+  static std::shared_ptr<profiler> get_parent_profiler(void);
   static std::shared_ptr<profiler> pop_current_profiler(void);
+  static std::shared_ptr<profiler> pop_current_profiler(profiler * requested);
 };
 
 }

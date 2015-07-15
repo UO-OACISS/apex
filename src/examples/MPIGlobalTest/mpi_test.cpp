@@ -2,6 +2,7 @@
 #include <limits.h>
 #include "apex_api.hpp"
 #include "apex_global.h"
+#include "omp.h"
 
 #define WORKTAG 1
 #define DIETAG 2
@@ -15,6 +16,7 @@ static void master(void);
 static void worker(void);
 static unit_of_work_t get_next_work_item(void);
 static unit_result_t do_work(unit_of_work_t work);
+apex_event_type custom_event;
 
 static int dummy = 0;
 
@@ -25,13 +27,17 @@ int main(int argc, char **argv) {
 
   int required, provided;
   required = MPI_THREAD_MULTIPLE;
+  //required = MPI_THREAD_SERIALIZED;
+  //required = MPI_THREAD_FUNNELED;
   MPI_Init_thread(&argc, &argv, required, &provided);
   if (provided < required) {
     printf ("Your MPI installation doesn't allow multiple threads to communicate. Exiting.\n");
     exit(0);
   }
   apex::init(argc, argv, "MPI TEST");
-  apex_global_setup((apex_function_address)(do_work));
+  apex_global_setup(APEX_FUNCTION_ADDRESS, (void*)(do_work));
+  custom_event = apex_register_custom_event("balance power");
+  apex_register_periodic_policy(custom_event, apex_periodic_policy_func);
 
   /* Find out my identity in the default communicator */
 
@@ -94,6 +100,8 @@ static void master(void) {
     work = get_next_work_item();
   }
 
+  apex_custom_event(custom_event, NULL);
+
   /* Loop over getting new work requests until there is no more work
      to be done */
 
@@ -130,6 +138,7 @@ static void master(void) {
 
       work = get_next_work_item();
     }
+    apex_custom_event(custom_event, NULL);
   }
 
   /* There's no more work to be done, so receive all the outstanding
@@ -178,12 +187,22 @@ static void worker(void) {
   apex::stop(p);
 }
 
+static unit_of_work_t* init_data(int datarange) {
+  int *tmp = (unit_of_work_t*)(malloc(sizeof(unit_of_work_t) * datarange));
+  int i;
+  for (i = 0 ; i < datarange ; i++) { 
+    tmp[i] = i; 
+  }
+  return tmp;
+}
+
 static unit_of_work_t get_next_work_item(void) {
   /* Fill in with whatever is relevant to obtain a new unit of work
      suitable to be given to a worker. */
-  static int data[] = {1,2,3,4,5,6,7,8,9,10};
+  static int datarange = 100;
+  static unit_of_work_t *data = init_data(datarange);
   static int index = -1;
-  if (++index < 10) return (data[index]);
+  if (++index < datarange) return (data[index]);
   return 0;
 }
 
@@ -192,11 +211,18 @@ static unit_result_t do_work(unit_of_work_t work) {
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   int i;
-  for (i = 0 ; i < 500000000 ; i++) {
+  int n = 500000000;
+  if (rank % 2 == 0) n = 250000000;
+#pragma omp parallel
+  {
+  omp_set_num_threads(apex_get_thread_cap());
+#pragma omp for
+  for (i = 0 ; i < n ; i++) {
     dummy = dummy * (dummy + work);
     if (dummy > (INT_MAX >> 1)) {
       dummy = 1;
     }
+  }
   }
   /* Fill in with whatever is necessary to process the work and
      generate a result */

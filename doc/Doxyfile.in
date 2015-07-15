@@ -777,7 +777,7 @@ INPUT_ENCODING         = UTF-8
 # *.qsf, *.as and *.js.
 
 FILE_PATTERNS          = apex.h \
-                         apex.hpp \
+                         apex_api.hpp \
                          apex_types.h \
                          apex_global.h \
                          apex.dox
