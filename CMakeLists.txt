@@ -98,9 +98,23 @@ endif()
 # Compiler detection code
 ################################################################################
 
-# FIXME: I can't get version detection to work. :(
-# so set to ignore for now
-# apex_include(GCCVersion)
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  # using Clang
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  # using GCC
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+  #set debugging info
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS} -g -O0 -Wextra -Waddress -Warray-bounds -Wuninitialized -Wreturn-type -Wall -fno-omit-frame-pointer -DAPEX_DEBUG")
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS} -g -O3 -DNDEBUG")
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
+  # using Intel C++
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpic")
+  #set debugging info
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS} -g -O0 -DAPEX_DEBUG")
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS} -g -O3 -DNDEBUG")
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+  # using Visual Studio C++
+endif()
 
 # The version number.
 set (APEX_VERSION_MAJOR 0)
@@ -117,15 +131,8 @@ configure_file (
 )
 
 # use PIC for shared objects
-#if (BUILD_SHARED_LIBS)
 set(CMAKE_POSITION_INDEPENDENT_CODE True)
 set(POSITION_INDEPENDENT_CODE True)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
-#endif (BUILD_SHARED_LIBS)
-
-#set debugging info
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS} -g -O0 -Wextra -Waddress -Warray-bounds -Wuninitialized -Wreturn-type -Wall -fno-omit-frame-pointer -DAPEX_DEBUG")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS} -g -O3 -DNDEBUG")
 
 ###############################################################################
 # reconfigure Boost library information if configuration type has been
