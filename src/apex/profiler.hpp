@@ -9,8 +9,11 @@
 #include "apex_options.hpp"
 #include "apex_types.h"
 
+#ifdef __INTEL_COMPILER
+#define CLOCK_TYPE high_resolution_clock
+#else
 #define CLOCK_TYPE steady_clock
-//#define CLOCK_TYPE high_resolution_clock
+#endif
 
 namespace apex {
 

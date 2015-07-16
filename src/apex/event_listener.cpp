@@ -20,14 +20,14 @@ namespace apex {
 
 /* this object never actually gets instantiated. too much overhead. */
 timer_event_data::timer_event_data(const string &timer_name) : have_name(true) {
-  this->my_profiler = NULL;
+  this->my_profiler = std::make_shared<profiler>();
   this->timer_name = new string(timer_name);
   this->function_address = APEX_NULL_FUNCTION_ADDRESS;
 }
 
 /* this object never actually gets instantiated. too much overhead. */
 timer_event_data::timer_event_data(apex_function_address function_address) : have_name(false) {
-  this->my_profiler = NULL;
+  this->my_profiler = std::make_shared<profiler>();
   this->function_address = function_address;
 }
 
