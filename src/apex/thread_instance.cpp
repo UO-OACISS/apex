@@ -224,13 +224,19 @@ std::shared_ptr<profiler> thread_instance::pop_current_profiler(profiler * reque
     } else {
       // work backward over the vector to find the requested profiler
       std::vector<std::shared_ptr<profiler> >::const_iterator it;
+	  int crappy_compiler = 0;
       for (it = instance().current_profilers.end() ; it != instance().current_profilers.begin() ; it-- ) {
         profiler * tmp = (*it).get();
         if (tmp == requested) {
           instance().current_profiler = *it;
+#ifdef __INTEL_COMPILER
+          instance().current_profilers.erase(instance().current_profilers.end()-crappy_compiler);
+#else
           instance().current_profilers.erase(it);
+#endif
           return instance().current_profiler;
         }
+		crappy_compiler++;
       }
       throw empty_stack_exception(); // to be caught by the profiler_listener
     }

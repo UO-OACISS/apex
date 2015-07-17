@@ -56,7 +56,7 @@ int delay = 0;
 // variables related to throughput or custom throttling
 apex_function_address function_of_interest = APEX_NULL_FUNCTION_ADDRESS;
 std::string function_name_of_interest = "";
-std::function<double()> metric_of_interest = nullptr;
+std::function<double()> metric_of_interest;
 apex_profile function_baseline;
 apex_profile function_history;
 int throughput_delay = MAX_WINDOW_SIZE; // initialize 

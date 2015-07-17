@@ -419,7 +419,7 @@ void stop(profiler* the_profiler)
     //int tid = thread_instance::get_id();
     //assert (the_profiler->tid == tid);
     if (the_profiler != nullptr && the_profiler->stopped) return; // would like to assert this...
-    std::shared_ptr<profiler> p = nullptr;
+    std::shared_ptr<profiler> p = std::make_shared<profiler>();
     if (the_profiler == nullptr) {
         try {
             p = shared_ptr<profiler>(thread_instance::instance().pop_current_profiler());
@@ -473,7 +473,7 @@ void yield(profiler* the_profiler)
 
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
-    std::shared_ptr<profiler> p = nullptr;
+    std::shared_ptr<profiler> p = std::make_shared<profiler>();
     if (the_profiler == nullptr) {
         try {
             p = shared_ptr<profiler>(thread_instance::instance().pop_current_profiler());
@@ -729,7 +729,7 @@ void exit_thread(void)
     if (_exited) return; // protect against multiple exits on the same thread
     _exited = true;
     // pop any remaining timers, and stop them
-    std::shared_ptr<profiler> p = nullptr;
+    std::shared_ptr<profiler> p = std::make_shared<profiler>();
     while(true) {
         try {
             p = shared_ptr<profiler>(thread_instance::instance().pop_current_profiler());

@@ -98,16 +98,46 @@ endif()
 # Compiler detection code
 ################################################################################
 
-# FIXME: I can't get version detection to work. :(
-# so set to ignore for now
-# apex_include(GCCVersion)
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  # using Clang
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  # using GCC
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+  #set debugging info
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS} -g -O0 -Wextra -Waddress -Warray-bounds -Wuninitialized -Wreturn-type -Wall -fno-omit-frame-pointer -DAPEX_DEBUG")
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS} -g -O3 -DNDEBUG")
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
+  # using Intel C++
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpic")
+  #set debugging info
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS} -g -O0 -DAPEX_DEBUG")
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS} -g -O3 -DNDEBUG")
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+  # using Visual Studio C++
+endif()
 
 # The version number.
 set (APEX_VERSION_MAJOR 0)
 set (APEX_VERSION_MINOR 1)
 
 # add_definitions(-std=c++11)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+include(CheckCXXCompilerFlag)
+CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
+CHECK_CXX_COMPILER_FLAG("-std=c++0y" COMPILER_SUPPORTS_CXX0Y)
+CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
+CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
+if(COMPILER_SUPPORTS_CXX14)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+elseif(COMPILER_SUPPORTS_CXX0Y)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0y")
+elseif(COMPILER_SUPPORTS_CXX11)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+elseif(COMPILER_SUPPORTS_CXX0X)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+else()
+    message(FATAL_ERROR "Compiler ${CMAKE_CXX_COMPILER} has no C++11 support.")
+endif()
 
 # configure a header file to pass some of the CMake settings
 # to the source code
@@ -117,15 +147,8 @@ configure_file (
 )
 
 # use PIC for shared objects
-#if (BUILD_SHARED_LIBS)
 set(CMAKE_POSITION_INDEPENDENT_CODE True)
 set(POSITION_INDEPENDENT_CODE True)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
-#endif (BUILD_SHARED_LIBS)
-
-#set debugging info
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS} -g -O0 -Wextra -Waddress -Warray-bounds -Wuninitialized -Wreturn-type -Wall -fno-omit-frame-pointer -DAPEX_DEBUG")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS} -g -O3 -DNDEBUG")
 
 ###############################################################################
 # reconfigure Boost library information if configuration type has been
@@ -296,14 +319,16 @@ if(USE_BINUTILS)
 	if (BFD_FOUND)
 		include_directories(${BFD_INCLUDE_DIRS})
 		set(LIBS ${LIBS} ${BFD_LIBRARIES})
-		set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${BFD_LIBRARY_DIR})
+		set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${BFD_LIBRARY_DIR})
+        message(INFO "Using binutils: ${BFD_LIBRARY_DIR} ${BFD_LIBRARIES}")
 	endif()
 
 	find_package(Demangle)
 	if (DEMANGLE_FOUND)
 		include_directories(${DEMANGLE_INCLUDE_DIRS})
 		set(LIBS ${LIBS} ${DEMANGLE_LIBRARIES})
-		set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${DEMANGLE_LIBRARY_DIR})
+		set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${DEMANGLE_LIBRARY_DIR})
+        message(INFO "Using demangle: ${DEMANGLE_LIBRARY_DIR} ${DEMANGLE_LIBRARIES}")
 	else()
   	unset(DEMANGLE_LIBRARY)
   	unset(DEMANGLE_LIBRARIES)
@@ -312,7 +337,8 @@ if(USE_BINUTILS)
 	find_package(ZLIB)
 	if (ZLIB_FOUND)
 		set(LIBS ${LIBS} ${ZLIB_LIBRARIES})
-		set (CMAKE_INSTALL_RPATH ${ZLIB_LIBRARY_DIR})
+		set(CMAKE_INSTALL_RPATH ${ZLIB_LIBRARY_DIR})
+        message(INFO "Using zlib: ${ZLIB_LIBRARY_DIR} ${ZLIB_LIBRARIES}")
 	endif()
 endif(USE_BINUTILS)
 
