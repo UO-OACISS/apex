@@ -7,6 +7,7 @@
 #include <climits>
 #include <thread>
 #include <chrono>
+#include "utils.hpp"
 
 #define ITERATIONS 1024*128
 #define INNER_ITERATION 1024*8
@@ -102,7 +103,7 @@ void* someUntimedThread(void* tmp)
 int main(int argc, char **argv)
 {
   apex::init(argc, argv, NULL);
-  unsigned numthreads = std::thread::hardware_concurrency();
+  unsigned numthreads = apex::hardware_concurrency();
   if (argc > 1) {
     numthreads = strtoul(argv[1],NULL,0);
   }

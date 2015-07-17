@@ -1,5 +1,7 @@
 #include <string>
 #include <chrono>
+#include <thread>
+#include <unistd.h>
 
 // trim from left
 inline std::string& ltrim(std::string& s, const char* t = " \t\n\r\f\v")
@@ -49,4 +51,16 @@ class simple_timer {
             std::cout << "simple time: " << time_span.count() * nanoseconds << "ns" << std::endl;
         }
 };
+
+inline unsigned int my_hardware_concurrency()
+{
+	return sysconf(_SC_NPROCESSORS_ONLN);
+}
+
+inline unsigned int hardware_concurrency()
+{
+    unsigned int cores = std::thread::hardware_concurrency();
+    return cores ? cores : my_hardware_concurrency();
+}
+
 };

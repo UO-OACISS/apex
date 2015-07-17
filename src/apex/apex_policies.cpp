@@ -15,6 +15,7 @@
 #include "apex_types.h"
 #include "apex_policies.h"
 #include "apex_options.hpp"
+#include "utils.hpp"
 
 #ifdef APEX_HAVE_RCR
 #include "libenergy.h"
@@ -46,7 +47,7 @@ double min_watts = APEX_LOW_POWER_LIMIT;
 int max_threads = APEX_MAX_THREADS;
 int min_threads = APEX_MIN_THREADS;
 int thread_step = 1;
-long int thread_cap = std::thread::hardware_concurrency();
+long int thread_cap = apex::hardware_concurrency();
 //long int thread_cap = APEX_MAX_THREADS;
 int headroom = 1; //
 double moving_average = 0.0;
@@ -652,7 +653,7 @@ int apex_custom_tuning_policy(apex_context const context) {
 
 inline void __read_common_variables() {
     char * envvar = getenv("APEX_THROTTLING");
-    max_threads = thread_cap = std::thread::hardware_concurrency();
+    max_threads = thread_cap = apex::hardware_concurrency();
     min_threads = 1;
     if (envvar != NULL) {
         int tmp = atoi(envvar);
