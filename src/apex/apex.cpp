@@ -299,10 +299,10 @@ string& version()
 profiler* start(const std::string &timer_name)
 {
     if (boost::starts_with(timer_name, "apex_internal")) {
-        return nullptr; // don't process our own events
+        return profiler::get_disabled_profiler(); // don't process our own events - queue scrubbing tasks.
     }
     if (boost::starts_with(timer_name, "shutdown_all")) {
-        return nullptr;
+        return profiler::get_disabled_profiler();
     }
 #ifdef APEX_DEBUG
     _starts++;
@@ -352,7 +352,7 @@ profiler* resume(const std::string &timer_name)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return nullptr; // protect against calls after finalization
     if (boost::starts_with(timer_name, "apex_internal")) {
-        return nullptr; // don't process our own events
+        return profiler::get_disabled_profiler(); // don't process our own events
     }
     if (_notify_listeners) {
         string * tmp = new string(timer_name);
@@ -412,9 +412,7 @@ void stop(profiler* the_profiler)
 #ifdef APEX_DEBUG
     _stops++;
 #endif
-#if defined(APEX_THROTTLE)
     if (the_profiler == profiler::get_disabled_profiler()) return; // profiler was throttled.
-#endif
 
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
@@ -471,9 +469,7 @@ void yield(profiler* the_profiler)
 #ifdef APEX_DEBUG
     _yields++;
 #endif
-#if defined(APEX_THROTTLE)
     if (the_profiler == profiler::get_disabled_profiler()) return; // profiler was throttled.
-#endif
 
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
