@@ -419,14 +419,14 @@ void stop(profiler* the_profiler)
     //int tid = thread_instance::get_id();
     //assert (the_profiler->tid == tid);
     if (the_profiler != nullptr && the_profiler->stopped) return; // would like to assert this...
-    std::shared_ptr<profiler> p = std::make_shared<profiler>();
+    std::shared_ptr<profiler> p;
     if (the_profiler == nullptr) {
         try {
-            p = shared_ptr<profiler>(thread_instance::instance().pop_current_profiler());
+            p = thread_instance::instance().pop_current_profiler();
         } catch (empty_stack_exception& e) { }
     } else {
         try {
-            p = shared_ptr<profiler>(thread_instance::instance().pop_current_profiler());
+            p = thread_instance::instance().pop_current_profiler();
         } catch (empty_stack_exception& e) { 
           fflush(stdout); 
           //printf("%lu Stop: null profiler on stack, stopping: %s\n", thread_instance::get_id(), lookup_address((uintptr_t)the_profiler->action_address, false)->c_str());
@@ -473,14 +473,14 @@ void yield(profiler* the_profiler)
 
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
-    std::shared_ptr<profiler> p = std::make_shared<profiler>();
+    std::shared_ptr<profiler> p;
     if (the_profiler == nullptr) {
         try {
-            p = shared_ptr<profiler>(thread_instance::instance().pop_current_profiler());
+            p = thread_instance::instance().pop_current_profiler();
         } catch (empty_stack_exception& e) { }
     } else {
         try {
-            p = shared_ptr<profiler>(thread_instance::instance().pop_current_profiler());
+            p = thread_instance::instance().pop_current_profiler();
         } catch (empty_stack_exception& e) { assert(p); }
         assert(p.get() == the_profiler);
     }
@@ -729,10 +729,10 @@ void exit_thread(void)
     if (_exited) return; // protect against multiple exits on the same thread
     _exited = true;
     // pop any remaining timers, and stop them
-    std::shared_ptr<profiler> p = std::make_shared<profiler>();
+    std::shared_ptr<profiler> p;
     while(true) {
         try {
-            p = shared_ptr<profiler>(thread_instance::instance().pop_current_profiler());
+            p = thread_instance::instance().pop_current_profiler();
         } catch (empty_stack_exception& e) { break; }
         if (p != nullptr) {
 #ifdef APEX_DEBUG
