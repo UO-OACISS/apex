@@ -105,7 +105,7 @@ if [ $# -eq 2 ] ; then
 	fi
 fi
 
-make VERBOSE=1 -j `expr $procs + 1`
+make -j `expr $procs + 1`
 
 make test
 make doc
