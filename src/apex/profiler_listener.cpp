@@ -91,6 +91,7 @@ namespace apex {
 
 #if APEX_HAVE_PAPI
   std::vector<int> event_sets(8);
+  std::vector<std::string*> metric_names(8);
 #endif
 
 #ifndef APEX_HAVE_HPX3
@@ -772,34 +773,26 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       PAPI_ERROR_CHECK(PAPI_set_granularity);
       rc = PAPI_set_multiplex(EventSet);
       PAPI_ERROR_CHECK(PAPI_set_multiplex);
-      if (PAPI_query_event (PAPI_TOT_CYC) == PAPI_OK) {
-        rc = PAPI_add_event( EventSet, PAPI_TOT_CYC);
-        PAPI_ERROR_CHECK(PAPI_add_event);
-        num_papi_counters++;
+      // parse the requested set of papi counters
+      // The string is modified by strtok, so copy it.
+      if (strlen(apex_options::papi_metrics()) > 0) {
+        char* tmpstr = strdup(apex_options::papi_metrics());
+        char *p = strtok(tmpstr, " ");
+        int code;
+        while (p) {
+          printf ("Trying PAPI Metric: %s\n", p);
+          int rc = PAPI_event_name_to_code(p, &code);
+          if (PAPI_query_event (code) == PAPI_OK) {
+            rc = PAPI_add_event(EventSet, code);
+            PAPI_ERROR_CHECK(PAPI_add_event);
+            metric_names[num_papi_counters] = new string(p);
+            num_papi_counters++;
+          }
+          p = strtok(NULL, " ");
+        }
+        rc = PAPI_start( EventSet );
+        PAPI_ERROR_CHECK(PAPI_start);
       }
-      if (PAPI_query_event (PAPI_TOT_INS) == PAPI_OK) {
-        rc = PAPI_add_event( EventSet, PAPI_TOT_INS);
-        PAPI_ERROR_CHECK(PAPI_add_event);
-        num_papi_counters++;
-      }
-      if (PAPI_query_event (PAPI_L2_TCM) == PAPI_OK) {
-        rc = PAPI_add_event( EventSet, PAPI_L2_TCM);
-        PAPI_ERROR_CHECK(PAPI_add_event);
-        num_papi_counters++;
-      }
-      if (PAPI_query_event (PAPI_BR_MSP) == PAPI_OK) {
-        rc = PAPI_add_event( EventSet, PAPI_BR_MSP);
-        PAPI_ERROR_CHECK(PAPI_add_event);
-        num_papi_counters++;
-      }
-      if (PAPI_query_event (PAPI_FP_INS) == PAPI_OK) {
-        //rc = PAPI_add_event( EventSet, PAPI_FP_OPS);
-        rc = PAPI_add_event( EventSet, PAPI_FP_INS);
-        PAPI_ERROR_CHECK(PAPI_add_event);
-        num_papi_counters++;
-      }
-      rc = PAPI_start( EventSet );
-      PAPI_ERROR_CHECK(PAPI_start);
   }
 
 #endif
@@ -878,59 +871,44 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       }
 #endif
 
-    // output to screen?
-    if (apex_options::use_screen_output() && node_id == 0)
-    {
-      finalize_profiles();
-    }
-
-    // output to 1 TAU profile per process?
-    if (apex_options::use_profile_output() == 1)
-    {
-      write_profile(-1);
-    }
-    // output to TAU profiles, one per thread per process?
-    else if (apex_options::use_profile_output() > 1)
-    {
-      // the number of thread_name_maps tells us how many threads there are to process
-      for (unsigned int i = 0 ; i < thread_name_maps.size(); i++) {
-        write_profile((int)i);
+      // output to screen?
+      if (apex_options::use_screen_output() && node_id == 0)
+      {
+        finalize_profiles();
       }
-    }
+
+      // output to 1 TAU profile per process?
+      if (apex_options::use_profile_output() == 1)
+      {
+        write_profile(-1);
+      }
+      // output to TAU profiles, one per thread per process?
+      else if (apex_options::use_profile_output() > 1)
+      {
+        // the number of thread_name_maps tells us how many threads there are to process
+        for (unsigned int i = 0 ; i < thread_name_maps.size(); i++) {
+          write_profile((int)i);
+        }
+      }
 
 #if APEX_HAVE_PAPI
-      int rc = 0;
-      int i = 0;
-      long long values[8] {0L};
-      //cout << values[0] << " " << values[1] << " " << values[2] << " " << values[3] << endl;
-      for (i = 0 ; i < thread_instance::get_num_threads() ; i++) {
-        rc = PAPI_accum( event_sets[i], values );
-        PAPI_ERROR_CHECK(PAPI_stop);
+      if (num_papi_counters > 0) {
+        int rc = 0;
+        int i = 0;
+        long long values[8] {0L};
         //cout << values[0] << " " << values[1] << " " << values[2] << " " << values[3] << endl;
-      }
-      if (apex_options::use_screen_output() && node_id == 0) {
-        cout << endl << "TOTAL COUNTERS for " << thread_instance::get_num_threads() << " threads:" << endl;
-        cout << "Cycles: " << values[0] ;
-        cout << ", Instructions: " << values[1] ;
-        cout << ", L2TCM: " << values[2] ;
-        if (num_papi_counters > 3) {
-            cout << ", BR_MSP: " << values[3] ;
+        for (i = 0 ; i < thread_instance::get_num_threads() ; i++) {
+          rc = PAPI_accum( event_sets[i], values );
+          PAPI_ERROR_CHECK(PAPI_stop);
+          //cout << values[0] << " " << values[1] << " " << values[2] << " " << values[3] << endl;
         }
-        if (num_papi_counters > 4) {
-            cout << ", FPINS: " << values[4] ;
-            //cout << ", FPOPS: " << values[4] ;
+        if (apex_options::use_screen_output() && node_id == 0 && num_papi_counters > 0) {
+          cout << endl << "TOTAL COUNTERS for " << thread_instance::get_num_threads() << " threads:" << endl;
+          for (i = 0 ; i < num_papi_counters ; i++) {
+            cout << *(metric_names[i]) << " : " << values[i] << endl;
+          }
+          cout << endl;
         }
-
-        cout << endl << "IPC: " << (double)(values[1])/(double)(values[0]) ;
-        cout << endl << "INS/L2TCM: " << (double)(values[1])/(double)(values[2]) ;
-        if (num_papi_counters > 3) {
-            cout << endl << "INS/BR_MSP: " << (double)(values[1])/(double)(values[3]) ;
-        }
-        if (num_papi_counters > 4) {
-            cout << endl << "FLINS%INS: " << (double)(values[4])/(double)(values[1]) ;
-            //cout << endl << "FLOP%INS: " << (double)(values[4])/(double)(values[1]) ;
-        }
-        cout << endl;
       }
 #endif
     }

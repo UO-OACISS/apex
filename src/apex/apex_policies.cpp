@@ -652,25 +652,15 @@ int apex_custom_tuning_policy(apex_context const context) {
 /// ----------------------------------------------------------------------------
 
 inline void __read_common_variables() {
-    char * envvar = getenv("APEX_THROTTLING");
     max_threads = thread_cap = apex::hardware_concurrency();
     min_threads = 1;
-    if (envvar != NULL) {
-        int tmp = atoi(envvar);
-        if (tmp > 0) {
-            apex_checkThrottling = true;
-            char * envvar = getenv("APEX_THROTTLING_MAX_THREADS");
-            if (envvar != NULL) {
-                max_threads = atoi(envvar);
-                thread_cap = max_threads;
-            }
-            envvar = getenv("APEX_THROTTLING_MIN_THREADS");
-            if (envvar != NULL) {
-                min_threads = atoi(envvar);
-            }
-            if (apex::apex::instance()->get_node_id() == 0) {
-                cout << "APEX Throttling enabled, min threads: " << min_threads << " max threads: " << max_threads << endl;
-            }
+    if (apex::apex_options::throttle_concurrency()) {
+        apex_checkThrottling = true;
+        max_threads = apex::apex_options::throttling_max_threads();
+        thread_cap = max_threads;
+        min_threads = apex::apex_options::throttling_min_threads();
+        if (apex::apex::instance()->get_node_id() == 0) {
+            cout << "APEX concurrency throttling enabled, min threads: " << min_threads << " max threads: " << max_threads << endl;
         }
     }
 }
@@ -685,31 +675,21 @@ inline int __setup_power_cap_throttling()
     __read_common_variables();
     // if desired for this execution set up throttling & final print of total energy used 
     if (apex_checkThrottling) {
-      char * envvar = getenv("APEX_THROTTLING_MAX_WATTS");
-      if (envvar != NULL) {
-        max_watts = atof(envvar);
-      }
-      envvar = getenv("APEX_THROTTLING_MIN_WATTS");
-      if (envvar != NULL) {
-        min_watts = atof(envvar);
-      }
-      if (getenv("APEX_ENERGY_THROTTLING") != NULL) {
+      max_watts = apex::apex_options::throttling_max_watts();
+      min_watts = apex::apex_options::throttling_min_watts();
+      if (apex::apex_options::throttle_energy()) {
         apex_energyThrottling = true;
       }
       if (apex::apex::instance()->get_node_id() == 0) {
-        cout << "APEX Throttling for energy savings, min watts: " << min_watts << " max watts: " << max_watts << endl;
+        cout << "APEX periodic throttling for energy savings, min watts: " << min_watts << " max watts: " << max_watts << endl;
       }
-      // disabled for other stuff.
       apex::register_periodic_policy(1000000, apex_power_throttling_policy);
       // get an initial power reading
       apex::current_power_high();
 #ifdef APEX_HAVE_RCR
       energyDaemonEnter();
 #endif
-      }
-      else if (getenv("APEX_ENERGY") != NULL) {
-        // energyDaemonInit();  // this is done in apex initialization
-      }
+    }
   return APEX_NOERROR;
 }
 
@@ -978,12 +958,6 @@ inline int __setup_timer_throttling(const string& the_name, apex_optimization_cr
 
 inline int __shutdown_throttling(void)
 {
-/*
-  if (apex::apex_options::throttle_concurrency()) energyDaemonTerm(); // prints energy usage
-  else if (getenv("APEX_ENERGY") != NULL) {
-    energyDaemonTerm();  // this is done in apex termination
-  }
-*/
     apex_final = true;
   //printf("periodic_policy called %d times\n", test_pp);
     if (cap_data_open) {
