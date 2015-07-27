@@ -15,12 +15,10 @@ apex_profile value;
 apex_profile reduced_value;
 int min_rank = 0;
 int max_rank = 0;
-int max_threads = 0;
+int global_max_threads = 0;
 int* thread_caps = NULL;
 double* previous_values = NULL;
-double* moving_average = NULL;
 double* current_values = NULL;
-const int window_size = 20;
 
 // the profiled function
 apex_function_address profiled_action = 0L;
@@ -47,7 +45,7 @@ bool apex_set_new_thread_caps(int count, apex_profile values[count]) {
     countdown = countdown - 1;
     return false;
   }
-  // divide max by max_threads - or the current thread cap for the max rank
+  // divide max by global_max_threads - or the current thread cap for the max rank
   double period_max = (reduced_value.maximum - previous_values[max_rank]);
   //double period_max = reduced_value.maximum;
   // set each node thread cap to a relative multiple of that
@@ -60,11 +58,11 @@ bool apex_set_new_thread_caps(int count, apex_profile values[count]) {
     double ratio = last_period / period_max;
     // if this is the max rank, increase the thread count, limited to max.
     if (i == max_rank) {
-      //thread_caps[i] = fmin(max_threads, (thread_caps[i]+1));
-      thread_caps[i] = max_threads;
+      //thread_caps[i] = fmin(global_max_threads, (thread_caps[i]+1));
+      thread_caps[i] = global_max_threads;
     } else {
       // if I did significantly less work than max, reduce my thread count
-      int new_cap = fmin(max_threads, ceil(ratio * max_threads));
+      int new_cap = fmin(global_max_threads, ceil(ratio * global_max_threads));
       if (new_cap != thread_caps[i]) {
         thread_caps[i] = fmax(apex_get_throttling_min_threads(), new_cap);
       }
@@ -213,16 +211,15 @@ void apex_global_setup(apex_profiler_type type, void* in_action) {
     // get the max number of threads. All throttling will be done relative to this.
 #pragma omp parallel
     {
-    max_threads = omp_get_max_threads();
-    printf("Got %d threads!\n", max_threads);
+    global_max_threads = omp_get_max_threads();
+    printf("Got %d threads!\n", global_max_threads);
     }
     thread_caps = calloc(num_ranks, sizeof(int));
     int i;
     for (i = 0; i < num_ranks; ++i) { 
-      thread_caps[i] = max_threads;
+      thread_caps[i] = global_max_threads;
     }
     previous_values = calloc(num_ranks, sizeof(double));
-    moving_average = calloc(num_ranks, sizeof(double));
     current_values = calloc(num_ranks, sizeof(double));
   } else {
     MPI_Win_create(inValues, 0, apex_profile_size, 
