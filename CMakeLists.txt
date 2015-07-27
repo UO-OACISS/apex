@@ -314,13 +314,13 @@ endif()
 # Binutils configuration
 ################################################################################
 
-if(USE_BINUTILS)
-    find_package(Binutils)
-    if (BINUTILS_FOUND)
-        include_directories(${BINUTILS_INCLUDE_DIRS})
-        set(LIBS ${LIBS} ${BINUTILS_LIBRARIES})
-        set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${BINUTILS_LIBRARY_DIR})
-        message(INFO "Using binutils: ${BINUTILS_LIBRARY_DIR} ${BINUTILS_LIBRARIES}")
+if(USE_BFD)
+    find_package(BFD)
+    if (BFD_FOUND)
+        include_directories(${BFD_INCLUDE_DIRS})
+        set(LIBS ${LIBS} ${BFD_LIBRARIES})
+        set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${BFD_LIBRARY_DIR})
+        message(INFO "Using binutils: ${BFD_LIBRARY_DIR} ${BFD_LIBRARIES}")
 	endif()
 
 	find_package(Demangle)
@@ -340,7 +340,7 @@ if(USE_BINUTILS)
 		set(CMAKE_INSTALL_RPATH ${ZLIB_LIBRARY_DIR})
         message(INFO "Using zlib: ${ZLIB_LIBRARY_DIR} ${ZLIB_LIBRARIES}")
 	endif()
-endif(USE_BINUTILS)
+endif(USE_BFD)
 
 ################################################################################
 # UDP configuration

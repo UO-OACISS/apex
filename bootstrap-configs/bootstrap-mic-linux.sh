@@ -22,7 +22,7 @@ BOOST_ROOT=$HOME/install/mic/boost/1.58.0
 
 # OPTIONAL libraries - if left undefined, they likely won't be used.
 
-export BINUTILS_ROOT=$HOME/install/mic/binutils-2.23.2
+export BFD_ROOT=$HOME/install/mic/binutils-2.23.2
 export JEMALLOC_ROOT=/home3/khuck/install/mic/jemalloc/3.6.0
 #GPERFTOOLS_ROOT=$HOME/install/google-perftools/2.4
 #RCR_ROOT=$HOME/src/RCRdaemon

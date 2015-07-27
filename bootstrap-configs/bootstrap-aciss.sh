@@ -13,7 +13,7 @@ export BOOST_ROOT=$BOOST
 
 # OPTIONAL libraries - if left undefined, they likely won't be used.
 
-export BINUTILS_ROOT=/home3/khuck/install/binutils-2.23.2
+export BFD_ROOT=/home3/khuck/install/binutils-2.23.2
 export JEMALLOC_ROOT=/home3/khuck/install/jemalloc/3.6.0
 #export GPERFTOOLS_ROOT=/home3/khuck/install/gperftools/2.4
 #export RCR_ROOT=/home3/khuck/src/RCRdaemon

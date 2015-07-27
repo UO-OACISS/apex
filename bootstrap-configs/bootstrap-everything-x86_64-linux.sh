@@ -13,7 +13,7 @@ BOOST_ROOT=/usr
 
 # OPTIONAL libraries - if left undefined, they likely won't be used.
 
-BINUTILS_ROOT=$HOME/install/binutils-2.23.2
+BFD_ROOT=$HOME/install/binutils-2.23.2
 GPERFTOOLS_ROOT=$HOME/install/google-perftools/2.4
 #RCR_ROOT=$HOME/src/RCRdaemon
 PAPI_ROOT=/usr/local/papi/5.3.2

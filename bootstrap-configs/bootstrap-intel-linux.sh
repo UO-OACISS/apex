@@ -20,7 +20,7 @@ export BOOST_ROOT=$HOME/install/boost-1.58.0-intel
 
 # OPTIONAL libraries - if left undefined, they likely won't be used.
 
-export BINUTILS_ROOT=$HOME/install/binutils-2.25-intel
+export BFD_ROOT=$HOME/install/binutils-2.25-intel
 export JEMALLOC_ROOT=/home3/khuck/install/mic/jemalloc/3.6.0
 #GPERFTOOLS_ROOT=$HOME/install/google-perftools/2.4
 #RCR_ROOT=$HOME/src/RCRdaemon

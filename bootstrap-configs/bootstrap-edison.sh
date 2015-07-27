@@ -13,7 +13,7 @@ export BOOST_ROOT=$BOOST_DIR
 
 # OPTIONAL libraries - if left undefined, they likely won't be used.
 
-# export BINUTILS_ROOT=/usr # CMake will find it automatically.
+# export BFD_ROOT=/usr # CMake will find it automatically.
 #GPERFTOOLS_ROOT=$HOME/install/google-perftools/2.4 # not necessary, because HPX uses JEMalloc
 #export JEMALLOC_ROOT=$HOME/install/jemalloc/3.6.0 # not strictly necessary, if runtime uses JEMalloc
 #export RCR_ROOT=$HOME/src/RCRdaemon_nersc
@@ -35,7 +35,7 @@ cmake_make_verbose=""  # for verbose, use -DCMAKE_VERBOSE_MAKEFILE=ON
 cmake_use_mpi="-DUSE_MPI=FALSE" # TRUE or FALSE
 cmake_other_settings="\
 -DCMAKE_C_COMPILER=cc \
--DUSE_BINUTILS=TRUE \
+-DUSE_BFD=TRUE \
 -DCMAKE_CXX_COMPILER=CC \
 " # anything else?
 
