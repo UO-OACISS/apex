@@ -91,7 +91,7 @@ namespace apex {
 
 #if APEX_HAVE_PAPI
   std::vector<int> event_sets(8);
-  std::vector<std::string*> metric_names(8);
+  std::vector<std::string> metric_names;
 #endif
 
 #ifndef APEX_HAVE_HPX3
@@ -785,7 +785,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
           if (PAPI_query_event (code) == PAPI_OK) {
             rc = PAPI_add_event(EventSet, code);
             PAPI_ERROR_CHECK(PAPI_add_event);
-            metric_names[num_papi_counters] = new string(p);
+            metric_names.push_back(string(p));
             num_papi_counters++;
           }
           p = strtok(NULL, " ");
@@ -905,7 +905,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         if (apex_options::use_screen_output() && node_id == 0 && num_papi_counters > 0) {
           cout << endl << "TOTAL COUNTERS for " << thread_instance::get_num_threads() << " threads:" << endl;
           for (i = 0 ; i < num_papi_counters ; i++) {
-            cout << *(metric_names[i]) << " : " << values[i] << endl;
+            cout << metric_names[i] << " : " << values[i] << endl;
           }
           cout << endl;
         }

@@ -315,12 +315,12 @@ endif()
 ################################################################################
 
 if(USE_BINUTILS)
-	find_package(BFD)
-	if (BFD_FOUND)
-		include_directories(${BFD_INCLUDE_DIRS})
-		set(LIBS ${LIBS} ${BFD_LIBRARIES})
-		set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${BFD_LIBRARY_DIR})
-        message(INFO "Using binutils: ${BFD_LIBRARY_DIR} ${BFD_LIBRARIES}")
+    find_package(Binutils)
+    if (BINUTILS_FOUND)
+        include_directories(${BINUTILS_INCLUDE_DIRS})
+        set(LIBS ${LIBS} ${BINUTILS_LIBRARIES})
+        set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${BINUTILS_LIBRARY_DIR})
+        message(INFO "Using binutils: ${BINUTILS_LIBRARY_DIR} ${BINUTILS_LIBRARIES}")
 	endif()
 
 	find_package(Demangle)
@@ -470,7 +470,6 @@ set_tests_properties(TestGetPower PROPERTIES PASS_REGULAR_EXPRESSION "Power at e
 add_test (TestThrottling src/examples/Throttling/testThrottling)  
 set_tests_properties(TestThrottling PROPERTIES PASS_REGULAR_EXPRESSION "Test passed.")
 set_property(TEST TestThrottling PROPERTY ENVIRONMENT "APEX_POLICY=1")
-set_property(TEST TestThrottling APPEND PROPERTY ENVIRONMENT "APEX_THROTTLING=1")
 set_property(TEST TestThrottling APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_CONCURRENCY=1")
 set_property(TEST TestThrottling APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_ENERGY=1")
 
@@ -521,4 +520,25 @@ if(USE_UDP_CLIENT)
     add_test (TestUdpSink src/examples/UdpSink/test_script.sh)  
     set_tests_properties(TestUdpSink PROPERTIES PASS_REGULAR_EXPRESSION "The ID of this thread is:")
 endif(USE_UDP_CLIENT)
+
+if (PAPI_FOUND)
+    set_property (TEST
+        TestDemoC
+        TestDemoCpp
+        TestMatmult
+        TestTestITT
+        TestTestThreads
+        TestCountCalls
+        TestOverhead
+        TestPolicyUnitTest
+        TestPolicyEngineExample
+        TestPolicyEngineCppExample
+        TestReset
+        TestGetPower
+        TestThrottling
+        TestThrottlingCpp
+        TestThrottlingActiveHarmony
+        APPEND PROPERTY ENVIRONMENT 
+         "APEX_PAPI_METRICS=PAPI_TOT_CYC PAPI_TOT_INS PAPI_LD_INS")
+endif (PAPI_FOUND)
 
