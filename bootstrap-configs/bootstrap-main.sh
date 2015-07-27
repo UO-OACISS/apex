@@ -17,8 +17,8 @@ if [ ${RCR_ROOT+x} ]; then
 	rcr_config="-DRCR_ROOT=$RCR_ROOT"
 fi
 
-if [ ${BFD_ROOT+x} ]; then 
-	bfd_config="-DBFD_ROOT=$BFD_ROOT -DUSE_BINUTILS=TRUE"
+if [ ${BINUTILS_ROOT+x} ]; then 
+	bfd_config="-DBINUTILS_ROOT=$BINUTILS_ROOT -DUSE_BINUTILS=TRUE"
 else
 	bfd_config="-DUSE_BINUTILS=FALSE"
 fi

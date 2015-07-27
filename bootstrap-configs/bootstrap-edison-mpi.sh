@@ -13,7 +13,7 @@ export BOOST_ROOT=$BOOST_DIR
 
 # OPTIONAL libraries - if left undefined, they likely won't be used.
 
-export BFD_ROOT=/usr
+export BINUTILS_ROOT=/usr
 #GPERFTOOLS_ROOT=$HOME/install/google-perftools/2.4
 export JEMALLOC_ROOT=$HOME/install/jemalloc/3.6.0 # not strictly necessary, if runtime uses JEMalloc
 #export RCR_ROOT=$HOME/src/RCRdaemon
