@@ -18,6 +18,10 @@ apex_options* apex_options::_instance = NULL;
         std::cout << #name << " : " << inst->member_variable() << std::endl;
         FOREACH_APEX_OPTION(apex_macro)
 #undef apex_macro
+#define apex_macro(name, member_variable, type, default_value) \
+        std::cout << #name << " : " << inst->member_variable() << std::endl;
+        FOREACH_APEX_STRING_OPTION(apex_macro)
+#undef apex_macro
         return;
     }
 

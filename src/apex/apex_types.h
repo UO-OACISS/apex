@@ -207,7 +207,7 @@ typedef int (*apex_policy_function)(apex_context const context);
 #define FOREACH_APEX_STRING_OPTION(macro) \
     macro (APEX_UDP_SINK_HOST, udp_sink_host, char*, "localhost") \
     macro (APEX_UDP_SINK_PORT, udp_sink_port, char*, "5560") \
-    macro (APEX_UDP_SINK_CLIENTIP, udp_sink_clientip, char*, "") \
+    macro (APEX_UDP_SINK_CLIENTIP, udp_sink_clientip, char*, "127.0.0.1") \
     macro (APEX_PAPI_METRICS, papi_metrics, char*, "") \
 
 #if defined(__linux)
