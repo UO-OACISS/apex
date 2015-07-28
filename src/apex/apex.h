@@ -493,6 +493,8 @@ FOREACH_APEX_OPTION(apex_macro)
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
+APEX_EXPORT void apex_print_options(void);
+
 #ifdef __cplusplus
 }
 #endif

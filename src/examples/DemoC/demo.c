@@ -12,6 +12,7 @@ int foo(int i) {
 int main (int argc, char** argv) {
   apex_init_args(argc, argv, NULL);
   printf("APEX Version : %s\n", apex_version());
+  apex_print_options();
   apex_set_node_id(0);
   apex_profiler_handle profiler = apex_start(APEX_FUNCTION_ADDRESS, &main);
   int i,j = 0;

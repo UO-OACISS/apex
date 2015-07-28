@@ -52,6 +52,7 @@ public:
     FOREACH_APEX_OPTION(apex_macro)
     FOREACH_APEX_STRING_OPTION(apex_macro)
 #undef apex_macro
+    static void print_options(void);
 };
 
 }
