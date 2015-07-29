@@ -20,6 +20,7 @@ export JEMALLOC_ROOT=/home3/khuck/install/jemalloc/3.6.0
 #export PAPI_ROOT=/usr/local/papi/5.3.2
 #export TAU_ROOT=/home3/khuck/src/tau2
 export ACTIVEHARMONY_ROOT=$HOME/install/activeharmony/4.5
+export OMPT_ROOT=$HOME/install/libiomp5
 
 # other CMake variables - for special situations / architectures / compilers.
 
@@ -29,7 +30,7 @@ cmake_build_shared_libs="-DBUILD_SHARED_LIBS=TRUE" # TRUE or FALSE
 cmake_install_prefix="-DCMAKE_INSTALL_PREFIX=$DIR/../install" # the installation path
 cmake_use_codeblocks="-G \"CodeBlocks - Unix Makefiles\"" # if you want to debug in CodeBlocks
 cmake_make_verbose=""  # for verbose, use -DCMAKE_VERBOSE_MAKEFILE=ON
-cmake_use_mpi="-DUSE_MPI=FALSE" # TRUE or FALSE
+cmake_use_mpi="-DUSE_MPI=TRUE" # TRUE or FALSE
 cmake_other_settings="" # anything else?
 
 # runtime parameters for testing APEX with "make test"

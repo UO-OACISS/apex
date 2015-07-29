@@ -71,6 +71,14 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
+# Get the current working tag
+execute_process(
+  COMMAND git describe --abbrev=0 --tags
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE GIT_TAG
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
 # Get the latest abbreviated commit hash of the working branch
 execute_process(
   COMMAND git log -1 --format=%h
@@ -124,17 +132,21 @@ set (APEX_VERSION_MINOR 1)
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
-CHECK_CXX_COMPILER_FLAG("-std=c++0y" COMPILER_SUPPORTS_CXX0Y)
+CHECK_CXX_COMPILER_FLAG("-std=c++1y" COMPILER_SUPPORTS_CXX1Y)
 CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
 CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
 if(COMPILER_SUPPORTS_CXX14)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
-elseif(COMPILER_SUPPORTS_CXX0Y)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0y")
+    message(INFO "Compiler ${CMAKE_CXX_COMPILER} has C++14 support.")
+elseif(COMPILER_SUPPORTS_CXX1Y)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+    message(INFO "Compiler ${CMAKE_CXX_COMPILER} has early C++14 support.")
 elseif(COMPILER_SUPPORTS_CXX11)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+    message(INFO "Compiler ${CMAKE_CXX_COMPILER} has C++11 support.")
 elseif(COMPILER_SUPPORTS_CXX0X)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+    message(INFO "Compiler ${CMAKE_CXX_COMPILER} has early C++11 support.")
 else()
     message(FATAL_ERROR "Compiler ${CMAKE_CXX_COMPILER} has no C++11 support.")
 endif()
@@ -337,7 +349,7 @@ if(USE_BFD)
 	find_package(ZLIB)
 	if (ZLIB_FOUND)
 		set(LIBS ${LIBS} ${ZLIB_LIBRARIES})
-		set(CMAKE_INSTALL_RPATH ${ZLIB_LIBRARY_DIR})
+		set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${ZLIB_LIBRARY_DIR})
         message(INFO "Using zlib: ${ZLIB_LIBRARY_DIR} ${ZLIB_LIBRARIES}")
 	endif()
 endif(USE_BFD)
@@ -363,6 +375,7 @@ SET(includedir "\${prefix}/include")
 string(REPLACE ";" " " TMP_LIBS "${LIBS}")
 string(REPLACE ";" " " TMP_Boost "${Boost_LIBRARIES}")
 SET(extralibs "${TMP_LIBS} ${TMP_Boost} ${CMAKE_EXE_LINKER_FLAGS}")
+SET(extralibs_rpath "${INSTALL_RPATH_USE_LINK_PATH}")
 if (RCR_FOUND)
 SET(extraincludes "-I${RCR_INCLUDE_DIR}")
 endif (RCR_FOUND)
@@ -496,6 +509,8 @@ if(MPI_CXX_FOUND)
   add_test (TestMPIGlobalTest ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
     ${MPIEXEC_PREFLAGS} src/examples/MPIGlobalTest/mpi_global_test ${MPIEXEC_POSTFLAGS})  
   set_tests_properties(TestMPIGlobalTest PROPERTIES ENVIRONMENT "APEX_POLICY=1")
+  set_property(TEST TestThrottlingActiveHarmony APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_ENERGY=1")
+  set_property(TEST TestThrottlingActiveHarmony APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_CONCURRENCY=1")
   add_test (TestMPIImbalancePolicy ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
     ${MPIEXEC_PREFLAGS} src/examples/MPIImbalancePolicy/mpi_imbalance_test ${MPIEXEC_POSTFLAGS})  
   set_tests_properties(TestMPIImbalancePolicy PROPERTIES ENVIRONMENT "APEX_POLICY=1")

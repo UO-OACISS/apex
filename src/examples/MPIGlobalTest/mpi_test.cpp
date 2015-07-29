@@ -26,8 +26,8 @@ int main(int argc, char **argv) {
   /* Initialize MPI */
 
   int required, provided;
-  required = MPI_THREAD_MULTIPLE;
-  //required = MPI_THREAD_SERIALIZED;
+  //required = MPI_THREAD_MULTIPLE;
+  required = MPI_THREAD_SERIALIZED;
   //required = MPI_THREAD_FUNNELED;
   MPI_Init_thread(&argc, &argv, required, &provided);
   if (provided < required) {

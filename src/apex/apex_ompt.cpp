@@ -122,7 +122,7 @@ extern "C" void my_parallel_region_begin (
     boost::unique_lock<boost::mutex> l(_region_mutex);
     parallel_regions[parallel_id] = parallel_function;
   }
-  //my_ompt_start("OpenMP_PARALLEL_REGION", parallel_id);
+  my_ompt_start("OpenMP_PARALLEL_REGION", parallel_id);
 }
 
 extern "C" void my_parallel_region_end (
@@ -131,7 +131,7 @@ extern "C" void my_parallel_region_end (
 {
   APEX_UNUSED(parent_task_id);
   APEX_UNUSED(parallel_id);
-  //my_ompt_stop("OpenMP_PARALLEL_REGION", parallel_id);
+  my_ompt_stop("OpenMP_PARALLEL_REGION", parallel_id);
 }
 
 extern "C" void my_task_begin (

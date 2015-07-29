@@ -229,7 +229,8 @@ std::shared_ptr<profiler> thread_instance::pop_current_profiler(profiler * reque
         profiler * tmp = (*it).get();
         if (tmp == requested) {
           instance().current_profiler = *it;
-#ifdef __INTEL_COMPILER
+//#ifdef __INTEL_COMPILER
+#if __cplusplus < 201400L
           instance().current_profilers.erase(instance().current_profilers.end()-crappy_compiler);
 #else
           instance().current_profilers.erase(it);

@@ -3,6 +3,7 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 extralibs=@extralibs@ 
+extralibs_rpath=@extralibs_rpath@ 
 extraincludes=@extraincludes@
 
 Name: APEX

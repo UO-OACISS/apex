@@ -129,13 +129,45 @@ void apex::_initialize()
     this->m_pInstance = this;
     this->m_policy_handler = nullptr;
     stringstream tmp;
+#if defined (GIT_TAG)
+    tmp << GIT_TAG;
+#else
     tmp << APEX_VERSION_MAJOR + (APEX_VERSION_MINOR/10.0);
+#endif
 #if defined (GIT_COMMIT_HASH)
     tmp << "-" << GIT_COMMIT_HASH ;
 #endif
 #if defined (GIT_BRANCH)
     tmp << "-" << GIT_BRANCH ;
 #endif
+    tmp << std::endl << "Built on: " << __TIME__ << " " << __DATE__;
+    tmp << std::endl << "C++ Language Standard version : " << __cplusplus;
+#if defined(__clang__)
+	/* Clang/LLVM. ---------------------------------------------- */
+    tmp << std::endl << "Clang Compiler version : " << __VERSION__;
+#elif defined(__ICC) || defined(__INTEL_COMPILER)
+	/* Intel ICC/ICPC. ------------------------------------------ */
+    tmp << std::endl << "Intel Compiler version : " << __VERSION__;
+#elif defined(__GNUC__) || defined(__GNUG__)
+	/* GNU GCC/G++. --------------------------------------------- */
+    tmp << std::endl << "GCC Compiler version : " << __VERSION__;
+#elif defined(__HP_cc) || defined(__HP_aCC)
+	/* Hewlett-Packard C/aC++. ---------------------------------- */
+    tmp << std::endl << "HP Compiler version : " << __HP_aCC;
+#elif defined(__IBMC__) || defined(__IBMCPP__)
+	/* IBM XL C/C++. -------------------------------------------- */
+    tmp << std::endl << "IBM Compiler version : " << __xlC__;
+#elif defined(_MSC_VER)
+	/* Microsoft Visual Studio. --------------------------------- */
+    tmp << std::endl << "Microsoft Compiler version : " << _MSC_FULL_VER;
+#elif defined(__PGI)
+	/* Portland Group PGCC/PGCPP. ------------------------------- */
+    tmp << std::endl << "PGI Compiler version : " << __VERSION__;
+#elif defined(__SUNPRO_CC)
+	/* Oracle Solaris Studio. ----------------------------------- */
+    tmp << std::endl << "Oracle Compiler version : " << __SUNPRO_CC;
+#endif
+
     this->version_string = std::string(tmp.str().c_str());
 #ifdef APEX_HAVE_HPX3
     this->m_hpx_runtime = nullptr;
