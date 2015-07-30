@@ -20,7 +20,7 @@ export JEMALLOC_ROOT=/home3/khuck/install/jemalloc/3.6.0
 #export PAPI_ROOT=/usr/local/papi/5.3.2
 #export TAU_ROOT=/home3/khuck/src/tau2
 export ACTIVEHARMONY_ROOT=$HOME/install/activeharmony/4.5
-export OMPT_ROOT=$HOME/install/libiomp5
+export OMPT_ROOT=$HOME/install/libiomp5-gcc-4.9.2
 
 # other CMake variables - for special situations / architectures / compilers.
 

@@ -14,8 +14,8 @@ link_directories (${APEX_BINARY_DIR}/src/apex ${APEX_BINARY_DIR}/src/comm/mpi)
 add_executable (lulesh_MPI_2.0 lulesh.cc lulesh-comm.cc lulesh-init.cc lulesh-util.cc lulesh-viz.cc)
 add_dependencies (lulesh_MPI_2.0 apex)
 
-set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -DUSE_MPI=1 -Wall")
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -DUSE_MPI=1 -Wall")
+set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -DUSE_MPI=1")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -DUSE_MPI=1")
 
 # Link the executable to the Apex library. 
 target_link_libraries (lulesh_MPI_2.0 apex apex_mpi stdc++ ${LIBS}

@@ -155,7 +155,8 @@ Additional BSD Notice
 #include <sys/time.h>
 #include <iostream>
 #include <unistd.h>
-#include "apex.h"
+#include "apex_api.hpp"
+#include "apex_global.h"
 
 #if _OPENMP
 # include <omp.h>
@@ -163,6 +164,7 @@ Additional BSD Notice
 
 #include "lulesh.h"
 
+apex_event_type custom_event;
 
 /*********************************/
 /* Data structure implementation */
@@ -2698,18 +2700,21 @@ int main(int argc, char *argv[])
 #if USE_MPI   
    Domain_member fieldData ;
 
-   MPI_Init(&argc, &argv) ;
-   //int provided = MPI_THREAD_MULTIPLE;
-   //MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-   //std::cout << "provided: " << provided << std::endl;
+   //MPI_Init(&argc, &argv) ;
+   int provided = MPI_THREAD_MULTIPLE;
+   MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+   std::cout << "provided: " << provided << std::endl;
    MPI_Comm_size(MPI_COMM_WORLD, &numRanks) ;
    MPI_Comm_rank(MPI_COMM_WORLD, &myRank) ;
 #else
    numRanks = 1;
    myRank = 0;
 #endif   
-   apex_init("lulesh");
-   apex_set_node_id(myRank);
+   apex::init(argc, argv, "lulesh");
+   apex_global_setup(APEX_NAME_STRING, (void*)("Main Iteration"));
+   custom_event = apex::register_custom_event("balance power");
+   apex::register_periodic_policy(custom_event, apex_periodic_policy_func);
+   apex::set_node_id(myRank);
 
    /* Set defaults that can be overridden by command line opts */
    opts.its = 9999999;
@@ -2776,6 +2781,7 @@ int main(int argc, char *argv[])
 //   for(Int_t i = 0; i < locDom->numReg(); i++)
 //      std::cout << "region" << i + 1<< "size" << locDom->regElemSize(i) <<std::endl;
    while((locDom->time() < locDom->stoptime()) && (locDom->cycle() < opts.its)) {
+      apex::profiler* p = apex::start("Main Iteration");
 
       TimeIncrement(*locDom) ;
       LagrangeLeapFrog(*locDom) ;
@@ -2787,6 +2793,8 @@ int main(int argc, char *argv[])
       if (locDom->cycle() % 10 == 0) {
       	//TAU_SOS_send_data();
       }
+      apex::stop(p);
+      apex_custom_event(custom_event, NULL);
    }
 
    // Use reduced max elapsed time
@@ -2814,8 +2822,9 @@ int main(int argc, char *argv[])
    if ((myRank == 0) && (opts.quiet == 0)) {
       VerifyAndWriteFinalOutput(elapsed_timeG, *locDom, opts.nx, numRanks);
    }
-
-   apex_finalize();
+ 
+   apex_global_teardown(); // do this before MPI_Finalize
+   apex::finalize();
 #if USE_MPI
    MPI_Finalize() ;
 #endif

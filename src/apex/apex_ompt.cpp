@@ -340,18 +340,17 @@ extern "C" void my_idle_begin(ompt_thread_id_t thread_id) {
 
 // This macro is for checking that the function registration worked.
 #define CHECK(EVENT,FUNCTION,NAME) \
-  fprintf(stderr,"Registering OMPT callback %s...",NAME);  \
-  fflush(stderr); \
+  /*fprintf(stderr,"Registering OMPT callback %s...",NAME); fflush(stderr); */ \
   if (ompt_set_callback(EVENT, (ompt_callback_t)(FUNCTION)) == 0) { \
-    fprintf(stderr,"\n\tFailed to register OMPT callback %s!\n",NAME); \
-    fflush(stderr); \
+    /*fprintf(stderr,"\n\tFailed to register OMPT callback %s!\n",NAME); fflush(stderr); */ \
   } else { \
-    fprintf(stderr,"success.\n"); \
+    /*fprintf(stderr,"success.\n"); */ \
   } \
 
 inline int __ompt_initialize() {
   apex::init("OPENMP_PROGRAM");
   timer_stack = new std::stack<apex::profiler*>();
+  fprintf(stderr,"Registering OMPT events..."); fflush(stderr);
   CHECK(ompt_event_parallel_begin, my_parallel_region_begin, "parallel_begin");
   CHECK(ompt_event_parallel_end, my_parallel_region_end, "parallel_end");
 
@@ -400,6 +399,7 @@ inline int __ompt_initialize() {
   //CHECK(ompt_event_implicit_task_end, my_implicit_task_end, "task_end");
   //CHECK(ompt_event_idle_begin, my_idle_begin, "idle_begin");
   //CHECK(ompt_event_idle_end, my_idle_end, "idle_end");
+  fprintf(stderr,"done.\n"); fflush(stderr);
   return 1;
 }
 
