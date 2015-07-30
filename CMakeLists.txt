@@ -384,6 +384,11 @@ CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/pkgconfig/apex.pc.in
                ${CMAKE_BINARY_DIR}/pkgconfig/apex.pc @ONLY)
 INSTALL_FILES(/lib/pkgconfig FILES pkgconfig/apex.pc)
 
+include(ProcessorCount) # how many cores at our disposal?
+if(PROCESSOR_COUNT)
+  set(CTEST_BUILD_FLAGS "-j${PROCESSOR_COUNT}")
+endif()
+
 # Recurse into the "Apex" and "Demo" subdirectories. This does not actually 
 # cause another cmake executable to run. The same process will walk through 
 # the project's entire directory structure. 
@@ -397,8 +402,12 @@ add_subdirectory (src/comm)
 if(MPI_CXX_FOUND)
   add_subdirectory (src/comm/mpi) 
   add_subdirectory (src/examples/MPITest)  
-  add_subdirectory (src/examples/MPIGlobalTest)  
   add_subdirectory (src/examples/MPIImbalancePolicy)  
+  add_subdirectory (src/examples/LuleshMPI)  
+  if(OPENMP_FOUND)
+    add_subdirectory (src/examples/MPIGlobalTest)  
+    add_subdirectory (src/examples/LuleshMPIOpenMP)  
+  endif()
 endif()
 add_subdirectory (src/examples/TestITT)
 add_subdirectory (src/examples/TestThreads)
@@ -418,6 +427,7 @@ if(OPENMP_FOUND)
   add_subdirectory (src/examples/OpenMP_1D_stencil)
   if(OMPT_FOUND)
     add_subdirectory (src/examples/TestOpenMP)
+    add_subdirectory (src/examples/LuleshOpenMP)
   endif()
 endif()
 if(USE_UDP_CLIENT)
@@ -514,6 +524,13 @@ if(MPI_CXX_FOUND)
   add_test (TestMPIImbalancePolicy ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
     ${MPIEXEC_PREFLAGS} src/examples/MPIImbalancePolicy/mpi_imbalance_test ${MPIEXEC_POSTFLAGS})  
   set_tests_properties(TestMPIImbalancePolicy PROPERTIES ENVIRONMENT "APEX_POLICY=1")
+  add_test (TestLuleshMPI ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 8
+    ${MPIEXEC_PREFLAGS} src/examples/LuleshMPI/lulesh_MPI_2.0 -s 15 ${MPIEXEC_POSTFLAGS})  
+  if(OPENMP_FOUND)
+    add_test (TestLuleshMPIOpenMP ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 8
+      ${MPIEXEC_PREFLAGS} src/examples/LuleshMPIOpenMP/lulesh_MPI_OpenMP_2.0
+      -s 15 ${MPIEXEC_POSTFLAGS})  
+  endif()
 endif()
 
 if(OPENMP_FOUND)
@@ -527,7 +544,16 @@ if(OPENMP_FOUND)
     endif()
   if(OMPT_FOUND)
       add_test (TestOpenMPSharing src/examples/TestOpenMP/openmp_test)
+      add_test (TestLuleshOpenMP src/examples/LuleshOpenMP/lulesh_OpenMP_2.0 -s 15)
   endif()
+  if (PROCESSOR_COUNT)
+    set_property (TEST TestOpenMPStencil TestOpenMPSharing TestLuleshOpenMP
+          APPEND PROPERTY ENVIRONMENT "OMP_NUM_THREADS=${PROCESSOR_COUNT}")
+    if(MPI_CXX_FOUND)
+      set_property (TEST TestLuleshMPIOpenMP
+            APPEND PROPERTY ENVIRONMENT "OMP_NUM_THREADS=${PROCESSOR_COUNT}")
+    endif(MPI_CXX_FOUND)
+  endif(PROCESSOR_COUNT)
 endif()
 
 if(USE_UDP_CLIENT)
