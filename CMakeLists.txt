@@ -526,13 +526,13 @@ if(MPI_CXX_FOUND)
   add_test (TestMPIImbalancePolicy ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
     ${MPIEXEC_PREFLAGS} src/examples/MPIImbalancePolicy/mpi_imbalance_test ${MPIEXEC_POSTFLAGS})  
   set_tests_properties(TestMPIImbalancePolicy PROPERTIES ENVIRONMENT "APEX_POLICY=1")
-  add_test (TestLuleshMPI ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 8
-    ${MPIEXEC_PREFLAGS} src/examples/LuleshMPI/lulesh_MPI_2.0 -s 15 ${MPIEXEC_POSTFLAGS})  
-  if(OPENMP_FOUND)
-    add_test (TestLuleshMPIOpenMP ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 8
-      ${MPIEXEC_PREFLAGS} src/examples/LuleshMPIOpenMP/lulesh_MPI_OpenMP_2.0
-      -s 15 ${MPIEXEC_POSTFLAGS})  
-  endif()
+#  add_test (TestLuleshMPI ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 8
+#    ${MPIEXEC_PREFLAGS} src/examples/LuleshMPI/lulesh_MPI_2.0 -s 15 ${MPIEXEC_POSTFLAGS})  
+#  if(OPENMP_FOUND)
+#    add_test (TestLuleshMPIOpenMP ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 8
+#      ${MPIEXEC_PREFLAGS} src/examples/LuleshMPIOpenMP/lulesh_MPI_OpenMP_2.0
+#      -s 15 ${MPIEXEC_POSTFLAGS})  
+#  endif()
 endif()
 
 if(OPENMP_FOUND)
@@ -544,7 +544,7 @@ if(OPENMP_FOUND)
         set_property(TEST TestOpenMPStencil APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_CONCURRENCY=1")
         set_property(TEST TestOpenMPStencil APPEND PROPERTY ENVIRONMENT "HARMONY_HOME=${ACTIVEHARMONY_ROOT}")
     endif()
-  add_test (TestLuleshOpenMP src/examples/LuleshOpenMP/lulesh_OpenMP_2.0 -s 15)
+#  add_test (TestLuleshOpenMP src/examples/LuleshOpenMP/lulesh_OpenMP_2.0 -s 15)
   if(OMPT_FOUND)
       add_test (TestOpenMPSharing src/examples/TestOpenMP/openmp_test)
       if (PROCESSOR_COUNT)
@@ -553,12 +553,12 @@ if(OPENMP_FOUND)
       endif (PROCESSOR_COUNT)
   endif()
   if (PROCESSOR_COUNT)
-    set_property (TEST TestOpenMPStencil TestLuleshOpenMP
+    set_property (TEST TestOpenMPStencil
           APPEND PROPERTY ENVIRONMENT "OMP_NUM_THREADS=${PROCESSOR_COUNT}")
-    if(MPI_CXX_FOUND)
-      set_property (TEST TestLuleshMPIOpenMP
-            APPEND PROPERTY ENVIRONMENT "OMP_NUM_THREADS=${PROCESSOR_COUNT}")
-    endif(MPI_CXX_FOUND)
+#    if(MPI_CXX_FOUND)
+#      set_property (TEST TestLuleshMPIOpenMP
+#            APPEND PROPERTY ENVIRONMENT "OMP_NUM_THREADS=${PROCESSOR_COUNT}")
+#    endif(MPI_CXX_FOUND)
   endif(PROCESSOR_COUNT)
 endif()
 

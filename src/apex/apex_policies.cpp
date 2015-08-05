@@ -811,6 +811,7 @@ inline int __active_harmony_custom_setup(int num_inputs, long ** inputs, long * 
             cerr << "Failed to register Active Harmony variable" << endl;
             return APEX_ERROR;
         }
+        __ah_inputs[i] = inputs[i];
     }
     if (harmony_join(hdesc, NULL, 0, session_name) != 0) {
         cerr << "Failed to join Active Harmony tuning session" << endl;
@@ -1012,6 +1013,10 @@ APEX_EXPORT int shutdown_throttling(void) {
 
 APEX_EXPORT int get_thread_cap(void) {
     return __get_thread_cap();
+}
+
+APEX_EXPORT int get_input2(void) {
+    return (int)*(__ah_inputs[1]);
 }
 
 

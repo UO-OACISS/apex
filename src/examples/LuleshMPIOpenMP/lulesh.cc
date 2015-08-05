@@ -164,7 +164,7 @@ Additional BSD Notice
 
 #include "lulesh.h"
 
-apex_event_type custom_event;
+//apex_event_type custom_event;
 
 /*********************************/
 /* Data structure implementation */
@@ -2237,6 +2237,8 @@ static inline
 void EvalEOSForElems(Domain& domain, Real_t *vnewc,
                      Int_t numElemReg, Index_t *regElemList, Int_t rep)
 {
+   apex::profiler* p = apex::start((apex_function_address)(&EvalEOSForElems));
+   int nt = apex_get_thread_cap();
    Real_t  e_cut = domain.e_cut() ;
    Real_t  p_cut = domain.p_cut() ;
    Real_t  ss4o3 = domain.ss4o3() ;
@@ -2269,7 +2271,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
    //loop to add load imbalance based on region number 
    for(Int_t j = 0; j < rep; j++) {
       /* compress data, minimal set */
-#pragma omp parallel
+#pragma omp parallel num_threads(nt)
       {
 #pragma omp for nowait firstprivate(numElemReg)
          for (Index_t i=0; i<numElemReg; ++i) {
@@ -2353,6 +2355,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
    Release(&p_old) ;
    Release(&delvc) ;
    Release(&e_old) ;
+   apex::stop(p);
 }
 
 /******************************************/
@@ -2711,10 +2714,13 @@ int main(int argc, char *argv[])
    myRank = 0;
 #endif   
    apex::init(argc, argv, "lulesh");
-   apex_global_setup(APEX_NAME_STRING, (void*)("Main Iteration"));
-   custom_event = apex::register_custom_event("balance power");
-   apex::register_periodic_policy(custom_event, apex_periodic_policy_func);
    apex::set_node_id(myRank);
+   apex::print_options();
+   //apex_global_setup(APEX_NAME_STRING, (void*)("Main Iteration"));
+   //custom_event = apex::register_custom_event("balance power");
+   //apex::register_policy(custom_event, apex_periodic_policy_func);
+   apex_global_setup(APEX_FUNCTION_ADDRESS, (void*)(&EvalEOSForElems));
+   apex::register_periodic_policy(1000000, apex_periodic_policy_func);
 
    /* Set defaults that can be overridden by command line opts */
    opts.its = 9999999;
@@ -2781,8 +2787,6 @@ int main(int argc, char *argv[])
 //   for(Int_t i = 0; i < locDom->numReg(); i++)
 //      std::cout << "region" << i + 1<< "size" << locDom->regElemSize(i) <<std::endl;
    while((locDom->time() < locDom->stoptime()) && (locDom->cycle() < opts.its)) {
-      apex::profiler* p = apex::start("Main Iteration");
-
       TimeIncrement(*locDom) ;
       LagrangeLeapFrog(*locDom) ;
 
@@ -2793,8 +2797,7 @@ int main(int argc, char *argv[])
       if (locDom->cycle() % 10 == 0) {
       	//TAU_SOS_send_data();
       }
-      apex::stop(p);
-      apex_custom_event(custom_event, NULL);
+      //apex_custom_event(custom_event, NULL);
    }
 
    // Use reduced max elapsed time
@@ -2823,7 +2826,7 @@ int main(int argc, char *argv[])
       VerifyAndWriteFinalOutput(elapsed_timeG, *locDom, opts.nx, numRanks);
    }
  
-   apex_global_teardown(); // do this before MPI_Finalize
+   //apex_global_teardown(); // do this before MPI_Finalize
    apex::finalize();
 #if USE_MPI
    MPI_Finalize() ;

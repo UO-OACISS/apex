@@ -295,6 +295,9 @@ void init(const char * thread_name)
 #else 
 	APEX_UNUSED(thread_name);
 #endif
+#ifdef APEX_DEBUG
+    apex_options::print_options();
+#endif
 }
 
 void init(int argc, char** argv, const char * thread_name)
@@ -450,8 +453,9 @@ void stop(profiler* the_profiler)
     if (!instance) return; // protect against calls after finalization
     //int tid = thread_instance::get_id();
     //assert (the_profiler->tid == tid);
-    if (the_profiler != nullptr && the_profiler->stopped) return; // would like to assert this...
+    if (the_profiler != nullptr) { assert (!the_profiler->stopped); }
     std::shared_ptr<profiler> p;
+    // A null profiler is OK, it means the application didn't store it. We have it.
     if (the_profiler == nullptr) {
         try {
             p = thread_instance::instance().pop_current_profiler();
@@ -464,7 +468,7 @@ void stop(profiler* the_profiler)
           //printf("%lu Stop: null profiler on stack, stopping: %s\n", thread_instance::get_id(), lookup_address((uintptr_t)the_profiler->action_address, false)->c_str());
           printf("%lu Stop: null profiler on stack\n", thread_instance::get_id());
           fflush(stdout); 
-        //assert(p); 
+          assert(p); 
         }
         /*
         profiler * tmp = p.get();
@@ -475,11 +479,6 @@ void stop(profiler* the_profiler)
         }
         */
         //assert(p.get() == the_profiler);
-    }
-    //assert(p);
-    if (p == nullptr) {
-        std::cout << thread_instance::get_id() << " NULL PROFILER!" << std::endl; fflush(stdout);
-        return;
     }
 #ifdef APEX_DEBUG
     /*
@@ -860,6 +859,13 @@ std::vector<std::string> get_available_profiles() {
     return profiler_listener::get_available_profiles();
 }
 
+void print_options() {
+    apex_options::print_options();
+    return;
+}
+
+
+
 } // apex namespace
 
 using namespace apex;
@@ -870,6 +876,10 @@ extern "C" {
     {
         init(thread_name);
     }
+
+    void apex_init_(void) { init("FORTRAN thread"); }
+
+    void apex_init__(void) { init("FORTRAN thread"); }
 
     void apex_init_args(int argc, char** argv, const char * thread_name)
     {
@@ -886,6 +896,10 @@ extern "C" {
         finalize();
     }
 
+    void apex_finalize_() { finalize(); }
+
+    void apex_finalize__() { finalize(); }
+
     const char * apex_version()
     {
         return version().c_str();
@@ -901,6 +915,11 @@ extern "C" {
           return reinterpret_cast<apex_profiler_handle>(start(tmp));
       }
       return APEX_NULL_PROFILER_HANDLE;
+    }
+
+    void apex_start_(apex_profiler_type type, void * identifier, apex_profiler_handle profiler) {
+      apex_profiler_handle p = apex_start(type, identifier);
+      if (profiler != nullptr) profiler = p;
     }
 
     apex_profiler_handle apex_resume(apex_profiler_type type, void * identifier)
@@ -930,6 +949,11 @@ extern "C" {
     }
 
     void apex_stop(apex_profiler_handle the_profiler)
+    {
+        stop(reinterpret_cast<profiler*>(the_profiler));
+    }
+
+    void apex_stop_(apex_profiler_handle the_profiler)
     {
         stop(reinterpret_cast<profiler*>(the_profiler));
     }
@@ -1027,6 +1051,11 @@ extern "C" {
 
     double apex_current_power_high() {
         return current_power_high();
+    }
+
+    void apex_print_options() {
+        apex_options::print_options();
+        return;
     }
 
 } // extern "C"

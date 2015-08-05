@@ -142,6 +142,9 @@ extern "C" void my_task_begin (
 {
   APEX_UNUSED(parent_task_id);
   APEX_UNUSED(parent_task_frame);
+  /* if (timer_stack == nullptr) {
+    timer_stack = new std::stack<apex::profiler*>();
+  } */
   {
     boost::unique_lock<boost::mutex> l(_region_mutex);
     parallel_regions[new_task_id] = task_function;
