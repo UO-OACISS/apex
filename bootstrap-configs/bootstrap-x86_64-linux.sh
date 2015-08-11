@@ -14,10 +14,10 @@ BOOST_ROOT=/usr
 # OPTIONAL libraries - if left undefined, they likely won't be used.
 
 export BFD_ROOT=/usr
-export JEMALLOC_ROOT=/home3/khuck/install/jemalloc/3.6.0
+#export JEMALLOC_ROOT=/home3/khuck/install/jemalloc/3.6.0
 #export GPERFTOOLS_ROOT=$HOME/install/google-perftools/2.4
 #export RCR_ROOT=$HOME/src/RCRdaemon
-export PAPI_ROOT=/usr/local/papi/5.3.2
+#export PAPI_ROOT=/usr/local/papi/5.3.2
 #export TAU_ROOT=$HOME/install/tau-hpx
 #export OMPT_ROOT=$HOME/install/libiomp5
 export ACTIVEHARMONY_ROOT=$HOME/install/activeharmony/4.5

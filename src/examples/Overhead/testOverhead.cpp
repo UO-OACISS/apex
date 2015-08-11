@@ -9,7 +9,7 @@
 #include <chrono>
 #include "utils.hpp"
 
-#define ITERATIONS 1024*128
+#define ITERATIONS 1024*32
 #define INNER_ITERATION 1024*8
 
 class ApexProxy {

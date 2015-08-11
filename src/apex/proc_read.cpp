@@ -13,6 +13,9 @@
 #include <boost/regex.hpp>
 #include <set>
 #include "utils.hpp"
+#include <condition_variable>
+#include <chrono>
+#include <atomic>
 
 #define COMMAND_LEN 20
 #define DATA_SIZE 512
@@ -28,6 +31,9 @@
 #ifdef APEX_HAVE_LM_SENSORS
 #include "sensor_data.hpp"
 #endif
+
+std::condition_variable cv; // for interrupting reader when done
+std::mutex cv_m;            // mutex for the condition variable
 
 using namespace std;
 
@@ -264,6 +270,7 @@ int ProcStatistics::getSize() {
 
 void ProcData::stop_reading(void) {
   proc_done = true;
+  cv.notify_all(); // interrupt the reader thread if it is sleeping!
 }
 
 void ProcData::sample_values(void) {
@@ -562,13 +569,13 @@ void ProcData::read_proc(void) {
 #endif
   ProcData *newData = NULL;
   ProcData *periodData = NULL;
-  struct timespec tim, tim2;
-  tim.tv_sec = 1;
-  tim.tv_nsec = 0;
   
   while(!proc_done) {
     // sleep until next time
-    nanosleep(&tim , &tim2);
+    std::unique_lock<std::mutex> lk(cv_m);
+    std::cv_status stat = cv.wait_for(lk, std::chrono::seconds(1));
+    if (stat != std::cv_status::timeout) { break; }; // if we were signalled, exit.
+
 #ifdef APEX_HAVE_TAU
     if (apex_options::use_tau()) {
       TAU_START("ProcData::read_proc: main loop");
