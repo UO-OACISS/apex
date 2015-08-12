@@ -2207,6 +2207,10 @@ void CalcEnergyForElems(Real_t* p_new, Real_t* e_new, Real_t* q_new,
 
 /******************************************/
 
+// This macro is to prevent compiler warnings for stub implementations,
+// in particular empty virtual implementations.
+#define LULESH_UNUSED(expr) do { (void)(expr); } while (0)
+
 static inline
 void CalcSoundSpeedForElems(Domain &domain,
                             Real_t *vnewc, Real_t rho0, Real_t *enewc,
@@ -2214,6 +2218,7 @@ void CalcSoundSpeedForElems(Domain &domain,
                             Real_t *bvc, Real_t ss4o3,
                             Index_t len, Index_t *regElemList)
 {
+   LULESH_UNUSED(ss4o3);
 #pragma omp parallel for firstprivate(rho0, ss4o3)
    for (Index_t i = 0; i < len ; ++i) {
       Index_t elem = regElemList[i];
