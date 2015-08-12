@@ -573,8 +573,17 @@ void ProcData::read_proc(void) {
   while(!proc_done) {
     // sleep until next time
     std::unique_lock<std::mutex> lk(cv_m);
+#ifdef __INTEL_COMPILER
+	// for some reason, the Intel compiler didn't implement std::cv_status in a normal way.
+	// for intel 15, it is in the tbb::interface5 namespace.
+	// enum cv_status { no_timeout, timeout }; 
+    auto stat = cv.wait_for(lk, std::chrono::seconds(1));
+	// assume the enum starts at 0?
+    if (stat == 0) { break; }; // if we were signalled, exit.
+#else
     std::cv_status stat = cv.wait_for(lk, std::chrono::seconds(1));
     if (stat != std::cv_status::timeout) { break; }; // if we were signalled, exit.
+#endif
 
 #ifdef APEX_HAVE_TAU
     if (apex_options::use_tau()) {
