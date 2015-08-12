@@ -1,4 +1,4 @@
-NB: A fairly recent version of the documentation is available here:
+*NB: A fairly recent version of the documentation is available here:*
 http://www.nic.uoregon.edu/~khuck/apex_docs/doc/html/index.html
 
 ---------------------------------------------------------------
@@ -13,10 +13,11 @@ copy and modify ./bootstrap-configs/bootstrap-$arch.sh as necessary, and run it.
 
 APEX is built with CMake. The minimum CMake settings needed for APEX are:
 
--DBOOST_ROOT=<some path to the Boost installation>
--DCMAKE_INSTALL_PREFIX=<some path to an installation location>
+* -DBOOST_ROOT=<some path to the Boost installation>
+* -DCMAKE_INSTALL_PREFIX=<some path to an installation location>
 
 The process for building APEX is:
+```
 $ git clone https://github.com/khuck/xpress-apex.git
 $ cd xpress-apex
 $ mkdir build
@@ -26,42 +27,43 @@ $ make
 $ make test
 $ make doc
 $ make install
+```
 
 ##other CMake settings, depending on your needs/haves:
 ---------------------------------------------
 
--DUSE_PAPI=TRUE or FALSE 
--DPAPI_ROOT=some path to PAPI, or set the PAPI_ROOT environment variable.
+* -DUSE_PAPI=TRUE or FALSE 
+* -DPAPI_ROOT=some path to PAPI, or set the PAPI_ROOT environment variable.
 
--DUSE_ACTIVEHARMONY=TRUE or FALSE
--DACTIVEHARMONY_ROOT=some path to ActiveHarmony, or set the ACTIVEHARMONY_ROOT environment variable.
+* -DUSE_ACTIVEHARMONY=TRUE or FALSE
+* -DACTIVEHARMONY_ROOT=some path to ActiveHarmony, or set the ACTIVEHARMONY_ROOT environment variable.
 
--DUSE_OMPT=TRUE or FALSE 
--DOMPT_ROOT=path to OMPT, or set the OMPT_ROOT environment variable.
+* -DUSE_OMPT=TRUE or FALSE 
+* -DOMPT_ROOT=path to OMPT, or set the OMPT_ROOT environment variable.
 
--DUSE_BFD=TRUE or FALSE
--DBFD_ROOT=path to Binutils, or set the BFD_ROOT environment variable.
+* -DUSE_BFD=TRUE or FALSE
+* -DBFD_ROOT=path to Binutils, or set the BFD_ROOT environment variable.
 
--DUSE_LM_SENSORS=TRUE or FALSE
+* -DUSE_LM_SENSORS=TRUE or FALSE
 
--DUSE_TAU=TRUE or FALSE
--DTAU_ROOT=path to TAU, or set the TAU_ROOT environment variable.
+* -DUSE_TAU=TRUE or FALSE
+* -DTAU_ROOT=path to TAU, or set the TAU_ROOT environment variable.
 
--DUSE_RCR=TRUE or FALSE
--DRCR_ROOT=path to RCR, or set the RCR_ROOT environment variable.
+* -DUSE_RCR=TRUE or FALSE
+* -DRCR_ROOT=path to RCR, or set the RCR_ROOT environment variable.
 
--DUSE_JEMALLOC=TRUE or FALSE
--DJEMALLOC_ROOT=path to JEMalloc, or set the JEMALLOC_ROOT environment variable.
+* -DUSE_JEMALLOC=TRUE or FALSE
+* -DJEMALLOC_ROOT=path to JEMalloc, or set the JEMALLOC_ROOT environment variable.
 
--DUSE_MPI=TRUE or FALSE (whether to build MPI global support/examples)
--DMPI_C_INCLUDE_PATH=path to MPI headers
--DMPI_CXX_INCLUDE_PATH=path to MPI headers
--DMPI_C_LIBRARIES=paths to MPI libraries, library names
--DMPI_CXX_LIBRARIES=paths to MPI libraries, library names
--DMPI_C_COMPILER=mpicc
--DMPI_CXX_COMPILER=mpicxx
+* -DUSE_MPI=TRUE or FALSE (whether to build MPI global support/examples)
+* -DMPI_C_INCLUDE_PATH=path to MPI headers
+* -DMPI_CXX_INCLUDE_PATH=path to MPI headers
+* -DMPI_C_LIBRARIES=paths to MPI libraries, library names
+* -DMPI_CXX_LIBRARIES=paths to MPI libraries, library names
+* -DMPI_C_COMPILER=mpicc
+* -DMPI_CXX_COMPILER=mpicxx
 
--DCMAKE_C_COMPILER=gcc
--DCMAKE_CXX_COMPILER=g++
--DCMAKE_BUILD_TYPE=Release, Debug, RelWithDebInfo
--DBUILD_SHARED_LIBS=TRUE or FALSE
+* -DCMAKE_C_COMPILER=gcc
+* -DCMAKE_CXX_COMPILER=g++
+* -DCMAKE_BUILD_TYPE=Release, Debug, RelWithDebInfo
+* -DBUILD_SHARED_LIBS=TRUE or FALSE
