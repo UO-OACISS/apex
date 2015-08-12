@@ -2,13 +2,13 @@
 http://www.nic.uoregon.edu/~khuck/apex_docs/doc/html/index.html
 
 ---------------------------------------------------------------
-#Option 1: Configuring and building APEX with bootstrap scripts:
+# Option 1: Configuring and building APEX with bootstrap scripts:
 ---------------------------------------------------------------
 
 copy and modify ./bootstrap-configs/bootstrap-$arch.sh as necessary, and run it.
 
 ---------------------------------------------------------------
-#Option 2: Configuring and building APEX with CMake directly:
+# Option 2: Configuring and building APEX with CMake directly:
 ---------------------------------------------------------------
 
 APEX is built with CMake. The minimum CMake settings needed for APEX are:
@@ -17,6 +17,7 @@ APEX is built with CMake. The minimum CMake settings needed for APEX are:
 * -DCMAKE_INSTALL_PREFIX=<some path to an installation location>
 
 The process for building APEX is:
+
 ```
 $ git clone https://github.com/khuck/xpress-apex.git
 $ cd xpress-apex
