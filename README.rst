@@ -16,23 +16,26 @@ APEX is built with CMake. The minimum CMake settings needed for APEX are:
 
 The process for building APEX is:
 
-    $ git clone https://github.com/khuck/xpress-apex.git
+* Get the code
 
-    $ cd xpress-apex
+	git clone https://github.com/khuck/xpress-apex.git
 
-    $ mkdir build
+* Enter the repo directory, make a build directory
 
-    $ cd build
+	cd xpress-apex
+	mkdir build
+	cd build
 
-    $ cmake -DBOOST_ROOT=<path-to-boost> -DCMAKE_INSTALL_PREFIX=<installation-path> ..
+* configure using CMake
 
-    $ make
+	cmake -DBOOST_ROOT=<path-to-boost> -DCMAKE_INSTALL_PREFIX=<installation-path> ..
 
-    $ make test
+* build!
 
-    $ make doc
-
-    $ make install
+	make
+	make test
+	make doc
+	make install
 
 other CMake settings, depending on your needs/wants:
 ----------------------------------------------------
