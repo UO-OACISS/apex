@@ -1,15 +1,13 @@
 *NB: A fairly recent version of the documentation is available here:*
 http://www.nic.uoregon.edu/~khuck/apex_docs/doc/html/index.html
 
----------------------------------------------------------------
-# Option 1: Configuring and building APEX with bootstrap scripts:
----------------------------------------------------------------
+Option 1: Configuring and building APEX with bootstrap scripts:
+===============================================================
 
 copy and modify ./bootstrap-configs/bootstrap-$arch.sh as necessary, and run it.
 
----------------------------------------------------------------
-# Option 2: Configuring and building APEX with CMake directly:
----------------------------------------------------------------
+Option 2: Configuring and building APEX with CMake directly:
+============================================================
 
 APEX is built with CMake. The minimum CMake settings needed for APEX are:
 
@@ -18,20 +16,18 @@ APEX is built with CMake. The minimum CMake settings needed for APEX are:
 
 The process for building APEX is:
 
-```
-$ git clone https://github.com/khuck/xpress-apex.git
-$ cd xpress-apex
-$ mkdir build
-$ cd build
-$ cmake -DBOOST_ROOT=<path-to-boost> -DCMAKE_INSTALL_PREFIX=<installation-path> ..
-$ make
-$ make test
-$ make doc
-$ make install
-```
+    $ git clone https://github.com/khuck/xpress-apex.git
+    $ cd xpress-apex
+    $ mkdir build
+    $ cd build
+    $ cmake -DBOOST_ROOT=<path-to-boost> -DCMAKE_INSTALL_PREFIX=<installation-path> ..
+    $ make
+    $ make test
+    $ make doc
+    $ make install
 
-##other CMake settings, depending on your needs/haves:
----------------------------------------------
+other CMake settings, depending on your needs/wants:
+----------------------------------------------------
 
 * -DUSE_PAPI=TRUE or FALSE 
 * -DPAPI_ROOT=some path to PAPI, or set the PAPI_ROOT environment variable.
