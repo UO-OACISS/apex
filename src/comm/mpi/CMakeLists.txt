@@ -21,7 +21,7 @@ set_target_properties (apex_mpi PROPERTIES OUTPUT_NAME apex_mpi)
 
 # gcc on apple needs the apex library to link the dylib
 # if(APPLE)
-target_link_libraries (apex_mpi apex ${LIBS} ${Boost_LIBRARIES}  ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES})
+target_link_libraries (apex_mpi apex ${LIBS} ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES})
 add_dependencies (apex_mpi apex)
 # else()
 # target_link_libraries (ittnotifyShared ${LIBS})

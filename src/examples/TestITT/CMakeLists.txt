@@ -10,7 +10,7 @@ add_executable (testITT testITT.cpp)
 add_dependencies (testITT apex ittnotify)
 
 # Link the executable to the Apex library. 
-target_link_libraries (testITT apex ittnotify ${Boost_LIBRARIES}) 
+target_link_libraries (testITT apex ittnotify) 
 
 INSTALL(TARGETS testITT
   RUNTIME DESTINATION bin
