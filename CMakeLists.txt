@@ -107,20 +107,16 @@ endif()
 # Compiler detection code
 ################################################################################
 
+set(CMAKE_CXX_FLAGS_RELEASE "-g -O3 -DNDEBUG")
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   # using Clang
+  set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -Wextra -Waddress -Warray-bounds -Wuninitialized -Wreturn-type -Wall -fno-omit-frame-pointer -DAPEX_DEBUG")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   # using GCC
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
-  #set debugging info
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS} -g -O0 -Wextra -Waddress -Warray-bounds -Wuninitialized -Wreturn-type -Wall -fno-omit-frame-pointer -DAPEX_DEBUG")
-  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS} -g -O3 -DNDEBUG")
+  set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -Wextra -Waddress -Warray-bounds -Wuninitialized -Wreturn-type -Wall -fno-omit-frame-pointer -DAPEX_DEBUG")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
   # using Intel C++
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpic")
-  #set debugging info
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS} -g -O0 -DAPEX_DEBUG")
-  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS} -g -O3 -DNDEBUG")
+  set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -DAPEX_DEBUG")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   # using Visual Studio C++
 endif()
@@ -130,7 +126,6 @@ set (APEX_VERSION_MAJOR 0)
 set (APEX_VERSION_MINOR 1)
 
 # add_definitions(-std=c++11)
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
 CHECK_CXX_COMPILER_FLAG("-std=c++1y" COMPILER_SUPPORTS_CXX1Y)
@@ -140,7 +135,7 @@ if(COMPILER_SUPPORTS_CXX14)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
     message(INFO "Compiler ${CMAKE_CXX_COMPILER} has C++14 support.")
 elseif(COMPILER_SUPPORTS_CXX1Y)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y")
     message(INFO "Compiler ${CMAKE_CXX_COMPILER} has early C++14 support.")
 elseif(COMPILER_SUPPORTS_CXX11)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
@@ -188,16 +183,6 @@ if(Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
 	set(LIBS ${LIBS} ${Boost_LIBRARIES})
 endif()
-
-################################################################################
-# JSON configuration
-################################################################################
-
-include(GitExternal)
-git_external(rapidjson
-    https://github.com/miloyip/rapidjson.git
-    master
-    VERBOSE)
 
 ################################################################################
 # MPI configuration
@@ -358,11 +343,21 @@ endif(USE_BFD)
 
 ################################################################################
 # UDP configuration
+# JSON configuration
 ################################################################################
 
 if(USE_UDP_CLIENT)
     set (USE_UDP TRUE)
+    include(GitExternal)
+    git_external(rapidjson
+        https://github.com/miloyip/rapidjson.git
+        master
+        VERBOSE)
 endif(USE_UDP_CLIENT)
+
+# apparently, we need to make sure libm is last.
+find_library(MATHLIB m)
+set(LIBS ${LIBS} ${MATHLIB})
 
 ################################################################################
 

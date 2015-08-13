@@ -20,9 +20,9 @@ link_directories (${APEX_BINARY_DIR})
 
 if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
   set(ittnofify_library_dependencies
-      apex${CMAKE_DEBUG_POSTFIX} ${LIBS})
+      apex${CMAKE_DEBUG_POSTFIX})
 else()
-  set(ittnofify_library_dependencies apex ${LIBS})
+  set(ittnofify_library_dependencies apex)
 endif()
 
 if(NOT MSVC)

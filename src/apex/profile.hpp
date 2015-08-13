@@ -9,6 +9,9 @@
 #include "apex_options.hpp"
 #include "apex_types.h"
 
+// Use this if you want the min, max and stddev.
+#define FULL_STATISTICS
+
 namespace apex {
 
 class profile {
@@ -23,16 +26,20 @@ public:
             _profile.calls = 0.0;
         }
 		_profile.accumulated = initial;
+#ifdef FULL_STATISTICS
 		_profile.sum_squares = initial*initial;
 		_profile.minimum = initial;
 		_profile.maximum = initial;
+#endif
 	};
 	void increment(double increase, bool yielded) {
 		_profile.accumulated += increase;
+#ifdef FULL_STATISTICS
 		_profile.sum_squares += (increase * increase);
         // if not a fully completed task, don't modify these until it is done
 		_profile.minimum = _profile.minimum > increase ? increase : _profile.minimum;
 		_profile.maximum = _profile.maximum < increase ? increase : _profile.maximum;
+#endif
         if (!yielded) {
 		  _profile.calls = _profile.calls + 1.0;
         } 

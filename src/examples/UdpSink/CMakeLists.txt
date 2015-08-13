@@ -19,7 +19,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
 endif()
 
 # Link the executable to the Apex library. 
-target_link_libraries (testBeacon apex ${LIBS}) 
+target_link_libraries (testBeacon apex)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/test_script.in ${CMAKE_CURRENT_BINARY_DIR}/test_script.sh)
 file(COPY ${CMAKE_CURRENT_BINARY_DIR}/test_script.sh

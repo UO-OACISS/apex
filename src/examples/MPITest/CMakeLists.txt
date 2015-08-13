@@ -16,7 +16,7 @@ add_executable (mpi_test mpi_test.cpp)
 add_dependencies (mpi_test apex)
 
 # Link the executable to the Apex library. 
-target_link_libraries (mpi_test apex stdc++ ${LIBS} ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES}) 
+target_link_libraries (mpi_test apex stdc++ ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES}) 
 
 ## Compiler flags
 if(APPLE)

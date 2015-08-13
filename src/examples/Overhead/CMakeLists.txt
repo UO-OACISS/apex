@@ -19,7 +19,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
 endif()
 
 # Link the executable to the Apex library. 
-target_link_libraries (testOverhead apex ${LIBS}) 
+target_link_libraries (testOverhead apex)
 
 INSTALL(TARGETS testOverhead
   RUNTIME DESTINATION bin

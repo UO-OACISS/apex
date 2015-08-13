@@ -17,7 +17,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
 endif()
 
 # Link the executable to the Apex library. 
-target_link_libraries (testThrottling apex ${LIBS}) 
+target_link_libraries (testThrottling apex) 
 
 INSTALL(TARGETS testThrottling
   RUNTIME DESTINATION bin

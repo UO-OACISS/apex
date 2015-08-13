@@ -12,7 +12,7 @@ include_directories (${APEX_SOURCE_DIR}/src/apex)
 add_library (ittnotify ittnotify.cpp)
 set_target_properties (ittnotify PROPERTIES OUTPUT_NAME ittnotify)
 
-target_link_libraries (ittnotify apex ${LIBS})
+target_link_libraries (ittnotify apex)
 add_dependencies (ittnotify apex)
 
 # add the binary tree to the search path for include files

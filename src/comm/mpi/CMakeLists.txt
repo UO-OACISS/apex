@@ -7,11 +7,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${MPI_COMPILE_FLAGS}")
 
 # Make sure the compiler can find include files from our Apex library. 
 include_directories (${APEX_SOURCE_DIR}/src/comm ${APEX_SOURCE_DIR}/src/apex ${MPI_C_INCLUDE_PATH}) 
-
-# gcc on apple needs the apex library to link the dylib
-# if(APPLE)
-  link_directories (${APEX_BINARY_DIR}/src/apex)
-# endif()
+link_directories (${APEX_BINARY_DIR}/src/apex)
 
 # Create a library called "apex_mpi" which includes the source file
 # "apex_global_mpi.c". 
@@ -19,13 +15,8 @@ include_directories (${APEX_SOURCE_DIR}/src/comm ${APEX_SOURCE_DIR}/src/apex ${M
 add_library (apex_mpi apex_global_mpi.c)
 set_target_properties (apex_mpi PROPERTIES OUTPUT_NAME apex_mpi)
 
-# gcc on apple needs the apex library to link the dylib
-# if(APPLE)
-target_link_libraries (apex_mpi apex ${LIBS} ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES})
+target_link_libraries (apex_mpi apex ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES})
 add_dependencies (apex_mpi apex)
-# else()
-# target_link_libraries (ittnotifyShared ${LIBS})
-# endif()
 
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
