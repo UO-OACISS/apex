@@ -421,8 +421,15 @@ LULESH_PMPIO_Close(void *file, void *udata)
    
 #else
 
+// This macro is to prevent compiler warnings for stub implementations,
+// in particular empty virtual implementations.
+#define LULESH_UNUSED(expr) do { (void)(expr); } while (0)
+
 void DumpToVisit(Domain& domain, int numFiles, int myRank, int numRanks)
 {
+   LULESH_UNUSED(domain);
+   LULESH_UNUSED(numFiles);
+   LULESH_UNUSED(numRanks);
    if (myRank == 0) {
       printf("Must enable -DVIZ_MESH at compile time to call DumpDomain\n");
    }

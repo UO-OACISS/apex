@@ -106,20 +106,16 @@ endif()
 # Compiler detection code
 ################################################################################
 
+set(CMAKE_CXX_FLAGS_RELEASE "-g -O3 -DNDEBUG")
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   # using Clang
+  set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -Wextra -Waddress -Warray-bounds -Wuninitialized -Wreturn-type -Wall -fno-omit-frame-pointer -DAPEX_DEBUG")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   # using GCC
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
-  #set debugging info
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS} -g -O0 -Wextra -Waddress -Warray-bounds -Wuninitialized -Wreturn-type -Wall -fno-omit-frame-pointer -DAPEX_DEBUG")
-  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS} -g -O3 -DNDEBUG")
+  set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -Wextra -Waddress -Warray-bounds -Wuninitialized -Wreturn-type -Wall -fno-omit-frame-pointer -DAPEX_DEBUG")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
   # using Intel C++
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpic")
-  #set debugging info
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_CXX_FLAGS} -g -O0 -DAPEX_DEBUG")
-  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS} -g -O3 -DNDEBUG")
+  set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -DAPEX_DEBUG")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   # using Visual Studio C++
 endif()
@@ -129,7 +125,6 @@ set (APEX_VERSION_MAJOR 0)
 set (APEX_VERSION_MINOR 1)
 
 # add_definitions(-std=c++11)
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
 CHECK_CXX_COMPILER_FLAG("-std=c++1y" COMPILER_SUPPORTS_CXX1Y)
@@ -139,7 +134,7 @@ if(COMPILER_SUPPORTS_CXX14)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
     message(INFO "Compiler ${CMAKE_CXX_COMPILER} has C++14 support.")
 elseif(COMPILER_SUPPORTS_CXX1Y)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y")
     message(INFO "Compiler ${CMAKE_CXX_COMPILER} has early C++14 support.")
 elseif(COMPILER_SUPPORTS_CXX11)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
@@ -176,7 +171,7 @@ endif()
 ################################################################################
 
 if (APPLE)
-     set(Boost_USE_STATIC_LIBS ON)
+    set(Boost_USE_STATIC_LIBS ON)
 else()
     set(Boost_USE_STATIC_LIBS OFF)
 endif()
@@ -186,18 +181,8 @@ find_package(Boost 1.54.0 REQUIRED COMPONENTS system thread timer chrono regex p
 
 if(Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
-    # target_link_libraries(progname ${Boost_LIBRARIES})
+	set(LIBS ${LIBS} ${Boost_LIBRARIES})
 endif()
-
-################################################################################
-# JSON configuration
-################################################################################
-
-include(GitExternal)
-git_external(rapidjson
-    https://github.com/miloyip/rapidjson.git
-    master
-    VERBOSE)
 
 ################################################################################
 # MPI configuration
@@ -358,11 +343,21 @@ endif(USE_BFD)
 
 ################################################################################
 # UDP configuration
+# JSON configuration
 ################################################################################
 
 if(USE_UDP_CLIENT)
     set (USE_UDP TRUE)
+    include(GitExternal)
+    git_external(rapidjson
+        https://github.com/miloyip/rapidjson.git
+        master
+        VERBOSE)
 endif(USE_UDP_CLIENT)
+
+# apparently, we need to make sure libm is last.
+find_library(MATHLIB m)
+set(LIBS ${LIBS} ${MATHLIB})
 
 ################################################################################
 
@@ -374,10 +369,21 @@ SET(exec_prefix "\${prefix}")
 SET(libdir "\${exec_prefix}/lib")
 SET(bindir "\${exec_prefix}/bin")
 SET(includedir "\${prefix}/include")
-string(REPLACE ";" " " TMP_LIBS "${LIBS}")
-string(REPLACE ";" " " TMP_Boost "${Boost_LIBRARIES}")
-SET(extralibs "${TMP_LIBS} ${TMP_Boost} ${CMAKE_EXE_LINKER_FLAGS}")
-SET(extralibs_rpath "${INSTALL_RPATH_USE_LINK_PATH}")
+foreach(_lib ${LIBS})
+    get_filename_component(_lib_name ${_lib} NAME_WE)
+    string(REGEX REPLACE "^lib" "" _name ${_lib_name})
+    list(APPEND MY_LIBS "-l${_name}")
+    get_filename_component(_lib_dir ${_lib} PATH)
+    list(APPEND MY_LINKFLAGS "-L${_lib_dir}")
+endforeach()
+list(REMOVE_DUPLICATES MY_LIBS )
+list(REMOVE_DUPLICATES MY_LINKFLAGS )
+string(REPLACE ";" " " TMP_LIBS "${MY_LIBS}")
+string(REPLACE ";" " " TMP_LINKFLAGS "${MY_LINKFLAGS}")
+# absorb the spaces first
+string(REGEX REPLACE "[ ]*-L" ",-rpath," TMP_RPATH "${TMP_LINKFLAGS}")
+SET(extralibs "${TMP_LINKFLAGS} ${TMP_LIBS} ${CMAKE_EXE_LINKER_FLAGS}")
+SET(extralibs_rpath "-Wl${TMP_RPATH}")
 if (RCR_FOUND)
 SET(extraincludes "-I${RCR_INCLUDE_DIR}")
 endif (RCR_FOUND)
@@ -521,8 +527,8 @@ if(MPI_CXX_FOUND)
   add_test (TestMPIGlobalTest ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
     ${MPIEXEC_PREFLAGS} src/examples/MPIGlobalTest/mpi_global_test ${MPIEXEC_POSTFLAGS})  
   set_tests_properties(TestMPIGlobalTest PROPERTIES ENVIRONMENT "APEX_POLICY=1")
-  set_property(TEST TestThrottlingActiveHarmony APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_ENERGY=1")
-  set_property(TEST TestThrottlingActiveHarmony APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_CONCURRENCY=1")
+  set_property(TEST TestMPIGlobalTest APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_ENERGY=1")
+  set_property(TEST TestMPIGlobalTest APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_CONCURRENCY=1")
   add_test (TestMPIImbalancePolicy ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
     ${MPIEXEC_PREFLAGS} src/examples/MPIImbalancePolicy/mpi_imbalance_test ${MPIEXEC_POSTFLAGS})  
   set_tests_properties(TestMPIImbalancePolicy PROPERTIES ENVIRONMENT "APEX_POLICY=1")

@@ -10,7 +10,7 @@ add_executable (matmult matmult_initialize.cpp matmult.cpp)
 add_dependencies (matmult apex)
 
 # Link the executable to the Apex library. 
-target_link_libraries (matmult apex stdc++ ${LIBS} ${Boost_LIBRARIES}) 
+target_link_libraries (matmult apex stdc++)
 
 ## Compiler flags
 if(APPLE)

@@ -13,7 +13,7 @@ set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 
 # Link the executable to the Apex library. 
-target_link_libraries (openmp_test apex ${Boost_LIBRARIES} ${OMPT_LIBRARIES}) 
+target_link_libraries (openmp_test apex ${OMPT_LIBRARIES}) 
 
 INSTALL(TARGETS openmp_test
   RUNTIME DESTINATION bin

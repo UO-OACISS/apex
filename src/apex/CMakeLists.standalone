@@ -34,17 +34,11 @@ endif(LM_SENSORS_FOUND)
 
 SET(all_SOURCE apex.cpp thread_instance.cpp event_listener.cpp handler.cpp concurrency_handler.cpp policy_handler.cpp ${tau_SOURCE} profiler_listener.cpp ${bfd_SOURCE} apex_options.cpp apex_policies.cpp ${PROC_SOURCE} ${OMPT_SOURCE} ${UDP_SOURCE} ${SENSOR_SOURCE})
 
-#add_library (apexStatic STATIC ${all_SOURCE})
-#add_library (apexShared SHARED ${all_SOURCE})
 add_library (apex ${all_SOURCE})
 
-#set_target_properties(apexStatic PROPERTIES OUTPUT_NAME apex)
-#set_target_properties(apexShared PROPERTIES OUTPUT_NAME apex)
 set_target_properties(apex PROPERTIES OUTPUT_NAME apex)
 
-#target_link_libraries(apexStatic ${LIBS} ${Boost_LIBRARIES})
-#target_link_libraries(apexShared ${LIBS} ${Boost_LIBRARIES})
-target_link_libraries(apex ${LIBS} ${Boost_LIBRARIES})
+target_link_libraries(apex ${LIBS})
 
 
 # add the binary tree to the search path for include files

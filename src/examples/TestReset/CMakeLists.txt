@@ -18,7 +18,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
 endif()
 
 # Link the executable to the Apex library. 
-target_link_libraries (testReset apex ${Boost_LIBRARIES})
+target_link_libraries (testReset apex)
 add_dependencies (testReset apex)
 
 INSTALL(TARGETS testReset

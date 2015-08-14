@@ -13,7 +13,7 @@ set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 
 # Link the executable to the Apex library. 
-target_link_libraries (custom_tuning apex ${Boost_LIBRARIES}) 
+target_link_libraries (custom_tuning apex)
 
 INSTALL(TARGETS custom_tuning
   RUNTIME DESTINATION bin

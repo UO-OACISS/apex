@@ -17,7 +17,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
 endif()
 
 # Link the executable to the Apex library. 
-target_link_libraries (testThrottlingActiveHarmony apex ${Boost_LIBRARIES} ${LIBS}) 
+target_link_libraries (testThrottlingActiveHarmony apex) 
 
 INSTALL(TARGETS testThrottlingActiveHarmony
   RUNTIME DESTINATION bin

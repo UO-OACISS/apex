@@ -20,10 +20,9 @@ link_directories (${APEX_BINARY_DIR})
 
 if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
   set(ittnofify_library_dependencies
-      apex${CMAKE_DEBUG_POSTFIX} ${LIBS} ${Boost_LIBRARIES})
+      apex${CMAKE_DEBUG_POSTFIX})
 else()
-  set(ittnofify_library_dependencies
-      apex ${LIBS} ${Boost_LIBRARIES})
+  set(ittnofify_library_dependencies apex)
 endif()
 
 if(NOT MSVC)
@@ -54,7 +53,7 @@ else()
   hpx_add_compile_flag(-MP)     # Multiprocessor build
 endif()
 
-# target_link_libraries (ittnotify ${LIBS} ${Boost_LIBRARIES})
+# target_link_libraries (ittnotify ${LIBS})
 # gcc on apple needs the apex library to link the dylib
 add_library (ittnotify STATIC ittnotify.cpp)
 add_hpx_library(ittnotify

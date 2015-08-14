@@ -19,7 +19,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
 endif()
 
 # Link the executable to the Apex library. 
-target_link_libraries (count_calls apex ${Boost_LIBRARIES}) 
+target_link_libraries (count_calls apex) 
 
 INSTALL(TARGETS count_calls
   RUNTIME DESTINATION bin
