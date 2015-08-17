@@ -177,16 +177,18 @@ string thread_instance::map_addr_to_name(apex_function_address function_address)
   if (it != _function_map.end()) {
     return (*it).second;
   } // else...
-#if 0
+#if 1
   string * name = lookup_address(function_address, false);
+  _function_map[function_address] = *name;
+  return *name;
 #else
   stringstream ss;
   //ss << "UNRESOLVED " << progname << " ADDR " << hex << function_address;
   ss << "UNRESOLVED ADDR " << hex << function_address;
   string name = string(ss.str());
-#endif
   _function_map[function_address] = name;
   return name;
+#endif
 }
 
 void thread_instance::set_current_profiler(std::shared_ptr<profiler> the_profiler) {

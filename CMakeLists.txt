@@ -197,7 +197,7 @@ endif()
 ################################################################################
 
 # TAU is NOT required.
-if (DEFINED TAU_ROOT)
+if ((DEFINED TAU_ROOT) OR (USE_TAU))
 find_package(TAU)
 if (TAU_FOUND)
 	include_directories(${TAU_INCLUDE_DIRS})
@@ -231,7 +231,7 @@ endif()
 find_package(OpenMP)
  
 if (OPENMP_FOUND)
-  if (USE_OMPT)
+  if ((DEFINED OMPT_ROOT) OR (USE_OMPT))
       find_package(OMPT)
       if (OMPT_FOUND)
           include_directories(${OMPT_INCLUDE_DIRS})
@@ -250,7 +250,7 @@ endif()
 # JE/TCMalloc configuration
 ################################################################################
 
-if(USE_JEMALLOC)
+if((DEFINED JEMALLOC_ROOT) OR (USE_JEMALLOC))
     find_package(JEmalloc)
     if (JEmalloc_FOUND)
         include_directories(${JEmalloc_INCLUDE_DIRS})
@@ -270,7 +270,7 @@ endif()
 # LM Sensors configuration
 ################################################################################
 
-if(USE_LM_SENSORS)
+if((DEFINED LM_SENSORS_ROOT) OR (USE_LM_SENSORS))
     find_package(LMSensors)
     if (LM_SENSORS_FOUND)
         include_directories(${LM_SENSORS_INCLUDE_DIRS})
@@ -283,7 +283,7 @@ endif()
 # ActiveHarmony configuration
 ################################################################################
 
-if(USE_ACTIVEHARMONY)
+if((DEFINED ACTIVEHARMONY_ROOT) OR (USE_ACTIVEHARMONY))
     find_package(ActiveHarmony)
     if (ACTIVEHARMONY_FOUND)
         include_directories(${ACTIVEHARMONY_INCLUDE_DIRS})
@@ -296,11 +296,7 @@ endif()
 # PAPI configuration
 ################################################################################
 
-if(DEFINED $PAPI_ROOT)
-    set (USE_PAPI TRUE)
-endif()
-
-if(USE_PAPI)
+if((DEFINED PAPI_ROOT) OR (USE_PAPI))
 	find_package(PAPI)
 	if (PAPI_FOUND)
 		include_directories(${PAPI_INCLUDE_DIRS})
@@ -313,7 +309,7 @@ endif()
 # Binutils configuration
 ################################################################################
 
-if(USE_BFD)
+if((DEFINED BFD_ROOT) OR (USE_BFD))
     find_package(BFD)
     if (BFD_FOUND)
         include_directories(${BFD_INCLUDE_DIRS})
@@ -339,7 +335,7 @@ if(USE_BFD)
 		set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${ZLIB_LIBRARY_DIR})
         message(INFO "Using zlib: ${ZLIB_LIBRARY_DIR} ${ZLIB_LIBRARIES}")
 	endif()
-endif(USE_BFD)
+endif()
 
 ################################################################################
 # UDP configuration
