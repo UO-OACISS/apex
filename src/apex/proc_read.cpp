@@ -225,8 +225,8 @@ void ProcData::dump_header(ostream &out) {
 double ProcData::get_cpu_user() {
 
   CPUs::iterator iter;
-  long long total;
-  double user_ratio;
+  long long total = 0L;
+  double user_ratio = 0.0;
   for (iter = cpus.begin(); iter != cpus.end(); ++iter) {
     CPUStat* cpu_stat=*iter;
 	  if (strcmp(cpu_stat->name, "cpu") == 0) {
