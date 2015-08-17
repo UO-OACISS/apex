@@ -170,9 +170,9 @@ void ProcData::dump(ostream &out) {
   out << "name\tuser\tnice\tsys\tidle\tiowait\tirq\tsoftirq\tsteal\tguest" << endl;
   CPUs::iterator iter;
   long long total;
-  double idle_ratio;
-  double user_ratio;
-  double system_ratio;
+  double idle_ratio = 0.0;
+  double user_ratio = 0.0;
+  double system_ratio = 0.0;
   for (iter = cpus.begin(); iter != cpus.end(); ++iter) {
     CPUStat* cpu_stat=*iter;
     out << cpu_stat->name << "\t" 
