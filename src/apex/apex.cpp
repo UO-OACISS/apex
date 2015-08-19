@@ -545,7 +545,7 @@ void sample_value(const std::string &name, double value)
         {
             string tmp_name = string(name.c_str());
             // tokenize by / character
-            char* token = strtok((char*)tmp_name.c_str(), "/");
+            char* token = strtok(const_cast<char*>(tmp_name.c_str()), "/");
             while (token!=nullptr) {
               if (strstr(token, "worker-thread")==NULL)
               {
