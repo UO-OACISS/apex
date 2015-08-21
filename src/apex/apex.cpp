@@ -806,6 +806,16 @@ apex_policy_handle* register_policy(const apex_event_type when,
     return handle;
 }
 
+apex_policy_handle* register_policy(std::set<apex_event_type> when,
+                    std::function<int(apex_context const&)> f)
+{
+    std::set<apex_event_type>::iterator it;
+    for (it = when.begin(); it != when.end(); ++it)
+    {
+        register_policy(*it,f);
+	}
+}
+
 /* How to do it with a chrono object. */
 
 /*

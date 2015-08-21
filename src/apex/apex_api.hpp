@@ -18,6 +18,7 @@
 #endif
 
 #include <string>
+#include <set>
 #include <vector>
 #include <stdint.h>
 #include "apex_types.h"
@@ -366,6 +367,22 @@ APEX_EXPORT void set_interrupt_interval(int seconds);
  \sa @ref apex::deregister_policy, @ref apex::register_periodic_policy
  */
 APEX_EXPORT apex_policy_handle* register_policy(const apex_event_type when, std::function<int(apex_context const&)> f);
+
+/**
+ \brief Register a policy with APEX.
+
+ Apex provides the ability to call an application-specified function
+ when certain events occur in the APEX library, or periodically.
+ This assigns the passed in function to the event, so that when that
+ event occurs in APEX, the function is called. The context for the
+ event will be passed to the registered function.
+ 
+ \param when The set of APEX events when this function should be called
+ \param f The function to be called when that event is handled by APEX.
+ \return A handle to the policy, to be stored if the policy is to be un-registered later.
+ \sa @ref apex::deregister_policy, @ref apex::register_periodic_policy
+ */
+APEX_EXPORT apex_policy_handle* register_policy(std::set<apex_event_type> when, std::function<int(apex_context const&)> f);
 
 /**
  \brief Register a policy with APEX.
