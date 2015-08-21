@@ -169,7 +169,7 @@ ProcData* ProcData::diff(ProcData const& rhs) {
 void ProcData::dump(ostream &out) {
   out << "name\tuser\tnice\tsys\tidle\tiowait\tirq\tsoftirq\tsteal\tguest" << endl;
   CPUs::iterator iter;
-  long long total;
+  long long total = 0L;
   double idle_ratio = 0.0;
   double user_ratio = 0.0;
   double system_ratio = 0.0;
