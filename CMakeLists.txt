@@ -130,23 +130,29 @@ set (APEX_VERSION_MINOR 1)
 # add_definitions(-std=c++11)
 include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
-CHECK_CXX_COMPILER_FLAG("-std=c++1y" COMPILER_SUPPORTS_CXX1Y)
-CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
-CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
 if(COMPILER_SUPPORTS_CXX14)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
-    message(INFO "Compiler ${CMAKE_CXX_COMPILER} has C++14 support.")
-elseif(COMPILER_SUPPORTS_CXX1Y)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y")
-    message(INFO "Compiler ${CMAKE_CXX_COMPILER} has early C++14 support.")
-elseif(COMPILER_SUPPORTS_CXX11)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-    message(INFO "Compiler ${CMAKE_CXX_COMPILER} has C++11 support.")
-elseif(COMPILER_SUPPORTS_CXX0X)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
-    message(INFO "Compiler ${CMAKE_CXX_COMPILER} has early C++11 support.")
+    message(INFO " Compiler ${CMAKE_CXX_COMPILER} has C++14 support.")
 else()
-    message(FATAL_ERROR "Compiler ${CMAKE_CXX_COMPILER} has no C++11 support.")
+    CHECK_CXX_COMPILER_FLAG("-std=c++1y" COMPILER_SUPPORTS_CXX1Y)
+    if(COMPILER_SUPPORTS_CXX1Y)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y")
+        message(INFO " Compiler ${CMAKE_CXX_COMPILER} has early C++14 support.")
+    else()
+        CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
+        if(COMPILER_SUPPORTS_CXX11)
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+            message(INFO " Compiler ${CMAKE_CXX_COMPILER} has C++11 support.")
+        else()
+            CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
+            if(COMPILER_SUPPORTS_CXX0X)
+                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+                message(INFO " Compiler ${CMAKE_CXX_COMPILER} has early C++11 support.")
+            else()
+                message(FATAL_ERROR " Compiler ${CMAKE_CXX_COMPILER} has no C++11 support.")
+            endif()
+        endif()
+    endif()
 endif()
 
 # configure a header file to pass some of the CMake settings
@@ -318,7 +324,7 @@ if((DEFINED BFD_ROOT) OR (USE_BFD))
         include_directories(${BFD_INCLUDE_DIRS})
         set(LIBS ${LIBS} ${BFD_LIBRARIES})
         set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${BFD_LIBRARY_DIR})
-        message(INFO "Using binutils: ${BFD_LIBRARY_DIR} ${BFD_LIBRARIES}")
+        message(INFO " Using binutils: ${BFD_LIBRARY_DIR} ${BFD_LIBRARIES}")
 	endif()
 
 	find_package(Demangle)
@@ -326,7 +332,7 @@ if((DEFINED BFD_ROOT) OR (USE_BFD))
 		include_directories(${DEMANGLE_INCLUDE_DIRS})
 		set(LIBS ${LIBS} ${DEMANGLE_LIBRARIES})
 		set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${DEMANGLE_LIBRARY_DIR})
-        message(INFO "Using demangle: ${DEMANGLE_LIBRARY_DIR} ${DEMANGLE_LIBRARIES}")
+        message(INFO " Using demangle: ${DEMANGLE_LIBRARY_DIR} ${DEMANGLE_LIBRARIES}")
 	else()
   	unset(DEMANGLE_LIBRARY)
   	unset(DEMANGLE_LIBRARIES)
@@ -336,7 +342,7 @@ if((DEFINED BFD_ROOT) OR (USE_BFD))
 	if (ZLIB_FOUND)
 		set(LIBS ${LIBS} ${ZLIB_LIBRARIES})
 		set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${ZLIB_LIBRARY_DIR})
-        message(INFO "Using zlib: ${ZLIB_LIBRARY_DIR} ${ZLIB_LIBRARIES}")
+        message(INFO " Using zlib: ${ZLIB_LIBRARY_DIR} ${ZLIB_LIBRARIES}")
 	endif()
 endif()
 
@@ -396,200 +402,26 @@ if(PROCESSOR_COUNT)
   set(CTEST_BUILD_FLAGS "-j${PROCESSOR_COUNT}")
 endif()
 
+# turn on "make test" support
+enable_testing()
+
 # Recurse into the "Apex" and "Demo" subdirectories. This does not actually 
 # cause another cmake executable to run. The same process will walk through 
 # the project's entire directory structure. 
 add_subdirectory (src/apex) 
 add_subdirectory (src/ITTNotify) 
-add_subdirectory (src/examples/DemoCpp)
-add_subdirectory (src/examples/DemoC)  
-# Add a test program which actually uses the CPU
-add_subdirectory (src/examples/Matmult)  
+add_subdirectory (src/unit_tests/C) 
+if(BUILD_EXAMPLES)
+add_subdirectory (src/examples)
+endif(BUILD_EXAMPLES)
 add_subdirectory (src/comm) 
 if(MPI_CXX_FOUND)
   add_subdirectory (src/comm/mpi) 
-  add_subdirectory (src/examples/MPITest)  
-  add_subdirectory (src/examples/MPIImbalancePolicy)  
-  add_subdirectory (src/examples/LuleshMPI)  
-  if(OPENMP_FOUND)
-    add_subdirectory (src/examples/MPIGlobalTest)  
-    add_subdirectory (src/examples/LuleshMPIOpenMP)  
-  endif()
-endif()
-add_subdirectory (src/examples/TestITT)
-add_subdirectory (src/examples/TestThreads)
-add_subdirectory (src/examples/CountCalls)
-add_subdirectory (src/examples/Overhead)
-add_subdirectory (src/examples/PolicyUnitTest)
-add_subdirectory (src/examples/PolicyEngineExample)
-add_subdirectory (src/examples/PolicyEngineCppExample)
-add_subdirectory (src/examples/TestReset)
-add_subdirectory (src/examples/TestGetPower)
-add_subdirectory (src/examples/Throttling)
-add_subdirectory (src/examples/ThrottlingCpp)
-if (ACTIVEHARMONY_FOUND)
-  add_subdirectory (src/examples/ThrottlingActiveHarmony)
-endif()
-if(OPENMP_FOUND)
-  add_subdirectory (src/examples/OpenMP_1D_stencil)
-  add_subdirectory (src/examples/LuleshOpenMP)
-  if(OMPT_FOUND)
-    add_subdirectory (src/examples/TestOpenMP)
-  endif()
 endif()
 if(USE_UDP_CLIENT)
 add_subdirectory (src/udp_server)
-add_subdirectory (src/examples/UdpSink)
 endif(USE_UDP_CLIENT)
-add_subdirectory (src/examples/CustomTuning)
 
 add_subdirectory (doc) 
 
-# turn on "make test" support
-enable_testing()
-
-# does the application run
-add_test (TestDemoC src/examples/DemoC/apexCDemo)
-set_tests_properties(TestDemoC PROPERTIES PASS_REGULAR_EXPRESSION "APEX Version : ")
-add_test (TestDemoCpp src/examples/DemoCpp/apexCppDemo)
-set_tests_properties(TestDemoCpp PROPERTIES PASS_REGULAR_EXPRESSION "APEX Version : ")
-
-# Run the test program which actually uses the CPU
-add_test (TestMatmult src/examples/Matmult/matmult)  
-set_tests_properties(TestMatmult PROPERTIES PASS_REGULAR_EXPRESSION "Done.")
-
-# Run the test program which tests the ITT interface
-add_test (TestTestITT src/examples/TestITT/testITT)  
-set_tests_properties(TestTestITT PROPERTIES PASS_REGULAR_EXPRESSION "ITT demo.")
-
-# Run the test program which tests the threads interface
-add_test (TestTestThreads src/examples/TestThreads/testThreads)  
-set_tests_properties(TestTestThreads PROPERTIES PASS_REGULAR_EXPRESSION "The ID of this thread is:")
-
-# Run the test program which tests the yielding
-add_test (TestCountCalls src/examples/CountCalls/count_calls)  
-set_tests_properties(TestCountCalls PROPERTIES PASS_REGULAR_EXPRESSION "Test passed.")
-
-# Run the test program which tests the overhead in the threads interface
-add_test (TestOverhead src/examples/Overhead/testOverhead)  
-set_tests_properties(TestOverhead PROPERTIES PASS_REGULAR_EXPRESSION "Average overhead per timer")
-
-# TEst the policy engine support
-add_test (TestPolicyUnitTest src/examples/PolicyUnitTest/policyUnitTest)  
-set_tests_properties(TestPolicyUnitTest PROPERTIES ENVIRONMENT "APEX_POLICY=1")
-set_tests_properties(TestPolicyUnitTest PROPERTIES FAIL_REGULAR_EXPRESSION "Warning: registered policy function failed!")
-
-# TEst the policy engine support
-add_test (TestPolicyEngineExample src/examples/PolicyEngineExample/testPolicyEngine)  
-set_tests_properties(TestPolicyEngineExample PROPERTIES ENVIRONMENT "APEX_POLICY=1")
-set_tests_properties(TestPolicyEngineExample PROPERTIES FAIL_REGULAR_EXPRESSION "Warning: registered policy function failed!")
-
-add_test (TestPolicyEngineCppExample src/examples/PolicyEngineCppExample/testCppPolicyEngine)  
-set_tests_properties(TestPolicyEngineCppExample PROPERTIES ENVIRONMENT "APEX_POLICY=1")
-set_tests_properties(TestPolicyEngineCppExample PROPERTIES FAIL_REGULAR_EXPRESSION "Warning: registered policy function failed!")
-
-# Test the resetting of counters and timers
-add_test (TestReset src/examples/TestReset/testReset)
-set_tests_properties(TestReset PROPERTIES PASS_REGULAR_EXPRESSION "Test passed.")
-
-# Test the power/energy support
-add_test (TestGetPower src/examples/TestGetPower/testpower)
-set_tests_properties(TestGetPower PROPERTIES PASS_REGULAR_EXPRESSION "Power at end:")
-
-# Test the throttling support
-add_test (TestThrottling src/examples/Throttling/testThrottling)  
-set_tests_properties(TestThrottling PROPERTIES PASS_REGULAR_EXPRESSION "Test passed.")
-set_property(TEST TestThrottling PROPERTY ENVIRONMENT "APEX_POLICY=1")
-set_property(TEST TestThrottling APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_CONCURRENCY=1")
-set_property(TEST TestThrottling APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_ENERGY=1")
-
-add_test (TestThrottlingCpp src/examples/ThrottlingCpp/testThrottlingCpp)  
-set_tests_properties(TestThrottlingCpp PROPERTIES PASS_REGULAR_EXPRESSION "Test passed.")
-set_property(TEST TestThrottlingCpp PROPERTY ENVIRONMENT "APEX_POLICY=1")
-set_property(TEST TestThrottlingCpp APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_CONCURRENCY=1")
-set_property(TEST TestThrottling APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_ENERGY=1")
-
-if (ACTIVEHARMONY_FOUND)
-add_test (TestThrottlingActiveHarmony src/examples/ThrottlingActiveHarmony/testThrottlingActiveHarmony)  
-set_tests_properties(TestThrottlingActiveHarmony PROPERTIES PASS_REGULAR_EXPRESSION "Test passed.")
-set_property(TEST TestThrottlingActiveHarmony PROPERTY ENVIRONMENT "APEX_POLICY=1")
-set_property(TEST TestThrottlingActiveHarmony APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_ENERGY=1")
-set_property(TEST TestThrottlingActiveHarmony APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_CONCURRENCY=1")
-set_property(TEST TestThrottlingActiveHarmony APPEND PROPERTY ENVIRONMENT "HARMONY_HOME=${ACTIVEHARMONY_ROOT}")
-endif()
-
-if(MPI_CXX_FOUND)
-# Run the test program which tests the mpi interface
-  add_test (TestMPITest ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
-    ${MPIEXEC_PREFLAGS} src/examples/MPITest/mpi_test ${MPIEXEC_POSTFLAGS})  
-  set_tests_properties(TestMPITest PROPERTIES ENVIRONMENT "APEX_POLICY=1")
-  add_test (TestMPIGlobalTest ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
-    ${MPIEXEC_PREFLAGS} src/examples/MPIGlobalTest/mpi_global_test ${MPIEXEC_POSTFLAGS})  
-  set_tests_properties(TestMPIGlobalTest PROPERTIES ENVIRONMENT "APEX_POLICY=1")
-  set_property(TEST TestMPIGlobalTest APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_ENERGY=1")
-  set_property(TEST TestMPIGlobalTest APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_CONCURRENCY=1")
-  add_test (TestMPIImbalancePolicy ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
-    ${MPIEXEC_PREFLAGS} src/examples/MPIImbalancePolicy/mpi_imbalance_test ${MPIEXEC_POSTFLAGS})  
-  set_tests_properties(TestMPIImbalancePolicy PROPERTIES ENVIRONMENT "APEX_POLICY=1")
-#  add_test (TestLuleshMPI ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 8
-#    ${MPIEXEC_PREFLAGS} src/examples/LuleshMPI/lulesh_MPI_2.0 -s 15 ${MPIEXEC_POSTFLAGS})  
-#  if(OPENMP_FOUND)
-#    add_test (TestLuleshMPIOpenMP ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 8
-#      ${MPIEXEC_PREFLAGS} src/examples/LuleshMPIOpenMP/lulesh_MPI_OpenMP_2.0
-#      -s 15 ${MPIEXEC_POSTFLAGS})  
-#  endif()
-endif()
-
-if(OPENMP_FOUND)
-    add_test (TestOpenMPStencil src/examples/OpenMP_1D_stencil/1d_stencil)
-    if (ACTIVEHARMONY_FOUND)
-        set_tests_properties(TestOpenMPStencil PROPERTIES PASS_REGULAR_EXPRESSION "Test passed.")
-        set_property(TEST TestOpenMPStencil PROPERTY ENVIRONMENT "APEX_POLICY=1")
-        set_property(TEST TestOpenMPStencil APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_ENERGY=1")
-        set_property(TEST TestOpenMPStencil APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_CONCURRENCY=1")
-        set_property(TEST TestOpenMPStencil APPEND PROPERTY ENVIRONMENT "HARMONY_HOME=${ACTIVEHARMONY_ROOT}")
-    endif()
-#  add_test (TestLuleshOpenMP src/examples/LuleshOpenMP/lulesh_OpenMP_2.0 -s 15)
-  if(OMPT_FOUND)
-      add_test (TestOpenMPSharing src/examples/TestOpenMP/openmp_test)
-      if (PROCESSOR_COUNT)
-        set_property (TEST TestOpenMPSharing
-           APPEND PROPERTY ENVIRONMENT "OMP_NUM_THREADS=${PROCESSOR_COUNT}")
-      endif (PROCESSOR_COUNT)
-  endif()
-  if (PROCESSOR_COUNT)
-    set_property (TEST TestOpenMPStencil
-          APPEND PROPERTY ENVIRONMENT "OMP_NUM_THREADS=${PROCESSOR_COUNT}")
-#    if(MPI_CXX_FOUND)
-#      set_property (TEST TestLuleshMPIOpenMP
-#            APPEND PROPERTY ENVIRONMENT "OMP_NUM_THREADS=${PROCESSOR_COUNT}")
-#    endif(MPI_CXX_FOUND)
-  endif(PROCESSOR_COUNT)
-endif()
-
-if(USE_UDP_CLIENT)
-    # Run the test program which tests the UDP network reporting
-    add_test (TestUdpSink src/examples/UdpSink/test_script.sh)  
-    set_tests_properties(TestUdpSink PROPERTIES PASS_REGULAR_EXPRESSION "The ID of this thread is:")
-endif(USE_UDP_CLIENT)
-
-if (PAPI_FOUND)
-    set_property (TEST
-        TestDemoC
-        TestDemoCpp
-        TestMatmult
-        TestTestITT
-        TestTestThreads
-        TestCountCalls
-        TestOverhead
-        TestPolicyUnitTest
-        TestPolicyEngineExample
-        TestPolicyEngineCppExample
-        TestReset
-        TestGetPower
-        TestThrottling
-        TestThrottlingCpp
-        APPEND PROPERTY ENVIRONMENT 
-         "APEX_PAPI_METRICS=PAPI_TOT_CYC PAPI_TOT_INS PAPI_LD_INS")
-endif (PAPI_FOUND)
 

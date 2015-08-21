@@ -947,7 +947,6 @@ extern "C" {
     }
 
     void apex_reset(apex_profiler_type type, void * identifier) {
-        assert(identifier);
         if (type == APEX_FUNCTION_ADDRESS) {
             reset((apex_function_address)(identifier));
         } else {
