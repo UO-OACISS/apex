@@ -382,7 +382,7 @@ APEX_EXPORT apex_policy_handle* register_policy(const apex_event_type when, std:
  \return A handle to the policy, to be stored if the policy is to be un-registered later.
  \sa @ref apex::deregister_policy, @ref apex::register_periodic_policy
  */
-APEX_EXPORT apex_policy_handle* register_policy(std::set<apex_event_type> when, std::function<int(apex_context const&)> f);
+APEX_EXPORT std::set<apex_policy_handle*> register_policy(std::set<apex_event_type> when, std::function<int(apex_context const&)> f);
 
 /**
  \brief Register a policy with APEX.

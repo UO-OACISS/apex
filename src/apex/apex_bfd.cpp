@@ -656,7 +656,7 @@ bool Apex_bfd_resolveBfdInfo(apex_bfd_handle_t handle, unsigned long probeAddr, 
         // Get symbol name and massage it
         char const * name = asym.name;
         if (name[0] == '.') {
-          char const * mark = strchr((char*)name, '$');
+          char const * mark = strchr(const_cast<char*>(name), '$');
           if (mark) name = mark + 1;
         }
         info.funcname = Apex_bfd_internal_tryDemangle(module->bfdImage, name);
@@ -684,14 +684,14 @@ bool Apex_bfd_resolveBfdInfo(apex_bfd_handle_t handle, unsigned long probeAddr, 
   if ((info.funcname == NULL) && (info.filename != NULL) && (info.lineno > 0)) {
     info.probeAddr = probeAddr;
     info.funcname = (char*)malloc(32);
-    sprintf((char*)info.funcname, "anonymous");
+    sprintf(const_cast<char*>(info.funcname), "anonymous");
     return true;
   }
 
   // Couldn't resolve the address so fill in fields as best we can.
   if (info.funcname == NULL) {
     info.funcname = (char*)malloc(128);
-    sprintf((char*)info.funcname, "addr=<%lx>", probeAddr);
+    sprintf(const_cast<char*>(info.funcname), "addr=<%lx>", probeAddr);
   }
   if (info.filename == NULL) {
     if (matchingIdx != -1) {
@@ -725,7 +725,7 @@ static void Apex_bfd_internal_iterateOverSymtab(ApexBfdModule * module, ApexBfdI
     // Get apprixmate symbol name
     char const * name = asym.name;
     if (name[0] == '.') {
-      char const * mark = strchr((char*)name, '$');
+      char const * mark = strchr(const_cast<char*>(name), '$');
       if (mark) name = mark + 1;
     }
 

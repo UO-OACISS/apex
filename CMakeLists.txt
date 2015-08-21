@@ -106,13 +106,16 @@ endif()
 # Compiler detection code
 ################################################################################
 
+set(PEDANTIC_COMPILER_WARNINGS "-Wall -Wextra -Wno-unused-local-typedefs -Wno-strict-aliasing -Wno-sign-promo -Wno-attributes -Wno-cast-align -Wno-unused-parameter -Wno-ignored-qualifiers -Wformat=2 -Wno-format-nonliteral -Winit-self -Wdouble-promotion -Wcast-qual -Wcast-align -Werror=trampolines -Werror=parentheses -Werror=reorder -Werror=return-type -Werror=sequence-point -Werror=format -Werror=missing-braces -Werror=sign-compare -fdiagnostics-show-option -Werror=vla -Werror=return-type -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Werror=uninitialized -Wno-unused-local-typedefs -Wno-sync-nand -Wno-delete-non-virtual-dtor ")
+set(NORMAL_COMPILER_WARNINGS "-Wextra -Waddress -Warray-bounds -Wuninitialized -Wreturn-type -Wall -fno-omit-frame-pointer ")
+
 set(CMAKE_CXX_FLAGS_RELEASE "-g -O3 -DNDEBUG")
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   # using Clang
-  set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -Wextra -Waddress -Warray-bounds -Wuninitialized -Wreturn-type -Wall -fno-omit-frame-pointer -DAPEX_DEBUG")
+  set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 ${PEDANTIC_COMPILER_WARNINGS} -DAPEX_DEBUG")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   # using GCC
-  set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -Wextra -Waddress -Warray-bounds -Wuninitialized -Wreturn-type -Wall -fno-omit-frame-pointer -DAPEX_DEBUG")
+  set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 ${PEDANTIC_COMPILER_WARNINGS} -DAPEX_DEBUG")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
   # using Intel C++
   set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -DAPEX_DEBUG")

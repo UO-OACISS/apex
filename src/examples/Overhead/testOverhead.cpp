@@ -113,7 +113,7 @@ int main(int argc, char **argv)
   ApexProxy proxy = ApexProxy((apex_function_address)main);
   printf("PID of this process: %d\n", getpid());
   std::cout << "Expecting " << numthreads << " threads." << std::endl;
-  pthread_t thread[numthreads];
+  pthread_t * thread = (pthread_t*)(malloc(sizeof(pthread_t) * numthreads));
   unsigned i;
   for (i = 0 ; i < numthreads ; i++) {
     pthread_create(&(thread[i]), NULL, someUntimedThread, NULL);
