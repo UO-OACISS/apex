@@ -184,8 +184,14 @@ typedef int (*apex_policy_function)(apex_context const context);
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
+#ifdef APEX_HAVE_TAU
+#define APEX_TAU_DEFAULT true
+#else
+#define APEX_TAU_DEFAULT false
+#endif
+
 #define FOREACH_APEX_OPTION(macro) \
-    macro (APEX_TAU, use_tau, bool, false) \
+    macro (APEX_TAU, use_tau, bool, APEX_TAU_DEFAULT) \
     macro (APEX_POLICY, use_policy, bool, true) \
     macro (APEX_MEASURE_CONCURRENCY, use_concurrency, int, 0) \
     macro (APEX_UDP_SINK, use_udp_sink, bool, false) \

@@ -177,7 +177,7 @@ string thread_instance::map_addr_to_name(apex_function_address function_address)
   if (it != _function_map.end()) {
     return (*it).second;
   } // else...
-#if 1
+#ifdef APEX_HAVE_BFD
   string * name = lookup_address(function_address, false);
   _function_map[function_address] = *name;
   return *name;
