@@ -26,7 +26,15 @@ set(example_programs
 	apex_register_periodic_policy
 	apex_deregister_policy
 	apex_get_profile
+	apex_current_power_high
+	apex_setup_timer_throttling
+	apex_print_options
+	apex_get_thread_cap
+	apex_shutdown_throttling
    )
+#	apex_setup_power_cap_throttling
+#	apex_setup_throughput_tuning
+#	apex_set_thread_cap
 
 foreach(example_program ${example_programs})
   set(sources
