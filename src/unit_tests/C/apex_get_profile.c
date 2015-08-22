@@ -3,7 +3,7 @@
 #include "stdlib.h"
 
 int main (int argc, char** argv) {
-  apex_init_args(argc, argv, "apex_reset unit test");
+  apex_init_args(argc, argv, "apex_get_profile unit test");
   apex_set_use_screen_output(1);
   printf("APEX Version : %s\n", apex_version());
   apex_set_node_id(0);
@@ -52,6 +52,13 @@ int main (int argc, char** argv) {
   apex_stop(main_profiler);
   apex_finalize();
   apex_profile * profile = apex_get_profile(APEX_NAME_STRING,"Test Timer");
+  if (profile) {
+    printf("Value Reported : %f\n", profile->calls);
+    if (profile->calls <= 25) {  // might be less, some calls might have been missed
+        printf("Test passed.\n");
+    }
+  }
+  profile = apex_get_profile(APEX_FUNCTION_ADDRESS,&main);
   if (profile) {
     printf("Value Reported : %f\n", profile->calls);
     if (profile->calls <= 25) {  // might be less, some calls might have been missed

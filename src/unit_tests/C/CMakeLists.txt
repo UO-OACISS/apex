@@ -15,6 +15,17 @@ set(example_programs
 	apex_resume
 	apex_reset
 	apex_set_state
+	apex_sample_value
+	apex_register_custom_event
+	apex_custom_event
+	apex_version
+	apex_set_node_id
+	apex_register_thread
+	apex_exit_thread
+	apex_register_policy
+	apex_register_periodic_policy
+	apex_deregister_policy
+	apex_get_profile
    )
 
 foreach(example_program ${example_programs})

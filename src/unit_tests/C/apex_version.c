@@ -3,8 +3,8 @@
 #include <stdio.h>
 
 int main (int argc, char** argv) {
-  apex_init_args(argc, argv, "apex_finalize unit test");
-  apex_set_use_screen_output(1);
+  apex_init_args(argc, argv, "apex_version unit test");
+  printf("APEX Version : %s\n", apex_version());
   apex_finalize();
   apex_cleanup();
   return 0;

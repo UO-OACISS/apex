@@ -11,6 +11,7 @@ int foo(int i) {
 
 int main (int argc, char** argv) {
   apex_init_args(argc, argv, "apex_start unit test");
+  apex_set_use_screen_output(1);
   apex_profiler_handle profiler = apex_start(APEX_FUNCTION_ADDRESS, &main);
   int i,j = 0;
   for (i = 0 ; i < 3 ; i++)

@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 int main (int argc, char** argv) {
-  apex_init("apex_init unit test");
+  apex_init("apex_set_state unit test");
   apex_set_use_screen_output(1);
   apex_set_state(APEX_IDLE);
   apex_set_state(APEX_BUSY);
