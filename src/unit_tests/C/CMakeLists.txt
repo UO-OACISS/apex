@@ -14,6 +14,7 @@ set(example_programs
 	apex_yield
 	apex_resume
 	apex_reset
+	apex_set_state
    )
 
 foreach(example_program ${example_programs})
