@@ -31,28 +31,34 @@ set(example_programs
 	apex_print_options
 	apex_get_thread_cap
 	apex_shutdown_throttling
+	apex_setup_throughput_tuning
    )
-#	apex_setup_power_cap_throttling
-#	apex_setup_throughput_tuning
-#	apex_set_thread_cap
+	#apex_set_thread_cap
+	#apex_setup_power_cap_throttling
+	#apex_setup_custom_tuning
+	#get_tunable_params
 
 foreach(example_program ${example_programs})
   set(sources
-      ${example_program}.c)
+      ${example_program}.cpp)
 
   source_group("Source Files" FILES ${sources})
 
   # add example executable
-  add_executable(${example_program} ${sources})
-  target_link_libraries (${example_program} apex)
-  add_dependencies (${example_program} apex)
-  add_test ("test_${example_program}" ${example_program})
+  add_executable("${example_program}_cpp" ${sources})
+  target_link_libraries ("${example_program}_cpp" apex)
+  add_dependencies ("${example_program}_cpp" apex)
+  add_test ("test_${example_program}_cpp" "${example_program}_cpp")
 endforeach()
 
+set_target_properties(apex_setup_throughput_tuning_cpp PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
+set_target_properties(apex_setup_throughput_tuning_cpp PROPERTIES LINK_FLAGS ${OpenMP_CXX_FLAGS})
+
 if(APPLE)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPTHREADS")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPTHREADS")
 else()
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread -DPTHREADS")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -DPTHREADS")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
+
 endif()
 
