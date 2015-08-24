@@ -14,7 +14,7 @@ BOOST_ROOT=/usr
 # OPTIONAL libraries - if left undefined, they likely won't be used.
 
 #export BFD_ROOT=/usr
-export BFD_ROOT=/src/tau2/x86_64/binutils-2.23.2
+export BFD_ROOT=$HOME/src/tau2/x86_64/binutils-2.23.2
 #export JEMALLOC_ROOT=/home3/khuck/install/jemalloc/3.6.0
 #export GPERFTOOLS_ROOT=$HOME/install/google-perftools/2.4
 #export RCR_ROOT=$HOME/src/RCRdaemon

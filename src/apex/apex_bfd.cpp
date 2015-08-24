@@ -216,7 +216,18 @@ static void Apex_bfd_internal_updateBGPMaps(ApexBfdUnit *unit);
 // ensure that non-local static variables are initialised before being
 // used (Ref: Scott Meyers, Item 47 Eff. C++).
 //////////////////////////////////////////////////////////////////////
-typedef std::vector<ApexBfdUnit*> bfd_unit_vector_t;
+//typedef std::vector<ApexBfdUnit*> bfd_unit_vector_t;
+
+struct bfd_unit_vector_t : public std::vector<ApexBfdUnit*>
+{
+  bfd_unit_vector_t() {}
+  virtual ~bfd_unit_vector_t() {
+  //Wait! We might not be done! Unbelieveable as it may seem, this object
+  //could (and does sometimes) get destroyed BEFORE we have resolved the addresses. Bummer.
+  //printf("deleting BFD objects\n");
+  }
+};
+
 static bfd_unit_vector_t & ThebfdUnits(void)
 {
   // BFD units (e.g. executables and their dynamic libraries)

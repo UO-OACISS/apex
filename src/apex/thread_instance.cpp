@@ -128,6 +128,7 @@ const char* program_path(void) {
 
     if (the_path == NULL) {
         char path[PATH_MAX];
+        memset(path,0,PATH_MAX);
         if (path != NULL) {
             if (readlink("/proc/self/exe", path, PATH_MAX) == -1)
                 return NULL;
