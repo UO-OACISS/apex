@@ -10,11 +10,13 @@ namespace apex {
 
 class apex_options {
 private:
+    /* Declare the private member variables */
 #define apex_macro(name, member_variable, type, default_value) type _##member_variable;
     FOREACH_APEX_OPTION(apex_macro)
     FOREACH_APEX_STRING_OPTION(apex_macro)
 #undef apex_macro
-        apex_options(void) {
+    /* Declare the constructor, only used by the "instance" method. */
+    apex_options(void) {
         char* option = NULL;
 // FIXME: getenv is not thread-safe
 #define apex_macro(name, member_variable, type, default_value) \
@@ -39,16 +41,18 @@ private:
     FOREACH_APEX_STRING_OPTION(apex_macro)
 #undef apex_macro
     };
-    static apex_options * _instance;
+    /* Disable the copy and assign methods. */
+    apex_options(apex_options const&)    = delete;
+    void operator=(apex_options const&)  = delete;
 public:
-        ~apex_options(void) {};
-    static apex_options * instance(void) {
-        if (_instance == NULL) { _instance = new apex_options(); }
+    /* The "instance" method. */
+    static apex_options& instance(void) {
+    	static apex_options _instance;
         return _instance;
     }
 #define apex_macro(name, member_variable, type, default_value) \
-    static void member_variable (type inval) { instance()->_##member_variable = inval; } \
-    static type member_variable (void) { return instance()->_##member_variable; }
+    static void member_variable (type inval) { instance()._##member_variable = inval; } \
+    static type member_variable (void) { return instance()._##member_variable; }
     FOREACH_APEX_OPTION(apex_macro)
     FOREACH_APEX_STRING_OPTION(apex_macro)
 #undef apex_macro

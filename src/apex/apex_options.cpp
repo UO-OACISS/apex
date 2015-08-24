@@ -9,25 +9,20 @@
 
 namespace apex
 {
-
-// Global static pointer used to ensure a single instance of the class.
-apex_options* apex_options::_instance = NULL;
-
     void apex_options::print_options() {
         apex* instance = apex::instance();
         if (instance->get_node_id() != 0) { return; }
-        apex_options * inst = apex_options::instance();
+        apex_options& options = apex_options::instance();
 #define apex_macro(name, member_variable, type, default_value) \
-        std::cout << #name << " : " << inst->member_variable() << std::endl;
+        std::cout << #name << " : " << options.member_variable() << std::endl;
         FOREACH_APEX_OPTION(apex_macro)
 #undef apex_macro
 #define apex_macro(name, member_variable, type, default_value) \
-        std::cout << #name << " : " << inst->member_variable() << std::endl;
+        std::cout << #name << " : " << options.member_variable() << std::endl;
         FOREACH_APEX_STRING_OPTION(apex_macro)
 #undef apex_macro
         return;
     }
-
 }
 
 using namespace apex;

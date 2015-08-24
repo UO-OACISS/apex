@@ -62,6 +62,8 @@ int main(int argc, char **argv)
     return APEX_NOERROR;
   });
 
+  apex::apex_options::use_screen_output(true);
+
   apex::init(argc, argv, "apex_register_policy_set unit test");
   apex::set_node_id(0);
 
