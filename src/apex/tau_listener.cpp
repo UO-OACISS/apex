@@ -121,7 +121,7 @@ void tau_listener::on_yield(std::shared_ptr<profiler> p) {
 
 void tau_listener::on_sample_value(sample_value_event_data &data) {
   if (!_terminate) {
-      Tau_trigger_context_event_thread((char*)data.counter_name->c_str(), data.counter_value, data.thread_id);
+      Tau_trigger_context_event_thread(const_cast<char*>(data.counter_name->c_str()), data.counter_value, data.thread_id);
   }
   return;
 }
