@@ -10,8 +10,8 @@ int foo(int i) {
 }
 
 int main (int argc, char** argv) {
-  apex_init_args(argc, argv, "apex_print_options unit test");
   apex_set_use_screen_output(1);
+  apex_init_args(argc, argv, "apex_print_options unit test");
   printf("APEX Version : %s\n", apex_version());
   apex_print_options();
   apex_profiler_handle profiler = apex_start(APEX_FUNCTION_ADDRESS, &main);
