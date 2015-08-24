@@ -5,6 +5,7 @@
 #include "apex_types.h"
 #include "string.h"
 #include "stdio.h"
+#include "apex_export.h"
 
 namespace apex {
 
@@ -26,13 +27,13 @@ public:
     static apex_options& instance(void);
 	/* The getter and setter methods */
 #define apex_macro(name, member_variable, type, default_value) \
-    static void member_variable (type inval); \
-    static type member_variable (void);
+    APEX_EXPORT static void member_variable (type inval); \
+    APEX_EXPORT static type member_variable (void);
     FOREACH_APEX_OPTION(apex_macro)
     FOREACH_APEX_STRING_OPTION(apex_macro)
 #undef apex_macro
 	/* The debugging methods */
-    static void print_options(void);
+    APEX_EXPORT static void print_options(void);
 };
 
 }
