@@ -23,6 +23,7 @@ set(example_programs
 	apex_register_thread
 	apex_exit_thread
 	apex_register_policy
+	apex_register_policy_set
 	apex_register_periodic_policy
 	apex_deregister_policy
 	apex_get_profile
