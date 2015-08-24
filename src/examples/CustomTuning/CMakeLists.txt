@@ -8,6 +8,7 @@ link_directories (${APEX_BINARY_DIR}/src/apex)
 # "custom_tuning.cpp". The extensions are automatically found. 
 add_executable (custom_tuning custom_tuning.cpp) 
 add_dependencies (custom_tuning apex)
+add_dependencies (examples custom_tuning)
 
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
@@ -16,5 +17,5 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 target_link_libraries (custom_tuning apex)
 
 INSTALL(TARGETS custom_tuning
-  RUNTIME DESTINATION bin
+  RUNTIME DESTINATION bin OPTIONAL
 )

@@ -8,10 +8,11 @@ link_directories (${APEX_BINARY_DIR}/src/apex ${APEX_BINARY_DIR}/src/ITTNotify)
 # "testITT.cpp". The extensions are automatically found. 
 add_executable (testITT testITT.cpp) 
 add_dependencies (testITT apex ittnotify)
+add_dependencies (examples testITT)
 
 # Link the executable to the Apex library. 
 target_link_libraries (testITT apex ittnotify) 
 
 INSTALL(TARGETS testITT
-  RUNTIME DESTINATION bin
+  RUNTIME DESTINATION bin OPTIONAL
 )

@@ -8,6 +8,7 @@ link_directories (${APEX_BINARY_DIR}/src/apex)
 # "1d_stencil.cpp". The extensions are automatically found. 
 add_executable (1d_stencil 1d_stencil.cpp) 
 add_dependencies (1d_stencil apex)
+add_dependencies (examples 1d_stencil)
 
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
@@ -16,5 +17,5 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 target_link_libraries (1d_stencil apex ${OMPT_LIBRARIES}) 
 
 INSTALL(TARGETS 1d_stencil
-  RUNTIME DESTINATION bin
+  RUNTIME DESTINATION bin OPTIONAL
 )

@@ -8,6 +8,7 @@ link_directories (${APEX_BINARY_DIR}/src/apex)
 # "demo.c". The extensions are automatically found. 
 add_executable (matmult matmult_initialize.cpp matmult.cpp) 
 add_dependencies (matmult apex)
+add_dependencies (examples matmult)
 
 # Link the executable to the Apex library. 
 target_link_libraries (matmult apex stdc++)
@@ -23,5 +24,5 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
 endif()
 
 INSTALL(TARGETS matmult
-  RUNTIME DESTINATION bin
+  RUNTIME DESTINATION bin OPTIONAL
 )

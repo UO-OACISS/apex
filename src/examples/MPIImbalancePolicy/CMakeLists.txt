@@ -14,6 +14,7 @@ link_directories (${APEX_BINARY_DIR}/src/apex ${APEX_BINARY_DIR}/src/comm/mpi)
 # "mpi_test.cpp". The extensions are automatically found. 
 add_executable (mpi_imbalance_test mpi_test.cpp) 
 add_dependencies (mpi_imbalance_test apex apex_mpi)
+add_dependencies (examples mpi_imbalance_test)
 
 # Link the executable to the Apex library. 
 target_link_libraries (mpi_imbalance_test apex apex_mpi stdc++ ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES}) 
@@ -32,5 +33,5 @@ set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 
 INSTALL(TARGETS mpi_imbalance_test
-  RUNTIME DESTINATION bin
+  RUNTIME DESTINATION bin OPTIONAL
 )

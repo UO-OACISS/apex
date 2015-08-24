@@ -8,6 +8,7 @@ link_directories (${APEX_BINARY_DIR}/src/apex)
 # "testOverhead.cpp". The extensions are automatically found. 
 add_executable (testOverhead testOverhead.cpp) 
 add_dependencies (testOverhead apex)
+add_dependencies (examples testOverhead)
 
 if(APPLE)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPTHREADS")
@@ -22,5 +23,5 @@ endif()
 target_link_libraries (testOverhead apex)
 
 INSTALL(TARGETS testOverhead
-  RUNTIME DESTINATION bin
+  RUNTIME DESTINATION bin OPTIONAL
 )

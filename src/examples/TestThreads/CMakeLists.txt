@@ -8,6 +8,7 @@ link_directories (${APEX_BINARY_DIR}/src/apex)
 # "testThreads.cpp". The extensions are automatically found. 
 add_executable (testThreads testThreads.cpp) 
 add_dependencies (testThreads apex)
+add_dependencies (examples testThreads)
 
 if(APPLE)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPTHREADS")
@@ -22,5 +23,5 @@ endif()
 target_link_libraries (testThreads apex)
 
 INSTALL(TARGETS testThreads
-  RUNTIME DESTINATION bin
+  RUNTIME DESTINATION bin OPTIONAL
 )

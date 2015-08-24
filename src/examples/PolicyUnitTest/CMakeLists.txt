@@ -8,6 +8,7 @@ link_directories (${APEX_BINARY_DIR}/src/apex)
 # "policyUnitTest.c". The extensions are automatically found. 
 add_executable (policyUnitTest policyUnitTest.c) 
 add_dependencies (policyUnitTest apex)
+add_dependencies (examples policyUnitTest)
 
 if(APPLE)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPTHREADS")
@@ -22,5 +23,5 @@ endif()
 target_link_libraries (policyUnitTest apex)
 
 INSTALL(TARGETS policyUnitTest
-  RUNTIME DESTINATION bin
+  RUNTIME DESTINATION bin OPTIONAL
 )

@@ -46,9 +46,10 @@ foreach(example_program ${example_programs})
   source_group("Source Files" FILES ${sources})
 
   # add example executable
-  add_executable("${example_program}_cpp" ${sources})
+  add_executable("${example_program}_cpp" EXCLUDE_FROM_ALL ${sources})
   target_link_libraries ("${example_program}_cpp" apex)
   add_dependencies ("${example_program}_cpp" apex)
+  add_dependencies (tests "${example_program}_cpp")
   add_test ("test_${example_program}_cpp" "${example_program}_cpp")
 endforeach()
 

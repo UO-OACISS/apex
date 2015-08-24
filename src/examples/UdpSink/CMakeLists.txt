@@ -8,6 +8,7 @@ link_directories (${APEX_BINARY_DIR}/src/apex)
 # "testBeacon.cpp". The extensions are automatically found. 
 add_executable (testBeacon testBeacon.cpp) 
 add_dependencies (testBeacon apex)
+add_dependencies (examples testBeacon)
 
 if(APPLE)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPTHREADS")
@@ -28,5 +29,5 @@ file(COPY ${CMAKE_CURRENT_BINARY_DIR}/test_script.sh
       GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 
 INSTALL(TARGETS testBeacon
-  RUNTIME DESTINATION bin
+  RUNTIME DESTINATION bin OPTIONAL
 )

@@ -20,7 +20,8 @@ endif()
 # Link the executable to the Apex library. 
 target_link_libraries (testpower apex)
 add_dependencies (testpower apex)
+add_dependencies (examples testpower)
 
 INSTALL(TARGETS testpower
-  RUNTIME DESTINATION bin
+  RUNTIME DESTINATION bin OPTIONAL
 )

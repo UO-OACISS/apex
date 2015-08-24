@@ -20,7 +20,8 @@ endif()
 # Link the executable to the Apex library. 
 target_link_libraries (testReset apex)
 add_dependencies (testReset apex)
+add_dependencies (examples testReset)
 
 INSTALL(TARGETS testReset
-  RUNTIME DESTINATION bin
+  RUNTIME DESTINATION bin OPTIONAL
 )

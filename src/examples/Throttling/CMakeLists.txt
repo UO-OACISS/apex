@@ -8,6 +8,7 @@ link_directories (${APEX_BINARY_DIR}/src/apex)
 # "testThrottling.c". The extensions are automatically found. 
 add_executable (testThrottling testThrottling.c) 
 add_dependencies (testThrottling apex)
+add_dependencies (examples testThrottling)
 
 if(APPLE)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPTHREADS")
@@ -20,5 +21,5 @@ endif()
 target_link_libraries (testThrottling apex) 
 
 INSTALL(TARGETS testThrottling
-  RUNTIME DESTINATION bin
+  RUNTIME DESTINATION bin OPTIONAL
 )

@@ -14,6 +14,7 @@ link_directories (${APEX_BINARY_DIR}/src/apex)
 # "mpi_test.cpp". The extensions are automatically found. 
 add_executable (mpi_test mpi_test.cpp) 
 add_dependencies (mpi_test apex)
+add_dependencies (examples mpi_test)
 
 # Link the executable to the Apex library. 
 target_link_libraries (mpi_test apex stdc++ ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES}) 
@@ -29,5 +30,5 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
 endif()
 
 INSTALL(TARGETS mpi_test
-  RUNTIME DESTINATION bin
+  RUNTIME DESTINATION bin OPTIONAL
 )

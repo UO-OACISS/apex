@@ -8,6 +8,7 @@ link_directories (${APEX_BINARY_DIR}/src/apex)
 # "testThrottlingActiveHarmony.c". The extensions are automatically found. 
 add_executable (testThrottlingActiveHarmony testThrottlingActiveHarmony.c) 
 add_dependencies (testThrottlingActiveHarmony apex)
+add_dependencies (examples testThrottlingActiveHarmony)
 
 if(APPLE)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPTHREADS")
@@ -20,5 +21,5 @@ endif()
 target_link_libraries (testThrottlingActiveHarmony apex) 
 
 INSTALL(TARGETS testThrottlingActiveHarmony
-  RUNTIME DESTINATION bin
+  RUNTIME DESTINATION bin OPTIONAL
 )

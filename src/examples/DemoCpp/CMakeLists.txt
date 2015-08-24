@@ -20,7 +20,8 @@ endif()
 # Link the executable to the Apex library. 
 target_link_libraries (apexCppDemo apex)
 add_dependencies (apexCppDemo apex)
+add_dependencies (examples apexCppDemo)
 
 INSTALL(TARGETS apexCppDemo
-  RUNTIME DESTINATION bin
+  RUNTIME DESTINATION bin OPTIONAL
 )

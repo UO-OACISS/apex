@@ -36,6 +36,14 @@ if(NOT CMAKE_BUILD_TYPE)
   set(BUILD_EXAMPLES TRUE)
 endif()
 
+IF("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+  set(BUILD_TESTS TRUE)
+endif()
+
+IF("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
+  set(BUILD_EXAMPLES TRUE)
+endif()
+
 set(APEX_BUILD_TYPE "${CMAKE_BUILD_TYPE}" CACHE STRING "Configuration type (one of Debug, RelWithDebInfo, Release, MinSizeRel)" FORCE)
 
 # Always force CMAKE_CONFIGURATION_TYPES to be the same as CMAKE_BUILD_TYPE
@@ -411,11 +419,6 @@ enable_testing()
 # the project's entire directory structure. 
 add_subdirectory (src/apex) 
 add_subdirectory (src/ITTNotify) 
-add_subdirectory (src/unit_tests/C) 
-add_subdirectory (src/unit_tests/C++) 
-if(BUILD_EXAMPLES)
-add_subdirectory (src/examples)
-endif(BUILD_EXAMPLES)
 add_subdirectory (src/comm) 
 if(MPI_CXX_FOUND)
   add_subdirectory (src/comm/mpi) 
@@ -426,4 +429,22 @@ endif(USE_UDP_CLIENT)
 
 add_subdirectory (doc) 
 
+if(BUILD_TESTS)
+  message(INFO " Building unit tests.")
+  add_custom_target(tests)
+  if(NOT MSVC)
+    add_custom_command(TARGET tests POST_BUILD COMMAND ctest -R test --output-on-failure --timeout 100)
+  endif()
+  add_subdirectory (src/unit_tests/C) 
+  add_subdirectory (src/unit_tests/C++) 
+endif(BUILD_TESTS)
+
+if(BUILD_EXAMPLES)
+  message(INFO " Building examples.")
+  add_custom_target(examples)
+  if(NOT MSVC)
+    add_custom_command(TARGET examples POST_BUILD COMMAND ctest -R Example --output-on-failure --timeout 100)
+  endif()
+  add_subdirectory (src/examples)
+endif(BUILD_EXAMPLES)
 

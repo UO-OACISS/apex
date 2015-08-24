@@ -8,6 +8,7 @@ link_directories (${APEX_BINARY_DIR}/src/apex)
 # "testPolicyEngine.cpp". The extensions are automatically found. 
 add_executable (testCppPolicyEngine testPolicyEngine.cpp) 
 add_dependencies (testCppPolicyEngine apex)
+add_dependencies (examples testCppPolicyEngine)
 
 if(APPLE)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPTHREADS")
@@ -22,5 +23,5 @@ endif()
 target_link_libraries (testCppPolicyEngine apex)
 
 INSTALL(TARGETS testCppPolicyEngine
-  RUNTIME DESTINATION bin
+  RUNTIME DESTINATION bin OPTIONAL
 )

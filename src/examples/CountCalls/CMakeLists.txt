@@ -8,6 +8,7 @@ link_directories (${APEX_BINARY_DIR}/src/apex)
 # "count_calls.cpp". The extensions are automatically found. 
 add_executable (count_calls count_calls.cpp) 
 add_dependencies (count_calls apex)
+add_dependencies (examples count_calls)
 
 if(APPLE)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPTHREADS")
@@ -22,5 +23,5 @@ endif()
 target_link_libraries (count_calls apex) 
 
 INSTALL(TARGETS count_calls
-  RUNTIME DESTINATION bin
+  RUNTIME DESTINATION bin OPTIONAL
 )
