@@ -5,17 +5,27 @@
 #include <boost/atomic.hpp>
 #include <iostream>
 
-// constructor and destructor
-
-/*void __attribute__ ((constructor)) premain()
+struct apex_system_wrapper_t
 {
-	apex::init("APEX Pthread Wrapper");
-}*/
+  bool initialized;
+  apex_system_wrapper_t() : initialized(true) {
+    apex::init("APEX Pthread Wrapper");
+  }
+  virtual ~apex_system_wrapper_t() {
+    apex::finalize();
+  }
+};
 
-void __attribute__ ((destructor)) postmain()
-{
-	apex::finalize();
+bool initialize_apex_system(void) {
+  // this static object will be created once, when we need it.
+  // when it is destructed, the apex finalization will happen.
+  static apex_system_wrapper_t initializer;
+  if (initializer.initialized) {
+	return false;
+  }
+  return true;
 }
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // Below is the pthread_create wrapper
@@ -34,26 +44,13 @@ void * apex_pthread_function(void *arg)
 {
   apex_pthread_pack * pack = (apex_pthread_pack*)arg;
 
-  apex::register_thread("pthread");
+  apex::register_thread("APEX pthread wrapper");
   apex::profiler * p = apex::start((apex_function_address)pack->start_routine);
   void * ret = pack->start_routine(pack->arg);
-#ifndef APEX_TBB_SUPPORT
-  // Thread 0 in TBB will not wait for the other threads to finish
-  // (it does not join). DO NOT stop the timer for this thread, but
-  // let thread 0 do that when it shuts down all threads on exit.
   apex::stop(p);
-#endif
+  apex::exit_thread();
   delete pack;
   return ret;
-}
-
-bool initialize(void) {
-  static boost::atomic<bool> initialized(false);
-  if (!initialized) {
-	apex::init("APEX Pthread Wrapper");
-	initialized = true;
-  }
-  return true;
 }
 
 extern "C"
@@ -61,7 +58,6 @@ int apex_pthread_create_wrapper(pthread_create_p pthread_create_call,
     pthread_t * threadp, const pthread_attr_t * attr,
     start_routine_p start_routine, void * arg)
 {
-  initialize();
   bool * wrapped = (bool*)pthread_getspecific(wrapper_flags_key);
   if (!wrapped) {
     wrapped = new bool;
@@ -75,6 +71,7 @@ int apex_pthread_create_wrapper(pthread_create_p pthread_create_call,
     retval = pthread_create_call(threadp, attr, start_routine, arg);
   } else {
     *wrapped = true;
+    initialize_apex_system();
     apex_pthread_pack * pack = new apex_pthread_pack;
     pack->start_routine = start_routine;
     pack->arg = arg;
