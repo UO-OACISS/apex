@@ -69,6 +69,8 @@ other CMake settings, depending on your needs/wants:
 * -DUSE_JEMALLOC=TRUE or FALSE
 * -DJEMALLOC_ROOT=path to JEMalloc, or set the JEMALLOC_ROOT environment variable.
 
+* -DBUILD_EXAMPLES=TRUE or FALSE 
+* -DBUILD_TESTS=TRUE or FALSE 
 * -DUSE_MPI=TRUE or FALSE (whether to build MPI global support/examples)
 * -DMPI_C_INCLUDE_PATH=path to MPI headers
 * -DMPI_CXX_INCLUDE_PATH=path to MPI headers
