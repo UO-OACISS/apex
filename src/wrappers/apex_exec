@@ -1,0 +1,72 @@
+#!/bin/bash 
+
+LANG="C"
+export LANG
+
+# Absolute path to this script, e.g. /home/user/bin/foo.sh
+SCRIPT=$(readlink -f "$0")
+# Absolute path this script is in, thus /home/user/bin
+SCRIPTPATH=$(dirname "$SCRIPT")
+echo $SCRIPTPATH
+BASEDIR=$SCRIPTPATH/..
+
+echo "Program to run : $@"
+
+if [ `uname -s ` = Darwin ]; then
+  apple=1
+  SHLIBX=.dylib
+else
+  apple=0
+  SHLIBX=.so
+fi
+
+if [ "x$LD_LIBRARY_PATH" = "x" ] ; then
+  APEX_LD_LIBRARY_PATH=$BASEDIR/lib
+else
+  APEX_LD_LIBRARY_PATH=$BASEDIR/lib:$LD_LIBRARY_PATH
+fi
+if [ $apple = 1 ]; then
+  APEX_LD_PRELOAD=$BASEDIR/lib/libapex_pthread_wrapper$SHLIBX:$BASEDIR/lib/libapex$SHLIBX
+else
+  APEX_LD_PRELOAD=$BASEDIR/lib/libapex_pthread_wrapper$SHLIBX:$BASEDIR/lib/libapex$SHLIBX:$LD_PRELOAD
+fi
+
+# remove double colons
+APEX_LD_PRELOAD=`echo $APEX_LD_PRELOAD | sed -e "s/::/:/g" -e "s/:$//"`
+
+if [ $apple = 1 ]; then
+  APEX_LDD='otool -L'
+else
+  APEX_LDD=ldd
+fi
+
+#if [ $qsub_mode = false ]; then
+    prog="$1"
+    if [ ! -x "$prog" ] ; then
+	prog=`which $prog 2>/dev/null`
+    fi
+    
+    if [ ! -x "$prog" ] ; then
+	echo "apex_exec: $1: command not found"
+	exit
+    fi 
+#fi
+
+    if [ $apple = 1 ]; then
+      export DYLD_LIBRARY_PATH=$APEX_LD_LIBRARY_PATH
+      export DYLD_INSERT_LIBRARIES=$APEX_LD_PRELOAD
+      export DYLD_FORCE_FLAT_NAMESPACE=1
+    else
+      echo "LD_LIBRARY_PATH=$APEX_LD_LIBRARY_PATH"
+      export LD_AUDIT=$APEX_LD_AUDITOR
+      echo "LD_PRELOAD=$APEX_LD_PRELOAD"
+      export LD_LIBRARY_PATH=$APEX_LD_LIBRARY_PATH
+      echo "LD_AUDIT=$APEX_LD_AUDITOR"
+      export LD_PRELOAD=$APEX_LD_PRELOAD
+    fi
+    
+    $@
+    retval=$?
+    unset LD_PRELOAD
+    exit $retval
+
