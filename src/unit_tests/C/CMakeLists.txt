@@ -3,6 +3,7 @@ include_directories (${APEX_SOURCE_DIR}/src/apex)
 
 # Make sure the linker can find the Apex library once it is built. 
 link_directories (${APEX_BINARY_DIR}/src/apex) 
+link_directories (${APEX_BINARY_DIR}/src/apex_pthread_wrapper) 
 
 set(example_programs
     apex_init
