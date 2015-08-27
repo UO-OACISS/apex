@@ -18,7 +18,9 @@
 namespace apex {
 
 enum struct reset_type {
-    NONE, CURRENT, ALL    
+    NONE,    // not a reset event
+    CURRENT, // reset the specified counter
+    ALL     // reset all counters
 };
 
 class disabled_profiler_exception : public std::exception {

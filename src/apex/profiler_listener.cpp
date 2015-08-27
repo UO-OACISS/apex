@@ -21,7 +21,6 @@
 #include "profile.hpp"
 
 #include <boost/thread/thread.hpp>
-#include <boost/lockfree/spsc_queue.hpp>
 #include <boost/atomic.hpp>
 #include <atomic>
 #include <boost/range/adaptor/map.hpp>
@@ -59,9 +58,9 @@
 #include <hpx/lcos/local/composable_guard.hpp>
 #endif
 
-#define MAX_QUEUE_SIZE 1024*1024
-//#define MAX_QUEUE_SIZE 1024
-//#define MAX_QUEUE_SIZE 4096
+#include "concurrentqueue/concurrentqueue.h"
+
+#define INITIAL_QUEUE_SIZE 4096
 #define INITIAL_NUM_THREADS 2
 
 #define APEX_MAIN "APEX MAIN"
@@ -76,18 +75,13 @@ using namespace std;
 using namespace apex;
 
 APEX_NATIVE_TLS unsigned int my_tid = 0; // the current thread's TID in APEX
+moodycamel::ConcurrentQueue<profiler*> thequeue;
 
 namespace apex {
 
   /* THis is a special profiler, indicating that the timer requested is
      throttled, and shouldn't be processed. */
   profiler* profiler::disabled_profiler = new profiler();
-
-  /* This is the array of profiler queues, one for each worker thread. It
-   * is initialized to a length of 8, there is code in on_new_thread() to
-   * increment it if necessary.  */
-  //std::vector<boost::lockfree::spsc_queue<std::shared_ptr<profiler> >* > profiler_queues(2);
-  std::vector<boost::lockfree::spsc_queue<profiler*>* > profiler_queues(2);
 
 #if APEX_HAVE_PAPI
   std::vector<int> event_sets(8);
@@ -345,17 +339,9 @@ namespace apex {
     // clear the maps.
     address_map.clear();
     name_map.clear();
-    // iterate over the queues, and delete them
-    unsigned int i = 0;
-    for (i = 0 ; i < profiler_queues.size(); i++) {
-      if (profiler_queues[i] != nullptr) {
-        delete (profiler_queues[i]);
-      }
-    }
-    // clear the vector of queues.
-    profiler_queues.clear();
 
     if (apex_options::use_profile_output() > 1) {
+        unsigned int i;
         // iterate over the vector of profile objects for per-thread measurement
         for (i = 0 ; i < thread_address_maps.size(); i++) {
         if (thread_address_maps[i]) {
@@ -663,18 +649,10 @@ namespace apex {
     }
     */
 #endif
-      //unsigned int processed = 0;
-      //do { // inner while loop, handle all the available work while there is work.
-        //processed = 0;
-        for (i = 0 ; i < profiler_queues.size(); i++) {
-            if (profiler_queues[i]) {
-                while (profiler_queues[i]->pop(p)) {
-                    //processed += process_profile(p, i);
-                    process_profile(p, i);
-                }
-            }
-        }
-      //} while (!done && processed > 0);
+      while(thequeue.try_dequeue(p)) {
+        process_profile(p, 0);
+      }
+
 #ifdef USE_UDP
       // are we updating a global profile?
       if (apex_options::use_udp_sink()) {
@@ -691,15 +669,11 @@ namespace apex {
 #ifndef APEX_HAVE_HPX3
     }
 
-    // We might be done, but check to make sure the queues are empty
-    for (i = 0 ; i < profiler_queues.size(); i++) {
-      if (profiler_queues[i]) {
-        while (profiler_queues[i]->pop(p)) {
-          process_profile(p, i);
-        }
-      }
+    // We might be done, but check to make sure the queue is empty
+    while(thequeue.try_dequeue(p)) {
+      process_profile(p, 0);
     }
-
+ 
     // stop the main timer, and process that profile
     //main_timer->stop();
     //process_profile(main_timer, my_tid);
@@ -800,8 +774,6 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   /* When APEX gets a STARTUP event, do some initialization. */
   void profiler_listener::on_startup(startup_event_data &data) {
     if (!_terminate) {
-      // Create a profiler queue for this main thread
-      profiler_queues[0] = new boost::lockfree::spsc_queue<profiler*>(MAX_QUEUE_SIZE);
       if (apex_options::use_profile_output() > 1) {
         thread_address_maps[0] = new map<apex_function_address, profile*>();
         thread_name_maps[0] = new map<string, profile*>();
@@ -934,9 +906,6 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       _mtx.lock();
       // resize the vector
       my_tid = (unsigned int)thread_instance::get_id();
-      if (my_tid >= profiler_queues.size()) {
-        profiler_queues.resize(my_tid + 1);
-      }
       if (apex_options::use_profile_output() > 1) {
         if (my_tid >= thread_address_maps.size()) {
             thread_address_maps.resize(my_tid + 1);
@@ -948,11 +917,6 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       unsigned int i = 0;
       // allocate the queue(s)
       for (i = 0; i < my_tid+1 ; i++) {
-        if (profiler_queues[i] == nullptr) {
-          boost::lockfree::spsc_queue<profiler*>* tmp =
-            new boost::lockfree::spsc_queue<profiler*>(MAX_QUEUE_SIZE);
-          profiler_queues[i] = tmp;
-        }
         if (apex_options::use_profile_output() > 1) {
             if (thread_address_maps[i] == nullptr) {
                 thread_address_maps[i] = new map<apex_function_address, profile*>();
@@ -1019,10 +983,9 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   }
 
   inline void profiler_listener::push_profiler(int my_tid, std::shared_ptr<profiler>p) {
-      assert(profiler_queues[my_tid]);
       // we have to make a local copy, because lockfree queues DO NOT SUPPORT shared_ptrs!
       profiler* local_p = new profiler(p.get());
-      bool worked = profiler_queues[my_tid]->push(local_p);
+      bool worked = thequeue.enqueue(local_p);
       if (!worked) {
           static bool issued = false;
           if (!issued) {

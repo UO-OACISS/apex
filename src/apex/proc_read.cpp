@@ -546,7 +546,6 @@ bool parse_sensor_data() {
 void ProcData::read_proc(void) {
   static bool _initialized = false;
   if (!_initialized) {
-      //register_thread("proc_read");
       initialize_worker_thread_for_TAU();
       _initialized = true;
   }

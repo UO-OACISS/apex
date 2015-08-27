@@ -6,7 +6,8 @@ configure_file(
   ${CMAKE_BINARY_DIR}/apex_version.h
 )
 
-include_directories(${CMAKE_BINARY_DIR} ${APEX_SOURCE_DIR}/rapidjson/include)
+#include_directories(${CMAKE_BINARY_DIR} ${APEX_SOURCE_DIR}/rapidjson/include)
+include_directories(${CMAKE_BINARY_DIR} ${APEX_SOURCE_DIR}/src/contrib)
 
 if (TAU_FOUND)
 SET(tau_SOURCE tau_listener.cpp)
