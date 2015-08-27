@@ -27,7 +27,7 @@ if(DOXYGEN_FOUND)
             DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/latex/refman.pdf
             COMMENT  "Executing ${PDFLATEX_COMPILER}"
         )
-		add_dependencies(doc refman.pdf)
+    #add_dependencies(doc refman.pdf)
         INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/latex/refman.pdf DESTINATION
 		doc OPTIONAL)
     endif()
