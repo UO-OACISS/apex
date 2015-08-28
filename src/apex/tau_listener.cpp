@@ -65,32 +65,38 @@ void tau_listener::on_exit_thread(event_data &data) {
   return;
 }
 
-void tau_listener::on_start(apex_function_address function_address) {
+bool tau_listener::on_start(apex_function_address function_address) {
   if (!_terminate) {
     TAU_START(thread_instance::instance().map_addr_to_name(function_address).c_str());
+  } else {
+      return false;
   }
-  return;
+  return true;
 }
 
-void tau_listener::on_start(std::string * timer_name) {
+bool tau_listener::on_start(std::string * timer_name) {
   if (!_terminate) {
     TAU_START(timer_name->c_str());
+  } else {
+      return false;
   }
-  return;
+  return true;
 }
 
-void tau_listener::on_resume(apex_function_address function_address) {
+bool tau_listener::on_resume(apex_function_address function_address) {
   if (!_terminate) {
     TAU_START(thread_instance::instance().map_addr_to_name(function_address).c_str());
+    return true;
   }
-  return;
+  return false;
 }
 
-void tau_listener::on_resume(std::string * timer_name) {
+bool tau_listener::on_resume(std::string * timer_name) {
   if (!_terminate) {
     TAU_START(timer_name->c_str());
+    return true;
   }
-  return;
+  return false;
 }
 
 void tau_listener::on_stop(std::shared_ptr<profiler> p) {

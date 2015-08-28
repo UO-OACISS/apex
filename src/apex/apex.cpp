@@ -347,12 +347,14 @@ profiler* start(const std::string &timer_name)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return nullptr; // protect against calls after finalization
     if (_notify_listeners) {
-        try {
-            string * tmp = new string(timer_name);
-            for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-                instance->listeners[i]->on_start(tmp);
+        bool success = true;
+        string * tmp = new string(timer_name);
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            success = instance->listeners[i]->on_start(tmp);
+            if (!success) {
+                return profiler::get_disabled_profiler();
             }
-        } catch (disabled_profiler_exception e) { return profiler::get_disabled_profiler(); }
+        }
     }
     return thread_instance::instance().get_current_profiler().get();
 }
@@ -364,11 +366,13 @@ profiler* start(apex_function_address function_address) {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return nullptr; // protect against calls after finalization
     if (_notify_listeners) {
-        try {
-            for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-                instance->listeners[i]->on_start(function_address);
+        bool success = true;
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            success = instance->listeners[i]->on_start(function_address);
+            if (!success) {
+                return profiler::get_disabled_profiler();
             }
-        } catch (disabled_profiler_exception e) { return profiler::get_disabled_profiler(); }
+        }
     }
 #ifdef APEX_DEBUG
     /*

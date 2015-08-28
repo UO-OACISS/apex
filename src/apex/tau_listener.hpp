@@ -23,12 +23,12 @@ public:
   void on_new_node(node_event_data &data);
   void on_new_thread(new_thread_event_data &data);
   void on_exit_thread(event_data &data);
-  void on_start(apex_function_address function_address);
-  void on_start(std::string *timer_name);
+  bool on_start(apex_function_address function_address);
+  bool on_start(std::string *timer_name);
   void on_stop(std::shared_ptr<profiler> p);
   void on_yield(std::shared_ptr<profiler> p);
-  void on_resume(apex_function_address function_address);
-  void on_resume(std::string *timer_name);
+  bool on_resume(apex_function_address function_address);
+  bool on_resume(std::string *timer_name);
   void on_sample_value(sample_value_event_data &data);
   void on_periodic(periodic_event_data &data);
   void on_custom_event(custom_event_data &data);

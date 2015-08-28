@@ -125,43 +125,55 @@ void concurrency_handler::_init(void) {
   return;
 }
 
-void concurrency_handler::on_start(apex_function_address function_address) {
+bool concurrency_handler::on_start(apex_function_address function_address) {
   if (!_terminate) {
     int i = thread_instance::get_id();
     stack<string>* my_stack = get_event_stack(i);
     _per_thread_mutex[i]->lock();
     my_stack->push(thread_instance::instance().map_addr_to_name(function_address));
     _per_thread_mutex[i]->unlock();
+    return true;
+  } else { 
+    return false; 
   }
 }
 
-void concurrency_handler::on_start(string *timer_name) {
+bool concurrency_handler::on_start(string *timer_name) {
   if (!_terminate) {
     int i = thread_instance::get_id();
     stack<string>* my_stack = get_event_stack(i);
     _per_thread_mutex[i]->lock();
     my_stack->push(*(timer_name));
     _per_thread_mutex[i]->unlock();
+    return true;
+  } else { 
+    return false; 
   }
 }
 
-void concurrency_handler::on_resume(apex_function_address function_address) {
+bool concurrency_handler::on_resume(apex_function_address function_address) {
   if (!_terminate) {
     int i = thread_instance::get_id();
     stack<string>* my_stack = get_event_stack(i);
     _per_thread_mutex[i]->lock();
     my_stack->push(thread_instance::instance().map_addr_to_name(function_address));
     _per_thread_mutex[i]->unlock();
+    return true;
+  } else { 
+    return false; 
   }
 }
 
-void concurrency_handler::on_resume(string *timer_name) {
+bool concurrency_handler::on_resume(string *timer_name) {
   if (!_terminate) {
     int i = thread_instance::get_id();
     stack<string>* my_stack = get_event_stack(i);
     _per_thread_mutex[i]->lock();
     my_stack->push(*(timer_name));
     _per_thread_mutex[i]->unlock();
+    return true;
+  } else { 
+    return false; 
   }
 }
 

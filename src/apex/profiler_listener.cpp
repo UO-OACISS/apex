@@ -930,13 +930,18 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 
   /* When a start event happens, create a profiler object. Unless this
    * named event is throttled, in which case do nothing, as quickly as possible */
-  inline void profiler_listener::_common_start(apex_function_address function_address, bool is_resume) {
+  inline bool profiler_listener::_common_start(apex_function_address function_address, bool is_resume) {
     if (!_terminate) {
 #if defined(APEX_THROTTLE)
         // if this timer is throttled, return without doing anything
         unordered_set<apex_function_address>::const_iterator it = throttled_addresses.find(function_address);
         if (it != throttled_addresses.end()) {
-          throw disabled_profiler_exception(); // to be caught by apex::start/resume
+          /*
+           * The throw is removed, because it is a performance penalty on some systems
+           * on_start now returns a boolean
+           */
+          //throw disabled_profiler_exception(); // to be caught by apex::start/resume
+          return false;
         }
 #endif
         // start the profiler object, which starts our timers
@@ -947,18 +952,26 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         rc = PAPI_read( EventSet, values );
         PAPI_ERROR_CHECK(PAPI_read);
 #endif
+    } else {
+        return false;
     }
+    return true;
   }
 
   /* When a start event happens, create a profiler object. Unless this
    * named event is throttled, in which case do nothing, as quickly as possible */
-  inline void profiler_listener::_common_start(std::string * timer_name, bool is_resume) {
+  inline bool profiler_listener::_common_start(std::string * timer_name, bool is_resume) {
     if (!_terminate) {
 #if defined(APEX_THROTTLE)
       // if this timer is throttled, return without doing anything
       unordered_set<string>::const_iterator it = throttled_names.find(*timer_name);
       if (it != throttled_names.end()) {
-        throw disabled_profiler_exception(); // to be caught by apex::start/resume
+          /*
+           * The throw is removed, because it is a performance penalty on some systems
+           * on_start now returns a boolean
+           */
+        //throw disabled_profiler_exception(); // to be caught by apex::start/resume
+        return false;
       }
 #endif
       // start the profiler object, which starts our timers
@@ -969,7 +982,10 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       rc = PAPI_read( EventSet, values );
       PAPI_ERROR_CHECK(PAPI_read);
 #endif
+    } else {
+        return false;
     }
+    return true;
   }
 
   inline void profiler_listener::push_profiler(int my_tid, std::shared_ptr<profiler>p) {
@@ -1017,25 +1033,25 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   }
 
   /* Start the timer */
-  void profiler_listener::on_start(apex_function_address function_address) {
-    _common_start(function_address, false);
+  bool profiler_listener::on_start(apex_function_address function_address) {
+    return _common_start(function_address, false);
   }
 
   /* Start the timer */
-  void profiler_listener::on_start(std::string * timer_name) {
-    _common_start(timer_name, false);
+  bool profiler_listener::on_start(std::string * timer_name) {
+    return _common_start(timer_name, false);
   }
 
   /* This is just like starting a timer, but don't increment the number of calls
    * value. That is because we are restarting an existing timer. */
-  void profiler_listener::on_resume(std::string * timer_name) {
-        _common_start(timer_name, true);
+  bool profiler_listener::on_resume(std::string * timer_name) {
+        return _common_start(timer_name, true);
   }
 
   /* This is just like starting a timer, but don't increment the number of calls
    * value. That is because we are restarting an existing timer. */
-  void profiler_listener::on_resume(apex_function_address function_address) {
-        _common_start(function_address, true);
+  bool profiler_listener::on_resume(apex_function_address function_address) {
+        return _common_start(function_address, true);
   }
 
    /* Stop the timer */

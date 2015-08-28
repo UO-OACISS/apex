@@ -385,9 +385,9 @@ void policy_handler::on_exit_thread(event_data &data) {
         call_policies(exit_thread_policies, data);
 }
 
-void policy_handler::on_start(apex_function_address function_address) {
-  if (_terminate) return;
-  if (start_event_policies.empty()) return;
+bool policy_handler::on_start(apex_function_address function_address) {
+  if (_terminate) return false;
+  if (start_event_policies.empty()) return true;
   for(const boost::shared_ptr<policy_instance>& policy : start_event_policies) {
     apex_context my_context;
     my_context.event_type = APEX_START_EVENT;
@@ -398,11 +398,12 @@ void policy_handler::on_start(apex_function_address function_address) {
     }
   }
   APEX_UNUSED(function_address);
+  return true;
 }
 
-void policy_handler::on_start(string *timer_name) {
-  if (_terminate) return;
-  if (start_event_policies.empty()) return;
+bool policy_handler::on_start(string *timer_name) {
+  if (_terminate) return false;
+  if (start_event_policies.empty()) return true;
   for(const boost::shared_ptr<policy_instance>& policy : start_event_policies) {
     apex_context my_context;
     my_context.event_type = APEX_START_EVENT;
@@ -413,11 +414,12 @@ void policy_handler::on_start(string *timer_name) {
     }
   }
   APEX_UNUSED(timer_name);
+  return true;
 }
 
-void policy_handler::on_resume(apex_function_address function_address) {
-  if (_terminate) return;
-  if (resume_event_policies.empty()) return;
+bool policy_handler::on_resume(apex_function_address function_address) {
+  if (_terminate) return false;
+  if (resume_event_policies.empty()) return true;
   for(const boost::shared_ptr<policy_instance>& policy : resume_event_policies) {
     apex_context my_context;
     my_context.event_type = APEX_RESUME_EVENT;
@@ -428,11 +430,12 @@ void policy_handler::on_resume(apex_function_address function_address) {
     }
   }
   APEX_UNUSED(function_address);
+  return true;
 }
 
-void policy_handler::on_resume(string *timer_name) {
-  if (_terminate) return;
-  if (resume_event_policies.empty()) return;
+bool policy_handler::on_resume(string *timer_name) {
+  if (_terminate) return false;
+  if (resume_event_policies.empty()) return true;
   for(const boost::shared_ptr<policy_instance>& policy : resume_event_policies) {
     apex_context my_context;
     my_context.event_type = APEX_RESUME_EVENT;
@@ -443,6 +446,7 @@ void policy_handler::on_resume(string *timer_name) {
     }
   }
   APEX_UNUSED(timer_name);
+  return true;
 }
 
 void policy_handler::on_stop(std::shared_ptr<profiler> p) {
