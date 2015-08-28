@@ -32,6 +32,7 @@ set(example_programs
 	apex_print_options
 	apex_get_thread_cap
 	apex_shutdown_throttling
+	apex_fibonacci_pthread
    )
 #	apex_setup_power_cap_throttling
 #	apex_setup_throughput_tuning

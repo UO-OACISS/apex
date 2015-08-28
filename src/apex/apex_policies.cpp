@@ -100,7 +100,7 @@ inline void __decrease_cap_gradual() {
 #ifdef APEX_DEBUG_THROTTLE
     printf("%d more throttling! new cap: %d\n", test_pp, thread_cap); fflush(stdout);
 #endif
-    apex_throttleOn = true;
+    //apex_throttleOn = true;
 }
 
 inline void __decrease_cap() {
@@ -112,7 +112,7 @@ inline void __decrease_cap() {
 #ifdef APEX_DEBUG_THROTTLE
     printf("%d more throttling! new cap: %d\n", test_pp, thread_cap); fflush(stdout);
 #endif
-    apex_throttleOn = true;
+    //apex_throttleOn = true;
 }
 
 inline void __increase_cap_gradual() {
@@ -121,7 +121,7 @@ inline void __increase_cap_gradual() {
 #ifdef APEX_DEBUG_THROTTLE
     printf("%d less throttling! new cap: %d\n", test_pp, thread_cap); fflush(stdout);
 #endif
-    apex_throttleOn = false;
+    //apex_throttleOn = false;
 }
 
 inline void __increase_cap() {
@@ -137,7 +137,7 @@ inline void __increase_cap() {
 #ifdef APEX_DEBUG_THROTTLE
     printf("%d less throttling! new cap: %d\n", test_pp, thread_cap); fflush(stdout);
 #endif
-    apex_throttleOn = false;
+    //apex_throttleOn = false;
 }
 
 inline int apex_power_throttling_policy(apex_context const context) 

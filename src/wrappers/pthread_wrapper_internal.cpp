@@ -5,6 +5,8 @@
 #include <boost/atomic.hpp>
 #include <iostream>
 #include <new>
+#include <system_error>
+
 
 struct apex_system_wrapper_t
 {
@@ -66,19 +68,20 @@ void * apex_pthread_function(void *arg)
 {
   apex_pthread_pack * pack = (apex_pthread_pack*)arg;
   apex::profiler * p = nullptr;
+  void * ret = nullptr;
   try {
     apex::register_thread("APEX pthread wrapper");
     p = apex::start((apex_function_address)pack->start_routine);
-  } catch (std::bad_alloc& ba) {
-    std::cerr << "bad_alloc caught: " << ba.what() << '\n';
-  }
-  void * ret = pack->start_routine(pack->arg);
-  try {
+    ret = pack->start_routine(pack->arg);
     apex::stop(p);
     apex::exit_thread();
   } catch (std::bad_alloc& ba) {
     std::cerr << "bad_alloc caught: " << ba.what() << '\n';
+  } catch(const std::system_error& e) {
+    std::cout << "Caught system_error with code " << e.code() 
+              << " meaning " << e.what() << '\n';
   }
+  
   delete pack;
   return ret;
 }

@@ -5,14 +5,23 @@
 #include <execinfo.h>
 #include "thread_instance.hpp"
 #include "address_resolution.hpp"
+#include <errno.h>
+#include <string.h>
 
 static void apex_custom_signal_handler(int sig) {
+
+  int errnum = errno;
 
   fflush(stderr);
   std::cerr << std::endl;
   std::cerr << "********* Thread " << apex::thread_instance::get_id() << " " << strsignal(sig) << " *********";
   std::cerr << std::endl;
   std::cerr << std::endl;
+  if(errnum) {
+    std::cerr << "Value of errno: " << errno << std::endl;
+    perror("Error printed by perror");
+    std::cerr << "Error string: " << strerror( errnum ) << std::endl;
+  }
 
   void *trace[32];
   size_t size, i;
