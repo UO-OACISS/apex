@@ -40,17 +40,12 @@ set(example_programs
 	#get_tunable_params
 
 if (OPENMP_FOUND)
-  set(example_programs "${example_programs} apex_setup_throughput_tuning")
+  set(example_programs "${example_programs};apex_setup_throughput_tuning")
 endif (OPENMP_FOUND)
 
 foreach(example_program ${example_programs})
-  set(sources
-      ${example_program}.cpp)
-
+  set(sources ${example_program}.cpp)
   source_group("Source Files" FILES ${sources})
-
-  # add example executable
-  #add_executable("${example_program}_cpp" EXCLUDE_FROM_ALL ${sources})
   add_executable("${example_program}_cpp" ${sources})
   target_link_libraries ("${example_program}_cpp" apex)
   add_dependencies ("${example_program}_cpp" apex)
