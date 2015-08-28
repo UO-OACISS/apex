@@ -67,5 +67,6 @@ int main(int argc, char *argv[]) {
 	long long result = (long long)fib((void*)i);
     printf("fib of %lld is %lld (valid value: %lld)\n", i, result, fib_results[i]);
 	apex_finalize();
+    return 0;
 }
 
