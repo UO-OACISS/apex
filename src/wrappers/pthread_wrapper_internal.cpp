@@ -4,6 +4,7 @@
 #include "pthread_wrapper.h"
 #include <boost/atomic.hpp>
 #include <iostream>
+#include <new>
 
 struct apex_system_wrapper_t
 {
@@ -64,12 +65,20 @@ extern "C"
 void * apex_pthread_function(void *arg)
 {
   apex_pthread_pack * pack = (apex_pthread_pack*)arg;
-
-  apex::register_thread("APEX pthread wrapper");
-  apex::profiler * p = apex::start((apex_function_address)pack->start_routine);
+  apex::profiler * p = nullptr;
+  try {
+    apex::register_thread("APEX pthread wrapper");
+    p = apex::start((apex_function_address)pack->start_routine);
+  } catch (std::bad_alloc& ba) {
+    std::cerr << "bad_alloc caught: " << ba.what() << '\n';
+  }
   void * ret = pack->start_routine(pack->arg);
-  apex::stop(p);
-  apex::exit_thread();
+  try {
+    apex::stop(p);
+    apex::exit_thread();
+  } catch (std::bad_alloc& ba) {
+    std::cerr << "bad_alloc caught: " << ba.what() << '\n';
+  }
   delete pack;
   return ret;
 }

@@ -201,6 +201,7 @@ void apex::_initialize()
     proc_reader_thread = new boost::thread(ProcData::read_proc);
 #endif
     this->resize_state(1);
+    this->set_state(0, APEX_BUSY);
 }
 
 /*  
