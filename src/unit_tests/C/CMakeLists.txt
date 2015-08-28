@@ -38,6 +38,10 @@ set(example_programs
 #	apex_setup_throughput_tuning
 #	apex_set_thread_cap
 
+#if (OPENMP_FOUND)
+  #set(example_programs "${example_programs} apex_setup_throughput_tuning")
+#endif (OPENMP_FOUND)
+
 foreach(example_program ${example_programs})
   set(sources
       ${example_program}.c)

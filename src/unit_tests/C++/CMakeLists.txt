@@ -32,13 +32,16 @@ set(example_programs
 	apex_print_options
 	apex_get_thread_cap
 	apex_shutdown_throttling
-	apex_setup_throughput_tuning
 	apex_pthread_flood
    )
 	#apex_set_thread_cap
 	#apex_setup_power_cap_throttling
 	#apex_setup_custom_tuning
 	#get_tunable_params
+
+if (OPENMP_FOUND)
+  set(example_programs "${example_programs} apex_setup_throughput_tuning")
+endif (OPENMP_FOUND)
 
 foreach(example_program ${example_programs})
   set(sources
@@ -55,8 +58,10 @@ foreach(example_program ${example_programs})
   add_test ("test_${example_program}_cpp" "${example_program}_cpp")
 endforeach()
 
-set_target_properties(apex_setup_throughput_tuning_cpp PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
-set_target_properties(apex_setup_throughput_tuning_cpp PROPERTIES LINK_FLAGS ${OpenMP_CXX_FLAGS})
+if (OPENMP_FOUND)
+  set_target_properties(apex_setup_throughput_tuning PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
+  set_target_properties(apex_setup_throughput_tuning PROPERTIES LINK_FLAGS ${OpenMP_CXX_FLAGS})
+endif (OPENMP_FOUND)
 
 if(APPLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPTHREADS")

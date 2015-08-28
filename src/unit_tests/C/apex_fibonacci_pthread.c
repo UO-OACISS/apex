@@ -48,7 +48,7 @@ void * fib (void * in) {
     return (void*)(result_a + result_b);
 }
 
-long long main(long long argc, char *argv[]) {
+int main(int argc, char *argv[]) {
     apex_init("apex_fibonacci_pthreads unit test");
 	long long i = 10;
 
@@ -60,12 +60,12 @@ long long main(long long argc, char *argv[]) {
 	}
 
 	if (i < 1) {
-		fprintf(stderr,"%lu must be>= 1\n", i);
+		fprintf(stderr,"%lld must be>= 1\n", i);
 		return -1;
 	}
 
 	long long result = (long long)fib((void*)i);
-    printf("fib of %lu is %lu (valid value: %lu)\n", i, result, fib_results[i]);
+    printf("fib of %lld is %lld (valid value: %lld)\n", i, result, fib_results[i]);
 	apex_finalize();
 }
 
