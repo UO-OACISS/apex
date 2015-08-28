@@ -59,8 +59,8 @@ foreach(example_program ${example_programs})
 endforeach()
 
 if (OPENMP_FOUND)
-  set_target_properties(apex_setup_throughput_tuning PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
-  set_target_properties(apex_setup_throughput_tuning PROPERTIES LINK_FLAGS ${OpenMP_CXX_FLAGS})
+  set_target_properties(apex_setup_throughput_tuning_cpp PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
+  set_target_properties(apex_setup_throughput_tuning_cpp PROPERTIES LINK_FLAGS ${OpenMP_CXX_FLAGS})
 endif (OPENMP_FOUND)
 
 if(APPLE)
