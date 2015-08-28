@@ -16,7 +16,7 @@ export BOOST_ROOT=$BOOST_DIR
 #export BFD_ROOT=$HOME/src/tau2-edison/craycnl/binutils-2.23.2 # CMake will find it automatically.
 # export BFD_ROOT=/usr # CMake will find it automatically.
 #GPERFTOOLS_ROOT=$HOME/install/google-perftools/2.4 # not necessary, because HPX uses JEMalloc
-#export JEMALLOC_ROOT=$HOME/install/jemalloc/3.6.0 # not strictly necessary, if runtime uses JEMalloc
+export JEMALLOC_ROOT=$HOME/install/jemalloc/3.6.0 # not strictly necessary, if runtime uses JEMalloc
 #export RCR_ROOT=$HOME/src/RCRdaemon_nersc
 #export PAPI_ROOT=/opt/cray/papi/5.3.2.1
 #export TAU_ROOT=$HOME/install/tau2-hpx
@@ -37,6 +37,7 @@ cmake_use_codeblocks="-G \"CodeBlocks - Unix Makefiles\"" # if you want to debug
 cmake_make_verbose=""  # for verbose, use -DCMAKE_VERBOSE_MAKEFILE=ON
 cmake_use_mpi="-DUSE_MPI=FALSE" # TRUE or FALSE
 cmake_other_settings="\
+-DBUILD_TESTS=TRUE \
 -DMPI_C_INCLUDE_PATH=$MPI_C_INCLUDE_PATH \
 -DMPI_CXX_INCLUDE_PATH=$MPI_C_INCLUDE_PATH \
 -DMPI_C_LIBRARIES=$MPI_C_LIBRARIES \

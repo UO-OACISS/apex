@@ -903,28 +903,19 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
    * to handle the new thread */
   void profiler_listener::on_new_thread(new_thread_event_data &data) {
     if (!_terminate) {
-      _mtx.lock();
-      // resize the vector
       my_tid = (unsigned int)thread_instance::get_id();
+      // resize the vector
       if (apex_options::use_profile_output() > 1) {
+        _mtx.lock();
         if (my_tid >= thread_address_maps.size()) {
             thread_address_maps.resize(my_tid + 1);
+            thread_address_maps[my_tid] = new map<apex_function_address, profile*>();
         }
         if (my_tid >= thread_name_maps.size()) {
             thread_name_maps.resize(my_tid + 1);
+            thread_name_maps[my_tid] = new map<string, profile*>();
         }
-      }
-      unsigned int i = 0;
-      // allocate the queue(s)
-      for (i = 0; i < my_tid+1 ; i++) {
-        if (apex_options::use_profile_output() > 1) {
-            if (thread_address_maps[i] == nullptr) {
-                thread_address_maps[i] = new map<apex_function_address, profile*>();
-            }
-            if (thread_name_maps[i] == nullptr) {
-                thread_name_maps[i] = new map<string, profile*>();
-            }
-        }
+        _mtx.unlock();
       }
 #if APEX_HAVE_PAPI
       initialize_PAPI(false);
@@ -933,7 +924,6 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       }
       event_sets[my_tid] = EventSet;
 #endif
-      _mtx.unlock();
     }
 	APEX_UNUSED(data);
   }

@@ -186,7 +186,7 @@ void ProcData::dump(ostream &out) {
         << cpu_stat->steal << "\t" 
         << cpu_stat->guest << endl;
 	if (strcmp(cpu_stat->name, "cpu") == 0) {
-	  total = cpu_stat->user + cpu_stat->nice + cpu_stat->system + cpu_stat->idle;
+	  total = cpu_stat->user + cpu_stat->nice + cpu_stat->system + cpu_stat->idle + cpu_stat->iowait + cpu_stat->irq + cpu_stat->softirq + cpu_stat->steal + cpu_stat->guest;
 	  user_ratio = (double)cpu_stat->user / (double)total;
 	  system_ratio = (double)cpu_stat->system / (double)total;
 	  idle_ratio = (double)cpu_stat->idle / (double)total;
@@ -230,7 +230,7 @@ double ProcData::get_cpu_user() {
   for (iter = cpus.begin(); iter != cpus.end(); ++iter) {
     CPUStat* cpu_stat=*iter;
 	  if (strcmp(cpu_stat->name, "cpu") == 0) {
-	    total = cpu_stat->user + cpu_stat->nice + cpu_stat->system + cpu_stat->idle;
+	    total = cpu_stat->user + cpu_stat->nice + cpu_stat->system + cpu_stat->idle + cpu_stat->iowait + cpu_stat->irq + cpu_stat->softirq + cpu_stat->steal + cpu_stat->guest;
 	    user_ratio = (double)cpu_stat->user / (double)total;
       break;
 	  }
@@ -281,6 +281,7 @@ void ProcData::sample_values(void) {
   CPUs::iterator iter = cpus.begin();
   CPUStat* cpu_stat=*iter;
   // convert all measurements from "Jiffies" to seconds
+  /*
   sample_value("CPU User", cpu_stat->user);
   sample_value("CPU Nice", cpu_stat->nice);
   sample_value("CPU System", cpu_stat->system);
@@ -290,13 +291,18 @@ void ProcData::sample_values(void) {
   sample_value("CPU soft IRQ", cpu_stat->softirq);
   sample_value("CPU Steal", cpu_stat->steal);
   sample_value("CPU Guest", cpu_stat->guest);
-  total = cpu_stat->user + cpu_stat->nice + cpu_stat->system + cpu_stat->idle;
-  user_ratio = ((double)cpu_stat->user + (double)cpu_stat->nice)/ (double)total;
-  system_ratio = (double)cpu_stat->system / (double)total;
-  idle_ratio = (double)cpu_stat->idle / (double)total;
-  sample_value("CPU User Ratio", user_ratio);
-  sample_value("CPU System Ratio", system_ratio);
-  sample_value("CPU Idle Ratio", idle_ratio);
+  */
+  total = cpu_stat->user + cpu_stat->nice + cpu_stat->system + cpu_stat->idle + cpu_stat->iowait + cpu_stat->irq + cpu_stat->softirq + cpu_stat->steal + cpu_stat->guest;
+  total = total / 100.0; // so we have a percentage in the final values
+  sample_value("CPU User %", (double)cpu_stat->user / (double)total);
+  sample_value("CPU Nice %", (double)cpu_stat->nice / (double)total);
+  sample_value("CPU System %", (double)cpu_stat->system / (double)total);
+  sample_value("CPU Idle %", (double)cpu_stat->idle / (double)total);
+  sample_value("CPU I/O Wait %", (double)cpu_stat->iowait / (double)total);
+  sample_value("CPU IRQ %", (double)cpu_stat->irq / (double)total);
+  sample_value("CPU soft IRQ %", (double)cpu_stat->softirq / (double)total);
+  sample_value("CPU Steal %", (double)cpu_stat->steal / (double)total);
+  sample_value("CPU Guest %", (double)cpu_stat->guest / (double)total);
 #if defined(APEX_HAVE_CRAY_POWER)
   sample_value("Power", power);
   sample_value("Power Cap", power_cap);
