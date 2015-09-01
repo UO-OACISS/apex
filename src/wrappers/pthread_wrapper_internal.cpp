@@ -16,6 +16,7 @@ struct apex_system_wrapper_t
     apex::init("APEX Pthread Wrapper");
   }
   virtual ~apex_system_wrapper_t() {
+    apex::apex_options::use_screen_output(true);
     apex::finalize();
   }
 };
@@ -38,9 +39,54 @@ bool initialize_apex_system(void) {
 static pthread_key_t wrapper_flags_key;
 static pthread_once_t key_once = PTHREAD_ONCE_INIT;
 
-void delete_key(void* wrapped) {
-  if (!wrapped) {
-    free(wrapped);
+class apex_wrapper {
+public:
+  apex_wrapper(void) : _wrapped(false), _p(nullptr), _stopped(false), _func(nullptr) {
+  }
+  apex_wrapper(start_routine_p func) : _wrapped(false), _p(nullptr), _stopped(false), _func(func) {
+    apex::register_thread("APEX pthread wrapper");
+  }
+  ~apex_wrapper() {
+    this->stop();
+    apex::exit_thread();
+  }
+  void start(void) {
+    if (_func != NULL) {
+      _p = apex::start((apex_function_address)_func);
+      _stopped = false;
+    }
+  }
+  void restart(void) {
+    if (_func != NULL) {
+      _p = apex::resume((apex_function_address)_func);
+      _stopped = false;
+    }
+  }
+  void yield(void) {
+    if (!_stopped && _p != NULL && !_p->stopped) {
+      apex::stop(_p);
+      _stopped = true;
+      _p = nullptr;
+    }
+  }
+  void stop(void) {
+    if (!_stopped && _p != NULL && !_p->stopped) {
+      apex::stop(_p);
+      _stopped = true;
+      _p = nullptr;
+    }
+  }
+  bool _wrapped;
+private:
+  apex::profiler * _p;
+  bool _stopped;
+  start_routine_p _func;
+};
+
+void delete_key(void* wrapper) {
+  if (wrapper != NULL) {
+    apex_wrapper * tmp = (apex_wrapper*)wrapper;
+    delete tmp;
   }
 }
 
@@ -68,13 +114,17 @@ extern "C"
 void * apex_pthread_function(void *arg)
 {
   apex_pthread_pack * pack = (apex_pthread_pack*)arg;
-  apex::profiler * p = nullptr;
   void * ret = nullptr;
-  apex::register_thread("APEX pthread wrapper");
-  p = apex::start((apex_function_address)pack->start_routine);
+
+  apex_wrapper * wrapper = (apex_wrapper*)pthread_getspecific(wrapper_flags_key);
+  if (wrapper == NULL) {
+    wrapper = new apex_wrapper(pack->start_routine);
+    pthread_setspecific(wrapper_flags_key, (void*)wrapper);
+  }
+
+  wrapper->start();
   ret = pack->start_routine(pack->arg);
-  apex::stop(p);
-  apex::exit_thread();
+  wrapper->stop();
   delete pack;
   return ret;
 }
@@ -85,19 +135,18 @@ int apex_pthread_create_wrapper(pthread_create_p pthread_create_call,
     start_routine_p start_routine, void * arg)
 {
   (void) pthread_once(&key_once, make_key);
-  int * wrapped = (int*)pthread_getspecific(wrapper_flags_key);
-  if (!wrapped) {
-    wrapped = (int*)malloc(sizeof(int));
-    pthread_setspecific(wrapper_flags_key, (void*)wrapped);
-    *wrapped = 0;
+  apex_wrapper * wrapper = (apex_wrapper*)pthread_getspecific(wrapper_flags_key);
+  if (wrapper == NULL) {
+    wrapper = new apex_wrapper();
+    pthread_setspecific(wrapper_flags_key, (void*)wrapper);
   }
 
   int retval;
-  if(*wrapped) {
+  if(wrapper->_wrapped) {
     // Another wrapper has already intercepted the call so just pass through
     retval = pthread_create_call(threadp, attr, start_routine, arg);
   } else {
-    *wrapped = 1;
+    wrapper->_wrapped = 1;
     initialize_apex_system();
     apex_pthread_pack * pack = new apex_pthread_pack;
     pack->start_routine = start_routine;
@@ -124,7 +173,7 @@ int apex_pthread_create_wrapper(pthread_create_p pthread_create_call,
 	if (destroy_attr) {
 	  pthread_attr_destroy(&tmp);
 	}
-    *wrapped = 0;
+    wrapper->_wrapped = 0;
   }
   return retval;
 }
@@ -134,22 +183,23 @@ int apex_pthread_join_wrapper(pthread_join_p pthread_join_call,
     pthread_t thread, void ** retval)
 {
   (void) pthread_once(&key_once, make_key);
-  int * wrapped = (int*)pthread_getspecific(wrapper_flags_key);
-  if (!wrapped) {
-    wrapped = (int*)malloc(sizeof(int));
-    pthread_setspecific(wrapper_flags_key, (void*)wrapped);
-    *wrapped = 0;
+  apex_wrapper * wrapper = (apex_wrapper*)pthread_getspecific(wrapper_flags_key);
+  if (wrapper == NULL) {
+    wrapper = new apex_wrapper();
+    pthread_setspecific(wrapper_flags_key, (void*)wrapper);
   }
 
   int ret;
-  if(*wrapped) {
+  wrapper->yield();
+  if(wrapper->_wrapped) {
     // Another wrapper has already intercepted the call so just pass through
     ret = pthread_join_call(thread, retval);
   } else {
-    *wrapped = 1;
+    wrapper->_wrapped = 1;
     ret = pthread_join_call(thread, retval);
-    *wrapped = 0;
+    wrapper->_wrapped = 0;
   }
+  wrapper->restart();
   return ret;
 }
 
@@ -157,21 +207,21 @@ extern "C"
 void apex_pthread_exit_wrapper(pthread_exit_p pthread_exit_call, void * value_ptr)
 {
   (void) pthread_once(&key_once, make_key);
-  int * wrapped = (int*)pthread_getspecific(wrapper_flags_key);
-  if (!wrapped) {
-    wrapped = (int*)malloc(sizeof(int));
-    pthread_setspecific(wrapper_flags_key, (void*)wrapped);
-    *wrapped = 0;
+  apex_wrapper * wrapper = (apex_wrapper*)pthread_getspecific(wrapper_flags_key);
+  if (wrapper == NULL) {
+    wrapper = new apex_wrapper();
+    pthread_setspecific(wrapper_flags_key, (void*)wrapper);
+    wrapper->_wrapped = 0;
   }
 
-  if(*wrapped) {
+  if(wrapper->_wrapped) {
     // Another wrapper has already intercepted the call so just pass through
     pthread_exit_call(value_ptr);
   } else {
-    *wrapped = 1;
-    apex::exit_thread();
+    wrapper->_wrapped = 1;
+    //apex::exit_thread();
     pthread_exit_call(value_ptr);
-    *wrapped = 0;
+    wrapper->_wrapped = 0;
   }
 }
 
@@ -181,24 +231,25 @@ int apex_pthread_barrier_wait_wrapper(pthread_barrier_wait_p pthread_barrier_wai
     pthread_barrier_t * barrier)
 {
   (void) pthread_once(&key_once, make_key);
-  int * wrapped = (int*)pthread_getspecific(wrapper_flags_key);
-  if (!wrapped) {
-    wrapped = (int*)malloc(sizeof(int));
-    pthread_setspecific(wrapper_flags_key, (void*)wrapped);
-    *wrapped = 0;
+  apex_wrapper * wrapper = (apex_wrapper*)pthread_getspecific(wrapper_flags_key);
+  if (wrapper == NULL) {
+    wrapper = new apex_wrapper();
+    pthread_setspecific(wrapper_flags_key, (void*)wrapper);
   }
 
   int retval;
-  if(*wrapped) {
+  wrapper->yield();
+  if(wrapper->_wrapped) {
     // Another wrapper has already intercepted the call so just pass through
     retval = pthread_barrier_wait_call(barrier);
   } else {
-    *wrapped = 1;
+    wrapper->_wrapped = 1;
     apex::profiler * p = apex::start("pthread_barrier_wait");
     retval = pthread_barrier_wait_call(barrier);
     apex::stop(p);
-    *wrapped = 0;
+    wrapper->_wrapped = 0;
   }
+  wrapper->restart();
   return retval;
 }
 #endif /* APEX_PTHREAD_BARRIER_AVAILABLE */

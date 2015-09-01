@@ -3,6 +3,7 @@ include_directories (${APEX_SOURCE_DIR}/src/apex)
 
 # Make sure the linker can find the Apex library once it is built. 
 link_directories (${APEX_BINARY_DIR}/src/apex) 
+link_directories (${APEX_BINARY_DIR}/src/apex_pthread_wrapper) 
 
 set(example_programs
     apex_init
@@ -60,6 +61,8 @@ if (OPENMP_FOUND)
 endif (OPENMP_FOUND)
 
 set_target_properties(apex_fibonacci_std_async_cpp PROPERTIES LINK_FLAGS "-fsplit-stack")
+target_link_libraries (apex_fibonacci_std_async_cpp apex_pthread_wrapper)        
+add_dependencies (apex_fibonacci_std_async_cpp apex_pthread_wrapper)    
 
 if(APPLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPTHREADS")

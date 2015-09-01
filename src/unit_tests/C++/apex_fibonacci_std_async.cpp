@@ -24,7 +24,7 @@ public:
 };
 
 int fib (int in) {
-	apex_proxy foo((void*)&fib);
+	//apex_proxy foo((void*)&fib);
     if (in == 0) {
         return 0;
     }
@@ -43,7 +43,7 @@ int fib (int in) {
 }
 
 int main(int argc, char *argv[]) {
-    apex::init("apex_fibonacci_pthreads unit test");
+    //apex::init("apex_fibonacci_pthreads unit test");
 	int i = 10;
 
 	if (argc != 2) {
@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
     auto future = std::async(fib, i);
     int result = future.get();
     std::cout << "fib of " << i << " is " << result << " (valid value: " << fib_results[i] << ")" << std::endl;
-	apex::finalize();
+	//apex::finalize();
     return 0;
 }
 
