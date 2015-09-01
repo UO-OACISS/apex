@@ -6,7 +6,8 @@
 #include <iostream>
 #include <new>
 #include <system_error>
-
+#include <unistd.h>
+#include <limits.h>
 
 struct apex_system_wrapper_t
 {
@@ -69,19 +70,11 @@ void * apex_pthread_function(void *arg)
   apex_pthread_pack * pack = (apex_pthread_pack*)arg;
   apex::profiler * p = nullptr;
   void * ret = nullptr;
-  try {
-    apex::register_thread("APEX pthread wrapper");
-    p = apex::start((apex_function_address)pack->start_routine);
-    ret = pack->start_routine(pack->arg);
-    apex::stop(p);
-    apex::exit_thread();
-  } catch (std::bad_alloc& ba) {
-    std::cerr << "bad_alloc caught: " << ba.what() << '\n';
-  } catch(const std::system_error& e) {
-    std::cout << "Caught system_error with code " << e.code() 
-              << " meaning " << e.what() << '\n';
-  }
-  
+  apex::register_thread("APEX pthread wrapper");
+  p = apex::start((apex_function_address)pack->start_routine);
+  ret = pack->start_routine(pack->arg);
+  apex::stop(p);
+  apex::exit_thread();
   delete pack;
   return ret;
 }
@@ -110,7 +103,27 @@ int apex_pthread_create_wrapper(pthread_create_p pthread_create_call,
     pack->start_routine = start_routine;
     pack->arg = arg;
 
+    pthread_attr_t tmp;
+    bool destroy_attr = false;
+    if (attr == NULL) {
+      destroy_attr = true;
+      pthread_attr_init(&tmp);
+      attr = &tmp;
+    }
+	size_t defaultSize = 0L;
+    if (pthread_attr_getstacksize(attr, &defaultSize)) {
+      std::cerr << "APEX: ERROR - failed to get default pthread stack size.\n";
+    }
+	if (defaultSize > PTHREAD_STACK_MIN) {
+      if(pthread_attr_setstacksize(const_cast<pthread_attr_t*>(attr), PTHREAD_STACK_MIN)) {
+        std::cerr << "APEX: ERROR - failed to change pthread stack size from " << defaultSize << " to " << PTHREAD_STACK_MIN << std::endl;
+      }
+    }
+
     retval = pthread_create_call(threadp, attr, apex_pthread_function, (void*)pack);
+	if (destroy_attr) {
+	  pthread_attr_destroy(&tmp);
+	}
     *wrapped = 0;
   }
   return retval;
