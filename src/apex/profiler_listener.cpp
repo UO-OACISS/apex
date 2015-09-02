@@ -649,7 +649,7 @@ namespace apex {
     }
     */
 #endif
-      while(thequeue.try_dequeue(p)) {
+      while(!done && thequeue.try_dequeue(p)) {
         process_profile(p, 0);
       }
 
@@ -670,7 +670,7 @@ namespace apex {
     }
 
     // We might be done, but check to make sure the queue is empty
-    while(thequeue.try_dequeue(p)) {
+    while(!done && thequeue.try_dequeue(p)) {
       process_profile(p, 0);
     }
  
