@@ -232,15 +232,21 @@ int apex_pthread_join_wrapper(pthread_join_p pthread_join_call,
     ret = pthread_join_call(thread, retval);
   } else {
     wrapper->_wrapped = true;
+	/* DON'T do this for now - it creates too many events. Until we can figure
+	 * out how to get the profiler_listener to process the queues faster... */
+	/*
     // stop our current timer
     wrapper->yield();
     // start a new timer for the join event
     apex::profiler * p = apex::start("pthread_join");
+	*/
     ret = pthread_join_call(thread, retval);
+	/*
     // stop the timer for the join
     apex::stop(p);
     // restart our timer around the parent task
     wrapper->restart();
+	*/
     wrapper->_wrapped = false;
   }
   return ret;
