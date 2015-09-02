@@ -8,12 +8,32 @@
 #include <system_error>
 #include <unistd.h>
 #include <limits.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 
+/*
+ * This "class" is used to make sure APEX is initialized
+ * before the first pthread is created and finalized 
+ * when this object is destroyed.
+ */
 struct apex_system_wrapper_t
 {
   bool initialized;
   apex_system_wrapper_t() : initialized(true) {
     apex::init("APEX Pthread Wrapper");
+    /* 
+     * Here we are limiting the stack size to 16kB. Do it after we
+     * initialized APEX, because APEX spawns two other threads 
+     * that may require more. This limit might have to be a runtime option.
+     */
+    struct rlimit limits;
+    getrlimit(RLIMIT_STACK,&limits);
+    limits.rlim_cur = 16*1024;
+    limits.rlim_max = 16*1024;
+    int rc = setrlimit(RLIMIT_STACK,&limits);
+    if (rc != 0) { 
+      std::cerr << "WARNING: unable to cap the stack size..." << std::endl; 
+    }
   }
   virtual ~apex_system_wrapper_t() {
     apex::apex_options::use_screen_output(true);
@@ -21,6 +41,9 @@ struct apex_system_wrapper_t
   }
 };
 
+/*
+ * The "static" method to initialize APEX
+ */
 bool initialize_apex_system(void) {
   // this static object will be created once, when we need it.
   // when it is destructed, the apex finalization will happen.
@@ -31,19 +54,21 @@ bool initialize_apex_system(void) {
   return true;
 }
 
-
-///////////////////////////////////////////////////////////////////////////////
-// Below is the pthread_create wrapper
-///////////////////////////////////////////////////////////////////////////////
-
+/*
+ * Here are the keys for thread local variables
+ */
 static pthread_key_t wrapper_flags_key;
 static pthread_once_t key_once = PTHREAD_ONCE_INIT;
 
+/*
+ * This thread-local wrapper object is used to start,pause,
+ * restart and stop the timer around the pthread object.
+ */
 class apex_wrapper {
 public:
-  apex_wrapper(void) : _wrapped(false), _p(nullptr), _stopped(false), _func(nullptr) {
+  apex_wrapper(void) : _wrapped(false), _p(nullptr), _func(nullptr) {
   }
-  apex_wrapper(start_routine_p func) : _wrapped(false), _p(nullptr), _stopped(false), _func(func) {
+  apex_wrapper(start_routine_p func) : _wrapped(false), _p(nullptr), _func(func) {
     apex::register_thread("APEX pthread wrapper");
   }
   ~apex_wrapper() {
@@ -53,36 +78,34 @@ public:
   void start(void) {
     if (_func != NULL) {
       _p = apex::start((apex_function_address)_func);
-      _stopped = false;
     }
   }
   void restart(void) {
     if (_func != NULL) {
       _p = apex::resume((apex_function_address)_func);
-      _stopped = false;
     }
   }
   void yield(void) {
-    if (!_stopped && _p != NULL && !_p->stopped) {
+    if (_p != NULL && !_p->stopped) {
       apex::stop(_p);
-      _stopped = true;
       _p = nullptr;
     }
   }
   void stop(void) {
-    if (!_stopped && _p != NULL && !_p->stopped) {
+    if (_p != NULL && !_p->stopped) {
       apex::stop(_p);
-      _stopped = true;
       _p = nullptr;
     }
   }
   bool _wrapped;
 private:
   apex::profiler * _p;
-  bool _stopped;
   start_routine_p _func;
 };
 
+/*
+ * This is the destructor used to delete the thread local variable
+ */
 void delete_key(void* wrapper) {
   if (wrapper != NULL) {
     apex_wrapper * tmp = (apex_wrapper*)wrapper;
@@ -90,7 +113,11 @@ void delete_key(void* wrapper) {
   }
 }
 
+/*
+ * This key is made once, by the pthread system.
+ */
 static void make_key() { 
+  // create the key
   int rc = pthread_key_create(&wrapper_flags_key, &delete_key);
   switch (rc) {
     case EAGAIN: 
@@ -104,12 +131,18 @@ static void make_key() {
   }
 }
 
+/*
+ * this structure is used to wrap the true pthread function and its argument
+ */
 struct apex_pthread_pack
 {
   start_routine_p start_routine;
   void * arg;
 };
 
+/*
+ * This method is a proxy around the true pthread function.
+ */
 extern "C"
 void * apex_pthread_function(void *arg)
 {
@@ -129,51 +162,50 @@ void * apex_pthread_function(void *arg)
   return ret;
 }
 
+/*
+ * Helper method to get or create the thread local variable.
+ */
+apex_wrapper * get_tl_wrapper (void) {
+  apex_wrapper * wrapper = (apex_wrapper*)pthread_getspecific(wrapper_flags_key);
+  // if it doesn't exist, create one.
+  if (wrapper == NULL) {
+    wrapper = new apex_wrapper();
+    pthread_setspecific(wrapper_flags_key, (void*)wrapper);
+  }
+  return wrapper;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Below is the pthread_create wrapper
+///////////////////////////////////////////////////////////////////////////////
+
 extern "C"
 int apex_pthread_create_wrapper(pthread_create_p pthread_create_call,
     pthread_t * threadp, const pthread_attr_t * attr,
     start_routine_p start_routine, void * arg)
 {
+  // JUST ONCE, create the key
   (void) pthread_once(&key_once, make_key);
-  apex_wrapper * wrapper = (apex_wrapper*)pthread_getspecific(wrapper_flags_key);
-  if (wrapper == NULL) {
-    wrapper = new apex_wrapper();
-    pthread_setspecific(wrapper_flags_key, (void*)wrapper);
-  }
-
+  // get the thread-local variable
+  apex_wrapper * wrapper = get_tl_wrapper();
   int retval;
   if(wrapper->_wrapped) {
     // Another wrapper has already intercepted the call so just pass through
     retval = pthread_create_call(threadp, attr, start_routine, arg);
   } else {
-    wrapper->_wrapped = 1;
+    wrapper->_wrapped = true;
+    // JUST ONCE, initialize APEX. This can't be done in the make_key call,
+    // because apex::init will spawn 2 or more threads, which causes deadlock
     initialize_apex_system();
+
+    // pack the real start_routine and argument
     apex_pthread_pack * pack = new apex_pthread_pack;
     pack->start_routine = start_routine;
     pack->arg = arg;
 
-    pthread_attr_t tmp;
-    bool destroy_attr = false;
-    if (attr == NULL) {
-      destroy_attr = true;
-      pthread_attr_init(&tmp);
-      attr = &tmp;
-    }
-	size_t defaultSize = 0L;
-    if (pthread_attr_getstacksize(attr, &defaultSize)) {
-      std::cerr << "APEX: ERROR - failed to get default pthread stack size.\n";
-    }
-	if (defaultSize > PTHREAD_STACK_MIN) {
-      if(pthread_attr_setstacksize(const_cast<pthread_attr_t*>(attr), PTHREAD_STACK_MIN)) {
-        std::cerr << "APEX: ERROR - failed to change pthread stack size from " << defaultSize << " to " << PTHREAD_STACK_MIN << std::endl;
-      }
-    }
-
+    // create the pthread, pass in our proxy function and the packed data
     retval = pthread_create_call(threadp, attr, apex_pthread_function, (void*)pack);
-	if (destroy_attr) {
-	  pthread_attr_destroy(&tmp);
-	}
-    wrapper->_wrapped = 0;
+    wrapper->_wrapped = false;
   }
   return retval;
 }
@@ -182,26 +214,24 @@ extern "C"
 int apex_pthread_join_wrapper(pthread_join_p pthread_join_call,
     pthread_t thread, void ** retval)
 {
-  //(void) pthread_once(&key_once, make_key);
-  apex_wrapper * wrapper = (apex_wrapper*)pthread_getspecific(wrapper_flags_key);
-  if (wrapper == NULL) {
-    wrapper = new apex_wrapper();
-    pthread_setspecific(wrapper_flags_key, (void*)wrapper);
-  }
+  apex_wrapper * wrapper = get_tl_wrapper();
 
   int ret;
-  wrapper->yield();
+  // stop our current timer
   if(wrapper->_wrapped) {
     // Another wrapper has already intercepted the call so just pass through
     ret = pthread_join_call(thread, retval);
   } else {
-    wrapper->_wrapped = 1;
+    wrapper->_wrapped = true;
+    // start a new timer for the join event
+    wrapper->yield();
     apex::profiler * p = apex::start("pthread_join");
     ret = pthread_join_call(thread, retval);
     apex::stop(p);
-    wrapper->_wrapped = 0;
+    wrapper->restart();
+    wrapper->_wrapped = false;
   }
-  wrapper->restart();
+  // restart our timer around the parent task
   return ret;
 }
 

@@ -32,10 +32,10 @@ int fib (int in) {
         return 1;
     }
     int a = in-1;
-    auto future_a = std::async(fib, a);
+    auto future_a = std::async(std::launch::async, fib, a);
 
     int b = in-2;
-    auto future_b = std::async(fib, b);
+    auto future_b = std::async(std::launch::async, fib, b);
 
     int result_a = future_a.get();
     int result_b = future_b.get();
