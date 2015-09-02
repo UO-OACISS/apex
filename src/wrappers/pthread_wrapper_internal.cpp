@@ -196,7 +196,9 @@ int apex_pthread_join_wrapper(pthread_join_p pthread_join_call,
     ret = pthread_join_call(thread, retval);
   } else {
     wrapper->_wrapped = 1;
+    apex::profiler * p = apex::start("pthread_join");
     ret = pthread_join_call(thread, retval);
+    apex::stop(p);
     wrapper->_wrapped = 0;
   }
   wrapper->restart();
