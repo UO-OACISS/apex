@@ -78,6 +78,7 @@ int pthread_join(pthread_t thread, void ** retval)
   return apex_pthread_join_wrapper(_pthread_join, thread, retval);
 }
 
+#if 0
 void pthread_exit(void * value_ptr)
 {
   static pthread_exit_p _pthread_exit = NULL;
@@ -99,6 +100,7 @@ int pthread_barrier_wait(pthread_barrier_t * barrier)
   return apex_pthread_barrier_wait_wrapper(_pthread_barrier_wait, barrier);
 }
 #endif /* APEX_PTHREAD_BARRIER_AVAILABLE */
+#endif /* Disabling the exit and barrier wrappers */
 
 #else // Wrap via the the link line.
 
@@ -114,6 +116,7 @@ int __wrap_pthread_join(pthread_t thread, void **retval)
   return apex_pthread_join_wrapper(__real_pthread_join, thread, retval);
 }
 
+#if 0
 void __real_pthread_exit(void *);
 void __wrap_pthread_exit(void * value_ptr)
 {
@@ -127,5 +130,6 @@ int __wrap_pthread_barrier_wait(pthread_barrier_t * barrier)
   return apex_pthread_barrier_wait_wrapper(__real_pthread_barrier_wait, barrier);
 }
 #endif /* APEX_PTHREAD_BARRIER_AVAILABLE */
+#endif /* Disabling the exit and barrier wrappers */
 
 #endif //APEX_PRELOAD_LIB

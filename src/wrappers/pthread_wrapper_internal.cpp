@@ -182,7 +182,7 @@ extern "C"
 int apex_pthread_join_wrapper(pthread_join_p pthread_join_call,
     pthread_t thread, void ** retval)
 {
-  (void) pthread_once(&key_once, make_key);
+  //(void) pthread_once(&key_once, make_key);
   apex_wrapper * wrapper = (apex_wrapper*)pthread_getspecific(wrapper_flags_key);
   if (wrapper == NULL) {
     wrapper = new apex_wrapper();
@@ -205,10 +205,11 @@ int apex_pthread_join_wrapper(pthread_join_p pthread_join_call,
   return ret;
 }
 
+#if 0
 extern "C"
 void apex_pthread_exit_wrapper(pthread_exit_p pthread_exit_call, void * value_ptr)
 {
-  (void) pthread_once(&key_once, make_key);
+  //(void) pthread_once(&key_once, make_key);
   apex_wrapper * wrapper = (apex_wrapper*)pthread_getspecific(wrapper_flags_key);
   if (wrapper == NULL) {
     wrapper = new apex_wrapper();
@@ -232,7 +233,7 @@ extern "C"
 int apex_pthread_barrier_wait_wrapper(pthread_barrier_wait_p pthread_barrier_wait_call,
     pthread_barrier_t * barrier)
 {
-  (void) pthread_once(&key_once, make_key);
+  //(void) pthread_once(&key_once, make_key);
   apex_wrapper * wrapper = (apex_wrapper*)pthread_getspecific(wrapper_flags_key);
   if (wrapper == NULL) {
     wrapper = new apex_wrapper();
@@ -255,6 +256,7 @@ int apex_pthread_barrier_wait_wrapper(pthread_barrier_wait_p pthread_barrier_wai
   return retval;
 }
 #endif /* APEX_PTHREAD_BARRIER_AVAILABLE */
+#endif
 
 extern "C"
 int apex_pthread_create(pthread_t * threadp, const pthread_attr_t * attr,
@@ -269,6 +271,7 @@ int apex_pthread_join(pthread_t thread, void ** retval)
   return apex_pthread_join_wrapper(pthread_join, thread, retval);
 }
 
+#if 0
 extern "C"
 void apex_pthread_exit(void * value_ptr)
 {
@@ -283,3 +286,4 @@ int apex_pthread_barrier_wait(pthread_barrier_t * barrier)
 }
 
 #endif /* APEX_PTHREAD_BARRIER_AVAILABLE */
+#endif
