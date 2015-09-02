@@ -24,12 +24,17 @@ struct apex_system_wrapper_t
     /* 
      * Here we are limiting the stack size to 16kB. Do it after we
      * initialized APEX, because APEX spawns two other threads 
-     * that may require more. This limit might have to be a runtime option.
+     * that may require more. This limit can be overridden with a runtime option.
      */
     struct rlimit limits;
     getrlimit(RLIMIT_STACK,&limits);
-    limits.rlim_cur = 16*1024;
-    limits.rlim_max = 16*1024;
+    if (apex::apex_options::pthread_wrapper_stack_size() != 0) {
+      limits.rlim_cur = apex::apex_options::pthread_wrapper_stack_size();
+      limits.rlim_max = apex::apex_options::pthread_wrapper_stack_size();
+    } else {
+      limits.rlim_cur = 16384;
+      limits.rlim_max = 16384;
+    }
     int rc = setrlimit(RLIMIT_STACK,&limits);
     if (rc != 0) { 
       std::cerr << "WARNING: unable to cap the stack size..." << std::endl; 
@@ -61,8 +66,8 @@ static pthread_key_t wrapper_flags_key;
 static pthread_once_t key_once = PTHREAD_ONCE_INIT;
 
 /*
- * This thread-local wrapper object is used to start,pause,
- * restart and stop the timer around the pthread object.
+ * This thread-local wrapper object is used to register, start, pause,
+ * restart, stop, and exit the timer around the pthread object.
  */
 class apex_wrapper {
 public:
@@ -150,14 +155,19 @@ void * apex_pthread_function(void *arg)
   void * ret = nullptr;
 
   apex_wrapper * wrapper = (apex_wrapper*)pthread_getspecific(wrapper_flags_key);
+  // if it doesn't exist, create one.
   if (wrapper == NULL) {
     wrapper = new apex_wrapper(pack->start_routine);
     pthread_setspecific(wrapper_flags_key, (void*)wrapper);
   }
 
+  // start the timer
   wrapper->start();
+  // call the *real* function
   ret = pack->start_routine(pack->arg);
+  // stop the timer
   wrapper->stop();
+  // delete our packer
   delete pack;
   return ret;
 }
@@ -217,21 +227,22 @@ int apex_pthread_join_wrapper(pthread_join_p pthread_join_call,
   apex_wrapper * wrapper = get_tl_wrapper();
 
   int ret;
-  // stop our current timer
   if(wrapper->_wrapped) {
     // Another wrapper has already intercepted the call so just pass through
     ret = pthread_join_call(thread, retval);
   } else {
     wrapper->_wrapped = true;
-    // start a new timer for the join event
+    // stop our current timer
     wrapper->yield();
+    // start a new timer for the join event
     apex::profiler * p = apex::start("pthread_join");
     ret = pthread_join_call(thread, retval);
+    // stop the timer for the join
     apex::stop(p);
+    // restart our timer around the parent task
     wrapper->restart();
     wrapper->_wrapped = false;
   }
-  // restart our timer around the parent task
   return ret;
 }
 
