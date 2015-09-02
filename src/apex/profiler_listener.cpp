@@ -673,6 +673,10 @@ namespace apex {
     while(!done && thequeue.try_dequeue(p)) {
       process_profile(p, 0);
     }
+	size_t ignored = thequeue.size_approx();
+	if (ignored > 0) {
+	  std::cerr << "Warning: " << ignored << " items ignored on on the profiler_listener queue." << std::endl;
+	}
  
     // stop the main timer, and process that profile
     //main_timer->stop();
