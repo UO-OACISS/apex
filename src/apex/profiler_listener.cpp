@@ -71,6 +71,9 @@
 #include <TAU.h>
 #endif
 
+#include <future>
+#include <thread>
+
 using namespace std;
 using namespace apex;
 
@@ -636,7 +639,6 @@ namespace apex {
 #endif
 
     profiler* p;
-    unsigned int i;
     // Main loop. Stay in this loop unless "done".
 #ifndef APEX_HAVE_HPX3
     while (!done) {
@@ -652,6 +654,22 @@ namespace apex {
       while(!done && thequeue.try_dequeue(p)) {
         process_profile(p, 0);
       }
+      /* 
+       * I want to process the tasks concurrently, but this loop
+       * is too much overhead. Maybe dequeue them in batches?
+       */
+      /*
+      std::vector<std::future<unsigned int>> pending_futures;
+      while(!done && thequeue.try_dequeue(p)) {
+          auto f = std::async(process_profile,p,0);
+          // transfer the future's shared state to a longer-lived future
+          pending_futures.push_back(std::move(f));
+      }
+      std::vector<std::future<unsigned int>>::iterator iter;
+      for (iter = pending_futures.begin() ; iter < pending_futures.end() ; iter++ ) {
+          iter->get();
+      }
+      */
 
 #ifdef USE_UDP
       // are we updating a global profile?
@@ -671,6 +689,7 @@ namespace apex {
 
     // We might be done, but check to make sure the queue is empty
     while(!done && thequeue.try_dequeue(p)) {
+    //while(thequeue.try_dequeue(p)) {
       process_profile(p, 0);
     }
 	size_t ignored = thequeue.size_approx();
