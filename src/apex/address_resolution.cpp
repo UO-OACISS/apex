@@ -87,13 +87,13 @@ namespace apex {
     if (!node) {
       node = new OmpHashNode;
       Apex_bfd_resolveBfdInfo(OmpbfdUnitHandle, ip, node->info);
-	  if (node->info.funcname) {
+      if (node->info.funcname) {
         location << node->info.funcname ;
-	  }
+      }
       if (withFileInfo) {
-	    location << " [{" ;
-	    if (node->info.filename) {
-	        location << node->info.filename ;
+        location << " [{" ;
+        if (node->info.filename) {
+            location << node->info.filename ;
         }
         location << "} {" << node->info.lineno << ",0}]";
       }

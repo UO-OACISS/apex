@@ -17,14 +17,14 @@ public:
   }
   ~apex_proxy() { 
     if (p != nullptr) { 
-	  apex::stop(p);
+      apex::stop(p);
     }
-	apex::exit_thread();
+    apex::exit_thread();
   }
 };
 
 int fib (int in) {
-	//apex_proxy foo((void*)&fib);
+    //apex_proxy foo((void*)&fib);
     if (in == 0) {
         return 0;
     }
@@ -44,24 +44,24 @@ int fib (int in) {
 
 int main(int argc, char *argv[]) {
     //apex::init("apex_fibonacci_pthreads unit test");
-	int i = 10;
+    int i = 10;
 
-	if (argc != 2) {
-		std::cerr << "usage: pthreads <integer value>" << std::endl;
-		std::cerr << "Using default value of 10" << std::endl;
-	} else {
-	    i = atol(argv[1]);
-	}
+    if (argc != 2) {
+        std::cerr << "usage: pthreads <integer value>" << std::endl;
+        std::cerr << "Using default value of 10" << std::endl;
+    } else {
+        i = atol(argv[1]);
+    }
 
-	if (i < 1) {
-		std::cerr << i << " must be>= 1" << std::endl;
-		return -1;
-	}
+    if (i < 1) {
+        std::cerr << i << " must be>= 1" << std::endl;
+        return -1;
+    }
 
     auto future = std::async(fib, i);
     int result = future.get();
     std::cout << "fib of " << i << " is " << result << " (valid value: " << fib_results[i] << ")" << std::endl;
-	//apex::finalize();
+    //apex::finalize();
     return 0;
 }
 

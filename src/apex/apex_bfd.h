@@ -8,13 +8,13 @@
 
 #include <vector>
 
-#define APEX_BFD_SYMTAB_LOAD_FAILED		(0)
-#define APEX_BFD_SYMTAB_LOAD_SUCCESS		(1)
-#define APEX_BFD_SYMTAB_NOT_LOADED		(3)
+#define APEX_BFD_SYMTAB_LOAD_FAILED        (0)
+#define APEX_BFD_SYMTAB_LOAD_SUCCESS        (1)
+#define APEX_BFD_SYMTAB_NOT_LOADED        (3)
 
-#define APEX_BFD_NULL_HANDLE				(-1)
-#define APEX_BFD_NULL_MODULE_HANDLE		(-1)
-#define APEX_BFD_INVALID_MODULE			(-2)
+#define APEX_BFD_NULL_HANDLE                (-1)
+#define APEX_BFD_NULL_MODULE_HANDLE        (-1)
+#define APEX_BFD_INVALID_MODULE            (-2)
 
 // Iterator function type.  Accepts a symbol address and name.
 // The name should be an approximation of the full name, for example,
@@ -27,53 +27,53 @@ typedef int apex_bfd_module_handle_t;
 
 struct ApexBfdAddrMap
 {
-	ApexBfdAddrMap() :
-		start(0), end(0), offset(0)
-	{ }
+    ApexBfdAddrMap() :
+        start(0), end(0), offset(0)
+    { }
 
-	ApexBfdAddrMap(unsigned long _start, unsigned long _end,
-			unsigned long _offset, char const * _name) :
-		start(_start), end(_end), offset(_offset)
-	{
-		// Safely copy the name string and always
-		// end with a NUL char.
-		int end = 1;
-		if(_name != NULL) {
-			strncpy(name, _name, sizeof(name));
-			end = sizeof(name);
-		}
-		name[end-1] = '\0';
-	}
+    ApexBfdAddrMap(unsigned long _start, unsigned long _end,
+            unsigned long _offset, char const * _name) :
+        start(_start), end(_end), offset(_offset)
+    {
+        // Safely copy the name string and always
+        // end with a NUL char.
+        int end = 1;
+        if(_name != NULL) {
+            strncpy(name, _name, sizeof(name));
+            end = sizeof(name);
+        }
+        name[end-1] = '\0';
+    }
 
-	unsigned long start;
-	unsigned long end;
-	unsigned long offset;
-	char name[512];
+    unsigned long start;
+    unsigned long end;
+    unsigned long offset;
+    char name[512];
 };
 
 struct ApexBfdInfo
 {
-	ApexBfdInfo() :
-		probeAddr(0), filename(NULL), funcname(NULL), 
+    ApexBfdInfo() :
+        probeAddr(0), filename(NULL), funcname(NULL), 
                 lineno(-1), discriminator(0)
-	{ }
+    { }
         
-	// Makes all fields safe to query
-	void secure(unsigned long addr) {
-		probeAddr = addr;
-		if(!funcname) {
-			char * tmp = (char*)malloc(256);
-			sprintf(tmp, "addr=<%p>", (void*)(addr));
-			funcname = tmp;
-		}
-		if(!filename) filename = "(unknown)";
-		if(lineno < 0) lineno = 0;
-	}
+    // Makes all fields safe to query
+    void secure(unsigned long addr) {
+        probeAddr = addr;
+        if(!funcname) {
+            char * tmp = (char*)malloc(256);
+            sprintf(tmp, "addr=<%p>", (void*)(addr));
+            funcname = tmp;
+        }
+        if(!filename) filename = "(unknown)";
+        if(lineno < 0) lineno = 0;
+    }
 
-	unsigned long probeAddr;
-	char const * filename;
-	char const * funcname;
-	int lineno;
+    unsigned long probeAddr;
+    char const * filename;
+    char const * funcname;
+    int lineno;
         unsigned int discriminator;
 };
 
@@ -101,7 +101,7 @@ void Apex_bfd_updateAddressMaps(apex_bfd_handle_t handle);
 // Searches the appropriate shared libraries and/or the executable
 // for information.
 bool Apex_bfd_resolveBfdInfo(apex_bfd_handle_t handle,
-		unsigned long probeAddr, ApexBfdInfo & info);
+        unsigned long probeAddr, ApexBfdInfo & info);
 
 // Fast scan of the executable symbol table.
 int Apex_bfd_processBfdExecInfo(apex_bfd_handle_t handle, ApexBfdIterFn fn);
@@ -112,7 +112,7 @@ int Apex_bfd_processBfdExecInfo(apex_bfd_handle_t handle, ApexBfdIterFn fn);
 // application (e.g. a shared library in a large application).
 // Instead, use Apex_bfd_resolveBfdInfo as needed.
 int Apex_bfd_processBfdModuleInfo(apex_bfd_handle_t handle,
-		apex_bfd_module_handle_t moduleHandle,ApexBfdIterFn fn);
+        apex_bfd_module_handle_t moduleHandle,ApexBfdIterFn fn);
 
 //
 // Query functions

@@ -35,8 +35,8 @@ public:
     std::chrono::CLOCK_TYPE::time_point start;
     std::chrono::CLOCK_TYPE::time_point end;
 #if APEX_HAVE_PAPI
-	long long papi_start_values[8];
-	long long papi_stop_values[8];
+    long long papi_start_values[8];
+    long long papi_stop_values[8];
 #endif
     double value;
     double children_value;
@@ -50,34 +50,34 @@ public:
     profiler(apex_function_address address,
              bool resume = false, 
              reset_type reset = reset_type::NONE) : 
-	    start(std::chrono::CLOCK_TYPE::now()), 
+        start(std::chrono::CLOCK_TYPE::now()), 
         value(0.0),
         children_value(0.0),
-	    action_address(address), 
-	    timer_name(nullptr), 
-	    have_name(false), 
-	    is_counter(false),
+        action_address(address), 
+        timer_name(nullptr), 
+        have_name(false), 
+        is_counter(false),
         is_resume(resume),
         is_reset(reset), stopped(false) {};
     profiler(std::string * name, 
              bool resume = false, 
              reset_type reset = reset_type::NONE) : 
-	    start(std::chrono::CLOCK_TYPE::now()), 
-	    value(0.0), 
+        start(std::chrono::CLOCK_TYPE::now()), 
+        value(0.0), 
         children_value(0.0),
-	    action_address(0L), 
-	    timer_name(name), 
-	    have_name(true), 
-	    is_counter(false),
+        action_address(0L), 
+        timer_name(name), 
+        have_name(true), 
+        is_counter(false),
         is_resume(resume),
         is_reset(reset), stopped(false) {};
     profiler(std::string * name, double value_) : 
-	    value(value_), 
+        value(value_), 
         children_value(0.0),
-	    action_address(0L), 
-	    timer_name(name), 
-	    have_name(true), 
-	    is_counter(true),
+        action_address(0L), 
+        timer_name(name), 
+        have_name(true), 
+        is_counter(true),
         is_resume(false),
         is_reset(reset_type::NONE), stopped(true) { }; 
     //copy constructor
@@ -86,8 +86,8 @@ public:
     //end = in->start;
 #if APEX_HAVE_PAPI
         for (int i = 0 ; i < 8 ; i++) {
-	        papi_start_values[i] = in->papi_start_values[i];
-	        papi_stop_values[i] = in->papi_stop_values[i];
+            papi_start_values[i] = in->papi_start_values[i];
+            papi_stop_values[i] = in->papi_stop_values[i];
         }
 #endif
     value = in->elapsed();
@@ -108,19 +108,19 @@ public:
         this->is_resume = is_resume;
         end = std::chrono::CLOCK_TYPE::now();
         stopped = true;
-	};
+    };
     void stop() {
       end = std::chrono::CLOCK_TYPE::now();
       stopped = true;
-	};
-	double elapsed(void) {
+    };
+    double elapsed(void) {
         if(is_counter) {
             return value;
         } else {
             std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
             return time_span.count();
         }
-	}
+    }
     double exclusive_elapsed(void) {
         return elapsed() - children_value;
     }

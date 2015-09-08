@@ -102,12 +102,12 @@ int policy_event(apex_context const context) {
         }
         default:
         {
-			if (context.event_type < APEX_MAX_EVENTS) {
-            	printf("Custom event 2.\n");
-			} else {
-            	printf("Unknown event type!\n");
-            	exit(-1);
-			}
+            if (context.event_type < APEX_MAX_EVENTS) {
+                printf("Custom event 2.\n");
+            } else {
+                printf("Unknown event type!\n");
+                exit(-1);
+            }
             break;
         }
     }

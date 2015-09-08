@@ -718,8 +718,8 @@ inline void __apex_active_harmony_setup(void) {
             endl << harmony_error_string(hdesc) << endl;
         return;
     }
-		__num_ah_inputs = 1;
-		__ah_inputs[0] = &thread_cap;
+        __num_ah_inputs = 1;
+        __ah_inputs[0] = &thread_cap;
     if (harmony_bind_int(hdesc, "thread_cap", &thread_cap) != 0) {
         cerr << "Failed to register Active Harmony variable" << endl;
         return;
@@ -746,7 +746,7 @@ inline void __active_harmony_throughput_setup(int num_inputs, long ** inputs, lo
         return;
     }
     char tmpstr[12] = {0};
-		__num_ah_inputs = num_inputs;
+        __num_ah_inputs = num_inputs;
     for (int i = 0 ; i < num_inputs ; i++ ) {
         sprintf (tmpstr, "param_%d", i);
         if (harmony_int(hdesc, tmpstr, mins[i], maxs[i], steps[i]) != 0) {
@@ -765,7 +765,7 @@ inline void __active_harmony_throughput_setup(int num_inputs, long ** inputs, lo
             cerr << "Failed to register Active Harmony variable" << endl;
             return;
         }
-				__ah_inputs[i] = inputs[i];
+                __ah_inputs[i] = inputs[i];
     }
     if (harmony_join(hdesc, NULL, 0, session_name) != 0) {
         cerr << "Failed to join Active Harmony tuning session" << endl;

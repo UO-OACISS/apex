@@ -106,16 +106,16 @@ void tau_listener::on_stop(std::shared_ptr<profiler> p) {
         if (p->timer_name->compare(empty) == 0) {
           //printf("TAU stopping: GLOBAL\n");
           TAU_GLOBAL_TIMER_STOP(); // stop the top level timer
-	    } else {
+        } else {
           //printf("TAU stopping: '%s'\n", p->timer_name->c_str());
           TAU_STOP(p->timer_name->c_str());
-	    }
+        }
       } else {
         if (p->action_address == 0) {
           TAU_GLOBAL_TIMER_STOP(); // stop the top level timer
-	    } else {
-      	  TAU_STOP(thread_instance::instance().map_addr_to_name(p->action_address).c_str());
-	    }
+        } else {
+            TAU_STOP(thread_instance::instance().map_addr_to_name(p->action_address).c_str());
+        }
       }
   }
   return;

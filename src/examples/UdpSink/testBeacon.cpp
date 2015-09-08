@@ -86,7 +86,7 @@ void* someUntimedThread(void* tmp)
 #endif
   int i = 0;
   for (i = 0 ; i < ITERATIONS ; i++) {
-	  foo(i);
+      foo(i);
   }
   proxy.stop();
   apex::exit_thread();

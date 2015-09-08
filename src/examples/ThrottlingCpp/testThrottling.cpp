@@ -55,7 +55,7 @@ void* someThread(void* tmp)
         // sleep a bit
         nanosleep(&tim , &tim2);
       } else {
-	    foo(total_iterations);
+        foo(total_iterations);
         __sync_fetch_and_sub(&(total_iterations),1);
         if (total_iterations % 1000 == 0) {
             printf("%d iterations left, cap is %d\n", total_iterations, get_thread_cap());

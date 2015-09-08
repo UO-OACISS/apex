@@ -17,7 +17,7 @@ private:
     FOREACH_APEX_STRING_OPTION(apex_macro)
 #undef apex_macro
     /* Declare the constructor, only used by the "instance" method.
-	 * it is defined in the cpp file. */
+     * it is defined in the cpp file. */
     apex_options(void);
     /* Disable the copy and assign methods. */
     apex_options(apex_options const&)    = delete;
@@ -25,14 +25,14 @@ private:
 public:
     /* The "instance" method. */
     static apex_options& instance(void);
-	/* The getter and setter methods */
+    /* The getter and setter methods */
 #define apex_macro(name, member_variable, type, default_value) \
     APEX_EXPORT static void member_variable (type inval); \
     APEX_EXPORT static type member_variable (void);
     FOREACH_APEX_OPTION(apex_macro)
     FOREACH_APEX_STRING_OPTION(apex_macro)
 #undef apex_macro
-	/* The debugging methods */
+    /* The debugging methods */
     APEX_EXPORT static void print_options(void);
 };
 

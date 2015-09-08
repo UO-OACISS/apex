@@ -143,28 +143,28 @@ void apex::_initialize()
     tmp << std::endl << "Built on: " << __TIME__ << " " << __DATE__;
     tmp << std::endl << "C++ Language Standard version : " << __cplusplus;
 #if defined(__clang__)
-	/* Clang/LLVM. ---------------------------------------------- */
+    /* Clang/LLVM. ---------------------------------------------- */
     tmp << std::endl << "Clang Compiler version : " << __VERSION__;
 #elif defined(__ICC) || defined(__INTEL_COMPILER)
-	/* Intel ICC/ICPC. ------------------------------------------ */
+    /* Intel ICC/ICPC. ------------------------------------------ */
     tmp << std::endl << "Intel Compiler version : " << __VERSION__;
 #elif defined(__GNUC__) || defined(__GNUG__)
-	/* GNU GCC/G++. --------------------------------------------- */
+    /* GNU GCC/G++. --------------------------------------------- */
     tmp << std::endl << "GCC Compiler version : " << __VERSION__;
 #elif defined(__HP_cc) || defined(__HP_aCC)
-	/* Hewlett-Packard C/aC++. ---------------------------------- */
+    /* Hewlett-Packard C/aC++. ---------------------------------- */
     tmp << std::endl << "HP Compiler version : " << __HP_aCC;
 #elif defined(__IBMC__) || defined(__IBMCPP__)
-	/* IBM XL C/C++. -------------------------------------------- */
+    /* IBM XL C/C++. -------------------------------------------- */
     tmp << std::endl << "IBM Compiler version : " << __xlC__;
 #elif defined(_MSC_VER)
-	/* Microsoft Visual Studio. --------------------------------- */
+    /* Microsoft Visual Studio. --------------------------------- */
     tmp << std::endl << "Microsoft Compiler version : " << _MSC_FULL_VER;
 #elif defined(__PGI)
-	/* Portland Group PGCC/PGCPP. ------------------------------- */
+    /* Portland Group PGCC/PGCPP. ------------------------------- */
     tmp << std::endl << "PGI Compiler version : " << __VERSION__;
 #elif defined(__SUNPRO_CC)
-	/* Oracle Solaris Studio. ----------------------------------- */
+    /* Oracle Solaris Studio. ----------------------------------- */
     tmp << std::endl << "Oracle Compiler version : " << __SUNPRO_CC;
 #endif
 
@@ -295,7 +295,7 @@ void init(const char * thread_name)
       start("APEX MAIN THREAD");
     }
 #else 
-	APEX_UNUSED(thread_name);
+    APEX_UNUSED(thread_name);
 #endif
 #ifdef APEX_DEBUG
     apex_options::print_options();
@@ -323,7 +323,7 @@ void init(int argc, char** argv, const char * thread_name)
       start("APEX MAIN THREAD");
     }
 #else 
-	APEX_UNUSED(thread_name);
+    APEX_UNUSED(thread_name);
 #endif
 }
 
@@ -673,7 +673,7 @@ void set_interrupt_interval(int seconds)
 #ifdef APEX_HAVE_TAU
     TAU_SET_INTERRUPT_INTERVAL(seconds);
 #else 
-	APEX_UNUSED(seconds);
+    APEX_UNUSED(seconds);
 #endif
 }
 
@@ -816,12 +816,12 @@ std::set<apex_policy_handle*> register_policy(std::set<apex_event_type> when,
                     std::function<int(apex_context const&)> f)
 {
     std::set<apex_event_type>::iterator it;
-	std::set<apex_policy_handle*> handles;
+    std::set<apex_policy_handle*> handles;
     for (it = when.begin(); it != when.end(); ++it)
     {
         handles.insert(register_policy(*it,f));
-	}
-	return handles;
+    }
+    return handles;
 }
 
 /* How to do it with a chrono object. */

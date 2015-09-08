@@ -107,7 +107,7 @@ public:
                         std::function<int(apex_context const&)> f);
     int deregister_policy(apex_policy_handle * handle);
     bool _handler(void);
-	void _reset(void);
+    void _reset(void);
 };
 
 }

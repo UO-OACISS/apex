@@ -87,7 +87,7 @@ void* someUntimedThread(void* tmp)
   { // only time this for loop
     ApexProxy proxy = ApexProxy((apex_function_address)someUntimedThread);
     for (i = 0 ; i < ITERATIONS ; i++) {
-	    total += foo(i);
+        total += foo(i);
     }
   }
 #if defined (__APPLE__)

@@ -58,7 +58,7 @@ void* someThread(void* tmp)
         nanosleep(&tim , &tim2);
         apex_set_state(APEX_BUSY);
       } else {
-	    foo(total_iterations);
+        foo(total_iterations);
         __sync_fetch_and_sub(&(total_iterations),1);
         if (total_iterations % 1000 == 0) {
             printf("%d iterations left, cap is %d\n", total_iterations, apex_get_thread_cap());

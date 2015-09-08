@@ -408,9 +408,9 @@ namespace apex {
       }
 #endif
       if (p->get_calls() < 999999) {
-      	cout << PAD_WITH_SPACES % p->get_calls() << "   " ;
+          cout << PAD_WITH_SPACES % p->get_calls() << "   " ;
       } else {
-      	cout << FORMAT_SCIENTIFIC % p->get_calls() << "   " ;
+          cout << FORMAT_SCIENTIFIC % p->get_calls() << "   " ;
       }
       cout << FORMAT_SCIENTIFIC % p->get_minimum() << "   " ;
       cout << FORMAT_SCIENTIFIC % p->get_mean() << "   " ;
@@ -430,11 +430,11 @@ namespace apex {
         boost::sregex_token_iterator token(action_name.begin(), action_name.end(), separator, -1);
         *token++; // ignore
         string addr_str = *token++;
-	void* addr_addr;
-	sscanf(addr_str.c_str(), "%p", &addr_addr);
+    void* addr_addr;
+    sscanf(addr_str.c_str(), "%p", &addr_addr);
         string * tmp = lookup_address((uintptr_t)addr_addr, true);
         boost::regex old_address("UNRESOLVED ADDR " + addr_str);
-	action_name = boost::regex_replace(action_name, old_address, *tmp);
+    action_name = boost::regex_replace(action_name, old_address, *tmp);
       }
 #endif
       string shorter(action_name);
@@ -460,9 +460,9 @@ namespace apex {
         p->get_profile()->calls = 1;
       }
       if (p->get_calls() < 999999) {
-      	cout << PAD_WITH_SPACES % p->get_calls() << "   " ;
+          cout << PAD_WITH_SPACES % p->get_calls() << "   " ;
       } else {
-      	cout << FORMAT_SCIENTIFIC % p->get_calls() << "   " ;
+          cout << FORMAT_SCIENTIFIC % p->get_calls() << "   " ;
       }
       cout << FORMAT_SCIENTIFIC % p->get_minimum() << "   " ;
       cout << FORMAT_SCIENTIFIC % p->get_mean() << "   " ;
@@ -582,11 +582,11 @@ namespace apex {
         boost::sregex_token_iterator token(action_name.begin(), action_name.end(), separator, -1);
         *token++; // ignore
         string addr_str = *token++;
-	void* addr_addr;
-	sscanf(addr_str.c_str(), "%p", &addr_addr);
+    void* addr_addr;
+    sscanf(addr_str.c_str(), "%p", &addr_addr);
         string * tmp = lookup_address((uintptr_t)addr_addr, true);
         boost::regex old_address("UNRESOLVED ADDR " + addr_str);
-	action_name = boost::regex_replace(action_name, old_address, *tmp);
+    action_name = boost::regex_replace(action_name, old_address, *tmp);
       }
 #endif
           myfile << "\"" << action_name << "\" ";
@@ -692,10 +692,10 @@ namespace apex {
     //while(thequeue.try_dequeue(p)) {
       process_profile(p, 0);
     }
-	size_t ignored = thequeue.size_approx();
-	if (ignored > 0) {
-	  std::cerr << "Warning: " << ignored << " items ignored on on the profiler_listener queue." << std::endl;
-	}
+    size_t ignored = thequeue.size_approx();
+    if (ignored > 0) {
+      std::cerr << "Warning: " << ignored << " items ignored on on the profiler_listener queue." << std::endl;
+    }
  
     // stop the main timer, and process that profile
     //main_timer->stop();
@@ -846,7 +846,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       // time the whole application.
       //main_timer = std::shared_ptr<profiler>(new profiler(new string(APEX_MAIN)));
     }
-	APEX_UNUSED(data);
+    APEX_UNUSED(data);
   }
 
   /* On the shutdown event, notify the consumer thread that we are done
@@ -919,7 +919,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   void profiler_listener::on_new_node(node_event_data &data) {
     if (!_terminate) {
     }
-	APEX_UNUSED(data);
+    APEX_UNUSED(data);
   }
 
   /* When a new thread is registered, expand all of our storage as necessary
@@ -948,7 +948,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       event_sets[my_tid] = EventSet;
 #endif
     }
-	APEX_UNUSED(data);
+    APEX_UNUSED(data);
   }
 
   /* When a start event happens, create a profiler object. Unless this
@@ -1105,14 +1105,14 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   void profiler_listener::on_periodic(periodic_event_data &data) {
     if (!_terminate) {
     }
-	APEX_UNUSED(data);
+    APEX_UNUSED(data);
   }
 
   /* For custom event stuff. Do something? */
   void profiler_listener::on_custom_event(custom_event_data &data) {
     if (!_terminate) {
     }
-	APEX_UNUSED(data);
+    APEX_UNUSED(data);
   }
 
   void profiler_listener::reset(apex_function_address function_address) {

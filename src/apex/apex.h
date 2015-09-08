@@ -77,10 +77,10 @@ APEX_EXPORT void apex_finalize();
 /**
  \brief Cleanup APEX.
  \warning For best results, this function should be explicitly called 
-					to free all memory allocated by APEX. If not explicitly called from
-					the application or runtime, it will be automatically called when the
-					APEX main singleton object is destructed. apex_finalize will be 
-					automatically called from apex_cleanup if it has not yet been called.
+                    to free all memory allocated by APEX. If not explicitly called from
+                    the application or runtime, it will be automatically called when the
+                    APEX main singleton object is destructed. apex_finalize will be 
+                    automatically called from apex_cleanup if it has not yet been called.
  
  The cleanup method will free all allocated memory for APEX.
  \return No return value.
@@ -106,8 +106,8 @@ APEX_EXPORT void apex_cleanup();
              char *" pointer to the name of the timer.
  \return The handle for the timer object in APEX. Not intended to be
          queried by the application. Should be retained locally, if
-		 possible, and passed in to the matching @ref apex_stop
-		 call when the timer should be stopped.
+         possible, and passed in to the matching @ref apex_stop
+         call when the timer should be stopped.
  \sa @ref apex_stop, @ref apex_resume, @ref apex_yield
  */
 APEX_EXPORT apex_profiler_handle apex_start(apex_profiler_type type, void * identifier);
@@ -156,8 +156,8 @@ APEX_EXPORT void apex_yield(apex_profiler_handle profiler);
              char *" pointer to the name of the timer.
  \return The handle for the timer object in APEX. Not intended to be
          queried by the application. Should be retained locally, if
-		 possible, and passed in to the matching @ref apex_stop
-		 call when the timer should be stopped.
+         possible, and passed in to the matching @ref apex_stop
+         call when the timer should be stopped.
  \sa @ref apex_start, @ref apex_stop, @ref apex_yield
 */
 APEX_EXPORT apex_profiler_handle apex_resume(apex_profiler_type type, void * identifier);

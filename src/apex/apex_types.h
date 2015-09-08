@@ -103,9 +103,9 @@ typedef enum {APEX_SIMPLE_HYSTERESIS,      /*!< optimize using sliding window of
                                                historical observations. A running
                                                average of the most recent N observations
                                                are used as the measurement. */
-	          APEX_DISCRETE_HILL_CLIMBING, /*!< Use a discrete hill climbing algorithm
+              APEX_DISCRETE_HILL_CLIMBING, /*!< Use a discrete hill climbing algorithm
                                                for optimization */
-	          APEX_ACTIVE_HARMONY          /*!< Use Active Harmony for optimization. */
+              APEX_ACTIVE_HARMONY          /*!< Use Active Harmony for optimization. */
 } apex_optimization_method_t;
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
