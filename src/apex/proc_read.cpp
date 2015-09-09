@@ -275,9 +275,6 @@ void ProcData::stop_reading(void) {
 
 void ProcData::sample_values(void) {
   long long total;
-  double idle_ratio;
-  double user_ratio;
-  double system_ratio;
   CPUs::iterator iter = cpus.begin();
   CPUStat* cpu_stat=*iter;
   // convert all measurements from "Jiffies" to seconds
