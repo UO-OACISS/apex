@@ -118,7 +118,7 @@ endif()
 set(PEDANTIC_COMPILER_WARNINGS "-Wall -Wextra -Wno-unused-local-typedefs -Wno-strict-aliasing -Wno-sign-promo -Wno-attributes -Wno-cast-align -Wno-unused-parameter -Wno-ignored-qualifiers -Wformat=2 -Wno-format-nonliteral -Winit-self -Wdouble-promotion -Wcast-qual -Wcast-align -Werror=trampolines -Werror=parentheses -Werror=reorder -Werror=return-type -Werror=sequence-point -Werror=format -Werror=missing-braces -Werror=sign-compare -fdiagnostics-show-option -Werror=vla -Werror=return-type -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Werror=uninitialized -Wno-unused-local-typedefs -Wno-sync-nand -Wno-delete-non-virtual-dtor ")
 set(NORMAL_COMPILER_WARNINGS "-Wextra -Waddress -Warray-bounds -Wuninitialized -Wreturn-type -Wall -fno-omit-frame-pointer ")
 
-set(CMAKE_CXX_FLAGS_RELEASE "-g -O3 -DNDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "-g -O3 -flto -DNDEBUG")
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   # using Clang
   set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 ${PEDANTIC_COMPILER_WARNINGS} -DAPEX_DEBUG")
@@ -131,6 +131,8 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   # using Visual Studio C++
 endif()
+set(CMAKE_C_FLAGS_RELEASE ${CMAKE_CXX_FLAGS_RELEASE})
+set(CMAKE_C_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
 
 # The version number.
 set (APEX_VERSION_MAJOR 0)
