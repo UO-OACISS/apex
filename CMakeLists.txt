@@ -115,17 +115,19 @@ endif()
 # Compiler detection code
 ################################################################################
 
-set(CXX_PEDANTIC_COMPILER_WARNINGS "-Wall -Wextra -Wno-unused-local-typedefs -Wno-strict-aliasing -Wno-sign-promo -Wno-attributes -Wno-cast-align -Wno-unused-parameter -Wno-ignored-qualifiers -Wformat=2 -Wno-format-nonliteral -Winit-self -Wdouble-promotion -Wcast-qual -Wcast-align -Werror=trampolines -Werror=parentheses -Werror=reorder -Werror=return-type -Werror=sequence-point -Werror=format -Werror=missing-braces -Werror=sign-compare -fdiagnostics-show-option -Werror=vla -Werror=return-type -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Werror=uninitialized -Wno-unused-local-typedefs -Wno-sync-nand -Wno-delete-non-virtual-dtor ")
-set(C_PEDANTIC_COMPILER_WARNINGS "-Wall -Wextra -Wno-unused-local-typedefs -Wno-strict-aliasing -Wno-attributes -Wno-cast-align -Wno-unused-parameter -Wno-ignored-qualifiers -Wformat=2 -Wno-format-nonliteral -Winit-self -Wdouble-promotion -Wcast-qual -Wcast-align -Werror=trampolines -Werror=parentheses -Werror=reorder -Werror=return-type -Werror=sequence-point -Werror=format -Werror=missing-braces -Werror=sign-compare -fdiagnostics-show-option -Werror=vla -Werror=return-type -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Werror=uninitialized -Wno-unused-local-typedefs -Wno-sync-nand ")
 set(NORMAL_COMPILER_WARNINGS "-Wextra -Waddress -Warray-bounds -Wuninitialized -Wreturn-type -Wall -fno-omit-frame-pointer ")
 
 set(CMAKE_CXX_FLAGS_RELEASE "-g -O3 -flto -DNDEBUG")
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   # using Clang
+  set(CXX_PEDANTIC_COMPILER_WARNINGS "-fdiagnostics-show-option -Wall -Wcast-align -Wcast-qual -Werror=format -Werror=missing-braces -Werror=parentheses -Werror=reorder -Werror=return-type -Werror=sequence-point -Werror=sign-compare -Werror=uninitialized -Werror=vla -Wextra -Wformat=2 -Winit-self -Wno-attributes -Wno-cast-align -Wno-delete-non-virtual-dtor -Wno-format-nonliteral -Wno-ignored-qualifiers -Wno-sign-promo -Wno-strict-aliasing -Wno-unused-parameter -Wno-unused-variable -Wno-unused-local-typedefs -Wno-unused-parameter ")
+  set(C_PEDANTIC_COMPILER_WARNINGS "-fdiagnostics-show-option -Wall -Wcast-align -Wcast-qual -Werror=format -Werror=missing-braces -Werror=parentheses -Werror=reorder -Werror=return-type -Werror=sequence-point -Werror=sign-compare -Werror=uninitialized -Werror=vla -Wextra -Wformat=2 -Winit-self -Wno-attributes -Wno-cast-align -Wno-format-nonliteral -Wno-ignored-qualifiers -Wno-strict-aliasing -Wno-unused-parameter -Wno-unused-variable -Wno-unused-local-typedefs -Wno-unused-parameter ")
   set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 ${CXX_PEDANTIC_COMPILER_WARNINGS} -DAPEX_DEBUG")
   set(CMAKE_C_FLAGS_DEBUG "-g -O0 ${C_PEDANTIC_COMPILER_WARNINGS} -DAPEX_DEBUG")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   # using GCC
+  set(CXX_PEDANTIC_COMPILER_WARNINGS "-fdiagnostics-show-option -Wall -Wcast-align -Wcast-qual -Wdouble-promotion -Werror=format -Werror=missing-braces -Werror=parentheses -Werror=reorder -Werror=return-type -Werror=sequence-point -Werror=sign-compare -Werror=trampolines -Werror=uninitialized -Werror=vla -Wextra -Wformat=2 -Winit-self -Wno-attributes -Wno-cast-align -Wno-delete-non-virtual-dtor -Wno-format-nonliteral -Wno-ignored-qualifiers -Wno-sign-promo -Wno-strict-aliasing -Wno-sync-nand -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-local-typedefs -Wno-unused-parameter ")
+  set(C_PEDANTIC_COMPILER_WARNINGS "-fdiagnostics-show-option -Wall -Wcast-align -Wcast-qual -Wdouble-promotion -Werror=format -Werror=missing-braces -Werror=parentheses -Werror=reorder -Werror=return-type -Werror=sequence-point -Werror=sign-compare -Werror=trampolines -Werror=uninitialized -Werror=vla -Wextra -Wformat=2 -Winit-self -Wno-attributes -Wno-cast-align -Wno-format-nonliteral -Wno-ignored-qualifiers -Wno-strict-aliasing -Wno-sync-nand -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-local-typedefs -Wno-unused-parameter ")
   set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 ${CXX_PEDANTIC_COMPILER_WARNINGS} -DAPEX_DEBUG")
   set(CMAKE_C_FLAGS_DEBUG "-g -O0 ${C_PEDANTIC_COMPILER_WARNINGS} -DAPEX_DEBUG")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
@@ -411,9 +413,12 @@ CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/pkgconfig/apex.pc.in
                ${CMAKE_BINARY_DIR}/pkgconfig/apex.pc @ONLY)
 INSTALL_FILES(/lib/pkgconfig FILES pkgconfig/apex.pc)
 
-include(ProcessorCount) # how many cores at our disposal?
-if(PROCESSOR_COUNT)
-  set(CTEST_BUILD_FLAGS "-j${PROCESSOR_COUNT}")
+if (NOT APPLE)
+	message(INFO " Getting processor count...")
+	include(ProcessorCount) # how many cores at our disposal?
+	if(PROCESSOR_COUNT)
+  	set(CTEST_BUILD_FLAGS "-j${PROCESSOR_COUNT}")
+	endif()
 endif()
 
 # turn on "make test" support

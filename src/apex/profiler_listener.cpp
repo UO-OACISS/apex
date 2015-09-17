@@ -81,7 +81,7 @@ APEX_NATIVE_TLS unsigned int my_tid = 0; // the current thread's TID in APEX
 /* The profiler queue */
 moodycamel::ConcurrentQueue<profiler*> thequeue;
 /* The task dependency queue */
-moodycamel::ConcurrentQueue<apex::task_dependency*> dependency_queue;
+moodycamel::ConcurrentQueue<task_dependency*> dependency_queue;
 
 namespace apex {
 
@@ -1215,11 +1215,9 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         task_identifier * child = new task_identifier(function_address);
         dependency_queue.enqueue(new task_dependency(parent, child));
     } else {
-        if (function_address != (apex_function_address)&main) {
-          task_identifier * parent = new task_identifier((apex_function_address)&main);
-          task_identifier * child = new task_identifier(function_address);
-          dependency_queue.enqueue(new task_dependency(parent, child));
-        }
+        task_identifier * parent = new task_identifier(string("__start"));
+        task_identifier * child = new task_identifier(function_address);
+        dependency_queue.enqueue(new task_dependency(parent, child));
     }
   }
 
@@ -1232,11 +1230,9 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         task_identifier * child = new task_identifier(*timer_name);
         dependency_queue.enqueue(new task_dependency(parent, child));
     } else {
-        if (timer_name->compare("main") != 0) {
-          task_identifier * parent = new task_identifier(string("main"));
-          task_identifier * child = new task_identifier(*timer_name);
-          dependency_queue.enqueue(new task_dependency(parent, child));
-        }
+        task_identifier * parent = new task_identifier(string("__start"));
+        task_identifier * child = new task_identifier(*timer_name);
+        dependency_queue.enqueue(new task_dependency(parent, child));
     }
   }
 
