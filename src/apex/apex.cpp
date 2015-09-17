@@ -468,7 +468,7 @@ void stop(profiler* the_profiler)
         } catch (empty_stack_exception& e) { }
     } else {
         try {
-            p = thread_instance::instance().pop_current_profiler();
+            p = thread_instance::instance().pop_current_profiler(the_profiler);
         } catch (empty_stack_exception& e) { 
           fflush(stdout); 
           //printf("%lu Stop: null profiler on stack, stopping: %s\n", thread_instance::get_id(), lookup_address((uintptr_t)the_profiler->action_address, false)->c_str());
@@ -517,7 +517,7 @@ void yield(profiler* the_profiler)
         } catch (empty_stack_exception& e) { }
     } else {
         try {
-            p = thread_instance::instance().pop_current_profiler();
+            p = thread_instance::instance().pop_current_profiler(the_profiler);
         } catch (empty_stack_exception& e) { assert(p); }
         assert(p.get() == the_profiler);
     }
@@ -593,6 +593,28 @@ void sample_value(const std::string &name, double value)
         }
     }
     delete(data);
+}
+
+void new_task(const std::string &timer_name, void * task_id)
+{
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance) return; // protect against calls after finalization
+    if (_notify_listeners) {
+        string * tmp = new string(timer_name);
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            instance->listeners[i]->on_new_task(tmp, task_id);
+        }
+    }
+}
+
+void new_task(apex_function_address function_address, void * task_id) {
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance) return; // protect against calls after finalization
+    if (_notify_listeners) {
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            instance->listeners[i]->on_new_task(function_address, task_id);
+        }
+    }
 }
 
 boost::atomic<int> custom_event_count(APEX_CUSTOM_EVENT);
@@ -984,6 +1006,16 @@ extern "C" {
     {
         string tmp(name);
         sample_value(tmp, value);
+    }
+
+    void apex_new_task(apex_profiler_type type, void * identifier, 
+                       void * task_id) {
+        if (type == APEX_FUNCTION_ADDRESS) {
+            new_task((apex_function_address)(identifier), task_id);
+        } else {
+            string tmp((const char *)identifier);
+            new_task(tmp, task_id);
+        }
     }
 
     apex_event_type apex_register_custom_event(const char * name)

@@ -35,6 +35,7 @@ set(example_programs
 	apex_shutdown_throttling
 	apex_pthread_flood
     apex_fibonacci_std_async
+    apex_new_task
    )
 	#apex_set_thread_cap
 	#apex_setup_power_cap_throttling

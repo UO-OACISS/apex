@@ -263,6 +263,32 @@ APEX_EXPORT void set_state(apex_thread_state state);
 APEX_EXPORT void sample_value(const std::string &name, double value);
 
 /**
+ \brief Create a new task (dependency).
+
+ This function will note a task dependency between the current 
+ timer (task) and the new task.
+
+ \param timer_name The name of the timer.                                        
+ \param taskid The ID of the task 
+ \return No return value.
+ */
+
+APEX_EXPORT void new_task(const std::string &name, void * task_id);
+
+/**
+ \brief Create a new task (dependency).
+
+ This function will note a task dependency between the current 
+ timer (task) and the new task.
+
+ \param function_address The function address of the timer.
+ \param taskid The ID of the task 
+ \return No return value.
+ */
+
+APEX_EXPORT void new_task(apex_function_address function_address, void * task_id);
+
+/**
  \brief Register an event type with APEX.
 
  Create a user-defined event type for APEX.

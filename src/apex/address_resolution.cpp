@@ -90,16 +90,20 @@ namespace apex {
       if (node->info.funcname) {
         location << node->info.funcname ;
       }
-      if (withFileInfo) {
+      //if (withFileInfo) {
         location << " [{" ;
         if (node->info.filename) {
             location << node->info.filename ;
         }
         location << "} {" << node->info.lineno << ",0}]";
-      }
+      //}
       node->location = new string(location.str());
       OmpTheHashTable()[ip] = node;
     }
-    return node->location;
+    if (withFileInfo) {
+      return node->location;
+    } else {
+      return new string(node->info.funcname);
+    }
   }
 }

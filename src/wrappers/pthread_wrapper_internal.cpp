@@ -215,6 +215,11 @@ int apex_pthread_create_wrapper(pthread_create_p pthread_create_call,
 
     // create the pthread, pass in our proxy function and the packed data
     retval = pthread_create_call(threadp, attr, apex_pthread_function, (void*)pack);
+
+    // register the dependency with APEX.
+    if (retval == 0) {
+        apex::new_task((apex_function_address)start_routine, (void*)threadp);
+    }
     wrapper->_wrapped = false;
   }
   return retval;

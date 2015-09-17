@@ -209,6 +209,22 @@ APEX_EXPORT void apex_set_state(apex_thread_state state);
 APEX_EXPORT void apex_sample_value(const char * name, double value);
 
 /**
+ \brief Create a new task (dependency).
+
+ This function will note a task dependency between the current 
+ timer (task) and the new task.
+
+ \param type The type of the address to be reset. This can be one of the @ref
+             apex_profiler_type values.
+ \param identifier The function address of the function of the task, or a "const
+             char *" pointer to the name of the task.
+ \param taskid The ID of the task 
+ \return No return value.
+ */
+
+APEX_EXPORT void apex_new_task(apex_profiler_type type, void * identifier, void * task_id);
+
+/**
  \brief Register an event type with APEX.
 
  Create a user-defined event type for APEX.

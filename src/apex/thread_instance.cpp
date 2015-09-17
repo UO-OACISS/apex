@@ -38,6 +38,8 @@ namespace apex {
 boost::thread_specific_ptr<thread_instance> thread_instance::_instance;
 // Global static count of threads in system
 boost::atomic_int thread_instance::_num_threads(0);
+// Global static count of *active* threads in system
+boost::atomic_int thread_instance::_active_threads(0);
 // Global static map of HPX thread names to TAU thread IDs
 map<string, int> thread_instance::_name_map;
 // Global static mutex to control access to the map
@@ -56,8 +58,13 @@ thread_instance& thread_instance::instance(void) {
     me = _instance.get();
     //me->_id = TAU_PROFILE_GET_THREAD();
     me->_id = _num_threads++;
+    _active_threads++;
   }
   return *me;
+}
+
+thread_instance::~thread_instance(void) {
+    _active_threads--;
 }
 
 void thread_instance::set_worker(bool is_worker) {

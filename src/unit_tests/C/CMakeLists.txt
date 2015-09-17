@@ -33,6 +33,7 @@ set(example_programs
 	apex_get_thread_cap
 	apex_shutdown_throttling
 	apex_fibonacci_pthread
+	apex_new_task
    )
 #	apex_setup_power_cap_throttling
 #	apex_setup_throughput_tuning

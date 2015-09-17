@@ -78,7 +78,10 @@ using namespace std;
 using namespace apex;
 
 APEX_NATIVE_TLS unsigned int my_tid = 0; // the current thread's TID in APEX
+/* The profiler queue */
 moodycamel::ConcurrentQueue<profiler*> thequeue;
+/* The task dependency queue */
+moodycamel::ConcurrentQueue<apex::task_dependency*> dependency_queue;
 
 namespace apex {
 
@@ -123,6 +126,9 @@ namespace apex {
   /* The profiles, mapped by address */
   static map<apex_function_address, profile*> address_map;
   vector<map<apex_function_address, profile*>* > thread_address_maps(INITIAL_NUM_THREADS);
+
+  /* The task dependency graphs. */
+  static unordered_map<task_identifier, unordered_map<task_identifier, int>* > task_dependencies;
 
   /* If we are throttling, keep a set of addresses that should not be timed.
    * We also have a set of names. */
@@ -326,6 +332,32 @@ namespace apex {
     return 1;
   }
 
+  inline unsigned int profiler_listener::process_dependency(task_dependency* td)
+  {
+      unordered_map<task_identifier, unordered_map<task_identifier, int>* >::const_iterator it = task_dependencies.find(*td->parent);
+      unordered_map<task_identifier, int> * depend;
+      // if this is a new dependency for this parent?
+      if (it == task_dependencies.end()) {
+          depend = new unordered_map<task_identifier, int>();
+          depend->emplace(*td->child, 1);
+          task_dependencies.emplace(*td->parent, depend);
+      // otherwise, see if this parent has seen this child
+      } else {
+          depend = it->second;
+          unordered_map<task_identifier, int>::const_iterator it2 = depend->find(*td->child);
+          // first time for this child
+          if (it2 == depend->end()) {
+              depend->emplace(*td->child, 1);
+          // not the first time for this child
+          } else {
+              int tmp = it2->second;
+              (*depend)[*td->child] = tmp + 1;
+          }
+      }
+      delete(td);
+      return 1;
+  }
+
   /* Cleaning up memory. Not really necessary, because it only gets
    * called at shutdown. But a good idea to do regardless. */
   void profiler_listener::delete_profiles(void) {
@@ -470,6 +502,45 @@ namespace apex {
       cout << FORMAT_SCIENTIFIC % p->get_accumulated() << "   " ;
       cout << FORMAT_SCIENTIFIC % p->get_stddev() << endl;
     }
+  }
+
+  void fix_name(string& in_name) {
+        boost::regex rx (".*UNRESOLVED ADDR (.*)");
+        if (boost::regex_match (in_name,rx)) {
+          const boost::regex separator(" ADDR ");
+          boost::sregex_token_iterator token(in_name.begin(), in_name.end(), separator, -1);
+          *token++; // ignore
+          string addr_str = *token++;
+          void* addr_addr;
+          sscanf(addr_str.c_str(), "%p", &addr_addr);
+          string * tmp = lookup_address((uintptr_t)addr_addr, false);
+          boost::regex old_address("UNRESOLVED ADDR " + addr_str);
+          in_name = boost::regex_replace(in_name, old_address, *tmp);
+        }
+  }
+
+  void profiler_listener::write_taskgraph(void) {
+    ofstream myfile;
+    stringstream dotname;
+    dotname << "taskgraph." << node_id << ".dot";
+    myfile.open(dotname.str().c_str());
+
+    myfile << "digraph prof {\n";
+    for(auto dep = task_dependencies.begin(); dep != task_dependencies.end(); dep++) {
+        task_identifier parent = dep->first;
+        auto children = dep->second;
+        string& parent_name = parent.get_name();
+        for(auto offspring = children->begin(); offspring != children->end(); offspring++) {
+            task_identifier child = offspring->first;
+            int count = offspring->second;
+            string& child_name = child.get_name();
+            myfile << "  \"" << parent_name << "\" -> \"" << child_name << "\"";
+            myfile << " [ label=\"  count: " << count << "\" ]; " << std::endl;
+            
+        }
+    }
+    myfile << "}\n";
+    myfile.close();
   }
 
   /* When writing a TAU profile, write out a timer line */
@@ -619,7 +690,6 @@ namespace apex {
     myfile.close();
   }
 
-
   /* This is the main function for the consumer thread.
    * It will wait at a semaphore for pending work. When there is
    * work on one or more queues, it will iterate over the queues
@@ -639,6 +709,7 @@ namespace apex {
 #endif
 
     profiler* p;
+    task_dependency* td;
     // Main loop. Stay in this loop unless "done".
 #ifndef APEX_HAVE_HPX3
     while (!done) {
@@ -653,6 +724,11 @@ namespace apex {
 #endif
       while(!done && thequeue.try_dequeue(p)) {
         process_profile(p, 0);
+      }
+      if (apex_options::use_taskgraph_output()) {
+        while(!done && dependency_queue.try_dequeue(td)) {
+          process_dependency(td);
+        }
       }
       /* 
        * I want to process the tasks concurrently, but this loop
@@ -687,14 +763,23 @@ namespace apex {
 #ifndef APEX_HAVE_HPX3
     }
 
+    size_t ignored = thequeue.size_approx();
+    if (ignored > 0) {
+      std::cerr << "Info: " << ignored << " items remaining on on the profiler_listener queue...";
+    }
     // We might be done, but check to make sure the queue is empty
     while(!done && thequeue.try_dequeue(p)) {
     //while(thequeue.try_dequeue(p)) {
       process_profile(p, 0);
     }
-    size_t ignored = thequeue.size_approx();
     if (ignored > 0) {
-      std::cerr << "Warning: " << ignored << " items ignored on on the profiler_listener queue." << std::endl;
+      std::cerr << "done." << std::endl;
+    }
+    if (apex_options::use_taskgraph_output()) {
+      // process the task dependencies
+      while(dependency_queue.try_dequeue(td)) {
+        process_dependency(td);
+      }
     }
  
     // stop the main timer, and process that profile
@@ -871,6 +956,10 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       {
         finalize_profiles();
       }
+      if (apex_options::use_taskgraph_output() && node_id == 0)
+      {
+        write_taskgraph();
+      }
 
       // output to 1 TAU profile per process?
       if (apex_options::use_profile_output() == 1)
@@ -950,6 +1039,8 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
     }
     APEX_UNUSED(data);
   }
+
+  extern "C" int main (int, char**);
 
   /* When a start event happens, create a profiler object. Unless this
    * named event is throttled, in which case do nothing, as quickly as possible */
@@ -1050,6 +1141,18 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         rc = PAPI_read( EventSet, values );
         PAPI_ERROR_CHECK(PAPI_read);
 #endif
+        if (apex_options::use_taskgraph_output()) {
+          if (!p->is_resume) { 
+            // get the PARENT profiler
+            std::shared_ptr<profiler> parent_profiler = nullptr;
+            try {
+              parent_profiler = thread_instance::instance().get_parent_profiler();
+              task_identifier * parent = new task_identifier(parent_profiler.get());
+              task_identifier * child = new task_identifier(p.get());
+              dependency_queue.enqueue(new task_dependency(parent, child));
+            } catch (empty_stack_exception& e) { }
+          }
+        }
         push_profiler(my_tid, p);
       }
     }
@@ -1098,6 +1201,40 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         std::shared_ptr<profiler> p = std::shared_ptr<profiler>(new profiler(new string(*data.counter_name), data.counter_value));
       p->is_counter = data.is_counter;
       push_profiler(my_tid, p);
+    }
+  }
+
+  void profiler_listener::on_new_task(apex_function_address function_address, void * task_id) {
+    if (!apex_options::use_taskgraph_output()) { return; }
+    // get the current profiler
+    std::shared_ptr<profiler> p = thread_instance::instance().get_current_profiler();
+    if (p != NULL) {
+        task_identifier * parent = new task_identifier(p.get());
+        task_identifier * child = new task_identifier(function_address);
+        dependency_queue.enqueue(new task_dependency(parent, child));
+    } else {
+        if (function_address != (apex_function_address)&main) {
+          task_identifier * parent = new task_identifier((apex_function_address)&main);
+          task_identifier * child = new task_identifier(function_address);
+          dependency_queue.enqueue(new task_dependency(parent, child));
+        }
+    }
+  }
+
+  void profiler_listener::on_new_task(std::string *timer_name, void * task_id) {
+    if (!apex_options::use_taskgraph_output()) { return; }
+    // get the current profiler
+    std::shared_ptr<profiler> p = thread_instance::instance().get_current_profiler();
+    if (p != NULL) {
+        task_identifier * parent = new task_identifier(p.get());
+        task_identifier * child = new task_identifier(*timer_name);
+        dependency_queue.enqueue(new task_dependency(parent, child));
+    } else {
+        if (timer_name->compare("main") != 0) {
+          task_identifier * parent = new task_identifier(string("main"));
+          task_identifier * child = new task_identifier(*timer_name);
+          dependency_queue.enqueue(new task_dependency(parent, child));
+        }
     }
   }
 
