@@ -20,10 +20,10 @@
 #include <boost/array.hpp>
 #include <boost/asio.hpp>
 #include "profile.hpp"
+#include "thread_instance.hpp"
 #ifdef USE_UDP
 #include "udp_client.hpp"
 #endif
-#include "address_resolution.hpp"
 #include <boost/functional/hash.hpp>
 
 
@@ -34,14 +34,14 @@ class task_identifier {
 public:
   apex_function_address address;
   std::string name;
-  std::string * _resolved_name;
+  std::string _resolved_name;
   bool has_name;
   task_identifier(apex_function_address a) : 
-      address(a), name(""), _resolved_name(nullptr), has_name(false) {};
+      address(a), name(""), _resolved_name(""), has_name(false) {};
   task_identifier(std::string n) : 
-      address(0L), name(n), _resolved_name(nullptr), has_name(true) {};
+      address(0L), name(n), _resolved_name(""), has_name(true) {};
   task_identifier(profiler * p) : 
-      address(0L), name(""), _resolved_name(nullptr) {
+      address(0L), name(""), _resolved_name("") {
       if (p->have_name) {                                         
           name = *p->timer_name;
           has_name = true;
@@ -52,18 +52,15 @@ public:
   }
   std::string& get_name() {
     if (!has_name) {
-      if (_resolved_name == NULL) {
-        _resolved_name = lookup_address((uintptr_t)address, false);         
+      if (_resolved_name == "") {
+        //_resolved_name = lookup_address((uintptr_t)address, false);         
+        _resolved_name = thread_instance::instance().map_addr_to_name(address);
       }
-      return *_resolved_name;
+      return _resolved_name;
     }
     return name;
   }
-  ~task_identifier() {
-    if (_resolved_name != NULL) {
-      delete _resolved_name;
-    }
-  }
+  ~task_identifier() { }
   // requried for using this class as a key in an unordered map.
   // the hash function is defined below.
   bool operator==(const task_identifier &other) const { 

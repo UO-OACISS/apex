@@ -505,6 +505,7 @@ namespace apex {
   }
 
   void fix_name(string& in_name) {
+#if defined(HAVE_BFD)                                                            
         boost::regex rx (".*UNRESOLVED ADDR (.*)");
         if (boost::regex_match (in_name,rx)) {
           const boost::regex separator(" ADDR ");
@@ -513,10 +514,11 @@ namespace apex {
           string addr_str = *token++;
           void* addr_addr;
           sscanf(addr_str.c_str(), "%p", &addr_addr);
-          string * tmp = lookup_address((uintptr_t)addr_addr, false);
+          string tmp = lookup_address((uintptr_t)addr_addr, false);
           boost::regex old_address("UNRESOLVED ADDR " + addr_str);
-          in_name = boost::regex_replace(in_name, old_address, *tmp);
+          in_name = boost::regex_replace(in_name, old_address, tmp);
         }
+#endif
   }
 
   void profiler_listener::write_taskgraph(void) {
