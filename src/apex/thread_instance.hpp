@@ -66,6 +66,7 @@ public:
   static std::shared_ptr<profiler> get_parent_profiler(void);
   static std::shared_ptr<profiler> pop_current_profiler(void);
   static std::shared_ptr<profiler> pop_current_profiler(profiler * requested);
+  static bool profiler_stack_empty(void);
 };
 
 }

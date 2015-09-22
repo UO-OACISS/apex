@@ -181,7 +181,8 @@ void apex::_initialize()
     init_msr();
 #endif
     // this is always the first listener!
-    listeners.push_back(new profiler_listener());
+    this->the_profiler_listener = new profiler_listener();
+    listeners.push_back(the_profiler_listener);
 #ifdef APEX_HAVE_TAU
     if (apex_options::use_tau())
     {
@@ -433,13 +434,13 @@ profiler* resume(apex_function_address function_address) {
 void reset(const std::string &timer_name) {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
-    profiler_listener::reset(timer_name);
+    instance->the_profiler_listener->reset(timer_name);
 }
 
 void reset(apex_function_address function_address) {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
-    profiler_listener::reset(function_address);
+    instance->the_profiler_listener->reset(function_address);
 }
 
 void set_state(apex_thread_state state) {
@@ -789,7 +790,7 @@ void exit_thread(void)
     _exited = true;
     // pop any remaining timers, and stop them
     std::shared_ptr<profiler> p;
-    while(true) {
+    while(true && !thread_instance::instance().profiler_stack_empty()) {
         try {
             p = thread_instance::instance().pop_current_profiler();
         } catch (empty_stack_exception& e) { break; }
@@ -882,21 +883,21 @@ void deregister_policy(apex_policy_handle * handle) {
 }
 
 apex_profile* get_profile(apex_function_address action_address) {
-    profile * tmp = profiler_listener::get_profile(action_address);
+    profile * tmp = apex::__instance()->the_profiler_listener->get_profile(action_address);
     if (tmp != nullptr)
         return tmp->get_profile();
     return nullptr;
 }
 
 apex_profile* get_profile(const std::string &timer_name) {
-    profile * tmp = profiler_listener::get_profile(timer_name);
+    profile * tmp = apex::__instance()->the_profiler_listener->get_profile(timer_name);
     if (tmp != nullptr)
         return tmp->get_profile();
     return nullptr;
 }
 
 std::vector<std::string> get_available_profiles() {
-    return profiler_listener::get_available_profiles();
+    return apex::__instance()->the_profiler_listener->get_available_profiles();
 }
 
 void print_options() {

@@ -4,6 +4,7 @@
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include "thread_instance.hpp"
+#include "apex_api.hpp"
 #include <iostream>
 
 // TAU related
@@ -64,6 +65,9 @@ thread_instance& thread_instance::instance(void) {
 }
 
 thread_instance::~thread_instance(void) {
+    if (_id == 0) {
+        finalize();
+    }
     _active_threads--;
 }
 
@@ -222,6 +226,10 @@ std::shared_ptr<profiler> thread_instance::pop_current_profiler(void) {
     instance().current_profiler = instance().current_profilers.back();
     instance().current_profilers.pop_back();
     return instance().current_profiler;
+}
+
+bool thread_instance::profiler_stack_empty() {
+    return instance().current_profilers.empty();
 }
 
 std::shared_ptr<profiler> thread_instance::pop_current_profiler(profiler * requested) {

@@ -7,18 +7,16 @@
 #include <hpx/config.hpp>
 #endif
 
-#include "apex_api.hpp"
-#include "apex.hpp"
 #include "profiler_listener.hpp"
 #include "profiler.hpp"
 #include "thread_instance.hpp"
-#include "semaphore.hpp"
 #include <iostream>
 #include <fstream>
 #include <math.h>
 #include "apex_options.hpp"
 #include "profiler.hpp"
 #include "profile.hpp"
+#include "apex.hpp"
 
 #include <boost/thread/thread.hpp>
 #include <boost/atomic.hpp>
@@ -58,11 +56,6 @@
 #include <hpx/lcos/local/composable_guard.hpp>
 #endif
 
-#include "concurrentqueue/concurrentqueue.h"
-
-#define INITIAL_QUEUE_SIZE 4096
-#define INITIAL_NUM_THREADS 2
-
 #define APEX_MAIN "APEX MAIN"
 
 #ifdef APEX_HAVE_TAU
@@ -78,77 +71,12 @@ using namespace std;
 using namespace apex;
 
 APEX_NATIVE_TLS unsigned int my_tid = 0; // the current thread's TID in APEX
-/* The profiler queue */
-moodycamel::ConcurrentQueue<profiler*> thequeue;
-/* The task dependency queue */
-moodycamel::ConcurrentQueue<task_dependency*> dependency_queue;
 
 namespace apex {
 
   /* THis is a special profiler, indicating that the timer requested is
      throttled, and shouldn't be processed. */
   profiler* profiler::disabled_profiler = new profiler();
-
-#if APEX_HAVE_PAPI
-  std::vector<int> event_sets(8);
-  std::vector<std::string> metric_names;
-#endif
-
-#ifndef APEX_HAVE_HPX3
-  /* This is the thread that will read from the queues of profiler
-   * objects, and update the profiles. */
-  boost::thread * consumer_thread;
-#endif
-
-  /* Flag indicating that we are done inserting into the queues, so the
-   * consumer knows when to exit */
-  boost::atomic<bool> done (false);
-
-#ifndef APEX_HAVE_HPX3
-  /* how the workers signal the consumer that there are new profiler objects
-   * on the queue to consume */
-  semaphore queue_signal;
-#endif
-
-#ifdef APEX_HAVE_HPX3
-  /* Flag indicating whether a consumer task is currently running */
-  std::atomic_flag consumer_task_running = ATOMIC_FLAG_INIT;
-  
-  bool hpx_shutdown = false;
-#endif
-
-  /* The profiles, mapped by name. Profiles will be in this map or the other
-   * one, not both. It depends whether the timers are identified by name
-   * or address. */
-  static map<string, profile*> name_map;
-  static vector<map<string, profile*>* > thread_name_maps(INITIAL_NUM_THREADS);
-
-  /* The profiles, mapped by address */
-  static map<apex_function_address, profile*> address_map;
-  vector<map<apex_function_address, profile*>* > thread_address_maps(INITIAL_NUM_THREADS);
-
-  /* The task dependency graphs. */
-  static unordered_map<task_identifier, unordered_map<task_identifier, int>* > task_dependencies;
-
-  /* If we are throttling, keep a set of addresses that should not be timed.
-   * We also have a set of names. */
-#if defined(APEX_THROTTLE)
-  static unordered_set<apex_function_address> throttled_addresses;
-  static unordered_set<string> throttled_names;
-#endif
-
-  /* measurement of entire application */
-  std::shared_ptr<profiler> profiler_listener::main_timer;
-
-  /* the node id is needed for profile output. */
-  int profiler_listener::node_id(0);
-
-  /* A lock necessary for registering new threads */
-  boost::mutex profiler_listener::_mtx ;
-
-#if APEX_HAVE_PAPI
-  static int num_papi_counters = 0;
-#endif
 
   /* Return the requested profile object to the user.
    * Return nullptr if doesn't exist. */
@@ -177,7 +105,7 @@ namespace apex {
     return names;
   }
 
-  void reset_all() {
+  void profiler_listener::reset_all(void) {
     for(auto &it : name_map) {
         it.second->reset();
     }
@@ -237,7 +165,7 @@ namespace apex {
         name_map[*(p->timer_name)] = theprofile;
 #ifdef APEX_HAVE_HPX3
 #ifdef APEX_REGISTER_HPX3_COUNTERS
-        if(!done) {
+        if(!_done) {
             if(get_hpx_runtime_ptr() != nullptr) {
                 std::string timer_name(*(p->timer_name));
                 //Don't register timers containing "/"
@@ -692,6 +620,15 @@ namespace apex {
     myfile.close();
   }
 
+  /*
+   * The main function for the consumer thread has to be static, but
+   * the processing needs access to member variables, so get the 
+   * profiler_listener instance, and call it's proper function.
+   */
+  void profiler_listener::process_profiles_wrapper(void) {
+      apex::instance()->the_profiler_listener->process_profiles();
+  }
+
   /* This is the main function for the consumer thread.
    * It will wait at a semaphore for pending work. When there is
    * work on one or more queues, it will iterate over the queues
@@ -714,7 +651,7 @@ namespace apex {
     task_dependency* td;
     // Main loop. Stay in this loop unless "done".
 #ifndef APEX_HAVE_HPX3
-    while (!done) {
+    while (!_done) {
       queue_signal.wait();
 #endif
 #ifdef APEX_HAVE_TAU
@@ -724,11 +661,11 @@ namespace apex {
     }
     */
 #endif
-      while(!done && thequeue.try_dequeue(p)) {
+      while(!_done && thequeue.try_dequeue(p)) {
         process_profile(p, 0);
       }
       if (apex_options::use_taskgraph_output()) {
-        while(!done && dependency_queue.try_dequeue(td)) {
+        while(!_done && dependency_queue.try_dequeue(td)) {
           process_dependency(td);
         }
       }
@@ -738,7 +675,7 @@ namespace apex {
        */
       /*
       std::vector<std::future<unsigned int>> pending_futures;
-      while(!done && thequeue.try_dequeue(p)) {
+      while(!_done && thequeue.try_dequeue(p)) {
           auto f = std::async(process_profile,p,0);
           // transfer the future's shared state to a longer-lived future
           pending_futures.push_back(std::move(f));
@@ -770,7 +707,7 @@ namespace apex {
       std::cerr << "Info: " << ignored << " items remaining on on the profiler_listener queue...";
     }
     // We might be done, but check to make sure the queue is empty
-    while(!done && thequeue.try_dequeue(p)) {
+    while(!_done && thequeue.try_dequeue(p)) {
     //while(thequeue.try_dequeue(p)) {
       process_profile(p, 0);
     }
@@ -839,7 +776,7 @@ APEX_NATIVE_TLS int EventSet = PAPI_NULL;
 #define PAPI_ERROR_CHECK(name) \
 if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 
-  void initialize_PAPI(bool first_time) {
+  void profiler_listener::initialize_PAPI(bool first_time) {
       int rc = 0;
       if (first_time) {
         PAPI_library_init( PAPI_VER_CURRENT );
@@ -883,14 +820,14 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 
   /* When APEX gets a STARTUP event, do some initialization. */
   void profiler_listener::on_startup(startup_event_data &data) {
-    if (!_terminate) {
+    if (!_done) {
       if (apex_options::use_profile_output() > 1) {
         thread_address_maps[0] = new map<apex_function_address, profile*>();
         thread_name_maps[0] = new map<string, profile*>();
       }
 #ifndef APEX_HAVE_HPX3
       // Start the consumer thread, to process profiler objects.
-      consumer_thread = new boost::thread(process_profiles);
+      consumer_thread = new boost::thread(process_profiles_wrapper);
 #endif
 
 #if APEX_HAVE_PAPI
@@ -939,12 +876,10 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   /* On the shutdown event, notify the consumer thread that we are done
    * and set the "terminate" flag. */
   void profiler_listener::on_shutdown(shutdown_event_data &data) {
-    if (_terminate) { return; }
-    _mtx.lock();
-    if (!_terminate) {
+    if (_done) { return; }
+    if (!_done) {
+      _done = true;
       node_id = data.node_id;
-      _terminate = true;
-      done = true;
       //sleep(1);
 #ifndef APEX_HAVE_HPX3
       queue_signal.post();
@@ -1003,12 +938,11 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
      * finalized. */
     // cleanup.
     // delete_profiles();
-    _mtx.unlock();
   }
 
   /* When a new node is created */
   void profiler_listener::on_new_node(node_event_data &data) {
-    if (!_terminate) {
+    if (!_done) {
     }
     APEX_UNUSED(data);
   }
@@ -1016,7 +950,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   /* When a new thread is registered, expand all of our storage as necessary
    * to handle the new thread */
   void profiler_listener::on_new_thread(new_thread_event_data &data) {
-    if (!_terminate) {
+    if (!_done) {
       my_tid = (unsigned int)thread_instance::get_id();
       // resize the vector
       if (apex_options::use_profile_output() > 1) {
@@ -1047,7 +981,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   /* When a start event happens, create a profiler object. Unless this
    * named event is throttled, in which case do nothing, as quickly as possible */
   inline bool profiler_listener::_common_start(apex_function_address function_address, bool is_resume) {
-    if (!_terminate) {
+    if (!_done) {
 #if defined(APEX_THROTTLE)
         // if this timer is throttled, return without doing anything
         unordered_set<apex_function_address>::const_iterator it = throttled_addresses.find(function_address);
@@ -1077,7 +1011,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   /* When a start event happens, create a profiler object. Unless this
    * named event is throttled, in which case do nothing, as quickly as possible */
   inline bool profiler_listener::_common_start(std::string * timer_name, bool is_resume) {
-    if (!_terminate) {
+    if (!_done) {
 #if defined(APEX_THROTTLE)
       // if this timer is throttled, return without doing anything
       unordered_set<string>::const_iterator it = throttled_names.find(*timer_name);
@@ -1134,7 +1068,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 
   /* Stop the timer, if applicable, and queue the profiler object */
   inline void profiler_listener::_common_stop(std::shared_ptr<profiler> p, bool is_yield) {
-    if (!_terminate) {
+    if (!_done) {
       if (p) {
         p->stop(is_yield);
 #if APEX_HAVE_PAPI
@@ -1199,7 +1133,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 
   /* When a sample value is processed, save it as a profiler object, and queue it. */
   void profiler_listener::on_sample_value(sample_value_event_data &data) {
-    if (!_terminate) {
+    if (!_done) {
         std::shared_ptr<profiler> p = std::shared_ptr<profiler>(new profiler(new string(*data.counter_name), data.counter_value));
       p->is_counter = data.is_counter;
       push_profiler(my_tid, p);
@@ -1238,14 +1172,14 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 
   /* For periodic stuff. Do something? */
   void profiler_listener::on_periodic(periodic_event_data &data) {
-    if (!_terminate) {
+    if (!_done) {
     }
     APEX_UNUSED(data);
   }
 
   /* For custom event stuff. Do something? */
   void profiler_listener::on_custom_event(custom_event_data &data) {
-    if (!_terminate) {
+    if (!_done) {
     }
     APEX_UNUSED(data);
   }
@@ -1267,6 +1201,8 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   }
 
   profiler_listener::~profiler_listener (void) { 
+      _done = true; // yikes!
+      finalize();
 #ifdef USE_UDP
       if (apex_options::use_udp_sink()) {
           udp_client::stop_client();
