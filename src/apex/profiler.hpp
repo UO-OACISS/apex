@@ -47,6 +47,7 @@ public:
     bool is_resume; // for yield or resume
     reset_type is_reset;
     bool stopped;
+    // constructor for regular timers, using function address
     profiler(apex_function_address address,
              bool resume = false, 
              reset_type reset = reset_type::NONE) : 
@@ -59,6 +60,7 @@ public:
         is_counter(false),
         is_resume(resume),
         is_reset(reset), stopped(false) {};
+    // constructor for regular timers, using timer name
     profiler(std::string * name, 
              bool resume = false, 
              reset_type reset = reset_type::NONE) : 
@@ -71,6 +73,17 @@ public:
         is_counter(false),
         is_resume(resume),
         is_reset(reset), stopped(false) {};
+    // constructor for disabled timers, using function address, for TAU support (disables timestamp)
+    profiler(apex_function_address address, double value_) :
+        value(value_),
+        children_value(0.0),
+        action_address(address), 
+        timer_name(nullptr), 
+        have_name(false), 
+        is_counter(false),
+        is_resume(false),
+        is_reset(reset_type::NONE), stopped(false) {};
+    // constructor for sampled values, using name, or disabled timer for TAU support.
     profiler(std::string * name, double value_) : 
         value(value_), 
         children_value(0.0),

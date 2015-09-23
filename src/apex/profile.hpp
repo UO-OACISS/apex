@@ -56,6 +56,10 @@ public:
     double get_accumulated() { return (_profile.accumulated); }
     double get_minimum() { return (_profile.minimum); }
     double get_maximum() { return (_profile.maximum); }
+    void set_calls(double calls) { _profile.calls = calls; }
+    void set_accumulated(double accumulated) { _profile.accumulated = accumulated; }
+    void set_minimum(double minimum) { _profile.minimum = minimum; }
+    void set_maximum(double maximum) { _profile.maximum = maximum; }
     double get_variance() {
         double mean = get_mean();
         double variance = ((_profile.sum_squares / _profile.calls) - (mean * mean));

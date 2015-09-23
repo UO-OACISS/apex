@@ -82,20 +82,84 @@ namespace apex {
    * Return nullptr if doesn't exist. */
   profile * profiler_listener::get_profile(apex_function_address address) {
     map<apex_function_address, profile*>::const_iterator it = address_map.find(address);
+#ifdef APEX_HAVE_TAU
+	profile * p = nullptr;
+    // get the most recent data
+	const char * list[1];
+	double **counterExclusiveValues;
+	double **counterInclusiveValues;
+	int *numOfCalls;
+	int *numOfSubRoutines;
+    const char ** counterNames;
+	int numOfCounters;
+	list[0] = thread_instance::instance().map_addr_to_name(address).c_str();
+	Tau_get_function_values(list, 1, &counterExclusiveValues, &counterInclusiveValues, 
+	      &numOfCalls, &numOfSubRoutines, &counterNames, &numOfCounters);
+    if (it != address_map.end()) {
+	  p = (*it).second;
+    }
+	if (p == nullptr) {
+	  p = new profile(counterInclusiveValues[0][0], false);
+	}
+    p->set_accumulated(counterInclusiveValues[0][0]);
+    p->set_calls(numOfCalls[0]);
+    p->set_minimum(counterInclusiveValues[0][0]);
+    p->set_maximum(counterInclusiveValues[0][0]);
+	return p;
+#else
     if (it != address_map.end()) {
       return (*it).second;
     }
     return nullptr;
+#endif
   }
 
   /* Return the requested profile object to the user.
    * Return nullptr if doesn't exist. */
   profile * profiler_listener::get_profile(const string &timer_name) {
     map<string, profile*>::const_iterator it = name_map.find(timer_name);
+#ifdef APEX_HAVE_TAU
+	profile * p = nullptr;
+    if (it != name_map.end()) {
+	  p = (*it).second;
+    }
+	if (p == nullptr) {
+	  p = new profile(0.0, false);
+	}
+    // get the most recent data
+	const char * list[1];
+	double **counterExclusiveValues;
+	double **counterInclusiveValues;
+	int *numOfCalls;
+	int *numOfSubRoutines;
+    const char **counterNames;
+	int numOfCounters;
+	list[0] = timer_name.c_str();
+	Tau_get_function_values(list, 1, &counterExclusiveValues, &counterInclusiveValues, 
+	      &numOfCalls, &numOfSubRoutines, &counterNames, &numOfCounters);
+    if (numOfCalls[0] == 0) { // doesn't exist, must be a counter
+	  double *max;
+	  double *min;
+	  double *mean;
+	  double *sumSqr;
+	  Tau_get_event_vals(list, 1, &numOfCalls, &max, &min, &mean, &sumSqr);
+      p->set_calls(numOfCalls[0]);
+      p->set_accumulated(numOfCalls[0] * mean[0]);
+      p->set_minimum(min[0]);
+      p->set_maximum(max[0]);
+	} else {
+      p->set_calls(numOfCalls[0]);
+      p->set_accumulated(counterInclusiveValues[0][0]);
+      p->set_minimum(counterInclusiveValues[0][0]);
+      p->set_maximum(counterInclusiveValues[0][0]);
+	}
+	return p;
+#else
     if (it != name_map.end()) {
       return (*it).second;
     }
     return nullptr;
+#endif
   }
 
   /* Return a vector of all name-based profiles */
@@ -994,8 +1058,13 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
           return false;
         }
 #endif
+#if APEX_HAVE_TAU
+        // create a dummy profiler object, without start timestamp.
+        thread_instance::instance().set_current_profiler(std::shared_ptr<profiler>(new profiler(function_address, 0.0)));
+#else
         // start the profiler object, which starts our timers
         thread_instance::instance().set_current_profiler(std::shared_ptr<profiler>(new profiler(function_address, is_resume)));
+#endif
 #if APEX_HAVE_PAPI
         long long * values = thread_instance::instance().get_current_profiler()->papi_start_values;
         int rc = 0;
@@ -1024,8 +1093,13 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         return false;
       }
 #endif
+#if APEX_HAVE_TAU
+      // create a dummy profiler object, without start timestamp.
+      thread_instance::instance().set_current_profiler(std::shared_ptr<profiler>(new profiler(timer_name, 0.0)));
+#else
       // start the profiler object, which starts our timers
       thread_instance::instance().set_current_profiler(std::shared_ptr<profiler>(new profiler(timer_name, is_resume)));
+#endif
 #if APEX_HAVE_PAPI
       long long * values = thread_instance::instance().get_current_profiler()->papi_start_values;
       int rc = 0;
@@ -1118,12 +1192,18 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 
    /* Stop the timer */
   void profiler_listener::on_stop(std::shared_ptr<profiler> p) {
+// if we aren't using TAU, process the profiler object.
+#ifndef APEX_HAVE_TAU
     _common_stop(p, p->is_resume); // don't change the yield/resume value!
+#endif
   }
 
   /* Stop the timer, but don't increment the number of calls */
   void profiler_listener::on_yield(std::shared_ptr<profiler> p) {
+// if we aren't using TAU, process the profiler object.
+#ifndef APEX_HAVE_TAU
     _common_stop(p, true);
+#endif
   }
 
   /* When a thread exits, pop and stop all timers. */
@@ -1133,11 +1213,13 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 
   /* When a sample value is processed, save it as a profiler object, and queue it. */
   void profiler_listener::on_sample_value(sample_value_event_data &data) {
+#ifndef APEX_HAVE_TAU
     if (!_done) {
         std::shared_ptr<profiler> p = std::shared_ptr<profiler>(new profiler(new string(*data.counter_name), data.counter_value));
       p->is_counter = data.is_counter;
       push_profiler(my_tid, p);
     }
+#endif
   }
 
   void profiler_listener::on_new_task(apex_function_address function_address, void * task_id) {
