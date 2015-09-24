@@ -54,7 +54,7 @@ bool initialize_apex_system(void) {
   // when it is destructed, the apex finalization will happen.
   static apex_system_wrapper_t initializer;
   if (initializer.initialized) {
-	return false;
+    return false;
   }
   return true;
 }
@@ -126,13 +126,13 @@ static void make_key() {
   int rc = pthread_key_create(&wrapper_flags_key, &delete_key);
   switch (rc) {
     case EAGAIN: 
-	  std::cout << "ERROR: The system lacked the necessary resources to create another thread-specific data key, or the system-imposed limit on the total number of keys per process {PTHREAD_KEYS_MAX} has been exceeded." << std::endl;
-	  break;
+      std::cout << "ERROR: The system lacked the necessary resources to create another thread-specific data key, or the system-imposed limit on the total number of keys per process {PTHREAD_KEYS_MAX} has been exceeded." << std::endl;
+      break;
     case ENOMEM: 
-	  std::cout << "ERROR: Insufficient memory exists to create the key." << std::endl;
-	  break;
-	default:
-	  break;
+      std::cout << "ERROR: Insufficient memory exists to create the key." << std::endl;
+      break;
+    default:
+      break;
   }
 }
 
@@ -215,6 +215,11 @@ int apex_pthread_create_wrapper(pthread_create_p pthread_create_call,
 
     // create the pthread, pass in our proxy function and the packed data
     retval = pthread_create_call(threadp, attr, apex_pthread_function, (void*)pack);
+
+    // register the dependency with APEX.
+    if (retval == 0) {
+        apex::new_task((apex_function_address)start_routine, (void*)threadp);
+    }
     wrapper->_wrapped = false;
   }
   return retval;
@@ -232,15 +237,21 @@ int apex_pthread_join_wrapper(pthread_join_p pthread_join_call,
     ret = pthread_join_call(thread, retval);
   } else {
     wrapper->_wrapped = true;
+    /* DON'T do this for now - it creates too many events. Until we can figure
+     * out how to get the profiler_listener to process the queues faster... */
+    /*
     // stop our current timer
     wrapper->yield();
     // start a new timer for the join event
     apex::profiler * p = apex::start("pthread_join");
+    */
     ret = pthread_join_call(thread, retval);
+    /*
     // stop the timer for the join
     apex::stop(p);
     // restart our timer around the parent task
     wrapper->restart();
+    */
     wrapper->_wrapped = false;
   }
   return ret;

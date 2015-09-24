@@ -103,9 +103,9 @@ typedef enum {APEX_SIMPLE_HYSTERESIS,      /*!< optimize using sliding window of
                                                historical observations. A running
                                                average of the most recent N observations
                                                are used as the measurement. */
-	          APEX_DISCRETE_HILL_CLIMBING, /*!< Use a discrete hill climbing algorithm
+              APEX_DISCRETE_HILL_CLIMBING, /*!< Use a discrete hill climbing algorithm
                                                for optimization */
-	          APEX_ACTIVE_HARMONY          /*!< Use Active Harmony for optimization. */
+              APEX_ACTIVE_HARMONY          /*!< Use Active Harmony for optimization. */
 } apex_optimization_method_t;
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
@@ -198,6 +198,7 @@ typedef int (*apex_policy_function)(apex_context const context);
     macro (APEX_MEASURE_CONCURRENCY_PERIOD, concurrency_period, int, 1000000) \
     macro (APEX_SCREEN_OUTPUT, use_screen_output, bool, false) \
     macro (APEX_PROFILE_OUTPUT, use_profile_output, int, 0) \
+    macro (APEX_TASKGRAPH_OUTPUT, use_taskgraph_output, bool, false) \
     macro (APEX_PROC_CPUINFO, use_proc_cpuinfo, bool, false) \
     macro (APEX_PROC_MEMINFO, use_proc_meminfo, bool, false) \
     macro (APEX_PROC_NET_DEV, use_proc_net_dev, bool, false) \

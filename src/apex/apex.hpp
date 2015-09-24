@@ -93,6 +93,7 @@ private:
     hpx::runtime * m_hpx_runtime;
 #endif
 public:
+    profiler_listener * the_profiler_listener;
     std::string version_string;
     std::vector<event_listener*> listeners;
     std::string m_my_locality;

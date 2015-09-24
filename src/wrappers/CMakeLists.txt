@@ -6,13 +6,13 @@ ${APEX_SOURCE_DIR}/src/wrappers)
 link_directories (${APEX_BINARY_DIR}/src/apex)
 
 # Add library called "testOverhead" that is built from the source file
-add_library (apex_pthread_wrapper pthread_wrapper.c
-pthread_wrapper_internal.cpp)
+add_library (apex_pthread_wrapper pthread_wrapper.c pthread_wrapper_internal.cpp)
 add_dependencies (apex_pthread_wrapper apex)
+target_link_libraries (apex_pthread_wrapper apex)
 
 if(APPLE)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPTHREADS -lapex")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPTHREADS -lapex")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPTHREADS")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPTHREADS")
 else()
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread -DPTHREADS")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -DPTHREADS -Wl,--no-as-needed -ldl")

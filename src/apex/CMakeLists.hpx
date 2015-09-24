@@ -40,9 +40,9 @@ endif()
 site_name(HOSTNAME)
 string(LENGTH ${HOSTNAME} HOSTNAME_LENGTH)
 if(${HOSTNAME_LENGTH} GREATER 5)
-	string(SUBSTRING ${HOSTNAME} 0 6 HOST_BASENAME)
+    string(SUBSTRING ${HOSTNAME} 0 6 HOST_BASENAME)
 else()
-	set (HOST_BASENAME ${HOSTNAME})
+    set (HOST_BASENAME ${HOSTNAME})
 endif()
 
 # this will be statically linked to the core HPX library

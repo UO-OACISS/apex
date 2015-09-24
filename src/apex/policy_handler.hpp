@@ -99,6 +99,10 @@ public:
     void on_yield(std::shared_ptr<profiler> p);
     bool on_resume(apex_function_address function_address);
     bool on_resume(std::string *timer_name);
+    void on_new_task(apex_function_address function_address, void * task_id)
+       { APEX_UNUSED(function_address); APEX_UNUSED(task_id); };
+    void on_new_task(std::string *timer_name, void * task_id)
+       { APEX_UNUSED(timer_name); APEX_UNUSED(task_id); };
     void on_sample_value(sample_value_event_data &data);
     void on_custom_event(custom_event_data &data);
     void on_periodic(periodic_event_data &data);
@@ -107,7 +111,7 @@ public:
                         std::function<int(apex_context const&)> f);
     int deregister_policy(apex_policy_handle * handle);
     bool _handler(void);
-	void _reset(void);
+    void _reset(void);
 };
 
 }

@@ -166,10 +166,10 @@ static int get_next_work_item(void)
 {
   /* Fill in with whatever is relevant to obtain a new unit of work
      suitable to be given to a worker. */
-	static int data[] = {1,2,3,4,5,6,7,8,9,10};
-	static int index = -1;
-	if (++index < 10) return (data[index]);
-	return 0;
+    static int data[] = {1,2,3,4,5,6,7,8,9,10};
+    static int index = -1;
+    if (++index < 10) return (data[index]);
+    return 0;
 }
 
 static int do_work(int work)
@@ -180,6 +180,6 @@ static int do_work(int work)
   /* Fill in with whatever is necessary to process the work and
      generate a result */
   apex::stop(p);
-	return dummy;
+    return dummy;
 }
 

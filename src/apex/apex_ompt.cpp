@@ -6,6 +6,7 @@
 #include "apex_api.hpp"
 #include "apex_types.h"
 #include <boost/thread/mutex.hpp>
+//#include "global_constructor_destructor.h"
 
 typedef struct status_flags {
     char idle; // 4 bytes
@@ -164,18 +165,22 @@ extern "C" void my_thread_begin(my_ompt_thread_type_t thread_type, ompt_thread_i
   timer_stack = new std::stack<apex::profiler*>();
   status = new status_flags();
   apex::register_thread("OpenMP Thread");
+  /*
   apex::profiler* p = apex::start("OpenMP_Thread");
   timer_stack->push(p);
+  */
 }
 
 extern "C" void my_thread_end(my_ompt_thread_type_t thread_type, ompt_thread_id_t thread_id) {
   APEX_UNUSED(thread_type);
   APEX_UNUSED(thread_id);
+  /*
   while (!timer_stack->empty()) { // uh-oh...
     apex::profiler* p = timer_stack->top();
     apex::stop(p);
     timer_stack->pop();
   }
+  */
   apex::exit_thread();
   delete(status);
   // delete(timer_stack);  // this is a leak, but it's a small one. Sometimes this crashes?
@@ -187,6 +192,7 @@ extern "C" void my_control(uint64_t command, uint64_t modifier) {
 }
 
 extern "C" void my_shutdown() {
+  //fprintf(stderr,"shutdown. \n"); fflush(stderr);
   delete(timer_stack);
   apex::finalize();
 }

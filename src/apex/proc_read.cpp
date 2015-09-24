@@ -185,12 +185,12 @@ void ProcData::dump(ostream &out) {
         << cpu_stat->softirq << "\t" 
         << cpu_stat->steal << "\t" 
         << cpu_stat->guest << endl;
-	if (strcmp(cpu_stat->name, "cpu") == 0) {
-	  total = cpu_stat->user + cpu_stat->nice + cpu_stat->system + cpu_stat->idle + cpu_stat->iowait + cpu_stat->irq + cpu_stat->softirq + cpu_stat->steal + cpu_stat->guest;
-	  user_ratio = (double)cpu_stat->user / (double)total;
-	  system_ratio = (double)cpu_stat->system / (double)total;
-	  idle_ratio = (double)cpu_stat->idle / (double)total;
-	}
+    if (strcmp(cpu_stat->name, "cpu") == 0) {
+      total = cpu_stat->user + cpu_stat->nice + cpu_stat->system + cpu_stat->idle + cpu_stat->iowait + cpu_stat->irq + cpu_stat->softirq + cpu_stat->steal + cpu_stat->guest;
+      user_ratio = (double)cpu_stat->user / (double)total;
+      system_ratio = (double)cpu_stat->system / (double)total;
+      idle_ratio = (double)cpu_stat->idle / (double)total;
+    }
   }
   out << "ctxt " << ctxt << endl;
   out << "processes " << processes << endl;
@@ -229,11 +229,11 @@ double ProcData::get_cpu_user() {
   double user_ratio = 0.0;
   for (iter = cpus.begin(); iter != cpus.end(); ++iter) {
     CPUStat* cpu_stat=*iter;
-	  if (strcmp(cpu_stat->name, "cpu") == 0) {
-	    total = cpu_stat->user + cpu_stat->nice + cpu_stat->system + cpu_stat->idle + cpu_stat->iowait + cpu_stat->irq + cpu_stat->softirq + cpu_stat->steal + cpu_stat->guest;
-	    user_ratio = (double)cpu_stat->user / (double)total;
+      if (strcmp(cpu_stat->name, "cpu") == 0) {
+        total = cpu_stat->user + cpu_stat->nice + cpu_stat->system + cpu_stat->idle + cpu_stat->iowait + cpu_stat->irq + cpu_stat->softirq + cpu_stat->steal + cpu_stat->guest;
+        user_ratio = (double)cpu_stat->user / (double)total;
       break;
-	  }
+      }
   }
 
   return user_ratio;
@@ -275,9 +275,6 @@ void ProcData::stop_reading(void) {
 
 void ProcData::sample_values(void) {
   long long total;
-  double idle_ratio;
-  double user_ratio;
-  double system_ratio;
   CPUs::iterator iter = cpus.begin();
   CPUStat* cpu_stat=*iter;
   // convert all measurements from "Jiffies" to seconds
@@ -354,7 +351,7 @@ bool parse_proc_cpuinfo() {
           name = trim(name);
           char* pEnd;
           double d1 = strtod (value.c_str(), &pEnd);
-	      if (strcmp(name.c_str(), "processor") == 0) { cpuid = (int)d1; }
+          if (strcmp(name.c_str(), "processor") == 0) { cpuid = (int)d1; }
           stringstream cname;
           cname << "cpuinfo." << cpuid << ":" << name;
           if (pEnd) { sample_value(cname.str(), d1); }
@@ -579,11 +576,11 @@ void ProcData::read_proc(void) {
     // sleep until next time
     std::unique_lock<std::mutex> lk(cv_m);
 #ifdef __INTEL_COMPILER
-	// for some reason, the Intel compiler didn't implement std::cv_status in a normal way.
-	// for intel 15, it is in the tbb::interface5 namespace.
-	// enum cv_status { no_timeout, timeout }; 
+    // for some reason, the Intel compiler didn't implement std::cv_status in a normal way.
+    // for intel 15, it is in the tbb::interface5 namespace.
+    // enum cv_status { no_timeout, timeout }; 
     auto stat = cv.wait_for(lk, std::chrono::seconds(1));
-	// assume the enum starts at 0?
+    // assume the enum starts at 0?
     if (stat == 0) { break; }; // if we were signalled, exit.
 #else
     std::cv_status stat = cv.wait_for(lk, std::chrono::seconds(1));

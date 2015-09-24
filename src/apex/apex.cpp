@@ -143,28 +143,28 @@ void apex::_initialize()
     tmp << std::endl << "Built on: " << __TIME__ << " " << __DATE__;
     tmp << std::endl << "C++ Language Standard version : " << __cplusplus;
 #if defined(__clang__)
-	/* Clang/LLVM. ---------------------------------------------- */
+    /* Clang/LLVM. ---------------------------------------------- */
     tmp << std::endl << "Clang Compiler version : " << __VERSION__;
 #elif defined(__ICC) || defined(__INTEL_COMPILER)
-	/* Intel ICC/ICPC. ------------------------------------------ */
+    /* Intel ICC/ICPC. ------------------------------------------ */
     tmp << std::endl << "Intel Compiler version : " << __VERSION__;
 #elif defined(__GNUC__) || defined(__GNUG__)
-	/* GNU GCC/G++. --------------------------------------------- */
+    /* GNU GCC/G++. --------------------------------------------- */
     tmp << std::endl << "GCC Compiler version : " << __VERSION__;
 #elif defined(__HP_cc) || defined(__HP_aCC)
-	/* Hewlett-Packard C/aC++. ---------------------------------- */
+    /* Hewlett-Packard C/aC++. ---------------------------------- */
     tmp << std::endl << "HP Compiler version : " << __HP_aCC;
 #elif defined(__IBMC__) || defined(__IBMCPP__)
-	/* IBM XL C/C++. -------------------------------------------- */
+    /* IBM XL C/C++. -------------------------------------------- */
     tmp << std::endl << "IBM Compiler version : " << __xlC__;
 #elif defined(_MSC_VER)
-	/* Microsoft Visual Studio. --------------------------------- */
+    /* Microsoft Visual Studio. --------------------------------- */
     tmp << std::endl << "Microsoft Compiler version : " << _MSC_FULL_VER;
 #elif defined(__PGI)
-	/* Portland Group PGCC/PGCPP. ------------------------------- */
+    /* Portland Group PGCC/PGCPP. ------------------------------- */
     tmp << std::endl << "PGI Compiler version : " << __VERSION__;
 #elif defined(__SUNPRO_CC)
-	/* Oracle Solaris Studio. ----------------------------------- */
+    /* Oracle Solaris Studio. ----------------------------------- */
     tmp << std::endl << "Oracle Compiler version : " << __SUNPRO_CC;
 #endif
 
@@ -181,7 +181,8 @@ void apex::_initialize()
     init_msr();
 #endif
     // this is always the first listener!
-    listeners.push_back(new profiler_listener());
+    this->the_profiler_listener = new profiler_listener();
+    listeners.push_back(the_profiler_listener);
 #ifdef APEX_HAVE_TAU
     if (apex_options::use_tau())
     {
@@ -295,7 +296,7 @@ void init(const char * thread_name)
       start("APEX MAIN THREAD");
     }
 #else 
-	APEX_UNUSED(thread_name);
+    APEX_UNUSED(thread_name);
 #endif
 #ifdef APEX_DEBUG
     apex_options::print_options();
@@ -323,7 +324,7 @@ void init(int argc, char** argv, const char * thread_name)
       start("APEX MAIN THREAD");
     }
 #else 
-	APEX_UNUSED(thread_name);
+    APEX_UNUSED(thread_name);
 #endif
 }
 
@@ -433,13 +434,13 @@ profiler* resume(apex_function_address function_address) {
 void reset(const std::string &timer_name) {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
-    profiler_listener::reset(timer_name);
+    instance->the_profiler_listener->reset(timer_name);
 }
 
 void reset(apex_function_address function_address) {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
-    profiler_listener::reset(function_address);
+    instance->the_profiler_listener->reset(function_address);
 }
 
 void set_state(apex_thread_state state) {
@@ -468,7 +469,7 @@ void stop(profiler* the_profiler)
         } catch (empty_stack_exception& e) { }
     } else {
         try {
-            p = thread_instance::instance().pop_current_profiler();
+            p = thread_instance::instance().pop_current_profiler(the_profiler);
         } catch (empty_stack_exception& e) { 
           fflush(stdout); 
           //printf("%lu Stop: null profiler on stack, stopping: %s\n", thread_instance::get_id(), lookup_address((uintptr_t)the_profiler->action_address, false)->c_str());
@@ -517,7 +518,7 @@ void yield(profiler* the_profiler)
         } catch (empty_stack_exception& e) { }
     } else {
         try {
-            p = thread_instance::instance().pop_current_profiler();
+            p = thread_instance::instance().pop_current_profiler(the_profiler);
         } catch (empty_stack_exception& e) { assert(p); }
         assert(p.get() == the_profiler);
     }
@@ -593,6 +594,28 @@ void sample_value(const std::string &name, double value)
         }
     }
     delete(data);
+}
+
+void new_task(const std::string &timer_name, void * task_id)
+{
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance) return; // protect against calls after finalization
+    if (_notify_listeners) {
+        string * tmp = new string(timer_name);
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            instance->listeners[i]->on_new_task(tmp, task_id);
+        }
+    }
+}
+
+void new_task(apex_function_address function_address, void * task_id) {
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance) return; // protect against calls after finalization
+    if (_notify_listeners) {
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            instance->listeners[i]->on_new_task(function_address, task_id);
+        }
+    }
 }
 
 boost::atomic<int> custom_event_count(APEX_CUSTOM_EVENT);
@@ -673,7 +696,7 @@ void set_interrupt_interval(int seconds)
 #ifdef APEX_HAVE_TAU
     TAU_SET_INTERRUPT_INTERVAL(seconds);
 #else 
-	APEX_UNUSED(seconds);
+    APEX_UNUSED(seconds);
 #endif
 }
 
@@ -767,7 +790,7 @@ void exit_thread(void)
     _exited = true;
     // pop any remaining timers, and stop them
     std::shared_ptr<profiler> p;
-    while(true) {
+    while(true && !thread_instance::instance().profiler_stack_empty()) {
         try {
             p = thread_instance::instance().pop_current_profiler();
         } catch (empty_stack_exception& e) { break; }
@@ -816,12 +839,12 @@ std::set<apex_policy_handle*> register_policy(std::set<apex_event_type> when,
                     std::function<int(apex_context const&)> f)
 {
     std::set<apex_event_type>::iterator it;
-	std::set<apex_policy_handle*> handles;
+    std::set<apex_policy_handle*> handles;
     for (it = when.begin(); it != when.end(); ++it)
     {
         handles.insert(register_policy(*it,f));
-	}
-	return handles;
+    }
+    return handles;
 }
 
 /* How to do it with a chrono object. */
@@ -860,21 +883,21 @@ void deregister_policy(apex_policy_handle * handle) {
 }
 
 apex_profile* get_profile(apex_function_address action_address) {
-    profile * tmp = profiler_listener::get_profile(action_address);
+    profile * tmp = apex::__instance()->the_profiler_listener->get_profile(action_address);
     if (tmp != nullptr)
         return tmp->get_profile();
     return nullptr;
 }
 
 apex_profile* get_profile(const std::string &timer_name) {
-    profile * tmp = profiler_listener::get_profile(timer_name);
+    profile * tmp = apex::__instance()->the_profiler_listener->get_profile(timer_name);
     if (tmp != nullptr)
         return tmp->get_profile();
     return nullptr;
 }
 
 std::vector<std::string> get_available_profiles() {
-    return profiler_listener::get_available_profiles();
+    return apex::__instance()->the_profiler_listener->get_available_profiles();
 }
 
 void print_options() {
@@ -984,6 +1007,16 @@ extern "C" {
     {
         string tmp(name);
         sample_value(tmp, value);
+    }
+
+    void apex_new_task(apex_profiler_type type, void * identifier, 
+                       void * task_id) {
+        if (type == APEX_FUNCTION_ADDRESS) {
+            new_task((apex_function_address)(identifier), task_id);
+        } else {
+            string tmp((const char *)identifier);
+            new_task(tmp, task_id);
+        }
     }
 
     apex_event_type apex_register_custom_event(const char * name)

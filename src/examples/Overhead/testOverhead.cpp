@@ -87,7 +87,7 @@ void* someUntimedThread(void* tmp)
   { // only time this for loop
     ApexProxy proxy = ApexProxy((apex_function_address)someUntimedThread);
     for (i = 0 ; i < ITERATIONS ; i++) {
-	    total += foo(i);
+        total += foo(i);
     }
   }
 #if defined (__APPLE__)
@@ -116,49 +116,56 @@ int main(int argc, char **argv)
   pthread_t * thread = (pthread_t*)(malloc(sizeof(pthread_t) * numthreads));
   unsigned i;
   for (i = 0 ; i < numthreads ; i++) {
-    pthread_create(&(thread[i]), NULL, someUntimedThread, NULL);
-  }
-  for (i = 0 ; i < numthreads ; i++) {
-    pthread_join(thread[i], NULL);
-  }
-  for (i = 0 ; i < numthreads ; i++) {
-    pthread_create(&(thread[i]), NULL, someThread, NULL);
+    if (i % 2 == 0) {
+      pthread_create(&(thread[i]), NULL, someUntimedThread, NULL);
+    } else {
+      pthread_create(&(thread[i]), NULL, someThread, NULL);
+    }
   }
   for (i = 0 ; i < numthreads ; i++) {
     pthread_join(thread[i], NULL);
   }
   proxy.stop();
   apex::finalize();
-  apex_profile * with = apex::get_profile((apex_function_address)&someThread);
   apex_profile * without = apex::get_profile((apex_function_address)&someUntimedThread);
+  apex_profile * with = apex::get_profile((apex_function_address)&someThread);
   apex_profile * footime = apex::get_profile((apex_function_address)&foo);
   apex_profile * mhz = apex::get_profile(std::string("cpuinfo.0:cpu MHz"));
-  double mean = without->accumulated/without->calls;
-  double variance = ((without->sum_squares / without->calls) - (mean * mean));
-  double stddev = sqrt(variance);
-  std::cout << "Without timing: " << mean;
-  std::cout << "±" << stddev;
-  mean = with->accumulated/with->calls;
-  variance = ((with->sum_squares / with->calls) - (mean * mean));
-  stddev = sqrt(variance);
-  std::cout << ", with timing: " << mean;
-  std::cout << "±" << stddev << std::endl;
-  std::cout << "Expected calls to 'foo': " << numthreads*ITERATIONS;
-  std::cout << ", timed calls to 'foo': " << (int)footime->calls << std::endl;
-  double percall1 = (with->accumulated - without->accumulated) / (numthreads * ITERATIONS);
-  double percent = (with->accumulated / without->accumulated) - 1.0;
-  double foopercall = footime->accumulated / footime->calls;
-  //double percall2 = (with->accumulated - footime->accumulated) / (numthreads * ITERATIONS);
-  int nanoseconds1 = percall1 * 1.0e9;
-  int nanofoo = foopercall * 1.0e9;
-  //int nanoseconds2 = percall2 * 1.0e9;
-  std::cout << "Average overhead per timer: ";
-  std::cout << nanoseconds1;
-  std::cout << " ns (" << percent*100.0 << "%), per call time in foo: " << nanofoo << " ns " << std::endl;
-  //std::cout << "Overhead (2) per timer: ";
-  //std::cout << nanoseconds2;
-  //std::cout << " ns" << std::endl;
-  if (mhz) {
+  if (without) {
+    double mean = without->accumulated/without->calls;
+    double variance = ((without->sum_squares / without->calls) - (mean * mean));
+    double stddev = sqrt(variance);
+    std::cout << "Without timing: " << mean;
+    std::cout << "±" << stddev << std::endl;;
+  }
+  if (with) {
+    double mean = with->accumulated/with->calls;
+    double variance = ((with->sum_squares / with->calls) - (mean * mean));
+    double stddev = sqrt(variance);
+    std::cout << ", with timing: " << mean;
+    std::cout << "±" << stddev << std::endl;
+  }
+  if (footime) {
+    std::cout << "Expected calls to 'foo': " << numthreads*ITERATIONS;
+    std::cout << ", timed calls to 'foo': " << (int)footime->calls << std::endl;
+  }
+  double percall1 = 0.0;
+  if (with && without && footime) {
+    percall1 = (with->accumulated - without->accumulated) / (numthreads * ITERATIONS);
+    double percent = (with->accumulated / without->accumulated) - 1.0;
+    double foopercall = footime->accumulated / footime->calls;
+    //double percall2 = (with->accumulated - footime->accumulated) / (numthreads * ITERATIONS);
+    int nanoseconds1 = percall1 * 1.0e9;
+    int nanofoo = foopercall * 1.0e9;
+    //int nanoseconds2 = percall2 * 1.0e9;
+    std::cout << "Average overhead per timer: ";
+    std::cout << nanoseconds1;
+    std::cout << " ns (" << percent*100.0 << "%), per call time in foo: " << nanofoo << " ns " << std::endl;
+    //std::cout << "Overhead (2) per timer: ";
+    //std::cout << nanoseconds2;
+    //std::cout << " ns" << std::endl;
+  }
+  if (mhz && percall1 > 0.0) {
     double cycles1 = percall1 * mhz->accumulated * 1.0e6;
     //double cycles2 = percall2 * mhz->accumulated * 1.0e6;
     std::cout << "Overhead (1) per timer: " << cycles1 << " cycles" << std::endl;

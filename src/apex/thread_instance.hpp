@@ -41,6 +41,7 @@ private:
   static std::map<int, bool> _worker_map;
   static boost::mutex _worker_map_mutex;
   static boost::atomic_int _num_threads;
+  static boost::atomic_int _active_threads;
   // thread specific data
   static boost::thread_specific_ptr<thread_instance> _instance;
   // constructor
@@ -50,6 +51,7 @@ private:
   std::shared_ptr<profiler> current_profiler;
   std::vector<std::shared_ptr<profiler> > current_profilers;
 public:
+  ~thread_instance(void);
   static thread_instance& instance(void);
   static long unsigned int get_id(void) { return instance()._id; }
   static std::string get_name(void);
@@ -64,6 +66,7 @@ public:
   static std::shared_ptr<profiler> get_parent_profiler(void);
   static std::shared_ptr<profiler> pop_current_profiler(void);
   static std::shared_ptr<profiler> pop_current_profiler(profiler * requested);
+  static bool profiler_stack_empty(void);
 };
 
 }

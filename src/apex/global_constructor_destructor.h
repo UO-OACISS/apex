@@ -46,4 +46,9 @@
 #warning "Global constructors and destructors not defined!"
 #endif
 
+// #ifdef HAS_CONSTRUCTORS
+// DEFINE_CONSTRUCTOR(apex_init)
+// DEFINE_DESTRUCTOR(apex_finalize)
+// #endif
+
 #endif // GLOBAL_CONSTRUCTOR_DESTRUCTOR_H

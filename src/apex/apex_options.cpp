@@ -37,7 +37,7 @@ namespace apex
     };
 
     apex_options& apex_options::instance(void) {
-    	static apex_options _instance;
+        static apex_options _instance;
         return _instance;
     }
 

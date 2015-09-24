@@ -96,12 +96,12 @@ void apex_sum(int count, apex_profile values[count]) {
     //reduced_value.minimum = fmin(reduced_value.minimum,values[i].minimum); 
       double accum = values[i].accumulated;
       if (accum < reduced_value.minimum) {
-	    reduced_value.minimum = accum; 
+        reduced_value.minimum = accum; 
         min_rank = i;
       }
-	  //reduced_value.maximum = fmax(reduced_value.maximum,values[i].maximum); 
-	  if (accum > reduced_value.maximum) {
-	    reduced_value.maximum = accum; 
+      //reduced_value.maximum = fmax(reduced_value.maximum,values[i].maximum); 
+      if (accum > reduced_value.maximum) {
+        reduced_value.maximum = accum; 
         max_rank = i;
       }
       current_values[i] = values[i].accumulated;
@@ -204,8 +204,8 @@ void apex_global_setup(apex_profiler_type type, void* in_action) {
     fprintf(graph_output,"\"calls\"\t\"mean\"\t\"stddev\"\t\"min\"\t\"min_rank\"\t\"max\"\t\"max_rank\"\n");
     fflush(graph_output);
     //inValues = (apex_profile*)(malloc(apex_profile_size * size));
-	MPI_Alloc_mem(num_ranks * apex_profile_size, MPI_INFO_NULL, &inValues);
-	memset(&(inValues[0]), 0, (apex_profile_size * num_ranks));
+    MPI_Alloc_mem(num_ranks * apex_profile_size, MPI_INFO_NULL, &inValues);
+    memset(&(inValues[0]), 0, (apex_profile_size * num_ranks));
     MPI_Win_create(inValues, apex_profile_size * num_ranks, apex_profile_size, 
                    MPI_INFO_NULL, MPI_COMM_WORLD, &profile_window);
     // get the max number of threads. All throttling will be done relative to this.

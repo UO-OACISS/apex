@@ -4,6 +4,7 @@
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include "thread_instance.hpp"
+#include "apex_api.hpp"
 #include <iostream>
 
 // TAU related
@@ -38,6 +39,8 @@ namespace apex {
 boost::thread_specific_ptr<thread_instance> thread_instance::_instance;
 // Global static count of threads in system
 boost::atomic_int thread_instance::_num_threads(0);
+// Global static count of *active* threads in system
+boost::atomic_int thread_instance::_active_threads(0);
 // Global static map of HPX thread names to TAU thread IDs
 map<string, int> thread_instance::_name_map;
 // Global static mutex to control access to the map
@@ -56,8 +59,16 @@ thread_instance& thread_instance::instance(void) {
     me = _instance.get();
     //me->_id = TAU_PROFILE_GET_THREAD();
     me->_id = _num_threads++;
+    _active_threads++;
   }
   return *me;
+}
+
+thread_instance::~thread_instance(void) {
+    if (_id == 0) {
+        finalize();
+    }
+    _active_threads--;
 }
 
 void thread_instance::set_worker(bool is_worker) {
@@ -217,6 +228,10 @@ std::shared_ptr<profiler> thread_instance::pop_current_profiler(void) {
     return instance().current_profiler;
 }
 
+bool thread_instance::profiler_stack_empty() {
+    return instance().current_profilers.empty();
+}
+
 std::shared_ptr<profiler> thread_instance::pop_current_profiler(profiler * requested) {
     if (instance().current_profilers.empty()) {
         throw empty_stack_exception(); // to be caught by the profiler_listener
@@ -227,7 +242,7 @@ std::shared_ptr<profiler> thread_instance::pop_current_profiler(profiler * reque
     } else {
       // work backward over the vector to find the requested profiler
       std::vector<std::shared_ptr<profiler> >::const_iterator it;
-	  int crappy_compiler = 0;
+      int crappy_compiler = 0;
       for (it = instance().current_profilers.end() ; it != instance().current_profilers.begin() ; it-- ) {
         profiler * tmp = (*it).get();
         if (tmp == requested) {
@@ -240,7 +255,7 @@ std::shared_ptr<profiler> thread_instance::pop_current_profiler(profiler * reque
 #endif
           return instance().current_profiler;
         }
-		crappy_compiler++;
+        crappy_compiler++;
       }
       throw empty_stack_exception(); // to be caught by the profiler_listener
     }

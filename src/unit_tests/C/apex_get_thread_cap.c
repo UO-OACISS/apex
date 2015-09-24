@@ -27,8 +27,8 @@ int foo (int i) {
   tim.tv_sec = 0;
   // sleep just a bit longer, based on number of active threads.
   int cap = MIN(NUM_THREADS,apex_get_thread_cap());
-	if (cap != original_cap) {
-		test_passed = true;
+    if (cap != original_cap) {
+        test_passed = true;
   }
   tim.tv_nsec = (unsigned long)(SLEEPY_TIME * randval * (cap * cap));
   nanosleep(&tim , &tim2);
@@ -62,7 +62,7 @@ void* someThread(void* tmp)
         // sleep a bit
         nanosleep(&tim , &tim2);
       } else {
-	    foo(total_iterations);
+        foo(total_iterations);
         __sync_fetch_and_sub(&(total_iterations),1);
         if (total_iterations % 1000 == 0) {
             printf("%d iterations left, cap is %d\n", total_iterations, apex_get_thread_cap());

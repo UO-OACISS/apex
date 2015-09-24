@@ -3,43 +3,44 @@ include_directories (${APEX_SOURCE_DIR}/src/apex)
 
 # Make sure the linker can find the Apex library once it is built. 
 link_directories (${APEX_BINARY_DIR}/src/apex) 
-link_directories (${APEX_BINARY_DIR}/src/apex_pthread_wrapper) 
+#link_directories (${APEX_BINARY_DIR}/src/apex_pthread_wrapper) 
 
 set(example_programs
     apex_init
     apex_init_args
     apex_finalize
     apex_cleanup
-	apex_start
-	apex_stop
-	apex_yield
-	apex_resume
-	apex_reset
-	apex_set_state
-	apex_sample_value
-	apex_register_custom_event
-	apex_custom_event
-	apex_version
-	apex_set_node_id
-	apex_register_thread
-	apex_exit_thread
-	apex_register_policy
-	apex_register_policy_set
-	apex_register_periodic_policy
-	apex_deregister_policy
-	apex_get_profile
-	apex_current_power_high
-	apex_setup_timer_throttling
-	apex_print_options
-	apex_get_thread_cap
-	apex_shutdown_throttling
-	apex_pthread_flood
+    apex_start
+    apex_stop
+    apex_yield
+    apex_resume
+    apex_reset
+    apex_set_state
+    apex_sample_value
+    apex_register_custom_event
+    apex_custom_event
+    apex_version
+    apex_set_node_id
+    apex_register_thread
+    apex_exit_thread
+    apex_register_policy
+    apex_register_policy_set
+    apex_register_periodic_policy
+    apex_deregister_policy
+    apex_get_profile
+    apex_current_power_high
+    apex_setup_timer_throttling
+    apex_print_options
+    apex_get_thread_cap
+    apex_shutdown_throttling
+    apex_pthread_flood
     apex_fibonacci_std_async
+    apex_new_task
    )
-	#apex_set_thread_cap
-	#apex_setup_power_cap_throttling
-	#apex_setup_custom_tuning
-	#get_tunable_params
+    #apex_set_thread_cap
+    #apex_setup_power_cap_throttling
+    #apex_setup_custom_tuning
+    #get_tunable_params
 
 if (OPENMP_FOUND)
   set(example_programs "${example_programs};apex_setup_throughput_tuning")

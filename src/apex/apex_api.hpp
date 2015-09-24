@@ -95,10 +95,10 @@ APEX_EXPORT void finalize(void);
 /**
  \brief Cleanup APEX.
  \warning For best results, this function should be explicitly called 
-					to free all memory allocated by APEX. If not explicitly called from
-					the application or runtime, it will be automatically called when the
-					APEX main singleton object is destructed. apex::finalize will be 
-					automatically called from apex::cleanup if it has not yet been called.
+                    to free all memory allocated by APEX. If not explicitly called from
+                    the application or runtime, it will be automatically called when the
+                    APEX main singleton object is destructed. apex::finalize will be 
+                    automatically called from apex::cleanup if it has not yet been called.
  
  The cleanup method will free all allocated memory for APEX.
  \return No return value.
@@ -120,8 +120,8 @@ APEX_EXPORT void cleanup(void);
  \param timer_name The name of the timer.
  \return The handle for the timer object in APEX. Not intended to be
          queried by the application. Should be retained locally, if
-		 possible, and passed in to the matching apex::stop()
-		 call when the timer should be stopped.
+         possible, and passed in to the matching apex::stop()
+         call when the timer should be stopped.
  \sa @ref apex::stop, @ref apex::yield, @ref apex::resume
  */
 APEX_EXPORT profiler * start(const std::string &timer_name);
@@ -136,8 +136,8 @@ APEX_EXPORT profiler * start(const std::string &timer_name);
  \param function_address The address of the function to be timed
  \return The handle for the timer object in APEX. Not intended to be
          queried by the application. Should be retained locally, if
-		 possible, and passed in to the matching apex::stop
-		 call when the timer should be stopped.
+         possible, and passed in to the matching apex::stop
+         call when the timer should be stopped.
  \sa @ref apex::stop, @ref apex::yield, @ref apex::resume
  */
 APEX_EXPORT profiler * start(apex_function_address function_address);
@@ -183,8 +183,8 @@ APEX_EXPORT void yield(profiler * the_profiler);
  \param timer_name The name of the timer.
  \return The handle for the timer object in APEX. Not intended to be
          queried by the application. Should be retained locally, if
-		 possible, and passed in to the matching apex::stop()
-		 call when the timer should be stopped.
+         possible, and passed in to the matching apex::stop()
+         call when the timer should be stopped.
  \sa @ref apex::stop, @ref apex::yield, @ref apex::start
  */
 APEX_EXPORT profiler * resume(const std::string &timer_name);
@@ -202,8 +202,8 @@ APEX_EXPORT profiler * resume(const std::string &timer_name);
  \param function_address The address of the function to be timed
  \return The handle for the timer object in APEX. Not intended to be
          queried by the application. Should be retained locally, if
-		 possible, and passed in to the matching apex::stop
-		 call when the timer should be stopped.
+         possible, and passed in to the matching apex::stop
+         call when the timer should be stopped.
  \sa apex::stop, apex::yield, apex::start
  */
 APEX_EXPORT profiler * resume(apex_function_address function_address);
@@ -261,6 +261,32 @@ APEX_EXPORT void set_state(apex_thread_state state);
  \return No return value.
  */
 APEX_EXPORT void sample_value(const std::string &name, double value);
+
+/**
+ \brief Create a new task (dependency).
+
+ This function will note a task dependency between the current 
+ timer (task) and the new task.
+
+ \param timer_name The name of the timer.                                        
+ \param taskid The ID of the task 
+ \return No return value.
+ */
+
+APEX_EXPORT void new_task(const std::string &name, void * task_id);
+
+/**
+ \brief Create a new task (dependency).
+
+ This function will note a task dependency between the current 
+ timer (task) and the new task.
+
+ \param function_address The function address of the timer.
+ \param taskid The ID of the task 
+ \return No return value.
+ */
+
+APEX_EXPORT void new_task(apex_function_address function_address, void * task_id);
 
 /**
  \brief Register an event type with APEX.

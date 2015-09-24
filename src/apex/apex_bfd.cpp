@@ -60,7 +60,7 @@ struct ApexBfdModule
     if (bfdImage && bfdOpen)
       bfd_close(bfdImage);
     free(syms);
-	syms = NULL;
+    syms = NULL;
   }
 
 #ifdef APEX_INTEL12
@@ -166,9 +166,9 @@ struct ApexBfdUnit
 
   void ClearMaps() {
     for (size_t i = 0; i < addressMaps.size(); ++i) {
-	  if (addressMaps[i]) {
+      if (addressMaps[i]) {
       delete addressMaps[i];
-	  }
+      }
     }
     addressMaps.clear();
   }
@@ -245,7 +245,7 @@ void Apex_delete_bfd_units() {
       ApexBfdUnit * unit = *it;
       unit->ClearMaps();
       unit->ClearModules();
-	  delete unit->executableModule;
+      delete unit->executableModule;
       delete unit;
     }
     units.clear();

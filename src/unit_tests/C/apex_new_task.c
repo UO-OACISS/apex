@@ -41,12 +41,13 @@ void * fib (void * in) {
     pthread_t thread_a;
     int rc = pthread_create(&thread_a, &attr_a, fib, (void*)&a);
     if (rc == EAGAIN) {
-        //printf("Insufficient resources to create another thread. \n EAGAIN A system-imposed limit on the number of threads was encountered.  There are a number of limits that may trigger this error: the RLIMIT_NPROC soft resource limit (set via setrlimit(2)), which limits the number of processes and threads for a real user ID, was reached; the kernel's system- wide limit on the number of processes and threads, /proc/sys/kernel/threads-max, was reached (see proc(5)); or the maximum number of PIDs, /proc/sys/kernel/pid_max, was reached (see proc(5)).");
+        printf("Insufficient resources to create another thread. \n EAGAIN A system-imposed limit on the number of threads was encountered.  There are a number of limits that may trigger this error: the RLIMIT_NPROC soft resource limit (set via setrlimit(2)), which limits the number of processes and threads for a real user ID, was reached; the kernel's system- wide limit on the number of processes and threads, /proc/sys/kernel/threads-max, was reached (see proc(5)); or the maximum number of PIDs, /proc/sys/kernel/pid_max, was reached (see proc(5)).");
     } else if (rc == EINVAL) {
-        //printf("Invalid settings in attr.");
+        printf("Invalid settings in attr.");
     } else if (rc == EPERM) {
-        //printf("No permission to set the scheduling policy and parameters specified in attr.");
+        printf("No permission to set the scheduling policy and parameters specified in attr.");
     }
+    apex_new_task(APEX_FUNCTION_ADDRESS, &fib, &thread_a);
     pthread_attr_destroy(&attr_a);
 
     scratchpad_t b;
@@ -56,39 +57,26 @@ void * fib (void * in) {
     pthread_attr_init(&attr_b);
     pthread_attr_setstacksize(&attr_b, PTHREAD_STACK_MIN);
     pthread_t thread_b;
-    int rc_b = pthread_create(&thread_b,&attr_b,fib,(void*)&b);
-       if (rc_b == EAGAIN) {
-        //printf("Insufficient resources to create another thread. \n EAGAIN A system-imposed limit on the number of threads was encountered.  There are a number of limits that may trigger this error: the RLIMIT_NPROC soft resource limit (set via setrlimit(2)), which limits the number of processes and threads for a real user ID, was reached; the kernel's system- wide limit on the number of processes and threads, /proc/sys/kernel/threads-max, was reached (see proc(5)); or the maximum number of PIDs, /proc/sys/kernel/pid_max, was reached (see proc(5)).");
-    } else if (rc_b == EINVAL) {
-        //printf("Invalid settings in attr.");
-    } else if (rc_b == EPERM) {
-        //printf("No permission to set the scheduling policy and parameters specified in attr.");
+    rc = pthread_create(&thread_b,&attr_b,fib,(void*)&b);
+       if (rc == EAGAIN) {
+        printf("Insufficient resources to create another thread. \n EAGAIN A system-imposed limit on the number of threads was encountered.  There are a number of limits that may trigger this error: the RLIMIT_NPROC soft resource limit (set via setrlimit(2)), which limits the number of processes and threads for a real user ID, was reached; the kernel's system- wide limit on the number of processes and threads, /proc/sys/kernel/threads-max, was reached (see proc(5)); or the maximum number of PIDs, /proc/sys/kernel/pid_max, was reached (see proc(5)).");
+    } else if (rc == EINVAL) {
+        printf("Invalid settings in attr.");
+    } else if (rc == EPERM) {
+        printf("No permission to set the scheduling policy and parameters specified in attr.");
     }
+    apex_new_task(APEX_FUNCTION_ADDRESS, &fib, &thread_b);
     pthread_attr_destroy(&attr_a);
 
-    if (rc_a > 0) {
-    // thread failed, just execute.
-      fib((void*)&a);
-      //a.f_x == fib_results[a.x];
-    } else {
-      pthread_join(thread_a,NULL);    
-    }
-
-    if (rc_b > 0) {
-    // thread failed, just execute.
-      fib((void*)&b);
-      //b.f_x == fib_results[b.x];
-    } else {
-      pthread_join(thread_b,NULL);    
-    }
-
+    pthread_join(thread_a,NULL);    
+    pthread_join(thread_b,NULL);    
     if (a.f_x != fib_results[a.x]) {
       printf("WRONG! fib of %d is NOT %d (valid value: %d)\n", a.x, a.f_x, fib_results[a.x]);
-      a.f_x == fib_results[a.x];
+      //printf("WRONG! %d\n", fib_results[a.x]);
     }
     if (b.f_x != fib_results[b.x]) {
       printf("WRONG! fib of %d is NOT %d (valid value: %d)\n", b.x, b.f_x, fib_results[b.x]);
-      b.f_x == fib_results[b.x];
+      //printf("WRONG! %d\n", fib_results[a.x]);
     }
     scratch->f_x = a.f_x + b.f_x;
     apex_stop(p);

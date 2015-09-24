@@ -24,7 +24,7 @@ public:
 };
 
 int fib (int in) {
-    //apex_proxy foo((void*)&fib);
+    apex_proxy foo((void*)&fib);
     if (in == 0) {
         return 0;
     }
@@ -32,9 +32,11 @@ int fib (int in) {
         return 1;
     }
     int a = in-1;
+    apex::new_task((apex_function_address)&fib, NULL);
     auto future_a = std::async(std::launch::async, fib, a);
 
     int b = in-2;
+    apex::new_task((apex_function_address)&fib, NULL);
     auto future_b = std::async(std::launch::async, fib, b);
 
     int result_a = future_a.get();
@@ -43,7 +45,8 @@ int fib (int in) {
 }
 
 int main(int argc, char *argv[]) {
-    //apex::init("apex_fibonacci_pthreads unit test");
+    apex::init("apex_new_task_cpp unit test");
+    apex_proxy foo((void*)&main);
     int i = 10;
 
     if (argc != 2) {
@@ -58,10 +61,11 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    auto future = std::async(fib, i);
+    apex::new_task((apex_function_address)&fib, NULL);
+    auto future = std::async(std::launch::async, fib, i);
     int result = future.get();
     std::cout << "fib of " << i << " is " << result << " (valid value: " << fib_results[i] << ")" << std::endl;
-    //apex::finalize();
+    apex::finalize();
     return 0;
 }
 

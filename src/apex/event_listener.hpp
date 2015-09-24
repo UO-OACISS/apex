@@ -103,6 +103,8 @@ public:
   virtual void on_yield(std::shared_ptr<profiler> p) = 0;
   virtual bool on_resume(apex_function_address function_address) = 0;
   virtual bool on_resume(std::string *timer_name) = 0;
+  virtual void on_new_task(apex_function_address function_address, void * task_id) = 0;
+  virtual void on_new_task(std::string *timer_name, void * task_id) = 0;
   virtual void on_sample_value(sample_value_event_data &data) = 0;
   virtual void on_periodic(periodic_event_data &data) = 0;
   virtual void on_custom_event(custom_event_data &data) = 0;

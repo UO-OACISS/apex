@@ -54,7 +54,7 @@ class simple_timer {
 
 inline unsigned int my_hardware_concurrency()
 {
-	return sysconf(_SC_NPROCESSORS_ONLN);
+    return sysconf(_SC_NPROCESSORS_ONLN);
 }
 
 inline unsigned int hardware_concurrency()
