@@ -39,12 +39,12 @@ void * fib (void * in) {
     pthread_attr_init(&attr_a);
     pthread_attr_setstacksize(&attr_a, PTHREAD_STACK_MIN);
     pthread_t thread_a;
-    int rc = pthread_create(&thread_a, &attr_a, fib, (void*)&a);
-    if (rc == EAGAIN) {
+    int rc_a = pthread_create(&thread_a, &attr_a, fib, (void*)&a);
+    if (rc_a == EAGAIN) {
         //printf("Insufficient resources to create another thread. \n EAGAIN A system-imposed limit on the number of threads was encountered.  There are a number of limits that may trigger this error: the RLIMIT_NPROC soft resource limit (set via setrlimit(2)), which limits the number of processes and threads for a real user ID, was reached; the kernel's system- wide limit on the number of processes and threads, /proc/sys/kernel/threads-max, was reached (see proc(5)); or the maximum number of PIDs, /proc/sys/kernel/pid_max, was reached (see proc(5)).");
-    } else if (rc == EINVAL) {
+    } else if (rc_a == EINVAL) {
         //printf("Invalid settings in attr.");
-    } else if (rc == EPERM) {
+    } else if (rc_a == EPERM) {
         //printf("No permission to set the scheduling policy and parameters specified in attr.");
     }
     pthread_attr_destroy(&attr_a);

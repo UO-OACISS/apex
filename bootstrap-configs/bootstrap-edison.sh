@@ -16,11 +16,11 @@ export BOOST_ROOT=$BOOST_DIR
 #export BFD_ROOT=$HOME/src/tau2-edison/craycnl/binutils-2.23.2 # CMake will find it automatically.
 # export BFD_ROOT=/usr # CMake will find it automatically.
 #GPERFTOOLS_ROOT=$HOME/install/google-perftools/2.4 # not necessary, because HPX uses JEMalloc
-export JEMALLOC_ROOT=$HOME/install/jemalloc/3.6.0 # not strictly necessary, if runtime uses JEMalloc
+#export JEMALLOC_ROOT=$HOME/install/jemalloc/3.6.0 # not strictly necessary, if runtime uses JEMalloc
 #export RCR_ROOT=$HOME/src/RCRdaemon_nersc
 #export PAPI_ROOT=/opt/cray/papi/5.3.2.1
-#export TAU_ROOT=$HOME/install/tau2-hpx
-#export ACTIVEHARMONY_ROOT=$HOME/install/activeharmony/4.5
+export TAU_ROOT=$HOME/install/tau2-hpx
+export ACTIVEHARMONY_ROOT=$HOME/install/activeharmony/4.5
 #export OMPT_ROOT=$HOME/src/LLVM-openmp/build
 
 # other CMake variables - for special situations / architectures / compilers.
