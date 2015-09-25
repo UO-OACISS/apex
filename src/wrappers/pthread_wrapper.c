@@ -28,7 +28,6 @@
 static
 void * get_system_function_handle(char const * name, void * caller)
 {
-  char const * err;
   void * handle;
 
   // Reset error pointer

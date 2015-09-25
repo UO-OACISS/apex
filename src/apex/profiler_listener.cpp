@@ -112,14 +112,6 @@ namespace apex {
     for(auto &it : address_map) {
         it.second->reset();
     }
-    if (apex_options::use_profile_output() > 1) {
-        for(auto &it1 : *(thread_name_maps[my_tid])) {
-            it1.second->reset();
-        }
-        for(auto &it1 : *(thread_address_maps[my_tid])) {
-            it1.second->reset();
-        }
-    }
   }
 
   /* After the consumer thread pulls a profiler off of the queue,
@@ -188,24 +180,6 @@ namespace apex {
 #endif
 #endif
       }
-      if (apex_options::use_profile_output() > 1) {
-        // now do thread-specific measurement.
-        map<string, profile*>* the_map = thread_name_maps[tid];
-        it = the_map->find(*(p->timer_name));
-        if (it != the_map->end()) {
-            // A profile for this name already exists.
-            theprofile = (*it).second;
-            if(p->is_reset == reset_type::CURRENT) {
-                theprofile->reset();
-            } else {
-                theprofile->increment(p->elapsed(), p->is_resume);
-            }
-        } else {
-            // Create a new profile for this name.
-            theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_resume, p->is_counter ? APEX_COUNTER : APEX_TIMER);
-            (*the_map)[*(p->timer_name)] = theprofile;
-        }
-      }
     } else { // address rather than name
       map<apex_function_address, profile*>::const_iterator it2 = address_map.find(p->action_address);
       if (it2 != address_map.end()) {
@@ -236,24 +210,6 @@ namespace apex {
         // Create a new profile for this address.
         theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_resume);
         address_map[p->action_address] = theprofile;
-      }
-      if (apex_options::use_profile_output() > 1) {
-        // now do thread-specific measurement
-        map<apex_function_address, profile*>* the_map = thread_address_maps[tid];
-        it2 = the_map->find(p->action_address);
-        if (it2 != the_map->end()) {
-            // A profile for this name already exists.
-            theprofile = (*it2).second;
-            if(p->is_reset == reset_type::CURRENT) {
-                theprofile->reset();
-            } else {
-                theprofile->increment(p->elapsed(), p->is_resume);
-            }
-        } else {
-            // Create a new profile for this address.
-            theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_resume);
-            (*the_map)[p->action_address] = theprofile;
-        }
       }
     }
     delete p;
@@ -303,32 +259,6 @@ namespace apex {
     address_map.clear();
     name_map.clear();
 
-    if (apex_options::use_profile_output() > 1) {
-        unsigned int i;
-        // iterate over the vector of profile objects for per-thread measurement
-        for (i = 0 ; i < thread_address_maps.size(); i++) {
-        if (thread_address_maps[i]) {
-            for(it = thread_address_maps[i]->begin(); it != thread_address_maps[i]->end(); it++) {
-            delete it->second;
-            }
-            delete (thread_address_maps[i]);
-        }
-        }
-        // clear the vector of maps.
-        thread_address_maps.clear();
-
-        // iterate over the vector of profile objects for per-thread measurement
-        for (i = 0 ; i < thread_name_maps.size(); i++) {
-        if (thread_name_maps[i]) {
-            for(it2 = thread_name_maps[i]->begin(); it2 != thread_name_maps[i]->end(); it2++) {
-            delete it2->second;
-            }
-            delete (thread_name_maps[i]);
-        }
-        }
-        // clear the vector of maps.
-        thread_name_maps.clear();
-    }
   }
 
 #define PAD_WITH_SPACES boost::format("%9i")
@@ -506,25 +436,17 @@ namespace apex {
   }
 
   /* Write TAU profiles from the collected data. */
-  void profiler_listener::write_profile(int tid) {
+  void profiler_listener::write_profile() {
     ofstream myfile;
     stringstream datname;
     map<string, profile*>* the_name_map = nullptr;
     map<apex_function_address, profile*>* the_address_map = nullptr;
 
-    if (tid == -1) {
-      the_name_map = &name_map;
-      the_address_map = &address_map;
-      // name format: profile.nodeid.contextid.threadid
-      // We only write one profile per process
-      datname << "profile." << node_id << ".0.0";
-    } else {
-      if (thread_name_maps[tid] == nullptr || thread_address_maps[tid] == nullptr) return;
-      the_name_map = thread_name_maps[tid];
-      the_address_map = thread_address_maps[tid];
-      // name format: profile.nodeid.contextid.threadid
-      datname << "profile." << node_id << ".0." << tid;
-    }
+    the_name_map = &name_map;
+    the_address_map = &address_map;
+    // name format: profile.nodeid.contextid.threadid
+    // We only write one profile per process
+    datname << "profile." << node_id << ".0.0";
 
     // name format: profile.nodeid.contextid.threadid
     myfile.open(datname.str().c_str());
@@ -821,10 +743,6 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   /* When APEX gets a STARTUP event, do some initialization. */
   void profiler_listener::on_startup(startup_event_data &data) {
     if (!_done) {
-      if (apex_options::use_profile_output() > 1) {
-        thread_address_maps[0] = new map<apex_function_address, profile*>();
-        thread_name_maps[0] = new map<string, profile*>();
-      }
 #ifndef APEX_HAVE_HPX3
       // Start the consumer thread, to process profiler objects.
       consumer_thread = new boost::thread(process_profiles_wrapper);
@@ -899,17 +817,8 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       }
 
       // output to 1 TAU profile per process?
-      if (apex_options::use_profile_output() == 1)
-      {
-        write_profile(-1);
-      }
-      // output to TAU profiles, one per thread per process?
-      else if (apex_options::use_profile_output() > 1)
-      {
-        // the number of thread_name_maps tells us how many threads there are to process
-        for (unsigned int i = 0 ; i < thread_name_maps.size(); i++) {
-          write_profile((int)i);
-        }
+      if (apex_options::use_profile_output() && apex_options::use_tau()) {
+        write_profile();
       }
 
 #if APEX_HAVE_PAPI
@@ -952,19 +861,6 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   void profiler_listener::on_new_thread(new_thread_event_data &data) {
     if (!_done) {
       my_tid = (unsigned int)thread_instance::get_id();
-      // resize the vector
-      if (apex_options::use_profile_output() > 1) {
-        _mtx.lock();
-        if (my_tid >= thread_address_maps.size()) {
-            thread_address_maps.resize(my_tid + 1);
-            thread_address_maps[my_tid] = new map<apex_function_address, profile*>();
-        }
-        if (my_tid >= thread_name_maps.size()) {
-            thread_name_maps.resize(my_tid + 1);
-            thread_name_maps[my_tid] = new map<string, profile*>();
-        }
-        _mtx.unlock();
-      }
 #if APEX_HAVE_PAPI
       initialize_PAPI(false);
       if (my_tid >= event_sets.size()) {

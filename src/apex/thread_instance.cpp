@@ -214,14 +214,16 @@ std::shared_ptr<profiler> thread_instance::get_current_profiler(void) {
 
 std::shared_ptr<profiler> thread_instance::get_parent_profiler(void) {
     if (instance().current_profilers.size() == 0) {
-        throw empty_stack_exception(); // to be caught by the profiler_listener
+        //throw empty_stack_exception(); // to be caught by the profiler_listener
+        return nullptr;
     }
     return instance().current_profilers.back();
 }
 
 std::shared_ptr<profiler> thread_instance::pop_current_profiler(void) {
     if (instance().current_profilers.empty()) {
-        throw empty_stack_exception(); // to be caught by the profiler_listener
+        //throw empty_stack_exception(); // to be caught by the profiler_listener
+        return nullptr;
     }
     instance().current_profiler = instance().current_profilers.back();
     instance().current_profilers.pop_back();
@@ -234,7 +236,8 @@ bool thread_instance::profiler_stack_empty() {
 
 std::shared_ptr<profiler> thread_instance::pop_current_profiler(profiler * requested) {
     if (instance().current_profilers.empty()) {
-        throw empty_stack_exception(); // to be caught by the profiler_listener
+        //throw empty_stack_exception(); // to be caught by the profiler_listener
+        return std::make_shared<profiler>(requested);
     }
     if (instance().current_profilers.back().get() == requested) {
       instance().current_profiler = instance().current_profilers.back();
@@ -257,7 +260,8 @@ std::shared_ptr<profiler> thread_instance::pop_current_profiler(profiler * reque
         }
         crappy_compiler++;
       }
-      throw empty_stack_exception(); // to be caught by the profiler_listener
+      //throw empty_stack_exception(); // to be caught by the profiler_listener
+      return std::make_shared<profiler>(requested);
     }
     return instance().current_profiler; // for completeless
 }

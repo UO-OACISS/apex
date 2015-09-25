@@ -164,7 +164,7 @@ int policy_handler::register_policy(const apex_event_type & when,
         periodic_policies.push_back(instance);
         break;
       }
-      //case APEX_CUSTOM_EVENT:
+      //case APEX_CUSTOM_EVENT_1:
       default: {
         boost::unique_lock<mutex_type> l(custom_event_mutex);
         custom_event_policies[when].push_back(instance);
@@ -309,7 +309,7 @@ int policy_handler::deregister_policy(apex_policy_handle * handle) {
         }
         break;
       }
-        //case APEX_CUSTOM_EVENT: {
+        //case APEX_CUSTOM_EVENT_1: {
         default: {
         boost::unique_lock<mutex_type> l(custom_event_mutex);
         std::list<boost::shared_ptr<policy_instance> >::iterator it;
@@ -333,7 +333,7 @@ inline void policy_handler::call_policies(
     apex_context my_context;
     my_context.event_type = data.event_type_;
     my_context.policy_handle = NULL;
-    if (data.event_type_ >= APEX_CUSTOM_EVENT) {
+    if (data.event_type_ >= APEX_CUSTOM_EVENT_1) {
         my_context.data = data.data;
     } else {
         my_context.data = NULL;

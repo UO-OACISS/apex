@@ -458,35 +458,15 @@ void stop(profiler* the_profiler)
 
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
-    //int tid = thread_instance::get_id();
-    //assert (the_profiler->tid == tid);
     if (the_profiler != nullptr) { assert (!the_profiler->stopped); }
     std::shared_ptr<profiler> p;
     // A null profiler is OK, it means the application didn't store it. We have it.
     if (the_profiler == nullptr) {
-        try {
-            p = thread_instance::instance().pop_current_profiler();
-        } catch (empty_stack_exception& e) { }
+        p = thread_instance::instance().pop_current_profiler();
     } else {
-        try {
-            p = thread_instance::instance().pop_current_profiler(the_profiler);
-        } catch (empty_stack_exception& e) { 
-          fflush(stdout); 
-          //printf("%lu Stop: null profiler on stack, stopping: %s\n", thread_instance::get_id(), lookup_address((uintptr_t)the_profiler->action_address, false)->c_str());
-          printf("%lu Stop: null profiler on stack\n", thread_instance::get_id());
-          fflush(stdout); 
-          assert(p); 
-        }
-        /*
-        profiler * tmp = p.get();
-        if (tmp != the_profiler){
-          fflush(stdout); 
-          printf("%lu Stop: overlap: %s != %s\n", thread_instance::get_id(), lookup_address((uintptr_t)tmp->action_address, false)->c_str(), lookup_address((uintptr_t)the_profiler->action_address, false)->c_str());
-          fflush(stdout); 
-        }
-        */
-        //assert(p.get() == the_profiler);
+        p = thread_instance::instance().pop_current_profiler(the_profiler);
     }
+    if (p == nullptr) return;
 #ifdef APEX_DEBUG
     /*
     if (instance->get_node_id() == 0) { 
@@ -513,14 +493,9 @@ void yield(profiler* the_profiler)
     if (!instance) return; // protect against calls after finalization
     std::shared_ptr<profiler> p;
     if (the_profiler == nullptr) {
-        try {
-            p = thread_instance::instance().pop_current_profiler();
-        } catch (empty_stack_exception& e) { }
+        p = thread_instance::instance().pop_current_profiler();
     } else {
-        try {
-            p = thread_instance::instance().pop_current_profiler(the_profiler);
-        } catch (empty_stack_exception& e) { assert(p); }
-        assert(p.get() == the_profiler);
+        p = thread_instance::instance().pop_current_profiler(the_profiler);
     }
     if (p == nullptr) return;
 #ifdef APEX_DEBUG
@@ -618,11 +593,11 @@ void new_task(apex_function_address function_address, void * task_id) {
     }
 }
 
-boost::atomic<int> custom_event_count(APEX_CUSTOM_EVENT);
+boost::atomic<int> custom_event_count(APEX_CUSTOM_EVENT_1);
 
 apex_event_type register_custom_event(const std::string &name) {
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return APEX_CUSTOM_EVENT; // protect against calls after finalization
+    if (!instance) return APEX_CUSTOM_EVENT_1; // protect against calls after finalization
     if (custom_event_count == APEX_MAX_EVENTS) {
       std::cerr << "Cannot register more than MAX Events! (set to " << APEX_MAX_EVENTS << ")" << std::endl;
     }
@@ -791,12 +766,10 @@ void exit_thread(void)
     // pop any remaining timers, and stop them
     std::shared_ptr<profiler> p;
     while(true && !thread_instance::instance().profiler_stack_empty()) {
-        try {
-            p = thread_instance::instance().pop_current_profiler();
-        } catch (empty_stack_exception& e) { break; }
-        if (p != nullptr) {
+        p = thread_instance::instance().pop_current_profiler();
+        if (p == nullptr) { break; }
 #ifdef APEX_DEBUG
-            _exit_stops++;
+        _exit_stops++;
     /*
     if (instance->get_node_id() == 0) { 
         printf("%lu Exit Stop:  %s\n", thread_instance::get_id(), lookup_address((uintptr_t)p->action_address, false)->c_str());
@@ -804,10 +777,9 @@ void exit_thread(void)
     }
     */
 #endif
-            if (_notify_listeners) {
-                for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-                    instance->listeners[i]->on_stop(p);
-                }
+        if (_notify_listeners) {
+            for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+                instance->listeners[i]->on_stop(p);
             }
         }
     }

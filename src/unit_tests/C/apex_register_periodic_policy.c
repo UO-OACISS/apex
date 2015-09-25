@@ -103,12 +103,12 @@ int policy_event(apex_context const context) {
             printf("Periodic event.\n");
             break;
         }
-        case APEX_CUSTOM_EVENT:
+        case APEX_CUSTOM_EVENT_1:
         {
             printf("Custom event 1.\n");
             break;
         }
-        case APEX_CUSTOM_EVENT+1:
+        case APEX_CUSTOM_EVENT_2:
         {
             printf("Custom event 2.\n");
             break;
@@ -124,7 +124,6 @@ int policy_event(apex_context const context) {
 }
 
 int startup_policy(apex_context const context) {
-    static APEX_NATIVE_TLS unsigned int not_every_time = 0;
     printf("Startup Policy...\n");
     return APEX_NOERROR;
 }

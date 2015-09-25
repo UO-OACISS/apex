@@ -22,7 +22,7 @@ long num_iterations = NUM_ITERATIONS;
 long update_interval = UPDATE_INTERVAL;
 long method = MULTIPLY_METHOD;
 const std::string method_names[] = {"divide","multiply"};
-apex_event_type my_custom_event = APEX_CUSTOM_EVENT;
+apex_event_type my_custom_event = APEX_CUSTOM_EVENT_1;
 double accumulated_aggregate;
 
 /**

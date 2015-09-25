@@ -84,11 +84,11 @@ void * fib (void * in) {
 
     if (a.f_x != fib_results[a.x]) {
       printf("WRONG! fib of %d is NOT %d (valid value: %d)\n", a.x, a.f_x, fib_results[a.x]);
-      a.f_x == fib_results[a.x];
+      a.f_x = fib_results[a.x];
     }
     if (b.f_x != fib_results[b.x]) {
       printf("WRONG! fib of %d is NOT %d (valid value: %d)\n", b.x, b.f_x, fib_results[b.x]);
-      b.f_x == fib_results[b.x];
+      b.f_x = fib_results[b.x];
     }
     scratch->f_x = a.f_x + b.f_x;
     apex_stop(p);

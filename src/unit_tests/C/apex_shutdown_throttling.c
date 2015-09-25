@@ -100,7 +100,7 @@ int main(int argc, char **argv)
   apex_stop(p);
   int final_cap = apex_get_thread_cap();
   if (test_passed) {
-    printf("Test passed.\n");
+    printf("Test passed. Final cap: %d\n", final_cap);
   }
   apex_finalize();
   apex_shutdown_throttling();

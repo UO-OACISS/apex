@@ -1,6 +1,7 @@
 #include "apex.h"
 #include "stdio.h"
 #include "stdlib.h"
+#include <unistd.h>
 
 int main (int argc, char** argv) {
   apex_init_args(argc, argv, "apex_get_profile unit test");

@@ -95,7 +95,7 @@ int policy_event(apex_context const context) {
             printf("Periodic event.\n");
             break;
         }
-        case APEX_CUSTOM_EVENT:
+        case APEX_CUSTOM_EVENT_1:
         {
             printf("Custom event 1.\n");
             break;

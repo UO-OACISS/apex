@@ -40,9 +40,9 @@ find_path(TAU_LIBRARY_DIR_2 NAMES libTauPthreadWrap.a
              HINTS ${TAU_LIBRARY_DIR}/static-pthread)
 
 if (TAU_LIBRARY_DIR_2_FOUND)
-    set(TAU_LIBRARIES ${TAU_LIBRARY} -lpthread -L${TAU_LIBRARY_DIR_2} -Wl,-wrap,pthread_create -Wl,-wrap,pthread_join -Wl,-wrap,pthread_exit -Wl,-wrap,pthread_barrier_wait -lTauPthreadWrap )
+    set(TAU_LIBRARIES ${TAU_LIBRARY} -L${TAU_LIBRARY_DIR_2} -Wl,-wrap,pthread_create -Wl,-wrap,pthread_join -Wl,-wrap,pthread_exit -Wl,-wrap,pthread_barrier_wait -lTauPthreadWrap )
 else()
-    set(TAU_LIBRARIES ${TAU_LIBRARY} -lpthread)
+    set(TAU_LIBRARIES ${TAU_LIBRARY})
 endif()
 
 set(TAU_INCLUDE_DIRS ${TAU_INCLUDE_DIR} )

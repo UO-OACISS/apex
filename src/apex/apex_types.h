@@ -67,8 +67,15 @@ typedef enum _event_type {
   APEX_YIELD_EVENT,    /*!< APEX has processed a timer yield event */
   APEX_SAMPLE_VALUE,   /*!< APEX has processed a sampled value */
   APEX_PERIODIC,       /*!< APEX has processed a periodic timer */
-  APEX_CUSTOM_EVENT,   /*!< APEX has processed a custom event - useful for large
+  APEX_CUSTOM_EVENT_1,   /*!< APEX has processed a custom event - useful for large
                            granularity application control events */
+  APEX_CUSTOM_EVENT_2, // these are just here for padding, and so we can
+  APEX_CUSTOM_EVENT_3, // test with them.
+  APEX_CUSTOM_EVENT_4,
+  APEX_CUSTOM_EVENT_5,
+  APEX_CUSTOM_EVENT_6,
+  APEX_CUSTOM_EVENT_7,
+  APEX_CUSTOM_EVENT_8,
   APEX_UNUSED_EVENT = APEX_MAX_EVENTS // can't have more custom events than this
 } apex_event_type;
 
@@ -197,7 +204,7 @@ typedef int (*apex_policy_function)(apex_context const context);
     macro (APEX_UDP_SINK, use_udp_sink, bool, false) \
     macro (APEX_MEASURE_CONCURRENCY_PERIOD, concurrency_period, int, 1000000) \
     macro (APEX_SCREEN_OUTPUT, use_screen_output, bool, false) \
-    macro (APEX_PROFILE_OUTPUT, use_profile_output, int, 0) \
+    macro (APEX_PROFILE_OUTPUT, use_profile_output, int, false) \
     macro (APEX_TASKGRAPH_OUTPUT, use_taskgraph_output, bool, false) \
     macro (APEX_PROC_CPUINFO, use_proc_cpuinfo, bool, false) \
     macro (APEX_PROC_MEMINFO, use_proc_meminfo, bool, false) \
