@@ -338,6 +338,8 @@ inline void policy_handler::call_policies(
     } else {
         my_context.data = NULL;
     }
+    // last chance to interrupt policy execution at shutdown
+    if (_terminate) return;
     const bool result = policy->func(my_context);
     if(result != APEX_NOERROR) {
       printf("Warning: registered policy function failed!\n");
@@ -355,6 +357,7 @@ void policy_handler::on_shutdown(shutdown_event_data &data) {
     if (_terminate) return;
     _terminate = true;
     if (_timer_thread != nullptr) { 
+        _timer.cancel();
         if (_timer_thread->try_join_for(boost::chrono::seconds(1))) {
             _timer_thread->interrupt();
         }

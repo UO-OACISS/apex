@@ -73,8 +73,8 @@ bool concurrency_handler::_handler(void) {
   }
 #endif
   //cout << "HANDLER: " << endl;
-  map<string, unsigned int> *counts = new(map<string, unsigned int>);
-  stack<string>* tmp;
+  map<task_identifier, unsigned int> *counts = new(map<task_identifier, unsigned int>);
+  stack<task_identifier>* tmp;
 //  boost::mutex* mut;
   for (unsigned int i = 0 ; i < _event_stack.size() ; i++) {
     if (_option > 1 && !thread_instance::map_id_to_worker(i)) {
@@ -82,7 +82,7 @@ bool concurrency_handler::_handler(void) {
     }
     if (inst != nullptr && inst->get_state(i) == APEX_THROTTLED) { continue; }
     tmp = get_event_stack(i);
-    string func;
+    task_identifier func;
     if (tmp != nullptr && tmp->size() > 0) {
       _per_thread_mutex[i]->lock();
       if (tmp->size() > 0) {
@@ -128,9 +128,10 @@ void concurrency_handler::_init(void) {
 bool concurrency_handler::on_start(apex_function_address function_address) {
   if (!_terminate) {
     int i = thread_instance::get_id();
-    stack<string>* my_stack = get_event_stack(i);
+    stack<task_identifier>* my_stack = get_event_stack(i);
     _per_thread_mutex[i]->lock();
-    my_stack->push(thread_instance::instance().map_addr_to_name(function_address));
+    task_identifier * task = new task_identifier(function_address);
+    my_stack->push(*task);
     _per_thread_mutex[i]->unlock();
     return true;
   } else { 
@@ -141,9 +142,10 @@ bool concurrency_handler::on_start(apex_function_address function_address) {
 bool concurrency_handler::on_start(string *timer_name) {
   if (!_terminate) {
     int i = thread_instance::get_id();
-    stack<string>* my_stack = get_event_stack(i);
+    stack<task_identifier>* my_stack = get_event_stack(i);
     _per_thread_mutex[i]->lock();
-    my_stack->push(*(timer_name));
+    task_identifier * task = new task_identifier(*timer_name);
+    my_stack->push(*task);
     _per_thread_mutex[i]->unlock();
     return true;
   } else { 
@@ -154,9 +156,10 @@ bool concurrency_handler::on_start(string *timer_name) {
 bool concurrency_handler::on_resume(apex_function_address function_address) {
   if (!_terminate) {
     int i = thread_instance::get_id();
-    stack<string>* my_stack = get_event_stack(i);
+    stack<task_identifier>* my_stack = get_event_stack(i);
     _per_thread_mutex[i]->lock();
-    my_stack->push(thread_instance::instance().map_addr_to_name(function_address));
+    task_identifier * task = new task_identifier(function_address);
+    my_stack->push(*task);
     _per_thread_mutex[i]->unlock();
     return true;
   } else { 
@@ -167,9 +170,10 @@ bool concurrency_handler::on_resume(apex_function_address function_address) {
 bool concurrency_handler::on_resume(string *timer_name) {
   if (!_terminate) {
     int i = thread_instance::get_id();
-    stack<string>* my_stack = get_event_stack(i);
+    stack<task_identifier>* my_stack = get_event_stack(i);
     _per_thread_mutex[i]->lock();
-    my_stack->push(*(timer_name));
+    task_identifier * task = new task_identifier(*timer_name);
+    my_stack->push(*task);
     _per_thread_mutex[i]->unlock();
     return true;
   } else { 
@@ -180,7 +184,7 @@ bool concurrency_handler::on_resume(string *timer_name) {
 void concurrency_handler::on_stop(std::shared_ptr<profiler> p) {
   if (!_terminate) {
     int i = thread_instance::get_id();
-    stack<string>* my_stack = get_event_stack(i);
+    stack<task_identifier>* my_stack = get_event_stack(i);
     _per_thread_mutex[i]->lock();
     if (!my_stack->empty()) {
       my_stack->pop();
@@ -206,14 +210,21 @@ void concurrency_handler::on_exit_thread(event_data &data) {
 }
 
 void concurrency_handler::on_shutdown(shutdown_event_data &data) {
-  //if (!_terminate) {
-        _terminate = true;
-        output_samples(data.node_id);
-  //}
+    //if (_terminate) return;
+    _terminate = true;
+    if (_timer_thread != nullptr) {
+        _timer.cancel();
+        if (_timer_thread->try_join_for(boost::chrono::seconds(1))) {
+            _timer_thread->interrupt();
+        }
+        delete(_timer_thread);
+        _timer_thread = nullptr;
+    }
+    output_samples(data.node_id);
 }
 
-inline stack<string>* concurrency_handler::get_event_stack(unsigned int tid) {
-  stack<string>* tmp;
+inline stack<task_identifier>* concurrency_handler::get_event_stack(unsigned int tid) {
+  stack<task_identifier>* tmp;
   // it's possible we could get a "start" event without a "new thread" event.
   if (_event_stack.size() <= tid) {
     add_thread(tid);
@@ -232,7 +243,7 @@ inline void concurrency_handler::_reset(void) {
 inline void concurrency_handler::add_thread(unsigned int tid) {
   _vector_mutex.lock();
   while(_event_stack.size() <= tid) {
-    _event_stack.push_back(new stack<string>);
+    _event_stack.push_back(new stack<task_identifier>);
     _per_thread_mutex.push_back(new boost::mutex());
   }
   _vector_mutex.unlock();
@@ -259,7 +270,7 @@ string* demangle(string timer_name) {
   return demangled;
 }
 
-bool sort_functions(pair<string,int> first, pair<string,int> second) {
+bool sort_functions(pair<task_identifier,int> first, pair<task_identifier,int> second) {
   if (first.second > second.second)
     return true;
   return false;
@@ -273,14 +284,14 @@ void concurrency_handler::output_samples(int node_id) {
   myfile.open(datname.str().c_str());
   _function_mutex.lock();
   // limit ourselves to N functions.
-  map<string, int> func_count;
+  map<task_identifier, int> func_count;
   // initialize the map
-  for (set<string>::iterator it=_functions.begin(); it!=_functions.end(); ++it) {
+  for (set<task_identifier>::iterator it=_functions.begin(); it!=_functions.end(); ++it) {
     func_count[*it] = 0;
   }
   // count all function instances
   for (unsigned int i = 0 ; i < _states.size() ; i++) {
-    for (set<string>::iterator it=_functions.begin(); it!=_functions.end(); ++it) {
+    for (set<task_identifier>::iterator it=_functions.begin(); it!=_functions.end(); ++it) {
       if (_states[i]->find(*it) == _states[i]->end()) {
         continue;
       } else {
@@ -289,10 +300,10 @@ void concurrency_handler::output_samples(int node_id) {
     }
   }
   // sort the map
-  vector<pair<string,int> > my_vec(func_count.begin(), func_count.end());
+  vector<pair<task_identifier,int> > my_vec(func_count.begin(), func_count.end());
   sort(my_vec.begin(),my_vec.end(),&sort_functions);
-  set<string> top_x;
-  for (vector<pair<string, int> >::iterator it=my_vec.begin(); it!=my_vec.end(); ++it) {
+  set<task_identifier> top_x;
+  for (vector<pair<task_identifier, int> >::iterator it=my_vec.begin(); it!=my_vec.end(); ++it) {
     //if (top_x.size() < 15 && (*it).first != "APEX THREAD MAIN")
     if (top_x.size() < MAX_FUNCTIONS_IN_CHART)
       top_x.insert((*it).first);
@@ -304,10 +315,11 @@ void concurrency_handler::output_samples(int node_id) {
   for(auto param : _tunable_param_samples) {
     myfile << "\"" << param.first << "\"\t";
   }
-  for (set<string>::iterator it=_functions.begin(); it!=_functions.end(); ++it) {
+  for (set<task_identifier>::iterator it=_functions.begin(); it!=_functions.end(); ++it) {
     if (top_x.find(*it) != top_x.end()) {
       //string* tmp = demangle(*it);
-      string tmp = *it;
+      task_identifier tmp_id = *it;
+      string tmp = tmp_id.get_name();
 #ifdef APEX_HAVE_BFD
       std::size_t pos = tmp.find("UNRESOLVED ADDR ");
       if (pos != string::npos) {
@@ -346,7 +358,7 @@ void concurrency_handler::output_samples(int node_id) {
     }
     unsigned int tmp_max = 0;
     int other = 0;
-    for (set<string>::iterator it=_functions.begin(); it!=_functions.end(); ++it) {
+    for (set<task_identifier>::iterator it=_functions.begin(); it!=_functions.end(); ++it) {
       // this is the idle event.
       //if (*it == "APEX THREAD MAIN")
         //continue;

@@ -6,6 +6,7 @@
 #pragma once
 
 #include "apex_types.h"
+#include "thread_instance.hpp"
 
 namespace apex {
 
@@ -15,6 +16,8 @@ public:
   std::string name;
   std::string _resolved_name;
   bool has_name;
+  task_identifier(void) : 
+      address(0L), name(""), _resolved_name(""), has_name(false) {};
   task_identifier(apex_function_address a) : 
       address(a), name(""), _resolved_name(""), has_name(false) {};
   task_identifier(std::string n) : 
@@ -44,6 +47,26 @@ public:
   // the hash function is defined below.
   bool operator==(const task_identifier &other) const { 
     return (address == other.address && name.compare(other.name) == 0);
+  }
+  // required for using this class as a key in a set
+  bool operator< (const task_identifier &right) const {
+    if (!has_name) {
+      if (!right.has_name) {
+          // if both have an address, return the lower address
+          return (address < right.address);
+      } else {
+          // if left has an address and right doesn't, return true
+          return true;
+      }
+    } else {
+      if (right.has_name) {
+          // if both have a name, return the lower name
+          return (name < right.name);
+      }
+    }
+    // if right has an address and left doesn't, return false
+    // (also the default)
+    return false;
   }
 };
 

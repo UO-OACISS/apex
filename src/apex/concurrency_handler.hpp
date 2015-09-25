@@ -14,6 +14,7 @@
 #include <set>
 #include <memory>
 #include <boost/thread/mutex.hpp>
+#include "task_identifier.hpp"
 
 #ifdef SIGEV_THREAD_ID
 #ifndef sigev_notify_thread_id
@@ -27,17 +28,17 @@ class concurrency_handler : public handler, public event_listener {
 private:
   void _init(void);
   // vectors and mutex
-  std::vector<std::stack<std::string>* > _event_stack;
+  std::vector<std::stack<task_identifier>* > _event_stack;
   boost::mutex _vector_mutex;
   // periodic samples of stack top states
-  std::vector<std::map<std::string, unsigned int>* > _states;
+  std::vector<std::map<task_identifier, unsigned int>* > _states;
   // vector of power samples
   std::vector<double> _power_samples;
   // vector of thread cap values
   std::vector<int> _thread_cap_samples;
   std::map<std::string, std::vector<long>> _tunable_param_samples;
   // functions and mutex
-  std::set<std::string> _functions;
+  std::set<task_identifier> _functions;
   boost::mutex _function_mutex;
   int _option;
 public:
@@ -66,7 +67,7 @@ public:
   void on_custom_event(custom_event_data &data) { APEX_UNUSED(data); };
 
   bool _handler(void);
-  std::stack<std::string>* get_event_stack(unsigned int tid);
+  std::stack<task_identifier>* get_event_stack(unsigned int tid);
   void add_thread(unsigned int tid) ;
   void _reset(void);
   void output_samples(int node_id);

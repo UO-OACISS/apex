@@ -4,7 +4,7 @@
 #include <functional>
 #include "apex_api.hpp"
 
-apex_event_type my_custom_event = APEX_CUSTOM_EVENT;
+apex_event_type my_custom_event = APEX_CUSTOM_EVENT_1;
 
 long param_1 = 5;
 long param_2 = 5;

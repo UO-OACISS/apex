@@ -54,6 +54,7 @@ public:
   virtual ~handler() {
       _terminate = true; 
       if(_timer_thread != nullptr) {
+        _timer.cancel();
         if (_timer_thread->try_join_for(boost::chrono::seconds(1))) {
             _timer_thread->interrupt();
         }

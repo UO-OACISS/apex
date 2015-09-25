@@ -171,7 +171,8 @@ inline int apex_power_throttling_policy(apex_context const context)
           printf("power : %f, ma: %f, cap: %d, min: %f, max: %f, delay: %d no change.\n", power, moving_average, thread_cap, min_watts, max_watts, delay);
 #endif
       }
-      if (apex::apex::instance()->get_node_id() == 0) {
+      apex::apex * instance = apex::apex::instance();
+      if (instance != NULL && instance->get_node_id() == 0) {
         static int index = 0;
         cap_data << index++ << "\t" << power << "\t" << thread_cap << endl;
       }
@@ -433,7 +434,9 @@ int apex_throughput_throttling_dhc_policy(apex_context const context) {
     printf("%d Calls: %f.\n", thread_cap, evaluations[best]);
     printf("New cap: %d\n", best); fflush(stdout);
 #endif
-    if (apex::apex::instance()->get_node_id() == 0) {
+    apex::apex * instance = apex::apex::instance();
+    if (instance == NULL) return APEX_NOERROR;
+    if (instance->get_node_id() == 0) {
         static int index = 0;
         cap_data << index++ << "\t" << evaluations[best] << "\t" << best << endl;
     }
@@ -490,7 +493,9 @@ int apex_throughput_throttling_ah_policy(apex_context const context) {
     }
     cout << "Cap: " << thread_cap << " New: " << abs(new_value) << " Prev: " << previous_value << endl;
 
-    if (apex::apex::instance()->get_node_id() == 0) {
+    apex::apex * instance = apex::apex::instance();
+    if (instance == NULL) return APEX_NOERROR;
+    if (instance->get_node_id() == 0) {
         static int index = 0;
         cap_data << index++ << "\t" << abs(new_value) << "\t" << thread_cap << endl;
     }
@@ -659,7 +664,8 @@ inline void __read_common_variables() {
         max_threads = apex::apex_options::throttling_max_threads();
         thread_cap = max_threads;
         min_threads = apex::apex_options::throttling_min_threads();
-        if (apex::apex::instance()->get_node_id() == 0) {
+        apex::apex * instance = apex::apex::instance();
+        if (instance != NULL && instance->get_node_id() == 0) {
             cout << "APEX concurrency throttling enabled, min threads: " << min_threads << " max threads: " << max_threads << endl;
         }
     }
@@ -680,7 +686,8 @@ inline int __setup_power_cap_throttling()
       if (apex::apex_options::throttle_energy()) {
         apex_energyThrottling = true;
       }
-      if (apex::apex::instance()->get_node_id() == 0) {
+      apex::apex * instance = apex::apex::instance();
+      if (instance != NULL && instance->get_node_id() == 0) {
         cout << "APEX periodic throttling for energy savings, min watts: " << min_watts << " max watts: " << max_watts << endl;
       }
       apex::register_periodic_policy(1000000, apex_power_throttling_policy);
@@ -862,9 +869,10 @@ inline int __common_setup_timer_throttling(apex_optimization_criteria_t criteria
         function_baseline.calls = 0.0;
         function_baseline.accumulated = 0.0;
         throttling_criteria = criteria;
-        evaluations = (double*)(calloc(max_threads, sizeof(double)));
-        observations = (int*)(calloc(max_threads, sizeof(int)));
-        if (apex::apex::instance()->get_node_id() == 0) {
+        evaluations = (double*)(calloc(max_threads+1, sizeof(double)));
+        observations = (int*)(calloc(max_threads+1, sizeof(int)));
+        apex::apex * instance = apex::apex::instance();
+        if (instance != NULL && instance->get_node_id() == 0) {
             cap_data.open("cap_data.dat");
             cap_data_open = true;
         }
@@ -891,8 +899,8 @@ inline int __common_setup_throughput_tuning(apex_optimization_criteria_t criteri
         function_baseline.calls = 0.0;
         function_baseline.accumulated = 0.0;
         throttling_criteria = criteria;
-        evaluations = (double*)(calloc(max_threads, sizeof(double)));
-        observations = (int*)(calloc(max_threads, sizeof(int)));
+        evaluations = (double*)(calloc(max_threads+1, sizeof(double)));
+        observations = (int*)(calloc(max_threads+1, sizeof(int)));
         __active_harmony_throughput_setup(num_inputs, inputs, mins, maxs, steps);
         apex::register_policy(event_type, apex_throughput_tuning_policy);
     }

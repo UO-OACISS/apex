@@ -3,7 +3,7 @@ if (POLICY CMP0004)
   cmake_policy(SET CMP0004 OLD)
 endif()
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${MPI_COMPILE_FLAGS}") 
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${MPI_C_COMPILE_FLAGS}") 
 
 # Make sure the compiler can find include files from our Apex library. 
 include_directories (${APEX_SOURCE_DIR}/src/comm ${APEX_SOURCE_DIR}/src/apex ${MPI_C_INCLUDE_PATH}) 
@@ -15,8 +15,7 @@ link_directories (${APEX_BINARY_DIR}/src/apex)
 add_library (apex_mpi apex_global_mpi.c)
 set_target_properties (apex_mpi PROPERTIES OUTPUT_NAME apex_mpi)
 
-target_link_libraries (apex_mpi apex ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES})
-add_dependencies (apex_mpi apex)
+target_link_libraries (apex_mpi apex ${MPI_C_LINK_FLAGS} ${MPI_C_LIBRARIES})
 
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
