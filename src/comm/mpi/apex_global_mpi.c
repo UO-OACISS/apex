@@ -51,7 +51,7 @@ bool apex_set_new_thread_caps(int count, apex_profile values[count]) {
   // set each node thread cap to a relative multiple of that
   int i;
   for (i = 0; i < count; ++i) { 
-    int old_cap = thread_caps[i];
+    //int old_cap = thread_caps[i];
     // how much accumulated in the last period?
     double last_period = values[i].accumulated - previous_values[i];
     //double last_period = values[i].accumulated;
@@ -138,7 +138,7 @@ int apex_set_local_cap(void *args, size_t size) {
 }
 
 int action_apex_reduce(void *unused) {
-  int target_rank = 0;
+  //int target_rank = 0;
   action_apex_get_value(NULL);
 
   if (rank != 0) {

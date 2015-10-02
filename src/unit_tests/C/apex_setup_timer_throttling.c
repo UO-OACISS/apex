@@ -99,7 +99,7 @@ int main(int argc, char **argv)
   }
   apex_stop(p);
   int final_cap = apex_get_thread_cap();
-  if (test_passed) {
+  if (final_cap < original_cap && test_passed) {
     printf("Test passed.\n");
   }
   apex_finalize();
