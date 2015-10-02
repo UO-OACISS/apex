@@ -343,6 +343,7 @@ void Apex_bfd_internal_updateProcSelfMaps(int unit_index)
   char perms[5];
   while (!feof(mapsfile)) {
     if (fgets(line, 4096, mapsfile) == NULL) { break; }
+    printf("%s", line); fflush(stdout);
     sscanf(line, "%lx-%lx %s %lx %lx:%lx %u %[^\n]",
         &start, &end, perms, &offset, &device_major, &device_minor, &filenumber, module);
     if (*module && ((strcmp(perms, "r-xp") == 0) ||
