@@ -560,12 +560,12 @@ namespace apex {
   {
     static bool _initialized = false;
     if (!_initialized) {
-      initialize_worker_thread_for_TAU();
+      //initialize_worker_thread_for_TAU();
       _initialized = true;
     }
 #ifdef APEX_HAVE_TAU
     if (apex_options::use_tau()) {
-      TAU_START("profiler_listener::process_profiles");
+      //TAU_START("profiler_listener::process_profiles");
     }
 #endif
 
@@ -663,7 +663,7 @@ namespace apex {
 
 #ifdef APEX_HAVE_TAU
     if (apex_options::use_tau()) {
-      TAU_STOP("profiler_listener::process_profiles");
+      //TAU_STOP("profiler_listener::process_profiles");
     }
 #endif
   }
