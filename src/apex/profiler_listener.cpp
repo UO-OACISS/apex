@@ -548,7 +548,13 @@ namespace apex {
    * profiler_listener instance, and call it's proper function.
    */
   void profiler_listener::process_profiles_wrapper(void) {
-      apex::instance()->the_profiler_listener->process_profiles();
+      apex * inst = apex::instance();
+      if (inst != nullptr) { 
+          profiler_listener * pl = inst->the_profiler_listener;
+          if (pl != nullptr) {
+              pl->process_profiles();
+          }
+      }
   }
 
   /* This is the main function for the consumer thread.

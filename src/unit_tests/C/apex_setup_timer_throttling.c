@@ -13,7 +13,7 @@
 
 #define NUM_THREADS 48
 #define ITERATIONS 250
-#define SLEEPY_TIME 10000 // 10,000
+#define SLEEPY_TIME 1000 // 1000
 
 int total_iterations = NUM_THREADS * ITERATIONS;
 bool test_passed = false;

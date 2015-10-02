@@ -268,8 +268,8 @@ APEX_EXPORT void sample_value(const std::string &name, double value);
  This function will note a task dependency between the current 
  timer (task) and the new task.
 
- \param timer_name The name of the timer.                                        
- \param taskid The ID of the task 
+ \param name The name of the timer.                                        
+ \param task_id The ID of the task 
  \return No return value.
  */
 
@@ -282,7 +282,7 @@ APEX_EXPORT void new_task(const std::string &name, void * task_id);
  timer (task) and the new task.
 
  \param function_address The function address of the timer.
- \param taskid The ID of the task 
+ \param task_id The ID of the task 
  \return No return value.
  */
 
@@ -632,7 +632,9 @@ APEX_EXPORT int shutdown_throttling(void);   // terminate
  \return The current thread cap value.
  */
 APEX_EXPORT int get_thread_cap(void);             // for thread throttling
+#ifndef DOXYGEN_SHOULD_SKIP_THIS // test API stuff
 APEX_EXPORT int get_input2(void);             // for thread throttling
+#endif
 
 /**
  \brief Set the current thread cap for throttling.
