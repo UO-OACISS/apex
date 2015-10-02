@@ -13,6 +13,7 @@
 #include <dirent.h>
 #include <stdint.h>
 #include <cctype>
+#include <sstream>
 
 #if defined(HAVE_GNU_DEMANGLE) && HAVE_GNU_DEMANGLE
 #define HAVE_DECL_BASENAME 1
@@ -47,7 +48,7 @@
 
 using namespace std;
 
-static char const * Apex_bfd_internal_getExecutablePath();
+char const * Apex_bfd_internal_getExecutablePath();
 
 struct ApexBfdModule
 {
@@ -70,7 +71,7 @@ struct ApexBfdModule
   }
 #endif
 
-  bool loadSymbolTable(char const * path)
+  bool apex_loadSymbolTable(char const * path)
   {
 #ifdef APEX_INTEL12
     // Nasty hack because Intel 12 is broken with Bfd 2.2x and
@@ -88,7 +89,7 @@ struct ApexBfdModule
     Apex_bfd_initializeBfd();
 
     if (!(bfdImage = bfd_openr(path, 0))) {
-      //printf("loadSymbolTable: Failed to open [%s]\n", path);
+      //printf("apex_loadSymbolTable: Failed to open [%s]\n", path);
       return (bfdOpen = false);
     }
 
@@ -98,15 +99,15 @@ struct ApexBfdModule
 #endif
 
     if (!bfd_check_format(bfdImage, bfd_object)) {
-      //printf("loadSymbolTable: bfd format check failed [%s]\n", path);
+      //printf("apex_loadSymbolTable: bfd format check failed [%s]\n", path);
       return (bfdOpen = false);
     }
 
     char **matching;
     if (!bfd_check_format_matches(bfdImage, bfd_object, &matching)) {
-      //printf("loadSymbolTable: bfd format mismatch [%s]\n", path);
+      //printf("apex_loadSymbolTable: bfd format mismatch [%s]\n", path);
       if (bfd_get_error() == bfd_error_file_ambiguously_recognized) {
-        //printf("loadSymbolTable: Matching formats:");
+        //printf("apex_loadSymbolTable: Matching formats:");
         for (char ** p = matching; *p; ++p) {
           //printf(" %s", *p);
         }
@@ -116,17 +117,17 @@ struct ApexBfdModule
     }
 
     if (!(bfd_get_file_flags(bfdImage) & HAS_SYMS)) {
-      //printf("loadSymbolTable: bfd has no symbols [%s]\n", path);
+      //printf("apex_loadSymbolTable: bfd has no symbols [%s]\n", path);
       return (bfdOpen = false);
     }
 
     size_t size = bfd_get_symtab_upper_bound(bfdImage);
     if (!size) {
-      //printf("loadSymbolTable: Retrying with dynamic\n");
+      //printf("apex_loadSymbolTable: Retrying with dynamic\n");
       size = bfd_get_dynamic_symtab_upper_bound(bfdImage);
       dynamic = true;
       if (!size) {
-        //printf("loadSymbolTable: Cannot get symbol table size [%s]\n", path);
+        //printf("apex_loadSymbolTable: Cannot get symbol table size [%s]\n", path);
         return (bfdOpen = false);
       } 
     }
@@ -139,7 +140,7 @@ struct ApexBfdModule
     }
     bfdOpen = nr_all_syms > 0;
 
-    //printf("loadSymbolTable: %s contains %d canonical symbols\n", path, nr_all_syms);
+    //printf("apex_loadSymbolTable: %s contains %d canonical symbols\n", path, nr_all_syms);
 
     return bfdOpen;
   }
@@ -188,9 +189,9 @@ struct ApexBfdUnit
 
 };
 
-struct LocateAddressData
+struct apex_LocateAddressData
 {
-  LocateAddressData(ApexBfdModule * _module, ApexBfdInfo & _info) :
+  apex_LocateAddressData(ApexBfdModule * _module, ApexBfdInfo & _info) :
       found(false), module(_module), info(_info)
   { }
 
@@ -200,15 +201,15 @@ struct LocateAddressData
 };
 
 // Internal function prototypes
-static bool Apex_bfd_internal_loadSymTab(ApexBfdUnit *unit, int moduleIndex);
-static bool Apex_bfd_internal_loadExecSymTab(ApexBfdUnit *unit);
-static int Apex_bfd_internal_getModuleIndex(ApexBfdUnit *unit, unsigned long probe_addr);
-static ApexBfdModule * Apex_bfd_internal_getModuleFromIdx(ApexBfdUnit *unit, int moduleIndex);
-static void Apex_bfd_internal_locateAddress(bfd *bfdptr, asection *section, void *data ATTRIBUTE_UNUSED);
-static void Apex_bfd_internal_updateProcSelfMaps(ApexBfdUnit *unit);
+bool Apex_bfd_internal_loadSymTab(ApexBfdUnit *unit, int moduleIndex);
+bool Apex_bfd_internal_loadExecSymTab(ApexBfdUnit *unit);
+int Apex_bfd_internal_getModuleIndex(ApexBfdUnit *unit, unsigned long probe_addr);
+ApexBfdModule * Apex_bfd_internal_getModuleFromIdx(ApexBfdUnit *unit, int moduleIndex);
+void Apex_bfd_internal_locateAddress(bfd *bfdptr, asection *section, void *data ATTRIBUTE_UNUSED);
+void Apex_bfd_internal_updateProcSelfMaps(int unit_index);
 
 #if (defined(APEX_BGP) || defined(APEX_BGQ))
-static void Apex_bfd_internal_updateBGPMaps(ApexBfdUnit *unit);
+void Apex_bfd_internal_updateBGPMaps(ApexBfdUnit *unit);
 #endif /* APEX_BGP || APEX_BGQ */
 
 //////////////////////////////////////////////////////////////////////
@@ -216,22 +217,22 @@ static void Apex_bfd_internal_updateBGPMaps(ApexBfdUnit *unit);
 // ensure that non-local static variables are initialised before being
 // used (Ref: Scott Meyers, Item 47 Eff. C++).
 //////////////////////////////////////////////////////////////////////
-//typedef std::vector<ApexBfdUnit*> bfd_unit_vector_t;
+//typedef std::vector<ApexBfdUnit*> apex_bfd_unit_vector_t;
 
-struct bfd_unit_vector_t : public std::vector<ApexBfdUnit*>
+struct apex_bfd_unit_vector_t : public std::vector<ApexBfdUnit*>
 {
-  bfd_unit_vector_t() {}
-  virtual ~bfd_unit_vector_t() {
+  apex_bfd_unit_vector_t() {}
+  virtual ~apex_bfd_unit_vector_t() {
   //Wait! We might not be done! Unbelieveable as it may seem, this object
   //could (and does sometimes) get destroyed BEFORE we have resolved the addresses. Bummer.
   //printf("deleting BFD objects\n");
   }
 };
 
-static bfd_unit_vector_t & ThebfdUnits(void)
+apex_bfd_unit_vector_t & apex_ThebfdUnits(void)
 {
   // BFD units (e.g. executables and their dynamic libraries)
-  static bfd_unit_vector_t internal_bfd_units;
+  static apex_bfd_unit_vector_t internal_bfd_units;
   return internal_bfd_units;
 }
 
@@ -239,7 +240,7 @@ void Apex_delete_bfd_units() {
   static bool deleted = false;
   if (!deleted) {
     deleted = true;
-    bfd_unit_vector_t units = ThebfdUnits();
+    apex_bfd_unit_vector_t units = apex_ThebfdUnits();
     for (std::vector<ApexBfdUnit*>::iterator it = units.begin();
          it != units.end(); ++it) {
       ApexBfdUnit * unit = *it;
@@ -291,8 +292,8 @@ void Apex_bfd_initializeBfd()
 
 apex_bfd_handle_t Apex_bfd_registerUnit()
 {
-  apex_bfd_handle_t ret = ThebfdUnits().size();
-  ThebfdUnits().push_back(new ApexBfdUnit);
+  apex_bfd_handle_t ret = apex_ThebfdUnits().size();
+  apex_ThebfdUnits().push_back(new ApexBfdUnit);
 
   //printf("Apex_bfd_registerUnit: Unit %d registered and initialized\n", ret);
 
@@ -309,14 +310,14 @@ bool Apex_bfd_checkHandle(apex_bfd_handle_t handle)
     return false;
   }
   // cast to unsigned to prevent compiler warnings
-  if ((unsigned int)(handle) >= ThebfdUnits().size()) {
-    //printf("ApexBfd: Warning - invalid BFD unit handle %d, max value %d\n", handle, ThebfdUnits().size());
+  if ((unsigned int)(handle) >= apex_ThebfdUnits().size()) {
+    //printf("ApexBfd: Warning - invalid BFD unit handle %d, max value %d\n", handle, apex_ThebfdUnits().size());
     return false;
   }
   return (handle >= 0);
 }
 
-static void Apex_bfd_internal_updateProcSelfMaps(ApexBfdUnit *unit)
+void Apex_bfd_internal_updateProcSelfMaps(int unit_index)
 {
   // *CWL* - This is important! We DO NOT want to use /proc/self/maps on
   //         the BGP because the information acquired comes from the I/O nodes
@@ -326,6 +327,7 @@ static void Apex_bfd_internal_updateProcSelfMaps(ApexBfdUnit *unit)
   /* do nothing */
   // *JCL* - Windows has no /proc filesystem, so don't try to use it
 #else 
+  ApexBfdUnit *unit = apex_ThebfdUnits()[unit_index];
 
   // Note: Linux systems only.
   FILE * mapsfile = fopen("/proc/self/maps", "r");
@@ -356,7 +358,7 @@ static void Apex_bfd_internal_updateProcSelfMaps(ApexBfdUnit *unit)
 }
 
 #if (defined(APEX_BGP) || defined(APEX_BGQ))
-static int Apex_bfd_internal_BGP_dl_iter_callback(struct dl_phdr_info * info, size_t size, void * data)
+int Apex_bfd_internal_BGP_dl_iter_callback(struct dl_phdr_info * info, size_t size, void * data)
 {
   if (strlen(info->dlpi_name) == 0) {
     //printf("Apex_bfd_internal_BGP_dl_iter_callback: Nameless module. Ignored.\n");
@@ -383,7 +385,7 @@ static int Apex_bfd_internal_BGP_dl_iter_callback(struct dl_phdr_info * info, si
   return 0;
 }
 
-static void Apex_bfd_internal_updateBGPMaps(ApexBfdUnit *unit)
+void Apex_bfd_internal_updateBGPMaps(ApexBfdUnit *unit)
 {
   dl_iterate_phdr(Apex_bfd_internal_BGP_dl_iter_callback, (void *)unit);
 }
@@ -399,7 +401,7 @@ static void Apex_bfd_internal_updateBGPMaps(ApexBfdUnit *unit)
 // still need BFD to parse the GNU debugger symbols.  In fact,
 // the DEBUG PE header of an executable produced by MinGW is
 // just an empty table.
-static void Apex_bfd_internal_updateWindowsMaps(ApexBfdUnit *unit)
+void Apex_bfd_internal_updateWindowsMaps(ApexBfdUnit *unit)
 {
 
   // Use Windows Process API to find modules
@@ -464,7 +466,7 @@ void Apex_bfd_updateAddressMaps(apex_bfd_handle_t handle)
 {
   if (!Apex_bfd_checkHandle(handle)) return;
 
-  ApexBfdUnit * unit = ThebfdUnits()[handle];
+  ApexBfdUnit * unit = apex_ThebfdUnits()[handle];
 
   unit->ClearMaps();
   unit->ClearModules();
@@ -474,7 +476,36 @@ void Apex_bfd_updateAddressMaps(apex_bfd_handle_t handle)
 #elif defined(APEX_WINDOWS) && defined(APEX_MINGW)
   Apex_bfd_internal_updateWindowsMaps(unit);
 #else
-  Apex_bfd_internal_updateProcSelfMaps(unit);
+  //Apex_bfd_internal_updateProcSelfMaps(handle);
+  {
+      // Note: Linux systems only.
+      FILE * mapsfile = fopen("/proc/self/maps", "r");
+      if(!mapsfile) {
+        //printf("Apex_bfd_internal_updateProcSelfMaps: Warning - /proc/self/maps could not be opened.\n");
+        return;
+      }
+
+      char line[4096];
+      unsigned long start, end, offset, device_major, device_minor;
+      unsigned filenumber;
+      char module[4096];
+      char perms[5];
+      while (!feof(mapsfile)) {
+        if (fgets(line, 4096, mapsfile) == NULL) { break; }
+      /*
+        //printf("%s",line); fflush(stdout);
+        sscanf(line, "%lx-%lx %s %lx %lx:%lx %u %[^\n]",
+            &start, &end, perms, &offset, &device_major, &device_minor, &filenumber, module);
+        if (*module && ((strcmp(perms, "r-xp") == 0) ||
+                (strcmp(perms, "rwxp") == 0)))
+        {
+          unit->addressMaps.push_back(new ApexBfdAddrMap(start, end, offset, module));
+          unit->modules.push_back(new ApexBfdModule);
+        }
+      */
+      }
+      fclose(mapsfile);
+  }
 #endif
 
   unit->apex_objopen_counter = get_apex_objopen_counter();
@@ -485,7 +516,7 @@ void Apex_bfd_updateAddressMaps(apex_bfd_handle_t handle)
 vector<ApexBfdAddrMap*> const & Apex_bfd_getAddressMaps(apex_bfd_handle_t handle)
 {
   Apex_bfd_checkHandle(handle);
-  return ThebfdUnits()[handle]->addressMaps;
+  return apex_ThebfdUnits()[handle]->addressMaps;
 }
 
 apex_bfd_module_handle_t Apex_bfd_getModuleHandle(apex_bfd_handle_t handle, unsigned long probeAddr)
@@ -493,7 +524,7 @@ apex_bfd_module_handle_t Apex_bfd_getModuleHandle(apex_bfd_handle_t handle, unsi
   if (!Apex_bfd_checkHandle(handle)) {
     return APEX_BFD_INVALID_MODULE;
   }
-  ApexBfdUnit *unit = ThebfdUnits()[handle];
+  ApexBfdUnit *unit = apex_ThebfdUnits()[handle];
 
   int matchingIdx = Apex_bfd_internal_getModuleIndex(unit, probeAddr);
   if (matchingIdx != -1) {
@@ -508,7 +539,7 @@ ApexBfdAddrMap const * Apex_bfd_getAddressMap(apex_bfd_handle_t handle, unsigned
     return NULL;
   }
 
-  ApexBfdUnit *unit = ThebfdUnits()[handle];
+  ApexBfdUnit *unit = apex_ThebfdUnits()[handle];
   int matchingIdx = Apex_bfd_internal_getModuleIndex(unit, probe_addr);
   if (matchingIdx == -1) {
     return NULL;
@@ -517,7 +548,7 @@ ApexBfdAddrMap const * Apex_bfd_getAddressMap(apex_bfd_handle_t handle, unsigned
   return unit->addressMaps[matchingIdx];
 }
 
-static char const * Apex_bfd_internal_tryDemangle(bfd * bfdImage, char const * funcname)
+char const * Apex_bfd_internal_tryDemangle(bfd * bfdImage, char const * funcname)
 {
   char const * demangled = NULL;
 #if defined(HAVE_GNU_DEMANGLE) && HAVE_GNU_DEMANGLE
@@ -548,7 +579,7 @@ static char const * Apex_bfd_internal_tryDemangle(bfd * bfdImage, char const * f
   return funcname;
 }
 
-static unsigned long getProbeAddr(bfd * bfdImage, unsigned long pc) {
+unsigned long apex_getProbeAddr(bfd * bfdImage, unsigned long pc) {
 #if APEX_BFD >= 022300
   if (bfd_get_flavour(bfdImage) == bfd_target_elf_flavour) {
     const struct elf_backend_data * bed = get_elf_backend_data(bfdImage);
@@ -572,7 +603,7 @@ bool Apex_bfd_resolveBfdInfo(apex_bfd_handle_t handle, unsigned long probeAddr, 
     return false;
   }
 
-  ApexBfdUnit * unit = ThebfdUnits()[handle];
+  ApexBfdUnit * unit = apex_ThebfdUnits()[handle];
   if (unit == NULL) {
       return false;
   }
@@ -618,8 +649,8 @@ bool Apex_bfd_resolveBfdInfo(apex_bfd_handle_t handle, unsigned long probeAddr, 
   }
 
   // Search BFD sections for address
-  info.probeAddr = getProbeAddr(module->bfdImage, addr0);
-  LocateAddressData data(module, info);
+  info.probeAddr = apex_getProbeAddr(module->bfdImage, addr0);
+  apex_LocateAddressData data(module, info);
   bfd_map_over_sections(module->bfdImage, Apex_bfd_internal_locateAddress, &data);
 
   // If the data wasn't found where we expected and we are searching
@@ -627,12 +658,12 @@ bool Apex_bfd_resolveBfdInfo(apex_bfd_handle_t handle, unsigned long probeAddr, 
   if (!data.found && (module != unit->executableModule)) {
     // Try the second address
     if (addr1 && addr0 != addr1) {
-      info.probeAddr = getProbeAddr(module->bfdImage, addr1);
+      info.probeAddr = apex_getProbeAddr(module->bfdImage, addr1);
       bfd_map_over_sections(module->bfdImage, Apex_bfd_internal_locateAddress, &data);
     }
     // Try the executable
     if (!data.found && Apex_bfd_internal_loadExecSymTab(unit)) {
-      info.probeAddr = getProbeAddr(module->bfdImage, probeAddr);
+      info.probeAddr = apex_getProbeAddr(module->bfdImage, probeAddr);
       bfd_map_over_sections(unit->executableModule->bfdImage, Apex_bfd_internal_locateAddress, &data);
     }
   }
@@ -717,7 +748,7 @@ bool Apex_bfd_resolveBfdInfo(apex_bfd_handle_t handle, unsigned long probeAddr, 
   return false;
 }
 
-static void Apex_bfd_internal_iterateOverSymtab(ApexBfdModule * module, ApexBfdIterFn fn, unsigned long offset)
+void Apex_bfd_internal_iterateOverSymtab(ApexBfdModule * module, ApexBfdIterFn fn, unsigned long offset)
 {
   // Apply the iterator function to all symbols in the table
   for (asymbol ** s = module->syms; *s; s++) {
@@ -751,7 +782,7 @@ int Apex_bfd_processBfdExecInfo(apex_bfd_handle_t handle, ApexBfdIterFn fn)
   if (!Apex_bfd_checkHandle(handle)) {
     return APEX_BFD_SYMTAB_LOAD_FAILED;
   }
-  ApexBfdUnit * unit = ThebfdUnits()[handle];
+  ApexBfdUnit * unit = apex_ThebfdUnits()[handle];
 
   char const * execName = unit->executablePath;
   ApexBfdModule * module = unit->executableModule;
@@ -781,7 +812,7 @@ int Apex_bfd_processBfdModuleInfo(apex_bfd_handle_t handle, apex_bfd_module_hand
   if (!Apex_bfd_checkHandle(handle)) {
     return APEX_BFD_SYMTAB_LOAD_FAILED;
   }
-  ApexBfdUnit * unit = ThebfdUnits()[handle];
+  ApexBfdUnit * unit = apex_ThebfdUnits()[handle];
 
   unsigned int moduleIdx = (unsigned int)moduleHandle;
   ApexBfdModule * module = Apex_bfd_internal_getModuleFromIdx(unit, moduleIdx);
@@ -814,7 +845,7 @@ int Apex_bfd_processBfdModuleInfo(apex_bfd_handle_t handle, apex_bfd_module_hand
   return module->processCode;
 }
 
-static bool Apex_bfd_internal_loadSymTab(ApexBfdUnit *unit, int moduleIndex)
+bool Apex_bfd_internal_loadSymTab(ApexBfdUnit *unit, int moduleIndex)
 {
   if ((moduleIndex == APEX_BFD_NULL_MODULE_HANDLE) || (moduleIndex == APEX_BFD_INVALID_MODULE)) {
     return false;
@@ -823,19 +854,19 @@ static bool Apex_bfd_internal_loadSymTab(ApexBfdUnit *unit, int moduleIndex)
   char const * name = unit->addressMaps[moduleIndex]->name;
   ApexBfdModule * module = Apex_bfd_internal_getModuleFromIdx(unit, moduleIndex);
 
-  return module->loadSymbolTable(name);
+  return module->apex_loadSymbolTable(name);
 }
 
-static bool Apex_bfd_internal_loadExecSymTab(ApexBfdUnit *unit)
+bool Apex_bfd_internal_loadExecSymTab(ApexBfdUnit *unit)
 {
   char const * name = unit->executablePath;
   ApexBfdModule * module = unit->executableModule;
 
-  return module->loadSymbolTable(name);
+  return module->apex_loadSymbolTable(name);
 }
 
 // Internal BFD helper functions
-static int Apex_bfd_internal_getModuleIndex(ApexBfdUnit *unit, unsigned long probe_addr)
+int Apex_bfd_internal_getModuleIndex(ApexBfdUnit *unit, unsigned long probe_addr)
 {
   if (!unit)
     return -1;
@@ -846,8 +877,7 @@ static int Apex_bfd_internal_getModuleIndex(ApexBfdUnit *unit, unsigned long pro
   return -1;
 }
 
-static ApexBfdModule *
-Apex_bfd_internal_getModuleFromIdx(ApexBfdUnit * unit, int moduleIndex)
+ApexBfdModule * Apex_bfd_internal_getModuleFromIdx(ApexBfdUnit * unit, int moduleIndex)
 {
   if (moduleIndex == -1) {
     return unit->executableModule;
@@ -856,7 +886,7 @@ Apex_bfd_internal_getModuleFromIdx(ApexBfdUnit * unit, int moduleIndex)
 }
 
 #if defined(APEX_BGP)
-static int Apex_bfd_internal_getBGPExePath(char * path)
+int Apex_bfd_internal_getBGPExePath(char * path)
 {
   DIR * pdir = opendir("/jobs");
   if (!pdir) {
@@ -880,7 +910,7 @@ static int Apex_bfd_internal_getBGPExePath(char * path)
 }
 #endif
 
-static char const * Apex_bfd_internal_getExecutablePath()
+char const * Apex_bfd_internal_getExecutablePath()
 {
   static char path[4096];
   static bool init = false;
@@ -913,11 +943,11 @@ static char const * Apex_bfd_internal_getExecutablePath()
   return path;
 }
 
-static void Apex_bfd_internal_locateAddress(bfd * bfdptr, asection * section, void * dataPtr)
+void Apex_bfd_internal_locateAddress(bfd * bfdptr, asection * section, void * dataPtr)
 {
   // Assume dataPtr != NULL because if that parameter is
   // NULL then we've got bigger problems elsewhere in the code
-  LocateAddressData & data = *(LocateAddressData*)dataPtr;
+  apex_LocateAddressData & data = *(apex_LocateAddressData*)dataPtr;
 
   // Skip this section if we've already resolved the address data
   if (data.found) return;
