@@ -288,7 +288,7 @@ void init(const char * thread_name)
             instance->listeners[i]->on_startup(data);
         }
     }
-#if HAVE_TAU
+#if HAVE_TAU_disabled
     // start top-level timers for threads
     if (thread_name) {
       start(thread_name);
@@ -742,7 +742,7 @@ void register_thread(const std::string &name)
             instance->listeners[i]->on_new_thread(data);
         }
     }
-#ifdef APEX_HAVE_TAU
+#ifdef APEX_HAVE_TAU_disabled
     // start top-level timers for threads
     string::size_type index = name.find("#");
     if (index!=std::string::npos)

@@ -26,6 +26,8 @@ tau_listener::tau_listener (void) : _terminate(false) {
 void tau_listener::on_startup(startup_event_data &data) {
   if (!_terminate) {
       TAU_PROFILE_INIT(data.argc, data.argv);
+      TAU_PROFILE_SET_NODE(0);
+      Tau_create_top_level_timer_if_necessary();
   }
   return;
 }
@@ -59,7 +61,8 @@ void tau_listener::on_new_thread(new_thread_event_data &data) {
 
 void tau_listener::on_exit_thread(event_data &data) {
   if (!_terminate) {
-      TAU_PROFILE_EXIT("APEX exiting");
+      //TAU_PROFILE_EXIT("APEX exiting");
+    //std::cout << "TAU_EXIT_THREAD" << std::endl;
   }
   APEX_UNUSED(data);
   return;

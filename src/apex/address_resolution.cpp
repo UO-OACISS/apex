@@ -57,9 +57,7 @@ namespace apex {
   {
     static apex_bfd_handle_t OmpbfdUnitHandle = APEX_BFD_NULL_HANDLE;
     if (OmpbfdUnitHandle == APEX_BFD_NULL_HANDLE) {
-      if (OmpbfdUnitHandle == APEX_BFD_NULL_HANDLE) {
         OmpbfdUnitHandle = Apex_bfd_registerUnit();
-      }
     }
     return OmpbfdUnitHandle;
   }

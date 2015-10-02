@@ -184,7 +184,6 @@ const char* program_path(void) {
 }
 
 string thread_instance::map_addr_to_name(apex_function_address function_address) {
-  static std::string progname = string(program_path());
   auto it = _function_map.find(function_address);
   if (it != _function_map.end()) {
     return (*it).second;
@@ -195,8 +194,9 @@ string thread_instance::map_addr_to_name(apex_function_address function_address)
   return *name;
 #else
   stringstream ss;
+  //static std::string progname = string(program_path());
   //ss << "UNRESOLVED " << progname << " ADDR " << hex << function_address;
-  ss << "UNRESOLVED ADDR " << hex << function_address;
+  ss << "UNRESOLVED  ADDR 0x" << hex << function_address;
   string name = string(ss.str());
   _function_map[function_address] = name;
   return name;

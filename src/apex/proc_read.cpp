@@ -549,12 +549,12 @@ bool parse_sensor_data() {
 void ProcData::read_proc(void) {
   static bool _initialized = false;
   if (!_initialized) {
-      initialize_worker_thread_for_TAU();
+      //initialize_worker_thread_for_TAU();
       _initialized = true;
   }
 #ifdef APEX_HAVE_TAU
   if (apex_options::use_tau()) {
-    TAU_START("ProcData::read_proc");
+    //TAU_START("ProcData::read_proc");
   }
 #endif
 #ifdef APEX_HAVE_LM_SENSORS
@@ -589,7 +589,7 @@ void ProcData::read_proc(void) {
 
 #ifdef APEX_HAVE_TAU
     if (apex_options::use_tau()) {
-      TAU_START("ProcData::read_proc: main loop");
+      //TAU_START("ProcData::read_proc: main loop");
     }
 #endif
     if (apex_options::use_proc_stat()) {
@@ -613,7 +613,7 @@ void ProcData::read_proc(void) {
 
 #ifdef APEX_HAVE_TAU
     if (apex_options::use_tau()) {
-      TAU_STOP("ProcData::read_proc: main loop");
+      //TAU_STOP("ProcData::read_proc: main loop");
     }
 #endif
   }
@@ -623,7 +623,7 @@ void ProcData::read_proc(void) {
 
 #ifdef APEX_HAVE_TAU
   if (apex_options::use_tau()) {
-    TAU_STOP("ProcData::read_proc");
+    //TAU_STOP("ProcData::read_proc");
   }
 #endif
   delete(oldData);
