@@ -39,7 +39,7 @@ MPI_Datatype profile_type;
 size_t apex_profile_size;
 
 static bool _finalized = false;
-bool apex_set_new_thread_caps(int count, apex_profile values[count]) {
+bool apex_set_new_thread_caps(int count, apex_profile * values) {
   static int countdown = 10; // wait for the application to warm up
   if (countdown > 0) {
     countdown = countdown - 1;
@@ -73,7 +73,7 @@ bool apex_set_new_thread_caps(int count, apex_profile values[count]) {
 }
 
 
-void apex_sum(int count, apex_profile values[count]) {
+void apex_sum(int count, apex_profile * values) {
   // swap the current and previous values, for relative differences
   double* tmp = current_values;
   current_values = previous_values;
