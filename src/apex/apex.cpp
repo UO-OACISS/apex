@@ -458,7 +458,7 @@ void stop(profiler* the_profiler)
 
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
-    if (the_profiler != nullptr) { assert (!the_profiler->stopped); }
+    if (the_profiler != nullptr && the_profiler->stopped) return;
     std::shared_ptr<profiler> p;
     // A null profiler is OK, it means the application didn't store it. We have it.
     if (the_profiler == nullptr) {
