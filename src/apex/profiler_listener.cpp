@@ -47,6 +47,8 @@
 
 #if APEX_HAVE_PAPI
 #include "papi.h"
+#include <mutex>
+std::mutex event_set_mutex;
 #endif
 
 #ifdef APEX_HAVE_HPX3
@@ -870,7 +872,11 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 #if APEX_HAVE_PAPI
       initialize_PAPI(false);
       if (my_tid >= event_sets.size()) {
-        event_sets.resize(my_tid + 1);
+        event_set_mutex.lock();
+        if (my_tid >= event_sets.size()) {
+          event_sets.resize(my_tid + 1);
+        }
+        event_set_mutex.unlock();
       }
       event_sets[my_tid] = EventSet;
 #endif
