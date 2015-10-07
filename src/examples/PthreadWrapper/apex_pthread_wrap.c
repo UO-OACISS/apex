@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include "apex.h"
 
 #define NUM_THREADS 2
 

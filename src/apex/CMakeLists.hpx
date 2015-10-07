@@ -5,11 +5,6 @@
 
 # Create a library called "apex"
 
-configure_file(
-  ${CMAKE_SOURCE_DIR}/apex/src/apex/apex_version.h.in
-  ${CMAKE_BINARY_DIR}/apex_version.h
-)
-
 include_directories(${CMAKE_BINARY_DIR} ${CMAKE_SOURCE_DIR}/apex/src/contrib)
 
 set(CMAKE_MODULE_PATH "${hpx_SOURCE_DIR}/apex/cmake/Modules" ${CMAKE_MODULE_PATH})
@@ -109,6 +104,7 @@ set(apex_headers
     apex.hpp
     apex_api.hpp
     apex_types.h
+    apex_config.h
     apex_export.h
     apex_api.hpp
     apex_options.hpp

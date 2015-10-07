@@ -5,6 +5,7 @@
 
 #include "apex_options.hpp"
 #include "apex.hpp"
+#include "apex_config.h"
 #include <iostream>
 
 namespace apex
@@ -34,6 +35,29 @@ namespace apex
     }
     FOREACH_APEX_STRING_OPTION(apex_macro)
 #undef apex_macro
+
+#define apex_macro(name, member_variable, type, default_value) \
+    type _##member_variable; /* declare the local variable */ \
+    option = getenv(#name); \
+    if (option == NULL) { \
+        int length = strlen(default_value) + 1; \
+        _##member_variable = (type)(calloc(length, sizeof(char))); \
+        strncpy(_##member_variable, default_value, length); \
+    } else { \
+        int length = strlen(option) + 1; \
+        _##member_variable = (type)(calloc(length, sizeof(char))); \
+        strncpy(_##member_variable, option, length); \
+    }
+    FOREACH_EXTERNAL_STRING_OPTION(apex_macro)
+#undef apex_macro
+
+#ifdef APEX_HAVE_ACTIVEHARMONY
+    // validate the HARMONY_HOME setting - make sure it is set.
+    int rc = setenv("HARMONY_HOME", _activeharmony_root, 0);
+    if (rc == -1) { 
+        std::cerr << "Warning - couldn't set HARMONY_HOME" << std::endl; 
+    }
+#endif
     };
 
     apex_options& apex_options::instance(void) {

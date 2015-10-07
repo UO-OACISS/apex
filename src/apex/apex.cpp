@@ -10,8 +10,6 @@
 #include "apex.hpp"
 #include "apex_api.hpp"
 #include "apex_types.h"
-#include "apex_config.h"
-#include "apex_version.h"
 #include <iostream>
 #include <stdlib.h>
 #include <string>
