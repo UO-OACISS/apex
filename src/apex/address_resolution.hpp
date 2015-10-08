@@ -48,7 +48,7 @@ namespace apex {
       ~address_resolution(void) {
         // call apex::finalize() just in case!
         finalize();
-        for ( std::map<uintptr_t, 
+        for ( std::unordered_map<uintptr_t, 
               my_hash_node*>::iterator it = my_hash_table.begin(); 
               it != my_hash_table.end(); ++it ) {
           my_hash_node * node = it->second;
@@ -60,7 +60,7 @@ namespace apex {
         my_hash_table.clear();
         Apex_delete_bfd_units();
       }
-      std::map<uintptr_t, my_hash_node*> my_hash_table;
+      std::unordered_map<uintptr_t, my_hash_node*> my_hash_table;
       apex_bfd_handle_t my_bfd_unit_handle;
   };
 
