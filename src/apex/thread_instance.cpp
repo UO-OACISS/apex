@@ -125,9 +125,11 @@ bool thread_instance::map_id_to_worker(int id) {
 
 const char* thread_instance::program_path(void) {
 
+    static string empty("");
+
 #if defined(_WIN32) || defined(_WIN64)
 
-    if (_program_path == NULL) {
+    if (*_program_path == empty) {
         char path[MAX_PATH + 1] = { '\0' };
         if (!GetModuleFileName(NULL, path, sizeof(path)))
             return NULL;
@@ -137,7 +139,7 @@ const char* thread_instance::program_path(void) {
 
 #elif defined(__linux) || defined(linux) || defined(__linux__)
 
-    if (_program_path == NULL) {
+    if (*_program_path == empty) {
         char path[PATH_MAX];
         memset(path,0,PATH_MAX);
         if (path != NULL) {
@@ -150,7 +152,7 @@ const char* thread_instance::program_path(void) {
 
 #elif defined(__APPLE__)
 
-    if (_program_path == NULL) {
+    if (*_program_path == empty) {
         char path[PATH_MAX + 1];
         boost::uint32_t len = sizeof(path) / sizeof(path[0]);
 
@@ -164,7 +166,7 @@ const char* thread_instance::program_path(void) {
 
 #elif defined(__FreeBSD__)
 
-    if (_program_path == NULL) {
+    if (*_program_path == empty) {
         int mib[] = { CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1 };
         size_t cb = 0;
         sysctl(mib, 4, NULL, &cb, NULL, 0);
@@ -194,11 +196,11 @@ string thread_instance::map_addr_to_name(apex_function_address function_address)
   return *name;
 #else
   stringstream ss;
-  static std::string progname = string(program_path());
+  const char * progname = program_path();
   if (progname == NULL) {
     ss << "UNRESOLVED  ADDR 0x" << hex << function_address;
   } else {
-    ss << "UNRESOLVED " << progname << " ADDR " << hex << function_address;
+    ss << "UNRESOLVED " << string(progname) << " ADDR " << hex << function_address;
   }
   string name = string(ss.str());
   _function_map[function_address] = name;
