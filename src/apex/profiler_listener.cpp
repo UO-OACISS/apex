@@ -711,14 +711,20 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         char* tmpstr = strdup(apex_options::papi_metrics());
         char *p = strtok(tmpstr, " ");
         int code;
+        // this is a scoped lock.
+        std::lock_guard<std::mutex> lock(event_set_mutex);
+        // only one thread - the first one - should populate the metric names.
+        bool populate_metric_names = (metric_names.size() == 0);
         while (p) {
           printf ("Trying PAPI Metric: %s\n", p);
           int rc = PAPI_event_name_to_code(p, &code);
           if (PAPI_query_event (code) == PAPI_OK) {
             rc = PAPI_add_event(EventSet, code);
             PAPI_ERROR_CHECK(PAPI_add_event);
-            metric_names.push_back(string(p));
-            num_papi_counters++;
+            if (populate_metric_names) {
+              metric_names.push_back(string(p));
+              num_papi_counters++;
+            }
           }
           p = strtok(NULL, " ");
         }
