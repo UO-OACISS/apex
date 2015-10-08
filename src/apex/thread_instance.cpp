@@ -49,6 +49,8 @@ boost::mutex thread_instance::_name_map_mutex;
 map<int, bool> thread_instance::_worker_map;
 // Global static mutex to control access to the map
 boost::mutex thread_instance::_worker_map_mutex;
+// Global static path to executable name
+string * thread_instance::_program_path = NULL;
 
 thread_instance& thread_instance::instance(void) {
   thread_instance* me = _instance.get();
@@ -121,36 +123,34 @@ bool thread_instance::map_id_to_worker(int id) {
   return worker;
 }
 
-const char* program_path(void) {
-    // FIXME: the initialization of path is not thread safe
-    static string * the_path = NULL;
+const char* thread_instance::program_path(void) {
 
 #if defined(_WIN32) || defined(_WIN64)
 
-    if (the_path == NULL) {
+    if (_program_path == NULL) {
         char path[MAX_PATH + 1] = { '\0' };
         if (!GetModuleFileName(NULL, path, sizeof(path)))
             return NULL;
-        the_path = new string(path);
+        _program_path = new string(path);
     }
-    return the_path->c_str();
+    return _program_path->c_str();
 
 #elif defined(__linux) || defined(linux) || defined(__linux__)
 
-    if (the_path == NULL) {
+    if (_program_path == NULL) {
         char path[PATH_MAX];
         memset(path,0,PATH_MAX);
         if (path != NULL) {
             if (readlink("/proc/self/exe", path, PATH_MAX) == -1)
                 return NULL;
         }
-        the_path = new string(path);
+        _program_path = new string(path);
     }
-    return the_path->c_str();
+    return _program_path->c_str();
 
 #elif defined(__APPLE__)
 
-    if (the_path == NULL) {
+    if (_program_path == NULL) {
         char path[PATH_MAX + 1];
         boost::uint32_t len = sizeof(path) / sizeof(path[0]);
 
@@ -158,13 +158,13 @@ const char* program_path(void) {
             return NULL;
 
         path[len] = '\0';
-        the_path = new string(path);
+        _program_path = new string(path);
     }
-    return the_path->c_str();
+    return _program_path->c_str();
 
 #elif defined(__FreeBSD__)
 
-    if (the_path == NULL) {
+    if (_program_path == NULL) {
         int mib[] = { CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1 };
         size_t cb = 0;
         sysctl(mib, 4, NULL, &cb, NULL, 0);
@@ -173,9 +173,9 @@ const char* program_path(void) {
 
         std::vector<char> buf(cb);
         sysctl(mib, 4, &buf[0], &cb, NULL, 0);
-        the_path = new string(&buf[0]);
+        _program_path = new string(&buf[0]);
     }
-    return the_path->c_str();
+    return _program_path->c_str();
 
 #else
 #  error Unsupported platform
@@ -194,9 +194,12 @@ string thread_instance::map_addr_to_name(apex_function_address function_address)
   return *name;
 #else
   stringstream ss;
-  //static std::string progname = string(program_path());
-  //ss << "UNRESOLVED " << progname << " ADDR " << hex << function_address;
-  ss << "UNRESOLVED  ADDR 0x" << hex << function_address;
+  static std::string progname = string(program_path());
+  if (progname == nullptr) {
+    ss << "UNRESOLVED  ADDR 0x" << hex << function_address;
+  } else {
+    ss << "UNRESOLVED " << progname << " ADDR " << hex << function_address;
+  }
   string name = string(ss.str());
   _function_map[function_address] = name;
   return name;

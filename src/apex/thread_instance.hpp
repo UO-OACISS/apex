@@ -42,6 +42,7 @@ private:
   static boost::mutex _worker_map_mutex;
   static boost::atomic_int _num_threads;
   static boost::atomic_int _active_threads;
+  static std::string * _program_path;
   // thread specific data
   static boost::thread_specific_ptr<thread_instance> _instance;
   // constructor
@@ -67,6 +68,7 @@ public:
   static std::shared_ptr<profiler> pop_current_profiler(void);
   static std::shared_ptr<profiler> pop_current_profiler(profiler * requested);
   static bool profiler_stack_empty(void);
+  static const char * program_path(void);
 };
 
 }
