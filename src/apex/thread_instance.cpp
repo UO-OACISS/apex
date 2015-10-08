@@ -50,7 +50,7 @@ map<int, bool> thread_instance::_worker_map;
 // Global static mutex to control access to the map
 boost::mutex thread_instance::_worker_map_mutex;
 // Global static path to executable name
-string * thread_instance::_program_path = NULL;
+string * thread_instance::_program_path = nullptr;
 
 thread_instance& thread_instance::instance(void) {
   thread_instance* me = _instance.get();
@@ -195,7 +195,7 @@ string thread_instance::map_addr_to_name(apex_function_address function_address)
 #else
   stringstream ss;
   static std::string progname = string(program_path());
-  if (progname == nullptr) {
+  if (progname == NULL) {
     ss << "UNRESOLVED  ADDR 0x" << hex << function_address;
   } else {
     ss << "UNRESOLVED " << progname << " ADDR " << hex << function_address;
