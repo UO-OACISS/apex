@@ -59,10 +59,9 @@ concurrency_handler::concurrency_handler (unsigned int period, int option) : han
 }
 
 bool concurrency_handler::_handler(void) {
-  static bool _initialized = false;
-  if (!_initialized) {
+  if (!_handler_initialized) {
       initialize_worker_thread_for_TAU();
-      _initialized = true;
+      _handler_initialized = true;
   }
   if (_terminate) return true;
   apex* inst = apex::instance();

@@ -5,7 +5,7 @@
 #include <set>
 
 #include "apex_bfd.h"
-#include "apex_types.h"
+#include "apex.hpp"
 #include <bfd.h>
 #if APEX_BFD >= 022300
 #include <elf-bfd.h>
@@ -225,6 +225,7 @@ struct apex_bfd_unit_vector_t : public std::vector<ApexBfdUnit*>
   virtual ~apex_bfd_unit_vector_t() {
   //Wait! We might not be done! Unbelieveable as it may seem, this object
   //could (and does sometimes) get destroyed BEFORE we have resolved the addresses. Bummer.
+    apex::finalize();
   //printf("deleting BFD objects\n");
   }
 };

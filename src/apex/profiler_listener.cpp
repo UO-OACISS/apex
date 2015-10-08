@@ -573,7 +573,6 @@ namespace apex {
    * as it goes. */
   void profiler_listener::process_profiles(void)
   {
-    static bool _initialized = false;
     if (!_initialized) {
       //initialize_worker_thread_for_TAU();
       _initialized = true;
@@ -933,7 +932,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       profiler* local_p = new profiler(p.get());
       bool worked = thequeue.enqueue(local_p);
       if (!worked) {
-          static bool issued = false;
+          static boost::atomic<bool> issued(false);
           if (!issued) {
               issued = true;
               if(p->have_name) {

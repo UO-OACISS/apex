@@ -25,6 +25,7 @@ private:
   };
 protected:
   unsigned int _period;
+  bool _handler_initialized;
   bool _terminate;
   boost::asio::deadline_timer _timer;
   boost::thread* _timer_thread;
@@ -40,12 +41,14 @@ protected:
 public:
   handler() : 
       _period(default_period), 
+      _handler_initialized(false), 
       _terminate(false), 
       _timer(_io, boost::posix_time::microseconds(_period)),
       _timer_thread(nullptr)
     { }
   handler(unsigned int period) : 
       _period(period), 
+      _handler_initialized(false), 
       _terminate(false), 
       _timer(_io, boost::posix_time::microseconds(_period)), 
       _timer_thread(nullptr)

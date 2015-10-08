@@ -11,29 +11,36 @@ using namespace std;
 
 namespace apex {
 
-  // instantiate our static instance.
+  // instantiate our static instances.
   address_resolution * address_resolution::_instance = nullptr;
+  std::mutex address_resolution::_bfd_mutex;
 
   /* Map a function address to a name and/or source location */
   string * lookup_address(uintptr_t ip, bool withFileInfo) {
     address_resolution * ar = address_resolution::instance();
     stringstream location;
     address_resolution::my_hash_node * node = ar->my_hash_table[ip];
+    // address not found? We need to resolve it.
     if (!node) {
-      node = new address_resolution::my_hash_node();
-      Apex_bfd_resolveBfdInfo(ar->my_bfd_unit_handle, ip, node->info);
-      if (node->info.funcname) {
-        location << node->info.funcname ;
-      }
-      //if (withFileInfo) {
+      // only one thread should resolve it.
+      std::lock_guard<std::mutex> lock(ar->_bfd_mutex);
+      // now that we have the lock, did someone else resolve it?
+      node = ar->my_hash_table[ip];
+      if (!node) {
+        // ...no - so go get it!
+        node = new address_resolution::my_hash_node();
+        Apex_bfd_resolveBfdInfo(ar->my_bfd_unit_handle, ip, node->info);
+        if (node->info.funcname) {
+          location << node->info.funcname ;
+        }
         location << " [{" ;
         if (node->info.filename) {
-            location << node->info.filename ;
+          location << node->info.filename ;
         }
         location << "} {" << node->info.lineno << ",0}]";
-      //}
-      node->location = new string(location.str());
-      ar->my_hash_table[ip] = node;
+        node->location = new string(location.str());
+        ar->my_hash_table[ip] = node;
+      }
     }
     if (withFileInfo) {
       return node->location;
