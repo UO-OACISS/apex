@@ -232,6 +232,7 @@ if (TAU_FOUND)
 	include_directories(${TAU_INCLUDE_DIRS})
 	set(LIBS ${LIBS} ${TAU_LIBRARIES})
 	set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${TAU_LIBRARY_DIR})
+    set(USE_TAU TRUE)
 endif()
 endif()
 

@@ -37,9 +37,10 @@ set(example_programs
 #    apex_setup_throughput_tuning
 #    apex_set_thread_cap
 
-if (NOT TAU_FOUND)
-  set(example_programs "${example_programs} apex_fibonacci_pthread apex_new_task")
-endif (NOT TAU_FOUND)
+if (NOT USE_TAU)
+  set(example_programs "${example_programs};apex_fibonacci_pthread")
+  set(example_programs "${example_programs};apex_new_task")
+endif (NOT USE_TAU)
 
 #if (OPENMP_FOUND)
   #set(example_programs "${example_programs} apex_setup_throughput_tuning")
