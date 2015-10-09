@@ -8,6 +8,7 @@
 #include <thread>
 #include <chrono>
 #include "utils.hpp"
+#include <atomic>
 
 #define ITERATIONS 1
 #define INNER_ITERATION 1024*16
@@ -95,12 +96,21 @@ int main(int argc, char **argv)
   std::cout << "Expecting " << numthreads << " threads." << std::endl;
   pthread_t * thread = (pthread_t*)(malloc(sizeof(pthread_t) * numthreads));
   unsigned long * results = (unsigned long *)malloc(sizeof(unsigned long) * numthreads);
+  std::atomic<int> thread_count(0);
   for (unsigned f = 0 ; f < FLOOD_LEVEL ; f++) {
+#ifdef APEX_HAVE_TAU
+    if (thread_count >= 127) { break; }
+#endif
     unsigned i;
     for (i = 0 ; i < numthreads ; i++) {
         pthread_create(&(thread[i]), NULL, someThread, &(results[i]));
+        thread_count++;
+#ifdef APEX_HAVE_TAU
+        if (thread_count >= 127) { break; }
+#endif
     }
-    for (i = 0 ; i < numthreads ; i++) {
+    int newbreak = i;
+    for (i = 0 ; i < numthreads && i < newbreak ; i++) {
         pthread_join(thread[i], NULL);
     }
   }
