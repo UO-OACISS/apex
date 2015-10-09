@@ -11,7 +11,11 @@
 
 #define ITERATIONS 1
 #define INNER_ITERATION 1024*16
+#ifdef APEX_HAVE_TAU
+#define FLOOD_LEVEL 15 // TAU has a limit of 128 threads.
+#else
 #define FLOOD_LEVEL 1000
+#endif
 
 class ApexProxy {
 private:

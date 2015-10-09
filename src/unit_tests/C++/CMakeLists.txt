@@ -59,6 +59,10 @@ endforeach()
 if (OPENMP_FOUND)
   set_target_properties(apex_setup_throughput_tuning_cpp PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
   set_target_properties(apex_setup_throughput_tuning_cpp PROPERTIES LINK_FLAGS ${OpenMP_CXX_FLAGS})
+  if (PROCESSOR_COUNT)
+    set_property (TEST test_apex_setup_throughput_tuning_cpp
+    APPEND PROPERTY ENVIRONMENT "OMP_NUM_THREADS=${PROCESSOR_COUNT}")
+  endif (PROCESSOR_COUNT)
 endif (OPENMP_FOUND)
 
 set_target_properties(apex_fibonacci_std_async_cpp PROPERTIES LINK_FLAGS "-fsplit-stack")
@@ -70,6 +74,5 @@ if(APPLE)
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -DPTHREADS")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
-
 endif()
 

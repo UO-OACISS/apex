@@ -2,8 +2,17 @@
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-
+#pragma once
 
 // the configured options and settings for Apex
 #define APEX_VERSION_MAJOR @APEX_VERSION_MAJOR@
 #define APEX_VERSION_MINOR @APEX_VERSION_MINOR@
+
+// Git related strings
+#define GIT_TAG "@GIT_TAG@"
+#define GIT_BRANCH "@GIT_BRANCH@"
+#define GIT_COMMIT_HASH "@GIT_COMMIT_HASH@"
+
+// the ACTIVEHARMONY installation location
+#define ACTIVEHARMONY_ROOT "@ACTIVEHARMONY_ROOT@"
+

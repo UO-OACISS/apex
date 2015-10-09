@@ -32,12 +32,15 @@ set(example_programs
     apex_print_options
     apex_get_thread_cap
     apex_shutdown_throttling
-    apex_fibonacci_pthread
-    apex_new_task
    )
 #    apex_setup_power_cap_throttling
 #    apex_setup_throughput_tuning
 #    apex_set_thread_cap
+
+if (NOT USE_TAU)
+  set(example_programs "${example_programs};apex_fibonacci_pthread")
+  set(example_programs "${example_programs};apex_new_task")
+endif (NOT USE_TAU)
 
 #if (OPENMP_FOUND)
   #set(example_programs "${example_programs} apex_setup_throughput_tuning")

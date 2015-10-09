@@ -2,10 +2,13 @@
 #define APEX_OPTIONS_HPP
 
 #include <stdlib.h>
-#include "apex_types.h"
 #include "string.h"
 #include "stdio.h"
+#include "apex_types.h"
 #include "apex_export.h"
+
+#define FOREACH_EXTERNAL_STRING_OPTION(macro) \
+        macro (HARMONY_HOME, activeharmony_root, char*, ACTIVEHARMONY_ROOT) \
 
 namespace apex {
 

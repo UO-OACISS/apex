@@ -124,7 +124,6 @@ int policy_event(apex_context const context) {
 }
 
 int startup_policy(apex_context const context) {
-    static APEX_NATIVE_TLS unsigned int not_every_time = 0;
     printf("Startup Policy...\n");
     return APEX_NOERROR;
 }

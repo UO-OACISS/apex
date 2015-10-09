@@ -44,7 +44,11 @@ int fib (int in) {
 
 int main(int argc, char *argv[]) {
     //apex::init("apex_fibonacci_pthreads unit test");
+#ifdef APEX_HAVE_TAU
+    int i = 5;
+#else
     int i = 10;
+#endif
 
     if (argc != 2) {
         std::cerr << "usage: pthreads <integer value>" << std::endl;

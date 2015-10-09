@@ -218,7 +218,7 @@ APEX_EXPORT void apex_sample_value(const char * name, double value);
              apex_profiler_type values.
  \param identifier The function address of the function of the task, or a "const
              char *" pointer to the name of the task.
- \param taskid The ID of the task 
+ \param task_id The ID of the task 
  \return No return value.
  */
 
@@ -498,6 +498,12 @@ APEX_EXPORT int apex_get_thread_cap(void);             // for thread throttling
  */
 APEX_EXPORT void apex_set_thread_cap(int new_cap);             // for thread throttling
 
+/**
+ \brief Print the current APEX settings
+
+ This function will print all the current APEX settings.
+ */
+APEX_EXPORT void apex_print_options(void);
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
@@ -514,8 +520,6 @@ FOREACH_APEX_STRING_OPTION(apex_macro)
 #undef apex_macro
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
-APEX_EXPORT void apex_print_options(void);
 
 #ifdef __cplusplus
 }

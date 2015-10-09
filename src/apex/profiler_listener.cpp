@@ -47,6 +47,8 @@
 
 #if APEX_HAVE_PAPI
 #include "papi.h"
+#include <mutex>
+std::mutex event_set_mutex;
 #endif
 
 #ifdef APEX_HAVE_HPX3
@@ -54,6 +56,7 @@
 #include <hpx/include/actions.hpp>
 #include <hpx/include/util.hpp>
 #include <hpx/lcos/local/composable_guard.hpp>
+static void apex_schedule_process_profiles(void); // not in apex namespace
 #endif
 
 #define APEX_MAIN "APEX MAIN"
@@ -77,6 +80,12 @@ namespace apex {
   /* THis is a special profiler, indicating that the timer requested is
      throttled, and shouldn't be processed. */
   profiler* profiler::disabled_profiler = new profiler();
+
+#ifdef APEX_HAVE_HPX3
+  /* Flag indicating whether a consumer task is currently running */
+  std::atomic_flag consumer_task_running = ATOMIC_FLAG_INIT;
+  bool hpx_shutdown = false;
+#endif
 
   /* Return the requested profile object to the user.
    * Return nullptr if doesn't exist. */
@@ -548,7 +557,13 @@ namespace apex {
    * profiler_listener instance, and call it's proper function.
    */
   void profiler_listener::process_profiles_wrapper(void) {
-      apex::instance()->the_profiler_listener->process_profiles();
+      apex * inst = apex::instance();
+      if (inst != nullptr) { 
+          profiler_listener * pl = inst->the_profiler_listener;
+          if (pl != nullptr) {
+              pl->process_profiles();
+          }
+      }
   }
 
   /* This is the main function for the consumer thread.
@@ -558,7 +573,6 @@ namespace apex {
    * as it goes. */
   void profiler_listener::process_profiles(void)
   {
-    static bool _initialized = false;
     if (!_initialized) {
       //initialize_worker_thread_for_TAU();
       _initialized = true;
@@ -668,31 +682,6 @@ namespace apex {
 #endif
   }
 
-#ifdef APEX_HAVE_HPX3
-} // end namespace apex (HPX_PLAIN_ACTION needs to be in global namespace)
-
-HPX_PLAIN_ACTION(profiler_listener::process_profiles, apex_internal_process_profiles_action);
-HPX_ACTION_HAS_CRITICAL_PRIORITY(apex_internal_process_profiles_action);
-
-namespace apex {
-
-void profiler_listener::schedule_process_profiles() {
-    if(get_hpx_runtime_ptr() == nullptr) return;
-    if(hpx_shutdown) {
-        profiler_listener::process_profiles();
-    } else if(!consumer_task_running.test_and_set(memory_order_acq_rel)) {
-        apex_internal_process_profiles_action act;
-        try {
-            hpx::apply(act, hpx::find_here());
-        } catch(...) {
-            // During shutdown, we can't schedule a new task,
-            // so we process profiles ourselves.
-            profiler_listener::process_profiles();
-        }
-    } 
-}
-#endif
-
 #if APEX_HAVE_PAPI
 APEX_NATIVE_TLS int EventSet = PAPI_NULL;
 #define PAPI_ERROR_CHECK(name) \
@@ -722,14 +711,20 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         char* tmpstr = strdup(apex_options::papi_metrics());
         char *p = strtok(tmpstr, " ");
         int code;
+        // this is a scoped lock.
+        std::lock_guard<std::mutex> lock(event_set_mutex);
+        // only one thread - the first one - should populate the metric names.
+        bool populate_metric_names = (metric_names.size() == 0);
         while (p) {
           printf ("Trying PAPI Metric: %s\n", p);
           int rc = PAPI_event_name_to_code(p, &code);
           if (PAPI_query_event (code) == PAPI_OK) {
             rc = PAPI_add_event(EventSet, code);
             PAPI_ERROR_CHECK(PAPI_add_event);
-            metric_names.push_back(string(p));
-            num_papi_counters++;
+            if (populate_metric_names) {
+              metric_names.push_back(string(p));
+              num_papi_counters++;
+            }
           }
           p = strtok(NULL, " ");
         }
@@ -864,7 +859,11 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 #if APEX_HAVE_PAPI
       initialize_PAPI(false);
       if (my_tid >= event_sets.size()) {
-        event_sets.resize(my_tid + 1);
+        event_set_mutex.lock();
+        if (my_tid >= event_sets.size()) {
+          event_sets.resize(my_tid + 1);
+        }
+        event_set_mutex.unlock();
       }
       event_sets[my_tid] = EventSet;
 #endif
@@ -939,7 +938,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       profiler* local_p = new profiler(p.get());
       bool worked = thequeue.enqueue(local_p);
       if (!worked) {
-          static bool issued = false;
+          static boost::atomic<bool> issued(false);
           if (!issued) {
               issued = true;
               if(p->have_name) {
@@ -958,7 +957,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       queue_signal.post();
 #endif
 #ifdef APEX_HAVE_HPX3
-      schedule_process_profiles();
+      apex_schedule_process_profiles();
 #endif
   }
 
@@ -1111,3 +1110,28 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   };
 
 }
+
+#ifdef APEX_HAVE_HPX3
+// (HPX_PLAIN_ACTION needs to be in global namespace)
+HPX_PLAIN_ACTION(apex::profiler_listener::process_profiles_wrapper, apex_internal_process_profiles_action);
+HPX_ACTION_HAS_CRITICAL_PRIORITY(apex_internal_process_profiles_action);
+
+void apex_schedule_process_profiles() {
+    if(get_hpx_runtime_ptr() == nullptr) return;
+    if(hpx_shutdown) {
+        apex::profiler_listener::process_profiles_wrapper();
+    } else if(!consumer_task_running.test_and_set(memory_order_acq_rel)) {
+        apex_internal_process_profiles_action act;
+        try {
+            hpx::apply(act, hpx::find_here());
+        } catch(...) {
+            // During shutdown, we can't schedule a new task,
+            // so we process profiles ourselves.
+            profiler_listener::process_profiles_wrapper();
+        }
+    } 
+}
+
+#endif
+
+

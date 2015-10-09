@@ -56,10 +56,9 @@ policy_handler::policy_handler (uint64_t period_microseconds) : handler(period_m
 #endif
 
 bool policy_handler::_handler(void) {
-  static bool _initialized = false;
-  if (!_initialized) {
+  if (!_handler_initialized) {
       //initialize_worker_thread_for_TAU();
-      _initialized = true;
+      _handler_initialized = true;
   }
   if (_terminate) return true;
 #ifdef APEX_HAVE_TAU

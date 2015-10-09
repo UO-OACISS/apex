@@ -37,7 +37,9 @@ void * fib (void * in) {
     a.f_x = 0;
     pthread_attr_t attr_a; 
     pthread_attr_init(&attr_a);
+#ifdef APEX_HAVE_TAU
     pthread_attr_setstacksize(&attr_a, PTHREAD_STACK_MIN);
+#endif
     pthread_t thread_a;
     int rc = pthread_create(&thread_a, &attr_a, fib, (void*)&a);
     if (rc == EAGAIN) {
@@ -55,7 +57,9 @@ void * fib (void * in) {
     b.f_x = 0;
     pthread_attr_t attr_b; 
     pthread_attr_init(&attr_b);
+#ifdef APEX_HAVE_TAU
     pthread_attr_setstacksize(&attr_b, PTHREAD_STACK_MIN);
+#endif
     pthread_t thread_b;
     rc = pthread_create(&thread_b,&attr_b,fib,(void*)&b);
        if (rc == EAGAIN) {
@@ -86,7 +90,11 @@ void * fib (void * in) {
 
 int main(int argc, char *argv[]) {
     apex_init("apex_fibonacci_pthreads unit test");
+#ifdef APEX_HAVE_TAU
+    int i = 5;
+#else
     int i = 10;
+#endif
 
     if (argc != 2) {
         fprintf(stderr,"usage: pthreads <integer value>\n");
@@ -109,7 +117,9 @@ int main(int argc, char *argv[]) {
     pthread_attr_init(&attr);
     size_t oldStackSize;
     pthread_attr_getstacksize(&attr, &oldStackSize);
+#ifdef APEX_HAVE_TAU
     pthread_attr_setstacksize(&attr, PTHREAD_STACK_MIN);
+#endif
     pthread_t thread;
     pthread_create(&thread,&attr,fib,(void*)&scratch);
 

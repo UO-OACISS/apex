@@ -21,6 +21,7 @@
 #include <vector>
 #include <stdint.h>
 #include "apex_types.h"
+#include "apex_config.h"
 #include "handler.hpp"
 #include "event_listener.hpp"
 #include "policy_handler.hpp"

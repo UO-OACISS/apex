@@ -13,7 +13,7 @@
 
 #define NUM_THREADS 48
 #define ITERATIONS 250
-#define SLEEPY_TIME 10000 // 10,000
+#define SLEEPY_TIME 1000 // 1000
 
 int total_iterations = NUM_THREADS * ITERATIONS;
 bool test_passed = false;
@@ -99,7 +99,7 @@ int main(int argc, char **argv)
   }
   apex_stop(p);
   int final_cap = apex_get_thread_cap();
-  if (test_passed) {
+  if (final_cap < original_cap && test_passed) {
     printf("Test passed.\n");
   }
   apex_finalize();

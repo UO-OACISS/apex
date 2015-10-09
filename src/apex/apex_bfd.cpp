@@ -5,7 +5,7 @@
 #include <set>
 
 #include "apex_bfd.h"
-#include "apex_types.h"
+#include "apex.hpp"
 #include <bfd.h>
 #if APEX_BFD >= 022300
 #include <elf-bfd.h>
@@ -225,6 +225,7 @@ struct apex_bfd_unit_vector_t : public std::vector<ApexBfdUnit*>
   virtual ~apex_bfd_unit_vector_t() {
   //Wait! We might not be done! Unbelieveable as it may seem, this object
   //could (and does sometimes) get destroyed BEFORE we have resolved the addresses. Bummer.
+    apex::finalize();
   //printf("deleting BFD objects\n");
   }
 };
@@ -337,15 +338,15 @@ void Apex_bfd_internal_updateProcSelfMaps(int unit_index)
   }
 
   char line[4096];
+  unsigned long start, end, offset, device_major, device_minor;
+  unsigned filenumber;
+  char module[4096];
+  char perms[5];
   while (!feof(mapsfile)) {
     if (fgets(line, 4096, mapsfile) == NULL) { break; }
-    unsigned long start, end, offset;
-    char module[4096];
-    char perms[5];
-    module[0] = 0;
-
-    sscanf(line, "%lx-%lx %s %lx %*s %*u %[^\n]",
-        &start, &end, perms, &offset, module);
+    //printf("%s", line); fflush(stdout);
+    sscanf(line, "%lx-%lx %s %lx %lx:%lx %u %[^\n]",
+        &start, &end, perms, &offset, &device_major, &device_minor, &filenumber, module);
     if (*module && ((strcmp(perms, "r-xp") == 0) ||
             (strcmp(perms, "rwxp") == 0)))
     {
@@ -476,36 +477,7 @@ void Apex_bfd_updateAddressMaps(apex_bfd_handle_t handle)
 #elif defined(APEX_WINDOWS) && defined(APEX_MINGW)
   Apex_bfd_internal_updateWindowsMaps(unit);
 #else
-  //Apex_bfd_internal_updateProcSelfMaps(handle);
-  {
-      // Note: Linux systems only.
-      FILE * mapsfile = fopen("/proc/self/maps", "r");
-      if(!mapsfile) {
-        //printf("Apex_bfd_internal_updateProcSelfMaps: Warning - /proc/self/maps could not be opened.\n");
-        return;
-      }
-
-      char line[4096];
-      unsigned long start, end, offset, device_major, device_minor;
-      unsigned filenumber;
-      char module[4096];
-      char perms[5];
-      while (!feof(mapsfile)) {
-        if (fgets(line, 4096, mapsfile) == NULL) { break; }
-      /*
-        //printf("%s",line); fflush(stdout);
-        sscanf(line, "%lx-%lx %s %lx %lx:%lx %u %[^\n]",
-            &start, &end, perms, &offset, &device_major, &device_minor, &filenumber, module);
-        if (*module && ((strcmp(perms, "r-xp") == 0) ||
-                (strcmp(perms, "rwxp") == 0)))
-        {
-          unit->addressMaps.push_back(new ApexBfdAddrMap(start, end, offset, module));
-          unit->modules.push_back(new ApexBfdModule);
-        }
-      */
-      }
-      fclose(mapsfile);
-  }
+  Apex_bfd_internal_updateProcSelfMaps(handle);
 #endif
 
   unit->apex_objopen_counter = get_apex_objopen_counter();

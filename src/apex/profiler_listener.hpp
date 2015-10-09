@@ -47,6 +47,7 @@ public:
 class profiler_listener : public event_listener {
 private:
   void _init(void);
+  bool _initialized;
   boost::atomic<bool> _done;
   boost::atomic<int> active_tasks;
   std::shared_ptr<profiler> main_timer; // not a shared pointer, yet...
@@ -87,7 +88,7 @@ private:
   boost::thread * consumer_thread;
   semaphore queue_signal;
 public:
-  profiler_listener (void) : _done(false), node_id(0), name_map()
+  profiler_listener (void) : _initialized(false), _done(false), node_id(0), name_map()
 #if APEX_HAVE_PAPI
                              , num_papi_counters(0), event_sets(8), metric_names(0)
 #endif
