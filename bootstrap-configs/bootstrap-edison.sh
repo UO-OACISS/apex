@@ -19,7 +19,7 @@ export BOOST_ROOT=$BOOST_DIR
 #export JEMALLOC_ROOT=$HOME/install/jemalloc/3.6.0 # not strictly necessary, if runtime uses JEMalloc
 #export RCR_ROOT=$HOME/src/RCRdaemon_nersc
 #export PAPI_ROOT=/opt/cray/papi/5.3.2.1
-export TAU_ROOT=$HOME/install/tau2-hpx
+#export TAU_ROOT=$HOME/install/tau2-hpx
 export ACTIVEHARMONY_ROOT=$HOME/install/activeharmony/4.5
 #export OMPT_ROOT=$HOME/src/LLVM-openmp/build
 
@@ -29,7 +29,7 @@ export ACTIVEHARMONY_ROOT=$HOME/install/activeharmony/4.5
 export LDFLAGS="-dynamic -ldl" # cmake will pick this up
 export MPI_C_INCLUDE_PATH=$CRAY_MPICH2_DIR/include
 export MPI_C_LIBRARIES="-L$CRAY_MPICH2_DIR/lib -lmpi"
-cmake_build_type="-DCMAKE_BUILD_TYPE=Debug" # Debug, Release, RelWithDebInfo, etc.
+cmake_build_type="-DCMAKE_BUILD_TYPE=RelWithDebInfo" # Debug, Release, RelWithDebInfo, etc.
 cmake_apex_throttle="-DAPEX_THROTTLE=TRUE" # TRUE or FALSE
 cmake_build_shared_libs="-DBUILD_SHARED_LIBS=TRUE" # TRUE or FALSE
 cmake_install_prefix="-DCMAKE_INSTALL_PREFIX=../install" # the installation path
