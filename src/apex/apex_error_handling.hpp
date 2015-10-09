@@ -60,6 +60,7 @@ static void apex_custom_signal_handler(int sig) {
   std::cerr << std::endl;
   std::cerr << std::endl;
   fflush(stderr);
+  apex::finalize();
   exit(-1);
 }
 

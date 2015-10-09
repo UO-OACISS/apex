@@ -109,7 +109,7 @@ int main(int argc, char **argv)
         if (thread_count >= 127) { break; }
 #endif
     }
-    int newbreak = i;
+    unsigned newbreak = i;
     for (i = 0 ; i < numthreads && i < newbreak ; i++) {
         pthread_join(thread[i], NULL);
     }
