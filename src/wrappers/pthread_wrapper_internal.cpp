@@ -85,29 +85,34 @@ public:
   }
   void start(void) {
     if (_func != NULL) {
-      _p = std::make_shared<apex::profiler>(apex::start((apex_function_address)_func));
+      //_p = std::make_shared<apex::profiler>(apex::start((apex_function_address)_func));
+      _p = apex::start((apex_function_address)_func);
     }
   }
   void restart(void) {
     if (_func != NULL) {
-      _p = std::make_shared<apex::profiler>(apex::resume((apex_function_address)_func));
+      //_p = std::make_shared<apex::profiler>(apex::start((apex_function_address)_func));
+      _p = apex::start((apex_function_address)_func);
     }
   }
   void yield(void) {
     if (_p != NULL && !_p->stopped) {
-      apex::stop(_p.get());
+      //apex::yield(_p.get());
+      apex::yield(_p);
       _p = nullptr;
     }
   }
   void stop(void) {
     if (_p != NULL && !_p->stopped) {
-      apex::stop(_p.get());
+      //apex::stop(_p.get());
+      apex::stop(_p);
       _p = nullptr;
     }
   }
   bool _wrapped;
 private:
-  std::shared_ptr<apex::profiler> _p;
+  //std::shared_ptr<apex::profiler> _p;
+  apex::profiler * _p;
   start_routine_p _func;
 };
 

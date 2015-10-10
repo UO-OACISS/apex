@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include "apex.h"
 
-#define NUM_THREADS 2
+#define NUM_THREADS 100
 
 #define UNUSED(x) (void)(x)
 
