@@ -10,6 +10,7 @@
 #include <limits.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <memory>
 
 /*
  * This "class" is used to make sure APEX is initialized
@@ -84,29 +85,29 @@ public:
   }
   void start(void) {
     if (_func != NULL) {
-      _p = apex::start((apex_function_address)_func);
+      _p = std::make_shared<apex::profiler>(apex::start((apex_function_address)_func));
     }
   }
   void restart(void) {
     if (_func != NULL) {
-      _p = apex::resume((apex_function_address)_func);
+      _p = std::make_shared<apex::profiler>(apex::resume((apex_function_address)_func));
     }
   }
   void yield(void) {
     if (_p != NULL && !_p->stopped) {
-      apex::stop(_p);
+      apex::stop(_p.get());
       _p = nullptr;
     }
   }
   void stop(void) {
     if (_p != NULL && !_p->stopped) {
-      apex::stop(_p);
+      apex::stop(_p.get());
       _p = nullptr;
     }
   }
   bool _wrapped;
 private:
-  apex::profiler * _p;
+  std::shared_ptr<apex::profiler> _p;
   start_routine_p _func;
 };
 
@@ -241,19 +242,15 @@ int apex_pthread_join_wrapper(pthread_join_p pthread_join_call,
     wrapper->_wrapped = true;
     /* DON'T do this for now - it creates too many events. Until we can figure
      * out how to get the profiler_listener to process the queues faster... */
-    /*
     // stop our current timer
     wrapper->yield();
     // start a new timer for the join event
     apex::profiler * p = apex::start("pthread_join");
-    */
     ret = pthread_join_call(thread, retval);
-    /*
     // stop the timer for the join
     apex::stop(p);
     // restart our timer around the parent task
     wrapper->restart();
-    */
     wrapper->_wrapped = false;
   }
   return ret;
