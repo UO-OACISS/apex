@@ -493,7 +493,11 @@ node_color * get_node_color(double v,double vmin,double vmax)
       if (p->get_type() == APEX_TIMER) {
         node_color * c = get_node_color(p->get_accumulated(), 0.0, total_main);
         apex_function_address function_address = it->first;
+#if APEX_HAVE_BFD
         string * tmp = lookup_address((uintptr_t)function_address, false);
+#else
+        string * tmp = new string(ti.map_addr_to_name(function_address));
+#endif
         myfile << "  \"" << *tmp << "\" [shape=box; style=filled; fillcolor=\"#" << 
             setfill('0') << setw(2) << hex << c->convert(c->red) << 
             setfill('0') << setw(2) << hex << c->convert(c->green) << 
