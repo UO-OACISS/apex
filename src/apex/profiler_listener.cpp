@@ -496,6 +496,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
 #if APEX_HAVE_BFD
         string * tmp = lookup_address((uintptr_t)function_address, false);
 #else
+        thread_instance ti = thread_instance::instance();
         string * tmp = new string(ti.map_addr_to_name(function_address));
 #endif
         myfile << "  \"" << *tmp << "\" [shape=box; style=filled; fillcolor=\"#" << 
