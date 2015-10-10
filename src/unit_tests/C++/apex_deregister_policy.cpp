@@ -121,6 +121,7 @@ int startup_policy(apex_context const context) {
 
 int main(int argc, char **argv)
 {
+  apex::init(argc, argv, NULL);
   apex_policy_handle * on_startup = apex::register_policy(APEX_STARTUP, startup_policy);
   apex_policy_handle * on_shutdown = apex::register_policy(APEX_SHUTDOWN, policy_event);
   apex_policy_handle * on_new_node = apex::register_policy(APEX_NEW_NODE, policy_event);
