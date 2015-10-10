@@ -279,7 +279,7 @@ void init(const char * thread_name)
     char* argv[1];
     argv[0] = const_cast<char*>(dummy);
     apex* instance = apex::instance(); // get/create the Apex static instance
-    if (!instance) return; // protect against calls after finalization
+    if (!instance || _exited) return; // protect against calls after finalization
     startup_event_data data(argc, argv);
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -307,7 +307,7 @@ void init(int argc, char** argv, const char * thread_name)
     _registered = true;
     _initialized = true;
     apex* instance = apex::instance(argc, argv); // get/create the Apex static instance
-    if (!instance) return; // protect against calls after finalization
+    if (!instance || _exited) return; // protect against calls after finalization
     startup_event_data data(argc, argv);
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -344,7 +344,7 @@ profiler* start(const std::string &timer_name)
     _starts++;
 #endif
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return nullptr; // protect against calls after finalization
+    if (!instance || _exited) return nullptr; // protect against calls after finalization
     if (_notify_listeners) {
         bool success = true;
         string * tmp = new string(timer_name);
@@ -363,7 +363,7 @@ profiler* start(apex_function_address function_address) {
     _starts++;
 #endif
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return nullptr; // protect against calls after finalization
+    if (!instance || _exited) return nullptr; // protect against calls after finalization
     if (_notify_listeners) {
         bool success = true;
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -390,7 +390,7 @@ profiler* resume(const std::string &timer_name)
     _resumes++;
 #endif
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return nullptr; // protect against calls after finalization
+    if (!instance || _exited) return nullptr; // protect against calls after finalization
     if (boost::starts_with(timer_name, "apex_internal")) {
         return profiler::get_disabled_profiler(); // don't process our own events
     }
@@ -410,7 +410,7 @@ profiler* resume(apex_function_address function_address) {
     _resumes++;
 #endif
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return nullptr; // protect against calls after finalization
+    if (!instance || _exited) return nullptr; // protect against calls after finalization
     if (_notify_listeners) {
         try {
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -431,19 +431,19 @@ profiler* resume(apex_function_address function_address) {
 
 void reset(const std::string &timer_name) {
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return; // protect against calls after finalization
+    if (!instance || _exited) return; // protect against calls after finalization
     instance->the_profiler_listener->reset(timer_name);
 }
 
 void reset(apex_function_address function_address) {
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return; // protect against calls after finalization
+    if (!instance || _exited) return; // protect against calls after finalization
     instance->the_profiler_listener->reset(function_address);
 }
 
 void set_state(apex_thread_state state) {
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return; // protect against calls after finalization
+    if (!instance || _exited) return; // protect against calls after finalization
     instance->set_state(thread_instance::get_id(), state);
 }
 
@@ -455,7 +455,7 @@ void stop(profiler* the_profiler)
     if (the_profiler == profiler::get_disabled_profiler()) return; // profiler was throttled.
 
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return; // protect against calls after finalization
+    if (!instance || _exited) return; // protect against calls after finalization
     if (the_profiler != nullptr && the_profiler->stopped) return;
     std::shared_ptr<profiler> p;
     // A null profiler is OK, it means the application didn't store it. We have it.
@@ -488,7 +488,7 @@ void yield(profiler* the_profiler)
     if (the_profiler == profiler::get_disabled_profiler()) return; // profiler was throttled.
 
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return; // protect against calls after finalization
+    if (!instance || _exited) return; // protect against calls after finalization
     std::shared_ptr<profiler> p;
     if (the_profiler == nullptr) {
         p = thread_instance::instance().pop_current_profiler();
@@ -514,7 +514,7 @@ void yield(profiler* the_profiler)
 void sample_value(const std::string &name, double value)
 {
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return; // protect against calls after finalization
+    if (!instance || _exited) return; // protect against calls after finalization
     // parse the counter name
     // either /threadqueue{locality#0/total}/length
     // or     /threadqueue{locality#0/worker-thread#0}/length
@@ -572,7 +572,7 @@ void sample_value(const std::string &name, double value)
 void new_task(const std::string &timer_name, void * task_id)
 {
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return; // protect against calls after finalization
+    if (!instance || _exited) return; // protect against calls after finalization
     if (_notify_listeners) {
         string * tmp = new string(timer_name);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -583,7 +583,7 @@ void new_task(const std::string &timer_name, void * task_id)
 
 void new_task(apex_function_address function_address, void * task_id) {
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return; // protect against calls after finalization
+    if (!instance || _exited) return; // protect against calls after finalization
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_new_task(function_address, task_id);
@@ -595,7 +595,7 @@ boost::atomic<int> custom_event_count(APEX_CUSTOM_EVENT_1);
 
 apex_event_type register_custom_event(const std::string &name) {
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return APEX_CUSTOM_EVENT_1; // protect against calls after finalization
+    if (!instance || _exited) return APEX_CUSTOM_EVENT_1; // protect against calls after finalization
     if (custom_event_count == APEX_MAX_EVENTS) {
       std::cerr << "Cannot register more than MAX Events! (set to " << APEX_MAX_EVENTS << ")" << std::endl;
     }
@@ -608,7 +608,7 @@ apex_event_type register_custom_event(const std::string &name) {
 
 void custom_event(apex_event_type event_type, void * custom_data) {
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return; // protect against calls after finalization
+    if (!instance || _exited) return; // protect against calls after finalization
     custom_event_data data(event_type, custom_data);
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -621,14 +621,14 @@ void custom_event(apex_event_type event_type, void * custom_data) {
 void set_node_id(int id)
 {
     apex* instance = apex::instance();
-    if (!instance) return; // protect against calls after finalization
+    if (!instance || _exited) return; // protect against calls after finalization
     instance->set_node_id(id);
 }
 
 #ifdef APEX_HAVE_HPX3
 hpx::runtime * get_hpx_runtime_ptr(void) {
     apex * instance = apex::instance();
-    if (!instance) {
+    if (!instance || _exited) {
         return nullptr;
     }
     hpx::runtime * runtime = instance->get_hpx_runtime();
@@ -677,7 +677,7 @@ void finalize()
 {
     shutdown_throttling(); // if not done already
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return; // protect against calls after finalization
+    if (!instance || _exited) return; // protect against calls after finalization
     exit_thread();
 #if APEX_HAVE_PROC
     ProcData::stop_reading();
@@ -700,7 +700,11 @@ void finalize()
         if (ins != outs) {
             std::cout << std::endl;
             std::cout << " ------->>> ERROR! missing ";
-            std::cout << (ins - outs) << " stops. <<<-------" << std::endl;
+            if (ins > outs) {
+              std::cout << (ins - outs) << " stops. <<<-------" << std::endl;
+            } else {
+              std::cout << (outs - ins) << " starts. <<<-------" << std::endl;
+            }
             std::cout << std::endl;
             //assert(ins == outs);
         }
@@ -719,7 +723,7 @@ void finalize()
 
 void cleanup(void) {
     apex* instance = apex::__instance(); // get the Apex static instance
-    if (!instance) return; // protect against multiple calls
+    if (!instance || _exited) return; // protect against multiple calls
     if (!_measurement_stopped) {
         finalize();
     }
@@ -729,7 +733,7 @@ void cleanup(void) {
 void register_thread(const std::string &name)
 {
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return; // protect against calls after finalization
+    if (!instance || _exited) return; // protect against calls after finalization
     if (_registered) return; // protect against multiple registrations on the same thread
     thread_instance::set_name(name);
     instance->resize_state(thread_instance::get_id());
@@ -758,8 +762,7 @@ void register_thread(const std::string &name)
 void exit_thread(void)
 {
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) return; // protect against calls after finalization
-    if (_exited) return; // protect against multiple exits on the same thread
+    if (!instance || _exited) return; // protect against calls after finalization
     _exited = true;
     // pop any remaining timers, and stop them
     std::shared_ptr<profiler> p;
