@@ -69,6 +69,7 @@ static void apex_schedule_process_profiles(void); // not in apex namespace
 
 #include <future>
 #include <thread>
+#include "utils.hpp"
 
 using namespace std;
 using namespace apex;
@@ -270,15 +271,22 @@ namespace apex {
 
   }
 
-#define PAD_WITH_SPACES boost::format("%9i")
-#define FORMAT_SCIENTIFIC boost::format("%1.3e")
+#define PAD_WITH_SPACES boost::format("%8i")
+#define FORMAT_SCIENTIFIC boost::format("%1.2e")
 
   /* At program termination, write the measurements to the screen. */
   void profiler_listener::finalize_profiles(void) {
+    // our TOTAL available time is the elapsed * the number of threads, or cores
+    double total_main = main_timer->elapsed() * 
+        fmin(hardware_concurrency(), thread_instance::get_num_threads());
     // iterate over the profiles in the address map
+    cout << "Elaspsed time: " << main_timer->elapsed() << endl;
+    cout << "Cores detected: " << hardware_concurrency() << endl;
+    cout << "Threads observed: " << thread_instance::get_num_threads() << endl;
+    cout << "Available CPU time: " << total_main << endl;
     map<apex_function_address, profile*>::const_iterator it;
-    cout << "Action                         :   #calls  |  minimum  |    mean   |  maximum  |   total   |  stddev  " << endl;
-    cout << "------------------------------------------------------------------------------------------------------" << endl;
+    cout << "Action                         :  #calls  |  minimum |    mean  |  maximum |   total  |  stddev  |  \% total  " << endl;
+    cout << "------------------------------------------------------------------------------------------------------------" << endl;
     for(it = address_map.begin(); it != address_map.end(); it++) {
       profile * p = it->second;
       apex_function_address function_address = it->first;
@@ -311,11 +319,24 @@ namespace apex {
       } else {
           cout << FORMAT_SCIENTIFIC % p->get_calls() << "   " ;
       }
-      cout << FORMAT_SCIENTIFIC % p->get_minimum() << "   " ;
+      if (p->get_type() == APEX_TIMER) {
+        cout << " --n/a--   " ;
+      } else {
+        cout << FORMAT_SCIENTIFIC % p->get_minimum() << "   " ;
+      }
       cout << FORMAT_SCIENTIFIC % p->get_mean() << "   " ;
-      cout << FORMAT_SCIENTIFIC % p->get_maximum() << "   " ;
+      if (p->get_type() == APEX_TIMER) {
+        cout << " --n/a--   " ;
+      } else {
+        cout << FORMAT_SCIENTIFIC % p->get_maximum() << "   " ;
+      }
       cout << FORMAT_SCIENTIFIC % p->get_accumulated() << "   " ;
-      cout << FORMAT_SCIENTIFIC % p->get_stddev() << endl;
+      cout << FORMAT_SCIENTIFIC % p->get_stddev() << "   " ;
+      if (p->get_type() == APEX_TIMER) {
+        cout << PAD_WITH_SPACES % ((p->get_accumulated()/total_main)*100) << endl;
+      } else {
+        cout << " --n/a-- "  << endl;
+      }
     }
     map<string, profile*>::const_iterator it2;
     // iterate over the profiles in the name map
@@ -363,11 +384,24 @@ namespace apex {
       } else {
           cout << FORMAT_SCIENTIFIC % p->get_calls() << "   " ;
       }
-      cout << FORMAT_SCIENTIFIC % p->get_minimum() << "   " ;
+      if (p->get_type() == APEX_TIMER) {
+        cout << " --n/a--   " ;
+      } else {
+        cout << FORMAT_SCIENTIFIC % p->get_minimum() << "   " ;
+      }
       cout << FORMAT_SCIENTIFIC % p->get_mean() << "   " ;
-      cout << FORMAT_SCIENTIFIC % p->get_maximum() << "   " ;
+      if (p->get_type() == APEX_TIMER) {
+        cout << " --n/a--   " ;
+      } else {
+        cout << FORMAT_SCIENTIFIC % p->get_maximum() << "   " ;
+      }
       cout << FORMAT_SCIENTIFIC % p->get_accumulated() << "   " ;
-      cout << FORMAT_SCIENTIFIC % p->get_stddev() << endl;
+      cout << FORMAT_SCIENTIFIC % p->get_stddev() << "   " ;
+      if (p->get_type() == APEX_TIMER) {
+        cout << PAD_WITH_SPACES % ((p->get_accumulated()/total_main)*100) << endl;
+      } else {
+        cout << " --n/a-- "  << endl;
+      }
     }
   }
 
@@ -388,13 +422,52 @@ namespace apex {
 #endif
   }
 
+/* The following code is from:
+   http://stackoverflow.com/questions/7706339/grayscale-to-red-green-blue-matlab-jet-color-scale */
+class node_color {
+public:
+    double red;
+    double green;
+    double blue;
+    node_color() : red(1.0), green(1.0), blue(1.0) {}
+    int convert(double in) { return (int)(in * 255.0); }
+} ;
+
+node_color * get_node_color(double v,double vmin,double vmax)
+{
+   node_color * c = new node_color();
+   double dv;
+
+   if (v < vmin)
+      v = vmin;
+   if (v > vmax)
+      v = vmax;
+   dv = vmax - vmin;
+
+   if (v < (vmin + 0.25 * dv)) {
+      c->red = 0;
+      c->green = 4 * (v - vmin) / dv;
+   } else if (v < (vmin + 0.5 * dv)) {
+      c->red = 0;
+      c->blue = 1 + 4 * (vmin + 0.25 * dv - v) / dv;
+   } else if (v < (vmin + 0.75 * dv)) {
+      c->red = 4 * (v - vmin - 0.5 * dv) / dv;
+      c->blue = 0;
+   } else {
+      c->green = 1 + 4 * (vmin + 0.75 * dv - v) / dv;
+      c->blue = 0;
+   }
+
+   return(c);
+}
+
   void profiler_listener::write_taskgraph(void) {
     ofstream myfile;
     stringstream dotname;
     dotname << "taskgraph." << node_id << ".dot";
     myfile.open(dotname.str().c_str());
 
-    myfile << "digraph prof {\n";
+    myfile << "digraph prof {\n rankdir=\"LR\";\n node [shape=box];\n";
     for(auto dep = task_dependencies.begin(); dep != task_dependencies.end(); dep++) {
         task_identifier parent = dep->first;
         auto children = dep->second;
@@ -408,6 +481,40 @@ namespace apex {
             
         }
     }
+
+    // our TOTAL available time is the elapsed * the number of threads, or cores
+    double total_main = main_timer->elapsed() *
+        fmin(hardware_concurrency(), thread_instance::get_num_threads());
+
+    // output nodes with  "main" [shape=box; style=filled; fillcolor="#ff0000" ];
+    map<apex_function_address, profile*>::const_iterator it;
+    for(it = address_map.begin(); it != address_map.end(); it++) {
+      profile * p = it->second;
+      if (p->get_type() == APEX_TIMER) {
+        node_color * c = get_node_color(p->get_accumulated(), 0.0, total_main);
+        apex_function_address function_address = it->first;
+        string * tmp = lookup_address((uintptr_t)function_address, false);
+        myfile << "  \"" << *tmp << "\" [shape=box; style=filled; fillcolor=\"#" << 
+            setfill('0') << setw(2) << hex << c->convert(c->red) << 
+            setfill('0') << setw(2) << hex << c->convert(c->green) << 
+            setfill('0') << setw(2) << hex << c->convert(c->blue) << "\"" <<
+            "label=\"" << *tmp << ":\\n" << p->get_accumulated() << "s\" ];" << std::endl;
+      }
+    }
+    map<string, profile*>::const_iterator it2;
+    for(it2 = name_map.begin(); it2 != name_map.end(); it2++) {
+      profile * p = it2->second;
+      if (p->get_type() == APEX_TIMER) {
+        node_color * c = get_node_color(p->get_accumulated(), 0.0, total_main);
+        string action_name = it2->first;
+        myfile << "  \"" << action_name << "\" [shape=box; style=filled; fillcolor=\"#" << 
+            setfill('0') << setw(2) << hex << c->convert(c->red) << 
+            setfill('0') << setw(2) << hex << c->convert(c->green) << 
+            setfill('0') << setw(2) << hex << c->convert(c->blue) << "\"" <<
+            "label=\"" << action_name << ":\\n" << p->get_accumulated() << "s\" ];" << std::endl;
+      }
+    }
+    
     myfile << "}\n";
     myfile.close();
   }
@@ -643,8 +750,8 @@ namespace apex {
       std::cerr << "Info: " << ignored << " items remaining on on the profiler_listener queue...";
     }
     // We might be done, but check to make sure the queue is empty
-    while(!_done && thequeue.try_dequeue(p)) {
     //while(thequeue.try_dequeue(p)) {
+    while(!_done && thequeue.try_dequeue(p)) {
       process_profile(p, 0);
     }
     if (ignored > 0) {
@@ -657,10 +764,6 @@ namespace apex {
       }
     }
  
-    // stop the main timer, and process that profile
-    //main_timer->stop();
-    //process_profile(main_timer, my_tid);
-
 #ifdef USE_UDP
     // are we updating a global profile?
     if (apex_options::use_udp_sink()) {
@@ -781,7 +884,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 #endif
 
       // time the whole application.
-      //main_timer = std::shared_ptr<profiler>(new profiler(new string(APEX_MAIN)));
+      main_timer = std::shared_ptr<profiler>(new profiler(new string(APEX_MAIN)));
     }
     APEX_UNUSED(data);
   }
@@ -800,6 +903,12 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
           consumer_thread->join();
       }
 #endif
+
+      // stop the main timer, and process that profile?
+      main_timer->stop();
+      // if this profile is processed, it will get deleted. so don't process it!
+      // It also clutters up the final profile, if generated.
+      //process_profile(main_timer.get(), my_tid);
 
       // output to screen?
       if (apex_options::use_screen_output() && node_id == 0)
@@ -978,9 +1087,11 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
             std::shared_ptr<profiler> parent_profiler = nullptr;
             try {
               parent_profiler = thread_instance::instance().get_parent_profiler();
-              task_identifier * parent = new task_identifier(parent_profiler.get());
-              task_identifier * child = new task_identifier(p.get());
-              dependency_queue.enqueue(new task_dependency(parent, child));
+              if (parent_profiler != NULL) {
+                task_identifier * parent = new task_identifier(parent_profiler.get());
+                task_identifier * child = new task_identifier(p.get());
+                dependency_queue.enqueue(new task_dependency(parent, child));
+              }
             } catch (empty_stack_exception& e) { }
           }
         }
