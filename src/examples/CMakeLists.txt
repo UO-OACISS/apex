@@ -11,6 +11,7 @@ if(MPI_CXX_FOUND)
   if(OPENMP_FOUND)
     add_subdirectory (MPIGlobalTest)  
     add_subdirectory (LuleshMPIOpenMP)  
+    add_subdirectory (MPIAutoBalance)  
   endif()
 endif()
 add_subdirectory (TestITT)
@@ -128,11 +129,21 @@ if(MPI_CXX_FOUND)
   set_tests_properties(ExampleMPIImbalancePolicy PROPERTIES ENVIRONMENT "APEX_POLICY=1")
 #  add_test (ExampleLuleshMPI ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 8
 #    ${MPIEXEC_PREFLAGS} LuleshMPI/lulesh_MPI_2.0 -s 15 ${MPIEXEC_POSTFLAGS})  
-#  if(OPENMP_FOUND)
+  if(OPENMP_FOUND)
 #    add_test (ExampleLuleshMPIOpenMP ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 8
 #      ${MPIEXEC_PREFLAGS} LuleshMPIOpenMP/lulesh_MPI_OpenMP_2.0
 #      -s 15 ${MPIEXEC_POSTFLAGS})  
-#  endif()
+    add_test (ExampleMPIAutoBalance ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
+      ${MPIEXEC_PREFLAGS} MPIAutoBalance/mpi_auto_balance ${MPIEXEC_POSTFLAGS})  
+      if (PROCESSOR_COUNT)
+        set_tests_properties(ExampleMPIAutoBalance PROPERTIES
+		PASS_REGULAR_EXPRESSION "Test passed.")
+        set_property (TEST ExampleMPIAutoBalance
+           APPEND PROPERTY ENVIRONMENT "OMP_NUM_THREADS=${PROCESSOR_COUNT}")
+        set_property(TEST ExampleMPIAutoBalance PROPERTY ENVIRONMENT "APEX_POLICY=1")
+        set_property(TEST ExampleMPIAutoBalance APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_CONCURRENCY=1")
+    endif()
+  endif()
 endif()
 
 if(OPENMP_FOUND)
