@@ -40,9 +40,10 @@ size_t apex_profile_size;
 
 static bool _finalized = false;
 bool apex_set_new_thread_caps(int count, apex_profile * values) {
-  static int countdown = 10; // wait for the application to warm up
+  static int countdown = 5; // wait for the application to warm up
   if (countdown > 0) {
     countdown = countdown - 1;
+	printf("Waiting...\n");
     return false;
   }
   // divide max by global_max_threads - or the current thread cap for the max rank
@@ -51,7 +52,7 @@ bool apex_set_new_thread_caps(int count, apex_profile * values) {
   // set each node thread cap to a relative multiple of that
   int i;
   for (i = 0; i < count; ++i) { 
-    //int old_cap = thread_caps[i];
+    int old_cap = thread_caps[i];
     // how much accumulated in the last period?
     double last_period = values[i].accumulated - previous_values[i];
     //double last_period = values[i].accumulated;
@@ -67,7 +68,7 @@ bool apex_set_new_thread_caps(int count, apex_profile * values) {
         thread_caps[i] = fmax(apex_get_throttling_min_threads(), new_cap);
       }
     }
-    //printf("Locality %d: %f (%f) of new work from %d threads, new cap: %d    \n", i, last_period, ratio, old_cap, thread_caps[i]);
+    printf("Locality %d: %f (%f) of new work from %d threads, new cap: %d    \n", i, last_period, ratio, old_cap, thread_caps[i]);
   }
   return true;
 }
@@ -107,7 +108,7 @@ void apex_sum(int count, apex_profile * values) {
       current_values[i] = values[i].accumulated;
       local_good_values = local_good_values + ((values[i].calls > 0) ? 1 : 0);
   }
-  //printf("good values: %d of %d\n", local_good_values, count);
+  printf("good values: %d of %d\n", local_good_values, count);
   if (local_good_values == count) good_values = true;
   return ;
 }
@@ -193,7 +194,7 @@ void apex_global_setup(apex_profiler_type type, void* in_action) {
     profiled_action_name = strdup(tmp);
   }
     
-  //apex_register_periodic_policy(1000000, apex_periodic_policy_func);
+  apex_register_periodic_policy(1000000, apex_periodic_policy_func);
   apex_set_use_policy(true);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);

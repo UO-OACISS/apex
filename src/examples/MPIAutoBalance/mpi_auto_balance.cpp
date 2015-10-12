@@ -2,6 +2,7 @@
 #include <iostream>
 #include <array>
 #include <algorithm>
+#include <atomic>
 #if defined (_OPENMP)
 #include "omp.h"
 #else 
@@ -9,6 +10,7 @@
 #endif
 #include "apex_api.hpp"
 #include "apex_global.h"
+#include "synchronous_policy.hpp"
 
 #define NUM_CELLS 800000
 #define BLOCK_SIZE NUM_CELLS/100
@@ -23,9 +25,8 @@ long active_threads = omp_get_max_threads();
 long num_iterations = NUM_ITERATIONS;
 long update_interval = UPDATE_INTERVAL;
 apex_event_type my_custom_event = APEX_CUSTOM_EVENT_1;
-double accumulated_aggregate;
-int myrank;
-
+int myrank = 0;
+int num_ranks = 1;
 
 /**
  * Parse the arguments passed into the program
@@ -106,13 +107,17 @@ inline void solve_cell(std::vector<double> & in_array, std::vector<double> & out
  */
 inline void solve(std::vector<double> & in_array, std::vector<double> & out_array,
                 long start_index, long end_index) {
-    //apex::profiler* p = apex::start((apex_function_address)solve);
+    apex::profiler* p = apex::start((apex_function_address)solve);
     long index = 0;
     end_index = std::min(end_index, num_cells);
     for ( index = start_index ; index < end_index ; index++) {
         solve_cell(in_array, out_array, index);
+		// Create a load imbalance...
+		if (myrank%2 == 0) {
+          solve_cell(in_array, out_array, index);
+		}
     }
-    //apex::stop(p);
+    apex::stop(p);
 }
 
 /**
@@ -147,11 +152,6 @@ void report_stats(void) {
     std::cout << myrank << ": total time in solver: " << p->accumulated << " seconds" << std::endl;
 }
 
-void barrier_wrapper(void) {
-    apex::profiler* p = apex::start((apex_function_address)&barrier_wrapper);
-    MPI_Barrier(MPI_COMM_WORLD);
-    apex::stop(p);
-}
 
 /**
  * The Main function
@@ -162,9 +162,9 @@ int main (int argc, char ** argv) {
     /* Initialize MPI */
 
     int required, provided;
-    required = MPI_THREAD_FUNNELED;
+    required = MPI_THREAD_MULTIPLE;
     MPI_Init_thread(&argc, &argv, required, &provided);
-    if (provided < required) {
+    if (provided < MPI_THREAD_FUNNELED) {
         printf ("Your MPI installation doesn't allow multiple threads. Exiting.\n");
             exit(0);
     }
@@ -173,11 +173,10 @@ int main (int argc, char ** argv) {
     /* Find out my identity in the default communicator */
 
     MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+    MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
+    apex_example_set_rank_info(myrank, num_ranks);
     apex::set_node_id(myrank);
     
-    /* Create the load imbalance! */
-    num_cells = num_cells + (num_cells * (myrank%2));
-
 #ifdef APEX_HAVE_ACTIVEHARMONY
     int num_inputs = 1; // 1 for threads
     long * inputs[1] = {0L};
@@ -195,8 +194,11 @@ int main (int argc, char ** argv) {
     apex::setup_throughput_tuning((apex_function_address)barrier_wrapper,
                     APEX_MINIMIZE_ACCUMULATED, my_custom_event, num_inputs,
                     inputs, mins, maxs, steps);
+	apex_register_periodic_policy(1000000, apex_periodic_policy_func);
     */
-    apex_global_setup(APEX_FUNCTION_ADDRESS, (void*)&barrier_wrapper);
+	apex_policy_handle * on_custom_event_1 = apex::register_policy(my_custom_event, apex_example_policy_func);
+	apex_example_set_function_address((apex_function_address)(solve_iteration));
+    //apex_global_setup(APEX_FUNCTION_ADDRESS, (void*)&solve_iteration);
     long original_active_threads = active_threads;
 #else
     std::cerr << "Active Harmony not enabled" << std::endl;
@@ -209,7 +211,7 @@ int main (int argc, char ** argv) {
     double prev_accumulated = 0.0;
     for (int i = 0 ; i < num_iterations ; i++) {
         solve_iteration(prev, next);
-        barrier_wrapper();
+        MPI_Barrier(MPI_COMM_WORLD);
         //dump_array(next);
         tmp = prev;
         prev = next;
@@ -219,10 +221,10 @@ int main (int argc, char ** argv) {
             if (p != nullptr) {
                 double next_accumulated = p->accumulated - prev_accumulated;
                 prev_accumulated = p->accumulated;
-                std::cout << "Iteration: " << i << " accumulated: " << next_accumulated << std::endl;
+                //std::cout << "Iteration: " << i << " accumulated: " << next_accumulated << std::endl;
             }
             apex::custom_event(my_custom_event, NULL);
-            std::cout << "New thread count: " << active_threads << std::endl;
+            active_threads = apex_example_get_active_threads();
         }
     }
     //dump_array(tmp);
@@ -233,6 +235,7 @@ int main (int argc, char ** argv) {
     std::cout << "Test passed." << std::endl;
   /* Shut down MPI */
 
+    //apex_global_teardown(); // do this before MPI_Finalize
     MPI_Finalize();
     apex::finalize();
 }
