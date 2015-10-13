@@ -11,7 +11,7 @@ link_directories (${APEX_BINARY_DIR}/src/apex ${APEX_BINARY_DIR}/src/comm/mpi)
 
 # Add executable called "lulesh_MPI_OpenMP_2.0" that is built from the source file
 # "lulesh.cc". The extensions are automatically found. 
-add_executable (lulesh_MPI_OpenMP_2.0 lulesh.cc lulesh-comm.cc lulesh-init.cc lulesh-util.cc lulesh-viz.cc)
+add_executable (lulesh_MPI_OpenMP_2.0 lulesh.cc lulesh-comm.cc lulesh-init.cc lulesh-util.cc lulesh-viz.cc  synchronous_policy.cpp)
 add_dependencies (lulesh_MPI_OpenMP_2.0 apex)
 add_dependencies (examples lulesh_MPI_OpenMP_2.0)
 

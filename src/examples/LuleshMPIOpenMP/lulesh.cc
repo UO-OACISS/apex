@@ -157,6 +157,7 @@ Additional BSD Notice
 #include <unistd.h>
 #include "apex_api.hpp"
 #include "apex_global.h"
+#include "synchronous_policy.hpp"
 
 #if _OPENMP
 # include <omp.h>
@@ -165,6 +166,7 @@ Additional BSD Notice
 #include "lulesh.h"
 
 //apex_event_type custom_event;
+apex_event_type my_custom_event = APEX_CUSTOM_EVENT_1;
 
 /*********************************/
 /* Data structure implementation */
@@ -2243,7 +2245,8 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
                      Int_t numElemReg, Index_t *regElemList, Int_t rep)
 {
    apex::profiler* p = apex::start((apex_function_address)(&EvalEOSForElems));
-   int nt = apex_get_thread_cap();
+   //int nt = apex_get_thread_cap();
+   int nt = apex_example_get_active_threads();
    Real_t  e_cut = domain.e_cut() ;
    Real_t  p_cut = domain.p_cut() ;
    Real_t  ss4o3 = domain.ss4o3() ;
@@ -2711,7 +2714,7 @@ int main(int argc, char *argv[])
    //MPI_Init(&argc, &argv) ;
    int provided = MPI_THREAD_MULTIPLE;
    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-   std::cout << "provided: " << provided << std::endl;
+   //std::cout << "provided: " << provided << std::endl;
    MPI_Comm_size(MPI_COMM_WORLD, &numRanks) ;
    MPI_Comm_rank(MPI_COMM_WORLD, &myRank) ;
 #else
@@ -2724,8 +2727,11 @@ int main(int argc, char *argv[])
    //apex_global_setup(APEX_NAME_STRING, (void*)("Main Iteration"));
    //custom_event = apex::register_custom_event("balance power");
    //apex::register_policy(custom_event, apex_periodic_policy_func);
-   apex_global_setup(APEX_FUNCTION_ADDRESS, (void*)(&EvalEOSForElems));
-   apex::register_periodic_policy(1000000, apex_periodic_policy_func);
+   //apex_global_setup(APEX_FUNCTION_ADDRESS, (void*)(&EvalEOSForElems));
+   //apex::register_periodic_policy(1000000, apex_periodic_policy_func);
+   my_custom_event = apex::register_custom_event("Perform balance");
+   apex_policy_handle * on_custom_event_1 = apex::register_policy(my_custom_event, apex_example_policy_func);
+   apex_example_set_function_address((apex_function_address)(EvalEOSForElems));
 
    /* Set defaults that can be overridden by command line opts */
    opts.its = 9999999;
@@ -2802,7 +2808,7 @@ int main(int argc, char *argv[])
       if (locDom->cycle() % 10 == 0) {
       	//TAU_SOS_send_data();
       }
-      //apex_custom_event(custom_event, NULL);
+      apex::custom_event(my_custom_event, NULL);
    }
 
    // Use reduced max elapsed time

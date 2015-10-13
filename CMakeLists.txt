@@ -185,7 +185,7 @@ configure_file (
 # use PIC for shared objects
 set(CMAKE_POSITION_INDEPENDENT_CODE True)
 set(POSITION_INDEPENDENT_CODE True)
-set(BUILD_SHARED_LIBS TRUE)
+set(BUILD_SHARED_LIBS True)
 
 ###############################################################################
 # reconfigure Boost library information if configuration type has been
