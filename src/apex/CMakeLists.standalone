@@ -30,8 +30,10 @@ endif(LM_SENSORS_FOUND)
 
 SET(all_SOURCE apex.cpp thread_instance.cpp event_listener.cpp handler.cpp concurrency_handler.cpp policy_handler.cpp ${tau_SOURCE} profiler_listener.cpp ${bfd_SOURCE} apex_options.cpp apex_policies.cpp ${PROC_SOURCE} ${OMPT_SOURCE} ${UDP_SOURCE} ${SENSOR_SOURCE})
 
-add_library (apex ${all_SOURCE})
-add_library (apex_static STATIC ${all_SOURCE})
+add_library (apex_objlib OBJECT ${all_SOURCE})
+
+add_library (apex SHARED $<TARGET_OBJECTS:apex_objlib>)
+add_library (apex_static STATIC $<TARGET_OBJECTS:apex_objlib>)
 
 set_target_properties(apex PROPERTIES OUTPUT_NAME apex)
 set_target_properties(apex_static PROPERTIES OUTPUT_NAME apex)
