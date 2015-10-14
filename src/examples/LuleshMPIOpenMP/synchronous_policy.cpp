@@ -35,7 +35,6 @@ int apex_example_policy_func(apex_context const context) {
   static int countdown = 10; 
   if (countdown > 0) {
     countdown = countdown - 1;
-	printf("Waiting...\n");
     return APEX_NOERROR;
   }
   //countdown = 10;
@@ -52,16 +51,16 @@ int apex_example_policy_func(apex_context const context) {
   // should we change our cap? - are we off by more than 1/2 of a thread?
   //double one_worker = (1.0/apex::apex_options::throttling_max_threads())*0.55;
   double one_worker = (1.0/__active_threads)*0.51;
-  std::cout << __myrank << ": " << one_worker 
-      << " timer: " << (mytimer/outvalues[1])
-	  << " thread: " << (__active_threads/outvalues[0])
-  	  << std::endl;
   if (((mytimer/outvalues[1]) > ((__active_threads/outvalues[0]) + one_worker)) 
       && (__active_threads < apex::apex_options::throttling_max_threads())) {
+    std::cout << __myrank << ": " << one_worker << " timer: " << (mytimer/outvalues[1])
+	  << " thread: " << (__active_threads/outvalues[0]) << std::endl;
     __active_threads++;
     std::cout << __myrank << ": New thread count: " << __active_threads << std::endl;
   } else if (((mytimer/outvalues[1]) < ((__active_threads/outvalues[0]) - one_worker))
       && (__active_threads > apex::apex_options::throttling_min_threads())) {
+    std::cout << __myrank << ": " << one_worker << " timer: " << (mytimer/outvalues[1])
+	  << " thread: " << (__active_threads/outvalues[0]) << std::endl;
     __active_threads--;
     std::cout << __myrank << ": New thread count: " << __active_threads << std::endl;
   }

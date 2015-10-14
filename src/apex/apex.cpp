@@ -677,7 +677,7 @@ void finalize()
 {
     shutdown_throttling(); // if not done already
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance || _exited) return; // protect against calls after finalization
+    if (!instance) return; // protect against calls after finalization
     exit_thread();
 #if APEX_HAVE_PROC
     ProcData::stop_reading();
