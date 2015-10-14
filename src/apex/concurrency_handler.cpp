@@ -405,6 +405,7 @@ void concurrency_handler::output_samples(int node_id) {
   myfile << "set boxwidth 1.0 relative" << endl;
   myfile << "set palette rgb 33,13,10" << endl;
   myfile << "unset colorbox" << endl;
+  myfile << "set key noenhanced" << endl; // this allows underscores in names
   myfile << "plot for [COL=" << (4+num_params) << ":" << top_x.size()+num_params+4;
   myfile << "] '" << datname.str().c_str();
   myfile << "' using COL:xticlabels(1) palette frac (COL-" << (3+num_params) << ")/" << top_x.size()+1;

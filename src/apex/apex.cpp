@@ -296,9 +296,10 @@ void init(const char * thread_name)
 #else 
     APEX_UNUSED(thread_name);
 #endif
-#ifdef APEX_DEBUG
-    apex_options::print_options();
-#endif
+    if (apex_options::use_screen_output() && instance->get_node_id() == 0) {
+	  std::cout << version() << std::endl;
+      apex_options::print_options();
+	}
 }
 
 void init(int argc, char** argv, const char * thread_name)
@@ -324,6 +325,10 @@ void init(int argc, char** argv, const char * thread_name)
 #else 
     APEX_UNUSED(thread_name);
 #endif
+    if (apex_options::use_screen_output() && instance->get_node_id() == 0) {
+	  std::cout << version() << std::endl;
+      apex_options::print_options();
+	}
 }
 
 string& version()
