@@ -5,6 +5,7 @@
 #include "stdio.h"
 #include "apex_api.hpp"
 #include "apex_types.h"
+#include "thread_instance.hpp"
 #include <boost/thread/mutex.hpp>
 //#include "global_constructor_destructor.h"
 
@@ -54,8 +55,14 @@ char * format_address(void* ip) {
         strcpy(location, __UNKNOWN_ADDR__);
         return location;
     }
+    #if 0
     location = (char*)malloc(128);
     sprintf(location, "UNRESOLVED ADDR %p", (void*)ip);
+    return location;
+    #endif
+    std::string name(apex::thread_instance::instance().map_addr_to_name((apex_function_address)ip));
+    location = (char*)malloc(name.size() + 1);
+    sprintf(location, "%s", name.c_str());
     return location;
 }
 
