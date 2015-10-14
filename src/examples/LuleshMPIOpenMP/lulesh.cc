@@ -2732,6 +2732,7 @@ int main(int argc, char *argv[])
    my_custom_event = apex::register_custom_event("Perform balance");
    apex_policy_handle * on_custom_event_1 = apex::register_policy(my_custom_event, apex_example_policy_func);
    apex_example_set_function_address((apex_function_address)(EvalEOSForElems));
+   apex_example_set_rank_info(myRank, numRanks);
 
    /* Set defaults that can be overridden by command line opts */
    opts.its = 9999999;

@@ -686,12 +686,12 @@ node_color * get_node_color(double v,double vmin,double vmax)
   void profiler_listener::process_profiles(void)
   {
     if (!_initialized) {
-      //initialize_worker_thread_for_TAU();
+      initialize_worker_thread_for_TAU();
       _initialized = true;
     }
 #ifdef APEX_HAVE_TAU
     if (apex_options::use_tau()) {
-      //TAU_START("profiler_listener::process_profiles");
+      TAU_START("profiler_listener::process_profiles");
     }
 #endif
 
@@ -785,7 +785,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
 
 #ifdef APEX_HAVE_TAU
     if (apex_options::use_tau()) {
-      //TAU_STOP("profiler_listener::process_profiles");
+      TAU_STOP("profiler_listener::process_profiles");
     }
 #endif
   }
