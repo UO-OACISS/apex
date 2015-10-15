@@ -6,6 +6,11 @@ cmake_minimum_required (VERSION 2.8.12 FATAL_ERROR)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules")
 
+# if the user didn't specify, set the installation directory.
+if(NOT DEFINED CMAKE_INSTALL_PREFIX)
+    SET(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}" CACHE STRING "APEX Installation directory" FORCE)
+endif()
+
 ################################################################################
 # Set the RPATH to make sure executables always work without "make install"
 ################################################################################
