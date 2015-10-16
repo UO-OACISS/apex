@@ -5,7 +5,6 @@
 #include <unistd.h>
 
 #include "apex_api.hpp"
-#include "apex_policies.h"
 
 #define NUM_THREADS 48
 #define ITERATIONS 250

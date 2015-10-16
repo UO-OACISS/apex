@@ -13,7 +13,7 @@
 #include "apex.hpp"
 #include "apex_api.hpp"
 #include "apex_types.h"
-#include "apex_policies.h"
+#include "apex_policies.hpp"
 #include "apex_options.hpp"
 #include "utils.hpp"
 
@@ -23,7 +23,6 @@
 
 #ifdef APEX_HAVE_ACTIVEHARMONY
 #include "hclient.h"
-hdesc_t *hdesc; // the harmony client descriptor
 #endif
 
 using namespace std;
@@ -35,107 +34,72 @@ bool apex_throttleOn = true;          // Current Throttle status
 bool apex_checkThrottling = false;    // Is throttling desired
 bool apex_energyThrottling = false;   // Try to save power while throttling
 bool apex_final = false;              // When do we stop?
-boost::atomic<bool> apex_energy_init{false};
-boost::atomic<bool> apex_timer_init{false};
 
-int test_pp = 0;
+static apex_tuning_session global_ts;
+static apex_tuning_session * tuning_session = &global_ts;
 
-#define MAX_WINDOW_SIZE 3
-// variables related to power throttling
-double max_watts = APEX_HIGH_POWER_LIMIT;
-double min_watts = APEX_LOW_POWER_LIMIT;
-int max_threads = APEX_MAX_THREADS;
-int min_threads = APEX_MIN_THREADS;
-int thread_step = 1;
-long int thread_cap = apex::hardware_concurrency();
-//long int thread_cap = APEX_MAX_THREADS;
-int headroom = 1; //
-double moving_average = 0.0;
-int window_size = MAX_WINDOW_SIZE;
-int delay = 0;
 
-// variables related to throughput or custom throttling
-apex_function_address function_of_interest = APEX_NULL_FUNCTION_ADDRESS;
-std::string function_name_of_interest = "";
-std::function<double()> metric_of_interest;
-apex_profile function_baseline;
-apex_profile function_history;
-int throughput_delay = MAX_WINDOW_SIZE; // initialize 
-typedef enum {INITIAL_STATE, BASELINE, INCREASE, DECREASE, NO_CHANGE} last_action_t;
-last_action_t last_action = INITIAL_STATE;
-apex_optimization_criteria_t throttling_criteria = APEX_MAXIMIZE_THROUGHPUT;
-std::vector<std::pair<std::string,long*>> tunable_params;
-
-// variables for hill climbing
-double * evaluations = NULL;
-int * observations = NULL;
-ofstream cap_data;
-bool cap_data_open = false;
-
-// variables for active harmony general tuning
-long int *__ah_inputs[10]; // more than 10 would be pointless
-int __num_ah_inputs;
 
 inline int __get_thread_cap(void) {
-  return (int)thread_cap;
-  //return (int)*(__ah_inputs[0]);
+  return (int)(tuning_session->thread_cap);
+  //return (int)*(tuning_session->__ah_inputs[0]);
 }
 
 inline void __set_thread_cap(int new_cap) {
-  thread_cap = (long int)new_cap;
+  tuning_session->thread_cap = (long int)new_cap;
   return;
 }
 
 #if 0  // unused for now
 inline int __get_inputs(long int **inputs, int * num_inputs) {
-  inputs = &(__ah_inputs[0]);
-  *num_inputs = __num_ah_inputs;
-  return __num_ah_inputs;
+  inputs = &(tuning_session->__ah_inputs[0]);
+  *num_inputs = tuning_session->__num_ah_inputs;
+  return tuning_session->__num_ah_inputs;
 }
 #endif
 
 inline void __decrease_cap_gradual() {
-    thread_cap -= 1;
-    if (thread_cap < min_threads) { thread_cap = min_threads; }
+    tuning_session->thread_cap -= 1;
+    if (tuning_session->thread_cap < tuning_session->min_threads) { tuning_session->thread_cap = tuning_session->min_threads; }
 #ifdef APEX_DEBUG_THROTTLE
-    printf("%d more throttling! new cap: %d\n", test_pp, thread_cap); fflush(stdout);
+    printf("%d more throttling! new cap: %d\n", tuning_session->test_pp, tuning_session->thread_cap); fflush(stdout);
 #endif
     //apex_throttleOn = true;
 }
 
 inline void __decrease_cap() {
-    int amtLower = thread_cap - min_threads;
+    int amtLower = tuning_session->thread_cap - tuning_session->min_threads;
     amtLower = amtLower >> 1; // move max half way down
     if (amtLower <= 0) amtLower = 1;
-    thread_cap -= amtLower;
-    if (thread_cap < min_threads) thread_cap = min_threads;
+    tuning_session->thread_cap -= amtLower;
+    if (tuning_session->thread_cap < tuning_session->min_threads) tuning_session->thread_cap = tuning_session->min_threads;
 #ifdef APEX_DEBUG_THROTTLE
-    printf("%d more throttling! new cap: %d\n", test_pp, thread_cap); fflush(stdout);
+    printf("%d more throttling! new cap: %d\n", tuning_session->test_pp, tuning_session->thread_cap); fflush(stdout);
 #endif
     //apex_throttleOn = true;
 }
 
 inline void __increase_cap_gradual() {
-    thread_cap += 1;
-    if (thread_cap > max_threads) { thread_cap = max_threads; }
+    tuning_session->thread_cap += 1;
+    if (tuning_session->thread_cap > tuning_session->max_threads) { tuning_session->thread_cap = tuning_session->max_threads; }
 #ifdef APEX_DEBUG_THROTTLE
-    printf("%d less throttling! new cap: %d\n", test_pp, thread_cap); fflush(stdout);
+    printf("%d less throttling! new cap: %d\n", tuning_session->test_pp, tuning_session->thread_cap); fflush(stdout);
 #endif
     //apex_throttleOn = false;
 }
 
 inline void __increase_cap() {
-    int amtRaise = max_threads - thread_cap;
+    int amtRaise = tuning_session->max_threads - tuning_session->thread_cap;
     amtRaise = amtRaise >> 1; // move max half way up
     if (amtRaise <= 0) {
         amtRaise = 1;
     }
-    thread_cap += amtRaise;
-    if (thread_cap > max_threads) {
-        thread_cap = max_threads;
+    tuning_session->thread_cap += amtRaise;
+    if (tuning_session->thread_cap > tuning_session->max_threads) {
+        tuning_session->thread_cap = tuning_session->max_threads;
     }
 #ifdef APEX_DEBUG_THROTTLE
-    printf("%d less throttling! new cap: %d\n", test_pp, thread_cap); fflush(stdout);
+    printf("%d less throttling! new cap: %d\n", tuning_session->test_pp, tuning_session->thread_cap); fflush(stdout);
 #endif
     //apex_throttleOn = false;
 }
@@ -147,37 +111,37 @@ inline int apex_power_throttling_policy(apex_context const context)
     //if (apex::apex::instance()->get_node_id() == 0) return APEX_NOERROR; 
     // read energy counter and memory concurrency to determine system status
     double power = apex::current_power_high();
-    moving_average = ((moving_average * (window_size-1)) + power) / window_size;
+    tuning_session->moving_average = ((tuning_session->moving_average * (tuning_session->window_size-1)) + power) / tuning_session->window_size;
     //cout << "power in policy is: " << power << endl;
 
     if (power != 0.0) {
       /* this is a hard limit! If we exceed the power cap once
          or in our moving average, then we need to adjust */
-      --delay;
-      if (((power > max_watts) ||
-           (moving_average > max_watts)) && delay <= 0) { 
+      --tuning_session->delay;
+      if (((power > tuning_session->max_watts) ||
+           (tuning_session->moving_average > tuning_session->max_watts)) && tuning_session->delay <= 0) { 
           __decrease_cap();
-          delay = window_size;
+          tuning_session->delay = tuning_session->window_size;
       }
       /* this is a softer limit. If we dip below the lower cap
          AND our moving average is also blow the cap, we need 
          to adjust */
-      else if ((power < min_watts) && 
-               (moving_average < min_watts) && delay <=0) {
+      else if ((power < tuning_session->min_watts) && 
+               (tuning_session->moving_average < tuning_session->min_watts) && tuning_session->delay <=0) {
           __increase_cap_gradual();
-          delay = window_size;
+          tuning_session->delay = tuning_session->window_size;
       } else {
 #ifdef APEX_DEBUG_THROTTLE
-          printf("power : %f, ma: %f, cap: %d, min: %f, max: %f, delay: %d no change.\n", power, moving_average, thread_cap, min_watts, max_watts, delay);
+          printf("power : %f, ma: %f, cap: %d, min: %f, max: %f, tuning_session->delay: %d no change.\n", power, tuning_session->moving_average, tuning_session->thread_cap, tuning_session->min_watts, tuning_session->max_watts, tuning_session->delay);
 #endif
       }
       apex::apex * instance = apex::apex::instance();
       if (instance != NULL && instance->get_node_id() == 0) {
         static int index = 0;
-        cap_data << index++ << "\t" << power << "\t" << thread_cap << endl;
+        tuning_session->cap_data << index++ << "\t" << power << "\t" << tuning_session->thread_cap << endl;
       }
     }
-    test_pp++;
+    tuning_session->test_pp++;
     return APEX_NOERROR;
 }
 
@@ -186,56 +150,56 @@ int apex_throughput_throttling_policy(apex_context const context) {
 // Do we have a function of interest?
 //    No: do nothing, return.
 //    Yes: Get its profile, continue.
-    test_pp++;
-    if(function_of_interest == APEX_NULL_FUNCTION_ADDRESS &&
-       function_name_of_interest == "") { 
-        //printf("%d No function.\n", test_pp);
+    tuning_session->test_pp++;
+    if(tuning_session->function_of_interest == APEX_NULL_FUNCTION_ADDRESS &&
+       tuning_session->function_name_of_interest == "") { 
+        //printf("%d No function.\n", tuning_session->test_pp);
         return APEX_NOERROR; 
     }
 
-    throughput_delay--;
+    tuning_session->throughput_delay--;
     
 // Do we have sufficient history for this function?
 //    No: save these results, wait for more data (3 iterations, at least), return
 //    Yes: get the profile
 
-    if(throughput_delay > 0) { 
-      //printf("%d Waiting...\n", test_pp);
+    if(tuning_session->throughput_delay > 0) { 
+      //printf("%d Waiting...\n", tuning_session->test_pp);
       return APEX_NOERROR; 
     }
 
-    if (throughput_delay == 0) {
+    if (tuning_session->throughput_delay == 0) {
       // reset the profile for clean measurement
-      //printf("%d Taking measurement...\n", test_pp);
-      if(function_of_interest != APEX_NULL_FUNCTION_ADDRESS) {
-          apex::reset(function_of_interest); // we want new measurements!
+      //printf("%d Taking measurement...\n", tuning_session->test_pp);
+      if(tuning_session->function_of_interest != APEX_NULL_FUNCTION_ADDRESS) {
+          apex::reset(tuning_session->function_of_interest); // we want new measurements!
       } else {
-          apex::reset(function_name_of_interest); // we want new measurements!
+          apex::reset(tuning_session->function_name_of_interest); // we want new measurements!
       }
       return APEX_NOERROR;
     }
 
     apex_profile * function_profile = NULL;
-    if(function_of_interest != APEX_NULL_FUNCTION_ADDRESS) {
-        function_profile = apex::get_profile(function_of_interest);
+    if(tuning_session->function_of_interest != APEX_NULL_FUNCTION_ADDRESS) {
+        function_profile = apex::get_profile(tuning_session->function_of_interest);
     } else {
-        function_profile = apex::get_profile(function_name_of_interest);
+        function_profile = apex::get_profile(tuning_session->function_name_of_interest);
     }
     double current_mean = function_profile->accumulated / function_profile->calls;
-    //printf("%d Calls: %f, Accum: %f, Mean: %f\n", test_pp, function_profile->calls, function_profile->accumulated, current_mean);
+    //printf("%d Calls: %f, Accum: %f, Mean: %f\n", tuning_session->test_pp, function_profile->calls, function_profile->accumulated, current_mean);
 
 // first time, take a baseline measurement 
-    if (last_action == INITIAL_STATE) {
-        function_baseline.calls = function_profile->calls;
-        function_baseline.accumulated = function_profile->accumulated;
-        function_history.calls = function_profile->calls;
-        function_history.accumulated = function_profile->accumulated;
-        throughput_delay = MAX_WINDOW_SIZE;
-        last_action = BASELINE;
-        //printf("%d Got baseline.\n", test_pp);
+    if (tuning_session->last_action == INITIAL_STATE) {
+        tuning_session->function_baseline.calls = function_profile->calls;
+        tuning_session->function_baseline.accumulated = function_profile->accumulated;
+        tuning_session->function_history.calls = function_profile->calls;
+        tuning_session->function_history.accumulated = function_profile->accumulated;
+        tuning_session->throughput_delay = MAX_WINDOW_SIZE;
+        tuning_session->last_action = BASELINE;
+        //printf("%d Got baseline.\n", tuning_session->test_pp);
     }
 
-    //printf("%d Old: %f New %f.\n", test_pp, function_history.calls, function_profile->calls);
+    //printf("%d Old: %f New %f.\n", tuning_session->test_pp, tuning_session->function_history.calls, function_profile->calls);
 
 //    Subsequent times: Are we doing better than before?
 //       No: compare profile to history, adjust as necessary.
@@ -244,77 +208,77 @@ int apex_throughput_throttling_policy(apex_context const context) {
     bool do_increase = false;
 
     // first time, try decreasing the number of threads.
-    if (last_action == BASELINE) {
+    if (tuning_session->last_action == BASELINE) {
         do_decrease = true;
-    } else if (throttling_criteria == APEX_MAXIMIZE_THROUGHPUT) {
+    } else if (tuning_session->throttling_criteria == APEX_MAXIMIZE_THROUGHPUT) {
         // are we at least 5% more throughput? If so, do more adjustment
-        if (function_profile->calls > (1.05*function_history.calls)) {
-            if (last_action == INCREASE) { do_increase = true; }
-            else if (last_action == DECREASE) { do_decrease = true; }
+        if (function_profile->calls > (1.05*tuning_session->function_history.calls)) {
+            if (tuning_session->last_action == INCREASE) { do_increase = true; }
+            else if (tuning_session->last_action == DECREASE) { do_decrease = true; }
         // are we at least 5% less throughput? If so, reverse course
-        } else if (function_profile->calls < (0.95*function_history.calls)) {
-            if (last_action == DECREASE) { do_increase = true; }
-            else if (last_action == INCREASE) { do_decrease = true; }
+        } else if (function_profile->calls < (0.95*tuning_session->function_history.calls)) {
+            if (tuning_session->last_action == DECREASE) { do_increase = true; }
+            else if (tuning_session->last_action == INCREASE) { do_decrease = true; }
         } else {
 #if 1
-            double old_mean = function_history.accumulated / function_history.calls;
+            double old_mean = tuning_session->function_history.accumulated / tuning_session->function_history.calls;
             // are we at least 5% more efficient? If so, do more adjustment
             if (old_mean > (1.05*current_mean)) {
-                if (last_action == INCREASE) { do_increase = true; }
-                else if (last_action == DECREASE) { do_decrease = true; }
+                if (tuning_session->last_action == INCREASE) { do_increase = true; }
+                else if (tuning_session->last_action == DECREASE) { do_decrease = true; }
             // are we at least 5% less efficient? If so, reverse course
             } else if (old_mean < (0.95*current_mean)) {
-                if (last_action == DECREASE) { do_increase = true; }
-                else if (last_action == INCREASE) { do_decrease = true; }
+                if (tuning_session->last_action == DECREASE) { do_increase = true; }
+                else if (tuning_session->last_action == INCREASE) { do_decrease = true; }
             } else {
             // otherwise, nothing to do.
             }
 #endif
         }
-    } else if (throttling_criteria == APEX_MAXIMIZE_ACCUMULATED) {
-        double old_mean = function_history.accumulated / function_history.calls;
+    } else if (tuning_session->throttling_criteria == APEX_MAXIMIZE_ACCUMULATED) {
+        double old_mean = tuning_session->function_history.accumulated / tuning_session->function_history.calls;
         // are we at least 5% more efficient? If so, do more adjustment
         if (old_mean > (1.05*current_mean)) {
-            if (last_action == INCREASE) { do_increase = true; }
-            else if (last_action == DECREASE) { do_decrease = true; }
+            if (tuning_session->last_action == INCREASE) { do_increase = true; }
+            else if (tuning_session->last_action == DECREASE) { do_decrease = true; }
         // are we at least 5% less efficient? If so, reverse course
         } else if (old_mean < (0.95*current_mean)) {
-            if (last_action == DECREASE) { do_increase = true; }
-            else if (last_action == INCREASE) { do_decrease = true; }
+            if (tuning_session->last_action == DECREASE) { do_increase = true; }
+            else if (tuning_session->last_action == INCREASE) { do_decrease = true; }
         } else {
         // otherwise, nothing to do.
         }
-    } else if (throttling_criteria == APEX_MINIMIZE_ACCUMULATED) {
-        double old_mean = function_history.accumulated / function_history.calls;
+    } else if (tuning_session->throttling_criteria == APEX_MINIMIZE_ACCUMULATED) {
+        double old_mean = tuning_session->function_history.accumulated / tuning_session->function_history.calls;
         // are we at least 5% less efficient? If so, reverse course
         if (old_mean > (1.05*current_mean)) {
-            if (last_action == DECREASE) { do_increase = true; }
-            else if (last_action == INCREASE) { do_decrease = true; }
+            if (tuning_session->last_action == DECREASE) { do_increase = true; }
+            else if (tuning_session->last_action == INCREASE) { do_decrease = true; }
         // are we at least 5% more efficient? If so, do more adjustment
         } else if (old_mean < (0.95*current_mean)) {
-            if (last_action == INCREASE) { do_increase = true; }
-            else if (last_action == DECREASE) { do_decrease = true; }
+            if (tuning_session->last_action == INCREASE) { do_increase = true; }
+            else if (tuning_session->last_action == DECREASE) { do_decrease = true; }
         } else {
         // otherwise, nothing to do.
         }
     }
 
     if (do_decrease) {
-        //printf("%d Decreasing.\n", test_pp);
+        //printf("%d Decreasing.\n", tuning_session->test_pp);
         // save this as our new history
-        function_history.calls = function_profile->calls;
-        function_history.accumulated = function_profile->accumulated;
+        tuning_session->function_history.calls = function_profile->calls;
+        tuning_session->function_history.accumulated = function_profile->accumulated;
         __decrease_cap_gradual();
-        last_action = DECREASE;
+        tuning_session->last_action = DECREASE;
     } else if (do_increase) {
-        //printf("%d Increasing.\n", test_pp);
+        //printf("%d Increasing.\n", tuning_session->test_pp);
         // save this as our new history
-        function_history.calls = function_profile->calls;
-        function_history.accumulated = function_profile->accumulated;
+        tuning_session->function_history.calls = function_profile->calls;
+        tuning_session->function_history.accumulated = function_profile->accumulated;
         __increase_cap_gradual();
-        last_action = INCREASE;
+        tuning_session->last_action = INCREASE;
     }
-    throughput_delay = MAX_WINDOW_SIZE;
+    tuning_session->throughput_delay = MAX_WINDOW_SIZE;
     return APEX_NOERROR;
 }
 
@@ -325,27 +289,27 @@ int apex_throughput_throttling_dhc_policy(apex_context const context) {
     APEX_UNUSED(context);
 
 #ifdef APEX_DEBUG_THROTTLE
-    printf("Throttling on name: %s\n", function_name_of_interest.c_str());
+    printf("Throttling on name: %s\n", tuning_session->function_name_of_interest.c_str());
 #endif
 
     // initial value for current_cap is 1/2 the distance between min and max
     static double previous_value = 0.0; // instead of resetting.
-    //static int current_cap = min_threads + ((max_threads - min_threads) >> 1);
-    static int current_cap = max_threads - 2;
-    int low_neighbor = max(current_cap - 2, min_threads);
-    int high_neighbor = min(current_cap + 2, max_threads);
+    //static int current_cap = tuning_session->min_threads + ((tuning_session->max_threads - tuning_session->min_threads) >> 1);
+    static int current_cap = tuning_session->max_threads - 2;
+    int low_neighbor = max(current_cap - 2, tuning_session->min_threads);
+    int high_neighbor = min(current_cap + 2, tuning_session->max_threads);
     static bool got_center = false;
     static bool got_low = false;
     static bool got_high = false;
 
     apex_profile * function_profile = NULL;
     // get a measurement of our current setting
-    if(function_of_interest != APEX_NULL_FUNCTION_ADDRESS) {
-        function_profile = apex::get_profile(function_of_interest);
-        //reset(function_of_interest); // we want new measurements!
+    if(tuning_session->function_of_interest != APEX_NULL_FUNCTION_ADDRESS) {
+        function_profile = apex::get_profile(tuning_session->function_of_interest);
+        //reset(tuning_session->function_of_interest); // we want new measurements!
     } else {
-        function_profile = apex::get_profile(function_name_of_interest);
-        //reset(function_name_of_interest); // we want new measurements!
+        function_profile = apex::get_profile(tuning_session->function_name_of_interest);
+        //reset(tuning_session->function_name_of_interest); // we want new measurements!
     }
     // if we have no data yet, return.
     if (function_profile == NULL) { 
@@ -364,7 +328,7 @@ int apex_throughput_throttling_dhc_policy(apex_context const context) {
     }
 
     double new_value = 0.0;
-    if (throttling_criteria == APEX_MAXIMIZE_THROUGHPUT) {
+    if (tuning_session->throttling_criteria == APEX_MAXIMIZE_THROUGHPUT) {
         new_value = function_profile->calls - previous_value;
         previous_value = function_profile->calls;
     } else {
@@ -373,75 +337,75 @@ int apex_throughput_throttling_dhc_policy(apex_context const context) {
     }
 
     // update the moving average
-    if ((++observations[thread_cap]) < window_size) {
-        evaluations[thread_cap] = ((evaluations[thread_cap] * (observations[thread_cap]-1)) + new_value) / observations[thread_cap];
+    if ((++tuning_session->observations[tuning_session->thread_cap]) < tuning_session->window_size) {
+        tuning_session->evaluations[tuning_session->thread_cap] = ((tuning_session->evaluations[tuning_session->thread_cap] * (tuning_session->observations[tuning_session->thread_cap]-1)) + new_value) / tuning_session->observations[tuning_session->thread_cap];
     } else {
-        evaluations[thread_cap] = ((evaluations[thread_cap] * (window_size-1)) + new_value) / window_size;
+        tuning_session->evaluations[tuning_session->thread_cap] = ((tuning_session->evaluations[tuning_session->thread_cap] * (tuning_session->window_size-1)) + new_value) / tuning_session->window_size;
     }
 #ifdef APEX_DEBUG_THROTTLE
-    printf("%d Value: %f, new average: %f.\n", thread_cap, new_value, evaluations[thread_cap]);
+    printf("%d Value: %f, new average: %f.\n", tuning_session->thread_cap, new_value, tuning_session->evaluations[tuning_session->thread_cap]);
 #endif
 
-    if (thread_cap == current_cap) got_center = true;
-    if (thread_cap == low_neighbor) got_low = true;
-    if (thread_cap == high_neighbor) got_high = true;
+    if (tuning_session->thread_cap == current_cap) got_center = true;
+    if (tuning_session->thread_cap == low_neighbor) got_low = true;
+    if (tuning_session->thread_cap == high_neighbor) got_high = true;
 
     // check if our center has a value
     if (!got_center) {
-        thread_cap = current_cap;
+        tuning_session->thread_cap = current_cap;
 #ifdef APEX_DEBUG_THROTTLE
-        printf("initial throttling. trying cap: %d\n", thread_cap); fflush(stdout);
+        printf("initial throttling. trying cap: %d\n", tuning_session->thread_cap); fflush(stdout);
 #endif
         return APEX_NOERROR;
     }
     // check if our left of center has a value
     if (!got_low) {
-        thread_cap = low_neighbor;
+        tuning_session->thread_cap = low_neighbor;
 #ifdef APEX_DEBUG_THROTTLE
-        printf("current-1 throttling. trying cap: %d\n", thread_cap); fflush(stdout);
+        printf("current-1 throttling. trying cap: %d\n", tuning_session->thread_cap); fflush(stdout);
 #endif
         return APEX_NOERROR;
     }
     // check if our right of center has a value
     if (!got_high) {
-        thread_cap = high_neighbor;
+        tuning_session->thread_cap = high_neighbor;
 #ifdef APEX_DEBUG_THROTTLE
-        printf("current+1 throttling. trying cap: %d\n", thread_cap); fflush(stdout);
+        printf("current+1 throttling. trying cap: %d\n", tuning_session->thread_cap); fflush(stdout);
 #endif
         return APEX_NOERROR;
     }
 
-    // clear our non-best observations, and set a new cap.
+    // clear our non-best tuning_session->observations, and set a new cap.
     int best = current_cap;
 
-    if ((throttling_criteria == APEX_MAXIMIZE_THROUGHPUT) ||
-        (throttling_criteria == APEX_MAXIMIZE_ACCUMULATED)) {
-        if (evaluations[low_neighbor] > evaluations[current_cap]) {
+    if ((tuning_session->throttling_criteria == APEX_MAXIMIZE_THROUGHPUT) ||
+        (tuning_session->throttling_criteria == APEX_MAXIMIZE_ACCUMULATED)) {
+        if (tuning_session->evaluations[low_neighbor] > tuning_session->evaluations[current_cap]) {
             best = low_neighbor;
         }
-        if (evaluations[high_neighbor] > evaluations[best]) {
+        if (tuning_session->evaluations[high_neighbor] > tuning_session->evaluations[best]) {
             best = high_neighbor;
         }
     } else {
-        if (evaluations[low_neighbor] < evaluations[current_cap]) {
+        if (tuning_session->evaluations[low_neighbor] < tuning_session->evaluations[current_cap]) {
             best = low_neighbor;
         }
-        if (evaluations[high_neighbor] < evaluations[best]) {
+        if (tuning_session->evaluations[high_neighbor] < tuning_session->evaluations[best]) {
             best = high_neighbor;
         }
     }
 #ifdef APEX_DEBUG_THROTTLE
-    printf("%d Calls: %f.\n", thread_cap, evaluations[best]);
+    printf("%d Calls: %f.\n", tuning_session->thread_cap, tuning_session->evaluations[best]);
     printf("New cap: %d\n", best); fflush(stdout);
 #endif
     apex::apex * instance = apex::apex::instance();
     if (instance == NULL) return APEX_NOERROR;
     if (instance->get_node_id() == 0) {
         static int index = 0;
-        cap_data << index++ << "\t" << evaluations[best] << "\t" << best << endl;
+        tuning_session->cap_data << index++ << "\t" << tuning_session->evaluations[best] << "\t" << best << endl;
     }
     // set a new cap
-    thread_cap = current_cap = best;
+    tuning_session->thread_cap = current_cap = best;
     got_center = false;
     got_low = false;
     got_high = false;
@@ -454,23 +418,23 @@ int apex_throughput_throttling_ah_policy(apex_context const context) {
     APEX_UNUSED(context);
     static double previous_value = 0.0; // instead of resetting.
     static bool _converged_message = false;
-    if (harmony_converged(hdesc)) {
+    if (harmony_converged(tuning_session->hdesc)) {
         if (!_converged_message) {
             _converged_message = true;
             cout << "Thread Cap value optimization has converged." << endl;
-            cout << "Thread Cap value : " << thread_cap << endl;
+            cout << "Thread Cap value : " << tuning_session->thread_cap << endl;
         }
         //return APEX_NOERROR;
     }
 
     // get a measurement of our current setting
     apex_profile * function_profile = NULL;
-    if(function_of_interest != APEX_NULL_FUNCTION_ADDRESS) {
-        function_profile = apex::get_profile(function_of_interest);
-        //reset(function_of_interest); // we want new measurements!
+    if(tuning_session->function_of_interest != APEX_NULL_FUNCTION_ADDRESS) {
+        function_profile = apex::get_profile(tuning_session->function_of_interest);
+        //reset(tuning_session->function_of_interest); // we want new measurements!
     } else {
-        function_profile = apex::get_profile(function_name_of_interest);
-        //reset(function_name_of_interest); // we want new measurements!
+        function_profile = apex::get_profile(tuning_session->function_name_of_interest);
+        //reset(tuning_session->function_name_of_interest); // we want new measurements!
     }
     // if we have no data yet, return.
     if (function_profile == NULL) { 
@@ -481,35 +445,35 @@ int apex_throughput_throttling_ah_policy(apex_context const context) {
     }
 
     double new_value = 0.0;
-    if (throttling_criteria == APEX_MAXIMIZE_THROUGHPUT) {
+    if (tuning_session->throttling_criteria == APEX_MAXIMIZE_THROUGHPUT) {
         new_value = (function_profile->calls - previous_value) * -1.0;
         previous_value = function_profile->calls;
-    } else if (throttling_criteria == APEX_MAXIMIZE_ACCUMULATED) {
+    } else if (tuning_session->throttling_criteria == APEX_MAXIMIZE_ACCUMULATED) {
         new_value = (function_profile->accumulated - previous_value) * -1.0;
         previous_value = function_profile->accumulated;
-    } else if (throttling_criteria == APEX_MINIMIZE_ACCUMULATED) {
+    } else if (tuning_session->throttling_criteria == APEX_MINIMIZE_ACCUMULATED) {
         new_value = function_profile->accumulated - previous_value;
         previous_value = function_profile->accumulated;
     }
-    cout << "Cap: " << thread_cap << " New: " << abs(new_value) << " Prev: " << previous_value << endl;
+    cout << "Cap: " << tuning_session->thread_cap << " New: " << abs(new_value) << " Prev: " << previous_value << endl;
 
     apex::apex * instance = apex::apex::instance();
     if (instance == NULL) return APEX_NOERROR;
     if (instance->get_node_id() == 0) {
         static int index = 0;
-        cap_data << index++ << "\t" << abs(new_value) << "\t" << thread_cap << endl;
+        tuning_session->cap_data << index++ << "\t" << abs(new_value) << "\t" << tuning_session->thread_cap << endl;
     }
 
     /* Report the performance we've just measured. */
-    if (harmony_report(hdesc, new_value) != 0) {
+    if (harmony_report(tuning_session->hdesc, new_value) != 0) {
         cerr << "Failed to report performance to server." << endl;
         return APEX_ERROR;
     }
 
-    int hresult = harmony_fetch(hdesc);
+    int hresult = harmony_fetch(tuning_session->hdesc);
     if (hresult < 0) {
         cerr << "Failed to fetch values from server: " << 
-                harmony_error_string(hdesc) << endl;
+                harmony_error_string(tuning_session->hdesc) << endl;
         return APEX_ERROR;
     }
     else if (hresult == 0) {
@@ -531,7 +495,7 @@ int apex_throughput_tuning_policy(apex_context const context) {
     APEX_UNUSED(context);
     static double previous_value = 0.0; // instead of resetting.
     static bool _converged_message = false;
-    if (harmony_converged(hdesc)) {
+    if (harmony_converged(tuning_session->hdesc)) {
         if (!_converged_message) {
             _converged_message = true;
             cout << "Tuning has converged." << endl;
@@ -541,10 +505,10 @@ int apex_throughput_tuning_policy(apex_context const context) {
 
     // get a measurement of our current setting
     apex_profile * function_profile = NULL;
-    if(function_of_interest != APEX_NULL_FUNCTION_ADDRESS) {
-        function_profile = apex::get_profile(function_of_interest);
+    if(tuning_session->function_of_interest != APEX_NULL_FUNCTION_ADDRESS) {
+        function_profile = apex::get_profile(tuning_session->function_of_interest);
     } else {
-        function_profile = apex::get_profile(function_name_of_interest);
+        function_profile = apex::get_profile(tuning_session->function_name_of_interest);
     }
     // if we have no data yet, return.
     if (function_profile == NULL) { 
@@ -553,27 +517,27 @@ int apex_throughput_tuning_policy(apex_context const context) {
     }
 
     double new_value = 0.0;
-    if (throttling_criteria == APEX_MAXIMIZE_THROUGHPUT) {
+    if (tuning_session->throttling_criteria == APEX_MAXIMIZE_THROUGHPUT) {
         new_value = (function_profile->calls - previous_value) * -1.0;
         previous_value = function_profile->calls;
-    } else if (throttling_criteria == APEX_MAXIMIZE_ACCUMULATED) {
+    } else if (tuning_session->throttling_criteria == APEX_MAXIMIZE_ACCUMULATED) {
         new_value = (function_profile->accumulated - previous_value) * -1.0;
         previous_value = function_profile->accumulated;
-    } else if (throttling_criteria == APEX_MINIMIZE_ACCUMULATED) {
+    } else if (tuning_session->throttling_criteria == APEX_MINIMIZE_ACCUMULATED) {
         new_value = function_profile->accumulated - previous_value;
         previous_value = function_profile->accumulated;
     }
 
     /* Report the performance we've just measured. */
-    if (harmony_report(hdesc, new_value) != 0) {
+    if (harmony_report(tuning_session->hdesc, new_value) != 0) {
         cerr << "Failed to report performance to server." << endl;
         return APEX_ERROR;
     }
 
-    int hresult = harmony_fetch(hdesc);
+    int hresult = harmony_fetch(tuning_session->hdesc);
     if (hresult < 0) {
         cerr << "Failed to fetch values from server: " << 
-                harmony_error_string(hdesc) << endl;
+                harmony_error_string(tuning_session->hdesc) << endl;
         return APEX_ERROR;
     }
     else if (hresult == 0) {
@@ -594,7 +558,7 @@ int apex_throughput_tuning_policy(apex_context const context) {
 int apex_custom_tuning_policy(apex_context const context) {
     APEX_UNUSED(context);
     static bool _converged_message = false;
-    if (harmony_converged(hdesc)) {
+    if (harmony_converged(tuning_session->hdesc)) {
         if (!_converged_message) {
             _converged_message = true;
             cout << "Tuning has converged." << endl;
@@ -603,18 +567,18 @@ int apex_custom_tuning_policy(apex_context const context) {
     }
 
     // get a measurement of our current setting
-    double new_value = metric_of_interest();
+    double new_value = tuning_session->metric_of_interest();
 
     /* Report the performance we've just measured. */
-    if (harmony_report(hdesc, new_value) != 0) {
+    if (harmony_report(tuning_session->hdesc, new_value) != 0) {
         cerr << "Failed to report performance to server." << endl;
         return APEX_ERROR;
     }
 
-    int hresult = harmony_fetch(hdesc);
+    int hresult = harmony_fetch(tuning_session->hdesc);
     if (hresult < 0) {
         cerr << "Failed to fetch values from server: " << 
-                harmony_error_string(hdesc) << endl;
+                harmony_error_string(tuning_session->hdesc) << endl;
         return APEX_ERROR;
     }
     else if (hresult == 0) {
@@ -657,38 +621,38 @@ int apex_custom_tuning_policy(apex_context const context) {
 /// ----------------------------------------------------------------------------
 
 inline void __read_common_variables() {
-    max_threads = thread_cap = apex::hardware_concurrency();
-    min_threads = 1;
+    tuning_session->max_threads = tuning_session->thread_cap = apex::hardware_concurrency();
+    tuning_session->min_threads = 1;
     if (apex::apex_options::throttle_concurrency()) {
         apex_checkThrottling = true;
-        max_threads = apex::apex_options::throttling_max_threads();
-        thread_cap = max_threads;
-        min_threads = apex::apex_options::throttling_min_threads();
+        tuning_session->max_threads = apex::apex_options::throttling_max_threads();
+        tuning_session->thread_cap = tuning_session->max_threads;
+        tuning_session->min_threads = apex::apex_options::throttling_min_threads();
         apex::apex * instance = apex::apex::instance();
         if (instance != NULL && instance->get_node_id() == 0) {
-            cout << "APEX concurrency throttling enabled, min threads: " << min_threads << " max threads: " << max_threads << endl;
+            cout << "APEX concurrency throttling enabled, min threads: " << tuning_session->min_threads << " max threads: " << tuning_session->max_threads << endl;
         }
     }
 }
 
 inline int __setup_power_cap_throttling()
 {
-    if(apex_energy_init) {
+    if(tuning_session->apex_energy_init) {
         std::cerr << "power cap throttling already initialized!" << std::endl;
         return APEX_ERROR;
     }
-    apex_energy_init = true;
+    tuning_session->apex_energy_init = true;
     __read_common_variables();
     // if desired for this execution set up throttling & final print of total energy used 
     if (apex_checkThrottling) {
-      max_watts = apex::apex_options::throttling_max_watts();
-      min_watts = apex::apex_options::throttling_min_watts();
+      tuning_session->max_watts = apex::apex_options::throttling_max_watts();
+      tuning_session->min_watts = apex::apex_options::throttling_min_watts();
       if (apex::apex_options::throttle_energy()) {
         apex_energyThrottling = true;
       }
       apex::apex * instance = apex::apex::instance();
       if (instance != NULL && instance->get_node_id() == 0) {
-        cout << "APEX periodic throttling for energy savings, min watts: " << min_watts << " max watts: " << max_watts << endl;
+        cout << "APEX periodic throttling for energy savings, min watts: " << tuning_session->min_watts << " max watts: " << tuning_session->max_watts << endl;
       }
       apex::register_periodic_policy(1000000, apex_power_throttling_policy);
       // get an initial power reading
@@ -703,35 +667,35 @@ inline int __setup_power_cap_throttling()
 #ifdef APEX_HAVE_ACTIVEHARMONY
 inline void __apex_active_harmony_setup(void) {
     static const char* session_name = "APEX Throttling";
-    hdesc = harmony_init(NULL, NULL);
-    if (hdesc == NULL) {
+    tuning_session->hdesc = harmony_init(NULL, NULL);
+    if (tuning_session->hdesc == NULL) {
         cerr << "Failed to initialize Active Harmony" << endl;
         return;
     }
-    if (harmony_session_name(hdesc, session_name) != 0) {
+    if (harmony_session_name(tuning_session->hdesc, session_name) != 0) {
         cerr << "Could not set Active Harmony session name" << endl;
         return;
     }
-    if (harmony_int(hdesc, "thread_cap", min_threads, max_threads, thread_step) != 0) {
+    if (harmony_int(tuning_session->hdesc, "tuning_session->thread_cap", tuning_session->min_threads, tuning_session->max_threads, tuning_session->thread_step) != 0) {
         cerr << "Failed to define Active Harmony tuning session" << endl;
         return;
     }
-    if (harmony_strategy(hdesc, "pro.so") != 0) {
+    if (harmony_strategy(tuning_session->hdesc, "pro.so") != 0) {
         cerr << "Failed to set Active Harmony tuning strategy" << endl;
         return;
     }
-    if (harmony_launch(hdesc, NULL, 0) != 0) {
+    if (harmony_launch(tuning_session->hdesc, NULL, 0) != 0) {
         cerr << "Failed to launch Active Harmony tuning session: " << 
-            endl << harmony_error_string(hdesc) << endl;
+            endl << harmony_error_string(tuning_session->hdesc) << endl;
         return;
     }
-        __num_ah_inputs = 1;
-        __ah_inputs[0] = &thread_cap;
-    if (harmony_bind_int(hdesc, "thread_cap", &thread_cap) != 0) {
+        tuning_session->__num_ah_inputs = 1;
+        tuning_session->__ah_inputs[0] = &(tuning_session->thread_cap);
+    if (harmony_bind_int(tuning_session->hdesc, "tuning_session->thread_cap", &(tuning_session->thread_cap)) != 0) {
         cerr << "Failed to register Active Harmony variable" << endl;
         return;
     }
-    if (harmony_join(hdesc, NULL, 0, session_name) != 0) {
+    if (harmony_join(tuning_session->hdesc, NULL, 0, session_name) != 0) {
         cerr << "Failed to launch Active Harmony tuning session" << endl;
         return;
     }
@@ -739,42 +703,42 @@ inline void __apex_active_harmony_setup(void) {
 
 inline void __active_harmony_throughput_setup(int num_inputs, long ** inputs, long * mins, long * maxs, long * steps) {
     static const char* session_name = "APEX Throttling";
-    hdesc = harmony_init(NULL, NULL);
-    if (hdesc == NULL) {
+    tuning_session->hdesc = harmony_init(NULL, NULL);
+    if (tuning_session->hdesc == NULL) {
         cerr << "Failed to initialize Active Harmony" << endl;
         return;
     }
-    if (harmony_session_name(hdesc, session_name) != 0) {
+    if (harmony_session_name(tuning_session->hdesc, session_name) != 0) {
         cerr << "Could not set Active Harmony session name" << endl;
         return;
     }
-    if (harmony_strategy(hdesc, "pro.so") != 0) {
+    if (harmony_strategy(tuning_session->hdesc, "pro.so") != 0) {
         cerr << "Failed to set Active Harmony tuning strategy" << endl;
         return;
     }
     char tmpstr[12] = {0};
-        __num_ah_inputs = num_inputs;
+        tuning_session->__num_ah_inputs = num_inputs;
     for (int i = 0 ; i < num_inputs ; i++ ) {
         sprintf (tmpstr, "param_%d", i);
-        if (harmony_int(hdesc, tmpstr, mins[i], maxs[i], steps[i]) != 0) {
+        if (harmony_int(tuning_session->hdesc, tmpstr, mins[i], maxs[i], steps[i]) != 0) {
             cerr << "Failed to define Active Harmony tuning session" << endl;
             return;
         }
     }
-    if (harmony_launch(hdesc, NULL, 0) != 0) {
+    if (harmony_launch(tuning_session->hdesc, NULL, 0) != 0) {
         cerr << "Failed to launch Active Harmony tuning session: " << 
-            endl << harmony_error_string(hdesc) << endl;
+            endl << harmony_error_string(tuning_session->hdesc) << endl;
         return;
     }
     for (int i = 0 ; i < num_inputs ; i++ ) {
         sprintf (tmpstr, "param_%d", i);
-        if (harmony_bind_int(hdesc, tmpstr, inputs[i]) != 0) {
+        if (harmony_bind_int(tuning_session->hdesc, tmpstr, inputs[i]) != 0) {
             cerr << "Failed to register Active Harmony variable" << endl;
             return;
         }
-                __ah_inputs[i] = inputs[i];
+                tuning_session->__ah_inputs[i] = inputs[i];
     }
-    if (harmony_join(hdesc, NULL, 0, session_name) != 0) {
+    if (harmony_join(tuning_session->hdesc, NULL, 0, session_name) != 0) {
         cerr << "Failed to join Active Harmony tuning session" << endl;
         return;
     }
@@ -782,45 +746,45 @@ inline void __active_harmony_throughput_setup(int num_inputs, long ** inputs, lo
 
 inline int __active_harmony_custom_setup(int num_inputs, long ** inputs, long * mins, long * maxs, long * steps) {
     static const char* session_name = "APEX Custom Tuning";
-    hdesc = harmony_init(NULL, NULL);
-    if (hdesc == NULL) {
+    tuning_session->hdesc = harmony_init(NULL, NULL);
+    if (tuning_session->hdesc == NULL) {
         cerr << "Failed to initialize Active Harmony" << endl;
         return APEX_ERROR;
     }
-    if (harmony_session_name(hdesc, session_name) != 0) {
+    if (harmony_session_name(tuning_session->hdesc, session_name) != 0) {
         cerr << "Could not set Active Harmony session name" << endl;
         return APEX_ERROR;
     }
 
     // TODO: Change strategy to support multi-objective optimization
     // (will need multiple metrics-of-interest)
-    if (harmony_strategy(hdesc, "pro.so") != 0) {
+    if (harmony_strategy(tuning_session->hdesc, "pro.so") != 0) {
         cerr << "Failed to set Active Harmony tuning strategy" << endl;
         return APEX_ERROR;
     }
     char tmpstr[12] = {0};
     for (int i = 0 ; i < num_inputs ; i++ ) {
         sprintf (tmpstr, "param_%d", i);
-        if (harmony_int(hdesc, tmpstr, mins[i], maxs[i], steps[i]) != 0) {
+        if (harmony_int(tuning_session->hdesc, tmpstr, mins[i], maxs[i], steps[i]) != 0) {
             cerr << "Failed to define Active Harmony tuning session" << endl;
             return APEX_ERROR;
         }
     }
-    if (harmony_launch(hdesc, NULL, 0) != 0) {
+    if (harmony_launch(tuning_session->hdesc, NULL, 0) != 0) {
         cerr << "Failed to launch Active Harmony tuning session: " << 
-            endl << harmony_error_string(hdesc) << endl;
+            endl << harmony_error_string(tuning_session->hdesc) << endl;
         return APEX_ERROR;
     }
     for (int i = 0 ; i < num_inputs ; i++ ) {
         sprintf (tmpstr, "param_%d", i);
-        tunable_params.push_back(std::make_pair(tmpstr, inputs[i]));
-        if (harmony_bind_int(hdesc, tmpstr, inputs[i]) != 0) {
+        tuning_session->tunable_params.push_back(std::make_pair(tmpstr, inputs[i]));
+        if (harmony_bind_int(tuning_session->hdesc, tmpstr, inputs[i]) != 0) {
             cerr << "Failed to register Active Harmony variable" << endl;
             return APEX_ERROR;
         }
-        __ah_inputs[i] = inputs[i];
+        tuning_session->__ah_inputs[i] = inputs[i];
     }
-    if (harmony_join(hdesc, NULL, 0, session_name) != 0) {
+    if (harmony_join(tuning_session->hdesc, NULL, 0, session_name) != 0) {
         cerr << "Failed to join Active Harmony tuning session" << endl;
         return APEX_ERROR;
     }
@@ -830,11 +794,11 @@ inline int __active_harmony_custom_setup(int num_inputs, long ** inputs, long * 
 
 inline void __apex_active_harmony_shutdown(void) {
     /* Leave the session */
-    if (harmony_leave(hdesc) != 0) {
+    if (harmony_leave(tuning_session->hdesc) != 0) {
         cerr << "Failed to disconnect from harmony session." << endl;;
         return;
     }
-    harmony_fini(hdesc);
+    harmony_fini(tuning_session->hdesc);
 }
 
 #else
@@ -864,17 +828,17 @@ inline int __common_setup_timer_throttling(apex_optimization_criteria_t criteria
 {
     __read_common_variables();
     if (apex::apex_options::throttle_concurrency()) {
-        function_history.calls = 0.0;
-        function_history.accumulated = 0.0;
-        function_baseline.calls = 0.0;
-        function_baseline.accumulated = 0.0;
-        throttling_criteria = criteria;
-        evaluations = (double*)(calloc(max_threads+1, sizeof(double)));
-        observations = (int*)(calloc(max_threads+1, sizeof(int)));
+        tuning_session->function_history.calls = 0.0;
+        tuning_session->function_history.accumulated = 0.0;
+        tuning_session->function_baseline.calls = 0.0;
+        tuning_session->function_baseline.accumulated = 0.0;
+        tuning_session->throttling_criteria = criteria;
+        tuning_session->evaluations = (double*)(calloc(tuning_session->max_threads+1, sizeof(double)));
+        tuning_session->observations = (int*)(calloc(tuning_session->max_threads+1, sizeof(int)));
         apex::apex * instance = apex::apex::instance();
         if (instance != NULL && instance->get_node_id() == 0) {
-            cap_data.open("cap_data.dat");
-            cap_data_open = true;
+            tuning_session->cap_data.open("tuning_session->cap_data.dat");
+            tuning_session->cap_data_open = true;
         }
         if (method == APEX_SIMPLE_HYSTERESIS) {
             apex::register_periodic_policy(update_interval, apex_throughput_throttling_policy);
@@ -894,13 +858,13 @@ inline int __common_setup_throughput_tuning(apex_optimization_criteria_t criteri
 {
     __read_common_variables();
     if (apex::apex_options::throttle_concurrency()) {
-        function_history.calls = 0.0;
-        function_history.accumulated = 0.0;
-        function_baseline.calls = 0.0;
-        function_baseline.accumulated = 0.0;
-        throttling_criteria = criteria;
-        evaluations = (double*)(calloc(max_threads+1, sizeof(double)));
-        observations = (int*)(calloc(max_threads+1, sizeof(int)));
+        tuning_session->function_history.calls = 0.0;
+        tuning_session->function_history.accumulated = 0.0;
+        tuning_session->function_baseline.calls = 0.0;
+        tuning_session->function_baseline.accumulated = 0.0;
+        tuning_session->throttling_criteria = criteria;
+        tuning_session->evaluations = (double*)(calloc(tuning_session->max_threads+1, sizeof(double)));
+        tuning_session->observations = (int*)(calloc(tuning_session->max_threads+1, sizeof(int)));
         __active_harmony_throughput_setup(num_inputs, inputs, mins, maxs, steps);
         apex::register_policy(event_type, apex_throughput_tuning_policy);
     }
@@ -921,44 +885,44 @@ inline int __common_setup_custom_tuning( apex_event_type event_type, int num_inp
 inline int __setup_throughput_tuning(apex_function_address the_address,
         apex_optimization_criteria_t criteria, apex_event_type event_type, 
         int num_inputs, long ** inputs, long * mins, long * maxs, long * steps) {
-    function_of_interest = the_address;
+    tuning_session->function_of_interest = the_address;
     return __common_setup_throughput_tuning(criteria, event_type, num_inputs, inputs, mins, maxs, steps);
 }
 
 inline int __setup_throughput_tuning(std::string &the_name,
         apex_optimization_criteria_t criteria, apex_event_type event_type, 
         int num_inputs, long ** inputs, long * mins, long * maxs, long * steps) {
-    function_name_of_interest = string(the_name);
+    tuning_session->function_name_of_interest = string(the_name);
     return __common_setup_throughput_tuning(criteria, event_type, num_inputs, inputs, mins, maxs, steps);
 }
 
 inline int __setup_custom_tuning(std::function<double()> metric,
         apex_event_type event_type, int num_inputs, long ** inputs,
         long * mins, long * maxs, long * steps) {
-    metric_of_interest = metric;
+    tuning_session->metric_of_interest = metric;
     return __common_setup_custom_tuning(event_type, num_inputs, inputs, mins, maxs, steps);
 }
 
 inline int __setup_timer_throttling(apex_function_address the_address, apex_optimization_criteria_t criteria,
         apex_optimization_method_t method, unsigned long update_interval)
 {
-    function_of_interest = the_address;
+    tuning_session->function_of_interest = the_address;
     return __common_setup_timer_throttling(criteria, method, update_interval);
 }
 
 inline int __setup_timer_throttling(const string& the_name, apex_optimization_criteria_t criteria,
         apex_optimization_method_t method, unsigned long update_interval)
 {
-    if(apex_timer_init) {
+    if(tuning_session->apex_timer_init) {
         std::cerr << "timer throttling already initialized!" << std::endl;
         return APEX_ERROR;
     }
-    apex_timer_init = true;
+    tuning_session->apex_timer_init = true;
     if (the_name == "") {
         fprintf(stderr, "Timer/counter name for throttling is undefined. Please specify a name.\n");
         abort();
     }
-    function_name_of_interest = the_name;
+    tuning_session->function_name_of_interest = the_name;
 #ifdef APEX_DEBUG_THROTTLE
     std::cerr << "Setting up timer throttling for " << the_name << std::endl;
 #endif
@@ -968,10 +932,10 @@ inline int __setup_timer_throttling(const string& the_name, apex_optimization_cr
 inline int __shutdown_throttling(void)
 {
     apex_final = true;
-  //printf("periodic_policy called %d times\n", test_pp);
-    if (cap_data_open) {
-        cap_data_open = false;
-        cap_data.close();
+  //printf("periodic_policy called %d times\n", tuning_session->test_pp);
+    if (tuning_session->cap_data_open) {
+        tuning_session->cap_data_open = false;
+        tuning_session->cap_data.close();
     }
   return APEX_NOERROR;
 }
@@ -1024,12 +988,12 @@ APEX_EXPORT int get_thread_cap(void) {
 }
 
 APEX_EXPORT int get_input2(void) {
-    return (int)*(__ah_inputs[1]);
+    return (int)*(tuning_session->__ah_inputs[1]);
 }
 
 
 APEX_EXPORT std::vector<std::pair<std::string,long*>> & get_tunable_params() {
-    return tunable_params;
+    return tuning_session->tunable_params;
 }
 
 }

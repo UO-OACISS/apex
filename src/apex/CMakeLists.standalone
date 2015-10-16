@@ -52,7 +52,7 @@ endif()
 INSTALL(FILES apex.h 
     apex_api.hpp
     apex_types.h
-    apex_policies.h
+    apex_policies.hpp
     handler.hpp
     profile.hpp
     apex_export.h

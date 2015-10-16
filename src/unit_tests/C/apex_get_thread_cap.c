@@ -6,7 +6,6 @@
 #include <math.h>
 
 #include "apex.h"
-#include "apex_policies.h"
 
 #define MAX(a,b) ((a) > (b) ? a : b)
 #define MIN(a,b) ((a) < (b) ? a : b)

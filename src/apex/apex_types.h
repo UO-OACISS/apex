@@ -182,6 +182,11 @@ typedef struct _profile
  */
 typedef int (*apex_policy_function)(apex_context const context);
 
+/**
+ *  A handle to a tuning session.
+ */
+typedef void* apex_tuning_session_handle;
+
 /** A null pointer representing an APEX function address.
  * Used when a null APEX function address is to be passed in to
  * any apex functions to represent "all functions". 

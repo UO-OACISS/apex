@@ -1,3 +1,6 @@
+#ifndef APEX_UTILS_HPP
+#define APEX_UTILS_HPP
+
 #include <string>
 #include <chrono>
 #include <thread>
@@ -64,3 +67,5 @@ inline unsigned int hardware_concurrency()
 }
 
 };
+
+#endif //APEX_UTILS_HPP

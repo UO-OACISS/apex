@@ -141,7 +141,7 @@ set(apex_headers
     profiler_listener.hpp
     semaphore.hpp
     thread_instance.hpp
-    apex_policies.h
+    apex_policies.hpp
     ${PROC_HEADER})
     #udp_client.hpp
 
