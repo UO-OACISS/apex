@@ -272,6 +272,7 @@ namespace apex {
   }
 
 #define PAD_WITH_SPACES boost::format("%8i")
+#define FORMAT_PERCENT boost::format("%8.3f")
 #define FORMAT_SCIENTIFIC boost::format("%1.2e")
 
   /* At program termination, write the measurements to the screen. */
@@ -287,6 +288,7 @@ namespace apex {
     map<apex_function_address, profile*>::const_iterator it;
     cout << "Action                         :  #calls  |  minimum |    mean  |  maximum |   total  |  stddev  |  \% total  " << endl;
     cout << "------------------------------------------------------------------------------------------------------------" << endl;
+    double total_accumulated = 0.0;
     for(it = address_map.begin(); it != address_map.end(); it++) {
       profile * p = it->second;
       apex_function_address function_address = it->first;
@@ -333,9 +335,12 @@ namespace apex {
       cout << FORMAT_SCIENTIFIC % p->get_accumulated() << "   " ;
       cout << FORMAT_SCIENTIFIC % p->get_stddev() << "   " ;
       if (p->get_type() == APEX_TIMER) {
-        cout << PAD_WITH_SPACES % ((p->get_accumulated()/total_main)*100) << endl;
+        cout << FORMAT_PERCENT % ((p->get_accumulated()/total_main)*100) << endl;
       } else {
         cout << " --n/a-- "  << endl;
+      }
+      if (p->get_type() == APEX_TIMER) {
+        total_accumulated += p->get_accumulated();
       }
     }
     map<string, profile*>::const_iterator it2;
@@ -398,10 +403,30 @@ namespace apex {
       cout << FORMAT_SCIENTIFIC % p->get_accumulated() << "   " ;
       cout << FORMAT_SCIENTIFIC % p->get_stddev() << "   " ;
       if (p->get_type() == APEX_TIMER) {
-        cout << PAD_WITH_SPACES % ((p->get_accumulated()/total_main)*100) << endl;
+        cout << FORMAT_PERCENT % ((p->get_accumulated()/total_main)*100) << endl;
       } else {
         cout << " --n/a-- "  << endl;
       }
+      if (p->get_type() == APEX_TIMER) {
+        total_accumulated += p->get_accumulated();
+      }
+    }
+    double idle_rate = total_main - total_accumulated;
+    cout << boost::format("%30s") % "idle rate" << " : ";
+    cout << " --n/a--   " ;
+    cout << " --n/a--   " ;
+    cout << " --n/a--   " ;
+    cout << " --n/a--   " ;
+    if (idle_rate < 0.0) {
+      cout << " --n/a--   " ;
+    } else {
+      cout << FORMAT_SCIENTIFIC % idle_rate << "   " ;
+    }
+    cout << " --n/a--   " ;
+    if (idle_rate < 0.0) {
+      cout << " --n/a--   " ;
+    } else {
+      cout << FORMAT_PERCENT % ((idle_rate/total_main)*100) << endl;
     }
   }
 
