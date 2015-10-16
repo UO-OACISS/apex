@@ -98,9 +98,77 @@ namespace apex {
     return nullptr;
   }
 
+  double profiler_listener::get_non_idle_time() {
+    double non_idle_time = 0.0;
+    /* Iterate over all timers and accumulate the time spent in them */
+    map<apex_function_address, profile*>::const_iterator it;
+    for(it = address_map.begin(); it != address_map.end(); it++) {
+      profile * p = it->second;
+#if defined(APEX_THROTTLE)
+      apex_function_address function_address = it->first;
+      unordered_set<apex_function_address>::const_iterator it3 = throttled_addresses.find(function_address);
+      if (it3 != throttled_addresses.end()) { 
+        continue; 
+      }
+#endif
+      if (p->get_type() == APEX_TIMER) {
+        non_idle_time += p->get_accumulated();
+      }
+    }
+    /* Iterate over all timers and accumulate the time spent in them */
+    map<string, profile*>::const_iterator it2;
+    for(it2 = name_map.begin(); it2 != name_map.end(); it2++) {
+      profile * p = it2->second;
+#if defined(APEX_THROTTLE)
+      string action_name = it2->first;
+      unordered_set<string>::const_iterator it4 = throttled_names.find(action_name);
+      if (it4!= throttled_names.end()) { 
+        continue; 
+      }
+#endif
+      if (p->get_type() == APEX_TIMER) {
+        non_idle_time += p->get_accumulated();
+      }
+    }
+    return non_idle_time;
+  }
+
+  profile * profiler_listener::get_idle_time() {
+    double non_idle_time = get_non_idle_time();
+    /* Subtract the accumulated time from the main time span. */
+    std::chrono::duration<double> time_span = 
+        std::chrono::duration_cast<std::chrono::duration<double>>
+           (std::chrono::CLOCK_TYPE::now() - main_timer->start);
+    double total_main = time_span.count() *
+                fmin(hardware_concurrency(), thread_instance::get_num_threads());
+    double elapsed = total_main - non_idle_time;
+    elapsed = elapsed > 0.0 ? elapsed : 0.0;
+    profile * theprofile = new profile(elapsed, false);
+    return theprofile;
+  }
+
+  profile * profiler_listener::get_idle_rate() {
+    double non_idle_time = get_non_idle_time();
+    /* Subtract the accumulated time from the main time span. */
+    std::chrono::duration<double> time_span = 
+        std::chrono::duration_cast<std::chrono::duration<double>>
+           (std::chrono::CLOCK_TYPE::now() - main_timer->start);
+    double total_main = time_span.count() *
+                fmin(hardware_concurrency(), thread_instance::get_num_threads());
+    double elapsed = total_main - non_idle_time;
+    double rate = elapsed > 0.0 ? ((elapsed/total_main)) : 0.0;
+    profile * theprofile = new profile(rate, false);
+    return theprofile;
+  }
+
   /* Return the requested profile object to the user.
    * Return nullptr if doesn't exist. */
   profile * profiler_listener::get_profile(const string &timer_name) {
+    if (timer_name == string(APEX_IDLE_RATE)) {
+        return get_idle_rate();
+    } else if (timer_name == string(APEX_IDLE_TIME)) {
+        return get_idle_time();
+    }
     map<string, profile*>::const_iterator it = name_map.find(timer_name);
     if (it != name_map.end()) {
       return (*it).second;
@@ -412,7 +480,7 @@ namespace apex {
       }
     }
     double idle_rate = total_main - total_accumulated;
-    cout << boost::format("%30s") % "idle rate" << " : ";
+    cout << boost::format("%30s") % APEX_IDLE_TIME << " : ";
     cout << " --n/a--   " ;
     cout << " --n/a--   " ;
     cout << " --n/a--   " ;

@@ -125,6 +125,9 @@ public:
   void reset(const std::string &timer_name);
   profile * get_profile(apex_function_address address);
   profile * get_profile(const std::string &timer_name);
+  double get_non_idle_time(void);
+  profile * get_idle_time(void);
+  profile * get_idle_rate(void);
   std::vector<std::string> get_available_profiles();
   void process_profiles(void);
   static void process_profiles_wrapper(void);

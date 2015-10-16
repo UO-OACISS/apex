@@ -189,6 +189,10 @@ typedef int (*apex_policy_function)(apex_context const context);
 #define APEX_NULL_FUNCTION_ADDRESS 0L // for comparisons
 //#define APEX_NULL_FUNCTION_ADDRESS (apex_function_address)(NULL) // for comparisons
 
+/* Special profile counters for derived values */
+#define APEX_IDLE_TIME "APEX Idle"
+#define APEX_IDLE_RATE "APEX Idle Rate"
+
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 #ifdef APEX_HAVE_TAU

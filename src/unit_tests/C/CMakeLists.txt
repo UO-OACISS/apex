@@ -27,6 +27,7 @@ set(example_programs
     apex_register_periodic_policy
     apex_deregister_policy
     apex_get_profile
+    apex_get_idle_rate
     apex_current_power_high
     apex_setup_timer_throttling
     apex_print_options
