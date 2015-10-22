@@ -6,6 +6,14 @@
 
 #include "apex_bfd.h"
 #include "apex.hpp"
+// bfd.h expects these to be defined, so define them.
+// otherwise, we get a compilation error.
+#if !defined PACKAGE
+#define PACKAGE
+#endif
+#if !defined PACKAGE_VERSION
+#define PACKAGE_VERSION
+#endif
 #include <bfd.h>
 #if APEX_BFD >= 022300
 #include <elf-bfd.h>
