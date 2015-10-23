@@ -3,6 +3,7 @@
 # to the root binary directory of the project as ${APEX_BINARY_DIR}.
 
 cmake_minimum_required (VERSION 2.8.12 FATAL_ERROR)
+cmake_policy(SET CMP0042 NEW)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules")
 
@@ -323,6 +324,7 @@ endif()
 
 if((DEFINED USE_ACTIVEHARMONY) AND (NOT USE_ACTIVEHARMONY))
     # do nothing
+		add_custom_target(project_activeharmony)
 else()
     set(USE_ACTIVEHARMONY TRUE)
 endif()
