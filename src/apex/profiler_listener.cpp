@@ -843,18 +843,6 @@ node_color * get_node_color(double v,double vmin,double vmax)
 #ifndef APEX_HAVE_HPX3
     }
 
-    size_t ignored = thequeue.size_approx();
-    if (ignored > 0) {
-      std::cerr << "Info: " << ignored << " items remaining on on the profiler_listener queue...";
-    }
-    // We might be done, but check to make sure the queue is empty
-    //while(thequeue.try_dequeue(p)) {
-    while(!_done && thequeue.try_dequeue(p)) {
-      process_profile(p, 0);
-    }
-    if (ignored > 0) {
-      std::cerr << "done." << std::endl;
-    }
     if (apex_options::use_taskgraph_output()) {
       // process the task dependencies
       while(dependency_queue.try_dequeue(td)) {
@@ -1011,6 +999,18 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       // output to screen?
       if (apex_options::use_screen_output() && node_id == 0)
       {
+        size_t ignored = thequeue.size_approx();
+        if (ignored > 0) {
+          std::cerr << "Info: " << ignored << " items remaining on on the profiler_listener queue...";
+        }
+        // We might be done, but check to make sure the queue is empty
+        profiler* p;
+        while(thequeue.try_dequeue(p)) {
+          process_profile(p, 0);
+        }
+        if (ignored > 0) {
+          std::cerr << "done." << std::endl;
+        }
         finalize_profiles();
       }
       if (apex_options::use_taskgraph_output() && node_id == 0)
