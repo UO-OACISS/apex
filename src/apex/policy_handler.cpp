@@ -338,7 +338,8 @@ inline void policy_handler::call_policies(
         my_context.data = NULL;
     }
     // last chance to interrupt policy execution at shutdown
-    if (_terminate) return;
+		// HOWEVER, if the event is shutdown, run the policy.
+    if (_terminate && data.event_type_ != APEX_SHUTDOWN) return;
     const bool result = policy->func(my_context);
     if(result != APEX_NOERROR) {
       printf("Warning: registered policy function failed!\n");
