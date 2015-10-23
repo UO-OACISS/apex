@@ -150,7 +150,7 @@ int main(int argc, char **argv)
   }
   // now un-register the policies 
   printf("Deregistering %d...\n", on_startup->id);
-  printf("Deregistering %d...\n", on_shutdown->id);
+  //printf("Deregistering %d...\n", on_shutdown->id);
   printf("Deregistering %d...\n", on_new_node->id);
   printf("Deregistering %d...\n", on_new_thread->id);
   printf("Deregistering %d...\n", on_start_event->id);
@@ -161,7 +161,7 @@ int main(int argc, char **argv)
   printf("Deregistering %d...\n", on_custom_event_1->id);
   printf("Deregistering %d...\n", on_custom_event_2->id);
   apex::deregister_policy(on_startup);
-  apex::deregister_policy(on_shutdown);
+  //apex::deregister_policy(on_shutdown);
   apex::deregister_policy(on_new_node);
   apex::deregister_policy(on_new_thread);
   apex::deregister_policy(on_start_event);
