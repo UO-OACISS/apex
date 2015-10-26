@@ -145,6 +145,9 @@ set(apex_headers
     ${PROC_HEADER})
     #udp_client.hpp
 
+set(apex_install_headers
+    apex_api.hpp
+    apex_types.h)
 
 set(apex_sources
     apex.cpp
@@ -241,7 +244,7 @@ configure_file (
   "${APEX_SOURCE_DIR}/apex_config.h.in"
   "${APEX_BINARY_DIR}/apex_config.h")
 
-INSTALL(FILES ${apex_headers} DESTINATION include)
+INSTALL(FILES ${apex_install_headers} DESTINATION include)
 
 set(AMPLIFIER_ROOT ${AMPLIFIER_ROOT} PARENT_SCOPE)
 set(APEX_FOUND ON PARENT_SCOPE)
