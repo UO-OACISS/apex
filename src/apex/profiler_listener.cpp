@@ -139,8 +139,12 @@ namespace apex {
     std::chrono::duration<double> time_span = 
         std::chrono::duration_cast<std::chrono::duration<double>>
            (std::chrono::CLOCK_TYPE::now() - main_timer->start);
+	int num_worker_threads = thread_instance::get_num_threads();
+#ifdef APEX_HAVE_HPX3
+    num_worker_threads = num_worker_threads - 8;
+#endif
     double total_main = time_span.count() *
-                fmin(hardware_concurrency(), thread_instance::get_num_threads());
+                fmin(hardware_concurrency(), num_worker_threads);
     double elapsed = total_main - non_idle_time;
     elapsed = elapsed > 0.0 ? elapsed : 0.0;
     profile * theprofile = new profile(elapsed, false);
@@ -153,8 +157,12 @@ namespace apex {
     std::chrono::duration<double> time_span = 
         std::chrono::duration_cast<std::chrono::duration<double>>
            (std::chrono::CLOCK_TYPE::now() - main_timer->start);
+	int num_worker_threads = thread_instance::get_num_threads();
+#ifdef APEX_HAVE_HPX3
+    num_worker_threads = num_worker_threads - 8;
+#endif
     double total_main = time_span.count() *
-                fmin(hardware_concurrency(), thread_instance::get_num_threads());
+                fmin(hardware_concurrency(), num_worker_threads);
     double elapsed = total_main - non_idle_time;
     double rate = elapsed > 0.0 ? ((elapsed/total_main)) : 0.0;
     profile * theprofile = new profile(rate, false);
@@ -346,12 +354,16 @@ namespace apex {
   /* At program termination, write the measurements to the screen. */
   void profiler_listener::finalize_profiles(void) {
     // our TOTAL available time is the elapsed * the number of threads, or cores
+	int num_worker_threads = thread_instance::get_num_threads();
+#ifdef APEX_HAVE_HPX3
+    num_worker_threads = num_worker_threads - 8;
+#endif
     double total_main = main_timer->elapsed() * 
-        fmin(hardware_concurrency(), thread_instance::get_num_threads());
+        fmin(hardware_concurrency(), num_worker_threads);
     // iterate over the profiles in the address map
     cout << "Elaspsed time: " << main_timer->elapsed() << endl;
     cout << "Cores detected: " << hardware_concurrency() << endl;
-    cout << "Threads observed: " << thread_instance::get_num_threads() << endl;
+    cout << "Worker Threads observed: " << num_worker_threads << endl;
     cout << "Available CPU time: " << total_main << endl;
     map<apex_function_address, profile*>::const_iterator it;
     cout << "Action                         :  #calls  |  minimum |    mean  |  maximum |   total  |  stddev  |  \% total  " << endl;
@@ -576,8 +588,12 @@ node_color * get_node_color(double v,double vmin,double vmax)
     }
 
     // our TOTAL available time is the elapsed * the number of threads, or cores
+	int num_worker_threads = thread_instance::get_num_threads();
+#ifdef APEX_HAVE_HPX3
+    num_worker_threads = num_worker_threads - 8;
+#endif
     double total_main = main_timer->elapsed() *
-        fmin(hardware_concurrency(), thread_instance::get_num_threads());
+        fmin(hardware_concurrency(), num_worker_threads);
 
     // output nodes with  "main" [shape=box; style=filled; fillcolor="#ff0000" ];
     map<apex_function_address, profile*>::const_iterator it;
