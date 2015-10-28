@@ -12,33 +12,6 @@
 #define ITERATIONS 1024*32
 #define INNER_ITERATION 1024*8
 
-class ApexProxy {
-private:
-  std::string _name;
-  apex::profiler * p;
-  bool stopped;
-public:
-  ApexProxy(const char * func, const char * file, int line);
-  ApexProxy(apex_function_address fpointer);
-  ~ApexProxy();
-  void stop() { stopped = true; apex::stop(p); };
-};
-
-ApexProxy::ApexProxy(const char * func, const char * file, int line) : stopped(false) {
-  std::ostringstream s;
-  s << func << " [" << file << ":" << line << "]";
-  _name = std::string(s.str());
-  p = apex::start(_name);
-}
-
-ApexProxy::ApexProxy(apex_function_address fpointer) {
-  p = apex::start(fpointer);
-}
-
-ApexProxy::~ApexProxy() {
-  if (!stopped) apex::stop(p);
-};
-
 inline int foo (int i) {
   int j;
   int dummy = 1;
@@ -62,12 +35,13 @@ void* someThread(void* tmp)
   int i = 0;
   unsigned long total = 0;
   { // only time this for loop
-    ApexProxy proxy = ApexProxy((apex_function_address)someThread);
+    apex::profiler * st = apex::start((apex_function_address)someThread);
     for (i = 0 ; i < ITERATIONS ; i++) {
         apex::profiler * p = apex::start((apex_function_address)foo);
         total += foo(i);
         apex::stop(p);
     }
+    apex::stop(st);
   }
 #if defined (__APPLE__)
   printf("%lu computed %lu (timed)\n", (unsigned long)pthread_self(), total);
@@ -75,7 +49,7 @@ void* someThread(void* tmp)
   printf("%u computed %lu (timed)\n", (unsigned int)pthread_self(), total);
 #endif
   apex::exit_thread();
-  return NULL;
+  return (void*)total;
 }
 
 void* someUntimedThread(void* tmp)
@@ -85,10 +59,11 @@ void* someUntimedThread(void* tmp)
   int i = 0;
   unsigned long total = 0;
   { // only time this for loop
-    ApexProxy proxy = ApexProxy((apex_function_address)someUntimedThread);
+    apex::profiler * sut = apex::start((apex_function_address)someUntimedThread);
     for (i = 0 ; i < ITERATIONS ; i++) {
         total += foo(i);
     }
+    apex::stop(sut);
   }
 #if defined (__APPLE__)
   printf("%lu computed %lu (untimed)\n", (unsigned long)pthread_self(), total);
@@ -96,7 +71,7 @@ void* someUntimedThread(void* tmp)
   printf("%u computed %lu (untimed)\n", (unsigned int)pthread_self(), total);
 #endif
   apex::exit_thread();
-  return NULL;
+  return (void*)total;
 }
 
 
@@ -110,7 +85,7 @@ int main(int argc, char **argv)
   apex::set_node_id(0);
   sleep(1); // if we don't sleep, the proc_read thread won't have time to read anything.
 
-  ApexProxy proxy = ApexProxy((apex_function_address)main);
+  apex::profiler * m = apex::start((apex_function_address)main);
   printf("PID of this process: %d\n", getpid());
   std::cout << "Expecting " << numthreads << " threads." << std::endl;
   pthread_t * thread = (pthread_t*)(malloc(sizeof(pthread_t) * numthreads));
@@ -125,7 +100,7 @@ int main(int argc, char **argv)
   for (i = 0 ; i < numthreads ; i++) {
     pthread_join(thread[i], NULL);
   }
-  proxy.stop();
+  apex::stop(m);
   apex::finalize();
   apex_profile * without = apex::get_profile((apex_function_address)&someUntimedThread);
   apex_profile * with = apex::get_profile((apex_function_address)&someThread);

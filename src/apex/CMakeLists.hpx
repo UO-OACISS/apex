@@ -128,7 +128,6 @@ set(apex_headers
     apex.hpp
     apex_api.hpp
     apex_types.h
-    apex_config.h
     apex_export.h
     apex_api.hpp
     apex_options.hpp
@@ -143,8 +142,8 @@ set(apex_headers
     thread_instance.hpp
     apex_policies.h
     ${PROC_HEADER})
+    #apex_config.h
     #udp_client.hpp
-
 
 set(apex_sources
     apex.cpp
