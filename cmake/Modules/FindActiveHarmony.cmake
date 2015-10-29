@@ -35,9 +35,8 @@ if(NOT ACTIVEHARMONY_FOUND)
     URL http://www.dyninst.org/sites/default/files/downloads/harmony/ah-4.5.tar.gz
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/activeharmony-4.5
     CONFIGURE_COMMAND ""
-    BUILD_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/activeharmony-4.5/src/project_activeharmony && make CFLAGS=-O3
-    # INSTALL_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/activeharmony-4.5/src/project_activeharmony && make install PREFIX=${CMAKE_CURRENT_BINARY_DIR}/activeharmony-4.5
-    INSTALL_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/activeharmony-4.5/src/project_activeharmony && make install PREFIX=${CMAKE_INSTALL_PREFIX}
+    BUILD_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/activeharmony-4.5/src/project_activeharmony && make MPICC=mpicc_disabled CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} CFLAGS=${CMAKE_C_FLAGS} CXXFLAGS=${CMAKE_CXX_FLAGS} LDFLAGS=${CMAKE_C_FLAGS}
+    INSTALL_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/activeharmony-4.5/src/project_activeharmony && make MPICC=mpicc_disabled CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} CFLAGS=${CMAKE_C_FLAGS} CXXFLAGS=${CMAKE_CXX_FLAGS} LDFLAGS=${CMAKE_C_FLAGS} install PREFIX=${CMAKE_INSTALL_PREFIX}
   )
   set(ACTIVEHARMONY_ROOT ${CMAKE_INSTALL_PREFIX})
   ExternalProject_Get_Property(project_activeharmony install_dir)
