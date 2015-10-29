@@ -575,7 +575,7 @@ void ProcData::read_proc(void) {
   while(!proc_done) {
     // sleep until next time
     std::unique_lock<std::mutex> lk(cv_m);
-#ifdef __INTEL_COMPILER
+#if defined(__INTEL_COMPILER) && (__INTEL_COMPILER < 1500) 
     // for some reason, the Intel compiler didn't implement std::cv_status in a normal way.
     // for intel 15, it is in the tbb::interface5 namespace.
     // enum cv_status { no_timeout, timeout }; 
