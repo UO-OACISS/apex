@@ -28,7 +28,16 @@
 #include "udp_client.hpp"
 #endif
 #include <boost/functional/hash.hpp>
+
+// These two are needed by concurrent queue - not defined by Intel Mic support.
+#ifndef ATOMIC_BOOL_LOCK_FREE
+#define ATOMIC_BOOL_LOCK_FREE      __GCC_ATOMIC_BOOL_LOCK_FREE
+#endif
+#ifndef ATOMIC_POINTER_LOCK_FREE
+#define ATOMIC_POINTER_LOCK_FREE   __GCC_ATOMIC_POINTER_LOCK_FREE
+#endif
 #include "concurrentqueue/concurrentqueue.h"
+
 #include "semaphore.hpp"
 #include "task_identifier.hpp"
 
