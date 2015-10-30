@@ -366,7 +366,7 @@ namespace apex {
     cout << "Worker Threads observed: " << num_worker_threads << endl;
     cout << "Available CPU time: " << total_main << endl;
     map<apex_function_address, profile*>::const_iterator it;
-    cout << "Action                         :  #calls  |  minimum |    mean  |  maximum |   total  |  stddev  |  \% total  " << endl;
+    cout << "Action                         :  #calls  |  minimum |    mean  |  maximum |   total  |  stddev  |  % total  " << endl;
     cout << "------------------------------------------------------------------------------------------------------------" << endl;
     double total_accumulated = 0.0;
     for(it = address_map.begin(); it != address_map.end(); it++) {
@@ -504,10 +504,11 @@ namespace apex {
     }
     cout << " --n/a--   " ;
     if (idle_rate < 0.0) {
-      cout << " --n/a--   " ;
+      cout << " --n/a--   " << endl;
     } else {
       cout << FORMAT_PERCENT % ((idle_rate/total_main)*100) << endl;
     }
+    cout << "------------------------------------------------------------------------------------------------------------" << endl;
   }
 
   void fix_name(string& in_name) {
