@@ -183,6 +183,8 @@ if(APEX_WITH_ACTIVEHARMONY)
     set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${ACTIVEHARMONY_LIBRARY_DIR})
     add_definitions(-DAPEX_HAVE_ACTIVEHARMONY)
     hpx_libraries(${ACTIVEHARMONY_LIBRARIES})
+else()
+    add_custom_target(project_activeharmony)
 endif()
 
 find_package(RCR)
