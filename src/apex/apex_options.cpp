@@ -6,11 +6,31 @@
 #include "apex_options.hpp"
 #include "apex.hpp"
 #include "apex_config.h"
+#include <stdlib.h>
 #include <iostream>
+#include <fstream>
+#include <boost/algorithm/string.hpp> 
 
 namespace apex
 {
+    static const std::string config_file_name = "apex.conf";
+
     apex_options::apex_options(void) {
+
+        std::ifstream conf_file(config_file_name, std::ifstream::in);
+        if(conf_file.good()) {
+            std::string line;
+            while(!conf_file.eof()) {
+                conf_file >> line;
+                std::vector<std::string> parts;
+                boost::split(parts, line, boost::is_any_of("="));
+                if(parts.size() == 2) {
+                   std::cerr << "Read: " << parts[0] << " = " << parts[1] << std::endl;
+                   setenv(parts[0].c_str(), parts[1].c_str(), 0);
+                }
+            }
+        }
+
         char* option = NULL;
 // getenv is not thread-safe, but the constructor for this static singleton is.
 #define apex_macro(name, member_variable, type, default_value) \
