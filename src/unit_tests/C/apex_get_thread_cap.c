@@ -11,7 +11,7 @@
 #define MAX(a,b) ((a) > (b) ? a : b)
 #define MIN(a,b) ((a) < (b) ? a : b)
 
-#define NUM_THREADS 48
+#define NUM_THREADS 8
 #define ITERATIONS 250
 #define SLEEPY_TIME 10000 // 10,000
 
