@@ -25,7 +25,6 @@ namespace apex
                 std::vector<std::string> parts;
                 boost::split(parts, line, boost::is_any_of("="));
                 if(parts.size() == 2) {
-                   std::cerr << "Read: " << parts[0] << " = " << parts[1] << std::endl;
                    setenv(parts[0].c_str(), parts[1].c_str(), 0);
                 }
             }
