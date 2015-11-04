@@ -23,12 +23,12 @@ The process for building APEX is:
 
 1) Get the code::
 
-    wget https://github.com/khuck/xpress-apex/archive/v0.1-beta.tar.gz
-    tar -xvzf v0.1-beta.tar.gz
+    wget https://github.com/khuck/xpress-apex/archive/v0.1.tar.gz
+    tar -xvzf v0.1.tar.gz
 
 2) Enter the repo directory, make a build directory::
 
-      cd xpress-apex-0.1-beta
+      cd xpress-apex-0.1
       mkdir build
       cd build
 
