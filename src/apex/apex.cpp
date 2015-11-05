@@ -186,6 +186,7 @@ void apex::_initialize()
     this->the_profiler_listener = new profiler_listener();
     listeners.push_back(the_profiler_listener);
 #ifdef APEX_HAVE_TAU
+    initialize_worker_thread_for_TAU();
     if (apex_options::use_tau())
     {
         listeners.push_back(new tau_listener());

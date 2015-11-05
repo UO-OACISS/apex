@@ -239,7 +239,7 @@ extern "C" void RELEASE_FUNC (ompt_wait_id_t waitid) { \
 APEX_OMPT_WAIT_ACQUIRE_RELEASE(my_wait_atomic,my_acquired_atomic,my_release_atomic,"OpenMP_ATOMIC_REGION_WAIT","OpenMP_ATOMIC_REGION",OMPT_WAIT_ACQ_ATOMIC)
 APEX_OMPT_WAIT_ACQUIRE_RELEASE(my_wait_ordered,my_acquired_ordered,my_release_ordered,"OpenMP_ORDERED_REGION_WAIT","OpenMP_ORDERED_REGION",OMPT_WAIT_ACQ_ORDERED)
 APEX_OMPT_WAIT_ACQUIRE_RELEASE(my_wait_critical,my_acquired_critical,my_release_critical,"OpenMP_CRITICAL_REGION_WAIT","OpenMP_CRITICAL_REGION",OMPT_WAIT_ACQ_CRITICAL)
-APEX_OMPT_WAIT_ACQUIRE_RELEASE(my_wait_lock,my_acquired_lock,my_release_lock,"OpenMP_LOCK_WAIT","OpenMP_LOCK",OMPT_WAIT_ACQ_LOCK)
+//APEX_OMPT_WAIT_ACQUIRE_RELEASE(my_wait_lock,my_acquired_lock,my_release_lock,"OpenMP_LOCK_WAIT","OpenMP_LOCK",OMPT_WAIT_ACQ_LOCK)
 //APEX_OMPT_WAIT_ACQUIRE_RELEASE(my_wait_nest_lock,my_acquired_nest_lock,my_release_nest_lock,"OpenMP_LOCK_WAIT","OpenMP_LOCK",OMPT_WAIT_ACQ_NEST_LOCK)
 
 #undef APEX_OMPT_WAIT_ACQUIRE_RELEASE
@@ -377,19 +377,19 @@ inline int __ompt_initialize() {
   CHECK(ompt_event_control, my_control, "event_control");
   CHECK(ompt_event_runtime_shutdown, my_shutdown, "runtime_shutdown");
 
-  CHECK(ompt_event_wait_lock, my_wait_lock, "wait_lock");
+  //CHECK(ompt_event_wait_lock, my_wait_lock, "wait_lock");
   //CHECK(ompt_event_wait_nest_lock, my_wait_nest_lock, "wait_nest_lock");
   CHECK(ompt_event_wait_critical, my_wait_critical, "wait_critical");
   CHECK(ompt_event_wait_atomic, my_wait_atomic, "wait_atomic");
   CHECK(ompt_event_wait_ordered, my_wait_ordered, "wait_ordered");
 
-  CHECK(ompt_event_acquired_lock, my_acquired_lock, "acquired_lock");
+  //CHECK(ompt_event_acquired_lock, my_acquired_lock, "acquired_lock");
   //CHECK(ompt_event_acquired_nest_lock, my_acquired_nest_lock, "acquired_nest_lock");
   CHECK(ompt_event_acquired_critical, my_acquired_critical, "acquired_critical");
   CHECK(ompt_event_acquired_atomic, my_acquired_atomic, "acquired_atomic");
   CHECK(ompt_event_acquired_ordered, my_acquired_ordered, "acquired_ordered");
 
-  CHECK(ompt_event_release_lock, my_release_lock, "release_lock");
+  //CHECK(ompt_event_release_lock, my_release_lock, "release_lock");
   //CHECK(ompt_event_release_nest_lock, my_release_nest_lock, "release_nest_lock");
   CHECK(ompt_event_release_critical, my_release_critical, "release_critical");
   CHECK(ompt_event_release_atomic, my_release_atomic, "release_atomic");
@@ -419,10 +419,16 @@ inline int __ompt_initialize() {
   return 1;
 }
 
-extern "C" int ompt_initialize(ompt_function_lookup_t lookup, const char *runtime_version, unsigned int ompt_version) {
+extern "C" {
+
+void ompt_initialize(ompt_function_lookup_t lookup, const char *runtime_version, unsigned int ompt_version) {
   APEX_UNUSED(lookup);
   APEX_UNUSED(runtime_version);
   APEX_UNUSED(ompt_version);
   ompt_set_callback = (ompt_set_callback_t) lookup("ompt_set_callback");
-  return __ompt_initialize();
+  __ompt_initialize();
 }
+
+ompt_initialize_t ompt_tool() { return ompt_initialize; }
+
+}; // extern "C"

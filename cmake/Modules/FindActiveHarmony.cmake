@@ -16,7 +16,7 @@ find_path(ACTIVEHARMONY_INCLUDE_DIR NAMES hclient.h
     HINTS ${ACTIVEHARMONY_ROOT}/* $ENV{ACTIVEHARMONY_ROOT}/*)
 
 find_library(ACTIVEHARMONY_LIBRARY NAMES harmony
-    HINTS ${ACTIVEHARMONY_ROOT}/* $ENV{ACTIVEHARMONY_ROOT}/*)
+    HINTS ${ACTIVEHARMONY_ROOT}/* $ENV{ACTIVEHARMONY_ROOT}/* NO_DEFAULT_PATH)
 
 include(FindPackageHandleStandardArgs)
 # handle the QUIETLY and REQUIRED arguments and set ACTIVEHARMONY_FOUND to TRUE
@@ -27,7 +27,7 @@ find_package_handle_standard_args(ACTIVEHARMONY  DEFAULT_MSG
 mark_as_advanced(ACTIVEHARMONY_INCLUDE_DIR ACTIVEHARMONY_LIBRARY)
 
 # --------- DOWNLOAD AND BUILD THE EXTERNAL PROJECT! ------------ #
-if(NOT ACTIVEHARMONY_FOUND)
+if(NOT ACTIVEHARMONY_FOUND AND NOT APPLE)
   message("Attention: Downloading and Building ActiveHarmony as external project!")
   message(INFO " A working internet connection is required!")
   include(ExternalProject)
