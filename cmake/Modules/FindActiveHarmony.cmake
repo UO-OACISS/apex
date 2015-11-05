@@ -27,7 +27,7 @@ find_package_handle_standard_args(ACTIVEHARMONY  DEFAULT_MSG
 mark_as_advanced(ACTIVEHARMONY_INCLUDE_DIR ACTIVEHARMONY_LIBRARY)
 
 # --------- DOWNLOAD AND BUILD THE EXTERNAL PROJECT! ------------ #
-if(NOT ACTIVEHARMONY_FOUND)
+if(NOT ACTIVEHARMONY_FOUND AND NOT APPLE)
   message("Attention: Downloading and Building ActiveHarmony as external project!")
   message(INFO " A working internet connection is required!")
   include(ExternalProject)
