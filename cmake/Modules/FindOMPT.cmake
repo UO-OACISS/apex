@@ -20,8 +20,9 @@ set(OMPT_DEFINITIONS ${PC_OMPT_CFLAGS_OTHER})
 find_path(OMPT_INCLUDE_DIR ompt.h
           HINTS ${PC_OMPT_INCLUDEDIR} ${PC_OMPT_INCLUDE_DIRS} ${OMPT_ROOT}/include)
 
-find_library(OMPT_LIBRARY NAMES iomp5
-             HINTS ${PC_OMPT_LIBDIR} ${PC_OMPT_LIBRARY_DIRS} ${OMPT_ROOT}/lib)
+find_library(OMPT_LIBRARY NAMES gomp iomp5
+             HINTS ${PC_OMPT_LIBDIR} ${PC_OMPT_LIBRARY_DIRS} ${OMPT_ROOT}/lib 
+			 ${OMPT_ROOT}/lib/* NO_DEFAULT_PATH)
 
 include(FindPackageHandleStandardArgs)
 # handle the QUIETLY and REQUIRED arguments and set OMPT_FOUND to TRUE
