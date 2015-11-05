@@ -20,15 +20,31 @@ using namespace std;
 
 namespace apex {
 
+void tau_listener::initialize_tau(int argc, char** argv) {
+  if (argc == 0) {
+    int _argc = 1;
+    const char *_dummy = "APEX Application";
+    char* _argv[1];
+    _argv[0] = const_cast<char*>(_dummy);
+    TAU_PROFILE_INIT(_argc, _argv);
+  } else {
+    TAU_PROFILE_INIT(argc, argv);
+  }
+  TAU_PROFILE_SET_NODE(0);
+  Tau_create_top_level_timer_if_necessary();
+}
+
 tau_listener::tau_listener (void) : _terminate(false) {
 }
 
 void tau_listener::on_startup(startup_event_data &data) {
+/*
   if (!_terminate) {
       TAU_PROFILE_INIT(data.argc, data.argv);
       TAU_PROFILE_SET_NODE(0);
       Tau_create_top_level_timer_if_necessary();
   }
+  */
   return;
 }
 
@@ -51,7 +67,7 @@ void tau_listener::on_new_node(node_event_data &data) {
 
 void tau_listener::on_new_thread(new_thread_event_data &data) {
   if (!_terminate) {
-      TAU_REGISTER_THREAD();
+      //TAU_REGISTER_THREAD();
       Tau_create_top_level_timer_if_necessary();
       // set the thread id for future listeners to this event
       data.thread_id = TAU_PROFILE_GET_THREAD();

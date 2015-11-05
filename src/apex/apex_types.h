@@ -14,6 +14,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <unistd.h>
 
 /** The address of a C++ object in APEX.
  * Not useful for the caller that gets it back, but required
@@ -221,7 +222,7 @@ typedef int (*apex_policy_function)(apex_context const context);
     macro (APEX_PROC_SELF_STATUS, use_proc_self_status, bool, false) \
     macro (APEX_PROC_STAT, use_proc_stat, bool, true) \
     macro (APEX_THROTTLE_CONCURRENCY, throttle_concurrency, bool, false) \
-    macro (APEX_THROTTLING_MAX_THREADS, throttling_max_threads, int, 48) \
+    macro (APEX_THROTTLING_MAX_THREADS, throttling_max_threads, int, sysconf( _SC_NPROCESSORS_ONLN )) \
     macro (APEX_THROTTLING_MIN_THREADS, throttling_min_threads, int, 1) \
     macro (APEX_THROTTLE_ENERGY, throttle_energy, bool, false) \
     macro (APEX_THROTTLING_MAX_WATTS, throttling_max_watts, int, 300) \

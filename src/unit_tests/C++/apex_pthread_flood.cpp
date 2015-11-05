@@ -99,14 +99,14 @@ int main(int argc, char **argv)
   std::atomic<int> thread_count(0);
   for (unsigned f = 0 ; f < FLOOD_LEVEL ; f++) {
 #ifdef APEX_HAVE_TAU
-    if (thread_count >= 127) { break; }
+    if (thread_count >= 120) { break; }
 #endif
     unsigned i;
     for (i = 0 ; i < numthreads ; i++) {
         pthread_create(&(thread[i]), NULL, someThread, &(results[i]));
         thread_count++;
 #ifdef APEX_HAVE_TAU
-        if (thread_count >= 127) { break; }
+        if (thread_count >= 120) { break; }
 #endif
     }
     unsigned newbreak = i;
