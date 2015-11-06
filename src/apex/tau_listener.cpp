@@ -67,7 +67,7 @@ void tau_listener::on_new_node(node_event_data &data) {
 
 void tau_listener::on_new_thread(new_thread_event_data &data) {
   if (!_terminate) {
-      //TAU_REGISTER_THREAD();
+      TAU_REGISTER_THREAD();
       Tau_create_top_level_timer_if_necessary();
       // set the thread id for future listeners to this event
       data.thread_id = TAU_PROFILE_GET_THREAD();
