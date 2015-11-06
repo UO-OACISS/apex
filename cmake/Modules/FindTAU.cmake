@@ -25,12 +25,12 @@ find_path(TAU_INCLUDE_DIR TAU.h
           PATH_SUFFIXES TAU )
 
 if (${APPLE})
-    find_library(TAU_LIBRARY NAMES tau${TAU_OPTIONS} TAUsh${TAU_OPTIONS} TAU 
+    find_library(TAU_LIBRARY NAMES TAUsh${TAU_OPTIONS} tau${TAU_OPTIONS} TAU 
              HINTS ${TAU_ROOT}/apple/lib)
-         find_path(TAU_LIBRARY_DIR NAMES tau${TAU_OPTIONS}.a TAUsh${TAU_OPTIONS}.so libTAU.dylib
+         find_path(TAU_LIBRARY_DIR NAMES TAUsh${TAU_OPTIONS}.so tau${TAU_OPTIONS}.a libTAU.dylib
              HINTS ${TAU_ROOT}/apple/lib)
 else()
-    find_library(TAU_LIBRARY NAMES tau${TAU_OPTIONS} TAUsh${TAU_OPTIONS} TAU 
+    find_library(TAU_LIBRARY NAMES TAUsh${TAU_OPTIONS} tau${TAU_OPTIONS} TAU 
       HINTS ${TAU_ROOT}/${TAU_ARCH}/lib ${TAU_ROOT}/${CMAKE_SYSTEM_PROCESSOR}/lib  ${TAU_ROOT}/*/lib )
   find_path(TAU_LIBRARY_DIR NAMES tau${TAU_OPTIONS}.a TAUsh${TAU_OPTIONS}.so libTAU.so libTAU.a libTAU.dylib
       HINTS ${TAU_ROOT}/${TAU_ARCH}/lib ${TAU_ROOT}/${CMAKE_SYSTEM_PROCESSOR}/lib  ${TAU_ROOT}/*/lib )
