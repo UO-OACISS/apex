@@ -202,9 +202,14 @@ typedef int (*apex_policy_function)(apex_context const context);
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 #ifdef APEX_HAVE_TAU
-#define APEX_TAU_DEFAULT true
+    #ifdef APEX_HAVE_HPX3
+        // don't enable TAU by default for HPX.
+        #define APEX_TAU_DEFAULT false
+    #else
+        #define APEX_TAU_DEFAULT true
+    #endif
 #else
-#define APEX_TAU_DEFAULT false
+    #define APEX_TAU_DEFAULT false
 #endif
 
 #define FOREACH_APEX_OPTION(macro) \
