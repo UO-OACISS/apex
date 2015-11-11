@@ -189,7 +189,6 @@ void apex::_initialize()
     this->the_profiler_listener = new profiler_listener();
     listeners.push_back(the_profiler_listener);
 #ifdef APEX_HAVE_TAU
-    initialize_worker_thread_for_TAU();
     if (apex_options::use_tau())
     {
         listeners.push_back(new tau_listener());
@@ -273,9 +272,9 @@ int initialize_worker_thread_for_TAU(void) {
 #ifdef APEX_HAVE_TAU
   if (apex_options::use_tau())
   {
-    if (thread_instance::get_id() > 0) {
+    //if (thread_instance::get_id() > 0) {
       TAU_REGISTER_THREAD();
-    }
+    //}
     Tau_create_top_level_timer_if_necessary();
   }
 #endif
