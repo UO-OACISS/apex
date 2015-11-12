@@ -57,13 +57,13 @@ policy_handler::policy_handler (uint64_t period_microseconds) : handler(period_m
 
 bool policy_handler::_handler(void) {
   if (!_handler_initialized) {
-      initialize_worker_thread_for_TAU();
+      //initialize_worker_thread_for_TAU();
       _handler_initialized = true;
   }
   if (_terminate) return true;
 #ifdef APEX_HAVE_TAU
   if (apex_options::use_tau()) {
-    TAU_START("policy_handler::_handler");
+    //TAU_START("policy_handler::_handler");
   }
 #endif
   periodic_event_data data;
@@ -71,7 +71,7 @@ bool policy_handler::_handler(void) {
   this->_reset();
 #ifdef APEX_HAVE_TAU
   if (apex_options::use_tau()) {
-    TAU_STOP("policy_handler::_handler");
+    //TAU_STOP("policy_handler::_handler");
   }
 #endif
   return true;
