@@ -1,5 +1,5 @@
 
-add_subdirectory (PthreadWrapper)
+#add_subdirectory (PthreadWrapper)
 add_subdirectory (DemoCpp)
 add_subdirectory (DemoC)  
 # Add a test program which actually uses the CPU
