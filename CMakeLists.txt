@@ -212,7 +212,7 @@ else()
 endif()
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
-find_package(Boost 1.54.0 REQUIRED COMPONENTS system thread timer chrono regex program_options)
+find_package(Boost 1.54.0 REQUIRED COMPONENTS system thread timer chrono regex)
 
 if(Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
