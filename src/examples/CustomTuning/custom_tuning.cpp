@@ -28,12 +28,15 @@ int main (int argc, char ** argv) {
     inputs[1] = &param_2;
     my_custom_event = apex::register_custom_event("Adjust Params");
     std::function<double(void)> func = []()->double{ return value; }; 
-    apex::setup_custom_tuning(func, my_custom_event, num_inputs, 
-            inputs, mins, maxs, steps);
+    apex_tuning_session_handle session =
+        apex::setup_custom_tuning(func, my_custom_event, num_inputs, inputs, mins, maxs, steps);
 #else
     std::cerr << "Active Harmony not enabled" << std::endl;
 #endif
     std::cout << "Running custom tuning test" << std::endl;
+
+    std::cerr << "Tuning session handle: " << session << std::endl;
+
 
     for (int i = 0 ; i < num_iterations ; i++) {
         value = (10 * param_1) - (2 * param_2);

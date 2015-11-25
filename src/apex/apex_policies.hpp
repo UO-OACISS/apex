@@ -19,6 +19,7 @@ extern bool apex_energyThrottling;   // Try to save power while throttling
 
 typedef enum {INITIAL_STATE, BASELINE, INCREASE, DECREASE, NO_CHANGE} last_action_t;
 
+typedef uint32_t apex_tuning_session_handle;
 
 #define  APEX_HIGH_POWER_LIMIT  220.0  // system specific cutoff to identify busy systems, WATTS
 #define  APEX_LOW_POWER_LIMIT   200.0  // system specific cutoff to identify busy systems, WATTS
@@ -28,7 +29,7 @@ typedef enum {INITIAL_STATE, BASELINE, INCREASE, DECREASE, NO_CHANGE} last_actio
 #define MAX_WINDOW_SIZE 3
 
 struct apex_tuning_session {
-    uint32_t id;
+    apex_tuning_session_handle id;
 
 #ifdef APEX_HAVE_ACTIVEHARMONY
     hdesc_t * hdesc;
@@ -71,6 +72,8 @@ struct apex_tuning_session {
     // variables for active harmony general tuning
     long int *__ah_inputs[10]; // more than 10 would be pointless
     int __num_ah_inputs;
+
+    apex_tuning_session(apex_tuning_session_handle h) : id{h} {};
 };
 
 

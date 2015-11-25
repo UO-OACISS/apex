@@ -103,9 +103,10 @@ bool concurrency_handler::_handler(void) {
   }
   _states.push_back(counts);
   _thread_cap_samples.push_back(get_thread_cap());
-  for(auto param : get_tunable_params()) {
-    _tunable_param_samples[param.first].push_back(*param.second);
-  }
+  // TODO: FIXME multiple tuning sessions
+  //for(auto param : get_tunable_params()) {
+  //  _tunable_param_samples[param.first].push_back(*param.second);
+  //}
   int power = current_power_high();
   _power_samples.push_back(power);
   this->_reset();

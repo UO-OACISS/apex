@@ -589,7 +589,7 @@ APEX_EXPORT int setup_throughput_tuning(apex_function_address the_address,
  \param steps An array of step values for each input
  \return APEX_NOERROR on success, otherwise an error code.
  */
-APEX_EXPORT int setup_custom_tuning(std::function<double(void)> metric, 
+APEX_EXPORT apex_tuning_session_handle setup_custom_tuning(std::function<double(void)> metric, 
         apex_event_type event_type, int num_inputs, long ** inputs, long * mins,
         long * maxs, long * steps);
 
@@ -654,7 +654,7 @@ APEX_EXPORT void set_thread_cap(int new_cap);             // for thread throttli
  while the second is a pointer to its value.
 
  */
-APEX_EXPORT std::vector<std::pair<std::string,long*>> & get_tunable_params();
+APEX_EXPORT std::vector<std::pair<std::string,long*>> & get_tunable_params(apex_tuning_session_handle h);
 
 /**
  \brief Print out all configuration settings for APEX.
