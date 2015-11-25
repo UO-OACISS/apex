@@ -41,6 +41,8 @@ struct apex_tuning_session {
     boost::atomic<bool> apex_energy_init{false};
     boost::atomic<bool> apex_timer_init{false};
 
+    bool converged_message = false;
+
     // variables related to power throttling
     double max_watts = APEX_HIGH_POWER_LIMIT;
     double min_watts = APEX_LOW_POWER_LIMIT;

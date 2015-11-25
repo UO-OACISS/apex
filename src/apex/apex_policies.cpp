@@ -584,11 +584,10 @@ int apex_throughput_tuning_policy(apex_context const context) {
 
 int apex_custom_tuning_policy(shared_ptr<apex_tuning_session> tuning_session, apex_context const context) {
     APEX_UNUSED(context);
-    static bool _converged_message = false;
     if (harmony_converged(tuning_session->hdesc)) {
-        if (!_converged_message) {
-            _converged_message = true;
-            cout << "Tuning has converged." << endl;
+        if (!tuning_session->converged_message) {
+            tuning_session->converged_message = true;
+            cout << "Tuning has converged for session " << tuning_session->id << "." << endl;
         }
         return APEX_NOERROR;
     }
