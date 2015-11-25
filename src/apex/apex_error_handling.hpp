@@ -50,7 +50,7 @@ static void apex_custom_signal_handler(int sig) {
    // std::cerr << apex::lookup_address((uintptr_t)trace[i], false) << std::endl;
 // #else
    char syscom[1024];
-   sprintf(syscom,"addr2line -f -p -i -e %s %p", exe, trace[i]);
+   sprintf(syscom,"addr2line -f -i -e %s %p", exe, trace[i]);
    system(syscom);
 // #endif
   }

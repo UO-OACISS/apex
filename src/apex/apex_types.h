@@ -14,6 +14,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <unistd.h>
 
 /** The address of a C++ object in APEX.
  * Not useful for the caller that gets it back, but required
@@ -206,9 +207,14 @@ typedef void* apex_tuning_session_handle;
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 #ifdef APEX_HAVE_TAU
-#define APEX_TAU_DEFAULT true
+    #ifdef APEX_HAVE_HPX3
+        // don't enable TAU by default for HPX.
+        #define APEX_TAU_DEFAULT false
+    #else
+        #define APEX_TAU_DEFAULT true
+    #endif
 #else
-#define APEX_TAU_DEFAULT false
+    #define APEX_TAU_DEFAULT false
 #endif
 
 #define FOREACH_APEX_OPTION(macro) \
@@ -226,7 +232,7 @@ typedef void* apex_tuning_session_handle;
     macro (APEX_PROC_SELF_STATUS, use_proc_self_status, bool, false) \
     macro (APEX_PROC_STAT, use_proc_stat, bool, true) \
     macro (APEX_THROTTLE_CONCURRENCY, throttle_concurrency, bool, false) \
-    macro (APEX_THROTTLING_MAX_THREADS, throttling_max_threads, int, 48) \
+    macro (APEX_THROTTLING_MAX_THREADS, throttling_max_threads, int, sysconf( _SC_NPROCESSORS_ONLN )) \
     macro (APEX_THROTTLING_MIN_THREADS, throttling_min_threads, int, 1) \
     macro (APEX_THROTTLE_ENERGY, throttle_energy, bool, false) \
     macro (APEX_THROTTLING_MAX_WATTS, throttling_max_watts, int, 300) \

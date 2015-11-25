@@ -178,6 +178,13 @@ void apex::_initialize()
 #ifdef APEX_HAVE_MSR
     init_msr();
 #endif
+#ifdef APEX_HAVE_TAU
+    if (apex_options::use_tau())
+    {
+        // before spawning any other threads, initialize TAU.
+        tau_listener::initialize_tau(m_argc, m_argv);
+    }
+#endif
     // this is always the first listener!
     this->the_profiler_listener = new profiler_listener();
     listeners.push_back(the_profiler_listener);
@@ -263,8 +270,13 @@ hpx::runtime * apex::get_hpx_runtime(void) {
 
 int initialize_worker_thread_for_TAU(void) {
 #ifdef APEX_HAVE_TAU
-  TAU_REGISTER_THREAD();
-  Tau_create_top_level_timer_if_necessary();
+  if (apex_options::use_tau())
+  {
+    //if (thread_instance::get_id() > 0) {
+      TAU_REGISTER_THREAD();
+    //}
+    Tau_create_top_level_timer_if_necessary();
+  }
 #endif
   return 0;
 }
@@ -278,7 +290,7 @@ void init(const char * thread_name)
     const char *dummy = "APEX Application";
     char* argv[1];
     argv[0] = const_cast<char*>(dummy);
-    apex* instance = apex::instance(); // get/create the Apex static instance
+    apex* instance = apex::instance(argc, argv); // get/create the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
     startup_event_data data(argc, argv);
     if (_notify_listeners) {

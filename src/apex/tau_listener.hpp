@@ -18,6 +18,7 @@ private:
 public:
   tau_listener (void);
   ~tau_listener (void) { };
+  static void initialize_tau(int argc, char** avgv);
   void on_startup(startup_event_data &data);
   void on_shutdown(shutdown_event_data &data);
   void on_new_node(node_event_data &data);

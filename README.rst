@@ -11,7 +11,7 @@ Option 1: Configuring and building APEX with bootstrap scripts:
 
 copy and modify ./bootstrap-configs/bootstrap-$arch.sh as necessary, and run it.
 
-Option 2: Configuring and building APEX with CMake directly:
+Option 2: Configuring and building APEX with CMake directly (recommended):
 ============================================================
 
 APEX is built with CMake. The minimum CMake settings needed for APEX are:
@@ -23,12 +23,12 @@ The process for building APEX is:
 
 1) Get the code::
 
-    wget https://github.com/khuck/xpress-apex/archive/v0.1-beta.tar.gz
-    tar -xvzf v0.1-beta.tar.gz
+    wget https://github.com/khuck/xpress-apex/archive/v0.1.tar.gz
+    tar -xvzf v0.1.tar.gz
 
 2) Enter the repo directory, make a build directory::
 
-      cd xpress-apex-0.1-beta
+      cd xpress-apex-0.1
       mkdir build
       cd build
 
@@ -46,31 +46,40 @@ The process for building APEX is:
 other CMake settings, depending on your needs/wants:
 ----------------------------------------------------
 
-* -DUSE_PAPI=TRUE or FALSE 
-* -DPAPI_ROOT=some path to PAPI, or set the PAPI_ROOT environment variable.
-
 * -DUSE_ACTIVEHARMONY=TRUE or FALSE
 * -DACTIVEHARMONY_ROOT=some path to ActiveHarmony, or set the ACTIVEHARMONY_ROOT environment variable.
+  It should be noted that if ActiveHarmony is not specified and -DUSE_ACTIVEHARMONY is TRUE or not set, APEX
+  will download and build ActiveHarmony as a CMake project. To disable ActiveHarmony entirely, specify
+  -DUSE_ACTIVEHARMONY=FALSE.
 
-* -DUSE_OMPT=TRUE or FALSE 
+* -DUSE_OMPT=TRUE or FALSE
 * -DOMPT_ROOT=path to OMPT, or set the OMPT_ROOT environment variable.
 
 * -DUSE_BFD=TRUE or FALSE
 * -DBFD_ROOT=path to Binutils, or set the BFD_ROOT environment variable.
 
-* -DUSE_LM_SENSORS=TRUE or FALSE
-
 * -DUSE_TAU=TRUE or FALSE
 * -DTAU_ROOT=path to TAU, or set the TAU_ROOT environment variable.
+* -DTAU_ARCH=the TAU architecture, like x86_64, craycnl, mic_linux, bgq, etc.
+* -DTAU_OPTIONS=a TAU configuration with thread support, like "-pthread" or "-icpc-pthread"
 
 * -DUSE_RCR=TRUE or FALSE
 * -DRCR_ROOT=path to RCR, or set the RCR_ROOT environment variable.
 
+* -DUSE_TCMALLOC=TRUE or FALSE
+* -DTCMALLOC_ROOT=path to TCMalloc, or set the TCMALLOC_ROOT environment variable.
+
 * -DUSE_JEMALLOC=TRUE or FALSE
 * -DJEMALLOC_ROOT=path to JEMalloc, or set the JEMALLOC_ROOT environment variable.
 
-* -DBUILD_EXAMPLES=TRUE or FALSE 
-* -DBUILD_TESTS=TRUE or FALSE 
+* -DUSE_PAPI=TRUE or FALSE
+* -DPAPI_ROOT=some path to PAPI, or set the PAPI_ROOT environment variable.
+
+* -DUSE_LM_SENSORS=TRUE or FALSE
+
+* -DBUILD_EXAMPLES=TRUE or FALSE
+* -DBUILD_TESTS=TRUE or FALSE
+
 * -DUSE_MPI=TRUE or FALSE (whether to build MPI global support/examples)
 * -DMPI_C_INCLUDE_PATH=path to MPI headers
 * -DMPI_CXX_INCLUDE_PATH=path to MPI headers

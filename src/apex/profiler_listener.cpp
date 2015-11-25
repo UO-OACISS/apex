@@ -139,8 +139,12 @@ namespace apex {
     std::chrono::duration<double> time_span = 
         std::chrono::duration_cast<std::chrono::duration<double>>
            (std::chrono::CLOCK_TYPE::now() - main_timer->start);
+	int num_worker_threads = thread_instance::get_num_threads();
+#ifdef APEX_HAVE_HPX3
+    num_worker_threads = num_worker_threads - 8;
+#endif
     double total_main = time_span.count() *
-                fmin(hardware_concurrency(), thread_instance::get_num_threads());
+                fmin(hardware_concurrency(), num_worker_threads);
     double elapsed = total_main - non_idle_time;
     elapsed = elapsed > 0.0 ? elapsed : 0.0;
     profile * theprofile = new profile(elapsed, false);
@@ -153,8 +157,12 @@ namespace apex {
     std::chrono::duration<double> time_span = 
         std::chrono::duration_cast<std::chrono::duration<double>>
            (std::chrono::CLOCK_TYPE::now() - main_timer->start);
+	int num_worker_threads = thread_instance::get_num_threads();
+#ifdef APEX_HAVE_HPX3
+    num_worker_threads = num_worker_threads - 8;
+#endif
     double total_main = time_span.count() *
-                fmin(hardware_concurrency(), thread_instance::get_num_threads());
+                fmin(hardware_concurrency(), num_worker_threads);
     double elapsed = total_main - non_idle_time;
     double rate = elapsed > 0.0 ? ((elapsed/total_main)) : 0.0;
     profile * theprofile = new profile(rate, false);
@@ -301,15 +309,15 @@ namespace apex {
       // if this is a new dependency for this parent?
       if (it == task_dependencies.end()) {
           depend = new unordered_map<task_identifier, int>();
-          depend->emplace(*td->child, 1);
-          task_dependencies.emplace(*td->parent, depend);
+          (*depend)[*td->child] = 1;
+          task_dependencies[*td->parent] = depend;
       // otherwise, see if this parent has seen this child
       } else {
           depend = it->second;
           unordered_map<task_identifier, int>::const_iterator it2 = depend->find(*td->child);
           // first time for this child
           if (it2 == depend->end()) {
-              depend->emplace(*td->child, 1);
+              (*depend)[*td->child] = 1;
           // not the first time for this child
           } else {
               int tmp = it2->second;
@@ -346,15 +354,19 @@ namespace apex {
   /* At program termination, write the measurements to the screen. */
   void profiler_listener::finalize_profiles(void) {
     // our TOTAL available time is the elapsed * the number of threads, or cores
+	int num_worker_threads = thread_instance::get_num_threads();
+#ifdef APEX_HAVE_HPX3
+    num_worker_threads = num_worker_threads - 8;
+#endif
     double total_main = main_timer->elapsed() * 
-        fmin(hardware_concurrency(), thread_instance::get_num_threads());
+        fmin(hardware_concurrency(), num_worker_threads);
     // iterate over the profiles in the address map
     cout << "Elaspsed time: " << main_timer->elapsed() << endl;
     cout << "Cores detected: " << hardware_concurrency() << endl;
-    cout << "Threads observed: " << thread_instance::get_num_threads() << endl;
+    cout << "Worker Threads observed: " << num_worker_threads << endl;
     cout << "Available CPU time: " << total_main << endl;
     map<apex_function_address, profile*>::const_iterator it;
-    cout << "Action                         :  #calls  |  minimum |    mean  |  maximum |   total  |  stddev  |  \% total  " << endl;
+    cout << "Action                         :  #calls  |  minimum |    mean  |  maximum |   total  |  stddev  |  % total  " << endl;
     cout << "------------------------------------------------------------------------------------------------------------" << endl;
     double total_accumulated = 0.0;
     for(it = address_map.begin(); it != address_map.end(); it++) {
@@ -492,10 +504,11 @@ namespace apex {
     }
     cout << " --n/a--   " ;
     if (idle_rate < 0.0) {
-      cout << " --n/a--   " ;
+      cout << " --n/a--   " << endl;
     } else {
       cout << FORMAT_PERCENT % ((idle_rate/total_main)*100) << endl;
     }
+    cout << "------------------------------------------------------------------------------------------------------------" << endl;
   }
 
   void fix_name(string& in_name) {
@@ -576,8 +589,12 @@ node_color * get_node_color(double v,double vmin,double vmax)
     }
 
     // our TOTAL available time is the elapsed * the number of threads, or cores
+	int num_worker_threads = thread_instance::get_num_threads();
+#ifdef APEX_HAVE_HPX3
+    num_worker_threads = num_worker_threads - 8;
+#endif
     double total_main = main_timer->elapsed() *
-        fmin(hardware_concurrency(), thread_instance::get_num_threads());
+        fmin(hardware_concurrency(), num_worker_threads);
 
     // output nodes with  "main" [shape=box; style=filled; fillcolor="#ff0000" ];
     map<apex_function_address, profile*>::const_iterator it;
@@ -843,18 +860,6 @@ node_color * get_node_color(double v,double vmin,double vmax)
 #ifndef APEX_HAVE_HPX3
     }
 
-    size_t ignored = thequeue.size_approx();
-    if (ignored > 0) {
-      std::cerr << "Info: " << ignored << " items remaining on on the profiler_listener queue...";
-    }
-    // We might be done, but check to make sure the queue is empty
-    //while(thequeue.try_dequeue(p)) {
-    while(!_done && thequeue.try_dequeue(p)) {
-      process_profile(p, 0);
-    }
-    if (ignored > 0) {
-      std::cerr << "done." << std::endl;
-    }
     if (apex_options::use_taskgraph_output()) {
       // process the task dependencies
       while(dependency_queue.try_dequeue(td)) {
@@ -1011,6 +1016,18 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       // output to screen?
       if (apex_options::use_screen_output() && node_id == 0)
       {
+        size_t ignored = thequeue.size_approx();
+        if (ignored > 0) {
+          std::cerr << "Info: " << ignored << " items remaining on on the profiler_listener queue...";
+        }
+        // We might be done, but check to make sure the queue is empty
+        profiler* p;
+        while(thequeue.try_dequeue(p)) {
+          process_profile(p, 0);
+        }
+        if (ignored > 0) {
+          std::cerr << "done." << std::endl;
+        }
         finalize_profiles();
       }
       if (apex_options::use_taskgraph_output() && node_id == 0)

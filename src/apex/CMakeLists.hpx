@@ -128,7 +128,6 @@ set(apex_headers
     apex.hpp
     apex_api.hpp
     apex_types.h
-    apex_config.h
     apex_export.h
     apex_api.hpp
     apex_options.hpp
@@ -143,8 +142,8 @@ set(apex_headers
     thread_instance.hpp
     apex_policies.hpp
     ${PROC_HEADER})
+    #apex_config.h
     #udp_client.hpp
-
 
 set(apex_sources
     apex.cpp
@@ -184,6 +183,8 @@ if(APEX_WITH_ACTIVEHARMONY)
     set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${ACTIVEHARMONY_LIBRARY_DIR})
     add_definitions(-DAPEX_HAVE_ACTIVEHARMONY)
     hpx_libraries(${ACTIVEHARMONY_LIBRARIES})
+else()
+    add_custom_target(project_activeharmony)
 endif()
 
 find_package(RCR)

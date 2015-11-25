@@ -54,6 +54,9 @@
 #undef free
 #else
 #include <atomic>        // Requires C++11. Sorry VS2010.
+#ifdef __MIC__
+#include <boost/atomic.hpp>  // the MIC doesn't support std::atomic_thread_fence.
+#endif
 #include <cassert>
 #endif
 #include <cstdint>
@@ -1419,13 +1422,21 @@ private:
                 }
                 
                 // Aha, empty; make sure we have all other memory effects that happened before the empty flags were set
+#ifdef __MIC__
+                boost::atomic_thread_fence(boost::memory_order_acquire);
+#else
                 std::atomic_thread_fence(std::memory_order_acquire);
+#endif
                 return true;
             }
             else {
                 // Check counter
                 if (elementsCompletelyDequeued.load(std::memory_order_relaxed) == BLOCK_SIZE) {
+#ifdef __MIC__
+                boost::atomic_thread_fence(boost::memory_order_acquire);
+#else
                     std::atomic_thread_fence(std::memory_order_acquire);
+#endif
                     return true;
                 }
                 assert(elementsCompletelyDequeued.load(std::memory_order_relaxed) <= BLOCK_SIZE);
@@ -1458,7 +1469,11 @@ private:
         {
             if (context == explicit_context && BLOCK_SIZE <= EXPLICIT_BLOCK_EMPTY_COUNTER_THRESHOLD) {
                 // Set flags
+#ifdef __MIC__
+                boost::atomic_thread_fence(boost::memory_order_release);
+#else
                 std::atomic_thread_fence(std::memory_order_release);
+#endif
                 i = BLOCK_SIZE - 1 - static_cast<size_t>(i & static_cast<index_t>(BLOCK_SIZE - 1)) - count + 1;
                 for (size_t j = 0; j != count; ++j) {
                     assert(!emptyFlags[i + j].load(std::memory_order_relaxed));
@@ -1812,7 +1827,11 @@ private:
                 // read-modify-write operations are guaranteed to work on the latest value in the modification order), but
                 // unfortunately that can't be shown to be correct using only the C++11 standard.
                 // See http://stackoverflow.com/questions/18223161/what-are-the-c11-memory-ordering-guarantees-in-this-corner-case
+#ifdef __MIC__
+                boost::atomic_thread_fence(boost::memory_order_acquire);
+#else
                 std::atomic_thread_fence(std::memory_order_acquire);
+#endif
                 
                 // Increment optimistic counter, then check if it went over the boundary
                 auto myDequeueCount = this->dequeueOptimisticCount.fetch_add(1, std::memory_order_relaxed);
@@ -2082,7 +2101,11 @@ private:
             auto desiredCount = static_cast<size_t>(tail - (this->dequeueOptimisticCount.load(std::memory_order_relaxed) - overcommit));
             if (details::circular_less_than<size_t>(0, desiredCount)) {
                 desiredCount = desiredCount < max ? desiredCount : max;
+#ifdef __MIC__
+                boost::atomic_thread_fence(boost::memory_order_acquire);
+#else
                 std::atomic_thread_fence(std::memory_order_acquire);
+#endif
                 
                 auto myDequeueCount = this->dequeueOptimisticCount.fetch_add(desiredCount, std::memory_order_relaxed);
                 assert(overcommit <= myDequeueCount);
@@ -2385,7 +2408,11 @@ private:
             index_t tail = this->tailIndex.load(std::memory_order_relaxed);
             index_t overcommit = this->dequeueOvercommit.load(std::memory_order_relaxed);
             if (details::circular_less_than<index_t>(this->dequeueOptimisticCount.load(std::memory_order_relaxed) - overcommit, tail)) {
+#ifdef __MIC__
+                boost::atomic_thread_fence(boost::memory_order_acquire);
+#else
                 std::atomic_thread_fence(std::memory_order_acquire);
+#endif
                 
                 index_t myDequeueCount = this->dequeueOptimisticCount.fetch_add(1, std::memory_order_relaxed);
                 assert(overcommit <= myDequeueCount);
@@ -2608,7 +2635,11 @@ private:
             auto desiredCount = static_cast<size_t>(tail - (this->dequeueOptimisticCount.load(std::memory_order_relaxed) - overcommit));
             if (details::circular_less_than<size_t>(0, desiredCount)) {
                 desiredCount = desiredCount < max ? desiredCount : max;
+#ifdef __MIC__
+                boost::atomic_thread_fence(boost::memory_order_acquire);
+#else
                 std::atomic_thread_fence(std::memory_order_acquire);
+#endif
                 
                 auto myDequeueCount = this->dequeueOptimisticCount.fetch_add(desiredCount, std::memory_order_relaxed);
                 assert(overcommit <= myDequeueCount);
