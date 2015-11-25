@@ -34,9 +34,9 @@ set(example_programs
     apex_get_thread_cap
     apex_shutdown_throttling
     apex_pthread_flood
-    apex_fibonacci_std_async
     apex_new_task
    )
+    #apex_fibonacci_std_async
     #apex_set_thread_cap
     #apex_setup_power_cap_throttling
     #apex_setup_custom_tuning
@@ -65,9 +65,9 @@ if (OPENMP_FOUND)
   endif (PROCESSOR_COUNT)
 endif (OPENMP_FOUND)
 
-set_target_properties(apex_fibonacci_std_async_cpp PROPERTIES LINK_FLAGS "-fsplit-stack")
-target_link_libraries (apex_fibonacci_std_async_cpp apex_pthread_wrapper)        
-add_dependencies (apex_fibonacci_std_async_cpp apex_pthread_wrapper)    
+#set_target_properties(apex_fibonacci_std_async_cpp PROPERTIES LINK_FLAGS "-fsplit-stack")
+#target_link_libraries (apex_fibonacci_std_async_cpp apex_pthread_wrapper)        
+#add_dependencies (apex_fibonacci_std_async_cpp apex_pthread_wrapper)    
 
 if(APPLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPTHREADS")
