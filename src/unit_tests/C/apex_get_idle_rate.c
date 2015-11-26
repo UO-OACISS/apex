@@ -57,6 +57,14 @@ int main (int argc, char** argv) {
         printf("Test passed.\n");
     }
   }
+  // The profile should show special "APEX Non-Idle Time" counter.
+  profile = apex_get_profile(APEX_NAME_STRING,APEX_NON_IDLE_TIME);
+  if (profile) {
+    printf("Non-Idle time reported : %f\n", profile->accumulated);
+    if (profile->accumulated >= 0.0) {  // might be less, some calls might have been missed
+        printf("Test passed.\n");
+    }
+  }
   // The profile should show special "APEX Idle Rate" counter.
   profile = apex_get_profile(APEX_NAME_STRING,APEX_IDLE_RATE);
   if (profile) {
@@ -74,6 +82,14 @@ int main (int argc, char** argv) {
         printf("Test passed.\n");
     }
   }
+  // The profile should show special "APEX Non-Idle Time" counter.
+  profile = apex_get_profile(APEX_NAME_STRING,APEX_NON_IDLE_TIME);
+  if (profile) {
+    printf("Non-Idle time reported : %f\n", profile->accumulated);
+    if (profile->accumulated >= 0.0) {  // might be less, some calls might have been missed
+        printf("Test passed.\n");
+    }
+  }
   profile = apex_get_profile(APEX_NAME_STRING,APEX_IDLE_RATE);
   if (profile) {
     printf("Idle rate reported : %f\n", profile->accumulated);
@@ -86,6 +102,14 @@ int main (int argc, char** argv) {
   profile = apex_get_profile(APEX_NAME_STRING,APEX_IDLE_TIME);
   if (profile) {
     printf("Idle time reported : %f\n", profile->accumulated);
+    if (profile->accumulated >= 0.0) {  // might be less, some calls might have been missed
+        printf("Test passed.\n");
+    }
+  }
+  // The profile should show special "APEX Non-Idle Time" counter.
+  profile = apex_get_profile(APEX_NAME_STRING,APEX_NON_IDLE_TIME);
+  if (profile) {
+    printf("Non-Idle time reported : %f\n", profile->accumulated);
     if (profile->accumulated >= 0.0) {  // might be less, some calls might have been missed
         printf("Test passed.\n");
     }

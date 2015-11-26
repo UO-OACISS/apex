@@ -200,6 +200,10 @@ typedef uint32_t apex_tuning_session_handle;
  **/
 #define APEX_IDLE_TIME "APEX Idle"
 /**
+ * Special profile counter for derived non-idle time 
+ **/
+#define APEX_NON_IDLE_TIME "APEX Non-Idle"
+/**
  * Special profile counter for derived idle rate 
  **/
 #define APEX_IDLE_RATE "APEX Idle Rate"

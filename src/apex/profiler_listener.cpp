@@ -176,6 +176,9 @@ namespace apex {
         return get_idle_rate();
     } else if (timer_name == string(APEX_IDLE_TIME)) {
         return get_idle_time();
+    } else if (timer_name == string(APEX_NON_IDLE_TIME)) {
+        profile * theprofile = new profile(get_non_idle_time(), false);
+        return theprofile;
     }
     map<string, profile*>::const_iterator it = name_map.find(timer_name);
     if (it != name_map.end()) {
