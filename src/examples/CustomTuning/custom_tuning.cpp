@@ -34,9 +34,6 @@ int main (int argc, char ** argv) {
     std::function<double(void)> func = []()->double{ return value; }; 
     apex_tuning_session_handle session =
         apex::setup_custom_tuning(func, my_custom_event, num_inputs, inputs, mins, maxs, steps);
-#else
-    std::cerr << "Active Harmony not enabled" << std::endl;
-#endif
     std::cout << "Running custom tuning test" << std::endl;
 
     int num_inputs_2 = 1;
@@ -53,6 +50,9 @@ int main (int argc, char ** argv) {
     std::cerr << "Tuning session 1 handle: " << session << std::endl;
     std::cerr << "Tuning session 2 handle: " << session_2 << std::endl;
 
+#else
+    std::cerr << "Active Harmony not enabled" << std::endl;
+#endif
 
     for (int i = 0 ; i < num_iterations ; i++) {
         value = (10 * param_1) - (2 * param_2);
