@@ -864,7 +864,7 @@ inline int __common_setup_timer_throttling(apex_optimization_criteria_t criteria
         thread_cap_tuning_session->observations = (int*)(calloc(thread_cap_tuning_session->max_threads+1, sizeof(int)));
         apex::apex * instance = apex::apex::instance();
         if (instance != NULL && instance->get_node_id() == 0) {
-            thread_cap_tuning_session->cap_data.open("tuning_session->cap_data.dat");
+            thread_cap_tuning_session->cap_data.open("cap_data.dat");
             thread_cap_tuning_session->cap_data_open = true;
         }
         if (method == APEX_SIMPLE_HYSTERESIS) {
