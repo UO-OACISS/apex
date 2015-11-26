@@ -630,7 +630,8 @@ int apex_throughput_tuning_policy(apex_context const context) {
     APEX_UNUSED(context);
     return APEX_NOERROR; 
 }
-int apex_custom_tuning_policy(apex_context const context) {
+int apex_custom_tuning_policy(shared_ptr<apex_tuning_session> tuning_session, apex_context const context) {
+    APEX_UNUSED(tuning_session);
     APEX_UNUSED(context);
     return APEX_NOERROR;
 }
@@ -828,7 +829,7 @@ inline void __apex_active_harmony_shutdown(shared_ptr<apex_tuning_session> tunin
 }
 
 #else
-inline void __apex_active_harmony_setup(void) { }
+inline void __apex_active_harmony_setup(shared_ptr<apex_tuning_session> tuning_session) { }
 inline void __active_harmony_throughput_setup(int num_inputs, long ** inputs, long * mins, long * maxs, long * steps) {
   APEX_UNUSED(num_inputs);
   APEX_UNUSED(inputs);
