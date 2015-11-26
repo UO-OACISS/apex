@@ -16,7 +16,6 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/asio.hpp>
 #include <boost/archive/text_iarchive.hpp>
-#include <boost/program_options.hpp>
 #include "apex_types.h"
 #include "apex_options.hpp"
 #include "profiler_listener.hpp"
@@ -90,25 +89,33 @@ private:
 int main(int argc, char** argv) {
   try
   {
-      namespace po = boost::program_options; 
-      po::options_description desc("Options"); 
-      desc.add_options() 
-      ("help,h", "Print help messages") 
-      ("shutdown,s", "Exit when shutdown event received");
+    // -h : "Print help messages"
+    // -s : "Exit when shutdown event received"
+    const std::string usage("Usage: <program> -h,-s\n\t-h : Print help message\n\t-s : Exit when shutdown event received");
 
-      po::variables_map vm;
-      po::store(po::parse_command_line(argc,argv,desc), vm);
-      po::notify(vm);
+    int c;
 
-      if(vm.count("help")) {
-          std::cout << desc << std::endl;
+    opterr = 0;
+    while ((c = getopt (argc, argv, "hs:")) != -1) {
+      switch (c)
+      {
+        case 'h':
+        {
+          std::cout << usage << std::endl;
           return APEX_NOERROR;
-      }
-
-      if(vm.count("shutdown")) {
+        }
+        case 's':
+        {
           shutdown_flag = true;
+          break;
+        }
+        default:
+        {
+          break;
+        }
       }
-               
+    }
+
     boost::asio::io_service io_service;
     udp_server server(io_service);
     io_service.run();

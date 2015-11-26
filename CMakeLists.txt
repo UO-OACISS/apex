@@ -127,7 +127,7 @@ endif()
 
 set(NORMAL_COMPILER_WARNINGS "-Wextra -Waddress -Warray-bounds -Wuninitialized -Wreturn-type -Wall -fno-omit-frame-pointer ")
 
-set(CMAKE_CXX_FLAGS_RELEASE "-g -O3 -DNDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "-g -O3 -DNDEBUG -Wno-deprecated")
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   # using Clang
   set(CXX_PEDANTIC_COMPILER_WARNINGS "-fdiagnostics-show-option -Wall -Wcast-align -Wcast-qual -Werror=format -Werror=missing-braces -Werror=parentheses -Werror=reorder -Werror=return-type -Werror=sequence-point -Werror=sign-compare -Werror=uninitialized -Werror=vla -Wextra -Wformat=2 -Winit-self -Wno-attributes -Wno-cast-align -Wno-delete-non-virtual-dtor -Wno-format-nonliteral -Wno-ignored-qualifiers -Wno-sign-promo -Wno-strict-aliasing -Wno-unused-parameter -Wno-unused-variable -Wno-unused-local-typedefs -Wno-unused-parameter ")
@@ -212,11 +212,21 @@ else()
 endif()
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
-find_package(Boost 1.54.0 REQUIRED COMPONENTS system thread timer chrono regex program_options)
-
-if(Boost_FOUND)
+if(BUILD_BOOST)
+    include(ExternalProjectBoost)
+    build_boost_project()
     include_directories(${Boost_INCLUDE_DIRS})
-	set(LIBS ${LIBS} ${Boost_LIBRARIES})
+    set(LIBS ${LIBS} ${Boost_LIBRARIES})
+    message(WARNING " Downloading and building Boost!")
+else()
+    find_package(Boost 1.54.0 REQUIRED COMPONENTS system thread timer chrono regex)
+    if(Boost_FOUND)
+        include_directories(${Boost_INCLUDE_DIRS})
+	    set(LIBS ${LIBS} ${Boost_LIBRARIES})
+    else()
+        message(FATAL_ERROR " Boost not found. To download and build Boost, add the cmake argument -DBUILD_BOOST=TRUE")
+    endif()
+	add_custom_target(project_boost)
 endif()
 
 ################################################################################
@@ -381,6 +391,8 @@ if((DEFINED BFD_ROOT) OR (USE_BFD))
 		set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${ZLIB_LIBRARY_DIR})
         message(INFO " Using zlib: ${ZLIB_LIBRARY_DIR} ${ZLIB_LIBRARIES}")
 	endif()
+else()
+	add_custom_target(project_binutils)
 endif()
 
 ################################################################################

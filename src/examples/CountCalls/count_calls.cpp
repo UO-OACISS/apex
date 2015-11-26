@@ -6,7 +6,7 @@
 #include <sstream>
 #include <iostream>
 #include <climits>
-#include <boost/atomic.hpp>
+#include <atomic>
 
 #define NUM_THREADS 8
 #define NUM_ITERATIONS 100
@@ -40,8 +40,8 @@ ApexProxy::~ApexProxy() {
 
 #define UNUSED(x) (void)(x)
 
-boost::atomic<uint64_t> func_count(0);
-boost::atomic<uint64_t> yield_count(0);
+std::atomic<uint64_t> func_count(0);
+std::atomic<uint64_t> yield_count(0);
 
 uint64_t do_work(uint64_t work) {
   apex::profiler * p = apex::start((apex_function_address)(do_work));
