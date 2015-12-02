@@ -56,6 +56,7 @@ typedef enum _error_codes {
  * Typedef for enumerating the different event types
  */
 typedef enum _event_type {
+  APEX_INVALID_EVENT = -1,
   APEX_STARTUP = 0,        /*!< APEX is initialized */
   APEX_SHUTDOWN,       /*!< APEX is terminated */
   APEX_NEW_NODE,       /*!< APEX has registered a new process ID */

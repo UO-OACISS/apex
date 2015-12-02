@@ -39,6 +39,7 @@ if(USE_UDP_CLIENT)
 add_subdirectory (UdpSink)
 endif(USE_UDP_CLIENT)
 add_subdirectory (CustomTuning)
+add_subdirectory (TuningRequest)
 
 # does the application run
 add_test (ExampleDemoC DemoC/apexCDemo)

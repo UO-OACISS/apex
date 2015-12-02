@@ -1,7 +1,6 @@
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #endif
-#include "apex.hpp"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string>
@@ -37,7 +36,7 @@ typedef boost::unique_lock<boost::shared_mutex> session_map_write_lock;
 static unordered_map<apex_tuning_session_handle, shared_ptr<apex_tuning_session>> session_map;
 static boost::atomic<apex_tuning_session_handle> next_handle{1};
 
-static shared_ptr<apex_tuning_session> get_session(apex_tuning_session_handle h) {
+static shared_ptr<apex_tuning_session> get_session(const apex_tuning_session_handle & h) {
   session_map_read_lock l{session_map_mutex};
   auto it = session_map.find(h);
   if(it != session_map.end()) {
@@ -703,7 +702,7 @@ inline void __apex_active_harmony_setup(shared_ptr<apex_tuning_session> tuning_s
         cerr << "Could not set Active Harmony session name" << endl;
         return;
     }
-    if (harmony_int(tuning_session->hdesc, "tuning_session->thread_cap", tuning_session->min_threads, tuning_session->max_threads, tuning_session->thread_step) != 0) {
+    if (harmony_int(tuning_session->hdesc, "thread_cap", tuning_session->min_threads, tuning_session->max_threads, tuning_session->thread_step) != 0) {
         cerr << "Failed to define Active Harmony tuning session" << endl;
         return;
     }
@@ -718,7 +717,7 @@ inline void __apex_active_harmony_setup(shared_ptr<apex_tuning_session> tuning_s
     }
         tuning_session->__num_ah_inputs = 1;
         tuning_session->__ah_inputs[0] = &(tuning_session->thread_cap);
-    if (harmony_bind_int(tuning_session->hdesc, "tuning_session->thread_cap", &(tuning_session->thread_cap)) != 0) {
+    if (harmony_bind_int(tuning_session->hdesc, "thread_cap", &(tuning_session->thread_cap)) != 0) {
         cerr << "Failed to register Active Harmony variable" << endl;
         return;
     }
@@ -819,6 +818,98 @@ inline int __active_harmony_custom_setup(shared_ptr<apex_tuning_session> tuning_
     return APEX_NOERROR;
 }
 
+inline int __active_harmony_custom_setup(shared_ptr<apex_tuning_session> tuning_session, apex_tuning_request & request) {
+    const char* session_name = request.name.c_str();
+    tuning_session->hdesc = harmony_init(NULL, NULL);
+    if (tuning_session->hdesc == NULL) {
+        cerr << "Failed to initialize Active Harmony" << endl;
+        return APEX_ERROR;
+    }
+    if (harmony_session_name(tuning_session->hdesc, session_name) != 0) {
+        cerr << "Could not set Active Harmony session name" << endl;
+        return APEX_ERROR;
+    }
+    // TODO: Change strategy to support multi-objective optimization
+    // (will need multiple metrics-of-interest)
+    if (harmony_strategy(tuning_session->hdesc, "nm.so") != 0) {
+        cerr << "Failed to set Active Harmony tuning strategy" << endl;
+        return APEX_ERROR;
+    }
+
+    for(auto & kv : request.params) {
+       auto & param = kv.second;
+       const char * param_name = param->get_name().c_str();
+       switch(param->get_type()) {
+           case apex_param_type::LONG: {
+               auto param_long = std::static_pointer_cast<apex_param_long>(param);                                 
+               int status = harmony_int(tuning_session->hdesc, param_name, param_long->min, param_long->max, param_long->step);
+               if(status != 0) {
+                   cerr << "Failed to create Active Harmony long parameter" << endl;
+                   return APEX_ERROR;
+               }
+               status = harmony_bind_int(tuning_session->hdesc, param_name, param_long->value.get());
+               if(status == -1) {
+                   cerr << "Failed to bind Active Harmony long parameter" << endl;
+                   return APEX_ERROR;
+               }
+           };
+           break;
+
+           case apex_param_type::DOUBLE: {
+               auto param_double = std::static_pointer_cast<apex_param_double>(param);                                 
+               int status = harmony_real(tuning_session->hdesc, param_name, param_double->min, param_double->max, param_double->step);
+               if(status != 0) {
+                   cerr << "Failed to create Active Harmony double parameter" << endl;
+                   return APEX_ERROR;
+               }
+               status = harmony_bind_real(tuning_session->hdesc, param_name, param_double->value.get());
+               if(status == -1) {
+                   cerr << "Failed to bind Active Harmony double parameter" << endl;
+                   return APEX_ERROR;
+               }
+           };
+           break;
+
+           case apex_param_type::ENUM: {
+               auto param_enum = std::static_pointer_cast<apex_param_enum>(param);                                 
+               for(const std::string & possible_value : param_enum->possible_values) {
+                   const char * v = possible_value.c_str();
+                   std::cerr << "Registering enum value: " << v << std::endl;
+                   int status = harmony_enum(tuning_session->hdesc, param_name, v);    
+                   if(status != 0) {
+                       cerr << "Failed to create Active Harmony enum parameter" << endl;
+                       return APEX_ERROR;
+                   }
+               }
+               int status = harmony_bind_enum(tuning_session->hdesc, param_name, param_enum->value.get());
+               if(status == -1) {
+                   cerr << "Failed to bind Active Harmony enum parameter" << endl;
+                   return APEX_ERROR;
+               }
+           };
+           break;
+
+           default:
+               cerr << "ERROR: Attempted to register tuning parameter with unknown type." << endl;
+               return APEX_ERROR;
+       }
+    }
+
+    if (harmony_launch(tuning_session->hdesc, NULL, 0) != 0) {
+        cerr << "Failed to launch Active Harmony tuning session: " << 
+            endl << harmony_error_string(tuning_session->hdesc) << endl;
+        return APEX_ERROR;
+    }
+
+    if (harmony_join(tuning_session->hdesc, NULL, 0, session_name) != 0) {
+        cerr << "Failed to join Active Harmony tuning session" << endl;
+        cerr << harmony_error_string(tuning_session->hdesc) << endl;
+        return APEX_ERROR;
+    }
+
+    return APEX_NOERROR;
+}
+
 inline void __apex_active_harmony_shutdown(shared_ptr<apex_tuning_session> tuning_session) {
     /* Leave the session */
     if (harmony_leave(tuning_session->hdesc) != 0) {
@@ -845,6 +936,12 @@ inline int __active_harmony_custom_setup(shared_ptr<apex_tuning_session> tuning_
   APEX_UNUSED(mins);
   APEX_UNUSED(maxs);
   APEX_UNUSED(steps);
+  std::cerr << "WARNING: Active Harmony setup attempted but APEX was built without Active Harmony support!" << std::endl;
+  return APEX_NOERROR;
+}
+inline int __active_harmony_custom_setup(shared_ptr<apex_tuning_session> tuning_session, apex_tuning_request & request) {
+  APEX_UNUSED(tuning_session);
+  APEX_UNUSED(request);
   std::cerr << "WARNING: Active Harmony setup attempted but APEX was built without Active Harmony support!" << std::endl;
   return APEX_NOERROR;
 }
@@ -915,6 +1012,20 @@ inline int __common_setup_custom_tuning(shared_ptr<apex_tuning_session> tuning_s
     return status;
 }
 
+inline int __common_setup_custom_tuning(shared_ptr<apex_tuning_session> tuning_session, apex_tuning_request & request) {
+    __read_common_variables(tuning_session);
+    int status = __active_harmony_custom_setup(tuning_session, request);
+    if(status == APEX_NOERROR) {
+        apex::register_policy(
+          request.trigger,
+          [=](apex_context const & context)->int {
+            return apex_custom_tuning_policy(tuning_session, context);
+          }
+        );
+    }
+    return status;
+}
+
 inline int __setup_throughput_tuning(apex_function_address the_address,
         apex_optimization_criteria_t criteria, apex_event_type event_type, 
         int num_inputs, long ** inputs, long * mins, long * maxs, long * steps) {
@@ -929,7 +1040,7 @@ inline int __setup_throughput_tuning(std::string &the_name,
     return __common_setup_throughput_tuning(criteria, event_type, num_inputs, inputs, mins, maxs, steps);
 }
 
-inline int __setup_custom_tuning(std::function<double()> metric,
+inline apex_tuning_session_handle __setup_custom_tuning(std::function<double()> metric,
         apex_event_type event_type, int num_inputs, long ** inputs,
         long * mins, long * maxs, long * steps) {
     auto tuning_session_handle = create_session();
@@ -938,6 +1049,29 @@ inline int __setup_custom_tuning(std::function<double()> metric,
     int status = __common_setup_custom_tuning(tuning_session, event_type, num_inputs, inputs, mins, maxs, steps);
     if(status == APEX_ERROR) {
       return -1;
+    }
+    return tuning_session_handle;
+}
+
+inline apex_tuning_session_handle __setup_custom_tuning(apex_tuning_request & request) {
+    if(request.name.empty()) {
+        cerr << "ERROR: tuning request has no name" << endl;
+        return -1;
+    }
+    if(!request.metric) {
+        cerr << "ERROR: tuning request has no metric" << endl;
+        return -1;
+    }
+    if(request.trigger == -1) {
+        cerr << "ERROR: tuning request has no trigger" << endl;
+        return -1;
+    }
+    auto tuning_session_handle = create_session();
+    auto tuning_session = get_session(tuning_session_handle);
+    tuning_session->metric_of_interest = request.metric;
+    int status = __common_setup_custom_tuning(tuning_session, request);
+    if(status == APEX_ERROR) {
+        return -1;
     }
     return tuning_session_handle;
 }
@@ -1017,6 +1151,9 @@ APEX_EXPORT apex_tuning_session_handle setup_custom_tuning(std::function<double(
     return __setup_custom_tuning(metric, event_type, num_inputs, inputs, mins, maxs, steps);
 }
 
+APEX_EXPORT apex_tuning_session_handle setup_custom_tuning(::apex_tuning_request & request) {
+    return __setup_custom_tuning(request);
+}
 
 APEX_EXPORT int shutdown_throttling(void) {
     return __shutdown_throttling();
