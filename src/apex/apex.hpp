@@ -97,6 +97,7 @@ public:
     profiler_listener * the_profiler_listener;
     std::string version_string;
     std::vector<event_listener*> listeners;
+    std::vector<int (*)()> finalize_functions;
     std::string m_my_locality;
     std::unordered_map<int, std::string> custom_event_names;
     boost::shared_mutex custom_event_mutex;
@@ -138,6 +139,8 @@ public:
 };
 
 int initialize_worker_thread_for_TAU(void);
+void init_plugins(void);
+void finalize_plugins(void);
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 

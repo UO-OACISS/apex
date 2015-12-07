@@ -409,6 +409,12 @@ if(USE_UDP_CLIENT)
         VERBOSE)
 endif(USE_UDP_CLIENT)
 
+if(USE_PLUGINS)
+    message(INFO " apex will be built with plugin support.")
+    set(LIBS ${LIBS} ${CMAKE_DL_LIBS})
+    add_definitions("-DAPEX_USE_PLUGINS")
+endif()
+
 # apparently, we need to make sure libm is last.
 find_library(MATHLIB m)
 set(LIBS ${LIBS} ${MATHLIB})

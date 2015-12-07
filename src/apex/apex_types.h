@@ -249,6 +249,8 @@ typedef uint32_t apex_tuning_session_handle;
     macro (APEX_UDP_SINK_PORT, udp_sink_port, char*, "5560") \
     macro (APEX_UDP_SINK_CLIENTIP, udp_sink_clientip, char*, "127.0.0.1") \
     macro (APEX_PAPI_METRICS, papi_metrics, char*, "") \
+    macro (APEX_PLUGINS, plugins, char*, "") \
+    macro (APEX_PLUGINS_PATH, plugins_path, char*, "./") \
 
 #if defined(__linux)
 #  define APEX_NATIVE_TLS __thread

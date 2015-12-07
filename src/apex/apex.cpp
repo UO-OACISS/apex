@@ -15,6 +15,10 @@
 #include <string>
 #include <memory>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string.hpp> 
+#if APEX_USE_PLUGINS
+#include <dlfcn.h>
+#endif
 //#include <cxxabi.h> // this is for demangling strings.
 
 #include "concurrency_handler.hpp"
@@ -321,6 +325,7 @@ void init(int argc, char** argv, const char * thread_name)
     _initialized = true;
     apex* instance = apex::instance(argc, argv); // get/create the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
+    init_plugins();
     startup_event_data data(argc, argv);
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -653,6 +658,70 @@ hpx::runtime * get_hpx_runtime_ptr(void) {
 }
 #endif
 
+void init_plugins(void) {
+#ifdef APEX_USE_PLUGINS
+    std::string plugin_names_str{apex_options::plugins()};
+    std::string plugins_prefix{apex_options::plugins_path()};
+    std::string plugins_suffix{".so"};
+    if(plugin_names_str.empty()) {
+        return;
+    }
+    std::vector<std::string> plugin_names;
+    std::vector<std::string> plugin_paths;
+    boost::split(plugin_names, plugin_names_str, boost::is_any_of(":"));
+    for(const std::string & plugin_name : plugin_names) {
+        plugin_paths.push_back(plugins_prefix + "/" + plugin_name + plugins_suffix);
+    }
+    for(const std::string & plugin_path : plugin_paths) {
+        const char * path = plugin_path.c_str();
+        void * plugin_handle = dlopen(path, RTLD_NOW);
+        if(!plugin_handle) {
+            std::cerr << "Error loading plugin " << path << ": " << dlerror() << std::endl;
+            continue;
+        }
+        int (*init_fn)() = (int (*)()) ((uintptr_t) dlsym(plugin_handle, "apex_plugin_init"));
+        if(!init_fn) {
+            std::cerr << "Error loading apex_plugin_init from " << path << ": " << dlerror() << std::endl;
+            dlclose(plugin_handle);
+            continue;
+        } 
+        int (*finalize_fn)() = (int (*)()) ((uintptr_t) dlsym(plugin_handle, "apex_plugin_finalize"));
+        if(!finalize_fn) {
+            std::cerr << "Error loading apex_plugin_finalize from " << path << ": " << dlerror() << std::endl;
+            dlclose(plugin_handle);
+            continue;
+        } 
+        apex * instance = apex::instance();
+        if(!instance) {
+            std::cerr << "Error getting APEX instance while registering finalize function from " << path << std::endl;
+            continue;
+        }
+        instance->finalize_functions.push_back(finalize_fn);
+        int result = init_fn();
+        if(result != 0) {
+            std::cerr << "Error: apex_plugin_init for " << path << " returned " << result << std::endl;
+            dlclose(plugin_handle);
+            continue;
+        }
+
+    }
+#endif
+}
+
+void finalize_plugins(void) {
+#ifdef APEX_USE_PLUGINS
+    apex * instance = apex::instance();
+    if(!instance) return;
+    for(int (*finalize_function)() : instance->finalize_functions) {
+        int result = finalize_function();
+        if(result != 0) {
+            std::cerr << "Error: plugin finalize function returned " << result << std::endl;
+            continue;
+        }
+    }
+#endif
+}
+
 void track_power(void)
 {
 #ifdef APEX_HAVE_TAU
@@ -695,6 +764,7 @@ void finalize()
     shutdown_throttling(); // if not done already
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
+    finalize_plugins();
     exit_thread();
 #if APEX_HAVE_PROC
     ProcData::stop_reading();

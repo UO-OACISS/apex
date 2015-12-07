@@ -5,7 +5,7 @@
 #include"apex.h"
 
 #define N 4096*4096
-#define MAX_THREADS 32
+#define MAX_THREADS 1024
 
 #if defined(__GNUC__)
 #define ALIGNED_(x) __attribute__ ((aligned(x)))
