@@ -395,6 +395,7 @@ bool policy_handler::on_start(apex_function_address function_address) {
     apex_context my_context;
     my_context.event_type = APEX_START_EVENT;
     my_context.policy_handle = NULL;
+    my_context.data = (void *) function_address;
     const bool result = policy->func(my_context);
     if(result != APEX_NOERROR) {
       printf("Warning: registered policy function failed!\n");
@@ -411,6 +412,7 @@ bool policy_handler::on_start(string *timer_name) {
     apex_context my_context;
     my_context.event_type = APEX_START_EVENT;
     my_context.policy_handle = NULL;
+    my_context.data = timer_name;
     const bool result = policy->func(my_context);
     if(result != APEX_NOERROR) {
       printf("Warning: registered policy function failed!\n");
@@ -459,6 +461,11 @@ void policy_handler::on_stop(std::shared_ptr<profiler> p) {
         apex_context my_context;
         my_context.event_type = APEX_STOP_EVENT;
         my_context.policy_handle = NULL;
+        if(p->have_name) {
+            my_context.data = (void*) p->timer_name;
+        } else {
+            my_context.data = (void*) p->action_address;
+        }
         const bool result = policy->func(my_context);
         if(result != APEX_NOERROR) {
             printf("Warning: registered policy function failed!\n");
@@ -474,6 +481,11 @@ void policy_handler::on_yield(std::shared_ptr<profiler> p) {
         apex_context my_context;
         my_context.event_type = APEX_YIELD_EVENT;
         my_context.policy_handle = NULL;
+        if(p->have_name) {
+            my_context.data = (void*) p->timer_name;
+        } else {
+            my_context.data = (void*) p->action_address;
+        }
         const bool result = policy->func(my_context);
         if(result != APEX_NOERROR) {
             printf("Warning: registered policy function failed!\n");

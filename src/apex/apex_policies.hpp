@@ -156,13 +156,30 @@ class apex_tuning_request {
             return param;
         };
 
+        std::shared_ptr<apex_param> get_param(const std::string & name) {
+            auto search = params.find(name);
+            if(search == params.end()) {
+                return std::shared_ptr<apex_param>{};
+            } else {
+                return search->second;
+            }
+        };
+
         void set_metric(std::function<double()> m) {
             metric = m;
         };
 
         void set_trigger(apex_event_type t) {
             trigger = t;
-        }
+        };
+
+        std::function<double()> get_metric() {
+            return metric;
+        };
+
+        apex_event_type get_trigger() {
+            return trigger;
+        };
 
         friend apex_tuning_session_handle __setup_custom_tuning(apex_tuning_request & request);
         friend int __common_setup_custom_tuning(std::shared_ptr<apex_tuning_session> tuning_session, apex_tuning_request & request);

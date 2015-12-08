@@ -296,6 +296,7 @@ void init(const char * thread_name)
     argv[0] = const_cast<char*>(dummy);
     apex* instance = apex::instance(argc, argv); // get/create the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
+    init_plugins();
     startup_event_data data(argc, argv);
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
