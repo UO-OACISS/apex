@@ -672,6 +672,17 @@ APEX_EXPORT void set_thread_cap(int new_cap);             // for thread throttli
  */
 APEX_EXPORT std::vector<std::pair<std::string,long*>> & get_tunable_params(apex_tuning_session_handle h);
 
+
+/**
+ \brief Check whether a tuning session has converged.
+
+ \param handle The handle for the tuning session of interest.
+
+ \return true if the tuning session has converged, otherwise false 
+
+ */
+APEX_EXPORT bool has_session_converged(apex_tuning_session_handle handle);
+
 /**
  \brief Print out all configuration settings for APEX.
 

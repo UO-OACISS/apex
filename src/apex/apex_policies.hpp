@@ -32,6 +32,8 @@ typedef uint32_t apex_tuning_session_handle;
 #define MAX_WINDOW_SIZE 3
 
 enum class apex_param_type : int {NONE, LONG, DOUBLE, ENUM};
+enum class apex_ah_tuning_strategy : int {EXHAUSTIVE, RANDOM, NELDER_MEAD, PARALLEL_RANK_ORDER};
+
 struct apex_tuning_session;
 class apex_tuning_request;
 
@@ -41,7 +43,7 @@ class apex_param {
 
     public:
         apex_param(const std::string & name) : name{name} {};
-        ~apex_param() {};
+        virtual ~apex_param() {};
 
         const std::string & get_name() const {
             return name;
@@ -68,6 +70,7 @@ class apex_param_long : public apex_param {
                         const long min, const long max, const long step)
             : apex_param(name), value{std::make_shared<long>(init_value)},
               min{min}, max{max}, step{step} {};
+        virtual ~apex_param_long() {};
 
         const long get_value() const {
             return *value;    
@@ -91,6 +94,7 @@ class apex_param_double : public apex_param {
                         const double min, const double max, const double step)
             : apex_param(name), value{std::make_shared<double>(init_value)},
               min{min}, max{max}, step{step} {};
+        virtual ~apex_param_double() {};
 
         const double get_value() const {
             return *value;    
@@ -111,6 +115,7 @@ class apex_param_enum : public apex_param {
     public:
         apex_param_enum(const std::string & name, const std::string & init_value, const std::list<std::string> possible_values) :
               apex_param(name), init_value{init_value}, value{std::make_shared<const char*>(init_value.c_str())}, possible_values{possible_values} {};
+        virtual ~apex_param_enum() {};
 
         const std::string get_value() const {
             return std::string{*value};
@@ -129,12 +134,18 @@ class apex_tuning_request {
         std::function<double()> metric;
         std::map<std::string, std::shared_ptr<apex_param>> params;        
         apex_event_type trigger;
+        apex_tuning_session_handle tuning_session_handle;
+        bool running;
+        apex_ah_tuning_strategy strategy;
+        
 
     public:
         apex_tuning_request(const std::string & name, std::function<double()> metric, apex_event_type trigger) 
-            : name{name}, metric{metric}, trigger{trigger}  {};
-        apex_tuning_request(const std::string & name) : name{name}, trigger{APEX_INVALID_EVENT} {};
-        ~apex_tuning_request()  {};
+            : name{name}, metric{metric}, trigger{trigger}, tuning_session_handle{0},
+            running{false}, strategy{apex_ah_tuning_strategy::PARALLEL_RANK_ORDER}  {};
+        apex_tuning_request(const std::string & name) : name{name}, trigger{APEX_INVALID_EVENT},
+            tuning_session_handle{0}, running{false}, strategy{apex_ah_tuning_strategy::PARALLEL_RANK_ORDER} {};
+        virtual ~apex_tuning_request()  {};
 
         std::shared_ptr<apex_param_long> add_param_long(const std::string & name, const long init_value, const long min,
                             const long max, const long step) {
@@ -156,7 +167,7 @@ class apex_tuning_request {
             return param;
         };
 
-        std::shared_ptr<apex_param> get_param(const std::string & name) {
+        std::shared_ptr<apex_param> get_param(const std::string & name) const {
             auto search = params.find(name);
             if(search == params.end()) {
                 return std::shared_ptr<apex_param>{};
@@ -173,12 +184,28 @@ class apex_tuning_request {
             trigger = t;
         };
 
-        std::function<double()> get_metric() {
+        std::function<double()> get_metric() const {
             return metric;
         };
 
-        apex_event_type get_trigger() {
+        apex_event_type get_trigger() const {
             return trigger;
+        };
+
+        bool is_running() const {
+            return running;
+        };
+
+        apex_tuning_session_handle get_session_handle() const {
+            return tuning_session_handle;
+        };
+
+        apex_ah_tuning_strategy get_strategy() const {
+            return strategy;
+        };
+
+        void set_strategy(apex_ah_tuning_strategy s) {
+            strategy = s;
         };
 
         friend apex_tuning_session_handle __setup_custom_tuning(apex_tuning_request & request);
@@ -234,6 +261,7 @@ struct apex_tuning_session {
     // variables for active harmony general tuning
     long int *__ah_inputs[10]; // more than 10 would be pointless
     int __num_ah_inputs;
+    apex_ah_tuning_strategy strategy = apex_ah_tuning_strategy::PARALLEL_RANK_ORDER;
 
     apex_tuning_session(apex_tuning_session_handle h) : id{h} {};
 };

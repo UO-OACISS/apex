@@ -55,6 +55,22 @@ static apex_tuning_session_handle create_session() {
   return result;
 }
 
+static const char * library_for_strategy(apex_ah_tuning_strategy s) {
+    switch(s) {
+        case apex_ah_tuning_strategy::EXHAUSTIVE:
+            return "exhaustive.so";
+        case apex_ah_tuning_strategy::RANDOM:
+            return "random.so";
+        case apex_ah_tuning_strategy::NELDER_MEAD:
+            return "nm.so";
+        case apex_ah_tuning_strategy::PARALLEL_RANK_ORDER:
+            return "pro.so";
+        default:
+            std::cerr << "ERROR: Unknown tuning strategy encountered." << std::endl;
+            return "";
+    }
+}
+
 // this is the policy engine for APEX used to determine when contention
 // is present on the socket and reduce the number of active threads
 
@@ -831,8 +847,10 @@ inline int __active_harmony_custom_setup(shared_ptr<apex_tuning_session> tuning_
     }
     // TODO: Change strategy to support multi-objective optimization
     // (will need multiple metrics-of-interest)
-    if (harmony_strategy(tuning_session->hdesc, "nm.so") != 0) {
-        cerr << "Failed to set Active Harmony tuning strategy" << endl;
+    tuning_session->strategy = request.strategy;
+    const char * library_name = library_for_strategy(request.strategy);
+    if (harmony_strategy(tuning_session->hdesc, library_name) != 0) {
+        cerr << "Failed to set Active Harmony tuning strategy to " << library_name << endl;
         return APEX_ERROR;
     }
 
@@ -1073,6 +1091,8 @@ inline apex_tuning_session_handle __setup_custom_tuning(apex_tuning_request & re
     if(status == APEX_ERROR) {
         return -1;
     }
+    request.tuning_session_handle = tuning_session_handle;
+    request.running = true;
     return tuning_session_handle;
 }
 
@@ -1167,10 +1187,14 @@ APEX_EXPORT int get_input2(void) {
     return (int)*(thread_cap_tuning_session->__ah_inputs[1]);
 }
 
-
 APEX_EXPORT std::vector<std::pair<std::string,long*>> & get_tunable_params(apex_tuning_session_handle h) {
     auto tuning_session = get_session(h);
     return tuning_session->tunable_params;
+}
+
+APEX_EXPORT bool has_session_converged(apex_tuning_session_handle h) {
+    auto tuning_session = get_session(h);
+    return tuning_session->converged_message;
 }
 
 }
