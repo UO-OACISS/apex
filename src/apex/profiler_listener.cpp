@@ -147,7 +147,7 @@ namespace apex {
                 fmin(hardware_concurrency(), num_worker_threads);
     double elapsed = total_main - non_idle_time;
     elapsed = elapsed > 0.0 ? elapsed : 0.0;
-    profile * theprofile = new profile(elapsed, false);
+    profile * theprofile = new profile(elapsed, 0, NULL, false);
     return theprofile;
   }
 
@@ -165,7 +165,7 @@ namespace apex {
                 fmin(hardware_concurrency(), num_worker_threads);
     double elapsed = total_main - non_idle_time;
     double rate = elapsed > 0.0 ? ((elapsed/total_main)) : 0.0;
-    profile * theprofile = new profile(rate, false);
+    profile * theprofile = new profile(rate, 0, NULL, false);
     return theprofile;
   }
 
@@ -177,7 +177,7 @@ namespace apex {
     } else if (timer_name == string(APEX_IDLE_TIME)) {
         return get_idle_time();
     } else if (timer_name == string(APEX_NON_IDLE_TIME)) {
-        profile * theprofile = new profile(get_non_idle_time(), false);
+        profile * theprofile = new profile(get_non_idle_time(), 0, NULL, false);
         return theprofile;
     }
     map<string, profile*>::const_iterator it = name_map.find(timer_name);
@@ -217,6 +217,12 @@ namespace apex {
         delete p;
         return 0;
     }
+    double values[8] = {0};
+#if APEX_HAVE_PAPI
+    for (int i = 0 ; i < num_papi_counters ; i++) {
+        values[i] = p->papi_stop_values[i] - p->papi_start_values[i];
+    }   
+#endif
     // Look for the profile object by name, if applicable
     if (p->have_name) {
       map<string, profile*>::const_iterator it = name_map.find(*(p->timer_name));
@@ -226,7 +232,7 @@ namespace apex {
         if(p->is_reset == reset_type::CURRENT) {
             theprofile->reset();
         } else {
-            theprofile->increment(p->elapsed(), p->is_resume);
+            theprofile->increment(p->elapsed(), num_papi_counters, values, p->is_resume);
         }
 #if defined(APEX_THROTTLE)
         // Is this a lightweight task? If so, we shouldn't measure it any more,
@@ -242,7 +248,7 @@ namespace apex {
 #endif
       } else {
         // Create a new profile for this name.
-        theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_resume, p->is_counter ? APEX_COUNTER : APEX_TIMER);
+        theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), num_papi_counters, values, p->is_resume, p->is_counter ? APEX_COUNTER : APEX_TIMER);
         name_map[*(p->timer_name)] = theprofile;
 #ifdef APEX_HAVE_HPX3
 #ifdef APEX_REGISTER_HPX3_COUNTERS
@@ -277,7 +283,7 @@ namespace apex {
         if(p->is_reset == reset_type::CURRENT) {
             theprofile->reset();
         } else {
-            theprofile->increment(p->elapsed(), p->is_resume);
+            theprofile->increment(p->elapsed(), num_papi_counters, values, p->is_resume);
         }
 #if defined(APEX_THROTTLE)
         // Is this a lightweight task? If so, we shouldn't measure it any more,
@@ -297,7 +303,7 @@ namespace apex {
 #endif
       } else {
         // Create a new profile for this address.
-        theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), p->is_resume);
+        theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), num_papi_counters, values, p->is_resume);
         address_map[p->action_address] = theprofile;
       }
     }
@@ -369,7 +375,7 @@ namespace apex {
     cout << "Worker Threads observed: " << num_worker_threads << endl;
     cout << "Available CPU time: " << total_main << endl;
     map<apex_function_address, profile*>::const_iterator it;
-    cout << "Action                         :  #calls  |  minimum |    mean  |  maximum |   total  |  stddev  |  % total  " << endl;
+    cout << "Action                         :  #calls  |  minimum |    mean  |  maximum |   total  |  stddev  |  % total  " << apex_options::papi_metrics() << endl;
     cout << "------------------------------------------------------------------------------------------------------------" << endl;
     double total_accumulated = 0.0;
     for(it = address_map.begin(); it != address_map.end(); it++) {
@@ -418,7 +424,11 @@ namespace apex {
       cout << FORMAT_SCIENTIFIC % p->get_accumulated() << "   " ;
       cout << FORMAT_SCIENTIFIC % p->get_stddev() << "   " ;
       if (p->get_type() == APEX_TIMER) {
-        cout << FORMAT_PERCENT % ((p->get_accumulated()/total_main)*100) << endl;
+        cout << FORMAT_PERCENT % ((p->get_accumulated()/total_main)*100);
+        for (int i = 0 ; i < num_papi_counters ; i++) {
+            cout << "   " << FORMAT_SCIENTIFIC % (p->get_papi_metrics()[i]);
+        }
+        cout << endl;
       } else {
         cout << " --n/a-- "  << endl;
       }
@@ -486,7 +496,11 @@ namespace apex {
       cout << FORMAT_SCIENTIFIC % p->get_accumulated() << "   " ;
       cout << FORMAT_SCIENTIFIC % p->get_stddev() << "   " ;
       if (p->get_type() == APEX_TIMER) {
-        cout << FORMAT_PERCENT % ((p->get_accumulated()/total_main)*100) << endl;
+        cout << FORMAT_PERCENT % ((p->get_accumulated()/total_main)*100);
+        for (int i = 0 ; i < num_papi_counters ; i++) {
+            cout  << "   " << FORMAT_SCIENTIFIC % (p->get_papi_metrics()[i]);
+        }
+        cout << endl;
       } else {
         cout << " --n/a-- "  << endl;
       }
@@ -925,11 +939,12 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         // only one thread - the first one - should populate the metric names.
         bool populate_metric_names = (metric_names.size() == 0);
         while (p) {
-          printf ("Trying PAPI Metric: %s\n", p);
+          printf ("%d Trying PAPI Metric: %s\n", my_tid, p); fflush(stdout);
           int rc = PAPI_event_name_to_code(p, &code);
           if (PAPI_query_event (code) == PAPI_OK) {
             rc = PAPI_add_event(EventSet, code);
             PAPI_ERROR_CHECK(PAPI_add_event);
+            if (rc != 0) { cout << my_tid << " Event that failed: " << p << endl; }
             if (populate_metric_names) {
               metric_names.push_back(string(p));
               num_papi_counters++;
@@ -947,12 +962,14 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   /* When APEX gets a STARTUP event, do some initialization. */
   void profiler_listener::on_startup(startup_event_data &data) {
     if (!_done) {
+      my_tid = (unsigned int)thread_instance::get_id();
 #ifndef APEX_HAVE_HPX3
       // Start the consumer thread, to process profiler objects.
       consumer_thread = new boost::thread(process_profiles_wrapper);
 #endif
 
 #if APEX_HAVE_PAPI
+      cout << thread_instance::get_id() << " initializing PAPI" << endl;
       initialize_PAPI(true);
       event_sets[0] = EventSet;
 #endif
@@ -991,6 +1008,11 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 
       // time the whole application.
       main_timer = std::shared_ptr<profiler>(new profiler(new string(APEX_MAIN)));
+#if APEX_HAVE_PAPI
+      int rc = 0;
+      rc = PAPI_read( EventSet, main_timer->papi_start_values );
+      PAPI_ERROR_CHECK(PAPI_read);
+#endif
     }
     APEX_UNUSED(data);
   }
@@ -1012,6 +1034,11 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 
       // stop the main timer, and process that profile?
       main_timer->stop();
+#if APEX_HAVE_PAPI
+      int rc = 0;
+      rc = PAPI_read( EventSet, main_timer->papi_stop_values );
+      PAPI_ERROR_CHECK(PAPI_read);
+#endif
       // if this profile is processed, it will get deleted. so don't process it!
       // It also clutters up the final profile, if generated.
       //process_profile(main_timer.get(), my_tid);
@@ -1043,7 +1070,8 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         write_profile();
       }
 
-#if APEX_HAVE_PAPI
+//#if APEX_HAVE_PAPI
+#if 0
       if (num_papi_counters > 0) {
         int rc = 0;
         int i = 0;
@@ -1084,6 +1112,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
     if (!_done) {
       my_tid = (unsigned int)thread_instance::get_id();
 #if APEX_HAVE_PAPI
+      cout << my_tid << " initializing PAPI" << endl;
       initialize_PAPI(false);
       if (my_tid >= event_sets.size()) {
         event_set_mutex.lock();
@@ -1117,11 +1146,11 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         }
 #endif
         // start the profiler object, which starts our timers
-        thread_instance::instance().set_current_profiler(std::shared_ptr<profiler>(new profiler(function_address, is_resume)));
+        profiler * p = new profiler(function_address, is_resume);
+        thread_instance::instance().set_current_profiler(std::make_shared<profiler>(p));
 #if APEX_HAVE_PAPI
-        long long * values = thread_instance::instance().get_current_profiler()->papi_start_values;
         int rc = 0;
-        rc = PAPI_read( EventSet, values );
+        rc = PAPI_read( EventSet, p->papi_start_values );
         PAPI_ERROR_CHECK(PAPI_read);
 #endif
     } else {
@@ -1147,11 +1176,11 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       }
 #endif
       // start the profiler object, which starts our timers
-      thread_instance::instance().set_current_profiler(std::shared_ptr<profiler>(new profiler(timer_name, is_resume)));
+      profiler * p = new profiler(timer_name, is_resume);
+      thread_instance::instance().set_current_profiler(std::make_shared<profiler>(p));
 #if APEX_HAVE_PAPI
-      long long * values = thread_instance::instance().get_current_profiler()->papi_start_values;
       int rc = 0;
-      rc = PAPI_read( EventSet, values );
+      rc = PAPI_read( EventSet, p->papi_start_values );
       PAPI_ERROR_CHECK(PAPI_read);
 #endif
     } else {
@@ -1196,7 +1225,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 #if APEX_HAVE_PAPI
         long long * values = p->papi_stop_values;
         int rc = 0;
-        rc = PAPI_read( EventSet, values );
+        rc = PAPI_read( EventSet, p->papi_stop_values );
         PAPI_ERROR_CHECK(PAPI_read);
 #endif
         if (apex_options::use_taskgraph_output()) {
@@ -1258,7 +1287,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   /* When a sample value is processed, save it as a profiler object, and queue it. */
   void profiler_listener::on_sample_value(sample_value_event_data &data) {
     if (!_done) {
-        std::shared_ptr<profiler> p = std::shared_ptr<profiler>(new profiler(new string(*data.counter_name), data.counter_value));
+        std::shared_ptr<profiler> p = std::make_shared<profiler>(new profiler(new string(*data.counter_name), data.counter_value));
       p->is_counter = data.is_counter;
       push_profiler(my_tid, p);
     }
