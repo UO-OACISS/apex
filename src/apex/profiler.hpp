@@ -51,6 +51,8 @@ public:
              bool resume = false, 
              reset_type reset = reset_type::NONE) : 
         start(std::chrono::CLOCK_TYPE::now()), 
+        papi_start_values{0,0,0,0,0,0,0,0},
+        papi_stop_values{0,0,0,0,0,0,0,0},
         value(0.0),
         children_value(0.0),
         action_address(address), 

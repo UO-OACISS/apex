@@ -222,6 +222,17 @@ namespace apex {
     for (int i = 0 ; i < num_papi_counters ; i++) {
         values[i] = p->papi_stop_values[i] - p->papi_start_values[i];
     }   
+    /*
+    if (p->have_name) {
+      cout << *(p->timer_name) << ": ";
+    } else {
+      string * tmp = lookup_address((uintptr_t)p->action_address, false);
+      cout << *tmp << ": ";
+    }
+    cout << p->papi_start_values[1] << ", " ;
+    cout << p->papi_stop_values[1] << ", " ;
+    cout << values[1] << endl ;
+    */
 #endif
     // Look for the profile object by name, if applicable
     if (p->have_name) {
@@ -969,7 +980,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 #endif
 
 #if APEX_HAVE_PAPI
-      cout << thread_instance::get_id() << " initializing PAPI" << endl;
+      cout << my_tid << " initializing PAPI" << endl;
       initialize_PAPI(true);
       event_sets[0] = EventSet;
 #endif
@@ -1147,7 +1158,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 #endif
         // start the profiler object, which starts our timers
         profiler * p = new profiler(function_address, is_resume);
-        thread_instance::instance().set_current_profiler(std::make_shared<profiler>(p));
+        thread_instance::instance().set_current_profiler(std::shared_ptr<profiler>(p));
 #if APEX_HAVE_PAPI
         int rc = 0;
         rc = PAPI_read( EventSet, p->papi_start_values );
@@ -1177,7 +1188,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 #endif
       // start the profiler object, which starts our timers
       profiler * p = new profiler(timer_name, is_resume);
-      thread_instance::instance().set_current_profiler(std::make_shared<profiler>(p));
+      thread_instance::instance().set_current_profiler(std::shared_ptr<profiler>(p));
 #if APEX_HAVE_PAPI
       int rc = 0;
       rc = PAPI_read( EventSet, p->papi_start_values );
@@ -1193,6 +1204,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       // we have to make a local copy, because lockfree queues DO NOT SUPPORT shared_ptrs!
       profiler* local_p = new profiler(p.get());
       bool worked = thequeue.enqueue(local_p);
+      //bool worked = thequeue.enqueue(p);
       if (!worked) {
           static boost::atomic<bool> issued(false);
           if (!issued) {
@@ -1287,7 +1299,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   /* When a sample value is processed, save it as a profiler object, and queue it. */
   void profiler_listener::on_sample_value(sample_value_event_data &data) {
     if (!_done) {
-        std::shared_ptr<profiler> p = std::make_shared<profiler>(new profiler(new string(*data.counter_name), data.counter_value));
+        std::shared_ptr<profiler> p = std::shared_ptr<profiler>(new profiler(new string(*data.counter_name), data.counter_value));
       p->is_counter = data.is_counter;
       push_profiler(my_tid, p);
     }
