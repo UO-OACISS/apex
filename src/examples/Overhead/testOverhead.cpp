@@ -130,12 +130,12 @@ int main(int argc, char **argv)
     double percent = (with->accumulated / without->accumulated) - 1.0;
     double foopercall = footime->accumulated / footime->calls;
     //double percall2 = (with->accumulated - footime->accumulated) / (numthreads * ITERATIONS);
-    int nanoseconds1 = percall1 * 1.0e9;
-    int nanofoo = foopercall * 1.0e9;
+    int nanoseconds1 = percall1 * 1.0e6;
+    int nanofoo = foopercall * 1.0e6;
     //int nanoseconds2 = percall2 * 1.0e9;
     std::cout << "Average overhead per timer: ";
     std::cout << nanoseconds1;
-    std::cout << " ns (" << percent*100.0 << "%), per call time in foo: " << nanofoo << " ns " << std::endl;
+    std::cout << " cycles (" << percent*100.0 << "%), per call time in foo: " << nanofoo << " cycles " << std::endl;
     //std::cout << "Overhead (2) per timer: ";
     //std::cout << nanoseconds2;
     //std::cout << " ns" << std::endl;

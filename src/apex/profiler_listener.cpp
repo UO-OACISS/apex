@@ -130,37 +130,37 @@ namespace apex {
         non_idle_time += p->get_accumulated();
       }
     }
-    return non_idle_time;
+    return non_idle_time*profiler::get_cpu_mhz();
   }
 
   profile * profiler_listener::get_idle_time() {
     double non_idle_time = get_non_idle_time();
     /* Subtract the accumulated time from the main time span. */
-    std::chrono::duration<double> time_span = 
-        std::chrono::duration_cast<std::chrono::duration<double>>
-           (std::chrono::CLOCK_TYPE::now() - main_timer->start);
 	int num_worker_threads = thread_instance::get_num_threads();
 #ifdef APEX_HAVE_HPX3
     num_worker_threads = num_worker_threads - 8;
 #endif
+    std::chrono::duration<double> time_span = 
+        std::chrono::duration_cast<std::chrono::duration<double>>
+           (MYCLOCK::now() - main_timer->start);
     double total_main = time_span.count() *
                 fmin(hardware_concurrency(), num_worker_threads);
     double elapsed = total_main - non_idle_time;
     elapsed = elapsed > 0.0 ? elapsed : 0.0;
-    profile * theprofile = new profile(elapsed, 0, NULL, false);
+    profile * theprofile = new profile(elapsed*profiler::get_cpu_mhz(), 0, NULL, false);
     return theprofile;
   }
 
   profile * profiler_listener::get_idle_rate() {
     double non_idle_time = get_non_idle_time();
     /* Subtract the accumulated time from the main time span. */
-    std::chrono::duration<double> time_span = 
-        std::chrono::duration_cast<std::chrono::duration<double>>
-           (std::chrono::CLOCK_TYPE::now() - main_timer->start);
 	int num_worker_threads = thread_instance::get_num_threads();
 #ifdef APEX_HAVE_HPX3
     num_worker_threads = num_worker_threads - 8;
 #endif
+    std::chrono::duration<double> time_span = 
+        std::chrono::duration_cast<std::chrono::duration<double>>
+           (MYCLOCK::now() - main_timer->start);
     double total_main = time_span.count() *
                 fmin(hardware_concurrency(), num_worker_threads);
     double elapsed = total_main - non_idle_time;
@@ -375,13 +375,14 @@ namespace apex {
   void profiler_listener::finalize_profiles(void) {
     // our TOTAL available time is the elapsed * the number of threads, or cores
 	int num_worker_threads = thread_instance::get_num_threads();
+    double wall_clock_main = main_timer->elapsed() * profiler::get_cpu_mhz();
 #ifdef APEX_HAVE_HPX3
     num_worker_threads = num_worker_threads - 8;
 #endif
-    double total_main = main_timer->elapsed() * 
+    double total_main = wall_clock_main * 
         fmin(hardware_concurrency(), num_worker_threads);
     // iterate over the profiles in the address map
-    cout << "Elaspsed time: " << main_timer->elapsed() << endl;
+    cout << "Elapsed time: " << wall_clock_main << endl;
     cout << "Cores detected: " << hardware_concurrency() << endl;
     cout << "Worker Threads observed: " << num_worker_threads << endl;
     cout << "Available CPU time: " << total_main << endl;
@@ -432,10 +433,10 @@ namespace apex {
       } else {
         cout << FORMAT_SCIENTIFIC % p->get_maximum() << "   " ;
       }
-      cout << FORMAT_SCIENTIFIC % p->get_accumulated() << "   " ;
+      cout << FORMAT_SCIENTIFIC % (p->get_accumulated()*profiler::get_cpu_mhz()) << "   " ;
       cout << FORMAT_SCIENTIFIC % p->get_stddev() << "   " ;
       if (p->get_type() == APEX_TIMER) {
-        cout << FORMAT_PERCENT % ((p->get_accumulated()/total_main)*100);
+        cout << FORMAT_PERCENT % (((p->get_accumulated()*profiler::get_cpu_mhz())/total_main)*100);
         for (int i = 0 ; i < num_papi_counters ; i++) {
             cout << "   " << FORMAT_SCIENTIFIC % (p->get_papi_metrics()[i]);
         }
@@ -504,10 +505,10 @@ namespace apex {
       } else {
         cout << FORMAT_SCIENTIFIC % p->get_maximum() << "   " ;
       }
-      cout << FORMAT_SCIENTIFIC % p->get_accumulated() << "   " ;
+      cout << FORMAT_SCIENTIFIC % (p->get_accumulated()*profiler::get_cpu_mhz()) << "   " ;
       cout << FORMAT_SCIENTIFIC % p->get_stddev() << "   " ;
       if (p->get_type() == APEX_TIMER) {
-        cout << FORMAT_PERCENT % ((p->get_accumulated()/total_main)*100);
+        cout << FORMAT_PERCENT % (((p->get_accumulated()*profiler::get_cpu_mhz())/total_main)*100);
         for (int i = 0 ; i < num_papi_counters ; i++) {
             cout  << "   " << FORMAT_SCIENTIFIC % (p->get_papi_metrics()[i]);
         }
@@ -519,7 +520,7 @@ namespace apex {
         total_accumulated += p->get_accumulated();
       }
     }
-    double idle_rate = total_main - total_accumulated;
+    double idle_rate = total_main - (total_accumulated*profiler::get_cpu_mhz());
     cout << boost::format("%30s") % APEX_IDLE_TIME << " : ";
     cout << " --n/a--   " ;
     cout << " --n/a--   " ;
@@ -629,7 +630,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
     for(it = address_map.begin(); it != address_map.end(); it++) {
       profile * p = it->second;
       if (p->get_type() == APEX_TIMER) {
-        node_color * c = get_node_color(p->get_accumulated(), 0.0, total_main);
+        node_color * c = get_node_color((p->get_accumulated()*profiler::get_cpu_mhz()), 0.0, total_main);
         apex_function_address function_address = it->first;
 #if APEX_HAVE_BFD
         string * tmp = lookup_address((uintptr_t)function_address, false);
@@ -641,20 +642,20 @@ node_color * get_node_color(double v,double vmin,double vmax)
             setfill('0') << setw(2) << hex << c->convert(c->red) << 
             setfill('0') << setw(2) << hex << c->convert(c->green) << 
             setfill('0') << setw(2) << hex << c->convert(c->blue) << "\"" <<
-            "label=\"" << *tmp << ":\\n" << p->get_accumulated() << "s\" ];" << std::endl;
+            "label=\"" << *tmp << ":\\n" << (p->get_accumulated()*profiler::get_cpu_mhz()) << "s\" ];" << std::endl;
       }
     }
     map<string, profile*>::const_iterator it2;
     for(it2 = name_map.begin(); it2 != name_map.end(); it2++) {
       profile * p = it2->second;
       if (p->get_type() == APEX_TIMER) {
-        node_color * c = get_node_color(p->get_accumulated(), 0.0, total_main);
+        node_color * c = get_node_color((p->get_accumulated()*profiler::get_cpu_mhz()), 0.0, total_main);
         string action_name = it2->first;
         myfile << "  \"" << action_name << "\" [shape=box; style=filled; fillcolor=\"#" << 
             setfill('0') << setw(2) << hex << c->convert(c->red) << 
             setfill('0') << setw(2) << hex << c->convert(c->green) << 
             setfill('0') << setw(2) << hex << c->convert(c->blue) << "\"" <<
-            "label=\"" << action_name << ":\\n" << p->get_accumulated() << "s\" ];" << std::endl;
+            "label=\"" << action_name << ":\\n" << (p->get_accumulated()*profiler::get_cpu_mhz()) << "s\" ];" << std::endl;
       }
     }
     
@@ -666,8 +667,8 @@ node_color * get_node_color(double v,double vmin,double vmax)
   void format_line(ofstream &myfile, profile * p) {
     myfile << p->get_calls() << " ";
     myfile << 0 << " ";
-    myfile << (p->get_accumulated() * 1000000.0) << " ";
-    myfile << (p->get_accumulated() * 1000000.0) << " ";
+    myfile << ((p->get_accumulated()*profiler::get_cpu_mhz()) * 1000000.0) << " ";
+    myfile << ((p->get_accumulated()*profiler::get_cpu_mhz()) * 1000000.0) << " ";
     myfile << 0 << " ";
     myfile << "GROUP=\"TAU_USER\" ";
     myfile << endl;
@@ -677,8 +678,8 @@ node_color * get_node_color(double v,double vmin,double vmax)
   void format_line(ofstream &myfile, profile * p, double not_main) {
     myfile << p->get_calls() << " ";
     myfile << 0 << " ";
-    myfile << (max((p->get_accumulated() - not_main),0.0) * 1000000.0) << " ";
-    myfile << (p->get_accumulated() * 1000000.0) << " ";
+    myfile << (max(((p->get_accumulated()*profiler::get_cpu_mhz()) - not_main),0.0) * 1000000.0) << " ";
+    myfile << ((p->get_accumulated()*profiler::get_cpu_mhz()) * 1000000.0) << " ";
     myfile << 0 << " ";
     myfile << "GROUP=\"TAU_USER\" ";
     myfile << endl;
@@ -773,7 +774,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
 #endif
           myfile << "\"" << action_name << "\" ";
           format_line (myfile, p);
-          not_main += p->get_accumulated();
+          not_main += (p->get_accumulated()*profiler::get_cpu_mhz());
         }
       }
     }
@@ -925,43 +926,47 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       int rc = 0;
       if (first_time) {
         PAPI_library_init( PAPI_VER_CURRENT );
-        rc = PAPI_multiplex_init(); // use more counters than allowed
-        PAPI_ERROR_CHECK(PAPI_multiplex_init);
+        //rc = PAPI_multiplex_init(); // use more counters than allowed
+        //PAPI_ERROR_CHECK(PAPI_multiplex_init);
         PAPI_thread_init( thread_instance::get_id );
-        rc = PAPI_set_domain(PAPI_DOM_ALL);
-        PAPI_ERROR_CHECK(PAPI_set_domain);
+        // default
+        //rc = PAPI_set_domain(PAPI_DOM_ALL);
+        //PAPI_ERROR_CHECK(PAPI_set_domain);
+      } else {
+        PAPI_register_thread();
       }
       rc = PAPI_create_eventset(&EventSet);
       PAPI_ERROR_CHECK(PAPI_create_eventset);
-      rc = PAPI_assign_eventset_component (EventSet, 0);
-      PAPI_ERROR_CHECK(PAPI_assign_eventset_component);
-      rc = PAPI_set_granularity(PAPI_GRN_THR);
-      PAPI_ERROR_CHECK(PAPI_set_granularity);
-      rc = PAPI_set_multiplex(EventSet);
-      PAPI_ERROR_CHECK(PAPI_set_multiplex);
+      // default
+      //rc = PAPI_assign_eventset_component (EventSet, 0);
+      //PAPI_ERROR_CHECK(PAPI_assign_eventset_component);
+      // default
+      //rc = PAPI_set_granularity(PAPI_GRN_THR);
+      //PAPI_ERROR_CHECK(PAPI_set_granularity);
+      // unnecessary complexity
+      //rc = PAPI_set_multiplex(EventSet);
+      //PAPI_ERROR_CHECK(PAPI_set_multiplex);
       // parse the requested set of papi counters
       // The string is modified by strtok, so copy it.
       if (strlen(apex_options::papi_metrics()) > 0) {
-        char* tmpstr = strdup(apex_options::papi_metrics());
-        char *p = strtok(tmpstr, " ");
+        std::stringstream tmpstr(apex_options::papi_metrics());
+        // use stream iterators to copy the stream to the vector as whitespace separated strings
+        std::istream_iterator<std::string> tmpstr_it(tmpstr);
+        std::istream_iterator<std::string> tmpstr_end;
+        std::vector<std::string> tmpstr_results(tmpstr_it, tmpstr_end);
         int code;
-        // this is a scoped lock.
-        std::lock_guard<std::mutex> lock(event_set_mutex);
-        // only one thread - the first one - should populate the metric names.
-        bool populate_metric_names = (metric_names.size() == 0);
-        while (p) {
-          printf ("%d Trying PAPI Metric: %s\n", my_tid, p); fflush(stdout);
-          int rc = PAPI_event_name_to_code(p, &code);
+        // iterate over the counter names in the vector 
+        for (auto p : tmpstr_results) {
+          int rc = PAPI_event_name_to_code(const_cast<char*>(p.c_str()), &code);
           if (PAPI_query_event (code) == PAPI_OK) {
             rc = PAPI_add_event(EventSet, code);
             PAPI_ERROR_CHECK(PAPI_add_event);
-            if (rc != 0) { cout << my_tid << " Event that failed: " << p << endl; }
-            if (populate_metric_names) {
-              metric_names.push_back(string(p));
+            if (rc != 0) { printf ("Event that failed: %s\n", p.c_str()); }
+            if (first_time) {
+              metric_names.push_back(string(p.c_str()));
               num_papi_counters++;
             }
           }
-          p = strtok(NULL, " ");
         }
         rc = PAPI_start( EventSet );
         PAPI_ERROR_CHECK(PAPI_start);
@@ -980,7 +985,6 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 #endif
 
 #if APEX_HAVE_PAPI
-      cout << my_tid << " initializing PAPI" << endl;
       initialize_PAPI(true);
       event_sets[0] = EventSet;
 #endif
@@ -1020,9 +1024,10 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       // time the whole application.
       main_timer = std::shared_ptr<profiler>(new profiler(new string(APEX_MAIN)));
 #if APEX_HAVE_PAPI
-      int rc = 0;
-      rc = PAPI_read( EventSet, main_timer->papi_start_values );
-      PAPI_ERROR_CHECK(PAPI_read);
+      if (num_papi_counters > 0) {
+        int rc = PAPI_read( EventSet, main_timer->papi_start_values );
+        PAPI_ERROR_CHECK(PAPI_read);
+      }
 #endif
     }
     APEX_UNUSED(data);
@@ -1046,9 +1051,10 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       // stop the main timer, and process that profile?
       main_timer->stop();
 #if APEX_HAVE_PAPI
-      int rc = 0;
-      rc = PAPI_read( EventSet, main_timer->papi_stop_values );
-      PAPI_ERROR_CHECK(PAPI_read);
+      if (num_papi_counters > 0) {
+        int rc = PAPI_read( EventSet, main_timer->papi_stop_values );
+        PAPI_ERROR_CHECK(PAPI_read);
+      }
 #endif
       // if this profile is processed, it will get deleted. so don't process it!
       // It also clutters up the final profile, if generated.
@@ -1081,15 +1087,14 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         write_profile();
       }
 
-//#if APEX_HAVE_PAPI
-#if 0
+#if APEX_HAVE_PAPI
       if (num_papi_counters > 0) {
         int rc = 0;
         int i = 0;
         long long values[8] {0L};
         //cout << values[0] << " " << values[1] << " " << values[2] << " " << values[3] << endl;
         for (i = 0 ; i < thread_instance::get_num_threads() ; i++) {
-          rc = PAPI_accum( event_sets[i], values );
+          rc = PAPI_read( event_sets[i], values );
           PAPI_ERROR_CHECK(PAPI_stop);
           //cout << values[0] << " " << values[1] << " " << values[2] << " " << values[3] << endl;
         }
@@ -1123,7 +1128,6 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
     if (!_done) {
       my_tid = (unsigned int)thread_instance::get_id();
 #if APEX_HAVE_PAPI
-      cout << my_tid << " initializing PAPI" << endl;
       initialize_PAPI(false);
       if (my_tid >= event_sets.size()) {
         event_set_mutex.lock();
@@ -1160,9 +1164,10 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         profiler * p = new profiler(function_address, is_resume);
         thread_instance::instance().set_current_profiler(std::shared_ptr<profiler>(p));
 #if APEX_HAVE_PAPI
-        int rc = 0;
-        rc = PAPI_read( EventSet, p->papi_start_values );
-        PAPI_ERROR_CHECK(PAPI_read);
+        if (num_papi_counters > 0) {
+            int rc = PAPI_read( EventSet, p->papi_start_values );
+            PAPI_ERROR_CHECK(PAPI_read);
+        }
 #endif
     } else {
         return false;
@@ -1190,9 +1195,10 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       profiler * p = new profiler(timer_name, is_resume);
       thread_instance::instance().set_current_profiler(std::shared_ptr<profiler>(p));
 #if APEX_HAVE_PAPI
-      int rc = 0;
-      rc = PAPI_read( EventSet, p->papi_start_values );
-      PAPI_ERROR_CHECK(PAPI_read);
+      if (num_papi_counters > 0) {
+        int rc = PAPI_read( EventSet, p->papi_start_values );
+        PAPI_ERROR_CHECK(PAPI_read);
+      }
 #endif
     } else {
         return false;
@@ -1235,10 +1241,10 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       if (p) {
         p->stop(is_yield);
 #if APEX_HAVE_PAPI
-        long long * values = p->papi_stop_values;
-        int rc = 0;
-        rc = PAPI_read( EventSet, p->papi_stop_values );
-        PAPI_ERROR_CHECK(PAPI_read);
+        if (num_papi_counters > 0) {
+            int rc = PAPI_read( EventSet, p->papi_stop_values );
+            PAPI_ERROR_CHECK(PAPI_read);
+        }
 #endif
         if (apex_options::use_taskgraph_output()) {
           if (!p->is_resume) { 
