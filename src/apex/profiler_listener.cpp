@@ -219,7 +219,9 @@ namespace apex {
         return 0;
     }
     double values[8] = {0};
+    double tmp_num_counters = 0;
 #if APEX_HAVE_PAPI
+    tmp_num_counters = num_papi_counters;
     for (int i = 0 ; i < num_papi_counters ; i++) {
         values[i] = p->papi_stop_values[i] - p->papi_start_values[i];
     }   
@@ -233,7 +235,7 @@ namespace apex {
         if(p->is_reset == reset_type::CURRENT) {
             theprofile->reset();
         } else {
-            theprofile->increment(p->elapsed(), num_papi_counters, values, p->is_resume);
+            theprofile->increment(p->elapsed(), tmp_num_counters, values, p->is_resume);
         }
 #if defined(APEX_THROTTLE)
         // Is this a lightweight task? If so, we shouldn't measure it any more,
@@ -249,7 +251,7 @@ namespace apex {
 #endif
       } else {
         // Create a new profile for this name.
-        theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), num_papi_counters, values, p->is_resume, p->is_counter ? APEX_COUNTER : APEX_TIMER);
+        theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), tmp_num_counters, values, p->is_resume, p->is_counter ? APEX_COUNTER : APEX_TIMER);
         name_map[*(p->timer_name)] = theprofile;
 #ifdef APEX_HAVE_HPX3
 #ifdef APEX_REGISTER_HPX3_COUNTERS
@@ -284,7 +286,7 @@ namespace apex {
         if(p->is_reset == reset_type::CURRENT) {
             theprofile->reset();
         } else {
-            theprofile->increment(p->elapsed(), num_papi_counters, values, p->is_resume);
+            theprofile->increment(p->elapsed(), tmp_num_counters, values, p->is_resume);
         }
 #if defined(APEX_THROTTLE)
         // Is this a lightweight task? If so, we shouldn't measure it any more,
@@ -304,7 +306,7 @@ namespace apex {
 #endif
       } else {
         // Create a new profile for this address.
-        theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), num_papi_counters, values, p->is_resume);
+        theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), tmp_num_counters, values, p->is_resume);
         address_map[p->action_address] = theprofile;
       }
     }
@@ -386,9 +388,11 @@ namespace apex {
     screen_output << "Action                         :  #calls  |  minimum |    mean  |  maximum |   total  |  stddev  |  % total  " << apex_options::papi_metrics() << endl;
     screen_output << "------------------------------------------------------------------------------------------------------------" << endl;
     csv_output << "\"task\",\"num calls\",\"total cycles\",\"total microseconds\"";
+#if APEX_HAVE_PAPI
     for (int i = 0 ; i < num_papi_counters ; i++) {
        csv_output << ",\"" << metric_names[i] << "\"";
     }
+#endif
     csv_output << endl;
     double total_accumulated = 0.0;
     for(it = address_map.begin(); it != address_map.end(); it++) {
@@ -436,10 +440,12 @@ namespace apex {
         screen_output << FORMAT_SCIENTIFIC % (p->get_accumulated()*profiler::get_cpu_mhz()) << "   " ;
         screen_output << " --n/a--   " ;
         screen_output << FORMAT_PERCENT % (((p->get_accumulated()*profiler::get_cpu_mhz())/total_main)*100);
+#if APEX_HAVE_PAPI
         for (int i = 0 ; i < num_papi_counters ; i++) {
             screen_output << "   " << FORMAT_SCIENTIFIC % (p->get_papi_metrics()[i]);
             csv_output << "," << std::llround(p->get_papi_metrics()[i]);
         }
+#endif
         screen_output << endl;
         total_accumulated += p->get_accumulated();
         csv_output << endl;
@@ -509,10 +515,12 @@ namespace apex {
         screen_output << FORMAT_SCIENTIFIC % (p->get_accumulated()*profiler::get_cpu_mhz()) << "   " ;
         screen_output << " --n/a--   " ;
         screen_output << FORMAT_PERCENT % (((p->get_accumulated()*profiler::get_cpu_mhz())/total_main)*100);
+#if APEX_HAVE_PAPI
         for (int i = 0 ; i < num_papi_counters ; i++) {
             screen_output  << "   " << FORMAT_SCIENTIFIC % (p->get_papi_metrics()[i]);
             csv_output << "," << std::llround(p->get_papi_metrics()[i]);
         }
+#endif
         screen_output << endl;
         total_accumulated += p->get_accumulated();
         csv_output << endl;
