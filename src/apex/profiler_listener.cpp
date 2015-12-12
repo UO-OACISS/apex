@@ -11,6 +11,7 @@
 #include "profiler.hpp"
 #include "thread_instance.hpp"
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <math.h>
 #include "apex_options.hpp"
@@ -222,17 +223,6 @@ namespace apex {
     for (int i = 0 ; i < num_papi_counters ; i++) {
         values[i] = p->papi_stop_values[i] - p->papi_start_values[i];
     }   
-    /*
-    if (p->have_name) {
-      cout << *(p->timer_name) << ": ";
-    } else {
-      string * tmp = lookup_address((uintptr_t)p->action_address, false);
-      cout << *tmp << ": ";
-    }
-    cout << p->papi_start_values[1] << ", " ;
-    cout << p->papi_stop_values[1] << ", " ;
-    cout << values[1] << endl ;
-    */
 #endif
     // Look for the profile object by name, if applicable
     if (p->have_name) {
@@ -371,7 +361,7 @@ namespace apex {
 #define FORMAT_PERCENT boost::format("%8.3f")
 #define FORMAT_SCIENTIFIC boost::format("%1.2e")
 
-  /* At program termination, write the measurements to the screen. */
+  /* At program termination, write the measurements to the screen, or to CSV file, or both. */
   void profiler_listener::finalize_profiles(void) {
     // our TOTAL available time is the elapsed * the number of threads, or cores
 	int num_worker_threads = thread_instance::get_num_threads();
@@ -381,14 +371,25 @@ namespace apex {
 #endif
     double total_main = wall_clock_main * 
         fmin(hardware_concurrency(), num_worker_threads);
+    // create a stringstream to hold all the screen output - we may not
+    // want to write it out
+    stringstream screen_output;
+    // create a stringstream to hold all the CSV output - we may not
+    // want to write it out
+    stringstream csv_output;
     // iterate over the profiles in the address map
-    cout << "Elapsed time: " << wall_clock_main << endl;
-    cout << "Cores detected: " << hardware_concurrency() << endl;
-    cout << "Worker Threads observed: " << num_worker_threads << endl;
-    cout << "Available CPU time: " << total_main << endl;
+    screen_output << "Elapsed time: " << wall_clock_main << endl;
+    screen_output << "Cores detected: " << hardware_concurrency() << endl;
+    screen_output << "Worker Threads observed: " << num_worker_threads << endl;
+    screen_output << "Available CPU time: " << total_main << endl;
     map<apex_function_address, profile*>::const_iterator it;
-    cout << "Action                         :  #calls  |  minimum |    mean  |  maximum |   total  |  stddev  |  % total  " << apex_options::papi_metrics() << endl;
-    cout << "------------------------------------------------------------------------------------------------------------" << endl;
+    screen_output << "Action                         :  #calls  |  minimum |    mean  |  maximum |   total  |  stddev  |  % total  " << apex_options::papi_metrics() << endl;
+    screen_output << "------------------------------------------------------------------------------------------------------------" << endl;
+    csv_output << "\"task\",\"num calls\",\"total cycles\",\"total microseconds\"";
+    for (int i = 0 ; i < num_papi_counters ; i++) {
+       csv_output << ",\"" << metric_names[i] << "\"";
+    }
+    csv_output << endl;
     double total_accumulated = 0.0;
     for(it = address_map.begin(); it != address_map.end(); it++) {
       profile * p = it->second;
@@ -402,50 +403,53 @@ namespace apex {
         shorter.resize(27);
         shorter.resize(30, '.');
       }
-      //cout << "\"" << shorter << "\", " ;
-      cout << boost::format("%30s") % shorter << " : ";
+      //screen_output << "\"" << shorter << "\", " ;
+      screen_output << boost::format("%30s") % shorter << " : ";
 #else
-      //cout << "\"" << function_address << "\", " ;
-      cout << boost::format("%30p") % function_address << " : " ;
+      //screen_output << "\"" << function_address << "\", " ;
+      screen_output << boost::format("%30p") % function_address << " : " ;
 #endif
 #if defined(APEX_THROTTLE)
       // if this profile was throttled, don't output the measurements.
       // they are limited and bogus, anyway.
       unordered_set<apex_function_address>::const_iterator it3 = throttled_addresses.find(function_address);
       if (it3 != throttled_addresses.end()) { 
-        cout << "THROTTLED (high frequency, short duration)" << endl;
+        screen_output << "THROTTLED (high frequency, short duration)" << endl;
         continue; 
       }
 #endif
       if (p->get_calls() < 999999) {
-          cout << PAD_WITH_SPACES % p->get_calls() << "   " ;
+          screen_output << PAD_WITH_SPACES % p->get_calls() << "   " ;
       } else {
-          cout << FORMAT_SCIENTIFIC % p->get_calls() << "   " ;
+          screen_output << FORMAT_SCIENTIFIC % p->get_calls() << "   " ;
       }
       if (p->get_type() == APEX_TIMER) {
-        cout << " --n/a--   " ;
-      } else {
-        cout << FORMAT_SCIENTIFIC % p->get_minimum() << "   " ;
-      }
-      cout << FORMAT_SCIENTIFIC % p->get_mean() << "   " ;
-      if (p->get_type() == APEX_TIMER) {
-        cout << " --n/a--   " ;
-      } else {
-        cout << FORMAT_SCIENTIFIC % p->get_maximum() << "   " ;
-      }
-      cout << FORMAT_SCIENTIFIC % (p->get_accumulated()*profiler::get_cpu_mhz()) << "   " ;
-      cout << FORMAT_SCIENTIFIC % p->get_stddev() << "   " ;
-      if (p->get_type() == APEX_TIMER) {
-        cout << FORMAT_PERCENT % (((p->get_accumulated()*profiler::get_cpu_mhz())/total_main)*100);
+        csv_output << "\"" << *tmp << "\",";
+        csv_output << llround(p->get_calls()) << ",";
+        // convert MHz to Hz
+        csv_output << std::llround(p->get_accumulated()) << ",";
+        // convert MHz to microseconds
+        csv_output << std::llround(p->get_accumulated()*profiler::get_cpu_mhz()*1000000);
+        screen_output << " --n/a--   " ;
+        screen_output << FORMAT_SCIENTIFIC % (p->get_mean()*profiler::get_cpu_mhz()) << "   " ;
+        screen_output << " --n/a--   " ;
+        screen_output << FORMAT_SCIENTIFIC % (p->get_accumulated()*profiler::get_cpu_mhz()) << "   " ;
+        screen_output << " --n/a--   " ;
+        screen_output << FORMAT_PERCENT % (((p->get_accumulated()*profiler::get_cpu_mhz())/total_main)*100);
         for (int i = 0 ; i < num_papi_counters ; i++) {
-            cout << "   " << FORMAT_SCIENTIFIC % (p->get_papi_metrics()[i]);
+            screen_output << "   " << FORMAT_SCIENTIFIC % (p->get_papi_metrics()[i]);
+            csv_output << "," << std::llround(p->get_papi_metrics()[i]);
         }
-        cout << endl;
-      } else {
-        cout << " --n/a-- "  << endl;
-      }
-      if (p->get_type() == APEX_TIMER) {
+        screen_output << endl;
         total_accumulated += p->get_accumulated();
+        csv_output << endl;
+      } else {
+        screen_output << FORMAT_SCIENTIFIC % p->get_minimum() << "   " ;
+        screen_output << FORMAT_SCIENTIFIC % p->get_mean() << "   " ;
+        screen_output << FORMAT_SCIENTIFIC % p->get_maximum() << "   " ;
+        screen_output << FORMAT_SCIENTIFIC % p->get_accumulated() << "   " ;
+        screen_output << FORMAT_SCIENTIFIC % p->get_stddev() << "   " ;
+        screen_output << " --n/a-- "  << endl;
       }
     }
     map<string, profile*>::const_iterator it2;
@@ -473,71 +477,83 @@ namespace apex {
         shorter.resize(27);
         shorter.resize(30, '.');
       }
-      //cout << "\"" << shorter << "\", " ;
-      cout << boost::format("%30s") % shorter << " : ";
+      //screen_output << "\"" << shorter << "\", " ;
+      screen_output << boost::format("%30s") % shorter << " : ";
 #if defined(APEX_THROTTLE)
       // if this profile was throttled, don't output the measurements.
       // they are limited and bogus, anyway.
-      /*
       unordered_set<string>::const_iterator it4 = throttled_names.find(action_name);
       if (it4!= throttled_names.end()) { 
-        cout << "THROTTLED (high frequency, short duration)" << endl;
+        screen_output << "THROTTLED (high frequency, short duration)" << endl;
         continue; 
       }
-      */
 #endif
       if(p->get_calls() < 1) {
         p->get_profile()->calls = 1;
       }
       if (p->get_calls() < 999999) {
-          cout << PAD_WITH_SPACES % p->get_calls() << "   " ;
+          screen_output << PAD_WITH_SPACES % p->get_calls() << "   " ;
       } else {
-          cout << FORMAT_SCIENTIFIC % p->get_calls() << "   " ;
+          screen_output << FORMAT_SCIENTIFIC % p->get_calls() << "   " ;
       }
       if (p->get_type() == APEX_TIMER) {
-        cout << " --n/a--   " ;
-      } else {
-        cout << FORMAT_SCIENTIFIC % p->get_minimum() << "   " ;
-      }
-      cout << FORMAT_SCIENTIFIC % p->get_mean() << "   " ;
-      if (p->get_type() == APEX_TIMER) {
-        cout << " --n/a--   " ;
-      } else {
-        cout << FORMAT_SCIENTIFIC % p->get_maximum() << "   " ;
-      }
-      cout << FORMAT_SCIENTIFIC % (p->get_accumulated()*profiler::get_cpu_mhz()) << "   " ;
-      cout << FORMAT_SCIENTIFIC % p->get_stddev() << "   " ;
-      if (p->get_type() == APEX_TIMER) {
-        cout << FORMAT_PERCENT % (((p->get_accumulated()*profiler::get_cpu_mhz())/total_main)*100);
+        csv_output << "\"" << action_name << "\",";
+        csv_output << llround(p->get_calls()) << ",";
+        // convert MHz to Hz
+        csv_output << std::llround(p->get_accumulated()) << ",";
+        // convert MHz to microseconds
+        csv_output << std::llround(p->get_accumulated()*profiler::get_cpu_mhz()*1000000);
+        screen_output << " --n/a--   " ;
+        screen_output << FORMAT_SCIENTIFIC % p->get_mean() << "   " ;
+        screen_output << " --n/a--   " ;
+        screen_output << FORMAT_SCIENTIFIC % (p->get_accumulated()*profiler::get_cpu_mhz()) << "   " ;
+        screen_output << " --n/a--   " ;
+        screen_output << FORMAT_PERCENT % (((p->get_accumulated()*profiler::get_cpu_mhz())/total_main)*100);
         for (int i = 0 ; i < num_papi_counters ; i++) {
-            cout  << "   " << FORMAT_SCIENTIFIC % (p->get_papi_metrics()[i]);
+            screen_output  << "   " << FORMAT_SCIENTIFIC % (p->get_papi_metrics()[i]);
+            csv_output << "," << std::llround(p->get_papi_metrics()[i]);
         }
-        cout << endl;
-      } else {
-        cout << " --n/a-- "  << endl;
-      }
-      if (p->get_type() == APEX_TIMER) {
+        screen_output << endl;
         total_accumulated += p->get_accumulated();
+        csv_output << endl;
+      } else {
+        screen_output << FORMAT_SCIENTIFIC % p->get_minimum() << "   " ;
+        screen_output << FORMAT_SCIENTIFIC % p->get_mean() << "   " ;
+        screen_output << FORMAT_SCIENTIFIC % p->get_maximum() << "   " ;
+        screen_output << FORMAT_SCIENTIFIC % p->get_accumulated() << "   " ;
+        screen_output << FORMAT_SCIENTIFIC % p->get_stddev() << "   " ;
+        screen_output << " --n/a-- "  << endl;
       }
     }
     double idle_rate = total_main - (total_accumulated*profiler::get_cpu_mhz());
-    cout << boost::format("%30s") % APEX_IDLE_TIME << " : ";
-    cout << " --n/a--   " ;
-    cout << " --n/a--   " ;
-    cout << " --n/a--   " ;
-    cout << " --n/a--   " ;
+    screen_output << boost::format("%30s") % APEX_IDLE_TIME << " : ";
+    screen_output << " --n/a--   " ;
+    screen_output << " --n/a--   " ;
+    screen_output << " --n/a--   " ;
+    screen_output << " --n/a--   " ;
     if (idle_rate < 0.0) {
-      cout << " --n/a--   " ;
+      screen_output << " --n/a--   " ;
     } else {
-      cout << FORMAT_SCIENTIFIC % idle_rate << "   " ;
+      screen_output << FORMAT_SCIENTIFIC % idle_rate << "   " ;
     }
-    cout << " --n/a--   " ;
+    screen_output << " --n/a--   " ;
     if (idle_rate < 0.0) {
-      cout << " --n/a--   " << endl;
+      screen_output << " --n/a--   " << endl;
     } else {
-      cout << FORMAT_PERCENT % ((idle_rate/total_main)*100) << endl;
+      screen_output << FORMAT_PERCENT % ((idle_rate/total_main)*100) << endl;
     }
-    cout << "------------------------------------------------------------------------------------------------------------" << endl;
+    screen_output << "------------------------------------------------------------------------------------------------------------" << endl;
+    if (apex_options::use_screen_output()) {
+        cout << screen_output.str();
+    }
+    if (apex_options::use_csv_output()) {
+        ofstream csvfile;
+        stringstream csvname;
+        csvname << "apex." << node_id << ".csv";
+        csvfile.open(csvname.str(), ios::out);
+        csvfile << csv_output.str();
+        csvfile.close();
+    }
   }
 
   void fix_name(string& in_name) {
@@ -667,8 +683,8 @@ node_color * get_node_color(double v,double vmin,double vmax)
   void format_line(ofstream &myfile, profile * p) {
     myfile << p->get_calls() << " ";
     myfile << 0 << " ";
-    myfile << ((p->get_accumulated()*profiler::get_cpu_mhz()) * 1000000.0) << " ";
-    myfile << ((p->get_accumulated()*profiler::get_cpu_mhz()) * 1000000.0) << " ";
+    myfile << ((p->get_accumulated()*profiler::get_cpu_mhz())) << " ";
+    myfile << ((p->get_accumulated()*profiler::get_cpu_mhz())) << " ";
     myfile << 0 << " ";
     myfile << "GROUP=\"TAU_USER\" ";
     myfile << endl;
@@ -678,8 +694,8 @@ node_color * get_node_color(double v,double vmin,double vmax)
   void format_line(ofstream &myfile, profile * p, double not_main) {
     myfile << p->get_calls() << " ";
     myfile << 0 << " ";
-    myfile << (max(((p->get_accumulated()*profiler::get_cpu_mhz()) - not_main),0.0) * 1000000.0) << " ";
-    myfile << ((p->get_accumulated()*profiler::get_cpu_mhz()) * 1000000.0) << " ";
+    myfile << (max(((p->get_accumulated()*profiler::get_cpu_mhz()) - not_main),0.0)) << " ";
+    myfile << ((p->get_accumulated()*profiler::get_cpu_mhz())) << " ";
     myfile << 0 << " ";
     myfile << "GROUP=\"TAU_USER\" ";
     myfile << endl;
@@ -1061,7 +1077,8 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       //process_profile(main_timer.get(), my_tid);
 
       // output to screen?
-      if (apex_options::use_screen_output() && node_id == 0)
+      if ((apex_options::use_screen_output() ||
+           apex_options::use_csv_output()) && node_id == 0)
       {
         size_t ignored = thequeue.size_approx();
         if (ignored > 0) {
@@ -1075,7 +1092,9 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         if (ignored > 0) {
           std::cerr << "done." << std::endl;
         }
-        finalize_profiles();
+        if (apex_options::use_screen_output() || apex_options::use_csv_output()) {
+            finalize_profiles();
+        }
       }
       if (apex_options::use_taskgraph_output() && node_id == 0)
       {
@@ -1083,11 +1102,12 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       }
 
       // output to 1 TAU profile per process?
-      if (apex_options::use_profile_output() && apex_options::use_tau()) {
+      if (apex_options::use_profile_output() && !apex_options::use_tau()) {
         write_profile();
       }
 
-#if APEX_HAVE_PAPI
+// #if APEX_HAVE_PAPI
+#if 0
       if (num_papi_counters > 0) {
         int rc = 0;
         int i = 0;

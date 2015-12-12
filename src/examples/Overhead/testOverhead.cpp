@@ -105,21 +105,21 @@ int main(int argc, char **argv)
   apex_profile * without = apex::get_profile((apex_function_address)&someUntimedThread);
   apex_profile * with = apex::get_profile((apex_function_address)&someThread);
   apex_profile * footime = apex::get_profile((apex_function_address)&foo);
-  apex_profile * mhz = apex::get_profile(std::string("cpuinfo.0:cpu MHz"));
   if (without) {
     double mean = without->accumulated/without->calls;
     double variance = ((without->sum_squares / without->calls) - (mean * mean));
     double stddev = sqrt(variance);
     std::cout << "Without timing: " << mean;
-    std::cout << "±" << stddev << std::endl;;
+    std::cout << "±" << stddev << " cycles";
   }
   if (with) {
     double mean = with->accumulated/with->calls;
     double variance = ((with->sum_squares / with->calls) - (mean * mean));
     double stddev = sqrt(variance);
     std::cout << ", with timing: " << mean;
-    std::cout << "±" << stddev << std::endl;
+    std::cout << "±" << stddev << " cycles";
   }
+  std::cout << std::endl;
   if (footime) {
     std::cout << "Expected calls to 'foo': " << numthreads*ITERATIONS;
     std::cout << ", timed calls to 'foo': " << (int)footime->calls << std::endl;
@@ -129,22 +129,9 @@ int main(int argc, char **argv)
     percall1 = (with->accumulated - without->accumulated) / (numthreads * ITERATIONS);
     double percent = (with->accumulated / without->accumulated) - 1.0;
     double foopercall = footime->accumulated / footime->calls;
-    //double percall2 = (with->accumulated - footime->accumulated) / (numthreads * ITERATIONS);
-    int nanoseconds1 = percall1 * 1.0e6;
-    int nanofoo = foopercall * 1.0e6;
-    //int nanoseconds2 = percall2 * 1.0e9;
     std::cout << "Average overhead per timer: ";
-    std::cout << nanoseconds1;
-    std::cout << " cycles (" << percent*100.0 << "%), per call time in foo: " << nanofoo << " cycles " << std::endl;
-    //std::cout << "Overhead (2) per timer: ";
-    //std::cout << nanoseconds2;
-    //std::cout << " ns" << std::endl;
-  }
-  if (mhz && percall1 > 0.0) {
-    double cycles1 = percall1 * mhz->accumulated * 1.0e6;
-    //double cycles2 = percall2 * mhz->accumulated * 1.0e6;
-    std::cout << "Overhead (1) per timer: " << cycles1 << " cycles" << std::endl;
-    //std::cout << "Overhead (2) per timer: " << cycles2 << " cycles" << std::endl;
+    std::cout << percall1;
+    std::cout << " cycles (" << percent*100.0 << "%), per call time in foo: " << foopercall << " cycles " << std::endl;
   }
   apex::cleanup();
   return(0);
