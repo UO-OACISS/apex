@@ -42,9 +42,12 @@ struct rdtsc_clock {
     }
 };
 
+#ifdef APEX_USE_CLOCK_TIMESTAMP
+#define MYCLOCK std::chrono::CLOCK_TYPE
+#else
 typedef rdtsc_clock<1> OneHzClock;
-//#define MYCLOCK std::chrono::CLOCK_TYPE
 #define MYCLOCK OneHzClock
+#endif
 
 class profiler {
 public:
@@ -157,6 +160,9 @@ public:
 
     /* This function returns 1/X, where "X" is the MHz rating of the CPU. */
     static double get_cpu_mhz () {
+#ifdef APEX_USE_CLOCK_TIMESTAMP
+        return 1.0;
+#else
         static double ticks_per_period = 0.0;
         if (ticks_per_period == 0.0) {
             typedef std::chrono::duration<double, typename MYCLOCK::period> CycleA;
@@ -178,6 +184,7 @@ public:
             }
         }
         return ticks_per_period;
+#endif
     }
 };
 

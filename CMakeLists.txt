@@ -69,6 +69,11 @@ if((NOT DEFINED APEX_THROTTLE) OR (APEX_THROTTLE))
     endif()
 endif()
 
+if((DEFINED USE_CLOCK_TIMESTAMP) AND (USE_CLOCK_TIMESTAMP))
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPEX_USE_CLOCK_TIMESTAMP")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DAPEX_USE_CLOCK_TIMESTAMP")
+endif()
+
 # include additional macro definitions
 include(APEX_Utils)
 

@@ -105,23 +105,28 @@ int main(int argc, char **argv)
   apex_profile * without = apex::get_profile((apex_function_address)&someUntimedThread);
   apex_profile * with = apex::get_profile((apex_function_address)&someThread);
   apex_profile * footime = apex::get_profile((apex_function_address)&foo);
+#ifdef APEX_USE_CLOCK_TIMESTAMP
+#define METRIC " nanoseconds"
+#else
+#define METRIC " cycles"
+#endif
   if (without) {
     double mean = without->accumulated/without->calls;
     double variance = ((without->sum_squares / without->calls) - (mean * mean));
     double stddev = sqrt(variance);
     std::cout << "Without timing: " << mean;
-    std::cout << "±" << stddev << " cycles";
+    std::cout << "±" << stddev << METRIC;
   }
   if (with) {
     double mean = with->accumulated/with->calls;
     double variance = ((with->sum_squares / with->calls) - (mean * mean));
     double stddev = sqrt(variance);
     std::cout << ", with timing: " << mean;
-    std::cout << "±" << stddev << " cycles";
+    std::cout << "±" << stddev << METRIC;
   }
   std::cout << std::endl;
   if (footime) {
-    std::cout << "Expected calls to 'foo': " << numthreads*ITERATIONS;
+    std::cout << "Total calls to 'foo': " << numthreads*ITERATIONS;
     std::cout << ", timed calls to 'foo': " << (int)footime->calls << std::endl;
   }
   double percall1 = 0.0;
@@ -130,8 +135,13 @@ int main(int argc, char **argv)
     double percent = (with->accumulated / without->accumulated) - 1.0;
     double foopercall = footime->accumulated / footime->calls;
     std::cout << "Average overhead per timer: ";
+#ifdef APEX_USE_CLOCK_TIMESTAMP
+    std::cout << percall1*1.0e9;
+    std::cout << METRIC << " (" << percent*100.0 << "%), per call time in foo: " << (foopercall*1.0e9) << METRIC << std::endl;
+#else
     std::cout << percall1;
-    std::cout << " cycles (" << percent*100.0 << "%), per call time in foo: " << foopercall << " cycles " << std::endl;
+    std::cout << METRIC << " (" << percent*100.0 << "%), per call time in foo: " << foopercall << METRIC << std::endl;
+#endif
   }
   apex::cleanup();
   return(0);

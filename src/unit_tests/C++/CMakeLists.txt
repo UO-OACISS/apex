@@ -47,7 +47,7 @@ endif (OPENMP_FOUND)
 
 if (NOT PAPI_FOUND)
     set(example_programs "${example_programs};apex_pthread_flood")
-endif (PAPI_FOUND)
+endif()
 
 foreach(example_program ${example_programs})
   set(sources ${example_program}.cpp)

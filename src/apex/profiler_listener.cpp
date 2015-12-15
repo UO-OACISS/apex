@@ -35,12 +35,17 @@
 #include <vector>
 #include <string>
 #include <boost/regex.hpp>
+#include <unordered_set>
 
 #if defined(APEX_THROTTLE)
 #define APEX_THROTTLE_CALLS 1000
+#ifdef APEX_USE_CLOCK_TIMESTAMP
 #define APEX_THROTTLE_PERCALL 0.00001 // 10 microseconds.
+#else
+#define APEX_THROTTLE_PERCALL 50000 // 50k cycles.
 #endif
-#include <unordered_set>
+#endif
+
 
 #if APEX_HAVE_BFD
 #include "address_resolution.hpp"
@@ -510,7 +515,7 @@ namespace apex {
         // convert MHz to microseconds
         csv_output << std::llround(p->get_accumulated()*profiler::get_cpu_mhz()*1000000);
         screen_output << " --n/a--   " ;
-        screen_output << FORMAT_SCIENTIFIC % p->get_mean() << "   " ;
+        screen_output << FORMAT_SCIENTIFIC % (p->get_mean()*profiler::get_cpu_mhz()) << "   " ;
         screen_output << " --n/a--   " ;
         screen_output << FORMAT_SCIENTIFIC % (p->get_accumulated()*profiler::get_cpu_mhz()) << "   " ;
         screen_output << " --n/a--   " ;
