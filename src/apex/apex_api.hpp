@@ -614,6 +614,10 @@ APEX_EXPORT int setup_timer_throttling(const std::string &the_name,
         apex_optimization_criteria_t criteria,
         apex_optimization_method_t method, unsigned long update_interval);
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+APEX_EXPORT int startup_throttling(void);
+#endif
+
 /**
  \brief Terminate the throttling policy.
 

@@ -194,6 +194,7 @@ void apex::_initialize()
         listeners.push_back(new tau_listener());
     }
 #endif
+    startup_throttling();
     if (apex_options::use_policy())
     {
         this->m_policy_handler = new policy_handler();

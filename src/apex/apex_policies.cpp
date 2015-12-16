@@ -64,8 +64,7 @@ bool apex_checkThrottling = false;    // Is throttling desired
 bool apex_energyThrottling = false;   // Try to save power while throttling
 bool apex_final = false;              // When do we stop?
 
-static shared_ptr<apex_tuning_session> thread_cap_tuning_session =
-  make_shared<apex_tuning_session>(0);
+apex_tuning_session * thread_cap_tuning_session = nullptr;
 
 inline int __get_thread_cap(void) {
   return (int)(thread_cap_tuning_session->thread_cap);
@@ -647,7 +646,7 @@ int apex_custom_tuning_policy(shared_ptr<apex_tuning_session> tuning_session, ap
 /// how to do this currently AKP 11/01/14
 /// ----------------------------------------------------------------------------
 
-inline void __read_common_variables(shared_ptr<apex_tuning_session> tuning_session) {
+inline void __read_common_variables(apex_tuning_session * tuning_session) {
     tuning_session->max_threads = tuning_session->thread_cap = apex::hardware_concurrency();
     tuning_session->min_threads = 1;
     if (apex::apex_options::throttle_concurrency()) {
@@ -660,6 +659,10 @@ inline void __read_common_variables(shared_ptr<apex_tuning_session> tuning_sessi
             cout << "APEX concurrency throttling enabled, min threads: " << tuning_session->min_threads << " max threads: " << tuning_session->max_threads << endl;
         }
     }
+}
+
+inline void __read_common_variables(shared_ptr<apex_tuning_session> tuning_session) {
+    return __read_common_variables(tuning_session.get());
 }
 
 inline int __setup_power_cap_throttling()
@@ -692,7 +695,7 @@ inline int __setup_power_cap_throttling()
 }
 
 #ifdef APEX_HAVE_ACTIVEHARMONY
-inline void __apex_active_harmony_setup(shared_ptr<apex_tuning_session> tuning_session) {
+inline void __apex_active_harmony_setup(apex_tuning_session * tuning_session) {
     static const char* session_name = "APEX Throttling";
     tuning_session->hdesc = harmony_init(NULL, NULL);
     if (tuning_session->hdesc == NULL) {
@@ -726,6 +729,10 @@ inline void __apex_active_harmony_setup(shared_ptr<apex_tuning_session> tuning_s
         cerr << "Failed to launch Active Harmony tuning session" << endl;
         return;
     }
+}
+
+inline void __apex_active_harmony_setup(shared_ptr<apex_tuning_session> tuning_session) {
+    return __apex_active_harmony_setup(tuning_session.get());
 }
 
 inline void __active_harmony_throughput_setup(int num_inputs, long ** inputs, long * mins, long * maxs, long * steps) {
@@ -830,6 +837,7 @@ inline void __apex_active_harmony_shutdown(shared_ptr<apex_tuning_session> tunin
 
 #else
 inline void __apex_active_harmony_setup(shared_ptr<apex_tuning_session> tuning_session) { }
+inline void __apex_active_harmony_setup(apex_tuning_session * tuning_session) { }
 inline void __active_harmony_throughput_setup(int num_inputs, long ** inputs, long * mins, long * maxs, long * steps) {
   APEX_UNUSED(num_inputs);
   APEX_UNUSED(inputs);
@@ -968,15 +976,31 @@ inline int __setup_timer_throttling(const string& the_name, apex_optimization_cr
     return __common_setup_timer_throttling(criteria, method, update_interval);
 }
 
+inline int __startup_throttling(void)
+{
+    if(thread_cap_tuning_session == nullptr) {
+        thread_cap_tuning_session = new apex_tuning_session(0);
+        return APEX_NOERROR;
+    } else {
+        return APEX_ERROR;
+    }
+}
+
 inline int __shutdown_throttling(void)
 {
-    apex_final = true;
-  //printf("periodic_policy called %d times\n", tuning_session->test_pp);
-    if (thread_cap_tuning_session->cap_data_open) {
-        thread_cap_tuning_session->cap_data_open = false;
-        thread_cap_tuning_session->cap_data.close();
+    if(!apex_final) { // protect against multiple shutdowns
+        apex_final = true;
+    //printf("periodic_policy called %d times\n", tuning_session->test_pp);
+        if (thread_cap_tuning_session->cap_data_open) {
+            thread_cap_tuning_session->cap_data_open = false;
+            thread_cap_tuning_session->cap_data.close();
+        }
+        delete thread_cap_tuning_session;
+        thread_cap_tuning_session = nullptr;
+        return APEX_NOERROR;
+    } else {
+        return APEX_ERROR;
     }
-  return APEX_NOERROR;
 }
 
 /* These are the external API versions of the above functions. */
@@ -1017,6 +1041,9 @@ APEX_EXPORT apex_tuning_session_handle setup_custom_tuning(std::function<double(
     return __setup_custom_tuning(metric, event_type, num_inputs, inputs, mins, maxs, steps);
 }
 
+APEX_EXPORT int startup_throttling(void) {
+    return __startup_throttling();
+}
 
 APEX_EXPORT int shutdown_throttling(void) {
     return __shutdown_throttling();
@@ -1070,6 +1097,10 @@ APEX_EXPORT int apex_setup_throughput_tuning( apex_profiler_type type, void * id
         return __setup_throughput_tuning(tmp, criteria, event_type, num_inputs, inputs, mins, maxs, steps);
     }
     return APEX_ERROR;
+}
+
+APEX_EXPORT int apex_startup_throttling(void) {
+    return __startup_throttling();
 }
 
 APEX_EXPORT int apex_shutdown_throttling(void) {
