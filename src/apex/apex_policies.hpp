@@ -147,6 +147,10 @@ class apex_tuning_request {
             tuning_session_handle{0}, running{false}, strategy{apex_ah_tuning_strategy::PARALLEL_RANK_ORDER} {};
         virtual ~apex_tuning_request()  {};
 
+        const std::string & get_name() const {
+            return name;
+        }
+
         std::shared_ptr<apex_param_long> add_param_long(const std::string & name, const long init_value, const long min,
                             const long max, const long step) {
             std::shared_ptr<apex_param_long> param{std::make_shared<apex_param_long>(name, init_value, min, max, step)};

@@ -892,7 +892,6 @@ inline int __active_harmony_custom_setup(shared_ptr<apex_tuning_session> tuning_
                auto param_enum = std::static_pointer_cast<apex_param_enum>(param);                                 
                for(const std::string & possible_value : param_enum->possible_values) {
                    const char * v = possible_value.c_str();
-                   std::cerr << "Registering enum value: " << v << std::endl;
                    int status = harmony_enum(tuning_session->hdesc, param_name, v);    
                    if(status != 0) {
                        cerr << "Failed to create Active Harmony enum parameter" << endl;
