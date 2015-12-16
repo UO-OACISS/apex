@@ -1,11 +1,11 @@
-#include<omp.h>
-#include<stdio.h>
-#include<stdlib.h>
-#include<string.h>
-#include"apex.h"
+#include <omp.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "apex.h"
 
 #define N 4096*4096
-#define MAX_THREADS 1024
+#define MAX_THREADS 128
 
 #if defined(__GNUC__)
 #define ALIGNED_(x) __attribute__ ((aligned(x)))
