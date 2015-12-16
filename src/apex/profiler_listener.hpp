@@ -45,7 +45,7 @@
 
 namespace apex {
 
-class profiler_queue_t : public moodycamel::ConcurrentQueue<profiler*> { 
+class profiler_queue_t : public moodycamel::ConcurrentQueue<std::shared_ptr<profiler> > { 
 public:
   profiler_queue_t() {}
   virtual ~profiler_queue_t() {
@@ -67,7 +67,7 @@ private:
 #ifdef APEX_HAVE_HPX3
   void schedule_process_profiles(void);
 #endif
-  //unsigned int process_profile(std::shared_ptr<profiler> p, unsigned int tid);
+  unsigned int process_profile(std::shared_ptr<profiler> p, unsigned int tid);
   void reset_all(void);
   unsigned int process_profile(profiler* p, unsigned int tid);
   unsigned int process_dependency(task_dependency* td);

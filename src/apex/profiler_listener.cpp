@@ -214,13 +214,12 @@ namespace apex {
   // TODO The name-based timer and address-based timer paths through
   // the code involve a lot of duplication -- this should be refactored
   // to remove the duplication so it's easier to maintain.
-  inline unsigned int profiler_listener::process_profile(profiler* p, unsigned int tid)
+  inline unsigned int profiler_listener::process_profile(std::shared_ptr<profiler> p, unsigned int tid)
   {
     if(p == nullptr) return 0;
     profile * theprofile;
     if(p->is_reset == reset_type::ALL) {
         reset_all();
-        delete p;
         return 0;
     }
     double values[8] = {0};
@@ -269,7 +268,6 @@ namespace apex {
                     std::string("/apex/") + timer_name,
                     [p](bool r)->boost::int64_t{
                         boost::int64_t value(p->elapsed() * 100000);
-                        delete p;
                         return value;
                     },
                     std::string("APEX counter ") + timer_name,
@@ -315,7 +313,6 @@ namespace apex {
         address_map[p->action_address] = theprofile;
       }
     }
-    delete p;
     return 1;
   }
 
@@ -863,7 +860,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
     }
 #endif
 
-    profiler* p;
+    std::shared_ptr<profiler> p;
     task_dependency* td;
     // Main loop. Stay in this loop unless "done".
 #ifndef APEX_HAVE_HPX3
@@ -1051,7 +1048,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 #endif
 
       // time the whole application.
-      main_timer = std::shared_ptr<profiler>(new profiler(new string(APEX_MAIN)));
+      main_timer = std::make_shared<profiler>(new string(APEX_MAIN));
 #if APEX_HAVE_PAPI
       if (num_papi_counters > 0) {
         int rc = PAPI_read( EventSet, main_timer->papi_start_values );
@@ -1098,7 +1095,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
           std::cerr << "Info: " << ignored << " items remaining on on the profiler_listener queue...";
         }
         // We might be done, but check to make sure the queue is empty
-        profiler* p;
+        std::shared_ptr<profiler> p;
         while(thequeue.try_dequeue(p)) {
           process_profile(p, 0);
         }
@@ -1194,8 +1191,8 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         }
 #endif
         // start the profiler object, which starts our timers
-        profiler * p = new profiler(function_address, is_resume);
-        thread_instance::instance().set_current_profiler(std::shared_ptr<profiler>(p));
+        std::shared_ptr<profiler> p = std::make_shared<profiler>(function_address, is_resume);
+        thread_instance::instance().set_current_profiler(p);
 #if APEX_HAVE_PAPI
         if (num_papi_counters > 0) {
             int rc = PAPI_read( EventSet, p->papi_start_values );
@@ -1225,8 +1222,8 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       }
 #endif
       // start the profiler object, which starts our timers
-      profiler * p = new profiler(timer_name, is_resume);
-      thread_instance::instance().set_current_profiler(std::shared_ptr<profiler>(p));
+      std::shared_ptr<profiler> p = std::make_shared<profiler>(timer_name, is_resume);
+      thread_instance::instance().set_current_profiler(p);
 #if APEX_HAVE_PAPI
       if (num_papi_counters > 0) {
         int rc = PAPI_read( EventSet, p->papi_start_values );
@@ -1241,9 +1238,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 
   inline void profiler_listener::push_profiler(int my_tid, std::shared_ptr<profiler>p) {
       // we have to make a local copy, because lockfree queues DO NOT SUPPORT shared_ptrs!
-      profiler* local_p = new profiler(p.get());
-      bool worked = thequeue.enqueue(local_p);
-      //bool worked = thequeue.enqueue(p);
+      bool worked = thequeue.enqueue(p);
       if (!worked) {
           static boost::atomic<bool> issued(false);
           if (!issued) {
@@ -1338,7 +1333,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   /* When a sample value is processed, save it as a profiler object, and queue it. */
   void profiler_listener::on_sample_value(sample_value_event_data &data) {
     if (!_done) {
-        std::shared_ptr<profiler> p = std::shared_ptr<profiler>(new profiler(new string(*data.counter_name), data.counter_value));
+      std::shared_ptr<profiler> p = std::make_shared<profiler>(new string(*data.counter_name), data.counter_value);
       p->is_counter = data.is_counter;
       push_profiler(my_tid, p);
     }
@@ -1391,16 +1386,15 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   void profiler_listener::reset(apex_function_address function_address) {
       std::shared_ptr<profiler> p;
     if(function_address != APEX_NULL_FUNCTION_ADDRESS) {
-    p = std::shared_ptr<profiler>(new profiler(function_address, false, reset_type::CURRENT));
+    p = std::make_shared<profiler>(function_address, false, reset_type::CURRENT);
     } else {
-    p = std::shared_ptr<profiler>(new profiler((apex_function_address)APEX_NULL_FUNCTION_ADDRESS, false, reset_type::ALL));
+    p = std::make_shared<profiler>((apex_function_address)APEX_NULL_FUNCTION_ADDRESS, false, reset_type::ALL);
     }
     push_profiler(my_tid, p);
   }
 
   void profiler_listener::reset(const std::string &timer_name) {
-      std::shared_ptr<profiler> p;
-    p = std::shared_ptr<profiler>(new profiler(new string(timer_name), false, reset_type::CURRENT));
+    std::shared_ptr<profiler> p = std::make_shared<profiler>(new string(timer_name), false, reset_type::CURRENT);
     push_profiler(my_tid, p);
   }
 
