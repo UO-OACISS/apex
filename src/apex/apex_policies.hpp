@@ -1,5 +1,5 @@
-#ifndef APEX_POLICIES_H  
-#define APEX_POLICIES_H  
+#ifndef APEX_POLICIES_HPP
+#define APEX_POLICIES_HPP
 
 #include "apex_api.hpp"
 #include "apex.hpp"
@@ -13,20 +13,8 @@
 #include "hclient.h"
 #endif
 
-extern bool apex_throttleOn;         // Current Throttle status
-extern bool apex_checkThrottling;    // Is thread throttling desired
-extern bool apex_energyThrottling;   // Try to save power while throttling
-
-typedef enum {INITIAL_STATE, BASELINE, INCREASE, DECREASE, NO_CHANGE} last_action_t;
-
-typedef uint32_t apex_tuning_session_handle;
-
-#define  APEX_HIGH_POWER_LIMIT  220.0  // system specific cutoff to identify busy systems, WATTS
-#define  APEX_LOW_POWER_LIMIT   200.0  // system specific cutoff to identify busy systems, WATTS
-
-#define APEX_MAX_THREADS 24
-#define APEX_MIN_THREADS 1
-#define MAX_WINDOW_SIZE 3
+// include the C API
+#include "apex_policies.h"
 
 struct apex_tuning_session {
     apex_tuning_session_handle id;
@@ -79,4 +67,4 @@ struct apex_tuning_session {
 };
 
 
-#endif // APEX_POLICIES_H  
+#endif // APEX_POLICIES_HPP
