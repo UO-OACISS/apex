@@ -67,7 +67,7 @@ private:
 #ifdef APEX_HAVE_HPX3
   void schedule_process_profiles(void);
 #endif
-  unsigned int process_profile(std::shared_ptr<profiler> p, unsigned int tid);
+  unsigned int process_profile(std::shared_ptr<profiler> &p, unsigned int tid);
   void reset_all(void);
   unsigned int process_profile(profiler* p, unsigned int tid);
   unsigned int process_dependency(task_dependency* td);
@@ -75,8 +75,8 @@ private:
   boost::mutex _mtx;
   bool _common_start(apex_function_address function_address, bool is_resume); // internal, inline function
   bool _common_start(std::string * timer_name, bool is_resume); // internal, inline function
-  void _common_stop(std::shared_ptr<profiler> p, bool is_yield); // internal, inline function
-  void push_profiler(int my_tid, std::shared_ptr<profiler> p);
+  void _common_stop(std::shared_ptr<profiler> &p, bool is_yield); // internal, inline function
+  void push_profiler(int my_tid, std::shared_ptr<profiler> &p);
   std::map<std::string, profile*> name_map;
   std::map<apex_function_address, profile*> address_map;
   std::unordered_map<task_identifier, std::unordered_map<task_identifier, int>* > task_dependencies;
@@ -120,8 +120,8 @@ public:
   void on_exit_thread(event_data &data);
   bool on_start(apex_function_address function_address);
   bool on_start(std::string *timer_name);
-  void on_stop(std::shared_ptr<profiler> p);
-  void on_yield(std::shared_ptr<profiler> p);
+  void on_stop(std::shared_ptr<profiler> &p);
+  void on_yield(std::shared_ptr<profiler> &p);
   bool on_resume(apex_function_address function_address);
   bool on_resume(std::string *timer_name);
   void on_new_task(apex_function_address function_address, void * task_id);

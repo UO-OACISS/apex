@@ -214,7 +214,7 @@ namespace apex {
   // TODO The name-based timer and address-based timer paths through
   // the code involve a lot of duplication -- this should be refactored
   // to remove the duplication so it's easier to maintain.
-  inline unsigned int profiler_listener::process_profile(std::shared_ptr<profiler> p, unsigned int tid)
+  inline unsigned int profiler_listener::process_profile(std::shared_ptr<profiler> &p, unsigned int tid)
   {
     if(p == nullptr) return 0;
     profile * theprofile;
@@ -1236,7 +1236,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
     return true;
   }
 
-  inline void profiler_listener::push_profiler(int my_tid, std::shared_ptr<profiler>p) {
+  inline void profiler_listener::push_profiler(int my_tid, std::shared_ptr<profiler> &p) {
       // we have to make a local copy, because lockfree queues DO NOT SUPPORT shared_ptrs!
       bool worked = thequeue.enqueue(p);
       if (!worked) {
@@ -1264,7 +1264,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   }
 
   /* Stop the timer, if applicable, and queue the profiler object */
-  inline void profiler_listener::_common_stop(std::shared_ptr<profiler> p, bool is_yield) {
+  inline void profiler_listener::_common_stop(std::shared_ptr<profiler> &p, bool is_yield) {
     if (!_done) {
       if (p) {
         p->stop(is_yield);
@@ -1316,12 +1316,12 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   }
 
    /* Stop the timer */
-  void profiler_listener::on_stop(std::shared_ptr<profiler> p) {
+  void profiler_listener::on_stop(std::shared_ptr<profiler> &p) {
     _common_stop(p, p->is_resume); // don't change the yield/resume value!
   }
 
   /* Stop the timer, but don't increment the number of calls */
-  void profiler_listener::on_yield(std::shared_ptr<profiler> p) {
+  void profiler_listener::on_yield(std::shared_ptr<profiler> &p) {
     _common_stop(p, true);
   }
 

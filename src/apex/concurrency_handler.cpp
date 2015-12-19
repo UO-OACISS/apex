@@ -181,7 +181,7 @@ bool concurrency_handler::on_resume(string *timer_name) {
   }
 }
 
-void concurrency_handler::on_stop(std::shared_ptr<profiler> p) {
+void concurrency_handler::on_stop(std::shared_ptr<profiler> &p) {
   if (!_terminate) {
     int i = thread_instance::get_id();
     stack<task_identifier>* my_stack = get_event_stack(i);
@@ -194,7 +194,7 @@ void concurrency_handler::on_stop(std::shared_ptr<profiler> p) {
   APEX_UNUSED(p);
 }
 
-void concurrency_handler::on_yield(std::shared_ptr<profiler> p) {
+void concurrency_handler::on_yield(std::shared_ptr<profiler> &p) {
     on_stop(p);
 }
 
