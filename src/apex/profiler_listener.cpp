@@ -430,7 +430,11 @@ namespace apex {
           screen_output << FORMAT_SCIENTIFIC % p->get_calls() << "   " ;
       }
       if (p->get_type() == APEX_TIMER) {
+#if APEX_HAVE_BFD
         csv_output << "\"" << *tmp << "\",";
+#else
+        csv_output << "\"" << function_address << "\",";
+#endif
         csv_output << llround(p->get_calls()) << ",";
         // convert MHz to Hz
         csv_output << std::llround(p->get_accumulated()) << ",";
