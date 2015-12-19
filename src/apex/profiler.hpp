@@ -1,13 +1,12 @@
 #ifndef PROFILER_HPP
 #define PROFILER_HPP
 
-//#include <boost/timer/timer.hpp>
-#include <chrono>
 #include <iostream>
 #include <sstream>
 #include <math.h>
 #include "apex_options.hpp"
 #include "apex_types.h"
+#include <chrono>
 
 #ifdef __INTEL_COMPILER
 #define CLOCK_TYPE high_resolution_clock
@@ -29,11 +28,31 @@ class disabled_profiler_exception : public std::exception {
     }
 };
 
+template<std::intmax_t clock_freq>
+struct rdtsc_clock {
+    typedef unsigned long long rep;
+    typedef std::ratio<1, clock_freq> period;
+    typedef std::chrono::duration<rep, period> duration;
+    typedef std::chrono::time_point<rdtsc_clock> time_point;
+    static const bool is_steady = true;
+    static time_point now() noexcept {
+        unsigned lo, hi;
+        asm volatile("rdtsc" : "=a" (lo), "=d" (hi));
+        return time_point(duration(static_cast<rep>(hi) << 32 | lo));
+    }
+};
+
+#ifdef APEX_USE_CLOCK_TIMESTAMP
+#define MYCLOCK std::chrono::CLOCK_TYPE
+#else
+typedef rdtsc_clock<1> OneHzClock;
+#define MYCLOCK OneHzClock
+#endif
+
 class profiler {
 public:
-        //boost::timer::cpu_timer t; // starts the timer when profiler is constructed!
-    std::chrono::CLOCK_TYPE::time_point start;
-    std::chrono::CLOCK_TYPE::time_point end;
+    MYCLOCK::time_point start;
+    MYCLOCK::time_point end;
 #if APEX_HAVE_PAPI
     long long papi_start_values[8];
     long long papi_stop_values[8];
@@ -50,7 +69,11 @@ public:
     profiler(apex_function_address address,
              bool resume = false, 
              reset_type reset = reset_type::NONE) : 
-        start(std::chrono::CLOCK_TYPE::now()), 
+        start(MYCLOCK::now()), 
+#if APEX_HAVE_PAPI
+        papi_start_values{0,0,0,0,0,0,0,0},
+        papi_stop_values{0,0,0,0,0,0,0,0},
+#endif
         value(0.0),
         children_value(0.0),
         action_address(address), 
@@ -62,7 +85,11 @@ public:
     profiler(std::string * name, 
              bool resume = false, 
              reset_type reset = reset_type::NONE) : 
-        start(std::chrono::CLOCK_TYPE::now()), 
+        start(MYCLOCK::now()), 
+#if APEX_HAVE_PAPI
+        papi_start_values{0,0,0,0,0,0,0,0},
+        papi_stop_values{0,0,0,0,0,0,0,0},
+#endif
         value(0.0), 
         children_value(0.0),
         action_address(0L), 
@@ -82,8 +109,6 @@ public:
         is_reset(reset_type::NONE), stopped(true) { }; 
     //copy constructor
     profiler(profiler* in) : start(in->start), end(in->end) {
-    //start = in->start;
-    //end = in->start;
 #if APEX_HAVE_PAPI
         for (int i = 0 ; i < 8 ; i++) {
             papi_start_values[i] = in->papi_start_values[i];
@@ -106,12 +131,12 @@ public:
     // for "yield" support
     void stop(bool is_resume) {
         this->is_resume = is_resume;
-        end = std::chrono::CLOCK_TYPE::now();
+        end = MYCLOCK::now();
         stopped = true;
     };
     void stop() {
-      end = std::chrono::CLOCK_TYPE::now();
-      stopped = true;
+        end = MYCLOCK::now();
+        stopped = true;
     };
     double elapsed(void) {
         if(is_counter) {
@@ -132,6 +157,35 @@ public:
     profiler(void) {};
     // dummy profiler to indicate that stop/yield should resume immediately
     static profiler* disabled_profiler; // initialized in profiler_listener.cpp
+
+    /* This function returns 1/X, where "X" is the MHz rating of the CPU. */
+    static double get_cpu_mhz () {
+#ifdef APEX_USE_CLOCK_TIMESTAMP
+        return 1.0;
+#else
+        static double ticks_per_period = 0.0;
+        if (ticks_per_period == 0.0) {
+            typedef std::chrono::duration<double, typename MYCLOCK::period> CycleA;
+            typedef std::chrono::duration<double, typename std::chrono::CLOCK_TYPE::period> CycleB;
+            const int N = 100000000;
+            auto t0a = MYCLOCK::now();
+            auto t0b = std::chrono::CLOCK_TYPE::now();
+            for (int j = 0; j < N; ++j) {
+                asm volatile("");
+            }
+            auto t1a = MYCLOCK::now();
+            auto t1b = std::chrono::CLOCK_TYPE::now();
+            // Get the clock ticks per time period
+            //std::cout << CycleA(t1a-t0a).count() << " 1MHz ticks seen." << std::endl;
+            //std::cout << std::chrono::duration_cast<std::chrono::seconds>(CycleB(t1b-t0b)).count() << " Seconds? seen." << std::endl;
+            ticks_per_period = CycleB(t1b-t0b)/CycleA(t1a-t0a);
+            if (apex_options::use_screen_output()) {
+                std::cout << "CPU is " << (1.0/ticks_per_period) << " Hz." << std::endl;
+            }
+        }
+        return ticks_per_period;
+#endif
+    }
 };
 
 }

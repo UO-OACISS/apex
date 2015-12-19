@@ -40,6 +40,16 @@ double** allocateMatrix(int rows, int cols) {
   return matrix;
 }
 
+void freeMatrix(double** matrix, int rows) {
+  apex::profiler* p = apex::start(__func__);
+  int i;
+  for (i=0; i<rows; i++) {
+    free(matrix[i]);
+  }
+  free(matrix);
+  apex::stop(p);
+}
+
 #ifdef APP_USE_INLINE_MULTIPLY
 __inline double multiply(double a, double b) {
   return a * b;
@@ -135,8 +145,12 @@ double do_work(void) {
   compute(a, b, c, NRA, NCA, NCB);
   compute_interchange(a, b, c, NRA, NCA, NCB);
 
+  double result = c[0][1];
+  freeMatrix(c, NRA);
+  freeMatrix(b, NCA);
+  freeMatrix(a, NRA);
   apex::stop(p);
-  return c[0][1]; 
+  return result;
 }
 
 #define UNUSED(x) (void)(x)

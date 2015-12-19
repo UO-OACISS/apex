@@ -18,7 +18,7 @@ class profile {
 private:
     apex_profile _profile;
 public:
-    profile(double initial, bool yielded = false, apex_profile_type type = APEX_TIMER) {
+    profile(double initial, int num_metrics, double * papi_metrics, bool yielded = false, apex_profile_type type = APEX_TIMER) {
         _profile.type = type;
         if (!yielded) {
             _profile.calls = 1.0;
@@ -26,14 +26,20 @@ public:
             _profile.calls = 0.0;
         }
         _profile.accumulated = initial;
+        for (int i = 0 ; i < num_metrics ; i++) {
+            _profile.papi_metrics[i] = papi_metrics[i];
+        }
 #ifdef FULL_STATISTICS
         _profile.sum_squares = initial*initial;
         _profile.minimum = initial;
         _profile.maximum = initial;
 #endif
     };
-    void increment(double increase, bool yielded) {
+    void increment(double increase, int num_metrics, double * papi_metrics, bool yielded) {
         _profile.accumulated += increase;
+        for (int i = 0 ; i < num_metrics ; i++) {
+            _profile.papi_metrics[i] += papi_metrics[i];
+        }
 #ifdef FULL_STATISTICS
         _profile.sum_squares += (increase * increase);
         // if not a fully completed task, don't modify these until it is done
@@ -54,6 +60,7 @@ public:
     double get_calls() { return _profile.calls; }
     double get_mean() { return (_profile.accumulated / _profile.calls); }
     double get_accumulated() { return (_profile.accumulated); }
+    double * get_papi_metrics() { return (_profile.papi_metrics); }
     double get_minimum() { return (_profile.minimum); }
     double get_maximum() { return (_profile.maximum); }
     double get_variance() {

@@ -176,6 +176,7 @@ typedef struct _profile
     double minimum;       /*!< Minimum value seen by the timer or counter */
     double maximum;       /*!< Maximum value seen by the timer or counter */
     apex_profile_type type; /*!< Whether this is a timer or a counter */
+    double papi_metrics[8];  /*!< Array of accumulated PAPI hardware metrics */
 } apex_profile;
 
 /** Rather than use void pointers everywhere, be explicit about
@@ -229,6 +230,7 @@ typedef uint32_t apex_tuning_session_handle;
     macro (APEX_MEASURE_CONCURRENCY_PERIOD, concurrency_period, int, 1000000) \
     macro (APEX_SCREEN_OUTPUT, use_screen_output, bool, false) \
     macro (APEX_PROFILE_OUTPUT, use_profile_output, int, false) \
+    macro (APEX_CSV_OUTPUT, use_csv_output, int, false) \
     macro (APEX_TASKGRAPH_OUTPUT, use_taskgraph_output, bool, false) \
     macro (APEX_PROC_CPUINFO, use_proc_cpuinfo, bool, false) \
     macro (APEX_PROC_MEMINFO, use_proc_meminfo, bool, false) \

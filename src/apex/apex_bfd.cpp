@@ -96,6 +96,7 @@ struct ApexBfdModule
 
     Apex_bfd_initializeBfd();
 
+    //printf("apex_loadSymbolTable: opening [%s]\n", path);
     if (!(bfdImage = bfd_openr(path, 0))) {
       //printf("apex_loadSymbolTable: Failed to open [%s]\n", path);
       return (bfdOpen = false);
@@ -612,8 +613,8 @@ bool Apex_bfd_resolveBfdInfo(apex_bfd_handle_t handle, unsigned long probeAddr, 
     addr0 = probeAddr;
     addr1 = probeAddr - unit->addressMaps[matchingIdx]->start;
 #else
-    addr0 = probeAddr - unit->addressMaps[matchingIdx]->start;
-    addr1 = probeAddr;
+    addr0 = probeAddr;
+    addr1 = probeAddr - unit->addressMaps[matchingIdx]->start;
 #endif
   } else {
     if (!Apex_bfd_internal_loadExecSymTab(unit)) {
