@@ -3,7 +3,10 @@
 # to the root binary directory of the project as ${APEX_BINARY_DIR}.
 
 cmake_minimum_required (VERSION 2.8.12 FATAL_ERROR)
-cmake_policy(SET CMP0042 NEW)
+cmake_policy(VERSION 2.8.12)
+if (${CMAKE_MAJOR_VERSION} GREATER 2)
+  cmake_policy(SET CMP0042 NEW)
+endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules")
 
