@@ -4,11 +4,13 @@
 Overview:
 =========
 
-One of the key components of the XPRESS project is a new approach to performance observation, measurement, analysis and runtime decision making in order to optimize performance. The particular challenges of accurately measuring the performance characteristics of ParalleX [#]_ applications (as well as other asynchronous multitasking runtime architectures) requires a new approach to parallel performance observation. The standard model of multiple operating system processes and threads observing themselves in a first-person manner while writing out performance profiles or traces for offline analysis will not adequately capture the full execution context, nor provide opportunities for runtime adaptation within OpenX. The approach taken in the XPRESS project is a new performance measurement system, called (Autonomic Performance Environment for eXascale). APEX includes methods for information sharing between the layers of the software stack, from the hardware through operating and runtime systems, all the way to domain specific or legacy applications. The performance measurement components will incorporate relevant information across stack layers, with merging of third-person performance observation of node-level and global resources, remote processes, and both operating and runtime system threads.  For a complete description of APEX, see the publication "APEX: An Autonomic Performance Environment for eXascale" [#]_.
+One of the key components of the XPRESS project is a new approach to performance observation, measurement, analysis and runtime decision making in order to optimize performance. The particular challenges of accurately measuring the performance characteristics of ParalleX [#]_ applications (as well as other asynchronous multitasking runtime architectures) requires a new approach to parallel performance observation. The standard model of multiple operating system processes and threads observing themselves in a first-person manner while writing out performance profiles or traces for offline analysis will not adequately capture the full execution context, nor provide opportunities for runtime adaptation within OpenX. The approach taken in the XPRESS project is a new performance measurement system, called (Autonomic Performance Environment for eXascale). APEX includes methods for information sharing between the layers of the software stack, from the hardware through operating and runtime systems, all the way to domain specific or legacy applications. The performance measurement components incorporate relevant information across stack layers, with merging of third-person performance observation of node-level and global resources, remote processes, and both operating and runtime system threads.  For a complete academic description of APEX, see the publication "APEX: An Autonomic Performance Environment for eXascale" [#]_.
+
+In short, APEX is an introspection and runtime adaptation library for asynchronous multitasking runtime systems. However, APEX is not *only* useful for AMT/AMR runtimes - it can be used by any application wanting to perform runtime adaptation to deal with heterogeneous and/or variable environments.
 
 Introspection
 -------------
-APEX provides an API for measuring actions within a runtime. The API includes methods for timer start/stop, as well as sampled counter values. APEX is designed to be integrated into a runtime, library or application and provide performance introspection for the purpose of runtime adaptation. While APEX can provide rudimentary post-mortem performance analysis measurement, there are many other performance measurement tools that perform that task much better (such as TAU http://tau.uoregon.edu).  That said, APEX includes an event listener that integrates with the TAU measurement system, so APEX events can be collected in a TAU profile and/or trace, and used for post-mortem performance anlaysis.
+APEX provides an API for measuring actions within a runtime. The API includes methods for timer start/stop, as well as sampled counter values. APEX is designed to be integrated into a runtime, library and/or application and provide performance introspection for the purpose of runtime adaptation. While APEX *can* provide rudimentary post-mortem performance analysis measurement, there are many other performance measurement tools that perform that task much better (such as TAU http://tau.uoregon.edu).  That said, APEX includes an event listener that integrates with the TAU measurement system, so APEX events can be forwarded to TAU and collected in a TAU profile and/or trace to be used for post-mortem performance anlaysis.
 
 Runtime Adaptation
 ------------------
@@ -55,7 +57,7 @@ The process for building APEX is:
     make doc
     make install
 
-other CMake settings, depending on your needs/wants:
+Other CMake settings, depending on your needs/wants:
 ----------------------------------------------------
 There are several utility libraries that provide functionality in APEX. Not all libraries are required, but some are recommended.  For the following options, the default values are in *italics*.
 
@@ -93,8 +95,8 @@ There are several utility libraries that provide functionality in APEX. Not all 
   the path to RCR, or set the `RCR_ROOT` environment variable.
 -DUSE\_TCMALLOC
   TRUE or *FALSE*.  TCMalloc is a heap management library distributed as part of Google perftools. For more information, see https://github.com/gperftools/gperftools.  TCMalloc provides faster memory performance in multithreaded environments.
--DTCMALLOC\_ROOT
-  path to TCMalloc, or set the `TCMALLOC_ROOT` environment variable before running cmake.
+-DGPERFTOOLS\_ROOT
+  path to gperftools (TCMalloc), or set the `GPERFTOOLS_ROOT` environment variable before running cmake.
 -DUSE\_JEMALLOC
   TRUE or `FALSE`.  JEMalloc is a heap management library.  For more information, see http://www.canonware.com/jemalloc/.  JEMalloc provides faster memory performance in multithreaded environments.
 -DJEMALLOC\_ROOT
@@ -140,6 +142,9 @@ HPX (Louisiana State University)
 
 HPX (High Performance ParalleX) is the original implementation of the ParalleX model. Developed and maintained by the Ste||ar Group at Louisiana State University, HPX is implemented in C++. For more information, see http://stellar.cct.lsu.edu/tag/hpx/.  For a tutorial on HPX with APEX (presented at SC'15, Austin TX) see https://github.com/khuck/SC15_APEX_tutorial.
 
+Configuring HPX with APEX
+-------------------------
+Coming soon... For now, see https://github.com/khuck/SC15_APEX_tutorial.
 
 HPX5 (Indiana University)
 -------------------------
