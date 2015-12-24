@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Feature Overview - APEX</title>
+  
+
+  <link rel="shortcut icon" href="../img/favicon.ico">
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  <link rel="stylesheet" href="../css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../css/theme_extra.css" type="text/css" />
+  <link rel="stylesheet" href="../css/highlight.css">
+  <link href="../custom.css" rel="stylesheet">
+
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "Feature Overview";
+  </script>
+  
+  <script src="../js/jquery-2.1.1.min.js"></script>
+  <script src="../js/modernizr-2.8.3.min.js"></script>
+  <script type="text/javascript" src="../js/highlight.pack.js"></script>
+  <script src="../js/theme.js"></script> 
+
+  
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+      <div class="wy-side-nav-search">
+        <a href=".." class="icon icon-home"> APEX</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        <ul class="current">
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="..">Home</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 current">
+        <a class="current" href="./">Feature Overview</a>
+        
+            <ul>
+            
+                <li class="toctree-l3"><a href="#apex-motivation">APEX: Motivation</a></li>
+                
+                    <li><a class="toctree-l4" href="#introspection">Introspection</a></li>
+                
+                    <li><a class="toctree-l4" href="#event-listeners">Event Listeners</a></li>
+                
+                    <li><a class="toctree-l4" href="#policy-listener">Policy Listener</a></li>
+                
+            
+            </ul>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../install/">Getting Started</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../usage/">Usage</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../usecases/">Use Cases</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../environment/">Useful Environment Variables</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../examples/">Research Examples</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../refman/">API Reference manual</a>
+        
+    </li>
+<li>
+          
+        </ul>
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="..">APEX</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="..">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>Feature Overview</li>
+    <li class="wy-breadcrumbs-aside">
+      
+        
+          <a href="http://github.com/khuck/xpress-apex" class="icon icon-github"> Edit on GitHub</a>
+        
+      
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            <div class="section">
+              
+                <h1 id="apex-motivation">APEX: Motivation</h1>
+<p>Frequently, software components or even entire applications run into a situation where the context of the execution environment has changed in some way (or does not meet assumptions). In those situations, the software requires some mechanism for evaluating its own performance and that of the underlying runtime system, operating system and hardware. The types of adaptation that the software wants to do could include:</p>
+<ul>
+<li>Controlling concurrency<ul>
+<li>to improve energy efficiency</li>
+<li>for performance</li>
+</ul>
+</li>
+<li>Parametric variability<ul>
+<li>adjust the decomposition granularity for this machine / dataset</li>
+<li>choose a different algorithm for better performance/accuracy</li>
+<li>choose a different preconditioner for better performance/accuracy</li>
+<li>choose a different solver for better performance/accuracy</li>
+</ul>
+</li>
+<li>Load Balancing<ul>
+<li>when to perform AGAS migration?</li>
+<li>when to perform repartitioning?</li>
+<li>when to perform data exchanges?</li>
+</ul>
+</li>
+<li>Parallel Algorithms (for_each…) - choose a different execution model<ul>
+<li>separate <em>what</em> from <em>how</em></li>
+</ul>
+</li>
+<li>Address the “SLOW(ER)” performance model<ul>
+<li>avoid <strong>S</strong>tarvation</li>
+<li>reduce <strong>L</strong>atency</li>
+<li>reduce <strong>O</strong>verhead</li>
+<li>reduce <strong>W</strong>aiting</li>
+<li>reduce <strong>E</strong>nergy consumption</li>
+<li>improve <strong>R</strong>esiliency</li>
+</ul>
+</li>
+</ul>
+<p>APEX provides both <em>performance awareness</em> and <em>performance adaptation</em>.</p>
+<ul>
+<li>APEX provides top-down and bottom-up performance mapping and feedback.</li>
+<li>APEX exposes node-wide resource utilization data and analysis, energy consumption, and health information in real time<ul>
+<li>Software can subsequently associate performance state with policy for feedback control</li>
+</ul>
+</li>
+<li>APEX introspection<ul>
+<li>OS: track system resources, utilization, job contention, overhead</li>
+<li>Runtime (HPX, HPX-5, OpenMP...): track threads, queues, concurrency, remote operations, parcels, memory management</li>
+<li>Application timer / counter observation</li>
+</ul>
+</li>
+</ul>
+<p><img alt="Screenshot" src="../img/APEX_diagram.pdf" /></p>
+<p><em>Above: APEX architecture diagram (when linked with an HPX application). The application and runtime send events to the APEX instrumentation API, which updates the performance state. The Policy Engine executes policies that change application behavior based on rule outcomes.</em></p>
+<h2 id="introspection">Introspection</h2>
+<p>APEX collects data through <em>inspectors</em>. The synchronous data collection uses an event API and event <em>listeners</em>. The API includes events for:</p>
+<ul>
+<li>Initialize, terminate, new thread <ul>
+<li>added to the HPX thread scheduler</li>
+<li>added to the HPX-5 thread scheduler</li>
+<li>added to the OpenMP runtime using the OMPT interface</li>
+<li>added to the pthread runtime by wrapping the pthread API calls</li>
+</ul>
+</li>
+<li>Timer start, stop, yield, resume <ul>
+<li>added to HPX task scheduler</li>
+<li>added to HPX-5 task scheduler</li>
+<li>added to the OpenMP runtime using the OMPT interface</li>
+<li>added to the pthread runtime by wrapping the pthread API calls</li>
+</ul>
+</li>
+<li>Sampled values<ul>
+<li>counters from HPX, HPX-5</li>
+</ul>
+</li>
+<li>Custom events (meta-events)<ul>
+<li>useful for triggering policies</li>
+</ul>
+</li>
+</ul>
+<p>Asynchonous data collection does not rely on events, but occurs periodically.  APEX exploits access to performance data from lower stack components (i.e. the runtime) or by reading from the RCR blackboard (i.e., power, energy). Other operating system and hardware health data is collected through other interfaces:</p>
+<ul>
+<li>/proc/stat</li>
+<li>/proc/cpuinfo</li>
+<li>/proc/meminfo</li>
+<li>/proc/net/dev</li>
+<li>/proc/self/status</li>
+<li>lm_sensors</li>
+<li>power measurements </li>
+</ul>
+<h2 id="event-listeners">Event Listeners</h2>
+<p>There are a number of listeners in APEX that are triggered by the events passed in through the API. For example, the <strong>Profiling Listener</strong> records events related to maintaining the performance state.</p>
+<ul>
+<li>Start Event: records the name/address of the timer, gets a timestamp (using rdtsc), returns a profiler handle</li>
+<li>Stop Event: gets a timestamp, puts the profiler object in a queue for back-end processing and returns</li>
+<li>Sample Event: put the name &amp; value in the queue</li>
+</ul>
+<p>Internally to APEX, there is an asynchronous consumer thread that processes profiler objects and samples to build a performance profile (in HPX, this thread is processed/scheduled as an HPX thread/task).</p>
+<p>The TAU Listener (used for postmortem analysis) synchronously passes all measurement events to TAU to build an offline profile or trace. TAU will also capture any other events for which it is configured, including MPI, memory, file I/O, etc.</p>
+<p>The concurrency listener (also used for postmortem analysis) maintains a timeline of total concurrency, periodically sampled from  within APEX.</p>
+<ul>
+<li>Start event: push timer ID on stack</li>
+<li>Stop event: pop timer ID off stack</li>
+</ul>
+<p>An asynchronous consumer thread periodically logs the current timer for each thread. This thread will output a concurrency data report and gnuplot script at APEX termination. </p>
+<h2 id="policy-listener">Policy Listener</h2>
+<p>Policies are rules that decide on outcomes based on observed state. 
+Triggered policies are invoked by introspection API events.
+Periodic policies are run periodically on asynchronous thread.
+Polices are registered with the Policy Engine at program startup by runtime code and/or from the application.
+Applications, runtimes, and the OS can register callback functions to be executed. 
+Callback functions define the policy rules - “If x &lt; y then...(take some action!)”.</p>
+<ul>
+<li>Enables runtime adaptation using introspection data</li>
+<li>Engages actuators across stack layers</li>
+<li>Is also used to involve online auto-tuning support</li>
+</ul>
+              
+            </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../install/" class="btn btn-neutral float-right" title="Getting Started"/>Next <span class="icon icon-circle-arrow-right"></span></a>
+      
+      
+        <a href=".." class="btn btn-neutral" title="Home"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+      <p>(C) 2015 University of Oregon, All Rights Reserved</p>
+    
+  </div>
+
+  Built with <a href="http://www.mkdocs.org">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+	  
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+<div class="rst-versions" role="note" style="cursor: pointer">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      
+          <a class="icon icon-github" style="float: left; color: #fcfcfc"> GitHub</a>
+      
+      
+        <span><a href=".." style="color: #fcfcfc;">&laquo; Previous</a></span>
+      
+      
+        <span style="margin-left: 15px"><a href="../install/" style="color: #fcfcfc">Next &raquo;</a></span>
+      
+    </span>
+</div>
+
+</body>
+</html>
