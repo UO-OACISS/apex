@@ -211,19 +211,8 @@ typedef uint32_t apex_tuning_session_handle;
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
-#ifdef APEX_HAVE_TAU
-    #ifdef APEX_HAVE_HPX3
-        // don't enable TAU by default for HPX.
-        #define APEX_TAU_DEFAULT false
-    #else
-        #define APEX_TAU_DEFAULT true
-    #endif
-#else
-    #define APEX_TAU_DEFAULT false
-#endif
-
 #define FOREACH_APEX_OPTION(macro) \
-    macro (APEX_TAU, use_tau, bool, APEX_TAU_DEFAULT) \
+    macro (APEX_TAU, use_tau, bool, false) \
     macro (APEX_POLICY, use_policy, bool, true) \
     macro (APEX_MEASURE_CONCURRENCY, use_concurrency, int, 0) \
     macro (APEX_MEASURE_CONCURRENCY_PERIOD, concurrency_period, int, 1000000) \
@@ -245,7 +234,7 @@ typedef uint32_t apex_tuning_session_handle;
     macro (APEX_PTHREAD_WRAPPER_STACK_SIZE, pthread_wrapper_stack_size, int, 0)
 
 #define FOREACH_APEX_STRING_OPTION(macro) \
-    macro (APEX_PAPI_METRICS, papi_metrics, char*, "") \
+    macro (APEX_PAPI_METRICS, papi_metrics, char*, "")
 
 #ifdef USE_UDP
 #undef FOREACH_APEX_OPTION

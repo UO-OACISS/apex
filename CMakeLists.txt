@@ -286,7 +286,7 @@ endif()
 find_package(OpenMP)
  
 if (OPENMP_FOUND)
-  if ((DEFINED OMPT_ROOT) OR (USE_OMPT))
+    if ((DEFINED OMPT_ROOT) OR (USE_OMPT) OR (BUILD_OMPT))
       find_package(OMPT)
       if (OMPT_FOUND)
           include_directories(${OMPT_INCLUDE_DIRS})
@@ -347,7 +347,7 @@ else()
     set(USE_ACTIVEHARMONY TRUE)
 endif()
 
-if((DEFINED ACTIVEHARMONY_ROOT) OR (USE_ACTIVEHARMONY))
+if((DEFINED ACTIVEHARMONY_ROOT) OR (USE_ACTIVEHARMONY) OR (BUILD_ACTIVEHARMONY))
     find_package(ActiveHarmony)
     if (ACTIVEHARMONY_FOUND)
         include_directories(${ACTIVEHARMONY_INCLUDE_DIRS})
@@ -373,7 +373,7 @@ endif()
 # Binutils configuration
 ################################################################################
 
-if((DEFINED BFD_ROOT) OR (USE_BFD))
+if((DEFINED BFD_ROOT) OR (USE_BFD) OR (BUILD_BFD))
     find_package(BFD)
     if (BFD_FOUND)
         include_directories(${BFD_INCLUDE_DIRS})

@@ -249,7 +249,13 @@ namespace apex {
           unordered_set<string>::const_iterator it2 = throttled_names.find(*(p->timer_name));
           if (it2 == throttled_names.end()) {
             throttled_names.insert(*(p->timer_name));
-            cout << "APEX Throttled " << p->timer_name << endl; fflush(stdout);
+            string shorter(*(p->timer_name));
+            // to keep formatting pretty, trim any long timer names
+            if (shorter.size() > 30) {
+              shorter.resize(27);
+              shorter.resize(30, '.');
+            }
+            cout << "APEX: disabling lightweight timer " << shorter << endl; fflush(stdout);
           }
         }
 #endif
@@ -300,9 +306,9 @@ namespace apex {
           if (it4 == throttled_addresses.end()) {
             throttled_addresses.insert(p->action_address);
 #if defined(HAVE_BFD)
-            cout << "APEX Throttled " << *(lookup_address((uintptr_t)p->action_address, true)) << endl; fflush(stdout);
+            cout << "APEX: disabling lightweight timer " << *(lookup_address((uintptr_t)p->action_address, true)) << endl; fflush(stdout);
 #else
-            cout << "APEX Throttled " << p->action_address << endl; fflush(stdout);
+            cout << "APEX: disabling lightweight timer " << p->action_address << endl; fflush(stdout);
 #endif
           }
         }
@@ -420,7 +426,7 @@ namespace apex {
       // they are limited and bogus, anyway.
       unordered_set<apex_function_address>::const_iterator it3 = throttled_addresses.find(function_address);
       if (it3 != throttled_addresses.end()) { 
-        screen_output << "THROTTLED (high frequency, short duration)" << endl;
+        screen_output << "DISABLED (high frequency, short duration)" << endl;
         continue; 
       }
 #endif
@@ -496,7 +502,7 @@ namespace apex {
       // they are limited and bogus, anyway.
       unordered_set<string>::const_iterator it4 = throttled_names.find(action_name);
       if (it4!= throttled_names.end()) { 
-        screen_output << "THROTTLED (high frequency, short duration)" << endl;
+        screen_output << "DISABLED (high frequency, short duration)" << endl;
         continue; 
       }
 #endif
@@ -531,11 +537,19 @@ namespace apex {
         total_accumulated += p->get_accumulated();
         csv_output << endl;
       } else {
-        screen_output << FORMAT_SCIENTIFIC % p->get_minimum() << "   " ;
-        screen_output << FORMAT_SCIENTIFIC % p->get_mean() << "   " ;
-        screen_output << FORMAT_SCIENTIFIC % p->get_maximum() << "   " ;
-        screen_output << FORMAT_SCIENTIFIC % p->get_accumulated() << "   " ;
-        screen_output << FORMAT_SCIENTIFIC % p->get_stddev() << "   " ;
+        if (action_name.find('%') == string::npos) {
+          screen_output << FORMAT_SCIENTIFIC % p->get_minimum() << "   " ;
+          screen_output << FORMAT_SCIENTIFIC % p->get_mean() << "   " ;
+          screen_output << FORMAT_SCIENTIFIC % p->get_maximum() << "   " ;
+          screen_output << FORMAT_SCIENTIFIC % p->get_accumulated() << "   " ;
+          screen_output << FORMAT_SCIENTIFIC % p->get_stddev() << "   " ;
+        } else {
+          screen_output << FORMAT_PERCENT % p->get_minimum() << "   " ;
+          screen_output << FORMAT_PERCENT % p->get_mean() << "   " ;
+          screen_output << FORMAT_PERCENT % p->get_maximum() << "   " ;
+          screen_output << FORMAT_PERCENT % p->get_accumulated() << "   " ;
+          screen_output << FORMAT_PERCENT % p->get_stddev() << "   " ;
+        }
         screen_output << " --n/a-- "  << endl;
       }
     }
