@@ -1,4 +1,4 @@
-# Motivation
+# APEX: Motivation
 
 Frequently, software components or even entire applications run into a situation where the context of the execution environment has changed in some way (or does not meet assumptions). In those situations, the software requires some mechanism for evaluating its own performance and that of the underlying runtime system, operating system and hardware. The types of adaptation that the software wants to do could include:
 
@@ -36,7 +36,7 @@ APEX provides both *performance awareness* and *performance adaptation*.
 
 ![Screenshot](img/APEX_diagram.pdf)
 
-*Above: APEX architecture diagram. The application sends events to the APEX instrumentation API, which updates the performance state. The Policy Engine executes policies that change application behavior based on rule outcomes.*
+*Above: APEX architecture diagram (when linked with an HPX application). The application and runtime send events to the APEX instrumentation API, which updates the performance state. The Policy Engine executes policies that change application behavior based on rule outcomes.*
 
 ## Introspection
 
@@ -55,7 +55,7 @@ APEX collects data through *inspectors*. The synchronous data collection uses an
 * Sampled values
 	* counters from HPX, HPX-5
 * Custom events (meta-events)
-  * useful for triggering policies
+	* useful for triggering policies
 
 Asynchonous data collection does not rely on events, but occurs periodically.  APEX exploits access to performance data from lower stack components (i.e. the runtime) or by reading from the RCR blackboard (i.e., power, energy). Other operating system and hardware health data is collected through other interfaces:
 
