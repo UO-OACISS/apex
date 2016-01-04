@@ -1,5 +1,4 @@
-.. contents::
-
+.. image:: doc/logo.pdf
 
 Overview:
 =========
