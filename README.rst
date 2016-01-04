@@ -1,4 +1,6 @@
-.. image:: doc/logo.pdf
+.. image:: doc/logo-cropped.png
+    :alt: APEX - Autonomic Performance Environment for eXascale
+    :width: 200
 
 Overview:
 =========
