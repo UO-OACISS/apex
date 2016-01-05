@@ -311,7 +311,7 @@ khuck@ktau:~/src/xpress-apex$ cat apex.0.csv
 
 # With TAU
 
-If APEX is configured with TAU support, then APEX measurements will be forwarded to TAU and recorded as a TAU profile.  In addition, all other TAU features are supported, including sampling, MPI measurement, I/O measurement, tracing, etc. To configure APEX with TAU, specify the flags -DUSE_TAU, -DTAU_ROOT, -DTAU_ARCH, and -DTAU_OPTIONS. For example, if TAU was configured with "./configure -pthread" on an x86_64 Linux machine, the APEX configuration options would be "-DUSE_TAU=1 -DTAU_ROOT=/path/to/tau -DTAU_ARCH=x86_64 -DTAU_OPTIONS=-pthread".
+If APEX is configured with TAU support, then APEX measurements will be forwarded to TAU and recorded as a TAU profile.  In addition, all other TAU features are supported, including sampling, MPI measurement, I/O measurement, tracing, etc. To configure APEX with TAU, specify the flags -DUSE_TAU, -DTAU_ROOT, -DTAU_ARCH, and -DTAU_OPTIONS. For example, if TAU was configured with "./configure -pthread" on an x86_64 Linux machine, the APEX configuration options would be "-DUSE_TAU=1 -DTAU_ROOT=/path/to/tau -DTAU_ARCH=x86_64 -DTAU_OPTIONS=-pthread".  If TAU was configured with "./configure -mpi -pthread" on an x86_64 Linux machine, the APEX configuration options would be "-DUSE_TAU=1 -DTAU_ROOT=/path/to/tau -DTAU_ARCH=x86_64 -DTAU_OPTIONS=-mpi-pthread".
 
 Here is a suggested configuration for TAU on x86-Linux to use with APEX (some systems require special flags - please contact the maintaners if you are interested):
 

@@ -4,9 +4,118 @@
 
 HPX (High Performance ParalleX) is the original implementation of the ParalleX model. Developed and maintained by the Ste||ar Group at Louisiana State University, HPX is implemented in C++. For more information, see <http://stellar.cct.lsu.edu/tag/hpx/>.  For a tutorial on HPX with APEX (presented at SC'15, Austin TX) see <https://github.com/khuck/SC15_APEX_tutorial>.
 
+APEX is configured and built as part of HPX. In fact, you don't even need to donwload it separately - it will be automatically checked out from Github as part of the HPX Cmake configuration.  However, you do need to pass the correct Cmake options to the HPX configuration step.
+
+### Using TAU to profile or trace HPX
+
+If you want to use TAU to collect profiles or traces of HPX applications, you *will* need to download and configure TAU first.  The following instructions will include the TAU options, so please see [APEX with TAU](usecases.md#with-tau) for instructions on configuring TAU for use with APEX.  For this example, we assume TAU was configured with "./configure -mpi -pthread" on an x86_64 Linux machine. 
+
 ### Configuring HPX with APEX
 
-*...Coming soon! For now, see <https://github.com/khuck/SC15_APEX_tutorial>.*
+After TAU is configured and built, we are ready to configure and build HPX. Configure HPX as usual, but add the following options:
+
+```bash
+mkdir build
+cd build
+
+# The source code is located in $HOME/src/hpx
+cmake \
+-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+-DBOOST_ROOT=/usr \
+-DCMAKE_INSTALL_PREFIX=. \
+-DHPX_WITH_PARCELPORT_MPI=TRUE \
+-DHPX_WITH_APEX=TRUE \
+-DAPEX_WITH_ACTIVEHARMONY=TRUE \
+-DHPX_WITH_TAU=TRUE \
+-DHPX_WITH_TAU=TRUE -DTAU_ROOT=$HOME/src/tau2 \
+-DTAU_ARCH=x86_64 -DTAU_OPTIONS=-mpi-pthread \
+-DHPX_WITH_MALLOC=jemalloc \
+$HOME/src/hpx
+
+make -j5 core
+make -j5 components
+make -j3 examples
+```
+
+To confirm that HPX was configured and built with APEX correctly, run the simple HPX example:
+
+```bash
+export APEX_SCREEN_OUTPUT=1
+./build/bin/fibonacci
+```
+
+Which should give output similar to this:
+
+```bash
+parquet-7a70deb-release
+Built on: 12:06:08 Jan  5 2016
+C++ Language Standard version : 201402
+GCC Compiler version : 5.2.1 20151010
+APEX_TAU : 0
+APEX_POLICY : 1
+APEX_MEASURE_CONCURRENCY : 0
+APEX_MEASURE_CONCURRENCY_PERIOD : 1000000
+APEX_SCREEN_OUTPUT : 1
+APEX_PROFILE_OUTPUT : 0
+APEX_CSV_OUTPUT : 0
+APEX_TASKGRAPH_OUTPUT : 0
+APEX_PROC_CPUINFO : 0
+APEX_PROC_MEMINFO : 0
+APEX_PROC_NET_DEV : 0
+APEX_PROC_SELF_STATUS : 0
+APEX_PROC_STAT : 1
+APEX_THROTTLE_CONCURRENCY : 0
+APEX_THROTTLING_MAX_THREADS : 8
+APEX_THROTTLING_MIN_THREADS : 1
+APEX_THROTTLE_ENERGY : 0
+APEX_THROTTLING_MAX_WATTS : 300
+APEX_THROTTLING_MIN_WATTS : 150
+APEX_PTHREAD_WRAPPER_STACK_SIZE : 0
+APEX_PAPI_METRICS : 
+fibonacci(10) == 55
+elapsed time: 0.00595707 [s]
+Info: 1 items remaining on on the profiler_listener queue...done.
+CPU is 2.66024e+09 Hz.
+Elapsed time: 0.122906
+Cores detected: 8
+Worker Threads observed: 1
+Available CPU time: 0.122906
+Action                         :  #calls  |  minimum |    mean  |  maximum |   total  |  stddev  |  % total  
+------------------------------------------------------------------------------------------------------------
+              APEX MAIN THREAD :        1    --n/a--   1.22e-01    --n/a--   1.22e-01    --n/a--     99.631
+broadcast_call_shutdown_fun... :        2    --n/a--   2.59e-05    --n/a--   5.18e-05    --n/a--      0.042
+broadcast_call_startup_func... :        2    --n/a--   2.36e-05    --n/a--   4.72e-05    --n/a--      0.038
+call_shutdown_functions_action :        2    --n/a--   2.29e-04    --n/a--   4.58e-04    --n/a--      0.373
+ call_startup_functions_action :        2    --n/a--   8.01e-05    --n/a--   1.60e-04    --n/a--      0.130
+              fibonacci_action :      177    --n/a--   1.28e-05    --n/a--   2.26e-03    --n/a--      1.841
+                      hpx_main :        1    --n/a--   4.13e-04    --n/a--   4.13e-04    --n/a--      0.336
+        load_components_action :        2    --n/a--   1.96e-03    --n/a--   3.92e-03    --n/a--      3.192
+                      pre_main :        1    --n/a--   1.39e-03    --n/a--   1.39e-03    --n/a--      1.135
+primary_namespace_bulk_serv... :       24    --n/a--   2.35e-05    --n/a--   5.65e-04    --n/a--      0.459
+primary_namespace_service_a... :        4    --n/a--   1.02e-05    --n/a--   4.08e-05    --n/a--      0.033
+                    run_helper :        1    --n/a--   2.80e-04    --n/a--   2.80e-04    --n/a--      0.228
+symbol_namespace_service_ac... :        4    --n/a--   1.73e-05    --n/a--   6.93e-05    --n/a--      0.056
+                     APEX Idle :  --n/a--    --n/a--    --n/a--    --n/a--    --n/a--    --n/a--    --n/a--   
+------------------------------------------------------------------------------------------------------------
+```
+
+To enable TAU profiling, set the APEX_TAU environment variable to 1.  We will also set some other TAU environment varaibles and re-run the program:
+
+```bash
+export APEX_TAU=1
+export TAU_PROFILE_FORMAT=merged
+./build/bin/fibonacci
+```
+
+The "merged" profile setting will create a single file (tauprofile.xml) for the whole application, rather than a profile.* file for each thread.
+
+After execution, there is a TAU profile file called "tauprofile.xml".  To view the results of the profiling, run the ParaProf application on the profile (assuming the TAU utilities are in your path):
+
+```bash
+paraprof tauprofile.xml
+```
+
+For more information on using TAU with APEX, see [APEX with TAU](usecases.md#with-tau).
 
 ## HPX-5 (Indiana University)
 
