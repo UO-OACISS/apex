@@ -200,6 +200,10 @@ class apex_tuning_request {
             return running;
         };
 
+        bool has_converged() const {
+            return apex::has_session_converged(tuning_session_handle);
+        }
+
         apex_tuning_session_handle get_session_handle() const {
             return tuning_session_handle;
         };

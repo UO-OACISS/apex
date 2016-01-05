@@ -50,7 +50,7 @@ typedef enum _error_codes {
   APEX_ERROR        /*!< Some error occurred - check stderr output for details */
 } apex_error_code;
 
-#define APEX_MAX_EVENTS 32 /*!< The maximum number of event types. Allows for ~20 custom events. */
+#define APEX_MAX_EVENTS 128 /*!< The maximum number of event types. Allows for ~20 custom events. */
 
 /**
  * Typedef for enumerating the different event types

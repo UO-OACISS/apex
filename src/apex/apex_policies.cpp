@@ -1221,7 +1221,11 @@ APEX_EXPORT std::vector<std::pair<std::string,long*>> & get_tunable_params(apex_
 
 APEX_EXPORT bool has_session_converged(apex_tuning_session_handle h) {
     auto tuning_session = get_session(h);
-    return tuning_session->converged_message;
+    if(tuning_session) {
+        return tuning_session->converged_message;
+    } else {
+        return false;
+    }
 }
 
 }

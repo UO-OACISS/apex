@@ -43,6 +43,7 @@ int main (int argc, char ** argv) {
     request.set_metric(func);
 
     apex_tuning_session_handle session = apex::setup_custom_tuning(request);
+    (void)session; // ignore unused warning
 
     for(int i = 0; i < 100; ++i) {
         std::string s = param_enum->get_value();

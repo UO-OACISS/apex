@@ -705,7 +705,6 @@ void init_plugins(void) {
             dlclose(plugin_handle);
             continue;
         }
-
     }
 #endif
 }
