@@ -454,7 +454,7 @@ bool policy_handler::on_resume(string *timer_name) {
   return true;
 }
 
-void policy_handler::on_stop(std::shared_ptr<profiler> p) {
+void policy_handler::on_stop(std::shared_ptr<profiler> &p) {
     if (_terminate) return;
     if (stop_event_policies.empty()) return;
     for(const boost::shared_ptr<policy_instance>& policy : stop_event_policies) {
@@ -474,7 +474,7 @@ void policy_handler::on_stop(std::shared_ptr<profiler> p) {
     APEX_UNUSED(p);
 }
 
-void policy_handler::on_yield(std::shared_ptr<profiler> p) {
+void policy_handler::on_yield(std::shared_ptr<profiler> &p) {
     if (_terminate) return;
     if (yield_event_policies.empty()) return;
     for(const boost::shared_ptr<policy_instance>& policy : yield_event_policies) {

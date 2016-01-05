@@ -25,7 +25,7 @@ cmake_apex_throttle="-DAPEX_THROTTLE=FALSE" # TRUE or FALSE
 cmake_build_shared_libs="-DBUILD_SHARED_LIBS=TRUE" # TRUE or FALSE
 cmake_install_prefix="-DCMAKE_INSTALL_PREFIX=../install" # the installation path
 #cmake_use_codeblocks="-G \"CodeBlocks - Unix Makefiles\"" # if you want to debug in CodeBlocks
-cmake_use_codeblocks="-G \"Eclipse CDT4 - Unix Makefiles\"" # if you want to debug in CodeBlocks
+#cmake_use_codeblocks="-G \"Eclipse CDT4 - Unix Makefiles\"" # if you want to debug in CodeBlocks
 cmake_make_verbose=""  # for verbose, use -DCMAKE_VERBOSE_MAKEFILE=ON
 cmake_use_mpi="-DUSE_MPI=FALSE" # TRUE or FALSE
 cmake_other_settings="" # anything else?

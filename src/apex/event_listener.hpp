@@ -34,7 +34,7 @@ public:
   std::shared_ptr<profiler> my_profiler;
   timer_event_data(const std::string &timer_name);
   timer_event_data(apex_function_address function_address);
-  timer_event_data(std::shared_ptr<profiler> the_profiler);
+  timer_event_data(std::shared_ptr<profiler> &the_profiler);
   ~timer_event_data();
 };
 
@@ -99,8 +99,8 @@ public:
   virtual void on_exit_thread(event_data &data) = 0;
   virtual bool on_start(apex_function_address function_address) = 0;
   virtual bool on_start(std::string *timer_name) = 0;
-  virtual void on_stop(std::shared_ptr<profiler> p) = 0;
-  virtual void on_yield(std::shared_ptr<profiler> p) = 0;
+  virtual void on_stop(std::shared_ptr<profiler> &p) = 0;
+  virtual void on_yield(std::shared_ptr<profiler> &p) = 0;
   virtual bool on_resume(apex_function_address function_address) = 0;
   virtual bool on_resume(std::string *timer_name) = 0;
   virtual void on_new_task(apex_function_address function_address, void * task_id) = 0;

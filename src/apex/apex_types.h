@@ -177,6 +177,7 @@ typedef struct _profile
     double minimum;       /*!< Minimum value seen by the timer or counter */
     double maximum;       /*!< Maximum value seen by the timer or counter */
     apex_profile_type type; /*!< Whether this is a timer or a counter */
+    double papi_metrics[8];  /*!< Array of accumulated PAPI hardware metrics */
 } apex_profile;
 
 /** Rather than use void pointers everywhere, be explicit about
@@ -211,25 +212,14 @@ typedef uint32_t apex_tuning_session_handle;
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
-#ifdef APEX_HAVE_TAU
-    #ifdef APEX_HAVE_HPX3
-        // don't enable TAU by default for HPX.
-        #define APEX_TAU_DEFAULT false
-    #else
-        #define APEX_TAU_DEFAULT true
-    #endif
-#else
-    #define APEX_TAU_DEFAULT false
-#endif
-
 #define FOREACH_APEX_OPTION(macro) \
-    macro (APEX_TAU, use_tau, bool, APEX_TAU_DEFAULT) \
+    macro (APEX_TAU, use_tau, bool, false) \
     macro (APEX_POLICY, use_policy, bool, true) \
     macro (APEX_MEASURE_CONCURRENCY, use_concurrency, int, 0) \
-    macro (APEX_UDP_SINK, use_udp_sink, bool, false) \
     macro (APEX_MEASURE_CONCURRENCY_PERIOD, concurrency_period, int, 1000000) \
     macro (APEX_SCREEN_OUTPUT, use_screen_output, bool, false) \
     macro (APEX_PROFILE_OUTPUT, use_profile_output, int, false) \
+    macro (APEX_CSV_OUTPUT, use_csv_output, int, false) \
     macro (APEX_TASKGRAPH_OUTPUT, use_taskgraph_output, bool, false) \
     macro (APEX_PROC_CPUINFO, use_proc_cpuinfo, bool, false) \
     macro (APEX_PROC_MEMINFO, use_proc_meminfo, bool, false) \
@@ -245,12 +235,20 @@ typedef uint32_t apex_tuning_session_handle;
     macro (APEX_PTHREAD_WRAPPER_STACK_SIZE, pthread_wrapper_stack_size, int, 0)
 
 #define FOREACH_APEX_STRING_OPTION(macro) \
-    macro (APEX_UDP_SINK_HOST, udp_sink_host, char*, "localhost") \
-    macro (APEX_UDP_SINK_PORT, udp_sink_port, char*, "5560") \
-    macro (APEX_UDP_SINK_CLIENTIP, udp_sink_clientip, char*, "127.0.0.1") \
     macro (APEX_PAPI_METRICS, papi_metrics, char*, "") \
     macro (APEX_PLUGINS, plugins, char*, "") \
-    macro (APEX_PLUGINS_PATH, plugins_path, char*, "./") \
+    macro (APEX_PLUGINS_PATH, plugins_path, char*, "./") 
+
+#ifdef USE_UDP
+#undef FOREACH_APEX_OPTION
+#define FOREACH_APEX_OPTION(macro) \
+    macro (APEX_UDP_SINK, use_udp_sink, bool, false)
+#undef FOREACH_APEX_STRING_OPTION
+#define FOREACH_APEX_STRING_OPTION(macro) \
+    macro (APEX_UDP_SINK_HOST, udp_sink_host, char*, "localhost") \
+    macro (APEX_UDP_SINK_PORT, udp_sink_port, char*, "5560") \
+    macro (APEX_UDP_SINK_CLIENTIP, udp_sink_clientip, char*, "127.0.0.1")
+#endif
 
 #if defined(__linux)
 #  define APEX_NATIVE_TLS __thread

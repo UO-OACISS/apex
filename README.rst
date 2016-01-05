@@ -1,28 +1,43 @@
-*NB: A fairly recent version of the documentation is available here:*
-http://www.nic.uoregon.edu/~khuck/apex_docs/doc/html/index.html
+.. image:: doc/logo-cropped.png
+    :alt: APEX - Autonomic Performance Environment for eXascale
+    :width: 200px
 
 Overview:
 =========
 
-One of the key components of the XPRESS project is a new approach to performance observation, measurement, analysis and runtime decision making in order to optimize performance. The particular challenges of accurately measuring the performance characteristics of ParalleX applications requires a new approach to parallel performance observation. The standard model of multiple operating system processes and threads observing themselves in a first-person manner while writing out performance profiles or traces for offline analysis will not adequately capture the full execution context, nor provide opportunities for runtime adaptation within OpenX. The approach taken in the XPRESS project is a new performance measurement system, called (Autonomic Performance Environment for eXascale). APEX will include methods for information sharing between the layers of the software stack, from the hardware through operating and runtime systems, all the way to domain specific or legacy applications. The performance measurement components will incorporate relevant information across stack layers, with merging of third-person performance observation of node-level and global resources, remote processes, and both operating and runtime system threads.
+One of the key components of the XPRESS project is a new approach to performance observation, measurement, analysis and runtime decision making in order to optimize performance. The particular challenges of accurately measuring the performance characteristics of ParalleX [#]_ applications (as well as other asynchronous multitasking runtime architectures) requires a new approach to parallel performance observation. The standard model of multiple operating system processes and threads observing themselves in a first-person manner while writing out performance profiles or traces for offline analysis will not adequately capture the full execution context, nor provide opportunities for runtime adaptation within OpenX. The approach taken in the XPRESS project is a new performance measurement system, called (Autonomic Performance Environment for eXascale). APEX includes methods for information sharing between the layers of the software stack, from the hardware through operating and runtime systems, all the way to domain specific or legacy applications. The performance measurement components incorporate relevant information across stack layers, with merging of third-person performance observation of node-level and global resources, remote processes, and both operating and runtime system threads.  For a complete academic description of APEX, see the publication "APEX: An Autonomic Performance Environment for eXascale" [#]_.
 
-Option 1: Configuring and building APEX with bootstrap scripts (deprecated):
-===============================================================
+In short, APEX is an introspection and runtime adaptation library for asynchronous multitasking runtime systems. However, APEX is not *only* useful for AMT/AMR runtimes - it can be used by any application wanting to perform runtime adaptation to deal with heterogeneous and/or variable environments.
 
-copy and modify ./bootstrap-configs/bootstrap-$arch.sh as necessary, and run it.
+Introspection
+-------------
+APEX provides an API for measuring actions within a runtime. The API includes methods for timer start/stop, as well as sampled counter values. APEX is designed to be integrated into a runtime, library and/or application and provide performance introspection for the purpose of runtime adaptation. While APEX *can* provide rudimentary post-mortem performance analysis measurement, there are many other performance measurement tools that perform that task much better (such as TAU http://tau.uoregon.edu).  That said, APEX includes an event listener that integrates with the TAU measurement system, so APEX events can be forwarded to TAU and collected in a TAU profile and/or trace to be used for post-mortem performance anlaysis.
 
-Option 2: Configuring and building APEX with CMake directly (recommended):
-============================================================
+Runtime Adaptation
+------------------
+APEX provides a mechanism for dynamic runtime behavior, either for autotuning or adaptation to changing environment.  The infrastruture that provides the adaptation is the Policy Engine, which executes policies either periodically or triggered by events. The policies have access to the performance state as observed by the APEX introspection API. APEX is integrated with Active Harmony (http://www.dyninst.org/harmony) to provide dynamic search for autotuning.
+
+Documentation
+=============
+
+Full user documentation is available here: http://khuck.github.io/xpress-apex.
+
+The source code is instrumented with Doxygen comments, and the API reference manual can be generated by executing `make doc` in the build directory, after CMake configuration.  A fairly recent version of the API reference documentation is also available here: http://www.nic.uoregon.edu/~khuck/apex_docs/doc/html/index.html
+
+Installation
+============
+
+Full installation documentation is available here: http://khuck.github.io/xpress-apex. Below is a quickstart for the impatient...
 
 APEX is built with CMake. The minimum CMake settings needed for APEX are:
 
-* -DBOOST_ROOT=<some path to the Boost installation>
-* -DCMAKE_INSTALL_PREFIX=<some path to an installation location>
-* -DCMAKE_BUILD_TYPE=<one of Release, Debug, or RelWithDebInfo (recommended)>
+* `-DBOOST_ROOT=<the path to a Boost installation, 1.54 or newer>`
+* `-DCMAKE_INSTALL_PREFIX=<some path to an installation location>`
+* `-DCMAKE_BUILD_TYPE=<one of Release, Debug, or RelWithDebInfo (recommended)>`
 
 The process for building APEX is:
 
-1) Get the code::
+1) Get the code (assuming v0.1 is the most recent version)::
 
     wget https://github.com/khuck/xpress-apex/archive/v0.1.tar.gz
     tar -xvzf v0.1.tar.gz
@@ -44,52 +59,25 @@ The process for building APEX is:
     make doc
     make install
 
-other CMake settings, depending on your needs/wants:
-----------------------------------------------------
+Supported Runtime Systems
+=========================
 
-* -DUSE_ACTIVEHARMONY=TRUE or FALSE
-* -DACTIVEHARMONY_ROOT=some path to ActiveHarmony, or set the ACTIVEHARMONY_ROOT environment variable.
-  It should be noted that if ActiveHarmony is not specified and -DUSE_ACTIVEHARMONY is TRUE or not set, APEX
-  will download and build ActiveHarmony as a CMake project. To disable ActiveHarmony entirely, specify
-  -DUSE_ACTIVEHARMONY=FALSE.
+HPX (Louisiana State University)
+---------------------------------
 
-* -DUSE_OMPT=TRUE or FALSE
-* -DOMPT_ROOT=path to OMPT, or set the OMPT_ROOT environment variable.
+HPX (High Performance ParalleX) is the original implementation of the ParalleX model. Developed and maintained by the Ste||ar Group at Louisiana State University, HPX is implemented in C++. For more information, see http://stellar.cct.lsu.edu/tag/hpx/.  For a tutorial on HPX with APEX (presented at SC'15, Austin TX) see https://github.com/khuck/SC15_APEX_tutorial.
 
-* -DUSE_BFD=TRUE or FALSE
-* -DBFD_ROOT=path to Binutils, or set the BFD_ROOT environment variable.
+HPX5 (Indiana University)
+-------------------------
 
-* -DUSE_TAU=TRUE or FALSE
-* -DTAU_ROOT=path to TAU, or set the TAU_ROOT environment variable.
-* -DTAU_ARCH=the TAU architecture, like x86_64, craycnl, mic_linux, bgq, etc.
-* -DTAU_OPTIONS=a TAU configuration with thread support, like "-pthread" or "-icpc-pthread"
+HPX-5 (High Performance ParalleX) is a second implementation of the ParalleX model. Developed and maintained by the CREST Group at Indiana University, HPX-5 is implemented in C.  For more information, see https://hpx.crest.iu.edu.
 
-* -DUSE_RCR=TRUE or FALSE
-* -DRCR_ROOT=path to RCR, or set the RCR_ROOT environment variable.
+OpenMP
+------
 
-* -DUSE_TCMALLOC=TRUE or FALSE
-* -DTCMALLOC_ROOT=path to TCMalloc, or set the TCMALLOC_ROOT environment variable.
+The OpenMP API supports multi-platform shared-memory parallel programming in C/C++ and Fortran. The OpenMP API defines a portable, scalable model with a simple and flexible interface for developing parallel applications on platforms from the desktop to the supercomputer.  For more information, see http://openmp.org/.
 
-* -DUSE_JEMALLOC=TRUE or FALSE
-* -DJEMALLOC_ROOT=path to JEMalloc, or set the JEMALLOC_ROOT environment variable.
-
-* -DUSE_PAPI=TRUE or FALSE
-* -DPAPI_ROOT=some path to PAPI, or set the PAPI_ROOT environment variable.
-
-* -DUSE_LM_SENSORS=TRUE or FALSE
-
-* -DBUILD_EXAMPLES=TRUE or FALSE
-* -DBUILD_TESTS=TRUE or FALSE
-
-* -DUSE_MPI=TRUE or FALSE (whether to build MPI global support/examples)
-* -DMPI_C_INCLUDE_PATH=path to MPI headers
-* -DMPI_CXX_INCLUDE_PATH=path to MPI headers
-* -DMPI_C_LIBRARIES=paths to MPI libraries, library names
-* -DMPI_CXX_LIBRARIES=paths to MPI libraries, library names
-* -DMPI_C_COMPILER=mpicc
-* -DMPI_CXX_COMPILER=mpicxx
-
-* -DCMAKE_C_COMPILER=gcc
-* -DCMAKE_CXX_COMPILER=g++
-* -DCMAKE_BUILD_TYPE=Release, Debug, RelWithDebInfo
-* -DBUILD_SHARED_LIBS=TRUE or FALSE
+References
+==========
+    .. [#] Thomas Sterling, Daniel Kogler, Matthew Anderson, and Maciej Brodowicz. "SLOWER: A performance model for Exascale computing". *Supercomputing Frontiers and Innovations*, 1:42–57, September 2014.  http://superfri.org/superfri/article/view/10
+    .. [#] Kevin A. Huck, Allan Porterfield, Nick Chaimov, Hartmut Kaiser, Allen D. Malony, Thomas Sterling, Rob Fowler. "An Autonomic Performance Environment for eXascale", *Journal of Supercomputing Frontiers and Innovations*, 2015.  http://superfri.org/superfri/article/view/64

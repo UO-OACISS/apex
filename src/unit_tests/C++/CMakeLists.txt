@@ -33,7 +33,6 @@ set(example_programs
     apex_print_options
     apex_get_thread_cap
     apex_shutdown_throttling
-    apex_pthread_flood
     apex_new_task
    )
     #apex_fibonacci_std_async
@@ -45,6 +44,10 @@ set(example_programs
 if (OPENMP_FOUND)
   set(example_programs "${example_programs};apex_setup_throughput_tuning")
 endif (OPENMP_FOUND)
+
+if (NOT PAPI_FOUND)
+    set(example_programs "${example_programs};apex_pthread_flood")
+endif()
 
 foreach(example_program ${example_programs})
   set(sources ${example_program}.cpp)

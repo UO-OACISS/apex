@@ -3,7 +3,10 @@
 # to the root binary directory of the project as ${APEX_BINARY_DIR}.
 
 cmake_minimum_required (VERSION 2.8.12 FATAL_ERROR)
-cmake_policy(SET CMP0042 NEW)
+cmake_policy(VERSION 2.8.12)
+if (${CMAKE_MAJOR_VERSION} GREATER 2)
+  cmake_policy(SET CMP0042 NEW)
+endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules")
 
@@ -67,6 +70,11 @@ if((NOT DEFINED APEX_THROTTLE) OR (APEX_THROTTLE))
     if ((NOT DEFINED TAU_ROOT) AND (NOT USE_TAU))
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPEX_THROTTLE")
     endif()
+endif()
+
+if((DEFINED USE_CLOCK_TIMESTAMP) AND (USE_CLOCK_TIMESTAMP))
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPEX_USE_CLOCK_TIMESTAMP")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DAPEX_USE_CLOCK_TIMESTAMP")
 endif()
 
 # include additional macro definitions
@@ -278,7 +286,7 @@ endif()
 find_package(OpenMP)
  
 if (OPENMP_FOUND)
-  if ((DEFINED OMPT_ROOT) OR (USE_OMPT))
+    if ((DEFINED OMPT_ROOT) OR (USE_OMPT) OR (BUILD_OMPT))
       find_package(OMPT)
       if (OMPT_FOUND)
           include_directories(${OMPT_INCLUDE_DIRS})
@@ -339,7 +347,7 @@ else()
     set(USE_ACTIVEHARMONY TRUE)
 endif()
 
-if((DEFINED ACTIVEHARMONY_ROOT) OR (USE_ACTIVEHARMONY))
+if((DEFINED ACTIVEHARMONY_ROOT) OR (USE_ACTIVEHARMONY) OR (BUILD_ACTIVEHARMONY))
     find_package(ActiveHarmony)
     if (ACTIVEHARMONY_FOUND)
         include_directories(${ACTIVEHARMONY_INCLUDE_DIRS})
@@ -365,7 +373,7 @@ endif()
 # Binutils configuration
 ################################################################################
 
-if((DEFINED BFD_ROOT) OR (USE_BFD))
+if((DEFINED BFD_ROOT) OR (USE_BFD) OR (BUILD_BFD))
     find_package(BFD)
     if (BFD_FOUND)
         include_directories(${BFD_INCLUDE_DIRS})
