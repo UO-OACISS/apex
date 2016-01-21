@@ -130,7 +130,7 @@ extern "C" void my_parallel_region_begin (
     boost::unique_lock<boost::mutex> l(_region_mutex);
     parallel_regions[parallel_id] = parallel_function;
   }
-  my_ompt_start("OpenMP_PARALLEL_REGION", parallel_id);
+  my_ompt_start("OMP_PARALLEL_REGION", parallel_id);
 }
 
 extern "C" void my_parallel_region_end (
@@ -139,7 +139,7 @@ extern "C" void my_parallel_region_end (
 {
   APEX_UNUSED(parent_task_id);
   APEX_UNUSED(parallel_id);
-  my_ompt_stop("OpenMP_PARALLEL_REGION", parallel_id);
+  my_ompt_stop("OMP_PARALLEL_REGION", parallel_id);
 }
 
 extern "C" void my_task_begin (
@@ -157,13 +157,13 @@ extern "C" void my_task_begin (
     boost::unique_lock<boost::mutex> l(_region_mutex);
     parallel_regions[new_task_id] = task_function;
   }
-  my_ompt_start("OpenMP_TASK", new_task_id);
+  my_ompt_start("OMP_TASK", new_task_id);
 }
  
 extern "C" void my_task_end (
   ompt_task_id_t  task_id)      /* id of task           */
 {
-  my_ompt_stop("OpenMP_TASK", task_id);
+  my_ompt_stop("OMP_TASK", task_id);
 }
 
 extern "C" void my_thread_begin(my_ompt_thread_type_t thread_type, ompt_thread_id_t thread_id) {
@@ -173,7 +173,7 @@ extern "C" void my_thread_begin(my_ompt_thread_type_t thread_type, ompt_thread_i
   status = new status_flags();
   apex::register_thread("OpenMP Thread");
   /*
-  apex::profiler* p = apex::start("OpenMP_Thread");
+  apex::profiler* p = apex::start("OMP_Thread");
   timer_stack->push(p);
   */
 }
@@ -236,11 +236,11 @@ extern "C" void RELEASE_FUNC (ompt_wait_id_t waitid) { \
   } \
 } \
 
-APEX_OMPT_WAIT_ACQUIRE_RELEASE(my_wait_atomic,my_acquired_atomic,my_release_atomic,"OpenMP_ATOMIC_REGION_WAIT","OpenMP_ATOMIC_REGION",OMPT_WAIT_ACQ_ATOMIC)
-APEX_OMPT_WAIT_ACQUIRE_RELEASE(my_wait_ordered,my_acquired_ordered,my_release_ordered,"OpenMP_ORDERED_REGION_WAIT","OpenMP_ORDERED_REGION",OMPT_WAIT_ACQ_ORDERED)
-APEX_OMPT_WAIT_ACQUIRE_RELEASE(my_wait_critical,my_acquired_critical,my_release_critical,"OpenMP_CRITICAL_REGION_WAIT","OpenMP_CRITICAL_REGION",OMPT_WAIT_ACQ_CRITICAL)
-//APEX_OMPT_WAIT_ACQUIRE_RELEASE(my_wait_lock,my_acquired_lock,my_release_lock,"OpenMP_LOCK_WAIT","OpenMP_LOCK",OMPT_WAIT_ACQ_LOCK)
-//APEX_OMPT_WAIT_ACQUIRE_RELEASE(my_wait_nest_lock,my_acquired_nest_lock,my_release_nest_lock,"OpenMP_LOCK_WAIT","OpenMP_LOCK",OMPT_WAIT_ACQ_NEST_LOCK)
+APEX_OMPT_WAIT_ACQUIRE_RELEASE(my_wait_atomic,my_acquired_atomic,my_release_atomic,"OMP_ATOMIC_REGION_WAIT","OMP_ATOMIC_REGION",OMPT_WAIT_ACQ_ATOMIC)
+APEX_OMPT_WAIT_ACQUIRE_RELEASE(my_wait_ordered,my_acquired_ordered,my_release_ordered,"OMP_ORDERED_REGION_WAIT","OMP_ORDERED_REGION",OMPT_WAIT_ACQ_ORDERED)
+APEX_OMPT_WAIT_ACQUIRE_RELEASE(my_wait_critical,my_acquired_critical,my_release_critical,"OMP_CRITICAL_REGION_WAIT","OMP_CRITICAL_REGION",OMPT_WAIT_ACQ_CRITICAL)
+//APEX_OMPT_WAIT_ACQUIRE_RELEASE(my_wait_lock,my_acquired_lock,my_release_lock,"OMP_LOCK_WAIT","OMP_LOCK",OMPT_WAIT_ACQ_LOCK)
+//APEX_OMPT_WAIT_ACQUIRE_RELEASE(my_wait_nest_lock,my_acquired_nest_lock,my_release_nest_lock,"OMP_LOCK_WAIT","OMP_LOCK",OMPT_WAIT_ACQ_NEST_LOCK)
 
 #undef APEX_OMPT_WAIT_ACQUIRE_RELEASE
 
@@ -305,20 +305,20 @@ extern "C" void END_FUNCTION (ompt_parallel_id_t parallel_id, ompt_task_id_t tas
   my_ompt_stop(NAME, parallel_id); \
 }
 
-TAU_OMPT_TASK_BEGIN_AND_END(my_initial_task_begin,my_initial_task_end,"OpenMP_INITIAL_TASK")
-TAU_OMPT_SIMPLE_BEGIN_AND_END(my_barrier_begin,my_barrier_end,"OpenMP_BARRIER")
-TAU_OMPT_SIMPLE_BEGIN_AND_END(my_implicit_task_begin,my_implicit_task_end,"OpenMP_IMPLICIT_TASK")
-TAU_OMPT_SIMPLE_BEGIN_AND_END(my_wait_barrier_begin,my_wait_barrier_end,"OpenMP_WAIT_BARRIER")
-TAU_OMPT_SIMPLE_BEGIN_AND_END(my_master_begin,my_master_end,"OpenMP_MASTER_REGION")
-TAU_OMPT_SIMPLE_BEGIN_AND_END(my_single_others_begin,my_single_others_end,"OpenMP_SINGLE_OTHERS") 
-TAU_OMPT_SIMPLE_BEGIN_AND_END(my_taskwait_begin,my_taskwait_end,"OpenMP_TASKWAIT") 
-TAU_OMPT_SIMPLE_BEGIN_AND_END(my_wait_taskwait_begin,my_wait_taskwait_end,"OpenMP_WAIT_TASKWAIT") 
-TAU_OMPT_SIMPLE_BEGIN_AND_END(my_taskgroup_begin,my_taskgroup_end,"OpenMP_TASKGROUP") 
-TAU_OMPT_SIMPLE_BEGIN_AND_END(my_wait_taskgroup_begin,my_wait_taskgroup_end,"OpenMP_WAIT_TASKGROUP") 
-TAU_OMPT_WORKSHARE_BEGIN_AND_END(my_loop_begin,my_loop_end,"OpenMP_LOOP")
-TAU_OMPT_WORKSHARE_BEGIN_AND_END(my_single_in_block_begin,my_single_in_block_end,"OpenMP_SINGLE_IN_BLOCK") 
-TAU_OMPT_WORKSHARE_BEGIN_AND_END(my_workshare_begin,my_workshare_end,"OpenMP_WORKSHARE")
-TAU_OMPT_WORKSHARE_BEGIN_AND_END(my_sections_begin,my_sections_end,"OpenMP_SECTIONS") 
+TAU_OMPT_TASK_BEGIN_AND_END(my_initial_task_begin,my_initial_task_end,"OMP_INITIAL_TASK")
+TAU_OMPT_SIMPLE_BEGIN_AND_END(my_barrier_begin,my_barrier_end,"OMP_BARRIER")
+TAU_OMPT_SIMPLE_BEGIN_AND_END(my_implicit_task_begin,my_implicit_task_end,"OMP_IMPLICIT_TASK")
+TAU_OMPT_SIMPLE_BEGIN_AND_END(my_wait_barrier_begin,my_wait_barrier_end,"OMP_WAIT_BARRIER")
+TAU_OMPT_SIMPLE_BEGIN_AND_END(my_master_begin,my_master_end,"OMP_MASTER_REGION")
+TAU_OMPT_SIMPLE_BEGIN_AND_END(my_single_others_begin,my_single_others_end,"OMP_SINGLE_OTHERS") 
+TAU_OMPT_SIMPLE_BEGIN_AND_END(my_taskwait_begin,my_taskwait_end,"OMP_TASKWAIT") 
+TAU_OMPT_SIMPLE_BEGIN_AND_END(my_wait_taskwait_begin,my_wait_taskwait_end,"OMP_WAIT_TASKWAIT") 
+TAU_OMPT_SIMPLE_BEGIN_AND_END(my_taskgroup_begin,my_taskgroup_end,"OMP_TASKGROUP") 
+TAU_OMPT_SIMPLE_BEGIN_AND_END(my_wait_taskgroup_begin,my_wait_taskgroup_end,"OMP_WAIT_TASKGROUP") 
+TAU_OMPT_WORKSHARE_BEGIN_AND_END(my_loop_begin,my_loop_end,"OMP_LOOP")
+TAU_OMPT_WORKSHARE_BEGIN_AND_END(my_single_in_block_begin,my_single_in_block_end,"OMP_SINGLE_IN_BLOCK") 
+TAU_OMPT_WORKSHARE_BEGIN_AND_END(my_workshare_begin,my_workshare_end,"OMP_WORKSHARE")
+TAU_OMPT_WORKSHARE_BEGIN_AND_END(my_sections_begin,my_sections_end,"OMP_SECTIONS") 
 
 #undef TAU_OMPT_SIMPLE_BEGIN_AND_END
 
@@ -331,7 +331,7 @@ extern "C" void my_idle_end(ompt_thread_id_t thread_id) {
   APEX_UNUSED(thread_id);
   my_ompt_stop("IDLE", 0);
   //if (status->parallel==0) {
-    //my_ompt_start("OpenMP_PARALLEL_REGION", 0);
+    //my_ompt_start("OMP_PARALLEL_REGION", 0);
     //status->busy = 1;
   //}
   status->idle = 0;
@@ -345,7 +345,7 @@ extern "C" void my_idle_begin(ompt_thread_id_t thread_id) {
         return;
     }
     if (status->busy == 1) {
-        //my_ompt_stop("OpenMP_PARALLEL_REGION", 0);
+        //my_ompt_stop("OMP_PARALLEL_REGION", 0);
         status->busy = 0;
     }
   }

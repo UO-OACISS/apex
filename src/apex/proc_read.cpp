@@ -7,10 +7,8 @@
 #include "proc_read.h"
 #include "apex_api.hpp"
 #include "apex.hpp"
-#include <boost/atomic.hpp>
 #include <sstream>
 #include <string>
-#include <boost/regex.hpp>
 #include <set>
 #include "utils.hpp"
 #include <condition_variable>
@@ -41,7 +39,7 @@ namespace apex {
 
 /* Flag indicating that we are done, so the
  * reader knows when to exit */
-static boost::atomic<bool> proc_done (false);
+static std::atomic<bool> proc_done (false);
 
 void get_popen_data(char *cmnd) {
     FILE *pf;
@@ -341,21 +339,18 @@ bool parse_proc_cpuinfo() {
     char line[4096] = {0};
     int cpuid = 0;
     while ( fgets( line, 4096, f)) {
-        string tmp(line);
-        const boost::regex separator(":");
-        boost::sregex_token_iterator token(tmp.begin(), tmp.end(), separator, -1);
-        boost::sregex_token_iterator end;
-        string name = *token++;
-        if (token != end) {
-          string value = *token;
-          name = trim(name);
-          char* pEnd;
-          double d1 = strtod (value.c_str(), &pEnd);
-          if (strcmp(name.c_str(), "processor") == 0) { cpuid = (int)d1; }
-          stringstream cname;
-          cname << "cpuinfo." << cpuid << ":" << name;
-          if (pEnd) { sample_value(cname.str(), d1); }
+      string tmp(line);
+      vector<string> tokens;
+      apex_tokenize(line, string(":"), tokens, true);
+      if (tokens.size() == 2) {
+        double d1 = strtod (tokens[1].c_str(), NULL);
+        if (tokens[0].compare("processor") == 0) { cpuid = (int)d1; }
+        stringstream cname;
+        cname << "cpuinfo." << cpuid << ":" << tokens[0];
+        if (d1 != 0.0 || (tokens[1].size() > 0 && tokens[1].at(0) == '0')) {
+          sample_value(cname.str(), d1);
         }
+      }
     }
     fclose(f);
   } else {
@@ -370,18 +365,16 @@ bool parse_proc_meminfo() {
   if (f) {
     char line[4096] = {0};
     while ( fgets( line, 4096, f)) {
-        string tmp(line);
-        const boost::regex separator(":");
-        boost::sregex_token_iterator token(tmp.begin(), tmp.end(), separator, -1);
-        boost::sregex_token_iterator end;
-        string name = *token++;
-        if (token != end) {
-            string value = *token;
-            char* pEnd;
-            double d1 = strtod (value.c_str(), &pEnd);
-            string mname("meminfo:" + name);
-            if (pEnd) { sample_value(mname, d1); }
+      string tmp(line);
+      vector<string> tokens;
+      apex_tokenize(line, string(":"), tokens, true);
+      if (tokens.size() == 2) {
+        double d1 = strtod (tokens[1].c_str(), NULL);
+        string mname("meminfo:" + tokens[0]);
+        if (d1 != 0.0 || (tokens[1].size() > 0 && tokens[1].at(0) == '0')) {
+          sample_value(mname, d1);
         }
+      }
     }
     fclose(f);
   } else {
@@ -397,20 +390,18 @@ bool parse_proc_self_status() {
   if (f) {
     char line[4096] = {0};
     while ( fgets( line, 4096, f)) {
-        string tmp(line);
-        if (!tmp.compare(0,prefix.size(),prefix)) {
-            const boost::regex separator(":");
-            boost::sregex_token_iterator token(tmp.begin(), tmp.end(), separator, -1);
-            boost::sregex_token_iterator end;
-            string name = *token++;
-            if (token != end) {
-                string value = *token;
-                char* pEnd;
-                double d1 = strtod (value.c_str(), &pEnd);
-                string mname("self_status:" + name);
-                if (pEnd) { sample_value(mname, d1); }
-            }
+      string tmp(line);
+      if (!tmp.compare(0,prefix.size(),prefix)) {
+        vector<string> tokens;
+        apex_tokenize(line, string(":"), tokens, true);
+        if (tokens.size() == 2) {
+          double d1 = strtod (tokens[1].c_str(), NULL);
+          string mname("self_status:" + tokens[0]);
+          if (d1 != 0.0 || (tokens[1].size() > 0 && tokens[1].at(0) == '0')) {
+            sample_value(mname, d1);
+          }
         }
+      }
     }
     fclose(f);
   } else {
@@ -437,90 +428,59 @@ bool parse_proc_netdev() {
     while (fgets(line, 4096, f)) {
         string outer_tmp(line);
         outer_tmp = trim(outer_tmp);
-        const boost::regex separator("[|:\\s]+");
-        boost::sregex_token_iterator token(outer_tmp.begin(), outer_tmp.end(), separator, -1);
-        boost::sregex_token_iterator end;
-        string devname = *token++; // device name
-        string tmp = *token++;
-        char* pEnd;
-        double d1 = strtod (tmp.c_str(), &pEnd);
-        string cname = devname + ".receive.bytes";
-        sample_value(cname, d1);
-
-        tmp = *token++;
-        d1 = strtod (tmp.c_str(), &pEnd);
-        cname = devname + ".receive.packets";
-        sample_value(cname, d1);
-
-        tmp = *token++;
-        d1 = strtod (tmp.c_str(), &pEnd);
-        cname = devname + ".receive.errs";
-        sample_value(cname, d1);
-
-        tmp = *token++;
-        d1 = strtod (tmp.c_str(), &pEnd);
-        cname = devname + ".receive.drop";
-        sample_value(cname, d1);
-
-        tmp = *token++;
-        d1 = strtod (tmp.c_str(), &pEnd);
-        cname = devname + ".receive.fifo";
-        sample_value(cname, d1);
-
-        tmp = *token++;
-        d1 = strtod (tmp.c_str(), &pEnd);
-        cname = devname + ".receive.frame";
-        sample_value(cname, d1);
-
-        tmp = *token++;
-        d1 = strtod (tmp.c_str(), &pEnd);
-        cname = devname + ".receive.compressed";
-        sample_value(cname, d1);
-
-        tmp = *token++;
-        d1 = strtod (tmp.c_str(), &pEnd);
-        cname = devname + ".receive.multicast";
-        sample_value(cname, d1);
-
-        tmp = *token++;
-        d1 = strtod (tmp.c_str(), &pEnd);
-        cname = devname + ".transmit.bytes";
-        sample_value(cname, d1);
-
-        tmp = *token++;
-        d1 = strtod (tmp.c_str(), &pEnd);
-        cname = devname + ".transmit.packets";
-        sample_value(cname, d1);
-
-        tmp = *token++;
-        d1 = strtod (tmp.c_str(), &pEnd);
-        cname = devname + ".transmit.errs";
-        sample_value(cname, d1);
-
-        tmp = *token++;
-        d1 = strtod (tmp.c_str(), &pEnd);
-        cname = devname + ".transmit.drop";
-        sample_value(cname, d1);
-
-        tmp = *token++;
-        d1 = strtod (tmp.c_str(), &pEnd);
-        cname = devname + ".transmit.fifo";
-        sample_value(cname, d1);
-
-        tmp = *token++;
-        d1 = strtod (tmp.c_str(), &pEnd);
-        cname = devname + ".transmit.colls";
-        sample_value(cname, d1);
-
-        tmp = *token++;
-        d1 = strtod (tmp.c_str(), &pEnd);
-        cname = devname + ".transmit.carrier";
-        sample_value(cname, d1);
-
-        tmp = *token++;
-        d1 = strtod (tmp.c_str(), &pEnd);
-        cname = devname + ".transmit.compressed";
-        sample_value(cname, d1);
+        vector<string> tokens;
+        apex_tokenize(outer_tmp, string(" "), tokens, true);
+        if (tokens.size() == 17) {
+          string devname = rtrim(tokens[0], ":");
+          double d1 = strtod (tokens[1].c_str(), NULL);
+          string cname = devname + ".receive.bytes";
+          sample_value(cname, d1);
+          d1 = strtod (tokens[2].c_str(), NULL);
+          cname = devname + ".receive.packets";
+          sample_value(cname, d1);
+          d1 = strtod (tokens[3].c_str(), NULL);
+          cname = devname + ".receive.errs";
+          sample_value(cname, d1);
+          d1 = strtod (tokens[4].c_str(), NULL);
+          cname = devname + ".receive.drop";
+          sample_value(cname, d1);
+          d1 = strtod (tokens[5].c_str(), NULL);
+          cname = devname + ".receive.fifo";
+          sample_value(cname, d1);
+          d1 = strtod (tokens[6].c_str(), NULL);
+          cname = devname + ".receive.frame";
+          sample_value(cname, d1);
+          d1 = strtod (tokens[7].c_str(), NULL);
+          cname = devname + ".receive.compressed";
+          sample_value(cname, d1);
+          d1 = strtod (tokens[8].c_str(), NULL);
+          cname = devname + ".receive.multicast";
+          sample_value(cname, d1);
+          d1 = strtod (tokens[9].c_str(), NULL);
+          cname = devname + ".transmit.bytes";
+          sample_value(cname, d1);
+          d1 = strtod (tokens[10].c_str(), NULL);
+          cname = devname + ".transmit.packets";
+          sample_value(cname, d1);
+          d1 = strtod (tokens[11].c_str(), NULL);
+          cname = devname + ".transmit.errs";
+          sample_value(cname, d1);
+          d1 = strtod (tokens[12].c_str(), NULL);
+          cname = devname + ".transmit.drop";
+          sample_value(cname, d1);
+          d1 = strtod (tokens[13].c_str(), NULL);
+          cname = devname + ".transmit.fifo";
+          sample_value(cname, d1);
+          d1 = strtod (tokens[14].c_str(), NULL);
+          cname = devname + ".transmit.colls";
+          sample_value(cname, d1);
+          d1 = strtod (tokens[15].c_str(), NULL);
+          cname = devname + ".transmit.carrier";
+          sample_value(cname, d1);
+          d1 = strtod (tokens[16].c_str(), NULL);
+          cname = devname + ".transmit.compressed";
+          sample_value(cname, d1);
+      }
     }
     fclose(f);
   } else {

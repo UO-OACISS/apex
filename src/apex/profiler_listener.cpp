@@ -34,7 +34,7 @@
 #include <cstdio>
 #include <vector>
 #include <string>
-#include <boost/regex.hpp>
+#include <regex>
 #include <unordered_set>
 
 #if defined(APEX_THROTTLE)
@@ -367,6 +367,23 @@ namespace apex {
 
   }
 
+  void fix_name(string& in_name) {
+#if defined(HAVE_BFD)                                                            
+        std::regex rx (".*UNRESOLVED ADDR (.*)");
+        if (std::regex_match (in_name,rx)) {
+          const std::regex separator(" ADDR ");
+          std::sregex_token_iterator token(in_name.begin(), in_name.end(), separator, -1);
+          *token++; // ignore
+          string addr_str = *token++;
+          void* addr_addr;
+          sscanf(addr_str.c_str(), "%p", &addr_addr);
+          string tmp = lookup_address((uintptr_t)addr_addr, false);
+          std::regex old_address("UNRESOLVED ADDR " + addr_str);
+          in_name = std::regex_replace(in_name, old_address, tmp);
+        }
+#endif
+  }
+
 #define PAD_WITH_SPACES boost::format("%8i")
 #define FORMAT_PERCENT boost::format("%8.3f")
 #define FORMAT_SCIENTIFIC boost::format("%1.2e")
@@ -475,20 +492,7 @@ namespace apex {
     for(it2 = name_map.begin(); it2 != name_map.end(); it2++) {
       profile * p = it2->second;
       string action_name = it2->first;
-#if APEX_HAVE_BFD
-      boost::regex rx (".*UNRESOLVED ADDR (.*)");
-      if (boost::regex_match (action_name,rx)) {
-        const boost::regex separator(" ADDR ");
-        boost::sregex_token_iterator token(action_name.begin(), action_name.end(), separator, -1);
-        *token++; // ignore
-        string addr_str = *token++;
-    void* addr_addr;
-    sscanf(addr_str.c_str(), "%p", &addr_addr);
-        string * tmp = lookup_address((uintptr_t)addr_addr, true);
-        boost::regex old_address("UNRESOLVED ADDR " + addr_str);
-    action_name = boost::regex_replace(action_name, old_address, *tmp);
-      }
-#endif
+      fix_name(action_name);
       string shorter(action_name);
       // to keep formatting pretty, trim any long timer names
       if (shorter.size() > 30) {
@@ -582,23 +586,6 @@ namespace apex {
         csvfile << csv_output.str();
         csvfile.close();
     }
-  }
-
-  void fix_name(string& in_name) {
-#if defined(HAVE_BFD)                                                            
-        boost::regex rx (".*UNRESOLVED ADDR (.*)");
-        if (boost::regex_match (in_name,rx)) {
-          const boost::regex separator(" ADDR ");
-          boost::sregex_token_iterator token(in_name.begin(), in_name.end(), separator, -1);
-          *token++; // ignore
-          string addr_str = *token++;
-          void* addr_addr;
-          sscanf(addr_str.c_str(), "%p", &addr_addr);
-          string tmp = lookup_address((uintptr_t)addr_addr, false);
-          boost::regex old_address("UNRESOLVED ADDR " + addr_str);
-          in_name = boost::regex_replace(in_name, old_address, tmp);
-        }
-#endif
   }
 
 /* The following code is from:
@@ -802,20 +789,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
         if(strcmp(action_name.c_str(), APEX_MAIN) == 0) {
           mainp = p;
         } else {
-#if APEX_HAVE_BFD
-      boost::regex rx (".*UNRESOLVED ADDR (.*)");
-      if (boost::regex_match (action_name,rx)) {
-        const boost::regex separator(" ADDR ");
-        boost::sregex_token_iterator token(action_name.begin(), action_name.end(), separator, -1);
-        *token++; // ignore
-        string addr_str = *token++;
-    void* addr_addr;
-    sscanf(addr_str.c_str(), "%p", &addr_addr);
-        string * tmp = lookup_address((uintptr_t)addr_addr, true);
-        boost::regex old_address("UNRESOLVED ADDR " + addr_str);
-    action_name = boost::regex_replace(action_name, old_address, *tmp);
-      }
-#endif
+          fix_name(action_name);
           myfile << "\"" << action_name << "\" ";
           format_line (myfile, p);
           not_main += (p->get_accumulated()*profiler::get_cpu_mhz());

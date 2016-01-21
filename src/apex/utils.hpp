@@ -5,6 +5,7 @@
 #include <chrono>
 #include <thread>
 #include <unistd.h>
+#include <string.h>
 
 // trim from left
 inline std::string& ltrim(std::string& s, const char* t = " \t\n\r\f\v")
@@ -67,5 +68,30 @@ inline unsigned int hardware_concurrency()
 }
 
 };
+
+inline void apex_tokenize(const std::string &instring, const std::string &delimiter, std::vector<std::string> &tokens, bool trim_tokens) {
+    // copy the input string
+    char * tmp = strdup(instring.c_str());
+    char * token;
+
+    /* get the first token */
+    token = strtok(tmp, delimiter.c_str());
+          
+    /* walk through other tokens */
+    while( token != NULL ) 
+    {
+        std::string tmptok(token);
+        if (trim_tokens) {
+          tokens.push_back(trim(tmptok));
+        } else {
+          tokens.push_back(tmptok);
+        }
+        token = strtok(NULL, delimiter.c_str());
+    }
+
+    // free the tmp string
+    free(tmp);
+    return;
+}
 
 #endif //APEX_UTILS_HPP
