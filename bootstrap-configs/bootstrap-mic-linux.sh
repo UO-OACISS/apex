@@ -10,7 +10,7 @@ DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 export CC=icc
 export CXX=icpc
 export FC=ifort
-export CFLAGS="-mmic"
+export CFLAGS="-mmic -DBOOST_NO_CXX11_ALLOCATOR"
 export CXXFLAGS=$CFLAGS
 export FFLAGS=$CFLAGS
 export MPI_C=mpiicc
@@ -40,7 +40,7 @@ cmake_install_prefix="-DCMAKE_INSTALL_PREFIX=../install" # the installation path
 cmake_use_codeblocks="-G \"CodeBlocks - Unix Makefiles\"" # if you want to debug in CodeBlocks
 cmake_make_verbose=""  # for verbose, use -DCMAKE_VERBOSE_MAKEFILE=ON
 cmake_use_mpi="-DUSE_MPI=FALSE" # TRUE or FALSE
-cmake_other_settings="" # anything else?
+cmake_other_settings="-DCMAKE_TOOLCHAIN_FILE=${DIR}/../cmake/Modules/intel_mic_toolchain.cmake" # anything else?
 
 # runtime parameters for testing APEX with "make test"
 
