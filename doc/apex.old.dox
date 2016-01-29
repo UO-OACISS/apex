@@ -1,0 +1,303 @@
+/* required for Doxygen */
+
+/** @file */ 
+
+/** \mainpage APEX: Autonomic Performance Environment for eXascale
+
+\section copyright Copyright
+
+\verbinclude LICENSE.txt
+
+\section overview Overview
+
+One of the key components of the XPRESS project is a new approach to
+performance observation, measurement, analysis and runtime decision making in
+order to optimize performance. The particular challenges of accurately
+measuring the performance characteristics of ParalleX applications requires a
+new approach to parallel performance observation. The standard model of
+multiple operating system processes and threads observing themselves in a
+first-person manner while writing out performance profiles or traces for
+offline analysis will not adequately capture the full execution context, nor
+provide opportunities for runtime adaptation within OpenX. The approach taken
+in the XPRESS project is a new performance measurement system, called
+(Autonomic Performance Environment for eXascale). APEX will include methods for
+information sharing between the layers of the software stack, from the hardware
+through operating and runtime systems, all the way to domain specific or legacy
+applications. The performance measurement components will incorporate relevant
+information across stack layers, with merging of third-person performance
+observation of node-level and global resources, remote processes, and both
+operating and runtime system threads.
+
+\section introduction Introduction
+\subsection interfaces Interfaces
+
+Essentially, APEX is both a measurement system for introspection, as well
+as a Policy Engine for modifying runtime behavior based on the 
+observations. While APEX has capabilities for generating profile data
+for post-mortem analysis, the key purpose of the measurement is to 
+provide support for policy enforcement. To that end, APEX is designed
+to have very low overhead and minimize perturbation of runtime worker thread
+productivity. APEX supports both start/stop timers and either 
+event-based or periodic counter samples. Measurements are taken synchronously,
+but profiling statistics and internal state management is performed by
+(preferably lower-priority) threads distinct from the running application. The
+heart of APEX is an event handler that dispatches events to registered
+listeners within APEX.  Policy enforcement can trigger synchronously when
+events are triggered by the OS/RS or application, or can occur asynchronously
+on a periodic basis.
+
+APEX is a library written in C++, and has both C and C++ external interfaces.
+While the C interface can be used for either language, some C++ applications
+prefer to work with namespaces (i.e.  apex::*) rather than prefixes (i.e.
+apex_*). All functionality is supported through both interfaces, and the C
+interface contains inlined implementations of the C++ code.
+
+While the designed purpose for APEX is supporting the current and future needs 
+of ParalleX runtimes within the XPRESS project (such as HPX3, HPX5),
+experimental support is also available for introspection of current runtimes
+such as OpenMP. APEX could potentially be integrated into other runtime
+systems, such as any of a number of lightweight task based systems. The
+introspection provided by APEX is intended to be in the third-person model,
+rather than traditional first-person, per-thread/per-process application
+profile or tracing measurement.  APEX is designed to combine information from
+the OS, Runtime, hardware and application in order to guide policy decisions.
+
+For distributed communication, APEX provides an API to be implemented for 
+the required communication for a given application. An MPI implementation
+is provided as a reference, and both HPX3 and HPX5 implementations have
+been implemented. In this way, APEX is integrated into the observed
+runtime, and asyncrhonous communication is provided at a lower priority,
+in order to minimize perturbation of the application.
+
+The direct links to each API are here:
+<ul>
+<li>C API : @ref apex.h </li>
+<li>C++ API : @ref apex </li>
+</dl>
+
+\section installation Installation
+\subsection external_dependencies External Software Dependencies
+\subsubsection required_dependencies Required Software Dependencies
+<dl>
+<dt>CMake version 2.8.12 or newer</dt>
+<dd></dd>
+<dt>Boost 1.54.0</dt>
+<dd>With the headers and the following libraries: system thread timer chrono regex</dd>
+</dl>
+
+\subsubsection optional_dependencies Optional Software Dependencies
+<dl>
+
+<dt>MPI</dt>
+<dd>If your application / runtime uses MPI for distributed communication,
+enabling MPI support allows APEX to provide global performance data across
+all nodes. The MPI exchanges use MPI2 asynchronous communication, so your
+MPI implementation needs to at least support the MPI2 interface. CMake 
+should auto-detect the MPI settings from the mpicxx compiler in your path.
+</dd>
+<dt>TAU</dt>
+<dd>For collecting post-mortem profile or trace files. Set TAU_ROOT and TAU_ARCH environment variables while configuring HPX.</dd>
+<dt>RCR</dt>
+<dd>For accessing system-level privileged information, such as power measurements
+(on some systems), and communicating policy decisions to the OS/R layer.</dd>
+<dt>Tcmalloc</dt>
+<dd>For faster memory allocation.</dd>
+<dt>PAPI</dt>
+<dd>For Hardware Counter support (without TAU).</dd>
+<dt>BinUtils</dt>
+<dd>For resolving function addresses to name, file, line number(s). APEX timers
+are identified by either names or function/action/task addresses. Adding BinUtils
+provides a more human-readable output for some analysis.</dd>
+<dt>BinUtils Demangle support</dt>
+<dd>Used with BinUtils to demangle C++ function names.</dd>
+<dt>Zlib</dt>
+<dd>Required by some BinUtils implementations.</dd>
+<dt>OpenMP support</dt>
+<dd>APEX provides OpenMP introspection by implementing the OMPT tools
+interface. If your OpenMP runtime has support then APEX will use the OMPT
+API to communicate with the runtime.</dd>
+</dl>
+<dl>
+<dt>Doxygen</dt>
+<dd>Used to make this documentation.</dd>
+</dl>
+
+\subsection getting Getting the Code
+
+The code is hosted at https://code.google.com/p/xpress-apex/.  To get the code,
+follow the instructions here: https://code.google.com/p/xpress-apex/source/checkout
+
+\subsection bootstrapping Bootstrapping: the "easy" way
+
+The code contains a "bootstrap-configs" directory with a few examples. 
+
+<ol>
+<li> Start with the example closest to your system </li/>
+<li> Copy that example in the same bootstrap-configs directory </li/>
+<li> Edit as necessary </li/>
+<li> Bootstrap with "./bootstrap-configs/bootstrap-xxx.sh" </li/>
+</ol>
+
+\subsection custom Custom Builds
+
+APEX uses CMake for the build process. In most cases, CMake will use both
+options passed in with -D values and environment variables. APEX can be
+configured by using CMake directly - just create your own build directory
+and run cmake or ccmake with the appropriate configuration settings.
+
+\section variables Environment Variables
+
+Apex uses a number of environment variables to control its behavior at
+runtime. These variables are:
+
+<dl>
+
+<dt>APEX_TAU</dt> 
+<dd>If APEX is configured with TAU support, this will enable the TAU profiling
+support. 0 is disabled, 1 is enabled.</dd>
+
+<dt>APEX_POLICY</dt> 
+<dd>Enable policy processing in the APEX event listener. 0 is
+  disabled, 1 is enabled.</dd>
+
+<dt>APEX_CONCURRENCY</dt> 
+<dd>Enable concurrency measurement as an APEX event listener.
+  Concurrency will be collected in each process, and a gnuplot will be 
+  produced at the end of execution showing the sampled concurrency during
+  execution.
+  0 is disabled, 1 is enabled.</dd>
+
+<dt>APEX_CONCURRENCY_PERIOD</dt> 
+<dd>Set the concurrency measurement period. The
+  unit is in microseconds.</dd>
+
+<dt>APEX_SCREEN_OUTPUT</dt> 
+<dd>When the program terminates, the main process will
+  dump a measurement summary to the screen. 
+  0 is disabled, 1 is enabled.</dd>
+
+<dt>APEX_PROFILE_OUTPUT</dt> 
+<dd>When the program terminates, all processes will
+  write TAU profiles to disk. 
+  0 is disabled, 1 is enabled (process summary only), 2 is enabled 
+  (per-thread measurement detail).</dd>
+
+</dl>
+
+\section examples Usage Examples
+
+There are several examples in src/examples. Each of the examples is usually
+constructed as a CMake test, but it also serves as a usage example as well.
+
+\subsection DemoC DemoC
+
+This example is a simple example of a C program using APEX. Profile statistics
+are dumped to the screen upon termination.
+
+\subsection DemoCpp DemoCpp
+
+This example is a simple example of a C++ program using APEX. Profile
+statistics are dumped to the screen upon termination.
+
+\subsection Matmult Matmult
+
+This example is a simple example of a C++ program using APEX.  This example
+spawns three threads, and all four threads perform a matrix multiplication.
+Profile statistics are dumped to the screen upon termination.
+
+\subsection MPIGlobalTest MPIGlobalTest
+
+This example demonstrates how MPI one-sided communication is used
+to perform global reductions of performance data at runtime. This
+example uses the code in src/comm/mpi to perform the reduction.
+This example is provided as an example for other distributed runtimes
+to implement the API in @ref src/comm/apex_global.h.
+
+\subsection MPIImbalanceTest MPIImbalanceTest
+
+This example demonstrates how MPI one-sided communication is used
+to perform global reductions of performance data at runtime. 
+This example is similar to MPIGlobalTest, but with an imbalanced load.
+
+\subsection MPITest MPITest
+
+This is a simple example using C++ and MPI.
+
+\subsection Overhead Overhead
+
+This is a simple example used to test the overhead of timing a task, 
+used for testing purposes.
+
+\subsection PolicyEngineCppExample PolicyEngineCppExample
+
+This is a C++ example of a runtime policy. In this example, a periodic
+policy and an event based policy are created.
+
+\subsection PolicyEngineExample PolicyEngineExample
+
+This is a C example of a runtime policy. In this example, a periodic
+policy and an event based policy are created.
+
+\subsection TestITT TestITT
+
+This is an example to demonstrate how APEX implements the Intel
+Instrumentation and Tracing Technology API. If an existing application
+uses the ITT interface, APEX can use that rather than adding additional
+instrumentaion.
+
+\subsection TestGetPower TestGetPower
+
+This is an example that demonstrates the ability to read power and energy
+from user-space on the Cray XC30. APEX will also have the ability to read
+power and energy from either PAPI, RCR or libmsr in the future, and on
+supported platforms.
+
+\subsection TestOpenMP TestOpenMP
+
+This is an example of using APEX with an OpenMP application, using an
+OpenMP runtime that supports the OMPT interface. One such example is the
+Intel OpenMP Runtime. APEX has implemented a subset of the OMPT events.
+
+\subsection TestReset TestReset
+
+This is an example that demonstrates the use of resetting counters
+and timers in APEX. This is especially useful when policies cause changes
+in runtime or application behavior, and the policy wants to check the 
+efficacy of the changed behavior in subsequent iterations.
+
+\subsection TestThreads TestThreads
+
+This is a simple example that demonstrates the use of APEX in multithreaded
+environments.
+
+\subsection Throttling Throttling
+
+This is a simple example that demonstrates the use of APEX in multithreaded
+environments. In this example, the threads are throttled in order to maximize
+throughput of the overall application. The process begins with 48 pthreads,
+and the application simulates the situation when the operating system or hardware
+is overutilized, and excess concurrency is causing worse than diminishing
+returns. The policy will use a hillclimbing approach to reduce the amount of
+concurrency until converging on the ideal number of threads, or until application
+termination.
+
+\subsection ThrottlingActiveHarmony ThrottlingActiveHarmony
+
+This is a version of the Throttling example that uses Active Harmony for
+optimization. The optimization method is the default method in Active Harmony,
+the Parallel Rank Order method. For more details, see http://www.dyninst.org/harmony
+
+\subsection ThrottlingCpp ThrottlingCpp
+
+This is a C++ version of the Throttling example.
+
+\section acknowledgements Acknowledgements
+
+Support for this work was provided through Scientific Discovery through
+Advanced Computing (SciDAC) program funded by U.S. Department of Energy, Office
+of Science, Advanced Scientific Computing Research (and Basic Energy
+Sciences/Biological and Environmental Research/High Energy Physics/Fusion
+Energy Sciences/Nuclear Physics) under award numbers DE-SC0008638,
+DE-SC0008704, DE-FG02-11ER26050 and DE-SC0006925.
+
+**/

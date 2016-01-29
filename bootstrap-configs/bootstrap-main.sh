@@ -19,8 +19,8 @@ fi
 
 if [ ${BFD_ROOT+x} ]; then 
 	bfd_config="-DBFD_ROOT=$BFD_ROOT -DUSE_BFD=TRUE"
-else
-	bfd_config="-DUSE_BFD=FALSE"
+#else
+	#bfd_config="-DUSE_BFD=FALSE"
 fi
 
 if [ ${JEMALLOC_ROOT+x} ]; then

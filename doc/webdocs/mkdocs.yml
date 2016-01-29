@@ -1,0 +1,17 @@
+site_name: APEX
+site_url: http://khuck.github.io/xpress-apex
+repo_url: http://github.com/khuck/xpress-apex
+site_description: Autonomic Performance Environment for eXascale
+site_author: Kevin Huck (khuck@cs.uoregon.edu)
+copyright: (C) 2015 University of Oregon, All Rights Reserved
+pages:
+- Home: index.md
+- Feature Overview: feature.md
+- Getting Started: install.md
+- Usage: usage.md
+- Use Cases: usecases.md
+- Useful Environment Variables: environment.md
+- Research Examples: examples.md
+- API Reference manual : refman.md
+theme: readthedocs
+

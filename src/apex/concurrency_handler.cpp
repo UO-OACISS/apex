@@ -11,7 +11,7 @@
 #include "concurrency_handler.hpp"
 #include "apex.hpp"
 #include "apex_api.hpp"
-#include "apex_policies.h"
+#include "apex_policies.hpp"
 #include "thread_instance.hpp"
 #include <iostream>
 #include <map>
@@ -103,9 +103,10 @@ bool concurrency_handler::_handler(void) {
   }
   _states.push_back(counts);
   _thread_cap_samples.push_back(get_thread_cap());
-  for(auto param : get_tunable_params()) {
-    _tunable_param_samples[param.first].push_back(*param.second);
-  }
+  // TODO: FIXME multiple tuning sessions
+  //for(auto param : get_tunable_params()) {
+  //  _tunable_param_samples[param.first].push_back(*param.second);
+  //}
   int power = current_power_high();
   _power_samples.push_back(power);
   this->_reset();
@@ -180,7 +181,7 @@ bool concurrency_handler::on_resume(string *timer_name) {
   }
 }
 
-void concurrency_handler::on_stop(std::shared_ptr<profiler> p) {
+void concurrency_handler::on_stop(std::shared_ptr<profiler> &p) {
   if (!_terminate) {
     int i = thread_instance::get_id();
     stack<task_identifier>* my_stack = get_event_stack(i);
@@ -193,7 +194,7 @@ void concurrency_handler::on_stop(std::shared_ptr<profiler> p) {
   APEX_UNUSED(p);
 }
 
-void concurrency_handler::on_yield(std::shared_ptr<profiler> p) {
+void concurrency_handler::on_yield(std::shared_ptr<profiler> &p) {
     on_stop(p);
 }
 

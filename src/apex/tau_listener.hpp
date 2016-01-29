@@ -26,8 +26,8 @@ public:
   void on_exit_thread(event_data &data);
   bool on_start(apex_function_address function_address);
   bool on_start(std::string *timer_name);
-  void on_stop(std::shared_ptr<profiler> p);
-  void on_yield(std::shared_ptr<profiler> p);
+  void on_stop(std::shared_ptr<profiler> &p);
+  void on_yield(std::shared_ptr<profiler> &p);
   bool on_resume(apex_function_address function_address);
   bool on_resume(std::string *timer_name);
   void on_new_task(apex_function_address function_address, void * task_id)

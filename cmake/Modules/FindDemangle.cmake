@@ -39,6 +39,24 @@ find_package_handle_standard_args(DEMANGLE  DEFAULT_MSG
 
 mark_as_advanced(DEMANGLE_INCLUDE_DIR DEMANGLE_LIBRARY)
 
+# --------- DOWNLOAD AND BUILD THE EXTERNAL PROJECT! ------------ #
+if(NOT DEMANGLE_FOUND AND NOT APPLE AND BUILDING_BFD)
+  include(ExternalProject)
+  ExternalProject_Get_Property(project_binutils install_dir)
+  add_library(iberty STATIC IMPORTED)
+  set_property(TARGET iberty PROPERTY IMPORTED_LOCATION ${install_dir}/lib/libiberty.a)
+  set(DEMANGLE_LIBRARIES "${BFD_ROOT}/lib/libiberty.a")
+  set(DEMANGLE_INCLUDE_DIRS "${BFD_ROOT}/include")
+  set(DEMANGLE_DIR "${BFD_ROOT}")
+  # handle the QUIETLY and REQUIRED arguments and set DEMANGLE_FOUND to TRUE
+  # if all listed variables are TRUE
+  find_package_handle_standard_args(DEMANGLE  DEFAULT_MSG
+      DEMANGLE_LIBRARY DEMANGLE_INCLUDE_DIR)
+  set(DEMANGLE_FOUND TRUE)
+  set(BUILDING_BFD TRUE)
+endif()
+# --------- DOWNLOAD AND BUILD THE EXTERNAL PROJECT! ------------ #
+
 if(DEMANGLE_FOUND)
   set(DEMANGLE_LIBRARIES ${DEMANGLE_LIBRARY} )
   set(DEMANGLE_INCLUDE_DIRS ${DEMANGLE_INCLUDE_DIR})

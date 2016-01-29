@@ -1,7 +1,6 @@
 # Create a library called "Apex" which includes the source file "apex.cxx". 
 # The extension is already found. Any number of sources could be listed here. 
 
-#include_directories(${CMAKE_BINARY_DIR} ${APEX_SOURCE_DIR}/rapidjson/include)
 include_directories(${PROJECT_BINARY_DIR}/src/apex ${APEX_SOURCE_DIR}/src/contrib)
 
 if (TAU_FOUND)
@@ -22,6 +21,7 @@ endif(OMPT_FOUND)
 
 if (USE_UDP_CLIENT)
 SET(UDP_SOURCE udp_client.cpp)
+include_directories(${APEX_SOURCE_DIR}/rapidjson/include)
 endif(USE_UDP_CLIENT)
 
 if (LM_SENSORS_FOUND)
@@ -31,7 +31,7 @@ endif(LM_SENSORS_FOUND)
 SET(all_SOURCE apex.cpp thread_instance.cpp event_listener.cpp handler.cpp concurrency_handler.cpp policy_handler.cpp ${tau_SOURCE} profiler_listener.cpp ${bfd_SOURCE} apex_options.cpp apex_policies.cpp ${PROC_SOURCE} ${OMPT_SOURCE} ${UDP_SOURCE} ${SENSOR_SOURCE})
 
 add_library (apex_objlib OBJECT ${all_SOURCE})
-add_dependencies (apex_objlib project_activeharmony)
+add_dependencies (apex_objlib project_activeharmony project_binutils project_boost)
 
 add_library (apex SHARED $<TARGET_OBJECTS:apex_objlib>)
 add_library (apex_static STATIC $<TARGET_OBJECTS:apex_objlib>)
@@ -53,6 +53,7 @@ INSTALL(FILES apex.h
     apex_api.hpp
     apex_types.h
     apex_policies.h
+    apex_policies.hpp
     handler.hpp
     profile.hpp
     apex_export.h
