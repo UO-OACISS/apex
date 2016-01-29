@@ -1,0 +1,19 @@
+To build for Intel MIC, please see the bootstrap script for mic-linux.
+The most salient points are to set these environment variables:
+export CC=icc
+export CXX=icpc
+export FC=ifort
+export CFLAGS="-mmic -DBOOST_NO_CXX11_ALLOCATOR"
+export CXXFLAGS=$CFLAGS
+export FFLAGS=$CFLAGS
+export MPI_C=mpiicc
+export MPI_CXX=mpiicpc
+And use this CMake toolchain file:
+-DCMAKE_TOOLCHAIN_FILE=${apex_src_dir}/cmake/Modules/intel_mic_toolchain.cmake
+
+
+After building, use these commands to run (with equivalent paths):
+
+SINK_LD_LIBRARY_PATH=/home/users/khuck/src/xpress-apex/build_2016.01.29-12.57.22/src/apex:/home/users/khuck/install/mic/boost/1.58.0/lib:/packages/intel/16/linux/compiler/lib/mic
+
+micnativeloadex build_2016.01.29-12.57.22/src/unit_tests/C/apex_init
