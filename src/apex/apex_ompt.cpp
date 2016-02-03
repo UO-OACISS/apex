@@ -7,6 +7,9 @@
 #include "apex_types.h"
 #include "thread_instance.hpp"
 #include <boost/thread/mutex.hpp>
+#include <boost/thread/shared_mutex.hpp>
+#include <boost/thread/locks.hpp>
+
 //#include "global_constructor_destructor.h"
 
 typedef struct status_flags {
@@ -39,7 +42,8 @@ typedef enum my_ompt_thread_type_e {
 } my_ompt_thread_type_t;
 
 std::unordered_map<ompt_parallel_id_t, void*> parallel_regions;
-boost::mutex _region_mutex;
+using region_mutex_type = boost::shared_mutex;
+region_mutex_type _region_mutex;
 
 __thread std::stack<apex::profiler*> *timer_stack;
 __thread status_flags_t *status;
@@ -67,11 +71,12 @@ char * format_address(void* ip) {
 }
 
 char * format_name(const char * state, ompt_parallel_id_t parallel_id) {
+    
     int contextLength = 10;
     char * regionIDstr = NULL;
     std::unordered_map<ompt_parallel_id_t, void*>::const_iterator got;
     {
-      boost::unique_lock<boost::mutex> l(_region_mutex);
+      boost::shared_lock<region_mutex_type> l(_region_mutex);
       got = parallel_regions.find (parallel_id);
     }
     if ( got == parallel_regions.end() ) { // not found.
@@ -127,7 +132,7 @@ extern "C" void my_parallel_region_begin (
   APEX_UNUSED(requested_team_size);
   //fprintf(stderr,"begin: %lu, %p, %lu, %u, %p\n", parent_task_id, parent_task_frame, parallel_id, requested_team_size, parallel_function); fflush(stderr);
   {
-    boost::unique_lock<boost::mutex> l(_region_mutex);
+    boost::unique_lock<region_mutex_type> l(_region_mutex);
     parallel_regions[parallel_id] = parallel_function;
   }
   my_ompt_start("OpenMP_PARALLEL_REGION", parallel_id);
@@ -154,7 +159,7 @@ extern "C" void my_task_begin (
     timer_stack = new std::stack<apex::profiler*>();
   } */
   {
-    boost::unique_lock<boost::mutex> l(_region_mutex);
+    boost::unique_lock<region_mutex_type> l(_region_mutex);
     parallel_regions[new_task_id] = task_function;
   }
   my_ompt_start("OpenMP_TASK", new_task_id);
@@ -293,7 +298,7 @@ extern "C" void BEGIN_FUNCTION (ompt_parallel_id_t parallel_id, ompt_task_id_t t
   status->regionid = parallel_id; \
   status->taskid = task_id; \
   { \
-    boost::unique_lock<boost::mutex> l(_region_mutex); \
+    boost::unique_lock<region_mutex_type> l(_region_mutex); \
     parallel_regions[parallel_id] = parallel_function; \
   } \
   my_ompt_start(NAME, parallel_id); \

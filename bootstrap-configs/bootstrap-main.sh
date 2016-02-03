@@ -105,7 +105,7 @@ if [ $# -eq 2 ] ; then
 	fi
 fi
 
-make -j `expr $procs + 1`
+$MAKE_PREFIX make -j `expr $procs + 1`
 
 make test
 make doc
