@@ -400,14 +400,14 @@ inline int __ompt_initialize() {
   CHECK(ompt_event_release_atomic, my_release_atomic, "release_atomic");
   CHECK(ompt_event_release_ordered, my_release_ordered, "release_ordered");
 
-  CHECK(ompt_event_barrier_begin, my_barrier_begin, "barrier_begin");
-  CHECK(ompt_event_barrier_end, my_barrier_end, "barrier_end");
-  CHECK(ompt_event_master_begin, my_master_begin, "master_begin");
-  CHECK(ompt_event_master_end, my_master_end, "master_end");
-  CHECK(ompt_event_loop_begin, my_loop_begin, "loop_begin");
-  CHECK(ompt_event_loop_end, my_loop_end, "loop_end");
-  CHECK(ompt_event_sections_begin, my_sections_begin, "sections_begin");
-  CHECK(ompt_event_sections_end, my_sections_end, "sections_end");
+  //CHECK(ompt_event_barrier_begin, my_barrier_begin, "barrier_begin");
+  //CHECK(ompt_event_barrier_end, my_barrier_end, "barrier_end");
+  //CHECK(ompt_event_master_begin, my_master_begin, "master_begin");
+  //CHECK(ompt_event_master_end, my_master_end, "master_end");
+  //CHECK(ompt_event_loop_begin, my_loop_begin, "loop_begin");
+  //CHECK(ompt_event_loop_end, my_loop_end, "loop_end");
+  //CHECK(ompt_event_sections_begin, my_sections_begin, "sections_begin");
+  //CHECK(ompt_event_sections_end, my_sections_end, "sections_end");
   CHECK(ompt_event_taskwait_begin, my_taskwait_begin, "taskwait_begin");
   CHECK(ompt_event_taskwait_end, my_taskwait_end, "taskwait_end");
   CHECK(ompt_event_taskgroup_begin, my_taskgroup_begin, "taskgroup_begin");

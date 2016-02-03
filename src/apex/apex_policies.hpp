@@ -10,6 +10,7 @@
 #include <boost/atomic.hpp>
 #include <list>
 #include <map>
+#include <string.h>
 
 #ifdef APEX_HAVE_ACTIVEHARMONY
 #include "hclient.h"
@@ -100,8 +101,8 @@ class apex_param_enum : public apex_param {
         std::list<std::string> possible_values;
 
     public:
-        apex_param_enum(const std::string & name, const std::string & init_value, const std::list<std::string> possible_values) :
-              apex_param(name), init_value{init_value}, value{std::make_shared<const char*>(init_value.c_str())}, possible_values{possible_values} {};
+        apex_param_enum(const std::string & name, const std::string & init_val, const std::list<std::string> possible_values) :
+              apex_param(name), init_value{init_val}, value{std::make_shared<const char*>(strdup(init_value.c_str()))}, possible_values{possible_values} {};
         virtual ~apex_param_enum() {};
 
         const std::string get_value() const {
