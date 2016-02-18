@@ -21,14 +21,14 @@ namespace apex {
     stringstream location;
     address_resolution::my_hash_node * node = nullptr;
     const std::unordered_map<uintptr_t,
-                      address_resolution::my_hash_node*>::iterator it = ar->my_hash_table.find(ip);
+                      address_resolution::my_hash_node*>::const_iterator it = ar->my_hash_table.find(ip);
     // address not found? We need to resolve it.
     if (it == ar->my_hash_table.end()) {
       // only one thread should resolve it.
       std::lock_guard<std::mutex> lock(ar->_bfd_mutex);
       // now that we have the lock, did someone else resolve it?
       const std::unordered_map<uintptr_t,
-            address_resolution::my_hash_node*>::iterator it2 = ar->my_hash_table.find(ip);
+            address_resolution::my_hash_node*>::const_iterator it2 = ar->my_hash_table.find(ip);
       if (it2 == ar->my_hash_table.end()) {
         // ...no - so go get it!
         node = new address_resolution::my_hash_node();
