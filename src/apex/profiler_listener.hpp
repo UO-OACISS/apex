@@ -68,25 +68,21 @@ private:
   void schedule_process_profiles(void);
 #endif
   unsigned int process_profile(std::shared_ptr<profiler> &p, unsigned int tid);
-  void reset_all(void);
   unsigned int process_profile(profiler* p, unsigned int tid);
   unsigned int process_dependency(task_dependency* td);
   int node_id;
   boost::mutex _mtx;
-  bool _common_start(apex_function_address function_address, bool is_resume); // internal, inline function
-  bool _common_start(std::string * timer_name, bool is_resume); // internal, inline function
+  bool _common_start(task_identifier * id, bool is_resume); // internal, inline function
   void _common_stop(std::shared_ptr<profiler> &p, bool is_yield); // internal, inline function
   void push_profiler(int my_tid, std::shared_ptr<profiler> &p);
-  std::map<std::string, profile*> name_map;
-  std::map<apex_function_address, profile*> address_map;
+  std::unordered_map<task_identifier, profile*> task_map;
   std::unordered_map<task_identifier, std::unordered_map<task_identifier, int>* > task_dependencies;
   /* The profiler queue */
   profiler_queue_t thequeue;
   /* The task dependency queue */
   moodycamel::ConcurrentQueue<task_dependency*> dependency_queue;
 #if defined(APEX_THROTTLE)
-  std::unordered_set<apex_function_address> throttled_addresses;
-  std::unordered_set<std::string> throttled_names;
+  std::unordered_set<task_identifier> throttled_tasks;
 #endif
 #if APEX_HAVE_PAPI
   int num_papi_counters;
@@ -97,7 +93,7 @@ private:
   boost::thread * consumer_thread;
   semaphore queue_signal;
 public:
-  profiler_listener (void) : _initialized(false), _done(false), node_id(0), name_map()
+  profiler_listener (void) : _initialized(false), _done(false), node_id(0), task_map()
 #if APEX_HAVE_PAPI
                              , num_papi_counters(0), event_sets(8), metric_names(0)
 #endif
@@ -118,26 +114,22 @@ public:
   void on_new_node(node_event_data &data);
   void on_new_thread(new_thread_event_data &data);
   void on_exit_thread(event_data &data);
-  bool on_start(apex_function_address function_address);
-  bool on_start(std::string *timer_name);
+  bool on_start(task_identifier *id);
   void on_stop(std::shared_ptr<profiler> &p);
   void on_yield(std::shared_ptr<profiler> &p);
-  bool on_resume(apex_function_address function_address);
-  bool on_resume(std::string *timer_name);
-  void on_new_task(apex_function_address function_address, void * task_id);
-  void on_new_task(std::string *timer_name, void * task_id);
+  bool on_resume(task_identifier * id);
+  void on_new_task(task_identifier * id, void * task_id);
   void on_sample_value(sample_value_event_data &data);
   void on_periodic(periodic_event_data &data);
   void on_custom_event(custom_event_data &event_data);
   // other methods
-  void reset(apex_function_address function_address);
-  void reset(const std::string &timer_name);
-  profile * get_profile(apex_function_address address);
-  profile * get_profile(const std::string &timer_name);
+  void reset(task_identifier * id);
+  void reset_all(void);
+  profile * get_profile(task_identifier &id);
   double get_non_idle_time(void);
   profile * get_idle_time(void);
   profile * get_idle_rate(void);
-  std::vector<std::string> get_available_profiles();
+  //std::vector<std::string> get_available_profiles();
   void process_profiles(void);
   static void process_profiles_wrapper(void);
 };

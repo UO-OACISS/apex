@@ -388,7 +388,7 @@ void policy_handler::on_exit_thread(event_data &data) {
         call_policies(exit_thread_policies, data);
 }
 
-bool policy_handler::on_start(apex_function_address function_address) {
+bool policy_handler::on_start(task_identifier *id) {
   if (_terminate) return false;
   if (start_event_policies.empty()) return true;
   for(const boost::shared_ptr<policy_instance>& policy : start_event_policies) {
@@ -400,27 +400,11 @@ bool policy_handler::on_start(apex_function_address function_address) {
       printf("Warning: registered policy function failed!\n");
     }
   }
-  APEX_UNUSED(function_address);
+  APEX_UNUSED(id);
   return true;
 }
 
-bool policy_handler::on_start(string *timer_name) {
-  if (_terminate) return false;
-  if (start_event_policies.empty()) return true;
-  for(const boost::shared_ptr<policy_instance>& policy : start_event_policies) {
-    apex_context my_context;
-    my_context.event_type = APEX_START_EVENT;
-    my_context.policy_handle = NULL;
-    const bool result = policy->func(my_context);
-    if(result != APEX_NOERROR) {
-      printf("Warning: registered policy function failed!\n");
-    }
-  }
-  APEX_UNUSED(timer_name);
-  return true;
-}
-
-bool policy_handler::on_resume(apex_function_address function_address) {
+bool policy_handler::on_resume(task_identifier * id) {
   if (_terminate) return false;
   if (resume_event_policies.empty()) return true;
   for(const boost::shared_ptr<policy_instance>& policy : resume_event_policies) {
@@ -432,23 +416,7 @@ bool policy_handler::on_resume(apex_function_address function_address) {
       printf("Warning: registered policy function failed!\n");
     }
   }
-  APEX_UNUSED(function_address);
-  return true;
-}
-
-bool policy_handler::on_resume(string *timer_name) {
-  if (_terminate) return false;
-  if (resume_event_policies.empty()) return true;
-  for(const boost::shared_ptr<policy_instance>& policy : resume_event_policies) {
-    apex_context my_context;
-    my_context.event_type = APEX_RESUME_EVENT;
-    my_context.policy_handle = NULL;
-    const bool result = policy->func(my_context);
-    if(result != APEX_NOERROR) {
-      printf("Warning: registered policy function failed!\n");
-    }
-  }
-  APEX_UNUSED(timer_name);
+  APEX_UNUSED(id);
   return true;
 }
 

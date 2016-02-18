@@ -47,6 +47,7 @@ endif()
 
 IF("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
   set(BUILD_TESTS TRUE)
+  set(BUILD_EXAMPLES TRUE)
 endif()
 
 IF("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
