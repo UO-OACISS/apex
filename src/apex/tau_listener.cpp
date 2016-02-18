@@ -102,6 +102,15 @@ bool tau_listener::on_start(std::string * timer_name) {
   return true;
 }
 
+bool tau_listener::on_start(task_identifier * id) {
+  if (!_terminate) {
+    TAU_START(id->get_name());
+  } else {
+      return false;
+  }
+  return true;
+}
+
 bool tau_listener::on_resume(apex_function_address function_address) {
   if (!_terminate) {
     TAU_START(thread_instance::instance().map_addr_to_name(function_address).c_str());

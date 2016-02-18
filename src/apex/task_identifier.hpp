@@ -6,7 +6,7 @@
 #pragma once
 
 #include "apex_types.h"
-#include "thread_instance.hpp"
+#include <boost/unordered_map.hpp>
 
 namespace apex {
 
@@ -22,6 +22,7 @@ public:
       address(a), name(""), _resolved_name(""), has_name(false) {};
   task_identifier(std::string n) : 
       address(0L), name(n), _resolved_name(""), has_name(true) {};
+	  /*
   task_identifier(profiler * p) : 
       address(0L), name(""), _resolved_name("") {
       if (p->have_name) {                                         
@@ -32,16 +33,8 @@ public:
           has_name = false;
       }            
   }
-  std::string& get_name() {
-    if (!has_name) {
-      if (_resolved_name == "") {
-        //_resolved_name = lookup_address((uintptr_t)address, false);         
-        _resolved_name = thread_instance::instance().map_addr_to_name(address);
-      }
-      return _resolved_name;
-    }
-    return name;
-  }
+  */
+  std::string& get_name();
   ~task_identifier() { }
   // requried for using this class as a key in an unordered map.
   // the hash function is defined below.
