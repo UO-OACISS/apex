@@ -154,6 +154,7 @@ set(apex_sources
     concurrency_handler.cpp
     policy_handler.cpp
     profiler_listener.cpp
+    task_identifier.cpp
     apex_policies.cpp
     ${PROC_SOURCE})
     #udp_client.cpp
