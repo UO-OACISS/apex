@@ -10,7 +10,7 @@ fi
 
 tau_config=""
 if [ ${TAU_ROOT+x} ]; then
-	tau_config="-DTAU_ROOT=$TAU_ROOT"
+	tau_config="-DUSE_TAU=TRUE -DTAU_ROOT=$TAU_ROOT -DTAU_ARCH=$TAU_ARCH -DTAU_OPTIONS=$TAU_OPTIONS"
 fi
 
 if [ ${RCR_ROOT+x} ]; then
