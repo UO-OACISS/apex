@@ -36,6 +36,8 @@
 #include <string>
 #include <boost/regex.hpp>
 #include <unordered_set>
+#include <algorithm>
+#include <functional>
 
 #if defined(APEX_THROTTLE)
 #define APEX_THROTTLE_CALLS 1000
@@ -299,43 +301,10 @@ namespace apex {
 #define FORMAT_PERCENT boost::format("%8.3f")
 #define FORMAT_SCIENTIFIC boost::format("%1.2e")
 
-  /* At program termination, write the measurements to the screen, or to CSV file, or both. */
-  void profiler_listener::finalize_profiles(void) {
-    // our TOTAL available time is the elapsed * the number of threads, or cores
-	int num_worker_threads = thread_instance::get_num_threads();
-    double wall_clock_main = main_timer->elapsed() * profiler::get_cpu_mhz();
-#ifdef APEX_HAVE_HPX3
-    num_worker_threads = num_worker_threads - 8;
-#endif
-    double total_main = wall_clock_main * 
-        fmin(hardware_concurrency(), num_worker_threads);
-    // create a stringstream to hold all the screen output - we may not
-    // want to write it out
-    stringstream screen_output;
-    // create a stringstream to hold all the CSV output - we may not
-    // want to write it out
-    stringstream csv_output;
-    // iterate over the profiles in the address map
-    screen_output << "Elapsed time: " << wall_clock_main << endl;
-    screen_output << "Cores detected: " << hardware_concurrency() << endl;
-    screen_output << "Worker Threads observed: " << num_worker_threads << endl;
-    screen_output << "Available CPU time: " << total_main << endl;
-    map<apex_function_address, profile*>::const_iterator it;
-    screen_output << "Action                         :  #calls  |  minimum |    mean  |  maximum |   total  |  stddev  |  % total  " << apex_options::papi_metrics() << endl;
-    screen_output << "------------------------------------------------------------------------------------------------------------" << endl;
-    csv_output << "\"task\",\"num calls\",\"total cycles\",\"total microseconds\"";
-#if APEX_HAVE_PAPI
-    for (int i = 0 ; i < num_papi_counters ; i++) {
-       csv_output << ",\"" << metric_names[i] << "\"";
-    }
-#endif
-    csv_output << endl;
-    double total_accumulated = 0.0;
-    unordered_map<task_identifier, profile*>::const_iterator it2;
-    // iterate over the profiles in the task map
-    for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
-      profile * p = it2->second;
-      task_identifier task_id = it2->first;
+  void profiler_listener::write_one_timer(task_identifier &task_id, 
+          profile * p, stringstream &screen_output, 
+          stringstream &csv_output, double &total_accumulated, 
+          double &total_main) {
       string action_name = task_id.get_name();
 #if APEX_HAVE_BFD
       boost::regex rx (".*UNRESOLVED ADDR (.*)");
@@ -344,11 +313,11 @@ namespace apex {
         boost::sregex_token_iterator token(action_name.begin(), action_name.end(), separator, -1);
         *token++; // ignore
         string addr_str = *token++;
-    void* addr_addr;
-    sscanf(addr_str.c_str(), "%p", &addr_addr);
+        void* addr_addr;
+        sscanf(addr_str.c_str(), "%p", &addr_addr);
         string * tmp = lookup_address((uintptr_t)addr_addr, true);
         boost::regex old_address("UNRESOLVED ADDR " + addr_str);
-    action_name = boost::regex_replace(action_name, old_address, *tmp);
+        action_name = boost::regex_replace(action_name, old_address, *tmp);
       }
 #endif
       string shorter(action_name);
@@ -365,7 +334,7 @@ namespace apex {
       unordered_set<task_identifier>::const_iterator it4 = throttled_tasks.find(task_id);
       if (it4!= throttled_tasks.end()) { 
         screen_output << "DISABLED (high frequency, short duration)" << endl;
-        continue; 
+        return; 
       }
 #endif
       if(p->get_calls() < 1) {
@@ -414,6 +383,71 @@ namespace apex {
         }
         screen_output << " --n/a-- "  << endl;
       }
+  }
+
+  /* At program termination, write the measurements to the screen, or to CSV file, or both. */
+  void profiler_listener::finalize_profiles(void) {
+    // our TOTAL available time is the elapsed * the number of threads, or cores
+	int num_worker_threads = thread_instance::get_num_threads();
+    double wall_clock_main = main_timer->elapsed() * profiler::get_cpu_mhz();
+#ifdef APEX_HAVE_HPX3
+    num_worker_threads = num_worker_threads - 8;
+#endif
+    double total_main = wall_clock_main * 
+        fmin(hardware_concurrency(), num_worker_threads);
+    // create a stringstream to hold all the screen output - we may not
+    // want to write it out
+    stringstream screen_output;
+    // create a stringstream to hold all the CSV output - we may not
+    // want to write it out
+    stringstream csv_output;
+    // iterate over the profiles in the address map
+    screen_output << "Elapsed time: " << wall_clock_main << endl;
+    screen_output << "Cores detected: " << hardware_concurrency() << endl;
+    screen_output << "Worker Threads observed: " << num_worker_threads << endl;
+    screen_output << "Available CPU time: " << total_main << endl;
+    map<apex_function_address, profile*>::const_iterator it;
+    screen_output << "Action                         :  #calls  |  minimum |    mean  |  maximum |   total  |  stddev  |  % total  " << apex_options::papi_metrics() << endl;
+    screen_output << "------------------------------------------------------------------------------------------------------------" << endl;
+    csv_output << "\"task\",\"num calls\",\"total cycles\",\"total microseconds\"";
+#if APEX_HAVE_PAPI
+    for (int i = 0 ; i < num_papi_counters ; i++) {
+       csv_output << ",\"" << metric_names[i] << "\"";
+    }
+#endif
+    csv_output << endl;
+    double total_accumulated = 0.0;
+    unordered_map<task_identifier, profile*>::const_iterator it2;
+    std::vector<task_identifier> id_vector;
+    // iterate over the counters, and sort their names
+    for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
+        task_identifier task_id = it2->first;
+        profile * p = it2->second;
+        if (p->get_type() != APEX_TIMER) {
+            id_vector.push_back(task_id);
+        }
+    }
+    std::sort(id_vector.begin(), id_vector.end());
+    // iterate over the counters
+    for(task_identifier task_id : id_vector) {
+        profile * p = task_map[task_id];
+        write_one_timer(task_id, p, screen_output, csv_output, total_accumulated, total_main);
+    }
+    id_vector.clear();
+    // iterate over the timers, and sort their names
+    for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
+        profile * p = it2->second;
+        task_identifier task_id = it2->first;
+        if (p->get_type() == APEX_TIMER) {
+            id_vector.push_back(task_id);
+        }
+    }
+    // iterate over the timers
+    std::sort(id_vector.begin(), id_vector.end());
+    // iterate over the counters
+    for(task_identifier task_id : id_vector) {
+        profile * p = task_map[task_id];
+        write_one_timer(task_id, p, screen_output, csv_output, total_accumulated, total_main);
     }
     double idle_rate = total_main - (total_accumulated*profiler::get_cpu_mhz());
     screen_output << boost::format("%30s") % APEX_IDLE_TIME << " : ";
