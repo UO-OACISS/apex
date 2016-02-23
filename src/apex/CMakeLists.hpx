@@ -156,6 +156,8 @@ set(apex_sources
     profiler_listener.cpp
     task_identifier.cpp
     apex_policies.cpp
+    address_resolution.cpp
+    apex_bfd.cpp
     ${PROC_SOURCE})
     #udp_client.cpp
 
@@ -194,6 +196,42 @@ if(HAVE_RCR)
   hpx_add_config_define(HPX_HAVE_RCR 1)
 endif()
 
+if((DEFINED BFD_ROOT) OR (APEX_WITH_BFD) OR (APEX_BUILD_BFD))
+    set(USE_BFD ${APEX_WITH_BFD})
+    set(BUILD_BFD ${APEX_BUILD_BFD})
+    find_package(BFD)
+    if (BFD_FOUND)
+        include_directories(${BFD_INCLUDE_DIRS})
+        set(LIBS ${LIBS} ${BFD_LIBRARIES})
+        set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${BFD_LIBRARY_DIR})
+        hpx_libraries(${BFD_LIBRARIES})
+        message(INFO " Using binutils: ${BFD_LIBRARY_DIR} ${BFD_LIBRARIES}")
+	endif()
+
+	find_package(Demangle)
+	if (DEMANGLE_FOUND)
+		include_directories(${DEMANGLE_INCLUDE_DIRS})
+		set(LIBS ${LIBS} ${DEMANGLE_LIBRARIES})
+		set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${DEMANGLE_LIBRARY_DIR})
+        hpx_libraries(${DEMANGLE_LIBRARIES})
+        message(INFO " Using demangle: ${DEMANGLE_LIBRARY_DIR} ${DEMANGLE_LIBRARIES}")
+	else()
+  	unset(DEMANGLE_LIBRARY)
+  	unset(DEMANGLE_LIBRARIES)
+  	unset(DEMANGLE_DIR)
+	endif()
+	if(NOT APEX_INTEL_MIC)
+		find_package(ZLIB)
+		if (ZLIB_FOUND)
+			set(LIBS ${LIBS} ${ZLIB_LIBRARIES})
+			set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${ZLIB_LIBRARY_DIR})
+            hpx_libraries(${ZLIB_LIBRARIES})
+        	message(INFO " Using zlib: ${ZLIB_LIBRARY_DIR} ${ZLIB_LIBRARIES}")
+		endif()
+	endif(NOT APEX_INTEL_MIC)
+else()
+	add_custom_target(project_binutils)
+endif()
 
 if(APEX_WITH_MSR)
     find_package(MSR)
