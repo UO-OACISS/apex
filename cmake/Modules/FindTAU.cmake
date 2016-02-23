@@ -58,5 +58,7 @@ set(TAU_DIR ${TAU_ROOT})
 
 if(TAU_FOUND)
   add_definitions(-DAPEX_HAVE_TAU)
+  message("TAU includes: ${TAU_INCLUDE_DIR}")
+  message("TAU libraries: ${TAU_LIBRARIES}")
 endif()
 
