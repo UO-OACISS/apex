@@ -395,6 +395,7 @@ bool policy_handler::on_start(task_identifier *id) {
     apex_context my_context;
     my_context.event_type = APEX_START_EVENT;
     my_context.policy_handle = NULL;
+    my_context.data = (void *) id;
     const bool result = policy->func(my_context);
     if(result != APEX_NOERROR) {
       printf("Warning: registered policy function failed!\n");
@@ -427,6 +428,7 @@ void policy_handler::on_stop(std::shared_ptr<profiler> &p) {
         apex_context my_context;
         my_context.event_type = APEX_STOP_EVENT;
         my_context.policy_handle = NULL;
+        my_context.data = (void *) p->task_id;
         const bool result = policy->func(my_context);
         if(result != APEX_NOERROR) {
             printf("Warning: registered policy function failed!\n");
@@ -442,6 +444,7 @@ void policy_handler::on_yield(std::shared_ptr<profiler> &p) {
         apex_context my_context;
         my_context.event_type = APEX_YIELD_EVENT;
         my_context.policy_handle = NULL;
+        my_context.data = (void *) p->task_id;
         const bool result = policy->func(my_context);
         if(result != APEX_NOERROR) {
             printf("Warning: registered policy function failed!\n");

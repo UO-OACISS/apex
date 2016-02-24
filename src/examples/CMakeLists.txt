@@ -39,6 +39,7 @@ if(USE_UDP_CLIENT)
 add_subdirectory (UdpSink)
 endif(USE_UDP_CLIENT)
 add_subdirectory (CustomTuning)
+add_subdirectory (TuningRequest)
 
 # does the application run
 add_test (ExampleDemoC DemoC/apexCDemo)
@@ -112,6 +113,19 @@ set_property(TEST ExampleThrottlingActiveHarmony PROPERTY ENVIRONMENT "APEX_POLI
 set_property(TEST ExampleThrottlingActiveHarmony APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_ENERGY=1")
 set_property(TEST ExampleThrottlingActiveHarmony APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_CONCURRENCY=1")
 set_property(TEST ExampleThrottlingActiveHarmony APPEND PROPERTY ENVIRONMENT "HARMONY_HOME=${ACTIVEHARMONY_ROOT}")
+
+add_test (ExampleCustomTuning CustomTuning/custom_tuning)  
+set_tests_properties(ExampleCustomTuning PROPERTIES
+PASS_REGULAR_EXPRESSION "Test passed.")
+set_property(TEST ExampleCustomTuning PROPERTY ENVIRONMENT "APEX_POLICY=1")
+set_property(TEST ExampleCustomTuning APPEND PROPERTY ENVIRONMENT "HARMONY_HOME=${ACTIVEHARMONY_ROOT}")
+
+add_test (ExampleTuningRequest TuningRequest/tuning_request)  
+set_tests_properties(ExampleTuningRequest PROPERTIES
+PASS_REGULAR_EXPRESSION "Test passed.")
+set_property(TEST ExampleTuningRequest PROPERTY ENVIRONMENT "APEX_POLICY=1")
+set_property(TEST ExampleTuningRequest APPEND PROPERTY ENVIRONMENT "HARMONY_HOME=${ACTIVEHARMONY_ROOT}")
+
 endif()
 
 if(MPI_CXX_FOUND)

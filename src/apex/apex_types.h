@@ -50,12 +50,13 @@ typedef enum _error_codes {
   APEX_ERROR        /*!< Some error occurred - check stderr output for details */
 } apex_error_code;
 
-#define APEX_MAX_EVENTS 32 /*!< The maximum number of event types. Allows for ~20 custom events. */
+#define APEX_MAX_EVENTS 128 /*!< The maximum number of event types. Allows for ~20 custom events. */
 
 /**
  * Typedef for enumerating the different event types
  */
 typedef enum _event_type {
+  APEX_INVALID_EVENT = -1,
   APEX_STARTUP = 0,        /*!< APEX is initialized */
   APEX_SHUTDOWN,       /*!< APEX is terminated */
   APEX_NEW_NODE,       /*!< APEX has registered a new process ID */
@@ -234,7 +235,9 @@ typedef uint32_t apex_tuning_session_handle;
     macro (APEX_PTHREAD_WRAPPER_STACK_SIZE, pthread_wrapper_stack_size, int, 0)
 
 #define FOREACH_APEX_STRING_OPTION(macro) \
-    macro (APEX_PAPI_METRICS, papi_metrics, char*, "")
+    macro (APEX_PAPI_METRICS, papi_metrics, char*, "") \
+    macro (APEX_PLUGINS, plugins, char*, "") \
+    macro (APEX_PLUGINS_PATH, plugins_path, char*, "./") 
 
 #ifdef USE_UDP
 #undef FOREACH_APEX_OPTION

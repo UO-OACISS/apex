@@ -45,6 +45,9 @@
  The C interface has functions that start with "apex_".
 
  */
+
+class apex_tuning_request;
+
 namespace apex
 {
 
@@ -588,11 +591,24 @@ APEX_EXPORT int setup_throughput_tuning(apex_function_address the_address,
  \param mins An array of minimum values for each input
  \param maxs An array of maximum values for each input
  \param steps An array of step values for each input
- \return APEX_NOERROR on success, otherwise an error code.
+ \return A handle to the tuning session
  */
 APEX_EXPORT apex_tuning_session_handle setup_custom_tuning(std::function<double(void)> metric, 
         apex_event_type event_type, int num_inputs, long ** inputs, long * mins,
         long * maxs, long * steps);
+
+/**
+ \brief Setup tuning of specified parameters to optimize for a custom metric, using
+        multiple input criteria of potentially multiple types.
+
+ This function will initialize a policy to optimize a custom metric, 
+ using metric and parameters specified in the tuning request.
+ The system tries to minimize the custom metric.
+
+ \param metric A function returning the value to be minimized.
+ \return A handle to the tuning session.
+ */
+APEX_EXPORT apex_tuning_session_handle setup_custom_tuning(apex_tuning_request & request);
 
 /**
  \brief Setup throttling to optimize for the specified function or counter.
@@ -660,6 +676,17 @@ APEX_EXPORT void set_thread_cap(int new_cap);             // for thread throttli
 
  */
 APEX_EXPORT std::vector<std::pair<std::string,long*>> & get_tunable_params(apex_tuning_session_handle h);
+
+
+/**
+ \brief Check whether a tuning session has converged.
+
+ \param handle The handle for the tuning session of interest.
+
+ \return true if the tuning session has converged, otherwise false 
+
+ */
+APEX_EXPORT bool has_session_converged(apex_tuning_session_handle handle);
 
 /**
  \brief Print out all configuration settings for APEX.

@@ -26,9 +26,9 @@ else
   APEX_LD_LIBRARY_PATH=$BASEDIR/lib:$LD_LIBRARY_PATH
 fi
 if [ $apple = 1 ]; then
-  APEX_LD_PRELOAD=$BASEDIR/lib/libapex$SHLIBX
+  APEX_LD_PRELOAD=$BASEDIR/lib/libapex_pthread_wrapper$SHLIBX:$BASEDIR/lib/libapex$SHLIBX
 else
-  APEX_LD_PRELOAD=$BASEDIR/lib/libapex$SHLIBX:$LD_PRELOAD
+  APEX_LD_PRELOAD=$BASEDIR/lib/libapex_pthread_wrapper$SHLIBX:$BASEDIR/lib/libapex$SHLIBX:$LD_PRELOAD
 fi
 
 # remove double colons
