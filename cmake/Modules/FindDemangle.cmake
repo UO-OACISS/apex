@@ -46,7 +46,7 @@ if(NOT DEMANGLE_FOUND AND NOT APPLE AND BUILDING_BFD)
   add_library(iberty STATIC IMPORTED)
   set_property(TARGET iberty PROPERTY IMPORTED_LOCATION ${install_dir}/lib/libiberty.a)
   set(DEMANGLE_LIBRARIES "${BFD_ROOT}/lib/libiberty.a")
-  set(DEMANGLE_INCLUDE_DIRS "${BFD_ROOT}/include")
+  set(DEMANGLE_INCLUDE_DIR "${BFD_ROOT}/include")
   set(DEMANGLE_DIR "${BFD_ROOT}")
   # handle the QUIETLY and REQUIRED arguments and set DEMANGLE_FOUND to TRUE
   # if all listed variables are TRUE

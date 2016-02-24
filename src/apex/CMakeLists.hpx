@@ -267,7 +267,7 @@ add_hpx_library(apex
   HEADERS ${apex_headers}
   FOLDER "Core/Dependencies")
 
-add_hpx_pseudo_dependencies (apex_lib project_activeharmony)
+add_hpx_pseudo_dependencies (apex_lib project_activeharmony project_binutils)
 
 # add the binary tree to the search path for include files
 # so that we will find apex_config.h
