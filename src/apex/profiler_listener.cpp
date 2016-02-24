@@ -94,41 +94,16 @@ namespace apex {
   bool hpx_shutdown = false;
 #endif
 
-  /* Return the requested profile object to the user.
-   * Return nullptr if doesn't exist. */
-  profile * profiler_listener::get_profile(apex_function_address address) {
-    map<apex_function_address, profile*>::const_iterator it = address_map.find(address);
-    if (it != address_map.end()) {
-      return (*it).second;
-    }
-    return nullptr;
-  }
-
   double profiler_listener::get_non_idle_time() {
     double non_idle_time = 0.0;
     /* Iterate over all timers and accumulate the time spent in them */
-    map<apex_function_address, profile*>::const_iterator it;
-    for(it = address_map.begin(); it != address_map.end(); it++) {
-      profile * p = it->second;
-#if defined(APEX_THROTTLE)
-      apex_function_address function_address = it->first;
-      unordered_set<apex_function_address>::const_iterator it3 = throttled_addresses.find(function_address);
-      if (it3 != throttled_addresses.end()) { 
-        continue; 
-      }
-#endif
-      if (p->get_type() == APEX_TIMER) {
-        non_idle_time += p->get_accumulated();
-      }
-    }
-    /* Iterate over all timers and accumulate the time spent in them */
-    map<string, profile*>::const_iterator it2;
-    for(it2 = name_map.begin(); it2 != name_map.end(); it2++) {
+    unordered_map<task_identifier, profile*>::const_iterator it2;
+    for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
       profile * p = it2->second;
 #if defined(APEX_THROTTLE)
-      string action_name = it2->first;
-      unordered_set<string>::const_iterator it4 = throttled_names.find(action_name);
-      if (it4!= throttled_names.end()) { 
+      task_identifier id = it2->first;
+      unordered_set<task_identifier>::const_iterator it4 = throttled_tasks.find(id);
+      if (it4!= throttled_tasks.end()) { 
         continue; 
       }
 #endif
@@ -177,34 +152,33 @@ namespace apex {
 
   /* Return the requested profile object to the user.
    * Return nullptr if doesn't exist. */
-  profile * profiler_listener::get_profile(const string &timer_name) {
-    if (timer_name == string(APEX_IDLE_RATE)) {
+  profile * profiler_listener::get_profile(task_identifier &id) {
+    if (id.name == string(APEX_IDLE_RATE)) {
         return get_idle_rate();
-    } else if (timer_name == string(APEX_IDLE_TIME)) {
+    } else if (id.name == string(APEX_IDLE_TIME)) {
         return get_idle_time();
-    } else if (timer_name == string(APEX_NON_IDLE_TIME)) {
+    } else if (id.name == string(APEX_NON_IDLE_TIME)) {
         profile * theprofile = new profile(get_non_idle_time(), 0, NULL, false);
         return theprofile;
     }
-    map<string, profile*>::const_iterator it = name_map.find(timer_name);
-    if (it != name_map.end()) {
+    unordered_map<task_identifier, profile*>::const_iterator it = task_map.find(id);
+    if (it != task_map.end()) {
       return (*it).second;
     }
     return nullptr;
   }
 
   /* Return a vector of all name-based profiles */
+  /*
   std::vector<std::string> profiler_listener::get_available_profiles() {
     std::vector<std::string> names;
-    boost::copy(name_map | boost::adaptors::map_keys, std::back_inserter(names));
+    boost::copy(task_map | boost::adaptors::map_keys, std::back_inserter(names));
     return names;
   }
+  */
 
   void profiler_listener::reset_all(void) {
-    for(auto &it : name_map) {
-        it.second->reset();
-    }
-    for(auto &it : address_map) {
+    for(auto &it : task_map) {
         it.second->reset();
     }
   }
@@ -230,11 +204,9 @@ namespace apex {
         values[i] = p->papi_stop_values[i] - p->papi_start_values[i];
     }   
 #endif
-    // Look for the profile object by name, if applicable
-    if (p->have_name) {
-      map<string, profile*>::const_iterator it = name_map.find(*(p->timer_name));
-      if (it != name_map.end()) {
-        // A profile for this name already exists.
+    unordered_map<task_identifier, profile*>::const_iterator it = task_map.find(*(p->task_id));
+    if (it != task_map.end()) {
+      	// A profile for this ID already exists.
         theprofile = (*it).second;
         if(p->is_reset == reset_type::CURRENT) {
             theprofile->reset();
@@ -246,28 +218,22 @@ namespace apex {
         // in order to reduce overhead.
         if (theprofile->get_calls() > APEX_THROTTLE_CALLS &&
             theprofile->get_mean() < APEX_THROTTLE_PERCALL) {
-          unordered_set<string>::const_iterator it2 = throttled_names.find(*(p->timer_name));
-          if (it2 == throttled_names.end()) {
-            throttled_names.insert(*(p->timer_name));
-            string shorter(*(p->timer_name));
-            // to keep formatting pretty, trim any long timer names
-            if (shorter.size() > 30) {
-              shorter.resize(27);
-              shorter.resize(30, '.');
-            }
-            cout << "APEX: disabling lightweight timer " << shorter << endl; fflush(stdout);
+          unordered_set<task_identifier>::const_iterator it2 = throttled_tasks.find(*(p->task_id));
+          if (it2 == throttled_tasks.end()) {
+            throttled_tasks.insert(*(p->task_id));
+            cout << "APEX: disabling lightweight timer " << p->task_id->get_name() << endl; fflush(stdout);
           }
         }
 #endif
       } else {
         // Create a new profile for this name.
         theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), tmp_num_counters, values, p->is_resume, p->is_counter ? APEX_COUNTER : APEX_TIMER);
-        name_map[*(p->timer_name)] = theprofile;
+        task_map[*(p->task_id)] = theprofile;
 #ifdef APEX_HAVE_HPX3
 #ifdef APEX_REGISTER_HPX3_COUNTERS
         if(!_done) {
-            if(get_hpx_runtime_ptr() != nullptr) {
-                std::string timer_name(*(p->timer_name));
+            if(get_hpx_runtime_ptr() != nullptr && p->task_id->has_name()) {
+                std::string timer_name(p->task_id->get_name());
                 //Don't register timers containing "/"
                 if(timer_name.find("/") == std::string::npos) {
                     hpx::performance_counters::install_counter_type(
@@ -287,38 +253,6 @@ namespace apex {
 #endif
 #endif
       }
-    } else { // address rather than name
-      map<apex_function_address, profile*>::const_iterator it2 = address_map.find(p->action_address);
-      if (it2 != address_map.end()) {
-        // A profile for this name already exists.
-        theprofile = (*it2).second;
-        if(p->is_reset == reset_type::CURRENT) {
-            theprofile->reset();
-        } else {
-            theprofile->increment(p->elapsed(), tmp_num_counters, values, p->is_resume);
-        }
-#if defined(APEX_THROTTLE)
-        // Is this a lightweight task? If so, we shouldn't measure it any more,
-        // in order to reduce overhead.
-        if (theprofile->get_calls() > APEX_THROTTLE_CALLS &&
-            theprofile->get_mean() < APEX_THROTTLE_PERCALL) {
-          unordered_set<apex_function_address>::const_iterator it4 = throttled_addresses.find(p->action_address);
-          if (it4 == throttled_addresses.end()) {
-            throttled_addresses.insert(p->action_address);
-#if defined(HAVE_BFD)
-            cout << "APEX: disabling lightweight timer " << *(lookup_address((uintptr_t)p->action_address, true)) << endl; fflush(stdout);
-#else
-            cout << "APEX: disabling lightweight timer " << p->action_address << endl; fflush(stdout);
-#endif
-          }
-        }
-#endif
-      } else {
-        // Create a new profile for this address.
-        theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), tmp_num_counters, values, p->is_resume);
-        address_map[p->action_address] = theprofile;
-      }
-    }
     return 1;
   }
 
@@ -352,18 +286,12 @@ namespace apex {
    * called at shutdown. But a good idea to do regardless. */
   void profiler_listener::delete_profiles(void) {
     // iterate over the map and free the objects in the map
-    map<apex_function_address, profile*>::const_iterator it;
-    for(it = address_map.begin(); it != address_map.end(); it++) {
+    unordered_map<task_identifier, profile*>::const_iterator it;
+    for(it = task_map.begin(); it != task_map.end(); it++) {
       delete it->second;
     }
-    // iterate over the map and free the objects in the map
-    map<string, profile*>::const_iterator it2;
-    for(it2 = name_map.begin(); it2 != name_map.end(); it2++) {
-      delete it2->second;
-    }
-    // clear the maps.
-    address_map.clear();
-    name_map.clear();
+    // clear the map.
+    task_map.clear();
 
   }
 
@@ -403,78 +331,12 @@ namespace apex {
 #endif
     csv_output << endl;
     double total_accumulated = 0.0;
-    for(it = address_map.begin(); it != address_map.end(); it++) {
-      profile * p = it->second;
-      apex_function_address function_address = it->first;
-#if APEX_HAVE_BFD
-      // translate the address to a name
-      string * tmp = lookup_address((uintptr_t)function_address, true);
-      string shorter(*tmp);
-      // to keep formatting pretty, trim any long timer names
-      if (shorter.size() > 30) {
-        shorter.resize(27);
-        shorter.resize(30, '.');
-      }
-      //screen_output << "\"" << shorter << "\", " ;
-      screen_output << boost::format("%30s") % shorter << " : ";
-#else
-      //screen_output << "\"" << function_address << "\", " ;
-      screen_output << boost::format("%30p") % function_address << " : " ;
-#endif
-#if defined(APEX_THROTTLE)
-      // if this profile was throttled, don't output the measurements.
-      // they are limited and bogus, anyway.
-      unordered_set<apex_function_address>::const_iterator it3 = throttled_addresses.find(function_address);
-      if (it3 != throttled_addresses.end()) { 
-        screen_output << "DISABLED (high frequency, short duration)" << endl;
-        continue; 
-      }
-#endif
-      if (p->get_calls() < 999999) {
-          screen_output << PAD_WITH_SPACES % p->get_calls() << "   " ;
-      } else {
-          screen_output << FORMAT_SCIENTIFIC % p->get_calls() << "   " ;
-      }
-      if (p->get_type() == APEX_TIMER) {
-#if APEX_HAVE_BFD
-        csv_output << "\"" << *tmp << "\",";
-#else
-        csv_output << "\"" << function_address << "\",";
-#endif
-        csv_output << llround(p->get_calls()) << ",";
-        // convert MHz to Hz
-        csv_output << std::llround(p->get_accumulated()) << ",";
-        // convert MHz to microseconds
-        csv_output << std::llround(p->get_accumulated()*profiler::get_cpu_mhz()*1000000);
-        screen_output << " --n/a--   " ;
-        screen_output << FORMAT_SCIENTIFIC % (p->get_mean()*profiler::get_cpu_mhz()) << "   " ;
-        screen_output << " --n/a--   " ;
-        screen_output << FORMAT_SCIENTIFIC % (p->get_accumulated()*profiler::get_cpu_mhz()) << "   " ;
-        screen_output << " --n/a--   " ;
-        screen_output << FORMAT_PERCENT % (((p->get_accumulated()*profiler::get_cpu_mhz())/total_main)*100);
-#if APEX_HAVE_PAPI
-        for (int i = 0 ; i < num_papi_counters ; i++) {
-            screen_output << "   " << FORMAT_SCIENTIFIC % (p->get_papi_metrics()[i]);
-            csv_output << "," << std::llround(p->get_papi_metrics()[i]);
-        }
-#endif
-        screen_output << endl;
-        total_accumulated += p->get_accumulated();
-        csv_output << endl;
-      } else {
-        screen_output << FORMAT_SCIENTIFIC % p->get_minimum() << "   " ;
-        screen_output << FORMAT_SCIENTIFIC % p->get_mean() << "   " ;
-        screen_output << FORMAT_SCIENTIFIC % p->get_maximum() << "   " ;
-        screen_output << FORMAT_SCIENTIFIC % p->get_accumulated() << "   " ;
-        screen_output << FORMAT_SCIENTIFIC % p->get_stddev() << "   " ;
-        screen_output << " --n/a-- "  << endl;
-      }
-    }
-    map<string, profile*>::const_iterator it2;
-    // iterate over the profiles in the name map
-    for(it2 = name_map.begin(); it2 != name_map.end(); it2++) {
+    unordered_map<task_identifier, profile*>::const_iterator it2;
+    // iterate over the profiles in the task map
+    for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
       profile * p = it2->second;
-      string action_name = it2->first;
+      task_identifier task_id = it2->first;
+      string action_name = task_id.get_name();
 #if APEX_HAVE_BFD
       boost::regex rx (".*UNRESOLVED ADDR (.*)");
       if (boost::regex_match (action_name,rx)) {
@@ -500,8 +362,8 @@ namespace apex {
 #if defined(APEX_THROTTLE)
       // if this profile was throttled, don't output the measurements.
       // they are limited and bogus, anyway.
-      unordered_set<string>::const_iterator it4 = throttled_names.find(action_name);
-      if (it4!= throttled_names.end()) { 
+      unordered_set<task_identifier>::const_iterator it4 = throttled_tasks.find(task_id);
+      if (it4!= throttled_tasks.end()) { 
         screen_output << "DISABLED (high frequency, short duration)" << endl;
         continue; 
       }
@@ -670,39 +532,19 @@ node_color * get_node_color(double v,double vmin,double vmax)
         fmin(hardware_concurrency(), num_worker_threads);
 
     // output nodes with  "main" [shape=box; style=filled; fillcolor="#ff0000" ];
-    map<apex_function_address, profile*>::const_iterator it;
-    for(it = address_map.begin(); it != address_map.end(); it++) {
+    unordered_map<task_identifier, profile*>::const_iterator it;
+    for(it = task_map.begin(); it != task_map.end(); it++) {
       profile * p = it->second;
       if (p->get_type() == APEX_TIMER) {
         node_color * c = get_node_color((p->get_accumulated()*profiler::get_cpu_mhz()), 0.0, total_main);
-        apex_function_address function_address = it->first;
-#if APEX_HAVE_BFD
-        string * tmp = lookup_address((uintptr_t)function_address, false);
-#else
-        thread_instance ti = thread_instance::instance();
-        string * tmp = new string(ti.map_addr_to_name(function_address));
-#endif
-        myfile << "  \"" << *tmp << "\" [shape=box; style=filled; fillcolor=\"#" << 
+        task_identifier task_id = it->first;
+        myfile << "  \"" << task_id.get_name() << "\" [shape=box; style=filled; fillcolor=\"#" << 
             setfill('0') << setw(2) << hex << c->convert(c->red) << 
             setfill('0') << setw(2) << hex << c->convert(c->green) << 
             setfill('0') << setw(2) << hex << c->convert(c->blue) << "\"" <<
-            "label=\"" << *tmp << ":\\n" << (p->get_accumulated()*profiler::get_cpu_mhz()) << "s\" ];" << std::endl;
+            "label=\"" << task_id.get_name() << ":\\n" << (p->get_accumulated()*profiler::get_cpu_mhz()) << "s\" ];" << std::endl;
       }
     }
-    map<string, profile*>::const_iterator it2;
-    for(it2 = name_map.begin(); it2 != name_map.end(); it2++) {
-      profile * p = it2->second;
-      if (p->get_type() == APEX_TIMER) {
-        node_color * c = get_node_color((p->get_accumulated()*profiler::get_cpu_mhz()), 0.0, total_main);
-        string action_name = it2->first;
-        myfile << "  \"" << action_name << "\" [shape=box; style=filled; fillcolor=\"#" << 
-            setfill('0') << setw(2) << hex << c->convert(c->red) << 
-            setfill('0') << setw(2) << hex << c->convert(c->green) << 
-            setfill('0') << setw(2) << hex << c->convert(c->blue) << "\"" <<
-            "label=\"" << action_name << ":\\n" << (p->get_accumulated()*profiler::get_cpu_mhz()) << "s\" ];" << std::endl;
-      }
-    }
-    
     myfile << "}\n";
     myfile.close();
   }
@@ -743,11 +585,6 @@ node_color * get_node_color(double v,double vmin,double vmax)
   void profiler_listener::write_profile() {
     ofstream myfile;
     stringstream datname;
-    map<string, profile*>* the_name_map = nullptr;
-    map<apex_function_address, profile*>* the_address_map = nullptr;
-
-    the_name_map = &name_map;
-    the_address_map = &address_map;
     // name format: profile.nodeid.contextid.threadid
     // We only write one profile per process
     datname << "profile." << node_id << ".0.0";
@@ -758,14 +595,14 @@ node_color * get_node_color(double v,double vmin,double vmax)
 
     // Determine number of counter events, as these need to be
     // excluded from the number of normal timers
-    map<string, profile*>::const_iterator it2;
-    for(it2 = the_name_map->begin(); it2 != the_name_map->end(); it2++) {
+    unordered_map<task_identifier, profile*>::const_iterator it2;
+    for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
       profile * p = it2->second;
       if(p->get_type() == APEX_COUNTER) {
         counter_events++;
       }
     }
-    int function_count = the_address_map->size() + (the_name_map->size() - counter_events);
+    int function_count = task_map.size() - counter_events;
 
     // Print the normal timers to the profile file
     // 1504 templated_functions_MULTI_TIME
@@ -775,46 +612,31 @@ node_color * get_node_color(double v,double vmin,double vmax)
     thread_instance ti = thread_instance::instance();
 
     // Iterate over the profiles which are associated to a function
-    // by address. All of these are regular timers.
-    map<apex_function_address, profile*>::const_iterator it;
-    for(it = the_address_map->begin(); it != the_address_map->end(); it++) {
-      profile * p = it->second;
-      // ".TAU application" 1 8 8658984 8660739 0 GROUP="TAU_USER"
-      apex_function_address function_address = it->first;
-#if APEX_HAVE_BFD
-      string * tmp = lookup_address((uintptr_t)function_address, true);
-      myfile << "\"" << *tmp << "\" ";
-#else
-      myfile << "\"" << ti.map_addr_to_name(function_address) << "\" ";
-#endif
-      format_line (myfile, p);
-    }
-
-    // Iterate over the profiles which are associated to a function
     // by name. Only output the regular timers now. Counters are
     // in a separate section, below.
     profile * mainp = nullptr;
     double not_main = 0.0;
-    for(it2 = the_name_map->begin(); it2 != the_name_map->end(); it2++) {
+    for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
       profile * p = it2->second;
+	  task_identifier task_id = it2->first;
       if(p->get_type() == APEX_TIMER) {
-        string action_name = it2->first;
+        string action_name = task_id.get_name();
         if(strcmp(action_name.c_str(), APEX_MAIN) == 0) {
           mainp = p;
         } else {
 #if APEX_HAVE_BFD
-      boost::regex rx (".*UNRESOLVED ADDR (.*)");
-      if (boost::regex_match (action_name,rx)) {
-        const boost::regex separator(" ADDR ");
-        boost::sregex_token_iterator token(action_name.begin(), action_name.end(), separator, -1);
-        *token++; // ignore
-        string addr_str = *token++;
-    void* addr_addr;
-    sscanf(addr_str.c_str(), "%p", &addr_addr);
-        string * tmp = lookup_address((uintptr_t)addr_addr, true);
-        boost::regex old_address("UNRESOLVED ADDR " + addr_str);
-    action_name = boost::regex_replace(action_name, old_address, *tmp);
-      }
+          boost::regex rx (".*UNRESOLVED ADDR (.*)");
+          if (boost::regex_match (action_name,rx)) {
+            const boost::regex separator(" ADDR ");
+            boost::sregex_token_iterator token(action_name.begin(), action_name.end(), separator, -1);
+            *token++; // ignore
+            string addr_str = *token++;
+            void* addr_addr;
+            sscanf(addr_str.c_str(), "%p", &addr_addr);
+            string * tmp = lookup_address((uintptr_t)addr_addr, true);
+            boost::regex old_address("UNRESOLVED ADDR " + addr_str);
+            action_name = boost::regex_replace(action_name, old_address, *tmp);
+          }
 #endif
           myfile << "\"" << action_name << "\" ";
           format_line (myfile, p);
@@ -834,11 +656,11 @@ node_color * get_node_color(double v,double vmin,double vmax)
     if(counter_events > 0) {
       myfile << counter_events << " userevents" << endl;
       myfile << "# eventname numevents max min mean sumsqr" << endl;
-      for(it2 = the_name_map->begin(); it2 != the_name_map->end(); it2++) {
+      for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
         profile * p = it2->second;
         if(p->get_type() == APEX_COUNTER) {
-          string action_name = it2->first;
-          myfile << "\"" << action_name << "\" ";
+          task_identifier task_id = it2->first;
+          myfile << "\"" << task_id.get_name() << "\" ";
           format_counter_line (myfile, p);
         }
       }
@@ -1066,7 +888,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 #endif
 
       // time the whole application.
-      main_timer = std::make_shared<profiler>(new string(APEX_MAIN));
+      main_timer = std::make_shared<profiler>(new task_identifier(string(APEX_MAIN)));
 #if APEX_HAVE_PAPI
       if (num_papi_counters > 0) {
         int rc = PAPI_read( EventSet, main_timer->papi_start_values );
@@ -1194,43 +1016,12 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 
   /* When a start event happens, create a profiler object. Unless this
    * named event is throttled, in which case do nothing, as quickly as possible */
-  inline bool profiler_listener::_common_start(apex_function_address function_address, bool is_resume) {
-    if (!_done) {
-#if defined(APEX_THROTTLE)
-        // if this timer is throttled, return without doing anything
-        unordered_set<apex_function_address>::const_iterator it = throttled_addresses.find(function_address);
-        if (it != throttled_addresses.end()) {
-          /*
-           * The throw is removed, because it is a performance penalty on some systems
-           * on_start now returns a boolean
-           */
-          //throw disabled_profiler_exception(); // to be caught by apex::start/resume
-          return false;
-        }
-#endif
-        // start the profiler object, which starts our timers
-        std::shared_ptr<profiler> p = std::make_shared<profiler>(function_address, is_resume);
-        thread_instance::instance().set_current_profiler(p);
-#if APEX_HAVE_PAPI
-        if (num_papi_counters > 0) {
-            int rc = PAPI_read( EventSet, p->papi_start_values );
-            PAPI_ERROR_CHECK(PAPI_read);
-        }
-#endif
-    } else {
-        return false;
-    }
-    return true;
-  }
-
-  /* When a start event happens, create a profiler object. Unless this
-   * named event is throttled, in which case do nothing, as quickly as possible */
-  inline bool profiler_listener::_common_start(std::string * timer_name, bool is_resume) {
+  inline bool profiler_listener::_common_start(task_identifier * id, bool is_resume) {
     if (!_done) {
 #if defined(APEX_THROTTLE)
       // if this timer is throttled, return without doing anything
-      unordered_set<string>::const_iterator it = throttled_names.find(*timer_name);
-      if (it != throttled_names.end()) {
+      unordered_set<task_identifier>::const_iterator it = throttled_tasks.find(*id);
+      if (it != throttled_tasks.end()) {
           /*
            * The throw is removed, because it is a performance penalty on some systems
            * on_start now returns a boolean
@@ -1240,7 +1031,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       }
 #endif
       // start the profiler object, which starts our timers
-      std::shared_ptr<profiler> p = std::make_shared<profiler>(timer_name, is_resume);
+      std::shared_ptr<profiler> p = std::make_shared<profiler>(id, is_resume);
       thread_instance::instance().set_current_profiler(p);
 #if APEX_HAVE_PAPI
       if (num_papi_counters > 0) {
@@ -1261,15 +1052,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
           static boost::atomic<bool> issued(false);
           if (!issued) {
               issued = true;
-              if(p->have_name) {
-                  cout << "APEX Warning : failed to push " << *(p->timer_name) << endl;
-              } else {
-#if defined(HAVE_BFD)
-                  cout << "APEX Warning : failed to push " << *(lookup_address((uintptr_t)p->action_address, true) << endl;
-#else
-                  cout << "APEX Warning : failed to push address " << p->action_address << endl;
-#endif
-              }
+              cout << "APEX Warning : failed to push " << p->task_id->get_name() << endl;
               cout << "One or more frequently-called, lightweight functions is being timed." << endl;
           }
       }
@@ -1299,8 +1082,8 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
             try {
               parent_profiler = thread_instance::instance().get_parent_profiler();
               if (parent_profiler != NULL) {
-                task_identifier * parent = new task_identifier(parent_profiler.get());
-                task_identifier * child = new task_identifier(p.get());
+                task_identifier * parent = parent_profiler->task_id;
+                task_identifier * child = p->task_id;
                 dependency_queue.enqueue(new task_dependency(parent, child));
               }
             } catch (empty_stack_exception& e) { }
@@ -1312,25 +1095,14 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   }
 
   /* Start the timer */
-  bool profiler_listener::on_start(apex_function_address function_address) {
-    return _common_start(function_address, false);
-  }
-
-  /* Start the timer */
-  bool profiler_listener::on_start(std::string * timer_name) {
-    return _common_start(timer_name, false);
+  bool profiler_listener::on_start(task_identifier * id) {
+    return _common_start(id, false);
   }
 
   /* This is just like starting a timer, but don't increment the number of calls
    * value. That is because we are restarting an existing timer. */
-  bool profiler_listener::on_resume(std::string * timer_name) {
-        return _common_start(timer_name, true);
-  }
-
-  /* This is just like starting a timer, but don't increment the number of calls
-   * value. That is because we are restarting an existing timer. */
-  bool profiler_listener::on_resume(apex_function_address function_address) {
-        return _common_start(function_address, true);
+  bool profiler_listener::on_resume(task_identifier * id) {
+    return _common_start(id, true);
   }
 
    /* Stop the timer */
@@ -1351,39 +1123,21 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   /* When a sample value is processed, save it as a profiler object, and queue it. */
   void profiler_listener::on_sample_value(sample_value_event_data &data) {
     if (!_done) {
-      std::shared_ptr<profiler> p = std::make_shared<profiler>(new string(*data.counter_name), data.counter_value);
+      std::shared_ptr<profiler> p = std::make_shared<profiler>(new task_identifier(*data.counter_name), data.counter_value);
       p->is_counter = data.is_counter;
       push_profiler(my_tid, p);
     }
   }
 
-  void profiler_listener::on_new_task(apex_function_address function_address, void * task_id) {
+  void profiler_listener::on_new_task(task_identifier * id, void * task_id) {
     if (!apex_options::use_taskgraph_output()) { return; }
     // get the current profiler
     std::shared_ptr<profiler> p = thread_instance::instance().get_current_profiler();
     if (p != NULL) {
-        task_identifier * parent = new task_identifier(p.get());
-        task_identifier * child = new task_identifier(function_address);
-        dependency_queue.enqueue(new task_dependency(parent, child));
+        dependency_queue.enqueue(new task_dependency(p->task_id, id));
     } else {
         task_identifier * parent = new task_identifier(string("__start"));
-        task_identifier * child = new task_identifier(function_address);
-        dependency_queue.enqueue(new task_dependency(parent, child));
-    }
-  }
-
-  void profiler_listener::on_new_task(std::string *timer_name, void * task_id) {
-    if (!apex_options::use_taskgraph_output()) { return; }
-    // get the current profiler
-    std::shared_ptr<profiler> p = thread_instance::instance().get_current_profiler();
-    if (p != NULL) {
-        task_identifier * parent = new task_identifier(p.get());
-        task_identifier * child = new task_identifier(*timer_name);
-        dependency_queue.enqueue(new task_dependency(parent, child));
-    } else {
-        task_identifier * parent = new task_identifier(string("__start"));
-        task_identifier * child = new task_identifier(*timer_name);
-        dependency_queue.enqueue(new task_dependency(parent, child));
+        dependency_queue.enqueue(new task_dependency(parent, id));
     }
   }
 
@@ -1401,18 +1155,9 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
     APEX_UNUSED(data);
   }
 
-  void profiler_listener::reset(apex_function_address function_address) {
-      std::shared_ptr<profiler> p;
-    if(function_address != APEX_NULL_FUNCTION_ADDRESS) {
-    p = std::make_shared<profiler>(function_address, false, reset_type::CURRENT);
-    } else {
-    p = std::make_shared<profiler>((apex_function_address)APEX_NULL_FUNCTION_ADDRESS, false, reset_type::ALL);
-    }
-    push_profiler(my_tid, p);
-  }
-
-  void profiler_listener::reset(const std::string &timer_name) {
-    std::shared_ptr<profiler> p = std::make_shared<profiler>(new string(timer_name), false, reset_type::CURRENT);
+  void profiler_listener::reset(task_identifier * id) {
+    std::shared_ptr<profiler> p;
+    p = std::make_shared<profiler>(id, false, reset_type::CURRENT);
     push_profiler(my_tid, p);
   }
 

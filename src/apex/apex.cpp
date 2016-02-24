@@ -371,9 +371,9 @@ profiler* start(const std::string &timer_name)
     if (!instance || _exited) return nullptr; // protect against calls after finalization
     if (_notify_listeners) {
         bool success = true;
-        string * tmp = new string(timer_name);
+		task_identifier * id = new task_identifier(timer_name);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            success = instance->listeners[i]->on_start(tmp);
+            success = instance->listeners[i]->on_start(id);
             if (!success) {
                 return profiler::get_disabled_profiler();
             }
@@ -390,8 +390,9 @@ profiler* start(apex_function_address function_address) {
     if (!instance || _exited) return nullptr; // protect against calls after finalization
     if (_notify_listeners) {
         bool success = true;
+		task_identifier * id = new task_identifier(function_address);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            success = instance->listeners[i]->on_start(function_address);
+            success = instance->listeners[i]->on_start(id);
             if (!success) {
                 return profiler::get_disabled_profiler();
             }
@@ -419,10 +420,10 @@ profiler* resume(const std::string &timer_name)
         return profiler::get_disabled_profiler(); // don't process our own events
     }
     if (_notify_listeners) {
-        string * tmp = new string(timer_name);
+        task_identifier * id = new task_identifier(timer_name);
         try {
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-                instance->listeners[i]->on_resume(tmp);
+                instance->listeners[i]->on_resume(id);
             }
         } catch (disabled_profiler_exception e) { return profiler::get_disabled_profiler(); }
     }
@@ -436,9 +437,10 @@ profiler* resume(apex_function_address function_address) {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return nullptr; // protect against calls after finalization
     if (_notify_listeners) {
+        task_identifier * id = new task_identifier(function_address);
         try {
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-                instance->listeners[i]->on_resume(function_address);
+                instance->listeners[i]->on_resume(id);
             }
         } catch (disabled_profiler_exception e) { return profiler::get_disabled_profiler(); }
     }
@@ -456,13 +458,19 @@ profiler* resume(apex_function_address function_address) {
 void reset(const std::string &timer_name) {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
-    instance->the_profiler_listener->reset(timer_name);
+    task_identifier * id = new task_identifier(timer_name);
+    instance->the_profiler_listener->reset(id);
 }
 
 void reset(apex_function_address function_address) {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
-    instance->the_profiler_listener->reset(function_address);
+	if (function_address == APEX_NULL_FUNCTION_ADDRESS) {
+        instance->the_profiler_listener->reset_all();
+	} else {
+    	task_identifier * id = new task_identifier(function_address);
+    	instance->the_profiler_listener->reset(id);
+    }
 }
 
 void set_state(apex_thread_state state) {
@@ -598,9 +606,9 @@ void new_task(const std::string &timer_name, void * task_id)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
     if (_notify_listeners) {
-        string * tmp = new string(timer_name);
+        task_identifier * id = new task_identifier(timer_name);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_new_task(tmp, task_id);
+            instance->listeners[i]->on_new_task(id, task_id);
         }
     }
 }
@@ -609,8 +617,9 @@ void new_task(apex_function_address function_address, void * task_id) {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
     if (_notify_listeners) {
+        task_identifier * id = new task_identifier(function_address);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_new_task(function_address, task_id);
+            instance->listeners[i]->on_new_task(id, task_id);
         }
     }
 }
@@ -944,22 +953,26 @@ void deregister_policy(apex_policy_handle * handle) {
 }
 
 apex_profile* get_profile(apex_function_address action_address) {
-    profile * tmp = apex::__instance()->the_profiler_listener->get_profile(action_address);
+	task_identifier id = task_identifier(action_address);
+    profile * tmp = apex::__instance()->the_profiler_listener->get_profile(id);
     if (tmp != nullptr)
         return tmp->get_profile();
     return nullptr;
 }
 
 apex_profile* get_profile(const std::string &timer_name) {
-    profile * tmp = apex::__instance()->the_profiler_listener->get_profile(timer_name);
+	task_identifier id = task_identifier(timer_name);
+    profile * tmp = apex::__instance()->the_profiler_listener->get_profile(id);
     if (tmp != nullptr)
         return tmp->get_profile();
     return nullptr;
 }
 
+/*
 std::vector<std::string> get_available_profiles() {
     return apex::__instance()->the_profiler_listener->get_available_profiles();
 }
+*/
 
 void print_options() {
     apex_options::print_options();

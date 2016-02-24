@@ -10,6 +10,7 @@
 #include <memory>
 #include "apex_types.h"
 #include "profiler.hpp"
+#include "task_identifier.hpp"
 
 namespace apex {
 
@@ -28,12 +29,9 @@ public:
 
 class timer_event_data : public event_data {
 public:
-  bool have_name;
-  std::string * timer_name;
-  apex_function_address function_address;
+  task_identifier * task_id;
   std::shared_ptr<profiler> my_profiler;
-  timer_event_data(const std::string &timer_name);
-  timer_event_data(apex_function_address function_address);
+  timer_event_data(task_identifier * id);
   timer_event_data(std::shared_ptr<profiler> &the_profiler);
   ~timer_event_data();
 };
@@ -97,14 +95,11 @@ public:
   virtual void on_new_node(node_event_data &data) = 0;
   virtual void on_new_thread(new_thread_event_data &data) = 0;
   virtual void on_exit_thread(event_data &data) = 0;
-  virtual bool on_start(apex_function_address function_address) = 0;
-  virtual bool on_start(std::string *timer_name) = 0;
+  virtual bool on_start(task_identifier *id) = 0;
   virtual void on_stop(std::shared_ptr<profiler> &p) = 0;
   virtual void on_yield(std::shared_ptr<profiler> &p) = 0;
-  virtual bool on_resume(apex_function_address function_address) = 0;
-  virtual bool on_resume(std::string *timer_name) = 0;
-  virtual void on_new_task(apex_function_address function_address, void * task_id) = 0;
-  virtual void on_new_task(std::string *timer_name, void * task_id) = 0;
+  virtual bool on_resume(task_identifier * id) = 0;
+  virtual void on_new_task(task_identifier * id, void * task_id) = 0;
   virtual void on_sample_value(sample_value_event_data &data) = 0;
   virtual void on_periodic(periodic_event_data &data) = 0;
   virtual void on_custom_event(custom_event_data &data) = 0;

@@ -84,57 +84,26 @@ void tau_listener::on_exit_thread(event_data &data) {
   return;
 }
 
-bool tau_listener::on_start(apex_function_address function_address) {
+bool tau_listener::on_start(task_identifier * id) {
   if (!_terminate) {
-    TAU_START(thread_instance::instance().map_addr_to_name(function_address).c_str());
+    TAU_START(id->get_name().c_str());
   } else {
       return false;
   }
   return true;
 }
 
-bool tau_listener::on_start(std::string * timer_name) {
-  if (!_terminate) {
-    TAU_START(timer_name->c_str());
-  } else {
-      return false;
-  }
-  return true;
-}
-
-bool tau_listener::on_resume(apex_function_address function_address) {
-  if (!_terminate) {
-    TAU_START(thread_instance::instance().map_addr_to_name(function_address).c_str());
-    return true;
-  }
-  return false;
-}
-
-bool tau_listener::on_resume(std::string * timer_name) {
-  if (!_terminate) {
-    TAU_START(timer_name->c_str());
-    return true;
-  }
-  return false;
+bool tau_listener::on_resume(task_identifier * id) {
+  return on_start(id);
 }
 
 void tau_listener::on_stop(std::shared_ptr<profiler> &p) {
   static string empty("");
   if (!_terminate) {
-      if (p->have_name) {
-        if (p->timer_name->compare(empty) == 0) {
-          //printf("TAU stopping: GLOBAL\n");
+      if (p->task_id->get_name().compare(empty) == 0) {
           TAU_GLOBAL_TIMER_STOP(); // stop the top level timer
-        } else {
-          //printf("TAU stopping: '%s'\n", p->timer_name->c_str());
-          TAU_STOP(p->timer_name->c_str());
-        }
       } else {
-        if (p->action_address == 0) {
-          TAU_GLOBAL_TIMER_STOP(); // stop the top level timer
-        } else {
-            TAU_STOP(thread_instance::instance().map_addr_to_name(p->action_address).c_str());
-        }
+          TAU_STOP(p->task_id->get_name().c_str());
       }
   }
   return;

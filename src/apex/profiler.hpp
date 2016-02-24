@@ -7,6 +7,7 @@
 #include "apex_options.hpp"
 #include "apex_types.h"
 #include <chrono>
+#include "task_identifier.hpp"
 
 #ifdef __INTEL_COMPILER
 #define CLOCK_TYPE high_resolution_clock
@@ -59,30 +60,15 @@ public:
 #endif
     double value;
     double children_value;
-    apex_function_address action_address;
-    std::string * timer_name;
-    bool have_name;
+    //apex_function_address action_address;
+    //std::string * timer_name;
+    //bool have_name;
+	task_identifier * task_id;
     bool is_counter;
     bool is_resume; // for yield or resume
     reset_type is_reset;
     bool stopped;
-    profiler(apex_function_address address,
-             bool resume = false, 
-             reset_type reset = reset_type::NONE) : 
-        start(MYCLOCK::now()), 
-#if APEX_HAVE_PAPI
-        papi_start_values{0,0,0,0,0,0,0,0},
-        papi_stop_values{0,0,0,0,0,0,0,0},
-#endif
-        value(0.0),
-        children_value(0.0),
-        action_address(address), 
-        timer_name(nullptr), 
-        have_name(false), 
-        is_counter(false),
-        is_resume(resume),
-        is_reset(reset), stopped(false) {};
-    profiler(std::string * name, 
+    profiler(task_identifier * id, 
              bool resume = false, 
              reset_type reset = reset_type::NONE) : 
         start(MYCLOCK::now()), 
@@ -92,18 +78,14 @@ public:
 #endif
         value(0.0), 
         children_value(0.0),
-        action_address(0L), 
-        timer_name(name), 
-        have_name(true), 
+		task_id(id),
         is_counter(false),
         is_resume(resume),
         is_reset(reset), stopped(false) {};
-    profiler(std::string * name, double value_) : 
+    profiler(task_identifier * id, double value_) : 
         value(value_), 
         children_value(0.0),
-        action_address(0L), 
-        timer_name(name), 
-        have_name(true), 
+		task_id(id),
         is_counter(true),
         is_resume(false),
         is_reset(reset_type::NONE), stopped(true) { }; 
@@ -117,17 +99,13 @@ public:
 #endif
     value = in->elapsed();
     children_value = in->children_value;
-    action_address = in->action_address;
-    have_name = in->have_name;
-    if (have_name && in->timer_name != nullptr) {
-      timer_name = new std::string(in->timer_name->c_str());
-    }
+	task_id = new task_identifier(*in->task_id);
     is_counter = in->is_counter;
     is_resume = in->is_resume; // for yield or resume
     is_reset = in->is_reset;
     stopped = in->stopped;
     }
-    ~profiler(void) { if (have_name && timer_name != nullptr) delete timer_name; };
+    ~profiler(void) { if (task_id != nullptr) delete task_id; };
     // for "yield" support
     void stop(bool is_resume) {
         this->is_resume = is_resume;

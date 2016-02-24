@@ -473,7 +473,8 @@ APEX_EXPORT apex_profile* get_profile(const std::string &timer_name);
  
  \return A vector of strings containing the list of names.
  */
-APEX_EXPORT std::vector<std::string> get_available_profiles();
+/* Disabled, after adding task_identifier support */
+//APEX_EXPORT std::vector<std::string> get_available_profiles();
 
 /**
  \brief Get the current power reading

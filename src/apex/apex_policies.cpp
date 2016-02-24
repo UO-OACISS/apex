@@ -356,10 +356,12 @@ int apex_throughput_throttling_dhc_policy(apex_context const context) {
     if (function_profile == NULL) { 
         printf ("No Data?\n");
 #if defined(APEX_HAVE_HPX3) && defined(APEX_DEBUG_THROTTLE)
+/*
         std::vector<std::string> available = apex::get_available_profiles();
         for(std::string s : available) {
             printf("\"%s\"\n", s.c_str());
         }
+        */
 #endif
         return APEX_ERROR; 
     } else {

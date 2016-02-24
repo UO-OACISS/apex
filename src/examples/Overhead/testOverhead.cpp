@@ -90,11 +90,15 @@ int main(int argc, char **argv)
   std::cout << "Expecting " << numthreads << " threads." << std::endl;
   pthread_t * thread = (pthread_t*)(malloc(sizeof(pthread_t) * numthreads));
   unsigned i;
+  int timed = 0;
+  int untimed = 0;
   for (i = 0 ; i < numthreads ; i++) {
     if (i % 2 == 0) {
       pthread_create(&(thread[i]), NULL, someUntimedThread, NULL);
+      untimed++;
     } else {
       pthread_create(&(thread[i]), NULL, someThread, NULL);
+      timed++;
     }
   }
   for (i = 0 ; i < numthreads ; i++) {
@@ -131,8 +135,8 @@ int main(int argc, char **argv)
   }
   double percall1 = 0.0;
   if (with && without && footime) {
-    percall1 = (with->accumulated - without->accumulated) / (numthreads * ITERATIONS);
-    double percent = (with->accumulated / without->accumulated) - 1.0;
+    percall1 = ((with->accumulated/with->calls) - (without->accumulated/without->calls)) / footime->calls;
+    double percent = ((with->accumulated/with->calls) / (without->accumulated/without->calls)) - 1.0;
     double foopercall = footime->accumulated / footime->calls;
     std::cout << "Average overhead per timer: ";
 #ifdef APEX_USE_CLOCK_TIMESTAMP

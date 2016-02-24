@@ -15,8 +15,9 @@ BFD_ROOT=/opt/local
 #GPERFTOOLS_ROOT=$HOME/install/google-perftools/2.4
 #RCR_ROOT=$HOME/src/RCRdaemon
 #PAPI_ROOT=/usr/local/papi/5.3.2
-#TAU_ROOT=$HOME/src/tau2
-unset TAU_ROOT
+# export TAU_ROOT=$HOME/src/tau2
+# export TAU_ARCH=apple
+# export TAU_OPTIONS=-pthread
 
 # other CMake variables - for special situations / architectures / compilers.
 

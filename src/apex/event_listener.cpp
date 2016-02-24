@@ -19,29 +19,13 @@ using namespace std;
 namespace apex {
 
 /* this object never actually gets instantiated. too much overhead. */
-timer_event_data::timer_event_data(const string &timer_name) : have_name(true) {
+timer_event_data::timer_event_data(task_identifier * id) : task_id(id) {
   this->my_profiler = std::make_shared<profiler>();
-  this->timer_name = new string(timer_name);
-  this->function_address = APEX_NULL_FUNCTION_ADDRESS;
 }
 
 /* this object never actually gets instantiated. too much overhead. */
-timer_event_data::timer_event_data(apex_function_address function_address) : have_name(false) {
-  this->my_profiler = std::make_shared<profiler>();
-  this->function_address = function_address;
-}
-
-/* this object never actually gets instantiated. too much overhead. */
-timer_event_data::timer_event_data(std::shared_ptr<profiler> &the_profiler) : have_name(false) {
-  this->my_profiler = the_profiler;
-  if (the_profiler->have_name) {
-    this->have_name = true;
-    this->timer_name = the_profiler->timer_name;
-    this->function_address = APEX_NULL_FUNCTION_ADDRESS;
-  } else {
-    this->timer_name = NULL;
-    this->function_address = the_profiler->action_address;
-  }
+timer_event_data::timer_event_data(std::shared_ptr<profiler> &the_profiler) : my_profiler(the_profiler) {
+  this->task_id = the_profiler->task_id; 
 }
 
 timer_event_data::~timer_event_data() {
