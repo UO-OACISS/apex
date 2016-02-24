@@ -1,6 +1,14 @@
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #endif
+
+#include "apex.hpp"
+#include "apex_api.hpp"
+#include "apex_types.h"
+#include "apex_policies.hpp"
+#include "apex_options.hpp"
+#include "utils.hpp"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string>
@@ -11,13 +19,6 @@
 #include <boost/atomic.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/shared_mutex.hpp>
-
-#include "apex.hpp"
-#include "apex_api.hpp"
-#include "apex_types.h"
-#include "apex_policies.hpp"
-#include "apex_options.hpp"
-#include "utils.hpp"
 
 #ifdef APEX_HAVE_RCR
 #include "libenergy.h"
