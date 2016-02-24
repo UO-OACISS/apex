@@ -5,54 +5,54 @@
 
 boost_config=""
 if [ ${BOOST_ROOT+x} ]; then
-	boost_config="-DBOOST_ROOT=$BOOST_ROOT"
+    boost_config="-DBOOST_ROOT=$BOOST_ROOT"
 fi
 
 tau_config=""
 if [ ${TAU_ROOT+x} ]; then
-	tau_config="-DUSE_TAU=TRUE -DTAU_ROOT=$TAU_ROOT -DTAU_ARCH=$TAU_ARCH -DTAU_OPTIONS=$TAU_OPTIONS"
+    tau_config="-DUSE_TAU=TRUE -DTAU_ROOT=$TAU_ROOT -DTAU_ARCH=$TAU_ARCH -DTAU_OPTIONS=$TAU_OPTIONS"
 fi
 
 if [ ${RCR_ROOT+x} ]; then
-	rcr_config="-DRCR_ROOT=$RCR_ROOT"
+    rcr_config="-DRCR_ROOT=$RCR_ROOT"
 fi
 
 if [ ${BFD_ROOT+x} ]; then 
-	bfd_config="-DBFD_ROOT=$BFD_ROOT -DUSE_BFD=TRUE"
+    bfd_config="-DBFD_ROOT=$BFD_ROOT -DUSE_BFD=TRUE"
 #else
-	#bfd_config="-DUSE_BFD=FALSE"
+    #bfd_config="-DUSE_BFD=FALSE"
 fi
 
 if [ ${JEMALLOC_ROOT+x} ]; then
-	jemalloc_config="-DJEMALLOC_ROOT=$JEMALLOC_ROOT -DUSE_JEMALLOC=TRUE"
+    jemalloc_config="-DJEMALLOC_ROOT=$JEMALLOC_ROOT -DUSE_JEMALLOC=TRUE"
 else
-	jemalloc_config=""
+    jemalloc_config=""
 fi
 
 if [ ${GPERFTOOLS_ROOT+x} ]; then
-	gperftools_config="-DGPERFTOOLS_ROOT=$GPERFTOOLS_ROOT"
+    gperftools_config="-DGPERFTOOLS_ROOT=$GPERFTOOLS_ROOT"
 else
-	gperftools_config=""
+    gperftools_config=""
 fi
 
 if [ ${PAPI_ROOT+x} ]; then
-	papi_config="-DPAPI_ROOT=$PAPI_ROOT -DUSE_PAPI=TRUE"
+    papi_config="-DPAPI_ROOT=$PAPI_ROOT -DUSE_PAPI=TRUE"
 else
-	papi_config="-DUSE_PAPI=FALSE"
+    papi_config="-DUSE_PAPI=FALSE"
 fi
 
 if [ ${ACTIVEHARMONY_ROOT+x} ]; then
-	ah_config="-DACTIVEHARMONY_ROOT=$ACTIVEHARMONY_ROOT -DUSE_ACTIVEHARMONY=TRUE"
+    ah_config="-DACTIVEHARMONY_ROOT=$ACTIVEHARMONY_ROOT -DUSE_ACTIVEHARMONY=TRUE"
 elif [ ${HARMONY_HOME+x} ]; then
-	ah_config="-DACTIVEHARMONY_ROOT=$HARMONY_HOME -DUSE_ACTIVEHARMONY=TRUE"
+    ah_config="-DACTIVEHARMONY_ROOT=$HARMONY_HOME -DUSE_ACTIVEHARMONY=TRUE"
 else
-	ah_config="-DUSE_ACTIVEHARMONY=FALSE"
+    ah_config="-DUSE_ACTIVEHARMONY=FALSE"
 fi
 
 if [ ${OMPT_ROOT+x} ]; then
-	ompt_config="-DOMPT_ROOT=$OMPT_ROOT -DUSE_OMPT=TRUE"
+    ompt_config="-DOMPT_ROOT=$OMPT_ROOT -DUSE_OMPT=TRUE"
 else
-	ompt_config="-DUSE_OMPT=FALSE"
+    ompt_config="-DUSE_OMPT=FALSE"
 fi
 
 
@@ -60,9 +60,9 @@ fi
 T="$(date +%s)"
 
 if [ $# -gt 0 ] ; then
-	if [ $1 == "--clean" ] || [ $1 == "-c" ] ; then
-		rm -rf build_*
-	fi
+    if [ $1 == "--clean" ] || [ $1 == "-c" ] ; then
+        rm -rf build_*
+    fi
 fi
 
 datestamp=`date +%Y.%m.%d-%H.%M.%S`
@@ -98,11 +98,14 @@ eval $cmd
 
 procs=0
 if [ $# -eq 2 ] ; then
-	if [ $2 == "--parallel" ] || [ $2 == "-j" ] ; then
+    if [ $2 == "--parallel" ] || [ $2 == "-j" ] ; then
         if [ -f '/proc/cpuinfo' ] ; then
             procs=`grep -c ^processor /proc/cpuinfo`
         fi
-	fi
+        if [ `uname` == "Darwin" ] ; then
+            procs=`sysctl -n hw.ncpu`
+        fi
+    fi
 fi
 
 $MAKE_PREFIX make -j `expr $procs + 1`

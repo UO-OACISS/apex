@@ -18,6 +18,7 @@ BFD_ROOT=/opt/local
 # export TAU_ROOT=$HOME/src/tau2
 # export TAU_ARCH=apple
 # export TAU_OPTIONS=-pthread
+unset TAU_ROOT
 
 # other CMake variables - for special situations / architectures / compilers.
 
