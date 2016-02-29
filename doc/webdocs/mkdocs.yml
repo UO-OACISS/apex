@@ -12,6 +12,7 @@ pages:
 - Use Cases: usecases.md
 - Useful Environment Variables: environment.md
 - Research Examples: examples.md
+- API Specification : spec.md
 - API Reference manual : refman.md
 theme: readthedocs
 

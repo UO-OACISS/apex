@@ -1,4 +1,5 @@
 ![image](img/logo-cropped.png "APEX")
+<!--![image](https://github.com/khuck/xpress-apex/raw/master/doc/logo-cropped.png "APEX") -->
 
 # APEX: Autonomic Performance Environment for eXascale
 
