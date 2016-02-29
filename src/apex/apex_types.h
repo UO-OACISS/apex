@@ -239,17 +239,6 @@ typedef uint32_t apex_tuning_session_handle;
     macro (APEX_PLUGINS, plugins, char*, "") \
     macro (APEX_PLUGINS_PATH, plugins_path, char*, "./") 
 
-#ifdef USE_UDP
-#undef FOREACH_APEX_OPTION
-#define FOREACH_APEX_OPTION(macro) \
-    macro (APEX_UDP_SINK, use_udp_sink, bool, false)
-#undef FOREACH_APEX_STRING_OPTION
-#define FOREACH_APEX_STRING_OPTION(macro) \
-    macro (APEX_UDP_SINK_HOST, udp_sink_host, char*, "localhost") \
-    macro (APEX_UDP_SINK_PORT, udp_sink_port, char*, "5560") \
-    macro (APEX_UDP_SINK_CLIENTIP, udp_sink_clientip, char*, "127.0.0.1")
-#endif
-
 #if defined(__linux)
 #  define APEX_NATIVE_TLS __thread
 #elif defined(_WIN32) || defined(_WIN64)

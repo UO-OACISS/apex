@@ -11,11 +11,10 @@ if(NOT DEFINED PROCESSOR_COUNT)
  
   # Mac:
   if(APPLE)
-    find_program(cmd_sys_pro "system_profiler")
+    find_program(cmd_sys_pro "sysctl")
     if(cmd_sys_pro)
-      execute_process(COMMAND ${cmd_sys_pro} OUTPUT_VARIABLE info)
-      string(REGEX REPLACE "^.*Total Number Of Cores: ([0-9]+).*$" "\\1"
-        PROCESSOR_COUNT "${info}")
+      execute_process(COMMAND ${cmd_sys_pro} -n hw.ncpu OUTPUT_VARIABLE
+      PROCESSOR_COUNT OUTPUT_STRIP_TRAILING_WHITESPACE)
     endif()
   endif()
  
@@ -25,6 +24,6 @@ if(NOT DEFINED PROCESSOR_COUNT)
   endif()
 endif()
 
-if (PROCESSOR_COUNT)
+if (DEFINED PROCESSOR_COUNT)
     message(INFO " Found ${PROCESSOR_COUNT} cores.")
-endif(PROCESSOR_COUNT)
+endif(DEFINED PROCESSOR_COUNT)

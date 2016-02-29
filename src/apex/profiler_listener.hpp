@@ -24,9 +24,6 @@
 #include <boost/asio.hpp>
 #include "profile.hpp"
 #include "thread_instance.hpp"
-#ifdef USE_UDP
-#include "udp_client.hpp"
-#endif
 #include <boost/functional/hash.hpp>
 
 // These two are needed by concurrent queue - not defined by Intel Mic support.
@@ -101,11 +98,6 @@ public:
                              , num_papi_counters(0), event_sets(8), metric_names(0)
 #endif
   {
-#ifdef USE_UDP
-      if (apex_options::use_udp_sink()) {
-          udp_client::start_client();
-      }
-#endif
 #if APEX_HAVE_PAPI
       num_papi_counters = 0;
 #endif

@@ -286,7 +286,9 @@ else()
 	endif()
 endif()
 
-find_package(OpenMP)
+if ((NOT DEFINED USE_OMPT) OR (USE_OMPT))
+    find_package(OpenMP)
+endif ((NOT DEFINED USE_OMPT) OR (USE_OMPT))
  
 if (OPENMP_FOUND)
     if ((DEFINED OMPT_ROOT) OR (USE_OMPT) OR (BUILD_OMPT))
@@ -409,18 +411,8 @@ else()
 endif()
 
 ################################################################################
-# UDP configuration
 # JSON configuration
 ################################################################################
-
-if(USE_UDP_CLIENT)
-    set (USE_UDP TRUE)
-    include(GitExternal)
-    git_external(rapidjson
-        https://github.com/miloyip/rapidjson.git
-        master
-        VERBOSE)
-endif(USE_UDP_CLIENT)
 
 if(USE_PLUGINS)
     message(INFO " apex will be built with plugin support.")
@@ -465,12 +457,10 @@ CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/pkgconfig/apex.pc.in
                ${CMAKE_BINARY_DIR}/pkgconfig/apex.pc @ONLY)
 INSTALL_FILES(/lib/pkgconfig FILES pkgconfig/apex.pc)
 
-if (NOT APPLE)
-	message(INFO " Getting processor count...")
-	include(ProcessorCount) # how many cores at our disposal?
-	if(PROCESSOR_COUNT)
-  	set(CTEST_BUILD_FLAGS "-j${PROCESSOR_COUNT}")
-	endif()
+message(INFO " Getting processor count...")
+include(ProcessorCount) # how many cores at our disposal?
+if(PROCESSOR_COUNT)
+    set(CTEST_BUILD_FLAGS "-j${PROCESSOR_COUNT}")
 endif()
 
 # turn on "make test" support
@@ -486,9 +476,6 @@ add_subdirectory (src/wrappers)
 if(MPI_CXX_FOUND)
   add_subdirectory (src/comm/mpi) 
 endif()
-if(USE_UDP_CLIENT)
-add_subdirectory (src/udp_server)
-endif(USE_UDP_CLIENT)
 
 add_subdirectory (doc) 
 

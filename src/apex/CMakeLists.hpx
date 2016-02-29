@@ -143,7 +143,6 @@ set(apex_headers
     apex_policies.hpp
     ${PROC_HEADER})
     #apex_config.h
-    #udp_client.hpp
 
 set(apex_sources
     apex.cpp
@@ -159,7 +158,6 @@ set(apex_sources
     address_resolution.cpp
     apex_bfd.cpp
     ${PROC_SOURCE})
-    #udp_client.cpp
 
 
 if(APEX_WITH_PAPI)

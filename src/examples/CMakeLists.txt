@@ -35,9 +35,6 @@ if(OPENMP_FOUND)
     add_subdirectory (TestOpenMP)
   endif()
 endif()
-if(USE_UDP_CLIENT)
-add_subdirectory (UdpSink)
-endif(USE_UDP_CLIENT)
 add_subdirectory (CustomTuning)
 add_subdirectory (TuningRequest)
 
@@ -187,12 +184,6 @@ if(OPENMP_FOUND)
 #    endif(MPI_CXX_FOUND)
   endif(PROCESSOR_COUNT)
 endif()
-
-if(USE_UDP_CLIENT)
-    # Run the test program which tests the UDP network reporting
-    add_test (ExampleUdpSink UdpSink/test_script.sh)  
-    set_tests_properties(ExampleUdpSink PROPERTIES PASS_REGULAR_EXPRESSION "The ID of this thread is:")
-endif(USE_UDP_CLIENT)
 
 if (PAPI_FOUND)
     set_property (TEST

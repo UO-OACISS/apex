@@ -605,7 +605,7 @@ APEX_EXPORT apex_tuning_session_handle setup_custom_tuning(std::function<double(
  using metric and parameters specified in the tuning request.
  The system tries to minimize the custom metric.
 
- \param metric A function returning the value to be minimized.
+ \param request An apex_tuning_request object that specifies the tuning parameters.
  \return A handle to the tuning session.
  */
 APEX_EXPORT apex_tuning_session_handle setup_custom_tuning(apex_tuning_request & request);

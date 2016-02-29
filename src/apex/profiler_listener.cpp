@@ -773,12 +773,6 @@ node_color * get_node_color(double v,double vmin,double vmax)
       }
       */
 
-#ifdef USE_UDP
-      // are we updating a global profile?
-      if (apex_options::use_udp_sink()) {
-          udp_client::synchronize_profiles(name_map, address_map);
-      }
-#endif
 #ifdef APEX_HAVE_TAU
       /*
       if (apex_options::use_tau()) {
@@ -796,14 +790,6 @@ node_color * get_node_color(double v,double vmin,double vmax)
       }
     }
  
-#ifdef USE_UDP
-    // are we updating a global profile?
-    if (apex_options::use_udp_sink()) {
-        udp_client::synchronize_profiles(name_map, address_map);
-        udp_client::stop_client();
-    }
-#endif
-
 #endif // NOT DEFINED APEX_HAVE_HPX3
 
 #ifdef APEX_HAVE_HPX3
@@ -1198,11 +1184,6 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   profiler_listener::~profiler_listener (void) { 
       _done = true; // yikes!
       finalize();
-#ifdef USE_UDP
-      if (apex_options::use_udp_sink()) {
-          udp_client::stop_client();
-      }
-#endif
       delete_profiles();
 #ifndef APEX_HAVE_HPX3
       delete consumer_thread;
