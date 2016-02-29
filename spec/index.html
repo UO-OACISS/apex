@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>API Specification - APEX</title>
+  
+
+  <link rel="shortcut icon" href="../img/favicon.ico">
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  <link rel="stylesheet" href="../css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../css/theme_extra.css" type="text/css" />
+  <link rel="stylesheet" href="../css/highlight.css">
+  <link href="../custom.css" rel="stylesheet">
+
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "API Specification";
+  </script>
+  
+  <script src="../js/jquery-2.1.1.min.js"></script>
+  <script src="../js/modernizr-2.8.3.min.js"></script>
+  <script type="text/javascript" src="../js/highlight.pack.js"></script>
+  <script src="../js/theme.js"></script> 
+
+  
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+      <div class="wy-side-nav-search">
+        <a href=".." class="icon icon-home"> APEX</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        <ul class="current">
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="..">Home</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../feature/">Feature Overview</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../install/">Getting Started</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../usage/">Usage</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../usecases/">Use Cases</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../environment/">Useful Environment Variables</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../examples/">Research Examples</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 current">
+        <a class="current" href="./">API Specification</a>
+        
+            <ul>
+            
+                <li class="toctree-l3"><a href="#apex-specification-draft">APEX Specification ...DRAFT!...</a></li>
+                
+                    <li><a class="toctree-l4" href="#general-utility-functions">General Utility functions</a></li>
+                
+                    <li><a class="toctree-l4" href="#basic-measurement-functions-timers-counters">Basic Measurement Functions (timers, counters)</a></li>
+                
+                    <li><a class="toctree-l4" href="#policy-related-querying-and-modifying-methods">Policy related querying and modifying methods</a></li>
+                
+                    <li><a class="toctree-l4" href="#concurrency-throttling-policy-functions">Concurrency Throttling Policy Functions</a></li>
+                
+                    <li><a class="toctree-l4" href="#event-based-api-ocr-legion-tbd">Event-based API (OCR, Legion - TBD)</a></li>
+                
+            
+            </ul>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../refman/">API Reference manual</a>
+        
+    </li>
+<li>
+          
+        </ul>
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="..">APEX</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="..">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>API Specification</li>
+    <li class="wy-breadcrumbs-aside">
+      
+        
+          <a href="http://github.com/khuck/xpress-apex" class="icon icon-github"> Edit on GitHub</a>
+        
+      
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            <div class="section">
+              
+                <h1 id="apex-specification-draft">APEX Specification <em>...DRAFT!...</em></h1>
+<p>This page contains the API specification for APEX. The API specification provides a high-level overview of the API and its functionality. For full implementation details, please see the <a href="../refman/">API Reference Manual</a>.  The following API strings reflect the C++ and C names. The C++ names will use overloading for different argument lists, and will replace the "apex_" prefix with the "apex::" namespace.</p>
+<h2 id="general-utility-functions">General Utility functions</h2>
+<h3 id="apexinit-thread_nameapexinit-argc-argv-thread95nameapex95init-thread95nameapex95init95args-argc-argv-thread95name">apex::init (thread_name)<br>apex::init (argc, argv, thread_name)<br>apex_init (thread_name)<br>apex_init_args (argc, argv, thread_name)</h3>
+<p>APEX initialization is required to set up data structures and spawn the necessary helper threads, including the background system state query thread, the policy engine thread, and the profile handler thread. The thread name parameter will be used as the top-level timer for the the main thread of execution. The arguments argc and argv are optional, and would be passed from the main function of the appliation or runtime.</p>
+<h3 id="apexfinalize-apex95finalize">apex::finalize ()<br>apex_finalize ()</h3>
+<p>APEX finalization is required to format any desired output (screen, csv, profile, etc.) and terminate all APEX helper threads. No memory is freed at this point - that is done by the apex_cleanup() call.  The reason for this is that applications may want to perform reporting after finalization, so the performance state of the application should still exist. </p>
+<h3 id="apexcleanup-apex95cleanup">apex::cleanup ()<br>apex_cleanup ()</h3>
+<p>APEX cleanup frees all memory associated with APEX. </p>
+<h3 id="apexset95node95id-idapex95set95node95id-id">apex::set_node_id (id)<br>apex_set_node_id (id)</h3>
+<p>When running in distributed environments, assign the specified id number as the APEX node ID. This can be an MPI rank or an HPX locality, for example. </p>
+<h3 id="apexregister95thread-nameapex95register95thread-name">apex::register_thread (name)<br>apex_register_thread (name)</h3>
+<p>Register a new OS thread with APEX. The thread name parameter will be used as the top-level timer for the the new thread of execution.  This method should be called whenever a new OS thread is spawned by the application or the runtime.</p>
+<h3 id="apexexit95thread-apex95exit95thread">apex::exit_thread ()<br>apex_exit_thread ()</h3>
+<p>Before any thread other than the main thread of execution exits, notify APEX that the thread is exiting. The main thread should not call this function, but apex_finalize instead.</p>
+<h3 id="apexversion-apex95version">apex::version ()<br> apex_version ()</h3>
+<p>Return the APEX version as a string.</p>
+<h3 id="apexprint95options-apex95print95options">apex::print_options ()<br> apex_print_options ()</h3>
+<p>Print the current APEX options to stdout.</p>
+<h2 id="basic-measurement-functions-timers-counters">Basic Measurement Functions (timers, counters)</h2>
+<h3 id="apexstart-timer95nameapexstart-function95addressapex95start-type-identifier">apex::start (timer_name)<br>apex::start (function_address)<br>apex_start (type, identifier)</h3>
+<p>Create an APEX timer and start it. An APEX profiler object is returned, containing an identifier that APEX uses to stop the timer.  The timer is either identified by a name or a function/task instruction pointer address.</p>
+<h3 id="apexstop-the95profilerapex95stop-the95profiler">apex::stop (the_profiler)<br>apex_stop (the_profiler)</h3>
+<p>The timer associated with the profiler object is stopped and placed on an internal queue to be processed by the profiler handler thread in the background.  The profiler object is flagged as "stopped", so that when the profiler is processed the call count for this particular timer will be incremented by 1.</p>
+<h3 id="apexyield-the95profilerapex95yield-the95profiler">apex::yield (the_profiler)<br>apex_yield (the_profiler)</h3>
+<p>The timer associated with the profiler object is stopped and placed on an internal queue to be processed by the profiler handler thread in the background.  The profiler object is flagged as "NOT stopped", so that when the profiler is processed the call count will not be incremented.  An application using apex_yield should not use apex_resume to restart the timer, it should use apex_start.</p>
+<h3 id="apexresume-timer95nameapexresumefunction95addressapex95resume-type-identifier">apex::resume (timer_name)<br>apex::resume(function_address)<br>apex_resume (type, identifier)</h3>
+<p>Create an APEX timer and start it. An APEX profiler object is returned, containing an identifier that APEX uses to stop the timer.  The profiler is flagged as "NOT a new task", so that when it is stopped by apex_stop the call count for this particular timer will not be incremented.</p>
+<h3 id="apexnew95task-name-task95infoapexnew95task-function95address-task95infoapex95new95tasks-type-identifier-task95info">apex::new_task (name, task_info)<br>apex::new_task (function_address, task_info)<br>apex_new_tasks (type, identifier, task_info)</h3>
+<p>Register the creation of a new task. This is used to track task dependencies in APEX. APEX assumes that the current APEX profiler refers to the task that is the parent of this new task. The task_info object is a generic pointer to whatever data might need to be passed to a policy executed on when a new task is created.</p>
+<h3 id="apexsample95value-name-valueapex95sample95value-name-value">apex::sample_value (name, value)<br>apex_sample_value (name, value)</h3>
+<p>Record a measurement of the specified counter with the specified value. For example, "bytes transferred" and "1024".</p>
+<h3 id="apexset95state-stateapex95set95state-state">apex::set_state (state)<br>apex_set_state (state)</h3>
+<p>Set the state of the current OS thread.  States can include things like idle, running, blocked, etc.</p>
+<h2 id="policy-related-querying-and-modifying-methods">Policy related querying and modifying methods</h2>
+<h3 id="apexregister95policy-event95type-functionapexregister95policy-stdsetevent95type-functionapex95register95policy-event95type-function">apex::register_policy (event_type, function)<br>apex::register_policy (std::set&lt;event_type&gt;, function)<br>apex_register_policy (event_type, function)</h3>
+<p>Apex provides the ability to call an application-specified function when certain events occur in the APEX library, or periodically. This assigns the passed in function to the event, so that when that event occurs in APEX, the function is called. The context for the event will be passed to the registered function.</p>
+<h3 id="apexregister95periodic95policy-period-functionapex95register95periodic95policy-period-function">apex::register_periodic_policy (period, function)<br>apex_register_periodic_policy (period, function)</h3>
+<p>Apex provides the ability to call an application-specified function when certain events occur in the APEX library, or periodically. This method assigns the passed in function to be called on a periodic basis. The context for the event will be passed to the registered function.  The period units are in microseconds (us).</p>
+<h3 id="apexderegister95policy-handleapex95deregister95policy-handle">apex::deregister_policy (handle)<br>apex_deregister_policy (handle)</h3>
+<p>Remove the specified policy so that it will no longer be executed, whether it is event-based or periodic.</p>
+<h3 id="apexregister95custom95event-nameapex95register95custom95event-name">apex::register_custom_event (name)<br>apex_register_custom_event (name)</h3>
+<p>Register a new event type with APEX.</p>
+<h3 id="apexcustom95event-name-event95dataapex95custom95event-name-event95data">apex::custom_event (name, event_data)<br>apex_custom_event (name, event_data)</h3>
+<p>Trigger a custom event.  This function will pass a custom event to the APEX event listeners. Each listeners' custom event handler will handle the custom event. Policy functions will be passed the custom event name in the event context.</p>
+<h3 id="apexget95profile-nameapexget95profile-function95addressapex95get95profile-type-identifier">apex::get_profile (name)<br>apex::get_profile (function_address)<br>apex_get_profile (type, identifier)</h3>
+<p>This function will return the current profile for the specified identifier. Because profiles are updated out-of-band, it is possible that this profile value is out of date. This profile can be either a timer or a sampled value.</p>
+<h3 id="apexreset-timer_nameapexreset-function95addressapex95reset-type-identifier">apex::reset (timer_name)<br>apex::reset (function_address)<br>apex_reset (type, identifier)</h3>
+<p>This function will reset the profile associated with the specified timer or counter id to zero.  If the identifier is null, all timers and counters will be reset.</p>
+<h2 id="concurrency-throttling-policy-functions">Concurrency Throttling Policy Functions</h2>
+<h3 id="apexsetup95power95cap95throttling-apex95setup95power95cap95throttling">apex::setup_power_cap_throttling ()<br>apex_setup_power_cap_throttling ()</h3>
+<p>This function will initialize APEX for power cap throttling. With power cap throttling, APEX will reduce the thread concurrency to keep the application under a specified power cap.  There are several environment variables that control power cap throttling:</p>
+<ul>
+<li>APEX_THROTTLE_CONCURRENCY</li>
+<li>APEX_THROTTLE_ENERGY</li>
+<li>APEX_THROTTLING_MAX_THREADS</li>
+<li>APEX_THROTTLING_MIN_THREADS</li>
+<li>APEX_THROTTLING_MAX_WATTS</li>
+<li>APEX_THROTTLING_MIN_WATTS</li>
+</ul>
+<h3 id="apexsetup95timer95throttling-timer95name-criteria-method-update95intervalapexsetup95timer95throttling-function95address-criteria-method-update95intervalapex95setup95timer95throttling-type-identifier-criteria-method-update95interval">apex::setup_timer_throttling (timer_name, criteria, method, update_interval)<br>apex::setup_timer_throttling (function_address, criteria, method, update_interval)<br>apex_setup_timer_throttling (type, identifier, criteria, method, update_interval)</h3>
+<p>This function will initialize the throttling policy to optimize for the specified function. The optimization criteria include maximizing throughput, minimizing or maximizing time spent in the specified function. After evaluating the state of the system, the policy will set the thread cap, which can be queried using apex_get_thread_cap().</p>
+<h3 id="apexsetup95throughput95throttling-timer95name-criteria-event95type-num95inputs-inputs-mins-maxs-stepsapexsetup95throughput95throttling-function95address-criteria-event95type-num95inputs-inputs-mins-maxs-stepsapex95setup95throughput95throttling-type-identifier-criteria-event95type-num95inputs-inputs-mins-maxs-steps">apex::setup_throughput_throttling (timer_name, criteria, event_type, num_inputs, inputs, mins, maxs, steps)<br>apex::setup_throughput_throttling (function_address, criteria, event_type, num_inputs, inputs, mins, maxs, steps)<br>apex_setup_throughput_throttling (type, identifier, criteria, event_type, num_inputs, inputs, mins, maxs, steps)</h3>
+<p>This function will initialize the throttling policy to optimize for the specified function. The optimization criteria include maximizing throughput, minimizing or maximizing time spent in the specified function. After evaluating the state of the system, the policy will set the thread cap, which can be queried using apex_get_thread_cap().</p>
+<h3 id="apexsetup95custom95tuning-stdfunction-doublevoid-event95type-num95inputs-inputs-mins-maxs-steps">apex::setup_custom_tuning (std::function&lt; double(void)&gt;, event_type, num_inputs, inputs, mins, maxs, steps)</h3>
+<p>Setup tuning of specified parameters to optimize for a custom metric, using multiple input criteria.  This function will initialize a policy to optimize a custom metric, using the list of tunable parameters. The system tries to minimize the custom metric. After evaluating the state of the system, the policy will assign new values to the inputs.</p>
+<h3 id="apexget95tunable95params-handle">apex::get_tunable_params (handle)</h3>
+<p>Return a vector of the current tunable parameters.</p>
+<h3 id="apexshutdown95throttling-apex95shutdown95throttling">apex::shutdown_throttling ()<br>apex_shutdown_throttling ()</h3>
+<p>This function will terminate the throttling policy.</p>
+<h3 id="apexget95thread95cap-apex95get95thread95cap">apex::get_thread_cap ()<br>apex_get_thread_cap ()</h3>
+<p>This function will return the current thread cap based on the throttling policy.</p>
+<h3 id="apexset95thread95cap-new95capapex95set95thread95cap-new95cap">apex::set_thread_cap (new_cap)<br>apex_set_thread_cap (new_cap)</h3>
+<p>This function will set the current thread cap based on an external throttling policy.</p>
+<h2 id="event-based-api-ocr-legion-tbd">Event-based API (OCR, Legion - <em>TBD</em>)</h2>
+<h3 id="apextask95create-parent95id">apex::task_create (parent_id)</h3>
+<h3 id="apexdependency95reached-event95id-data95id-task95id-parent95id">apex::dependency_reached (event_id, data_id, task_id, parent_id, ?)</h3>
+<h3 id="apextask95ready-why95ready">apex::task_ready (why_ready)</h3>
+<h3 id="apextask95execute-why95delay-function">apex::task_execute (why_delay, function)</h3>
+<h3 id="apextask95finished">apex::task_finished ()</h3>
+<h3 id="apextask95destroy">apex::task_destroy ()</h3>
+<h3 id="apexdata95create">apex::data_create ()</h3>
+<h3 id="apexdata95new95size">apex::data_new_size ()</h3>
+<h3 id="apexdata95move95from">apex::data_move_from ()</h3>
+<h3 id="apexdata95move95to">apex::data_move_to ()</h3>
+<h3 id="apexdata95replace">apex::data_replace ()</h3>
+<h3 id="apexdata95destroy">apex::data_destroy ()</h3>
+<h3 id="apexevent95create">apex::event_create ()</h3>
+<h3 id="apexevent95add95dependency">apex::event_add_dependency ()</h3>
+<h3 id="apexevent95trigger">apex::event_trigger ()</h3>
+<h3 id="apexevent95destroy">apex::event_destroy ()</h3>
+              
+            </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../refman/" class="btn btn-neutral float-right" title="API Reference manual"/>Next <span class="icon icon-circle-arrow-right"></span></a>
+      
+      
+        <a href="../examples/" class="btn btn-neutral" title="Research Examples"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+      <p>(C) 2015 University of Oregon, All Rights Reserved</p>
+    
+  </div>
+
+  Built with <a href="http://www.mkdocs.org">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+	  
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+<div class="rst-versions" role="note" style="cursor: pointer">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      
+          <a class="icon icon-github" style="float: left; color: #fcfcfc"> GitHub</a>
+      
+      
+        <span><a href="../examples/" style="color: #fcfcfc;">&laquo; Previous</a></span>
+      
+      
+        <span style="margin-left: 15px"><a href="../refman/" style="color: #fcfcfc">Next &raquo;</a></span>
+      
+    </span>
+</div>
+
+</body>
+</html>

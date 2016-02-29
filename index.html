@@ -114,6 +114,13 @@
           
             <li>
     <li class="toctree-l1 ">
+        <a class="" href="spec/">API Specification</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
         <a class="" href="refman/">API Reference manual</a>
         
     </li>
@@ -155,7 +162,8 @@
           <div role="main">
             <div class="section">
               
-                <p><img alt="image" src="./img/logo-cropped.png" title="APEX" /></p>
+                <p><img alt="image" src="./img/logo-cropped.png" title="APEX" />
+<!--<img alt="image" src="https://github.com/khuck/xpress-apex/raw/master/doc/logo-cropped.png" title="APEX" /> --></p>
 <h1 id="apex-autonomic-performance-environment-for-exascale">APEX: Autonomic Performance Environment for eXascale</h1>
 <p>One of the key components of the XPRESS project is a new approach to performance observation, measurement, analysis and runtime decision making in order to optimize performance. The particular challenges of accurately measuring the performance characteristics of ParalleX <a href="#fn1">[1]</a> applications (as well as other asynchronous multitasking runtime architectures) requires a new approach to parallel performance observation. The standard model of multiple operating system processes and threads observing themselves in a first-person manner while writing out performance profiles or traces for offline analysis will not adequately capture the full execution context, nor provide opportunities for runtime adaptation within OpenX. The approach taken in the XPRESS project is a new performance measurement system, called (Autonomic Performance Environment for eXascale). APEX includes methods for information sharing between the layers of the software stack, from the hardware through operating and runtime systems, all the way to domain specific or legacy applications. The performance measurement components incorporate relevant information across stack layers, with merging of third-person performance observation of node-level and global resources, remote processes, and both operating and runtime system threads.  For a complete academic description of APEX, see the publication "APEX: An Autonomic Performance Environment for eXascale" <a href="#References">[2]</a>.</p>
 <p>In short, APEX is an introspection and runtime adaptation library for asynchronous multitasking runtime systems. However, APEX is not <em>only</em> useful for AMT/AMR runtimes running on future exascale systems - it can be used by any application wanting to perform runtime adaptation to deal with heterogeneous and/or variable environments.</p>
@@ -217,5 +225,5 @@
 
 <!--
 MkDocs version : 0.14.0
-Build Date UTC : 2016-01-06 05:52:18.265390
+Build Date UTC : 2016-02-29 23:10:17.630560
 -->
