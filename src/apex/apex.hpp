@@ -39,11 +39,6 @@
 #include "proc_read.h" 
 #endif
 
-#ifdef APEX_HAVE_MSR
-#include "msr_core.h"
-#include "msr_rapl.h"
-#endif
-
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /**

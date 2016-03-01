@@ -39,10 +39,6 @@
 #endif
 #include "address_resolution.hpp"
 
-#ifdef APEX_HAVE_MSR
-#include "msr_core.h"
-#endif
-
 APEX_NATIVE_TLS bool _registered = false;
 APEX_NATIVE_TLS bool _exited = false;
 static bool _initialized = false;
@@ -180,7 +176,7 @@ void apex::_initialize()
     energyDaemonInit();
 #endif
 #ifdef APEX_HAVE_MSR
-    init_msr();
+    apex_init_msr();
 #endif
 #ifdef APEX_HAVE_TAU
     if (apex_options::use_tau())
@@ -781,7 +777,7 @@ void finalize()
     proc_reader_thread->join();
 #endif
 #if APEX_HAVE_MSR
-    finalize_msr();
+    apex_finalize_msr();
 #endif
     if (!_measurement_stopped)
     {
