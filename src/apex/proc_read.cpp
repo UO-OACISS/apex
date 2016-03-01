@@ -32,6 +32,11 @@
 #include "sensor_data.hpp"
 #endif
 
+#ifdef APEX_HAVE_MSR
+#include <msr/msr_core.h>
+#include <msr/msr_rapl.h>
+#endif
+
 std::condition_variable cv; // for interrupting reader when done
 std::mutex cv_m;            // mutex for the condition variable
 
@@ -629,6 +634,53 @@ void ProcData::read_proc(void) {
   delete(oldData);
 
 }
+
+#ifdef APEX_HAVE_MSR
+void apex_init_msr(void) {
+    int status = init_msr();
+    if(status) {
+        fprintf(stderr, "Unable to initialize libmsr: %d.\n", status);
+        return;
+    }
+    struct rapl_data * r = NULL;
+    uint64_t * rapl_flags = NULL;
+    status = rapl_init(&r, &rapl_flags);
+    if(status < 0) {
+        fprintf(stderr, "Unable to initialize rapl component of libmsr: %d.\n", status);
+        return;
+    }
+}
+
+void apex_finalize_msr(void) {
+    finalize_msr();
+}
+
+double msr_current_power_high(void) {
+    static int initialized = 0;
+    static uint64_t * rapl_flags = NULL;
+    static struct rapl_data * r = NULL;
+    static uint64_t sockets = 0;
+
+    if(!initialized) {
+        sockets = num_sockets();
+        int status = rapl_storage(&r, &rapl_flags);
+        if(status) {
+            fprintf(stderr, "Error in rapl_storage: %d.\n", status);
+            return 0.0;
+        }
+        initialized = 1;
+    }
+
+    poll_rapl_data();
+    double watts = 0.0;
+    for(int s = 0; s < sockets; ++s) {
+        if(r->pkg_watts != NULL) {
+            watts += r->pkg_watts[s];
+        }    
+    }
+    return watts;
+}
+#endif
 
 }
 
