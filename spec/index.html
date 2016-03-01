@@ -250,7 +250,7 @@ void* someThread(void* tmp)
     /* Register this thread with APEX */
     apex::register_thread(name);
     /* Start a timer */
-    profiler* p = apex::start((apex_function_address)&amp;someThread);
+    apex::profiler* p = apex::start((apex_function_address)&amp;someThread);
     /* ... */
     /* do some computation */
     /* ... */
