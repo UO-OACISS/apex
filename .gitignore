@@ -1,2 +1,5 @@
-install
+build*
+doc/webdocs/site
+install*
 rapidjson
+*.swp
