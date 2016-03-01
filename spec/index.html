@@ -105,17 +105,27 @@
         
             <ul>
             
-                <li class="toctree-l3"><a href="#apex-specification-draft">APEX Specification ...DRAFT!...</a></li>
+                <li class="toctree-l3"><a href="#apex-specification-draft">APEX Specification (DRAFT)</a></li>
+                
+                    <li><a class="toctree-l4" href="#read-me-first">READ ME FIRST!</a></li>
+                
+                    <li><a class="toctree-l4" href="#introduction">Introduction</a></li>
+                
+                    <li><a class="toctree-l4" href="#constants-types-and-enumerations">Constants, types and enumerations</a></li>
+                
+                    <li><a class="toctree-l4" href="#data-structures-and-classes">Data structures and classes</a></li>
+                
+                    <li><a class="toctree-l4" href="#environment-variables">Environment variables</a></li>
                 
                     <li><a class="toctree-l4" href="#general-utility-functions">General Utility functions</a></li>
                 
-                    <li><a class="toctree-l4" href="#basic-measurement-functions-timers-counters">Basic Measurement Functions (timers, counters)</a></li>
+                    <li><a class="toctree-l4" href="#basic-measurement-functions-introspection">Basic measurement Functions (introspection)</a></li>
                 
-                    <li><a class="toctree-l4" href="#policy-related-querying-and-modifying-methods">Policy related querying and modifying methods</a></li>
+                    <li><a class="toctree-l4" href="#policy-related-methods-adaptation">Policy-related methods (adaptation)</a></li>
                 
                     <li><a class="toctree-l4" href="#concurrency-throttling-policy-functions">Concurrency Throttling Policy Functions</a></li>
                 
-                    <li><a class="toctree-l4" href="#event-based-api-ocr-legion-tbd">Event-based API (OCR, Legion - TBD)</a></li>
+                    <li><a class="toctree-l4" href="#event-based-api-ocr-legion-support-tbd">Event-based API (OCR, Legion support - TBD)</a></li>
                 
             
             </ul>
@@ -125,7 +135,7 @@
           
             <li>
     <li class="toctree-l1 ">
-        <a class="" href="../refman/">API Reference manual</a>
+        <a class="" href="../refman/">API Doxygen Reference</a>
         
     </li>
 <li>
@@ -166,58 +176,594 @@
           <div role="main">
             <div class="section">
               
-                <h1 id="apex-specification-draft">APEX Specification <em>...DRAFT!...</em></h1>
-<p>This page contains the API specification for APEX. The API specification provides a high-level overview of the API and its functionality. For full implementation details, please see the <a href="../refman/">API Reference Manual</a>.  The following API strings reflect the C++ and C names. The C++ names will use overloading for different argument lists, and will replace the "apex_" prefix with the "apex::" namespace.</p>
+                <h1 id="apex-specification-draft">APEX Specification <em>(DRAFT)</em></h1>
+<p><em>...to be fully implemented in v0.2 release.</em></p>
+<h2 id="read-me-first">READ ME FIRST!</h2>
+<p>The API specification is provided for users who wish to instrument their
+own applications, or who wish to instrument a runtime. Please note that 
+the <a href="../usage/#hpx-louisiana-state-university">HPX</a>,
+<a href="../usage/#hpx-5-indiana-university">HPX-5</a> and
+<a href="../usecases/#openmp-example">OpenMP</a> runtimes have already been instrumented,
+and that users typically do not have to make any calls to the APEX API, other
+than to add application level timers or to write custom policy rules.</p>
+<h2 id="introduction">Introduction</h2>
+<p>This page contains the API specification for APEX. The API specification
+provides a high-level overview of the API and its functionality. The
+implementation has Doxygen comments inserted, so for full implementation
+details, please see the <a href="../refman/">API Reference Manual</a>.  </p>
+<h3 id="a-note-about-c">A note about C++</h3>
+<p>The following specification contains both the C and the the C++ API. Typically,
+the C++ names use overloading for different argument lists, and will replace
+the <code>apex_</code> prefix with the <code>apex::</code> namespace. Because both APIs return 
+handles to internal APEX objects, the type definitions of these objects 
+use the C naming convention.</p>
+<h3 id="c-example">C example</h3>
+<p>The following is a very small C program that uses the APEX API. For more
+examples, please see the programs in the <code>src/examples</code> and <code>src/unit_tests/C</code>
+directories of the APEX source code.</p>
+<pre><code class="c">#include &lt;unistd.h&gt;
+#include &lt;stdio.h&gt;
+#include &quot;apex.h&quot;
+
+int foo(int i) {
+    /* start an APEX timer for the function foo */
+    apex_profiler_handle profiler = apex_start(APEX_FUNCTION_ADDRESS, &amp;foo);
+    int j = i * i;
+    /* stop the APEX timer */
+    apex_stop(profiler);
+    return j;
+}
+
+int main (int argc, char** argv) {
+    /* initialize APEX */
+    apex_init_args(argc, argv, &quot;apex_start unit test&quot;);
+    /* start a timer, passing in the address of the main function */
+    apex_profiler_handle profiler = apex_start(APEX_FUNCTION_ADDRESS, &amp;main);
+    int i,j = 0;
+    for (i = 0 ; i &lt; 3 ; i++) {
+        j += foo(i);
+    }
+    /* stop the timer */
+    apex_stop(profiler);
+    /* finalize APEX */
+    apex_finalize();
+    /* free all memory allocated by APEX */
+    apex_cleanup();
+    return 0;
+}
+</code></pre>
+
+<h3 id="c-example_1">C++ example</h3>
+<p>The following is a slightly more complicated C++ pthread program that uses the
+APEX API. For more examples, please see the programs in the <code>src/examples</code> and
+<code>src/unit_tests/C++</code> directories of the APEX source code.</p>
+<pre><code class="c++">#include &lt;iostream&gt;
+#include &lt;pthread.h&gt;
+#include &lt;unistd.h&gt;
+#include &quot;apex_api.hpp&quot;
+
+void* someThread(void* tmp)
+{
+    int* tid = (int*)tmp;
+    char name[32];
+    sprintf(name, &quot;worker thread %d&quot;, *tid);
+    /* Register this thread with APEX */
+    apex::register_thread(name);
+    /* Start a timer */
+    profiler* p = apex::start((apex_function_address)&amp;someThread);
+    /* ... */
+    /* do some computation */
+    /* ... */
+    /* stop the timer */
+    apex::stop(p);
+    /* tell APEX that this thread is exiting */
+    apex::exit_thread();
+    return NULL;
+}
+
+int main (int argc, char** argv) {
+    /* initialize APEX */
+    apex::init(argc, argv, &quot;apex::start unit test&quot;);
+    /* set our node ID */
+    apex::set_node_id(0);
+    /* start a timer */
+    apex::profiler* p = apex::start(&quot;main&quot;);
+    /* Spawn two threads */
+    pthread_t thread[2];
+    int tid = 0;
+    pthread_create(&amp;(thread[0]), NULL, someThread, &amp;tid);
+    int tid2 = 1;
+    pthread_create(&amp;(thread[1]), NULL, someThread, &amp;tid2);
+    /* wait for the threads to finish */
+    pthread_join(thread[0], NULL);
+    pthread_join(thread[1], NULL);
+    /* stop our main timer */
+    apex::stop(p);
+    /* finalize APEX */
+    apex::finalize();
+    /* free all memory allocated by APEX */
+    apex::cleanup();
+    return 0;
+}
+</code></pre>
+
+<h2 id="constants-types-and-enumerations">Constants, types and enumerations</h2>
+<h3 id="constants">Constants</h3>
+<pre><code class="c">/** A null pointer representing an APEX profiler handle.
+ * Used when a null APEX profile handle is to be passed in to
+ * apex::stop when the profiler object was not retained locally.
+ */
+#define APEX_NULL_PROFILER_HANDLE (apex_profiler_handle)(NULL) // for comparisons
+
+#define APEX_MAX_EVENTS 128 /*!&lt; The maximum number of event types. Allows for ~20 custom events. */
+
+#define APEX_NULL_FUNCTION_ADDRESS 0L // for comparisons
+</code></pre>
+
+<h3 id="pre-defined-types">Pre-defined types</h3>
+<pre><code class="c">/** The address of a C++ object in APEX.
+ * Not useful for the caller that gets it back, but required
+ * for stopping the timer later.
+ */
+typedef void* apex_profiler_handle; // address of internal C++ object
+
+/** Rather than use void pointers everywhere, be explicit about
+ * what the functions are expecting.
+ */
+typedef uintptr_t apex_function_address; // generic function pointer
+</code></pre>
+
+<h3 id="enumerations">Enumerations</h3>
+<pre><code class="c">/**
+ * Typedef for enumerating the different timer types
+ */
+typedef enum _apex_profiler_type {
+    APEX_FUNCTION_ADDRESS = 0, /*!&lt; The ID is a function (or instruction) address */
+    APEX_NAME_STRING           /*!&lt; The ID is a character string */
+} apex_profiler_type;
+
+/**
+ * Typedef for enumerating the different event types
+ */
+typedef enum _event_type {
+  APEX_INVALID_EVENT = -1,
+  APEX_STARTUP = 0,        /*!&lt; APEX is initialized */
+  APEX_SHUTDOWN,       /*!&lt; APEX is terminated */
+  APEX_NEW_NODE,       /*!&lt; APEX has registered a new process ID */
+  APEX_NEW_THREAD,     /*!&lt; APEX has registered a new OS thread */
+  APEX_EXIT_THREAD,    /*!&lt; APEX has exited an OS thread */
+  APEX_START_EVENT,    /*!&lt; APEX has processed a timer start event */
+  APEX_RESUME_EVENT,   /*!&lt; APEX has processed a timer resume event (the number
+                           of calls is not incremented) */
+  APEX_STOP_EVENT,     /*!&lt; APEX has processed a timer stop event */
+  APEX_YIELD_EVENT,    /*!&lt; APEX has processed a timer yield event */
+  APEX_SAMPLE_VALUE,   /*!&lt; APEX has processed a sampled value */
+  APEX_PERIODIC,       /*!&lt; APEX has processed a periodic timer */
+  APEX_CUSTOM_EVENT_1,   /*!&lt; APEX has processed a custom event - useful for large
+                           granularity application control events */
+  APEX_CUSTOM_EVENT_2, // these are just here for padding, and so we can
+  APEX_CUSTOM_EVENT_3, // test with them.
+  APEX_CUSTOM_EVENT_4,
+  APEX_CUSTOM_EVENT_5,
+  APEX_CUSTOM_EVENT_6,
+  APEX_CUSTOM_EVENT_7,
+  APEX_CUSTOM_EVENT_8,
+  APEX_UNUSED_EVENT = APEX_MAX_EVENTS // can't have more custom events than this
+} apex_event_type;
+
+/** 
+ * Typedef for enumerating the thread states. 
+ */
+typedef enum _thread_state {
+    APEX_IDLE,          /*!&lt; Thread is idle */
+    APEX_BUSY,          /*!&lt; Thread is working */
+    APEX_THROTTLED,     /*!&lt; Thread is throttled (sleeping) */
+    APEX_WAITING,       /*!&lt; Thread is waiting for a resource */
+    APEX_BLOCKED        /*!&lt; Thread is blocked */
+} apex_thread_state;
+
+/**
+ * Typedef for enumerating the different optimization strategies
+ * for throttling.
+ */
+typedef enum {APEX_MAXIMIZE_THROUGHPUT,   /*!&lt; maximize the number of calls to a
+                                              timer/counter */
+              APEX_MAXIMIZE_ACCUMULATED,  /*!&lt; maximize the accumulated value of
+                                              a timer/counter */
+              APEX_MINIMIZE_ACCUMULATED   /*!&lt; minimize the accumulated value of
+                                              a timer/counter */
+} apex_optimization_criteria_t;
+
+/**
+ * Typedef for enumerating the different optimization methods
+ * for throttling.
+ */
+typedef enum {APEX_SIMPLE_HYSTERESIS,      /*!&lt; optimize using sliding window of
+                                               historical observations. A running
+                                               average of the most recent N observations
+                                               are used as the measurement. */
+              APEX_DISCRETE_HILL_CLIMBING, /*!&lt; Use a discrete hill climbing algorithm
+                                               for optimization */
+              APEX_ACTIVE_HARMONY          /*!&lt; Use Active Harmony for optimization. */
+} apex_optimization_method_t;
+
+/** The type of a profiler object
+ * 
+ */
+typedef enum _profile_type {
+  APEX_TIMER,        /*!&lt; This profile is a instrumented timer */
+  APEX_COUNTER       /*!&lt; This profile is a sampled counter */
+} apex_profile_type;
+
+
+</code></pre>
+
+<h2 id="data-structures-and-classes">Data structures and classes</h2>
+<pre><code class="c">/** 
+ * A reference to the policy object, so that policies can be &quot;unregistered&quot;, or
+ * paused later
+ */
+typedef struct _policy_handle {
+    int id;           /*!&lt; The ID of the policy, used internally to APEX */
+    apex_event_type event_type;    /*!&lt; The type of policy */
+    unsigned long period;       /*!&lt; If periodic, the length of the period */
+} apex_policy_handle;
+
+/** 
+ * The APEX context when an event occurs. This context will be passed to 
+ * any policies registered for this event.
+ */
+typedef struct _context {
+    apex_event_type event_type;        /*!&lt; The type of the event currently
+                                           processing */
+    apex_policy_handle* policy_handle; /*!&lt; The policy handle for the current
+                                           policy function */
+    void * data;  /*!&lt; Data associated with the event, such as the custom_data
+                       for a custom_event */
+} apex_context;
+
+/**
+ * The profile object for a timer in APEX. 
+ * Returned by the apex_get_profile() call.
+ */
+typedef struct _profile {
+    double calls;         /*!&lt; Number of times a timer was called, or the number
+                              of samples collected for a counter */
+    double accumulated;   /*!&lt; Accumulated values for all calls/samples */
+    double sum_squares;   /*!&lt; Running sum of squares calculation for all
+                              calls/samples */
+    double minimum;       /*!&lt; Minimum value seen by the timer or counter */
+    double maximum;       /*!&lt; Maximum value seen by the timer or counter */
+    apex_profile_type type; /*!&lt; Whether this is a timer or a counter */
+    double papi_metrics[8];  /*!&lt; Array of accumulated PAPI hardware metrics */
+} apex_profile;
+</code></pre>
+
+<h2 id="environment-variables">Environment variables</h2>
+<p>Please see the <a href="../environment/">environment variables</a> section of the
+documentation. Please note that all environment variables can also be
+queried or set at runtime with associated API calls. For example, the 
+APEX_CSV_OUTPUT variable can also be set/queried with:</p>
+<pre><code class="c">void apex_set_use_csv_output (int);
+int apex_get_use_csv_output (void);
+</code></pre>
+
 <h2 id="general-utility-functions">General Utility functions</h2>
-<h3 id="apexinit-thread_nameapexinit-argc-argv-thread95nameapex95init-thread95nameapex95init95args-argc-argv-thread95name">apex::init (thread_name)<br>apex::init (argc, argv, thread_name)<br>apex_init (thread_name)<br>apex_init_args (argc, argv, thread_name)</h3>
-<p>APEX initialization is required to set up data structures and spawn the necessary helper threads, including the background system state query thread, the policy engine thread, and the profile handler thread. The thread name parameter will be used as the top-level timer for the the main thread of execution. The arguments argc and argv are optional, and would be passed from the main function of the appliation or runtime.</p>
-<h3 id="apexfinalize-apex95finalize">apex::finalize ()<br>apex_finalize ()</h3>
-<p>APEX finalization is required to format any desired output (screen, csv, profile, etc.) and terminate all APEX helper threads. No memory is freed at this point - that is done by the apex_cleanup() call.  The reason for this is that applications may want to perform reporting after finalization, so the performance state of the application should still exist. </p>
-<h3 id="apexcleanup-apex95cleanup">apex::cleanup ()<br>apex_cleanup ()</h3>
+<h3 id="initialization">Initialization</h3>
+<pre><code class="c++">/* C++ */
+void apex::init (const char *thread_name);
+void apex::init_args (const int argc, const char **argv, const std::string &amp;thread_name);
+</code></pre>
+
+<pre><code class="c">/* C */
+void apex_init (const char *thread_name);
+void apex_init_args (const int argc, const char **argv, const char *thread_name);
+</code></pre>
+
+<p>APEX initialization is required to set up data structures and spawn the
+necessary helper threads, including the background system state query thread,
+the policy engine thread, and the profile handler thread. The thread name
+parameter will be used as the top-level timer for the the main thread of
+execution. The arguments argc and argv are optional, and would be passed from
+the main function of the appliation or runtime.</p>
+<h3 id="finalization">Finalization</h3>
+<pre><code class="c++">/* C++ */
+void apex::finalize (void);
+</code></pre>
+
+<pre><code class="c">/* C */
+void apex_finalize (void);
+</code></pre>
+
+<p>APEX finalization is required to format any desired output (screen, csv,
+profile, etc.) and terminate all APEX helper threads. No memory is freed at
+this point - that is done by the <code>apex_cleanup()</code> call.  The reason for this is
+that applications may want to perform reporting after finalization, so the
+performance state of the application should still exist. </p>
+<h3 id="cleanup">Cleanup</h3>
+<pre><code class="c++">/* C++ */
+void apex::cleanup (void);
+</code></pre>
+
+<pre><code class="c">/* C */
+void apex_cleanup (void);
+</code></pre>
+
 <p>APEX cleanup frees all memory associated with APEX. </p>
-<h3 id="apexset95node95id-idapex95set95node95id-id">apex::set_node_id (id)<br>apex_set_node_id (id)</h3>
-<p>When running in distributed environments, assign the specified id number as the APEX node ID. This can be an MPI rank or an HPX locality, for example. </p>
-<h3 id="apexregister95thread-nameapex95register95thread-name">apex::register_thread (name)<br>apex_register_thread (name)</h3>
-<p>Register a new OS thread with APEX. The thread name parameter will be used as the top-level timer for the the new thread of execution.  This method should be called whenever a new OS thread is spawned by the application or the runtime.</p>
-<h3 id="apexexit95thread-apex95exit95thread">apex::exit_thread ()<br>apex_exit_thread ()</h3>
-<p>Before any thread other than the main thread of execution exits, notify APEX that the thread is exiting. The main thread should not call this function, but apex_finalize instead.</p>
-<h3 id="apexversion-apex95version">apex::version ()<br> apex_version ()</h3>
+<h3 id="setting-node-id">Setting node ID</h3>
+<pre><code class="c++">/* C++ */
+void apex::set_node_id (const int id);
+</code></pre>
+
+<pre><code class="c">/* C */
+void apex_set_node_id (const int id);
+</code></pre>
+
+<p>When running in distributed environments, assign the specified id number as the
+APEX node ID. This can be an MPI rank or an HPX locality, for example. </p>
+<h3 id="registering-threads">Registering threads</h3>
+<pre><code class="c++">/* C++ */
+void apex::register_thread (const std::string &amp;name);
+</code></pre>
+
+<pre><code class="c">/* C */
+void apex_register_thread (const char *name);
+</code></pre>
+
+<p>Register a new OS thread with APEX. The thread name parameter will be used as
+the top-level timer for the the new thread of execution.  This method should be
+called whenever a new OS thread is spawned by the application or the runtime.
+If an empty string or null string is passed in for name, a top-level timer is
+not started.</p>
+<h3 id="exiting-a-thread">Exiting a thread</h3>
+<pre><code class="c++">/* C++ */
+void apex::exit_thread (void);
+</code></pre>
+
+<pre><code class="c">/* C */
+void apex_exit_thread (void);
+</code></pre>
+
+<p>Before any thread other than the main thread of execution exits, notify APEX
+that the thread is exiting. The main thread should not call this function, but
+apex_finalize instead. Exiting the thread will trigger an event in APEX, so 
+any policies associated with a thread exit will be executed.</p>
+<h3 id="getting-the-apex-version">Getting the APEX version</h3>
+<pre><code class="c++">/* C++ */
+std::string &amp; apex::version (void);
+</code></pre>
+
+<pre><code class="c">/* C */
+const char * apex_version (void);
+</code></pre>
+
 <p>Return the APEX version as a string.</p>
-<h3 id="apexprint95options-apex95print95options">apex::print_options ()<br> apex_print_options ()</h3>
-<p>Print the current APEX options to stdout.</p>
-<h2 id="basic-measurement-functions-timers-counters">Basic Measurement Functions (timers, counters)</h2>
-<h3 id="apexstart-timer95nameapexstart-function95addressapex95start-type-identifier">apex::start (timer_name)<br>apex::start (function_address)<br>apex_start (type, identifier)</h3>
-<p>Create an APEX timer and start it. An APEX profiler object is returned, containing an identifier that APEX uses to stop the timer.  The timer is either identified by a name or a function/task instruction pointer address.</p>
-<h3 id="apexstop-the95profilerapex95stop-the95profiler">apex::stop (the_profiler)<br>apex_stop (the_profiler)</h3>
-<p>The timer associated with the profiler object is stopped and placed on an internal queue to be processed by the profiler handler thread in the background.  The profiler object is flagged as "stopped", so that when the profiler is processed the call count for this particular timer will be incremented by 1.</p>
-<h3 id="apexyield-the95profilerapex95yield-the95profiler">apex::yield (the_profiler)<br>apex_yield (the_profiler)</h3>
-<p>The timer associated with the profiler object is stopped and placed on an internal queue to be processed by the profiler handler thread in the background.  The profiler object is flagged as "NOT stopped", so that when the profiler is processed the call count will not be incremented.  An application using apex_yield should not use apex_resume to restart the timer, it should use apex_start.</p>
-<h3 id="apexresume-timer95nameapexresumefunction95addressapex95resume-type-identifier">apex::resume (timer_name)<br>apex::resume(function_address)<br>apex_resume (type, identifier)</h3>
-<p>Create an APEX timer and start it. An APEX profiler object is returned, containing an identifier that APEX uses to stop the timer.  The profiler is flagged as "NOT a new task", so that when it is stopped by apex_stop the call count for this particular timer will not be incremented.</p>
-<h3 id="apexnew95task-name-task95infoapexnew95task-function95address-task95infoapex95new95tasks-type-identifier-task95info">apex::new_task (name, task_info)<br>apex::new_task (function_address, task_info)<br>apex_new_tasks (type, identifier, task_info)</h3>
-<p>Register the creation of a new task. This is used to track task dependencies in APEX. APEX assumes that the current APEX profiler refers to the task that is the parent of this new task. The task_info object is a generic pointer to whatever data might need to be passed to a policy executed on when a new task is created.</p>
-<h3 id="apexsample95value-name-valueapex95sample95value-name-value">apex::sample_value (name, value)<br>apex_sample_value (name, value)</h3>
-<p>Record a measurement of the specified counter with the specified value. For example, "bytes transferred" and "1024".</p>
-<h3 id="apexset95state-stateapex95set95state-state">apex::set_state (state)<br>apex_set_state (state)</h3>
-<p>Set the state of the current OS thread.  States can include things like idle, running, blocked, etc.</p>
-<h2 id="policy-related-querying-and-modifying-methods">Policy related querying and modifying methods</h2>
-<h3 id="apexregister95policy-event95type-functionapexregister95policy-stdsetevent95type-functionapex95register95policy-event95type-function">apex::register_policy (event_type, function)<br>apex::register_policy (std::set&lt;event_type&gt;, function)<br>apex_register_policy (event_type, function)</h3>
-<p>Apex provides the ability to call an application-specified function when certain events occur in the APEX library, or periodically. This assigns the passed in function to the event, so that when that event occurs in APEX, the function is called. The context for the event will be passed to the registered function.</p>
-<h3 id="apexregister95periodic95policy-period-functionapex95register95periodic95policy-period-function">apex::register_periodic_policy (period, function)<br>apex_register_periodic_policy (period, function)</h3>
-<p>Apex provides the ability to call an application-specified function when certain events occur in the APEX library, or periodically. This method assigns the passed in function to be called on a periodic basis. The context for the event will be passed to the registered function.  The period units are in microseconds (us).</p>
-<h3 id="apexderegister95policy-handleapex95deregister95policy-handle">apex::deregister_policy (handle)<br>apex_deregister_policy (handle)</h3>
-<p>Remove the specified policy so that it will no longer be executed, whether it is event-based or periodic.</p>
-<h3 id="apexregister95custom95event-nameapex95register95custom95event-name">apex::register_custom_event (name)<br>apex_register_custom_event (name)</h3>
+<h3 id="printing-apex-settings">Printing APEX settings</h3>
+<pre><code class="c++">/* C++ */
+void apex::print_options (void);
+</code></pre>
+
+<pre><code class="c">/* C */
+void apex_print_options (void);
+</code></pre>
+
+<p>Print the current APEX options to stdout. When the APEX_SCREEN_OUTPUT 
+environment variable is set, this function is called during initialization.</p>
+<h2 id="basic-measurement-functions-introspection">Basic measurement Functions (introspection)</h2>
+<h3 id="starting-a-timer">Starting a timer</h3>
+<pre><code class="c++">/* C++ */
+apex::profiler * apex::start (const std::string &amp;timer_name);
+apex::profiler * apex::start (const apex_function_address function_address);
+</code></pre>
+
+<pre><code class="c">/* C */
+apex_profiler_handle apex_start (apex_profiler_type type, const void * identifier);
+</code></pre>
+
+<p>Create an APEX timer and start it. An APEX profiler object is returned,
+containing an identifier that APEX uses to stop the timer.  The timer is either
+identified by a name or a function/task instruction pointer address.</p>
+<h3 id="stopping-a-timer">Stopping a timer</h3>
+<pre><code class="c++">/* C++ */
+void apex::stop (apex::profiler * the_profiler);
+</code></pre>
+
+<pre><code class="c">/* C */
+void apex_stop (apex_profiler_handle the_profiler);
+</code></pre>
+
+<p>The timer associated with the profiler object is stopped and placed on an
+internal queue to be processed by the profiler handler thread in the
+background.  The profiler object is flagged as "stopped", so that when the
+profiler is processed the call count for this particular timer will be
+incremented by 1. The calling code should not try to access the memory 
+referenced by the profiler handle/pointer after this call, as the 
+referenced memory will be freed after the profiler is processed by the
+background thread.</p>
+<h3 id="yielding-a-timer">Yielding a timer</h3>
+<pre><code class="c++">/* C++ */
+void apex::yield (apex::profiler * the_profiler);
+</code></pre>
+
+<pre><code class="c">/* C */
+void apex_yield (apex_profiler_handle the_profiler);
+</code></pre>
+
+<p>The timer associated with the profiler object is stopped and placed on an
+internal queue to be processed by the profiler handler thread in the
+background.  The profiler object is flagged as "NOT stopped", so that when the
+profiler is processed the call count will NOT be incremented.  An application
+using apex_yield should not use apex_resume to restart the timer, it should use
+apex_start. Apex_yield is intended for situations when the completion state
+of the task is known when control is returned to the task scheduler. The
+calling code should not try to access the memory referenced by the profiler
+handle/pointer after this call, as the referenced memory will be freed after
+the profiler is processed by the background thread.</p>
+<h3 id="resuming-a-timer">Resuming a timer</h3>
+<pre><code class="c++">/* C++ */
+apex::profiler * apex::resume (const std::string &amp;timer_name);
+apex::profiler * apex::resume (const apex_function_address function_address);
+</code></pre>
+
+<pre><code class="c">/* C */
+apex_profiler_handle apex_resume (apex_profiler_type type, const void * identifier);
+</code></pre>
+
+<p>Create an APEX timer and start it. An APEX profiler object is returned,
+containing an identifier that APEX uses to stop the timer.  The profiler is
+flagged as "NOT a new task", so that when it is stopped by apex_stop the call
+count for this particular timer will not be incremented. Apex_resume is intended
+for situations when the completion state of a task is NOT known when control
+is returned to the task scheduler, but is known when an interrupted task is 
+resumed.</p>
+<h3 id="creating-a-new-task-dependency">Creating a new task dependency</h3>
+<pre><code class="c++">/* C++ */
+void apex::new_task (std::string &amp; name, const void * task_id);
+void apex::new_task (const apex_function_address function_address, const void * task_id);
+</code></pre>
+
+<pre><code class="c">/* C */
+void apex_new_task (apex_profiler_type type, const void * identifier, const void * task_id)
+</code></pre>
+
+<p>Register the creation of a new task. This is used to track task dependencies in
+APEX. APEX assumes that the current APEX profiler refers to the task that is
+the parent of this new task. The task_info object is a generic pointer to
+whatever data might need to be passed to a policy executed on when a new task
+is created.</p>
+<h3 id="sampling-a-value">Sampling a value</h3>
+<pre><code class="c++">/* C++ */
+void apex::sample_value (const std::string &amp; name, const double value)
+</code></pre>
+
+<pre><code class="c">/* C */
+void apex_sample_value (const char * name, const double value);
+</code></pre>
+
+<p>Record a measurement of the specified counter with the specified value. For
+example, "bytes transferred" and "1024".</p>
+<h3 id="setting-the-os-thread-state">Setting the OS thread state</h3>
+<pre><code class="c++">/* C++ */
+void apex::set_state (apex_thread_state state);
+</code></pre>
+
+<pre><code class="c">/* C */
+void apex_set_state (apex_thread_state state);
+</code></pre>
+
+<p>Set the state of the current OS thread.  States can include things like idle,
+busy, waiting, throttled, blocked.</p>
+<h2 id="policy-related-methods-adaptation">Policy-related methods (adaptation)</h2>
+<h3 id="registering-an-event-based-policy-function">Registering an event-based policy function</h3>
+<pre><code class="c++">/* C++ */
+apex_policy_handle* apex::register_policy (const apex_event_type when, std::function&lt;int(apex_context const&amp;)&gt; f);
+std::set&lt;apex_policy_handle*&gt; apex::register_policy (std::set&lt;apex_event_type&gt; when, std::function&lt;int(apex_context const&amp;)&gt; f);
+</code></pre>
+
+<pre><code class="c">/* C */
+/* C API tbd */
+</code></pre>
+
+<p>APEX provides the ability to call an application-specified function when
+certain events occur in the APEX library, or periodically. This assigns the
+passed in function to the event, so that when that event occurs in APEX, the
+function is called. The context for the event will be passed to the registered
+function. A set of events can also be used to register a policy function, which will
+return a set of policy handles. When any event in the set occurs, the function will
+be called.</p>
+<h3 id="registering-a-periodic-policy">Registering a periodic policy</h3>
+<pre><code class="c++">/* C++ */
+apex_policy_handle* apex::register_periodic_policy(const unsigned long period, std::function&lt;int(apex_context const&amp;)&gt; f);
+</code></pre>
+
+<pre><code class="c">/* C */
+/* C API tbd */
+</code></pre>
+
+<p>Apex provides the ability to call an application-specified function
+periodically. This method assigns the passed in function to be called on a
+periodic basis. The context for the event will be passed to the registered
+function.  The period units are in microseconds (us).</p>
+<h3 id="de-registering-a-policy">De-registering a policy</h3>
+<pre><code class="c++">/* C++ */
+apex::deregister_policy (apex_policy_handle * handle);
+</code></pre>
+
+<pre><code class="c">/* C */
+apex_deregister_policy (apex_policy_handle * handle);
+</code></pre>
+
+<p>Remove the specified policy so that it will no longer be executed, whether it
+is event-based or periodic. The calling code should not try to dereference the
+policy handle after this call, as the memory pointed to by the handle will be
+freed.</p>
+<h3 id="registering-a-custom-event">Registering a custom event</h3>
+<pre><code class="c++">/* C++ */
+apex_event_type apex::register_custom_event (const std::string &amp; name);
+</code></pre>
+
+<pre><code class="c">/* C */
+apex_event_type apex_register_custom_event (const char * name);
+</code></pre>
+
 <p>Register a new event type with APEX.</p>
-<h3 id="apexcustom95event-name-event95dataapex95custom95event-name-event95data">apex::custom_event (name, event_data)<br>apex_custom_event (name, event_data)</h3>
-<p>Trigger a custom event.  This function will pass a custom event to the APEX event listeners. Each listeners' custom event handler will handle the custom event. Policy functions will be passed the custom event name in the event context.</p>
-<h3 id="apexget95profile-nameapexget95profile-function95addressapex95get95profile-type-identifier">apex::get_profile (name)<br>apex::get_profile (function_address)<br>apex_get_profile (type, identifier)</h3>
-<p>This function will return the current profile for the specified identifier. Because profiles are updated out-of-band, it is possible that this profile value is out of date. This profile can be either a timer or a sampled value.</p>
-<h3 id="apexreset-timer_nameapexreset-function95addressapex95reset-type-identifier">apex::reset (timer_name)<br>apex::reset (function_address)<br>apex_reset (type, identifier)</h3>
-<p>This function will reset the profile associated with the specified timer or counter id to zero.  If the identifier is null, all timers and counters will be reset.</p>
+<h3 id="trigger-a-custom-event">Trigger a custom event</h3>
+<pre><code class="c++">/* C++ */
+void apex::custom_event (apex_event_type event_type, const void * event_data);
+</code></pre>
+
+<pre><code class="c">/* C */
+void apex_custom_event (const char * name, const void * event_data);
+</code></pre>
+
+<p>Trigger a custom event.  This function will pass a custom event to the APEX
+event listeners. Each listeners' custom event handler will handle the custom
+event. Policy functions will be passed the custom event name in the event
+context.  The event data pointer is to be used to pass memory to the policy
+function from the code that triggered the event.</p>
+<h3 id="request-a-profile-from-apex">Request a profile from APEX</h3>
+<pre><code class="c++">/* C++ */
+apex_profile * apex::get_profile (const std::string &amp; name);
+apex_profile * apex::get_profile (const apex_function_address function_address);
+</code></pre>
+
+<pre><code class="c">/* C */
+apex_profile * apex_get_profile (apex_profiler_type type, const void * identifier)
+</code></pre>
+
+<p>This function will return the current profile for the specified identifier.
+Because profiles are updated out-of-band, it is possible that this profile
+values are out of date. This profile can be either a timer or a sampled value.
+The structure referenced by the profile pointer will be continuously updated by
+APEX, so a policy function may choose to store this pointer for subsequent
+iterations.</p>
+<h3 id="reset-a-profile">Reset a profile</h3>
+<pre><code class="c++">/* C++ */
+void apex::reset (const std::string &amp; timer_name);
+void apex::reset (const apex_function_address function_address);
+</code></pre>
+
+<pre><code class="c">/* C */
+void apex_reset (apex_profiler_type type, const void * identifier)
+</code></pre>
+
+<p>This function will reset the profile associated with the specified timer or
+counter id to zero.  If the identifier is null, all timers and counters will be
+reset.</p>
 <h2 id="concurrency-throttling-policy-functions">Concurrency Throttling Policy Functions</h2>
-<h3 id="apexsetup95power95cap95throttling-apex95setup95power95cap95throttling">apex::setup_power_cap_throttling ()<br>apex_setup_power_cap_throttling ()</h3>
-<p>This function will initialize APEX for power cap throttling. With power cap throttling, APEX will reduce the thread concurrency to keep the application under a specified power cap.  There are several environment variables that control power cap throttling:</p>
+<h3 id="setting-up-power-cap-throttling">Setting up power cap throttling</h3>
+<pre><code class="c++">/* C++ */
+void apex::setup_power_cap_throttling (void)
+</code></pre>
+
+<pre><code class="c">/* C */
+void apex_setup_power_cap_throttling (void)
+</code></pre>
+
+<p>This function will initialize APEX for power cap throttling. With power cap
+throttling, APEX will reduce the thread concurrency to keep the application
+under a specified power cap.  There are several environment variables that
+control power cap throttling:</p>
 <ul>
 <li>APEX_THROTTLE_CONCURRENCY</li>
 <li>APEX_THROTTLE_ENERGY</li>
@@ -226,37 +772,83 @@
 <li>APEX_THROTTLING_MAX_WATTS</li>
 <li>APEX_THROTTLING_MIN_WATTS</li>
 </ul>
-<h3 id="apexsetup95timer95throttling-timer95name-criteria-method-update95intervalapexsetup95timer95throttling-function95address-criteria-method-update95intervalapex95setup95timer95throttling-type-identifier-criteria-method-update95interval">apex::setup_timer_throttling (timer_name, criteria, method, update_interval)<br>apex::setup_timer_throttling (function_address, criteria, method, update_interval)<br>apex_setup_timer_throttling (type, identifier, criteria, method, update_interval)</h3>
-<p>This function will initialize the throttling policy to optimize for the specified function. The optimization criteria include maximizing throughput, minimizing or maximizing time spent in the specified function. After evaluating the state of the system, the policy will set the thread cap, which can be queried using apex_get_thread_cap().</p>
-<h3 id="apexsetup95throughput95throttling-timer95name-criteria-event95type-num95inputs-inputs-mins-maxs-stepsapexsetup95throughput95throttling-function95address-criteria-event95type-num95inputs-inputs-mins-maxs-stepsapex95setup95throughput95throttling-type-identifier-criteria-event95type-num95inputs-inputs-mins-maxs-steps">apex::setup_throughput_throttling (timer_name, criteria, event_type, num_inputs, inputs, mins, maxs, steps)<br>apex::setup_throughput_throttling (function_address, criteria, event_type, num_inputs, inputs, mins, maxs, steps)<br>apex_setup_throughput_throttling (type, identifier, criteria, event_type, num_inputs, inputs, mins, maxs, steps)</h3>
-<p>This function will initialize the throttling policy to optimize for the specified function. The optimization criteria include maximizing throughput, minimizing or maximizing time spent in the specified function. After evaluating the state of the system, the policy will set the thread cap, which can be queried using apex_get_thread_cap().</p>
-<h3 id="apexsetup95custom95tuning-stdfunction-doublevoid-event95type-num95inputs-inputs-mins-maxs-steps">apex::setup_custom_tuning (std::function&lt; double(void)&gt;, event_type, num_inputs, inputs, mins, maxs, steps)</h3>
-<p>Setup tuning of specified parameters to optimize for a custom metric, using multiple input criteria.  This function will initialize a policy to optimize a custom metric, using the list of tunable parameters. The system tries to minimize the custom metric. After evaluating the state of the system, the policy will assign new values to the inputs.</p>
-<h3 id="apexget95tunable95params-handle">apex::get_tunable_params (handle)</h3>
+<h3 id="setup-tuning-for-adaptation">Setup tuning for adaptation</h3>
+<pre><code class="c++">/* C++ */
+apex_tuning_session_handle setup_custom_tuning(std::function&lt;double(void)&gt; metric, apex_event_type event_type, int num_inputs, long ** inputs, long * mins, long * maxs, long * steps);
+</code></pre>
+
+<pre><code class="c">/* C API tbd */
+</code></pre>
+
+<p>Setup tuning of specified parameters to optimize for a custom metric, using
+multiple input criteria.  This function will initialize a policy to optimize a
+custom metric, using the list of tunable parameters. The system tries to
+minimize the custom metric. After evaluating the state of the system, the
+policy will assign new values to the inputs.</p>
+<h3 id="getting-tunable-parameters">Getting tunable parameters</h3>
+<pre><code class="c++">/* C++ */
+std::vector&lt;std::pair&lt;std::string,long*&gt;&gt; &amp; get_tunable_params(apex_tuning_session_handle h);
+</code></pre>
+
+<pre><code class="c">/* C API tbd */
+</code></pre>
+
 <p>Return a vector of the current tunable parameters.</p>
-<h3 id="apexshutdown95throttling-apex95shutdown95throttling">apex::shutdown_throttling ()<br>apex_shutdown_throttling ()</h3>
+<h3 id="shutdown-throttling">Shutdown throttling</h3>
+<pre><code class="c++">/* C++ */
+void apex::shutdown_throttling (void);
+</code></pre>
+
+<pre><code class="c">/* C */
+void apex_shutdown_throttling (void);
+</code></pre>
+
 <p>This function will terminate the throttling policy.</p>
-<h3 id="apexget95thread95cap-apex95get95thread95cap">apex::get_thread_cap ()<br>apex_get_thread_cap ()</h3>
+<h3 id="get-the-current-thread-cap">Get the current thread cap</h3>
+<pre><code class="c++">/* C++ */
+int apex::get_thread_cap (void);
+</code></pre>
+
+<pre><code class="c">/* C */
+int apex_get_thread_cap (void);
+</code></pre>
+
 <p>This function will return the current thread cap based on the throttling policy.</p>
-<h3 id="apexset95thread95cap-new95capapex95set95thread95cap-new95cap">apex::set_thread_cap (new_cap)<br>apex_set_thread_cap (new_cap)</h3>
+<h3 id="set-the-current-thread-cap">Set the current thread cap</h3>
+<pre><code class="c++">/* C++ */
+void apex::set_thread_cap (int new_cap);
+</code></pre>
+
+<pre><code class="c">/* C */
+void apex_set_thread_cap (int new_cap);
+</code></pre>
+
 <p>This function will set the current thread cap based on an external throttling policy.</p>
-<h2 id="event-based-api-ocr-legion-tbd">Event-based API (OCR, Legion - <em>TBD</em>)</h2>
-<h3 id="apextask95create-parent95id">apex::task_create (parent_id)</h3>
-<h3 id="apexdependency95reached-event95id-data95id-task95id-parent95id">apex::dependency_reached (event_id, data_id, task_id, parent_id, ?)</h3>
-<h3 id="apextask95ready-why95ready">apex::task_ready (why_ready)</h3>
-<h3 id="apextask95execute-why95delay-function">apex::task_execute (why_delay, function)</h3>
-<h3 id="apextask95finished">apex::task_finished ()</h3>
-<h3 id="apextask95destroy">apex::task_destroy ()</h3>
-<h3 id="apexdata95create">apex::data_create ()</h3>
-<h3 id="apexdata95new95size">apex::data_new_size ()</h3>
-<h3 id="apexdata95move95from">apex::data_move_from ()</h3>
-<h3 id="apexdata95move95to">apex::data_move_to ()</h3>
-<h3 id="apexdata95replace">apex::data_replace ()</h3>
-<h3 id="apexdata95destroy">apex::data_destroy ()</h3>
-<h3 id="apexevent95create">apex::event_create ()</h3>
-<h3 id="apexevent95add95dependency">apex::event_add_dependency ()</h3>
-<h3 id="apexevent95trigger">apex::event_trigger ()</h3>
-<h3 id="apexevent95destroy">apex::event_destroy ()</h3>
+<h2 id="event-based-api-ocr-legion-support-tbd">Event-based API (OCR, Legion support - <em>TBD</em>)</h2>
+<p>The OCR and Legion runtimes teams have met to propose a common API for
+measuring asynchronous task-based runtimes.
+For more details, see <a href="https://github.com/khuck/xpress-apex/issues/37">https://github.com/khuck/xpress-apex/issues/37</a>.</p>
+<pre><code class="c++">/* C++ */
+apex::task_create (uint64_t parent_id)
+apex::dependency_reached (uint64_t event_id, uint64_t data_id, uint64_t task_id, uint64_t parent_id, ?)
+apex::task_ready (uint64_t why_ready)
+apex::task_execute (uint64_t why_delay, const apex_function_address function)
+apex::task_finished (uint64_t task_id)
+apex::task_destroy (uint64_t task_id)
+apex::data_create (uint64_t data_id)
+apex::data_new_size (uint64_t data_id)
+apex::data_move_from (uint64_t data_id, uint64_t target_location)
+apex::data_move_to (uint64_t data_id, uint64_t source_location)
+apex::data_replace (uint64_t data_id, uint64_t new_id)
+apex::data_destroy (uint64_t data_id)
+apex::event_create (uint64_t event_id, parent_task_id)
+apex::event_add_dependency (uint64_t event_id, uint64_t data_event_task_id, uint64_t parent_task_id)
+apex::event_trigger (uint64_t event_id)
+apex::event_destroy (uint64_t event_id)
+</code></pre>
+
+<pre><code class="c">/* C API tbd */
+</code></pre>
               
             </div>
           </div>
@@ -264,7 +856,7 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="../refman/" class="btn btn-neutral float-right" title="API Reference manual"/>Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="../refman/" class="btn btn-neutral float-right" title="API Doxygen Reference"/>Next <span class="icon icon-circle-arrow-right"></span></a>
       
       
         <a href="../examples/" class="btn btn-neutral" title="Research Examples"><span class="icon icon-circle-arrow-left"></span> Previous</a>
