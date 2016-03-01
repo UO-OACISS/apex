@@ -264,7 +264,7 @@ endif()
 endif()
 
 ################################################################################
-# TAU configuration
+# RCR configuration
 ################################################################################
 
 # RCR is NOT required.
@@ -372,6 +372,21 @@ if((DEFINED PAPI_ROOT) OR (USE_PAPI))
 		set(LIBS ${LIBS} ${PAPI_LIBRARIES})
 		set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${PAPI_LIBRARY_DIR})
 	endif()
+endif()
+
+################################################################################
+# MSR configuration
+################################################################################
+
+if((DEFINED MSR_ROOT) OR (USE_MSR))
+    find_package(MSR)
+    if(NOT MSR_FOUND)
+        message(FATAL_ERROR " Requested USE_MSR but could not find MSR; set MSR_ROOT")
+    endif()
+    message(INFO " Using msr: ${MSR_LIBRARY_DIR} ${MSR_LIBRARIES}")
+    include_directories(${MSR_INCLUDE_DIR})
+    set(LIBS ${LIBS} ${MSR_LIBRARIES})
+    set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${MSR_LIBRARY_DIR})
 endif()
 
 ################################################################################

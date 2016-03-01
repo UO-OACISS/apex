@@ -27,6 +27,7 @@
 #include "profiler.hpp" 
 #include "profile.hpp" 
 #include <functional>
+#include <stdio.h>
 
 #ifdef APEX_HAVE_RCR
 #include "libenergy.h"
@@ -486,6 +487,8 @@ APEX_EXPORT apex_profile* get_profile(const std::string &timer_name);
 APEX_EXPORT inline double current_power_high(void) {
 #ifdef APEX_HAVE_RCR
   return (double)rcr_current_power_high();
+#elif APEX_HAVE_MSR
+  return msr_current_power_high();
 #elif APEX_HAVE_PROC
   return (double)read_power();
 #else

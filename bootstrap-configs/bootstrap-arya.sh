@@ -30,7 +30,7 @@ cmake_install_prefix="-DCMAKE_INSTALL_PREFIX=../install" # the installation path
 cmake_use_codeblocks="-G \"CodeBlocks - Unix Makefiles\"" # if you want to debug in CodeBlocks
 cmake_make_verbose=""  # for verbose, use -DCMAKE_VERBOSE_MAKEFILE=ON
 cmake_use_mpi="-DUSE_MPI=FALSE" # TRUE or FALSE
-cmake_other_settings="-DCMAKE_C_COMPILER=gcc-4.9 -DCMAKE_CXX_COMPILER=g++-4.9 -DUSE_PLUGINS=TRUE -DBUILD_EXAMPLES=TRUE -DBUILD_TESTS=TRUE -DUSE_ACTIVEHARMONY=TRUE -DACTIVEHARMONY_ROOT=$ACTIVEHARMONY_ROOT -DUSE_OMPT=TRUE -DUSE_JEMALLOC=TRUE -DUSE_BFD=1"  # anything else?
+cmake_other_settings="-DCMAKE_C_COMPILER=gcc-4.9 -DCMAKE_CXX_COMPILER=g++-4.9 -DUSE_PLUGINS=TRUE -DBUILD_EXAMPLES=TRUE -DBUILD_TESTS=TRUE -DUSE_ACTIVEHARMONY=TRUE -DACTIVEHARMONY_ROOT=$ACTIVEHARMONY_ROOT -DUSE_OMPT=TRUE -DUSE_JEMALLOC=TRUE -DUSE_BFD=1 -DUSE_MSR=1 -DMSR_ROOT=$HOME/src/libmsr/inst"  # anything else?
 #cmake_other_settings="-DBUILD_EXAMPLES=TRUE -DBUILD_TESTS=TRUE -DUSE_ACTIVEHARMONY=TRUE -DUSE_OMPT=TRUE" # anything else?
 
 # runtime parameters for testing APEX with "make test"

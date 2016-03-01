@@ -114,5 +114,11 @@ inline int read_##name (void) { \
 FOREACH_APEX_XC30_VALUE(apex_macro)
 #undef apex_macro
 
+#ifdef APEX_HAVE_MSR
+void apex_init_msr(void);
+void apex_finalize_msr(void);
+double msr_current_power_high(void); 
+#endif
+
 } 
 #endif
