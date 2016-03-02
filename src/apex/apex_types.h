@@ -238,7 +238,7 @@ typedef uint32_t apex_tuning_session_handle;
     macro (APEX_PLUGINS, plugins, char*, "") \
     macro (APEX_PLUGINS_PATH, plugins_path, char*, "./") 
 
-#if defined(__linux)
+#if defined(__linux) || defined(__linux__)
 #  define APEX_NATIVE_TLS __thread
 #elif defined(_WIN32) || defined(_WIN64)
 #  define APEX_NATIVE_TLS __declspec(thread)
