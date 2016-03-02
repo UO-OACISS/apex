@@ -202,6 +202,18 @@ set(CMAKE_POSITION_INDEPENDENT_CODE True)
 set(POSITION_INDEPENDENT_CODE True)
 set(BUILD_SHARED_LIBS True)
 
+# Check if architecture is x86 or not
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)")
+  set(APEX_ARCH_X86 TRUE)
+else()
+  set(APEX_ARCH_X86 FALSE)
+endif()
+
+# If not x86, don't use RDTSC
+if(NOT APEX_ARCH_x86)
+  add_definitions(-DAPEX_USE_CLOCK_TIMESTAMP=1)  
+endif()
+
 ###############################################################################
 # reconfigure Boost library information if configuration type has been
 # changed since last configure

@@ -29,6 +29,7 @@ class disabled_profiler_exception : public std::exception {
     }
 };
 
+#ifndef APEX_USE_CLOCK_TIMESTAMP
 template<std::intmax_t clock_freq>
 struct rdtsc_clock {
     typedef unsigned long long rep;
@@ -42,6 +43,7 @@ struct rdtsc_clock {
         return time_point(duration(static_cast<rep>(hi) << 32 | lo));
     }
 };
+#endif
 
 #ifdef APEX_USE_CLOCK_TIMESTAMP
 #define MYCLOCK std::chrono::CLOCK_TYPE
