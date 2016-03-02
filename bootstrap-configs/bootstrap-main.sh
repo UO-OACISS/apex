@@ -66,7 +66,12 @@ if [ $# -gt 0 ] ; then
 fi
 
 datestamp=`date +%Y.%m.%d-%H.%M.%S`
-dir="build_$datestamp"
+dir=""
+if [ x"$WORKDIR" != "x" ] ; then
+    dir="${WORKDIR}/build_$datestamp"
+else
+    dir="build_$datestamp"
+fi
 mkdir $dir
 cd $dir
 
