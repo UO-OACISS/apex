@@ -360,8 +360,6 @@ string& version() {
 profiler* start(const std::string &timer_name) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return nullptr; }
-    // if APEX is suspended, do nothing.
-    if (apex_options::suspend() == true) { return profiler::get_disabled_profiler(); }
     if (boost::starts_with(timer_name, "apex_internal")) {
         return profiler::get_disabled_profiler(); // don't process our own events - queue scrubbing tasks.
     }
@@ -371,6 +369,8 @@ profiler* start(const std::string &timer_name) {
 #ifdef APEX_DEBUG
     _starts++;
 #endif
+    // if APEX is suspended, do nothing.
+    if (apex_options::suspend() == true) { return profiler::get_disabled_profiler(); }
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return nullptr; // protect against calls after finalization
     if (_notify_listeners) {
@@ -389,11 +389,11 @@ profiler* start(const std::string &timer_name) {
 profiler* start(apex_function_address function_address) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return nullptr; }
-    // if APEX is suspended, do nothing.
-    if (apex_options::suspend() == true) { return profiler::get_disabled_profiler(); }
 #ifdef APEX_DEBUG
     _starts++;
 #endif
+    // if APEX is suspended, do nothing.
+    if (apex_options::suspend() == true) { return profiler::get_disabled_profiler(); }
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return nullptr; // protect against calls after finalization
     if (_notify_listeners) {
@@ -420,11 +420,11 @@ profiler* start(apex_function_address function_address) {
 profiler* resume(const std::string &timer_name) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return nullptr; }
-    // if APEX is suspended, do nothing.
-    if (apex_options::suspend() == true) { return profiler::get_disabled_profiler(); }
 #ifdef APEX_DEBUG
     _resumes++;
 #endif
+    // if APEX is suspended, do nothing.
+    if (apex_options::suspend() == true) { return profiler::get_disabled_profiler(); }
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return nullptr; // protect against calls after finalization
     if (boost::starts_with(timer_name, "apex_internal")) {
@@ -444,11 +444,11 @@ profiler* resume(const std::string &timer_name) {
 profiler* resume(apex_function_address function_address) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return nullptr; }
-    // if APEX is suspended, do nothing.
-    if (apex_options::suspend() == true) { return profiler::get_disabled_profiler(); }
 #ifdef APEX_DEBUG
     _resumes++;
 #endif
+    // if APEX is suspended, do nothing.
+    if (apex_options::suspend() == true) { return profiler::get_disabled_profiler(); }
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return nullptr; // protect against calls after finalization
     if (_notify_listeners) {
