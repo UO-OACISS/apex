@@ -35,6 +35,7 @@ set(example_programs
     apex_shutdown_throttling
     apex_disable
     apex_suspend
+    apex_papi_suspend
    )
 #    apex_setup_power_cap_throttling
 #    apex_setup_throughput_tuning
@@ -65,6 +66,7 @@ foreach(example_program ${example_programs})
 endforeach()
 
 set_tests_properties(test_apex_disable PROPERTIES ENVIRONMENT "APEX_DISABLE=1")
+set_tests_properties(test_apex_disable PROPERTIES ENVIRONMENT "APEX_PAPI_METRICS=\"PAPI_TOT_CYC PAPI_TOT_INS\"")
 
 if(APPLE)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPTHREADS")
