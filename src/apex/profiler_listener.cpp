@@ -203,7 +203,11 @@ namespace apex {
 #if APEX_HAVE_PAPI
     tmp_num_counters = num_papi_counters;
     for (int i = 0 ; i < num_papi_counters ; i++) {
-        values[i] = p->papi_stop_values[i] - p->papi_start_values[i];
+        if (p->papi_stop_values[i] > p->papi_start_values[i]) {
+            values[i] = p->papi_stop_values[i] - p->papi_start_values[i];
+        } else {
+            values[i] = 0.0;
+        }
     }   
 #endif
     unordered_map<task_identifier, profile*>::const_iterator it = task_map.find(*(p->task_id));
@@ -805,6 +809,8 @@ node_color * get_node_color(double v,double vmin,double vmax)
 
 #if APEX_HAVE_PAPI
 APEX_NATIVE_TLS int EventSet = PAPI_NULL;
+enum papi_state { papi_running, papi_suspended };
+APEX_NATIVE_TLS papi_state thread_papi_state = papi_suspended;
 #define PAPI_ERROR_CHECK(name) \
 if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 
@@ -854,8 +860,11 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
             }
           }
         }
-        rc = PAPI_start( EventSet );
-        PAPI_ERROR_CHECK(PAPI_start);
+        if (!apex_options::get_papi_suspend()) {
+            rc = PAPI_start( EventSet );
+            PAPI_ERROR_CHECK(PAPI_start);
+            thread_papi_state = papi_running;
+        }
       }
   }
 
@@ -910,7 +919,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       // time the whole application.
       main_timer = std::make_shared<profiler>(new task_identifier(string(APEX_MAIN)));
 #if APEX_HAVE_PAPI
-      if (num_papi_counters > 0) {
+      if (num_papi_counters > 0 && !apex_options::get_papi_suspend() && thread_papi_state == papi_running) {
         int rc = PAPI_read( EventSet, main_timer->papi_start_values );
         PAPI_ERROR_CHECK(PAPI_read);
       }
@@ -937,7 +946,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       // stop the main timer, and process that profile?
       main_timer->stop();
 #if APEX_HAVE_PAPI
-      if (num_papi_counters > 0) {
+      if (num_papi_counters > 0 && !apex_options::get_papi_suspend() && thread_papi_state == papi_running) {
         int rc = PAPI_read( EventSet, main_timer->papi_stop_values );
         PAPI_ERROR_CHECK(PAPI_read);
       }
@@ -976,27 +985,6 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         write_profile();
       }
 
-// #if APEX_HAVE_PAPI
-#if 0
-      if (num_papi_counters > 0) {
-        int rc = 0;
-        int i = 0;
-        long long values[8] {0L};
-        //cout << values[0] << " " << values[1] << " " << values[2] << " " << values[3] << endl;
-        for (i = 0 ; i < thread_instance::get_num_threads() ; i++) {
-          rc = PAPI_read( event_sets[i], values );
-          PAPI_ERROR_CHECK(PAPI_stop);
-          //cout << values[0] << " " << values[1] << " " << values[2] << " " << values[3] << endl;
-        }
-        if (apex_options::use_screen_output() && node_id == 0 && num_papi_counters > 0) {
-          cout << endl << "TOTAL COUNTERS for " << thread_instance::get_num_threads() << " threads:" << endl;
-          for (i = 0 ; i < num_papi_counters ; i++) {
-            cout << metric_names[i] << " : " << values[i] << endl;
-          }
-          cout << endl;
-        }
-      }
-#endif
     }
     /* The cleanup is disabled for now. Why? Because we want to be able
      * to access the profiles at the end of the run, after APEX has
@@ -1054,9 +1042,23 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       std::shared_ptr<profiler> p = std::make_shared<profiler>(id, is_resume);
       thread_instance::instance().set_current_profiler(p);
 #if APEX_HAVE_PAPI
-      if (num_papi_counters > 0) {
-        int rc = PAPI_read( EventSet, p->papi_start_values );
-        PAPI_ERROR_CHECK(PAPI_read);
+      if (num_papi_counters > 0 && !apex_options::get_papi_suspend()) {
+          // if papi was previously suspended, we need to start the counters
+          if (thread_papi_state == papi_suspended) {
+            int rc = PAPI_start( EventSet, p->papi_start_values );
+            PAPI_ERROR_CHECK(PAPI_start);
+            thread_papi_state = papi_running;
+          }
+          int rc = PAPI_read( EventSet, p->papi_start_values );
+          PAPI_ERROR_CHECK(PAPI_read);
+      } else {
+          // if papi is still running, stop the counters
+          if (thread_papi_state == papi_running) {
+            long long dummy[8];
+            int rc = PAPI_stop( EventSet, dummy );
+            PAPI_ERROR_CHECK(PAPI_stop);
+            thread_papi_state = papi_suspended;
+          }
       }
 #endif
     } else {
@@ -1090,7 +1092,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       if (p) {
         p->stop(is_yield);
 #if APEX_HAVE_PAPI
-        if (num_papi_counters > 0) {
+        if (num_papi_counters > 0 && !apex_options::get_papi_suspend() && thread_papi_state == papi_running) {
             int rc = PAPI_read( EventSet, p->papi_stop_values );
             PAPI_ERROR_CHECK(PAPI_read);
         }

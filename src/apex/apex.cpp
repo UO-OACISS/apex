@@ -282,9 +282,11 @@ int initialize_worker_thread_for_TAU(void) {
   return 0;
 }
 
-void init(const char * thread_name)
-{
-    if (_registered || _initialized) return; // protect against multiple initializations
+void init(const char * thread_name) {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
+    // protect against multiple initializations
+    if (_registered || _initialized) { return; }
     _registered = true;
     _initialized = true;
     int argc = 1;
@@ -316,9 +318,11 @@ void init(const char * thread_name)
 	}
 }
 
-void init(int argc, char** argv, const char * thread_name)
-{
-    if (_registered || _initialized) return; // protect against multiple initializations
+void init(int argc, char** argv, const char * thread_name) {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
+    // protect against multiple initializations
+    if (_registered || _initialized) { return; }
     _registered = true;
     _initialized = true;
     apex* instance = apex::instance(argc, argv); // get/create the Apex static instance
@@ -346,14 +350,18 @@ void init(int argc, char** argv, const char * thread_name)
 	}
 }
 
-string& version()
-{
+string& version() {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { static string tmp("disabled"); return tmp; }
     apex* instance = apex::instance(); // get the Apex static instance
     return instance->version_string;
 }
 
-profiler* start(const std::string &timer_name)
-{
+profiler* start(const std::string &timer_name) {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return nullptr; }
+    // if APEX is suspended, do nothing.
+    if (apex_options::suspend() == true) { return profiler::get_disabled_profiler(); }
     if (boost::starts_with(timer_name, "apex_internal")) {
         return profiler::get_disabled_profiler(); // don't process our own events - queue scrubbing tasks.
     }
@@ -379,6 +387,10 @@ profiler* start(const std::string &timer_name)
 }
 
 profiler* start(apex_function_address function_address) {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return nullptr; }
+    // if APEX is suspended, do nothing.
+    if (apex_options::suspend() == true) { return profiler::get_disabled_profiler(); }
 #ifdef APEX_DEBUG
     _starts++;
 #endif
@@ -405,8 +417,11 @@ profiler* start(apex_function_address function_address) {
     return thread_instance::instance().get_current_profiler().get();
 }
 
-profiler* resume(const std::string &timer_name)
-{
+profiler* resume(const std::string &timer_name) {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return nullptr; }
+    // if APEX is suspended, do nothing.
+    if (apex_options::suspend() == true) { return profiler::get_disabled_profiler(); }
 #ifdef APEX_DEBUG
     _resumes++;
 #endif
@@ -427,6 +442,10 @@ profiler* resume(const std::string &timer_name)
 }
 
 profiler* resume(apex_function_address function_address) {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return nullptr; }
+    // if APEX is suspended, do nothing.
+    if (apex_options::suspend() == true) { return profiler::get_disabled_profiler(); }
 #ifdef APEX_DEBUG
     _resumes++;
 #endif
@@ -452,6 +471,8 @@ profiler* resume(apex_function_address function_address) {
 }
 
 void reset(const std::string &timer_name) {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
     task_identifier * id = new task_identifier(timer_name);
@@ -459,6 +480,8 @@ void reset(const std::string &timer_name) {
 }
 
 void reset(apex_function_address function_address) {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
 	if (function_address == APEX_NULL_FUNCTION_ADDRESS) {
@@ -470,13 +493,16 @@ void reset(apex_function_address function_address) {
 }
 
 void set_state(apex_thread_state state) {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
     instance->set_state(thread_instance::get_id(), state);
 }
 
-void stop(profiler* the_profiler)
-{
+void stop(profiler* the_profiler) {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
 #ifdef APEX_DEBUG
     _stops++;
 #endif
@@ -510,6 +536,8 @@ void stop(profiler* the_profiler)
 
 void yield(profiler* the_profiler)
 {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
 #ifdef APEX_DEBUG
     _yields++;
 #endif
@@ -541,6 +569,10 @@ void yield(profiler* the_profiler)
 
 void sample_value(const std::string &name, double value)
 {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
+    // if APEX is suspended, do nothing.
+    if (apex_options::suspend() == true) { return; }
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
     // parse the counter name
@@ -599,6 +631,10 @@ void sample_value(const std::string &name, double value)
 
 void new_task(const std::string &timer_name, void * task_id)
 {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
+    // if APEX is suspended, do nothing.
+    if (apex_options::suspend() == true) { return; }
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
     if (_notify_listeners) {
@@ -610,6 +646,10 @@ void new_task(const std::string &timer_name, void * task_id)
 }
 
 void new_task(apex_function_address function_address, void * task_id) {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
+    // if APEX is suspended, do nothing.
+    if (apex_options::suspend() == true) { return; }
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
     if (_notify_listeners) {
@@ -623,6 +663,8 @@ void new_task(apex_function_address function_address, void * task_id) {
 boost::atomic<int> custom_event_count(APEX_CUSTOM_EVENT_1);
 
 apex_event_type register_custom_event(const std::string &name) {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return APEX_CUSTOM_EVENT_1; }
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return APEX_CUSTOM_EVENT_1; // protect against calls after finalization
     if (custom_event_count == APEX_MAX_EVENTS) {
@@ -636,6 +678,8 @@ apex_event_type register_custom_event(const std::string &name) {
 }
 
 void custom_event(apex_event_type event_type, void * custom_data) {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
     custom_event_data data(event_type, custom_data);
@@ -649,6 +693,8 @@ void custom_event(apex_event_type event_type, void * custom_data) {
 
 void set_node_id(int id)
 {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
     apex* instance = apex::instance();
     if (!instance || _exited) return; // protect against calls after finalization
     instance->set_node_id(id);
@@ -730,6 +776,8 @@ void finalize_plugins(void) {
 
 void track_power(void)
 {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
 #ifdef APEX_HAVE_TAU
     TAU_TRACK_POWER();
 #endif
@@ -737,6 +785,8 @@ void track_power(void)
 
 void track_power_here(void)
 {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
 #ifdef APEX_HAVE_TAU
     TAU_TRACK_POWER_HERE();
 #endif
@@ -744,6 +794,8 @@ void track_power_here(void)
 
 void enable_tracking_power(void)
 {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
 #ifdef APEX_HAVE_TAU
     TAU_ENABLE_TRACKING_POWER();
 #endif
@@ -751,6 +803,8 @@ void enable_tracking_power(void)
 
 void disable_tracking_power(void)
 {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
 #ifdef APEX_HAVE_TAU
     TAU_DISABLE_TRACKING_POWER();
 #endif
@@ -758,6 +812,8 @@ void disable_tracking_power(void)
 
 void set_interrupt_interval(int seconds)
 {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
 #ifdef APEX_HAVE_TAU
     TAU_SET_INTERRUPT_INTERVAL(seconds);
 #else 
@@ -767,6 +823,8 @@ void set_interrupt_interval(int seconds)
 
 void finalize()
 {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
     shutdown_throttling(); // if not done already
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
@@ -815,6 +873,8 @@ void finalize()
 }
 
 void cleanup(void) {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
     apex* instance = apex::__instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against multiple calls
     if (!_measurement_stopped) {
@@ -825,6 +885,8 @@ void cleanup(void) {
 
 void register_thread(const std::string &name)
 {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
     if (_registered) return; // protect against multiple registrations on the same thread
@@ -854,6 +916,8 @@ void register_thread(const std::string &name)
 
 void exit_thread(void)
 {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
     _exited = true;
@@ -888,6 +952,8 @@ void exit_thread(void)
 apex_policy_handle* register_policy(const apex_event_type when,
                     std::function<int(apex_context const&)> f)
 {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return nullptr; }
     int id = -1;
     policy_handler * handler = apex::instance()->get_policy_handler();
     if(handler != nullptr)
@@ -904,6 +970,8 @@ apex_policy_handle* register_policy(const apex_event_type when,
 std::set<apex_policy_handle*> register_policy(std::set<apex_event_type> when,
                     std::function<int(apex_context const&)> f)
 {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return std::set<apex_policy_handle*>(); }
     std::set<apex_event_type>::iterator it;
     std::set<apex_policy_handle*> handles;
     for (it = when.begin(); it != when.end(); ++it)
@@ -924,6 +992,8 @@ int register_policy(std::chrono::duration<Rep, Period> const& period,
 apex_policy_handle* register_periodic_policy(unsigned long period_microseconds,
                     std::function<int(apex_context const&)> f)
  {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return nullptr; }
     int id = -1;
     policy_handler * handler = apex::instance()->get_policy_handler(period_microseconds);
     if(handler != nullptr)
@@ -938,6 +1008,8 @@ apex_policy_handle* register_periodic_policy(unsigned long period_microseconds,
 }
 
 void deregister_policy(apex_policy_handle * handle) {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
     // disable processing of policy for now
     //_notify_listeners = false;
     policy_handler * handler = apex::instance()->get_policy_handler();
@@ -949,6 +1021,8 @@ void deregister_policy(apex_policy_handle * handle) {
 }
 
 apex_profile* get_profile(apex_function_address action_address) {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return nullptr; }
 	task_identifier id = task_identifier(action_address);
     profile * tmp = apex::__instance()->the_profiler_listener->get_profile(id);
     if (tmp != nullptr)
@@ -957,6 +1031,8 @@ apex_profile* get_profile(apex_function_address action_address) {
 }
 
 apex_profile* get_profile(const std::string &timer_name) {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return nullptr; }
 	task_identifier id = task_identifier(timer_name);
     profile * tmp = apex::__instance()->the_profiler_listener->get_profile(id);
     if (tmp != nullptr)
@@ -971,6 +1047,8 @@ std::vector<std::string> get_available_profiles() {
 */
 
 void print_options() {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
     apex_options::print_options();
     return;
 }

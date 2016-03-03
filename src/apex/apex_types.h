@@ -211,7 +211,18 @@ typedef uint32_t apex_tuning_session_handle;
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
+
+/**
+ * for each of these macros, there are 5 values.
+ *  - The environment variable
+ *  - The apex_option member variable name
+ *  - The type
+ *  - The initial/default value
+ */
 #define FOREACH_APEX_OPTION(macro) \
+    macro (APEX_DISABLE, disable, bool, false) \
+    macro (APEX_SUSPEND, suspend, bool, false) \
+    macro (APEX_PAPI_SUSPEND, papi_suspend, bool, false) \
     macro (APEX_TAU, use_tau, bool, false) \
     macro (APEX_POLICY, use_policy, bool, true) \
     macro (APEX_MEASURE_CONCURRENCY, use_concurrency, int, 0) \

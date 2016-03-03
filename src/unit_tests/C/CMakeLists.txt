@@ -33,6 +33,8 @@ set(example_programs
     apex_print_options
     apex_get_thread_cap
     apex_shutdown_throttling
+    apex_disable
+    apex_suspend
    )
 #    apex_setup_power_cap_throttling
 #    apex_setup_throughput_tuning
@@ -61,6 +63,8 @@ foreach(example_program ${example_programs})
   add_dependencies (tests ${example_program})
   add_test ("test_${example_program}" ${example_program})
 endforeach()
+
+set_tests_properties(test_apex_disable PROPERTIES ENVIRONMENT "APEX_DISABLE=1")
 
 if(APPLE)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPTHREADS")
