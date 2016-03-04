@@ -168,6 +168,18 @@ current execution directory.</p>
 </thead>
 <tbody>
 <tr>
+<td>APEX_DISABLE</td>
+<td>0</td>
+<td>0,1</td>
+<td>Disable APEX during the application execution</td>
+</tr>
+<tr>
+<td>APEX_SUSPEND</td>
+<td>0</td>
+<td>0,1</td>
+<td>Suspend APEX timers and counters during the application execution</td>
+</tr>
+<tr>
 <td>APEX_SCREEN_OUTPUT</td>
 <td>1</td>
 <td>0,1</td>
@@ -249,7 +261,7 @@ current execution directory.</p>
 <td>APEX_THROTTLE_CONCURRENCY</td>
 <td>0</td>
 <td>0,1</td>
-<td>Deactivate/activate threads for policy support</td>
+<td>Enable thread concurrency throttling</td>
 </tr>
 <tr>
 <td>APEX_THROTTLING_MIN_THREADS</td>
@@ -292,6 +304,12 @@ current execution directory.</p>
 <td><em>null</em></td>
 <td>space-delimited string of metric names</td>
 <td>List of metrics to be measured by APEX when timers are used. Only meaningful if APEX is configured with PAPI support.  Any supported metric from <em>papi_avail</em> (<a href="http://icl.cs.utk.edu/projects/papi/wiki/PAPIC:papi_avail.1">see PAPI Documentation</a>) can be used.</td>
+</tr>
+<tr>
+<td>APEX_PAPI_SUSPEND</td>
+<td>0</td>
+<td>0,1</td>
+<td>Suspend collection of PAPI metrics for APEX timers during the application execution</td>
 </tr>
 </tbody>
 </table>
