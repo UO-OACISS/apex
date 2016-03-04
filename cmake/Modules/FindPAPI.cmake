@@ -15,8 +15,13 @@ endif()
 find_path(PAPI_INCLUDE_DIR NAMES papi.h
 	HINTS ${PAPI_ROOT}/include $ENV{PAPI_ROOT}/include)
 
-find_library(PAPI_LIBRARY NAMES libpapi.a papi
-	HINTS ${PAPI_ROOT}/* $ENV{PAPI_ROOT}/*)
+if(APPLE)
+    find_library(PAPI_LIBRARY NAMES libpapi.a papi
+	    HINTS ${PAPI_ROOT}/* $ENV{PAPI_ROOT}/*)
+else()
+    find_library(PAPI_LIBRARY NAMES papi
+	    HINTS ${PAPI_ROOT}/* $ENV{PAPI_ROOT}/*)
+endif(APPLE)
 
 include(FindPackageHandleStandardArgs)
 # handle the QUIETLY and REQUIRED arguments and set PAPI_FOUND to TRUE
