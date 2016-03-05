@@ -57,7 +57,7 @@ struct Foo {
     Foo(int num) : num_(num) {}
     void print_add(int i) const;
     int num_;
-    Foo(int num) : num_(num) {}
+};
 
 /*
 // forward declarations
