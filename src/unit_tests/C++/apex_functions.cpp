@@ -1,6 +1,16 @@
 /**
- * Helpful web pages:
+ * This code is based on this example:
+ * http://en.cppreference.com/w/cpp/utility/functional/function
+ *
+ * other helpful web pages:
  * http://www.dreamincode.net/forums/topic/264061-c11-fun-with-functions/
+ * https://gcc.gnu.org/onlinedocs/libstdc++/libstdc++-html-USERS-4.4/a00695.html
+ * https://gcc.gnu.org/onlinedocs/libstdc++/manual/ext_demangling.html
+ * http://www.cplusplus.com/forum/general/63552/
+ * http://www.cprogramming.com/c++11/c++11-lambda-closures.html
+ * http://stackoverflow.com/questions/81870/is-it-possible-to-print-a-variables-type-in-standard-c
+ * http://en.cppreference.com/w/cpp/concept/Callable
+ *
  */
 
 #include <functional>
@@ -47,7 +57,7 @@ struct Foo {
     Foo(int num) : num_(num) {}
     void print_add(int i) const;
     int num_;
-};
+    Foo(int num) : num_(num) {}
 
 /*
 // forward declarations
