@@ -61,7 +61,11 @@ T="$(date +%s)"
 
 if [ $# -gt 0 ] ; then
     if [ $1 == "--clean" ] || [ $1 == "-c" ] ; then
-        rm -rf build_*
+		if [ x"$WORKDIR" != "x" ] ; then
+        	rm -rf ${WORKDIR}/build_*
+		else
+        	rm -rf build_*
+		fi
     fi
 fi
 

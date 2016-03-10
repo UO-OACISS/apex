@@ -45,8 +45,8 @@ if((BUILD_BFD OR (NOT BFD_FOUND)) AND NOT APPLE)
     URL "http://ftp.gnu.org/gnu/binutils/binutils-2.25.tar.bz2"
     URL_HASH SHA256=22defc65cfa3ef2a3395faaea75d6331c6e62ea5dfacfed3e2ec17b08c882923
     CONFIGURE_COMMAND <SOURCE_DIR>/configure CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} CFLAGS=${CMAKE_C_FLAGS} CXXFLAGS=${CMAKE_CXX_FLAGS} LDFLAGS=${CMAKE_EXE_LINKER_FLAGS} --prefix=${CMAKE_INSTALL_PREFIX} --disable-dependency-tracking --enable-interwork --disable-multilib --enable-shared --enable-64-bit-bfd --target=${TARGET_ARCH} --enable-install-libiberty
-    BUILD_COMMAND make -j${MAKEJOBS}
-    INSTALL_COMMAND make install
+    BUILD_COMMAND make MAKEINFO=true -j${MAKEJOBS}
+    INSTALL_COMMAND make MAKEINFO=true install
     LOG_DOWNLOAD 1
     LOG_CONFIGURE 1
     LOG_BUILD 1
