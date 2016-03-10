@@ -56,6 +56,7 @@ static apex_tuning_session_handle create_session() {
   return result;
 }
 
+#ifdef APEX_HAVE_ACTIVEHARMONY
 static const char * library_for_strategy(apex_ah_tuning_strategy s) {
     switch(s) {
         case apex_ah_tuning_strategy::EXHAUSTIVE:
@@ -71,6 +72,7 @@ static const char * library_for_strategy(apex_ah_tuning_strategy s) {
             return "";
     }
 }
+#endif
 
 // this is the policy engine for APEX used to determine when contention
 // is present on the socket and reduce the number of active threads
