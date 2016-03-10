@@ -39,6 +39,8 @@
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
+class apex_tuning_request;
+
 /**
  \brief The main APEX namespace.
  
@@ -46,9 +48,6 @@
  The C interface has functions that start with "apex_".
 
  */
-
-class apex_tuning_request;
-
 namespace apex
 {
 
