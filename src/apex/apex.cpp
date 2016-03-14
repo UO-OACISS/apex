@@ -316,6 +316,9 @@ void init(const char * thread_name) {
 	  std::cout << version() << std::endl;
       apex_options::print_options();
 	}
+    if (apex_options::throttle_energy() && apex_options::throttle_concurrency() ) {
+      setup_power_cap_throttling();
+    }
 }
 
 void init(int argc, char** argv, const char * thread_name) {
