@@ -358,8 +358,9 @@ void concurrency_handler::output_samples(int node_id) {
   stringstream plotname;
   plotname << "concurrency." << node_id << ".gnuplot";
   myfile.open(plotname.str().c_str());
+  myfile << "everyNth(col) = (int(column(col))%" << (int)(max_X/10) << "==0)?stringcolumn(1):\"\";" << endl;
   myfile << "set key outside bottom center invert box" << endl;
-  myfile << "unset xtics" << endl;
+  myfile << "set xtics auto" << endl;
   myfile << "set ytics 4" << endl;
   myfile << "set y2tics auto" << endl;
   myfile << "set xrange[0:" << max_X << "]" << endl;
@@ -379,10 +380,10 @@ void concurrency_handler::output_samples(int node_id) {
   myfile << "set key noenhanced" << endl; // this allows underscores in names
   myfile << "plot for [COL=" << (4+num_params) << ":" << top_x.size()+num_params+4;
   myfile << "] '" << datname.str().c_str();
-  myfile << "' using COL:xticlabels(1) palette frac (COL-" << (3+num_params) << ")/" << top_x.size()+1;
+  myfile << "' using COL:xticlabel(everyNth(1)) palette frac (COL-" << (3+num_params) << ")/" << top_x.size()+1;
   myfile << ". title columnheader axes x1y1, '"  << datname.str().c_str();
-  myfile << "' using 2 with linespoints axes x1y1 title columnheader, '" << datname.str().c_str();
-  myfile << "' using 3 with linespoints axes x1y2 title columnheader,";
+  myfile << "' using 2 with lines linecolor rgb \"red\" axes x1y1 title columnheader, '" << datname.str().c_str();
+  myfile << "' using 3 with lines linecolor rgb \"black\" axes x1y2 title columnheader,";
   for(int p = 0; p < num_params; ++p) {
     myfile << "'" << datname.str().c_str() << "' using " << (4+p) << " with linespoints axes x1y2 title columnheader,";
   }
