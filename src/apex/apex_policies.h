@@ -9,8 +9,6 @@ extern bool apex_energyThrottling;   // Try to save power while throttling
 
 typedef enum {INITIAL_STATE, BASELINE, INCREASE, DECREASE, NO_CHANGE} last_action_t;
 
-typedef uint32_t apex_tuning_session_handle;
-
 #define  APEX_HIGH_POWER_LIMIT  220.0  // system specific cutoff to identify busy systems, WATTS
 #define  APEX_LOW_POWER_LIMIT   200.0  // system specific cutoff to identify busy systems, WATTS
 
