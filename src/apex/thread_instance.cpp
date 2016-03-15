@@ -20,6 +20,7 @@
 #include <windows.h>
 #elif defined(__linux) || defined(linux) || defined(__linux__)
 #include <execinfo.h>
+#include <linux/limits.h>
 #elif __APPLE__
 #  include <mach-o/dyld.h>
 #elif defined(__FreeBSD__)
