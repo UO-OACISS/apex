@@ -291,7 +291,7 @@ if (RCR_FOUND)
     add_definitions(-DAPEX_HAVE_RCR)
 else()
 	#if(EXISTS "/sys/cray/pm_counter/power")
-	IF("${HOST_BASENAME}" STREQUAL "edison")
+	IF(("${HOST_BASENAME}" STREQUAL "edison") OR ("$ENV{NERSC_HOST}" STREQUAL "edison"))
         #add_definitions(-fPIC)
 		set (APEX_HAVE_CRAY_POWER TRUE)
 		add_definitions(-DAPEX_HAVE_CRAY_POWER)
@@ -450,6 +450,13 @@ endif()
 # apparently, we need to make sure libm is last.
 find_library(MATHLIB m)
 set(LIBS ${LIBS} ${MATHLIB})
+
+IF(("${HOST_BASENAME}" STREQUAL "edison") OR ("$ENV{NERSC_HOST}" STREQUAL "edison"))
+    if (BFD_FOUND)
+        find_library(DYNAMICLIB dl)
+        set(LIBS ${LIBS} ${DYNAMICLIB})
+    endif()
+endif()
 
 ################################################################################
 
