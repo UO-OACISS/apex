@@ -26,7 +26,11 @@ endif(LM_SENSORS_FOUND)
 SET(all_SOURCE task_identifier.cpp apex.cpp thread_instance.cpp event_listener.cpp handler.cpp concurrency_handler.cpp policy_handler.cpp ${tau_SOURCE} profiler_listener.cpp ${bfd_SOURCE} apex_options.cpp apex_policies.cpp ${PROC_SOURCE} ${OMPT_SOURCE} ${SENSOR_SOURCE})
 
 add_library (apex_objlib OBJECT ${all_SOURCE})
-add_dependencies (apex_objlib project_activeharmony project_binutils project_boost)
+if(APEX_INTEL_MIC)
+    add_dependencies (apex_objlib project_activeharmony project_binutils project_boost)
+else()
+    add_dependencies (apex_objlib project_activeharmony project_binutils)
+endif(APEX_INTEL_MIC)
 
 add_library (apex SHARED $<TARGET_OBJECTS:apex_objlib>)
 add_library (apex_static STATIC $<TARGET_OBJECTS:apex_objlib>)

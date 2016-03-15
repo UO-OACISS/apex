@@ -1,7 +1,5 @@
 //  Copyright (c) 2014 University of Oregon
 //
-//  Distributed under the Boost Software License, Version 1.0. (See accompanying
-//  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #ifdef APEX_HAVE_HPX3
 #include <hpx/config.hpp>
@@ -14,8 +12,6 @@
 #include <stdlib.h>
 #include <string>
 #include <memory>
-#include <boost/algorithm/string/predicate.hpp>
-#include <boost/algorithm/string.hpp> 
 #if APEX_USE_PLUGINS
 #include <dlfcn.h>
 #endif
@@ -354,10 +350,10 @@ string& version()
 
 profiler* start(const std::string &timer_name)
 {
-    if (boost::starts_with(timer_name, "apex_internal")) {
+    if (starts_with(timer_name, string("apex_internal"))) {
         return profiler::get_disabled_profiler(); // don't process our own events - queue scrubbing tasks.
     }
-    if (boost::starts_with(timer_name, "shutdown_all")) {
+    if (starts_with(timer_name, string("shutdown_all"))) {
         return profiler::get_disabled_profiler();
     }
 #ifdef APEX_DEBUG
@@ -412,7 +408,7 @@ profiler* resume(const std::string &timer_name)
 #endif
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return nullptr; // protect against calls after finalization
-    if (boost::starts_with(timer_name, "apex_internal")) {
+    if (starts_with(timer_name, string("apex_internal"))) {
         return profiler::get_disabled_profiler(); // don't process our own events
     }
     if (_notify_listeners) {
@@ -675,7 +671,7 @@ void init_plugins(void) {
     }
     std::vector<std::string> plugin_names;
     std::vector<std::string> plugin_paths;
-    boost::split(plugin_names, plugin_names_str, boost::is_any_of(":"));
+    split(':', plugin_names_str, plugin_names);
     for(const std::string & plugin_name : plugin_names) {
         plugin_paths.push_back(plugins_prefix + "/" + plugin_name + plugins_suffix);
     }

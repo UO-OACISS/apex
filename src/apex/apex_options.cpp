@@ -1,7 +1,5 @@
 //  Copyright (c) 2014 University of Oregon
 //
-//  Distributed under the Boost Software License, Version 1.0. (See accompanying
-//  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include "apex_options.hpp"
 #include "apex.hpp"
@@ -9,7 +7,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include <fstream>
-#include <boost/algorithm/string.hpp> 
+#include "utils.hpp"
 
 namespace apex
 {
@@ -23,7 +21,7 @@ namespace apex
             while(!conf_file.eof()) {
                 conf_file >> line;
                 std::vector<std::string> parts;
-                boost::split(parts, line, boost::is_any_of("="));
+                split(line, '=', parts);
                 if(parts.size() == 2) {
                    setenv(parts[0].c_str(), parts[1].c_str(), 0);
                 }
