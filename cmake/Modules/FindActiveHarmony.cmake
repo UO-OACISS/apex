@@ -37,12 +37,13 @@ if((BUILD_ACTIVEHARMONY OR (NOT ACTIVEHARMONY_FOUND)) AND NOT APPLE)
     CONFIGURE_COMMAND ""
     BUILD_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/activeharmony-4.5/src/project_activeharmony && make MPICC=mpicc_disabled CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} CFLAGS=${CMAKE_C_FLAGS} CXXFLAGS=${CMAKE_CXX_FLAGS} LDFLAGS=${CMAKE_C_FLAGS}
     INSTALL_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/activeharmony-4.5/src/project_activeharmony && make MPICC=mpicc_disabled CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} CFLAGS=${CMAKE_C_FLAGS} CXXFLAGS=${CMAKE_CXX_FLAGS} LDFLAGS=${CMAKE_C_FLAGS} install PREFIX=${CMAKE_INSTALL_PREFIX}
+    INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
     LOG_DOWNLOAD 1
   )
   set(ACTIVEHARMONY_ROOT ${CMAKE_INSTALL_PREFIX})
-  ExternalProject_Get_Property(project_activeharmony install_dir)
+  #ExternalProject_Get_Property(project_activeharmony install_dir)
   add_library(harmony STATIC IMPORTED)
-  set_property(TARGET harmony PROPERTY IMPORTED_LOCATION ${install_dir}/lib/libharmony.a)
+  set_property(TARGET harmony PROPERTY IMPORTED_LOCATION ${CMAKE_INSTALL_PREFIX}/lib/libharmony.a)
   set(ACTIVEHARMONY_INCLUDE_DIR "${ACTIVEHARMONY_ROOT}/include")
   set(ACTIVEHARMONY_LIBRARY "${ACTIVEHARMONY_ROOT}/lib/libharmony.a")
   # handle the QUIETLY and REQUIRED arguments and set ACTIVEHARMONY_FOUND to TRUE
