@@ -56,7 +56,7 @@ foreach(example_program ${example_programs})
   # add example executable
   # add_executable(${example_program} EXCLUDE_FROM_ALL ${sources})
   add_executable(${example_program} ${sources})
-  target_link_libraries (${example_program} apex)
+  target_link_libraries (${example_program} apex stdc++)
   add_dependencies (${example_program} apex)
   add_dependencies (tests ${example_program})
   add_test ("test_${example_program}" ${example_program})
