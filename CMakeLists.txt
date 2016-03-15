@@ -210,7 +210,7 @@ else()
 endif()
 
 # If not x86, don't use RDTSC
-if(NOT APEX_ARCH_x86)
+if(NOT APEX_ARCH_X86)
   add_definitions(-DAPEX_USE_CLOCK_TIMESTAMP=1)  
 endif()
 
