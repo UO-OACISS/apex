@@ -11,7 +11,7 @@
 
 namespace apex {
 
-boost::asio::io_service handler::_io;
+std::chrono::microseconds handler::default_period(100000);
 
 }
 

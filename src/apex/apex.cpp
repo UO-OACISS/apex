@@ -51,18 +51,18 @@ namespace apex
 // Global static pointer used to ensure a single instance of the class.
 apex* apex::m_pInstance = nullptr;
 
-boost::atomic<bool> _notify_listeners(true);
-boost::atomic<bool> _measurement_stopped(false);
+std::atomic<bool> _notify_listeners(true);
+std::atomic<bool> _measurement_stopped(false);
 #ifdef APEX_DEBUG
-boost::atomic<unsigned int> _starts(0L);
-boost::atomic<unsigned int> _stops(0L);
-boost::atomic<unsigned int> _exit_stops(0L);
-boost::atomic<unsigned int> _resumes(0L);
-boost::atomic<unsigned int> _yields(0L);
+std::atomic<unsigned int> _starts(0L);
+std::atomic<unsigned int> _stops(0L);
+std::atomic<unsigned int> _exit_stops(0L);
+std::atomic<unsigned int> _resumes(0L);
+std::atomic<unsigned int> _yields(0L);
 #endif
 
 #if APEX_HAVE_PROC
-    boost::thread * proc_reader_thread;
+    std::thread * proc_reader_thread;
 #endif
 
 /*
@@ -205,7 +205,7 @@ void apex::_initialize()
         listeners.push_back(new concurrency_handler(apex_options::concurrency_period(), apex_options::use_concurrency()));
     }
 #if APEX_HAVE_PROC
-    proc_reader_thread = new boost::thread(ProcData::read_proc);
+    proc_reader_thread = new std::thread(ProcData::read_proc);
 #endif
     this->resize_state(1);
     this->set_state(0, APEX_BUSY);
@@ -620,7 +620,7 @@ void new_task(apex_function_address function_address, void * task_id) {
     }
 }
 
-boost::atomic<int> custom_event_count(APEX_CUSTOM_EVENT_1);
+std::atomic<int> custom_event_count(APEX_CUSTOM_EVENT_1);
 
 apex_event_type register_custom_event(const std::string &name) {
     apex* instance = apex::instance(); // get the Apex static instance
@@ -628,7 +628,7 @@ apex_event_type register_custom_event(const std::string &name) {
     if (custom_event_count == APEX_MAX_EVENTS) {
       std::cerr << "Cannot register more than MAX Events! (set to " << APEX_MAX_EVENTS << ")" << std::endl;
     }
-    boost::unique_lock<boost::shared_mutex> l(instance->custom_event_mutex);
+    std::unique_lock<std::mutex> l(instance->custom_event_mutex);
     instance->custom_event_names[custom_event_count] = name;
     int tmp = custom_event_count;
     custom_event_count++; 

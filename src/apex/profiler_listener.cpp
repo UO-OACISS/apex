@@ -19,8 +19,6 @@
 #include "profile.hpp"
 #include "apex.hpp"
 
-#include <boost/thread/thread.hpp>
-#include <boost/atomic.hpp>
 #include <atomic>
 #include <boost/range/adaptor/map.hpp>
 #include <boost/range/algorithm/copy.hpp>
@@ -34,7 +32,7 @@
 #include <cstdio>
 #include <vector>
 #include <string>
-#include <boost/regex.hpp>
+#include <regex>
 #include <unordered_set>
 #include <algorithm>
 #include <functional>
@@ -307,17 +305,17 @@ namespace apex {
           double &total_main) {
       string action_name = task_id.get_name();
 #if APEX_HAVE_BFD
-      boost::regex rx (".*UNRESOLVED ADDR (.*)");
-      if (boost::regex_match (action_name,rx)) {
-        const boost::regex separator(" ADDR ");
-        boost::sregex_token_iterator token(action_name.begin(), action_name.end(), separator, -1);
+      std::regex rx (".*UNRESOLVED ADDR (.*)");
+      if (std::regex_match (action_name,rx)) {
+        const std::regex separator(" ADDR ");
+        std::sregex_token_iterator token(action_name.begin(), action_name.end(), separator, -1);
         *token++; // ignore
         string addr_str = *token++;
         void* addr_addr;
         sscanf(addr_str.c_str(), "%p", &addr_addr);
         string * tmp = lookup_address((uintptr_t)addr_addr, true);
-        boost::regex old_address("UNRESOLVED ADDR " + addr_str);
-        action_name = boost::regex_replace(action_name, old_address, *tmp);
+        std::regex old_address("UNRESOLVED ADDR " + addr_str);
+        action_name = std::regex_replace(action_name, old_address, *tmp);
       }
 #endif
       string shorter(action_name);
@@ -482,17 +480,17 @@ namespace apex {
 
   void fix_name(string& in_name) {
 #if defined(HAVE_BFD)                                                            
-        boost::regex rx (".*UNRESOLVED ADDR (.*)");
-        if (boost::regex_match (in_name,rx)) {
-          const boost::regex separator(" ADDR ");
-          boost::sregex_token_iterator token(in_name.begin(), in_name.end(), separator, -1);
+        std::regex rx (".*UNRESOLVED ADDR (.*)");
+        if (std::regex_match (in_name,rx)) {
+          const std::regex separator(" ADDR ");
+          std::sregex_token_iterator token(in_name.begin(), in_name.end(), separator, -1);
           *token++; // ignore
           string addr_str = *token++;
           void* addr_addr;
           sscanf(addr_str.c_str(), "%p", &addr_addr);
           string tmp = lookup_address((uintptr_t)addr_addr, false);
-          boost::regex old_address("UNRESOLVED ADDR " + addr_str);
-          in_name = boost::regex_replace(in_name, old_address, tmp);
+          std::regex old_address("UNRESOLVED ADDR " + addr_str);
+          in_name = std::regex_replace(in_name, old_address, tmp);
         }
 #endif
   }
@@ -659,17 +657,17 @@ node_color * get_node_color(double v,double vmin,double vmax)
           mainp = p;
         } else {
 #if APEX_HAVE_BFD
-          boost::regex rx (".*UNRESOLVED ADDR (.*)");
-          if (boost::regex_match (action_name,rx)) {
-            const boost::regex separator(" ADDR ");
-            boost::sregex_token_iterator token(action_name.begin(), action_name.end(), separator, -1);
+          std::regex rx (".*UNRESOLVED ADDR (.*)");
+          if (std::regex_match (action_name,rx)) {
+            const std::regex separator(" ADDR ");
+            std::sregex_token_iterator token(action_name.begin(), action_name.end(), separator, -1);
             *token++; // ignore
             string addr_str = *token++;
             void* addr_addr;
             sscanf(addr_str.c_str(), "%p", &addr_addr);
             string * tmp = lookup_address((uintptr_t)addr_addr, true);
-            boost::regex old_address("UNRESOLVED ADDR " + addr_str);
-            action_name = boost::regex_replace(action_name, old_address, *tmp);
+            std::regex old_address("UNRESOLVED ADDR " + addr_str);
+            action_name = std::regex_replace(action_name, old_address, *tmp);
           }
 #endif
           myfile << "\"" << action_name << "\" ";
@@ -867,7 +865,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       my_tid = (unsigned int)thread_instance::get_id();
 #ifndef APEX_HAVE_HPX3
       // Start the consumer thread, to process profiler objects.
-      consumer_thread = new boost::thread(process_profiles_wrapper);
+      consumer_thread = new std::thread(process_profiles_wrapper);
 #endif
 
 #if APEX_HAVE_PAPI
@@ -1069,7 +1067,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       // we have to make a local copy, because lockfree queues DO NOT SUPPORT shared_ptrs!
       bool worked = thequeue.enqueue(p);
       if (!worked) {
-          static boost::atomic<bool> issued(false);
+          static std::atomic<bool> issued(false);
           if (!issued) {
               issued = true;
               cout << "APEX Warning : failed to push " << p->task_id->get_name() << endl;

@@ -36,29 +36,29 @@ using namespace std;
 namespace apex {
 
 // Global static pointer used to ensure a single instance of the class.
-boost::thread_specific_ptr<thread_instance> thread_instance::_instance;
+APEX_NATIVE_TLS thread_instance * thread_instance::_instance(nullptr);
 // Global static count of threads in system
-boost::atomic_int thread_instance::_num_threads(0);
+std::atomic_int thread_instance::_num_threads(0);
 // Global static count of *active* threads in system
-boost::atomic_int thread_instance::_active_threads(0);
+std::atomic_int thread_instance::_active_threads(0);
 // Global static map of HPX thread names to TAU thread IDs
 map<string, int> thread_instance::_name_map;
 // Global static mutex to control access to the map
-boost::mutex thread_instance::_name_map_mutex;
+std::mutex thread_instance::_name_map_mutex;
 // Global static map of TAU thread IDs to HPX workers
 map<int, bool> thread_instance::_worker_map;
 // Global static mutex to control access to the map
-boost::mutex thread_instance::_worker_map_mutex;
+std::mutex thread_instance::_worker_map_mutex;
 // Global static path to executable name
 string * thread_instance::_program_path = nullptr;
 
 thread_instance& thread_instance::instance(void) {
-  thread_instance* me = _instance.get();
+  thread_instance* me = _instance;
   if( ! me ) {
     // first time called by this thread
     // construct test element to be used in all subsequent calls from this thread
-    _instance.reset( new thread_instance());
-    me = _instance.get();
+    _instance = new thread_instance();
+    me = _instance;
     //me->_id = TAU_PROFILE_GET_THREAD();
     me->_id = _num_threads++;
     _active_threads++;
@@ -75,7 +75,7 @@ thread_instance::~thread_instance(void) {
 
 void thread_instance::set_worker(bool is_worker) {
   instance()._is_worker = is_worker;
-  boost::unique_lock<boost::mutex> l(_worker_map_mutex);
+  std::unique_lock<std::mutex> l(_worker_map_mutex);
   _worker_map[get_id()] = is_worker;
 }
 
@@ -88,7 +88,7 @@ void thread_instance::set_name(string name) {
   {
     instance()._top_level_timer_name = name;
     {
-        boost::unique_lock<boost::mutex> l(_name_map_mutex);
+        std::unique_lock<std::mutex> l(_name_map_mutex);
         _name_map[name] = get_id();
     }
     if (name.find("worker-thread") != string::npos) {
@@ -101,7 +101,7 @@ int thread_instance::map_name_to_id(string name) {
   //cout << "Looking for " << name << endl;
   int tmp = -1;
   {
-    boost::unique_lock<boost::mutex> l(_name_map_mutex);
+    std::unique_lock<std::mutex> l(_name_map_mutex);
     map<string, int>::const_iterator it = _name_map.find(name);
     if (it != _name_map.end()) {
       tmp = (*it).second;
@@ -114,7 +114,7 @@ bool thread_instance::map_id_to_worker(int id) {
   //cout << "Looking for " << name << endl;
   bool worker = false;
   {
-    boost::unique_lock<boost::mutex> l(_worker_map_mutex);
+    std::unique_lock<std::mutex> l(_worker_map_mutex);
     map<int, bool>::const_iterator it = _worker_map.find(id);
     if (it != _worker_map.end()) {
       worker = (*it).second;
@@ -152,7 +152,7 @@ const char* thread_instance::program_path(void) {
 
     if (_program_path == NULL) {
         char path[PATH_MAX + 1];
-        boost::uint32_t len = sizeof(path) / sizeof(path[0]);
+        std::uint32_t len = sizeof(path) / sizeof(path[0]);
 
         if (0 != _NSGetExecutablePath(path, &len))
             return NULL;

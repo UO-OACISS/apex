@@ -245,7 +245,9 @@ typedef uint32_t apex_tuning_session_handle;
 #elif defined(__FreeBSD__) || (defined(__APPLE__) && defined(__MACH__))
 #  define APEX_NATIVE_TLS __thread
 #else
-#  error "Native thread local storage is not supported for this platform"
+#  warning "Native thread local storage may not be supported for this platform"
+#  warning "Using: thread_local from C++11"
+#  define APEX_NATIVE_TLS thread_local
 #endif
 
 // This macro is to prevent compiler warnings for stub implementations,

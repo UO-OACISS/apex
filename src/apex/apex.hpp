@@ -28,8 +28,14 @@
 #include "profiler_listener.hpp"
 #include "apex_options.hpp"
 #include "apex_export.h" 
-#include <boost/thread/shared_mutex.hpp>
 #include <unordered_map>
+#if __cplusplus > 201701L 
+#include <shared_mutex>
+#elif __cplusplus > 201402L
+#include <shared_lock>
+#else
+#include <mutex>
+#endif
 
 #ifdef APEX_HAVE_RCR
 #include "libenergy.h"
@@ -95,7 +101,13 @@ public:
     std::vector<int (*)()> finalize_functions;
     std::string m_my_locality;
     std::unordered_map<int, std::string> custom_event_names;
-    boost::shared_mutex custom_event_mutex;
+#if __cplusplus > 201701L 
+    std::shared_mutex custom_event_mutex;
+#elif __cplusplus > 201402L
+    std::shared_lock custom_event_mutex;
+#else
+    std::mutex custom_event_mutex;
+#endif
     static apex* instance(); // singleton instance
     static apex* instance(int argc, char** argv); // singleton instance
     static apex* __instance(); // special case - for cleanup only!
@@ -120,7 +132,7 @@ public:
         return thread_states[thread_id]; 
     }
     void resize_state(int thread_id) { 
-        static boost::mutex _mtx;
+        static std::mutex _mtx;
         if ((unsigned int)thread_id >= thread_states.size()) {
           _mtx.lock();
           if ((unsigned int)thread_id >= thread_states.size()) {

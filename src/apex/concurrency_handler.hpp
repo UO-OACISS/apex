@@ -13,7 +13,7 @@
 #include <map>
 #include <set>
 #include <memory>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include "task_identifier.hpp"
 
 #ifdef SIGEV_THREAD_ID
@@ -29,7 +29,7 @@ private:
   void _init(void);
   // vectors and mutex
   std::vector<std::stack<task_identifier>* > _event_stack;
-  boost::mutex _vector_mutex;
+  std::mutex _vector_mutex;
   // periodic samples of stack top states
   std::vector<std::map<task_identifier, unsigned int>* > _states;
   // vector of power samples
@@ -39,7 +39,7 @@ private:
   std::map<std::string, std::vector<long>> _tunable_param_samples;
   // functions and mutex
   std::set<task_identifier> _functions;
-  boost::mutex _function_mutex;
+  std::mutex _function_mutex;
   int _option;
 public:
   concurrency_handler (void);
@@ -65,7 +65,6 @@ public:
   bool _handler(void);
   std::stack<task_identifier>* get_event_stack(unsigned int tid);
   void add_thread(unsigned int tid) ;
-  void _reset(void);
   void output_samples(int node_id);
 };
 

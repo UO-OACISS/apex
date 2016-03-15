@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include <fstream>
 #include <memory>
-#include <boost/atomic.hpp>
+#include <atomic>
 #include <list>
 #include <map>
 #include <string.h>
@@ -221,8 +221,8 @@ struct apex_tuning_session {
 #endif
 
     int test_pp = 0;
-    boost::atomic<bool> apex_energy_init{false};
-    boost::atomic<bool> apex_timer_init{false};
+    std::atomic<bool> apex_energy_init{false};
+    std::atomic<bool> apex_timer_init{false};
 
     bool converged_message = false;
 

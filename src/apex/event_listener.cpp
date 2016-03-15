@@ -10,10 +10,6 @@
 #include "event_listener.hpp"
 #include "thread_instance.hpp"
 
-/* At some point, make this multithreaded using the multiproducer/singlecomsumer example
- * at http://www.boost.org/doc/libs/1_55_0/doc/html/atomic/usage_examples.html
- */
-
 using namespace std;
 
 namespace apex {

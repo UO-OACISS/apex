@@ -6,7 +6,7 @@
 #pragma once
 
 #include "apex_types.h"
-#include <boost/unordered_map.hpp>
+#include <functional>
 
 namespace apex {
 
@@ -85,10 +85,9 @@ namespace std {
   {
     std::size_t operator()(const apex::task_identifier& k) const
     {
-      std::size_t seed = 0;
-      boost::hash_combine(seed,boost::hash_value(k.address));
-      boost::hash_combine(seed,boost::hash_value(k.name));
-      return seed;
+      std::size_t h1 = std::hash<int>()(k.address);
+      std::size_t h2 = std::hash<std::string>()(k.name);
+      return h1 ^ (h2 << 1);; // instead of boost::hash_combine
     }
   };
 

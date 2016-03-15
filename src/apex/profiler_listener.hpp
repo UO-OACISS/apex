@@ -13,18 +13,17 @@
 #include "apex_api.hpp"
 #include "event_listener.hpp"
 #include "apex_types.h"
-#include <boost/atomic.hpp>
+#include <atomic>
 #include <vector>
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>
+#ifdef APEX_HAVE_HPX3
 #include <boost/thread.hpp>
+#endif
 
-#include <boost/array.hpp>
-#include <boost/asio.hpp>
 #include "profile.hpp"
 #include "thread_instance.hpp"
-#include <boost/functional/hash.hpp>
 
 // These two are needed by concurrent queue - not defined by Intel Mic support.
 #ifndef ATOMIC_BOOL_LOCK_FREE
@@ -54,8 +53,8 @@ class profiler_listener : public event_listener {
 private:
   void _init(void);
   bool _initialized;
-  boost::atomic<bool> _done;
-  boost::atomic<int> active_tasks;
+  std::atomic<bool> _done;
+  std::atomic<int> active_tasks;
   std::shared_ptr<profiler> main_timer; // not a shared pointer, yet...
   void write_one_timer(task_identifier &task_id, profile * p,
                        std::stringstream &screen_output, std::stringstream &csv_output,
@@ -71,7 +70,7 @@ private:
   unsigned int process_profile(profiler* p, unsigned int tid);
   unsigned int process_dependency(task_dependency* td);
   int node_id;
-  boost::mutex _mtx;
+  std::mutex _mtx;
   bool _common_start(task_identifier * id, bool is_resume); // internal, inline function
   void _common_stop(std::shared_ptr<profiler> &p, bool is_yield); // internal, inline function
   void push_profiler(int my_tid, std::shared_ptr<profiler> &p);
@@ -90,7 +89,11 @@ private:
   std::vector<std::string> metric_names;
   void initialize_PAPI(bool first_time);
 #endif
+#ifdef APEX_HAVE_HPX3
   boost::thread * consumer_thread;
+#else
+  std::thread * consumer_thread;
+#endif
   semaphore queue_signal;
 public:
   profiler_listener (void) : _initialized(false), _done(false), node_id(0), task_map()

@@ -8,67 +8,69 @@
 
 #include <string>
 #include <iostream>
-#include <boost/asio.hpp>
-#include <boost/bind.hpp>
-#include <boost/thread.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
+#include <condition_variable>
+#include <thread>
+#include <chrono>
 
 namespace apex {
 
 class handler
 {
 private:
-  static boost::asio::io_service _io;
-  static const unsigned int default_period = 100000;
-  void _threadfunc(void) {
-      _io.run();
-  };
+    std::condition_variable cv;
+    std::mutex cv_m;
+    static std::chrono::microseconds default_period;
+    void _threadfunc(void) {
+        while (true) {
+            std::unique_lock<std::mutex> lk(cv_m);
+            auto now = std::chrono::system_clock::now();
+            auto rc = cv.wait_until(lk, now + _period);
+            if(rc == std::cv_status::timeout) {
+                //std::cerr << "Thread timed out.\n";
+                _handler();
+            } else {
+                //std::cerr << "Thread cancelled.\n";
+                return;
+            }
+        }
+    };
 protected:
-  unsigned int _period;
+  std::chrono::microseconds _period;
   bool _handler_initialized;
   bool _terminate;
-  boost::asio::deadline_timer _timer;
-  boost::thread* _timer_thread;
-  void reset(void) {
-      if (!_terminate) {
-        _timer.expires_at(_timer.expires_at() + boost::posix_time::microseconds(_period));
-        _timer.async_wait(boost::bind(&handler::_handler, this));
-      }
-  };
+  std::thread* _timer_thread;
   void run(void) {
-    _timer_thread = new boost::thread(&handler::_threadfunc, this);
+    _timer_thread = new std::thread(&handler::_threadfunc, this);
   };
 public:
   handler() : 
       _period(default_period), 
       _handler_initialized(false), 
       _terminate(false), 
-      _timer(_io, boost::posix_time::microseconds(_period)),
       _timer_thread(nullptr)
     { }
   handler(unsigned int period) : 
       _period(period), 
       _handler_initialized(false), 
       _terminate(false), 
-      _timer(_io, boost::posix_time::microseconds(_period)), 
       _timer_thread(nullptr)
     { }
-  // virtual destructor
-  virtual ~handler() {
+  void cancel(void) {
       _terminate = true; 
       if(_timer_thread != nullptr) {
-        _timer.cancel();
-        if (_timer_thread->try_join_for(boost::chrono::seconds(1))) {
-            _timer_thread->interrupt();
-        }
+        cv.notify_all();
+        _timer_thread->join();
         delete(_timer_thread);
         _timer_thread = nullptr;
       }
+  }
+  // virtual destructor
+  virtual ~handler() {
+      cancel();
   };
   // all methods in the interface that a handler has to override
   virtual bool _handler(void) {
       std::cout << "Default handler" << std::endl;
-      this->reset();
       return true;
   };
 };

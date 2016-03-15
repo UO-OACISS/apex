@@ -49,18 +49,18 @@ public:
 }
 
 #else
-// Not posix, so use Boost to build a semaphore.
+// Not posix, so use std to build a semaphore.
 
-#include <boost/thread/condition.hpp>
-#include <boost/thread/mutex.hpp>
+#include <condition>
+#include <mutex>
 
 namespace apex {
 
 class semaphore
 {
 private:
-    boost::mutex mutex_;
-    boost::condition_variable condition_;
+    std::mutex mutex_;
+    std::condition_variable condition_;
     unsigned long count_;
 
 public:
@@ -70,14 +70,14 @@ public:
 
     void post()
     {
-        boost::mutex::scoped_lock lock(mutex_);
+        std::mutex::scoped_lock lock(mutex_);
         ++count_;
         condition_.notify_one();
     }
 
     void wait()
     {
-        boost::mutex::scoped_lock lock(mutex_);
+        std::mutex::scoped_lock lock(mutex_);
         while(!count_)
             condition_.wait(lock);
         --count_;

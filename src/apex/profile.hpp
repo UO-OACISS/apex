@@ -1,7 +1,6 @@
 #ifndef PROFILE_HPP
 #define PROFILE_HPP
 
-//#include <boost/timer/timer.hpp>
 #include <chrono>
 #include <iostream>
 #include <sstream>

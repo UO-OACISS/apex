@@ -16,9 +16,14 @@
 #include <fstream>
 #include <thread>
 #include <unordered_map>
-#include <boost/atomic.hpp>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/shared_mutex.hpp>
+#include <atomic>
+#if __cplusplus > 201701L 
+#include <shared_mutex>
+#elif __cplusplus > 201402L
+#include <shared_mutex>
+#else
+#include <mutex>
+#endif
 
 #ifdef APEX_HAVE_RCR
 #include "libenergy.h"
@@ -30,12 +35,23 @@
 
 using namespace std;
 
-static boost::shared_mutex session_map_mutex;
-typedef boost::shared_lock<boost::shared_mutex> session_map_read_lock;
-typedef boost::unique_lock<boost::shared_mutex> session_map_write_lock;
+#if __cplusplus > 201701L 
+static std::shared_mutex session_map_mutex;
+typedef std::shared_lock<std::shared_mutex> session_map_read_lock;
+typedef std::unique_lock<std::shared_mutex> session_map_write_lock;
+#elif __cplusplus > 201402L
+static std::mutex session_map_mutex;
+typedef std::shared_lock<std::mutex> session_map_read_lock;
+typedef std::unique_lock<std::mutex> session_map_write_lock;
+#else
+#include <mutex>
+static std::mutex session_map_mutex;
+typedef std::unique_lock<std::mutex> session_map_read_lock;
+typedef std::unique_lock<std::mutex> session_map_write_lock;
+#endif
 
 static unordered_map<apex_tuning_session_handle, shared_ptr<apex_tuning_session>> session_map;
-static boost::atomic<apex_tuning_session_handle> next_handle{1};
+static std::atomic<apex_tuning_session_handle> next_handle{1};
 
 static shared_ptr<apex_tuning_session> get_session(const apex_tuning_session_handle & h) {
   session_map_read_lock l{session_map_mutex};
