@@ -22,6 +22,7 @@
 #include <functional>
 #include <chrono>
 #include <memory>
+#include <array>
 
 #if __cplusplus > 201701L 
 #include <shared_mutex>

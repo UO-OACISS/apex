@@ -10,7 +10,13 @@
 #include <atomic>
 #include <sstream>
 #include <string>
+#ifdef __MIC__
+#include "boost/regex.hpp"
+#define REGEX_NAMESPACE boost
+#else
 #include <regex>
+#define REGEX_NAMESPACE std
+#endif
 #include <set>
 #include "utils.hpp"
 #include <condition_variable>
@@ -347,9 +353,9 @@ bool parse_proc_cpuinfo() {
     int cpuid = 0;
     while ( fgets( line, 4096, f)) {
         string tmp(line);
-        const std::regex separator(":");
-        std::sregex_token_iterator token(tmp.begin(), tmp.end(), separator, -1);
-        std::sregex_token_iterator end;
+        const REGEX_NAMESPACE::regex separator(":");
+        REGEX_NAMESPACE::sregex_token_iterator token(tmp.begin(), tmp.end(), separator, -1);
+        REGEX_NAMESPACE::sregex_token_iterator end;
         string name = *token++;
         if (token != end) {
           string value = *token;
@@ -376,9 +382,9 @@ bool parse_proc_meminfo() {
     char line[4096] = {0};
     while ( fgets( line, 4096, f)) {
         string tmp(line);
-        const std::regex separator(":");
-        std::sregex_token_iterator token(tmp.begin(), tmp.end(), separator, -1);
-        std::sregex_token_iterator end;
+        const REGEX_NAMESPACE::regex separator(":");
+        REGEX_NAMESPACE::sregex_token_iterator token(tmp.begin(), tmp.end(), separator, -1);
+        REGEX_NAMESPACE::sregex_token_iterator end;
         string name = *token++;
         if (token != end) {
             string value = *token;
@@ -404,9 +410,9 @@ bool parse_proc_self_status() {
     while ( fgets( line, 4096, f)) {
         string tmp(line);
         if (!tmp.compare(0,prefix.size(),prefix)) {
-            const std::regex separator(":");
-            std::sregex_token_iterator token(tmp.begin(), tmp.end(), separator, -1);
-            std::sregex_token_iterator end;
+            const REGEX_NAMESPACE::regex separator(":");
+            REGEX_NAMESPACE::sregex_token_iterator token(tmp.begin(), tmp.end(), separator, -1);
+            REGEX_NAMESPACE::sregex_token_iterator end;
             string name = *token++;
             if (token != end) {
                 string value = *token;
@@ -442,9 +448,9 @@ bool parse_proc_netdev() {
     while (fgets(line, 4096, f)) {
         string outer_tmp(line);
         outer_tmp = trim(outer_tmp);
-        const std::regex separator("[|:\\s]+");
-        std::sregex_token_iterator token(outer_tmp.begin(), outer_tmp.end(), separator, -1);
-        std::sregex_token_iterator end;
+        const REGEX_NAMESPACE::regex separator("[|:\\s]+");
+        REGEX_NAMESPACE::sregex_token_iterator token(outer_tmp.begin(), outer_tmp.end(), separator, -1);
+        REGEX_NAMESPACE::sregex_token_iterator end;
         string devname = *token++; // device name
         string tmp = *token++;
         char* pEnd;

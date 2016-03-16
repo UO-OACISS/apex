@@ -7,6 +7,7 @@
 
 #include "apex_types.h"
 #include <functional>
+#include <string>
 
 namespace apex {
 
