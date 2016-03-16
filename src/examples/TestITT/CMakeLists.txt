@@ -11,7 +11,10 @@ add_dependencies (testITT apex ittnotify)
 add_dependencies (examples testITT)
 
 # Link the executable to the Apex library. 
-target_link_libraries (testITT apex ittnotify) 
+target_link_libraries (testITT apex ittnotify ${LIBS}) 
+if (BUILD_STATIC_EXECUTABLES)
+    set_target_properties(testITT PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
+endif()
 
 INSTALL(TARGETS testITT
   RUNTIME DESTINATION bin OPTIONAL

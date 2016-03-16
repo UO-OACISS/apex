@@ -10,17 +10,11 @@ add_executable (policyUnitTest policyUnitTest.c)
 add_dependencies (policyUnitTest apex)
 add_dependencies (examples policyUnitTest)
 
-if(APPLE)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPTHREADS")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPTHREADS")
-else()
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread -DPTHREADS")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -DPTHREADS")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
-endif()
-
 # Link the executable to the Apex library. 
-target_link_libraries (policyUnitTest apex)
+target_link_libraries (policyUnitTest apex ${LIBS})
+if (BUILD_STATIC_EXECUTABLES)
+    set_target_properties(policyUnitTest PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
+endif()
 
 INSTALL(TARGETS policyUnitTest
   RUNTIME DESTINATION bin OPTIONAL

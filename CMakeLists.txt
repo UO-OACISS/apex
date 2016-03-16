@@ -18,24 +18,26 @@ endif()
 ################################################################################
 # Set the RPATH to make sure executables always work without "make install"
 ################################################################################
-# use, i.e. don't skip the full RPATH for the build tree
-SET(CMAKE_SKIP_BUILD_RPATH  FALSE)
+if (NOT BUILD_STATIC_EXECUTABLES)
+    # use, i.e. don't skip the full RPATH for the build tree
+    SET(CMAKE_SKIP_BUILD_RPATH  FALSE)
 
-# when building, don't use the install RPATH already
-# (but later on when installing)
-SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+    # when building, don't use the install RPATH already
+    # (but later on when installing)
+    SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 
-SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+    SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 
-# add the automatically determined parts of the RPATH
-# which point to directories outside the build tree to the install RPATH
-SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+    # add the automatically determined parts of the RPATH
+    # which point to directories outside the build tree to the install RPATH
+    SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
-# the RPATH to be used when installing, but only if it's not a system directory
-LIST(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
-IF("${isSystemDir}" STREQUAL "-1")
-   SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
-ENDIF("${isSystemDir}" STREQUAL "-1")
+    # the RPATH to be used when installing, but only if it's not a system directory
+    LIST(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
+    IF("${isSystemDir}" STREQUAL "-1")
+    SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+    ENDIF("${isSystemDir}" STREQUAL "-1")
+endif()
 
 ################################################################################
 # Build type (needs to be handled before project command below)
@@ -64,9 +66,6 @@ set(CMAKE_CONFIGURATION_TYPES "${CMAKE_BUILD_TYPE}" CACHE INTERNAL
 
 # set the project name
 project (APEX CXX C)
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
 
 # If TAU is used, don't allow throttling - it can potentially lead to
 # overlapping timer errors in TAU.
@@ -204,15 +203,19 @@ configure_file (
   "${PROJECT_BINARY_DIR}/src/apex/apex_config.h"
 )
 
-# use PIC for shared objects
-set(CMAKE_POSITION_INDEPENDENT_CODE True)
-set(POSITION_INDEPENDENT_CODE True)
-set(BUILD_SHARED_LIBS True)
-
 if (BUILD_STATIC_EXECUTABLES)
-	SET(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
-	#SET(BUILD_SHARED_LIBRARIES OFF)
-	SET(CMAKE_EXE_LINKER_FLAGS "-static")
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_STATIC_LIBRARY_SUFFIX})
+    set(CMAKE_POSITION_INDEPENDENT_CODE FALSE)
+    set(POSITION_INDEPENDENT_CODE FALSE)
+    set(BUILD_SHARED_LIBS FALSE)
+	set(CMAKE_EXE_LINKER_FLAGS "-static")
+    set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS)
+    set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS)
+else()
+    # use PIC for shared objects
+    set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
+    set(POSITION_INDEPENDENT_CODE TRUE)
+    set(BUILD_SHARED_LIBS TRUE)
 endif()
 
 ###############################################################################
@@ -274,7 +277,9 @@ find_package(TAU)
 if (TAU_FOUND)
 	include_directories(${TAU_INCLUDE_DIRS})
 	set(LIBS ${LIBS} ${TAU_LIBRARIES})
-	set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${TAU_LIBRARY_DIR})
+    if (NOT BUILD_STATIC_EXECUTABLES)
+	    set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${TAU_LIBRARY_DIR})
+    endif()
     set(USE_TAU TRUE)
 endif()
 endif()
@@ -291,7 +296,9 @@ endif()
 if (RCR_FOUND)
     include_directories(${RCR_INCLUDE_DIRS})
     set(LIBS ${LIBS} ${RCR_LIBRARIES})
-    set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${RCR_LIBRARY_DIR})
+    if (NOT BUILD_STATIC_EXECUTABLES)
+        set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${RCR_LIBRARY_DIR})
+    endif()
     add_definitions(-DAPEX_HAVE_RCR)
 else()
 	#if(EXISTS "/sys/cray/pm_counter/power")
@@ -308,13 +315,15 @@ endif ((NOT DEFINED USE_OMPT) OR (USE_OMPT))
  
 if (OPENMP_FOUND)
     if ((DEFINED OMPT_ROOT) OR (USE_OMPT) OR (BUILD_OMPT))
-      find_package(OMPT)
-      if (OMPT_FOUND)
-          include_directories(${OMPT_INCLUDE_DIRS})
-          set(LIBS ${LIBS} ${OMPT_LIBRARIES})
-          set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${OMPT_LIBRARY_DIR})
-      endif()
-  endif()
+        find_package(OMPT)
+        if (OMPT_FOUND)
+            include_directories(${OMPT_INCLUDE_DIRS})
+            set(LIBS ${LIBS} ${OMPT_LIBRARIES})
+            if (NOT BUILD_STATIC_EXECUTABLES)
+                set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${OMPT_LIBRARY_DIR})
+            endif()
+        endif()
+    endif()
 endif()
 
 if(EXISTS "/proc/stat")
@@ -331,7 +340,9 @@ if((DEFINED JEMALLOC_ROOT) OR (USE_JEMALLOC))
     if (JEmalloc_FOUND)
         include_directories(${JEmalloc_INCLUDE_DIRS})
         set(LIBS ${LIBS} ${JEmalloc_LIBRARIES})
-        set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${JEmalloc_LIBRARY_DIR})
+        if (NOT BUILD_STATIC_EXECUTABLES)
+            set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${JEmalloc_LIBRARY_DIR})
+        endif()
     endif()
 endif()
 
@@ -340,7 +351,9 @@ if((DEFINED TCMALLOC_ROOT) OR (USE_TCMALLOC))
     if (Tcmalloc_FOUND)
         include_directories(${Tcmalloc_INCLUDE_DIRS})
         set(LIBS ${LIBS} ${Tcmalloc_LIBRARIES})
-        set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${Tcmalloc_LIBRARY_DIR})
+        if (NOT BUILD_STATIC_EXECUTABLES)
+            set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${Tcmalloc_LIBRARY_DIR})
+        endif()
     endif()
 endif()
 
@@ -353,7 +366,9 @@ if((DEFINED LM_SENSORS_ROOT) OR (USE_LM_SENSORS))
     if (LM_SENSORS_FOUND)
         include_directories(${LM_SENSORS_INCLUDE_DIRS})
         set(LIBS ${LIBS} ${LM_SENSORS_LIBRARIES})
-        set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${LM_SENSORS_LIBRARY_DIR})
+        if (NOT BUILD_STATIC_EXECUTABLES)
+            set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${LM_SENSORS_LIBRARY_DIR})
+        endif()
     endif()
 endif()
 
@@ -373,7 +388,9 @@ if((DEFINED ACTIVEHARMONY_ROOT) OR (USE_ACTIVEHARMONY) OR (BUILD_ACTIVEHARMONY))
     if (ACTIVEHARMONY_FOUND)
         include_directories(${ACTIVEHARMONY_INCLUDE_DIRS})
         set(LIBS ${LIBS} ${ACTIVEHARMONY_LIBRARIES})
-        set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${ACTIVEHARMONY_LIBRARY_DIR})
+        if (NOT BUILD_STATIC_EXECUTABLES)
+            set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${ACTIVEHARMONY_LIBRARY_DIR})
+        endif()
     endif()
 endif()
 
@@ -386,7 +403,9 @@ if((DEFINED PAPI_ROOT) OR (USE_PAPI))
 	if (PAPI_FOUND)
 		include_directories(${PAPI_INCLUDE_DIRS})
 		set(LIBS ${LIBS} ${PAPI_LIBRARIES})
-		set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${PAPI_LIBRARY_DIR})
+        if (NOT BUILD_STATIC_EXECUTABLES)
+		    set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${PAPI_LIBRARY_DIR})
+        endif()
 	endif()
 endif()
 
@@ -402,7 +421,9 @@ if((DEFINED MSR_ROOT) OR (USE_MSR))
     message(INFO " Using msr: ${MSR_LIBRARY_DIR} ${MSR_LIBRARIES}")
     include_directories(${MSR_INCLUDE_DIR})
     set(LIBS ${LIBS} ${MSR_LIBRARIES})
-    set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${MSR_LIBRARY_DIR})
+    if (NOT BUILD_STATIC_EXECUTABLES)
+        set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${MSR_LIBRARY_DIR})
+    endif()
 endif()
 
 ################################################################################
@@ -414,7 +435,9 @@ if((DEFINED BFD_ROOT) OR (USE_BFD) OR (BUILD_BFD))
     if (BFD_FOUND)
         include_directories(${BFD_INCLUDE_DIRS})
         set(LIBS ${LIBS} ${BFD_LIBRARIES})
-        set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${BFD_LIBRARY_DIR})
+        if (NOT BUILD_STATIC_EXECUTABLES)
+            set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${BFD_LIBRARY_DIR})
+        endif()
         message(INFO " Using binutils: ${BFD_LIBRARY_DIR} ${BFD_LIBRARIES}")
 	endif()
 
@@ -422,7 +445,9 @@ if((DEFINED BFD_ROOT) OR (USE_BFD) OR (BUILD_BFD))
 	if (DEMANGLE_FOUND)
 		include_directories(${DEMANGLE_INCLUDE_DIRS})
 		set(LIBS ${LIBS} ${DEMANGLE_LIBRARIES})
-		set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${DEMANGLE_LIBRARY_DIR})
+        if (NOT BUILD_STATIC_EXECUTABLES)
+		    set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${DEMANGLE_LIBRARY_DIR})
+        endif()
         message(INFO " Using demangle: ${DEMANGLE_LIBRARY_DIR} ${DEMANGLE_LIBRARIES}")
 	else()
   	unset(DEMANGLE_LIBRARY)
@@ -433,7 +458,9 @@ if((DEFINED BFD_ROOT) OR (USE_BFD) OR (BUILD_BFD))
 		find_package(ZLIB)
 		if (ZLIB_FOUND)
 			set(LIBS ${LIBS} ${ZLIB_LIBRARIES})
-			set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${ZLIB_LIBRARY_DIR})
+            if (NOT BUILD_STATIC_EXECUTABLES)
+			    set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${ZLIB_LIBRARY_DIR})
+            endif()
         	message(INFO " Using zlib: ${ZLIB_LIBRARY_DIR} ${ZLIB_LIBRARIES}")
 		endif()
 	endif(NOT APEX_INTEL_MIC)
@@ -441,23 +468,32 @@ else()
 	add_custom_target(project_binutils)
 endif()
 
-################################################################################
-# JSON configuration
-################################################################################
-
 if(USE_PLUGINS)
     message(INFO " apex will be built with plugin support.")
     set(LIBS ${LIBS} ${CMAKE_DL_LIBS})
     add_definitions("-DAPEX_USE_PLUGINS")
 endif()
 
-# apparently, we need to make sure libm is last.
-# find_library(PTHREADLIB pthread)
-# set(LIBS ${LIBS} ${PTHREADLIB})
+################################################################################
+# Standard Library configuration
+################################################################################
 
-# apparently, we need to make sure libm is last.
-# find_library(STDCPPLIB stdc++)
-# set(LIBS ${LIBS} ${STDCPPLIB})
+set(CMAKE_THREAD_PREFER_PTHREAD ON)
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+if ((${CMAKE_MAJOR_VERSION} GREATER 2) AND (${CMAKE_MINOR_VERSION} GREATER 0))
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
+    set(LIBS ${LIBS} Threads::Threads)
+else()
+    if(THREADS_HAVE_PTHREAD_ARG)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
+    endif()
+    if(CMAKE_THREAD_LIBS_INIT)
+        set(LIBS ${LIBS} ${CMAKE_THREAD_LIBS_INIT})
+    endif()
+endif()
 
 # apparently, we need to make sure libm is last.
 find_library(MATHLIB m)
@@ -477,7 +513,9 @@ endif()
 
 ################################################################################
 
-set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} "${CMAKE_INSTALL_PREFIX}/lib")
+if (NOT BUILD_STATIC_EXECUTABLES)
+    set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} "${CMAKE_INSTALL_PREFIX}/lib")
+endif()
 
 # needed for apex.pc.in
 SET(prefix ${CMAKE_INSTALL_PREFIX})
@@ -496,10 +534,12 @@ list(REMOVE_DUPLICATES MY_LIBS )
 list(REMOVE_DUPLICATES MY_LINKFLAGS )
 string(REPLACE ";" " " TMP_LIBS "${MY_LIBS}")
 string(REPLACE ";" " " TMP_LINKFLAGS "${MY_LINKFLAGS}")
-# absorb the spaces first
-string(REGEX REPLACE "[ ]*-L" ",-rpath," TMP_RPATH "${TMP_LINKFLAGS}")
-SET(extralibs "${TMP_LINKFLAGS} ${TMP_LIBS} ${CMAKE_EXE_LINKER_FLAGS}")
-SET(extralibs_rpath "-Wl${TMP_RPATH}")
+if (NOT BUILD_STATIC_EXECUTABLES)
+    # absorb the spaces first
+    string(REGEX REPLACE "[ ]*-L" ",-rpath," TMP_RPATH "${TMP_LINKFLAGS}")
+    SET(extralibs "${TMP_LINKFLAGS} ${TMP_LIBS} ${CMAKE_EXE_LINKER_FLAGS}")
+    SET(extralibs_rpath "-Wl${TMP_RPATH}")
+endif()
 if (RCR_FOUND)
 SET(extraincludes "-I${RCR_INCLUDE_DIR}")
 endif (RCR_FOUND)
@@ -523,7 +563,9 @@ enable_testing()
 add_subdirectory (src/apex) 
 add_subdirectory (src/ITTNotify) 
 add_subdirectory (src/comm) 
-add_subdirectory (src/wrappers) 
+if (NOT BUILD_STATIC_EXECUTABLES)
+    add_subdirectory (src/wrappers) 
+endif()
 if(MPI_CXX_FOUND)
   add_subdirectory (src/comm/mpi) 
 endif()

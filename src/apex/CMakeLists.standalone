@@ -25,24 +25,26 @@ endif(LM_SENSORS_FOUND)
 
 SET(all_SOURCE task_identifier.cpp apex.cpp thread_instance.cpp event_listener.cpp handler.cpp concurrency_handler.cpp policy_handler.cpp ${tau_SOURCE} profiler_listener.cpp ${bfd_SOURCE} apex_options.cpp apex_policies.cpp ${PROC_SOURCE} ${OMPT_SOURCE} ${SENSOR_SOURCE})
 
-add_library (apex_objlib OBJECT ${all_SOURCE})
+#add_library (apex_objlib OBJECT ${all_SOURCE})
+#if (BUILD_STATIC_EXECUTABLES)
+    #add_library (apex STATIC $<TARGET_OBJECTS:apex_objlib>)
+    #set_target_properties(apex PROPERTIES OUTPUT_NAME apex)
+#else()
+    #add_library (apex SHARED $<TARGET_OBJECTS:apex_objlib>)
+    #set_target_properties(apex PROPERTIES OUTPUT_NAME apex)
+    #target_link_libraries(apex ${LIBS})
+    #add_library (apex_static STATIC $<TARGET_OBJECTS:apex_objlib>)
+    #set_target_properties(apex_static PROPERTIES OUTPUT_NAME apex)
+#endif()
+add_library (apex ${all_SOURCE})
+
 if(APEX_INTEL_MIC)
-    add_dependencies (apex_objlib project_activeharmony project_binutils project_boost)
+    #add_dependencies (apex_objlib project_activeharmony project_binutils project_boost)
+    add_dependencies (apex project_activeharmony project_binutils project_boost)
 else()
-    add_dependencies (apex_objlib project_activeharmony project_binutils)
+    #add_dependencies (apex_objlib project_activeharmony project_binutils)
+    add_dependencies (apex project_activeharmony project_binutils)
 endif(APEX_INTEL_MIC)
-
-if (BUILD_STATIC_EXECUTABLES)
-    add_library (apex STATIC $<TARGET_OBJECTS:apex_objlib>)
-    set_target_properties(apex PROPERTIES OUTPUT_NAME apex)
-else()
-    add_library (apex SHARED $<TARGET_OBJECTS:apex_objlib>)
-    set_target_properties(apex PROPERTIES OUTPUT_NAME apex)
-    target_link_libraries(apex ${LIBS})
-    add_library (apex_static STATIC $<TARGET_OBJECTS:apex_objlib>)
-    set_target_properties(apex_static PROPERTIES OUTPUT_NAME apex)
-endif()
-
 
 # add the binary tree to the search path for include files
 # so that we will find ApexConfig.h
@@ -66,9 +68,9 @@ INSTALL(FILES apex.h
     task_identifier.hpp
     DESTINATION include)
 
-if (BUILD_STATIC_EXECUTABLES)
+#if (BUILD_STATIC_EXECUTABLES)
     INSTALL(TARGETS apex RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
-else()
-    INSTALL(TARGETS apex apex_static RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
-endif()
+#else()
+    #INSTALL(TARGETS apex apex_static RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
+#endif()
 

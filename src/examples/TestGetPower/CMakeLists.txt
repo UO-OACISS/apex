@@ -8,17 +8,11 @@ link_directories (${APEX_BINARY_DIR}/src/apex)
 # "getpower.cpp". The extensions are automatically found. 
 add_executable (testpower getpower.cpp) 
 
-if(APPLE)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPTHREADS")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPTHREADS")
-else()
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread -DPTHREADS")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -DPTHREADS")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
-endif()
-
 # Link the executable to the Apex library. 
-target_link_libraries (testpower apex)
+target_link_libraries (testpower apex ${LIBS})
+if (BUILD_STATIC_EXECUTABLES)
+    set_target_properties(testpower PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
+endif()
 add_dependencies (testpower apex)
 add_dependencies (examples testpower)
 
