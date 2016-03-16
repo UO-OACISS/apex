@@ -65,6 +65,9 @@ set(CMAKE_CONFIGURATION_TYPES "${CMAKE_BUILD_TYPE}" CACHE INTERNAL
 # set the project name
 project (APEX CXX C)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
+
 # If TAU is used, don't allow throttling - it can potentially lead to
 # overlapping timer errors in TAU.
 if((NOT DEFINED APEX_THROTTLE) OR (APEX_THROTTLE))
@@ -205,6 +208,12 @@ configure_file (
 set(CMAKE_POSITION_INDEPENDENT_CODE True)
 set(POSITION_INDEPENDENT_CODE True)
 set(BUILD_SHARED_LIBS True)
+
+if (BUILD_STATIC_EXECUTABLES)
+	SET(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+	#SET(BUILD_SHARED_LIBRARIES OFF)
+	SET(CMAKE_EXE_LINKER_FLAGS "-static")
+endif()
 
 ###############################################################################
 # reconfigure Boost library information if configuration type has been
@@ -443,11 +452,24 @@ if(USE_PLUGINS)
 endif()
 
 # apparently, we need to make sure libm is last.
+# find_library(PTHREADLIB pthread)
+# set(LIBS ${LIBS} ${PTHREADLIB})
+
+# apparently, we need to make sure libm is last.
+# find_library(STDCPPLIB stdc++)
+# set(LIBS ${LIBS} ${STDCPPLIB})
+
+# apparently, we need to make sure libm is last.
 find_library(MATHLIB m)
 set(LIBS ${LIBS} ${MATHLIB})
 
 IF(("${HOST_BASENAME}" STREQUAL "edison") OR ("$ENV{NERSC_HOST}" STREQUAL "edison"))
     if (BFD_FOUND)
+        find_library(DYNAMICLIB dl)
+        set(LIBS ${LIBS} ${DYNAMICLIB})
+    endif()
+else()
+    if (BUILD_STATIC_EXECUTABLES)
         find_library(DYNAMICLIB dl)
         set(LIBS ${LIBS} ${DYNAMICLIB})
     endif()

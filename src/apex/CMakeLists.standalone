@@ -32,13 +32,17 @@ else()
     add_dependencies (apex_objlib project_activeharmony project_binutils)
 endif(APEX_INTEL_MIC)
 
-add_library (apex SHARED $<TARGET_OBJECTS:apex_objlib>)
-add_library (apex_static STATIC $<TARGET_OBJECTS:apex_objlib>)
+if (BUILD_STATIC_EXECUTABLES)
+    add_library (apex STATIC $<TARGET_OBJECTS:apex_objlib>)
+    set_target_properties(apex PROPERTIES OUTPUT_NAME apex)
+else()
+    add_library (apex SHARED $<TARGET_OBJECTS:apex_objlib>)
+    set_target_properties(apex PROPERTIES OUTPUT_NAME apex)
+    target_link_libraries(apex ${LIBS})
+    add_library (apex_static STATIC $<TARGET_OBJECTS:apex_objlib>)
+    set_target_properties(apex_static PROPERTIES OUTPUT_NAME apex)
+endif()
 
-set_target_properties(apex PROPERTIES OUTPUT_NAME apex)
-set_target_properties(apex_static PROPERTIES OUTPUT_NAME apex)
-
-target_link_libraries(apex ${LIBS})
 
 # add the binary tree to the search path for include files
 # so that we will find ApexConfig.h
@@ -62,10 +66,9 @@ INSTALL(FILES apex.h
     task_identifier.hpp
     DESTINATION include)
 
-#INSTALL(TARGETS apexShared apexStatic
-INSTALL(TARGETS apex apex_static
-  RUNTIME DESTINATION bin
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
-)
+if (BUILD_STATIC_EXECUTABLES)
+    INSTALL(TARGETS apex RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
+else()
+    INSTALL(TARGETS apex apex_static RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
+endif()
 
