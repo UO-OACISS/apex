@@ -11,7 +11,7 @@
 
 namespace apex {
 
-std::chrono::microseconds handler::default_period(100000);
+unsigned int handler::default_period(100000);
 
 }
 

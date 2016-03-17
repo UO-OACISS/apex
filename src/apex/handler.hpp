@@ -3,44 +3,34 @@
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef APEX_HANDLER_H
-#define APEX_HANDLER_H
+#pragma once
 
 #include <string>
 #include <iostream>
-#include <condition_variable>
-#include <thread>
 #include <chrono>
+#include "pthread_wrapper.hpp"
 
 namespace apex {
 
 class handler
 {
 private:
-    std::condition_variable cv;
-    std::mutex cv_m;
-    static std::chrono::microseconds default_period;
-    void _threadfunc(void) {
-        while (true) {
-            std::unique_lock<std::mutex> lk(cv_m);
-            auto now = std::chrono::system_clock::now();
-            auto rc = cv.wait_until(lk, now + _period);
-            if(rc == std::cv_status::timeout) {
-                //std::cerr << "Thread timed out.\n";
-                _handler();
-            } else {
-                //std::cerr << "Thread cancelled.\n";
-                return;
-            }
+    static unsigned int default_period;
+    static void* _threadfunc(void * _ptw) {
+        pthread_wrapper* ptw = (pthread_wrapper*)_ptw;
+        while (ptw->wait()) {
+            handler* context = (handler*)(ptw->get_context());
+            context->_handler();
         }
+        return nullptr;
     };
 protected:
-  std::chrono::microseconds _period;
+  unsigned int _period;
   bool _handler_initialized;
   bool _terminate;
-  std::thread* _timer_thread;
+  pthread_wrapper* _timer_thread;
   void run(void) {
-    _timer_thread = new std::thread(&handler::_threadfunc, this);
+    _timer_thread = new pthread_wrapper(&handler::_threadfunc, (void*)(this), _period);
   };
 public:
   handler() : 
@@ -58,8 +48,7 @@ public:
   void cancel(void) {
       _terminate = true; 
       if(_timer_thread != nullptr) {
-        cv.notify_all();
-        _timer_thread->join();
+        _timer_thread->stop_thread();
         delete(_timer_thread);
         _timer_thread = nullptr;
       }
@@ -77,4 +66,3 @@ public:
 
 }
 
-#endif // APEX_HANDLER_H

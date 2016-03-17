@@ -33,7 +33,6 @@ set(example_programs
     apex_print_options
     apex_get_thread_cap
     apex_shutdown_throttling
-    apex_new_task
    )
     #apex_fibonacci_std_async
     #apex_set_thread_cap
@@ -47,6 +46,10 @@ endif (OPENMP_FOUND)
 
 if (NOT PAPI_FOUND)
     set(example_programs "${example_programs};apex_pthread_flood")
+endif()
+
+if (NOT BUILD_STATIC_EXECUTABLES)
+  set(example_programs "${example_programs};apex_new_task")
 endif()
 
 foreach(example_program ${example_programs})

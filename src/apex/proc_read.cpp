@@ -542,8 +542,8 @@ bool parse_sensor_data() {
 }
 
 /* This is the main function for the reader thread. */
-void* proc_data_reader::read_proc(void * _pdr) {
-  proc_data_reader* pdr = (proc_data_reader*)_pdr;
+void* proc_data_reader::read_proc(void * _ptw) {
+  pthread_wrapper* ptw = (pthread_wrapper*)_ptw;
   static bool _initialized = false;
   if (!_initialized) {
       initialize_worker_thread_for_TAU();
@@ -569,7 +569,7 @@ void* proc_data_reader::read_proc(void * _pdr) {
   ProcData *newData = NULL;
   ProcData *periodData = NULL;
   
-  while(pdr->wait()) {
+  while(ptw->wait()) {
 #ifdef APEX_HAVE_TAU
     if (apex_options::use_tau()) {
       TAU_START("proc_data_reader::read_proc: main loop");
