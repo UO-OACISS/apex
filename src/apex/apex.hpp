@@ -28,6 +28,7 @@
 #include "profiler_listener.hpp"
 #include "apex_options.hpp"
 #include "apex_export.h" 
+#include "proc_read.h" 
 #include <unordered_map>
 #if __cplusplus > 201701L 
 #include <shared_mutex>
@@ -96,6 +97,7 @@ private:
 #endif
 public:
     profiler_listener * the_profiler_listener;
+    proc_data_reader * pd_reader;
     std::string version_string;
     std::vector<event_listener*> listeners;
     std::vector<int (*)()> finalize_functions;

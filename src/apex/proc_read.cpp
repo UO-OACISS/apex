@@ -7,7 +7,6 @@
 #include "proc_read.h"
 #include "apex_api.hpp"
 #include "apex.hpp"
-#include <atomic>
 #include <sstream>
 #include <string>
 #ifdef __MIC__
@@ -19,9 +18,7 @@
 #endif
 #include <set>
 #include "utils.hpp"
-#include <condition_variable>
 #include <chrono>
-#include <atomic>
 
 #define COMMAND_LEN 20
 #define DATA_SIZE 512
@@ -43,16 +40,9 @@
 #include <msr/msr_rapl.h>
 #endif
 
-std::condition_variable cv; // for interrupting reader when done
-std::mutex cv_m;            // mutex for the condition variable
-
 using namespace std;
 
 namespace apex {
-
-/* Flag indicating that we are done, so the
- * reader knows when to exit */
-static std::atomic<bool> proc_done (false);
 
 void get_popen_data(char *cmnd) {
     FILE *pf;
@@ -277,11 +267,6 @@ ProcStatistics::ProcStatistics(int size) {
 
 int ProcStatistics::getSize() {
   return this->size;
-}
-
-void ProcData::stop_reading(void) {
-  proc_done = true;
-  cv.notify_all(); // interrupt the reader thread if it is sleeping!
 }
 
 void ProcData::sample_values(void) {
@@ -557,7 +542,8 @@ bool parse_sensor_data() {
 }
 
 /* This is the main function for the reader thread. */
-void ProcData::read_proc(void) {
+void* proc_data_reader::read_proc(void * _pdr) {
+  proc_data_reader* pdr = (proc_data_reader*)_pdr;
   static bool _initialized = false;
   if (!_initialized) {
       initialize_worker_thread_for_TAU();
@@ -565,7 +551,7 @@ void ProcData::read_proc(void) {
   }
 #ifdef APEX_HAVE_TAU
   if (apex_options::use_tau()) {
-    TAU_START("ProcData::read_proc");
+    TAU_START("proc_data_reader::read_proc");
   }
 #endif
 #ifdef APEX_HAVE_LM_SENSORS
@@ -583,24 +569,10 @@ void ProcData::read_proc(void) {
   ProcData *newData = NULL;
   ProcData *periodData = NULL;
   
-  while(!proc_done) {
-    // sleep until next time
-    std::unique_lock<std::mutex> lk(cv_m);
-#if defined(__INTEL_COMPILER) && (__INTEL_COMPILER < 1500) 
-    // for some reason, the Intel compiler didn't implement std::cv_status in a normal way.
-    // for intel 15, it is in the tbb::interface5 namespace.
-    // enum cv_status { no_timeout, timeout }; 
-    auto stat = cv.wait_for(lk, std::chrono::seconds(1));
-    // assume the enum starts at 0?
-    if (stat == 0) { break; }; // if we were signalled, exit.
-#else
-    std::cv_status stat = cv.wait_for(lk, std::chrono::seconds(1));
-    if (stat != std::cv_status::timeout) { break; }; // if we were signalled, exit.
-#endif
-
+  while(pdr->wait()) {
 #ifdef APEX_HAVE_TAU
     if (apex_options::use_tau()) {
-      TAU_START("ProcData::read_proc: main loop");
+      TAU_START("proc_data_reader::read_proc: main loop");
     }
 #endif
     if (apex_options::use_proc_stat()) {
@@ -624,7 +596,7 @@ void ProcData::read_proc(void) {
 
 #ifdef APEX_HAVE_TAU
     if (apex_options::use_tau()) {
-      TAU_STOP("ProcData::read_proc: main loop");
+      TAU_STOP("proc_data_reader::read_proc: main loop");
     }
 #endif
   }
@@ -634,11 +606,15 @@ void ProcData::read_proc(void) {
 
 #ifdef APEX_HAVE_TAU
   if (apex_options::use_tau()) {
-    TAU_STOP("ProcData::read_proc");
+    TAU_STOP("proc_data_reader::read_proc");
   }
 #endif
   delete(oldData);
-
+#if APEX_STATIC_BUILD
+  pthread_exit((void*)0L);
+#else
+  return nullptr;
+#endif
 }
 
 #ifdef APEX_HAVE_MSR

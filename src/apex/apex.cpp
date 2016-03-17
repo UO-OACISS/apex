@@ -57,10 +57,6 @@ std::atomic<unsigned int> _resumes(0L);
 std::atomic<unsigned int> _yields(0L);
 #endif
 
-#if APEX_HAVE_PROC
-    std::thread * proc_reader_thread;
-#endif
-
 /*
  * The destructor will request power data from RCRToolkit
  */
@@ -76,7 +72,7 @@ apex::~apex()
         delete el;
     }
 #if APEX_HAVE_PROC
-    delete proc_reader_thread;
+    delete pd_reader;
 #endif
     m_pInstance = nullptr;
 }
@@ -201,7 +197,7 @@ void apex::_initialize()
         listeners.push_back(new concurrency_handler(apex_options::concurrency_period(), apex_options::use_concurrency()));
     }
 #if APEX_HAVE_PROC
-    proc_reader_thread = new std::thread(ProcData::read_proc);
+    pd_reader = new proc_data_reader();
 #endif
     this->resize_state(1);
     this->set_state(0, APEX_BUSY);
@@ -769,8 +765,7 @@ void finalize()
     finalize_plugins();
     exit_thread();
 #if APEX_HAVE_PROC
-    ProcData::stop_reading();
-    proc_reader_thread->join();
+    instance->pd_reader->stop_reading();
 #endif
 #if APEX_HAVE_MSR
     apex_finalize_msr();
