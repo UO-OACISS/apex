@@ -14,6 +14,7 @@ int main (int argc, char** argv) {
   printf("APEX Version : %s\n", apex_version());
   apex_print_options();
   apex_set_node_id(0);
+  apex_set_use_screen_output(1);
   apex_profiler_handle profiler = apex_start(APEX_FUNCTION_ADDRESS, &main);
   int i,j = 0;
   for (i = 0 ; i < 3 ; i++)

@@ -610,11 +610,7 @@ void* proc_data_reader::read_proc(void * _ptw) {
   }
 #endif
   delete(oldData);
-#if APEX_STATIC_BUILD
-  pthread_exit((void*)0L);
-#else
   return nullptr;
-#endif
 }
 
 #ifdef APEX_HAVE_MSR
