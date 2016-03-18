@@ -203,6 +203,7 @@ set(POSITION_INDEPENDENT_CODE True)
 set(BUILD_SHARED_LIBS True)
 
 # Check if architecture is x86 or not
+message("System architecture: ${CMAKE_SYSTEM_PROCESSOR}")
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)")
   set(APEX_ARCH_X86 TRUE)
 else()
@@ -210,7 +211,7 @@ else()
 endif()
 
 # If not x86, don't use RDTSC
-if(NOT APEX_ARCH_x86)
+if(NOT APEX_ARCH_X86)
   add_definitions(-DAPEX_USE_CLOCK_TIMESTAMP=1)  
 endif()
 
