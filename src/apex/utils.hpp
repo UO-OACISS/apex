@@ -1,5 +1,9 @@
-#ifndef APEX_UTILS_HPP
-#define APEX_UTILS_HPP
+//  Copyright (c) 2014 University of Oregon
+//
+//  Distributed under the Boost Software License, Version 1.0. (See accompanying
+//  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+#pragma once
 
 #include <string>
 #include <chrono>
@@ -92,4 +96,3 @@ inline unsigned int hardware_concurrency()
 
 };
 
-#endif //APEX_UTILS_HPP

@@ -3,8 +3,7 @@
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef CONCURRENCYHANDLER_HPP
-#define CONCURRENCYHANDLER_HPP
+#pragma once
 
 #include "handler.hpp"
 #include "event_listener.hpp"
@@ -70,4 +69,3 @@ public:
 
 }
 
-#endif // CONCURRENCYHANDLER_HPP

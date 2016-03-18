@@ -1,3 +1,8 @@
+//  Copyright (c) 2014 University of Oregon
+//
+//  Distributed under the Boost Software License, Version 1.0. (See accompanying
+//  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
 /* Portable global constructor/destructor for GCC and MSVC.
  * I found this code here: http://www.gonwan.com/?p=8 */
 

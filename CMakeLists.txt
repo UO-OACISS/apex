@@ -218,29 +218,28 @@ else()
     set(BUILD_SHARED_LIBS TRUE)
 endif()
 
-###############################################################################
-# reconfigure Boost library information if configuration type has been
-# changed since last configure
-if(CMAKE_BUILD_TYPE AND NOT (CMAKE_BUILD_TYPE STREQUAL CMAKE_CONFIGURATION_TYPES))
-  set(BOOST_VERSION_SEARCHED OFF CACHE INTERNAL "Found Boost version" FORCE)
-  set(BOOST_SEARCHED OFF CACHE INTERNAL "Found Boost libraries" FORCE)
-endif()
-
 ################################################################################
 # Boost configuration
 ################################################################################
 
-# if (APPLE)
-#     set(Boost_USE_STATIC_LIBS ON)
-# else()
-#     set(Boost_USE_STATIC_LIBS OFF)
-# endif()
-
-set(Boost_USE_STATIC_LIBS OFF)
-set(Boost_USE_MULTITHREADED ON)
-set(Boost_USE_STATIC_RUNTIME OFF)
 # BOOST IS NOW ONLY REQUIRED FOR INTEL XEON MIC/PHI SUPPORT!
 if(APEX_INTEL_MIC)
+    # reconfigure Boost library information if configuration type has been
+    # changed since last configure
+    if(CMAKE_BUILD_TYPE AND NOT (CMAKE_BUILD_TYPE STREQUAL CMAKE_CONFIGURATION_TYPES))
+        set(BOOST_VERSION_SEARCHED OFF CACHE INTERNAL "Found Boost version" FORCE)
+        set(BOOST_SEARCHED OFF CACHE INTERNAL "Found Boost libraries" FORCE)
+    endif()
+
+    set(Boost_USE_MULTITHREADED ON)
+    if (BUILD_STATIC_EXECUTABLES)
+        set(Boost_USE_STATIC_LIBS ON)
+        set(Boost_USE_STATIC_RUNTIME ON)
+    else()
+        set(Boost_USE_STATIC_LIBS OFF)
+        set(Boost_USE_STATIC_RUNTIME OFF)
+    endif()
+
     if(BUILD_BOOST)
         include(ExternalProjectBoost)
         build_boost_project()

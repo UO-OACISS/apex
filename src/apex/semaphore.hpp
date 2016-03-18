@@ -1,3 +1,10 @@
+//  Copyright (c) 2014 University of Oregon
+//
+//  Distributed under the Boost Software License, Version 1.0. (See accompanying
+//  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+#pragma once
+
 /* Apparently, Boost does not have semaphores. So, we implement one.
  * Example from:
  * http://stackoverflow.com/questions/4792449/c0x-has-no-semaphores-how-to-synchronize-threads

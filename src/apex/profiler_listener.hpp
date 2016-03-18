@@ -3,8 +3,7 @@
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef PROFILER_LISTENER_HPP
-#define PROFILER_LISTENER_HPP
+#pragma once
 
 #ifdef APEX_HAVE_HPX3
 #include <hpx/config.hpp>
@@ -134,4 +133,3 @@ public:
 
 }
 
-#endif // PROFILER_LISTENER_HPP
