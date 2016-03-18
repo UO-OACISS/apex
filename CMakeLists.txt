@@ -299,9 +299,9 @@ else()
 	endif()
 endif()
 
-if ((NOT DEFINED USE_OMPT) OR (USE_OMPT))
+if ((NOT DEFINED USE_OMPT) OR (USE_OMPT) OR (BUILD_OMPT))
     find_package(OpenMP)
-endif ((NOT DEFINED USE_OMPT) OR (USE_OMPT))
+endif ((NOT DEFINED USE_OMPT) OR (USE_OMPT) OR (BUILD_OMPT))
  
 if (OPENMP_FOUND)
     if ((DEFINED OMPT_ROOT) OR (USE_OMPT) OR (BUILD_OMPT))
