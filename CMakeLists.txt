@@ -504,6 +504,11 @@ else()
     endif()
 endif(APEX_INTEL_MIC)
 
+if (RCR_FOUND)
+    find_library(RTLIB rt)
+    set(LIBS ${LIBS} ${RTLIB})
+endif()
+
 # apparently, we need to make sure libm is last.
 find_library(MATHLIB m)
 set(LIBS ${LIBS} ${MATHLIB})
