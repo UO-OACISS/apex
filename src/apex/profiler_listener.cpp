@@ -1,7 +1,5 @@
 //  Copyright (c) 2014 University of Oregon
 //
-//  Distributed under the Boost Software License, Version 1.0. (See accompanying
-//  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #ifdef APEX_HAVE_HPX3
 #include <hpx/config.hpp>
@@ -19,14 +17,7 @@
 #include "profile.hpp"
 #include "apex.hpp"
 
-#include <boost/thread/thread.hpp>
-#include <boost/atomic.hpp>
 #include <atomic>
-#include <boost/range/adaptor/map.hpp>
-#include <boost/range/algorithm/copy.hpp>
-#include <boost/assign.hpp>
-#include <boost/cstdint.hpp>
-#include <boost/format.hpp>
 #if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
 #include <unistd.h>
 #include <sched.h>
@@ -34,7 +25,13 @@
 #include <cstdio>
 #include <vector>
 #include <string>
+#ifdef __MIC__
 #include <boost/regex.hpp>
+#define REGEX_NAMESPACE boost
+#else
+#include <regex>
+#define REGEX_NAMESPACE std
+#endif
 #include <unordered_set>
 #include <algorithm>
 #include <functional>
@@ -60,6 +57,8 @@ std::mutex event_set_mutex;
 #endif
 
 #ifdef APEX_HAVE_HPX3
+#include <boost/assign.hpp>
+#include <boost/cstdint.hpp>
 #include <hpx/include/performance_counters.hpp>
 #include <hpx/include/actions.hpp>
 #include <hpx/include/util.hpp>
@@ -169,15 +168,6 @@ namespace apex {
     }
     return nullptr;
   }
-
-  /* Return a vector of all name-based profiles */
-  /*
-  std::vector<std::string> profiler_listener::get_available_profiles() {
-    std::vector<std::string> names;
-    boost::copy(task_map | boost::adaptors::map_keys, std::back_inserter(names));
-    return names;
-  }
-  */
 
   void profiler_listener::reset_all(void) {
     for(auto &it : task_map) {
@@ -301,9 +291,18 @@ namespace apex {
 
   }
 
-#define PAD_WITH_SPACES boost::format("%8i")
-#define FORMAT_PERCENT boost::format("%8.3f")
-#define FORMAT_SCIENTIFIC boost::format("%1.2e")
+#define PAD_WITH_SPACES "%8s"
+#define FORMAT_PERCENT "%8.3f"
+#define FORMAT_SCIENTIFIC "%1.2e"
+
+  template<typename ... Args>
+  string string_format( const std::string& format, Args ... args )
+  {
+      size_t size = snprintf( nullptr, 0, format.c_str(), args ... ) + 1; // Extra space for '\0'
+      unique_ptr<char[]> buf( new char[ size ] ); 
+      snprintf( buf.get(), size, format.c_str(), args ... );
+      return string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
+  }
 
   void profiler_listener::write_one_timer(task_identifier &task_id, 
           profile * p, stringstream &screen_output, 
@@ -311,17 +310,17 @@ namespace apex {
           double &total_main) {
       string action_name = task_id.get_name();
 #if APEX_HAVE_BFD
-      boost::regex rx (".*UNRESOLVED ADDR (.*)");
-      if (boost::regex_match (action_name,rx)) {
-        const boost::regex separator(" ADDR ");
-        boost::sregex_token_iterator token(action_name.begin(), action_name.end(), separator, -1);
+      REGEX_NAMESPACE::regex rx (".*UNRESOLVED ADDR (.*)");
+      if (REGEX_NAMESPACE::regex_match (action_name,rx)) {
+        const REGEX_NAMESPACE::regex separator(" ADDR ");
+        REGEX_NAMESPACE::sregex_token_iterator token(action_name.begin(), action_name.end(), separator, -1);
         *token++; // ignore
         string addr_str = *token++;
         void* addr_addr;
         sscanf(addr_str.c_str(), "%p", &addr_addr);
         string * tmp = lookup_address((uintptr_t)addr_addr, true);
-        boost::regex old_address("UNRESOLVED ADDR " + addr_str);
-        action_name = boost::regex_replace(action_name, old_address, *tmp);
+        REGEX_NAMESPACE::regex old_address("UNRESOLVED ADDR " + addr_str);
+        action_name = REGEX_NAMESPACE::regex_replace(action_name, old_address, *tmp);
       }
 #endif
       string shorter(action_name);
@@ -331,7 +330,7 @@ namespace apex {
         shorter.resize(30, '.');
       }
       //screen_output << "\"" << shorter << "\", " ;
-      screen_output << boost::format("%30s") % shorter << " : ";
+      screen_output << string_format("%30s", shorter.c_str()) << " : ";
 #if defined(APEX_THROTTLE)
       // if this profile was throttled, don't output the measurements.
       // they are limited and bogus, anyway.
@@ -345,9 +344,9 @@ namespace apex {
         p->get_profile()->calls = 1;
       }
       if (p->get_calls() < 999999) {
-          screen_output << PAD_WITH_SPACES % p->get_calls() << "   " ;
+          screen_output << string_format(PAD_WITH_SPACES, to_string((int)p->get_calls()).c_str()) << "   " ;
       } else {
-          screen_output << FORMAT_SCIENTIFIC % p->get_calls() << "   " ;
+          screen_output << string_format(FORMAT_SCIENTIFIC, p->get_calls()) << "   " ;
       }
       if (p->get_type() == APEX_TIMER) {
         csv_output << "\"" << action_name << "\",";
@@ -357,14 +356,14 @@ namespace apex {
         // convert MHz to microseconds
         csv_output << std::llround(p->get_accumulated()*profiler::get_cpu_mhz()*1000000);
         screen_output << " --n/a--   " ;
-        screen_output << FORMAT_SCIENTIFIC % (p->get_mean()*profiler::get_cpu_mhz()) << "   " ;
+        screen_output << string_format(FORMAT_SCIENTIFIC, (p->get_mean()*profiler::get_cpu_mhz())) << "   " ;
         screen_output << " --n/a--   " ;
-        screen_output << FORMAT_SCIENTIFIC % (p->get_accumulated()*profiler::get_cpu_mhz()) << "   " ;
+        screen_output << string_format(FORMAT_SCIENTIFIC, (p->get_accumulated()*profiler::get_cpu_mhz())) << "   " ;
         screen_output << " --n/a--   " ;
-        screen_output << FORMAT_PERCENT % (((p->get_accumulated()*profiler::get_cpu_mhz())/total_main)*100);
+        screen_output << string_format(FORMAT_PERCENT, (((p->get_accumulated()*profiler::get_cpu_mhz())/total_main)*100));
 #if APEX_HAVE_PAPI
         for (int i = 0 ; i < num_papi_counters ; i++) {
-            screen_output  << "   " << FORMAT_SCIENTIFIC % (p->get_papi_metrics()[i]);
+            screen_output  << "   " << string_format(FORMAT_SCIENTIFIC, (p->get_papi_metrics()[i]));
             csv_output << "," << std::llround(p->get_papi_metrics()[i]);
         }
 #endif
@@ -373,17 +372,17 @@ namespace apex {
         csv_output << endl;
       } else {
         if (action_name.find('%') == string::npos) {
-          screen_output << FORMAT_SCIENTIFIC % p->get_minimum() << "   " ;
-          screen_output << FORMAT_SCIENTIFIC % p->get_mean() << "   " ;
-          screen_output << FORMAT_SCIENTIFIC % p->get_maximum() << "   " ;
-          screen_output << FORMAT_SCIENTIFIC % p->get_accumulated() << "   " ;
-          screen_output << FORMAT_SCIENTIFIC % p->get_stddev() << "   " ;
+          screen_output << string_format(FORMAT_SCIENTIFIC, p->get_minimum()) << "   " ;
+          screen_output << string_format(FORMAT_SCIENTIFIC, p->get_mean()) << "   " ;
+          screen_output << string_format(FORMAT_SCIENTIFIC, p->get_maximum()) << "   " ;
+          screen_output << string_format(FORMAT_SCIENTIFIC, p->get_accumulated()) << "   " ;
+          screen_output << string_format(FORMAT_SCIENTIFIC, p->get_stddev()) << "   " ;
         } else {
-          screen_output << FORMAT_PERCENT % p->get_minimum() << "   " ;
-          screen_output << FORMAT_PERCENT % p->get_mean() << "   " ;
-          screen_output << FORMAT_PERCENT % p->get_maximum() << "   " ;
-          screen_output << FORMAT_PERCENT % p->get_accumulated() << "   " ;
-          screen_output << FORMAT_PERCENT % p->get_stddev() << "   " ;
+          screen_output << string_format(FORMAT_PERCENT, p->get_minimum()) << "   " ;
+          screen_output << string_format(FORMAT_PERCENT, p->get_mean()) << "   " ;
+          screen_output << string_format(FORMAT_PERCENT, p->get_maximum()) << "   " ;
+          screen_output << string_format(FORMAT_PERCENT, p->get_accumulated()) << "   " ;
+          screen_output << string_format(FORMAT_PERCENT, p->get_stddev()) << "   " ;
         }
         screen_output << " --n/a-- "  << endl;
       }
@@ -454,7 +453,7 @@ namespace apex {
         write_one_timer(task_id, p, screen_output, csv_output, total_accumulated, total_main);
     }
     double idle_rate = total_main - (total_accumulated*profiler::get_cpu_mhz());
-    screen_output << boost::format("%30s") % APEX_IDLE_TIME << " : ";
+    screen_output << string_format("%30s", APEX_IDLE_TIME) << " : ";
     screen_output << " --n/a--   " ;
     screen_output << " --n/a--   " ;
     screen_output << " --n/a--   " ;
@@ -462,13 +461,13 @@ namespace apex {
     if (idle_rate < 0.0) {
       screen_output << " --n/a--   " ;
     } else {
-      screen_output << FORMAT_SCIENTIFIC % idle_rate << "   " ;
+      screen_output << string_format(FORMAT_SCIENTIFIC, idle_rate) << "   " ;
     }
     screen_output << " --n/a--   " ;
     if (idle_rate < 0.0) {
       screen_output << " --n/a--   " << endl;
     } else {
-      screen_output << FORMAT_PERCENT % ((idle_rate/total_main)*100) << endl;
+      screen_output << string_format(FORMAT_PERCENT, ((idle_rate/total_main)*100)) << endl;
     }
     screen_output << "------------------------------------------------------------------------------------------------------------" << endl;
     if (apex_options::use_screen_output()) {
@@ -486,17 +485,17 @@ namespace apex {
 
   void fix_name(string& in_name) {
 #if defined(HAVE_BFD)                                                            
-        boost::regex rx (".*UNRESOLVED ADDR (.*)");
-        if (boost::regex_match (in_name,rx)) {
-          const boost::regex separator(" ADDR ");
-          boost::sregex_token_iterator token(in_name.begin(), in_name.end(), separator, -1);
+        REGEX_NAMESPACE::regex rx (".*UNRESOLVED ADDR (.*)");
+        if (REGEX_NAMESPACE::regex_match (in_name,rx)) {
+          const REGEX_NAMESPACE::regex separator(" ADDR ");
+          REGEX_NAMESPACE::sregex_token_iterator token(in_name.begin(), in_name.end(), separator, -1);
           *token++; // ignore
           string addr_str = *token++;
           void* addr_addr;
           sscanf(addr_str.c_str(), "%p", &addr_addr);
           string tmp = lookup_address((uintptr_t)addr_addr, false);
-          boost::regex old_address("UNRESOLVED ADDR " + addr_str);
-          in_name = boost::regex_replace(in_name, old_address, tmp);
+          REGEX_NAMESPACE::regex old_address("UNRESOLVED ADDR " + addr_str);
+          in_name = REGEX_NAMESPACE::regex_replace(in_name, old_address, tmp);
         }
 #endif
   }
@@ -663,17 +662,17 @@ node_color * get_node_color(double v,double vmin,double vmax)
           mainp = p;
         } else {
 #if APEX_HAVE_BFD
-          boost::regex rx (".*UNRESOLVED ADDR (.*)");
-          if (boost::regex_match (action_name,rx)) {
-            const boost::regex separator(" ADDR ");
-            boost::sregex_token_iterator token(action_name.begin(), action_name.end(), separator, -1);
+          REGEX_NAMESPACE::regex rx (".*UNRESOLVED ADDR (.*)");
+          if (REGEX_NAMESPACE::regex_match (action_name,rx)) {
+            const REGEX_NAMESPACE::regex separator(" ADDR ");
+            REGEX_NAMESPACE::sregex_token_iterator token(action_name.begin(), action_name.end(), separator, -1);
             *token++; // ignore
             string addr_str = *token++;
             void* addr_addr;
             sscanf(addr_str.c_str(), "%p", &addr_addr);
             string * tmp = lookup_address((uintptr_t)addr_addr, true);
-            boost::regex old_address("UNRESOLVED ADDR " + addr_str);
-            action_name = boost::regex_replace(action_name, old_address, *tmp);
+            REGEX_NAMESPACE::regex old_address("UNRESOLVED ADDR " + addr_str);
+            action_name = REGEX_NAMESPACE::regex_replace(action_name, old_address, *tmp);
           }
 #endif
           myfile << "\"" << action_name << "\" ";
@@ -876,7 +875,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       my_tid = (unsigned int)thread_instance::get_id();
 #ifndef APEX_HAVE_HPX3
       // Start the consumer thread, to process profiler objects.
-      consumer_thread = new boost::thread(process_profiles_wrapper);
+      consumer_thread = new std::thread(process_profiles_wrapper);
 #endif
 
 #if APEX_HAVE_PAPI
@@ -1071,7 +1070,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       // we have to make a local copy, because lockfree queues DO NOT SUPPORT shared_ptrs!
       bool worked = thequeue.enqueue(p);
       if (!worked) {
-          static boost::atomic<bool> issued(false);
+          static std::atomic<bool> issued(false);
           if (!issued) {
               issued = true;
               cout << "APEX Warning : failed to push " << p->task_id->get_name() << endl;

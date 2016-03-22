@@ -1,5 +1,9 @@
-#ifndef PROC_READ_H
-#define PROC_READ_H
+//  Copyright (c) 2014 University of Oregon
+//
+//  Distributed under the Boost Software License, Version 1.0. (See accompanying
+//  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+#pragma once
 
 #include <stdio.h>
 #include <vector>
@@ -7,6 +11,11 @@
 #include <fstream>
 #include <unordered_set>
 #include <unordered_map>
+#include <condition_variable>
+#include <mutex>
+#include <atomic>
+#include <thread>
+#include "pthread_wrapper.hpp"
 
 namespace apex {
 
@@ -25,6 +34,25 @@ public:
 };
 
 typedef std::vector<CPUStat*> CPUs;
+
+class proc_data_reader {
+private:
+    pthread_wrapper * worker_thread;
+public:
+    static void* read_proc(void * _pdr);
+    proc_data_reader(void) {
+        worker_thread = new pthread_wrapper(&proc_data_reader::read_proc, (void*)(this), 1000000);
+    };
+
+    void stop_reading(void) {
+        worker_thread->stop_thread();
+    }
+
+    ~proc_data_reader(void) {
+        stop_reading();
+        delete worker_thread;
+    }
+};
 
 class ProcData {
 public:
@@ -47,7 +75,7 @@ public:
   std::unordered_map<std::string,double> netdev;
 #endif
   //softirq 10953997190 0 1380880059 1495447920 1585783785 15525789 0 12 661586214 0 1519806115
-  ~ProcData();
+  ~ProcData(void);
   ProcData* diff(const ProcData& rhs);
   void dump(std::ostream& out);
   void dump_mean(std::ostream& out);
@@ -55,8 +83,6 @@ public:
   double get_cpu_user();
   void write_user_ratios(std::ostream& out, double *, int);
   void sample_values();
-  static void read_proc(void);
-  static void stop_reading(void);
 };
 
 class ProcStatistics {
@@ -121,4 +147,3 @@ double msr_current_power_high(void);
 #endif
 
 } 
-#endif

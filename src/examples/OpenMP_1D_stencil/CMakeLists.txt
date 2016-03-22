@@ -14,7 +14,10 @@ set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 
 # Link the executable to the Apex library. 
-target_link_libraries (1d_stencil apex ${OMPT_LIBRARIES}) 
+target_link_libraries (1d_stencil apex ${OMPT_LIBRARIES} ${LIBS})
+if (BUILD_STATIC_EXECUTABLES)
+    set_target_properties(1d_stencil PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
+endif()
 
 INSTALL(TARGETS 1d_stencil
   RUNTIME DESTINATION bin OPTIONAL

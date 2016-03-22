@@ -14,7 +14,10 @@ set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS} -O3 -DUSE_MPI=0 -Wall")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} -O3 -DUSE_MPI=0 -Wall")
 
 # Link the executable to the Apex library. 
-target_link_libraries (lulesh_OpenMP_2.0 apex ${OMPT_LIBRARIES}) 
+target_link_libraries (lulesh_OpenMP_2.0 apex ${OMPT_LIBRARIES} ${LIBS}) 
+if (BUILD_STATIC_EXECUTABLES)
+    set_target_properties(lulesh_OpenMP_2.0 PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
+endif()
 
 INSTALL(TARGETS lulesh_OpenMP_2.0
   RUNTIME DESTINATION bin OPTIONAL

@@ -33,7 +33,6 @@ set(example_programs
     apex_print_options
     apex_get_thread_cap
     apex_shutdown_throttling
-    apex_new_task
    )
     #apex_fibonacci_std_async
     #apex_set_thread_cap
@@ -49,11 +48,18 @@ if (NOT PAPI_FOUND)
     set(example_programs "${example_programs};apex_pthread_flood")
 endif()
 
+if (NOT BUILD_STATIC_EXECUTABLES)
+  set(example_programs "${example_programs};apex_new_task")
+endif()
+
 foreach(example_program ${example_programs})
   set(sources ${example_program}.cpp)
   source_group("Source Files" FILES ${sources})
   add_executable("${example_program}_cpp" ${sources})
-  target_link_libraries ("${example_program}_cpp" apex)
+  target_link_libraries ("${example_program}_cpp" apex ${LIBS})
+    if (BUILD_STATIC_EXECUTABLES)
+        set_target_properties("${example_program}_cpp" PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
+    endif()
   add_dependencies ("${example_program}_cpp" apex)
   add_dependencies (tests "${example_program}_cpp")
   add_test ("test_${example_program}_cpp" "${example_program}_cpp")
@@ -71,11 +77,4 @@ endif (OPENMP_FOUND)
 #set_target_properties(apex_fibonacci_std_async_cpp PROPERTIES LINK_FLAGS "-fsplit-stack")
 #target_link_libraries (apex_fibonacci_std_async_cpp apex_pthread_wrapper)        
 #add_dependencies (apex_fibonacci_std_async_cpp apex_pthread_wrapper)    
-
-if(APPLE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPTHREADS")
-else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -DPTHREADS")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
-endif()
 

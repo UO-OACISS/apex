@@ -51,27 +51,20 @@ endif (NOT USE_TAU)
 #endif (OPENMP_FOUND)
 
 foreach(example_program ${example_programs})
-  set(sources
-      ${example_program}.c)
+    set(sources ${example_program}.c)
 
-  source_group("Source Files" FILES ${sources})
+    source_group("Source Files" FILES ${sources})
 
-  # add example executable
-  # add_executable(${example_program} EXCLUDE_FROM_ALL ${sources})
-  add_executable(${example_program} ${sources})
-  target_link_libraries (${example_program} apex)
-  add_dependencies (${example_program} apex)
-  add_dependencies (tests ${example_program})
-  add_test ("test_${example_program}" ${example_program})
+    add_executable(${example_program} ${sources})
+    target_link_libraries (${example_program} apex stdc++ ${LIBS})
+    if (BUILD_STATIC_EXECUTABLES)
+        set_target_properties(${example_program} PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
+    endif()
+    add_dependencies (${example_program} apex)
+    add_dependencies (tests ${example_program})
+    add_test ("test_${example_program}" ${example_program})
 endforeach()
 
 set_tests_properties(test_apex_disable PROPERTIES ENVIRONMENT "APEX_DISABLE=1")
 set_tests_properties(test_apex_disable PROPERTIES ENVIRONMENT "APEX_PAPI_METRICS=\"PAPI_TOT_CYC PAPI_TOT_INS\"")
-
-if(APPLE)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPTHREADS")
-else()
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread -DPTHREADS")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
-endif()
 

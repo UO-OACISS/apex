@@ -1,5 +1,10 @@
-#ifndef APEX_POLICIES_HPP
-#define APEX_POLICIES_HPP
+//  Copyright (c) 2014 University of Oregon
+//
+//  Distributed under the Boost Software License, Version 1.0. (See accompanying
+//  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+
+#pragma once
 
 #include "apex_api.hpp"
 #include "apex_export.h"
@@ -7,7 +12,7 @@
 #include <stdint.h>
 #include <fstream>
 #include <memory>
-#include <boost/atomic.hpp>
+#include <atomic>
 #include <list>
 #include <map>
 #include <string.h>
@@ -221,8 +226,8 @@ struct apex_tuning_session {
 #endif
 
     int test_pp = 0;
-    boost::atomic<bool> apex_energy_init{false};
-    boost::atomic<bool> apex_timer_init{false};
+    std::atomic<bool> apex_energy_init{false};
+    std::atomic<bool> apex_timer_init{false};
 
     bool converged_message = false;
 
@@ -262,5 +267,3 @@ struct apex_tuning_session {
     apex_tuning_session(apex_tuning_session_handle h) : id{h} {};
 };
 
-
-#endif // APEX_POLICIES_HPP

@@ -1,5 +1,9 @@
-#ifndef _APEX_BFD_H
-#define _APEX_BFD_H
+//  Copyright (c) 2014 University of Oregon
+//
+//  Distributed under the Boost Software License, Version 1.0. (See accompanying
+//  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+#pragma once
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -131,4 +135,3 @@ apex_bfd_module_handle_t
 Apex_bfd_getModuleHandle(apex_bfd_handle_t handle, unsigned long probeAddr);
 
 
-#endif /* _APEX_BFD_H */

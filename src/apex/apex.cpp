@@ -1,7 +1,5 @@
 //  Copyright (c) 2014 University of Oregon
 //
-//  Distributed under the Boost Software License, Version 1.0. (See accompanying
-//  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #ifdef APEX_HAVE_HPX3
 #include <hpx/config.hpp>
@@ -14,8 +12,6 @@
 #include <stdlib.h>
 #include <string>
 #include <memory>
-#include <boost/algorithm/string/predicate.hpp>
-#include <boost/algorithm/string.hpp> 
 #if APEX_USE_PLUGINS
 #include <dlfcn.h>
 #endif
@@ -51,18 +47,14 @@ namespace apex
 // Global static pointer used to ensure a single instance of the class.
 apex* apex::m_pInstance = nullptr;
 
-boost::atomic<bool> _notify_listeners(true);
-boost::atomic<bool> _measurement_stopped(false);
+std::atomic<bool> _notify_listeners(true);
+std::atomic<bool> _measurement_stopped(false);
 #ifdef APEX_DEBUG
-boost::atomic<unsigned int> _starts(0L);
-boost::atomic<unsigned int> _stops(0L);
-boost::atomic<unsigned int> _exit_stops(0L);
-boost::atomic<unsigned int> _resumes(0L);
-boost::atomic<unsigned int> _yields(0L);
-#endif
-
-#if APEX_HAVE_PROC
-    boost::thread * proc_reader_thread;
+std::atomic<unsigned int> _starts(0L);
+std::atomic<unsigned int> _stops(0L);
+std::atomic<unsigned int> _exit_stops(0L);
+std::atomic<unsigned int> _resumes(0L);
+std::atomic<unsigned int> _yields(0L);
 #endif
 
 /*
@@ -80,7 +72,7 @@ apex::~apex()
         delete el;
     }
 #if APEX_HAVE_PROC
-    delete proc_reader_thread;
+    delete pd_reader;
 #endif
     m_pInstance = nullptr;
 }
@@ -205,7 +197,7 @@ void apex::_initialize()
         listeners.push_back(new concurrency_handler(apex_options::concurrency_period(), apex_options::use_concurrency()));
     }
 #if APEX_HAVE_PROC
-    proc_reader_thread = new boost::thread(ProcData::read_proc);
+    pd_reader = new proc_data_reader();
 #endif
     this->resize_state(1);
     this->set_state(0, APEX_BUSY);
@@ -351,6 +343,9 @@ void init(int argc, char** argv, const char * thread_name) {
 	  std::cout << version() << std::endl;
       apex_options::print_options();
 	}
+    if (apex_options::throttle_energy() && apex_options::throttle_concurrency() ) {
+      setup_power_cap_throttling();
+    }
 }
 
 string& version() {
@@ -360,13 +355,14 @@ string& version() {
     return instance->version_string;
 }
 
-profiler* start(const std::string &timer_name) {
+profiler* start(const std::string &timer_name)
+{
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return nullptr; }
-    if (boost::starts_with(timer_name, "apex_internal")) {
+    if (starts_with(timer_name, string("apex_internal"))) {
         return profiler::get_disabled_profiler(); // don't process our own events - queue scrubbing tasks.
     }
-    if (boost::starts_with(timer_name, "shutdown_all")) {
+    if (starts_with(timer_name, string("shutdown_all"))) {
         return profiler::get_disabled_profiler();
     }
 #ifdef APEX_DEBUG
@@ -430,7 +426,7 @@ profiler* resume(const std::string &timer_name) {
     if (apex_options::suspend() == true) { return profiler::get_disabled_profiler(); }
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return nullptr; // protect against calls after finalization
-    if (boost::starts_with(timer_name, "apex_internal")) {
+    if (starts_with(timer_name, string("apex_internal"))) {
         return profiler::get_disabled_profiler(); // don't process our own events
     }
     if (_notify_listeners) {
@@ -663,7 +659,7 @@ void new_task(apex_function_address function_address, void * task_id) {
     }
 }
 
-boost::atomic<int> custom_event_count(APEX_CUSTOM_EVENT_1);
+std::atomic<int> custom_event_count(APEX_CUSTOM_EVENT_1);
 
 apex_event_type register_custom_event(const std::string &name) {
     // if APEX is disabled, do nothing.
@@ -673,7 +669,7 @@ apex_event_type register_custom_event(const std::string &name) {
     if (custom_event_count == APEX_MAX_EVENTS) {
       std::cerr << "Cannot register more than MAX Events! (set to " << APEX_MAX_EVENTS << ")" << std::endl;
     }
-    boost::unique_lock<boost::shared_mutex> l(instance->custom_event_mutex);
+    std::unique_lock<std::mutex> l(instance->custom_event_mutex);
     instance->custom_event_names[custom_event_count] = name;
     int tmp = custom_event_count;
     custom_event_count++; 
@@ -724,7 +720,7 @@ void init_plugins(void) {
     }
     std::vector<std::string> plugin_names;
     std::vector<std::string> plugin_paths;
-    boost::split(plugin_names, plugin_names_str, boost::is_any_of(":"));
+    split(':', plugin_names_str, plugin_names);
     for(const std::string & plugin_name : plugin_names) {
         plugin_paths.push_back(plugins_prefix + "/" + plugin_name + plugins_suffix);
     }
@@ -834,8 +830,7 @@ void finalize()
     finalize_plugins();
     exit_thread();
 #if APEX_HAVE_PROC
-    ProcData::stop_reading();
-    proc_reader_thread->join();
+    instance->pd_reader->stop_reading();
 #endif
 #if APEX_HAVE_MSR
     apex_finalize_msr();

@@ -7,15 +7,18 @@
 #include "proc_read.h"
 #include "apex_api.hpp"
 #include "apex.hpp"
-#include <boost/atomic.hpp>
 #include <sstream>
 #include <string>
-#include <boost/regex.hpp>
+#ifdef __MIC__
+#include "boost/regex.hpp"
+#define REGEX_NAMESPACE boost
+#else
+#include <regex>
+#define REGEX_NAMESPACE std
+#endif
 #include <set>
 #include "utils.hpp"
-#include <condition_variable>
 #include <chrono>
-#include <atomic>
 
 #define COMMAND_LEN 20
 #define DATA_SIZE 512
@@ -37,16 +40,9 @@
 #include <msr/msr_rapl.h>
 #endif
 
-std::condition_variable cv; // for interrupting reader when done
-std::mutex cv_m;            // mutex for the condition variable
-
 using namespace std;
 
 namespace apex {
-
-/* Flag indicating that we are done, so the
- * reader knows when to exit */
-static boost::atomic<bool> proc_done (false);
 
 void get_popen_data(char *cmnd) {
     FILE *pf;
@@ -273,11 +269,6 @@ int ProcStatistics::getSize() {
   return this->size;
 }
 
-void ProcData::stop_reading(void) {
-  proc_done = true;
-  cv.notify_all(); // interrupt the reader thread if it is sleeping!
-}
-
 void ProcData::sample_values(void) {
   long long total;
   CPUs::iterator iter = cpus.begin();
@@ -347,9 +338,9 @@ bool parse_proc_cpuinfo() {
     int cpuid = 0;
     while ( fgets( line, 4096, f)) {
         string tmp(line);
-        const boost::regex separator(":");
-        boost::sregex_token_iterator token(tmp.begin(), tmp.end(), separator, -1);
-        boost::sregex_token_iterator end;
+        const REGEX_NAMESPACE::regex separator(":");
+        REGEX_NAMESPACE::sregex_token_iterator token(tmp.begin(), tmp.end(), separator, -1);
+        REGEX_NAMESPACE::sregex_token_iterator end;
         string name = *token++;
         if (token != end) {
           string value = *token;
@@ -376,9 +367,9 @@ bool parse_proc_meminfo() {
     char line[4096] = {0};
     while ( fgets( line, 4096, f)) {
         string tmp(line);
-        const boost::regex separator(":");
-        boost::sregex_token_iterator token(tmp.begin(), tmp.end(), separator, -1);
-        boost::sregex_token_iterator end;
+        const REGEX_NAMESPACE::regex separator(":");
+        REGEX_NAMESPACE::sregex_token_iterator token(tmp.begin(), tmp.end(), separator, -1);
+        REGEX_NAMESPACE::sregex_token_iterator end;
         string name = *token++;
         if (token != end) {
             string value = *token;
@@ -404,9 +395,9 @@ bool parse_proc_self_status() {
     while ( fgets( line, 4096, f)) {
         string tmp(line);
         if (!tmp.compare(0,prefix.size(),prefix)) {
-            const boost::regex separator(":");
-            boost::sregex_token_iterator token(tmp.begin(), tmp.end(), separator, -1);
-            boost::sregex_token_iterator end;
+            const REGEX_NAMESPACE::regex separator(":");
+            REGEX_NAMESPACE::sregex_token_iterator token(tmp.begin(), tmp.end(), separator, -1);
+            REGEX_NAMESPACE::sregex_token_iterator end;
             string name = *token++;
             if (token != end) {
                 string value = *token;
@@ -442,9 +433,9 @@ bool parse_proc_netdev() {
     while (fgets(line, 4096, f)) {
         string outer_tmp(line);
         outer_tmp = trim(outer_tmp);
-        const boost::regex separator("[|:\\s]+");
-        boost::sregex_token_iterator token(outer_tmp.begin(), outer_tmp.end(), separator, -1);
-        boost::sregex_token_iterator end;
+        const REGEX_NAMESPACE::regex separator("[|:\\s]+");
+        REGEX_NAMESPACE::sregex_token_iterator token(outer_tmp.begin(), outer_tmp.end(), separator, -1);
+        REGEX_NAMESPACE::sregex_token_iterator end;
         string devname = *token++; // device name
         string tmp = *token++;
         char* pEnd;
@@ -551,7 +542,8 @@ bool parse_sensor_data() {
 }
 
 /* This is the main function for the reader thread. */
-void ProcData::read_proc(void) {
+void* proc_data_reader::read_proc(void * _ptw) {
+  pthread_wrapper* ptw = (pthread_wrapper*)_ptw;
   static bool _initialized = false;
   if (!_initialized) {
       initialize_worker_thread_for_TAU();
@@ -559,7 +551,7 @@ void ProcData::read_proc(void) {
   }
 #ifdef APEX_HAVE_TAU
   if (apex_options::use_tau()) {
-    TAU_START("ProcData::read_proc");
+    TAU_START("proc_data_reader::read_proc");
   }
 #endif
 #ifdef APEX_HAVE_LM_SENSORS
@@ -577,24 +569,10 @@ void ProcData::read_proc(void) {
   ProcData *newData = NULL;
   ProcData *periodData = NULL;
   
-  while(!proc_done) {
-    // sleep until next time
-    std::unique_lock<std::mutex> lk(cv_m);
-#if defined(__INTEL_COMPILER) && (__INTEL_COMPILER < 1500) 
-    // for some reason, the Intel compiler didn't implement std::cv_status in a normal way.
-    // for intel 15, it is in the tbb::interface5 namespace.
-    // enum cv_status { no_timeout, timeout }; 
-    auto stat = cv.wait_for(lk, std::chrono::seconds(1));
-    // assume the enum starts at 0?
-    if (stat == 0) { break; }; // if we were signalled, exit.
-#else
-    std::cv_status stat = cv.wait_for(lk, std::chrono::seconds(1));
-    if (stat != std::cv_status::timeout) { break; }; // if we were signalled, exit.
-#endif
-
+  while(ptw->wait()) {
 #ifdef APEX_HAVE_TAU
     if (apex_options::use_tau()) {
-      TAU_START("ProcData::read_proc: main loop");
+      TAU_START("proc_data_reader::read_proc: main loop");
     }
 #endif
     if (apex_options::use_proc_stat()) {
@@ -618,7 +596,7 @@ void ProcData::read_proc(void) {
 
 #ifdef APEX_HAVE_TAU
     if (apex_options::use_tau()) {
-      TAU_STOP("ProcData::read_proc: main loop");
+      TAU_STOP("proc_data_reader::read_proc: main loop");
     }
 #endif
   }
@@ -628,11 +606,11 @@ void ProcData::read_proc(void) {
 
 #ifdef APEX_HAVE_TAU
   if (apex_options::use_tau()) {
-    TAU_STOP("ProcData::read_proc");
+    TAU_STOP("proc_data_reader::read_proc");
   }
 #endif
   delete(oldData);
-
+  return nullptr;
 }
 
 #ifdef APEX_HAVE_MSR

@@ -4,9 +4,7 @@
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-// apex main class
-#ifndef APEX_API_HPP
-#define APEX_API_HPP
+#pragma once
 
 /* required for Doxygen */
 /** @file */ 
@@ -701,4 +699,3 @@ hpx::runtime * get_hpx_runtime_ptr(void);
 #endif
 } //namespace apex
 
-#endif //APEX_API_HPP

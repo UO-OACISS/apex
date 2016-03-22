@@ -1,3 +1,10 @@
+//  Copyright (c) 2014 University of Oregon
+//
+//  Distributed under the Boost Software License, Version 1.0. (See accompanying
+//  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+#pragma once
+
 /* Apparently, Boost does not have semaphores. So, we implement one.
  * Example from:
  * http://stackoverflow.com/questions/4792449/c0x-has-no-semaphores-how-to-synchronize-threads
@@ -49,18 +56,18 @@ public:
 }
 
 #else
-// Not posix, so use Boost to build a semaphore.
+// Not posix, so use std to build a semaphore.
 
-#include <boost/thread/condition.hpp>
-#include <boost/thread/mutex.hpp>
+#include <condition>
+#include <mutex>
 
 namespace apex {
 
 class semaphore
 {
 private:
-    boost::mutex mutex_;
-    boost::condition_variable condition_;
+    std::mutex mutex_;
+    std::condition_variable condition_;
     unsigned long count_;
 
 public:
@@ -70,14 +77,14 @@ public:
 
     void post()
     {
-        boost::mutex::scoped_lock lock(mutex_);
+        std::mutex::scoped_lock lock(mutex_);
         ++count_;
         condition_.notify_one();
     }
 
     void wait()
     {
-        boost::mutex::scoped_lock lock(mutex_);
+        std::mutex::scoped_lock lock(mutex_);
         while(!count_)
             condition_.wait(lock);
         --count_;
