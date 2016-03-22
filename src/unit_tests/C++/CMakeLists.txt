@@ -63,6 +63,7 @@ foreach(example_program ${example_programs})
   add_dependencies ("${example_program}_cpp" apex)
   add_dependencies (tests "${example_program}_cpp")
   add_test ("test_${example_program}_cpp" "${example_program}_cpp")
+  # install(TARGETS "${example_program}_cpp" RUNTIME DESTINATION "bin/apex_unit_tests" OPTIONAL)
 endforeach()
 
 if (OPENMP_FOUND)

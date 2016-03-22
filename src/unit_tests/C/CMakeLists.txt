@@ -63,8 +63,10 @@ foreach(example_program ${example_programs})
     add_dependencies (${example_program} apex)
     add_dependencies (tests ${example_program})
     add_test ("test_${example_program}" ${example_program})
+    # install(TARGETS ${example_program} RUNTIME DESTINATION "bin/apex_unit_tests" OPTIONAL)
 endforeach()
 
 set_tests_properties(test_apex_disable PROPERTIES ENVIRONMENT "APEX_DISABLE=1")
 set_tests_properties(test_apex_disable PROPERTIES ENVIRONMENT "APEX_PAPI_METRICS=\"PAPI_TOT_CYC PAPI_TOT_INS\"")
+
 
