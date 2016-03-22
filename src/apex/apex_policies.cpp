@@ -180,6 +180,7 @@ inline int apex_power_throttling_policy(apex_context const context)
            (thread_cap_tuning_session->moving_average > thread_cap_tuning_session->max_watts)) && thread_cap_tuning_session->delay <= 0) { 
           __decrease_cap();
           thread_cap_tuning_session->delay = thread_cap_tuning_session->window_size;
+          printf("power : %f, ma: %f, cap: %d, min: %f, max: %f, tuning_session->delay: %d decreasing cap.\n", power, thread_cap_tuning_session->moving_average, thread_cap_tuning_session->thread_cap, thread_cap_tuning_session->min_watts, thread_cap_tuning_session->max_watts, thread_cap_tuning_session->delay);
       }
       /* this is a softer limit. If we dip below the lower cap
          AND our moving average is also blow the cap, we need 
@@ -188,10 +189,9 @@ inline int apex_power_throttling_policy(apex_context const context)
                (thread_cap_tuning_session->moving_average < thread_cap_tuning_session->min_watts) && thread_cap_tuning_session->delay <=0) {
           __increase_cap_gradual();
           thread_cap_tuning_session->delay = thread_cap_tuning_session->window_size;
+          printf("power : %f, ma: %f, cap: %d, min: %f, max: %f, tuning_session->delay: %d increasing cap.\n", power, thread_cap_tuning_session->moving_average, thread_cap_tuning_session->thread_cap, thread_cap_tuning_session->min_watts, thread_cap_tuning_session->max_watts, thread_cap_tuning_session->delay);
       } else {
-#ifdef APEX_DEBUG_THROTTLE
           printf("power : %f, ma: %f, cap: %d, min: %f, max: %f, tuning_session->delay: %d no change.\n", power, thread_cap_tuning_session->moving_average, thread_cap_tuning_session->thread_cap, thread_cap_tuning_session->min_watts, thread_cap_tuning_session->max_watts, thread_cap_tuning_session->delay);
-#endif
       }
       apex::apex * instance = apex::apex::instance();
       if (instance != NULL && instance->get_node_id() == 0) {
