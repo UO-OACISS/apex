@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <iostream>
 #include <string>
+#include <vector>
 #if defined(__GNUC__)
 #include <cxxabi.h>
 #endif

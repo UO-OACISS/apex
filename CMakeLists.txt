@@ -609,6 +609,7 @@ endif()
 if(MPI_CXX_FOUND)
   add_subdirectory (src/comm/mpi) 
 endif()
+add_subdirectory (src/scripts) 
 
 add_subdirectory (doc) 
 
