@@ -45,6 +45,8 @@
 #endif
 #endif
 
+#include<thread>
+#include<future>
 
 #if APEX_HAVE_BFD
 #include "address_resolution.hpp"
@@ -180,7 +182,7 @@ namespace apex {
   // TODO The name-based timer and address-based timer paths through
   // the code involve a lot of duplication -- this should be refactored
   // to remove the duplication so it's easier to maintain.
-  inline unsigned int profiler_listener::process_profile(std::shared_ptr<profiler> &p, unsigned int tid)
+  unsigned int profiler_listener::process_profile(std::shared_ptr<profiler> &p, unsigned int tid)
   {
     if(p == nullptr) return 0;
     profile * theprofile;
@@ -720,6 +722,14 @@ node_color * get_node_color(double v,double vmin,double vmax)
       }
   }
 
+  bool profiler_listener::concurrent_cleanup(void){
+      std::shared_ptr<profiler> p;
+      while(thequeue.try_dequeue(p)) {
+        process_profile(p,0);
+      }
+      return true;
+  }
+
   /* This is the main function for the consumer thread.
    * It will wait at a semaphore for pending work. When there is
    * work on one or more queues, it will iterate over the queues
@@ -764,14 +774,13 @@ node_color * get_node_color(double v,double vmin,double vmax)
        * is too much overhead. Maybe dequeue them in batches?
        */
       /*
-      std::vector<std::future<unsigned int>> pending_futures;
+      std::vector<std::future<void>> pending_futures;
       while(!_done && thequeue.try_dequeue(p)) {
-          auto f = std::async(process_profile,p,0);
+          auto f = std::async(my_stupid_wrapper,p);
           // transfer the future's shared state to a longer-lived future
           pending_futures.push_back(std::move(f));
       }
-      std::vector<std::future<unsigned int>>::iterator iter;
-      for (iter = pending_futures.begin() ; iter < pending_futures.end() ; iter++ ) {
+      for (auto iter = pending_futures.begin() ; iter < pending_futures.end() ; iter++ ) {
           iter->get();
       }
       */
@@ -963,9 +972,14 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
           std::cerr << "Info: " << ignored << " items remaining on on the profiler_listener queue...";
         }
         // We might be done, but check to make sure the queue is empty
-        std::shared_ptr<profiler> p;
-        while(thequeue.try_dequeue(p)) {
-          process_profile(p, 0);
+        std::vector<std::future<bool>> pending_futures;
+        for (unsigned int i=0; i<hardware_concurrency(); ++i) {
+            auto f = std::async(std::launch::async,&profiler_listener::concurrent_cleanup,this);
+            // transfer the future's shared state to a longer-lived future
+            pending_futures.push_back(std::move(f));
+        }
+        for (auto iter = pending_futures.begin() ; iter < pending_futures.end() ; iter++ ) {
+            iter->get();
         }
         if (ignored > 0) {
           std::cerr << "done." << std::endl;

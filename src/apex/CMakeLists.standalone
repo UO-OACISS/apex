@@ -46,6 +46,12 @@ else()
     add_dependencies (apex project_activeharmony project_binutils)
 endif(APEX_INTEL_MIC)
 
+# If we are building libapex.so, we want to include all the other libraries,
+# so that we can LD_PRELOAD this library with all requirements met.
+if (NOT BUILD_STATIC_EXECUTABLES)
+    target_link_libraries(apex ${LIBS})
+endif()
+
 # add the binary tree to the search path for include files
 # so that we will find ApexConfig.h
 if(HAVE_RCR)
