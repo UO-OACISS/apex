@@ -720,7 +720,7 @@ void init_plugins(void) {
     }
     std::vector<std::string> plugin_names;
     std::vector<std::string> plugin_paths;
-    split(':', plugin_names_str, plugin_names);
+    split( plugin_names_str, ':', plugin_names);
     for(const std::string & plugin_name : plugin_names) {
         plugin_paths.push_back(plugins_prefix + "/" + plugin_name + plugins_suffix);
     }
