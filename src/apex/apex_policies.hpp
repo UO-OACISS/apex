@@ -42,7 +42,7 @@ class apex_param {
             return name;
         };
 
-        virtual const apex_param_type get_type() const {
+        virtual /*const*/ apex_param_type get_type() const {
             return apex_param_type::NONE;
         };
         
@@ -65,11 +65,11 @@ class apex_param_long : public apex_param {
               min{min}, max{max}, step{step} {};
         virtual ~apex_param_long() {};
 
-        const long get_value() const {
+        /*const*/ long get_value() const {
             return *value;    
         };
 
-        virtual const apex_param_type get_type() const {
+        virtual /*const*/ apex_param_type get_type() const {
             return apex_param_type::LONG;
         };
         friend int __active_harmony_custom_setup(std::shared_ptr<apex_tuning_session> tuning_session, apex_tuning_request & request);
@@ -89,11 +89,11 @@ class apex_param_double : public apex_param {
               min{min}, max{max}, step{step} {};
         virtual ~apex_param_double() {};
 
-        const double get_value() const {
+        /*const*/ double get_value() const {
             return *value;    
         };
 
-        virtual const apex_param_type get_type() const {
+        virtual /*const*/ apex_param_type get_type() const {
             return apex_param_type::DOUBLE;
         };
         friend int __active_harmony_custom_setup(std::shared_ptr<apex_tuning_session> tuning_session, apex_tuning_request & request);
@@ -114,7 +114,7 @@ class apex_param_enum : public apex_param {
             return std::string{*value};
         };
 
-        virtual const apex_param_type get_type() const {
+        virtual /*const*/ apex_param_type get_type() const {
             return apex_param_type::ENUM;
         };
         friend int __active_harmony_custom_setup(std::shared_ptr<apex_tuning_session> tuning_session, apex_tuning_request & request);
