@@ -551,11 +551,11 @@ node_color * get_node_color(double v,double vmin,double vmax)
     for(auto dep = task_dependencies.begin(); dep != task_dependencies.end(); dep++) {
         task_identifier parent = dep->first;
         auto children = dep->second;
-        string& parent_name = parent.get_name();
+        string parent_name = parent.get_name();
         for(auto offspring = children->begin(); offspring != children->end(); offspring++) {
             task_identifier child = offspring->first;
             int count = offspring->second;
-            string& child_name = child.get_name();
+            string child_name = child.get_name();
             myfile << "  \"" << parent_name << "\" -> \"" << child_name << "\"";
             myfile << " [ label=\"  count: " << count << "\" ]; " << std::endl;
             

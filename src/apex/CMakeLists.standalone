@@ -23,7 +23,7 @@ if (LM_SENSORS_FOUND)
 SET(SENSOR_SOURCE sensor_data.cpp)
 endif(LM_SENSORS_FOUND)
 
-SET(all_SOURCE task_identifier.cpp apex.cpp thread_instance.cpp event_listener.cpp handler.cpp concurrency_handler.cpp policy_handler.cpp ${tau_SOURCE} profiler_listener.cpp ${bfd_SOURCE} apex_options.cpp apex_policies.cpp ${PROC_SOURCE} ${OMPT_SOURCE} ${SENSOR_SOURCE})
+SET(all_SOURCE task_identifier.cpp apex.cpp thread_instance.cpp event_listener.cpp handler.cpp concurrency_handler.cpp policy_handler.cpp utils.cpp ${tau_SOURCE} profiler_listener.cpp ${bfd_SOURCE} apex_options.cpp apex_policies.cpp ${PROC_SOURCE} ${OMPT_SOURCE} ${SENSOR_SOURCE})
 
 #add_library (apex_objlib OBJECT ${all_SOURCE})
 #if (BUILD_STATIC_EXECUTABLES)

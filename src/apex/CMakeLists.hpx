@@ -240,6 +240,7 @@ set(apex_sources
     profiler_listener.cpp
     task_identifier.cpp
     apex_policies.cpp
+    utils.cpp
     ${BFD_SOURCE}
     ${PROC_SOURCE})
 

@@ -20,9 +20,7 @@
 #include <string>
 #include <fstream>
 #include <utility>
-#if defined(__GNUC__)
-#include <cxxabi.h>
-#endif
+#include "utils.hpp"
 
 #ifdef APEX_HAVE_BFD
 #include "address_resolution.hpp"
@@ -199,27 +197,6 @@ inline void concurrency_handler::add_thread(unsigned int tid) {
     _per_thread_mutex.push_back(new std::mutex());
   }
   _vector_mutex.unlock();
-}
-
-string* demangle(string timer_name) {
-  string* demangled = NULL;
-#if defined(__GNUC__)
-  int     status;
-  char *realname = abi::__cxa_demangle(timer_name.c_str(), 0, 0, &status);
-  if (status == 0) {
-    char* index = strstr(realname, "<");
-    if (index != NULL) {
-      *index = 0; // terminate before templates for brevity
-    }
-    demangled = new string(realname);
-    free(realname);
-  } else {
-    demangled = new string(timer_name);
-  }
-#else
-  demangled = new string(timer_name);
-#endif
-  return demangled;
 }
 
 bool sort_functions(pair<task_identifier,int> first, pair<task_identifier,int> second) {

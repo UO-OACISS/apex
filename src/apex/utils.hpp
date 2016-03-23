@@ -10,29 +10,17 @@
 #include <thread>
 #include <unistd.h>
 #include <algorithm>
+#include <iostream>
+#include <string>
+#if defined(__GNUC__)
+#include <cxxabi.h>
+#endif
 
-/* Idea borrowed from:
- * http://stackoverflow.com/questions/931827/stdstring-comparison-check-whether-string-begins-with-another-string */
-inline bool starts_with(const std::string& input, const std::string& match)
-{
-        return input.size() >= match.size()
-                    && std::equal(match.begin(), match.end(), input.begin());
-}
+namespace apex {
 
-/* Idea borrowed from:
- * http://stackoverflow.com/questions/236129/split-a-string-in-c
- */
-inline std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems) {
-    std::stringstream ss(s);
-    std::string item;
-    while (std::getline(ss, item, delim)) {
-        // ignore duplicate delimiters.
-        if (item.size() > 0) {
-            elems.push_back(item);
-        }
-    }
-    return elems;
-}
+bool starts_with(const std::string& input, const std::string& match);
+
+std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems);
 
 // trim from left
 inline std::string& ltrim(std::string& s, const char* t = " \t\n\r\f\v")
@@ -71,7 +59,6 @@ inline std::string trim_copy(std::string s, const char* t = " \t\n\r\f\v")
     return trim(s, t);
 }
 
-namespace apex {
 class simple_timer {
         const double nanoseconds = 1.0e9;
     public:
@@ -93,6 +80,8 @@ inline unsigned int hardware_concurrency()
     unsigned int cores = std::thread::hardware_concurrency();
     return cores ? cores : my_hardware_concurrency();
 }
+
+std::string demangle(const std::string& timer_name);
 
 };
 
