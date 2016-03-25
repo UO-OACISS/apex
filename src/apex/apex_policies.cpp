@@ -101,11 +101,13 @@ bool apex_final = false;              // When do we stop?
 apex_tuning_session * thread_cap_tuning_session = nullptr;
 
 inline int __get_thread_cap(void) {
+  if (apex::apex_options::disable() == true) { return 1; }
   return (int)(thread_cap_tuning_session->thread_cap);
   //return (int)*(tuning_session->__ah_inputs[0]);
 }
 
 inline void __set_thread_cap(int new_cap) {
+  if (apex::apex_options::disable() == true) { return; }
   thread_cap_tuning_session->thread_cap = (long int)new_cap;
   return;
 }
@@ -709,6 +711,7 @@ inline void __read_common_variables(shared_ptr<apex_tuning_session> tuning_sessi
 
 inline int __setup_power_cap_throttling()
 {
+    if (apex::apex_options::disable() == true) { return APEX_NOERROR; }
     if(thread_cap_tuning_session->apex_energy_init) {
         std::cerr << "power cap throttling already initialized!" << std::endl;
         return APEX_ERROR;
@@ -1081,6 +1084,7 @@ inline int __common_setup_custom_tuning(shared_ptr<apex_tuning_session> tuning_s
 inline int __setup_throughput_tuning(apex_function_address the_address,
         apex_optimization_criteria_t criteria, apex_event_type event_type, 
         int num_inputs, long ** inputs, long * mins, long * maxs, long * steps) {
+    if (apex::apex_options::disable() == true) { return APEX_NOERROR; }
     thread_cap_tuning_session->function_of_interest = the_address;
     return __common_setup_throughput_tuning(criteria, event_type, num_inputs, inputs, mins, maxs, steps);
 }
@@ -1088,6 +1092,7 @@ inline int __setup_throughput_tuning(apex_function_address the_address,
 inline int __setup_throughput_tuning(std::string &the_name,
         apex_optimization_criteria_t criteria, apex_event_type event_type, 
         int num_inputs, long ** inputs, long * mins, long * maxs, long * steps) {
+    if (apex::apex_options::disable() == true) { return APEX_NOERROR; }
     thread_cap_tuning_session->function_name_of_interest = string(the_name);
     return __common_setup_throughput_tuning(criteria, event_type, num_inputs, inputs, mins, maxs, steps);
 }
@@ -1096,6 +1101,7 @@ inline apex_tuning_session_handle __setup_custom_tuning(std::function<double()> 
         apex_event_type event_type, int num_inputs, long ** inputs,
         long * mins, long * maxs, long * steps) {
     auto tuning_session_handle = create_session();
+    if (apex::apex_options::disable() == true) { return tuning_session_handle; }
     auto tuning_session = get_session(tuning_session_handle);
     tuning_session->metric_of_interest = metric;
     int status = __common_setup_custom_tuning(tuning_session, event_type, num_inputs, inputs, mins, maxs, steps);
@@ -1119,6 +1125,7 @@ inline apex_tuning_session_handle __setup_custom_tuning(apex_tuning_request & re
         return -1;
     }
     auto tuning_session_handle = create_session();
+    if (apex::apex_options::disable() == true) { return tuning_session_handle; }
     auto tuning_session = get_session(tuning_session_handle);
     tuning_session->metric_of_interest = request.metric;
     int status = __common_setup_custom_tuning(tuning_session, request);
@@ -1133,6 +1140,7 @@ inline apex_tuning_session_handle __setup_custom_tuning(apex_tuning_request & re
 inline int __setup_timer_throttling(apex_function_address the_address, apex_optimization_criteria_t criteria,
         apex_optimization_method_t method, unsigned long update_interval)
 {
+    if (apex::apex_options::disable() == true) { return APEX_NOERROR; }
     thread_cap_tuning_session->function_of_interest = the_address;
     return __common_setup_timer_throttling(criteria, method, update_interval);
 }
@@ -1140,6 +1148,7 @@ inline int __setup_timer_throttling(apex_function_address the_address, apex_opti
 inline int __setup_timer_throttling(const string& the_name, apex_optimization_criteria_t criteria,
         apex_optimization_method_t method, unsigned long update_interval)
 {
+    if (apex::apex_options::disable() == true) { return APEX_NOERROR; }
     if(thread_cap_tuning_session->apex_timer_init) {
         std::cerr << "timer throttling already initialized!" << std::endl;
         return APEX_ERROR;
@@ -1158,6 +1167,7 @@ inline int __setup_timer_throttling(const string& the_name, apex_optimization_cr
 
 inline int __startup_throttling(void)
 {
+    if (apex::apex_options::disable() == true) { return APEX_NOERROR; }
     if(thread_cap_tuning_session == nullptr) {
         thread_cap_tuning_session = new apex_tuning_session(0);
         return APEX_NOERROR;
@@ -1168,6 +1178,7 @@ inline int __startup_throttling(void)
 
 inline int __shutdown_throttling(void)
 {
+    if (apex::apex_options::disable() == true) { return APEX_NOERROR; }
     if(!apex_final) { // protect against multiple shutdowns
         apex_final = true;
     //printf("periodic_policy called %d times\n", tuning_session->test_pp);
@@ -1186,6 +1197,8 @@ inline int __shutdown_throttling(void)
 /* These are the external API versions of the above functions. */
 
 namespace apex {
+
+static std::vector<std::pair<std::string,long*>> empty_vector(0);
 
 APEX_EXPORT int setup_power_cap_throttling(void) {
     return __setup_power_cap_throttling();
@@ -1238,15 +1251,18 @@ APEX_EXPORT int get_thread_cap(void) {
 }
 
 APEX_EXPORT int get_input2(void) {
+    if (apex_options::disable() == true) { return 0; }
     return (int)*(thread_cap_tuning_session->__ah_inputs[1]);
 }
 
 APEX_EXPORT std::vector<std::pair<std::string,long*>> & get_tunable_params(apex_tuning_session_handle h) {
+    if (apex_options::disable() == true) { return empty_vector; }
     auto tuning_session = get_session(h);
     return tuning_session->tunable_params;
 }
 
 APEX_EXPORT bool has_session_converged(apex_tuning_session_handle h) {
+    if (apex_options::disable() == true) { return true; }
     auto tuning_session = get_session(h);
     if(tuning_session) {
         return tuning_session->converged_message;
