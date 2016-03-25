@@ -170,8 +170,8 @@ inline int apex_power_throttling_policy(apex_context const context)
     // read energy counter and memory concurrency to determine system status
     double power = apex::current_power_high();
     thread_cap_tuning_session->moving_average = ((thread_cap_tuning_session->moving_average * (thread_cap_tuning_session->window_size-1)) + power) / thread_cap_tuning_session->window_size;
-    //cout << "power in policy is: " << power << endl;
 
+    apex::apex * instance = apex::apex::instance();
     if (power != 0.0) {
       /* this is a hard limit! If we exceed the power cap once
          or in our moving average, then we need to adjust */
@@ -180,7 +180,9 @@ inline int apex_power_throttling_policy(apex_context const context)
            (thread_cap_tuning_session->moving_average > thread_cap_tuning_session->max_watts)) && thread_cap_tuning_session->delay <= 0) { 
           __decrease_cap();
           thread_cap_tuning_session->delay = thread_cap_tuning_session->window_size;
-          printf("power : %f, ma: %f, cap: %ld, min: %f, max: %f, decreasing cap.\n", power, thread_cap_tuning_session->moving_average, thread_cap_tuning_session->thread_cap, thread_cap_tuning_session->min_watts, thread_cap_tuning_session->max_watts);
+          if (instance != NULL && instance->get_node_id() == 0) {
+              printf("power : %f, ma: %f, cap: %ld, min: %f, max: %f, decreasing cap.\n", power, thread_cap_tuning_session->moving_average, thread_cap_tuning_session->thread_cap, thread_cap_tuning_session->min_watts, thread_cap_tuning_session->max_watts);
+          }
       }
       /* this is a softer limit. If we dip below the lower cap
          AND our moving average is also blow the cap, we need 
@@ -189,14 +191,21 @@ inline int apex_power_throttling_policy(apex_context const context)
                (thread_cap_tuning_session->moving_average < thread_cap_tuning_session->min_watts) && thread_cap_tuning_session->delay <=0) {
           __increase_cap_gradual();
           thread_cap_tuning_session->delay = thread_cap_tuning_session->window_size;
-          printf("power : %f, ma: %f, cap: %ld, min: %f, max: %f, increasing cap.\n", power, thread_cap_tuning_session->moving_average, thread_cap_tuning_session->thread_cap, thread_cap_tuning_session->min_watts, thread_cap_tuning_session->max_watts);
+          if (instance != NULL && instance->get_node_id() == 0) {
+              printf("power : %f, ma: %f, cap: %ld, min: %f, max: %f, increasing cap.\n", power, thread_cap_tuning_session->moving_average, thread_cap_tuning_session->thread_cap, thread_cap_tuning_session->min_watts, thread_cap_tuning_session->max_watts);
+          }
       } else {
-          printf("power : %f, ma: %f, cap: %ld, min: %f, max: %f, no change.\n", power, thread_cap_tuning_session->moving_average, thread_cap_tuning_session->thread_cap, thread_cap_tuning_session->min_watts, thread_cap_tuning_session->max_watts);
+          if (instance != NULL && instance->get_node_id() == 0) {
+              printf("power : %f, ma: %f, cap: %ld, min: %f, max: %f, no change.\n", power, thread_cap_tuning_session->moving_average, thread_cap_tuning_session->thread_cap, thread_cap_tuning_session->min_watts, thread_cap_tuning_session->max_watts);
+          }
       }
-      apex::apex * instance = apex::apex::instance();
       if (instance != NULL && instance->get_node_id() == 0) {
         static int index = 0;
         thread_cap_tuning_session->cap_data << index++ << "\t" << power << "\t" << thread_cap_tuning_session->thread_cap << endl;
+      }
+    } else {
+      if (instance != NULL && instance->get_node_id() == 0) {
+        cout << "power in policy is: " << power << endl;
       }
     }
     thread_cap_tuning_session->test_pp++;
