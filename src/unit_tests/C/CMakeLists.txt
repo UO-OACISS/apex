@@ -36,6 +36,7 @@ set(example_programs
     apex_disable
     apex_suspend
     apex_papi_suspend
+    apex_cross_thread_timing
    )
 #    apex_setup_power_cap_throttling
 #    apex_setup_throughput_tuning
