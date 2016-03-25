@@ -23,8 +23,6 @@
 #define COMMAND_LEN 20
 #define DATA_SIZE 512
 
-#define APEX_GET_ALL_CPUS 0
-
 #ifdef APEX_HAVE_TAU
 #define PROFILING_ON
 #define TAU_DOT_H_LESS_HEADERS
@@ -111,10 +109,8 @@ ProcData* parse_proc_stat(void) {
         // softirq 10953997190 0 1380880059 1495447920 1585783785 15525789 0 12 661586214 0 1519806115
         //sscanf(line, "%s %d\n", dummy, &procData->btime);
       }
-#if !(APEX_GET_ALL_CPUS)
       // don't waste time parsing anything but the mean
       break;
-#endif
     }
   }
   fclose (pFile);
@@ -270,62 +266,26 @@ int ProcStatistics::getSize() {
 }
 
 void ProcData::sample_values(void) {
-  long long total;
+  double total;
   CPUs::iterator iter = cpus.begin();
   CPUStat* cpu_stat=*iter;
-  // convert all measurements from "Jiffies" to seconds
-  /*
-  sample_value("CPU User", cpu_stat->user);
-  sample_value("CPU Nice", cpu_stat->nice);
-  sample_value("CPU System", cpu_stat->system);
-  sample_value("CPU Idle", cpu_stat->idle);
-  sample_value("CPU I/O Wait", cpu_stat->iowait);
-  sample_value("CPU IRQ", cpu_stat->irq);
-  sample_value("CPU soft IRQ", cpu_stat->softirq);
-  sample_value("CPU Steal", cpu_stat->steal);
-  sample_value("CPU Guest", cpu_stat->guest);
-  */
-  total = cpu_stat->user + cpu_stat->nice + cpu_stat->system + cpu_stat->idle + cpu_stat->iowait + cpu_stat->irq + cpu_stat->softirq + cpu_stat->steal + cpu_stat->guest;
-  total = total / 100.0; // so we have a percentage in the final values
-  sample_value("CPU User %", (double)cpu_stat->user / (double)total);
-  sample_value("CPU Nice %", (double)cpu_stat->nice / (double)total);
-  sample_value("CPU System %", (double)cpu_stat->system / (double)total);
-  sample_value("CPU Idle %", (double)cpu_stat->idle / (double)total);
-  sample_value("CPU I/O Wait %", (double)cpu_stat->iowait / (double)total);
-  sample_value("CPU IRQ %", (double)cpu_stat->irq / (double)total);
-  sample_value("CPU soft IRQ %", (double)cpu_stat->softirq / (double)total);
-  sample_value("CPU Steal %", (double)cpu_stat->steal / (double)total);
-  sample_value("CPU Guest %", (double)cpu_stat->guest / (double)total);
+  total = (double)(cpu_stat->user + cpu_stat->nice + cpu_stat->system + cpu_stat->idle + cpu_stat->iowait + cpu_stat->irq + cpu_stat->softirq + cpu_stat->steal + cpu_stat->guest);
+  total = total * 0.01; // so we have a percentage in the final values
+  sample_value("CPU User %",     ((double)(cpu_stat->user))    / total);
+  sample_value("CPU Nice %",     ((double)(cpu_stat->nice))    / total);
+  sample_value("CPU System %",   ((double)(cpu_stat->system))  / total);
+  sample_value("CPU Idle %",     ((double)(cpu_stat->idle))    / total);
+  sample_value("CPU I/O Wait %", ((double)(cpu_stat->iowait))  / total);
+  sample_value("CPU IRQ %",      ((double)(cpu_stat->irq))     / total);
+  sample_value("CPU soft IRQ %", ((double)(cpu_stat->softirq)) / total);
+  sample_value("CPU Steal %",    ((double)(cpu_stat->steal))   / total);
+  sample_value("CPU Guest %",    ((double)(cpu_stat->guest))   / total);
 #if defined(APEX_HAVE_CRAY_POWER)
   sample_value("Power", power);
   sample_value("Power Cap", power_cap);
   sample_value("Energy", energy);
   sample_value("Freshness", freshness);
   sample_value("Generation", generation);
-#endif
-  /* This code below is for detailed measurement from all CPUS. */
-#if APEX_GET_ALL_CPUS
-  ++iter;
-  while (iter != cpus.end()) {
-    CPUStat* cpu_stat=*iter;
-    sample_value(string(cpu_stat->name) + " User", cpu_stat->user);
-    sample_value(string(cpu_stat->name) + " Nice", cpu_stat->nice);
-    sample_value(string(cpu_stat->name) + " System", cpu_stat->system);
-    sample_value(string(cpu_stat->name) + " Idle", cpu_stat->idle);
-    sample_value(string(cpu_stat->name) + " I/O Wait", cpu_stat->iowait);
-    sample_value(string(cpu_stat->name) + " IRQ", cpu_stat->irq);
-    sample_value(string(cpu_stat->name) + " soft IRQ", cpu_stat->softirq);
-    sample_value(string(cpu_stat->name) + " Steal", cpu_stat->steal);
-    sample_value(string(cpu_stat->name) + " Guest", cpu_stat->guest);
-    total = cpu_stat->user + cpu_stat->nice + cpu_stat->system + cpu_stat->idle;
-    user_ratio = (double)cpu_stat->user / (double)total;
-    system_ratio = (double)cpu_stat->system / (double)total;
-    idle_ratio = (double)cpu_stat->idle / (double)total;
-    sample_value(string(cpu_stat->name) + " User Ratio", user_ratio);
-    sample_value(string(cpu_stat->name) + " System Ratio", system_ratio);
-    sample_value(string(cpu_stat->name) + " Idle Ratio", idle_ratio);
-    ++iter;
-  }
 #endif
 }
 
