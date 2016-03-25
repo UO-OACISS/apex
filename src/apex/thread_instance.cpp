@@ -207,16 +207,18 @@ string thread_instance::map_addr_to_name(apex_function_address function_address)
 #endif
 }
 
-void thread_instance::set_current_profiler(std::shared_ptr<profiler> &the_profiler) {
+void thread_instance::set_current_profiler(profiler * the_profiler) {
     instance().current_profiler = the_profiler;
+    /*
     instance().current_profilers.push_back(the_profiler);
+    */
 }
 
-std::shared_ptr<profiler> thread_instance::get_current_profiler(void) {
+profiler * thread_instance::get_current_profiler(void) {
     return instance().current_profiler;
 }
 
-std::shared_ptr<profiler> thread_instance::get_parent_profiler(void) {
+profiler * thread_instance::get_parent_profiler(void) {
     if (instance().current_profilers.size() == 0) {
         //throw empty_stack_exception(); // to be caught by the profiler_listener
         return nullptr;
@@ -224,13 +226,15 @@ std::shared_ptr<profiler> thread_instance::get_parent_profiler(void) {
     return instance().current_profilers.back();
 }
 
-std::shared_ptr<profiler> thread_instance::pop_current_profiler(void) {
+profiler * thread_instance::pop_current_profiler(void) {
+    /*
     if (instance().current_profilers.empty()) {
         //throw empty_stack_exception(); // to be caught by the profiler_listener
         return nullptr;
     }
     instance().current_profiler = instance().current_profilers.back();
     instance().current_profilers.pop_back();
+    */
     return instance().current_profiler;
 }
 
@@ -238,20 +242,20 @@ bool thread_instance::profiler_stack_empty() {
     return instance().current_profilers.empty();
 }
 
-std::shared_ptr<profiler> thread_instance::pop_current_profiler(profiler * requested) {
+profiler * thread_instance::pop_current_profiler(profiler * requested) {
     if (instance().current_profilers.empty()) {
         //throw empty_stack_exception(); // to be caught by the profiler_listener
-        return std::make_shared<profiler>(requested);
+        return requested;
     }
-    if (instance().current_profilers.back().get() == requested) {
+    if (instance().current_profilers.back() == requested) {
       instance().current_profiler = instance().current_profilers.back();
       instance().current_profilers.pop_back();
     } else {
       // work backward over the vector to find the requested profiler
-      std::vector<std::shared_ptr<profiler> >::const_iterator it;
+      std::vector<profiler*>::const_iterator it;
       int crappy_compiler = 0;
       for (it = instance().current_profilers.end() ; it != instance().current_profilers.begin() ; it-- ) {
-        profiler * tmp = (*it).get();
+        profiler * tmp = (*it);
         if (tmp == requested) {
           instance().current_profiler = *it;
 //#ifdef __INTEL_COMPILER
@@ -265,7 +269,7 @@ std::shared_ptr<profiler> thread_instance::pop_current_profiler(profiler * reque
         crappy_compiler++;
       }
       //throw empty_stack_exception(); // to be caught by the profiler_listener
-      return std::make_shared<profiler>(requested);
+      return requested;
     }
     return instance().current_profiler; // for completeless
 }

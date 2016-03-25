@@ -70,8 +70,10 @@ int main(int argc, char **argv)
   for (i = 0 ; i < NUM_THREADS ; i++) {
     pthread_join(thread[i], NULL);
   }
-  printf("Deregistering %d...\n", on_periodic->id);
-  apex::deregister_policy(on_periodic);
+  if (on_periodic != nullptr) {
+      printf("Deregistering %d...\n", on_periodic->id);
+      apex::deregister_policy(on_periodic);
+  }
 
   printf("Running without policies now...\n");
   for (i = 0 ; i < NUM_THREADS ; i++) {

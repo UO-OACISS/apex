@@ -1081,7 +1081,8 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       }
 #endif
       // start the profiler object, which starts our timers
-      std::shared_ptr<profiler> p = std::make_shared<profiler>(id, is_resume);
+      //std::shared_ptr<profiler> p = std::make_shared<profiler>(id, is_resume);
+      profiler * p = new profiler(id, is_resume);
       thread_instance::instance().set_current_profiler(p);
 #if APEX_HAVE_PAPI
       if (num_papi_counters > 0 && !apex_options::papi_suspend()) {
@@ -1142,7 +1143,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         if (apex_options::use_taskgraph_output()) {
           if (!p->is_resume) { 
             // get the PARENT profiler
-            std::shared_ptr<profiler> parent_profiler = nullptr;
+            profiler * parent_profiler = nullptr;
             try {
               parent_profiler = thread_instance::instance().get_parent_profiler();
               if (parent_profiler != NULL) {
@@ -1196,7 +1197,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   void profiler_listener::on_new_task(task_identifier * id, void * task_id) {
     if (!apex_options::use_taskgraph_output()) { return; }
     // get the current profiler
-    std::shared_ptr<profiler> p = thread_instance::instance().get_current_profiler();
+    profiler * p = thread_instance::instance().get_current_profiler();
     if (p != NULL) {
         dependency_queue.enqueue(new task_dependency(p->task_id, id));
     } else {
