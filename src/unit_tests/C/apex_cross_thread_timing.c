@@ -15,9 +15,10 @@ void* someThread(void* tmp)
 {
     uintptr_t myid = (uintptr_t)tmp;
     apex_register_thread("threadTest thread");
+    apex_profiler_handle p = apex_start(APEX_FUNCTION_ADDRESS,(void*)&someThread);
     // Even-numbered threads start the timers
     if (myid % 2 == 0) {
-        handles[myid] = apex_start(APEX_FUNCTION_ADDRESS,(void*)&someThread);
+        handles[myid] = apex_start(APEX_NAME_STRING,"cross-thread timer");
         sleep(1);
     }
     printf("PID of this process: %d\n", getpid());
@@ -31,6 +32,7 @@ void* someThread(void* tmp)
     if (myid % 2 == 1) {
         apex_stop(handles[myid-1]);
     }
+    apex_stop(p);
     apex_exit_thread();
     return NULL;
 }

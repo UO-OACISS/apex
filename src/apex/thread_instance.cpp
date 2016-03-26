@@ -218,6 +218,7 @@ profiler * thread_instance::get_current_profiler(void) {
     return instance().current_profiler;
 }
 
+    /*
 profiler * thread_instance::get_parent_profiler(void) {
     if (instance().current_profilers.size() == 0) {
         //throw empty_stack_exception(); // to be caught by the profiler_listener
@@ -227,14 +228,12 @@ profiler * thread_instance::get_parent_profiler(void) {
 }
 
 profiler * thread_instance::pop_current_profiler(void) {
-    /*
     if (instance().current_profilers.empty()) {
         //throw empty_stack_exception(); // to be caught by the profiler_listener
         return nullptr;
     }
     instance().current_profiler = instance().current_profilers.back();
     instance().current_profilers.pop_back();
-    */
     return instance().current_profiler;
 }
 
@@ -273,5 +272,6 @@ profiler * thread_instance::pop_current_profiler(profiler * requested) {
     }
     return instance().current_profiler; // for completeless
 }
+    */
 
 }

@@ -78,6 +78,13 @@ namespace apex
 #endif
     };
 
+    apex_options::~apex_options(void) {
+#define apex_macro(name, member_variable, type, default_value) \
+        free (_##member_variable);
+        FOREACH_APEX_STRING_OPTION(apex_macro)
+#undef apex_macro
+    }
+
     apex_options& apex_options::instance(void) {
         static apex_options _instance;
         return _instance;

@@ -18,11 +18,13 @@
 
 namespace apex {
 
+    /*
 class empty_stack_exception : public std::exception {
     virtual const char* what() const throw() {
         return "Empty profiler stack.";
     }
 } ;
+*/
 
 class thread_instance {
 private:
@@ -48,7 +50,9 @@ private:
   // map from function address to name - unique to all threads to avoid locking
   std::map<apex_function_address, std::string> _function_map;
   profiler * current_profiler;
+  /*
   std::vector<profiler*> current_profilers;
+  */
   //std::shared_ptr<profiler> current_profiler;
   //std::vector<std::shared_ptr<profiler> > current_profilers;
 public:
@@ -69,10 +73,12 @@ public:
   //static std::shared_ptr<profiler> pop_current_profiler(profiler * requested);
   static void set_current_profiler(profiler * the_profiler);
   static profiler * get_current_profiler(void);
+  /*
   static profiler * get_parent_profiler(void);
   static profiler * pop_current_profiler(void);
   static profiler * pop_current_profiler(profiler * requested);
   static bool profiler_stack_empty(void);
+  */
   static const char * program_path(void);
 };
 

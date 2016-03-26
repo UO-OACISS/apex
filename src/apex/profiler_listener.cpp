@@ -1140,6 +1140,8 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
             PAPI_ERROR_CHECK(PAPI_read);
         }
 #endif
+        // Why is this happening now?  Why not at start? Why not at create?
+        /*
         if (apex_options::use_taskgraph_output()) {
           if (!p->is_resume) { 
             // get the PARENT profiler
@@ -1154,6 +1156,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
             } catch (empty_stack_exception& e) { }
           }
         }
+        */
         push_profiler(my_tid, p);
       }
     }

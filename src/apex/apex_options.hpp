@@ -27,6 +27,7 @@ private:
     /* Declare the constructor, only used by the "instance" method.
      * it is defined in the cpp file. */
     apex_options(void);
+    ~apex_options(void);
     /* Disable the copy and assign methods. */
     apex_options(apex_options const&)    = delete;
     void operator=(apex_options const&)  = delete;
