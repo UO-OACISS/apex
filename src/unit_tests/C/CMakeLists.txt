@@ -68,6 +68,5 @@ foreach(example_program ${example_programs})
 endforeach()
 
 set_tests_properties(test_apex_disable PROPERTIES ENVIRONMENT "APEX_DISABLE=1")
-set_tests_properties(test_apex_disable PROPERTIES ENVIRONMENT "APEX_PAPI_METRICS=\"PAPI_TOT_CYC PAPI_TOT_INS\"")
 
 
