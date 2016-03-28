@@ -11,7 +11,7 @@ add_dependencies (testThrottling apex)
 add_dependencies (examples testThrottling)
 
 # Link the executable to the Apex library. 
-target_link_libraries (testThrottling apex stdc++ ${LIBS})
+target_link_libraries (testThrottling apex ${LIBS} stdc++)
 if (BUILD_STATIC_EXECUTABLES)
     set_target_properties(testThrottling PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
 endif()

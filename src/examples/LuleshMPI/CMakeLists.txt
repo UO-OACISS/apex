@@ -19,8 +19,8 @@ set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -DUSE_MPI=1")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -DUSE_MPI=1")
 
 # Link the executable to the Apex library. 
-target_link_libraries (lulesh_MPI_2.0 apex apex_mpi stdc++
-${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES} ${LIBS})
+target_link_libraries (lulesh_MPI_2.0 apex apex_mpi
+${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES} ${LIBS} stdc++)
 if (BUILD_STATIC_EXECUTABLES)
     set_target_properties(lulesh_MPI_2.0 PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
 endif()

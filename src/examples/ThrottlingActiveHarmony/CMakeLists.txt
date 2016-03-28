@@ -11,7 +11,7 @@ add_dependencies (testThrottlingActiveHarmony apex)
 add_dependencies (examples testThrottlingActiveHarmony)
 
 # Link the executable to the Apex library. 
-target_link_libraries (testThrottlingActiveHarmony apex stdc++ ${LIBS}) 
+target_link_libraries (testThrottlingActiveHarmony apex ${LIBS} stdc++) 
 if (BUILD_STATIC_EXECUTABLES)
     set_target_properties(testThrottlingActiveHarmony PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
 endif()

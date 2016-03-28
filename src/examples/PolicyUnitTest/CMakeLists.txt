@@ -11,7 +11,7 @@ add_dependencies (policyUnitTest apex)
 add_dependencies (examples policyUnitTest)
 
 # Link the executable to the Apex library. 
-target_link_libraries (policyUnitTest apex stdc++ ${LIBS})
+target_link_libraries (policyUnitTest apex ${LIBS} stdc++)
 if (BUILD_STATIC_EXECUTABLES)
     set_target_properties(policyUnitTest PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
 endif()

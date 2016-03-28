@@ -17,9 +17,11 @@ endif()
 pkg_check_modules(PC_RCR QUIET RCR)
 set(RCR_DEFINITIONS ${PC_RCR_CFLAGS_OTHER})
 
+message(INFO " Looking for libenergy.h in any of: ${PC_RCR_INCLUDEDIR} ${PC_RCR_INCLUDE_DIRS} ${RCR_ROOT}/src/utils ${RCR_ROOT}/src/libenergy")
 find_path(RCR_INCLUDE_DIR libenergy.h
           HINTS ${PC_RCR_INCLUDEDIR} ${PC_RCR_INCLUDE_DIRS} ${RCR_ROOT}/src/utils ${RCR_ROOT}/src/libenergy)
 
+      message(INFO " Looking for libenergyStat.a or libenergyStat.* in any of: ${PC_RCR_LIBDIR} ${PC_RCR_LIBRARY_DIRS} ${RCR_ROOT}")
 find_library(RCR_LIBRARY NAMES libenergyStat.a energyStat energy 
              HINTS ${PC_RCR_LIBDIR} ${PC_RCR_LIBRARY_DIRS} ${RCR_ROOT})
 
@@ -36,5 +38,7 @@ if(RCR_FOUND)
   set(RCR_INCLUDE_DIRS ${RCR_INCLUDE_DIR} )
   set(RCR_DIR ${RCR_ROOT})
   add_definitions(-DAPEX_HAVE_RCR)
+else()
+    message(WARNING " RCR not found!")
 endif()
 

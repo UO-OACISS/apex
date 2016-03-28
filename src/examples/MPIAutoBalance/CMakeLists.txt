@@ -17,7 +17,7 @@ add_dependencies (mpi_auto_balance apex)
 add_dependencies (examples mpi_auto_balance)
 
 # Link the executable to the Apex library. 
-target_link_libraries (mpi_auto_balance apex apex_mpi stdc++ ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES} ${OMPT_LIBRARIES} ${LIBS})
+target_link_libraries (mpi_auto_balance apex apex_mpi ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES} ${OMPT_LIBRARIES} ${LIBS} stdc++)
 if (BUILD_STATIC_EXECUTABLES)
     set_target_properties(mpi_auto_balance PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
 endif()
