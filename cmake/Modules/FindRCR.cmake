@@ -21,8 +21,8 @@ message(INFO " Looking for libenergy.h in any of: ${PC_RCR_INCLUDEDIR} ${PC_RCR_
 find_path(RCR_INCLUDE_DIR libenergy.h
           HINTS ${PC_RCR_INCLUDEDIR} ${PC_RCR_INCLUDE_DIRS} ${RCR_ROOT}/src/utils ${RCR_ROOT}/src/libenergy)
 
-      message(INFO " Looking for libenergyStat.a or libenergyStat.* in any of: ${PC_RCR_LIBDIR} ${PC_RCR_LIBRARY_DIRS} ${RCR_ROOT}")
-find_library(RCR_LIBRARY NAMES libenergyStat.a energyStat energy 
+      message(INFO " Looking for libenergyStat.a in any of: ${PC_RCR_LIBDIR} ${PC_RCR_LIBRARY_DIRS} ${RCR_ROOT}")
+find_library(RCR_LIBRARY NAMES libenergyStat.a
              HINTS ${PC_RCR_LIBDIR} ${PC_RCR_LIBRARY_DIRS} ${RCR_ROOT})
 
 include(FindPackageHandleStandardArgs)
