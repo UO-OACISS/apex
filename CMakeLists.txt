@@ -288,7 +288,7 @@ endif()
 ################################################################################
 
 # RCR is NOT required.
-if (DEFINED RCR_ROOT)
+if (DEFINED RCR_ROOT OR DEFINED $ENV{RCR_ROOT})
     find_package(RCR)
 endif()
 
