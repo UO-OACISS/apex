@@ -30,13 +30,14 @@ mark_as_advanced(ACTIVEHARMONY_INCLUDE_DIR ACTIVEHARMONY_LIBRARY)
 if((BUILD_ACTIVEHARMONY OR (NOT ACTIVEHARMONY_FOUND)) AND NOT APPLE)
   message("Attention: Downloading and Building ActiveHarmony as external project!")
   message(INFO " A working internet connection is required!")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
   include(ExternalProject)
   ExternalProject_Add(project_activeharmony
-    URL http://www.dyninst.org/sites/default/files/downloads/harmony/ah-4.5.tar.gz
-    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/activeharmony-4.5
+    URL http://www.dyninst.org/sites/default/files/downloads/harmony/ah-4.6.0.tar.gz
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/activeharmony-4.6.0
     CONFIGURE_COMMAND ""
-    BUILD_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/activeharmony-4.5/src/project_activeharmony && make MPICC=mpicc_disabled CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} CFLAGS=${CMAKE_C_FLAGS} CXXFLAGS=${CMAKE_CXX_FLAGS} LDFLAGS=${CMAKE_C_FLAGS}
-    INSTALL_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/activeharmony-4.5/src/project_activeharmony && make MPICC=mpicc_disabled CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} CFLAGS=${CMAKE_C_FLAGS} CXXFLAGS=${CMAKE_CXX_FLAGS} LDFLAGS=${CMAKE_C_FLAGS} install PREFIX=${CMAKE_INSTALL_PREFIX}
+    BUILD_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/activeharmony-4.6.0/src/project_activeharmony && make MPICC=mpicc_disabled CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} CFLAGS=${CMAKE_C_FLAGS} CXXFLAGS=${CMAKE_CXX_FLAGS} LDFLAGS=${CMAKE_C_FLAGS}
+    INSTALL_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/activeharmony-4.6.0/src/project_activeharmony && make MPICC=mpicc_disabled CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} CFLAGS=${CMAKE_C_FLAGS} CXXFLAGS=${CMAKE_CXX_FLAGS} LDFLAGS=${CMAKE_C_FLAGS} install prefix=${CMAKE_INSTALL_PREFIX}
     INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
     LOG_DOWNLOAD 1
   )
