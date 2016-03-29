@@ -1100,7 +1100,7 @@ inline apex_tuning_session_handle __setup_custom_tuning(std::function<double()> 
     tuning_session->metric_of_interest = metric;
     int status = __common_setup_custom_tuning(tuning_session, event_type, num_inputs, inputs, mins, maxs, steps);
     if(status == APEX_ERROR) {
-      return -1;
+      return 0;
     }
     return tuning_session_handle;
 }
@@ -1108,22 +1108,22 @@ inline apex_tuning_session_handle __setup_custom_tuning(std::function<double()> 
 inline apex_tuning_session_handle __setup_custom_tuning(apex_tuning_request & request) {
     if(request.name.empty()) {
         cerr << "ERROR: tuning request has no name" << endl;
-        return -1;
+        return 0;
     }
     if(!request.metric) {
         cerr << "ERROR: tuning request has no metric" << endl;
-        return -1;
+        return 0;
     }
     if(request.trigger == -1) {
         cerr << "ERROR: tuning request has no trigger" << endl;
-        return -1;
+        return 0;
     }
     auto tuning_session_handle = create_session();
     auto tuning_session = get_session(tuning_session_handle);
     tuning_session->metric_of_interest = request.metric;
     int status = __common_setup_custom_tuning(tuning_session, request);
     if(status == APEX_ERROR) {
-        return -1;
+        return 0;
     }
     request.tuning_session_handle = tuning_session_handle;
     request.running = true;

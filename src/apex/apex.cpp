@@ -164,7 +164,6 @@ void apex::_initialize()
     hpx::register_startup_function(init_hpx_runtime_ptr);
 #endif
 #ifdef APEX_HAVE_RCR
-    uint64_t waitTime = 1000000000L; // in nanoseconds, for nanosleep
     energyDaemonInit();
 #endif
 #ifdef APEX_HAVE_MSR
