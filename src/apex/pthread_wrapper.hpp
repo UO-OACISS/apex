@@ -7,9 +7,11 @@
 
 #include <pthread.h>
 #include <sys/time.h>
+#include <unistd.h>
 #include <atomic>
 
 #define MILLION 1000000
+#define APEX_LXK_KITTEN 1
 
 /*
  * This class exists because std::thread crashes when using std::condition_variable
@@ -90,6 +92,15 @@ class pthread_wrapper {
 
         bool wait() {
             if (done) return false;
+#ifdef APEX_LXK_KITTEN
+                int seconds = _timeout_microseconds / MILLION;
+                int microseconds = _timeout_microseconds % MILLION;
+                struct timespec ts;
+                ts.tv_sec  = seconds;
+                ts.tv_nsec = 1000 * microseconds;
+                int rc = nanosleep(&ts, NULL);
+                if (rc != 0) return false;
+#else
                 struct timespec ts;
                 struct timeval  tp;
                 gettimeofday(&tp, NULL);
@@ -115,6 +126,7 @@ class pthread_wrapper {
                 } else if (rc == EPERM) {
                     return false;
                 }
+#endif
             return true;
         }
 }; // class
