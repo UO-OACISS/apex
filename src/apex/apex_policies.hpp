@@ -1,5 +1,10 @@
-#ifndef APEX_POLICIES_HPP
-#define APEX_POLICIES_HPP
+//  Copyright (c) 2014 University of Oregon
+//
+//  Distributed under the Boost Software License, Version 1.0. (See accompanying
+//  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+
+#pragma once
 
 #include "apex_api.hpp"
 #include "apex_export.h"
@@ -7,7 +12,7 @@
 #include <stdint.h>
 #include <fstream>
 #include <memory>
-#include <boost/atomic.hpp>
+#include <atomic>
 #include <list>
 #include <map>
 #include <string.h>
@@ -37,7 +42,7 @@ class apex_param {
             return name;
         };
 
-        virtual const apex_param_type get_type() const {
+        virtual /*const*/ apex_param_type get_type() const {
             return apex_param_type::NONE;
         };
         
@@ -60,11 +65,11 @@ class apex_param_long : public apex_param {
               min{min}, max{max}, step{step} {};
         virtual ~apex_param_long() {};
 
-        const long get_value() const {
+        /*const*/ long get_value() const {
             return *value;    
         };
 
-        virtual const apex_param_type get_type() const {
+        virtual /*const*/ apex_param_type get_type() const {
             return apex_param_type::LONG;
         };
         friend int __active_harmony_custom_setup(std::shared_ptr<apex_tuning_session> tuning_session, apex_tuning_request & request);
@@ -84,11 +89,11 @@ class apex_param_double : public apex_param {
               min{min}, max{max}, step{step} {};
         virtual ~apex_param_double() {};
 
-        const double get_value() const {
+        /*const*/ double get_value() const {
             return *value;    
         };
 
-        virtual const apex_param_type get_type() const {
+        virtual /*const*/ apex_param_type get_type() const {
             return apex_param_type::DOUBLE;
         };
         friend int __active_harmony_custom_setup(std::shared_ptr<apex_tuning_session> tuning_session, apex_tuning_request & request);
@@ -109,7 +114,7 @@ class apex_param_enum : public apex_param {
             return std::string{*value};
         };
 
-        virtual const apex_param_type get_type() const {
+        virtual /*const*/ apex_param_type get_type() const {
             return apex_param_type::ENUM;
         };
         friend int __active_harmony_custom_setup(std::shared_ptr<apex_tuning_session> tuning_session, apex_tuning_request & request);
@@ -225,8 +230,8 @@ struct apex_tuning_session {
 #endif
 
     int test_pp = 0;
-    boost::atomic<bool> apex_energy_init{false};
-    boost::atomic<bool> apex_timer_init{false};
+    std::atomic<bool> apex_energy_init{false};
+    std::atomic<bool> apex_timer_init{false};
 
     bool converged_message = false;
 
@@ -266,5 +271,3 @@ struct apex_tuning_session {
     apex_tuning_session(apex_tuning_session_handle h) : id{h} {};
 };
 
-
-#endif // APEX_POLICIES_HPP

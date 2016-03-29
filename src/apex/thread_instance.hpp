@@ -3,16 +3,15 @@
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef THREADINSTANCE_H
-#define THREADINSTANCE_H
+#pragma once
 
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
 #include <cstring>
-#include <boost/thread/tss.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/atomic.hpp>
+#include <mutex>
+#include <atomic>
+#include <memory>
 #include <map>
 #include <vector>
 #include "profiler.hpp"
@@ -36,15 +35,15 @@ private:
   bool _is_worker;
   // map from name to thread id - common to all threads
   static std::map<std::string, int> _name_map;
-  static boost::mutex _name_map_mutex;
+  static std::mutex _name_map_mutex;
   // map from thread id to is_worker
   static std::map<int, bool> _worker_map;
-  static boost::mutex _worker_map_mutex;
-  static boost::atomic_int _num_threads;
-  static boost::atomic_int _active_threads;
+  static std::mutex _worker_map_mutex;
+  static std::atomic_int _num_threads;
+  static std::atomic_int _active_threads;
   static std::string * _program_path;
   // thread specific data
-  static boost::thread_specific_ptr<thread_instance> _instance;
+  static APEX_NATIVE_TLS thread_instance * _instance;
   // constructor
   thread_instance (void) : _id(-1), _top_level_timer_name(), _is_worker(false) { };
   // map from function address to name - unique to all threads to avoid locking
@@ -73,4 +72,3 @@ public:
 
 }
 
-#endif // THREADINSTANCE_H

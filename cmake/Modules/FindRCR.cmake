@@ -18,9 +18,9 @@ pkg_check_modules(PC_RCR QUIET RCR)
 set(RCR_DEFINITIONS ${PC_RCR_CFLAGS_OTHER})
 
 find_path(RCR_INCLUDE_DIR libenergy.h
-          HINTS ${PC_RCR_INCLUDEDIR} ${PC_RCR_INCLUDE_DIRS} ${RCR_ROOT}/src/libenergy)
+          HINTS ${PC_RCR_INCLUDEDIR} ${PC_RCR_INCLUDE_DIRS} ${RCR_ROOT}/src/utils ${RCR_ROOT}/src/libenergy)
 
-find_library(RCR_LIBRARY NAMES energy
+find_library(RCR_LIBRARY NAMES libenergyStat.a energyStat energy 
              HINTS ${PC_RCR_LIBDIR} ${PC_RCR_LIBRARY_DIRS} ${RCR_ROOT})
 
 include(FindPackageHandleStandardArgs)

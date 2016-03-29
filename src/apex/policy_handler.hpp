@@ -3,8 +3,7 @@
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef POLICYHANDLER_HPP
-#define POLICYHANDLER_HPP
+#pragma once
 
 #ifdef APEX_HAVE_HPX3
 #include <hpx/hpx_fwd.hpp>
@@ -22,9 +21,15 @@
 #include <functional>
 #include <chrono>
 #include <memory>
+#include <array>
 
-#include <boost/thread/shared_mutex.hpp>
-#include <boost/shared_ptr.hpp>
+#if __cplusplus > 201701L 
+#include <shared_mutex>
+#elif __cplusplus > 201402L
+#include <shared_lock>
+#else
+#include <mutex>
+#endif
 
 #ifdef SIGEV_THREAD_ID
 #ifndef sigev_notify_thread_id
@@ -47,21 +52,27 @@ public:
 class policy_handler : public handler, public event_listener
 {
 private:
-    typedef boost::shared_mutex mutex_type;
+#if __cplusplus > 201701L 
+    typedef std::shared_mutex mutex_type;
+#elif __cplusplus > 201402L
+    typedef std::shared_lock mutex_type;
+#else
+    typedef std::mutex mutex_type;
+#endif
 
     void _init(void);
-    std::list<boost::shared_ptr<policy_instance> > startup_policies;
-    std::list<boost::shared_ptr<policy_instance> > shutdown_policies;
-    std::list<boost::shared_ptr<policy_instance> > new_node_policies;
-    std::list<boost::shared_ptr<policy_instance> > new_thread_policies;
-    std::list<boost::shared_ptr<policy_instance> > exit_thread_policies;
-    std::list<boost::shared_ptr<policy_instance> > start_event_policies;
-    std::list<boost::shared_ptr<policy_instance> > stop_event_policies;
-    std::list<boost::shared_ptr<policy_instance> > yield_event_policies;
-    std::list<boost::shared_ptr<policy_instance> > resume_event_policies;
-    std::list<boost::shared_ptr<policy_instance> > sample_value_policies;
-    std::list<boost::shared_ptr<policy_instance> > periodic_policies;
-    std::array<std::list<boost::shared_ptr<policy_instance> >,APEX_MAX_EVENTS > custom_event_policies;
+    std::list<std::shared_ptr<policy_instance> > startup_policies;
+    std::list<std::shared_ptr<policy_instance> > shutdown_policies;
+    std::list<std::shared_ptr<policy_instance> > new_node_policies;
+    std::list<std::shared_ptr<policy_instance> > new_thread_policies;
+    std::list<std::shared_ptr<policy_instance> > exit_thread_policies;
+    std::list<std::shared_ptr<policy_instance> > start_event_policies;
+    std::list<std::shared_ptr<policy_instance> > stop_event_policies;
+    std::list<std::shared_ptr<policy_instance> > yield_event_policies;
+    std::list<std::shared_ptr<policy_instance> > resume_event_policies;
+    std::list<std::shared_ptr<policy_instance> > sample_value_policies;
+    std::list<std::shared_ptr<policy_instance> > periodic_policies;
+    std::array<std::list<std::shared_ptr<policy_instance> >,APEX_MAX_EVENTS > custom_event_policies;
     mutex_type startup_mutex;
     mutex_type shutdown_mutex;
     mutex_type new_node_mutex;
@@ -75,7 +86,7 @@ private:
     mutex_type custom_event_mutex;
     mutex_type periodic_mutex;
     void call_policies(
-        const std::list<boost::shared_ptr<policy_instance> > & policies,
+        const std::list<std::shared_ptr<policy_instance> > & policies,
         event_data &event_data);
 #ifdef APEX_HAVE_HPX3
     hpx::util::interval_timer hpx_timer;
@@ -112,4 +123,3 @@ public:
 
 }
 
-#endif // POLICYHANDLER_HPP

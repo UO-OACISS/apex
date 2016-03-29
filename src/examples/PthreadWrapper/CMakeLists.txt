@@ -10,14 +10,10 @@ source_group("Source Files" FILES ${sources})
 
 # add example executable
 add_executable(pthread_wrapper_example ${sources})
-target_link_libraries (pthread_wrapper_example apex apex_pthread_wrapper)
+target_link_libraries (pthread_wrapper_example apex apex_pthread_wrapper ${LIBS})
+if (BUILD_STATIC_EXECUTABLES)
+    set_target_properties(pthread_wrapper_example PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
+endif()
 add_dependencies (pthread_wrapper_example apex apex_pthread_wrapper)
 add_test ("test_pthread_wrapper_example" pthread_wrapper_example)
-
-if(APPLE)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPTHREADS")
-else()
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread -DPTHREADS")
-    #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-wrap,pthread_create -Wl,-wrap,pthread_join -Wl,-wrap,pthread_exit -Wl,-wrap,pthread_barrier_wait")
-endif()
 

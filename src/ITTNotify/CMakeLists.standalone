@@ -9,7 +9,11 @@ include_directories (${APEX_SOURCE_DIR}/src/apex)
 # Create a library called "ittnotify" which includes the source file
 # "ittnotify.cpp". 
 # The extension is already found. Any number of sources could be listed here. 
-add_library (ittnotify ittnotify.cpp)
+if (BUILD_STATIC_EXECUTABLES)
+    add_library (ittnotify STATIC ittnotify.cpp)
+else()
+    add_library (ittnotify SHARED ittnotify.cpp)
+endif()
 set_target_properties (ittnotify PROPERTIES OUTPUT_NAME ittnotify)
 
 target_link_libraries (ittnotify apex)

@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include "apex_api.hpp"
 #include "pthread_wrapper.h"
-#include <boost/atomic.hpp>
 #include <iostream>
 #include <new>
 #include <system_error>

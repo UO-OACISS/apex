@@ -10,15 +10,11 @@ add_executable (testThrottling testThrottling.c)
 add_dependencies (testThrottling apex)
 add_dependencies (examples testThrottling)
 
-if(APPLE)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPTHREADS")
-else()
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread -DPTHREADS")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
-endif()
-
 # Link the executable to the Apex library. 
-target_link_libraries (testThrottling apex) 
+target_link_libraries (testThrottling apex stdc++ ${LIBS})
+if (BUILD_STATIC_EXECUTABLES)
+    set_target_properties(testThrottling PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
+endif()
 
 INSTALL(TARGETS testThrottling
   RUNTIME DESTINATION bin OPTIONAL

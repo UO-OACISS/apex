@@ -20,9 +20,7 @@
 #include <string>
 #include <fstream>
 #include <utility>
-#if defined(__GNUC__)
-#include <cxxabi.h>
-#endif
+#include "utils.hpp"
 
 #ifdef APEX_HAVE_BFD
 #include "address_resolution.hpp"
@@ -38,7 +36,7 @@
 
 using namespace std;
 
-std::vector<boost::mutex*> _per_thread_mutex;
+std::vector<std::mutex*> _per_thread_mutex;
 
 namespace apex {
 
@@ -74,7 +72,7 @@ bool concurrency_handler::_handler(void) {
   //cout << "HANDLER: " << endl;
   map<task_identifier, unsigned int> *counts = new(map<task_identifier, unsigned int>);
   stack<task_identifier>* tmp;
-//  boost::mutex* mut;
+//  std::mutex* mut;
   for (unsigned int i = 0 ; i < _event_stack.size() ; i++) {
     if (_option > 1 && !thread_instance::map_id_to_worker(i)) {
       continue;
@@ -109,7 +107,6 @@ bool concurrency_handler::_handler(void) {
   //}
   int power = current_power_high();
   _power_samples.push_back(power);
-  this->_reset();
 #ifdef APEX_HAVE_TAU
   if (apex_options::use_tau()) {
     TAU_STOP("concurrency_handler::_handler");
@@ -120,7 +117,6 @@ bool concurrency_handler::_handler(void) {
 
 void concurrency_handler::_init(void) {
   add_thread(0);
-  _timer.async_wait(boost::bind(&concurrency_handler::_handler, this));
   run();
   return;
 }
@@ -180,16 +176,7 @@ void concurrency_handler::on_exit_thread(event_data &data) {
 }
 
 void concurrency_handler::on_shutdown(shutdown_event_data &data) {
-    //if (_terminate) return;
-    _terminate = true;
-    if (_timer_thread != nullptr) {
-        _timer.cancel();
-        if (_timer_thread->try_join_for(boost::chrono::seconds(1))) {
-            _timer_thread->interrupt();
-        }
-        delete(_timer_thread);
-        _timer_thread = nullptr;
-    }
+    cancel();
     output_samples(data.node_id);
 }
 
@@ -203,41 +190,13 @@ inline stack<task_identifier>* concurrency_handler::get_event_stack(unsigned int
   return tmp;
 }
 
-inline void concurrency_handler::_reset(void) {
-  if (!_terminate) {
-    _timer.expires_at(_timer.expires_at() + boost::posix_time::microseconds(_period));
-    _timer.async_wait(boost::bind(&concurrency_handler::_handler, this));
-  }
-}
-
 inline void concurrency_handler::add_thread(unsigned int tid) {
   _vector_mutex.lock();
   while(_event_stack.size() <= tid) {
     _event_stack.push_back(new stack<task_identifier>);
-    _per_thread_mutex.push_back(new boost::mutex());
+    _per_thread_mutex.push_back(new std::mutex());
   }
   _vector_mutex.unlock();
-}
-
-string* demangle(string timer_name) {
-  string* demangled = NULL;
-#if defined(__GNUC__)
-  int     status;
-  char *realname = abi::__cxa_demangle(timer_name.c_str(), 0, 0, &status);
-  if (status == 0) {
-    char* index = strstr(realname, "<");
-    if (index != NULL) {
-      *index = 0; // terminate before templates for brevity
-    }
-    demangled = new string(realname);
-    free(realname);
-  } else {
-    demangled = new string(timer_name);
-  }
-#else
-  demangled = new string(timer_name);
-#endif
-  return demangled;
 }
 
 bool sort_functions(pair<task_identifier,int> first, pair<task_identifier,int> second) {

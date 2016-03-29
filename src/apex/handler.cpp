@@ -11,7 +11,9 @@
 
 namespace apex {
 
+#ifdef APEX_HAVE_HPX3
 boost::asio::io_service handler::_io;
+#endif
 
 }
 

@@ -20,7 +20,10 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} -O3 -DUSE_MPI=1 -Wa
 
 # Link the executable to the Apex library. 
 target_link_libraries (lulesh_MPI_OpenMP_2.0 apex apex_mpi ${OMPT_LIBRARIES} 
-${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES})
+${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES} ${LIBS})
+if (BUILD_STATIC_EXECUTABLES)
+    set_target_properties(lulesh_MPI_OpenMP_2.0 PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
+endif()
 
 INSTALL(TARGETS lulesh_MPI_OpenMP_2.0
   RUNTIME DESTINATION bin OPTIONAL

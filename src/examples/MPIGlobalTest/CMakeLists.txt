@@ -17,16 +17,9 @@ add_dependencies (mpi_global_test apex apex_mpi)
 add_dependencies (examples mpi_global_test)
 
 # Link the executable to the Apex library. 
-target_link_libraries (mpi_global_test apex apex_mpi stdc++ ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES}) 
-
-## Compiler flags
-if(APPLE)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPTHREADS")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPTHREADS")
-else()
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread -DPTHREADS")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -DPTHREADS")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
+target_link_libraries (mpi_global_test apex apex_mpi stdc++ ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES} ${LIBS})
+if (BUILD_STATIC_EXECUTABLES)
+    set_target_properties(mpi_global_test PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
 endif()
 
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")

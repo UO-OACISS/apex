@@ -16,9 +16,14 @@
 #include <fstream>
 #include <thread>
 #include <unordered_map>
-#include <boost/atomic.hpp>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/shared_mutex.hpp>
+#include <atomic>
+#if __cplusplus > 201701L 
+#include <shared_mutex>
+#elif __cplusplus > 201402L
+#include <shared_mutex>
+#else
+#include <mutex>
+#endif
 
 #ifdef APEX_HAVE_RCR
 #include "libenergy.h"
@@ -30,12 +35,23 @@
 
 using namespace std;
 
-static boost::shared_mutex session_map_mutex;
-typedef boost::shared_lock<boost::shared_mutex> session_map_read_lock;
-typedef boost::unique_lock<boost::shared_mutex> session_map_write_lock;
+#if __cplusplus > 201701L 
+static std::shared_mutex session_map_mutex;
+typedef std::shared_lock<std::shared_mutex> session_map_read_lock;
+typedef std::unique_lock<std::shared_mutex> session_map_write_lock;
+#elif __cplusplus > 201402L
+static std::mutex session_map_mutex;
+typedef std::shared_lock<std::mutex> session_map_read_lock;
+typedef std::unique_lock<std::mutex> session_map_write_lock;
+#else
+#include <mutex>
+static std::mutex session_map_mutex;
+typedef std::unique_lock<std::mutex> session_map_read_lock;
+typedef std::unique_lock<std::mutex> session_map_write_lock;
+#endif
 
 static unordered_map<apex_tuning_session_handle, shared_ptr<apex_tuning_session>> session_map;
-static boost::atomic<apex_tuning_session_handle> next_handle{1};
+static std::atomic<apex_tuning_session_handle> next_handle{1};
 
 static shared_ptr<apex_tuning_session> get_session(const apex_tuning_session_handle & h) {
   session_map_read_lock l{session_map_mutex};
@@ -159,6 +175,7 @@ inline int apex_power_throttling_policy(apex_context const context)
     //cout << "power in policy is: " << power << endl;
 
     if (power != 0.0) {
+      apex::apex * instance = apex::apex::instance();
       /* this is a hard limit! If we exceed the power cap once
          or in our moving average, then we need to adjust */
       --thread_cap_tuning_session->delay;
@@ -166,6 +183,9 @@ inline int apex_power_throttling_policy(apex_context const context)
            (thread_cap_tuning_session->moving_average > thread_cap_tuning_session->max_watts)) && thread_cap_tuning_session->delay <= 0) { 
           __decrease_cap();
           thread_cap_tuning_session->delay = thread_cap_tuning_session->window_size;
+          if (instance != NULL && instance->get_node_id() == 0) {
+              printf("power : %f, ma: %f, cap: %ld, min: %f, max: %f, decreasing cap.\n", power, thread_cap_tuning_session->moving_average, thread_cap_tuning_session->thread_cap, thread_cap_tuning_session->min_watts, thread_cap_tuning_session->max_watts);
+          }
       }
       /* this is a softer limit. If we dip below the lower cap
          AND our moving average is also blow the cap, we need 
@@ -174,12 +194,14 @@ inline int apex_power_throttling_policy(apex_context const context)
                (thread_cap_tuning_session->moving_average < thread_cap_tuning_session->min_watts) && thread_cap_tuning_session->delay <=0) {
           __increase_cap_gradual();
           thread_cap_tuning_session->delay = thread_cap_tuning_session->window_size;
+          if (instance != NULL && instance->get_node_id() == 0) {
+              printf("power : %f, ma: %f, cap: %ld, min: %f, max: %f, increasing cap.\n", power, thread_cap_tuning_session->moving_average, thread_cap_tuning_session->thread_cap, thread_cap_tuning_session->min_watts, thread_cap_tuning_session->max_watts);
+          }
       } else {
-#ifdef APEX_DEBUG_THROTTLE
-          printf("power : %f, ma: %f, cap: %d, min: %f, max: %f, tuning_session->delay: %d no change.\n", power, thread_cap_tuning_session->moving_average, thread_cap_tuning_session->thread_cap, thread_cap_tuning_session->min_watts, thread_cap_tuning_session->max_watts, thread_cap_tuning_session->delay);
-#endif
+          if (instance != NULL && instance->get_node_id() == 0) {
+              printf("power : %f, ma: %f, cap: %ld, min: %f, max: %f, no change.\n", power, thread_cap_tuning_session->moving_average, thread_cap_tuning_session->thread_cap, thread_cap_tuning_session->min_watts, thread_cap_tuning_session->max_watts);
+          }
       }
-      apex::apex * instance = apex::apex::instance();
       if (instance != NULL && instance->get_node_id() == 0) {
         static int index = 0;
         thread_cap_tuning_session->cap_data << index++ << "\t" << power << "\t" << thread_cap_tuning_session->thread_cap << endl;

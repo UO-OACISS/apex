@@ -38,6 +38,7 @@ cmake_make_verbose=""  # for verbose, use -DCMAKE_VERBOSE_MAKEFILE=ON
 cmake_use_mpi="-DUSE_MPI=FALSE" # TRUE or FALSE
 cmake_other_settings="\
 -DBUILD_TESTS=TRUE \
+-DBUILD_EXAMPLES=TRUE \
 -DMPI_C_INCLUDE_PATH=$MPI_C_INCLUDE_PATH \
 -DMPI_CXX_INCLUDE_PATH=$MPI_C_INCLUDE_PATH \
 -DMPI_C_LIBRARIES=$MPI_C_LIBRARIES \
@@ -46,8 +47,8 @@ cmake_other_settings="\
 -DMPI_CXX_COMPILER=CC \
 -DCMAKE_C_COMPILER=cc \
 -DUSE_BFD=TRUE \
--DCMAKE_CXX_COMPILER=CC \
-" # anything else?
+-DUSE_CLOCK_TIMESTAMP=TRUE \
+-DCMAKE_CXX_COMPILER=CC" # anything else?
 
 ###################################################################
 # NO NEED TO MODIFY ANYTHING BELOW THIS LINE

@@ -119,7 +119,8 @@ fi
 
 $MAKE_PREFIX make -j `expr $procs + 1`
 
-make test
+#make tests -j `expr $procs + 1`
+#make examples -j `expr $procs + 1`
 make doc
 make install
 
