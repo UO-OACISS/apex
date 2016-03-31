@@ -43,6 +43,12 @@
 #else
 #define APEX_THROTTLE_PERCALL 50000 // 50k cycles.
 #endif
+//#include "apex_rwlock.hpp"
+//apex::RWLock throttled_event_set_mutex;
+#include <mutex>
+std::mutex throttled_event_set_mutex;
+//#include "apex_shared_lock.hpp"
+//apex::shared_lock throttled_event_set_lock;
 #endif
 
 
@@ -103,7 +109,13 @@ namespace apex {
       profile * p = it2->second;
 #if defined(APEX_THROTTLE)
       task_identifier id = it2->first;
+      //throttled_event_set_mutex.ReadLock();
+      throttled_event_set_mutex.lock();
+      //throttled_event_set_lock.reader_lock();
       unordered_set<task_identifier>::const_iterator it4 = throttled_tasks.find(id);
+      //throttled_event_set_lock.unlock();
+      throttled_event_set_mutex.unlock();
+      //throttled_event_set_mutex.ReadUnlock();
       if (it4!= throttled_tasks.end()) { 
         continue; 
       }
@@ -210,11 +222,33 @@ namespace apex {
         // in order to reduce overhead.
         if (theprofile->get_calls() > APEX_THROTTLE_CALLS &&
             theprofile->get_mean() < APEX_THROTTLE_PERCALL) {
-          unordered_set<task_identifier>::const_iterator it2 = throttled_tasks.find(*(p->task_id));
-          if (it2 == throttled_tasks.end()) {
-            throttled_tasks.insert(*(p->task_id));
-            cout << "APEX: disabling lightweight timer " << p->task_id->get_name() << endl; fflush(stdout);
-          }
+            //throttled_event_set_mutex.ReadLock();
+            throttled_event_set_mutex.lock();
+            //throttled_event_set_lock.reader_lock();
+            unordered_set<task_identifier>::const_iterator it2 = throttled_tasks.find(*(p->task_id));
+            //throttled_event_set_lock.unlock();
+            //throttled_event_set_mutex.ReadUnlock();
+            if (it2 == throttled_tasks.end()) {
+                // lock the set for insert
+                //throttled_event_set_mutex.WriteLock();
+                //throttled_event_set_lock.writer_lock();
+                // was it inserted when we were waiting?
+                it2 = throttled_tasks.find(*(p->task_id));
+                // no? OK - insert it.
+                if (it2 == throttled_tasks.end()) {
+                    throttled_tasks.insert(*(p->task_id));
+                }
+                // unlock.
+                //throttled_event_set_lock.unlock();
+                //throttled_event_set_mutex.WriteUnlock();
+                if (apex_options::use_screen_output()) {
+                    cout << "APEX: disabling lightweight timer " 
+                         << p->task_id->get_name() 
+                          << endl; 
+                    fflush(stdout);
+                }
+            }
+            throttled_event_set_mutex.unlock();
         }
 #endif
       } else {
@@ -330,7 +364,13 @@ namespace apex {
 #if defined(APEX_THROTTLE)
       // if this profile was throttled, don't output the measurements.
       // they are limited and bogus, anyway.
+      //throttled_event_set_mutex.ReadLock();
+      throttled_event_set_mutex.lock();
+      //throttled_event_set_lock.reader_lock();
       unordered_set<task_identifier>::const_iterator it4 = throttled_tasks.find(task_id);
+      //throttled_event_set_lock.unlock();
+      throttled_event_set_mutex.unlock();
+      //throttled_event_set_mutex.ReadUnlock();
       if (it4!= throttled_tasks.end()) { 
         screen_output << "DISABLED (high frequency, short duration)" << endl;
         return; 
@@ -1039,7 +1079,13 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
     if (!_done) {
 #if defined(APEX_THROTTLE)
       // if this timer is throttled, return without doing anything
+      //throttled_event_set_mutex.ReadLock();
+      throttled_event_set_mutex.lock();
+      //throttled_event_set_lock.reader_lock();
       unordered_set<task_identifier>::const_iterator it = throttled_tasks.find(*id);
+      //throttled_event_set_lock.unlock();
+      throttled_event_set_mutex.unlock();
+      //throttled_event_set_mutex.ReadUnlock();
       if (it != throttled_tasks.end()) {
           /*
            * The throw is removed, because it is a performance penalty on some systems
