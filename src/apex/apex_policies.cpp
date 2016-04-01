@@ -181,7 +181,7 @@ inline int apex_power_throttling_policy(apex_context const context)
           __decrease_cap();
           thread_cap_tuning_session->delay = thread_cap_tuning_session->window_size;
           if (instance != NULL && instance->get_node_id() == 0) {
-              printf("power : %f, ma: %f, cap: %ld, min: %f, max: %f, decreasing cap.\n", power, thread_cap_tuning_session->moving_average, thread_cap_tuning_session->thread_cap, thread_cap_tuning_session->min_watts, thread_cap_tuning_session->max_watts);
+              printf("power : %f, ma: %f, cap: %ld, min: %f, max: %f, decreasing cap.\n", power, thread_cap_tuning_session->moving_average/thread_cap_tuning_session->max_watts, thread_cap_tuning_session->thread_cap, thread_cap_tuning_session->min_watts/thread_cap_tuning_session->max_watts, thread_cap_tuning_session->max_watts/thread_cap_tuning_session->max_watts);
           }
       }
       /* this is a softer limit. If we dip below the lower cap
@@ -192,11 +192,11 @@ inline int apex_power_throttling_policy(apex_context const context)
           __increase_cap_gradual();
           thread_cap_tuning_session->delay = thread_cap_tuning_session->window_size;
           if (instance != NULL && instance->get_node_id() == 0) {
-              printf("power : %f, ma: %f, cap: %ld, min: %f, max: %f, increasing cap.\n", power, thread_cap_tuning_session->moving_average, thread_cap_tuning_session->thread_cap, thread_cap_tuning_session->min_watts, thread_cap_tuning_session->max_watts);
+              printf("power : %f, ma: %f, cap: %ld, min: %f, max: %f, increasing cap.\n", power, thread_cap_tuning_session->moving_average/thread_cap_tuning_session->max_watts, thread_cap_tuning_session->thread_cap, thread_cap_tuning_session->min_watts/thread_cap_tuning_session->max_watts, thread_cap_tuning_session->max_watts/thread_cap_tuning_session->max_watts);
           }
       } else {
           if (instance != NULL && instance->get_node_id() == 0) {
-              printf("power : %f, ma: %f, cap: %ld, min: %f, max: %f, no change.\n", power, thread_cap_tuning_session->moving_average, thread_cap_tuning_session->thread_cap, thread_cap_tuning_session->min_watts, thread_cap_tuning_session->max_watts);
+              printf("power : %f, ma: %f, cap: %ld, min: %f, max: %f, no change.\n", power, thread_cap_tuning_session->moving_average/thread_cap_tuning_session->max_watts, thread_cap_tuning_session->thread_cap, thread_cap_tuning_session->min_watts/thread_cap_tuning_session->max_watts, thread_cap_tuning_session->max_watts/thread_cap_tuning_session->max_watts);
           }
       }
       if (instance != NULL && instance->get_node_id() == 0) {
@@ -725,7 +725,9 @@ inline int __setup_power_cap_throttling()
       }
       apex::apex * instance = apex::apex::instance();
       if (instance != NULL && instance->get_node_id() == 0) {
-        cout << "APEX periodic throttling for energy savings, min watts: " << thread_cap_tuning_session->min_watts << " max watts: " << thread_cap_tuning_session->max_watts << endl;
+        cout << "APEX periodic throttling for energy savings, min watts: " 
+            << thread_cap_tuning_session->min_watts/thread_cap_tuning_session->max_watts << " max watts: " 
+            << thread_cap_tuning_session->max_watts/thread_cap_tuning_session->max_watts << endl;
       }
       apex::register_periodic_policy(1000000, apex_power_throttling_policy);
       // get an initial power reading
