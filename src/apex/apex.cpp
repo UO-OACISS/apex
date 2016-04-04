@@ -165,7 +165,7 @@ void apex::_initialize()
 #endif
 #ifdef APEX_HAVE_RCR
     uint64_t waitTime = 1000000000L; // in nanoseconds, for nanosleep
-    energyDaemonInit(0);
+    energyDaemonInit();
 #endif
 #ifdef APEX_HAVE_MSR
     apex_init_msr();
