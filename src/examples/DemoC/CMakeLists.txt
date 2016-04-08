@@ -9,7 +9,7 @@ link_directories (${APEX_BINARY_DIR}/src/apex)
 add_executable (apexCDemo demo.c) 
 
 # Link the executable to the Apex library. 
-target_link_libraries (apexCDemo apex ${LIBS} stdc++) 
+target_link_libraries (apexCDemo apex ${LIBS} stdc++ m)
 if (BUILD_STATIC_EXECUTABLES)
     set_target_properties(apexCDemo PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
 endif()

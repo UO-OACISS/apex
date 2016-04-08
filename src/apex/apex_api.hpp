@@ -486,7 +486,7 @@ APEX_EXPORT inline double current_power_high(void) {
     double power = 0.0;
 #ifdef APEX_HAVE_RCR
     power = (double)rcr_current_power_high();
-    // std::cout << "Read power from RCR: " << (power / thread_cap_tuning_session->max_watts) << std::endl;
+    std::cout << "Read power from RCR: " << power << std::endl;
 #elif APEX_HAVE_MSR
     power = msr_current_power_high();
     std::cout << "Read power from MSR: " << power << std::endl;
