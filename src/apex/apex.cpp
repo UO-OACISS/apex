@@ -98,6 +98,7 @@ int apex::get_node_id()
 
 #ifdef APEX_HAVE_HPX3
 static void init_hpx_runtime_ptr(void) {
+    if (apex_options::disable() == true) { return; }
     apex * instance = apex::instance();
     if(instance != nullptr) {
         hpx::runtime * runtime = hpx::get_runtime_ptr();
@@ -381,7 +382,7 @@ profiler* start(const std::string &timer_name)
             }
         }
     }
-    return thread_instance::instance().get_current_profiler().get();
+    return thread_instance::instance().get_current_profiler();
 }
 
 profiler* start(apex_function_address function_address) {
@@ -407,12 +408,12 @@ profiler* start(apex_function_address function_address) {
 #ifdef APEX_DEBUG
     /*
     if (instance->get_node_id() == 0) { 
-        printf("%lu Start: %s %p\n", thread_instance::get_id(), lookup_address((uintptr_t)function_address, false)->c_str(), thread_instance::instance().get_current_profiler().get());
+        printf("%lu Start: %s %p\n", thread_instance::get_id(), lookup_address((uintptr_t)function_address, false)->c_str(), thread_instance::instance().get_current_profiler());
         fflush(stdout); 
     }
     */
 #endif
-    return thread_instance::instance().get_current_profiler().get();
+    return thread_instance::instance().get_current_profiler();
 }
 
 profiler* resume(const std::string &timer_name) {
@@ -436,7 +437,7 @@ profiler* resume(const std::string &timer_name) {
             }
         } catch (disabled_profiler_exception e) { return profiler::get_disabled_profiler(); }
     }
-    return thread_instance::instance().get_current_profiler().get();
+    return thread_instance::instance().get_current_profiler();
 }
 
 profiler* resume(apex_function_address function_address) {
@@ -460,12 +461,12 @@ profiler* resume(apex_function_address function_address) {
 #ifdef APEX_DEBUG
 /*
     if (instance->get_node_id() == 0) { 
-        printf("%lu Resume: %s %p\n", thread_instance::get_id(), lookup_address((uintptr_t)function_address, false)->c_str(), thread_instance::instance().get_current_profiler().get());
+        printf("%lu Resume: %s %p\n", thread_instance::get_id(), lookup_address((uintptr_t)function_address, false)->c_str(), thread_instance::instance().get_current_profiler());
         fflush(stdout); 
     }
 */
 #endif
-    return thread_instance::instance().get_current_profiler().get();
+    return thread_instance::instance().get_current_profiler();
 }
 
 void reset(const std::string &timer_name) {
@@ -508,15 +509,18 @@ void stop(profiler* the_profiler) {
 
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
-    if (the_profiler != nullptr && the_profiler->stopped) return;
+    if (the_profiler == nullptr || the_profiler->stopped) return;
+    std::shared_ptr<profiler> p = std::make_shared<profiler>(the_profiler);
+    /*
     std::shared_ptr<profiler> p;
     // A null profiler is OK, it means the application didn't store it. We have it.
     if (the_profiler == nullptr) {
-        p = thread_instance::instance().pop_current_profiler();
+        p = std::make_shared<profiler>(thread_instance::instance().pop_current_profiler());
     } else {
-        p = thread_instance::instance().pop_current_profiler(the_profiler);
+        p = std::make_shared<profiler>(thread_instance::instance().pop_current_profiler(the_profiler));
     }
     if (p == nullptr) return;
+    */
 #ifdef APEX_DEBUG
     /*
     if (instance->get_node_id() == 0) { 
@@ -543,13 +547,17 @@ void yield(profiler* the_profiler)
 
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
+    if (the_profiler == nullptr || the_profiler->stopped) return;
+    std::shared_ptr<profiler> p = std::make_shared<profiler>(the_profiler);
+    /*
     std::shared_ptr<profiler> p;
     if (the_profiler == nullptr) {
-        p = thread_instance::instance().pop_current_profiler();
+        p = std::make_shared<profiler>(thread_instance::instance().pop_current_profiler());
     } else {
-        p = thread_instance::instance().pop_current_profiler(the_profiler);
+        p = std::make_shared<profiler>(thread_instance::instance().pop_current_profiler(the_profiler));
     }
     if (p == nullptr) return;
+    */
 #ifdef APEX_DEBUG
     /*
     if (instance->get_node_id() == 0) { 
@@ -710,6 +718,7 @@ hpx::runtime * get_hpx_runtime_ptr(void) {
 #endif
 
 void init_plugins(void) {
+    if (apex_options::disable() == true) { return; }
 #ifdef APEX_USE_PLUGINS
     std::string plugin_names_str{apex_options::plugins()};
     std::string plugins_prefix{apex_options::plugins_path()};
@@ -759,6 +768,7 @@ void init_plugins(void) {
 }
 
 void finalize_plugins(void) {
+    if (apex_options::disable() == true) { return; }
 #ifdef APEX_USE_PLUGINS
     apex * instance = apex::instance();
     if(!instance) return;
@@ -918,19 +928,14 @@ void exit_thread(void)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
     _exited = true;
+    /*
     // pop any remaining timers, and stop them
     std::shared_ptr<profiler> p;
     while(true && !thread_instance::instance().profiler_stack_empty()) {
-        p = thread_instance::instance().pop_current_profiler();
+        p = std::make_shared<profiler>(thread_instance::instance().pop_current_profiler());
         if (p == nullptr) { break; }
 #ifdef APEX_DEBUG
         _exit_stops++;
-    /*
-    if (instance->get_node_id() == 0) { 
-        printf("%lu Exit Stop:  %s\n", thread_instance::get_id(), lookup_address((uintptr_t)p->action_address, false)->c_str());
-        fflush(stdout); 
-    }
-    */
 #endif
         if (_notify_listeners) {
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -938,6 +943,7 @@ void exit_thread(void)
             }
         }
     }
+    */
     event_data data;
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {

@@ -189,7 +189,9 @@ void report_stats(void) {
     std::cout << "number of blocks: " << num_blocks << std::endl;
     std::cout << "blocks per thread: " << blocks_per_thread << std::endl;
     std::cout << "solver method: " << method_names[method-1] << std::endl;
-    std::cout << "total time in solver: " << p->accumulated << " seconds" << std::endl;
+    if (p != nullptr) {
+        std::cout << "total time in solver: " << p->accumulated << " seconds" << std::endl;
+    }
 }
 
 /**
