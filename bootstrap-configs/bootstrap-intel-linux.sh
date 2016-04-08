@@ -16,7 +16,7 @@ export MPI_CXX=mpiicpc
 # REQUIRED libraries
 
 # BOOST_ROOT=$HOME/install/mic/boost/1.58.0
-export BOOST_ROOT=$HOME/install/boost-1.58.0-intel
+# export BOOST_ROOT=$HOME/install/boost-1.58.0-intel
 
 # OPTIONAL libraries - if left undefined, they likely won't be used.
 
