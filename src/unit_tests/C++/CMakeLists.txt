@@ -33,7 +33,6 @@ set(example_programs
     apex_print_options
     apex_get_thread_cap
     apex_shutdown_throttling
-    apex_throttle_event
    )
     #apex_fibonacci_std_async
     #apex_set_thread_cap
@@ -49,8 +48,9 @@ if (NOT PAPI_FOUND)
     set(example_programs "${example_programs};apex_pthread_flood")
 endif()
 
+# std::threads crash when linked statically. :(
 if (NOT BUILD_STATIC_EXECUTABLES)
-  set(example_programs "${example_programs};apex_new_task")
+  set(example_programs "${example_programs};apex_new_task;apex_throttle_event")
 endif()
 
 foreach(example_program ${example_programs})

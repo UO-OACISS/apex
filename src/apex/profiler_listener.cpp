@@ -996,7 +996,12 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         // We might be done, but check to make sure the queue is empty
         std::vector<std::future<bool>> pending_futures;
         for (unsigned int i=0; i<hardware_concurrency(); ++i) {
+#ifdef APEX_STATIC
+            /* Static libC++ doesn't do async very well. In fact, it crashes. */
+            auto f = std::async(&profiler_listener::concurrent_cleanup,this);
+#else
             auto f = std::async(std::launch::async,&profiler_listener::concurrent_cleanup,this);
+#endif
             // transfer the future's shared state to a longer-lived future
             pending_futures.push_back(std::move(f));
         }
