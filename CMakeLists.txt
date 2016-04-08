@@ -67,6 +67,16 @@ set(CMAKE_CONFIGURATION_TYPES "${CMAKE_BUILD_TYPE}" CACHE INTERNAL
 # set the project name
 project (APEX CXX C)
 
+# check if we are building for Kitten / LXK
+
+if((DEFINED APEX_LXK_KITTEN) AND (APEX_LXK_KITTEN))
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPEX_LXK_KITTEN")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DAPEX_LXK_KITTEN")
+    SET(BUILD_STATIC_EXECUTABLES TRUE CACHE BOOL "Build Static Libraries and Executables" FORCE)
+    SET(READ_PROC_FILESYSTEM FALSE CACHE BOOL "Periodically read the /proc filesystem status" FORCE)
+    SET(USE_CLOCK_TIMESTAMP TRUE CACHE BOOL "Disable assembly code timestamp call" FORCE)
+endif()
+
 # If TAU is used, don't allow throttling - it can potentially lead to
 # overlapping timer errors in TAU.
 if((NOT DEFINED APEX_THROTTLE) OR (APEX_THROTTLE))
@@ -81,8 +91,8 @@ if((DEFINED USE_CLOCK_TIMESTAMP) AND (USE_CLOCK_TIMESTAMP))
 endif()
 
 # include additional macro definitions
-include(APEX_Utils)
 
+include(APEX_Utils)
 include(APEX_Distclean)
 
 apex_force_out_of_tree_build("This project requires an out-of-source-tree

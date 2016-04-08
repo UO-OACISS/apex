@@ -15,7 +15,7 @@ int func(int i) {
 }
 
 uintptr_t foo(uintptr_t i) {
-    int j;
+    int j = 0;
     apex_profiler_handle profiler = apex_start(APEX_FUNCTION_ADDRESS, &foo);
     int x,y;
     for (x = 0 ; x < MAX_OUTER ; x++) {

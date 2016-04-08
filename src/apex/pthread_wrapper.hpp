@@ -11,7 +11,6 @@
 #include <atomic>
 
 #define MILLION 1000000
-#define APEX_LXK_KITTEN 1
 
 /*
  * This class exists because std::thread crashes when using std::condition_variable
@@ -93,6 +92,10 @@ class pthread_wrapper {
         bool wait() {
             if (done) return false;
 #ifdef APEX_LXK_KITTEN
+/* The pthread_cond_timedwait() call on Kitten never times out. 
+ * Therefore, we just use a nanosleep instead. We can't ever
+ * wake this thread up early, but that's OK.
+ */
                 int seconds = _timeout_microseconds / MILLION;
                 int microseconds = _timeout_microseconds % MILLION;
                 struct timespec ts;

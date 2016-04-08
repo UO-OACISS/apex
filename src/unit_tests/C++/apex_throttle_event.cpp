@@ -18,7 +18,7 @@ int func(int i) {
 }
 
 int foo(int i) {
-    int j;
+    int j=0;
     apex::profiler* p = apex::start((apex_function_address)(&foo));
     for (int x = 0 ; x < MAX_OUTER ; x++) {
         for (int y = 0 ; y < MAX_INNER ; y++) {
