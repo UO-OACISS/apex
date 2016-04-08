@@ -69,14 +69,14 @@ char * format_address(void* ip) {
         strcpy(location, __UNKNOWN_ADDR__);
         return location;
     }
-    #if 0
+    #if 1
     location = (char*)malloc(128);
     sprintf(location, "UNRESOLVED ADDR %p", (void*)ip);
-    return location;
-    #endif
+    #else
     std::string name(apex::thread_instance::instance().map_addr_to_name((apex_function_address)ip));
     location = (char*)malloc(name.size() + 1);
     sprintf(location, "%s", name.c_str());
+    #endif
     return location;
 }
 

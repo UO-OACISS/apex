@@ -458,7 +458,9 @@ namespace apex {
     // iterate over the counters
     for(task_identifier task_id : id_vector) {
         profile * p = task_map[task_id];
-        write_one_timer(task_id, p, screen_output, csv_output, total_accumulated, total_main);
+        if (p) {
+            write_one_timer(task_id, p, screen_output, csv_output, total_accumulated, total_main);
+        }
     }
     id_vector.clear();
     // iterate over the timers, and sort their names
@@ -474,7 +476,9 @@ namespace apex {
     // iterate over the counters
     for(task_identifier task_id : id_vector) {
         profile * p = task_map[task_id];
-        write_one_timer(task_id, p, screen_output, csv_output, total_accumulated, total_main);
+        if (p) {
+            write_one_timer(task_id, p, screen_output, csv_output, total_accumulated, total_main);
+        }
     }
     double idle_rate = total_main - (total_accumulated*profiler::get_cpu_mhz());
     screen_output << string_format("%30s", APEX_IDLE_TIME) << " : ";

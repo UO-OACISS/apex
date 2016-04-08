@@ -15,6 +15,8 @@
 #include "address_resolution.hpp"
 #include <errno.h>
 #include <string.h>
+#include <regex>
+#include "utils.hpp"
 
 static void apex_custom_signal_handler(int sig) {
 
@@ -53,7 +55,7 @@ static void apex_custom_signal_handler(int sig) {
 
   // skip the first frame, it is this handler
   for( i = 1; i < size; i++ ){
-   std::cerr << strings[i] << std::endl;
+   std::cerr << apex::demangle(strings[i]) << std::endl;
 // #if APEX_HAVE_BFD
    // std::cerr << apex::lookup_address((uintptr_t)trace[i], false) << std::endl;
 // #else

@@ -62,8 +62,12 @@ endif()
 
 IF("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
   # they will still be configured, but excluded from "all"
-  set(BUILD_TESTS FALSE)
-  set(BUILD_EXAMPLES FALSE)
+  if(NOT DEFINED BUILD_TESTS)
+    set(BUILD_TESTS FALSE)
+  endif(NOT DEFINED BUILD_TESTS)
+  if(NOT DEFINED BUILD_EXAMPLES)
+    set(BUILD_EXAMPLES FALSE)
+  endif(NOT DEFINED BUILD_EXAMPLES)
 endif()
 
 # set(APEX_BUILD_TYPE "${CMAKE_BUILD_TYPE}" CACHE STRING "Configuration type (one of Debug, RelWithDebInfo, Release, MinSizeRel)" FORCE)

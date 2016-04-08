@@ -32,7 +32,6 @@ namespace apex
 // getenv is not thread-safe, but the constructor for this static singleton is.
 #define apex_macro(name, member_variable, type, default_value) \
     _##member_variable = default_value; \
-    printf("%s == %s\n", #name, getenv(#name)); \
     option = getenv(#name); \
     if (option != NULL) { \
         _##member_variable = (type)(atoi(option)); \

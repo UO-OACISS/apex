@@ -73,6 +73,8 @@ if (OPENMP_FOUND)
   if (PROCESSOR_COUNT)
     set_property (TEST test_apex_setup_throughput_tuning_cpp
     APPEND PROPERTY ENVIRONMENT "OMP_NUM_THREADS=${PROCESSOR_COUNT}")
+    set_property (TEST test_apex_setup_throughput_tuning_cpp
+        APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_CONCURRENCY=TRUE")
   endif (PROCESSOR_COUNT)
 endif (OPENMP_FOUND)
 
