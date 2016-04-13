@@ -31,26 +31,29 @@ Full installation documentation is available here: http://khuck.github.io/xpress
 
 APEX is built with CMake. The minimum CMake settings needed for APEX are:
 
-* `-DBOOST_ROOT=<the path to a Boost installation, 1.54 or newer>`
 * `-DCMAKE_INSTALL_PREFIX=<some path to an installation location>`
 * `-DCMAKE_BUILD_TYPE=<one of Release, Debug, or RelWithDebInfo (recommended)>`
+
+When building for Intel Xeon Phi, Boost may be required if the compiler suite is not up-to-date:
+
+* `-DBOOST_ROOT=<the path to a Boost installation, 1.54 or newer>`
 
 The process for building APEX is:
 
 1) Get the code (assuming v0.1 is the most recent version)::
 
-    wget https://github.com/khuck/xpress-apex/archive/v0.1.tar.gz
-    tar -xvzf v0.1.tar.gz
+    wget https://github.com/khuck/xpress-apex/archive/v0.5.tar.gz
+    tar -xvzf v0.5.tar.gz
 
 2) Enter the repo directory, make a build directory::
 
-    cd xpress-apex-0.1
+    cd xpress-apex-0.05
     mkdir build
     cd build
 
 3) configure using CMake::
 
-    cmake -DBOOST_ROOT=<path-to-boost> -DCMAKE_INSTALL_PREFIX=<installation-path> -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
+    cmake -DCMAKE_INSTALL_PREFIX=<installation-path> -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 
 4) build with make::
 
