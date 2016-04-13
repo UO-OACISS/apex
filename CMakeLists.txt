@@ -83,7 +83,7 @@ project (APEX CXX C)
 
 # If TAU is used, don't allow throttling - it can potentially lead to
 # overlapping timer errors in TAU.
-if((NOT DEFINED APEX_THROTTLE) OR (APEX_THROTTLE))
+if((DEFINED APEX_THROTTLE) AND (APEX_THROTTLE))
     if ((NOT DEFINED TAU_ROOT) AND (NOT USE_TAU))
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPEX_THROTTLE")
     endif()
