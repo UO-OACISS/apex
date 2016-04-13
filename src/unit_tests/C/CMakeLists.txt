@@ -36,7 +36,6 @@ set(example_programs
     apex_disable
     apex_suspend
     apex_papi_suspend
-    apex_cross_thread_timing
     apex_throttle_event
    )
 #    apex_setup_power_cap_throttling
@@ -46,6 +45,7 @@ set(example_programs
 if (NOT USE_TAU)
   set(example_programs "${example_programs};apex_fibonacci_pthread")
   set(example_programs "${example_programs};apex_new_task")
+  set(example_programs "${example_programs};apex_cross_thread_timing")
 endif (NOT USE_TAU)
 
 #if (OPENMP_FOUND)

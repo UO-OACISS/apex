@@ -50,7 +50,10 @@ endif()
 
 # std::threads crash when linked statically. :(
 if (NOT BUILD_STATIC_EXECUTABLES)
-  set(example_programs "${example_programs};apex_new_task;apex_throttle_event")
+  set(example_programs "${example_programs};apex_new_task")
+  if (NOT USE_TAU)
+    set(example_programs "${example_programs};apex_throttle_event")
+  endif (NOT USE_TAU)
 endif()
 
 foreach(example_program ${example_programs})
