@@ -34,19 +34,19 @@ set(example_programs
     apex_get_thread_cap
     apex_shutdown_throttling
     apex_disable
-    apex_suspend
-    apex_papi_suspend
-    apex_throttle_event
    )
 #    apex_setup_power_cap_throttling
 #    apex_setup_throughput_tuning
 #    apex_set_thread_cap
 
-if (NOT USE_TAU)
+if ((NOT DEFINED TAU_ROOT) AND (NOT USE_TAU) AND (NOT TAU_FOUND))
   set(example_programs "${example_programs};apex_fibonacci_pthread")
   set(example_programs "${example_programs};apex_new_task")
   set(example_programs "${example_programs};apex_cross_thread_timing")
-endif (NOT USE_TAU)
+  set(example_programs "${example_programs};apex_suspend")
+  set(example_programs "${example_programs};apex_papi_suspend")
+  set(example_programs "${example_programs};apex_throttle_event")
+endif ((NOT DEFINED TAU_ROOT) AND (NOT USE_TAU) AND (NOT TAU_FOUND))
 
 #if (OPENMP_FOUND)
   #set(example_programs "${example_programs} apex_setup_throughput_tuning")
