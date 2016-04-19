@@ -35,6 +35,10 @@
 #endif
 #include "address_resolution.hpp"
 
+#ifdef APEX_HAVE_SOS
+#include "sos_handler.hpp"
+#endif
+
 APEX_NATIVE_TLS bool _registered = false;
 APEX_NATIVE_TLS bool _exited = false;
 static bool _initialized = false;
@@ -201,6 +205,9 @@ void apex::_initialize()
 #endif
     this->resize_state(1);
     this->set_state(0, APEX_BUSY);
+#ifdef APEX_HAVE_SOS
+    this->the_sos_handler = new sos_handler(m_argc, m_argv, apex_options::sos_period());
+#endif
 }
 
 /*  

@@ -46,6 +46,10 @@
 #include "proc_read.h" 
 #endif
 
+#if APEX_HAVE_SOS
+#include "sos_handler.hpp" 
+#endif
+
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /**
@@ -96,6 +100,9 @@ private:
     hpx::runtime * m_hpx_runtime;
 #endif
 public:
+#ifdef APEX_HAVE_SOS
+    sos_handler * the_sos_handler;
+#endif
     profiler_listener * the_profiler_listener;
     proc_data_reader * pd_reader;
     std::string version_string;
