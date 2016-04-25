@@ -28,6 +28,7 @@ mark_as_advanced(ACTIVEHARMONY_INCLUDE_DIR ACTIVEHARMONY_LIBRARY)
 
 # --------- DOWNLOAD AND BUILD THE EXTERNAL PROJECT! ------------ #
 if((BUILD_ACTIVEHARMONY OR (NOT ACTIVEHARMONY_FOUND)) AND NOT APPLE)
+  set(CACHE ACTIVEHARMONY_ROOT ${CMAKE_INSTALL_PREFIX} STRING "Active Harmony Root directory")
   message("Attention: Downloading and Building ActiveHarmony as external project!")
   message(INFO " A working internet connection is required!")
   include(ExternalProject)
