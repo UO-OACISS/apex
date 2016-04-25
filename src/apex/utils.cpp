@@ -40,7 +40,7 @@ std::string demangle(const std::string& timer_name) {
 #if defined(__GNUC__)
   int     status;
   char *realname = abi::__cxa_demangle(timer_name.c_str(), 0, 0, &status);
-  if (status == 0) {
+  if (status == 0 && realname != NULL) {
     char* index = strstr(realname, "<");
     if (index != NULL) {
       *index = 0; // terminate before templates for brevity
