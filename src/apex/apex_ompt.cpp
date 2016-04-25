@@ -69,7 +69,7 @@ char * format_address(void* ip) {
         strcpy(location, __UNKNOWN_ADDR__);
         return location;
     }
-    #if 1
+    #if 0
     location = (char*)malloc(128);
     sprintf(location, "UNRESOLVED ADDR %p", (void*)ip);
     #else
