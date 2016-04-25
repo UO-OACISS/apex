@@ -215,13 +215,6 @@ else()
     endif()
 endif()
 
-# configure a header file to pass some of the CMake settings
-# to the source code
-configure_file (
-  "${PROJECT_SOURCE_DIR}/src/apex/apex_config.h.in"
-  "${PROJECT_BINARY_DIR}/src/apex/apex_config.h"
-)
-
 # Check if architecture is x86 or not
 message("System architecture: ${CMAKE_SYSTEM_PROCESSOR}")
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)")
@@ -551,6 +544,13 @@ else()
 endif()
 
 ################################################################################
+
+# configure a header file to pass some of the CMake settings
+# to the source code
+configure_file (
+  "${PROJECT_SOURCE_DIR}/src/apex/apex_config.h.in"
+  "${PROJECT_BINARY_DIR}/src/apex/apex_config.h"
+)
 
 if (NOT BUILD_STATIC_EXECUTABLES)
     set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} "${CMAKE_INSTALL_PREFIX}/lib")
