@@ -28,7 +28,7 @@ if ($TMP_PATH)
 	  string(REPLACE ":" " " LD_LIBRARY_PATH_STR $TMP_PATH)
 endif()
 find_library(BFD_LIBRARY NAMES bfd
-             HINTS ${BFD_ROOT}/lib 
+             HINTS ${BFD_ROOT}/lib ${BFD_ROOT}/lib64
              ${PC_BFD_LIBDIR} 
              ${PC_BFD_LIBRARY_DIRS} 
              ${LD_LIBRARY_PATH_STR})
