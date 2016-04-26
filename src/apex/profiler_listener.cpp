@@ -209,14 +209,16 @@ namespace apex {
     std::unique_lock<std::mutex> task_map_lock(_task_map_mutex, std::defer_lock);
     // There is only one consumer thread except during shutdown, so we only need
     // to lock during shutdown.
+    bool did_lock = false;
     if(_done) {
         task_map_lock.lock();
+        did_lock = true;
     }
     unordered_map<task_identifier, profile*>::const_iterator it = task_map.find(*(p->task_id));
     if (it != task_map.end()) {
       	// A profile for this ID already exists.
         theprofile = (*it).second;
-        if(_done) {
+        if(_done && did_lock) {
             task_map_lock.unlock();
         }
         if(p->is_reset == reset_type::CURRENT) {
@@ -256,7 +258,7 @@ namespace apex {
         // Create a new profile for this name.
         theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), tmp_num_counters, values, p->is_resume, p->is_counter ? APEX_COUNTER : APEX_TIMER);
         task_map[*(p->task_id)] = theprofile;
-        if(_done) {
+        if(_done && did_lock) {
             task_map_lock.unlock();
         }
 #ifdef APEX_HAVE_HPX3
