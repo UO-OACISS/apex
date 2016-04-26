@@ -206,10 +206,19 @@ namespace apex {
         }
     }   
 #endif
+    std::unique_lock<std::mutex> task_map_lock(_task_map_mutex, std::defer_lock);
+    // There is only one consumer thread except during shutdown, so we only need
+    // to lock during shutdown.
+    if(_done) {
+        task_map_lock.lock();
+    }
     unordered_map<task_identifier, profile*>::const_iterator it = task_map.find(*(p->task_id));
     if (it != task_map.end()) {
       	// A profile for this ID already exists.
         theprofile = (*it).second;
+        if(_done) {
+            task_map_lock.unlock();
+        }
         if(p->is_reset == reset_type::CURRENT) {
             theprofile->reset();
         } else {
@@ -247,6 +256,9 @@ namespace apex {
         // Create a new profile for this name.
         theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), tmp_num_counters, values, p->is_resume, p->is_counter ? APEX_COUNTER : APEX_TIMER);
         task_map[*(p->task_id)] = theprofile;
+        if(_done) {
+            task_map_lock.unlock();
+        }
 #ifdef APEX_HAVE_HPX3
 #ifdef APEX_REGISTER_HPX3_COUNTERS
         if(!_done) {
@@ -257,7 +269,7 @@ namespace apex {
                     hpx::performance_counters::install_counter_type(
                     std::string("/apex/") + timer_name,
                     [p](bool r)->boost::int64_t{
-                        boost::int64_t value(p->elapsed() * 100000);
+                        boost::int64_t value(p->elapsed());
                         return value;
                     },
                     std::string("APEX counter ") + timer_name,
