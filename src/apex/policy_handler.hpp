@@ -6,7 +6,7 @@
 #pragma once
 
 #ifdef APEX_HAVE_HPX3
-#include <hpx/hpx_fwd.hpp>
+#include <hpx/hpx.hpp>
 #include <hpx/util/interval_timer.hpp>
 #endif
 
