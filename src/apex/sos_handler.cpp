@@ -67,25 +67,25 @@ bool sos_handler::_handler(void) {
         std::cout << task.get_name() << std::endl;
         SOS_val calls, mean, accumulated, minimum, maximum, variance, sum_squares, stddev;
         calls.i_val = p->get_calls();
-        SOS_pack(_pub, "Number of Calls", SOS_VAL_TYPE_INT, calls);
+        SOS_pack(_pub, ("APEX::" + task.get_name() + "::Number of Calls").c_str(), SOS_VAL_TYPE_INT, calls);
         accumulated.d_val = p->get_accumulated();
-        SOS_pack(_pub, "Accumulated", SOS_VAL_TYPE_DOUBLE, accumulated);
+        SOS_pack(_pub, ("APEX::" + task.get_name() + "::Accumulated").c_str(), SOS_VAL_TYPE_DOUBLE, accumulated);
         mean.d_val = p->get_mean();
-        SOS_pack(_pub, "Mean", SOS_VAL_TYPE_DOUBLE, mean);
+        SOS_pack(_pub, ("APEX::" + task.get_name() + "::Mean").c_str(), SOS_VAL_TYPE_DOUBLE, mean);
         if (p->get_type() == APEX_TIMER) {
-            SOS_pack(_pub, "Type", SOS_VAL_TYPE_STRING, timer);
+            SOS_pack(_pub, ("APEX::" + task.get_name() + "::Type").c_str(), SOS_VAL_TYPE_STRING, timer);
         } else {
-            SOS_pack(_pub, "Type", SOS_VAL_TYPE_STRING, counter);
+            SOS_pack(_pub, ("APEX::" + task.get_name() + "::Type").c_str(), SOS_VAL_TYPE_STRING, counter);
             minimum.d_val = p->get_minimum();
-            SOS_pack(_pub, "Minimum", SOS_VAL_TYPE_DOUBLE, minimum);
+            SOS_pack(_pub, ("APEX::" + task.get_name() + "::Minimum").c_str(), SOS_VAL_TYPE_DOUBLE, minimum);
             maximum.d_val = p->get_maximum();
-            SOS_pack(_pub, "Maximum", SOS_VAL_TYPE_DOUBLE, maximum);
+            SOS_pack(_pub, ("APEX::" + task.get_name() + "::Maximum").c_str(), SOS_VAL_TYPE_DOUBLE, maximum);
             variance.d_val = p->get_variance();
-            SOS_pack(_pub, "Variance", SOS_VAL_TYPE_DOUBLE, variance);
+            SOS_pack(_pub, ("APEX::" + task.get_name() + "::Variance").c_str(), SOS_VAL_TYPE_DOUBLE, variance);
             sum_squares.d_val = p->get_sum_squares();
-            SOS_pack(_pub, "Sum of Squares", SOS_VAL_TYPE_DOUBLE, sum_squares);
+            SOS_pack(_pub, ("APEX::" + task.get_name() + "::Sum of Squares").c_str(), SOS_VAL_TYPE_DOUBLE, sum_squares);
             stddev.d_val = p->get_stddev();
-            SOS_pack(_pub, "Variance", SOS_VAL_TYPE_DOUBLE, stddev);
+            SOS_pack(_pub, ("APEX::" + task.get_name() + "::Variance").c_str(), SOS_VAL_TYPE_DOUBLE, stddev);
         }
     }
     if (new_count > SOS_DEFAULT_ELEM_MAX) {
