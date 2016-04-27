@@ -74,6 +74,7 @@ private:
   void _common_stop(std::shared_ptr<profiler> &p, bool is_yield); // internal, inline function
   void push_profiler(int my_tid, std::shared_ptr<profiler> &p);
   std::unordered_map<task_identifier, profile*> task_map;
+  std::mutex _task_map_mutex;
   std::unordered_map<task_identifier, std::unordered_map<task_identifier, int>* > task_dependencies;
   /* The profiler queue */
   profiler_queue_t thequeue;
