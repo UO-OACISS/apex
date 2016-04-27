@@ -455,6 +455,21 @@ if((DEFINED SOS_ROOT) OR (USE_SOS))
 endif()
 
 ################################################################################
+# SOS configuration
+################################################################################
+
+if((DEFINED SOS_ROOT) OR (USE_SOS))
+    find_package(SOS)
+    if (SOS_FOUND)
+        include_directories(${SOS_INCLUDE_DIRS})
+        set(LIBS ${LIBS} ${SOS_LIBRARIES})
+        if (NOT BUILD_STATIC_EXECUTABLES)
+            set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${SOS_LIBRARY_DIR})
+        endif()
+	endif()
+endif()
+
+################################################################################
 # MSR configuration
 ################################################################################
 
