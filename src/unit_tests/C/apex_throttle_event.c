@@ -35,6 +35,7 @@ int main (int argc, char** argv) {
         j += foo(i);
     }
     apex_stop(profiler);
+	printf("Finalizing...\n"); fflush(stdout);
     apex_finalize();
     apex_cleanup();
     return 0;

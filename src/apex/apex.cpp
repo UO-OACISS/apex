@@ -843,6 +843,9 @@ void finalize()
     shutdown_throttling(); // if not done already
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
+#ifdef APEX_HAVE_SOS
+    instance->the_sos_handler->terminate();
+#endif
     finalize_plugins();
     exit_thread();
 #if APEX_HAVE_PROC

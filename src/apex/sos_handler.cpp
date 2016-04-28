@@ -52,11 +52,12 @@ void sos_handler::_make_pub(void) {
 bool sos_handler::_handler(void) {
     static int old_count = 0;
     int new_count = 0;
+	std::unique_lock<std::mutex> l(_terminate_mutex);
+    if (_terminate) { return false; }
     if (_pub == NULL) {
         _make_pub();
     }
     assert(_pub);
-    if (_terminate) { return false; }
     std::unordered_map<task_identifier, profile*> task_map = 
         apex::instance()->the_profiler_listener->get_task_map();
     std::cout << "Iterating..." << std::endl;
@@ -96,6 +97,11 @@ bool sos_handler::_handler(void) {
     }
     SOS_publish(_pub);
     return true;
+}
+
+void sos_handler::terminate(void) {
+		std::unique_lock<std::mutex> l(_terminate_mutex);
+		_terminate = true;
 }
 
 

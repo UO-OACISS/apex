@@ -8,6 +8,7 @@
 #include "handler.hpp"
 #include <memory>
 #include "sos.h"
+#include <mutex>
 
 namespace apex {
 
@@ -19,10 +20,12 @@ private:
   void _make_pub (void);
   SOS_val timer;
   SOS_val counter;
+  std::mutex _terminate_mutex;
 public:
   sos_handler (int argc, char * argv[], int period);
   ~sos_handler (void);
   virtual bool _handler(void);
+  void terminate (void);
 };
 
 }
