@@ -2,12 +2,12 @@
 
 APEX is open source, and available on Github at [http//github.com/khuck/xpress-apex](http//github.com/khuck/xpress-apex).
 
-For stability, most users will want to download the most recent release of APEX (for example, v0.1):
+For stability, most users will want to download the most recent release of APEX (for example, v0.5):
 
 ```bash
-wget https://github.com/khuck/xpress-apex/archive/v0.1.tar.gz
-tar -xvzf v0.1.tar.gz
-cd xpress-apex-0.1
+wget https://github.com/khuck/xpress-apex/archive/v0.5.tar.gz
+tar -xvzf v0.5.tar.gz
+cd xpress-apex-0.5
 ```
 
 Other users may want to work with the most recent code available, in which case you can clone the git repo:
@@ -25,9 +25,12 @@ This option is useful for HPC resources where a configuration script already exi
 
 APEX is built with CMake. The minimum CMake settings needed for APEX are:
 
-* -DBOOST_ROOT= the path to a Boost installation, 1.54 or newer
 * -DCMAKE_INSTALL_PREFIX= some path to an installation location
 * -DCMAKE_BUILD_TYPE= one of Release, Debug, or RelWithDebInfo (recommended)
+
+When building on Intel Phi, Boost is required if the compiler toolset does not include the latest GNU C++11 support.
+
+* -DBOOST_ROOT= the path to a Boost installation, 1.54 or newer
 
 **Note:** *If the BOOST_ROOT environment variable is set to a working Boost installation directory, CMake will find it automatically. If Boost is not installed locally, use the -DBUILD_BOOST=TRUE option, which will automatically download and build Boost as a subproject of APEX.*
 
@@ -38,12 +41,18 @@ The process for building APEX is:
 2) Enter the repo directory, make a build directory:
 
 ```bash
-cd xpress-apex-0.1
+cd xpress-apex-0.5
 mkdir build
 cd build
 ```
 
 3) configure using CMake:
+
+```bash
+cmake -DBOOST_ROOT=<path-to-boost> -DCMAKE_INSTALL_PREFIX=<installation-path> -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
+```
+
+If Boost is required (Intel Phi):
 
 ```bash
 cmake -DBOOST_ROOT=<path-to-boost> -DCMAKE_INSTALL_PREFIX=<installation-path> -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
@@ -68,7 +77,7 @@ make install
 * **TAU** *or* **PAPI** - if you want post-mortem performance analysis ([See the TAU use case](usecases.md#with-tau) for an example) or your policies will require hardware counters ([See the PAPI use case](usecases.md#with-papi) for an example)
 * **JEMalloc/TCMalloc** - if your application is not already using a heap manager - see Note 2, below
 
-**Note 2:** *TCMalloc or JEMalloc will speed up memory allocations *significantly* in APEX. HOWEVER, If your application already uses TCMalloc or JEMalloc, **DO NOT** configure APEX with TCMalloc or JEMalloc. They will be included at application link time, and may conflict with the version detected by and linked into APEX.*
+**Note 2:** *TCMalloc or JEMalloc will speed up memory allocations *significantly* in APEX (and in your application). HOWEVER, If your application already uses TCMalloc, JEMalloc or TBBMalloc, **DO NOT** configure APEX with TCMalloc or JEMalloc. They will be included at application link time, and may conflict with the version detected by and linked into APEX.*
 
 There are several utility libraries that provide additional functionality in APEX. Not all libraries are required, but some are recommended.  For the following options, the default values are in *italics*.
 
