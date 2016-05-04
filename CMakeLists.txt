@@ -185,7 +185,7 @@ set(CMAKE_C_FLAGS_RELEASE ${CMAKE_CXX_FLAGS_RELEASE})
 
 # The version number.
 set (APEX_VERSION_MAJOR 0)
-set (APEX_VERSION_MINOR 1)
+set (APEX_VERSION_MINOR 5)
 
 # add_definitions(-std=c++11)
 include(CheckCXXCompilerFlag)
