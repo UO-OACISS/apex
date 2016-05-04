@@ -14,6 +14,8 @@
 
 #include "matmult_initialize.h"
 
+#define PTHREADS 1
+
 #ifdef PTHREADS
 #include <pthread.h>
 #endif /* PTHREADS */
