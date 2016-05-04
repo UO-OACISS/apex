@@ -441,6 +441,21 @@ if((DEFINED PAPI_ROOT) OR (USE_PAPI))
 endif()
 
 ################################################################################
+# OTF2 configuration
+################################################################################
+
+if((DEFINED OTF2_ROOT) OR (USE_OTF2))
+    find_package(OTF2)
+    if (OTF2_FOUND)
+        include_directories(${OTF2_INCLUDE_DIRS})
+        set(LIBS ${LIBS} ${OTF2_LIBRARIES})
+        if (NOT BUILD_STATIC_EXECUTABLES)
+            set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${OTF2_LIBRARY_DIR})
+        endif()
+    endif()
+endif()
+
+################################################################################
 # MSR configuration
 ################################################################################
 

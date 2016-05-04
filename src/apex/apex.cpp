@@ -35,6 +35,10 @@
 #endif
 #include "address_resolution.hpp"
 
+#ifdef APEX_HAVE_OTF2
+#include "otf2_listener.hpp"
+#endif
+
 APEX_NATIVE_TLS bool _registered = false;
 APEX_NATIVE_TLS bool _exited = false;
 static bool _initialized = false;
@@ -184,6 +188,12 @@ void apex::_initialize()
     if (apex_options::use_tau())
     {
         listeners.push_back(new tau_listener());
+    }
+#endif
+#ifdef APEX_HAVE_OTF2
+    if (apex_options::use_otf2())
+    {
+        listeners.push_back(new otf2_listener());
     }
 #endif
     startup_throttling();
