@@ -488,11 +488,18 @@ int apex_throughput_throttling_dhc_policy(apex_context const context) {
     
 #ifdef APEX_HAVE_ACTIVEHARMONY
 int apex_throughput_throttling_ah_policy(apex_context const context) {
-    // do something.
     APEX_UNUSED(context);
+    if(apex_final) {
+        // Already finished.
+        return APEX_NOERROR;
+    }
+    if(thread_cap_tuning_session == nullptr) {
+        // Tuning session wasn't initialized?
+        return APEX_ERROR;
+    }
     static double previous_value = 0.0; // instead of resetting.
     static bool _converged_message = false;
-    if (harmony_converged(thread_cap_tuning_session->hdesc)) {
+    if (ah_converged(thread_cap_tuning_session->htask)) {
         if (!_converged_message) {
             _converged_message = true;
             cout << "Thread Cap value optimization has converged." << endl;
@@ -539,15 +546,15 @@ int apex_throughput_throttling_ah_policy(apex_context const context) {
     }
 
     /* Report the performance we've just measured. */
-    if (harmony_report(thread_cap_tuning_session->hdesc, new_value) != 0) {
+    if (ah_report(thread_cap_tuning_session->htask, &new_value) != 0) {
         cerr << "Failed to report performance to server." << endl;
         return APEX_ERROR;
     }
 
-    int hresult = harmony_fetch(thread_cap_tuning_session->hdesc);
+    int hresult = ah_fetch(thread_cap_tuning_session->htask);
     if (hresult < 0) {
         cerr << "Failed to fetch values from server: " << 
-                harmony_error_string(thread_cap_tuning_session->hdesc) << endl;
+                ah_error() << endl;
         return APEX_ERROR;
     }
     else if (hresult == 0) {
@@ -569,7 +576,7 @@ int apex_throughput_tuning_policy(apex_context const context) {
     APEX_UNUSED(context);
     static double previous_value = 0.0; // instead of resetting.
     static bool _converged_message = false;
-    if (harmony_converged(thread_cap_tuning_session->hdesc)) {
+    if (ah_converged(thread_cap_tuning_session->htask)) {
         if (!_converged_message) {
             _converged_message = true;
             cout << "Tuning has converged." << endl;
@@ -603,15 +610,15 @@ int apex_throughput_tuning_policy(apex_context const context) {
     }
 
     /* Report the performance we've just measured. */
-    if (harmony_report(thread_cap_tuning_session->hdesc, new_value) != 0) {
+    if (ah_report(thread_cap_tuning_session->htask, &new_value) != 0) {
         cerr << "Failed to report performance to server." << endl;
         return APEX_ERROR;
     }
 
-    int hresult = harmony_fetch(thread_cap_tuning_session->hdesc);
+    int hresult = ah_fetch(thread_cap_tuning_session->htask);
     if (hresult < 0) {
         cerr << "Failed to fetch values from server: " << 
-                harmony_error_string(thread_cap_tuning_session->hdesc) << endl;
+                ah_error() << endl;
         return APEX_ERROR;
     }
     else if (hresult == 0) {
@@ -631,7 +638,7 @@ int apex_throughput_tuning_policy(apex_context const context) {
 
 int apex_custom_tuning_policy(shared_ptr<apex_tuning_session> tuning_session, apex_context const context) {
     APEX_UNUSED(context);
-    if (harmony_converged(tuning_session->hdesc)) {
+    if (ah_converged(tuning_session->htask)) {
         if (!tuning_session->converged_message) {
             tuning_session->converged_message = true;
             cout << "Tuning has converged for session " << tuning_session->id << "." << endl;
@@ -643,15 +650,15 @@ int apex_custom_tuning_policy(shared_ptr<apex_tuning_session> tuning_session, ap
     double new_value = tuning_session->metric_of_interest();
 
     /* Report the performance we've just measured. */
-    if (harmony_report(tuning_session->hdesc, new_value) != 0) {
+    if (ah_report(tuning_session->htask, &new_value) != 0) {
         cerr << "Failed to report performance to server." << endl;
         return APEX_ERROR;
     }
 
-    int hresult = harmony_fetch(tuning_session->hdesc);
+    int hresult = ah_fetch(tuning_session->htask);
     if (hresult < 0) {
         cerr << "Failed to fetch values from server: " << 
-                harmony_error_string(tuning_session->hdesc) << endl;
+                ah_error() << endl;
         return APEX_ERROR;
     }
     else if (hresult == 0) {
@@ -748,36 +755,40 @@ inline int __setup_power_cap_throttling()
 #ifdef APEX_HAVE_ACTIVEHARMONY
 inline void __apex_active_harmony_setup(apex_tuning_session * tuning_session) {
     static const char* session_name = "APEX Throttling";
-    tuning_session->hdesc = harmony_init(NULL, NULL);
+    tuning_session->hdesc = ah_alloc();
     if (tuning_session->hdesc == NULL) {
         cerr << "Failed to initialize Active Harmony" << endl;
         return;
     }
-    if (harmony_session_name(tuning_session->hdesc, session_name) != 0) {
+    if (ah_id(tuning_session->hdesc, session_name) != 0) {
         cerr << "Could not set Active Harmony session name" << endl;
         return;
     }
-    if (harmony_int(tuning_session->hdesc, "thread_cap", tuning_session->min_threads, tuning_session->max_threads, tuning_session->thread_step) != 0) {
-        cerr << "Failed to define Active Harmony tuning session" << endl;
+    tuning_session->hdef = ah_def_alloc();
+    if (ah_def_name(tuning_session->hdef, session_name) != 0) {
+        cerr << "Could not set Active Harmony tuning definition name" << endl;
         return;
     }
-    if (harmony_strategy(tuning_session->hdesc, "pro.so") != 0) {
+    if (ah_def_strategy(tuning_session->hdef, "pro.so") != 0) {
         cerr << "Failed to set Active Harmony tuning strategy" << endl;
         return;
     }
-    if (harmony_launch(tuning_session->hdesc, NULL, 0) != 0) {
+    if (ah_def_int(tuning_session->hdef, "thread_cap", tuning_session->min_threads, tuning_session->max_threads, tuning_session->thread_step, &(tuning_session->thread_cap)) != 0) {
+        cerr << "Failed to add thread_cap parameter to Active Harmony tuning definition" << endl;
+        return;
+    }
+    if (ah_connect(tuning_session->hdesc, NULL, 0) != 0) {
         cerr << "Failed to launch Active Harmony tuning session: " << 
-            endl << harmony_error_string(tuning_session->hdesc) << endl;
+            endl << ah_error() << endl;
         return;
     }
-        tuning_session->__num_ah_inputs = 1;
-        tuning_session->__ah_inputs[0] = &(tuning_session->thread_cap);
-    if (harmony_bind_int(tuning_session->hdesc, "thread_cap", &(tuning_session->thread_cap)) != 0) {
-        cerr << "Failed to register Active Harmony variable" << endl;
-        return;
-    }
-    if (harmony_join(tuning_session->hdesc, NULL, 0, session_name) != 0) {
-        cerr << "Failed to launch Active Harmony tuning session" << endl;
+    tuning_session->__num_ah_inputs = 1;
+    tuning_session->__ah_inputs[0] = &(tuning_session->thread_cap);
+
+    tuning_session->htask = ah_start(tuning_session->hdesc, tuning_session->hdef);
+    if (tuning_session->htask == NULL) {
+        cerr << "Failed to launch Active Harmony tuning task" <<
+            endl << ah_error() << endl;
         return;
     }
 }
@@ -788,89 +799,94 @@ inline void __apex_active_harmony_setup(shared_ptr<apex_tuning_session> tuning_s
 
 inline void __active_harmony_throughput_setup(int num_inputs, long ** inputs, long * mins, long * maxs, long * steps) {
     static const char* session_name = "APEX Throttling";
-    thread_cap_tuning_session->hdesc = harmony_init(NULL, NULL);
+    thread_cap_tuning_session->hdesc = ah_alloc();
     if (thread_cap_tuning_session->hdesc == NULL) {
         cerr << "Failed to initialize Active Harmony" << endl;
         return;
     }
-    if (harmony_session_name(thread_cap_tuning_session->hdesc, session_name) != 0) {
+    if (ah_id(thread_cap_tuning_session->hdesc, session_name) != 0) {
         cerr << "Could not set Active Harmony session name" << endl;
         return;
     }
-    if (harmony_strategy(thread_cap_tuning_session->hdesc, "pro.so") != 0) {
+    thread_cap_tuning_session->hdef = ah_def_alloc();
+    if (ah_def_name(thread_cap_tuning_session->hdef, session_name) != 0) {
+        cerr << "Could not set Active Harmony tuning definition name" << endl;
+        return;
+    }
+    if (ah_def_strategy(thread_cap_tuning_session->hdef, "pro.so") != 0) {
         cerr << "Failed to set Active Harmony tuning strategy" << endl;
         return;
     }
     char tmpstr[12] = {0};
-        thread_cap_tuning_session->__num_ah_inputs = num_inputs;
+    thread_cap_tuning_session->__num_ah_inputs = num_inputs;
     for (int i = 0 ; i < num_inputs ; i++ ) {
         sprintf (tmpstr, "param_%d", i);
-        if (harmony_int(thread_cap_tuning_session->hdesc, tmpstr, mins[i], maxs[i], steps[i]) != 0) {
+        if (ah_def_int(thread_cap_tuning_session->hdef, tmpstr, mins[i], maxs[i], steps[i], inputs[i]) != 0) {
             cerr << "Failed to define Active Harmony tuning session" << endl;
             return;
         }
     }
-    if (harmony_launch(thread_cap_tuning_session->hdesc, NULL, 0) != 0) {
+
+    if (ah_connect(thread_cap_tuning_session->hdesc, NULL, 0) != 0) {
         cerr << "Failed to launch Active Harmony tuning session: " << 
-            endl << harmony_error_string(thread_cap_tuning_session->hdesc) << endl;
+            endl << ah_error() << endl;
         return;
     }
-    for (int i = 0 ; i < num_inputs ; i++ ) {
-        sprintf (tmpstr, "param_%d", i);
-        if (harmony_bind_int(thread_cap_tuning_session->hdesc, tmpstr, inputs[i]) != 0) {
-            cerr << "Failed to register Active Harmony variable" << endl;
-            return;
-        }
-                thread_cap_tuning_session->__ah_inputs[i] = inputs[i];
-    }
-    if (harmony_join(thread_cap_tuning_session->hdesc, NULL, 0, session_name) != 0) {
+
+    thread_cap_tuning_session->htask = ah_start(thread_cap_tuning_session->hdesc, thread_cap_tuning_session->hdef);
+    if (!thread_cap_tuning_session->htask) {
         cerr << "Failed to join Active Harmony tuning session" << endl;
+        cerr << ah_error() << endl;
         return;
     }
+
 }
 
 inline int __active_harmony_custom_setup(shared_ptr<apex_tuning_session> tuning_session, int num_inputs, long ** inputs, long * mins, long * maxs, long * steps) {
     static const char* session_name = "APEX Custom Tuning";
-    tuning_session->hdesc = harmony_init(NULL, NULL);
+    tuning_session->hdesc = ah_alloc();
     if (tuning_session->hdesc == NULL) {
         cerr << "Failed to initialize Active Harmony" << endl;
         return APEX_ERROR;
     }
-    if (harmony_session_name(tuning_session->hdesc, session_name) != 0) {
+    if (ah_id(tuning_session->hdesc, session_name) != 0) {
         cerr << "Could not set Active Harmony session name" << endl;
         return APEX_ERROR;
     }
-
+    tuning_session->hdef = ah_def_alloc();
+    if(tuning_session->hdef == NULL) {
+        cerr << "Could not allocate Active Harmony definition descriptor." << endl;
+        return APEX_ERROR;
+    }
+    if (ah_def_name(tuning_session->hdef, session_name) != 0) {
+        cerr << "Could not set Active Harmony definition descriptor name" << endl;
+        return APEX_ERROR;
+    }
     // TODO: Change strategy to support multi-objective optimization
     // (will need multiple metrics-of-interest)
-    if (harmony_strategy(tuning_session->hdesc, "pro.so") != 0) {
+    if (ah_def_strategy(tuning_session->hdef, "pro.so") != 0) {
         cerr << "Failed to set Active Harmony tuning strategy" << endl;
         return APEX_ERROR;
     }
     char tmpstr[12] = {0};
     for (int i = 0 ; i < num_inputs ; i++ ) {
         sprintf (tmpstr, "param_%d", i);
-        if (harmony_int(tuning_session->hdesc, tmpstr, mins[i], maxs[i], steps[i]) != 0) {
+        if (ah_def_int(tuning_session->hdef, tmpstr, mins[i], maxs[i], steps[i], inputs[i]) != 0) {
             cerr << "Failed to define Active Harmony tuning session" << endl;
             return APEX_ERROR;
         }
     }
-    if (harmony_launch(tuning_session->hdesc, NULL, 0) != 0) {
+
+    if (ah_connect(tuning_session->hdesc, NULL, 0) != 0) {
         cerr << "Failed to launch Active Harmony tuning session: " << 
-            endl << harmony_error_string(tuning_session->hdesc) << endl;
+            endl << ah_error() << endl;
         return APEX_ERROR;
     }
-    for (int i = 0 ; i < num_inputs ; i++ ) {
-        sprintf (tmpstr, "param_%d", i);
-        tuning_session->tunable_params.push_back(std::make_pair(tmpstr, inputs[i]));
-        if (harmony_bind_int(tuning_session->hdesc, tmpstr, inputs[i]) != 0) {
-            cerr << "Failed to register Active Harmony variable" << endl;
-            return APEX_ERROR;
-        }
-        tuning_session->__ah_inputs[i] = inputs[i];
-    }
-    if (harmony_join(tuning_session->hdesc, NULL, 0, session_name) != 0) {
+
+    tuning_session->htask = ah_start(tuning_session->hdesc, tuning_session->hdef);
+    if (!tuning_session->htask) {
         cerr << "Failed to join Active Harmony tuning session" << endl;
+        cerr << ah_error() << endl;
         return APEX_ERROR;
     }
 
@@ -879,20 +895,29 @@ inline int __active_harmony_custom_setup(shared_ptr<apex_tuning_session> tuning_
 
 inline int __active_harmony_custom_setup(shared_ptr<apex_tuning_session> tuning_session, apex_tuning_request & request) {
     const char* session_name = request.name.c_str();
-    tuning_session->hdesc = harmony_init(NULL, NULL);
+    tuning_session->hdesc = ah_alloc();
     if (tuning_session->hdesc == NULL) {
-        cerr << "Failed to initialize Active Harmony" << endl;
+        cerr << "Failed to allocate Active Harmony session" << endl;
         return APEX_ERROR;
     }
-    if (harmony_session_name(tuning_session->hdesc, session_name) != 0) {
+    if (ah_id(tuning_session->hdesc, session_name) != 0) {
         cerr << "Could not set Active Harmony session name" << endl;
+        return APEX_ERROR;
+    }
+    tuning_session->hdef = ah_def_alloc();
+    if(tuning_session->hdef == NULL) {
+        cerr << "Could not allocate Active Harmony definition descriptor." << endl;
+        return APEX_ERROR;
+    }
+    if (ah_def_name(tuning_session->hdef, session_name) != 0) {
+        cerr << "Could not set Active Harmony definition descriptor name" << endl;
         return APEX_ERROR;
     }
     // TODO: Change strategy to support multi-objective optimization
     // (will need multiple metrics-of-interest)
     tuning_session->strategy = request.strategy;
     const char * library_name = library_for_strategy(request.strategy);
-    if (harmony_strategy(tuning_session->hdesc, library_name) != 0) {
+    if (ah_def_strategy(tuning_session->hdef, library_name) != 0) {
         cerr << "Failed to set Active Harmony tuning strategy to " << library_name << endl;
         return APEX_ERROR;
     }
@@ -903,48 +928,39 @@ inline int __active_harmony_custom_setup(shared_ptr<apex_tuning_session> tuning_
        switch(param->get_type()) {
            case apex_param_type::LONG: {
                auto param_long = std::static_pointer_cast<apex_param_long>(param);                                 
-               int status = harmony_int(tuning_session->hdesc, param_name, param_long->min, param_long->max, param_long->step);
+               int status = ah_def_int(tuning_session->hdef, param_name, param_long->min, param_long->max, param_long->step, param_long->value.get());
                if(status != 0) {
                    cerr << "Failed to create Active Harmony long parameter" << endl;
                    return APEX_ERROR;
                }
-               status = harmony_bind_int(tuning_session->hdesc, param_name, param_long->value.get());
-               if(status == -1) {
-                   cerr << "Failed to bind Active Harmony long parameter" << endl;
-                   return APEX_ERROR;
-               }
-           };
+           }
            break;
 
            case apex_param_type::DOUBLE: {
                auto param_double = std::static_pointer_cast<apex_param_double>(param);                                 
-               int status = harmony_real(tuning_session->hdesc, param_name, param_double->min, param_double->max, param_double->step);
+               int status = ah_def_real(tuning_session->hdef, param_name, param_double->min, param_double->max, param_double->step, param_double->value.get());
                if(status != 0) {
                    cerr << "Failed to create Active Harmony double parameter" << endl;
                    return APEX_ERROR;
                }
-               status = harmony_bind_real(tuning_session->hdesc, param_name, param_double->value.get());
-               if(status == -1) {
-                   cerr << "Failed to bind Active Harmony double parameter" << endl;
-                   return APEX_ERROR;
-               }
-           };
+           }
            break;
 
            case apex_param_type::ENUM: {
                auto param_enum = std::static_pointer_cast<apex_param_enum>(param);                                 
+               int status = ah_def_enum(tuning_session->hdef, param_name, param_enum->value.get());
+               if(status == -1) {
+                   cerr << "Failed to create Active Harmony enum parameter" << endl;
+                   return APEX_ERROR;
+               }
+
                for(const std::string & possible_value : param_enum->possible_values) {
                    const char * v = possible_value.c_str();
-                   int status = harmony_enum(tuning_session->hdesc, param_name, v);    
+                   int status = ah_def_enum_value(tuning_session->hdef, param_name, v);    
                    if(status != 0) {
-                       cerr << "Failed to create Active Harmony enum parameter" << endl;
+                       cerr << "Failed to add value to Active Harmony enum parameter" << endl;
                        return APEX_ERROR;
                    }
-               }
-               int status = harmony_bind_enum(tuning_session->hdesc, param_name, param_enum->value.get());
-               if(status == -1) {
-                   cerr << "Failed to bind Active Harmony enum parameter" << endl;
-                   return APEX_ERROR;
                }
            };
            break;
@@ -955,15 +971,16 @@ inline int __active_harmony_custom_setup(shared_ptr<apex_tuning_session> tuning_
        }
     }
 
-    if (harmony_launch(tuning_session->hdesc, NULL, 0) != 0) {
+    if (ah_connect(tuning_session->hdesc, NULL, 0) != 0) {
         cerr << "Failed to launch Active Harmony tuning session: " << 
-            endl << harmony_error_string(tuning_session->hdesc) << endl;
+            endl << ah_error() << endl;
         return APEX_ERROR;
     }
 
-    if (harmony_join(tuning_session->hdesc, NULL, 0, session_name) != 0) {
+    tuning_session->htask = ah_start(tuning_session->hdesc, tuning_session->hdef);
+    if (!tuning_session->htask) {
         cerr << "Failed to join Active Harmony tuning session" << endl;
-        cerr << harmony_error_string(tuning_session->hdesc) << endl;
+        cerr << ah_error() << endl;
         return APEX_ERROR;
     }
 
@@ -972,11 +989,9 @@ inline int __active_harmony_custom_setup(shared_ptr<apex_tuning_session> tuning_
 
 inline void __apex_active_harmony_shutdown(shared_ptr<apex_tuning_session> tuning_session) {
     /* Leave the session */
-    if (harmony_leave(tuning_session->hdesc) != 0) {
-        cerr << "Failed to disconnect from harmony session." << endl;;
-        return;
+    if(tuning_session->hdesc != NULL) {
+        ah_free(tuning_session->hdesc);
     }
-    harmony_fini(tuning_session->hdesc);
 }
 
 #else

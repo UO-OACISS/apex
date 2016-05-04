@@ -220,9 +220,13 @@ struct apex_tuning_session {
     apex_tuning_session_handle id;
 
 #ifdef APEX_HAVE_ACTIVEHARMONY
-    hdesc_t * hdesc;
+    hdesc_t * hdesc = NULL;
+    hdef_t  * hdef = NULL;
+    htask_t * htask = NULL;
 #else
-    void * hdesc;
+    void * hdesc = NULL;
+    void * hdef = NULL;
+    void * htask = NULL;
 #endif
 
     int test_pp = 0;
