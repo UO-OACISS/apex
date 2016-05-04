@@ -167,10 +167,10 @@
               
                 <h1 id="downloading-apex">Downloading APEX</h1>
 <p>APEX is open source, and available on Github at <a href="../http//github.com/khuck/xpress-apex">http//github.com/khuck/xpress-apex</a>.</p>
-<p>For stability, most users will want to download the most recent release of APEX (for example, v0.1):</p>
-<pre><code class="bash">wget https://github.com/khuck/xpress-apex/archive/v0.1.tar.gz
-tar -xvzf v0.1.tar.gz
-cd xpress-apex-0.1
+<p>For stability, most users will want to download the most recent release of APEX (for example, v0.5):</p>
+<pre><code class="bash">wget https://github.com/khuck/xpress-apex/archive/v0.5.tar.gz
+tar -xvzf v0.5.tar.gz
+cd xpress-apex-0.5
 </code></pre>
 
 <p>Other users may want to work with the most recent code available, in which case you can clone the git repo:</p>
@@ -183,20 +183,27 @@ cd xpress-apex
 <h1 id="installation-option-2-configuring-and-building-apex-with-cmake-directly-recommended-for-most-users">Installation Option 2: Configuring and building APEX with CMake directly (recommended for most users)</h1>
 <p>APEX is built with CMake. The minimum CMake settings needed for APEX are:</p>
 <ul>
-<li>-DBOOST_ROOT= the path to a Boost installation, 1.54 or newer</li>
 <li>-DCMAKE_INSTALL_PREFIX= some path to an installation location</li>
 <li>-DCMAKE_BUILD_TYPE= one of Release, Debug, or RelWithDebInfo (recommended)</li>
+</ul>
+<p>When building on Intel Phi, Boost is required if the compiler toolset does not include the latest GNU C++11 support.</p>
+<ul>
+<li>-DBOOST_ROOT= the path to a Boost installation, 1.54 or newer</li>
 </ul>
 <p><strong>Note:</strong> <em>If the BOOST_ROOT environment variable is set to a working Boost installation directory, CMake will find it automatically. If Boost is not installed locally, use the -DBUILD_BOOST=TRUE option, which will automatically download and build Boost as a subproject of APEX.</em></p>
 <p>The process for building APEX is:</p>
 <p>1) Get the code (see above)</p>
 <p>2) Enter the repo directory, make a build directory:</p>
-<pre><code class="bash">cd xpress-apex-0.1
+<pre><code class="bash">cd xpress-apex-0.5
 mkdir build
 cd build
 </code></pre>
 
 <p>3) configure using CMake:</p>
+<pre><code class="bash">cmake -DBOOST_ROOT=&lt;path-to-boost&gt; -DCMAKE_INSTALL_PREFIX=&lt;installation-path&gt; -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
+</code></pre>
+
+<p>If Boost is required (Intel Phi):</p>
 <pre><code class="bash">cmake -DBOOST_ROOT=&lt;path-to-boost&gt; -DCMAKE_INSTALL_PREFIX=&lt;installation-path&gt; -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 </code></pre>
 
@@ -216,7 +223,7 @@ make install
 <li><strong>TAU</strong> <em>or</em> <strong>PAPI</strong> - if you want post-mortem performance analysis (<a href="../usecases/#with-tau">See the TAU use case</a> for an example) or your policies will require hardware counters (<a href="../usecases/#with-papi">See the PAPI use case</a> for an example)</li>
 <li><strong>JEMalloc/TCMalloc</strong> - if your application is not already using a heap manager - see Note 2, below</li>
 </ul>
-<p><strong>Note 2:</strong> <em>TCMalloc or JEMalloc will speed up memory allocations </em>significantly<em> in APEX. HOWEVER, If your application already uses TCMalloc or JEMalloc, <strong>DO NOT</strong> configure APEX with TCMalloc or JEMalloc. They will be included at application link time, and may conflict with the version detected by and linked into APEX.</em></p>
+<p><strong>Note 2:</strong> <em>TCMalloc or JEMalloc will speed up memory allocations </em>significantly<em> in APEX (and in your application). HOWEVER, If your application already uses TCMalloc, JEMalloc or TBBMalloc, <strong>DO NOT</strong> configure APEX with TCMalloc or JEMalloc. They will be included at application link time, and may conflict with the version detected by and linked into APEX.</em></p>
 <p>There are several utility libraries that provide additional functionality in APEX. Not all libraries are required, but some are recommended.  For the following options, the default values are in <em>italics</em>.</p>
 <ul>
 <li><strong>-DBUILD_BOOST=</strong>
