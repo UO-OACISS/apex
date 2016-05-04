@@ -40,7 +40,7 @@ When building for Intel Xeon Phi, Boost may be required if the compiler suite is
 
 The process for building APEX is:
 
-1) Get the code (assuming v0.1 is the most recent version)::
+1) Get the code (assuming v0.5 is the most recent version)::
 
     wget https://github.com/khuck/xpress-apex/archive/v0.5.tar.gz
     tar -xvzf v0.5.tar.gz
