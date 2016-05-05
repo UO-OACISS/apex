@@ -49,7 +49,7 @@ cd build
 3) configure using CMake:
 
 ```bash
-cmake -DBOOST_ROOT=<path-to-boost> -DCMAKE_INSTALL_PREFIX=<installation-path> -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
+cmake -DCMAKE_INSTALL_PREFIX=<installation-path> -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 ```
 
 If Boost is required (Intel Phi):
