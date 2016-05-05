@@ -266,7 +266,7 @@ export TAU_PROFILE_FORMAT=merged
 <p>APEX is built as a pre-requisite dependency of HPX-5. So, before configuring and building HPX-5, configure and build APEX as a standalone library.  In addition to the usual required options for CMake, we will also include the options to include Active Harmony (for policies), TAU (for performance analysis - see <a href="../usecases/#with-tau">APEX with TAU</a> for instructions on configuring TAU) and Binutils support, because the HPX-5 instrumentation uses function addresses to identify timers rather than strings.  To include Binutils, we can choose one of:</p>
 <ul>
 <li>use a system-installed binutils by specifying <code>-DUSE_BFD=TRUE</code></li>
-<li>use a custom build of Binutils by specifying `-DUSE_BFD=TRUE -DBFD_ROOT=<path-to-binutils-installation></li>
+<li>use a custom build of Binutils by specifying <code>-DUSE_BFD=TRUE -DBFD_ROOT=&lt;path-to-binutils-installation&gt;</code></li>
 <li>have APEX download and build Binutils automatically by specifying <code>-DBUILD_BFD=TRUE</code>.</li>
 </ul>
 <p><strong>Note:</strong> <em>HPX-5 uses JEMalloc, TBB Malloc or DLMalloc, so <strong>DO NOT</strong> configure APEX with either TCMalloc or JEMalloc.</em></p>
@@ -298,9 +298,9 @@ make install
 <pre><code class="bash">-L/usr/local/xpress-apex/0.5/lib -L/usr/local/tau/2.25/x86_64/lib -L/usr/local/xpress-apex/0.5/lib -lapex -lpthread -lTAUsh-papi-pthread -lharmony -lbfd -liberty -lz -lm -Wl,-rpath,/usr/local/tau/2.25/x86_64/lib,-rpath,/usr/local/xpress-apex/0.5/lib -lstdc++
 </code></pre>
 
-<p>Once APEX is installed, you can configure and build HPX-5 with APEX.  To include APEX in the HPX-5 configuration, include the --with-apex=yes option when calling configure.  Assuming you have downloaded HPX-5 v.2.0, you would do the following:</p>
+<p>Once APEX is installed, you can configure and build HPX-5 with APEX.  To include APEX in the HPX-5 configuration, include the --with-apex=yes option when calling configure.  Assuming you have downloaded HPX-5 v.3.0, you would do the following:</p>
 <pre><code class="bash"># go to the HPX source directory
-cd HPX_Release_v2.0.0/hpx
+cd HPX_Release_v3.0.0/hpx
 # If you haven't already set the pkgconfig path, do so now...
 export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/xpress-apex/0.5/lib/pkgconfig
 # configure
@@ -373,8 +373,8 @@ _locality_stop_handler [{/h... :        1    --n/a--   1.21e-05    --n/a--   1.2
 <h3 id="building-hpx-5-applications-with-apex">Building HPX-5 applications with APEX</h3>
 <p>APEX will automatically be included in the link when HPX-5 applciations are built. To build an example, go to the hpx-apps directory and build the LULESH parcels example:</p>
 <pre><code class="bash">cd hpx-apps/lulesh/parcels
-# assuming HPX-5 is installed in /usr/local/hpx/2.0, set the pkgconfig path
-export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/hpx/2.0/lib/pkgconfig
+# assuming HPX-5 is installed in /usr/local/hpx/3.0, set the pkgconfig path
+export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/hpx/3.0/lib/pkgconfig
 # configure 
 ./bootstrap
 ./configure
