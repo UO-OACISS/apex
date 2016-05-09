@@ -82,6 +82,9 @@ private:
     };
     apex(int argc, char**argv) : m_argc(argc), m_argv(argv), m_node_id(0), m_my_locality(std::string("0"))
     {
+        // ignore the passed in arguments, we'll get it from /proc/self/cmdline
+        m_argc = 0;
+        m_argv = NULL;
         _initialize();
     };
     apex(apex const&);            // copy constructor is private

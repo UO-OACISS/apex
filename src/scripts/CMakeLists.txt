@@ -5,9 +5,10 @@ if (BUILD_STATIC_EXECUTABLES)
             GROUP_EXECUTE GROUP_READ
             WORLD_EXECUTE WORLD_READ)
 else()
-    INSTALL(FILES apex_exec apex_pthread_exec consolidate.py DESTINATION bin
-            PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ
-            GROUP_EXECUTE GROUP_READ
-            WORLD_EXECUTE WORLD_READ)
+  CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/src/scripts/apex_exec
+                   ${CMAKE_BINARY_DIR}/src/scripts/apex_exec @ONLY)
+  INSTALL(FILES ${CMAKE_BINARY_DIR}/src/scripts/apex_exec apex_pthread_exec
+    consolidate.py DESTINATION bin PERMISSIONS OWNER_EXECUTE OWNER_WRITE
+    OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ)
 endif()
 

@@ -20,15 +20,18 @@ else
   SHLIBX=.so
 fi
 
+# check for OMPT support
+omptlib="@OMPT_LIBRARIES@"
+
 if [ "x$LD_LIBRARY_PATH" = "x" ] ; then
   APEX_LD_LIBRARY_PATH=$BASEDIR/lib
 else
   APEX_LD_LIBRARY_PATH=$BASEDIR/lib:$LD_LIBRARY_PATH
 fi
 if [ $apple = 1 ]; then
-  APEX_LD_PRELOAD=$BASEDIR/lib/libapex$SHLIBX
+  APEX_LD_PRELOAD=$BASEDIR/lib/libapex$SHLIBX:$omptlib
 else
-  APEX_LD_PRELOAD=$BASEDIR/lib/libapex$SHLIBX:$LD_PRELOAD
+  APEX_LD_PRELOAD=$BASEDIR/lib/libapex$SHLIBX:$omptlib:$LD_PRELOAD
 fi
 
 # remove double colons
