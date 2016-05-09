@@ -10,6 +10,7 @@
 #include "apex_types.h"
 #include <iostream>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string>
 #include <memory>
 #if APEX_USE_PLUGINS
@@ -117,6 +118,17 @@ static void init_hpx_runtime_ptr(void) {
  */
 void apex::_initialize()
 {
+    if (m_argc == 0) {
+		FILE *cmdline = fopen("/proc/self/cmdline", "rb");
+        char *arg = NULL;
+        size_t size = 0;
+        while (getdelim(&arg, &size, 0, cmdline) != -1) {
+            m_argv = (char**)realloc(m_argv, (sizeof(char*)) * (m_argc+1));
+            m_argv[m_argc] = arg;
+		    m_argc++;
+        }
+        fclose(cmdline);
+    }
 #ifdef APEX_DEBUG
     apex_register_signal_handler();
     //apex_test_signal_handler();

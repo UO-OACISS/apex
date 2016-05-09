@@ -39,14 +39,16 @@ set(example_programs
 #    apex_setup_throughput_tuning
 #    apex_set_thread_cap
 
-if ((NOT DEFINED TAU_ROOT) AND (NOT USE_TAU) AND (NOT TAU_FOUND))
+if ((NOT DEFINED TAU_ROOT) AND (NOT USE_TAU) AND (NOT TAU_FOUND) AND (NOT USE_SOS))
+#if ((NOT DEFINED TAU_ROOT) AND (NOT USE_TAU) AND (NOT TAU_FOUND))
   set(example_programs "${example_programs};apex_fibonacci_pthread")
   set(example_programs "${example_programs};apex_new_task")
   set(example_programs "${example_programs};apex_cross_thread_timing")
   set(example_programs "${example_programs};apex_suspend")
   set(example_programs "${example_programs};apex_papi_suspend")
   set(example_programs "${example_programs};apex_throttle_event")
-endif ((NOT DEFINED TAU_ROOT) AND (NOT USE_TAU) AND (NOT TAU_FOUND))
+endif ((NOT DEFINED TAU_ROOT) AND (NOT USE_TAU) AND (NOT TAU_FOUND) AND (NOT USE_SOS))
+#endif ((NOT DEFINED TAU_ROOT) AND (NOT USE_TAU) AND (NOT TAU_FOUND))
 
 #if (OPENMP_FOUND)
   #set(example_programs "${example_programs} apex_setup_throughput_tuning")
