@@ -1,6 +1,6 @@
 # Downloading APEX
 
-APEX is open source, and available on Github at [http//github.com/khuck/xpress-apex](http//github.com/khuck/xpress-apex).
+APEX is open source, and available on Github at <http://github.com/khuck/xpress-apex>.
 
 For stability, most users will want to download the most recent release of APEX (for example, v0.5):
 
@@ -49,7 +49,7 @@ cd build
 3) configure using CMake:
 
 ```bash
-cmake -DBOOST_ROOT=<path-to-boost> -DCMAKE_INSTALL_PREFIX=<installation-path> -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
+cmake -DCMAKE_INSTALL_PREFIX=<installation-path> -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 ```
 
 If Boost is required (Intel Phi):
