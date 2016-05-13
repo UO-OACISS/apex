@@ -1,6 +1,6 @@
 # Downloading APEX
 
-APEX is open source, and available on Github at [http//github.com/khuck/xpress-apex](http//github.com/khuck/xpress-apex).
+APEX is open source, and available on Github at <http//github.com/khuck/xpress-apex>.
 
 For stability, most users will want to download the most recent release of APEX (for example, v0.5):
 
