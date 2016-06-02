@@ -17,6 +17,10 @@ if [ ${RCR_ROOT+x} ]; then
     rcr_config="-DRCR_ROOT=$RCR_ROOT"
 fi
 
+if [ ${SOS_ROOT+x} ]; then
+    sos_config="-DSOS_ROOT=$SOS_ROOT"
+fi
+
 if [ ${BFD_ROOT+x} ]; then 
     bfd_config="-DBFD_ROOT=$BFD_ROOT -DUSE_BFD=TRUE"
 #else
@@ -94,6 +98,7 @@ $gperftools_config \
 $papi_config \
 $ah_config \
 $ompt_config \
+$sos_config \
 $cmake_build_type \
 $cmake_apex_throttle \
 $cmake_build_shared_libs \
