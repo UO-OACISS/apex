@@ -218,7 +218,10 @@ void apex::_initialize()
     this->resize_state(1);
     this->set_state(0, APEX_BUSY);
 #ifdef APEX_HAVE_SOS
-    this->the_sos_handler = new sos_handler(m_argc, m_argv, apex_options::sos_period());
+    if (apex_options::use_sos())
+    {
+        this->the_sos_handler = new sos_handler(m_argc, m_argv, apex_options::sos_period());
+    }
 #endif
 }
 
@@ -856,7 +859,10 @@ void finalize()
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
 #ifdef APEX_HAVE_SOS
-    instance->the_sos_handler->terminate();
+    if (apex_options::use_sos())
+    {
+        instance->the_sos_handler->terminate();
+    }
 #endif
     finalize_plugins();
     exit_thread();
