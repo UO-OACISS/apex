@@ -35,6 +35,7 @@
 
 #include "semaphore.hpp"
 #include "task_identifier.hpp"
+#include "task_dependency.hpp"
 
 #define INITIAL_NUM_THREADS 2
 

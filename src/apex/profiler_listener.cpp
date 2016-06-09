@@ -290,24 +290,24 @@ namespace apex {
 
   inline unsigned int profiler_listener::process_dependency(task_dependency* td)
   {
-      unordered_map<task_identifier, unordered_map<task_identifier, int>* >::const_iterator it = task_dependencies.find(*td->parent);
+      unordered_map<task_identifier, unordered_map<task_identifier, int>* >::const_iterator it = task_dependencies.find(td->parent);
       unordered_map<task_identifier, int> * depend;
       // if this is a new dependency for this parent?
       if (it == task_dependencies.end()) {
           depend = new unordered_map<task_identifier, int>();
-          (*depend)[*td->child] = 1;
-          task_dependencies[*td->parent] = depend;
+          (*depend)[td->child] = 1;
+          task_dependencies[td->parent] = depend;
       // otherwise, see if this parent has seen this child
       } else {
           depend = it->second;
-          unordered_map<task_identifier, int>::const_iterator it2 = depend->find(*td->child);
+          unordered_map<task_identifier, int>::const_iterator it2 = depend->find(td->child);
           // first time for this child
           if (it2 == depend->end()) {
-              (*depend)[*td->child] = 1;
+              (*depend)[td->child] = 1;
           // not the first time for this child
           } else {
               int tmp = it2->second;
-              (*depend)[*td->child] = tmp + 1;
+              (*depend)[td->child] = tmp + 1;
           }
       }
       delete(td);

@@ -64,18 +64,6 @@ public:
   }
 };
 
-class task_dependency {
-public:
-  task_identifier * parent;
-  task_identifier * child;
-  task_dependency(task_identifier * p, task_identifier * c) :
-    parent(p), child(c) {};
-  ~task_dependency() {
-    delete parent;
-    delete child;
-  }
-};
-
 }
 
 /* This is the hash function for the task_identifier class */
