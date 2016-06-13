@@ -239,6 +239,7 @@ typedef uint32_t apex_tuning_session_handle;
     macro (APEX_THROTTLING_MAX_THREADS, throttling_max_threads, int, sysconf( _SC_NPROCESSORS_ONLN )) \
     macro (APEX_THROTTLING_MIN_THREADS, throttling_min_threads, int, 1) \
     macro (APEX_THROTTLE_ENERGY, throttle_energy, bool, false) \
+    macro (APEX_THROTTLE_ENERGY_PERIOD, throttle_energy_period, int, 1000000) \
     macro (APEX_THROTTLING_MAX_WATTS, throttling_max_watts, int, 300) \
     macro (APEX_THROTTLING_MIN_WATTS, throttling_min_watts, int, 150) \
     macro (APEX_PTHREAD_WRAPPER_STACK_SIZE, pthread_wrapper_stack_size, int, 0)
