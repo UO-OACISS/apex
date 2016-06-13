@@ -55,7 +55,7 @@ int main (int argc, char** argv) {
   apex_profile * profile = get_profile("Test Timer");
   if (profile) {
     std::cout << "Value Reported : " << profile->calls << std::endl;
-    if (profile->calls <= 25) {  // might be less, some calls might have been missed
+    if (profile->calls <= 125) {  // might be less, some calls might have been missed
         std::cout << "Test passed." << std::endl;
     }
   } else {

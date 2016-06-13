@@ -11,7 +11,7 @@ add_dependencies (matmult apex)
 add_dependencies (examples matmult)
 
 # Link the executable to the Apex library. 
-target_link_libraries (matmult apex stdc++ ${LIBS})
+target_link_libraries (matmult apex ${LIBS} stdc++ m)
 if (BUILD_STATIC_EXECUTABLES)
     set_target_properties(matmult PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
 endif()

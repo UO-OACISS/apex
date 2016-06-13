@@ -28,8 +28,10 @@ find_path(DEMANGLE_INCLUDE_DIR demangle.h
           ${DEMANGLE_ROOT}/* ${BFD_ROOT}/* /usr/include/*
           PATH_SUFFIXES DEMANGLE )
 
-find_library(DEMANGLE_LIBRARY NAMES iberty
-    HINTS ${PC_DEMANGLE_LIBDIR} ${PC_DEMANGLE_LIBRARY_DIRS} ${DEMANGLE_ROOT}/lib ${BFD_ROOT}/lib)
+find_library(DEMANGLE_LIBRARY NAMES iberty HINTS 
+    ${DEMANGLE_ROOT}/lib ${BFD_ROOT}/lib 
+    ${DEMANGLE_ROOT}/lib64 ${BFD_ROOT}/lib64
+    ${PC_DEMANGLE_LIBDIR} ${PC_DEMANGLE_LIBRARY_DIRS})
 
 include(FindPackageHandleStandardArgs)
 # handle the QUIETLY and REQUIRED arguments and set DEMANGLE_FOUND to TRUE

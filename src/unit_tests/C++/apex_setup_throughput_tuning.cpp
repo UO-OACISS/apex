@@ -10,8 +10,8 @@
 
 #define NUM_CELLS 80000
 #define BLOCK_SIZE NUM_CELLS/100
-#define NUM_ITERATIONS 200
-#define UPDATE_INTERVAL NUM_ITERATIONS/10
+#define NUM_ITERATIONS 2000
+#define UPDATE_INTERVAL NUM_ITERATIONS/200
 #define DIVIDE_METHOD 1
 #define MULTIPLY_METHOD 2
 
@@ -189,7 +189,9 @@ void report_stats(void) {
     std::cout << "number of blocks: " << num_blocks << std::endl;
     std::cout << "blocks per thread: " << blocks_per_thread << std::endl;
     std::cout << "solver method: " << method_names[method-1] << std::endl;
-    std::cout << "total time in solver: " << p->accumulated << " seconds" << std::endl;
+    if (p != nullptr) {
+        std::cout << "total time in solver: " << p->accumulated << " seconds" << std::endl;
+    }
 }
 
 /**

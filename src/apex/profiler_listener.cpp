@@ -43,8 +43,12 @@
 #else
 #define APEX_THROTTLE_PERCALL 50000 // 50k cycles.
 #endif
+#include <mutex>
+std::mutex throttled_event_set_mutex;
 #endif
 
+#include<thread>
+#include<future>
 
 #if APEX_HAVE_BFD
 #include "address_resolution.hpp"
@@ -103,7 +107,9 @@ namespace apex {
       profile * p = it2->second;
 #if defined(APEX_THROTTLE)
       task_identifier id = it2->first;
+      throttled_event_set_mutex.lock();
       unordered_set<task_identifier>::const_iterator it4 = throttled_tasks.find(id);
+      throttled_event_set_mutex.unlock();
       if (it4!= throttled_tasks.end()) { 
         continue; 
       }
@@ -180,7 +186,7 @@ namespace apex {
   // TODO The name-based timer and address-based timer paths through
   // the code involve a lot of duplication -- this should be refactored
   // to remove the duplication so it's easier to maintain.
-  inline unsigned int profiler_listener::process_profile(std::shared_ptr<profiler> &p, unsigned int tid)
+  unsigned int profiler_listener::process_profile(std::shared_ptr<profiler> &p, unsigned int tid)
   {
     if(p == nullptr) return 0;
     profile * theprofile;
@@ -200,10 +206,21 @@ namespace apex {
         }
     }   
 #endif
+    std::unique_lock<std::mutex> task_map_lock(_task_map_mutex, std::defer_lock);
+    // There is only one consumer thread except during shutdown, so we only need
+    // to lock during shutdown.
+    bool did_lock = false;
+    if(_done) {
+        task_map_lock.lock();
+        did_lock = true;
+    }
     unordered_map<task_identifier, profile*>::const_iterator it = task_map.find(*(p->task_id));
     if (it != task_map.end()) {
       	// A profile for this ID already exists.
         theprofile = (*it).second;
+        if(_done && did_lock) {
+            task_map_lock.unlock();
+        }
         if(p->is_reset == reset_type::CURRENT) {
             theprofile->reset();
         } else {
@@ -214,17 +231,36 @@ namespace apex {
         // in order to reduce overhead.
         if (theprofile->get_calls() > APEX_THROTTLE_CALLS &&
             theprofile->get_mean() < APEX_THROTTLE_PERCALL) {
-          unordered_set<task_identifier>::const_iterator it2 = throttled_tasks.find(*(p->task_id));
-          if (it2 == throttled_tasks.end()) {
-            throttled_tasks.insert(*(p->task_id));
-            cout << "APEX: disabling lightweight timer " << p->task_id->get_name() << endl; fflush(stdout);
-          }
+            throttled_event_set_mutex.lock();
+            unordered_set<task_identifier>::const_iterator it2 = throttled_tasks.find(*(p->task_id));
+            throttled_event_set_mutex.unlock();
+            if (it2 == throttled_tasks.end()) {
+                // lock the set for insert
+                throttled_event_set_mutex.lock();
+                // was it inserted when we were waiting?
+                it2 = throttled_tasks.find(*(p->task_id));
+                // no? OK - insert it.
+                if (it2 == throttled_tasks.end()) {
+                    throttled_tasks.insert(*(p->task_id));
+                }
+                // unlock.
+                throttled_event_set_mutex.unlock();
+                if (apex_options::use_screen_output()) {
+                    cout << "APEX: disabling lightweight timer " 
+                         << p->task_id->get_name() 
+                          << endl; 
+                    fflush(stdout);
+                }
+            }
         }
 #endif
       } else {
         // Create a new profile for this name.
         theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), tmp_num_counters, values, p->is_resume, p->is_counter ? APEX_COUNTER : APEX_TIMER);
         task_map[*(p->task_id)] = theprofile;
+        if(_done && did_lock) {
+            task_map_lock.unlock();
+        }
 #ifdef APEX_HAVE_HPX3
 #ifdef APEX_REGISTER_HPX3_COUNTERS
         if(!_done) {
@@ -235,7 +271,7 @@ namespace apex {
                     hpx::performance_counters::install_counter_type(
                     std::string("/apex/") + timer_name,
                     [p](bool r)->boost::int64_t{
-                        boost::int64_t value(p->elapsed() * 100000);
+                        boost::int64_t value(p->elapsed());
                         return value;
                     },
                     std::string("APEX counter ") + timer_name,
@@ -254,24 +290,24 @@ namespace apex {
 
   inline unsigned int profiler_listener::process_dependency(task_dependency* td)
   {
-      unordered_map<task_identifier, unordered_map<task_identifier, int>* >::const_iterator it = task_dependencies.find(*td->parent);
+      unordered_map<task_identifier, unordered_map<task_identifier, int>* >::const_iterator it = task_dependencies.find(td->parent);
       unordered_map<task_identifier, int> * depend;
       // if this is a new dependency for this parent?
       if (it == task_dependencies.end()) {
           depend = new unordered_map<task_identifier, int>();
-          (*depend)[*td->child] = 1;
-          task_dependencies[*td->parent] = depend;
+          (*depend)[td->child] = 1;
+          task_dependencies[td->parent] = depend;
       // otherwise, see if this parent has seen this child
       } else {
           depend = it->second;
-          unordered_map<task_identifier, int>::const_iterator it2 = depend->find(*td->child);
+          unordered_map<task_identifier, int>::const_iterator it2 = depend->find(td->child);
           // first time for this child
           if (it2 == depend->end()) {
-              (*depend)[*td->child] = 1;
+              (*depend)[td->child] = 1;
           // not the first time for this child
           } else {
               int tmp = it2->second;
-              (*depend)[*td->child] = tmp + 1;
+              (*depend)[td->child] = tmp + 1;
           }
       }
       delete(td);
@@ -334,7 +370,9 @@ namespace apex {
 #if defined(APEX_THROTTLE)
       // if this profile was throttled, don't output the measurements.
       // they are limited and bogus, anyway.
+      throttled_event_set_mutex.lock();
       unordered_set<task_identifier>::const_iterator it4 = throttled_tasks.find(task_id);
+      throttled_event_set_mutex.unlock();
       if (it4!= throttled_tasks.end()) { 
         screen_output << "DISABLED (high frequency, short duration)" << endl;
         return; 
@@ -434,7 +472,9 @@ namespace apex {
     // iterate over the counters
     for(task_identifier task_id : id_vector) {
         profile * p = task_map[task_id];
-        write_one_timer(task_id, p, screen_output, csv_output, total_accumulated, total_main);
+        if (p) {
+            write_one_timer(task_id, p, screen_output, csv_output, total_accumulated, total_main);
+        }
     }
     id_vector.clear();
     // iterate over the timers, and sort their names
@@ -450,7 +490,9 @@ namespace apex {
     // iterate over the counters
     for(task_identifier task_id : id_vector) {
         profile * p = task_map[task_id];
-        write_one_timer(task_id, p, screen_output, csv_output, total_accumulated, total_main);
+        if (p) {
+            write_one_timer(task_id, p, screen_output, csv_output, total_accumulated, total_main);
+        }
     }
     double idle_rate = total_main - (total_accumulated*profiler::get_cpu_mhz());
     screen_output << string_format("%30s", APEX_IDLE_TIME) << " : ";
@@ -549,11 +591,11 @@ node_color * get_node_color(double v,double vmin,double vmax)
     for(auto dep = task_dependencies.begin(); dep != task_dependencies.end(); dep++) {
         task_identifier parent = dep->first;
         auto children = dep->second;
-        string& parent_name = parent.get_name();
+        string parent_name = parent.get_name();
         for(auto offspring = children->begin(); offspring != children->end(); offspring++) {
             task_identifier child = offspring->first;
             int count = offspring->second;
-            string& child_name = child.get_name();
+            string child_name = child.get_name();
             myfile << "  \"" << parent_name << "\" -> \"" << child_name << "\"";
             myfile << " [ label=\"  count: " << count << "\" ]; " << std::endl;
             
@@ -720,6 +762,14 @@ node_color * get_node_color(double v,double vmin,double vmax)
       }
   }
 
+  bool profiler_listener::concurrent_cleanup(void){
+      std::shared_ptr<profiler> p;
+      while(thequeue.try_dequeue(p)) {
+        process_profile(p,0);
+      }
+      return true;
+  }
+
   /* This is the main function for the consumer thread.
    * It will wait at a semaphore for pending work. When there is
    * work on one or more queues, it will iterate over the queues
@@ -764,14 +814,13 @@ node_color * get_node_color(double v,double vmin,double vmax)
        * is too much overhead. Maybe dequeue them in batches?
        */
       /*
-      std::vector<std::future<unsigned int>> pending_futures;
+      std::vector<std::future<void>> pending_futures;
       while(!_done && thequeue.try_dequeue(p)) {
-          auto f = std::async(process_profile,p,0);
+          auto f = std::async(my_stupid_wrapper,p);
           // transfer the future's shared state to a longer-lived future
           pending_futures.push_back(std::move(f));
       }
-      std::vector<std::future<unsigned int>>::iterator iter;
-      for (iter = pending_futures.begin() ; iter < pending_futures.end() ; iter++ ) {
+      for (auto iter = pending_futures.begin() ; iter < pending_futures.end() ; iter++ ) {
           iter->get();
       }
       */
@@ -963,9 +1012,19 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
           std::cerr << "Info: " << ignored << " items remaining on on the profiler_listener queue...";
         }
         // We might be done, but check to make sure the queue is empty
-        std::shared_ptr<profiler> p;
-        while(thequeue.try_dequeue(p)) {
-          process_profile(p, 0);
+        std::vector<std::future<bool>> pending_futures;
+        for (unsigned int i=0; i<hardware_concurrency(); ++i) {
+#ifdef APEX_STATIC
+            /* Static libC++ doesn't do async very well. In fact, it crashes. */
+            auto f = std::async(&profiler_listener::concurrent_cleanup,this);
+#else
+            auto f = std::async(std::launch::async,&profiler_listener::concurrent_cleanup,this);
+#endif
+            // transfer the future's shared state to a longer-lived future
+            pending_futures.push_back(std::move(f));
+        }
+        for (auto iter = pending_futures.begin() ; iter < pending_futures.end() ; iter++ ) {
+            iter->get();
         }
         if (ignored > 0) {
           std::cerr << "done." << std::endl;
@@ -1027,7 +1086,9 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
     if (!_done) {
 #if defined(APEX_THROTTLE)
       // if this timer is throttled, return without doing anything
+      throttled_event_set_mutex.lock();
       unordered_set<task_identifier>::const_iterator it = throttled_tasks.find(*id);
+      throttled_event_set_mutex.unlock();
       if (it != throttled_tasks.end()) {
           /*
            * The throw is removed, because it is a performance penalty on some systems
@@ -1038,7 +1099,8 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       }
 #endif
       // start the profiler object, which starts our timers
-      std::shared_ptr<profiler> p = std::make_shared<profiler>(id, is_resume);
+      //std::shared_ptr<profiler> p = std::make_shared<profiler>(id, is_resume);
+      profiler * p = new profiler(id, is_resume);
       thread_instance::instance().set_current_profiler(p);
 #if APEX_HAVE_PAPI
       if (num_papi_counters > 0 && !apex_options::papi_suspend()) {
@@ -1096,10 +1158,12 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
             PAPI_ERROR_CHECK(PAPI_read);
         }
 #endif
+        // Why is this happening now?  Why not at start? Why not at create?
+        /*
         if (apex_options::use_taskgraph_output()) {
           if (!p->is_resume) { 
             // get the PARENT profiler
-            std::shared_ptr<profiler> parent_profiler = nullptr;
+            profiler * parent_profiler = nullptr;
             try {
               parent_profiler = thread_instance::instance().get_parent_profiler();
               if (parent_profiler != NULL) {
@@ -1110,6 +1174,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
             } catch (empty_stack_exception& e) { }
           }
         }
+        */
         push_profiler(my_tid, p);
       }
     }
@@ -1153,7 +1218,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   void profiler_listener::on_new_task(task_identifier * id, void * task_id) {
     if (!apex_options::use_taskgraph_output()) { return; }
     // get the current profiler
-    std::shared_ptr<profiler> p = thread_instance::instance().get_current_profiler();
+    profiler * p = thread_instance::instance().get_current_profiler();
     if (p != NULL) {
         dependency_queue.enqueue(new task_dependency(p->task_id, id));
     } else {

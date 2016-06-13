@@ -34,17 +34,19 @@ set(example_programs
     apex_get_thread_cap
     apex_shutdown_throttling
     apex_disable
-    apex_suspend
-    apex_papi_suspend
    )
 #    apex_setup_power_cap_throttling
 #    apex_setup_throughput_tuning
 #    apex_set_thread_cap
 
-if (NOT USE_TAU)
+if ((NOT DEFINED TAU_ROOT) AND (NOT USE_TAU) AND (NOT TAU_FOUND))
   set(example_programs "${example_programs};apex_fibonacci_pthread")
   set(example_programs "${example_programs};apex_new_task")
-endif (NOT USE_TAU)
+  set(example_programs "${example_programs};apex_cross_thread_timing")
+  set(example_programs "${example_programs};apex_suspend")
+  set(example_programs "${example_programs};apex_papi_suspend")
+  set(example_programs "${example_programs};apex_throttle_event")
+endif ((NOT DEFINED TAU_ROOT) AND (NOT USE_TAU) AND (NOT TAU_FOUND))
 
 #if (OPENMP_FOUND)
   #set(example_programs "${example_programs} apex_setup_throughput_tuning")
@@ -56,15 +58,15 @@ foreach(example_program ${example_programs})
     source_group("Source Files" FILES ${sources})
 
     add_executable(${example_program} ${sources})
-    target_link_libraries (${example_program} apex stdc++ ${LIBS})
+    target_link_libraries (${example_program} apex ${LIBS} stdc++ m)
     if (BUILD_STATIC_EXECUTABLES)
         set_target_properties(${example_program} PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
     endif()
     add_dependencies (${example_program} apex)
     add_dependencies (tests ${example_program})
     add_test ("test_${example_program}" ${example_program})
+    # install(TARGETS ${example_program} RUNTIME DESTINATION "bin/apex_unit_tests" OPTIONAL)
 endforeach()
 
 set_tests_properties(test_apex_disable PROPERTIES ENVIRONMENT "APEX_DISABLE=1")
-set_tests_properties(test_apex_disable PROPERTIES ENVIRONMENT "APEX_PAPI_METRICS=\"PAPI_TOT_CYC PAPI_TOT_INS\"")
 

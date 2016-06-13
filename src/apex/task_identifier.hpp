@@ -35,7 +35,7 @@ public:
       }            
   }
   */
-  std::string& get_name();
+  std::string get_name();
   ~task_identifier() { }
   // requried for using this class as a key in an unordered map.
   // the hash function is defined below.
@@ -61,18 +61,6 @@ public:
     // if right has an address and left doesn't, return false
     // (also the default)
     return false;
-  }
-};
-
-class task_dependency {
-public:
-  task_identifier * parent;
-  task_identifier * child;
-  task_dependency(task_identifier * p, task_identifier * c) :
-    parent(p), child(c) {};
-  ~task_dependency() {
-    delete parent;
-    delete child;
   }
 };
 

@@ -48,8 +48,12 @@ if (NOT PAPI_FOUND)
     set(example_programs "${example_programs};apex_pthread_flood")
 endif()
 
+# std::threads crash when linked statically. :(
 if (NOT BUILD_STATIC_EXECUTABLES)
   set(example_programs "${example_programs};apex_new_task")
+  if ((NOT DEFINED TAU_ROOT) AND (NOT USE_TAU) AND (NOT TAU_FOUND))
+    set(example_programs "${example_programs};apex_throttle_event")
+  endif ((NOT DEFINED TAU_ROOT) AND (NOT USE_TAU) AND (NOT TAU_FOUND))
 endif()
 
 foreach(example_program ${example_programs})
@@ -63,6 +67,7 @@ foreach(example_program ${example_programs})
   add_dependencies ("${example_program}_cpp" apex)
   add_dependencies (tests "${example_program}_cpp")
   add_test ("test_${example_program}_cpp" "${example_program}_cpp")
+  # install(TARGETS "${example_program}_cpp" RUNTIME DESTINATION "bin/apex_unit_tests" OPTIONAL)
 endforeach()
 
 if (OPENMP_FOUND)
@@ -71,6 +76,8 @@ if (OPENMP_FOUND)
   if (PROCESSOR_COUNT)
     set_property (TEST test_apex_setup_throughput_tuning_cpp
     APPEND PROPERTY ENVIRONMENT "OMP_NUM_THREADS=${PROCESSOR_COUNT}")
+    set_property (TEST test_apex_setup_throughput_tuning_cpp
+        APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_CONCURRENCY=TRUE")
   endif (PROCESSOR_COUNT)
 endif (OPENMP_FOUND)
 

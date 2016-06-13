@@ -7,6 +7,7 @@
 
 #include <pthread.h>
 #include <sys/time.h>
+#include <unistd.h>
 #include <atomic>
 
 #define MILLION 1000000
@@ -90,6 +91,19 @@ class pthread_wrapper {
 
         bool wait() {
             if (done) return false;
+#ifdef APEX_LXK_KITTEN
+/* The pthread_cond_timedwait() call on Kitten never times out. 
+ * Therefore, we just use a nanosleep instead. We can't ever
+ * wake this thread up early, but that's OK.
+ */
+                int seconds = _timeout_microseconds / MILLION;
+                int microseconds = _timeout_microseconds % MILLION;
+                struct timespec ts;
+                ts.tv_sec  = seconds;
+                ts.tv_nsec = 1000 * microseconds;
+                int rc = nanosleep(&ts, NULL);
+                if (rc != 0) return false;
+#else
                 struct timespec ts;
                 struct timeval  tp;
                 gettimeofday(&tp, NULL);
@@ -115,6 +129,7 @@ class pthread_wrapper {
                 } else if (rc == EPERM) {
                     return false;
                 }
+#endif
             return true;
         }
 }; // class

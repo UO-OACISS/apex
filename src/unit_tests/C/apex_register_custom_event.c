@@ -150,28 +150,52 @@ int main(int argc, char **argv)
     pthread_join(thread[i], NULL);
   }
   // now un-register the policies 
-  printf("Deregistering %d...\n", on_startup->id);
-  //printf("Deregistering %d...\n", on_shutdown->id);
-  printf("Deregistering %d...\n", on_new_node->id);
-  printf("Deregistering %d...\n", on_new_thread->id);
-  printf("Deregistering %d...\n", on_start_event->id);
-  printf("Deregistering %d...\n", on_stop_event->id);
-  printf("Deregistering %d...\n", on_resume_event->id);
-  printf("Deregistering %d...\n", on_yield_event->id);
-  printf("Deregistering %d...\n", on_sample_value->id);
-  printf("Deregistering %d...\n", on_custom_event_1->id);
-  printf("Deregistering %d...\n", on_custom_event_2->id);
-  apex_deregister_policy(on_startup);
-  //apex_deregister_policy(on_shutdown);
-  apex_deregister_policy(on_new_node);
-  apex_deregister_policy(on_new_thread);
-  apex_deregister_policy(on_start_event);
-  apex_deregister_policy(on_stop_event);
-  apex_deregister_policy(on_resume_event);
-  apex_deregister_policy(on_yield_event);
-  apex_deregister_policy(on_sample_value);
-  apex_deregister_policy(on_custom_event_1);
-  apex_deregister_policy(on_custom_event_2);
+  if (on_startup != NULL) {
+      printf("Deregistering %d...\n", on_startup->id);
+      apex_deregister_policy(on_startup);
+  }
+  /*
+  if (on_shutdown != NULL) {
+      printf("Deregistering %d...\n", on_shutdown->id);
+      apex_deregister_policy(on_shutdown);
+  }
+  */
+  if (on_new_node != NULL) {
+      printf("Deregistering %d...\n", on_new_node->id);
+      apex_deregister_policy(on_new_node);
+  }
+  if (on_new_thread != NULL) {
+      printf("Deregistering %d...\n", on_new_thread->id);
+      apex_deregister_policy(on_new_thread);
+  }
+  if (on_start_event != NULL) {
+      printf("Deregistering %d...\n", on_start_event->id);
+      apex_deregister_policy(on_start_event);
+  }
+  if (on_stop_event != NULL) {
+      printf("Deregistering %d...\n", on_stop_event->id);
+      apex_deregister_policy(on_stop_event);
+  }
+  if (on_resume_event != NULL) {
+      printf("Deregistering %d...\n", on_resume_event->id);
+      apex_deregister_policy(on_resume_event);
+  }
+  if (on_yield_event != NULL) {
+      printf("Deregistering %d...\n", on_yield_event->id);
+      apex_deregister_policy(on_yield_event);
+  }
+  if (on_sample_value != NULL) {
+      printf("Deregistering %d...\n", on_sample_value->id);
+      apex_deregister_policy(on_sample_value);
+  }
+  if (on_custom_event_1 != NULL) {
+      printf("Deregistering %d...\n", on_custom_event_1->id);
+      apex_deregister_policy(on_custom_event_1);
+  }
+  if (on_custom_event_2 != NULL) {
+      printf("Deregistering %d...\n", on_custom_event_2->id);
+      apex_deregister_policy(on_custom_event_2);
+  }
 
   printf("Running without policies now...\n");
   for (i = 0 ; i < NUM_THREADS ; i++) {

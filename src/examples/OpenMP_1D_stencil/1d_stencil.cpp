@@ -256,6 +256,8 @@ int main (int argc, char ** argv) {
 #ifdef APEX_HAVE_ACTIVEHARMONY
     if (original_active_threads != active_threads || original_block_size != block_size) {
         std::cout << "Test passed." << std::endl;
+    } else if (!apex::apex_options::throttle_concurrency() || !apex::apex_options::use_policy()) {
+        std::cout << "Test passed (but APEX environment variables not set)." << std::endl;
     }
 #else
     std::cout << "Test passed (but APEX was built without Active Harmony.)." << std::endl;

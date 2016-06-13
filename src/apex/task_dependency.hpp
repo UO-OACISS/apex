@@ -11,13 +11,13 @@ namespace apex {
 
 class task_dependency {
 public:
-  task_identifier * parent;
-  task_identifier * child;
+  task_identifier parent;
+  task_identifier child;
   task_dependency(task_identifier * p, task_identifier * c) :
-    parent(p), child(c) {};
+    parent(*p), child(*c) {};
   ~task_dependency() {
-    delete parent;
-    delete child;
+    //delete parent;
+    //delete child;
   }
 };
 

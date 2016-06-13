@@ -1,6 +1,12 @@
 # APEX Specification *(DRAFT)*
 
-*...to be fully implemented in v0.2 release.*
+*...to be fully implemented in a future release.  While the following 
+specification is slightly different than the current implementation,
+the differences are minor. When in doubt, the current implementation
+is documented by Doxygen, and is available here:
+<http://www.nic.uoregon.edu/~khuck/apex_docs/doc/html/index.html>
+<http://www.nic.uoregon.edu/~khuck/apex_docs/doc/refman.pdf>
+*
 
 ## READ ME FIRST!
 

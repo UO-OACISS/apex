@@ -89,6 +89,10 @@ public:
         is_resume(resume),
         is_reset(reset), stopped(false) {};
     profiler(task_identifier * id, double value_) : 
+#if APEX_HAVE_PAPI
+        papi_start_values{0,0,0,0,0,0,0,0},
+        papi_stop_values{0,0,0,0,0,0,0,0},
+#endif
         value(value_), 
         children_value(0.0),
 		task_id(id),

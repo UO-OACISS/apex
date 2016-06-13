@@ -35,6 +35,7 @@
 
 #include "semaphore.hpp"
 #include "task_identifier.hpp"
+#include "task_dependency.hpp"
 
 #define INITIAL_NUM_THREADS 2
 
@@ -74,6 +75,7 @@ private:
   void _common_stop(std::shared_ptr<profiler> &p, bool is_yield); // internal, inline function
   void push_profiler(int my_tid, std::shared_ptr<profiler> &p);
   std::unordered_map<task_identifier, profile*> task_map;
+  std::mutex _task_map_mutex;
   std::unordered_map<task_identifier, std::unordered_map<task_identifier, int>* > task_dependencies;
   /* The profiler queue */
   profiler_queue_t thequeue;
@@ -129,6 +131,8 @@ public:
   //std::vector<std::string> get_available_profiles();
   void process_profiles(void);
   static void process_profiles_wrapper(void);
+  void public_process_profile(std::shared_ptr<profiler> &p) { process_profile(p,0); };
+  bool concurrent_cleanup(void);
 };
 
 }
