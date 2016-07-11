@@ -483,15 +483,20 @@ APEX_EXPORT apex_profile* get_profile(const std::string &timer_name);
  \return The current power level in Watts.
  */
 APEX_EXPORT inline double current_power_high(void) {
+    double power = 0.0;
 #ifdef APEX_HAVE_RCR
-  return (double)rcr_current_power_high();
+    power = (double)rcr_current_power_high();
+    std::cout << "Read power from RCR: " << power << std::endl;
 #elif APEX_HAVE_MSR
-  return msr_current_power_high();
+    power = msr_current_power_high();
+    std::cout << "Read power from MSR: " << power << std::endl;
 #elif APEX_HAVE_PROC
-  return (double)read_power();
+    power = (double)read_power();
+    std::cout << "Read power from Cray Power Monitoring and Management: " << power << std::endl;
 #else
-  return 0.0;
+    std::cout << "NO POWER READING! Did you configure with RCR, MSR or Cray?" << std::endl;
 #endif
+    return power;
 }
 
 #endif // DOXYGEN_SHOULD_SKIP_THIS

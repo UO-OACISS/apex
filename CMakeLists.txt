@@ -15,6 +15,14 @@ if(NOT DEFINED CMAKE_INSTALL_PREFIX OR CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAU
     SET(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}" CACHE STRING "APEX Installation directory" FORCE)
 endif()
 
+# check if we are building for Kitten / LXK, and force some settings.
+
+if((DEFINED APEX_LXK_KITTEN) AND (APEX_LXK_KITTEN))
+    SET(BUILD_STATIC_EXECUTABLES TRUE CACHE BOOL "Build Static Libraries and Executables" FORCE)
+    SET(READ_PROC_FILESYSTEM FALSE CACHE BOOL "Periodically read the /proc filesystem status" FORCE)
+    SET(USE_CLOCK_TIMESTAMP TRUE CACHE BOOL "Disable assembly code timestamp call" FORCE)
+endif()
+
 ################################################################################
 # Set the RPATH to make sure executables always work without "make install"
 ################################################################################
@@ -80,9 +88,14 @@ if((DEFINED USE_CLOCK_TIMESTAMP) AND (USE_CLOCK_TIMESTAMP))
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DAPEX_USE_CLOCK_TIMESTAMP")
 endif()
 
-# include additional macro definitions
-include(APEX_Utils)
+if((DEFINED APEX_LXK_KITTEN) AND (APEX_LXK_KITTEN))
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPEX_LXK_KITTEN")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DAPEX_LXK_KITTEN")
+endif()
 
+# include additional macro definitions
+
+include(APEX_Utils)
 include(APEX_Distclean)
 
 apex_force_out_of_tree_build("This project requires an out-of-source-tree
@@ -288,7 +301,7 @@ endif()
 ################################################################################
 
 # RCR is NOT required.
-if (DEFINED RCR_ROOT)
+if (DEFINED RCR_ROOT OR DEFINED $ENV{RCR_ROOT})
     find_package(RCR)
 endif()
 
@@ -487,31 +500,22 @@ if(APEX_INTEL_MIC)
 else()
     set(CMAKE_THREAD_PREFER_PTHREAD ON)
     set(THREADS_PREFER_PTHREAD_FLAG ON)
-    find_package(Threads REQUIRED)
-    if ((${CMAKE_MAJOR_VERSION} GREATER 2) AND (${CMAKE_MINOR_VERSION} GREATER 0))
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
-        set(LIBS ${LIBS} ${CMAKE_THREAD_LIBS_INIT})
-        #set(LIBS ${LIBS} Threads::Threads)
-    else()
-        if(THREADS_HAVE_PTHREAD_ARG)
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
-            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
-        endif()
-        if(CMAKE_THREAD_LIBS_INIT)
-            set(LIBS ${LIBS} ${CMAKE_THREAD_LIBS_INIT})
-        endif()
-    endif()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
 endif(APEX_INTEL_MIC)
 
 if (RCR_FOUND)
     find_library(RTLIB rt)
     set(LIBS ${LIBS} ${RTLIB})
+    find_library(STDLIBCPP stdc++)
+    set(LIBS ${LIBS} ${STDLIBCPP})
 endif()
 
 # apparently, we need to make sure libm is last.
 find_library(MATHLIB m)
 set(LIBS ${LIBS} ${MATHLIB})
+message(${LIBS})
 
 IF(("${HOST_BASENAME}" STREQUAL "edison") OR ("$ENV{NERSC_HOST}" STREQUAL "edison"))
     if (BFD_FOUND)

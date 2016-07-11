@@ -170,8 +170,8 @@ inline int apex_power_throttling_policy(apex_context const context)
     // read energy counter and memory concurrency to determine system status
     double power = apex::current_power_high();
     thread_cap_tuning_session->moving_average = ((thread_cap_tuning_session->moving_average * (thread_cap_tuning_session->window_size-1)) + power) / thread_cap_tuning_session->window_size;
-    //cout << "power in policy is: " << power << endl;
 
+    apex::apex * instance = apex::apex::instance();
     if (power != 0.0) {
       apex::apex * instance = apex::apex::instance();
       /* this is a hard limit! If we exceed the power cap once
@@ -203,6 +203,10 @@ inline int apex_power_throttling_policy(apex_context const context)
       if (instance != NULL && instance->get_node_id() == 0) {
         static int index = 0;
         thread_cap_tuning_session->cap_data << index++ << "\t" << power << "\t" << thread_cap_tuning_session->thread_cap << endl;
+      }
+    } else {
+      if (instance != NULL && instance->get_node_id() == 0) {
+        cout << "power in policy is: " << power << endl;
       }
     }
     thread_cap_tuning_session->test_pp++;
@@ -722,7 +726,9 @@ inline int __setup_power_cap_throttling()
       }
       apex::apex * instance = apex::apex::instance();
       if (instance != NULL && instance->get_node_id() == 0) {
-        cout << "APEX periodic throttling for energy savings, min watts: " << thread_cap_tuning_session->min_watts << " max watts: " << thread_cap_tuning_session->max_watts << endl;
+        cout << "APEX periodic throttling for energy savings, min watts: " 
+            << thread_cap_tuning_session->min_watts << " max watts: " 
+            << thread_cap_tuning_session->max_watts << endl;
       }
       apex::register_periodic_policy(1000000, apex_power_throttling_policy);
       // get an initial power reading

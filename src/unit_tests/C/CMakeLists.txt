@@ -33,6 +33,7 @@ set(example_programs
     apex_print_options
     apex_get_thread_cap
     apex_shutdown_throttling
+    apex_throttle_event
    )
 #    apex_setup_power_cap_throttling
 #    apex_setup_throughput_tuning
@@ -53,7 +54,7 @@ foreach(example_program ${example_programs})
     source_group("Source Files" FILES ${sources})
 
     add_executable(${example_program} ${sources})
-    target_link_libraries (${example_program} apex stdc++ ${LIBS})
+    target_link_libraries (${example_program} apex ${LIBS} stdc++ m)
     if (BUILD_STATIC_EXECUTABLES)
         set_target_properties(${example_program} PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
     endif()
