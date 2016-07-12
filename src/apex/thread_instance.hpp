@@ -45,11 +45,12 @@ private:
   static std::string * _program_path;
   // thread specific data
   static APEX_NATIVE_TLS thread_instance * _instance;
-  // constructor
-  thread_instance (void) : _id(-1), _top_level_timer_name(), _is_worker(false) { };
   // map from function address to name - unique to all threads to avoid locking
   std::map<apex_function_address, std::string> _function_map;
   profiler * current_profiler;
+  // constructor
+  thread_instance (void) : _id(-1), _top_level_timer_name(), _is_worker(false),
+       current_profiler(nullptr) { };
   /*
   std::vector<profiler*> current_profilers;
   */
