@@ -336,6 +336,10 @@ else()
     endif()
 endif()
 
+################################################################################
+# OMPT configuration
+################################################################################
+
 if ((NOT DEFINED USE_OMPT) OR (USE_OMPT) OR (BUILD_OMPT))
     find_package(OpenMP)
 endif ((NOT DEFINED USE_OMPT) OR (USE_OMPT) OR (BUILD_OMPT))
@@ -364,17 +368,17 @@ endif()
 # JE/TCMalloc configuration
 ################################################################################
 
-if((DEFINED JEMALLOC_ROOT) OR (USE_JEMALLOC))
-    find_package(JEmalloc)
-    if (JEmalloc_FOUND)
-        include_directories(${JEmalloc_INCLUDE_DIRS})
-        set(LIBS ${LIBS} ${JEmalloc_LIBRARIES})
-        if (NOT BUILD_STATIC_EXECUTABLES)
-            set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${JEmalloc_LIBRARY_DIR})
-        endif()
-    endif()
-endif()
-
+#if((DEFINED JEMALLOC_ROOT) OR (USE_JEMALLOC))
+#    find_package(JEmalloc)
+#    if (JEmalloc_FOUND)
+#        include_directories(${JEmalloc_INCLUDE_DIRS})
+#        set(LIBS ${LIBS} ${JEmalloc_LIBRARIES})
+#        if (NOT BUILD_STATIC_EXECUTABLES)
+#            set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${JEmalloc_LIBRARY_DIR})
+#        endif()
+#    endif()
+#endif()
+#
 if((DEFINED GPERFTOOLS_ROOT) OR (USE_TCMALLOC))
     find_package(Tcmalloc)
     if (Tcmalloc_FOUND)
@@ -498,6 +502,27 @@ if((DEFINED BFD_ROOT) OR (USE_BFD) OR (BUILD_BFD))
 else()
     add_custom_target(project_binutils)
 endif()
+
+################################################################################
+# OCR configuration
+################################################################################
+
+if((DEFINED OCR_ROOT) OR (USE_OCR))
+    find_package(OCR)
+    if(NOT OCR_FOUND)
+        message(FATAL_ERROR " Requested USE_OCR but could not find OCR; set OCR_ROOT")
+    endif()
+    message(INFO " Using OCR: ${OCR_LIBRARY_DIR} ${OCR_LIBRARIES}")
+    include_directories(${OCR_INCLUDE_DIR})
+    set(LIBS ${LIBS} ${OCR_LIBRARIES})
+    if (NOT BUILD_STATIC_EXECUTABLES)
+        set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${OCR_LIBRARY_DIR})
+    endif()
+endif()
+
+################################################################################
+# Plugins support
+################################################################################
 
 if(USE_PLUGINS)
     message(INFO " apex will be built with plugin support.")
