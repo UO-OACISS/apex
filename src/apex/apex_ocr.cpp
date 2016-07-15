@@ -12,6 +12,11 @@
 #define OCR_TYPE_H x86.h
 #include "ocr.h"
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+#include <dlfcn.h>
+
 static inline bool operator<(const ocrGuid_t & left, const ocrGuid_t & right) {
     return ocrGuidIsLt(left, right);
 }
@@ -39,10 +44,12 @@ static inline guid_map_t * get_guid_map() {
 }
 
 static inline void apex_ocr_init() {
+    std::cerr << "******** INIT ********" << std::endl;
     apex::init("main");
 }
 
 static inline void apex_ocr_shutdown() {
+    std::cerr << "******** SHUTDOWN ********" << std::endl;
     apex::finalize();
 }
 
@@ -178,13 +185,18 @@ void traceDataDestroy(u64 location, bool evtType, ocrTraceType_t objType,
                       ocrTraceAction_t actionType, u64 workerId,
                       u64 timestamp, ocrGuid_t parent, ocrGuid_t dbGuid) { }
 
-
-void __attribute__ ((constructor)) startApexForOCR() {
+void platformSpecificInit(void * ocrConfig) {
     apex_ocr_init();
+    void(*original_platformSpecificInit)(void *);
+    original_platformSpecificInit = (void (*)(void *))dlsym(RTLD_NEXT, "platformSpecificInit");
+    (*original_platformSpecificInit)(ocrConfig);
 }
 
-void __attribute__ ((destructor)) stopApexForOCR() {
+void platformSpecificFinalizer(u8 returnCode) {
     apex_ocr_shutdown();
+    void(*original_platformSpecificFinalizer)(u8);
+    original_platformSpecificFinalizer = (void (*)(u8))dlsym(RTLD_NEXT, "platformSpecificFinalizer");
+    (*original_platformSpecificFinalizer)(returnCode);
 }
 
 
