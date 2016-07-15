@@ -11,6 +11,8 @@
 #include <otf2/OTF2_Pthread_Locks.h>
 #include <map>
 #include <string>
+#include <mutex>
+#include <chrono>
 
 namespace apex {
 
@@ -18,6 +20,8 @@ namespace apex {
     private:
         void _init(void);
         bool _terminate;
+        std::mutex _mutex;
+        uint64_t globalOffset;
         static OTF2_TimeStamp get_time( void ) {
             static __thread uint64_t sequence(0);
             return sequence++;
@@ -41,12 +45,29 @@ namespace apex {
             static __thread std::map<task_identifier,uint64_t> region_indices;
             return region_indices;
         }
+        std::map<task_identifier,uint64_t>& get_global_region_indices(void) {
+            static std::map<task_identifier,uint64_t> region_indices;
+            return region_indices;
+        }
         uint64_t get_region_index(task_identifier* id) {
+            /* first, look in this thread's map */
             std::map<task_identifier,uint64_t>& region_indices = get_region_indices();
             auto tmp = region_indices.find(*id);
             uint64_t region_index = 0;
             if (tmp == region_indices.end()) {
-                region_index = region_indices.size() + 1;
+                /* not in the thread's map? look in the global map */
+                std::map<task_identifier,uint64_t>& global_region_indices = get_global_region_indices();
+                std::unique_lock<std::mutex> lock(_mutex);
+                tmp = global_region_indices.find(*id);
+                if (tmp == global_region_indices.end()) {
+                    /* not in the global map? create it. */
+                    region_index = global_region_indices.size() + 1;
+                    global_region_indices[*id] = region_index;
+                } else {
+                    region_index = tmp->second;
+                }
+                lock.unlock();
+                /* store the global value in the thread's map */
                 region_indices[*id] = region_index;
             } else {
                 region_index = tmp->second;
@@ -55,10 +76,22 @@ namespace apex {
         }
         uint64_t get_string_index(const std::string& name) {
   	        static __thread std::map<std::string,uint64_t> string_indices;
+  	        static std::map<std::string,uint64_t> global_string_indices;
+            /* first, look in this thread's map */
             auto tmp = string_indices.find(name);
             uint64_t string_index = 0;
             if (tmp == string_indices.end()) {
-                string_index = string_indices.size() + 1;
+                /* not in the thread's map? look in the global map */
+                std::unique_lock<std::mutex> lock(_mutex);
+                tmp = global_string_indices.find(name);
+                if (tmp == global_string_indices.end()) {
+                    string_index = global_string_indices.size() + 1;
+                    global_string_indices[name] = string_index;
+                } else {
+                    string_index = tmp->second;
+                }
+                lock.unlock();
+                /* stoer the global value in the thread's map */
                 string_indices[name] = string_index;
             } else {
                 string_index = tmp->second;

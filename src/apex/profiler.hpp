@@ -196,15 +196,6 @@ public:
         if(is_counter) {
             return value;
         } else {
-        /*
-            auto end_ns = std::chrono::time_point_cast<std::chrono::nanoseconds>(end).time_since_epoch();
-            auto gs_ns = std::chrono::time_point_cast<std::chrono::nanoseconds>(get_global_start()).time_since_epoch();
-
-            long duration = end_ns.count() - gs_ns.count();
-            std::cout << end_ns.count() << std::endl;
-            std::cout << gs_ns.count() << std::endl;
-            return duration;
-            */
             std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(start - get_global_start());
             return time_span.count()*get_cpu_mhz();
         }
