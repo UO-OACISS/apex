@@ -1033,7 +1033,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
             finalize_profiles();
         }
       }
-      if (apex_options::use_taskgraph_output() && node_id == 0)
+      if (apex_options::use_taskgraph_output()) //&& node_id == 0)
       {
         write_taskgraph();
       }
@@ -1175,6 +1175,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
           }
         }
         */
+        thread_instance::instance().set_current_profiler(nullptr);
         push_profiler(my_tid, p);
       }
     }
