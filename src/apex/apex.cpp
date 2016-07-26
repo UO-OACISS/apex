@@ -660,6 +660,38 @@ void new_task(apex_function_address function_address, void * task_id) {
     new_task(id, task_id);
 }
 
+void new_dependency(task_identifier * src, task_identifier * dest) {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
+    // if APEX is suspended, do nothing.
+    if (apex_options::suspend() == true) { return; }
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance || _exited) return; // protect against calls after finalization
+    new_dependency_event_data * event_data = new new_dependency_event_data(src, dest);
+    if (_notify_listeners) {
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            instance->listeners[i]->on_new_dependency(*event_data);
+        }
+    }
+    delete(event_data);
+}
+
+void satisfy_dependency(task_identifier * src, task_identifier * dest) {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
+    // if APEX is suspended, do nothing.
+    if (apex_options::suspend() == true) { return; }
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance || _exited) return; // protect against calls after finalization
+    satisfy_dependency_event_data * event_data = new satisfy_dependency_event_data(src, dest);
+    if (_notify_listeners) {
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            instance->listeners[i]->on_satisfy_dependency(*event_data);
+        }
+    }
+    delete(event_data);
+}
+
 std::atomic<int> custom_event_count(APEX_CUSTOM_EVENT_1);
 
 apex_event_type register_custom_event(const std::string &name) {
