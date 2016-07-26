@@ -144,6 +144,21 @@ int policy_handler::register_policy(const apex_event_type & when,
         yield_event_policies.push_back(instance);
         break;
       }
+      case APEX_NEW_TASK: {
+        std::unique_lock<mutex_type> l(new_task_event_mutex);
+        new_task_event_policies.push_back(instance);
+        break;
+      }
+      case APEX_NEW_DEPENDENCY: {
+        std::unique_lock<mutex_type> l(new_dependency_event_mutex);
+        new_dependency_event_policies.push_back(instance);
+        break;
+      }
+      case APEX_SATISFY_DEPENDENCY: {
+        std::unique_lock<mutex_type> l(satisfy_dependency_event_mutex);
+        satisfy_dependency_event_policies.push_back(instance);
+        break;
+      }
       case APEX_SAMPLE_VALUE: {
         std::unique_lock<mutex_type> l(sample_value_mutex);
         sample_value_policies.push_back(instance);
@@ -270,6 +285,42 @@ int policy_handler::deregister_policy(apex_policy_handle * handle) {
             std::shared_ptr<policy_instance> policy = *it;
             if (policy->id == handle->id) {
                 yield_event_policies.erase(it);
+                break;
+            }
+        }
+        break;
+      }
+        case APEX_NEW_TASK: {
+        std::unique_lock<mutex_type> l(new_task_event_mutex);
+        std::list<std::shared_ptr<policy_instance> >::iterator it;
+        for(it = new_task_event_policies.begin() ; it != new_task_event_policies.end() ; it++) {
+            std::shared_ptr<policy_instance> policy = *it;
+            if (policy->id == handle->id) {
+                new_task_event_policies.erase(it);
+                break;
+            }
+        }
+        break;
+      }
+        case APEX_NEW_DEPENDENCY: {
+        std::unique_lock<mutex_type> l(new_dependency_event_mutex);
+        std::list<std::shared_ptr<policy_instance> >::iterator it;
+        for(it = new_dependency_event_policies.begin() ; it != new_dependency_event_policies.end() ; it++) {
+            std::shared_ptr<policy_instance> policy = *it;
+            if (policy->id == handle->id) {
+                new_dependency_event_policies.erase(it);
+                break;
+            }
+        }
+        break;
+      }
+        case APEX_SATISFY_DEPENDENCY: {
+        std::unique_lock<mutex_type> l(satisfy_dependency_event_mutex);
+        std::list<std::shared_ptr<policy_instance> >::iterator it;
+        for(it = satisfy_dependency_event_policies.begin() ; it != satisfy_dependency_event_policies.end() ; it++) {
+            std::shared_ptr<policy_instance> policy = *it;
+            if (policy->id == handle->id) {
+                satisfy_dependency_event_policies.erase(it);
                 break;
             }
         }
@@ -448,18 +499,35 @@ void policy_handler::on_yield(std::shared_ptr<profiler> &p) {
     APEX_UNUSED(p);
 }
 
-void policy_handler::on_sample_value(sample_value_event_data &data) {
+void policy_handler::on_new_task(new_task_event_data &data) {
   if (_terminate) return;
-            if (sample_value_policies.empty())
-                return;
-        call_policies(sample_value_policies, data);
+  if (new_task_event_policies.empty()) return;
+  call_policies(new_task_event_policies, data);
+}
+
+
+void policy_handler::on_new_dependency(new_dependency_event_data &data) {
+  if (_terminate) return;
+  if (new_dependency_event_policies.empty()) return;
+  call_policies(new_dependency_event_policies, data);
+}
+
+void policy_handler::on_satisfy_dependency(satisfy_dependency_event_data &data) {
+  if (_terminate) return;
+  if (satisfy_dependency_event_policies.empty()) return;
+  call_policies(satisfy_dependency_event_policies, data);
+}
+
+void policy_handler::on_sample_value(sample_value_event_data &data) {
+  if (_terminate) return;                                      
+  if (sample_value_policies.empty()) return;
+  call_policies(sample_value_policies, data);
 }
 
 void policy_handler::on_custom_event(custom_event_data &data) {
   if (_terminate) return;
-            if (custom_event_policies[data.event_type_].empty())
-                return;
-        call_policies(custom_event_policies[data.event_type_], data);
+  if (custom_event_policies[data.event_type_].empty()) return;
+  call_policies(custom_event_policies[data.event_type_], data);
 }
 
 void policy_handler::on_periodic(periodic_event_data &data) {

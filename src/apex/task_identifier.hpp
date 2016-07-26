@@ -16,13 +16,14 @@ public:
   apex_function_address address;
   std::string name;
   std::string _resolved_name;
+  std::string internal_name;
   bool has_name;
   task_identifier(void) : 
-      address(0L), name(""), _resolved_name(""), has_name(false) {};
-  task_identifier(apex_function_address a) : 
-      address(a), name(""), _resolved_name(""), has_name(false) {};
-  task_identifier(std::string n) : 
-      address(0L), name(n), _resolved_name(""), has_name(true) {};
+      address(0L), name(""), _resolved_name(""), internal_name(""), has_name(false) {};
+  task_identifier(apex_function_address a, std::string i = "") : 
+      address(a), name(""), _resolved_name(""), internal_name(i), has_name(false) {};
+  task_identifier(std::string n, std::string i = "") : 
+      address(0L), name(n), _resolved_name(""), internal_name(i), has_name(true) {};
 	  /*
   task_identifier(profiler * p) : 
       address(0L), name(""), _resolved_name("") {

@@ -98,7 +98,7 @@ namespace apex {
             */
             uint64_t ticks_per_second = 1000000;
             using namespace std::chrono;
-            uint64_t traceLength = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
+            uint64_t traceLength = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count() - this->globalOffset;
             OTF2_GlobalDefWriter_WriteClockProperties( global_def_writer,
                     ticks_per_second /* 1,000,000,000 ticks per second */,
                     this->globalOffset /* epoch */,

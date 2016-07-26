@@ -17,7 +17,16 @@
 #endif
 #include <dlfcn.h>
 
-static inline bool operator<(const ocrGuid_t & left, const ocrGuid_t & right) {
+#define likely(x)       __builtin_expect(!!(x), 1)
+#define unlikely(x)     __builtin_expect(!!(x), 0)
+
+#ifdef APEX_OCR_DEBUG
+#define DEBUG_MSG(str) std::cerr << str << std::endl
+#else
+#define DEBUG_MSG(str)
+#endif
+
+inline bool operator<(const ocrGuid_t & left, const ocrGuid_t & right) {
     return ocrGuidIsLt(left, right);
 }
 
@@ -32,47 +41,99 @@ static const std::string guid_to_str(ocrGuid_t guid) {
 using guid_map_t = std::map<ocrGuid_t, apex::profiler*>;
 
 static APEX_NATIVE_TLS guid_map_t * guid_map = nullptr;
-//static APEX_NATIVE_TLS ocrGuid_t current_guid = NULL_GUID;
+static APEX_NATIVE_TLS ocrGuid_t current_guid = NULL_GUID;
 static APEX_NATIVE_TLS bool thread_seen = false;
 static std::atomic_bool pd_seen{false};
 
 static inline guid_map_t * get_guid_map() {
-    if(guid_map == nullptr) {
+    if(unlikely(guid_map == nullptr)) {
         guid_map = new std::map<ocrGuid_t, apex::profiler*>();
     }
     return guid_map;
 }
 
 static inline void apex_ocr_init() {
-    std::cerr << "******** INIT ********" << std::endl;
     apex::init("main");
 }
 
 static inline void apex_ocr_shutdown() {
-    std::cerr << "******** SHUTDOWN ********" << std::endl;
     apex::finalize();
 }
 
-static inline void apex_ocr_start(ocrGuid_t edtGuid, apex_function_address fctPtr, int node) {
-    if(!thread_seen) {
+static inline void apex_ocr_task_create(ocrGuid_t edtGuid, apex_function_address fctPtr) {
+    DEBUG_MSG("Task created: " << guid_to_str(edtGuid));
+    apex::new_task(fctPtr, nullptr);    
+} 
+
+static inline void apex_ocr_task_destroy(ocrGuid_t edtGuid) {
+    DEBUG_MSG("Task destroyed: " << guid_to_str(edtGuid));
+}
+
+
+static inline void apex_ocr_task_runnable(ocrGuid_t edtGuid) {
+    DEBUG_MSG("Task runnable: " << guid_to_str(edtGuid));
+}
+
+static inline void apex_ocr_task_add_dependence(ocrGuid_t src, ocrGuid_t dest) {
+    DEBUG_MSG("Task add dependence: " << guid_to_str(src) << " --> " << guid_to_str(dest));
+}
+
+
+static inline void apex_ocr_task_satisfy_dependence(ocrGuid_t edtGuid, ocrGuid_t satisfyee) {
+    DEBUG_MSG("Task satisfy dependence. Task: " << guid_to_str(edtGuid) << " Satisfyee: " << guid_to_str(satisfyee));
+}
+
+static inline void apex_ocr_task_execute(ocrGuid_t edtGuid, apex_function_address fctPtr, int node) {
+    DEBUG_MSG("Task executing: " << guid_to_str(edtGuid));
+    if(unlikely(!thread_seen)) {
         apex::register_thread("worker");
         thread_seen = true;
-        if(!pd_seen) {
+        if(unlikely(!pd_seen)) {
             pd_seen = true;
             apex::set_node_id(node);
         }
     }
-    //current_guid = edtGuid;
+    current_guid = edtGuid;
     (*get_guid_map())[edtGuid] = apex::start(fctPtr);  
 }
 
-static inline void apex_ocr_stop(ocrGuid_t edtGuid) {
-    //current_guid = NULL_GUID;
+static inline void apex_ocr_task_finish(ocrGuid_t edtGuid) {
+    DEBUG_MSG("Task finished: " << guid_to_str(edtGuid));
+    current_guid = NULL_GUID;
     apex::stop((*guid_map)[edtGuid]);
 }
 
-static inline void apex_ocr_new_task(apex_function_address fctPtr) {
-    apex::new_task(fctPtr, nullptr);    
+
+static inline void apex_ocr_task_data_acquire(ocrGuid_t edtGuid, ocrGuid_t dbGuid, u64 dbSize) {
+    DEBUG_MSG("Task data acquire. Task " << guid_to_str(edtGuid) << " acquired DB " << guid_to_str(dbGuid) << " of size " << dbSize);
+}
+
+static inline void apex_ocr_task_data_release(ocrGuid_t edtGuid, ocrGuid_t dbGuid, u64 dbSize) {
+    DEBUG_MSG("Task data release. Task " << guid_to_str(edtGuid) << " released DB " << guid_to_str(dbGuid) << " of size " << dbSize);
+}
+
+static inline void apex_ocr_event_create(ocrGuid_t eventGuid) {
+    DEBUG_MSG("Event create: " << guid_to_str(eventGuid));
+}
+
+static inline void apex_ocr_event_destroy(ocrGuid_t eventGuid) {
+    DEBUG_MSG("Event destroy: " << guid_to_str(eventGuid));
+}
+
+static inline void apex_ocr_event_satisfy_dependence(ocrGuid_t eventGuid, ocrGuid_t satisfyee) {
+    DEBUG_MSG("Event satisfy dependence. Event: " << guid_to_str(eventGuid) << " Satisfyee: " << guid_to_str(satisfyee));
+}
+
+static inline void apex_ocr_event_add_dependence(ocrGuid_t src, ocrGuid_t dest) {
+    DEBUG_MSG("Event add dependence: " << guid_to_str(src) << " --> " << guid_to_str(dest));
+}
+
+static inline void apex_ocr_data_create(ocrGuid_t dbGuid, u64 dbSize) {
+    DEBUG_MSG("Data create: " << guid_to_str(dbGuid) << " of size " << dbSize);
+}
+
+static inline void apex_ocr_data_destroy(ocrGuid_t dbGuid) {
+    DEBUG_MSG("Data destroy: " << guid_to_str(dbGuid));
 }
 
 extern "C" {
@@ -81,20 +142,24 @@ void traceTaskCreate(u64 location, bool evtType, ocrTraceType_t objType,
                      ocrTraceAction_t actionType, u64 workerId,
                      u64 timestamp, ocrGuid_t parent, ocrGuid_t edtGuid,
                      ocrEdt_t fctPtr) { 
-        apex_ocr_new_task((apex_function_address)fctPtr);
+    apex_ocr_task_create(edtGuid, (apex_function_address)fctPtr);
 }
 
 
 
 void traceTaskDestroy(u64 location, bool evtType, ocrTraceType_t objType,
                       ocrTraceAction_t actionType, u64 workerId,
-                      u64 timestamp, ocrGuid_t parent, ocrGuid_t edtGuid) { }
+                      u64 timestamp, ocrGuid_t parent, ocrGuid_t edtGuid) {
+    apex_ocr_task_destroy(edtGuid);
+}
 
 
 
 void traceTaskRunnable(u64 location, bool evtType, ocrTraceType_t objType,
                        ocrTraceAction_t actionType, u64 workerId,
-                       u64 timestamp, ocrGuid_t parent, ocrGuid_t edtGuid) { }
+                       u64 timestamp, ocrGuid_t parent, ocrGuid_t edtGuid) { 
+    apex_ocr_task_runnable(edtGuid);
+}
 
 
 
@@ -102,6 +167,7 @@ void traceTaskAddDependence(u64 location, bool evtType, ocrTraceType_t objType,
                             ocrTraceAction_t actionType, u64 workerId,
                             u64 timestamp, ocrGuid_t parent, ocrGuid_t src,
                             ocrGuid_t dest) {                                                                    
+    apex_ocr_task_add_dependence(src, dest);
 }
 
 
@@ -110,6 +176,7 @@ void traceTaskSatisfyDependence(u64 location, bool evtType, ocrTraceType_t objTy
                                 ocrTraceAction_t actionType, u64 workerId,
                                 u64 timestamp, ocrGuid_t parent, ocrGuid_t edtGuid,
                                 ocrGuid_t satisfyee) { 
+    apex_ocr_task_satisfy_dependence(edtGuid, satisfyee);
 }
 
 
@@ -118,7 +185,7 @@ void traceTaskExecute(u64 location, bool evtType, ocrTraceType_t objType,
                       ocrTraceAction_t actionType, u64 workerId,
                       u64 timestamp, ocrGuid_t parent, ocrGuid_t edtGuid,
                       ocrEdt_t fctPtr) {
-    apex_ocr_start(edtGuid, (apex_function_address)fctPtr, (int)location); 
+    apex_ocr_task_execute(edtGuid, (apex_function_address)fctPtr, (int)location); 
 }
 
 
@@ -126,7 +193,7 @@ void traceTaskExecute(u64 location, bool evtType, ocrTraceType_t objType,
 void traceTaskFinish(u64 location, bool evtType, ocrTraceType_t objType,
                      ocrTraceAction_t actionType, u64 workerId,
                      u64 timestamp, ocrGuid_t parent, ocrGuid_t edtGuid) {
-    apex_ocr_stop(edtGuid);
+    apex_ocr_task_finish(edtGuid);
  }
 
 
@@ -134,26 +201,34 @@ void traceTaskFinish(u64 location, bool evtType, ocrTraceType_t objType,
 void traceTaskDataAcquire(u64 location, bool evtType, ocrTraceType_t objType,
                           ocrTraceAction_t actionType, u64 workerId,
                           u64 timestamp, ocrGuid_t parent, ocrGuid_t edtGuid,
-                          ocrGuid_t dbGuid, u64 dbSize) { }
+                          ocrGuid_t dbGuid, u64 dbSize) { 
+    apex_ocr_task_data_acquire(edtGuid, dbGuid, dbSize);
+}
 
 
 
 void traceTaskDataRelease(u64 location, bool evtType, ocrTraceType_t objType,
                           ocrTraceAction_t actionType, u64 workerId,
                           u64 timestamp, ocrGuid_t parent, ocrGuid_t edtGuid,
-                          ocrGuid_t dbGuid, u64 dbSize) { }
+                          ocrGuid_t dbGuid, u64 dbSize) {
+    apex_ocr_task_data_release(edtGuid, dbGuid, dbSize);
+}
 
 
 
 void traceEventCreate(u64 location, bool evtType, ocrTraceType_t objType,
                       ocrTraceAction_t actionType, u64 workerId,
-                      u64 timestamp, ocrGuid_t parent, ocrGuid_t eventGuid) { }
+                      u64 timestamp, ocrGuid_t parent, ocrGuid_t eventGuid) {
+    apex_ocr_event_create(eventGuid);
+}
 
 
 
 void traceEventDestroy(u64 location, bool evtType, ocrTraceType_t objType,
                        ocrTraceAction_t actionType, u64 workerId,
-                       u64 timestamp, ocrGuid_t parent, ocrGuid_t eventGuid) { }
+                       u64 timestamp, ocrGuid_t parent, ocrGuid_t eventGuid) {
+    apex_ocr_event_destroy(eventGuid);
+}
 
 
 
@@ -161,6 +236,7 @@ void traceEventSatisfyDependence(u64 location, bool evtType, ocrTraceType_t objT
                                  ocrTraceAction_t actionType, u64 workerId,
                                  u64 timestamp, ocrGuid_t parent, ocrGuid_t eventGuid,
                                  ocrGuid_t satisfyee) {
+    apex_ocr_event_satisfy_dependence(eventGuid, satisfyee);
 }
 
 
@@ -168,7 +244,8 @@ void traceEventSatisfyDependence(u64 location, bool evtType, ocrTraceType_t objT
 void traceEventAddDependence(u64 location, bool evtType, ocrTraceType_t objType,
                              ocrTraceAction_t actionType, u64 workerId,
                              u64 timestamp, ocrGuid_t parent, ocrGuid_t src,
-                             ocrGuid_t dest) { 
+                             ocrGuid_t dest) {
+    apex_ocr_event_add_dependence(src, dest);
 }
 
 
@@ -178,12 +255,15 @@ void traceDataCreate(u64 location, bool evtType, ocrTraceType_t objType,
                      ocrTraceAction_t actionType, u64 workerId,
                      u64 timestamp, ocrGuid_t parent, ocrGuid_t dbGuid,
                      u64 dbSize) { 
+    apex_ocr_data_create(dbGuid, dbSize);
 }
 
 
 void traceDataDestroy(u64 location, bool evtType, ocrTraceType_t objType,
                       ocrTraceAction_t actionType, u64 workerId,
-                      u64 timestamp, ocrGuid_t parent, ocrGuid_t dbGuid) { }
+                      u64 timestamp, ocrGuid_t parent, ocrGuid_t dbGuid) {
+    apex_ocr_data_destroy(dbGuid);
+}
 
 void platformSpecificInit(void * ocrConfig) {
     apex_ocr_init();

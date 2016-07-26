@@ -49,7 +49,7 @@ void * fib (void * in) {
     } else if (rc == EPERM) {
         printf("No permission to set the scheduling policy and parameters specified in attr.");
     }
-    apex_new_task(APEX_FUNCTION_ADDRESS, &fib, &thread_a);
+    apex_new_task(APEX_FUNCTION_ADDRESS, &fib, NULL);
     pthread_attr_destroy(&attr_a);
 
     scratchpad_t b;
@@ -69,7 +69,7 @@ void * fib (void * in) {
     } else if (rc == EPERM) {
         printf("No permission to set the scheduling policy and parameters specified in attr.");
     }
-    apex_new_task(APEX_FUNCTION_ADDRESS, &fib, &thread_b);
+    apex_new_task(APEX_FUNCTION_ADDRESS, &fib, NULL);
     pthread_attr_destroy(&attr_a);
 
     pthread_join(thread_a,NULL);    

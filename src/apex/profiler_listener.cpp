@@ -555,30 +555,39 @@ public:
 
 node_color * get_node_color(double v,double vmin,double vmax)
 {
+   //FIXME make color work
+   APEX_UNUSED(v);
+   APEX_UNUSED(vmin);
+   APEX_UNUSED(vmax);
    node_color * c = new node_color();
-   double dv;
+   c->red = 1;
+   c->green = 1;
+   c->blue = 1;
+   return c;
 
-   if (v < vmin)
-      v = vmin;
-   if (v > vmax)
-      v = vmax;
-   dv = vmax - vmin;
+   //double dv;
 
-   if (v < (vmin + 0.25 * dv)) {
-      c->red = 0;
-      c->green = 4 * (v - vmin) / dv;
-   } else if (v < (vmin + 0.5 * dv)) {
-      c->red = 0;
-      c->blue = 1 + 4 * (vmin + 0.25 * dv - v) / dv;
-   } else if (v < (vmin + 0.75 * dv)) {
-      c->red = 4 * (v - vmin - 0.5 * dv) / dv;
-      c->blue = 0;
-   } else {
-      c->green = 1 + 4 * (vmin + 0.75 * dv - v) / dv;
-      c->blue = 0;
-   }
+   //if (v < vmin)
+   //   v = vmin;
+   //if (v > vmax)
+   //   v = vmax;
+   //dv = vmax - vmin;
 
-   return(c);
+   //if (v < (vmin + 0.25 * dv)) {
+   //   c->red = 0;
+   //   c->green = 4 * (v - vmin) / dv;
+   //} else if (v < (vmin + 0.5 * dv)) {
+   //   c->red = 0;
+   //   c->blue = 1 + 4 * (vmin + 0.25 * dv - v) / dv;
+   //} else if (v < (vmin + 0.75 * dv)) {
+   //   c->red = 4 * (v - vmin - 0.5 * dv) / dv;
+   //   c->blue = 0;
+   //} else {
+   //   c->green = 1 + 4 * (vmin + 0.75 * dv - v) / dv;
+   //   c->blue = 0;
+   //}
+
+   //return(c);
 }
 
   void profiler_listener::write_taskgraph(void) {
@@ -1216,15 +1225,17 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
     }
   }
 
-  void profiler_listener::on_new_task(task_identifier * id, void * task_id) {
+  void profiler_listener::on_new_task(new_task_event_data & data) {
     if (!apex_options::use_taskgraph_output()) { return; }
     // get the current profiler
     profiler * p = thread_instance::instance().get_current_profiler();
-    if (p != NULL) {
-        dependency_queue.enqueue(new task_dependency(p->task_id, id));
+    if(data.data != nullptr) {
+        dependency_queue.enqueue(new task_dependency((task_identifier*)data.data, data.task_id));
+    } else if (p != NULL) {
+        dependency_queue.enqueue(new task_dependency(p->task_id, data.task_id));
     } else {
         task_identifier * parent = new task_identifier(string("__start"));
-        dependency_queue.enqueue(new task_dependency(parent, id));
+        dependency_queue.enqueue(new task_dependency(parent, data.task_id));
     }
   }
 

@@ -365,16 +365,9 @@ string& version() {
     return instance->version_string;
 }
 
-profiler* start(const std::string &timer_name)
-{
+profiler* start(task_identifier * id) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return nullptr; }
-    if (starts_with(timer_name, string("apex_internal"))) {
-        return profiler::get_disabled_profiler(); // don't process our own events - queue scrubbing tasks.
-    }
-    if (starts_with(timer_name, string("shutdown_all"))) {
-        return profiler::get_disabled_profiler();
-    }
 #ifdef APEX_DEBUG
     _starts++;
 #endif
@@ -384,7 +377,6 @@ profiler* start(const std::string &timer_name)
     if (!instance || _exited) return nullptr; // protect against calls after finalization
     if (_notify_listeners) {
         bool success = true;
-		task_identifier * id = new task_identifier(timer_name);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             success = instance->listeners[i]->on_start(id);
             if (!success) {
@@ -395,35 +387,27 @@ profiler* start(const std::string &timer_name)
     return thread_instance::instance().get_current_profiler();
 }
 
+profiler* start(const std::string &timer_name)
+{
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return nullptr; }
+    if (starts_with(timer_name, string("apex_internal"))) {
+        return profiler::get_disabled_profiler(); // don't process our own events - queue scrubbing tasks.
+    }
+#ifdef APEX_HAVE_HPX3
+    if (starts_with(timer_name, string("shutdown_all"))) {
+        return profiler::get_disabled_profiler();
+    }
+#endif
+    task_identifier * id = new task_identifier(timer_name);
+    return start(id);
+}
+
 profiler* start(apex_function_address function_address) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return nullptr; }
-#ifdef APEX_DEBUG
-    _starts++;
-#endif
-    // if APEX is suspended, do nothing.
-    if (apex_options::suspend() == true) { return profiler::get_disabled_profiler(); }
-    apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance || _exited) return nullptr; // protect against calls after finalization
-    if (_notify_listeners) {
-        bool success = true;
-		task_identifier * id = new task_identifier(function_address);
-        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            success = instance->listeners[i]->on_start(id);
-            if (!success) {
-                return profiler::get_disabled_profiler();
-            }
-        }
-    }
-#ifdef APEX_DEBUG
-    /*
-    if (instance->get_node_id() == 0) { 
-        printf("%lu Start: %s %p\n", thread_instance::get_id(), lookup_address((uintptr_t)function_address, false)->c_str(), thread_instance::instance().get_current_profiler());
-        fflush(stdout); 
-    }
-    */
-#endif
-    return thread_instance::instance().get_current_profiler();
+    task_identifier * id = new task_identifier(function_address);
+    return start(id);
 }
 
 profiler* resume(const std::string &timer_name) {
@@ -645,35 +629,35 @@ void sample_value(const std::string &name, double value)
     delete(data);
 }
 
-void new_task(const std::string &timer_name, void * task_id)
-{
+void new_task(task_identifier * task_id, void * data) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
     // if APEX is suspended, do nothing.
     if (apex_options::suspend() == true) { return; }
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
+    new_task_event_data * event_data = new new_task_event_data(task_id, data);
     if (_notify_listeners) {
-        task_identifier * id = new task_identifier(timer_name);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_new_task(id, task_id);
+            instance->listeners[i]->on_new_task(*event_data);
         }
     }
+    delete(event_data);
+}
+
+void new_task(const std::string &timer_name, void * task_id)
+{
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
+    task_identifier * id = new task_identifier(timer_name);
+    new_task(id, task_id);
 }
 
 void new_task(apex_function_address function_address, void * task_id) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
-    // if APEX is suspended, do nothing.
-    if (apex_options::suspend() == true) { return; }
-    apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance || _exited) return; // protect against calls after finalization
-    if (_notify_listeners) {
-        task_identifier * id = new task_identifier(function_address);
-        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_new_task(id, task_id);
-        }
-    }
+    task_identifier * id = new task_identifier(function_address);
+    new_task(id, task_id);
 }
 
 std::atomic<int> custom_event_count(APEX_CUSTOM_EVENT_1);
@@ -764,6 +748,7 @@ void init_plugins(void) {
         apex * instance = apex::instance();
         if(!instance) {
             std::cerr << "Error getting APEX instance while registering finalize function from " << path << std::endl;
+            dlclose(plugin_handle);
             continue;
         }
         instance->finalize_functions.push_back(finalize_fn);

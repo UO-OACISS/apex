@@ -144,6 +144,24 @@ APEX_EXPORT profiler * start(const std::string &timer_name);
 APEX_EXPORT profiler * start(apex_function_address function_address);
 
 /**
+ \brief Start a timer.
+
+ This function will create a profiler object in APEX, and return a
+ handle to the object.  The object will be associated with the name
+ specified in the task_identifier, if present, or otherwise with
+ the address specific in the task_identifier.
+ 
+ \param task_id The task_identifier holding the name or address
+                of the function to be timed.
+ \return The handle for the timer object in APEX. Not intended to be
+         queried by the application. Should be retained locally, if
+         possible, and passed in to the matching apex::stop()
+         call when the timer should be stopped.
+ \sa @ref apex::stop, @ref apex::yield, @ref apex::resume
+ */
+APEX_EXPORT profiler * start(task_identifier * task_id);
+
+/**
  \brief Stop a timer.
 
  This function will stop the specified profiler object, and queue
@@ -288,6 +306,42 @@ APEX_EXPORT void new_task(const std::string &name, void * task_id);
  */
 
 APEX_EXPORT void new_task(apex_function_address function_address, void * task_id);
+
+/**
+ \brief Create a new task (dependency).
+
+ This function will note a task dependency between the current 
+ timer (task) and the new task.
+
+ \param task_id The task_identifier of the task 
+ \return No return value.
+ */
+
+APEX_EXPORT void new_task(task_identifier * task_id, void * data);
+
+/**
+ \brief Add a dependency between two tasks.
+
+ \param src   The source of the dependency;
+              the object which provides data.
+ \param dest  The destination of the dependency; 
+              the object which consumes data.
+ \return No return value.
+ */
+
+APEX_EXPORT void new_dependency(task_identifier * src, task_identifier * dest);
+
+/**
+ \brief Satisfy a dependency between two tasks.
+
+ \param src   The source of the dependency;
+              the object which provides data.
+ \param dest  The destination of the dependency; 
+              the object which consumes data.
+ \return No return value.
+ */
+
+APEX_EXPORT void satisfy_dependency(task_identifier * src, task_identifier * dest);
 
 /**
  \brief Register an event type with APEX.
@@ -485,15 +539,15 @@ APEX_EXPORT inline double current_power_high(void) {
     double power = 0.0;
 #ifdef APEX_HAVE_RCR
     power = (double)rcr_current_power_high();
-    std::cout << "Read power from RCR: " << power << std::endl;
+    //std::cout << "Read power from RCR: " << power << std::endl;
 #elif APEX_HAVE_MSR
     power = msr_current_power_high();
-    std::cout << "Read power from MSR: " << power << std::endl;
-#elif APEX_HAVE_PROC
+    //std::cout << "Read power from MSR: " << power << std::endl;
+#elif APEX_HAVE_CRAY_POWER
     power = (double)read_power();
-    std::cout << "Read power from Cray Power Monitoring and Management: " << power << std::endl;
+    //std::cout << "Read power from Cray Power Monitoring and Management: " << power << std::endl;
 #else
-    std::cout << "NO POWER READING! Did you configure with RCR, MSR or Cray?" << std::endl;
+    //std::cout << "NO POWER READING! Did you configure with RCR, MSR or Cray?" << std::endl;
 #endif
     return power;
 }

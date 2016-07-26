@@ -59,20 +59,24 @@ private:
 #else
     typedef std::mutex mutex_type;
 #endif
+    using policy_list = std::list<std::shared_ptr<policy_instance> >;
 
     void _init(void);
-    std::list<std::shared_ptr<policy_instance> > startup_policies;
-    std::list<std::shared_ptr<policy_instance> > shutdown_policies;
-    std::list<std::shared_ptr<policy_instance> > new_node_policies;
-    std::list<std::shared_ptr<policy_instance> > new_thread_policies;
-    std::list<std::shared_ptr<policy_instance> > exit_thread_policies;
-    std::list<std::shared_ptr<policy_instance> > start_event_policies;
-    std::list<std::shared_ptr<policy_instance> > stop_event_policies;
-    std::list<std::shared_ptr<policy_instance> > yield_event_policies;
-    std::list<std::shared_ptr<policy_instance> > resume_event_policies;
-    std::list<std::shared_ptr<policy_instance> > sample_value_policies;
-    std::list<std::shared_ptr<policy_instance> > periodic_policies;
-    std::array<std::list<std::shared_ptr<policy_instance> >,APEX_MAX_EVENTS > custom_event_policies;
+    policy_list startup_policies;
+    policy_list shutdown_policies;
+    policy_list new_node_policies;
+    policy_list new_thread_policies;
+    policy_list exit_thread_policies;
+    policy_list start_event_policies;
+    policy_list stop_event_policies;
+    policy_list yield_event_policies;
+    policy_list resume_event_policies;
+    policy_list new_task_event_policies;
+    policy_list new_dependency_event_policies;
+    policy_list satisfy_dependency_event_policies;
+    policy_list sample_value_policies;
+    policy_list periodic_policies;
+    std::array<policy_list,APEX_MAX_EVENTS > custom_event_policies;
     mutex_type startup_mutex;
     mutex_type shutdown_mutex;
     mutex_type new_node_mutex;
@@ -82,6 +86,9 @@ private:
     mutex_type stop_event_mutex;
     mutex_type yield_event_mutex;
     mutex_type resume_event_mutex;
+    mutex_type new_task_event_mutex;
+    mutex_type new_dependency_event_mutex;
+    mutex_type satisfy_dependency_event_mutex;
     mutex_type sample_value_mutex;
     mutex_type custom_event_mutex;
     mutex_type periodic_mutex;
@@ -108,8 +115,9 @@ public:
     void on_stop(std::shared_ptr<profiler> &p);
     void on_yield(std::shared_ptr<profiler> &p);
     bool on_resume(task_identifier * id);
-    void on_new_task(task_identifier * id, void * task_id)
-       { APEX_UNUSED(id); APEX_UNUSED(task_id); };
+    void on_new_task(new_task_event_data & data);
+    void on_new_dependency(new_dependency_event_data & data);
+    void on_satisfy_dependency(satisfy_dependency_event_data & data);
     void on_sample_value(sample_value_event_data &data);
     void on_custom_event(custom_event_data &data);
     void on_periodic(periodic_event_data &data);

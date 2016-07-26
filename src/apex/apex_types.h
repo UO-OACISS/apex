@@ -55,22 +55,25 @@ typedef enum _error_codes {
  */
 typedef enum _event_type {
   APEX_INVALID_EVENT = -1,
-  APEX_STARTUP = 0,        /*!< APEX is initialized */
-  APEX_SHUTDOWN,       /*!< APEX is terminated */
-  APEX_NEW_NODE,       /*!< APEX has registered a new process ID */
-  APEX_NEW_THREAD,     /*!< APEX has registered a new OS thread */
-  APEX_EXIT_THREAD,    /*!< APEX has exited an OS thread */
-  APEX_START_EVENT,    /*!< APEX has processed a timer start event */
-  APEX_RESUME_EVENT,   /*!< APEX has processed a timer resume event (the number
-                           of calls is not incremented) */
-  APEX_STOP_EVENT,     /*!< APEX has processed a timer stop event */
-  APEX_YIELD_EVENT,    /*!< APEX has processed a timer yield event */
-  APEX_SAMPLE_VALUE,   /*!< APEX has processed a sampled value */
-  APEX_PERIODIC,       /*!< APEX has processed a periodic timer */
-  APEX_CUSTOM_EVENT_1,   /*!< APEX has processed a custom event - useful for large
-                           granularity application control events */
-  APEX_CUSTOM_EVENT_2, // these are just here for padding, and so we can
-  APEX_CUSTOM_EVENT_3, // test with them.
+  APEX_STARTUP = 0,          /*!< APEX is initialized */
+  APEX_SHUTDOWN,             /*!< APEX is terminated */
+  APEX_NEW_NODE,             /*!< APEX has registered a new process ID */
+  APEX_NEW_THREAD,           /*!< APEX has registered a new OS thread */
+  APEX_EXIT_THREAD,          /*!< APEX has exited an OS thread */
+  APEX_START_EVENT,          /*!< APEX has processed a timer start event */
+  APEX_RESUME_EVENT,         /*!< APEX has processed a timer resume event (the number
+                                 of calls is not incremented) */
+  APEX_STOP_EVENT,           /*!< APEX has processed a timer stop event */
+  APEX_YIELD_EVENT,          /*!< APEX has processed a timer yield event */
+  APEX_NEW_TASK,             /*!< APEX has processed a new task event */
+  APEX_NEW_DEPENDENCY,       /*!< APEX has processed a new dependency event */
+  APEX_SATISFY_DEPENDENCY,   /*!< APEX has processed a satisfy dependency event */ 
+  APEX_SAMPLE_VALUE,         /*!< APEX has processed a sampled value */
+  APEX_PERIODIC,             /*!< APEX has processed a periodic timer */
+  APEX_CUSTOM_EVENT_1,       /*!< APEX has processed a custom event - useful for large
+                                  granularity application control events */
+  APEX_CUSTOM_EVENT_2,       // these are just here for padding, and so we can
+  APEX_CUSTOM_EVENT_3,       // test with them.
   APEX_CUSTOM_EVENT_4,
   APEX_CUSTOM_EVENT_5,
   APEX_CUSTOM_EVENT_6,

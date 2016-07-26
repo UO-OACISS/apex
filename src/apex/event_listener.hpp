@@ -70,6 +70,29 @@ public:
   ~new_thread_event_data();
 };
 
+class new_task_event_data : public event_data {
+public:
+  task_identifier * task_id;
+  new_task_event_data(task_identifier * task_id, void * data);
+  ~new_task_event_data();
+};
+
+class new_dependency_event_data : public event_data {
+public:
+  task_identifier * src;
+  task_identifier * dest;
+  new_dependency_event_data(task_identifier * src, task_identifier * dest);
+  ~new_dependency_event_data();
+};
+
+class satisfy_dependency_event_data : public event_data {
+public:
+  task_identifier * src;
+  task_identifier * dest;
+  satisfy_dependency_event_data(task_identifier * src, task_identifier * dest);
+  ~satisfy_dependency_event_data();
+};
+
 class periodic_event_data : public event_data {
 public:
   periodic_event_data();
@@ -98,7 +121,9 @@ public:
   virtual void on_stop(std::shared_ptr<profiler> &p) = 0;
   virtual void on_yield(std::shared_ptr<profiler> &p) = 0;
   virtual bool on_resume(task_identifier * id) = 0;
-  virtual void on_new_task(task_identifier * id, void * task_id) = 0;
+  virtual void on_new_task(new_task_event_data &data) = 0;
+  virtual void on_new_dependency(new_dependency_event_data &data) = 0;
+  virtual void on_satisfy_dependency(satisfy_dependency_event_data &data) = 0;
   virtual void on_sample_value(sample_value_event_data &data) = 0;
   virtual void on_periodic(periodic_event_data &data) = 0;
   virtual void on_custom_event(custom_event_data &data) = 0;

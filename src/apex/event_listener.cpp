@@ -78,6 +78,38 @@ new_thread_event_data::~new_thread_event_data() {
   delete(thread_name);
 }
 
+new_task_event_data::new_task_event_data(task_identifier * task_id, void * data) {
+  this->thread_id = thread_instance::get_id();
+  this->event_type_ = APEX_NEW_TASK;
+  this->task_id = task_id;
+  this->data = data;
+}
+
+new_task_event_data::~new_task_event_data() {
+}
+
+
+new_dependency_event_data::new_dependency_event_data(task_identifier * src, task_identifier * dest) {
+  this->thread_id = thread_instance::get_id();
+  this->event_type_ = APEX_NEW_DEPENDENCY;
+  this->src = src;
+  this->dest = dest;
+}
+
+new_dependency_event_data::~new_dependency_event_data() {
+}
+
+
+satisfy_dependency_event_data::satisfy_dependency_event_data(task_identifier * src, task_identifier * dest) {
+  this->thread_id = thread_instance::get_id();
+  this->event_type_ = APEX_SATISFY_DEPENDENCY;
+  this->src = src;
+  this->dest = dest;
+}
+
+satisfy_dependency_event_data::~satisfy_dependency_event_data() {
+}
+
 periodic_event_data::periodic_event_data() {
   this->thread_id = thread_instance::get_id();
   this->event_type_ = APEX_PERIODIC;

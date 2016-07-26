@@ -32,7 +32,10 @@
 #include <TAU.h>
 #endif
 
+#define MAX_FUNCTIONS_IN_CHART 20
+#ifndef MAX_FUNCTIONS_IN_CHART
 #define MAX_FUNCTIONS_IN_CHART 5
+#endif
 
 using namespace std;
 
@@ -318,7 +321,7 @@ void concurrency_handler::output_samples(int node_id) {
   plotname << "concurrency." << node_id << ".gnuplot";
   myfile.open(plotname.str().c_str());
   myfile << "everyNth(col) = (int(column(col))%" << (int)(max_X/10) << "==0)?stringcolumn(1):\"\";" << endl;
-  myfile << "set key outside bottom center invert box" << endl;
+  myfile << "set key outside bottom center invert box font \",9\" vertical maxrows 6" << endl;
   myfile << "set xtics auto" << endl;
   myfile << "set ytics 4" << endl;
   myfile << "set y2tics auto" << endl;
@@ -342,9 +345,9 @@ void concurrency_handler::output_samples(int node_id) {
   myfile << "' using COL:xticlabel(everyNth(1)) palette frac (COL-" << (3+num_params) << ")/" << top_x.size()+1;
   myfile << ". title columnheader axes x1y1, '"  << datname.str().c_str();
   myfile << "' using 2 with lines linecolor rgb \"red\" axes x1y1 title columnheader, '" << datname.str().c_str();
-  myfile << "' using 3 with lines linecolor rgb \"black\" axes x1y2 title columnheader,";
+  myfile << "' using 3 with lines linecolor rgb \"black\" axes x1y2 title columnheader";
   for(int p = 0; p < num_params; ++p) {
-    myfile << "'" << datname.str().c_str() << "' using " << (4+p) << " with linespoints axes x1y2 title columnheader,";
+    myfile << ", '" << datname.str().c_str() << "' using " << (4+p) << " with linespoints axes x1y2 title columnheader";
   }
   myfile << endl;
   myfile.close();
