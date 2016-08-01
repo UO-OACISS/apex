@@ -53,20 +53,36 @@ static inline guid_map_t * get_guid_map() {
 }
 
 static inline void apex_ocr_init() {
+    DEBUG_MSG("APEX OCR init");
     apex::init("main");
 }
 
+static inline void apex_ocr_exit_thread() {
+    DEBUG_MSG("APEX OCR exit thread");
+    apex::exit_thread();
+    if(guid_map != nullptr) {
+        delete guid_map;
+        guid_map = nullptr;
+    }
+    thread_seen = false;
+}
+
 static inline void apex_ocr_shutdown() {
+    DEBUG_MSG("APEX OCR shutdown");
+    apex_ocr_exit_thread();
     apex::finalize();
 }
 
 static inline void apex_ocr_task_create(ocrGuid_t edtGuid, apex_function_address fctPtr) {
     DEBUG_MSG("Task created: " << guid_to_str(edtGuid));
-    apex::new_task(fctPtr, nullptr);    
+    apex::task_identifier * task_id = new apex::task_identifier(fctPtr, guid_to_str(edtGuid));
+    apex::new_task(task_id, nullptr);    
 } 
 
-static inline void apex_ocr_task_destroy(ocrGuid_t edtGuid) {
+static inline void apex_ocr_task_destroy(ocrGuid_t edtGuid, apex_function_address fctPtr) {
     DEBUG_MSG("Task destroyed: " << guid_to_str(edtGuid));
+    apex::task_identifier * task_id = new apex::task_identifier(fctPtr, guid_to_str(edtGuid));
+    apex::destroy_task(task_id, nullptr);
 }
 
 
@@ -94,7 +110,8 @@ static inline void apex_ocr_task_execute(ocrGuid_t edtGuid, apex_function_addres
         }
     }
     current_guid = edtGuid;
-    (*get_guid_map())[edtGuid] = apex::start(fctPtr);  
+    apex::task_identifier * task_id = new apex::task_identifier(fctPtr, guid_to_str(edtGuid));
+    (*get_guid_map())[edtGuid] = apex::start(task_id);  
 }
 
 static inline void apex_ocr_task_finish(ocrGuid_t edtGuid) {
@@ -149,8 +166,9 @@ void traceTaskCreate(u64 location, bool evtType, ocrTraceType_t objType,
 
 void traceTaskDestroy(u64 location, bool evtType, ocrTraceType_t objType,
                       ocrTraceAction_t actionType, u64 workerId,
-                      u64 timestamp, ocrGuid_t parent, ocrGuid_t edtGuid) {
-    apex_ocr_task_destroy(edtGuid);
+                      u64 timestamp, ocrGuid_t parent, ocrGuid_t edtGuid,
+                      ocrEdt_t fctPtr) {
+    apex_ocr_task_destroy(edtGuid, (apex_function_address)fctPtr);
 }
 
 
@@ -266,10 +284,10 @@ void traceDataDestroy(u64 location, bool evtType, ocrTraceType_t objType,
 }
 
 void platformSpecificInit(void * ocrConfig) {
-    apex_ocr_init();
     void(*original_platformSpecificInit)(void *);
     original_platformSpecificInit = (void (*)(void *))dlsym(RTLD_NEXT, "platformSpecificInit");
     (*original_platformSpecificInit)(ocrConfig);
+    apex_ocr_init();
 }
 
 void platformSpecificFinalizer(u8 returnCode) {
@@ -277,6 +295,14 @@ void platformSpecificFinalizer(u8 returnCode) {
     void(*original_platformSpecificFinalizer)(u8);
     original_platformSpecificFinalizer = (void (*)(u8))dlsym(RTLD_NEXT, "platformSpecificFinalizer");
     (*original_platformSpecificFinalizer)(returnCode);
+}
+
+void * hcRunWorker(void * worker) {
+    void * (*original_hcRunWorker)(void *);
+    original_hcRunWorker = (void * (*)(void *))dlsym(RTLD_NEXT, "hcRunWorker");
+    void * result = (*original_hcRunWorker)(worker);
+    apex_ocr_exit_thread();
+    return result;
 }
 
 

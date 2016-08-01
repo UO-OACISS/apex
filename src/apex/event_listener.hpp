@@ -77,6 +77,13 @@ public:
   ~new_task_event_data();
 };
 
+class destroy_task_event_data : public event_data {
+public:
+  task_identifier * task_id;
+  destroy_task_event_data(task_identifier * task_id, void * data);
+  ~destroy_task_event_data();
+};
+
 class new_dependency_event_data : public event_data {
 public:
   task_identifier * src;
@@ -91,6 +98,59 @@ public:
   task_identifier * dest;
   satisfy_dependency_event_data(task_identifier * src, task_identifier * dest);
   ~satisfy_dependency_event_data();
+};
+
+class set_task_state_event_data : public event_data {
+  task_identifier * task_id;
+  apex_task_state   state;
+  set_task_state_event_data(task_identifier * task_id, apex_task_state state);
+  ~set_task_state_event_data();
+};
+
+class acquire_data_event_data : public event_data {
+public:
+  task_identifier * task_id;
+  task_identifier * data_id;
+  uint64_t size;
+  acquire_data_event_data(task_identifier * task_id, task_identifier * dest, uint64_t size);
+  ~acquire_data_event_data();
+};
+
+class release_data_event_data : public event_data {
+public:
+  task_identifier * task_id;
+  task_identifier * data_id;
+  uint64_t size;
+  release_data_event_data(task_identifier * task_id, task_identifier * dest, uint64_t size);
+  ~release_data_event_data();
+};
+
+class new_event_event_data : public event_data {
+public:
+  task_identifier * event_id;
+  new_event_event_data(task_identifier * event_id);
+  ~new_event_event_data();
+};
+
+class destroy_event_event_data : public event_data {
+public:
+  task_identifier * event_id;
+  destroy_event_event_data(task_identifier * event_id);
+  ~destroy_event_event_data();
+};
+
+class new_data_event_data : public event_data {
+public:
+  task_identifier * data_id;
+  new_data_event_data(task_identifier * data_id);
+  ~new_data_event_data();
+};
+
+class destroy_data_event_data : public event_data {
+public:
+  task_identifier * data_id;
+  destroy_data_event_data(task_identifier * data_id);
+  ~destroy_data_event_data();
 };
 
 class periodic_event_data : public event_data {
@@ -122,8 +182,16 @@ public:
   virtual void on_yield(std::shared_ptr<profiler> &p) = 0;
   virtual bool on_resume(task_identifier * id) = 0;
   virtual void on_new_task(new_task_event_data &data) = 0;
+  virtual void on_destroy_task(destroy_task_event_data &data) = 0;
   virtual void on_new_dependency(new_dependency_event_data &data) = 0;
   virtual void on_satisfy_dependency(satisfy_dependency_event_data &data) = 0;
+  virtual void on_set_task_state(set_task_state_event_data &data) = 0;
+  virtual void on_acquire_data(acquire_data_event_data &data) = 0;
+  virtual void on_release_data(release_data_event_data &data) = 0;
+  virtual void on_new_event(new_event_event_data &data) = 0;
+  virtual void on_destroy_event(destroy_event_event_data &data) = 0;
+  virtual void on_new_data(new_data_event_data &data) = 0;
+  virtual void on_destroy_data(destroy_data_event_data &data) = 0;
   virtual void on_sample_value(sample_value_event_data &data) = 0;
   virtual void on_periodic(periodic_event_data &data) = 0;
   virtual void on_custom_event(custom_event_data &data) = 0;

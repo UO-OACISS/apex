@@ -17,6 +17,9 @@
 namespace apex {
 
     class otf2_listener : public event_listener {
+    public:
+        using string_map_type = std::map<std::string,uint64_t>;
+        using region_map_type =  std::map<task_identifier,uint64_t>;
     private:
         void _init(void);
         bool _terminate;
@@ -35,71 +38,124 @@ namespace apex {
                                           OTF2_FileType fileType, 
                                           OTF2_LocationRef location ) 
         { return get_time(); }
+
+
+        static OTF2_CallbackCode
+        otf2_collectives_apex_get_size( void*                   userData,
+                                        OTF2_CollectiveContext* commContext,
+                                        uint32_t*               size )
+        {
+            *size = 0;
+            return OTF2_CALLBACK_ERROR;
+        }
+
+
+        static OTF2_CallbackCode
+        otf2_collectives_apex_get_rank( void*                   userData,
+                                        OTF2_CollectiveContext* commContext,
+                                        uint32_t*               rank )
+        {
+            *rank = apex::__instance()->get_node_id();
+            return OTF2_CALLBACK_SUCCESS;
+        }
+
+
+        static OTF2_CallbackCode
+        otf2_collectives_apex_barrier( void*                   userData,
+                                        OTF2_CollectiveContext* commContext )
+        {
+            return OTF2_CALLBACK_ERROR;
+        }
+
+
+        static OTF2_CallbackCode
+        otf2_collectives_apex_bcast( void*                   userData,
+                                    OTF2_CollectiveContext* commContext,
+                                    void*                   data,
+                                    uint32_t                numberElements,
+                                    OTF2_Type               type,
+                                    uint32_t                root )
+        {
+            return OTF2_CALLBACK_ERROR;
+        }
+
+
+        static OTF2_CallbackCode
+        otf2_collectives_apex_gather( void*                   userData,
+                                        OTF2_CollectiveContext* commContext,
+                                        const void*             inData,
+                                        void*                   outData,
+                                        uint32_t                numberElements,
+                                        OTF2_Type               type,
+                                        uint32_t                root )
+        {
+            return OTF2_CALLBACK_ERROR;
+        }
+
+
+        static OTF2_CallbackCode
+        otf2_collectives_apex_gatherv( void*                   userData,
+                                        OTF2_CollectiveContext* commContext,
+                                        const void*             inData,
+                                        uint32_t                inElements,
+                                        void*                   outData,
+                                        const uint32_t*         outElements,
+                                        OTF2_Type               type,
+                                        uint32_t                root )
+        {
+            return OTF2_CALLBACK_ERROR;
+        }
+
+
+        static OTF2_CallbackCode
+        otf2_collectives_apex_scatter( void*                   userData,
+                                        OTF2_CollectiveContext* commContext,
+                                        const void*             inData,
+                                        void*                   outData,
+                                        uint32_t                numberElements,
+                                        OTF2_Type               type,
+                                        uint32_t                root )
+        {
+            return OTF2_CALLBACK_ERROR;
+        }
+
+
+        static OTF2_CallbackCode
+        otf2_collectives_apex_scatterv( void*                   userData,
+                                        OTF2_CollectiveContext* commContext,
+                                        const void*             inData,
+                                        const uint32_t*         inElements,
+                                        void*                   outData,
+                                        uint32_t                outElements,
+                                        OTF2_Type               type,
+                                        uint32_t                root )
+        {
+            return OTF2_CALLBACK_ERROR;
+        }
+
         static OTF2_FlushCallbacks flush_callbacks;
+        static OTF2_CollectiveCallbacks collective_callbacks;
         void* event_writer(void* arg);
         OTF2_Archive* archive;
         static __thread OTF2_EvtWriter* evt_writer;
         static __thread OTF2_DefWriter* def_writer;
         OTF2_GlobalDefWriter* global_def_writer;
-        std::map<task_identifier,uint64_t>& get_region_indices(void) {
-            static __thread std::map<task_identifier,uint64_t> region_indices;
+        inline region_map_type & get_region_indices(void) {
+            static __thread region_map_type region_indices;
             return region_indices;
         }
-        std::map<task_identifier,uint64_t>& get_global_region_indices(void) {
-            static std::map<task_identifier,uint64_t> region_indices;
-            return region_indices;
+        inline string_map_type & get_string_indices(void) {
+            static __thread string_map_type string_indices;
+            return string_indices;
         }
-        uint64_t get_region_index(task_identifier* id) {
-            /* first, look in this thread's map */
-            std::map<task_identifier,uint64_t>& region_indices = get_region_indices();
-            auto tmp = region_indices.find(*id);
-            uint64_t region_index = 0;
-            if (tmp == region_indices.end()) {
-                /* not in the thread's map? look in the global map */
-                std::map<task_identifier,uint64_t>& global_region_indices = get_global_region_indices();
-                std::unique_lock<std::mutex> lock(_mutex);
-                tmp = global_region_indices.find(*id);
-                if (tmp == global_region_indices.end()) {
-                    /* not in the global map? create it. */
-                    region_index = global_region_indices.size() + 1;
-                    global_region_indices[*id] = region_index;
-                } else {
-                    region_index = tmp->second;
-                }
-                lock.unlock();
-                /* store the global value in the thread's map */
-                region_indices[*id] = region_index;
-            } else {
-                region_index = tmp->second;
-            }
-	        return region_index;
-        }
-        uint64_t get_string_index(const std::string& name) {
-  	        static __thread std::map<std::string,uint64_t> string_indices;
-  	        static std::map<std::string,uint64_t> global_string_indices;
-            /* first, look in this thread's map */
-            auto tmp = string_indices.find(name);
-            uint64_t string_index = 0;
-            if (tmp == string_indices.end()) {
-                /* not in the thread's map? look in the global map */
-                std::unique_lock<std::mutex> lock(_mutex);
-                tmp = global_string_indices.find(name);
-                if (tmp == global_string_indices.end()) {
-                    string_index = global_string_indices.size() + 1;
-                    global_string_indices[name] = string_index;
-                } else {
-                    string_index = tmp->second;
-                }
-                lock.unlock();
-                /* stoer the global value in the thread's map */
-                string_indices[name] = string_index;
-            } else {
-                string_index = tmp->second;
-            }
-	        return string_index;
-        }
+        uint64_t get_region_index(task_identifier* id);
+        uint64_t get_string_index(const std::string& name);
         static const std::string empty;
-        void write_otf2_regions(void);
+        inline static uint64_t get_location_id() {
+            const uint64_t node_id = apex::__instance()->get_node_id();
+            const uint64_t thread_id = thread_instance::get_id();
+            return (node_id * APEX_MAX_THREADS_PER_LOCALITY) + thread_id;
+        }
     public:
         otf2_listener (void);
         ~otf2_listener (void) { };
@@ -113,9 +169,17 @@ namespace apex {
         void on_yield(std::shared_ptr<profiler> &p);
         bool on_resume(task_identifier * id);
         void on_sample_value(sample_value_event_data &data);
-        void on_new_task(new_task_event_data & data) { APEX_UNUSED(data); };
+        void on_new_task(new_task_event_data & data);
+        void on_destroy_task(destroy_task_event_data & data);
         void on_new_dependency(new_dependency_event_data & data) { APEX_UNUSED(data); };
         void on_satisfy_dependency(satisfy_dependency_event_data & data) { APEX_UNUSED(data); };
+        void on_set_task_state(set_task_state_event_data & data) { APEX_UNUSED(data); };
+        void on_acquire_data(acquire_data_event_data &data) { APEX_UNUSED(data); };
+        void on_release_data(release_data_event_data &data) { APEX_UNUSED(data); };
+        void on_new_event(new_event_event_data &data) { APEX_UNUSED(data); };
+        void on_destroy_event(destroy_event_event_data &data) { APEX_UNUSED(data); };
+        void on_new_data(new_data_event_data &data) { APEX_UNUSED(data); };
+        void on_destroy_data(destroy_data_event_data &data) { APEX_UNUSED(data); };
         void on_periodic(periodic_event_data &data)
             { APEX_UNUSED(data); };
         void on_custom_event(custom_event_data &data)

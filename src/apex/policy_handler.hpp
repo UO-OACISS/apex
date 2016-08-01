@@ -72,8 +72,10 @@ private:
     policy_list yield_event_policies;
     policy_list resume_event_policies;
     policy_list new_task_event_policies;
+    policy_list destroy_task_event_policies;
     policy_list new_dependency_event_policies;
     policy_list satisfy_dependency_event_policies;
+    policy_list set_task_state_event_policies;
     policy_list sample_value_policies;
     policy_list periodic_policies;
     std::array<policy_list,APEX_MAX_EVENTS > custom_event_policies;
@@ -87,8 +89,10 @@ private:
     mutex_type yield_event_mutex;
     mutex_type resume_event_mutex;
     mutex_type new_task_event_mutex;
+    mutex_type destroy_task_event_mutex;
     mutex_type new_dependency_event_mutex;
     mutex_type satisfy_dependency_event_mutex;
+    mutex_type set_task_state_event_mutex;
     mutex_type sample_value_mutex;
     mutex_type custom_event_mutex;
     mutex_type periodic_mutex;
@@ -116,8 +120,16 @@ public:
     void on_yield(std::shared_ptr<profiler> &p);
     bool on_resume(task_identifier * id);
     void on_new_task(new_task_event_data & data);
+    void on_destroy_task(destroy_task_event_data & data);
     void on_new_dependency(new_dependency_event_data & data);
     void on_satisfy_dependency(satisfy_dependency_event_data & data);
+    void on_set_task_state(set_task_state_event_data &data);
+    void on_acquire_data(acquire_data_event_data &data) { APEX_UNUSED(data); };
+    void on_release_data(release_data_event_data &data) { APEX_UNUSED(data); };
+    void on_new_event(new_event_event_data &data) { APEX_UNUSED(data); };
+    void on_destroy_event(destroy_event_event_data &data) { APEX_UNUSED(data); };
+    void on_new_data(new_data_event_data &data) { APEX_UNUSED(data); };
+    void on_destroy_data(destroy_data_event_data &data) { APEX_UNUSED(data); };
     void on_sample_value(sample_value_event_data &data);
     void on_custom_event(custom_event_data &data);
     void on_periodic(periodic_event_data &data);

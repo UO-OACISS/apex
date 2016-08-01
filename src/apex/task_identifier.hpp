@@ -18,12 +18,13 @@ public:
   std::string _resolved_name;
   std::string internal_name;
   bool has_name;
+  apex_task_id_kind_t kind;
   task_identifier(void) : 
-      address(0L), name(""), _resolved_name(""), internal_name(""), has_name(false) {};
-  task_identifier(apex_function_address a, std::string i = "") : 
-      address(a), name(""), _resolved_name(""), internal_name(i), has_name(false) {};
-  task_identifier(std::string n, std::string i = "") : 
-      address(0L), name(n), _resolved_name(""), internal_name(i), has_name(true) {};
+      address(0L), name(""), _resolved_name(""), internal_name(""), has_name(false), kind(APEX_TASK_ID) {};
+  task_identifier(apex_function_address a, std::string i = "", apex_task_id_kind_t k = APEX_TASK_ID) : 
+      address(a), name(""), _resolved_name(""), internal_name(i), has_name(false), kind(k) {};
+  task_identifier(std::string n, std::string i = "", apex_task_id_kind_t k = APEX_TASK_ID) : 
+      address(0L), name(n), _resolved_name(""), internal_name(i), has_name(true), kind(k) {};
 	  /*
   task_identifier(profiler * p) : 
       address(0L), name(""), _resolved_name("") {

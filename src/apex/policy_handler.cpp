@@ -149,6 +149,11 @@ int policy_handler::register_policy(const apex_event_type & when,
         new_task_event_policies.push_back(instance);
         break;
       }
+      case APEX_DESTROY_TASK: {
+        std::unique_lock<mutex_type> l(destroy_task_event_mutex);
+        destroy_task_event_policies.push_back(instance);
+        break;
+      }                                                           
       case APEX_NEW_DEPENDENCY: {
         std::unique_lock<mutex_type> l(new_dependency_event_mutex);
         new_dependency_event_policies.push_back(instance);
@@ -157,6 +162,11 @@ int policy_handler::register_policy(const apex_event_type & when,
       case APEX_SATISFY_DEPENDENCY: {
         std::unique_lock<mutex_type> l(satisfy_dependency_event_mutex);
         satisfy_dependency_event_policies.push_back(instance);
+        break;
+      }
+      case APEX_SET_TASK_STATE: {
+        std::unique_lock<mutex_type> l(set_task_state_event_mutex);
+        set_task_state_event_policies.push_back(instance);
         break;
       }
       case APEX_SAMPLE_VALUE: {
@@ -302,6 +312,18 @@ int policy_handler::deregister_policy(apex_policy_handle * handle) {
         }
         break;
       }
+        case APEX_DESTROY_TASK: {
+        std::unique_lock<mutex_type> l(destroy_task_event_mutex);
+        std::list<std::shared_ptr<policy_instance> >::iterator it;
+        for(it = destroy_task_event_policies.begin() ; it != destroy_task_event_policies.end() ; it++) {
+            std::shared_ptr<policy_instance> policy = *it;
+            if (policy->id == handle->id) {
+                destroy_task_event_policies.erase(it);
+                break;
+            }
+        }
+        break;
+      }
         case APEX_NEW_DEPENDENCY: {
         std::unique_lock<mutex_type> l(new_dependency_event_mutex);
         std::list<std::shared_ptr<policy_instance> >::iterator it;
@@ -321,6 +343,18 @@ int policy_handler::deregister_policy(apex_policy_handle * handle) {
             std::shared_ptr<policy_instance> policy = *it;
             if (policy->id == handle->id) {
                 satisfy_dependency_event_policies.erase(it);
+                break;
+            }
+        }
+        break;
+      }
+        case APEX_SET_TASK_STATE: {
+        std::unique_lock<mutex_type> l(set_task_state_event_mutex);
+        std::list<std::shared_ptr<policy_instance> >::iterator it;
+        for(it = set_task_state_event_policies.begin() ; it != set_task_state_event_policies.end() ; it++) {
+            std::shared_ptr<policy_instance> policy = *it;
+            if (policy->id == handle->id) {
+                set_task_state_event_policies.erase(it);
                 break;
             }
         }
@@ -377,7 +411,7 @@ inline void policy_handler::call_policies(
     if (data.event_type_ >= APEX_CUSTOM_EVENT_1) {
         my_context.data = data.data;
     } else {
-        my_context.data = NULL;
+        my_context.data = (void*)&data;
     }
     // last chance to interrupt policy execution at shutdown
 		// HOWEVER, if the event is shutdown, run the policy.
@@ -505,6 +539,11 @@ void policy_handler::on_new_task(new_task_event_data &data) {
   call_policies(new_task_event_policies, data);
 }
 
+void policy_handler::on_destroy_task(destroy_task_event_data &data) {
+  if (_terminate) return;
+  if (destroy_task_event_policies.empty()) return;
+  call_policies(destroy_task_event_policies, data);
+}
 
 void policy_handler::on_new_dependency(new_dependency_event_data &data) {
   if (_terminate) return;
@@ -516,6 +555,12 @@ void policy_handler::on_satisfy_dependency(satisfy_dependency_event_data &data) 
   if (_terminate) return;
   if (satisfy_dependency_event_policies.empty()) return;
   call_policies(satisfy_dependency_event_policies, data);
+}
+
+void policy_handler::on_set_task_state(set_task_state_event_data &data) {
+  if (_terminate) return;
+  if (set_task_state_event_policies.empty()) return;
+  call_policies(set_task_state_event_policies, data);
 }
 
 void policy_handler::on_sample_value(sample_value_event_data &data) {

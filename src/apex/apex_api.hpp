@@ -294,6 +294,7 @@ APEX_EXPORT void sample_value(const std::string &name, double value);
 
 APEX_EXPORT void new_task(const std::string &name, void * task_id);
 
+
 /**
  \brief Create a new task (dependency).
 
@@ -320,6 +321,36 @@ APEX_EXPORT void new_task(apex_function_address function_address, void * task_id
 APEX_EXPORT void new_task(task_identifier * task_id, void * data);
 
 /**
+ \brief Destroy an existing task (dependency).
+
+ \param name The name of the timer.                                        
+ \param task_id The ID of the task 
+ \return No return value.
+ */
+
+APEX_EXPORT void destroy_task(const std::string &name, void * task_id);
+
+
+/**
+ \brief Destroy an existing task (dependency).
+
+ \param function_address The function address of the timer.
+ \param task_id The ID of the task 
+ \return No return value.
+ */
+
+APEX_EXPORT void destroy_task(apex_function_address function_address, void * task_id);
+
+/**
+ \brief Destroy an existing task (dependency).
+
+ \param task_id The task_identifier of the task 
+ \return No return value.
+ */
+
+APEX_EXPORT void destroy_task(task_identifier * task_id, void * data);
+
+/**
  \brief Add a dependency between two tasks.
 
  \param src   The source of the dependency;
@@ -331,7 +362,7 @@ APEX_EXPORT void new_task(task_identifier * task_id, void * data);
 
 APEX_EXPORT void new_dependency(task_identifier * src, task_identifier * dest);
 
-/**
+/**                                        
  \brief Satisfy a dependency between two tasks.
 
  \param src   The source of the dependency;
@@ -342,6 +373,77 @@ APEX_EXPORT void new_dependency(task_identifier * src, task_identifier * dest);
  */
 
 APEX_EXPORT void satisfy_dependency(task_identifier * src, task_identifier * dest);
+
+
+/**                                        
+ \brief Change current task state.
+
+ \param task_id   The identifier for the task changing state.
+ \param state     The new state of the task.
+ \return No return value.
+ */
+
+APEX_EXPORT void set_task_state(task_identifier * task_id, apex_task_state state);
+
+
+/**                                        
+ \brief Mark that a task has acquired data
+
+ \param task_id   The identifier for the task acquiring the data.
+ \param data_id   The identifier for the data being acquired.
+ \param size      The size of the data being acquired.
+ \return No return value.
+ */
+
+APEX_EXPORT void acquire_data(task_identifier * task_id, task_identifier * data_id, uint64_t size);
+
+/**                                        
+ \brief Mark that a task has released data
+
+ \param task_id   The identifier for the task releasing the data.
+ \param data_id   The identifier for the data being released.
+ \param size      The size of the data being acquired.
+ \return No return value.
+ */
+
+APEX_EXPORT void release_data(task_identifier * task_id, task_identifier * data_id, uint64_t size);
+
+/**                                        
+ \brief Create a new event.
+
+ \param task_id   The identifier for the event being created.
+ \return No return value.
+ */
+
+APEX_EXPORT void new_event(task_identifier * event_id);
+
+/**                                        
+ \brief Destroy event.
+
+ \param task_id   The identifier for the event being destroyed.
+ \return No return value.
+ */
+
+APEX_EXPORT void destroy_event(task_identifier * event_id);
+
+/**                                        
+ \brief Create a new data.
+
+ \param task_id   The identifier for the data being created.
+ \return No return value.
+ */
+
+APEX_EXPORT void new_data(task_identifier * data_id);
+
+/**                                        
+ \brief Destroy data.
+
+ \param task_id   The identifier for the data being destroyed.
+ \return No return value.
+ */
+
+APEX_EXPORT void destroy_data(task_identifier * data_id);
+
 
 /**
  \brief Register an event type with APEX.
