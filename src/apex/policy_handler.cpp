@@ -164,6 +164,36 @@ int policy_handler::register_policy(const apex_event_type & when,
         satisfy_dependency_event_policies.push_back(instance);
         break;
       }
+      case APEX_ACQUIRE_DATA: {
+        std::unique_lock<mutex_type> l(acquire_data_event_mutex);
+        acquire_data_event_policies.push_back(instance);
+        break;
+      }
+      case APEX_RELEASE_DATA: {
+        std::unique_lock<mutex_type> l(release_data_event_mutex);
+        release_data_event_policies.push_back(instance);
+        break;
+      }
+      case APEX_NEW_EVENT: {
+        std::unique_lock<mutex_type> l(new_event_event_mutex);
+        new_event_event_policies.push_back(instance);
+        break;
+      }
+      case APEX_DESTROY_EVENT: {
+        std::unique_lock<mutex_type> l(destroy_event_event_mutex);
+        destroy_event_event_policies.push_back(instance);
+        break;
+      }                                                           
+      case APEX_NEW_DATA: {
+        std::unique_lock<mutex_type> l(new_data_event_mutex);
+        new_data_event_policies.push_back(instance);
+        break;
+      }
+      case APEX_DESTROY_DATA: {
+        std::unique_lock<mutex_type> l(destroy_data_event_mutex);
+        destroy_data_event_policies.push_back(instance);
+        break;
+      }                                                           
       case APEX_SET_TASK_STATE: {
         std::unique_lock<mutex_type> l(set_task_state_event_mutex);
         set_task_state_event_policies.push_back(instance);
@@ -355,6 +385,78 @@ int policy_handler::deregister_policy(apex_policy_handle * handle) {
             std::shared_ptr<policy_instance> policy = *it;
             if (policy->id == handle->id) {
                 set_task_state_event_policies.erase(it);
+                break;
+            }
+        }
+        break;
+      }
+        case APEX_ACQUIRE_DATA: {
+        std::unique_lock<mutex_type> l(acquire_data_event_mutex);
+        std::list<std::shared_ptr<policy_instance> >::iterator it;
+        for(it = acquire_data_event_policies.begin() ; it != acquire_data_event_policies.end() ; it++) {
+            std::shared_ptr<policy_instance> policy = *it;
+            if (policy->id == handle->id) {
+                acquire_data_event_policies.erase(it);
+                break;
+            }
+        }
+        break;
+      }
+        case APEX_RELEASE_DATA: {
+        std::unique_lock<mutex_type> l(release_data_event_mutex);
+        std::list<std::shared_ptr<policy_instance> >::iterator it;
+        for(it = release_data_event_policies.begin() ; it != release_data_event_policies.end() ; it++) {
+            std::shared_ptr<policy_instance> policy = *it;
+            if (policy->id == handle->id) {
+                release_data_event_policies.erase(it);
+                break;
+            }
+        }
+        break;
+      }
+        case APEX_NEW_EVENT: {                                   
+        std::unique_lock<mutex_type> l(new_event_event_mutex);
+        std::list<std::shared_ptr<policy_instance> >::iterator it;
+        for(it = new_event_event_policies.begin() ; it != new_event_event_policies.end() ; it++) {
+            std::shared_ptr<policy_instance> policy = *it;
+            if (policy->id == handle->id) {
+                new_event_event_policies.erase(it);
+                break;
+            }
+        }
+        break;
+      }
+        case APEX_DESTROY_EVENT: {
+        std::unique_lock<mutex_type> l(destroy_event_event_mutex);
+        std::list<std::shared_ptr<policy_instance> >::iterator it;
+        for(it = destroy_event_event_policies.begin() ; it != destroy_event_event_policies.end() ; it++) {
+            std::shared_ptr<policy_instance> policy = *it;
+            if (policy->id == handle->id) {
+                destroy_event_event_policies.erase(it);
+                break;
+            }
+        }
+        break;
+      }
+        case APEX_NEW_DATA: {
+        std::unique_lock<mutex_type> l(new_data_event_mutex);
+        std::list<std::shared_ptr<policy_instance> >::iterator it;
+        for(it = new_data_event_policies.begin() ; it != new_data_event_policies.end() ; it++) {
+            std::shared_ptr<policy_instance> policy = *it;
+            if (policy->id == handle->id) {
+                new_data_event_policies.erase(it);
+                break;
+            }
+        }
+        break;
+      }
+        case APEX_DESTROY_DATA: {
+        std::unique_lock<mutex_type> l(destroy_data_event_mutex);
+        std::list<std::shared_ptr<policy_instance> >::iterator it;
+        for(it = destroy_data_event_policies.begin() ; it != destroy_data_event_policies.end() ; it++) {
+            std::shared_ptr<policy_instance> policy = *it;
+            if (policy->id == handle->id) {
+                destroy_data_event_policies.erase(it);
                 break;
             }
         }
@@ -561,6 +663,42 @@ void policy_handler::on_set_task_state(set_task_state_event_data &data) {
   if (_terminate) return;
   if (set_task_state_event_policies.empty()) return;
   call_policies(set_task_state_event_policies, data);
+}
+
+void policy_handler::on_acquire_data(acquire_data_event_data &data) {
+  if (_terminate) return;
+  if (acquire_data_event_policies.empty()) return;
+  call_policies(acquire_data_event_policies, data);
+}
+
+void policy_handler::on_release_data(release_data_event_data &data) {
+  if (_terminate) return;
+  if (release_data_event_policies.empty()) return;
+  call_policies(release_data_event_policies, data);
+}
+
+void policy_handler::on_new_event(new_event_event_data &data) {
+  if (_terminate) return;
+  if (new_event_event_policies.empty()) return;
+  call_policies(new_event_event_policies, data);
+}
+
+void policy_handler::on_destroy_event(destroy_event_event_data &data) {
+  if (_terminate) return;
+  if (destroy_event_event_policies.empty()) return;
+  call_policies(destroy_event_event_policies, data);
+}
+
+void policy_handler::on_new_data(new_data_event_data &data) {
+  if (_terminate) return;
+  if (new_data_event_policies.empty()) return;
+  call_policies(new_data_event_policies, data);
+}
+
+void policy_handler::on_destroy_data(destroy_data_event_data &data) {
+  if (_terminate) return;
+  if (destroy_data_event_policies.empty()) return;
+  call_policies(destroy_data_event_policies, data);
 }
 
 void policy_handler::on_sample_value(sample_value_event_data &data) {
