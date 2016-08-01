@@ -433,7 +433,7 @@ APEX_EXPORT void destroy_event(task_identifier * event_id);
  \return No return value.
  */
 
-APEX_EXPORT void new_data(task_identifier * data_id);
+APEX_EXPORT void new_data(task_identifier * data_id, uint64_t size);
 
 /**                                        
  \brief Destroy data.

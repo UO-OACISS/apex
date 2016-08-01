@@ -142,7 +142,8 @@ public:
 class new_data_event_data : public event_data {
 public:
   task_identifier * data_id;
-  new_data_event_data(task_identifier * data_id);
+  uint64_t size;
+  new_data_event_data(task_identifier * data_id, uint64_t size);
   ~new_data_event_data();
 };
 

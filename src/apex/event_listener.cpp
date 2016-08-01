@@ -161,10 +161,11 @@ destroy_event_event_data::destroy_event_event_data(task_identifier * event_id) {
 destroy_event_event_data::~destroy_event_event_data() {
 }
 
-new_data_event_data::new_data_event_data(task_identifier * data_id) {
+new_data_event_data::new_data_event_data(task_identifier * data_id, uint64_t size) {
   this->thread_id = thread_instance::get_id();
   this->event_type_ = APEX_NEW_DATA;
   this->data_id = data_id;
+  this->size = size;
 }
 
 new_data_event_data::~new_data_event_data() {

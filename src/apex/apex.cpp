@@ -787,14 +787,14 @@ void destroy_event(task_identifier * event_id) {
     delete(event_data);
 }
 
-void new_data(task_identifier * event_id) {
+void new_data(task_identifier * event_id, uint64_t size) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
     // if APEX is suspended, do nothing.
     if (apex_options::suspend() == true) { return; }
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
-    new_data_event_data * event_data = new new_data_event_data(event_id);
+    new_data_event_data * event_data = new new_data_event_data(event_id, size);
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_new_data(*event_data);
