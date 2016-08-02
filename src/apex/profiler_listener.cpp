@@ -285,6 +285,11 @@ namespace apex {
 #endif
 #endif
       }
+      /* write the sample to the file */
+      sample_file << p->task_id->get_name() << "," 
+                  << p->normalized_timestamp() << "," 
+                  << p->elapsed() << endl;
+      sample_file.flush();
     return 1;
   }
 
@@ -1251,6 +1256,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       _done = true; // yikes!
       finalize();
       delete_profiles();
+      sample_file.close();
 #ifndef APEX_HAVE_HPX3
       delete consumer_thread;
 #endif

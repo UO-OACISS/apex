@@ -23,6 +23,7 @@
 
 #include "profile.hpp"
 #include "thread_instance.hpp"
+#include <fstream>
 
 // These two are needed by concurrent queue - not defined by Intel Mic support.
 #ifndef ATOMIC_BOOL_LOCK_FREE
@@ -96,6 +97,7 @@ private:
   std::thread * consumer_thread;
 #endif
   semaphore queue_signal;
+  std::ofstream sample_file;
 public:
   profiler_listener (void) : _initialized(false), _done(false), node_id(0), task_map()
 #if APEX_HAVE_PAPI
@@ -105,6 +107,8 @@ public:
 #if APEX_HAVE_PAPI
       num_papi_counters = 0;
 #endif
+      sample_file = std::ofstream("samples.csv");
+      profiler::get_global_start();
   };
   ~profiler_listener (void);
   // events

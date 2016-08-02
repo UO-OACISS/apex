@@ -174,6 +174,40 @@ public:
         return ticks_per_period;
 #endif
     }
+
+    /* this is for OTF2 tracing. 
+     * We want a timestamp for the start of the trace.
+     * We will also need one for the end of the trace. */
+    static MYCLOCK::time_point get_global_start(void) {
+        static MYCLOCK::time_point global_now = MYCLOCK::now();
+        return global_now;
+    }
+    /* this is for getting the endpoint of the trace. */
+    static MYCLOCK::time_point get_global_end(void) {
+        return MYCLOCK::now();
+    }
+    static uint64_t time_point_to_nanoseconds(MYCLOCK::time_point tp) {
+        auto value = tp.time_since_epoch();
+        uint64_t duration = std::chrono::duration_cast<std::chrono::nanoseconds>(value).count();
+        return duration;
+    }
+    double normalized_timestamp(void) {
+        if(is_counter) {
+            return value;
+        } else {
+        /*
+            auto end_ns = std::chrono::time_point_cast<std::chrono::nanoseconds>(end).time_since_epoch();
+            auto gs_ns = std::chrono::time_point_cast<std::chrono::nanoseconds>(get_global_start()).time_since_epoch();
+
+            long duration = end_ns.count() - gs_ns.count();
+            std::cout << end_ns.count() << std::endl;
+            std::cout << gs_ns.count() << std::endl;
+            return duration;
+            */
+            std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(end - get_global_start());
+            return time_span.count();
+        }
+    }
 };
 
 }
