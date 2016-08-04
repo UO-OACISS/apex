@@ -7,6 +7,8 @@
 #include "thread_instance.hpp"
 #include <sstream>
 
+#define APEX_OTF2_EXTENSIONS
+
 using namespace std;
 
 namespace apex {
@@ -57,7 +59,26 @@ namespace apex {
         };
     }
 
+    static inline OTF2_RegionRole get_role(apex_task_id_kind_t kind) {
+        switch(kind) {
+            case APEX_TASK_ID:
+                return OTF2_REGION_ROLE_TASK;
+            case APEX_EVENT_ID:
+                return OTF2_REGION_ROLE_EVENT;
+            case APEX_DATA_ID:
+                return OTF2_REGION_ROLE_DATABLOCK;
+            default:
+                return OTF2_REGION_ROLE_UNKNOWN;
+        }    
+    }
+
     uint64_t otf2_listener::get_region_index(task_identifier * id) {
+#ifdef APEX_DEBUG
+        if(id == nullptr) {
+            std::cerr << "NULL task id in get_region_index!" << std::endl;
+            std::abort();
+        }
+#endif
         region_map_type & region_indices = get_region_indices();
         auto tmp = region_indices.find(*id);
         uint64_t region_index = 0;
@@ -65,12 +86,13 @@ namespace apex {
             region_index = region_indices.size() + 1;
             region_indices[*id] = region_index;
             uint64_t empty_index = get_string_index(empty);
+            const std::string region_name = id->get_name(); 
             OTF2_DefWriter_WriteRegion( def_writer,       
                     region_index /* id */,
-                    get_string_index(id->get_name()) /* region name  */,
-                    empty_index /* alternative name */,
+                    get_string_index(region_name) /* region name  */,
+                    get_string_index(id->internal_name) /* alternative name */,
                     empty_index /* description */,
-                    OTF2_REGION_ROLE_FUNCTION,
+                    get_role(id->kind),
                     OTF2_PARADIGM_USER,
                     OTF2_REGION_FLAG_NONE,
                     empty_index /* source file */,
@@ -82,7 +104,7 @@ namespace apex {
         return region_index;
     }
 
-    uint64_t otf2_listener::get_string_index(const std::string & name) {
+    uint64_t otf2_listener::get_string_index(const std::string name) {
         string_map_type & string_indices = get_string_indices();
         auto tmp = string_indices.find(name);
         uint64_t string_index = 0;
@@ -181,7 +203,7 @@ namespace apex {
                 node_id /* id */,
                 get_string_index(locality.str()) /* name */,
                 OTF2_LOCATION_GROUP_TYPE_PROCESS,
-                0 /* system tree node ID */ );
+                node_id /* system tree node ID */ );
         }
         return;
     }
@@ -197,6 +219,12 @@ namespace apex {
             if(def_writer == nullptr) {
                 def_writer = OTF2_Archive_GetDefWriter( archive, i );
             }
+            using namespace std::chrono;
+            uint64_t stamp = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
+            OTF2_EvtWriter_MeasurementOnOff( evt_writer,
+                nullptr,
+                stamp,
+                OTF2_MEASUREMENT_ON);
         }
         return;
     }
@@ -207,6 +235,12 @@ namespace apex {
             // Write location data
             
             uint64_t thread_id = thread_instance::get_id();
+            using namespace std::chrono;
+            uint64_t stamp = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
+            OTF2_EvtWriter_MeasurementOnOff( evt_writer,
+                nullptr,
+                stamp,
+                OTF2_MEASUREMENT_OFF);
             uint64_t num_events;
             uint64_t node_id = apex::__instance()->get_node_id();
             uint64_t location_id = get_location_id();
@@ -218,7 +252,7 @@ namespace apex {
                 get_string_index(thread_name.str().c_str()) /* name */,
                 OTF2_LOCATION_TYPE_CPU_THREAD /* type */,
                 num_events /* # events */,
-                thread_id);
+                node_id);
 
             // Close local writers
 
@@ -278,23 +312,154 @@ namespace apex {
 
     void otf2_listener::on_new_task(new_task_event_data & data) {
         if (!_terminate) {
+#ifdef APEX_OTF2_EXTENSIONS
             using namespace std::chrono;
             uint64_t stamp = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
             OTF2_EvtWriter_TaskCreate( evt_writer, NULL, 
                 stamp,
                 get_region_index(data.task_id) /* region */ );
+#endif
         }
         return;
     }
 
     void otf2_listener::on_destroy_task(destroy_task_event_data & data) {
         if (!_terminate) {
+#ifdef APEX_OTF2_EXTENSIONS
             using namespace std::chrono;
             uint64_t stamp = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
             OTF2_EvtWriter_TaskDestroy( evt_writer, NULL, 
                 stamp,
                 get_region_index(data.task_id) /* region */ );
+#endif
         }
+        return;
+    }
+
+
+    void otf2_listener::on_new_dependency(new_dependency_event_data & data) {
+        if (!_terminate) {
+#ifdef APEX_OTF2_EXTENSIONS
+            using namespace std::chrono;
+            uint64_t stamp = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
+            OTF2_EvtWriter_AddDependence( evt_writer, NULL, 
+                stamp,
+                get_region_index(data.src), /* region */
+                get_region_index(data.dest) /* region */);
+#endif
+        }
+        return;
+    }
+
+    void otf2_listener::on_satisfy_dependency(satisfy_dependency_event_data & data) {
+        if (!_terminate) {
+#ifdef APEX_OTF2_EXTENSIONS
+            using namespace std::chrono;
+            uint64_t stamp = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
+            OTF2_EvtWriter_SatisfyDependence( evt_writer, NULL, 
+                stamp,
+                get_region_index(data.src), /* region */
+                get_region_index(data.dest) /* region */);
+#endif
+        }
+        return;
+    }
+
+    void otf2_listener::on_set_task_state(set_task_state_event_data & data) {
+        if (!_terminate) {
+#ifdef APEX_OTF2_EXTENSIONS
+            if(data.state == APEX_TASK_ELIGIBLE) {
+                using namespace std::chrono;
+                uint64_t stamp = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
+                OTF2_EvtWriter_TaskRunnable( evt_writer, NULL, 
+                    stamp,
+                    get_region_index(data.task_id) /* region */);
+            }
+#endif
+        }
+        return;
+    }
+
+    void otf2_listener::on_acquire_data(acquire_data_event_data &data) {
+        if (!_terminate) {
+#ifdef APEX_OTF2_EXTENSIONS
+            using namespace std::chrono;
+            uint64_t stamp = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
+            OTF2_EvtWriter_DataAcquire( evt_writer, NULL, 
+                stamp,
+                get_region_index(data.task_id), /* region */
+                get_region_index(data.data_id), /* region */
+                data.size);
+#endif
+        }
+        return;
+    }
+
+    void otf2_listener::on_release_data(release_data_event_data &data) {
+        if (!_terminate) {
+#ifdef APEX_OTF2_EXTENSIONS
+            using namespace std::chrono;
+            uint64_t stamp = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
+            OTF2_EvtWriter_DataRelease( evt_writer, NULL, 
+                stamp,
+                get_region_index(data.task_id), /* region */
+                get_region_index(data.data_id), /* region */
+                data.size);
+#endif
+        }
+        return;
+    }
+
+    void otf2_listener::on_new_event(new_event_event_data &data) {
+        if (!_terminate) {
+#ifdef APEX_OTF2_EXTENSIONS
+            using namespace std::chrono;
+            uint64_t stamp = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
+            OTF2_EvtWriter_EventCreate( evt_writer, NULL, 
+                stamp,
+                get_region_index(data.event_id) /* region */ );
+#endif
+        }
+        return;
+    }
+
+    void otf2_listener::on_destroy_event(destroy_event_event_data &data) {
+        if (!_terminate) {
+#ifdef APEX_OTF2_EXTENSIONS
+            using namespace std::chrono;
+            uint64_t stamp = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
+            OTF2_EvtWriter_EventDestroy( evt_writer, NULL, 
+                stamp,
+                get_region_index(data.event_id) /* region */ );
+#endif
+        }
+        return;
+    }
+
+    void otf2_listener::on_new_data(new_data_event_data &data) {
+        if (!_terminate) {
+#ifdef APEX_OTF2_EXTENSIONS
+            using namespace std::chrono;
+            uint64_t stamp = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
+            OTF2_EvtWriter_DataCreate( evt_writer, NULL, 
+                stamp,
+                get_region_index(data.data_id), /* region */
+                data.size);
+#endif
+        }
+        return;
+    }
+
+    void otf2_listener::on_destroy_data(destroy_data_event_data &data) {
+        if (!_terminate) {
+#ifdef APEX_OTF2_EXTENSIONS
+            using namespace std::chrono;
+            uint64_t stamp = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
+            OTF2_EvtWriter_EventDestroy( evt_writer, NULL, 
+                stamp,
+                get_region_index(data.data_id) /* region */ );
+#endif
+        }                  
         return;
     }
 

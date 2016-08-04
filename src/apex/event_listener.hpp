@@ -101,6 +101,7 @@ public:
 };
 
 class set_task_state_event_data : public event_data {
+public:
   task_identifier * task_id;
   apex_task_state   state;
   set_task_state_event_data(task_identifier * task_id, apex_task_state state);

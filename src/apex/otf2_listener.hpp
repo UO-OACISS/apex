@@ -16,10 +16,25 @@
 
 namespace apex {
 
+
+
     class otf2_listener : public event_listener {
+    private:
+        // We want a different comparison for the region_map than we usually
+        // use for task_identifiers, because we care about the internal name
+        // to distinguish otherwise identical task_identifiers.
+        struct task_id_compare {
+            bool operator()(const task_identifier & left, const task_identifier & right) const {
+                if(left.address == right.address && left.name.compare(right.name) == 0) {
+                    return left.internal_name < right.internal_name;
+                } else {
+                    return left < right;
+                }
+            }
+        };
     public:
         using string_map_type = std::map<std::string,uint64_t>;
-        using region_map_type =  std::map<task_identifier,uint64_t>;
+        using region_map_type =  std::map<task_identifier,uint64_t,task_id_compare>;
     private:
         void _init(void);
         bool _terminate;
@@ -149,7 +164,7 @@ namespace apex {
             return string_indices;
         }
         uint64_t get_region_index(task_identifier* id);
-        uint64_t get_string_index(const std::string& name);
+        uint64_t get_string_index(const std::string name);
         static const std::string empty;
         inline static uint64_t get_location_id() {
             const uint64_t node_id = apex::__instance()->get_node_id();
@@ -171,15 +186,15 @@ namespace apex {
         void on_sample_value(sample_value_event_data &data);
         void on_new_task(new_task_event_data & data);
         void on_destroy_task(destroy_task_event_data & data);
-        void on_new_dependency(new_dependency_event_data & data) { APEX_UNUSED(data); };
-        void on_satisfy_dependency(satisfy_dependency_event_data & data) { APEX_UNUSED(data); };
-        void on_set_task_state(set_task_state_event_data & data) { APEX_UNUSED(data); };
-        void on_acquire_data(acquire_data_event_data &data) { APEX_UNUSED(data); };
-        void on_release_data(release_data_event_data &data) { APEX_UNUSED(data); };
-        void on_new_event(new_event_event_data &data) { APEX_UNUSED(data); };
-        void on_destroy_event(destroy_event_event_data &data) { APEX_UNUSED(data); };
-        void on_new_data(new_data_event_data &data) { APEX_UNUSED(data); };
-        void on_destroy_data(destroy_data_event_data &data) { APEX_UNUSED(data); };
+        void on_new_dependency(new_dependency_event_data & data);
+        void on_satisfy_dependency(satisfy_dependency_event_data & data);
+        void on_set_task_state(set_task_state_event_data & data);
+        void on_acquire_data(acquire_data_event_data &data);
+        void on_release_data(release_data_event_data &data);
+        void on_new_event(new_event_event_data &data);
+        void on_destroy_event(destroy_event_event_data &data);
+        void on_new_data(new_data_event_data &data);
+        void on_destroy_data(destroy_data_event_data &data);
         void on_periodic(periodic_event_data &data)
             { APEX_UNUSED(data); };
         void on_custom_event(custom_event_data &data)

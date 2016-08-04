@@ -691,6 +691,23 @@ void destroy_task(apex_function_address function_address, void * task_id) {
     destroy_task(id, task_id);
 }
 
+
+void set_task_state(task_identifier * task_id, apex_task_state state) {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
+    // if APEX is suspended, do nothing.
+    if (apex_options::suspend() == true) { return; }
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance || _exited) return; // protect against calls after finalization
+    set_task_state_event_data * event_data = new set_task_state_event_data(task_id, state);
+    if (_notify_listeners) {
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            instance->listeners[i]->on_set_task_state(*event_data);
+        }
+    }
+    delete(event_data);
+}
+
 void new_dependency(task_identifier * src, task_identifier * dest) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }

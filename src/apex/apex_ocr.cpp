@@ -86,17 +86,26 @@ static inline void apex_ocr_task_destroy(ocrGuid_t edtGuid, apex_function_addres
 }
 
 
-static inline void apex_ocr_task_runnable(ocrGuid_t edtGuid) {
+static inline void apex_ocr_task_runnable(ocrGuid_t edtGuid, apex_function_address fctPtr) {
     DEBUG_MSG("Task runnable: " << guid_to_str(edtGuid));
+    apex::task_identifier * task_id = new apex::task_identifier(fctPtr, guid_to_str(edtGuid));
+    apex::set_task_state(task_id, APEX_TASK_ELIGIBLE);
 }
 
 static inline void apex_ocr_task_add_dependence(ocrGuid_t src, ocrGuid_t dest) {
     DEBUG_MSG("Task add dependence: " << guid_to_str(src) << " --> " << guid_to_str(dest));
+    apex::task_identifier * src_id  = new apex::task_identifier((apex_function_address)APEX_NULL_FUNCTION_ADDRESS, guid_to_str(src));
+    apex::task_identifier * dest_id = new apex::task_identifier((apex_function_address)APEX_NULL_FUNCTION_ADDRESS, guid_to_str(dest));
+    apex::new_dependency(src_id, dest_id);
+
 }
 
 
 static inline void apex_ocr_task_satisfy_dependence(ocrGuid_t edtGuid, ocrGuid_t satisfyee) {
     DEBUG_MSG("Task satisfy dependence. Task: " << guid_to_str(edtGuid) << " Satisfyee: " << guid_to_str(satisfyee));
+    apex::task_identifier * task_id  = new apex::task_identifier((apex_function_address)APEX_NULL_FUNCTION_ADDRESS, guid_to_str(edtGuid));
+    apex::task_identifier * satisfyee_id = new apex::task_identifier((apex_function_address)APEX_NULL_FUNCTION_ADDRESS, guid_to_str(satisfyee));
+    apex::new_dependency(task_id, satisfyee_id);
 }
 
 static inline void apex_ocr_task_execute(ocrGuid_t edtGuid, apex_function_address fctPtr, int node) {
@@ -123,34 +132,55 @@ static inline void apex_ocr_task_finish(ocrGuid_t edtGuid) {
 
 static inline void apex_ocr_task_data_acquire(ocrGuid_t edtGuid, ocrGuid_t dbGuid, u64 dbSize) {
     DEBUG_MSG("Task data acquire. Task " << guid_to_str(edtGuid) << " acquired DB " << guid_to_str(dbGuid) << " of size " << dbSize);
+    apex::task_identifier * task_id  = new apex::task_identifier((apex_function_address)APEX_NULL_FUNCTION_ADDRESS, guid_to_str(edtGuid));
+    apex::task_identifier * data_id = new apex::task_identifier((apex_function_address)APEX_NULL_FUNCTION_ADDRESS, guid_to_str(dbGuid), APEX_DATA_ID);
+    apex::acquire_data(task_id, data_id, dbSize);
 }
 
 static inline void apex_ocr_task_data_release(ocrGuid_t edtGuid, ocrGuid_t dbGuid, u64 dbSize) {
     DEBUG_MSG("Task data release. Task " << guid_to_str(edtGuid) << " released DB " << guid_to_str(dbGuid) << " of size " << dbSize);
+    apex::task_identifier * task_id  = new apex::task_identifier((apex_function_address)APEX_NULL_FUNCTION_ADDRESS, guid_to_str(edtGuid));
+    apex::task_identifier * data_id = new apex::task_identifier((apex_function_address)APEX_NULL_FUNCTION_ADDRESS, guid_to_str(dbGuid), APEX_DATA_ID);
+    DEBUG_MSG("task_id: " << task_id << ", data_id: " << data_id);
+    apex::release_data(task_id, data_id, dbSize);
 }
 
 static inline void apex_ocr_event_create(ocrGuid_t eventGuid) {
     DEBUG_MSG("Event create: " << guid_to_str(eventGuid));
+    apex::task_identifier * event_id = new apex::task_identifier((apex_function_address)APEX_NULL_FUNCTION_ADDRESS, guid_to_str(eventGuid), APEX_EVENT_ID);
+    apex::new_event(event_id);                                                                            
 }
 
 static inline void apex_ocr_event_destroy(ocrGuid_t eventGuid) {
     DEBUG_MSG("Event destroy: " << guid_to_str(eventGuid));
+    apex::task_identifier * event_id = new apex::task_identifier((apex_function_address)APEX_NULL_FUNCTION_ADDRESS, guid_to_str(eventGuid), APEX_EVENT_ID);
+    apex::destroy_event(event_id);                                                                            
 }
 
 static inline void apex_ocr_event_satisfy_dependence(ocrGuid_t eventGuid, ocrGuid_t satisfyee) {
     DEBUG_MSG("Event satisfy dependence. Event: " << guid_to_str(eventGuid) << " Satisfyee: " << guid_to_str(satisfyee));
+    apex::task_identifier * event_id  = new apex::task_identifier((apex_function_address)APEX_NULL_FUNCTION_ADDRESS, guid_to_str(eventGuid), APEX_EVENT_ID);
+    apex::task_identifier * satisfyee_id = new apex::task_identifier((apex_function_address)APEX_NULL_FUNCTION_ADDRESS, guid_to_str(satisfyee));
+    apex::new_dependency(event_id, satisfyee_id);
 }
 
 static inline void apex_ocr_event_add_dependence(ocrGuid_t src, ocrGuid_t dest) {
     DEBUG_MSG("Event add dependence: " << guid_to_str(src) << " --> " << guid_to_str(dest));
+    apex::task_identifier * src_id  = new apex::task_identifier((apex_function_address)APEX_NULL_FUNCTION_ADDRESS, guid_to_str(src), APEX_EVENT_ID);
+    apex::task_identifier * dest_id = new apex::task_identifier((apex_function_address)APEX_NULL_FUNCTION_ADDRESS, guid_to_str(dest));
+    apex::new_dependency(src_id, dest_id);
 }
 
 static inline void apex_ocr_data_create(ocrGuid_t dbGuid, u64 dbSize) {
     DEBUG_MSG("Data create: " << guid_to_str(dbGuid) << " of size " << dbSize);
+    apex::task_identifier * data_id = new apex::task_identifier((apex_function_address)APEX_NULL_FUNCTION_ADDRESS, guid_to_str(dbGuid), APEX_DATA_ID);
+    apex::new_data(data_id, dbSize);
 }
 
 static inline void apex_ocr_data_destroy(ocrGuid_t dbGuid) {
     DEBUG_MSG("Data destroy: " << guid_to_str(dbGuid));
+    apex::task_identifier * data_id = new apex::task_identifier((apex_function_address)APEX_NULL_FUNCTION_ADDRESS, guid_to_str(dbGuid), APEX_DATA_ID);
+    apex::destroy_data(data_id);
 }
 
 extern "C" {
@@ -175,8 +205,9 @@ void traceTaskDestroy(u64 location, bool evtType, ocrTraceType_t objType,
 
 void traceTaskRunnable(u64 location, bool evtType, ocrTraceType_t objType,
                        ocrTraceAction_t actionType, u64 workerId,
-                       u64 timestamp, ocrGuid_t parent, ocrGuid_t edtGuid) { 
-    apex_ocr_task_runnable(edtGuid);
+                       u64 timestamp, ocrGuid_t parent, ocrGuid_t edtGuid,
+                       ocrEdt_t fctPtr) { 
+    apex_ocr_task_runnable(edtGuid, (apex_function_address)fctPtr);
 }
 
 

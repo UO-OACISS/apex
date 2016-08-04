@@ -132,7 +132,7 @@ acquire_data_event_data::~acquire_data_event_data() {
 }
 
 release_data_event_data::release_data_event_data(task_identifier * task_id,
-        task_identifier * dest, uint64_t size) {
+        task_identifier * data_id, uint64_t size) {
   this->thread_id = thread_instance::get_id();
   this->event_type_ = APEX_RELEASE_DATA;
   this->task_id = task_id;
