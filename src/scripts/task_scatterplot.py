@@ -19,7 +19,7 @@ def shorten_name(name):
         tmp = tokens1[0] + '()' + tokens2[len(tokens2)-1]
     # otherwise, just take the first 64 characters.
     short = (tmp[:77] + '...') if len(tmp) > 77 else tmp
-    return short
+    return short.replace('_', '$\_$')
 
 dictionary = {}
 with open ('samples.csv', 'rb') as csvfile:
@@ -37,6 +37,14 @@ with open ('samples.csv', 'rb') as csvfile:
                 dictionary[row[2]] = [mytup]
             else:
                 dictionary[row[2]].append(mytup)
+
+#resize the figure
+# Get current size
+fig_size = pl.rcParams["figure.figsize"]
+# Set figure width to 12 and height to 9
+fig_size[0] = 12
+fig_size[1] = 9
+pl.rcParams["figure.figsize"] = fig_size
 
 axes = pl.subplot()
 axes.set_title("Title");

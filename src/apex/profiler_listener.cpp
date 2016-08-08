@@ -1064,6 +1064,13 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       if (apex_options::use_profile_output() && !apex_options::use_tau()) {
         write_profile();
       }
+      if (apex_options::task_scatterplot()) {
+        // flush the string stream to the file
+        task_scatterplot_sample_file << task_scatterplot_samples.str();
+        // close the sample file
+        task_scatterplot_sample_file.flush();
+        task_scatterplot_sample_file.close();
+      }
 
     }
     /* The cleanup is disabled for now. Why? Because we want to be able
@@ -1273,12 +1280,6 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       _done = true; // yikes!
       finalize();
       delete_profiles();
-      if (apex_options::task_scatterplot()) {
-        // flush the string stream to the file
-        task_scatterplot_sample_file << task_scatterplot_samples.str() << flush;
-        // close the sample file
-        task_scatterplot_sample_file.close();
-      }
 #ifndef APEX_HAVE_HPX3
       delete consumer_thread;
 #endif
