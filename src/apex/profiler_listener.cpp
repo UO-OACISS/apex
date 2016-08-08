@@ -82,6 +82,9 @@ static void apex_schedule_process_profiles(void); // not in apex namespace
 #include <thread>
 #include "utils.hpp"
 
+#include <cstdlib>
+#include <ctime>
+
 using namespace std;
 using namespace apex;
 
@@ -286,10 +289,24 @@ namespace apex {
 #endif
       }
       /* write the sample to the file */
-      sample_file << p->task_id->get_name() << "," 
-                  << p->normalized_timestamp() << "," 
-                  << p->elapsed() << endl;
-      sample_file.flush();
+      if (apex_options::task_scatterplot()) {
+        if (!p->is_counter) {
+            static int thresh = RAND_MAX/100;
+            if (std::rand() < thresh) {
+                std::unique_lock<std::mutex> task_map_lock(_mtx);
+                task_scatterplot_samples << p->normalized_timestamp() << " " 
+                            << p->elapsed()*profiler::get_cpu_mhz()*1000000 << " " 
+                            << "'" << p->task_id->get_name() << "'" << endl;
+                int loc0 = task_scatterplot_samples.tellp();
+                if (loc0 > 32768) {
+                    // flush the string stream to the file
+                    task_scatterplot_sample_file << task_scatterplot_samples.str() << flush;
+                    // reset the stringstream
+                    task_scatterplot_samples = std::stringstream();
+                }
+            }
+        }
+      }
     return 1;
   }
 
@@ -1256,7 +1273,12 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       _done = true; // yikes!
       finalize();
       delete_profiles();
-      sample_file.close();
+      if (apex_options::task_scatterplot()) {
+        // flush the string stream to the file
+        task_scatterplot_sample_file << task_scatterplot_samples.str() << flush;
+        // close the sample file
+        task_scatterplot_sample_file.close();
+      }
 #ifndef APEX_HAVE_HPX3
       delete consumer_thread;
 #endif

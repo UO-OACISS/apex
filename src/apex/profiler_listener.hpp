@@ -97,7 +97,8 @@ private:
   std::thread * consumer_thread;
 #endif
   semaphore queue_signal;
-  std::ofstream sample_file;
+  std::ofstream task_scatterplot_sample_file;
+  std::stringstream task_scatterplot_samples;
 public:
   profiler_listener (void) : _initialized(false), _done(false), node_id(0), task_map()
 #if APEX_HAVE_PAPI
@@ -107,8 +108,11 @@ public:
 #if APEX_HAVE_PAPI
       num_papi_counters = 0;
 #endif
-      sample_file = std::ofstream("samples.csv");
-      profiler::get_global_start();
+      if (apex_options::task_scatterplot()) {
+        task_scatterplot_sample_file = std::ofstream("samples.csv");
+        task_scatterplot_sample_file << "#timestamp value   name" << std::endl << std::flush;
+        profiler::get_global_start();
+      }
   };
   ~profiler_listener (void);
   // events

@@ -89,6 +89,7 @@ public:
         is_resume(resume),
         is_reset(reset), stopped(false) {};
     profiler(task_identifier * id, double value_) : 
+        start(MYCLOCK::now()), 
 #if APEX_HAVE_PAPI
         papi_start_values{0,0,0,0,0,0,0,0},
         papi_stop_values{0,0,0,0,0,0,0,0},
@@ -204,8 +205,8 @@ public:
             std::cout << gs_ns.count() << std::endl;
             return duration;
             */
-            std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(end - get_global_start());
-            return time_span.count();
+            std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(start - get_global_start());
+            return time_span.count()*get_cpu_mhz();
         }
     }
 };
