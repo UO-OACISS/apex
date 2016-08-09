@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import os
 import sys
 import sqlite3
@@ -46,23 +48,26 @@ fig_size[0] = 12
 fig_size[1] = 9
 pl.rcParams["figure.figsize"] = fig_size
 
-axes = pl.subplot()
-axes.set_title("Title");
 mymark = ('o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd')
-limit = 0
+mycolor = ('blue', 'green', 'red', 'cyan', 'magenta', 'yellow', 'black', 'darkblue', 'darkgreen', 'darkred')
+
+index = 0
+numplots = min(len(dictionary), 10)
 for key in sorted(dictionary, key=lambda key: len(dictionary[key]), reverse=True):
+    index = index + 1
+    axes = pl.subplot(numplots/2, 2, index)
     timestamps = np.array([x[0] for x in dictionary[key]])
     values = np.array([x[1] for x in dictionary[key]])
     name = shorten_name(key)
-    pl.plot(timestamps, values, marker=mymark[limit], linestyle=' ', label=name)
+    axes.set_title(name);
+    pl.plot(timestamps, values, color=mycolor[index-1], marker=mymark[index-1], linestyle=' ', label=name)
     pl.draw()
-    limit = limit + 1
-    if limit > 10:
+    axes.set_autoscale_on(True) # enable autoscale
+    axes.autoscale_view(True,True,True)
+    pl.legend(prop={'size':8})
+    pl.ylabel("usec")
+    pl.xlabel("seconds from program start")
+    if index > 9:
         break
-
-axes.set_autoscale_on(True) # enable autoscale
-axes.autoscale_view(True,True,True)
-pl.legend(prop={'size':8})
-pl.ylabel("usec")
-pl.xlabel("seconds from program start")
+pl.tight_layout()
 pl.show()
