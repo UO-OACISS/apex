@@ -455,9 +455,9 @@ namespace apex {
 #ifdef APEX_OTF2_EXTENSIONS
             using namespace std::chrono;
             uint64_t stamp = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
-            OTF2_EvtWriter_EventDestroy( evt_writer, NULL, 
+            OTF2_EvtWriter_DataDestroy( evt_writer, NULL, 
                 stamp,
-                get_region_index(data.data_id) /* region */ );
+                get_region_index(data.data_id) /* region */);
 #endif
         }                  
         return;

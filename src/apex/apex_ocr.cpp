@@ -105,7 +105,7 @@ static inline void apex_ocr_task_satisfy_dependence(ocrGuid_t edtGuid, ocrGuid_t
     DEBUG_MSG("Task satisfy dependence. Task: " << guid_to_str(edtGuid) << " Satisfyee: " << guid_to_str(satisfyee));
     apex::task_identifier * task_id  = new apex::task_identifier((apex_function_address)APEX_NULL_FUNCTION_ADDRESS, guid_to_str(edtGuid));
     apex::task_identifier * satisfyee_id = new apex::task_identifier((apex_function_address)APEX_NULL_FUNCTION_ADDRESS, guid_to_str(satisfyee));
-    apex::new_dependency(task_id, satisfyee_id);
+    apex::satisfy_dependency(task_id, satisfyee_id);
 }
 
 static inline void apex_ocr_task_execute(ocrGuid_t edtGuid, apex_function_address fctPtr, int node) {
