@@ -39,7 +39,9 @@ namespace apex {
         void* event_writer(void* arg);
         OTF2_Archive* archive;
         static __thread OTF2_EvtWriter* evt_writer;
-        static __thread OTF2_DefWriter* def_writer;
+        //static __thread OTF2_DefWriter* def_writer;
+        OTF2_EvtWriter* getEvtWriter();
+        OTF2_DefWriter* getDefWriter(int threadid);
         OTF2_GlobalDefWriter* global_def_writer;
         std::map<task_identifier,uint64_t>& get_region_indices(void) {
             static __thread std::map<task_identifier,uint64_t> region_indices;
@@ -61,7 +63,7 @@ namespace apex {
                 tmp = global_region_indices.find(*id);
                 if (tmp == global_region_indices.end()) {
                     /* not in the global map? create it. */
-                    region_index = global_region_indices.size() + 1;
+                    region_index = global_region_indices.size();// + 1;
                     global_region_indices[*id] = region_index;
                 } else {
                     region_index = tmp->second;
@@ -85,7 +87,7 @@ namespace apex {
                 std::unique_lock<std::mutex> lock(_mutex);
                 tmp = global_string_indices.find(name);
                 if (tmp == global_string_indices.end()) {
-                    string_index = global_string_indices.size() + 1;
+                    string_index = global_string_indices.size();// + 1;
                     global_string_indices[name] = string_index;
                 } else {
                     string_index = tmp->second;
@@ -98,8 +100,36 @@ namespace apex {
             }
 	        return string_index;
         }
+        uint64_t get_hostname_index(const std::string& name) {
+            /* first, look in the map */
+            static std::map<std::string,uint64_t> hostname_indices;
+            auto tmp = hostname_indices.find(name);
+            uint64_t hostname_index = 0;
+            if (tmp == hostname_indices.end()) {
+                /* not in the map? create it. */
+                hostname_index = hostname_indices.size();// + 1;
+                /* store the global value in the thread's map */
+                hostname_indices[name] = hostname_index;
+            } else {
+                hostname_index = tmp->second;
+            }
+	        return hostname_index;
+        }
         static const std::string empty;
         void write_otf2_regions(void);
+        void write_my_regions(void);
+        void reduce_regions(void);
+        void write_region_map(void);
+        void write_clock_properties(void);
+        void write_host_properties(int rank, int pid, std::string& hostname);
+        static const std::string index_filename;
+        static const std::string lock_filename_prefix;
+        static const std::string region_filename_prefix;
+        void create_archive(void);
+        int my_saved_node_id;
+        std::map<int,int> rank_thread_map;
+        std::map<int,int> rank_region_map;
+        std::map<std::string,uint64_t> reduced_map;
     public:
         otf2_listener (void);
         ~otf2_listener (void) { };

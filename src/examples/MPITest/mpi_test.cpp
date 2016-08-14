@@ -31,11 +31,14 @@ int main(int argc, char **argv) {
 
   MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
   apex::set_node_id(myrank);
+  apex::profiler* p = apex::start((apex_function_address)(main));
   if (myrank == 0) {
     master();
   } else {
     worker();
   }
+
+  apex::stop(p);
 
   /* Shut down MPI */
 
@@ -147,7 +150,7 @@ static void worker(void) {
     /* Check the tag of the received message. */
 
     if (status.MPI_TAG == DIETAG) {
-      return;
+        break;
     }
 
     /* Do the work */
@@ -159,6 +162,7 @@ static void worker(void) {
     MPI_Send(&result, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
   }
   apex::stop(p);
+  return;
 }
 
 
