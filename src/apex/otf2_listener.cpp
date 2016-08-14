@@ -292,7 +292,6 @@ namespace apex {
             //traceLength /* length */ );
             0 /* epoch */,
             traceLength /* length */ );
-        cout << my_saved_node_id << ": start: 0, stop: " << traceLength << ", ticks per second: " << ticks_per_second << endl;
     }
 
     void otf2_listener::write_host_properties(int rank, int pid, std::string& hostname) {
@@ -364,17 +363,24 @@ namespace apex {
                 const string node("node");
                 OTF2_GlobalDefWriter_WriteString( global_def_writer, 
                     get_string_index(node), node.c_str() );
-                int number_of_lines = 0;
                 std::string line;
                 std::ifstream myfile(index_filename);
                 int rank, pid;
                 std::string hostname;
+                std::map<int,int> rank_pid_map;
+                std::map<int,string> rank_hostname_map;
                 while (std::getline(myfile, line)) {
                     istringstream ss(line);
                     ss >> rank >> pid >> hostname;
-                    write_host_properties(rank, pid, hostname);
-                    ++number_of_lines;
+                    rank_pid_map[rank] = pid;
+                    rank_hostname_map[rank] = hostname;
                 }    
+                for (auto const &i : rank_pid_map) {
+                    rank = i.first;
+                    pid = i.second;
+                    hostname = rank_hostname_map[rank];
+                    write_host_properties(rank, pid, hostname);
+                }
             } else {
                 write_my_regions();
                 write_region_map();
@@ -434,7 +440,6 @@ namespace apex {
             using namespace std::chrono;
             uint64_t stamp = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
             stamp = stamp - this->globalOffset;
-            cout << my_saved_node_id << ": " << stamp << " " << id->get_name() << " start " << endl;
             OTF2_EvtWriter_Enter( local_evt_writer, NULL, 
                 stamp,
                 get_region_index(id) /* region */ );
@@ -458,7 +463,6 @@ namespace apex {
             using namespace std::chrono;
             uint64_t stamp = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
             stamp = stamp - this->globalOffset;
-            cout << my_saved_node_id << ": " << stamp << " " << p->task_id->get_name() << " stop " << endl;
             OTF2_EvtWriter_Leave( local_evt_writer, NULL, 
                 stamp,
                 get_region_index(p->task_id) /* region */ );
