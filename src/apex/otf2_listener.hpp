@@ -63,7 +63,7 @@ namespace apex {
                 tmp = global_region_indices.find(*id);
                 if (tmp == global_region_indices.end()) {
                     /* not in the global map? create it. */
-                    region_index = global_region_indices.size();// + 1;
+                    region_index = global_region_indices.size();
                     global_region_indices[*id] = region_index;
                 } else {
                     region_index = tmp->second;
@@ -87,7 +87,7 @@ namespace apex {
                 std::unique_lock<std::mutex> lock(_mutex);
                 tmp = global_string_indices.find(name);
                 if (tmp == global_string_indices.end()) {
-                    string_index = global_string_indices.size();// + 1;
+                    string_index = global_string_indices.size();
                     global_string_indices[name] = string_index;
                 } else {
                     string_index = tmp->second;
