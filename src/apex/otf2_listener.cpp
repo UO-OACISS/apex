@@ -14,6 +14,18 @@
 
 using namespace std;
 
+extern "C" OTF2_CallbackCode my_otf2_dummy_create(void *userData, OTF2_Lock *lock) {
+    return OTF2_CALLBACK_SUCCESS;
+}
+
+extern "C" OTF2_CallbackCode my_otf2_dummy(void *userData, OTF2_Lock lock) {
+    return OTF2_CALLBACK_SUCCESS;
+}
+
+extern "C" void my_otf2_dummy_release(void *userData) {
+    return ;
+}
+
 namespace apex {
 
     const std::string otf2_listener::empty("");
@@ -69,10 +81,20 @@ namespace apex {
                 OTF2_COMPRESSION_NONE );
         /* set the flush callbacks, basically getting timestamps */
         OTF2_Archive_SetFlushCallbacks( archive, &flush_callbacks, NULL );
-        /* ? */
-        OTF2_Archive_SetSerialCollectiveCallbacks( archive );
-        /* ? */
-        OTF2_Pthread_Archive_SetLockingCallbacks( archive, NULL );
+        /* we have no collective callbacks. */
+        if (OTF2_Archive_SetSerialCollectiveCallbacks(archive) != OTF2_SUCCESS) {
+            cerr << "[APEX] (ignore OTF2 errors! They are OK...)" << endl;
+        }
+        /* someday we will get locking callbacks to work. Not today. */
+        /*
+        OTF2_LockingCallbacks dummies;
+        dummies.otf2_release = my_otf2_dummy_release;
+        dummies.otf2_create = my_otf2_dummy_create;
+        dummies.otf2_destroy = my_otf2_dummy;
+        dummies.otf2_lock = my_otf2_dummy;
+        dummies.otf2_unlock = my_otf2_dummy;
+        OTF2_Archive_SetLockingCallbacks(archive, &dummies, NULL);
+        */ 
         /* open the event files for this archive */
         OTF2_Archive_OpenEvtFiles( archive );
         // add the empty string to the string definitions

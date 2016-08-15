@@ -8,7 +8,6 @@
 #include "apex.hpp"
 #include "event_listener.hpp"
 #include <otf2/otf2.h>
-#include <otf2/OTF2_Pthread_Locks.h>
 #include <map>
 #include <string>
 #include <mutex>
