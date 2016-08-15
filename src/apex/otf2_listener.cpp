@@ -9,6 +9,8 @@
 #include <ostream>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <sys/file.h>
 
 using namespace std;
 
@@ -399,16 +401,34 @@ namespace apex {
              * if it is larger than the current rank in there. */
             pid_t pid = ::getpid();
             my_saved_node_id = apex::instance()->get_node_id();
-            //if (my_saved_node_id != 0) {
-                ofstream indexfile;
-                char hostname[128];
-                gethostname(hostname, sizeof hostname);
-                string host(hostname);
-                // write our pid and hostname
-                indexfile.open(index_filename, ios::out | ios::ate | ios::app );
-                indexfile << my_saved_node_id << "\t" << pid << "\t" << hostname << endl;
-                indexfile.close();
-            //}
+            char hostname[128];
+            gethostname(hostname, sizeof hostname);
+            string host(hostname);
+            stringstream ss;
+            ss << my_saved_node_id << "\t" << pid << "\t" << hostname << "\n";
+            string tmp = ss.str();
+            // write our pid and hostname, using low-level file locking!
+            struct flock fl;
+            fl.l_type   = F_WRLCK;  /* F_RDLCK, F_WRLCK, F_UNLCK    */
+            fl.l_whence = SEEK_SET; /* SEEK_SET, SEEK_CUR, SEEK_END */
+            fl.l_start  = 0;        /* Offset from l_whence         */
+            fl.l_len    = 0;        /* length, 0 = to EOF           */
+            fl.l_pid    = pid;      /* our PID                      */
+            int indexfile = open(index_filename.c_str(), O_APPEND | O_WRONLY );
+            if (indexfile < 0) {
+                assert("error opening index file");
+            }
+            fcntl(indexfile, F_SETLKW, &fl);  /* F_GETLK, F_SETLK, F_SETLKW */
+            //flock(indexfile, LOCK_EX);
+            if (write(indexfile, tmp.c_str(), tmp.size()) < 0) {
+                assert("error writing to index file");
+            }
+            fl.l_type   = F_UNLCK;   /* tell it to unlock the region */
+            fcntl(indexfile, F_SETLK, &fl); /* set the region to unlocked */
+            //flock(indexfile, LOCK_UN);
+            if (close(indexfile) < 0) {
+                assert("error closing index file");
+            }
         }
         return;
     }
