@@ -75,8 +75,8 @@ namespace apex {
         archive = OTF2_Archive_Open( apex_options::otf2_archive_path(),
                 apex_options::otf2_archive_name(),
                 OTF2_FILEMODE_WRITE,
-                1024 * 1024 /* event chunk size */,
-                4 * 1024 * 1024 /* def chunk size */,
+                OTF2_CHUNK_SIZE_EVENTS_DEFAULT,
+                OTF2_CHUNK_SIZE_DEFINITIONS_DEFAULT,
                 OTF2_SUBSTRATE_POSIX,
                 OTF2_COMPRESSION_NONE );
         /* set the flush callbacks, basically getting timestamps */

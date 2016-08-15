@@ -44,7 +44,7 @@ if (OPENMP_FOUND)
   set(example_programs "${example_programs};apex_setup_throughput_tuning")
 endif (OPENMP_FOUND)
 
-if (NOT PAPI_FOUND)
+if ((NOT PAPI_FOUND) AND (NOT OTF2_FOUND))
     set(example_programs "${example_programs};apex_pthread_flood")
 endif()
 
