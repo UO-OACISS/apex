@@ -34,7 +34,66 @@ namespace apex {
                                           OTF2_FileType fileType, 
                                           OTF2_LocationRef location ) 
         { return get_time(); }
-        static OTF2_FlushCallbacks flush_callbacks;
+
+        static OTF2_CallbackCode my_OTF2GetSize(void *userData, 
+            OTF2_CollectiveContext *commContext, 
+            uint32_t *size);
+        static OTF2_CallbackCode my_OTF2GetRank (void *userData,
+            OTF2_CollectiveContext *commContext, 
+            uint32_t *rank);
+        static OTF2_CallbackCode my_OTF2CreateLocalComm (void *userData,
+            OTF2_CollectiveContext **localCommContext, 
+            OTF2_CollectiveContext *globalCommContext, 
+            uint32_t globalRank, 
+            uint32_t globalSize, 
+            uint32_t localRank, 
+            uint32_t localSize, 
+            uint32_t fileNumber, 
+            uint32_t numberOfFiles);
+        static OTF2_CallbackCode my_OTF2FreeLocalComm (void *userData,
+            OTF2_CollectiveContext *localCommContext);
+        static OTF2_CallbackCode my_OTF2Barrier (void *userData,
+            OTF2_CollectiveContext *commContext);
+        static OTF2_CallbackCode my_OTF2Bcast (void *userData,
+            OTF2_CollectiveContext *commContext, 
+            void *data, 
+            uint32_t numberElements,
+            OTF2_Type type, 
+            uint32_t root);
+        static OTF2_CallbackCode my_OTF2Gather (void *userData, 
+            OTF2_CollectiveContext *commContext, 
+            const void *inData, 
+            void *outData,
+            uint32_t numberElements, 
+            OTF2_Type type, 
+            uint32_t root);
+        static OTF2_CallbackCode my_OTF2Gatherv (void *userData, 
+            OTF2_CollectiveContext *commContext, 
+            const void *inData, 
+            uint32_t inElements, 
+            void *outData, 
+            const uint32_t *outElements, 
+            OTF2_Type type, uint32_t root);
+        static OTF2_CallbackCode my_OTF2Scatter (void *userData, 
+            OTF2_CollectiveContext *commContext, 
+            const void *inData, 
+            void *outData, 
+            uint32_t numberElements, 
+            OTF2_Type type, 
+            uint32_t root);
+        static OTF2_CallbackCode my_OTF2Scatterv (void *userData, 
+            OTF2_CollectiveContext *commContext, 
+            const void *inData, 
+            const uint32_t *inElements, 
+            void *outData, 
+            uint32_t outElements, 
+            OTF2_Type type, 
+            uint32_t root);
+        static void my_OTF2Release (void *userData, 
+            OTF2_CollectiveContext *globalCommContext, 
+            OTF2_CollectiveContext *localCommContext);
+        static OTF2_CollectiveCallbacks * get_collective_callbacks (void);
+	    static OTF2_FlushCallbacks flush_callbacks;
         void* event_writer(void* arg);
         OTF2_Archive* archive;
         static __thread OTF2_EvtWriter* evt_writer;
@@ -124,8 +183,9 @@ namespace apex {
         static const std::string index_filename;
         static const std::string lock_filename_prefix;
         static const std::string region_filename_prefix;
-        void create_archive(void);
-        int my_saved_node_id;
+        bool create_archive(void);
+        bool write_my_node_properties(void);
+        static int my_saved_node_id;
         std::map<int,int> rank_thread_map;
         std::map<int,int> rank_region_map;
         std::map<std::string,uint64_t> reduced_map;

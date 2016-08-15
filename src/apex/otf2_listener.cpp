@@ -14,26 +14,134 @@
 
 using namespace std;
 
-extern "C" OTF2_CallbackCode my_otf2_dummy_create(void *userData, OTF2_Lock *lock) {
-    return OTF2_CALLBACK_SUCCESS;
-}
-
-extern "C" OTF2_CallbackCode my_otf2_dummy(void *userData, OTF2_Lock lock) {
-    return OTF2_CALLBACK_SUCCESS;
-}
-
-extern "C" void my_otf2_dummy_release(void *userData) {
-    return ;
-}
-
 namespace apex {
 
     const std::string otf2_listener::empty("");
     __thread OTF2_EvtWriter* otf2_listener::evt_writer(nullptr);
-    //__thread OTF2_DefWriter* otf2_listener::def_writer(nullptr);
     const std::string otf2_listener::index_filename("./.max_locality.txt");
     const std::string otf2_listener::region_filename_prefix("./.regions.");
     const std::string otf2_listener::lock_filename_prefix("./.regions.lock.");
+    int otf2_listener::my_saved_node_id(0);
+
+    OTF2_CallbackCode otf2_listener::my_OTF2GetSize(void *userData,
+            OTF2_CollectiveContext *commContext, uint32_t *size) {
+        /* Returns the number of OTF2_Archive objects operating in this
+           communication context. */
+        //cout << __func__ << endl;
+        *size = apex_options::otf2_collective_size();
+        return OTF2_CALLBACK_SUCCESS;
+    }
+
+    OTF2_CallbackCode otf2_listener::my_OTF2GetRank (void *userData,
+            OTF2_CollectiveContext *commContext, uint32_t *rank) {
+        /* Returns the rank of this OTF2_Archive objects in this communication
+           context. A number between 0 and one less of the size of the communication
+           context. */
+        //cout << __func__ << endl;
+        *rank = my_saved_node_id;
+        return OTF2_CALLBACK_SUCCESS;
+    }
+
+    OTF2_CallbackCode otf2_listener::my_OTF2CreateLocalComm (void *userData,
+            OTF2_CollectiveContext **localCommContext, OTF2_CollectiveContext
+            *globalCommContext, uint32_t globalRank, uint32_t globalSize, uint32_t
+            localRank, uint32_t localSize, uint32_t fileNumber, uint32_t numberOfFiles) {
+        /* Create a new disjoint partitioning of the the globalCommContext
+           communication context. numberOfFiles denotes the number of the partitions.
+           fileNumber denotes in which of the partitions this OTF2_Archive should belong.
+           localSize is the size of this partition and localRank the rank of this
+           OTF2_Archive in the partition. */
+        //cout << __func__ << endl;
+        return OTF2_CALLBACK_SUCCESS;
+    }
+
+    OTF2_CallbackCode otf2_listener::my_OTF2FreeLocalComm (void *userData,
+            OTF2_CollectiveContext *localCommContext) {
+        /* Destroys the communication context previous created by the
+           OTF2CreateLocalComm callback. */
+        //cout << __func__ << endl;
+        return OTF2_CALLBACK_SUCCESS;
+    }
+
+    OTF2_CallbackCode otf2_listener::my_OTF2Barrier (void *userData,
+            OTF2_CollectiveContext *commContext) {
+        /* Performs a barrier collective on the given communication context. */
+        //cout << __func__ << endl;
+        return OTF2_CALLBACK_SUCCESS;
+    }
+
+    OTF2_CallbackCode otf2_listener::my_OTF2Bcast (void *userData,
+            OTF2_CollectiveContext *commContext, void *data, uint32_t numberElements,
+            OTF2_Type type, uint32_t root) {
+        /* Performs a broadcast collective on the given communication context. */
+        //cout << __func__ << endl;
+        return OTF2_CALLBACK_SUCCESS;
+    }
+
+    OTF2_CallbackCode otf2_listener::my_OTF2Gather (void *userData,
+            OTF2_CollectiveContext *commContext, const void *inData, void *outData,
+            uint32_t numberElements, OTF2_Type type, uint32_t root) {
+        /* Performs a gather collective on the given communication context where
+           each ranks contribute the same number of elements. outData is only valid at
+           rank root. */
+        //cout << __func__ << endl;
+        return OTF2_CALLBACK_SUCCESS;
+    }
+
+    OTF2_CallbackCode otf2_listener::my_OTF2Gatherv (void *userData,
+            OTF2_CollectiveContext *commContext, const void *inData, uint32_t inElements,
+            void *outData, const uint32_t *outElements, OTF2_Type type, uint32_t root) {
+        /* Performs a gather collective on the given communication context where
+           each ranks contribute different number of elements. outData and outElements are
+           only valid at rank root. */
+        //cout << __func__ << endl;
+        return OTF2_CALLBACK_SUCCESS;
+    }
+
+    OTF2_CallbackCode otf2_listener::my_OTF2Scatter (void *userData,
+            OTF2_CollectiveContext *commContext, const void *inData, void *outData,
+            uint32_t numberElements, OTF2_Type type, uint32_t root) {
+        /* Performs a scatter collective on the given communication context where
+           each ranks contribute the same number of elements. inData is only valid at rank
+           root. */
+        //cout << __func__ << endl;
+        return OTF2_CALLBACK_SUCCESS;
+    }
+
+    OTF2_CallbackCode otf2_listener::my_OTF2Scatterv (void *userData,
+            OTF2_CollectiveContext *commContext, const void *inData, const uint32_t
+            *inElements, void *outData, uint32_t outElements, OTF2_Type type, uint32_t
+            root) {
+        /* Performs a scatter collective on the given communication context where
+           each ranks contribute different number of elements. inData and inElements are
+           only valid at rank root. */
+        //cout << __func__ << endl;
+        return OTF2_CALLBACK_SUCCESS;
+    }
+
+    void otf2_listener::my_OTF2Release (void *userData, OTF2_CollectiveContext
+            *globalCommContext, OTF2_CollectiveContext *localCommContext) {
+        /* Optionally called in OTF2_Archive_Close or OTF2_Reader_Close
+           respectively. */
+        //cout << __func__ << endl;
+        return;
+    }
+
+    OTF2_CollectiveCallbacks * otf2_listener::get_collective_callbacks (void) {
+        static OTF2_CollectiveCallbacks cb;
+        cb.otf2_release = my_OTF2Release;
+        cb.otf2_get_size = my_OTF2GetSize;
+        cb.otf2_get_rank = my_OTF2GetRank;
+        cb.otf2_create_local_comm = my_OTF2CreateLocalComm;
+        cb.otf2_free_local_comm = my_OTF2FreeLocalComm;
+        cb.otf2_barrier = my_OTF2Barrier;
+        cb.otf2_bcast = my_OTF2Bcast;
+        cb.otf2_gather = my_OTF2Gather;
+        cb.otf2_gatherv = my_OTF2Gatherv;
+        cb.otf2_scatter = my_OTF2Scatter;
+        cb.otf2_scatterv = my_OTF2Scatterv;
+        return &cb;
+    }
 
     OTF2_EvtWriter* otf2_listener::getEvtWriter(void) {
       if (evt_writer == nullptr) {
@@ -57,20 +165,18 @@ namespace apex {
         .otf2_post_flush = post_flush
     };
 
-    otf2_listener::otf2_listener (void) : _terminate(false), global_def_writer(nullptr), my_saved_node_id(0) {
+    otf2_listener::otf2_listener (void) : _terminate(false), global_def_writer(nullptr) {
         flush_callbacks = { 
             .otf2_pre_flush  = otf2_listener::pre_flush, 
             .otf2_post_flush = otf2_listener::post_flush 
         };
     }
 
-    void otf2_listener::create_archive(void) {
-    }
+    bool otf2_listener::create_archive(void) {
+        /* only open once! */
+        static bool created = false;
+        if (created) return true;
 
-    void otf2_listener::on_startup(startup_event_data &data) {
-        /* get a start time for the trace */
-        using namespace std::chrono;
-        this->globalOffset = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
         /* open the OTF2 archive */
         archive = OTF2_Archive_Open( apex_options::otf2_archive_path(),
                 apex_options::otf2_archive_name(),
@@ -81,23 +187,23 @@ namespace apex {
                 OTF2_COMPRESSION_NONE );
         /* set the flush callbacks, basically getting timestamps */
         OTF2_Archive_SetFlushCallbacks( archive, &flush_callbacks, NULL );
+        /* set the creator name */
+        stringstream tmp;
+        tmp << "APEX version " << version();
+        OTF2_Archive_SetCreator(archive, tmp.str().c_str());
         /* we have no collective callbacks. */
-        if (OTF2_Archive_SetSerialCollectiveCallbacks(archive) != OTF2_SUCCESS) {
-            cerr << "[APEX] (ignore OTF2 errors! They are OK...)" << endl;
-        }
-        /* someday we will get locking callbacks to work. Not today. */
-        /*
-        OTF2_LockingCallbacks dummies;
-        dummies.otf2_release = my_otf2_dummy_release;
-        dummies.otf2_create = my_otf2_dummy_create;
-        dummies.otf2_destroy = my_otf2_dummy;
-        dummies.otf2_lock = my_otf2_dummy;
-        dummies.otf2_unlock = my_otf2_dummy;
-        OTF2_Archive_SetLockingCallbacks(archive, &dummies, NULL);
-        */ 
+        if (OTF2_Archive_SetCollectiveCallbacks(archive, get_collective_callbacks(), NULL, NULL, NULL) != OTF2_SUCCESS)
         /* open the event files for this archive */
         OTF2_Archive_OpenEvtFiles( archive );
-        // add the empty string to the string definitions
+        created = true;
+        return created;
+     }
+
+    void otf2_listener::on_startup(startup_event_data &data) {
+        /* get a start time for the trace */
+        using namespace std::chrono;
+        this->globalOffset = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
+       // add the empty string to the string definitions
         get_string_index(empty);
 
         /* set up the event unification index file */
@@ -129,7 +235,6 @@ namespace apex {
         written = true;
         //auto region_indices = get_global_region_indices();
         for (auto const &i : reduced_map) {
-            //task_identifier id = i.first;
             string id = i.first;
             uint64_t idx = i.second;
             OTF2_GlobalDefWriter_WriteString( global_def_writer, get_string_index(id), id.c_str() );
@@ -167,7 +272,7 @@ namespace apex {
         auto region_indices = get_global_region_indices();
         for (auto const &i : region_indices) {
             task_identifier id = i.first;
-            uint64_t idx = i.second;
+            //uint64_t idx = i.second;
             //region_file << id.get_name() << "\t" << idx << endl;
             region_file << id.get_name() << endl;
         }
@@ -319,7 +424,7 @@ namespace apex {
     }
 
     void otf2_listener::write_host_properties(int rank, int pid, std::string& hostname) {
-        static int max_thread_strings = 1;
+        static std::set<std::string> threadnames;
         static std::map<std::string, uint64_t> hostnames;
         static const std::string node("node");
         /* define some strings */
@@ -354,10 +459,11 @@ namespace apex {
             uint64_t thread_id = node_id + i;
             stringstream thread;
             thread << "thread " << i;
-            if (i > max_thread_strings) {
+            auto tmp = threadnames.find(thread.str());
+            if (tmp == threadnames.end()) {
                 OTF2_GlobalDefWriter_WriteString( global_def_writer, 
                     get_string_index(thread.str()), thread.str().c_str() );
-                max_thread_strings++;
+                threadnames.insert(thread.str());
             }
             OTF2_GlobalDefWriter_WriteLocation( global_def_writer, 
                 thread_id /* id */,
@@ -374,7 +480,7 @@ namespace apex {
             /* close event files */
             OTF2_Archive_CloseEvtFiles( archive );
             /* if we are node 0, write the global definitions */
-            if (apex::__instance()->get_node_id() == 0) {
+            if (my_saved_node_id == 0) {
                 // save my number of threads
                 rank_thread_map[0] = thread_instance::get_num_threads();
                 reduce_regions();
@@ -413,44 +519,51 @@ namespace apex {
         }
         return;
     }
+    
+    bool otf2_listener::write_my_node_properties() {
+        static bool already_written = false;
+        if (already_written) return true;
+        /* We need to check in with locality/rank 0 to let
+         * it know how many localities/ranks there are in
+         * the job. We do that by writing our rank to the 
+         * master rank file (assuming a shared filesystem)
+         * if it is larger than the current rank in there. */
+        pid_t pid = ::getpid();
+        char hostname[128];
+        gethostname(hostname, sizeof hostname);
+        string host(hostname);
+        stringstream ss;
+        ss << my_saved_node_id << "\t" << pid << "\t" << hostname << "\n";
+        string tmp = ss.str();
+        // write our pid and hostname, using low-level file locking!
+        struct flock fl;
+        fl.l_type   = F_WRLCK;  /* F_RDLCK, F_WRLCK, F_UNLCK    */
+        fl.l_whence = SEEK_SET; /* SEEK_SET, SEEK_CUR, SEEK_END */
+        fl.l_start  = 0;        /* Offset from l_whence         */
+        fl.l_len    = 0;        /* length, 0 = to EOF           */
+        fl.l_pid    = pid;      /* our PID                      */
+        int indexfile = open(index_filename.c_str(), O_APPEND | O_WRONLY );
+        if (indexfile < 0) {
+            assert("error opening index file");
+        }
+        fcntl(indexfile, F_SETLKW, &fl);  /* F_GETLK, F_SETLK, F_SETLKW */
+        if (write(indexfile, tmp.c_str(), tmp.size()) < 0) {
+            assert("error writing to index file");
+        }
+        fl.l_type   = F_UNLCK;   /* tell it to unlock the region */
+        fcntl(indexfile, F_SETLK, &fl); /* set the region to unlocked */
+        if (close(indexfile) < 0) {
+            assert("error closing index file");
+        }
+        already_written = true;
+        return already_written;
+    }
 
     void otf2_listener::on_new_node(node_event_data &data) {
-        if (!_terminate) {
-            /* We need to check in with locality/rank 0 to let
-             * it know how many localities/ranks there are in
-             * the job. We do that by writing our rank to the 
-             * master rank file (assuming a shared filesystem)
-             * if it is larger than the current rank in there. */
-            pid_t pid = ::getpid();
-            my_saved_node_id = apex::instance()->get_node_id();
-            char hostname[128];
-            gethostname(hostname, sizeof hostname);
-            string host(hostname);
-            stringstream ss;
-            ss << my_saved_node_id << "\t" << pid << "\t" << hostname << "\n";
-            string tmp = ss.str();
-            // write our pid and hostname, using low-level file locking!
-            struct flock fl;
-            fl.l_type   = F_WRLCK;  /* F_RDLCK, F_WRLCK, F_UNLCK    */
-            fl.l_whence = SEEK_SET; /* SEEK_SET, SEEK_CUR, SEEK_END */
-            fl.l_start  = 0;        /* Offset from l_whence         */
-            fl.l_len    = 0;        /* length, 0 = to EOF           */
-            fl.l_pid    = pid;      /* our PID                      */
-            int indexfile = open(index_filename.c_str(), O_APPEND | O_WRONLY );
-            if (indexfile < 0) {
-                assert("error opening index file");
-            }
-            fcntl(indexfile, F_SETLKW, &fl);  /* F_GETLK, F_SETLK, F_SETLKW */
-            //flock(indexfile, LOCK_EX);
-            if (write(indexfile, tmp.c_str(), tmp.size()) < 0) {
-                assert("error writing to index file");
-            }
-            fl.l_type   = F_UNLCK;   /* tell it to unlock the region */
-            fcntl(indexfile, F_SETLK, &fl); /* set the region to unlocked */
-            //flock(indexfile, LOCK_UN);
-            if (close(indexfile) < 0) {
-                assert("error closing index file");
-            }
+        my_saved_node_id = apex::instance()->get_node_id();
+        static bool archive_created = create_archive();
+        if ((!_terminate) && archive_created) {
+            write_my_node_properties();
         }
         return;
     }
@@ -472,9 +585,16 @@ namespace apex {
     }
 
     bool otf2_listener::on_start(task_identifier * id) {
+        // before we process the event, make sure the archive is open
+        // THIS WILL ONLY HAPPEN ONCE
+        static bool archive_created = create_archive();
+        // before we process the event, make sure the node properties are written
+        // THIS WILL ONLY HAPPEN ONCE
+        static bool properties_written = write_my_node_properties();
+        // before we process the event, make sure the event write is open
+        // THIS WILL ONLY HAPPEN ONCE
         static __thread OTF2_EvtWriter* local_evt_writer = getEvtWriter();
-        //static __thread OTF2_DefWriter* local_def_writer = getDefWriter();
-        if (!_terminate) {
+        if ((!_terminate) && archive_created && properties_written) {
           /*
             profiler * p = thread_instance::instance().get_current_profiler();
             uint64_t stamp = profiler::time_point_to_nanoseconds(p->start); 
@@ -497,7 +617,6 @@ namespace apex {
 
     void otf2_listener::on_stop(std::shared_ptr<profiler> &p) {
         static __thread OTF2_EvtWriter* local_evt_writer = getEvtWriter();
-        //static __thread OTF2_DefWriter* local_def_writer = getDefWriter();
         if (!_terminate) {
           /*
             uint64_t stamp = profiler::time_point_to_nanoseconds(p->end);

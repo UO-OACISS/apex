@@ -278,6 +278,17 @@ APEX_EXPORT const char * apex_version(void);
 APEX_EXPORT void apex_set_node_id(int id);
 
 /**
+ \brief Set this execution's number of ranks.
+
+ For distributed applications, this function will store the
+ number of ranks. Common values are the MPI commsize, the HPX number of localities, etc.
+ 
+ \param id The number of ranks for this execution.
+ \return No return value.
+ */
+APEX_EXPORT void apex_set_num_ranks(int id);
+
+/**
  \brief Register a new thread.
 
  For multithreaded applications, register a new thread with APEX.

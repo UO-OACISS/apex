@@ -95,9 +95,20 @@ void apex::set_node_id(int id)
     }
 }
 
+void apex::set_num_ranks(int num_ranks)
+{
+    m_num_ranks = num_ranks;
+    stringstream ss;
+}
+
 int apex::get_node_id()
 {
     return m_node_id;
+}
+
+int apex::get_num_ranks()
+{
+    return m_num_ranks;
 }
 
 #ifdef APEX_HAVE_HPX3
@@ -716,6 +727,15 @@ void set_node_id(int id)
     instance->set_node_id(id);
 }
 
+void set_num_ranks(int num_ranks)
+{
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
+    apex* instance = apex::instance();
+    if (!instance || _exited) return; // protect against calls after finalization
+    instance->set_num_ranks(num_ranks);
+}
+
 #ifdef APEX_HAVE_HPX3
 hpx::runtime * get_hpx_runtime_ptr(void) {
     apex * instance = apex::instance();
@@ -1194,6 +1214,11 @@ extern "C" {
     void apex_set_node_id(int id)
     {
         set_node_id(id);
+    }
+
+    void apex_set_num_ranks(int num_ranks)
+    {
+        set_num_ranks(num_ranks);
     }
 
     void apex_register_thread(const char * name)

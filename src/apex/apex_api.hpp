@@ -339,6 +339,17 @@ APEX_EXPORT std::string& version(void);
 APEX_EXPORT void set_node_id(int id);
 
 /**
+ \brief Set this process' node ID.
+
+ For distributed applications, this function will store the
+ number of ranks. Common values are the MPI comm size, the HPX number of localities, etc.
+ 
+ \param id The number of ranks for this execution.
+ \return No return value.
+ */
+APEX_EXPORT void set_num_ranks(int id);
+
+/**
  \brief Register a new thread.
 
  For multithreaded applications, register a new thread with APEX.
