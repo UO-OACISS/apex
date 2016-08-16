@@ -18,6 +18,7 @@ int main(int argc, char **argv) {
 
   /* Initialize MPI */
 
+  /*
   int required, provided;
   required = MPI_THREAD_FUNNELED;
   MPI_Init_thread(&argc, &argv, required, &provided);
@@ -25,6 +26,8 @@ int main(int argc, char **argv) {
     printf ("Your MPI installation doesn't allow multiple threads. Exiting.\n");
         exit(0);
   }
+  */
+  MPI_Init(&argc, &argv);
   apex::init(argc, argv, "MPI TEST");
 
   /* Find out my identity in the default communicator */
@@ -70,6 +73,7 @@ static void master(void) {
 
     /* Send it to each rank */
 
+    apex::send(0, WORKTAG, sizeof(int), 0, rank);
     MPI_Send(&work,              /* message buffer */
              1,                 /* one data item */
              MPI_INT,           /* data item is an integer */
@@ -99,9 +103,11 @@ static void master(void) {
              MPI_ANY_TAG,       /* any type of message */
              MPI_COMM_WORLD,    /* default communicator */
              &status);          /* info about the received message */
+    apex::recv(0, status.MPI_TAG, sizeof(int), status.MPI_SOURCE, 0);
 
     /* Send the worker a new work unit */
 
+    apex::send(0, WORKTAG, sizeof(int), 0, status.MPI_SOURCE);
     MPI_Send(&work,              /* message buffer */
              1,                 /* one data item */
              MPI_INT,           /* data item is an integer */
@@ -124,12 +130,14 @@ static void master(void) {
   for (rank = 1; rank < ntasks; ++rank) {
     MPI_Recv(&result, 1, MPI_INT, MPI_ANY_SOURCE,
              MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+    apex::recv(0, status.MPI_TAG, sizeof(int), status.MPI_SOURCE, 0);
   }
 
   /* Tell all the worker to exit by sending an empty message with the
      DIETAG. */
 
   for (rank = 1; rank < ntasks; ++rank) {
+    apex::send(0, DIETAG, sizeof(int), 0, rank);
     MPI_Send(0, 0, MPI_INT, rank, DIETAG, MPI_COMM_WORLD);
   }
   apex::stop(p);
@@ -141,11 +149,14 @@ static void worker(void) {
   apex::profiler* p = apex::start((apex_function_address)(worker));
 
   while (1) {
+    int myrank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
 
     /* Receive a message from the master */
 
     MPI_Recv(&work, 1, MPI_INT, 0, MPI_ANY_TAG,
              MPI_COMM_WORLD, &status);
+    apex::recv(0, status.MPI_TAG, sizeof(int), status.MPI_SOURCE, myrank);
 
     /* Check the tag of the received message. */
 
@@ -159,6 +170,7 @@ static void worker(void) {
 
     /* Send the result back */
 
+    apex::send(0, 0, sizeof(int), myrank, 0);
     MPI_Send(&result, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
   }
   apex::stop(p);

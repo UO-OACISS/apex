@@ -60,6 +60,8 @@ public:
   void on_sample_value(sample_value_event_data &data) { APEX_UNUSED(data); };
   void on_periodic(periodic_event_data &data) { APEX_UNUSED(data); };
   void on_custom_event(custom_event_data &data) { APEX_UNUSED(data); };
+  void on_send(message_event_data &data) { APEX_UNUSED(data); };
+  void on_recv(message_event_data &data) { APEX_UNUSED(data); };
 
   bool _handler(void);
   std::stack<task_identifier>* get_event_stack(unsigned int tid);

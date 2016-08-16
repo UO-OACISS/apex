@@ -1082,11 +1082,49 @@ std::vector<std::string> get_available_profiles() {
 void print_options() {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
-    apex_options::print_options();
+    print_options();
     return;
 }
 
+void send (uint64_t id, uint64_t action, uint64_t size, uint64_t source, uint64_t target) {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return ; }
+    // if APEX is suspended, do nothing.
+    if (apex_options::suspend() == true) { return ; }
+    // get the Apex static instance
+    apex* instance = apex::instance(); 
+    // protect against calls after finalization
+    if (!instance || _exited) { return ; }
 
+    if (_notify_listeners) {
+        message_event_data data(id, action, size, source, target);
+        if (_notify_listeners) {
+            for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+                instance->listeners[i]->on_send(data);
+            }
+        }
+    }
+}
+
+void recv (uint64_t id, uint64_t action, uint64_t size, uint64_t source, uint64_t target) {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return ; }
+    // if APEX is suspended, do nothing.
+    if (apex_options::suspend() == true) { return ; }
+    // get the Apex static instance
+    apex* instance = apex::instance(); 
+    // protect against calls after finalization
+    if (!instance || _exited) { return ; }
+
+    if (_notify_listeners) {
+        message_event_data data(id, action, size, source, target);
+        if (_notify_listeners) {
+            for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+                instance->listeners[i]->on_recv(data);
+            }
+        }
+    }
+}
 
 } // apex namespace
 
@@ -1292,6 +1330,14 @@ extern "C" {
     void apex_print_options() {
         apex_options::print_options();
         return;
+    }
+
+    void apex_send (uint64_t id, uint64_t action, uint64_t size, uint64_t source, uint64_t target) {
+        return apex::send(id, action, size, source, target);
+    }
+
+    void apex_recv (uint64_t id, uint64_t action, uint64_t size, uint64_t source, uint64_t target) {
+        return apex::recv(id, action, size, source, target);
     }
 
 } // extern "C"

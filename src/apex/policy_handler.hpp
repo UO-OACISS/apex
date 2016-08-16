@@ -113,6 +113,8 @@ public:
     void on_sample_value(sample_value_event_data &data);
     void on_custom_event(custom_event_data &data);
     void on_periodic(periodic_event_data &data);
+    void on_send(message_event_data &data) { APEX_UNUSED(data); };
+    void on_recv(message_event_data &data) { APEX_UNUSED(data); };
 
     int register_policy(const apex_event_type & when,
                         std::function<int(apex_context const&)> f);

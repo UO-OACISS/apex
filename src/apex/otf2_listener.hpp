@@ -20,6 +20,7 @@ namespace apex {
         void _init(void);
         bool _terminate;
         std::mutex _mutex;
+        std::mutex _comm_mutex;
         uint64_t globalOffset;
         static OTF2_TimeStamp get_time( void ) {
             static __thread uint64_t sequence(0);
@@ -97,6 +98,7 @@ namespace apex {
         void* event_writer(void* arg);
         OTF2_Archive* archive;
         static __thread OTF2_EvtWriter* evt_writer;
+        static OTF2_EvtWriter* comm_evt_writer;
         //static __thread OTF2_DefWriter* def_writer;
         OTF2_EvtWriter* getEvtWriter();
         OTF2_DefWriter* getDefWriter(int threadid);
@@ -201,13 +203,16 @@ namespace apex {
         void on_stop(std::shared_ptr<profiler> &p);
         void on_yield(std::shared_ptr<profiler> &p);
         bool on_resume(task_identifier * id);
-        void on_sample_value(sample_value_event_data &data);
+        void on_sample_value(sample_value_event_data &data)
+            { APEX_UNUSED(data); };
         void on_new_task(task_identifier * id, void * task_id)
             { APEX_UNUSED(id); APEX_UNUSED(task_id); };
         void on_periodic(periodic_event_data &data)
             { APEX_UNUSED(data); };
         void on_custom_event(custom_event_data &data)
             { APEX_UNUSED(data); };
+        void on_send(message_event_data &data);
+        void on_recv(message_event_data &data);
     };
 }
 

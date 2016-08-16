@@ -129,6 +129,8 @@ public:
   void on_sample_value(sample_value_event_data &data);
   void on_periodic(periodic_event_data &data);
   void on_custom_event(custom_event_data &event_data);
+  void on_send(message_event_data &data) { APEX_UNUSED(data); };
+  void on_recv(message_event_data &data) { APEX_UNUSED(data); };
   // other methods
   void reset(task_identifier * id);
   void reset_all(void);

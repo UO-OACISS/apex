@@ -18,6 +18,7 @@ namespace apex {
 
     const std::string otf2_listener::empty("");
     __thread OTF2_EvtWriter* otf2_listener::evt_writer(nullptr);
+    OTF2_EvtWriter* otf2_listener::comm_evt_writer(nullptr);
     const std::string otf2_listener::index_filename("./.max_locality.txt");
     const std::string otf2_listener::region_filename_prefix("./.regions.");
     const std::string otf2_listener::lock_filename_prefix("./.regions.lock.");
@@ -148,6 +149,9 @@ namespace apex {
         uint64_t my_node_id = apex::__instance()->get_node_id();
         my_node_id = (my_node_id << 32) + thread_instance::get_id();
         evt_writer = OTF2_Archive_GetEvtWriter( archive, my_node_id );
+        if (thread_instance::get_id() == 0) {
+            comm_evt_writer = evt_writer;
+        }
       }
       return evt_writer;
     }
@@ -505,12 +509,37 @@ namespace apex {
                     rank_pid_map[rank] = pid;
                     rank_hostname_map[rank] = hostname;
                 }    
+                /* should we have a location for all threads, or just the master threads? */
+                vector<uint64_t>group_members;
+                vector<uint64_t>group_members_t0;
                 for (auto const &i : rank_pid_map) {
                     rank = i.first;
                     pid = i.second;
                     hostname = rank_hostname_map[rank];
                     write_host_properties(rank, pid, hostname);
+                    group_members.push_back(rank);
+                    group_members_t0.push_back(group_members[rank] << 32);
                 }
+                const char * world = "MPI_COMM_WORLD";
+                const char * world_group = "MPI_COMM_WORLD_GROUP";
+                const char * world_locations = "MPI_COMM_WORLD_LOCATIONS";
+                OTF2_GlobalDefWriter_WriteString( global_def_writer,
+                    get_string_index(world), world );
+                OTF2_GlobalDefWriter_WriteString( global_def_writer,
+                    get_string_index(world_locations), world_locations );
+                OTF2_GlobalDefWriter_WriteString( global_def_writer,
+                    get_string_index(world_group), world_group );
+                OTF2_GlobalDefWriter_WriteGroup ( global_def_writer,
+                    0, get_string_index(world_locations), OTF2_GROUP_TYPE_COMM_LOCATIONS,
+                    OTF2_PARADIGM_MPI, OTF2_GROUP_FLAG_NONE, group_members_t0.size(),
+                    &group_members_t0[0]);   
+                OTF2_GlobalDefWriter_WriteGroup ( global_def_writer,
+                    0, get_string_index(world_group), OTF2_GROUP_TYPE_COMM_GROUP,
+                    OTF2_PARADIGM_MPI, OTF2_GROUP_FLAG_NONE, group_members.size(),
+                    &group_members[0]);   
+                OTF2_GlobalDefWriter_WriteComm  ( global_def_writer,
+                    0, get_string_index(world), 
+                    0, OTF2_UNDEFINED_COMM);
             } else {
                 write_my_regions();
                 write_region_map();
@@ -564,6 +593,8 @@ namespace apex {
         static bool archive_created = create_archive();
         if ((!_terminate) && archive_created) {
             write_my_node_properties();
+            // set up the event writer for communication
+            getEvtWriter();
         }
         return;
     }
@@ -602,9 +633,12 @@ namespace apex {
             using namespace std::chrono;
             uint64_t stamp = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
             stamp = stamp - this->globalOffset;
-            OTF2_EvtWriter_Enter( local_evt_writer, NULL, 
-                stamp,
-                get_region_index(id) /* region */ );
+            if (thread_instance::get_id() == 0) {
+                std::unique_lock<std::mutex> lock(_mutex);
+                OTF2_EvtWriter_Enter( local_evt_writer, NULL, stamp, get_region_index(id) /* region */ );
+            } else {
+                OTF2_EvtWriter_Enter( local_evt_writer, NULL, stamp, get_region_index(id) /* region */ );
+            }
         } else {
             return false;
         }
@@ -624,9 +658,14 @@ namespace apex {
             using namespace std::chrono;
             uint64_t stamp = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
             stamp = stamp - this->globalOffset;
-            OTF2_EvtWriter_Leave( local_evt_writer, NULL, 
-                stamp,
-                get_region_index(p->task_id) /* region */ );
+            if (thread_instance::get_id() == 0) {
+                std::unique_lock<std::mutex> lock(_mutex);
+                OTF2_EvtWriter_Leave( local_evt_writer, NULL, stamp, 
+                        get_region_index(p->task_id) /* region */ );
+            } else {
+                OTF2_EvtWriter_Leave( local_evt_writer, NULL, stamp, 
+                        get_region_index(p->task_id) /* region */ );
+            }
         }
         return;
     }
@@ -635,8 +674,38 @@ namespace apex {
         on_stop(p);
     }
 
-    void otf2_listener::on_sample_value(sample_value_event_data &data) {
-        if (!_terminate) {
+    void otf2_listener::on_send(message_event_data &data) {
+        if (!_terminate && comm_evt_writer != NULL) {
+            OTF2_AttributeList * attributeList = OTF2_AttributeList_New();
+            OTF2_CommRef communicator = 0;
+            using namespace std::chrono;
+            uint64_t stamp = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
+            stamp = stamp - this->globalOffset;
+            {
+                std::unique_lock<std::mutex> lock(_comm_mutex);
+                OTF2_EvtWriter_MpiSend  ( comm_evt_writer,
+                        attributeList, stamp, data.target, communicator,
+                        data.action, data.size );
+            }
+            OTF2_AttributeList_Delete(attributeList);
+        }
+        return;
+    }
+
+    void otf2_listener::on_recv(message_event_data &data) {
+        if (!_terminate && comm_evt_writer != NULL) {
+            OTF2_AttributeList * attributeList = OTF2_AttributeList_New();
+            OTF2_CommRef communicator = 0;
+            using namespace std::chrono;
+            uint64_t stamp = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
+            stamp = stamp - this->globalOffset;
+            {
+                std::unique_lock<std::mutex> lock(_comm_mutex);
+                OTF2_EvtWriter_MpiRecv  ( comm_evt_writer,
+                        attributeList, stamp, data.source, communicator,
+                        data.action, data.size );
+            }
+            OTF2_AttributeList_Delete(attributeList);
         }
         return;
     }
