@@ -16,6 +16,7 @@ using namespace std;
 
 namespace apex {
 
+    uint64_t otf2_listener::globalOffset(0);
     const std::string otf2_listener::empty("");
     __thread OTF2_EvtWriter* otf2_listener::evt_writer(nullptr);
     OTF2_EvtWriter* otf2_listener::comm_evt_writer(nullptr);
@@ -170,6 +171,9 @@ namespace apex {
     };
 
     otf2_listener::otf2_listener (void) : _terminate(false), global_def_writer(nullptr) {
+        /* get a start time for the trace */
+        globalOffset = get_time();
+        /* set the flusher */
         flush_callbacks = { 
             .otf2_pre_flush  = otf2_listener::pre_flush, 
             .otf2_post_flush = otf2_listener::post_flush 
@@ -204,9 +208,6 @@ namespace apex {
      }
 
     void otf2_listener::on_startup(startup_event_data &data) {
-        /* get a start time for the trace */
-        using namespace std::chrono;
-        this->globalOffset = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
        // add the empty string to the string definitions
         get_string_index(empty);
 
@@ -410,21 +411,10 @@ namespace apex {
 
     void otf2_listener::write_clock_properties(void) {
         /* write the clock properties */
-        /*
-        uint64_t ticks_per_second = (uint64_t)(1.0/profiler::get_cpu_mhz());
-        uint64_t globalOffset = profiler::time_point_to_nanoseconds(profiler::get_global_start());
-        uint64_t traceLength = profiler::time_point_to_nanoseconds(profiler::get_global_end());
-        */
-        uint64_t ticks_per_second = 1000000;
-        using namespace std::chrono;
-        uint64_t traceLength = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
-        traceLength = traceLength - this->globalOffset;
+        uint64_t ticks_per_second = 1e9;
+        uint64_t traceLength = get_time();
         OTF2_GlobalDefWriter_WriteClockProperties( global_def_writer,
-            ticks_per_second /* 1,000,000,000 ticks per second */,
-            //this->globalOffset /* epoch */,
-            //traceLength /* length */ );
-            0 /* epoch */,
-            traceLength /* length */ );
+            ticks_per_second, 0 /* start */, traceLength /* length */ );
     }
 
     void otf2_listener::write_host_properties(int rank, int pid, std::string& hostname) {
@@ -626,17 +616,17 @@ namespace apex {
         // THIS WILL ONLY HAPPEN ONCE
         static __thread OTF2_EvtWriter* local_evt_writer = getEvtWriter();
         if ((!_terminate) && archive_created && properties_written) {
-          /*
-            profiler * p = thread_instance::instance().get_current_profiler();
-            uint64_t stamp = profiler::time_point_to_nanoseconds(p->start); 
-                     */
+            /*
             using namespace std::chrono;
-            uint64_t stamp = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
-            stamp = stamp - this->globalOffset;
+            profiler * p = thread_instance::instance().get_current_profiler();
+            uint64_t stamp = p->start.time_since_epoch().count() - globalOffset;
+            */
             if (thread_instance::get_id() == 0) {
                 std::unique_lock<std::mutex> lock(_mutex);
+                uint64_t stamp = get_time();
                 OTF2_EvtWriter_Enter( local_evt_writer, NULL, stamp, get_region_index(id) /* region */ );
             } else {
+                uint64_t stamp = get_time();
                 OTF2_EvtWriter_Enter( local_evt_writer, NULL, stamp, get_region_index(id) /* region */ );
             }
         } else {
@@ -653,16 +643,16 @@ namespace apex {
         static __thread OTF2_EvtWriter* local_evt_writer = getEvtWriter();
         if (!_terminate) {
           /*
-            uint64_t stamp = profiler::time_point_to_nanoseconds(p->end);
-                     */
             using namespace std::chrono;
-            uint64_t stamp = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
-            stamp = stamp - this->globalOffset;
+            uint64_t stamp = p->end.time_since_epoch().count() - globalOffset;
+                     */
             if (thread_instance::get_id() == 0) {
                 std::unique_lock<std::mutex> lock(_mutex);
+                uint64_t stamp = get_time();
                 OTF2_EvtWriter_Leave( local_evt_writer, NULL, stamp, 
                         get_region_index(p->task_id) /* region */ );
             } else {
+                uint64_t stamp = get_time();
                 OTF2_EvtWriter_Leave( local_evt_writer, NULL, stamp, 
                         get_region_index(p->task_id) /* region */ );
             }
@@ -678,11 +668,9 @@ namespace apex {
         if (!_terminate && comm_evt_writer != NULL) {
             OTF2_AttributeList * attributeList = OTF2_AttributeList_New();
             OTF2_CommRef communicator = 0;
-            using namespace std::chrono;
-            uint64_t stamp = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
-            stamp = stamp - this->globalOffset;
             {
                 std::unique_lock<std::mutex> lock(_comm_mutex);
+                uint64_t stamp = get_time();
                 OTF2_EvtWriter_MpiSend  ( comm_evt_writer,
                         attributeList, stamp, data.target, communicator,
                         data.action, data.size );
@@ -696,11 +684,9 @@ namespace apex {
         if (!_terminate && comm_evt_writer != NULL) {
             OTF2_AttributeList * attributeList = OTF2_AttributeList_New();
             OTF2_CommRef communicator = 0;
-            using namespace std::chrono;
-            uint64_t stamp = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
-            stamp = stamp - this->globalOffset;
             {
                 std::unique_lock<std::mutex> lock(_comm_mutex);
+                uint64_t stamp = get_time();
                 OTF2_EvtWriter_MpiRecv  ( comm_evt_writer,
                         attributeList, stamp, data.source, communicator,
                         data.action, data.size );

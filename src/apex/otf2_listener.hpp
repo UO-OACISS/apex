@@ -21,10 +21,12 @@ namespace apex {
         bool _terminate;
         std::mutex _mutex;
         std::mutex _comm_mutex;
-        uint64_t globalOffset;
+        static uint64_t globalOffset;
         static OTF2_TimeStamp get_time( void ) {
-            static __thread uint64_t sequence(0);
-            return sequence++;
+            using namespace std::chrono;
+            uint64_t stamp = duration_cast<nanoseconds>(system_clock::now().time_since_epoch()).count();
+            stamp = stamp - globalOffset;
+            return stamp;
         }
         static OTF2_FlushType pre_flush( void* userData, 
                                          OTF2_FileType fileType, 

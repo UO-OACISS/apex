@@ -445,7 +445,7 @@ endif()
 ################################################################################
 
 if((DEFINED OTF2_ROOT) OR (USE_OTF2))
-    find_package(OTF2)
+    find_package(OTF2 REQUIRED)
     if (OTF2_FOUND)
         include_directories(${OTF2_INCLUDE_DIRS})
         set(LIBS ${LIBS} ${OTF2_LIBRARIES})
@@ -453,6 +453,7 @@ if((DEFINED OTF2_ROOT) OR (USE_OTF2))
             set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${OTF2_LIBRARY_DIR})
         endif()
     endif()
+    add_definitions(-DAPEX_USE_CLOCK_TIMESTAMP=1)  
 endif()
 
 ################################################################################
