@@ -37,6 +37,10 @@
 #include "semaphore.hpp"
 #include "task_identifier.hpp"
 #include "task_dependency.hpp"
+#include <sys/stat.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/file.h>
 
 #define INITIAL_NUM_THREADS 2
 
@@ -49,6 +53,8 @@ public:
       finalize();
   }
 };
+
+static const char * task_scatterplot_sample_filename = "apex_task_samples.csv";
 
 class profiler_listener : public event_listener {
 private:
@@ -97,7 +103,8 @@ private:
   std::thread * consumer_thread;
 #endif
   semaphore queue_signal;
-  std::ofstream task_scatterplot_sample_file;
+  //std::ofstream task_scatterplot_sample_file;
+  int task_scatterplot_sample_file;
   std::stringstream task_scatterplot_samples;
 public:
   profiler_listener (void) : _initialized(false), _done(false), node_id(0), task_map()
@@ -109,8 +116,37 @@ public:
       num_papi_counters = 0;
 #endif
       if (apex_options::task_scatterplot()) {
-        task_scatterplot_sample_file = std::ofstream("samples.csv");
-        task_scatterplot_sample_file << "#timestamp value   name" << std::endl << std::flush;
+        // check if the samples file exists
+        struct stat buffer;
+        if (stat (task_scatterplot_sample_filename, &buffer) == 0) {
+            struct tm *timeinfo = localtime(&buffer.st_mtime);
+            time_t filetime = mktime(timeinfo);
+            time_t nowish;
+            time(&nowish);
+            double seconds = difftime(nowish, filetime);
+            /* if the file exists, was it recently created? */
+            if (seconds > 10) {
+                /* create the file */
+                std::ofstream tmp = std::ofstream(task_scatterplot_sample_filename);
+        		tmp << "#timestamp value   name" << std::endl << std::flush;
+				/* yes, close the file because we will use some
+				   low-level calls to have concurrent access
+                   across processes/threads. */
+				tmp.close();
+            }
+		} else {
+            /* create the file */
+            std::ofstream tmp = std::ofstream(task_scatterplot_sample_filename);
+        	tmp << "#timestamp value   name" << std::endl << std::flush;
+			/* yes, close the file because we will use some
+			low-level calls to have concurrent access
+            across processes/threads. */
+			tmp.close();
+        }
+		// open the file
+		task_scatterplot_sample_file = open(task_scatterplot_sample_filename, O_APPEND | O_WRONLY );
+        if (task_scatterplot_sample_file < 0) { perror("opening scatterplot sample file"); }
+		assert(task_scatterplot_sample_file >= 0);
         profiler::get_global_start();
       }
   };

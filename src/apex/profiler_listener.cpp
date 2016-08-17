@@ -299,8 +299,21 @@ namespace apex {
                             << "'" << p->task_id->get_name() << "'" << endl;
                 int loc0 = task_scatterplot_samples.tellp();
                 if (loc0 > 32768) {
+                    // lock access to the file
+        			// write using low-level file locking!
+        			struct flock fl;
+        			fl.l_type   = F_WRLCK;  /* F_RDLCK, F_WRLCK, F_UNLCK    */
+        			fl.l_whence = SEEK_SET; /* SEEK_SET, SEEK_CUR, SEEK_END */
+        			fl.l_start  = 0;        /* Offset from l_whence         */
+        			fl.l_len    = 0;        /* length, 0 = to EOF           */
+        			fl.l_pid    = getpid();      /* our PID                      */
+        			fcntl(task_scatterplot_sample_file, F_SETLKW, &fl);  /* F_GETLK, F_SETLK, F_SETLKW */
                     // flush the string stream to the file
-                    task_scatterplot_sample_file << task_scatterplot_samples.str() << flush;
+                    //lseek(task_scatterplot_sample_file, 0, SEEK_END);
+        			assert(write(task_scatterplot_sample_file, 
+								 task_scatterplot_samples.str().c_str(), loc0) >= 0);
+        			fl.l_type   = F_UNLCK;   /* tell it to unlock the region */
+        			fcntl(task_scatterplot_sample_file, F_SETLK, &fl); /* set the region to unlocked */
                     // reset the stringstream
                     task_scatterplot_samples = std::stringstream();
                 }
@@ -1065,11 +1078,24 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         write_profile();
       }
       if (apex_options::task_scatterplot()) {
-        // flush the string stream to the file
-        task_scatterplot_sample_file << task_scatterplot_samples.str();
-        // close the sample file
-        task_scatterplot_sample_file.flush();
-        task_scatterplot_sample_file.close();
+          // get the length of the stream
+          int loc0 = task_scatterplot_samples.tellp();
+          // lock access to the file
+          // write using low-level file locking!
+          struct flock fl;
+          fl.l_type   = F_WRLCK;  /* F_RDLCK, F_WRLCK, F_UNLCK    */
+          fl.l_whence = SEEK_SET; /* SEEK_SET, SEEK_CUR, SEEK_END */
+          fl.l_start  = 0;        /* Offset from l_whence         */
+          fl.l_len    = 0;        /* length, 0 = to EOF           */
+          fl.l_pid    = getpid();      /* our PID                      */
+          fcntl(task_scatterplot_sample_file, F_SETLKW, &fl);  /* F_GETLK, F_SETLK, F_SETLKW */
+          // flush the string stream to the file
+          //lseek(task_scatterplot_sample_file, 0, SEEK_END);
+          assert(write(task_scatterplot_sample_file, 
+                      task_scatterplot_samples.str().c_str(), loc0) >= 0);
+          fl.l_type   = F_UNLCK;   /* tell it to unlock the region */
+          fcntl(task_scatterplot_sample_file, F_SETLK, &fl); /* set the region to unlocked */
+          close(task_scatterplot_sample_file);
       }
 
     }

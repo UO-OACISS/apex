@@ -519,8 +519,8 @@ APEX_EXPORT void apex_set_thread_cap(int new_cap);             // for thread thr
  */
 APEX_EXPORT void apex_print_options(void);
 
-APEX_EXPORT void apex_send (uint64_t id, uint64_t action, uint64_t size, uint64_t source, uint64_t target);
-APEX_EXPORT void apex_recv (uint64_t id, uint64_t action, uint64_t size, uint64_t source, uint64_t target);
+APEX_EXPORT void apex_send (uint64_t id, uint64_t context, uint64_t size, uint64_t source, uint64_t target);
+APEX_EXPORT void apex_recv (uint64_t id, uint64_t context, uint64_t size, uint64_t source, uint64_t target);
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 

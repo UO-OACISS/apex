@@ -38,12 +38,12 @@ public:
 class message_event_data : public event_data {
 public:
   uint64_t id;
-  uint64_t action;
+  uint64_t context;
   uint64_t size;
   uint64_t source;
   uint64_t target;
-  message_event_data(uint64_t id, uint64_t action, uint64_t size, uint64_t source, uint64_t target) :
-    id(id), action(action), size(size), source(source), target(target) {}
+  message_event_data(uint64_t id, uint64_t context, uint64_t size, uint64_t source, uint64_t target) :
+    id(id), context(context), size(size), source(source), target(target) {}
   ~message_event_data() {};
 };
 

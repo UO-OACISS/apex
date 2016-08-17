@@ -1086,7 +1086,7 @@ void print_options() {
     return;
 }
 
-void send (uint64_t id, uint64_t action, uint64_t size, uint64_t source, uint64_t target) {
+void send (uint64_t id, uint64_t context, uint64_t size, uint64_t source, uint64_t target) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return ; }
     // if APEX is suspended, do nothing.
@@ -1097,7 +1097,7 @@ void send (uint64_t id, uint64_t action, uint64_t size, uint64_t source, uint64_
     if (!instance || _exited) { return ; }
 
     if (_notify_listeners) {
-        message_event_data data(id, action, size, source, target);
+        message_event_data data(id, context, size, source, target);
         if (_notify_listeners) {
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
                 instance->listeners[i]->on_send(data);
@@ -1106,7 +1106,7 @@ void send (uint64_t id, uint64_t action, uint64_t size, uint64_t source, uint64_
     }
 }
 
-void recv (uint64_t id, uint64_t action, uint64_t size, uint64_t source, uint64_t target) {
+void recv (uint64_t id, uint64_t context, uint64_t size, uint64_t source, uint64_t target) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return ; }
     // if APEX is suspended, do nothing.
@@ -1117,7 +1117,7 @@ void recv (uint64_t id, uint64_t action, uint64_t size, uint64_t source, uint64_
     if (!instance || _exited) { return ; }
 
     if (_notify_listeners) {
-        message_event_data data(id, action, size, source, target);
+        message_event_data data(id, context, size, source, target);
         if (_notify_listeners) {
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
                 instance->listeners[i]->on_recv(data);

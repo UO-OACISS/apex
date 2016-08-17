@@ -562,18 +562,12 @@ namespace apex {
         fl.l_len    = 0;        /* length, 0 = to EOF           */
         fl.l_pid    = pid;      /* our PID                      */
         int indexfile = open(index_filename.c_str(), O_APPEND | O_WRONLY );
-        if (indexfile < 0) {
-            assert("error opening index file");
-        }
+        assert(indexfile >= 0);
         fcntl(indexfile, F_SETLKW, &fl);  /* F_GETLK, F_SETLK, F_SETLKW */
-        if (write(indexfile, tmp.c_str(), tmp.size()) < 0) {
-            assert("error writing to index file");
-        }
+        assert(write(indexfile, tmp.c_str(), tmp.size()) >= 0);
         fl.l_type   = F_UNLCK;   /* tell it to unlock the region */
         fcntl(indexfile, F_SETLK, &fl); /* set the region to unlocked */
-        if (close(indexfile) < 0) {
-            assert("error closing index file");
-        }
+        assert(close(indexfile) >= 0);
         already_written = true;
         return already_written;
     }
@@ -673,7 +667,7 @@ namespace apex {
                 uint64_t stamp = get_time();
                 OTF2_EvtWriter_MpiSend  ( comm_evt_writer,
                         attributeList, stamp, data.target, communicator,
-                        data.action, data.size );
+                        data.id, data.size );
             }
             OTF2_AttributeList_Delete(attributeList);
         }
@@ -689,7 +683,7 @@ namespace apex {
                 uint64_t stamp = get_time();
                 OTF2_EvtWriter_MpiRecv  ( comm_evt_writer,
                         attributeList, stamp, data.source, communicator,
-                        data.action, data.size );
+                        data.id, data.size );
             }
             OTF2_AttributeList_Delete(attributeList);
         }
