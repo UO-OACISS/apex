@@ -19,7 +19,9 @@ namespace apex {
     private:
         void _init(void);
         bool _terminate;
-        std::mutex _mutex;
+        std::mutex _region_mutex;
+        std::mutex _string_mutex;
+        std::mutex _metric_mutex;
         std::mutex _comm_mutex;
         static uint64_t globalOffset;
         static OTF2_TimeStamp get_time( void ) {
@@ -121,7 +123,7 @@ namespace apex {
             if (tmp == region_indices.end()) {
                 /* not in the thread's map? look in the global map */
                 std::map<task_identifier,uint64_t>& global_region_indices = get_global_region_indices();
-                std::unique_lock<std::mutex> lock(_mutex);
+                std::unique_lock<std::mutex> lock(_region_mutex);
                 tmp = global_region_indices.find(*id);
                 if (tmp == global_region_indices.end()) {
                     /* not in the global map? create it. */
@@ -139,14 +141,16 @@ namespace apex {
 	        return region_index;
         }
         uint64_t get_string_index(const std::string& name) {
+            // thread specific
   	        static __thread std::map<std::string,uint64_t> string_indices;
+            // process specific
   	        static std::map<std::string,uint64_t> global_string_indices;
             /* first, look in this thread's map */
             auto tmp = string_indices.find(name);
             uint64_t string_index = 0;
             if (tmp == string_indices.end()) {
                 /* not in the thread's map? look in the global map */
-                std::unique_lock<std::mutex> lock(_mutex);
+                std::unique_lock<std::mutex> lock(_string_mutex);
                 tmp = global_string_indices.find(name);
                 if (tmp == global_string_indices.end()) {
                     string_index = global_string_indices.size();
@@ -177,22 +181,63 @@ namespace apex {
             }
 	        return hostname_index;
         }
+        std::map<std::string,uint64_t>& get_metric_indices(void) {
+            static __thread std::map<std::string,uint64_t> metric_indices;
+            return metric_indices;
+        }
+        std::map<std::string,uint64_t>& get_global_metric_indices(void) {
+            static std::map<std::string,uint64_t> metric_indices;
+            return metric_indices;
+        }
+        uint64_t get_metric_index(const std::string& name) {
+            // thread specific
+  	        std::map<std::string,uint64_t>& metric_indices = get_metric_indices();
+            /* first, look in this thread's map */
+            auto tmp = metric_indices.find(name);
+            uint64_t metric_index = 0;
+            if (tmp == metric_indices.end()) {
+                // process specific
+  	            std::map<std::string,uint64_t>& global_metric_indices = get_global_metric_indices();
+                /* not in the thread's map? look in the global map */
+                std::unique_lock<std::mutex> lock(_metric_mutex);
+                tmp = global_metric_indices.find(name);
+                if (tmp == global_metric_indices.end()) {
+                    metric_index = global_metric_indices.size();
+                    global_metric_indices[name] = metric_index;
+                } else {
+                    metric_index = tmp->second;
+                }
+                lock.unlock();
+                /* stoer the global value in the thread's map */
+                metric_indices[name] = metric_index;
+            } else {
+                metric_index = tmp->second;
+            }
+	        return metric_index;
+        }
         static const std::string empty;
         void write_otf2_regions(void);
         void write_my_regions(void);
-        void reduce_regions(void);
+        int reduce_regions(void);
         void write_region_map(void);
+        void write_otf2_metrics(void);
+        void write_my_metrics(void);
+        void reduce_metrics(void);
+        void write_metric_map(void);
         void write_clock_properties(void);
         void write_host_properties(int rank, int pid, std::string& hostname);
         static const std::string index_filename;
         static const std::string lock_filename_prefix;
         static const std::string region_filename_prefix;
+        static const std::string metric_filename_prefix;
         bool create_archive(void);
         bool write_my_node_properties(void);
         static int my_saved_node_id;
         std::map<int,int> rank_thread_map;
         std::map<int,int> rank_region_map;
-        std::map<std::string,uint64_t> reduced_map;
+        std::map<int,int> rank_metric_map;
+        std::map<std::string,uint64_t> reduced_region_map;
+        std::map<std::string,uint64_t> reduced_metric_map;
     public:
         otf2_listener (void);
         ~otf2_listener (void) { };
@@ -205,8 +250,7 @@ namespace apex {
         void on_stop(std::shared_ptr<profiler> &p);
         void on_yield(std::shared_ptr<profiler> &p);
         bool on_resume(task_identifier * id);
-        void on_sample_value(sample_value_event_data &data)
-            { APEX_UNUSED(data); };
+        void on_sample_value(sample_value_event_data &data);
         void on_new_task(task_identifier * id, void * task_id)
             { APEX_UNUSED(id); APEX_UNUSED(task_id); };
         void on_periodic(periodic_event_data &data)
