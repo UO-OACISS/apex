@@ -268,7 +268,16 @@ namespace apex {
         int index = 0;
       	OTF2_MetricMemberRef* omr = new OTF2_MetricMemberRef[reduced_metric_map.size()];
         OTF2_GlobalDefWriter_WriteString( global_def_writer, get_string_index("count"), "count" );
+        // copy the reduced map to a pair, so we can sort by value
+        std::vector<std::pair<std::string, int>> pairs;
         for (auto const &i : reduced_metric_map) {
+            pairs.push_back(i);
+        }
+        sort(pairs.begin(), pairs.end(), [=](std::pair<std::string, int>& a, std::pair<std::string, int>& b) {
+            return a.second < b.second;
+        });
+        // iterate over the metrics and write them out.
+        for (auto const &i : pairs) {
             string id = i.first;
             uint64_t idx = i.second;
             OTF2_GlobalDefWriter_WriteString( global_def_writer, get_string_index(id), id.c_str() );
@@ -564,22 +573,23 @@ namespace apex {
         std::string metric_line;
         std::ifstream metric_file(metric_filename.str());
         std::string metric_name;
-        int idx;
+        uint64_t idx;
         // read the map from rank 0
         while (std::getline(metric_file, metric_line)) {
-            istringstream ss(metric_line);
-            ss >> idx >> metric_name;
+            size_t firsttab=metric_line.find('\t');
+            idx = atoi(metric_line.substr(0,firsttab).c_str());
+            metric_name = metric_line.substr(firsttab+1);
             reduced_metric_map[metric_name] = idx;
         }
         // build the array of uint64_t values
         auto metric_indices = get_global_metric_indices();
         uint64_t * mappings = (uint64_t*)(malloc(sizeof(uint64_t) * metric_indices.size()));
         for (auto const &i : metric_indices) {
-            string id = i.first;
+            string name = i.first;
             uint64_t idx = i.second;
-            uint64_t mapped_index = reduced_metric_map[id];
+            uint64_t mapped_index = reduced_metric_map[name];
             mappings[idx] = mapped_index;
-            cout << id << " map: " << idx << endl;
+            cout << name << " map: " << idx << ", mapped_index: " << mapped_index << endl;
         }
         // create a map
         uint64_t map_size = metric_indices.size();
