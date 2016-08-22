@@ -1333,11 +1333,11 @@ extern "C" {
     }
 
     void apex_send (uint64_t id, uint64_t action, uint64_t size, uint64_t source, uint64_t target) {
-        return apex::send(id, action, size, source, target);
+        return send(id, action, size, source, target);
     }
 
     void apex_recv (uint64_t id, uint64_t action, uint64_t size, uint64_t source, uint64_t target) {
-        return apex::recv(id, action, size, source, target);
+        return recv(id, action, size, source, target);
     }
 
 } // extern "C"

@@ -264,8 +264,10 @@ namespace apex {
         if (written) return;
         written = true;
 		// write a "unit" string
+        uint64_t max_idx = 0;
+        int index = 0;
+      	OTF2_MetricMemberRef* omr = new OTF2_MetricMemberRef[reduced_metric_map.size()];
         OTF2_GlobalDefWriter_WriteString( global_def_writer, get_string_index("count"), "count" );
-        //auto metric_indices = get_global_metric_indices();
         for (auto const &i : reduced_metric_map) {
             string id = i.first;
             uint64_t idx = i.second;
@@ -275,18 +277,13 @@ namespace apex {
 				idx, get_string_index(id), get_string_index(id),
 				OTF2_METRIC_TYPE_OTHER, OTF2_METRIC_ABSOLUTE_POINT, 
 				OTF2_TYPE_DOUBLE, OTF2_BASE_DECIMAL, 0, get_string_index("count"));
-      		OTF2_MetricMemberRef* omr = new OTF2_MetricMemberRef[1];
-            omr[0]=idx;
-          	OTF2_GlobalDefWriter_WriteMetricClass( global_def_writer, 
-				idx, 1, omr, OTF2_METRIC_ASYNCHRONOUS, 
-				OTF2_RECORDER_KIND_UNKNOWN);
-            /*
-            uint64_t my_node_id = my_saved_node_id;
-            my_node_id = (my_node_id << 32);
-            OTF2_GlobalDefWriter_WriteMetricInstance( global_def_writer,
-                idx, idx, 0, OTF2_SCOPE_GROUP, 0);
-                */
+            omr[index]=idx;
+            index++;
+            max_idx = (idx > max_idx) ? idx : max_idx;
         }
+       	OTF2_GlobalDefWriter_WriteMetricClass( global_def_writer, 
+			max_idx+1, index, omr, OTF2_METRIC_ASYNCHRONOUS, 
+			OTF2_RECORDER_KIND_UNKNOWN);
     }
 
     void otf2_listener::write_my_regions(void) {
@@ -860,8 +857,13 @@ namespace apex {
         // THIS WILL ONLY HAPPEN ONCE
         static bool properties_written = write_my_node_properties();
         // before we process the event, make sure the event write is open
+#ifdef __clang__
+        // Clang doesn't support dynamic thread_local initialization of static.
+        OTF2_EvtWriter* local_evt_writer = getEvtWriter();
+#else
         // THIS WILL ONLY HAPPEN ONCE
         static __thread OTF2_EvtWriter* local_evt_writer = getEvtWriter();
+#endif
         if ((!_terminate) && archive_created && properties_written) {
             if (thread_instance::get_id() == 0) {
                 uint64_t idx = get_region_index(id);
@@ -900,7 +902,12 @@ namespace apex {
         // each thread has its own event writer.  This static
         // variable will be initialized the first time we call
         // on_stop.
+#ifdef __clang__
+        // Clang doesn't support dynamic thread_local initialization of static.
+        OTF2_EvtWriter* local_evt_writer = getEvtWriter();
+#else
         static __thread OTF2_EvtWriter* local_evt_writer = getEvtWriter();
+#endif
         if (!_terminate) {
             if (thread_instance::get_id() == 0) {
                 uint64_t idx = get_region_index(p->task_id);

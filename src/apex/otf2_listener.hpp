@@ -108,8 +108,18 @@ namespace apex {
         OTF2_DefWriter* getDefWriter(int threadid);
         OTF2_GlobalDefWriter* global_def_writer;
         std::map<task_identifier,uint64_t>& get_region_indices(void) {
-            static __thread std::map<task_identifier,uint64_t> region_indices;
-            return region_indices;
+            static __thread std::map<task_identifier,uint64_t> * region_indices;
+            if (region_indices == nullptr) {
+                region_indices = new std::map<task_identifier,uint64_t>();
+            }
+            return *region_indices;
+        }
+        std::map<std::string,uint64_t>& get_string_indices(void) {
+            static __thread std::map<std::string,uint64_t> * string_indices;
+            if (string_indices == nullptr) {
+                string_indices = new std::map<std::string,uint64_t>();
+            }
+            return *string_indices;
         }
         std::map<task_identifier,uint64_t>& get_global_region_indices(void) {
             static std::map<task_identifier,uint64_t> region_indices;
@@ -142,7 +152,7 @@ namespace apex {
         }
         uint64_t get_string_index(const std::string& name) {
             // thread specific
-  	        static __thread std::map<std::string,uint64_t> string_indices;
+  	        std::map<std::string,uint64_t>& string_indices = get_string_indices();
             // process specific
   	        static std::map<std::string,uint64_t> global_string_indices;
             /* first, look in this thread's map */
@@ -182,8 +192,11 @@ namespace apex {
 	        return hostname_index;
         }
         std::map<std::string,uint64_t>& get_metric_indices(void) {
-            static __thread std::map<std::string,uint64_t> metric_indices;
-            return metric_indices;
+            static __thread std::map<std::string,uint64_t> * metric_indices;
+            if (metric_indices == nullptr) {
+                metric_indices = new std::map<std::string,uint64_t>();
+            }
+            return *metric_indices;
         }
         std::map<std::string,uint64_t>& get_global_metric_indices(void) {
             static std::map<std::string,uint64_t> metric_indices;
