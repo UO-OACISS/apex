@@ -747,7 +747,7 @@ namespace apex {
                 OTF2_GlobalDefWriter_WriteString( global_def_writer,
                     get_string_index(world_group), world_group );
                 OTF2_GlobalDefWriter_WriteGroup ( global_def_writer,
-                    0, get_string_index(world_group), OTF2_GROUP_TYPE_COMM_GROUP,
+                    1, get_string_index(world_group), OTF2_GROUP_TYPE_COMM_GROUP,
                     OTF2_PARADIGM_MPI, OTF2_GROUP_FLAG_NONE, group_members.size(),
                     &group_members[0]);   
                 // create the communicator
@@ -756,7 +756,7 @@ namespace apex {
                     get_string_index(world), world );
                 OTF2_GlobalDefWriter_WriteComm  ( global_def_writer,
                     0, get_string_index(world), 
-                    0, OTF2_UNDEFINED_COMM);
+                    1, OTF2_UNDEFINED_COMM);
             } else {
                 // not rank 0? 
                 // write out the timer names we saw
