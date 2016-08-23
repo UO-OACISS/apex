@@ -263,10 +263,10 @@ namespace apex {
         static __thread bool written = false;
         if (written) return;
         written = true;
-		// write a "unit" string
+        // write a "unit" string
         uint64_t max_idx = 0;
         int index = 0;
-      	OTF2_MetricMemberRef* omr = new OTF2_MetricMemberRef[reduced_metric_map.size()];
+          OTF2_MetricMemberRef* omr = new OTF2_MetricMemberRef[reduced_metric_map.size()];
         OTF2_GlobalDefWriter_WriteString( global_def_writer, get_string_index("count"), "count" );
         // copy the reduced map to a pair, so we can sort by value
         std::vector<std::pair<std::string, int>> pairs;
@@ -281,18 +281,17 @@ namespace apex {
             string id = i.first;
             uint64_t idx = i.second;
             OTF2_GlobalDefWriter_WriteString( global_def_writer, get_string_index(id), id.c_str() );
-            cout << id << " global: " << idx << endl;
-      		OTF2_GlobalDefWriter_WriteMetricMember( global_def_writer,
-				idx, get_string_index(id), get_string_index(id),
-				OTF2_METRIC_TYPE_OTHER, OTF2_METRIC_ABSOLUTE_POINT, 
-				OTF2_TYPE_DOUBLE, OTF2_BASE_DECIMAL, 0, get_string_index("count"));
+              OTF2_GlobalDefWriter_WriteMetricMember( global_def_writer,
+                idx, get_string_index(id), get_string_index(id),
+                OTF2_METRIC_TYPE_OTHER, OTF2_METRIC_ABSOLUTE_POINT, 
+                OTF2_TYPE_DOUBLE, OTF2_BASE_DECIMAL, 0, get_string_index("count"));
             omr[index]=idx;
             index++;
             max_idx = (idx > max_idx) ? idx : max_idx;
         }
-       	OTF2_GlobalDefWriter_WriteMetricClass( global_def_writer, 
-			max_idx+1, index, omr, OTF2_METRIC_ASYNCHRONOUS, 
-			OTF2_RECORDER_KIND_UNKNOWN);
+           OTF2_GlobalDefWriter_WriteMetricClass( global_def_writer, 
+            max_idx+1, index, omr, OTF2_METRIC_ASYNCHRONOUS, 
+            OTF2_RECORDER_KIND_UNKNOWN);
     }
 
     void otf2_listener::write_my_regions(void) {
@@ -583,25 +582,26 @@ namespace apex {
         }
         // build the array of uint64_t values
         auto metric_indices = get_global_metric_indices();
-        uint64_t * mappings = (uint64_t*)(malloc(sizeof(uint64_t) * metric_indices.size()));
-        for (auto const &i : metric_indices) {
-            string name = i.first;
-            uint64_t idx = i.second;
-            uint64_t mapped_index = reduced_metric_map[name];
-            mappings[idx] = mapped_index;
-            cout << name << " map: " << idx << ", mapped_index: " << mapped_index << endl;
+        if (metric_indices.size() > 0) {
+            uint64_t * mappings = (uint64_t*)(malloc(sizeof(uint64_t) * metric_indices.size()));
+            for (auto const &i : metric_indices) {
+                string name = i.first;
+                uint64_t idx = i.second;
+                uint64_t mapped_index = reduced_metric_map[name];
+                mappings[idx] = mapped_index;
+            }
+            // create a map
+            uint64_t map_size = metric_indices.size();
+            OTF2_IdMap * my_map = OTF2_IdMap_CreateFromUint64Array(map_size, mappings, false);
+            for (int i = 0 ; i < thread_instance::get_num_threads() ; i++) {
+                OTF2_DefWriter* def_writer = getDefWriter(i);
+                OTF2_DefWriter_WriteMappingTable(def_writer, OTF2_MAPPING_METRIC, my_map);
+                OTF2_Archive_CloseDefWriter( archive, def_writer );
+            }
+            // free the map
+            OTF2_IdMap_Free(my_map);
+            free(mappings);
         }
-        // create a map
-        uint64_t map_size = metric_indices.size();
-        OTF2_IdMap * my_map = OTF2_IdMap_CreateFromUint64Array(map_size, mappings, false);
-        for (int i = 0 ; i < thread_instance::get_num_threads() ; i++) {
-            OTF2_DefWriter* def_writer = getDefWriter(i);
-            OTF2_DefWriter_WriteMappingTable(def_writer, OTF2_MAPPING_METRIC, my_map);
-            OTF2_Archive_CloseDefWriter( archive, def_writer );
-        }
-        // free the map
-        OTF2_IdMap_Free(my_map);
-        free(mappings);
     }
 
     void otf2_listener::write_clock_properties(void) {
@@ -1000,14 +1000,14 @@ namespace apex {
     void otf2_listener::on_sample_value(sample_value_event_data &data) {
         if (!_terminate) {
             // create a union for storing the value
-    		OTF2_MetricValue* omv = new OTF2_MetricValue[1];
-    		omv[0].floating_point = data.counter_value;
+            OTF2_MetricValue* omv = new OTF2_MetricValue[1];
+            omv[0].floating_point = data.counter_value;
             // tell the union what type this is
-    		OTF2_Type* omt = new OTF2_Type[1];
-    		omt[0]=OTF2_TYPE_DOUBLE;
+            OTF2_Type* omt = new OTF2_Type[1];
+            omt[0]=OTF2_TYPE_DOUBLE;
             {
                 uint64_t idx = get_metric_index(*(data.counter_name));
-                cout << *(data.counter_name) << " " << idx << endl;
+                cout << "Sampled value (" << idx << "): " << *(data.counter_name) << " = " << data.counter_value << endl;
                 // because we are writing to thread 0's event stream,
                 // set the lock
                 std::unique_lock<std::mutex> lock(_comm_mutex);
@@ -1016,9 +1016,9 @@ namespace apex {
                 uint64_t stamp = get_time();
                 // write our counter into the event stream
                 if (comm_evt_writer != NULL) {
-    			    OTF2_EvtWriter_Metric( comm_evt_writer, NULL, stamp, idx, 1, omt, omv );
+                    OTF2_EvtWriter_Metric( comm_evt_writer, NULL, stamp, idx, 1, omt, omv );
                 }
-			}
+            }
         }
         return;
     }
