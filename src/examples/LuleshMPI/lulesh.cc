@@ -158,6 +158,7 @@ Additional BSD Notice
 #include "apex.h"
 
 #include "lulesh.h"
+#include "apex_api.hpp"
 
 
 /*********************************/
@@ -192,6 +193,7 @@ static inline
 void TimeIncrement(Domain& domain)
 {
    Real_t targetdt = domain.stoptime() - domain.time() ;
+   apex::profiler * p = apex::start((apex_function_address)&TimeIncrement);
 
    if ((domain.dtfixed() <= Real_t(0.0)) && (domain.cycle() != Int_t(0))) {
       Real_t ratio ;
@@ -244,6 +246,7 @@ void TimeIncrement(Domain& domain)
    domain.time() += domain.deltatime() ;
 
    ++domain.cycle() ;
+   apex::stop(p);
 }
 
 /******************************************/
@@ -2558,6 +2561,7 @@ void CalcTimeConstraintsForElems(Domain& domain) {
 static inline
 void LagrangeLeapFrog(Domain& domain)
 {
+    apex::profiler * p = apex::start((apex_function_address)&LagrangeLeapFrog);
 #ifdef SEDOV_SYNC_POS_VEL_LATE
    Domain_member fieldData[6] ;
 #endif
@@ -2600,6 +2604,7 @@ void LagrangeLeapFrog(Domain& domain)
    CommSyncPosVel(domain) ;
 #endif
 #endif   
+   apex::stop(p);
 }
 
 //extern "C" void TAU_SOS_send_data(void);
@@ -2626,8 +2631,8 @@ int main(int argc, char *argv[])
    numRanks = 1;
    myRank = 0;
 #endif   
-   apex_init("lulesh");
-   apex_set_node_id(myRank);
+   apex::init("lulesh");
+   apex::set_node_id(myRank);
 
    /* Set defaults that can be overridden by command line opts */
    opts.its = 9999999;
@@ -2730,7 +2735,7 @@ int main(int argc, char *argv[])
       VerifyAndWriteFinalOutput(elapsed_timeG, *locDom, opts.nx, numRanks);
    }
 
-   apex_finalize();
+   apex::finalize();
 #if USE_MPI
    MPI_Finalize() ;
 #endif

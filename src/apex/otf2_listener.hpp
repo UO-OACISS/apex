@@ -27,7 +27,9 @@ namespace apex {
         static OTF2_TimeStamp get_time( void ) {
             using namespace std::chrono;
             uint64_t stamp = duration_cast<nanoseconds>(system_clock::now().time_since_epoch()).count();
+            //std::cout << " stamp before: " << stamp;
             stamp = stamp - globalOffset;
+            //std::cout << " stamp after: " << stamp << std::endl;
             return stamp;
         }
         static OTF2_FlushType pre_flush( void* userData, 

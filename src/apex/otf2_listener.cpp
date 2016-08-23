@@ -30,7 +30,6 @@ namespace apex {
             OTF2_CollectiveContext *commContext, uint32_t *size) {
         /* Returns the number of OTF2_Archive objects operating in this
            communication context. */
-        //cout << __func__ << endl;
         *size = apex_options::otf2_collective_size();
         return OTF2_CALLBACK_SUCCESS;
     }
@@ -40,7 +39,6 @@ namespace apex {
         /* Returns the rank of this OTF2_Archive objects in this communication
            context. A number between 0 and one less of the size of the communication
            context. */
-        //cout << __func__ << endl;
         *rank = my_saved_node_id;
         return OTF2_CALLBACK_SUCCESS;
     }
@@ -54,7 +52,6 @@ namespace apex {
            fileNumber denotes in which of the partitions this OTF2_Archive should belong.
            localSize is the size of this partition and localRank the rank of this
            OTF2_Archive in the partition. */
-        //cout << __func__ << endl;
         return OTF2_CALLBACK_SUCCESS;
     }
 
@@ -62,14 +59,12 @@ namespace apex {
             OTF2_CollectiveContext *localCommContext) {
         /* Destroys the communication context previous created by the
            OTF2CreateLocalComm callback. */
-        //cout << __func__ << endl;
         return OTF2_CALLBACK_SUCCESS;
     }
 
     OTF2_CallbackCode otf2_listener::my_OTF2Barrier (void *userData,
             OTF2_CollectiveContext *commContext) {
         /* Performs a barrier collective on the given communication context. */
-        //cout << __func__ << endl;
         return OTF2_CALLBACK_SUCCESS;
     }
 
@@ -77,7 +72,6 @@ namespace apex {
             OTF2_CollectiveContext *commContext, void *data, uint32_t numberElements,
             OTF2_Type type, uint32_t root) {
         /* Performs a broadcast collective on the given communication context. */
-        //cout << __func__ << endl;
         return OTF2_CALLBACK_SUCCESS;
     }
 
@@ -87,7 +81,6 @@ namespace apex {
         /* Performs a gather collective on the given communication context where
            each ranks contribute the same number of elements. outData is only valid at
            rank root. */
-        //cout << __func__ << endl;
         return OTF2_CALLBACK_SUCCESS;
     }
 
@@ -97,7 +90,6 @@ namespace apex {
         /* Performs a gather collective on the given communication context where
            each ranks contribute different number of elements. outData and outElements are
            only valid at rank root. */
-        //cout << __func__ << endl;
         return OTF2_CALLBACK_SUCCESS;
     }
 
@@ -107,7 +99,6 @@ namespace apex {
         /* Performs a scatter collective on the given communication context where
            each ranks contribute the same number of elements. inData is only valid at rank
            root. */
-        //cout << __func__ << endl;
         return OTF2_CALLBACK_SUCCESS;
     }
 
@@ -118,7 +109,6 @@ namespace apex {
         /* Performs a scatter collective on the given communication context where
            each ranks contribute different number of elements. inData and inElements are
            only valid at rank root. */
-        //cout << __func__ << endl;
         return OTF2_CALLBACK_SUCCESS;
     }
 
@@ -126,7 +116,6 @@ namespace apex {
             *globalCommContext, OTF2_CollectiveContext *localCommContext) {
         /* Optionally called in OTF2_Archive_Close or OTF2_Reader_Close
            respectively. */
-        //cout << __func__ << endl;
         return;
     }
 
@@ -264,9 +253,6 @@ namespace apex {
         if (written) return;
         written = true;
         // write a "unit" string
-        uint64_t max_idx = 0;
-        int index = 0;
-          OTF2_MetricMemberRef* omr = new OTF2_MetricMemberRef[reduced_metric_map.size()];
         OTF2_GlobalDefWriter_WriteString( global_def_writer, get_string_index("count"), "count" );
         // copy the reduced map to a pair, so we can sort by value
         std::vector<std::pair<std::string, int>> pairs;
@@ -285,13 +271,12 @@ namespace apex {
                 idx, get_string_index(id), get_string_index(id),
                 OTF2_METRIC_TYPE_OTHER, OTF2_METRIC_ABSOLUTE_POINT, 
                 OTF2_TYPE_DOUBLE, OTF2_BASE_DECIMAL, 0, get_string_index("count"));
-            omr[index]=idx;
-            index++;
-            max_idx = (idx > max_idx) ? idx : max_idx;
+            OTF2_MetricMemberRef* omr = new OTF2_MetricMemberRef[1];
+            omr[0]=idx;
+            OTF2_GlobalDefWriter_WriteMetricClass( global_def_writer, 
+                    idx, 1, omr, OTF2_METRIC_ASYNCHRONOUS, 
+                    OTF2_RECORDER_KIND_UNKNOWN);
         }
-           OTF2_GlobalDefWriter_WriteMetricClass( global_def_writer, 
-            max_idx+1, index, omr, OTF2_METRIC_ASYNCHRONOUS, 
-            OTF2_RECORDER_KIND_UNKNOWN);
     }
 
     void otf2_listener::write_my_regions(void) {
@@ -374,7 +359,9 @@ namespace apex {
         std::ifstream index_file(index_filename);
         int rank, pid;
         std::string hostname;
+        int comm_size = 0;
         while (std::getline(index_file, indexline)) {
+            comm_size++;
             istringstream ss(indexline);
             ss >> rank >> pid >> hostname;
             // skip myself
@@ -432,7 +419,7 @@ namespace apex {
         region_file.close();
         // delete the lock file, so everyone can read our data.
         std::remove(my_lock_filename.str().c_str());
-        return pairs.size();
+        return comm_size;
     }
 
     void otf2_listener::reduce_metrics(void) {
@@ -538,24 +525,26 @@ namespace apex {
         }
         // build the array of uint64_t values
         auto region_indices = get_global_region_indices();
-        uint64_t * mappings = (uint64_t*)(malloc(sizeof(uint64_t) * region_indices.size()));
-        for (auto const &i : region_indices) {
-            task_identifier id = i.first;
-            uint64_t idx = i.second;
-            uint64_t mapped_index = reduced_region_map[id.get_name()];
-            mappings[idx] = mapped_index;
+        if (region_indices.size() > 0) {
+            uint64_t * mappings = (uint64_t*)(malloc(sizeof(uint64_t) * region_indices.size()));
+            for (auto const &i : region_indices) {
+                task_identifier id = i.first;
+                uint64_t idx = i.second;
+                uint64_t mapped_index = reduced_region_map[id.get_name()];
+                mappings[idx] = mapped_index;
+            }
+            // create a map
+            uint64_t map_size = region_indices.size();
+            OTF2_IdMap * my_map = OTF2_IdMap_CreateFromUint64Array(map_size, mappings, false);
+            for (int i = 0 ; i < thread_instance::get_num_threads() ; i++) {
+                OTF2_DefWriter* def_writer = getDefWriter(i);
+                OTF2_DefWriter_WriteMappingTable(def_writer, OTF2_MAPPING_REGION, my_map);
+                OTF2_Archive_CloseDefWriter( archive, def_writer );
+            }
+            // free the map
+            OTF2_IdMap_Free(my_map);
+            free(mappings);
         }
-        // create a map
-        uint64_t map_size = region_indices.size();
-        OTF2_IdMap * my_map = OTF2_IdMap_CreateFromUint64Array(map_size, mappings, false);
-        for (int i = 0 ; i < thread_instance::get_num_threads() ; i++) {
-            OTF2_DefWriter* def_writer = getDefWriter(i);
-            OTF2_DefWriter_WriteMappingTable(def_writer, OTF2_MAPPING_REGION, my_map);
-            OTF2_Archive_CloseDefWriter( archive, def_writer );
-        }
-        // free the map
-        OTF2_IdMap_Free(my_map);
-        free(mappings);
     }
 
     void otf2_listener::write_metric_map() {
@@ -890,12 +879,12 @@ namespace apex {
                 OTF2_EvtWriter_Enter( local_evt_writer, NULL, stamp, idx /* region */ );
             } else {
                 // using the timestamp from the profiler should be OK!
+                /*
                 using namespace std::chrono;
                 profiler * p = thread_instance::instance().get_current_profiler();
                 uint64_t stamp = p->start.time_since_epoch().count() - globalOffset;
-                /*
-                uint64_t stamp = get_time();
                 */
+                uint64_t stamp = get_time();
                 OTF2_EvtWriter_Enter( local_evt_writer, NULL, stamp, get_region_index(id) /* region */ );
             }
         } else {
@@ -934,11 +923,11 @@ namespace apex {
                 OTF2_EvtWriter_Leave( local_evt_writer, NULL, stamp, idx /* region */ );
             } else {
                 // using the timestamp from the profiler should be OK!
+                /*
                 using namespace std::chrono;
                 uint64_t stamp = p->end.time_since_epoch().count() - globalOffset;
-                /*
-                uint64_t stamp = get_time();
                 */
+                uint64_t stamp = get_time();
                 OTF2_EvtWriter_Leave( local_evt_writer, NULL, stamp, 
                         get_region_index(p->task_id) /* region */ );
             }
@@ -1007,7 +996,6 @@ namespace apex {
             omt[0]=OTF2_TYPE_DOUBLE;
             {
                 uint64_t idx = get_metric_index(*(data.counter_name));
-                cout << "Sampled value (" << idx << "): " << *(data.counter_name) << " = " << data.counter_value << endl;
                 // because we are writing to thread 0's event stream,
                 // set the lock
                 std::unique_lock<std::mutex> lock(_comm_mutex);
