@@ -52,6 +52,11 @@ map<int, bool> thread_instance::_worker_map;
 std::mutex thread_instance::_worker_map_mutex;
 // Global static path to executable name
 string * thread_instance::_program_path = nullptr;
+#ifdef APEX_DEBUG
+// Global static mutex to control access for debugging purposes
+std::mutex thread_instance::_open_profiler_mutex;
+std::unordered_set<std::string> thread_instance::open_profilers;
+#endif
 
 thread_instance& thread_instance::instance(void) {
   thread_instance* me = _instance;
@@ -209,6 +214,13 @@ string thread_instance::map_addr_to_name(apex_function_address function_address)
 
 void thread_instance::set_current_profiler(profiler * the_profiler) {
     instance().current_profiler = the_profiler;
+    /*
+    instance().current_profilers.push_back(the_profiler);
+    */
+}
+
+void thread_instance::clear_current_profiler(void) {
+    instance().current_profiler = nullptr;
     /*
     instance().current_profilers.push_back(the_profiler);
     */
