@@ -76,7 +76,9 @@ apex::~apex()
         delete el;
     }
 #if APEX_HAVE_PROC
-    delete pd_reader;
+    if (pd_reader != nullptr) {
+        delete pd_reader;
+    }
 #endif
     m_pInstance = nullptr;
 }
@@ -218,7 +220,15 @@ void apex::_initialize()
         listeners.push_back(new concurrency_handler(apex_options::concurrency_period(), apex_options::use_concurrency()));
     }
 #if APEX_HAVE_PROC
-    pd_reader = new proc_data_reader();
+    if (apex_options::use_proc_cpuinfo() ||
+        apex_options::use_proc_meminfo() ||
+        apex_options::use_proc_net_dev() ||
+        apex_options::use_proc_self_status() ||
+        apex_options::use_proc_stat()) {
+        pd_reader = new proc_data_reader();
+    } else {
+        pd_reader = nullptr;
+    }
 #endif
     this->resize_state(1);
     this->set_state(0, APEX_BUSY);
@@ -403,6 +413,9 @@ profiler* start(const std::string &timer_name)
             }
         }
     }
+#ifdef APEX_DEBUG
+    thread_instance::instance().add_open_profiler(thread_instance::instance().get_current_profiler());
+#endif
     return thread_instance::instance().get_current_profiler();
 }
 
@@ -434,6 +447,9 @@ profiler* start(apex_function_address function_address) {
     }
     */
 #endif
+#ifdef APEX_DEBUG
+    thread_instance::instance().add_open_profiler(thread_instance::instance().get_current_profiler());
+#endif
     return thread_instance::instance().get_current_profiler();
 }
 
@@ -458,6 +474,9 @@ profiler* resume(const std::string &timer_name) {
             }
         } catch (disabled_profiler_exception e) { return profiler::get_disabled_profiler(); }
     }
+#ifdef APEX_DEBUG
+    thread_instance::instance().add_open_profiler(thread_instance::instance().get_current_profiler());
+#endif
     return thread_instance::instance().get_current_profiler();
 }
 
@@ -486,6 +505,9 @@ profiler* resume(apex_function_address function_address) {
         fflush(stdout); 
     }
 */
+#endif
+#ifdef APEX_DEBUG
+    thread_instance::instance().add_open_profiler(thread_instance::instance().get_current_profiler());
 #endif
     return thread_instance::instance().get_current_profiler();
 }
@@ -531,6 +553,10 @@ void stop(profiler* the_profiler) {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
     if (the_profiler == nullptr || the_profiler->stopped) return;
+#ifdef APEX_DEBUG
+    thread_instance::instance().remove_open_profiler(thread_instance::instance().get_id(), the_profiler);
+    thread_instance::instance().clear_current_profiler();
+#endif
     std::shared_ptr<profiler> p{the_profiler};
     /*
     std::shared_ptr<profiler> p;
@@ -569,6 +595,10 @@ void yield(profiler* the_profiler)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
     if (the_profiler == nullptr || the_profiler->stopped) return;
+#ifdef APEX_DEBUG
+    thread_instance::instance().remove_open_profiler(thread_instance::instance().get_id(), the_profiler);
+    thread_instance::instance().clear_current_profiler();
+#endif
     std::shared_ptr<profiler> p{the_profiler};
     /*
     std::shared_ptr<profiler> p;
@@ -869,7 +899,9 @@ void finalize()
     finalize_plugins();
     exit_thread();
 #if APEX_HAVE_PROC
-    instance->pd_reader->stop_reading();
+    if (instance->pd_reader != nullptr) {
+        instance->pd_reader->stop_reading();
+    }
 #endif
 #if APEX_HAVE_MSR
     apex_finalize_msr();
@@ -895,6 +927,10 @@ void finalize()
             }
             std::cout << std::endl;
             //assert(ins == outs);
+            cout << "Profilers that were not stopped:" << endl;
+            for (auto tmp : thread_instance::get_open_profilers()) {
+                cout << tmp << endl;
+            }
         }
 #endif
         stringstream ss;
