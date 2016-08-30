@@ -61,7 +61,7 @@ namespace apex {
                                         uint32_t*               size )
         {
             *size = 0;
-            return OTF2_CALLBACK_ERROR;
+            return OTF2_CALLBACK_SUCCESS;
         }
 
 
@@ -79,7 +79,7 @@ namespace apex {
         otf2_collectives_apex_barrier( void*                   userData,
                                         OTF2_CollectiveContext* commContext )
         {
-            return OTF2_CALLBACK_ERROR;
+            return OTF2_CALLBACK_SUCCESS;
         }
 
 
@@ -91,7 +91,7 @@ namespace apex {
                                     OTF2_Type               type,
                                     uint32_t                root )
         {
-            return OTF2_CALLBACK_ERROR;
+            return OTF2_CALLBACK_SUCCESS;
         }
 
 
@@ -104,7 +104,7 @@ namespace apex {
                                         OTF2_Type               type,
                                         uint32_t                root )
         {
-            return OTF2_CALLBACK_ERROR;
+            return OTF2_CALLBACK_SUCCESS;
         }
 
 
@@ -118,7 +118,7 @@ namespace apex {
                                         OTF2_Type               type,
                                         uint32_t                root )
         {
-            return OTF2_CALLBACK_ERROR;
+            return OTF2_CALLBACK_SUCCESS;
         }
 
 
@@ -131,7 +131,7 @@ namespace apex {
                                         OTF2_Type               type,
                                         uint32_t                root )
         {
-            return OTF2_CALLBACK_ERROR;
+            return OTF2_CALLBACK_SUCCESS;
         }
 
 
@@ -145,7 +145,7 @@ namespace apex {
                                         OTF2_Type               type,
                                         uint32_t                root )
         {
-            return OTF2_CALLBACK_ERROR;
+            return OTF2_CALLBACK_SUCCESS;
         }
 
         static OTF2_FlushCallbacks flush_callbacks;

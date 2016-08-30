@@ -132,20 +132,6 @@ namespace apex {
                 OTF2_COMPRESSION_NONE  );
         /* set the flush callbacks, basically getting timestamps */
         OTF2_Archive_SetFlushCallbacks( archive, &flush_callbacks, NULL );
-        /* ? */
-        OTF2_Archive_SetCollectiveCallbacks( archive,
-                &collective_callbacks /* callbacks object */,
-                NULL /* collective data */,
-                NULL /* global comm context */,
-                NULL /* local comm context */ );
-        /* ? */
-        OTF2_Pthread_Archive_SetLockingCallbacks( archive, NULL );
-        /* open the event files for this archive */
-        OTF2_Archive_OpenEvtFiles( archive );
-        /* get an event writer for this thread */
-        evt_writer = OTF2_Archive_GetEvtWriter( archive, get_location_id() );
-        /* get the definition writers so we can record strings */
-        def_writer = OTF2_Archive_GetDefWriter( archive, get_location_id() );
         return;
     }
 
@@ -178,6 +164,20 @@ namespace apex {
 
     void otf2_listener::on_new_node(node_event_data &data) {
         if (!_terminate) {
+            /* ? */
+            OTF2_Archive_SetCollectiveCallbacks( archive,
+                    &collective_callbacks /* callbacks object */,
+                    NULL /* collective data */,
+                    NULL /* global comm context */,
+                    NULL /* local comm context */ );
+            /* ? */
+            OTF2_Pthread_Archive_SetLockingCallbacks( archive, NULL );
+            /* open the event files for this archive */
+            OTF2_Archive_OpenEvtFiles( archive );
+            /* get an event writer for this thread */
+            evt_writer = OTF2_Archive_GetEvtWriter( archive, get_location_id() );
+            /* get the definition writers so we can record strings */
+            def_writer = OTF2_Archive_GetDefWriter( archive, get_location_id() );
             if(data.node_id == 0 && global_def_writer == nullptr) {
                 global_def_writer = OTF2_Archive_GetGlobalDefWriter( archive );    
             }
@@ -231,9 +231,10 @@ namespace apex {
 
     void otf2_listener::on_exit_thread(event_data &data) {
         if (!_terminate) {
-
+            if(def_writer == nullptr || evt_writer == nullptr) {
+                std::cerr << "Writer is null in otf2_listener::on_exit_thread...?" << std::endl;
+            }
             // Write location data
-            
             uint64_t thread_id = thread_instance::get_id();
             using namespace std::chrono;
             uint64_t stamp = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();

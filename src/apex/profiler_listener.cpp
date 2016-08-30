@@ -868,10 +868,13 @@ node_color * get_node_color(double v,double vmin,double vmax)
 APEX_NATIVE_TLS int EventSet = PAPI_NULL;
 enum papi_state { papi_running, papi_suspended };
 APEX_NATIVE_TLS papi_state thread_papi_state = papi_suspended;
+APEX_NATIVE_TLS bool papi_initialized = false;
 #define PAPI_ERROR_CHECK(name) \
-if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
+if (rc != 0) cout << "PAPI error! name: " << rc << ": " << PAPI_strerror(rc) << endl;
 
   void profiler_listener::initialize_PAPI(bool first_time) {
+      if(papi_initialized) return;
+      papi_initialized = true;
       int rc = 0;
       if (first_time) {
         PAPI_library_init( PAPI_VER_CURRENT );

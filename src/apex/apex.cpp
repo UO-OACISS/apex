@@ -289,7 +289,7 @@ void init(const char * thread_name) {
     if (apex_options::disable() == true) { return; }
     // protect against multiple initializations
     if (_registered || _initialized) { return; }
-    _registered = true;
+    //_registered = true;
     _initialized = true;
     int argc = 1;
     const char *dummy = "APEX Application";
