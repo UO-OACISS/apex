@@ -36,6 +36,8 @@ namespace apex {
         using string_map_type = std::map<std::string,uint64_t>;
         using region_map_type =  std::map<task_identifier,uint64_t,task_id_compare>;
     private:
+        static constexpr OTF2_AttributeRef enter_reason_id = 0;
+        static constexpr OTF2_AttributeRef leave_reason_id = 1;
         void _init(void);
         bool _terminate;
         std::mutex _mutex;
@@ -154,6 +156,7 @@ namespace apex {
         OTF2_Archive* archive;
         static __thread OTF2_EvtWriter* evt_writer;
         static __thread OTF2_DefWriter* def_writer;
+        static __thread OTF2_AttributeList* attr_list;
         OTF2_GlobalDefWriter* global_def_writer;
         inline region_map_type & get_region_indices(void) {
             static __thread region_map_type region_indices;
@@ -171,6 +174,8 @@ namespace apex {
             const uint64_t thread_id = thread_instance::get_id();
             return (node_id * APEX_MAX_THREADS_PER_LOCALITY) + thread_id;
         }
+        bool common_start(task_identifier * id, bool resume);
+        void common_stop(std::shared_ptr<profiler> &p, bool yield);
     public:
         otf2_listener (void);
         ~otf2_listener (void) { };

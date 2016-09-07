@@ -5,6 +5,9 @@
 #include <cinttypes>
 #include <cstdio>
 #include <atomic>
+#include <utility>
+#include <stack>
+#include <sstream>
 #include "apex_api.hpp"
 #include "apex_types.h"
 #include "thread_instance.hpp"
@@ -41,13 +44,13 @@ static const std::string guid_to_str(ocrGuid_t guid) {
 using guid_map_t = std::map<ocrGuid_t, apex::profiler*>;
 
 static APEX_NATIVE_TLS guid_map_t * guid_map = nullptr;
-static APEX_NATIVE_TLS ocrGuid_t current_guid = NULL_GUID;
 static APEX_NATIVE_TLS bool thread_seen = false;
 static std::atomic_bool pd_seen{false};
+static std::atomic<uint64_t> thread_id{0};
 
 static inline guid_map_t * get_guid_map() {
     if(unlikely(guid_map == nullptr)) {
-        guid_map = new std::map<ocrGuid_t, apex::profiler*>();
+        guid_map = new guid_map_t();
     }
     return guid_map;
 }
@@ -58,7 +61,9 @@ static inline void check_registration(const int node) {
             pd_seen = true;
             apex::set_node_id(node);
         }
-        apex::register_thread("worker");
+        std::stringstream ss;
+        ss << "worker " << thread_id++;
+        apex::register_thread(ss.str());
         thread_seen = true;
     }
 }
@@ -126,20 +131,39 @@ static inline void apex_ocr_task_satisfy_dependence(const ocrGuid_t edtGuid, con
 
 static inline void apex_ocr_task_execute(const ocrGuid_t edtGuid, const apex_function_address fctPtr, const int node) {
     DEBUG_MSG("Task executing: " << guid_to_str(edtGuid));
-    
     check_registration(node);
-    current_guid = edtGuid;
     apex::task_identifier * task_id = new apex::task_identifier(fctPtr, guid_to_str(edtGuid));
-    (*get_guid_map())[edtGuid] = apex::start(task_id);  
+    apex::profiler * p = apex::start(task_id);
+    (*get_guid_map())[edtGuid] = p;
 }
 
 static inline void apex_ocr_task_finish(const ocrGuid_t edtGuid, const int node) {
     DEBUG_MSG("Task finished: " << guid_to_str(edtGuid));
     check_registration(node);
-    current_guid = NULL_GUID;
-    apex::stop((*guid_map)[edtGuid]);
+    apex::profiler * p = (*get_guid_map())[edtGuid];
+#ifdef APEX_OCR_DEBUG
+    if(p == nullptr) {
+        std::cerr << "apex_ocr_task_finish: Profiler null for " << guid_to_str(edtGuid) << std::endl;
+        abort();
+    }
+#endif
+    apex::stop(p);
+    get_guid_map()->erase(edtGuid);
 }
 
+static inline void apex_ocr_task_yield(const ocrGuid_t edtGuid, const apex_function_address fctPtr, const int node) { 
+    DEBUG_MSG("Task yielded: " << guid_to_str(edtGuid));
+    check_registration(node);
+    apex::profiler * p = (*get_guid_map())[edtGuid];
+#ifdef APEX_OCR_DEBUG
+    if(p == nullptr) {
+        std::cerr << "apex_ocr_task_yield: Profiler null for " << guid_to_str(edtGuid) << std::endl;
+        abort();
+    }
+#endif
+    apex::yield(p);
+    get_guid_map()->erase(edtGuid);
+}
 
 static inline void apex_ocr_task_data_acquire(const ocrGuid_t edtGuid, const ocrGuid_t dbGuid, const u64 dbSize, const int node) {
     DEBUG_MSG("Task data acquire. Task " << guid_to_str(edtGuid) << " acquired DB " << guid_to_str(dbGuid) << " of size " << dbSize);
@@ -264,6 +288,17 @@ void traceTaskFinish(u64 location, bool evtType, ocrTraceType_t objType,
     apex_ocr_task_finish(edtGuid, (int)location);
  }
 
+void traceTaskShift(u64 location, bool evtType, ocrTraceType_t objType,
+                                            ocrTraceAction_t actionType, u64 workerId,
+                                            u64 timestamp, ocrGuid_t parent, ocrGuid_t edtGuid,
+                                            ocrEdt_t fctPtr, bool shiftFrom){
+    if(shiftFrom) {
+        apex_ocr_task_yield(edtGuid, (apex_function_address)fctPtr, (int)location);
+    } else {
+        apex_ocr_task_execute(edtGuid, (apex_function_address)fctPtr, (int)location);
+    }
+
+}
 
 
 void traceTaskDataAcquire(u64 location, bool evtType, ocrTraceType_t objType,
@@ -358,4 +393,4 @@ void * hcRunWorker(void * worker) {
 
 } // END extern "C"
 
-#endif //APEX_HAVE_OCR
+#endif //apEX_HAVE_OCR

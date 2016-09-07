@@ -17,6 +17,7 @@ namespace apex {
     const std::string otf2_listener::empty("");
     __thread OTF2_EvtWriter* otf2_listener::evt_writer(nullptr);
     __thread OTF2_DefWriter* otf2_listener::def_writer(nullptr);
+    __thread OTF2_AttributeList* otf2_listener::attr_list(nullptr);
 
     OTF2_FlushCallbacks otf2_listener::flush_callbacks =
     {
@@ -142,11 +143,6 @@ namespace apex {
             /* close event files */
             OTF2_Archive_CloseEvtFiles( archive );
             /* write the clock properties */
-            /*
-            uint64_t ticks_per_second = (uint64_t)(1.0/profiler::get_cpu_mhz());
-            uint64_t globalOffset = profiler::time_point_to_nanoseconds(profiler::get_global_start());
-            uint64_t traceLength = profiler::time_point_to_nanoseconds(profiler::get_global_end());
-            */
             if(apex::__instance()->get_node_id() == 0) {
                 uint64_t ticks_per_second = 1000000;
                 using namespace std::chrono;
@@ -178,6 +174,8 @@ namespace apex {
             evt_writer = OTF2_Archive_GetEvtWriter( archive, get_location_id() );
             /* get the definition writers so we can record strings */
             def_writer = OTF2_Archive_GetDefWriter( archive, get_location_id() );
+            /* create the attribute list for this thread */
+            attr_list = OTF2_AttributeList_New();
             if(data.node_id == 0 && global_def_writer == nullptr) {
                 global_def_writer = OTF2_Archive_GetGlobalDefWriter( archive );    
             }
@@ -204,6 +202,16 @@ namespace apex {
                 get_string_index(locality.str()) /* name */,
                 OTF2_LOCATION_GROUP_TYPE_PROCESS,
                 node_id /* system tree node ID */ );
+            OTF2_DefWriter_WriteAttribute( def_writer,
+                enter_reason_id /* attribute id*/,
+                get_string_index("enter_reason") /* name */,
+                get_string_index(empty) /* desc */,
+                OTF2_TYPE_UINT8 /* type */ );
+            OTF2_DefWriter_WriteAttribute( def_writer,
+                leave_reason_id /* attribute id*/,
+                get_string_index("leave_reason") /* name */,
+                get_string_index(empty) /* desc */,
+                OTF2_TYPE_UINT8 /* type */ );
         }
         return;
     }
@@ -218,6 +226,9 @@ namespace apex {
             /* get the definition writer so we can record strings */
             if(def_writer == nullptr) {
                 def_writer = OTF2_Archive_GetDefWriter( archive, i );
+            }
+            if(attr_list == nullptr) {
+               attr_list = OTF2_AttributeList_New(); 
             }
             using namespace std::chrono;
             uint64_t stamp = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
@@ -261,20 +272,23 @@ namespace apex {
             def_writer = nullptr;
             OTF2_Archive_CloseEvtWriter( archive, evt_writer );
             evt_writer = nullptr;
+            OTF2_AttributeList_Delete(attr_list);
+            attr_list = nullptr;
         }
         APEX_UNUSED(data);
         return;
     }
 
-    bool otf2_listener::on_start(task_identifier * id) {
+    bool otf2_listener::common_start(task_identifier * id, bool resume) {
         if (!_terminate) {
-          /*
-            profiler * p = thread_instance::instance().get_current_profiler();
-            uint64_t stamp = profiler::time_point_to_nanoseconds(p->start); 
-                     */
             using namespace std::chrono;
             uint64_t stamp = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
-            OTF2_EvtWriter_Enter( evt_writer, NULL, 
+            OTF2_AttributeValue reason_val;
+            reason_val.uint8 = (uint8_t)resume;
+            OTF2_AttributeList_AddAttribute(attr_list, enter_reason_id, OTF2_TYPE_UINT8, reason_val);
+            // Note: writing with attribute list empties the attribute list
+            OTF2_EvtWriter_Enter( evt_writer, 
+                attr_list, 
                 stamp,
                 get_region_index(id) /* region */ );
         } else {
@@ -283,26 +297,36 @@ namespace apex {
         return true;
     }
 
-    bool otf2_listener::on_resume(task_identifier * id) {
-        return on_start(id);
-    }
-
-    void otf2_listener::on_stop(std::shared_ptr<profiler> &p) {
+    void otf2_listener::common_stop(std::shared_ptr<profiler> &p, bool yield) {
         if (!_terminate) {
-          /*
-            uint64_t stamp = profiler::time_point_to_nanoseconds(p->end);
-                     */
             using namespace std::chrono;
             uint64_t stamp = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
-            OTF2_EvtWriter_Leave( evt_writer, NULL, 
+            OTF2_AttributeValue reason_val;
+            reason_val.uint8 = (uint8_t)yield;
+            OTF2_AttributeList_AddAttribute(attr_list, leave_reason_id, OTF2_TYPE_UINT8, reason_val);
+            // Note: writing with attribute list empties the attribute list
+            OTF2_EvtWriter_Leave( evt_writer, 
+                attr_list,
                 stamp,
                 get_region_index(p->task_id) /* region */ );
         }
         return;
     }
 
+    bool otf2_listener::on_start(task_identifier * id) {
+        return common_start(id, false);
+    }
+
+    bool otf2_listener::on_resume(task_identifier * id) {
+        return common_start(id, true);
+    }
+
+    void otf2_listener::on_stop(std::shared_ptr<profiler> &p) {
+        common_stop(p, false);
+    }
+
     void otf2_listener::on_yield(std::shared_ptr<profiler> &p) {
-        on_stop(p);
+        common_stop(p, true);
     }
 
     void otf2_listener::on_sample_value(sample_value_event_data &data) {
