@@ -127,7 +127,8 @@ public:
             /* if the file exists, was it recently created? */
             if (seconds > 10) {
                 /* create the file */
-                std::ofstream tmp = std::ofstream(task_scatterplot_sample_filename);
+                std::ofstream tmp;
+				tmp.open(task_scatterplot_sample_filename);
         		tmp << "#timestamp value   name" << std::endl << std::flush;
 				/* yes, close the file because we will use some
 				   low-level calls to have concurrent access
@@ -136,7 +137,8 @@ public:
             }
 		} else {
             /* create the file */
-            std::ofstream tmp = std::ofstream(task_scatterplot_sample_filename);
+            std::ofstream tmp;
+			tmp.open(task_scatterplot_sample_filename);
         	tmp << "#timestamp value   name" << std::endl << std::flush;
 			/* yes, close the file because we will use some
 			low-level calls to have concurrent access

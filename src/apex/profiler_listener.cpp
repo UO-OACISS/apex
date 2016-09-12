@@ -310,12 +310,12 @@ namespace apex {
         			fcntl(task_scatterplot_sample_file, F_SETLKW, &fl);  /* F_GETLK, F_SETLK, F_SETLKW */
                     // flush the string stream to the file
                     //lseek(task_scatterplot_sample_file, 0, SEEK_END);
-        			assert(write(task_scatterplot_sample_file, 
-								 task_scatterplot_samples.str().c_str(), loc0) >= 0);
+        			write(task_scatterplot_sample_file, 
+						  task_scatterplot_samples.str().c_str(), loc0);
         			fl.l_type   = F_UNLCK;   /* tell it to unlock the region */
         			fcntl(task_scatterplot_sample_file, F_SETLK, &fl); /* set the region to unlocked */
                     // reset the stringstream
-                    task_scatterplot_samples = std::stringstream();
+                    task_scatterplot_samples.str("");
                 }
             }
         }
@@ -1091,8 +1091,8 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
           fcntl(task_scatterplot_sample_file, F_SETLKW, &fl);  /* F_GETLK, F_SETLK, F_SETLKW */
           // flush the string stream to the file
           //lseek(task_scatterplot_sample_file, 0, SEEK_END);
-          assert(write(task_scatterplot_sample_file, 
-                      task_scatterplot_samples.str().c_str(), loc0) >= 0);
+          write(task_scatterplot_sample_file, 
+                task_scatterplot_samples.str().c_str(), loc0);
           fl.l_type   = F_UNLCK;   /* tell it to unlock the region */
           fcntl(task_scatterplot_sample_file, F_SETLK, &fl); /* set the region to unlocked */
           close(task_scatterplot_sample_file);
@@ -1316,7 +1316,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 #ifdef APEX_HAVE_HPX3
 // (HPX_PLAIN_ACTION needs to be in global namespace)
 HPX_PLAIN_ACTION(apex::profiler_listener::process_profiles_wrapper, apex_internal_process_profiles_action);
-HPX_ACTION_HAS_CRITICAL_PRIORITY(apex_internal_process_profiles_action);
+//HPX_ACTION_HAS_CRITICAL_PRIORITY(apex_internal_process_profiles_action);
 
 void apex_schedule_process_profiles() {
     if(get_hpx_runtime_ptr() == nullptr) return;
