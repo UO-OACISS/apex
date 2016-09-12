@@ -30,6 +30,7 @@ namespace apex {
             OTF2_CollectiveContext *commContext, uint32_t *size) {
         /* Returns the number of OTF2_Archive objects operating in this
            communication context. */
+        //cout << __func__ << " " << apex_options::otf2_collective_size() << endl;
         *size = apex_options::otf2_collective_size();
         return OTF2_CALLBACK_SUCCESS;
     }
@@ -39,6 +40,7 @@ namespace apex {
         /* Returns the rank of this OTF2_Archive objects in this communication
            context. A number between 0 and one less of the size of the communication
            context. */
+        //cout << __func__ << " " << my_saved_node_id << endl;
         *rank = my_saved_node_id;
         return OTF2_CALLBACK_SUCCESS;
     }
@@ -397,6 +399,7 @@ namespace apex {
             // remove that rank's map
             std::remove(region_filename.str().c_str());
         }
+        index_file.close();
         // open my region file
         ostringstream region_filename;
         region_filename << region_filename_prefix << my_saved_node_id;
@@ -478,6 +481,7 @@ namespace apex {
             // remove that rank's map
             std::remove(metric_filename.str().c_str());
         }
+        index_file.close();
         // open my metric file
         ostringstream metric_filename;
         metric_filename << metric_filename_prefix << my_saved_node_id;
@@ -523,6 +527,7 @@ namespace apex {
             ss >> idx >> region_name;
             reduced_region_map[region_name] = idx;
         }
+        region_file.close();
         // build the array of uint64_t values
         auto region_indices = get_global_region_indices();
         if (region_indices.size() > 0) {
@@ -544,6 +549,12 @@ namespace apex {
             // free the map
             OTF2_IdMap_Free(my_map);
             free(mappings);
+        } else {
+            for (int i = 0 ; i < thread_instance::get_num_threads() ; i++) {
+                /* write an empty definition file */
+                OTF2_DefWriter* def_writer = getDefWriter(i);
+                OTF2_Archive_CloseDefWriter( archive, def_writer );
+            }
         }
     }
 
@@ -569,6 +580,7 @@ namespace apex {
             metric_name = metric_line.substr(firsttab+1);
             reduced_metric_map[metric_name] = idx;
         }
+        metric_file.close();
         // build the array of uint64_t values
         auto metric_indices = get_global_metric_indices();
         if (metric_indices.size() > 0) {
@@ -716,6 +728,7 @@ namespace apex {
                     rank_pid_map[rank] = pid;
                     rank_hostname_map[rank] = hostname;
                 }    
+                myfile.close();
                 // these are communicator lists, and a location map
                 // for each. We need a group member for each process,
                 // and the "location" is thread 0 of that process.
@@ -805,6 +818,7 @@ namespace apex {
         fcntl(indexfile, F_SETLKW, &fl);  /* F_GETLK, F_SETLK, F_SETLKW */
         // write our info
         assert(write(indexfile, tmp.c_str(), tmp.size()) >= 0);
+        //std::cout << tmp << endl;
         fl.l_type   = F_UNLCK;   /* tell it to unlock the region */
         // release the lock
         fcntl(indexfile, F_SETLK, &fl); /* set the region to unlocked */
