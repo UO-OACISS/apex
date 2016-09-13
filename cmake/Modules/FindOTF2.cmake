@@ -31,6 +31,8 @@ find_package_handle_standard_args(OTF2  DEFAULT_MSG
 
 mark_as_advanced(OTF2_INCLUDE_DIR OTF2_LIBRARY)
 
+add_custom_target(project_otf2)
+
 if(OTF2_FOUND)
   set(OTF2_LIBRARIES ${OTF2_LIBRARY} )
   set(OTF2_INCLUDE_DIRS ${OTF2_INCLUDE_DIR})

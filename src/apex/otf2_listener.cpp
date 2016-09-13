@@ -846,6 +846,30 @@ namespace apex {
     void otf2_listener::on_new_thread(new_thread_event_data &data) {
         /* the event writer and def writers are created using
          * static construction in on_start and on_stop */
+            if (!thread_instance::map_id_to_worker(thread_instance::get_id())) {
+                // before we process the event, make sure the archive is open
+                // THIS WILL ONLY HAPPEN ONCE
+                static bool archive_created = create_archive();
+                // before we process the event, make sure the node properties are written
+                // THIS WILL ONLY HAPPEN ONCE
+                static bool properties_written = write_my_node_properties();
+                // before we process the event, make sure the event write is open
+                OTF2_EvtWriter* local_evt_writer = getEvtWriter();
+                /*
+                // create a union for storing the value
+                OTF2_MetricValue* omv = new OTF2_MetricValue[1];
+                omv[0].floating_point = 0.0;
+                // tell the union what type this is
+                OTF2_Type* omt = new OTF2_Type[1];
+                omt[0]=OTF2_TYPE_DOUBLE;
+                string tmp("helper thread start");
+                uint64_t idx = get_metric_index(tmp);
+                uint64_t stamp = get_time();
+                // write our counter into the event stream
+                OTF2_EvtWriter_Metric( local_evt_writer, NULL, stamp, idx, 1, omt, omv );
+                */
+                OTF2_Archive_CloseEvtWriter( archive, getEvtWriter() );
+            }
         APEX_UNUSED(data);
         return;
     }
