@@ -274,7 +274,7 @@ APEX_EXPORT void sample_value(const std::string &name, double value);
  \return No return value.
  */
 
-APEX_EXPORT void new_task(const std::string &name, void * task_id);
+APEX_EXPORT void new_task(const std::string &name, uint64_t task_id);
 
 /**
  \brief Create a new task (dependency).
@@ -287,7 +287,7 @@ APEX_EXPORT void new_task(const std::string &name, void * task_id);
  \return No return value.
  */
 
-APEX_EXPORT void new_task(apex_function_address function_address, void * task_id);
+APEX_EXPORT void new_task(apex_function_address function_address, uint64_t task_id);
 
 /**
  \brief Register an event type with APEX.

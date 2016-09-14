@@ -686,7 +686,7 @@ void sample_value(const std::string &name, double value)
     delete(data);
 }
 
-void new_task(const std::string &timer_name, void * task_id)
+void new_task(const std::string &timer_name, uint64_t task_id)
 {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
@@ -702,7 +702,7 @@ void new_task(const std::string &timer_name, void * task_id)
     }
 }
 
-void new_task(apex_function_address function_address, void * task_id) {
+void new_task(apex_function_address function_address, uint64_t task_id) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
     // if APEX is suspended, do nothing.
@@ -1265,7 +1265,7 @@ extern "C" {
     }
 
     void apex_new_task(apex_profiler_type type, void * identifier, 
-                       void * task_id) {
+                       unsigned long long task_id) {
         if (type == APEX_FUNCTION_ADDRESS) {
             new_task((apex_function_address)(identifier), task_id);
         } else {

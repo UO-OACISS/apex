@@ -225,7 +225,7 @@ APEX_EXPORT void apex_sample_value(const char * name, double value);
  \return No return value.
  */
 
-APEX_EXPORT void apex_new_task(apex_profiler_type type, void * identifier, void * task_id);
+APEX_EXPORT void apex_new_task(apex_profiler_type type, void * identifier, uint64_t task_id);
 
 /**
  \brief Register an event type with APEX.

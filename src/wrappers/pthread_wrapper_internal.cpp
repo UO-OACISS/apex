@@ -223,7 +223,7 @@ int apex_pthread_create_wrapper(pthread_create_p pthread_create_call,
 
     // register the dependency with APEX.
     if (retval == 0) {
-        apex::new_task((apex_function_address)start_routine, (void*)threadp);
+        apex::new_task((apex_function_address)start_routine, *threadp);
     }
     wrapper->_wrapped = false;
   }

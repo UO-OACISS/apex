@@ -1270,7 +1270,8 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
     }
   }
 
-  void profiler_listener::on_new_task(task_identifier * id, void * task_id) {
+  void profiler_listener::on_new_task(task_identifier * id, uint64_t task_id) {
+    //cout << "New task: " << task_id << endl;
     if (!apex_options::use_taskgraph_output()) { return; }
     // get the current profiler
     profiler * p = thread_instance::instance().get_current_profiler();
