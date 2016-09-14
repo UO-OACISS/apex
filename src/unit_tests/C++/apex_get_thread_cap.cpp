@@ -70,7 +70,7 @@ void* someThread(void* tmp)
 int main(int argc, char **argv)
 {
   init(argc, argv, NULL);
-  print_options();
+  //print_options();
   set_node_id(0);
 
   setup_timer_throttling((apex_function_address)foo, APEX_MAXIMIZE_THROUGHPUT,

@@ -454,6 +454,8 @@ if((DEFINED OTF2_ROOT) OR (USE_OTF2))
         endif()
     endif()
     add_definitions(-DAPEX_USE_CLOCK_TIMESTAMP=1)  
+    find_library(RTLIB rt)
+    set(LIBS ${LIBS} ${RTLIB})
 endif()
 
 ################################################################################
