@@ -52,7 +52,7 @@ int fib (int in) {
 int main(int argc, char *argv[]) {
     apex::init("apex_new_task_cpp unit test");
 	apex::set_node_id(0);
-    apex_proxy foo((void*)&main);
+    apex_proxy * foo = new apex_proxy((void*)&main);
 #ifdef APEX_HAVE_TAU
     int i = 5;
 #else
@@ -76,6 +76,7 @@ int main(int argc, char *argv[]) {
     auto future = std::async(std::launch::async, fib, i);
     int result = future.get();
     std::cout << "fib of " << i << " is " << result << " (valid value: " << fib_results[i] << ")" << std::endl;
+	delete(foo);
     apex::finalize();
     return 0;
 }

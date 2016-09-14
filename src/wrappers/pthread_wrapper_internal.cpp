@@ -10,6 +10,9 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <memory>
+#include <atomic>
+
+std::atomic<uint64_t> task_id(-1);
 
 /*
  * This "class" is used to make sure APEX is initialized
@@ -223,7 +226,7 @@ int apex_pthread_create_wrapper(pthread_create_p pthread_create_call,
 
     // register the dependency with APEX.
     if (retval == 0) {
-        apex::new_task((apex_function_address)start_routine, *threadp);
+        apex::new_task((apex_function_address)start_routine, ++task_id);
     }
     wrapper->_wrapped = false;
   }
