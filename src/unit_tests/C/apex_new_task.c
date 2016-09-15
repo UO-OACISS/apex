@@ -10,6 +10,8 @@
 #define PTHREAD_STACK_MIN 1024*16
 #endif
 
+long unsigned int task_id = -1;
+
 #define FIB_RESULTS_PRE 41
 int fib_results[FIB_RESULTS_PRE] = {0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10946,17711,28657,46368,75025,121393,196418,317811,514229,832040,1346269,2178309,3524578,5702887,9227465,14930352,24157817,39088169,63245986,102334155};
 
@@ -49,7 +51,8 @@ void * fib (void * in) {
     } else if (rc == EPERM) {
         printf("No permission to set the scheduling policy and parameters specified in attr.");
     }
-    apex_new_task(APEX_FUNCTION_ADDRESS, &fib, &thread_a);
+	__sync_fetch_and_add(&task_id, 1L);
+    apex_new_task(APEX_FUNCTION_ADDRESS, &fib, task_id);
     pthread_attr_destroy(&attr_a);
 
     scratchpad_t b;
@@ -69,7 +72,8 @@ void * fib (void * in) {
     } else if (rc == EPERM) {
         printf("No permission to set the scheduling policy and parameters specified in attr.");
     }
-    apex_new_task(APEX_FUNCTION_ADDRESS, &fib, &thread_b);
+	__sync_fetch_and_add(&task_id, 1L);
+    apex_new_task(APEX_FUNCTION_ADDRESS, &fib, task_id);
     pthread_attr_destroy(&attr_a);
 
     pthread_join(thread_a,NULL);    
