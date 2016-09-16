@@ -718,8 +718,8 @@ hpx::runtime * get_hpx_runtime_ptr(void);
  \brief Measure the sending of data
 
  */
-APEX_EXPORT void send (uint64_t id, uint64_t context, uint64_t size, uint64_t source, uint64_t target);
-APEX_EXPORT void recv (uint64_t id, uint64_t context, uint64_t size, uint64_t source, uint64_t target);
+APEX_EXPORT void send (uint64_t tag, uint64_t size, uint64_t target);
+APEX_EXPORT void recv (uint64_t tag, uint64_t size, uint64_t source);
 
 } //namespace apex
 

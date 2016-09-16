@@ -993,7 +993,7 @@ namespace apex {
                 // write our recv into the event stream
                 OTF2_EvtWriter_MpiSend  ( comm_evt_writer,
                         attributeList, stamp, data.target, communicator,
-                        data.id, data.size );
+                        data.tag, data.size );
             }
             OTF2_AttributeList_Delete(attributeList);
         }
@@ -1016,7 +1016,7 @@ namespace apex {
                 // write our recv into the event stream
                 OTF2_EvtWriter_MpiRecv  ( comm_evt_writer,
                         attributeList, stamp, data.source, communicator,
-                        data.id, data.size );
+                        data.tag, data.size );
             }
             // delete the attribute.
             OTF2_AttributeList_Delete(attributeList);

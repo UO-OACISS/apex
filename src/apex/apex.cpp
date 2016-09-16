@@ -1122,7 +1122,7 @@ void print_options() {
     return;
 }
 
-void send (uint64_t id, uint64_t context, uint64_t size, uint64_t source, uint64_t target) {
+void send (uint64_t tag, uint64_t size, uint64_t target) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return ; }
     // if APEX is suspended, do nothing.
@@ -1133,7 +1133,7 @@ void send (uint64_t id, uint64_t context, uint64_t size, uint64_t source, uint64
     if (!instance || _exited) { return ; }
 
     if (_notify_listeners) {
-        message_event_data data(id, context, size, source, target);
+        message_event_data data(tag, size, instance->get_node_id(), target);
         if (_notify_listeners) {
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
                 instance->listeners[i]->on_send(data);
@@ -1142,7 +1142,7 @@ void send (uint64_t id, uint64_t context, uint64_t size, uint64_t source, uint64
     }
 }
 
-void recv (uint64_t id, uint64_t context, uint64_t size, uint64_t source, uint64_t target) {
+void recv (uint64_t tag, uint64_t size, uint64_t source) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return ; }
     // if APEX is suspended, do nothing.
@@ -1153,7 +1153,7 @@ void recv (uint64_t id, uint64_t context, uint64_t size, uint64_t source, uint64
     if (!instance || _exited) { return ; }
 
     if (_notify_listeners) {
-        message_event_data data(id, context, size, source, target);
+        message_event_data data(tag, size, source, instance->get_node_id());
         if (_notify_listeners) {
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
                 instance->listeners[i]->on_recv(data);
@@ -1368,12 +1368,12 @@ extern "C" {
         return;
     }
 
-    void apex_send (uint64_t id, uint64_t action, uint64_t size, uint64_t source, uint64_t target) {
-        return send(id, action, size, source, target);
+    void apex_send (uint64_t tag, uint64_t size, uint64_t target) {
+        return send(tag, size, target);
     }
 
-    void apex_recv (uint64_t id, uint64_t action, uint64_t size, uint64_t source, uint64_t target) {
-        return recv(id, action, size, source, target);
+    void apex_recv (uint64_t tag, uint64_t size, uint64_t source) {
+        return recv(tag, size, source);
     }
 
 } // extern "C"

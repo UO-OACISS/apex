@@ -73,7 +73,7 @@ static void master(void) {
 
     /* Send it to each rank */
 
-    apex::send(0, WORKTAG, sizeof(int), 0, rank);
+    apex::send(WORKTAG, sizeof(int), rank);
     MPI_Send(&work,              /* message buffer */
              1,                 /* one data item */
              MPI_INT,           /* data item is an integer */
@@ -103,11 +103,11 @@ static void master(void) {
              MPI_ANY_TAG,       /* any type of message */
              MPI_COMM_WORLD,    /* default communicator */
              &status);          /* info about the received message */
-    apex::recv(0, status.MPI_TAG, sizeof(int), status.MPI_SOURCE, 0);
+    apex::recv(status.MPI_TAG, sizeof(int), status.MPI_SOURCE);
 
     /* Send the worker a new work unit */
 
-    apex::send(0, WORKTAG, sizeof(int), 0, status.MPI_SOURCE);
+    apex::send(WORKTAG, sizeof(int), status.MPI_SOURCE);
     MPI_Send(&work,              /* message buffer */
              1,                 /* one data item */
              MPI_INT,           /* data item is an integer */
@@ -130,14 +130,14 @@ static void master(void) {
   for (rank = 1; rank < ntasks; ++rank) {
     MPI_Recv(&result, 1, MPI_INT, MPI_ANY_SOURCE,
              MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-    apex::recv(0, status.MPI_TAG, sizeof(int), status.MPI_SOURCE, 0);
+    apex::recv(status.MPI_TAG, sizeof(int), status.MPI_SOURCE);
   }
 
   /* Tell all the worker to exit by sending an empty message with the
      DIETAG. */
 
   for (rank = 1; rank < ntasks; ++rank) {
-    apex::send(0, DIETAG, sizeof(int), 0, rank);
+    apex::send(DIETAG, sizeof(int), rank);
     MPI_Send(0, 0, MPI_INT, rank, DIETAG, MPI_COMM_WORLD);
   }
   apex::stop(p);
@@ -156,7 +156,7 @@ static void worker(void) {
 
     MPI_Recv(&work, 1, MPI_INT, 0, MPI_ANY_TAG,
              MPI_COMM_WORLD, &status);
-    apex::recv(0, status.MPI_TAG, sizeof(int), status.MPI_SOURCE, myrank);
+    apex::recv(status.MPI_TAG, sizeof(int), status.MPI_SOURCE);
 
     /* Check the tag of the received message. */
 
@@ -170,7 +170,7 @@ static void worker(void) {
 
     /* Send the result back */
 
-    apex::send(0, 0, sizeof(int), myrank, 0);
+    apex::send(0, sizeof(int), 0);
     MPI_Send(&result, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
   }
   apex::stop(p);
