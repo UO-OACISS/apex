@@ -82,6 +82,9 @@ static void apex_schedule_process_profiles(void); // not in apex namespace
 #include <thread>
 #include "utils.hpp"
 
+#include <cstdlib>
+#include <ctime>
+
 using namespace std;
 using namespace apex;
 
@@ -284,6 +287,38 @@ namespace apex {
         }
 #endif
 #endif
+      }
+      /* write the sample to the file */
+      if (apex_options::task_scatterplot()) {
+        if (!p->is_counter) {
+            static int thresh = RAND_MAX/100;
+            if (std::rand() < thresh) {
+                std::unique_lock<std::mutex> task_map_lock(_mtx);
+                task_scatterplot_samples << p->normalized_timestamp() << " " 
+                            << p->elapsed()*profiler::get_cpu_mhz()*1000000 << " " 
+                            << "'" << p->task_id->get_name() << "'" << endl;
+                int loc0 = task_scatterplot_samples.tellp();
+                if (loc0 > 32768) {
+                    // lock access to the file
+        			// write using low-level file locking!
+        			struct flock fl;
+        			fl.l_type   = F_WRLCK;  /* F_RDLCK, F_WRLCK, F_UNLCK    */
+        			fl.l_whence = SEEK_SET; /* SEEK_SET, SEEK_CUR, SEEK_END */
+        			fl.l_start  = 0;        /* Offset from l_whence         */
+        			fl.l_len    = 0;        /* length, 0 = to EOF           */
+        			fl.l_pid    = getpid();      /* our PID                      */
+        			fcntl(task_scatterplot_sample_file, F_SETLKW, &fl);  /* F_GETLK, F_SETLK, F_SETLKW */
+                    // flush the string stream to the file
+                    //lseek(task_scatterplot_sample_file, 0, SEEK_END);
+        			write(task_scatterplot_sample_file, 
+						  task_scatterplot_samples.str().c_str(), loc0);
+        			fl.l_type   = F_UNLCK;   /* tell it to unlock the region */
+        			fcntl(task_scatterplot_sample_file, F_SETLK, &fl); /* set the region to unlocked */
+                    // reset the stringstream
+                    task_scatterplot_samples.str("");
+                }
+            }
+        }
       }
     return 1;
   }
@@ -621,7 +656,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
             setfill('0') << setw(2) << hex << c->convert(c->red) << 
             setfill('0') << setw(2) << hex << c->convert(c->green) << 
             setfill('0') << setw(2) << hex << c->convert(c->blue) << "\"" <<
-            "label=\"" << task_id.get_name() << ":\\n" << (p->get_accumulated()*profiler::get_cpu_mhz()) << "s\" ];" << std::endl;
+            "; label=\"" << task_id.get_name() << ":\\n" << (p->get_accumulated()*profiler::get_cpu_mhz()) << "s\" ];" << std::endl;
       }
     }
     myfile << "}\n";
@@ -1042,6 +1077,26 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       if (apex_options::use_profile_output() && !apex_options::use_tau()) {
         write_profile();
       }
+      if (apex_options::task_scatterplot()) {
+          // get the length of the stream
+          int loc0 = task_scatterplot_samples.tellp();
+          // lock access to the file
+          // write using low-level file locking!
+          struct flock fl;
+          fl.l_type   = F_WRLCK;  /* F_RDLCK, F_WRLCK, F_UNLCK    */
+          fl.l_whence = SEEK_SET; /* SEEK_SET, SEEK_CUR, SEEK_END */
+          fl.l_start  = 0;        /* Offset from l_whence         */
+          fl.l_len    = 0;        /* length, 0 = to EOF           */
+          fl.l_pid    = getpid();      /* our PID                      */
+          fcntl(task_scatterplot_sample_file, F_SETLKW, &fl);  /* F_GETLK, F_SETLK, F_SETLKW */
+          // flush the string stream to the file
+          //lseek(task_scatterplot_sample_file, 0, SEEK_END);
+          write(task_scatterplot_sample_file, 
+                task_scatterplot_samples.str().c_str(), loc0);
+          fl.l_type   = F_UNLCK;   /* tell it to unlock the region */
+          fcntl(task_scatterplot_sample_file, F_SETLK, &fl); /* set the region to unlocked */
+          close(task_scatterplot_sample_file);
+      }
 
     }
     /* The cleanup is disabled for now. Why? Because we want to be able
@@ -1215,7 +1270,8 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
     }
   }
 
-  void profiler_listener::on_new_task(task_identifier * id, void * task_id) {
+  void profiler_listener::on_new_task(task_identifier * id, uint64_t task_id) {
+    //cout << "New task: " << task_id << endl;
     if (!apex_options::use_taskgraph_output()) { return; }
     // get the current profiler
     profiler * p = thread_instance::instance().get_current_profiler();
@@ -1261,7 +1317,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 #ifdef APEX_HAVE_HPX3
 // (HPX_PLAIN_ACTION needs to be in global namespace)
 HPX_PLAIN_ACTION(apex::profiler_listener::process_profiles_wrapper, apex_internal_process_profiles_action);
-HPX_ACTION_HAS_CRITICAL_PRIORITY(apex_internal_process_profiles_action);
+//HPX_ACTION_HAS_CRITICAL_PRIORITY(apex_internal_process_profiles_action);
 
 void apex_schedule_process_profiles() {
     if(get_hpx_runtime_ptr() == nullptr) return;

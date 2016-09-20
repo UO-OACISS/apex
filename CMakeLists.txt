@@ -290,7 +290,7 @@ endif(APEX_INTEL_MIC)
 ################################################################################
 
 if(USE_MPI)
-    find_package(MPI)
+  find_package(MPI REQUIRED)
 endif()
 
 ################################################################################
@@ -409,12 +409,16 @@ endif()
 
 if((DEFINED USE_ACTIVEHARMONY) AND (NOT USE_ACTIVEHARMONY))
     # do nothing
-        add_custom_target(project_activeharmony)
+    add_custom_target(project_activeharmony)
+	# just in case, disable all Active Harmony
+    unset(ACTIVEHARMONY_ROOT)
+    unset(ENV{ACTIVEHARMONY_ROOT})
+    unset(BUILD_ACTIVEHARMONY)
 else()
     set(USE_ACTIVEHARMONY TRUE)
 endif()
 
-if((DEFINED ACTIVEHARMONY_ROOT) OR (USE_ACTIVEHARMONY) OR (BUILD_ACTIVEHARMONY))
+if(((DEFINED ACTIVEHARMONY_ROOT) OR (BUILD_ACTIVEHARMONY)) AND (USE_ACTIVEHARMONY))
     find_package(ActiveHarmony)
     if (ACTIVEHARMONY_FOUND)
         include_directories(${ACTIVEHARMONY_INCLUDE_DIRS})
@@ -438,6 +442,24 @@ if((DEFINED PAPI_ROOT) OR (USE_PAPI))
             set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${PAPI_LIBRARY_DIR})
         endif()
     endif()
+endif()
+
+################################################################################
+# OTF2 configuration
+################################################################################
+
+if((DEFINED OTF2_ROOT) AND ((NOT DEFINED USE_OTF2) OR (USE_OTF2)))
+    find_package(OTF2 REQUIRED)
+    if (OTF2_FOUND)
+        include_directories(${OTF2_INCLUDE_DIRS})
+        set(LIBS ${LIBS} ${OTF2_LIBRARIES})
+        if (NOT BUILD_STATIC_EXECUTABLES)
+            set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${OTF2_LIBRARY_DIR})
+        endif()
+    endif()
+    add_definitions(-DAPEX_USE_CLOCK_TIMESTAMP=1)  
+    find_library(RTLIB rt)
+    set(LIBS ${LIBS} ${RTLIB})
 endif()
 
 ################################################################################

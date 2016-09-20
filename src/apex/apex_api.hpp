@@ -274,7 +274,7 @@ APEX_EXPORT void sample_value(const std::string &name, double value);
  \return No return value.
  */
 
-APEX_EXPORT void new_task(const std::string &name, void * task_id);
+APEX_EXPORT void new_task(const std::string &name, uint64_t task_id);
 
 /**
  \brief Create a new task (dependency).
@@ -287,7 +287,7 @@ APEX_EXPORT void new_task(const std::string &name, void * task_id);
  \return No return value.
  */
 
-APEX_EXPORT void new_task(apex_function_address function_address, void * task_id);
+APEX_EXPORT void new_task(apex_function_address function_address, uint64_t task_id);
 
 /**
  \brief Register an event type with APEX.
@@ -337,6 +337,17 @@ APEX_EXPORT std::string& version(void);
  \return No return value.
  */
 APEX_EXPORT void set_node_id(int id);
+
+/**
+ \brief Set this process' node ID.
+
+ For distributed applications, this function will store the
+ number of ranks. Common values are the MPI comm size, the HPX number of localities, etc.
+ 
+ \param id The number of ranks for this execution.
+ \return No return value.
+ */
+APEX_EXPORT void set_num_ranks(int id);
 
 /**
  \brief Register a new thread.
@@ -702,5 +713,13 @@ APEX_EXPORT void print_options(void);
 #ifdef APEX_HAVE_HPX3
 hpx::runtime * get_hpx_runtime_ptr(void);
 #endif
+
+/**
+ \brief Measure the sending of data
+
+ */
+APEX_EXPORT void send (uint64_t tag, uint64_t size, uint64_t target);
+APEX_EXPORT void recv (uint64_t tag, uint64_t size, uint64_t source);
+
 } //namespace apex
 

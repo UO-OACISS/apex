@@ -223,6 +223,8 @@ typedef uint32_t apex_tuning_session_handle;
     macro (APEX_SUSPEND, suspend, bool, false) \
     macro (APEX_PAPI_SUSPEND, papi_suspend, bool, false) \
     macro (APEX_TAU, use_tau, bool, false) \
+    macro (APEX_OTF2, use_otf2, bool, false) \
+    macro (APEX_OTF2_COLLECTIVE_SIZE, otf2_collective_size, int, 1) \
     macro (APEX_POLICY, use_policy, bool, true) \
     macro (APEX_MEASURE_CONCURRENCY, use_concurrency, int, 0) \
     macro (APEX_MEASURE_CONCURRENCY_PERIOD, concurrency_period, int, 1000000) \
@@ -242,12 +244,15 @@ typedef uint32_t apex_tuning_session_handle;
     macro (APEX_THROTTLE_ENERGY_PERIOD, throttle_energy_period, int, 1000000) \
     macro (APEX_THROTTLING_MAX_WATTS, throttling_max_watts, int, 300) \
     macro (APEX_THROTTLING_MIN_WATTS, throttling_min_watts, int, 150) \
-    macro (APEX_PTHREAD_WRAPPER_STACK_SIZE, pthread_wrapper_stack_size, int, 0)
+    macro (APEX_PTHREAD_WRAPPER_STACK_SIZE, pthread_wrapper_stack_size, int, 0) \
+    macro (APEX_TASK_SCATTERPLOT, task_scatterplot, bool, false)
 
 #define FOREACH_APEX_STRING_OPTION(macro) \
     macro (APEX_PAPI_METRICS, papi_metrics, char*, "") \
     macro (APEX_PLUGINS, plugins, char*, "") \
-    macro (APEX_PLUGINS_PATH, plugins_path, char*, "./") 
+    macro (APEX_PLUGINS_PATH, plugins_path, char*, "./") \
+    macro (APEX_OTF2_ARCHIVE_PATH, otf2_archive_path, char*, "OTF2_archive") \
+    macro (APEX_OTF2_ARCHIVE_NAME, otf2_archive_name, char*, "APEX") 
 
 #if defined(__linux) || defined(__linux__)
 #  define APEX_NATIVE_TLS __thread

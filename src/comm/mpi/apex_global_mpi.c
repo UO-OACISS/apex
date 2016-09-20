@@ -5,7 +5,9 @@
 #include "math.h"
 #include "stdio.h"
 #include <float.h> // DBL_MAX
+#ifndef __clang__ // no OpenMP support.
 #include "omp.h"
+#endif
 
 #define APEX_LOCALITY 0 // process that will do the reduction
 // my local value, global to this process
@@ -15,7 +17,7 @@ apex_profile value;
 apex_profile reduced_value;
 int min_rank = 0;
 int max_rank = 0;
-int global_max_threads = 0;
+int global_max_threads = 1;
 int* thread_caps = NULL;
 double* previous_values = NULL;
 double* current_values = NULL;
@@ -212,7 +214,9 @@ void apex_global_setup(apex_profiler_type type, void* in_action) {
     // get the max number of threads. All throttling will be done relative to this.
 #pragma omp parallel
     {
+#ifndef __clang__
     global_max_threads = omp_get_max_threads();
+#endif
     printf("Got %d threads!\n", global_max_threads);
     }
     thread_caps = calloc(num_ranks, sizeof(int));

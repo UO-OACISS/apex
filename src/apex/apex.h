@@ -225,7 +225,7 @@ APEX_EXPORT void apex_sample_value(const char * name, double value);
  \return No return value.
  */
 
-APEX_EXPORT void apex_new_task(apex_profiler_type type, void * identifier, void * task_id);
+APEX_EXPORT void apex_new_task(apex_profiler_type type, void * identifier, uint64_t task_id);
 
 /**
  \brief Register an event type with APEX.
@@ -276,6 +276,17 @@ APEX_EXPORT const char * apex_version(void);
  \return No return value.
  */
 APEX_EXPORT void apex_set_node_id(int id);
+
+/**
+ \brief Set this execution's number of ranks.
+
+ For distributed applications, this function will store the
+ number of ranks. Common values are the MPI commsize, the HPX number of localities, etc.
+ 
+ \param id The number of ranks for this execution.
+ \return No return value.
+ */
+APEX_EXPORT void apex_set_num_ranks(int id);
 
 /**
  \brief Register a new thread.
@@ -507,6 +518,9 @@ APEX_EXPORT void apex_set_thread_cap(int new_cap);             // for thread thr
  This function will print all the current APEX settings.
  */
 APEX_EXPORT void apex_print_options(void);
+
+APEX_EXPORT void apex_send (uint64_t tag, uint64_t size, uint64_t target);
+APEX_EXPORT void apex_recv (uint64_t tag, uint64_t size, uint64_t source);
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 

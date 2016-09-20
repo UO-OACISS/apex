@@ -35,6 +35,17 @@ public:
   ~timer_event_data();
 };
 
+class message_event_data : public event_data {
+public:
+  uint64_t tag;
+  uint64_t size;
+  uint64_t source;
+  uint64_t target;
+  message_event_data(uint64_t tag, uint64_t size, uint64_t source, uint64_t target) :
+    tag(tag), size(size), source(source), target(target) {}
+  ~message_event_data() {};
+};
+
 class node_event_data : public event_data {
 public:
   int node_id;
@@ -98,10 +109,12 @@ public:
   virtual void on_stop(std::shared_ptr<profiler> &p) = 0;
   virtual void on_yield(std::shared_ptr<profiler> &p) = 0;
   virtual bool on_resume(task_identifier * id) = 0;
-  virtual void on_new_task(task_identifier * id, void * task_id) = 0;
+  virtual void on_new_task(task_identifier * id, uint64_t task_id) = 0;
   virtual void on_sample_value(sample_value_event_data &data) = 0;
   virtual void on_periodic(periodic_event_data &data) = 0;
   virtual void on_custom_event(custom_event_data &data) = 0;
+  virtual void on_send(message_event_data &data) = 0;
+  virtual void on_recv(message_event_data &data) = 0;
 };
 
 }

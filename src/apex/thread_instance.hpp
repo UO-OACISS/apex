@@ -15,6 +15,9 @@
 #include <vector>
 #include "profiler.hpp"
 #include <exception>
+#ifdef APEX_DEBUG
+#include <unordered_set>
+#endif
 
 namespace apex {
 
@@ -73,6 +76,7 @@ public:
   //static std::shared_ptr<profiler> pop_current_profiler(profiler * requested);
   static void set_current_profiler(profiler * the_profiler);
   static profiler * get_current_profiler(void);
+  static void clear_current_profiler(void);
   /*
   static profiler * get_parent_profiler(void);
   static profiler * pop_current_profiler(void);
@@ -80,6 +84,33 @@ public:
   static bool profiler_stack_empty(void);
   */
   static const char * program_path(void);
+#ifdef APEX_DEBUG
+  static std::mutex _open_profiler_mutex;
+  static std::unordered_set<std::string> open_profilers;
+  static void add_open_profiler(profiler* p) {
+      std::unique_lock<std::mutex> l(_open_profiler_mutex);
+      std::stringstream ss;
+      ss << p->task_id->get_name();
+      ss << p->time_point_to_nanoseconds(p->start);
+      open_profilers.insert(ss.str());
+  }
+  static void remove_open_profiler(int id, profiler *p) {
+      if (p == NULL) return;
+      std::unique_lock<std::mutex> l(_open_profiler_mutex);
+      std::stringstream ss;
+      ss << p->task_id->get_name();
+      ss << p->time_point_to_nanoseconds(p->start);
+      auto tmp = open_profilers.find(ss.str());
+      if (tmp != open_profilers.end()) {
+        open_profilers.erase(ss.str());
+      } else {
+        std::cout << id << ": Warning! Can't find open profiler: " << ss.str() << std::endl;fflush(stdout);
+      }
+  }
+  static std::unordered_set<std::string>& get_open_profilers(void) {
+      return open_profilers;
+  }
+#endif
 };
 
 }

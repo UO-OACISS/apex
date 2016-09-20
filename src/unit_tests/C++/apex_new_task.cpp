@@ -3,9 +3,12 @@
 #include <iostream>
 #include <stdlib.h>
 #include "apex_api.hpp"
+#include <atomic>
 
 #define FIB_RESULTS_PRE 41
 int fib_results[FIB_RESULTS_PRE] = {0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10946,17711,28657,46368,75025,121393,196418,317811,514229,832040,1346269,2178309,3524578,5702887,9227465,14930352,24157817,39088169,63245986,102334155};
+
+std::atomic<uint64_t> task_id(-1);
 
 class apex_proxy {
 private:
@@ -13,7 +16,7 @@ private:
 public:
   apex_proxy(void * func) : p(nullptr) { 
     apex::register_thread("fib thread");
-    apex::start((apex_function_address)func);
+    p = apex::start((apex_function_address)func);
   }
   ~apex_proxy() { 
     if (p != nullptr) { 
@@ -32,11 +35,13 @@ int fib (int in) {
         return 1;
     }
     int a = in-1;
-    apex::new_task((apex_function_address)&fib, NULL);
+	// called from the parent, not when the child is spawned!
+    apex::new_task((apex_function_address)&fib, ++task_id);
     auto future_a = std::async(std::launch::async, fib, a);
 
     int b = in-2;
-    apex::new_task((apex_function_address)&fib, NULL);
+	// called from the parent, not when the child is spawned!
+    apex::new_task((apex_function_address)&fib, ++task_id);
     auto future_b = std::async(std::launch::async, fib, b);
 
     int result_a = future_a.get();
@@ -46,7 +51,8 @@ int fib (int in) {
 
 int main(int argc, char *argv[]) {
     apex::init("apex_new_task_cpp unit test");
-    apex_proxy foo((void*)&main);
+	apex::set_node_id(0);
+    apex_proxy * foo = new apex_proxy((void*)&main);
 #ifdef APEX_HAVE_TAU
     int i = 5;
 #else
@@ -65,10 +71,12 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    apex::new_task((apex_function_address)&fib, NULL);
+	// called from the parent, not when the child is spawned!
+    apex::new_task((apex_function_address)&fib, ++task_id);
     auto future = std::async(std::launch::async, fib, i);
     int result = future.get();
     std::cout << "fib of " << i << " is " << result << " (valid value: " << fib_results[i] << ")" << std::endl;
+	delete(foo);
     apex::finalize();
     return 0;
 }

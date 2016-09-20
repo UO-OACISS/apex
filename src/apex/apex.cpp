@@ -35,6 +35,10 @@
 #endif
 #include "address_resolution.hpp"
 
+#ifdef APEX_HAVE_OTF2
+#include "otf2_listener.hpp"
+#endif
+
 APEX_NATIVE_TLS bool _registered = false;
 APEX_NATIVE_TLS bool _exited = false;
 static bool _initialized = false;
@@ -72,7 +76,9 @@ apex::~apex()
         delete el;
     }
 #if APEX_HAVE_PROC
-    delete pd_reader;
+    if (pd_reader != nullptr) {
+        delete pd_reader;
+    }
 #endif
     m_pInstance = nullptr;
 }
@@ -91,9 +97,20 @@ void apex::set_node_id(int id)
     }
 }
 
+void apex::set_num_ranks(int num_ranks)
+{
+    m_num_ranks = num_ranks;
+    stringstream ss;
+}
+
 int apex::get_node_id()
 {
     return m_node_id;
+}
+
+int apex::get_num_ranks()
+{
+    return m_num_ranks;
 }
 
 #ifdef APEX_HAVE_HPX3
@@ -186,6 +203,12 @@ void apex::_initialize()
         listeners.push_back(new tau_listener());
     }
 #endif
+#ifdef APEX_HAVE_OTF2
+    if (apex_options::use_otf2())
+    {
+        listeners.push_back(new otf2_listener());
+    }
+#endif
     startup_throttling();
     if (apex_options::use_policy())
     {
@@ -197,7 +220,15 @@ void apex::_initialize()
         listeners.push_back(new concurrency_handler(apex_options::concurrency_period(), apex_options::use_concurrency()));
     }
 #if APEX_HAVE_PROC
-    pd_reader = new proc_data_reader();
+    if (apex_options::use_proc_cpuinfo() ||
+        apex_options::use_proc_meminfo() ||
+        apex_options::use_proc_net_dev() ||
+        apex_options::use_proc_self_status() ||
+        apex_options::use_proc_stat()) {
+        pd_reader = new proc_data_reader();
+    } else {
+        pd_reader = nullptr;
+    }
 #endif
     this->resize_state(1);
     this->set_state(0, APEX_BUSY);
@@ -382,6 +413,9 @@ profiler* start(const std::string &timer_name)
             }
         }
     }
+#ifdef APEX_DEBUG
+    thread_instance::instance().add_open_profiler(thread_instance::instance().get_current_profiler());
+#endif
     return thread_instance::instance().get_current_profiler();
 }
 
@@ -413,6 +447,9 @@ profiler* start(apex_function_address function_address) {
     }
     */
 #endif
+#ifdef APEX_DEBUG
+    thread_instance::instance().add_open_profiler(thread_instance::instance().get_current_profiler());
+#endif
     return thread_instance::instance().get_current_profiler();
 }
 
@@ -437,6 +474,9 @@ profiler* resume(const std::string &timer_name) {
             }
         } catch (disabled_profiler_exception e) { return profiler::get_disabled_profiler(); }
     }
+#ifdef APEX_DEBUG
+    thread_instance::instance().add_open_profiler(thread_instance::instance().get_current_profiler());
+#endif
     return thread_instance::instance().get_current_profiler();
 }
 
@@ -465,6 +505,9 @@ profiler* resume(apex_function_address function_address) {
         fflush(stdout); 
     }
 */
+#endif
+#ifdef APEX_DEBUG
+    thread_instance::instance().add_open_profiler(thread_instance::instance().get_current_profiler());
 #endif
     return thread_instance::instance().get_current_profiler();
 }
@@ -510,6 +553,10 @@ void stop(profiler* the_profiler) {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
     if (the_profiler == nullptr || the_profiler->stopped) return;
+#ifdef APEX_DEBUG
+    thread_instance::instance().remove_open_profiler(thread_instance::instance().get_id(), the_profiler);
+    thread_instance::instance().clear_current_profiler();
+#endif
     std::shared_ptr<profiler> p{the_profiler};
     /*
     std::shared_ptr<profiler> p;
@@ -548,6 +595,10 @@ void yield(profiler* the_profiler)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
     if (the_profiler == nullptr || the_profiler->stopped) return;
+#ifdef APEX_DEBUG
+    thread_instance::instance().remove_open_profiler(thread_instance::instance().get_id(), the_profiler);
+    thread_instance::instance().clear_current_profiler();
+#endif
     std::shared_ptr<profiler> p{the_profiler};
     /*
     std::shared_ptr<profiler> p;
@@ -635,7 +686,7 @@ void sample_value(const std::string &name, double value)
     delete(data);
 }
 
-void new_task(const std::string &timer_name, void * task_id)
+void new_task(const std::string &timer_name, uint64_t task_id)
 {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
@@ -651,7 +702,7 @@ void new_task(const std::string &timer_name, void * task_id)
     }
 }
 
-void new_task(apex_function_address function_address, void * task_id) {
+void new_task(apex_function_address function_address, uint64_t task_id) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
     // if APEX is suspended, do nothing.
@@ -704,6 +755,15 @@ void set_node_id(int id)
     apex* instance = apex::instance();
     if (!instance || _exited) return; // protect against calls after finalization
     instance->set_node_id(id);
+}
+
+void set_num_ranks(int num_ranks)
+{
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
+    apex* instance = apex::instance();
+    if (!instance || _exited) return; // protect against calls after finalization
+    instance->set_num_ranks(num_ranks);
 }
 
 #ifdef APEX_HAVE_HPX3
@@ -839,7 +899,9 @@ void finalize()
     finalize_plugins();
     exit_thread();
 #if APEX_HAVE_PROC
-    instance->pd_reader->stop_reading();
+    if (instance->pd_reader != nullptr) {
+        instance->pd_reader->stop_reading();
+    }
 #endif
 #if APEX_HAVE_MSR
     apex_finalize_msr();
@@ -865,6 +927,10 @@ void finalize()
             }
             std::cout << std::endl;
             //assert(ins == outs);
+            cout << "Profilers that were not stopped:" << endl;
+            for (auto tmp : thread_instance::get_open_profilers()) {
+                cout << tmp << endl;
+            }
         }
 #endif
         stringstream ss;
@@ -1052,11 +1118,49 @@ std::vector<std::string> get_available_profiles() {
 void print_options() {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
-    apex_options::print_options();
+    print_options();
     return;
 }
 
+void send (uint64_t tag, uint64_t size, uint64_t target) {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return ; }
+    // if APEX is suspended, do nothing.
+    if (apex_options::suspend() == true) { return ; }
+    // get the Apex static instance
+    apex* instance = apex::instance(); 
+    // protect against calls after finalization
+    if (!instance || _exited) { return ; }
 
+    if (_notify_listeners) {
+        message_event_data data(tag, size, instance->get_node_id(), target);
+        if (_notify_listeners) {
+            for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+                instance->listeners[i]->on_send(data);
+            }
+        }
+    }
+}
+
+void recv (uint64_t tag, uint64_t size, uint64_t source) {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return ; }
+    // if APEX is suspended, do nothing.
+    if (apex_options::suspend() == true) { return ; }
+    // get the Apex static instance
+    apex* instance = apex::instance(); 
+    // protect against calls after finalization
+    if (!instance || _exited) { return ; }
+
+    if (_notify_listeners) {
+        message_event_data data(tag, size, source, instance->get_node_id());
+        if (_notify_listeners) {
+            for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+                instance->listeners[i]->on_recv(data);
+            }
+        }
+    }
+}
 
 } // apex namespace
 
@@ -1161,7 +1265,7 @@ extern "C" {
     }
 
     void apex_new_task(apex_profiler_type type, void * identifier, 
-                       void * task_id) {
+                       unsigned long long task_id) {
         if (type == APEX_FUNCTION_ADDRESS) {
             new_task((apex_function_address)(identifier), task_id);
         } else {
@@ -1184,6 +1288,11 @@ extern "C" {
     void apex_set_node_id(int id)
     {
         set_node_id(id);
+    }
+
+    void apex_set_num_ranks(int num_ranks)
+    {
+        set_num_ranks(num_ranks);
     }
 
     void apex_register_thread(const char * name)
@@ -1257,6 +1366,14 @@ extern "C" {
     void apex_print_options() {
         apex_options::print_options();
         return;
+    }
+
+    void apex_send (uint64_t tag, uint64_t size, uint64_t target) {
+        return send(tag, size, target);
+    }
+
+    void apex_recv (uint64_t tag, uint64_t size, uint64_t source) {
+        return recv(tag, size, source);
     }
 
 } // extern "C"
