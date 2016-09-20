@@ -166,7 +166,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   set(CMAKE_C_FLAGS_DEBUG "-g -O0 ${C_PEDANTIC_COMPILER_WARNINGS} -DAPEX_DEBUG")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   # using GCC
-  if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.8)
+  if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
      message(FATAL_ERROR "GCC version must be at least 4.9!")
   endif()
 
@@ -217,14 +217,14 @@ endif()
 
 # Check if architecture is x86 or not
 message("System architecture: ${CMAKE_SYSTEM_PROCESSOR}")
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)")
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)|(aarch64)")
   set(APEX_ARCH_X86 TRUE)
 else()
   set(APEX_ARCH_X86 FALSE)
 endif()
 
 # If not x86, don't use RDTSC
-if(NOT APEX_ARCH_X86)
+if(NOT APEX_ARCH_X86 OR CMAKE_SYSTEM_PROCESSOR MATCHES "(aarch64)")
   add_definitions(-DAPEX_USE_CLOCK_TIMESTAMP=1)  
 endif()
 
