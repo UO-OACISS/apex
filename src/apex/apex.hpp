@@ -26,6 +26,7 @@
 #include "event_listener.hpp"
 #include "policy_handler.hpp"
 #include "profiler_listener.hpp"
+#include "concurrency_handler.hpp"
 #include "apex_options.hpp"
 #include "apex_export.h" 
 #include "proc_read.h" 
@@ -72,11 +73,11 @@ class apex
 {
 private:
 // private constructors cannot be called
-    apex() : m_argc(0), m_argv(NULL), m_node_id(0), m_my_locality(std::string("0"))
+    apex() : m_argc(0), m_argv(NULL), m_node_id(0), m_my_locality(std::string("0")), m_runtime(APEX_RUNTIME_UNKNOWN), m_load_balance_policy(APEX_LOAD_BALANCE_UNKNOWN)
     {
         _initialize();
     };
-    apex(int argc, char**argv) : m_argc(argc), m_argv(argv), m_node_id(0), m_my_locality(std::string("0"))
+    apex(int argc, char**argv) : m_argc(argc), m_argv(argv), m_node_id(0), m_my_locality(std::string("0")), m_runtime(APEX_RUNTIME_UNKNOWN), m_load_balance_policy(APEX_LOAD_BALANCE_UNKNOWN)
     {
         _initialize();
     };
@@ -92,11 +93,14 @@ private:
     policy_handler * m_policy_handler;
     std::map<int, policy_handler*> period_handlers;
     std::vector<apex_thread_state> thread_states;
+    apex_runtime_t m_runtime;
 #ifdef APEX_HAVE_HPX3
     hpx::runtime * m_hpx_runtime;
 #endif
 public:
     profiler_listener * the_profiler_listener;
+    concurrency_handler * the_concurrency_handler = nullptr;
+    apex_load_balance_policy_t m_load_balance_policy;
     proc_data_reader * pd_reader;
     std::string version_string;
     std::vector<event_listener*> listeners;
@@ -114,10 +118,10 @@ public:
     static apex* instance(int argc, char** argv); // singleton instance
     static apex* __instance(); // special case - for cleanup only!
     void set_node_id(int id);
-    int get_node_id(void);
+    int get_node_id(void) const;
 #ifdef APEX_HAVE_HPX3
     void set_hpx_runtime(hpx::runtime * hpx_runtime);
-    hpx::runtime * get_hpx_runtime(void);
+    hpx::runtime * get_hpx_runtime(void) const;
 #endif
     //void notify_listeners(event_data* event_data_);
     policy_handler * get_policy_handler(void) const;
@@ -145,11 +149,14 @@ public:
         thread_states[thread_id] = APEX_IDLE;
     }
     ~apex();
+    void set_runtime(apex_runtime_t runtime);
+    apex_runtime_t get_runtime() const;
 };
 
 int initialize_worker_thread_for_TAU(void);
 void init_plugins(void);
 void finalize_plugins(void);
+void init_load_balance(void);
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 

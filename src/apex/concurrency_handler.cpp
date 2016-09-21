@@ -123,6 +123,9 @@ bool concurrency_handler::_handler(void) {
 
 void concurrency_handler::_init(void) {
   add_thread(0);
+  tasks_created = 0;
+  tasks_eligible = 0;
+  tasks_running = 0;
   run();
   return;
 }
@@ -130,6 +133,7 @@ void concurrency_handler::_init(void) {
 bool concurrency_handler::on_start(task_identifier *id) {
   if (!_terminate) {
     --tasks_eligible;
+    ++tasks_running;
     int i = thread_instance::get_id();
     stack<task_identifier>* my_stack = get_event_stack(i);
     _per_thread_mutex[i]->lock();
@@ -143,6 +147,8 @@ bool concurrency_handler::on_start(task_identifier *id) {
 
 bool concurrency_handler::on_resume(task_identifier * id) {
   if (!_terminate) {
+    --tasks_eligible;
+    ++tasks_running;
     int i = thread_instance::get_id();
     stack<task_identifier>* my_stack = get_event_stack(i);
     _per_thread_mutex[i]->lock();
@@ -156,6 +162,7 @@ bool concurrency_handler::on_resume(task_identifier * id) {
 
 void concurrency_handler::on_stop(std::shared_ptr<profiler> &p) {
   if (!_terminate) {
+    --tasks_running;
     int i = thread_instance::get_id();
     stack<task_identifier>* my_stack = get_event_stack(i);
     _per_thread_mutex[i]->lock();
@@ -169,6 +176,7 @@ void concurrency_handler::on_stop(std::shared_ptr<profiler> &p) {
 
 void concurrency_handler::on_yield(std::shared_ptr<profiler> &p) {
     on_stop(p);
+    ++tasks_eligible;
 }
 
 void concurrency_handler::on_new_thread(new_thread_event_data &data) {
@@ -375,4 +383,17 @@ void concurrency_handler::output_samples(int node_id) {
   myfile.close();
 }
 
+int concurrency_handler::get_tasks_created() {
+    return tasks_created;
 }
+
+int concurrency_handler::get_tasks_eligible() {
+    return tasks_eligible;
+}
+
+int concurrency_handler::get_tasks_running() {
+    return tasks_running;
+}
+
+}
+

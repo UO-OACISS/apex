@@ -33,7 +33,7 @@ cmake_install_prefix="-DCMAKE_INSTALL_PREFIX=../install" # the installation path
 cmake_use_codeblocks="-G \"CodeBlocks - Unix Makefiles\"" # if you want to debug in CodeBlocks
 cmake_make_verbose=""  # for verbose, use -DCMAKE_VERBOSE_MAKEFILE=ON
 cmake_use_mpi="-DUSE_MPI=FALSE" # TRUE or FALSE 
-cmake_other_settings="-DUSE_LM_SENSORS=FALSE -DBUILD_EXAMPLES=TRUE -DBUILD_TESTS=TRUE -DTAU_ARCH=x86_64 -DTAU_OPTIONS=-papi-pthread -DUSE_OCR=TRUE -DOCR_ROOT=$OCR_ROOT -DUSE_OTF2=1 -DOTF2_ROOT=$OTF2_ROOT" # anything else?
+cmake_other_settings="-DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DUSE_LM_SENSORS=FALSE -DBUILD_EXAMPLES=FALSE -DBUILD_TESTS=FALSE -DTAU_ARCH=x86_64 -DTAU_OPTIONS=-papi-pthread -DUSE_OCR=TRUE -DOCR_ROOT=$OCR_ROOT -DUSE_OTF2=1 -DOTF2_ROOT=$OTF2_ROOT -DUSE_LOAD_BALANCE=TRUE" # anything else?
 
 ###################################################################
 # NO NEED TO MODIFY ANYTHING BELOW THIS LINE

@@ -855,6 +855,35 @@ APEX_EXPORT bool has_session_converged(apex_tuning_session_handle handle);
  */
 APEX_EXPORT void print_options(void);
 
+/**
+ \brief Get the number of tasks created but neither running nor
+        eligible to run.
+
+ \return The number of tasks in the "created" state.
+ */
+APEX_EXPORT int get_local_tasks_created();    
+
+/**
+ \brief Get the number of tasks eligible to run.
+
+ \return The number of tasks in the "eligible" state.
+ */
+APEX_EXPORT int get_local_tasks_eligible();    
+
+/**
+ \brief Get the number of tasks running
+
+ \return The number of tasks in the "running" state.
+ */
+APEX_EXPORT int get_local_tasks_running();    
+
+/**
+ \brief Get the load balance policy
+
+ \return The load balance policy being used
+ */
+APEX_EXPORT apex_load_balance_policy_t get_load_balance_policy();    
+
 #ifdef APEX_HAVE_HPX3
 hpx::runtime * get_hpx_runtime_ptr(void);
 #endif

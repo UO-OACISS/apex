@@ -508,6 +508,7 @@ APEX_EXPORT void apex_set_thread_cap(int new_cap);             // for thread thr
  */
 APEX_EXPORT void apex_print_options(void);
 
+
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 #define apex_macro(name, member_variable, type, default_value) \

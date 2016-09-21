@@ -39,6 +39,7 @@ private:
   std::map<std::string, std::vector<long>> _tunable_param_samples;
   std::vector<int> _tasks_created_samples;
   std::vector<int> _tasks_eligible_samples;
+  std::atomic<int> tasks_running;
   std::atomic<int> tasks_created;
   std::atomic<int> tasks_eligible;
   // functions and mutex
@@ -79,6 +80,9 @@ public:
   std::stack<task_identifier>* get_event_stack(unsigned int tid);
   void add_thread(unsigned int tid) ;
   void output_samples(int node_id);
+  int get_tasks_created();
+  int get_tasks_eligible();
+  int get_tasks_running();
 };
 
 }

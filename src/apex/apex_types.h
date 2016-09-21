@@ -148,6 +148,30 @@ typedef enum { APEX_UNKNOWN_ID = -1,
                APEX_OTHER_ID = APEX_MAX_ID_TYPES
 } apex_task_id_kind_t;
 
+#define APEX_MAX_LOAD_BALANCE_POLICIES 128
+
+typedef enum { APEX_LOAD_BALANCE_UNKNOWN = -1,
+               APEX_LOAD_BALANCE_NONE = 0,
+               APEX_LOAD_BALANCE_SAME,
+               APEX_LOAD_BALANCE_SINGLE,
+               APEX_LOAD_BALANCE_RANDOM,
+               APEX_LOAD_BALANCE_LEAST,
+               APEX_LOAD_BALANCE_RR,
+               APEX_LOAD_BALANCE_PROB,
+               APEX_LOAD_BALANCE_OTHER = APEX_MAX_LOAD_BALANCE_POLICIES
+} apex_load_balance_policy_t;
+
+#define APEX_MAX_RUNTIMES 128
+
+typedef enum { APEX_RUNTIME_UNKNOWN = -1,
+               APEX_RUNTIME_HPX3 = 0,
+               APEX_RUNTIME_HPX5 = 1,
+               APEX_RUNTIME_OPENMP = 2,
+               APEX_RUNTIME_MPI = 3,
+               APEX_RUNTIME_OCR = 4,
+               APEX_RUNTIME_OTHER = APEX_MAX_RUNTIMES
+} apex_runtime_t;
+
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 /**
@@ -283,7 +307,8 @@ typedef uint32_t apex_tuning_session_handle;
     macro (APEX_PLUGINS, plugins, char*, "") \
     macro (APEX_PLUGINS_PATH, plugins_path, char*, "./") \
     macro (APEX_OTF2_ARCHIVE_PATH, otf2_archive_path, char*, "OTF2_archive") \
-    macro (APEX_OTF2_ARCHIVE_NAME, otf2_archive_name, char*, "APEX") 
+    macro (APEX_OTF2_ARCHIVE_NAME, otf2_archive_name, char*, "APEX") \
+    macro (APEX_LOAD_BALANCE_POLICY, load_balance_policy, char*, "DEFAULT")
 
 #if defined(__linux) || defined(__linux__)
 #  define APEX_NATIVE_TLS __thread

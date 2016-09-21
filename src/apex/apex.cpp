@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string>
 #include <memory>
+#include <algorithm>
 #if APEX_USE_PLUGINS
 #include <dlfcn.h>
 #endif
@@ -95,7 +96,7 @@ void apex::set_node_id(int id)
     }
 }
 
-int apex::get_node_id()
+int apex::get_node_id() const
 {
     return m_node_id;
 }
@@ -204,7 +205,8 @@ void apex::_initialize()
     }
     if (apex_options::use_concurrency() > 0)
     {
-        listeners.push_back(new concurrency_handler(apex_options::concurrency_period(), apex_options::use_concurrency()));
+        this->the_concurrency_handler =  new concurrency_handler(apex_options::concurrency_period(), apex_options::use_concurrency());
+        listeners.push_back(the_concurrency_handler);
     }
 #if APEX_HAVE_PROC
     pd_reader = new proc_data_reader();
@@ -264,12 +266,21 @@ policy_handler * apex::get_policy_handler(uint64_t const& period)
 #ifdef APEX_HAVE_HPX3
 void apex::set_hpx_runtime(hpx::runtime * hpx_runtime) {
     m_hpx_runtime = hpx_runtime;
+    set_runtime(APEX_RUNTIME_HPX3);
 }
 
-hpx::runtime * apex::get_hpx_runtime(void) {
+hpx::runtime * apex::get_hpx_runtime(void) const {
     return m_hpx_runtime;
 }
 #endif
+
+void apex::set_runtime(apex_runtime_t runtime) {
+   m_runtime = runtime; 
+}
+
+apex_runtime_t apex::get_runtime() const {
+    return m_runtime;    
+}
 
 int initialize_worker_thread_for_TAU(void) {
 #ifdef APEX_HAVE_TAU
@@ -298,6 +309,7 @@ void init(const char * thread_name) {
     apex* instance = apex::instance(argc, argv); // get/create the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
     init_plugins();
+    init_load_balance();
     startup_event_data data(argc, argv);
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -333,6 +345,7 @@ void init(int argc, char** argv, const char * thread_name) {
     apex* instance = apex::instance(argc, argv); // get/create the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
     init_plugins();
+    init_load_balance();
     startup_event_data data(argc, argv);
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -887,6 +900,37 @@ hpx::runtime * get_hpx_runtime_ptr(void) {
 }
 #endif
 
+void init_load_balance(void) {
+    if (apex_options::disable() == true) { return; }
+#ifdef APEX_USE_LOAD_BALANCE
+    apex * instance = apex::instance();
+    if (!instance || _exited) {
+        return;
+    }
+    std::string load_balance_policy_str{apex_options::load_balance_policy()};
+    std::transform(load_balance_policy_str.begin(), load_balance_policy_str.end(), load_balance_policy_str.begin(), ::tolower);
+    if(load_balance_policy_str == "default") {
+        instance->m_load_balance_policy = APEX_LOAD_BALANCE_NONE; 
+    } else if(load_balance_policy_str == "none") {
+        instance->m_load_balance_policy = APEX_LOAD_BALANCE_NONE;
+    } else if(load_balance_policy_str == "random") {
+        instance->m_load_balance_policy = APEX_LOAD_BALANCE_RANDOM;
+    } else if(load_balance_policy_str == "least") {
+        instance->m_load_balance_policy = APEX_LOAD_BALANCE_LEAST;
+    } else if(load_balance_policy_str == "prob") {
+        instance->m_load_balance_policy = APEX_LOAD_BALANCE_PROB;
+    } else if(load_balance_policy_str == "single") {
+        instance->m_load_balance_policy = APEX_LOAD_BALANCE_SINGLE;
+    } else if(load_balance_policy_str == "rr") {
+        instance->m_load_balance_policy = APEX_LOAD_BALANCE_RR;
+    } else if(load_balance_policy_str == "same") {
+        instance->m_load_balance_policy = APEX_LOAD_BALANCE_SAME;
+    } else {
+        instance->m_load_balance_policy = APEX_LOAD_BALANCE_UNKNOWN;
+    }
+#endif
+}
+
 void init_plugins(void) {
     if (apex_options::disable() == true) { return; }
 #ifdef APEX_USE_PLUGINS
@@ -1227,7 +1271,52 @@ void print_options() {
     return;
 }
 
+int get_local_tasks_created() {
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance || _exited) {
+        std::cerr << "call to get_local_tasks_created when APEX not available" << std::endl;
+        return -1; // protect against calls after finalization
+    }
+    if(instance->the_concurrency_handler == nullptr) {
+        std::cerr << "call to get_local_tasks_created when concurrency handler not available" << std::endl;
+        return -2;
+    }
+    return instance->the_concurrency_handler->get_tasks_created();
+}
 
+int get_local_tasks_eligible() {
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance || _exited) {
+        std::cerr << "call to get_local_tasks_eligible when APEX not available" << std::endl;
+        return -1; // protect against calls after finalization
+    }
+    if(instance->the_concurrency_handler == nullptr) {
+        std::cerr << "call to get_local_tasks_eligible when concurrency handler not available" << std::endl;
+        return -2;
+    }
+    return instance->the_concurrency_handler->get_tasks_eligible();
+}
+
+int get_local_tasks_running() {
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance || _exited) {
+        std::cerr << "call to get_local_tasks_running when APEX not available" << std::endl;
+        return -1; // protect against calls after finalization
+    }
+    if(instance->the_concurrency_handler == nullptr) {
+        std::cerr << "call to get_local_tasks_eligible when concurrency handler not available" << std::endl;
+        return -2;
+    }
+    return instance->the_concurrency_handler->get_tasks_running();
+}
+
+apex_load_balance_policy_t get_load_balance_policy() {
+    apex* instance = apex::instance();
+    if (!instance || _exited) {
+        return APEX_LOAD_BALANCE_UNKNOWN;
+    }
+    return instance->m_load_balance_policy;
+}
 
 } // apex namespace
 
