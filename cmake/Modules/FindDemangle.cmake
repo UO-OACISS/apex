@@ -28,6 +28,14 @@ find_path(DEMANGLE_INCLUDE_DIR demangle.h
           ${DEMANGLE_ROOT}/* ${BFD_ROOT}/* /usr/include/*
           PATH_SUFFIXES DEMANGLE )
 
+find_path(LIBIBERTY_INCLUDE_DIR libiberty.h
+          HINTS ${PC_DEMANGLE_INCLUDEDIR} ${PC_DEMANGLE_INCLUDE_DIRS} 
+          ${DEMANGLE_ROOT}/include ${DEMANGLE_ROOT}/include/libiberty
+		  ${BFD_ROOT}/include ${BFD_ROOT}/include/libiberty
+          ${PC_DEMANGLE_INCLUDEDIR}/* ${PC_DEMANGLE_INCLUDE_DIRS}/* 
+          ${DEMANGLE_ROOT}/* ${BFD_ROOT}/* /usr/include /usr/include/*
+          PATH_SUFFIXES LIBIBERTY)
+
 find_library(DEMANGLE_LIBRARY NAMES iberty HINTS 
     ${DEMANGLE_ROOT}/lib ${BFD_ROOT}/lib 
     ${DEMANGLE_ROOT}/lib64 ${BFD_ROOT}/lib64
@@ -37,9 +45,9 @@ include(FindPackageHandleStandardArgs)
 # handle the QUIETLY and REQUIRED arguments and set DEMANGLE_FOUND to TRUE
 # if all listed variables are TRUE
 find_package_handle_standard_args(DEMANGLE  DEFAULT_MSG
-                                  DEMANGLE_LIBRARY DEMANGLE_INCLUDE_DIR)
+                                  DEMANGLE_LIBRARY DEMANGLE_INCLUDE_DIR LIBIBERTY_INCLUDE_DIR)
 
-mark_as_advanced(DEMANGLE_INCLUDE_DIR DEMANGLE_LIBRARY)
+mark_as_advanced(DEMANGLE_INCLUDE_DIR LIBIBERTY_INCLUDE_DIR DEMANGLE_LIBRARY)
 
 # --------- DOWNLOAD AND BUILD THE EXTERNAL PROJECT! ------------ #
 if(NOT DEMANGLE_FOUND AND NOT APPLE AND BUILDING_BFD)
@@ -54,11 +62,12 @@ if(NOT DEMANGLE_FOUND AND NOT APPLE AND BUILDING_BFD)
     set(DEMANGLE_LIBRARY "${BFD_ROOT}/lib/libiberty.a")
   endif()
   set(DEMANGLE_INCLUDE_DIR "${BFD_ROOT}/include")
+  set(LIBIBERTY_INCLUDE_DIR "${BFD_ROOT}/include/libiberty")
   set(DEMANGLE_DIR "${BFD_ROOT}")
   # handle the QUIETLY and REQUIRED arguments and set DEMANGLE_FOUND to TRUE
   # if all listed variables are TRUE
   find_package_handle_standard_args(DEMANGLE  DEFAULT_MSG
-      DEMANGLE_LIBRARY DEMANGLE_INCLUDE_DIR)
+      DEMANGLE_LIBRARY DEMANGLE_INCLUDE_DIR LIBIBERTY_INCLUDE_DIR)
   set(DEMANGLE_FOUND TRUE)
   set(BUILDING_BFD TRUE)
 endif()
@@ -66,7 +75,7 @@ endif()
 
 if(DEMANGLE_FOUND)
   set(DEMANGLE_LIBRARIES ${DEMANGLE_LIBRARY} )
-  set(DEMANGLE_INCLUDE_DIRS ${DEMANGLE_INCLUDE_DIR})
+  set(DEMANGLE_INCLUDE_DIRS ${DEMANGLE_INCLUDE_DIR} ${LIBIBERTY_INCLUDE_DIR})
   set(DEMANGLE_DIR ${DEMANGLE_ROOT})
   add_definitions(-DHAVE_GNU_DEMANGLE)
 else()
