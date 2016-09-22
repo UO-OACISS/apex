@@ -6,6 +6,14 @@
 
 #include "apex_bfd.h"
 #include "apex.hpp"
+
+// Intel compiler doesn't support this attribute. 
+#if defined (__INTEL_COMPILER)
+#ifndef ATTRIBUTE_RETURNS_NONNULL
+# define ATTRIBUTE_RETURNS_NONNULL
+#endif
+#endif
+
 // bfd.h expects these to be defined, so define them.
 // otherwise, we get a compilation error.
 #if !defined PACKAGE
