@@ -34,7 +34,10 @@
 #endif
 #include <unordered_set>
 #include <algorithm>
+
 #include <functional>
+#include <thread>
+#include <future>
 
 #if defined(APEX_THROTTLE)
 #define APEX_THROTTLE_CALLS 1000
@@ -46,9 +49,6 @@
 #include <mutex>
 std::mutex throttled_event_set_mutex;
 #endif
-
-#include<thread>
-#include<future>
 
 #if APEX_HAVE_BFD
 #include "address_resolution.hpp"
@@ -78,8 +78,6 @@ static void apex_schedule_process_profiles(void); // not in apex namespace
 #include <TAU.h>
 #endif
 
-#include <future>
-#include <thread>
 #include "utils.hpp"
 
 #include <cstdlib>
