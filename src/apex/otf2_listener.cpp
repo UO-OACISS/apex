@@ -12,6 +12,13 @@
 #include <fcntl.h>
 #include <sys/file.h>
 
+#define OTF2_EC(call) { \
+	OTF2_ErrorCode ec = call; \
+	if (ec != OTF2_SUCCESS) { \
+		printf("OTF2 Error: %s, %s\n", OTF2_Error_GetName(ec), OTF2_Error_GetDescription (ec)); \
+	} \
+}
+
 using namespace std;
 
 namespace apex {
@@ -867,8 +874,8 @@ namespace apex {
                 uint64_t stamp = get_time();
                 // write our counter into the event stream
                 OTF2_EvtWriter_Metric( local_evt_writer, NULL, stamp, idx, 1, omt, omv );
-                */
                 OTF2_Archive_CloseEvtWriter( archive, getEvtWriter() );
+                */
             }
         APEX_UNUSED(data);
         return;
@@ -894,7 +901,7 @@ namespace apex {
         // THIS WILL ONLY HAPPEN ONCE
         static bool properties_written = write_my_node_properties();
         // before we process the event, make sure the event write is open
-#ifdef __clang__
+#if defined (__clang__) || defined(__INTEL_COMPILER)
         // Clang doesn't support dynamic thread_local initialization of static.
         OTF2_EvtWriter* local_evt_writer = getEvtWriter();
 #else
@@ -914,7 +921,7 @@ namespace apex {
                 // thread 0 in monotonic order.
                 uint64_t stamp = get_time();
                 // write the event
-                OTF2_EvtWriter_Enter( local_evt_writer, NULL, stamp, idx /* region */ );
+                OTF2_EC(OTF2_EvtWriter_Enter( local_evt_writer, NULL, stamp, idx /* region */ ));
             } else {
                 // using the timestamp from the profiler should be OK!
                 /*
@@ -923,7 +930,7 @@ namespace apex {
                 uint64_t stamp = p->start.time_since_epoch().count() - globalOffset;
                 */
                 uint64_t stamp = get_time();
-                OTF2_EvtWriter_Enter( local_evt_writer, NULL, stamp, get_region_index(id) /* region */ );
+                OTF2_EC(OTF2_EvtWriter_Enter( local_evt_writer, NULL, stamp, get_region_index(id) /* region */ ));
             }
         } else {
             return false;
@@ -939,7 +946,7 @@ namespace apex {
         // each thread has its own event writer.  This static
         // variable will be initialized the first time we call
         // on_stop.
-#ifdef __clang__
+#if defined (__clang__) || defined(__INTEL_COMPILER)
         // Clang doesn't support dynamic thread_local initialization of static.
         OTF2_EvtWriter* local_evt_writer = getEvtWriter();
 #else
@@ -958,7 +965,7 @@ namespace apex {
                 // thread 0 in monotonic order.
                 uint64_t stamp = get_time();
                 // write the event
-                OTF2_EvtWriter_Leave( local_evt_writer, NULL, stamp, idx /* region */ );
+                OTF2_EC(OTF2_EvtWriter_Leave( local_evt_writer, NULL, stamp, idx /* region */ ));
             } else {
                 // using the timestamp from the profiler should be OK!
                 /*
@@ -966,8 +973,8 @@ namespace apex {
                 uint64_t stamp = p->end.time_since_epoch().count() - globalOffset;
                 */
                 uint64_t stamp = get_time();
-                OTF2_EvtWriter_Leave( local_evt_writer, NULL, stamp, 
-                        get_region_index(p->task_id) /* region */ );
+                OTF2_EC(OTF2_EvtWriter_Leave( local_evt_writer, NULL, stamp, 
+                        get_region_index(p->task_id) /* region */ ));
             }
         }
         return;
@@ -991,9 +998,9 @@ namespace apex {
                 // that time stamps are monotonically increasing. :(
                 uint64_t stamp = get_time();
                 // write our recv into the event stream
-                OTF2_EvtWriter_MpiSend  ( comm_evt_writer,
+                OTF2_EC(OTF2_EvtWriter_MpiSend  ( comm_evt_writer,
                         attributeList, stamp, data.target, communicator,
-                        data.tag, data.size );
+                        data.tag, data.size ));
             }
             OTF2_AttributeList_Delete(attributeList);
         }
@@ -1014,9 +1021,9 @@ namespace apex {
                 // that time stamps are monotonically increasing. :(
                 uint64_t stamp = get_time();
                 // write our recv into the event stream
-                OTF2_EvtWriter_MpiRecv  ( comm_evt_writer,
+                OTF2_EC(OTF2_EvtWriter_MpiRecv  ( comm_evt_writer,
                         attributeList, stamp, data.source, communicator,
-                        data.tag, data.size );
+                        data.tag, data.size ));
             }
             // delete the attribute.
             OTF2_AttributeList_Delete(attributeList);
@@ -1042,7 +1049,7 @@ namespace apex {
                 uint64_t stamp = get_time();
                 // write our counter into the event stream
                 if (comm_evt_writer != NULL) {
-                    OTF2_EvtWriter_Metric( comm_evt_writer, NULL, stamp, idx, 1, omt, omv );
+                    OTF2_EC(OTF2_EvtWriter_Metric( comm_evt_writer, NULL, stamp, idx, 1, omt, omv ));
                 }
             }
         }
