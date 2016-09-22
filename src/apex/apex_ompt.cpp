@@ -396,44 +396,46 @@ inline int __ompt_initialize() {
   CHECK(ompt_event_control, my_control, "event_control");
   CHECK(ompt_event_runtime_shutdown, my_shutdown, "runtime_shutdown");
 
-  //CHECK(ompt_event_wait_lock, my_wait_lock, "wait_lock");
-  //CHECK(ompt_event_wait_nest_lock, my_wait_nest_lock, "wait_nest_lock");
-  CHECK(ompt_event_wait_critical, my_wait_critical, "wait_critical");
-  CHECK(ompt_event_wait_atomic, my_wait_atomic, "wait_atomic");
-  CHECK(ompt_event_wait_ordered, my_wait_ordered, "wait_ordered");
+  if (!apex::apex_options::ompt_required_events_only()) {
+    //CHECK(ompt_event_wait_lock, my_wait_lock, "wait_lock");
+    //CHECK(ompt_event_wait_nest_lock, my_wait_nest_lock, "wait_nest_lock");
+    CHECK(ompt_event_wait_critical, my_wait_critical, "wait_critical");
+    CHECK(ompt_event_wait_atomic, my_wait_atomic, "wait_atomic");
+    CHECK(ompt_event_wait_ordered, my_wait_ordered, "wait_ordered");
 
-  //CHECK(ompt_event_acquired_lock, my_acquired_lock, "acquired_lock");
-  //CHECK(ompt_event_acquired_nest_lock, my_acquired_nest_lock, "acquired_nest_lock");
-  CHECK(ompt_event_acquired_critical, my_acquired_critical, "acquired_critical");
-  CHECK(ompt_event_acquired_atomic, my_acquired_atomic, "acquired_atomic");
-  CHECK(ompt_event_acquired_ordered, my_acquired_ordered, "acquired_ordered");
+    //CHECK(ompt_event_acquired_lock, my_acquired_lock, "acquired_lock");
+    //CHECK(ompt_event_acquired_nest_lock, my_acquired_nest_lock, "acquired_nest_lock");
+    CHECK(ompt_event_acquired_critical, my_acquired_critical, "acquired_critical");
+    CHECK(ompt_event_acquired_atomic, my_acquired_atomic, "acquired_atomic");
+    CHECK(ompt_event_acquired_ordered, my_acquired_ordered, "acquired_ordered");
 
-  //CHECK(ompt_event_release_lock, my_release_lock, "release_lock");
-  //CHECK(ompt_event_release_nest_lock, my_release_nest_lock, "release_nest_lock");
-  CHECK(ompt_event_release_critical, my_release_critical, "release_critical");
-  CHECK(ompt_event_release_atomic, my_release_atomic, "release_atomic");
-  CHECK(ompt_event_release_ordered, my_release_ordered, "release_ordered");
+    //CHECK(ompt_event_release_lock, my_release_lock, "release_lock");
+    //CHECK(ompt_event_release_nest_lock, my_release_nest_lock, "release_nest_lock");
+    CHECK(ompt_event_release_critical, my_release_critical, "release_critical");
+    CHECK(ompt_event_release_atomic, my_release_atomic, "release_atomic");
+    CHECK(ompt_event_release_ordered, my_release_ordered, "release_ordered");
 
-  //CHECK(ompt_event_barrier_begin, my_barrier_begin, "barrier_begin");
-  //CHECK(ompt_event_barrier_end, my_barrier_end, "barrier_end");
-  //CHECK(ompt_event_master_begin, my_master_begin, "master_begin");
-  //CHECK(ompt_event_master_end, my_master_end, "master_end");
-  //CHECK(ompt_event_loop_begin, my_loop_begin, "loop_begin");
-  //CHECK(ompt_event_loop_end, my_loop_end, "loop_end");
-  //CHECK(ompt_event_sections_begin, my_sections_begin, "sections_begin");
-  //CHECK(ompt_event_sections_end, my_sections_end, "sections_end");
-  CHECK(ompt_event_taskwait_begin, my_taskwait_begin, "taskwait_begin");
-  CHECK(ompt_event_taskwait_end, my_taskwait_end, "taskwait_end");
-  CHECK(ompt_event_taskgroup_begin, my_taskgroup_begin, "taskgroup_begin");
-  CHECK(ompt_event_taskgroup_end, my_taskgroup_end, "taskgroup_end");
-  CHECK(ompt_event_workshare_begin, my_workshare_begin, "workshare_begin");
-  CHECK(ompt_event_workshare_end, my_workshare_end, "workshare_end");
+    CHECK(ompt_event_barrier_begin, my_barrier_begin, "barrier_begin");
+    CHECK(ompt_event_barrier_end, my_barrier_end, "barrier_end");
+    CHECK(ompt_event_master_begin, my_master_begin, "master_begin");
+    CHECK(ompt_event_master_end, my_master_end, "master_end");
+    CHECK(ompt_event_loop_begin, my_loop_begin, "loop_begin");
+    CHECK(ompt_event_loop_end, my_loop_end, "loop_end");
+    CHECK(ompt_event_sections_begin, my_sections_begin, "sections_begin");
+    CHECK(ompt_event_sections_end, my_sections_end, "sections_end");
+    CHECK(ompt_event_taskwait_begin, my_taskwait_begin, "taskwait_begin");
+    CHECK(ompt_event_taskwait_end, my_taskwait_end, "taskwait_end");
+    CHECK(ompt_event_taskgroup_begin, my_taskgroup_begin, "taskgroup_begin");
+    CHECK(ompt_event_taskgroup_end, my_taskgroup_end, "taskgroup_end");
+    CHECK(ompt_event_workshare_begin, my_workshare_begin, "workshare_begin");
+    CHECK(ompt_event_workshare_end, my_workshare_end, "workshare_end");
 
-  /* These are high overhead events! */
-  //CHECK(ompt_event_implicit_task_begin, my_implicit_task_begin, "task_begin");
-  //CHECK(ompt_event_implicit_task_end, my_implicit_task_end, "task_end");
-  //CHECK(ompt_event_idle_begin, my_idle_begin, "idle_begin");
-  //CHECK(ompt_event_idle_end, my_idle_end, "idle_end");
+    /* These are high overhead events! */
+    CHECK(ompt_event_implicit_task_begin, my_implicit_task_begin, "task_begin");
+    CHECK(ompt_event_implicit_task_end, my_implicit_task_end, "task_end");
+    CHECK(ompt_event_idle_begin, my_idle_begin, "idle_begin");
+    CHECK(ompt_event_idle_end, my_idle_end, "idle_end");
+  }
   fprintf(stderr,"done.\n"); fflush(stderr);
   return 1;
 }

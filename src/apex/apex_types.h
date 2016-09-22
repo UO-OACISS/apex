@@ -245,6 +245,7 @@ typedef uint32_t apex_tuning_session_handle;
     macro (APEX_THROTTLING_MAX_WATTS, throttling_max_watts, int, 300) \
     macro (APEX_THROTTLING_MIN_WATTS, throttling_min_watts, int, 150) \
     macro (APEX_PTHREAD_WRAPPER_STACK_SIZE, pthread_wrapper_stack_size, int, 0) \
+    macro (APEX_OMPT_REQUIRED_EVENTS_ONLY, ompt_required_events_only, bool, false) \
     macro (APEX_TASK_SCATTERPLOT, task_scatterplot, bool, false)
 
 #define FOREACH_APEX_STRING_OPTION(macro) \
