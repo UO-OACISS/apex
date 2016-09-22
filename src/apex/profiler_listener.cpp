@@ -308,8 +308,14 @@ namespace apex {
         			fcntl(task_scatterplot_sample_file, F_SETLKW, &fl);  /* F_GETLK, F_SETLK, F_SETLKW */
                     // flush the string stream to the file
                     //lseek(task_scatterplot_sample_file, 0, SEEK_END);
-        			write(task_scatterplot_sample_file, 
+        			ssize_t bytes_written = write(task_scatterplot_sample_file, 
 						  task_scatterplot_samples.str().c_str(), loc0);
+                    if (bytes_written < 0) {
+                        int errsv = errno;
+                        perror("Error writing to scatterplot!");
+                        fprintf(stderr, "Error writing scatterplot:\n%s\n",
+                                strerror(errsv));
+                    }
         			fl.l_type   = F_UNLCK;   /* tell it to unlock the region */
         			fcntl(task_scatterplot_sample_file, F_SETLK, &fl); /* set the region to unlocked */
                     // reset the stringstream
@@ -1089,8 +1095,14 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
           fcntl(task_scatterplot_sample_file, F_SETLKW, &fl);  /* F_GETLK, F_SETLK, F_SETLKW */
           // flush the string stream to the file
           //lseek(task_scatterplot_sample_file, 0, SEEK_END);
-          write(task_scatterplot_sample_file, 
+          ssize_t bytes_written = write(task_scatterplot_sample_file, 
                 task_scatterplot_samples.str().c_str(), loc0);
+          if (bytes_written < 0) {
+              int errsv = errno;
+              perror("Error writing to scatterplot!");
+              fprintf(stderr, "Error writing scatterplot:\n%s\n",
+                      strerror(errsv));
+          }
           fl.l_type   = F_UNLCK;   /* tell it to unlock the region */
           fcntl(task_scatterplot_sample_file, F_SETLK, &fl); /* set the region to unlocked */
           close(task_scatterplot_sample_file);
