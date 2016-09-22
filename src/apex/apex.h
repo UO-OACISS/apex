@@ -519,7 +519,36 @@ APEX_EXPORT void apex_set_thread_cap(int new_cap);             // for thread thr
  */
 APEX_EXPORT void apex_print_options(void);
 
+/**
+ \brief Notify APEX that the current thread is sending a parcel/message
+        to another rank/locality/process.
+
+ This method notifies APEX that the current thread is sending a
+ parcel/message to another rank/locality/process. The tag is meant
+ to be an identifier for the message, not required to be unique.
+ The target value is the APEX rank of the target of the message.
+
+ \param tag The message identifier
+ \param size The message size (in bytes)
+ \param target The message target (as an APEX rank)
+ \sa @ref apex_set_node_id
+ */
 APEX_EXPORT void apex_send (uint64_t tag, uint64_t size, uint64_t target);
+
+/**
+ \brief Notify APEX that the current thread is receiving a parcel/message
+        from another rank/locality/process.
+
+ This method notifies APEX that the current thread is receiving a
+ parcel/message from another rank/locality/process. The tag is meant
+ to be an identifier for the message, not required to be unique.
+ The source value is the APEX rank of the source of the message.
+
+ \param tag The message identifier
+ \param size The message size (in bytes)
+ \param source The message source (as an APEX rank)
+ \sa @ref apex_set_node_id
+ */
 APEX_EXPORT void apex_recv (uint64_t tag, uint64_t size, uint64_t source);
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS

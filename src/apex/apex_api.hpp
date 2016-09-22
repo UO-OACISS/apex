@@ -715,10 +715,35 @@ hpx::runtime * get_hpx_runtime_ptr(void);
 #endif
 
 /**
- \brief Measure the sending of data
+ \brief Notify APEX that the current thread is sending a parcel/message
+        to another rank/locality/process.
 
+ This method notifies APEX that the current thread is sending a
+ parcel/message to another rank/locality/process. The tag is meant
+ to be an identifier for the message, not required to be unique.
+ The target value is the APEX rank of the target of the message.
+
+ \param tag The message identifier
+ \param size The message size (in bytes)
+ \param target The message target (as an APEX rank)
+ \sa @ref apex_set_node_id
  */
 APEX_EXPORT void send (uint64_t tag, uint64_t size, uint64_t target);
+
+/**
+ \brief Notify APEX that the current thread is receiving a parcel/message
+        from another rank/locality/process.
+
+ This method notifies APEX that the current thread is receiving a
+ parcel/message from another rank/locality/process. The tag is meant
+ to be an identifier for the message, not required to be unique.
+ The source value is the APEX rank of the source of the message.
+
+ \param tag The message identifier
+ \param size The message size (in bytes)
+ \param source The message source (as an APEX rank)
+ \sa @ref apex_set_node_id
+ */
 APEX_EXPORT void recv (uint64_t tag, uint64_t size, uint64_t source);
 
 } //namespace apex
