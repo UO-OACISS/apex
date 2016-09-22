@@ -37,7 +37,7 @@ void * fib (void * in) {
     a.f_x = 0;
     pthread_attr_t attr_a; 
     pthread_attr_init(&attr_a);
-    pthread_attr_setstacksize(&attr_a, PTHREAD_STACK_MIN);
+    //pthread_attr_setstacksize(&attr_a, PTHREAD_STACK_MIN);
     pthread_t thread_a;
     int rc_a = pthread_create(&thread_a, &attr_a, fib, (void*)&a);
     if (rc_a == EAGAIN) {
@@ -54,7 +54,7 @@ void * fib (void * in) {
     b.f_x = 0;
     pthread_attr_t attr_b; 
     pthread_attr_init(&attr_b);
-    pthread_attr_setstacksize(&attr_b, PTHREAD_STACK_MIN);
+    //pthread_attr_setstacksize(&attr_b, PTHREAD_STACK_MIN);
     pthread_t thread_b;
     int rc_b = pthread_create(&thread_b,&attr_b,fib,(void*)&b);
        if (rc_b == EAGAIN) {
@@ -106,7 +106,7 @@ int main(int argc, char *argv[]) {
 
     if (argc != 2) {
         fprintf(stderr,"usage: pthreads <integer value>\n");
-        fprintf(stderr,"Using default value of 10\n");
+        fprintf(stderr,"Using default value of %d\n", i);
     } else {
         i = atoi(argv[1]);
     }
@@ -125,10 +125,9 @@ int main(int argc, char *argv[]) {
     pthread_attr_init(&attr);
     size_t oldStackSize;
     pthread_attr_getstacksize(&attr, &oldStackSize);
-    pthread_attr_setstacksize(&attr, PTHREAD_STACK_MIN);
+    //pthread_attr_setstacksize(&attr, PTHREAD_STACK_MIN);
     pthread_t thread;
     pthread_create(&thread,&attr,fib,(void*)&scratch);
-
     pthread_attr_destroy(&attr);
     printf("Default stack: %ld\n", oldStackSize);
     printf("Min stack: %d\n", PTHREAD_STACK_MIN);
