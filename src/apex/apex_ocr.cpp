@@ -600,6 +600,7 @@ void traceTemplateCreate(u64 location, bool evtType, ocrTraceType_t objType,
                      ocrTraceAction_t actionType, u64 workerId,
                      u64 timestamp, ocrGuid_t parent, ocrGuid_t templGuid,
                      ocrEdt_t fctPtr) {
+    // TODO template create. need to add to trace format
     return;
 }
 
@@ -607,6 +608,7 @@ void traceAPITemplateCreate(u64 location, bool evtType, ocrTraceType_t objType,
                      ocrTraceAction_t actionType, u64 workerId,
                      u64 timestamp, ocrGuid_t parent, ocrEdt_t fctPtr,
                      u32 paramc, u32 depc) {
+    // TODO template create. need to add to trace format
     return;
 }
 
@@ -616,6 +618,7 @@ void traceAPITaskCreate(u64 location, bool evtType, ocrTraceType_t objType,
                      ocrGuid_t templGuid, u32 paramc, u64 * paramv,
                      u32 depc, ocrGuid_t * depv) {
     //PRINTF("API task create: " GUIDF "\n", GUIDA(edtGuid));
+    apex_ocr_task_create(edtGuid, (apex_function_address)NULL, (int)location);
     return;
 }
 
@@ -623,6 +626,7 @@ void traceAPIAddDependence(u64 location, bool evtType, ocrTraceType_t objType,
                             ocrTraceAction_t actionType, u64 workerId,
                             u64 timestamp, ocrGuid_t parent, ocrGuid_t src,
                             ocrGuid_t dest, u32 slot, ocrDbAccessMode_t mode) {
+    apex_ocr_task_add_dependence(src, dest, (int)location);
     return;
 }
 
@@ -630,6 +634,7 @@ void traceAPIEventSatisfyDependence(u64 location, bool evtType, ocrTraceType_t o
                                  ocrTraceAction_t actionType, u64 workerId,
                                  u64 timestamp, ocrGuid_t parent, ocrGuid_t eventGuid,
                                  ocrGuid_t satisfyee, u32 slot) {
+    apex_ocr_task_satisfy_dependence(eventGuid, satisfyee, (int)location);
     return;
 }
 
@@ -643,18 +648,21 @@ void traceAPIDataCreate(u64 location, bool evtType, ocrTraceType_t objType,
                      ocrTraceAction_t actionType, u64 workerId,
                      u64 timestamp, ocrGuid_t parent, ocrGuid_t dbGuid,
                      u64 dbSize) {
+    apex_ocr_data_create(dbGuid, dbSize, (int)location);
     return;
 }
 
 void traceAPIDataDestroy(u64 location, bool evtType, ocrTraceType_t objType,
                       ocrTraceAction_t actionType, u64 workerId,
                       u64 timestamp, ocrGuid_t parent, ocrGuid_t dbGuid) {
+    apex_ocr_data_destroy(dbGuid, (int)location);
     return;
 }
 
 void traceAPIDataRelease(u64 location, bool evtType, ocrTraceType_t objType,
                           ocrTraceAction_t actionType, u64 workerId,
                           u64 timestamp, ocrGuid_t parent, ocrGuid_t dbGuid) {
+    apex_ocr_task_data_release(parent, dbGuid, 0, (int)location);
     return;
 }
 
