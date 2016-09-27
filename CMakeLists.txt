@@ -58,9 +58,17 @@ endif()
 IF("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
   set(BUILD_TESTS TRUE)
   set(BUILD_EXAMPLES TRUE)
+  add_definitions(-DAPEX_DEBUG)
+  add_definitions(-DDEBUG)
+endif()
+
+IF("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo")
+  add_definitions(-DAPEX_DEBUG)
+  add_definitions(-DDEBUG)
 endif()
 
 IF("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
+  add_definitions(-DNDEBUG)
   # they will still be configured, but excluded from "all"
   if(NOT DEFINED BUILD_TESTS)
     set(BUILD_TESTS FALSE)
