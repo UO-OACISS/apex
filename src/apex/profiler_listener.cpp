@@ -1326,8 +1326,9 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 
 #ifdef APEX_HAVE_HPX3
 // (HPX_PLAIN_ACTION needs to be in global namespace)
+HPX_DECLARE_ACTION(apex::profiler_listener::process_profiles_wrapper, apex_internal_process_profiles_action);
+HPX_ACTION_HAS_CRITICAL_PRIORITY(apex_internal_process_profiles_action);
 HPX_PLAIN_ACTION(apex::profiler_listener::process_profiles_wrapper, apex_internal_process_profiles_action);
-//HPX_ACTION_HAS_CRITICAL_PRIORITY(apex_internal_process_profiles_action);
 
 void apex_schedule_process_profiles() {
     if(get_hpx_runtime_ptr() == nullptr) return;
