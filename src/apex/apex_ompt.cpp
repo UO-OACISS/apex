@@ -421,20 +421,22 @@ inline int __ompt_initialize() {
     CHECK(ompt_event_master_end, my_master_end, "master_end");
     CHECK(ompt_event_loop_begin, my_loop_begin, "loop_begin");
     CHECK(ompt_event_loop_end, my_loop_end, "loop_end");
-    CHECK(ompt_event_sections_begin, my_sections_begin, "sections_begin");
-    CHECK(ompt_event_sections_end, my_sections_end, "sections_end");
-    CHECK(ompt_event_taskwait_begin, my_taskwait_begin, "taskwait_begin");
-    CHECK(ompt_event_taskwait_end, my_taskwait_end, "taskwait_end");
-    CHECK(ompt_event_taskgroup_begin, my_taskgroup_begin, "taskgroup_begin");
-    CHECK(ompt_event_taskgroup_end, my_taskgroup_end, "taskgroup_end");
-    CHECK(ompt_event_workshare_begin, my_workshare_begin, "workshare_begin");
-    CHECK(ompt_event_workshare_end, my_workshare_end, "workshare_end");
+    if (apex::apex_options::ompt_high_overhead_events()) {
+      CHECK(ompt_event_sections_begin, my_sections_begin, "sections_begin");
+      CHECK(ompt_event_sections_end, my_sections_end, "sections_end");
+      CHECK(ompt_event_taskwait_begin, my_taskwait_begin, "taskwait_begin");
+      CHECK(ompt_event_taskwait_end, my_taskwait_end, "taskwait_end");
+      CHECK(ompt_event_taskgroup_begin, my_taskgroup_begin, "taskgroup_begin");
+      CHECK(ompt_event_taskgroup_end, my_taskgroup_end, "taskgroup_end");
+      CHECK(ompt_event_workshare_begin, my_workshare_begin, "workshare_begin");
+      CHECK(ompt_event_workshare_end, my_workshare_end, "workshare_end");
 
     /* These are high overhead events! */
-    CHECK(ompt_event_implicit_task_begin, my_implicit_task_begin, "task_begin");
-    CHECK(ompt_event_implicit_task_end, my_implicit_task_end, "task_end");
-    CHECK(ompt_event_idle_begin, my_idle_begin, "idle_begin");
-    CHECK(ompt_event_idle_end, my_idle_end, "idle_end");
+      CHECK(ompt_event_implicit_task_begin, my_implicit_task_begin, "task_begin");
+      CHECK(ompt_event_implicit_task_end, my_implicit_task_end, "task_end");
+      CHECK(ompt_event_idle_begin, my_idle_begin, "idle_begin");
+      CHECK(ompt_event_idle_end, my_idle_end, "idle_end");
+	}
   }
   fprintf(stderr,"done.\n"); fflush(stderr);
   return 1;

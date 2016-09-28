@@ -121,6 +121,10 @@ ProcData* parse_proc_stat(void) {
   procData->freshness = read_freshness();
   procData->generation = read_generation();
 #endif
+#if defined(APEX_HAVE_POWERCAP_POWER)
+  procData->package0 = read_package0();
+  procData->dram = read_dram();
+#endif
   return procData;
 }
 
@@ -159,6 +163,10 @@ ProcData* ProcData::diff(ProcData const& rhs) {
   d->energy = energy - rhs.energy;
   d->freshness = freshness;
   d->generation = generation;
+#endif
+#if defined(APEX_HAVE_POWERCAP_POWER)
+  d->package0 = package0 - rhs.package0;
+  d->dram = dram - rhs.dram;
 #endif
   return d;
 }
@@ -286,6 +294,10 @@ void ProcData::sample_values(void) {
   sample_value("Energy", energy);
   sample_value("Freshness", freshness);
   sample_value("Generation", generation);
+#endif
+#if defined(APEX_HAVE_POWERCAP_POWER)
+  sample_value("Package-0 Energy", package0);
+  sample_value("DRAM Energy", dram);
 #endif
 }
 

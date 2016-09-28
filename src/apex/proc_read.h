@@ -74,6 +74,10 @@ public:
   std::unordered_map<std::string,std::string> meminfo;
   std::unordered_map<std::string,double> netdev;
 #endif
+#if defined(APEX_HAVE_POWERCAP_POWER)
+  long package0;
+  long dram;
+#endif
   //softirq 10953997190 0 1380880059 1495447920 1585783785 15525789 0 12 661586214 0 1519806115
   ~ProcData(void);
   ProcData* diff(const ProcData& rhs);
@@ -139,6 +143,46 @@ inline int read_##name (void) { \
 
 FOREACH_APEX_XC30_VALUE(apex_macro)
 #undef apex_macro
+
+#if defined(APEX_HAVE_POWERCAP_POWER)
+/*
+ * This isn't really the right way to do this. What should be done
+ * is: 
+ * 1) read /sys/class/powercap/intel-rapl/intel-rapl:0/name to get the counter name (once)
+ * 2) read /sys/class/powercap/intel-rapl/intel-rapl:0/energy_uj to get the value
+ * 3) for i in /sys/class/powercap/intel-rapl/intel-rapl:0/intel-rapl:*:*
+ *    do 1), 2) above for each
+ *
+ * This was a quick hack to get basic support for KNL.
+ */
+inline int read_package0 (void) {
+  long long tmpint;
+  FILE *fff;
+  fff=fopen("/sys/class/powercap/intel-rapl/intel-rapl:0/energy_uj","r");
+  if (fff==NULL) {
+    std::cerr << "Error opening package0!" << std::endl;
+  } else {
+    fscanf(fff,"%lld",&tmpint);
+    fclose(fff);
+  }
+  return (int)(tmpint/1000000);
+}
+
+inline int read_dram (void) {
+  //std::cout << "Reading dram" << std::endl;
+  int tmpint;
+  FILE *fff;
+  fff=fopen("/sys/class/powercap/intel-rapl/intel-rapl:0/intel-rapl:0:0/energy_uj","r");
+  if (fff==NULL) {
+    std::cerr << "Error opening dram!" << std::endl;
+  } else {
+    fscanf(fff,"%lld",&tmpint);
+    fclose(fff);
+  }
+  return (int)(tmpint/1000000);
+}
+
+#endif
 
 #ifdef APEX_HAVE_MSR
 void apex_init_msr(void);
