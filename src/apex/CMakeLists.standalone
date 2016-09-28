@@ -44,10 +44,10 @@ add_library (apex ${all_SOURCE})
 
 if(APEX_INTEL_MIC)
     #add_dependencies (apex_objlib project_activeharmony project_binutils project_boost)
-    add_dependencies (apex project_activeharmony project_binutils project_boost)
+    add_dependencies (apex project_activeharmony project_binutils project_otf2 project_ompt project_boost)
 else()
     #add_dependencies (apex_objlib project_activeharmony project_binutils)
-    add_dependencies (apex project_activeharmony project_binutils)
+    add_dependencies (apex project_activeharmony project_binutils project_otf2 project_ompt)
 endif(APEX_INTEL_MIC)
 
 # If we are building libapex.so, we want to include all the other libraries,
