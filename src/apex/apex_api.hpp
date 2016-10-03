@@ -741,10 +741,11 @@ APEX_EXPORT void send (uint64_t tag, uint64_t size, uint64_t target);
 
  \param tag The message identifier
  \param size The message size (in bytes)
- \param source The message source (as an APEX rank)
+ \param source_rank The message source (as a rank/locality index)
+ \param source_thread The message source (as a worker index - 0 if unknown)
  \sa @ref apex_set_node_id
  */
-APEX_EXPORT void recv (uint64_t tag, uint64_t size, uint64_t source);
+APEX_EXPORT void recv (uint64_t tag, uint64_t size, uint64_t source_rank, uint64_t source_thread);
 
 } //namespace apex
 

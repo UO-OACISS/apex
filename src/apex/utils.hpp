@@ -84,5 +84,7 @@ inline unsigned int hardware_concurrency()
 
 std::string demangle(const std::string& timer_name);
 
+void set_thread_affinity(void);
+
 };
 

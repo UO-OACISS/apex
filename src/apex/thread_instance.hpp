@@ -33,6 +33,8 @@ class thread_instance {
 private:
   // TAU id of the thread
   int _id;
+  // Runtime id of the thread
+  int _runtime_id;
   // "name" of the thread
   std::string _top_level_timer_name;
   // is this an HPX worker thread?
@@ -49,7 +51,7 @@ private:
   // thread specific data
   static APEX_NATIVE_TLS thread_instance * _instance;
   // constructor
-  thread_instance (void) : _id(-1), _top_level_timer_name(), _is_worker(false) { };
+  thread_instance (void) : _id(-1), _runtime_id(-1), _top_level_timer_name(), _is_worker(false) { };
   // map from function address to name - unique to all threads to avoid locking
   std::map<apex_function_address, std::string> _function_map;
   profiler * current_profiler;
@@ -62,6 +64,8 @@ public:
   ~thread_instance(void);
   static thread_instance& instance(void);
   static long unsigned int get_id(void) { return instance()._id; }
+  static long unsigned int get_runtime_id(void) { return instance()._runtime_id; }
+  static void set_runtime_id(long unsigned int id) { instance()._runtime_id = id; }
   static std::string get_name(void);
   static void set_name(std::string name);
   static void set_worker(bool is_worker);

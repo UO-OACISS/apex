@@ -67,6 +67,7 @@ thread_instance& thread_instance::instance(void) {
     me = _instance;
     //me->_id = TAU_PROFILE_GET_THREAD();
     me->_id = _num_threads++;
+    me->_runtime_id = me->_id; // can be set later, if necessary
     _active_threads++;
   }
   return *me;

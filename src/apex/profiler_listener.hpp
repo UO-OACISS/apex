@@ -179,6 +179,7 @@ public:
   //std::vector<std::string> get_available_profiles();
   void process_profiles(void);
   static void process_profiles_wrapper(void);
+  static void consumer_process_profiles_wrapper(void);
   void public_process_profile(std::shared_ptr<profiler> &p) { process_profile(p,0); };
   bool concurrent_cleanup(void);
 };

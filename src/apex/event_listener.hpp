@@ -39,10 +39,11 @@ class message_event_data : public event_data {
 public:
   uint64_t tag;
   uint64_t size;
-  uint64_t source;
+  uint64_t source_rank;
+  uint64_t source_thread;
   uint64_t target;
-  message_event_data(uint64_t tag, uint64_t size, uint64_t source, uint64_t target) :
-    tag(tag), size(size), source(source), target(target) {}
+  message_event_data(uint64_t tag, uint64_t size, uint64_t source_rank, uint64_t source_thread, uint64_t target) :
+    tag(tag), size(size), source_rank(source_rank), source_thread(source_thread), target(target) {}
   ~message_event_data() {};
 };
 

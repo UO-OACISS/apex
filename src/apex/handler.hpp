@@ -16,6 +16,8 @@
 #else
 #include "pthread_wrapper.hpp"
 #endif
+#include "utils.hpp"
+#include "apex_options.hpp"
 
 namespace apex {
 
@@ -31,6 +33,9 @@ private:
 #else
     static void* _threadfunc(void * _ptw) {
         pthread_wrapper* ptw = (pthread_wrapper*)_ptw;
+        if (apex_options::pin_apex_threads()) {
+             set_thread_affinity();
+        }
         while (ptw->wait()) {
             handler* context = (handler*)(ptw->get_context());
             context->_handler();

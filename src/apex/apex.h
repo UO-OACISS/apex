@@ -546,10 +546,11 @@ APEX_EXPORT void apex_send (uint64_t tag, uint64_t size, uint64_t target);
 
  \param tag The message identifier
  \param size The message size (in bytes)
- \param source The message source (as an APEX rank)
+ \param source_rank The message source (as a rank/locality index)
+ \param source_thread The message source (as a worker thread index)
  \sa @ref apex_set_node_id
  */
-APEX_EXPORT void apex_recv (uint64_t tag, uint64_t size, uint64_t source);
+APEX_EXPORT void apex_recv (uint64_t tag, uint64_t size, uint64_t source_rank, uint64_t source_thread);
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
