@@ -247,6 +247,7 @@ typedef uint32_t apex_tuning_session_handle;
     macro (APEX_PTHREAD_WRAPPER_STACK_SIZE, pthread_wrapper_stack_size, int, 0) \
     macro (APEX_OMPT_REQUIRED_EVENTS_ONLY, ompt_required_events_only, bool, false) \
     macro (APEX_OMPT_HIGH_OVERHEAD_EVENTS, ompt_high_overhead_events, bool, false) \
+    macro (APEX_PIN_APEX_THREADS, pin_apex_threads, bool, true) \
     macro (APEX_TASK_SCATTERPLOT, task_scatterplot, bool, false)
 
 #define FOREACH_APEX_STRING_OPTION(macro) \

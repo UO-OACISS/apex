@@ -790,6 +790,24 @@ node_color * get_node_color(double v,double vmin,double vmax)
    * The main function for the consumer thread has to be static, but
    * the processing needs access to member variables, so get the 
    * profiler_listener instance, and call it's proper function.
+   *
+   * This is a wrapper, so that we can launch the thread and set
+   * affinity. However, process_profiles_wrapper is also used by the
+   * last worker that calls apex_finalize(), so we don't want to change
+   * that thread's affinity. So this wrapper is only for the consumer
+   * thread.
+   */
+  void profiler_listener::consumer_process_profiles_wrapper(void) {
+      if (apex_options::pin_apex_threads()) {
+      	  set_thread_affinity();
+	  }
+      process_profiles_wrapper();
+  }
+
+  /*
+   * The main function for the consumer thread has to be static, but
+   * the processing needs access to member variables, so get the 
+   * profiler_listener instance, and call it's proper function.
    */
   void profiler_listener::process_profiles_wrapper(void) {
       apex * inst = apex::instance();
@@ -963,7 +981,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       my_tid = (unsigned int)thread_instance::get_id();
 #ifndef APEX_HAVE_HPX3
       // Start the consumer thread, to process profiler objects.
-      consumer_thread = new std::thread(process_profiles_wrapper);
+      consumer_thread = new std::thread(consumer_process_profiles_wrapper);
 #endif
 
 #if APEX_HAVE_PAPI

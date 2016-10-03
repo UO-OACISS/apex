@@ -9,6 +9,11 @@
 #if defined(__GNUC__)
 #include <cxxabi.h>
 #endif
+// for setting thread affinity
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
 
 namespace apex {
 
@@ -51,6 +56,40 @@ std::string demangle(const std::string& timer_name) {
 #endif
   return demangled;
 }
+
+#define handle_error_en(en, msg) \
+               do { errno = en; perror(msg); exit(EXIT_FAILURE); } while (0)
+
+void set_thread_affinity(void) {
+    int s, j;
+    cpu_set_t cpuset;
+    pthread_t thread;
+
+    thread = pthread_self();
+
+    /* Set affinity mask to include CPUs 0 to 7 */
+
+    CPU_ZERO(&cpuset);
+    j = my_hardware_concurrency() - 1;
+    CPU_SET(j, &cpuset);
+
+    s = pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
+    if (s != 0) handle_error_en(s, "pthread_setaffinity_np");
+
+    /* Check the actual affinity mask assigned to the thread */
+
+    s = pthread_getaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
+    if (s != 0) handle_error_en(s, "pthread_getaffinity_np");
+
+    printf("Set returned by pthread_getaffinity_np() contained:\n");
+    for (j = 0; j < CPU_SETSIZE; j++) {
+        if (CPU_ISSET(j, &cpuset)) {
+            printf("    CPU %d\n", j);
+        }
+    }
+    return;
+}
+
 
 };
 
