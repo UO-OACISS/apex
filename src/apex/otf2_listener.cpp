@@ -988,24 +988,6 @@ namespace apex {
         on_stop(p);
     }
 
-// the number of bits for each part of the packed value
-#define     TOPO_PE_BITS (16)
-#define TOPO_WORKER_BITS (8)
-#define TOPO_OFFSET_BITS (8 * sizeof(uint64_t) - TOPO_PE_BITS - TOPO_WORKER_BITS)
-
-
-// shift values for the three parts of the packed value
-#define     TOPO_PE_SHIFT (TOPO_WORKER_BITS + TOPO_OFFSET_BITS)
-#define TOPO_WORKER_SHIFT (TOPO_OFFSET_BITS)
-#define TOPO_OFFSET_SHIFT (0)
-//
-// // masks to clobber bits of the address (use with &)
-#define TOPO_LOCATION_MASK (UINT64_MAX << TOPO_WORKER_SHIFT)
-#define       TOPO_PE_MASK (UINT64_MAX << TOPO_PE_SHIFT)
-#define   TOPO_WORKER_MASK ((UINT64_MAX << TOPO_WORKER_SHIFT) & (~TOPO_PE_MASK))
-#define   TOPO_OFFSET_MASK (~(TOPO_LOCATION_MASK))
-#define  TOPO_MAX_LG_BSIZE (sizeof(uint32_t)*8)
-
     void otf2_listener::on_send(message_event_data &data) {
         // each thread has its own event writer.  This static
         // variable will be initialized the first time we call
@@ -1031,7 +1013,6 @@ namespace apex {
                 uint64_t stamp = get_time();
                 // write our recv into the event stream
                 //OTF2_EC(OTF2_EvtWriter_MpiSend  ( comm_evt_writer,
-				assert (((data.tag & TOPO_OFFSET_MASK) >> TOPO_OFFSET_SHIFT) == thread_instance::get_id());
                 OTF2_EC(OTF2_EvtWriter_MpiSend  ( local_evt_writer,
                         attributeList, stamp, data.target, communicator,
                         data.tag, data.size ));
