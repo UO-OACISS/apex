@@ -153,6 +153,7 @@ set(apex_headers
     profiler_listener.hpp
     semaphore.hpp
     thread_instance.hpp
+    task_identifier.hpp
     apex_policies.hpp
     ${PROC_HEADER})
     #apex_config.h
