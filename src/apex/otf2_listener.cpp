@@ -824,13 +824,15 @@ namespace apex {
         // wait for exclusive access to append to the file
         fcntl(indexfile, F_SETLKW, &fl);  /* F_GETLK, F_SETLK, F_SETLKW */
         // write our info
-        write(indexfile, tmp.c_str(), tmp.size());
+        int rc = write(indexfile, tmp.c_str(), tmp.size());
+        assert(rc >= 0);
         //std::cout << tmp << endl;
         fl.l_type   = F_UNLCK;   /* tell it to unlock the region */
         // release the lock
         fcntl(indexfile, F_SETLK, &fl); /* set the region to unlocked */
         // close the file
-        close(indexfile);
+        rc = close(indexfile);
+        assert(rc >= 0);
         already_written = true;
         return already_written;
     }
