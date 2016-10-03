@@ -750,10 +750,13 @@ namespace apex {
                     write_host_properties(rank, pid, hostname);
                     // add the rank to the communicator group
                     group_members.push_back(rank);
+					/*
                     // add threads of the rank to the communicator location group
         			for (int i = 0 ; i < rank_thread_map[rank] ; i++) {
                     	group_members_threads.push_back((group_members[rank] << 32) + i);
 					}
+					*/
+                    group_members_threads.push_back((group_members[rank] << 32));
                 }
                 // create the map of locations
                 const char * world_locations = "MPI_COMM_WORLD_LOCATIONS";
@@ -763,14 +766,14 @@ namespace apex {
                     0, get_string_index(world_locations), OTF2_GROUP_TYPE_COMM_LOCATIONS,
                     OTF2_PARADIGM_MPI, OTF2_GROUP_FLAG_NONE, group_members_threads.size(),
                     &group_members_threads[0]);   
-                // create the map of ranks in the communicator
+                // create the map of ranks in the communicator - these have to be consectutive ranks.
                 const char * world_group = "MPI_COMM_WORLD_GROUP";
                 OTF2_GlobalDefWriter_WriteString( global_def_writer,
                     get_string_index(world_group), world_group );
                 OTF2_GlobalDefWriter_WriteGroup ( global_def_writer,
                     1, get_string_index(world_group), OTF2_GROUP_TYPE_COMM_GROUP,
-                    OTF2_PARADIGM_MPI, OTF2_GROUP_FLAG_NONE, group_members_threads.size(),
-                    &group_members_threads[0]);   
+                    OTF2_PARADIGM_MPI, OTF2_GROUP_FLAG_NONE, group_members.size(),
+                    &group_members[0]);   
                 // create the communicator
                 const char * world = "MPI_COMM_WORLD";
                 OTF2_GlobalDefWriter_WriteString( global_def_writer,
@@ -998,8 +1001,8 @@ namespace apex {
 #else
         static __thread OTF2_EvtWriter* local_evt_writer = getEvtWriter();
 #endif
-        //if (!_terminate && comm_evt_writer != NULL) {
-        if (!_terminate) {
+        //if (!_terminate) {
+        if (!_terminate && comm_evt_writer != NULL) {
             // create an empty attribute list. could be null?
             OTF2_AttributeList * attributeList = OTF2_AttributeList_New();
             // only one communicator, so hard coded.
@@ -1012,8 +1015,8 @@ namespace apex {
                 // that time stamps are monotonically increasing. :(
                 uint64_t stamp = get_time();
                 // write our recv into the event stream
-                //OTF2_EC(OTF2_EvtWriter_MpiSend  ( comm_evt_writer,
-                OTF2_EC(OTF2_EvtWriter_MpiSend  ( local_evt_writer,
+                //OTF2_EC(OTF2_EvtWriter_MpiSend  ( local_evt_writer,
+                OTF2_EC(OTF2_EvtWriter_MpiSend  ( comm_evt_writer,
                         attributeList, stamp, data.target, communicator,
                         data.tag, data.size ));
             }
@@ -1041,7 +1044,8 @@ namespace apex {
                 // write our recv into the event stream
 				//std::cout << "receiving from: " << data.source_thread << std::endl;
                 OTF2_EC(OTF2_EvtWriter_MpiRecv  ( comm_evt_writer,
-                        attributeList, stamp, ((data.source_rank << 32) + data.source_thread), communicator,
+                        //attributeList, stamp, ((data.source_rank << 32) + data.source_thread), communicator,
+                        attributeList, stamp, data.source_rank, communicator,
                         data.tag, data.size ));
             }
             // delete the attribute.

@@ -78,15 +78,17 @@ void set_thread_affinity(void) {
 
     /* Check the actual affinity mask assigned to the thread */
 
+    /*
     s = pthread_getaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
     if (s != 0) handle_error_en(s, "pthread_getaffinity_np");
 
-    //printf("Set returned by pthread_getaffinity_np() contained:\n");
+    printf("Set returned by pthread_getaffinity_np() contained:\n");
     for (j = 0; j < CPU_SETSIZE; j++) {
         if (CPU_ISSET(j, &cpuset)) {
             printf("    CPU %d\n", j);
         }
     }
+	*/
     return;
 }
 

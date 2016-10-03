@@ -103,7 +103,7 @@ static void master(void) {
              MPI_ANY_TAG,       /* any type of message */
              MPI_COMM_WORLD,    /* default communicator */
              &status);          /* info about the received message */
-    apex::recv(status.MPI_TAG, sizeof(int), status.MPI_SOURCE);
+    apex::recv(status.MPI_TAG, sizeof(int), status.MPI_SOURCE, 0);
 
     /* Send the worker a new work unit */
 
@@ -130,7 +130,7 @@ static void master(void) {
   for (rank = 1; rank < ntasks; ++rank) {
     MPI_Recv(&result, 1, MPI_INT, MPI_ANY_SOURCE,
              MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-    apex::recv(status.MPI_TAG, sizeof(int), status.MPI_SOURCE);
+    apex::recv(status.MPI_TAG, sizeof(int), status.MPI_SOURCE, 0);
   }
 
   /* Tell all the worker to exit by sending an empty message with the
@@ -156,7 +156,7 @@ static void worker(void) {
 
     MPI_Recv(&work, 1, MPI_INT, 0, MPI_ANY_TAG,
              MPI_COMM_WORLD, &status);
-    apex::recv(status.MPI_TAG, sizeof(int), status.MPI_SOURCE);
+    apex::recv(status.MPI_TAG, sizeof(int), status.MPI_SOURCE, 0);
 
     /* Check the tag of the received message. */
 

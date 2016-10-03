@@ -111,7 +111,7 @@ void CommRecv(Domain& domain, int msgType, Index_t xferFields,
       MPI_Irecv(&domain.commDataRecv[pmsg * maxPlaneComm],
                 recvCount, baseType, fromRank, msgType,
                 MPI_COMM_WORLD, &domain.recvRequest[pmsg]) ;
-      apex::recv(msgType, recvCount, fromRank);
+      apex::recv(msgType, recvCount, fromRank, 0);
       ++pmsg ;
    }
    if (planeMax) {
@@ -121,7 +121,7 @@ void CommRecv(Domain& domain, int msgType, Index_t xferFields,
       MPI_Irecv(&domain.commDataRecv[pmsg * maxPlaneComm],
                 recvCount, baseType, fromRank, msgType,
                 MPI_COMM_WORLD, &domain.recvRequest[pmsg]) ;
-      apex::recv(msgType, recvCount, fromRank);
+      apex::recv(msgType, recvCount, fromRank, 0);
       ++pmsg ;
    }
    if (rowMin && doRecv) {
@@ -131,7 +131,7 @@ void CommRecv(Domain& domain, int msgType, Index_t xferFields,
       MPI_Irecv(&domain.commDataRecv[pmsg * maxPlaneComm],
                 recvCount, baseType, fromRank, msgType,
                 MPI_COMM_WORLD, &domain.recvRequest[pmsg]) ;
-      apex::recv(msgType, recvCount, fromRank);
+      apex::recv(msgType, recvCount, fromRank, 0);
       ++pmsg ;
    }
    if (rowMax) {
@@ -141,7 +141,7 @@ void CommRecv(Domain& domain, int msgType, Index_t xferFields,
       MPI_Irecv(&domain.commDataRecv[pmsg * maxPlaneComm],
                 recvCount, baseType, fromRank, msgType,
                 MPI_COMM_WORLD, &domain.recvRequest[pmsg]) ;
-      apex::recv(msgType, recvCount, fromRank);
+      apex::recv(msgType, recvCount, fromRank, 0);
       ++pmsg ;
    }
    if (colMin && doRecv) {
@@ -151,7 +151,7 @@ void CommRecv(Domain& domain, int msgType, Index_t xferFields,
       MPI_Irecv(&domain.commDataRecv[pmsg * maxPlaneComm],
                 recvCount, baseType, fromRank, msgType,
                 MPI_COMM_WORLD, &domain.recvRequest[pmsg]) ;
-      apex::recv(msgType, recvCount, fromRank);
+      apex::recv(msgType, recvCount, fromRank, 0);
       ++pmsg ;
    }
    if (colMax) {
@@ -161,7 +161,7 @@ void CommRecv(Domain& domain, int msgType, Index_t xferFields,
       MPI_Irecv(&domain.commDataRecv[pmsg * maxPlaneComm],
                 recvCount, baseType, fromRank, msgType,
                 MPI_COMM_WORLD, &domain.recvRequest[pmsg]) ;
-      apex::recv(msgType, recvCount, fromRank);
+      apex::recv(msgType, recvCount, fromRank, 0);
       ++pmsg ;
    }
 
@@ -173,7 +173,7 @@ void CommRecv(Domain& domain, int msgType, Index_t xferFields,
                                          emsg * maxEdgeComm],
                    dz * xferFields, baseType, fromRank, msgType,
                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
-      apex::recv(msgType, dz * xferFields, fromRank);
+      apex::recv(msgType, dz * xferFields, fromRank, 0);
          ++emsg ;
       }
 
@@ -183,7 +183,7 @@ void CommRecv(Domain& domain, int msgType, Index_t xferFields,
                                          emsg * maxEdgeComm],
                    dx * xferFields, baseType, fromRank, msgType,
                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
-      apex::recv(msgType, dx * xferFields, fromRank);
+      apex::recv(msgType, dx * xferFields, fromRank, 0);
          ++emsg ;
       }
 
@@ -193,7 +193,7 @@ void CommRecv(Domain& domain, int msgType, Index_t xferFields,
                                          emsg * maxEdgeComm],
                    dy * xferFields, baseType, fromRank, msgType,
                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
-      apex::recv(msgType, dy * xferFields, fromRank);
+      apex::recv(msgType, dy * xferFields, fromRank, 0);
          ++emsg ;
       }
 
@@ -203,7 +203,7 @@ void CommRecv(Domain& domain, int msgType, Index_t xferFields,
                                          emsg * maxEdgeComm],
                    dz * xferFields, baseType, fromRank, msgType,
                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
-      apex::recv(msgType, dz * xferFields, fromRank);
+      apex::recv(msgType, dz * xferFields, fromRank, 0);
          ++emsg ;
       }
 
@@ -213,7 +213,7 @@ void CommRecv(Domain& domain, int msgType, Index_t xferFields,
                                          emsg * maxEdgeComm],
                    dx * xferFields, baseType, fromRank, msgType,
                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
-      apex::recv(msgType, dx * xferFields, fromRank);
+      apex::recv(msgType, dx * xferFields, fromRank, 0);
          ++emsg ;
       }
 
@@ -223,7 +223,7 @@ void CommRecv(Domain& domain, int msgType, Index_t xferFields,
                                          emsg * maxEdgeComm],
                    dy * xferFields, baseType, fromRank, msgType,
                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
-      apex::recv(msgType, dy * xferFields, fromRank);
+      apex::recv(msgType, dy * xferFields, fromRank, 0);
          ++emsg ;
       }
 
@@ -233,7 +233,7 @@ void CommRecv(Domain& domain, int msgType, Index_t xferFields,
                                          emsg * maxEdgeComm],
                    dz * xferFields, baseType, fromRank, msgType,
                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
-      apex::recv(msgType, dz * xferFields, fromRank);
+      apex::recv(msgType, dz * xferFields, fromRank, 0);
          ++emsg ;
       }
 
@@ -243,7 +243,7 @@ void CommRecv(Domain& domain, int msgType, Index_t xferFields,
                                          emsg * maxEdgeComm],
                    dx * xferFields, baseType, fromRank, msgType,
                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
-      apex::recv(msgType, dx * xferFields, fromRank);
+      apex::recv(msgType, dx * xferFields, fromRank, 0);
          ++emsg ;
       }
 
@@ -253,7 +253,7 @@ void CommRecv(Domain& domain, int msgType, Index_t xferFields,
                                          emsg * maxEdgeComm],
                    dy * xferFields, baseType, fromRank, msgType,
                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
-      apex::recv(msgType, dy * xferFields, fromRank);
+      apex::recv(msgType, dy * xferFields, fromRank, 0);
          ++emsg ;
       }
 
@@ -263,7 +263,7 @@ void CommRecv(Domain& domain, int msgType, Index_t xferFields,
                                          emsg * maxEdgeComm],
                    dz * xferFields, baseType, fromRank, msgType,
                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
-      apex::recv(msgType, dz * xferFields, fromRank);
+      apex::recv(msgType, dz * xferFields, fromRank, 0);
          ++emsg ;
       }
 
@@ -273,7 +273,7 @@ void CommRecv(Domain& domain, int msgType, Index_t xferFields,
                                          emsg * maxEdgeComm],
                    dx * xferFields, baseType, fromRank, msgType,
                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
-      apex::recv(msgType, dx * xferFields, fromRank);
+      apex::recv(msgType, dx * xferFields, fromRank, 0);
          ++emsg ;
       }
 
@@ -283,7 +283,7 @@ void CommRecv(Domain& domain, int msgType, Index_t xferFields,
                                          emsg * maxEdgeComm],
                    dy * xferFields, baseType, fromRank, msgType,
                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
-      apex::recv(msgType, dy * xferFields, fromRank);
+      apex::recv(msgType, dy * xferFields, fromRank, 0);
          ++emsg ;
       }
 
@@ -296,7 +296,7 @@ void CommRecv(Domain& domain, int msgType, Index_t xferFields,
                                          cmsg * CACHE_COHERENCE_PAD_REAL],
                    xferFields, baseType, fromRank, msgType,
                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg+cmsg]) ;
-      apex::recv(msgType, xferFields, fromRank);
+      apex::recv(msgType, xferFields, fromRank, 0);
          ++cmsg ;
       }
       if (rowMin && colMin && planeMax) {
@@ -307,7 +307,7 @@ void CommRecv(Domain& domain, int msgType, Index_t xferFields,
                                          cmsg * CACHE_COHERENCE_PAD_REAL],
                    xferFields, baseType, fromRank, msgType,
                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg+cmsg]) ;
-      apex::recv(msgType, xferFields, fromRank);
+      apex::recv(msgType, xferFields, fromRank, 0);
          ++cmsg ;
       }
       if (rowMin && colMax && planeMin && doRecv) {
@@ -318,7 +318,7 @@ void CommRecv(Domain& domain, int msgType, Index_t xferFields,
                                          cmsg * CACHE_COHERENCE_PAD_REAL],
                    xferFields, baseType, fromRank, msgType,
                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg+cmsg]) ;
-      apex::recv(msgType, xferFields, fromRank);
+      apex::recv(msgType, xferFields, fromRank, 0);
          ++cmsg ;
       }
       if (rowMin && colMax && planeMax) {
@@ -329,7 +329,7 @@ void CommRecv(Domain& domain, int msgType, Index_t xferFields,
                                          cmsg * CACHE_COHERENCE_PAD_REAL],
                    xferFields, baseType, fromRank, msgType,
                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg+cmsg]) ;
-      apex::recv(msgType, xferFields, fromRank);
+      apex::recv(msgType, xferFields, fromRank, 0);
          ++cmsg ;
       }
       if (rowMax && colMin && planeMin && doRecv) {
@@ -340,7 +340,7 @@ void CommRecv(Domain& domain, int msgType, Index_t xferFields,
                                          cmsg * CACHE_COHERENCE_PAD_REAL],
                    xferFields, baseType, fromRank, msgType,
                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg+cmsg]) ;
-      apex::recv(msgType, xferFields, fromRank);
+      apex::recv(msgType, xferFields, fromRank, 0);
          ++cmsg ;
       }
       if (rowMax && colMin && planeMax) {
@@ -351,7 +351,7 @@ void CommRecv(Domain& domain, int msgType, Index_t xferFields,
                                          cmsg * CACHE_COHERENCE_PAD_REAL],
                    xferFields, baseType, fromRank, msgType,
                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg+cmsg]) ;
-      apex::recv(msgType, xferFields, fromRank);
+      apex::recv(msgType, xferFields, fromRank, 0);
          ++cmsg ;
       }
       if (rowMax && colMax && planeMin && doRecv) {
@@ -362,7 +362,7 @@ void CommRecv(Domain& domain, int msgType, Index_t xferFields,
                                          cmsg * CACHE_COHERENCE_PAD_REAL],
                    xferFields, baseType, fromRank, msgType,
                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg+cmsg]) ;
-      apex::recv(msgType, xferFields, fromRank);
+      apex::recv(msgType, xferFields, fromRank, 0);
          ++cmsg ;
       }
       if (rowMax && colMax && planeMax) {
@@ -373,7 +373,7 @@ void CommRecv(Domain& domain, int msgType, Index_t xferFields,
                                          cmsg * CACHE_COHERENCE_PAD_REAL],
                    xferFields, baseType, fromRank, msgType,
                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg+cmsg]) ;
-      apex::recv(msgType, xferFields, fromRank);
+      apex::recv(msgType, xferFields, fromRank, 0);
          ++cmsg ;
       }
    }
