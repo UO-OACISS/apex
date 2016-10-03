@@ -1133,7 +1133,7 @@ void send (uint64_t tag, uint64_t size, uint64_t target) {
     if (!instance || _exited) { return ; }
 
     if (_notify_listeners) {
-        message_event_data data(tag, size, instance->get_node_id(), target);
+        message_event_data data(tag, size, instance->get_node_id(), thread_instance::get_id(), target);
         if (_notify_listeners) {
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
                 instance->listeners[i]->on_send(data);
@@ -1142,7 +1142,7 @@ void send (uint64_t tag, uint64_t size, uint64_t target) {
     }
 }
 
-void recv (uint64_t tag, uint64_t size, uint64_t source) {
+void recv (uint64_t tag, uint64_t size, uint64_t source_rank, uint64_t source_thread) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return ; }
     // if APEX is suspended, do nothing.
@@ -1153,7 +1153,7 @@ void recv (uint64_t tag, uint64_t size, uint64_t source) {
     if (!instance || _exited) { return ; }
 
     if (_notify_listeners) {
-        message_event_data data(tag, size, source, instance->get_node_id());
+        message_event_data data(tag, size, source_rank, source_thread, instance->get_node_id());
         if (_notify_listeners) {
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
                 instance->listeners[i]->on_recv(data);
@@ -1372,8 +1372,8 @@ extern "C" {
         return send(tag, size, target);
     }
 
-    void apex_recv (uint64_t tag, uint64_t size, uint64_t source) {
-        return recv(tag, size, source);
+    void apex_recv (uint64_t tag, uint64_t size, uint64_t source_rank, uint64_t source_thread) {
+        return recv(tag, size, source_rank, source_thread);
     }
 
 } // extern "C"
