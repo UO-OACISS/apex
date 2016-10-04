@@ -13,10 +13,10 @@
 #include <sys/file.h>
 
 #define OTF2_EC(call) { \
-	OTF2_ErrorCode ec = call; \
-	if (ec != OTF2_SUCCESS) { \
-		printf("OTF2 Error: %s, %s\n", OTF2_Error_GetName(ec), OTF2_Error_GetDescription (ec)); \
-	} \
+    OTF2_ErrorCode ec = call; \
+    if (ec != OTF2_SUCCESS) { \
+        printf("OTF2 Error: %s, %s\n", OTF2_Error_GetName(ec), OTF2_Error_GetDescription (ec)); \
+    } \
 }
 
 using namespace std;
@@ -705,6 +705,13 @@ namespace apex {
                     // ...and distribute them back out
                     write_region_map();
                     write_metric_map();
+                } else {
+                    // no communication? write def files for each thread.
+                    for (int i = 0 ; i < thread_instance::get_num_threads() ; i++) {
+                        /* write an empty definition file */
+                        OTF2_DefWriter* def_writer = getDefWriter(i);
+                        OTF2_Archive_CloseDefWriter( archive, def_writer );
+                    }
                 }
                 // create the global definition writer
                 global_def_writer = OTF2_Archive_GetGlobalDefWriter( archive );
@@ -750,12 +757,12 @@ namespace apex {
                     write_host_properties(rank, pid, hostname);
                     // add the rank to the communicator group
                     group_members.push_back(rank);
-					/*
+                    /*
                     // add threads of the rank to the communicator location group
-        			for (int i = 0 ; i < rank_thread_map[rank] ; i++) {
-                    	group_members_threads.push_back((group_members[rank] << 32) + i);
-					}
-					*/
+                    for (int i = 0 ; i < rank_thread_map[rank] ; i++) {
+                        group_members_threads.push_back((group_members[rank] << 32) + i);
+                    }
+                    */
                     group_members_threads.push_back((group_members[rank] << 32));
                 }
                 // create the map of locations
@@ -869,20 +876,13 @@ namespace apex {
                 static bool properties_written = write_my_node_properties();
                 // before we process the event, make sure the event write is open
                 OTF2_EvtWriter* local_evt_writer = getEvtWriter();
-                /*
-                // create a union for storing the value
-                OTF2_MetricValue* omv = new OTF2_MetricValue[1];
-                omv[0].floating_point = 0.0;
-                // tell the union what type this is
-                OTF2_Type* omt = new OTF2_Type[1];
-                omt[0]=OTF2_TYPE_DOUBLE;
-                string tmp("helper thread start");
-                uint64_t idx = get_metric_index(tmp);
-                uint64_t stamp = get_time();
-                // write our counter into the event stream
-                OTF2_EvtWriter_Metric( local_evt_writer, NULL, stamp, idx, 1, omt, omv );
-                OTF2_Archive_CloseEvtWriter( archive, getEvtWriter() );
-                */
+                if (archive_created && properties_written && local_evt_writer != NULL) {
+			/*
+                  // insert a thread begin event
+                  uint64_t stamp = get_time();
+                  OTF2_EvtWriter_ThreadBegin( local_evt_writer, NULL, stamp, 0, thread_instance::get_id() );
+			  */
+                }
             }
         APEX_UNUSED(data);
         return;
@@ -890,6 +890,13 @@ namespace apex {
 
     void otf2_listener::on_exit_thread(event_data &data) {
         if (!_terminate) {
+			/*
+            if (thread_instance::get_id() != 0) {
+                // insert a thread begin event
+                uint64_t stamp = get_time();
+                OTF2_EvtWriter_ThreadEnd( getEvtWriter(), NULL, stamp, 0, 0);
+            } 
+			*/
             //OTF2_Archive_CloseDefWriter( archive, getDefWriter() );
             OTF2_Archive_CloseEvtWriter( archive, getEvtWriter() );
             if (thread_instance::get_id() == 0) {
@@ -995,12 +1002,14 @@ namespace apex {
         // each thread has its own event writer.  This static
         // variable will be initialized the first time we call
         // on_stop.
+        /*
 #if defined (__clang__) || defined(__INTEL_COMPILER)
         // Clang doesn't support dynamic thread_local initialization of static.
         OTF2_EvtWriter* local_evt_writer = getEvtWriter();
 #else
         static __thread OTF2_EvtWriter* local_evt_writer = getEvtWriter();
 #endif
+        */
         //if (!_terminate) {
         if (!_terminate && comm_evt_writer != NULL) {
             // create an empty attribute list. could be null?
@@ -1026,9 +1035,9 @@ namespace apex {
     }
 
     void otf2_listener::on_recv(message_event_data &data) {
-	/* The receive is always assumed to be done by thread 0,
-	 * because the sender doesnt' know which thread will handle
-	 * the parcel. But the receiver knows the sending thread. */
+    /* The receive is always assumed to be done by thread 0,
+     * because the sender doesnt' know which thread will handle
+     * the parcel. But the receiver knows the sending thread. */
         if (!_terminate && comm_evt_writer != NULL) {
             // create an empty attribute list. could be null?
             OTF2_AttributeList * attributeList = OTF2_AttributeList_New();
@@ -1042,7 +1051,7 @@ namespace apex {
                 // that time stamps are monotonically increasing. :(
                 uint64_t stamp = get_time();
                 // write our recv into the event stream
-				//std::cout << "receiving from: " << data.source_thread << std::endl;
+                //std::cout << "receiving from: " << data.source_thread << std::endl;
                 OTF2_EC(OTF2_EvtWriter_MpiRecv  ( comm_evt_writer,
                         //attributeList, stamp, ((data.source_rank << 32) + data.source_thread), communicator,
                         attributeList, stamp, data.source_rank, communicator,

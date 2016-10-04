@@ -178,7 +178,6 @@ int main (int argc, char ** argv) {
     apex::set_node_id(myrank);
     
 #ifdef APEX_HAVE_ACTIVEHARMONY
-    int num_inputs = 1; // 1 for threads
     long * inputs[1] = {0L};
     long mins[3] = {1};    // all minimums are 1
     long maxs[3] = {0};    // we'll set these later
@@ -221,7 +220,7 @@ int main (int argc, char ** argv) {
             if (p != nullptr) {
                 double next_accumulated = p->accumulated - prev_accumulated;
                 prev_accumulated = p->accumulated;
-                //std::cout << "Iteration: " << i << " accumulated: " << next_accumulated << std::endl;
+                std::cout << "Iteration: " << i << " accumulated: " << next_accumulated << std::endl;
             }
             apex::custom_event(my_custom_event, NULL);
             active_threads = apex_example_get_active_threads();
@@ -232,7 +231,9 @@ int main (int argc, char ** argv) {
     delete(prev);
     delete(next);
     std::cout << "done." << std::endl;
-    std::cout << "Test passed." << std::endl;
+	if (active_threads <= original_active_threads) {
+    	std::cout << "Test passed." << std::endl;
+	}
   /* Shut down MPI */
 
     //apex_global_teardown(); // do this before MPI_Finalize

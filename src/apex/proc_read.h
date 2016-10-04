@@ -75,8 +75,8 @@ public:
   std::unordered_map<std::string,double> netdev;
 #endif
 #if defined(APEX_HAVE_POWERCAP_POWER)
-  long package0;
-  long dram;
+  long long package0;
+  long long dram;
 #endif
   //softirq 10953997190 0 1380880059 1495447920 1585783785 15525789 0 12 661586214 0 1519806115
   ~ProcData(void);
@@ -155,31 +155,31 @@ FOREACH_APEX_XC30_VALUE(apex_macro)
  *
  * This was a quick hack to get basic support for KNL.
  */
-inline int read_package0 (void) {
-  long long tmpint;
+inline long long read_package0 (void) {
+  long long tmplong;
   FILE *fff;
   fff=fopen("/sys/class/powercap/intel-rapl/intel-rapl:0/energy_uj","r");
   if (fff==NULL) {
     std::cerr << "Error opening package0!" << std::endl;
   } else {
-    fscanf(fff,"%lld",&tmpint);
+    fscanf(fff,"%lld",&tmplong);
     fclose(fff);
   }
-  return (int)(tmpint/1000000);
+  return tmplong/1000000;
 }
 
-inline int read_dram (void) {
+inline long long  read_dram (void) {
   //std::cout << "Reading dram" << std::endl;
-  int tmpint;
+  long long  tmplong;
   FILE *fff;
   fff=fopen("/sys/class/powercap/intel-rapl/intel-rapl:0/intel-rapl:0:0/energy_uj","r");
   if (fff==NULL) {
     std::cerr << "Error opening dram!" << std::endl;
   } else {
-    fscanf(fff,"%lld",&tmpint);
+    fscanf(fff,"%lld",&tmplong);
     fclose(fff);
   }
-  return (int)(tmpint/1000000);
+  return tmplong/1000000;
 }
 
 #endif
