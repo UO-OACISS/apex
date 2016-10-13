@@ -50,18 +50,18 @@ echo "spec: ${spec}"
 echo "hostname: ${host}"
 echo "remaining args: $*"
 if [ -z ${CC+x} ]; then 
-	echo "CC is unset, using gcc"
-	export CC=gcc
+    echo "CC is unset, using gcc"
+    export CC=gcc
 else 
-	echo "CC is set to '$var'"
-	export CC
+    echo "CC is set to '$var'"
+    export CC
 fi
 if [ -z ${CXX+x} ]; then 
-	echo "CXX is unset, using gcc"
-	export CXX=g++
+    echo "CXX is unset, using gcc"
+    export CXX=g++
 else 
-	echo "CXX is set to '$var'"
-	export CXX
+    echo "CXX is set to '$var'"
+    export CXX
 fi
 
 # source our environment
@@ -71,7 +71,7 @@ source ${configfile}
 
 command -v cmake >/dev/null 2>&1 || { 
     echo >&2 "I require cmake but...it ain't there. Check your environment."; 
-	return
+    return
 }
 
 dobuild()
@@ -82,7 +82,7 @@ dobuild()
     rm -rf build${post} install${post}
     mkdir build${post}
     cd build${post}
-    cmd="cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE \
+    cmd="cmake -DCMAKE_BUILD_TYPE=${buildtype} -DBUILD_TESTS=TRUE \
     -DBUILD_EXAMPLES=TRUE ${malloc} ${bfd} ${ah} ${ompt} ${papi} ${mpi} ${otf} ${tau} \
     -DCMAKE_INSTALL_PREFIX=../install${post} ../.."
     echo ${cmd}
@@ -99,19 +99,25 @@ dobuild()
 
 conditional_build()
 {
-	echo >&2 "Sourcing ${configfile}"
-	source ${configfile}
-	echo "spec: ${spec}"
-	echo "post: ${post}"
-	if [ "${spec}" = "all" ] ; then
-		dobuild
-	elif [ "${post}" = "" ] ; then
-		return
-	else
-		if [[ "${post}" == *"${spec}" ]] ; then
-			dobuild
-		fi
-	fi
+    echo >&2 "Sourcing ${configfile}"
+    source ${configfile}
+    echo "spec: ${spec}"
+    echo "post: ${post}"
+    if [ "${spec}" = "all" ] ; then
+        buildtype=Release
+        dobuild
+        buildtype=Debug
+        dobuild
+    elif [ "${post}" = "" ] ; then
+        return
+    else
+        if [[ "${post}" == *"${spec}" ]] ; then
+            buildtype=Release
+            dobuild
+            buildtype=Debug
+            dobuild
+        fi
+    fi
 }
 
 # Clean settings
@@ -128,8 +134,8 @@ if [ ${clean} -eq 1 ] ; then
     echo "cleaning previous regression test..."
     rm -rf ${BASEDIR}/regression-${host}
     mkdir -p ${BASEDIR}/regression-${host}
-	git checkout develop
-	git pull
+    git checkout develop
+    git pull
 fi
 
 # change directory to the base APEX directory
