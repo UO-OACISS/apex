@@ -54,10 +54,16 @@ class policy_handler : public handler, public event_listener
 private:
 #if __cplusplus > 201701L 
     typedef std::shared_mutex mutex_type;
+    typedef std::shared_lock<mutex_type> read_lock_type;
+    typedef std::unique_lock<mutex_type> write_lock_type;
 #elif __cplusplus > 201402L
     typedef std::shared_lock mutex_type;
+    typedef std::shared_lock<mutex_type> read_lock_type;
+    typedef std::unique_lock<mutex_type> write_lock_type;
 #else
     typedef std::mutex mutex_type;
+    typedef std::unique_lock<mutex_type> read_lock_type;
+    typedef std::unique_lock<mutex_type> write_lock_type;
 #endif
 
     void _init(void);

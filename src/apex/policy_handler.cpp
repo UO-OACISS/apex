@@ -100,63 +100,63 @@ int policy_handler::register_policy(const apex_event_type & when,
         std::make_shared<policy_instance>(id, f));
     switch(when) {
       case APEX_STARTUP: {
-        std::unique_lock<mutex_type> l(startup_mutex);
+        write_lock_type l(startup_mutex);
         startup_policies.push_back(instance);
         break;
       }
       case APEX_SHUTDOWN: {
-        std::unique_lock<mutex_type> l(shutdown_mutex);
+        write_lock_type l(shutdown_mutex);
         shutdown_policies.push_back(instance);
         break;
       }
       case APEX_NEW_NODE: {
-        std::unique_lock<mutex_type> l(new_node_mutex);
+        write_lock_type l(new_node_mutex);
         new_node_policies.push_back(instance);
         break;
       }
       case APEX_NEW_THREAD: {
-        std::unique_lock<mutex_type> l(new_thread_mutex);
+        write_lock_type l(new_thread_mutex);
         new_thread_policies.push_back(instance);
         break;
       }
       case APEX_EXIT_THREAD: {
-        std::unique_lock<mutex_type> l(exit_thread_mutex);
+        write_lock_type l(exit_thread_mutex);
         exit_thread_policies.push_back(instance);
         break;
       }
       case APEX_START_EVENT: {
-        std::unique_lock<mutex_type> l(start_event_mutex);
+        write_lock_type l(start_event_mutex);
         start_event_policies.push_back(instance);
         break;
       }
       case APEX_RESUME_EVENT: {
-        std::unique_lock<mutex_type> l(resume_event_mutex);
+        write_lock_type l(resume_event_mutex);
         resume_event_policies.push_back(instance);
         break;
       }
       case APEX_STOP_EVENT: {
-        std::unique_lock<mutex_type> l(stop_event_mutex);
+        write_lock_type l(stop_event_mutex);
         stop_event_policies.push_back(instance);
         break;
       }
       case APEX_YIELD_EVENT: {
-        std::unique_lock<mutex_type> l(yield_event_mutex);
+        write_lock_type l(yield_event_mutex);
         yield_event_policies.push_back(instance);
         break;
       }
       case APEX_SAMPLE_VALUE: {
-        std::unique_lock<mutex_type> l(sample_value_mutex);
+        write_lock_type l(sample_value_mutex);
         sample_value_policies.push_back(instance);
         break;
       }
       case APEX_PERIODIC: {
-        std::unique_lock<mutex_type> l(periodic_mutex);
+        write_lock_type l(periodic_mutex);
         periodic_policies.push_back(instance);
         break;
       }
       //case APEX_CUSTOM_EVENT_1:
       default: {
-        std::unique_lock<mutex_type> l(custom_event_mutex);
+        write_lock_type l(custom_event_mutex);
         custom_event_policies[when].push_back(instance);
         break;
       }
@@ -168,7 +168,7 @@ int policy_handler::register_policy(const apex_event_type & when,
 int policy_handler::deregister_policy(apex_policy_handle * handle) {
     switch(handle->event_type) {
         case APEX_STARTUP: {
-        std::unique_lock<mutex_type> l(startup_mutex);
+        write_lock_type l(startup_mutex);
         std::list<std::shared_ptr<policy_instance> >::iterator it;
         for(it = startup_policies.begin() ; it != startup_policies.end() ; it++) {
             std::shared_ptr<policy_instance> policy = *it;
@@ -180,7 +180,7 @@ int policy_handler::deregister_policy(apex_policy_handle * handle) {
         break;
       }
         case APEX_SHUTDOWN: {
-        std::unique_lock<mutex_type> l(shutdown_mutex);
+        write_lock_type l(shutdown_mutex);
         std::list<std::shared_ptr<policy_instance> >::iterator it;
         for(it = shutdown_policies.begin() ; it != shutdown_policies.end() ; it++) {
             std::shared_ptr<policy_instance> policy = *it;
@@ -192,7 +192,7 @@ int policy_handler::deregister_policy(apex_policy_handle * handle) {
         break;
       }
         case APEX_NEW_NODE: {
-        std::unique_lock<mutex_type> l(new_node_mutex);
+        write_lock_type l(new_node_mutex);
         std::list<std::shared_ptr<policy_instance> >::iterator it;
         for(it = new_node_policies.begin() ; it != new_node_policies.end() ; it++) {
             std::shared_ptr<policy_instance> policy = *it;
@@ -204,7 +204,7 @@ int policy_handler::deregister_policy(apex_policy_handle * handle) {
         break;
       }
         case APEX_NEW_THREAD: {
-        std::unique_lock<mutex_type> l(new_thread_mutex);
+        write_lock_type l(new_thread_mutex);
         std::list<std::shared_ptr<policy_instance> >::iterator it;
         for(it = new_thread_policies.begin() ; it != new_thread_policies.end() ; it++) {
             std::shared_ptr<policy_instance> policy = *it;
@@ -216,7 +216,7 @@ int policy_handler::deregister_policy(apex_policy_handle * handle) {
         break;
       }
         case APEX_EXIT_THREAD: {
-        std::unique_lock<mutex_type> l(exit_thread_mutex);
+        write_lock_type l(exit_thread_mutex);
         std::list<std::shared_ptr<policy_instance> >::iterator it;
         for(it = exit_thread_policies.begin() ; it != exit_thread_policies.end() ; it++) {
             std::shared_ptr<policy_instance> policy = *it;
@@ -228,7 +228,7 @@ int policy_handler::deregister_policy(apex_policy_handle * handle) {
         break;
       }
         case APEX_START_EVENT: {
-        std::unique_lock<mutex_type> l(start_event_mutex);
+        write_lock_type l(start_event_mutex);
         std::list<std::shared_ptr<policy_instance> >::iterator it;
         for(it = start_event_policies.begin() ; it != start_event_policies.end() ; it++) {
             std::shared_ptr<policy_instance> policy = *it;
@@ -240,7 +240,7 @@ int policy_handler::deregister_policy(apex_policy_handle * handle) {
         break;
       }
         case APEX_RESUME_EVENT: {
-        std::unique_lock<mutex_type> l(resume_event_mutex);
+        write_lock_type l(resume_event_mutex);
         std::list<std::shared_ptr<policy_instance> >::iterator it;
         for(it = resume_event_policies.begin() ; it != resume_event_policies.end() ; it++) {
             std::shared_ptr<policy_instance> policy = *it;
@@ -252,7 +252,7 @@ int policy_handler::deregister_policy(apex_policy_handle * handle) {
         break;
       }
         case APEX_STOP_EVENT: {
-        std::unique_lock<mutex_type> l(stop_event_mutex);
+        write_lock_type l(stop_event_mutex);
         std::list<std::shared_ptr<policy_instance> >::iterator it;
         for(it = stop_event_policies.begin() ; it != stop_event_policies.end() ; it++) {
             std::shared_ptr<policy_instance> policy = *it;
@@ -264,7 +264,7 @@ int policy_handler::deregister_policy(apex_policy_handle * handle) {
         break;
       }
         case APEX_YIELD_EVENT: {
-        std::unique_lock<mutex_type> l(yield_event_mutex);
+        write_lock_type l(yield_event_mutex);
         std::list<std::shared_ptr<policy_instance> >::iterator it;
         for(it = yield_event_policies.begin() ; it != yield_event_policies.end() ; it++) {
             std::shared_ptr<policy_instance> policy = *it;
@@ -276,7 +276,7 @@ int policy_handler::deregister_policy(apex_policy_handle * handle) {
         break;
       }
         case APEX_SAMPLE_VALUE: {
-        std::unique_lock<mutex_type> l(sample_value_mutex);
+        write_lock_type l(sample_value_mutex);
         std::list<std::shared_ptr<policy_instance> >::iterator it;
         for(it = sample_value_policies.begin() ; it != sample_value_policies.end() ; it++) {
             std::shared_ptr<policy_instance> policy = *it;
@@ -288,7 +288,7 @@ int policy_handler::deregister_policy(apex_policy_handle * handle) {
         break;
       }
         case APEX_PERIODIC: {
-        std::unique_lock<mutex_type> l(periodic_mutex);
+        write_lock_type l(periodic_mutex);
         std::list<std::shared_ptr<policy_instance> >::iterator it;
         for(it = periodic_policies.begin() ; it != periodic_policies.end() ; it++) {
             std::shared_ptr<policy_instance> policy = *it;
@@ -301,7 +301,7 @@ int policy_handler::deregister_policy(apex_policy_handle * handle) {
       }
         //case APEX_CUSTOM_EVENT_1: {
         default: {
-        std::unique_lock<mutex_type> l(custom_event_mutex);
+        write_lock_type l(custom_event_mutex);
         std::list<std::shared_ptr<policy_instance> >::iterator it;
         for(it = custom_event_policies[handle->event_type].begin() ; it != custom_event_policies[handle->event_type].end() ; it++) {
             std::shared_ptr<policy_instance> policy = *it;
@@ -329,7 +329,7 @@ inline void policy_handler::call_policies(
         my_context.data = NULL;
     }
     // last chance to interrupt policy execution at shutdown
-		// HOWEVER, if the event is shutdown, run the policy.
+    // HOWEVER, if the event is shutdown, run the policy.
     if (_terminate && data.event_type_ != APEX_SHUTDOWN) return;
     const bool result = policy->func(my_context);
     if(result != APEX_NOERROR) {
@@ -341,6 +341,7 @@ inline void policy_handler::call_policies(
 void policy_handler::on_startup(startup_event_data &data) {
     if (_terminate) return;
     if (startup_policies.empty()) return;
+    read_lock_type l(startup_mutex);
     call_policies(startup_policies, data);
 }
 
@@ -360,12 +361,14 @@ void policy_handler::on_shutdown(shutdown_event_data &data) {
     cancel();
 #endif
     if (shutdown_policies.empty()) return;
+    read_lock_type l(shutdown_mutex);
     call_policies(shutdown_policies, data);
 }
 
 void policy_handler::on_new_node(node_event_data &data) {
     if (_terminate) return;
     if (new_node_policies.empty()) return;
+    read_lock_type l(new_node_mutex);
     call_policies(new_node_policies, data);
 }
 
@@ -373,6 +376,7 @@ void policy_handler::on_new_thread(new_thread_event_data &data) {
   if (_terminate) return;
             if (new_thread_policies.empty())
                 return;
+        read_lock_type l(new_thread_mutex);
         call_policies(new_thread_policies, data);
 }
 
@@ -380,12 +384,14 @@ void policy_handler::on_exit_thread(event_data &data) {
   if (_terminate) return;
             if (exit_thread_policies.empty())
                 return;
+        read_lock_type l(exit_thread_mutex);
         call_policies(exit_thread_policies, data);
 }
 
 bool policy_handler::on_start(task_identifier *id) {
   if (_terminate) return false;
   if (start_event_policies.empty()) return true;
+  read_lock_type l(start_event_mutex);
   for(const std::shared_ptr<policy_instance>& policy : start_event_policies) {
     apex_context my_context;
     my_context.event_type = APEX_START_EVENT;
@@ -403,6 +409,7 @@ bool policy_handler::on_start(task_identifier *id) {
 bool policy_handler::on_resume(task_identifier * id) {
   if (_terminate) return false;
   if (resume_event_policies.empty()) return true;
+  read_lock_type l(resume_event_mutex);
   for(const std::shared_ptr<policy_instance>& policy : resume_event_policies) {
     apex_context my_context;
     my_context.event_type = APEX_RESUME_EVENT;
@@ -419,6 +426,7 @@ bool policy_handler::on_resume(task_identifier * id) {
 void policy_handler::on_stop(std::shared_ptr<profiler> &p) {
     if (_terminate) return;
     if (stop_event_policies.empty()) return;
+  read_lock_type l(stop_event_mutex);
     for(const std::shared_ptr<policy_instance>& policy : stop_event_policies) {
         apex_context my_context;
         my_context.event_type = APEX_STOP_EVENT;
@@ -435,6 +443,7 @@ void policy_handler::on_stop(std::shared_ptr<profiler> &p) {
 void policy_handler::on_yield(std::shared_ptr<profiler> &p) {
     if (_terminate) return;
     if (yield_event_policies.empty()) return;
+  read_lock_type l(yield_event_mutex);
     for(const std::shared_ptr<policy_instance>& policy : yield_event_policies) {
         apex_context my_context;
         my_context.event_type = APEX_YIELD_EVENT;
@@ -452,6 +461,7 @@ void policy_handler::on_sample_value(sample_value_event_data &data) {
   if (_terminate) return;
             if (sample_value_policies.empty())
                 return;
+        read_lock_type l(sample_value_mutex);
         call_policies(sample_value_policies, data);
 }
 
@@ -459,6 +469,7 @@ void policy_handler::on_custom_event(custom_event_data &data) {
   if (_terminate) return;
             if (custom_event_policies[data.event_type_].empty())
                 return;
+        read_lock_type l(custom_event_mutex);
         call_policies(custom_event_policies[data.event_type_], data);
 }
 
@@ -466,6 +477,7 @@ void policy_handler::on_periodic(periodic_event_data &data) {
   if (_terminate) return;
             if (periodic_policies.empty())
                 return;
+        read_lock_type l(periodic_mutex);
         call_policies(periodic_policies, data);
 }
 
