@@ -83,7 +83,7 @@ dobuild()
     mkdir build${post}
     cd build${post}
     cmd="cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE \
-    -DBUILD_EXAMPLES=TRUE ${malloc} ${bfd} ${ah} ${otf} ${ompt} ${tau} ${mpi} \
+    -DBUILD_EXAMPLES=TRUE ${malloc} ${bfd} ${ah} ${ompt} ${papi} ${mpi} ${otf} ${tau} \
     -DCMAKE_INSTALL_PREFIX=../install${post} ../.."
     echo ${cmd}
     ${cmd} >> ${logfile} 2>&1 
@@ -99,6 +99,8 @@ dobuild()
 
 conditional_build()
 {
+	echo >&2 "Sourcing ${configfile}"
+	source ${configfile}
 	echo "spec: ${spec}"
 	echo "post: ${post}"
 	if [ "${spec}" = "all" ] ; then
@@ -117,10 +119,10 @@ malloc=""
 bfd="-DUSE_BFD=FALSE"
 ah="-DUSE_ACTIVEHARMONY=FALSE"
 ompt="-DUSE_OMPT=FALSE"
+papi="-DUSE_PAPI=FALSE"
+mpi="-DUSE_MPI=FALSE"
 otf="-DUSE_OTF2=FALSE"
 tau="-DUSE_TAU=FALSE"
-mpi="-DUSE_MPI=FALSE"
-papi="-DUSE_PAPI=FALSE"
 
 if [ ${clean} -eq 1 ] ; then
     echo "cleaning previous regression test..."
@@ -135,62 +137,46 @@ cd ${BASEDIR}/regression-${host}
 
 logfile=`pwd`/log.txt
 configfile=${SCRIPTPATH}/configuration-files/apex-defaults.conf
-echo >&2 "Sourcing ${configfile}"
-source ${configfile}
 conditional_build
 
-#malloc="-DJEMALLOC_ROOT=$HOME/install/jemalloc-3.5.1"
 malloc=${platform_malloc}
 post=-malloc
 configfile=${SCRIPTPATH}/configuration-files/apex-base.conf
-echo >&2 "Sourcing ${configfile}"
-source ${configfile}
 conditional_build
 
 bfd=${platform_bfd}
 post=${post}-bfd
+configfile=${SCRIPTPATH}/configuration-files/apex-base.conf
 conditional_build
 
 ah=${platform_ah}
 post=${post}-ah
 configfile=${SCRIPTPATH}/configuration-files/apex-ah.conf
-echo >&2 "Sourcing ${configfile}"
-source ${configfile}
-conditional_build
-
-otf=${platform_otf}
-post=${post}-otf
-configfile=${SCRIPTPATH}/configuration-files/apex-ah-otf.conf
-echo >&2 "Sourcing ${configfile}"
-source ${configfile}
 conditional_build
 
 ompt=${platform_ompt}
 post=${post}-ompt
-configfile=${SCRIPTPATH}/configuration-files/apex-ah-otf-ompt.conf
-echo >&2 "Sourcing ${configfile}"
-source ${configfile}
-conditional_build
-
-mpi=${platform_mpi}
-post=${post}-mpi
-configfile=${SCRIPTPATH}/configuration-files/apex-ah-otf-ompt-mpi.conf
-echo >&2 "Sourcing ${configfile}"
-source ${configfile}
+configfile=${SCRIPTPATH}/configuration-files/apex-ah-ompt.conf
 conditional_build
 
 papi=${platform_papi}
 post=${post}-papi
-configfile=${SCRIPTPATH}/configuration-files/apex-ah-otf-ompt-mpi-papi.conf
-echo >&2 "Sourcing ${configfile}"
-source ${configfile}
+configfile=${SCRIPTPATH}/configuration-files/apex-ah-ompt-papi.conf
+conditional_build
+
+mpi=${platform_mpi}
+post=${post}-mpi
+configfile=${SCRIPTPATH}/configuration-files/apex-ah-ompt-papi-mpi.conf
+conditional_build
+
+otf=${platform_otf}
+post=${post}-otf
+configfile=${SCRIPTPATH}/configuration-files/apex-ah-ompt-papi-mpi-otf.conf
 conditional_build
 
 tau=${platform_tau}
 post=${post}-tau
-configfile=${SCRIPTPATH}/configuration-files/apex-ah-otf-ompt-mpi-papi-tau.conf
-echo >&2 "Sourcing ${configfile}"
-source ${configfile}
+configfile=${SCRIPTPATH}/configuration-files/apex-ah-ompt-papi-mpi-otf-tau.conf
 conditional_build
 
 cd ${STARTDIR}
