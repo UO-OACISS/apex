@@ -10,3 +10,5 @@ platform_papi="-DUSE_PAPI=TRUE -DPAPI_ROOT=${PAPI}"
 platform_tau="-DUSE_TAU=TRUE -DTAU_ROOT=$HOME/src/tau2 -DTAU_ARCH=x86_64 -DTAU_OPTIONS=-pthread"
 
 module load cmake mpi-tor/openmpi-1.8_gcc-4.9 papi
+
+parallel_build="-j 24"

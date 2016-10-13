@@ -83,14 +83,14 @@ dobuild()
     mkdir build${post}
     cd build${post}
     cmd="cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE \
-    -DBUILD_EXAMPLES=TRUE $malloc $bfd $ah $otf $ompt $tau $mpi \
+    -DBUILD_EXAMPLES=TRUE ${malloc} ${bfd} ${ah} ${otf} ${ompt} ${tau} ${mpi} \
     -DCMAKE_INSTALL_PREFIX=../install${post} ../.."
-    echo $cmd
-    $cmd >> $logfile 2>&1 
-    make -j 24 >> $logfile 2>&1 
-    make doc >> $logfile 2>&1 
-    make install >> $logfile 2>&1 
-    make test >> $logfile 2>&1 
+    echo ${cmd}
+    ${cmd} >> ${logfile} 2>&1 
+    make ${parallel_build} >> ${logfile} 2>&1 
+    make doc >> ${logfile} 2>&1 
+    make install >> ${logfile} 2>&1 
+    make test >> ${logfile} 2>&1 
     printf "\nSUCCESS!\n"
     T="$(($(date +%s)-T))"
     printf "Time to configure and build APEX: %02d hours %02d minutes %02d seconds.\n" "$((T/3600))" "$((T/60%60))" "$((T%60))"
