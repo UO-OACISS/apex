@@ -376,9 +376,35 @@ bool parse_proc_self_status() {
                 string value = *token;
                 char* pEnd;
                 double d1 = strtod (value.c_str(), &pEnd);
-                string mname("self_status:" + name);
+                string mname("status:" + name);
                 if (pEnd) { sample_value(mname, d1); }
             }
+        }
+    }
+    fclose(f);
+  } else {
+    return false;
+  }
+  return true;
+}
+
+bool parse_proc_self_io() {
+  if (!apex_options::use_proc_self_io()) return false;
+  FILE *f = fopen("/proc/self/io", "r");
+  if (f) {
+    char line[4096] = {0};
+    while ( fgets( line, 4096, f)) {
+        string tmp(line);
+        const REGEX_NAMESPACE::regex separator(":");
+        REGEX_NAMESPACE::sregex_token_iterator token(tmp.begin(), tmp.end(), separator, -1);
+        REGEX_NAMESPACE::sregex_token_iterator end;
+        string name = *token++;
+        if (token != end) {
+            string value = *token;
+            char* pEnd;
+            double d1 = strtod (value.c_str(), &pEnd);
+            string mname("io:" + name);
+            if (pEnd) { sample_value(mname, d1); }
         }
     }
     fclose(f);
@@ -538,6 +564,7 @@ void* proc_data_reader::read_proc(void * _ptw) {
   parse_proc_cpuinfo(); // do this once, it won't change.
   parse_proc_meminfo(); // some things change, others don't...
   parse_proc_self_status(); // some things change, others don't...
+  parse_proc_self_io(); // some things change, others don't...
   parse_proc_netdev();
 #ifdef APEX_HAVE_LM_SENSORS
   mysensors->read_sensors();
@@ -564,6 +591,7 @@ void* proc_data_reader::read_proc(void * _ptw) {
     }
     parse_proc_meminfo(); // some things change, others don't...
     parse_proc_self_status();
+    parse_proc_self_io();
     parse_proc_netdev();
 
 #ifdef APEX_HAVE_LM_SENSORS
