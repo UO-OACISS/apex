@@ -88,7 +88,7 @@ config_step()
 compile_step()
 {
     cd ${dirname}
-    make -j8
+    make
 }
 
 test_step()
