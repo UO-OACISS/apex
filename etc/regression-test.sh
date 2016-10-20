@@ -182,7 +182,7 @@ conditional_build
 
 tau=${platform_tau}
 post=${post}-tau
-configfile=${SCRIPTPATH}/configuration-files/apex-ah-ompt-papi-mpi-otf-tau.conf
+configfile=${SCRIPTPATH}/configuration-files/apex-ah-ompt-papi-mpi-tau.conf
 conditional_build
 
 cd ${STARTDIR}
