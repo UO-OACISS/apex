@@ -100,6 +100,13 @@ test_step()
     make test
 }
 
+install_step()
+{
+    cd ${dirname}
+    make doc
+    make install
+}
+
 if [ ${build} == "default" ] ; then
     options="${no_malloc} ${no_bfd} ${no_ah} ${no_ompt} ${no_papi} ${no_mpi} ${no_otf} ${no_tau}"
     envfile="apex-defaults.conf"
@@ -159,10 +166,15 @@ fi
 if [ ${step} == "test" ] ; then
     test_step
 fi
+if [ ${step} == "install" ] ; then
+    install_step
+fi
 if [ ${step} == "all" ] ; then
     config_step
     cd ..
     compile_step
     cd ..
     test_step
+    cd ..
+    install_step
 fi
