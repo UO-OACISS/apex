@@ -161,7 +161,7 @@ fi
 
 if [ ${build} == "install" ] ; then
     options="${yes_malloc} ${yes_bfd} ${yes_ah} ${yes_ompt} ${yes_papi} ${yes_mpi} ${yes_otf} ${yes_tau}"
-    cmake_prefix="cmake .. -DBUILD_EXAMPLES=TRUE -DBUILD_TESTS=TRUE -DCMAKE_INSTALL_PREFIX=${HOME}/install -DCMAKE_BUILD_TYPE="
+    cmake_prefix="cmake .. -DBUILD_EXAMPLES=TRUE -DBUILD_TESTS=TRUE -DCMAKE_INSTALL_PREFIX=${HOME}/install/${buildtype} -DCMAKE_BUILD_TYPE="
     envfile="apex-ah-ompt-papi-mpi-tau.conf"
 fi
 
