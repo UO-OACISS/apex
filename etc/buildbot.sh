@@ -84,6 +84,7 @@ config_step()
     mkdir -p ${dirname}
     cd ${dirname}
     cmake_cmd="${cmake_prefix}${buildtype} ${options}"
+    echo ${cmake_cmd}
     ${cmake_cmd}
 }
 
