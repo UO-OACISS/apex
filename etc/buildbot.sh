@@ -63,7 +63,7 @@ while [ $# -ge 1 ]; do
             shift
             ;;
         -h)
-            echo "Display some help"
+            echo "$0 -b,--build [default|base|malloc|bfd|ah|ompt|papi|mpi|otf|tau] -t,--type [Release|Debug] -s,--step [config|compile|test|install] -d,--dirname <dirname>"
             exit 0
             ;;
     esac
@@ -76,12 +76,14 @@ echo "buildtype = ${buildtype}"
 echo "step = ${step}"
 echo "dirname = ${dirname}"
 
+cmake_prefix="cmake .. -DBUILD_EXAMPLES=TRUE -DBUILD_TESTS=TRUE -DCMAKE_INSTALL_PREFIX=. -DCMAKE_BUILD_TYPE="
+
 config_step()
 {
     rm -rf ${dirname}
     mkdir -p ${dirname}
     cd ${dirname}
-    cmake_cmd="cmake .. -DBUILD_EXAMPLES=TRUE -DBUILD_TESTS=TRUE -DCMAKE_INSTALL_PREFIX=. -DCMAKE_BUILD_TYPE=${buildtype} ${options}"
+    cmake_cmd="${cmake_prefix}${buildtype} ${options}"
     ${cmake_cmd}
 }
 
@@ -154,6 +156,12 @@ fi
 
 if [ ${build} == "tau" ] ; then
     options="${yes_malloc} ${yes_bfd} ${yes_ah} ${yes_ompt} ${yes_papi} ${yes_mpi} ${yes_otf} ${yes_tau}"
+    envfile="apex-ah-ompt-papi-mpi-tau.conf"
+fi
+
+if [ ${build} == "install" ] ; then
+    options="${yes_malloc} ${yes_bfd} ${yes_ah} ${yes_ompt} ${yes_papi} ${yes_mpi} ${yes_otf} ${yes_tau}"
+    cmake_prefix="cmake .. -DBUILD_EXAMPLES=TRUE -DBUILD_TESTS=TRUE -DCMAKE_INSTALL_PREFIX=${HOME}/install -DCMAKE_BUILD_TYPE="
     envfile="apex-ah-ompt-papi-mpi-tau.conf"
 fi
 
