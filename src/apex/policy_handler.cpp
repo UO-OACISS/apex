@@ -347,6 +347,8 @@ void policy_handler::on_startup(startup_event_data &data) {
 
 void policy_handler::on_shutdown(shutdown_event_data &data) {
     if (_terminate) return;
+	// prevent periodic policies from executing while we are shutting down.
+	write_lock_type wl(periodic_mutex);
     _terminate = true;
 #ifdef APEX_HAVE_HPX3
     if (_timer_thread != nullptr) { 
@@ -474,10 +476,15 @@ void policy_handler::on_custom_event(custom_event_data &data) {
 }
 
 void policy_handler::on_periodic(periodic_event_data &data) {
+  // get the read lock first. Because if we are shutting down,
+  // the _terminate flag will be set after the write lock has 
+  // been acquired.  Yes, the periodic lock will be held a few 
+  // instructions longer, but this prevents race condition
+  // SegVs during shutdown.
+  read_lock_type l(periodic_mutex);
   if (_terminate) return;
             if (periodic_policies.empty())
                 return;
-        read_lock_type l(periodic_mutex);
         call_policies(periodic_policies, data);
 }
 
