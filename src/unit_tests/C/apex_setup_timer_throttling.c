@@ -101,6 +101,7 @@ int main(int argc, char **argv)
   if (final_cap < original_cap && test_passed) {
     printf("Test passed.\n");
   }
+  apex_shutdown_throttling();
   apex_finalize();
   return(0);
 }
