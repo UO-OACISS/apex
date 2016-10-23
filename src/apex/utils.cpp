@@ -61,6 +61,7 @@ std::string demangle(const std::string& timer_name) {
                do { errno = en; perror(msg); exit(EXIT_FAILURE); } while (0)
 
 void set_thread_affinity(void) {
+#if !defined(__APPLE__)
     int s, j;
     cpu_set_t cpuset;
     pthread_t thread;
@@ -89,6 +90,7 @@ void set_thread_affinity(void) {
         }
     }
 	*/
+#endif
     return;
 }
 

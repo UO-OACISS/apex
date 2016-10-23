@@ -50,6 +50,8 @@ typedef std::unique_lock<std::mutex> session_map_read_lock;
 typedef std::unique_lock<std::mutex> session_map_write_lock;
 #endif
 
+static std::mutex shutdown_mutex;
+
 static unordered_map<apex_tuning_session_handle, shared_ptr<apex_tuning_session>> session_map;
 static std::atomic<apex_tuning_session_handle> next_handle{1};
 
@@ -169,6 +171,7 @@ inline void __increase_cap() {
 inline int apex_power_throttling_policy(apex_context const context) 
 {
     APEX_UNUSED(context);
+    std::unique_lock<std::mutex> l{shutdown_mutex};
     if (apex_final) return APEX_NOERROR; // we terminated, RCR has shut down.
     //if (apex::apex::instance()->get_node_id() == 0) return APEX_NOERROR; 
     // read energy counter and memory concurrency to determine system status
@@ -495,6 +498,7 @@ int apex_throughput_throttling_dhc_policy(apex_context const context) {
 #ifdef APEX_HAVE_ACTIVEHARMONY
 int apex_throughput_throttling_ah_policy(apex_context const context) {
     APEX_UNUSED(context);
+    std::unique_lock<std::mutex> l{shutdown_mutex};
     if(apex_final) {
         // Already finished.
         return APEX_NOERROR;
@@ -1206,6 +1210,7 @@ inline int __startup_throttling(void)
 inline int __shutdown_throttling(void)
 {
     if (apex::apex_options::disable() == true) { return APEX_NOERROR; }
+    std::unique_lock<std::mutex> l{shutdown_mutex};
     if(!apex_final) { // protect against multiple shutdowns
         apex_final = true;
     //printf("periodic_policy called %d times\n", tuning_session->test_pp);
