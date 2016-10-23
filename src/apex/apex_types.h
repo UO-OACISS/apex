@@ -207,6 +207,11 @@ typedef uint32_t apex_tuning_session_handle;
  * Special profile counter for derived idle rate 
  **/
 #define APEX_IDLE_RATE "APEX Idle Rate"
+/**
+ * Default OTF2 trace path
+ **/
+#define APEX_DEFAULT_OTF2_ARCHIVE_PATH "OTF2_archive"
+#define APEX_DEFAULT_OTF2_ARCHIVE_NAME "APEX"
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
@@ -255,8 +260,8 @@ typedef uint32_t apex_tuning_session_handle;
     macro (APEX_PAPI_METRICS, papi_metrics, char*, "") \
     macro (APEX_PLUGINS, plugins, char*, "") \
     macro (APEX_PLUGINS_PATH, plugins_path, char*, "./") \
-    macro (APEX_OTF2_ARCHIVE_PATH, otf2_archive_path, char*, "OTF2_archive") \
-    macro (APEX_OTF2_ARCHIVE_NAME, otf2_archive_name, char*, "APEX") 
+    macro (APEX_OTF2_ARCHIVE_PATH, otf2_archive_path, char*, APEX_DEFAULT_OTF2_ARCHIVE_PATH) \
+    macro (APEX_OTF2_ARCHIVE_NAME, otf2_archive_name, char*, APEX_DEFAULT_OTF2_ARCHIVE_NAME) 
 
 #if defined(__linux) || defined(__linux__)
 #  define APEX_NATIVE_TLS __thread

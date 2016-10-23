@@ -14,6 +14,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+// for removing directories
+#include <dirent.h>
+#include <sys/stat.h>
 
 namespace apex {
 
@@ -94,6 +97,34 @@ void set_thread_affinity(void) {
     return;
 }
 
+void remove_path(const char *pathname) {
+    struct dirent *entry = NULL;
+    DIR *dir = NULL;
+	struct stat sb;
+	if (stat(pathname, &sb) == 0 && S_ISDIR(sb.st_mode)) {
+    	dir = opendir(pathname);
+    	while(entry = readdir(dir)) {
+        	DIR *sub_dir = NULL;
+        	FILE *file = NULL;
+        	char abs_path[100] = {0};
+        	if(*(entry->d_name) != '.') {
+            	sprintf(abs_path, "%s/%s", pathname, entry->d_name);
+            	if(sub_dir = opendir(abs_path)) {
+                	closedir(sub_dir);
+                	remove_path(abs_path);
+            	} else {
+                	if(file = fopen(abs_path, "r")) {
+                    	fclose(file);
+                    	printf("Removing: %s\n", abs_path);
+                    	remove(abs_path);
+                	}
+            	}
+        	}
+    	}
+        printf("Removing: %s\n", pathname);
+    	remove(pathname);
+	}
+}
 
 };
 

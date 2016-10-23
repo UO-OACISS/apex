@@ -228,6 +228,8 @@ inline int apex_power_throttling_policy(apex_context const context)
 
 int apex_throughput_throttling_policy(apex_context const context) {
     APEX_UNUSED(context);
+    std::unique_lock<std::mutex> l{shutdown_mutex};
+    if (apex_final) return APEX_NOERROR; // we terminated, RCR has shut down.
 // Do we have a function of interest?
 //    No: do nothing, return.
 //    Yes: Get its profile, continue.
@@ -368,6 +370,8 @@ int apex_throughput_throttling_policy(apex_context const context) {
 /* Discrete Space Hill Climbing Algorithm */
 int apex_throughput_throttling_dhc_policy(apex_context const context) {
     APEX_UNUSED(context);
+    std::unique_lock<std::mutex> l{shutdown_mutex};
+    if (apex_final) return APEX_NOERROR; // we terminated, RCR has shut down.
 
 #ifdef APEX_DEBUG_THROTTLE
     printf("Throttling on name: %s\n", thread_cap_tuning_session->function_name_of_interest.c_str());
@@ -584,6 +588,8 @@ int apex_throughput_throttling_ah_policy(apex_context const context) {
 int apex_throughput_tuning_policy(apex_context const context) {
     // do something.
     APEX_UNUSED(context);
+    std::unique_lock<std::mutex> l{shutdown_mutex};
+    if (apex_final) return APEX_NOERROR; // we terminated, RCR has shut down.
     static double previous_value = 0.0; // instead of resetting.
     static bool _converged_message = false;
     if (ah_converged(thread_cap_tuning_session->htask)) {
@@ -648,6 +654,8 @@ int apex_throughput_tuning_policy(apex_context const context) {
 
 int apex_custom_tuning_policy(shared_ptr<apex_tuning_session> tuning_session, apex_context const context) {
     APEX_UNUSED(context);
+    std::unique_lock<std::mutex> l{shutdown_mutex};
+    if (apex_final) return APEX_NOERROR; // we terminated, RCR has shut down.
     if (ah_converged(tuning_session->htask)) {
         if (!tuning_session->converged_message) {
             tuning_session->converged_message = true;

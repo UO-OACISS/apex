@@ -184,6 +184,10 @@ namespace apex {
         static bool created = false;
         if (created) return true;
 
+        if (strcmp(apex_options::otf2_archive_path(), APEX_DEFAULT_OTF2_ARCHIVE_PATH) == 0) {
+			// is this a good idea?
+        	remove_path(apex_options::otf2_archive_path());
+		}
         /* open the OTF2 archive */
         archive = OTF2_Archive_Open( apex_options::otf2_archive_path(),
                 apex_options::otf2_archive_name(),

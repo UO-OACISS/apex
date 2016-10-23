@@ -86,5 +86,7 @@ std::string demangle(const std::string& timer_name);
 
 void set_thread_affinity(void);
 
+void remove_path(const char * pathname);
+
 };
 
