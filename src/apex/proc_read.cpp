@@ -311,12 +311,17 @@ bool parse_proc_cpuinfo() {
     int cpuid = 0;
     while ( fgets( line, 4096, f)) {
         string tmp(line);
+		tmp = trim(tmp);
+		// check for empty line
+		if (tmp.size() == 0) continue;
         const REGEX_NAMESPACE::regex separator(":");
         REGEX_NAMESPACE::sregex_token_iterator token(tmp.begin(), tmp.end(), separator, -1);
         REGEX_NAMESPACE::sregex_token_iterator end;
-        string name = *token++;
-        if (token != end) {
+        string name = *token;
+        if (++token != end) {
           string value = *token;
+		  // check for no value
+		  if (value.size() == 0) continue;
           name = trim(name);
           char* pEnd;
           double d1 = strtod (value.c_str(), &pEnd);

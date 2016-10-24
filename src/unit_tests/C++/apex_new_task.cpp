@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
     apex::init("apex_new_task_cpp unit test");
 	apex::set_node_id(0);
     apex_proxy * foo = new apex_proxy((void*)&main);
-#ifdef APEX_HAVE_TAU
+#if defined(APEX_HAVE_TAU) || (APEX_HAVE_OTF2)
     int i = 5;
 #else
     int i = 10;

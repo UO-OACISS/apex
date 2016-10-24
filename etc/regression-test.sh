@@ -107,14 +107,14 @@ conditional_build()
         buildtype=Release
         dobuild
         buildtype=Debug
-        dobuild
+        #dobuild
     elif [ "${post}" = "" ] ; then
         return
     else
         if [[ "${post}" == *"${spec}" ]] ; then
-            buildtype=Release
-            dobuild
             buildtype=Debug
+            dobuild
+            buildtype=Release
             dobuild
         fi
     fi
@@ -145,7 +145,7 @@ logfile=`pwd`/log.txt
 configfile=${SCRIPTPATH}/configuration-files/apex-defaults.conf
 conditional_build
 
-malloc=${platform_malloc}
+#malloc=${platform_malloc}
 post=-malloc
 configfile=${SCRIPTPATH}/configuration-files/apex-base.conf
 conditional_build

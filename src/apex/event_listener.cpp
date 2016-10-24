@@ -79,7 +79,10 @@ new_thread_event_data::~new_thread_event_data() {
 }
 
 periodic_event_data::periodic_event_data() {
-  this->thread_id = thread_instance::get_id();
+  // don't set the thread ID! It will increment the number of
+  // worker threads, and this object is created by the periodic
+  // timer thread that is not a worker.
+  this->thread_id = 0;
   this->event_type_ = APEX_PERIODIC;
 }
 

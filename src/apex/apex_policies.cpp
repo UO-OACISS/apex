@@ -103,12 +103,16 @@ bool apex_final = false;              // When do we stop?
 apex_tuning_session * thread_cap_tuning_session = nullptr;
 
 inline int __get_thread_cap(void) {
+  std::unique_lock<std::mutex> l{shutdown_mutex};
+  if (apex_final) { return 1; } // we terminated, RCR has shut down.
   if (apex::apex_options::disable() == true) { return 1; }
   return (int)(thread_cap_tuning_session->thread_cap);
   //return (int)*(tuning_session->__ah_inputs[0]);
 }
 
 inline void __set_thread_cap(int new_cap) {
+  std::unique_lock<std::mutex> l{shutdown_mutex};
+  if (apex_final) { return; } // we terminated, RCR has shut down.
   if (apex::apex_options::disable() == true) { return; }
   thread_cap_tuning_session->thread_cap = (long int)new_cap;
   return;

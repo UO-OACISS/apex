@@ -8,20 +8,20 @@
 #define MAX_INNER 500
 #define MAX_THREADS 8
 
-int func(int i) {
+uint64_t func(uint64_t i) {
     char name[128];
-    sprintf(name, "func %d", i);
+    sprintf(name, "func %lu", i);
     apex::profiler* p = apex::start(std::string(name));
-    int j = i * i;
+    uint64_t j = i * i;
     apex::stop(p);
     return j;
 }
 
-int foo(int i) {
-    int j=0;
+uint64_t foo(uint64_t i) {
+    uint64_t j=0;
     apex::profiler* p = apex::start((apex_function_address)(&foo));
-    for (int x = 0 ; x < MAX_OUTER ; x++) {
-        for (int y = 0 ; y < MAX_INNER ; y++) {
+    for (uint64_t x = 0 ; x < MAX_OUTER ; x++) {
+        for (uint64_t y = 0 ; y < MAX_INNER ; y++) {
             j += func(x) * func(y) + i;
         }
     }
@@ -32,7 +32,7 @@ int foo(int i) {
 int main (int argc, char** argv) {
     apex::init(argc, argv, "apex_start unit test");
     apex::profiler* p = apex::start((apex_function_address)&main);
-    int i = 0;
+    uint64_t i = 0;
     std::thread threads[MAX_THREADS];
     for (i = 0 ; i < MAX_THREADS ; i++) {
         //j += foo(i);

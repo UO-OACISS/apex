@@ -176,6 +176,7 @@ void concurrency_handler::on_exit_thread(event_data &data) {
 }
 
 void concurrency_handler::on_shutdown(shutdown_event_data &data) {
+    _terminate = true; // because there are crashes 
     cancel();
     output_samples(data.node_id);
 }

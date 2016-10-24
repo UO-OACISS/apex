@@ -128,6 +128,129 @@ namespace apex {
         return;
     }
 
+        std::map<task_identifier,uint64_t>& otf2_listener::get_region_indices(void) {
+            static __thread std::map<task_identifier,uint64_t> * region_indices;
+            if (region_indices == nullptr) {
+                region_indices = new std::map<task_identifier,uint64_t>();
+            }
+            return *region_indices;
+        }
+        std::map<std::string,uint64_t>& otf2_listener::get_string_indices(void) {
+            static __thread std::map<std::string,uint64_t> * string_indices;
+            if (string_indices == nullptr) {
+                string_indices = new std::map<std::string,uint64_t>();
+            }
+            return *string_indices;
+        }
+        std::map<task_identifier,uint64_t>& otf2_listener::get_global_region_indices(void) {
+            static std::map<task_identifier,uint64_t> region_indices;
+            return region_indices;
+        }
+        uint64_t otf2_listener::get_region_index(task_identifier* id) {
+            /* first, look in this thread's map */
+            std::map<task_identifier,uint64_t>& region_indices = get_region_indices();
+            auto tmp = region_indices.find(*id);
+            uint64_t region_index = 0;
+            if (tmp == region_indices.end()) {
+                /* not in the thread's map? look in the global map */
+                std::map<task_identifier,uint64_t>& global_region_indices = get_global_region_indices();
+                std::unique_lock<std::mutex> lock(_region_mutex);
+                tmp = global_region_indices.find(*id);
+                if (tmp == global_region_indices.end()) {
+                    /* not in the global map? create it. */
+                    region_index = global_region_indices.size();
+                    global_region_indices[*id] = region_index;
+                } else {
+                    region_index = tmp->second;
+                }
+                lock.unlock();
+                /* store the global value in the thread's map */
+                region_indices[*id] = region_index;
+            } else {
+                region_index = tmp->second;
+            }
+	        return region_index;
+        }
+        uint64_t otf2_listener::get_string_index(const std::string& name) {
+            // thread specific
+  	        std::map<std::string,uint64_t>& string_indices = get_string_indices();
+            // process specific
+  	        static std::map<std::string,uint64_t> global_string_indices;
+            /* first, look in this thread's map */
+            auto tmp = string_indices.find(name);
+            uint64_t string_index = 0;
+            if (tmp == string_indices.end()) {
+                /* not in the thread's map? look in the global map */
+                std::unique_lock<std::mutex> lock(_string_mutex);
+                tmp = global_string_indices.find(name);
+                if (tmp == global_string_indices.end()) {
+                    string_index = global_string_indices.size();
+                    global_string_indices[name] = string_index;
+                } else {
+                    string_index = tmp->second;
+                }
+                lock.unlock();
+                /* stoer the global value in the thread's map */
+                string_indices[name] = string_index;
+            } else {
+                string_index = tmp->second;
+            }
+	        return string_index;
+        }
+        uint64_t otf2_listener::get_hostname_index(const std::string& name) {
+            /* first, look in the map */
+            static std::map<std::string,uint64_t> hostname_indices;
+            auto tmp = hostname_indices.find(name);
+            uint64_t hostname_index = 0;
+            if (tmp == hostname_indices.end()) {
+                /* not in the map? create it. */
+                hostname_index = hostname_indices.size();// + 1;
+                /* store the global value in the thread's map */
+                hostname_indices[name] = hostname_index;
+            } else {
+                hostname_index = tmp->second;
+            }
+	        return hostname_index;
+        }
+        std::map<std::string,uint64_t>& otf2_listener::get_metric_indices(void) {
+            static __thread std::map<std::string,uint64_t> * metric_indices;
+            if (metric_indices == nullptr) {
+                metric_indices = new std::map<std::string,uint64_t>();
+            }
+            return *metric_indices;
+        }
+        std::map<std::string,uint64_t>& otf2_listener::get_global_metric_indices(void) {
+            static std::map<std::string,uint64_t> metric_indices;
+            return metric_indices;
+        }
+        uint64_t otf2_listener::get_metric_index(const std::string& name) {
+            // thread specific
+  	        std::map<std::string,uint64_t>& metric_indices = get_metric_indices();
+            /* first, look in this thread's map */
+            auto tmp = metric_indices.find(name);
+            uint64_t metric_index = 0;
+            if (tmp == metric_indices.end()) {
+                // process specific
+  	            std::map<std::string,uint64_t>& global_metric_indices = get_global_metric_indices();
+                /* not in the thread's map? look in the global map */
+                std::unique_lock<std::mutex> lock(_metric_mutex);
+                tmp = global_metric_indices.find(name);
+                if (tmp == global_metric_indices.end()) {
+                    metric_index = global_metric_indices.size();
+                    global_metric_indices[name] = metric_index;
+                } else {
+                    metric_index = tmp->second;
+                }
+                lock.unlock();
+                /* stoer the global value in the thread's map */
+                metric_indices[name] = metric_index;
+            } else {
+                metric_index = tmp->second;
+            }
+	        return metric_index;
+        }
+
+
     OTF2_CollectiveCallbacks * otf2_listener::get_collective_callbacks (void) {
         static OTF2_CollectiveCallbacks cb;
         cb.otf2_release = my_OTF2Release;
@@ -180,6 +303,8 @@ namespace apex {
     }
 
     bool otf2_listener::create_archive(void) {
+		/* only one thread per process allowed in here, ever! */
+        write_lock_type lock(_archive_mutex);
         /* only open once! */
         static bool created = false;
         if (created) return true;
@@ -693,6 +818,9 @@ namespace apex {
      * locations, communicators, groups, metrics, etc.
      */
     void otf2_listener::on_shutdown(shutdown_event_data &data) {
+ 		// get an exclusive lock, to make sure no other threads
+		// are writing to the archive.
+        write_lock_type lock(_archive_mutex);
         APEX_UNUSED(data);
         if (!_terminate) {
             _terminate = true;
@@ -805,6 +933,14 @@ namespace apex {
             }
             // close the archive! we are done!
             OTF2_Archive_Close( archive );
+			// delete our temporary files!
+            std::remove(otf2_listener::index_filename.c_str());
+            ostringstream tmp;
+            tmp << region_filename_prefix << "0";
+            std::remove(tmp.str().c_str());
+            ostringstream tmp2;
+			tmp2 << metric_filename_prefix << "0";
+            std::remove(tmp2.str().c_str());
         }
         return;
     }
@@ -875,6 +1011,8 @@ namespace apex {
                 // before we process the event, make sure the archive is open
                 // THIS WILL ONLY HAPPEN ONCE
                 static bool archive_created = create_archive();
+		// don't close the archive on us!
+        read_lock_type lock(_archive_mutex);
                 // before we process the event, make sure the node properties are written
                 // THIS WILL ONLY HAPPEN ONCE
                 static bool properties_written = write_my_node_properties();
@@ -893,7 +1031,14 @@ namespace apex {
     }
 
     void otf2_listener::on_exit_thread(event_data &data) {
-        if (!_terminate) {
+        // before we process the event, make sure the archive is open
+        // THIS WILL ONLY HAPPEN ONCE
+		// (crazy as it sounds, the archive doesn't exist if we didn't 
+		// process any events yet)
+        static bool archive_created = create_archive();
+		// don't close the archive on us!
+        read_lock_type lock(_archive_mutex);
+        if (!_terminate && archive_created) {
 			/*
             if (thread_instance::get_id() != 0) {
                 // insert a thread begin event
@@ -915,6 +1060,8 @@ namespace apex {
         // before we process the event, make sure the archive is open
         // THIS WILL ONLY HAPPEN ONCE
         static bool archive_created = create_archive();
+		// don't close the archive on us!
+        read_lock_type lock(_archive_mutex);
         // before we process the event, make sure the node properties are written
         // THIS WILL ONLY HAPPEN ONCE
         static bool properties_written = write_my_node_properties();
@@ -961,6 +1108,8 @@ namespace apex {
     }
 
     void otf2_listener::on_stop(std::shared_ptr<profiler> &p) {
+		// don't close the archive on us!
+       	read_lock_type lock(_archive_mutex);
         // each thread has its own event writer.  This static
         // variable will be initialized the first time we call
         // on_stop.
@@ -1003,6 +1152,8 @@ namespace apex {
     }
 
     void otf2_listener::on_send(message_event_data &data) {
+		// don't close the archive on us!
+        read_lock_type lock(_archive_mutex);
         // each thread has its own event writer.  This static
         // variable will be initialized the first time we call
         // on_stop.
@@ -1039,6 +1190,8 @@ namespace apex {
     }
 
     void otf2_listener::on_recv(message_event_data &data) {
+		// don't close the archive on us!
+        read_lock_type lock(_archive_mutex);
     /* The receive is always assumed to be done by thread 0,
      * because the sender doesnt' know which thread will handle
      * the parcel. But the receiver knows the sending thread. */
@@ -1068,6 +1221,8 @@ namespace apex {
     }
 
     void otf2_listener::on_sample_value(sample_value_event_data &data) {
+		// don't close the archive on us!
+        read_lock_type lock(_archive_mutex);
         if (!_terminate) {
             // create a union for storing the value
             OTF2_MetricValue* omv = new OTF2_MetricValue[1];

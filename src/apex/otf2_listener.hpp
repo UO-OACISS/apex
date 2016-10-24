@@ -12,6 +12,7 @@
 #include <string>
 #include <mutex>
 #include <chrono>
+#include "shared_lock.hpp"
 
 namespace apex {
 
@@ -23,6 +24,10 @@ namespace apex {
         std::mutex _string_mutex;
         std::mutex _metric_mutex;
         std::mutex _comm_mutex;
+		// this is a reader/writer lock. Don't close the archive
+		// if other threads are writing to it. but allow concurrent
+		// access from the writer threads.
+        shared_mutex_type _archive_mutex;
         static uint64_t globalOffset;
         static OTF2_TimeStamp get_time( void ) {
             using namespace std::chrono;
@@ -109,127 +114,15 @@ namespace apex {
         OTF2_EvtWriter* getEvtWriter();
         OTF2_DefWriter* getDefWriter(int threadid);
         OTF2_GlobalDefWriter* global_def_writer;
-        std::map<task_identifier,uint64_t>& get_region_indices(void) {
-            static __thread std::map<task_identifier,uint64_t> * region_indices;
-            if (region_indices == nullptr) {
-                region_indices = new std::map<task_identifier,uint64_t>();
-            }
-            return *region_indices;
-        }
-        std::map<std::string,uint64_t>& get_string_indices(void) {
-            static __thread std::map<std::string,uint64_t> * string_indices;
-            if (string_indices == nullptr) {
-                string_indices = new std::map<std::string,uint64_t>();
-            }
-            return *string_indices;
-        }
-        std::map<task_identifier,uint64_t>& get_global_region_indices(void) {
-            static std::map<task_identifier,uint64_t> region_indices;
-            return region_indices;
-        }
-        uint64_t get_region_index(task_identifier* id) {
-            /* first, look in this thread's map */
-            std::map<task_identifier,uint64_t>& region_indices = get_region_indices();
-            auto tmp = region_indices.find(*id);
-            uint64_t region_index = 0;
-            if (tmp == region_indices.end()) {
-                /* not in the thread's map? look in the global map */
-                std::map<task_identifier,uint64_t>& global_region_indices = get_global_region_indices();
-                std::unique_lock<std::mutex> lock(_region_mutex);
-                tmp = global_region_indices.find(*id);
-                if (tmp == global_region_indices.end()) {
-                    /* not in the global map? create it. */
-                    region_index = global_region_indices.size();
-                    global_region_indices[*id] = region_index;
-                } else {
-                    region_index = tmp->second;
-                }
-                lock.unlock();
-                /* store the global value in the thread's map */
-                region_indices[*id] = region_index;
-            } else {
-                region_index = tmp->second;
-            }
-	        return region_index;
-        }
-        uint64_t get_string_index(const std::string& name) {
-            // thread specific
-  	        std::map<std::string,uint64_t>& string_indices = get_string_indices();
-            // process specific
-  	        static std::map<std::string,uint64_t> global_string_indices;
-            /* first, look in this thread's map */
-            auto tmp = string_indices.find(name);
-            uint64_t string_index = 0;
-            if (tmp == string_indices.end()) {
-                /* not in the thread's map? look in the global map */
-                std::unique_lock<std::mutex> lock(_string_mutex);
-                tmp = global_string_indices.find(name);
-                if (tmp == global_string_indices.end()) {
-                    string_index = global_string_indices.size();
-                    global_string_indices[name] = string_index;
-                } else {
-                    string_index = tmp->second;
-                }
-                lock.unlock();
-                /* stoer the global value in the thread's map */
-                string_indices[name] = string_index;
-            } else {
-                string_index = tmp->second;
-            }
-	        return string_index;
-        }
-        uint64_t get_hostname_index(const std::string& name) {
-            /* first, look in the map */
-            static std::map<std::string,uint64_t> hostname_indices;
-            auto tmp = hostname_indices.find(name);
-            uint64_t hostname_index = 0;
-            if (tmp == hostname_indices.end()) {
-                /* not in the map? create it. */
-                hostname_index = hostname_indices.size();// + 1;
-                /* store the global value in the thread's map */
-                hostname_indices[name] = hostname_index;
-            } else {
-                hostname_index = tmp->second;
-            }
-	        return hostname_index;
-        }
-        std::map<std::string,uint64_t>& get_metric_indices(void) {
-            static __thread std::map<std::string,uint64_t> * metric_indices;
-            if (metric_indices == nullptr) {
-                metric_indices = new std::map<std::string,uint64_t>();
-            }
-            return *metric_indices;
-        }
-        std::map<std::string,uint64_t>& get_global_metric_indices(void) {
-            static std::map<std::string,uint64_t> metric_indices;
-            return metric_indices;
-        }
-        uint64_t get_metric_index(const std::string& name) {
-            // thread specific
-  	        std::map<std::string,uint64_t>& metric_indices = get_metric_indices();
-            /* first, look in this thread's map */
-            auto tmp = metric_indices.find(name);
-            uint64_t metric_index = 0;
-            if (tmp == metric_indices.end()) {
-                // process specific
-  	            std::map<std::string,uint64_t>& global_metric_indices = get_global_metric_indices();
-                /* not in the thread's map? look in the global map */
-                std::unique_lock<std::mutex> lock(_metric_mutex);
-                tmp = global_metric_indices.find(name);
-                if (tmp == global_metric_indices.end()) {
-                    metric_index = global_metric_indices.size();
-                    global_metric_indices[name] = metric_index;
-                } else {
-                    metric_index = tmp->second;
-                }
-                lock.unlock();
-                /* stoer the global value in the thread's map */
-                metric_indices[name] = metric_index;
-            } else {
-                metric_index = tmp->second;
-            }
-	        return metric_index;
-        }
+        std::map<task_identifier,uint64_t>& get_region_indices(void);
+		std::map<std::string,uint64_t>& get_string_indices(void);
+        std::map<task_identifier,uint64_t>& get_global_region_indices(void);
+        uint64_t get_region_index(task_identifier* id);
+        uint64_t get_string_index(const std::string& name);
+        uint64_t get_hostname_index(const std::string& name);
+        std::map<std::string,uint64_t>& get_metric_indices(void);
+        std::map<std::string,uint64_t>& get_global_metric_indices(void);
+        uint64_t get_metric_index(const std::string& name);
         static const std::string empty;
         void write_otf2_regions(void);
         void write_my_regions(void);

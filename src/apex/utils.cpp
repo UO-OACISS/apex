@@ -117,13 +117,13 @@ void remove_path(const char *pathname) {
                 	file = fopen(abs_path, "r");
                 	if(file != NULL) {
                     	fclose(file);
-                    	printf("Removing: %s\n", abs_path);
+                    	//printf("Removing: %s\n", abs_path);
                     	remove(abs_path);
                 	}
             	}
         	}
     	}
-        printf("Removing: %s\n", pathname);
+        //printf("Removing: %s\n", pathname);
     	remove(pathname);
 	}
 }
