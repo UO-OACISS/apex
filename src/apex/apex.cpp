@@ -406,9 +406,11 @@ profiler* start(const std::string &timer_name)
     if (_notify_listeners) {
         bool success = true;
 		task_identifier * id = new task_identifier(timer_name);
+		//cout << thread_instance::get_id() << " Start : " << id->get_name() << endl; fflush(stdout);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             success = instance->listeners[i]->on_start(id);
-            if (!success) {
+            if (!success && i == 0) {
+				//cout << thread_instance::get_id() << " *** Not success! " << id->get_name() << endl; fflush(stdout);
                 return profiler::get_disabled_profiler();
             }
         }
@@ -432,9 +434,11 @@ profiler* start(apex_function_address function_address) {
     if (_notify_listeners) {
         bool success = true;
 		task_identifier * id = new task_identifier(function_address);
+		//cout << thread_instance::get_id() << " Start : " << id->get_name() << endl; fflush(stdout);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             success = instance->listeners[i]->on_start(id);
-            if (!success) {
+            if (!success && i == 0) {
+				//cout << thread_instance::get_id() << " *** Not success! " << id->get_name() << endl; fflush(stdout);
                 return profiler::get_disabled_profiler();
             }
         }
@@ -543,6 +547,7 @@ void set_state(apex_thread_state state) {
 }
 
 void stop(profiler* the_profiler) {
+	//cout << thread_instance::get_id() << " Stop  : " << the_profiler->task_id->get_name() << endl; fflush(stdout);
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
 #ifdef APEX_DEBUG
@@ -891,6 +896,7 @@ void set_interrupt_interval(int seconds)
 
 void finalize()
 {
+	//cout << thread_instance::get_id() << " *** Finalize! " << endl; fflush(stdout);
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
     shutdown_throttling(); // if not done already

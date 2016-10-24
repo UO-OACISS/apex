@@ -21,7 +21,11 @@
 
 long num_cells = NUM_CELLS;
 long block_size = BLOCK_SIZE;
+#ifdef APEX_HAVE_TAU
+long active_threads = 1;
+#else
 long active_threads = omp_get_max_threads();
+#endif
 long num_iterations = NUM_ITERATIONS;
 long update_interval = UPDATE_INTERVAL;
 apex_event_type my_custom_event = APEX_CUSTOM_EVENT_1;
@@ -126,9 +130,13 @@ inline void solve(std::vector<double> & in_array, std::vector<double> & out_arra
  */
 void solve_iteration(std::vector<double> * in_array, std::vector<double> * out_array) {
     apex::profiler* p = apex::start((apex_function_address)solve_iteration);
+#ifndef APEX_HAVE_TAU
 #pragma omp parallel num_threads(active_threads)
+#endif
     {
+#ifndef APEX_HAVE_TAU
 #pragma omp for schedule(static)
+#endif
         for (long j = 0; j < num_cells ; j += block_size) {
             solve(*in_array,*out_array,j,j+block_size);
         }
