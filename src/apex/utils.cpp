@@ -103,17 +103,19 @@ void remove_path(const char *pathname) {
 	struct stat sb;
 	if (stat(pathname, &sb) == 0 && S_ISDIR(sb.st_mode)) {
     	dir = opendir(pathname);
-    	while(entry = readdir(dir)) {
+    	while((entry = readdir(dir)) != NULL) {
         	DIR *sub_dir = NULL;
         	FILE *file = NULL;
         	char abs_path[100] = {0};
         	if(*(entry->d_name) != '.') {
             	sprintf(abs_path, "%s/%s", pathname, entry->d_name);
-            	if(sub_dir = opendir(abs_path)) {
+            	sub_dir = opendir(abs_path);
+            	if(sub_dir != NULL) {
                 	closedir(sub_dir);
                 	remove_path(abs_path);
             	} else {
-                	if(file = fopen(abs_path, "r")) {
+                	file = fopen(abs_path, "r");
+                	if(file != NULL) {
                     	fclose(file);
                     	printf("Removing: %s\n", abs_path);
                     	remove(abs_path);
