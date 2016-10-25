@@ -211,6 +211,9 @@ typedef uint32_t apex_tuning_session_handle;
  * Default OTF2 trace path
  **/
 #define APEX_DEFAULT_OTF2_ARCHIVE_PATH "OTF2_archive"
+/**
+ * Default OTF2 trace name
+ **/
 #define APEX_DEFAULT_OTF2_ARCHIVE_NAME "APEX"
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
