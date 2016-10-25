@@ -496,15 +496,15 @@ APEX_EXPORT inline double current_power_high(void) {
     double power = 0.0;
 #ifdef APEX_HAVE_RCR
     power = (double)rcr_current_power_high();
-    std::cout << "Read power from RCR: " << power << std::endl;
+    //std::cout << "Read power from RCR: " << power << std::endl;
 #elif APEX_HAVE_MSR
     power = msr_current_power_high();
-    std::cout << "Read power from MSR: " << power << std::endl;
+    //std::cout << "Read power from MSR: " << power << std::endl;
 #elif APEX_HAVE_PROC
     power = (double)read_power();
-    std::cout << "Read power from Cray Power Monitoring and Management: " << power << std::endl;
+    //std::cout << "Read power from Cray Power Monitoring and Management: " << power << std::endl;
 #else
-    std::cout << "NO POWER READING! Did you configure with RCR, MSR or Cray?" << std::endl;
+    //std::cout << "NO POWER READING! Did you configure with RCR, MSR or Cray?" << std::endl;
 #endif
     return power;
 }

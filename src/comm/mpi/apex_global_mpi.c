@@ -241,7 +241,9 @@ void apex_global_teardown(void) {
   /* Added a call to MPI_WIN_FENCE, per MPI-2.1 11.2.1 */
   /* Removed a call to MPI_WIN_FENCE, because it crashes. */
   //MPI_Win_fence(0, profile_window);
-  MPI_Win_free(&profile_window); 
+  if (profile_window != NULL) {
+    MPI_Win_free(&profile_window); 
+  }
   if (rank == 0) {
     fclose(graph_output);
     MPI_Free_mem(inValues);

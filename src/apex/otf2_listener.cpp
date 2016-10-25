@@ -27,10 +27,6 @@ namespace apex {
     const std::string otf2_listener::empty("");
     __thread OTF2_EvtWriter* otf2_listener::evt_writer(nullptr);
     OTF2_EvtWriter* otf2_listener::comm_evt_writer(nullptr);
-    const std::string otf2_listener::index_filename("./.max_locality.txt");
-    const std::string otf2_listener::region_filename_prefix("./.regions.");
-    const std::string otf2_listener::metric_filename_prefix("./.metrics.");
-    const std::string otf2_listener::lock_filename_prefix("./.regions.lock.");
     int otf2_listener::my_saved_node_id(0);
 
     OTF2_CallbackCode otf2_listener::my_OTF2GetSize(void *userData,
@@ -300,6 +296,10 @@ namespace apex {
             .otf2_pre_flush  = otf2_listener::pre_flush, 
             .otf2_post_flush = otf2_listener::post_flush 
         };
+        index_filename = string(apex_options::otf2_archive_path()) + "/.max_locality.txt";
+        region_filename_prefix = string(apex_options::otf2_archive_path()) + "/.regions.";
+        metric_filename_prefix = string(apex_options::otf2_archive_path()) + "/.metrics.";
+        lock_filename_prefix = string(apex_options::otf2_archive_path()) + "/.regions.lock.";
     }
 
     bool otf2_listener::create_archive(void) {
@@ -934,13 +934,13 @@ namespace apex {
             // close the archive! we are done!
             OTF2_Archive_Close( archive );
 			// delete our temporary files!
-            std::remove(otf2_listener::index_filename.c_str());
+            //std::remove(otf2_listener::index_filename.c_str());
             ostringstream tmp;
             tmp << region_filename_prefix << "0";
-            std::remove(tmp.str().c_str());
+            //std::remove(tmp.str().c_str());
             ostringstream tmp2;
 			tmp2 << metric_filename_prefix << "0";
-            std::remove(tmp2.str().c_str());
+            //std::remove(tmp2.str().c_str());
         }
         return;
     }

@@ -14,8 +14,8 @@
 
 #define NUM_CELLS 800000
 #define BLOCK_SIZE NUM_CELLS/100
-#define NUM_ITERATIONS 2000
-#define UPDATE_INTERVAL NUM_ITERATIONS/100
+#define NUM_ITERATIONS 500
+#define UPDATE_INTERVAL NUM_ITERATIONS/10
 #define DIVIDE_METHOD 1
 #define MULTIPLY_METHOD 2
 
@@ -54,7 +54,6 @@ void parse_arguments(int argc, char ** argv) {
             num_iterations = atoi(argv[i+1]);
         }
     }
-    update_interval = num_iterations / 100;
 }
 
 
@@ -228,7 +227,7 @@ int main (int argc, char ** argv) {
             if (p != nullptr) {
                 double next_accumulated = p->accumulated - prev_accumulated;
                 prev_accumulated = p->accumulated;
-                std::cout << "Iteration: " << i << " accumulated: " << next_accumulated << std::endl;
+                std::cout << myrank << " Iteration: " << i << " accumulated: " << next_accumulated << std::endl;
             }
             apex::custom_event(my_custom_event, NULL);
             active_threads = apex_example_get_active_threads();
@@ -245,8 +244,8 @@ int main (int argc, char ** argv) {
   /* Shut down MPI */
 
     //apex_global_teardown(); // do this before MPI_Finalize
-    MPI_Finalize();
     apex::finalize();
+    MPI_Finalize();
 }
 
 

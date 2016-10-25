@@ -45,8 +45,8 @@ int main(int argc, char **argv) {
 
   /* Shut down MPI */
 
-  MPI_Finalize();
   apex::finalize();
+  MPI_Finalize();
   return 0;
 }
 

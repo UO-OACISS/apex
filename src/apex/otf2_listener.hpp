@@ -134,10 +134,10 @@ namespace apex {
         void write_metric_map(void);
         void write_clock_properties(void);
         void write_host_properties(int rank, int pid, std::string& hostname);
-        static const std::string index_filename;
-        static const std::string lock_filename_prefix;
-        static const std::string region_filename_prefix;
-        static const std::string metric_filename_prefix;
+        std::string index_filename;
+        std::string lock_filename_prefix;
+        std::string region_filename_prefix;
+        std::string metric_filename_prefix;
         bool create_archive(void);
         bool write_my_node_properties(void);
         static int my_saved_node_id;
