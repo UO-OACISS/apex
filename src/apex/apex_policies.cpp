@@ -40,9 +40,9 @@ static std::shared_mutex session_map_mutex;
 typedef std::shared_lock<std::shared_mutex> session_map_read_lock;
 typedef std::unique_lock<std::shared_mutex> session_map_write_lock;
 #elif __cplusplus > 201402L
-static std::mutex session_map_mutex;
-typedef std::shared_lock<std::mutex> session_map_read_lock;
-typedef std::unique_lock<std::mutex> session_map_write_lock;
+static std::shared_timed_mutex session_map_mutex;
+typedef std::shared_lock<std::shared_timed_mutex> session_map_read_lock;
+typedef std::lock_guard<std::shared_timed_mutex> session_map_write_lock;
 #else
 #include <mutex>
 static std::mutex session_map_mutex;

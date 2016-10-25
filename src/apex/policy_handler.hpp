@@ -26,7 +26,7 @@
 #if __cplusplus > 201701L 
 #include <shared_mutex>
 #elif __cplusplus > 201402L
-#include <shared_lock>
+#include <shared_mutex>
 #else
 #include <mutex>
 #endif
@@ -57,9 +57,9 @@ private:
     typedef std::shared_lock<mutex_type> read_lock_type;
     typedef std::unique_lock<mutex_type> write_lock_type;
 #elif __cplusplus > 201402L
-    typedef std::shared_lock mutex_type;
+    typedef std::shared_timed_mutex mutex_type;
     typedef std::shared_lock<mutex_type> read_lock_type;
-    typedef std::unique_lock<mutex_type> write_lock_type;
+    typedef std::lock_guard<mutex_type> write_lock_type;
 #else
     typedef std::mutex mutex_type;
     typedef std::unique_lock<mutex_type> read_lock_type;

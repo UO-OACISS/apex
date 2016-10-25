@@ -152,7 +152,7 @@ set(apex_headers
     profiler.hpp
     profiler_listener.hpp
     semaphore.hpp
-    shared_lock.hpp
+    apex_cxx_shared_lock.hpp
     thread_instance.hpp
     task_identifier.hpp
     apex_policies.hpp

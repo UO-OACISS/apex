@@ -86,11 +86,11 @@ dobuild()
     -DBUILD_EXAMPLES=TRUE ${malloc} ${bfd} ${ah} ${ompt} ${papi} ${mpi} ${otf} ${tau} \
     -DCMAKE_INSTALL_PREFIX=../install${post} ../.."
     echo ${cmd}
-    ${cmd} >> ${logfile} 2>&1 
-    make ${parallel_build} >> ${logfile} 2>&1 
-    make doc >> ${logfile} 2>&1 
-    make install >> ${logfile} 2>&1 
-    make test >> ${logfile} 2>&1 
+    ${cmd} 2>&1 | tee ${logfile}
+    make ${parallel_build} 2>&1 | tee ${logfile}
+    make doc 2>&1 | tee ${logfile}
+    make install 2>&1 | tee ${logfile}
+    make test 2>&1 | tee ${logfile}
     printf "\nSUCCESS!\n"
     T="$(($(date +%s)-T))"
     printf "Time to configure and build APEX: %02d hours %02d minutes %02d seconds.\n" "$((T/3600))" "$((T/60%60))" "$((T%60))"

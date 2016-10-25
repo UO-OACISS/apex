@@ -33,7 +33,7 @@
 #if __cplusplus > 201701L 
 #include <shared_mutex>
 #elif __cplusplus > 201402L
-#include <shared_lock>
+#include <shared_mutex>
 #else
 #include <mutex>
 #endif
@@ -107,7 +107,7 @@ public:
 #if __cplusplus > 201701L 
     std::shared_mutex custom_event_mutex;
 #elif __cplusplus > 201402L
-    std::shared_lock custom_event_mutex;
+    std::mutex custom_event_mutex;
 #else
     std::mutex custom_event_mutex;
 #endif

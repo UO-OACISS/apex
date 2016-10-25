@@ -45,7 +45,7 @@ int main (int argc, char ** argv) {
     apex_tuning_session_handle session = apex::setup_custom_tuning(request);
     (void)session; // ignore unused warning
 
-    for(int i = 0; i < 100; ++i) {
+    for(int i = 0; i < 150; ++i) {
         std::string s = param_enum->get_value();
         double x = 0.0;
         long y = param_long->get_value();

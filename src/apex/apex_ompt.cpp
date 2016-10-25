@@ -9,7 +9,7 @@
 #if __cplusplus > 201701L 
 #include <shared_mutex>
 #elif __cplusplus > 201402L
-#include <shared_lock>
+#include <shared_mutex>
 #else
 #include <mutex>
 #endif
@@ -49,7 +49,7 @@ std::unordered_map<ompt_parallel_id_t, void*> parallel_regions;
 #if __cplusplus > 201701L 
 using region_mutex_type = std::shared_mutex;
 #elif __cplusplus > 201402L
-using region_mutex_type = std::shared_lock;
+using region_mutex_type = std::shared_timed_mutex;
 #else
 using region_mutex_type = std::mutex;
 #endif

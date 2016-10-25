@@ -12,7 +12,7 @@
 #include <string>
 #include <mutex>
 #include <chrono>
-#include "shared_lock.hpp"
+#include "apex_cxx_shared_lock.hpp"
 
 namespace apex {
 
