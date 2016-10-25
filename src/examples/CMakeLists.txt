@@ -134,6 +134,8 @@ if(MPI_CXX_FOUND)
   add_test (ExampleMPITest ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
     ${MPIEXEC_PREFLAGS} MPITest/mpi_test ${MPIEXEC_POSTFLAGS})  
   set_tests_properties(ExampleMPITest PROPERTIES ENVIRONMENT "APEX_POLICY=1")
+  string(TIMESTAMP VERSION "%Y-%m-%d_%H.%M.%S")
+  set_property(TEST ExampleMPITest APPEND PROPERTY ENVIRONMENT "APEX_OTF2_ARCHIVE_PATH=OTF2_archive_mpi_test_${VERSION}")
   #add_test (ExampleMPIGlobalTest ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
   #${MPIEXEC_PREFLAGS} MPIGlobalTest/mpi_global_test ${MPIEXEC_POSTFLAGS})  
   #set_tests_properties(ExampleMPIGlobalTest PROPERTIES ENVIRONMENT "APEX_POLICY=1")
@@ -142,6 +144,8 @@ if(MPI_CXX_FOUND)
   add_test (ExampleMPIImbalancePolicy ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
     ${MPIEXEC_PREFLAGS} MPIImbalancePolicy/mpi_imbalance_test ${MPIEXEC_POSTFLAGS})  
   set_tests_properties(ExampleMPIImbalancePolicy PROPERTIES ENVIRONMENT "APEX_POLICY=1")
+  string(TIMESTAMP VERSION "%Y-%m-%d_%H.%M.%S")
+  set_property(TEST ExampleMPIImbalancePolicy APPEND PROPERTY ENVIRONMENT "APEX_OTF2_ARCHIVE_PATH=OTF2_archive_mpi_imbalance_test_${VERSION}")
 #  add_test (ExampleLuleshMPI ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 8
 #    ${MPIEXEC_PREFLAGS} LuleshMPI/lulesh_MPI_2.0 -s 15 ${MPIEXEC_POSTFLAGS})  
   if(OPENMP_FOUND)
@@ -153,9 +157,10 @@ if(MPI_CXX_FOUND)
       if (PROCESSOR_COUNT)
         set_tests_properties(ExampleMPIAutoBalance PROPERTIES
 		PASS_REGULAR_EXPRESSION "Test passed.")
-        set_property (TEST ExampleMPIAutoBalance
-           APPEND PROPERTY ENVIRONMENT "OMP_NUM_THREADS=${PROCESSOR_COUNT}")
-        set_property(TEST ExampleMPIAutoBalance PROPERTY ENVIRONMENT "APEX_POLICY=1")
+        string(TIMESTAMP VERSION "%Y-%m-%d_%H.%M.%S")
+        set_property(TEST ExampleMPIAutoBalance APPEND PROPERTY ENVIRONMENT "APEX_OTF2_ARCHIVE_PATH=OTF2_archive_mpi_auto_balance_${VERSION}")
+        set_property (TEST ExampleMPIAutoBalance APPEND PROPERTY ENVIRONMENT "OMP_NUM_THREADS=${PROCESSOR_COUNT}")
+       set_property(TEST ExampleMPIAutoBalance APPEND PROPERTY ENVIRONMENT "APEX_POLICY=1")
         set_property(TEST ExampleMPIAutoBalance APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_CONCURRENCY=1")
     endif()
   endif()

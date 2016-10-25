@@ -63,6 +63,7 @@ int main(int argc, char **argv) {
 
   /* Shut down MPI */
 
+  MPI_Barrier(MPI_COMM_WORLD);
   apex_global_teardown(); // do this before MPI_Finalize
   apex::finalize();
   MPI_Finalize();

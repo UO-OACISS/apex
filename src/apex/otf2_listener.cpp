@@ -296,10 +296,10 @@ namespace apex {
             .otf2_pre_flush  = otf2_listener::pre_flush, 
             .otf2_post_flush = otf2_listener::post_flush 
         };
-        index_filename = string(apex_options::otf2_archive_path()) + "/.max_locality.txt";
-        region_filename_prefix = string(apex_options::otf2_archive_path()) + "/.regions.";
-        metric_filename_prefix = string(apex_options::otf2_archive_path()) + "/.metrics.";
-        lock_filename_prefix = string(apex_options::otf2_archive_path()) + "/.regions.lock.";
+        index_filename = string("./.max_locality.txt");
+        region_filename_prefix = string("./.regions.");
+        metric_filename_prefix = string("./.metrics.");
+        lock_filename_prefix = string("./.regions.lock.");
     }
 
     bool otf2_listener::create_archive(void) {
@@ -311,7 +311,10 @@ namespace apex {
 
         if (strcmp(apex_options::otf2_archive_path(), APEX_DEFAULT_OTF2_ARCHIVE_PATH) == 0) {
 			// is this a good idea?
-        	remove_path(apex_options::otf2_archive_path());
+            /* NO! why? because we don't know which rank we are, and
+             * we don't know if the archive is supposed to be there or not.
+             */
+        	//remove_path(apex_options::otf2_archive_path());
 		}
         /* open the OTF2 archive */
         archive = OTF2_Archive_Open( apex_options::otf2_archive_path(),
@@ -934,15 +937,16 @@ namespace apex {
             // close the archive! we are done!
             OTF2_Archive_Close( archive );
 			// delete our temporary files!
-            /* Commented out until we can figure out how to do this safely.
-            std::remove(otf2_listener::index_filename.c_str());
-            ostringstream tmp;
-            tmp << region_filename_prefix << "0";
-            std::remove(tmp.str().c_str());
-            ostringstream tmp2;
-			tmp2 << metric_filename_prefix << "0";
-            std::remove(tmp2.str().c_str());
-            */
+            // Commented out until we can figure out how to do this safely.
+            if (my_saved_node_id == 0) {
+                std::remove(otf2_listener::index_filename.c_str());
+                ostringstream tmp;
+                tmp << region_filename_prefix << "0";
+                std::remove(tmp.str().c_str());
+                ostringstream tmp2;
+			    tmp2 << metric_filename_prefix << "0";
+                std::remove(tmp2.str().c_str());
+            }
         }
         return;
     }
