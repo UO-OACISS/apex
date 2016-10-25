@@ -934,13 +934,15 @@ namespace apex {
             // close the archive! we are done!
             OTF2_Archive_Close( archive );
 			// delete our temporary files!
-            //std::remove(otf2_listener::index_filename.c_str());
+            /* Commented out until we can figure out how to do this safely.
+            std::remove(otf2_listener::index_filename.c_str());
             ostringstream tmp;
             tmp << region_filename_prefix << "0";
-            //std::remove(tmp.str().c_str());
+            std::remove(tmp.str().c_str());
             ostringstream tmp2;
 			tmp2 << metric_filename_prefix << "0";
-            //std::remove(tmp2.str().c_str());
+            std::remove(tmp2.str().c_str());
+            */
         }
         return;
     }
