@@ -238,6 +238,9 @@ int main (int argc, char ** argv) {
     delete(prev);
     delete(next);
     std::cout << "done." << std::endl;
+#ifdef APEX_HAVE_TAU
+    active_threads = original_active_threads;
+#endif
 	if (active_threads <= original_active_threads) {
     	std::cout << "Test passed." << std::endl;
 	}
