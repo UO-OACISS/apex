@@ -40,14 +40,14 @@
 #include <future>
 
 #if defined(APEX_THROTTLE)
+#include "apex_cxx_shared_lock.hpp"
+apex::shared_mutex_type throttled_event_set_mutex;
 #define APEX_THROTTLE_CALLS 1000
 #ifdef APEX_USE_CLOCK_TIMESTAMP
 #define APEX_THROTTLE_PERCALL 0.00001 // 10 microseconds.
 #else
 #define APEX_THROTTLE_PERCALL 50000 // 50k cycles.
 #endif
-#include <mutex>
-std::mutex throttled_event_set_mutex;
 #endif
 
 #if APEX_HAVE_BFD
@@ -108,9 +108,11 @@ namespace apex {
       profile * p = it2->second;
 #if defined(APEX_THROTTLE)
       task_identifier id = it2->first;
-      throttled_event_set_mutex.lock();
-      unordered_set<task_identifier>::const_iterator it4 = throttled_tasks.find(id);
-      throttled_event_set_mutex.unlock();
+      unordered_set<task_identifier>::const_iterator it4;
+	  {
+      	read_lock_type l(throttled_event_set_mutex);
+      	it4 = throttled_tasks.find(id);
+	  }
       if (it4!= throttled_tasks.end()) { 
         continue; 
       }
@@ -232,20 +234,22 @@ namespace apex {
         // in order to reduce overhead.
         if (theprofile->get_calls() > APEX_THROTTLE_CALLS &&
             theprofile->get_mean() < APEX_THROTTLE_PERCALL) {
-            throttled_event_set_mutex.lock();
-            unordered_set<task_identifier>::const_iterator it2 = throttled_tasks.find(*(p->task_id));
-            throttled_event_set_mutex.unlock();
+            unordered_set<task_identifier>::const_iterator it2;
+	        {
+      	      read_lock_type l(throttled_event_set_mutex);
+              it2 = throttled_tasks.find(*(p->task_id));
+			}
             if (it2 == throttled_tasks.end()) {
                 // lock the set for insert
-                throttled_event_set_mutex.lock();
-                // was it inserted when we were waiting?
-                it2 = throttled_tasks.find(*(p->task_id));
-                // no? OK - insert it.
-                if (it2 == throttled_tasks.end()) {
-                    throttled_tasks.insert(*(p->task_id));
+	            {
+      	            write_lock_type l(throttled_event_set_mutex);
+                    // was it inserted when we were waiting?
+                    it2 = throttled_tasks.find(*(p->task_id));
+                    // no? OK - insert it.
+                    if (it2 == throttled_tasks.end()) {
+                        throttled_tasks.insert(*(p->task_id));
+                    }
                 }
-                // unlock.
-                throttled_event_set_mutex.unlock();
                 if (apex_options::use_screen_output()) {
                     cout << "APEX: disabling lightweight timer " 
                          << p->task_id->get_name() 
@@ -409,9 +413,11 @@ namespace apex {
 #if defined(APEX_THROTTLE)
       // if this profile was throttled, don't output the measurements.
       // they are limited and bogus, anyway.
-      throttled_event_set_mutex.lock();
-      unordered_set<task_identifier>::const_iterator it4 = throttled_tasks.find(task_id);
-      throttled_event_set_mutex.unlock();
+      unordered_set<task_identifier>::const_iterator it4;
+	  {
+      	read_lock_type l(throttled_event_set_mutex);
+        it4 = throttled_tasks.find(task_id);
+  	  }
       if (it4!= throttled_tasks.end()) { 
         screen_output << "DISABLED (high frequency, short duration)" << endl;
         return; 
@@ -1169,9 +1175,11 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
     if (!_done) {
 #if defined(APEX_THROTTLE)
       // if this timer is throttled, return without doing anything
-      throttled_event_set_mutex.lock();
-      unordered_set<task_identifier>::const_iterator it = throttled_tasks.find(*id);
-      throttled_event_set_mutex.unlock();
+      unordered_set<task_identifier>::const_iterator it;
+	  {
+      	read_lock_type l(throttled_event_set_mutex);
+        it = throttled_tasks.find(*id);
+      }
       if (it != throttled_tasks.end()) {
           /*
            * The throw is removed, because it is a performance penalty on some systems
