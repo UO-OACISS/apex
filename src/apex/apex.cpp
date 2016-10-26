@@ -732,7 +732,7 @@ apex_event_type register_custom_event(const std::string &name) {
     if (custom_event_count == APEX_MAX_EVENTS) {
       std::cerr << "Cannot register more than MAX Events! (set to " << APEX_MAX_EVENTS << ")" << std::endl;
     }
-    std::unique_lock<std::mutex> l(instance->custom_event_mutex);
+    write_lock_type l(instance->custom_event_mutex);
     instance->custom_event_names[custom_event_count] = name;
     int tmp = custom_event_count;
     custom_event_count++; 

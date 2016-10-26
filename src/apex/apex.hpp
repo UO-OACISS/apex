@@ -30,13 +30,7 @@
 #include "apex_export.h" 
 #include "proc_read.h" 
 #include <unordered_map>
-#if __cplusplus > 201701L 
-#include <shared_mutex>
-#elif __cplusplus > 201402L
-#include <shared_mutex>
-#else
-#include <mutex>
-#endif
+#include "apex_cxx_shared_lock.hpp"
 
 #ifdef APEX_HAVE_RCR
 #include "libenergy.h"
@@ -104,13 +98,7 @@ public:
     std::vector<int (*)()> finalize_functions;
     std::string m_my_locality;
     std::unordered_map<int, std::string> custom_event_names;
-#if __cplusplus > 201701L 
-    std::shared_mutex custom_event_mutex;
-#elif __cplusplus > 201402L
-    std::mutex custom_event_mutex;
-#else
-    std::mutex custom_event_mutex;
-#endif
+    shared_mutex_type custom_event_mutex;
     static apex* instance(); // singleton instance
     static apex* instance(int argc, char** argv); // singleton instance
     static apex* __instance(); // special case - for cleanup only!

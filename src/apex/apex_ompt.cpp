@@ -6,13 +6,7 @@
 #include "apex_api.hpp"
 #include "apex_types.h"
 #include "thread_instance.hpp"
-#if __cplusplus > 201701L 
-#include <shared_mutex>
-#elif __cplusplus > 201402L
-#include <shared_mutex>
-#else
-#include <mutex>
-#endif
+#include "apex_cxx_shared_lock.hpp"
 
 //#include "global_constructor_destructor.h"
 
@@ -46,14 +40,7 @@ typedef enum my_ompt_thread_type_e {
 } my_ompt_thread_type_t;
 
 std::unordered_map<ompt_parallel_id_t, void*> parallel_regions;
-#if __cplusplus > 201701L 
-using region_mutex_type = std::shared_mutex;
-#elif __cplusplus > 201402L
-using region_mutex_type = std::shared_timed_mutex;
-#else
-using region_mutex_type = std::mutex;
-#endif
-region_mutex_type _region_mutex;
+apex::shared_mutex_type _region_mutex;
 
 __thread std::stack<apex::profiler*> *timer_stack;
 __thread status_flags_t *status;
@@ -86,11 +73,7 @@ char * format_name(const char * state, ompt_parallel_id_t parallel_id) {
     char * regionIDstr = NULL;
     std::unordered_map<ompt_parallel_id_t, void*>::const_iterator got;
     {
-#if __cplusplus > 201402L
-      std::shared_lock<region_mutex_type> l(_region_mutex);
-#else
-      std::unique_lock<region_mutex_type> l(_region_mutex);
-#endif
+      apex::read_lock_type l(_region_mutex);
       got = parallel_regions.find (parallel_id);
     }
     if ( got == parallel_regions.end() ) { // not found.
@@ -146,7 +129,7 @@ extern "C" void my_parallel_region_begin (
   APEX_UNUSED(requested_team_size);
   //fprintf(stderr,"begin: %lu, %p, %lu, %u, %p\n", parent_task_id, parent_task_frame, parallel_id, requested_team_size, parallel_function); fflush(stderr);
   {
-    std::unique_lock<region_mutex_type> l(_region_mutex);
+    apex::write_lock_type l(_region_mutex);
     parallel_regions[parallel_id] = parallel_function;
   }
   my_ompt_start("OpenMP_PARALLEL_REGION", parallel_id);
@@ -173,7 +156,7 @@ extern "C" void my_task_begin (
     timer_stack = new std::stack<apex::profiler*>();
   } */
   {
-    std::unique_lock<region_mutex_type> l(_region_mutex);
+    apex::write_lock_type l(_region_mutex);
     parallel_regions[new_task_id] = task_function;
   }
   my_ompt_start("OpenMP_TASK", new_task_id);
@@ -312,7 +295,7 @@ extern "C" void BEGIN_FUNCTION (ompt_parallel_id_t parallel_id, ompt_task_id_t t
   status->regionid = parallel_id; \
   status->taskid = task_id; \
   { \
-    std::unique_lock<region_mutex_type> l(_region_mutex); \
+    apex::write_lock_type l(_region_mutex); \
     parallel_regions[parallel_id] = parallel_function; \
   } \
   my_ompt_start(NAME, parallel_id); \

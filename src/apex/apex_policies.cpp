@@ -17,13 +17,7 @@
 #include <thread>
 #include <unordered_map>
 #include <atomic>
-#if __cplusplus > 201701L 
-#include <shared_mutex>
-#elif __cplusplus > 201402L
-#include <shared_mutex>
-#else
-#include <mutex>
-#endif
+#include "apex_cxx_shared_lock.hpp"
 
 #ifdef APEX_HAVE_RCR
 #include "libenergy.h"
@@ -35,28 +29,14 @@
 
 using namespace std;
 
-#if __cplusplus > 201701L 
-static std::shared_mutex session_map_mutex;
-typedef std::shared_lock<std::shared_mutex> session_map_read_lock;
-typedef std::unique_lock<std::shared_mutex> session_map_write_lock;
-#elif __cplusplus > 201402L
-static std::shared_timed_mutex session_map_mutex;
-typedef std::shared_lock<std::shared_timed_mutex> session_map_read_lock;
-typedef std::lock_guard<std::shared_timed_mutex> session_map_write_lock;
-#else
-#include <mutex>
-static std::mutex session_map_mutex;
-typedef std::unique_lock<std::mutex> session_map_read_lock;
-typedef std::unique_lock<std::mutex> session_map_write_lock;
-#endif
-
+static apex::shared_mutex_type session_map_mutex;
 static std::mutex shutdown_mutex;
 
 static unordered_map<apex_tuning_session_handle, shared_ptr<apex_tuning_session>> session_map;
 static std::atomic<apex_tuning_session_handle> next_handle{1};
 
 static shared_ptr<apex_tuning_session> get_session(const apex_tuning_session_handle & h) {
-  session_map_read_lock l{session_map_mutex};
+  apex::read_lock_type l(session_map_mutex);
   auto it = session_map.find(h);
   if(it != session_map.end()) {
     return it->second;
@@ -69,7 +49,7 @@ static shared_ptr<apex_tuning_session> get_session(const apex_tuning_session_han
 static apex_tuning_session_handle create_session() {
   apex_tuning_session_handle result = next_handle++;
   shared_ptr<apex_tuning_session> session = make_shared<apex_tuning_session>(result);
-  session_map_write_lock l{session_map_mutex};
+  apex::write_lock_type l(session_map_mutex);
   session_map.insert(make_pair(result, session));
   return result;
 }

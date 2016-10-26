@@ -22,14 +22,7 @@
 #include <chrono>
 #include <memory>
 #include <array>
-
-#if __cplusplus > 201701L 
-#include <shared_mutex>
-#elif __cplusplus > 201402L
-#include <shared_mutex>
-#else
-#include <mutex>
-#endif
+#include "apex_cxx_shared_lock.hpp"
 
 #ifdef SIGEV_THREAD_ID
 #ifndef sigev_notify_thread_id
@@ -52,20 +45,6 @@ public:
 class policy_handler : public handler, public event_listener
 {
 private:
-#if __cplusplus > 201701L 
-    typedef std::shared_mutex mutex_type;
-    typedef std::shared_lock<mutex_type> read_lock_type;
-    typedef std::unique_lock<mutex_type> write_lock_type;
-#elif __cplusplus > 201402L
-    typedef std::shared_timed_mutex mutex_type;
-    typedef std::shared_lock<mutex_type> read_lock_type;
-    typedef std::lock_guard<mutex_type> write_lock_type;
-#else
-    typedef std::mutex mutex_type;
-    typedef std::unique_lock<mutex_type> read_lock_type;
-    typedef std::unique_lock<mutex_type> write_lock_type;
-#endif
-
     void _init(void);
     std::list<std::shared_ptr<policy_instance> > startup_policies;
     std::list<std::shared_ptr<policy_instance> > shutdown_policies;
@@ -79,18 +58,18 @@ private:
     std::list<std::shared_ptr<policy_instance> > sample_value_policies;
     std::list<std::shared_ptr<policy_instance> > periodic_policies;
     std::array<std::list<std::shared_ptr<policy_instance> >,APEX_MAX_EVENTS > custom_event_policies;
-    mutex_type startup_mutex;
-    mutex_type shutdown_mutex;
-    mutex_type new_node_mutex;
-    mutex_type new_thread_mutex;
-    mutex_type exit_thread_mutex;
-    mutex_type start_event_mutex;
-    mutex_type stop_event_mutex;
-    mutex_type yield_event_mutex;
-    mutex_type resume_event_mutex;
-    mutex_type sample_value_mutex;
-    mutex_type custom_event_mutex;
-    mutex_type periodic_mutex;
+    shared_mutex_type startup_mutex;
+    shared_mutex_type shutdown_mutex;
+    shared_mutex_type new_node_mutex;
+    shared_mutex_type new_thread_mutex;
+    shared_mutex_type exit_thread_mutex;
+    shared_mutex_type start_event_mutex;
+    shared_mutex_type stop_event_mutex;
+    shared_mutex_type yield_event_mutex;
+    shared_mutex_type resume_event_mutex;
+    shared_mutex_type sample_value_mutex;
+    shared_mutex_type custom_event_mutex;
+    shared_mutex_type periodic_mutex;
     void call_policies(
         const std::list<std::shared_ptr<policy_instance> > & policies,
         event_data &event_data);
