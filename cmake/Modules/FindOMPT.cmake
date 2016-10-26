@@ -40,10 +40,10 @@ if(BUILD_OMPT OR (NOT OMPT_FOUND))
   include(ExternalProject)
   ExternalProject_Add(project_ompt
     GIT_REPOSITORY https://github.com/khuck/LLVM-openmp.git
-	GIT_TAG v0.1
+	GIT_TAG v0.2
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/LLVM-ompt-0.1
     CONFIGURE_COMMAND cmake -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -DCMAKE_BUILD_TYPE=Release ../project_ompt
-    BUILD_COMMAND make
+    BUILD_COMMAND make libomp-needed-headers && make
     INSTALL_COMMAND make install
     INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
     LOG_DOWNLOAD 1
