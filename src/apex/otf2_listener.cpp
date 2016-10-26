@@ -309,12 +309,12 @@ namespace apex {
         static bool created = false;
         if (created) return true;
 
-        if (strcmp(apex_options::otf2_archive_path(), APEX_DEFAULT_OTF2_ARCHIVE_PATH) == 0) {
+        if (apex_options::otf2_testing() && my_saved_node_id == 0) {
 			// is this a good idea?
             /* NO! why? because we don't know which rank we are, and
              * we don't know if the archive is supposed to be there or not.
              */
-        	//remove_path(apex_options::otf2_archive_path());
+        	remove_path(apex_options::otf2_archive_path());
 		}
         /* open the OTF2 archive */
         archive = OTF2_Archive_Open( apex_options::otf2_archive_path(),
