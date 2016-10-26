@@ -8,6 +8,6 @@ platform_mpi=""
 platform_papi="-DUSE_PAPI=TRUE -DPAPI_ROOT=${HOME}/install/papi/5.5.0-knl"
 platform_tau="-DUSE_TAU=TRUE -DTAU_ROOT=$HOME/src/tau2 -DTAU_ARCH=x86_64 -DTAU_OPTIONS=-pthread"
 
-module load cmake gcc/5.3
+module load cmake intel gcc/5.3
 
 parallel_build="-j 32"

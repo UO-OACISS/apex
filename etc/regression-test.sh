@@ -53,14 +53,14 @@ if [ -z ${CC+x} ]; then
     echo "CC is unset, using gcc"
     export CC=gcc
 else 
-    echo "CC is set to '$var'"
+    echo "CC is set to '${CC}'"
     export CC
 fi
 if [ -z ${CXX+x} ]; then 
     echo "CXX is unset, using gcc"
     export CXX=g++
 else 
-    echo "CXX is set to '$var'"
+    echo "CXX is set to '${CXX}'"
     export CXX
 fi
 
