@@ -903,12 +903,12 @@ void finalize()
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     finalize_plugins();
-    exit_thread();
 #if APEX_HAVE_PROC
     if (instance->pd_reader != nullptr) {
         instance->pd_reader->stop_reading();
     }
 #endif
+    exit_thread();
 #if APEX_HAVE_MSR
     apex_finalize_msr();
 #endif

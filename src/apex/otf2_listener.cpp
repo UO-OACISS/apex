@@ -1019,6 +1019,8 @@ namespace apex {
                 static bool archive_created = create_archive();
 		// don't close the archive on us!
         read_lock_type lock(_archive_mutex);
+				// not likely, but just in case...
+				if (_terminate) { return; }
                 // before we process the event, make sure the node properties are written
                 // THIS WILL ONLY HAPPEN ONCE
                 static bool properties_written = write_my_node_properties();
@@ -1045,6 +1047,7 @@ namespace apex {
 		// don't close the archive on us!
         read_lock_type lock(_archive_mutex);
         if (!_terminate && archive_created) {
+            std::unique_lock<std::mutex> lock(_comm_mutex);
 			/*
             if (thread_instance::get_id() != 0) {
                 // insert a thread begin event
@@ -1068,6 +1071,8 @@ namespace apex {
         static bool archive_created = create_archive();
 		// don't close the archive on us!
         read_lock_type lock(_archive_mutex);
+		// not likely, but just in case...
+		if (_terminate) { return false; }
         // before we process the event, make sure the node properties are written
         // THIS WILL ONLY HAPPEN ONCE
         static bool properties_written = write_my_node_properties();
