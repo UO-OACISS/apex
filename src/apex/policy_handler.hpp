@@ -5,7 +5,7 @@
 
 #pragma once
 
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
 #include <hpx/hpx.hpp>
 #include <hpx/util/interval_timer.hpp>
 #endif
@@ -73,7 +73,7 @@ private:
     void call_policies(
         const std::list<std::shared_ptr<policy_instance> > & policies,
         event_data &event_data);
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
     hpx::util::interval_timer hpx_timer;
 #endif
 public:

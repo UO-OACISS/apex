@@ -383,7 +383,7 @@ int apex_throughput_throttling_dhc_policy(apex_context const context) {
     // if we have no data yet, return.
     if (function_profile == NULL) { 
         printf ("No Data?\n");
-#if defined(APEX_HAVE_HPX3) && defined(APEX_DEBUG_THROTTLE)
+#if defined(APEX_HAVE_HPX) && defined(APEX_DEBUG_THROTTLE)
 /*
         std::vector<std::string> available = apex::get_available_profiles();
         for(std::string s : available) {

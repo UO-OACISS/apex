@@ -10,7 +10,7 @@ set(ITTNOTIFY_SOURCE_DIR ${ITTNOTIFY_SOURCE_DIR} PARENT_SCOPE)
 set(ITTNOTIFY_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
 set(ITTNOTIFY_BINARY_DIR ${ITTNOTIFY_BINARY_DIR} PARENT_SCOPE)
 
-add_definitions(-DAPEX_HAVE_HPX3)
+add_definitions(-DAPEX_HAVE_HPX)
 
 # this will be statically linked to the core HPX library
 add_definitions(-DHPX_EXPORTS)

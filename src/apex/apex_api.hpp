@@ -10,7 +10,7 @@
 /** @file */ 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
 #include <hpx/config.hpp>
 #include <hpx/include/runtime.hpp>
 #endif
@@ -674,7 +674,7 @@ APEX_EXPORT bool has_session_converged(apex_tuning_session_handle handle);
  */
 APEX_EXPORT void print_options(void);
 
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
 hpx::runtime * get_hpx_runtime_ptr(void);
 #endif
 

@@ -5,7 +5,7 @@
 
 #pragma once
 
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
 #include <hpx/config.hpp>
 #endif
 
@@ -17,7 +17,7 @@
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
 #include <boost/thread.hpp>
 #endif
 
@@ -70,7 +70,7 @@ private:
   void write_taskgraph(void);
   void write_profile(void);
   void delete_profiles(void);
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
   void schedule_process_profiles(void);
 #endif
   unsigned int process_profile(std::shared_ptr<profiler> &p, unsigned int tid);
@@ -97,7 +97,7 @@ private:
   std::vector<std::string> metric_names;
   void initialize_PAPI(bool first_time);
 #endif
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
   boost::thread * consumer_thread;
 #else
   std::thread * consumer_thread;

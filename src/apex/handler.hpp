@@ -8,7 +8,7 @@
 #include <string>
 #include <iostream>
 #include <chrono>
-#ifdef APEX_HAVE_HPX3 
+#ifdef APEX_HAVE_HPX 
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <boost/thread.hpp>
@@ -25,7 +25,7 @@ class handler
 {
 private:
     static const unsigned int default_period = 100000;
-#ifdef APEX_HAVE_HPX3 
+#ifdef APEX_HAVE_HPX 
     static boost::asio::io_service _io;
     void _threadfunc(void) {
         _io.run();
@@ -47,7 +47,7 @@ protected:
   unsigned int _period;
   bool _handler_initialized;
   bool _terminate;
-#ifdef APEX_HAVE_HPX3 
+#ifdef APEX_HAVE_HPX 
   boost::asio::deadline_timer _timer;
   boost::thread* _timer_thread;
   void reset(void) {
@@ -60,7 +60,7 @@ protected:
   pthread_wrapper* _timer_thread;
 #endif
   void run(void) {
-#ifdef APEX_HAVE_HPX3 
+#ifdef APEX_HAVE_HPX 
     _timer_thread = new boost::thread(&handler::_threadfunc, this);
 #else
     _timer_thread = new pthread_wrapper(&handler::_threadfunc, (void*)(this), _period);
@@ -71,7 +71,7 @@ public:
       _period(default_period), 
       _handler_initialized(false), 
       _terminate(false), 
-#ifdef APEX_HAVE_HPX3 
+#ifdef APEX_HAVE_HPX 
       _timer(_io, boost::posix_time::microseconds(_period)),
 #endif
       _timer_thread(nullptr)
@@ -80,7 +80,7 @@ public:
       _period(period), 
       _handler_initialized(false), 
       _terminate(false), 
-#ifdef APEX_HAVE_HPX3 
+#ifdef APEX_HAVE_HPX 
       _timer(_io, boost::posix_time::microseconds(_period)),
 #endif
       _timer_thread(nullptr)
@@ -88,7 +88,7 @@ public:
   void cancel(void) {
       _terminate = true; 
       if(_timer_thread != nullptr) {
-#ifdef APEX_HAVE_HPX3 
+#ifdef APEX_HAVE_HPX 
         _timer.cancel();
         if (_timer_thread->try_join_for(boost::chrono::seconds(1))) {
             _timer_thread->interrupt();
@@ -107,7 +107,7 @@ public:
   // all methods in the interface that a handler has to override
   virtual bool _handler(void) {
       std::cout << "Default handler" << std::endl;
-#ifdef APEX_HAVE_HPX3 
+#ifdef APEX_HAVE_HPX 
       this->reset();
 #endif
       return true;

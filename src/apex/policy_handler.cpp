@@ -3,7 +3,7 @@
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
 #include <hpx/config.hpp>
 #include <hpx/include/runtime.hpp>
 #endif
@@ -27,7 +27,7 @@ namespace apex {
 
 std::atomic<int> next_id(0);
 
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
 policy_handler::policy_handler (void) : handler() { }
 #else
 policy_handler::policy_handler (void) : handler() { }
@@ -41,7 +41,7 @@ policy_handler::policy_handler (duration<Rep, Period> const& period) : handler(p
 }
 */
 
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
 policy_handler::policy_handler (uint64_t period_microseconds) : handler(period_microseconds), hpx_timer(boost::bind(&policy_handler::_handler, this), _period, "apex_internal_policy_handler") 
 {
     _init();
@@ -76,7 +76,7 @@ bool policy_handler::_handler(void) {
 }
 
 void policy_handler::_init(void) {
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
   hpx_timer.start();
 #else
   run();
@@ -85,7 +85,7 @@ void policy_handler::_init(void) {
 }
 
 inline void policy_handler::_reset(void) {
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
   if (_terminate) {
     hpx_timer.stop();
   }
@@ -350,7 +350,7 @@ void policy_handler::on_shutdown(shutdown_event_data &data) {
 	// prevent periodic policies from executing while we are shutting down.
 	write_lock_type wl(periodic_mutex);
     _terminate = true;
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
     if (_timer_thread != nullptr) { 
         _timer.cancel();
         if (_timer_thread->try_join_for(boost::chrono::seconds(1))) {

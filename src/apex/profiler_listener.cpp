@@ -1,7 +1,7 @@
 //  Copyright (c) 2014 University of Oregon
 //
 
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
 #include <hpx/config.hpp>
 #endif
 
@@ -60,7 +60,7 @@ apex::shared_mutex_type throttled_event_set_mutex;
 std::mutex event_set_mutex;
 #endif
 
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
 #include <boost/assign.hpp>
 #include <boost/cstdint.hpp>
 #include <hpx/include/performance_counters.hpp>
@@ -94,7 +94,7 @@ namespace apex {
      throttled, and shouldn't be processed. */
   profiler* profiler::disabled_profiler = new profiler();
 
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
   /* Flag indicating whether a consumer task is currently running */
   std::atomic_flag consumer_task_running = ATOMIC_FLAG_INIT;
   bool hpx_shutdown = false;
@@ -128,7 +128,7 @@ namespace apex {
     double non_idle_time = get_non_idle_time();
     /* Subtract the accumulated time from the main time span. */
 	int num_worker_threads = thread_instance::get_num_threads();
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - 8;
 #endif
     std::chrono::duration<double> time_span = 
@@ -146,7 +146,7 @@ namespace apex {
     double non_idle_time = get_non_idle_time();
     /* Subtract the accumulated time from the main time span. */
 	int num_worker_threads = thread_instance::get_num_threads();
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - 8;
 #endif
     std::chrono::duration<double> time_span = 
@@ -266,7 +266,7 @@ namespace apex {
         if(_done && did_lock) {
             task_map_lock.unlock();
         }
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
 #ifdef APEX_REGISTER_HPX3_COUNTERS
         if(!_done) {
             if(get_hpx_runtime_ptr() != nullptr && p->task_id->has_name()) {
@@ -476,7 +476,7 @@ namespace apex {
     // our TOTAL available time is the elapsed * the number of threads, or cores
 	int num_worker_threads = thread_instance::get_num_threads();
     double wall_clock_main = main_timer->elapsed() * profiler::get_cpu_mhz();
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - 8;
 #endif
     double total_main = wall_clock_main * 
@@ -649,7 +649,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
 
     // our TOTAL available time is the elapsed * the number of threads, or cores
 	int num_worker_threads = thread_instance::get_num_threads();
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - 8;
 #endif
     double total_main = main_timer->elapsed() *
@@ -853,7 +853,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
     std::shared_ptr<profiler> p;
     task_dependency* td;
     // Main loop. Stay in this loop unless "done".
-#ifndef APEX_HAVE_HPX3
+#ifndef APEX_HAVE_HPX
     while (!_done) {
       queue_signal.wait();
 #endif
@@ -895,7 +895,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
       }
       */
 #endif
-#ifndef APEX_HAVE_HPX3
+#ifndef APEX_HAVE_HPX
     }
 
     if (apex_options::use_taskgraph_output()) {
@@ -905,9 +905,9 @@ node_color * get_node_color(double v,double vmin,double vmax)
       }
     }
  
-#endif // NOT DEFINED APEX_HAVE_HPX3
+#endif // NOT DEFINED APEX_HAVE_HPX
 
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
     consumer_task_running.clear(memory_order_release);
 #endif
 
@@ -985,7 +985,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   void profiler_listener::on_startup(startup_event_data &data) {
     if (!_done) {
       my_tid = (unsigned int)thread_instance::get_id();
-#ifndef APEX_HAVE_HPX3
+#ifndef APEX_HAVE_HPX
       // Start the consumer thread, to process profiler objects.
       consumer_thread = new std::thread(consumer_process_profiles_wrapper);
 #endif
@@ -1047,7 +1047,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       _done = true;
       node_id = data.node_id;
       //sleep(1);
-#ifndef APEX_HAVE_HPX3
+#ifndef APEX_HAVE_HPX
       queue_signal.post();
       if (consumer_thread != nullptr) {
           consumer_thread->join();
@@ -1230,10 +1230,10 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
               cout << "One or more frequently-called, lightweight functions is being timed." << endl;
           }
       }
-#ifndef APEX_HAVE_HPX3
+#ifndef APEX_HAVE_HPX
       queue_signal.post();
 #endif
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
       apex_schedule_process_profiles();
 #endif
   }
@@ -1343,14 +1343,14 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       _done = true; // yikes!
       finalize();
       delete_profiles();
-#ifndef APEX_HAVE_HPX3
+#ifndef APEX_HAVE_HPX
       delete consumer_thread;
 #endif
   };
 
 }
 
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
 HPX_DECLARE_ACTION(apex::profiler_listener::process_profiles_wrapper, apex_internal_process_profiles_action);
 HPX_ACTION_HAS_CRITICAL_PRIORITY(apex_internal_process_profiles_action);
 HPX_PLAIN_ACTION(apex::profiler_listener::process_profiles_wrapper, apex_internal_process_profiles_action);

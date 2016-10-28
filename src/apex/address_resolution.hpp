@@ -5,7 +5,7 @@
 
 #pragma once
 
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
 #include <hpx/config.hpp>
 #endif
 

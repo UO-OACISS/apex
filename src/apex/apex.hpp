@@ -12,7 +12,7 @@
 /** @file */ 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
 #include <hpx/config.hpp>
 #include <hpx/include/runtime.hpp>
 #endif
@@ -84,7 +84,7 @@ private:
     policy_handler * m_policy_handler;
     std::map<int, policy_handler*> period_handlers;
     std::vector<apex_thread_state> thread_states;
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
     hpx::runtime * m_hpx_runtime;
 #endif
 public:
@@ -103,7 +103,7 @@ public:
     int get_num_ranks(void);
     void set_node_id(uint64_t rank) { m_node_id = rank; }
     void set_num_ranks(uint64_t size) { m_num_ranks = size; }
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
     void set_hpx_runtime(hpx::runtime * hpx_runtime);
     hpx::runtime * get_hpx_runtime(void);
 #endif

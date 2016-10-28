@@ -3,7 +3,7 @@
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
 #include <hpx/config.hpp>
 #endif
 
@@ -11,7 +11,7 @@
 
 namespace apex {
 
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
 boost::asio::io_service handler::_io;
 #endif
 

@@ -1,7 +1,7 @@
 //  Copyright (c) 2014 University of Oregon
 //
 
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
 #include <hpx/config.hpp>
 #endif
 
@@ -93,7 +93,7 @@ int apex::get_num_ranks()
     return m_num_ranks;
 }
 
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
 static void init_hpx_runtime_ptr(void) {
     if (apex_options::disable() == true) { return; }
     apex * instance = apex::instance();
@@ -160,7 +160,7 @@ void apex::_initialize()
 #endif
 
     this->version_string = std::string(tmp.str().c_str());
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
     this->m_hpx_runtime = nullptr;
     hpx::register_startup_function(init_hpx_runtime_ptr);
 #endif
@@ -254,7 +254,7 @@ policy_handler * apex::get_policy_handler(uint64_t const& period)
     return period_handlers[period];
 }
 
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
 void apex::set_hpx_runtime(hpx::runtime * hpx_runtime) {
     m_hpx_runtime = hpx_runtime;
 }
@@ -698,7 +698,7 @@ void custom_event(apex_event_type event_type, void * custom_data) {
     }
 }
 
-#ifdef APEX_HAVE_HPX3
+#ifdef APEX_HAVE_HPX
 hpx::runtime * get_hpx_runtime_ptr(void) {
     apex * instance = apex::instance();
     if (!instance || _exited) {
