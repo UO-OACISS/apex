@@ -30,6 +30,7 @@ void initialize_work(int * data, int size) {
 
 int main(int argc, char **argv) {
   int myrank;
+  int commsize;
 
   /* Initialize MPI */
 
@@ -41,13 +42,13 @@ int main(int argc, char **argv) {
     printf ("Your MPI installation doesn't allow multiple threads to communicate. Exiting.\n");
     exit(0);
   }
-  apex::init(argc, argv, "MPI TEST");
-  apex_global_setup(APEX_FUNCTION_ADDRESS, (void*)(do_work));
 
   /* Find out my identity in the default communicator */
 
   MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
-  apex::set_node_id(myrank);
+  MPI_Comm_size(MPI_COMM_WORLD, &commsize);
+  apex::init("MPI TEST", myrank, commsize);
+  apex_global_setup(APEX_FUNCTION_ADDRESS, (void*)(do_work));
 
   int size = TOTAL_WORK;
   data = (int*)(malloc(size * sizeof(int)));

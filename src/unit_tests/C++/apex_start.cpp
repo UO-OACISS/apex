@@ -24,9 +24,7 @@ void* someThread(void* tmp)
 
 int main (int argc, char** argv) {
     /* initialize APEX */
-    apex::init(argc, argv, "apex::start unit test");
-    /* set our node ID */
-    apex::set_node_id(0);
+    apex::init("apex::start unit test", 0, 1);
     /* start a timer */
     apex::profiler* p = apex::start("main");
     /* Spawn two threads */

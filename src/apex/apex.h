@@ -45,26 +45,14 @@ extern "C" {
  
  \param thread_name The name of the thread, or NULL. The lifetime of the
                     thread will be timed with a timer using this same name.
- \return No return value.
+ \param comm_rank   The rank of this process within the full distributed
+                    application, i.e. MPI rank or HPX locality.
+ \param comm_size   The total number of processes within the full distributed
+                    application, i.e. MPI comm_size or total number of HPX localities.
+ \return APEX_NOERROR on success, or APEX_ERROR on failure.
  \sa @ref apex_init_args, @ref apex_finalize
  */
-APEX_EXPORT void apex_init(const char * thread_name);
-
-/**
- \brief Intialize APEX.
- \warning For best results, this function should be called before any other 
-          APEX functions. 
- \warning Use this version of apex_init when you have access
-          to the input arguments.
- 
- \param argc The number of arguments passed in to the program.
- \param argv An array of arguments passed in to the program.
- \param thread_name The name of the thread, or NULL. The lifetime of the
-                    thread will be timed with a timer using this same name.
- \return No return value.
- \sa @ref apex_init, @ref apex_finalize
- */
-APEX_EXPORT void apex_init_args(int argc, char** argv, const char * thread_name);
+APEX_EXPORT int apex_init(const char * thread_name, const unsigned int comm_rank, const unsigned int comm_size);
 
 /**
  \brief Finalize APEX.
@@ -263,30 +251,6 @@ APEX_EXPORT void apex_custom_event(apex_event_type event_type, void * custom_dat
  should not be freed after the calling function is done with it.
  */
 APEX_EXPORT const char * apex_version(void);
-
-/**
- \brief Set this process' node ID.
-
- For distributed applications, this function will store the
- node ID. Common values are the MPI rank, the HPX locality, etc.
- This ID will be used to identify the process in the global
- performance space.
- 
- \param id The node ID for this process.
- \return No return value.
- */
-APEX_EXPORT void apex_set_node_id(int id);
-
-/**
- \brief Set this execution's number of ranks.
-
- For distributed applications, this function will store the
- number of ranks. Common values are the MPI commsize, the HPX number of localities, etc.
- 
- \param id The number of ranks for this execution.
- \return No return value.
- */
-APEX_EXPORT void apex_set_num_ranks(int id);
 
 /**
  \brief Register a new thread.
@@ -531,7 +495,6 @@ APEX_EXPORT void apex_print_options(void);
  \param tag The message identifier
  \param size The message size (in bytes)
  \param target The message target (as an APEX rank)
- \sa @ref apex_set_node_id
  */
 APEX_EXPORT void apex_send (uint64_t tag, uint64_t size, uint64_t target);
 
@@ -548,7 +511,6 @@ APEX_EXPORT void apex_send (uint64_t tag, uint64_t size, uint64_t target);
  \param size The message size (in bytes)
  \param source_rank The message source (as a rank/locality index)
  \param source_thread The message source (as a worker thread index)
- \sa @ref apex_set_node_id
  */
 APEX_EXPORT void apex_recv (uint64_t tag, uint64_t size, uint64_t source_rank, uint64_t source_thread);
 

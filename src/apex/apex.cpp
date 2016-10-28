@@ -83,26 +83,6 @@ apex::~apex()
     m_pInstance = nullptr;
 }
 
-void apex::set_node_id(int id)
-{
-    m_node_id = id;
-    stringstream ss;
-    ss << "locality#" << m_node_id;
-    m_my_locality = string(ss.str());
-    node_event_data data(id, thread_instance::get_id());
-    if (_notify_listeners) {
-        for (unsigned int i = 0 ; i < listeners.size() ; i++) {
-            listeners[i]->on_new_node(data);
-        }
-    }
-}
-
-void apex::set_num_ranks(int num_ranks)
-{
-    m_num_ranks = num_ranks;
-    stringstream ss;
-}
-
 int apex::get_node_id()
 {
     return m_node_id;
@@ -136,6 +116,9 @@ void apex::_initialize()
 #endif
     this->m_pInstance = this;
     this->m_policy_handler = nullptr;
+    stringstream ss;
+    ss << "locality#" << this->m_node_id;
+    this->m_my_locality = string(ss.str());
     stringstream tmp;
 #if defined (GIT_TAG)
     tmp << GIT_TAG;
@@ -191,7 +174,10 @@ void apex::_initialize()
     if (apex_options::use_tau())
     {
         // before spawning any other threads, initialize TAU.
-        tau_listener::initialize_tau(m_argc, m_argv);
+        char * tmp = const_cast<char*>("APEX");
+        char * argv[] = {tmp};
+        int argc = 1;
+        tau_listener::initialize_tau(argc, argv);
     }
 #endif
     // this is always the first listener!
@@ -234,36 +220,22 @@ void apex::_initialize()
     this->set_state(0, APEX_BUSY);
 }
 
-/*  
-    This function is called to create an instance of the class.
-    Calling the constructor publicly is not allowed. The constructor
-    is private and is only called by this Instance function.
-*/
 apex* apex::instance()
 {
     // Only allow one instance of class to be generated.
-    if (m_pInstance == nullptr && !_measurement_stopped)
-    {
-        m_pInstance = new apex;
+    if (m_pInstance == nullptr) {
+        if (_measurement_stopped) {
+            return nullptr;
+        } else {
+            m_pInstance = new apex();
+        }
     }
-    else if (_measurement_stopped) return nullptr;
     return m_pInstance;
 }
 
 // special case - for cleanup only!
 apex* apex::__instance()
 {
-    return m_pInstance;
-}
-
-apex* apex::instance(int argc, char**argv)
-{
-    // Only allow one instance of class to be generated.
-    if (m_pInstance == nullptr && !_measurement_stopped)
-    {
-        m_pInstance = new apex(argc, argv);
-    }
-    else if (_measurement_stopped) return nullptr;
     return m_pInstance;
 }
 
@@ -305,21 +277,22 @@ int initialize_worker_thread_for_TAU(void) {
   return 0;
 }
 
-void init(const char * thread_name) {
+uint64_t init(const char * thread_name, uint64_t comm_rank, uint64_t comm_size) {
     // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { return; }
+    if (apex_options::disable() == true) { return APEX_ERROR; }
     // protect against multiple initializations
-    if (_registered || _initialized) { return; }
+    if (_registered || _initialized) { return APEX_ERROR; }
     _registered = true;
     _initialized = true;
-    int argc = 1;
-    const char *dummy = "APEX Application";
-    char* argv[1];
-    argv[0] = const_cast<char*>(dummy);
-    apex* instance = apex::instance(argc, argv); // get/create the Apex static instance
-    if (!instance || _exited) return; // protect against calls after finalization
+    apex* instance = apex::instance(); // get/create the Apex static instance
+    // assign the rank and size.  Why not in the constructor?
+    // because, if we registered a startup policy, the default 
+    // constructor was called, without the correct comm_rank and comm_size.
+    instance->set_node_id(comm_rank);
+    instance->set_num_ranks(comm_size);
+    if (!instance || _exited) return APEX_ERROR; // protect against calls after finalization
     init_plugins();
-    startup_event_data data(argc, argv);
+    startup_event_data data(comm_rank, comm_size);
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_startup(data);
@@ -342,41 +315,14 @@ void init(const char * thread_name) {
     if (apex_options::throttle_energy() && apex_options::throttle_concurrency() ) {
       setup_power_cap_throttling();
     }
-}
-
-void init(int argc, char** argv, const char * thread_name) {
-    // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { return; }
-    // protect against multiple initializations
-    if (_registered || _initialized) { return; }
-    _registered = true;
-    _initialized = true;
-    apex* instance = apex::instance(argc, argv); // get/create the Apex static instance
-    if (!instance || _exited) return; // protect against calls after finalization
-    init_plugins();
-    startup_event_data data(argc, argv);
+    // this code should be absorbed from "new node" event to "on_startup" event.
+    node_event_data node_data(comm_rank, thread_instance::get_id());
     if (_notify_listeners) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_startup(data);
+            instance->listeners[i]->on_new_node(node_data);
         }
     }
-#ifdef APEX_HAVE_TAU
-    // start top-level timers for threads
-    if (thread_name) {
-      start(thread_name);
-    } else {
-      start("APEX MAIN THREAD");
-    }
-#else 
-    APEX_UNUSED(thread_name);
-#endif
-    if (apex_options::use_screen_output() && instance->get_node_id() == 0) {
-	  std::cout << version() << std::endl;
-      apex_options::print_options();
-	}
-    if (apex_options::throttle_energy() && apex_options::throttle_concurrency() ) {
-      setup_power_cap_throttling();
-    }
+    return APEX_NOERROR;
 }
 
 string& version() {
@@ -752,25 +698,6 @@ void custom_event(apex_event_type event_type, void * custom_data) {
     }
 }
 
-
-void set_node_id(int id)
-{
-    // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { return; }
-    apex* instance = apex::instance();
-    if (!instance || _exited) return; // protect against calls after finalization
-    instance->set_node_id(id);
-}
-
-void set_num_ranks(int num_ranks)
-{
-    // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { return; }
-    apex* instance = apex::instance();
-    if (!instance || _exited) return; // protect against calls after finalization
-    instance->set_num_ranks(num_ranks);
-}
-
 #ifdef APEX_HAVE_HPX3
 hpx::runtime * get_hpx_runtime_ptr(void) {
     apex * instance = apex::instance();
@@ -899,7 +826,16 @@ void finalize()
 	//cout << thread_instance::get_id() << " *** Finalize! " << endl; fflush(stdout);
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
-    shutdown_throttling(); // if not done already
+    // prevent re-entry, be extra strict about race conditions - it is possible.
+    mutex shutdown_mutex;
+    static bool finalized = false;
+    {
+        unique_lock<mutex> l(shutdown_mutex);
+        if (finalized) { return; };
+        finalized = true;
+    }
+    // if not done already...
+    shutdown_throttling();
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
     finalize_plugins();
@@ -1174,18 +1110,17 @@ using namespace apex;
 
 extern "C" {
 
-    void apex_init(const char * thread_name)
+    int apex_init(const char * thread_name, unsigned long int comm_rank, unsigned long int comm_size)
     {
-        init(thread_name);
+        return init(thread_name, comm_rank, comm_size);
     }
 
-    void apex_init_(void) { init("FORTRAN thread"); }
+    int apex_init_(unsigned long int comm_rank, unsigned long int comm_size) { 
+        return init("FORTRAN thread", comm_rank, comm_size); 
+    }
 
-    void apex_init__(void) { init("FORTRAN thread"); }
-
-    void apex_init_args(int argc, char** argv, const char * thread_name)
-    {
-        init(argc, argv, thread_name);
+    int apex_init__(unsigned long int comm_rank, unsigned long int comm_size) { 
+        return init("FORTRAN thread", comm_rank, comm_size); 
     }
 
     void apex_cleanup()
@@ -1289,16 +1224,6 @@ extern "C" {
     void apex_custom_event(apex_event_type event_type, void * custom_data)
     {
         custom_event(event_type, custom_data);
-    }
-
-    void apex_set_node_id(int id)
-    {
-        set_node_id(id);
-    }
-
-    void apex_set_num_ranks(int num_ranks)
-    {
-        set_num_ranks(num_ranks);
     }
 
     void apex_register_thread(const char * name)

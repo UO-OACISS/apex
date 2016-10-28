@@ -64,8 +64,7 @@ int main(int argc, char **argv)
 
   apex::apex_options::use_screen_output(true);
 
-  apex::init(argc, argv, "apex_register_policy_set unit test");
-  apex::set_node_id(0);
+  apex::init("apex_register_policy_set unit test", 0, 1);
 
   apex::profiler* my_profiler = apex::start((apex_function_address)&main);
   pthread_t thread[NUM_THREADS];

@@ -20,7 +20,6 @@ set(example_programs
     apex_register_custom_event
     apex_custom_event
     apex_version
-    apex_set_node_id
     apex_register_thread
     apex_exit_thread
     apex_register_policy

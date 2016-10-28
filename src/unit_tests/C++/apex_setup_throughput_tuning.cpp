@@ -198,9 +198,8 @@ void report_stats(void) {
  * The Main function
  */
 int main (int argc, char ** argv) {
-    apex::init(argc, argv, "openmp test");
+    apex::init("openmp test", 0, 1);
     parse_arguments(argc, argv);
-    apex::set_node_id(0);
 
 #ifdef APEX_HAVE_ACTIVEHARMONY
     int num_inputs = 2; // 2 for threads, block size; 3 for threads, block size, method

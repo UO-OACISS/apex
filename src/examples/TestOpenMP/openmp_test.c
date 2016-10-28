@@ -114,8 +114,7 @@ int main(int argc, char** argv)
 {
   static double x[N];
   static double y[N];
-  apex_init_args(argc, argv, "openmp test");
-  apex_set_node_id(0);
+  apex_init("openmp test", 0, 1);
   printf("Initializing...\n"); fflush(stdout);
   my_init(x);
   printf("Initializing...\n"); fflush(stdout);

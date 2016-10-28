@@ -86,8 +86,7 @@ void* someThread(void* tmp)
 
 int main(int argc, char **argv)
 {
-  apex::init(argc, argv, NULL);
-  apex::set_node_id(0);
+  apex::init(argv[0], 0, 1);
   ApexProxy proxy = ApexProxy((apex_function_address)main);
   printf("PID of this process: %d\n", getpid());
   pthread_t thread[NUM_THREADS];

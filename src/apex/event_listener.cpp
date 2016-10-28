@@ -55,11 +55,11 @@ custom_event_data::custom_event_data(apex_event_type event_type, void * custom_d
 custom_event_data::~custom_event_data() {
 }
 
-startup_event_data::startup_event_data(int argc, char** argv) {
+startup_event_data::startup_event_data(uint64_t comm_rank, uint64_t comm_size) {
   this->thread_id = thread_instance::get_id();
   this->event_type_ = APEX_STARTUP;
-  this->argc = argc;
-  this->argv = argv;
+  this->comm_rank = comm_rank;
+  this->comm_size = comm_size;
 }
 
 shutdown_event_data::shutdown_event_data(int node_id, int thread_id) {

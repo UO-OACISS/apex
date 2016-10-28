@@ -93,7 +93,7 @@ void * fib (void * in) {
 }
 
 int main(int argc, char *argv[]) {
-    apex_init("apex_fibonacci_pthreads unit test");
+    apex_init("apex_fibonacci_pthreads unit test", 0, 1);
 #ifdef APEX_HAVE_TAU
     int i = 5;
 #else

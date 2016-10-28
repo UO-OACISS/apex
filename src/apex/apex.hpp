@@ -66,11 +66,10 @@ class apex
 {
 private:
 // private constructors cannot be called
-    apex() : m_argc(0), m_argv(NULL), m_node_id(0), m_num_ranks(1), m_my_locality(std::string("0"))
-    {
-        _initialize();
-    };
-    apex(int argc, char**argv) : m_argc(argc), m_argv(argv), m_node_id(0), m_num_ranks(1), m_my_locality(std::string("0"))
+    apex() : 
+        m_node_id(0), 
+        m_num_ranks(1), 
+        m_my_locality(std::string("0"))
     {
         _initialize();
     };
@@ -78,10 +77,8 @@ private:
     apex& operator=(apex const& a); // assignment operator is private
 // member variables
     static apex* m_pInstance;
-    int m_argc;
-    char** m_argv;
     int m_node_id;
-    int m_num_ranks;;
+    int m_num_ranks;
     bool m_profiling;
     void _initialize();
     policy_handler * m_policy_handler;
@@ -100,12 +97,12 @@ public:
     std::unordered_map<int, std::string> custom_event_names;
     shared_mutex_type custom_event_mutex;
     static apex* instance(); // singleton instance
-    static apex* instance(int argc, char** argv); // singleton instance
+    static apex* instance(uint64_t comm_rank, uint64_t comm_size); // singleton instance
     static apex* __instance(); // special case - for cleanup only!
-    void set_node_id(int id);
-    void set_num_ranks(int num_ranks);
     int get_node_id(void);
     int get_num_ranks(void);
+    void set_node_id(uint64_t rank) { m_node_id = rank; }
+    void set_num_ranks(uint64_t size) { m_num_ranks = size; }
 #ifdef APEX_HAVE_HPX3
     void set_hpx_runtime(hpx::runtime * hpx_runtime);
     hpx::runtime * get_hpx_runtime(void);

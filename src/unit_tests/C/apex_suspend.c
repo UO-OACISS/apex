@@ -6,10 +6,9 @@
 /* This unit test is intended to test the APEX_DISABLE environment variable. */
 
 int main (int argc, char** argv) {
-  apex_init_args(argc, argv, "apex_get_idle_rate unit test");
+  apex_init("apex_get_idle_rate unit test", 0, 1);
   apex_set_use_screen_output(1);
   printf("APEX Version : %s\n", apex_version());
-  apex_set_node_id(0);
   apex_profiler_handle main_profiler = apex_start(APEX_FUNCTION_ADDRESS,(void*)(main));
   int i = 0;
   // Call "foo" 30 times

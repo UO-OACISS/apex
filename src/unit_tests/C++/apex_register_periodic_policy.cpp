@@ -58,8 +58,7 @@ int startup_policy(apex_context const context) {
 
 int main(int argc, char **argv)
 {
-  apex::init(argc, argv, "apex_register_periodic_policy unit test");
-  apex::set_node_id(0);
+  apex::init("apex_register_periodic_policy unit test", 0, 1);
   apex_policy_handle * on_periodic = apex::register_periodic_policy(1000000, policy_periodic);
   apex::profiler* my_profiler = apex::start((apex_function_address)&main);
   pthread_t thread[NUM_THREADS];

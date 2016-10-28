@@ -69,9 +69,8 @@ void* someThread(void* tmp)
 
 int main(int argc, char **argv)
 {
-  init(argc, argv, NULL);
+  init(argv[0], 0, 1);
   //print_options();
-  set_node_id(0);
 
   setup_timer_throttling((apex_function_address)foo, APEX_MAXIMIZE_THROUGHPUT,
           APEX_DISCRETE_HILL_CLIMBING, 1000000);

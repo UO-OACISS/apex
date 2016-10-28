@@ -165,11 +165,22 @@ endif()
 
 set(NORMAL_COMPILER_WARNINGS "-Wextra -Waddress -Warray-bounds -Wuninitialized -Wreturn-type -Wall -fno-omit-frame-pointer ")
 
+# SET SANITIZE OPTIONS, IF DESIRED 
+
+# defaults
+set(APEX_SANITIZE_OPTIONS "")
+
+# memory, other
 if (DEFINED APEX_SANITIZE AND APEX_SANITIZE)
   set(APEX_SANITIZE_OPTIONS "-fsanitize=address -fsanitize=undefined ")
-else()
-  set(APEX_SANITIZE_OPTIONS "")
 endif (DEFINED APEX_SANITIZE AND APEX_SANITIZE)
+
+# race conditions
+if (DEFINED APEX_SANITIZE_THREAD AND APEX_SANITIZE_THREAD)
+  set(APEX_SANITIZE_OPTIONS "-fsanitize=thread ")
+endif (DEFINED APEX_SANITIZE_THREAD AND APEX_SANITIZE_THREAD)
+
+# set debug options
 
 set(CMAKE_CXX_FLAGS_RELEASE "-g -O3 -DNDEBUG -Wno-deprecated")
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")

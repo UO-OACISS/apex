@@ -50,8 +50,7 @@ int fib (int in) {
 }
 
 int main(int argc, char *argv[]) {
-    apex::init("apex_new_task_cpp unit test");
-	apex::set_node_id(0);
+    apex::init("apex_new_task_cpp unit test", 0, 1);
     apex_proxy * foo = new apex_proxy((void*)&main);
 #if defined(APEX_HAVE_TAU) || (APEX_HAVE_OTF2)
     int i = 5;

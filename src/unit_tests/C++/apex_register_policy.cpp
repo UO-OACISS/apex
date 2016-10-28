@@ -126,8 +126,7 @@ int main(int argc, char **argv)
   apex_policy_handle * on_new_node = apex::register_policy(APEX_NEW_NODE, policy_event);
   apex_policy_handle * on_new_thread = apex::register_policy(APEX_NEW_THREAD, policy_event);
 
-  apex::init(argc, argv, "apex_register_custom_event unit test");
-  apex::set_node_id(0);
+  apex::init("apex_register_custom_event unit test", 0, 1);
 
   apex_policy_handle * on_start_event = apex::register_policy(APEX_START_EVENT, policy_event);
   apex_policy_handle * on_stop_event = apex::register_policy(APEX_STOP_EVENT, policy_event);

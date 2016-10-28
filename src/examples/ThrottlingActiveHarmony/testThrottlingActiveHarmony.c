@@ -72,8 +72,7 @@ void* someThread(void* tmp)
 
 int main(int argc, char **argv)
 {
-  apex_init_args(argc, argv, NULL);
-  apex_set_node_id(0);
+  apex_init(argv[0], 0, 1);
 
   apex_setup_timer_throttling(APEX_FUNCTION_ADDRESS, &foo, APEX_MINIMIZE_ACCUMULATED,
           APEX_ACTIVE_HARMONY, 500000);

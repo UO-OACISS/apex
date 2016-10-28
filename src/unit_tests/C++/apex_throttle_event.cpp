@@ -30,7 +30,7 @@ uint64_t foo(uint64_t i) {
 }
 
 int main (int argc, char** argv) {
-    apex::init(argc, argv, "apex_start unit test");
+    apex::init("apex_start unit test", 0, 1);
     apex::profiler* p = apex::start((apex_function_address)&main);
     uint64_t i = 0;
     std::thread threads[MAX_THREADS];

@@ -366,7 +366,7 @@ extern "C" void my_idle_begin(ompt_thread_id_t thread_id) {
   } \
 
 inline int __ompt_initialize() {
-  apex::init("OPENMP_PROGRAM");
+  apex::init("OPENMP_PROGRAM",0,1);
   timer_stack = new std::stack<apex::profiler*>();
   fprintf(stderr,"Registering OMPT events..."); fflush(stderr);
   CHECK(ompt_event_parallel_begin, my_parallel_region_begin, "parallel_begin");

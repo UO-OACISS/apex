@@ -42,8 +42,7 @@ void* someThread(void* tmp)
 
 int main(int argc, char **argv)
 {
-  apex::init(argc, argv, NULL);
-  apex::set_node_id(0);
+  apex::init(argv[0], 0, 1);
   apex::apex_options::use_policy(true);
   apex::apex_options::use_screen_output(true);
   apex::apex_options::use_profile_output(true);

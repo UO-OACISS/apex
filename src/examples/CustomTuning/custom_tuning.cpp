@@ -19,8 +19,7 @@ double sv = 0.0;
  * The Main function
  */
 int main (int argc, char ** argv) {
-    apex::init(argc, argv, "Custom Tuning Test");
-    apex::set_node_id(0);
+    apex::init("Custom Tuning Test", 0, 1);
 
 #ifdef APEX_HAVE_ACTIVEHARMONY
     int num_inputs = 2; 

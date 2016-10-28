@@ -23,7 +23,7 @@ struct apex_system_wrapper_t
 {
   bool initialized;
   apex_system_wrapper_t() : initialized(true) {
-    apex::init("APEX Pthread Wrapper");
+    apex::init("APEX Pthread Wrapper",0,1);
     /* 
      * Here we are limiting the stack size to 16kB. Do it after we
      * initialized APEX, because APEX spawns two other threads 

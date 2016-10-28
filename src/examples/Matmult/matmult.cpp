@@ -168,8 +168,7 @@ void * threaded_func(void *data)
 
 int main (int argc, char *argv[]) 
 {
-  apex::init(argc, argv, NULL);
-  apex::set_node_id(0);
+  apex::init(argv[0], 0, 1);
   //apex::profiler* p = apex::start((void*)(main));
   apex::profiler* p = apex::start(__func__);
 

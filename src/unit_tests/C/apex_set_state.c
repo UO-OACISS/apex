@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 int main (int argc, char** argv) {
-  apex_init("apex_set_state unit test");
+  apex_init("apex_set_state unit test", 0, 1);
   apex_profiler_handle p = apex_start(APEX_NAME_STRING, "main");
   apex_set_use_screen_output(1);
   apex_set_state(APEX_IDLE);

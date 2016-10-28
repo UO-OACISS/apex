@@ -2631,8 +2631,7 @@ int main(int argc, char *argv[])
    numRanks = 1;
    myRank = 0;
 #endif   
-   apex::init("lulesh");
-   apex::set_node_id(myRank);
+   apex::init("lulesh",numRanks,myRank);
 
    /* Set defaults that can be overridden by command line opts */
    opts.its = 9999999;

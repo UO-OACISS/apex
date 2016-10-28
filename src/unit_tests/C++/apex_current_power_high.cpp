@@ -56,8 +56,7 @@ void* someThread(void* tmp)
 
 int main(int argc, char **argv)
 {
-  apex::init(argc, argv, NULL);
-  apex::set_node_id(0);
+  apex::init(NULL, 0, 1);
   //ApexProxy proxy = ApexProxy(__func__, __FILE__, __LINE__);
   ApexProxy proxy = ApexProxy((apex_function_address)main);
   double currentpower = apex::current_power_high();

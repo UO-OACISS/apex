@@ -6,9 +6,8 @@ using namespace std;
 
 
 int main (int argc, char** argv) {
-  init(argc, argv, "apex::get_profile unit test");
+  init("apex::get_profile unit test", 0, 1);
   cout << "APEX Version : " << version() << endl;
-  set_node_id(0);
   profiler * main_profiler = start((apex_function_address)(main));
   // Call "foo" 30 times
   for(int i = 0; i < 30; ++i) {

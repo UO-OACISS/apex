@@ -15,6 +15,7 @@ static int dummy = 0;
 
 int main(int argc, char **argv) {
   int myrank;
+  int commsize;
 
   /* Initialize MPI */
 
@@ -28,12 +29,12 @@ int main(int argc, char **argv) {
   }
   */
   MPI_Init(&argc, &argv);
-  apex::init(argc, argv, "MPI TEST");
 
   /* Find out my identity in the default communicator */
 
   MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
-  apex::set_node_id(myrank);
+  MPI_Comm_size(MPI_COMM_WORLD, &commsize);
+  apex::init("MPI TEST", myrank, commsize);
   apex::profiler* p = apex::start((apex_function_address)(main));
   if (myrank == 0) {
     master();

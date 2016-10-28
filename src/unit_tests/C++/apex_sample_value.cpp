@@ -23,10 +23,9 @@ void* someThread(void* tmp)
 }
 
 int main (int argc, char** argv) {
-  init(argc, argv, "apex::sample_value unit test");
+  init("apex::sample_value unit test", 0, 1);
   cout << "APEX Version : " << version() << endl;
   apex_options::print_options();
-  set_node_id(0);
   profiler* p = start("main");
   pthread_t thread[2];
   int tid = 0;

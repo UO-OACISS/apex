@@ -121,12 +121,11 @@ int startup_policy(apex_context const context) {
 
 int main(int argc, char **argv)
 {
-  apex::init(argc, argv, NULL);
+  apex::init(NULL, 0, 1);
   apex_policy_handle * on_startup = apex::register_policy(APEX_STARTUP, startup_policy);
   apex::register_policy(APEX_SHUTDOWN, policy_event);
   apex_policy_handle * on_new_node = apex::register_policy(APEX_NEW_NODE, policy_event);
   apex_policy_handle * on_new_thread = apex::register_policy(APEX_NEW_THREAD, policy_event);
-  apex::set_node_id(0);
   apex_policy_handle * on_start_event = apex::register_policy(APEX_START_EVENT, policy_event);
   apex_policy_handle * on_stop_event = apex::register_policy(APEX_STOP_EVENT, policy_event);
   apex_policy_handle * on_resume_event = apex::register_policy(APEX_RESUME_EVENT, policy_event);

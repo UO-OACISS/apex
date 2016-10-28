@@ -84,8 +84,7 @@ __itt_domain* __itt_domain_create(char const* name)
   APEX_TRACER
   __itt_domain *domain = (__itt_domain*)(malloc(sizeof(__itt_domain)));
   domain->nameA = strdup(name);
-  apex::init(NULL);
-  apex::set_node_id(0);
+  apex::init("ITT Notify", 0,1);
   return domain;
 }
 

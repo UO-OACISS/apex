@@ -79,13 +79,13 @@ dobuild()
     # Get time as a UNIX timestamp (seconds elapsed since Jan 1, 1970 0:00 UTC)
     T="$(date +%s)"
 
-    rm -rf build${post} install${post}
-    mkdir build${post}
-    cd build${post}
+    rm -rf build${post}-${buildtype} install${post}-${buildtype}
+    mkdir build${post}-${buildtype}
+    cd build${post}-${buildtype}
     cmd="cmake -DCMAKE_BUILD_TYPE=${buildtype} -DBUILD_TESTS=TRUE \
     -DBUILD_EXAMPLES=TRUE ${malloc} ${bfd} ${ah} ${ompt} ${papi} ${mpi} ${otf} ${tau} \
 	-DAPEX_THROTTLE=TRUE \
-    -DCMAKE_INSTALL_PREFIX=../install${post} ../.."
+    -DCMAKE_INSTALL_PREFIX=../install${post}-${buildtype} ../.."
     echo ${cmd}
     ${cmd} 2>&1 | tee ${logfile}
     make ${parallel_build} 2>&1 | tee ${logfile}
@@ -105,10 +105,10 @@ conditional_build()
     echo "spec: ${spec}"
     echo "post: ${post}"
     if [ "${spec}" = "all" ] ; then
+        buildtype=Debug
+        dobuild
         buildtype=Release
         dobuild
-        buildtype=Debug
-        #dobuild
     elif [ "${post}" = "" ] ; then
         return
     else

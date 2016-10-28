@@ -27,8 +27,7 @@ void* someThread(void* tmp)
 
 int main(int argc, char **argv)
 {
-  apex_init_args(argc, argv, "apex_exit_thread unit test");
-  apex_set_node_id(0);
+  apex_init("apex_exit_thread unit test", 0, 1);
   apex_profiler_handle profiler = apex_start(APEX_FUNCTION_ADDRESS,(void*)&main);
   pthread_t * thread = (pthread_t*)(malloc(sizeof(pthread_t) * NUM_THREADS));
   int i;

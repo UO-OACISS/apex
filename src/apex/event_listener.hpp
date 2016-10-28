@@ -64,9 +64,9 @@ public:
 
 class startup_event_data : public event_data {
 public:
-  int argc;
-  char** argv;
-  startup_event_data(int argc, char** argv);
+  uint64_t comm_rank;
+  uint64_t comm_size;
+  startup_event_data(uint64_t comm_rank, uint64_t comm_size);
 };
 
 class shutdown_event_data : public event_data {

@@ -27,8 +27,7 @@ void* someThread(void* tmp)
 
 int main(int argc, char **argv)
 {
-  apex_init_args(argc, argv, "apex_current_power_high unit test");
-  apex_set_node_id(0);
+  apex_init("apex_current_power_high unit test", 0, 1);
   double currentpower = apex_current_power_high();
   printf("Power at start: %f Watts\n", currentpower);
   apex_profiler_handle profiler = apex_start(APEX_FUNCTION_ADDRESS,(void*)&main);

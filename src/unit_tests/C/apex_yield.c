@@ -13,7 +13,7 @@ int foo(int i) {
 }
 
 int main (int argc, char** argv) {
-  apex_init_args(argc, argv, "apex_yield unit test");
+  apex_init("apex_yield unit test", 0, 1);
   apex_set_use_screen_output(1);
   apex_profiler_handle profiler = apex_start(APEX_FUNCTION_ADDRESS, &main);
   int i,j = 0;

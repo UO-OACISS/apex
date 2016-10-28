@@ -76,8 +76,7 @@ void* someThread(void* tmp)
 
 int main(int argc, char **argv)
 {
-  apex_init_args(argc, argv, "apex_get_thread_cap unit test");
-  apex_set_node_id(0);
+  apex_init("apex_get_thread_cap unit test", 0, 1);
 
   apex_setup_timer_throttling(APEX_FUNCTION_ADDRESS, &foo, APEX_MINIMIZE_ACCUMULATED,
           APEX_DISCRETE_HILL_CLIMBING, 1000000);

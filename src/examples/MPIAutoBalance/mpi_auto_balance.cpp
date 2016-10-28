@@ -175,14 +175,12 @@ int main (int argc, char ** argv) {
         printf ("Your MPI installation doesn't allow multiple threads. Exiting.\n");
             exit(0);
     }
-    apex::init(argc, argv, "MPI TEST");
-
     /* Find out my identity in the default communicator */
 
     MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
     MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
+    apex::init("MPI TEST", myrank, num_ranks);
     apex_example_set_rank_info(myrank, num_ranks);
-    apex::set_node_id(myrank);
     
 #ifdef APEX_HAVE_ACTIVEHARMONY
     long * inputs[1] = {0L};

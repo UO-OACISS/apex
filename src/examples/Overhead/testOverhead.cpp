@@ -77,12 +77,11 @@ void* someUntimedThread(void* tmp)
 
 int main(int argc, char **argv)
 {
-  apex::init(argc, argv, NULL);
+  apex::init(argv[0], 0, 1);
   unsigned numthreads = apex::hardware_concurrency();
   if (argc > 1) {
     numthreads = strtoul(argv[1],NULL,0);
   }
-  apex::set_node_id(0);
   sleep(1); // if we don't sleep, the proc_read thread won't have time to read anything.
 
   apex::profiler * m = apex::start((apex_function_address)main);

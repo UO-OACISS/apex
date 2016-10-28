@@ -37,6 +37,7 @@ void* someOtherThread(void* tmp)
 
 int main(int argc, char **argv)
 {
+  apex_init(argv[0], 0, 1);
   apex_set_use_screen_output(1);
   pthread_t * thread = (pthread_t*)(malloc(sizeof(pthread_t) * NUM_THREADS));
   int i;
