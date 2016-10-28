@@ -29,25 +29,26 @@ endif(OTF2_FOUND)
 
 SET(all_SOURCE task_identifier.cpp apex.cpp thread_instance.cpp event_listener.cpp handler.cpp concurrency_handler.cpp policy_handler.cpp utils.cpp ${tau_SOURCE} profiler_listener.cpp ${bfd_SOURCE} apex_options.cpp apex_policies.cpp ${PROC_SOURCE} ${OMPT_SOURCE} ${SENSOR_SOURCE} ${OTF2_SOURCE})
 
-#add_library (apex_objlib OBJECT ${all_SOURCE})
-#if (BUILD_STATIC_EXECUTABLES)
-    #add_library (apex STATIC $<TARGET_OBJECTS:apex_objlib>)
-    #set_target_properties(apex PROPERTIES OUTPUT_NAME apex)
-#else()
-    #add_library (apex SHARED $<TARGET_OBJECTS:apex_objlib>)
-    #set_target_properties(apex PROPERTIES OUTPUT_NAME apex)
-    #target_link_libraries(apex ${LIBS})
-    #add_library (apex_static STATIC $<TARGET_OBJECTS:apex_objlib>)
-    #set_target_properties(apex_static PROPERTIES OUTPUT_NAME apex)
-#endif()
 add_library (apex ${all_SOURCE})
 
+if(ACTIVEHARMONY_FOUND)
+    add_dependencies (apex project_activeharmony)
+endif(ACTIVEHARMONY_FOUND)
+
+if(OTF2_FOUND)
+    add_dependencies (apex project_otf2)
+endif(OTF2_FOUND)
+
+if(BFD_FOUND)
+    add_dependencies (apex project_binutils)
+endif(BFD_FOUND)
+
+if(OTF2_FOUND)
+    add_dependencies (apex project_otf2)
+endif(OTF2_FOUND)
+
 if(APEX_INTEL_MIC)
-    #add_dependencies (apex_objlib project_activeharmony project_binutils project_boost)
-    add_dependencies (apex project_activeharmony project_binutils project_otf2 project_ompt project_boost)
-else()
-    #add_dependencies (apex_objlib project_activeharmony project_binutils)
-    add_dependencies (apex project_activeharmony project_binutils project_otf2 project_ompt)
+    add_dependencies (apex project_boost)
 endif(APEX_INTEL_MIC)
 
 # If we are building libapex.so, we want to include all the other libraries,
@@ -78,9 +79,5 @@ INSTALL(FILES apex.h
     task_identifier.hpp
     DESTINATION include)
 
-#if (BUILD_STATIC_EXECUTABLES)
-    INSTALL(TARGETS apex RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
-#else()
-    #INSTALL(TARGETS apex apex_static RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
-#endif()
+INSTALL(TARGETS apex RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
 
