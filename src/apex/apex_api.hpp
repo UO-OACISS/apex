@@ -132,6 +132,24 @@ APEX_EXPORT profiler * start(const std::string &timer_name);
 APEX_EXPORT profiler * start(apex_function_address function_address);
 
 /**
+ \brief Start a timer.
+
+ This function will create a profiler object in APEX, and return a
+ handle to the object.  The object will be associated with the name
+ specified in the task_identifier, if present, or otherwise with
+ the address specific in the task_identifier.
+ 
+ \param task_id The task_identifier holding the name or address
+                of the function to be timed.
+ \return The handle for the timer object in APEX. Not intended to be
+         queried by the application. Should be retained locally, if
+         possible, and passed in to the matching apex::stop()
+         call when the timer should be stopped.
+ \sa @ref apex::stop, @ref apex::yield, @ref apex::resume
+ */
+APEX_EXPORT profiler * start(task_identifier * task_id);
+
+/**
  \brief Stop a timer.
 
  This function will stop the specified profiler object, and queue
@@ -264,6 +282,7 @@ APEX_EXPORT void sample_value(const std::string &name, double value);
 
 APEX_EXPORT void new_task(const std::string &name, uint64_t task_id);
 
+
 /**
  \brief Create a new task (dependency).
 
@@ -276,6 +295,143 @@ APEX_EXPORT void new_task(const std::string &name, uint64_t task_id);
  */
 
 APEX_EXPORT void new_task(apex_function_address function_address, uint64_t task_id);
+
+/**
+ \brief Create a new task (dependency).
+
+ This function will note a task dependency between the current 
+ timer (task) and the new task.
+
+ \param task_identifier The task_identifier of the task 
+ \return No return value.
+ */
+
+APEX_EXPORT void new_task(task_identifier * task_identifier, uint64_t task_id);
+
+/**
+ \brief Destroy an existing task (dependency).
+
+ \param name The name of the timer.                                        
+ \param task_id The ID of the task 
+ \return No return value.
+ */
+
+APEX_EXPORT void destroy_task(const std::string &name, uint64_t task_id);
+
+
+/**
+ \brief Destroy an existing task (dependency).
+
+ \param function_address The function address of the timer.
+ \param task_id The ID of the task 
+ \return No return value.
+ */
+
+APEX_EXPORT void destroy_task(apex_function_address function_address, uint64_t task_id);
+
+/**
+ \brief Destroy an existing task (dependency).
+
+ \param task_id The task_identifier of the task 
+ \return No return value.
+ */
+
+APEX_EXPORT void destroy_task(task_identifier * task_identifier, uint64_t task_id);
+
+/**
+ \brief Add a dependency between two tasks.
+
+ \param src   The source of the dependency;
+              the object which provides data.
+ \param dest  The destination of the dependency; 
+              the object which consumes data.
+ \return No return value.
+ */
+
+APEX_EXPORT void new_dependency(task_identifier * src, task_identifier * dest);
+
+/**                                        
+ \brief Satisfy a dependency between two tasks.
+
+ \param src   The source of the dependency;
+              the object which provides data.
+ \param dest  The destination of the dependency; 
+              the object which consumes data.
+ \return No return value.
+ */
+
+APEX_EXPORT void satisfy_dependency(task_identifier * src, task_identifier * dest);
+
+
+/**                                        
+ \brief Change current task state.
+
+ \param task_id   The identifier for the task changing state.
+ \param state     The new state of the task.
+ \return No return value.
+ */
+
+APEX_EXPORT void set_task_state(task_identifier * task_id, apex_task_state state);
+
+
+/**                                        
+ \brief Mark that a task has acquired data
+
+ \param task_id   The identifier for the task acquiring the data.
+ \param data_id   The identifier for the data being acquired.
+ \param size      The size of the data being acquired.
+ \return No return value.
+ */
+
+APEX_EXPORT void acquire_data(task_identifier * task_id, task_identifier * data_id, uint64_t size);
+
+/**                                        
+ \brief Mark that a task has released data
+
+ \param task_id   The identifier for the task releasing the data.
+ \param data_id   The identifier for the data being released.
+ \param size      The size of the data being acquired.
+ \return No return value.
+ */
+
+APEX_EXPORT void release_data(task_identifier * task_id, task_identifier * data_id, uint64_t size);
+
+/**                                        
+ \brief Create a new event.
+
+ \param task_id   The identifier for the event being created.
+ \return No return value.
+ */
+
+APEX_EXPORT void new_event(task_identifier * event_id);
+
+/**                                        
+ \brief Destroy event.
+
+ \param task_id   The identifier for the event being destroyed.
+ \return No return value.
+ */
+
+APEX_EXPORT void destroy_event(task_identifier * event_id);
+
+/**                                        
+ \brief Create a new data.
+
+ \param task_id   The identifier for the data being created.
+ \return No return value.
+ */
+
+APEX_EXPORT void new_data(task_identifier * data_id, uint64_t size);
+
+/**                                        
+ \brief Destroy data.
+
+ \param task_id   The identifier for the data being destroyed.
+ \return No return value.
+ */
+
+APEX_EXPORT void destroy_data(task_identifier * data_id);
+
 
 /**
  \brief Register an event type with APEX.
@@ -673,6 +829,35 @@ APEX_EXPORT bool has_session_converged(apex_tuning_session_handle handle);
 
  */
 APEX_EXPORT void print_options(void);
+
+/**
+ \brief Get the number of tasks created but neither running nor
+        eligible to run.
+
+ \return The number of tasks in the "created" state.
+ */
+APEX_EXPORT int get_local_tasks_created();    
+
+/**
+ \brief Get the number of tasks eligible to run.
+
+ \return The number of tasks in the "eligible" state.
+ */
+APEX_EXPORT int get_local_tasks_eligible();    
+
+/**
+ \brief Get the number of tasks running
+
+ \return The number of tasks in the "running" state.
+ */
+APEX_EXPORT int get_local_tasks_running();    
+
+/**
+ \brief Get the load balance policy
+
+ \return The load balance policy being used
+ */
+APEX_EXPORT apex_load_balance_policy_t get_load_balance_policy();    
 
 #ifdef APEX_HAVE_HPX
 hpx::runtime * get_hpx_runtime_ptr(void);

@@ -1,4 +1,4 @@
-//  Copyright (c) 2014 University of Oregon
+//  Copyright (c) 2014-2016 University of Oregon
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -76,6 +76,118 @@ new_thread_event_data::new_thread_event_data(string thread_name) {
 
 new_thread_event_data::~new_thread_event_data() {
   delete(thread_name);
+}
+
+new_task_event_data::new_task_event_data(task_identifier * task_id, uint64_t data) {
+  this->thread_id = thread_instance::get_id();
+  this->event_type_ = APEX_NEW_TASK;
+  this->task_id = task_id;
+  this->task_num = data;
+}
+
+new_task_event_data::~new_task_event_data() {
+}
+
+destroy_task_event_data::destroy_task_event_data(task_identifier * task_id, uint64_t data) {
+  this->thread_id = thread_instance::get_id();
+  this->event_type_ = APEX_DESTROY_TASK;
+  this->task_id = task_id;
+  this->task_num = data;
+}
+
+destroy_task_event_data::~destroy_task_event_data() {
+}
+
+new_dependency_event_data::new_dependency_event_data(task_identifier * src, task_identifier * dest) {
+  this->thread_id = thread_instance::get_id();
+  this->event_type_ = APEX_NEW_DEPENDENCY;
+  this->src = src;
+  this->dest = dest;
+}
+
+new_dependency_event_data::~new_dependency_event_data() {
+}
+
+
+satisfy_dependency_event_data::satisfy_dependency_event_data(task_identifier * src, task_identifier * dest) {
+  this->thread_id = thread_instance::get_id();
+  this->event_type_ = APEX_SATISFY_DEPENDENCY;
+  this->src = src;
+  this->dest = dest;
+}
+
+satisfy_dependency_event_data::~satisfy_dependency_event_data() {
+}
+
+acquire_data_event_data::acquire_data_event_data(task_identifier * task_id,
+        task_identifier * data_id, uint64_t size) {
+  this->thread_id = thread_instance::get_id();
+  this->event_type_ = APEX_ACQUIRE_DATA;
+  this->task_id = task_id;
+  this->data_id = data_id;
+  this->size = size;
+}
+
+acquire_data_event_data::~acquire_data_event_data() {
+}
+
+release_data_event_data::release_data_event_data(task_identifier * task_id,
+        task_identifier * data_id, uint64_t size) {
+  this->thread_id = thread_instance::get_id();
+  this->event_type_ = APEX_RELEASE_DATA;
+  this->task_id = task_id;
+  this->data_id = data_id;
+  this->size = size;
+}                         
+
+release_data_event_data::~release_data_event_data() {
+}
+
+new_event_event_data::new_event_event_data(task_identifier * event_id) {
+  this->thread_id = thread_instance::get_id();
+  this->event_type_ = APEX_NEW_EVENT;
+  this->event_id = event_id;
+}
+
+new_event_event_data::~new_event_event_data() {
+}
+
+destroy_event_event_data::destroy_event_event_data(task_identifier * event_id) {
+  this->thread_id = thread_instance::get_id();
+  this->event_type_ = APEX_DESTROY_EVENT;
+  this->event_id = event_id;
+}
+
+destroy_event_event_data::~destroy_event_event_data() {
+}
+
+new_data_event_data::new_data_event_data(task_identifier * data_id, uint64_t size) {
+  this->thread_id = thread_instance::get_id();
+  this->event_type_ = APEX_NEW_DATA;
+  this->data_id = data_id;
+  this->size = size;
+}
+
+new_data_event_data::~new_data_event_data() {
+}
+
+destroy_data_event_data::destroy_data_event_data(task_identifier * data_id) {
+  this->thread_id = thread_instance::get_id();
+  this->event_type_ = APEX_DESTROY_DATA;
+  this->data_id = data_id;
+}
+
+destroy_data_event_data::~destroy_data_event_data() {
+}
+
+set_task_state_event_data::set_task_state_event_data(task_identifier * task_id, apex_task_state state) {
+    this->thread_id = thread_instance::get_id();
+    this->event_type_ = APEX_SET_TASK_STATE;
+    this->task_id = task_id;
+    this->state = state;
+}
+
+set_task_state_event_data::~set_task_state_event_data() {
 }
 
 periodic_event_data::periodic_event_data() {

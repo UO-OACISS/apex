@@ -600,30 +600,39 @@ public:
 
 node_color * get_node_color(double v,double vmin,double vmax)
 {
+   //FIXME make color work
+   APEX_UNUSED(v);
+   APEX_UNUSED(vmin);
+   APEX_UNUSED(vmax);
    node_color * c = new node_color();
-   double dv;
+   c->red = 1;
+   c->green = 1;
+   c->blue = 1;
+   return c;
 
-   if (v < vmin)
-      v = vmin;
-   if (v > vmax)
-      v = vmax;
-   dv = vmax - vmin;
+   //double dv;
 
-   if (v < (vmin + 0.25 * dv)) {
-      c->red = 0;
-      c->green = 4 * (v - vmin) / dv;
-   } else if (v < (vmin + 0.5 * dv)) {
-      c->red = 0;
-      c->blue = 1 + 4 * (vmin + 0.25 * dv - v) / dv;
-   } else if (v < (vmin + 0.75 * dv)) {
-      c->red = 4 * (v - vmin - 0.5 * dv) / dv;
-      c->blue = 0;
-   } else {
-      c->green = 1 + 4 * (vmin + 0.75 * dv - v) / dv;
-      c->blue = 0;
-   }
+   //if (v < vmin)
+   //   v = vmin;
+   //if (v > vmax)
+   //   v = vmax;
+   //dv = vmax - vmin;
 
-   return(c);
+   //if (v < (vmin + 0.25 * dv)) {
+   //   c->red = 0;
+   //   c->green = 4 * (v - vmin) / dv;
+   //} else if (v < (vmin + 0.5 * dv)) {
+   //   c->red = 0;
+   //   c->blue = 1 + 4 * (vmin + 0.25 * dv - v) / dv;
+   //} else if (v < (vmin + 0.75 * dv)) {
+   //   c->red = 4 * (v - vmin - 0.5 * dv) / dv;
+   //   c->blue = 0;
+   //} else {
+   //   c->green = 1 + 4 * (vmin + 0.75 * dv - v) / dv;
+   //   c->blue = 0;
+   //}
+
+   //return(c);
 }
 
   void profiler_listener::write_taskgraph(void) {
@@ -922,10 +931,13 @@ node_color * get_node_color(double v,double vmin,double vmax)
 APEX_NATIVE_TLS int EventSet = PAPI_NULL;
 enum papi_state { papi_running, papi_suspended };
 APEX_NATIVE_TLS papi_state thread_papi_state = papi_suspended;
+APEX_NATIVE_TLS bool papi_initialized = false;
 #define PAPI_ERROR_CHECK(name) \
-if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
+if (rc != 0) cout << "PAPI error! name: " << rc << ": " << PAPI_strerror(rc) << endl;
 
   void profiler_listener::initialize_PAPI(bool first_time) {
+      if(papi_initialized) return;
+      papi_initialized = true;
       int rc = 0;
       if (first_time) {
         PAPI_library_init( PAPI_VER_CURRENT );
@@ -1096,7 +1108,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
             finalize_profiles();
         }
       }
-      if (apex_options::use_taskgraph_output() && node_id == 0)
+      if (apex_options::use_taskgraph_output()) //&& node_id == 0)
       {
         write_taskgraph();
       }
@@ -1266,6 +1278,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
           }
         }
         */
+        thread_instance::instance().set_current_profiler(nullptr);
         push_profiler(my_tid, p);
       }
     }
@@ -1306,16 +1319,15 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
     }
   }
 
-  void profiler_listener::on_new_task(task_identifier * id, uint64_t task_id) {
-    //cout << "New task: " << task_id << endl;
+  void profiler_listener::on_new_task(new_task_event_data & data) {
     if (!apex_options::use_taskgraph_output()) { return; }
     // get the current profiler
     profiler * p = thread_instance::instance().get_current_profiler();
     if (p != NULL) {
-        dependency_queue.enqueue(new task_dependency(p->task_id, id));
+        dependency_queue.enqueue(new task_dependency(p->task_id, data.task_id));
     } else {
         task_identifier * parent = new task_identifier(string("__start"));
-        dependency_queue.enqueue(new task_dependency(parent, id));
+        dependency_queue.enqueue(new task_dependency(parent, data.task_id));
     }
   }
 

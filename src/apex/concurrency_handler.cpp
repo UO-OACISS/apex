@@ -32,7 +32,10 @@
 #include <TAU.h>
 #endif
 
+#define MAX_FUNCTIONS_IN_CHART 20
+#ifndef MAX_FUNCTIONS_IN_CHART
 #define MAX_FUNCTIONS_IN_CHART 5
+#endif
 
 using namespace std;
 
@@ -107,6 +110,9 @@ bool concurrency_handler::_handler(void) {
   //}
   int power = current_power_high();
   _power_samples.push_back(power);
+  
+  _tasks_created_samples.push_back(tasks_created);
+  _tasks_eligible_samples.push_back(tasks_eligible);
 #ifdef APEX_HAVE_TAU
   if (apex_options::use_tau()) {
     TAU_STOP("concurrency_handler::_handler");
@@ -117,12 +123,17 @@ bool concurrency_handler::_handler(void) {
 
 void concurrency_handler::_init(void) {
   add_thread(0);
+  tasks_created = 0;
+  tasks_eligible = 0;
+  tasks_running = 0;
   run();
   return;
 }
 
 bool concurrency_handler::on_start(task_identifier *id) {
   if (!_terminate) {
+    --tasks_eligible;
+    ++tasks_running;
     int i = thread_instance::get_id();
     stack<task_identifier>* my_stack = get_event_stack(i);
     _per_thread_mutex[i]->lock();
@@ -136,6 +147,8 @@ bool concurrency_handler::on_start(task_identifier *id) {
 
 bool concurrency_handler::on_resume(task_identifier * id) {
   if (!_terminate) {
+    --tasks_eligible;
+    ++tasks_running;
     int i = thread_instance::get_id();
     stack<task_identifier>* my_stack = get_event_stack(i);
     _per_thread_mutex[i]->lock();
@@ -149,6 +162,7 @@ bool concurrency_handler::on_resume(task_identifier * id) {
 
 void concurrency_handler::on_stop(std::shared_ptr<profiler> &p) {
   if (!_terminate) {
+    --tasks_running;
     int i = thread_instance::get_id();
     stack<task_identifier>* my_stack = get_event_stack(i);
     _per_thread_mutex[i]->lock();
@@ -162,6 +176,7 @@ void concurrency_handler::on_stop(std::shared_ptr<profiler> &p) {
 
 void concurrency_handler::on_yield(std::shared_ptr<profiler> &p) {
     on_stop(p);
+    ++tasks_eligible;
 }
 
 void concurrency_handler::on_new_thread(new_thread_event_data &data) {
@@ -180,6 +195,22 @@ void concurrency_handler::on_shutdown(shutdown_event_data &data) {
     cancel();
     output_samples(data.node_id);
 }
+
+
+void concurrency_handler::on_new_task(new_task_event_data & data) {
+    if (!_terminate) {
+        ++tasks_created;
+    }
+}
+
+void concurrency_handler::on_set_task_state(set_task_state_event_data & data) {
+    if (!_terminate) {
+            if(data.state == APEX_TASK_ELIGIBLE) {
+                --tasks_created;
+                ++tasks_eligible;
+            }
+        }
+    }
 
 inline stack<task_identifier>* concurrency_handler::get_event_stack(unsigned int tid) {
   stack<task_identifier>* tmp;
@@ -240,7 +271,7 @@ void concurrency_handler::output_samples(int node_id) {
   }
 
   // output the header
-  myfile << "\"period\"\t\"thread cap\"\t\"power\"\t";
+  myfile << "\"period\"\t\"thread cap\"\t\"power\"\t\"tasks eligible\"\t\"tasks created\"\t";
   // output tunable parameter names
   for(auto param : _tunable_param_samples) {
     myfile << "\"" << param.first << "\"\t";
@@ -282,6 +313,8 @@ void concurrency_handler::output_samples(int node_id) {
     myfile << i << "\t";
     myfile << _thread_cap_samples[i] << "\t";
     myfile << _power_samples[i] << "\t";
+    myfile << -_tasks_eligible_samples[i] << "\t";
+    myfile << -_tasks_created_samples[i] << "\t";
     for(auto param : _tunable_param_samples) {
       myfile << param.second[i] << "\t";
       if(param.second[i] > max_Power) max_Power = param.second[i];
@@ -319,7 +352,7 @@ void concurrency_handler::output_samples(int node_id) {
   plotname << "concurrency." << node_id << ".gnuplot";
   myfile.open(plotname.str().c_str());
   myfile << "everyNth(col) = (int(column(col))%" << (int)(max_X/10) << "==0)?stringcolumn(1):\"\";" << endl;
-  myfile << "set key outside bottom center invert box" << endl;
+  myfile << "set key outside bottom center invert box font \",9\" vertical maxrows 6" << endl;
   myfile << "set xtics auto" << endl;
   myfile << "set ytics 4" << endl;
   myfile << "set y2tics auto" << endl;
@@ -338,17 +371,30 @@ void concurrency_handler::output_samples(int node_id) {
   myfile << "set palette rgb 33,13,10" << endl;
   myfile << "unset colorbox" << endl;
   myfile << "set key noenhanced" << endl; // this allows underscores in names
-  myfile << "plot for [COL=" << (4+num_params) << ":" << top_x.size()+num_params+4;
+  myfile << "plot for [COL=" << (6+num_params) << ":" << top_x.size()+num_params+6;
   myfile << "] '" << datname.str().c_str();
-  myfile << "' using COL:xticlabel(everyNth(1)) palette frac (COL-" << (3+num_params) << ")/" << top_x.size()+1;
+  myfile << "' using COL:xticlabel(everyNth(1)) palette frac (COL-" << (5+num_params) << ")/" << top_x.size()+1;
   myfile << ". title columnheader axes x1y1, '"  << datname.str().c_str();
   myfile << "' using 2 with lines linecolor rgb \"red\" axes x1y1 title columnheader, '" << datname.str().c_str();
-  myfile << "' using 3 with lines linecolor rgb \"black\" axes x1y2 title columnheader,";
+  myfile << "' using 3 with lines linecolor rgb \"black\" axes x1y2 title columnheader";
   for(int p = 0; p < num_params; ++p) {
-    myfile << "'" << datname.str().c_str() << "' using " << (4+p) << " with linespoints axes x1y2 title columnheader,";
+    myfile << ", '" << datname.str().c_str() << "' using " << (6+p) << " with linespoints axes x1y2 title columnheader";
   }
   myfile << endl;
   myfile.close();
 }
 
+int concurrency_handler::get_tasks_created() {
+    return tasks_created;
 }
+
+int concurrency_handler::get_tasks_eligible() {
+    return tasks_eligible;
+}
+
+int concurrency_handler::get_tasks_running() {
+    return tasks_running;
+}
+
+}
+

@@ -13,6 +13,7 @@
 #include <set>
 #include <memory>
 #include <mutex>
+#include <atomic>
 #include "task_identifier.hpp"
 
 #ifdef SIGEV_THREAD_ID
@@ -36,6 +37,11 @@ private:
   // vector of thread cap values
   std::vector<int> _thread_cap_samples;
   std::map<std::string, std::vector<long>> _tunable_param_samples;
+  std::vector<int> _tasks_created_samples;
+  std::vector<int> _tasks_eligible_samples;
+  std::atomic<int> tasks_running;
+  std::atomic<int> tasks_created;
+  std::atomic<int> tasks_eligible;
   // functions and mutex
   std::set<task_identifier> _functions;
   std::mutex _function_mutex;
@@ -55,8 +61,17 @@ public:
   void on_stop(std::shared_ptr<profiler> &p);
   void on_yield(std::shared_ptr<profiler> &p);
   bool on_resume(task_identifier * id);
-  void on_new_task(task_identifier * id, uint64_t task_id) 
-       { APEX_UNUSED(id); APEX_UNUSED(task_id); };
+  void on_new_task(new_task_event_data & data);
+  void on_destroy_task(destroy_task_event_data & data) { APEX_UNUSED(data); };
+  void on_new_dependency(new_dependency_event_data & data) { APEX_UNUSED(data); };
+  void on_satisfy_dependency(satisfy_dependency_event_data & data) { APEX_UNUSED(data); };
+  void on_set_task_state(set_task_state_event_data &data);
+  void on_acquire_data(acquire_data_event_data &data) { APEX_UNUSED(data); };
+  void on_release_data(release_data_event_data &data) { APEX_UNUSED(data); };
+  void on_new_event(new_event_event_data &data) { APEX_UNUSED(data); };
+  void on_destroy_event(destroy_event_event_data &data) { APEX_UNUSED(data); };
+  void on_new_data(new_data_event_data &data) { APEX_UNUSED(data); };
+  void on_destroy_data(destroy_data_event_data &data) { APEX_UNUSED(data); };
   void on_sample_value(sample_value_event_data &data) { APEX_UNUSED(data); };
   void on_periodic(periodic_event_data &data) { APEX_UNUSED(data); };
   void on_custom_event(custom_event_data &data) { APEX_UNUSED(data); };
@@ -67,6 +82,9 @@ public:
   std::stack<task_identifier>* get_event_stack(unsigned int tid);
   void add_thread(unsigned int tid) ;
   void output_samples(int node_id);
+  int get_tasks_created();
+  int get_tasks_eligible();
+  int get_tasks_running();
 };
 
 }

@@ -27,8 +27,17 @@ public:
   void on_stop(std::shared_ptr<profiler> &p);
   void on_yield(std::shared_ptr<profiler> &p);
   bool on_resume(task_identifier * id);
-  void on_new_task(task_identifier * id, uint64_t task_id)
-       { APEX_UNUSED(id); APEX_UNUSED(task_id); };
+  void on_new_task(new_task_event_data & data) { APEX_UNUSED(data); };
+  void on_destroy_task(destroy_task_event_data & data) { APEX_UNUSED(data); };
+  void on_new_dependency(new_dependency_event_data & data) { APEX_UNUSED(data); };
+  void on_set_task_state(set_task_state_event_data &data) { APEX_UNUSED(data); };
+  void on_satisfy_dependency(satisfy_dependency_event_data & data) { APEX_UNUSED(data); };
+  void on_acquire_data(acquire_data_event_data &data) { APEX_UNUSED(data); };
+  void on_release_data(release_data_event_data &data) { APEX_UNUSED(data); };
+  void on_new_event(new_event_event_data &data) { APEX_UNUSED(data); };
+  void on_destroy_event(destroy_event_event_data &data) { APEX_UNUSED(data); };
+  void on_new_data(new_data_event_data &data) { APEX_UNUSED(data); };
+  void on_destroy_data(destroy_data_event_data &data) { APEX_UNUSED(data); };
   void on_sample_value(sample_value_event_data &data);
   void on_periodic(periodic_event_data &data);
   void on_custom_event(custom_event_data &data);

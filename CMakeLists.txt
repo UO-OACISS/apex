@@ -590,10 +590,45 @@ if(BFD_FOUND OR OTF2_FOUND)
     endif(NOT APEX_INTEL_MIC)
 endif(BFD_FOUND OR OTF2_FOUND)
 
+################################################################################
+# OCR configuration
+################################################################################
+
+if((DEFINED OCR_ROOT) OR (USE_OCR))
+    find_package(OCR)
+    if(NOT OCR_FOUND)
+        message(FATAL_ERROR " Requested USE_OCR but could not find OCR; set OCR_ROOT")
+    endif()
+    message(INFO " Using OCR: ${OCR_LIBRARY_DIR} ${OCR_LIBRARIES} ${OCR_INCLUDE_DIRS}")
+    include_directories(${OCR_INCLUDE_DIRS})
+    set(LIBS ${LIBS} ${OCR_LIBRARIES})
+    if (NOT BUILD_STATIC_EXECUTABLES)
+        set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${OCR_LIBRARY_DIR})
+    endif()
+    if(USE_OCR_LOAD_BALANCE)
+        set(USE_LOAD_BALANCE TRUE)
+        message(INFO " apex will be built with OCR load balancing support.")
+        add_definitions("-DAPEX_OCR_LOAD_BALANCE")
+    endif()
+endif()
+
+################################################################################
+# Plugins support
+################################################################################
+
 if(USE_PLUGINS)
     message(INFO " apex will be built with plugin support.")
     set(LIBS ${LIBS} ${CMAKE_DL_LIBS})
     add_definitions("-DAPEX_USE_PLUGINS")
+endif()
+
+################################################################################
+# Load balancing support
+################################################################################
+
+if(USE_LOAD_BALANCE)
+    message(INFO " apex will be built with load balancing support.")
+    add_definitions("-DAPEX_USE_LOAD_BALANCE")
 endif()
 
 ################################################################################
