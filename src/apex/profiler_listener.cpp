@@ -1319,6 +1319,22 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
     }
   }
 
+  /* Communication send event. Save the number of bytes. */
+  void profiler_listener::on_send(message_event_data &data) {
+    if (!_done) {
+      std::shared_ptr<profiler> p = std::make_shared<profiler>(new task_identifier("Bytes Sent"), (double)data.size);
+      push_profiler(0, p);
+    }
+  }
+
+  /* Communication recv event. Save the number of bytes. */
+  void profiler_listener::on_recv(message_event_data &data) {
+    if (!_done) {
+      std::shared_ptr<profiler> p = std::make_shared<profiler>(new task_identifier("Bytes Received"), (double)data.size);
+      push_profiler(0, p);
+    }
+  }
+
   /* For periodic stuff. Do something? */
   void profiler_listener::on_periodic(periodic_event_data &data) {
     if (!_done) {
