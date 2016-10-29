@@ -84,7 +84,6 @@ dobuild()
     cd build${post}-${buildtype}
     cmd="cmake -DCMAKE_BUILD_TYPE=${buildtype} -DBUILD_TESTS=TRUE \
     -DBUILD_EXAMPLES=TRUE ${malloc} ${bfd} ${ah} ${ompt} ${papi} ${mpi} ${otf} ${tau} \
-	-DAPEX_THROTTLE=TRUE \
     -DCMAKE_INSTALL_PREFIX=../install${post}-${buildtype} ../.."
     echo ${cmd}
     ${cmd} 2>&1 | tee ${logfile}
