@@ -288,8 +288,10 @@ uint64_t init(const char * thread_name, uint64_t comm_rank, uint64_t comm_size) 
     // assign the rank and size.  Why not in the constructor?
     // because, if we registered a startup policy, the default 
     // constructor was called, without the correct comm_rank and comm_size.
-    instance->set_node_id(comm_rank);
-    instance->set_num_ranks(comm_size);
+	if (comm_rank < comm_size && comm_size > 0) { // simple validation
+      instance->set_node_id(comm_rank);
+      instance->set_num_ranks(comm_size);
+	}
     if (!instance || _exited) return APEX_ERROR; // protect against calls after finalization
     init_plugins();
     startup_event_data data(comm_rank, comm_size);

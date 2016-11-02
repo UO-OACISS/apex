@@ -1337,14 +1337,14 @@ private:
                     assert((head->freeListRefs.load(std::memory_order_relaxed) & SHOULD_BE_ON_FREELIST) == 0);
                     
                     // Decrease refcount twice, once for our ref, and once for the list's ref
-                    head->freeListRefs.fetch_add(-2, std::memory_order_release);
+                    head->freeListRefs.fetch_sub(2, std::memory_order_release);
                     return head;
                 }
                 
                 // OK, the head must have changed on us, but we still need to decrease the refcount we increased.
                 // Note that we don't need to release any memory effects, but we do need to ensure that the reference
                 // count decrement happens-after the CAS on the head.
-                refs = prevHead->freeListRefs.fetch_add(-1, std::memory_order_acq_rel);
+                refs = prevHead->freeListRefs.fetch_sub(1, std::memory_order_acq_rel);
                 if (refs == SHOULD_BE_ON_FREELIST + 1) {
                     add_knowing_refcount_is_zero(prevHead);
                 }
@@ -3309,7 +3309,7 @@ private:
                     auto raw = static_cast<char*>(Traits::malloc(sizeof(ImplicitProducerHash) + std::alignment_of<ImplicitProducerKVP>::value - 1 + sizeof(ImplicitProducerKVP) * newCapacity));
                     if (raw == nullptr) {
                         // Allocation failed
-                        implicitProducerHashCount.fetch_add(-1, std::memory_order_relaxed);
+                        implicitProducerHashCount.fetch_sub(1, std::memory_order_relaxed);
                         implicitProducerHashResizeInProgress.clear(std::memory_order_relaxed);
                         return nullptr;
                     }
@@ -3338,11 +3338,11 @@ private:
                 bool recycled;
                 auto producer = static_cast<ImplicitProducer*>(recycle_or_create_producer(false, recycled));
                 if (producer == nullptr) {
-                    implicitProducerHashCount.fetch_add(-1, std::memory_order_relaxed);
+                    implicitProducerHashCount.fetch_sub(1, std::memory_order_relaxed);
                     return nullptr;
                 }
                 if (recycled) {
-                    implicitProducerHashCount.fetch_add(-1, std::memory_order_relaxed);
+                    implicitProducerHashCount.fetch_sub(1, std::memory_order_relaxed);
                 }
                 
 #ifdef MOODYCAMEL_CPP11_THREAD_LOCAL_SUPPORTED
