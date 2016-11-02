@@ -977,7 +977,7 @@ namespace apex {
         fl.l_len    = 0;        /* length, 0 = to EOF           */
         fl.l_pid    = pid;      /* our PID                      */
         // open the file
-        int indexfile = open(index_filename.c_str(), O_APPEND | O_WRONLY );
+        int indexfile = open(index_filename.c_str(), O_APPEND | O_WRONLY | O_CREAT, S_IRUSR|S_IWUSR|S_IXUSR );
         assert(indexfile >= 0);
         // wait for exclusive access to append to the file
         fcntl(indexfile, F_SETLKW, &fl);  /* F_GETLK, F_SETLK, F_SETLKW */

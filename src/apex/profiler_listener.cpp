@@ -68,6 +68,7 @@ std::mutex event_set_mutex;
 #include <hpx/include/util.hpp>
 #include <hpx/lcos/local/composable_guard.hpp>
 static void apex_schedule_process_profiles(void); // not in apex namespace
+const int num_non_worker_threads_registered = 0;
 #endif
 
 #define APEX_MAIN "APEX MAIN"
@@ -129,7 +130,7 @@ namespace apex {
     /* Subtract the accumulated time from the main time span. */
 	int num_worker_threads = thread_instance::get_num_threads();
 #ifdef APEX_HAVE_HPX
-    num_worker_threads = num_worker_threads - 8;
+    num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
 #endif
     std::chrono::duration<double> time_span = 
         std::chrono::duration_cast<std::chrono::duration<double>>
@@ -147,7 +148,7 @@ namespace apex {
     /* Subtract the accumulated time from the main time span. */
 	int num_worker_threads = thread_instance::get_num_threads();
 #ifdef APEX_HAVE_HPX
-    num_worker_threads = num_worker_threads - 8;
+    num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
 #endif
     std::chrono::duration<double> time_span = 
         std::chrono::duration_cast<std::chrono::duration<double>>
@@ -477,7 +478,7 @@ namespace apex {
 	int num_worker_threads = thread_instance::get_num_threads();
     double wall_clock_main = main_timer->elapsed() * profiler::get_cpu_mhz();
 #ifdef APEX_HAVE_HPX
-    num_worker_threads = num_worker_threads - 8;
+    num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
 #endif
     double total_main = wall_clock_main * 
         fmin(hardware_concurrency(), num_worker_threads);
@@ -650,7 +651,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
     // our TOTAL available time is the elapsed * the number of threads, or cores
 	int num_worker_threads = thread_instance::get_num_threads();
 #ifdef APEX_HAVE_HPX
-    num_worker_threads = num_worker_threads - 8;
+    num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
 #endif
     double total_main = main_timer->elapsed() *
         fmin(hardware_concurrency(), num_worker_threads);
@@ -1220,6 +1221,8 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   }
 
   inline void profiler_listener::push_profiler(int my_tid, std::shared_ptr<profiler> &p) {
+  	  // if we aren't processing profiler objects, just return.
+  	  if (!apex_options::process_async_state()) { return; }
       // we have to make a local copy, because lockfree queues DO NOT SUPPORT shared_ptrs!
       bool worked = thequeue.enqueue(p);
       if (!worked) {

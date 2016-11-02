@@ -180,9 +180,11 @@ void apex::_initialize()
         tau_listener::initialize_tau(argc, argv);
     }
 #endif
-    // this is always the first listener!
     this->the_profiler_listener = new profiler_listener();
-    listeners.push_back(the_profiler_listener);
+    // this is always the first listener!
+    if (apex_options::process_async_state()) {
+    	listeners.push_back(the_profiler_listener);
+	}
 #ifdef APEX_HAVE_TAU
     if (apex_options::use_tau())
     {
@@ -907,6 +909,7 @@ void register_thread(const std::string &name)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
     if (_registered) return; // protect against multiple registrations on the same thread
+    _registered = true;
     thread_instance::set_name(name);
     instance->resize_state(thread_instance::get_id());
     instance->set_state(thread_instance::get_id(), APEX_BUSY);
@@ -1071,13 +1074,17 @@ void send (uint64_t tag, uint64_t size, uint64_t target) {
     if (apex_options::disable() == true) { return ; }
     // if APEX is suspended, do nothing.
     if (apex_options::suspend() == true) { return ; }
+	// if APEX hasn't been initialized, do nothing.
+    if (!_initialized) { return ; }
     // get the Apex static instance
     apex* instance = apex::instance(); 
     // protect against calls after finalization
     if (!instance || _exited) { return ; }
 
     if (_notify_listeners) {
-        message_event_data data(tag, size, instance->get_node_id(), thread_instance::get_id(), target);
+		// eventually, we want to use the thread id, but for now, just use 0.
+        //message_event_data data(tag, size, instance->get_node_id(), thread_instance::get_id(), target);
+        message_event_data data(tag, size, instance->get_node_id(), 0, target);
         if (_notify_listeners) {
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
                 instance->listeners[i]->on_send(data);
@@ -1091,13 +1098,17 @@ void recv (uint64_t tag, uint64_t size, uint64_t source_rank, uint64_t source_th
     if (apex_options::disable() == true) { return ; }
     // if APEX is suspended, do nothing.
     if (apex_options::suspend() == true) { return ; }
+	// if APEX hasn't been initialized, do nothing.
+    if (!_initialized) { return ; }
     // get the Apex static instance
     apex* instance = apex::instance(); 
     // protect against calls after finalization
     if (!instance || _exited) { return ; }
 
     if (_notify_listeners) {
-        message_event_data data(tag, size, source_rank, source_thread, instance->get_node_id());
+		// eventually, we want to use the thread id, but for now, just use 0.
+        //message_event_data data(tag, size, source_rank, source_thread, instance->get_node_id());
+        message_event_data data(tag, size, source_rank, 0, instance->get_node_id());
         if (_notify_listeners) {
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
                 instance->listeners[i]->on_recv(data);
