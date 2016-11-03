@@ -9,11 +9,13 @@
 
 /* required for Doxygen */
 
-/** @file */ 
+/** @file */
 
 #include <stdint.h>
 #include <stdbool.h>
+#if !defined(_MSC_VER)
 #include <unistd.h>
+#endif
 
 /** The address of a C++ object in APEX.
  * Not useful for the caller that gets it back, but required
@@ -79,8 +81,8 @@ typedef enum _event_type {
   APEX_UNUSED_EVENT = APEX_MAX_EVENTS // can't have more custom events than this
 } apex_event_type;
 
-/** 
- * Typedef for enumerating the thread states. 
+/**
+ * Typedef for enumerating the thread states.
  */
 typedef enum _thread_state {
     APEX_IDLE,          /*!< Thread is idle */
@@ -142,7 +144,7 @@ typedef struct _policy_handle
 } apex_policy_handle;
 
 /** The APEX context when an event occurs.
- * 
+ *
  */
 typedef struct _context
 {
@@ -155,7 +157,7 @@ typedef struct _context
 } apex_context;
 
 /** The type of a profiler object
- * 
+ *
  */
 typedef enum _profile_type {
   APEX_TIMER,        /*!< This profile is a instrumented timer */
@@ -190,21 +192,21 @@ typedef uint32_t apex_tuning_session_handle;
 
 /** A null pointer representing an APEX function address.
  * Used when a null APEX function address is to be passed in to
- * any apex functions to represent "all functions". 
+ * any apex functions to represent "all functions".
  */
 #define APEX_NULL_FUNCTION_ADDRESS 0L // for comparisons
 //#define APEX_NULL_FUNCTION_ADDRESS (apex_function_address)(NULL) // for comparisons
 
 /**
- * Special profile counter for derived idle time 
+ * Special profile counter for derived idle time
  **/
 #define APEX_IDLE_TIME "APEX Idle"
 /**
- * Special profile counter for derived non-idle time 
+ * Special profile counter for derived non-idle time
  **/
 #define APEX_NON_IDLE_TIME "APEX Non-Idle"
 /**
- * Special profile counter for derived idle rate 
+ * Special profile counter for derived idle rate
  **/
 #define APEX_IDLE_RATE "APEX Idle Rate"
 /**
@@ -218,6 +220,14 @@ typedef uint32_t apex_tuning_session_handle;
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
+inline unsigned int sc_nprocessors_onln()
+{
+#if !defined(_MSC_VER)
+    return sysconf( _SC_NPROCESSORS_ONLN );
+#else
+    return 1;
+#endif
+}
 
 /**
  * for each of these macros, there are 5 values.
@@ -249,7 +259,7 @@ typedef uint32_t apex_tuning_session_handle;
     macro (APEX_PROC_SELF_IO, use_proc_self_io, bool, false) \
     macro (APEX_PROC_STAT, use_proc_stat, bool, true) \
     macro (APEX_THROTTLE_CONCURRENCY, throttle_concurrency, bool, false) \
-    macro (APEX_THROTTLING_MAX_THREADS, throttling_max_threads, int, sysconf( _SC_NPROCESSORS_ONLN )) \
+    macro (APEX_THROTTLING_MAX_THREADS, throttling_max_threads, int, sc_nprocessors_onln()) \
     macro (APEX_THROTTLING_MIN_THREADS, throttling_min_threads, int, 1) \
     macro (APEX_THROTTLE_ENERGY, throttle_energy, bool, false) \
     macro (APEX_THROTTLE_ENERGY_PERIOD, throttle_energy_period, int, 1000000) \
@@ -266,7 +276,7 @@ typedef uint32_t apex_tuning_session_handle;
     macro (APEX_PLUGINS, plugins, char*, "") \
     macro (APEX_PLUGINS_PATH, plugins_path, char*, "./") \
     macro (APEX_OTF2_ARCHIVE_PATH, otf2_archive_path, char*, APEX_DEFAULT_OTF2_ARCHIVE_PATH) \
-    macro (APEX_OTF2_ARCHIVE_NAME, otf2_archive_name, char*, APEX_DEFAULT_OTF2_ARCHIVE_NAME) 
+    macro (APEX_OTF2_ARCHIVE_NAME, otf2_archive_name, char*, APEX_DEFAULT_OTF2_ARCHIVE_NAME)
 
 #if defined(__linux) || defined(__linux__)
 #  define APEX_NATIVE_TLS __thread

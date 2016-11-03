@@ -5,15 +5,14 @@
 
 #ifdef APEX_HAVE_HPX
 #include <hpx/config.hpp>
-#endif
 
+#include "apex.hpp"
 #include "handler.hpp"
 
 namespace apex {
 
-#ifdef APEX_HAVE_HPX
 boost::asio::io_service handler::_io;
-#endif
 
 }
 
+#endif

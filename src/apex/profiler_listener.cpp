@@ -114,8 +114,8 @@ namespace apex {
       	read_lock_type l(throttled_event_set_mutex);
       	it4 = throttled_tasks.find(id);
 	  }
-      if (it4!= throttled_tasks.end()) { 
-        continue; 
+      if (it4!= throttled_tasks.end()) {
+        continue;
       }
 #endif
       if (p->get_type() == APEX_TIMER) {
@@ -132,7 +132,7 @@ namespace apex {
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
 #endif
-    std::chrono::duration<double> time_span = 
+    std::chrono::duration<double> time_span =
         std::chrono::duration_cast<std::chrono::duration<double>>
            (MYCLOCK::now() - main_timer->start);
     double total_main = time_span.count() *
@@ -150,7 +150,7 @@ namespace apex {
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
 #endif
-    std::chrono::duration<double> time_span = 
+    std::chrono::duration<double> time_span =
         std::chrono::duration_cast<std::chrono::duration<double>>
            (MYCLOCK::now() - main_timer->start);
     double total_main = time_span.count() *
@@ -208,7 +208,7 @@ namespace apex {
         } else {
             values[i] = 0.0;
         }
-    }   
+    }
 #endif
     std::unique_lock<std::mutex> task_map_lock(_task_map_mutex, std::defer_lock);
     // There is only one consumer thread except during shutdown, so we only need
@@ -252,9 +252,9 @@ namespace apex {
                     }
                 }
                 if (apex_options::use_screen_output()) {
-                    cout << "APEX: disabling lightweight timer " 
-                         << p->task_id->get_name() 
-                          << endl; 
+                    cout << "APEX: disabling lightweight timer "
+                         << p->task_id->get_name()
+                          << endl;
                     fflush(stdout);
                 }
             }
@@ -291,14 +291,15 @@ namespace apex {
 #endif
 #endif
       }
+#if !defined(_MSC_VER)
       /* write the sample to the file */
       if (apex_options::task_scatterplot()) {
         if (!p->is_counter) {
             static int thresh = RAND_MAX/100;
             if (std::rand() < thresh) {
                 std::unique_lock<std::mutex> task_map_lock(_mtx);
-                task_scatterplot_samples << p->normalized_timestamp() << " " 
-                            << p->elapsed()*profiler::get_cpu_mhz()*1000000 << " " 
+                task_scatterplot_samples << p->normalized_timestamp() << " "
+                            << p->elapsed()*profiler::get_cpu_mhz()*1000000 << " "
                             << "'" << p->task_id->get_name() << "'" << endl;
                 int loc0 = task_scatterplot_samples.tellp();
                 if (loc0 > 32768) {
@@ -313,7 +314,7 @@ namespace apex {
         			fcntl(task_scatterplot_sample_file, F_SETLKW, &fl);  /* F_GETLK, F_SETLK, F_SETLKW */
                     // flush the string stream to the file
                     //lseek(task_scatterplot_sample_file, 0, SEEK_END);
-        			ssize_t bytes_written = write(task_scatterplot_sample_file, 
+        			ssize_t bytes_written = write(task_scatterplot_sample_file,
 						  task_scatterplot_samples.str().c_str(), loc0);
                     if (bytes_written < 0) {
                         int errsv = errno;
@@ -329,6 +330,7 @@ namespace apex {
             }
         }
       }
+#endif
     return 1;
   }
 
@@ -379,14 +381,14 @@ namespace apex {
   string string_format( const std::string& format, Args ... args )
   {
       size_t size = snprintf( nullptr, 0, format.c_str(), args ... ) + 1; // Extra space for '\0'
-      unique_ptr<char[]> buf( new char[ size ] ); 
+      unique_ptr<char[]> buf( new char[ size ] );
       snprintf( buf.get(), size, format.c_str(), args ... );
       return string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
   }
 
-  void profiler_listener::write_one_timer(task_identifier &task_id, 
-          profile * p, stringstream &screen_output, 
-          stringstream &csv_output, double &total_accumulated, 
+  void profiler_listener::write_one_timer(task_identifier &task_id,
+          profile * p, stringstream &screen_output,
+          stringstream &csv_output, double &total_accumulated,
           double &total_main) {
       string action_name = task_id.get_name();
 #if APEX_HAVE_BFD
@@ -419,9 +421,9 @@ namespace apex {
       	read_lock_type l(throttled_event_set_mutex);
         it4 = throttled_tasks.find(task_id);
   	  }
-      if (it4!= throttled_tasks.end()) { 
+      if (it4!= throttled_tasks.end()) {
         screen_output << "DISABLED (high frequency, short duration)" << endl;
-        return; 
+        return;
       }
 #endif
       if(p->get_calls() < 1) {
@@ -480,7 +482,7 @@ namespace apex {
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
 #endif
-    double total_main = wall_clock_main * 
+    double total_main = wall_clock_main *
         fmin(hardware_concurrency(), num_worker_threads);
     // create a stringstream to hold all the screen output - we may not
     // want to write it out
@@ -572,7 +574,7 @@ namespace apex {
   }
 
   void fix_name(string& in_name) {
-#if defined(HAVE_BFD)                                                            
+#if defined(HAVE_BFD)
         REGEX_NAMESPACE::regex rx (".*UNRESOLVED ADDR (.*)");
         if (REGEX_NAMESPACE::regex_match (in_name,rx)) {
           const REGEX_NAMESPACE::regex separator(" ADDR ");
@@ -644,7 +646,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
             string child_name = child.get_name();
             myfile << "  \"" << parent_name << "\" -> \"" << child_name << "\"";
             myfile << " [ label=\"  count: " << count << "\" ]; " << std::endl;
-            
+
         }
     }
 
@@ -663,9 +665,9 @@ node_color * get_node_color(double v,double vmin,double vmax)
       if (p->get_type() == APEX_TIMER) {
         node_color * c = get_node_color((p->get_accumulated()*profiler::get_cpu_mhz()), 0.0, total_main);
         task_identifier task_id = it->first;
-        myfile << "  \"" << task_id.get_name() << "\" [shape=box; style=filled; fillcolor=\"#" << 
-            setfill('0') << setw(2) << hex << c->convert(c->red) << 
-            setfill('0') << setw(2) << hex << c->convert(c->green) << 
+        myfile << "  \"" << task_id.get_name() << "\" [shape=box; style=filled; fillcolor=\"#" <<
+            setfill('0') << setw(2) << hex << c->convert(c->red) <<
+            setfill('0') << setw(2) << hex << c->convert(c->green) <<
             setfill('0') << setw(2) << hex << c->convert(c->blue) << "\"" <<
             "; label=\"" << task_id.get_name() << ":\\n" << (p->get_accumulated()*profiler::get_cpu_mhz()) << "s\" ];" << std::endl;
       }
@@ -795,7 +797,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
 
   /*
    * The main function for the consumer thread has to be static, but
-   * the processing needs access to member variables, so get the 
+   * the processing needs access to member variables, so get the
    * profiler_listener instance, and call it's proper function.
    *
    * This is a wrapper, so that we can launch the thread and set
@@ -813,12 +815,12 @@ node_color * get_node_color(double v,double vmin,double vmax)
 
   /*
    * The main function for the consumer thread has to be static, but
-   * the processing needs access to member variables, so get the 
+   * the processing needs access to member variables, so get the
    * profiler_listener instance, and call it's proper function.
    */
   void profiler_listener::process_profiles_wrapper(void) {
       apex * inst = apex::instance();
-      if (inst != nullptr) { 
+      if (inst != nullptr) {
           profiler_listener * pl = inst->the_profiler_listener;
           if (pl != nullptr) {
               pl->process_profiles();
@@ -873,7 +875,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
           process_dependency(td);
         }
       }
-      /* 
+      /*
        * I want to process the tasks concurrently, but this loop
        * is too much overhead. Maybe dequeue them in batches?
        */
@@ -905,7 +907,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
         process_dependency(td);
       }
     }
- 
+
 #endif // NOT DEFINED APEX_HAVE_HPX
 
 #ifdef APEX_HAVE_HPX
@@ -959,7 +961,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         std::istream_iterator<std::string> tmpstr_end;
         std::vector<std::string> tmpstr_results(tmpstr_it, tmpstr_end);
         int code;
-        // iterate over the counter names in the vector 
+        // iterate over the counter names in the vector
         for (auto p : tmpstr_results) {
           int rc = PAPI_event_name_to_code(const_cast<char*>(p.c_str()), &code);
           if (PAPI_query_event (code) == PAPI_OK) {
@@ -1106,6 +1108,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       if (apex_options::use_profile_output() && !apex_options::use_tau()) {
         write_profile();
       }
+#if !defined(_MSC_VER)
       if (apex_options::task_scatterplot()) {
           // get the length of the stream
           int loc0 = task_scatterplot_samples.tellp();
@@ -1120,7 +1123,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
           fcntl(task_scatterplot_sample_file, F_SETLKW, &fl);  /* F_GETLK, F_SETLK, F_SETLKW */
           // flush the string stream to the file
           //lseek(task_scatterplot_sample_file, 0, SEEK_END);
-          ssize_t bytes_written = write(task_scatterplot_sample_file, 
+          ssize_t bytes_written = write(task_scatterplot_sample_file,
                 task_scatterplot_samples.str().c_str(), loc0);
           if (bytes_written < 0) {
               int errsv = errno;
@@ -1132,6 +1135,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
           fcntl(task_scatterplot_sample_file, F_SETLK, &fl); /* set the region to unlocked */
           close(task_scatterplot_sample_file);
       }
+#endif
 
     }
     /* The cleanup is disabled for now. Why? Because we want to be able
@@ -1255,7 +1259,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         // Why is this happening now?  Why not at start? Why not at create?
         /*
         if (apex_options::use_taskgraph_output()) {
-          if (!p->is_resume) { 
+          if (!p->is_resume) {
             // get the PARENT profiler
             profiler * parent_profiler = nullptr;
             try {
@@ -1358,7 +1362,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
     push_profiler(my_tid, p);
   }
 
-  profiler_listener::~profiler_listener (void) { 
+  profiler_listener::~profiler_listener (void) {
       _done = true; // yikes!
       finalize();
       delete_profiles();
@@ -1370,14 +1374,14 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 }
 
 #ifdef APEX_HAVE_HPX
-HPX_DECLARE_ACTION(apex::profiler_listener::process_profiles_wrapper, apex_internal_process_profiles_action);
+HPX_DECLARE_ACTION(::apex::profiler_listener::process_profiles_wrapper, apex_internal_process_profiles_action);
 HPX_ACTION_HAS_CRITICAL_PRIORITY(apex_internal_process_profiles_action);
-HPX_PLAIN_ACTION(apex::profiler_listener::process_profiles_wrapper, apex_internal_process_profiles_action);
+HPX_PLAIN_ACTION(::apex::profiler_listener::process_profiles_wrapper, apex_internal_process_profiles_action);
 
 void apex_schedule_process_profiles() {
     if(get_hpx_runtime_ptr() == nullptr) return;
     if(hpx_shutdown) {
-        apex::profiler_listener::process_profiles_wrapper();
+        ::apex::profiler_listener::process_profiles_wrapper();
     } else if(!consumer_task_running.test_and_set(memory_order_acq_rel)) {
         apex_internal_process_profiles_action act;
         try {
@@ -1387,7 +1391,7 @@ void apex_schedule_process_profiles() {
             // so we process profiles ourselves.
             profiler_listener::process_profiles_wrapper();
         }
-    } 
+    }
 }
 
 #endif

@@ -58,16 +58,16 @@ struct ApexBfdAddrMap
 struct ApexBfdInfo
 {
     ApexBfdInfo() :
-        probeAddr(0), filename(NULL), funcname(NULL), 
+        probeAddr(0), filename(NULL), funcname(NULL),
                 lineno(-1), discriminator(0)
     { }
-        
+
     // Makes all fields safe to query
     void secure(unsigned long addr) {
         probeAddr = addr;
         if(!funcname) {
             char * tmp = (char*)malloc(256);
-            sprintf(tmp, "addr=<%p>", (void*)(addr));
+            sprintf(tmp, "addr=<%p>", (void*)(size_t)(addr));
             funcname = tmp;
         }
         if(!filename) filename = "(unknown)";

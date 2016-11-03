@@ -17,29 +17,29 @@ public:
   std::string name;
   std::string _resolved_name;
   bool has_name;
-  task_identifier(void) : 
+  task_identifier(void) :
       address(0L), name(""), _resolved_name(""), has_name(false) {};
-  task_identifier(apex_function_address a) : 
+  task_identifier(apex_function_address a) :
       address(a), name(""), _resolved_name(""), has_name(false) {};
-  task_identifier(std::string n) : 
+  task_identifier(std::string n) :
       address(0L), name(n), _resolved_name(""), has_name(true) {};
 	  /*
-  task_identifier(profiler * p) : 
+  task_identifier(profiler * p) :
       address(0L), name(""), _resolved_name("") {
-      if (p->have_name) {                                         
+      if (p->have_name) {
           name = *p->timer_name;
           has_name = true;
-      } else {                                                         
+      } else {
           address = p->action_address;
           has_name = false;
-      }            
+      }
   }
   */
   std::string get_name();
   ~task_identifier() { }
   // requried for using this class as a key in an unordered map.
   // the hash function is defined below.
-  bool operator==(const task_identifier &other) const { 
+  bool operator==(const task_identifier &other) const {
     return (address == other.address && name.compare(other.name) == 0);
   }
   // required for using this class as a key in a set
@@ -74,7 +74,7 @@ namespace std {
   {
     std::size_t operator()(const apex::task_identifier& k) const
     {
-      std::size_t h1 = std::hash<int>()(k.address);
+      std::size_t h1 = std::hash<std::size_t>()(k.address);
       std::size_t h2 = std::hash<std::string>()(k.name);
       return h1 ^ (h2 << 1);; // instead of boost::hash_combine
     }

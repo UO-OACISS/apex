@@ -12,6 +12,9 @@
 #include "apex_types.h"
 #include <chrono>
 #include "task_identifier.hpp"
+#if defined(APEX_HAVE_HPX)
+#include <hpx/util/hardware/timestamp.hpp>
+#endif
 
 #ifdef __INTEL_COMPILER
 #define CLOCK_TYPE high_resolution_clock
@@ -42,9 +45,13 @@ struct rdtsc_clock {
     typedef std::chrono::time_point<rdtsc_clock> time_point;
     static const bool is_steady = true;
     static time_point now() noexcept {
+#if defined(APEX_HAVE_HPX)
+        return time_point(duration(hpx::util::hardware::timestamp()));
+#else
         unsigned lo, hi;
         asm volatile("rdtsc" : "=a" (lo), "=d" (hi));
         return time_point(duration(static_cast<rep>(hi) << 32 | lo));
+#endif
     }
 };
 #endif
@@ -74,32 +81,32 @@ public:
     bool is_resume; // for yield or resume
     reset_type is_reset;
     bool stopped;
-    profiler(task_identifier * id, 
-             bool resume = false, 
-             reset_type reset = reset_type::NONE) : 
-        start(MYCLOCK::now()), 
+    profiler(task_identifier * id,
+             bool resume = false,
+             reset_type reset = reset_type::NONE) :
+        start(MYCLOCK::now()),
 #if APEX_HAVE_PAPI
         papi_start_values{0,0,0,0,0,0,0,0},
         papi_stop_values{0,0,0,0,0,0,0,0},
 #endif
-        value(0.0), 
+        value(0.0),
         children_value(0.0),
 		task_id(id),
         is_counter(false),
         is_resume(resume),
         is_reset(reset), stopped(false) {};
-    profiler(task_identifier * id, double value_) : 
-        start(MYCLOCK::now()), 
+    profiler(task_identifier * id, double value_) :
+        start(MYCLOCK::now()),
 #if APEX_HAVE_PAPI
         papi_start_values{0,0,0,0,0,0,0,0},
         papi_stop_values{0,0,0,0,0,0,0,0},
 #endif
-        value(value_), 
+        value(value_),
         children_value(0.0),
 		task_id(id),
         is_counter(true),
         is_resume(false),
-        is_reset(reset_type::NONE), stopped(true) { }; 
+        is_reset(reset_type::NONE), stopped(true) { };
     //copy constructor
     profiler(profiler* in) : start(in->start), end(in->end) {
 #if APEX_HAVE_PAPI
@@ -139,7 +146,7 @@ public:
         return elapsed() - children_value;
     }
 
-    static inline profiler* get_disabled_profiler(void) { 
+    static inline profiler* get_disabled_profiler(void) {
         return disabled_profiler;
     }
     // default constructor for the dummy profiler
@@ -160,7 +167,9 @@ public:
             auto t0a = MYCLOCK::now();
             auto t0b = std::chrono::CLOCK_TYPE::now();
             for (int j = 0; j < N; ++j) {
+#if !defined(_MSC_VER)
                 asm volatile("");
+#endif
             }
             auto t1a = MYCLOCK::now();
             auto t1b = std::chrono::CLOCK_TYPE::now();
@@ -176,7 +185,7 @@ public:
 #endif
     }
 
-    /* this is for OTF2 tracing. 
+    /* this is for OTF2 tracing.
      * We want a timestamp for the start of the trace.
      * We will also need one for the end of the trace. */
     static MYCLOCK::time_point get_global_start(void) {

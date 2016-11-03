@@ -9,12 +9,15 @@
 // apex main class
 
 /* required for Doxygen */
-/** @file */ 
+/** @file */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 #ifdef APEX_HAVE_HPX
 #include <hpx/config.hpp>
 #include <hpx/include/runtime.hpp>
+#if defined(_MSC_VER)
+#include <winsock2.h>
+#endif
 #endif
 
 #include <string>
@@ -27,8 +30,8 @@
 #include "policy_handler.hpp"
 #include "profiler_listener.hpp"
 #include "apex_options.hpp"
-#include "apex_export.h" 
-#include "proc_read.h" 
+#include "apex_export.h"
+#include "proc_read.h"
 #include <unordered_map>
 #include "apex_cxx_shared_lock.hpp"
 
@@ -37,14 +40,14 @@
 #endif
 
 #if APEX_HAVE_PROC
-#include "proc_read.h" 
+#include "proc_read.h"
 #endif
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /**
  \brief The main APEX namespace.
- 
+
  The C++ interface for APEX uses the apex namespace. In comparison,
  The C interface has functions that start with "apex_".
 
@@ -66,9 +69,9 @@ class apex
 {
 private:
 // private constructors cannot be called
-    apex() : 
-        m_node_id(0), 
-        m_num_ranks(1), 
+    apex() :
+        m_node_id(0),
+        m_num_ranks(1),
         m_my_locality(std::string("0"))
     {
         _initialize();
@@ -89,7 +92,9 @@ private:
 #endif
 public:
     profiler_listener * the_profiler_listener;
+#if APEX_HAVE_PROC
     proc_data_reader * pd_reader;
+#endif
     std::string version_string;
     std::vector<event_listener*> listeners;
     std::vector<int (*)()> finalize_functions;
@@ -115,18 +120,18 @@ public:
 */
     policy_handler * get_policy_handler(uint64_t const& period_microseconds);
     void set_state(int thread_id, apex_thread_state state) { thread_states[thread_id] = state; }
-    apex_thread_state get_state(int thread_id) { 
+    apex_thread_state get_state(int thread_id) {
         if ((unsigned int)thread_id >= thread_states.size()) {
             return APEX_IDLE;
         }
-        return thread_states[thread_id]; 
+        return thread_states[thread_id];
     }
-    void resize_state(int thread_id) { 
+    void resize_state(int thread_id) {
         static std::mutex _mtx;
         if ((unsigned int)thread_id >= thread_states.size()) {
           _mtx.lock();
           if ((unsigned int)thread_id >= thread_states.size()) {
-            thread_states.resize(thread_states.size() + 1024); 
+            thread_states.resize(thread_states.size() + 1024);
           }
           _mtx.unlock();
         }
