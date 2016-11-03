@@ -38,15 +38,19 @@
 #include "task_identifier.hpp"
 #include "task_dependency.hpp"
 #include <sys/stat.h>
+#if !defined(_MSC_VER)
 #include <unistd.h>
-#include <fcntl.h>
 #include <sys/file.h>
+#else
+#include <io.h>
+#endif
+#include <fcntl.h>
 
 #define INITIAL_NUM_THREADS 2
 
 namespace apex {
 
-class profiler_queue_t : public moodycamel::ConcurrentQueue<std::shared_ptr<profiler> > { 
+class profiler_queue_t : public moodycamel::ConcurrentQueue<std::shared_ptr<profiler> > {
 public:
   profiler_queue_t() {}
   virtual ~profiler_queue_t() {

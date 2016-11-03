@@ -22,7 +22,6 @@ hpx_info("apex" "APEX binary dir is ${APEX_BINARY_DIR}")
 include_directories(${CMAKE_BINARY_DIR} ${APEX_BINARY_DIR} ${CMAKE_SOURCE_DIR}/apex/src/contrib)
 
 add_definitions(-DAPEX_HAVE_HPX)
-
 if(APEX_DEBUG)
     add_definitions(-DAPEX_DEBUG)
 endif()
@@ -40,9 +39,9 @@ if(NOT APEX_ARCH_X86)
   add_definitions(-DAPEX_USE_CLOCK_TIMESTAMP=1)
 endif()
 
-################################################################################ 
+################################################################################
 # Get the GIT version of the code
-################################################################################ 
+################################################################################
 
 # Get the current working branch
 execute_process(

@@ -8,10 +8,10 @@
 #include <hpx/config.hpp>
 #endif
 
-#include "concurrency_handler.hpp"
 #include "apex.hpp"
 #include "apex_api.hpp"
 #include "apex_policies.hpp"
+#include "concurrency_handler.hpp"
 #include "thread_instance.hpp"
 #include <iostream>
 #include <map>
@@ -129,8 +129,8 @@ bool concurrency_handler::on_start(task_identifier *id) {
     my_stack->push(*id);
     _per_thread_mutex[i]->unlock();
     return true;
-  } else { 
-    return false; 
+  } else {
+    return false;
   }
 }
 
@@ -142,8 +142,8 @@ bool concurrency_handler::on_resume(task_identifier * id) {
     my_stack->push(*id);
     _per_thread_mutex[i]->unlock();
     return true;
-  } else { 
-    return false; 
+  } else {
+    return false;
   }
 }
 
@@ -172,11 +172,11 @@ void concurrency_handler::on_new_thread(new_thread_event_data &data) {
 
 void concurrency_handler::on_exit_thread(event_data &data) {
   APEX_UNUSED(data);
-  _terminate = true; // because there are crashes 
+  _terminate = true; // because there are crashes
 }
 
 void concurrency_handler::on_shutdown(shutdown_event_data &data) {
-    _terminate = true; // because there are crashes 
+    _terminate = true; // because there are crashes
     cancel();
     output_samples(data.node_id);
 }

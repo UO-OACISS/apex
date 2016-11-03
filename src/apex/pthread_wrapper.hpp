@@ -5,6 +5,8 @@
 
 #pragma once
 
+#ifndef APEX_HAVE_HPX
+
 #include <pthread.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -29,9 +31,9 @@ class pthread_wrapper {
         void* _context_object;
         unsigned int _timeout_microseconds;
     public:
-        pthread_wrapper(void*(*func)(void*), void* context, unsigned int timeout_microseconds) : 
-                done(false), 
-                _func(func), 
+        pthread_wrapper(void*(*func)(void*), void* context, unsigned int timeout_microseconds) :
+                done(false),
+                _func(func),
                 _context_object(context),
                 _timeout_microseconds(timeout_microseconds) {
             pthread_mutexattr_t Attr;
@@ -92,7 +94,7 @@ class pthread_wrapper {
         bool wait() {
             if (done) return false;
 #ifdef APEX_LXK_KITTEN
-/* The pthread_cond_timedwait() call on Kitten never times out. 
+/* The pthread_cond_timedwait() call on Kitten never times out.
  * Therefore, we just use a nanosleep instead. We can't ever
  * wake this thread up early, but that's OK.
  */
@@ -136,3 +138,4 @@ class pthread_wrapper {
 
 }; // namespace
 
+#endif
