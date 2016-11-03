@@ -1,5 +1,6 @@
 build
 build-*
+build_*
 doc/webdocs/site
 install*
 rapidjson
