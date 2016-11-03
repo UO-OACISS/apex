@@ -84,13 +84,13 @@ dobuild()
     cd build${post}-${buildtype}
     cmd="cmake -DCMAKE_BUILD_TYPE=${buildtype} -DBUILD_TESTS=TRUE \
     -DBUILD_EXAMPLES=TRUE ${malloc} ${bfd} ${ah} ${ompt} ${papi} ${mpi} ${otf} ${tau} \
-    -DCMAKE_INSTALL_PREFIX=../install${post}-${buildtype} ../.."
+    -DCMAKE_INSTALL_PREFIX=../install${post}-${buildtype} ${BASEDIR}"
     echo ${cmd}
-    ${cmd} 2>&1 | tee ${logfile}
-    make ${parallel_build} 2>&1 | tee ${logfile}
-    make doc 2>&1 | tee ${logfile}
-    make install 2>&1 | tee ${logfile}
-    make test 2>&1 | tee ${logfile}
+    ${cmd} 2>&1 | tee -a ${logfile}
+    make ${parallel_build} 2>&1 | tee -a ${logfile}
+    make doc 2>&1 | tee -a ${logfile}
+    make install 2>&1 | tee -a ${logfile}
+    make test 2>&1 | tee -a ${logfile}
     printf "\nSUCCESS!\n"
     T="$(($(date +%s)-T))"
     printf "Time to configure and build APEX: %02d hours %02d minutes %02d seconds.\n" "$((T/3600))" "$((T/60%60))" "$((T%60))"
@@ -132,14 +132,14 @@ tau="-DUSE_TAU=FALSE"
 
 if [ ${clean} -eq 1 ] ; then
     echo "cleaning previous regression test..."
-    rm -rf ${BASEDIR}/regression-${host}
-    mkdir -p ${BASEDIR}/regression-${host}
+    rm -rf /dev/shm/regression-${host}
+    mkdir -p /dev/shm/regression-${host}
     git checkout develop
     git pull
 fi
 
 # change directory to the base APEX directory
-cd ${BASEDIR}/regression-${host}
+cd /dev/shm/regression-${host}
 
 logfile=`pwd`/log.txt
 configfile=${SCRIPTPATH}/configuration-files/apex-defaults.conf
