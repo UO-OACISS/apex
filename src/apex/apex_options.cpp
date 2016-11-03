@@ -23,7 +23,13 @@ namespace apex
                 std::vector<std::string> parts;
                 split(line, '=', parts);
                 if(parts.size() == 2) {
+#if defined(_MSC_VER)
+                   std::string val(parts[0]);
+                   val += "=" + parts[1];
+                   _putenv(val.c_str());
+#else
                    setenv(parts[0].c_str(), parts[1].c_str(), 0);
+#endif
                 }
             }
         }
@@ -71,8 +77,8 @@ namespace apex
 #ifdef APEX_HAVE_ACTIVEHARMONY
     // validate the HARMONY_HOME setting - make sure it is set.
     int rc = setenv("HARMONY_HOME", _activeharmony_root, 0);
-    if (rc == -1) { 
-        std::cerr << "Warning - couldn't set HARMONY_HOME" << std::endl; 
+    if (rc == -1) {
+        std::cerr << "Warning - couldn't set HARMONY_HOME" << std::endl;
     }
 #endif
     };

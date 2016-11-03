@@ -10,12 +10,16 @@
 #include <cxxabi.h>
 #endif
 // for setting thread affinity
+#if !defined(__APPLE__) && !defined(_MSC_VER)
 #include <pthread.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 // for removing directories
+#if !defined(_MSC_VER)
 #include <dirent.h>
+#endif
 #include <sys/stat.h>
 
 namespace apex {
@@ -64,7 +68,7 @@ std::string demangle(const std::string& timer_name) {
                do { errno = en; perror(msg); exit(EXIT_FAILURE); } while (0)
 
 void set_thread_affinity(void) {
-#if !defined(__APPLE__)
+#if !defined(__APPLE__) && !defined(_MSC_VER)
     int s, j;
     cpu_set_t cpuset;
     pthread_t thread;
@@ -98,6 +102,7 @@ void set_thread_affinity(void) {
 }
 
 void remove_path(const char *pathname) {
+#if !defined(_MSC_VER)
     struct dirent *entry = NULL;
     DIR *dir = NULL;
 	struct stat sb;
@@ -126,6 +131,7 @@ void remove_path(const char *pathname) {
         //printf("Removing: %s\n", pathname);
     	remove(pathname);
 	}
+#endif
 }
 
 };

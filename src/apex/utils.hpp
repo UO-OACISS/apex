@@ -8,7 +8,9 @@
 #include <string>
 #include <chrono>
 #include <thread>
+#if !defined(_MSC_VER)
 #include <unistd.h>
+#endif
 #include <algorithm>
 #include <iostream>
 #include <string>
@@ -71,15 +73,21 @@ class simple_timer {
         }
 };
 
+#if !defined(_MSC_VER)
 inline unsigned int my_hardware_concurrency()
 {
     return sysconf(_SC_NPROCESSORS_ONLN);
 }
+#endif
 
 inline unsigned int hardware_concurrency()
 {
+#if defined(_MSC_VER)
+    return std::thread::hardware_concurrency();
+#else
     unsigned int cores = std::thread::hardware_concurrency();
     return cores ? cores : my_hardware_concurrency();
+#endif
 }
 
 std::string demangle(const std::string& timer_name);

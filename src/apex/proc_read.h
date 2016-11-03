@@ -5,6 +5,8 @@
 
 #pragma once
 
+#if APEX_HAVE_PROC
+
 #include <stdio.h>
 #include <vector>
 #include <iostream>
@@ -106,7 +108,7 @@ bool parse_proc_self_status();
 bool parse_proc_netdev();
 bool parse_sensor_data();
 
-/* Ideally, this will read from RCR. If not available, read it directly. 
+/* Ideally, this will read from RCR. If not available, read it directly.
    Rather than write the same function seven times for seven different
    filenames, just write once and use a foreach macro to expand it to
    all of the versions we need. */
@@ -147,7 +149,7 @@ FOREACH_APEX_XC30_VALUE(apex_macro)
 #if defined(APEX_HAVE_POWERCAP_POWER)
 /*
  * This isn't really the right way to do this. What should be done
- * is: 
+ * is:
  * 1) read /sys/class/powercap/intel-rapl/intel-rapl:0/name to get the counter name (once)
  * 2) read /sys/class/powercap/intel-rapl/intel-rapl:0/energy_uj to get the value
  * 3) for i in /sys/class/powercap/intel-rapl/intel-rapl:0/intel-rapl:*:*
@@ -187,7 +189,9 @@ inline long long  read_dram (void) {
 #ifdef APEX_HAVE_MSR
 void apex_init_msr(void);
 void apex_finalize_msr(void);
-double msr_current_power_high(void); 
+double msr_current_power_high(void);
 #endif
 
-} 
+}
+
+#endif

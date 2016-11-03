@@ -288,7 +288,7 @@ uint64_t init(const char * thread_name, uint64_t comm_rank, uint64_t comm_size) 
     _initialized = true;
     apex* instance = apex::instance(); // get/create the Apex static instance
     // assign the rank and size.  Why not in the constructor?
-    // because, if we registered a startup policy, the default 
+    // because, if we registered a startup policy, the default
     // constructor was called, without the correct comm_rank and comm_size.
 	if (comm_rank < comm_size && comm_size > 0) { // simple validation
       instance->set_node_id(comm_rank);
@@ -309,7 +309,7 @@ uint64_t init(const char * thread_name, uint64_t comm_rank, uint64_t comm_size) 
     } else {
       start("APEX MAIN THREAD");
     }
-#else 
+#else
     APEX_UNUSED(thread_name);
 #endif
     if (apex_options::use_screen_output() && instance->get_node_id() == 0) {
@@ -395,9 +395,9 @@ profiler* start(apex_function_address function_address) {
     }
 #ifdef APEX_DEBUG
     /*
-    if (instance->get_node_id() == 0) { 
+    if (instance->get_node_id() == 0) {
         printf("%lu Start: %s %p\n", thread_instance::get_id(), lookup_address((uintptr_t)function_address, false)->c_str(), thread_instance::instance().get_current_profiler());
-        fflush(stdout); 
+        fflush(stdout);
     }
     */
 #endif
@@ -454,9 +454,9 @@ profiler* resume(apex_function_address function_address) {
     }
 #ifdef APEX_DEBUG
 /*
-    if (instance->get_node_id() == 0) { 
+    if (instance->get_node_id() == 0) {
         printf("%lu Resume: %s %p\n", thread_instance::get_id(), lookup_address((uintptr_t)function_address, false)->c_str(), thread_instance::instance().get_current_profiler());
-        fflush(stdout); 
+        fflush(stdout);
     }
 */
 #endif
@@ -525,9 +525,9 @@ void stop(profiler* the_profiler) {
     */
 #ifdef APEX_DEBUG
     /*
-    if (instance->get_node_id() == 0) { 
+    if (instance->get_node_id() == 0) {
         printf("%lu Stop:  %s %p\n", thread_instance::get_id(), lookup_address((uintptr_t)p->action_address, false)->c_str(), the_profiler);
-        fflush(stdout); 
+        fflush(stdout);
     }
     */
 #endif
@@ -566,9 +566,9 @@ void yield(profiler* the_profiler)
     */
 #ifdef APEX_DEBUG
     /*
-    if (instance->get_node_id() == 0) { 
+    if (instance->get_node_id() == 0) {
         printf("%lu Yield:  %s\n", thread_instance::get_id(), lookup_address((uintptr_t)p->action_address, false)->c_str());
-        fflush(stdout); 
+        fflush(stdout);
     }
     */
 #endif
@@ -685,7 +685,7 @@ apex_event_type register_custom_event(const std::string &name) {
     write_lock_type l(instance->custom_event_mutex);
     instance->custom_event_names[custom_event_count] = name;
     int tmp = custom_event_count;
-    custom_event_count++; 
+    custom_event_count++;
     return (apex_event_type)tmp;
 }
 
@@ -740,13 +740,13 @@ void init_plugins(void) {
             std::cerr << "Error loading apex_plugin_init from " << path << ": " << dlerror() << std::endl;
             dlclose(plugin_handle);
             continue;
-        } 
+        }
         int (*finalize_fn)() = (int (*)()) ((uintptr_t) dlsym(plugin_handle, "apex_plugin_finalize"));
         if(!finalize_fn) {
             std::cerr << "Error loading apex_plugin_finalize from " << path << ": " << dlerror() << std::endl;
             dlclose(plugin_handle);
             continue;
-        } 
+        }
         apex * instance = apex::instance();
         if(!instance) {
             std::cerr << "Error getting APEX instance while registering finalize function from " << path << std::endl;
@@ -820,7 +820,7 @@ void set_interrupt_interval(int seconds)
     if (apex_options::disable() == true) { return; }
 #ifdef APEX_HAVE_TAU
     TAU_SET_INTERRUPT_INTERVAL(seconds);
-#else 
+#else
     APEX_UNUSED(seconds);
 #endif
 }
@@ -1077,7 +1077,7 @@ void send (uint64_t tag, uint64_t size, uint64_t target) {
 	// if APEX hasn't been initialized, do nothing.
     if (!_initialized) { return ; }
     // get the Apex static instance
-    apex* instance = apex::instance(); 
+    apex* instance = apex::instance();
     // protect against calls after finalization
     if (!instance || _exited) { return ; }
 
@@ -1101,7 +1101,7 @@ void recv (uint64_t tag, uint64_t size, uint64_t source_rank, uint64_t source_th
 	// if APEX hasn't been initialized, do nothing.
     if (!_initialized) { return ; }
     // get the Apex static instance
-    apex* instance = apex::instance(); 
+    apex* instance = apex::instance();
     // protect against calls after finalization
     if (!instance || _exited) { return ; }
 
@@ -1128,12 +1128,12 @@ extern "C" {
         return init(thread_name, comm_rank, comm_size);
     }
 
-    int apex_init_(unsigned long int comm_rank, unsigned long int comm_size) { 
-        return init("FORTRAN thread", comm_rank, comm_size); 
+    int apex_init_(unsigned long int comm_rank, unsigned long int comm_size) {
+        return init("FORTRAN thread", comm_rank, comm_size);
     }
 
-    int apex_init__(unsigned long int comm_rank, unsigned long int comm_size) { 
-        return init("FORTRAN thread", comm_rank, comm_size); 
+    int apex_init__(unsigned long int comm_rank, unsigned long int comm_size) {
+        return init("FORTRAN thread", comm_rank, comm_size);
     }
 
     void apex_cleanup()
@@ -1189,10 +1189,10 @@ extern "C" {
             reset((apex_function_address)(identifier));
         } else {
             string tmp((const char *)identifier);
-            reset(tmp);       
+            reset(tmp);
         }
     }
-    
+
     void apex_set_state(apex_thread_state state) {
         set_state(state);
     }
@@ -1218,7 +1218,7 @@ extern "C" {
         sample_value(tmp, value);
     }
 
-    void apex_new_task(apex_profiler_type type, void * identifier, 
+    void apex_new_task(apex_profiler_type type, void * identifier,
                        unsigned long long task_id) {
         if (type == APEX_FUNCTION_ADDRESS) {
             new_task((apex_function_address)(identifier), task_id);

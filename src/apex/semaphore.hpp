@@ -46,7 +46,7 @@ public:
     inline void post() { if (work_waiting) return ;
         //__sync_fetch_and_add(&work_waiting, 1) ;
         work_waiting = true;
-        sem_post(the_semaphore_p); 
+        sem_post(the_semaphore_p);
         }
     /*
      * When the wait is over, clear the "work_waiting" flag, even though we haven't
@@ -62,7 +62,7 @@ public:
 #else
 // Not posix, so use std to build a semaphore.
 
-#include <condition>
+#include <condition_variable>
 #include <mutex>
 
 namespace apex {
@@ -71,7 +71,7 @@ class semaphore
 {
 private:
     std::mutex mutex_;
-    std::condition_variable condition_;
+    std::condition_variable_any condition_;
     unsigned long count_;
 
 public:
@@ -81,14 +81,14 @@ public:
 
     void post()
     {
-        std::mutex::scoped_lock lock(mutex_);
+        std::lock_guard<std::mutex> lock(mutex_);
         ++count_;
         condition_.notify_one();
     }
 
     void wait()
     {
-        std::mutex::scoped_lock lock(mutex_);
+        std::unique_lock<std::mutex> lock(mutex_);
         while(!count_)
             condition_.wait(lock);
         --count_;
