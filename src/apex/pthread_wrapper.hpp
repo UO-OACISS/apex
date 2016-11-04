@@ -5,8 +5,6 @@
 
 #pragma once
 
-#ifndef APEX_HAVE_HPX
-
 #include <pthread.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -138,4 +136,3 @@ class pthread_wrapper {
 
 }; // namespace
 
-#endif

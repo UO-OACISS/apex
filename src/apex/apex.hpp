@@ -31,7 +31,6 @@
 #include "profiler_listener.hpp"
 #include "apex_options.hpp"
 #include "apex_export.h"
-#include "proc_read.h"
 #include <unordered_map>
 #include "apex_cxx_shared_lock.hpp"
 

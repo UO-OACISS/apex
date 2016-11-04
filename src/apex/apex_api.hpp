@@ -27,14 +27,6 @@
 #include <functional>
 #include <stdio.h>
 
-#ifdef APEX_HAVE_RCR
-#include "libenergy.h"
-#endif
-
-#if APEX_HAVE_PROC
-#include "proc_read.h" 
-#endif
-
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 class apex_tuning_request;
@@ -456,22 +448,7 @@ APEX_EXPORT apex_profile* get_profile(const std::string &timer_name);
 
  \return The current power level in Watts.
  */
-APEX_EXPORT inline double current_power_high(void) {
-    double power = 0.0;
-#ifdef APEX_HAVE_RCR
-    power = (double)rcr_current_power_high();
-    //std::cout << "Read power from RCR: " << power << std::endl;
-#elif APEX_HAVE_MSR
-    power = msr_current_power_high();
-    //std::cout << "Read power from MSR: " << power << std::endl;
-#elif APEX_HAVE_PROC
-    power = (double)read_power();
-    //std::cout << "Read power from Cray Power Monitoring and Management: " << power << std::endl;
-#else
-    //std::cout << "NO POWER READING! Did you configure with RCR, MSR or Cray?" << std::endl;
-#endif
-    return power;
-}
+APEX_EXPORT double current_power_high(void);
 
 #endif // DOXYGEN_SHOULD_SKIP_THIS
 
