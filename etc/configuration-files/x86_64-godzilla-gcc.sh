@@ -11,7 +11,7 @@ platform_tau="-DUSE_TAU=TRUE -DTAU_ROOT=$HOME/src/tau2 -DTAU_ARCH=x86_64 -DTAU_O
 
 module purge
 module load cmake mpi-tor/openmpi-1.8_gcc-4.9 papi 
-#module swap gcc gcc/5.3
+module load gcc/5.3
 #module swap gcc gcc/6.1
 
 parallel_build="-j 24"
