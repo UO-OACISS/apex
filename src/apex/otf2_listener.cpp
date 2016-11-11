@@ -296,10 +296,10 @@ namespace apex {
             .otf2_pre_flush  = otf2_listener::pre_flush, 
             .otf2_post_flush = otf2_listener::post_flush 
         };
-        index_filename = string("./.max_locality.txt");
-        region_filename_prefix = string("./.regions.");
-        metric_filename_prefix = string("./.metrics.");
-        lock_filename_prefix = string("./.regions.lock.");
+        index_filename = string(string(apex_options::otf2_archive_path()) + "/.max_locality.txt");
+        region_filename_prefix = string(string(apex_options::otf2_archive_path()) + "/.regions.");
+        metric_filename_prefix = string(string(apex_options::otf2_archive_path()) + "/.metrics.");
+        lock_filename_prefix = string(string(apex_options::otf2_archive_path()) + "/.regions.lock.");
     }
 
     bool otf2_listener::create_archive(void) {
@@ -342,6 +342,7 @@ namespace apex {
        // add the empty string to the string definitions
         get_string_index(empty);
 
+#if 0
         /* set up the event unification index file */
         struct stat buffer;   
         if (stat (index_filename.c_str(), &buffer) == 0) { 
@@ -361,6 +362,7 @@ namespace apex {
             ofstream indexfile(index_filename, ios::out | ios::trunc );
             indexfile.close();
         }
+#endif
         return;
     }
 
@@ -938,6 +940,7 @@ namespace apex {
             OTF2_Archive_Close( archive );
 			// delete our temporary files!
             // Commented out until we can figure out how to do this safely.
+            /*
             if (my_saved_node_id == 0) {
                 std::remove(otf2_listener::index_filename.c_str());
                 ostringstream tmp;
@@ -947,6 +950,7 @@ namespace apex {
 			    tmp2 << metric_filename_prefix << "0";
                 std::remove(tmp2.str().c_str());
             }
+            */
         }
         return;
     }
@@ -968,6 +972,7 @@ namespace apex {
         // build a string to write to the file
         stringstream ss;
         ss << my_saved_node_id << "\t" << pid << "\t" << hostname << "\n";
+        cout << ss.str();
         string tmp = ss.str();
         // write our pid and hostname, using low-level file locking!
         struct flock fl;

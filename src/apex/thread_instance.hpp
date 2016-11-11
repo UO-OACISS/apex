@@ -18,6 +18,7 @@
 #ifdef APEX_DEBUG
 #include <unordered_set>
 #endif
+#include "apex_cxx_shared_lock.hpp"
 
 namespace apex {
 
@@ -42,6 +43,7 @@ private:
   // map from name to thread id - common to all threads
   static std::map<std::string, int> _name_map;
   static std::mutex _name_map_mutex;
+  static shared_mutex_type _function_map_mutex;
   // map from thread id to is_worker
   static std::map<int, bool> _worker_map;
   static std::mutex _worker_map_mutex;

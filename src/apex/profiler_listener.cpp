@@ -105,6 +105,7 @@ namespace apex {
     double non_idle_time = 0.0;
     /* Iterate over all timers and accumulate the time spent in them */
     unordered_map<task_identifier, profile*>::const_iterator it2;
+    std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
     for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
       profile * p = it2->second;
 #if defined(APEX_THROTTLE)
@@ -172,6 +173,7 @@ namespace apex {
         profile * theprofile = new profile(get_non_idle_time(), 0, NULL, false);
         return theprofile;
     }
+    std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
     unordered_map<task_identifier, profile*>::const_iterator it = task_map.find(id);
     if (it != task_map.end()) {
       return (*it).second;
@@ -180,6 +182,7 @@ namespace apex {
   }
 
   void profiler_listener::reset_all(void) {
+    std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
     for(auto &it : task_map) {
         it.second->reset();
     }
@@ -365,6 +368,7 @@ namespace apex {
   void profiler_listener::delete_profiles(void) {
     // iterate over the map and free the objects in the map
     unordered_map<task_identifier, profile*>::const_iterator it;
+    std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
     for(it = task_map.begin(); it != task_map.end(); it++) {
       delete it->second;
     }
@@ -509,6 +513,7 @@ namespace apex {
     unordered_map<task_identifier, profile*>::const_iterator it2;
     std::vector<task_identifier> id_vector;
     // iterate over the counters, and sort their names
+    std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
     for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
         task_identifier task_id = it2->first;
         profile * p = it2->second;
@@ -660,6 +665,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
 
     // output nodes with  "main" [shape=box; style=filled; fillcolor="#ff0000" ];
     unordered_map<task_identifier, profile*>::const_iterator it;
+    std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
     for(it = task_map.begin(); it != task_map.end(); it++) {
       profile * p = it->second;
       if (p->get_type() == APEX_TIMER) {
@@ -723,6 +729,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
     // Determine number of counter events, as these need to be
     // excluded from the number of normal timers
     unordered_map<task_identifier, profile*>::const_iterator it2;
+    std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
     for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
       profile * p = it2->second;
       if(p->get_type() == APEX_COUNTER) {
@@ -1159,14 +1166,14 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       my_tid = (unsigned int)thread_instance::get_id();
 #if APEX_HAVE_PAPI
       initialize_PAPI(false);
+      event_set_mutex.lock();
       if (my_tid >= event_sets.size()) {
-        event_set_mutex.lock();
         if (my_tid >= event_sets.size()) {
           event_sets.resize(my_tid + 1);
         }
-        event_set_mutex.unlock();
       }
       event_sets[my_tid] = EventSet;
+      event_set_mutex.unlock();
 #endif
     }
     APEX_UNUSED(data);

@@ -14,6 +14,7 @@
 #include <string>
 #include <map>
 #include <mutex>
+#include "apex_cxx_shared_lock.hpp"
 
 namespace apex {
 
@@ -26,7 +27,8 @@ namespace apex {
         address_resolution(address_resolution const&);  // copy constructor is private
         address_resolution& operator=(address_resolution const& a); // assignment operator is private
       public:
-        static std::mutex _bfd_mutex;
+        static shared_mutex_type _bfd_mutex;
+
 
       struct my_hash_node
       {
@@ -38,7 +40,7 @@ namespace apex {
       static address_resolution * instance() { 
           if (_instance == nullptr) {
               // only one thread should instantiate it!
-              std::lock_guard<std::mutex> lock(_bfd_mutex);
+              write_lock_type l(_bfd_mutex);
               if (_instance == nullptr) {
                   _instance = new address_resolution();
               }

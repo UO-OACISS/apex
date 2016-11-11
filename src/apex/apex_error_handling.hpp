@@ -18,10 +18,13 @@
 #include <regex>
 #include "utils.hpp"
 
+static std::mutex output_mutex;
+
 static void apex_custom_signal_handler(int sig) {
 
   int errnum = errno;
 
+  std::unique_lock<std::mutex> l(output_mutex);
   fflush(stderr);
   std::cerr << std::endl;
   std::cerr << "********* Thread " << apex::thread_instance::get_id() << " " << strsignal(sig) << " *********";

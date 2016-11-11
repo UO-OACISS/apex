@@ -3,14 +3,16 @@
 #include <pthread.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <thread>
+#include <atomic>
 
 #include "apex_api.hpp"
 
-#define NUM_THREADS 48
-#define ITERATIONS 250
+#define ITERATIONS 5000
 #define SLEEPY_TIME 10000 // 10,000
 
-int total_iterations = NUM_THREADS * ITERATIONS;
+const int NUM_THREADS = std::thread::hardware_concurrency();
+std::atomic<int> total_iterations(NUM_THREADS * ITERATIONS);
 
 using namespace apex;
 using namespace std;
@@ -45,7 +47,8 @@ void* someThread(void* tmp)
   printf("The ID of this thread is: %u\n", (unsigned int)pthread_self());
 #endif
   printf("The scheduler ID of this thread: %d\n", *myid);
-  while (total_iterations > 0) {
+  int my_total_iterations = total_iterations;
+  while (my_total_iterations > 0) {
       if (*myid >= get_thread_cap()) {
         //printf("Thread %d sleeping for a bit.\n", *myid);
         struct timespec tim, tim2;
@@ -54,12 +57,13 @@ void* someThread(void* tmp)
         // sleep a bit
         nanosleep(&tim , &tim2);
       } else {
-        foo(total_iterations);
-        __sync_fetch_and_sub(&(total_iterations),1);
-        if (total_iterations % 1000 == 0) {
-            printf("%d iterations left, cap is %d\n", total_iterations, get_thread_cap());
+        foo(my_total_iterations);
+        total_iterations--;
+        if (my_total_iterations % 1000 == 0) {
+            printf("%d iterations left, cap is %d\n", my_total_iterations, get_thread_cap());
         }
       }
+      my_total_iterations = total_iterations;
   }
   printf("Thread done: %d. Current Cap: %d.\n", *myid, get_thread_cap());
   stop(p);
@@ -78,9 +82,9 @@ int main(int argc, char **argv)
 
   profiler* p = start((apex_function_address)main);
   printf("PID of this process: %d\n", getpid());
-  pthread_t thread[NUM_THREADS];
+  pthread_t* thread = new pthread_t[NUM_THREADS];
+  int* ids = new int[NUM_THREADS];
   int i;
-  int ids[NUM_THREADS];
   for (i = 0 ; i < NUM_THREADS ; i++) {
     ids[i] = i;
     pthread_create(&(thread[i]), NULL, someThread, &(ids[i]));
@@ -94,6 +98,8 @@ int main(int argc, char **argv)
     std::cout << "Test passed." << std::endl;
   }
   finalize();
+  delete [] thread;
+  delete [] ids;
   return(0);
 }
 

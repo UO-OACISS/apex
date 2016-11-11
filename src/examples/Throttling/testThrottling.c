@@ -10,13 +10,13 @@
 #define MAX(a,b) ((a) > (b) ? a : b)
 #define MIN(a,b) ((a) < (b) ? a : b)
 
-#define NUM_THREADS 48
-#define ITERATIONS 250
+#define ITERATIONS 5000
 #define SLEEPY_TIME 10000 // 10,000
 
-int total_iterations = NUM_THREADS * ITERATIONS;
+int numcores = 8;
+int total_iterations = ITERATIONS;
 bool test_passed = false;
-int original_cap = NUM_THREADS;
+int original_cap = 8;
 
 int foo (int i) {
   apex_profiler_handle p = apex_start(APEX_FUNCTION_ADDRESS, &foo);
@@ -25,7 +25,7 @@ int foo (int i) {
   struct timespec tim, tim2;
   tim.tv_sec = 0;
   // sleep just a bit longer, based on number of active threads.
-  int cap = MIN(NUM_THREADS,apex_get_thread_cap());
+  int cap = MIN(numcores,apex_get_thread_cap());
     if (cap != original_cap) {
         test_passed = true;
   }
@@ -52,7 +52,8 @@ void* someThread(void* tmp)
   printf("The ID of this thread is: %u\n", (unsigned int)pthread_self());
 #endif
   printf("The scheduler ID of this thread: %d\n", *myid);
-  while (total_iterations > 0) {
+  int my_total_iterations = __sync_fetch_and_add(&(total_iterations), 0);
+  while (my_total_iterations > 0) {
       if (*myid >= apex_get_thread_cap()) {
         //printf("Thread %d sleeping for a bit.\n", *myid);
         struct timespec tim, tim2;
@@ -61,12 +62,13 @@ void* someThread(void* tmp)
         // sleep a bit
         nanosleep(&tim , &tim2);
       } else {
-        foo(total_iterations);
-        __sync_fetch_and_sub(&(total_iterations),1);
-        if (total_iterations % 1000 == 0) {
-            printf("%d iterations left, cap is %d\n", total_iterations, apex_get_thread_cap());
+        foo(my_total_iterations);
+        my_total_iterations = __sync_fetch_and_sub(&(total_iterations),1);
+        if (my_total_iterations % 1000 == 0) {
+            printf("%d iterations left, cap is %d\n", my_total_iterations, apex_get_thread_cap());
         }
       }
+      my_total_iterations = __sync_fetch_and_add(&(total_iterations), 0);
   }
   printf("Thread done: %d. Current Cap: %d.\n", *myid, apex_get_thread_cap());
   apex_stop(p);
@@ -85,14 +87,17 @@ int main(int argc, char **argv)
 
   apex_profiler_handle p = apex_start(APEX_FUNCTION_ADDRESS, &main);
   //printf("PID of this process: %d\n", getpid());
-  pthread_t thread[NUM_THREADS];
+  numcores = sysconf(_SC_NPROCESSORS_ONLN);
+  total_iterations = total_iterations * numcores;
+  original_cap = numcores;
+  pthread_t * thread = (pthread_t*)(malloc(sizeof(pthread_t) * numcores));
+  int * ids = (int*)(malloc(sizeof(int) * numcores));
   int i;
-  int ids[NUM_THREADS];
-  for (i = 0 ; i < NUM_THREADS ; i++) {
+  for (i = 0 ; i < numcores ; i++) {
     ids[i] = i;
     pthread_create(&(thread[i]), NULL, someThread, &(ids[i]));
   }
-  for (i = 0 ; i < NUM_THREADS ; i++) {
+  for (i = 0 ; i < numcores ; i++) {
     pthread_join(thread[i], NULL);
   }
   apex_stop(p);
@@ -101,6 +106,8 @@ int main(int argc, char **argv)
     printf("Test passed.\n");
   }
   apex_finalize();
+  free(thread);
+  free(ids);
   return(0);
 }
 

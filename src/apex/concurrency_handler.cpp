@@ -116,7 +116,9 @@ bool concurrency_handler::_handler(void) {
 }
 
 void concurrency_handler::_init(void) {
-  add_thread(0);
+  // initialize the vector with ncores elements. For most applications, this
+  // should be good enough to avoid data races during initialization. 
+  add_thread(2*(hardware_concurrency()));
   run();
   return;
 }
@@ -182,22 +184,24 @@ void concurrency_handler::on_shutdown(shutdown_event_data &data) {
 }
 
 inline stack<task_identifier>* concurrency_handler::get_event_stack(unsigned int tid) {
-  stack<task_identifier>* tmp;
   // it's possible we could get a "start" event without a "new thread" event.
-  if (_event_stack.size() <= tid) {
-    add_thread(tid);
+  {
+    read_lock_type l(_vector_mutex);
+    if (_event_stack.size() <= tid) {
+      return this->_event_stack[tid];
+    }
   }
-  tmp = this->_event_stack[tid];
-  return tmp;
+  add_thread(tid);
+  read_lock_type l(_vector_mutex);
+  return this->_event_stack[tid];
 }
 
 inline void concurrency_handler::add_thread(unsigned int tid) {
-  _vector_mutex.lock();
+  write_lock_type l(_vector_mutex);
   while(_event_stack.size() <= tid) {
     _event_stack.push_back(new stack<task_identifier>);
     _per_thread_mutex.push_back(new std::mutex());
   }
-  _vector_mutex.unlock();
 }
 
 bool sort_functions(pair<task_identifier,int> first, pair<task_identifier,int> second) {
@@ -247,8 +251,7 @@ void concurrency_handler::output_samples(int node_id) {
   }
   for (set<task_identifier>::iterator it=_functions.begin(); it!=_functions.end(); ++it) {
     if (top_x.find(*it) != top_x.end()) {
-      //string* tmp = demangle(*it);
-      task_identifier tmp_id = *it;
+      task_identifier tmp_id(*it);
       string tmp = tmp_id.get_name();
 #ifdef APEX_HAVE_BFD
       std::size_t pos = tmp.find("UNRESOLVED ADDR ");

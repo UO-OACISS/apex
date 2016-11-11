@@ -36,11 +36,13 @@ int main(int argc, char **argv) {
   MPI_Comm_size(MPI_COMM_WORLD, &commsize);
   apex::init("MPI TEST", myrank, commsize);
   apex::profiler* p = apex::start((apex_function_address)(main));
+  MPI_Barrier(MPI_COMM_WORLD);
   if (myrank == 0) {
     master();
   } else {
     worker();
   }
+  MPI_Barrier(MPI_COMM_WORLD);
 
   apex::stop(p);
 

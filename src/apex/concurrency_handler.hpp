@@ -14,6 +14,7 @@
 #include <memory>
 #include <mutex>
 #include "task_identifier.hpp"
+#include "apex_cxx_shared_lock.hpp"
 
 #ifdef SIGEV_THREAD_ID
 #ifndef sigev_notify_thread_id
@@ -28,7 +29,7 @@ private:
   void _init(void);
   // vectors and mutex
   std::vector<std::stack<task_identifier>* > _event_stack;
-  std::mutex _vector_mutex;
+  shared_mutex_type _vector_mutex;
   // periodic samples of stack top states
   std::vector<std::map<task_identifier, unsigned int>* > _states;
   // vector of power samples

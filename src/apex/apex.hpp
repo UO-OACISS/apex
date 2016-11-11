@@ -78,7 +78,7 @@ private:
     apex(apex const&);            // copy constructor is private
     apex& operator=(apex const& a); // assignment operator is private
 // member variables
-    static apex* m_pInstance;
+    static std::atomic<apex*> m_pInstance;
     int m_node_id;
     int m_num_ranks;
     bool m_profiling;
@@ -100,6 +100,7 @@ public:
     std::string m_my_locality;
     std::unordered_map<int, std::string> custom_event_names;
     shared_mutex_type custom_event_mutex;
+    shared_mutex_type listener_mutex;
     static apex* instance(); // singleton instance
     static apex* instance(uint64_t comm_rank, uint64_t comm_size); // singleton instance
     static apex* __instance(); // special case - for cleanup only!

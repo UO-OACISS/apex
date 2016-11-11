@@ -13,19 +13,22 @@ namespace apex {
 
   // instantiate our static instances.
   address_resolution * address_resolution::_instance = nullptr;
-  std::mutex address_resolution::_bfd_mutex;
+  shared_mutex_type address_resolution::_bfd_mutex;
 
   /* Map a function address to a name and/or source location */
   string * lookup_address(uintptr_t ip, bool withFileInfo) {
     address_resolution * ar = address_resolution::instance();
     stringstream location;
     address_resolution::my_hash_node * node = nullptr;
-    const std::unordered_map<uintptr_t,
-                      address_resolution::my_hash_node*>::const_iterator it = ar->my_hash_table.find(ip);
+    std::unordered_map<uintptr_t, address_resolution::my_hash_node*>::const_iterator it;
+    {
+        read_lock_type l(ar->_bfd_mutex);
+        it = ar->my_hash_table.find(ip);
+    }
     // address not found? We need to resolve it.
     if (it == ar->my_hash_table.end()) {
       // only one thread should resolve it.
-      std::lock_guard<std::mutex> lock(ar->_bfd_mutex);
+      write_lock_type l(ar->_bfd_mutex);
       // now that we have the lock, did someone else resolve it?
       const std::unordered_map<uintptr_t,
             address_resolution::my_hash_node*>::const_iterator it2 = ar->my_hash_table.find(ip);

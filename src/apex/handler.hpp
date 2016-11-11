@@ -8,6 +8,7 @@
 #include <string>
 #include <iostream>
 #include <chrono>
+#include <atomic>
 #ifdef APEX_HAVE_HPX 
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
@@ -45,8 +46,8 @@ private:
 #endif
 protected:
   unsigned int _period;
-  bool _handler_initialized;
-  bool _terminate;
+  std::atomic<bool> _handler_initialized;
+  std::atomic<bool> _terminate;
 #ifdef APEX_HAVE_HPX 
   boost::asio::deadline_timer _timer;
   boost::thread* _timer_thread;

@@ -46,6 +46,8 @@ std::atomic_int thread_instance::_active_threads(0);
 map<string, int> thread_instance::_name_map;
 // Global static mutex to control access to the map
 std::mutex thread_instance::_name_map_mutex;
+// Global static mutex to control access to the hashmap of resolved addresses
+shared_mutex_type thread_instance::_function_map_mutex;
 // Global static map of TAU thread IDs to HPX workers
 map<int, bool> thread_instance::_worker_map;
 // Global static mutex to control access to the map
@@ -191,25 +193,36 @@ const char* thread_instance::program_path(void) {
 }
 
 string thread_instance::map_addr_to_name(apex_function_address function_address) {
-  auto it = _function_map.find(function_address);
-  if (it != _function_map.end()) {
-    return (*it).second;
-  } // else...
+    // look up the address
+    {
+        read_lock_type l(_function_map_mutex);
+        auto it = _function_map.find(function_address);
+        if (it != _function_map.end()) {
+          return (*it).second;
+        } // else...
+    }
 #ifdef APEX_HAVE_BFD
-  string * name = lookup_address(function_address, false);
-  _function_map[function_address] = *name;
-  return *name;
+    // resolve the address
+    string * name = lookup_address(function_address, false);
+    {
+        write_lock_type l(_function_map_mutex);
+        _function_map[function_address] = *name;
+    }
+    return *name;
 #else
-  stringstream ss;
-  const char * progname = program_path();
-  if (progname == NULL) {
-    ss << "UNRESOLVED  ADDR 0x" << hex << function_address;
-  } else {
-    ss << "UNRESOLVED " << string(progname) << " ADDR " << hex << function_address;
-  }
-  string name = string(ss.str());
-  _function_map[function_address] = name;
-  return name;
+    stringstream ss;
+    const char * progname = program_path();
+    if (progname == NULL) {
+        ss << "UNRESOLVED  ADDR 0x" << hex << function_address;
+    } else {
+        ss << "UNRESOLVED " << string(progname) << " ADDR " << hex << function_address;
+    }
+    string name = string(ss.str());
+    {
+        write_lock_type l(_function_map_mutex);
+        _function_map[function_address] = name;
+    }
+    return name;
 #endif
 }
 
