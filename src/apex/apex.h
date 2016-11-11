@@ -50,7 +50,7 @@ extern "C" {
  \param comm_size   The total number of processes within the full distributed
                     application, i.e. MPI comm_size or total number of HPX localities.
  \return APEX_NOERROR on success, or APEX_ERROR on failure.
- \sa @ref apex_init_args, @ref apex_finalize
+ \sa @ref apex_finalize
  */
 APEX_EXPORT int apex_init(const char * thread_name, const unsigned int comm_rank, const unsigned int comm_size);
 
@@ -61,7 +61,7 @@ APEX_EXPORT int apex_init(const char * thread_name, const unsigned int comm_rank
  - print a report to the screen
  - write a TAU profile to disk
  \return No return value.
- \sa @ref apex_init, @ref apex_init_args
+ \sa @ref apex_init
  */
 APEX_EXPORT void apex_finalize();
 
