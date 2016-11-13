@@ -75,12 +75,12 @@ dobuild()
     # Get time as a UNIX timestamp (seconds elapsed since Jan 1, 1970 0:00 UTC)
     T="$(date +%s)"
 
-    rm -rf build${post}-${buildtype} install${post}-${buildtype}
+    rm -rf build${post}-${buildtype} ${BASEDIR}/install${post}-${buildtype}
     mkdir build${post}-${buildtype}
     cd build${post}-${buildtype}
     cmd="cmake -DCMAKE_BUILD_TYPE=${buildtype} -DBUILD_TESTS=TRUE \
     -DBUILD_EXAMPLES=TRUE ${malloc} ${bfd} ${ah} ${ompt} ${papi} ${mpi} ${otf} ${tau} ${extra} \
-    -DCMAKE_INSTALL_PREFIX=../install${post}-${buildtype} ${BASEDIR}"
+    -DCMAKE_INSTALL_PREFIX=${BASEDIR}/install${post}-${buildtype} ${BASEDIR}"
     echo ${cmd}
     ${cmd} 2>&1 | tee -a ${logfile}
     make ${parallel_build} 2>&1 | tee -a ${logfile}

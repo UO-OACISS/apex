@@ -837,8 +837,8 @@ namespace apex {
                 rank_thread_map[0] = thread_instance::get_num_threads();
                 // make a common list of regions and metrics across all nodes...
                 int comm_size = reduce_regions();
-                reduce_metrics();
                 if (comm_size > 1) {
+                    reduce_metrics();
                     // ...and distribute them back out
                     write_region_map();
                     write_metric_map();
