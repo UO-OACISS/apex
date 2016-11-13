@@ -25,23 +25,19 @@ while [ $# -ge 1 ]; do
     case "$1" in
         --)
             # No more options left.
-            shift
             break
             ;;
         -s|--spec)
             spec="$2"
-            shift
             ;;
         -c)
             clean=1
-            shift
             ;;
         -h)
             echo "Display some help"
             exit 0
             ;;
     esac
-
     shift
 done
 
@@ -83,14 +79,16 @@ dobuild()
     mkdir build${post}-${buildtype}
     cd build${post}-${buildtype}
     cmd="cmake -DCMAKE_BUILD_TYPE=${buildtype} -DBUILD_TESTS=TRUE \
-    -DBUILD_EXAMPLES=TRUE ${malloc} ${bfd} ${ah} ${ompt} ${papi} ${mpi} ${otf} ${tau} \
+    -DBUILD_EXAMPLES=TRUE ${malloc} ${bfd} ${ah} ${ompt} ${papi} ${mpi} ${otf} ${tau} ${extra} \
     -DCMAKE_INSTALL_PREFIX=../install${post}-${buildtype} ${BASEDIR}"
     echo ${cmd}
     ${cmd} 2>&1 | tee -a ${logfile}
     make ${parallel_build} 2>&1 | tee -a ${logfile}
     make doc 2>&1 | tee -a ${logfile}
     make install 2>&1 | tee -a ${logfile}
-    make test 2>&1 | tee -a ${logfile}
+    #make test 2>&1 | tee -a ${logfile}
+    #ctest --repeat-until-fail 5 --output-on-failure 2>&1 | tee -a ${logfile}
+    ctest --output-on-failure 2>&1 | tee -a ${logfile}
     printf "\nSUCCESS!\n"
     T="$(($(date +%s)-T))"
     printf "Time to configure and build APEX: %02d hours %02d minutes %02d seconds.\n" "$((T/3600))" "$((T/60%60))" "$((T%60))"
@@ -105,16 +103,22 @@ conditional_build()
     echo "post: ${post}"
     if [ "${spec}" = "all" ] ; then
         buildtype=Debug
+        #extra="-DAPEX_DEBUG=TRUE"
+        extra=""
         dobuild
         buildtype=Release
+        extra=""
         dobuild
     elif [ "${post}" = "" ] ; then
         return
     else
         if [[ "${post}" == *"${spec}" ]] ; then
             buildtype=Debug
+            #extra="-DAPEX_DEBUG=TRUE"
+            extra=""
             dobuild
             buildtype=Release
+            extra=""
             dobuild
         fi
     fi

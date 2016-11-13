@@ -590,10 +590,30 @@ if(BFD_FOUND OR OTF2_FOUND)
     endif(NOT APEX_INTEL_MIC)
 endif(BFD_FOUND OR OTF2_FOUND)
 
+include(GitExternal)
+
 if(USE_PLUGINS)
     message(INFO " apex will be built with plugin support.")
     set(LIBS ${LIBS} ${CMAKE_DL_LIBS})
     add_definitions("-DAPEX_USE_PLUGINS")
+
+	git_external(rapidjson
+    	https://github.com/miloyip/rapidjson.git
+    	master
+    	VERBOSE)
+
+	find_path(
+    	RAPIDJSON_INCLUDE_DIR
+    	NAMES rapidjson
+    	PATHS ${PROJECT_SOURCE_DIR}/rapidjson/include)
+
+	if(RAPIDJSON_INCLUDE_DIR)
+    	message(INFO " Found rapidjson at ${RAPIDJSON_INCLUDE_DIR}")
+    	include_directories(${RAPIDJSON_INCLUDE_DIR})
+	else()
+    	message(FATAL_ERROR " rapidjson not found. This should have been checked out automatically. "
+        	"Try manually check out https://github.com/miloyip/rapidjson.git to ${PROJECT_SOURCE_DIR}")
+	endif()
 endif()
 
 ################################################################################
