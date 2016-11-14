@@ -249,6 +249,7 @@ void print_summary() {
     std::cout << std::endl << "OpenMP final settings: " << std::endl;
     for(auto request_pair : *apex_openmp_policy_tuning_requests) {
         auto request = request_pair.second;
+        request->get_best_values();
         const std::string & name = request->get_name();
         const std::string & threads = std::static_pointer_cast<apex_param_enum>(request->get_param("omp_num_threads"))->get_value();
         const std::string & schedule = std::static_pointer_cast<apex_param_enum>(request->get_param("omp_schedule"))->get_value();
