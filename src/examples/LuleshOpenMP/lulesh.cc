@@ -163,6 +163,7 @@ Additional BSD Notice
 
 #include "lulesh.h"
 
+const int MAX_THREADS = 160;
 
 /*********************************/
 /* Data structure implementation */
@@ -2507,7 +2508,7 @@ void CalcCourantConstraintForElems(Domain &domain, Index_t length,
                                    Real_t qqc, Real_t& dtcourant)
 {
 #if _OPENMP   
-   Index_t threads = omp_get_max_threads();
+   Index_t threads = MAX_THREADS;
    static Index_t *courant_elem_per_thread;
    static Real_t *dtcourant_per_thread;
    static bool first = true;
@@ -2522,6 +2523,7 @@ void CalcCourantConstraintForElems(Domain &domain, Index_t length,
    Real_t  dtcourant_per_thread[1];
 #endif
 
+   Index_t num_threads = 1;
 
 #pragma omp parallel firstprivate(length, qqc)
    {
@@ -2530,6 +2532,11 @@ void CalcCourantConstraintForElems(Domain &domain, Index_t length,
       Index_t  courant_elem  = -1 ;
 
 #if _OPENMP
+#pragma omp single nowait
+      {
+        num_threads = omp_get_num_threads();
+      }
+
       Index_t thread_num = omp_get_thread_num();
 #else
       Index_t thread_num = 0;
@@ -2561,7 +2568,7 @@ void CalcCourantConstraintForElems(Domain &domain, Index_t length,
       courant_elem_per_thread[thread_num] = courant_elem ;
    }
 
-   for (Index_t i = 1; i < threads; ++i) {
+   for (Index_t i = 1; i < num_threads; ++i) {
       if (dtcourant_per_thread[i] < dtcourant_per_thread[0] ) {
          dtcourant_per_thread[0]    = dtcourant_per_thread[i];
          courant_elem_per_thread[0] = courant_elem_per_thread[i];
@@ -2583,7 +2590,7 @@ void CalcHydroConstraintForElems(Domain &domain, Index_t length,
                                  Index_t *regElemlist, Real_t dvovmax, Real_t& dthydro)
 {
 #if _OPENMP   
-   Index_t threads = omp_get_max_threads();
+   Index_t threads = MAX_THREADS;
    static Index_t *hydro_elem_per_thread;
    static Real_t *dthydro_per_thread;
    static bool first = true;
@@ -2598,12 +2605,19 @@ void CalcHydroConstraintForElems(Domain &domain, Index_t length,
    Real_t  dthydro_per_thread[1];
 #endif
 
+   Index_t num_threads = 1;
+
 #pragma omp parallel firstprivate(length, dvovmax)
    {
       Real_t dthydro_tmp = dthydro ;
       Index_t hydro_elem = -1 ;
 
 #if _OPENMP      
+#pragma omp single nowait
+      {
+        num_threads = omp_get_num_threads();
+      }      
+
       Index_t thread_num = omp_get_thread_num();
 #else      
       Index_t thread_num = 0;
@@ -2627,7 +2641,7 @@ void CalcHydroConstraintForElems(Domain &domain, Index_t length,
       hydro_elem_per_thread[thread_num] = hydro_elem ;
    }
 
-   for (Index_t i = 1; i < threads; ++i) {
+   for (Index_t i = 1; i < num_threads; ++i) {
       if(dthydro_per_thread[i] < dthydro_per_thread[0]) {
          dthydro_per_thread[0]    = dthydro_per_thread[i];
          hydro_elem_per_thread[0] =  hydro_elem_per_thread[i];
