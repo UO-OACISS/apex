@@ -350,16 +350,7 @@ void policy_handler::on_shutdown(shutdown_event_data &data) {
 	// prevent periodic policies from executing while we are shutting down.
 	write_lock_type wl(periodic_mutex);
     _terminate = true;
-#ifdef APEX_HAVE_HPX
-    if (_timer_thread != nullptr) { 
-        _timer.cancel();
-        if (_timer_thread->try_join_for(boost::chrono::seconds(1))) {
-            _timer_thread->interrupt();
-        }
-        delete(_timer_thread);
-        _timer_thread = nullptr;
-    }
-#else
+#ifndef APEX_HAVE_HPX
     cancel();
 #endif
     if (shutdown_policies.empty()) return;

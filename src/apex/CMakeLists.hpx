@@ -185,10 +185,12 @@ else()
     add_custom_target(project_activeharmony)
 endif()
 
-find_package(RCR)
+if((DEFINED RCR_ROOT) OR (APEX_WITH_RCR) OR (APEX_BUILD_RCR))
+	find_package(RCR)
 
-if(HAVE_RCR)
-  hpx_add_config_define(HPX_HAVE_RCR 1)
+	if(HAVE_RCR)
+  		hpx_add_config_define(HPX_HAVE_RCR 1)
+	endif()
 endif()
 
 if((DEFINED BFD_ROOT) OR (APEX_WITH_BFD) OR (APEX_BUILD_BFD))
@@ -247,7 +249,6 @@ set(apex_sources
     apex_options.cpp
     thread_instance.cpp
     event_listener.cpp
-    handler.cpp
     concurrency_handler.cpp
     policy_handler.cpp
     profiler_listener.cpp
