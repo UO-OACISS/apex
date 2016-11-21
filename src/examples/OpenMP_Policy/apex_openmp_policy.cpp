@@ -183,7 +183,7 @@ int policy(const apex_context context) {
 
 void Tokenize(const std::string& str,
                       std::vector<std::string>& tokens,
-                      const std::string& delimiters = ",")
+                      const std::string& delimiters = "$")
 {
     // Skip delimiters at beginning.
     std::string::size_type lastPos = str.find_first_not_of(delimiters, 0);
@@ -246,7 +246,9 @@ void print_summary() {
     std::strftime(time_str, 128, "results-%F-%H-%M-%S.csv", std::localtime(&time));
     std::ofstream results_file(time_str, std::ofstream::out);
     results_file << "\"name\",\"num_threads\",\"schedule\",\"chunk_size\",\"converged\"" << std::endl;
-    std::cout << std::endl << "OpenMP final settings: " << std::endl;
+    if(apex_openmp_policy_verbose) {
+    	std::cout << std::endl << "OpenMP final settings: " << std::endl;
+	}
     for(auto request_pair : *apex_openmp_policy_tuning_requests) {
         auto request = request_pair.second;
         request->get_best_values();
@@ -255,9 +257,11 @@ void print_summary() {
         const std::string & schedule = std::static_pointer_cast<apex_param_enum>(request->get_param("omp_schedule"))->get_value();
         const std::string & chunk = std::static_pointer_cast<apex_param_enum>(request->get_param("omp_chunk_size"))->get_value();
         const std::string converged = request->has_converged() ? "CONVERGED" : "NOT CONVERGED";
-        std::cout << "name: " << name << ", num_threads: " << threads << ", schedule: " << schedule
-            << ", chunk_size: " << chunk << " " << converged << std::endl;
-        results_file << "\"" << name << "\"," << threads << ",\"" << schedule << "\"," << chunk << ",\"" << converged << "\"" << std::endl;
+        if(apex_openmp_policy_verbose) {
+        	std::cout << "name: " << name << ", num_threads: " << threads << ", schedule: " << schedule
+            	<< ", chunk_size: " << chunk << " " << converged << std::endl;
+		}
+        results_file << "\"" << name << "\"$" << threads << "$\"" << schedule << "\"$" << chunk << "$\"" << converged << "\"" << std::endl;
     }
     std::cout << std::endl;
     results_file.flush();
@@ -463,6 +467,7 @@ int register_policy() {
         }
     }
     if(apex_openmp_policy_use_history) {
+        std::cerr << "Using tuning history file: " << apex_openmp_policy_history_file << std::endl;
         read_results(apex_openmp_policy_history_file);
     }
 
