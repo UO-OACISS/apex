@@ -12,7 +12,7 @@ no_otf=" -DUSE_OTF2=FALSE"
 no_tau=" -DUSE_TAU=FALSE"
 yes_malloc=" -DUSE_JEMALLOC=TRUE"
 yes_bfd=" -DUSE_BFD=TRUE"
-yes_ah=" -DUSE_ACTIVEHARMONY=TRUE -DACTIVEHARMONY_ROOT=/usr/local/activeharmony/4.6"
+yes_ah=" -DUSE_ACTIVEHARMONY=TRUE -DACTIVEHARMONY_ROOT=/usr/local/activeharmony/4.6 -DUSE_PLUGINS=TRUE"
 yes_otf=" -DUSE_OTF2=TRUE -DOTF2_ROOT=/usr/local/otf2/2.0"
 yes_ompt=" -DUSE_OMPT=TRUE -DOMPT_ROOT=/usr/local/LLVM-ompt/Release"
 yes_mpi=" -DUSE_MPI=TRUE -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx"
@@ -43,31 +43,25 @@ while [ $# -ge 1 ]; do
     case "$1" in
         --)
             # No more options left.
-            shift
             break
             ;;
         -b|--build)
             build="$2"
-            shift
             ;;
         -t|--type)
             buildtype="$2"
-            shift
             ;;
         -s|--step)
             step="$2"
-            shift
             ;;
         -d|--dirname)
             dirname="$2"
-            shift
             ;;
         -h)
             echo "$0 -b,--build [default|base|malloc|bfd|ah|ompt|papi|mpi|otf|tau] -t,--type [Release|Debug] -s,--step [config|compile|test|install] -d,--dirname <dirname>"
             exit 0
             ;;
     esac
-
     shift
 done
 
