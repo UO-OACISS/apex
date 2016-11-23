@@ -124,6 +124,7 @@ namespace apex {
         return;
     }
 
+		/* these indices are thread-specific. */
         std::map<task_identifier,uint64_t>& otf2_listener::get_region_indices(void) {
             static __thread std::map<task_identifier,uint64_t> * region_indices;
             if (region_indices == nullptr) {
@@ -131,6 +132,7 @@ namespace apex {
             }
             return *region_indices;
         }
+		/* these indices are thread-specific. */
         std::map<std::string,uint64_t>& otf2_listener::get_string_indices(void) {
             static __thread std::map<std::string,uint64_t> * string_indices;
             if (string_indices == nullptr) {
@@ -138,6 +140,7 @@ namespace apex {
             }
             return *string_indices;
         }
+		/* these indices are locality-specific. */
         std::map<task_identifier,uint64_t>& otf2_listener::get_global_region_indices(void) {
             static std::map<task_identifier,uint64_t> region_indices;
             return region_indices;
@@ -149,8 +152,8 @@ namespace apex {
             uint64_t region_index = 0;
             if (tmp == region_indices.end()) {
                 /* not in the thread's map? look in the global map */
-                std::map<task_identifier,uint64_t>& global_region_indices = get_global_region_indices();
                 std::unique_lock<std::mutex> lock(_region_mutex);
+                std::map<task_identifier,uint64_t>& global_region_indices = get_global_region_indices();
                 tmp = global_region_indices.find(*id);
                 if (tmp == global_region_indices.end()) {
                     /* not in the global map? create it. */
@@ -363,6 +366,17 @@ namespace apex {
             indexfile.close();
         }
 #endif
+        // save the node id, because the apex object my not be
+        // around when we are finalizing everything.
+        my_saved_node_id = apex::instance()->get_node_id();
+        // now is a good time to make sure the archive is open on this rank/locality
+        static bool archive_created = create_archive();
+        if ((!_terminate) && archive_created) {
+            // let rank/locality 0 know this rank's properties.
+            write_my_node_properties();
+            // set up the event writer for communication (thread 0).
+            getEvtWriter();
+        }
         return;
     }
 
@@ -837,8 +851,8 @@ namespace apex {
                 rank_thread_map[0] = thread_instance::get_num_threads();
                 // make a common list of regions and metrics across all nodes...
                 int comm_size = reduce_regions();
+                reduce_metrics();
                 if (comm_size > 1) {
-                    reduce_metrics();
                     // ...and distribute them back out
                     write_region_map();
                     write_metric_map();
@@ -1001,6 +1015,7 @@ namespace apex {
     }
 
     void otf2_listener::on_new_node(node_event_data &data) {
+#if 0
         // save the node id, because the apex object my not be
         // around when we are finalizing everything.
         my_saved_node_id = apex::instance()->get_node_id();
@@ -1012,6 +1027,7 @@ namespace apex {
             // set up the event writer for communication (thread 0).
             getEvtWriter();
         }
+#endif
         return;
     }
 
@@ -1257,7 +1273,7 @@ namespace apex {
                 // write our counter into the event stream
                 if (comm_evt_writer != NULL) {
                     OTF2_EC(OTF2_EvtWriter_Metric( comm_evt_writer, NULL, stamp, idx, 1, omt, omv ));
-                }
+				}
             }
         }
         return;

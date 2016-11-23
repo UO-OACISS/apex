@@ -6,6 +6,7 @@
 #pragma once
 
 #include "apex_types.h"
+#include "utils.hpp"
 #include <functional>
 #include <string>
 
@@ -22,7 +23,7 @@ public:
   task_identifier(apex_function_address a) :
       address(a), name(""), _resolved_name(""), has_name(false) {};
   task_identifier(std::string n) :
-      address(0L), name(n), _resolved_name(""), has_name(true) {};
+      address(0L), name(demangle(n)), _resolved_name(""), has_name(true) {};
 	  /*
   task_identifier(profiler * p) :
       address(0L), name(""), _resolved_name("") {
