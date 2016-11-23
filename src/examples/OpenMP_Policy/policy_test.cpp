@@ -106,7 +106,8 @@ int main (int argc, char *argv[]) {
     std::cerr << "Final omp_chunk_size for region 2: " << final_chunk_size_2 << " (should be 128)" << std::endl;
 
 
-    if(final_nthreads_1 == 4 && final_nthreads_2 == 8 && final_schedule_1 == omp_sched_static && final_schedule_2 == omp_sched_dynamic && final_chunk_size_1 == 8 && final_chunk_size_2 == 128) {
+    //if(final_nthreads_1 == 4 && final_nthreads_2 == 8 && final_schedule_1 == omp_sched_static && final_schedule_2 == omp_sched_dynamic && final_chunk_size_1 == 8 && final_chunk_size_2 == 128) {
+    if(final_nthreads_1 != final_nthreads_2 || final_schedule_1 != final_schedule_2 || final_chunk_size_1 != final_chunk_size_2) {
         std::cerr << "Test passed." << std::endl;
     } else {
         std::cerr << "Test failed." << std::endl;
