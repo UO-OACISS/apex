@@ -1299,7 +1299,9 @@ APEX_EXPORT void get_best_values(apex_tuning_session_handle h) {
     if (apex_options::disable() == true) { return; }
     auto tuning_session = get_session(h);
     if(tuning_session && tuning_session->htask != nullptr) {
+#ifdef APEX_HAVE_ACTIVEHARMONY
         ah_best(tuning_session->htask);    
+#endif
     } else {
         return;
     }
