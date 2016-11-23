@@ -5,7 +5,6 @@
 
 #include "task_identifier.hpp"
 #include "thread_instance.hpp"
-#include "utils.hpp"
 
 namespace apex {
 
@@ -17,7 +16,7 @@ std::string task_identifier::get_name() {
       }
       return demangle(_resolved_name);
     }
-    return demangle(name);
+    return name;
   }
 
 }
