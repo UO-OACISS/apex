@@ -197,6 +197,10 @@ class apex_tuning_request {
             return apex::has_session_converged(tuning_session_handle);
         }
 
+        void get_best_values() {
+            return apex::get_best_values(tuning_session_handle);
+        }
+
         apex_tuning_session_handle get_session_handle() const {
             return tuning_session_handle;
         };

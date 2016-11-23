@@ -3,11 +3,6 @@
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-
-#ifdef APEX_HAVE_HPX
-#include <hpx/config.hpp>
-#endif
-
 #include "apex.hpp"
 #include "apex_api.hpp"
 #include "apex_policies.hpp"
@@ -118,7 +113,7 @@ bool concurrency_handler::_handler(void) {
 void concurrency_handler::_init(void) {
   // initialize the vector with ncores elements. For most applications, this
   // should be good enough to avoid data races during initialization. 
-  add_thread(2*(hardware_concurrency()));
+  add_thread(hardware_concurrency());
   run();
   return;
 }

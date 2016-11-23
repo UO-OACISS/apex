@@ -645,6 +645,15 @@ APEX_EXPORT std::vector<std::pair<std::string,long*>> & get_tunable_params(apex_
  */
 APEX_EXPORT bool has_session_converged(apex_tuning_session_handle handle);
 
+
+/**
+ \brief Set a tuning session's values to the best known values.
+
+ \param handle The handle for the tuning session of interest.
+
+ */
+APEX_EXPORT void get_best_values(apex_tuning_session_handle h);
+
 /**
  \brief Print out all configuration settings for APEX.
 

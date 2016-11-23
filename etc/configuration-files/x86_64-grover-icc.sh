@@ -6,7 +6,7 @@ platform_otf="-DOTF2_ROOT=${HOME}/install/otf2/2.0-knl"
 platform_ompt="-DOMPT_ROOT=${HOME}/src/LLVM-openmp/build-icc-Release -DUSE_PLUGINS=TRUE"
 platform_mpi=""
 platform_papi="-DUSE_PAPI=TRUE -DPAPI_ROOT=${HOME}/install/papi/5.5.0-knl"
-platform_tau="-DUSE_TAU=TRUE -DTAU_ROOT=$HOME/src/tau2 -DTAU_ARCH=x86_64 -DTAU_OPTIONS=-pthread"
+platform_tau="-DUSE_TAU=TRUE -DTAU_ROOT=$HOME/src/tau2 -DTAU_ARCH=x86_64 -DTAU_OPTIONS=-icpc-pthread"
 
 module load cmake intel gcc/5.3
 

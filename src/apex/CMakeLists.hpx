@@ -185,10 +185,27 @@ else()
     add_custom_target(project_activeharmony)
 endif()
 
-find_package(RCR)
+if((DEFINED RCR_ROOT) OR (APEX_WITH_RCR) OR (APEX_BUILD_RCR))
+	find_package(RCR)
 
-if(HAVE_RCR)
-  hpx_add_config_define(HPX_HAVE_RCR 1)
+	if(HAVE_RCR)
+  		hpx_add_config_define(HPX_HAVE_RCR 1)
+	else()
+    	#if(EXISTS "/sys/cray/pm_counter/power")
+    	IF(("${HOST_BASENAME}" STREQUAL "edison") OR ("$ENV{NERSC_HOST}" STREQUAL "edison") OR
+       	("${HOST_BASENAME}" STREQUAL "cori") OR ("$ENV{NERSC_HOST}" STREQUAL "cori"))
+        	#add_definitions(-fPIC)
+        	set (APEX_HAVE_CRAY_POWER TRUE)
+        	add_definitions(-DAPEX_HAVE_CRAY_POWER)
+        	message(INFO " System has Cray energy monitoring support.")
+    	else()
+      	if(EXISTS "/sys/class/powercap/intel-rapl/intel-rapl:0")
+        	set (APEX_HAVE_POWERCAP_POWER TRUE)
+        	add_definitions(-DAPEX_HAVE_POWERCAP_POWER)
+        	message(INFO " System has Powercap energy monitoring support.")
+      	endif()
+    	endif()
+	endif()
 endif()
 
 if((DEFINED BFD_ROOT) OR (APEX_WITH_BFD) OR (APEX_BUILD_BFD))
@@ -247,7 +264,6 @@ set(apex_sources
     apex_options.cpp
     thread_instance.cpp
     event_listener.cpp
-    handler.cpp
     concurrency_handler.cpp
     policy_handler.cpp
     profiler_listener.cpp

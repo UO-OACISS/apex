@@ -58,6 +58,7 @@ bool policy_handler::_handler(void) {
       initialize_worker_thread_for_TAU();
       _handler_initialized = true;
   }
+  this->_reset();
   if (_terminate) return true;
 #ifdef APEX_HAVE_TAU
   if (apex_options::use_tau()) {
@@ -66,7 +67,6 @@ bool policy_handler::_handler(void) {
 #endif
   periodic_event_data data;
   this->on_periodic(data);
-  this->_reset();
 #ifdef APEX_HAVE_TAU
   if (apex_options::use_tau()) {
     TAU_STOP("policy_handler::_handler");
@@ -350,16 +350,7 @@ void policy_handler::on_shutdown(shutdown_event_data &data) {
 	// prevent periodic policies from executing while we are shutting down.
 	write_lock_type wl(periodic_mutex);
     _terminate = true;
-#ifdef APEX_HAVE_HPX
-    if (_timer_thread != nullptr) { 
-        _timer.cancel();
-        if (_timer_thread->try_join_for(boost::chrono::seconds(1))) {
-            _timer_thread->interrupt();
-        }
-        delete(_timer_thread);
-        _timer_thread = nullptr;
-    }
-#else
+#ifndef APEX_HAVE_HPX
     cancel();
 #endif
     if (shutdown_policies.empty()) return;
