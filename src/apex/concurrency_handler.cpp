@@ -113,7 +113,7 @@ bool concurrency_handler::_handler(void) {
 void concurrency_handler::_init(void) {
   // initialize the vector with ncores elements. For most applications, this
   // should be good enough to avoid data races during initialization. 
-  add_thread(2*(hardware_concurrency()));
+  add_thread(hardware_concurrency());
   run();
   return;
 }
