@@ -361,9 +361,15 @@ profiler* start(const std::string &timer_name)
     if (starts_with(timer_name, string("apex_internal"))) {
         return profiler::get_disabled_profiler(); // don't process our own events - queue scrubbing tasks.
     }
+#ifdef APEX_HAVE_HPX
+    // Finalize at the _start_ of HPX shutdown so that we can stop any
+    // outstanding hpx::util::interval_timer instances. If any are left
+    // running, HPX shutdown will never complete.
     if (starts_with(timer_name, string("shutdown_all"))) {
+        finalize();
         return profiler::get_disabled_profiler();
     }
+#endif
 #ifdef APEX_DEBUG
     _starts++;
 #endif

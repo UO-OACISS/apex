@@ -58,6 +58,7 @@ bool policy_handler::_handler(void) {
       initialize_worker_thread_for_TAU();
       _handler_initialized = true;
   }
+  this->_reset();
   if (_terminate) return true;
 #ifdef APEX_HAVE_TAU
   if (apex_options::use_tau()) {
@@ -66,7 +67,6 @@ bool policy_handler::_handler(void) {
 #endif
   periodic_event_data data;
   this->on_periodic(data);
-  this->_reset();
 #ifdef APEX_HAVE_TAU
   if (apex_options::use_tau()) {
     TAU_STOP("policy_handler::_handler");
