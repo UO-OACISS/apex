@@ -25,8 +25,6 @@ namespace apex {
 
     uint64_t otf2_listener::globalOffset(0);
     const std::string otf2_listener::empty("");
-    __thread OTF2_EvtWriter* otf2_listener::evt_writer(nullptr);
-    OTF2_EvtWriter* otf2_listener::comm_evt_writer(nullptr);
     int otf2_listener::my_saved_node_id(0);
 
     OTF2_CallbackCode otf2_listener::my_OTF2GetSize(void *userData,
@@ -140,11 +138,6 @@ namespace apex {
             }
             return *string_indices;
         }
-		/* these indices are locality-specific. */
-        std::map<task_identifier,uint64_t>& otf2_listener::get_global_region_indices(void) {
-            static std::map<task_identifier,uint64_t> region_indices;
-            return region_indices;
-        }
         uint64_t otf2_listener::get_region_index(task_identifier* id) {
             /* first, look in this thread's map */
             std::map<task_identifier,uint64_t>& region_indices = get_region_indices();
@@ -153,7 +146,6 @@ namespace apex {
             if (tmp == region_indices.end()) {
                 /* not in the thread's map? look in the global map */
                 std::unique_lock<std::mutex> lock(_region_mutex);
-                std::map<task_identifier,uint64_t>& global_region_indices = get_global_region_indices();
                 tmp = global_region_indices.find(*id);
                 if (tmp == global_region_indices.end()) {
                     /* not in the global map? create it. */
@@ -174,7 +166,6 @@ namespace apex {
             // thread specific
   	        std::map<std::string,uint64_t>& string_indices = get_string_indices();
             // process specific
-  	        static std::map<std::string,uint64_t> global_string_indices;
             /* first, look in this thread's map */
             auto tmp = string_indices.find(name);
             uint64_t string_index = 0;
@@ -198,7 +189,6 @@ namespace apex {
         }
         uint64_t otf2_listener::get_hostname_index(const std::string& name) {
             /* first, look in the map */
-            static std::map<std::string,uint64_t> hostname_indices;
             auto tmp = hostname_indices.find(name);
             uint64_t hostname_index = 0;
             if (tmp == hostname_indices.end()) {
@@ -218,10 +208,6 @@ namespace apex {
             }
             return *metric_indices;
         }
-        std::map<std::string,uint64_t>& otf2_listener::get_global_metric_indices(void) {
-            static std::map<std::string,uint64_t> metric_indices;
-            return metric_indices;
-        }
         uint64_t otf2_listener::get_metric_index(const std::string& name) {
             // thread specific
   	        std::map<std::string,uint64_t>& metric_indices = get_metric_indices();
@@ -230,7 +216,6 @@ namespace apex {
             uint64_t metric_index = 0;
             if (tmp == metric_indices.end()) {
                 // process specific
-  	            std::map<std::string,uint64_t>& global_metric_indices = get_global_metric_indices();
                 /* not in the thread's map? look in the global map */
                 std::unique_lock<std::mutex> lock(_metric_mutex);
                 tmp = global_metric_indices.find(name);
@@ -267,6 +252,7 @@ namespace apex {
     }
 
     OTF2_EvtWriter* otf2_listener::getEvtWriter(void) {
+      static __thread OTF2_EvtWriter* evt_writer(nullptr);
       if (evt_writer == nullptr) {
         uint64_t my_node_id = apex::__instance()->get_node_id();
         my_node_id = (my_node_id << 32) + thread_instance::get_id();
@@ -291,7 +277,7 @@ namespace apex {
         .otf2_post_flush = post_flush
     };
 
-    otf2_listener::otf2_listener (void) : _terminate(false), global_def_writer(nullptr) {
+    otf2_listener::otf2_listener (void) : _terminate(false), comm_evt_writer(nullptr), global_def_writer(nullptr) {
         /* get a start time for the trace */
         globalOffset = get_time();
         /* set the flusher */
@@ -385,7 +371,6 @@ namespace apex {
         static __thread bool written = false;
         if (written) return;
         written = true;
-        //auto region_indices = get_global_region_indices();
         for (auto const &i : reduced_region_map) {
             string id = i.first;
             uint64_t idx = i.second;
@@ -453,8 +438,7 @@ namespace apex {
         // first, output our number of threads.
         region_file << thread_instance::get_num_threads() << endl;
         // then iterate over the regions and write them out.
-        auto region_indices = get_global_region_indices();
-        for (auto const &i : region_indices) {
+        for (auto const &i : global_region_indices) {
             task_identifier id = i.first;
             //uint64_t idx = i.second;
             //region_file << id.get_name() << "\t" << idx << endl;
@@ -483,8 +467,7 @@ namespace apex {
         // first, output our number of threads.
         metric_file << thread_instance::get_num_threads() << endl;
         // then iterate over the metrics and write them out.
-        auto metric_indices = get_global_metric_indices();
-        for (auto const &i : metric_indices) {
+        for (auto const &i : global_metric_indices) {
             string id = i.first;
             //uint64_t idx = i.second;
             //metric_file << id.get_name() << "\t" << idx << endl;
@@ -503,10 +486,9 @@ namespace apex {
         ofstream lock_file(my_lock_filename.str(), ios::out | ios::trunc );
         lock_file.close();
         // iterate over my region map, and build a map of strings to ids
-        auto region_indices = get_global_region_indices();
         // save my number of regions
-        rank_region_map[0] = region_indices.size();
-        for (auto const &i : region_indices) {
+        rank_region_map[0] = global_region_indices.size();
+        for (auto const &i : global_region_indices) {
             task_identifier id = i.first;
             uint64_t idx = i.second;
             reduced_region_map[id.get_name()] = idx;
@@ -587,10 +569,9 @@ namespace apex {
         ofstream lock_file(my_lock_filename.str(), ios::out | ios::trunc );
         lock_file.close();
         // iterate over my metric map, and build a map of strings to ids
-        auto metric_indices = get_global_metric_indices();
         // save my number of metrics
-        rank_metric_map[0] = metric_indices.size();
-        for (auto const &i : metric_indices) {
+        rank_metric_map[0] = global_metric_indices.size();
+        for (auto const &i : global_metric_indices) {
             string id = i.first;
             uint64_t idx = i.second;
             reduced_metric_map[id] = idx;
@@ -684,17 +665,16 @@ namespace apex {
         }
         region_file.close();
         // build the array of uint64_t values
-        auto region_indices = get_global_region_indices();
-        if (region_indices.size() > 0) {
-            uint64_t * mappings = (uint64_t*)(malloc(sizeof(uint64_t) * region_indices.size()));
-            for (auto const &i : region_indices) {
+        if (global_region_indices.size() > 0) {
+            uint64_t * mappings = (uint64_t*)(malloc(sizeof(uint64_t) * global_region_indices.size()));
+            for (auto const &i : global_region_indices) {
                 task_identifier id = i.first;
                 uint64_t idx = i.second;
                 uint64_t mapped_index = reduced_region_map[id.get_name()];
                 mappings[idx] = mapped_index;
             }
             // create a map
-            uint64_t map_size = region_indices.size();
+            uint64_t map_size = global_region_indices.size();
             OTF2_IdMap * my_map = OTF2_IdMap_CreateFromUint64Array(map_size, mappings, false);
             for (int i = 0 ; i < thread_instance::get_num_threads() ; i++) {
                 OTF2_DefWriter* def_writer = getDefWriter(i);
@@ -737,17 +717,16 @@ namespace apex {
         }
         metric_file.close();
         // build the array of uint64_t values
-        auto metric_indices = get_global_metric_indices();
-        if (metric_indices.size() > 0) {
-            uint64_t * mappings = (uint64_t*)(malloc(sizeof(uint64_t) * metric_indices.size()));
-            for (auto const &i : metric_indices) {
+        if (global_metric_indices.size() > 0) {
+            uint64_t * mappings = (uint64_t*)(malloc(sizeof(uint64_t) * global_metric_indices.size()));
+            for (auto const &i : global_metric_indices) {
                 string name = i.first;
                 uint64_t idx = i.second;
                 uint64_t mapped_index = reduced_metric_map[name];
                 mappings[idx] = mapped_index;
             }
             // create a map
-            uint64_t map_size = metric_indices.size();
+            uint64_t map_size = global_metric_indices.size();
             OTF2_IdMap * my_map = OTF2_IdMap_CreateFromUint64Array(map_size, mappings, false);
             for (int i = 0 ; i < thread_instance::get_num_threads() ; i++) {
                 OTF2_DefWriter* def_writer = getDefWriter(i);
@@ -837,6 +816,9 @@ namespace apex {
      * locations, communicators, groups, metrics, etc.
      */
     void otf2_listener::on_shutdown(shutdown_event_data &data) {
+        static bool _finalized = false;
+        if (_finalized) { return; }
+        _finalized = true;
  		// get an exclusive lock, to make sure no other threads
 		// are writing to the archive.
         write_lock_type lock(_archive_mutex);

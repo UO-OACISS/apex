@@ -24,17 +24,19 @@ namespace apex {
         std::mutex _string_mutex;
         std::mutex _metric_mutex;
         std::mutex _comm_mutex;
-		// this is a reader/writer lock. Don't close the archive
-		// if other threads are writing to it. but allow concurrent
-		// access from the writer threads.
+        /* this is a reader/writer lock. Don't close the archive
+         * if other threads are writing to it. but allow concurrent
+         * access from the writer threads. */
         shared_mutex_type _archive_mutex;
+        /* The global offset is referenced from the get_time static function,
+         * so it needs to be static itself. */
         static uint64_t globalOffset;
+        /* All OTF2 callback functions have to be declared static, so that they 
+         * can be registered with the OTF2 library */
         static OTF2_TimeStamp get_time( void ) {
             using namespace std::chrono;
             uint64_t stamp = duration_cast<nanoseconds>(system_clock::now().time_since_epoch()).count();
-            //std::cout << " stamp before: " << stamp;
             stamp = stamp - globalOffset;
-            //std::cout << " stamp after: " << stamp << std::endl;
             return stamp;
         }
         static OTF2_FlushType pre_flush( void* userData, 
@@ -105,23 +107,24 @@ namespace apex {
             OTF2_CollectiveContext *globalCommContext, 
             OTF2_CollectiveContext *localCommContext);
         static OTF2_CollectiveCallbacks * get_collective_callbacks (void);
-	    static OTF2_FlushCallbacks flush_callbacks;
+        static OTF2_FlushCallbacks flush_callbacks;
         void* event_writer(void* arg);
         OTF2_Archive* archive;
-        static __thread OTF2_EvtWriter* evt_writer;
-        static OTF2_EvtWriter* comm_evt_writer;
-        //static __thread OTF2_DefWriter* def_writer;
+        OTF2_EvtWriter* comm_evt_writer;
+        //__thread OTF2_DefWriter* def_writer;
         OTF2_EvtWriter* getEvtWriter();
         OTF2_DefWriter* getDefWriter(int threadid);
         OTF2_GlobalDefWriter* global_def_writer;
         std::map<task_identifier,uint64_t>& get_region_indices(void);
-		std::map<std::string,uint64_t>& get_string_indices(void);
-        std::map<task_identifier,uint64_t>& get_global_region_indices(void);
+        std::map<std::string,uint64_t> global_string_indices;
+        std::map<std::string,uint64_t>& get_string_indices(void);
+        std::map<task_identifier,uint64_t> global_region_indices;
+        std::map<std::string,uint64_t> hostname_indices;
         uint64_t get_region_index(task_identifier* id);
         uint64_t get_string_index(const std::string& name);
         uint64_t get_hostname_index(const std::string& name);
+        std::map<std::string,uint64_t> global_metric_indices;
         std::map<std::string,uint64_t>& get_metric_indices(void);
-        std::map<std::string,uint64_t>& get_global_metric_indices(void);
         uint64_t get_metric_index(const std::string& name);
         static const std::string empty;
         void write_otf2_regions(void);
@@ -148,7 +151,8 @@ namespace apex {
         std::map<std::string,uint64_t> reduced_metric_map;
     public:
         otf2_listener (void);
-        ~otf2_listener (void) { };
+        //~otf2_listener (void) { shutdown_event_data data(my_saved_node_id,0); on_shutdown(data); };
+        ~otf2_listener (void) { finalize(); };
         void on_startup(startup_event_data &data);
         void on_shutdown(shutdown_event_data &data);
         void on_new_node(node_event_data &data);

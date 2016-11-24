@@ -344,6 +344,8 @@ uint64_t init(const char * thread_name, uint64_t comm_rank, uint64_t comm_size) 
             instance->listeners[i]->on_new_node(node_data);
         }
     }
+    /* register the finalization function, for program exit */
+    std::atexit(finalize);
     return APEX_NOERROR;
 }
 
@@ -913,8 +915,6 @@ void finalize()
             }
         }
 #endif
-        stringstream ss;
-        ss << instance->get_node_id();
         shutdown_event_data data(instance->get_node_id(), thread_instance::get_id());
         _notify_listeners = false;
         {
