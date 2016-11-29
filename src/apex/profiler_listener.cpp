@@ -27,6 +27,7 @@
 #include <string>
 #include <unordered_set>
 #include <algorithm>
+#include <iterator>
 
 #include <functional>
 #include <thread>
