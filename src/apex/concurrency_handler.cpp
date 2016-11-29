@@ -17,10 +17,6 @@
 #include <utility>
 #include "utils.hpp"
 
-#ifdef APEX_HAVE_BFD
-#include "address_resolution.hpp"
-#endif
-
 #ifdef APEX_HAVE_TAU
 #define PROFILING_ON
 #define TAU_DOT_H_LESS_HEADERS
@@ -248,26 +244,7 @@ void concurrency_handler::output_samples(int node_id) {
     if (top_x.find(*it) != top_x.end()) {
       task_identifier tmp_id(*it);
       string tmp = tmp_id.get_name();
-#ifdef APEX_HAVE_BFD
-      std::size_t pos = tmp.find("UNRESOLVED ADDR ");
-      if (pos != string::npos) {
-        string trimmed = tmp.substr(pos+16);
-        uintptr_t function_address = std::stoul(trimmed, nullptr, 16);
-        string * tmp2 = lookup_address(function_address, true);
-        pos = tmp2->find(" [{");
-        if (pos != string::npos) {
-            trimmed = tmp2->substr(0, pos);
-            myfile << "\"" << trimmed << "\"\t";
-        } else {
-            myfile << "\"" << *tmp2 << "\"\t";
-        }
-        delete (tmp2);
-      } else {
-        myfile << "\"" << tmp << "\"\t";
-      }
-#else
       myfile << "\"" << tmp << "\"\t";
-#endif
     }
   }
   myfile << "\"other\"" << endl;

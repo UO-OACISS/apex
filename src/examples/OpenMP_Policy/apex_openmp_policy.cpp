@@ -117,7 +117,7 @@ void handle_start(const std::string & name) {
         // Set apex_openmp_policy_tuning_strategy
         request->set_strategy(apex_openmp_policy_tuning_strategy);
 
-        int max_threads = omp_get_num_procs();
+        //int max_threads = omp_get_num_procs();
 
         // Create a parameter for number of threads.
         std::shared_ptr<apex_param_enum> threads_param = request->add_param_enum("omp_num_threads", "16", *thread_space);
@@ -132,7 +132,8 @@ void handle_start(const std::string & name) {
         set_omp_params(request);
 
         // Start the tuning session.
-        apex_tuning_session_handle session = apex::setup_custom_tuning(*request);
+        //apex_tuning_session_handle session = apex::setup_custom_tuning(*request);
+        apex::setup_custom_tuning(*request);
     } else {
         // We've seen this region before.
         std::shared_ptr<apex_tuning_request> request = search->second;

@@ -25,13 +25,6 @@
 #include <cstdio>
 #include <vector>
 #include <string>
-#ifdef __MIC__
-#include <boost/regex.hpp>
-#define REGEX_NAMESPACE boost
-#else
-#include <regex>
-#define REGEX_NAMESPACE std
-#endif
 #include <unordered_set>
 #include <algorithm>
 
@@ -48,10 +41,6 @@ apex::shared_mutex_type throttled_event_set_mutex;
 #else
 #define APEX_THROTTLE_PERCALL 50000 // 50k cycles.
 #endif
-#endif
-
-#if APEX_HAVE_BFD
-#include "address_resolution.hpp"
 #endif
 
 #if APEX_HAVE_PAPI
@@ -395,20 +384,6 @@ namespace apex {
           stringstream &csv_output, double &total_accumulated,
           double &total_main) {
       string action_name = task_id.get_name();
-#if APEX_HAVE_BFD
-      REGEX_NAMESPACE::regex rx (".*UNRESOLVED ADDR (.*)");
-      if (REGEX_NAMESPACE::regex_match (action_name,rx)) {
-        const REGEX_NAMESPACE::regex separator(" ADDR ");
-        REGEX_NAMESPACE::sregex_token_iterator token(action_name.begin(), action_name.end(), separator, -1);
-        *token++; // ignore
-        string addr_str = *token++;
-        void* addr_addr;
-        sscanf(addr_str.c_str(), "%p", &addr_addr);
-        string * tmp = lookup_address((uintptr_t)addr_addr, true);
-        REGEX_NAMESPACE::regex old_address("UNRESOLVED ADDR " + addr_str);
-        action_name = REGEX_NAMESPACE::regex_replace(action_name, old_address, *tmp);
-      }
-#endif
       string shorter(action_name);
       // to keep formatting pretty, trim any long timer names
       if (shorter.size() > 30) {
@@ -578,23 +553,6 @@ namespace apex {
     }
   }
 
-  void fix_name(string& in_name) {
-#if defined(HAVE_BFD)
-        REGEX_NAMESPACE::regex rx (".*UNRESOLVED ADDR (.*)");
-        if (REGEX_NAMESPACE::regex_match (in_name,rx)) {
-          const REGEX_NAMESPACE::regex separator(" ADDR ");
-          REGEX_NAMESPACE::sregex_token_iterator token(in_name.begin(), in_name.end(), separator, -1);
-          *token++; // ignore
-          string addr_str = *token++;
-          void* addr_addr;
-          sscanf(addr_str.c_str(), "%p", &addr_addr);
-          string tmp = lookup_address((uintptr_t)addr_addr, false);
-          REGEX_NAMESPACE::regex old_address("UNRESOLVED ADDR " + addr_str);
-          in_name = REGEX_NAMESPACE::regex_replace(in_name, old_address, tmp);
-        }
-#endif
-  }
-
 /* The following code is from:
    http://stackoverflow.com/questions/7706339/grayscale-to-red-green-blue-matlab-jet-color-scale */
 class node_color {
@@ -758,20 +716,6 @@ node_color * get_node_color(double v,double vmin,double vmax)
         if(strcmp(action_name.c_str(), APEX_MAIN) == 0) {
           mainp = p;
         } else {
-#if APEX_HAVE_BFD
-          REGEX_NAMESPACE::regex rx (".*UNRESOLVED ADDR (.*)");
-          if (REGEX_NAMESPACE::regex_match (action_name,rx)) {
-            const REGEX_NAMESPACE::regex separator(" ADDR ");
-            REGEX_NAMESPACE::sregex_token_iterator token(action_name.begin(), action_name.end(), separator, -1);
-            *token++; // ignore
-            string addr_str = *token++;
-            void* addr_addr;
-            sscanf(addr_str.c_str(), "%p", &addr_addr);
-            string * tmp = lookup_address((uintptr_t)addr_addr, true);
-            REGEX_NAMESPACE::regex old_address("UNRESOLVED ADDR " + addr_str);
-            action_name = REGEX_NAMESPACE::regex_replace(action_name, old_address, *tmp);
-          }
-#endif
           myfile << "\"" << action_name << "\" ";
           format_line (myfile, p);
           not_main += (p->get_accumulated()*profiler::get_cpu_mhz());

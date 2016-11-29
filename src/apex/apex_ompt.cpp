@@ -7,6 +7,7 @@
 #include "apex_types.h"
 #include "thread_instance.hpp"
 #include "apex_cxx_shared_lock.hpp"
+#include <atomic>
 
 //#include "global_constructor_destructor.h"
 
@@ -39,7 +40,9 @@ typedef enum my_ompt_thread_type_e {
  my_ompt_thread_other = 3
 } my_ompt_thread_type_t;
 
-std::unordered_map<ompt_parallel_id_t, void*> parallel_regions;
+std::unordered_map<ompt_parallel_id_t, void*> task_addresses;
+#define NUM_REGIONS 128
+std::atomic<void*> parallel_regions[NUM_REGIONS];
 apex::shared_mutex_type _region_mutex;
 
 __thread std::stack<apex::profiler*> *timer_stack;
@@ -47,55 +50,50 @@ __thread status_flags_t *status;
 
 ompt_set_callback_t ompt_set_callback;
 
-static const char* __UNKNOWN_ADDR__ = "UNKNOWN addr=<0>";
-
-char * format_address(void* ip) {
-    char * location = NULL;
-    if (ip == 0) {
-        location = (char*)malloc(strlen(__UNKNOWN_ADDR__)+1);
-        strcpy(location, __UNKNOWN_ADDR__);
-        return location;
-    }
-    #if 0
-    location = (char*)malloc(128);
-    sprintf(location, "UNRESOLVED ADDR %p", (void*)ip);
-    #else
-    std::string name(apex::thread_instance::instance().map_addr_to_name((apex_function_address)ip));
-    location = (char*)malloc(name.size() + 1);
-    sprintf(location, "%s", name.c_str());
-    #endif
-    return location;
+void format_name_fast(const char * state, ompt_parallel_id_t parallel_id, char * result) {
+	// get the parallel region address
+    void* ip = parallel_regions[(parallel_id%NUM_REGIONS)];
+	// format it.
+    sprintf(result, "%s: UNRESOLVED ADDR %p", state, (void*)ip);
 }
 
-char * format_name(const char * state, ompt_parallel_id_t parallel_id) {
-    
-    int contextLength = 10;
-    char * regionIDstr = NULL;
-    std::unordered_map<ompt_parallel_id_t, void*>::const_iterator got;
-    {
-      apex::read_lock_type l(_region_mutex);
-      got = parallel_regions.find (parallel_id);
-    }
-    if ( got == parallel_regions.end() ) { // not found.
-      regionIDstr = (char*)malloc(strlen(state) + 2);
-      sprintf(regionIDstr, "%s", state);
-    } else {
-      void* ip = got->second;
-      char * tmpStr = format_address(ip);
-      contextLength = strlen(tmpStr);
-      regionIDstr = (char*)malloc(contextLength + 32);
-      sprintf(regionIDstr, "%s: %s", state, tmpStr);
-      free (tmpStr);
-    }
-    return regionIDstr;
+void format_task_name_fast(const char * state, ompt_task_id_t task_id, char * result) {
+	// get the parallel region address
+	std::unordered_map<ompt_parallel_id_t, void*>::const_iterator got;
+	{
+    	apex::read_lock_type l(_region_mutex);
+	    got = task_addresses.find (task_id);
+	}
+	if ( got == task_addresses.end() ) { // not found.
+		// format it.
+    	sprintf(result, "%s", state);
+	} else {
+		// format it.
+    	sprintf(result, "%s: UNRESOLVED ADDR %p", state, (void*)got->second);
+	}
+}
+
+void my_ompt_idle_start() {
+  //fprintf(stderr,"start %s : %lu\n",state, parallel_id); fflush(stderr);
+  const std::string regionIDstr("OpenMP_IDLE"); 
+  apex::profiler* p = apex::start(regionIDstr);
+  timer_stack->push(p);
+}
+
+void my_ompt_task_start(const char * state, ompt_task_id_t task_id) {
+  //fprintf(stderr,"start %s : %lu\n",state, parallel_id); fflush(stderr);
+  char regionIDstr[128] = {0}; 
+  format_task_name_fast(state, task_id, regionIDstr);
+  apex::profiler* p = apex::start(std::string(regionIDstr));
+  timer_stack->push(p);
 }
 
 void my_ompt_start(const char * state, ompt_parallel_id_t parallel_id) {
   //fprintf(stderr,"start %s : %lu\n",state, parallel_id); fflush(stderr);
-  char * regionIDstr = format_name(state, parallel_id);
+  char regionIDstr[128] = {0}; 
+  format_name_fast(state, parallel_id, regionIDstr);
   apex::profiler* p = apex::start(std::string(regionIDstr));
   timer_stack->push(p);
-  free(regionIDstr);
 }
 
 void my_ompt_stop(const char * state, ompt_parallel_id_t parallel_id) {
@@ -128,10 +126,7 @@ extern "C" void my_parallel_region_begin (
   APEX_UNUSED(parent_task_frame);
   APEX_UNUSED(requested_team_size);
   //fprintf(stderr,"begin: %lu, %p, %lu, %u, %p\n", parent_task_id, parent_task_frame, parallel_id, requested_team_size, parallel_function); fflush(stderr);
-  {
-    apex::write_lock_type l(_region_mutex);
-    parallel_regions[parallel_id] = parallel_function;
-  }
+  parallel_regions[(parallel_id%NUM_REGIONS)] = parallel_function;
   my_ompt_start("OpenMP_PARALLEL_REGION", parallel_id);
 }
 
@@ -152,14 +147,11 @@ extern "C" void my_task_begin (
 {
   APEX_UNUSED(parent_task_id);
   APEX_UNUSED(parent_task_frame);
-  /* if (timer_stack == nullptr) {
-    timer_stack = new std::stack<apex::profiler*>();
-  } */
   {
     apex::write_lock_type l(_region_mutex);
-    parallel_regions[new_task_id] = task_function;
+    task_addresses[new_task_id] = task_function;
   }
-  my_ompt_start("OpenMP_TASK", new_task_id);
+  my_ompt_task_start("OpenMP_TASK", new_task_id);
 }
  
 extern "C" void my_task_end (
@@ -174,22 +166,11 @@ extern "C" void my_thread_begin(my_ompt_thread_type_t thread_type, ompt_thread_i
   timer_stack = new std::stack<apex::profiler*>();
   status = new status_flags();
   apex::register_thread("OpenMP Thread");
-  /*
-  apex::profiler* p = apex::start("OpenMP_Thread");
-  timer_stack->push(p);
-  */
 }
 
 extern "C" void my_thread_end(my_ompt_thread_type_t thread_type, ompt_thread_id_t thread_id) {
   APEX_UNUSED(thread_type);
   APEX_UNUSED(thread_id);
-  /*
-  while (!timer_stack->empty()) { // uh-oh...
-    apex::profiler* p = timer_stack->top();
-    apex::stop(p);
-    timer_stack->pop();
-  }
-  */
   apex::exit_thread();
   delete(status);
   // delete(timer_stack);  // this is a leak, but it's a small one. Sometimes this crashes?
@@ -294,10 +275,10 @@ extern "C" void END_FUNCTION (ompt_parallel_id_t parallel_id, ompt_task_id_t tas
 extern "C" void BEGIN_FUNCTION (ompt_parallel_id_t parallel_id, ompt_task_id_t task_id, void *parallel_function) { \
   status->regionid = parallel_id; \
   status->taskid = task_id; \
-  { \
+  /*{ \
     apex::write_lock_type l(_region_mutex); \
-    parallel_regions[parallel_id] = parallel_function; \
-  } \
+    task_addresses[task_id] = parallel_function; \
+  }*/ \
   my_ompt_start(NAME, parallel_id); \
 } \
 \
@@ -331,7 +312,7 @@ TAU_OMPT_WORKSHARE_BEGIN_AND_END(my_sections_begin,my_sections_end,"OpenMP_SECTI
 /* Thread end idle */
 extern "C" void my_idle_end(ompt_thread_id_t thread_id) {
   APEX_UNUSED(thread_id);
-  my_ompt_stop("IDLE", 0);
+  my_ompt_stop("OpenMP_IDLE", 0);
   //if (status->parallel==0) {
     //my_ompt_start("OpenMP_PARALLEL_REGION", 0);
     //status->busy = 1;
@@ -352,7 +333,7 @@ extern "C" void my_idle_begin(ompt_thread_id_t thread_id) {
     }
   }
   status->idle = 1;
-  my_ompt_start("IDLE", 0);
+  my_ompt_idle_start();
 }
 
 
