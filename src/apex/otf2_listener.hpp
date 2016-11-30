@@ -144,6 +144,7 @@ namespace apex {
         bool create_archive(void);
         bool write_my_node_properties(void);
         static int my_saved_node_id;
+        static int my_saved_node_count;
         std::map<int,int> rank_thread_map;
         std::map<int,int> rank_region_map;
         std::map<int,int> rank_metric_map;

@@ -26,13 +26,15 @@ namespace apex {
     uint64_t otf2_listener::globalOffset(0);
     const std::string otf2_listener::empty("");
     int otf2_listener::my_saved_node_id(0);
+    int otf2_listener::my_saved_node_count(1);
 
     OTF2_CallbackCode otf2_listener::my_OTF2GetSize(void *userData,
             OTF2_CollectiveContext *commContext, uint32_t *size) {
         /* Returns the number of OTF2_Archive objects operating in this
            communication context. */
         //cout << __func__ << " " << apex_options::otf2_collective_size() << endl;
-        *size = apex_options::otf2_collective_size();
+        //*size = apex_options::otf2_collective_size();
+        *size = my_saved_node_count;
         return OTF2_CALLBACK_SUCCESS;
     }
 
@@ -122,7 +124,7 @@ namespace apex {
         return;
     }
 
-		/* these indices are thread-specific. */
+        /* these indices are thread-specific. */
         std::map<task_identifier,uint64_t>& otf2_listener::get_region_indices(void) {
             static __thread std::map<task_identifier,uint64_t> * region_indices;
             if (region_indices == nullptr) {
@@ -130,7 +132,7 @@ namespace apex {
             }
             return *region_indices;
         }
-		/* these indices are thread-specific. */
+        /* these indices are thread-specific. */
         std::map<std::string,uint64_t>& otf2_listener::get_string_indices(void) {
             static __thread std::map<std::string,uint64_t> * string_indices;
             if (string_indices == nullptr) {
@@ -160,11 +162,11 @@ namespace apex {
             } else {
                 region_index = tmp->second;
             }
-	        return region_index;
+            return region_index;
         }
         uint64_t otf2_listener::get_string_index(const std::string& name) {
             // thread specific
-  	        std::map<std::string,uint64_t>& string_indices = get_string_indices();
+              std::map<std::string,uint64_t>& string_indices = get_string_indices();
             // process specific
             /* first, look in this thread's map */
             auto tmp = string_indices.find(name);
@@ -185,7 +187,7 @@ namespace apex {
             } else {
                 string_index = tmp->second;
             }
-	        return string_index;
+            return string_index;
         }
         uint64_t otf2_listener::get_hostname_index(const std::string& name) {
             /* first, look in the map */
@@ -199,7 +201,7 @@ namespace apex {
             } else {
                 hostname_index = tmp->second;
             }
-	        return hostname_index;
+            return hostname_index;
         }
         std::map<std::string,uint64_t>& otf2_listener::get_metric_indices(void) {
             static __thread std::map<std::string,uint64_t> * metric_indices;
@@ -210,7 +212,7 @@ namespace apex {
         }
         uint64_t otf2_listener::get_metric_index(const std::string& name) {
             // thread specific
-  	        std::map<std::string,uint64_t>& metric_indices = get_metric_indices();
+              std::map<std::string,uint64_t>& metric_indices = get_metric_indices();
             /* first, look in this thread's map */
             auto tmp = metric_indices.find(name);
             uint64_t metric_index = 0;
@@ -231,7 +233,7 @@ namespace apex {
             } else {
                 metric_index = tmp->second;
             }
-	        return metric_index;
+            return metric_index;
         }
 
 
@@ -277,6 +279,7 @@ namespace apex {
         .otf2_post_flush = post_flush
     };
 
+    /* constructor for the OTF2 listener class */
     otf2_listener::otf2_listener (void) : _terminate(false), comm_evt_writer(nullptr), global_def_writer(nullptr) {
         /* get a start time for the trace */
         globalOffset = get_time();
@@ -285,26 +288,26 @@ namespace apex {
             .otf2_pre_flush  = otf2_listener::pre_flush, 
             .otf2_post_flush = otf2_listener::post_flush 
         };
-        index_filename = string(string(apex_options::otf2_archive_path()) + "/.max_locality.txt");
+        index_filename = string(string(apex_options::otf2_archive_path()) + "/.locality.");
         region_filename_prefix = string(string(apex_options::otf2_archive_path()) + "/.regions.");
         metric_filename_prefix = string(string(apex_options::otf2_archive_path()) + "/.metrics.");
         lock_filename_prefix = string(string(apex_options::otf2_archive_path()) + "/.regions.lock.");
     }
 
     bool otf2_listener::create_archive(void) {
-		/* only one thread per process allowed in here, ever! */
+        /* only one thread per process allowed in here, ever! */
         write_lock_type lock(_archive_mutex);
         /* only open once! */
         static bool created = false;
         if (created) return true;
 
         if (apex_options::otf2_testing() && my_saved_node_id == 0) {
-			// is this a good idea?
+            // is this a good idea?
             /* NO! why? because we don't know which rank we are, and
              * we don't know if the archive is supposed to be there or not.
              */
-        	remove_path(apex_options::otf2_archive_path());
-		}
+            remove_path(apex_options::otf2_archive_path());
+        }
         /* open the OTF2 archive */
         archive = OTF2_Archive_Open( apex_options::otf2_archive_path(),
                 apex_options::otf2_archive_name(),
@@ -314,15 +317,16 @@ namespace apex {
                 OTF2_SUBSTRATE_POSIX,
                 OTF2_COMPRESSION_NONE );
         /* set the flush callbacks, basically getting timestamps */
-        OTF2_Archive_SetFlushCallbacks( archive, &flush_callbacks, NULL );
+        OTF2_EC(OTF2_Archive_SetFlushCallbacks( archive, &flush_callbacks, NULL ));
         /* set the creator name */
         stringstream tmp;
         tmp << "APEX version " << version();
-        OTF2_Archive_SetCreator(archive, tmp.str().c_str());
+        OTF2_EC(OTF2_Archive_SetCreator(archive, tmp.str().c_str()));
         /* we have no collective callbacks. */
-        if (OTF2_Archive_SetCollectiveCallbacks(archive, get_collective_callbacks(), NULL, NULL, NULL) != OTF2_SUCCESS)
+        OTF2_EC(OTF2_Archive_SetCollectiveCallbacks(archive, 
+            get_collective_callbacks(), NULL, NULL, NULL));
         /* open the event files for this archive */
-        OTF2_Archive_OpenEvtFiles( archive );
+        OTF2_EC(OTF2_Archive_OpenEvtFiles( archive ));
         created = true;
         return created;
      }
@@ -330,31 +334,10 @@ namespace apex {
     void otf2_listener::on_startup(startup_event_data &data) {
        // add the empty string to the string definitions
         get_string_index(empty);
-
-#if 0
-        /* set up the event unification index file */
-        struct stat buffer;   
-        if (stat (index_filename.c_str(), &buffer) == 0) { 
-            struct tm *timeinfo = localtime(&buffer.st_mtime);
-            time_t filetime = mktime(timeinfo);
-            time_t nowish;
-            time(&nowish);
-            double seconds = difftime(nowish, filetime);
-            /* if the file exists, was it recently created? */
-            if (seconds > 10) {
-                /* create the file */
-                ofstream indexfile(index_filename, ios::out | ios::trunc );
-                indexfile.close();
-            }
-        } else {
-          /* create the file */
-            ofstream indexfile(index_filename, ios::out | ios::trunc );
-            indexfile.close();
-        }
-#endif
         // save the node id, because the apex object my not be
         // around when we are finalizing everything.
         my_saved_node_id = apex::instance()->get_node_id();
+        my_saved_node_count = apex::instance()->get_num_ranks();
         // now is a good time to make sure the archive is open on this rank/locality
         static bool archive_created = create_archive();
         if ((!_terminate) && archive_created) {
@@ -493,12 +476,17 @@ namespace apex {
             uint64_t idx = i.second;
             reduced_region_map[id.get_name()] = idx;
         }
-        // iterate over the other ranks in the index file
+        int comm_size = 0;
+        // iterate over the other ranks in the index files
+        for (int i = 0 ; i < my_saved_node_count ; i++) {
         std::string indexline;
-        std::ifstream index_file(index_filename);
+        struct stat buffer;
+        std::string full_index_filename(index_filename + to_string(my_saved_node_id));
+		// wait for the file to exist
+        while (stat (full_index_filename.c_str(), &buffer) != 0) {}
+        std::ifstream index_file(full_index_filename);
         int rank, pid;
         std::string hostname;
-        int comm_size = 0;
         while (std::getline(index_file, indexline)) {
             comm_size++;
             istringstream ss(indexline);
@@ -537,6 +525,7 @@ namespace apex {
             std::remove(region_filename.str().c_str());
         }
         index_file.close();
+        }
         // open my region file
         ostringstream region_filename;
         region_filename << region_filename_prefix << my_saved_node_id;
@@ -577,8 +566,13 @@ namespace apex {
             reduced_metric_map[id] = idx;
         }
         // iterate over the other ranks in the index file
+        for (int i = 0 ; i < my_saved_node_count ; i++) {
         std::string indexline;
-        std::ifstream index_file(index_filename);
+        struct stat buffer;
+        std::string full_index_filename(index_filename + to_string(my_saved_node_id));
+		// wait for the file to exist
+        while (stat (full_index_filename.c_str(), &buffer) != 0) {}
+        std::ifstream index_file(full_index_filename);
         int rank, pid;
         std::string hostname;
         while (std::getline(index_file, indexline)) {
@@ -618,6 +612,7 @@ namespace apex {
             std::remove(metric_filename.str().c_str());
         }
         index_file.close();
+        }
         // open my metric file
         ostringstream metric_filename;
         metric_filename << metric_filename_prefix << my_saved_node_id;
@@ -819,38 +814,38 @@ namespace apex {
         static bool _finalized = false;
         if (_finalized) { return; }
         _finalized = true;
- 		// get an exclusive lock, to make sure no other threads
-		// are writing to the archive.
+         // get an exclusive lock, to make sure no other threads
+        // are writing to the archive.
         write_lock_type lock(_archive_mutex);
         APEX_UNUSED(data);
         if (!_terminate) {
             _terminate = true;
             /* close event files */
-            OTF2_Archive_CloseEvtFiles( archive );
+            OTF2_EC(OTF2_Archive_CloseEvtFiles( archive ));
             /* if we are node 0, write the global definitions */
             if (my_saved_node_id == 0) {
                 // save my number of threads
                 rank_thread_map[0] = thread_instance::get_num_threads();
                 // make a common list of regions and metrics across all nodes...
-                int comm_size = reduce_regions();
+                reduce_regions();
                 reduce_metrics();
-                if (comm_size > 1) {
+                if (my_saved_node_count > 1) {
                     // ...and distribute them back out
                     write_region_map();
                     write_metric_map();
                 } else {
-                    // no communication? write def files for each thread.
+                    // no communication? write empty def files for each thread.
                     for (int i = 0 ; i < thread_instance::get_num_threads() ; i++) {
                         /* write an empty definition file */
                         OTF2_DefWriter* def_writer = getDefWriter(i);
-                        OTF2_Archive_CloseDefWriter( archive, def_writer );
+                        OTF2_EC(OTF2_Archive_CloseDefWriter( archive, def_writer ));
                     }
                 }
                 // create the global definition writer
                 global_def_writer = OTF2_Archive_GetGlobalDefWriter( archive );
                 // write an "empty" string - only once
-                OTF2_GlobalDefWriter_WriteString( global_def_writer,
-                    get_string_index(empty), empty.c_str() );
+                OTF2_EC(OTF2_GlobalDefWriter_WriteString( global_def_writer,
+                    get_string_index(empty), empty.c_str() ));
                 // write out the reduced set of regions
                 write_otf2_regions();
                 // write out the reduced set of metrics
@@ -859,23 +854,29 @@ namespace apex {
                 write_clock_properties();
                 // write a "node" string - only once
                 const string node("node");
-                OTF2_GlobalDefWriter_WriteString( global_def_writer, 
-                    get_string_index(node), node.c_str() );
-                // iterate over the node info file, getting
-                // the rank, pid and hostname for each
-                std::string line;
-                std::ifstream myfile(index_filename);
-                int rank, pid;
-                std::string hostname;
+                OTF2_EC(OTF2_GlobalDefWriter_WriteString( global_def_writer, 
+                    get_string_index(node), node.c_str() ));
                 std::map<int,int> rank_pid_map;
                 std::map<int,string> rank_hostname_map;
-                while (std::getline(myfile, line)) {
-                    istringstream ss(line);
-                    ss >> rank >> pid >> hostname;
-                    rank_pid_map[rank] = pid;
-                    rank_hostname_map[rank] = hostname;
-                }    
-                myfile.close();
+                int rank, pid;
+                std::string hostname;
+                // iterate over the node info file, getting
+                // the rank, pid and hostname for each
+                for (int i = 0 ; i < my_saved_node_count ; i++) {
+                    std::string line;
+        			struct stat buffer;
+        			std::string full_index_filename(index_filename + to_string(my_saved_node_id));
+					// wait for the file to exist
+        			while (stat (full_index_filename.c_str(), &buffer) != 0) {}
+        			std::ifstream myfile(full_index_filename);
+                    while (std::getline(myfile, line)) {
+                        istringstream ss(line);
+                        ss >> rank >> pid >> hostname;
+                        rank_pid_map[rank] = pid;
+                        rank_hostname_map[rank] = hostname;
+                    }    
+                    myfile.close();
+                }
                 // these are communicator lists, and a location map
                 // for each. We need a group member for each process,
                 // and the "location" is thread 0 of that process.
@@ -900,27 +901,27 @@ namespace apex {
                 }
                 // create the map of locations
                 const char * world_locations = "MPI_COMM_WORLD_LOCATIONS";
-                OTF2_GlobalDefWriter_WriteString( global_def_writer,
-                    get_string_index(world_locations), world_locations );
-                OTF2_GlobalDefWriter_WriteGroup ( global_def_writer,
+                OTF2_EC(OTF2_GlobalDefWriter_WriteString( global_def_writer,
+                    get_string_index(world_locations), world_locations ));
+                OTF2_EC(OTF2_GlobalDefWriter_WriteGroup ( global_def_writer,
                     0, get_string_index(world_locations), OTF2_GROUP_TYPE_COMM_LOCATIONS,
                     OTF2_PARADIGM_MPI, OTF2_GROUP_FLAG_NONE, group_members_threads.size(),
-                    &group_members_threads[0]);   
+                    &group_members_threads[0]));   
                 // create the map of ranks in the communicator - these have to be consectutive ranks.
                 const char * world_group = "MPI_COMM_WORLD_GROUP";
-                OTF2_GlobalDefWriter_WriteString( global_def_writer,
-                    get_string_index(world_group), world_group );
-                OTF2_GlobalDefWriter_WriteGroup ( global_def_writer,
+                OTF2_EC(OTF2_GlobalDefWriter_WriteString( global_def_writer,
+                    get_string_index(world_group), world_group ));
+                OTF2_EC(OTF2_GlobalDefWriter_WriteGroup ( global_def_writer,
                     1, get_string_index(world_group), OTF2_GROUP_TYPE_COMM_GROUP,
                     OTF2_PARADIGM_MPI, OTF2_GROUP_FLAG_NONE, group_members.size(),
-                    &group_members[0]);   
+                    &group_members[0]));   
                 // create the communicator
                 const char * world = "MPI_COMM_WORLD";
-                OTF2_GlobalDefWriter_WriteString( global_def_writer,
-                    get_string_index(world), world );
-                OTF2_GlobalDefWriter_WriteComm  ( global_def_writer,
+                OTF2_EC(OTF2_GlobalDefWriter_WriteString( global_def_writer,
+                    get_string_index(world), world ));
+                OTF2_EC(OTF2_GlobalDefWriter_WriteComm  ( global_def_writer,
                     0, get_string_index(world), 
-                    1, OTF2_UNDEFINED_COMM);
+                    1, OTF2_UNDEFINED_COMM));
             } else {
                 // not rank 0? 
                 // write out the timer names we saw
@@ -933,8 +934,8 @@ namespace apex {
                 write_metric_map();
             }
             // close the archive! we are done!
-            OTF2_Archive_Close( archive );
-			// delete our temporary files!
+            OTF2_EC(OTF2_Archive_Close( archive ));
+            // delete our temporary files!
             // Commented out until we can figure out how to do this safely.
             /*
             if (my_saved_node_id == 0) {
@@ -943,7 +944,7 @@ namespace apex {
                 tmp << region_filename_prefix << "0";
                 std::remove(tmp.str().c_str());
                 ostringstream tmp2;
-			    tmp2 << metric_filename_prefix << "0";
+                tmp2 << metric_filename_prefix << "0";
                 std::remove(tmp2.str().c_str());
             }
             */
@@ -970,149 +971,79 @@ namespace apex {
         ss << my_saved_node_id << "\t" << pid << "\t" << hostname << "\n";
         cout << ss.str();
         string tmp = ss.str();
-        // write our pid and hostname, using low-level file locking!
-        struct flock fl;
-        fl.l_type   = F_WRLCK;  /* F_RDLCK, F_WRLCK, F_UNLCK    */
-        fl.l_whence = SEEK_SET; /* SEEK_SET, SEEK_CUR, SEEK_END */
-        fl.l_start  = 0;        /* Offset from l_whence         */
-        fl.l_len    = 0;        /* length, 0 = to EOF           */
-        fl.l_pid    = pid;      /* our PID                      */
-        // open the file
-        int indexfile = open(index_filename.c_str(), O_APPEND | O_WRONLY | O_CREAT, S_IRUSR|S_IWUSR|S_IXUSR );
-        assert(indexfile >= 0);
-        // wait for exclusive access to append to the file
-        fcntl(indexfile, F_SETLKW, &fl);  /* F_GETLK, F_SETLK, F_SETLKW */
+        std::ofstream index_file(index_filename + to_string(my_saved_node_id));
         // write our info
-        int rc = write(indexfile, tmp.c_str(), tmp.size());
-        assert(rc >= 0);
-        //std::cout << tmp << endl;
-        fl.l_type   = F_UNLCK;   /* tell it to unlock the region */
-        // release the lock
-        fcntl(indexfile, F_SETLK, &fl); /* set the region to unlocked */
+        index_file << tmp.c_str();
         // close the file
-        rc = close(indexfile);
-        assert(rc >= 0);
+        index_file.close();
         already_written = true;
         return already_written;
     }
 
     void otf2_listener::on_new_node(node_event_data &data) {
-#if 0
-        // save the node id, because the apex object my not be
-        // around when we are finalizing everything.
-        my_saved_node_id = apex::instance()->get_node_id();
-        // now is a good time to make sure the archive is open on this rank/locality
-        static bool archive_created = create_archive();
-        if ((!_terminate) && archive_created) {
-            // let rank/locality 0 know this rank's properties.
-            write_my_node_properties();
-            // set up the event writer for communication (thread 0).
-            getEvtWriter();
-        }
-#endif
         return;
     }
 
     void otf2_listener::on_new_thread(new_thread_event_data &data) {
         /* the event writer and def writers are created using
          * static construction in on_start and on_stop */
-            if (!thread_instance::map_id_to_worker(thread_instance::get_id())) {
-                // before we process the event, make sure the archive is open
-                // THIS WILL ONLY HAPPEN ONCE
-                static bool archive_created = create_archive();
-		// don't close the archive on us!
-        read_lock_type lock(_archive_mutex);
-				// not likely, but just in case...
-				if (_terminate) { return; }
-                // before we process the event, make sure the node properties are written
-                // THIS WILL ONLY HAPPEN ONCE
-                static bool properties_written = write_my_node_properties();
-                // before we process the event, make sure the event write is open
-                OTF2_EvtWriter* local_evt_writer = getEvtWriter();
-                if (archive_created && properties_written && local_evt_writer != NULL) {
-			/*
-                  // insert a thread begin event
-                  uint64_t stamp = get_time();
-                  OTF2_EvtWriter_ThreadBegin( local_evt_writer, NULL, stamp, 0, thread_instance::get_id() );
-			  */
-                }
-            }
-        APEX_UNUSED(data);
-        return;
-    }
-
-    void otf2_listener::on_exit_thread(event_data &data) {
-        // before we process the event, make sure the archive is open
-        // THIS WILL ONLY HAPPEN ONCE
-		// (crazy as it sounds, the archive doesn't exist if we didn't 
-		// process any events yet)
-        static bool archive_created = create_archive();
-		// don't close the archive on us!
-        read_lock_type lock(_archive_mutex);
-        if (!_terminate && archive_created) {
-            std::unique_lock<std::mutex> lock(_comm_mutex);
-			/*
-            if (thread_instance::get_id() != 0) {
-                // insert a thread begin event
-                uint64_t stamp = get_time();
-                OTF2_EvtWriter_ThreadEnd( getEvtWriter(), NULL, stamp, 0, 0);
-            } 
-			*/
-            //OTF2_Archive_CloseDefWriter( archive, getDefWriter() );
-            OTF2_Archive_CloseEvtWriter( archive, getEvtWriter() );
-            if (thread_instance::get_id() == 0) {
-                comm_evt_writer = nullptr;
+        if (!thread_instance::map_id_to_worker(thread_instance::get_id())) {
+            // don't close the archive on us!
+            read_lock_type lock(_archive_mutex);
+            // not likely, but just in case...
+            if (_terminate) { return; }
+            // before we process the event, make sure the event write is open
+            OTF2_EvtWriter* local_evt_writer = getEvtWriter();
+            if (local_evt_writer != NULL) {
+              // insert a thread begin event
+              uint64_t stamp = get_time();
+              OTF2_EvtWriter_ThreadBegin( local_evt_writer, NULL, stamp, 0, thread_instance::get_id() );
             }
         }
         APEX_UNUSED(data);
         return;
     }
 
-    bool otf2_listener::on_start(task_identifier * id) {
-        // before we process the event, make sure the archive is open
-        // THIS WILL ONLY HAPPEN ONCE
-        static bool archive_created = create_archive();
-		// don't close the archive on us!
+    void otf2_listener::on_exit_thread(event_data &data) {
+        // don't close the archive on us!
         read_lock_type lock(_archive_mutex);
-		// not likely, but just in case...
-		if (_terminate) { return false; }
-        // before we process the event, make sure the node properties are written
-        // THIS WILL ONLY HAPPEN ONCE
-        static bool properties_written = write_my_node_properties();
+        // not likely, but just in case...
+        if (_terminate) { return; }
+        if (thread_instance::get_id() != 0) {
+            // insert a thread end event
+            uint64_t stamp = get_time();
+            OTF2_EvtWriter_ThreadEnd( getEvtWriter(), NULL, stamp, 0, 0);
+        } 
+        OTF2_Archive_CloseEvtWriter( archive, getEvtWriter() );
+        if (thread_instance::get_id() == 0) {
+            comm_evt_writer = nullptr;
+        }
+        APEX_UNUSED(data);
+        return;
+    }
+
+    bool otf2_listener::on_start(task_identifier * id) {
+        // don't close the archive on us!
+        read_lock_type lock(_archive_mutex);
+        // not likely, but just in case...
+        if (_terminate) { return false; }
         // before we process the event, make sure the event write is open
-#if defined (__clang__) || defined(__INTEL_COMPILER)
-        // Clang doesn't support dynamic thread_local initialization of static.
         OTF2_EvtWriter* local_evt_writer = getEvtWriter();
-#else
-        // THIS WILL ONLY HAPPEN ONCE
-        static __thread OTF2_EvtWriter* local_evt_writer = getEvtWriter();
-#endif
-        if ((!_terminate) && archive_created && properties_written) {
-            if (thread_instance::get_id() == 0) {
-                uint64_t idx = get_region_index(id);
-                // Because the event writer for thread 0 is also
-                // used for communication events and sampled values,
-                // we have to get a lock for it.
-                std::unique_lock<std::mutex> lock(_comm_mutex);
-                // unfortunately, we can't use the timestamp from the
-                // profiler object. bummer. it has to be taken after
-                // the lock is acquired, so that events happen on
-                // thread 0 in monotonic order.
-                uint64_t stamp = get_time();
-                // write the event
-                OTF2_EC(OTF2_EvtWriter_Enter( local_evt_writer, NULL, stamp, idx /* region */ ));
-            } else {
-                // using the timestamp from the profiler should be OK!
-                /*
-                using namespace std::chrono;
-                profiler * p = thread_instance::instance().get_current_profiler();
-                uint64_t stamp = p->start.time_since_epoch().count() - globalOffset;
-                */
-                uint64_t stamp = get_time();
-                OTF2_EC(OTF2_EvtWriter_Enter( local_evt_writer, NULL, stamp, get_region_index(id) /* region */ ));
-            }
+        if (thread_instance::get_id() == 0) {
+            uint64_t idx = get_region_index(id);
+            // Because the event writer for thread 0 is also
+            // used for communication events and sampled values,
+            // we have to get a lock for it.
+            std::unique_lock<std::mutex> lock(_comm_mutex);
+            // unfortunately, we can't use the timestamp from the
+            // profiler object. bummer. it has to be taken after
+            // the lock is acquired, so that events happen on
+            // thread 0 in monotonic order.
+            uint64_t stamp = get_time();
+            OTF2_EC(OTF2_EvtWriter_Enter( local_evt_writer, NULL, stamp, idx /* region */ ));
         } else {
-            return false;
+            uint64_t stamp = get_time();
+            OTF2_EC(OTF2_EvtWriter_Enter( local_evt_writer, NULL, stamp, get_region_index(id) /* region */ ));
         }
         return true;
     }
@@ -1122,41 +1053,27 @@ namespace apex {
     }
 
     void otf2_listener::on_stop(std::shared_ptr<profiler> &p) {
-		// don't close the archive on us!
-       	read_lock_type lock(_archive_mutex);
-        // each thread has its own event writer.  This static
-        // variable will be initialized the first time we call
-        // on_stop.
-#if defined (__clang__) || defined(__INTEL_COMPILER)
-        // Clang doesn't support dynamic thread_local initialization of static.
+        // don't close the archive on us!
+        read_lock_type lock(_archive_mutex);
         OTF2_EvtWriter* local_evt_writer = getEvtWriter();
-#else
-        static __thread OTF2_EvtWriter* local_evt_writer = getEvtWriter();
-#endif
-        if (!_terminate) {
-            if (thread_instance::get_id() == 0) {
-                uint64_t idx = get_region_index(p->task_id);
-                // Because the event writer for thread 0 is also
-                // used for communication events and sampled values,
-                // we have to get a lock for it.
-                std::unique_lock<std::mutex> lock(_comm_mutex);
-                // unfortunately, we can't use the timestamp from the
-                // profiler object. bummer. it has to be taken after
-                // the lock is acquired, so that events happen on
-                // thread 0 in monotonic order.
-                uint64_t stamp = get_time();
-                // write the event
-                OTF2_EC(OTF2_EvtWriter_Leave( local_evt_writer, NULL, stamp, idx /* region */ ));
-            } else {
-                // using the timestamp from the profiler should be OK!
-                /*
-                using namespace std::chrono;
-                uint64_t stamp = p->end.time_since_epoch().count() - globalOffset;
-                */
-                uint64_t stamp = get_time();
-                OTF2_EC(OTF2_EvtWriter_Leave( local_evt_writer, NULL, stamp, 
-                        get_region_index(p->task_id) /* region */ ));
-            }
+        // not likely, but just in case...
+        if (_terminate) { return; }
+        if (thread_instance::get_id() == 0) {
+            uint64_t idx = get_region_index(p->task_id);
+            // Because the event writer for thread 0 is also
+            // used for communication events and sampled values,
+            // we have to get a lock for it.
+            std::unique_lock<std::mutex> lock(_comm_mutex);
+            // unfortunately, we can't use the timestamp from the
+            // profiler object. bummer. it has to be taken after
+            // the lock is acquired, so that events happen on
+            // thread 0 in monotonic order.
+            uint64_t stamp = get_time();
+            OTF2_EC(OTF2_EvtWriter_Leave( local_evt_writer, NULL, stamp, idx /* region */ ));
+        } else {
+            uint64_t stamp = get_time();
+            OTF2_EC(OTF2_EvtWriter_Leave( local_evt_writer, NULL, stamp, 
+                    get_region_index(p->task_id) /* region */ ));
         }
         return;
     }
@@ -1165,22 +1082,13 @@ namespace apex {
         on_stop(p);
     }
 
+    /* The send is always assumed to be done by thread 0 */
     void otf2_listener::on_send(message_event_data &data) {
-		// don't close the archive on us!
+        // don't close the archive on us!
         read_lock_type lock(_archive_mutex);
-        // each thread has its own event writer.  This static
-        // variable will be initialized the first time we call
-        // on_stop.
-        /*
-#if defined (__clang__) || defined(__INTEL_COMPILER)
-        // Clang doesn't support dynamic thread_local initialization of static.
-        OTF2_EvtWriter* local_evt_writer = getEvtWriter();
-#else
-        static __thread OTF2_EvtWriter* local_evt_writer = getEvtWriter();
-#endif
-        */
-        //if (!_terminate) {
-        if (!_terminate && comm_evt_writer != NULL) {
+        // not likely, but just in case...
+        if (_terminate) { return; }
+        if (comm_evt_writer != NULL) {
             // create an empty attribute list. could be null?
             OTF2_AttributeList * attributeList = OTF2_AttributeList_New();
             // only one communicator, so hard coded.
@@ -1193,23 +1101,24 @@ namespace apex {
                 // that time stamps are monotonically increasing. :(
                 uint64_t stamp = get_time();
                 // write our recv into the event stream
-                //OTF2_EC(OTF2_EvtWriter_MpiSend  ( local_evt_writer,
                 OTF2_EC(OTF2_EvtWriter_MpiSend  ( comm_evt_writer,
                         attributeList, stamp, data.target, communicator,
                         data.tag, data.size ));
             }
-            OTF2_AttributeList_Delete(attributeList);
+            OTF2_EC(OTF2_AttributeList_Delete(attributeList));
         }
         return;
     }
 
-    void otf2_listener::on_recv(message_event_data &data) {
-		// don't close the archive on us!
-        read_lock_type lock(_archive_mutex);
     /* The receive is always assumed to be done by thread 0,
      * because the sender doesnt' know which thread will handle
      * the parcel. But the receiver knows the sending thread. */
-        if (!_terminate && comm_evt_writer != NULL) {
+    void otf2_listener::on_recv(message_event_data &data) {
+        // don't close the archive on us!
+        read_lock_type lock(_archive_mutex);
+        // not likely, but just in case...
+        if (_terminate) { return; }
+        if (comm_evt_writer != NULL) {
             // create an empty attribute list. could be null?
             OTF2_AttributeList * attributeList = OTF2_AttributeList_New();
             // only one communicator, so hard coded.
@@ -1224,38 +1133,37 @@ namespace apex {
                 // write our recv into the event stream
                 //std::cout << "receiving from: " << data.source_thread << std::endl;
                 OTF2_EC(OTF2_EvtWriter_MpiRecv  ( comm_evt_writer,
-                        //attributeList, stamp, ((data.source_rank << 32) + data.source_thread), communicator,
                         attributeList, stamp, data.source_rank, communicator,
                         data.tag, data.size ));
             }
             // delete the attribute.
-            OTF2_AttributeList_Delete(attributeList);
+            OTF2_EC(OTF2_AttributeList_Delete(attributeList));
         }
         return;
     }
 
     void otf2_listener::on_sample_value(sample_value_event_data &data) {
-		// don't close the archive on us!
+        // don't close the archive on us!
         read_lock_type lock(_archive_mutex);
-        if (!_terminate) {
-            // create a union for storing the value
-            OTF2_MetricValue* omv = new OTF2_MetricValue[1];
-            omv[0].floating_point = data.counter_value;
-            // tell the union what type this is
-            OTF2_Type* omt = new OTF2_Type[1];
-            omt[0]=OTF2_TYPE_DOUBLE;
-            {
-                uint64_t idx = get_metric_index(*(data.counter_name));
-                // because we are writing to thread 0's event stream,
-                // set the lock
-                std::unique_lock<std::mutex> lock(_comm_mutex);
-                // we have to get a timestamp after the lock, to make sure
-                // that time stamps are monotonically increasing. :(
-                uint64_t stamp = get_time();
-                // write our counter into the event stream
-                if (comm_evt_writer != NULL) {
-                    OTF2_EC(OTF2_EvtWriter_Metric( comm_evt_writer, NULL, stamp, idx, 1, omt, omv ));
-				}
+        // not likely, but just in case...
+        if (_terminate) { return; }
+        // create a union for storing the value
+        OTF2_MetricValue* omv = new OTF2_MetricValue[1];
+        omv[0].floating_point = data.counter_value;
+        // tell the union what type this is
+        OTF2_Type* omt = new OTF2_Type[1];
+        omt[0]=OTF2_TYPE_DOUBLE;
+        {
+            uint64_t idx = get_metric_index(*(data.counter_name));
+            // because we are writing to thread 0's event stream,
+            // set the lock
+            std::unique_lock<std::mutex> lock(_comm_mutex);
+            // we have to get a timestamp after the lock, to make sure
+            // that time stamps are monotonically increasing. :(
+            uint64_t stamp = get_time();
+            // write our counter into the event stream
+            if (comm_evt_writer != NULL) {
+                OTF2_EC(OTF2_EvtWriter_Metric( comm_evt_writer, NULL, stamp, idx, 1, omt, omv ));
             }
         }
         return;
