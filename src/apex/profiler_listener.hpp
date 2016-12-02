@@ -47,6 +47,7 @@
 #include <fcntl.h>
 
 #define INITIAL_NUM_THREADS 2
+#define APEX_MULTIPLE_QUEUES
 
 namespace apex {
 
@@ -88,8 +89,13 @@ private:
   std::unordered_map<task_identifier, profile*> task_map;
   std::mutex _task_map_mutex;
   std::unordered_map<task_identifier, std::unordered_map<task_identifier, int>* > task_dependencies;
-  /* The profiler queue */
+#ifdef APEX_MULTIPLE_QUEUES
+  /* an vector of profiler queues - so the consumer thread can access them */
+  std::mutex queue_mtx;
+  std::vector<profiler_queue_t*> allqueues;
+#else
   profiler_queue_t thequeue;
+#endif
   /* The task dependency queue */
   moodycamel::ConcurrentQueue<task_dependency*> dependency_queue;
 #if defined(APEX_THROTTLE)

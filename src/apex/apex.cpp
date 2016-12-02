@@ -192,9 +192,7 @@ void apex::_initialize()
         write_lock_type l(listener_mutex);
         this->the_profiler_listener = new profiler_listener();
         // this is always the first listener!
-        if (apex_options::process_async_state()) {
-    	    listeners.push_back(the_profiler_listener);
-	    }
+   	    listeners.push_back(the_profiler_listener);
 #ifdef APEX_HAVE_TAU
         if (apex_options::use_tau())
         {

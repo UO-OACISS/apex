@@ -81,6 +81,11 @@ APEX_NATIVE_TLS unsigned int my_tid = 0; // the current thread's TID in APEX
 
 namespace apex {
 
+#ifdef APEX_MULTIPLE_QUEUES
+  /* this is a thread-local pointer to a concurrent queue for each worker thread. */
+  __thread profiler_queue_t * thequeue;
+#endif
+
   /* THis is a special profiler, indicating that the timer requested is
      throttled, and shouldn't be processed. */
   profiler* profiler::disabled_profiler = new profiler();
@@ -775,16 +780,29 @@ node_color * get_node_color(double v,double vmin,double vmax)
       if (inst != nullptr) {
           profiler_listener * pl = inst->the_profiler_listener;
           if (pl != nullptr) {
+      //profiler * p = start((apex_function_address)&profiler_listener::process_profiles_wrapper);
               pl->process_profiles();
+      //stop(p);
           }
       }
   }
 
   bool profiler_listener::concurrent_cleanup(void){
       std::shared_ptr<profiler> p;
+#ifdef APEX_MULTIPLE_QUEUES
+      std::unique_lock<std::mutex> queue_lock(queue_mtx);
+	  std::vector<profiler_queue_t*>::const_iterator a_queue;
+	  for (a_queue = allqueues.begin() ; a_queue != allqueues.end() ; ++a_queue) {
+	    thequeue = *a_queue;
+      	while(thequeue->try_dequeue(p)) {
+        	process_profile(p,0);
+      	}
+	  }
+#else
       while(thequeue.try_dequeue(p)) {
-        process_profile(p,0);
+       	process_profile(p,0);
       }
+#endif
       return true;
   }
 
@@ -819,9 +837,24 @@ node_color * get_node_color(double v,double vmin,double vmax)
     }
     */
 #endif
-      while(!_done && thequeue.try_dequeue(p)) {
-        process_profile(p, 0);
-      }
+#ifdef APEX_MULTIPLE_QUEUES
+	  std::vector<profiler_queue_t*>::const_iterator a_queue;
+      std::unique_lock<std::mutex> queue_lock(queue_mtx);
+	  int i = 0;
+	  for (a_queue = allqueues.begin() ; a_queue != allqueues.end() ; ++a_queue) {
+	    thequeue = *a_queue;
+        while(!_done && thequeue->try_dequeue(p)) {
+          process_profile(p, 0);
+#ifdef APEX_HAVE_HPX // don't hang out in this task too long.
+		  if (++i > 1000) break;
+#endif
+        }
+	  }
+#else
+        while(!_done && thequeue.try_dequeue(p)) {
+             process_profile(p, 0);
+        }
+#endif
       if (apex_options::use_taskgraph_output()) {
         while(!_done && dependency_queue.try_dequeue(td)) {
           process_dependency(td);
@@ -1025,7 +1058,17 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       if ((apex_options::use_screen_output() ||
            apex_options::use_csv_output()) && node_id == 0)
       {
-        size_t ignored = thequeue.size_approx();
+        size_t ignored = 0;
+#ifdef APEX_MULTIPLE_QUEUES
+        std::unique_lock<std::mutex> queue_lock(queue_mtx);
+	    std::vector<profiler_queue_t*>::const_iterator a_queue;
+	    for (a_queue = allqueues.begin() ; a_queue != allqueues.end() ; ++a_queue) {
+	      thequeue = *a_queue;
+          ignored += thequeue->size_approx();
+		}
+#else
+        ignored += thequeue.size_approx();
+#endif
         if (ignored > 0) {
           std::cerr << "Info: " << ignored << " items remaining on on the profiler_listener queue...";
         }
@@ -1109,6 +1152,13 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   void profiler_listener::on_new_thread(new_thread_event_data &data) {
     if (!_done) {
       my_tid = (unsigned int)thread_instance::get_id();
+#ifdef APEX_MULTIPLE_QUEUES
+	  thequeue = new profiler_queue_t();
+	  {
+        std::unique_lock<std::mutex> queue_lock(queue_mtx);
+	    allqueues.push_back(thequeue);
+	  }
+#endif
 #if APEX_HAVE_PAPI
       initialize_PAPI(false);
       event_set_mutex.lock();
@@ -1179,7 +1229,14 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   inline void profiler_listener::push_profiler(int my_tid, std::shared_ptr<profiler> &p) {
   	  // if we aren't processing profiler objects, just return.
   	  if (!apex_options::process_async_state()) { return; }
+  	  //if (p->task_id->address == (uint64_t)&profiler_listener::process_profiles_wrapper) { return; }
       // we have to make a local copy, because lockfree queues DO NOT SUPPORT shared_ptrs!
+#ifdef APEX_MULTIPLE_QUEUES
+      thequeue->enqueue(p);
+#else
+      thequeue.enqueue(p);
+#endif
+	  /*
       bool worked = thequeue.enqueue(p);
       if (!worked) {
           static std::atomic<bool> issued(false);
@@ -1189,6 +1246,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
               cout << "One or more frequently-called, lightweight functions is being timed." << endl;
           }
       }
+	  */
 #ifndef APEX_HAVE_HPX
       queue_signal.post();
 #endif
@@ -1334,15 +1392,17 @@ void apex_schedule_process_profiles() {
     if(get_hpx_runtime_ptr() == nullptr) return;
     if(hpx_shutdown) {
         ::apex::profiler_listener::process_profiles_wrapper();
-    } else if(!consumer_task_running.test_and_set(memory_order_acq_rel)) {
-        apex_internal_process_profiles_action act;
-        try {
-            hpx::apply(act, hpx::find_here());
-        } catch(...) {
-            // During shutdown, we can't schedule a new task,
-            // so we process profiles ourselves.
-            profiler_listener::process_profiles_wrapper();
-        }
+    } else {
+		if(!consumer_task_running.test_and_set(memory_order_acq_rel)) {
+        	apex_internal_process_profiles_action act;
+        	try {
+           		hpx::apply(act, hpx::find_here());
+        	} catch(...) {
+           		// During shutdown, we can't schedule a new task,
+           		// so we process profiles ourselves.
+           		profiler_listener::process_profiles_wrapper();
+			}
+		}
     }
 }
 
