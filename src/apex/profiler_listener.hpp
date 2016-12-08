@@ -47,7 +47,12 @@
 #include <fcntl.h>
 
 #define INITIAL_NUM_THREADS 2
+
+// The HPX subsystem creates so many small tasks that it is "better"
+// to have a queue per thread, rather than one queue.
+#ifdef APEX_HAVE_HPX
 #define APEX_MULTIPLE_QUEUES
+#endif
 
 namespace apex {
 
@@ -163,6 +168,7 @@ public:
       }
   };
   ~profiler_listener (void);
+  void async_thread_setup(void);
   // events
   void on_startup(startup_event_data &data);
   void on_shutdown(shutdown_event_data &data);

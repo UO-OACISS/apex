@@ -551,6 +551,9 @@ void* proc_data_reader::read_proc(void * _ptw) {
   if (apex_options::pin_apex_threads()) {
     set_thread_affinity();
   }
+  /* make sure the profiler_listener has a queue that this
+   * thread can push sampled values to */
+  apex::async_thread_setup();
   static bool _initialized = false;
   if (!_initialized) {
       initialize_worker_thread_for_TAU();

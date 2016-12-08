@@ -248,6 +248,15 @@ apex* apex::instance()
     return m_pInstance;
 }
 
+/* This function is used to set up thread-specific data structures
+ * for each of the asynchronous threads in APEX. For example, the
+ * proc_read thread needs a queue for processing sampled values.
+ */
+void apex::async_thread_setup() {
+    apex* instance = apex::instance();
+	instance->the_profiler_listener->async_thread_setup();
+}
+
 // special case - for cleanup only!
 apex* apex::__instance()
 {
@@ -540,6 +549,7 @@ void stop(profiler* the_profiler) {
     thread_instance::instance().remove_open_profiler(thread_instance::instance().get_id(), the_profiler);
     thread_instance::instance().clear_current_profiler();
 #endif
+	if (_measurement_stopped) { return; } // somehow we are slipping through...
     std::shared_ptr<profiler> p{the_profiler};
     /*
     std::shared_ptr<profiler> p;
@@ -583,6 +593,7 @@ void yield(profiler* the_profiler)
     thread_instance::instance().remove_open_profiler(thread_instance::instance().get_id(), the_profiler);
     thread_instance::instance().clear_current_profiler();
 #endif
+	if (_measurement_stopped) { return; } // somehow we are slipping through...
     std::shared_ptr<profiler> p{the_profiler};
     /*
     std::shared_ptr<profiler> p;

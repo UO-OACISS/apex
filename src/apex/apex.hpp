@@ -104,6 +104,7 @@ public:
     static apex* instance(); // singleton instance
     static apex* instance(uint64_t comm_rank, uint64_t comm_size); // singleton instance
     static apex* __instance(); // special case - for cleanup only!
+	static void async_thread_setup();
     int get_node_id(void);
     int get_num_ranks(void);
     void set_node_id(uint64_t rank) { m_node_id = rank; }

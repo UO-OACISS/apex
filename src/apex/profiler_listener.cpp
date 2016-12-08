@@ -3,7 +3,10 @@
 
 #ifdef APEX_HAVE_HPX
 #include <hpx/config.hpp>
-#endif
+#ifdef APEX_HAVE_OTF2
+#define APEX_TRACE_APEX
+#endif // APEX_HAVE_OTF2
+#endif // APEX_HAVE_HPX
 
 #include "profiler_listener.hpp"
 #include "profiler.hpp"
@@ -780,9 +783,13 @@ node_color * get_node_color(double v,double vmin,double vmax)
       if (inst != nullptr) {
           profiler_listener * pl = inst->the_profiler_listener;
           if (pl != nullptr) {
-      //profiler * p = start((apex_function_address)&profiler_listener::process_profiles_wrapper);
+#ifdef APEX_TRACE_APEX
+      profiler * p = start((apex_function_address)&profiler_listener::process_profiles_wrapper);
               pl->process_profiles();
-      //stop(p);
+      stop(p);
+#else
+              pl->process_profiles();
+#endif
           }
       }
   }
@@ -1058,8 +1065,8 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       if ((apex_options::use_screen_output() ||
            apex_options::use_csv_output()) && node_id == 0)
       {
-        size_t ignored = 0;
 #ifdef APEX_MULTIPLE_QUEUES
+        size_t ignored = 0;
         std::unique_lock<std::mutex> queue_lock(queue_mtx);
 	    std::vector<profiler_queue_t*>::const_iterator a_queue;
 	    for (a_queue = allqueues.begin() ; a_queue != allqueues.end() ; ++a_queue) {
@@ -1067,26 +1074,28 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
           ignored += thequeue->size_approx();
 		}
 #else
-        ignored += thequeue.size_approx();
+        size_t ignored = thequeue.size_approx();
 #endif
         if (ignored > 0) {
           std::cerr << "Info: " << ignored << " items remaining on on the profiler_listener queue...";
         }
+#ifndef APEX_HAVE_HPX
         // We might be done, but check to make sure the queue is empty
         std::vector<std::future<bool>> pending_futures;
         for (unsigned int i=0; i<hardware_concurrency(); ++i) {
 #ifdef APEX_STATIC
             /* Static libC++ doesn't do async very well. In fact, it crashes. */
             auto f = std::async(&profiler_listener::concurrent_cleanup,this);
-#else
+#else // APEX_STATIC
             auto f = std::async(std::launch::async,&profiler_listener::concurrent_cleanup,this);
-#endif
+#endif // APEX_STATIC
             // transfer the future's shared state to a longer-lived future
             pending_futures.push_back(std::move(f));
         }
         for (auto iter = pending_futures.begin() ; iter < pending_futures.end() ; iter++ ) {
             iter->get();
         }
+#endif // APEX_HAVE_HPX
         if (ignored > 0) {
           std::cerr << "done." << std::endl;
         }
@@ -1152,13 +1161,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   void profiler_listener::on_new_thread(new_thread_event_data &data) {
     if (!_done) {
       my_tid = (unsigned int)thread_instance::get_id();
-#ifdef APEX_MULTIPLE_QUEUES
-	  thequeue = new profiler_queue_t();
-	  {
-        std::unique_lock<std::mutex> queue_lock(queue_mtx);
-	    allqueues.push_back(thequeue);
-	  }
-#endif
+	  async_thread_setup();
 #if APEX_HAVE_PAPI
       initialize_PAPI(false);
       event_set_mutex.lock();
@@ -1229,7 +1232,9 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   inline void profiler_listener::push_profiler(int my_tid, std::shared_ptr<profiler> &p) {
   	  // if we aren't processing profiler objects, just return.
   	  if (!apex_options::process_async_state()) { return; }
-  	  //if (p->task_id->address == (uint64_t)&profiler_listener::process_profiles_wrapper) { return; }
+#ifdef APEX_TRACE_APEX
+  	  if (p->task_id->address == (uint64_t)&profiler_listener::process_profiles_wrapper) { return; }
+#endif
       // we have to make a local copy, because lockfree queues DO NOT SUPPORT shared_ptrs!
 #ifdef APEX_MULTIPLE_QUEUES
       thequeue->enqueue(p);
@@ -1312,6 +1317,21 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   /* When a thread exits, pop and stop all timers. */
   void profiler_listener::on_exit_thread(event_data &data) {
     APEX_UNUSED(data);
+  }
+
+  /* When an asynchronous thread is launched, they should
+   * call apex::async_thread_setup() which will end up here.*/
+  void profiler_listener::async_thread_setup(void) {
+#ifdef APEX_MULTIPLE_QUEUES
+	  // for asynchronous threads, check to make sure there is a queue!
+	  if (thequeue == nullptr) {
+	  	thequeue = new profiler_queue_t();
+	  	{
+        	std::unique_lock<std::mutex> queue_lock(queue_mtx);
+	    	allqueues.push_back(thequeue);
+	  	}
+	  }
+#endif
   }
 
   /* When a sample value is processed, save it as a profiler object, and queue it. */
