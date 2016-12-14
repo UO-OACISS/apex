@@ -358,13 +358,14 @@ namespace apex {
             string id = i.first;
             uint64_t idx = i.second;
             OTF2_GlobalDefWriter_WriteString( global_def_writer, get_string_index(id), id.c_str() );
+			size_t found = id.find(string("UNRESOLVED"));
             OTF2_GlobalDefWriter_WriteRegion( global_def_writer,
                     idx /* id */,
                     get_string_index(id) /* region name  */,
                     get_string_index(empty) /* alternative name */,
                     get_string_index(empty) /* description */,
-                    OTF2_REGION_ROLE_FUNCTION,
-                    OTF2_PARADIGM_USER,
+                    (found != std::string::npos) ? OTF2_REGION_ROLE_ARTIFICIAL : OTF2_REGION_ROLE_TASK,
+					(found != std::string::npos) ? OTF2_PARADIGM_MEASUREMENT_SYSTEM : OTF2_PARADIGM_USER,
                     OTF2_REGION_FLAG_NONE,
                     get_string_index(empty) /* source file */,
                     get_string_index(empty) /* begin lno */,
@@ -821,11 +822,13 @@ namespace apex {
         if (!_terminate) {
             _terminate = true;
             /* close event files */
+			std::cout << "Closing OTF2 event files..." << std::endl;
             OTF2_EC(OTF2_Archive_CloseEvtFiles( archive ));
             /* if we are node 0, write the global definitions */
             if (my_saved_node_id == 0) {
                 // save my number of threads
                 rank_thread_map[0] = thread_instance::get_num_threads();
+				std::cout << "Writing OTF2 definition files..." << std::endl;
                 // make a common list of regions and metrics across all nodes...
                 reduce_regions();
                 reduce_metrics();
@@ -841,6 +844,7 @@ namespace apex {
                         OTF2_EC(OTF2_Archive_CloseDefWriter( archive, def_writer ));
                     }
                 }
+				std::cout << "Writing OTF2 Global definition file..." << std::endl;
                 // create the global definition writer
                 global_def_writer = OTF2_Archive_GetGlobalDefWriter( archive );
                 // write an "empty" string - only once
@@ -882,6 +886,7 @@ namespace apex {
                 // and the "location" is thread 0 of that process.
                 vector<uint64_t>group_members;
                 vector<uint64_t>group_members_threads;
+				std::cout << "Writing OTF2 Node information..." << std::endl;
                 // iterate over the ranks (in order) and write them out
                 for (auto const &i : rank_pid_map) {
                     rank = i.first;
@@ -899,6 +904,7 @@ namespace apex {
                     */
                     group_members_threads.push_back((group_members[rank] << 32));
                 }
+				std::cout << "Writing OTF2 Communicators..." << std::endl;
                 // create the map of locations
                 const char * world_locations = "MPI_COMM_WORLD_LOCATIONS";
                 OTF2_EC(OTF2_GlobalDefWriter_WriteString( global_def_writer,
@@ -933,6 +939,7 @@ namespace apex {
                 write_region_map();
                 write_metric_map();
             }
+			std::cout << "Closing the archive..." << std::endl;
             // close the archive! we are done!
             OTF2_EC(OTF2_Archive_Close( archive ));
             // delete our temporary files!
@@ -948,6 +955,7 @@ namespace apex {
                 std::remove(tmp2.str().c_str());
             }
             */
+			std::cout << "done." << std::endl;
         }
         return;
     }
@@ -1009,11 +1017,11 @@ namespace apex {
         read_lock_type lock(_archive_mutex);
         // not likely, but just in case...
         if (_terminate) { return; }
-        if (thread_instance::get_id() != 0) {
+        //if (thread_instance::get_id() != 0) {
             // insert a thread end event
             uint64_t stamp = get_time();
             OTF2_EvtWriter_ThreadEnd( getEvtWriter(), NULL, stamp, 0, 0);
-        } 
+        //} 
         OTF2_Archive_CloseEvtWriter( archive, getEvtWriter() );
         if (thread_instance::get_id() == 0) {
             comm_evt_writer = nullptr;
