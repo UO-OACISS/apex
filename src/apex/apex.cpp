@@ -189,7 +189,7 @@ void apex::_initialize()
     }
 #endif
     {
-        write_lock_type l(listener_mutex);
+        //write_lock_type l(listener_mutex);
         this->the_profiler_listener = new profiler_listener();
         // this is always the first listener!
    	    listeners.push_back(the_profiler_listener);
@@ -273,7 +273,7 @@ policy_handler * apex::get_policy_handler(uint64_t const& period)
     if(apex_options::use_policy() && period_handlers.count(period) == 0)
     {
         period_handlers[period] = new policy_handler(period);
-        write_lock_type l(listener_mutex);
+        //write_lock_type l(listener_mutex);
         listeners.push_back(period_handlers[period]);
     }
     return period_handlers[period];
@@ -321,7 +321,7 @@ uint64_t init(const char * thread_name, uint64_t comm_rank, uint64_t comm_size) 
     init_plugins();
     startup_event_data data(comm_rank, comm_size);
     if (_notify_listeners) {
-        read_lock_type l(instance->listener_mutex);
+        //read_lock_type l(instance->listener_mutex);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_startup(data);
         }
@@ -346,7 +346,7 @@ uint64_t init(const char * thread_name, uint64_t comm_rank, uint64_t comm_size) 
     // this code should be absorbed from "new node" event to "on_startup" event.
     node_event_data node_data(comm_rank, thread_instance::get_id());
     if (_notify_listeners) {
-        read_lock_type l(instance->listener_mutex);
+        //read_lock_type l(instance->listener_mutex);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_new_node(node_data);
         }
@@ -389,7 +389,7 @@ profiler* start(const std::string &timer_name)
     if (_notify_listeners) {
         bool success = true;
 		task_identifier * id = new task_identifier(timer_name);
-        read_lock_type l(instance->listener_mutex);
+        //read_lock_type l(instance->listener_mutex);
 		//cout << thread_instance::get_id() << " Start : " << id->get_name() << endl; fflush(stdout);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             success = instance->listeners[i]->on_start(id);
@@ -419,7 +419,7 @@ profiler* start(apex_function_address function_address) {
         bool success = true;
 		task_identifier * id = new task_identifier(function_address);
 		//cout << thread_instance::get_id() << " Start : " << id->get_name() << endl; fflush(stdout);
-        read_lock_type l(instance->listener_mutex);
+        //read_lock_type l(instance->listener_mutex);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             success = instance->listeners[i]->on_start(id);
             if (!success && i == 0) {
@@ -458,7 +458,7 @@ profiler* resume(const std::string &timer_name) {
     if (_notify_listeners) {
         task_identifier * id = new task_identifier(timer_name);
         try {
-            read_lock_type l(instance->listener_mutex);
+            //read_lock_type l(instance->listener_mutex);
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
                 instance->listeners[i]->on_resume(id);
             }
@@ -483,7 +483,7 @@ profiler* resume(apex_function_address function_address) {
     if (_notify_listeners) {
         task_identifier * id = new task_identifier(function_address);
         try {
-            read_lock_type l(instance->listener_mutex);
+            //read_lock_type l(instance->listener_mutex);
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
                 instance->listeners[i]->on_resume(id);
             }
@@ -570,7 +570,7 @@ void stop(profiler* the_profiler) {
     */
 #endif
     if (_notify_listeners) {
-        read_lock_type l(instance->listener_mutex);
+        //read_lock_type l(instance->listener_mutex);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_stop(p);
         }
@@ -613,7 +613,7 @@ void yield(profiler* the_profiler)
     */
 #endif
     if (_notify_listeners) {
-        read_lock_type l(instance->listener_mutex);
+        //read_lock_type l(instance->listener_mutex);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_yield(p);
         }
@@ -675,7 +675,7 @@ void sample_value(const std::string &name, double value)
         data = new sample_value_event_data(0, name, value);
     }
     if (_notify_listeners) {
-        read_lock_type l(instance->listener_mutex);
+        //read_lock_type l(instance->listener_mutex);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_sample_value(*data);
         }
@@ -693,7 +693,7 @@ void new_task(const std::string &timer_name, uint64_t task_id)
     if (!instance || _exited) return; // protect against calls after finalization
     if (_notify_listeners) {
         task_identifier * id = new task_identifier(timer_name);
-        read_lock_type l(instance->listener_mutex);
+        //read_lock_type l(instance->listener_mutex);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_new_task(id, task_id);
         }
@@ -709,7 +709,7 @@ void new_task(apex_function_address function_address, uint64_t task_id) {
     if (!instance || _exited) return; // protect against calls after finalization
     if (_notify_listeners) {
         task_identifier * id = new task_identifier(function_address);
-        read_lock_type l(instance->listener_mutex);
+        //read_lock_type l(instance->listener_mutex);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_new_task(id, task_id);
         }
@@ -740,7 +740,7 @@ void custom_event(apex_event_type event_type, void * custom_data) {
     if (!instance || _exited) return; // protect against calls after finalization
     custom_event_data data(event_type, custom_data);
     if (_notify_listeners) {
-        read_lock_type l(instance->listener_mutex);
+        //read_lock_type l(instance->listener_mutex);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_custom_event(data);
         }
@@ -927,7 +927,7 @@ void finalize()
         shutdown_event_data data(instance->get_node_id(), thread_instance::get_id());
         _notify_listeners = false;
         {
-            read_lock_type l(instance->listener_mutex);
+            //read_lock_type l(instance->listener_mutex);
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
                 instance->listeners[i]->on_shutdown(data);
             }
@@ -959,7 +959,7 @@ void register_thread(const std::string &name)
     instance->set_state(thread_instance::get_id(), APEX_BUSY);
     new_thread_event_data data(name);
     if (_notify_listeners) {
-            read_lock_type l(instance->listener_mutex);
+            //read_lock_type l(instance->listener_mutex);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_new_thread(data);
         }
@@ -996,7 +996,7 @@ void exit_thread(void)
         _exit_stops++;
 #endif
         if (_notify_listeners) {
-            read_lock_type l(instance->listener_mutex);
+            //read_lock_type l(instance->listener_mutex);
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
                 instance->listeners[i]->on_stop(p);
             }
@@ -1005,7 +1005,7 @@ void exit_thread(void)
     */
     event_data data;
     if (_notify_listeners) {
-            read_lock_type l(instance->listener_mutex);
+            //read_lock_type l(instance->listener_mutex);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_exit_thread(data);
         }
@@ -1150,7 +1150,7 @@ void send (uint64_t tag, uint64_t size, uint64_t target) {
         //message_event_data data(tag, size, instance->get_node_id(), thread_instance::get_id(), target);
         message_event_data data(tag, size, instance->get_node_id(), 0, target);
         if (_notify_listeners) {
-            read_lock_type l(instance->listener_mutex);
+            //read_lock_type l(instance->listener_mutex);
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
                 instance->listeners[i]->on_send(data);
             }
@@ -1175,7 +1175,7 @@ void recv (uint64_t tag, uint64_t size, uint64_t source_rank, uint64_t source_th
         //message_event_data data(tag, size, source_rank, source_thread, instance->get_node_id());
         message_event_data data(tag, size, source_rank, 0, instance->get_node_id());
         if (_notify_listeners) {
-            read_lock_type l(instance->listener_mutex);
+            //read_lock_type l(instance->listener_mutex);
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
                 instance->listeners[i]->on_recv(data);
             }
