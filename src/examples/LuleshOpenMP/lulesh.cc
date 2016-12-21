@@ -159,11 +159,12 @@ Additional BSD Notice
 
 #if _OPENMP
 # include <omp.h>
+#include <thread>
+#define MAX_THREADS (std::thread::hardware_concurrency())
 #endif
 
 #include "lulesh.h"
 
-const int MAX_THREADS = 160;
 
 /*********************************/
 /* Data structure implementation */
@@ -1198,19 +1199,19 @@ void ApplyAccelerationBoundaryConditionsForNodes(Domain& domain)
 #pragma omp parallel
    {
       if (!domain.symmXempty() != 0) {
-#pragma omp for nowait firstprivate(numNodeBC) schedule(runtime)
+#pragma omp for firstprivate(numNodeBC) schedule(runtime)
          for(Index_t i=0 ; i<numNodeBC ; ++i)
             domain.xdd(domain.symmX(i)) = Real_t(0.0) ;
       }
 
       if (!domain.symmYempty() != 0) {
-#pragma omp for nowait firstprivate(numNodeBC) schedule(runtime)
+#pragma omp for firstprivate(numNodeBC) schedule(runtime)
          for(Index_t i=0 ; i<numNodeBC ; ++i)
             domain.ydd(domain.symmY(i)) = Real_t(0.0) ;
       }
 
       if (!domain.symmZempty() != 0) {
-#pragma omp for nowait firstprivate(numNodeBC) schedule(runtime)
+#pragma omp for firstprivate(numNodeBC) schedule(runtime)
          for(Index_t i=0 ; i<numNodeBC ; ++i)
             domain.zdd(domain.symmZ(i)) = Real_t(0.0) ;
       }
@@ -2298,7 +2299,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
       /* compress data, minimal set */
 #pragma omp parallel
       {
-#pragma omp for nowait firstprivate(numElemReg) schedule(runtime)
+#pragma omp for firstprivate(numElemReg) schedule(runtime)
          for (Index_t i=0; i<numElemReg; ++i) {
             Index_t elem = regElemList[i];
             e_old[i] = domain.e(elem) ;
@@ -2320,7 +2321,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
 
       /* Check for v > eosvmax or v < eosvmin */
          if ( eosvmin != Real_t(0.) ) {
-#pragma omp for nowait firstprivate(numElemReg, eosvmin) schedule(runtime)
+#pragma omp for firstprivate(numElemReg, eosvmin) schedule(runtime)
             for(Index_t i=0 ; i<numElemReg ; ++i) {
                Index_t elem = regElemList[i];
                if (vnewc[elem] <= eosvmin) { /* impossible due to calling func? */
@@ -2329,7 +2330,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
             }
          }
          if ( eosvmax != Real_t(0.) ) {
-#pragma omp for nowait firstprivate(numElemReg, eosvmax) schedule(runtime)
+#pragma omp for firstprivate(numElemReg, eosvmax) schedule(runtime)
             for(Index_t i=0 ; i<numElemReg ; ++i) {
                Index_t elem = regElemList[i];
                if (vnewc[elem] >= eosvmax) { /* impossible due to calling func? */
@@ -2340,7 +2341,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
             }
          }
 
-#pragma omp for nowait firstprivate(numElemReg) schedule(runtime)
+#pragma omp for firstprivate(numElemReg) schedule(runtime)
          for (Index_t i = 0 ; i < numElemReg ; ++i) {
             work[i] = Real_t(0.) ; 
          }
@@ -2407,7 +2408,7 @@ void ApplyMaterialPropertiesForElems(Domain& domain, Real_t vnew[])
        }
 
        if (eosvmax != Real_t(0.)) {
-#pragma omp for nowait firstprivate(numElem) schedule(runtime)
+#pragma omp for firstprivate(numElem) schedule(runtime)
           for(Index_t i=0 ; i<numElem ; ++i) {
              if (vnew[i] > eosvmax)
                 vnew[i] = eosvmax ;
@@ -2417,7 +2418,7 @@ void ApplyMaterialPropertiesForElems(Domain& domain, Real_t vnew[])
        // This check may not make perfect sense in LULESH, but
        // it's representative of something in the full code -
        // just leave it in, please
-#pragma omp for nowait firstprivate(numElem) schedule(runtime)
+#pragma omp for firstprivate(numElem) schedule(runtime)
        for (Index_t i=0; i<numElem; ++i) {
           Real_t vc = domain.v(i) ;
           if (eosvmin != Real_t(0.)) {
@@ -2532,7 +2533,7 @@ void CalcCourantConstraintForElems(Domain &domain, Index_t length,
       Index_t  courant_elem  = -1 ;
 
 #if _OPENMP
-#pragma omp single nowait
+#pragma omp single
       {
         num_threads = omp_get_num_threads();
       }
@@ -2613,7 +2614,7 @@ void CalcHydroConstraintForElems(Domain &domain, Index_t length,
       Index_t hydro_elem = -1 ;
 
 #if _OPENMP      
-#pragma omp single nowait
+#pragma omp single
       {
         num_threads = omp_get_num_threads();
       }      

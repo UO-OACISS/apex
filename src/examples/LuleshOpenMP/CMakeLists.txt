@@ -10,8 +10,10 @@ add_executable (lulesh_OpenMP_2.0 lulesh.cc lulesh-comm.cc lulesh-init.cc lulesh
 add_dependencies (lulesh_OpenMP_2.0 apex)
 add_dependencies (examples lulesh_OpenMP_2.0)
 
-set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS} -O3 -DUSE_MPI=0 -Wall")
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} -O3 -DUSE_MPI=0 -Wall")
+set (CMAKE_C_FLAGS_RELEASE "-O3") # can't exceed this, for math reasons.
+set (CMAKE_CXX_FLAGS_RELEASE "-O3") # can't exceed this, for math reasons.
+set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS} -DUSE_MPI=0 -Wall")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} -DUSE_MPI=0 -Wall")
 
 # Link the executable to the Apex library. 
 target_link_libraries (lulesh_OpenMP_2.0 apex ${OMPT_LIBRARIES} ${LIBS}) 
