@@ -71,7 +71,7 @@ set_tests_properties(ExampleCountCalls PROPERTIES PASS_REGULAR_EXPRESSION
 
 # Run the test program which tests the overhead in the threads interface
 add_test (ExampleOverhead Overhead/testOverhead)  
-set_tests_properties(ExampleOverhead PROPERTIES PASS_REGULAR_EXPRESSION "Average overhead per timer")
+set_tests_properties(ExampleOverhead PROPERTIES PASS_REGULAR_EXPRESSION "Estimated overhead per timer")
 
 # TEst the policy engine support
 add_test (ExamplePolicyUnitTest PolicyUnitTest/policyUnitTest)  

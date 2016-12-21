@@ -169,7 +169,7 @@ int policy(const apex_context context) {
         // Skip events without names.
         return APEX_NOERROR;
     }
-    std::string name = id->get_name();
+    std::string name = id->get_name(false);
     if(context.event_type == APEX_START_EVENT) {
         if(name.find("OpenMP_PARALLEL_REGION") == 0) {
             handle_start(name);

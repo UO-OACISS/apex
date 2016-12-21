@@ -9,8 +9,9 @@
 #include <chrono>
 #include "utils.hpp"
 
-#define ITERATIONS 1024*32
-#define INNER_ITERATION 1024*8
+#define SPLIT 131072
+#define ITERATIONS 1048576
+#define INNER_ITERATION 4096
 
 inline int foo (int i) {
   int j;
@@ -40,6 +41,9 @@ void* someThread(void* tmp)
         apex::profiler * p = apex::start((apex_function_address)foo);
         total += foo(i);
         apex::stop(p);
+        if (i % SPLIT == 0) {
+            printf("t"); fflush(stdout);
+        }
     }
     apex::stop(st);
   }
@@ -62,6 +66,9 @@ void* someUntimedThread(void* tmp)
     apex::profiler * sut = apex::start((apex_function_address)someUntimedThread);
     for (i = 0 ; i < ITERATIONS ; i++) {
         total += foo(i);
+        if (i % SPLIT == 0) {
+            printf("u"); fflush(stdout);
+        }
     }
     apex::stop(sut);
   }
@@ -78,6 +85,7 @@ void* someUntimedThread(void* tmp)
 int main(int argc, char **argv)
 {
   apex::init(argv[0], 0, 1);
+  apex::apex_options::use_screen_output(true);
   unsigned numthreads = apex::hardware_concurrency();
   if (argc > 1) {
     numthreads = strtoul(argv[1],NULL,0);
@@ -119,31 +127,34 @@ int main(int argc, char **argv)
     double stddev = sqrt(variance);
     std::cout << "Without timing: " << mean;
     std::cout << "±" << stddev << METRIC;
+    std::cout << std::endl;
   }
   if (with) {
     double mean = with->accumulated/with->calls;
     double variance = ((with->sum_squares / with->calls) - (mean * mean));
     double stddev = sqrt(variance);
-    std::cout << ", with timing: " << mean;
+    std::cout << "   With timing: " << mean;
     std::cout << "±" << stddev << METRIC;
+    std::cout << std::endl;
   }
-  std::cout << std::endl;
   if (footime) {
-    std::cout << "Total calls to 'foo': " << numthreads*ITERATIONS;
-    std::cout << ", timed calls to 'foo': " << (int)footime->calls << std::endl;
+    std::cout << "Total calls to 'foo': " << numthreads*ITERATIONS << std::endl;
+    std::cout << "Timed calls to 'foo': " << (int)footime->calls << std::endl;
   }
-  double percall1 = 0.0;
+  double overhead_per_call = 0.0;
   if (with && without && footime) {
-    percall1 = ((with->accumulated/with->calls) - (without->accumulated/without->calls)) / footime->calls;
-    double percent = ((with->accumulated/with->calls) / (without->accumulated/without->calls)) - 1.0;
-    double foopercall = footime->accumulated / footime->calls;
-    std::cout << "Average overhead per timer: ";
+    overhead_per_call = (with->accumulated - without->accumulated) / footime->calls;
+    double percent_increase = (with->accumulated / without->accumulated) - 1.0;
+    double foo_per_call = footime->accumulated / footime->calls;
+    std::cout << "Estimated overhead per timer: ";
 #ifdef APEX_USE_CLOCK_TIMESTAMP
-    std::cout << percall1*1.0e9;
-    std::cout << METRIC << " (" << percent*100.0 << "%), per call time in foo: " << (foopercall*1.0e9) << METRIC << std::endl;
+    std::cout << overhead_per_call*1.0e9;
+    std::cout << METRIC << " (" << percent_increase*100.0 << 
+        "%), per call time in foo: " << (foo_per_call*1.0e9) << METRIC << std::endl;
 #else
-    std::cout << percall1;
-    std::cout << METRIC << " (" << percent*100.0 << "%), per call time in foo: " << foopercall << METRIC << std::endl;
+    std::cout << overhead_per_call;
+    std::cout << METRIC << " (" << percent_increase*100.0 << 
+        "%), per call time in foo: " << foo_per_call << METRIC << std::endl;
 #endif
   }
   apex::cleanup();

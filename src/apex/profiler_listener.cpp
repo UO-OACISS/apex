@@ -980,6 +980,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
   void profiler_listener::on_startup(startup_event_data &data) {
     if (!_done) {
       my_tid = (unsigned int)thread_instance::get_id();
+	  async_thread_setup();
 #ifndef APEX_HAVE_HPX
       // Start the consumer thread, to process profiler objects.
       consumer_thread = new std::thread(consumer_process_profiles_wrapper);
@@ -1044,6 +1045,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       //sleep(1);
 #ifndef APEX_HAVE_HPX
       queue_signal.post();
+      queue_signal.dump_stats();
       if (consumer_thread != nullptr) {
           consumer_thread->join();
       }
@@ -1067,12 +1069,14 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       {
 #ifdef APEX_MULTIPLE_QUEUES
         size_t ignored = 0;
-        std::unique_lock<std::mutex> queue_lock(queue_mtx);
-	    std::vector<profiler_queue_t*>::const_iterator a_queue;
-	    for (a_queue = allqueues.begin() ; a_queue != allqueues.end() ; ++a_queue) {
-	      thequeue = *a_queue;
-          ignored += thequeue->size_approx();
-		}
+        {
+            std::unique_lock<std::mutex> queue_lock(queue_mtx);
+	        std::vector<profiler_queue_t*>::const_iterator a_queue;
+	        for (a_queue = allqueues.begin() ; a_queue != allqueues.end() ; ++a_queue) {
+	            thequeue = *a_queue;
+                ignored += thequeue->size_approx();
+		    }
+        }
 #else
         size_t ignored = thequeue.size_approx();
 #endif
@@ -1238,8 +1242,10 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       // we have to make a local copy, because lockfree queues DO NOT SUPPORT shared_ptrs!
 #ifdef APEX_MULTIPLE_QUEUES
       thequeue->enqueue(p);
+      int thesize = thequeue->size_approx();
 #else
       thequeue.enqueue(p);
+      int thesize = thequeue.size_approx();
 #endif
 	  /*
       bool worked = thequeue.enqueue(p);
@@ -1253,7 +1259,11 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       }
 	  */
 #ifndef APEX_HAVE_HPX
-      queue_signal.post();
+      // Why 10? To make sure we don't call the true posix "post" function
+      // too frequently - it is rather costly.
+      if (thesize > 10) {
+        queue_signal.post();
+      }
 #endif
 #ifdef APEX_HAVE_HPX
       apex_schedule_process_profiles();

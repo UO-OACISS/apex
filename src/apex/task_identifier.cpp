@@ -19,7 +19,7 @@
 
 namespace apex {
 
-std::string task_identifier::get_name() {
+std::string task_identifier::get_name(bool resolve) {
     if (!has_name) {
       if (_resolved_name == "" && address != APEX_NULL_FUNCTION_ADDRESS) {
         //_resolved_name = lookup_address((uintptr_t)address, false);         
@@ -28,18 +28,20 @@ std::string task_identifier::get_name() {
       return demangle(_resolved_name);
     } else {
 #ifdef APEX_HAVE_BFD
-      REGEX_NAMESPACE::regex rx (".*UNRESOLVED ADDR (.*)");
-      if (REGEX_NAMESPACE::regex_match (name,rx)) {
-        const REGEX_NAMESPACE::regex separator(" ADDR ");
-        REGEX_NAMESPACE::sregex_token_iterator token(name.begin(), name.end(), separator, -1);
-        *token++; // ignore
-        std::string addr_str = *token++;
-        void* addr_addr;
-        sscanf(addr_str.c_str(), "%p", &addr_addr);
-        std::string * tmp = lookup_address((uintptr_t)addr_addr, true);
-        REGEX_NAMESPACE::regex old_address("UNRESOLVED ADDR " + addr_str);
-        name = REGEX_NAMESPACE::regex_replace(name, old_address, demangle(*tmp));
-      }
+        if (resolve) {
+            REGEX_NAMESPACE::regex rx (".*UNRESOLVED ADDR (.*)");
+            if (REGEX_NAMESPACE::regex_match (name,rx)) {
+                const REGEX_NAMESPACE::regex separator(" ADDR ");
+                REGEX_NAMESPACE::sregex_token_iterator token(name.begin(), name.end(), separator, -1);
+                *token++; // ignore
+                std::string addr_str = *token++;
+                void* addr_addr;
+                sscanf(addr_str.c_str(), "%p", &addr_addr);
+                std::string * tmp = lookup_address((uintptr_t)addr_addr, true);
+                REGEX_NAMESPACE::regex old_address("UNRESOLVED ADDR " + addr_str);
+                name = REGEX_NAMESPACE::regex_replace(name, old_address, demangle(*tmp));
+            }
+        }
 #endif
       return name;
 	}

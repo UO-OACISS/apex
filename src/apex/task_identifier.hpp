@@ -36,7 +36,7 @@ public:
       }
   }
   */
-  std::string get_name();
+  std::string get_name(bool resolve = true);
   ~task_identifier() { }
   // requried for using this class as a key in an unordered map.
   // the hash function is defined below.

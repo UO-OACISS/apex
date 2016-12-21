@@ -30,31 +30,41 @@ private:
     sem_t the_semaphore;
 #endif
     sem_t * the_semaphore_p;
-    //int work_waiting;
     std::atomic<bool> work_waiting;
+    std::atomic<uint64_t> posts;
+    std::atomic<uint64_t> true_posts;
+    std::atomic<uint64_t> waits;
 public:
+    semaphore() : work_waiting(0), posts(0), true_posts(0), waits(0) { 
 #if defined(__APPLE__) // handle the new way on systems like Apple
-    semaphore() : work_waiting(0) { the_semaphore_p = sem_open("work waiting", O_CREAT, S_IRWXU, 1); }
+        the_semaphore_p = sem_open("work waiting", O_CREAT, S_IRWXU, 1); 
 #else
-    semaphore() : work_waiting(0) { the_semaphore_p = &the_semaphore; sem_init(the_semaphore_p, 1, 1); }
+        the_semaphore_p = &the_semaphore; sem_init(the_semaphore_p, 1, 1); 
 #endif
+    }
+    void dump_stats() { 
+        //std::cout << "Semaphore stats: " << posts << " posts, " << true_posts << " true posts, " << waits << " waits." << std::endl; fflush(stdout);
+    }
     /*
      * This function is somewhat optimized. Because we were spending a lot of time
      * waiting for the post (it is a synchronization point across all threads), don't
      * post if there is already work on the queue.
      */
-    inline void post() { if (work_waiting) return ;
-        //__sync_fetch_and_add(&work_waiting, 1) ;
+    inline void post() { 
+        //posts++;
+        if (work_waiting) return ;
         work_waiting = true;
+        //true_posts++;
         sem_post(the_semaphore_p);
-        }
+    }
     /*
      * When the wait is over, clear the "work_waiting" flag, even though we haven't
      * cleared the waiting profilers.
      */
     inline void wait() { sem_wait(the_semaphore_p);
-        //__sync_fetch_and_sub(&work_waiting, work_waiting); }
-        work_waiting=false; }
+        //waits++;
+        work_waiting=false; 
+    }
 };
 
 }

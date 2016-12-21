@@ -51,8 +51,8 @@
 // The HPX subsystem creates so many small tasks that it is "better"
 // to have a queue per thread, rather than one queue.
 #ifdef APEX_HAVE_HPX
-#define APEX_MULTIPLE_QUEUES
 #endif
+#define APEX_MULTIPLE_QUEUES
 
 namespace apex {
 
