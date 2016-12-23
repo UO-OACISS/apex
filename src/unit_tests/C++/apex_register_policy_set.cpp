@@ -45,6 +45,7 @@ int startup_policy(apex_context const context) {
 
 int main(int argc, char **argv)
 {
+  apex::apex_options::use_policy(false);
   std::set<apex_event_type> when = {APEX_STARTUP, APEX_SHUTDOWN, APEX_NEW_NODE, APEX_NEW_THREAD,
       APEX_START_EVENT, APEX_STOP_EVENT, APEX_SAMPLE_VALUE};
   std::set<apex_policy_handle*> handles = 
@@ -61,6 +62,7 @@ int main(int argc, char **argv)
     }
     return APEX_NOERROR;
   });
+  apex::apex_options::use_policy(true);
 
   apex::apex_options::use_screen_output(true);
 

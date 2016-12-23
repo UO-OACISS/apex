@@ -72,7 +72,7 @@ private:
     shared_mutex_type periodic_mutex;
     void call_policies(
         const std::list<std::shared_ptr<policy_instance> > & policies,
-        event_data &event_data);
+        void *event_data, const apex_event_type& event_type);
 #ifdef APEX_HAVE_HPX
     hpx::util::interval_timer hpx_timer;
 #endif

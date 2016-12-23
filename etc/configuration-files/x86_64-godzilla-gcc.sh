@@ -1,6 +1,6 @@
 #platform_malloc="-DJEMALLOC_ROOT=$HOME/install/jemalloc-3.5.1"
-#platform_malloc="-DGPERFTOOLS_ROOT=$HOME/install/gperftools/2.5"
-platform_malloc="-DJEMALLOC_ROOT=/usr/local/packages/jemalloc/4.2.1"
+platform_malloc="-DGPERFTOOLS_ROOT=/usr/local/packages/gperftools/2.5"
+#platform_malloc="-DJEMALLOC_ROOT=/usr/local/packages/jemalloc/4.2.1"
 platform_bfd="-DBFD_ROOT=$HOME/src/tau2/x86_64/binutils-2.23.2"
 platform_ah="-DACTIVEHARMONY_ROOT=$HOME/install/activeharmony/4.6.0"
 platform_otf="-DOTF2_ROOT=/usr/local/packages/otf2/2.0-x86_64"

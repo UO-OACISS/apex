@@ -186,10 +186,12 @@ endif (DEFINED APEX_SANITIZE_THREAD AND APEX_SANITIZE_THREAD)
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -march=native -DNDEBUG -Wno-deprecated")
+  set(CMAKE_C_FLAGS_RELEASE "-Ofast -march=native -DNDEBUG -Wno-deprecated")
   # using Clang
   set(CXX_PEDANTIC_COMPILER_WARNINGS "-fdiagnostics-show-option -Wall -Wcast-align -Wcast-qual -Werror=format -Werror=missing-braces -Werror=parentheses -Werror=reorder -Werror=return-type -Werror=sequence-point -Werror=sign-compare -Werror=uninitialized -Werror=vla -Wextra -Wformat=2 -Winit-self -Wno-attributes -Wno-cast-align -Wno-delete-non-virtual-dtor -Wno-format-nonliteral -Wno-ignored-qualifiers -Wno-sign-promo -Wno-strict-aliasing -Wno-unused-parameter -Wno-unused-variable -Wno-unused-local-typedefs -Wno-unused-parameter ")
   set(C_PEDANTIC_COMPILER_WARNINGS "-fdiagnostics-show-option -Wall -Wcast-align -Wcast-qual -Werror=format -Werror=missing-braces -Werror=parentheses -Werror=reorder -Werror=return-type -Werror=sequence-point -Werror=sign-compare -Werror=uninitialized -Werror=vla -Wextra -Wformat=2 -Winit-self -Wno-attributes -Wno-cast-align -Wno-format-nonliteral -Wno-ignored-qualifiers -Wno-strict-aliasing -Wno-unused-parameter -Wno-unused-variable -Wno-unused-local-typedefs -Wno-unused-parameter ")
   set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 ${CXX_PEDANTIC_COMPILER_WARNINGS} ")
+  set(CMAKE_C_FLAGS_DEBUG "-g -O0 ${C_PEDANTIC_COMPILER_WARNINGS} ")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   # using GCC
   if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
@@ -199,18 +201,20 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   set(CXX_PEDANTIC_COMPILER_WARNINGS "-fdiagnostics-show-option -Wall -Wcast-align -Wcast-qual -Wdouble-promotion -Werror=format -Werror=missing-braces -Werror=parentheses -Werror=reorder -Werror=return-type -Werror=sequence-point -Werror=sign-compare -Werror=trampolines -Werror=uninitialized -Werror=vla -Wextra -Wformat=2 -Winit-self -Wno-attributes -Wno-cast-align -Wno-delete-non-virtual-dtor -Wno-format-nonliteral -Wno-ignored-qualifiers -Wno-sign-promo -Wno-strict-aliasing -Wno-sync-nand -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-local-typedefs -Wno-unused-parameter ")
   set(C_PEDANTIC_COMPILER_WARNINGS "-fdiagnostics-show-option -Wall -Wcast-align -Wcast-qual -Wdouble-promotion -Werror=format -Werror=missing-braces -Werror=parentheses -Werror=reorder -Werror=return-type -Werror=sequence-point -Werror=sign-compare -Werror=trampolines -Werror=uninitialized -Werror=vla -Wextra -Wformat=2 -Winit-self -Wno-attributes -Wno-cast-align -Wno-format-nonliteral -Wno-ignored-qualifiers -Wno-strict-aliasing -Wno-sync-nand -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-local-typedefs -Wno-unused-parameter ")
   set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 ${CXX_PEDANTIC_COMPILER_WARNINGS} ${APEX_SANITIZE_OPTIONS} ")
+  set(CMAKE_C_FLAGS_DEBUG "-g -O0 ${C_PEDANTIC_COMPILER_WARNINGS} ${APEX_SANITIZE_OPTIONS} ")
   set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -flto -DNDEBUG -Wno-deprecated")
+  set(CMAKE_C_FLAGS_RELEASE "-Ofast -flto -DNDEBUG -Wno-deprecated")
   set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS} -flto")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
   # using Intel C++
   set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 ")
+  set(CMAKE_C_FLAGS_DEBUG "-g -O0 ")
   set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -march=native -ipo -DNDEBUG -Wno-deprecated")
+  set(CMAKE_C_FLAGS_RELEASE "-Ofast -march=native -ipo -DNDEBUG -Wno-deprecated")
   set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS} -ipo")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   # using Visual Studio C++
 endif()
-set(CMAKE_C_FLAGS_RELEASE ${CMAKE_CXX_FLAGS_RELEASE})
-set(CMAKE_C_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
 
 # The version number.
 set (APEX_VERSION_MAJOR 0)

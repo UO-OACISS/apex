@@ -847,7 +847,9 @@ node_color * get_node_color(double v,double vmin,double vmax)
 #ifdef APEX_MULTIPLE_QUEUES
 	  std::vector<profiler_queue_t*>::const_iterator a_queue;
       std::unique_lock<std::mutex> queue_lock(queue_mtx);
+#ifdef APEX_HAVE_HPX // don't hang out in this task too long.
 	  int i = 0;
+#endif
 	  for (a_queue = allqueues.begin() ; a_queue != allqueues.end() ; ++a_queue) {
 	    thequeue = *a_queue;
         while(!_done && thequeue->try_dequeue(p)) {

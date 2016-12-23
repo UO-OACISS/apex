@@ -11,6 +11,7 @@
 #include "stdio.h"
 #include "apex_types.h"
 #include "apex_export.h"
+#include <atomic>
 
 #define FOREACH_EXTERNAL_STRING_OPTION(macro) \
         macro (HARMONY_HOME, activeharmony_root, char*, ACTIVEHARMONY_ROOT) \
@@ -20,7 +21,7 @@ namespace apex {
 class apex_options {
 private:
     /* Declare the private member variables */
-#define apex_macro(name, member_variable, type, default_value) type _##member_variable;
+#define apex_macro(name, member_variable, type, default_value) std::atomic<type> _##member_variable;
     FOREACH_APEX_OPTION(apex_macro)
     FOREACH_APEX_STRING_OPTION(apex_macro)
 #undef apex_macro
