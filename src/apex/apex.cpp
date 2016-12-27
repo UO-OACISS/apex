@@ -875,6 +875,8 @@ void finalize()
 	//cout << thread_instance::get_id() << " *** Finalize! " << endl; fflush(stdout);
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
+    // stop processing new timers/counters/messages/tasks/etc.
+    apex_options::suspend(true);
     // prevent re-entry, be extra strict about race conditions - it is possible.
     mutex shutdown_mutex;
     static bool finalized = false;

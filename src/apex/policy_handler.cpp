@@ -14,6 +14,7 @@
 #include "thread_instance.hpp"
 #include <iostream>
 #include <atomic>
+#include <unistd.h>
 
 #ifdef APEX_HAVE_TAU
 #define PROFILING_ON
@@ -99,6 +100,10 @@ namespace apex {
         bool old_policy_setting = apex_options::use_policy();
         // prevent policies from iterating - kind of like a lock, but faster.
         apex_options::use_policy(false);
+        // Sleep just a tiny bit - that allows other threads that might be
+        // currently processing policies to clear out. This is actually 
+        // more efficient than a lock transaction on every policy execution.
+        usleep(1000); // sleep 1ms
 		int id = next_id++;
 		std::shared_ptr<policy_instance> instance(
 				std::make_shared<policy_instance>(id, f));
@@ -175,6 +180,10 @@ namespace apex {
         bool old_policy_setting = apex_options::use_policy();
         // prevent policies from iterating - kind of like a lock, but faster.
         apex_options::use_policy(false);
+        // Sleep just a tiny bit - that allows other threads that might be
+        // currently processing policies to clear out. This is actually 
+        // more efficient than a lock transaction on every policy execution.
+        usleep(1000); // sleep 1ms
 		switch(handle->event_type) {
 			case APEX_STARTUP: {
 						   //write_lock_type l(startup_mutex);
