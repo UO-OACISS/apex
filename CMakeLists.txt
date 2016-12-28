@@ -2,6 +2,9 @@
 # refer to the root source directory of the project as ${APEX_SOURCE_DIR} and
 # to the root binary directory of the project as ${APEX_BINARY_DIR}.
 
+# set the project name
+project (APEX CXX C)
+
 cmake_minimum_required (VERSION 2.8.12 FATAL_ERROR)
 cmake_policy(VERSION 2.8.12)
 if (${CMAKE_MAJOR_VERSION} GREATER 2)
@@ -83,9 +86,6 @@ endif()
 # the same project).
 set(CMAKE_CONFIGURATION_TYPES "${CMAKE_BUILD_TYPE}" CACHE INTERNAL
 "Configuration types" FORCE)
-
-# set the project name
-project (APEX CXX C)
 
 # If TAU is used, don't allow throttling - it can potentially lead to
 # overlapping timer errors in TAU.
@@ -648,9 +648,11 @@ if(APEX_INTEL_MIC)
 else()
     set(CMAKE_THREAD_PREFER_PTHREAD ON)
     set(THREADS_PREFER_PTHREAD_FLAG ON)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
+    find_package (Threads REQUIRED)
+    set(LIBS ${LIBS} ${CMAKE_THREAD_LIBS_INIT})
+    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+    # set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
+    # set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
 endif(APEX_INTEL_MIC)
 
 if (RCR_FOUND)
