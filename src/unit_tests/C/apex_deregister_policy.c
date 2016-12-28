@@ -13,17 +13,28 @@ int custom_type_2;
 
 int foo (int i) {
   static __thread apex_profiler_handle my_profiler;
+  int result = 0;
+
   if (i % 2 == 0) {
+    // do start/yield/start/stop
     my_profiler = apex_start(APEX_FUNCTION_ADDRESS, &foo);
-  } else {
-    my_profiler = apex_resume(APEX_FUNCTION_ADDRESS, &foo);
-  }
-  int result = i*i;
-  if (i % 2 == 0) {
+    result = i*i; // work
     apex_yield(my_profiler);
+    result += i*i; // work
+    my_profiler = apex_start(APEX_FUNCTION_ADDRESS, &foo);
+    result += i*i; // work
+    apex_stop(my_profiler);
   } else {
+    // do start/stop/resume/stop
+    my_profiler = apex_start(APEX_FUNCTION_ADDRESS, &foo);
+    result = i*i; // work
+    apex_stop(my_profiler);
+    result += i*i; // work
+    my_profiler = apex_resume(APEX_FUNCTION_ADDRESS, &foo);
+    result += i*i; // work
     apex_stop(my_profiler);
   }
+
   return result;
 }
 
@@ -123,7 +134,6 @@ int startup_policy(apex_context const context) {
 int main(int argc, char **argv)
 {
   apex_policy_handle * on_startup = apex_register_policy(APEX_STARTUP, startup_policy);
-  apex_set_use_policy(false);
   apex_register_policy(APEX_SHUTDOWN, policy_event);
   apex_policy_handle * on_new_node = apex_register_policy(APEX_NEW_NODE, policy_event);
   apex_policy_handle * on_new_thread = apex_register_policy(APEX_NEW_THREAD, policy_event);
@@ -139,7 +149,6 @@ int main(int argc, char **argv)
   custom_type_2 = apex_register_custom_event("CUSTOM 2");
   apex_policy_handle * on_custom_event_1 = apex_register_policy(custom_type_1, policy_event);
   apex_policy_handle * on_custom_event_2 = apex_register_policy(custom_type_2, policy_event);
-  apex_set_use_policy(true);
 
   apex_profiler_handle my_profiler = apex_start(APEX_FUNCTION_ADDRESS, &main);
   pthread_t thread[NUM_THREADS];
@@ -151,7 +160,6 @@ int main(int argc, char **argv)
     pthread_join(thread[i], NULL);
   }
   // now un-register the policies 
-  apex_set_use_policy(false);
   if (on_startup != NULL) {
       printf("Deregistering %d...\n", on_startup->id);
       apex_deregister_policy(on_startup);
@@ -198,7 +206,6 @@ int main(int argc, char **argv)
       printf("Deregistering %d...\n", on_custom_event_2->id);
       apex_deregister_policy(on_custom_event_2);
   }
-  apex_set_use_policy(true);
 
   printf("Running without policies now...\n");
   for (i = 0 ; i < NUM_THREADS ; i++) {

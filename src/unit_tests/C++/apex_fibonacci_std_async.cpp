@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
     auto future = std::async(fib, i);
     int result = future.get();
     std::cout << "fib of " << i << " is " << result << " (valid value: " << fib_results[i] << ")" << std::endl;
-    //apex::finalize();
+    apex::finalize();
     return 0;
 }
 

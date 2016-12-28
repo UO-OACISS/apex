@@ -2,6 +2,7 @@
 # exit on error
 set -e
 
+sanitize=""
 clean=0
 spec="all"
 post=""
@@ -17,7 +18,7 @@ SCRIPTPATH=$(dirname "$SCRIPT")
 echo $SCRIPTPATH
 BASEDIR=$SCRIPTPATH/..
 
-args=$(getopt -l "searchpath:" -o "s:ch" -- "$@")
+args=$(getopt -l "searchpath:" -o "s:chm" -- "$@")
 
 eval set -- "${args}"
 
@@ -29,6 +30,9 @@ while [ $# -ge 1 ]; do
             ;;
         -s|--spec)
             spec="$2"
+            ;;
+        -m)
+            sanitize="-DAPEX_SANITIZE=TRUE"
             ;;
         -c)
             clean=1
@@ -78,7 +82,7 @@ dobuild()
     rm -rf build${post}-${buildtype} ${BASEDIR}/install${post}-${buildtype}
     mkdir build${post}-${buildtype}
     cd build${post}-${buildtype}
-    cmd="cmake -DCMAKE_BUILD_TYPE=${buildtype} -DBUILD_TESTS=TRUE \
+    cmd="cmake -DCMAKE_BUILD_TYPE=${buildtype} -DBUILD_TESTS=TRUE ${sanitize} \
     -DBUILD_EXAMPLES=TRUE ${malloc} ${bfd} ${ah} ${ompt} ${papi} ${mpi} ${otf} ${tau} ${extra} \
     -DCMAKE_INSTALL_PREFIX=${BASEDIR}/install${post}-${buildtype} ${BASEDIR}"
     echo ${cmd}

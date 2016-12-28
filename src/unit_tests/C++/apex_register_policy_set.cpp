@@ -10,17 +10,28 @@
 
 int foo (int i) {
   static __thread apex::profiler * my_profiler;
+  int result = 0;
+
   if (i % 2 == 0) {
+    // do start/yield/start/stop
     my_profiler = apex::start((apex_function_address)&foo);
-  } else {
-    my_profiler = apex::resume((apex_function_address)&foo);
-  }
-  int result = i*i;
-  if (i % 2 == 0) {
+    result = i*i; // work
     apex::yield(my_profiler);
+    result += i*i; // work
+    my_profiler = apex::start((apex_function_address)&foo);
+    result += i*i; // work
+    apex::stop(my_profiler);
   } else {
+    // do start/stop/resume/stop
+    my_profiler = apex::start((apex_function_address)&foo);
+    result = i*i; // work
+    apex::stop(my_profiler);
+    result += i*i; // work
+    my_profiler = apex::resume((apex_function_address)&foo);
+    result += i*i; // work
     apex::stop(my_profiler);
   }
+
   return result;
 }
 
@@ -45,7 +56,6 @@ int startup_policy(apex_context const context) {
 
 int main(int argc, char **argv)
 {
-  apex::apex_options::use_policy(false);
   std::set<apex_event_type> when = {APEX_STARTUP, APEX_SHUTDOWN, APEX_NEW_NODE, APEX_NEW_THREAD,
       APEX_START_EVENT, APEX_STOP_EVENT, APEX_SAMPLE_VALUE};
   std::set<apex_policy_handle*> handles = 
@@ -62,7 +72,6 @@ int main(int argc, char **argv)
     }
     return APEX_NOERROR;
   });
-  apex::apex_options::use_policy(true);
 
   apex::apex_options::use_screen_output(true);
 

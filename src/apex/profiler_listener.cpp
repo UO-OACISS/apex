@@ -798,10 +798,13 @@ node_color * get_node_color(double v,double vmin,double vmax)
       std::shared_ptr<profiler> p;
 #ifdef APEX_MULTIPLE_QUEUES
       std::unique_lock<std::mutex> queue_lock(queue_mtx);
+      /*
 	  std::vector<profiler_queue_t*>::const_iterator a_queue;
 	  for (a_queue = allqueues.begin() ; a_queue != allqueues.end() ; ++a_queue) {
 	    thequeue = *a_queue;
-      	while(thequeue->try_dequeue(p)) {
+        */
+	  for (profiler_queue_t* a_queue : allqueues) {
+      	while(a_queue->try_dequeue(p)) {
         	process_profile(p,0);
       	}
 	  }
@@ -845,14 +848,18 @@ node_color * get_node_color(double v,double vmin,double vmax)
     */
 #endif
 #ifdef APEX_MULTIPLE_QUEUES
-	  std::vector<profiler_queue_t*>::const_iterator a_queue;
       std::unique_lock<std::mutex> queue_lock(queue_mtx);
 #ifdef APEX_HAVE_HPX // don't hang out in this task too long.
 	  int i = 0;
 #endif
+	  for (profiler_queue_t* a_queue : allqueues) {
+      	while(a_queue->try_dequeue(p)) {
+            /*
+	  std::vector<profiler_queue_t*>::const_iterator a_queue;
 	  for (a_queue = allqueues.begin() ; a_queue != allqueues.end() ; ++a_queue) {
 	    thequeue = *a_queue;
         while(!_done && thequeue->try_dequeue(p)) {
+        */
           process_profile(p, 0);
 #ifdef APEX_HAVE_HPX // don't hang out in this task too long.
 		  if (++i > 1000) break;
@@ -1073,10 +1080,13 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         size_t ignored = 0;
         {
             std::unique_lock<std::mutex> queue_lock(queue_mtx);
+	        for (profiler_queue_t* a_queue : allqueues) {
+                /*
 	        std::vector<profiler_queue_t*>::const_iterator a_queue;
 	        for (a_queue = allqueues.begin() ; a_queue != allqueues.end() ; ++a_queue) {
 	            thequeue = *a_queue;
-                ignored += thequeue->size_approx();
+                */
+                ignored += a_queue->size_approx();
 		    }
         }
 #else
@@ -1086,6 +1096,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
           std::cerr << "Info: " << ignored << " items remaining on on the profiler_listener queue...";
         }
 #ifndef APEX_HAVE_HPX
+#if 0
         // We might be done, but check to make sure the queue is empty
         std::vector<std::future<bool>> pending_futures;
         for (unsigned int i=0; i<hardware_concurrency(); ++i) {
@@ -1101,6 +1112,12 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         for (auto iter = pending_futures.begin() ; iter < pending_futures.end() ; iter++ ) {
             iter->get();
         }
+#else // if 0
+        /* APEX can't handle spawning a bunch of new APEX threads at this time,
+         * so just process the queue. Anyway, it shouldn't get backed up that 
+         * much without suggesting there is a bigger problem. */
+        concurrent_cleanup();
+#endif // if 0
 #endif // APEX_HAVE_HPX
         if (ignored > 0) {
           std::cerr << "done." << std::endl;
@@ -1263,7 +1280,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 #ifndef APEX_HAVE_HPX
       // Why 10? To make sure we don't call the true posix "post" function
       // too frequently - it is rather costly.
-      if (thesize > 10) {
+      if (thesize > 10 || apex_options::use_otf2()) {
         queue_signal.post();
       }
 #endif

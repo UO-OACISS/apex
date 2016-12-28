@@ -13,17 +13,28 @@ apex_event_type custom_type_2;
 
 int foo (int i) {
   static __thread apex::profiler * my_profiler;
+  int result = 0;
+
   if (i % 2 == 0) {
+    // do start/yield/start/stop
     my_profiler = apex::start((apex_function_address)&foo);
-  } else {
-    my_profiler = apex::resume((apex_function_address)&foo);
-  }
-  int result = i*i;
-  if (i % 2 == 0) {
+    result = i*i; // work
     apex::yield(my_profiler);
+    result += i*i; // work
+    my_profiler = apex::start((apex_function_address)&foo);
+    result += i*i; // work
+    apex::stop(my_profiler);
   } else {
+    // do start/stop/resume/stop
+    my_profiler = apex::start((apex_function_address)&foo);
+    result = i*i; // work
+    apex::stop(my_profiler);
+    result += i*i; // work
+    my_profiler = apex::resume((apex_function_address)&foo);
+    result += i*i; // work
     apex::stop(my_profiler);
   }
+
   return result;
 }
 
@@ -59,9 +70,7 @@ int startup_policy(apex_context const context) {
 int main(int argc, char **argv)
 {
   apex::init("apex_register_periodic_policy unit test", 0, 1);
-  apex::apex_options::use_policy(false);
   apex_policy_handle * on_periodic = apex::register_periodic_policy(1000000, policy_periodic);
-  apex::apex_options::use_policy(true);
   apex::profiler* my_profiler = apex::start((apex_function_address)&main);
   pthread_t thread[NUM_THREADS];
   int i;
@@ -71,12 +80,10 @@ int main(int argc, char **argv)
   for (i = 0 ; i < NUM_THREADS ; i++) {
     pthread_join(thread[i], NULL);
   }
-  apex::apex_options::use_policy(false);
   if (on_periodic != nullptr) {
       printf("Deregistering %d...\n", on_periodic->id);
       apex::deregister_policy(on_periodic);
   }
-  apex::apex_options::use_policy(true);
 
   printf("Running without policies now...\n");
   for (i = 0 ; i < NUM_THREADS ; i++) {

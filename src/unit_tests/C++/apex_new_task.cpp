@@ -13,8 +13,13 @@ std::atomic<uint64_t> task_id(-1);
 class apex_proxy {
 private:
   apex::profiler * p;
+  bool do_exit;
 public:
-  apex_proxy(void * func) : p(nullptr) { 
+  apex_proxy(void * func) : p(nullptr), do_exit(true) { 
+    apex::register_thread("fib thread");
+    p = apex::start((apex_function_address)func);
+  }
+  apex_proxy(void * func, bool _do_exit) : p(nullptr), do_exit(_do_exit) { 
     apex::register_thread("fib thread");
     p = apex::start((apex_function_address)func);
   }
@@ -22,7 +27,7 @@ public:
     if (p != nullptr) { 
       apex::stop(p);
     }
-    apex::exit_thread();
+    if (do_exit) apex::exit_thread();
   }
 };
 
@@ -51,7 +56,7 @@ int fib (int in) {
 
 int main(int argc, char *argv[]) {
     apex::init("apex_new_task_cpp unit test", 0, 1);
-    apex_proxy * foo = new apex_proxy((void*)&main);
+    apex_proxy * foo = new apex_proxy((void*)&main, false);
 #if defined(APEX_HAVE_TAU) || (APEX_HAVE_OTF2)
     int i = 5;
 #else

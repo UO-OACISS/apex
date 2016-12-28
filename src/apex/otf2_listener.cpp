@@ -256,7 +256,7 @@ namespace apex {
     OTF2_EvtWriter* otf2_listener::getEvtWriter(void) {
       static __thread OTF2_EvtWriter* evt_writer(nullptr);
       if (evt_writer == nullptr) {
-        uint64_t my_node_id = apex::__instance()->get_node_id();
+        uint64_t my_node_id = my_saved_node_id;
         my_node_id = (my_node_id << 32) + thread_instance::get_id();
         evt_writer = OTF2_Archive_GetEvtWriter( archive, my_node_id );
         if (thread_instance::get_id() == 0) {

@@ -43,7 +43,9 @@ public:
 #endif
     }
     void dump_stats() { 
-        //std::cout << "Semaphore stats: " << posts << " posts, " << true_posts << " true posts, " << waits << " waits." << std::endl; fflush(stdout);
+#ifdef APEX_DEBUG
+        std::cout << "Semaphore stats: " << posts << " posts, " << true_posts << " true posts, " << waits << " waits." << std::endl; fflush(stdout);
+#endif
     }
     /*
      * This function is somewhat optimized. Because we were spending a lot of time
