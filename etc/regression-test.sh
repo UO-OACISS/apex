@@ -153,6 +153,10 @@ logfile=`pwd`/log.txt
 configfile=${SCRIPTPATH}/configuration-files/apex-defaults.conf
 conditional_build
 
+post=-base
+configfile=${SCRIPTPATH}/configuration-files/apex-base.conf
+conditional_build
+
 malloc=${platform_malloc}
 post=-malloc
 configfile=${SCRIPTPATH}/configuration-files/apex-base.conf

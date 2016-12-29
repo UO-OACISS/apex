@@ -103,7 +103,7 @@ namespace apex {
         // Sleep just a tiny bit - that allows other threads that might be
         // currently processing policies to clear out. This is actually 
         // more efficient than a lock transaction on every policy execution.
-        usleep(1000); // sleep 1ms
+        usleep(apex_options::policy_drain_timeout()); // sleep 1ms
 		int id = next_id++;
 		std::shared_ptr<policy_instance> instance(
 				std::make_shared<policy_instance>(id, f));
@@ -183,7 +183,7 @@ namespace apex {
         // Sleep just a tiny bit - that allows other threads that might be
         // currently processing policies to clear out. This is actually 
         // more efficient than a lock transaction on every policy execution.
-        usleep(1000); // sleep 1ms
+        usleep(apex_options::policy_drain_timeout()); // sleep 1ms
 		switch(handle->event_type) {
 			case APEX_STARTUP: {
 						   //write_lock_type l(startup_mutex);
