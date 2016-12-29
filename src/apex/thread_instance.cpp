@@ -75,6 +75,7 @@ thread_instance& thread_instance::instance(void) {
 void thread_instance::delete_instance(void) {
   if (_instance != nullptr) {
     delete(_instance);
+    _instance = nullptr;
   }
 }
 

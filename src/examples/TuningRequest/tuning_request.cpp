@@ -45,6 +45,7 @@ int main (int argc, char ** argv) {
     (void)session; // ignore unused warning
 
     for(int i = 0; i < 150; ++i) {
+        apex::profiler * p = apex::start("Iteration");
         std::string s = param_enum->get_value();
         double x = 0.0;
         long y = param_long->get_value();
@@ -63,6 +64,7 @@ int main (int argc, char ** argv) {
 
         value = x*(y+z);
         std::cerr << "long = " << y << ", double = " << z << ", enum = " << s << ". value = " << value << std::endl;
+        apex::stop(p);
         apex::custom_event(my_custom_event, NULL);
     }
 

@@ -717,7 +717,6 @@ node_color * get_node_color(double v,double vmin,double vmax)
     myfile << function_count << " templated_functions_MULTI_TIME" << endl;
     // # Name Calls Subrs Excl Incl ProfileCalls #
     myfile << "# Name Calls Subrs Excl Incl ProfileCalls #" << endl;
-    thread_instance ti = thread_instance::instance();
 
     // Iterate over the profiles which are associated to a function
     // by name. Only output the regular timers now. Counters are
@@ -778,10 +777,6 @@ node_color * get_node_color(double v,double vmin,double vmax)
       	  set_thread_affinity();
 	  }
       process_profiles_wrapper();
-      // make sure we have an instance...
-      thread_instance::instance();
-      // done with this thread, so do some cleanup.
-      thread_instance::delete_instance();
   }
 
   /*
@@ -946,7 +941,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         PAPI_library_init( PAPI_VER_CURRENT );
         //rc = PAPI_multiplex_init(); // use more counters than allowed
         //PAPI_ERROR_CHECK(PAPI_multiplex_init);
-        PAPI_thread_init( thread_instance::get_id );
+        PAPI_thread_init( &thread_instance::get_id );
         // default
         //rc = PAPI_set_domain(PAPI_DOM_ALL);
         //PAPI_ERROR_CHECK(PAPI_set_domain);

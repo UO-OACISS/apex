@@ -30,7 +30,7 @@
 #include <TAU.h>
 #endif
 #include "profiler_listener.hpp"
-#ifdef APEX_DEBUG
+#if defined(APEX_DEBUG) || defined(APEX_ERROR_HANDLING)
 #include "apex_error_handling.hpp"
 #endif
 #include "address_resolution.hpp"
@@ -123,7 +123,7 @@ static void init_hpx_runtime_ptr(void) {
  */
 void apex::_initialize()
 {
-#ifdef APEX_DEBUG
+#if defined(APEX_DEBUG) || defined(APEX_ERROR_HANDLING)
     apex_register_signal_handler();
     //apex_test_signal_handler();
 #endif
