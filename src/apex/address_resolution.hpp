@@ -47,6 +47,9 @@ namespace apex {
           }
           return _instance; 
       }
+      static void delete_instance() { 
+          delete(_instance); 
+      }
       ~address_resolution(void) {
         // call apex::finalize() just in case!
         finalize();

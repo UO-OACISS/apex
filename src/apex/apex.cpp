@@ -942,6 +942,7 @@ void finalize()
         }
     }
     thread_instance::delete_instance();
+    address_resolution::delete_instance();
 }
 
 void cleanup(void) {

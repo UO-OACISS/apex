@@ -1210,6 +1210,8 @@ inline int __shutdown_throttling(void)
             thread_cap_tuning_session->cap_data_open = false;
             thread_cap_tuning_session->cap_data.close();
         }
+        free(thread_cap_tuning_session->evaluations);
+        free(thread_cap_tuning_session->observations);
         delete thread_cap_tuning_session;
         thread_cap_tuning_session = nullptr;
         return APEX_NOERROR;

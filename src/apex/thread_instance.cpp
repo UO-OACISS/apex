@@ -210,8 +210,10 @@ string thread_instance::map_addr_to_name(apex_function_address function_address)
     {
         write_lock_type l(_function_map_mutex);
         _function_map[function_address] = *name;
+        delete(name);
     }
-    return *name;
+    read_lock_type l(_function_map_mutex);
+    return _function_map[function_address];
 #else
     stringstream ss;
     const char * progname = program_path();
