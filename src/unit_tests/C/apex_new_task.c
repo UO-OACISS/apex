@@ -27,11 +27,13 @@ void * fib (void * in) {
     if (scratch->x == 0) {
         scratch->f_x = 0;
         apex_stop(p);
+        apex_exit_thread();
         pthread_exit(NULL);
     }
     else if (scratch->x == 1) {
         scratch->f_x = 1;
         apex_stop(p);
+        apex_exit_thread();
         pthread_exit(NULL);
     }
     scratchpad_t a;

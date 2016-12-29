@@ -46,7 +46,7 @@ public:
   concurrency_handler (int option);
   concurrency_handler (unsigned int period);
   concurrency_handler (unsigned int period, int option);
-  ~concurrency_handler (void) { };
+  ~concurrency_handler (void);
   void on_startup(startup_event_data &data) { APEX_UNUSED(data); };
   void on_shutdown(shutdown_event_data &data);
   void on_new_node(node_event_data &data) { APEX_UNUSED(data); };

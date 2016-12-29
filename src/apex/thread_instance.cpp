@@ -61,18 +61,21 @@ std::unordered_set<std::string> thread_instance::open_profilers;
 #endif
 
 thread_instance& thread_instance::instance(void) {
-  thread_instance* me = _instance;
-  if( ! me ) {
+  if( _instance == nullptr ) {
     // first time called by this thread
     // construct test element to be used in all subsequent calls from this thread
     _instance = new thread_instance();
-    me = _instance;
-    //me->_id = TAU_PROFILE_GET_THREAD();
-    me->_id = _num_threads++;
-    me->_runtime_id = me->_id; // can be set later, if necessary
+    _instance->_id = _num_threads++;
+    _instance->_runtime_id = _instance->_id; // can be set later, if necessary
     _active_threads++;
   }
-  return *me;
+  return *_instance;
+}
+
+void thread_instance::delete_instance(void) {
+  if (_instance != nullptr) {
+    delete(_instance);
+  }
 }
 
 thread_instance::~thread_instance(void) {

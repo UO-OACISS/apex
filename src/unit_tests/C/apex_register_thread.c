@@ -39,6 +39,7 @@ int main(int argc, char **argv)
   }
   apex_stop(profiler);
   apex_finalize();
+  free(thread);
   return(0);
 }
 

@@ -81,6 +81,12 @@ namespace apex
         std::cerr << "Warning - couldn't set HARMONY_HOME" << std::endl;
     }
 #endif
+
+    // free the local varaibles
+#define apex_macro(name, member_variable, type, default_value) \
+    free (_##member_variable);
+    FOREACH_EXTERNAL_STRING_OPTION(apex_macro)
+#undef apex_macro
     };
 
     apex_options::~apex_options(void) {

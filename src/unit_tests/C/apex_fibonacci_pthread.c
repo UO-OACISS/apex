@@ -25,11 +25,13 @@ void * fib (void * in) {
     if (scratch->x == 0) {
         scratch->f_x = 0;
         apex_stop(p);
+        apex_exit_thread();
         pthread_exit(NULL);
     }
     else if (scratch->x == 1) {
         scratch->f_x = 1;
         apex_stop(p);
+        apex_exit_thread();
         pthread_exit(NULL);
     }
     scratchpad_t a;
@@ -134,6 +136,7 @@ int main(int argc, char *argv[]) {
     pthread_join(thread,NULL);
     printf("fib of %d is %d (valid value: %d)\n", i, scratch.f_x, fib_results[i]);
     apex_finalize();
+    apex_cleanup();
     return 0;
 }
 

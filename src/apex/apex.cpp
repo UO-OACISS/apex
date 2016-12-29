@@ -89,6 +89,11 @@ apex::~apex()
     }
 #endif
     m_pInstance = nullptr;
+    while (apex_policy_handles.size() > 0) {
+        auto tmp = apex_policy_handles.back();
+        apex_policy_handles.pop_back();
+        delete(tmp);
+    }
 }
 
 int apex::get_node_id()
@@ -352,7 +357,7 @@ uint64_t init(const char * thread_name, uint64_t comm_rank, uint64_t comm_size) 
         }
     }
     /* register the finalization function, for program exit */
-    std::atexit(finalize);
+    std::atexit(cleanup);
     return APEX_NOERROR;
 }
 
@@ -713,6 +718,7 @@ void new_task(apex_function_address function_address, uint64_t task_id) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_new_task(id, task_id);
         }
+        delete(id);
     }
 }
 
@@ -935,13 +941,14 @@ void finalize()
             }
         }
     }
+    thread_instance::delete_instance();
 }
 
 void cleanup(void) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
     apex* instance = apex::__instance(); // get the Apex static instance
-    if (!instance || _exited) return; // protect against multiple calls
+    if (!instance) return; // protect against multiple calls
     if (!_measurement_stopped) {
         finalize();
     }
@@ -1012,6 +1019,18 @@ void exit_thread(void)
             instance->listeners[i]->on_exit_thread(data);
         }
     }
+    // delete the thread local instance
+    if (thread_instance::get_id() != 0) {
+        thread_instance::delete_instance();
+    }
+}
+
+void apex::push_policy_handle(apex_policy_handle* handle) {
+    apex_policy_handles.push_back(handle);
+}
+
+void apex::pop_policy_handle(apex_policy_handle* handle) {
+    apex_policy_handles.remove(handle);
 }
 
 apex_policy_handle* register_policy(const apex_event_type when,
@@ -1029,6 +1048,7 @@ apex_policy_handle* register_policy(const apex_event_type when,
     handle->id = id;
     handle->event_type = when;
     handle->period = 0;
+    apex::instance()->push_policy_handle(handle);
     return handle;
 }
 
@@ -1069,6 +1089,7 @@ apex_policy_handle* register_periodic_policy(unsigned long period_microseconds,
     handle->id = id;
     handle->event_type = APEX_PERIODIC;
     handle->period = period_microseconds;
+    apex::instance()->push_policy_handle(handle);
     return handle;
 }
 
@@ -1082,6 +1103,7 @@ void deregister_policy(apex_policy_handle * handle) {
         handler->deregister_policy(handle);
     }
     //_notify_listeners = true;
+    apex::instance()->pop_policy_handle(handle);
     delete(handle);
 }
 

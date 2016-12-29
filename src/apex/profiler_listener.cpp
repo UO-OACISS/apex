@@ -618,9 +618,15 @@ node_color * get_node_color(double v,double vmin,double vmax)
             string child_name = child.get_name();
             myfile << "  \"" << parent_name << "\" -> \"" << child_name << "\"";
             myfile << " [ label=\"  count: " << count << "\" ]; " << std::endl;
-
         }
     }
+    // delete the dependency graph
+    for(auto dep = task_dependencies.begin(); dep != task_dependencies.end(); dep++) {
+        auto children = dep->second;
+        children->clear();
+        delete(children);
+    }
+    task_dependencies.clear();
 
     // our TOTAL available time is the elapsed * the number of threads, or cores
 	int num_worker_threads = thread_instance::get_num_threads();
@@ -643,6 +649,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
             setfill('0') << setw(2) << hex << c->convert(c->green) <<
             setfill('0') << setw(2) << hex << c->convert(c->blue) << "\"" <<
             "; label=\"" << task_id.get_name() << ":\\n" << (p->get_accumulated()*profiler::get_cpu_mhz()) << "s\" ];" << std::endl;
+        delete(c);
       }
     }
     myfile << "}\n";
@@ -771,6 +778,10 @@ node_color * get_node_color(double v,double vmin,double vmax)
       	  set_thread_affinity();
 	  }
       process_profiles_wrapper();
+      // make sure we have an instance...
+      thread_instance::instance();
+      // done with this thread, so do some cleanup.
+      thread_instance::delete_instance();
   }
 
   /*
@@ -1428,6 +1439,12 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 #ifndef APEX_HAVE_HPX
       delete consumer_thread;
 #endif
+    while (allqueues.size() > 0) {
+        auto tmp = allqueues.back();
+        allqueues.pop_back();
+        delete(tmp);
+    }
+
   };
 
 }

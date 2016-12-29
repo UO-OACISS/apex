@@ -117,6 +117,7 @@ int main(int argc, char **argv)
   proxy.stop();
   apex::finalize();
   apex::cleanup();
+  free(thread);
   return(0);
 }
 

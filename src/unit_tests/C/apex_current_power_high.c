@@ -43,6 +43,7 @@ int main(int argc, char **argv)
   currentpower = apex_current_power_high();
   printf("Power at start: %f Watts\n", currentpower);
   apex_finalize();
+  free(thread);
   return(0);
 }
 

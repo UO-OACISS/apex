@@ -47,6 +47,18 @@ concurrency_handler::concurrency_handler (unsigned int period, int option) : han
   _init();
 }
 
+concurrency_handler::~concurrency_handler () {
+    for (auto tmp : _event_stack) {
+        delete(tmp);
+    }
+    for (auto tmp : _per_thread_mutex) {
+        delete(tmp);
+    }
+    for (auto tmp : _states) {
+        delete(tmp);
+    }
+}
+
 bool concurrency_handler::_handler(void) {
   if (!_handler_initialized) {
       initialize_worker_thread_for_TAU();
