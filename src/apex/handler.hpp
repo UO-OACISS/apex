@@ -21,6 +21,7 @@ private:
     static const unsigned int default_period = 100000;
     static void* _threadfunc(void * _ptw) {
         pthread_wrapper* ptw = (pthread_wrapper*)_ptw;
+        ptw->_running = true;
         if (apex_options::pin_apex_threads()) {
              set_thread_affinity();
         }
@@ -28,6 +29,7 @@ private:
             handler* context = (handler*)(ptw->get_context());
             context->_handler();
         }
+        ptw->_running = false;
         return nullptr;
     };
 protected:

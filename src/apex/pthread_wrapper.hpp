@@ -29,11 +29,13 @@ class pthread_wrapper {
         void* _context_object;
         unsigned int _timeout_microseconds;
     public:
+        std::atomic<bool> _running;
         pthread_wrapper(void*(*func)(void*), void* context, unsigned int timeout_microseconds) :
                 done(false),
                 _func(func),
                 _context_object(context),
-                _timeout_microseconds(timeout_microseconds) {
+                _timeout_microseconds(timeout_microseconds),
+                _running(false) {
             pthread_mutexattr_t Attr;
             pthread_mutexattr_init(&Attr);
             pthread_mutexattr_settype(&Attr, PTHREAD_MUTEX_ERRORCHECK);
@@ -63,22 +65,28 @@ class pthread_wrapper {
             done = true;
             //pthread_mutex_unlock(&_my_mutex);
             pthread_cond_signal(&_my_cond);
-            int ret = pthread_join(worker_thread, NULL);
-            if (ret != 0) {
-                switch (ret) {
-                    case ESRCH:
-                        // already exited.
-                        return;
-                    case EINVAL:
-                        // Didn't exist?
-                        return;
-                    case EDEADLK:
-                        // trying to join with itself?
-                        return;
-                    default:
-                        errno = ret;
-                        perror("Warning: pthread_join failed\n");
-                        return;
+            void * retval;
+            // In some cases, the proc_read thread is already done
+            // and if we try to join it, we get a segv. So, check to
+            // see if it is still running before joining.
+            if (_running) {
+                int ret = pthread_join(worker_thread, &retval);
+                if (ret != 0) {
+                    switch (ret) {
+                        case ESRCH:
+                            // already exited.
+                            return;
+                        case EINVAL:
+                            // Didn't exist?
+                            return;
+                        case EDEADLK:
+                            // trying to join with itself?
+                            return;
+                        default:
+                            errno = ret;
+                            perror("Warning: pthread_join failed\n");
+                            return;
+                    }
                 }
             }
         }

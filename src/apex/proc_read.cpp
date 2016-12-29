@@ -548,6 +548,7 @@ bool parse_sensor_data() {
 /* This is the main function for the reader thread. */
 void* proc_data_reader::read_proc(void * _ptw) {
   pthread_wrapper* ptw = (pthread_wrapper*)_ptw;
+  ptw->_running = true;
   if (apex_options::pin_apex_threads()) {
     set_thread_affinity();
   }
@@ -622,6 +623,7 @@ void* proc_data_reader::read_proc(void * _ptw) {
   }
 #endif
   delete(oldData);
+  ptw->_running = false;
   return nullptr;
 }
 
