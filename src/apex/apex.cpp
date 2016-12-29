@@ -942,7 +942,9 @@ void finalize()
         }
     }
     thread_instance::delete_instance();
+#if APEX_HAVE_BFD
     address_resolution::delete_instance();
+#endif
 }
 
 void cleanup(void) {
