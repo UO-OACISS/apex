@@ -824,6 +824,7 @@ namespace apex {
             _terminate = true;
             /* sleep a tiny bit, to make sure all other threads get the word
              * that we are done. */
+			std::cout << "Waiting for all support threads to exit..." << std::endl;
             usleep(apex_options::policy_drain_timeout()); // sleep 1ms (default)
             /* close event files */
 			std::cout << "Closing OTF2 event files..." << std::endl;
