@@ -955,6 +955,9 @@ void cleanup(void) {
     if (!_measurement_stopped) {
         finalize();
     }
+    /* this is one of the last things we should do - because the apex_options
+     * sometimes control behavior at shutdown. */
+    apex_options::delete_instance();
     delete(instance);
 }
 

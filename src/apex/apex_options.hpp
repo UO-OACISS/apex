@@ -20,6 +20,8 @@ namespace apex {
 
 class apex_options {
 private:
+    // singleton instance. 
+    static apex_options * _instance; 
     /* Declare the private member variables */
 #define apex_macro(name, member_variable, type, default_value) std::atomic<type> _##member_variable;
     FOREACH_APEX_OPTION(apex_macro)
@@ -35,6 +37,8 @@ private:
 public:
     /* The "instance" method. */
     static apex_options& instance(void);
+    /* and a cleanup method */
+    static void delete_instance(void);
     /* The getter and setter methods */
 #define apex_macro(name, member_variable, type, default_value) \
     APEX_EXPORT static void member_variable (type inval); \

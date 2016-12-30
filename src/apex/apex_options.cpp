@@ -12,6 +12,7 @@
 namespace apex
 {
     static const std::string config_file_name = "apex.conf";
+    apex_options * apex_options::_instance(nullptr);
 
     apex_options::apex_options(void) {
 
@@ -97,8 +98,17 @@ namespace apex
     }
 
     apex_options& apex_options::instance(void) {
-        static apex_options _instance;
-        return _instance;
+        if (_instance == nullptr) {
+            _instance = new apex_options();
+        }
+        return *_instance;
+    }
+
+    void apex_options::delete_instance(void) {
+        if (_instance != nullptr) {
+            delete(_instance);
+            _instance = nullptr;
+        }
     }
 
 #define apex_macro(name, member_variable, type, default_value) \
