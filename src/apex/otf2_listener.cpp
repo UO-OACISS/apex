@@ -256,6 +256,7 @@ namespace apex {
     OTF2_EvtWriter* otf2_listener::getEvtWriter(void) {
       static __thread OTF2_EvtWriter* evt_writer(nullptr);
       if (evt_writer == nullptr) {
+        printf("creating event writer for thread %lu\n", thread_instance::get_id()); fflush(stdout);
         uint64_t my_node_id = my_saved_node_id;
         my_node_id = (my_node_id << 32) + thread_instance::get_id();
         evt_writer = OTF2_Archive_GetEvtWriter( archive, my_node_id );
@@ -821,6 +822,9 @@ namespace apex {
         APEX_UNUSED(data);
         if (!_terminate) {
             _terminate = true;
+            /* sleep a tiny bit, to make sure all other threads get the word
+             * that we are done. */
+            usleep(apex_options::policy_drain_timeout()); // sleep 1ms (default)
             /* close event files */
 			std::cout << "Closing OTF2 event files..." << std::endl;
             OTF2_EC(OTF2_Archive_CloseEvtFiles( archive ));
@@ -1022,6 +1026,7 @@ namespace apex {
             uint64_t stamp = get_time();
             OTF2_EvtWriter_ThreadEnd( getEvtWriter(), NULL, stamp, 0, 0);
         //} 
+        printf("closing event writer for thread %lu\n", thread_instance::get_id()); fflush(stdout);
         OTF2_Archive_CloseEvtWriter( archive, getEvtWriter() );
         if (thread_instance::get_id() == 0) {
             comm_evt_writer = nullptr;
