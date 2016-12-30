@@ -10,11 +10,11 @@
 #define MAX(a,b) ((a) > (b) ? a : b)
 #define MIN(a,b) ((a) < (b) ? a : b)
 
-#define NUM_THREADS 48
-#define ITERATIONS 250
+#define ITERATIONS 10000
 #define SLEEPY_TIME 10000 // 10,000
 
-int total_iterations = NUM_THREADS * ITERATIONS;
+int num_threads = 1;
+int total_iterations = 1;
 
 int foo (int i) {
   apex_profiler_handle p = apex_start(APEX_FUNCTION_ADDRESS, &foo);
@@ -23,7 +23,7 @@ int foo (int i) {
   struct timespec tim, tim2;
   tim.tv_sec = 0;
   // sleep just a bit longer, based on number of active threads.
-  int cap = MIN(NUM_THREADS,apex_get_thread_cap());
+  int cap = MIN(num_threads,apex_get_thread_cap());
   tim.tv_nsec = (unsigned long)(SLEEPY_TIME * randval * (cap * cap));
   nanosleep(&tim , &tim2);
   apex_stop(p);
@@ -73,6 +73,8 @@ void* someThread(void* tmp)
 int main(int argc, char **argv)
 {
   apex_init(argv[0], 0, 1);
+  num_threads = apex_hardware_concurrency();
+  total_iterations = num_threads * ITERATIONS;
 
   apex_setup_timer_throttling(APEX_FUNCTION_ADDRESS, &foo, APEX_MINIMIZE_ACCUMULATED,
           APEX_ACTIVE_HARMONY, 500000);
@@ -81,14 +83,14 @@ int main(int argc, char **argv)
 
   apex_profiler_handle p = apex_start(APEX_FUNCTION_ADDRESS, &main);
   printf("PID of this process: %d\n", getpid());
-  pthread_t thread[NUM_THREADS];
   int i;
-  int ids[NUM_THREADS];
-  for (i = 0 ; i < NUM_THREADS ; i++) {
+  pthread_t * thread = (pthread_t*)calloc(num_threads, sizeof(pthread_t));
+  int * ids = (int*)calloc(num_threads, sizeof(int));
+  for (i = 0 ; i < num_threads ; i++) {
     ids[i] = i;
     pthread_create(&(thread[i]), NULL, someThread, &(ids[i]));
   }
-  for (i = 0 ; i < NUM_THREADS ; i++) {
+  for (i = 0 ; i < num_threads ; i++) {
     pthread_join(thread[i], NULL);
   }
   apex_stop(p);
@@ -97,6 +99,7 @@ int main(int argc, char **argv)
       printf ("Test passed.\n");
   }
   apex_finalize();
+  free(thread);
   return(0);
 }
 

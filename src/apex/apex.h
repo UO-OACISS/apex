@@ -514,6 +514,16 @@ APEX_EXPORT void apex_send (uint64_t tag, uint64_t size, uint64_t target);
  */
 APEX_EXPORT void apex_recv (uint64_t tag, uint64_t size, uint64_t source_rank, uint64_t source_thread);
 
+/**
+ \brief Get the number of possible threads supported on this system
+
+ This method queries the system to determine how many threads can be
+ executed concurrently without oversubscription.
+
+ \return number of hardware threads available
+ */
+APEX_EXPORT uint64_t apex_hardware_concurrency (void);
+
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 #define apex_macro(name, member_variable, type, default_value) \

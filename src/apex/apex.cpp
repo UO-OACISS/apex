@@ -1413,6 +1413,11 @@ extern "C" {
         return recv(tag, size, source_rank, source_thread);
     }
 
+    uint64_t apex_hardware_concurrency(void) {
+        return hardware_concurrency();
+    }
+    
+
 } // extern "C"
 
 
