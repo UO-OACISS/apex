@@ -26,6 +26,8 @@ buildtype="Release"
 step="config"
 dirname="default"
 options=""
+static=""
+sanitize=""
 
 # remember where we are
 STARTDIR=`pwd`
@@ -36,7 +38,7 @@ SCRIPTPATH=$(dirname "$SCRIPT")
 echo $SCRIPTPATH
 BASEDIR=$SCRIPTPATH/..
 
-args=$(getopt -l "searchpath:" -o "b:t:s:d:h" -- "$@")
+args=$(getopt -l "searchpath:" -o "b:t:s:d:hmn" -- "$@")
 
 eval set -- "${args}"
 
@@ -58,8 +60,14 @@ while [ $# -ge 1 ]; do
         -d|--dirname)
             dirname="$2"
             ;;
+        -m|--sanitize)
+            sanitize="-DAPEX_SANITIZE=TRUE"
+            ;;
+        -n|--static)
+            static="-DBUILD_STATIC_EXECUTABLES=TRUE"
+            ;;
         -h)
-            echo "$0 -b,--build [default|base|malloc|bfd|ah|ompt|papi|mpi|otf|tau] -t,--type [Release|Debug] -s,--step [config|compile|test|install] -d,--dirname <dirname>"
+            echo "$0 -b,--build [default|base|malloc|bfd|ah|ompt|papi|mpi|otf|tau] -t,--type [Release|Debug] -s,--step [config|compile|test|install] -d,--dirname <dirname> -m,--sanitize -n,--static"
             exit 0
             ;;
     esac
@@ -78,7 +86,7 @@ config_step()
     rm -rf ${dirname}
     mkdir -p ${dirname}
     cd ${dirname}
-    cmake_cmd="${cmake_prefix}${buildtype} ${options}"
+    cmake_cmd="${cmake_prefix}${buildtype} ${options} ${static} ${sanitize}"
     echo ${cmake_cmd}
     ${cmake_cmd}
 }
@@ -146,12 +154,12 @@ if [ ${build} == "mpi" ] ; then
 fi
 
 if [ ${build} == "otf" ] ; then
-    options="${yes_malloc} ${yes_bfd} ${yes_ah} ${yes_ompt} ${yes_papi} ${yes_mpi} ${yes_otf} ${no_tau}"
+    options="${yes_malloc} ${yes_bfd} ${yes_ah} ${yes_ompt} ${yes_papi} ${no_mpi} ${yes_otf} ${no_tau}"
     envfile="apex-ah-ompt-papi-mpi-otf.conf"
 fi
 
 if [ ${build} == "tau" ] ; then
-    options="${yes_malloc} ${yes_bfd} ${yes_ah} ${yes_ompt} ${yes_papi} ${yes_mpi} ${yes_otf} ${yes_tau}"
+    options="${yes_malloc} ${yes_bfd} ${yes_ah} ${yes_ompt} ${yes_papi} ${no_mpi} ${yes_otf} ${yes_tau}"
     envfile="apex-ah-ompt-papi-mpi-tau.conf"
 fi
 

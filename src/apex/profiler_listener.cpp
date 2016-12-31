@@ -777,6 +777,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
       	  set_thread_affinity();
 	  }
       process_profiles_wrapper();
+      thread_instance::delete_instance();
   }
 
   /*
@@ -1432,7 +1433,9 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
       finalize();
       delete_profiles();
 #ifndef APEX_HAVE_HPX
+#ifndef APEX_STATIC // unbelievable.  Deleting this object can crash in a static link.
       delete consumer_thread;
+#endif
 #endif
     while (allqueues.size() > 0) {
         auto tmp = allqueues.back();

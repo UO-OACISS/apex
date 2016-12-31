@@ -173,7 +173,7 @@ extern "C" void my_thread_end(my_ompt_thread_type_t thread_type, ompt_thread_id_
   APEX_UNUSED(thread_id);
   apex::exit_thread();
   delete(status);
-  // delete(timer_stack);  // this is a leak, but it's a small one. Sometimes this crashes?
+  delete(timer_stack);  // this is a leak, but it's a small one. Sometimes this crashes?
 }
 
 extern "C" void my_control(uint64_t command, uint64_t modifier) {
@@ -346,6 +346,12 @@ extern "C" void my_idle_begin(ompt_thread_id_t thread_id) {
     /*fprintf(stderr,"success.\n"); */ \
   } \
 
+void cleanup(void) {
+    if (timer_stack != nullptr) { 
+        delete(timer_stack); 
+    }
+}
+
 inline int __ompt_initialize() {
   apex::init("OPENMP_PROGRAM",0,1);
   timer_stack = new std::stack<apex::profiler*>();
@@ -403,6 +409,7 @@ inline int __ompt_initialize() {
 	}
   }
   fprintf(stderr,"done.\n"); fflush(stderr);
+  atexit(cleanup);
   return 1;
 }
 
