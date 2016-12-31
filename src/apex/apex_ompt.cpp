@@ -173,7 +173,10 @@ extern "C" void my_thread_end(my_ompt_thread_type_t thread_type, ompt_thread_id_
   APEX_UNUSED(thread_id);
   apex::exit_thread();
   delete(status);
-  delete(timer_stack);  // this is a leak, but it's a small one. Sometimes this crashes?
+  if (timer_stack != nullptr) { 
+      delete(timer_stack);  // this is a leak, but it's a small one. Sometimes this crashes?
+      timer_stack = nullptr;
+  }
 }
 
 extern "C" void my_control(uint64_t command, uint64_t modifier) {
@@ -183,7 +186,10 @@ extern "C" void my_control(uint64_t command, uint64_t modifier) {
 
 extern "C" void my_shutdown() {
   //fprintf(stderr,"shutdown. \n"); fflush(stderr);
-  delete(timer_stack);
+  if (timer_stack != nullptr) { 
+      delete(timer_stack); 
+      timer_stack = nullptr;
+  }
   apex::finalize();
 }
 
@@ -349,6 +355,7 @@ extern "C" void my_idle_begin(ompt_thread_id_t thread_id) {
 void cleanup(void) {
     if (timer_stack != nullptr) { 
         delete(timer_stack); 
+        timer_stack = nullptr;
     }
 }
 
