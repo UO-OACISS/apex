@@ -65,6 +65,7 @@ while [ $# -ge 1 ]; do
             ;;
         -n|--static)
             static="-DBUILD_STATIC_EXECUTABLES=TRUE"
+            yes_mpi="" # no static MPI installation. :(
             ;;
         -h)
             echo "$0 -b,--build [default|base|malloc|bfd|ah|ompt|papi|mpi|otf|tau] -t,--type [Release|Debug] -s,--step [config|compile|test|install] -d,--dirname <dirname> -m,--sanitize -n,--static"
@@ -154,12 +155,12 @@ if [ ${build} == "mpi" ] ; then
 fi
 
 if [ ${build} == "otf" ] ; then
-    options="${yes_malloc} ${yes_bfd} ${yes_ah} ${yes_ompt} ${yes_papi} ${no_mpi} ${yes_otf} ${no_tau}"
+    options="${yes_malloc} ${yes_bfd} ${yes_ah} ${yes_ompt} ${yes_papi} ${yes_mpi} ${yes_otf} ${no_tau}"
     envfile="apex-ah-ompt-papi-mpi-otf.conf"
 fi
 
 if [ ${build} == "tau" ] ; then
-    options="${yes_malloc} ${yes_bfd} ${yes_ah} ${yes_ompt} ${yes_papi} ${no_mpi} ${yes_otf} ${yes_tau}"
+    options="${yes_malloc} ${yes_bfd} ${yes_ah} ${yes_ompt} ${yes_papi} ${yes_mpi} ${yes_otf} ${yes_tau}"
     envfile="apex-ah-ompt-papi-mpi-tau.conf"
 fi
 
