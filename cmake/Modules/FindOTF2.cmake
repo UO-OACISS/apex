@@ -47,6 +47,9 @@ if(BUILD_OTF2 OR (NOT OTF2_FOUND))
     INSTALL_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/otf2-2.0/src/project_otf2 && make install
     INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
     LOG_DOWNLOAD 1
+    LOG_CONFIGURE 1
+    LOG_BUILD 1
+    LOG_INSTALL 1
   )
   set(OTF2_ROOT ${CMAKE_INSTALL_PREFIX})
   #ExternalProject_Get_Property(project_otf2 install_dir)

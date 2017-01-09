@@ -428,6 +428,11 @@ else()
     add_custom_target(project_ompt)
 endif ((NOT DEFINED USE_OMPT) OR (USE_OMPT) OR (BUILD_OMPT))
 
+# Just in case, to prevent concurrent builds
+if(APEX_INTEL_MIC)
+	add_dependencies (project_ompt project_boost)
+endif()
+
 ################################################################################
 # PROC configuration
 ################################################################################
@@ -507,6 +512,8 @@ if(((DEFINED ACTIVEHARMONY_ROOT) OR (BUILD_ACTIVEHARMONY)) OR (USE_ACTIVEHARMONY
 else()
     add_custom_target(project_activeharmony)
 endif()
+# Just in case, to prevent concurrent builds
+add_dependencies (project_activeharmony project_ompt)
 
 ################################################################################
 # PAPI configuration
@@ -551,6 +558,8 @@ if((DEFINED OTF2_ROOT) OR (USE_OTF2) OR (BUILD_OTF2))
 else()
     add_custom_target(project_otf2)
 endif()
+# Just in case, to prevent concurrent builds
+add_dependencies (project_otf2 project_activeharmony)
 
 ################################################################################
 # MSR configuration
@@ -600,6 +609,8 @@ if((DEFINED BFD_ROOT) OR (USE_BFD) OR (BUILD_BFD))
 else()
     add_custom_target(project_binutils)
 endif()
+# Just in case, to prevent concurrent builds
+add_dependencies (project_binutils project_otf2)
 
 if(BFD_FOUND OR OTF2_FOUND)
     if(NOT APEX_INTEL_MIC)
