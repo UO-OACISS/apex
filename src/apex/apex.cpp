@@ -948,6 +948,10 @@ void finalize()
 }
 
 void cleanup(void) {
+#ifdef APEX_HAVE_HPX
+    // prevent crash at shutdown.
+    return;
+#endif
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
     apex* instance = apex::__instance(); // get the Apex static instance
