@@ -932,7 +932,13 @@ void finalize()
             }
         }
 #endif
+#ifdef APEX_HAVE_HPX
+        /* HPX shutdown happens on a new thread. We don't want 
+         * to register a new thread. */
+        shutdown_event_data data(instance->get_node_id(), 0);
+#else
         shutdown_event_data data(instance->get_node_id(), thread_instance::get_id());
+#endif
         _notify_listeners = false;
         {
             //read_lock_type l(instance->listener_mutex);
