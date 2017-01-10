@@ -22,7 +22,9 @@
 #endif
 #include <dlfcn.h>
 
+#ifdef APEX_HAVE_MPI
 #include <mpi.h>
+#endif
 
 #define OCR_TYPE_H x86.h
 #include "ocr.h"
@@ -65,7 +67,9 @@ static std::atomic<uint64_t> thread_id{0};
 
 static bool done = true;
 static uint64_t ** loads = nullptr;
+#ifdef APEX_HAVE_MPI
 static MPI_Win * wins = nullptr;
+#endif
 static int my_rank = -1;
 static int num_ranks = -1;
 static uint32_t num_messages = MESSAGES_BETWEEN_LOAD_SENDS - 1;
@@ -106,6 +110,7 @@ static inline void apex_ocr_init() {
     DEBUG_MSG("APEX OCR init");
     apex::init("main");
     apex::apex::instance()->set_runtime(APEX_RUNTIME_OCR);
+#ifdef APEX_OCR_LOAD_BALANCE
     apex::register_periodic_policy(100000, [](apex_context const & context) {
         if(done || my_rank < 0 || num_ranks < 0) {
             return APEX_NOERROR;
@@ -143,8 +148,10 @@ static inline void apex_ocr_init() {
         
         return APEX_NOERROR;
     });
+#endif
 }
 
+#ifdef APEX_OCR_LOAD_BALANCE
 static inline int apex_ocr_get_task_placement() {
     static const apex_load_balance_policy_t policy = apex::get_load_balance_policy();
     static int next_rank = 0;
@@ -199,6 +206,7 @@ static inline int apex_ocr_get_task_placement() {
     }
     return -1;
 }
+#endif
 
 static inline void apex_ocr_exit_thread() {
     DEBUG_MSG("APEX OCR exit thread");
@@ -370,6 +378,7 @@ static inline void apex_ocr_data_destroy(const ocrGuid_t dbGuid, const int node)
     apex::destroy_data(data_id);
 }
 
+#ifdef APEX_HAVE_MPI
 static inline void apex_ocr_init_mpi() {
     const apex_load_balance_policy_t policy = apex::get_load_balance_policy();
     switch(policy) {
@@ -453,6 +462,7 @@ static inline void apex_ocr_send_load(int dest) {
         MPI_Win_unlock(other_rank, wins[my_rank]);
     }
 }
+#endif
 
 
 extern "C" {
@@ -678,6 +688,7 @@ u8 getTaskPlacement(ocrGuid_t edtGuid, u32 * location) {
     return 0; 
 }
 
+#ifdef APEX_HAVE_MPI
 void platformInitMPIComm(int * argc, char *** argv) {
     void(*original_platformInitMPIComm)(int *, char ***);
     original_platformInitMPIComm = (void (*)(int *, char ***))dlsym(RTLD_NEXT, "platformInitMPIComm");
@@ -699,6 +710,7 @@ void platformFinalizeMPIComm() {
     }
     (*original_platformFinalizeMPIComm)();
 }
+#endif
 
 static u8 (*original_sendMessage)(struct _ocrCommPlatform_t* self, ocrLocation_t target, struct _ocrPolicyMsg_t *message, u64 *id, u32 properties, u32 mask) = nullptr;
 

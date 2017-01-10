@@ -25,12 +25,38 @@ find_path(OCR_INTERNAL_INCLUDE_DIR ocr-runtime-types.h
 find_path(OCR_SRC_DIR README
           HINTS ${PC_OCR_INCLUDEDIR}/../../src ${PC_OCR_INCLUDE_DIRS}/../../src ${OCR_ROOT}/../src)
 
-find_path(OCR_BUILD_DIR ocr-config.h
+find_path(OCR_X86_BUILD_DIR ocr-config.h
+          HINTS ${PC_OCR_INCLUDEDIR}/../../build/x86 ${PC_OCR_INCLUDE_DIRS}/../../build/x86 ${OCR_ROOT}/../build/x86)
+
+find_path(OCR_X86_MPI_BUILD_DIR ocr-config.h
           HINTS ${PC_OCR_INCLUDEDIR}/../../build/x86-mpi ${PC_OCR_INCLUDE_DIRS}/../../build/x86-mpi ${OCR_ROOT}/../build/x86-mpi)
 
-find_library(OCR_LIBRARY NAMES ocr_x86
+find_library(OCR_X86_LIBRARY NAMES ocr_x86
              HINTS ${PC_OCR_LIBDIR} ${PC_OCR_LIBRARY_DIRS} ${OCR_ROOT}/lib 
 			 ${OCR_ROOT}/lib/* NO_DEFAULT_PATH)
+
+find_library(OCR_X86_MPI_LIBRARY NAMES ocr_x86-mpi
+             HINTS ${PC_OCR_LIBDIR} ${PC_OCR_LIBRARY_DIRS} ${OCR_ROOT}/lib 
+			 ${OCR_ROOT}/lib/* NO_DEFAULT_PATH)
+
+
+if(USE_MPI OR APEX_OCR_MPI OR NOT OCR_X86_LIBRARY OR NOT OCR_X86_BUILD_DIR)
+    set(OCR_LIBRARY ${OCR_X86_MPI_LIBRARY})
+    set(OCR_BUILD_DIR ${OCR_X86_MPI_BUILD_DIR})
+    set(OCR_MPI TRUE)
+    message(INFO " Trying to use libocr_x86-mpi ${OCR_LIBRARY} ${OCR_BUILD_DIR}")
+endif()
+
+if(NOT OCR_LIBRARY OR NOT OCR_BUILD_DIR) 
+    set(OCR_LIBRARY ${OCR_X86_LIBRARY})
+    set(OCR_BUILD_DIR ${OCR_X86_BUILD_DIR})
+    set(OCR_MPI FALSE)
+    message(INFO " Trying to use libocr_x86 ${OCR_LIBRARY} ${OCR_BUILD_DIR}")
+endif()
+
+#if(OCR_MPI)
+#    set(USE_MPI TRUE)
+#endif()
 
 include(FindPackageHandleStandardArgs)
 # handle the QUIETLY and REQUIRED arguments and set OCR_FOUND to TRUE
@@ -42,7 +68,7 @@ mark_as_advanced(OCR_INCLUDE_DIR OCR_LIBRARY)
 
 if(OCR_FOUND)
   set(OCR_LIBRARIES ${OCR_LIBRARY} )
-  set(OCR_INCLUDE_DIRS ${OCR_INCLUDE_DIR} ${OCR_INTERNAL_INCLUDE_DIR} ${OCR_SRC_DIR} ${OCR_BUILD_DIR})
+  set(OCR_INCLUDE_DIRS ${OCR_INCLUDE_DIR} ${OCR_INTERNAL_INCLUDE_DIR} ${OCR_SRC_DIR} ${OCR_X86_MPI_BUILD_DIR} ${OCR_X86_BUILD_DIR})
   set(OCR_DIR ${OCR_ROOT})
   set(APEX_HAVE_OCR TRUE)
   add_definitions(-DAPEX_HAVE_OCR)
