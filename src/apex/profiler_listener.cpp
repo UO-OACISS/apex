@@ -943,32 +943,32 @@ APEX_NATIVE_TLS int EventSet = PAPI_NULL;
 enum papi_state { papi_running, papi_suspended };
 APEX_NATIVE_TLS papi_state thread_papi_state = papi_suspended;
 #define PAPI_ERROR_CHECK(name) \
-if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
+if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl;
 
   void profiler_listener::initialize_PAPI(bool first_time) {
       int rc = 0;
       if (first_time) {
         PAPI_library_init( PAPI_VER_CURRENT );
         //rc = PAPI_multiplex_init(); // use more counters than allowed
-        //PAPI_ERROR_CHECK(PAPI_multiplex_init);
+        //PAPI_ERROR_CHECK("PAPI_multiplex_init");
         PAPI_thread_init( &thread_instance::get_id );
         // default
         //rc = PAPI_set_domain(PAPI_DOM_ALL);
-        //PAPI_ERROR_CHECK(PAPI_set_domain);
+        //PAPI_ERROR_CHECK("PAPI_set_domain");
       } else {
         PAPI_register_thread();
       }
       rc = PAPI_create_eventset(&EventSet);
-      PAPI_ERROR_CHECK(PAPI_create_eventset);
+      PAPI_ERROR_CHECK("PAPI_create_eventset");
       // default
       //rc = PAPI_assign_eventset_component (EventSet, 0);
-      //PAPI_ERROR_CHECK(PAPI_assign_eventset_component);
+      //PAPI_ERROR_CHECK("PAPI_assign_eventset_component");
       // default
       //rc = PAPI_set_granularity(PAPI_GRN_THR);
-      //PAPI_ERROR_CHECK(PAPI_set_granularity);
+      //PAPI_ERROR_CHECK("PAPI_set_granularity");
       // unnecessary complexity
       //rc = PAPI_set_multiplex(EventSet);
-      //PAPI_ERROR_CHECK(PAPI_set_multiplex);
+      //PAPI_ERROR_CHECK("PAPI_set_multiplex");
       // parse the requested set of papi counters
       // The string is modified by strtok, so copy it.
       if (strlen(apex_options::papi_metrics()) > 0) {
@@ -983,7 +983,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
           int rc = PAPI_event_name_to_code(const_cast<char*>(p.c_str()), &code);
           if (PAPI_query_event (code) == PAPI_OK) {
             rc = PAPI_add_event(EventSet, code);
-            PAPI_ERROR_CHECK(PAPI_add_event);
+            PAPI_ERROR_CHECK("PAPI_add_event");
             if (rc != 0) { printf ("Event that failed: %s\n", p.c_str()); }
             if (first_time) {
               metric_names.push_back(string(p.c_str()));
@@ -993,7 +993,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
         }
         if (!apex_options::papi_suspend()) {
             rc = PAPI_start( EventSet );
-            PAPI_ERROR_CHECK(PAPI_start);
+            PAPI_ERROR_CHECK("PAPI_start");
             thread_papi_state = papi_running;
         }
       }
@@ -1053,7 +1053,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 #if APEX_HAVE_PAPI
       if (num_papi_counters > 0 && !apex_options::papi_suspend() && thread_papi_state == papi_running) {
         int rc = PAPI_read( EventSet, main_timer->papi_start_values );
-        PAPI_ERROR_CHECK(PAPI_read);
+        PAPI_ERROR_CHECK("PAPI_read");
       }
 #endif
     }
@@ -1081,7 +1081,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 #if APEX_HAVE_PAPI
       if (num_papi_counters > 0 && !apex_options::papi_suspend() && thread_papi_state == papi_running) {
         int rc = PAPI_read( EventSet, main_timer->papi_stop_values );
-        PAPI_ERROR_CHECK(PAPI_read);
+        PAPI_ERROR_CHECK("PAPI_read");
       }
 #endif
       // if this profile is processed, it will get deleted. so don't process it!
@@ -1247,17 +1247,17 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
           // if papi was previously suspended, we need to start the counters
           if (thread_papi_state == papi_suspended) {
             int rc = PAPI_start( EventSet );
-            PAPI_ERROR_CHECK(PAPI_start);
+            PAPI_ERROR_CHECK("PAPI_start");
             thread_papi_state = papi_running;
           }
           int rc = PAPI_read( EventSet, p->papi_start_values );
-          PAPI_ERROR_CHECK(PAPI_read);
+          PAPI_ERROR_CHECK("PAPI_read");
       } else {
           // if papi is still running, stop the counters
           if (thread_papi_state == papi_running) {
             long long dummy[8];
             int rc = PAPI_stop( EventSet, dummy );
-            PAPI_ERROR_CHECK(PAPI_stop);
+            PAPI_ERROR_CHECK("PAPI_stop");
             thread_papi_state = papi_suspended;
           }
       }
@@ -1313,7 +1313,7 @@ if (rc != 0) cout << "name: " << rc << ": " << PAPI_strerror(rc) << endl;
 #if APEX_HAVE_PAPI
         if (num_papi_counters > 0 && !apex_options::papi_suspend() && thread_papi_state == papi_running) {
             int rc = PAPI_read( EventSet, p->papi_stop_values );
-            PAPI_ERROR_CHECK(PAPI_read);
+            PAPI_ERROR_CHECK("PAPI_read");
         }
 #endif
         // Why is this happening now?  Why not at start? Why not at create?
