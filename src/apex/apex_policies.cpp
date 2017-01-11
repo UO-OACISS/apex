@@ -775,6 +775,13 @@ inline void __apex_active_harmony_setup(apex_tuning_session * tuning_session) {
         cerr << "Failed to set Active Harmony tuning strategy" << endl;
         return;
     }
+    /* Instruct the strategy to use an initial simplex roughly half
+     * the size of the search space.
+     */
+    if (ah_def_cfg(tuning_session->hdef, "INIT_RADIUS", "0.50") != 0) {
+        cerr << "Failed to set Active Harmony tuning radius" << endl;
+        return;
+    }
     if (ah_def_int(tuning_session->hdef, "thread_cap", tuning_session->min_threads, tuning_session->max_threads, tuning_session->thread_step, &(tuning_session->thread_cap)) != 0) {
         cerr << "Failed to add thread_cap parameter to Active Harmony tuning definition" << endl;
         return;
@@ -817,6 +824,13 @@ inline void __active_harmony_throughput_setup(int num_inputs, long ** inputs, lo
     }
     if (ah_def_strategy(thread_cap_tuning_session->hdef, "pro.so") != 0) {
         cerr << "Failed to set Active Harmony tuning strategy" << endl;
+        return;
+    }
+    /* Instruct the strategy to use an initial simplex roughly half
+     * the size of the search space.
+     */
+    if (ah_def_cfg(thread_cap_tuning_session->hdef, "INIT_RADIUS", "0.50") != 0) {
+        cerr << "Failed to set Active Harmony tuning radius" << endl;
         return;
     }
     char tmpstr[12] = {0};
@@ -868,6 +882,13 @@ inline int __active_harmony_custom_setup(shared_ptr<apex_tuning_session> tuning_
     // (will need multiple metrics-of-interest)
     if (ah_def_strategy(tuning_session->hdef, "pro.so") != 0) {
         cerr << "Failed to set Active Harmony tuning strategy" << endl;
+        return APEX_ERROR;
+    }
+    /* Instruct the strategy to use an initial simplex roughly half
+     * the size of the search space.
+     */
+    if (ah_def_cfg(tuning_session->hdef, "INIT_RADIUS", "0.50") != 0) {
+        cerr << "Failed to set Active Harmony tuning radius" << endl;
         return APEX_ERROR;
     }
     char tmpstr[12] = {0};
@@ -922,6 +943,24 @@ inline int __active_harmony_custom_setup(shared_ptr<apex_tuning_session> tuning_
     if (ah_def_strategy(tuning_session->hdef, library_name) != 0) {
         cerr << "Failed to set Active Harmony tuning strategy to " << library_name << endl;
         return APEX_ERROR;
+    }
+    if (ah_def_cfg(tuning_session->hdef, "INIT_RADIUS", std::to_string(request.radius).c_str()) != 0) {
+        cerr << "Failed to set Active Harmony tuning raduis to " << request.radius << endl;
+        return APEX_ERROR;
+    }
+    /* Instruct the aggregator to collect X performance values for
+     * each point, and allow the median performance to continue through
+     * the feedback loop.
+     */
+    if (request.aggregation_times != 1) {
+        if (ah_def_cfg(tuning_session->hdef, "AGG_TIMES", std::to_string(request.aggregation_times).c_str()) != 0) {
+            cerr << "Failed to set Active Harmony tuning aggregation times to " << request.aggregation_times << endl;
+            return APEX_ERROR;
+        }
+        if (ah_def_cfg(tuning_session->hdef, "AGG_FUNC", "median") != 0) {
+            cerr << "Failed to set Active Harmony tuning aggregation function to " << request.aggregation_function << endl;
+            return APEX_ERROR;
+        }
     }
 
     for(auto & kv : request.params) {

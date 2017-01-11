@@ -130,14 +130,16 @@ class apex_tuning_request {
         apex_tuning_session_handle tuning_session_handle;
         bool running;
         apex_ah_tuning_strategy strategy;
-        
+        double radius;
+        int aggregation_times;
+        std::string aggregation_function;
 
     public:
         apex_tuning_request(const std::string & name, std::function<double()> metric, apex_event_type trigger) 
             : name{name}, metric{metric}, trigger{trigger}, tuning_session_handle{0},
             running{false}, strategy{apex_ah_tuning_strategy::PARALLEL_RANK_ORDER}  {};
         apex_tuning_request(const std::string & name) : name{name}, trigger{APEX_INVALID_EVENT},
-            tuning_session_handle{0}, running{false}, strategy{apex_ah_tuning_strategy::PARALLEL_RANK_ORDER} {};
+            tuning_session_handle{0}, running{false}, strategy{apex_ah_tuning_strategy::PARALLEL_RANK_ORDER}, radius(0.5), aggregation_times(1), aggregation_function("median") {};
         virtual ~apex_tuning_request()  {};
 
         const std::string & get_name() const {
