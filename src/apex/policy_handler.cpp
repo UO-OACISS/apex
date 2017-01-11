@@ -11,7 +11,6 @@
 #include "apex_api.hpp"
 #include "apex.hpp"
 #include "policy_handler.hpp"
-#include "thread_instance.hpp"
 #include <iostream>
 #include <atomic>
 #include <unistd.h>

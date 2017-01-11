@@ -256,7 +256,7 @@ namespace apex {
     OTF2_EvtWriter* otf2_listener::getEvtWriter(void) {
       static __thread OTF2_EvtWriter* evt_writer(nullptr);
       if (evt_writer == nullptr) {
-        //printf("creating event writer for thread %lu\n", thread_instance::get_id()); fflush(stdout);
+        printf("creating event writer for thread %lu\n", thread_instance::get_id()); fflush(stdout);
         uint64_t my_node_id = my_saved_node_id;
         my_node_id = (my_node_id << 32) + thread_instance::get_id();
         evt_writer = OTF2_Archive_GetEvtWriter( archive, my_node_id );
@@ -1027,7 +1027,7 @@ namespace apex {
             uint64_t stamp = get_time();
             OTF2_EvtWriter_ThreadEnd( getEvtWriter(), NULL, stamp, 0, 0);
         //} 
-        //printf("closing event writer for thread %lu\n", thread_instance::get_id()); fflush(stdout);
+        printf("closing event writer for thread %lu\n", thread_instance::get_id()); fflush(stdout);
         OTF2_Archive_CloseEvtWriter( archive, getEvtWriter() );
         if (thread_instance::get_id() == 0) {
             comm_evt_writer = nullptr;

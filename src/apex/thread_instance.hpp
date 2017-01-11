@@ -53,7 +53,7 @@ private:
   // thread specific data
   static APEX_NATIVE_TLS thread_instance * _instance;
   // constructor
-  thread_instance (void) : _id(-1), _runtime_id(-1), _top_level_timer_name(), _is_worker(false) { _instance = nullptr; };
+  thread_instance (bool is_worker) : _id(-1), _runtime_id(-1), _top_level_timer_name(), _is_worker(is_worker) { _instance = nullptr; };
   // map from function address to name - unique to all threads to avoid locking
   std::map<apex_function_address, std::string> _function_map;
   profiler * current_profiler;
@@ -64,7 +64,7 @@ private:
   //std::vector<std::shared_ptr<profiler> > current_profilers;
 public:
   ~thread_instance(void);
-  static thread_instance& instance(void);
+  static thread_instance& instance(bool is_worker=true);
   static void delete_instance();
   static long unsigned int get_id(void) { return instance()._id; }
   static long unsigned int get_runtime_id(void) { return instance()._runtime_id; }

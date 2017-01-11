@@ -60,12 +60,14 @@ std::mutex thread_instance::_open_profiler_mutex;
 std::unordered_set<std::string> thread_instance::open_profilers;
 #endif
 
-thread_instance& thread_instance::instance(void) {
+thread_instance& thread_instance::instance(bool is_worker) {
   if( _instance == nullptr ) {
     // first time called by this thread
     // construct test element to be used in all subsequent calls from this thread
-    _instance = new thread_instance();
-    _instance->_id = _num_threads++;
+    _instance = new thread_instance(is_worker);
+    if (is_worker) {
+        _instance->_id = _num_threads++;
+    }
     _instance->_runtime_id = _instance->_id; // can be set later, if necessary
     _active_threads++;
   }

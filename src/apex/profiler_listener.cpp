@@ -298,6 +298,9 @@ namespace apex {
         if (!p->is_counter) {
             static int thresh = RAND_MAX/100;
             if (std::rand() < thresh) {
+                /* before calling p->task_id->get_name(), make sure we create
+                 * a thread_instance object that is NOT a worker. */
+                thread_instance::instance(false);
                 std::unique_lock<std::mutex> task_map_lock(_mtx);
                 task_scatterplot_samples << p->normalized_timestamp() << " "
                             << p->elapsed()*profiler::get_cpu_mhz()*1000000 << " "
@@ -392,6 +395,9 @@ namespace apex {
           profile * p, stringstream &screen_output,
           stringstream &csv_output, double &total_accumulated,
           double &total_main) {
+      /* before calling task_id.get_name(), make sure we create
+       * a thread_instance object that is NOT a worker. */
+      thread_instance::instance(false);
       string action_name = task_id.get_name();
       string shorter(action_name);
       // to keep formatting pretty, trim any long timer names
@@ -602,6 +608,9 @@ node_color * get_node_color(double v,double vmin,double vmax)
 }
 
   void profiler_listener::write_taskgraph(void) {
+    /* before calling parent.get_name(), make sure we create
+     * a thread_instance object that is NOT a worker. */
+    thread_instance::instance(false);
     ofstream myfile;
     stringstream dotname;
     dotname << "taskgraph." << node_id << ".dot";
