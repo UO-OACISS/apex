@@ -7,49 +7,18 @@
 
 #define NUM_THREADS 3
 
-class ApexProxy {
-private:
-  std::string _name;
-  apex::profiler * p;
-  bool stopped;
-public:
-  ApexProxy(const char * func, const char * file, int line);
-  ApexProxy(apex_function_address fpointer);
-  ~ApexProxy();
-  void stop(void) { stopped = true; apex::stop(p); };
-};
-
-ApexProxy::ApexProxy(const char * func, const char * file, int line) : stopped(false) {
-  std::ostringstream s;
-  s << func << " [" << file << ":" << line << "]";
-  _name = std::string(s.str());
-  p = apex::start(_name);
-}
-
-ApexProxy::ApexProxy(apex_function_address fpointer) {
-  p = apex::start(fpointer);
-}
-
-ApexProxy::~ApexProxy() {
-  if (!stopped) apex::stop(p);
-};
-
 #define UNUSED(x) (void)(x)
 
 void* someThread(void* tmp)
 {
   UNUSED(tmp);
-  apex::register_thread("threadTest thread");
-  //ApexProxy proxy = ApexProxy(__func__, __FILE__, __LINE__);
-  ApexProxy proxy = ApexProxy((apex_function_address)someThread);
+  apex::self_stopping_timer proxy((apex_function_address)someThread, "threadTest thread");
   printf("PID of this process: %d\n", getpid());
 #if defined (__APPLE__)
   printf("The ID of this thread is: %lu\n", (unsigned long)pthread_self());
 #else
   printf("The ID of this thread is: %u\n", (unsigned int)pthread_self());
 #endif
-  proxy.stop();
-  apex::exit_thread();
   return NULL;
 }
 
@@ -57,8 +26,7 @@ void* someThread(void* tmp)
 int main(int argc, char **argv)
 {
   apex::init(argv[0], 0, 1);
-  //ApexProxy proxy = ApexProxy(__func__, __FILE__, __LINE__);
-  ApexProxy proxy = ApexProxy((apex_function_address)main);
+  apex::self_stopping_timer proxy((apex_function_address)main);
   double currentpower = apex::current_power_high();
   printf("Power at start: %f Watts\n", currentpower);
   printf("PID of this process: %d\n", getpid());

@@ -38,7 +38,6 @@ void* someThread(void* tmp)
 {
   int *myid = (int*)tmp;
   apex_register_thread("threadTest thread");
-  //ApexProxy proxy = ApexProxy(__func__, __FILE__, __LINE__);
   apex_profiler_handle p = apex_start(APEX_FUNCTION_ADDRESS, &someThread);
 #if defined (__APPLE__)
   //printf("The ID of this thread is: %lu\n", (unsigned long)pthread_self());

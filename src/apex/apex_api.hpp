@@ -695,5 +695,46 @@ APEX_EXPORT void send (uint64_t tag, uint64_t size, uint64_t target);
  */
 APEX_EXPORT void recv (uint64_t tag, uint64_t size, uint64_t source_rank, uint64_t source_thread);
 
+class self_stopping_timer {
+    private:
+        apex::profiler * p;
+        bool has_thread;
+    public:
+        self_stopping_timer(uint64_t func) : p(nullptr), has_thread(false) {
+            p = apex::start((apex_function_address)func);
+        }
+        self_stopping_timer(std::string func) : p(nullptr), has_thread(false) {
+            p = apex::start(func);
+        }
+        self_stopping_timer(uint64_t func, const char * thread_name) 
+            : p(nullptr), has_thread(true) {
+            apex::register_thread(thread_name);
+            p = apex::start((apex_function_address)func);
+        }
+        self_stopping_timer(std::string func, const char * thread_name = nullptr) 
+            : p(nullptr), has_thread(true) {
+            apex::register_thread(thread_name);
+            p = apex::start(func);
+        }
+        void stop(void) {
+            if (p != nullptr) { 
+                apex::stop(p); 
+                p= nullptr; 
+            } 
+        }
+        ~self_stopping_timer() { 
+            stop();
+            if (has_thread) {
+                apex::exit_thread();
+            }
+        }
+};
+
+#define APEX_TIMER_MACRO \
+      std::ostringstream _s_foo; \
+      _s_foo << __func__ << " [" << __FILE__ << ":" << __LINE__ << "]"; \
+      _name_foo = std::string(_s_foo.str()); \
+    self_stopping_timer __foo(_name_foo); 
+
 } //namespace apex
 

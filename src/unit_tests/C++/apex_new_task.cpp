@@ -10,29 +10,8 @@ int fib_results[FIB_RESULTS_PRE] = {0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610
 
 std::atomic<uint64_t> task_id(-1);
 
-class apex_proxy {
-private:
-  apex::profiler * p;
-  bool do_exit;
-public:
-  apex_proxy(void * func) : p(nullptr), do_exit(true) { 
-    apex::register_thread("fib thread");
-    p = apex::start((apex_function_address)func);
-  }
-  apex_proxy(void * func, bool _do_exit) : p(nullptr), do_exit(_do_exit) { 
-    apex::register_thread("fib thread");
-    p = apex::start((apex_function_address)func);
-  }
-  ~apex_proxy() { 
-    if (p != nullptr) { 
-      apex::stop(p);
-    }
-    if (do_exit) apex::exit_thread();
-  }
-};
-
 int fib (int in) {
-    apex_proxy foo((void*)&fib);
+    apex::self_stopping_timer foo((uint64_t)&fib, "fib thread");
     if (in == 0) {
         return 0;
     }
@@ -56,7 +35,7 @@ int fib (int in) {
 
 int main(int argc, char *argv[]) {
     apex::init("apex_new_task_cpp unit test", 0, 1);
-    apex_proxy * foo = new apex_proxy((void*)&main, false);
+    apex::self_stopping_timer foo((uint64_t)&main);
 #if defined(APEX_HAVE_TAU) || (APEX_HAVE_OTF2)
     int i = 5;
 #else
@@ -80,7 +59,7 @@ int main(int argc, char *argv[]) {
     auto future = std::async(std::launch::async, fib, i);
     int result = future.get();
     std::cout << "fib of " << i << " is " << result << " (valid value: " << fib_results[i] << ")" << std::endl;
-	delete(foo);
+	foo.stop();
     apex::finalize();
     return 0;
 }

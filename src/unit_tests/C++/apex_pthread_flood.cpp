@@ -18,33 +18,6 @@
 #define FLOOD_LEVEL 1000
 #endif
 
-class ApexProxy {
-private:
-  std::string _name;
-  apex::profiler * p;
-  bool stopped;
-public:
-  ApexProxy(const char * func, const char * file, int line);
-  ApexProxy(apex_function_address fpointer);
-  ~ApexProxy();
-  void stop() { stopped = true; apex::stop(p); };
-};
-
-ApexProxy::ApexProxy(const char * func, const char * file, int line) : stopped(false) {
-  std::ostringstream s;
-  s << func << " [" << file << ":" << line << "]";
-  _name = std::string(s.str());
-  p = apex::start(_name);
-}
-
-ApexProxy::ApexProxy(apex_function_address fpointer) : stopped(false) {
-  p = apex::start(fpointer);
-}
-
-ApexProxy::~ApexProxy() {
-  if (!stopped) apex::stop(p);
-};
-
 inline int foo (int i) {
   int j;
   int dummy = 1;
@@ -68,7 +41,7 @@ void* someThread(void* tmp)
   int i = 0;
   unsigned long total = 0;
   { // only time this for loop
-    ApexProxy proxy = ApexProxy((apex_function_address)someThread);
+    apex::self_stopping_timer proxy((apex_function_address)someThread);
     for (i = 0 ; i < ITERATIONS ; i++) {
         apex::profiler * p = apex::start((apex_function_address)foo);
         total += foo(i);
@@ -90,7 +63,7 @@ int main(int argc, char **argv)
   apex::apex_options::use_screen_output(true);
   sleep(1); // if we don't sleep, the proc_read thread won't have time to read anything.
 
-  ApexProxy proxy = ApexProxy((apex_function_address)main);
+  apex::self_stopping_timer proxy((apex_function_address)main);
   printf("PID of this process: %d\n", getpid());
   std::cout << "Expecting " << numthreads << " threads." << std::endl;
   pthread_t * thread = (pthread_t*)(malloc(sizeof(pthread_t) * numthreads));
