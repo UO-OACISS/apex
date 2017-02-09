@@ -660,10 +660,6 @@ APEX_EXPORT void get_best_values(apex_tuning_session_handle h);
  */
 APEX_EXPORT void print_options(void);
 
-#ifdef APEX_HAVE_HPX
-hpx::runtime * get_hpx_runtime_ptr(void);
-#endif
-
 /**
  \brief Notify APEX that the current thread is sending a parcel/message
         to another rank/locality/process.

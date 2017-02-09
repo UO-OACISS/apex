@@ -148,6 +148,10 @@ int initialize_worker_thread_for_TAU(void);
 void init_plugins(void);
 void finalize_plugins(void);
 
+#ifdef APEX_HAVE_HPX
+hpx::runtime * get_hpx_runtime_ptr(void);
+#endif
+
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 } //namespace apex
