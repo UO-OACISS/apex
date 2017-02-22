@@ -17,11 +17,7 @@
 #include <utility>
 #include "utils.hpp"
 
-#ifdef APEX_HAVE_TAU
-#define PROFILING_ON
-#define TAU_DOT_H_LESS_HEADERS
-#include <TAU.h>
-#endif
+#include "tau_listener.hpp"
 
 #define MAX_FUNCTIONS_IN_CHART 5
 
@@ -61,17 +57,15 @@ concurrency_handler::~concurrency_handler () {
 
 bool concurrency_handler::_handler(void) {
   if (!_handler_initialized) {
-      initialize_worker_thread_for_TAU();
+      initialize_worker_thread_for_tau();
       _handler_initialized = true;
   }
   if (_terminate) return true;
   apex* inst = apex::instance();
   if (inst == nullptr) return false; // running after finalization!
-#ifdef APEX_HAVE_TAU
   if (apex_options::use_tau()) {
-    TAU_START("concurrency_handler::_handler");
+    Tau_start("concurrency_handler::_handler");
   }
-#endif
   //cout << "HANDLER: " << endl;
   map<task_identifier, unsigned int> *counts = new(map<task_identifier, unsigned int>);
   stack<task_identifier>* tmp;
@@ -110,11 +104,9 @@ bool concurrency_handler::_handler(void) {
   //}
   int power = current_power_high();
   _power_samples.push_back(power);
-#ifdef APEX_HAVE_TAU
   if (apex_options::use_tau()) {
-    TAU_STOP("concurrency_handler::_handler");
+    Tau_stop("concurrency_handler::_handler");
   }
-#endif
   return true;
 }
 

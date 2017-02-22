@@ -58,8 +58,8 @@ APEX_EXPORT int apex_init(const char * thread_name, const unsigned int comm_rank
  \brief Finalize APEX.
  
  The stop measurement method will terminate all measurement and optionally:
- - print a report to the screen
- - write a TAU profile to disk
+ - print a report to the screen (if requested)
+ - write a profile to disk (if requested)
  \return No return value.
  \sa @ref apex_init
  */
@@ -275,19 +275,6 @@ APEX_EXPORT void apex_register_thread(const char * name);
  \return No return value.
  */
 APEX_EXPORT void apex_exit_thread(void);
-
-#ifndef DOXYGEN_SHOULD_SKIP_THIS // not sure if these will stay in the API
-
-/*
- * Power-related functions
- */
-APEX_EXPORT void apex_track_power(void);
-APEX_EXPORT void apex_track_power_here(void);
-APEX_EXPORT void apex_enable_tracking_power(void);
-APEX_EXPORT void apex_disable_tracking_power(void);
-APEX_EXPORT void apex_set_interrupt_interval(int seconds);
-
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /*
  * Policy Engine functions.

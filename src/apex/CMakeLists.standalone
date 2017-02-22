@@ -3,9 +3,7 @@
 
 include_directories(${PROJECT_BINARY_DIR}/src/apex ${APEX_SOURCE_DIR}/src/contrib)
 
-if (TAU_FOUND)
 SET(tau_SOURCE tau_listener.cpp)
-endif(TAU_FOUND)
 
 if (BFD_FOUND)
 SET(bfd_SOURCE apex_bfd.cpp address_resolution.cpp)

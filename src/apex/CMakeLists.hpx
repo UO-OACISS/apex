@@ -273,26 +273,6 @@ set(apex_sources
     ${BFD_SOURCE}
     ${PROC_SOURCE})
 
-if(APEX_WITH_TAU)
-  find_package(TAU)
-endif()
-
-if(TAU_FOUND)
-  hpx_info("apex" "Building APEX with TAU support")
-  set(apex_headers ${apex_headers} tau_listener.hpp)
-  set(apex_sources ${apex_sources} tau_listener.cpp)
-
-  add_definitions(-DAPEX_HAVE_TAU)
-  if(MSVC)
-    add_definitions(-DTAU_WINDOWS)
-    set(libs ${TAU_LIBRARY})
-  endif()
-  include_directories(${TAU_INCLUDE_DIRS})
-  hpx_libraries(${TAU_LIBRARIES})
-else()
-  hpx_info("apex" "Building APEX without TAU support")
-endif()
-
 if(APEX_WITH_OTF2)
     find_package(OTF2 REQUIRED)
     if (NOT OTF2_FOUND)

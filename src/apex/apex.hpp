@@ -144,7 +144,6 @@ public:
     ~apex();
 };
 
-int initialize_worker_thread_for_TAU(void);
 void init_plugins(void);
 void finalize_plugins(void);
 

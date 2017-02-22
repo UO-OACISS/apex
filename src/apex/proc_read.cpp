@@ -24,11 +24,7 @@
 #define COMMAND_LEN 20
 #define DATA_SIZE 512
 
-#ifdef APEX_HAVE_TAU
-#define PROFILING_ON
-#define TAU_DOT_H_LESS_HEADERS
-#include <TAU.h>
-#endif
+#include "tau_listener.hpp"
 
 #ifdef APEX_HAVE_LM_SENSORS
 #include "sensor_data.hpp"
@@ -557,14 +553,12 @@ void* proc_data_reader::read_proc(void * _ptw) {
   apex::async_thread_setup();
   static bool _initialized = false;
   if (!_initialized) {
-      initialize_worker_thread_for_TAU();
+      initialize_worker_thread_for_tau();
       _initialized = true;
   }
-#ifdef APEX_HAVE_TAU
   if (apex_options::use_tau()) {
-    TAU_START("proc_data_reader::read_proc");
+    Tau_start("proc_data_reader::read_proc");
   }
-#endif
 #ifdef APEX_HAVE_LM_SENSORS
   sensor_data * mysensors = new sensor_data();
 #endif
@@ -582,11 +576,9 @@ void* proc_data_reader::read_proc(void * _ptw) {
   ProcData *periodData = NULL;
   
   while(ptw->wait()) {
-#ifdef APEX_HAVE_TAU
     if (apex_options::use_tau()) {
-      TAU_START("proc_data_reader::read_proc: main loop");
+      Tau_start("proc_data_reader::read_proc: main loop");
     }
-#endif
     if (apex_options::use_proc_stat()) {
         // take a reading
         newData = parse_proc_stat();
@@ -607,21 +599,17 @@ void* proc_data_reader::read_proc(void * _ptw) {
     mysensors->read_sensors();
 #endif
 
-#ifdef APEX_HAVE_TAU
     if (apex_options::use_tau()) {
-      TAU_STOP("proc_data_reader::read_proc: main loop");
+      Tau_stop("proc_data_reader::read_proc: main loop");
     }
-#endif
   }
 #ifdef APEX_HAVE_LM_SENSORS
   delete(mysensors);
 #endif
 
-#ifdef APEX_HAVE_TAU
   if (apex_options::use_tau()) {
-    TAU_STOP("proc_data_reader::read_proc");
+    Tau_stop("proc_data_reader::read_proc");
   }
-#endif
   delete(oldData);
   ptw->_running = false;
   return nullptr;

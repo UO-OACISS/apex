@@ -7,13 +7,6 @@
 #include "thread_instance.hpp"
 #include <iostream>
 
-// TAU related
-#ifdef APEX_HAVE_TAU
-#define PROFILING_ON
-#define TAU_DOT_H_LESS_HEADERS
-#include <TAU.h>
-#endif
-
 #include <stdio.h>
 
 #if defined(_WIN32) || defined(_WIN64)

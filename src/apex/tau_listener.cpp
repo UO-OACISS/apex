@@ -7,13 +7,6 @@
 #include <iostream>
 #include <fstream>
 
-#define PROFILING_ON
-//#define TAU_GNU
-#define TAU_DOT_H_LESS_HEADERS
-#include <TAU.h>
-
-extern "C" int Tau_profile_exit_all_tasks();
-extern "C" int Tau_profile_exit_all_threads();
 
 using namespace std;
 
@@ -25,11 +18,11 @@ void tau_listener::initialize_tau(int argc, char** argv) {
     const char *_dummy = "APEX Application";
     char* _argv[1];
     _argv[0] = const_cast<char*>(_dummy);
-    TAU_PROFILE_INIT(_argc, _argv);
+    Tau_init(_argc, _argv);
   } else {
-    TAU_PROFILE_INIT(argc, argv);
+    Tau_init(argc, argv);
   }
-  TAU_PROFILE_SET_NODE(0);
+  Tau_set_node(0);
   Tau_create_top_level_timer_if_necessary();
 }
 
@@ -37,13 +30,6 @@ tau_listener::tau_listener (void) : _terminate(false) {
 }
 
 void tau_listener::on_startup(startup_event_data &data) {
-/*
-  if (!_terminate) {
-      TAU_PROFILE_INIT(data.argc, data.argv);
-      TAU_PROFILE_SET_NODE(0);
-      Tau_create_top_level_timer_if_necessary();
-  }
-  */
   return;
 }
 
@@ -52,32 +38,30 @@ void tau_listener::on_shutdown(shutdown_event_data &data) {
   if (!_terminate) {
       _terminate = true;
       Tau_profile_exit_all_threads();
-      TAU_PROFILE_EXIT("APEX exiting");
+      Tau_exit("APEX exiting");
   }
   return;
 }
 
 void tau_listener::on_new_node(node_event_data &data) {
   if (!_terminate) {
-      TAU_PROFILE_SET_NODE(data.node_id);
+      Tau_set_node(data.node_id);
   }
   return;
 }
 
 void tau_listener::on_new_thread(new_thread_event_data &data) {
   if (!_terminate) {
-      TAU_REGISTER_THREAD();
+      Tau_register_thread();
       Tau_create_top_level_timer_if_necessary();
       // set the thread id for future listeners to this event
-      data.thread_id = TAU_PROFILE_GET_THREAD();
+      data.thread_id = Tau_get_thread();
   }
   return;
 }
 
 void tau_listener::on_exit_thread(event_data &data) {
   if (!_terminate) {
-      //TAU_PROFILE_EXIT("APEX exiting");
-    //std::cout << "TAU_EXIT_THREAD" << std::endl;
   }
   APEX_UNUSED(data);
   return;
@@ -85,7 +69,7 @@ void tau_listener::on_exit_thread(event_data &data) {
 
 bool tau_listener::on_start(task_identifier * id) {
   if (!_terminate) {
-    TAU_START(id->get_name().c_str());
+    Tau_start(id->get_name().c_str());
   } else {
       return false;
   }
@@ -100,9 +84,9 @@ void tau_listener::on_stop(std::shared_ptr<profiler> &p) {
   static string empty("");
   if (!_terminate) {
       if (p->task_id->get_name().compare(empty) == 0) {
-          TAU_GLOBAL_TIMER_STOP(); // stop the top level timer
+          Tau_global_stop(); // stop the top level timer
       } else {
-          TAU_STOP(p->task_id->get_name().c_str());
+          Tau_stop(p->task_id->get_name().c_str());
       }
   }
   return;
@@ -133,5 +117,31 @@ void tau_listener::on_custom_event(custom_event_data &data) {
   return;
 }
 
+/* This function is used by APEX threads so that TAU knows about them. */
+int initialize_worker_thread_for_TAU(void) {
+  if (apex_options::use_tau())
+  {
+    Tau_register_thread();
+    Tau_create_top_level_timer_if_necessary();
+  }
+  return 0;
+}
 
+}
+
+/* Weak symbols that are redefined if we use TAU at runtime */
+extern "C" {
+int __attribute__((weak)) initialize_worker_thread_for_tau(void) {return 0;}
+int __attribute__((weak)) Tau_register_thread(void) {return 0;}
+int __attribute__((weak)) Tau_create_top_level_timer_if_necessary(void) {return 0;}
+int __attribute__((weak)) Tau_start(const char *) {return 0;}
+int __attribute__((weak)) Tau_stop(const char *) {return 0;}
+int __attribute__((weak)) Tau_init(int, char**) {return 0;}
+int __attribute__((weak)) Tau_exit(const char*) {return 0;}
+int __attribute__((weak)) Tau_set_node(int) {return 0;}
+int __attribute__((weak)) Tau_profile_exit_all_threads(void) {return 0;}
+int __attribute__((weak)) Tau_get_thread(void) {return 0;}
+int __attribute__((weak)) Tau_profile_exit_all_tasks(void) {return 0;}
+int __attribute__((weak)) Tau_global_stop(void) {return 0;}
+int __attribute__((weak)) Tau_trigger_context_event_thread(char*, double, int) {return 0;}
 }

@@ -66,12 +66,7 @@ const int num_non_worker_threads_registered = 0;
 
 #define APEX_MAIN "APEX MAIN"
 
-#ifdef APEX_HAVE_TAU
-#define PROFILING_ON
-#define TAU_DOT_H_LESS_HEADERS
-#include <TAU.h>
-#endif
-
+#include "tau_listener.hpp"
 #include "utils.hpp"
 
 #include <cstdlib>
@@ -107,14 +102,16 @@ namespace apex {
     for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
       profile * p = it2->second;
 #if defined(APEX_THROTTLE)
-      task_identifier id = it2->first;
-      unordered_set<task_identifier>::const_iterator it4;
-	  {
-      	read_lock_type l(throttled_event_set_mutex);
-      	it4 = throttled_tasks.find(id);
-	  }
-      if (it4!= throttled_tasks.end()) {
-        continue;
+      if (!apex_options::use_tau) {
+        task_identifier id = it2->first;
+        unordered_set<task_identifier>::const_iterator it4;
+	    {
+      	    read_lock_type l(throttled_event_set_mutex);
+      	    it4 = throttled_tasks.find(id);
+	    }
+        if (it4!= throttled_tasks.end()) {
+            continue;
+        }
       }
 #endif
       if (p->get_type() == APEX_TIMER) {
@@ -232,33 +229,35 @@ namespace apex {
             theprofile->increment(p->elapsed(), tmp_num_counters, values, p->is_resume);
         }
 #if defined(APEX_THROTTLE)
-        // Is this a lightweight task? If so, we shouldn't measure it any more,
-        // in order to reduce overhead.
-        if (theprofile->get_calls() > APEX_THROTTLE_CALLS &&
-            theprofile->get_mean() < APEX_THROTTLE_PERCALL) {
-            unordered_set<task_identifier>::const_iterator it2;
-	        {
-      	      read_lock_type l(throttled_event_set_mutex);
-              it2 = throttled_tasks.find(*(p->task_id));
-			}
-            if (it2 == throttled_tasks.end()) {
-                // lock the set for insert
-	            {
-      	            write_lock_type l(throttled_event_set_mutex);
-                    // was it inserted when we were waiting?
-                    it2 = throttled_tasks.find(*(p->task_id));
-                    // no? OK - insert it.
-                    if (it2 == throttled_tasks.end()) {
-                        throttled_tasks.insert(*(p->task_id));
-                    }
-                }
-                if (apex_options::use_screen_output()) {
-                    cout << "APEX: disabling lightweight timer "
-                         << p->task_id->get_name()
-                          << endl;
-                    fflush(stdout);
-                }
-            }
+        if (!apex_options::use_tau) {
+          // Is this a lightweight task? If so, we shouldn't measure it any more,
+          // in order to reduce overhead.
+          if (theprofile->get_calls() > APEX_THROTTLE_CALLS &&
+              theprofile->get_mean() < APEX_THROTTLE_PERCALL) {
+              unordered_set<task_identifier>::const_iterator it2;
+	          {
+      	        read_lock_type l(throttled_event_set_mutex);
+                it2 = throttled_tasks.find(*(p->task_id));
+			  }
+              if (it2 == throttled_tasks.end()) {
+                  // lock the set for insert
+	              {
+      	              write_lock_type l(throttled_event_set_mutex);
+                      // was it inserted when we were waiting?
+                      it2 = throttled_tasks.find(*(p->task_id));
+                      // no? OK - insert it.
+                      if (it2 == throttled_tasks.end()) {
+                          throttled_tasks.insert(*(p->task_id));
+                      }
+                  }
+                  if (apex_options::use_screen_output()) {
+                      cout << "APEX: disabling lightweight timer "
+                           << p->task_id->get_name()
+                            << endl;
+                      fflush(stdout);
+                  }
+              }
+          }
         }
 #endif
       } else {
@@ -408,16 +407,18 @@ namespace apex {
       //screen_output << "\"" << shorter << "\", " ;
       screen_output << string_format("%30s", shorter.c_str()) << " : ";
 #if defined(APEX_THROTTLE)
-      // if this profile was throttled, don't output the measurements.
-      // they are limited and bogus, anyway.
-      unordered_set<task_identifier>::const_iterator it4;
-	  {
-      	read_lock_type l(throttled_event_set_mutex);
-        it4 = throttled_tasks.find(task_id);
-  	  }
-      if (it4!= throttled_tasks.end()) {
-        screen_output << "DISABLED (high frequency, short duration)" << endl;
-        return;
+      if (!apex_options::use_tau) {
+        // if this profile was throttled, don't output the measurements.
+        // they are limited and bogus, anyway.
+        unordered_set<task_identifier>::const_iterator it4;
+	    {
+      	    read_lock_type l(throttled_event_set_mutex);
+            it4 = throttled_tasks.find(task_id);
+  	    }
+        if (it4!= throttled_tasks.end()) {
+            screen_output << "DISABLED (high frequency, short duration)" << endl;
+            return;
+        }
       }
 #endif
       if(p->get_calls() < 1) {
@@ -840,14 +841,12 @@ node_color * get_node_color(double v,double vmin,double vmax)
   void profiler_listener::process_profiles(void)
   {
     if (!_initialized) {
-      initialize_worker_thread_for_TAU();
+      initialize_worker_thread_for_tau();
       _initialized = true;
     }
-#ifdef APEX_HAVE_TAU
     if (apex_options::use_tau()) {
-      TAU_START("profiler_listener::process_profiles");
+      Tau_start("profiler_listener::process_profiles");
     }
-#endif
 
     std::shared_ptr<profiler> p;
     task_dependency* td;
@@ -856,13 +855,9 @@ node_color * get_node_color(double v,double vmin,double vmax)
     while (!_done) {
       queue_signal.wait();
 #endif
-#ifdef APEX_HAVE_TAU
-      /*
     if (apex_options::use_tau()) {
-      TAU_START("profiler_listener::process_profiles: main loop");
+      Tau_start("profiler_listener::process_profiles: main loop");
     }
-    */
-#endif
 #ifdef APEX_MULTIPLE_QUEUES
       std::unique_lock<std::mutex> queue_lock(queue_mtx);
 #ifdef APEX_HAVE_HPX // don't hang out in this task too long.
@@ -908,13 +903,9 @@ node_color * get_node_color(double v,double vmin,double vmax)
       }
       */
 
-#ifdef APEX_HAVE_TAU
-      /*
       if (apex_options::use_tau()) {
-        TAU_STOP("profiler_listener::process_profiles: main loop");
+        Tau_stop("profiler_listener::process_profiles: main loop");
       }
-      */
-#endif
 #ifndef APEX_HAVE_HPX
     }
 
@@ -931,11 +922,9 @@ node_color * get_node_color(double v,double vmin,double vmax)
     consumer_task_running.clear(memory_order_release);
 #endif
 
-#ifdef APEX_HAVE_TAU
     if (apex_options::use_tau()) {
-      TAU_STOP("profiler_listener::process_profiles");
+      Tau_stop("profiler_listener::process_profiles");
     }
-#endif
   }
 
 #if APEX_HAVE_PAPI
@@ -1223,19 +1212,21 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
   inline bool profiler_listener::_common_start(task_identifier * id, bool is_resume) {
     if (!_done) {
 #if defined(APEX_THROTTLE)
-      // if this timer is throttled, return without doing anything
-      unordered_set<task_identifier>::const_iterator it;
-	  {
-      	read_lock_type l(throttled_event_set_mutex);
-        it = throttled_tasks.find(*id);
-      }
-      if (it != throttled_tasks.end()) {
-          /*
-           * The throw is removed, because it is a performance penalty on some systems
-           * on_start now returns a boolean
-           */
-        //throw disabled_profiler_exception(); // to be caught by apex::start/resume
-        return false;
+      if (!apex_options::use_tau) {
+        // if this timer is throttled, return without doing anything
+        unordered_set<task_identifier>::const_iterator it;
+	    {
+      	    read_lock_type l(throttled_event_set_mutex);
+            it = throttled_tasks.find(*id);
+        }
+        if (it != throttled_tasks.end()) {
+            /*
+            * The throw is removed, because it is a performance penalty on some systems
+            * on_start now returns a boolean
+            */
+            //throw disabled_profiler_exception(); // to be caught by apex::start/resume
+            return false;
+        }
       }
 #endif
       // start the profiler object, which starts our timers

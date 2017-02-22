@@ -90,9 +90,7 @@ set(CMAKE_CONFIGURATION_TYPES "${CMAKE_BUILD_TYPE}" CACHE INTERNAL
 # If TAU is used, don't allow throttling - it can potentially lead to
 # overlapping timer errors in TAU.
 if((DEFINED APEX_THROTTLE) AND (APEX_THROTTLE))
-    if ((NOT DEFINED TAU_ROOT) AND (NOT USE_TAU))
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPEX_THROTTLE")
-    endif()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPEX_THROTTLE")
 endif()
 
 if((DEFINED USE_CLOCK_TIMESTAMP) AND (USE_CLOCK_TIMESTAMP))
@@ -343,23 +341,6 @@ endif(APEX_INTEL_MIC)
 
 if(USE_MPI)
   find_package(MPI REQUIRED)
-endif()
-
-################################################################################
-# TAU configuration
-################################################################################
-
-# TAU is NOT required.
-if ((DEFINED TAU_ROOT) OR (USE_TAU))
-find_package(TAU)
-if (TAU_FOUND)
-    include_directories(${TAU_INCLUDE_DIRS})
-    set(LIBS ${LIBS} ${TAU_LIBRARIES})
-    if (NOT BUILD_STATIC_EXECUTABLES)
-        set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${TAU_LIBRARY_DIR})
-    endif()
-    set(USE_TAU TRUE)
-endif()
 endif()
 
 ################################################################################
@@ -807,7 +788,3 @@ else()
     #add_subdirectory (src/examples EXCLUDE_FROM_ALL)
 endif(BUILD_EXAMPLES)
 
-if(TAU_FOUND)
-# set any extra envionment variables here
-SET (CTEST_ENVIRONMENT "APEX_TAU=1")
-endif(TAU_FOUND)

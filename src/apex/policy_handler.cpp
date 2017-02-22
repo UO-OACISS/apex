@@ -14,12 +14,7 @@
 #include <iostream>
 #include <atomic>
 #include <unistd.h>
-
-#ifdef APEX_HAVE_TAU
-#define PROFILING_ON
-#define TAU_DOT_H_LESS_HEADERS
-#include <TAU.h>
-#endif
+#include "tau_listener.hpp"
 
 using namespace std;
 
@@ -55,23 +50,19 @@ namespace apex {
 
 	bool policy_handler::_handler(void) {
 		if (!_handler_initialized) {
-			initialize_worker_thread_for_TAU();
+			initialize_worker_thread_for_tau();
 			_handler_initialized = true;
 		}
 		this->_reset();
 		if (_terminate) return true;
-#ifdef APEX_HAVE_TAU
 		if (apex_options::use_tau()) {
-			TAU_START("policy_handler::_handler");
+			Tau_start("policy_handler::_handler");
 		}
-#endif
 		periodic_event_data data;
 		this->on_periodic(data);
-#ifdef APEX_HAVE_TAU
 		if (apex_options::use_tau()) {
-			TAU_STOP("policy_handler::_handler");
+			Tau_stop("policy_handler::_handler");
 		}
-#endif
 		return true;
 	}
 

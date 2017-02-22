@@ -22,13 +22,7 @@
 #include "thread_instance.hpp"
 #include "utils.hpp"
 
-#ifdef APEX_HAVE_TAU
 #include "tau_listener.hpp"
-#define PROFILING_ON
-//#define TAU_GNU
-#define TAU_DOT_H_LESS_HEADERS
-#include <TAU.h>
-#endif
 #include "profiler_listener.hpp"
 #if defined(APEX_DEBUG) || defined(APEX_ERROR_HANDLING)
 #include "apex_error_handling.hpp"
@@ -183,7 +177,6 @@ void apex::_initialize()
 #ifdef APEX_HAVE_MSR
     apex_init_msr();
 #endif
-#ifdef APEX_HAVE_TAU
     if (apex_options::use_tau())
     {
         // before spawning any other threads, initialize TAU.
@@ -192,18 +185,15 @@ void apex::_initialize()
         int argc = 1;
         tau_listener::initialize_tau(argc, argv);
     }
-#endif
     {
         //write_lock_type l(listener_mutex);
         this->the_profiler_listener = new profiler_listener();
         // this is always the first listener!
    	    listeners.push_back(the_profiler_listener);
-#ifdef APEX_HAVE_TAU
         if (apex_options::use_tau())
         {
             listeners.push_back(new tau_listener());
         }
-#endif
 #ifdef APEX_HAVE_OTF2
         if (apex_options::use_otf2())
         {
@@ -294,19 +284,6 @@ hpx::runtime * apex::get_hpx_runtime(void) {
 }
 #endif
 
-int initialize_worker_thread_for_TAU(void) {
-#ifdef APEX_HAVE_TAU
-  if (apex_options::use_tau())
-  {
-    //if (thread_instance::get_id() > 0) {
-      TAU_REGISTER_THREAD();
-    //}
-    Tau_create_top_level_timer_if_necessary();
-  }
-#endif
-  return 0;
-}
-
 uint64_t init(const char * thread_name, uint64_t comm_rank, uint64_t comm_size) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return APEX_ERROR; }
@@ -331,16 +308,12 @@ uint64_t init(const char * thread_name, uint64_t comm_rank, uint64_t comm_size) 
             instance->listeners[i]->on_startup(data);
         }
     }
-#if HAVE_TAU_disabled
     // start top-level timers for threads
     if (thread_name) {
       start(thread_name);
     } else {
       start("APEX MAIN THREAD");
     }
-#else
-    APEX_UNUSED(thread_name);
-#endif
     if (apex_options::use_screen_output() && instance->get_node_id() == 0) {
 	  std::cout << version() << std::endl;
       apex_options::print_options();
@@ -660,18 +633,15 @@ void sample_value(const std::string &name, double value)
             if (tid != -1)
             {
                 data = new sample_value_event_data(tid, name, value);
-                //Tau_trigger_context_event_thread((char*)name.c_str(), value, tid);
             }
             else
             {
                 data = new sample_value_event_data(0, name, value);
-                //Tau_trigger_context_event_thread((char*)name.c_str(), value, 0);
             }
         }
         else
         {
             data = new sample_value_event_data(0, name, value);
-            //Tau_trigger_context_event_thread((char*)name.c_str(), value, 0);
         }
     }
     else
@@ -829,53 +799,6 @@ void finalize_plugins(void) {
 #endif
 }
 
-void track_power(void)
-{
-    // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { return; }
-#ifdef APEX_HAVE_TAU
-    TAU_TRACK_POWER();
-#endif
-}
-
-void track_power_here(void)
-{
-    // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { return; }
-#ifdef APEX_HAVE_TAU
-    TAU_TRACK_POWER_HERE();
-#endif
-}
-
-void enable_tracking_power(void)
-{
-    // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { return; }
-#ifdef APEX_HAVE_TAU
-    TAU_ENABLE_TRACKING_POWER();
-#endif
-}
-
-void disable_tracking_power(void)
-{
-    // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { return; }
-#ifdef APEX_HAVE_TAU
-    TAU_DISABLE_TRACKING_POWER();
-#endif
-}
-
-void set_interrupt_interval(int seconds)
-{
-    // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { return; }
-#ifdef APEX_HAVE_TAU
-    TAU_SET_INTERRUPT_INTERVAL(seconds);
-#else
-    APEX_UNUSED(seconds);
-#endif
-}
-
 void finalize()
 {
 	//cout << thread_instance::get_id() << " *** Finalize! " << endl; fflush(stdout);
@@ -989,19 +912,14 @@ void register_thread(const std::string &name)
             instance->listeners[i]->on_new_thread(data);
         }
     }
-#ifdef APEX_HAVE_TAU_disabled
     // start top-level timers for threads
     string::size_type index = name.find("#");
-    if (index!=std::string::npos)
-    {
+    if (index!=std::string::npos) {
         string short_name = name.substr(0,index);
         start(short_name);
-    }
-    else
-    {
+    } else {
         start(name);
     }
-#endif
 }
 
 void exit_thread(void)
@@ -1359,31 +1277,6 @@ extern "C" {
     void apex_exit_thread(void)
     {
         exit_thread();
-    }
-
-    void apex_track_power(void)
-    {
-        track_power();
-    }
-
-    void apex_track_power_here(void)
-    {
-        track_power_here();
-    }
-
-    void apex_enable_tracking_power(void)
-    {
-        enable_tracking_power();
-    }
-
-    void apex_disable_tracking_power(void)
-    {
-        disable_tracking_power();
-    }
-
-    void apex_set_interrupt_interval(int seconds)
-    {
-        set_interrupt_interval(seconds);
     }
 
     apex_policy_handle* apex_register_policy(const apex_event_type when, int (f)(apex_context const)) {
