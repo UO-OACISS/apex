@@ -138,10 +138,12 @@ set(apex_headers
     apex.h
     apex.hpp
     apex_api.hpp
-    apex_types.h
+    apex_cxx_shared_lock.hpp
     apex_export.h
     apex_api.hpp
     apex_options.hpp
+    apex_policies.hpp
+    apex_types.h
     concurrency_handler.hpp
     event_listener.hpp
     handler.hpp
@@ -150,10 +152,9 @@ set(apex_headers
     profiler.hpp
     profiler_listener.hpp
     semaphore.hpp
-    apex_cxx_shared_lock.hpp
     thread_instance.hpp
     task_identifier.hpp
-    apex_policies.hpp
+    tau_listener.hpp
     ${PROC_HEADER})
     #apex_config.h
 
@@ -262,13 +263,14 @@ endif()
 set(apex_sources
     apex.cpp
     apex_options.cpp
-    thread_instance.cpp
-    event_listener.cpp
+    apex_policies.cpp
     concurrency_handler.cpp
+    event_listener.cpp
     policy_handler.cpp
     profiler_listener.cpp
     task_identifier.cpp
-    apex_policies.cpp
+    tau_listener.cpp
+    thread_instance.cpp
     utils.cpp
     ${BFD_SOURCE}
     ${PROC_SOURCE})
