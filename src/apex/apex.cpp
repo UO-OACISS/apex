@@ -50,6 +50,10 @@ using namespace std;
 namespace apex
 {
 
+#if APEX_DEBUG_TIMER_STACK
+__thread int apex_stackdepth = 0;
+#endif
+
 // Global static pointer used to ensure a single instance of the class.
 std::atomic<apex*> apex::m_pInstance(nullptr);
 
@@ -343,6 +347,13 @@ string& version() {
 
 profiler* start(const std::string &timer_name)
 {
+#if APEX_DEBUG_TIMER_STACK
+    stringstream foo;
+    for (int i = 0 ; i < apex_stackdepth ; i++) { foo << "="; }
+    apex_stackdepth++;
+    foo << thread_instance::get_id() << ": Start  " << timer_name << "\n"; 
+    std::cout << foo.str(); fflush(stdout);
+#endif
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return nullptr; }
     if (starts_with(timer_name, string("apex_internal"))) {
@@ -421,6 +432,13 @@ profiler* start(apex_function_address function_address) {
 }
 
 profiler* resume(const std::string &timer_name) {
+#if APEX_DEBUG_TIMER_STACK
+    stringstream foo;
+    for (int i = 0 ; i < apex_stackdepth ; i++) { foo << "="; }
+    apex_stackdepth++;
+    foo << thread_instance::get_id() << ": Resume " << timer_name << "\n"; 
+    std::cout << foo.str(); fflush(stdout);
+#endif
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return nullptr; }
 #ifdef APEX_DEBUG
@@ -512,7 +530,15 @@ void set_state(apex_thread_state state) {
 }
 
 void stop(profiler* the_profiler) {
-	//cout << thread_instance::get_id() << " Stop  : " << the_profiler->task_id->get_name() << endl; fflush(stdout);
+#if APEX_DEBUG_TIMER_STACK
+    if (the_profiler->task_id != nullptr) {
+        stringstream foo;
+        apex_stackdepth--;
+        for (int i = 0 ; i < apex_stackdepth ; i++) { foo << "="; }
+        foo << thread_instance::get_id() << ": Stop   " << the_profiler->task_id->get_name() << "\n"; 
+        std::cout << foo.str(); fflush(stdout);
+    }
+#endif
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
 #ifdef APEX_DEBUG
@@ -557,6 +583,16 @@ void stop(profiler* the_profiler) {
 
 void yield(profiler* the_profiler)
 {
+#if APEX_DEBUG_TIMER_STACK
+    if (the_profiler->task_id != nullptr) {
+        stringstream foo;
+        apex_stackdepth--;
+        for (int i = 0 ; i < apex_stackdepth ; i++) { foo << "="; }
+        foo << thread_instance::get_id() << ": Yield  " << the_profiler->task_id->get_name() << "\n"; 
+        std::cout << foo.str();
+        fflush(stdout);
+    }
+#endif
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
 #ifdef APEX_DEBUG

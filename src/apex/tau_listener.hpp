@@ -41,17 +41,17 @@ public:
 
 /* Weak symbols that are redefined if we load TAU at link or runtime */
 extern "C" {
-int __attribute__((weak)) initialize_worker_thread_for_tau(void);
-int __attribute__((weak)) Tau_register_thread(void);
-int __attribute__((weak)) Tau_create_top_level_timer_if_necessary(void);
-int __attribute__((weak)) Tau_start(const char *);
-int __attribute__((weak)) Tau_stop(const char *);
-int __attribute__((weak)) Tau_init(int, char**);
-int __attribute__((weak)) Tau_exit(const char*);
-int __attribute__((weak)) Tau_set_node(int);
-int __attribute__((weak)) Tau_profile_exit_all_threads(void);
-int __attribute__((weak)) Tau_get_thread(void);
-int __attribute__((weak)) Tau_profile_exit_all_tasks(void);
-int __attribute__((weak)) Tau_global_stop(void);
-int __attribute__((weak)) Tau_trigger_context_event_thread(char*, double, int);
+APEX_EXPORT int APEX_WEAK initialize_worker_thread_for_tau(void);
+APEX_EXPORT int APEX_WEAK Tau_register_thread(void);
+APEX_EXPORT int APEX_WEAK Tau_create_top_level_timer_if_necessary(void);
+APEX_EXPORT int APEX_WEAK Tau_start(const char *);
+APEX_EXPORT int APEX_WEAK Tau_stop(const char *);
+APEX_EXPORT int APEX_WEAK Tau_init(int, char**);
+APEX_EXPORT int APEX_WEAK Tau_exit(const char*);
+APEX_EXPORT int APEX_WEAK Tau_set_node(int);
+APEX_EXPORT int APEX_WEAK Tau_profile_exit_all_threads(void);
+APEX_EXPORT int APEX_WEAK Tau_get_thread(void);
+APEX_EXPORT int APEX_WEAK Tau_profile_exit_all_tasks(void);
+APEX_EXPORT int APEX_WEAK Tau_global_stop(void);
+APEX_EXPORT int APEX_WEAK Tau_trigger_context_event_thread(char*, double, int);
 }

@@ -12,4 +12,6 @@
 #define APEX_EXPORT __attribute__((visibility("default")))
 #endif
 
+#define APEX_WEAK __attribute__((weak))
+
 #endif

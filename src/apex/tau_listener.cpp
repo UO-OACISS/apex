@@ -4,6 +4,7 @@
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include "tau_listener.hpp"
+#include "thread_instance.hpp"
 #include <iostream>
 #include <fstream>
 
@@ -11,6 +12,15 @@
 using namespace std;
 
 namespace apex {
+
+#if APEX_DEBUG_TIMER_STACK
+__thread int tau_stackdepth = 0;
+std::vector<task_identifier>& get_tau_timer_stack() {
+    // not a queue, because we need to inspect it.
+    static __thread std::vector<task_identifier> tau_timer_stack; 
+    return tau_timer_stack;
+}
+#endif
 
 void tau_listener::initialize_tau(int argc, char** argv) {
   if (argc == 0) {
@@ -68,8 +78,18 @@ void tau_listener::on_exit_thread(event_data &data) {
 }
 
 bool tau_listener::on_start(task_identifier * id) {
+#if APEX_DEBUG_TIMER_STACK
+  stringstream foo;
+  for (int i = 0 ; i < tau_stackdepth ; i++) { foo << "-"; }
+  tau_stackdepth++;
+  foo << thread_instance::get_id() << ": TAU Start " << id->get_name() << "\n"; 
+  std::cout << foo.str(); fflush(stdout);
+#endif
   if (!_terminate) {
     Tau_start(id->get_name().c_str());
+#if APEX_DEBUG_TIMER_STACK
+    get_tau_timer_stack().push_back(*id);
+#endif
   } else {
       return false;
   }
@@ -81,12 +101,35 @@ bool tau_listener::on_resume(task_identifier * id) {
 }
 
 void tau_listener::on_stop(std::shared_ptr<profiler> &p) {
+#if APEX_DEBUG_TIMER_STACK
+  stringstream foo;
+  tau_stackdepth--;
+  for (int i = 0 ; i < tau_stackdepth ; i++) { foo << "-"; }
+  foo << thread_instance::get_id() << ": TAU Stop  " << p->task_id->get_name() << "\n"; 
+  std::cout << foo.str(); fflush(stdout);
+#endif
   static string empty("");
   if (!_terminate) {
       if (p->task_id->get_name().compare(empty) == 0) {
           Tau_global_stop(); // stop the top level timer
       } else {
+#if APEX_DEBUG_TIMER_STACK
+          if (!get_tau_timer_stack().empty()) {
+            if (!(*(p->task_id) == get_tau_timer_stack().back())) {
+                // shit. Overlapping timers. Unwind the stack until we find this timer.
+                while (!get_tau_timer_stack().empty() && !(*(p->task_id) == get_tau_timer_stack().back())) {
+                    get_tau_timer_stack().pop_back();
+  tau_stackdepth--;
+                    Tau_global_stop(); // stop the top level timer
+                }
+            } else {
+                get_tau_timer_stack().pop_back();
+                Tau_stop(p->task_id->get_name().c_str());
+            }
+          }
+#else
           Tau_stop(p->task_id->get_name().c_str());
+#endif
       }
   }
   return;
@@ -131,17 +174,23 @@ int initialize_worker_thread_for_TAU(void) {
 
 /* Weak symbols that are redefined if we use TAU at runtime */
 extern "C" {
-int __attribute__((weak)) initialize_worker_thread_for_tau(void) {return 0;}
-int __attribute__((weak)) Tau_register_thread(void) {return 0;}
-int __attribute__((weak)) Tau_create_top_level_timer_if_necessary(void) {return 0;}
-int __attribute__((weak)) Tau_start(const char *) {return 0;}
-int __attribute__((weak)) Tau_stop(const char *) {return 0;}
-int __attribute__((weak)) Tau_init(int, char**) {return 0;}
-int __attribute__((weak)) Tau_exit(const char*) {return 0;}
-int __attribute__((weak)) Tau_set_node(int) {return 0;}
-int __attribute__((weak)) Tau_profile_exit_all_threads(void) {return 0;}
-int __attribute__((weak)) Tau_get_thread(void) {return 0;}
-int __attribute__((weak)) Tau_profile_exit_all_tasks(void) {return 0;}
-int __attribute__((weak)) Tau_global_stop(void) {return 0;}
-int __attribute__((weak)) Tau_trigger_context_event_thread(char*, double, int) {return 0;}
+APEX_EXPORT int APEX_WEAK Tau_init(int, char**) {
+    if (apex::apex_options::use_tau()) {
+        /* Print an error message, because TAU wasn't preloaded! */
+        std::cerr << "WARNING! TAU libraries not loaded, TAU support unavailable!" << std::endl;
+    }
+    return 0;
+}
+APEX_EXPORT int APEX_WEAK initialize_worker_thread_for_tau(void) {return 0;}
+APEX_EXPORT int APEX_WEAK Tau_register_thread(void) {return 0;}
+APEX_EXPORT int APEX_WEAK Tau_create_top_level_timer_if_necessary(void) {return 0;}
+APEX_EXPORT int APEX_WEAK Tau_start(const char *) {return 0;}
+APEX_EXPORT int APEX_WEAK Tau_stop(const char *) {return 0;}
+APEX_EXPORT int APEX_WEAK Tau_exit(const char*) {return 0;}
+APEX_EXPORT int APEX_WEAK Tau_set_node(int) {return 0;}
+APEX_EXPORT int APEX_WEAK Tau_profile_exit_all_threads(void) {return 0;}
+APEX_EXPORT int APEX_WEAK Tau_get_thread(void) {return 0;}
+APEX_EXPORT int APEX_WEAK Tau_profile_exit_all_tasks(void) {return 0;}
+APEX_EXPORT int APEX_WEAK Tau_global_stop(void) {return 0;}
+APEX_EXPORT int APEX_WEAK Tau_trigger_context_event_thread(char*, double, int) {return 0;}
 }
