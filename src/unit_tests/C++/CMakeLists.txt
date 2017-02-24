@@ -32,6 +32,7 @@ set(example_programs
     apex_print_options
     apex_get_thread_cap
     apex_shutdown_throttling
+    apex_hpx_annotated_functions
    )
     #apex_fibonacci_std_async
     #apex_set_thread_cap
