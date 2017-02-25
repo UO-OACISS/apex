@@ -134,6 +134,9 @@ public:
         end = MYCLOCK::now();
         stopped = true;
     };
+    void restart() {
+        start = MYCLOCK::now();
+    };
     double elapsed(void) {
         if(is_counter) {
             return value;

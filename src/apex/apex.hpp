@@ -146,6 +146,7 @@ public:
 
 void init_plugins(void);
 void finalize_plugins(void);
+profiler * resume(profiler * p);
 
 #ifdef APEX_HAVE_HPX
 hpx::runtime * get_hpx_runtime_ptr(void);

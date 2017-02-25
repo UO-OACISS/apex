@@ -98,13 +98,14 @@ APEX_EXPORT void cleanup(void);
  passed in to this function.
  
  \param timer_name The name of the timer.
+ \param a GUID associated with this task. 0 means NULL.
  \return The handle for the timer object in APEX. Not intended to be
          queried by the application. Should be retained locally, if
          possible, and passed in to the matching apex::stop()
          call when the timer should be stopped.
  \sa @ref apex::stop, @ref apex::yield, @ref apex::resume
  */
-APEX_EXPORT profiler * start(const std::string &timer_name);
+APEX_EXPORT profiler * start(const std::string &timer_name, uint64_t guid = 0LL);
 
 /**
  \brief Start a timer.
@@ -114,13 +115,14 @@ APEX_EXPORT profiler * start(const std::string &timer_name);
  address passed in to this function.
  
  \param function_address The address of the function to be timed
+ \param A GUID associated with this task. 0 means NULL.
  \return The handle for the timer object in APEX. Not intended to be
          queried by the application. Should be retained locally, if
          possible, and passed in to the matching apex::stop
          call when the timer should be stopped.
  \sa @ref apex::stop, @ref apex::yield, @ref apex::resume
  */
-APEX_EXPORT profiler * start(apex_function_address function_address);
+APEX_EXPORT profiler * start(apex_function_address function_address, uint64_t guid = 0LL);
 
 /**
  \brief Stop a timer.

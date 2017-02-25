@@ -4,6 +4,7 @@
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include "apex_api.hpp" // make this the first include.
+#include "apex.hpp"
 #include "thread_instance.hpp"
 #include <iostream>
 
@@ -24,6 +25,8 @@
 #ifdef APEX_HAVE_BFD
 #include "address_resolution.hpp"
 #endif
+
+#include <assert.h>
 
 using namespace std;
 
@@ -52,6 +55,10 @@ string * thread_instance::_program_path = nullptr;
 std::mutex thread_instance::_open_profiler_mutex;
 std::unordered_set<std::string> thread_instance::open_profilers;
 #endif
+
+// Global static unordered map of parent GUIDs to child GUIDs
+// to handle "overlapping timer" problem.
+std::unordered_map<uint64_t, std::vector<profiler*>* > thread_instance::children_to_resume;
 
 thread_instance& thread_instance::instance(bool is_worker) {
   if( _instance == nullptr ) {
@@ -229,16 +236,69 @@ string thread_instance::map_addr_to_name(apex_function_address function_address)
 
 void thread_instance::set_current_profiler(profiler * the_profiler) {
     instance().current_profiler = the_profiler;
-    /*
+    std::cout << instance().current_profilers.size() << " Pushing " << the_profiler->task_id->get_name() << "\n";
     instance().current_profilers.push_back(the_profiler);
-    */
+    // restore the children here?
+    auto tmp = children_to_resume.find(the_profiler->task_id->_guid);
+    if (tmp != children_to_resume.end()) {
+        auto myvec = tmp->second;
+        std::cout << "restoring children!\n";
+        for (profiler * myprof : *myvec) {
+            resume(myprof);
+            std::cout << instance().current_profilers.size() << " Pushing " << myprof->task_id->get_name() << "\n";
+            instance().current_profilers.push_back(myprof);
+        }
+        //delete myvec;
+        //children_to_resume.erase(the_profiler->task_id->_guid);
+    }
 }
 
-void thread_instance::clear_current_profiler(void) {
+void thread_instance::clear_current_profiler(profiler * the_profiler) {
+    __thread static bool fixing_stack = false;
     instance().current_profiler = nullptr;
-    /*
-    instance().current_profilers.push_back(the_profiler);
-    */
+    // this is a serious problem...
+    if (instance().current_profilers.empty()) { 
+        std::cerr << "Warning! empty profiler stack!\n";
+        return; 
+    }
+    if (fixing_stack) {return;}
+    auto tmp = instance().current_profilers.back();
+    /* Uh-oh! Someone has caused the dreaded "overlapping timer" problem to
+     * happen! No problem - stop the child timer.
+     * Keep the children around, along with a reference to the parent's
+     * guid so that if/when we see this parent again, we can restart
+     * the children timers. */
+    if (tmp != the_profiler) {
+        fixing_stack = true;
+        std::cout << "overlapping timer\n" << std::endl;
+        uint64_t guid = the_profiler->task_id->_guid;
+        std::vector<profiler*> * children = new vector<profiler*>();
+        while (tmp != the_profiler) {
+            // if the guid isn't set, we can't support this runtime.
+            assert(guid > 0);
+            // this is a serious problem...
+            if (instance().current_profilers.empty()) { 
+                std::cerr << "Warning! empty profiler stack!\n";
+                return; 
+            }
+            /* Make a copy of the profiler object on the top of the stack. */
+            profiler * profiler_copy = new profiler(*tmp);
+            /* Stop the copy. The original will get reset when the
+            parent resumes. */
+            children->push_back(tmp);
+            stop(profiler_copy);  // we better be re-entrant safe!
+            // pop the original child, we've saved it in the vector
+            std::cout << instance().current_profilers.size() << " Popping " << tmp->task_id->get_name() << "\n";
+            instance().current_profilers.pop_back();
+            // get the new top of the stack
+            tmp = instance().current_profilers.back();
+        }
+        children_to_resume[guid] = children;
+        fixing_stack = false;
+    }
+    // pop this timer off the stack.
+    std::cout << instance().current_profilers.size() << " Popping " << instance().current_profilers.back()->task_id->get_name() << "\n";
+    instance().current_profilers.pop_back();
 }
 
 profiler * thread_instance::get_current_profiler(void) {

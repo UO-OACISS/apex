@@ -18,6 +18,7 @@
 #ifdef APEX_DEBUG
 #include <unordered_set>
 #endif
+#include <unordered_map>
 #include "apex_cxx_shared_lock.hpp"
 
 namespace apex {
@@ -50,6 +51,7 @@ private:
   static std::atomic_int _num_threads;
   static std::atomic_int _active_threads;
   static std::string * _program_path;
+  static std::unordered_map<uint64_t, std::vector<profiler*>* > children_to_resume;
   // thread specific data
   static APEX_NATIVE_TLS thread_instance * _instance;
   // constructor
@@ -57,9 +59,7 @@ private:
   // map from function address to name - unique to all threads to avoid locking
   std::map<apex_function_address, std::string> _function_map;
   profiler * current_profiler;
-  /*
   std::vector<profiler*> current_profilers;
-  */
   //std::shared_ptr<profiler> current_profiler;
   //std::vector<std::shared_ptr<profiler> > current_profilers;
 public:
@@ -83,7 +83,7 @@ public:
   //static std::shared_ptr<profiler> pop_current_profiler(profiler * requested);
   static void set_current_profiler(profiler * the_profiler);
   static profiler * get_current_profiler(void);
-  static void clear_current_profiler(void);
+  static void clear_current_profiler(profiler * the_profiler);
   /*
   static profiler * get_parent_profiler(void);
   static profiler * pop_current_profiler(void);
