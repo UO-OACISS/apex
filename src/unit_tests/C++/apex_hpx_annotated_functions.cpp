@@ -20,8 +20,10 @@ int nsleep(long miliseconds, int tid)
         req.tv_nsec = miliseconds * 1000000;    /* Must be in range of 0 to 999999999 */
    }   
 
+/*
     std::stringstream buf;
     buf << "APP: " << tid << ": Computing " << miliseconds << " miliseconds\n"; std::cout << buf.str();
+    */
    return nanosleep(&req , &rem);
 }
 
@@ -98,10 +100,10 @@ int main (int argc, char** argv) {
     /* start a timer */
     apex::profiler* p = apex::start("main");
     /* Spawn X threads */
-    int numthreads = 1;
+    //int numthreads = 1;
+    int numthreads = apex::hardware_concurrency();
     int * tids = (int*)calloc(numthreads, sizeof(int));
-#if 0
-    //int numthreads = apex::hardware_concurrency();
+#if 1
     pthread_t * thread = (pthread_t*)calloc(numthreads, sizeof(pthread_t));
     for (int i = 0 ; i < numthreads ; i++) {
         tids[i] = i;

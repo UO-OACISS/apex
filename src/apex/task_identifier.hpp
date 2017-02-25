@@ -25,6 +25,8 @@ public:
       address(a), name(""), _resolved_name(""), has_name(false), _guid(guid) {};
   task_identifier(std::string n, uint64_t guid = 0) :
       address(0L), name(demangle(n)), _resolved_name(""), has_name(true), _guid(guid) {};
+  task_identifier(const task_identifier& rhs) :
+      address(rhs.address), name(rhs.name), _resolved_name(rhs._resolved_name), has_name(rhs.has_name), _guid(rhs._guid) { };
 	  /*
   task_identifier(profiler * p) :
       address(0L), name(""), _resolved_name("") {

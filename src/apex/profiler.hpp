@@ -108,20 +108,20 @@ public:
         is_resume(false),
         is_reset(reset_type::NONE), stopped(true) { };
     //copy constructor
-    profiler(profiler* in) : start(in->start), end(in->end) {
+    profiler(const profiler& in) : start(in.start), end(in.end) {
 #if APEX_HAVE_PAPI
         for (int i = 0 ; i < 8 ; i++) {
-            papi_start_values[i] = in->papi_start_values[i];
-            papi_stop_values[i] = in->papi_stop_values[i];
+            papi_start_values[i] = in.papi_start_values[i];
+            papi_stop_values[i] = in.papi_stop_values[i];
         }
 #endif
-    value = in->elapsed();
-    children_value = in->children_value;
-	task_id = new task_identifier(*in->task_id);
-    is_counter = in->is_counter;
-    is_resume = in->is_resume; // for yield or resume
-    is_reset = in->is_reset;
-    stopped = in->stopped;
+    value = in.value;
+    children_value = in.children_value;
+	task_id = new task_identifier(*in.task_id);
+    is_counter = in.is_counter;
+    is_resume = in.is_resume; // for yield or resume
+    is_reset = in.is_reset;
+    stopped = in.stopped;
     }
     ~profiler(void) { if (task_id != nullptr) delete task_id; };
     // for "yield" support
@@ -135,6 +135,7 @@ public:
         stopped = true;
     };
     void restart() {
+        this->is_resume = true;
         start = MYCLOCK::now();
     };
     double elapsed(void) {
