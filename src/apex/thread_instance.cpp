@@ -59,6 +59,7 @@ std::unordered_set<std::string> thread_instance::open_profilers;
 // Global static unordered map of parent GUIDs to child GUIDs
 // to handle "overlapping timer" problem.
 std::unordered_map<uint64_t, std::vector<profiler*>* > thread_instance::children_to_resume;
+static std::mutex _profiler_stack_mutex;
 
 thread_instance& thread_instance::instance(bool is_worker) {
   if( _instance == nullptr ) {
@@ -238,6 +239,7 @@ void thread_instance::set_current_profiler(profiler * the_profiler) {
     instance().current_profiler = the_profiler;
     instance().current_profilers.push_back(the_profiler);
     // restore the children here?
+    std::unique_lock<std::mutex> l(_profiler_stack_mutex);
     auto tmp = children_to_resume.find(the_profiler->task_id->_guid);
     if (tmp != children_to_resume.end()) {
         auto myvec = tmp->second;
@@ -256,7 +258,8 @@ void thread_instance::clear_current_profiler(profiler * the_profiler) {
     // this is a serious problem...
     if (instance().current_profilers.empty()) { 
         std::cerr << "Warning! empty profiler stack!\n";
-        return; 
+        assert(false);
+        return;
     }
     if (fixing_stack) {return;}
     auto tmp = instance().current_profilers.back();
@@ -274,22 +277,24 @@ void thread_instance::clear_current_profiler(profiler * the_profiler) {
             assert(guid > 0);
             /* Make a copy of the profiler object on the top of the stack. */
             profiler * profiler_copy = new profiler(*tmp);
+            children->push_back(tmp);
             /* Stop the copy. The original will get reset when the
             parent resumes. */
-            children->push_back(tmp);
             stop(profiler_copy);  // we better be re-entrant safe!
             // pop the original child, we've saved it in the vector
             instance().current_profilers.pop_back();
             // this is a serious problem...
             if (instance().current_profilers.empty()) { 
                 std::cerr << "Warning! empty profiler stack!\n";
-                return; 
+                assert(false);
+                return;
             }
             // get the new top of the stack
             tmp = instance().current_profilers.back();
         }
-        children_to_resume[guid] = children;
         fixing_stack = false;
+        std::unique_lock<std::mutex> l(_profiler_stack_mutex);
+        children_to_resume[guid] = children;
     }
     // pop this timer off the stack.
     instance().current_profilers.pop_back();
