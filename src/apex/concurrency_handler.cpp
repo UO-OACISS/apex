@@ -118,7 +118,7 @@ void concurrency_handler::_init(void) {
   return;
 }
 
-bool concurrency_handler::on_start(task_identifier *id) {
+bool concurrency_handler::common_start(task_identifier *id) {
   if (!_terminate) {
     int i = thread_instance::get_id();
     stack<task_identifier>* my_stack = get_event_stack(i);
@@ -129,22 +129,17 @@ bool concurrency_handler::on_start(task_identifier *id) {
   } else {
     return false;
   }
+}
+
+bool concurrency_handler::on_start(task_identifier *id) {
+    return common_start(id);
 }
 
 bool concurrency_handler::on_resume(task_identifier * id) {
-  if (!_terminate) {
-    int i = thread_instance::get_id();
-    stack<task_identifier>* my_stack = get_event_stack(i);
-    _per_thread_mutex[i]->lock();
-    my_stack->push(*id);
-    _per_thread_mutex[i]->unlock();
-    return true;
-  } else {
-    return false;
-  }
+    return common_start(id);
 }
 
-void concurrency_handler::on_stop(std::shared_ptr<profiler> &p) {
+void concurrency_handler::common_stop(std::shared_ptr<profiler> &p) {
   if (!_terminate) {
     int i = thread_instance::get_id();
     stack<task_identifier>* my_stack = get_event_stack(i);
@@ -157,8 +152,12 @@ void concurrency_handler::on_stop(std::shared_ptr<profiler> &p) {
   APEX_UNUSED(p);
 }
 
+void concurrency_handler::on_stop(std::shared_ptr<profiler> &p) {
+    common_stop(p);
+}
+
 void concurrency_handler::on_yield(std::shared_ptr<profiler> &p) {
-    on_stop(p);
+    common_stop(p);
 }
 
 void concurrency_handler::on_new_thread(new_thread_event_data &data) {

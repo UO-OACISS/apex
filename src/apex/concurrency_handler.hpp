@@ -41,6 +41,9 @@ private:
   std::set<task_identifier> _functions;
   std::mutex _function_mutex;
   int _option;
+  // internal helper functions
+  bool common_start(task_identifier * id);
+  void common_stop(std::shared_ptr<profiler> &p);
 public:
   concurrency_handler (void);
   concurrency_handler (int option);
