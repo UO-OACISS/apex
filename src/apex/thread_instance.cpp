@@ -253,7 +253,7 @@ void thread_instance::set_current_profiler(profiler * the_profiler) {
 }
 
 void thread_instance::clear_current_profiler(profiler * the_profiler) {
-    __thread static bool fixing_stack = false;
+    static __thread bool fixing_stack = false;
     instance().current_profiler = nullptr;
     // this is a serious problem...
     if (instance().current_profilers.empty()) { 

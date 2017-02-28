@@ -3,6 +3,7 @@
 #include <iostream>
 #include <atomic>
 #include <time.h>
+#include <stdint.h>
 #include "apex_api.hpp"
 
 int numthreads = 0;
@@ -35,7 +36,7 @@ int nsleep(long miliseconds, int tid)
 }
 
 static void init_guid(int tid) {
-    guid = ((LONG_MAX/numthreads) * tid);
+    guid = ((UINT64_MAX/numthreads) * tid);
 }
 
 static uint64_t get_guid() {
