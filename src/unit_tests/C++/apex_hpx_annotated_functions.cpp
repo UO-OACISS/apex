@@ -7,8 +7,9 @@
 #include "apex_api.hpp"
 
 int numthreads = 0;
+int threads_per_core = 8;
 __thread uint64_t guid = 0;
-const int num_iterations = 100;
+const int num_iterations = 10;
 
 int nsleep(long miliseconds, int tid)
 {
@@ -48,7 +49,7 @@ void innerLoop(int *tid) {
     /* Start a timer with a GUID*/
     uint64_t myguid = get_guid();
     std::stringstream buf;
-    //buf << "APP: " << *tid << ": Starting thread " << myguid << "\n"; std::cout << buf.str();
+    buf << "APP: " << *tid << ": Starting thread " << myguid << "\n"; std::cout << buf.str();
     //apex::profiler* p = apex::start((apex_function_address)&someThread, myguid);
     apex::profiler* p = apex::start(__func__, myguid);
 
@@ -58,7 +59,7 @@ void innerLoop(int *tid) {
 	/* Start a timer like an "annotated_function" */
     uint64_t afguid = get_guid();
     buf = std::stringstream();
-    //buf << "APP: " << *tid << ": Starting annotated_function " << afguid << "\n"; std::cout << buf.str();
+    buf << "APP: " << *tid << ": Starting annotated_function " << afguid << "\n"; std::cout << buf.str();
     apex::profiler* af = apex::start("annotated function", afguid);
 
     /* do some computation */
@@ -83,7 +84,7 @@ void innerLoop(int *tid) {
 
     /* stop the annotated_function */
     buf = std::stringstream();
-    //buf << "APP: " << *tid << ": Stopping annotated_function " << afguid << "\n"; std::cout << buf.str();
+    buf << "APP: " << *tid << ": Stopping annotated_function " << afguid << "\n"; std::cout << buf.str();
     apex::stop(af);
 
     /* do some computation */
@@ -91,7 +92,7 @@ void innerLoop(int *tid) {
 
     /* stop the timer */
     buf = std::stringstream();
-    //buf << "APP: " << *tid << ": Stopping thread " << myguid << "\n"; std::cout << buf.str();
+    buf << "APP: " << *tid << ": Stopping thread " << myguid << "\n"; std::cout << buf.str();
     apex::stop(p);
 }
 
@@ -123,7 +124,10 @@ int main (int argc, char** argv) {
     /* start a timer */
     apex::profiler* p = apex::start("main");
     /* Spawn X threads */
-    numthreads = apex::hardware_concurrency() * 16; // 16 threads per core. Stress it!
+    numthreads = apex::hardware_concurrency() * threads_per_core; // many threads per core. Stress it!
+    if (apex::apex_options::use_tau()) { 
+        numthreads = std::min(numthreads, 128);
+    }
     int * tids = (int*)calloc(numthreads, sizeof(int));
     pthread_t * thread = (pthread_t*)calloc(numthreads, sizeof(pthread_t));
     for (int i = 0 ; i < numthreads ; i++) {

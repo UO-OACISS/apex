@@ -8,12 +8,13 @@
 #include <iostream>
 #include <fstream>
 
+#define APEX_DEBUG_TIMER_STACK
 
 using namespace std;
 
 namespace apex {
 
-#if APEX_DEBUG_TIMER_STACK
+#ifdef APEX_DEBUG_TIMER_STACK
 __thread int tau_stackdepth = 0;
 std::vector<task_identifier>& get_tau_timer_stack() {
     // not a queue, because we need to inspect it.
@@ -78,7 +79,7 @@ void tau_listener::on_exit_thread(event_data &data) {
 }
 
 bool tau_listener::on_start(task_identifier * id) {
-#if APEX_DEBUG_TIMER_STACK
+#ifdef APEX_DEBUG_TIMER_STACK
   stringstream foo;
   for (int i = 0 ; i < tau_stackdepth ; i++) { foo << "-"; }
   tau_stackdepth++;
@@ -87,7 +88,7 @@ bool tau_listener::on_start(task_identifier * id) {
 #endif
   if (!_terminate) {
     Tau_start(id->get_name().c_str());
-#if APEX_DEBUG_TIMER_STACK
+#ifdef APEX_DEBUG_TIMER_STACK
     get_tau_timer_stack().push_back(*id);
 #endif
   } else {
@@ -101,7 +102,7 @@ bool tau_listener::on_resume(task_identifier * id) {
 }
 
 void tau_listener::on_stop(std::shared_ptr<profiler> &p) {
-#if APEX_DEBUG_TIMER_STACK
+#ifdef APEX_DEBUG_TIMER_STACK
   stringstream foo;
   tau_stackdepth--;
   for (int i = 0 ; i < tau_stackdepth ; i++) { foo << "-"; }
@@ -113,7 +114,7 @@ void tau_listener::on_stop(std::shared_ptr<profiler> &p) {
       if (p->task_id->get_name().compare(empty) == 0) {
           Tau_global_stop(); // stop the top level timer
       } else {
-#if APEX_DEBUG_TIMER_STACK
+#ifdef APEX_DEBUG_TIMER_STACK
           if (!get_tau_timer_stack().empty()) {
             if (!(*(p->task_id) == get_tau_timer_stack().back())) {
                 // shit. Overlapping timers. Unwind the stack until we find this timer.

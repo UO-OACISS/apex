@@ -81,6 +81,7 @@ public:
   //static std::shared_ptr<profiler> get_parent_profiler(void);
   //static std::shared_ptr<profiler> pop_current_profiler(void);
   //static std::shared_ptr<profiler> pop_current_profiler(profiler * requested);
+  static profiler * restore_children_profilers(void);
   static void set_current_profiler(profiler * the_profiler);
   static profiler * get_current_profiler(void);
   static void clear_current_profiler(profiler * the_profiler);

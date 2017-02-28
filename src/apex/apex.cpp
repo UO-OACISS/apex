@@ -391,7 +391,8 @@ profiler* start(const std::string &timer_name, uint64_t guid)
 #ifdef APEX_DEBUG
     thread_instance::instance().add_open_profiler(thread_instance::instance().get_current_profiler());
 #endif
-    return thread_instance::instance().get_current_profiler();
+    //return thread_instance::instance().get_current_profiler();
+    return thread_instance::instance().restore_children_profilers();
 }
 
 profiler* start(apex_function_address function_address, uint64_t guid) {

@@ -238,9 +238,13 @@ string thread_instance::map_addr_to_name(apex_function_address function_address)
 void thread_instance::set_current_profiler(profiler * the_profiler) {
     instance().current_profiler = the_profiler;
     instance().current_profilers.push_back(the_profiler);
+}
+
+profiler *  thread_instance::restore_children_profilers(void) {
+    profiler * parent = instance().current_profiler;
     // restore the children here?
     std::unique_lock<std::mutex> l(_profiler_stack_mutex);
-    auto tmp = children_to_resume.find(the_profiler->task_id->_guid);
+    auto tmp = children_to_resume.find(parent->task_id->_guid);
     if (tmp != children_to_resume.end()) {
         auto myvec = tmp->second;
         for (profiler * myprof : *myvec) {
@@ -248,8 +252,10 @@ void thread_instance::set_current_profiler(profiler * the_profiler) {
             instance().current_profilers.push_back(myprof);
         }
         delete myvec;
-        children_to_resume.erase(the_profiler->task_id->_guid);
+        children_to_resume.erase(parent->task_id->_guid);
     }
+    // The caller of this function wants the parent, not these leaves.
+    return parent;
 }
 
 void thread_instance::clear_current_profiler(profiler * the_profiler) {
