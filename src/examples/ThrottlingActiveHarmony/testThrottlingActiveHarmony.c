@@ -10,7 +10,7 @@
 #define MAX(a,b) ((a) > (b) ? a : b)
 #define MIN(a,b) ((a) < (b) ? a : b)
 
-#define ITERATIONS 10000
+#define ITERATIONS 1000
 #define SLEEPY_TIME 10000 // 10,000
 
 int num_threads = 1;
@@ -74,9 +74,11 @@ int main(int argc, char **argv)
   apex_init(argv[0], 0, 1);
   num_threads = apex_hardware_concurrency();
   total_iterations = num_threads * ITERATIONS;
+  apex_set_throttle_concurrency(true);
+  apex_set_throttle_energy(true);
 
   apex_setup_timer_throttling(APEX_FUNCTION_ADDRESS, &foo, APEX_MINIMIZE_ACCUMULATED,
-          APEX_ACTIVE_HARMONY, 500000);
+          APEX_ACTIVE_HARMONY, 1000000);
 
   int original_cap = apex_get_thread_cap();
 

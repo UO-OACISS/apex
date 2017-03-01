@@ -8,8 +8,8 @@
 
 #include "apex_api.hpp"
 
-#define ITERATIONS 5000
-#define SLEEPY_TIME 10000 // 10,000
+#define ITERATIONS 1000
+#define SLEEPY_TIME 1000 // 10000
 
 const int NUM_THREADS = std::thread::hardware_concurrency();
 std::atomic<int> total_iterations(NUM_THREADS * ITERATIONS);
@@ -20,12 +20,13 @@ using namespace std;
 int foo (int i) {
   profiler* p = start((apex_function_address)foo);
   int j = i*i;
-  double randval = 1.0 + (((double)(rand())) / RAND_MAX);
+  //double randval = 1.0 + (((double)(rand())) / RAND_MAX);
   struct timespec tim, tim2;
   tim.tv_sec = 0;
   // sleep just a bit longer, based on number of active threads.
   int cap = min(NUM_THREADS,get_thread_cap());
-  tim.tv_nsec = (unsigned long)(SLEEPY_TIME * randval * (cap * cap));
+  //tim.tv_nsec = (unsigned long)(SLEEPY_TIME * randval * (cap * cap));
+  tim.tv_nsec = (unsigned long)(SLEEPY_TIME * (cap * cap));
   nanosleep(&tim , &tim2);
   stop(p);
   return j;
@@ -75,8 +76,10 @@ int main(int argc, char **argv)
 {
   init(argv[0], 0, 1);
   //print_options();
+  apex_options::throttle_concurrency(true);
+  apex_options::throttle_energy(true);
 
-  setup_timer_throttling((apex_function_address)foo, APEX_MAXIMIZE_THROUGHPUT,
+  setup_timer_throttling((apex_function_address)foo, APEX_MINIMIZE_ACCUMULATED,
           APEX_DISCRETE_HILL_CLIMBING, 1000000);
   int original_cap = get_thread_cap();
 

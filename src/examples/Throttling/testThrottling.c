@@ -10,8 +10,8 @@
 #define MAX(a,b) ((a) > (b) ? a : b)
 #define MIN(a,b) ((a) < (b) ? a : b)
 
-#define ITERATIONS 5000
-#define SLEEPY_TIME 10000 // 10,000
+#define ITERATIONS 1000
+#define SLEEPY_TIME 1000 // 1000
 
 int numcores = 8;
 int total_iterations = ITERATIONS;
@@ -78,6 +78,8 @@ void* someThread(void* tmp)
 int main(int argc, char **argv)
 {
   apex_init(argv[0], 0, 1);
+  apex_set_throttle_concurrency(true);
+  apex_set_throttle_energy(true);
 
   apex_setup_timer_throttling(APEX_FUNCTION_ADDRESS, &foo, APEX_MINIMIZE_ACCUMULATED,
           APEX_DISCRETE_HILL_CLIMBING, 1000000);

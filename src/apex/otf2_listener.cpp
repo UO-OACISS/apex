@@ -267,6 +267,19 @@ namespace apex {
       return evt_writer;
     }
 
+    bool otf2_listener::event_file_exists (int threadid) {
+        struct stat buffer;   
+        uint64_t my_node_id = my_saved_node_id;
+        my_node_id = (my_node_id << 32) + threadid;
+        // wait on the map file from rank 0 to exist
+        ostringstream event_filename;
+        event_filename << apex_options::otf2_archive_path() << "/";
+        event_filename << apex_options::otf2_archive_name() << "/";
+        event_filename << my_node_id << ".evt";
+        if (stat (event_filename.str().c_str(), &buffer) == 0) { return true; }
+        return false;
+    }
+
     OTF2_DefWriter* otf2_listener::getDefWriter(int threadid) {
         uint64_t my_node_id = my_saved_node_id;
         my_node_id = (my_node_id << 32) + threadid;
@@ -674,18 +687,22 @@ namespace apex {
             uint64_t map_size = global_region_indices.size();
             OTF2_IdMap * my_map = OTF2_IdMap_CreateFromUint64Array(map_size, mappings, false);
             for (int i = 0 ; i < thread_instance::get_num_threads() ; i++) {
-                OTF2_DefWriter* def_writer = getDefWriter(i);
-                OTF2_DefWriter_WriteMappingTable(def_writer, OTF2_MAPPING_REGION, my_map);
-                OTF2_Archive_CloseDefWriter( archive, def_writer );
+                if (event_file_exists(i)) {
+                    OTF2_DefWriter* def_writer = getDefWriter(i);
+                    OTF2_DefWriter_WriteMappingTable(def_writer, OTF2_MAPPING_REGION, my_map);
+                    OTF2_Archive_CloseDefWriter( archive, def_writer );
+                }
             }
             // free the map
             OTF2_IdMap_Free(my_map);
             free(mappings);
         } else {
             for (int i = 0 ; i < thread_instance::get_num_threads() ; i++) {
-                /* write an empty definition file */
-                OTF2_DefWriter* def_writer = getDefWriter(i);
-                OTF2_Archive_CloseDefWriter( archive, def_writer );
+                if (event_file_exists(i)) {
+                    /* write an empty definition file */
+                    OTF2_DefWriter* def_writer = getDefWriter(i);
+                    OTF2_Archive_CloseDefWriter( archive, def_writer );
+                }
             }
         }
     }
@@ -726,9 +743,11 @@ namespace apex {
             uint64_t map_size = global_metric_indices.size();
             OTF2_IdMap * my_map = OTF2_IdMap_CreateFromUint64Array(map_size, mappings, false);
             for (int i = 0 ; i < thread_instance::get_num_threads() ; i++) {
-                OTF2_DefWriter* def_writer = getDefWriter(i);
-                OTF2_DefWriter_WriteMappingTable(def_writer, OTF2_MAPPING_METRIC, my_map);
-                OTF2_Archive_CloseDefWriter( archive, def_writer );
+                if (event_file_exists(i)) {
+                    OTF2_DefWriter* def_writer = getDefWriter(i);
+                    OTF2_DefWriter_WriteMappingTable(def_writer, OTF2_MAPPING_METRIC, my_map);
+                    OTF2_Archive_CloseDefWriter( archive, def_writer );
+                }
             }
             // free the map
             OTF2_IdMap_Free(my_map);
@@ -845,8 +864,10 @@ namespace apex {
                     // no communication? write empty def files for each thread.
                     for (int i = 0 ; i < thread_instance::get_num_threads() ; i++) {
                         /* write an empty definition file */
-                        OTF2_DefWriter* def_writer = getDefWriter(i);
-                        OTF2_EC(OTF2_Archive_CloseDefWriter( archive, def_writer ));
+                        if (event_file_exists(i)) {
+                            OTF2_DefWriter* def_writer = getDefWriter(i);
+                            OTF2_EC(OTF2_Archive_CloseDefWriter( archive, def_writer ));
+                        }
                     }
                 }
 				std::cout << "Writing OTF2 Global definition file..." << std::endl;

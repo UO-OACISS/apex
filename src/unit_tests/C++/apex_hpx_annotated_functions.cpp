@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include "apex_api.hpp"
 
-int numthreads = 0;
+uint32_t numthreads = 0;
 int threads_per_core = 8;
 __thread uint64_t guid = 0;
 const int num_iterations = 10;
@@ -125,17 +125,17 @@ int main (int argc, char** argv) {
     apex::profiler* p = apex::start("main");
     /* Spawn X threads */
     numthreads = apex::hardware_concurrency() * threads_per_core; // many threads per core. Stress it!
-    if (apex::apex_options::use_tau()) { 
-        numthreads = std::min(numthreads, 128);
+    if (apex::apex_options::use_tau() || apex::apex_options::use_otf2()) { 
+        numthreads = std::min(numthreads, apex::hardware_concurrency());
     }
     int * tids = (int*)calloc(numthreads, sizeof(int));
     pthread_t * thread = (pthread_t*)calloc(numthreads, sizeof(pthread_t));
-    for (int i = 0 ; i < numthreads ; i++) {
+    for (uint32_t i = 0 ; i < numthreads ; i++) {
         tids[i] = i;
         pthread_create(&(thread[i]), NULL, someThread, &(tids[i]));
     }
     /* wait for the threads to finish */
-    for (int i = 0 ; i < numthreads ; i++) {
+    for (uint32_t i = 0 ; i < numthreads ; i++) {
         pthread_join(thread[i], NULL);
     }
     /* stop our main timer */

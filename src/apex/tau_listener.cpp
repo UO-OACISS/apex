@@ -8,20 +8,9 @@
 #include <iostream>
 #include <fstream>
 
-#define APEX_DEBUG_TIMER_STACK
-
 using namespace std;
 
 namespace apex {
-
-#ifdef APEX_DEBUG_TIMER_STACK
-__thread int tau_stackdepth = 0;
-std::vector<task_identifier>& get_tau_timer_stack() {
-    // not a queue, because we need to inspect it.
-    static __thread std::vector<task_identifier> tau_timer_stack; 
-    return tau_timer_stack;
-}
-#endif
 
 void tau_listener::initialize_tau(int argc, char** argv) {
   if (argc == 0) {
@@ -79,18 +68,8 @@ void tau_listener::on_exit_thread(event_data &data) {
 }
 
 bool tau_listener::on_start(task_identifier * id) {
-#ifdef APEX_DEBUG_TIMER_STACK
-  stringstream foo;
-  for (int i = 0 ; i < tau_stackdepth ; i++) { foo << "-"; }
-  tau_stackdepth++;
-  foo << thread_instance::get_id() << ": TAU Start " << id->get_name() << "\n"; 
-  std::cout << foo.str(); fflush(stdout);
-#endif
   if (!_terminate) {
     Tau_start(id->get_name().c_str());
-#ifdef APEX_DEBUG_TIMER_STACK
-    get_tau_timer_stack().push_back(*id);
-#endif
   } else {
       return false;
   }
@@ -102,35 +81,12 @@ bool tau_listener::on_resume(task_identifier * id) {
 }
 
 void tau_listener::on_stop(std::shared_ptr<profiler> &p) {
-#ifdef APEX_DEBUG_TIMER_STACK
-  stringstream foo;
-  tau_stackdepth--;
-  for (int i = 0 ; i < tau_stackdepth ; i++) { foo << "-"; }
-  foo << thread_instance::get_id() << ": TAU Stop  " << p->task_id->get_name() << "\n"; 
-  std::cout << foo.str(); fflush(stdout);
-#endif
   static string empty("");
   if (!_terminate) {
       if (p->task_id->get_name().compare(empty) == 0) {
           Tau_global_stop(); // stop the top level timer
       } else {
-#ifdef APEX_DEBUG_TIMER_STACK
-          if (!get_tau_timer_stack().empty()) {
-            if (!(*(p->task_id) == get_tau_timer_stack().back())) {
-                // shit. Overlapping timers. Unwind the stack until we find this timer.
-                while (!get_tau_timer_stack().empty() && !(*(p->task_id) == get_tau_timer_stack().back())) {
-                    get_tau_timer_stack().pop_back();
-  tau_stackdepth--;
-                    Tau_global_stop(); // stop the top level timer
-                }
-            } else {
-                get_tau_timer_stack().pop_back();
-                Tau_stop(p->task_id->get_name().c_str());
-            }
-          }
-#else
           Tau_stop(p->task_id->get_name().c_str());
-#endif
       }
   }
   return;

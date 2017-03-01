@@ -113,6 +113,7 @@ namespace apex {
         OTF2_EvtWriter* comm_evt_writer;
         //__thread OTF2_DefWriter* def_writer;
         OTF2_EvtWriter* getEvtWriter();
+        bool event_file_exists (int threadid);
         OTF2_DefWriter* getDefWriter(int threadid);
         OTF2_GlobalDefWriter* global_def_writer;
         std::map<task_identifier,uint64_t>& get_region_indices(void);

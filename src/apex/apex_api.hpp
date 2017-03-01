@@ -169,7 +169,7 @@ APEX_EXPORT void yield(profiler * the_profiler);
          call when the timer should be stopped.
  \sa @ref apex::stop, @ref apex::yield, @ref apex::start
  */
-APEX_EXPORT profiler * resume(const std::string &timer_name);
+APEX_EXPORT profiler * resume(const std::string &timer_name, uint64_t guid = 0LL);
 
 /**
  \brief Resume a timer.
@@ -188,7 +188,7 @@ APEX_EXPORT profiler * resume(const std::string &timer_name);
          call when the timer should be stopped.
  \sa apex::stop, apex::yield, apex::start
  */
-APEX_EXPORT profiler * resume(apex_function_address function_address);
+APEX_EXPORT profiler * resume(apex_function_address function_address, uint64_t guid = 0LL);
 
 /*
  * Functions for resetting timer values
@@ -684,21 +684,21 @@ class self_stopping_timer {
         apex::profiler * p;
         bool has_thread;
     public:
-        self_stopping_timer(uint64_t func) : p(nullptr), has_thread(false) {
-            p = apex::start((apex_function_address)func);
+        self_stopping_timer(uint64_t func, uint64_t guid = 0LL) : p(nullptr), has_thread(false) {
+            p = apex::start((apex_function_address)func, guid);
         }
-        self_stopping_timer(std::string func) : p(nullptr), has_thread(false) {
-            p = apex::start(func);
+        self_stopping_timer(std::string func, uint64_t guid = 0LL) : p(nullptr), has_thread(false) {
+            p = apex::start(func, guid);
         }
-        self_stopping_timer(uint64_t func, const char * thread_name) 
+        self_stopping_timer(uint64_t func, const char * thread_name, uint64_t guid = 0LL) 
             : p(nullptr), has_thread(true) {
             apex::register_thread(thread_name);
-            p = apex::start((apex_function_address)func);
+            p = apex::start((apex_function_address)func, guid);
         }
-        self_stopping_timer(std::string func, const char * thread_name = nullptr) 
+        self_stopping_timer(std::string func, const char * thread_name = nullptr, uint64_t guid = 0LL) 
             : p(nullptr), has_thread(true) {
             apex::register_thread(thread_name);
-            p = apex::start(func);
+            p = apex::start(func, guid);
         }
         void stop(void) {
             if (p != nullptr) { 

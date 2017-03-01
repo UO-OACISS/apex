@@ -104,6 +104,27 @@ APEX_EXPORT void apex_cleanup();
 APEX_EXPORT apex_profiler_handle apex_start(apex_profiler_type type, void * identifier);
 
 /**
+ \brief Start a timer.
+
+ This function will create a profiler object in APEX, and return a
+ handle to the object.  The object will be associated with the address
+ or name passed in to this function.  If both are zero (null) then the call
+ will fail and the return value will be null.
+ 
+ \param type The type of the address to be stored. This can be one of the @ref
+             apex_profiler_type values.
+ \param identifier The function address of the function to be timed, or a "const
+             char *" pointer to the name of the timer.
+ \param guid A globally unique identifier for this task.
+ \return The handle for the timer object in APEX. Not intended to be
+         queried by the application. Should be retained locally, if
+         possible, and passed in to the matching @ref apex_stop
+         call when the timer should be stopped.
+ \sa @ref apex_stop, @ref apex_resume, @ref apex_yield
+ */
+APEX_EXPORT apex_profiler_handle apex_start_guid(apex_profiler_type type, void * identifier, uint64_t guid);
+
+/**
  \brief Stop a timer.
 
  This function will stop the specified profiler object, and queue
@@ -152,6 +173,29 @@ APEX_EXPORT void apex_yield(apex_profiler_handle profiler);
  \sa @ref apex_start, @ref apex_stop, @ref apex_yield
 */
 APEX_EXPORT apex_profiler_handle apex_resume(apex_profiler_type type, void * identifier);
+
+/**
+ \brief Resume a timer.
+
+ This function will create a profiler object in APEX, and return a
+ handle to the object.  The object will be associated with the name
+ and/or function address passed in to this function.
+ The difference between this function and the apex_start
+ function is that the number of calls to that
+ timer will not be incremented.
+ 
+ \param type The type of the address to be stored. This can be one of the @ref
+             apex_profiler_type values.
+ \param identifier The function address of the function to be timed, or a "const
+             char *" pointer to the name of the timer.
+ \param guid A globally unique identifier for this task.
+ \return The handle for the timer object in APEX. Not intended to be
+         queried by the application. Should be retained locally, if
+         possible, and passed in to the matching @ref apex_stop
+         call when the timer should be stopped.
+ \sa @ref apex_start, @ref apex_stop, @ref apex_yield
+*/
+APEX_EXPORT apex_profiler_handle apex_resume_guid(apex_profiler_type type, void * identifier, uint64_t guid);
 
 /*
  * Functions for resetting timer values

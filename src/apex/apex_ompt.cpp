@@ -84,7 +84,15 @@ void my_ompt_task_start(const char * state, ompt_task_id_t task_id) {
   //fprintf(stderr,"start %s : %lu\n",state, parallel_id); fflush(stderr);
   char regionIDstr[128] = {0}; 
   format_task_name_fast(state, task_id, regionIDstr);
-  apex::profiler* p = apex::start(std::string(regionIDstr));
+  apex::profiler* p = apex::start(std::string(regionIDstr), task_id);
+  timer_stack->push(p);
+}
+
+void my_ompt_pr_start(const char * state, ompt_parallel_id_t parallel_id) {
+  //fprintf(stderr,"start %s : %lu\n",state, parallel_id); fflush(stderr);
+  char regionIDstr[128] = {0}; 
+  format_name_fast(state, parallel_id, regionIDstr);
+  apex::profiler* p = apex::start(std::string(regionIDstr), parallel_id);
   timer_stack->push(p);
 }
 
@@ -92,7 +100,7 @@ void my_ompt_start(const char * state, ompt_parallel_id_t parallel_id) {
   //fprintf(stderr,"start %s : %lu\n",state, parallel_id); fflush(stderr);
   char regionIDstr[128] = {0}; 
   format_name_fast(state, parallel_id, regionIDstr);
-  apex::profiler* p = apex::start(std::string(regionIDstr));
+  apex::profiler* p = apex::start(std::string(regionIDstr), status->taskid);
   timer_stack->push(p);
 }
 
@@ -127,7 +135,7 @@ extern "C" void my_parallel_region_begin (
   APEX_UNUSED(requested_team_size);
   //fprintf(stderr,"begin: %lu, %p, %lu, %u, %p\n", parent_task_id, parent_task_frame, parallel_id, requested_team_size, parallel_function); fflush(stderr);
   parallel_regions[(parallel_id%NUM_REGIONS)] = parallel_function;
-  my_ompt_start("OpenMP_PARALLEL_REGION", parallel_id);
+  my_ompt_pr_start("OpenMP_PARALLEL_REGION", parallel_id);
 }
 
 extern "C" void my_parallel_region_end (
