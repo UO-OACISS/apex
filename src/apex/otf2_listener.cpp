@@ -256,28 +256,22 @@ namespace apex {
     OTF2_EvtWriter* otf2_listener::getEvtWriter(void) {
       static __thread OTF2_EvtWriter* evt_writer(nullptr);
       if (evt_writer == nullptr) {
-        printf("creating event writer for thread %lu\n", thread_instance::get_id()); fflush(stdout);
+        // only let one thread at a time create an event file
+        read_lock_type lock(_archive_mutex);
+        //printf("creating event writer for thread %lu\n", thread_instance::get_id()); fflush(stdout);
         uint64_t my_node_id = my_saved_node_id;
         my_node_id = (my_node_id << 32) + thread_instance::get_id();
         evt_writer = OTF2_Archive_GetEvtWriter( archive, my_node_id );
         if (thread_instance::get_id() == 0) {
             comm_evt_writer = evt_writer;
         }
+        _event_threads.insert(thread_instance::get_id());
       }
       return evt_writer;
     }
 
     bool otf2_listener::event_file_exists (int threadid) {
-        struct stat buffer;   
-        uint64_t my_node_id = my_saved_node_id;
-        my_node_id = (my_node_id << 32) + threadid;
-        // wait on the map file from rank 0 to exist
-        ostringstream event_filename;
-        event_filename << apex_options::otf2_archive_path() << "/";
-        event_filename << apex_options::otf2_archive_name() << "/";
-        event_filename << my_node_id << ".evt";
-        if (stat (event_filename.str().c_str(), &buffer) == 0) { return true; }
-        return false;
+        if (_event_threads.find(threadid) == _event_threads.end()) {return false;} else {return true;}
     }
 
     OTF2_DefWriter* otf2_listener::getDefWriter(int threadid) {

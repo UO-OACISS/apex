@@ -12,6 +12,7 @@
 #include "pthread_wrapper.hpp"
 #include "utils.hpp"
 #include "apex_options.hpp"
+#include "thread_instance.hpp"
 
 namespace apex {
 
@@ -21,6 +22,8 @@ private:
     static const unsigned int default_period = 100000;
     static void* _threadfunc(void * _ptw) {
         pthread_wrapper* ptw = (pthread_wrapper*)_ptw;
+        // make sure APEX knows this is NOT a worker thread.
+        thread_instance::instance(false);
         ptw->_running = true;
         if (apex_options::pin_apex_threads()) {
              set_thread_affinity();

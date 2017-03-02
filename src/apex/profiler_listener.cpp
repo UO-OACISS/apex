@@ -1268,10 +1268,14 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       // we have to make a local copy, because lockfree queues DO NOT SUPPORT shared_ptrs!
 #ifdef APEX_MULTIPLE_QUEUES
       thequeue->enqueue(p);
+#ifndef APEX_HAVE_HPX
       int thesize = thequeue->size_approx();
+#endif
 #else
       thequeue.enqueue(p);
+#ifndef APEX_HAVE_HPX
       int thesize = thequeue.size_approx();
+#endif
 #endif
 	  /*
       bool worked = thequeue.enqueue(p);
@@ -1454,6 +1458,7 @@ HPX_PLAIN_ACTION(::apex::profiler_listener::process_profiles_wrapper, apex_inter
 
 void apex_schedule_process_profiles() {
     if(get_hpx_runtime_ptr() == nullptr) return;
+    if(!thread_instance::is_worker()) return;
     if(hpx_shutdown) {
         ::apex::profiler_listener::process_profiles_wrapper();
     } else {

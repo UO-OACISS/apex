@@ -238,6 +238,15 @@ string thread_instance::map_addr_to_name(apex_function_address function_address)
 void thread_instance::set_current_profiler(profiler * the_profiler) {
     instance().current_profiler = the_profiler;
     instance().current_profilers.push_back(the_profiler);
+    /*
+    stringstream foo;
+    foo << get_id();
+    for (profiler * myprof : instance().current_profilers) {
+        foo << "\t" << myprof->task_id->_guid;
+    }
+    foo << "\n";
+    std::cout << foo.str();
+    */
 }
 
 profiler *  thread_instance::restore_children_profilers(void) {
@@ -246,10 +255,13 @@ profiler *  thread_instance::restore_children_profilers(void) {
     std::unique_lock<std::mutex> l(_profiler_stack_mutex);
     auto tmp = children_to_resume.find(parent->task_id->_guid);
     if (tmp != children_to_resume.end()) {
+        //printf("%lu Restored parent %s with guid: %lu\n", get_id(), parent->task_id->name.c_str(), parent->task_id->_guid); fflush(stdout);
         auto myvec = tmp->second;
-        for (profiler * myprof : *myvec) {
-            resume(myprof);
-            instance().current_profilers.push_back(myprof);
+        //for (profiler * myprof : *myvec) {
+        for (std::vector<profiler*>::reverse_iterator myprof = myvec->rbegin(); myprof != myvec->rend(); ++myprof) {
+            //printf("%lu Restoring child %s with guid: %lu\n", get_id(), (*myprof)->task_id->name.c_str(), (*myprof)->task_id->_guid); fflush(stdout);
+            resume((*myprof));
+            instance().current_profilers.push_back((*myprof));
         }
         delete myvec;
         children_to_resume.erase(parent->task_id->_guid);
@@ -263,20 +275,34 @@ void thread_instance::clear_current_profiler(profiler * the_profiler) {
     instance().current_profiler = nullptr;
     // this is a serious problem...
     if (instance().current_profilers.empty()) { 
-        std::cerr << "Warning! empty profiler stack!\n";
+        std::cerr << "Warning! empty profiler stack!!!\n";
         assert(false);
+        abort();
         return;
     }
     if (fixing_stack) {return;}
-    auto tmp = instance().current_profilers.back();
+    auto &the_stack = instance().current_profilers;
+    auto tmp = the_stack.back();
     /* Uh-oh! Someone has caused the dreaded "overlapping timer" problem to
      * happen! No problem - stop the child timer.
      * Keep the children around, along with a reference to the parent's
      * guid so that if/when we see this parent again, we can restart
      * the children timers. */
     if (tmp != the_profiler) {
+        /*
+        bool found = false;
+        for (profiler * myprof : the_stack) {
+            if (myprof == the_profiler) { found = true; }
+        }
+        if (!found) { 
+            std::cerr << "Warning! PRofiler not in stack!!\n";
+            assert(false);
+            abort();
+        }
+        */
         fixing_stack = true;
         uint64_t guid = the_profiler->task_id->_guid;
+        //printf("%lu Yielding %s, found %s with guid: %lu\n", get_id(), tmp->task_id->name.c_str(), the_profiler->task_id->name.c_str(), guid); fflush(stdout);
         std::vector<profiler*> * children = new vector<profiler*>();
         while (tmp != the_profiler) {
             // if the guid isn't set, we can't support this runtime.
@@ -286,24 +312,35 @@ void thread_instance::clear_current_profiler(profiler * the_profiler) {
             children->push_back(tmp);
             /* Stop the copy. The original will get reset when the
             parent resumes. */
+            //printf("%lu Yielding child %s with guid: %lu\n", get_id(), profiler_copy->task_id->name.c_str(), profiler_copy->task_id->_guid); fflush(stdout);
             stop(profiler_copy);  // we better be re-entrant safe!
             // pop the original child, we've saved it in the vector
-            instance().current_profilers.pop_back();
+            the_stack.pop_back();
             // this is a serious problem...
-            if (instance().current_profilers.empty()) { 
+            if (the_stack.empty()) { 
                 std::cerr << "Warning! empty profiler stack!\n";
                 assert(false);
+                abort();
                 return;
             }
             // get the new top of the stack
-            tmp = instance().current_profilers.back();
+            tmp = the_stack.back();
         }
         fixing_stack = false;
         std::unique_lock<std::mutex> l(_profiler_stack_mutex);
         children_to_resume[guid] = children;
     }
     // pop this timer off the stack.
-    instance().current_profilers.pop_back();
+    the_stack.pop_back();
+    /*
+    stringstream foo;
+    foo << get_id();
+    for (profiler * myprof : the_stack) {
+        foo << "\t" << myprof->task_id->_guid;
+    }
+    foo << "\n";
+    std::cout << foo.str();
+    */
 }
 
 profiler * thread_instance::get_current_profiler(void) {

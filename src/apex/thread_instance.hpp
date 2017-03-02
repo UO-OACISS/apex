@@ -92,6 +92,7 @@ public:
   static bool profiler_stack_empty(void);
   */
   static const char * program_path(void);
+  static bool is_worker() { return instance()._is_worker; }
 #ifdef APEX_DEBUG
   static std::mutex _open_profiler_mutex;
   static std::unordered_set<std::string> open_profilers;

@@ -544,6 +544,8 @@ bool parse_sensor_data() {
 /* This is the main function for the reader thread. */
 void* proc_data_reader::read_proc(void * _ptw) {
   pthread_wrapper* ptw = (pthread_wrapper*)_ptw;
+  // make sure APEX knows this is not a worker thread
+  thread_instance::instance(false);
   ptw->_running = true;
   if (apex_options::pin_apex_threads()) {
     set_thread_affinity();
