@@ -80,7 +80,7 @@ int main(int argc, char **argv)
   apex_options::throttle_energy(true);
 
   setup_timer_throttling((apex_function_address)foo, APEX_MINIMIZE_ACCUMULATED,
-          APEX_DISCRETE_HILL_CLIMBING, 1000000);
+          APEX_DISCRETE_HILL_CLIMBING, 100000);
   int original_cap = get_thread_cap();
 
   profiler* p = start((apex_function_address)main);
@@ -97,7 +97,7 @@ int main(int argc, char **argv)
   }
   stop(p);
   int final_cap = get_thread_cap();
-  if (final_cap < original_cap) {
+  if (final_cap <= original_cap) {
     std::cout << "Test passed." << std::endl;
   }
   finalize();

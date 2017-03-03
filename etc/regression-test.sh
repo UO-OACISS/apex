@@ -38,7 +38,13 @@ while [ $# -ge 1 ]; do
             clean=1
             ;;
         -h)
-            echo "Display some help"
+            echo ""
+            echo "$(basename $SCRIPT) -s,--spec <specname> -m -c -h"
+            echo "  -s: one of all, malloc, bfd, ah, ompt, papi, mpi, otf, tau"
+            echo "  -m: enables memory sanitizer"
+            echo "  -c: does clean test"
+            echo "  -h: shows this help"
+            echo ""
             exit 0
             ;;
     esac
@@ -92,7 +98,7 @@ dobuild()
     make install 2>&1 | tee -a ${logfile}
     #make test 2>&1 | tee -a ${logfile}
     #ctest --repeat-until-fail 5 --output-on-failure 2>&1 | tee -a ${logfile}
-    ctest --output-on-failure 2>&1 | tee -a ${logfile}
+    ctest --stop-on-failure --output-on-failure 2>&1 | tee -a ${logfile}
     printf "\nSUCCESS!\n"
     T="$(($(date +%s)-T))"
     printf "Time to configure and build APEX: %02d hours %02d minutes %02d seconds.\n" "$((T/3600))" "$((T/60%60))" "$((T%60))"
