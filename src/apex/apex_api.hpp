@@ -98,7 +98,8 @@ APEX_EXPORT void cleanup(void);
  passed in to this function.
  
  \param timer_name The name of the timer.
- \param a GUID associated with this task. 0 means NULL.
+ \param guid A globally unique identifier (GUID) associated with this task. 0
+         means NULL.
  \return The handle for the timer object in APEX. Not intended to be
          queried by the application. Should be retained locally, if
          possible, and passed in to the matching apex::stop()
@@ -115,7 +116,8 @@ APEX_EXPORT profiler * start(const std::string &timer_name, uint64_t guid = 0LL)
  address passed in to this function.
  
  \param function_address The address of the function to be timed
- \param A GUID associated with this task. 0 means NULL.
+ \param guid A globally unique identifier (GUID) associated with this task. 0
+         means NULL.
  \return The handle for the timer object in APEX. Not intended to be
          queried by the application. Should be retained locally, if
          possible, and passed in to the matching apex::stop
@@ -163,6 +165,8 @@ APEX_EXPORT void yield(profiler * the_profiler);
  timer will not be incremented.
  
  \param timer_name The name of the timer.
+ \param guid A globally unique identifier (GUID) associated with this task. 0
+         means NULL.
  \return The handle for the timer object in APEX. Not intended to be
          queried by the application. Should be retained locally, if
          possible, and passed in to the matching apex::stop()
@@ -182,6 +186,8 @@ APEX_EXPORT profiler * resume(const std::string &timer_name, uint64_t guid = 0LL
  timer will not be incremented.
  
  \param function_address The address of the function to be timed
+ \param guid A globally unique identifier (GUID) associated with this task. 0
+         means NULL.
  \return The handle for the timer object in APEX. Not intended to be
          queried by the application. Should be retained locally, if
          possible, and passed in to the matching apex::stop
@@ -679,33 +685,76 @@ APEX_EXPORT void send (uint64_t tag, uint64_t size, uint64_t target);
  */
 APEX_EXPORT void recv (uint64_t tag, uint64_t size, uint64_t source_rank, uint64_t source_thread);
 
+/**
+ \brief A convenience class for using APEX in C++ applications.
+ 
+  This class will automatically start an APEX timer when the object is constructed,
+  and automatically stop the timer when the object goes out of scope.
+  There are options for registering a thread when creating a timer for the first
+  time on a thread.
+
+ */
 class self_stopping_timer {
     private:
         apex::profiler * p;
         bool has_thread;
     public:
+/**
+ \brief Construct and start an APEX timer.
+
+ \param func The address of a function used to identify the timer type
+ \param guid A unique GUID that identifies this task to execute.
+ */
         self_stopping_timer(uint64_t func, uint64_t guid = 0LL) : p(nullptr), has_thread(false) {
             p = apex::start((apex_function_address)func, guid);
         }
+/**
+ \brief Construct and start an APEX timer.
+
+ \param func The name of a function used to identify the timer type
+ \param guid A unique GUID that identifies this task to execute.
+ */
         self_stopping_timer(std::string func, uint64_t guid = 0LL) : p(nullptr), has_thread(false) {
             p = apex::start(func, guid);
         }
+/**
+ \brief Register a new thread with APEX, then construct and start an APEX timer.
+
+ \param func The address of a function used to identify the timer type
+ \param thread_name The name of this new worker thread in the runtime
+ \param guid A unique GUID that identifies this task to execute.
+ */
         self_stopping_timer(uint64_t func, const char * thread_name, uint64_t guid = 0LL) 
             : p(nullptr), has_thread(true) {
             apex::register_thread(thread_name);
             p = apex::start((apex_function_address)func, guid);
         }
+/**
+ \brief Register a new thread with APEX, then construct and start an APEX timer.
+
+ \param func The name of a function used to identify the timer type
+ \param thread_name The name of this new worker thread in the runtime
+ \param guid A unique GUID that identifies this task to execute.
+ */
         self_stopping_timer(std::string func, const char * thread_name = nullptr, uint64_t guid = 0LL) 
             : p(nullptr), has_thread(true) {
             apex::register_thread(thread_name);
             p = apex::start(func, guid);
         }
+/**
+ \brief Stop the APEX timer.
+
+ */
         void stop(void) {
             if (p != nullptr) { 
                 apex::stop(p); 
                 p= nullptr; 
             } 
-        }
+ /**
+ \brief Destructor.
+
+ */
+       }
         ~self_stopping_timer() { 
             stop();
             if (has_thread) {
@@ -714,6 +763,13 @@ class self_stopping_timer {
         }
 };
 
+/**
+ \brief A convenient macro for inserting an APEX self-stopping timer.
+
+ This macro will create a timer using the values of __func__, __LINE__ and
+ __FILE__ from the preprocessor.
+
+ */
 #define APEX_TIMER_MACRO \
       std::ostringstream _s_foo; \
       _s_foo << __func__ << " [" << __FILE__ << ":" << __LINE__ << "]"; \

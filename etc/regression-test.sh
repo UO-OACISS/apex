@@ -8,21 +8,44 @@ spec="all"
 post=""
 host=`hostname`
 myarch=`arch`
+#rootdir=/dev/shm
+rootdir=/Users/khuck/src/xpress-apex
+
+my_readlink() {
+TARGET_FILE=$1
+
+cd `dirname $TARGET_FILE`
+TARGET_FILE=`basename $TARGET_FILE`
+
+# Iterate down a (possible) chain of symlinks
+while [ -L "$TARGET_FILE" ]
+do
+    TARGET_FILE=`readlink $TARGET_FILE`
+    cd `dirname $TARGET_FILE`
+    TARGET_FILE=`basename $TARGET_FILE`
+done
+
+# Compute the canonicalized name by finding the physical path 
+# for the directory we're in and appending the target file.
+PHYS_DIR=`pwd -P`
+RESULT=$PHYS_DIR/$TARGET_FILE
+echo $RESULT
+}
 
 # remember where we are
 STARTDIR=`pwd`
 # Absolute path to this script, e.g. /home/user/bin/foo.sh
-SCRIPT=$(readlink -f "$0")
+SCRIPT=$(my_readlink "$0")
 # Absolute path this script is in, thus /home/user/bin
 SCRIPTPATH=$(dirname "$SCRIPT")
 echo $SCRIPTPATH
 BASEDIR=$SCRIPTPATH/..
 
-args=$(getopt -l "searchpath:" -o "s:chm" -- "$@")
+# args=$(getopts -l "searchpath:" -o "s:chm" -- "$@")
 
-eval set -- "${args}"
+# eval set -- "${args}"
 
-while [ $# -ge 1 ]; do
+while getopts "hmcs:" opt; do
     case "$1" in
         --)
             # No more options left.
@@ -48,7 +71,7 @@ while [ $# -ge 1 ]; do
             exit 0
             ;;
     esac
-    shift
+    #shift
 done
 
 echo "clean: ${clean}"
@@ -146,14 +169,14 @@ tau="-DUSE_TAU=FALSE"
 
 if [ ${clean} -eq 1 ] ; then
     echo "cleaning previous regression test..."
-    rm -rf /dev/shm/regression-${host}
-    mkdir -p /dev/shm/regression-${host}
+    rm -rf ${rootdir}/regression-${host}
+    mkdir -p ${rootdir}/regression-${host}
     git checkout develop
     git pull
 fi
 
 # change directory to the base APEX directory
-cd /dev/shm/regression-${host}
+cd ${rootdir}/regression-${host}
 
 logfile=`pwd`/log.txt
 configfile=${SCRIPTPATH}/configuration-files/apex-defaults.conf
