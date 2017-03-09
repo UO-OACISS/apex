@@ -82,7 +82,7 @@ int main(int argc, char **argv)
   apex_set_throttle_energy(true);
 
   apex_setup_timer_throttling(APEX_FUNCTION_ADDRESS, &foo, APEX_MINIMIZE_ACCUMULATED,
-          APEX_DISCRETE_HILL_CLIMBING, 1000000);
+          APEX_DISCRETE_HILL_CLIMBING, 100000);
 
   original_cap = apex_get_thread_cap();
 

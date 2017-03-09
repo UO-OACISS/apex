@@ -41,7 +41,7 @@ set(example_programs
 if ((NOT DEFINED TAU_ROOT) AND (NOT USE_PAPI) AND (NOT USE_TAU) AND (NOT TAU_FOUND) AND (NOT OTF2_FOUND))
   set(example_programs "${example_programs};apex_fibonacci_pthread")
   set(example_programs "${example_programs};apex_new_task")
-  set(example_programs "${example_programs};apex_cross_thread_timing")
+  #set(example_programs "${example_programs};apex_cross_thread_timing")
   set(example_programs "${example_programs};apex_suspend")
   set(example_programs "${example_programs};apex_papi_suspend")
   if (APEX_THROTTLE)

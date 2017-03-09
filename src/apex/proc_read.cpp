@@ -39,6 +39,9 @@ using namespace std;
 
 namespace apex {
 
+std::atomic<bool> proc_data_reader::done(false);
+
+
 void get_popen_data(char *cmnd) {
     FILE *pf;
     string command;
@@ -561,6 +564,7 @@ void* proc_data_reader::read_proc(void * _ptw) {
   if (apex_options::use_tau()) {
     Tau_start("proc_data_reader::read_proc");
   }
+  if (done) { return nullptr; }
 #ifdef APEX_HAVE_LM_SENSORS
   sensor_data * mysensors = new sensor_data();
 #endif
@@ -578,6 +582,7 @@ void* proc_data_reader::read_proc(void * _ptw) {
   ProcData *periodData = NULL;
   
   while(ptw->wait()) {
+    if (done) break;
     if (apex_options::use_tau()) {
       Tau_start("proc_data_reader::read_proc: main loop");
     }
@@ -586,12 +591,14 @@ void* proc_data_reader::read_proc(void * _ptw) {
         newData = parse_proc_stat();
         periodData = newData->diff(*oldData);
         // save the values
+        if (done) break;
         periodData->sample_values();
         // free the memory
         delete(oldData);
         delete(periodData);
         oldData = newData;
     }
+    if (done) break;
     parse_proc_meminfo(); // some things change, others don't...
     parse_proc_self_status();
     parse_proc_self_io();

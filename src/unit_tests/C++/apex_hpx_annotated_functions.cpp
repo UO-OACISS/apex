@@ -58,7 +58,7 @@ void innerLoop(int *tid) {
 
 	/* Start a timer like an "annotated_function" */
     uint64_t afguid = get_guid();
-    buf = std::stringstream();
+    buf.str(""); buf.clear();
     buf << "APP: " << *tid << ": Starting annotated_function " << afguid << "\n"; std::cout << buf.str();
     apex::profiler* af = apex::start("annotated function", afguid);
 
@@ -66,7 +66,7 @@ void innerLoop(int *tid) {
 	ret = nsleep(10, *tid); // after - t: 20, af: 10
 
 	/* "yield" the outer task */
-    buf = std::stringstream();
+    buf.str(""); buf.clear();
     buf << "APP: " << *tid << ": Yielding thread " << myguid << "\n"; std::cout << buf.str();
 	apex::yield(p);
 
@@ -74,7 +74,7 @@ void innerLoop(int *tid) {
 	ret = nsleep(10, *tid); // after - t: 20, af: 10 - everyone yielded!
 
 	/* resume our current thread */
-    buf = std::stringstream();
+    buf.str(""); buf.clear();
     buf << "APP: " << *tid << ": Resuming thread " << myguid << "\n"; std::cout << buf.str();
     //p = apex::start((apex_function_address)&someThread, myguid);
     p = apex::start(__func__, myguid);
@@ -83,7 +83,7 @@ void innerLoop(int *tid) {
 	ret = nsleep(10, *tid); // after - t: 30, af: 20
 
     /* stop the annotated_function */
-    buf = std::stringstream();
+    buf.str(""); buf.clear();
     buf << "APP: " << *tid << ": Stopping annotated_function " << afguid << "\n"; std::cout << buf.str();
     apex::stop(af);
 
@@ -91,7 +91,7 @@ void innerLoop(int *tid) {
 	ret = nsleep(10, *tid); // after - t: 40, af: 20
 
     /* stop the timer */
-    buf = std::stringstream();
+    buf.str(""); buf.clear();
     buf << "APP: " << *tid << ": Stopping thread " << myguid << "\n"; std::cout << buf.str();
     apex::stop(p);
 }

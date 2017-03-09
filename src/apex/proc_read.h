@@ -40,6 +40,7 @@ typedef std::vector<CPUStat*> CPUs;
 class proc_data_reader {
 private:
     pthread_wrapper * worker_thread;
+    static std::atomic<bool> done;
 public:
     static void* read_proc(void * _pdr);
     proc_data_reader(void) {
@@ -47,6 +48,7 @@ public:
     };
 
     void stop_reading(void) {
+        done = true;
         worker_thread->stop_thread();
     }
 

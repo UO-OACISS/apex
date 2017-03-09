@@ -271,13 +271,17 @@ namespace apex {
     }
 
     bool otf2_listener::event_file_exists (int threadid) {
+        // get exclusive access to the set - unlocks on exit
+        read_lock_type lock(_archive_mutex);
         if (_event_threads.find(threadid) == _event_threads.end()) {return false;} else {return true;}
     }
 
     OTF2_DefWriter* otf2_listener::getDefWriter(int threadid) {
+        OTF2_DefWriter* def_writer;
+        //printf("creating definition writer for thread %d\n", threadid); fflush(stdout);
         uint64_t my_node_id = my_saved_node_id;
         my_node_id = (my_node_id << 32) + threadid;
-        OTF2_DefWriter* def_writer = OTF2_Archive_GetDefWriter( archive, my_node_id );
+        def_writer = OTF2_Archive_GetDefWriter( archive, my_node_id );
         return def_writer;
     }
 
@@ -490,10 +494,11 @@ namespace apex {
         for (int i = 0 ; i < my_saved_node_count ; i++) {
         std::string indexline;
         struct stat buffer;
-        std::string full_index_filename(index_filename + to_string(my_saved_node_id));
+        std::stringstream full_index_filename;
+        full_index_filename << index_filename << to_string(my_saved_node_id);
 		// wait for the file to exist
-        while (stat (full_index_filename.c_str(), &buffer) != 0) {}
-        std::ifstream index_file(full_index_filename);
+        while (stat (full_index_filename.str().c_str(), &buffer) != 0) {}
+        std::ifstream index_file(full_index_filename.str());
         int rank, pid;
         std::string hostname;
         while (std::getline(index_file, indexline)) {
@@ -578,10 +583,11 @@ namespace apex {
         for (int i = 0 ; i < my_saved_node_count ; i++) {
         std::string indexline;
         struct stat buffer;
-        std::string full_index_filename(index_filename + to_string(my_saved_node_id));
+        std::stringstream full_index_filename;
+        full_index_filename << index_filename << to_string(my_saved_node_id);
 		// wait for the file to exist
-        while (stat (full_index_filename.c_str(), &buffer) != 0) {}
-        std::ifstream index_file(full_index_filename);
+        while (stat (full_index_filename.str().c_str(), &buffer) != 0) {}
+        std::ifstream index_file(full_index_filename.str());
         int rank, pid;
         std::string hostname;
         while (std::getline(index_file, indexline)) {
@@ -682,22 +688,12 @@ namespace apex {
             OTF2_IdMap * my_map = OTF2_IdMap_CreateFromUint64Array(map_size, mappings, false);
             for (int i = 0 ; i < thread_instance::get_num_threads() ; i++) {
                 if (event_file_exists(i)) {
-                    OTF2_DefWriter* def_writer = getDefWriter(i);
-                    OTF2_DefWriter_WriteMappingTable(def_writer, OTF2_MAPPING_REGION, my_map);
-                    OTF2_Archive_CloseDefWriter( archive, def_writer );
+                    OTF2_DefWriter_WriteMappingTable(getDefWriter(i), OTF2_MAPPING_REGION, my_map);
                 }
             }
             // free the map
             OTF2_IdMap_Free(my_map);
             free(mappings);
-        } else {
-            for (int i = 0 ; i < thread_instance::get_num_threads() ; i++) {
-                if (event_file_exists(i)) {
-                    /* write an empty definition file */
-                    OTF2_DefWriter* def_writer = getDefWriter(i);
-                    OTF2_Archive_CloseDefWriter( archive, def_writer );
-                }
-            }
         }
     }
 
@@ -738,9 +734,7 @@ namespace apex {
             OTF2_IdMap * my_map = OTF2_IdMap_CreateFromUint64Array(map_size, mappings, false);
             for (int i = 0 ; i < thread_instance::get_num_threads() ; i++) {
                 if (event_file_exists(i)) {
-                    OTF2_DefWriter* def_writer = getDefWriter(i);
-                    OTF2_DefWriter_WriteMappingTable(def_writer, OTF2_MAPPING_METRIC, my_map);
-                    OTF2_Archive_CloseDefWriter( archive, def_writer );
+                    OTF2_DefWriter_WriteMappingTable(getDefWriter(i), OTF2_MAPPING_METRIC, my_map);
                 }
             }
             // free the map
@@ -854,15 +848,6 @@ namespace apex {
                     // ...and distribute them back out
                     write_region_map();
                     write_metric_map();
-                } else {
-                    // no communication? write empty def files for each thread.
-                    for (int i = 0 ; i < thread_instance::get_num_threads() ; i++) {
-                        /* write an empty definition file */
-                        if (event_file_exists(i)) {
-                            OTF2_DefWriter* def_writer = getDefWriter(i);
-                            OTF2_EC(OTF2_Archive_CloseDefWriter( archive, def_writer ));
-                        }
-                    }
                 }
 				std::cout << "Writing OTF2 Global definition file..." << std::endl;
                 // create the global definition writer
@@ -889,10 +874,11 @@ namespace apex {
                 for (int i = 0 ; i < my_saved_node_count ; i++) {
                     std::string line;
         			struct stat buffer;
-        			std::string full_index_filename(index_filename + to_string(my_saved_node_id));
+                    std::stringstream full_index_filename;
+                    full_index_filename << index_filename << to_string(my_saved_node_id);
 					// wait for the file to exist
-        			while (stat (full_index_filename.c_str(), &buffer) != 0) {}
-        			std::ifstream myfile(full_index_filename);
+        			while (stat (full_index_filename.str().c_str(), &buffer) != 0) {}
+        			std::ifstream myfile(full_index_filename.str());
                     while (std::getline(myfile, line)) {
                         istringstream ss(line);
                         ss >> rank >> pid >> hostname;
@@ -958,6 +944,12 @@ namespace apex {
                 // to the global strings
                 write_region_map();
                 write_metric_map();
+            }
+            for (int i = 0 ; i < thread_instance::get_num_threads() ; i++) {
+                /* close (and possibly create) the definition files */
+                if (event_file_exists(i)) {
+                    OTF2_EC(OTF2_Archive_CloseDefWriter( archive, getDefWriter(i) ));
+                }
             }
 			std::cout << "Closing the archive..." << std::endl;
             // close the archive! we are done!
@@ -1043,6 +1035,7 @@ namespace apex {
             OTF2_EvtWriter_ThreadEnd( getEvtWriter(), NULL, stamp, 0, 0);
         //} 
         printf("closing event writer for thread %lu\n", thread_instance::get_id()); fflush(stdout);
+        _event_threads.insert(thread_instance::get_id());
         OTF2_Archive_CloseEvtWriter( archive, getEvtWriter() );
         if (thread_instance::get_id() == 0) {
             comm_evt_writer = nullptr;
