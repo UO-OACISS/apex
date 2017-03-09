@@ -613,6 +613,7 @@ void* proc_data_reader::read_proc(void * _ptw) {
     Tau_stop("proc_data_reader::read_proc");
   }
   delete(oldData);
+  thread_instance::delete_instance();
   ptw->_running = false;
   return nullptr;
 }

@@ -671,7 +671,7 @@ bool Apex_bfd_resolveBfdInfo(apex_bfd_handle_t handle, unsigned long probeAddr, 
     // For Intel 12 workaround. Inform the module that the previous resolve was successful.
     module->markLastResult(true);
 #endif /* APEX_INTEL12 */
-    info.funcname = Apex_bfd_internal_tryDemangle(module->bfdImage, info.funcname);
+    info.demangled = Apex_bfd_internal_tryDemangle(module->bfdImage, info.funcname);
     return true;
   } 
 
@@ -690,7 +690,7 @@ bool Apex_bfd_resolveBfdInfo(apex_bfd_handle_t handle, unsigned long probeAddr, 
           char const * mark = strchr(const_cast<char*>(name), '$');
           if (mark) name = mark + 1;
         }
-        info.funcname = Apex_bfd_internal_tryDemangle(module->bfdImage, name);
+        info.demangled = Apex_bfd_internal_tryDemangle(module->bfdImage, name);
 #ifdef APEX_INTEL12
         // For Intel 12 workaround. Inform the module that the previous resolve was successful.
         module->markLastResult(true);

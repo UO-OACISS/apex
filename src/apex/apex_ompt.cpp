@@ -176,15 +176,19 @@ extern "C" void my_thread_begin(my_ompt_thread_type_t thread_type, ompt_thread_i
   apex::register_thread("OpenMP Thread");
 }
 
+void cleanup(void) {
+    if (timer_stack != nullptr) { 
+        delete(timer_stack); 
+        timer_stack = nullptr;
+    }
+}
+
 extern "C" void my_thread_end(my_ompt_thread_type_t thread_type, ompt_thread_id_t thread_id) {
   APEX_UNUSED(thread_type);
   APEX_UNUSED(thread_id);
   apex::exit_thread();
   delete(status);
-  if (timer_stack != nullptr) { 
-      delete(timer_stack);  // this is a leak, but it's a small one. Sometimes this crashes?
-      timer_stack = nullptr;
-  }
+  cleanup();
 }
 
 extern "C" void my_control(uint64_t command, uint64_t modifier) {
@@ -193,11 +197,7 @@ extern "C" void my_control(uint64_t command, uint64_t modifier) {
 }
 
 extern "C" void my_shutdown() {
-  //fprintf(stderr,"shutdown. \n"); fflush(stderr);
-  if (timer_stack != nullptr) { 
-      delete(timer_stack); 
-      timer_stack = nullptr;
-  }
+  cleanup();
   apex::finalize();
 }
 
@@ -353,19 +353,12 @@ extern "C" void my_idle_begin(ompt_thread_id_t thread_id) {
 
 // This macro is for checking that the function registration worked.
 #define CHECK(EVENT,FUNCTION,NAME) \
-  /*fprintf(stderr,"Registering OMPT callback %s...",NAME); fflush(stderr); */ \
+  /* fprintf(stderr,"Registering OMPT callback %s...",NAME); fflush(stderr); */ \
   if (ompt_set_callback(EVENT, (ompt_callback_t)(FUNCTION)) == 0) { \
-    /*fprintf(stderr,"\n\tFailed to register OMPT callback %s!\n",NAME); fflush(stderr); */ \
+    /* fprintf(stderr,"\n\tFailed to register OMPT callback %s!\n",NAME); fflush(stderr); */ \
   } else { \
-    /*fprintf(stderr,"success.\n"); */ \
+    /* fprintf(stderr,"success.\n"); */ \
   } \
-
-void cleanup(void) {
-    if (timer_stack != nullptr) { 
-        delete(timer_stack); 
-        timer_stack = nullptr;
-    }
-}
 
 inline int __ompt_initialize() {
   apex::init("OPENMP_PROGRAM",0,1);
@@ -424,7 +417,6 @@ inline int __ompt_initialize() {
 	}
   }
   fprintf(stderr,"done.\n"); fflush(stderr);
-  atexit(cleanup);
   return 1;
 }
 

@@ -14,12 +14,14 @@
 #define INNER_ITERATION 4096
 
 inline int foo (int i) {
+  static int limit = sqrt(INT_MAX >> 1);
   int j;
   int dummy = 1;
   for (j = 0 ; j < INNER_ITERATION ; j++) {
-    dummy = dummy * (dummy + i);
-    if (dummy > (INT_MAX >> 1)) {
+    if (dummy > limit) {
       dummy = 1;
+    } else {
+      dummy = dummy * (dummy + i);
     }
   }
   return dummy;
@@ -111,6 +113,7 @@ int main(int argc, char **argv)
   for (i = 0 ; i < numthreads ; i++) {
     pthread_join(thread[i], NULL);
   }
+  free(thread);
   apex::stop(m);
   apex::finalize();
   apex_profile * without = apex::get_profile((apex_function_address)&someUntimedThread);

@@ -138,6 +138,8 @@ int main (int argc, char** argv) {
     for (uint32_t i = 0 ; i < numthreads ; i++) {
         pthread_join(thread[i], NULL);
     }
+    free(tids);
+    free(thread);
     /* stop our main timer */
     apex::stop(p);
     /* finalize APEX */

@@ -62,6 +62,7 @@ std::atomic<unsigned int> _exit_stops(0L);
 std::atomic<unsigned int> _resumes(0L);
 std::atomic<unsigned int> _yields(0L);
 #endif
+__thread profiler * top_level_timer = nullptr;
 
 /*
  * The destructor will request power data from RCRToolkit
@@ -309,9 +310,9 @@ uint64_t init(const char * thread_name, uint64_t comm_rank, uint64_t comm_size) 
     }
     // start top-level timers for threads
     if (thread_name) {
-      start(thread_name, 0);
+      top_level_timer = start(thread_name, 0);
     } else {
-      start("APEX MAIN THREAD", 0);
+      top_level_timer = start("APEX MAIN THREAD", 0);
     }
     if (apex_options::use_screen_output() && instance->get_node_id() == 0) {
 	  std::cout << version() << std::endl;
@@ -764,6 +765,8 @@ void finalize()
         if (finalized) { return; };
         finalized = true;
     }
+    // First, stop the top level timer, while the infrastructure is still functioning.
+    //stop(top_level_timer);
     // if not done already...
     shutdown_throttling();
     apex* instance = apex::instance(); // get the Apex static instance
@@ -866,9 +869,9 @@ void register_thread(const std::string &name)
     string::size_type index = name.find("#");
     if (index!=std::string::npos) {
         string short_name = name.substr(0,index);
-        start(short_name, 0);
+        top_level_timer = start(short_name, 0);
     } else {
-        start(name, 0);
+        top_level_timer = start(name, 0);
     }
 }
 
@@ -878,6 +881,7 @@ void exit_thread(void)
     if (apex_options::disable() == true) { return; }
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
+    if (top_level_timer != nullptr) { stop(top_level_timer); }
     _exited = true;
     event_data data;
     if (_notify_listeners) {

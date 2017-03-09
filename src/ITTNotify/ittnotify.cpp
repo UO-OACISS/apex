@@ -21,6 +21,12 @@ using namespace std;
 #define APEX_TRACER
 #endif
 
+#include <stack>
+std::stack<apex::profiler*>& the_timer_stack() {
+    static __thread std::stack<apex::profiler*> the_stack;
+    return the_stack;
+}
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -101,11 +107,12 @@ void __itt_task_begin(__itt_domain const* domain, __itt_id taskid, __itt_id pare
   APEX_UNUSED(taskid);
   APEX_UNUSED(parentid);
   std::string tmp = string(handle->strA);
-  apex::start(tmp);
+  the_timer_stack().push(apex::start(tmp));
 }
 void __itt_task_end(__itt_domain const*) {
   APEX_TRACER
-  apex::stop(NULL);
+  apex::stop(the_timer_stack().top());
+  the_timer_stack().pop();
 }
 
 void __itt_thread_set_name (const char * name) {

@@ -36,7 +36,9 @@ namespace apex {
         // ...no - so go get it!
         node = new address_resolution::my_hash_node();
         Apex_bfd_resolveBfdInfo(ar->my_bfd_unit_handle, ip, node->info);
-        if (node->info.funcname) {
+        if (node->info.demangled) {
+          location << node->info.demangled ;
+        } else if (node->info.funcname) {
           location << node->info.funcname ;
         }
         location << " [{" ;

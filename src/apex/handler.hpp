@@ -33,6 +33,7 @@ private:
             context->_handler();
         }
         ptw->_running = false;
+        thread_instance::delete_instance();
         return nullptr;
     };
 protected:

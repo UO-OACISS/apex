@@ -58,9 +58,12 @@ struct ApexBfdAddrMap
 struct ApexBfdInfo
 {
     ApexBfdInfo() :
-        probeAddr(0), filename(NULL), funcname(NULL),
+        probeAddr(0), filename(NULL), funcname(NULL), demangled(NULL),
                 lineno(-1), discriminator(0)
     { }
+    ~ApexBfdInfo() {
+        if (demangled != funcname) free(const_cast<char*>(demangled));
+    }
 
     // Makes all fields safe to query
     void secure(unsigned long addr) {
@@ -77,6 +80,7 @@ struct ApexBfdInfo
     unsigned long probeAddr;
     char const * filename;
     char const * funcname;
+    char const * demangled;
     int lineno;
         unsigned int discriminator;
 };

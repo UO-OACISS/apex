@@ -79,6 +79,10 @@ APEX_NATIVE_TLS unsigned int my_tid = 0; // the current thread's TID in APEX
 
 namespace apex {
 
+/* set for keeping track of memory to clean up */
+std::mutex free_profile_set_mutex;
+std::unordered_set<profile*> free_profiles;
+
 #ifdef APEX_MULTIPLE_QUEUES
   /* this is a thread-local pointer to a concurrent queue for each worker thread. */
   __thread profiler_queue_t * thequeue;
@@ -136,6 +140,10 @@ namespace apex {
     double elapsed = total_main - non_idle_time;
     elapsed = elapsed > 0.0 ? elapsed : 0.0;
     profile * theprofile = new profile(elapsed*profiler::get_cpu_mhz(), 0, NULL, false);
+    {
+        std::unique_lock<std::mutex> l(free_profile_set_mutex);
+        free_profiles.insert(theprofile);
+    }
     return theprofile;
   }
 
@@ -154,6 +162,10 @@ namespace apex {
     double elapsed = total_main - non_idle_time;
     double rate = elapsed > 0.0 ? ((elapsed/total_main)) : 0.0;
     profile * theprofile = new profile(rate, 0, NULL, false);
+    {
+        std::unique_lock<std::mutex> l(free_profile_set_mutex);
+        free_profiles.insert(theprofile);
+    }
     return theprofile;
   }
 
@@ -166,6 +178,10 @@ namespace apex {
         return get_idle_time();
     } else if (id.name == string(APEX_NON_IDLE_TIME)) {
         profile * theprofile = new profile(get_non_idle_time(), 0, NULL, false);
+        {
+            std::unique_lock<std::mutex> l(free_profile_set_mutex);
+            free_profiles.insert(theprofile);
+        }
         return theprofile;
     }
     std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
@@ -1444,6 +1460,9 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
     while (allqueues.size() > 0) {
         auto tmp = allqueues.back();
         allqueues.pop_back();
+        delete(tmp);
+    }
+    for (auto tmp : free_profiles) {
         delete(tmp);
     }
 
