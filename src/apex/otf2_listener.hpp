@@ -25,6 +25,7 @@ namespace apex {
         std::mutex _string_mutex;
         std::mutex _metric_mutex;
         std::mutex _comm_mutex;
+        std::mutex _event_set_mutex;
         std::unordered_set<int> _event_threads;
         /* this is a reader/writer lock. Don't close the archive
          * if other threads are writing to it. but allow concurrent

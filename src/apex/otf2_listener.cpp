@@ -265,6 +265,7 @@ namespace apex {
         if (thread_instance::get_id() == 0) {
             comm_evt_writer = evt_writer;
         }
+        std::unique_lock<std::mutex> l(_event_set_mutex);
         _event_threads.insert(thread_instance::get_id());
       }
       return evt_writer;
@@ -272,7 +273,7 @@ namespace apex {
 
     bool otf2_listener::event_file_exists (int threadid) {
         // get exclusive access to the set - unlocks on exit
-        read_lock_type lock(_archive_mutex);
+        std::unique_lock<std::mutex> l(_event_set_mutex);
         if (_event_threads.find(threadid) == _event_threads.end()) {return false;} else {return true;}
     }
 
@@ -1035,7 +1036,7 @@ namespace apex {
             OTF2_EvtWriter_ThreadEnd( getEvtWriter(), NULL, stamp, 0, 0);
         //} 
         printf("closing event writer for thread %lu\n", thread_instance::get_id()); fflush(stdout);
-        _event_threads.insert(thread_instance::get_id());
+        //_event_threads.insert(thread_instance::get_id());
         OTF2_Archive_CloseEvtWriter( archive, getEvtWriter() );
         if (thread_instance::get_id() == 0) {
             comm_evt_writer = nullptr;
