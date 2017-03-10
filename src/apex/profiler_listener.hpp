@@ -51,8 +51,8 @@
 // The HPX subsystem creates so many small tasks that it is "better"
 // to have a queue per thread, rather than one queue.
 #ifdef APEX_HAVE_HPX
-#endif
 #define APEX_MULTIPLE_QUEUES
+#endif
 
 namespace apex {
 
@@ -98,6 +98,8 @@ private:
   /* an vector of profiler queues - so the consumer thread can access them */
   std::mutex queue_mtx;
   std::vector<profiler_queue_t*> allqueues;
+  profiler_queue_t * _construct_thequeue(void);
+  profiler_queue_t * thequeue(void);
 #else
   profiler_queue_t thequeue;
 #endif

@@ -493,40 +493,29 @@ namespace apex {
         int comm_size = 0;
         // iterate over the other ranks in the index files
         for (int i = 0 ; i < my_saved_node_count ; i++) {
-        std::string indexline;
-        struct stat buffer;
-        std::stringstream full_index_filename;
-        full_index_filename << index_filename << to_string(my_saved_node_id);
-		// wait for the file to exist
-        while (stat (full_index_filename.str().c_str(), &buffer) != 0) {}
-        std::ifstream index_file(full_index_filename.str());
-        int rank, pid;
-        std::string hostname;
-        while (std::getline(index_file, indexline)) {
             comm_size++;
-            istringstream ss(indexline);
-            ss >> rank >> pid >> hostname;
             // skip myself
-            if (rank == 0) continue;
-            rank_region_map[rank] = 0;
+            if (i == 0) continue;
+            rank_region_map[i] = 0;
             struct stat buffer;   
             // wait on the map file to exist
             ostringstream region_filename;
-            region_filename << region_filename_prefix << rank;
-            while (stat (region_filename.str().c_str(), &buffer) != 0) {}
+            region_filename << region_filename_prefix << i;
             // wait for the lock file to not exist
+            while (stat (region_filename.str().c_str(), &buffer) != 0) {}
             ostringstream lock_filename;
-            lock_filename << lock_filename_prefix << rank;
+            lock_filename << lock_filename_prefix << i;
+            // wait for the region file to exist
             while (stat (lock_filename.str().c_str(), &buffer) == 0) {}
             // get the number of threads from that rank
             std::string region_line;
             std::ifstream region_file(region_filename.str());
             std::getline(region_file, region_line);
             std::string::size_type sz;   // alias of size_t
-            rank_thread_map[rank] = std::stoi(region_line,&sz);
+            rank_thread_map[i] = std::stoi(region_line,&sz);
             // read the map from that rank
             while (std::getline(region_file, region_line)) {
-                rank_region_map[rank] = rank_region_map[rank] + 1;
+                rank_region_map[i] = rank_region_map[i] + 1;
                 // trim the newline
                 region_line.erase(std::remove(region_line.begin(), region_line.end(), '\n'), region_line.end());
                 if (reduced_region_map.find(region_line) == reduced_region_map.end()) {
@@ -538,8 +527,6 @@ namespace apex {
             region_file.close();
             // remove that rank's map
             std::remove(region_filename.str().c_str());
-        }
-        index_file.close();
         }
         // open my region file
         ostringstream region_filename;
@@ -582,39 +569,27 @@ namespace apex {
         }
         // iterate over the other ranks in the index file
         for (int i = 0 ; i < my_saved_node_count ; i++) {
-        std::string indexline;
-        struct stat buffer;
-        std::stringstream full_index_filename;
-        full_index_filename << index_filename << to_string(my_saved_node_id);
-		// wait for the file to exist
-        while (stat (full_index_filename.str().c_str(), &buffer) != 0) {}
-        std::ifstream index_file(full_index_filename.str());
-        int rank, pid;
-        std::string hostname;
-        while (std::getline(index_file, indexline)) {
-            istringstream ss(indexline);
-            ss >> rank >> pid >> hostname;
             // skip myself
-            if (rank == 0) continue;
-            rank_metric_map[rank] = 0;
+            if (i == 0) continue;
+            rank_metric_map[i] = 0;
             struct stat buffer;   
             // wait on the map file to exist
             ostringstream metric_filename;
-            metric_filename << metric_filename_prefix << rank;
+            metric_filename << metric_filename_prefix << i;
             while (stat (metric_filename.str().c_str(), &buffer) != 0) {}
             // wait for the lock file to not exist
             ostringstream lock_filename;
-            lock_filename << lock_filename_prefix << rank;
+            lock_filename << lock_filename_prefix << i;
             while (stat (lock_filename.str().c_str(), &buffer) == 0) {}
             // get the number of threads from that rank
             std::string metric_line;
             std::ifstream metric_file(metric_filename.str());
             std::getline(metric_file, metric_line);
             std::string::size_type sz;   // alias of size_t
-            rank_thread_map[rank] = std::stoi(metric_line,&sz);
+            rank_thread_map[i] = std::stoi(metric_line,&sz);
             // read the map from that rank
             while (std::getline(metric_file, metric_line)) {
-                rank_metric_map[rank] = rank_metric_map[rank] + 1;
+                rank_metric_map[i] = rank_metric_map[i] + 1;
                 // trim the newline
                 metric_line.erase(std::remove(metric_line.begin(), metric_line.end(), '\n'), metric_line.end());
                 if (reduced_metric_map.find(metric_line) == reduced_metric_map.end()) {
@@ -626,8 +601,6 @@ namespace apex {
             metric_file.close();
             // remove that rank's map
             std::remove(metric_filename.str().c_str());
-        }
-        index_file.close();
         }
         // open my metric file
         ostringstream metric_filename;

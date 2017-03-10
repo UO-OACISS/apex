@@ -84,8 +84,20 @@ std::mutex free_profile_set_mutex;
 std::unordered_set<profile*> free_profiles;
 
 #ifdef APEX_MULTIPLE_QUEUES
-  /* this is a thread-local pointer to a concurrent queue for each worker thread. */
-  __thread profiler_queue_t * thequeue;
+    /* We do this in two stages, to make the common case fast. */
+    profiler_queue_t * profiler_listener::_construct_thequeue() {
+	  	profiler_queue_t * _thequeue = new profiler_queue_t();
+   	    std::unique_lock<std::mutex> queue_lock(queue_mtx);
+   	    allqueues.push_back(_thequeue);
+        return _thequeue;
+    }
+    /* this is a thread-local pointer to a concurrent queue for each worker thread. */
+    profiler_queue_t * profiler_listener::thequeue() {
+        /* This constructor gets called once per thread, the first time this
+         * function is executed (by each thread). */
+        static __thread profiler_queue_t * _thequeue = _construct_thequeue();
+        return _thequeue;
+    }
 #endif
 
   /* THis is a special profiler, indicating that the timer requested is
@@ -1283,9 +1295,9 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
 #endif
       // we have to make a local copy, because lockfree queues DO NOT SUPPORT shared_ptrs!
 #ifdef APEX_MULTIPLE_QUEUES
-      thequeue->enqueue(p);
+      thequeue()->enqueue(p);
 #ifndef APEX_HAVE_HPX
-      int thesize = thequeue->size_approx();
+      int thesize = thequeue()->size_approx();
 #endif
 #else
       thequeue.enqueue(p);
@@ -1380,13 +1392,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
   void profiler_listener::async_thread_setup(void) {
 #ifdef APEX_MULTIPLE_QUEUES
 	  // for asynchronous threads, check to make sure there is a queue!
-	  if (thequeue == nullptr) {
-	  	thequeue = new profiler_queue_t();
-	  	{
-        	std::unique_lock<std::mutex> queue_lock(queue_mtx);
-	    	allqueues.push_back(thequeue);
-	  	}
-	  }
+      thequeue();
 #endif
   }
 
