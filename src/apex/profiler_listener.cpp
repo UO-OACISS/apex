@@ -1463,11 +1463,13 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       delete consumer_thread;
 #endif
 #endif
+#ifdef APEX_MULTIPLE_QUEUES
     while (allqueues.size() > 0) {
         auto tmp = allqueues.back();
         allqueues.pop_back();
         delete(tmp);
     }
+#endif
     for (auto tmp : free_profiles) {
         delete(tmp);
     }
