@@ -829,7 +829,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
           profiler_listener * pl = inst->the_profiler_listener;
           if (pl != nullptr) {
 #ifdef APEX_TRACE_APEX
-      profiler * p = start((apex_function_address)&profiler_listener::process_profiles_wrapper);
+      profiler * p = start("apex::process_profiles");
               pl->process_profiles();
       stop(p);
 #else
@@ -1291,7 +1291,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
   	  // if we aren't processing profiler objects, just return.
   	  if (!apex_options::process_async_state()) { return; }
 #ifdef APEX_TRACE_APEX
-  	  if (p->task_id->address == (uint64_t)&profiler_listener::process_profiles_wrapper) { return; }
+  	  if (p->task_id->name == "apex::process_profiles") { return; }
 #endif
       // we have to make a local copy, because lockfree queues DO NOT SUPPORT shared_ptrs!
 #ifdef APEX_MULTIPLE_QUEUES
