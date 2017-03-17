@@ -10,7 +10,7 @@
 #include "utils.hpp"
 
 #define SPLIT 131072
-#define ITERATIONS 1048576
+#define ITERATIONS 1024*64
 #define INNER_ITERATION 4096
 
 inline int foo (int i) {

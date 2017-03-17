@@ -25,6 +25,10 @@
 #ifdef APEX_HAVE_BFD
 #include "address_resolution.hpp"
 #endif
+// another method, just for the special Apple folks.
+#if defined(__APPLE__)
+#include <dlfcn.h>
+#endif
 
 #include <assert.h>
 
@@ -219,6 +223,20 @@ string thread_instance::map_addr_to_name(apex_function_address function_address)
     read_lock_type l(_function_map_mutex);
     return _function_map[function_address];
 #else
+#if defined(__APPLE__)
+    // resolve the address
+    Dl_info info;
+    int rc = dladdr((const void *)function_address, &info);
+    if (rc != 0) {
+        string name(info.dli_sname);
+        {
+            write_lock_type l(_function_map_mutex);
+            _function_map[function_address] = name;
+        }
+        read_lock_type l(_function_map_mutex);
+        return _function_map[function_address];
+    }
+#endif
     stringstream ss;
     const char * progname = program_path();
     if (progname == NULL) {
