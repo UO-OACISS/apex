@@ -17,7 +17,7 @@ private:
 public:
   tau_listener (void);
   ~tau_listener (void) { };
-  static void initialize_tau(int argc, char** avgv);
+  static bool initialize_tau(int argc, char** avgv);
   void on_startup(startup_event_data &data);
   void on_shutdown(shutdown_event_data &data);
   void on_new_node(node_event_data &data);
@@ -37,21 +37,22 @@ public:
 
 };
 
+int initialize_worker_thread_for_tau(void);
+
 }
 
 /* Weak symbols that are redefined if we load TAU at link or runtime */
 extern "C" {
-APEX_EXPORT int APEX_WEAK initialize_worker_thread_for_tau(void);
-APEX_EXPORT int APEX_WEAK Tau_register_thread(void);
-APEX_EXPORT int APEX_WEAK Tau_create_top_level_timer_if_necessary(void);
-APEX_EXPORT int APEX_WEAK Tau_start(const char *);
-APEX_EXPORT int APEX_WEAK Tau_stop(const char *);
-APEX_EXPORT int APEX_WEAK Tau_init(int, char**);
-APEX_EXPORT int APEX_WEAK Tau_exit(const char*);
-APEX_EXPORT int APEX_WEAK Tau_set_node(int);
-APEX_EXPORT int APEX_WEAK Tau_profile_exit_all_threads(void);
-APEX_EXPORT int APEX_WEAK Tau_get_thread(void);
-APEX_EXPORT int APEX_WEAK Tau_profile_exit_all_tasks(void);
-APEX_EXPORT int APEX_WEAK Tau_global_stop(void);
-APEX_EXPORT int APEX_WEAK Tau_trigger_context_event_thread(char*, double, int);
+APEX_EXPORT int APEX_WEAK Tau_register_thread(void) APEX_APPLE_WEAK;
+APEX_EXPORT int APEX_WEAK Tau_create_top_level_timer_if_necessary(void) APEX_APPLE_WEAK;
+APEX_EXPORT int APEX_WEAK Tau_start(const char *) APEX_APPLE_WEAK;
+APEX_EXPORT int APEX_WEAK Tau_stop(const char *) APEX_APPLE_WEAK;
+APEX_EXPORT int APEX_WEAK Tau_init(int, char**) APEX_APPLE_WEAK;
+APEX_EXPORT int APEX_WEAK Tau_exit(const char*) APEX_APPLE_WEAK;
+APEX_EXPORT int APEX_WEAK Tau_set_node(int) APEX_APPLE_WEAK;
+APEX_EXPORT int APEX_WEAK Tau_profile_exit_all_threads(void) APEX_APPLE_WEAK;
+APEX_EXPORT int APEX_WEAK Tau_get_thread(void) APEX_APPLE_WEAK;
+APEX_EXPORT int APEX_WEAK Tau_profile_exit_all_tasks(void) APEX_APPLE_WEAK;
+APEX_EXPORT int APEX_WEAK Tau_global_stop(void) APEX_APPLE_WEAK;
+APEX_EXPORT int APEX_WEAK Tau_trigger_context_event_thread(char*, double, int) APEX_APPLE_WEAK;
 }

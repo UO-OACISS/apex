@@ -177,20 +177,21 @@ void apex::_initialize()
 #ifdef APEX_HAVE_MSR
     apex_init_msr();
 #endif
+    bool tau_loaded = false;
     if (apex_options::use_tau())
     {
         // before spawning any other threads, initialize TAU.
         char * tmp = const_cast<char*>("APEX");
         char * argv[] = {tmp};
         int argc = 1;
-        tau_listener::initialize_tau(argc, argv);
+        tau_loaded = tau_listener::initialize_tau(argc, argv);
     }
     {
         //write_lock_type l(listener_mutex);
         this->the_profiler_listener = new profiler_listener();
         // this is always the first listener!
    	    listeners.push_back(the_profiler_listener);
-        if (apex_options::use_tau())
+        if (apex_options::use_tau() && tau_loaded)
         {
             listeners.push_back(new tau_listener());
         }
