@@ -849,7 +849,7 @@ namespace apex {
                     std::string line;
         			struct stat buffer;
                     std::stringstream full_index_filename;
-                    full_index_filename << index_filename << to_string(my_saved_node_id);
+                    full_index_filename << index_filename << to_string(i);
 					// wait for the file to exist
         			while (stat (full_index_filename.str().c_str(), &buffer) != 0) {}
         			std::ifstream myfile(full_index_filename.str());

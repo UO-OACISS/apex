@@ -41,6 +41,16 @@
 #include "proc_read.h"
 #endif
 
+#ifdef APEX_HAVE_HPX
+#include <boost/assign.hpp>
+#include <boost/cstdint.hpp>
+#include <hpx/include/performance_counters.hpp>
+#include <hpx/include/actions.hpp>
+#include <hpx/include/util.hpp>
+#include <hpx/lcos/local/composable_guard.hpp>
+static void apex_schedule_shutdown(void);
+#endif
+
 APEX_NATIVE_TLS bool _registered = false;
 APEX_NATIVE_TLS bool _exited = false;
 static bool _initialized = false;
@@ -354,6 +364,8 @@ profiler* start(const std::string &timer_name, uint64_t guid)
     // outstanding hpx::util::interval_timer instances. If any are left
     // running, HPX shutdown will never complete.
     if (starts_with(timer_name, string("shutdown_all"))) {
+        // might get called twice, but I think we can handle that.
+        apex_schedule_shutdown();
         finalize();
         return profiler::get_disabled_profiler();
     }
@@ -1287,5 +1299,24 @@ extern "C" {
     
 
 } // extern "C"
+
+#ifdef APEX_HAVE_HPX
+HPX_DECLARE_ACTION(::apex::finalize, apex_internal_shutdown_action);
+HPX_ACTION_HAS_CRITICAL_PRIORITY(apex_internal_shutdown_action);
+HPX_PLAIN_ACTION(::apex::finalize, apex_internal_shutdown_action);
+
+void apex_schedule_shutdown() {
+    if(get_hpx_runtime_ptr() == nullptr) return;
+    //if(!thread_instance::is_worker()) return;
+    apex_internal_shutdown_action act;
+    try {
+        for(auto locality : hpx::find_all_localities()) {
+            hpx::apply(act, locality);
+        }
+    } catch(...) {
+        // what to do?
+    }
+}
+#endif
 
 
