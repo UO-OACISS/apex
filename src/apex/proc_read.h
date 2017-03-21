@@ -18,6 +18,7 @@
 #include <atomic>
 #include <thread>
 #include "pthread_wrapper.hpp"
+#include "apex_options.hpp"
 
 namespace apex {
 
@@ -44,7 +45,7 @@ private:
 public:
     static void* read_proc(void * _pdr);
     proc_data_reader(void) {
-        worker_thread = new pthread_wrapper(&proc_data_reader::read_proc, (void*)(this), 1000000);
+        worker_thread = new pthread_wrapper(&proc_data_reader::read_proc, (void*)(this), apex_options::proc_period());
     };
 
     void stop_reading(void) {

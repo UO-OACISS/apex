@@ -18,7 +18,6 @@
 #endif
 #include <set>
 #include "utils.hpp"
-#include "apex_options.hpp"
 #include <chrono>
 
 #define COMMAND_LEN 20
