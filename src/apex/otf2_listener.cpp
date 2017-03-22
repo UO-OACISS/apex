@@ -410,7 +410,7 @@ namespace apex {
                 idx, get_string_index(id), get_string_index(id),
                 OTF2_METRIC_TYPE_OTHER, OTF2_METRIC_ABSOLUTE_POINT, 
                 OTF2_TYPE_DOUBLE, OTF2_BASE_DECIMAL, 0, get_string_index("count"));
-            OTF2_MetricMemberRef* omr = new OTF2_MetricMemberRef[1];
+            OTF2_MetricMemberRef omr[1];
             omr[0]=idx;
             OTF2_GlobalDefWriter_WriteMetricClass( global_def_writer, 
                     idx, 1, omr, OTF2_METRIC_ASYNCHRONOUS, 
@@ -1144,10 +1144,10 @@ namespace apex {
         // not likely, but just in case...
         if (_terminate) { return; }
         // create a union for storing the value
-        OTF2_MetricValue* omv = new OTF2_MetricValue[1];
+        OTF2_MetricValue omv[1];
         omv[0].floating_point = data.counter_value;
         // tell the union what type this is
-        OTF2_Type* omt = new OTF2_Type[1];
+        OTF2_Type omt[1];
         omt[0]=OTF2_TYPE_DOUBLE;
         {
             uint64_t idx = get_metric_index(*(data.counter_name));

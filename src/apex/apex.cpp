@@ -573,7 +573,7 @@ void sample_value(const std::string &name, double value)
     // parse the counter name
     // either /threadqueue{locality#0/total}/length
     // or     /threadqueue{locality#0/worker-thread#0}/length
-    sample_value_event_data* data = nullptr;
+    int tid = 0;
     if (name.find(instance->m_my_locality) != name.npos)
     {
         if (name.find("worker-thread") != name.npos)
@@ -582,44 +582,26 @@ void sample_value(const std::string &name, double value)
             // tokenize by / character
             char* token = strtok(const_cast<char*>(tmp_name.c_str()), "/");
             while (token!=nullptr) {
-              if (strstr(token, "worker-thread")==NULL)
-              {
-                break;
-              }
+              if (strstr(token, "worker-thread")==NULL) { break; }
               token = strtok(NULL, "/");
             }
-            int tid = 0;
             if (token != nullptr) {
               // strip the trailing close bracket
               token = strtok(token, "}");
               tid = thread_instance::map_name_to_id(token);
             }
-            if (tid != -1)
-            {
-                data = new sample_value_event_data(tid, name, value);
-            }
-            else
-            {
-                data = new sample_value_event_data(0, name, value);
+            if (tid == -1) {
+                tid = 0;
             }
         }
-        else
-        {
-            data = new sample_value_event_data(0, name, value);
-        }
     }
-    else
-    {
-        // what if it doesn't?
-        data = new sample_value_event_data(0, name, value);
-    }
+    sample_value_event_data data(tid, name, value);
     if (_notify_listeners) {
         //read_lock_type l(instance->listener_mutex);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_sample_value(*data);
+            instance->listeners[i]->on_sample_value(data);
         }
     }
-    delete(data);
 }
 
 void new_task(const std::string &timer_name, uint64_t task_id)
