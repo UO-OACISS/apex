@@ -988,11 +988,16 @@ namespace apex {
             if (_terminate) { return; }
             // before we process the event, make sure the event write is open
             OTF2_EvtWriter* local_evt_writer = getEvtWriter();
+/* Don't do this until we can do the ThreadCreate call
+ * and get the right threadContingent object for the
+ * fourth parameter. */
+#if 0
             if (local_evt_writer != NULL) {
               // insert a thread begin event
               uint64_t stamp = get_time();
               OTF2_EvtWriter_ThreadBegin( local_evt_writer, NULL, stamp, 0, thread_instance::get_id() );
             }
+#endif
         }
         APEX_UNUSED(data);
         return;
@@ -1003,11 +1008,16 @@ namespace apex {
         read_lock_type lock(_archive_mutex);
         // not likely, but just in case...
         if (_terminate) { return; }
-        //if (thread_instance::get_id() != 0) {
+/* Don't do this until we can do the ThreadCreate call
+ * and get the right threadContingent object for the
+ * fourth parameter. */
+#if 0
+        if (thread_instance::get_id() != 0) {
             // insert a thread end event
             uint64_t stamp = get_time();
             OTF2_EvtWriter_ThreadEnd( getEvtWriter(), NULL, stamp, 0, 0);
-        //} 
+        } 
+#endif
         printf("closing event writer for thread %lu\n", thread_instance::get_id()); fflush(stdout);
         //_event_threads.insert(thread_instance::get_id());
         OTF2_Archive_CloseEvtWriter( archive, getEvtWriter() );
