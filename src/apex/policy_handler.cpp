@@ -440,11 +440,11 @@ namespace apex {
 		call_policies(sample_value_policies, &data, APEX_SAMPLE_VALUE);
 	}
 
-	void policy_handler::on_send(sample_value_event_data &data) {
+	void policy_handler::on_send(message_event_data &data) {
 		call_policies(send_policies, &data, APEX_SEND);
 	}
 
-	void policy_handler::on_recv(sample_value_event_data &data) {
+	void policy_handler::on_recv(message_event_data &data) {
 		call_policies(recv_policies, &data, APEX_RECV);
 	}
 

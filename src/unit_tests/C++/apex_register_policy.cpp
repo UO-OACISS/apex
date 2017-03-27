@@ -44,7 +44,7 @@ void* someThread(void* tmp)
   apex::custom_event(custom_type_1, NULL);
   apex::sample_value("some value", 42);
   // bogus send event
-  apex::send(0, 8, 0, 0);
+  apex::send(0, 8, 0);
   // bogus recv event
   apex::recv(0, 8, 0, 0);
   apex::profiler* my_profiler = apex::start((apex_function_address)&someThread);
