@@ -50,7 +50,7 @@ typedef enum _error_codes {
   APEX_ERROR        /*!< Some error occurred - check stderr output for details */
 } apex_error_code;
 
-#define APEX_MAX_EVENTS 128 /*!< The maximum number of event types. Allows for ~20 custom events. */
+#define APEX_MAX_EVENTS 128 /*!< The maximum number of event types. Allows for many custom events. */
 
 /**
  * Typedef for enumerating the different event types
@@ -68,6 +68,8 @@ typedef enum _event_type {
   APEX_STOP_EVENT,     /*!< APEX has processed a timer stop event */
   APEX_YIELD_EVENT,    /*!< APEX has processed a timer yield event */
   APEX_SAMPLE_VALUE,   /*!< APEX has processed a sampled value */
+  APEX_SEND,           /*!< APEX has processed a send event */
+  APEX_RECV,           /*!< APEX has processed a recv event */
   APEX_PERIODIC,       /*!< APEX has processed a periodic timer */
   APEX_CUSTOM_EVENT_1,   /*!< APEX has processed a custom event - useful for large
                            granularity application control events */

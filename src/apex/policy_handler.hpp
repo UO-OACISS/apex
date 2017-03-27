@@ -56,6 +56,8 @@ private:
     std::list<std::shared_ptr<policy_instance> > yield_event_policies;
     std::list<std::shared_ptr<policy_instance> > resume_event_policies;
     std::list<std::shared_ptr<policy_instance> > sample_value_policies;
+    std::list<std::shared_ptr<policy_instance> > send_policies;
+    std::list<std::shared_ptr<policy_instance> > recv_policies;
     std::list<std::shared_ptr<policy_instance> > periodic_policies;
     std::array<std::list<std::shared_ptr<policy_instance> >,APEX_MAX_EVENTS > custom_event_policies;
     shared_mutex_type startup_mutex;
@@ -68,6 +70,8 @@ private:
     shared_mutex_type yield_event_mutex;
     shared_mutex_type resume_event_mutex;
     shared_mutex_type sample_value_mutex;
+    shared_mutex_type send_mutex;
+    shared_mutex_type recv_mutex;
     shared_mutex_type custom_event_mutex;
     shared_mutex_type periodic_mutex;
     void call_policies(
@@ -98,8 +102,8 @@ public:
     void on_sample_value(sample_value_event_data &data);
     void on_custom_event(custom_event_data &data);
     void on_periodic(periodic_event_data &data);
-    void on_send(message_event_data &data) { APEX_UNUSED(data); };
-    void on_recv(message_event_data &data) { APEX_UNUSED(data); };
+    void on_send(message_event_data &data);
+    void on_recv(message_event_data &data);
 
     int register_policy(const apex_event_type & when,
                         std::function<int(apex_context const&)> f);

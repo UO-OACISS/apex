@@ -43,6 +43,10 @@ void* someThread(void* tmp)
   apex::register_thread("threadTest thread");
   apex::custom_event(custom_type_1, NULL);
   apex::sample_value("some value", 42);
+  // bogus send event
+  apex::send(0, 8, 0, 0);
+  // bogus recv event
+  apex::recv(0, 8, 0, 0);
   apex::profiler* my_profiler = apex::start((apex_function_address)&someThread);
   int i = 0;
   for (i = 0 ; i < ITERATIONS ; i++) {
@@ -101,6 +105,16 @@ int policy_event(apex_context const context) {
             printf("Sample Value event.\n");
             break;
         }
+        case APEX_SEND:
+        {
+            printf("Send event.\n");
+            break;
+        }
+        case APEX_RECV:
+        {
+            printf("Recv event.\n");
+            break;
+        }
         case APEX_PERIODIC:
         {
             printf("Periodic event.\n");
@@ -144,6 +158,8 @@ int main(int argc, char **argv)
   apex_policy_handle * on_resume_event = apex::register_policy(APEX_RESUME_EVENT, policy_event);
   apex_policy_handle * on_yield_event = apex::register_policy(APEX_YIELD_EVENT, policy_event);
   apex_policy_handle * on_sample_value = apex::register_policy(APEX_SAMPLE_VALUE, policy_event);
+  apex_policy_handle * on_send = apex::register_policy(APEX_SEND, policy_event);
+  apex_policy_handle * on_recv = apex::register_policy(APEX_RECV, policy_event);
   custom_type_1 = apex::register_custom_event("CUSTOM 1");
   custom_type_2 = apex::register_custom_event("CUSTOM 2");
   apex_policy_handle * on_custom_event_1 = apex::register_policy(custom_type_1, policy_event);
@@ -196,6 +212,14 @@ int main(int argc, char **argv)
   if (on_sample_value != nullptr) {
       printf("Deregistering %d...\n", on_sample_value->id);
       apex::deregister_policy(on_sample_value);
+  }
+  if (on_send != nullptr) {
+      printf("Deregistering %d...\n", on_send->id);
+      apex::deregister_policy(on_send);
+  }
+  if (on_recv != nullptr) {
+      printf("Deregistering %d...\n", on_recv->id);
+      apex::deregister_policy(on_recv);
   }
   if (on_custom_event_1 != nullptr) {
       printf("Deregistering %d...\n", on_custom_event_1->id);

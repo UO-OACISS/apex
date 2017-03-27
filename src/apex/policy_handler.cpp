@@ -148,6 +148,16 @@ namespace apex {
 							sample_value_policies.push_back(instance);
 							break;
 						}
+			case APEX_SEND: {
+							//write_lock_type l(sample_value_mutex);
+							send_policies.push_back(instance);
+							break;
+						}
+			case APEX_RECV: {
+							//write_lock_type l(sample_value_mutex);
+							recv_policies.push_back(instance);
+							break;
+						}
 			case APEX_PERIODIC: {
 							//write_lock_type l(periodic_mutex);
 							periodic_policies.push_back(instance);
@@ -295,6 +305,30 @@ namespace apex {
 							}
 							break;
 						}
+			case APEX_SEND: {
+							//write_lock_type l(send_mutex);
+							std::list<std::shared_ptr<policy_instance> >::iterator it;
+							for(it = send_policies.begin() ; it != send_policies.end() ; it++) {
+								std::shared_ptr<policy_instance> policy = *it;
+								if (policy->id == handle->id) {
+									send_policies.erase(it);
+									break;
+								}
+							}
+							break;
+						}
+			case APEX_RECV: {
+							//write_lock_type l(recv_mutex);
+							std::list<std::shared_ptr<policy_instance> >::iterator it;
+							for(it = recv_policies.begin() ; it != recv_policies.end() ; it++) {
+								std::shared_ptr<policy_instance> policy = *it;
+								if (policy->id == handle->id) {
+									recv_policies.erase(it);
+									break;
+								}
+							}
+							break;
+						}
 			case APEX_PERIODIC: {
 							//write_lock_type l(periodic_mutex);
 							std::list<std::shared_ptr<policy_instance> >::iterator it;
@@ -404,6 +438,14 @@ namespace apex {
 
 	void policy_handler::on_sample_value(sample_value_event_data &data) {
 		call_policies(sample_value_policies, &data, APEX_SAMPLE_VALUE);
+	}
+
+	void policy_handler::on_send(sample_value_event_data &data) {
+		call_policies(send_policies, &data, APEX_SEND);
+	}
+
+	void policy_handler::on_recv(sample_value_event_data &data) {
+		call_policies(recv_policies, &data, APEX_RECV);
 	}
 
 	void policy_handler::on_custom_event(custom_event_data &data) {
