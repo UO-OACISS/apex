@@ -379,11 +379,24 @@ APEX_EXPORT std::set<apex_policy_handle*> register_policy(std::set<apex_event_ty
  periodically.  This assigns the passed in function to be called on a periodic
  basis.  The context for the event will be passed to the registered function.
  
- \param period How frequently the function should be called
+ \param period How frequently the function should be called (in microseconds)
  \param f The function to be called when that event is handled by APEX.
  \return A handle to the policy, to be stored if the policy is to be un-registered later.
  */
 APEX_EXPORT apex_policy_handle* register_periodic_policy(unsigned long period, std::function<int(apex_context const&)> f);
+
+/**
+ \brief Periodically sample a runtime counter.
+
+ Apex provides the ability to call an application-specified function
+ periodically.  This assigns the passed in function to be called on a periodic
+ basis.  The context for the event will be passed to the registered function.
+ 
+ \param period How frequently the counter should be called (in microseconds)
+ \param counter_name The name of the counter to sample 
+ */
+APEX_EXPORT void sample_runtime_counter(unsigned long period, const std::string & counter_name);
+
 
 /**
  \brief Deregister a policy with APEX.
