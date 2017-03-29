@@ -805,10 +805,12 @@ namespace apex {
             _terminate = true;
             /* sleep a tiny bit, to make sure all other threads get the word
              * that we are done. */
-			std::cout << "Waiting for all support threads to exit..." << std::endl;
+			//std::cout << "Waiting for all support threads to exit..." << std::endl;
             usleep(apex_options::policy_drain_timeout()); // sleep 1ms (default)
             /* close event files */
-			std::cout << "Closing OTF2 event files..." << std::endl;
+            if (my_saved_node_id == 0) {
+			    std::cout << "Closing OTF2 event files..." << std::endl;
+            }
             OTF2_EC(OTF2_Archive_CloseEvtFiles( archive ));
             /* if we are node 0, write the global definitions */
             if (my_saved_node_id == 0) {
@@ -925,7 +927,9 @@ namespace apex {
                     OTF2_EC(OTF2_Archive_CloseDefWriter( archive, getDefWriter(i) ));
                 }
             }
-			std::cout << "Closing the archive..." << std::endl;
+            if (my_saved_node_id == 0) {
+			    std::cout << "Closing the archive..." << std::endl;
+            }
             // close the archive! we are done!
             OTF2_EC(OTF2_Archive_Close( archive ));
             // delete our temporary files!
@@ -941,7 +945,9 @@ namespace apex {
                 std::remove(tmp2.str().c_str());
             }
             */
-			std::cout << "done." << std::endl;
+            if (my_saved_node_id == 0) {
+			    std::cout << "done." << std::endl;
+            }
         }
         return;
     }
@@ -963,7 +969,7 @@ namespace apex {
         // build a string to write to the file
         stringstream ss;
         ss << my_saved_node_id << "\t" << pid << "\t" << hostname << "\n";
-        cout << ss.str();
+        //cout << ss.str();
         string tmp = ss.str();
         std::ofstream index_file(index_filename + to_string(my_saved_node_id));
         // write our info
