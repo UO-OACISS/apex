@@ -323,7 +323,7 @@ uint64_t init(const char * thread_name, uint64_t comm_rank, uint64_t comm_size) 
     if (thread_name) {
       top_level_timer = start(thread_name, 0);
     } else {
-      top_level_timer = start("APEX MAIN THREAD", 0);
+      //top_level_timer = start("APEX MAIN THREAD", 0);
     }
     if (apex_options::use_screen_output() && instance->get_node_id() == 0) {
 	  std::cout << version() << std::endl;
@@ -861,6 +861,7 @@ void register_thread(const std::string &name)
         }
     }
     // start top-level timers for threads
+    /*
     string::size_type index = name.find("#");
     if (index!=std::string::npos) {
         string short_name = name.substr(0,index);
@@ -868,6 +869,10 @@ void register_thread(const std::string &name)
     } else {
         top_level_timer = start(name, 0);
     }
+    if (name.find("worker-thread") != name.npos) {
+        top_level_timer = start("worker-thread", 0);
+    }
+    */
 }
 
 void exit_thread(void)
@@ -957,31 +962,6 @@ apex_policy_handle* register_periodic_policy(unsigned long period_microseconds,
     handle->period = period_microseconds;
     apex::instance()->push_policy_handle(handle);
     return handle;
-}
-
-void sample_runtime_counter(unsigned long period, const std::string & counter_name) {
-#ifdef APEX_HAVE_HPX
-    if(get_hpx_runtime_ptr() != nullptr) {
-        using hpx::naming::id_type;
-        using hpx::performance_counters::get_counter;
-        using hpx::performance_counters::stubs::performance_counter;
-        using hpx::performance_counters::counter_value;
-        id_type id = get_counter(counter_name);
-        performance_counter::start(hpx::launch::sync, id);
-        register_periodic_policy(period, [=](apex_context const& ctx) -> int {
-            try {
-                counter_value value1 = performance_counter::get_value(hpx::launch::sync, id);
-                const int value = value1.get_value<int>();
-                sample_value(counter_name, value);
-            } catch(hpx::exception const & e) {
-                return APEX_ERROR;
-            }
-            return APEX_NOERROR;
-        });
-    }
-#else
-    std::cerr << "WARNING: Runtime counter sampling is not implemented for your runtime" << std::endl;
-#endif
 }
 
 void deregister_policy(apex_policy_handle * handle) {
