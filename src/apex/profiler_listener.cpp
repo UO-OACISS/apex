@@ -1479,15 +1479,15 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
 }
 
 #ifdef APEX_HAVE_HPX
-HPX_DECLARE_ACTION(::apex::profiler_listener::process_profiles_wrapper, apex_internal_process_profiles_action);
+HPX_DECLARE_ACTION(apex::profiler_listener::process_profiles_wrapper, apex_internal_process_profiles_action);
 HPX_ACTION_HAS_CRITICAL_PRIORITY(apex_internal_process_profiles_action);
-HPX_PLAIN_ACTION(::apex::profiler_listener::process_profiles_wrapper, apex_internal_process_profiles_action);
+HPX_PLAIN_ACTION(apex::profiler_listener::process_profiles_wrapper, apex_internal_process_profiles_action);
 
 void apex_schedule_process_profiles() {
     if(get_hpx_runtime_ptr() == nullptr) return;
     if(!thread_instance::is_worker()) return;
     if(hpx_shutdown) {
-        ::apex::profiler_listener::process_profiles_wrapper();
+        apex::profiler_listener::process_profiles_wrapper();
     } else {
 		if(!consumer_task_running.test_and_set(memory_order_acq_rel)) {
         	apex_internal_process_profiles_action act;
