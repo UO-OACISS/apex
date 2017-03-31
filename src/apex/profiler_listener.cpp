@@ -771,7 +771,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
         } else {
           myfile << "\"" << action_name << "\" ";
           format_line (myfile, p);
-          not_main += (p->get_accumulated()*profiler::get_cpu_mhz());
+          not_main += (p->get_accumulated()*profiler::get_cpu_mhz()*1000000);
         }
       }
     }
