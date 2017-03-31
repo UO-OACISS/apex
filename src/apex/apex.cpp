@@ -323,7 +323,7 @@ uint64_t init(const char * thread_name, uint64_t comm_rank, uint64_t comm_size) 
     if (thread_name) {
       top_level_timer = start(thread_name, 0);
     } else {
-      top_level_timer = start("APEX MAIN THREAD", 0);
+      //top_level_timer = start("APEX MAIN THREAD", 0);
     }
     if (apex_options::use_screen_output() && instance->get_node_id() == 0) {
 	  std::cout << version() << std::endl;
@@ -861,6 +861,7 @@ void register_thread(const std::string &name)
         }
     }
     // start top-level timers for threads
+    /*
     string::size_type index = name.find("#");
     if (index!=std::string::npos) {
         string short_name = name.substr(0,index);
@@ -868,6 +869,10 @@ void register_thread(const std::string &name)
     } else {
         top_level_timer = start(name, 0);
     }
+    if (name.find("worker-thread") != name.npos) {
+        top_level_timer = start("worker-thread", 0);
+    }
+    */
 }
 
 void exit_thread(void)
