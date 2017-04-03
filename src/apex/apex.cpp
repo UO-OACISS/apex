@@ -964,6 +964,31 @@ apex_policy_handle* register_periodic_policy(unsigned long period_microseconds,
     return handle;
 }
 
+void sample_runtime_counter(unsigned long period, const std::string & counter_name) {
+#ifdef APEX_HAVE_HPX
+    if(get_hpx_runtime_ptr() != nullptr) {
+        using hpx::naming::id_type;
+        using hpx::performance_counters::get_counter;
+        using hpx::performance_counters::stubs::performance_counter;
+        using hpx::performance_counters::counter_value;
+        id_type id = get_counter(counter_name);
+        performance_counter::start(hpx::launch::sync, id);
+        register_periodic_policy(period, [=](apex_context const& ctx) -> int {
+            try {
+                counter_value value1 = performance_counter::get_value(hpx::launch::sync, id);
+                const int value = value1.get_value<int>();
+                sample_value(counter_name, value);
+            } catch(hpx::exception const & e) {
+                return APEX_ERROR;
+            }
+            return APEX_NOERROR;
+        });
+    }
+#else
+    std::cerr << "WARNING: Runtime counter sampling is not implemented for your runtime" << std::endl;
+#endif
+}
+
 void deregister_policy(apex_policy_handle * handle) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
