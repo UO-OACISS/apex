@@ -113,6 +113,9 @@ public:
 #ifdef APEX_HAVE_HPX
     void set_hpx_runtime(hpx::runtime * hpx_runtime);
     hpx::runtime * get_hpx_runtime(void);
+    std::unordered_map<std::string, hpx::naming::id_type> registered_counters;
+    int setup_runtime_counter(const std::string & counter_name);
+    void query_runtime_counters(void);
 #endif
     //void notify_listeners(event_data* event_data_);
     policy_handler * get_policy_handler(void) const;

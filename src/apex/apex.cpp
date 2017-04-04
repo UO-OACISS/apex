@@ -11,6 +11,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <string>
+#include <utility>
 #include <memory>
 #if APEX_USE_PLUGINS
 #include <dlfcn.h>
@@ -118,6 +119,20 @@ static void init_hpx_runtime_ptr(void) {
     if(instance != nullptr) {
         hpx::runtime * runtime = hpx::get_runtime_ptr();
         instance->set_hpx_runtime(runtime);
+        std::stringstream ss;
+        ss << "/threads{locality#" << instance->get_node_id() << "/total}/count/cumulative";
+        instance->setup_runtime_counter(ss.str());
+    }
+}
+
+static void finalize_hpx_runtime(void) {
+    std::cout << __func__ << std::endl;
+    if (apex_options::disable() == true) { return; }
+    apex * instance = apex::instance();
+    if(instance != nullptr) {
+        if(hpx::get_runtime_ptr() != nullptr) {
+            instance->query_runtime_counters();
+        }
     }
 }
 #endif
@@ -180,6 +195,7 @@ void apex::_initialize()
 #ifdef APEX_HAVE_HPX
     this->m_hpx_runtime = nullptr;
     hpx::register_startup_function(init_hpx_runtime_ptr);
+    //hpx::register_pre_shutdown_function(finalize_hpx_runtime);
 #endif
 #ifdef APEX_HAVE_RCR
     energyDaemonInit();
@@ -964,6 +980,55 @@ apex_policy_handle* register_periodic_policy(unsigned long period_microseconds,
     return handle;
 }
 
+int apex::setup_runtime_counter(const std::string & counter_name) {
+#ifdef APEX_HAVE_HPX
+    if(get_hpx_runtime_ptr() != nullptr) {
+        using hpx::naming::id_type;
+        using hpx::performance_counters::get_counter;
+        using hpx::performance_counters::stubs::performance_counter;
+        using hpx::performance_counters::counter_value;
+        try {
+            id_type id = get_counter(counter_name);
+            if (id == hpx::naming::invalid_id) { 
+                std::cerr << "Error: invalid HPX counter: " << counter_name << std::endl;
+                return APEX_ERROR; 
+            }
+            performance_counter::start(hpx::launch::sync, id);
+            registered_counters.emplace(std::make_pair(counter_name, id));
+            //std::cout << "Started counter " << counter_name << std::endl;
+        } catch(hpx::exception const & e) {
+            std::cerr << "Error: unable to start HPX counter: " << counter_name << std::endl;
+            return APEX_ERROR;
+        }
+    }
+#else
+    //std::cerr << "WARNING: Runtime counter sampling is not implemented for your runtime" << std::endl;
+#endif
+    return APEX_NOERROR;
+}
+
+void apex::query_runtime_counters(void) {
+#ifdef APEX_HAVE_HPX
+    if(get_hpx_runtime_ptr() != nullptr) {
+        std::cout << instance()->get_node_id() << " Querying counters " << std::endl;
+        using hpx::naming::id_type;
+        using hpx::performance_counters::get_counter;
+        using hpx::performance_counters::stubs::performance_counter;
+        using hpx::performance_counters::counter_value;
+        for (auto counter : registered_counters) {
+            string name = counter.first;
+            id_type id = counter.second;
+            counter_value value1 = performance_counter::get_value(hpx::launch::sync, id);
+            const int value = value1.get_value<int>();
+            sample_value(name, value);
+            std::cout << name << " : " << value << std::endl;
+        }
+    }
+#else
+    //std::cerr << "WARNING: Runtime counter sampling is not implemented for your runtime" << std::endl;
+#endif
+}
+
 void sample_runtime_counter(unsigned long period, const std::string & counter_name) {
 #ifdef APEX_HAVE_HPX
     if(get_hpx_runtime_ptr() != nullptr) {
@@ -972,6 +1037,9 @@ void sample_runtime_counter(unsigned long period, const std::string & counter_na
         using hpx::performance_counters::stubs::performance_counter;
         using hpx::performance_counters::counter_value;
         id_type id = get_counter(counter_name);
+        if (id == hpx::naming::invalid_id) { 
+            std::cerr << "Error: invalid HPX counter: " << counter_name << std::endl;
+        }
         performance_counter::start(hpx::launch::sync, id);
         register_periodic_policy(period, [=](apex_context const& ctx) -> int {
             try {
@@ -979,6 +1047,7 @@ void sample_runtime_counter(unsigned long period, const std::string & counter_na
                 const int value = value1.get_value<int>();
                 sample_value(counter_name, value);
             } catch(hpx::exception const & e) {
+                std::cerr << "Error: unable to start HPX counter: " << counter_name << std::endl;
                 return APEX_ERROR;
             }
             return APEX_NOERROR;

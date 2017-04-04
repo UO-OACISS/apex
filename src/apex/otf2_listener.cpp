@@ -993,11 +993,12 @@ namespace apex {
             // not likely, but just in case...
             if (_terminate) { return; }
             // before we process the event, make sure the event write is open
-            OTF2_EvtWriter* local_evt_writer = getEvtWriter();
+            getEvtWriter();
 /* Don't do this until we can do the ThreadCreate call
  * and get the right threadContingent object for the
  * fourth parameter. */
 #if 0
+            OTF2_EvtWriter* local_evt_writer = getEvtWriter();
             if (local_evt_writer != NULL) {
               // insert a thread begin event
               uint64_t stamp = get_time();
