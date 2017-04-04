@@ -126,7 +126,6 @@ static void init_hpx_runtime_ptr(void) {
 }
 
 static void finalize_hpx_runtime(void) {
-    std::cout << __func__ << std::endl;
     if (apex_options::disable() == true) { return; }
     apex * instance = apex::instance();
     if(instance != nullptr) {
@@ -1009,20 +1008,18 @@ int apex::setup_runtime_counter(const std::string & counter_name) {
 
 void apex::query_runtime_counters(void) {
 #ifdef APEX_HAVE_HPX
-    if(get_hpx_runtime_ptr() != nullptr) {
-        //std::cout << instance()->get_node_id() << " Querying counters " << std::endl;
-        using hpx::naming::id_type;
-        using hpx::performance_counters::get_counter;
-        using hpx::performance_counters::stubs::performance_counter;
-        using hpx::performance_counters::counter_value;
-        for (auto counter : registered_counters) {
-            string name = counter.first;
-            id_type id = counter.second;
-            counter_value value1 = performance_counter::get_value(hpx::launch::sync, id);
-            const int value = value1.get_value<int>();
-            sample_value(name, value);
-            std::cout << name << " : " << value << std::endl;
-        }
+    //std::cout << instance()->get_node_id() << " Querying counters " << std::endl;
+    using hpx::naming::id_type;
+    using hpx::performance_counters::get_counter;
+    using hpx::performance_counters::stubs::performance_counter;
+    using hpx::performance_counters::counter_value;
+    for (auto counter : registered_counters) {
+        string name = counter.first;
+        id_type id = counter.second;
+        counter_value value1 = performance_counter::get_value(hpx::launch::sync, id);
+        const int value = value1.get_value<int>();
+        sample_value(name, value);
+        std::cout << name << " : " << value << std::endl;
     }
 #else
     //std::cerr << "WARNING: Runtime counter sampling is not implemented for your runtime" << std::endl;
