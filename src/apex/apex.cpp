@@ -195,7 +195,7 @@ void apex::_initialize()
 #ifdef APEX_HAVE_HPX
     this->m_hpx_runtime = nullptr;
     hpx::register_startup_function(init_hpx_runtime_ptr);
-    //hpx::register_pre_shutdown_function(finalize_hpx_runtime);
+    hpx::register_pre_shutdown_function(finalize_hpx_runtime);
 #endif
 #ifdef APEX_HAVE_RCR
     energyDaemonInit();
@@ -1010,7 +1010,7 @@ int apex::setup_runtime_counter(const std::string & counter_name) {
 void apex::query_runtime_counters(void) {
 #ifdef APEX_HAVE_HPX
     if(get_hpx_runtime_ptr() != nullptr) {
-        std::cout << instance()->get_node_id() << " Querying counters " << std::endl;
+        //std::cout << instance()->get_node_id() << " Querying counters " << std::endl;
         using hpx::naming::id_type;
         using hpx::performance_counters::get_counter;
         using hpx::performance_counters::stubs::performance_counter;
