@@ -132,6 +132,7 @@ static void finalize_hpx_runtime(void) {
         if(hpx::get_runtime_ptr() != nullptr) {
             instance->query_runtime_counters();
         }
+        apex::finalize();
     }
 }
 #endif
@@ -989,14 +990,18 @@ int apex::setup_runtime_counter(const std::string & counter_name) {
         try {
             id_type id = get_counter(counter_name);
             if (id == hpx::naming::invalid_id) { 
-                std::cerr << "Error: invalid HPX counter: " << counter_name << std::endl;
+                if (instance()->get_node_id() == 0) {
+                    std::cerr << "Error: invalid HPX counter: " << counter_name << std::endl;
+                }
                 return APEX_ERROR; 
             }
             performance_counter::start(hpx::launch::sync, id);
             registered_counters.emplace(std::make_pair(counter_name, id));
             //std::cout << "Started counter " << counter_name << std::endl;
         } catch(hpx::exception const & e) {
-            std::cerr << "Error: unable to start HPX counter: " << counter_name << std::endl;
+            if (instance()->get_node_id() == 0) {
+                std::cerr << "Error: unable to start HPX counter: " << counter_name << std::endl;
+            }
             return APEX_ERROR;
         }
     }
