@@ -27,19 +27,19 @@ std::vector<std::mutex*> _per_thread_mutex;
 
 namespace apex {
 
-concurrency_handler::concurrency_handler (void) : handler() {
+concurrency_handler::concurrency_handler (void) : handler(), _stack_count(0) {
   _init();
 }
 
-concurrency_handler::concurrency_handler (int option) : handler(), _option(option) {
+concurrency_handler::concurrency_handler (int option) : handler(), _stack_count(0), _option(option) {
   _init();
 }
 
-concurrency_handler::concurrency_handler (unsigned int period) : handler(period) {
+concurrency_handler::concurrency_handler (unsigned int period) : handler(period), _stack_count(0) {
   _init();
 }
 
-concurrency_handler::concurrency_handler (unsigned int period, int option) : handler(period), _option(option) {
+concurrency_handler::concurrency_handler (unsigned int period, int option) : handler(period), _stack_count(0), _option(option) {
   _init();
 }
 
@@ -52,6 +52,13 @@ concurrency_handler::~concurrency_handler () {
     }
     for (auto tmp : _states) {
         delete(tmp);
+    }
+}
+
+inline void concurrency_handler::insert_function(task_identifier& func) {
+    std::lock_guard<std::mutex> l(_function_mutex);
+    if (_functions.find(func) == _functions.end()) {
+    	_functions.insert(func);
     }
 }
 
@@ -70,7 +77,7 @@ bool concurrency_handler::_handler(void) {
   map<task_identifier, unsigned int> *counts = new(map<task_identifier, unsigned int>);
   stack<task_identifier>* tmp;
 //  std::mutex* mut;
-  for (unsigned int i = 0 ; i < _event_stack.size() ; i++) {
+  for (unsigned int i = 0 ; i < _stack_count ; i++) {
     if (_option > 1 && !thread_instance::map_id_to_worker(i)) {
       continue;
     }
@@ -78,17 +85,15 @@ bool concurrency_handler::_handler(void) {
     tmp = get_event_stack(i);
     task_identifier func;
     if (tmp != nullptr && tmp->size() > 0) {
-      _per_thread_mutex[i]->lock();
-      if (tmp->size() > 0) {
-        func = tmp->top();
-      } else {
-        _per_thread_mutex[i]->unlock();
-        continue;
+      {
+        std::lock_guard<std::mutex> l(*_per_thread_mutex[i]);
+        if (tmp->size() > 0) {
+          func = tmp->top();
+        } else {
+          continue;
+        }
       }
-      _per_thread_mutex[i]->unlock();
-      _function_mutex.lock();
-      _functions.insert(func);
-      _function_mutex.unlock();
+      insert_function(func);
       if (counts->find(func) == counts->end()) {
         (*counts)[func] = 1;
       } else {
@@ -122,9 +127,8 @@ bool concurrency_handler::common_start(task_identifier *id) {
   if (!_terminate) {
     int i = thread_instance::get_id();
     stack<task_identifier>* my_stack = get_event_stack(i);
-    _per_thread_mutex[i]->lock();
+    std::lock_guard<std::mutex> l(*_per_thread_mutex[i]);
     my_stack->push(*id);
-    _per_thread_mutex[i]->unlock();
     return true;
   } else {
     return false;
@@ -143,11 +147,10 @@ void concurrency_handler::common_stop(std::shared_ptr<profiler> &p) {
   if (!_terminate) {
     int i = thread_instance::get_id();
     stack<task_identifier>* my_stack = get_event_stack(i);
-    _per_thread_mutex[i]->lock();
+    std::lock_guard<std::mutex> l(*_per_thread_mutex[i]);
     if (!my_stack->empty()) {
       my_stack->pop();
     }
-    _per_thread_mutex[i]->unlock();
   }
   APEX_UNUSED(p);
 }
@@ -179,23 +182,22 @@ void concurrency_handler::on_shutdown(shutdown_event_data &data) {
 
 inline stack<task_identifier>* concurrency_handler::get_event_stack(unsigned int tid) {
   // it's possible we could get a "start" event without a "new thread" event.
-  {
-    read_lock_type l(_vector_mutex);
-    if (_event_stack.size() <= tid) {
-      return this->_event_stack[tid];
-    }
+  stack<task_identifier>* tmp;
+  if (tid >= _stack_count) {
+    add_thread(tid);
   }
-  add_thread(tid);
-  read_lock_type l(_vector_mutex);
-  return this->_event_stack[tid];
+  std::lock_guard<std::mutex> l(_vector_mutex);
+  tmp = this->_event_stack[tid];
+  return tmp;
 }
 
 inline void concurrency_handler::add_thread(unsigned int tid) {
-  write_lock_type l(_vector_mutex);
+  std::lock_guard<std::mutex> l(_vector_mutex);
   while(_event_stack.size() <= tid) {
     _event_stack.push_back(new stack<task_identifier>);
     _per_thread_mutex.push_back(new std::mutex());
   }
+  _stack_count = _event_stack.size();
 }
 
 bool sort_functions(pair<task_identifier,int> first, pair<task_identifier,int> second) {

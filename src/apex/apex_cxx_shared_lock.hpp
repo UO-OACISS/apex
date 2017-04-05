@@ -5,9 +5,9 @@
 
 #pragma once
 
-#if __cplusplus > 201701L 
+#if __cplusplus >= 201701L 
 	#include <shared_mutex>
-#elif __cplusplus > 201402L
+#elif __cplusplus >= 201402L
 	#include <shared_mutex>
 #else
 	#if defined(_POSIX_VERSION)
@@ -20,12 +20,11 @@
 namespace apex
 {
 
-//#if __cplusplus > 201701L  // won't happen until 2017, obviously
-#if __cplusplus > 201500L // if we've got gcc 6.1 and -std=c++17
+#if __cplusplus >= 201500L // if we've got gcc 6.1 and -std=c++17
     typedef std::shared_mutex shared_mutex_type;
     typedef std::shared_lock<shared_mutex_type> read_lock_type;
     typedef std::unique_lock<shared_mutex_type> write_lock_type;
-#elif __cplusplus > 201402L // if we've got gcc 4.9+ and -std=c++14
+#elif __cplusplus >= 201402L // if we've got gcc 4.9+ and -std=c++14
     typedef std::shared_timed_mutex shared_mutex_type;
     typedef std::shared_lock<shared_mutex_type> read_lock_type;
     typedef std::unique_lock<shared_mutex_type> write_lock_type;

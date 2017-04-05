@@ -28,8 +28,10 @@ class concurrency_handler : public handler, public event_listener {
 private:
   void _init(void);
   // vectors and mutex
+  std::atomic<uint64_t> _stack_count;
   std::vector<std::stack<task_identifier>* > _event_stack;
-  shared_mutex_type _vector_mutex;
+  //shared_mutex_type _vector_mutex;
+  std::mutex _vector_mutex;
   // periodic samples of stack top states
   std::vector<std::map<task_identifier, unsigned int>* > _states;
   // vector of power samples
@@ -44,6 +46,7 @@ private:
   // internal helper functions
   bool common_start(task_identifier * id);
   void common_stop(std::shared_ptr<profiler> &p);
+  void insert_function(task_identifier& func);
 public:
   concurrency_handler (void);
   concurrency_handler (int option);
