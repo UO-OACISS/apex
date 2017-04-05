@@ -119,9 +119,18 @@ static void init_hpx_runtime_ptr(void) {
     if(instance != nullptr) {
         hpx::runtime * runtime = hpx::get_runtime_ptr();
         instance->set_hpx_runtime(runtime);
+        /*
         std::stringstream ss;
         ss << "/threads{locality#" << instance->get_node_id() << "/total}/count/cumulative";
         instance->setup_runtime_counter(ss.str());
+        */
+        if (instance->get_node_id() == 0) {
+            for (int i = 0 ; i < instance->get_num_ranks() ; i++) {
+                std::stringstream ss;
+                ss << "/threads{locality#" << i << "/total}/count/cumulative";
+                instance->setup_runtime_counter(ss.str());
+            }
+        }
     }
 }
 
@@ -132,7 +141,7 @@ static void finalize_hpx_runtime(void) {
         if(hpx::get_runtime_ptr() != nullptr) {
             instance->query_runtime_counters();
         }
-        apex::finalize();
+        finalize();
     }
 }
 #endif
@@ -379,12 +388,14 @@ profiler* start(const std::string &timer_name, uint64_t guid)
     // Finalize at the _start_ of HPX shutdown so that we can stop any
     // outstanding hpx::util::interval_timer instances. If any are left
     // running, HPX shutdown will never complete.
+    /*
     if (starts_with(timer_name, string("shutdown_all"))) {
         // might get called twice, but I think we can handle that.
         // apex_schedule_shutdown();
         finalize();
         return profiler::get_disabled_profiler();
     }
+    */
 #endif
 #ifdef APEX_DEBUG
     _starts++;
@@ -982,6 +993,7 @@ apex_policy_handle* register_periodic_policy(unsigned long period_microseconds,
 
 int apex::setup_runtime_counter(const std::string & counter_name) {
 #ifdef APEX_HAVE_HPX
+    bool messaged = false;
     if(get_hpx_runtime_ptr() != nullptr) {
         using hpx::naming::id_type;
         using hpx::performance_counters::get_counter;
@@ -990,8 +1002,9 @@ int apex::setup_runtime_counter(const std::string & counter_name) {
         try {
             id_type id = get_counter(counter_name);
             if (id == hpx::naming::invalid_id) { 
-                if (instance()->get_node_id() == 0) {
+                if (instance()->get_node_id() == 0 && !messaged) {
                     std::cerr << "Error: invalid HPX counter: " << counter_name << std::endl;
+                    messaged = true;
                 }
                 return APEX_ERROR; 
             }
@@ -1013,19 +1026,21 @@ int apex::setup_runtime_counter(const std::string & counter_name) {
 
 void apex::query_runtime_counters(void) {
 #ifdef APEX_HAVE_HPX
-    //std::cout << instance()->get_node_id() << " Querying counters " << std::endl;
+    if (instance()->get_node_id() > 0) {return;}
     using hpx::naming::id_type;
     using hpx::performance_counters::get_counter;
     using hpx::performance_counters::stubs::performance_counter;
     using hpx::performance_counters::counter_value;
+    double total = 0;
     for (auto counter : registered_counters) {
         string name = counter.first;
         id_type id = counter.second;
         counter_value value1 = performance_counter::get_value(hpx::launch::sync, id);
         const int value = value1.get_value<int>();
-        sample_value(name, value);
-        std::cout << name << " : " << value << std::endl;
+        total = total + value;
     }
+    sample_value("/threads/total/total/count/cumulative", total);
+    std::cout << "/threads/total/total/count/cumulative : " << total << std::endl;
 #else
     //std::cerr << "WARNING: Runtime counter sampling is not implemented for your runtime" << std::endl;
 #endif

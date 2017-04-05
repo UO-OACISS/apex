@@ -1025,7 +1025,7 @@ namespace apex {
             OTF2_EvtWriter_ThreadEnd( getEvtWriter(), NULL, stamp, 0, 0);
         } 
 #endif
-        printf("closing event writer for thread %lu\n", thread_instance::get_id()); fflush(stdout);
+        //printf("closing event writer for thread %lu\n", thread_instance::get_id()); fflush(stdout);
         //_event_threads.insert(thread_instance::get_id());
         OTF2_Archive_CloseEvtWriter( archive, getEvtWriter() );
         if (thread_instance::get_id() == 0) {
