@@ -381,7 +381,7 @@ profiler* start(const std::string &timer_name, uint64_t guid)
     // running, HPX shutdown will never complete.
     if (starts_with(timer_name, string("shutdown_all"))) {
         // might get called twice, but I think we can handle that.
-        apex_schedule_shutdown();
+        // apex_schedule_shutdown();
         finalize();
         return profiler::get_disabled_profiler();
     }
