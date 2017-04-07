@@ -991,8 +991,8 @@ apex_policy_handle* register_periodic_policy(unsigned long period_microseconds,
     return handle;
 }
 
-int apex::setup_runtime_counter(const std::string & counter_name) {
 #ifdef APEX_HAVE_HPX
+int apex::setup_runtime_counter(const std::string & counter_name) {
     bool messaged = false;
     if(get_hpx_runtime_ptr() != nullptr) {
         using hpx::naming::id_type;
@@ -1018,14 +1018,10 @@ int apex::setup_runtime_counter(const std::string & counter_name) {
             return APEX_ERROR;
         }
     }
-#else
-    //std::cerr << "WARNING: Runtime counter sampling is not implemented for your runtime" << std::endl;
-#endif
     return APEX_NOERROR;
 }
 
 void apex::query_runtime_counters(void) {
-#ifdef APEX_HAVE_HPX
     if (instance()->get_node_id() > 0) {return;}
     using hpx::naming::id_type;
     using hpx::performance_counters::get_counter;
@@ -1041,10 +1037,8 @@ void apex::query_runtime_counters(void) {
     }
     sample_value("/threads/total/total/count/cumulative", total);
     std::cout << "/threads/total/total/count/cumulative : " << total << std::endl;
-#else
-    //std::cerr << "WARNING: Runtime counter sampling is not implemented for your runtime" << std::endl;
-#endif
 }
+#endif
 
 void sample_runtime_counter(unsigned long period, const std::string & counter_name) {
 #ifdef APEX_HAVE_HPX

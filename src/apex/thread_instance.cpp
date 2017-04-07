@@ -272,6 +272,7 @@ profiler *  thread_instance::restore_children_profilers(void) {
     // restore the children here?
     std::unique_lock<std::mutex> l(_profiler_stack_mutex);
     auto tmp = children_to_resume.find(parent->task_id->_guid);
+    l.unlock();
     if (tmp != children_to_resume.end()) {
         //printf("%lu Restored parent %s with guid: %lu\n", get_id(), parent->task_id->name.c_str(), parent->task_id->_guid); fflush(stdout);
         auto myvec = tmp->second;
@@ -282,6 +283,7 @@ profiler *  thread_instance::restore_children_profilers(void) {
             instance().current_profilers.push_back((*myprof));
         }
         delete myvec;
+        std::unique_lock<std::mutex> l2(_profiler_stack_mutex);
         children_to_resume.erase(parent->task_id->_guid);
     }
     // The caller of this function wants the parent, not these leaves.

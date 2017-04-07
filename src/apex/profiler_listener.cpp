@@ -504,8 +504,8 @@ std::unordered_set<profile*> free_profiles;
     double wall_clock_main = main_timer->elapsed() * profiler::get_cpu_mhz();
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
-    double total_hpx_threads = 0;
 #endif
+    double total_hpx_threads = 0;
     double total_main = wall_clock_main *
         fmin(hardware_concurrency(), num_worker_threads);
     // create a stringstream to hold all the screen output - we may not
@@ -565,9 +565,7 @@ std::unordered_set<profile*> free_profiles;
         profile * p = task_map[task_id];
         if (p) {
             write_one_timer(task_id, p, screen_output, csv_output, total_accumulated, total_main);
-#ifdef APEX_HAVE_HPX
             total_hpx_threads = total_hpx_threads + p->get_calls();
-#endif
         }
     }
     double idle_rate = total_main - (total_accumulated*profiler::get_cpu_mhz());
@@ -587,10 +585,8 @@ std::unordered_set<profile*> free_profiles;
     } else {
       screen_output << string_format(FORMAT_PERCENT, ((idle_rate/total_main)*100)) << endl;
     }
-#ifdef APEX_HAVE_HPX
-    screen_output << string_format("%30s", "HPX Actions") << " : ";
+    screen_output << string_format("%30s", "Total timers") << " : ";
     screen_output << string_format(FORMAT_SCIENTIFIC, total_hpx_threads) << endl;
-#endif
     screen_output << "------------------------------------------------------------------------------------------------------------" << endl;
     if (apex_options::use_screen_output()) {
         cout << screen_output.str();
