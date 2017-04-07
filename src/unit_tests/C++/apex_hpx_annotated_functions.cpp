@@ -11,6 +11,8 @@ int threads_per_core = 8;
 __thread uint64_t guid = 0;
 const int num_iterations = 10;
 
+pthread_barrier_t barrier;
+
 int nsleep(long miliseconds, int tid)
 {
    struct timespec req, rem;
@@ -48,8 +50,8 @@ static uint64_t get_guid() {
 void innerLoop(int *tid) {
     /* Start a timer with a GUID*/
     uint64_t myguid = get_guid();
-    std::stringstream buf;
-    buf << "APP: " << *tid << ": Starting thread " << myguid << "\n"; std::cout << buf.str();
+    //std::stringstream buf;
+    //buf << "APP: " << *tid << ": Starting thread " << myguid << "\n"; std::cout << buf.str();
     //apex::profiler* p = apex::start((apex_function_address)&someThread, myguid);
     apex::profiler* p = apex::start(__func__, myguid);
 
@@ -58,24 +60,24 @@ void innerLoop(int *tid) {
 
 	/* Start a timer like an "annotated_function" */
     uint64_t afguid = get_guid();
-    buf.str(""); buf.clear();
-    buf << "APP: " << *tid << ": Starting annotated_function " << afguid << "\n"; std::cout << buf.str();
+    //buf.str(""); buf.clear();
+    //buf << "APP: " << *tid << ": Starting annotated_function " << afguid << "\n"; std::cout << buf.str();
     apex::profiler* af = apex::start("annotated function", afguid);
 
     /* do some computation */
 	ret = nsleep(10, *tid); // after - t: 20, af: 10
 
 	/* "yield" the outer task */
-    buf.str(""); buf.clear();
-    buf << "APP: " << *tid << ": Yielding thread " << myguid << "\n"; std::cout << buf.str();
+    //buf.str(""); buf.clear();
+    //buf << "APP: " << *tid << ": Yielding thread " << myguid << "\n"; std::cout << buf.str();
 	apex::yield(p);
 
     /* do some computation */
 	ret = nsleep(10, *tid); // after - t: 20, af: 10 - everyone yielded!
 
 	/* resume our current thread */
-    buf.str(""); buf.clear();
-    buf << "APP: " << *tid << ": Resuming thread " << myguid << "\n"; std::cout << buf.str();
+    //buf.str(""); buf.clear();
+    //buf << "APP: " << *tid << ": Resuming thread " << myguid << "\n"; std::cout << buf.str();
     //p = apex::start((apex_function_address)&someThread, myguid);
     p = apex::start(__func__, myguid);
 
@@ -83,16 +85,16 @@ void innerLoop(int *tid) {
 	ret = nsleep(10, *tid); // after - t: 30, af: 20
 
     /* stop the annotated_function */
-    buf.str(""); buf.clear();
-    buf << "APP: " << *tid << ": Stopping annotated_function " << afguid << "\n"; std::cout << buf.str();
+    //buf.str(""); buf.clear();
+    //buf << "APP: " << *tid << ": Stopping annotated_function " << afguid << "\n"; std::cout << buf.str();
     apex::stop(af);
 
     /* do some computation */
 	ret = nsleep(10, *tid); // after - t: 40, af: 20
 
     /* stop the timer */
-    buf.str(""); buf.clear();
-    buf << "APP: " << *tid << ": Stopping thread " << myguid << "\n"; std::cout << buf.str();
+    //buf.str(""); buf.clear();
+    //buf << "APP: " << *tid << ": Stopping thread " << myguid << "\n"; std::cout << buf.str();
     apex::stop(p);
 }
 
@@ -102,6 +104,7 @@ void* someThread(void* tmp)
     int* tid = (int*)tmp;
     char name[32];
     sprintf(name, "worker thread %d", *tid);
+    pthread_barrier_wait(&barrier);
     apex::register_thread(name);
     init_guid(*tid);
 
@@ -125,6 +128,7 @@ int main (int argc, char** argv) {
     apex::profiler* p = apex::start("main");
     /* Spawn X threads */
     numthreads = apex::hardware_concurrency() * threads_per_core; // many threads per core. Stress it!
+    pthread_barrier_init(&barrier, NULL, numthreads);
     if (apex::apex_options::use_tau() || apex::apex_options::use_otf2()) { 
         numthreads = std::min(numthreads, apex::hardware_concurrency());
     }

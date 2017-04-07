@@ -13,6 +13,8 @@
 #define ITERATIONS 1024*64
 #define INNER_ITERATION 4096
 
+pthread_barrier_t barrier;
+
 inline int foo (int i) {
   static int limit = sqrt(INT_MAX >> 1);
   int j;
@@ -33,10 +35,12 @@ typedef void*(*start_routine_t)(void*);
 
 void* someThread(void* tmp)
 {
-  UNUSED(tmp);
+  //UNUSED(tmp);
+  apex::set_thread_affinity(static_cast<int>(reinterpret_cast<intptr_t>(tmp)));
   apex::register_thread("threadTest thread");
   int i = 0;
   unsigned long total = 0;
+  int s = pthread_barrier_wait(&barrier);
   { // only time this for loop
     apex::profiler * st = apex::start((apex_function_address)someThread);
     for (i = 0 ; i < ITERATIONS ; i++) {
@@ -60,10 +64,12 @@ void* someThread(void* tmp)
 
 void* someUntimedThread(void* tmp)
 {
-  UNUSED(tmp);
+  //UNUSED(tmp);
+  apex::set_thread_affinity(static_cast<int>(reinterpret_cast<intptr_t>(tmp)));
   apex::register_thread("threadTest thread");
   int i = 0;
   unsigned long total = 0;
+  int s = pthread_barrier_wait(&barrier);
   { // only time this for loop
     apex::profiler * sut = apex::start((apex_function_address)someUntimedThread);
     for (i = 0 ; i < ITERATIONS ; i++) {
@@ -98,15 +104,17 @@ int main(int argc, char **argv)
   printf("PID of this process: %d\n", getpid());
   std::cout << "Expecting " << numthreads << " threads." << std::endl;
   pthread_t * thread = (pthread_t*)(malloc(sizeof(pthread_t) * numthreads));
+
+  pthread_barrier_init(&barrier, NULL, numthreads);
   unsigned i;
   int timed = 0;
   int untimed = 0;
   for (i = 0 ; i < numthreads ; i++) {
     if (i % 2 == 0) {
-      pthread_create(&(thread[i]), NULL, someUntimedThread, NULL);
+      pthread_create(&(thread[i]), NULL, someUntimedThread, reinterpret_cast<void *>(static_cast<intptr_t>(i)));
       untimed++;
     } else {
-      pthread_create(&(thread[i]), NULL, someThread, NULL);
+      pthread_create(&(thread[i]), NULL, someThread, reinterpret_cast<void *>(static_cast<intptr_t>(i)));
       timed++;
     }
   }
