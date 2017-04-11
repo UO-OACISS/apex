@@ -162,8 +162,8 @@ if(JUNCTION_INCLUDE_DIR AND TURF_INCLUDE_DIR)
     include_directories(${TURF_INCLUDE_DIR})
     include_directories(${PROJECT_BINARY_DIR}/apex/src/apex/junction/include)
     include_directories(${PROJECT_BINARY_DIR}/apex/src/apex/junction/turf/include)
-    set(LIBS ${LIBS} ${PROJECT_BINARY_DIR}/apex/src/apex/junction/libjunction.so)
-    hpx_libraries(${PROJECT_BINARY_DIR}/apex/src/apex/junction/libjunction.so)
+    #set(LIBS ${LIBS} ${PROJECT_BINARY_DIR}/apex/src/apex/junction/libjunction.so)
+    #hpx_libraries(${PROJECT_BINARY_DIR}/apex/src/apex/junction/libjunction.so)
 endif()
 
 set(apex_headers
