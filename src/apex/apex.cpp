@@ -1023,7 +1023,7 @@ void apex::query_runtime_counters(void) {
         id_type id = counter.second;
         counter_value value1 = performance_counter::get_value(hpx::launch::sync, id);
         const int value = value1.get_value<int>();
-    	sample_value("/threads/total/total/count/cumulative", value);
+    	sample_value(name, value);
     }
 }
 #endif
