@@ -94,7 +94,8 @@ public:
 		task_id(id),
         is_counter(false),
         is_resume(resume),
-        is_reset(reset), stopped(false) { if (id->_guid == 0) { id->_guid = (uint64_t)this; } };
+        is_reset(reset), stopped(false) { };
+        //is_reset(reset), stopped(false) { if (id->_guid == 0) { id->_guid = (uint64_t)this; } };
     profiler(task_identifier * id, double value_) :
         start(MYCLOCK::now()),
 #if APEX_HAVE_PAPI

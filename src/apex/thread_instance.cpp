@@ -269,6 +269,7 @@ void thread_instance::set_current_profiler(profiler * the_profiler) {
 
 profiler *  thread_instance::restore_children_profilers(void) {
     profiler * parent = instance().current_profiler;
+    if (parent->task_id->_guid == 0) {return parent;}
     // restore the children here?
     std::unique_lock<std::mutex> l(_profiler_stack_mutex);
     auto tmp = children_to_resume.find(parent->task_id->_guid);
