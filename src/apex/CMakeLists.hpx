@@ -134,6 +134,38 @@ endif()
 #include_directories("${PROJECT_BINARY_DIR}/apex/src/apex/rapidjson/include")
 #include_directories("${PROJECT_SOURCE_DIR}/apex/src/apex/rapidjson/include")
 
+git_external(junction
+    https://github.com/preshing/junction.git
+    master
+    VERBOSE)
+
+find_path(
+    JUNCTION_INCLUDE_DIR
+    NAMES junction
+    PATHS ${PROJECT_SOURCE_DIR}/apex/src/apex/junction)
+
+git_external(turf
+    https://github.com/preshing/turf.git
+    master
+    VERBOSE)
+
+find_path(
+    TURF_INCLUDE_DIR
+    NAMES turf
+    PATHS ${PROJECT_SOURCE_DIR}/apex/src/apex/turf)
+
+if(JUNCTION_INCLUDE_DIR AND TURF_INCLUDE_DIR)
+    message(INFO " Found junction at ${JUNCTION_INCLUDE_DIR}")
+    add_definitions(-DAPEX_HAVE_JUNCTION)
+    add_subdirectory(junction)
+    include_directories(${JUNCTION_INCLUDE_DIR})
+    include_directories(${TURF_INCLUDE_DIR})
+    include_directories(${PROJECT_BINARY_DIR}/apex/src/apex/junction/include)
+    include_directories(${PROJECT_BINARY_DIR}/apex/src/apex/junction/turf/include)
+    set(LIBS ${LIBS} ${PROJECT_BINARY_DIR}/apex/src/apex/junction/libjunction.so)
+    hpx_libraries(${PROJECT_BINARY_DIR}/apex/src/apex/junction/libjunction.so)
+endif()
+
 set(apex_headers
     apex.h
     apex.hpp
@@ -297,6 +329,9 @@ add_hpx_library(apex
   FOLDER "Core/Dependencies")
 
 add_hpx_pseudo_dependencies (apex_lib project_activeharmony project_binutils project_otf2)
+if(JUNCTION_INCLUDE_DIR AND TURF_INCLUDE_DIR)
+    add_hpx_pseudo_dependencies (apex_lib junction)
+endif()
 
 # add the binary tree to the search path for include files
 # so that we will find apex_config.h

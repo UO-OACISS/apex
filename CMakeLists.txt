@@ -651,6 +651,41 @@ if(USE_PLUGINS)
 endif()
 
 ################################################################################
+# Junction concurrent hashmap
+################################################################################
+
+git_external(junction
+  	https://github.com/preshing/junction.git
+   	master
+   	VERBOSE)
+
+find_path(
+   	JUNCTION_INCLUDE_DIR
+   	NAMES junction
+   	PATHS ${PROJECT_SOURCE_DIR}/junction)
+
+git_external(turf
+    https://github.com/preshing/turf.git
+   	master
+   	VERBOSE)
+
+find_path(
+   	TURF_INCLUDE_DIR
+   	NAMES turf
+   	PATHS ${PROJECT_SOURCE_DIR}/turf)
+
+if(JUNCTION_INCLUDE_DIR AND TURF_INCLUDE_DIR)
+   	message(INFO " Found junction at ${JUNCTION_INCLUDE_DIR}")
+    add_definitions(-DAPEX_HAVE_JUNCTION)
+    add_subdirectory(junction)
+   	include_directories(${JUNCTION_INCLUDE_DIR})
+   	include_directories(${TURF_INCLUDE_DIR})
+    include_directories(${PROJECT_BINARY_DIR}/junction/include)
+    include_directories(${PROJECT_BINARY_DIR}/junction/turf/include)
+    set(LIBS ${LIBS} ${PROJECT_BINARY_DIR}/junction/libjunction.so)
+endif()
+
+################################################################################
 # Standard Library configuration
 ################################################################################
 

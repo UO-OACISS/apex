@@ -20,6 +20,9 @@
 #endif
 #include <unordered_map>
 #include "apex_cxx_shared_lock.hpp"
+#ifdef APEX_HAVE_JUNCTION
+#include "junction/ConcurrentMap_Leapfrog.h"
+#endif
 
 namespace apex {
 
@@ -51,7 +54,11 @@ private:
   static std::atomic_int _num_threads;
   static std::atomic_int _active_threads;
   static std::string * _program_path;
+#ifdef APEX_HAVE_JUNCTION
+  static junction::ConcurrentMap_Leapfrog<uint64_t, std::vector<profiler*>* > children_to_resume;
+#else
   static std::unordered_map<uint64_t, std::vector<profiler*>* > children_to_resume;
+#endif
   // thread specific data
   static APEX_NATIVE_TLS thread_instance * _instance;
   // constructor

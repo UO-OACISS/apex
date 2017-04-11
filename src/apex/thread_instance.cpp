@@ -62,8 +62,12 @@ std::unordered_set<std::string> thread_instance::open_profilers;
 
 // Global static unordered map of parent GUIDs to child GUIDs
 // to handle "overlapping timer" problem.
+#ifdef APEX_HAVE_JUNCTION
+junction::ConcurrentMap_Leapfrog<uint64_t, std::vector<profiler*>* > thread_instance::children_to_resume;
+#else
 std::unordered_map<uint64_t, std::vector<profiler*>* > thread_instance::children_to_resume;
 static std::mutex _profiler_stack_mutex;
+#endif
 
 thread_instance& thread_instance::instance(bool is_worker) {
   if( _instance == nullptr ) {
@@ -271,21 +275,31 @@ profiler *  thread_instance::restore_children_profilers(void) {
     profiler * parent = instance().current_profiler;
     if (parent->task_id->_guid == 0) {return parent;}
     // restore the children here?
+#ifdef APEX_HAVE_JUNCTION
+    std::vector<profiler*> *myvec = children_to_resume.get(parent->task_id->_guid);
+    if (myvec != nullptr) {
+#else
     std::unique_lock<std::mutex> l(_profiler_stack_mutex);
     auto tmp = children_to_resume.find(parent->task_id->_guid);
     l.unlock();
     if (tmp != children_to_resume.end()) {
         //printf("%lu Restored parent %s with guid: %lu\n", get_id(), parent->task_id->name.c_str(), parent->task_id->_guid); fflush(stdout);
         auto myvec = tmp->second;
+#endif
         //for (profiler * myprof : *myvec) {
         for (std::vector<profiler*>::reverse_iterator myprof = myvec->rbegin(); myprof != myvec->rend(); ++myprof) {
             //printf("%lu Restoring child %s with guid: %lu\n", get_id(), (*myprof)->task_id->name.c_str(), (*myprof)->task_id->_guid); fflush(stdout);
             resume((*myprof));
             instance().current_profilers.push_back((*myprof));
         }
+#ifdef APEX_HAVE_JUNCTION
+        children_to_resume.erase(parent->task_id->_guid);
+        delete myvec;
+#else
         delete myvec;
         std::unique_lock<std::mutex> l2(_profiler_stack_mutex);
         children_to_resume.erase(parent->task_id->_guid);
+#endif
     }
     // The caller of this function wants the parent, not these leaves.
     return parent;
@@ -348,8 +362,12 @@ void thread_instance::clear_current_profiler(profiler * the_profiler) {
             tmp = the_stack.back();
         }
         fixing_stack = false;
+#ifdef APEX_HAVE_JUNCTION
+        children_to_resume.assign(guid, children);
+#else
         std::unique_lock<std::mutex> l(_profiler_stack_mutex);
         children_to_resume[guid] = children;
+#endif
     }
     // pop this timer off the stack.
     the_stack.pop_back();
