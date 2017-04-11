@@ -119,18 +119,9 @@ static void init_hpx_runtime_ptr(void) {
     if(instance != nullptr) {
         hpx::runtime * runtime = hpx::get_runtime_ptr();
         instance->set_hpx_runtime(runtime);
-        /*
         std::stringstream ss;
         ss << "/threads{locality#" << instance->get_node_id() << "/total}/count/cumulative";
         instance->setup_runtime_counter(ss.str());
-        */
-        if (instance->get_node_id() == 0) {
-            for (int i = 0 ; i < instance->get_num_ranks() ; i++) {
-                std::stringstream ss;
-                ss << "/threads{locality#" << i << "/total}/count/cumulative";
-                instance->setup_runtime_counter(ss.str());
-            }
-        }
     }
 }
 
@@ -1027,16 +1018,13 @@ void apex::query_runtime_counters(void) {
     using hpx::performance_counters::get_counter;
     using hpx::performance_counters::stubs::performance_counter;
     using hpx::performance_counters::counter_value;
-    double total = 0;
     for (auto counter : registered_counters) {
         string name = counter.first;
         id_type id = counter.second;
         counter_value value1 = performance_counter::get_value(hpx::launch::sync, id);
         const int value = value1.get_value<int>();
-        total = total + value;
+    	sample_value("/threads/total/total/count/cumulative", value);
     }
-    sample_value("/threads/total/total/count/cumulative", total);
-    std::cout << "/threads/total/total/count/cumulative : " << total << std::endl;
 }
 #endif
 
