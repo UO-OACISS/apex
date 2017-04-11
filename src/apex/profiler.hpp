@@ -182,9 +182,11 @@ public:
             //std::cout << CycleA(t1a-t0a).count() << " 1MHz ticks seen." << std::endl;
             //std::cout << std::chrono::duration_cast<std::chrono::seconds>(CycleB(t1b-t0b)).count() << " Seconds? seen." << std::endl;
             ticks_per_period = CycleB(t1b-t0b)/CycleA(t1a-t0a);
+            /*
             if (apex_options::use_screen_output()) {
                 std::cout << "CPU is " << (1.0/ticks_per_period) << " Hz." << std::endl;
             }
+            */
         }
         return ticks_per_period;
 #endif
