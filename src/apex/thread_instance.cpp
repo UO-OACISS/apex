@@ -256,37 +256,22 @@ string thread_instance::map_addr_to_name(apex_function_address function_address)
 void thread_instance::set_current_profiler(profiler * the_profiler) {
     instance().current_profiler = the_profiler;
     instance().current_profilers.push_back(the_profiler);
-    /*
-    stringstream foo;
-    foo << get_id();
-    for (profiler * myprof : instance().current_profilers) {
-        foo << "\t" << myprof->task_id->_guid;
-    }
-    foo << "\n";
-    std::cout << foo.str();
-    */
 }
 
 profiler *  thread_instance::restore_children_profilers(void) {
     profiler * parent = instance().current_profiler;
-    if (parent->task_id->_guid == 0) {return parent;}
+    if (parent->task_id->_data_ptr == 0 ||
+        *(parent->task_id->_data_ptr) == 0) {return parent;}
     // restore the children here?
-    std::unique_lock<std::mutex> l(_profiler_stack_mutex);
-    auto tmp = children_to_resume.find(parent->task_id->_guid);
-    l.unlock();
-    if (tmp != children_to_resume.end()) {
-        //printf("%lu Restored parent %s with guid: %lu\n", get_id(), parent->task_id->name.c_str(), parent->task_id->_guid); fflush(stdout);
-        auto myvec = tmp->second;
-        //for (profiler * myprof : *myvec) {
-        for (std::vector<profiler*>::reverse_iterator myprof = myvec->rbegin(); myprof != myvec->rend(); ++myprof) {
-            //printf("%lu Restoring child %s with guid: %lu\n", get_id(), (*myprof)->task_id->name.c_str(), (*myprof)->task_id->_guid); fflush(stdout);
-            resume((*myprof));
-            instance().current_profilers.push_back((*myprof));
-        }
-        delete myvec;
-        std::unique_lock<std::mutex> l2(_profiler_stack_mutex);
-        children_to_resume.erase(parent->task_id->_guid);
+    std::vector<profiler*> * myvec = (std::vector<profiler*>*)*(parent->task_id->_data_ptr);
+    //printf("%lu Restored parent %s with guid: %lu\n", get_id(), parent->task_id->name.c_str(), parent->task_id->_guid); fflush(stdout);
+    for (std::vector<profiler*>::reverse_iterator myprof = myvec->rbegin(); myprof != myvec->rend(); ++myprof) {
+        //printf("%lu Restoring child %s with guid: %lu\n", get_id(), (*myprof)->task_id->name.c_str(), (*myprof)->task_id->_guid); fflush(stdout);
+        resume((*myprof));
+        instance().current_profilers.push_back((*myprof));
     }
+    delete myvec;
+    *(parent->task_id->_data_ptr) = 0;
     // The caller of this function wants the parent, not these leaves.
     return parent;
 }
@@ -322,12 +307,11 @@ void thread_instance::clear_current_profiler(profiler * the_profiler) {
         }
         */
         fixing_stack = true;
-        uint64_t guid = the_profiler->task_id->_guid;
+        // if the data pointer location isn't available, we can't support this runtime.
+        assert(the_profiler->task_id->_data_ptr > 0);
         //printf("%lu Yielding %s, found %s with guid: %lu\n", get_id(), tmp->task_id->name.c_str(), the_profiler->task_id->name.c_str(), guid); fflush(stdout);
         std::vector<profiler*> * children = new vector<profiler*>();
         while (tmp != the_profiler) {
-            // if the guid isn't set, we can't support this runtime.
-            assert(guid > 0);
             /* Make a copy of the profiler object on the top of the stack. */
             profiler * profiler_copy = new profiler(*tmp);
             children->push_back(tmp);
@@ -348,8 +332,7 @@ void thread_instance::clear_current_profiler(profiler * the_profiler) {
             tmp = the_stack.back();
         }
         fixing_stack = false;
-        std::unique_lock<std::mutex> l(_profiler_stack_mutex);
-        children_to_resume[guid] = children;
+        *(the_profiler->task_id->_data_ptr) = children;
     }
     // pop this timer off the stack.
     the_stack.pop_back();

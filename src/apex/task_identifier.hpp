@@ -18,15 +18,15 @@ public:
   std::string name;
   std::string _resolved_name;
   bool has_name;
-  uint64_t _guid; // not included in comparisons!
+  void** _data_ptr; // not included in comparisons!
   task_identifier(void) :
-      address(0L), name(""), _resolved_name(""), has_name(false), _guid(0) {};
-  task_identifier(apex_function_address a, uint64_t guid = 0) :
-      address(a), name(""), _resolved_name(""), has_name(false), _guid(guid) {};
-  task_identifier(std::string n, uint64_t guid = 0) :
-      address(0L), name(demangle(n)), _resolved_name(""), has_name(true), _guid(guid) {};
+      address(0L), name(""), _resolved_name(""), has_name(false), _data_ptr(0) {};
+  task_identifier(apex_function_address a, void** data_ptr = 0) :
+      address(a), name(""), _resolved_name(""), has_name(false), _data_ptr(data_ptr) {};
+  task_identifier(std::string n, void** data_ptr = 0) :
+      address(0L), name(demangle(n)), _resolved_name(""), has_name(true), _data_ptr(data_ptr) {};
   task_identifier(const task_identifier& rhs) :
-      address(rhs.address), name(rhs.name), _resolved_name(rhs._resolved_name), has_name(rhs.has_name), _guid(rhs._guid) { };
+      address(rhs.address), name(rhs.name), _resolved_name(rhs._resolved_name), has_name(rhs.has_name), _data_ptr(rhs._data_ptr) { };
 	  /*
   task_identifier(profiler * p) :
       address(0L), name(""), _resolved_name("") {

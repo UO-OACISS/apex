@@ -368,7 +368,7 @@ string& version() {
     return instance->version_string;
 }
 
-profiler* start(const std::string &timer_name, uint64_t guid)
+profiler* start(const std::string &timer_name, void** data_ptr)
 {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return nullptr; }
@@ -397,7 +397,7 @@ profiler* start(const std::string &timer_name, uint64_t guid)
     if (!instance || _exited) return nullptr; // protect against calls after finalization
     if (_notify_listeners) {
         bool success = true;
-		task_identifier * id = new task_identifier(timer_name, guid);
+		task_identifier * id = new task_identifier(timer_name, data_ptr);
         //read_lock_type l(instance->listener_mutex);
 		//cout << thread_instance::get_id() << " Start : " << id->get_name() << endl; fflush(stdout);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -411,7 +411,7 @@ profiler* start(const std::string &timer_name, uint64_t guid)
     return thread_instance::instance().restore_children_profilers();
 }
 
-profiler* start(apex_function_address function_address, uint64_t guid) {
+profiler* start(apex_function_address function_address, void** data_ptr) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return nullptr; }
 #ifdef APEX_DEBUG
@@ -423,7 +423,7 @@ profiler* start(apex_function_address function_address, uint64_t guid) {
     if (!instance || _exited) return nullptr; // protect against calls after finalization
     if (_notify_listeners) {
         bool success = true;
-		task_identifier * id = new task_identifier(function_address, guid);
+		task_identifier * id = new task_identifier(function_address, data_ptr);
 		//cout << thread_instance::get_id() << " Start : " << id->get_name() << endl; fflush(stdout);
         //read_lock_type l(instance->listener_mutex);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -437,7 +437,7 @@ profiler* start(apex_function_address function_address, uint64_t guid) {
     return thread_instance::instance().restore_children_profilers();
 }
 
-profiler* resume(const std::string &timer_name, uint64_t guid) {
+profiler* resume(const std::string &timer_name, void** data_ptr) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return nullptr; }
 #ifdef APEX_DEBUG
@@ -451,7 +451,7 @@ profiler* resume(const std::string &timer_name, uint64_t guid) {
         return profiler::get_disabled_profiler(); // don't process our own events
     }
     if (_notify_listeners) {
-        task_identifier * id = new task_identifier(timer_name, guid);
+        task_identifier * id = new task_identifier(timer_name, data_ptr);
         try {
             //read_lock_type l(instance->listener_mutex);
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -462,7 +462,7 @@ profiler* resume(const std::string &timer_name, uint64_t guid) {
     return thread_instance::instance().restore_children_profilers();
 }
 
-profiler* resume(apex_function_address function_address, uint64_t guid) {
+profiler* resume(apex_function_address function_address, void** data_ptr) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return nullptr; }
 #ifdef APEX_DEBUG
@@ -473,7 +473,7 @@ profiler* resume(apex_function_address function_address, uint64_t guid) {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return nullptr; // protect against calls after finalization
     if (_notify_listeners) {
-        task_identifier * id = new task_identifier(function_address, guid);
+        task_identifier * id = new task_identifier(function_address, data_ptr);
         try {
             //read_lock_type l(instance->listener_mutex);
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -1221,14 +1221,14 @@ extern "C" {
       return APEX_NULL_PROFILER_HANDLE;
     }
 
-    apex_profiler_handle apex_start_guid(apex_profiler_type type, void * identifier, uint64_t guid)
+    apex_profiler_handle apex_start_data_ptr(apex_profiler_type type, void * identifier, void** data_ptr)
     {
       assert(identifier);
       if (type == APEX_FUNCTION_ADDRESS) {
-          return reinterpret_cast<apex_profiler_handle>(start((apex_function_address)identifier, guid));
+          return reinterpret_cast<apex_profiler_handle>(start((apex_function_address)identifier, data_ptr));
       } else if (type == APEX_NAME_STRING) {
           string tmp((const char *)identifier);
-          return reinterpret_cast<apex_profiler_handle>(start(tmp), guid);
+          return reinterpret_cast<apex_profiler_handle>(start(tmp), data_ptr);
       }
       return APEX_NULL_PROFILER_HANDLE;
     }
@@ -1250,14 +1250,14 @@ extern "C" {
       return APEX_NULL_PROFILER_HANDLE;
     }
 
-    apex_profiler_handle apex_resume_guid(apex_profiler_type type, void * identifier, uint64_t guid)
+    apex_profiler_handle apex_resume_data_ptr(apex_profiler_type type, void * identifier, void** data_ptr)
     {
       assert(identifier);
       if (type == APEX_FUNCTION_ADDRESS) {
-          return reinterpret_cast<apex_profiler_handle>(resume((apex_function_address)identifier), guid);
+          return reinterpret_cast<apex_profiler_handle>(resume((apex_function_address)identifier), data_ptr);
       } else if (type == APEX_NAME_STRING) {
           string tmp((const char *)identifier);
-          return reinterpret_cast<apex_profiler_handle>(resume(tmp), guid);
+          return reinterpret_cast<apex_profiler_handle>(resume(tmp), data_ptr);
       }
       return APEX_NULL_PROFILER_HANDLE;
     }
