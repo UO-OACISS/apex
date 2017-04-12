@@ -126,6 +126,11 @@ if(APEX_HAVE_PROC)
     set(PROC_HEADER proc_read.h)
 endif()
 
+IF("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+  hpx_info("apex" "APEX is being built with a debug configuration")
+  add_definitions(-DDEBUG)
+endif()
+
 #include(GitExternal)
 #git_external(rapidjson
     #https://github.com/miloyip/rapidjson.git
