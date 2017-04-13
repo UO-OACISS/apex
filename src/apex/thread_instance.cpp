@@ -334,7 +334,7 @@ void thread_instance::clear_current_profiler(profiler * the_profiler) {
             /* Stop the copy. The original will get reset when the
             parent resumes. */
             //printf("%lu Yielding child %s with guid: %lu\n", get_id(), profiler_copy->task_id->name.c_str(), profiler_copy->task_id->_guid); fflush(stdout);
-            yield(profiler_copy);  // we better be re-entrant safe!
+            stop(profiler_copy);  // we better be re-entrant safe!
             // pop the original child, we've saved it in the vector
             the_stack.pop_back();
             // this is a serious problem...
