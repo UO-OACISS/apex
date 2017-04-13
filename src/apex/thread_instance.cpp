@@ -308,7 +308,7 @@ void thread_instance::clear_current_profiler(profiler * the_profiler) {
         */
         fixing_stack = true;
         // if the data pointer location isn't available, we can't support this runtime.
-        assert(the_profiler->task_id->_data_ptr > 0);
+        assert(the_profiler->task_id->_data_ptr != 0);
         //printf("%lu Yielding %s, found %s with guid: %lu\n", get_id(), tmp->task_id->name.c_str(), the_profiler->task_id->name.c_str(), guid); fflush(stdout);
         std::vector<profiler*> * children = new vector<profiler*>();
         while (tmp != the_profiler) {
@@ -318,7 +318,7 @@ void thread_instance::clear_current_profiler(profiler * the_profiler) {
             /* Stop the copy. The original will get reset when the
             parent resumes. */
             //printf("%lu Yielding child %s with guid: %lu\n", get_id(), profiler_copy->task_id->name.c_str(), profiler_copy->task_id->_guid); fflush(stdout);
-            yield(profiler_copy);  // we better be re-entrant safe!
+            stop(profiler_copy);  // we better be re-entrant safe!
             // pop the original child, we've saved it in the vector
             the_stack.pop_back();
             // this is a serious problem...
