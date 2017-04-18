@@ -118,7 +118,7 @@ std::unordered_set<profile*> free_profiles;
     for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
       profile * p = it2->second;
 #if defined(APEX_THROTTLE)
-      if (!apex_options::use_tau) {
+      if (!apex_options::use_tau()) {
         task_identifier id = it2->first;
         unordered_set<task_identifier>::const_iterator it4;
 	    {
@@ -257,7 +257,7 @@ std::unordered_set<profile*> free_profiles;
             theprofile->increment(p->elapsed(), tmp_num_counters, values, p->is_resume);
         }
 #if defined(APEX_THROTTLE)
-        if (!apex_options::use_tau) {
+        if (!apex_options::use_tau()) {
           // Is this a lightweight task? If so, we shouldn't measure it any more,
           // in order to reduce overhead.
           if (theprofile->get_calls() > APEX_THROTTLE_CALLS &&
@@ -435,7 +435,7 @@ std::unordered_set<profile*> free_profiles;
       //screen_output << "\"" << shorter << "\", " ;
       screen_output << string_format("%30s", shorter.c_str()) << " : ";
 #if defined(APEX_THROTTLE)
-      if (!apex_options::use_tau) {
+      if (!apex_options::use_tau()) {
         // if this profile was throttled, don't output the measurements.
         // they are limited and bogus, anyway.
         unordered_set<task_identifier>::const_iterator it4;
@@ -1244,7 +1244,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
   inline bool profiler_listener::_common_start(task_identifier * id, bool is_resume) {
     if (!_done) {
 #if defined(APEX_THROTTLE)
-      if (!apex_options::use_tau) {
+      if (!apex_options::use_tau()) {
         // if this timer is throttled, return without doing anything
         unordered_set<task_identifier>::const_iterator it;
 	    {
