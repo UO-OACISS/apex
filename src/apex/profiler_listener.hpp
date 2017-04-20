@@ -199,7 +199,7 @@ public:
   static void process_profiles_wrapper(void);
   static void consumer_process_profiles_wrapper(void);
   void public_process_profile(std::shared_ptr<profiler> &p) { process_profile(p,0); };
-  bool concurrent_cleanup(void);
+  bool concurrent_cleanup(int i);
 };
 
 }

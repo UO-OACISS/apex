@@ -104,9 +104,9 @@ std::unordered_set<profile*> free_profiles;
      throttled, and shouldn't be processed. */
   profiler* profiler::disabled_profiler = new profiler();
 
-#ifdef APEX_HAVE_HPX
   /* Flag indicating whether a consumer task is currently running */
   std::atomic_flag consumer_task_running = ATOMIC_FLAG_INIT;
+#ifdef APEX_HAVE_HPX
   bool hpx_shutdown = false;
 #endif
 
@@ -843,25 +843,16 @@ node_color * get_node_color(double v,double vmin,double vmax)
       }
   }
 
-  bool profiler_listener::concurrent_cleanup(void){
+  bool profiler_listener::concurrent_cleanup(int i){
+      //set_thread_affinity(i);
       std::shared_ptr<profiler> p;
 #ifdef APEX_MULTIPLE_QUEUES
-      std::unique_lock<std::mutex> queue_lock(queue_mtx);
-      /*
-	  std::vector<profiler_queue_t*>::const_iterator a_queue;
-	  for (a_queue = allqueues.begin() ; a_queue != allqueues.end() ; ++a_queue) {
-	    thequeue = *a_queue;
-        */
-	  for (profiler_queue_t* a_queue : allqueues) {
-      	while(a_queue->try_dequeue(p)) {
-        	process_profile(p,0);
-      	}
-	  }
+      while(allqueues[i]->try_dequeue(p)) {
 #else
       while(thequeue.try_dequeue(p)) {
-       	process_profile(p,0);
-      }
 #endif
+       	  process_profile(p,0);
+      }
       return true;
   }
 
@@ -896,7 +887,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
 	  int i = 0;
 #endif
 	  for (profiler_queue_t* a_queue : allqueues) {
-      	while(a_queue->try_dequeue(p)) {
+      	while(!_done && a_queue->try_dequeue(p)) {
             /*
 	  std::vector<profiler_queue_t*>::const_iterator a_queue;
 	  for (a_queue = allqueues.begin() ; a_queue != allqueues.end() ; ++a_queue) {
@@ -909,7 +900,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
 #endif
         }
 	  }
-#else
+#else // just one queue
         while(!_done && thequeue.try_dequeue(p)) {
              process_profile(p, 0);
         }
@@ -950,8 +941,8 @@ node_color * get_node_color(double v,double vmin,double vmax)
 
 #endif // NOT DEFINED APEX_HAVE_HPX
 
-#ifdef APEX_HAVE_HPX
     consumer_task_running.clear(memory_order_release);
+#ifdef APEX_HAVE_HPX
 #endif
 
     if (apex_options::use_tau()) {
@@ -1130,18 +1121,19 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         size_t ignored = thequeue.size_approx();
 #endif
         if (ignored > 0) {
-          std::cerr << "Info: " << ignored << " items remaining on on the profiler_listener queue...";
+          std::cerr << "Info: " << ignored << " items remaining on on the profiler_listener queue..."; fflush(stderr);
         }
 #ifndef APEX_HAVE_HPX
 #if 0
         // We might be done, but check to make sure the queue is empty
         std::vector<std::future<bool>> pending_futures;
-        for (unsigned int i=0; i<hardware_concurrency(); ++i) {
+        //for (unsigned int i=0; i<hardware_concurrency(); ++i) {
+        for (unsigned int i=0; i<allqueues.size(); ++i) {
 #ifdef APEX_STATIC
             /* Static libC++ doesn't do async very well. In fact, it crashes. */
-            auto f = std::async(&profiler_listener::concurrent_cleanup,this);
+            auto f = std::async(&profiler_listener::concurrent_cleanup,this,i);
 #else // APEX_STATIC
-            auto f = std::async(std::launch::async,&profiler_listener::concurrent_cleanup,this);
+            auto f = std::async(std::launch::async,&profiler_listener::concurrent_cleanup,this,i);
 #endif // APEX_STATIC
             // transfer the future's shared state to a longer-lived future
             pending_futures.push_back(std::move(f));
@@ -1153,7 +1145,10 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         /* APEX can't handle spawning a bunch of new APEX threads at this time,
          * so just process the queue. Anyway, it shouldn't get backed up that 
          * much without suggesting there is a bigger problem. */
-        concurrent_cleanup();
+        std::unique_lock<std::mutex> queue_lock(queue_mtx);
+        for (unsigned int i=0; i<allqueues.size(); ++i) {
+          concurrent_cleanup(i);
+        }
 #endif // if 0
 #endif // APEX_HAVE_HPX
         if (ignored > 0) {
@@ -1300,34 +1295,18 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       // we have to make a local copy, because lockfree queues DO NOT SUPPORT shared_ptrs!
 #ifdef APEX_MULTIPLE_QUEUES
       thequeue()->enqueue(p);
-#ifndef APEX_HAVE_HPX
-      int thesize = thequeue()->size_approx();
-#endif
 #else
       thequeue.enqueue(p);
-#ifndef APEX_HAVE_HPX
-      int thesize = thequeue.size_approx();
 #endif
-#endif
-	  /*
-      bool worked = thequeue.enqueue(p);
-      if (!worked) {
-          static std::atomic<bool> issued(false);
-          if (!issued) {
-              issued = true;
-              cout << "APEX Warning : failed to push " << p->task_id->get_name() << endl;
-              cout << "One or more frequently-called, lightweight functions is being timed." << endl;
-          }
-      }
-	  */
+
 #ifndef APEX_HAVE_HPX
-      // Why 10? To make sure we don't call the true posix "post" function
+      // Check to see if the consumer is already running, to avoid calling "post"
       // too frequently - it is rather costly.
-      if (thesize > 10 || apex_options::use_otf2()) {
+      if(!consumer_task_running.test_and_set(memory_order_acq_rel)) {
         queue_signal.post();
       }
-#endif
-#ifdef APEX_HAVE_HPX
+#else
+      // schedule an HPX action
       apex_schedule_process_profiles();
 #endif
   }
