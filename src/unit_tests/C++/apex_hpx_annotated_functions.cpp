@@ -50,19 +50,21 @@ static uint64_t get_guid() {
 void innerLoop(int *tid) {
     /* Start a timer with a GUID*/
     uint64_t myguid = get_guid();
+    void* data_ptr = nullptr;
     //std::stringstream buf;
     //buf << "APP: " << *tid << ": Starting thread " << myguid << "\n"; std::cout << buf.str();
     //apex::profiler* p = apex::start((apex_function_address)&someThread, myguid);
-    apex::profiler* p = apex::start(__func__, myguid);
+    apex::profiler* p = apex::start(__func__, &data_ptr);
 
     /* do some computation */
 	int ret = nsleep(10, *tid); // after - t: 10, af: 0
 
 	/* Start a timer like an "annotated_function" */
     uint64_t afguid = get_guid();
+    void* data_ptr2 = nullptr;
     //buf.str(""); buf.clear();
     //buf << "APP: " << *tid << ": Starting annotated_function " << afguid << "\n"; std::cout << buf.str();
-    apex::profiler* af = apex::start("annotated function", afguid);
+    apex::profiler* af = apex::start("annotated function", &data_ptr2);
 
     /* do some computation */
 	ret = nsleep(10, *tid); // after - t: 20, af: 10
@@ -79,7 +81,7 @@ void innerLoop(int *tid) {
     //buf.str(""); buf.clear();
     //buf << "APP: " << *tid << ": Resuming thread " << myguid << "\n"; std::cout << buf.str();
     //p = apex::start((apex_function_address)&someThread, myguid);
-    p = apex::start(__func__, myguid);
+    p = apex::start(__func__, &data_ptr);
 
     /* do some computation */
 	ret = nsleep(10, *tid); // after - t: 30, af: 20
@@ -127,7 +129,11 @@ int main (int argc, char** argv) {
     /* start a timer */
     apex::profiler* p = apex::start("main");
     /* Spawn X threads */
-    numthreads = apex::hardware_concurrency() * threads_per_core; // many threads per core. Stress it!
+    if (argc > 1) {
+        numthreads = strtoul(argv[1],NULL,0);
+    } else {
+        numthreads = apex::hardware_concurrency() * threads_per_core; // many threads per core. Stress it!
+    }
     pthread_barrier_init(&barrier, NULL, numthreads);
     if (apex::apex_options::use_tau() || apex::apex_options::use_otf2()) { 
         numthreads = std::min(numthreads, apex::hardware_concurrency());

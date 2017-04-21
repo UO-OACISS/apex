@@ -66,10 +66,12 @@ class simple_timer {
         const double nanoseconds = 1.0e9;
     public:
         std::chrono::high_resolution_clock::time_point start;
-        simple_timer() : start(std::chrono::high_resolution_clock::now()) {}
+        std::string _name;
+        simple_timer() : start(std::chrono::high_resolution_clock::now()), _name("") {}
+        simple_timer(std::string name) : start(std::chrono::high_resolution_clock::now()), _name(name) {}
         ~simple_timer() {
             std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::high_resolution_clock::now() - start);
-            std::cout << "simple time: " << time_span.count() * nanoseconds << "ns" << std::endl;
+            std::cout << _name << " simple time: " << time_span.count() * nanoseconds << "ns" << std::endl;
         }
 };
 
