@@ -73,7 +73,7 @@ std::atomic<unsigned int> _exit_stops(0L);
 std::atomic<unsigned int> _resumes(0L);
 std::atomic<unsigned int> _yields(0L);
 #endif
-__thread profiler * top_level_timer = nullptr;
+APEX_NATIVE_TLS profiler * top_level_timer = nullptr;
 
 /*
  * The destructor will request power data from RCRToolkit
@@ -822,7 +822,7 @@ void finalize()
         }
 #endif
 #ifdef APEX_HAVE_HPX
-        /* HPX shutdown happens on a new thread. We don't want 
+        /* HPX shutdown happens on a new thread. We don't want
          * to register a new thread. */
         shutdown_event_data data(instance->get_node_id(), 0);
 #else
@@ -992,17 +992,17 @@ int apex::setup_runtime_counter(const std::string & counter_name) {
         using hpx::performance_counters::counter_value;
         try {
             id_type id = get_counter(counter_name);
-            if (id == hpx::naming::invalid_id) { 
+            if (id == hpx::naming::invalid_id) {
                 if (instance()->get_node_id() == 0 && !messaged) {
                     std::cerr << "Error: invalid HPX counter: " << counter_name << std::endl;
                     messaged = true;
                 }
-                return APEX_ERROR; 
+                return APEX_ERROR;
             }
             performance_counter::start(hpx::launch::sync, id);
             registered_counters.emplace(std::make_pair(counter_name, id));
             //std::cout << "Started counter " << counter_name << std::endl;
-        } catch(hpx::exception const & e) {
+        } catch(hpx::exception const & /*e*/) {
             if (instance()->get_node_id() == 0) {
                 std::cerr << "Error: unable to start HPX counter: " << counter_name << std::endl;
             }
@@ -1036,7 +1036,7 @@ void sample_runtime_counter(unsigned long period, const std::string & counter_na
         using hpx::performance_counters::stubs::performance_counter;
         using hpx::performance_counters::counter_value;
         id_type id = get_counter(counter_name);
-        if (id == hpx::naming::invalid_id) { 
+        if (id == hpx::naming::invalid_id) {
             std::cerr << "Error: invalid HPX counter: " << counter_name << std::endl;
         }
         performance_counter::start(hpx::launch::sync, id);
@@ -1045,7 +1045,7 @@ void sample_runtime_counter(unsigned long period, const std::string & counter_na
                 counter_value value1 = performance_counter::get_value(hpx::launch::sync, id);
                 const int value = value1.get_value<int>();
                 sample_value(counter_name, value);
-            } catch(hpx::exception const & e) {
+            } catch(hpx::exception const & /*e*/) {
                 std::cerr << "Error: unable to start HPX counter: " << counter_name << std::endl;
                 return APEX_ERROR;
             }
@@ -1376,14 +1376,14 @@ extern "C" {
     uint64_t apex_hardware_concurrency(void) {
         return hardware_concurrency();
     }
-    
+
 
 } // extern "C"
 
 #ifdef APEX_HAVE_HPX
-HPX_DECLARE_ACTION(apex::finalize, apex_internal_shutdown_action);
+HPX_DECLARE_ACTION(::apex::finalize, apex_internal_shutdown_action);
 HPX_ACTION_HAS_CRITICAL_PRIORITY(apex_internal_shutdown_action);
-HPX_PLAIN_ACTION(apex::finalize, apex_internal_shutdown_action);
+HPX_PLAIN_ACTION(::apex::finalize, apex_internal_shutdown_action);
 
 void apex_schedule_shutdown() {
     if(get_hpx_runtime_ptr() == nullptr) return;

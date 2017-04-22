@@ -1,6 +1,10 @@
 //  Copyright (c) 2014 University of Oregon
 //
 
+#ifdef APEX_HAVE_HPX
+#include <hpx/config.hpp>
+#endif
+
 #include "apex_options.hpp"
 #include "apex.hpp"
 #include "apex_config.h"

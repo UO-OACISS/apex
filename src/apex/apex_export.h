@@ -8,9 +8,11 @@
 
 #if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
 #define APEX_EXPORT __declspec(dllexport)
+#define APEX_WEAK
+#define APEX_APPLE_WEAK
 #else
+
 #define APEX_EXPORT __attribute__((visibility("default")))
-#endif
 
 #ifdef __APPLE__
 #define APEX_WEAK
@@ -18,6 +20,8 @@
 #else
 #define APEX_WEAK __attribute__((weak))
 #define APEX_APPLE_WEAK
+#endif
+
 #endif
 
 #endif
