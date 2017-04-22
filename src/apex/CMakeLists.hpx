@@ -277,6 +277,7 @@ set(apex_sources
     concurrency_handler.cpp
     event_listener.cpp
     policy_handler.cpp
+    handler.cpp
     profiler_listener.cpp
     task_identifier.cpp
     tau_listener.cpp

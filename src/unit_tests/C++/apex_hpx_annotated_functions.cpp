@@ -11,7 +11,9 @@ int threads_per_core = 8;
 __thread uint64_t guid = 0;
 const int num_iterations = 10;
 
+#ifndef __APPLE__
 pthread_barrier_t barrier;
+#endif
 
 int nsleep(long miliseconds, int tid)
 {
@@ -106,7 +108,9 @@ void* someThread(void* tmp)
     int* tid = (int*)tmp;
     char name[32];
     sprintf(name, "worker thread %d", *tid);
+#ifndef __APPLE__
     pthread_barrier_wait(&barrier);
+#endif
     apex::register_thread(name);
     init_guid(*tid);
 
@@ -134,7 +138,9 @@ int main (int argc, char** argv) {
     } else {
         numthreads = apex::hardware_concurrency() * threads_per_core; // many threads per core. Stress it!
     }
+#ifndef __APPLE__
     pthread_barrier_init(&barrier, NULL, numthreads);
+#endif
     if (apex::apex_options::use_tau() || apex::apex_options::use_otf2()) { 
         numthreads = std::min(numthreads, apex::hardware_concurrency());
     }

@@ -5,6 +5,8 @@
 
 #pragma once
 
+#if !defined(_MSC_VER)  // Windows will use std::thread
+
 #include <pthread.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -143,4 +145,6 @@ class pthread_wrapper {
 }; // class
 
 }; // namespace
+
+#endif
 

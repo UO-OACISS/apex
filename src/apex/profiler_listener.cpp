@@ -95,7 +95,7 @@ std::unordered_set<profile*> free_profiles;
     profiler_queue_t * profiler_listener::thequeue() {
         /* This constructor gets called once per thread, the first time this
          * function is executed (by each thread). */
-        static __thread profiler_queue_t * _thequeue = _construct_thequeue();
+        static APEX_NATIVE_TLS profiler_queue_t * _thequeue = _construct_thequeue();
         return _thequeue;
     }
 #endif
@@ -1084,6 +1084,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       queue_signal.post();
       queue_signal.dump_stats();
       if (consumer_thread != nullptr) {
+          queue_signal.post(); // one more time, just to be sure
           consumer_thread->join();
       }
 #endif

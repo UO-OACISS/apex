@@ -15,7 +15,7 @@
 #include <unistd.h>
 #endif
 
-#if defined(_POSIX_VERSION)
+#if defined(_POSIX_VERSION) && !defined(_MSC_VER)
 // Posix!
 
 #include <semaphore.h>
@@ -84,26 +84,33 @@ class semaphore
 private:
     std::mutex mutex_;
     std::condition_variable_any condition_;
-    unsigned long count_;
+    //unsigned long count_;
+    bool work_waiting;
 
 public:
     semaphore()
-        : count_()
+        //: count_()
+        : work_waiting(false)
     {}
+
+    void dump_stats() { }
 
     void post()
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        ++count_;
+        //++count_;
+        work_waiting = true;
         condition_.notify_one();
     }
 
     void wait()
     {
         std::unique_lock<std::mutex> lock(mutex_);
-        while(!count_)
+        //while(!count_)
+        while(!work_waiting)
             condition_.wait(lock);
-        --count_;
+        work_waiting = false;
+        //--count_;
     }
 };
 

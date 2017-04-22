@@ -9,7 +9,12 @@
 #include <iostream>
 #include <chrono>
 #include <atomic>
+#if defined(_MSC_VER)
+#include <thread>
+#include <condition_variable>
+#else
 #include "pthread_wrapper.hpp"
+#endif
 #include "utils.hpp"
 #include "apex_options.hpp"
 #include "thread_instance.hpp"
@@ -19,6 +24,25 @@ namespace apex {
 class handler
 {
 private:
+#if defined(_MSC_VER)
+    std::condition_variable cv;
+    std::mutex cv_m;
+    static std::chrono::microseconds default_period;
+    void _threadfunc(void) {
+        while (true) {
+            std::unique_lock<std::mutex> lk(cv_m);
+            auto now = std::chrono::system_clock::now();
+            auto rc = cv.wait_until(lk, now + _period);
+            if(rc == std::cv_status::timeout) {
+                //std::cerr << "Thread timed out.\n";
+                _handler();
+            } else {
+                //std::cerr << "Thread cancelled.\n";
+                return;
+            }
+        }
+    };
+#else
     static const unsigned int default_period = 100000;
     static void* _threadfunc(void * _ptw) {
         pthread_wrapper* ptw = (pthread_wrapper*)_ptw;
@@ -36,31 +60,46 @@ private:
         thread_instance::delete_instance();
         return nullptr;
     };
+#endif
 protected:
+#if defined(_MSC_VER)
+  std::chrono::microseconds _period;
+  std::thread* _timer_thread;
+#else
   unsigned int _period;
+  pthread_wrapper* _timer_thread;
+#endif
   std::atomic<bool> _handler_initialized;
   std::atomic<bool> _terminate;
-  pthread_wrapper* _timer_thread;
   void run(void) {
+#if defined(_MSC_VER)
+    _timer_thread = new std::thread(&handler::_threadfunc, this);
+#else
     _timer_thread = new pthread_wrapper(&handler::_threadfunc, (void*)(this), _period);
+#endif
   };
 public:
   handler() : 
       _period(default_period), 
+      _timer_thread(nullptr),
       _handler_initialized(false), 
-      _terminate(false), 
-      _timer_thread(nullptr)
+      _terminate(false)
     { }
   handler(unsigned int period) : 
-      _period(period), 
-      _handler_initialized(false), 
-      _terminate(false), 
-      _timer_thread(nullptr)
+      _period(period),
+      _timer_thread(nullptr),
+      _handler_initialized(false),
+      _terminate(false)
     { }
   void cancel(void) {
       _terminate = true; 
       if(_timer_thread != nullptr) {
+#if defined(_MSC_VER)
+        cv.notify_all();
+        _timer_thread->join();
+#else
         _timer_thread->stop_thread();
+#endif
         delete(_timer_thread);
         _timer_thread = nullptr;
       }

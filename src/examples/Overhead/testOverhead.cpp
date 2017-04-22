@@ -13,7 +13,9 @@
 #define ITERATIONS 1024*64
 #define INNER_ITERATION 4096
 
+#ifndef __APPLE__
 pthread_barrier_t barrier;
+#endif
 
 inline int foo (int i) {
   static int limit = sqrt(INT_MAX >> 1);
@@ -74,7 +76,9 @@ void* someThread(void* tmp)
   apex::register_thread("threadTest thread");
   int i = 0;
   unsigned long total = 0;
+#ifndef __APPLE__
   int s = pthread_barrier_wait(&barrier);
+#endif
   { // only time this for loop
     apex::profiler * st = apex::start((apex_function_address)someThread);
     for (i = 0 ; i < ITERATIONS ; i++) {
@@ -106,7 +110,9 @@ void* someUntimedThread(void* tmp)
   apex::register_thread("threadTest thread");
   int i = 0;
   unsigned long total = 0;
+#ifndef __APPLE__
   int s = pthread_barrier_wait(&barrier);
+#endif
   { // only time this for loop
     apex::profiler * sut = apex::start((apex_function_address)someUntimedThread);
     for (i = 0 ; i < ITERATIONS ; i++) {
@@ -143,7 +149,9 @@ int main(int argc, char **argv)
   std::cout << "Expecting " << numthreads << " threads." << std::endl;
   pthread_t * thread = (pthread_t*)(malloc(sizeof(pthread_t) * numthreads));
 
+#ifndef __APPLE__
   pthread_barrier_init(&barrier, NULL, numthreads);
+#endif
   unsigned i;
   int timed = 0;
   int untimed = 0;

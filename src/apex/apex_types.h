@@ -286,6 +286,8 @@ inline unsigned int sc_nprocessors_onln()
 #  define APEX_NATIVE_TLS __thread
 #elif defined(_WIN32) || defined(_WIN64)
 #  define APEX_NATIVE_TLS __declspec(thread)
+#elif defined(__APPLE__)
+#  define APEX_NATIVE_TLS thread_local
 #elif defined(__FreeBSD__) || (defined(__APPLE__) && defined(__MACH__))
 #  define APEX_NATIVE_TLS __thread
 #else
