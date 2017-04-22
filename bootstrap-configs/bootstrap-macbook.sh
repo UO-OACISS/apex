@@ -18,10 +18,11 @@ unset TAU_ROOT
 
 # other CMake variables - for special situations / architectures / compilers.
 
-cmake_build_type="-DCMAKE_BUILD_TYPE=Debug" # Debug, Release, RelWithDebInfo, etc.
+cmake_build_type="-DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_TESTS=TRUE -DBUILD_EXAMPLES=TRUE" # Debug, Release, RelWithDebInfo, etc.
 cmake_apex_throttle="-DAPEX_THROTTLE=FALSE" # TRUE or FALSE
 cmake_build_shared_libs="-DBUILD_SHARED_LIBS=TRUE" # TRUE or FALSE
 cmake_install_prefix="-DCMAKE_INSTALL_PREFIX=../install" # the installation path
+#cmake_use_codeblocks="-G Xcode" # if you want to debug in Xcode
 #cmake_use_codeblocks="-G \"CodeBlocks - Unix Makefiles\"" # if you want to debug in CodeBlocks
 #cmake_use_codeblocks="-G \"Eclipse CDT4 - Unix Makefiles\"" # if you want to debug in CodeBlocks
 cmake_make_verbose=""  # for verbose, use -DCMAKE_VERBOSE_MAKEFILE=ON
