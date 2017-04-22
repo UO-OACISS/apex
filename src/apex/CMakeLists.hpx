@@ -21,7 +21,7 @@ hpx_info("apex" "APEX binary dir is ${APEX_BINARY_DIR}")
 
 include_directories(${CMAKE_SOURCE_DIR}/apex/src/apex ${CMAKE_BINARY_DIR} ${APEX_BINARY_DIR} ${CMAKE_SOURCE_DIR}/apex/src/contrib)
 
-add_definitions(-DAPEX_HAVE_HPX)
+add_definitions(-DAPEX_HAVE_HPX=)
 if(APEX_DEBUG)
     add_definitions(-DAPEX_DEBUG)
 endif()
@@ -102,10 +102,24 @@ else()
   # VS2013 and above know how to do link time constant data segment folding
   # VS2013 update 2 and above know how to remove debug information for
   #     non-referenced functions and data (-Zc:inline)
-  if(MSVC12 OR MSVC13)
+  if(MSVC12 OR MSVC14)
     hpx_add_compile_flag(-Zc:inline)
     hpx_add_compile_flag(-Gw CONFIGURATIONS Release RelWithDebInfo MinSizeRelease)
     hpx_add_compile_flag(-Zo CONFIGURATIONS RelWithDebInfo)
+  endif()
+
+  if(MSVC14)
+    # assume conforming (throwing) operator new implementations
+    hpx_add_target_compile_option(-Zc:throwingNew)
+
+    # Update 2 requires to set _ENABLE_ATOMIC_ALIGNMENT_FIX for it to compile
+    # atomics
+    hpx_add_config_define(_ENABLE_ATOMIC_ALIGNMENT_FIX)
+
+    # Update 3 allows to flag rvalue misuses and enforces strict string const-
+    # qualification conformance
+    hpx_add_target_compile_option(-Zc:rvalueCast)
+    hpx_add_target_compile_option(-Zc:strictStrings)
   endif()
 
   hpx_add_compile_flag(-bigobj) # Increase the maximum size of object file sections

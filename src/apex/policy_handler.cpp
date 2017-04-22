@@ -13,7 +13,9 @@
 #include "policy_handler.hpp"
 #include <iostream>
 #include <atomic>
+#if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
 #include <unistd.h>
+#endif
 #include "tau_listener.hpp"
 
 using namespace std;
@@ -37,12 +39,12 @@ namespace apex {
 	   */
 
 #ifdef APEX_HAVE_HPX
-	policy_handler::policy_handler (uint64_t period_microseconds) : handler(period_microseconds), hpx_timer(boost::bind(&policy_handler::_handler, this), _period, "apex_internal_policy_handler") 
+	policy_handler::policy_handler (uint64_t period_microseconds) : handler(period_microseconds), hpx_timer(boost::bind(&policy_handler::_handler, this), _period, "apex_internal_policy_handler")
 	{
 		_init();
 	}
 #else
-	policy_handler::policy_handler (uint64_t period_microseconds) : handler(period_microseconds) 
+	policy_handler::policy_handler (uint64_t period_microseconds) : handler(period_microseconds)
 	{
 		_init();
 	}
@@ -91,9 +93,13 @@ namespace apex {
         // prevent policies from iterating - kind of like a lock, but faster.
         apex_options::use_policy(false);
         // Sleep just a tiny bit - that allows other threads that might be
-        // currently processing policies to clear out. This is actually 
+        // currently processing policies to clear out. This is actually
         // more efficient than a lock transaction on every policy execution.
+#if defined(_WIN32)
+        Sleep(1);
+#else
         usleep(apex_options::policy_drain_timeout()); // sleep 1ms
+#endif
 		int id = next_id++;
 		std::shared_ptr<policy_instance> instance(
 				std::make_shared<policy_instance>(id, f));
@@ -181,9 +187,13 @@ namespace apex {
         // prevent policies from iterating - kind of like a lock, but faster.
         apex_options::use_policy(false);
         // Sleep just a tiny bit - that allows other threads that might be
-        // currently processing policies to clear out. This is actually 
+        // currently processing policies to clear out. This is actually
         // more efficient than a lock transaction on every policy execution.
+#if defined(_WIN32)
+        Sleep(1);
+#else
         usleep(apex_options::policy_drain_timeout()); // sleep 1ms
+#endif
 		switch(handle->event_type) {
 			case APEX_STARTUP: {
 						   //write_lock_type l(startup_mutex);
@@ -468,8 +478,8 @@ namespace apex {
 
 	void policy_handler::on_periodic(periodic_event_data &data) {
 		// get the read lock first. Because if we are shutting down,
-		// the _terminate flag will be set after the write lock has 
-		// been acquired.  Yes, the periodic lock will be held a few 
+		// the _terminate flag will be set after the write lock has
+		// been acquired.  Yes, the periodic lock will be held a few
 		// instructions longer, but this prevents race condition
 		// SegVs during shutdown.
 		call_policies(periodic_policies, (void *)&data, APEX_PERIODIC);
