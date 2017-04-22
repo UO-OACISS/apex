@@ -41,9 +41,11 @@
 #if !defined(_MSC_VER)
 #include <unistd.h>
 #include <sys/file.h>
-#else
+#else // not _MSC_VER
+#if !defined(__APPLE__)
 #include <io.h>
-#endif
+#endif // __APPLE__
+#endif // _MSC_VER
 #include <fcntl.h>
 
 #define INITIAL_NUM_THREADS 2

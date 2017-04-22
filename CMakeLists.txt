@@ -655,10 +655,15 @@ endif()
 ################################################################################
 
 # checking for pthread the correct way is broken for MIC.
+
 if(APEX_INTEL_MIC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
+elseif(DEFINED WINDOWS)
+    set(CMAKE_THREAD_PREFER_PTHREAD OFF)
+    set(THREADS_PREFER_PTHREAD_FLAG OFF)
+    # add_definitions(-D_MSC_VER=1)
 else()
     set(CMAKE_THREAD_PREFER_PTHREAD ON)
     set(THREADS_PREFER_PTHREAD_FLAG ON)

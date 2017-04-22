@@ -1084,6 +1084,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       queue_signal.post();
       queue_signal.dump_stats();
       if (consumer_thread != nullptr) {
+          queue_signal.post(); // one more time, just to be sure
           consumer_thread->join();
       }
 #endif
