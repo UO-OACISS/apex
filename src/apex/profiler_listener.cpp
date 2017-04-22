@@ -95,7 +95,7 @@ std::unordered_set<profile*> free_profiles;
     profiler_queue_t * profiler_listener::thequeue() {
         /* This constructor gets called once per thread, the first time this
          * function is executed (by each thread). */
-        static __thread profiler_queue_t * _thequeue = _construct_thequeue();
+        static APEX_NATIVE_TLS profiler_queue_t * _thequeue = _construct_thequeue();
         return _thequeue;
     }
 #endif
