@@ -84,7 +84,7 @@ void my_ompt_task_start(const char * state, ompt_task_id_t task_id) {
   //fprintf(stderr,"start %s : %lu\n",state, parallel_id); fflush(stderr);
   char regionIDstr[128] = {0}; 
   format_task_name_fast(state, task_id, regionIDstr);
-  apex::profiler* p = apex::start(std::string(regionIDstr), task_id);
+  apex::profiler* p = apex::start(std::string(regionIDstr));
   timer_stack->push(p);
 }
 
@@ -92,7 +92,7 @@ void my_ompt_pr_start(const char * state, ompt_parallel_id_t parallel_id) {
   //fprintf(stderr,"start %s : %lu\n",state, parallel_id); fflush(stderr);
   char regionIDstr[128] = {0}; 
   format_name_fast(state, parallel_id, regionIDstr);
-  apex::profiler* p = apex::start(std::string(regionIDstr), parallel_id);
+  apex::profiler* p = apex::start(std::string(regionIDstr));
   timer_stack->push(p);
 }
 
@@ -100,7 +100,7 @@ void my_ompt_start(const char * state, ompt_parallel_id_t parallel_id) {
   //fprintf(stderr,"start %s : %lu\n",state, parallel_id); fflush(stderr);
   char regionIDstr[128] = {0}; 
   format_name_fast(state, parallel_id, regionIDstr);
-  apex::profiler* p = apex::start(std::string(regionIDstr), status->taskid);
+  apex::profiler* p = apex::start(std::string(regionIDstr));
   timer_stack->push(p);
 }
 
