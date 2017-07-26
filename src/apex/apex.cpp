@@ -765,11 +765,6 @@ void finalize_plugins(void) {
 
 void finalize()
 {
-	//cout << thread_instance::get_id() << " *** Finalize! " << endl; fflush(stdout);
-    // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { return; }
-    // stop processing new timers/counters/messages/tasks/etc.
-    apex_options::suspend(true);
     // prevent re-entry, be extra strict about race conditions - it is possible.
     mutex shutdown_mutex;
     static bool finalized = false;
@@ -778,6 +773,11 @@ void finalize()
         if (finalized) { return; };
         finalized = true;
     }
+	//cout << thread_instance::get_id() << " *** Finalize! " << endl; fflush(stdout);
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
+    // stop processing new timers/counters/messages/tasks/etc.
+    apex_options::suspend(true);
     // First, stop the top level timer, while the infrastructure is still functioning.
     //stop(top_level_timer);
     // if not done already...
@@ -847,6 +847,14 @@ void cleanup(void) {
     // prevent crash at shutdown.
     return;
 #endif
+    // prevent re-entry, be extra strict about race conditions - it is possible.
+    mutex shutdown_mutex;
+    static bool finalized = false;
+    {
+        unique_lock<mutex> l(shutdown_mutex);
+        if (finalized) { return; };
+        finalized = true;
+    }
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
     apex* instance = apex::__instance(); // get the Apex static instance
