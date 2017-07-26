@@ -1299,7 +1299,7 @@ APEX_EXPORT apex_tuning_session_handle setup_custom_tuning(std::function<double(
     return __setup_custom_tuning(metric, event_type, num_inputs, inputs, mins, maxs, steps);
 }
 
-APEX_EXPORT apex_tuning_session_handle setup_custom_tuning(::apex_tuning_request & request) {
+APEX_EXPORT apex_tuning_session_handle setup_custom_tuning(apex_tuning_request & request) {
     return __setup_custom_tuning(request);
 }
 

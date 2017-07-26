@@ -23,8 +23,9 @@ public:
       address(0L), name(""), _resolved_name(""), has_name(false), _data_ptr(0) {};
   task_identifier(apex_function_address a, void** data_ptr = 0) :
       address(a), name(""), _resolved_name(""), has_name(false), _data_ptr(data_ptr) {};
-  task_identifier(std::string n, void** data_ptr = 0) :
-      address(0L), name(demangle(n)), _resolved_name(""), has_name(true), _data_ptr(data_ptr) {};
+  task_identifier(const std::string& n, void** data_ptr = 0) :
+      address(0L), name(n), _resolved_name(""), has_name(true), _data_ptr(data_ptr) {
+      };
   task_identifier(const task_identifier& rhs) :
       address(rhs.address), name(rhs.name), _resolved_name(rhs._resolved_name), has_name(rhs.has_name), _data_ptr(rhs._data_ptr) { };
 	  /*
@@ -39,7 +40,7 @@ public:
       }
   }
   */
-  std::string get_name(bool resolve = true);
+  const std::string& get_name(bool resolve = true);
   ~task_identifier() { }
   // requried for using this class as a key in an unordered map.
   // the hash function is defined below.

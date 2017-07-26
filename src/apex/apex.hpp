@@ -144,6 +144,8 @@ public:
     }
     void push_policy_handle(apex_policy_handle* handle);
     void pop_policy_handle(apex_policy_handle* handle);
+    void stop_all_policy_handles(void);
+    bool policy_handle_exists(apex_policy_handle* handle);
     ~apex();
 };
 

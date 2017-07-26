@@ -19,13 +19,14 @@
 
 namespace apex {
 
-std::string task_identifier::get_name(bool resolve) {
-    if (!has_name) {
+const std::string& task_identifier::get_name(bool resolve) {
+    if (!has_name && resolve) {
       if (_resolved_name == "" && address != APEX_NULL_FUNCTION_ADDRESS) {
         //_resolved_name = lookup_address((uintptr_t)address, false);         
         _resolved_name = thread_instance::instance().map_addr_to_name(address);
       }
-      return demangle(_resolved_name);
+      _resolved_name = demangle(_resolved_name);
+      return _resolved_name;
     } else {
 #ifdef APEX_HAVE_BFD
         if (resolve) {
@@ -41,10 +42,11 @@ std::string task_identifier::get_name(bool resolve) {
                 REGEX_NAMESPACE::regex old_address("UNRESOLVED ADDR " + addr_str);
                 name = REGEX_NAMESPACE::regex_replace(name, old_address, demangle(*tmp));
             }
+            name = demangle(name);
         }
 #endif
       return name;
-	}
+    }
   }
 
 }

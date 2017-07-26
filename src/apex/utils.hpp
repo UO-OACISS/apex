@@ -18,6 +18,7 @@
 #if defined(__GNUC__)
 #include <cxxabi.h>
 #endif
+#include <atomic>
 
 namespace apex {
 
@@ -74,6 +75,112 @@ class simple_timer {
             std::cout << _name << " simple time: " << time_span.count() * nanoseconds << "ns" << std::endl;
         }
 };
+
+class reference_counter {
+    public:
+        static std::atomic<uint64_t> starts;
+        static std::atomic<uint64_t> disabled_starts;
+        static std::atomic<uint64_t> apex_internal_starts;
+        static std::atomic<uint64_t> hpx_shutdown_starts;
+        static std::atomic<uint64_t> hpx_timer_starts;
+        static std::atomic<uint64_t> suspended_starts;
+        static std::atomic<uint64_t> failed_starts;
+        static std::atomic<uint64_t> starts_after_finalize;
+
+        static std::atomic<uint64_t> resumes;
+        static std::atomic<uint64_t> disabled_resumes;
+        static std::atomic<uint64_t> apex_internal_resumes;
+        static std::atomic<uint64_t> hpx_shutdown_resumes;
+        static std::atomic<uint64_t> hpx_timer_resumes;
+        static std::atomic<uint64_t> suspended_resumes;
+        static std::atomic<uint64_t> failed_resumes;
+        static std::atomic<uint64_t> resumes_after_finalize;
+
+        static std::atomic<uint64_t> yields;
+        static std::atomic<uint64_t> disabled_yields;
+        static std::atomic<uint64_t> null_yields;
+        static std::atomic<uint64_t> double_yields;
+        static std::atomic<uint64_t> yields_after_finalize;
+        static std::atomic<uint64_t> apex_internal_yields;
+
+        static std::atomic<uint64_t> stops;
+        static std::atomic<uint64_t> disabled_stops;
+        static std::atomic<uint64_t> null_stops;
+        static std::atomic<uint64_t> double_stops;
+        static std::atomic<uint64_t> stops_after_finalize;
+        static std::atomic<uint64_t> apex_internal_stops;
+        static std::atomic<uint64_t> exit_stops;
+        static void report_stats(void);
+};
+
+#if defined(APEX_DEBUG) || defined(APEX_HAVE_HPX)
+#define APEX_UTIL_REF_COUNT_START                reference_counter::starts++;
+#define APEX_UTIL_REF_COUNT_DISABLED_START       reference_counter::disabled_starts++;
+#define APEX_UTIL_REF_COUNT_APEX_INTERNAL_START  reference_counter::apex_internal_starts++;
+#define APEX_UTIL_REF_COUNT_HPX_SHUTDOWN_START   reference_counter::hpx_shutdown_starts++;
+#define APEX_UTIL_REF_COUNT_HPX_TIMER_START      reference_counter::hpx_timer_starts++;
+#define APEX_UTIL_REF_COUNT_SUSPENDED_START      reference_counter::suspended_starts++;
+#define APEX_UTIL_REF_COUNT_FAILED_START         reference_counter::failed_starts++;
+#define APEX_UTIL_REF_COUNT_START_AFTER_FINALIZE reference_counter::starts_after_finalize++;
+
+#define APEX_UTIL_REF_COUNT_RESUME               reference_counter::resumes++;
+#define APEX_UTIL_REF_COUNT_DISABLED_RESUME      reference_counter::disabled_resumes++;
+#define APEX_UTIL_REF_COUNT_APEX_INTERNAL_RESUME reference_counter::apex_internal_resumes++;
+#define APEX_UTIL_REF_COUNT_HPX_SHUTDOWN_RESUME  reference_counter::hpx_shutdown_resumes++;
+#define APEX_UTIL_REF_COUNT_HPX_TIMER_RESUME     reference_counter::hpx_timer_resumes++;
+#define APEX_UTIL_REF_COUNT_SUSPENDED_RESUME     reference_counter::suspended_resumes++;
+#define APEX_UTIL_REF_COUNT_FAILED_RESUME        reference_counter::failed_resumes++;
+#define APEX_UTIL_REF_COUNT_RESUME_AFTER_FINALIZE reference_counter::resumes_after_finalize++;
+
+#define APEX_UTIL_REF_COUNT_YIELD                reference_counter::yields++;
+#define APEX_UTIL_REF_COUNT_DISABLED_YIELD       reference_counter::disabled_yields++;
+#define APEX_UTIL_REF_COUNT_NULL_YIELD           reference_counter::null_yields++;
+#define APEX_UTIL_REF_COUNT_DOUBLE_YIELD         reference_counter::double_yields++;
+#define APEX_UTIL_REF_COUNT_YIELD_AFTER_FINALIZE reference_counter::yields_after_finalize++;
+#define APEX_UTIL_REF_COUNT_APEX_INTERNAL_YIELD  reference_counter::apex_internal_yields++;
+
+#define APEX_UTIL_REF_COUNT_STOP                 reference_counter::stops++;
+#define APEX_UTIL_REF_COUNT_DISABLED_STOP        reference_counter::disabled_stops++;
+#define APEX_UTIL_REF_COUNT_NULL_STOP            reference_counter::null_stops++;
+#define APEX_UTIL_REF_COUNT_DOUBLE_STOP          reference_counter::double_stops++;
+#define APEX_UTIL_REF_COUNT_EXIT_STOP            reference_counter::exit_stops++;
+#define APEX_UTIL_REPORT_STATS                   reference_counter::report_stats();
+#define APEX_UTIL_REF_COUNT_STOP_AFTER_FINALIZE  reference_counter::stops_after_finalize++;
+#define APEX_UTIL_REF_COUNT_APEX_INTERNAL_STOP   reference_counter::apex_internal_stops++;
+#else
+#define APEX_UTIL_REF_COUNT_START
+#define APEX_UTIL_REF_COUNT_DISABLED_START
+#define APEX_UTIL_REF_COUNT_APEX_INTERNAL_START
+#define APEX_UTIL_REF_COUNT_HPX_SHUTDOWN_START
+#define APEX_UTIL_REF_COUNT_HPX_TIMER_START
+#define APEX_UTIL_REF_COUNT_SUSPENDED_START
+#define APEX_UTIL_REF_COUNT_FAILED_START
+#define APEX_UTIL_REF_COUNT_START_AFTER_FINALIZE
+
+#define APEX_UTIL_REF_COUNT_RESUME
+#define APEX_UTIL_REF_COUNT_DISABLED_RESUME
+#define APEX_UTIL_REF_COUNT_APEX_INTERNAL_RESUME
+#define APEX_UTIL_REF_COUNT_HPX_SHUTDOWN_RESUME
+#define APEX_UTIL_REF_COUNT_HPX_TIMER_RESUME
+#define APEX_UTIL_REF_COUNT_SUSPENDED_RESUME
+#define APEX_UTIL_REF_COUNT_FAILED_RESUME
+#define APEX_UTIL_REF_COUNT_RESUME_AFTER_FINALIZE
+
+#define APEX_UTIL_REF_COUNT_YIELD
+#define APEX_UTIL_REF_COUNT_DISABLED_YIELD
+#define APEX_UTIL_REF_COUNT_NULL_YIELD
+#define APEX_UTIL_REF_COUNT_DOUBLE_YIELD
+#define APEX_UTIL_REF_COUNT_YIELD_AFTER_FINALIZE
+#define APEX_UTIL_REF_COUNT_APEX_INTERNAL_YIELD
+
+#define APEX_UTIL_REF_COUNT_STOP
+#define APEX_UTIL_REF_COUNT_DISABLED_STOP
+#define APEX_UTIL_REF_COUNT_NULL_STOP
+#define APEX_UTIL_REF_COUNT_DOUBLE_STOP
+#define APEX_UTIL_REF_COUNT_EXIT_STOP
+#define APEX_UTIL_REF_COUNT_STOP_AFTER_FINALIZE
+#define APEX_UTIL_REF_COUNT_APEX_INTERNAL_STOP
+#endif
 
 #if !defined(_MSC_VER)
 inline unsigned int my_hardware_concurrency()
