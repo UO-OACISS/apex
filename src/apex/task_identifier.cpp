@@ -25,11 +25,11 @@ const std::string& task_identifier::get_name(bool resolve) {
         //_resolved_name = lookup_address((uintptr_t)address, false);         
         _resolved_name = thread_instance::instance().map_addr_to_name(address);
       }
-      _resolved_name = demangle(_resolved_name);
+      _resolved_name.assign(demangle(_resolved_name));
       return _resolved_name;
     } else {
-#ifdef APEX_HAVE_BFD
         if (resolve) {
+#ifdef APEX_HAVE_BFD
             REGEX_NAMESPACE::regex rx (".*UNRESOLVED ADDR (.*)");
             if (REGEX_NAMESPACE::regex_match (name,rx)) {
                 const REGEX_NAMESPACE::regex separator(" ADDR ");
@@ -42,9 +42,9 @@ const std::string& task_identifier::get_name(bool resolve) {
                 REGEX_NAMESPACE::regex old_address("UNRESOLVED ADDR " + addr_str);
                 name = REGEX_NAMESPACE::regex_replace(name, old_address, demangle(*tmp));
             }
-            name = demangle(name);
-        }
 #endif
+            name.assign(demangle(name));
+        }
       return name;
     }
   }

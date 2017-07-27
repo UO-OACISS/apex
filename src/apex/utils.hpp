@@ -113,7 +113,7 @@ class reference_counter {
         static void report_stats(void);
 };
 
-#if defined(APEX_DEBUG) || defined(APEX_HAVE_HPX)
+#if defined(APEX_DEBUG)
 #define APEX_UTIL_REF_COUNT_START                reference_counter::starts++;
 #define APEX_UTIL_REF_COUNT_DISABLED_START       reference_counter::disabled_starts++;
 #define APEX_UTIL_REF_COUNT_APEX_INTERNAL_START  reference_counter::apex_internal_starts++;

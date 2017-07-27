@@ -24,4 +24,10 @@
 
 #endif
 
+#if defined(_MSC_VER)
+#define APEX_TOP_LEVEL_PACKAGE ::apex
+#else
+#define APEX_TOP_LEVEL_PACKAGE apex
+#endif
+
 #endif

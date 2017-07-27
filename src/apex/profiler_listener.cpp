@@ -586,7 +586,11 @@ std::unordered_set<profile*> free_profiles;
       screen_output << string_format(FORMAT_PERCENT, ((idle_rate/total_main)*100)) << endl;
     }
     screen_output << string_format("%30s", "Total timers") << " : ";
-    screen_output << string_format(FORMAT_SCIENTIFIC, total_hpx_threads) << endl;
+    if (total_hpx_threads < 999999) {
+        screen_output << string_format(PAD_WITH_SPACES, to_string((int)(total_hpx_threads))) << std::endl;
+    } else {
+        screen_output << to_string((int)(total_hpx_threads)) << std::endl;
+    }
     screen_output << "------------------------------------------------------------------------------------------------------------" << endl;
     if (apex_options::use_screen_output()) {
         cout << screen_output.str();
@@ -847,6 +851,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
       //set_thread_affinity(i);
       std::shared_ptr<profiler> p;
 #ifdef APEX_MULTIPLE_QUEUES
+//std::cout << "Queue " << i << ", " << allqueues[i]->size_approx() << " items remaining." << std::endl; fflush(stdout);
       while(allqueues[i]->try_dequeue(p)) {
 #else
       while(thequeue.try_dequeue(p)) {
@@ -883,10 +888,10 @@ node_color * get_node_color(double v,double vmin,double vmax)
     }
 #ifdef APEX_MULTIPLE_QUEUES
       std::unique_lock<std::mutex> queue_lock(queue_mtx);
+	  for (profiler_queue_t* a_queue : allqueues) {
 #ifdef APEX_HAVE_HPX // don't hang out in this task too long.
 	  int i = 0;
 #endif
-	  for (profiler_queue_t* a_queue : allqueues) {
       	while(!_done && a_queue->try_dequeue(p)) {
             /*
 	  std::vector<profiler_queue_t*>::const_iterator a_queue;
@@ -1124,8 +1129,8 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         if (ignored > 0) {
           std::cerr << "Info: " << ignored << " items remaining on on the profiler_listener queue..."; fflush(stderr);
         }
-#ifndef APEX_HAVE_HPX
 #if 0
+#ifndef APEX_HAVE_HPX
         // We might be done, but check to make sure the queue is empty
         std::vector<std::future<bool>> pending_futures;
         //for (unsigned int i=0; i<hardware_concurrency(); ++i) {
@@ -1142,6 +1147,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         for (auto iter = pending_futures.begin() ; iter < pending_futures.end() ; iter++ ) {
             iter->get();
         }
+#endif // APEX_HAVE_HPX
 #else // if 0
         /* APEX can't handle spawning a bunch of new APEX threads at this time,
          * so just process the queue. Anyway, it shouldn't get backed up that 
@@ -1151,7 +1157,6 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
           concurrent_cleanup(i);
         }
 #endif // if 0
-#endif // APEX_HAVE_HPX
         if (ignored > 0) {
           std::cerr << "done." << std::endl;
         }
@@ -1463,15 +1468,15 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
 }
 
 #ifdef APEX_HAVE_HPX
-HPX_DECLARE_ACTION(::apex::profiler_listener::process_profiles_wrapper, apex_internal_process_profiles_action);
+HPX_DECLARE_ACTION(APEX_TOP_LEVEL_PACKAGE::profiler_listener::process_profiles_wrapper, apex_internal_process_profiles_action);
 HPX_ACTION_HAS_CRITICAL_PRIORITY(apex_internal_process_profiles_action);
-HPX_PLAIN_ACTION(::apex::profiler_listener::process_profiles_wrapper, apex_internal_process_profiles_action);
+HPX_PLAIN_ACTION(APEX_TOP_LEVEL_PACKAGE::profiler_listener::process_profiles_wrapper, apex_internal_process_profiles_action);
 
 void apex_schedule_process_profiles() {
     if(get_hpx_runtime_ptr() == nullptr) return;
     if(!thread_instance::is_worker()) return;
     if(hpx_shutdown) {
-        ::apex::profiler_listener::process_profiles_wrapper();
+        APEX_TOP_LEVEL_PACKAGE::profiler_listener::process_profiles_wrapper();
     } else {
 		if(!consumer_task_running.test_and_set(memory_order_acq_rel)) {
         	apex_internal_process_profiles_action act;
