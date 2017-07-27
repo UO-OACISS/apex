@@ -72,6 +72,9 @@ const int num_non_worker_threads_registered = 0;
 #include <cstdlib>
 #include <ctime>
 
+#include <iomanip>
+#include <locale>
+
 using namespace std;
 using namespace apex;
 
@@ -586,11 +589,14 @@ std::unordered_set<profile*> free_profiles;
       screen_output << string_format(FORMAT_PERCENT, ((idle_rate/total_main)*100)) << endl;
     }
     screen_output << string_format("%30s", "Total timers") << " : ";
-    if (total_hpx_threads < 999999) {
-        screen_output << string_format(PAD_WITH_SPACES, to_string((int)(total_hpx_threads))) << std::endl;
-    } else {
-        screen_output << to_string((int)(total_hpx_threads)) << std::endl;
-    }
+    //if (total_hpx_threads < 999999) {
+        //screen_output << string_format(PAD_WITH_SPACES, to_string((int)(total_hpx_threads))) << std::endl;
+    //} else {
+    std::stringstream total_ss;
+    total_ss.imbue(std::locale(""));
+    total_ss << std::fixed << ((uint64_t)total_hpx_threads);
+        screen_output << total_ss.str() << std::endl;
+    //}
     screen_output << "------------------------------------------------------------------------------------------------------------" << endl;
     if (apex_options::use_screen_output()) {
         cout << screen_output.str();
