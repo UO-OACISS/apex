@@ -934,9 +934,7 @@ void finalize()
     if (!_measurement_stopped)
     {
         _measurement_stopped = true;
-#if defined(APEX_DEBUG) || defined(APEX_HAVE_HPX)
-        reference_counter::report_stats();
-#endif
+        APEX_UTIL_REPORT_STATS
 #ifdef APEX_HAVE_HPX
         /* HPX shutdown happens on a new thread. We don't want
          * to register a new thread. */

@@ -144,9 +144,9 @@ class reference_counter {
 #define APEX_UTIL_REF_COUNT_NULL_STOP            reference_counter::null_stops++;
 #define APEX_UTIL_REF_COUNT_DOUBLE_STOP          reference_counter::double_stops++;
 #define APEX_UTIL_REF_COUNT_EXIT_STOP            reference_counter::exit_stops++;
-#define APEX_UTIL_REPORT_STATS                   reference_counter::report_stats();
 #define APEX_UTIL_REF_COUNT_STOP_AFTER_FINALIZE  reference_counter::stops_after_finalize++;
 #define APEX_UTIL_REF_COUNT_APEX_INTERNAL_STOP   reference_counter::apex_internal_stops++;
+#define APEX_UTIL_REPORT_STATS                   reference_counter::report_stats();
 #else
 #define APEX_UTIL_REF_COUNT_START
 #define APEX_UTIL_REF_COUNT_DISABLED_START
@@ -180,6 +180,7 @@ class reference_counter {
 #define APEX_UTIL_REF_COUNT_EXIT_STOP
 #define APEX_UTIL_REF_COUNT_STOP_AFTER_FINALIZE
 #define APEX_UTIL_REF_COUNT_APEX_INTERNAL_STOP
+#define APEX_UTIL_REPORT_STATS
 #endif
 
 #if !defined(_MSC_VER)

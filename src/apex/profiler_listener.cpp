@@ -72,6 +72,9 @@ const int num_non_worker_threads_registered = 0;
 #include <cstdlib>
 #include <ctime>
 
+#include <iomanip>
+#include <locale>
+
 using namespace std;
 using namespace apex;
 
@@ -86,9 +89,9 @@ std::unordered_set<profile*> free_profiles;
 #ifdef APEX_MULTIPLE_QUEUES
     /* We do this in two stages, to make the common case fast. */
     profiler_queue_t * profiler_listener::_construct_thequeue() {
-	  	profiler_queue_t * _thequeue = new profiler_queue_t();
-   	    std::unique_lock<std::mutex> queue_lock(queue_mtx);
-   	    allqueues.push_back(_thequeue);
+          profiler_queue_t * _thequeue = new profiler_queue_t();
+           std::unique_lock<std::mutex> queue_lock(queue_mtx);
+           allqueues.push_back(_thequeue);
         return _thequeue;
     }
     /* this is a thread-local pointer to a concurrent queue for each worker thread. */
@@ -121,10 +124,10 @@ std::unordered_set<profile*> free_profiles;
       if (!apex_options::use_tau()) {
         task_identifier id = it2->first;
         unordered_set<task_identifier>::const_iterator it4;
-	    {
-      	    read_lock_type l(throttled_event_set_mutex);
-      	    it4 = throttled_tasks.find(id);
-	    }
+        {
+              read_lock_type l(throttled_event_set_mutex);
+              it4 = throttled_tasks.find(id);
+        }
         if (it4!= throttled_tasks.end()) {
             continue;
         }
@@ -140,7 +143,7 @@ std::unordered_set<profile*> free_profiles;
   profile * profiler_listener::get_idle_time() {
     double non_idle_time = get_non_idle_time();
     /* Subtract the accumulated time from the main time span. */
-	int num_worker_threads = thread_instance::get_num_threads();
+    int num_worker_threads = thread_instance::get_num_threads();
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
 #endif
@@ -162,7 +165,7 @@ std::unordered_set<profile*> free_profiles;
   profile * profiler_listener::get_idle_rate() {
     double non_idle_time = get_non_idle_time();
     /* Subtract the accumulated time from the main time span. */
-	int num_worker_threads = thread_instance::get_num_threads();
+    int num_worker_threads = thread_instance::get_num_threads();
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
 #endif
@@ -246,7 +249,7 @@ std::unordered_set<profile*> free_profiles;
     }
     unordered_map<task_identifier, profile*>::const_iterator it = task_map.find(*(p->task_id));
     if (it != task_map.end()) {
-      	// A profile for this ID already exists.
+          // A profile for this ID already exists.
         theprofile = (*it).second;
         if(_done && did_lock) {
             task_map_lock.unlock();
@@ -263,14 +266,14 @@ std::unordered_set<profile*> free_profiles;
           if (theprofile->get_calls() > APEX_THROTTLE_CALLS &&
               theprofile->get_mean() < APEX_THROTTLE_PERCALL) {
               unordered_set<task_identifier>::const_iterator it2;
-	          {
-      	        read_lock_type l(throttled_event_set_mutex);
+              {
+                  read_lock_type l(throttled_event_set_mutex);
                 it2 = throttled_tasks.find(*(p->task_id));
-			  }
+              }
               if (it2 == throttled_tasks.end()) {
                   // lock the set for insert
-	              {
-      	              write_lock_type l(throttled_event_set_mutex);
+                  {
+                        write_lock_type l(throttled_event_set_mutex);
                       // was it inserted when we were waiting?
                       it2 = throttled_tasks.find(*(p->task_id));
                       // no? OK - insert it.
@@ -335,26 +338,26 @@ std::unordered_set<profile*> free_profiles;
                 int loc0 = task_scatterplot_samples.tellp();
                 if (loc0 > 32768) {
                     // lock access to the file
-        			// write using low-level file locking!
-        			struct flock fl;
-        			fl.l_type   = F_WRLCK;  /* F_RDLCK, F_WRLCK, F_UNLCK    */
-        			fl.l_whence = SEEK_SET; /* SEEK_SET, SEEK_CUR, SEEK_END */
-        			fl.l_start  = 0;        /* Offset from l_whence         */
-        			fl.l_len    = 0;        /* length, 0 = to EOF           */
-        			fl.l_pid    = getpid();      /* our PID                      */
-        			fcntl(task_scatterplot_sample_file, F_SETLKW, &fl);  /* F_GETLK, F_SETLK, F_SETLKW */
+                    // write using low-level file locking!
+                    struct flock fl;
+                    fl.l_type   = F_WRLCK;  /* F_RDLCK, F_WRLCK, F_UNLCK    */
+                    fl.l_whence = SEEK_SET; /* SEEK_SET, SEEK_CUR, SEEK_END */
+                    fl.l_start  = 0;        /* Offset from l_whence         */
+                    fl.l_len    = 0;        /* length, 0 = to EOF           */
+                    fl.l_pid    = getpid();      /* our PID                      */
+                    fcntl(task_scatterplot_sample_file, F_SETLKW, &fl);  /* F_GETLK, F_SETLK, F_SETLKW */
                     // flush the string stream to the file
                     //lseek(task_scatterplot_sample_file, 0, SEEK_END);
-        			ssize_t bytes_written = write(task_scatterplot_sample_file,
-						  task_scatterplot_samples.str().c_str(), loc0);
+                    ssize_t bytes_written = write(task_scatterplot_sample_file,
+                          task_scatterplot_samples.str().c_str(), loc0);
                     if (bytes_written < 0) {
                         int errsv = errno;
                         perror("Error writing to scatterplot!");
                         fprintf(stderr, "Error writing scatterplot:\n%s\n",
                                 strerror(errsv));
                     }
-        			fl.l_type   = F_UNLCK;   /* tell it to unlock the region */
-        			fcntl(task_scatterplot_sample_file, F_SETLK, &fl); /* set the region to unlocked */
+                    fl.l_type   = F_UNLCK;   /* tell it to unlock the region */
+                    fcntl(task_scatterplot_sample_file, F_SETLK, &fl); /* set the region to unlocked */
                     // reset the stringstream
                     task_scatterplot_samples.str("");
                 }
@@ -439,10 +442,10 @@ std::unordered_set<profile*> free_profiles;
         // if this profile was throttled, don't output the measurements.
         // they are limited and bogus, anyway.
         unordered_set<task_identifier>::const_iterator it4;
-	    {
-      	    read_lock_type l(throttled_event_set_mutex);
+        {
+              read_lock_type l(throttled_event_set_mutex);
             it4 = throttled_tasks.find(task_id);
-  	    }
+          }
         if (it4!= throttled_tasks.end()) {
             screen_output << "DISABLED (high frequency, short duration)" << endl;
             return;
@@ -500,7 +503,7 @@ std::unordered_set<profile*> free_profiles;
   /* At program termination, write the measurements to the screen, or to CSV file, or both. */
   void profiler_listener::finalize_profiles(void) {
     // our TOTAL available time is the elapsed * the number of threads, or cores
-	int num_worker_threads = thread_instance::get_num_threads();
+    int num_worker_threads = thread_instance::get_num_threads();
     double wall_clock_main = main_timer->elapsed() * profiler::get_cpu_mhz();
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
@@ -586,11 +589,14 @@ std::unordered_set<profile*> free_profiles;
       screen_output << string_format(FORMAT_PERCENT, ((idle_rate/total_main)*100)) << endl;
     }
     screen_output << string_format("%30s", "Total timers") << " : ";
-    if (total_hpx_threads < 999999) {
-        screen_output << string_format(PAD_WITH_SPACES, to_string((int)(total_hpx_threads))) << std::endl;
-    } else {
-        screen_output << to_string((int)(total_hpx_threads)) << std::endl;
-    }
+    //if (total_hpx_threads < 999999) {
+        //screen_output << string_format(PAD_WITH_SPACES, to_string((int)(total_hpx_threads))) << std::endl;
+    //} else {
+    std::stringstream total_ss;
+    total_ss.imbue(std::locale(""));
+    total_ss << std::fixed << ((uint64_t)total_hpx_threads);
+        screen_output << total_ss.str() << std::endl;
+    //}
     screen_output << "------------------------------------------------------------------------------------------------------------" << endl;
     if (apex_options::use_screen_output()) {
         cout << screen_output.str();
@@ -675,7 +681,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
     task_dependencies.clear();
 
     // our TOTAL available time is the elapsed * the number of threads, or cores
-	int num_worker_threads = thread_instance::get_num_threads();
+    int num_worker_threads = thread_instance::get_num_threads();
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
 #endif
@@ -771,7 +777,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
     double not_main = 0.0;
     for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
       profile * p = it2->second;
-	  task_identifier task_id = it2->first;
+      task_identifier task_id = it2->first;
       if(p->get_type() == APEX_TIMER) {
         string action_name = task_id.get_name();
         if(strcmp(action_name.c_str(), APEX_MAIN) == 0) {
@@ -820,8 +826,8 @@ node_color * get_node_color(double v,double vmin,double vmax)
    */
   void profiler_listener::consumer_process_profiles_wrapper(void) {
       if (apex_options::pin_apex_threads()) {
-      	  set_thread_affinity();
-	  }
+            set_thread_affinity();
+      }
       process_profiles_wrapper();
       thread_instance::delete_instance();
   }
@@ -856,7 +862,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
 #else
       while(thequeue.try_dequeue(p)) {
 #endif
-       	  process_profile(p,0);
+             process_profile(p,0);
       }
       return true;
   }
@@ -882,29 +888,34 @@ node_color * get_node_color(double v,double vmin,double vmax)
 #ifndef APEX_HAVE_HPX
     while (!_done) {
       queue_signal.wait();
+#else
+    bool schedule_another_task = false;
 #endif
     if (apex_options::use_tau()) {
       Tau_start("profiler_listener::process_profiles: main loop");
     }
 #ifdef APEX_MULTIPLE_QUEUES
       std::unique_lock<std::mutex> queue_lock(queue_mtx);
-	  for (profiler_queue_t* a_queue : allqueues) {
+      for (profiler_queue_t* a_queue : allqueues) {
 #ifdef APEX_HAVE_HPX // don't hang out in this task too long.
-	  int i = 0;
+      int i = 0;
 #endif
-      	while(!_done && a_queue->try_dequeue(p)) {
+          while(!_done && a_queue->try_dequeue(p)) {
             /*
-	  std::vector<profiler_queue_t*>::const_iterator a_queue;
-	  for (a_queue = allqueues.begin() ; a_queue != allqueues.end() ; ++a_queue) {
-	    thequeue = *a_queue;
+      std::vector<profiler_queue_t*>::const_iterator a_queue;
+      for (a_queue = allqueues.begin() ; a_queue != allqueues.end() ; ++a_queue) {
+        thequeue = *a_queue;
         while(!_done && thequeue->try_dequeue(p)) {
         */
           process_profile(p, 0);
 #ifdef APEX_HAVE_HPX // don't hang out in this task too long.
-		  if (++i > 1000) break;
+          if (++i > 1000) {
+              schedule_another_task = true;
+              break;
+          }
 #endif
         }
-	  }
+      }
 #else // just one queue
         while(!_done && thequeue.try_dequeue(p)) {
              process_profile(p, 0);
@@ -953,6 +964,11 @@ node_color * get_node_color(double v,double vmin,double vmax)
     if (apex_options::use_tau()) {
       Tau_stop("profiler_listener::process_profiles");
     }
+#ifdef APEX_HAVE_HPX // don't hang out in this task too long.
+    if (schedule_another_task) {
+        apex_schedule_process_profiles();
+    }
+#endif
   }
 
 #if APEX_HAVE_PAPI
@@ -1022,7 +1038,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
   void profiler_listener::on_startup(startup_event_data &data) {
     if (!_done) {
       my_tid = (unsigned int)thread_instance::get_id();
-	  async_thread_setup();
+      async_thread_setup();
 #ifndef APEX_HAVE_HPX
       // Start the consumer thread, to process profiler objects.
       consumer_thread = new std::thread(consumer_process_profiles_wrapper);
@@ -1114,14 +1130,14 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         size_t ignored = 0;
         {
             std::unique_lock<std::mutex> queue_lock(queue_mtx);
-	        for (profiler_queue_t* a_queue : allqueues) {
+            for (profiler_queue_t* a_queue : allqueues) {
                 /*
-	        std::vector<profiler_queue_t*>::const_iterator a_queue;
-	        for (a_queue = allqueues.begin() ; a_queue != allqueues.end() ; ++a_queue) {
-	            thequeue = *a_queue;
+            std::vector<profiler_queue_t*>::const_iterator a_queue;
+            for (a_queue = allqueues.begin() ; a_queue != allqueues.end() ; ++a_queue) {
+                thequeue = *a_queue;
                 */
                 ignored += a_queue->size_approx();
-		    }
+            }
         }
 #else
         size_t ignored = thequeue.size_approx();
@@ -1222,7 +1238,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
   void profiler_listener::on_new_thread(new_thread_event_data &data) {
     if (!_done) {
       my_tid = (unsigned int)thread_instance::get_id();
-	  async_thread_setup();
+      async_thread_setup();
 #if APEX_HAVE_PAPI
       initialize_PAPI(false);
       event_set_mutex.lock();
@@ -1248,8 +1264,8 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       if (!apex_options::use_tau()) {
         // if this timer is throttled, return without doing anything
         unordered_set<task_identifier>::const_iterator it;
-	    {
-      	    read_lock_type l(throttled_event_set_mutex);
+        {
+              read_lock_type l(throttled_event_set_mutex);
             it = throttled_tasks.find(*id);
         }
         if (it != throttled_tasks.end()) {
@@ -1293,10 +1309,10 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
   }
 
   inline void profiler_listener::push_profiler(int my_tid, std::shared_ptr<profiler> &p) {
-  	  // if we aren't processing profiler objects, just return.
-  	  if (!apex_options::process_async_state()) { return; }
+        // if we aren't processing profiler objects, just return.
+        if (!apex_options::process_async_state()) { return; }
 #ifdef APEX_TRACE_APEX
-  	  if (p->task_id->name == "apex::process_profiles") { return; }
+        if (p->task_id->name == "apex::process_profiles") { return; }
 #endif
       // we have to make a local copy, because lockfree queues DO NOT SUPPORT shared_ptrs!
 #ifdef APEX_MULTIPLE_QUEUES
@@ -1380,7 +1396,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
    * call apex::async_thread_setup() which will end up here.*/
   void profiler_listener::async_thread_setup(void) {
 #ifdef APEX_MULTIPLE_QUEUES
-	  // for asynchronous threads, check to make sure there is a queue!
+      // for asynchronous threads, check to make sure there is a queue!
       thequeue();
 #endif
   }
@@ -1478,16 +1494,16 @@ void apex_schedule_process_profiles() {
     if(hpx_shutdown) {
         APEX_TOP_LEVEL_PACKAGE::profiler_listener::process_profiles_wrapper();
     } else {
-		if(!consumer_task_running.test_and_set(memory_order_acq_rel)) {
-        	apex_internal_process_profiles_action act;
-        	try {
-           		hpx::apply(act, hpx::find_here());
-        	} catch(...) {
-           		// During shutdown, we can't schedule a new task,
-           		// so we process profiles ourselves.
-           		profiler_listener::process_profiles_wrapper();
-			}
-		}
+        if(!consumer_task_running.test_and_set(memory_order_acq_rel)) {
+            apex_internal_process_profiles_action act;
+            try {
+                   hpx::apply(act, hpx::find_here());
+            } catch(...) {
+                   // During shutdown, we can't schedule a new task,
+                   // so we process profiles ourselves.
+                   profiler_listener::process_profiles_wrapper();
+            }
+        }
     }
 }
 
