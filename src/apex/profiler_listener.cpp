@@ -187,6 +187,13 @@ std::unordered_set<profile*> free_profiles;
   /* Return the requested profile object to the user.
    * Return nullptr if doesn't exist. */
   profile * profiler_listener::get_profile(task_identifier &id) {
+    /* Maybe we aren't processing profiler objects yet? Fire off a request. */
+#ifdef APEX_HAVE_HPX
+      // schedule an HPX action
+    apex_schedule_process_profiles();
+#else
+    queue_signal.post();
+#endif
     if (id.name == string(APEX_IDLE_RATE)) {
         return get_idle_rate();
     } else if (id.name == string(APEX_IDLE_TIME)) {
@@ -885,90 +892,53 @@ node_color * get_node_color(double v,double vmin,double vmax)
     std::shared_ptr<profiler> p;
     task_dependency* td;
     // Main loop. Stay in this loop unless "done".
-#ifndef APEX_HAVE_HPX
+#ifdef APEX_HAVE_HPX
+    bool schedule_another_task = false;
+    std::unique_lock<std::mutex> queue_lock(queue_mtx);
+    for (profiler_queue_t* a_queue : allqueues) {
+      int i = 0;
+      while(!_done && a_queue->try_dequeue(p)) {
+        process_profile(p, 0);
+        if (++i > 1000) {
+            schedule_another_task = true;
+            break;
+        }
+      }
+    }
+#else
     while (!_done) {
       queue_signal.wait();
-#else
-    bool schedule_another_task = false;
-#endif
-    if (apex_options::use_tau()) {
-      Tau_start("profiler_listener::process_profiles: main loop");
-    }
-#ifdef APEX_MULTIPLE_QUEUES
+      if (apex_options::use_tau()) {
+        Tau_start("profiler_listener::process_profiles: main loop");
+      }
       std::unique_lock<std::mutex> queue_lock(queue_mtx);
       for (profiler_queue_t* a_queue : allqueues) {
-#ifdef APEX_HAVE_HPX // don't hang out in this task too long.
-      int i = 0;
-#endif
           while(!_done && a_queue->try_dequeue(p)) {
-            /*
-      std::vector<profiler_queue_t*>::const_iterator a_queue;
-      for (a_queue = allqueues.begin() ; a_queue != allqueues.end() ; ++a_queue) {
-        thequeue = *a_queue;
-        while(!_done && thequeue->try_dequeue(p)) {
-        */
-          process_profile(p, 0);
-#ifdef APEX_HAVE_HPX // don't hang out in this task too long.
-          if (++i > 1000) {
-              schedule_another_task = true;
-              break;
+              process_profile(p, 0);
           }
-#endif
-        }
       }
-#else // just one queue
-        while(!_done && thequeue.try_dequeue(p)) {
-             process_profile(p, 0);
-        }
-#endif
-      if (apex_options::use_taskgraph_output()) {
-        while(!_done && dependency_queue.try_dequeue(td)) {
-          process_dependency(td);
-        }
-      }
-      /*
-       * I want to process the tasks concurrently, but this loop
-       * is too much overhead. Maybe dequeue them in batches?
-       */
-      /*
-      std::vector<std::future<void>> pending_futures;
-      while(!_done && thequeue.try_dequeue(p)) {
-          auto f = std::async(my_stupid_wrapper,p);
-          // transfer the future's shared state to a longer-lived future
-          pending_futures.push_back(std::move(f));
-      }
-      for (auto iter = pending_futures.begin() ; iter < pending_futures.end() ; iter++ ) {
-          iter->get();
-      }
-      */
-
-      if (apex_options::use_tau()) {
-        Tau_stop("profiler_listener::process_profiles: main loop");
-      }
-#ifndef APEX_HAVE_HPX
     }
-
+#endif
     if (apex_options::use_taskgraph_output()) {
-      // process the task dependencies
-      while(dependency_queue.try_dequeue(td)) {
+      while(!_done && dependency_queue.try_dequeue(td)) {
         process_dependency(td);
       }
     }
-
-#endif // NOT DEFINED APEX_HAVE_HPX
+    if (apex_options::use_tau()) {
+      Tau_stop("profiler_listener::process_profiles: main loop");
+    }
 
     consumer_task_running.clear(memory_order_release);
-#ifdef APEX_HAVE_HPX
-#endif
 
-    if (apex_options::use_tau()) {
-      Tau_stop("profiler_listener::process_profiles");
-    }
 #ifdef APEX_HAVE_HPX // don't hang out in this task too long.
     if (schedule_another_task) {
         apex_schedule_process_profiles();
     }
 #endif
+
+    if (apex_options::use_tau()) {
+      Tau_stop("profiler_listener::process_profiles");
+    }
   }
 
 #if APEX_HAVE_PAPI
