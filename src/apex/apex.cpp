@@ -426,7 +426,7 @@ profiler* start(const std::string &timer_name, void** data_ptr)
     }
     if (_notify_listeners) {
         bool success = true;
-        task_identifier * id = new task_identifier(timer_name, data_ptr);
+        task_identifier * id = task_identifier::get_task_id(timer_name, data_ptr);
         //read_lock_type l(instance->listener_mutex);
         //cout << thread_instance::get_id() << " Start : " << id->get_name() << endl; fflush(stdout);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -466,7 +466,7 @@ profiler* start(apex_function_address function_address, void** data_ptr) {
     }
     if (_notify_listeners) {
         bool success = true;
-        task_identifier * id = new task_identifier(function_address, data_ptr);
+        task_identifier * id = task_identifier::get_task_id(function_address, data_ptr);
         //cout << thread_instance::get_id() << " Start : " << id->get_name() << endl; fflush(stdout);
         //read_lock_type l(instance->listener_mutex);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -505,7 +505,7 @@ profiler* resume(const std::string &timer_name, void** data_ptr) {
         return nullptr;
     }
     if (_notify_listeners) {
-        task_identifier * id = new task_identifier(timer_name, data_ptr);
+        task_identifier * id = task_identifier::get_task_id(timer_name, data_ptr);
         try {
             //read_lock_type l(instance->listener_mutex);
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -543,7 +543,7 @@ profiler* resume(apex_function_address function_address, void** data_ptr) {
         return nullptr;
     }
     if (_notify_listeners) {
-        task_identifier * id = new task_identifier(function_address, data_ptr);
+        task_identifier * id = task_identifier::get_task_id(function_address, data_ptr);
         try {
             //read_lock_type l(instance->listener_mutex);
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -606,7 +606,7 @@ void reset(const std::string &timer_name) {
     if (apex_options::disable() == true) { return; }
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
-    task_identifier * id = new task_identifier(timer_name);
+    task_identifier * id = task_identifier::get_task_id(timer_name);
     instance->the_profiler_listener->reset(id);
 }
 
@@ -618,7 +618,7 @@ void reset(apex_function_address function_address) {
     if (function_address == APEX_NULL_FUNCTION_ADDRESS) {
         instance->the_profiler_listener->reset_all();
     } else {
-        task_identifier * id = new task_identifier(function_address);
+        task_identifier * id = task_identifier::get_task_id(function_address);
         instance->the_profiler_listener->reset(id);
     }
 }
@@ -765,7 +765,7 @@ void new_task(const std::string &timer_name, uint64_t task_id)
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
     if (_notify_listeners) {
-        task_identifier * id = new task_identifier(timer_name);
+        task_identifier * id = task_identifier::get_task_id(timer_name);
         //read_lock_type l(instance->listener_mutex);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_new_task(id, task_id);
@@ -781,12 +781,14 @@ void new_task(apex_function_address function_address, uint64_t task_id) {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
     if (_notify_listeners) {
-        task_identifier * id = new task_identifier(function_address);
+        task_identifier * id = task_identifier::get_task_id(function_address);
         //read_lock_type l(instance->listener_mutex);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_new_task(id, task_id);
         }
-        delete(id);
+        if (!id->permanent) {
+            delete(id);
+        }
     }
 }
 

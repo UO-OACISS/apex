@@ -905,6 +905,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
         }
       }
     }
+    consumer_task_running.clear(memory_order_release);
 #else
     while (!_done) {
       queue_signal.wait();
@@ -917,6 +918,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
               process_profile(p, 0);
           }
       }
+      consumer_task_running.clear(memory_order_release);
     }
 #endif
     if (apex_options::use_taskgraph_output()) {
@@ -927,8 +929,6 @@ node_color * get_node_color(double v,double vmin,double vmax)
     if (apex_options::use_tau()) {
       Tau_stop("profiler_listener::process_profiles: main loop");
     }
-
-    consumer_task_running.clear(memory_order_release);
 
 #ifdef APEX_HAVE_HPX // don't hang out in this task too long.
     if (schedule_another_task) {
@@ -1052,7 +1052,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
 #endif
 
       // time the whole application.
-      main_timer = std::make_shared<profiler>(new task_identifier(string(APEX_MAIN)));
+      main_timer = std::make_shared<profiler>(task_identifier::get_task_id(string(APEX_MAIN)));
 #if APEX_HAVE_PAPI
       if (num_papi_counters > 0 && !apex_options::papi_suspend() && thread_papi_state == papi_running) {
         int rc = PAPI_read( EventSet, main_timer->papi_start_values );
@@ -1374,7 +1374,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
   /* When a sample value is processed, save it as a profiler object, and queue it. */
   void profiler_listener::on_sample_value(sample_value_event_data &data) {
     if (!_done) {
-      std::shared_ptr<profiler> p = std::make_shared<profiler>(new task_identifier(*data.counter_name), data.counter_value);
+      std::shared_ptr<profiler> p = std::make_shared<profiler>(task_identifier::get_task_id(*data.counter_name), data.counter_value);
       p->is_counter = data.is_counter;
       push_profiler(my_tid, p);
     }
@@ -1388,7 +1388,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
     if (p != NULL) {
         dependency_queue.enqueue(new task_dependency(p->task_id, id));
     } else {
-        task_identifier * parent = new task_identifier(string("__start"));
+        task_identifier * parent = task_identifier::get_task_id(string("__start"));
         dependency_queue.enqueue(new task_dependency(parent, id));
     }
   }
@@ -1396,7 +1396,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
   /* Communication send event. Save the number of bytes. */
   void profiler_listener::on_send(message_event_data &data) {
     if (!_done) {
-      std::shared_ptr<profiler> p = std::make_shared<profiler>(new task_identifier("Bytes Sent"), (double)data.size);
+      std::shared_ptr<profiler> p = std::make_shared<profiler>(task_identifier::get_task_id("Bytes Sent"), (double)data.size);
       push_profiler(0, p);
     }
   }
@@ -1404,7 +1404,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
   /* Communication recv event. Save the number of bytes. */
   void profiler_listener::on_recv(message_event_data &data) {
     if (!_done) {
-      std::shared_ptr<profiler> p = std::make_shared<profiler>(new task_identifier("Bytes Received"), (double)data.size);
+      std::shared_ptr<profiler> p = std::make_shared<profiler>(task_identifier::get_task_id("Bytes Received"), (double)data.size);
       push_profiler(0, p);
     }
   }

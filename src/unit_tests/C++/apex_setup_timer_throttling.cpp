@@ -7,7 +7,7 @@
 #include "apex_api.hpp"
 
 #define NUM_THREADS 8
-#define ITERATIONS 250
+#define ITERATIONS 5000
 #define SLEEPY_TIME 10000 // 10,000
 
 int total_iterations = NUM_THREADS * ITERATIONS;
@@ -70,6 +70,7 @@ void* someThread(void* tmp)
 int main(int argc, char **argv)
 {
   init(argv[0], 0, 1);
+  apex_options::throttle_concurrency(1);
   //print_options();
 
   setup_timer_throttling((apex_function_address)foo, APEX_MAXIMIZE_THROUGHPUT,

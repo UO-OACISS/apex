@@ -19,6 +19,11 @@
 
 namespace apex {
 
+std::unordered_map<std::string, task_identifier*> task_identifier::task_id_name_map;
+std::unordered_map<uint64_t, task_identifier*> task_identifier::task_id_addr_map;
+std::mutex task_identifier::_name_map_mutex;
+std::mutex task_identifier::_addr_map_mutex;
+
 const std::string& task_identifier::get_name(bool resolve) {
     if (!has_name && resolve) {
       if (_resolved_name == "" && address != APEX_NULL_FUNCTION_ADDRESS) {
