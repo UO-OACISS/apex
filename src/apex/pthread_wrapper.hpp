@@ -5,7 +5,7 @@
 
 #pragma once
 
-#if !defined(_MSC_VER)  // Windows will use std::thread
+#if !defined(_MSC_VER) && !defined(__APPLE__)  // Windows,Apple will use std::thread
 
 #include <pthread.h>
 #include <sys/time.h>
@@ -101,7 +101,7 @@ class pthread_wrapper {
 
         bool wait() {
             if (done) return false;
-#ifdef APEX_LXK_KITTEN
+#if defined(APEX_LXK_KITTEN) || defined(__APPLE__)
 /* The pthread_cond_timedwait() call on Kitten never times out.
  * Therefore, we just use a nanosleep instead. We can't ever
  * wake this thread up early, but that's OK.

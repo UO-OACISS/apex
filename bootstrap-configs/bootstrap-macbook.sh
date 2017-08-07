@@ -27,7 +27,7 @@ cmake_install_prefix="-DCMAKE_INSTALL_PREFIX=../install" # the installation path
 #cmake_use_codeblocks="-G \"Eclipse CDT4 - Unix Makefiles\"" # if you want to debug in CodeBlocks
 cmake_make_verbose=""  # for verbose, use -DCMAKE_VERBOSE_MAKEFILE=ON
 cmake_use_mpi="-DUSE_MPI=TRUE" # TRUE or FALSE
-cmake_other_settings="-DMPI_C_COMPILER=mpicc -DMPI_CXX_COMPILER=mpicxx -DUSE_OTF2=FALSE -DAPEX_SANITIZE=TRUE" # anything else?
+cmake_other_settings="-DMPI_C_COMPILER=mpicc -DMPI_CXX_COMPILER=mpicxx -DOTF2_ROOT=$HOME/install/otf2/2.0" # anything else?
 
 # runtime parameters for testing APEX with "make test"
 

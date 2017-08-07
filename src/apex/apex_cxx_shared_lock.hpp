@@ -10,7 +10,7 @@
 #elif __cplusplus >= 201402L
 	#include <shared_mutex>
 #else
-	#if defined(_POSIX_VERSION) && !defined(_MSC_VER)
+	#if defined(_POSIX_VERSION) && !defined(_MSC_VER) && !defined(__APPLE__)
 		#include <pthread.h>
 	#else
 		#include <mutex>
@@ -29,7 +29,7 @@ namespace apex
     typedef std::shared_lock<shared_mutex_type> read_lock_type;
     typedef std::unique_lock<shared_mutex_type> write_lock_type;
 #else // older compiler, without shared locks. Try posix support...
-#if defined(_POSIX_VERSION) && !defined (_MSC_VER)
+#if defined(_POSIX_VERSION) && !defined (_MSC_VER) && !defined(__APPLE__)
 	class posix_shared_mutex {
 	public:
     	posix_shared_mutex() {
