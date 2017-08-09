@@ -99,7 +99,7 @@ void* someThread(void* tmp)
   printf("%u computed %lu (timed)\n", (unsigned int)pthread_self(), total);
 #endif
   apex::exit_thread();
-  return (void*)total;
+  pthread_exit((void*)total);
 }
 
 void* someUntimedThread(void* tmp)
@@ -130,7 +130,7 @@ void* someUntimedThread(void* tmp)
   printf("%u computed %lu (untimed)\n", (unsigned int)pthread_self(), total);
 #endif
   apex::exit_thread();
-  return (void*)total;
+  pthread_exit((void*)total);
 }
 
 

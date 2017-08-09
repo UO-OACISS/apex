@@ -9,37 +9,84 @@
 #include "utils.hpp"
 #include <functional>
 #include <string>
+#include <unordered_map>
+#include <mutex>
+#include <utility>
 
 namespace apex {
 
 class task_identifier {
+private:
+  // some optimizations - since many timers are called over and over, don't
+  // create a task ID for every one - use a pool of them.  The problem is
+  // that they might have some unique properties - like the data_ptr.  If
+  // the data_ptr is used, then we can't "cache" the task ID. But otherwise,
+  // this provides a significant speedup, because we don't have to allocate
+  // and free lots of tiny objects.
+  static std::unordered_map<std::string, task_identifier*> task_id_name_map;
+  static std::unordered_map<uint64_t, task_identifier*> task_id_addr_map;
+  static std::mutex _name_map_mutex;
+  static std::mutex _addr_map_mutex;
 public:
   apex_function_address address;
   std::string name;
   std::string _resolved_name;
   bool has_name;
   void** _data_ptr; // not included in comparisons!
+  bool permanent;
   task_identifier(void) :
-      address(0L), name(""), _resolved_name(""), has_name(false), _data_ptr(0) {};
+      address(0L), name(""), _resolved_name(""), has_name(false), _data_ptr(0), permanent(false) {};
   task_identifier(apex_function_address a, void** data_ptr = 0) :
-      address(a), name(""), _resolved_name(""), has_name(false), _data_ptr(data_ptr) {};
-  task_identifier(std::string n, void** data_ptr = 0) :
-      address(0L), name(demangle(n)), _resolved_name(""), has_name(true), _data_ptr(data_ptr) {};
+      address(a), name(""), _resolved_name(""), has_name(false), _data_ptr(data_ptr), permanent(false) {};
+  task_identifier(const std::string& n, void** data_ptr = 0) :
+      address(0L), name(n), _resolved_name(""), has_name(true), _data_ptr(data_ptr), permanent(false) {
+      };
   task_identifier(const task_identifier& rhs) :
-      address(rhs.address), name(rhs.name), _resolved_name(rhs._resolved_name), has_name(rhs.has_name), _data_ptr(rhs._data_ptr) { };
-	  /*
-  task_identifier(profiler * p) :
-      address(0L), name(""), _resolved_name("") {
-      if (p->have_name) {
-          name = *p->timer_name;
-          has_name = true;
-      } else {
-          address = p->action_address;
-          has_name = false;
+      address(rhs.address), name(rhs.name), _resolved_name(rhs._resolved_name), has_name(rhs.has_name), _data_ptr(rhs._data_ptr), permanent(rhs.permanent) { };
+
+  static task_identifier * get_task_id (apex_function_address a, void** data_ptr = 0) {
+      if (data_ptr == 0) {
+          std::unordered_map<uint64_t,task_identifier*>::const_iterator got = task_id_addr_map.find (a);
+          if ( got != task_id_addr_map.end() ) {
+              return got->second;
+          } else {
+              std::unique_lock<std::mutex> l(_name_map_mutex);
+              got = task_id_addr_map.find (a);
+              if ( got != task_id_addr_map.end() ) {
+                  return got->second;
+              } else {
+                  task_identifier * tmp = new task_identifier(a, data_ptr);
+                  tmp->permanent = true;
+                  task_id_addr_map[a] = tmp;
+                  return tmp;
+              }
+          }
       }
+      return new task_identifier(a, data_ptr);
   }
-  */
-  std::string get_name(bool resolve = true);
+
+  static task_identifier * get_task_id (const std::string& n, void** data_ptr = 0) {
+      if (data_ptr == 0) {
+          std::unordered_map<std::string,task_identifier*>::const_iterator got = task_id_name_map.find (n);
+          if ( got != task_id_name_map.end() ) {
+              return got->second;
+          } else {
+              std::unique_lock<std::mutex> l(_addr_map_mutex);
+              got = task_id_name_map.find (n);
+              if ( got != task_id_name_map.end() ) {
+                  return got->second;
+              } else {
+                  task_identifier * tmp = new task_identifier(n, data_ptr);
+                  tmp->permanent = true;
+                  //task_id_name_map[n] = tmp;
+                  task_id_name_map.insert(std::pair<std::string,task_identifier*>(n, tmp));
+                  return tmp;
+              }
+          }
+      }
+      return new task_identifier(n, data_ptr);
+  }
+  const std::string& get_name(bool resolve = true);
   ~task_identifier() { }
   // requried for using this class as a key in an unordered map.
   // the hash function is defined below.

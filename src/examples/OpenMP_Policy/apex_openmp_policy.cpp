@@ -149,6 +149,7 @@ void handle_stop(const std::string & name) {
     } else {
         apex_profile * profile = apex::get_profile(name);
         if(apex_openmp_policy_tuning_window == 1 || (profile != nullptr && profile->calls >= apex_openmp_policy_tuning_window)) {
+            std::cout << "Num calls: " << profile->calls << std::endl;
             std::shared_ptr<apex_tuning_request> request = search->second;
             // Evaluate the results
             apex::custom_event(request->get_trigger(), NULL);

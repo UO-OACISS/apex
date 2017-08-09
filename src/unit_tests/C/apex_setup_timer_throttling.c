@@ -11,7 +11,7 @@
 #define MIN(a,b) ((a) < (b) ? a : b)
 
 #define NUM_THREADS 8
-#define ITERATIONS 250
+#define ITERATIONS 5000
 #define SLEEPY_TIME 1000 // 1000
 
 int total_iterations = NUM_THREADS * ITERATIONS;
@@ -76,9 +76,10 @@ void* someThread(void* tmp)
 int main(int argc, char **argv)
 {
   apex_init("apex_setup_timer_throttling unit test", 0, 1);
+  apex_set_throttle_concurrency(1);
 
   apex_setup_timer_throttling(APEX_FUNCTION_ADDRESS, &foo, APEX_MINIMIZE_ACCUMULATED,
-          APEX_DISCRETE_HILL_CLIMBING, 1000000);
+          APEX_DISCRETE_HILL_CLIMBING, 100000);
 
   original_cap = apex_get_thread_cap();
 

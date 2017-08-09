@@ -254,39 +254,46 @@ string thread_instance::map_addr_to_name(apex_function_address function_address)
 }
 
 void thread_instance::set_current_profiler(profiler * the_profiler) {
-    instance().current_profiler = the_profiler;
     instance().current_profilers.push_back(the_profiler);
 }
 
 profiler *  thread_instance::restore_children_profilers(void) {
-    profiler * parent = instance().current_profiler;
+    profiler * parent = instance().get_current_profiler();
+    // if there are no children to restore, return.
     if (parent->task_id->_data_ptr == 0 ||
         *(parent->task_id->_data_ptr) == 0) {return parent;}
-    // restore the children here?
-    std::vector<profiler*> * myvec = (std::vector<profiler*>*)*(parent->task_id->_data_ptr);
-    //printf("%lu Restored parent %s with guid: %lu\n", get_id(), parent->task_id->name.c_str(), parent->task_id->_guid); fflush(stdout);
-    for (std::vector<profiler*>::reverse_iterator myprof = myvec->rbegin(); myprof != myvec->rend(); ++myprof) {
-        //printf("%lu Restoring child %s with guid: %lu\n", get_id(), (*myprof)->task_id->name.c_str(), (*myprof)->task_id->_guid); fflush(stdout);
+    // Get the vector of children that we stored
+    std::vector<profiler*> * myvec = 
+        (std::vector<profiler*>*)*(parent->task_id->_data_ptr);
+    // iterate over the children, in reverse order.
+    for (std::vector<profiler*>::reverse_iterator myprof = myvec->rbegin(); 
+         myprof != myvec->rend(); ++myprof) {
         resume((*myprof));
-        instance().current_profilers.push_back((*myprof));
+        // make sure to set the current profiler - the profiler_listener
+        // is bypassed by the resume method, above.  It's the listener that
+        // sets the current profiler when a timer is started
+        thread_instance::set_current_profiler((*myprof));
     }
+    // free the vector.
     delete myvec;
     *(parent->task_id->_data_ptr) = 0;
     // The caller of this function wants the parent, not these leaves.
     return parent;
 }
 
-void thread_instance::clear_current_profiler(profiler * the_profiler) {
+void thread_instance::clear_current_profiler(profiler * the_profiler, bool save_children) {
+    // this is a stack variable that provides safety when using recursion.
     static APEX_NATIVE_TLS bool fixing_stack = false;
-    instance().current_profiler = nullptr;
     // this is a serious problem...
     if (instance().current_profilers.empty()) { 
         std::cerr << "Warning! empty profiler stack!!!\n";
         assert(false);
+        // redundant, but assert gets bypassed in a debug build.
         abort();
-        return;
     }
+    // check for recursion
     if (fixing_stack) {return;}
+    // get the current stack of timers
     auto &the_stack = instance().current_profilers;
     auto tmp = the_stack.back();
     /* Uh-oh! Someone has caused the dreaded "overlapping timer" problem to
@@ -294,31 +301,28 @@ void thread_instance::clear_current_profiler(profiler * the_profiler) {
      * Keep the children around, along with a reference to the parent's
      * guid so that if/when we see this parent again, we can restart
      * the children timers. */
-    if (tmp != the_profiler) {
-        /*
-        bool found = false;
-        for (profiler * myprof : the_stack) {
-            if (myprof == the_profiler) { found = true; }
-        }
-        if (!found) { 
-            std::cerr << "Warning! PRofiler not in stack!!\n";
-            assert(false);
-            abort();
-        }
-        */
+    if (the_stack.size() > 1 && tmp != the_profiler) {
         fixing_stack = true;
         // if the data pointer location isn't available, we can't support this runtime.
         assert(the_profiler->task_id->_data_ptr != 0);
-        //printf("%lu Yielding %s, found %s with guid: %lu\n", get_id(), tmp->task_id->name.c_str(), the_profiler->task_id->name.c_str(), guid); fflush(stdout);
-        std::vector<profiler*> * children = new vector<profiler*>();
+        // create a vector to store the children
+        std::vector<profiler*> * children = nullptr;
+        if (save_children == true) {
+            children = new vector<profiler*>();
+        }
         while (tmp != the_profiler) {
-            /* Make a copy of the profiler object on the top of the stack. */
-            profiler * profiler_copy = new profiler(*tmp);
-            children->push_back(tmp);
-            /* Stop the copy. The original will get reset when the
-            parent resumes. */
-            //printf("%lu Yielding child %s with guid: %lu\n", get_id(), profiler_copy->task_id->name.c_str(), profiler_copy->task_id->_guid); fflush(stdout);
-            stop(profiler_copy);  // we better be re-entrant safe!
+            if (save_children == true) {
+                // if we are yielding, we need to stop the children
+                /* Make a copy of the profiler object on the top of the stack. */
+                profiler * profiler_copy = new profiler(*tmp);
+                children->push_back(tmp);
+                /* Stop the copy. The original will get reset when the
+                parent resumes. */
+                stop(profiler_copy);  // we better be re-entrant safe!
+            } else {
+                // since we aren't yielding, just stop the children.
+                stop(tmp);  // we better be re-entrant safe!
+            }
             // pop the original child, we've saved it in the vector
             the_stack.pop_back();
             // this is a serious problem...
@@ -331,24 +335,20 @@ void thread_instance::clear_current_profiler(profiler * the_profiler) {
             // get the new top of the stack
             tmp = the_stack.back();
         }
+        // done with the stack, allow proper recursion again.
         fixing_stack = false;
-        *(the_profiler->task_id->_data_ptr) = children;
+        // give the vector of children to the runtime, so that
+        // when the parent is resumed, the children will be resumed also 
+        if (save_children == true) {
+            *(the_profiler->task_id->_data_ptr) = children;
+        }
     }
     // pop this timer off the stack.
     the_stack.pop_back();
-    /*
-    stringstream foo;
-    foo << get_id();
-    for (profiler * myprof : the_stack) {
-        foo << "\t" << myprof->task_id->_guid;
-    }
-    foo << "\n";
-    std::cout << foo.str();
-    */
 }
 
 profiler * thread_instance::get_current_profiler(void) {
-    return instance().current_profiler;
+    return instance().current_profilers.back();
 }
 
 }

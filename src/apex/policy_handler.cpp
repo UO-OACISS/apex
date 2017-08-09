@@ -80,6 +80,7 @@ namespace apex {
 	inline void policy_handler::_reset(void) {
 #ifdef APEX_HAVE_HPX
 		if (_terminate) {
+                        std::cout << "Stopping HPX timer" << std::endl;
 			hpx_timer.stop();
 		}
 #endif
@@ -345,6 +346,12 @@ namespace apex {
 							for(it = periodic_policies.begin() ; it != periodic_policies.end() ; it++) {
 								std::shared_ptr<policy_instance> policy = *it;
 								if (policy->id == handle->id) {
+		                                                        _terminate = true;
+#ifdef APEX_HAVE_HPX
+		                                                        this->_reset();
+#else
+		                                                        cancel();
+#endif
 									periodic_policies.erase(it);
 									break;
 								}
@@ -399,7 +406,9 @@ namespace apex {
 		if (_terminate) return;
 		// prevent periodic policies from executing while we are shutting down.
 		_terminate = true;
-#ifndef APEX_HAVE_HPX
+#ifdef APEX_HAVE_HPX
+		//this->_reset();
+#else
 		cancel();
 #endif
         if (!apex_options::use_policy()) { return; }

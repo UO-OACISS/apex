@@ -394,8 +394,9 @@ APEX_EXPORT apex_policy_handle* register_periodic_policy(unsigned long period, s
  
  \param period How frequently the counter should be called (in microseconds)
  \param counter_name The name of the counter to sample 
+ \return A handle to the policy, to be stored if the policy is to be un-registered later.
  */
-APEX_EXPORT void sample_runtime_counter(unsigned long period, const std::string & counter_name);
+APEX_EXPORT apex_policy_handle* sample_runtime_counter(unsigned long period, const std::string & counter_name);
 
 
 /**

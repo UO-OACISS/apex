@@ -247,7 +247,7 @@ struct apex_tuning_session {
     int max_threads = APEX_MAX_THREADS;
     int min_threads = APEX_MIN_THREADS;
     int thread_step = 1;
-    long int thread_cap = ::apex::hardware_concurrency();
+    long int thread_cap = apex::hardware_concurrency();
     double moving_average = 0.0;
     int window_size = MAX_WINDOW_SIZE;
     int delay = 0;

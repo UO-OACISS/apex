@@ -67,6 +67,8 @@ int main(int argc, char **argv)
   for (i = 0 ; i < NUM_THREADS ; i++) {
     pthread_join(thread[i], NULL);
   }
+  proxy.stop();
+  apex::finalize();
   std::cout << "Function calls : " << func_count << std::endl;
   std::cout << "Yields         : " << yield_count << std::endl;
   std::cout << "Value Expected : " << (func_count - yield_count) << std::endl;
@@ -80,8 +82,6 @@ int main(int argc, char **argv)
         std::cout << "Test passed." << std::endl;
 	}
   }
-  proxy.stop();
-  apex::finalize();
   apex::cleanup();
   return(0);
 }

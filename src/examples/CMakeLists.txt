@@ -196,6 +196,7 @@ if(OPENMP_FOUND)
         set_property (TEST ExampleOpenMP_Policy
            APPEND PROPERTY ENVIRONMENT "OMP_NUM_THREADS=${PROCESSOR_COUNT}")
         set_property(TEST ExampleOpenMP_Policy APPEND PROPERTY ENVIRONMENT "APEX_OPENMP_VERBOSE=1")
+        set_property(TEST ExampleOpenMP_Policy APPEND PROPERTY ENVIRONMENT "APEX_POLICY=1")
         set_property(TEST ExampleOpenMP_Policy APPEND PROPERTY ENVIRONMENT "HARMONY_HOME=${ACTIVEHARMONY_ROOT}")
         set_property(TEST ExampleOpenMP_Policy APPEND PROPERTY ENVIRONMENT "APEX_PLUGINS_PATH=${PROJECT_BINARY_DIR}/src/examples/OpenMP_Policy")
         set_property(TEST ExampleOpenMP_Policy APPEND PROPERTY ENVIRONMENT "APEX_PLUGINS=libapex_openmp_policy")
