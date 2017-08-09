@@ -23,10 +23,14 @@ private:
   // the data_ptr is used, then we can't "cache" the task ID. But otherwise,
   // this provides a significant speedup, because we don't have to allocate
   // and free lots of tiny objects.
-  static std::unordered_map<std::string, task_identifier*> task_id_name_map;
-  static std::unordered_map<uint64_t, task_identifier*> task_id_addr_map;
-  static std::mutex _name_map_mutex;
-  static std::mutex _addr_map_mutex;
+  static std::unordered_map<std::string, task_identifier*>& get_task_id_name_map() {
+      static APEX_NATIVE_TLS std::unordered_map<std::string, task_identifier*> task_id_name_map;
+      return task_id_name_map;
+  }
+  static std::unordered_map<uint64_t, task_identifier*>& get_task_id_addr_map() {
+      static APEX_NATIVE_TLS std::unordered_map<uint64_t, task_identifier*> task_id_addr_map;
+      return task_id_addr_map;
+  }
 public:
   apex_function_address address;
   std::string name;
@@ -46,20 +50,15 @@ public:
 
   static task_identifier * get_task_id (apex_function_address a, void** data_ptr = 0) {
       if (data_ptr == 0) {
+          auto& task_id_addr_map = get_task_id_addr_map();
           std::unordered_map<uint64_t,task_identifier*>::const_iterator got = task_id_addr_map.find (a);
           if ( got != task_id_addr_map.end() ) {
               return got->second;
           } else {
-              std::unique_lock<std::mutex> l(_name_map_mutex);
-              got = task_id_addr_map.find (a);
-              if ( got != task_id_addr_map.end() ) {
-                  return got->second;
-              } else {
-                  task_identifier * tmp = new task_identifier(a, data_ptr);
-                  tmp->permanent = true;
-                  task_id_addr_map[a] = tmp;
-                  return tmp;
-              }
+              task_identifier * tmp = new task_identifier(a, data_ptr);
+              tmp->permanent = true;
+              task_id_addr_map[a] = tmp;
+              return tmp;
           }
       }
       return new task_identifier(a, data_ptr);
@@ -67,21 +66,15 @@ public:
 
   static task_identifier * get_task_id (const std::string& n, void** data_ptr = 0) {
       if (data_ptr == 0) {
+          auto& task_id_name_map = get_task_id_name_map();
           std::unordered_map<std::string,task_identifier*>::const_iterator got = task_id_name_map.find (n);
           if ( got != task_id_name_map.end() ) {
               return got->second;
           } else {
-              std::unique_lock<std::mutex> l(_addr_map_mutex);
-              got = task_id_name_map.find (n);
-              if ( got != task_id_name_map.end() ) {
-                  return got->second;
-              } else {
-                  task_identifier * tmp = new task_identifier(n, data_ptr);
-                  tmp->permanent = true;
-                  //task_id_name_map[n] = tmp;
-                  task_id_name_map.insert(std::pair<std::string,task_identifier*>(n, tmp));
-                  return tmp;
-              }
+              task_identifier * tmp = new task_identifier(n, data_ptr);
+              tmp->permanent = true;
+              task_id_name_map.insert(std::pair<std::string,task_identifier*>(n, tmp));
+              return tmp;
           }
       }
       return new task_identifier(n, data_ptr);
