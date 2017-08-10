@@ -145,6 +145,7 @@ namespace apex {
         void write_host_properties(int rank, int pid, std::string& hostname);
         std::string index_filename;
         std::string lock_filename_prefix;
+        std::string lock2_filename_prefix;
         std::string region_filename_prefix;
         std::string metric_filename_prefix;
         bool create_archive(void);

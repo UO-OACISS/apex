@@ -308,6 +308,7 @@ namespace apex {
         region_filename_prefix = string(string(apex_options::otf2_archive_path()) + "/.regions.");
         metric_filename_prefix = string(string(apex_options::otf2_archive_path()) + "/.metrics.");
         lock_filename_prefix = string(string(apex_options::otf2_archive_path()) + "/.regions.lock.");
+        lock2_filename_prefix = string(string(apex_options::otf2_archive_path()) + "/.metrics.lock.");
     }
 
     bool otf2_listener::create_archive(void) {
@@ -1231,6 +1232,7 @@ namespace apex {
                 rank_hostname_map[rank] = hostname;
             }    
             myfile.close();
+            std::remove(full_index_filename.str().c_str());
         }
         return std::make_unique<std::tuple<std::map<int,int>, std::map<int,string> > >(rank_pid_map, rank_hostname_map);
     }
@@ -1240,7 +1242,9 @@ namespace apex {
         ostringstream lock_filename;
         lock_filename << lock_filename_prefix << my_saved_node_id;
         ofstream lock_file(lock_filename.str(), ios::out | ios::trunc );
+        lock_file << "lock" << endl;
         lock_file.close();
+        lock_file.flush();
         // open my region file
         ostringstream region_filename;
         region_filename << region_filename_prefix << my_saved_node_id;
@@ -1264,9 +1268,10 @@ namespace apex {
     int otf2_listener::reduce_regions(void) {
         write_my_regions();
 
+        if (my_saved_node_id == 0) {
         // create my lock file.
         ostringstream my_lock_filename;
-        my_lock_filename << lock_filename_prefix << my_saved_node_id;
+        my_lock_filename << lock_filename_prefix << "all";
         ofstream lock_file(my_lock_filename.str(), ios::out | ios::trunc );
         lock_file.close();
         // iterate over my region map, and build a map of strings to ids
@@ -1336,7 +1341,11 @@ namespace apex {
         // close the region file
         region_file.close();
         // delete the lock file, so everyone can read our data.
-        std::remove(my_lock_filename.str().c_str());
+        int rc = std::remove(my_lock_filename.str().c_str());
+        while (rc != 0) {
+            rc = std::remove(my_lock_filename.str().c_str());
+        }
+        }
 
         // read the reduced data
         if (my_saved_node_count > 1) {
@@ -1348,7 +1357,7 @@ namespace apex {
             while (stat (region_filename.str().c_str(), &buffer) != 0) {}
             // wait for the lock file from rank 0 to NOT exist
             ostringstream lock_filename;
-            lock_filename << lock_filename_prefix << 0;
+            lock_filename << lock_filename_prefix << "all";
             while (stat (lock_filename.str().c_str(), &buffer) == 0) {}
             std::string region_line;
             std::ifstream region_file(region_filename.str());
@@ -1364,13 +1373,13 @@ namespace apex {
             // ...and distribute them back out
             write_region_map(reduced_region_map);
         }
-        return comm_size;
+        return my_saved_node_count;
     }
 
     std::string otf2_listener::write_my_metrics(void) {
         // create my lock file.
         ostringstream lock_filename;
-        lock_filename << lock_filename_prefix << my_saved_node_id;
+        lock_filename << lock2_filename_prefix << my_saved_node_id;
         ofstream lock_file(lock_filename.str(), ios::out | ios::trunc );
         lock_file.close();
         // open my metric file
@@ -1396,9 +1405,10 @@ namespace apex {
     void otf2_listener::reduce_metrics(void) {
         write_my_metrics();
 
+        if (my_saved_node_id == 0) {
         // create my lock file.
         ostringstream my_lock_filename;
-        my_lock_filename << lock_filename_prefix << my_saved_node_id;
+        my_lock_filename << lock2_filename_prefix << "all";
         ofstream lock_file(my_lock_filename.str(), ios::out | ios::trunc );
         lock_file.close();
         // iterate over my metric map, and build a map of strings to ids
@@ -1421,7 +1431,7 @@ namespace apex {
             while (stat (metric_filename.str().c_str(), &buffer) != 0) {}
             // wait for the lock file to not exist
             ostringstream lock_filename;
-            lock_filename << lock_filename_prefix << i;
+            lock_filename << lock2_filename_prefix << i;
             while (stat (lock_filename.str().c_str(), &buffer) == 0) {}
             // get the number of threads from that rank
             std::string metric_line;
@@ -1465,7 +1475,12 @@ namespace apex {
         // close the metric file
         metric_file.close();
         // delete the lock file, so everyone can read our data.
-        std::remove(my_lock_filename.str().c_str());
+        int rc = std::remove(my_lock_filename.str().c_str());
+        while (rc != 0) {
+            rc = std::remove(my_lock_filename.str().c_str());
+        }
+        }
+
         // read the reduced data
         if (my_saved_node_count > 1) {
             struct stat buffer;   
@@ -1476,7 +1491,7 @@ namespace apex {
             while (stat (metric_filename.str().c_str(), &buffer) != 0) {}
             // wait for the lock file from rank 0 to NOT exist
             ostringstream lock_filename;
-            lock_filename << lock_filename_prefix << 0;
+            lock_filename << lock2_filename_prefix << "all";
             while (stat (lock_filename.str().c_str(), &buffer) == 0) {}
             std::string metric_line;
             std::ifstream metric_file(metric_filename.str());
