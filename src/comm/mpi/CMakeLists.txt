@@ -1,7 +1,7 @@
 # Make sure that spaces in linker lines don't cause CMake errors
-if (POLICY CMP0004)
-  cmake_policy(SET CMP0004 OLD)
-endif()
+#if (POLICY CMP0004)
+#  cmake_policy(SET CMP0004 OLD)
+#endif()
 
 message(${MPI_INCLUDE_PATH})
 include_directories(${MPI_INCLUDE_PATH})

@@ -359,6 +359,10 @@ if(USE_MPI)
   find_package(MPI REQUIRED)
 endif()
 
+if(MPI_CXX_FOUND)
+    add_definitions(-DAPEX_HAVE_MPI)
+endif()
+
 ################################################################################
 # RCR configuration
 ################################################################################

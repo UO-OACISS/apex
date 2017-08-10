@@ -18,7 +18,7 @@ unset TAU_ROOT
 
 # other CMake variables - for special situations / architectures / compilers.
 
-cmake_build_type="-DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_TESTS=TRUE -DBUILD_EXAMPLES=TRUE" # Debug, Release, RelWithDebInfo, etc.
+cmake_build_type="-DCMAKE_BUILD_TYPE=Debug -DAPEX_DEBUG=TRUE -DBUILD_TESTS=TRUE -DBUILD_EXAMPLES=TRUE" # Debug, Release, RelWithDebInfo, etc.
 cmake_apex_throttle="-DAPEX_THROTTLE=FALSE" # TRUE or FALSE
 cmake_build_shared_libs="-DBUILD_SHARED_LIBS=TRUE" # TRUE or FALSE
 cmake_install_prefix="-DCMAKE_INSTALL_PREFIX=../install" # the installation path
