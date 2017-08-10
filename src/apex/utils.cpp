@@ -97,7 +97,7 @@ void set_thread_affinity(int core) {
             printf("    CPU %d\n", j);
         }
     }
-	*/
+    */
 #endif
     return;
 }
@@ -131,7 +131,7 @@ void set_thread_affinity(void) {
             printf("    CPU %d\n", j);
         }
     }
-	*/
+    */
 #endif
     return;
 }
@@ -140,32 +140,32 @@ void remove_path(const char *pathname) {
 #if !defined(_MSC_VER)
     struct dirent *entry = NULL;
     DIR *dir = NULL;
-	struct stat sb;
-	if (stat(pathname, &sb) == 0 && S_ISDIR(sb.st_mode)) {
-    	dir = opendir(pathname);
-    	while((entry = readdir(dir)) != NULL) {
-        	DIR *sub_dir = NULL;
-        	FILE *file = NULL;
-        	char abs_path[100] = {0};
-        	if(*(entry->d_name) != '.') {
-            	sprintf(abs_path, "%s/%s", pathname, entry->d_name);
-            	sub_dir = opendir(abs_path);
-            	if(sub_dir != NULL) {
-                	closedir(sub_dir);
-                	remove_path(abs_path);
-            	} else {
-                	file = fopen(abs_path, "r");
-                	if(file != NULL) {
-                    	fclose(file);
-                    	//printf("Removing: %s\n", abs_path);
-                    	remove(abs_path);
-                	}
-            	}
-        	}
-    	}
+    struct stat sb;
+    if (stat(pathname, &sb) == 0 && S_ISDIR(sb.st_mode)) {
+        dir = opendir(pathname);
+        while((entry = readdir(dir)) != NULL) {
+            DIR *sub_dir = NULL;
+            FILE *file = NULL;
+            std::stringstream abs_path;
+            if(*(entry->d_name) != '.') {
+                abs_path << pathname << "/" <<  entry->d_name;
+                sub_dir = opendir(abs_path.str().c_str());
+                if(sub_dir != NULL) {
+                    closedir(sub_dir);
+                    remove_path(abs_path.str().c_str());
+                } else {
+                    file = fopen(abs_path.str().c_str(), "r");
+                    if(file != NULL) {
+                        fclose(file);
+                        //printf("Removing: %s\n", abs_path);
+                        remove(abs_path.str().c_str());
+                    }
+                }
+            }
+        }
         //printf("Removing: %s\n", pathname);
-    	remove(pathname);
-	}
+        remove(pathname);
+    }
 #endif
 }
 
