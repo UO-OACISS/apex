@@ -11,6 +11,8 @@
 #include <map>
 #include <unordered_set>
 #include <string>
+#include <tuple>
+#include <memory>
 #include <mutex>
 #include <chrono>
 #include "apex_cxx_shared_lock.hpp"
@@ -132,13 +134,13 @@ namespace apex {
         uint64_t get_metric_index(const std::string& name);
         static const std::string empty;
         void write_otf2_regions(void);
-        void write_my_regions(void);
+        std::string write_my_regions(void);
         int reduce_regions(void);
-        void write_region_map(void);
+        void write_region_map(std::map<std::string,uint64_t>& reduced_region_map);
         void write_otf2_metrics(void);
-        void write_my_metrics(void);
+        std::string write_my_metrics(void);
         void reduce_metrics(void);
-        void write_metric_map(void);
+        void write_metric_map(std::map<std::string,uint64_t>& reduced_metric_map);
         void write_clock_properties(void);
         void write_host_properties(int rank, int pid, std::string& hostname);
         std::string index_filename;
@@ -146,7 +148,7 @@ namespace apex {
         std::string region_filename_prefix;
         std::string metric_filename_prefix;
         bool create_archive(void);
-        bool write_my_node_properties(void);
+        std::string write_my_node_properties(void);
         static int my_saved_node_id;
         static int my_saved_node_count;
         std::map<int,int> rank_thread_map;
@@ -154,6 +156,7 @@ namespace apex {
         std::map<int,int> rank_metric_map;
         std::map<std::string,uint64_t> reduced_region_map;
         std::map<std::string,uint64_t> reduced_metric_map;
+        std::unique_ptr<std::tuple<std::map<int,int>, std::map<int,std::string> > > reduce_node_properties(std::string&& str);
     public:
         otf2_listener (void);
         //~otf2_listener (void) { shutdown_event_data data(my_saved_node_id,0); on_shutdown(data); };

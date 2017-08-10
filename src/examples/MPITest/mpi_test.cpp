@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
   } else {
     worker();
   }
-  //MPI_Barrier(MPI_COMM_WORLD);
+  MPI_Barrier(MPI_COMM_WORLD);
 
   apex::stop(p);
 
