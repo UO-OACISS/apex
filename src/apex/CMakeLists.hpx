@@ -180,6 +180,7 @@ set(apex_headers
     thread_instance.hpp
     task_identifier.hpp
     tau_listener.hpp
+    utils.hpp
     ${PROC_HEADER})
     #apex_config.h
 
