@@ -44,14 +44,16 @@ static void init_guid(int tid) {
     guid = ((UINT64_MAX/numthreads) * tid);
 }
 
+/*
 static uint64_t get_guid() {
     //static std::atomic<uint64_t> guid(0);
     return ++guid;
 }
+*/
 
 void innerLoop(int *tid) {
     /* Start a timer with a GUID*/
-    uint64_t myguid = get_guid();
+    //uint64_t myguid = get_guid();
     void* data_ptr = nullptr;
     //std::stringstream buf;
     //buf << "APP: " << *tid << ": Starting thread " << myguid << "\n"; std::cout << buf.str();
@@ -62,7 +64,7 @@ void innerLoop(int *tid) {
 	int ret = nsleep(10, *tid); // after - t: 10, af: 0
 
 	/* Start a timer like an "annotated_function" */
-    uint64_t afguid = get_guid();
+    //uint64_t afguid = get_guid();
     void* data_ptr2 = nullptr;
     //buf.str(""); buf.clear();
     //buf << "APP: " << *tid << ": Starting annotated_function " << afguid << "\n"; std::cout << buf.str();

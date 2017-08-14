@@ -9,7 +9,7 @@ post=""
 host=`hostname`
 myarch=`arch`
 #rootdir=/dev/shm
-rootdir=/Users/khuck/src/xpress-apex
+rootdir=${HOME}/src/xpress-apex
 
 my_readlink() {
 TARGET_FILE=$1
