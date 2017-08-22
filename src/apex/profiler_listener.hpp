@@ -175,6 +175,7 @@ public:
   void async_thread_setup(void);
   // events
   void on_startup(startup_event_data &data);
+  void on_dump(dump_event_data &data);
   void on_shutdown(shutdown_event_data &data);
   void on_new_node(node_event_data &data);
   void on_new_thread(new_thread_event_data &data);

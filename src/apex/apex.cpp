@@ -901,8 +901,23 @@ void finalize_plugins(void) {
     FUNCTION_EXIT
 }
 
+void dump(bool reset) {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance) { FUNCTION_EXIT return; } // protect against calls after finalization
+    if (_notify_listeners) {
+        dump_event_data data(instance->get_node_id(), thread_instance::get_id(), reset);
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            instance->listeners[i]->on_dump(data);
+        }
+    }
+}
+
 void finalize()
 {
+    // first, process all output
+    dump(false);
     FUNCTION_ENTER
     // prevent re-entry, be extra strict about race conditions - it is possible.
     mutex shutdown_mutex;
@@ -1343,6 +1358,11 @@ extern "C" {
     void apex_cleanup()
     {
         cleanup();
+    }
+
+    void apex_dump(bool reset)
+    {
+        dump(reset);
     }
 
     void apex_finalize()

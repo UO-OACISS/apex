@@ -174,10 +174,17 @@ void concurrency_handler::on_exit_thread(event_data &data) {
   _terminate = true; // because there are crashes
 }
 
+void concurrency_handler::on_dump(dump_event_data &data) {
+    output_samples(data.node_id);
+    // do something with the data.reset flag
+    if (data.reset) {
+        reset_samples();
+    }
+}
+
 void concurrency_handler::on_shutdown(shutdown_event_data &data) {
     _terminate = true; // because there are crashes
     cancel();
-    output_samples(data.node_id);
 }
 
 inline stack<task_identifier>* concurrency_handler::get_event_stack(unsigned int tid) {
@@ -204,6 +211,10 @@ bool sort_functions(pair<task_identifier,int> first, pair<task_identifier,int> s
   if (first.second > second.second)
     return true;
   return false;
+}
+
+void concurrency_handler::reset_samples(void) {
+  std::cerr << "concurrency_handler::reset_samples NOT IMPLEMENTED YET" << std::endl;
 }
 
 void concurrency_handler::output_samples(int node_id) {

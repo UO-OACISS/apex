@@ -19,6 +19,7 @@ public:
   ~tau_listener (void) { };
   static bool initialize_tau(int argc, char** avgv);
   void on_startup(startup_event_data &data);
+  void on_dump(dump_event_data &data);
   void on_shutdown(shutdown_event_data &data);
   void on_new_node(node_event_data &data);
   void on_new_thread(new_thread_event_data &data);
@@ -49,6 +50,7 @@ APEX_EXPORT int APEX_WEAK Tau_start(const char *) APEX_APPLE_WEAK;
 APEX_EXPORT int APEX_WEAK Tau_stop(const char *) APEX_APPLE_WEAK;
 APEX_EXPORT int APEX_WEAK Tau_init(int, char**) APEX_APPLE_WEAK;
 APEX_EXPORT int APEX_WEAK Tau_exit(const char*) APEX_APPLE_WEAK;
+APEX_EXPORT int APEX_WEAK Tau_dump(void) APEX_APPLE_WEAK;
 APEX_EXPORT int APEX_WEAK Tau_set_node(int) APEX_APPLE_WEAK;
 APEX_EXPORT int APEX_WEAK Tau_profile_exit_all_threads(void) APEX_APPLE_WEAK;
 APEX_EXPORT int APEX_WEAK Tau_get_thread(void) APEX_APPLE_WEAK;

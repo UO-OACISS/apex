@@ -25,6 +25,7 @@
 
 #include "apex_types.h"
 #include "apex_export.h"
+#include "stdbool.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -53,6 +54,19 @@ extern "C" {
  \sa @ref apex_finalize
  */
 APEX_EXPORT int apex_init(const char * thread_name, const unsigned int comm_rank, const unsigned int comm_size);
+
+/**
+ \brief Dump output from APEX.
+ 
+ The stop measurement method will terminate all measurement and optionally:
+ - print a report to the screen
+ - write a profile to disk (if requested)
+ - output all other visualization data
+ \param reset   Flag indicating whether to reset all statistics (true) or not (false).
+ \return No return value.
+ \sa @ref apex::finalize
+ */
+APEX_EXPORT void apex_dump(bool reset);
 
 /**
  \brief Finalize APEX.

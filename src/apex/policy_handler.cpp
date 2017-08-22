@@ -402,6 +402,11 @@ namespace apex {
 		call_policies(startup_policies, (void *)&data, data.event_type_);
 	}
 
+    void policy_handler::on_dump(dump_event_data &data) {
+        APEX_UNUSED(data);
+        return;
+    }
+
 	void policy_handler::on_shutdown(shutdown_event_data &data) {
 		if (_terminate) return;
 		// prevent periodic policies from executing while we are shutting down.

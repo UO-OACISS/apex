@@ -789,6 +789,12 @@ namespace apex {
         }
     }
 
+    /* do nothing with OTF2 at dump event. For now. */
+    void otf2_listener::on_dump(dump_event_data &data) {
+        APEX_UNUSED(data);
+        return;
+    }
+
     /* At shutdown, we need to reduce all the global information,
      * and write out the global definitions - strings, regions,
      * locations, communicators, groups, metrics, etc.

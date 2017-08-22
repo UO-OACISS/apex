@@ -89,6 +89,7 @@ public:
     policy_handler(uint64_t period_microseconds);
     ~policy_handler (void) { };
     void on_startup(startup_event_data &data);
+    void on_dump(dump_event_data &data);
     void on_shutdown(shutdown_event_data &data);
     void on_new_node(node_event_data &data);
     void on_new_thread(new_thread_event_data &data);

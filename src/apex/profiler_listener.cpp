@@ -1063,34 +1063,16 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
     APEX_UNUSED(data);
   }
 
-  /* On the shutdown event, notify the consumer thread that we are done
-   * and set the "terminate" flag. */
-  void profiler_listener::on_shutdown(shutdown_event_data &data) {
+  /* On the dump event, output all the profiles regardless of whether
+   * the screen dump flag is set. */
+  void profiler_listener::on_dump(dump_event_data &data) {
     if (_done) { return; }
-    if (!_done) {
-      _done = true;
-      node_id = data.node_id;
-      //sleep(1);
-#ifndef APEX_HAVE_HPX
-      queue_signal.post();
-      queue_signal.dump_stats();
-      if (consumer_thread != nullptr) {
-          queue_signal.post(); // one more time, just to be sure
-          consumer_thread->join();
-      }
-#endif
-
       // stop the main timer, and process that profile?
       main_timer->stop();
-#if APEX_HAVE_PAPI
-      if (num_papi_counters > 0 && !apex_options::papi_suspend() && thread_papi_state == papi_running) {
-        int rc = PAPI_read( EventSet, main_timer->papi_stop_values );
-        PAPI_ERROR_CHECK("PAPI_read");
-      }
-#endif
-      // if this profile is processed, it will get deleted. so don't process it!
-      // It also clutters up the final profile, if generated.
-      //process_profile(main_timer.get(), my_tid);
+      push_profiler((unsigned int)thread_instance::get_id(), main_timer);
+
+      // restart the main timer
+      main_timer = std::make_shared<profiler>(task_identifier::get_task_id(string(APEX_MAIN)));
 
       // output to screen?
       if ((apex_options::use_screen_output() ||
@@ -1101,11 +1083,6 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         {
             std::unique_lock<std::mutex> queue_lock(queue_mtx);
             for (profiler_queue_t* a_queue : allqueues) {
-                /*
-            std::vector<profiler_queue_t*>::const_iterator a_queue;
-            for (a_queue = allqueues.begin() ; a_queue != allqueues.end() ; ++a_queue) {
-                thequeue = *a_queue;
-                */
                 ignored += a_queue->size_approx();
             }
         }
@@ -1187,13 +1164,29 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
           close(task_scatterplot_sample_file);
       }
 #endif
+      if (data.reset) {
+          reset_all();
+      }
+  }
+
+  /* On the shutdown event, notify the consumer thread that we are done
+   * and set the "terminate" flag. */
+  void profiler_listener::on_shutdown(shutdown_event_data &data) {
+    if (_done) { return; }
+    if (!_done) {
+      _done = true;
+      node_id = data.node_id;
+      //sleep(1);
+#ifndef APEX_HAVE_HPX
+      queue_signal.post();
+      queue_signal.dump_stats();
+      if (consumer_thread != nullptr) {
+          queue_signal.post(); // one more time, just to be sure
+          consumer_thread->join();
+      }
+#endif
 
     }
-    /* The cleanup is disabled for now. Why? Because we want to be able
-     * to access the profiles at the end of the run, after APEX has
-     * finalized. */
-    // cleanup.
-    // delete_profiles();
   }
 
   /* When a new node is created */

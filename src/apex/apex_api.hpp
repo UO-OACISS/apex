@@ -62,6 +62,19 @@ namespace apex
 APEX_EXPORT uint64_t init(const char * thread_name, const uint64_t comm_rank, const uint64_t comm_size);
 
 /**
+ \brief Dump output from APEX.
+ 
+ The stop measurement method will terminate all measurement and optionally:
+ - print a report to the screen
+ - write a profile to disk (if requested)
+ - output all other visualization data
+ \param reset   Whether to reset all statistics
+ \return No return value.
+ \sa @ref apex::finalize
+ */
+APEX_EXPORT void dump(bool reset);
+
+/**
  \brief Finalize APEX.
  
  The stop measurement method will terminate all measurement and optionally:
