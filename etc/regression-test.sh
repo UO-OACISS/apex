@@ -9,7 +9,7 @@ post=""
 host=`hostname`
 myarch=`arch`
 #rootdir=/dev/shm
-rootdir=/Users/khuck/src/xpress-apex
+rootdir=${HOME}/src/xpress-apex
 
 my_readlink() {
 TARGET_FILE=$1
@@ -45,24 +45,24 @@ BASEDIR=$SCRIPTPATH/..
 
 # eval set -- "${args}"
 
-while getopts "hmcs:" opt; do
-    case "$1" in
-        --)
+while getopts :hmcs: opt; do
+    case "${opt}" in
+        -)
             # No more options left.
             break
             ;;
-        -s|--spec)
-            spec="$2"
+        s)
+            spec="${OPTARG}"
             ;;
-        -m)
+        m)
             sanitize="-DAPEX_SANITIZE=TRUE"
             ;;
-        -c)
+        c)
             clean=1
             ;;
-        -h)
+        h)
             echo ""
-            echo "$(basename $SCRIPT) -s,--spec <specname> -m -c -h"
+            echo "$(basename $SCRIPT) -s <specname> -m -c -h"
             echo "  -s: one of all, malloc, bfd, ah, ompt, papi, mpi, otf, tau"
             echo "  -m: enables memory sanitizer"
             echo "  -c: does clean test"
@@ -71,13 +71,13 @@ while getopts "hmcs:" opt; do
             exit 0
             ;;
     esac
-    #shift
 done
 
 echo "clean: ${clean}"
 echo "spec: ${spec}"
 echo "hostname: ${host}"
-echo "remaining args: $*"
+#echo "remaining args: '$*'"
+
 if [ -z ${CC+x} ]; then 
     echo "CC is unset, using gcc"
     export CC=gcc
@@ -108,12 +108,12 @@ dobuild()
     # Get time as a UNIX timestamp (seconds elapsed since Jan 1, 1970 0:00 UTC)
     T="$(date +%s)"
 
-    rm -rf build${post}-${buildtype} ${BASEDIR}/install${post}-${buildtype}
+    rm -rf build${post}-${buildtype} ${workdir}/install${post}-${buildtype}
     mkdir build${post}-${buildtype}
     cd build${post}-${buildtype}
     cmd="cmake -DCMAKE_BUILD_TYPE=${buildtype} -DBUILD_TESTS=TRUE ${sanitize} \
     -DBUILD_EXAMPLES=TRUE ${malloc} ${bfd} ${ah} ${ompt} ${papi} ${mpi} ${otf} ${tau} ${extra} \
-    -DCMAKE_INSTALL_PREFIX=${BASEDIR}/install${post}-${buildtype} ${BASEDIR}"
+    -DCMAKE_INSTALL_PREFIX=${workdir}/install${post}-${buildtype} ${BASEDIR}"
     echo ${cmd}
     ${cmd} 2>&1 | tee -a ${logfile}
     make ${parallel_build} 2>&1 | tee -a ${logfile}
@@ -167,63 +167,85 @@ mpi="-DUSE_MPI=FALSE"
 otf="-DUSE_OTF2=FALSE"
 tau="-DUSE_TAU=FALSE"
 
+workdir=${rootdir}/regression-${host}
+
 if [ ${clean} -eq 1 ] ; then
     echo "cleaning previous regression test..."
-    rm -rf ${rootdir}/regression-${host}
-    mkdir -p ${rootdir}/regression-${host}
+    rm -rf ${workdir}
+    mkdir -p ${workdir}
     git checkout develop
     git pull
 fi
 
 # change directory to the base APEX directory
-cd ${rootdir}/regression-${host}
+cd ${workdir}
 
+if [ ${spec} == "all" ] || [ ${spec} == "default" ] ; then
 logfile=`pwd`/log.txt
 configfile=${SCRIPTPATH}/configuration-files/apex-defaults.conf
 conditional_build
+fi
 
+if [ ${spec} == "all" ] || [ ${spec} == "base" ] ; then
 post=-base
 configfile=${SCRIPTPATH}/configuration-files/apex-base.conf
 conditional_build
+fi
 
+if [ ${spec} == "all" ] || [ ${spec} == "malloc" ] ; then
 malloc=${platform_malloc}
 post=-malloc
 configfile=${SCRIPTPATH}/configuration-files/apex-base.conf
 conditional_build
+fi
 
+if [ ${spec} == "all" ] || [ ${spec} == "bfd" ] ; then
 bfd=${platform_bfd}
 post=${post}-bfd
 configfile=${SCRIPTPATH}/configuration-files/apex-base.conf
 conditional_build
+fi
 
+if [ ${spec} == "all" ] || [ ${spec} == "ah" ] ; then
 ah=${platform_ah}
 post=${post}-ah
 configfile=${SCRIPTPATH}/configuration-files/apex-ah.conf
 conditional_build
+fi
 
+if [ ${spec} == "all" ] || [ ${spec} == "ompt" ] ; then
 ompt=${platform_ompt}
 post=${post}-ompt
 configfile=${SCRIPTPATH}/configuration-files/apex-ah-ompt.conf
 conditional_build
+fi
 
+if [ ${spec} == "all" ] || [ ${spec} == "papi" ] ; then
 papi=${platform_papi}
 post=${post}-papi
 configfile=${SCRIPTPATH}/configuration-files/apex-ah-ompt-papi.conf
 conditional_build
+fi
 
+if [ ${spec} == "all" ] || [ ${spec} == "mpi" ] ; then
 mpi=${platform_mpi}
 post=${post}-mpi
 configfile=${SCRIPTPATH}/configuration-files/apex-ah-ompt-papi-mpi.conf
 conditional_build
+fi
 
+if [ ${spec} == "all" ] || [ ${spec} == "otf" ] ; then
 otf=${platform_otf}
 post=${post}-otf
 configfile=${SCRIPTPATH}/configuration-files/apex-ah-ompt-papi-mpi-otf.conf
 conditional_build
+fi
 
+if [ ${spec} == "all" ] || [ ${spec} == "tau" ] ; then
 tau=${platform_tau}
 post=${post}-tau
 configfile=${SCRIPTPATH}/configuration-files/apex-ah-ompt-papi-mpi-tau.conf
 conditional_build
+fi
 
 cd ${STARTDIR}

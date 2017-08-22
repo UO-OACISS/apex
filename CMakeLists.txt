@@ -396,6 +396,8 @@ endif()
 # OMPT configuration
 ################################################################################
 
+find_package(OpenMP)
+
 if((DEFINED USE_OMPT) AND (NOT USE_OMPT))
     # just in case, disable all ompt
     unset(OMPT_ROOT)
@@ -404,7 +406,6 @@ if((DEFINED USE_OMPT) AND (NOT USE_OMPT))
 endif()
 
 if ((NOT DEFINED USE_OMPT) OR (USE_OMPT) OR (BUILD_OMPT))
-    find_package(OpenMP)
     if (OPENMP_FOUND)
         if ((DEFINED OMPT_ROOT) OR (USE_OMPT) OR (BUILD_OMPT))
             find_package(OMPT)
