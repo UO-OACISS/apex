@@ -78,6 +78,10 @@ void* someThread(void* tmp)
   unsigned long total = 0;
 #ifndef __APPLE__
   int s = pthread_barrier_wait(&barrier);
+  if (s != PTHREAD_BARRIER_SERIAL_THREAD && s != 0) {
+      // something bad happened
+      std::cerr << "Pthread barrier wait failed!\n";
+  }
 #endif
   { // only time this for loop
     apex::profiler * st = apex::start((apex_function_address)someThread);
@@ -112,6 +116,10 @@ void* someUntimedThread(void* tmp)
   unsigned long total = 0;
 #ifndef __APPLE__
   int s = pthread_barrier_wait(&barrier);
+  if (s != PTHREAD_BARRIER_SERIAL_THREAD && s != 0) {
+      // something bad happened
+      std::cerr << "Pthread barrier wait failed!\n";
+  }
 #endif
   { // only time this for loop
     apex::profiler * sut = apex::start((apex_function_address)someUntimedThread);

@@ -117,6 +117,8 @@ if [ $# -eq 2 ] ; then
     fi
 fi
 
+echo "Found ${procs} cores"
+
 $MAKE_PREFIX make -j `expr $procs + 1`
 
 #make tests -j `expr $procs + 1`

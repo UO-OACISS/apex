@@ -15,7 +15,7 @@
 #include <unistd.h>
 #endif
 
-#if defined(_POSIX_VERSION) && !defined(_MSC_VER)
+#if defined(_POSIX_VERSION) && !defined(_MSC_VER) && !defined(__APPLE__)
 // Posix!
 
 #include <semaphore.h>

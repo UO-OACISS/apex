@@ -9,7 +9,7 @@
 #include <iostream>
 #include <chrono>
 #include <atomic>
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || defined(__APPLE__)
 #include <thread>
 #include <condition_variable>
 #else
@@ -24,7 +24,7 @@ namespace apex {
 class handler
 {
 private:
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || defined(__APPLE__)
     std::condition_variable cv;
     std::mutex cv_m;
     static std::chrono::microseconds default_period;
@@ -62,7 +62,7 @@ private:
     };
 #endif
 protected:
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || defined(__APPLE__)
   std::chrono::microseconds _period;
   std::thread* _timer_thread;
 #else
@@ -72,7 +72,7 @@ protected:
   std::atomic<bool> _handler_initialized;
   std::atomic<bool> _terminate;
   void run(void) {
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || defined(__APPLE__)
     _timer_thread = new std::thread(&handler::_threadfunc, this);
 #else
     _timer_thread = new pthread_wrapper(&handler::_threadfunc, (void*)(this), _period);
@@ -94,7 +94,7 @@ public:
   void cancel(void) {
       _terminate = true; 
       if(_timer_thread != nullptr) {
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || defined(__APPLE__)
         cv.notify_all();
         _timer_thread->join();
 #else
