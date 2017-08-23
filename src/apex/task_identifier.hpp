@@ -23,14 +23,8 @@ private:
   // the data_ptr is used, then we can't "cache" the task ID. But otherwise,
   // this provides a significant speedup, because we don't have to allocate
   // and free lots of tiny objects.
-  static std::unordered_map<std::string, task_identifier*>& get_task_id_name_map() {
-      static APEX_NATIVE_TLS std::unordered_map<std::string, task_identifier*> task_id_name_map;
-      return task_id_name_map;
-  }
-  static std::unordered_map<uint64_t, task_identifier*>& get_task_id_addr_map() {
-      static APEX_NATIVE_TLS std::unordered_map<uint64_t, task_identifier*> task_id_addr_map;
-      return task_id_addr_map;
-  }
+  static std::unordered_map<std::string, task_identifier*>& get_task_id_name_map(void);
+  static std::unordered_map<uint64_t, task_identifier*>& get_task_id_addr_map(void);
 public:
   apex_function_address address;
   std::string name;
@@ -48,37 +42,8 @@ public:
   task_identifier(const task_identifier& rhs) :
       address(rhs.address), name(rhs.name), _resolved_name(rhs._resolved_name), has_name(rhs.has_name), _data_ptr(rhs._data_ptr), permanent(rhs.permanent) { };
 
-  static task_identifier * get_task_id (apex_function_address a, void** data_ptr = 0) {
-      if (data_ptr == 0) {
-          auto& task_id_addr_map = get_task_id_addr_map();
-          std::unordered_map<uint64_t,task_identifier*>::const_iterator got = task_id_addr_map.find (a);
-          if ( got != task_id_addr_map.end() ) {
-              return got->second;
-          } else {
-              task_identifier * tmp = new task_identifier(a, data_ptr);
-              tmp->permanent = true;
-              task_id_addr_map[a] = tmp;
-              return tmp;
-          }
-      }
-      return new task_identifier(a, data_ptr);
-  }
-
-  static task_identifier * get_task_id (const std::string& n, void** data_ptr = 0) {
-      if (data_ptr == 0) {
-          auto& task_id_name_map = get_task_id_name_map();
-          std::unordered_map<std::string,task_identifier*>::const_iterator got = task_id_name_map.find (n);
-          if ( got != task_id_name_map.end() ) {
-              return got->second;
-          } else {
-              task_identifier * tmp = new task_identifier(n, data_ptr);
-              tmp->permanent = true;
-              task_id_name_map.insert(std::pair<std::string,task_identifier*>(n, tmp));
-              return tmp;
-          }
-      }
-      return new task_identifier(n, data_ptr);
-  }
+  static task_identifier * get_task_id (apex_function_address a, void** data_ptr = 0);
+  static task_identifier * get_task_id (const std::string& n, void** data_ptr = 0);
   const std::string& get_name(bool resolve = true);
   ~task_identifier() { }
   // requried for using this class as a key in an unordered map.

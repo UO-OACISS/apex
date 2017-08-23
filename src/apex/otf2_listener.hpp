@@ -114,7 +114,7 @@ namespace apex {
         void* event_writer(void* arg);
         OTF2_Archive* archive;
         OTF2_EvtWriter* comm_evt_writer;
-        //__thread OTF2_DefWriter* def_writer;
+        //APEX_NATIVE_TLS OTF2_DefWriter* def_writer;
         OTF2_EvtWriter* getEvtWriter();
         bool event_file_exists (int threadid);
         OTF2_DefWriter* getDefWriter(int threadid);

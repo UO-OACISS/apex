@@ -126,7 +126,7 @@ namespace apex {
 
         /* these indices are thread-specific. */
         std::map<task_identifier,uint64_t>& otf2_listener::get_region_indices(void) {
-            static __thread std::map<task_identifier,uint64_t> * region_indices;
+            static APEX_NATIVE_TLS std::map<task_identifier,uint64_t> * region_indices;
             if (region_indices == nullptr) {
                 region_indices = new std::map<task_identifier,uint64_t>();
             }
@@ -134,7 +134,7 @@ namespace apex {
         }
         /* these indices are thread-specific. */
         std::map<std::string,uint64_t>& otf2_listener::get_string_indices(void) {
-            static __thread std::map<std::string,uint64_t> * string_indices;
+            static APEX_NATIVE_TLS std::map<std::string,uint64_t> * string_indices;
             if (string_indices == nullptr) {
                 string_indices = new std::map<std::string,uint64_t>();
             }
@@ -204,7 +204,7 @@ namespace apex {
             return hostname_index;
         }
         std::map<std::string,uint64_t>& otf2_listener::get_metric_indices(void) {
-            static __thread std::map<std::string,uint64_t> * metric_indices;
+            static APEX_NATIVE_TLS std::map<std::string,uint64_t> * metric_indices;
             if (metric_indices == nullptr) {
                 metric_indices = new std::map<std::string,uint64_t>();
             }
@@ -254,7 +254,7 @@ namespace apex {
     }
 
     OTF2_EvtWriter* otf2_listener::getEvtWriter(void) {
-      static __thread OTF2_EvtWriter* evt_writer(nullptr);
+      static APEX_NATIVE_TLS OTF2_EvtWriter* evt_writer(nullptr);
       if (evt_writer == nullptr) {
         // only let one thread at a time create an event file
         read_lock_type lock(_archive_mutex);
@@ -364,7 +364,7 @@ namespace apex {
 
     void otf2_listener::write_otf2_regions(void) {
         // only write these out once!
-        static __thread bool written = false;
+        static APEX_NATIVE_TLS bool written = false;
         if (written) return;
         written = true;
         for (auto const &i : reduced_region_map) {
@@ -388,7 +388,7 @@ namespace apex {
 
     void otf2_listener::write_otf2_metrics(void) {
         // only write these out once!
-        static __thread bool written = false;
+        static APEX_NATIVE_TLS bool written = false;
         if (written) return;
         written = true;
         // write a "unit" string
@@ -420,7 +420,7 @@ namespace apex {
 
     void otf2_listener::write_my_regions(void) {
         // only write these out once!
-        static __thread bool written = false;
+        static APEX_NATIVE_TLS bool written = false;
         if (written) return;
         written = true;
         // create my lock file.
@@ -449,7 +449,7 @@ namespace apex {
 
     void otf2_listener::write_my_metrics(void) {
         // only write these out once!
-        static __thread bool written = false;
+        static APEX_NATIVE_TLS bool written = false;
         if (written) return;
         written = true;
         // create my lock file.

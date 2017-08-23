@@ -49,5 +49,45 @@ const std::string& task_identifier::get_name(bool resolve) {
     }
   }
 
+  std::unordered_map<std::string, task_identifier*>& task_identifier::get_task_id_name_map(void) {
+      static APEX_NATIVE_TLS std::unordered_map<std::string, task_identifier*> task_id_name_map;
+      return task_id_name_map;
+  }
+  std::unordered_map<uint64_t, task_identifier*>& task_identifier::get_task_id_addr_map(void) {
+      static APEX_NATIVE_TLS std::unordered_map<uint64_t, task_identifier*> task_id_addr_map;
+      return task_id_addr_map;
+  }
+
+  task_identifier * task_identifier::get_task_id (apex_function_address a, void** data_ptr) {
+      if (data_ptr == 0) {
+          auto& task_id_addr_map = get_task_id_addr_map();
+          std::unordered_map<uint64_t,task_identifier*>::const_iterator got = task_id_addr_map.find (a);
+          if ( got != task_id_addr_map.end() ) {
+              return got->second;
+          } else {
+              task_identifier * tmp = new task_identifier(a, data_ptr);
+              tmp->permanent = true;
+              task_id_addr_map[a] = tmp;
+              return tmp;
+          }
+      }
+      return new task_identifier(a, data_ptr);
+  }
+
+  task_identifier * task_identifier::get_task_id (const std::string& n, void** data_ptr) {
+      if (data_ptr == 0) {
+          auto& task_id_name_map = get_task_id_name_map();
+          std::unordered_map<std::string,task_identifier*>::const_iterator got = task_id_name_map.find (n);
+          if ( got != task_id_name_map.end() ) {
+              return got->second;
+          } else {
+              task_identifier * tmp = new task_identifier(n, data_ptr);
+              tmp->permanent = true;
+              task_id_name_map.insert(std::pair<std::string,task_identifier*>(n, tmp));
+              return tmp;
+          }
+      }
+      return new task_identifier(n, data_ptr);
+  }
 }
 
