@@ -431,19 +431,25 @@ std::unordered_set<profile*> free_profiles;
   void profiler_listener::write_one_timer(task_identifier &task_id,
           profile * p, stringstream &screen_output,
           stringstream &csv_output, double &total_accumulated,
-          double &total_main) {
+          double &total_main, bool timer) {
       /* before calling task_id.get_name(), make sure we create
        * a thread_instance object that is NOT a worker. */
       thread_instance::instance(false);
       string action_name = task_id.get_name();
       string shorter(action_name);
+      int maxlength = 30;
+      if (timer) maxlength = 52;
       // to keep formatting pretty, trim any long timer names
-      if (shorter.size() > 30) {
-        shorter.resize(27);
-        shorter.resize(30, '.');
+      if (shorter.size() > maxlength) {
+        shorter.resize(maxlength-3);
+        shorter.resize(maxlength, '.');
       }
       //screen_output << "\"" << shorter << "\", " ;
-      screen_output << string_format("%30s", shorter.c_str()) << " : ";
+      if (timer) {
+          screen_output << string_format("%52s", shorter.c_str()) << " : ";
+      } else {
+          screen_output << string_format("%30s", shorter.c_str()) << " : ";
+      }
 #if defined(APEX_THROTTLE)
       if (!apex_options::use_tau()) {
         // if this profile was throttled, don't output the measurements.
@@ -474,12 +480,17 @@ std::unordered_set<profile*> free_profiles;
         csv_output << std::llround(p->get_accumulated()) << ",";
         // convert MHz to microseconds
         csv_output << std::llround(p->get_accumulated()*profiler::get_cpu_mhz()*1000000);
-        screen_output << " --n/a--   " ;
+        //screen_output << " --n/a--   " ;
         screen_output << string_format(FORMAT_SCIENTIFIC, (p->get_mean()*profiler::get_cpu_mhz())) << "   " ;
-        screen_output << " --n/a--   " ;
+        //screen_output << " --n/a--   " ;
         screen_output << string_format(FORMAT_SCIENTIFIC, (p->get_accumulated()*profiler::get_cpu_mhz())) << "   " ;
-        screen_output << " --n/a--   " ;
-        screen_output << string_format(FORMAT_PERCENT, (((p->get_accumulated()*profiler::get_cpu_mhz())/total_main)*100));
+        //screen_output << " --n/a--   " ;
+        if (task_id.get_name().compare(APEX_MAIN) == 0) {
+            screen_output << string_format(FORMAT_PERCENT, 100.0);
+        } else {
+            total_accumulated += p->get_accumulated();
+            screen_output << string_format(FORMAT_PERCENT, (((p->get_accumulated()*profiler::get_cpu_mhz())/total_main)*100));
+        }
 #if APEX_HAVE_PAPI
         for (int i = 0 ; i < num_papi_counters ; i++) {
             screen_output  << "   " << string_format(FORMAT_SCIENTIFIC, (p->get_papi_metrics()[i]));
@@ -487,7 +498,6 @@ std::unordered_set<profile*> free_profiles;
         }
 #endif
         screen_output << endl;
-        total_accumulated += p->get_accumulated();
         csv_output << endl;
       } else {
         if (action_name.find('%') == string::npos) {
@@ -503,7 +513,8 @@ std::unordered_set<profile*> free_profiles;
           screen_output << string_format(FORMAT_PERCENT, p->get_accumulated()) << "   " ;
           screen_output << string_format(FORMAT_PERCENT, p->get_stddev()) << "   " ;
         }
-        screen_output << " --n/a-- "  << endl;
+        //screen_output << " --n/a-- "  << endl;
+        screen_output << endl;
       }
   }
 
@@ -511,7 +522,8 @@ std::unordered_set<profile*> free_profiles;
   void profiler_listener::finalize_profiles(void) {
     // our TOTAL available time is the elapsed * the number of threads, or cores
     int num_worker_threads = thread_instance::get_num_threads();
-    double wall_clock_main = main_timer->elapsed() * profiler::get_cpu_mhz();
+    apex_profile * total_time = ::apex::get_profile(APEX_MAIN);
+    double wall_clock_main = total_time->accumulated * profiler::get_cpu_mhz();
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
 #endif
@@ -525,14 +537,11 @@ std::unordered_set<profile*> free_profiles;
     // want to write it out
     stringstream csv_output;
     // iterate over the profiles in the address map
-    screen_output << "Elapsed time: " << wall_clock_main << endl;
+    screen_output << endl << "Elapsed time: " << wall_clock_main << " seconds" << endl;
     screen_output << "Cores detected: " << hardware_concurrency() << endl;
     screen_output << "Worker Threads observed: " << num_worker_threads << endl;
-    screen_output << "Available CPU time: " << total_main << endl;
+    screen_output << "Available CPU time: " << total_main << " seconds" << endl << endl;
     map<apex_function_address, profile*>::const_iterator it;
-    screen_output << "Action                         :  #calls  |  minimum |    mean  |  maximum |   total  |  stddev  |  % total  " << apex_options::papi_metrics() << endl;
-    screen_output << "------------------------------------------------------------------------------------------------------------" << endl;
-    csv_output << "\"task\",\"num calls\",\"total cycles\",\"total microseconds\"";
 #if APEX_HAVE_PAPI
     for (int i = 0 ; i < num_papi_counters ; i++) {
        csv_output << ",\"" << metric_names[i] << "\"";
@@ -551,15 +560,23 @@ std::unordered_set<profile*> free_profiles;
             id_vector.push_back(task_id);
         }
     }
-    std::sort(id_vector.begin(), id_vector.end());
-    // iterate over the counters
-    for(task_identifier task_id : id_vector) {
-        profile * p = task_map[task_id];
-        if (p) {
-            write_one_timer(task_id, p, screen_output, csv_output, total_accumulated, total_main);
+    if (id_vector.size() > 0) {
+        screen_output << "Counter                        : #samples |  minimum |    mean  |  maximum |   total  |  stddev " << apex_options::papi_metrics() << endl;
+        screen_output << "------------------------------------------------------------------------------------------------" << endl;
+        std::sort(id_vector.begin(), id_vector.end());
+        // iterate over the counters
+        for(task_identifier task_id : id_vector) {
+            profile * p = task_map[task_id];
+            if (p) {
+                write_one_timer(task_id, p, screen_output, csv_output, total_accumulated, total_main, false);
+            }
         }
+        screen_output << "------------------------------------------------------------------------------------------------" << endl << endl;;
     }
-    id_vector.clear();
+    csv_output << "\"task\",\"num calls\",\"total cycles\",\"total microseconds\"";
+    screen_output << "Timer                                                :  #calls  |    mean  |   total  |  % total  " << apex_options::papi_metrics() << endl;
+    screen_output << "------------------------------------------------------------------------------------------------" << endl;
+     id_vector.clear();
     // iterate over the timers
     for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
         profile * p = it2->second;
@@ -574,28 +591,18 @@ std::unordered_set<profile*> free_profiles;
     for(task_identifier task_id : id_vector) {
         profile * p = task_map[task_id];
         if (p) {
-            write_one_timer(task_id, p, screen_output, csv_output, total_accumulated, total_main);
+            write_one_timer(task_id, p, screen_output, csv_output, total_accumulated, total_main, true);
             total_hpx_threads = total_hpx_threads + p->get_calls();
         }
     }
     double idle_rate = total_main - (total_accumulated*profiler::get_cpu_mhz());
-    screen_output << string_format("%30s", APEX_IDLE_TIME) << " : ";
-    screen_output << " --n/a--   " ;
-    screen_output << " --n/a--   " ;
-    screen_output << " --n/a--   " ;
-    screen_output << " --n/a--   " ;
-    if (idle_rate < 0.0) {
-      screen_output << " --n/a--   " ;
-    } else {
+    if (idle_rate >= 0.0) {
+      screen_output << string_format("%52s", APEX_IDLE_TIME) << " : ";
       screen_output << string_format(FORMAT_SCIENTIFIC, idle_rate) << "   " ;
-    }
-    screen_output << " --n/a--   " ;
-    if (idle_rate < 0.0) {
-      screen_output << " --n/a--   " << endl;
-    } else {
       screen_output << string_format(FORMAT_PERCENT, ((idle_rate/total_main)*100)) << endl;
     }
-    screen_output << string_format("%30s", "Total timers") << " : ";
+    screen_output << "------------------------------------------------------------------------------------------------" << endl;
+    screen_output << string_format("%52s", "Total timers") << " : ";
     //if (total_hpx_threads < 999999) {
         //screen_output << string_format(PAD_WITH_SPACES, to_string((int)(total_hpx_threads))) << std::endl;
     //} else {
@@ -604,7 +611,6 @@ std::unordered_set<profile*> free_profiles;
     total_ss << std::fixed << ((uint64_t)total_hpx_threads);
         screen_output << total_ss.str() << std::endl;
     //}
-    screen_output << "------------------------------------------------------------------------------------------------------------" << endl;
     if (apex_options::use_screen_output()) {
         cout << screen_output.str();
     }

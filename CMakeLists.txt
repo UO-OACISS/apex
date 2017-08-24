@@ -90,6 +90,7 @@ set(CMAKE_CONFIGURATION_TYPES "${CMAKE_BUILD_TYPE}" CACHE INTERNAL
 if(APPLE)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -undefined dynamic_lookup")
   set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -undefined dynamic_lookup")
+  set(USE_CLOCK_TIMESTAMP ON CACHE INTERNAL "Use gettimeofday not cycle counter" FORCE)
 endif(APPLE)
 
 # If TAU is used, don't allow throttling - it can potentially lead to

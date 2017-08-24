@@ -77,7 +77,7 @@ private:
   std::shared_ptr<profiler> main_timer; // not a shared pointer, yet...
   void write_one_timer(task_identifier &task_id, profile * p,
                        std::stringstream &screen_output, std::stringstream &csv_output,
-                       double &total_accumulated, double &total_main);
+                       double &total_accumulated, double &total_main, bool timer);
   void finalize_profiles(void);
   void write_taskgraph(void);
   void write_profile(void);
