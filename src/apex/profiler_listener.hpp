@@ -78,7 +78,7 @@ private:
   void write_one_timer(task_identifier &task_id, profile * p,
                        std::stringstream &screen_output, std::stringstream &csv_output,
                        double &total_accumulated, double &total_main, bool timer);
-  void finalize_profiles(void);
+  void finalize_profiles(dump_event_data &data);
   void write_taskgraph(void);
   void write_profile(void);
   void delete_profiles(void);

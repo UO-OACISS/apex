@@ -901,23 +901,25 @@ void finalize_plugins(void) {
     FUNCTION_EXIT
 }
 
-void dump(bool reset) {
+std::string dump(bool reset) {
     // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { return; }
+    if (apex_options::disable() == true) { return(std::string("")); }
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) { FUNCTION_EXIT return; } // protect against calls after finalization
+    if (!instance) { FUNCTION_EXIT return(std::string("")); } // protect against calls after finalization
     if (_notify_listeners) {
         dump_event_data data(instance->get_node_id(), thread_instance::get_id(), reset);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_dump(data);
         }
+        return(data.output);
     }
+    return(std::string(""));
 }
 
 void finalize()
 {
     // first, process all output
-    dump(false);
+    std::cout << dump(false) << endl;
     FUNCTION_ENTER
     // prevent re-entry, be extra strict about race conditions - it is possible.
     mutex shutdown_mutex;
@@ -1360,9 +1362,9 @@ extern "C" {
         cleanup();
     }
 
-    void apex_dump(bool reset)
+    const char * apex_dump(bool reset)
     {
-        dump(reset);
+        return(dump(reset).c_str());
     }
 
     void apex_finalize()

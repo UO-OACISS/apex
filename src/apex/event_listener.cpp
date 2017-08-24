@@ -73,6 +73,7 @@ dump_event_data::dump_event_data(int node_id, int thread_id, bool reset) {
   this->node_id = node_id;
   this->thread_id = thread_id;
   this->reset = reset;
+  this->output = std::string("");
 }
 
 new_thread_event_data::new_thread_event_data(string thread_name) {

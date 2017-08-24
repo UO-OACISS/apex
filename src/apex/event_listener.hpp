@@ -73,6 +73,7 @@ class dump_event_data : public event_data {
 public:
   int node_id;
   bool reset;
+  std::string output;
   dump_event_data(int node_id, int thread_id, bool reset);
 };
 

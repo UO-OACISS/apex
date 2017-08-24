@@ -69,10 +69,10 @@ APEX_EXPORT uint64_t init(const char * thread_name, const uint64_t comm_rank, co
  - write a profile to disk (if requested)
  - output all other visualization data
  \param reset   Whether to reset all statistics
- \return No return value.
+ \return a string containing the output
  \sa @ref apex::finalize
  */
-APEX_EXPORT void dump(bool reset);
+APEX_EXPORT std::string dump(bool reset);
 
 /**
  \brief Finalize APEX.

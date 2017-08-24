@@ -519,7 +519,7 @@ std::unordered_set<profile*> free_profiles;
   }
 
   /* At program termination, write the measurements to the screen, or to CSV file, or both. */
-  void profiler_listener::finalize_profiles(void) {
+  void profiler_listener::finalize_profiles(dump_event_data &data) {
     // our TOTAL available time is the elapsed * the number of threads, or cores
     int num_worker_threads = thread_instance::get_num_threads();
     apex_profile * total_time = ::apex::get_profile(APEX_MAIN);
@@ -612,7 +612,8 @@ std::unordered_set<profile*> free_profiles;
         screen_output << total_ss.str() << std::endl;
     //}
     if (apex_options::use_screen_output()) {
-        cout << screen_output.str();
+        //cout << screen_output.str();
+        data.output = screen_output.str();
     }
     if (apex_options::use_csv_output()) {
         ofstream csvfile;
@@ -1130,7 +1131,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
           std::cerr << "done." << std::endl;
         }
         if (apex_options::use_screen_output() || apex_options::use_csv_output()) {
-            finalize_profiles();
+            finalize_profiles(data);
         }
       }
       if (apex_options::use_taskgraph_output() && node_id == 0)
