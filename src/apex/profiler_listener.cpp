@@ -437,7 +437,7 @@ std::unordered_set<profile*> free_profiles;
       thread_instance::instance(false);
       string action_name = task_id.get_name();
       string shorter(action_name);
-      int maxlength = 30;
+      size_t maxlength = 30;
       if (timer) maxlength = 52;
       // to keep formatting pretty, trim any long timer names
       if (shorter.size() > maxlength) {
