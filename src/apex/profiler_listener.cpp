@@ -218,8 +218,12 @@ std::unordered_set<profile*> free_profiles;
     std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
     for(auto &it : task_map) {
         it.second->reset();
-    }
-  }
+    } 
+#ifdef APEX_WITH_JUPYTER_SUPPORT
+    // restart the main timer
+    main_timer = std::make_shared<profiler>(task_identifier::get_task_id(string(APEX_MAIN)));
+#endif
+}
 
   /* After the consumer thread pulls a profiler off of the queue,
    * process it by updating its profile object in the map of profiles. */
