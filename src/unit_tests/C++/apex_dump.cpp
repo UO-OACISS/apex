@@ -21,7 +21,7 @@ int main (int argc, char** argv) {
     stop(p);
   }    
   // dump and reset everything
-  std::cout << dump(true) << endl;
+  dump(true);
   usleep(100);
   // Call "foo" 3 times
   for(int i = 0; i < 3; ++i) {
@@ -42,7 +42,7 @@ int main (int argc, char** argv) {
     stop(p);
   }    
   // dump and reset nothing
-  std::cout << dump(false) << endl;
+  dump(false);
   // Reset "Test Timer"
   reset("Test Timer");
   usleep(100);

@@ -932,7 +932,7 @@ void finalize()
     return;
 #endif
     // first, process all output
-    std::cout << dump(false) << endl;
+    dump(false);
     FUNCTION_ENTER
     // prevent re-entry, be extra strict about race conditions - it is possible.
     mutex shutdown_mutex;

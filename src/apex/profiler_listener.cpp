@@ -1093,8 +1093,8 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
 #else
         size_t ignored = thequeue.size_approx();
 #endif
-        if (ignored > 0) {
-          std::cerr << "Info: " << ignored << " items remaining on on the profiler_listener queue..."; fflush(stderr);
+        if (ignored > 100000) {
+          std::cout << "Info: " << ignored << " items remaining on on the profiler_listener queue..."; fflush(stderr);
         }
 #if 0
 #ifndef APEX_HAVE_HPX

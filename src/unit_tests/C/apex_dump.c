@@ -20,8 +20,7 @@ int main (int argc, char** argv) {
     apex_stop(p);
   }    
   // dump and Reset everything
-  const char * output = apex_dump(true);
-  printf("%s",output);
+  apex_dump(true);
   usleep(100);
   // Call "foo" 3 times
   for(i = 0; i < 3; ++i) {
@@ -42,8 +41,7 @@ int main (int argc, char** argv) {
     apex_stop(p);
   }    
   // dump and reset nothing
-  output = apex_dump(false);
-  printf("%s",output);
+  apex_dump(false);
   // Reset "Test Timer"
   apex_reset(APEX_NAME_STRING, "Test Timer");
   usleep(100);
