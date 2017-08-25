@@ -904,6 +904,12 @@ void finalize_plugins(void) {
 std::string dump(bool reset) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return(std::string("")); }
+    bool old_screen_output = apex_options::use_screen_output();
+#ifdef APEX_WITH_JUPYTER_SUPPORT
+    // force output in the Jupyter notebook
+    apex_options::use_screen_output(true);
+#endif
+
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) { FUNCTION_EXIT return(std::string("")); } // protect against calls after finalization
     if (_notify_listeners) {
@@ -911,13 +917,20 @@ std::string dump(bool reset) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_dump(data);
         }
+        apex_options::use_screen_output(old_screen_output);
         return(data.output);
     }
+    apex_options::use_screen_output(old_screen_output);
     return(std::string(""));
 }
 
 void finalize()
 {
+#ifdef APEX_WITH_JUPYTER_SUPPORT
+    // reset all counters, and return.
+    reset(APEX_NULL_FUNCTION_ADDRESS);
+    return;
+#endif
     // first, process all output
     std::cout << dump(false) << endl;
     FUNCTION_ENTER

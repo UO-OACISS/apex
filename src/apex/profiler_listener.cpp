@@ -612,7 +612,7 @@ std::unordered_set<profile*> free_profiles;
         screen_output << total_ss.str() << std::endl;
     //}
     if (apex_options::use_screen_output()) {
-        //cout << screen_output.str();
+        cout << screen_output.str();
         data.output = screen_output.str();
     }
     if (apex_options::use_csv_output()) {
@@ -1078,9 +1078,6 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       main_timer->stop();
       push_profiler((unsigned int)thread_instance::get_id(), main_timer);
 
-      // restart the main timer
-      main_timer = std::make_shared<profiler>(task_identifier::get_task_id(string(APEX_MAIN)));
-
       // output to screen?
       if ((apex_options::use_screen_output() ||
            apex_options::use_csv_output()) && node_id == 0)
@@ -1174,6 +1171,8 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       if (data.reset) {
           reset_all();
       }
+      // restart the main timer
+      main_timer = std::make_shared<profiler>(task_identifier::get_task_id(string(APEX_MAIN)));
   }
 
   /* On the shutdown event, notify the consumer thread that we are done
