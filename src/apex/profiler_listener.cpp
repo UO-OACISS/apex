@@ -1124,7 +1124,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
           concurrent_cleanup(i);
         }
 #endif // if 0
-        if (ignored > 0) {
+        if (ignored > 100000) {
           std::cerr << "done." << std::endl;
         }
         if (apex_options::use_screen_output() || apex_options::use_csv_output()) {

@@ -330,7 +330,15 @@ uint64_t init(const char * thread_name, uint64_t comm_rank, uint64_t comm_size) 
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return APEX_ERROR; }
     // protect against multiple initializations
+#ifdef APEX_WITH_JUPYTER_SUPPORT
+    if (_registered || _initialized) { 
+        // reset all counters, and return.
+        reset(APEX_NULL_FUNCTION_ADDRESS);
+        return APEX_NOERROR; 
+    }
+#else
     if (_registered || _initialized) { return APEX_ERROR; }
+#endif
     _registered = true;
     _initialized = true;
     apex* instance = apex::instance(); // get/create the Apex static instance
