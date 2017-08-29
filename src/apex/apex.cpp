@@ -939,8 +939,6 @@ void finalize()
     reset(APEX_NULL_FUNCTION_ADDRESS);
     return;
 #endif
-    // first, process all output
-    dump(false);
     FUNCTION_ENTER
     // prevent re-entry, be extra strict about race conditions - it is possible.
     mutex shutdown_mutex;
@@ -954,7 +952,9 @@ void finalize()
     if (apex_options::disable() == true) { return; }
     // stop processing new timers/counters/messages/tasks/etc.
     apex_options::suspend(true);
-    // First, stop the top level timer, while the infrastructure is still functioning.
+    // first, process all output
+    dump(false);
+    // then, stop the top level timer, while the infrastructure is still functioning.
     //stop(top_level_timer);
     // if not done already...
     shutdown_throttling();

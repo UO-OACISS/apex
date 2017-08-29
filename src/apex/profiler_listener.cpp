@@ -86,7 +86,6 @@ namespace apex {
 std::mutex free_profile_set_mutex;
 std::unordered_set<profile*> free_profiles;
 
-#ifdef APEX_MULTIPLE_QUEUES
     /* We do this in two stages, to make the common case fast. */
     profiler_queue_t * profiler_listener::_construct_thequeue() {
           profiler_queue_t * _thequeue = new profiler_queue_t();
@@ -101,7 +100,6 @@ std::unordered_set<profile*> free_profiles;
         static APEX_NATIVE_TLS profiler_queue_t * _thequeue = _construct_thequeue();
         return _thequeue;
     }
-#endif
 
   /* THis is a special profiler, indicating that the timer requested is
      throttled, and shouldn't be processed. */
@@ -874,12 +872,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
   bool profiler_listener::concurrent_cleanup(int i){
       //set_thread_affinity(i);
       std::shared_ptr<profiler> p;
-#ifdef APEX_MULTIPLE_QUEUES
-//std::cout << "Queue " << i << ", " << allqueues[i]->size_approx() << " items remaining." << std::endl; fflush(stdout);
       while(allqueues[i]->try_dequeue(p)) {
-#else
-      while(thequeue.try_dequeue(p)) {
-#endif
              process_profile(p,0);
       }
       return true;
@@ -1071,7 +1064,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       }
 #endif
     }
-    APEX_UNUSED(data);
+    node_id = data.comm_rank;
   }
 
   /* On the dump event, output all the profiles regardless of whether
@@ -1086,7 +1079,6 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       if ((apex_options::use_screen_output() ||
            apex_options::use_csv_output()) && node_id == 0)
       {
-#ifdef APEX_MULTIPLE_QUEUES
         size_t ignored = 0;
         {
             std::unique_lock<std::mutex> queue_lock(queue_mtx);
@@ -1094,32 +1086,9 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
                 ignored += a_queue->size_approx();
             }
         }
-#else
-        size_t ignored = thequeue.size_approx();
-#endif
         if (ignored > 100000) {
           std::cout << "Info: " << ignored << " items remaining on on the profiler_listener queue..."; fflush(stderr);
         }
-#if 0
-#ifndef APEX_HAVE_HPX
-        // We might be done, but check to make sure the queue is empty
-        std::vector<std::future<bool>> pending_futures;
-        //for (unsigned int i=0; i<hardware_concurrency(); ++i) {
-        for (unsigned int i=0; i<allqueues.size(); ++i) {
-#ifdef APEX_STATIC
-            /* Static libC++ doesn't do async very well. In fact, it crashes. */
-            auto f = std::async(&profiler_listener::concurrent_cleanup,this,i);
-#else // APEX_STATIC
-            auto f = std::async(std::launch::async,&profiler_listener::concurrent_cleanup,this,i);
-#endif // APEX_STATIC
-            // transfer the future's shared state to a longer-lived future
-            pending_futures.push_back(std::move(f));
-        }
-        for (auto iter = pending_futures.begin() ; iter < pending_futures.end() ; iter++ ) {
-            iter->get();
-        }
-#endif // APEX_HAVE_HPX
-#else // if 0
         /* APEX can't handle spawning a bunch of new APEX threads at this time,
          * so just process the queue. Anyway, it shouldn't get backed up that 
          * much without suggesting there is a bigger problem. */
@@ -1127,13 +1096,10 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         for (unsigned int i=0; i<allqueues.size(); ++i) {
           concurrent_cleanup(i);
         }
-#endif // if 0
         if (ignored > 100000) {
           std::cerr << "done." << std::endl;
         }
-        if (apex_options::use_screen_output() || apex_options::use_csv_output()) {
-            finalize_profiles(data);
-        }
+        finalize_profiles(data);
       }
       if (apex_options::use_taskgraph_output() && node_id == 0)
       {
@@ -1185,7 +1151,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
     if (_done) { return; }
     if (!_done) {
       _done = true;
-      node_id = data.node_id;
+      //node_id = data.node_id;
       //sleep(1);
 #ifndef APEX_HAVE_HPX
       queue_signal.post();
@@ -1288,11 +1254,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         if (p->task_id->name == "apex::process_profiles") { return; }
 #endif
       // we have to make a local copy, because lockfree queues DO NOT SUPPORT shared_ptrs!
-#ifdef APEX_MULTIPLE_QUEUES
       thequeue()->enqueue(p);
-#else
-      thequeue.enqueue(p);
-#endif
 
 #ifndef APEX_HAVE_HPX
       // Check to see if the consumer is already running, to avoid calling "post"
@@ -1368,10 +1330,8 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
   /* When an asynchronous thread is launched, they should
    * call apex::async_thread_setup() which will end up here.*/
   void profiler_listener::async_thread_setup(void) {
-#ifdef APEX_MULTIPLE_QUEUES
       // for asynchronous threads, check to make sure there is a queue!
       thequeue();
-#endif
   }
 
   /* When a sample value is processed, save it as a profiler object, and queue it. */
@@ -1441,13 +1401,11 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       delete consumer_thread;
 #endif
 #endif
-#ifdef APEX_MULTIPLE_QUEUES
     while (allqueues.size() > 0) {
         auto tmp = allqueues.back();
         allqueues.pop_back();
         delete(tmp);
     }
-#endif
     for (auto tmp : free_profiles) {
         delete(tmp);
     }

@@ -50,12 +50,6 @@
 
 #define INITIAL_NUM_THREADS 2
 
-// The HPX subsystem creates so many small tasks that it is "better"
-// to have a queue per thread, rather than one queue.
-//#ifdef APEX_HAVE_HPX
-#define APEX_MULTIPLE_QUEUES
-//#endif
-
 namespace apex {
 
 class profiler_queue_t : public moodycamel::ConcurrentQueue<std::shared_ptr<profiler> > {
@@ -96,15 +90,11 @@ private:
   std::unordered_map<task_identifier, profile*> task_map;
   std::mutex _task_map_mutex;
   std::unordered_map<task_identifier, std::unordered_map<task_identifier, int>* > task_dependencies;
-#ifdef APEX_MULTIPLE_QUEUES
   /* an vector of profiler queues - so the consumer thread can access them */
   std::mutex queue_mtx;
   std::vector<profiler_queue_t*> allqueues;
   profiler_queue_t * _construct_thequeue(void);
   profiler_queue_t * thequeue(void);
-#else
-  profiler_queue_t thequeue;
-#endif
   /* The task dependency queue */
   moodycamel::ConcurrentQueue<task_dependency*> dependency_queue;
 #if defined(APEX_THROTTLE)
