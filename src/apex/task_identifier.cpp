@@ -5,6 +5,7 @@
 
 #include "task_identifier.hpp"
 #include "thread_instance.hpp"
+#include "apex_api.hpp"
 
 #if APEX_HAVE_BFD
 #include "address_resolution.hpp"
@@ -21,12 +22,12 @@ namespace apex {
 
     task_identifier::apex_name_map::~apex_name_map(void) {
         if (thread_instance::get_id() == 0) 
-            finalize();
+            apex::finalize();
     }
 
     task_identifier::apex_addr_map::~apex_addr_map(void) {
         if (thread_instance::get_id() == 0) 
-            finalize();
+            apex::finalize();
     }
 
 const std::string& task_identifier::get_name(bool resolve) {
