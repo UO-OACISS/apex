@@ -18,14 +18,16 @@ namespace apex {
 class task_identifier {
     public:
     class apex_name_map : public std::unordered_map<std::string, task_identifier*> {
+            int tid;
         public:
-            apex_name_map() {};
+            apex_name_map();
             ~apex_name_map();
     };
 
     class apex_addr_map : public std::unordered_map<uint64_t, task_identifier*> {
+            int tid;
         public:
-            apex_addr_map() {};
+            apex_addr_map();
             ~apex_addr_map();
     };
 

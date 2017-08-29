@@ -20,13 +20,15 @@
 
 namespace apex {
 
+    task_identifier::apex_name_map::apex_name_map() : tid(thread_instance::get_id()) {};
     task_identifier::apex_name_map::~apex_name_map(void) {
-        if (thread_instance::get_id() == 0) 
+        if (tid == 0) 
             finalize();
     }
 
+    task_identifier::apex_addr_map::apex_addr_map() : tid(thread_instance::get_id()) {};
     task_identifier::apex_addr_map::~apex_addr_map(void) {
-        if (thread_instance::get_id() == 0) 
+        if (tid == 0) 
             finalize();
     }
 
