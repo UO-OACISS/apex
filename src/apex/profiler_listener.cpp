@@ -1172,11 +1172,11 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
           close(task_scatterplot_sample_file);
       }
 #endif
+      // restart the main timer
+      main_timer = std::make_shared<profiler>(task_identifier::get_task_id(string(APEX_MAIN)));
       if (data.reset) {
           reset_all();
       }
-      // restart the main timer
-      main_timer = std::make_shared<profiler>(task_identifier::get_task_id(string(APEX_MAIN)));
   }
 
   /* On the shutdown event, notify the consumer thread that we are done

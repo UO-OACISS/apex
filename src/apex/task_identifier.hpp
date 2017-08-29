@@ -16,6 +16,19 @@
 namespace apex {
 
 class task_identifier {
+    public:
+    class apex_name_map : public std::unordered_map<std::string, task_identifier*> {
+        public:
+            apex_name_map() {};
+            ~apex_name_map();
+    };
+
+    class apex_addr_map : public std::unordered_map<uint64_t, task_identifier*> {
+        public:
+            apex_addr_map() {};
+            ~apex_addr_map();
+    };
+
 private:
   // some optimizations - since many timers are called over and over, don't
   // create a task ID for every one - use a pool of them.  The problem is
@@ -23,8 +36,8 @@ private:
   // the data_ptr is used, then we can't "cache" the task ID. But otherwise,
   // this provides a significant speedup, because we don't have to allocate
   // and free lots of tiny objects.
-  static std::unordered_map<std::string, task_identifier*>& get_task_id_name_map(void);
-  static std::unordered_map<uint64_t, task_identifier*>& get_task_id_addr_map(void);
+  static apex_name_map& get_task_id_name_map(void);
+  static apex_addr_map& get_task_id_addr_map(void);
 public:
   apex_function_address address;
   std::string name;

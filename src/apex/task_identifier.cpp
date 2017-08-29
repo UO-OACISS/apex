@@ -19,6 +19,16 @@
 
 namespace apex {
 
+    task_identifier::apex_name_map::~apex_name_map(void) {
+        if (thread_instance::get_id() == 0) 
+            finalize();
+    }
+
+    task_identifier::apex_addr_map::~apex_addr_map(void) {
+        if (thread_instance::get_id() == 0) 
+            finalize();
+    }
+
 const std::string& task_identifier::get_name(bool resolve) {
     if (!has_name && resolve) {
       if (_resolved_name == "" && address != APEX_NULL_FUNCTION_ADDRESS) {
@@ -49,19 +59,19 @@ const std::string& task_identifier::get_name(bool resolve) {
     }
   }
 
-  std::unordered_map<std::string, task_identifier*>& task_identifier::get_task_id_name_map(void) {
-      static APEX_NATIVE_TLS std::unordered_map<std::string, task_identifier*> task_id_name_map;
+  task_identifier::apex_name_map& task_identifier::get_task_id_name_map(void) {
+      static APEX_NATIVE_TLS apex_name_map task_id_name_map;
       return task_id_name_map;
   }
-  std::unordered_map<uint64_t, task_identifier*>& task_identifier::get_task_id_addr_map(void) {
-      static APEX_NATIVE_TLS std::unordered_map<uint64_t, task_identifier*> task_id_addr_map;
+  task_identifier::apex_addr_map& task_identifier::get_task_id_addr_map(void) {
+      static APEX_NATIVE_TLS apex_addr_map task_id_addr_map;
       return task_id_addr_map;
   }
 
   task_identifier * task_identifier::get_task_id (apex_function_address a, void** data_ptr) {
       if (data_ptr == 0) {
           auto& task_id_addr_map = get_task_id_addr_map();
-          std::unordered_map<uint64_t,task_identifier*>::const_iterator got = task_id_addr_map.find (a);
+          apex_addr_map::const_iterator got = task_id_addr_map.find (a);
           if ( got != task_id_addr_map.end() ) {
               return got->second;
           } else {
@@ -77,7 +87,7 @@ const std::string& task_identifier::get_name(bool resolve) {
   task_identifier * task_identifier::get_task_id (const std::string& n, void** data_ptr) {
       if (data_ptr == 0) {
           auto& task_id_name_map = get_task_id_name_map();
-          std::unordered_map<std::string,task_identifier*>::const_iterator got = task_id_name_map.find (n);
+          apex_name_map::const_iterator got = task_id_name_map.find (n);
           if ( got != task_id_name_map.end() ) {
               return got->second;
           } else {

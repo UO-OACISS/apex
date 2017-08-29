@@ -673,7 +673,7 @@ void stop(profiler* the_profiler) {
     }
     //cout << thread_instance::get_id() << " Stop : " << the_profiler->task_id->get_name() << endl; fflush(stdout);
     static std::string apex_process_profile_str("apex::process_profiles");
-    if (the_profiler->task_id->get_name(false).compare(apex_process_profile_str) == 0) {
+    if (p->task_id->get_name(false).compare(apex_process_profile_str) == 0) {
         APEX_UTIL_REF_COUNT_APEX_INTERNAL_STOP
     } else {
         APEX_UTIL_REF_COUNT_STOP
@@ -715,7 +715,7 @@ void yield(profiler* the_profiler)
     }
     //cout << thread_instance::get_id() << " Yield : " << the_profiler->task_id->get_name() << endl; fflush(stdout);
     static std::string apex_process_profile_str("apex::process_profiles");
-    if (the_profiler->task_id->get_name(false).compare(apex_process_profile_str) == 0) {
+    if (p->task_id->get_name(false).compare(apex_process_profile_str) == 0) {
         APEX_UTIL_REF_COUNT_APEX_INTERNAL_YIELD
     } else {
         APEX_UTIL_REF_COUNT_YIELD

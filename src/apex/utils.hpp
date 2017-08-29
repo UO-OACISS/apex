@@ -183,21 +183,20 @@ class reference_counter {
 #define APEX_UTIL_REPORT_STATS
 #endif
 
-#if !defined(_MSC_VER)
 inline unsigned int my_hardware_concurrency()
-{
-    return sysconf(_SC_NPROCESSORS_ONLN);
-}
-#endif
-
-inline unsigned int hardware_concurrency()
 {
 #if defined(_MSC_VER)
     return std::thread::hardware_concurrency();
 #else
     unsigned int cores = std::thread::hardware_concurrency();
-    return cores ? cores : my_hardware_concurrency();
+    return cores ? cores : sysconf(_SC_NPROCESSORS_ONLN);
 #endif
+}
+
+inline unsigned int hardware_concurrency()
+{
+    static unsigned int hwc = my_hardware_concurrency();
+    return(hwc);
 }
 
 std::string demangle(const std::string& timer_name);

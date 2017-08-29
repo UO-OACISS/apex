@@ -28,6 +28,7 @@ dirname="default"
 options=""
 static=""
 sanitize=""
+ncores=`nproc --all`
 
 # remember where we are
 STARTDIR=`pwd`
@@ -68,7 +69,7 @@ while [ $# -ge 1 ]; do
             yes_mpi="" # no static MPI installation. :(
             ;;
         -h)
-            echo "$0 -b,--build [default|base|malloc|bfd|ah|ompt|papi|mpi|otf|tau] -t,--type [Release|Debug] -s,--step [config|compile|test|install] -d,--dirname <dirname> -m,--sanitize -n,--static"
+            echo "$0 -b,--build [default|base|malloc|bfd|ah|ompt|papi|mpi|otf|tau] -t,--type [Release|Debug] -s,--step [config|compile|pcompile|test|install] -d,--dirname <dirname> -m,--sanitize -n,--static"
             exit 0
             ;;
     esac
@@ -95,7 +96,7 @@ config_step()
 compile_step()
 {
     cd ${dirname}
-    make
+    make ${1}
 }
 
 test_step()
@@ -175,6 +176,9 @@ if [ ${step} == "config" ] ; then
 fi
 if [ ${step} == "compile" ] ; then
     compile_step
+fi
+if [ ${step} == "pcompile" ] ; then
+    compile_step -j${ncores}
 fi
 if [ ${step} == "test" ] ; then
     test_step

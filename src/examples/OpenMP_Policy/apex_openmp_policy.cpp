@@ -120,7 +120,7 @@ void handle_start(const std::string & name) {
         //int max_threads = omp_get_num_procs();
 
         // Create a parameter for number of threads.
-        std::shared_ptr<apex_param_enum> threads_param = request->add_param_enum("omp_num_threads", "16", *thread_space);
+        std::shared_ptr<apex_param_enum> threads_param = request->add_param_enum("omp_num_threads", std::to_string(apex::hardware_concurrency()), *thread_space);
 
         // Create a parameter for scheduling policy.
         std::shared_ptr<apex_param_enum> schedule_param = request->add_param_enum("omp_schedule", "static", *schedule_space);
@@ -330,13 +330,17 @@ bool parse_space_file(const std::string & filename) {
         std::list<std::string> num_threads_list;
         for(auto itr = omp_num_threads_array.Begin(); itr != omp_num_threads_array.End(); ++itr) {
               if(itr->IsInt()) {
-                  const int this_num_threads = itr->GetInt();
-                  const std::string this_num_threads_str = std::to_string(this_num_threads);
-                  num_threads_list.push_back(this_num_threads_str);
+                  const unsigned int this_num_threads = itr->GetInt();
+                  if (this_num_threads <= apex::hardware_concurrency()) {
+                      const std::string this_num_threads_str = std::to_string(this_num_threads);
+                      num_threads_list.push_back(this_num_threads_str);
+                  }
               } else if(itr->IsString()) {
                   const char * this_num_threads = itr->GetString();
-                  const std::string this_num_threads_str = std::string(this_num_threads, itr->GetStringLength());
-                  num_threads_list.push_back(this_num_threads_str);
+                  if ((unsigned int)(atoi(this_num_threads)) <= apex::hardware_concurrency()) {
+                      const std::string this_num_threads_str = std::string(this_num_threads, itr->GetStringLength());
+                      num_threads_list.push_back(this_num_threads_str);
+                  }
               } else {
                   std::cerr << "Parameter space file's 'omp_num_threads' member must contain only integers or strings" << std::endl;
                   return false;
@@ -489,7 +493,13 @@ int register_policy() {
         if(apex_openmp_policy_verbose) {
             std::cerr << "Using default tuning space." << std::endl;
         }
-        thread_space   = &default_thread_space;
+        std::list<std::string> my_thread_space{"1"};
+        unsigned int nthreads = 2;
+        while (nthreads <= apex::hardware_concurrency()) {
+            my_thread_space.push_back(std::to_string(nthreads));
+            nthreads = nthreads * 2;
+        }
+        thread_space   = &my_thread_space;
         schedule_space = &default_schedule_space;
         chunk_space    = &default_chunk_space;
     } else {
