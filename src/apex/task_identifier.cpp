@@ -22,12 +22,12 @@ namespace apex {
 
     task_identifier::apex_name_map::~apex_name_map(void) {
         if (thread_instance::get_id() == 0) 
-            apex::finalize();
+            finalize();
     }
 
     task_identifier::apex_addr_map::~apex_addr_map(void) {
         if (thread_instance::get_id() == 0) 
-            apex::finalize();
+            finalize();
     }
 
 const std::string& task_identifier::get_name(bool resolve) {
