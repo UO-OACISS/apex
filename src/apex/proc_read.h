@@ -165,7 +165,7 @@ inline long long read_package0 (void) {
   FILE *fff;
   fff=fopen("/sys/class/powercap/intel-rapl/intel-rapl:0/energy_uj","r");
   if (fff==NULL) {
-    std::cerr << "Error opening package0!" << std::endl;
+    //std::cerr << "Error opening package0!" << std::endl;
   } else {
     fscanf(fff,"%lld",&tmplong);
     fclose(fff);
@@ -179,7 +179,7 @@ inline long long  read_dram (void) {
   FILE *fff;
   fff=fopen("/sys/class/powercap/intel-rapl/intel-rapl:0/intel-rapl:0:0/energy_uj","r");
   if (fff==NULL) {
-    std::cerr << "Error opening dram!" << std::endl;
+    //std::cerr << "Error opening dram!" << std::endl;
   } else {
     fscanf(fff,"%lld",&tmplong);
     fclose(fff);

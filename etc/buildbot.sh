@@ -1,6 +1,28 @@
 #!/bin/bash
 #set -x # echo all commands
-set -e # exit on error
+
+my_readlink()
+{
+    TARGET=$1
+
+    cd $(dirname "$TARGET")
+    TARGET=$(basename "$TARGET")
+
+    # Iterate down a (possible) chain of symlinks
+    while [ -L "$TARGET" ]
+    do
+        TARGET=$(readlink "$TARGET")
+        cd $(dirname "$TARGET")
+        TARGET=$(basename "$TARGET")
+    done
+
+    # Compute the canonicalized name by finding the physical path 
+    # for the directory we're in and appending the target file.
+    DIR=`pwd -P`
+    RESULT="$DIR/$TARGET"
+
+    echo $RESULT
+}
 
 no_malloc=""
 no_bfd=" -DUSE_BFD=FALSE"
@@ -28,12 +50,26 @@ dirname="default"
 options=""
 static=""
 sanitize=""
+ncores=2
+osname=`uname`
+if [ ${osname} == "Darwin" ]; then
+ncores=`sysctl -n hw.ncpu`
+else
 ncores=`nproc --all`
+fi
+
+echo "$nproc_exists"
+
+set -e # exit on error
 
 # remember where we are
 STARTDIR=`pwd`
 # Absolute path to this script, e.g. /home/user/bin/foo.sh
-SCRIPT=$(readlink -f "$0")
+if [ ${osname} == "Darwin" ]; then
+    SCRIPT=$(my_readlink "$0")
+else
+    SCRIPT=$(readlink -f "$0")
+fi
 # Absolute path this script is in, thus /home/user/bin
 SCRIPTPATH=$(dirname "$SCRIPT")
 echo $SCRIPTPATH

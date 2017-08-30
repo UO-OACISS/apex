@@ -127,7 +127,11 @@ public:
       if (apex_options::task_scatterplot()) {
         // check if the samples file exists
         struct stat buffer;
-        if (stat (task_scatterplot_sample_filename, &buffer) == 0) {
+        std::stringstream ss;
+        ss << apex_options::output_file_path();
+        ss << filesystem_separator();
+        ss << task_scatterplot_sample_filename;
+        if (stat (ss.str().c_str(), &buffer) == 0) {
             struct tm *timeinfo = localtime(&buffer.st_mtime);
             time_t filetime = mktime(timeinfo);
             time_t nowish;
@@ -137,7 +141,7 @@ public:
             if (seconds > 10) {
                 /* create the file */
                 std::ofstream tmp;
-				tmp.open(task_scatterplot_sample_filename);
+				tmp.open(ss.str());
         		tmp << "#timestamp value   name" << std::endl << std::flush;
 				/* yes, close the file because we will use some
 				   low-level calls to have concurrent access
@@ -147,7 +151,7 @@ public:
 		} else {
             /* create the file */
             std::ofstream tmp;
-			tmp.open(task_scatterplot_sample_filename);
+			tmp.open(ss.str());
         	tmp << "#timestamp value   name" << std::endl << std::flush;
 			/* yes, close the file because we will use some
 			low-level calls to have concurrent access
@@ -155,7 +159,7 @@ public:
 			tmp.close();
         }
 		// open the file
-		task_scatterplot_sample_file = open(task_scatterplot_sample_filename, O_APPEND | O_WRONLY );
+		task_scatterplot_sample_file = open(ss.str().c_str(), O_APPEND | O_WRONLY );
         if (task_scatterplot_sample_file < 0) { perror("opening scatterplot sample file"); }
 		assert(task_scatterplot_sample_file >= 0);
         profiler::get_global_start();

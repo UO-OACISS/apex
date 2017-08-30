@@ -279,6 +279,7 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_PAPI_METRICS, papi_metrics, char*, "") \
     macro (APEX_PLUGINS, plugins, char*, "") \
     macro (APEX_PLUGINS_PATH, plugins_path, char*, "./") \
+    macro (APEX_OUTPUT_FILE_PATH, output_file_path, char*, "./") \
     macro (APEX_OTF2_ARCHIVE_PATH, otf2_archive_path, char*, APEX_DEFAULT_OTF2_ARCHIVE_PATH) \
     macro (APEX_OTF2_ARCHIVE_NAME, otf2_archive_name, char*, APEX_DEFAULT_OTF2_ARCHIVE_NAME)
 

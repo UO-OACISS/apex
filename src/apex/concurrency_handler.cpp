@@ -221,7 +221,8 @@ void concurrency_handler::output_samples(int node_id) {
   //cout << _states.size() << " samples seen:" << endl;
   ofstream myfile;
   stringstream datname;
-  datname << "concurrency." << node_id << ".dat";
+  datname << apex_options::output_file_path();
+  datname << filesystem_separator() << "concurrency." << node_id << ".dat";
   myfile.open(datname.str().c_str());
   _function_mutex.lock();
   // limit ourselves to N functions.
@@ -307,7 +308,7 @@ void concurrency_handler::output_samples(int node_id) {
 
   if (max_Power == 0.0) max_Power = 100;
   stringstream plotname;
-  plotname << "concurrency." << node_id << ".gnuplot";
+  plotname << apex_options::output_file_path() << "concurrency." << node_id << ".gnuplot";
   myfile.open(plotname.str().c_str());
   myfile << "set palette maxcolors 16" << endl;
   myfile << "set palette defined ( 0 '#E41A1C', 1 '#377EB8', 2 '#4DAF4A', 3 '#984EA3', 4 '#FF7F00', 5 '#FFFF33', 6 '#A65628', 7 '#F781BF', 8 '#66C2A5', 9 '#FC8D62', 10 '#8DA0CB', 11 '#E78AC3', 12 '#A6D854', 13 '#FFD92F', 14 '#E5C494', 15 '#B3B3B3' )" << endl;
