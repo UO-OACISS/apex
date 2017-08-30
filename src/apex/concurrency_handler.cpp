@@ -309,11 +309,15 @@ void concurrency_handler::output_samples(int node_id) {
   stringstream plotname;
   plotname << "concurrency." << node_id << ".gnuplot";
   myfile.open(plotname.str().c_str());
-  myfile << "everyNth(col) = (int(column(col))%" << (int)(max_X/10) << "==0)?stringcolumn(1):\"\";" << endl;
+  myfile << "set palette maxcolors 16" << endl;
+  myfile << "set palette defined ( 0 '#E41A1C', 1 '#377EB8', 2 '#4DAF4A', 3 '#984EA3', 4 '#FF7F00', 5 '#FFFF33', 6 '#A65628', 7 '#F781BF', 8 '#66C2A5', 9 '#FC8D62', 10 '#8DA0CB', 11 '#E78AC3', 12 '#A6D854', 13 '#FFD92F', 14 '#E5C494', 15 '#B3B3B3' )" << endl;
+  myfile << "set terminal png size 1600,900 font Helvetica 16" << endl;
+  myfile << "set output 'concurrency.png'" << endl;
+  myfile << "everyNth(col) = (int(column(col))%" << (int)(max_X/10) << "==0)?stringcolumn(1):\"\"" << endl;
   myfile << "set key outside bottom center invert box" << endl;
-  myfile << "set xtics auto" << endl;
-  myfile << "set ytics 4" << endl;
-  myfile << "set y2tics auto" << endl;
+  myfile << "set xtics auto nomirror" << endl;
+  myfile << "set ytics 4 nomirror" << endl;
+  myfile << "set y2tics auto nomirror" << endl;
   myfile << "set xrange[0:" << max_X << "]" << endl;
   myfile << "set yrange[0:" << max_Y << "]" << endl;
   myfile << "set y2range[0:" << max_Power << "]" << endl;
@@ -326,7 +330,7 @@ void concurrency_handler::output_samples(int node_id) {
   myfile << "set style fill solid border" << endl;
   myfile << "set style histogram rowstacked" << endl;
   myfile << "set boxwidth 1.0 relative" << endl;
-  myfile << "set palette rgb 33,13,10" << endl;
+  myfile << "#set palette rgb 33,13,10" << endl;
   myfile << "unset colorbox" << endl;
   myfile << "set key noenhanced" << endl; // this allows underscores in names
   myfile << "plot for [COL=" << (4+num_params) << ":" << top_x.size()+num_params+4;

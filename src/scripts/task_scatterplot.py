@@ -74,4 +74,5 @@ for key in sorted(dictionary, key=lambda key: len(dictionary[key]), reverse=True
         break
 print "Rendering..."
 pl.tight_layout()
-pl.show()
+#pl.show()
+pl.savefig("image.png")
