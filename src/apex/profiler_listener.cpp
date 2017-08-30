@@ -438,6 +438,9 @@ std::unordered_set<profile*> free_profiles;
        * a thread_instance object that is NOT a worker. */
       thread_instance::instance(false);
       string action_name = task_id.get_name();
+      if (action_name.compare(APEX_MAIN) == 0) {
+          return; // don't write out apex main timer
+      }
       string shorter(action_name);
       size_t maxlength = 30;
       if (timer) maxlength = 52;
@@ -491,7 +494,12 @@ std::unordered_set<profile*> free_profiles;
             screen_output << string_format(FORMAT_PERCENT, 100.0);
         } else {
             total_accumulated += p->get_accumulated();
-            screen_output << string_format(FORMAT_PERCENT, (((p->get_accumulated()*profiler::get_cpu_mhz())/total_main)*100));
+            double tmp = ((p->get_accumulated()*profiler::get_cpu_mhz())/total_main)*100.0;
+            if (tmp > 100.0) {
+                screen_output << " --n/a--   " ;
+            } else {
+                screen_output << string_format(FORMAT_PERCENT, tmp);
+            }
         }
 #if APEX_HAVE_PAPI
         for (int i = 0 ; i < num_papi_counters ; i++) {
@@ -600,6 +608,7 @@ std::unordered_set<profile*> free_profiles;
     double idle_rate = total_main - (total_accumulated*profiler::get_cpu_mhz());
     if (idle_rate >= 0.0) {
       screen_output << string_format("%52s", APEX_IDLE_TIME) << " : ";
+      screen_output << "                      "; // pad with spaces for #calls, mean
       screen_output << string_format(FORMAT_SCIENTIFIC, idle_rate) << "   " ;
       screen_output << string_format(FORMAT_PERCENT, ((idle_rate/total_main)*100)) << endl;
     }
