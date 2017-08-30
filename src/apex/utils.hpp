@@ -206,5 +206,14 @@ void set_thread_affinity(int core);
 
 void remove_path(const char * pathname);
 
+inline char filesystem_separator()
+{
+#if defined _WIN32 || defined __CYGWIN__
+    return '\\';
+#else
+    return '/';
+#endif
+}
+
 };
 

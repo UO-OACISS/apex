@@ -221,7 +221,8 @@ void concurrency_handler::output_samples(int node_id) {
   //cout << _states.size() << " samples seen:" << endl;
   ofstream myfile;
   stringstream datname;
-  datname << "concurrency." << node_id << ".dat";
+  datname << apex_options::output_file_path();
+  datname << filesystem_separator() << "concurrency." << node_id << ".dat";
   myfile.open(datname.str().c_str());
   _function_mutex.lock();
   // limit ourselves to N functions.
@@ -307,7 +308,7 @@ void concurrency_handler::output_samples(int node_id) {
 
   if (max_Power == 0.0) max_Power = 100;
   stringstream plotname;
-  plotname << "concurrency." << node_id << ".gnuplot";
+  plotname << apex_options::output_file_path() << "concurrency." << node_id << ".gnuplot";
   myfile.open(plotname.str().c_str());
   myfile << "everyNth(col) = (int(column(col))%" << (int)(max_X/10) << "==0)?stringcolumn(1):\"\";" << endl;
   myfile << "set key outside bottom center invert box" << endl;

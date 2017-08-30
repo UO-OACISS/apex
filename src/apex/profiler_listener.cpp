@@ -629,7 +629,8 @@ std::unordered_set<profile*> free_profiles;
     if (apex_options::use_csv_output()) {
         ofstream csvfile;
         stringstream csvname;
-        csvname << "apex." << node_id << ".csv";
+        csvname << apex_options::output_file_path();
+        csvname << filesystem_separator() << "apex." << node_id << ".csv";
         csvfile.open(csvname.str(), ios::out);
         csvfile << csv_output.str();
         csvfile.close();
@@ -681,7 +682,8 @@ node_color * get_node_color(double v,double vmin,double vmax)
     thread_instance::instance(false);
     ofstream myfile;
     stringstream dotname;
-    dotname << "taskgraph." << node_id << ".dot";
+    dotname << apex_options::output_file_path();
+    dotname << filesystem_separator() << "taskgraph." << node_id << ".dot";
     myfile.open(dotname.str().c_str());
 
     myfile << "digraph prof {\n rankdir=\"LR\";\n node [shape=box];\n";
@@ -771,7 +773,8 @@ node_color * get_node_color(double v,double vmin,double vmax)
     stringstream datname;
     // name format: profile.nodeid.contextid.threadid
     // We only write one profile per process
-    datname << "profile." << node_id << ".0.0";
+    datname << apex_options::output_file_path();
+    datname << filesystem_separator() << "profile." << node_id << ".0.0";
 
     // name format: profile.nodeid.contextid.threadid
     myfile.open(datname.str().c_str());
