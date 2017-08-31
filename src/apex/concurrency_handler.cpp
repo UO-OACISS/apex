@@ -308,7 +308,8 @@ void concurrency_handler::output_samples(int node_id) {
 
   if (max_Power == 0.0) max_Power = 100;
   stringstream plotname;
-  plotname << apex_options::output_file_path() << "concurrency." << node_id << ".gnuplot";
+  plotname << apex_options::output_file_path();
+  plotname << filesystem_separator() << "concurrency." << node_id << ".gnuplot";
   myfile.open(plotname.str().c_str());
   myfile << "everyNth(col) = (int(column(col))%" << (int)(max_X/10) << "==0)?stringcolumn(1):\"\";" << endl;
   myfile << "set key outside bottom center invert box" << endl;
