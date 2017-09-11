@@ -833,7 +833,7 @@ inline void __active_harmony_throughput_setup(int num_inputs, long ** inputs, lo
         cerr << "Failed to set Active Harmony tuning radius" << endl;
         return;
     }
-    char tmpstr[12] = {0};
+    char tmpstr[32] = {0};
     thread_cap_tuning_session->__num_ah_inputs = num_inputs;
     for (int i = 0 ; i < num_inputs ; i++ ) {
         sprintf (tmpstr, "param_%d", i);
@@ -891,7 +891,7 @@ inline int __active_harmony_custom_setup(shared_ptr<apex_tuning_session> tuning_
         cerr << "Failed to set Active Harmony tuning radius" << endl;
         return APEX_ERROR;
     }
-    char tmpstr[12] = {0};
+    char tmpstr[32] = {0};
     for (int i = 0 ; i < num_inputs ; i++ ) {
         sprintf (tmpstr, "param_%d", i);
         if (ah_def_int(tuning_session->hdef, tmpstr, mins[i], maxs[i], steps[i], inputs[i]) != 0) {
