@@ -1574,9 +1574,9 @@ extern "C" {
 } // extern "C"
 
 #ifdef APEX_HAVE_HPX
-HPX_DECLARE_ACTION(apex::finalize, apex_internal_shutdown_action);
+HPX_DECLARE_ACTION(APEX_TOP_LEVEL_PACKAGE::finalize, apex_internal_shutdown_action);
 HPX_ACTION_HAS_CRITICAL_PRIORITY(apex_internal_shutdown_action);
-HPX_PLAIN_ACTION(apex::finalize, apex_internal_shutdown_action);
+HPX_PLAIN_ACTION(APEX_TOP_LEVEL_PACKAGE::finalize, apex_internal_shutdown_action);
 
 void apex_schedule_shutdown() {
     if(get_hpx_runtime_ptr() == nullptr) return;
