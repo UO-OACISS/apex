@@ -283,12 +283,13 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_OTF2_ARCHIVE_PATH, otf2_archive_path, char*, APEX_DEFAULT_OTF2_ARCHIVE_PATH) \
     macro (APEX_OTF2_ARCHIVE_NAME, otf2_archive_name, char*, APEX_DEFAULT_OTF2_ARCHIVE_NAME)
 
-#if defined(__linux) || defined(__linux__)
+// Do the clang check first
+#if defined(__APPLE__) || defined(__clang__)
+#  define APEX_NATIVE_TLS thread_local
+#elif defined(__linux) || defined(__linux__)
 #  define APEX_NATIVE_TLS __thread
 #elif defined(_WIN32) || defined(_WIN64)
 #  define APEX_NATIVE_TLS __declspec(thread)
-#elif defined(__APPLE__)
-#  define APEX_NATIVE_TLS thread_local
 #elif defined(__FreeBSD__) || (defined(__APPLE__) && defined(__MACH__))
 #  define APEX_NATIVE_TLS __thread
 #else

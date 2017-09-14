@@ -160,9 +160,8 @@ const char* thread_instance::program_path(void) {
     if (_program_path == NULL) {
         char path[PATH_MAX];
         memset(path,0,PATH_MAX);
-        if (path != NULL) {
-            if (readlink("/proc/self/exe", path, PATH_MAX) == -1)
-                return NULL;
+        if (readlink("/proc/self/exe", path, PATH_MAX) == -1) {
+            return NULL;
         }
         _program_path = new string(path);
     }
