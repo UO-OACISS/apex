@@ -58,7 +58,7 @@ else
 ncores=`nproc --all`
 fi
 
-echo "$nproc_exists"
+echo "Num parallel builds: $ncores"
 
 set -e # exit on error
 
