@@ -242,12 +242,19 @@ void apex::_initialize()
             listeners.push_back(new otf2_listener());
         }
 #endif
+
+/* For the Jupyter support, always enable the concurrency handler. */
+#ifndef APEX_WITH_JUPYTER_SUPPORT
         if (apex_options::use_concurrency() > 0)
+#endif
         {
             listeners.push_back(new concurrency_handler(apex_options::concurrency_period(), apex_options::use_concurrency()));
         }
         startup_throttling();
+/* For the Jupyter support, always enable the policy listener. */
+#ifndef APEX_WITH_JUPYTER_SUPPORT
         if (apex_options::use_policy())
+#endif
         {
             this->m_policy_handler = new policy_handler();
             listeners.push_back(this->m_policy_handler);
