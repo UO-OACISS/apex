@@ -90,6 +90,8 @@ public:
     ~policy_handler (void) { };
     void on_startup(startup_event_data &data);
     void on_dump(dump_event_data &data);
+    void on_reset(task_identifier * id) 
+        { APEX_UNUSED(id); };
     void on_shutdown(shutdown_event_data &data);
     void on_new_node(node_event_data &data);
     void on_new_thread(new_thread_event_data &data);
@@ -99,7 +101,7 @@ public:
     void on_yield(std::shared_ptr<profiler> &p);
     bool on_resume(task_identifier * id);
     void on_new_task(task_identifier * id, uint64_t task_id)
-       { APEX_UNUSED(id); APEX_UNUSED(task_id); };
+        { APEX_UNUSED(id); APEX_UNUSED(task_id); };
     void on_sample_value(sample_value_event_data &data);
     void on_custom_event(custom_event_data &data);
     void on_periodic(periodic_event_data &data);

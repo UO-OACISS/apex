@@ -12,24 +12,28 @@ int main (int argc, char** argv) {
   // Call "foo" 30 times
   for(i = 0; i < 30; ++i) {
     apex_profiler_handle p = apex_start(APEX_NAME_STRING,"foo");
+    usleep(1000);
     apex_stop(p);
   }    
   // Call "bar" 40 times
   for(i = 0; i < 40; ++i) {
     apex_profiler_handle p = apex_start(APEX_NAME_STRING,"bar");
+    usleep(1000);
     apex_stop(p);
   }    
   // Reset everything
   apex_reset(APEX_FUNCTION_ADDRESS, APEX_NULL_FUNCTION_ADDRESS);
-  usleep(100);
+  usleep(1000);
   // Call "foo" 3 times
   for(i = 0; i < 3; ++i) {
     apex_profiler_handle p = apex_start(APEX_NAME_STRING,"foo");
+    usleep(1000);
     apex_stop(p);
   }    
   // Call "bar" 4 times
   for(i = 0; i < 4; ++i) {
     apex_profiler_handle p = apex_start(APEX_NAME_STRING,"bar");
+    usleep(1000);
     apex_stop(p);
   }    
   // The profile should show "foo" was called 3 times
@@ -38,14 +42,16 @@ int main (int argc, char** argv) {
   // Call "Test Timer" 100 times
   for(i = 0; i < 100; ++i) {
     apex_profiler_handle p = apex_start(APEX_NAME_STRING,"Test Timer");
+    usleep(1000);
     apex_stop(p);
   }    
   // Reset "Test Timer"
   apex_reset(APEX_NAME_STRING, "Test Timer");
-  usleep(100);
+  usleep(1000);
   // Call "Test Timer" 25 times
   for(i = 0; i < 25; ++i) {
     apex_profiler_handle p = apex_start(APEX_NAME_STRING,"Test Timer");
+    usleep(1000);
     apex_stop(p);
   }    
   // The profile should show "Test Timer" was called 25 times.

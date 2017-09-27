@@ -615,7 +615,12 @@ void reset(const std::string &timer_name) {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
     task_identifier * id = task_identifier::get_task_id(timer_name);
-    instance->the_profiler_listener->reset(id);
+    //instance->the_profiler_listener->reset(id);
+    if (_notify_listeners) {
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            instance->listeners[i]->on_reset(id);
+        }
+    }
 }
 
 void reset(apex_function_address function_address) {
@@ -623,11 +628,15 @@ void reset(apex_function_address function_address) {
     if (apex_options::disable() == true) { return; }
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
-    if (function_address == APEX_NULL_FUNCTION_ADDRESS) {
-        instance->the_profiler_listener->reset_all();
-    } else {
-        task_identifier * id = task_identifier::get_task_id(function_address);
-        instance->the_profiler_listener->reset(id);
+    task_identifier * id = nullptr;
+    if (function_address != APEX_NULL_FUNCTION_ADDRESS) {
+        id = task_identifier::get_task_id(function_address);
+    }
+    //instance->the_profiler_listener->reset(id);
+    if (_notify_listeners) {
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            instance->listeners[i]->on_reset(id);
+        }
     }
 }
 

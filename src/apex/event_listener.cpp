@@ -69,7 +69,7 @@ shutdown_event_data::shutdown_event_data(int node_id, int thread_id) {
 }
 
 dump_event_data::dump_event_data(int node_id, int thread_id, bool reset) {
-  this->event_type_ = APEX_SHUTDOWN;
+  this->event_type_ = APEX_DUMP;
   this->node_id = node_id;
   this->thread_id = thread_id;
   this->reset = reset;

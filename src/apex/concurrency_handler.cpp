@@ -101,14 +101,17 @@ bool concurrency_handler::_handler(void) {
       }
     }
   }
-  _states.push_back(counts);
-  _thread_cap_samples.push_back(get_thread_cap());
-  // TODO: FIXME multiple tuning sessions
-  //for(auto param : get_tunable_params()) {
-  //  _tunable_param_samples[param.first].push_back(*param.second);
-  //}
   int power = current_power_high();
-  _power_samples.push_back(power);
+  {
+    std::lock_guard<std::mutex> l(_vector_mutex);
+    _states.push_back(counts);
+    _thread_cap_samples.push_back(get_thread_cap());
+    // TODO: FIXME multiple tuning sessions
+    //for(auto param : get_tunable_params()) {
+    //  _tunable_param_samples[param.first].push_back(*param.second);
+    //}
+    _power_samples.push_back(power);
+  }
   if (apex_options::use_tau()) {
     Tau_stop("concurrency_handler::_handler");
   }
@@ -182,6 +185,12 @@ void concurrency_handler::on_dump(dump_event_data &data) {
     }
 }
 
+void concurrency_handler::on_reset(task_identifier * id) {
+    if (id == nullptr) {
+        reset_samples();
+    }
+}
+
 void concurrency_handler::on_shutdown(shutdown_event_data &data) {
     _terminate = true; // because there are crashes
     cancel();
@@ -214,7 +223,10 @@ bool sort_functions(pair<task_identifier,int> first, pair<task_identifier,int> s
 }
 
 void concurrency_handler::reset_samples(void) {
-  std::cerr << "concurrency_handler::reset_samples NOT IMPLEMENTED YET" << std::endl;
+  std::lock_guard<std::mutex> l(_vector_mutex);
+  _states.clear();
+  _power_samples.clear();
+  _thread_cap_samples.clear();
 }
 
 void concurrency_handler::output_samples(int node_id) {

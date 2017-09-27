@@ -59,6 +59,8 @@ typedef enum _event_type {
   APEX_INVALID_EVENT = -1,
   APEX_STARTUP = 0,        /*!< APEX is initialized */
   APEX_SHUTDOWN,       /*!< APEX is terminated */
+  APEX_DUMP,           /*!< APEX is dumping output */
+  APEX_RESET,          /*!< APEX is resetting data structures */
   APEX_NEW_NODE,       /*!< APEX has registered a new process ID */
   APEX_NEW_THREAD,     /*!< APEX has registered a new OS thread */
   APEX_EXIT_THREAD,    /*!< APEX has exited an OS thread */

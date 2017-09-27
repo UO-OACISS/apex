@@ -12,24 +12,28 @@ int main (int argc, char** argv) {
   // Call "foo" 30 times
   for(int i = 0; i < 30; ++i) {
     profiler * p = start("foo");
+    usleep(1000);
     stop(p);
   }    
   // Call "bar" 40 times
   for(int i = 0; i < 40; ++i) {
     profiler * p = start("bar");
+    usleep(1000);
     stop(p);
   }    
   // Reset everything
   reset(APEX_NULL_FUNCTION_ADDRESS);
-  usleep(100);
+  usleep(1000);
   // Call "foo" 3 times
   for(int i = 0; i < 3; ++i) {
     profiler * p = start("foo");
+    usleep(1000);
     stop(p);
   }    
   // Call "bar" 4 times
   for(int i = 0; i < 4; ++i) {
     profiler * p = start("bar");
+    usleep(1000);
     stop(p);
   }    
   // The profile should show "foo" was called 3 times
@@ -38,14 +42,16 @@ int main (int argc, char** argv) {
   // Call "Test Timer" 100 times
   for(int i = 0; i < 100; ++i) {
     profiler * p = start("Test Timer");
+    usleep(1000);
     stop(p);
   }    
   // Reset "Test Timer"
   reset("Test Timer");
-  usleep(100);
+  usleep(1000);
   // Call "Test Timer" 25 times
   for(int i = 0; i < 25; ++i) {
     profiler * p = start("Test Timer");
+    usleep(1000);
     stop(p);
   }    
   // The profile should show "Test Timer" was called 25 times.

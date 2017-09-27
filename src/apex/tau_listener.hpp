@@ -20,6 +20,8 @@ public:
   static bool initialize_tau(int argc, char** avgv);
   void on_startup(startup_event_data &data);
   void on_dump(dump_event_data &data);
+  void on_reset(task_identifier * id) 
+      { APEX_UNUSED(id); };
   void on_shutdown(shutdown_event_data &data);
   void on_new_node(node_event_data &data);
   void on_new_thread(new_thread_event_data &data);

@@ -221,7 +221,7 @@ std::unordered_set<profile*> free_profiles;
     // restart the main timer
     main_timer = std::make_shared<profiler>(task_identifier::get_task_id(string(APEX_MAIN)));
 #endif
-}
+  }
 
   /* After the consumer thread pulls a profiler off of the queue,
    * process it by updating its profile object in the map of profiles. */
@@ -1155,6 +1155,14 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       if (data.reset) {
           reset_all();
       }
+  }
+
+  void profiler_listener::on_reset(task_identifier * id) {
+    if (id == nullptr) {
+        reset_all();
+    } else {
+        reset(id);
+    }
   }
 
   /* On the shutdown event, notify the consumer thread that we are done
