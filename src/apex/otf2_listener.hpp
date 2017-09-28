@@ -21,6 +21,7 @@ namespace apex {
     private:
         void _init(void);
         bool _terminate;
+        bool _initialized;
         std::mutex _region_mutex;
         std::mutex _string_mutex;
         std::mutex _metric_mutex;
@@ -115,7 +116,7 @@ namespace apex {
         OTF2_Archive* archive;
         OTF2_EvtWriter* comm_evt_writer;
         //APEX_NATIVE_TLS OTF2_DefWriter* def_writer;
-        OTF2_EvtWriter* getEvtWriter();
+        OTF2_EvtWriter* getEvtWriter(bool create);
         bool event_file_exists (int threadid);
         OTF2_DefWriter* getDefWriter(int threadid);
         OTF2_GlobalDefWriter* global_def_writer;

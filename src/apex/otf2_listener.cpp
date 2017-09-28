@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/file.h>
+#include <atomic>
 
 #define OTF2_EC(call) { \
     OTF2_ErrorCode ec = call; \
@@ -27,6 +28,7 @@ namespace apex {
     const std::string otf2_listener::empty("");
     int otf2_listener::my_saved_node_id(0);
     int otf2_listener::my_saved_node_count(1);
+    std::atomic<int> active_threads{0};
 
     OTF2_CallbackCode otf2_listener::my_OTF2GetSize(void *userData,
             OTF2_CollectiveContext *commContext, uint32_t *size) {
@@ -253,12 +255,12 @@ namespace apex {
         return &cb;
     }
 
-    OTF2_EvtWriter* otf2_listener::getEvtWriter(void) {
+    OTF2_EvtWriter* otf2_listener::getEvtWriter(bool create) {
       static APEX_NATIVE_TLS OTF2_EvtWriter* evt_writer(nullptr);
-      if (evt_writer == nullptr) {
+      // Are we creating / opening an event writer?
+      if (evt_writer == nullptr && create) {
         // only let one thread at a time create an event file
         read_lock_type lock(_archive_mutex);
-        //printf("creating event writer for thread %lu\n", thread_instance::get_id()); fflush(stdout);
         uint64_t my_node_id = my_saved_node_id;
         my_node_id = (my_node_id << 32) + thread_instance::get_id();
         evt_writer = OTF2_Archive_GetEvtWriter( archive, my_node_id );
@@ -267,7 +269,20 @@ namespace apex {
         }
         std::unique_lock<std::mutex> l(_event_set_mutex);
         _event_threads.insert(thread_instance::get_id());
+      // Are we closing an event writer?
+      } else if (!create) {
+        if (thread_instance::get_id() == 0) {
+            comm_evt_writer = nullptr;
+        }
+        if (evt_writer != nullptr) {
+            //printf("closing event writer %p for thread %lu\n", evt_writer, thread_instance::get_id()); fflush(stdout);
+            // FOR SOME REASON, OTF2 CRASHES ON EXIT
+            // Not closing the event writers seems to prevent that?
+            //OTF2_Archive_CloseEvtWriter( archive, evt_writer );
+            evt_writer = nullptr;
+        }
       }
+      //printf("using event writer %p for thread %lu\n", evt_writer, thread_instance::get_id()); fflush(stdout);
       return evt_writer;
     }
 
@@ -293,7 +308,7 @@ namespace apex {
     };
 
     /* constructor for the OTF2 listener class */
-    otf2_listener::otf2_listener (void) : _terminate(false), comm_evt_writer(nullptr), global_def_writer(nullptr) {
+    otf2_listener::otf2_listener (void) : _terminate(false), _initialized(false), comm_evt_writer(nullptr), global_def_writer(nullptr) {
         /* get a start time for the trace */
         globalOffset = get_time();
         /* set the flusher */
@@ -357,8 +372,9 @@ namespace apex {
             // let rank/locality 0 know this rank's properties.
             write_my_node_properties();
             // set up the event writer for communication (thread 0).
-            getEvtWriter();
+            getEvtWriter(true);
         }
+        _initialized = true;
         return;
     }
 
@@ -999,12 +1015,12 @@ namespace apex {
             // not likely, but just in case...
             if (_terminate) { return; }
             // before we process the event, make sure the event write is open
-            getEvtWriter();
+            getEvtWriter(true);
 /* Don't do this until we can do the ThreadCreate call
  * and get the right threadContingent object for the
  * fourth parameter. */
 #if 0
-            OTF2_EvtWriter* local_evt_writer = getEvtWriter();
+            OTF2_EvtWriter* local_evt_writer = getEvtWriter(true);
             if (local_evt_writer != NULL) {
               // insert a thread begin event
               uint64_t stamp = get_time();
@@ -1028,15 +1044,11 @@ namespace apex {
         if (thread_instance::get_id() != 0) {
             // insert a thread end event
             uint64_t stamp = get_time();
-            OTF2_EvtWriter_ThreadEnd( getEvtWriter(), NULL, stamp, 0, 0);
+            OTF2_EvtWriter_ThreadEnd( getEvtWriter(false), NULL, stamp, 0, 0);
         } 
 #endif
-        //printf("closing event writer for thread %lu\n", thread_instance::get_id()); fflush(stdout);
         //_event_threads.insert(thread_instance::get_id());
-        OTF2_Archive_CloseEvtWriter( archive, getEvtWriter() );
-        if (thread_instance::get_id() == 0) {
-            comm_evt_writer = nullptr;
-        }
+        getEvtWriter(false);
         APEX_UNUSED(data);
         return;
     }
@@ -1047,24 +1059,27 @@ namespace apex {
         // not likely, but just in case...
         if (_terminate) { return false; }
         // before we process the event, make sure the event write is open
-        OTF2_EvtWriter* local_evt_writer = getEvtWriter();
-        if (thread_instance::get_id() == 0) {
-            uint64_t idx = get_region_index(id);
-            // Because the event writer for thread 0 is also
-            // used for communication events and sampled values,
-            // we have to get a lock for it.
-            std::unique_lock<std::mutex> lock(_comm_mutex);
-            // unfortunately, we can't use the timestamp from the
-            // profiler object. bummer. it has to be taken after
-            // the lock is acquired, so that events happen on
-            // thread 0 in monotonic order.
-            uint64_t stamp = get_time();
-            OTF2_EC(OTF2_EvtWriter_Enter( local_evt_writer, NULL, stamp, idx /* region */ ));
-        } else {
-            uint64_t stamp = get_time();
-            OTF2_EC(OTF2_EvtWriter_Enter( local_evt_writer, NULL, stamp, get_region_index(id) /* region */ ));
+        OTF2_EvtWriter* local_evt_writer = getEvtWriter(true);
+        if (local_evt_writer != nullptr) {
+            if (thread_instance::get_id() == 0) {
+                uint64_t idx = get_region_index(id);
+                // Because the event writer for thread 0 is also
+                // used for communication events and sampled values,
+                // we have to get a lock for it.
+                std::unique_lock<std::mutex> lock(_comm_mutex);
+                // unfortunately, we can't use the timestamp from the
+                // profiler object. bummer. it has to be taken after
+                // the lock is acquired, so that events happen on
+                // thread 0 in monotonic order.
+                uint64_t stamp = get_time();
+                OTF2_EC(OTF2_EvtWriter_Enter( local_evt_writer, NULL, stamp, idx /* region */ ));
+            } else {
+                uint64_t stamp = get_time();
+                OTF2_EC(OTF2_EvtWriter_Enter( local_evt_writer, NULL, stamp, get_region_index(id) /* region */ ));
+            }
+            return true;
         }
-        return true;
+        return false;
     }
 
     bool otf2_listener::on_resume(task_identifier * id) {
@@ -1074,25 +1089,27 @@ namespace apex {
     void otf2_listener::on_stop(std::shared_ptr<profiler> &p) {
         // don't close the archive on us!
         read_lock_type lock(_archive_mutex);
-        OTF2_EvtWriter* local_evt_writer = getEvtWriter();
-        // not likely, but just in case...
-        if (_terminate) { return; }
-        if (thread_instance::get_id() == 0) {
-            uint64_t idx = get_region_index(p->task_id);
-            // Because the event writer for thread 0 is also
-            // used for communication events and sampled values,
-            // we have to get a lock for it.
-            std::unique_lock<std::mutex> lock(_comm_mutex);
-            // unfortunately, we can't use the timestamp from the
-            // profiler object. bummer. it has to be taken after
-            // the lock is acquired, so that events happen on
-            // thread 0 in monotonic order.
-            uint64_t stamp = get_time();
-            OTF2_EC(OTF2_EvtWriter_Leave( local_evt_writer, NULL, stamp, idx /* region */ ));
-        } else {
-            uint64_t stamp = get_time();
-            OTF2_EC(OTF2_EvtWriter_Leave( local_evt_writer, NULL, stamp, 
-                    get_region_index(p->task_id) /* region */ ));
+        OTF2_EvtWriter* local_evt_writer = getEvtWriter(true);
+        if (local_evt_writer != nullptr) {
+            // not likely, but just in case...
+            if (_terminate) { return; }
+            if (thread_instance::get_id() == 0) {
+                uint64_t idx = get_region_index(p->task_id);
+                // Because the event writer for thread 0 is also
+                // used for communication events and sampled values,
+                // we have to get a lock for it.
+                std::unique_lock<std::mutex> lock(_comm_mutex);
+                // unfortunately, we can't use the timestamp from the
+                // profiler object. bummer. it has to be taken after
+                // the lock is acquired, so that events happen on
+                // thread 0 in monotonic order.
+                uint64_t stamp = get_time();
+                OTF2_EC(OTF2_EvtWriter_Leave( local_evt_writer, NULL, stamp, idx /* region */ ));
+            } else {
+                uint64_t stamp = get_time();
+                OTF2_EC(OTF2_EvtWriter_Leave( local_evt_writer, NULL, stamp, 
+                        get_region_index(p->task_id) /* region */ ));
+            }
         }
         return;
     }
@@ -1162,6 +1179,9 @@ namespace apex {
     }
 
     void otf2_listener::on_sample_value(sample_value_event_data &data) {
+        // This could be an asynchronous sampled counter, may have gotten
+        // here before initialization is done.  Wait a sec...hopefully not longer.
+        while (!_initialized) { usleep(100); }
         // don't close the archive on us!
         read_lock_type lock(_archive_mutex);
         // not likely, but just in case...
