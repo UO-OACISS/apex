@@ -107,6 +107,7 @@ public:
     void on_periodic(periodic_event_data &data);
     void on_send(message_event_data &data);
     void on_recv(message_event_data &data);
+    void set_node_id(int node_id, int node_count) { APEX_UNUSED(node_id); APEX_UNUSED(node_count); }
 
     int register_policy(const apex_event_type & when,
                         std::function<int(apex_context const&)> f);

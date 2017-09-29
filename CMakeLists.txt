@@ -362,6 +362,7 @@ endif()
 
 if(MPI_CXX_FOUND)
     add_definitions(-DAPEX_HAVE_MPI)
+    set(LIBS ${LIBS} ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES})
 endif()
 
 ################################################################################

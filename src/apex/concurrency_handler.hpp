@@ -71,6 +71,7 @@ public:
   void on_custom_event(custom_event_data &data) { APEX_UNUSED(data); };
   void on_send(message_event_data &data) { APEX_UNUSED(data); };
   void on_recv(message_event_data &data) { APEX_UNUSED(data); };
+  void set_node_id(int node_id, int node_count) { APEX_UNUSED(node_id); APEX_UNUSED(node_count); }
 
   bool _handler(void);
   std::stack<task_identifier>* get_event_stack(unsigned int tid);

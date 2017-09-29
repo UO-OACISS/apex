@@ -37,6 +37,7 @@ public:
   void on_custom_event(custom_event_data &data);
   void on_send(message_event_data &data) { APEX_UNUSED(data); };
   void on_recv(message_event_data &data) { APEX_UNUSED(data); };
+  void set_node_id(int node_id, int node_count);
 
 };
 

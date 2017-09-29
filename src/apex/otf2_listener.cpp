@@ -371,6 +371,7 @@ namespace apex {
         // around when we are finalizing everything.
         my_saved_node_id = apex::instance()->get_node_id();
         my_saved_node_count = apex::instance()->get_num_ranks();
+        cout << "Rank " << my_saved_node_id << " of " << my_saved_node_count << "." << endl;
         // now is a good time to make sure the archive is open on this rank/locality
         static bool archive_created = create_archive();
         if ((!_terminate) && archive_created) {
@@ -378,6 +379,7 @@ namespace apex {
             getEvtWriter(true);
         } else {
             std::cerr << "Archive not created!" << std::endl; fflush(stderr);
+            return;
         }
         _initialized = true;
         return;
@@ -897,7 +899,9 @@ namespace apex {
     void otf2_listener::on_sample_value(sample_value_event_data &data) {
         // This could be an asynchronous sampled counter, may have gotten
         // here before initialization is done.  Wait a sec...hopefully not longer.
-        while (!_initialized) { usleep(100); }
+        while (!_initialized) { 
+            usleep(apex_options::policy_drain_timeout()); // sleep 1ms (default)
+        }
         // don't close the archive on us!
         read_lock_type lock(_archive_mutex);
         // not likely, but just in case...
@@ -948,8 +952,12 @@ namespace apex {
             allhostnames = (char*)calloc(hostlength*my_saved_node_count, sizeof(char));
         }
 
-        PMPI_Gather(tmp, hostlength, MPI_CHAR, allhostnames,
-                    hostlength, MPI_CHAR, 0, MPI_COMM_WORLD);
+        if (my_saved_node_count > 1) {
+            PMPI_Gather(tmp, hostlength, MPI_CHAR, allhostnames,
+                        hostlength, MPI_CHAR, 0, MPI_COMM_WORLD);
+        } else {
+            allhostnames = &(tmp[0]);
+        }
 
         // if not root, we are done.  return.
         if (my_saved_node_id > 0) {
@@ -998,9 +1006,13 @@ namespace apex {
         char * sbuf = nullptr;
         char * rbuf = nullptr;
 
-        // get the max length from all nodes
-        PMPI_Allreduce(&length, &max_length, 1, MPI_INT, 
-                       MPI_MAX, MPI_COMM_WORLD);
+        if (my_saved_node_count > 1) {
+            // get the max length from all nodes
+            PMPI_Allreduce(&length, &max_length, 1, MPI_INT, 
+                           MPI_MAX, MPI_COMM_WORLD);
+        } else {
+            max_length = length;
+        }
         // get the total length
         full_length = max_length * my_saved_node_count;
 
@@ -1012,8 +1024,12 @@ namespace apex {
         sbuf = (char*) calloc(max_length, sizeof(char));
         strncpy(sbuf, my_regions.c_str(), max_length);
 
-        // gather the strings to node 0
-        PMPI_Gather(sbuf, max_length, MPI_CHAR, rbuf, max_length, MPI_CHAR, 0, MPI_COMM_WORLD);
+        if (my_saved_node_count > 1) {
+            // gather the strings to node 0
+            PMPI_Gather(sbuf, max_length, MPI_CHAR, rbuf, max_length, MPI_CHAR, 0, MPI_COMM_WORLD);
+        } else {
+            rbuf = sbuf;
+        }
 
         int fullmap_length = 0;
         char * fullmap = nullptr;
@@ -1069,16 +1085,22 @@ namespace apex {
             strncpy(fullmap, region_file.str().c_str(), fullmap_length);
         }
 
-        PMPI_Barrier(MPI_COMM_WORLD);
+        if (my_saved_node_count > 1) {
+            PMPI_Barrier(MPI_COMM_WORLD);
+        }
 
         // share the full map length
-        PMPI_Bcast(&fullmap_length, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        if (my_saved_node_count > 1) {
+            PMPI_Bcast(&fullmap_length, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        }
         if (my_saved_node_id > 0) {
             fullmap = (char*) calloc(fullmap_length, sizeof(char));
         }
 
-        // share the full map
-        PMPI_Bcast(fullmap, fullmap_length, MPI_CHAR, 0, MPI_COMM_WORLD);
+        if (my_saved_node_count > 1) {
+            // share the full map
+            PMPI_Bcast(fullmap, fullmap_length, MPI_CHAR, 0, MPI_COMM_WORLD);
+        }
 
         // read the reduced data
         if (my_saved_node_count > 1) {
@@ -1121,9 +1143,13 @@ namespace apex {
         char * sbuf = nullptr;
         char * rbuf = nullptr;
 
-        // get the max length from all nodes
-        PMPI_Allreduce(&length, &max_length, 1, MPI_INT, 
-                       MPI_MAX, MPI_COMM_WORLD);
+        if (my_saved_node_count > 1) {
+            // get the max length from all nodes
+            PMPI_Allreduce(&length, &max_length, 1, MPI_INT, 
+                           MPI_MAX, MPI_COMM_WORLD);
+        } else {
+            max_length = length;
+        }
         // get the total length
         full_length = max_length * my_saved_node_count;
 
@@ -1135,8 +1161,12 @@ namespace apex {
         sbuf = (char*) calloc(max_length, sizeof(char));
         strncpy(sbuf, my_metrics.c_str(), max_length);
 
-        // gather the strings to node 0
-        PMPI_Gather(sbuf, max_length, MPI_CHAR, rbuf, max_length, MPI_CHAR, 0, MPI_COMM_WORLD);
+        if (my_saved_node_count > 1) {
+            // gather the strings to node 0
+            PMPI_Gather(sbuf, max_length, MPI_CHAR, rbuf, max_length, MPI_CHAR, 0, MPI_COMM_WORLD);
+        } else {
+            rbuf = sbuf;
+        }
 
         int fullmap_length = 0;
         char * fullmap = nullptr;
@@ -1192,16 +1222,18 @@ namespace apex {
             strncpy(fullmap, metric_file.str().c_str(), fullmap_length);
         }
 
-        PMPI_Barrier(MPI_COMM_WORLD);
+        if (my_saved_node_count > 1) {
+            PMPI_Barrier(MPI_COMM_WORLD);
+            // share the full map length
+            PMPI_Bcast(&fullmap_length, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-        // share the full map length
-        PMPI_Bcast(&fullmap_length, 1, MPI_INT, 0, MPI_COMM_WORLD);
-        if (my_saved_node_id > 0) {
-            fullmap = (char*) calloc(fullmap_length, sizeof(char));
+            if (my_saved_node_id > 0) {
+                fullmap = (char*) calloc(fullmap_length, sizeof(char));
+            }
+
+            // share the full map
+            PMPI_Bcast(fullmap, fullmap_length, MPI_CHAR, 0, MPI_COMM_WORLD);
         }
-
-        // share the full map
-        PMPI_Bcast(fullmap, fullmap_length, MPI_CHAR, 0, MPI_COMM_WORLD);
 
         // read the reduced data
         if (my_saved_node_count > 1) {

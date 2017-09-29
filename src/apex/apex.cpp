@@ -344,7 +344,21 @@ uint64_t init(const char * thread_name, uint64_t comm_rank, uint64_t comm_size) 
         return APEX_NOERROR; 
     }
 #else
-    if (_registered || _initialized) { return APEX_ERROR; }
+    if (_registered || _initialized) { 
+        /* check to see if APEX was initialized by OMPT before MPI had a chance
+         * to pass in any values */
+        printf("UPDATING RANK AND SIZE?\n");
+        if ((comm_rank < comm_size) && (comm_size > 1)) { // simple validation
+            apex* instance = apex::instance(); // get/create the Apex static instance
+            instance->set_node_id(comm_rank);
+            instance->set_num_ranks(comm_size);
+            printf("UPDATING RANK AND SIZE to %lu and %lu\n", comm_rank, comm_size); fflush(stdout);
+            for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+                instance->listeners[i]->set_node_id((int)comm_rank, (int)comm_size);
+            }
+        }
+        return APEX_ERROR; 
+    }
 #endif
     _registered = true;
     _initialized = true;
@@ -356,6 +370,7 @@ uint64_t init(const char * thread_name, uint64_t comm_rank, uint64_t comm_size) 
       instance->set_node_id(comm_rank);
       instance->set_num_ranks(comm_size);
     }
+    printf("Node %lu of %lu\n", comm_rank, comm_size);
     if (!instance || _exited) return APEX_ERROR; // protect against calls after finalization
     init_plugins();
     startup_event_data data(comm_rank, comm_size);

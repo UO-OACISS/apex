@@ -163,6 +163,10 @@ namespace apex {
         otf2_listener (void);
         //~otf2_listener (void) { shutdown_event_data data(my_saved_node_id,0); on_shutdown(data); };
         ~otf2_listener (void) { finalize(); };
+        void set_node_id(int node_id, int node_count) { 
+            this->my_saved_node_id = node_id;
+            this->my_saved_node_count = node_count; 
+        }
         void on_startup(startup_event_data &data);
         void on_dump(dump_event_data &data);
         void on_reset(task_identifier * id) 

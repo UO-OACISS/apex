@@ -189,6 +189,10 @@ void tau_listener::on_custom_event(custom_event_data &data) {
   return;
 }
 
+void tau_listener::set_node_id(int node_id, int node_count) {
+  my_Tau_set_node(node_id);
+}
+
 /* This function is used by APEX threads so that TAU knows about them. */
 int initialize_worker_thread_for_tau(void) {
   if (apex_options::use_tau())
