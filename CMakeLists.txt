@@ -90,6 +90,7 @@ set(CMAKE_CONFIGURATION_TYPES "${CMAKE_BUILD_TYPE}" CACHE INTERNAL
 if(APPLE)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -undefined dynamic_lookup")
   set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -undefined dynamic_lookup")
+  set(USE_CLOCK_TIMESTAMP ON CACHE INTERNAL "Use gettimeofday not cycle counter" FORCE)
 endif(APPLE)
 
 # If TAU is used, don't allow throttling - it can potentially lead to
@@ -400,6 +401,8 @@ endif()
 # OMPT configuration
 ################################################################################
 
+find_package(OpenMP)
+
 if((DEFINED USE_OMPT) AND (NOT USE_OMPT))
     # just in case, disable all ompt
     unset(OMPT_ROOT)
@@ -408,7 +411,6 @@ if((DEFINED USE_OMPT) AND (NOT USE_OMPT))
 endif()
 
 if ((NOT DEFINED USE_OMPT) OR (USE_OMPT) OR (BUILD_OMPT))
-    find_package(OpenMP)
     if (OPENMP_FOUND)
         if ((DEFINED OMPT_ROOT) OR (USE_OMPT) OR (BUILD_OMPT))
             find_package(OMPT)

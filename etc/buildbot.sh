@@ -1,6 +1,28 @@
 #!/bin/bash
 #set -x # echo all commands
-set -e # exit on error
+
+my_readlink()
+{
+    TARGET=$1
+
+    cd $(dirname "$TARGET")
+    TARGET=$(basename "$TARGET")
+
+    # Iterate down a (possible) chain of symlinks
+    while [ -L "$TARGET" ]
+    do
+        TARGET=$(readlink "$TARGET")
+        cd $(dirname "$TARGET")
+        TARGET=$(basename "$TARGET")
+    done
+
+    # Compute the canonicalized name by finding the physical path 
+    # for the directory we're in and appending the target file.
+    DIR=`pwd -P`
+    RESULT="$DIR/$TARGET"
+
+    echo $RESULT
+}
 
 no_malloc=""
 no_bfd=" -DUSE_BFD=FALSE"
@@ -13,7 +35,7 @@ no_tau=" -DUSE_TAU=FALSE"
 yes_malloc=" -DUSE_JEMALLOC=TRUE"
 yes_bfd=" -DUSE_BFD=TRUE"
 yes_ah=" -DUSE_ACTIVEHARMONY=TRUE -DACTIVEHARMONY_ROOT=/usr/local/activeharmony/4.6 -DUSE_PLUGINS=TRUE"
-yes_otf=" -DUSE_OTF2=TRUE -DOTF2_ROOT=/usr/local/otf2/2.0"
+yes_otf=" -DUSE_OTF2=TRUE -DOTF2_ROOT=/usr/local/otf2/2.1"
 yes_ompt=" -DUSE_OMPT=TRUE -DOMPT_ROOT=/usr/local/LLVM-ompt/Release"
 #yes_mpi=" -DUSE_MPI=TRUE -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx"
 yes_mpi=" -DUSE_MPI=TRUE"
@@ -28,11 +50,26 @@ dirname="default"
 options=""
 static=""
 sanitize=""
+ncores=2
+osname=`uname`
+if [ ${osname} == "Darwin" ]; then
+ncores=`sysctl -n hw.ncpu`
+else
+ncores=`nproc --all`
+fi
+
+echo "Num parallel builds: $ncores"
+
+set -e # exit on error
 
 # remember where we are
 STARTDIR=`pwd`
 # Absolute path to this script, e.g. /home/user/bin/foo.sh
-SCRIPT=$(readlink -f "$0")
+if [ ${osname} == "Darwin" ]; then
+    SCRIPT=$(my_readlink "$0")
+else
+    SCRIPT=$(readlink -f "$0")
+fi
 # Absolute path this script is in, thus /home/user/bin
 SCRIPTPATH=$(dirname "$SCRIPT")
 echo $SCRIPTPATH
@@ -68,7 +105,7 @@ while [ $# -ge 1 ]; do
             yes_mpi="" # no static MPI installation. :(
             ;;
         -h)
-            echo "$0 -b,--build [default|base|malloc|bfd|ah|ompt|papi|mpi|otf|tau] -t,--type [Release|Debug] -s,--step [config|compile|test|install] -d,--dirname <dirname> -m,--sanitize -n,--static"
+            echo "$0 -b,--build [default|base|malloc|bfd|ah|ompt|papi|mpi|otf|tau] -t,--type [Release|Debug] -s,--step [config|compile|pcompile|test|install] -d,--dirname <dirname> -m,--sanitize -n,--static"
             exit 0
             ;;
     esac
@@ -95,7 +132,7 @@ config_step()
 compile_step()
 {
     cd ${dirname}
-    make
+    make ${1}
 }
 
 test_step()
@@ -175,6 +212,9 @@ if [ ${step} == "config" ] ; then
 fi
 if [ ${step} == "compile" ] ; then
     compile_step
+fi
+if [ ${step} == "pcompile" ] ; then
+    compile_step -j${ncores}
 fi
 if [ ${step} == "test" ] ; then
     test_step

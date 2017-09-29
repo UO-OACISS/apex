@@ -54,6 +54,8 @@ public:
   concurrency_handler (unsigned int period, int option);
   ~concurrency_handler (void);
   void on_startup(startup_event_data &data) { APEX_UNUSED(data); };
+  void on_dump(dump_event_data &data);
+  void on_reset(task_identifier * id);
   void on_shutdown(shutdown_event_data &data);
   void on_new_node(node_event_data &data) { APEX_UNUSED(data); };
   void on_new_thread(new_thread_event_data &data);
@@ -74,6 +76,7 @@ public:
   std::stack<task_identifier>* get_event_stack(unsigned int tid);
   void add_thread(unsigned int tid) ;
   void output_samples(int node_id);
+  void reset_samples(void);
 };
 
 }

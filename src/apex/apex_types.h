@@ -59,6 +59,8 @@ typedef enum _event_type {
   APEX_INVALID_EVENT = -1,
   APEX_STARTUP = 0,        /*!< APEX is initialized */
   APEX_SHUTDOWN,       /*!< APEX is terminated */
+  APEX_DUMP,           /*!< APEX is dumping output */
+  APEX_RESET,          /*!< APEX is resetting data structures */
   APEX_NEW_NODE,       /*!< APEX has registered a new process ID */
   APEX_NEW_THREAD,     /*!< APEX has registered a new OS thread */
   APEX_EXIT_THREAD,    /*!< APEX has exited an OS thread */
@@ -279,15 +281,17 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_PAPI_METRICS, papi_metrics, char*, "") \
     macro (APEX_PLUGINS, plugins, char*, "") \
     macro (APEX_PLUGINS_PATH, plugins_path, char*, "./") \
+    macro (APEX_OUTPUT_FILE_PATH, output_file_path, char*, "./") \
     macro (APEX_OTF2_ARCHIVE_PATH, otf2_archive_path, char*, APEX_DEFAULT_OTF2_ARCHIVE_PATH) \
     macro (APEX_OTF2_ARCHIVE_NAME, otf2_archive_name, char*, APEX_DEFAULT_OTF2_ARCHIVE_NAME)
 
-#if defined(__linux) || defined(__linux__)
+// Do the clang check first
+#if defined(__APPLE__) || defined(__clang__)
+#  define APEX_NATIVE_TLS thread_local
+#elif defined(__linux) || defined(__linux__)
 #  define APEX_NATIVE_TLS __thread
 #elif defined(_WIN32) || defined(_WIN64)
 #  define APEX_NATIVE_TLS __declspec(thread)
-#elif defined(__APPLE__)
-#  define APEX_NATIVE_TLS thread_local
 #elif defined(__FreeBSD__) || (defined(__APPLE__) && defined(__MACH__))
 #  define APEX_NATIVE_TLS __thread
 #else

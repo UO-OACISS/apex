@@ -21,11 +21,12 @@ if(MPI_COMPILE_FLAGS)
 endif(MPI_COMPILE_FLAGS)
 
 if(MPI_LINK_FLAGS)
-  set_target_properties (apex_mpi PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
+    set_target_properties (apex_mpi PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
 endif(MPI_LINK_FLAGS)
 
 target_link_libraries (apex_mpi apex ${MPI_LIBRARIES})
 
+set_target_properties (apex_mpi PROPERTIES LINK_FLAGS "${OpenMP_C_FLAGS}")
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 

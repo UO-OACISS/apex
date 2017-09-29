@@ -205,6 +205,7 @@ int main (int argc, char ** argv) {
     //apex_global_setup(APEX_FUNCTION_ADDRESS, (void*)&solve_iteration);
     long original_active_threads = active_threads;
 #else
+    long original_active_threads = active_threads;
     std::cerr << "Active Harmony not enabled" << std::endl;
 #endif
     std::cout <<"Running 1D stencil test..." << std::endl;

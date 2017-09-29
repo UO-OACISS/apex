@@ -10,8 +10,8 @@ add_executable (tuning_request tuning_request.cpp)
 add_dependencies (tuning_request apex)
 add_dependencies (examples tuning_request)
 
-set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+#set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+#set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 
 # Link the executable to the Apex library. 
 target_link_libraries (tuning_request apex ${LIBS})

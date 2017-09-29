@@ -101,14 +101,17 @@ bool concurrency_handler::_handler(void) {
       }
     }
   }
-  _states.push_back(counts);
-  _thread_cap_samples.push_back(get_thread_cap());
-  // TODO: FIXME multiple tuning sessions
-  //for(auto param : get_tunable_params()) {
-  //  _tunable_param_samples[param.first].push_back(*param.second);
-  //}
   int power = current_power_high();
-  _power_samples.push_back(power);
+  {
+    std::lock_guard<std::mutex> l(_vector_mutex);
+    _states.push_back(counts);
+    _thread_cap_samples.push_back(get_thread_cap());
+    // TODO: FIXME multiple tuning sessions
+    //for(auto param : get_tunable_params()) {
+    //  _tunable_param_samples[param.first].push_back(*param.second);
+    //}
+    _power_samples.push_back(power);
+  }
   if (apex_options::use_tau()) {
     Tau_stop("concurrency_handler::_handler");
   }
@@ -174,10 +177,23 @@ void concurrency_handler::on_exit_thread(event_data &data) {
   _terminate = true; // because there are crashes
 }
 
+void concurrency_handler::on_dump(dump_event_data &data) {
+    output_samples(data.node_id);
+    // do something with the data.reset flag
+    if (data.reset) {
+        reset_samples();
+    }
+}
+
+void concurrency_handler::on_reset(task_identifier * id) {
+    if (id == nullptr) {
+        reset_samples();
+    }
+}
+
 void concurrency_handler::on_shutdown(shutdown_event_data &data) {
     _terminate = true; // because there are crashes
     cancel();
-    output_samples(data.node_id);
 }
 
 inline stack<task_identifier>* concurrency_handler::get_event_stack(unsigned int tid) {
@@ -206,11 +222,19 @@ bool sort_functions(pair<task_identifier,int> first, pair<task_identifier,int> s
   return false;
 }
 
+void concurrency_handler::reset_samples(void) {
+  std::lock_guard<std::mutex> l(_vector_mutex);
+  _states.clear();
+  _power_samples.clear();
+  _thread_cap_samples.clear();
+}
+
 void concurrency_handler::output_samples(int node_id) {
   //cout << _states.size() << " samples seen:" << endl;
   ofstream myfile;
   stringstream datname;
-  datname << "concurrency." << node_id << ".dat";
+  datname << apex_options::output_file_path();
+  datname << filesystem_separator() << "concurrency." << node_id << ".dat";
   myfile.open(datname.str().c_str());
   _function_mutex.lock();
   // limit ourselves to N functions.
@@ -296,13 +320,18 @@ void concurrency_handler::output_samples(int node_id) {
 
   if (max_Power == 0.0) max_Power = 100;
   stringstream plotname;
-  plotname << "concurrency." << node_id << ".gnuplot";
+  plotname << apex_options::output_file_path();
+  plotname << filesystem_separator() << "concurrency." << node_id << ".gnuplot";
   myfile.open(plotname.str().c_str());
-  myfile << "everyNth(col) = (int(column(col))%" << (int)(max_X/10) << "==0)?stringcolumn(1):\"\";" << endl;
+  myfile << "set palette maxcolors 16" << endl;
+  myfile << "set palette defined ( 0 '#E41A1C', 1 '#377EB8', 2 '#4DAF4A', 3 '#984EA3', 4 '#FF7F00', 5 '#FFFF33', 6 '#A65628', 7 '#F781BF', 8 '#66C2A5', 9 '#FC8D62', 10 '#8DA0CB', 11 '#E78AC3', 12 '#A6D854', 13 '#FFD92F', 14 '#E5C494', 15 '#B3B3B3' )" << endl;
+  myfile << "set terminal png size 1600,900 font Helvetica 16" << endl;
+  myfile << "set output 'concurrency.png'" << endl;
+  myfile << "everyNth(col) = (int(column(col))%" << (int)(max_X/10) << "==0)?stringcolumn(1):\"\"" << endl;
   myfile << "set key outside bottom center invert box" << endl;
-  myfile << "set xtics auto" << endl;
-  myfile << "set ytics 4" << endl;
-  myfile << "set y2tics auto" << endl;
+  myfile << "set xtics auto nomirror" << endl;
+  myfile << "set ytics 4 nomirror" << endl;
+  myfile << "set y2tics auto nomirror" << endl;
   myfile << "set xrange[0:" << max_X << "]" << endl;
   myfile << "set yrange[0:" << max_Y << "]" << endl;
   myfile << "set y2range[0:" << max_Power << "]" << endl;
@@ -315,7 +344,7 @@ void concurrency_handler::output_samples(int node_id) {
   myfile << "set style fill solid border" << endl;
   myfile << "set style histogram rowstacked" << endl;
   myfile << "set boxwidth 1.0 relative" << endl;
-  myfile << "set palette rgb 33,13,10" << endl;
+  myfile << "#set palette rgb 33,13,10" << endl;
   myfile << "unset colorbox" << endl;
   myfile << "set key noenhanced" << endl; // this allows underscores in names
   myfile << "plot for [COL=" << (4+num_params) << ":" << top_x.size()+num_params+4;

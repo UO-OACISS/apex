@@ -23,6 +23,7 @@ namespace apex {
     private:
         void _init(void);
         bool _terminate;
+        bool _initialized;
         std::mutex _region_mutex;
         std::mutex _string_mutex;
         std::mutex _metric_mutex;
@@ -116,8 +117,8 @@ namespace apex {
         void* event_writer(void* arg);
         OTF2_Archive* archive;
         OTF2_EvtWriter* comm_evt_writer;
-        //__thread OTF2_DefWriter* def_writer;
-        OTF2_EvtWriter* getEvtWriter();
+        //APEX_NATIVE_TLS OTF2_DefWriter* def_writer;
+        OTF2_EvtWriter* getEvtWriter(bool create);
         bool event_file_exists (int threadid);
         OTF2_DefWriter* getDefWriter(int threadid);
         OTF2_GlobalDefWriter* global_def_writer;
@@ -163,6 +164,9 @@ namespace apex {
         //~otf2_listener (void) { shutdown_event_data data(my_saved_node_id,0); on_shutdown(data); };
         ~otf2_listener (void) { finalize(); };
         void on_startup(startup_event_data &data);
+        void on_dump(dump_event_data &data);
+        void on_reset(task_identifier * id) 
+            { APEX_UNUSED(id); };
         void on_shutdown(shutdown_event_data &data);
         void on_new_node(node_event_data &data);
         void on_new_thread(new_thread_event_data &data);

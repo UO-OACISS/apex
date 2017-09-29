@@ -69,6 +69,14 @@ public:
   startup_event_data(uint64_t comm_rank, uint64_t comm_size);
 };
 
+class dump_event_data : public event_data {
+public:
+  int node_id;
+  bool reset;
+  std::string output;
+  dump_event_data(int node_id, int thread_id, bool reset);
+};
+
 class shutdown_event_data : public event_data {
 public:
   int node_id;
@@ -103,6 +111,8 @@ public:
   // all methods in the interface that a handler has to override
   virtual void on_startup(startup_event_data &data) = 0;
   virtual void on_shutdown(shutdown_event_data &data) = 0;
+  virtual void on_dump(dump_event_data &data) = 0;
+  virtual void on_reset(task_identifier * id) = 0;
   virtual void on_new_node(node_event_data &data) = 0;
   virtual void on_new_thread(new_thread_event_data &data) = 0;
   virtual void on_exit_thread(event_data &data) = 0;

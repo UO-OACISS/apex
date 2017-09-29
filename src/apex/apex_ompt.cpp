@@ -45,8 +45,8 @@ std::unordered_map<ompt_parallel_id_t, void*> task_addresses;
 std::atomic<void*> parallel_regions[NUM_REGIONS];
 apex::shared_mutex_type _region_mutex;
 
-__thread std::stack<apex::profiler*> *timer_stack;
-__thread status_flags_t *status;
+APEX_NATIVE_TLS std::stack<apex::profiler*> *timer_stack;
+APEX_NATIVE_TLS status_flags_t *status;
 
 ompt_set_callback_t ompt_set_callback;
 

@@ -18,7 +18,7 @@ unset TAU_ROOT
 
 # other CMake variables - for special situations / architectures / compilers.
 
-cmake_build_type="-DCMAKE_BUILD_TYPE=Debug -DAPEX_DEBUG=TRUE -DBUILD_TESTS=TRUE -DBUILD_EXAMPLES=TRUE" # Debug, Release, RelWithDebInfo, etc.
+cmake_build_type="-DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_TESTS=TRUE -DBUILD_EXAMPLES=TRUE" # Debug, Release, RelWithDebInfo, etc.
 cmake_apex_throttle="-DAPEX_THROTTLE=FALSE" # TRUE or FALSE
 cmake_build_shared_libs="-DBUILD_SHARED_LIBS=TRUE" # TRUE or FALSE
 cmake_install_prefix="-DCMAKE_INSTALL_PREFIX=../install" # the installation path
@@ -27,7 +27,8 @@ cmake_install_prefix="-DCMAKE_INSTALL_PREFIX=../install" # the installation path
 #cmake_use_codeblocks="-G \"Eclipse CDT4 - Unix Makefiles\"" # if you want to debug in CodeBlocks
 cmake_make_verbose=""  # for verbose, use -DCMAKE_VERBOSE_MAKEFILE=ON
 cmake_use_mpi="-DUSE_MPI=FALSE" # TRUE or FALSE
-cmake_other_settings="-DMPI_C_COMPILER=mpicc -DMPI_CXX_COMPILER=mpicxx -DOTF2_ROOT=$HOME/install/otf2/2.0" # anything else?
+cmake_other_settings="-DMPI_C_COMPILER=mpicc -DMPI_CXX_COMPILER=mpicxx" # anything else?
+#cmake_other_settings="" # anything else?
 
 # runtime parameters for testing APEX with "make test"
 
