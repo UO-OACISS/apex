@@ -362,6 +362,9 @@ endif()
 
 if(MPI_CXX_FOUND)
     add_definitions(-DAPEX_HAVE_MPI)
+    # Prevent errors from Cmake by stripping whitespace
+    string(STRIP "${MPI_CXX_LINK_FLAGS}" MPI_CXX_LINK_FLAGS)
+    string(STRIP "${MPI_CXX_LIBRARIES}" MPI_CXX_LIBRARIES)
     set(LIBS ${LIBS} ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES})
 endif()
 
