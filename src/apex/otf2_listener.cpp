@@ -928,15 +928,19 @@ namespace apex {
         return;
     }
 
+/* HPX implementation - TBD - for now, stick with file based reduction */
+/*
 #if defined(APEX_HAVE_HPX)
 
-    /* HPX implementation - TBD */
 
     std::unique_ptr<std::tuple<std::map<int,int>, std::map<int,std::string> > > otf2_listener::reduce_node_properties(std::string&& str) {
         return nullptr;
     }
 
 #elif defined(APEX_HAVE_MPI)
+*/
+
+#if defined(APEX_HAVE_MPI)
 
     /* MPI implementations */
 
