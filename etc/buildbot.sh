@@ -214,7 +214,7 @@ if [ ${step} == "compile" ] ; then
     compile_step
 fi
 if [ ${step} == "pcompile" ] ; then
-    compile_step -j${ncores}
+    compile_step -j${ncores} -l${ncores}
 fi
 if [ ${step} == "test" ] ; then
     test_step
