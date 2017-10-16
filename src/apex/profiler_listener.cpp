@@ -532,8 +532,9 @@ std::unordered_set<profile*> free_profiles;
   void profiler_listener::finalize_profiles(dump_event_data &data) {
     // our TOTAL available time is the elapsed * the number of threads, or cores
     int num_worker_threads = thread_instance::get_num_threads();
-    apex_profile * total_time = ::apex::get_profile(APEX_MAIN);
-    double wall_clock_main = total_time->accumulated * profiler::get_cpu_mhz();
+    task_identifier main_id(APEX_MAIN);
+    profile * total_time = get_profile(main_id);
+    double wall_clock_main = total_time->get_accumulated() * profiler::get_cpu_mhz();
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
 #endif
