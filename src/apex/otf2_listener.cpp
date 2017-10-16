@@ -1000,7 +1000,7 @@ namespace apex {
             rank_hostname_map[rank] = hostname;
             host_index = host_index + hostlength;
         }    
-        return APEX_MAKE_UNIQUE_NAMESPACE::make_unique<std::tuple<std::map<int,int>, std::map<int,string> > >(rank_pid_map, rank_hostname_map);
+        return APEX_MAKE_UNIQUE<std::tuple<std::map<int,int>, std::map<int,string> > >(rank_pid_map, rank_hostname_map);
     }
 
     std::string otf2_listener::write_my_regions(void) {
