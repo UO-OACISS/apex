@@ -159,7 +159,7 @@ static void finalize_hpx_runtime(void) {
 void apex::_initialize()
 {
 #if defined(APEX_DEBUG) || defined(APEX_ERROR_HANDLING)
-    apex_register_signal_handler();
+    //apex_register_signal_handler();
 #endif
     this->m_pInstance = this;
     this->m_policy_handler = nullptr;
@@ -370,7 +370,7 @@ uint64_t init(const char * thread_name, uint64_t comm_rank, uint64_t comm_size) 
       instance->set_node_id(comm_rank);
       instance->set_num_ranks(comm_size);
     }
-    printf("Node %lu of %lu\n", comm_rank, comm_size);
+    //printf("Node %lu of %lu\n", comm_rank, comm_size);
     if (!instance || _exited) return APEX_ERROR; // protect against calls after finalization
     init_plugins();
     startup_event_data data(comm_rank, comm_size);
