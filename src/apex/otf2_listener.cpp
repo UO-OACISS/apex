@@ -298,7 +298,7 @@ namespace apex {
             //printf("closing event writer %p for thread %lu\n", evt_writer, thread_instance::get_id()); fflush(stdout);
             // FOR SOME REASON, OTF2 CRASHES ON EXIT
             // Not closing the event writers seems to prevent that?
-            OTF2_Archive_CloseEvtWriter( archive, evt_writer );
+            // OTF2_Archive_CloseEvtWriter( archive, evt_writer );
             evt_writer = nullptr;
         }
       }
