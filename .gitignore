@@ -6,3 +6,5 @@ install*
 rapidjson
 *.swp
 regression*
+*.sh
+*DS_Store

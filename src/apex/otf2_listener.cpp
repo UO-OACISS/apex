@@ -28,7 +28,7 @@ using namespace std;
 namespace apex {
 
     /* Stupid Intel compiler CLAIMS to be C++14, but doesn't have support for std::unique_ptr. */
-#if __cplusplus <= 201402L || defined(__INTEL_COMPILER)
+#if __cplusplus < 201402L || defined(__INTEL_COMPILER)
     template<typename T, typename... Args>
     std::unique_ptr<T> make_unique(Args&&... args) {
         return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
