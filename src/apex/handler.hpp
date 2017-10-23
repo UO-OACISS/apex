@@ -78,6 +78,12 @@ protected:
     _timer_thread = new pthread_wrapper(&handler::_threadfunc, (void*)(this), _period);
 #endif
   };
+  void set_timeout(unsigned int timeout) {
+    _period = timeout;
+#if !defined(_MSC_VER) && !defined(__APPLE__)
+    _timer_thread->set_timeout(_period);
+#endif
+  }
 public:
   handler() : 
       _period(default_period), 

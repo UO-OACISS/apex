@@ -60,6 +60,9 @@ class pthread_wrapper {
             }
         };
 
+        void set_timeout(unsigned int timeout_microseconds) {
+            _timeout_microseconds = timeout_microseconds;
+        }
         void* get_context(void) { return _context_object; };
 
         void stop_thread(void) {

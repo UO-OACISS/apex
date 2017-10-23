@@ -967,7 +967,7 @@ void finalize()
 {
 #ifdef APEX_WITH_JUPYTER_SUPPORT
     // reset all counters, and return.
-    reset(APEX_NULL_FUNCTION_ADDRESS);
+    //reset(APEX_NULL_FUNCTION_ADDRESS);
     return;
 #endif
     FUNCTION_ENTER
