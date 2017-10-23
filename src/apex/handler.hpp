@@ -79,9 +79,11 @@ protected:
 #endif
   };
   void set_timeout(unsigned int timeout) {
-    _period = timeout;
 #if !defined(_MSC_VER) && !defined(__APPLE__)
+    _period = timeout;
     _timer_thread->set_timeout(_period);
+#else
+    _period = std::chrono::microseconds(timeout);
 #endif
   }
 public:

@@ -352,7 +352,7 @@ uint64_t init(const char * thread_name, uint64_t comm_rank, uint64_t comm_size) 
             apex* instance = apex::instance(); // get/create the Apex static instance
             instance->set_node_id(comm_rank);
             instance->set_num_ranks(comm_size);
-            printf("UPDATING RANK AND SIZE to %lu and %lu\n", comm_rank, comm_size); fflush(stdout);
+            printf("UPDATING RANK AND SIZE to %llu and %llu\n", comm_rank, comm_size); fflush(stdout);
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
                 instance->listeners[i]->set_node_id((int)comm_rank, (int)comm_size);
             }
