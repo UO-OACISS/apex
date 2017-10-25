@@ -86,7 +86,6 @@ namespace apex {
 std::mutex free_profile_set_mutex;
 std::unordered_set<profile*> free_profiles;
 
-#ifdef APEX_MULTIPLE_QUEUES
     /* We do this in two stages, to make the common case fast. */
     profiler_queue_t * profiler_listener::_construct_thequeue() {
           profiler_queue_t * _thequeue = new profiler_queue_t();
@@ -101,7 +100,6 @@ std::unordered_set<profile*> free_profiles;
         static APEX_NATIVE_TLS profiler_queue_t * _thequeue = _construct_thequeue();
         return _thequeue;
     }
-#endif
 
   /* THis is a special profiler, indicating that the timer requested is
      throttled, and shouldn't be processed. */
@@ -218,7 +216,11 @@ std::unordered_set<profile*> free_profiles;
     std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
     for(auto &it : task_map) {
         it.second->reset();
-    }
+    } 
+#ifdef APEX_WITH_JUPYTER_SUPPORT
+    // restart the main timer
+    main_timer = std::make_shared<profiler>(task_identifier::get_task_id(string(APEX_MAIN)));
+#endif
   }
 
   /* After the consumer thread pulls a profiler off of the queue,
@@ -246,21 +248,12 @@ std::unordered_set<profile*> free_profiles;
         }
     }
 #endif
-    std::unique_lock<std::mutex> task_map_lock(_task_map_mutex, std::defer_lock);
-    // There is only one consumer thread except during shutdown, so we only need
-    // to lock during shutdown.
-    bool did_lock = false;
-    if(_done) {
-        task_map_lock.lock();
-        did_lock = true;
-    }
+    std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
     unordered_map<task_identifier, profile*>::const_iterator it = task_map.find(*(p->task_id));
     if (it != task_map.end()) {
           // A profile for this ID already exists.
         theprofile = (*it).second;
-        if(_done && did_lock) {
-            task_map_lock.unlock();
-        }
+        task_map_lock.unlock();
         if(p->is_reset == reset_type::CURRENT) {
             theprofile->reset();
         } else {
@@ -302,9 +295,7 @@ std::unordered_set<profile*> free_profiles;
         // Create a new profile for this name.
         theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), tmp_num_counters, values, p->is_resume, p->is_counter ? APEX_COUNTER : APEX_TIMER);
         task_map[*(p->task_id)] = theprofile;
-        if(_done && did_lock) {
-            task_map_lock.unlock();
-        }
+        task_map_lock.unlock();
 #ifdef APEX_HAVE_HPX
 #ifdef APEX_REGISTER_HPX3_COUNTERS
         if(!_done) {
@@ -431,19 +422,28 @@ std::unordered_set<profile*> free_profiles;
   void profiler_listener::write_one_timer(task_identifier &task_id,
           profile * p, stringstream &screen_output,
           stringstream &csv_output, double &total_accumulated,
-          double &total_main) {
+          double &total_main, bool timer) {
       /* before calling task_id.get_name(), make sure we create
        * a thread_instance object that is NOT a worker. */
       thread_instance::instance(false);
       string action_name = task_id.get_name();
+      if (action_name.compare(APEX_MAIN) == 0) {
+          return; // don't write out apex main timer
+      }
       string shorter(action_name);
+      size_t maxlength = 30;
+      if (timer) maxlength = 52;
       // to keep formatting pretty, trim any long timer names
-      if (shorter.size() > 30) {
-        shorter.resize(27);
-        shorter.resize(30, '.');
+      if (shorter.size() > maxlength) {
+        shorter.resize(maxlength-3);
+        shorter.resize(maxlength, '.');
       }
       //screen_output << "\"" << shorter << "\", " ;
-      screen_output << string_format("%30s", shorter.c_str()) << " : ";
+      if (timer) {
+          screen_output << string_format("%52s", shorter.c_str()) << " : ";
+      } else {
+          screen_output << string_format("%30s", shorter.c_str()) << " : ";
+      }
 #if defined(APEX_THROTTLE)
       if (!apex_options::use_tau()) {
         // if this profile was throttled, don't output the measurements.
@@ -474,12 +474,22 @@ std::unordered_set<profile*> free_profiles;
         csv_output << std::llround(p->get_accumulated()) << ",";
         // convert MHz to microseconds
         csv_output << std::llround(p->get_accumulated()*profiler::get_cpu_mhz()*1000000);
-        screen_output << " --n/a--   " ;
+        //screen_output << " --n/a--   " ;
         screen_output << string_format(FORMAT_SCIENTIFIC, (p->get_mean()*profiler::get_cpu_mhz())) << "   " ;
-        screen_output << " --n/a--   " ;
+        //screen_output << " --n/a--   " ;
         screen_output << string_format(FORMAT_SCIENTIFIC, (p->get_accumulated()*profiler::get_cpu_mhz())) << "   " ;
-        screen_output << " --n/a--   " ;
-        screen_output << string_format(FORMAT_PERCENT, (((p->get_accumulated()*profiler::get_cpu_mhz())/total_main)*100));
+        //screen_output << " --n/a--   " ;
+        if (task_id.get_name().compare(APEX_MAIN) == 0) {
+            screen_output << string_format(FORMAT_PERCENT, 100.0);
+        } else {
+            total_accumulated += p->get_accumulated();
+            double tmp = ((p->get_accumulated()*profiler::get_cpu_mhz())/total_main)*100.0;
+            if (tmp > 100.0) {
+                screen_output << " --n/a--   " ;
+            } else {
+                screen_output << string_format(FORMAT_PERCENT, tmp);
+            }
+        }
 #if APEX_HAVE_PAPI
         for (int i = 0 ; i < num_papi_counters ; i++) {
             screen_output  << "   " << string_format(FORMAT_SCIENTIFIC, (p->get_papi_metrics()[i]));
@@ -487,7 +497,6 @@ std::unordered_set<profile*> free_profiles;
         }
 #endif
         screen_output << endl;
-        total_accumulated += p->get_accumulated();
         csv_output << endl;
       } else {
         if (action_name.find('%') == string::npos) {
@@ -503,15 +512,18 @@ std::unordered_set<profile*> free_profiles;
           screen_output << string_format(FORMAT_PERCENT, p->get_accumulated()) << "   " ;
           screen_output << string_format(FORMAT_PERCENT, p->get_stddev()) << "   " ;
         }
-        screen_output << " --n/a-- "  << endl;
+        //screen_output << " --n/a-- "  << endl;
+        screen_output << endl;
       }
   }
 
   /* At program termination, write the measurements to the screen, or to CSV file, or both. */
-  void profiler_listener::finalize_profiles(void) {
+  void profiler_listener::finalize_profiles(dump_event_data &data) {
     // our TOTAL available time is the elapsed * the number of threads, or cores
     int num_worker_threads = thread_instance::get_num_threads();
-    double wall_clock_main = main_timer->elapsed() * profiler::get_cpu_mhz();
+    task_identifier main_id(APEX_MAIN);
+    profile * total_time = get_profile(main_id);
+    double wall_clock_main = total_time->get_accumulated() * profiler::get_cpu_mhz();
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
 #endif
@@ -525,14 +537,11 @@ std::unordered_set<profile*> free_profiles;
     // want to write it out
     stringstream csv_output;
     // iterate over the profiles in the address map
-    screen_output << "Elapsed time: " << wall_clock_main << endl;
+    screen_output << endl << "Elapsed time: " << wall_clock_main << " seconds" << endl;
     screen_output << "Cores detected: " << hardware_concurrency() << endl;
     screen_output << "Worker Threads observed: " << num_worker_threads << endl;
-    screen_output << "Available CPU time: " << total_main << endl;
+    screen_output << "Available CPU time: " << total_main << " seconds" << endl << endl;
     map<apex_function_address, profile*>::const_iterator it;
-    screen_output << "Action                         :  #calls  |  minimum |    mean  |  maximum |   total  |  stddev  |  % total  " << apex_options::papi_metrics() << endl;
-    screen_output << "------------------------------------------------------------------------------------------------------------" << endl;
-    csv_output << "\"task\",\"num calls\",\"total cycles\",\"total microseconds\"";
 #if APEX_HAVE_PAPI
     for (int i = 0 ; i < num_papi_counters ; i++) {
        csv_output << ",\"" << metric_names[i] << "\"";
@@ -551,15 +560,23 @@ std::unordered_set<profile*> free_profiles;
             id_vector.push_back(task_id);
         }
     }
-    std::sort(id_vector.begin(), id_vector.end());
-    // iterate over the counters
-    for(task_identifier task_id : id_vector) {
-        profile * p = task_map[task_id];
-        if (p) {
-            write_one_timer(task_id, p, screen_output, csv_output, total_accumulated, total_main);
+    if (id_vector.size() > 0) {
+        screen_output << "Counter                        : #samples |  minimum |    mean  |  maximum |   total  |  stddev " << apex_options::papi_metrics() << endl;
+        screen_output << "------------------------------------------------------------------------------------------------" << endl;
+        std::sort(id_vector.begin(), id_vector.end());
+        // iterate over the counters
+        for(task_identifier task_id : id_vector) {
+            profile * p = task_map[task_id];
+            if (p) {
+                write_one_timer(task_id, p, screen_output, csv_output, total_accumulated, total_main, false);
+            }
         }
+        screen_output << "------------------------------------------------------------------------------------------------" << endl << endl;;
     }
-    id_vector.clear();
+    csv_output << "\"task\",\"num calls\",\"total cycles\",\"total microseconds\"";
+    screen_output << "Timer                                                :  #calls  |    mean  |   total  |  % total  " << apex_options::papi_metrics() << endl;
+    screen_output << "------------------------------------------------------------------------------------------------" << endl;
+     id_vector.clear();
     // iterate over the timers
     for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
         profile * p = it2->second;
@@ -574,28 +591,19 @@ std::unordered_set<profile*> free_profiles;
     for(task_identifier task_id : id_vector) {
         profile * p = task_map[task_id];
         if (p) {
-            write_one_timer(task_id, p, screen_output, csv_output, total_accumulated, total_main);
+            write_one_timer(task_id, p, screen_output, csv_output, total_accumulated, total_main, true);
             total_hpx_threads = total_hpx_threads + p->get_calls();
         }
     }
     double idle_rate = total_main - (total_accumulated*profiler::get_cpu_mhz());
-    screen_output << string_format("%30s", APEX_IDLE_TIME) << " : ";
-    screen_output << " --n/a--   " ;
-    screen_output << " --n/a--   " ;
-    screen_output << " --n/a--   " ;
-    screen_output << " --n/a--   " ;
-    if (idle_rate < 0.0) {
-      screen_output << " --n/a--   " ;
-    } else {
+    if (idle_rate >= 0.0) {
+      screen_output << string_format("%52s", APEX_IDLE_TIME) << " : ";
+      screen_output << "                      "; // pad with spaces for #calls, mean
       screen_output << string_format(FORMAT_SCIENTIFIC, idle_rate) << "   " ;
-    }
-    screen_output << " --n/a--   " ;
-    if (idle_rate < 0.0) {
-      screen_output << " --n/a--   " << endl;
-    } else {
       screen_output << string_format(FORMAT_PERCENT, ((idle_rate/total_main)*100)) << endl;
     }
-    screen_output << string_format("%30s", "Total timers") << " : ";
+    screen_output << "------------------------------------------------------------------------------------------------" << endl;
+    screen_output << string_format("%52s", "Total timers") << " : ";
     //if (total_hpx_threads < 999999) {
         //screen_output << string_format(PAD_WITH_SPACES, to_string((int)(total_hpx_threads))) << std::endl;
     //} else {
@@ -604,14 +612,15 @@ std::unordered_set<profile*> free_profiles;
     total_ss << std::fixed << ((uint64_t)total_hpx_threads);
         screen_output << total_ss.str() << std::endl;
     //}
-    screen_output << "------------------------------------------------------------------------------------------------------------" << endl;
     if (apex_options::use_screen_output()) {
         cout << screen_output.str();
+        data.output = screen_output.str();
     }
     if (apex_options::use_csv_output()) {
         ofstream csvfile;
         stringstream csvname;
-        csvname << "apex." << node_id << ".csv";
+        csvname << apex_options::output_file_path();
+        csvname << filesystem_separator() << "apex." << node_id << ".csv";
         csvfile.open(csvname.str(), ios::out);
         csvfile << csv_output.str();
         csvfile.close();
@@ -663,7 +672,8 @@ node_color * get_node_color(double v,double vmin,double vmax)
     thread_instance::instance(false);
     ofstream myfile;
     stringstream dotname;
-    dotname << "taskgraph." << node_id << ".dot";
+    dotname << apex_options::output_file_path();
+    dotname << filesystem_separator() << "taskgraph." << node_id << ".dot";
     myfile.open(dotname.str().c_str());
 
     myfile << "digraph prof {\n rankdir=\"LR\";\n node [shape=box];\n";
@@ -753,7 +763,8 @@ node_color * get_node_color(double v,double vmin,double vmax)
     stringstream datname;
     // name format: profile.nodeid.contextid.threadid
     // We only write one profile per process
-    datname << "profile." << node_id << ".0.0";
+    datname << apex_options::output_file_path();
+    datname << filesystem_separator() << "profile." << node_id << ".0.0";
 
     // name format: profile.nodeid.contextid.threadid
     myfile.open(datname.str().c_str());
@@ -863,12 +874,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
   bool profiler_listener::concurrent_cleanup(int i){
       //set_thread_affinity(i);
       std::shared_ptr<profiler> p;
-#ifdef APEX_MULTIPLE_QUEUES
-//std::cout << "Queue " << i << ", " << allqueues[i]->size_approx() << " items remaining." << std::endl; fflush(stdout);
       while(allqueues[i]->try_dequeue(p)) {
-#else
-      while(thequeue.try_dequeue(p)) {
-#endif
              process_profile(p,0);
       }
       return true;
@@ -1060,81 +1066,31 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       }
 #endif
     }
-    APEX_UNUSED(data);
+    node_id = data.comm_rank;
   }
 
-  /* On the shutdown event, notify the consumer thread that we are done
-   * and set the "terminate" flag. */
-  void profiler_listener::on_shutdown(shutdown_event_data &data) {
+  /* On the dump event, output all the profiles regardless of whether
+   * the screen dump flag is set. */
+  void profiler_listener::on_dump(dump_event_data &data) {
     if (_done) { return; }
-    if (!_done) {
-      _done = true;
-      node_id = data.node_id;
-      //sleep(1);
-#ifndef APEX_HAVE_HPX
-      queue_signal.post();
-      queue_signal.dump_stats();
-      if (consumer_thread != nullptr) {
-          queue_signal.post(); // one more time, just to be sure
-          consumer_thread->join();
-      }
-#endif
-
       // stop the main timer, and process that profile?
       main_timer->stop();
-#if APEX_HAVE_PAPI
-      if (num_papi_counters > 0 && !apex_options::papi_suspend() && thread_papi_state == papi_running) {
-        int rc = PAPI_read( EventSet, main_timer->papi_stop_values );
-        PAPI_ERROR_CHECK("PAPI_read");
-      }
-#endif
-      // if this profile is processed, it will get deleted. so don't process it!
-      // It also clutters up the final profile, if generated.
-      //process_profile(main_timer.get(), my_tid);
+      push_profiler((unsigned int)thread_instance::get_id(), main_timer);
 
       // output to screen?
       if ((apex_options::use_screen_output() ||
            apex_options::use_csv_output()) && node_id == 0)
       {
-#ifdef APEX_MULTIPLE_QUEUES
         size_t ignored = 0;
         {
             std::unique_lock<std::mutex> queue_lock(queue_mtx);
             for (profiler_queue_t* a_queue : allqueues) {
-                /*
-            std::vector<profiler_queue_t*>::const_iterator a_queue;
-            for (a_queue = allqueues.begin() ; a_queue != allqueues.end() ; ++a_queue) {
-                thequeue = *a_queue;
-                */
                 ignored += a_queue->size_approx();
             }
         }
-#else
-        size_t ignored = thequeue.size_approx();
-#endif
-        if (ignored > 0) {
-          std::cerr << "Info: " << ignored << " items remaining on on the profiler_listener queue..."; fflush(stderr);
+        if (ignored > 100000) {
+          std::cout << "Info: " << ignored << " items remaining on on the profiler_listener queue..."; fflush(stderr);
         }
-#if 0
-#ifndef APEX_HAVE_HPX
-        // We might be done, but check to make sure the queue is empty
-        std::vector<std::future<bool>> pending_futures;
-        //for (unsigned int i=0; i<hardware_concurrency(); ++i) {
-        for (unsigned int i=0; i<allqueues.size(); ++i) {
-#ifdef APEX_STATIC
-            /* Static libC++ doesn't do async very well. In fact, it crashes. */
-            auto f = std::async(&profiler_listener::concurrent_cleanup,this,i);
-#else // APEX_STATIC
-            auto f = std::async(std::launch::async,&profiler_listener::concurrent_cleanup,this,i);
-#endif // APEX_STATIC
-            // transfer the future's shared state to a longer-lived future
-            pending_futures.push_back(std::move(f));
-        }
-        for (auto iter = pending_futures.begin() ; iter < pending_futures.end() ; iter++ ) {
-            iter->get();
-        }
-#endif // APEX_HAVE_HPX
-#else // if 0
         /* APEX can't handle spawning a bunch of new APEX threads at this time,
          * so just process the queue. Anyway, it shouldn't get backed up that 
          * much without suggesting there is a bigger problem. */
@@ -1142,13 +1098,10 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         for (unsigned int i=0; i<allqueues.size(); ++i) {
           concurrent_cleanup(i);
         }
-#endif // if 0
-        if (ignored > 0) {
+        if (ignored > 100000) {
           std::cerr << "done." << std::endl;
         }
-        if (apex_options::use_screen_output() || apex_options::use_csv_output()) {
-            finalize_profiles();
-        }
+        finalize_profiles(data);
       }
       if (apex_options::use_taskgraph_output() && node_id == 0)
       {
@@ -1187,13 +1140,39 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
           close(task_scatterplot_sample_file);
       }
 #endif
+      // restart the main timer
+      main_timer = std::make_shared<profiler>(task_identifier::get_task_id(string(APEX_MAIN)));
+      if (data.reset) {
+          reset_all();
+      }
+  }
+
+  void profiler_listener::on_reset(task_identifier * id) {
+    if (id == nullptr) {
+        reset_all();
+    } else {
+        reset(id);
+    }
+  }
+
+  /* On the shutdown event, notify the consumer thread that we are done
+   * and set the "terminate" flag. */
+  void profiler_listener::on_shutdown(shutdown_event_data &data) {
+    if (_done) { return; }
+    if (!_done) {
+      _done = true;
+      //node_id = data.node_id;
+      //sleep(1);
+#ifndef APEX_HAVE_HPX
+      queue_signal.post();
+      queue_signal.dump_stats();
+      if (consumer_thread != nullptr) {
+          queue_signal.post(); // one more time, just to be sure
+          consumer_thread->join();
+      }
+#endif
 
     }
-    /* The cleanup is disabled for now. Why? Because we want to be able
-     * to access the profiles at the end of the run, after APEX has
-     * finalized. */
-    // cleanup.
-    // delete_profiles();
   }
 
   /* When a new node is created */
@@ -1285,11 +1264,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         if (p->task_id->name == "apex::process_profiles") { return; }
 #endif
       // we have to make a local copy, because lockfree queues DO NOT SUPPORT shared_ptrs!
-#ifdef APEX_MULTIPLE_QUEUES
       thequeue()->enqueue(p);
-#else
-      thequeue.enqueue(p);
-#endif
 
 #ifndef APEX_HAVE_HPX
       // Check to see if the consumer is already running, to avoid calling "post"
@@ -1365,10 +1340,8 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
   /* When an asynchronous thread is launched, they should
    * call apex::async_thread_setup() which will end up here.*/
   void profiler_listener::async_thread_setup(void) {
-#ifdef APEX_MULTIPLE_QUEUES
       // for asynchronous threads, check to make sure there is a queue!
       thequeue();
-#endif
   }
 
   /* When a sample value is processed, save it as a profiler object, and queue it. */
@@ -1438,13 +1411,11 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       delete consumer_thread;
 #endif
 #endif
-#ifdef APEX_MULTIPLE_QUEUES
     while (allqueues.size() > 0) {
         auto tmp = allqueues.back();
         allqueues.pop_back();
         delete(tmp);
     }
-#endif
     for (auto tmp : free_profiles) {
         delete(tmp);
     }

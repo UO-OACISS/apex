@@ -49,6 +49,10 @@ if(APEX_INTEL_MIC)
     add_dependencies (apex project_boost)
 endif(APEX_INTEL_MIC)
 
+if (MPI_CXX_FOUND)
+  include_directories (${MPI_CXX_INCLUDE_PATH})
+endif(MPI_CXX_FOUND)
+
 # If we are building libapex.so, we want to include all the other libraries,
 # so that we can LD_PRELOAD this library with all requirements met.
 if (NOT BUILD_STATIC_EXECUTABLES)

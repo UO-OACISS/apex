@@ -11,6 +11,10 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/file.h>
+#if defined(APEX_HAVE_MPI)
+#include <mpi.h>
+#endif
+#include <atomic>
 
 #define OTF2_EC(call) { \
     OTF2_ErrorCode ec = call; \
@@ -23,10 +27,28 @@ using namespace std;
 
 namespace apex {
 
+    /* Stupid Intel compiler CLAIMS to be C++14, but doesn't have support for std::unique_ptr. */
+#if __cplusplus < 201402L || defined(__INTEL_COMPILER)
+    template<typename T, typename... Args>
+    std::unique_ptr<T> make_unique(Args&&... args) {
+        return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+    }
+#define APEX_MAKE_UNIQUE make_unique
+#else
+#define APEX_MAKE_UNIQUE std::make_unique
+#endif
+
+    struct string_sort_by_value {
+        bool operator()(const std::pair<std::string,int> &left, const std::pair<std::string,int> &right) {
+            return left.second < right.second;
+        }
+    };
+
     uint64_t otf2_listener::globalOffset(0);
     const std::string otf2_listener::empty("");
     int otf2_listener::my_saved_node_id(0);
     int otf2_listener::my_saved_node_count(1);
+    std::atomic<int> active_threads{0};
 
     OTF2_CallbackCode otf2_listener::my_OTF2GetSize(void *userData,
             OTF2_CollectiveContext *commContext, uint32_t *size) {
@@ -126,7 +148,7 @@ namespace apex {
 
         /* these indices are thread-specific. */
         std::map<task_identifier,uint64_t>& otf2_listener::get_region_indices(void) {
-            static __thread std::map<task_identifier,uint64_t> * region_indices;
+            static APEX_NATIVE_TLS std::map<task_identifier,uint64_t> * region_indices;
             if (region_indices == nullptr) {
                 region_indices = new std::map<task_identifier,uint64_t>();
             }
@@ -134,7 +156,7 @@ namespace apex {
         }
         /* these indices are thread-specific. */
         std::map<std::string,uint64_t>& otf2_listener::get_string_indices(void) {
-            static __thread std::map<std::string,uint64_t> * string_indices;
+            static APEX_NATIVE_TLS std::map<std::string,uint64_t> * string_indices;
             if (string_indices == nullptr) {
                 string_indices = new std::map<std::string,uint64_t>();
             }
@@ -204,7 +226,7 @@ namespace apex {
             return hostname_index;
         }
         std::map<std::string,uint64_t>& otf2_listener::get_metric_indices(void) {
-            static __thread std::map<std::string,uint64_t> * metric_indices;
+            static APEX_NATIVE_TLS std::map<std::string,uint64_t> * metric_indices;
             if (metric_indices == nullptr) {
                 metric_indices = new std::map<std::string,uint64_t>();
             }
@@ -253,12 +275,12 @@ namespace apex {
         return &cb;
     }
 
-    OTF2_EvtWriter* otf2_listener::getEvtWriter(void) {
-      static __thread OTF2_EvtWriter* evt_writer(nullptr);
-      if (evt_writer == nullptr) {
+    OTF2_EvtWriter* otf2_listener::getEvtWriter(bool create) {
+      static APEX_NATIVE_TLS OTF2_EvtWriter* evt_writer(nullptr);
+      // Are we creating / opening an event writer?
+      if (evt_writer == nullptr && create) {
         // only let one thread at a time create an event file
         read_lock_type lock(_archive_mutex);
-        //printf("creating event writer for thread %lu\n", thread_instance::get_id()); fflush(stdout);
         uint64_t my_node_id = my_saved_node_id;
         my_node_id = (my_node_id << 32) + thread_instance::get_id();
         evt_writer = OTF2_Archive_GetEvtWriter( archive, my_node_id );
@@ -267,7 +289,20 @@ namespace apex {
         }
         std::unique_lock<std::mutex> l(_event_set_mutex);
         _event_threads.insert(thread_instance::get_id());
+      // Are we closing an event writer?
+      } else if (!create) {
+        if (thread_instance::get_id() == 0) {
+            comm_evt_writer = nullptr;
+        }
+        if (evt_writer != nullptr) {
+            //printf("closing event writer %p for thread %lu\n", evt_writer, thread_instance::get_id()); fflush(stdout);
+            // FOR SOME REASON, OTF2 CRASHES ON EXIT
+            // Not closing the event writers seems to prevent that?
+            // OTF2_Archive_CloseEvtWriter( archive, evt_writer );
+            evt_writer = nullptr;
+        }
       }
+      //printf("using event writer %p for thread %lu\n", evt_writer, thread_instance::get_id()); fflush(stdout);
       return evt_writer;
     }
 
@@ -293,7 +328,7 @@ namespace apex {
     };
 
     /* constructor for the OTF2 listener class */
-    otf2_listener::otf2_listener (void) : _terminate(false), comm_evt_writer(nullptr), global_def_writer(nullptr) {
+    otf2_listener::otf2_listener (void) : _terminate(false), _initialized(false), comm_evt_writer(nullptr), global_def_writer(nullptr) {
         /* get a start time for the trace */
         globalOffset = get_time();
         /* set the flusher */
@@ -305,6 +340,7 @@ namespace apex {
         region_filename_prefix = string(string(apex_options::otf2_archive_path()) + "/.regions.");
         metric_filename_prefix = string(string(apex_options::otf2_archive_path()) + "/.metrics.");
         lock_filename_prefix = string(string(apex_options::otf2_archive_path()) + "/.regions.lock.");
+        lock2_filename_prefix = string(string(apex_options::otf2_archive_path()) + "/.metrics.lock.");
     }
 
     bool otf2_listener::create_archive(void) {
@@ -319,6 +355,7 @@ namespace apex {
             /* NO! why? because we don't know which rank we are, and
              * we don't know if the archive is supposed to be there or not.
              */
+            std::cout << "removing path!" << std::endl; fflush(stdout);
             remove_path(apex_options::otf2_archive_path());
         }
         /* open the OTF2 archive */
@@ -351,20 +388,23 @@ namespace apex {
         // around when we are finalizing everything.
         my_saved_node_id = apex::instance()->get_node_id();
         my_saved_node_count = apex::instance()->get_num_ranks();
+        cout << "Rank " << my_saved_node_id << " of " << my_saved_node_count << "." << endl;
         // now is a good time to make sure the archive is open on this rank/locality
         static bool archive_created = create_archive();
         if ((!_terminate) && archive_created) {
-            // let rank/locality 0 know this rank's properties.
-            write_my_node_properties();
             // set up the event writer for communication (thread 0).
-            getEvtWriter();
+            getEvtWriter(true);
+        } else {
+            std::cerr << "Archive not created!" << std::endl; fflush(stderr);
+            return;
         }
+        _initialized = true;
         return;
     }
 
     void otf2_listener::write_otf2_regions(void) {
         // only write these out once!
-        static __thread bool written = false;
+        static APEX_NATIVE_TLS bool written = false;
         if (written) return;
         written = true;
         for (auto const &i : reduced_region_map) {
@@ -388,7 +428,7 @@ namespace apex {
 
     void otf2_listener::write_otf2_metrics(void) {
         // only write these out once!
-        static __thread bool written = false;
+        static APEX_NATIVE_TLS bool written = false;
         if (written) return;
         written = true;
         // write a "unit" string
@@ -398,9 +438,7 @@ namespace apex {
         for (auto const &i : reduced_metric_map) {
             pairs.push_back(i);
         }
-        sort(pairs.begin(), pairs.end(), [=](std::pair<std::string, int>& a, std::pair<std::string, int>& b) {
-            return a.second < b.second;
-        });
+        sort(pairs.begin(), pairs.end(), string_sort_by_value());
         // iterate over the metrics and write them out.
         for (auto const &i : pairs) {
             string id = i.first;
@@ -418,236 +456,7 @@ namespace apex {
         }
     }
 
-    void otf2_listener::write_my_regions(void) {
-        // only write these out once!
-        static __thread bool written = false;
-        if (written) return;
-        written = true;
-        // create my lock file.
-        ostringstream lock_filename;
-        lock_filename << lock_filename_prefix << my_saved_node_id;
-        ofstream lock_file(lock_filename.str(), ios::out | ios::trunc );
-        lock_file.close();
-        // open my region file
-        ostringstream region_filename;
-        region_filename << region_filename_prefix << my_saved_node_id;
-        ofstream region_file(region_filename.str(), ios::out | ios::trunc );
-        // first, output our number of threads.
-        region_file << thread_instance::get_num_threads() << endl;
-        // then iterate over the regions and write them out.
-        for (auto const &i : global_region_indices) {
-            task_identifier id = i.first;
-            //uint64_t idx = i.second;
-            //region_file << id.get_name() << "\t" << idx << endl;
-            region_file << id.get_name() << endl;
-        }
-        // close the region file
-        region_file.close();
-        // delete the lock file, so rank 0 can read our data.
-        std::remove(lock_filename.str().c_str());
-    }
-
-    void otf2_listener::write_my_metrics(void) {
-        // only write these out once!
-        static __thread bool written = false;
-        if (written) return;
-        written = true;
-        // create my lock file.
-        ostringstream lock_filename;
-        lock_filename << lock_filename_prefix << my_saved_node_id;
-        ofstream lock_file(lock_filename.str(), ios::out | ios::trunc );
-        lock_file.close();
-        // open my metric file
-        ostringstream metric_filename;
-        metric_filename << metric_filename_prefix << my_saved_node_id;
-        ofstream metric_file(metric_filename.str(), ios::out | ios::trunc );
-        // first, output our number of threads.
-        metric_file << thread_instance::get_num_threads() << endl;
-        // then iterate over the metrics and write them out.
-        for (auto const &i : global_metric_indices) {
-            string id = i.first;
-            //uint64_t idx = i.second;
-            //metric_file << id.get_name() << "\t" << idx << endl;
-            metric_file << id << endl;
-        }
-        // close the metric file
-        metric_file.close();
-        // delete the lock file, so rank 0 can read our data.
-        std::remove(lock_filename.str().c_str());
-    }
-
-    int otf2_listener::reduce_regions(void) {
-        // create my lock file.
-        ostringstream my_lock_filename;
-        my_lock_filename << lock_filename_prefix << my_saved_node_id;
-        ofstream lock_file(my_lock_filename.str(), ios::out | ios::trunc );
-        lock_file.close();
-        // iterate over my region map, and build a map of strings to ids
-        // save my number of regions
-        rank_region_map[0] = global_region_indices.size();
-        for (auto const &i : global_region_indices) {
-            task_identifier id = i.first;
-            uint64_t idx = i.second;
-            reduced_region_map[id.get_name()] = idx;
-        }
-        int comm_size = 0;
-        // iterate over the other ranks in the index files
-        for (int i = 0 ; i < my_saved_node_count ; i++) {
-            comm_size++;
-            // skip myself
-            if (i == 0) continue;
-            rank_region_map[i] = 0;
-            struct stat buffer;   
-            // wait on the map file to exist
-            ostringstream region_filename;
-            region_filename << region_filename_prefix << i;
-            // wait for the lock file to not exist
-            while (stat (region_filename.str().c_str(), &buffer) != 0) {}
-            ostringstream lock_filename;
-            lock_filename << lock_filename_prefix << i;
-            // wait for the region file to exist
-            while (stat (lock_filename.str().c_str(), &buffer) == 0) {}
-            // get the number of threads from that rank
-            std::string region_line;
-            std::ifstream region_file(region_filename.str());
-            std::getline(region_file, region_line);
-            std::string::size_type sz;   // alias of size_t
-            rank_thread_map[i] = std::stoi(region_line,&sz);
-            // read the map from that rank
-            while (std::getline(region_file, region_line)) {
-                rank_region_map[i] = rank_region_map[i] + 1;
-                // trim the newline
-                region_line.erase(std::remove(region_line.begin(), region_line.end(), '\n'), region_line.end());
-                if (reduced_region_map.find(region_line) == reduced_region_map.end()) {
-                    uint64_t idx = reduced_region_map.size();
-                    reduced_region_map[region_line] = idx;
-                }
-            }
-            // close the region file
-            region_file.close();
-            // remove that rank's map
-            std::remove(region_filename.str().c_str());
-        }
-        // open my region file
-        ostringstream region_filename;
-        region_filename << region_filename_prefix << my_saved_node_id;
-        ofstream region_file(region_filename.str(), ios::out | ios::trunc );
-        // copy the reduced map to a pair, so we can sort by value
-        std::vector<std::pair<std::string, int>> pairs;
-        for (auto const &i : reduced_region_map) {
-            pairs.push_back(i);
-        }
-        sort(pairs.begin(), pairs.end(), [=](std::pair<std::string, int>& a, std::pair<std::string, int>& b) {
-            return a.second < b.second;
-        });
-        // iterate over the regions and write them out.
-        for (auto const &i : pairs) {
-            std::string name = i.first;
-            uint64_t idx = i.second;
-            region_file << idx << "\t" << name << endl;
-        }
-        // close the region file
-        region_file.close();
-        // delete the lock file, so everyone can read our data.
-        std::remove(my_lock_filename.str().c_str());
-        return comm_size;
-    }
-
-    void otf2_listener::reduce_metrics(void) {
-        // create my lock file.
-        ostringstream my_lock_filename;
-        my_lock_filename << lock_filename_prefix << my_saved_node_id;
-        ofstream lock_file(my_lock_filename.str(), ios::out | ios::trunc );
-        lock_file.close();
-        // iterate over my metric map, and build a map of strings to ids
-        // save my number of metrics
-        rank_metric_map[0] = global_metric_indices.size();
-        for (auto const &i : global_metric_indices) {
-            string id = i.first;
-            uint64_t idx = i.second;
-            reduced_metric_map[id] = idx;
-        }
-        // iterate over the other ranks in the index file
-        for (int i = 0 ; i < my_saved_node_count ; i++) {
-            // skip myself
-            if (i == 0) continue;
-            rank_metric_map[i] = 0;
-            struct stat buffer;   
-            // wait on the map file to exist
-            ostringstream metric_filename;
-            metric_filename << metric_filename_prefix << i;
-            while (stat (metric_filename.str().c_str(), &buffer) != 0) {}
-            // wait for the lock file to not exist
-            ostringstream lock_filename;
-            lock_filename << lock_filename_prefix << i;
-            while (stat (lock_filename.str().c_str(), &buffer) == 0) {}
-            // get the number of threads from that rank
-            std::string metric_line;
-            std::ifstream metric_file(metric_filename.str());
-            std::getline(metric_file, metric_line);
-            std::string::size_type sz;   // alias of size_t
-            rank_thread_map[i] = std::stoi(metric_line,&sz);
-            // read the map from that rank
-            while (std::getline(metric_file, metric_line)) {
-                rank_metric_map[i] = rank_metric_map[i] + 1;
-                // trim the newline
-                metric_line.erase(std::remove(metric_line.begin(), metric_line.end(), '\n'), metric_line.end());
-                if (reduced_metric_map.find(metric_line) == reduced_metric_map.end()) {
-                    uint64_t idx = reduced_metric_map.size();
-                    reduced_metric_map[metric_line] = idx;
-                }
-            }
-            // close the metric file
-            metric_file.close();
-            // remove that rank's map
-            std::remove(metric_filename.str().c_str());
-        }
-        // open my metric file
-        ostringstream metric_filename;
-        metric_filename << metric_filename_prefix << my_saved_node_id;
-        ofstream metric_file(metric_filename.str(), ios::out | ios::trunc );
-        // copy the reduced map to a pair, so we can sort by value
-        std::vector<std::pair<std::string, int>> pairs;
-        for (auto const &i : reduced_metric_map) {
-            pairs.push_back(i);
-        }
-        sort(pairs.begin(), pairs.end(), [=](std::pair<std::string, int>& a, std::pair<std::string, int>& b) {
-            return a.second < b.second;
-        });
-        // iterate over the metrics and write them out.
-        for (auto const &i : pairs) {
-            std::string name = i.first;
-            uint64_t idx = i.second;
-            metric_file << idx << "\t" << name << endl;
-        }
-        // close the metric file
-        metric_file.close();
-        // delete the lock file, so everyone can read our data.
-        std::remove(my_lock_filename.str().c_str());
-    }
-
-    void otf2_listener::write_region_map() {
-        struct stat buffer;   
-        std::map<std::string,uint64_t> reduced_region_map;
-        // wait on the map file from rank 0 to exist
-        ostringstream region_filename;
-        region_filename << region_filename_prefix << 0;
-        while (stat (region_filename.str().c_str(), &buffer) != 0) {}
-        // wait for the lock file from rank 0 to NOT exist
-        ostringstream lock_filename;
-        lock_filename << lock_filename_prefix << 0;
-        while (stat (lock_filename.str().c_str(), &buffer) == 0) {}
-        std::string region_line;
-        std::ifstream region_file(region_filename.str());
-        std::string region_name;
-        int idx;
-        // read the map from rank 0
-        while (std::getline(region_file, region_line)) {
-            istringstream ss(region_line);
-            ss >> idx >> region_name;
-            reduced_region_map[region_name] = idx;
-        }
-        region_file.close();
+    void otf2_listener::write_region_map(std::map<std::string,uint64_t>& reduced_region_map) {
         // build the array of uint64_t values
         if (global_region_indices.size() > 0) {
             uint64_t * mappings = (uint64_t*)(malloc(sizeof(uint64_t) * global_region_indices.size()));
@@ -671,29 +480,7 @@ namespace apex {
         }
     }
 
-    void otf2_listener::write_metric_map() {
-        struct stat buffer;   
-        std::map<std::string,uint64_t> reduced_metric_map;
-        // wait on the map file from rank 0 to exist
-        ostringstream metric_filename;
-        metric_filename << metric_filename_prefix << 0;
-        while (stat (metric_filename.str().c_str(), &buffer) != 0) {}
-        // wait for the lock file from rank 0 to NOT exist
-        ostringstream lock_filename;
-        lock_filename << lock_filename_prefix << 0;
-        while (stat (lock_filename.str().c_str(), &buffer) == 0) {}
-        std::string metric_line;
-        std::ifstream metric_file(metric_filename.str());
-        std::string metric_name;
-        uint64_t idx;
-        // read the map from rank 0
-        while (std::getline(metric_file, metric_line)) {
-            size_t firsttab=metric_line.find('\t');
-            idx = atoi(metric_line.substr(0,firsttab).c_str());
-            metric_name = metric_line.substr(firsttab+1);
-            reduced_metric_map[metric_name] = idx;
-        }
-        metric_file.close();
+    void otf2_listener::write_metric_map(std::map<std::string,uint64_t>& reduced_metric_map) {
         // build the array of uint64_t values
         if (global_metric_indices.size() > 0) {
             uint64_t * mappings = (uint64_t*)(malloc(sizeof(uint64_t) * global_metric_indices.size()));
@@ -789,6 +576,12 @@ namespace apex {
         }
     }
 
+    /* do nothing with OTF2 at dump event. For now. */
+    void otf2_listener::on_dump(dump_event_data &data) {
+        APEX_UNUSED(data);
+        return;
+    }
+
     /* At shutdown, we need to reduce all the global information,
      * and write out the global definitions - strings, regions,
      * locations, communicators, groups, metrics, etc.
@@ -812,6 +605,8 @@ namespace apex {
 			    std::cout << "Closing OTF2 event files..." << std::endl;
             }
             OTF2_EC(OTF2_Archive_CloseEvtFiles( archive ));
+            // write node properties
+            auto map_pair = reduce_node_properties(write_my_node_properties());
             /* if we are node 0, write the global definitions */
             if (my_saved_node_id == 0) {
                 // save my number of threads
@@ -820,11 +615,6 @@ namespace apex {
                 // make a common list of regions and metrics across all nodes...
                 reduce_regions();
                 reduce_metrics();
-                if (my_saved_node_count > 1) {
-                    // ...and distribute them back out
-                    write_region_map();
-                    write_metric_map();
-                }
 				std::cout << "Writing OTF2 Global definition file..." << std::endl;
                 // create the global definition writer
                 global_def_writer = OTF2_Archive_GetGlobalDefWriter( archive );
@@ -841,28 +631,9 @@ namespace apex {
                 const string node("node");
                 OTF2_EC(OTF2_GlobalDefWriter_WriteString( global_def_writer, 
                     get_string_index(node), node.c_str() ));
-                std::map<int,int> rank_pid_map;
-                std::map<int,string> rank_hostname_map;
-                int rank, pid;
-                std::string hostname;
-                // iterate over the node info file, getting
-                // the rank, pid and hostname for each
-                for (int i = 0 ; i < my_saved_node_count ; i++) {
-                    std::string line;
-        			struct stat buffer;
-                    std::stringstream full_index_filename;
-                    full_index_filename << index_filename << to_string(i);
-					// wait for the file to exist
-        			while (stat (full_index_filename.str().c_str(), &buffer) != 0) {}
-        			std::ifstream myfile(full_index_filename.str());
-                    while (std::getline(myfile, line)) {
-                        istringstream ss(line);
-                        ss >> rank >> pid >> hostname;
-                        rank_pid_map[rank] = pid;
-                        rank_hostname_map[rank] = hostname;
-                    }    
-                    myfile.close();
-                }
+                // let rank/locality 0 know this rank's properties.
+                auto rank_pid_map = std::get<0>(*map_pair);
+                auto rank_hostname_map = std::get<1>(*map_pair);
                 // these are communicator lists, and a location map
                 // for each. We need a group member for each process,
                 // and the "location" is thread 0 of that process.
@@ -871,11 +642,10 @@ namespace apex {
 				std::cout << "Writing OTF2 Node information..." << std::endl;
                 // iterate over the ranks (in order) and write them out
                 for (auto const &i : rank_pid_map) {
-                    rank = i.first;
-                    pid = i.second;
-                    hostname = rank_hostname_map[rank];
+                    int rank = i.first;
+                    int pid = i.second;
                     // write the host properties to the OTF2 trace
-                    write_host_properties(rank, pid, hostname);
+                    write_host_properties(rank, pid, rank_hostname_map[rank]);
                     // add the rank to the communicator group
                     group_members.push_back(rank);
                     /*
@@ -913,13 +683,9 @@ namespace apex {
             } else {
                 // not rank 0? 
                 // write out the timer names we saw
-                write_my_regions();
+                reduce_regions();
                 // write out the counter names we saw
-                write_my_metrics();
-                // using the reduced set of regions, write our local map
-                // to the global strings
-                write_region_map();
-                write_metric_map();
+                reduce_metrics();
             }
             for (int i = 0 ; i < thread_instance::get_num_threads() ; i++) {
                 /* close (and possibly create) the definition files */
@@ -957,10 +723,7 @@ namespace apex {
      * the job. We do that by writing our rank to the 
      * master rank file (assuming a shared filesystem)
      * if it is larger than the current rank in there. */
-    bool otf2_listener::write_my_node_properties() {
-        // make sure we only call this function once
-        static bool already_written = false;
-        if (already_written) return true;
+    std::string otf2_listener::write_my_node_properties() {
         // get our rank/locality info
         pid_t pid = ::getpid();
         char hostname[128];
@@ -969,15 +732,7 @@ namespace apex {
         // build a string to write to the file
         stringstream ss;
         ss << my_saved_node_id << "\t" << pid << "\t" << hostname << "\n";
-        //cout << ss.str();
-        string tmp = ss.str();
-        std::ofstream index_file(index_filename + to_string(my_saved_node_id));
-        // write our info
-        index_file << tmp.c_str();
-        // close the file
-        index_file.close();
-        already_written = true;
-        return already_written;
+        return ss.str();
     }
 
     void otf2_listener::on_new_node(node_event_data &data) {
@@ -993,12 +748,12 @@ namespace apex {
             // not likely, but just in case...
             if (_terminate) { return; }
             // before we process the event, make sure the event write is open
-            getEvtWriter();
+            getEvtWriter(true);
 /* Don't do this until we can do the ThreadCreate call
  * and get the right threadContingent object for the
  * fourth parameter. */
 #if 0
-            OTF2_EvtWriter* local_evt_writer = getEvtWriter();
+            OTF2_EvtWriter* local_evt_writer = getEvtWriter(true);
             if (local_evt_writer != NULL) {
               // insert a thread begin event
               uint64_t stamp = get_time();
@@ -1022,15 +777,11 @@ namespace apex {
         if (thread_instance::get_id() != 0) {
             // insert a thread end event
             uint64_t stamp = get_time();
-            OTF2_EvtWriter_ThreadEnd( getEvtWriter(), NULL, stamp, 0, 0);
+            OTF2_EvtWriter_ThreadEnd( getEvtWriter(false), NULL, stamp, 0, 0);
         } 
 #endif
-        //printf("closing event writer for thread %lu\n", thread_instance::get_id()); fflush(stdout);
         //_event_threads.insert(thread_instance::get_id());
-        OTF2_Archive_CloseEvtWriter( archive, getEvtWriter() );
-        if (thread_instance::get_id() == 0) {
-            comm_evt_writer = nullptr;
-        }
+        getEvtWriter(false);
         APEX_UNUSED(data);
         return;
     }
@@ -1041,24 +792,27 @@ namespace apex {
         // not likely, but just in case...
         if (_terminate) { return false; }
         // before we process the event, make sure the event write is open
-        OTF2_EvtWriter* local_evt_writer = getEvtWriter();
-        if (thread_instance::get_id() == 0) {
-            uint64_t idx = get_region_index(id);
-            // Because the event writer for thread 0 is also
-            // used for communication events and sampled values,
-            // we have to get a lock for it.
-            std::unique_lock<std::mutex> lock(_comm_mutex);
-            // unfortunately, we can't use the timestamp from the
-            // profiler object. bummer. it has to be taken after
-            // the lock is acquired, so that events happen on
-            // thread 0 in monotonic order.
-            uint64_t stamp = get_time();
-            OTF2_EC(OTF2_EvtWriter_Enter( local_evt_writer, NULL, stamp, idx /* region */ ));
-        } else {
-            uint64_t stamp = get_time();
-            OTF2_EC(OTF2_EvtWriter_Enter( local_evt_writer, NULL, stamp, get_region_index(id) /* region */ ));
+        OTF2_EvtWriter* local_evt_writer = getEvtWriter(true);
+        if (local_evt_writer != nullptr) {
+            if (thread_instance::get_id() == 0) {
+                uint64_t idx = get_region_index(id);
+                // Because the event writer for thread 0 is also
+                // used for communication events and sampled values,
+                // we have to get a lock for it.
+                std::unique_lock<std::mutex> lock(_comm_mutex);
+                // unfortunately, we can't use the timestamp from the
+                // profiler object. bummer. it has to be taken after
+                // the lock is acquired, so that events happen on
+                // thread 0 in monotonic order.
+                uint64_t stamp = get_time();
+                OTF2_EC(OTF2_EvtWriter_Enter( local_evt_writer, NULL, stamp, idx /* region */ ));
+            } else {
+                uint64_t stamp = get_time();
+                OTF2_EC(OTF2_EvtWriter_Enter( local_evt_writer, NULL, stamp, get_region_index(id) /* region */ ));
+            }
+            return true;
         }
-        return true;
+        return false;
     }
 
     bool otf2_listener::on_resume(task_identifier * id) {
@@ -1068,25 +822,27 @@ namespace apex {
     void otf2_listener::on_stop(std::shared_ptr<profiler> &p) {
         // don't close the archive on us!
         read_lock_type lock(_archive_mutex);
-        OTF2_EvtWriter* local_evt_writer = getEvtWriter();
-        // not likely, but just in case...
-        if (_terminate) { return; }
-        if (thread_instance::get_id() == 0) {
-            uint64_t idx = get_region_index(p->task_id);
-            // Because the event writer for thread 0 is also
-            // used for communication events and sampled values,
-            // we have to get a lock for it.
-            std::unique_lock<std::mutex> lock(_comm_mutex);
-            // unfortunately, we can't use the timestamp from the
-            // profiler object. bummer. it has to be taken after
-            // the lock is acquired, so that events happen on
-            // thread 0 in monotonic order.
-            uint64_t stamp = get_time();
-            OTF2_EC(OTF2_EvtWriter_Leave( local_evt_writer, NULL, stamp, idx /* region */ ));
-        } else {
-            uint64_t stamp = get_time();
-            OTF2_EC(OTF2_EvtWriter_Leave( local_evt_writer, NULL, stamp, 
-                    get_region_index(p->task_id) /* region */ ));
+        OTF2_EvtWriter* local_evt_writer = getEvtWriter(true);
+        if (local_evt_writer != nullptr) {
+            // not likely, but just in case...
+            if (_terminate) { return; }
+            if (thread_instance::get_id() == 0) {
+                uint64_t idx = get_region_index(p->task_id);
+                // Because the event writer for thread 0 is also
+                // used for communication events and sampled values,
+                // we have to get a lock for it.
+                std::unique_lock<std::mutex> lock(_comm_mutex);
+                // unfortunately, we can't use the timestamp from the
+                // profiler object. bummer. it has to be taken after
+                // the lock is acquired, so that events happen on
+                // thread 0 in monotonic order.
+                uint64_t stamp = get_time();
+                OTF2_EC(OTF2_EvtWriter_Leave( local_evt_writer, NULL, stamp, idx /* region */ ));
+            } else {
+                uint64_t stamp = get_time();
+                OTF2_EC(OTF2_EvtWriter_Leave( local_evt_writer, NULL, stamp, 
+                        get_region_index(p->task_id) /* region */ ));
+            }
         }
         return;
     }
@@ -1156,6 +912,11 @@ namespace apex {
     }
 
     void otf2_listener::on_sample_value(sample_value_event_data &data) {
+        // This could be an asynchronous sampled counter, may have gotten
+        // here before initialization is done.  Wait a sec...hopefully not longer.
+        while (!_initialized) { 
+            usleep(apex_options::policy_drain_timeout()); // sleep 1ms (default)
+        }
         // don't close the archive on us!
         read_lock_type lock(_archive_mutex);
         // not likely, but just in case...
@@ -1181,4 +942,643 @@ namespace apex {
         }
         return;
     }
+
+/* HPX implementation - TBD - for now, stick with file based reduction */
+/*
+#if defined(APEX_HAVE_HPX)
+
+
+    std::unique_ptr<std::tuple<std::map<int,int>, std::map<int,std::string> > > otf2_listener::reduce_node_properties(std::string&& str) {
+        return nullptr;
+    }
+
+#elif defined(APEX_HAVE_MPI)
+*/
+
+#if defined(APEX_HAVE_MPI)
+
+    /* MPI implementations */
+
+    std::unique_ptr<std::tuple<std::map<int,int>, std::map<int,std::string> > > otf2_listener::reduce_node_properties(std::string&& str) {
+        const int hostlength = 128;
+        // get all hostnames
+        char tmp[hostlength];
+        strncpy(tmp, str.c_str(), hostlength);
+
+        // make array for all hostnames
+        char * allhostnames = nullptr;
+        if (my_saved_node_id == 0) {
+            allhostnames = (char*)calloc(hostlength*my_saved_node_count, sizeof(char));
+        }
+
+        if (my_saved_node_count > 1) {
+            PMPI_Gather(tmp, hostlength, MPI_CHAR, allhostnames,
+                        hostlength, MPI_CHAR, 0, MPI_COMM_WORLD);
+        } else {
+            allhostnames = &(tmp[0]);
+        }
+
+        // if not root, we are done.  return.
+        if (my_saved_node_id > 0) {
+            return nullptr;
+        }
+
+        std::map<int,int> rank_pid_map;
+        std::map<int,string> rank_hostname_map;
+        int rank, pid;
+        std::string hostname;
+
+        // point to the head of the array
+        char * host_index = allhostnames;
+        // find the lowest rank with my hostname
+        for (int i = 0 ; i < my_saved_node_count ; i++) {
+            char line[hostlength];
+            strncpy(line, host_index, hostlength);
+            istringstream ss(line);
+            ss >> rank >> pid >> hostname;
+            rank_pid_map[rank] = pid;
+            rank_hostname_map[rank] = hostname;
+            host_index = host_index + hostlength;
+        }    
+        return APEX_MAKE_UNIQUE<std::tuple<std::map<int,int>, std::map<int,string> > >(rank_pid_map, rank_hostname_map);
+    }
+
+    std::string otf2_listener::write_my_regions(void) {
+        stringstream region_file;
+        // first, output our number of threads.
+        region_file << thread_instance::get_num_threads() << endl;
+        // then iterate over the regions and write them out.
+        for (auto const &i : global_region_indices) {
+            task_identifier id = i.first;
+            //uint64_t idx = i.second;
+            //region_file << id.get_name() << "\t" << idx << endl;
+            region_file << id.get_name() << endl;
+        }
+        return region_file.str();
+    }
+
+    int otf2_listener::reduce_regions(void) {
+        std::string my_regions = write_my_regions();
+        int length = my_regions.size();
+        int full_length = 0;
+        int max_length = 0;
+        char * sbuf = nullptr;
+        char * rbuf = nullptr;
+
+        if (my_saved_node_count > 1) {
+            // get the max length from all nodes
+            PMPI_Allreduce(&length, &max_length, 1, MPI_INT, 
+                           MPI_MAX, MPI_COMM_WORLD);
+        } else {
+            max_length = length;
+        }
+        // get the total length
+        full_length = max_length * my_saved_node_count;
+
+        // allocate space to store the strings on node 0
+        if (my_saved_node_id == 0) {
+            rbuf = (char*) calloc(full_length, sizeof(char));
+        }
+        // put the local data in a fixed length string
+        sbuf = (char*) calloc(max_length, sizeof(char));
+        strncpy(sbuf, my_regions.c_str(), max_length);
+
+        if (my_saved_node_count > 1) {
+            // gather the strings to node 0
+            PMPI_Gather(sbuf, max_length, MPI_CHAR, rbuf, max_length, MPI_CHAR, 0, MPI_COMM_WORLD);
+        } else {
+            rbuf = sbuf;
+        }
+
+        int fullmap_length = 0;
+        char * fullmap = nullptr;
+        if (my_saved_node_id == 0) {
+            // iterate over my region map, and build a map of strings to ids
+            // save my number of regions
+            rank_region_map[0] = global_region_indices.size();
+            for (auto const &i : global_region_indices) {
+                task_identifier id = i.first;
+                uint64_t idx = i.second;
+                reduced_region_map[id.get_name()] = idx;
+            }
+            int comm_size = 0;
+            // iterate over the other ranks in the index files
+            for (int i = 1 ; i < my_saved_node_count ; i++) {
+                comm_size++;
+                rank_region_map[i] = 0;
+                std::string region_file_string(rbuf+(max_length * i), max_length);
+                // get the number of threads from this rank
+                std::string region_line;
+                std::stringstream region_file(region_file_string);
+                std::getline(region_file, region_line);
+                std::string::size_type sz;   // alias of size_t
+                rank_thread_map[i] = std::stoi(region_line,&sz);
+                // read the map from that rank
+                while (std::getline(region_file, region_line)) {
+                    rank_region_map[i] = rank_region_map[i] + 1;
+                    // trim the newline
+                    region_line.erase(std::remove(region_line.begin(), region_line.end(), '\n'), region_line.end());
+                    if (reduced_region_map.find(region_line) == reduced_region_map.end()) {
+                        uint64_t idx = reduced_region_map.size();
+                        reduced_region_map[region_line] = idx;
+                    }
+                }
+            }
+            // copy the reduced map to a pair, so we can sort by value
+            std::vector<std::pair<std::string, int>> pairs;
+            for (auto const &i : reduced_region_map) {
+                pairs.push_back(i);
+            }
+            sort(pairs.begin(), pairs.end(), string_sort_by_value());
+            std::stringstream region_file;
+            // iterate over the regions and build the string
+            for (auto const &i : pairs) {
+                std::string name = i.first;
+                uint64_t idx = i.second;
+                region_file << idx << "\t" << name << endl;
+            }
+            fullmap_length = region_file.str().length();
+            fullmap = (char*) calloc(fullmap_length, sizeof(char));
+            strncpy(fullmap, region_file.str().c_str(), fullmap_length);
+        }
+
+        if (my_saved_node_count > 1) {
+            PMPI_Barrier(MPI_COMM_WORLD);
+        }
+
+        // share the full map length
+        if (my_saved_node_count > 1) {
+            PMPI_Bcast(&fullmap_length, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        }
+        if (my_saved_node_id > 0) {
+            fullmap = (char*) calloc(fullmap_length, sizeof(char));
+        }
+
+        if (my_saved_node_count > 1) {
+            // share the full map
+            PMPI_Bcast(fullmap, fullmap_length, MPI_CHAR, 0, MPI_COMM_WORLD);
+        }
+
+        // read the reduced data
+        if (my_saved_node_count > 1) {
+            std::map<std::string,uint64_t> reduced_region_map;
+            std::string region_line;
+            std::stringstream region_file(fullmap);
+            std::string region_name;
+            int idx;
+            // read the map from rank 0
+            while (std::getline(region_file, region_line)) {
+                istringstream ss(region_line);
+                ss >> idx >> region_name;
+                reduced_region_map[region_name] = idx;
+            }
+            // ...and distribute them back out
+            write_region_map(reduced_region_map);
+        }
+        return my_saved_node_count;
+    }
+
+    std::string otf2_listener::write_my_metrics(void) {
+        stringstream metric_file;
+        // first, output our number of threads.
+        metric_file << thread_instance::get_num_threads() << endl;
+        // then iterate over the metrics and write them out.
+        for (auto const &i : global_metric_indices) {
+            string id = i.first;
+            //uint64_t idx = i.second;
+            //metric_file << id.get_name() << "\t" << idx << endl;
+            metric_file << id << endl;
+        }
+        return metric_file.str();
+    }
+
+    void otf2_listener::reduce_metrics(void) {
+        std::string my_metrics = write_my_metrics();
+        int length = my_metrics.size();
+        int full_length = 0;
+        int max_length = 0;
+        char * sbuf = nullptr;
+        char * rbuf = nullptr;
+
+        if (my_saved_node_count > 1) {
+            // get the max length from all nodes
+            PMPI_Allreduce(&length, &max_length, 1, MPI_INT, 
+                           MPI_MAX, MPI_COMM_WORLD);
+        } else {
+            max_length = length;
+        }
+        // get the total length
+        full_length = max_length * my_saved_node_count;
+
+        // allocate space to store the strings on node 0
+        if (my_saved_node_id == 0) {
+            rbuf = (char*) calloc(full_length, sizeof(char));
+        }
+        // put the local data in a fixed length string
+        sbuf = (char*) calloc(max_length, sizeof(char));
+        strncpy(sbuf, my_metrics.c_str(), max_length);
+
+        if (my_saved_node_count > 1) {
+            // gather the strings to node 0
+            PMPI_Gather(sbuf, max_length, MPI_CHAR, rbuf, max_length, MPI_CHAR, 0, MPI_COMM_WORLD);
+        } else {
+            rbuf = sbuf;
+        }
+
+        int fullmap_length = 0;
+        char * fullmap = nullptr;
+        if (my_saved_node_id == 0) {
+            // iterate over my metric map, and build a map of strings to ids
+            // save my number of metrics
+            rank_metric_map[0] = global_metric_indices.size();
+            for (auto const &i : global_metric_indices) {
+                task_identifier id = i.first;
+                uint64_t idx = i.second;
+                reduced_metric_map[id.get_name()] = idx;
+            }
+            int comm_size = 0;
+            // iterate over the other ranks in the index files
+            for (int i = 1 ; i < my_saved_node_count ; i++) {
+                comm_size++;
+                rank_metric_map[i] = 0;
+                std::string metric_file_string(rbuf+(max_length * i), max_length);
+                // get the number of threads from this rank
+                std::string metric_line;
+                std::stringstream metric_file(metric_file_string);
+                std::getline(metric_file, metric_line);
+                std::string::size_type sz;   // alias of size_t
+                rank_thread_map[i] = std::stoi(metric_line,&sz);
+                // read the map from that rank
+                while (std::getline(metric_file, metric_line)) {
+                    rank_metric_map[i] = rank_metric_map[i] + 1;
+                    // trim the newline
+                    metric_line.erase(std::remove(metric_line.begin(), metric_line.end(), '\n'), metric_line.end());
+                    if (reduced_metric_map.find(metric_line) == reduced_metric_map.end()) {
+                        uint64_t idx = reduced_metric_map.size();
+                        reduced_metric_map[metric_line] = idx;
+                    }
+                }
+            }
+            // copy the reduced map to a pair, so we can sort by value
+            std::vector<std::pair<std::string, int>> pairs;
+            for (auto const &i : reduced_metric_map) {
+                pairs.push_back(i);
+            }
+            sort(pairs.begin(), pairs.end(), string_sort_by_value());
+            std::stringstream metric_file;
+            // iterate over the metrics and build the string
+            for (auto const &i : pairs) {
+                std::string name = i.first;
+                uint64_t idx = i.second;
+                metric_file << idx << "\t" << name << endl;
+            }
+            fullmap_length = metric_file.str().length();
+            fullmap = (char*) calloc(fullmap_length, sizeof(char));
+            strncpy(fullmap, metric_file.str().c_str(), fullmap_length);
+        }
+
+        if (my_saved_node_count > 1) {
+            PMPI_Barrier(MPI_COMM_WORLD);
+            // share the full map length
+            PMPI_Bcast(&fullmap_length, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+            if (my_saved_node_id > 0) {
+                fullmap = (char*) calloc(fullmap_length, sizeof(char));
+            }
+
+            // share the full map
+            PMPI_Bcast(fullmap, fullmap_length, MPI_CHAR, 0, MPI_COMM_WORLD);
+        }
+
+        // read the reduced data
+        if (my_saved_node_count > 1) {
+            std::map<std::string,uint64_t> reduced_metric_map;
+            std::string metric_line;
+            std::stringstream metric_file(fullmap);
+            std::string metric_name;
+            int idx;
+            // read the map from rank 0
+            while (std::getline(metric_file, metric_line)) {
+                istringstream ss(metric_line);
+                ss >> idx >> metric_name;
+                reduced_metric_map[metric_name] = idx;
+            }
+            // ...and distribute them back out
+            write_metric_map(reduced_metric_map);
+        }
+     }
+
+#else
+
+    /* When not using HPX or MPI, use the filesystem. Ick. */
+
+    std::unique_ptr<std::tuple<std::map<int,int>, std::map<int,std::string> > > otf2_listener::reduce_node_properties(std::string&& str) {
+        std::ofstream index_file(index_filename + to_string(my_saved_node_id));
+        // write our info
+        index_file << str.c_str();
+        // close the file
+        index_file.close();
+
+        if (my_saved_node_id > 0) {
+            return nullptr;
+        }
+
+        std::map<int,int> rank_pid_map;
+        std::map<int,string> rank_hostname_map;
+        int rank, pid;
+        std::string hostname;
+
+        // iterate over the node info file, getting
+        // the rank, pid and hostname for each
+        for (int i = 0 ; i < my_saved_node_count ; i++) {
+            std::string line;
+            struct stat buffer;
+            std::stringstream full_index_filename;
+            full_index_filename << index_filename << to_string(i);
+            // wait for the file to exist
+            while (stat (full_index_filename.str().c_str(), &buffer) != 0) {}
+            std::ifstream myfile(full_index_filename.str());
+            while (std::getline(myfile, line)) {
+                istringstream ss(line);
+                ss >> rank >> pid >> hostname;
+                rank_pid_map[rank] = pid;
+                rank_hostname_map[rank] = hostname;
+            }    
+            myfile.close();
+            std::remove(full_index_filename.str().c_str());
+        }
+        return APEX_MAKE_UNIQUE<std::tuple<std::map<int,int>, std::map<int,string> > >(rank_pid_map, rank_hostname_map);
+    }
+
+    std::string otf2_listener::write_my_regions(void) {
+        // create my lock file.
+        ostringstream lock_filename;
+        lock_filename << lock_filename_prefix << my_saved_node_id;
+        ofstream lock_file(lock_filename.str(), ios::out | ios::trunc );
+        lock_file << "lock" << endl;
+        lock_file.close();
+        lock_file.flush();
+        // open my region file
+        ostringstream region_filename;
+        region_filename << region_filename_prefix << my_saved_node_id;
+        ofstream region_file(region_filename.str(), ios::out | ios::trunc );
+        // first, output our number of threads.
+        region_file << thread_instance::get_num_threads() << endl;
+        // then iterate over the regions and write them out.
+        for (auto const &i : global_region_indices) {
+            task_identifier id = i.first;
+            //uint64_t idx = i.second;
+            //region_file << id.get_name() << "\t" << idx << endl;
+            region_file << id.get_name() << endl;
+        }
+        // close the region file
+        region_file.close();
+        // delete the lock file, so rank 0 can read our data.
+        std::remove(lock_filename.str().c_str());
+        return std::string();
+    }
+
+    int otf2_listener::reduce_regions(void) {
+        write_my_regions();
+
+        if (my_saved_node_id == 0) {
+        // create my lock file.
+        ostringstream my_lock_filename;
+        my_lock_filename << lock_filename_prefix << "all";
+        ofstream lock_file(my_lock_filename.str(), ios::out | ios::trunc );
+        lock_file.close();
+        // iterate over my region map, and build a map of strings to ids
+        // save my number of regions
+        rank_region_map[0] = global_region_indices.size();
+        for (auto const &i : global_region_indices) {
+            task_identifier id = i.first;
+            uint64_t idx = i.second;
+            reduced_region_map[id.get_name()] = idx;
+        }
+        int comm_size = 0;
+        // iterate over the other ranks in the index files
+        for (int i = 0 ; i < my_saved_node_count ; i++) {
+            comm_size++;
+            // skip myself
+            if (i == 0) continue;
+            rank_region_map[i] = 0;
+            struct stat buffer;   
+            // wait on the map file to exist
+            ostringstream region_filename;
+            region_filename << region_filename_prefix << i;
+            // wait for the lock file to not exist
+            while (stat (region_filename.str().c_str(), &buffer) != 0) {}
+            ostringstream lock_filename;
+            lock_filename << lock_filename_prefix << i;
+            // wait for the region file to exist
+            while (stat (lock_filename.str().c_str(), &buffer) == 0) {}
+            // get the number of threads from that rank
+            std::string region_line;
+            std::ifstream region_file(region_filename.str());
+            std::getline(region_file, region_line);
+            std::string::size_type sz;   // alias of size_t
+            rank_thread_map[i] = std::stoi(region_line,&sz);
+            // read the map from that rank
+            while (std::getline(region_file, region_line)) {
+                rank_region_map[i] = rank_region_map[i] + 1;
+                // trim the newline
+                region_line.erase(std::remove(region_line.begin(), region_line.end(), '\n'), region_line.end());
+                if (reduced_region_map.find(region_line) == reduced_region_map.end()) {
+                    uint64_t idx = reduced_region_map.size();
+                    reduced_region_map[region_line] = idx;
+                }
+            }
+            // close the region file
+            region_file.close();
+            // remove that rank's map
+            std::remove(region_filename.str().c_str());
+        }
+        // open my region file
+        ostringstream region_filename;
+        region_filename << region_filename_prefix << my_saved_node_id;
+        ofstream region_file(region_filename.str(), ios::out | ios::trunc );
+        // copy the reduced map to a pair, so we can sort by value
+        std::vector<std::pair<std::string, int>> pairs;
+        for (auto const &i : reduced_region_map) {
+            pairs.push_back(i);
+        }
+        sort(pairs.begin(), pairs.end(), string_sort_by_value());
+        // iterate over the regions and write them out.
+        for (auto const &i : pairs) {
+            std::string name = i.first;
+            uint64_t idx = i.second;
+            region_file << idx << "\t" << name << endl;
+        }
+        // close the region file
+        region_file.close();
+        // delete the lock file, so everyone can read our data.
+        int rc = std::remove(my_lock_filename.str().c_str());
+        while (rc != 0) {
+            rc = std::remove(my_lock_filename.str().c_str());
+        }
+        }
+
+        // read the reduced data
+        if (my_saved_node_count > 1) {
+            struct stat buffer;   
+            std::map<std::string,uint64_t> reduced_region_map;
+            // wait on the map file from rank 0 to exist
+            ostringstream region_filename;
+            region_filename << region_filename_prefix << 0;
+            while (stat (region_filename.str().c_str(), &buffer) != 0) {}
+            // wait for the lock file from rank 0 to NOT exist
+            ostringstream lock_filename;
+            lock_filename << lock_filename_prefix << "all";
+            while (stat (lock_filename.str().c_str(), &buffer) == 0) {}
+            std::string region_line;
+            std::ifstream region_file(region_filename.str());
+            std::string region_name;
+            int idx;
+            // read the map from rank 0
+            while (std::getline(region_file, region_line)) {
+                istringstream ss(region_line);
+                ss >> idx >> region_name;
+                reduced_region_map[region_name] = idx;
+            }
+            region_file.close();
+            // ...and distribute them back out
+            write_region_map(reduced_region_map);
+        }
+        return my_saved_node_count;
+    }
+
+    std::string otf2_listener::write_my_metrics(void) {
+        // create my lock file.
+        ostringstream lock_filename;
+        lock_filename << lock2_filename_prefix << my_saved_node_id;
+        ofstream lock_file(lock_filename.str(), ios::out | ios::trunc );
+        lock_file.close();
+        // open my metric file
+        ostringstream metric_filename;
+        metric_filename << metric_filename_prefix << my_saved_node_id;
+        ofstream metric_file(metric_filename.str(), ios::out | ios::trunc );
+        // first, output our number of threads.
+        metric_file << thread_instance::get_num_threads() << endl;
+        // then iterate over the metrics and write them out.
+        for (auto const &i : global_metric_indices) {
+            string id = i.first;
+            //uint64_t idx = i.second;
+            //metric_file << id.get_name() << "\t" << idx << endl;
+            metric_file << id << endl;
+        }
+        // close the metric file
+        metric_file.close();
+        // delete the lock file, so rank 0 can read our data.
+        std::remove(lock_filename.str().c_str());
+        return std::string();
+    }
+
+    void otf2_listener::reduce_metrics(void) {
+        write_my_metrics();
+
+        if (my_saved_node_id == 0) {
+        // create my lock file.
+        ostringstream my_lock_filename;
+        my_lock_filename << lock2_filename_prefix << "all";
+        ofstream lock_file(my_lock_filename.str(), ios::out | ios::trunc );
+        lock_file.close();
+        // iterate over my metric map, and build a map of strings to ids
+        // save my number of metrics
+        rank_metric_map[0] = global_metric_indices.size();
+        for (auto const &i : global_metric_indices) {
+            string id = i.first;
+            uint64_t idx = i.second;
+            reduced_metric_map[id] = idx;
+        }
+        // iterate over the other ranks in the index file
+        for (int i = 0 ; i < my_saved_node_count ; i++) {
+            // skip myself
+            if (i == 0) continue;
+            rank_metric_map[i] = 0;
+            struct stat buffer;   
+            // wait on the map file to exist
+            ostringstream metric_filename;
+            metric_filename << metric_filename_prefix << i;
+            while (stat (metric_filename.str().c_str(), &buffer) != 0) {}
+            // wait for the lock file to not exist
+            ostringstream lock_filename;
+            lock_filename << lock2_filename_prefix << i;
+            while (stat (lock_filename.str().c_str(), &buffer) == 0) {}
+            // get the number of threads from that rank
+            std::string metric_line;
+            std::ifstream metric_file(metric_filename.str());
+            std::getline(metric_file, metric_line);
+            std::string::size_type sz;   // alias of size_t
+            rank_thread_map[i] = std::stoi(metric_line,&sz);
+            // read the map from that rank
+            while (std::getline(metric_file, metric_line)) {
+                rank_metric_map[i] = rank_metric_map[i] + 1;
+                // trim the newline
+                metric_line.erase(std::remove(metric_line.begin(), metric_line.end(), '\n'), metric_line.end());
+                if (reduced_metric_map.find(metric_line) == reduced_metric_map.end()) {
+                    uint64_t idx = reduced_metric_map.size();
+                    reduced_metric_map[metric_line] = idx;
+                }
+            }
+            // close the metric file
+            metric_file.close();
+            // remove that rank's map
+            std::remove(metric_filename.str().c_str());
+        }
+        // open my metric file
+        ostringstream metric_filename;
+        metric_filename << metric_filename_prefix << my_saved_node_id;
+        ofstream metric_file(metric_filename.str(), ios::out | ios::trunc );
+        // copy the reduced map to a pair, so we can sort by value
+        std::vector<std::pair<std::string, int>> pairs;
+        for (auto const &i : reduced_metric_map) {
+            pairs.push_back(i);
+        }
+        sort(pairs.begin(), pairs.end(), string_sort_by_value());
+        // iterate over the metrics and write them out.
+        for (auto const &i : pairs) {
+            std::string name = i.first;
+            uint64_t idx = i.second;
+            metric_file << idx << "\t" << name << endl;
+        }
+        // close the metric file
+        metric_file.close();
+        // delete the lock file, so everyone can read our data.
+        int rc = std::remove(my_lock_filename.str().c_str());
+        while (rc != 0) {
+            rc = std::remove(my_lock_filename.str().c_str());
+        }
+        }
+
+        // read the reduced data
+        if (my_saved_node_count > 1) {
+            struct stat buffer;   
+            std::map<std::string,uint64_t> reduced_metric_map;
+            // wait on the map file from rank 0 to exist
+            ostringstream metric_filename;
+            metric_filename << metric_filename_prefix << 0;
+            while (stat (metric_filename.str().c_str(), &buffer) != 0) {}
+            // wait for the lock file from rank 0 to NOT exist
+            ostringstream lock_filename;
+            lock_filename << lock2_filename_prefix << "all";
+            while (stat (lock_filename.str().c_str(), &buffer) == 0) {}
+            std::string metric_line;
+            std::ifstream metric_file(metric_filename.str());
+            std::string metric_name;
+            int idx;
+            // read the map from rank 0
+            while (std::getline(metric_file, metric_line)) {
+                istringstream ss(metric_line);
+                ss >> idx >> metric_name;
+                reduced_metric_map[metric_name] = idx;
+            }
+            metric_file.close();
+            // ...and distribute them back out
+            write_metric_map(reduced_metric_map);
+        }
+    }
+
+#endif
+
+
 }

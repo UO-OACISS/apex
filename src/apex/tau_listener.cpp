@@ -19,6 +19,7 @@ int (*my_Tau_start)(const char *);
 int (*my_Tau_stop)(const char *);
 int (*my_Tau_exit)(const char*);
 int (*my_Tau_set_node)(int);
+int (*my_Tau_dump)(void);
 int (*my_Tau_profile_exit_all_threads)(void);
 int (*my_Tau_get_thread)(void);
 int (*my_Tau_profile_exit_all_tasks)(void);
@@ -44,6 +45,9 @@ bool assign_function_pointers(void) {
   }
   if (Tau_stop != NULL) {
     my_Tau_stop = &Tau_stop;
+  }
+  if (Tau_dump != NULL) {
+    my_Tau_dump = &Tau_dump;
   }
   if (Tau_exit != NULL) {
     my_Tau_exit = &Tau_exit;
@@ -90,6 +94,14 @@ tau_listener::tau_listener (void) : _terminate(false) {
 }
 
 void tau_listener::on_startup(startup_event_data &data) {
+  return;
+}
+
+void tau_listener::on_dump(dump_event_data &data) {
+  APEX_UNUSED(data);
+  if (!_terminate) {
+      my_Tau_dump();
+  }
   return;
 }
 
@@ -175,6 +187,10 @@ void tau_listener::on_custom_event(custom_event_data &data) {
   if (!_terminate) {
   }
   return;
+}
+
+void tau_listener::set_node_id(int node_id, int node_count) {
+  my_Tau_set_node(node_id);
 }
 
 /* This function is used by APEX threads so that TAU knows about them. */

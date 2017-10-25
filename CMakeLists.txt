@@ -11,6 +11,12 @@ if (${CMAKE_MAJOR_VERSION} GREATER 2)
   cmake_policy(SET CMP0042 NEW)
 endif()
 
+if (${CMAKE_MAJOR_VERSION} GREATER 2)
+    if (${CMAKE_MAJOR_VERSION} GREATER 1)
+        cmake_policy(SET CMP0054 OLD)
+    endif()
+endif()
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules")
 
 # if the user didn't specify, set the installation directory.
@@ -90,6 +96,7 @@ set(CMAKE_CONFIGURATION_TYPES "${CMAKE_BUILD_TYPE}" CACHE INTERNAL
 if(APPLE)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -undefined dynamic_lookup")
   set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -undefined dynamic_lookup")
+  set(USE_CLOCK_TIMESTAMP ON CACHE INTERNAL "Use gettimeofday not cycle counter" FORCE)
 endif(APPLE)
 
 # If TAU is used, don't allow throttling - it can potentially lead to
@@ -357,6 +364,14 @@ endif(APEX_INTEL_MIC)
 
 if(USE_MPI)
   find_package(MPI REQUIRED)
+endif()
+
+if(MPI_CXX_FOUND)
+    add_definitions(-DAPEX_HAVE_MPI)
+    # Prevent errors from Cmake by stripping whitespace
+    string(STRIP "${MPI_CXX_LINK_FLAGS}" MPI_CXX_LINK_FLAGS)
+    string(STRIP "${MPI_CXX_LIBRARIES}" MPI_CXX_LIBRARIES)
+    set(LIBS ${LIBS} ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES})
 endif()
 
 ################################################################################

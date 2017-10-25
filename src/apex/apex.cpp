@@ -159,7 +159,7 @@ static void finalize_hpx_runtime(void) {
 void apex::_initialize()
 {
 #if defined(APEX_DEBUG) || defined(APEX_ERROR_HANDLING)
-    apex_register_signal_handler();
+    //apex_register_signal_handler();
 #endif
     this->m_pInstance = this;
     this->m_policy_handler = nullptr;
@@ -242,12 +242,19 @@ void apex::_initialize()
             listeners.push_back(new otf2_listener());
         }
 #endif
+
+/* For the Jupyter support, always enable the concurrency handler. */
+#ifndef APEX_WITH_JUPYTER_SUPPORT
         if (apex_options::use_concurrency() > 0)
+#endif
         {
             listeners.push_back(new concurrency_handler(apex_options::concurrency_period(), apex_options::use_concurrency()));
         }
         startup_throttling();
+/* For the Jupyter support, always enable the policy listener. */
+#ifndef APEX_WITH_JUPYTER_SUPPORT
         if (apex_options::use_policy())
+#endif
         {
             this->m_policy_handler = new policy_handler();
             listeners.push_back(this->m_policy_handler);
@@ -330,7 +337,27 @@ uint64_t init(const char * thread_name, uint64_t comm_rank, uint64_t comm_size) 
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return APEX_ERROR; }
     // protect against multiple initializations
-    if (_registered || _initialized) { return APEX_ERROR; }
+#ifdef APEX_WITH_JUPYTER_SUPPORT
+    if (_registered || _initialized) { 
+        // reset all counters, and return.
+        reset(APEX_NULL_FUNCTION_ADDRESS);
+        return APEX_NOERROR; 
+    }
+#else
+    if (_registered || _initialized) { 
+        /* check to see if APEX was initialized by OMPT before MPI had a chance
+         * to pass in any values */
+        if ((comm_rank < comm_size) && (comm_size > 1)) { // simple validation
+            apex* instance = apex::instance(); // get/create the Apex static instance
+            instance->set_node_id(comm_rank);
+            instance->set_num_ranks(comm_size);
+            for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+                instance->listeners[i]->set_node_id((int)comm_rank, (int)comm_size);
+            }
+        }
+        return APEX_ERROR; 
+    }
+#endif
     _registered = true;
     _initialized = true;
     apex* instance = apex::instance(); // get/create the Apex static instance
@@ -341,6 +368,7 @@ uint64_t init(const char * thread_name, uint64_t comm_rank, uint64_t comm_size) 
       instance->set_node_id(comm_rank);
       instance->set_num_ranks(comm_size);
     }
+    //printf("Node %lu of %lu\n", comm_rank, comm_size);
     if (!instance || _exited) return APEX_ERROR; // protect against calls after finalization
     init_plugins();
     startup_event_data data(comm_rank, comm_size);
@@ -607,7 +635,12 @@ void reset(const std::string &timer_name) {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
     task_identifier * id = task_identifier::get_task_id(timer_name);
-    instance->the_profiler_listener->reset(id);
+    //instance->the_profiler_listener->reset(id);
+    if (_notify_listeners) {
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            instance->listeners[i]->on_reset(id);
+        }
+    }
 }
 
 void reset(apex_function_address function_address) {
@@ -615,11 +648,15 @@ void reset(apex_function_address function_address) {
     if (apex_options::disable() == true) { return; }
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
-    if (function_address == APEX_NULL_FUNCTION_ADDRESS) {
-        instance->the_profiler_listener->reset_all();
-    } else {
-        task_identifier * id = task_identifier::get_task_id(function_address);
-        instance->the_profiler_listener->reset(id);
+    task_identifier * id = nullptr;
+    if (function_address != APEX_NULL_FUNCTION_ADDRESS) {
+        id = task_identifier::get_task_id(function_address);
+    }
+    //instance->the_profiler_listener->reset(id);
+    if (_notify_listeners) {
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            instance->listeners[i]->on_reset(id);
+        }
     }
 }
 
@@ -665,7 +702,7 @@ void stop(profiler* the_profiler) {
     }
     //cout << thread_instance::get_id() << " Stop : " << the_profiler->task_id->get_name() << endl; fflush(stdout);
     static std::string apex_process_profile_str("apex::process_profiles");
-    if (the_profiler->task_id->get_name(false).compare(apex_process_profile_str) == 0) {
+    if (p->task_id->get_name(false).compare(apex_process_profile_str) == 0) {
         APEX_UTIL_REF_COUNT_APEX_INTERNAL_STOP
     } else {
         APEX_UTIL_REF_COUNT_STOP
@@ -707,7 +744,7 @@ void yield(profiler* the_profiler)
     }
     //cout << thread_instance::get_id() << " Yield : " << the_profiler->task_id->get_name() << endl; fflush(stdout);
     static std::string apex_process_profile_str("apex::process_profiles");
-    if (the_profiler->task_id->get_name(false).compare(apex_process_profile_str) == 0) {
+    if (p->task_id->get_name(false).compare(apex_process_profile_str) == 0) {
         APEX_UTIL_REF_COUNT_APEX_INTERNAL_YIELD
     } else {
         APEX_UTIL_REF_COUNT_YIELD
@@ -901,8 +938,36 @@ void finalize_plugins(void) {
     FUNCTION_EXIT
 }
 
+std::string dump(bool reset) {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return(std::string("")); }
+    bool old_screen_output = apex_options::use_screen_output();
+#ifdef APEX_WITH_JUPYTER_SUPPORT
+    // force output in the Jupyter notebook
+    apex_options::use_screen_output(true);
+#endif
+
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance) { FUNCTION_EXIT return(std::string("")); } // protect against calls after finalization
+    if (_notify_listeners) {
+        dump_event_data data(instance->get_node_id(), thread_instance::get_id(), reset);
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            instance->listeners[i]->on_dump(data);
+        }
+        apex_options::use_screen_output(old_screen_output);
+        return(data.output);
+    }
+    apex_options::use_screen_output(old_screen_output);
+    return(std::string(""));
+}
+
 void finalize()
 {
+#ifdef APEX_WITH_JUPYTER_SUPPORT
+    // reset all counters, and return.
+    //reset(APEX_NULL_FUNCTION_ADDRESS);
+    return;
+#endif
     FUNCTION_ENTER
     // prevent re-entry, be extra strict about race conditions - it is possible.
     mutex shutdown_mutex;
@@ -916,7 +981,9 @@ void finalize()
     if (apex_options::disable() == true) { return; }
     // stop processing new timers/counters/messages/tasks/etc.
     apex_options::suspend(true);
-    // First, stop the top level timer, while the infrastructure is still functioning.
+    // first, process all output
+    dump(false);
+    // then, stop the top level timer, while the infrastructure is still functioning.
     //stop(top_level_timer);
     // if not done already...
     shutdown_throttling();
@@ -1345,6 +1412,11 @@ extern "C" {
         cleanup();
     }
 
+    const char * apex_dump(bool reset)
+    {
+        return(dump(reset).c_str());
+    }
+
     void apex_finalize()
     {
         finalize();
@@ -1531,9 +1603,9 @@ extern "C" {
 } // extern "C"
 
 #ifdef APEX_HAVE_HPX
-HPX_DECLARE_ACTION(apex::finalize, apex_internal_shutdown_action);
+HPX_DECLARE_ACTION(APEX_TOP_LEVEL_PACKAGE::finalize, apex_internal_shutdown_action);
 HPX_ACTION_HAS_CRITICAL_PRIORITY(apex_internal_shutdown_action);
-HPX_PLAIN_ACTION(apex::finalize, apex_internal_shutdown_action);
+HPX_PLAIN_ACTION(APEX_TOP_LEVEL_PACKAGE::finalize, apex_internal_shutdown_action);
 
 void apex_schedule_shutdown() {
     if(get_hpx_runtime_ptr() == nullptr) return;

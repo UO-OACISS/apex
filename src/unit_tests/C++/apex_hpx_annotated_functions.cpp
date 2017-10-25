@@ -111,7 +111,9 @@ void* someThread(void* tmp)
     char name[32];
     sprintf(name, "worker thread %d", *tid);
 #ifndef __APPLE__
+#ifndef APEX_HAVE_OTF2
     pthread_barrier_wait(&barrier);
+#endif
 #endif
     apex::register_thread(name);
     init_guid(*tid);

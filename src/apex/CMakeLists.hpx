@@ -234,6 +234,11 @@ else()
    	endif()
 endif()
 
+if(APEX_WITH_JUPYTER_SUPPORT)
+    add_definitions(-DAPEX_WITH_JUPYTER_SUPPORT)
+    message(INFO " Including Jupyter Notebook support.")
+endif(APEX_WITH_JUPYTER_SUPPORT)
+
 if((DEFINED BFD_ROOT) OR (APEX_WITH_BFD) OR (APEX_BUILD_BFD))
     set(USE_BFD ${APEX_WITH_BFD})
     set(BUILD_BFD ${APEX_BUILD_BFD})

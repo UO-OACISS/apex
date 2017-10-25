@@ -11,6 +11,8 @@
 #include <map>
 #include <unordered_set>
 #include <string>
+#include <tuple>
+#include <memory>
 #include <mutex>
 #include <chrono>
 #include "apex_cxx_shared_lock.hpp"
@@ -21,6 +23,7 @@ namespace apex {
     private:
         void _init(void);
         bool _terminate;
+        bool _initialized;
         std::mutex _region_mutex;
         std::mutex _string_mutex;
         std::mutex _metric_mutex;
@@ -114,8 +117,8 @@ namespace apex {
         void* event_writer(void* arg);
         OTF2_Archive* archive;
         OTF2_EvtWriter* comm_evt_writer;
-        //__thread OTF2_DefWriter* def_writer;
-        OTF2_EvtWriter* getEvtWriter();
+        //APEX_NATIVE_TLS OTF2_DefWriter* def_writer;
+        OTF2_EvtWriter* getEvtWriter(bool create);
         bool event_file_exists (int threadid);
         OTF2_DefWriter* getDefWriter(int threadid);
         OTF2_GlobalDefWriter* global_def_writer;
@@ -132,21 +135,22 @@ namespace apex {
         uint64_t get_metric_index(const std::string& name);
         static const std::string empty;
         void write_otf2_regions(void);
-        void write_my_regions(void);
+        std::string write_my_regions(void);
         int reduce_regions(void);
-        void write_region_map(void);
+        void write_region_map(std::map<std::string,uint64_t>& reduced_region_map);
         void write_otf2_metrics(void);
-        void write_my_metrics(void);
+        std::string write_my_metrics(void);
         void reduce_metrics(void);
-        void write_metric_map(void);
+        void write_metric_map(std::map<std::string,uint64_t>& reduced_metric_map);
         void write_clock_properties(void);
         void write_host_properties(int rank, int pid, std::string& hostname);
         std::string index_filename;
         std::string lock_filename_prefix;
+        std::string lock2_filename_prefix;
         std::string region_filename_prefix;
         std::string metric_filename_prefix;
         bool create_archive(void);
-        bool write_my_node_properties(void);
+        std::string write_my_node_properties(void);
         static int my_saved_node_id;
         static int my_saved_node_count;
         std::map<int,int> rank_thread_map;
@@ -154,11 +158,19 @@ namespace apex {
         std::map<int,int> rank_metric_map;
         std::map<std::string,uint64_t> reduced_region_map;
         std::map<std::string,uint64_t> reduced_metric_map;
+        std::unique_ptr<std::tuple<std::map<int,int>, std::map<int,std::string> > > reduce_node_properties(std::string&& str);
     public:
         otf2_listener (void);
         //~otf2_listener (void) { shutdown_event_data data(my_saved_node_id,0); on_shutdown(data); };
         ~otf2_listener (void) { finalize(); };
+        void set_node_id(int node_id, int node_count) { 
+            this->my_saved_node_id = node_id;
+            this->my_saved_node_count = node_count; 
+        }
         void on_startup(startup_event_data &data);
+        void on_dump(dump_event_data &data);
+        void on_reset(task_identifier * id) 
+            { APEX_UNUSED(id); };
         void on_shutdown(shutdown_event_data &data);
         void on_new_node(node_event_data &data);
         void on_new_thread(new_thread_event_data &data);

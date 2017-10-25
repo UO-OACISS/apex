@@ -15,6 +15,7 @@ set(example_programs
     apex_yield
     apex_resume
     apex_reset
+    apex_dump
     apex_set_state
     apex_sample_value
     apex_register_custom_event

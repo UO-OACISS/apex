@@ -24,13 +24,13 @@ using namespace std;
 #include <stack>
 std::stack<apex::profiler*>& the_timer_stack() {
 #if defined (__APPLE__)
-    static __thread std::stack<apex::profiler*> *the_stack = nullptr;
+    static APEX_NATIVE_TLS std::stack<apex::profiler*> *the_stack = nullptr;
     if (the_stack == nullptr) {
         the_stack = new std::stack<apex::profiler*>();
     }
     return *the_stack;
 #else
-    static __thread std::stack<apex::profiler*> the_stack;
+    static APEX_NATIVE_TLS std::stack<apex::profiler*> the_stack;
     return the_stack;
 #endif
 }
