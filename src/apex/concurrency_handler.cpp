@@ -226,7 +226,7 @@ bool sort_functions(pair<task_identifier,int> first, pair<task_identifier,int> s
 }
 
 void concurrency_handler::reset_samples(void) {
-  cout << "HANDLER: resetting samples " << endl;
+  //cout << "HANDLER: resetting samples " << endl;
   std::lock_guard<std::mutex> l(_vector_mutex);
   _states.clear();
   _power_samples.clear();
@@ -239,7 +239,7 @@ bool path_has_suffix(const std::string &str)
 }
 
 void concurrency_handler::output_samples(int node_id) {
-  cout << "HANDLER: writing samples " << endl;
+  //cout << "HANDLER: writing samples " << endl;
   cout << _states.size() << " samples seen:" << endl;
   ofstream myfile;
   stringstream datname;
