@@ -30,10 +30,10 @@ namespace apex {
     /* Stupid Intel compiler CLAIMS to be C++14, but doesn't have support for std::unique_ptr. */
 #if __cplusplus < 201402L || defined(__INTEL_COMPILER)
     template<typename T, typename... Args>
-    std::unique_ptr<T> make_unique(Args&&... args) {
+    std::unique_ptr<T> my_make_unique(Args&&... args) {
         return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
     }
-#define APEX_MAKE_UNIQUE make_unique
+#define APEX_MAKE_UNIQUE my_make_unique
 #else
 #define APEX_MAKE_UNIQUE std::make_unique
 #endif
