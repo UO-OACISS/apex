@@ -8,18 +8,18 @@
 
 #if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
 #define APEX_EXPORT __declspec(dllexport)
-#define APEX_WEAK
-#define APEX_APPLE_WEAK
+#define APEX_WEAK_PRE __declspec(selectany)
+#define APEX_WEAK_POST
 #else
 
 #define APEX_EXPORT __attribute__((visibility("default")))
 
-#ifdef __APPLE__
-#define APEX_WEAK
-#define APEX_APPLE_WEAK __attribute__((weak_import))
+#ifdef __clang__
+#define APEX_WEAK_PRE
+#define APEX_WEAK_POST __attribute__((weak_import))
 #else
-#define APEX_WEAK __attribute__((weak))
-#define APEX_APPLE_WEAK
+#define APEX_WEAK_PRE __attribute__((weak))
+#define APEX_WEAK_POST
 #endif
 
 #endif

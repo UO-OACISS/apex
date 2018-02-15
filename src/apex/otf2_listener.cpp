@@ -27,6 +27,23 @@ using namespace std;
 
 namespace apex {
 
+    /* Stupid Intel compiler CLAIMS to be C++14, but doesn't have support for std::unique_ptr. */
+#if __cplusplus < 201402L || defined(__INTEL_COMPILER)
+    template<typename T, typename... Args>
+    std::unique_ptr<T> my_make_unique(Args&&... args) {
+        return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+    }
+#define APEX_MAKE_UNIQUE my_make_unique
+#else
+#define APEX_MAKE_UNIQUE std::make_unique
+#endif
+
+    struct string_sort_by_value {
+        bool operator()(const std::pair<std::string,int> &left, const std::pair<std::string,int> &right) {
+            return left.second < right.second;
+        }
+    };
+
     uint64_t otf2_listener::globalOffset(0);
     const std::string otf2_listener::empty("");
     int otf2_listener::my_saved_node_id(0);
@@ -281,7 +298,7 @@ namespace apex {
             //printf("closing event writer %p for thread %lu\n", evt_writer, thread_instance::get_id()); fflush(stdout);
             // FOR SOME REASON, OTF2 CRASHES ON EXIT
             // Not closing the event writers seems to prevent that?
-            //OTF2_Archive_CloseEvtWriter( archive, evt_writer );
+            // OTF2_Archive_CloseEvtWriter( archive, evt_writer );
             evt_writer = nullptr;
         }
       }
@@ -421,9 +438,7 @@ namespace apex {
         for (auto const &i : reduced_metric_map) {
             pairs.push_back(i);
         }
-        sort(pairs.begin(), pairs.end(), [=](std::pair<std::string, int>& a, std::pair<std::string, int>& b) {
-            return a.second < b.second;
-        });
+        sort(pairs.begin(), pairs.end(), string_sort_by_value());
         // iterate over the metrics and write them out.
         for (auto const &i : pairs) {
             string id = i.first;
@@ -928,15 +943,19 @@ namespace apex {
         return;
     }
 
+/* HPX implementation - TBD - for now, stick with file based reduction */
+/*
 #if defined(APEX_HAVE_HPX)
 
-    /* HPX implementation - TBD */
 
     std::unique_ptr<std::tuple<std::map<int,int>, std::map<int,std::string> > > otf2_listener::reduce_node_properties(std::string&& str) {
         return nullptr;
     }
 
 #elif defined(APEX_HAVE_MPI)
+*/
+
+#if defined(APEX_HAVE_MPI)
 
     /* MPI implementations */
 
@@ -981,7 +1000,7 @@ namespace apex {
             rank_hostname_map[rank] = hostname;
             host_index = host_index + hostlength;
         }    
-        return std::make_unique<std::tuple<std::map<int,int>, std::map<int,string> > >(rank_pid_map, rank_hostname_map);
+        return APEX_MAKE_UNIQUE<std::tuple<std::map<int,int>, std::map<int,string> > >(rank_pid_map, rank_hostname_map);
     }
 
     std::string otf2_listener::write_my_regions(void) {
@@ -1070,9 +1089,7 @@ namespace apex {
             for (auto const &i : reduced_region_map) {
                 pairs.push_back(i);
             }
-            sort(pairs.begin(), pairs.end(), [=](std::pair<std::string, int>& a, std::pair<std::string, int>& b) {
-                return a.second < b.second;
-            });
+            sort(pairs.begin(), pairs.end(), string_sort_by_value());
             std::stringstream region_file;
             // iterate over the regions and build the string
             for (auto const &i : pairs) {
@@ -1207,9 +1224,7 @@ namespace apex {
             for (auto const &i : reduced_metric_map) {
                 pairs.push_back(i);
             }
-            sort(pairs.begin(), pairs.end(), [=](std::pair<std::string, int>& a, std::pair<std::string, int>& b) {
-                return a.second < b.second;
-            });
+            sort(pairs.begin(), pairs.end(), string_sort_by_value());
             std::stringstream metric_file;
             // iterate over the metrics and build the string
             for (auto const &i : pairs) {
@@ -1292,7 +1307,7 @@ namespace apex {
             myfile.close();
             std::remove(full_index_filename.str().c_str());
         }
-        return std::make_unique<std::tuple<std::map<int,int>, std::map<int,string> > >(rank_pid_map, rank_hostname_map);
+        return APEX_MAKE_UNIQUE<std::tuple<std::map<int,int>, std::map<int,string> > >(rank_pid_map, rank_hostname_map);
     }
 
     std::string otf2_listener::write_my_regions(void) {
@@ -1387,9 +1402,7 @@ namespace apex {
         for (auto const &i : reduced_region_map) {
             pairs.push_back(i);
         }
-        sort(pairs.begin(), pairs.end(), [=](std::pair<std::string, int>& a, std::pair<std::string, int>& b) {
-            return a.second < b.second;
-        });
+        sort(pairs.begin(), pairs.end(), string_sort_by_value());
         // iterate over the regions and write them out.
         for (auto const &i : pairs) {
             std::string name = i.first;
@@ -1521,9 +1534,7 @@ namespace apex {
         for (auto const &i : reduced_metric_map) {
             pairs.push_back(i);
         }
-        sort(pairs.begin(), pairs.end(), [=](std::pair<std::string, int>& a, std::pair<std::string, int>& b) {
-            return a.second < b.second;
-        });
+        sort(pairs.begin(), pairs.end(), string_sort_by_value());
         // iterate over the metrics and write them out.
         for (auto const &i : pairs) {
             std::string name = i.first;

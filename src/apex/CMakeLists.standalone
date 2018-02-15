@@ -28,6 +28,8 @@ endif(OTF2_FOUND)
 SET(all_SOURCE task_identifier.cpp apex.cpp thread_instance.cpp event_listener.cpp concurrency_handler.cpp policy_handler.cpp handler.cpp utils.cpp ${tau_SOURCE} profiler_listener.cpp ${bfd_SOURCE} apex_options.cpp apex_policies.cpp ${PROC_SOURCE} ${OMPT_SOURCE} ${SENSOR_SOURCE} ${OTF2_SOURCE})
 
 add_library (apex ${all_SOURCE})
+add_library (taudummy tau_dummy.cpp)
+add_dependencies (apex taudummy)
 
 if(ACTIVEHARMONY_FOUND)
     add_dependencies (apex project_activeharmony)
@@ -56,7 +58,12 @@ endif(MPI_CXX_FOUND)
 # If we are building libapex.so, we want to include all the other libraries,
 # so that we can LD_PRELOAD this library with all requirements met.
 if (NOT BUILD_STATIC_EXECUTABLES)
-    target_link_libraries(apex ${LIBS})
+    if(APPLE)
+        target_link_libraries(apex ${LIBS})
+        set_target_properties(apex PROPERTIES LINK_FLAGS "-weak_library libtaudummy.dylib -flat_namespace")
+    else(APPLE)
+        target_link_libraries(apex ${LIBS} taudummy)
+    endif(APPLE)
 endif()
 
 # add the binary tree to the search path for include files

@@ -248,21 +248,12 @@ std::unordered_set<profile*> free_profiles;
         }
     }
 #endif
-    std::unique_lock<std::mutex> task_map_lock(_task_map_mutex, std::defer_lock);
-    // There is only one consumer thread except during shutdown, so we only need
-    // to lock during shutdown.
-    bool did_lock = false;
-    if(_done) {
-        task_map_lock.lock();
-        did_lock = true;
-    }
+    std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
     unordered_map<task_identifier, profile*>::const_iterator it = task_map.find(*(p->task_id));
     if (it != task_map.end()) {
           // A profile for this ID already exists.
         theprofile = (*it).second;
-        if(_done && did_lock) {
-            task_map_lock.unlock();
-        }
+        task_map_lock.unlock();
         if(p->is_reset == reset_type::CURRENT) {
             theprofile->reset();
         } else {
@@ -304,9 +295,7 @@ std::unordered_set<profile*> free_profiles;
         // Create a new profile for this name.
         theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), tmp_num_counters, values, p->is_resume, p->is_counter ? APEX_COUNTER : APEX_TIMER);
         task_map[*(p->task_id)] = theprofile;
-        if(_done && did_lock) {
-            task_map_lock.unlock();
-        }
+        task_map_lock.unlock();
 #ifdef APEX_HAVE_HPX
 #ifdef APEX_REGISTER_HPX3_COUNTERS
         if(!_done) {
@@ -530,10 +519,14 @@ std::unordered_set<profile*> free_profiles;
 
   /* At program termination, write the measurements to the screen, or to CSV file, or both. */
   void profiler_listener::finalize_profiles(dump_event_data &data) {
+    if (apex_options::use_tau()) {
+      Tau_start("profiler_listener::finalize_profiles");
+    }
     // our TOTAL available time is the elapsed * the number of threads, or cores
     int num_worker_threads = thread_instance::get_num_threads();
-    apex_profile * total_time = ::apex::get_profile(APEX_MAIN);
-    double wall_clock_main = total_time->accumulated * profiler::get_cpu_mhz();
+    task_identifier main_id(APEX_MAIN);
+    profile * total_time = get_profile(main_id);
+    double wall_clock_main = total_time->get_accumulated() * profiler::get_cpu_mhz();
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
 #endif
@@ -634,6 +627,9 @@ std::unordered_set<profile*> free_profiles;
         csvfile.open(csvname.str(), ios::out);
         csvfile << csv_output.str();
         csvfile.close();
+    }
+    if (apex_options::use_tau()) {
+      Tau_stop("profiler_listener::finalize_profiles");
     }
   }
 
@@ -935,15 +931,15 @@ node_color * get_node_color(double v,double vmin,double vmax)
           }
       }
       consumer_task_running.clear(memory_order_release);
+      if (apex_options::use_tau()) {
+        Tau_stop("profiler_listener::process_profiles: main loop");
+      }
     }
 #endif
     if (apex_options::use_taskgraph_output()) {
       while(!_done && dependency_queue.try_dequeue(td)) {
         process_dependency(td);
       }
-    }
-    if (apex_options::use_tau()) {
-      Tau_stop("profiler_listener::process_profiles: main loop");
     }
 
 #ifdef APEX_HAVE_HPX // don't hang out in this task too long.
@@ -1106,7 +1102,13 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
          * much without suggesting there is a bigger problem. */
         std::unique_lock<std::mutex> queue_lock(queue_mtx);
         for (unsigned int i=0; i<allqueues.size(); ++i) {
+          if (apex_options::use_tau()) {
+            Tau_start("profiler_listener::concurrent_cleanup");
+          }
           concurrent_cleanup(i);
+          if (apex_options::use_tau()) {
+            Tau_stop("profiler_listener::concurrent_cleanup");
+          }
         }
         if (ignored > 100000) {
           std::cerr << "done." << std::endl;

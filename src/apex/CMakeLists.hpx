@@ -301,6 +301,7 @@ set(apex_sources
     profiler_listener.cpp
     task_identifier.cpp
     tau_listener.cpp
+    tau_dummy.cpp
     thread_instance.cpp
     utils.cpp
     ${BFD_SOURCE}
@@ -322,13 +323,18 @@ else()
     add_custom_target(project_otf2)
 endif()
 
+#add_hpx_library(taudummy SHARED NOLIBS SOURCES tau_dummy.cpp HEADERS ${apex_headers} FOLDER "Core/Dependencies")
+
 add_hpx_library(apex
   STATIC NOLIBS
   SOURCES ${apex_sources}
   HEADERS ${apex_headers}
   FOLDER "Core/Dependencies")
 
-add_hpx_pseudo_dependencies (apex_lib project_activeharmony project_binutils project_otf2)
+#if(APPLE)
+  #hpx_add_link_flag("-weak_library libhpx_taudummy.dylib -flat_namespace")
+#endif(APPLE)
+# add_hpx_pseudo_dependencies (apex_lib taudummy_lib project_activeharmony project_binutils project_otf2)
 
 # add the binary tree to the search path for include files
 # so that we will find apex_config.h

@@ -78,6 +78,14 @@ protected:
     _timer_thread = new pthread_wrapper(&handler::_threadfunc, (void*)(this), _period);
 #endif
   };
+  void set_timeout(unsigned int timeout) {
+#if !defined(_MSC_VER) && !defined(__APPLE__)
+    _period = timeout;
+    _timer_thread->set_timeout(_period);
+#else
+    _period = std::chrono::microseconds(timeout);
+#endif
+  }
 public:
   handler() : 
       _period(default_period), 

@@ -54,6 +54,8 @@ ncores=2
 osname=`uname`
 if [ ${osname} == "Darwin" ]; then
 ncores=`sysctl -n hw.ncpu`
+export CC=`which clang`
+export CXX=`which clang++`
 else
 ncores=`nproc --all`
 fi
@@ -214,7 +216,7 @@ if [ ${step} == "compile" ] ; then
     compile_step
 fi
 if [ ${step} == "pcompile" ] ; then
-    compile_step -j${ncores}
+    compile_step -j${ncores} -l${ncores}
 fi
 if [ ${step} == "test" ] ; then
     test_step

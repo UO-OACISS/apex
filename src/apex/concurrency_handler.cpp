@@ -73,7 +73,6 @@ bool concurrency_handler::_handler(void) {
   if (apex_options::use_tau()) {
     Tau_start("concurrency_handler::_handler");
   }
-  //cout << "HANDLER: " << endl;
   map<task_identifier, unsigned int> *counts = new(map<task_identifier, unsigned int>);
   stack<task_identifier>* tmp;
 //  std::mutex* mut;
@@ -115,6 +114,10 @@ bool concurrency_handler::_handler(void) {
   if (apex_options::use_tau()) {
     Tau_stop("concurrency_handler::_handler");
   }
+#ifdef APEX_WITH_JUPYTER_SUPPORT
+  // update the timeout, if the user changed it.
+  set_timeout(apex_options::concurrency_period());
+#endif
   return true;
 }
 
@@ -223,18 +226,28 @@ bool sort_functions(pair<task_identifier,int> first, pair<task_identifier,int> s
 }
 
 void concurrency_handler::reset_samples(void) {
+  //cout << "HANDLER: resetting samples " << endl;
   std::lock_guard<std::mutex> l(_vector_mutex);
   _states.clear();
   _power_samples.clear();
   _thread_cap_samples.clear();
 }
 
+bool path_has_suffix(const std::string &str)
+{
+    return str.back() == filesystem_separator();
+}
+
 void concurrency_handler::output_samples(int node_id) {
-  //cout << _states.size() << " samples seen:" << endl;
+  //cout << "HANDLER: writing samples " << endl;
+  cout << _states.size() << " samples seen:" << endl;
   ofstream myfile;
   stringstream datname;
   datname << apex_options::output_file_path();
-  datname << filesystem_separator() << "concurrency." << node_id << ".dat";
+  if (!path_has_suffix(apex_options::output_file_path())) {
+      datname << filesystem_separator();
+  }
+  datname << "concurrency." << node_id << ".dat";
   myfile.open(datname.str().c_str());
   _function_mutex.lock();
   // limit ourselves to N functions.
@@ -321,12 +334,51 @@ void concurrency_handler::output_samples(int node_id) {
   if (max_Power == 0.0) max_Power = 100;
   stringstream plotname;
   plotname << apex_options::output_file_path();
-  plotname << filesystem_separator() << "concurrency." << node_id << ".gnuplot";
+  if (!path_has_suffix(apex_options::output_file_path())) {
+      plotname << filesystem_separator();
+  }
+  plotname << "concurrency." << node_id << ".gnuplot";
   myfile.open(plotname.str().c_str());
-  myfile << "set palette maxcolors 16" << endl;
-  myfile << "set palette defined ( 0 '#E41A1C', 1 '#377EB8', 2 '#4DAF4A', 3 '#984EA3', 4 '#FF7F00', 5 '#FFFF33', 6 '#A65628', 7 '#F781BF', 8 '#66C2A5', 9 '#FC8D62', 10 '#8DA0CB', 11 '#E78AC3', 12 '#A6D854', 13 '#FFD92F', 14 '#E5C494', 15 '#B3B3B3' )" << endl;
+  myfile << "set palette maxcolors ";
+  myfile << (_functions.size() > 15? 16 : _functions.size()+1) << endl;
+  myfile << "set palette defined ( 0 '#E41A1C'";
+  myfile << ", 1 '#377EB8'";
+  if (_functions.size() > 1)
+      myfile << ", 2 '#4DAF4A'";
+  if (_functions.size() > 2)
+      myfile << ", 3 '#984EA3'";
+  if (_functions.size() > 3)
+      myfile << ", 4 '#FF7F00'";
+  if (_functions.size() > 4)
+      myfile << ", 5 '#FFFF33'";
+  if (_functions.size() > 5)
+      myfile << ", 6 '#A65628'";
+  if (_functions.size() > 6)
+      myfile << ", 7 '#F781BF'";
+  if (_functions.size() > 7)
+      myfile << ", 8 '#66C2A5'";
+  if (_functions.size() > 8)
+      myfile << ", 9 '#FC8D62'";
+  if (_functions.size() > 9)
+      myfile << ", 10 '#8DA0CB'";
+  if (_functions.size() > 10)
+      myfile << ", 11 '#E78AC3'";
+  if (_functions.size() > 11)
+      myfile << ", 12 '#A6D854'";
+  if (_functions.size() > 12)
+      myfile << ", 13 '#FFD92F'";
+  if (_functions.size() > 13)
+      myfile << ", 14 '#E5C494'";
+  if (_functions.size() > 14)
+      myfile << ", 15 '#B3B3B3'";
+  myfile << " )" << endl;
   myfile << "set terminal png size 1600,900 font Helvetica 16" << endl;
-  myfile << "set output 'concurrency.png'" << endl;
+  myfile << "set output '";
+  myfile << apex_options::output_file_path();
+  if (!path_has_suffix(apex_options::output_file_path())) {
+      myfile << filesystem_separator();
+  }
+  myfile << "concurrency.png'" << endl;
   myfile << "everyNth(col) = (int(column(col))%" << (int)(max_X/10) << "==0)?stringcolumn(1):\"\"" << endl;
   myfile << "set key outside bottom center invert box" << endl;
   myfile << "set xtics auto nomirror" << endl;
@@ -352,7 +404,10 @@ void concurrency_handler::output_samples(int node_id) {
   myfile << "' using COL:xticlabel(everyNth(1)) palette frac (COL-" << (3+num_params) << ")/" << top_x.size()+1;
   myfile << ". title columnheader axes x1y1, '"  << datname.str().c_str();
   myfile << "' using 2 with lines linecolor rgb \"red\" axes x1y1 title columnheader, '" << datname.str().c_str();
-  myfile << "' using 3 with lines linecolor rgb \"black\" axes x1y2 title columnheader,";
+  myfile << "' using 3 with lines linecolor rgb \"black\" axes x1y2 title columnheader";
+  if (num_params > 0) {
+    myfile << ",";
+  }
   for(int p = 0; p < num_params; ++p) {
     myfile << "'" << datname.str().c_str() << "' using " << (4+p) << " with linespoints axes x1y2 title columnheader,";
   }

@@ -11,6 +11,12 @@ if (${CMAKE_MAJOR_VERSION} GREATER 2)
   cmake_policy(SET CMP0042 NEW)
 endif()
 
+if (${CMAKE_MAJOR_VERSION} GREATER 2)
+    if (${CMAKE_MAJOR_VERSION} GREATER 1)
+        cmake_policy(SET CMP0054 OLD)
+    endif()
+endif()
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules")
 
 # if the user didn't specify, set the installation directory.
@@ -362,6 +368,9 @@ endif()
 
 if(MPI_CXX_FOUND)
     add_definitions(-DAPEX_HAVE_MPI)
+    # Prevent errors from Cmake by stripping whitespace
+    string(STRIP "${MPI_CXX_LINK_FLAGS}" MPI_CXX_LINK_FLAGS)
+    string(STRIP "${MPI_CXX_LIBRARIES}" MPI_CXX_LIBRARIES)
     set(LIBS ${LIBS} ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES})
 endif()
 

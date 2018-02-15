@@ -205,24 +205,3 @@ int initialize_worker_thread_for_tau(void) {
 
 }
 
-#ifndef __APPLE__
-/* Weak symbols that are redefined if we use TAU at runtime */
-extern "C" {
-APEX_EXPORT int APEX_WEAK Tau_init(int, char**) {
-    /* Print an error message, because TAU wasn't preloaded! */
-    std::cerr << "WARNING! TAU libraries not loaded, TAU support unavailable!" << std::endl;
-    return 0;
-}
-APEX_EXPORT int APEX_WEAK Tau_register_thread(void) {return 0;}
-APEX_EXPORT int APEX_WEAK Tau_create_top_level_timer_if_necessary(void) {return 0;}
-APEX_EXPORT int APEX_WEAK Tau_start(const char *) {return 0;}
-APEX_EXPORT int APEX_WEAK Tau_stop(const char *) {return 0;}
-APEX_EXPORT int APEX_WEAK Tau_exit(const char*) {return 0;}
-APEX_EXPORT int APEX_WEAK Tau_set_node(int) {return 0;}
-APEX_EXPORT int APEX_WEAK Tau_profile_exit_all_threads(void) {return 0;}
-APEX_EXPORT int APEX_WEAK Tau_get_thread(void) {return 0;}
-APEX_EXPORT int APEX_WEAK Tau_profile_exit_all_tasks(void) {return 0;}
-APEX_EXPORT int APEX_WEAK Tau_global_stop(void) {return 0;}
-APEX_EXPORT int APEX_WEAK Tau_trigger_context_event_thread(char*, double, int) {return 0;}
-}
-#endif
