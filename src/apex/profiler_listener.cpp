@@ -519,6 +519,9 @@ std::unordered_set<profile*> free_profiles;
 
   /* At program termination, write the measurements to the screen, or to CSV file, or both. */
   void profiler_listener::finalize_profiles(dump_event_data &data) {
+    if (apex_options::use_tau()) {
+      Tau_start("profiler_listener::finalize_profiles");
+    }
     // our TOTAL available time is the elapsed * the number of threads, or cores
     int num_worker_threads = thread_instance::get_num_threads();
     task_identifier main_id(APEX_MAIN);
@@ -624,6 +627,9 @@ std::unordered_set<profile*> free_profiles;
         csvfile.open(csvname.str(), ios::out);
         csvfile << csv_output.str();
         csvfile.close();
+    }
+    if (apex_options::use_tau()) {
+      Tau_stop("profiler_listener::finalize_profiles");
     }
   }
 
@@ -925,15 +931,15 @@ node_color * get_node_color(double v,double vmin,double vmax)
           }
       }
       consumer_task_running.clear(memory_order_release);
+      if (apex_options::use_tau()) {
+        Tau_stop("profiler_listener::process_profiles: main loop");
+      }
     }
 #endif
     if (apex_options::use_taskgraph_output()) {
       while(!_done && dependency_queue.try_dequeue(td)) {
         process_dependency(td);
       }
-    }
-    if (apex_options::use_tau()) {
-      Tau_stop("profiler_listener::process_profiles: main loop");
     }
 
 #ifdef APEX_HAVE_HPX // don't hang out in this task too long.
@@ -1096,7 +1102,13 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
          * much without suggesting there is a bigger problem. */
         std::unique_lock<std::mutex> queue_lock(queue_mtx);
         for (unsigned int i=0; i<allqueues.size(); ++i) {
+          if (apex_options::use_tau()) {
+            Tau_start("profiler_listener::concurrent_cleanup");
+          }
           concurrent_cleanup(i);
+          if (apex_options::use_tau()) {
+            Tau_stop("profiler_listener::concurrent_cleanup");
+          }
         }
         if (ignored > 100000) {
           std::cerr << "done." << std::endl;

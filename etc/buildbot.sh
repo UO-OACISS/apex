@@ -54,6 +54,8 @@ ncores=2
 osname=`uname`
 if [ ${osname} == "Darwin" ]; then
 ncores=`sysctl -n hw.ncpu`
+export CC=`which clang`
+export CXX=`which clang++`
 else
 ncores=`nproc --all`
 fi
