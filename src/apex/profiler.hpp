@@ -77,6 +77,7 @@ public:
     //std::string * timer_name;
     //bool have_name;
 	task_identifier * task_id;
+    uint64_t guid;
     bool is_counter;
     bool is_resume; // for yield or resume
     reset_type is_reset;
@@ -92,6 +93,7 @@ public:
         value(0.0),
         children_value(0.0),
 		task_id(id),
+        guid(0),
         is_counter(false),
         is_resume(resume),
         is_reset(reset), stopped(false) { };
