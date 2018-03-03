@@ -23,6 +23,7 @@
 #include "apex_export.h" 
 #include "profiler.hpp" 
 #include "profile.hpp" 
+#include "task_timer.hpp" 
 #include <functional>
 #include <stdio.h>
 
@@ -140,6 +141,25 @@ APEX_EXPORT profiler * start(const std::string &timer_name, void** data_ptr = 0L
 APEX_EXPORT profiler * start(apex_function_address function_address, void** data_ptr = 0LL);
 
 /**
+ \brief Start a timer.
+
+ This function will create a profiler object in APEX, and return a
+ handle to the object.  The object will be associated with the 
+ task_timer passed in to this function.
+ 
+ \param function_address The address of the function to be timed
+ \param apex::task_timer A pointer to an apex::task_timer created
+         by apex::new_task. APEX will use this to store the 
+         profiler data.
+ \return The handle for the profiler object in APEX. Not intended to be
+         queried by the application. Should be retained locally, if
+         possible, and passed in to the matching apex::stop
+         call when the timer should be stopped.
+ \sa @ref apex::stop, @ref apex::yield, @ref apex::resume @ref apex::new_task
+ */
+APEX_EXPORT profiler * start(task_timer * task_timer_ptr);
+
+/**
  \brief Stop a timer.
 
  This function will stop the specified profiler object, and queue
@@ -151,6 +171,19 @@ APEX_EXPORT profiler * start(apex_function_address function_address, void** data
  \sa @ref apex::start, @ref apex::yield, @ref apex::resume
  */
 APEX_EXPORT void stop(profiler * the_profiler);
+
+/**
+ \brief Stop a timer.
+
+ This function will stop the specified profiler object, and queue
+ the profiler to be processed out-of-band. The timer value will 
+ eventually added to the profile for the process.
+ 
+ \param task_timer_ptr an apex::task_timer pointer that was started
+ \return No return value.
+ \sa @ref apex::start, @ref apex::yield, @ref apex::resume, @ref apex::new_task
+ */
+APEX_EXPORT void stop(task_timer * task_timer_ptr);
 
 /**
  \brief Stop a timer, but don't increment the number of calls.
@@ -166,6 +199,21 @@ APEX_EXPORT void stop(profiler * the_profiler);
  \sa @ref apex::start, @ref apex::stop, @ref apex::resume
  */
 APEX_EXPORT void yield(profiler * the_profiler);
+
+/**
+ \brief Stop a timer, but don't increment the number of calls.
+
+ This function will stop the specified profiler object, and queue
+ the profiler to be processed out-of-band. The timer value will 
+ eventually added to the profile for the process. The number of calls
+ will NOT be incremented - this "task" was yielded, not completed.
+ It will be resumed by another thread at a later time.
+ 
+ \param task_timer_ptr an apex::task_timer pointer that was started
+ \return No return value.
+ \sa @ref apex::start, @ref apex::stop, @ref apex::resume
+ */
+APEX_EXPORT void yield(task_timer * task_timer_ptr);
 
 /**
  \brief Resume a timer.
@@ -208,6 +256,28 @@ APEX_EXPORT profiler * resume(const std::string &timer_name, void** data_ptr = 0
  \sa apex::stop, apex::yield, apex::start
  */
 APEX_EXPORT profiler * resume(apex_function_address function_address, void** data_ptr = 0LL);
+
+/**
+ \brief Resume a timer.
+
+ This function will create a profiler object in APEX, and return a
+ handle to the object.  The object will be associated with the 
+ address passed in to this function.
+ The difference between this function and the apex::start
+ function is that the number of calls to that
+ timer will not be incremented.
+ 
+ \param function_address The address of the function to be timed
+ \param apex::task_timer A pointer to an apex::task_timer created
+         by apex::new_task. APEX will use this to store the 
+         profiler data.
+ \return The handle for the timer object in APEX. Not intended to be
+         queried by the application. Should be retained locally, if
+         possible, and passed in to the matching apex::stop
+         call when the timer should be stopped.
+ \sa apex::stop, apex::yield, apex::start
+ */
+APEX_EXPORT profiler * resume(task_timer * task_timer_ptr);
 
 /*
  * Functions for resetting timer values
@@ -270,11 +340,11 @@ APEX_EXPORT void sample_value(const std::string &name, double value);
  timer (task) and the new task.
 
  \param name The name of the timer.                                        
- \param task_id The ID of the task 
- \return No return value.
+ \param task_id The ID of the task (default of UINTMAX_MAX implies none provided by runtime)
+ \return pointer to an apex::task_timer object
  */
 
-APEX_EXPORT void new_task(const std::string &name, uint64_t task_id);
+APEX_EXPORT task_timer * new_task(const std::string &name, uint64_t task_id = UINTMAX_MAX);
 
 /**
  \brief Create a new task (dependency).
@@ -283,11 +353,11 @@ APEX_EXPORT void new_task(const std::string &name, uint64_t task_id);
  timer (task) and the new task.
 
  \param function_address The function address of the timer.
- \param task_id The ID of the task 
- \return No return value.
+ \param task_id The ID of the task (default of -1 implies none provided by runtime)
+ \return pointer to an apex::task_timer object
  */
 
-APEX_EXPORT void new_task(apex_function_address function_address, uint64_t task_id);
+APEX_EXPORT task_timer * new_task(apex_function_address function_address, uint64_t task_id = UINTMAX_MAX);
 
 /**
  \brief Register an event type with APEX.

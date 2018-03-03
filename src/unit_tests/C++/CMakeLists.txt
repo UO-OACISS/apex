@@ -52,7 +52,7 @@ endif()
 
 # std::threads crash when linked statically. :(
 if (NOT BUILD_STATIC_EXECUTABLES)
-  set(example_programs "${example_programs};apex_new_task")
+  set(example_programs "${example_programs};apex_new_task;apex_timer_task")
   if ((NOT DEFINED TAU_ROOT) AND (NOT USE_TAU) AND (NOT TAU_FOUND))
     if (APEX_THROTTLE)
       set(example_programs "${example_programs};apex_throttle_event")

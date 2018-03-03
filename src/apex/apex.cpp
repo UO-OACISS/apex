@@ -411,6 +411,25 @@ string& version() {
     return instance->version_string;
 }
 
+inline task_timer * _new_task(task_identifier * id, uint64_t task_id, apex* instance) {
+    task_timer * tt_ptr = new task_timer();
+    tt_ptr->task_id = id;
+    if (task_id == UINTMAX_MAX) {
+        // generate a GUID
+        tt_ptr->guid = thread_instance::get_guid();
+    } else {
+        // use the runtime provided GUID
+        tt_ptr->guid = task_id;
+    }
+    if (_notify_listeners) {
+        //read_lock_type l(instance->listener_mutex);
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            instance->listeners[i]->on_new_task(tt_ptr);
+        }
+    }
+    return tt_ptr;
+}
+
 profiler* start(const std::string &timer_name, void** data_ptr)
 {
     // if APEX is disabled, do nothing.
@@ -455,10 +474,11 @@ profiler* start(const std::string &timer_name, void** data_ptr)
     if (_notify_listeners) {
         bool success = true;
         task_identifier * id = task_identifier::get_task_id(timer_name, data_ptr);
+        task_timer * tt_ptr = _new_task(id, UINTMAX_MAX, instance);
         //read_lock_type l(instance->listener_mutex);
         //cout << thread_instance::get_id() << " Start : " << id->get_name() << endl; fflush(stdout);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            success = instance->listeners[i]->on_start(id);
+            success = instance->listeners[i]->on_start(tt_ptr);
             if (!success && i == 0) {
                 //cout << thread_instance::get_id() << " *** Not success! " << id->get_name() << endl; fflush(stdout);
                 APEX_UTIL_REF_COUNT_FAILED_START
@@ -495,10 +515,46 @@ profiler* start(apex_function_address function_address, void** data_ptr) {
     if (_notify_listeners) {
         bool success = true;
         task_identifier * id = task_identifier::get_task_id(function_address, data_ptr);
+        task_timer * tt_ptr = _new_task(id, UINTMAX_MAX, instance);
         //cout << thread_instance::get_id() << " Start : " << id->get_name() << endl; fflush(stdout);
         //read_lock_type l(instance->listener_mutex);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            success = instance->listeners[i]->on_start(id);
+            success = instance->listeners[i]->on_start(tt_ptr);
+            if (!success && i == 0) {
+                //cout << thread_instance::get_id() << " *** Not success! " << id->get_name() << endl; fflush(stdout);
+                APEX_UTIL_REF_COUNT_FAILED_START
+                return profiler::get_disabled_profiler();
+            }
+        }
+    }
+    APEX_UTIL_REF_COUNT_START
+    return thread_instance::instance().restore_children_profilers();
+}
+
+profiler* start(task_timer * tt_ptr) {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { 
+        APEX_UTIL_REF_COUNT_DISABLED_START
+        return nullptr; 
+    }
+    apex* instance = apex::instance(); // get the Apex static instance
+    // protect against calls after finalization
+    if (!instance || _exited) {
+        APEX_UTIL_REF_COUNT_START_AFTER_FINALIZE
+        return nullptr;
+    }
+    // if APEX is suspended, do nothing.
+    if (apex_options::suspend() == true) { 
+        APEX_UTIL_REF_COUNT_SUSPENDED_START
+        return profiler::get_disabled_profiler(); 
+    }
+    if (_notify_listeners) {
+        bool success = true;
+        //cout << thread_instance::get_id() << " Start : " << id->get_name() << endl; fflush(stdout);
+        //read_lock_type l(instance->listener_mutex);
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            success = instance->listeners[i]->on_start(tt_ptr);
+            tt_ptr->prof = thread_instance::instance().get_current_profiler();
             if (!success && i == 0) {
                 //cout << thread_instance::get_id() << " *** Not success! " << id->get_name() << endl; fflush(stdout);
                 APEX_UTIL_REF_COUNT_FAILED_START
@@ -534,10 +590,11 @@ profiler* resume(const std::string &timer_name, void** data_ptr) {
     }
     if (_notify_listeners) {
         task_identifier * id = task_identifier::get_task_id(timer_name, data_ptr);
+        task_timer * tt_ptr = _new_task(id, UINTMAX_MAX, instance);
         try {
             //read_lock_type l(instance->listener_mutex);
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-                instance->listeners[i]->on_resume(id);
+                instance->listeners[i]->on_resume(tt_ptr);
             }
         } catch (disabled_profiler_exception e) { 
             APEX_UTIL_REF_COUNT_FAILED_RESUME
@@ -572,10 +629,11 @@ profiler* resume(apex_function_address function_address, void** data_ptr) {
     }
     if (_notify_listeners) {
         task_identifier * id = task_identifier::get_task_id(function_address, data_ptr);
+        task_timer * tt_ptr = _new_task(id, UINTMAX_MAX, instance);
         try {
             //read_lock_type l(instance->listener_mutex);
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-                instance->listeners[i]->on_resume(id);
+                instance->listeners[i]->on_resume(tt_ptr);
             }
         } catch (disabled_profiler_exception e) { 
             APEX_UTIL_REF_COUNT_FAILED_RESUME
@@ -610,10 +668,14 @@ profiler* resume(profiler * p) {
     p->restart();
     if (_notify_listeners) {
         try {
+            task_timer * tt_ptr = new task_timer();
+            tt_ptr->task_id = p->task_id;
+            tt_ptr->prof = p;
+            tt_ptr->guid = p->guid;
             // skip the profiler_listener - we are restoring a child timer
             // for a parent that was yielded.
             for (unsigned int i = 1 ; i < instance->listeners.size() ; i++) {
-                instance->listeners[i]->on_resume(p->task_id);
+                instance->listeners[i]->on_resume(tt_ptr);
             }
         } catch (disabled_profiler_exception e) { 
             APEX_UTIL_REF_COUNT_FAILED_RESUME
@@ -709,6 +771,47 @@ void stop(profiler* the_profiler) {
     }
 }
 
+void stop(task_timer * tt_ptr) {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { 
+        APEX_UTIL_REF_COUNT_DISABLED_STOP
+        return; 
+    }
+    if (tt_ptr->prof == profiler::get_disabled_profiler()) {
+        APEX_UTIL_REF_COUNT_DISABLED_STOP
+        return; // profiler was throttled.
+    }
+    if (tt_ptr->prof == nullptr) {
+        APEX_UTIL_REF_COUNT_NULL_STOP
+        return;
+    }
+    if (tt_ptr->prof->stopped) {
+        APEX_UTIL_REF_COUNT_DOUBLE_STOP
+        return;
+    }
+    thread_instance::instance().clear_current_profiler(tt_ptr->prof, false);
+    apex* instance = apex::instance(); // get the Apex static instance
+    // protect against calls after finalization
+    if (!instance || _exited || _measurement_stopped) { 
+        APEX_UTIL_REF_COUNT_STOP_AFTER_FINALIZE
+        return; 
+    }
+    std::shared_ptr<profiler> p{tt_ptr->prof};
+    if (_notify_listeners) {
+        //read_lock_type l(instance->listener_mutex);
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            instance->listeners[i]->on_stop(p);
+        }
+    }
+    //cout << thread_instance::get_id() << " Stop : " << tt_ptr->task_id->get_name() << endl; fflush(stdout);
+    static std::string apex_process_profile_str("apex::process_profiles");
+    if (p->task_id->get_name(false).compare(apex_process_profile_str) == 0) {
+        APEX_UTIL_REF_COUNT_APEX_INTERNAL_STOP
+    } else {
+        APEX_UTIL_REF_COUNT_STOP
+    }
+}
+
 void yield(profiler* the_profiler)
 {
     // if APEX is disabled, do nothing.
@@ -793,40 +896,28 @@ void sample_value(const std::string &name, double value)
     }
 }
 
-void new_task(const std::string &timer_name, uint64_t task_id)
+task_timer * new_task(const std::string &timer_name, uint64_t task_id)
 {
     // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { return; }
+    if (apex_options::disable() == true) { return nullptr; }
     // if APEX is suspended, do nothing.
-    if (apex_options::suspend() == true) { return; }
+    if (apex_options::suspend() == true) { return nullptr; }
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance || _exited) return; // protect against calls after finalization
-    if (_notify_listeners) {
-        task_identifier * id = task_identifier::get_task_id(timer_name);
-        //read_lock_type l(instance->listener_mutex);
-        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_new_task(id, task_id);
-        }
-    }
+    if (!instance || _exited) { return nullptr; } // protect against calls after finalization
+    task_identifier * id = task_identifier::get_task_id(timer_name);
+    return _new_task(id, task_id, instance);
 }
 
-void new_task(apex_function_address function_address, uint64_t task_id) {
+task_timer * new_task(apex_function_address function_address, uint64_t task_id) {
     // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { return; }
+    if (apex_options::disable() == true) { return nullptr; }
     // if APEX is suspended, do nothing.
-    if (apex_options::suspend() == true) { return; }
+    if (apex_options::suspend() == true) { return nullptr; }
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance || _exited) return; // protect against calls after finalization
-    if (_notify_listeners) {
-        task_identifier * id = task_identifier::get_task_id(function_address);
-        //read_lock_type l(instance->listener_mutex);
-        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_new_task(id, task_id);
-        }
-        if (!id->permanent) {
-            delete(id);
-        }
-    }
+    if (!instance || _exited) { return nullptr; } // protect against calls after finalization
+    task_timer * tt_ptr = new task_timer();
+    task_identifier * id = task_identifier::get_task_id(function_address);
+    return _new_task(id, task_id, instance);
 }
 
 std::atomic<int> custom_event_count(APEX_CUSTOM_EVENT_1);

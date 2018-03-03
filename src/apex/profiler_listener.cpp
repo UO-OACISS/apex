@@ -79,8 +79,6 @@ using namespace std;
 using namespace apex;
 
 APEX_NATIVE_TLS unsigned int my_tid = 0; // the current thread's TID in APEX
-APEX_NATIVE_TLS uint64_t my_tid_shifted = 0; // the current thread's TID index in APEX, shifted left 48 bits
-APEX_NATIVE_TLS uint64_t my_task_id = 0; // the current thread's TASK index in APEX
 
 namespace apex {
 
@@ -1025,23 +1023,10 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
 
 #endif
 
-  uint32_t simple_reverse(uint32_t x)
-  {
-    x = ((x >> 1) & 0x55555555u) | ((x & 0x55555555u) << 1);
-    x = ((x >> 2) & 0x33333333u) | ((x & 0x33333333u) << 2);
-    x = ((x >> 4) & 0x0f0f0f0fu) | ((x & 0x0f0f0f0fu) << 4);
-    x = ((x >> 8) & 0x00ff00ffu) | ((x & 0x00ff00ffu) << 8);
-    x = ((x >> 16) & 0xffffu) | ((x & 0xffffu) << 16);
-    return x;
-  }
-
   /* When APEX gets a STARTUP event, do some initialization. */
   void profiler_listener::on_startup(startup_event_data &data) {
     if (!_done) {
       my_tid = (unsigned int)thread_instance::get_id();
-      /* reverse the TID and shift it 32 bits, so we can use it to generate
-         task-private GUIDS that are unique within the process space. */
-      my_tid_shifted = ((uint64_t)(simple_reverse(my_tid))) << 32;
       async_thread_setup();
 #ifndef APEX_HAVE_HPX
       // Start the consumer thread, to process profiler objects.
@@ -1221,9 +1206,6 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
   void profiler_listener::on_new_thread(new_thread_event_data &data) {
     if (!_done) {
       my_tid = (unsigned int)thread_instance::get_id();
-      /* reverse the TID and shift it 32 bits, so we can use it to generate
-         task-private GUIDS that are unique within the process space. */
-      my_tid_shifted = ((uint64_t)(simple_reverse(my_tid))) << 32;
       async_thread_setup();
 #if APEX_HAVE_PAPI
       initialize_PAPI(false);
@@ -1244,7 +1226,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
 
   /* When a start event happens, create a profiler object. Unless this
    * named event is throttled, in which case do nothing, as quickly as possible */
-  inline bool profiler_listener::_common_start(task_identifier * id, bool is_resume) {
+  inline bool profiler_listener::_common_start(task_timer * tt_ptr, bool is_resume) {
     if (!_done) {
 #if defined(APEX_THROTTLE)
       if (!apex_options::use_tau()) {
@@ -1252,7 +1234,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         unordered_set<task_identifier>::const_iterator it;
         {
               read_lock_type l(throttled_event_set_mutex);
-            it = throttled_tasks.find(*id);
+            it = throttled_tasks.find(*tt_ptr->task_id);
         }
         if (it != throttled_tasks.end()) {
             /*
@@ -1265,10 +1247,9 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       }
 #endif
       // start the profiler object, which starts our timers
-      //std::shared_ptr<profiler> p = std::make_shared<profiler>(id, is_resume);
-      profiler * p = new profiler(id, is_resume);
-      p->guid = my_tid_shifted + my_task_id;
-      my_task_id++;
+      //std::shared_ptr<profiler> p = std::make_shared<profiler>(tt_ptr->task_id, is_resume);
+      profiler * p = new profiler(tt_ptr->task_id, is_resume);
+      p->guid = thread_instance::get_guid();
       thread_instance::instance().set_current_profiler(p);
 #if APEX_HAVE_PAPI
       if (num_papi_counters > 0 && !apex_options::papi_suspend()) {
@@ -1351,14 +1332,14 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
   }
 
   /* Start the timer */
-  bool profiler_listener::on_start(task_identifier * id) {
-    return _common_start(id, false);
+  bool profiler_listener::on_start(task_timer * tt_ptr) {
+    return _common_start(tt_ptr, false);
   }
 
   /* This is just like starting a timer, but don't increment the number of calls
    * value. That is because we are restarting an existing timer. */
-  bool profiler_listener::on_resume(task_identifier * id) {
-    return _common_start(id, true);
+  bool profiler_listener::on_resume(task_timer * tt_ptr) {
+    return _common_start(tt_ptr, true);
   }
 
    /* Stop the timer */
@@ -1392,16 +1373,17 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
     }
   }
 
-  void profiler_listener::on_new_task(task_identifier * id, uint64_t task_id) {
+  void profiler_listener::on_new_task(task_timer * tt_ptr) {
     //printf("New task: %llu\n", task_id); fflush(stdout);
     if (!apex_options::use_taskgraph_output()) { return; }
     // get the current profiler
     profiler * p = thread_instance::instance().get_current_profiler();
     if (p != NULL) {
-        dependency_queue.enqueue(new task_dependency(p->task_id, id));
+        tt_ptr->parent_guid = p->guid;
+        dependency_queue.enqueue(new task_dependency(p->task_id, tt_ptr->task_id));
     } else {
         task_identifier * parent = task_identifier::get_task_id(string("__start"));
-        dependency_queue.enqueue(new task_dependency(parent, id));
+        dependency_queue.enqueue(new task_dependency(parent, tt_ptr->task_id));
     }
   }
 

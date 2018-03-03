@@ -205,6 +205,7 @@ void set_thread_affinity(void);
 void set_thread_affinity(int core);
 
 void remove_path(const char * pathname);
+uint32_t simple_reverse(uint32_t x);
 
 inline char filesystem_separator()
 {

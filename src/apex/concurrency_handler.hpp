@@ -60,12 +60,11 @@ public:
   void on_new_node(node_event_data &data) { APEX_UNUSED(data); };
   void on_new_thread(new_thread_event_data &data);
   void on_exit_thread(event_data &data);
-  bool on_start(task_identifier * id);
+  bool on_start(task_timer * tt_ptr);
   void on_stop(std::shared_ptr<profiler> &p);
   void on_yield(std::shared_ptr<profiler> &p);
-  bool on_resume(task_identifier * id);
-  void on_new_task(task_identifier * id, uint64_t task_id) 
-       { APEX_UNUSED(id); APEX_UNUSED(task_id); };
+  bool on_resume(task_timer * tt_ptr);
+  void on_new_task(task_timer * tt_ptr) { APEX_UNUSED(tt_ptr); };
   void on_sample_value(sample_value_event_data &data) { APEX_UNUSED(data); };
   void on_periodic(periodic_event_data &data) { APEX_UNUSED(data); };
   void on_custom_event(custom_event_data &data) { APEX_UNUSED(data); };

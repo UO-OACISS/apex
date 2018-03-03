@@ -9,7 +9,7 @@
 std::set<uint64_t> guids;
 std::mutex guid_mutex;
 const int num_threads = 1<<8;
-const int num_tasks = 1<<16;
+const int num_tasks = 1<<8;
 
 void check_guid(uint64_t guid) {
     std::unique_lock<std::mutex>(guid_mutex);

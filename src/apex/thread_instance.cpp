@@ -34,6 +34,9 @@
 
 using namespace std;
 
+// the current thread's TASK index/count in APEX
+APEX_NATIVE_TLS uint64_t my_task_id = 0;
+
 namespace apex {
 
 // Global static pointer used to ensure a single instance of the class.
@@ -72,6 +75,9 @@ thread_instance& thread_instance::instance(bool is_worker) {
     _instance = new thread_instance(is_worker);
     if (is_worker) {
         _instance->_id = _num_threads++;
+      /* reverse the TID and shift it 32 bits, so we can use it to generate
+         task-private GUIDS that are unique within the process space. */
+        _instance->_id_reversed = ((uint64_t)(simple_reverse((uint32_t)_instance->_id))) << 32;
     }
     _instance->_runtime_id = _instance->_id; // can be set later, if necessary
     _active_threads++;
@@ -347,6 +353,7 @@ void thread_instance::clear_current_profiler(profiler * the_profiler, bool save_
 }
 
 profiler * thread_instance::get_current_profiler(void) {
+    if (instance().current_profilers.size() == 0) { return nullptr; }
     return instance().current_profilers.back();
 }
 

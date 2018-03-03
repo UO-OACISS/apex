@@ -442,13 +442,13 @@ namespace apex {
 		call_policies(exit_thread_policies, (void *)&data, APEX_EXIT_THREAD);
 	}
 
-	bool policy_handler::on_start(task_identifier *id) {
-		call_policies(start_event_policies, (void *)id, APEX_START_EVENT);
+	bool policy_handler::on_start(task_timer * tt_ptr) {
+		call_policies(start_event_policies, (void *)tt_ptr->task_id, APEX_START_EVENT);
 		return true;
 	}
 
-	bool policy_handler::on_resume(task_identifier * id) {
-		call_policies(resume_event_policies, (void *)id, APEX_RESUME_EVENT);
+	bool policy_handler::on_resume(task_timer * tt_ptr) {
+		call_policies(resume_event_policies, (void *)tt_ptr->task_id, APEX_RESUME_EVENT);
 		return true;
 	}
 

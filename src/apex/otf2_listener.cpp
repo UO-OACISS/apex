@@ -786,7 +786,8 @@ namespace apex {
         return;
     }
 
-    bool otf2_listener::on_start(task_identifier * id) {
+    bool otf2_listener::on_start(task_timer * tt_ptr) {
+        task_identifier * id = tt_ptr->task_id;
         // don't close the archive on us!
         read_lock_type lock(_archive_mutex);
         // not likely, but just in case...
@@ -815,8 +816,8 @@ namespace apex {
         return false;
     }
 
-    bool otf2_listener::on_resume(task_identifier * id) {
-        return on_start(id);
+    bool otf2_listener::on_resume(task_timer * tt_ptr) {
+        return on_start(tt_ptr->task_id);
     }
 
     void otf2_listener::on_stop(std::shared_ptr<profiler> &p) {

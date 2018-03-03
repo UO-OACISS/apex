@@ -10,6 +10,7 @@
 #include "apex_types.h"
 #include "profiler.hpp"
 #include "task_identifier.hpp"
+#include "task_timer.hpp"
 
 namespace apex {
 
@@ -116,11 +117,11 @@ public:
   virtual void on_new_node(node_event_data &data) = 0;
   virtual void on_new_thread(new_thread_event_data &data) = 0;
   virtual void on_exit_thread(event_data &data) = 0;
-  virtual bool on_start(task_identifier *id) = 0;
+  virtual bool on_start(task_timer * tt_ptr) = 0;
   virtual void on_stop(std::shared_ptr<profiler> &p) = 0;
   virtual void on_yield(std::shared_ptr<profiler> &p) = 0;
-  virtual bool on_resume(task_identifier * id) = 0;
-  virtual void on_new_task(task_identifier * id, uint64_t task_id) = 0;
+  virtual bool on_resume(task_timer * tt_ptr) = 0;
+  virtual void on_new_task(task_timer * tt_ptr) = 0;
   virtual void on_sample_value(sample_value_event_data &data) = 0;
   virtual void on_periodic(periodic_event_data &data) = 0;
   virtual void on_custom_event(custom_event_data &data) = 0;

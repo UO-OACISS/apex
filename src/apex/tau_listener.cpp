@@ -139,20 +139,24 @@ void tau_listener::on_exit_thread(event_data &data) {
   return;
 }
 
-bool tau_listener::on_start(task_identifier * id) {
+inline bool tau_listener::_common_start(task_timer * tt_ptr) {
   if (!_terminate) {
-    my_Tau_start(id->get_name().c_str());
+    my_Tau_start(tt_ptr->task_id->get_name().c_str());
   } else {
       return false;
   }
   return true;
 }
 
-bool tau_listener::on_resume(task_identifier * id) {
-  return on_start(id);
+bool tau_listener::on_start(task_timer * tt_ptr) {
+  return _common_start(tt_ptr);
 }
 
-void tau_listener::on_stop(std::shared_ptr<profiler> &p) {
+bool tau_listener::on_resume(task_timer * tt_ptr) {
+  return _common_start(tt_ptr);
+}
+
+inline void tau_listener::_common_stop(std::shared_ptr<profiler> &p) {
   static string empty("");
   if (!_terminate) {
       if (p->task_id->get_name().compare(empty) == 0) {
@@ -164,8 +168,12 @@ void tau_listener::on_stop(std::shared_ptr<profiler> &p) {
   return;
 }
 
+void tau_listener::on_stop(std::shared_ptr<profiler> &p) {
+  return _common_stop(p);
+}
+
 void tau_listener::on_yield(std::shared_ptr<profiler> &p) {
-    on_stop(p);
+  return _common_stop(p);
 }
 
 void tau_listener::on_sample_value(sample_value_event_data &data) {
