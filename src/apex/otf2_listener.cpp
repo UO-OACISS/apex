@@ -817,7 +817,7 @@ namespace apex {
     }
 
     bool otf2_listener::on_resume(task_timer * tt_ptr) {
-        return on_start(tt_ptr->task_id);
+        return on_start(tt_ptr);
     }
 
     void otf2_listener::on_stop(std::shared_ptr<profiler> &p) {
