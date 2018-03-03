@@ -923,6 +923,15 @@ node_color * get_node_color(double v,double vmin,double vmax)
             break;
         }
       }
+      if (apex_options::use_taskgraph_output()) {
+          int i = 0;
+          while(!_done && dependency_queue.try_dequeue(td)) {
+              process_dependency(td);
+              if (++i > 1000) {
+                break;
+              }
+          }
+      }
     }
     consumer_task_running.clear(memory_order_release);
 #else
