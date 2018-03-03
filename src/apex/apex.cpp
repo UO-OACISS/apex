@@ -915,7 +915,6 @@ task_timer * new_task(apex_function_address function_address, uint64_t task_id) 
     if (apex_options::suspend() == true) { return nullptr; }
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) { return nullptr; } // protect against calls after finalization
-    task_timer * tt_ptr = new task_timer();
     task_identifier * id = task_identifier::get_task_id(function_address);
     return _new_task(id, task_id, instance);
 }
