@@ -112,15 +112,13 @@ APEX_EXPORT void cleanup(void);
  passed in to this function.
  
  \param timer_name The name of the timer.
- \param data_ptr The address of a location associated with this task. 0
-         means NULL.  APEX will use this to store internal data.
  \return The handle for the timer object in APEX. Not intended to be
          queried by the application. Should be retained locally, if
          possible, and passed in to the matching apex::stop()
          call when the timer should be stopped.
  \sa @ref apex::stop, @ref apex::yield, @ref apex::resume
  */
-APEX_EXPORT profiler * start(const std::string &timer_name, void** data_ptr = 0LL);
+APEX_EXPORT profiler * start(const std::string &timer_name);
 
 /**
  \brief Start a timer.
@@ -130,15 +128,13 @@ APEX_EXPORT profiler * start(const std::string &timer_name, void** data_ptr = 0L
  address passed in to this function.
  
  \param function_address The address of the function to be timed
- \param data_ptr The address of a location associated with this task. 0
-         means NULL.  APEX will use this to store internal data.
  \return The handle for the timer object in APEX. Not intended to be
          queried by the application. Should be retained locally, if
          possible, and passed in to the matching apex::stop
          call when the timer should be stopped.
  \sa @ref apex::stop, @ref apex::yield, @ref apex::resume
  */
-APEX_EXPORT profiler * start(apex_function_address function_address, void** data_ptr = 0LL);
+APEX_EXPORT profiler * start(apex_function_address function_address);
 
 /**
  \brief Start a timer.
@@ -226,15 +222,13 @@ APEX_EXPORT void yield(task_timer * task_timer_ptr);
  timer will not be incremented.
  
  \param timer_name The name of the timer.
- \param data_ptr The address of a location associated with this task. 0
-         means NULL.  APEX will use this to store internal data.
  \return The handle for the timer object in APEX. Not intended to be
          queried by the application. Should be retained locally, if
          possible, and passed in to the matching apex::stop()
          call when the timer should be stopped.
  \sa @ref apex::stop, @ref apex::yield, @ref apex::start
  */
-APEX_EXPORT profiler * resume(const std::string &timer_name, void** data_ptr = 0LL);
+APEX_EXPORT profiler * resume(const std::string &timer_name);
 
 /**
  \brief Resume a timer.
@@ -247,15 +241,13 @@ APEX_EXPORT profiler * resume(const std::string &timer_name, void** data_ptr = 0
  timer will not be incremented.
  
  \param function_address The address of the function to be timed
- \param data_ptr The address of a location associated with this task. 0
-         means NULL.  APEX will use this to store internal data.
  \return The handle for the timer object in APEX. Not intended to be
          queried by the application. Should be retained locally, if
          possible, and passed in to the matching apex::stop
          call when the timer should be stopped.
  \sa apex::stop, apex::yield, apex::start
  */
-APEX_EXPORT profiler * resume(apex_function_address function_address, void** data_ptr = 0LL);
+APEX_EXPORT profiler * resume(apex_function_address function_address);
 
 /**
  \brief Resume a timer.
@@ -800,47 +792,39 @@ class self_stopping_timer {
  \brief Construct and start an APEX timer.
 
  \param func The address of a function used to identify the timer type
- \param data_ptr The address of a location associated with this task. 0
-         means NULL.  APEX will use this to store internal data.
  */
-        self_stopping_timer(uint64_t func, void** data_ptr = 0LL) : p(nullptr), has_thread(false) {
-            p = apex::start((apex_function_address)func, data_ptr);
+        self_stopping_timer(uint64_t func) : p(nullptr), has_thread(false) {
+            p = apex::start((apex_function_address)func);
         }
 /**
  \brief Construct and start an APEX timer.
 
  \param func The name of a function used to identify the timer type
- \param data_ptr The address of a location associated with this task. 0
-         means NULL.  APEX will use this to store internal data.
  */
-        self_stopping_timer(std::string func, void** data_ptr = 0LL) : p(nullptr), has_thread(false) {
-            p = apex::start(func, data_ptr);
+        self_stopping_timer(std::string func) : p(nullptr), has_thread(false) {
+            p = apex::start(func);
         }
 /**
  \brief Register a new thread with APEX, then construct and start an APEX timer.
 
  \param func The address of a function used to identify the timer type
  \param thread_name The name of this new worker thread in the runtime
- \param data_ptr The address of a location associated with this task. 0
-         means NULL.  APEX will use this to store internal data.
  */
-        self_stopping_timer(uint64_t func, const char * thread_name, void** data_ptr = 0LL) 
+        self_stopping_timer(uint64_t func, const char * thread_name) 
             : p(nullptr), has_thread(true) {
             apex::register_thread(thread_name);
-            p = apex::start((apex_function_address)func, data_ptr);
+            p = apex::start((apex_function_address)func);
         }
 /**
  \brief Register a new thread with APEX, then construct and start an APEX timer.
 
  \param func The name of a function used to identify the timer type
  \param thread_name The name of this new worker thread in the runtime
- \param data_ptr The address of a location associated with this task. 0
-         means NULL.  APEX will use this to store internal data.
  */
-        self_stopping_timer(std::string func, const char * thread_name = nullptr, void** data_ptr = 0LL) 
+        self_stopping_timer(std::string func, const char * thread_name = nullptr) 
             : p(nullptr), has_thread(true) {
             apex::register_thread(thread_name);
-            p = apex::start(func, data_ptr);
+            p = apex::start(func);
         }
 /**
  \brief Stop the APEX timer.

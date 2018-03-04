@@ -14,6 +14,7 @@
 #include <map>
 #include <vector>
 #include "profiler.hpp"
+#include "task_timer.hpp"
 #include <exception>
 #ifdef APEX_DEBUG
 #include <unordered_set>
@@ -82,10 +83,10 @@ public:
   static bool map_id_to_worker(int id);
   static int get_num_threads(void) { return _num_threads; };
   std::string map_addr_to_name(apex_function_address function_address);
-  static profiler * restore_children_profilers(void);
+  static profiler * restore_children_profilers(task_timer * tt_ptr);
   static void set_current_profiler(profiler * the_profiler);
   static profiler * get_current_profiler(void);
-  static void clear_current_profiler(profiler * the_profiler, bool save_children);
+  static void clear_current_profiler(profiler * the_profiler, bool save_children, task_timer * tt_ptr);
   static const char * program_path(void);
   static bool is_worker() { return instance()._is_worker; }
   static uint64_t get_guid() { return instance()._get_guid(); }

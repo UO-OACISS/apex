@@ -119,17 +119,13 @@ public:
 #endif
     value = in.value;
     children_value = in.children_value;
-    if (in.task_id->permanent) {
-	    task_id = in.task_id;
-    } else {
-	    task_id = new task_identifier(*in.task_id);
-    }
+	task_id = in.task_id;
     is_counter = in.is_counter;
     is_resume = in.is_resume; // for yield or resume
     is_reset = in.is_reset;
     stopped = in.stopped;
     }
-    ~profiler(void) { if (task_id != nullptr && !task_id->permanent) delete task_id; };
+    ~profiler(void) { /* not much to do here. */ };
     // for "yield" support
     void stop(bool is_resume) {
         this->is_resume = is_resume;

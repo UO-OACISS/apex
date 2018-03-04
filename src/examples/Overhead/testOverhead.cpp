@@ -31,12 +31,12 @@ inline int foo (int i) {
   return dummy;
 }
 
-inline int bar (int i, apex::profiler ** p, void ** data_ptr) {
+inline int bar (int i, apex::task_timer * foo_ptr) {
   static int limit = sqrt(INT_MAX >> 1);
   int j;
   int dummy = 1;
   apex::profiler * p2 = NULL;
-  if (p != NULL) {
+  if (foo_ptr != NULL) {
     // start bar
     p2 = apex::start((apex_function_address)bar);
     for (j = 0 ; j < INNER_ITERATION ; j++) {
@@ -47,9 +47,9 @@ inline int bar (int i, apex::profiler ** p, void ** data_ptr) {
         }
     }
     // yield foo
-    apex::yield(*p);
+    apex::yield(foo_ptr);
     // resume foo
-    *p = apex::start((apex_function_address)foo, data_ptr);
+    apex::start(foo_ptr);
     // stop bar
     apex::stop(p2);
   } else {
@@ -87,10 +87,11 @@ void* someThread(void* tmp)
     apex::profiler * st = apex::start((apex_function_address)someThread);
     for (i = 0 ; i < ITERATIONS ; i++) {
         void * data_ptr = NULL;
-        apex::profiler * p = apex::start((apex_function_address)foo, &data_ptr);
+        apex::task_timer * foo_ptr = apex::new_task((apex_function_address)foo);
+        apex::start(foo_ptr);
         total += foo(i);
-        total += bar(i, &p, &data_ptr);
-        apex::stop(p);
+        total += bar(i, foo_ptr);
+        apex::stop(foo_ptr);
         if (i % SPLIT == 0) {
             printf("t"); fflush(stdout);
         }
@@ -125,7 +126,7 @@ void* someUntimedThread(void* tmp)
     apex::profiler * sut = apex::start((apex_function_address)someUntimedThread);
     for (i = 0 ; i < ITERATIONS ; i++) {
         total += foo(i);
-        total += bar(i, NULL, NULL);
+        total += bar(i, nullptr);
         if (i % SPLIT == 0) {
             printf("u"); fflush(stdout);
         }
