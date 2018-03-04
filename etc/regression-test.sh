@@ -173,7 +173,7 @@ if [ ${clean} -eq 1 ] ; then
     echo "cleaning previous regression test..."
     rm -rf ${workdir}
     mkdir -p ${workdir}
-    git checkout develop
+    #git checkout develop
     git pull
 fi
 
