@@ -1318,23 +1318,6 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
             PAPI_ERROR_CHECK("PAPI_read");
         }
 #endif
-        // Why is this happening now?  Why not at start? Why not at create?
-        /*
-        if (apex_options::use_taskgraph_output()) {
-          if (!p->is_resume) {
-            // get the PARENT profiler
-            profiler * parent_profiler = nullptr;
-            try {
-              parent_profiler = thread_instance::instance().get_parent_profiler();
-              if (parent_profiler != NULL) {
-                task_identifier * parent = parent_profiler->task_id;
-                task_identifier * child = p->task_id;
-                dependency_queue.enqueue(new task_dependency(parent, child));
-              }
-            } catch (empty_stack_exception& e) { }
-          }
-        }
-        */
         push_profiler(my_tid, p);
       }
     }
