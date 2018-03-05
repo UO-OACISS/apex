@@ -174,7 +174,7 @@ if [ ${clean} -eq 1 ] ; then
     rm -rf ${workdir}
     mkdir -p ${workdir}
     #git checkout develop
-    git pull
+    #git pull
 fi
 
 # change directory to the base APEX directory
