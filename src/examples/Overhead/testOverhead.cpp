@@ -86,7 +86,6 @@ void* someThread(void* tmp)
   { // only time this for loop
     apex::profiler * st = apex::start((apex_function_address)someThread);
     for (i = 0 ; i < ITERATIONS ; i++) {
-        void * data_ptr = NULL;
         apex::task_timer * foo_ptr = apex::new_task((apex_function_address)foo);
         apex::start(foo_ptr);
         total += foo(i);
