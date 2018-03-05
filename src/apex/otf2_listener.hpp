@@ -134,6 +134,7 @@ namespace apex {
         std::map<std::string,uint64_t>& get_metric_indices(void);
         uint64_t get_metric_index(const std::string& name);
         static const std::string empty;
+        void write_otf2_attributes(void);
         void write_otf2_regions(void);
         std::string write_my_regions(void);
         int reduce_regions(void);
