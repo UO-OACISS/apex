@@ -6,6 +6,7 @@
 #include "task_identifier.hpp"
 #include "thread_instance.hpp"
 #include "apex_api.hpp"
+#include <mutex>
 
 #if APEX_HAVE_BFD
 #include "address_resolution.hpp"
@@ -19,6 +20,9 @@
 #endif
 
 namespace apex {
+
+// only let one thread at a time resolve the name of this task
+std::mutex bfd_mutex;;
 
     task_identifier::apex_name_map::apex_name_map() : tid(thread_instance::get_id()) {};
     task_identifier::apex_name_map::~apex_name_map(void) {
@@ -35,10 +39,15 @@ namespace apex {
 const std::string& task_identifier::get_name(bool resolve) {
     if (!has_name && resolve) {
       if (_resolved_name == "" && address != APEX_NULL_FUNCTION_ADDRESS) {
-        //_resolved_name = lookup_address((uintptr_t)address, false);         
-        _resolved_name = thread_instance::instance().map_addr_to_name(address);
+      // only let one thread update the name of this task_identifier
+      std::unique_lock<std::mutex> queue_lock(bfd_mutex);
+        // check again, another thread may have resolved it.
+        if (_resolved_name == "") {
+          //_resolved_name = lookup_address((uintptr_t)address, false);         
+          _resolved_name = thread_instance::instance().map_addr_to_name(address);
+          _resolved_name.assign(demangle(_resolved_name));
+        }
       }
-      _resolved_name.assign(demangle(_resolved_name));
       return _resolved_name;
     } else {
         if (resolve) {

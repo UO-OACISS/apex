@@ -82,6 +82,9 @@ APEX_NATIVE_TLS unsigned int my_tid = 0; // the current thread's TID in APEX
 
 namespace apex {
 
+/* mutex for controlling access to the dependencies map.
+ * multiple threads can try to clean up at the same time. */
+std::mutex task_dependency_mutex;;
 /* set for keeping track of memory to clean up */
 std::mutex free_profile_set_mutex;
 std::unordered_set<profile*> free_profiles;
@@ -368,6 +371,7 @@ std::unordered_set<profile*> free_profiles;
 
   inline unsigned int profiler_listener::process_dependency(task_dependency* td)
   {
+      std::unique_lock<std::mutex> queue_lock(task_dependency_mutex);
       unordered_map<task_identifier, unordered_map<task_identifier, int>* >::const_iterator it = task_dependencies.find(td->parent);
       unordered_map<task_identifier, int> * depend;
       // if this is a new dependency for this parent?
@@ -680,6 +684,8 @@ node_color * get_node_color(double v,double vmin,double vmax)
             process_dependency(td);
         }
     }
+    // keep any new dependencies from showing up.
+    std::unique_lock<std::mutex> queue_lock(task_dependency_mutex);
     /* before calling parent.get_name(), make sure we create
      * a thread_instance object that is NOT a worker. */
     thread_instance::instance(false);

@@ -115,6 +115,7 @@ dobuild()
     -DBUILD_EXAMPLES=TRUE ${malloc} ${bfd} ${ah} ${ompt} ${papi} ${mpi} ${otf} ${tau} ${extra} \
     -DCMAKE_INSTALL_PREFIX=${workdir}/install${post}-${buildtype} ${BASEDIR}"
     echo ${cmd}
+    echo ${cmd} > ./cmake_command
     ${cmd} 2>&1 | tee -a ${logfile}
     make ${parallel_build} 2>&1 | tee -a ${logfile}
     make doc 2>&1 | tee -a ${logfile}
