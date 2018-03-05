@@ -48,9 +48,13 @@ public:
   task_identifier(const std::string& n) :
       address(0L), name(n), _resolved_name(""), has_name(true) {
       };
+  // The copy constructor doesn't copy the resolved name.  That's because
+  // it would be too expensive to lock control to it, since it can be
+  // updated by another thread. Therefore, leave it unresolved, no one will
+  // ask for the resolved name until program exit, or in policies.
   task_identifier(const task_identifier& rhs) :
       address(rhs.address), name(rhs.name), 
-      _resolved_name(rhs._resolved_name), has_name(rhs.has_name) { };
+      _resolved_name(""), has_name(rhs.has_name) { };
 
   static task_identifier * get_task_id (apex_function_address a);
   static task_identifier * get_task_id (const std::string& n);
