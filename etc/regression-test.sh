@@ -153,6 +153,9 @@ conditional_build()
             buildtype=Release
             extra=""
             dobuild
+            buildtype=RelWithDebInfo
+            extra=""
+            dobuild
         fi
     fi
 }

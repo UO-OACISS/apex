@@ -11,7 +11,7 @@ int threads_per_core = 8;
 __thread uint64_t guid = 0;
 const int num_iterations = 10;
 
-#ifdef DEBUG
+#ifdef DEBUG_DISABLED
 #define __DEBUG_PRINT__ 1
 #endif
 

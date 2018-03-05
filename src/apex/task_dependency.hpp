@@ -15,10 +15,7 @@ public:
   task_identifier child;
   task_dependency(task_identifier * p, task_identifier * c) :
     parent(*p), child(*c) {};
-  ~task_dependency() {
-    //delete parent;
-    //delete child;
-  }
+  ~task_dependency() { }
 };
 
 }
