@@ -31,6 +31,7 @@
 #include <unordered_set>
 #include <algorithm>
 #include <iterator>
+#include <regex>
 
 #include <functional>
 #include <thread>
@@ -568,7 +569,7 @@ std::unordered_set<profile*> free_profiles;
         }
     }
     if (id_vector.size() > 0) {
-        screen_output << "Counter                        : #samples |  minimum |    mean  |  maximum |   total  |  stddev " << apex_options::papi_metrics() << endl;
+        screen_output << "Counter                        : #samples |  minimum |    mean  |  maximum |   total  |  stddev " << endl;
         screen_output << "------------------------------------------------------------------------------------------------" << endl;
         std::sort(id_vector.begin(), id_vector.end());
         // iterate over the counters
@@ -581,7 +582,7 @@ std::unordered_set<profile*> free_profiles;
         screen_output << "------------------------------------------------------------------------------------------------" << endl << endl;;
     }
     csv_output << "\"task\",\"num calls\",\"total cycles\",\"total microseconds\"";
-    screen_output << "Timer                                                :  #calls  |    mean  |   total  |  % total  " << apex_options::papi_metrics() << endl;
+    screen_output << "Timer                                                :  #calls  |    mean  |   total  |  % total  " << std::regex_replace(apex_options::papi_metrics(), std::regex("PAPI_"), "| ") << endl;
     screen_output << "------------------------------------------------------------------------------------------------" << endl;
      id_vector.clear();
     // iterate over the timers
