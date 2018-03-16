@@ -599,7 +599,9 @@ std::unordered_set<profile*> free_profiles;
         profile * p = task_map[task_id];
         if (p) {
             write_one_timer(task_id, p, screen_output, csv_output, total_accumulated, total_main, true);
-            total_hpx_threads = total_hpx_threads + p->get_calls();
+            if (task_id.get_name().compare(APEX_MAIN) != 0) {
+                total_hpx_threads = total_hpx_threads + p->get_calls();
+            }
         }
     }
     double idle_rate = total_main - (total_accumulated*profiler::get_cpu_mhz());
@@ -1308,10 +1310,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         queue_signal.post();
       }
 #else
-      // schedule an HPX action
-      if(!consumer_task_running.test_and_set(memory_order_acq_rel)) {
-        apex_schedule_process_profiles();
-      }
+      apex_schedule_process_profiles();
 #endif
   }
 
