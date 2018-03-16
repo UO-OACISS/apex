@@ -61,7 +61,7 @@ std::mutex event_set_mutex;
 #include <hpx/include/util.hpp>
 #include <hpx/lcos/local/composable_guard.hpp>
 static void apex_schedule_process_profiles(void); // not in apex namespace
-const int num_non_worker_threads_registered = 0;
+const int num_non_worker_threads_registered = 1; // including the main thread
 #endif
 
 #define APEX_MAIN "APEX MAIN"
@@ -1241,7 +1241,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
 
   /* When a start event happens, create a profiler object. Unless this
    * named event is throttled, in which case do nothing, as quickly as possible */
-  inline bool profiler_listener::_common_start(task_timer * tt_ptr, bool is_resume) {
+  inline bool profiler_listener::_common_start(task_wrapper * tt_ptr, bool is_resume) {
     if (!_done) {
 #if defined(APEX_THROTTLE)
       if (!apex_options::use_tau()) {
@@ -1330,13 +1330,13 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
   }
 
   /* Start the timer */
-  bool profiler_listener::on_start(task_timer * tt_ptr) {
+  bool profiler_listener::on_start(task_wrapper * tt_ptr) {
     return _common_start(tt_ptr, false);
   }
 
   /* This is just like starting a timer, but don't increment the number of calls
    * value. That is because we are restarting an existing timer. */
-  bool profiler_listener::on_resume(task_timer * tt_ptr) {
+  bool profiler_listener::on_resume(task_wrapper * tt_ptr) {
     return _common_start(tt_ptr, true);
   }
 
@@ -1371,7 +1371,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
     }
   }
 
-  void profiler_listener::on_new_task(task_timer * tt_ptr) {
+  void profiler_listener::on_new_task(task_wrapper * tt_ptr) {
     //printf("New task: %llu\n", task_id); fflush(stdout);
     if (!apex_options::use_taskgraph_output()) { return; }
     // get the current profiler

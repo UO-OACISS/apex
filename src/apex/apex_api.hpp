@@ -23,7 +23,7 @@
 #include "apex_export.h" 
 #include "profiler.hpp" 
 #include "profile.hpp" 
-#include "task_timer.hpp" 
+#include "task_wrapper.hpp" 
 #include <functional>
 #include <stdio.h>
 
@@ -141,10 +141,10 @@ APEX_EXPORT profiler * start(apex_function_address function_address);
 
  This function will create a profiler object in APEX, and return a
  handle to the object.  The object will be associated with the 
- task_timer passed in to this function.
+ task_wrapper passed in to this function.
  
  \param function_address The address of the function to be timed
- \param apex::task_timer A pointer to an apex::task_timer created
+ \param apex::task_wrapper A pointer to an apex::task_wrapper created
          by apex::new_task. APEX will use this to store the 
          profiler data.
  \return The handle for the profiler object in APEX. Not intended to be
@@ -153,7 +153,7 @@ APEX_EXPORT profiler * start(apex_function_address function_address);
          call when the timer should be stopped.
  \sa @ref apex::stop, @ref apex::yield, @ref apex::resume @ref apex::new_task
  */
-APEX_EXPORT profiler * start(task_timer * task_timer_ptr);
+APEX_EXPORT profiler * start(task_wrapper * task_wrapper_ptr);
 
 /**
  \brief Stop a timer.
@@ -175,11 +175,11 @@ APEX_EXPORT void stop(profiler * the_profiler);
  the profiler to be processed out-of-band. The timer value will 
  eventually added to the profile for the process.
  
- \param task_timer_ptr an apex::task_timer pointer that was started
+ \param task_wrapper_ptr an apex::task_wrapper pointer that was started
  \return No return value.
  \sa @ref apex::start, @ref apex::yield, @ref apex::resume, @ref apex::new_task
  */
-APEX_EXPORT void stop(task_timer * task_timer_ptr);
+APEX_EXPORT void stop(task_wrapper * task_wrapper_ptr);
 
 /**
  \brief Stop a timer, but don't increment the number of calls.
@@ -205,11 +205,11 @@ APEX_EXPORT void yield(profiler * the_profiler);
  will NOT be incremented - this "task" was yielded, not completed.
  It will be resumed by another thread at a later time.
  
- \param task_timer_ptr an apex::task_timer pointer that was started
+ \param task_wrapper_ptr an apex::task_wrapper pointer that was started
  \return No return value.
  \sa @ref apex::start, @ref apex::stop, @ref apex::resume
  */
-APEX_EXPORT void yield(task_timer * task_timer_ptr);
+APEX_EXPORT void yield(task_wrapper * task_wrapper_ptr);
 
 /**
  \brief Resume a timer.
@@ -260,7 +260,7 @@ APEX_EXPORT profiler * resume(apex_function_address function_address);
  timer will not be incremented.
  
  \param function_address The address of the function to be timed
- \param apex::task_timer A pointer to an apex::task_timer created
+ \param apex::task_wrapper A pointer to an apex::task_wrapper created
          by apex::new_task. APEX will use this to store the 
          profiler data.
  \return The handle for the timer object in APEX. Not intended to be
@@ -269,7 +269,7 @@ APEX_EXPORT profiler * resume(apex_function_address function_address);
          call when the timer should be stopped.
  \sa apex::stop, apex::yield, apex::start
  */
-APEX_EXPORT profiler * resume(task_timer * task_timer_ptr);
+APEX_EXPORT profiler * resume(task_wrapper * task_wrapper_ptr);
 
 /*
  * Functions for resetting timer values
@@ -333,10 +333,10 @@ APEX_EXPORT void sample_value(const std::string &name, double value);
 
  \param name The name of the timer.                                        
  \param task_id The ID of the task (default of UINTMAX_MAX implies none provided by runtime)
- \return pointer to an apex::task_timer object
+ \return pointer to an apex::task_wrapper object
  */
 
-APEX_EXPORT task_timer * new_task(const std::string &name, uint64_t task_id = UINTMAX_MAX);
+APEX_EXPORT task_wrapper * new_task(const std::string &name, uint64_t task_id = UINTMAX_MAX);
 
 /**
  \brief Create a new task (dependency).
@@ -346,10 +346,34 @@ APEX_EXPORT task_timer * new_task(const std::string &name, uint64_t task_id = UI
 
  \param function_address The function address of the timer.
  \param task_id The ID of the task (default of -1 implies none provided by runtime)
- \return pointer to an apex::task_timer object
+ \return pointer to an apex::task_wrapper object
  */
 
-APEX_EXPORT task_timer * new_task(apex_function_address function_address, uint64_t task_id = UINTMAX_MAX);
+APEX_EXPORT task_wrapper * new_task(apex_function_address function_address, uint64_t task_id = UINTMAX_MAX);
+
+/**
+ \brief Create a new task (dependency).
+
+ This function will note a task dependency between the current 
+ timer (task) and the new task.
+
+ \param wrapper The existing apex::task_wrapper object
+ \param name The name of the timer.
+ */
+
+APEX_EXPORT task_wrapper * update_task(task_wrapper * wrapper, const std::string &name);
+
+/**
+ \brief Update a task wrapper (dependency).
+
+ This function will note a task dependency between the current 
+ timer (task) and the new task.
+
+ \param wrapper The existing apex::task_wrapper object
+ \param function_address The function address of the timer.
+ */
+
+APEX_EXPORT task_wrapper * update_task(task_wrapper * wrapper, apex_function_address function_address);
 
 /**
  \brief Register an event type with APEX.

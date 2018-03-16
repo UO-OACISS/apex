@@ -85,7 +85,7 @@ INSTALL(FILES apex.h
     utils.hpp
     apex_options.hpp
     profiler.hpp
-    task_timer.hpp
+    task_wrapper.hpp
     task_identifier.hpp
     DESTINATION include)
 

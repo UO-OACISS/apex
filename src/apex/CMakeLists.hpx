@@ -179,7 +179,7 @@ set(apex_headers
     semaphore.hpp
     thread_instance.hpp
     task_identifier.hpp
-    task_timer.hpp
+    task_wrapper.hpp
     tau_listener.hpp
     utils.hpp
     ${PROC_HEADER})
