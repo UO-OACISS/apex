@@ -1309,7 +1309,9 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       }
 #else
       // schedule an HPX action
-      apex_schedule_process_profiles();
+      if(!consumer_task_running.test_and_set(memory_order_acq_rel)) {
+        apex_schedule_process_profiles();
+      }
 #endif
   }
 

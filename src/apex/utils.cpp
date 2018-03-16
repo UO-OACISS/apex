@@ -169,6 +169,9 @@ void remove_path(const char *pathname) {
 #endif
 }
 
+std::atomic<uint64_t> reference_counter::task_wrappers(0L);
+std::atomic<uint64_t> reference_counter::null_task_wrappers(0L);
+
 std::atomic<uint64_t> reference_counter::starts(0L);
 std::atomic<uint64_t> reference_counter::disabled_starts(0L);
 std::atomic<uint64_t> reference_counter::apex_internal_starts(0L);
@@ -204,11 +207,45 @@ std::atomic<uint64_t> reference_counter::stops_after_finalize(0L);
  
 void reference_counter::report_stats(void) {
     unsigned int ins = starts + resumes;
-    unsigned int all_ins = starts + resumes + disabled_starts + disabled_resumes + apex_internal_starts + apex_internal_resumes + hpx_shutdown_starts + hpx_shutdown_resumes + hpx_timer_starts + hpx_timer_resumes + suspended_starts + suspended_resumes + failed_starts + failed_resumes + starts_after_finalize + resumes_after_finalize;
+    unsigned int all_ins = 
+        starts + 
+        resumes +
+        disabled_starts +
+        disabled_resumes +
+        apex_internal_starts +
+        apex_internal_resumes +
+        hpx_shutdown_starts +
+        hpx_shutdown_resumes +
+        hpx_timer_starts +
+        hpx_timer_resumes +
+        suspended_starts +
+        suspended_resumes +
+        failed_starts +
+        failed_resumes +
+        starts_after_finalize +
+        resumes_after_finalize;
     unsigned int outs = yields + stops;
-    unsigned int all_outs = yields + stops + disabled_yields + disabled_stops + null_yields + null_stops + double_yields + double_stops + exit_stops + yields_after_finalize + stops_after_finalize + apex_internal_yields + apex_internal_stops;;
+    unsigned int all_outs = yields +
+        stops +
+        disabled_yields +
+        disabled_stops +
+        null_yields +
+        null_stops +
+        double_yields +
+        double_stops +
+        exit_stops +
+        yields_after_finalize +
+        stops_after_finalize +
+        apex_internal_yields +
+        apex_internal_stops;;
     int nid = apex::apex::instance()->get_node_id();
     std::stringstream ss;
+    if (task_wrappers > 0) {
+        ss << nid << " Task Wrappers         : " << task_wrappers << std::endl;
+    }
+    if (task_wrappers > 0) {
+        ss << nid << " NULL Task Wrappers    : " << null_task_wrappers << std::endl;
+    }
     if (starts > 0) {
         ss << nid << " Starts                : " << starts << std::endl;
     }
@@ -301,7 +338,11 @@ void reference_counter::report_stats(void) {
     }
     ss << nid << " -----------------------------" << std::endl;
     ss << nid << " Total out             : " << all_outs << std::endl << std::endl;
+#ifdef APEX_HAVE_HPX
+    if (ins != outs && ins != outs+1) {
+#else
     if (ins != outs) {
+#endif
         ss << std::endl;
         ss << " ------->>> ERROR! missing ";
         if (ins > outs) {
@@ -317,7 +358,11 @@ void reference_counter::report_stats(void) {
         }
 */
     }
+#ifdef APEX_HAVE_HPX
+    if (all_ins != all_outs && all_ins != all_outs+1) {
+#else
     if (all_ins != all_outs) {
+#endif
         ss << std::endl;
         ss << " ------->>> Warning! missing ";
         if (all_ins > all_outs) {

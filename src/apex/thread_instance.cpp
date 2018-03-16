@@ -288,6 +288,8 @@ void thread_instance::clear_current_profiler(profiler * the_profiler, bool save_
     static APEX_NATIVE_TLS bool fixing_stack = false;
     // this is a serious problem...
     if (instance().current_profilers.empty()) { 
+        // unless...we happen to be exiting.  Bets are off.
+        if (apex_options::suspend() == true) { return; }
         std::cerr << "Warning! empty profiler stack!!!\n";
         assert(false);
         // redundant, but assert gets bypassed in a debug build.
@@ -327,6 +329,8 @@ void thread_instance::clear_current_profiler(profiler * the_profiler, bool save_
             the_stack.pop_back();
             // this is a serious problem...
             if (the_stack.empty()) { 
+                // unless...we happen to be exiting.  Bets are off.
+                if (apex_options::suspend() == true) { return; }
                 std::cerr << "Warning! empty profiler stack!\n";
                 assert(false);
                 abort();
