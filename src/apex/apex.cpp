@@ -549,7 +549,7 @@ void debug_print(const char * event, task_wrapper * tt_ptr) {
 }
 
 profiler* start(task_wrapper * tt_ptr) {
-#if defined(APEX_DEBUG)
+#if defined(APEX_DEBUG_disabled)
     debug_print("Start", tt_ptr);
 #endif
     if (tt_ptr == nullptr) {
@@ -800,7 +800,7 @@ void stop(profiler* the_profiler) {
 }
 
 void stop(task_wrapper * tt_ptr) {
-#if defined(APEX_DEBUG)
+#if defined(APEX_DEBUG_disabled)
     debug_print("Stop", tt_ptr);
 #endif
     // if APEX is disabled, do nothing.
@@ -892,7 +892,7 @@ void yield(profiler* the_profiler)
 
 void yield(task_wrapper * tt_ptr)
 {
-#if defined(APEX_DEBUG)
+#if defined(APEX_DEBUG_disabled)
     debug_print("Yield", tt_ptr);
 #endif
     // if APEX is disabled, do nothing.
