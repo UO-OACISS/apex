@@ -109,7 +109,8 @@ void apex_ompt_stop(const char * state, ompt_parallel_id_t parallel_id) {
   APEX_UNUSED(state);
   APEX_UNUSED(parallel_id);
   if (timer_stack->empty()) { // uh-oh...
-    apex::stop(NULL);
+    apex::profiler* p = nullptr;
+    apex::stop(p);
   } else {
     apex::profiler* p = timer_stack->top();
     apex::stop(p);

@@ -49,7 +49,7 @@ static void init_guid(int tid) {
 }
 
 void innerLoop(int *tid) {
-    apex::task_timer * tt_ptr = apex::new_task(__func__);
+    apex::task_wrapper * tt_ptr = apex::new_task(__func__);
 #ifdef __DEBUG_PRINT__
     std::stringstream buf;
     buf << "APP: " << *tid << ": Starting thread " << tt_ptr->guid << "\n"; std::cout << buf.str();
@@ -60,7 +60,7 @@ void innerLoop(int *tid) {
 	int ret = nsleep(10, *tid); // after - t: 10, af: 0
 
 	/* Start a timer like an "direct_action" */
-    apex::task_timer * af = apex::new_task("direct_action");
+    apex::task_wrapper * af = apex::new_task("direct_action");
 #ifdef __DEBUG_PRINT__
     buf.str(""); buf.clear();
     buf << "APP: " << *tid << ": Starting direct_action " << af->guid << "\n"; std::cout << buf.str();
