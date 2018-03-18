@@ -262,7 +262,7 @@ void thread_instance::set_current_profiler(profiler * the_profiler) {
     instance().current_profilers.push_back(the_profiler);
 }
 
-profiler * thread_instance::restore_children_profilers(task_timer * tt_ptr) {
+profiler * thread_instance::restore_children_profilers(task_wrapper * tt_ptr) {
     profiler * parent = instance().get_current_profiler();
     // if there are no children to restore, return.
     if (tt_ptr == nullptr || tt_ptr->data_ptr.size() == 0) {return parent;}
@@ -283,11 +283,13 @@ profiler * thread_instance::restore_children_profilers(task_timer * tt_ptr) {
     return parent;
 }
 
-void thread_instance::clear_current_profiler(profiler * the_profiler, bool save_children, task_timer * tt_ptr) {
+void thread_instance::clear_current_profiler(profiler * the_profiler, bool save_children, task_wrapper * tt_ptr) {
     // this is a stack variable that provides safety when using recursion.
     static APEX_NATIVE_TLS bool fixing_stack = false;
     // this is a serious problem...
     if (instance().current_profilers.empty()) { 
+        // unless...we happen to be exiting.  Bets are off.
+        if (apex_options::suspend() == true) { return; }
         std::cerr << "Warning! empty profiler stack!!!\n";
         assert(false);
         // redundant, but assert gets bypassed in a debug build.
@@ -327,6 +329,8 @@ void thread_instance::clear_current_profiler(profiler * the_profiler, bool save_
             the_stack.pop_back();
             // this is a serious problem...
             if (the_stack.empty()) { 
+                // unless...we happen to be exiting.  Bets are off.
+                if (apex_options::suspend() == true) { return; }
                 std::cerr << "Warning! empty profiler stack!\n";
                 assert(false);
                 abort();

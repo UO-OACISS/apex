@@ -139,7 +139,7 @@ void tau_listener::on_exit_thread(event_data &data) {
   return;
 }
 
-inline bool tau_listener::_common_start(task_timer * tt_ptr) {
+inline bool tau_listener::_common_start(task_wrapper * tt_ptr) {
   if (!_terminate) {
     my_Tau_start(tt_ptr->task_id->get_name().c_str());
   } else {
@@ -148,11 +148,11 @@ inline bool tau_listener::_common_start(task_timer * tt_ptr) {
   return true;
 }
 
-bool tau_listener::on_start(task_timer * tt_ptr) {
+bool tau_listener::on_start(task_wrapper * tt_ptr) {
   return _common_start(tt_ptr);
 }
 
-bool tau_listener::on_resume(task_timer * tt_ptr) {
+bool tau_listener::on_resume(task_wrapper * tt_ptr) {
   return _common_start(tt_ptr);
 }
 

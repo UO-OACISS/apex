@@ -417,6 +417,16 @@ namespace apex {
         OTF2_AttributeRef guid_ref = 0;
         OTF2_GlobalDefWriter_WriteAttribute( global_def_writer, 
                 guid_ref, name_ref, desc_ref, OTF2_TYPE_UINT64);
+        // write the parent GUID attribute
+        const char * parent_name = "Parent GUID";
+        const char * parent_description = "Globaly unique identifier of the parent task";
+        OTF2_StringRef parent_name_ref = get_string_index(parent_name);
+        OTF2_StringRef parent_desc_ref = get_string_index(parent_description);
+        OTF2_GlobalDefWriter_WriteString( global_def_writer, parent_name_ref, parent_name );
+        OTF2_GlobalDefWriter_WriteString( global_def_writer, parent_desc_ref, parent_description );
+        OTF2_AttributeRef parent_guid_ref = 1;
+        OTF2_GlobalDefWriter_WriteAttribute( global_def_writer, 
+                parent_guid_ref, parent_name_ref, parent_desc_ref, OTF2_TYPE_UINT64);
     }
 
     void otf2_listener::write_otf2_regions(void) {
@@ -805,7 +815,7 @@ namespace apex {
         return;
     }
 
-    bool otf2_listener::on_start(task_timer * tt_ptr) {
+    bool otf2_listener::on_start(task_wrapper * tt_ptr) {
         task_identifier * id = tt_ptr->task_id;
         // don't close the archive on us!
         read_lock_type lock(_archive_mutex);
@@ -818,6 +828,7 @@ namespace apex {
             OTF2_AttributeList * al = OTF2_AttributeList_New();
             // create an attribute
             OTF2_AttributeList_AddUint64( al, 0, tt_ptr->guid );
+            OTF2_AttributeList_AddUint64( al, 1, tt_ptr->parent_guid );
             if (thread_instance::get_id() == 0) {
                 uint64_t idx = get_region_index(id);
                 // Because the event writer for thread 0 is also
@@ -841,7 +852,7 @@ namespace apex {
         return false;
     }
 
-    bool otf2_listener::on_resume(task_timer * tt_ptr) {
+    bool otf2_listener::on_resume(task_wrapper * tt_ptr) {
         return on_start(tt_ptr);
     }
 

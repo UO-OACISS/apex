@@ -78,6 +78,9 @@ class simple_timer {
 
 class reference_counter {
     public:
+        static std::atomic<uint64_t> task_wrappers;
+        static std::atomic<uint64_t> null_task_wrappers;
+
         static std::atomic<uint64_t> starts;
         static std::atomic<uint64_t> disabled_starts;
         static std::atomic<uint64_t> apex_internal_starts;
@@ -114,6 +117,9 @@ class reference_counter {
 };
 
 #if defined(APEX_DEBUG)
+#define APEX_UTIL_REF_COUNT_TASK_WRAPPER         reference_counter::task_wrappers++;
+#define APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER    reference_counter::null_task_wrappers++;
+
 #define APEX_UTIL_REF_COUNT_START                reference_counter::starts++;
 #define APEX_UTIL_REF_COUNT_DISABLED_START       reference_counter::disabled_starts++;
 #define APEX_UTIL_REF_COUNT_APEX_INTERNAL_START  reference_counter::apex_internal_starts++;
@@ -148,6 +154,9 @@ class reference_counter {
 #define APEX_UTIL_REF_COUNT_APEX_INTERNAL_STOP   reference_counter::apex_internal_stops++;
 #define APEX_UTIL_REPORT_STATS                   reference_counter::report_stats();
 #else
+#define APEX_UTIL_REF_COUNT_TASK_WRAPPER
+#define APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER
+
 #define APEX_UTIL_REF_COUNT_START
 #define APEX_UTIL_REF_COUNT_DISABLED_START
 #define APEX_UTIL_REF_COUNT_APEX_INTERNAL_START

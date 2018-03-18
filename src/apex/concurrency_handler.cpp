@@ -141,11 +141,11 @@ bool concurrency_handler::common_start(task_identifier *id) {
   }
 }
 
-bool concurrency_handler::on_start(task_timer * tt_ptr) {
+bool concurrency_handler::on_start(task_wrapper * tt_ptr) {
     return common_start(tt_ptr->task_id);
 }
 
-bool concurrency_handler::on_resume(task_timer * tt_ptr) {
+bool concurrency_handler::on_resume(task_wrapper * tt_ptr) {
     return common_start(tt_ptr->task_id);
 }
 
