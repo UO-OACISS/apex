@@ -336,7 +336,7 @@ APEX_EXPORT void sample_value(const std::string &name, double value);
  \return pointer to an apex::task_wrapper object
  */
 
-APEX_EXPORT task_wrapper * new_task(const std::string &name, uint64_t task_id = UINTMAX_MAX);
+APEX_EXPORT task_wrapper * new_task(const std::string &name, uint64_t task_id = UINTMAX_MAX, apex::task_wrapper * parent_task = nullptr);
 
 /**
  \brief Create a new task (dependency).
@@ -349,16 +349,15 @@ APEX_EXPORT task_wrapper * new_task(const std::string &name, uint64_t task_id = 
  \return pointer to an apex::task_wrapper object
  */
 
-APEX_EXPORT task_wrapper * new_task(apex_function_address function_address, uint64_t task_id = UINTMAX_MAX);
+APEX_EXPORT task_wrapper * new_task(apex_function_address function_address, uint64_t task_id = UINTMAX_MAX, apex::task_wrapper * parent_task = nullptr);
 
 /**
- \brief Create a new task (dependency).
+ \brief Update a task (dependency).
 
- This function will note a task dependency between the current 
- timer (task) and the new task.
+ This function will update the name that this task wrapper refers to.
 
  \param wrapper The existing apex::task_wrapper object
- \param name The name of the timer.
+ \param name The new name of the timer.
  */
 
 APEX_EXPORT task_wrapper * update_task(task_wrapper * wrapper, const std::string &name);
@@ -366,11 +365,10 @@ APEX_EXPORT task_wrapper * update_task(task_wrapper * wrapper, const std::string
 /**
  \brief Update a task wrapper (dependency).
 
- This function will note a task dependency between the current 
- timer (task) and the new task.
+ This function will update the function address that this task wrapper refers to.
 
  \param wrapper The existing apex::task_wrapper object
- \param function_address The function address of the timer.
+ \param function_address The new function address of the timer.
  */
 
 APEX_EXPORT task_wrapper * update_task(task_wrapper * wrapper, apex_function_address function_address);

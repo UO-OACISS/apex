@@ -20,11 +20,13 @@ int fib (int in, apex::task_wrapper * tt) {
     }
     int a = in-1;
 	// called from the parent, not when the child is spawned!
-    apex::task_wrapper * att = apex::new_task((apex_function_address)&fib);
+    // specify all arguments
+    apex::task_wrapper * att = apex::new_task((apex_function_address)&fib, UINTMAX_MAX, tt);
     auto future_a = std::async(std::launch::async, fib, a, att);
 
     int b = in-2;
 	// called from the parent, not when the child is spawned!
+    // use default arguments
     apex::task_wrapper * btt = apex::new_task((apex_function_address)&fib);
     auto future_b = std::async(std::launch::async, fib, b, btt);
 

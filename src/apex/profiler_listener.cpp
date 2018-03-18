@@ -1378,7 +1378,6 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
     // get the current profiler
     profiler * p = thread_instance::instance().get_current_profiler();
     if (p != NULL) {
-        tt_ptr->parent_guid = p->guid;
         dependency_queue.enqueue(new task_dependency(p->task_id, tt_ptr->task_id));
     } else {
         task_identifier * parent = task_identifier::get_task_id(string("__start"));

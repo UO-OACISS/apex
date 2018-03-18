@@ -60,7 +60,7 @@ void innerLoop(int *tid) {
 	int ret = nsleep(10, *tid); // after - t: 10, af: 0
 
 	/* Start a timer like an "direct_action" */
-    apex::task_wrapper * af = apex::new_task("direct_action");
+    apex::task_wrapper * af = apex::new_task("direct_action", UINTMAX_MAX, tt_ptr);
 #ifdef __DEBUG_PRINT__
     buf.str(""); buf.clear();
     buf << "APP: " << *tid << ": Starting direct_action " << af->guid << "\n"; std::cout << buf.str();
