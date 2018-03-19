@@ -1311,7 +1311,11 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         queue_signal.post();
       }
 #else
-      apex_schedule_process_profiles();
+      // only fire off an action 0.1% of the time.
+      static int thresh = RAND_MAX/1000;
+      if (std::rand() < thresh) {
+        apex_schedule_process_profiles();
+      }
 #endif
   }
 
