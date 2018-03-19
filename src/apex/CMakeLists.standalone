@@ -60,7 +60,7 @@ endif(MPI_CXX_FOUND)
 if (NOT BUILD_STATIC_EXECUTABLES)
     if(APPLE)
         target_link_libraries(apex ${LIBS})
-        set_target_properties(apex PROPERTIES LINK_FLAGS "-weak_library libtaudummy.dylib -flat_namespace")
+        set_target_properties(apex PROPERTIES LINK_FLAGS "-weak_library ${CMAKE_CURRENT_BINARY_DIR}/libtaudummy.dylib -flat_namespace")
     else(APPLE)
         target_link_libraries(apex ${LIBS} taudummy)
     endif(APPLE)
@@ -85,6 +85,7 @@ INSTALL(FILES apex.h
     utils.hpp
     apex_options.hpp
     profiler.hpp
+    task_wrapper.hpp
     task_identifier.hpp
     DESTINATION include)
 

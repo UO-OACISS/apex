@@ -14,6 +14,7 @@
 #include <map>
 #include <vector>
 #include "profiler.hpp"
+#include "task_wrapper.hpp"
 #include <exception>
 #ifdef APEX_DEBUG
 #include <unordered_set>
@@ -33,14 +34,18 @@ class empty_stack_exception : public std::exception {
 
 class thread_instance {
 private:
-  // TAU id of the thread
+  // APEX id of the thread
   int _id;
+  // Bit-reversed id of the thread
+  uint64_t _id_reversed;
   // Runtime id of the thread
   int _runtime_id;
   // "name" of the thread
   std::string _top_level_timer_name;
   // is this an HPX worker thread?
   bool _is_worker;
+  // a thread-specific task counter for generating GUIDS
+  uint64_t _task_count;
   // map from name to thread id - common to all threads
   static std::map<std::string, int> _name_map;
   static std::mutex _name_map_mutex;
@@ -55,10 +60,15 @@ private:
   // thread specific data
   static APEX_NATIVE_TLS thread_instance * _instance;
   // constructor
-  thread_instance (bool is_worker) : _id(-1), _runtime_id(-1), _top_level_timer_name(), _is_worker(is_worker) { _instance = nullptr; };
+  thread_instance (bool is_worker) : _id(-1), _id_reversed(UINTMAX_MAX), _runtime_id(-1), _top_level_timer_name(), _is_worker(is_worker), _task_count(0) { _instance = nullptr; };
   // map from function address to name - unique to all threads to avoid locking
   std::map<apex_function_address, std::string> _function_map;
   std::vector<profiler*> current_profilers;
+  uint64_t _get_guid(void) {
+      uint64_t guid = _id_reversed + _task_count;
+      _task_count++;
+      return guid;
+  }
 public:
   ~thread_instance(void);
   static thread_instance& instance(bool is_worker=true);
@@ -73,12 +83,13 @@ public:
   static bool map_id_to_worker(int id);
   static int get_num_threads(void) { return _num_threads; };
   std::string map_addr_to_name(apex_function_address function_address);
-  static profiler * restore_children_profilers(void);
+  static profiler * restore_children_profilers(task_wrapper * tt_ptr);
   static void set_current_profiler(profiler * the_profiler);
   static profiler * get_current_profiler(void);
-  static void clear_current_profiler(profiler * the_profiler, bool save_children);
+  static void clear_current_profiler(profiler * the_profiler, bool save_children, task_wrapper * tt_ptr);
   static const char * program_path(void);
   static bool is_worker() { return instance()._is_worker; }
+  static uint64_t get_guid() { return instance()._get_guid(); }
 #ifdef APEX_DEBUG
   static std::mutex _open_profiler_mutex;
   static std::unordered_set<std::string> open_profilers;

@@ -402,6 +402,33 @@ namespace apex {
         return;
     }
 
+    void otf2_listener::write_otf2_attributes(void) {
+        // only write these out once!
+        static APEX_NATIVE_TLS bool written = false;
+        if (written) return;
+        written = true;
+        // write the GUID attribute
+        const char * name = "GUID";
+        const char * description = "Globaly unique identifier";
+        OTF2_StringRef name_ref = get_string_index(name);
+        OTF2_StringRef desc_ref = get_string_index(description);
+        OTF2_GlobalDefWriter_WriteString( global_def_writer, name_ref, name );
+        OTF2_GlobalDefWriter_WriteString( global_def_writer, desc_ref, description );
+        OTF2_AttributeRef guid_ref = 0;
+        OTF2_GlobalDefWriter_WriteAttribute( global_def_writer, 
+                guid_ref, name_ref, desc_ref, OTF2_TYPE_UINT64);
+        // write the parent GUID attribute
+        const char * parent_name = "Parent GUID";
+        const char * parent_description = "Globaly unique identifier of the parent task";
+        OTF2_StringRef parent_name_ref = get_string_index(parent_name);
+        OTF2_StringRef parent_desc_ref = get_string_index(parent_description);
+        OTF2_GlobalDefWriter_WriteString( global_def_writer, parent_name_ref, parent_name );
+        OTF2_GlobalDefWriter_WriteString( global_def_writer, parent_desc_ref, parent_description );
+        OTF2_AttributeRef parent_guid_ref = 1;
+        OTF2_GlobalDefWriter_WriteAttribute( global_def_writer, 
+                parent_guid_ref, parent_name_ref, parent_desc_ref, OTF2_TYPE_UINT64);
+    }
+
     void otf2_listener::write_otf2_regions(void) {
         // only write these out once!
         static APEX_NATIVE_TLS bool written = false;
@@ -623,6 +650,8 @@ namespace apex {
                     get_string_index(empty), empty.c_str() ));
                 // write out the reduced set of regions
                 write_otf2_regions();
+                // write out the common set of attributes
+                write_otf2_attributes();
                 // write out the reduced set of metrics
                 write_otf2_metrics();
                 // write out the clock properties
@@ -786,7 +815,8 @@ namespace apex {
         return;
     }
 
-    bool otf2_listener::on_start(task_identifier * id) {
+    bool otf2_listener::on_start(task_wrapper * tt_ptr) {
+        task_identifier * id = tt_ptr->task_id;
         // don't close the archive on us!
         read_lock_type lock(_archive_mutex);
         // not likely, but just in case...
@@ -794,6 +824,11 @@ namespace apex {
         // before we process the event, make sure the event write is open
         OTF2_EvtWriter* local_evt_writer = getEvtWriter(true);
         if (local_evt_writer != nullptr) {
+            // create an attribute list
+            OTF2_AttributeList * al = OTF2_AttributeList_New();
+            // create an attribute
+            OTF2_AttributeList_AddUint64( al, 0, tt_ptr->guid );
+            OTF2_AttributeList_AddUint64( al, 1, tt_ptr->parent_guid );
             if (thread_instance::get_id() == 0) {
                 uint64_t idx = get_region_index(id);
                 // Because the event writer for thread 0 is also
@@ -805,18 +840,20 @@ namespace apex {
                 // the lock is acquired, so that events happen on
                 // thread 0 in monotonic order.
                 uint64_t stamp = get_time();
-                OTF2_EC(OTF2_EvtWriter_Enter( local_evt_writer, NULL, stamp, idx /* region */ ));
+                OTF2_EC(OTF2_EvtWriter_Enter( local_evt_writer, al, stamp, idx /* region */ ));
             } else {
                 uint64_t stamp = get_time();
-                OTF2_EC(OTF2_EvtWriter_Enter( local_evt_writer, NULL, stamp, get_region_index(id) /* region */ ));
+                OTF2_EC(OTF2_EvtWriter_Enter( local_evt_writer, al, stamp, get_region_index(id) /* region */ ));
             }
+            // delete the attribute list
+            OTF2_AttributeList_Delete(al);
             return true;
         }
         return false;
     }
 
-    bool otf2_listener::on_resume(task_identifier * id) {
-        return on_start(id);
+    bool otf2_listener::on_resume(task_wrapper * tt_ptr) {
+        return on_start(tt_ptr);
     }
 
     void otf2_listener::on_stop(std::shared_ptr<profiler> &p) {
@@ -826,6 +863,10 @@ namespace apex {
         if (local_evt_writer != nullptr) {
             // not likely, but just in case...
             if (_terminate) { return; }
+            // create an attribute list
+            OTF2_AttributeList * al = OTF2_AttributeList_New();
+            // create an attribute
+            OTF2_AttributeList_AddUint64( al, 0, p->guid );
             if (thread_instance::get_id() == 0) {
                 uint64_t idx = get_region_index(p->task_id);
                 // Because the event writer for thread 0 is also
@@ -837,12 +878,14 @@ namespace apex {
                 // the lock is acquired, so that events happen on
                 // thread 0 in monotonic order.
                 uint64_t stamp = get_time();
-                OTF2_EC(OTF2_EvtWriter_Leave( local_evt_writer, NULL, stamp, idx /* region */ ));
+                OTF2_EC(OTF2_EvtWriter_Leave( local_evt_writer, al, stamp, idx /* region */ ));
             } else {
                 uint64_t stamp = get_time();
-                OTF2_EC(OTF2_EvtWriter_Leave( local_evt_writer, NULL, stamp, 
+                OTF2_EC(OTF2_EvtWriter_Leave( local_evt_writer, al, stamp, 
                         get_region_index(p->task_id) /* region */ ));
             }
+            // delete the attribute list
+            OTF2_AttributeList_Delete(al);
         }
         return;
     }

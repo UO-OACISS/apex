@@ -23,6 +23,7 @@
 #include "apex_export.h" 
 #include "profiler.hpp" 
 #include "profile.hpp" 
+#include "task_wrapper.hpp" 
 #include <functional>
 #include <stdio.h>
 
@@ -111,15 +112,13 @@ APEX_EXPORT void cleanup(void);
  passed in to this function.
  
  \param timer_name The name of the timer.
- \param data_ptr The address of a location associated with this task. 0
-         means NULL.  APEX will use this to store internal data.
  \return The handle for the timer object in APEX. Not intended to be
          queried by the application. Should be retained locally, if
          possible, and passed in to the matching apex::stop()
          call when the timer should be stopped.
  \sa @ref apex::stop, @ref apex::yield, @ref apex::resume
  */
-APEX_EXPORT profiler * start(const std::string &timer_name, void** data_ptr = 0LL);
+APEX_EXPORT profiler * start(const std::string &timer_name);
 
 /**
  \brief Start a timer.
@@ -129,15 +128,32 @@ APEX_EXPORT profiler * start(const std::string &timer_name, void** data_ptr = 0L
  address passed in to this function.
  
  \param function_address The address of the function to be timed
- \param data_ptr The address of a location associated with this task. 0
-         means NULL.  APEX will use this to store internal data.
  \return The handle for the timer object in APEX. Not intended to be
          queried by the application. Should be retained locally, if
          possible, and passed in to the matching apex::stop
          call when the timer should be stopped.
  \sa @ref apex::stop, @ref apex::yield, @ref apex::resume
  */
-APEX_EXPORT profiler * start(apex_function_address function_address, void** data_ptr = 0LL);
+APEX_EXPORT profiler * start(apex_function_address function_address);
+
+/**
+ \brief Start a timer.
+
+ This function will create a profiler object in APEX, and return a
+ handle to the object.  The object will be associated with the 
+ task_wrapper passed in to this function.
+ 
+ \param function_address The address of the function to be timed
+ \param apex::task_wrapper A pointer to an apex::task_wrapper created
+         by apex::new_task. APEX will use this to store the 
+         profiler data.
+ \return The handle for the profiler object in APEX. Not intended to be
+         queried by the application. Should be retained locally, if
+         possible, and passed in to the matching apex::stop
+         call when the timer should be stopped.
+ \sa @ref apex::stop, @ref apex::yield, @ref apex::resume @ref apex::new_task
+ */
+APEX_EXPORT profiler * start(task_wrapper * task_wrapper_ptr);
 
 /**
  \brief Stop a timer.
@@ -151,6 +167,19 @@ APEX_EXPORT profiler * start(apex_function_address function_address, void** data
  \sa @ref apex::start, @ref apex::yield, @ref apex::resume
  */
 APEX_EXPORT void stop(profiler * the_profiler);
+
+/**
+ \brief Stop a timer.
+
+ This function will stop the specified profiler object, and queue
+ the profiler to be processed out-of-band. The timer value will 
+ eventually added to the profile for the process.
+ 
+ \param task_wrapper_ptr an apex::task_wrapper pointer that was started
+ \return No return value.
+ \sa @ref apex::start, @ref apex::yield, @ref apex::resume, @ref apex::new_task
+ */
+APEX_EXPORT void stop(task_wrapper * task_wrapper_ptr);
 
 /**
  \brief Stop a timer, but don't increment the number of calls.
@@ -168,6 +197,21 @@ APEX_EXPORT void stop(profiler * the_profiler);
 APEX_EXPORT void yield(profiler * the_profiler);
 
 /**
+ \brief Stop a timer, but don't increment the number of calls.
+
+ This function will stop the specified profiler object, and queue
+ the profiler to be processed out-of-band. The timer value will 
+ eventually added to the profile for the process. The number of calls
+ will NOT be incremented - this "task" was yielded, not completed.
+ It will be resumed by another thread at a later time.
+ 
+ \param task_wrapper_ptr an apex::task_wrapper pointer that was started
+ \return No return value.
+ \sa @ref apex::start, @ref apex::stop, @ref apex::resume
+ */
+APEX_EXPORT void yield(task_wrapper * task_wrapper_ptr);
+
+/**
  \brief Resume a timer.
 
  This function will create a profiler object in APEX, and return a
@@ -178,15 +222,13 @@ APEX_EXPORT void yield(profiler * the_profiler);
  timer will not be incremented.
  
  \param timer_name The name of the timer.
- \param data_ptr The address of a location associated with this task. 0
-         means NULL.  APEX will use this to store internal data.
  \return The handle for the timer object in APEX. Not intended to be
          queried by the application. Should be retained locally, if
          possible, and passed in to the matching apex::stop()
          call when the timer should be stopped.
  \sa @ref apex::stop, @ref apex::yield, @ref apex::start
  */
-APEX_EXPORT profiler * resume(const std::string &timer_name, void** data_ptr = 0LL);
+APEX_EXPORT profiler * resume(const std::string &timer_name);
 
 /**
  \brief Resume a timer.
@@ -199,15 +241,35 @@ APEX_EXPORT profiler * resume(const std::string &timer_name, void** data_ptr = 0
  timer will not be incremented.
  
  \param function_address The address of the function to be timed
- \param data_ptr The address of a location associated with this task. 0
-         means NULL.  APEX will use this to store internal data.
  \return The handle for the timer object in APEX. Not intended to be
          queried by the application. Should be retained locally, if
          possible, and passed in to the matching apex::stop
          call when the timer should be stopped.
  \sa apex::stop, apex::yield, apex::start
  */
-APEX_EXPORT profiler * resume(apex_function_address function_address, void** data_ptr = 0LL);
+APEX_EXPORT profiler * resume(apex_function_address function_address);
+
+/**
+ \brief Resume a timer.
+
+ This function will create a profiler object in APEX, and return a
+ handle to the object.  The object will be associated with the 
+ address passed in to this function.
+ The difference between this function and the apex::start
+ function is that the number of calls to that
+ timer will not be incremented.
+ 
+ \param function_address The address of the function to be timed
+ \param apex::task_wrapper A pointer to an apex::task_wrapper created
+         by apex::new_task. APEX will use this to store the 
+         profiler data.
+ \return The handle for the timer object in APEX. Not intended to be
+         queried by the application. Should be retained locally, if
+         possible, and passed in to the matching apex::stop
+         call when the timer should be stopped.
+ \sa apex::stop, apex::yield, apex::start
+ */
+APEX_EXPORT profiler * resume(task_wrapper * task_wrapper_ptr);
 
 /*
  * Functions for resetting timer values
@@ -270,11 +332,11 @@ APEX_EXPORT void sample_value(const std::string &name, double value);
  timer (task) and the new task.
 
  \param name The name of the timer.                                        
- \param task_id The ID of the task 
- \return No return value.
+ \param task_id The ID of the task (default of UINTMAX_MAX implies none provided by runtime)
+ \return pointer to an apex::task_wrapper object
  */
 
-APEX_EXPORT void new_task(const std::string &name, uint64_t task_id);
+APEX_EXPORT task_wrapper * new_task(const std::string &name, uint64_t task_id = UINTMAX_MAX, apex::task_wrapper * parent_task = nullptr);
 
 /**
  \brief Create a new task (dependency).
@@ -283,11 +345,33 @@ APEX_EXPORT void new_task(const std::string &name, uint64_t task_id);
  timer (task) and the new task.
 
  \param function_address The function address of the timer.
- \param task_id The ID of the task 
- \return No return value.
+ \param task_id The ID of the task (default of -1 implies none provided by runtime)
+ \return pointer to an apex::task_wrapper object
  */
 
-APEX_EXPORT void new_task(apex_function_address function_address, uint64_t task_id);
+APEX_EXPORT task_wrapper * new_task(apex_function_address function_address, uint64_t task_id = UINTMAX_MAX, apex::task_wrapper * parent_task = nullptr);
+
+/**
+ \brief Update a task (dependency).
+
+ This function will update the name that this task wrapper refers to.
+
+ \param wrapper The existing apex::task_wrapper object
+ \param name The new name of the timer.
+ */
+
+APEX_EXPORT task_wrapper * update_task(task_wrapper * wrapper, const std::string &name);
+
+/**
+ \brief Update a task wrapper (dependency).
+
+ This function will update the function address that this task wrapper refers to.
+
+ \param wrapper The existing apex::task_wrapper object
+ \param function_address The new function address of the timer.
+ */
+
+APEX_EXPORT task_wrapper * update_task(task_wrapper * wrapper, apex_function_address function_address);
 
 /**
  \brief Register an event type with APEX.
@@ -730,47 +814,39 @@ class self_stopping_timer {
  \brief Construct and start an APEX timer.
 
  \param func The address of a function used to identify the timer type
- \param data_ptr The address of a location associated with this task. 0
-         means NULL.  APEX will use this to store internal data.
  */
-        self_stopping_timer(uint64_t func, void** data_ptr = 0LL) : p(nullptr), has_thread(false) {
-            p = apex::start((apex_function_address)func, data_ptr);
+        self_stopping_timer(uint64_t func) : p(nullptr), has_thread(false) {
+            p = apex::start((apex_function_address)func);
         }
 /**
  \brief Construct and start an APEX timer.
 
  \param func The name of a function used to identify the timer type
- \param data_ptr The address of a location associated with this task. 0
-         means NULL.  APEX will use this to store internal data.
  */
-        self_stopping_timer(std::string func, void** data_ptr = 0LL) : p(nullptr), has_thread(false) {
-            p = apex::start(func, data_ptr);
+        self_stopping_timer(std::string func) : p(nullptr), has_thread(false) {
+            p = apex::start(func);
         }
 /**
  \brief Register a new thread with APEX, then construct and start an APEX timer.
 
  \param func The address of a function used to identify the timer type
  \param thread_name The name of this new worker thread in the runtime
- \param data_ptr The address of a location associated with this task. 0
-         means NULL.  APEX will use this to store internal data.
  */
-        self_stopping_timer(uint64_t func, const char * thread_name, void** data_ptr = 0LL) 
+        self_stopping_timer(uint64_t func, const char * thread_name) 
             : p(nullptr), has_thread(true) {
             apex::register_thread(thread_name);
-            p = apex::start((apex_function_address)func, data_ptr);
+            p = apex::start((apex_function_address)func);
         }
 /**
  \brief Register a new thread with APEX, then construct and start an APEX timer.
 
  \param func The name of a function used to identify the timer type
  \param thread_name The name of this new worker thread in the runtime
- \param data_ptr The address of a location associated with this task. 0
-         means NULL.  APEX will use this to store internal data.
  */
-        self_stopping_timer(std::string func, const char * thread_name = nullptr, void** data_ptr = 0LL) 
+        self_stopping_timer(std::string func, const char * thread_name = nullptr) 
             : p(nullptr), has_thread(true) {
             apex::register_thread(thread_name);
-            p = apex::start(func, data_ptr);
+            p = apex::start(func);
         }
 /**
  \brief Stop the APEX timer.

@@ -33,11 +33,7 @@ class task_identifier {
 
 private:
   // some optimizations - since many timers are called over and over, don't
-  // create a task ID for every one - use a pool of them.  The problem is
-  // that they might have some unique properties - like the data_ptr.  If
-  // the data_ptr is used, then we can't "cache" the task ID. But otherwise,
-  // this provides a significant speedup, because we don't have to allocate
-  // and free lots of tiny objects.
+  // create a task ID for every one - use a pool of them.
   static apex_name_map& get_task_id_name_map(void);
   static apex_addr_map& get_task_id_addr_map(void);
 public:
@@ -45,20 +41,23 @@ public:
   std::string name;
   std::string _resolved_name;
   bool has_name;
-  void** _data_ptr; // not included in comparisons!
-  bool permanent;
   task_identifier(void) :
-      address(0L), name(""), _resolved_name(""), has_name(false), _data_ptr(0), permanent(false) {};
-  task_identifier(apex_function_address a, void** data_ptr = 0) :
-      address(a), name(""), _resolved_name(""), has_name(false), _data_ptr(data_ptr), permanent(false) {};
-  task_identifier(const std::string& n, void** data_ptr = 0) :
-      address(0L), name(n), _resolved_name(""), has_name(true), _data_ptr(data_ptr), permanent(false) {
+      address(0L), name(""), _resolved_name(""), has_name(false) {};
+  task_identifier(apex_function_address a) :
+      address(a), name(""), _resolved_name(""), has_name(false) {};
+  task_identifier(const std::string& n) :
+      address(0L), name(n), _resolved_name(""), has_name(true) {
       };
+  // The copy constructor doesn't copy the resolved name.  That's because
+  // it would be too expensive to lock control to it, since it can be
+  // updated by another thread. Therefore, leave it unresolved, no one will
+  // ask for the resolved name until program exit, or in policies.
   task_identifier(const task_identifier& rhs) :
-      address(rhs.address), name(rhs.name), _resolved_name(rhs._resolved_name), has_name(rhs.has_name), _data_ptr(rhs._data_ptr), permanent(rhs.permanent) { };
+      address(rhs.address), name(rhs.name), 
+      _resolved_name(""), has_name(rhs.has_name) { };
 
-  static task_identifier * get_task_id (apex_function_address a, void** data_ptr = 0);
-  static task_identifier * get_task_id (const std::string& n, void** data_ptr = 0);
+  static task_identifier * get_task_id (apex_function_address a);
+  static task_identifier * get_task_id (const std::string& n);
   const std::string& get_name(bool resolve = true);
   ~task_identifier() { }
   // requried for using this class as a key in an unordered map.

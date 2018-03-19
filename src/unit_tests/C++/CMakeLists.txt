@@ -33,7 +33,9 @@ set(example_programs
     apex_print_options
     apex_get_thread_cap
     apex_shutdown_throttling
-    apex_hpx_annotated_functions
+    apex_hpx_direct_actions
+    apex_hpx_task_wrapper_direct_actions
+    apex_profiler_guids
    )
     #apex_fibonacci_std_async
     #apex_set_thread_cap
@@ -51,7 +53,7 @@ endif()
 
 # std::threads crash when linked statically. :(
 if (NOT BUILD_STATIC_EXECUTABLES)
-  set(example_programs "${example_programs};apex_new_task")
+  set(example_programs "${example_programs};apex_new_task;apex_task_wrapper")
   if ((NOT DEFINED TAU_ROOT) AND (NOT USE_TAU) AND (NOT TAU_FOUND))
     if (APEX_THROTTLE)
       set(example_programs "${example_programs};apex_throttle_event")

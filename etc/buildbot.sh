@@ -56,6 +56,7 @@ if [ ${osname} == "Darwin" ]; then
 ncores=`sysctl -n hw.ncpu`
 export CC=`which clang`
 export CXX=`which clang++`
+#cmake_generator="-G Xcode"
 else
 ncores=`nproc --all`
 fi
@@ -119,7 +120,7 @@ echo "buildtype = ${buildtype}"
 echo "step = ${step}"
 echo "dirname = ${dirname}"
 
-cmake_prefix="cmake .. -DBUILD_EXAMPLES=TRUE -DBUILD_TESTS=TRUE -DCMAKE_INSTALL_PREFIX=. -DCMAKE_BUILD_TYPE="
+cmake_prefix="cmake ${cmake_generator} .. -DBUILD_EXAMPLES=TRUE -DBUILD_TESTS=TRUE -DCMAKE_INSTALL_PREFIX=. -DCMAKE_BUILD_TYPE="
 
 config_step()
 {

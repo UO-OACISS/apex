@@ -34,6 +34,9 @@
 
 using namespace std;
 
+// the current thread's TASK index/count in APEX
+APEX_NATIVE_TLS uint64_t my_task_id = 0;
+
 namespace apex {
 
 // Global static pointer used to ensure a single instance of the class.
@@ -72,6 +75,9 @@ thread_instance& thread_instance::instance(bool is_worker) {
     _instance = new thread_instance(is_worker);
     if (is_worker) {
         _instance->_id = _num_threads++;
+      /* reverse the TID and shift it 32 bits, so we can use it to generate
+         task-private GUIDS that are unique within the process space. */
+        _instance->_id_reversed = ((uint64_t)(simple_reverse((uint32_t)_instance->_id))) << 32;
     }
     _instance->_runtime_id = _instance->_id; // can be set later, if necessary
     _active_threads++;
@@ -256,14 +262,12 @@ void thread_instance::set_current_profiler(profiler * the_profiler) {
     instance().current_profilers.push_back(the_profiler);
 }
 
-profiler *  thread_instance::restore_children_profilers(void) {
+profiler * thread_instance::restore_children_profilers(task_wrapper * tt_ptr) {
     profiler * parent = instance().get_current_profiler();
     // if there are no children to restore, return.
-    if (parent->task_id->_data_ptr == 0 ||
-        *(parent->task_id->_data_ptr) == 0) {return parent;}
+    if (tt_ptr == nullptr || tt_ptr->data_ptr.size() == 0) {return parent;}
     // Get the vector of children that we stored
-    std::vector<profiler*> * myvec = 
-        (std::vector<profiler*>*)*(parent->task_id->_data_ptr);
+    std::vector<profiler*> * myvec = &tt_ptr->data_ptr;
     // iterate over the children, in reverse order.
     for (std::vector<profiler*>::reverse_iterator myprof = myvec->rbegin(); 
          myprof != myvec->rend(); ++myprof) {
@@ -273,18 +277,19 @@ profiler *  thread_instance::restore_children_profilers(void) {
         // sets the current profiler when a timer is started
         thread_instance::set_current_profiler((*myprof));
     }
-    // free the vector.
-    delete myvec;
-    *(parent->task_id->_data_ptr) = 0;
+    // clear the vector.
+    myvec->clear();
     // The caller of this function wants the parent, not these leaves.
     return parent;
 }
 
-void thread_instance::clear_current_profiler(profiler * the_profiler, bool save_children) {
+void thread_instance::clear_current_profiler(profiler * the_profiler, bool save_children, task_wrapper * tt_ptr) {
     // this is a stack variable that provides safety when using recursion.
     static APEX_NATIVE_TLS bool fixing_stack = false;
     // this is a serious problem...
     if (instance().current_profilers.empty()) { 
+        // unless...we happen to be exiting.  Bets are off.
+        if (apex_options::suspend() == true) { return; }
         std::cerr << "Warning! empty profiler stack!!!\n";
         assert(false);
         // redundant, but assert gets bypassed in a debug build.
@@ -303,18 +308,16 @@ void thread_instance::clear_current_profiler(profiler * the_profiler, bool save_
     if (the_stack.size() > 1 && tmp != the_profiler) {
         fixing_stack = true;
         // if the data pointer location isn't available, we can't support this runtime.
-        assert(the_profiler->task_id->_data_ptr != 0);
         // create a vector to store the children
-        std::vector<profiler*> * children = nullptr;
         if (save_children == true) {
-            children = new vector<profiler*>();
+            assert(tt_ptr != nullptr);
         }
         while (tmp != the_profiler) {
             if (save_children == true) {
                 // if we are yielding, we need to stop the children
                 /* Make a copy of the profiler object on the top of the stack. */
                 profiler * profiler_copy = new profiler(*tmp);
-                children->push_back(tmp);
+                tt_ptr->data_ptr.push_back(tmp);
                 /* Stop the copy. The original will get reset when the
                 parent resumes. */
                 stop(profiler_copy);  // we better be re-entrant safe!
@@ -326,6 +329,8 @@ void thread_instance::clear_current_profiler(profiler * the_profiler, bool save_
             the_stack.pop_back();
             // this is a serious problem...
             if (the_stack.empty()) { 
+                // unless...we happen to be exiting.  Bets are off.
+                if (apex_options::suspend() == true) { return; }
                 std::cerr << "Warning! empty profiler stack!\n";
                 assert(false);
                 abort();
@@ -336,17 +341,13 @@ void thread_instance::clear_current_profiler(profiler * the_profiler, bool save_
         }
         // done with the stack, allow proper recursion again.
         fixing_stack = false;
-        // give the vector of children to the runtime, so that
-        // when the parent is resumed, the children will be resumed also 
-        if (save_children == true) {
-            *(the_profiler->task_id->_data_ptr) = children;
-        }
     }
     // pop this timer off the stack.
     the_stack.pop_back();
 }
 
 profiler * thread_instance::get_current_profiler(void) {
+    if (instance().current_profilers.size() == 0) { return nullptr; }
     return instance().current_profilers.back();
 }
 

@@ -115,6 +115,7 @@ dobuild()
     -DBUILD_EXAMPLES=TRUE ${malloc} ${bfd} ${ah} ${ompt} ${papi} ${mpi} ${otf} ${tau} ${extra} \
     -DCMAKE_INSTALL_PREFIX=${workdir}/install${post}-${buildtype} ${BASEDIR}"
     echo ${cmd}
+    echo ${cmd} > ./cmake_command
     ${cmd} 2>&1 | tee -a ${logfile}
     make ${parallel_build} 2>&1 | tee -a ${logfile}
     make doc 2>&1 | tee -a ${logfile}
@@ -153,6 +154,9 @@ conditional_build()
             buildtype=Release
             extra=""
             dobuild
+            buildtype=RelWithDebInfo
+            extra=""
+            dobuild
         fi
     fi
 }
@@ -173,8 +177,8 @@ if [ ${clean} -eq 1 ] ; then
     echo "cleaning previous regression test..."
     rm -rf ${workdir}
     mkdir -p ${workdir}
-    git checkout develop
-    git pull
+    #git checkout develop
+    #git pull
 fi
 
 # change directory to the base APEX directory
