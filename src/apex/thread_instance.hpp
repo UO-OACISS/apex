@@ -66,7 +66,8 @@ private:
   std::vector<profiler*> current_profilers;
   uint64_t _get_guid(void) {
       uint64_t guid = _id_reversed + _task_count;
-      _task_count++;
+      // start at 1, because 0 means nullptr which means "no parent"
+      ++_task_count;
       return guid;
   }
 public:
