@@ -412,7 +412,8 @@ string& version() {
 }
 
 /* Populate the new task_wrapper object, and notify listeners. */
-inline task_wrapper * _new_task(task_identifier * id, uint64_t task_id, task_wrapper * parent_task, apex* instance) {
+inline task_wrapper * _new_task(task_identifier * id, uint64_t task_id,
+    task_wrapper * parent_task, apex* instance) {
     task_wrapper * tt_ptr = new task_wrapper();
     tt_ptr->task_id = id;
     // was a parent passed in?
@@ -435,7 +436,7 @@ inline task_wrapper * _new_task(task_identifier * id, uint64_t task_id, task_wra
     if (_notify_listeners) {
         //read_lock_type l(instance->listener_mutex);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_new_task(tt_ptr);
+            instance->listeners[i]->on_new_task(tt_ptr, parent_task);
         }
     }
     return tt_ptr;
