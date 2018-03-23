@@ -378,11 +378,15 @@ uint64_t init(const char * thread_name, uint64_t comm_rank, uint64_t comm_size) 
             instance->listeners[i]->on_startup(data);
         }
     }
-    // start top-level timers for threads
-    if (thread_name) {
-      top_level_timer = start(thread_name);
-    } else {
-      //top_level_timer = start("APEX MAIN THREAD", 0);
+    if (apex_options::top_level_os_threads()) {
+        // start top-level timers for threads
+        if (thread_name) {
+            stringstream ss;
+            ss << "OS Thread: " << thread_name;
+            top_level_timer = start(ss.str().c_str());
+        } else {
+            top_level_timer = start("OS Thread");
+        }
     }
     if (apex_options::use_screen_output() && instance->get_node_id() == 0) {
       std::cout << version() << std::endl;
@@ -1210,12 +1214,12 @@ void finalize()
     }
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
+    // FIRST, stop the top level timer, while the infrastructure is still functioning.
+    if (top_level_timer != nullptr) { stop(top_level_timer); }
     // stop processing new timers/counters/messages/tasks/etc.
     apex_options::suspend(true);
-    // first, process all output
+    // now, process all output
     dump(false);
-    // then, stop the top level timer, while the infrastructure is still functioning.
-    //stop(top_level_timer);
     // if not done already...
     shutdown_throttling();
     apex* instance = apex::instance(); // get the Apex static instance
@@ -1303,19 +1307,25 @@ void register_thread(const std::string &name)
             instance->listeners[i]->on_new_thread(data);
         }
     }
-    // start top-level timers for threads
-    /*
-    string::size_type index = name.find("#");
-    if (index!=std::string::npos) {
-        string short_name = name.substr(0,index);
-        top_level_timer = start(short_name, 0);
-    } else {
-        top_level_timer = start(name, 0);
+    if (apex_options::top_level_os_threads()) {
+        stringstream ss;
+        ss << "OS Thread: ";
+        // start top-level timers for threads
+        if (name.find("worker-thread") != name.npos) {
+            ss << "worker-thread";
+            top_level_timer = start(ss.str());
+        } else {
+            string::size_type index = name.find("#");
+            if (index!=std::string::npos) {
+                string short_name = name.substr(0,index);
+                ss << short_name;
+                top_level_timer = start(ss.str());
+            } else {
+                ss << name;
+                top_level_timer = start(ss.str());
+            }
+        }
     }
-    if (name.find("worker-thread") != name.npos) {
-        top_level_timer = start("worker-thread", 0);
-    }
-    */
 }
 
 void exit_thread(void)
