@@ -121,7 +121,7 @@ public:
   virtual void on_stop(std::shared_ptr<profiler> &p) = 0;
   virtual void on_yield(std::shared_ptr<profiler> &p) = 0;
   virtual bool on_resume(task_wrapper * tt_ptr) = 0;
-  virtual void on_new_task(task_wrapper * tt_ptr) = 0;
+  virtual void on_new_task(task_wrapper * tt_ptr, task_wrapper * parent_ptr) = 0;
   virtual void on_sample_value(sample_value_event_data &data) = 0;
   virtual void on_periodic(periodic_event_data &data) = 0;
   virtual void on_custom_event(custom_event_data &data) = 0;

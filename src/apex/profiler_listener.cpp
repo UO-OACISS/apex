@@ -1377,9 +1377,14 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
     }
   }
 
-  void profiler_listener::on_new_task(task_wrapper * tt_ptr) {
+  void profiler_listener::on_new_task(task_wrapper * tt_ptr, task_wrapper * parent_ptr) {
     //printf("New task: %llu\n", task_id); fflush(stdout);
     if (!apex_options::use_taskgraph_output()) { return; }
+    // if the parent task is not null, use it (obviously)
+    if (parent_ptr != nullptr) {
+        dependency_queue.enqueue(new task_dependency(parent_ptr->task_id, tt_ptr->task_id));
+        return;
+    }
     // get the current profiler
     profiler * p = thread_instance::instance().get_current_profiler();
     if (p != NULL) {
