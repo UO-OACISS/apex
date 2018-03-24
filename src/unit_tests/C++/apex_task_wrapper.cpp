@@ -39,7 +39,7 @@ int fib (int in, apex::task_wrapper * tt) {
 
 int main(int argc, char *argv[]) {
     apex::init("apex_new_task_cpp unit test", 0, 1);
-    apex::self_stopping_timer foo((uint64_t)&main);
+    apex::scoped_timer foo((uint64_t)&main);
 #if defined(APEX_HAVE_TAU) || (APEX_HAVE_OTF2)
     int i = 5;
 #else

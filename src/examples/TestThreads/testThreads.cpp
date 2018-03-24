@@ -12,7 +12,8 @@
 void* someThread(void* tmp)
 {
   UNUSED(tmp);
-  apex::self_stopping_timer proxy((apex_function_address)someThread, "threadTest thread");
+  apex::scoped_thread ast("threadTest thread");
+  apex::scoped_timer proxy((apex_function_address)someThread);
   printf("PID of this process: %d\n", getpid());
 #if defined (__APPLE__)
   printf("The ID of this thread is: %lu\n", (unsigned long)pthread_self());
@@ -26,7 +27,7 @@ void* someThread(void* tmp)
 int main(int argc, char **argv)
 {
   apex::init(argv[0], 0, 1);
-  apex::self_stopping_timer proxy((apex_function_address)main);
+  apex::scoped_timer proxy((apex_function_address)main);
   printf("PID of this process: %d\n", getpid());
   pthread_t thread[NUM_THREADS];
   int i;

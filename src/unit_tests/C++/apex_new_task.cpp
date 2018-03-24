@@ -11,7 +11,8 @@ int fib_results[FIB_RESULTS_PRE] = {0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610
 std::atomic<uint64_t> task_id(-1);
 
 int fib (int in) {
-    apex::self_stopping_timer foo((uint64_t)&fib, "fib thread");
+    apex::scoped_thread ast("fib thread");
+    apex::scoped_timer foo((uint64_t)&fib);
     if (in == 0) {
         return 0;
     }
@@ -35,7 +36,7 @@ int fib (int in) {
 
 int main(int argc, char *argv[]) {
     apex::init("apex_new_task_cpp unit test", 0, 1);
-    apex::self_stopping_timer foo((uint64_t)&main);
+    apex::scoped_timer foo((uint64_t)&main);
 #if defined(APEX_HAVE_TAU) || (APEX_HAVE_OTF2)
     int i = 5;
 #else
