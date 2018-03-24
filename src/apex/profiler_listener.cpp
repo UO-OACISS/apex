@@ -651,6 +651,24 @@ public:
     int convert(double in) { return (int)(in * 255.0); }
 } ;
 
+node_color * get_node_color_visible(double v, double vmin, double vmax) {
+   node_color * c = new node_color();
+   double dv;
+
+   if (v < vmin)
+      v = vmin;
+   if (v > vmax)
+      v = vmax;
+   dv = vmax - vmin;
+   // Green should be full on.
+   c->blue = 1.0;
+   // red and green should increase as the fraction decreases.
+   double fraction = 1.0 - ( (v - vmin) / dv );
+   c->red = 0.10 + (0.90 * fraction);
+   c->green = 0.75 + (0.25 * fraction);
+   return c;
+}
+
 node_color * get_node_color(double v,double vmin,double vmax)
 {
    node_color * c = new node_color();
@@ -733,13 +751,13 @@ node_color * get_node_color(double v,double vmin,double vmax)
     for(it = task_map.begin(); it != task_map.end(); it++) {
       profile * p = it->second;
       if (p->get_type() == APEX_TIMER) {
-        node_color * c = get_node_color((p->get_accumulated()*profiler::get_cpu_mhz()), 0.0, total_main);
+        node_color * c = get_node_color_visible((p->get_mean()*profiler::get_cpu_mhz()), 0.0, main_timer->elapsed());
         task_identifier task_id = it->first;
         myfile << "  \"" << task_id.get_name() << "\" [shape=box; style=filled; fillcolor=\"#" <<
             setfill('0') << setw(2) << hex << c->convert(c->red) <<
             setfill('0') << setw(2) << hex << c->convert(c->green) <<
             setfill('0') << setw(2) << hex << c->convert(c->blue) << "\"" <<
-            "; label=\"" << task_id.get_name() << ":\\n" << (p->get_accumulated()*profiler::get_cpu_mhz()) << "s\" ];" << std::endl;
+            "; label=\"" << task_id.get_name() << ":\\n" << (p->get_mean()*profiler::get_cpu_mhz()) << "s\" ];" << std::endl;
         delete(c);
       }
     }
@@ -1390,7 +1408,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
     if (p != NULL) {
         dependency_queue.enqueue(new task_dependency(p->task_id, tt_ptr->task_id));
     } else {
-        task_identifier * parent = task_identifier::get_task_id(string("__start"));
+        task_identifier * parent = task_identifier::get_task_id(string(APEX_MAIN));
         dependency_queue.enqueue(new task_dependency(parent, tt_ptr->task_id));
     }
   }

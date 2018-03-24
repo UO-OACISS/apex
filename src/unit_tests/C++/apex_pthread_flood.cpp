@@ -36,19 +36,18 @@ typedef void*(*start_routine_t)(void*);
 
 void* someThread(void* tmp)
 {
+  apex::scoped_thread("threadTest thread");
   unsigned long * result = (unsigned long *)tmp;
-  apex::register_thread("threadTest thread");
   int i = 0;
   unsigned long total = 0;
   { // only time this for loop
-    apex::self_stopping_timer proxy((apex_function_address)someThread);
+    apex::scoped_timer proxy((apex_function_address)someThread);
     for (i = 0 ; i < ITERATIONS ; i++) {
         apex::profiler * p = apex::start((apex_function_address)foo);
         total += foo(i);
         apex::stop(p);
     }
   }
-  apex::exit_thread();
   *result = total;
   return NULL;
 }
@@ -63,7 +62,7 @@ int main(int argc, char **argv)
   apex::apex_options::use_screen_output(true);
   sleep(1); // if we don't sleep, the proc_read thread won't have time to read anything.
 
-  apex::self_stopping_timer proxy((apex_function_address)main);
+  apex::scoped_timer proxy((apex_function_address)main);
   printf("PID of this process: %d\n", getpid());
   std::cout << "Expecting " << numthreads << " threads." << std::endl;
   pthread_t * thread = (pthread_t*)(malloc(sizeof(pthread_t) * numthreads));

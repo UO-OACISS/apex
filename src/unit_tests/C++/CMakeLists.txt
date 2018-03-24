@@ -36,8 +36,8 @@ set(example_programs
     apex_hpx_direct_actions
     apex_hpx_task_wrapper_direct_actions
     apex_profiler_guids
+    apex_fibonacci_std_async
    )
-    #apex_fibonacci_std_async
     #apex_set_thread_cap
     #apex_setup_power_cap_throttling
     #apex_setup_custom_tuning
