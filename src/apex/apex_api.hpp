@@ -805,26 +805,27 @@ APEX_EXPORT void recv (uint64_t tag, uint64_t size, uint64_t source_rank, uint64
   time on a thread.
 
  */
-class self_stopping_timer {
+class scoped_timer {
     private:
-        apex::profiler * p;
-        bool has_thread;
+        apex::task_wrapper * twp;
     public:
 /**
  \brief Construct and start an APEX timer.
 
  \param func The address of a function used to identify the timer type
  */
-        self_stopping_timer(uint64_t func) : p(nullptr), has_thread(false) {
-            p = apex::start((apex_function_address)func);
+        scoped_timer(uint64_t func) : twp(nullptr) {
+            twp = apex::new_task((apex_function_address)func);
+            apex::start(twp);
         }
 /**
  \brief Construct and start an APEX timer.
 
  \param func The name of a function used to identify the timer type
  */
-        self_stopping_timer(std::string func) : p(nullptr), has_thread(false) {
-            p = apex::start(func);
+        scoped_timer(std::string func) : twp(nullptr) {
+            twp = apex::new_task(func);
+            apex::start(twp);
         }
 /**
  \brief Register a new thread with APEX, then construct and start an APEX timer.
@@ -832,10 +833,10 @@ class self_stopping_timer {
  \param func The address of a function used to identify the timer type
  \param thread_name The name of this new worker thread in the runtime
  */
-        self_stopping_timer(uint64_t func, const char * thread_name) 
-            : p(nullptr), has_thread(true) {
-            apex::register_thread(thread_name);
-            p = apex::start((apex_function_address)func);
+        scoped_timer(uint64_t func, apex::task_wrapper * parent)
+            : twp(nullptr) {
+            twp = apex::new_task((apex_function_address)func, UINTMAX_MAX, parent);
+            apex::start(twp);
         }
 /**
  \brief Register a new thread with APEX, then construct and start an APEX timer.
@@ -843,31 +844,45 @@ class self_stopping_timer {
  \param func The name of a function used to identify the timer type
  \param thread_name The name of this new worker thread in the runtime
  */
-        self_stopping_timer(std::string func, const char * thread_name = nullptr) 
-            : p(nullptr), has_thread(true) {
-            apex::register_thread(thread_name);
-            p = apex::start(func);
+        scoped_timer(std::string func, apex::task_wrapper * parent)
+            : twp(nullptr) {
+            twp = apex::new_task(func, UINTMAX_MAX, parent);
+            apex::start(twp);
         }
 /**
  \brief Stop the APEX timer.
 
  */
         void stop(void) {
-            if (p != nullptr) { 
-                apex::stop(p); 
-                p= nullptr; 
+            if (twp != nullptr) { 
+                apex::stop(twp); 
+                twp = nullptr; 
             } 
  /**
  \brief Destructor.
 
  */
        }
-        ~self_stopping_timer() { 
+        ~scoped_timer() { 
             stop();
-            if (has_thread) {
-                apex::exit_thread();
-            }
         }
+
+/*
+ \brief Get the internal task wrapper object
+ */
+        apex::task_wrapper * get_task_wrapper(void) {
+            return twp;
+        }
+};
+
+class scoped_thread {
+public:
+    scoped_thread(const std::string& thread_name) {
+        apex::register_thread(thread_name);
+    }
+    ~scoped_thread() {
+        apex::exit_thread();
+    }
 };
 
 /**

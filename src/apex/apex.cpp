@@ -27,6 +27,7 @@
 #include "tau_listener.hpp"
 #include "profiler_listener.hpp"
 #if defined(APEX_DEBUG) || defined(APEX_ERROR_HANDLING)
+// #define APEX_DEBUG_disabled
 #include "apex_error_handling.hpp"
 #endif
 #include "address_resolution.hpp"
