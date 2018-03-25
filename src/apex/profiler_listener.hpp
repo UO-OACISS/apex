@@ -60,6 +60,14 @@ public:
   }
 };
 
+class dependency_queue_t : public moodycamel::ConcurrentQueue<task_dependency*> {
+public:
+  dependency_queue_t() {}
+  virtual ~dependency_queue_t() {
+      finalize();
+  }
+};
+
 static const char * task_scatterplot_sample_filename = "apex_task_samples.csv";
 
 class profiler_listener : public event_listener {
@@ -95,8 +103,11 @@ private:
   std::vector<profiler_queue_t*> allqueues;
   profiler_queue_t * _construct_thequeue(void);
   profiler_queue_t * thequeue(void);
-  /* The task dependency queue */
-  moodycamel::ConcurrentQueue<task_dependency*> dependency_queue;
+  /* The task dependency queues */
+  std::vector<dependency_queue_t*> dependency_queues;
+  dependency_queue_t * _construct_dependency_queue(void);
+  dependency_queue_t * dependency_queue(void);
+  //moodycamel::ConcurrentQueue<task_dependency*> dependency_queue;
 #if defined(APEX_THROTTLE)
   std::unordered_set<task_identifier> throttled_tasks;
 #endif

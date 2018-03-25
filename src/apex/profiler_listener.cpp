@@ -85,7 +85,7 @@ namespace apex {
 
 /* mutex for controlling access to the dependencies map.
  * multiple threads can try to clean up at the same time. */
-std::mutex task_dependency_mutex;;
+std::mutex task_dependency_mutex;
 /* set for keeping track of memory to clean up */
 std::mutex free_profile_set_mutex;
 std::unordered_set<profile*> free_profiles;
@@ -102,6 +102,21 @@ std::unordered_set<profile*> free_profiles;
         /* This constructor gets called once per thread, the first time this
          * function is executed (by each thread). */
         static APEX_NATIVE_TLS profiler_queue_t * _thequeue = _construct_thequeue();
+        return _thequeue;
+    }
+
+    /* We do this in two stages, to make the common case fast. */
+    dependency_queue_t * profiler_listener::_construct_dependency_queue() {
+          dependency_queue_t * _thequeue = new dependency_queue_t();
+           std::unique_lock<std::mutex> queue_lock(queue_mtx);
+           dependency_queues.push_back(_thequeue);
+        return _thequeue;
+    }
+    /* this is a thread-local pointer to a concurrent queue for each worker thread. */
+    dependency_queue_t * profiler_listener::dependency_queue() {
+        /* This constructor gets called once per thread, the first time this
+         * function is executed (by each thread). */
+        static APEX_NATIVE_TLS dependency_queue_t * _thequeue = _construct_dependency_queue();
         return _thequeue;
     }
 
@@ -698,15 +713,22 @@ node_color * get_node_color(double v,double vmin,double vmax)
 }
 
   void profiler_listener::write_taskgraph(void) {
+    // wait until any other threads are done processing dependencies
+    while(consumer_task_running.test_and_set(memory_order_acq_rel)) { }
     // get all the remaining dependencies
     if (apex_options::use_taskgraph_output()) {
         task_dependency* td;
-        while(dependency_queue.try_dequeue(td)) {
-            process_dependency(td);
+        for (dependency_queue_t* a_queue : dependency_queues) {
+            while(a_queue->try_dequeue(td)) {
+                process_dependency(td);
+            }
         }
     }
+
     // keep any new dependencies from showing up.
     std::unique_lock<std::mutex> queue_lock(task_dependency_mutex);
+    consumer_task_running.clear(memory_order_release);
+
     /* before calling parent.get_name(), make sure we create
      * a thread_instance object that is NOT a worker. */
     thread_instance::instance(false);
@@ -737,21 +759,13 @@ node_color * get_node_color(double v,double vmin,double vmax)
     }
     task_dependencies.clear();
 
-    // our TOTAL available time is the elapsed * the number of threads, or cores
-    int num_worker_threads = thread_instance::get_num_threads();
-#ifdef APEX_HAVE_HPX
-    num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
-#endif
-    double total_main = main_timer->elapsed() *
-        fmin(hardware_concurrency(), num_worker_threads);
-
     // output nodes with  "main" [shape=box; style=filled; fillcolor="#ff0000" ];
     unordered_map<task_identifier, profile*>::const_iterator it;
     std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
     for(it = task_map.begin(); it != task_map.end(); it++) {
       profile * p = it->second;
       if (p->get_type() == APEX_TIMER) {
-        node_color * c = get_node_color_visible((p->get_mean()*profiler::get_cpu_mhz()), 0.0, main_timer->elapsed());
+        node_color * c = get_node_color_visible(p->get_mean(), 0.0, main_timer->elapsed());
         task_identifier task_id = it->first;
         myfile << "  \"" << task_id.get_name() << "\" [shape=box; style=filled; fillcolor=\"#" <<
             setfill('0') << setw(2) << hex << c->convert(c->red) <<
@@ -950,11 +964,14 @@ node_color * get_node_color(double v,double vmin,double vmax)
             break;
         }
       }
-      if (apex_options::use_taskgraph_output()) {
+    }
+    if (apex_options::use_taskgraph_output()) {
+      for (dependency_queue_t* a_queue : dependency_queues) {
           int i = 0;
-          while(!_done && dependency_queue.try_dequeue(td)) {
+          while(!_done && a_queue->try_dequeue(td)) {
               process_dependency(td);
               if (++i > 1000) {
+                schedule_another_task = true;
                 break;
               }
           }
@@ -974,14 +991,16 @@ node_color * get_node_color(double v,double vmin,double vmax)
           }
       }
       if (apex_options::use_taskgraph_output()) {
-          while(!_done && dependency_queue.try_dequeue(td)) {
+        for (dependency_queue_t* a_queue : dependency_queues) {
+          while(!_done && a_queue->try_dequeue(td)) {
               process_dependency(td);
           }
+        }
       }
-      consumer_task_running.clear(memory_order_release);
       if (apex_options::use_tau()) {
         Tau_stop("profiler_listener::process_profiles: main loop");
       }
+      consumer_task_running.clear(memory_order_release);
     }
 #endif
 
@@ -1384,6 +1403,9 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
   void profiler_listener::async_thread_setup(void) {
       // for asynchronous threads, check to make sure there is a queue!
       thequeue();
+      if (apex_options::use_taskgraph_output()) {
+        dependency_queue();
+      }
   }
 
   /* When a sample value is processed, save it as a profiler object, and queue it. */
@@ -1400,16 +1422,16 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
     if (!apex_options::use_taskgraph_output()) { return; }
     // if the parent task is not null, use it (obviously)
     if (parent_ptr != nullptr) {
-        dependency_queue.enqueue(new task_dependency(parent_ptr->task_id, tt_ptr->task_id));
+        dependency_queue()->enqueue(new task_dependency(parent_ptr->task_id, tt_ptr->task_id));
         return;
     }
     // get the current profiler
     profiler * p = thread_instance::instance().get_current_profiler();
     if (p != NULL) {
-        dependency_queue.enqueue(new task_dependency(p->task_id, tt_ptr->task_id));
+        dependency_queue()->enqueue(new task_dependency(p->task_id, tt_ptr->task_id));
     } else {
         task_identifier * parent = task_identifier::get_task_id(string(APEX_MAIN));
-        dependency_queue.enqueue(new task_dependency(parent, tt_ptr->task_id));
+        dependency_queue()->enqueue(new task_dependency(parent, tt_ptr->task_id));
     }
   }
 

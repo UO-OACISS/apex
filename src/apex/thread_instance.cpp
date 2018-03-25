@@ -117,9 +117,13 @@ void thread_instance::set_name(string name) {
         std::unique_lock<std::mutex> l(_name_map_mutex);
         _name_map[name] = get_id();
     }
+#if defined(APEX_HAVE_HPX)
     if (name.find("worker-thread") != string::npos) {
       instance().set_worker(true);
     }
+#else
+    instance().set_worker(true);
+#endif
   }
 }
 

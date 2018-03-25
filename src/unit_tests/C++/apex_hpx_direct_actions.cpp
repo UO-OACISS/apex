@@ -8,7 +8,6 @@
 
 uint32_t numthreads = 0;
 int threads_per_core = 8;
-__thread uint64_t guid = 0;
 const int num_iterations = 10;
 
 #ifdef DEBUG
@@ -42,10 +41,6 @@ int nsleep(long miliseconds, int tid)
     buf << "APP: " << tid << ": Computing " << miliseconds << " miliseconds\n"; std::cout << buf.str();
 #endif
    return nanosleep(&req , &rem);
-}
-
-static void init_guid(int tid) {
-    guid = ((UINT64_MAX/numthreads) * tid);
 }
 
 void innerLoop(int *tid) {
@@ -120,7 +115,6 @@ void* someThread(void* tmp)
 #endif
 #endif
     apex::register_thread(name);
-    init_guid(*tid);
 
     apex::profiler* p = apex::start(__func__);
     for (int i = 0 ; i < num_iterations ; i++) {

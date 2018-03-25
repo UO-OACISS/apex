@@ -279,8 +279,7 @@ namespace apex {
       static APEX_NATIVE_TLS OTF2_EvtWriter* evt_writer(nullptr);
       // Are we creating / opening an event writer?
       if (evt_writer == nullptr && create) {
-        // only let one thread at a time create an event file
-        read_lock_type lock(_archive_mutex);
+        // should already be locked by the "new thread" event.
         uint64_t my_node_id = my_saved_node_id;
         my_node_id = (my_node_id << 32) + thread_instance::get_id();
         evt_writer = OTF2_Archive_GetEvtWriter( archive, my_node_id );
@@ -773,7 +772,7 @@ namespace apex {
          * static construction in on_start and on_stop */
         if (!thread_instance::map_id_to_worker(thread_instance::get_id())) {
             // don't close the archive on us!
-            read_lock_type lock(_archive_mutex);
+            write_lock_type lock(_archive_mutex);
             // not likely, but just in case...
             if (_terminate) { return; }
             // before we process the event, make sure the event write is open
@@ -789,7 +788,7 @@ namespace apex {
               OTF2_EvtWriter_ThreadBegin( local_evt_writer, NULL, stamp, 0, thread_instance::get_id() );
             }
 #endif
-        }
+        } else { assert(false); }
         APEX_UNUSED(data);
         return;
     }
