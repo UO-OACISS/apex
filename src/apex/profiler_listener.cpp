@@ -92,9 +92,11 @@ std::unordered_set<profile*> free_profiles;
 
     /* We do this in two stages, to make the common case fast. */
     profiler_queue_t * profiler_listener::_construct_thequeue() {
-          profiler_queue_t * _thequeue = new profiler_queue_t();
-           std::unique_lock<std::mutex> queue_lock(queue_mtx);
-           allqueues.push_back(_thequeue);
+        profiler_queue_t * _thequeue = new profiler_queue_t();
+        /* We are locking to make sure the vector is only updated by
+         * one thread at a time. */
+        std::unique_lock<std::mutex> queue_lock(queue_mtx);
+        allqueues.push_back(_thequeue);
         return _thequeue;
     }
     /* this is a thread-local pointer to a concurrent queue for each worker thread. */
@@ -107,9 +109,11 @@ std::unordered_set<profile*> free_profiles;
 
     /* We do this in two stages, to make the common case fast. */
     dependency_queue_t * profiler_listener::_construct_dependency_queue() {
-          dependency_queue_t * _thequeue = new dependency_queue_t();
-           std::unique_lock<std::mutex> queue_lock(queue_mtx);
-           dependency_queues.push_back(_thequeue);
+        dependency_queue_t * _thequeue = new dependency_queue_t();
+        /* We are locking to make sure the vector is only updated by
+         * one thread at a time. */
+        std::unique_lock<std::mutex> queue_lock(queue_mtx);
+        dependency_queues.push_back(_thequeue);
         return _thequeue;
     }
     /* this is a thread-local pointer to a concurrent queue for each worker thread. */
@@ -387,7 +391,6 @@ std::unordered_set<profile*> free_profiles;
 
   inline unsigned int profiler_listener::process_dependency(task_dependency* td)
   {
-      std::unique_lock<std::mutex> queue_lock(task_dependency_mutex);
       unordered_map<task_identifier, unordered_map<task_identifier, int>* >::const_iterator it = task_dependencies.find(td->parent);
       unordered_map<task_identifier, int> * depend;
       // if this is a new dependency for this parent?
@@ -713,21 +716,16 @@ node_color * get_node_color(double v,double vmin,double vmax)
 }
 
   void profiler_listener::write_taskgraph(void) {
-    // wait until any other threads are done processing dependencies
-    while(consumer_task_running.test_and_set(memory_order_acq_rel)) { }
-    // get all the remaining dependencies
-    if (apex_options::use_taskgraph_output()) {
+    { // we need to lock in case another thread appears
+        std::unique_lock<std::mutex> queue_lock(queue_mtx);
+        // get all the remaining dependencies
         task_dependency* td;
-        for (dependency_queue_t* a_queue : dependency_queues) {
+        for (auto a_queue : dependency_queues) {
             while(a_queue->try_dequeue(td)) {
                 process_dependency(td);
             }
         }
     }
-
-    // keep any new dependencies from showing up.
-    std::unique_lock<std::mutex> queue_lock(task_dependency_mutex);
-    consumer_task_running.clear(memory_order_release);
 
     /* before calling parent.get_name(), make sure we create
      * a thread_instance object that is NOT a worker. */
@@ -935,10 +933,20 @@ node_color * get_node_color(double v,double vmin,double vmax)
   }
 
   /* This is the main function for the consumer thread.
+   * Operation outside of HPX:
    * It will wait at a semaphore for pending work. When there is
    * work on one or more queues, it will iterate over the queues
    * and process the pending profiler objects, updating the profiles
-   * as it goes. */
+   * as it goes. 
+   *
+   * Operation inside of HPX:
+   * This function gets called as an HPX task when there is new
+   * work to be processed.  It will exit after processing
+   * 1000 profiler timers, so as not to stay in this function 
+   * too long, occupying an HPX thread.  If it terminates before
+   * clearing the queue, it will schedule a new HPX task.
+   *
+   * */
   void profiler_listener::process_profiles(void)
   {
     if (!_initialized) {
@@ -951,56 +959,62 @@ node_color * get_node_color(double v,double vmin,double vmax)
 
     std::shared_ptr<profiler> p;
     task_dependency* td;
-    // Main loop. Stay in this loop unless "done".
 #ifdef APEX_HAVE_HPX
     bool schedule_another_task = false;
-    std::unique_lock<std::mutex> queue_lock(queue_mtx);
-    for (profiler_queue_t* a_queue : allqueues) {
-      int i = 0;
-      while(!_done && a_queue->try_dequeue(p)) {
-        process_profile(p, 0);
-        if (++i > 1000) {
-            schedule_another_task = true;
-            break;
+    {
+        std::unique_lock<std::mutex> queue_lock(queue_mtx);
+        for (auto a_queue : allqueues) {
+            int i = 0;
+            while(!_done && a_queue->try_dequeue(p)) {
+                process_profile(p, 0);
+                if (++i > 1000) {
+                    schedule_another_task = true;
+                    break;
+                }
+            }
         }
-      }
     }
     if (apex_options::use_taskgraph_output()) {
-      for (dependency_queue_t* a_queue : dependency_queues) {
-          int i = 0;
-          while(!_done && a_queue->try_dequeue(td)) {
-              process_dependency(td);
-              if (++i > 1000) {
-                schedule_another_task = true;
-                break;
-              }
-          }
-      }
+        std::unique_lock<std::mutex> queue_lock(queue_mtx);
+        for (auto a_queue : dependency_queues) {
+            int i = 0;
+            while(!_done && a_queue->try_dequeue(td)) {
+                process_dependency(td);
+                if (++i > 1000) {
+                    schedule_another_task = true;
+                    break;
+                }
+            }
+        }
     }
     consumer_task_running.clear(memory_order_release);
 #else
+    // Main loop. Stay in this loop unless "done".
     while (!_done) {
-      queue_signal.wait();
-      if (apex_options::use_tau()) {
-        Tau_start("profiler_listener::process_profiles: main loop");
-      }
-      std::unique_lock<std::mutex> queue_lock(queue_mtx);
-      for (profiler_queue_t* a_queue : allqueues) {
-          while(!_done && a_queue->try_dequeue(p)) {
-              process_profile(p, 0);
-          }
-      }
-      if (apex_options::use_taskgraph_output()) {
-        for (dependency_queue_t* a_queue : dependency_queues) {
-          while(!_done && a_queue->try_dequeue(td)) {
-              process_dependency(td);
-          }
+        queue_signal.wait();
+        if (apex_options::use_tau()) {
+            Tau_start("profiler_listener::process_profiles: main loop");
         }
-      }
-      if (apex_options::use_tau()) {
-        Tau_stop("profiler_listener::process_profiles: main loop");
-      }
-      consumer_task_running.clear(memory_order_release);
+        { 
+            std::unique_lock<std::mutex> queue_lock(queue_mtx);
+            for (auto a_queue : allqueues) {
+                while(!_done && a_queue->try_dequeue(p)) {
+                    process_profile(p, 0);
+                }
+            }
+        }
+        if (apex_options::use_taskgraph_output()) {
+            std::unique_lock<std::mutex> queue_lock(queue_mtx);
+            for (auto a_queue : dependency_queues) {
+                while(!_done && a_queue->try_dequeue(td)) {
+                    process_dependency(td);
+                }
+            }
+        }
+        if (apex_options::use_tau()) {
+            Tau_stop("profiler_listener::process_profiles: main loop");
+        }
+        consumer_task_running.clear(memory_order_release);
     }
 #endif
 
@@ -1141,6 +1155,10 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
    * the screen dump flag is set. */
   void profiler_listener::on_dump(dump_event_data &data) {
     if (_done) { return; }
+
+    // wait until any other threads are done processing dependencies
+    while(consumer_task_running.test_and_set(memory_order_acq_rel)) { }
+
       // stop the main timer, and process that profile?
       main_timer->stop();
       push_profiler((unsigned int)thread_instance::get_id(), main_timer);
@@ -1150,27 +1168,31 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
            apex_options::use_csv_output()) && node_id == 0)
       {
         size_t ignored = 0;
-        {
+        { // we need to lock in case another thread appears
             std::unique_lock<std::mutex> queue_lock(queue_mtx);
-            for (profiler_queue_t* a_queue : allqueues) {
+            for (auto a_queue : allqueues) {
                 ignored += a_queue->size_approx();
             }
         }
         if (ignored > 100000) {
-          std::cout << "Info: " << ignored << " items remaining on on the profiler_listener queue..."; fflush(stderr);
+          std::cout << "Info: " << ignored 
+            << " items remaining on on the profiler_listener queue..."; 
+            fflush(stderr);
         }
         /* APEX can't handle spawning a bunch of new APEX threads at this time,
          * so just process the queue. Anyway, it shouldn't get backed up that 
          * much without suggesting there is a bigger problem. */
-        std::unique_lock<std::mutex> queue_lock(queue_mtx);
-        for (unsigned int i=0; i<allqueues.size(); ++i) {
-          if (apex_options::use_tau()) {
-            Tau_start("profiler_listener::concurrent_cleanup");
-          }
-          concurrent_cleanup(i);
-          if (apex_options::use_tau()) {
-            Tau_stop("profiler_listener::concurrent_cleanup");
-          }
+        { 
+            std::unique_lock<std::mutex> queue_lock(queue_mtx);
+            for (unsigned int i=0; i<allqueues.size(); ++i) {
+                if (apex_options::use_tau()) {
+                    Tau_start("profiler_listener::concurrent_cleanup");
+                }
+                concurrent_cleanup(i);
+                if (apex_options::use_tau()) {
+                    Tau_stop("profiler_listener::concurrent_cleanup");
+                }
+            }
         }
         if (ignored > 100000) {
           std::cerr << "done." << std::endl;
@@ -1219,6 +1241,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       if (data.reset) {
           reset_all();
       }
+      consumer_task_running.clear(memory_order_release);
   }
 
   void profiler_listener::on_reset(task_identifier * id) {
@@ -1480,9 +1503,15 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       delete consumer_thread;
 #endif
 #endif
+    std::unique_lock<std::mutex> queue_lock(queue_mtx);
     while (allqueues.size() > 0) {
         auto tmp = allqueues.back();
         allqueues.pop_back();
+        delete(tmp);
+    }
+    while (dependency_queues.size() > 0) {
+        auto tmp = dependency_queues.back();
+        dependency_queues.pop_back();
         delete(tmp);
     }
     for (auto tmp : free_profiles) {
