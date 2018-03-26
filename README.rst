@@ -2,6 +2,10 @@
     :alt: APEX - Autonomic Performance Environment for eXascale
     :width: 200px
 
+Please Note:
+===========
+*All documentation is outdated and currently going through a review and update.  Thanks for your patience.*
+
 Overview:
 =========
 
