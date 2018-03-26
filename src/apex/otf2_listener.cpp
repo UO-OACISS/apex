@@ -770,7 +770,6 @@ namespace apex {
     void otf2_listener::on_new_thread(new_thread_event_data &data) {
         /* the event writer and def writers are created using
          * static construction in on_start and on_stop */
-        if (!thread_instance::map_id_to_worker(thread_instance::get_id())) {
             // don't close the archive on us!
             write_lock_type lock(_archive_mutex);
             // not likely, but just in case...
@@ -788,7 +787,6 @@ namespace apex {
               OTF2_EvtWriter_ThreadBegin( local_evt_writer, NULL, stamp, 0, thread_instance::get_id() );
             }
 #endif
-        } else { assert(false); }
         APEX_UNUSED(data);
         return;
     }
