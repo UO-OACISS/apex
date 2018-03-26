@@ -76,7 +76,7 @@ static void master(void) {
   unit_of_work_t work[2] = {0,0};
   unit_result_t result = 0;
   MPI_Status status;
-  apex::self_stopping_timer((apex_function_address)(master));
+  apex::scoped_timer((apex_function_address)(master));
 
   /* Find out how many processes there are in the default
      communicator */
@@ -120,7 +120,7 @@ static void master(void) {
 static void worker(void) {
   unit_of_work_t work[] = {0,0};
   MPI_Status status;
-  apex::self_stopping_timer((apex_function_address)(worker));
+  apex::scoped_timer((apex_function_address)(worker));
 
   while (1) {
 
@@ -162,7 +162,7 @@ static void get_next_work_item(int work[], int rank, int ntasks) {
 }
 
 static unit_result_t do_work(unit_of_work_t work) {
-  apex::self_stopping_timer((apex_function_address)(do_work));
+  apex::scoped_timer((apex_function_address)(do_work));
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   int i, multiplier;
