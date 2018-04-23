@@ -822,7 +822,7 @@ void stop(task_wrapper * tt_ptr) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { 
         APEX_UTIL_REF_COUNT_DISABLED_STOP
-        free(tt_ptr);
+        delete(tt_ptr);
         return; 
     }
     if (tt_ptr == nullptr || tt_ptr->prof == nullptr) {
@@ -831,12 +831,12 @@ void stop(task_wrapper * tt_ptr) {
     }
     if (tt_ptr->prof == profiler::get_disabled_profiler()) {
         APEX_UTIL_REF_COUNT_DISABLED_STOP
-        free(tt_ptr);
+        delete(tt_ptr);
         return; // profiler was throttled.
     }
     if (tt_ptr->prof->stopped) {
         APEX_UTIL_REF_COUNT_DOUBLE_STOP
-        free(tt_ptr);
+        delete(tt_ptr);
         return;
     }
     thread_instance::instance().clear_current_profiler(tt_ptr->prof, false, nullptr);
@@ -844,7 +844,7 @@ void stop(task_wrapper * tt_ptr) {
     // protect against calls after finalization
     if (!instance || _exited || _measurement_stopped) { 
         APEX_UTIL_REF_COUNT_STOP_AFTER_FINALIZE
-        free(tt_ptr);
+        delete(tt_ptr);
         return; 
     }
     std::shared_ptr<profiler> p{tt_ptr->prof};
@@ -861,7 +861,7 @@ void stop(task_wrapper * tt_ptr) {
     } else {
         APEX_UTIL_REF_COUNT_STOP
     }
-    free(tt_ptr);
+    delete(tt_ptr);
 }
 
 void yield(profiler* the_profiler)
