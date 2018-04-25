@@ -769,7 +769,9 @@ node_color * get_node_color(double v,double vmin,double vmax)
             setfill('0') << setw(2) << hex << c->convert(c->red) <<
             setfill('0') << setw(2) << hex << c->convert(c->green) <<
             setfill('0') << setw(2) << hex << c->convert(c->blue) << "\"" <<
-            "; label=\"" << task_id.get_name() << ":\\n" << (p->get_mean()*profiler::get_cpu_mhz()) << "s\" ];" << std::endl;
+            "; label=\"" << task_id.get_name() << ":\\n(" << 
+            (p->get_calls()) << ") " <<
+            (p->get_mean()*profiler::get_cpu_mhz()) << "s\" ];" << std::endl;
         delete(c);
       }
     }
