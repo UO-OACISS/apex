@@ -351,7 +351,7 @@ void thread_instance::clear_current_profiler(profiler * the_profiler, bool save_
 }
 
 profiler * thread_instance::get_current_profiler(void) {
-    if (instance().current_profilers.size() == 0) { return nullptr; }
+    if (instance().current_profilers.empty()) { return nullptr; }
     return instance().current_profilers.back();
 }
 
