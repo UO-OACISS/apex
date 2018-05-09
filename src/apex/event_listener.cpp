@@ -21,7 +21,7 @@ timer_event_data::timer_event_data(task_identifier * id) : task_id(id) {
 
 /* this object never actually gets instantiated. too much overhead. */
 timer_event_data::timer_event_data(std::shared_ptr<profiler> &the_profiler) : my_profiler(the_profiler) {
-  this->task_id = the_profiler->task_id; 
+  this->task_id = the_profiler->tt_ptr->get_task_id(); 
 }
 
 timer_event_data::~timer_event_data() {

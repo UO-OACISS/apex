@@ -181,9 +181,8 @@ namespace apex {
         void on_yield(std::shared_ptr<profiler> &p);
         bool on_resume(task_wrapper * tt_ptr);
         void on_sample_value(sample_value_event_data &data);
-        void on_new_task(task_wrapper * tt_ptr, task_wrapper * parent_ptr) { 
+        void on_task_complete(task_wrapper * tt_ptr) { 
             APEX_UNUSED(tt_ptr); 
-            APEX_UNUSED(parent_ptr); 
         };
         void on_periodic(periodic_event_data &data)
             { APEX_UNUSED(data); };

@@ -5,13 +5,18 @@
 
 #pragma once
 
+// forward declaration
+namespace apex {
+class profiler;
+};
+
 #include <iostream>
 #include <sstream>
 #include <math.h>
 #include "apex_options.hpp"
 #include "apex_types.h"
 #include <chrono>
-#include "task_identifier.hpp"
+#include "task_wrapper.hpp"
 #if defined(APEX_HAVE_HPX)
 #include <hpx/util/hardware/timestamp.hpp>
 #endif
@@ -76,12 +81,30 @@ public:
     //apex_function_address action_address;
     //std::string * timer_name;
     //bool have_name;
-	task_identifier * task_id;
+	task_wrapper * tt_ptr;     // for timers
+	task_identifier * task_id; // for counters, timers
     uint64_t guid;
     bool is_counter;
     bool is_resume; // for yield or resume
     reset_type is_reset;
     bool stopped;
+    profiler(task_wrapper * task,
+             bool resume = false,
+             reset_type reset = reset_type::NONE) :
+        start(MYCLOCK::now()),
+#if APEX_HAVE_PAPI
+        papi_start_values{0,0,0,0,0,0,0,0},
+        papi_stop_values{0,0,0,0,0,0,0,0},
+#endif
+        value(0.0),
+        children_value(0.0),
+		tt_ptr(task),
+		task_id(tt_ptr->get_task_id()),
+        guid(0),
+        is_counter(false),
+        is_resume(resume),
+        is_reset(reset), stopped(false) { };
+    // this constructor is for resetting profile values
     profiler(task_identifier * id,
              bool resume = false,
              reset_type reset = reset_type::NONE) :
@@ -92,6 +115,7 @@ public:
 #endif
         value(0.0),
         children_value(0.0),
+		tt_ptr(nullptr),
 		task_id(id),
         guid(0),
         is_counter(false),
@@ -105,6 +129,7 @@ public:
 #endif
         value(value_),
         children_value(0.0),
+		tt_ptr(nullptr),
 		task_id(id),
         is_counter(true),
         is_resume(false),
@@ -119,6 +144,7 @@ public:
 #endif
     value = in.value;
     children_value = in.children_value;
+	tt_ptr = in.tt_ptr;
 	task_id = in.task_id;
     is_counter = in.is_counter;
     is_resume = in.is_resume; // for yield or resume

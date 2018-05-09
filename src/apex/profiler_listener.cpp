@@ -10,13 +10,13 @@
 
 #include "profiler_listener.hpp"
 #include "profiler.hpp"
+#include "task_wrapper.hpp"
 #include "thread_instance.hpp"
 #include <iostream>
 #include <iomanip>
 #include <fstream>
 #include <math.h>
 #include "apex_options.hpp"
-#include "profiler.hpp"
 #include "profile.hpp"
 #include "apex.hpp"
 
@@ -223,7 +223,7 @@ std::unordered_set<profile*> free_profiles;
     } 
 #ifdef APEX_WITH_JUPYTER_SUPPORT
     // restart the main timer
-    main_timer = std::make_shared<profiler>(task_identifier::get_task_id(string(APEX_MAIN)));
+    main_timer = std::make_shared<profiler>(task_wrapper::get_apex_main_wrapper());
 #endif
   }
 
@@ -1107,7 +1107,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
 #endif
 
       // time the whole application.
-      main_timer = std::make_shared<profiler>(task_identifier::get_task_id(string(APEX_MAIN)));
+      main_timer = std::make_shared<profiler>(task_wrapper::get_apex_main_wrapper());
 #if APEX_HAVE_PAPI
       if (num_papi_counters > 0 && !apex_options::papi_suspend() && thread_papi_state == papi_running) {
         int rc = PAPI_read( EventSet, main_timer->papi_start_values );
@@ -1196,7 +1196,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       }
 #endif
       // restart the main timer
-      main_timer = std::make_shared<profiler>(task_identifier::get_task_id(string(APEX_MAIN)));
+      main_timer = std::make_shared<profiler>(task_wrapper::get_apex_main_wrapper());
       if (data.reset) {
           reset_all();
       }
@@ -1270,7 +1270,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         unordered_set<task_identifier>::const_iterator it;
         {
               read_lock_type l(throttled_event_set_mutex);
-            it = throttled_tasks.find(*tt_ptr->task_id);
+            it = throttled_tasks.find(*tt_ptr->get_task_id());
         }
         if (it != throttled_tasks.end()) {
             /*
@@ -1283,8 +1283,10 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       }
 #endif
       // start the profiler object, which starts our timers
-      //std::shared_ptr<profiler> p = std::make_shared<profiler>(tt_ptr->task_id, is_resume);
-      profiler * p = new profiler(tt_ptr->task_id, is_resume);
+      //std::shared_ptr<profiler> p = std::make_shared<profiler>(tt_ptr, is_resume);
+      // get the right task identifier, based on whether there are aliases
+      task_identifier * id = tt_ptr->get_task_id();
+      profiler * p = new profiler(tt_ptr, is_resume);
       p->guid = thread_instance::get_guid();
       thread_instance::instance().set_current_profiler(p);
 #if APEX_HAVE_PAPI
@@ -1395,22 +1397,19 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
     }
   }
 
-  void profiler_listener::on_new_task(task_wrapper * tt_ptr, task_wrapper * parent_ptr) {
+  void profiler_listener::on_task_complete(task_wrapper * tt_ptr) {
     //printf("New task: %llu\n", task_id); fflush(stdout);
     if (!apex_options::use_taskgraph_output()) { return; }
+    // get the right task identifier, based on whether there are aliases
+    task_identifier * id = tt_ptr->get_task_id();
     // if the parent task is not null, use it (obviously)
-    if (parent_ptr != nullptr) {
-        dependency_queue.enqueue(new task_dependency(parent_ptr->task_id, tt_ptr->task_id));
+    if (tt_ptr->parent != nullptr) {
+        task_identifier * pid = tt_ptr->parent->get_task_id();
+        dependency_queue.enqueue(new task_dependency(pid, id));
         return;
     }
-    // get the current profiler
-    profiler * p = thread_instance::instance().get_current_profiler();
-    if (p != NULL) {
-        dependency_queue.enqueue(new task_dependency(p->task_id, tt_ptr->task_id));
-    } else {
-        task_identifier * parent = task_identifier::get_task_id(string(APEX_MAIN));
-        dependency_queue.enqueue(new task_dependency(parent, tt_ptr->task_id));
-    }
+    task_identifier * parent = task_wrapper::get_apex_main_wrapper()->task_id;
+    dependency_queue.enqueue(new task_dependency(parent, id));
   }
 
   /* Communication send event. Save the number of bytes. */

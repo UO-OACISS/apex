@@ -14,10 +14,6 @@
 #include <hpx/config.hpp>
 #endif
 
-#include <string>
-#include <set>
-#include <vector>
-#include <stdint.h>
 #include "apex_types.h"
 #include "apex_options.hpp"
 #include "apex_export.h" 
@@ -26,6 +22,10 @@
 #include "task_wrapper.hpp" 
 #include <functional>
 #include <stdio.h>
+#include <string>
+#include <set>
+#include <vector>
+#include <stdint.h>
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
@@ -166,7 +166,7 @@ APEX_EXPORT profiler * start(task_wrapper * task_wrapper_ptr);
  \return No return value.
  \sa @ref apex::start, @ref apex::yield, @ref apex::resume
  */
-APEX_EXPORT void stop(profiler * the_profiler);
+APEX_EXPORT void stop(profiler * the_profiler, bool cleanup=true);
 
 /**
  \brief Stop a timer.

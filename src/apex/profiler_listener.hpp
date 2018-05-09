@@ -10,6 +10,8 @@
 #endif
 
 #include "apex_api.hpp"
+#include "profiler.hpp"
+#include "task_wrapper.hpp"
 #include "event_listener.hpp"
 #include "apex_types.h"
 #include <atomic>
@@ -180,7 +182,7 @@ public:
   void on_stop(std::shared_ptr<profiler> &p);
   void on_yield(std::shared_ptr<profiler> &p);
   bool on_resume(task_wrapper * tt_ptr);
-  void on_new_task(task_wrapper * tt_ptr, task_wrapper * parent_ptr);
+  void on_task_complete(task_wrapper * tt_ptr);
   void on_sample_value(sample_value_event_data &data);
   void on_periodic(periodic_event_data &data);
   void on_custom_event(custom_event_data &event_data);

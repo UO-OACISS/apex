@@ -816,7 +816,7 @@ namespace apex {
     }
 
     bool otf2_listener::on_start(task_wrapper * tt_ptr) {
-        task_identifier * id = tt_ptr->task_id;
+        task_identifier * id = tt_ptr->get_task_id();
         // don't close the archive on us!
         read_lock_type lock(_archive_mutex);
         // not likely, but just in case...

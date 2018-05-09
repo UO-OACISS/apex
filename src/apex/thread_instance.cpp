@@ -320,7 +320,7 @@ void thread_instance::clear_current_profiler(profiler * the_profiler, bool save_
                 tt_ptr->data_ptr.push_back(tmp);
                 /* Stop the copy. The original will get reset when the
                 parent resumes. */
-                stop(profiler_copy);  // we better be re-entrant safe!
+                stop(profiler_copy, false);  // we better be re-entrant safe!
             } else {
                 // since we aren't yielding, just stop the children.
                 stop(tmp);  // we better be re-entrant safe!
