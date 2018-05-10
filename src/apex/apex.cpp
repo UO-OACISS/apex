@@ -1054,7 +1054,9 @@ task_wrapper * update_task(task_wrapper * wrapper, const std::string &timer_name
     if (apex_options::suspend() == true) { return nullptr; }
     assert(wrapper);
     task_identifier * id = task_identifier::get_task_id(timer_name);
-    wrapper->aliases.insert(id);
+    if (id != wrapper->get_task_id()) {
+        wrapper->aliases.insert(id);
+    }
     return wrapper;
 }
 
