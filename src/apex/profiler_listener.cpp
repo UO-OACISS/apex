@@ -253,7 +253,7 @@ std::unordered_set<profile*> free_profiles;
     }
 #endif
     std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
-    unordered_map<task_identifier, profile*>::const_iterator it = task_map.find(*(p->task_id));
+    unordered_map<task_identifier, profile*>::const_iterator it = task_map.find(*(p->get_task_id()));
     if (it != task_map.end()) {
           // A profile for this ID already exists.
         theprofile = (*it).second;
@@ -272,22 +272,22 @@ std::unordered_set<profile*> free_profiles;
               unordered_set<task_identifier>::const_iterator it2;
               {
                   read_lock_type l(throttled_event_set_mutex);
-                it2 = throttled_tasks.find(*(p->task_id));
+                it2 = throttled_tasks.find(*(p->get_task_id()));
               }
               if (it2 == throttled_tasks.end()) {
                   // lock the set for insert
                   {
                         write_lock_type l(throttled_event_set_mutex);
                       // was it inserted when we were waiting?
-                      it2 = throttled_tasks.find(*(p->task_id));
+                      it2 = throttled_tasks.find(*(p->get_task_id()));
                       // no? OK - insert it.
                       if (it2 == throttled_tasks.end()) {
-                          throttled_tasks.insert(*(p->task_id));
+                          throttled_tasks.insert(*(p->get_task_id()));
                       }
                   }
                   if (apex_options::use_screen_output()) {
                       cout << "APEX: disabling lightweight timer "
-                           << p->task_id->get_name()
+                           << p->get_task_id()->get_name()
                             << endl;
                       fflush(stdout);
                   }
@@ -298,13 +298,13 @@ std::unordered_set<profile*> free_profiles;
       } else {
         // Create a new profile for this name.
         theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), tmp_num_counters, values, p->is_resume, p->is_counter ? APEX_COUNTER : APEX_TIMER);
-        task_map[*(p->task_id)] = theprofile;
+        task_map[*(p->get_task_id())] = theprofile;
         task_map_lock.unlock();
 #ifdef APEX_HAVE_HPX
 #ifdef APEX_REGISTER_HPX3_COUNTERS
         if(!_done) {
-            if(get_hpx_runtime_ptr() != nullptr && p->task_id->has_name()) {
-                std::string timer_name(p->task_id->get_name());
+            if(get_hpx_runtime_ptr() != nullptr && p->get_task_id()->has_name()) {
+                std::string timer_name(p->get_task_id()->get_name());
                 //Don't register timers containing "/"
                 if(timer_name.find("/") == std::string::npos) {
                     hpx::performance_counters::install_counter_type(
@@ -330,13 +330,13 @@ std::unordered_set<profile*> free_profiles;
         if (!p->is_counter) {
             static int thresh = RAND_MAX/100;
             if (std::rand() < thresh) {
-                /* before calling p->task_id->get_name(), make sure we create
+                /* before calling p->get_task_id()->get_name(), make sure we create
                  * a thread_instance object that is NOT a worker. */
                 thread_instance::instance(false);
                 std::unique_lock<std::mutex> task_map_lock(_mtx);
                 task_scatterplot_samples << p->normalized_timestamp() << " "
                             << p->elapsed()*profiler::get_cpu_mhz()*1000000 << " "
-                            << "'" << p->task_id->get_name() << "'" << endl;
+                            << "'" << p->get_task_id()->get_name() << "'" << endl;
                 int loc0 = task_scatterplot_samples.tellp();
                 if (loc0 > 32768) {
                     // lock access to the file
@@ -1319,7 +1319,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         // if we aren't processing profiler objects, just return.
         if (!apex_options::process_async_state()) { return; }
 #ifdef APEX_TRACE_APEX
-        if (p->task_id->name == "apex::process_profiles") { return; }
+        if (p->get_task_id()->name == "apex::process_profiles") { return; }
 #endif
       // we have to make a local copy, because lockfree queues DO NOT SUPPORT shared_ptrs!
       thequeue()->enqueue(p);

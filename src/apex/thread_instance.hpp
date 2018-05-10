@@ -97,7 +97,7 @@ public:
   static void add_open_profiler(profiler* p) {
       std::unique_lock<std::mutex> l(_open_profiler_mutex);
       std::stringstream ss;
-      ss << p->tt_ptr->get_task_id()->get_name();
+      ss << p->get_task_id()->get_name();
       ss << p->time_point_to_nanoseconds(p->start);
       open_profilers.insert(ss.str());
   }
@@ -105,7 +105,7 @@ public:
       if (p == NULL) return;
       std::unique_lock<std::mutex> l(_open_profiler_mutex);
       std::stringstream ss;
-      ss << p->tt_ptr->get_task_id()->get_name();
+      ss << p->get_task_id()->get_name();
       ss << p->time_point_to_nanoseconds(p->start);
       auto tmp = open_profilers.find(ss.str());
       if (tmp != open_profilers.end()) {
