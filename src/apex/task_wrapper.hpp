@@ -16,7 +16,7 @@ struct task_wrapper {
     profiler * prof;
     uint64_t guid;
     uint64_t parent_guid;
-    task_wrapper * parent;
+    std::shared_ptr<task_wrapper> parent;
     std::vector<profiler*> data_ptr;
     std::unordered_set<task_identifier*> aliases;
     task_wrapper(void) : 
@@ -39,13 +39,13 @@ struct task_wrapper {
         }
         return task_id;
     }
-    static inline task_wrapper * get_apex_main_wrapper(void) {
-        static task_wrapper * tt_ptr = nullptr;
-        if (tt_ptr != nullptr) {
+    static inline std::shared_ptr<task_wrapper> & get_apex_main_wrapper(void) {
+        static std::shared_ptr<task_wrapper> tt_ptr(nullptr);
+        if (tt_ptr.get() != nullptr) {
             return tt_ptr;
         }
         const std::string apex_main_str("APEX MAIN");
-        tt_ptr = new task_wrapper();
+        tt_ptr = std::make_shared<task_wrapper>();
         tt_ptr->task_id = task_identifier::get_task_id(apex_main_str);
         return tt_ptr;
     }

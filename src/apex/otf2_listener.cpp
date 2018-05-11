@@ -815,7 +815,7 @@ namespace apex {
         return;
     }
 
-    bool otf2_listener::on_start(task_wrapper * tt_ptr) {
+    bool otf2_listener::on_start(std::shared_ptr<task_wrapper> &tt_ptr) {
         task_identifier * id = tt_ptr->get_task_id();
         // don't close the archive on us!
         read_lock_type lock(_archive_mutex);
@@ -852,7 +852,7 @@ namespace apex {
         return false;
     }
 
-    bool otf2_listener::on_resume(task_wrapper * tt_ptr) {
+    bool otf2_listener::on_resume(std::shared_ptr<task_wrapper> &tt_ptr) {
         return on_start(tt_ptr);
     }
 

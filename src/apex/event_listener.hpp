@@ -117,11 +117,11 @@ public:
   virtual void on_new_node(node_event_data &data) = 0;
   virtual void on_new_thread(new_thread_event_data &data) = 0;
   virtual void on_exit_thread(event_data &data) = 0;
-  virtual bool on_start(task_wrapper * tt_ptr) = 0;
+  virtual bool on_start(std::shared_ptr<task_wrapper> &tt_ptr) = 0;
   virtual void on_stop(std::shared_ptr<profiler> &p) = 0;
   virtual void on_yield(std::shared_ptr<profiler> &p) = 0;
-  virtual bool on_resume(task_wrapper * tt_ptr) = 0;
-  virtual void on_task_complete(task_wrapper * tt_ptr) = 0;
+  virtual bool on_resume(std::shared_ptr<task_wrapper> &tt_ptr) = 0;
+  virtual void on_task_complete(std::shared_ptr<task_wrapper> &tt_ptr) = 0;
   virtual void on_sample_value(sample_value_event_data &data) = 0;
   virtual void on_periodic(periodic_event_data &data) = 0;
   virtual void on_custom_event(custom_event_data &data) = 0;

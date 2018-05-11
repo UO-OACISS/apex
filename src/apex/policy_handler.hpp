@@ -96,11 +96,11 @@ public:
     void on_new_node(node_event_data &data);
     void on_new_thread(new_thread_event_data &data);
     void on_exit_thread(event_data &data);
-    bool on_start(task_wrapper * tt_ptr);
+    bool on_start(std::shared_ptr<task_wrapper> &tt_ptr);
     void on_stop(std::shared_ptr<profiler> &p);
     void on_yield(std::shared_ptr<profiler> &p);
-    bool on_resume(task_wrapper * tt_ptr);
-    void on_task_complete(task_wrapper * tt_ptr) { 
+    bool on_resume(std::shared_ptr<task_wrapper> &tt_ptr);
+    void on_task_complete(std::shared_ptr<task_wrapper> &tt_ptr) { 
         APEX_UNUSED(tt_ptr);
     };
     void on_sample_value(sample_value_event_data &data);

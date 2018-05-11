@@ -32,6 +32,7 @@
 #include "apex_options.hpp"
 #include "apex_export.h"
 #include <unordered_map>
+#include <unordered_set>
 #include "apex_cxx_shared_lock.hpp"
 
 #ifdef APEX_HAVE_RCR
@@ -99,6 +100,7 @@ public:
     std::vector<int (*)()> finalize_functions;
     std::string m_my_locality;
     std::unordered_map<int, std::string> custom_event_names;
+    //std::unordered_set<std::shared_ptr<task_wrapper> > active_task_wrappers;
     shared_mutex_type custom_event_mutex;
     shared_mutex_type listener_mutex;
     std::list<apex_policy_handle*> apex_policy_handles;

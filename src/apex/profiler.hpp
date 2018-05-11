@@ -72,7 +72,7 @@ class profiler {
 private:
     task_identifier * task_id; // for counters, timers
 public:
-    task_wrapper * tt_ptr;     // for timers
+    std::shared_ptr<task_wrapper> tt_ptr;     // for timers
     MYCLOCK::time_point start;
     MYCLOCK::time_point end;
 #if APEX_HAVE_PAPI
@@ -93,7 +93,7 @@ public:
         return task_id;
     }
     // this constructor is for regular timers
-    profiler(task_wrapper * task,
+    profiler(std::shared_ptr<task_wrapper> &task,
              bool resume = false,
              reset_type reset = reset_type::NONE) :
         task_id(task->get_task_id()),

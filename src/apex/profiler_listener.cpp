@@ -1259,7 +1259,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
 
   /* When a start event happens, create a profiler object. Unless this
    * named event is throttled, in which case do nothing, as quickly as possible */
-  inline bool profiler_listener::_common_start(task_wrapper * tt_ptr, bool is_resume) {
+  inline bool profiler_listener::_common_start(std::shared_ptr<task_wrapper> &tt_ptr, bool is_resume) {
     if (!_done) {
 #if defined(APEX_THROTTLE)
       if (!apex_options::use_tau()) {
@@ -1352,13 +1352,13 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
   }
 
   /* Start the timer */
-  bool profiler_listener::on_start(task_wrapper * tt_ptr) {
+  bool profiler_listener::on_start(std::shared_ptr<task_wrapper> &tt_ptr) {
     return _common_start(tt_ptr, false);
   }
 
   /* This is just like starting a timer, but don't increment the number of calls
    * value. That is because we are restarting an existing timer. */
-  bool profiler_listener::on_resume(task_wrapper * tt_ptr) {
+  bool profiler_listener::on_resume(std::shared_ptr<task_wrapper> &tt_ptr) {
     return _common_start(tt_ptr, true);
   }
 
@@ -1393,7 +1393,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
     }
   }
 
-  void profiler_listener::on_task_complete(task_wrapper * tt_ptr) {
+  void profiler_listener::on_task_complete(std::shared_ptr<task_wrapper> &tt_ptr) {
     //printf("New task: %llu\n", task_id); fflush(stdout);
     if (!apex_options::use_taskgraph_output()) { return; }
     // get the right task identifier, based on whether there are aliases
