@@ -1125,6 +1125,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
 
       // output to screen?
       if ((apex_options::use_screen_output() ||
+           apex_options::use_taskgraph_output() ||
            apex_options::use_csv_output()) && node_id == 0)
       {
         size_t ignored = 0;
