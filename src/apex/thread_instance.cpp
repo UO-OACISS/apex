@@ -261,7 +261,7 @@ void thread_instance::set_current_profiler(profiler * the_profiler) {
     instance().current_profilers.push_back(the_profiler);
 }
 
-profiler * thread_instance::restore_children_profilers(std::shared_ptr<task_wrapper> tt_ptr) {
+profiler * thread_instance::restore_children_profilers(std::shared_ptr<task_wrapper> &tt_ptr) {
     profiler * parent = instance().get_current_profiler();
     // if there are no children to restore, return.
     if (tt_ptr == nullptr || tt_ptr->data_ptr.size() == 0) {return parent;}
@@ -282,7 +282,7 @@ profiler * thread_instance::restore_children_profilers(std::shared_ptr<task_wrap
     return parent;
 }
 
-void thread_instance::clear_current_profiler(profiler * the_profiler, bool save_children, std::shared_ptr<task_wrapper> tt_ptr) {
+void thread_instance::clear_current_profiler(profiler * the_profiler, bool save_children, std::shared_ptr<task_wrapper> &tt_ptr) {
     // this is a stack variable that provides safety when using recursion.
     static APEX_NATIVE_TLS bool fixing_stack = false;
     // this is a serious problem...

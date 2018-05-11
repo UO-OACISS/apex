@@ -41,6 +41,9 @@ class apex_tuning_request;
 namespace apex
 {
 
+// declare a default "null" pointer for std::shared_ptr<task_wrapper>& references
+static std::shared_ptr<task_wrapper> null_task_wrapper(nullptr);
+
 // These are all static functions for the class. There should be only
 // one APEX object in the process space.
 
@@ -134,7 +137,7 @@ APEX_EXPORT profiler * start(const std::string &timer_name);
          call when the timer should be stopped.
  \sa @ref apex::stop, @ref apex::yield, @ref apex::resume
  */
-APEX_EXPORT profiler * start(apex_function_address function_address);
+APEX_EXPORT profiler * start(const apex_function_address function_address);
 
 /**
  \brief Start a timer.
@@ -153,7 +156,7 @@ APEX_EXPORT profiler * start(apex_function_address function_address);
          call when the timer should be stopped.
  \sa @ref apex::stop, @ref apex::yield, @ref apex::resume @ref apex::new_task
  */
-APEX_EXPORT profiler * start(std::shared_ptr<task_wrapper> task_wrapper_ptr);
+APEX_EXPORT profiler * start(std::shared_ptr<task_wrapper> &task_wrapper_ptr);
 
 /**
  \brief Stop a timer.
@@ -179,7 +182,7 @@ APEX_EXPORT void stop(profiler * the_profiler, bool cleanup=true);
  \return No return value.
  \sa @ref apex::start, @ref apex::yield, @ref apex::resume, @ref apex::new_task
  */
-APEX_EXPORT void stop(std::shared_ptr<task_wrapper> task_wrapper_ptr);
+APEX_EXPORT void stop(std::shared_ptr<task_wrapper> &task_wrapper_ptr);
 
 /**
  \brief Stop a timer, but don't increment the number of calls.
@@ -209,7 +212,7 @@ APEX_EXPORT void yield(profiler * the_profiler);
  \return No return value.
  \sa @ref apex::start, @ref apex::stop, @ref apex::resume
  */
-APEX_EXPORT void yield(std::shared_ptr<task_wrapper> task_wrapper_ptr);
+APEX_EXPORT void yield(std::shared_ptr<task_wrapper> &task_wrapper_ptr);
 
 /**
  \brief Resume a timer.
@@ -247,7 +250,7 @@ APEX_EXPORT profiler * resume(const std::string &timer_name);
          call when the timer should be stopped.
  \sa apex::stop, apex::yield, apex::start
  */
-APEX_EXPORT profiler * resume(apex_function_address function_address);
+APEX_EXPORT profiler * resume(const apex_function_address function_address);
 
 /**
  \brief Resume a timer.
@@ -269,7 +272,7 @@ APEX_EXPORT profiler * resume(apex_function_address function_address);
          call when the timer should be stopped.
  \sa apex::stop, apex::yield, apex::start
  */
-APEX_EXPORT profiler * resume(std::shared_ptr<task_wrapper> task_wrapper_ptr);
+APEX_EXPORT profiler * resume(std::shared_ptr<task_wrapper> &task_wrapper_ptr);
 
 /*
  * Functions for resetting timer values
@@ -336,7 +339,10 @@ APEX_EXPORT void sample_value(const std::string &name, double value);
  \return pointer to an apex::task_wrapper object
  */
 
-APEX_EXPORT std::shared_ptr<task_wrapper> new_task(const std::string &name, uint64_t task_id = UINTMAX_MAX, std::shared_ptr<apex::task_wrapper> parent_task = nullptr);
+APEX_EXPORT std::shared_ptr<task_wrapper> new_task(
+    const std::string &name, 
+    const uint64_t task_id = UINTMAX_MAX, 
+    const std::shared_ptr<apex::task_wrapper> &parent_task = null_task_wrapper);
 
 /**
  \brief Create a new task (dependency).
@@ -349,7 +355,10 @@ APEX_EXPORT std::shared_ptr<task_wrapper> new_task(const std::string &name, uint
  \return pointer to an apex::task_wrapper object
  */
 
-APEX_EXPORT std::shared_ptr<task_wrapper> new_task(apex_function_address function_address, uint64_t task_id = UINTMAX_MAX, std::shared_ptr<apex::task_wrapper> parent_task = nullptr);
+APEX_EXPORT std::shared_ptr<task_wrapper> new_task(
+    const apex_function_address function_address,
+    const uint64_t task_id = UINTMAX_MAX,
+    const std::shared_ptr<apex::task_wrapper> &parent_task = null_task_wrapper);
 
 /**
  \brief Update a task (dependency).
@@ -360,7 +369,7 @@ APEX_EXPORT std::shared_ptr<task_wrapper> new_task(apex_function_address functio
  \param name The new name of the timer.
  */
 
-APEX_EXPORT std::shared_ptr<task_wrapper> update_task(std::shared_ptr<task_wrapper> wrapper, const std::string &name);
+APEX_EXPORT std::shared_ptr<task_wrapper> update_task(std::shared_ptr<task_wrapper> &wrapper, const std::string &name);
 
 /**
  \brief Update a task wrapper (dependency).
@@ -371,7 +380,7 @@ APEX_EXPORT std::shared_ptr<task_wrapper> update_task(std::shared_ptr<task_wrapp
  \param function_address The new function address of the timer.
  */
 
-APEX_EXPORT std::shared_ptr<task_wrapper> update_task(std::shared_ptr<task_wrapper> wrapper, apex_function_address function_address);
+APEX_EXPORT std::shared_ptr<task_wrapper> update_task(std::shared_ptr<task_wrapper> &wrapper, apex_function_address function_address);
 
 /**
  \brief Register an event type with APEX.
