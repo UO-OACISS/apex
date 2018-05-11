@@ -31,7 +31,7 @@ inline int foo (int i) {
   return dummy;
 }
 
-inline int bar (int i, apex::task_wrapper * foo_ptr) {
+inline int bar (int i, std::shared_ptr<apex::task_wrapper> foo_ptr) {
   static int limit = sqrt(INT_MAX >> 1);
   int j;
   int dummy = 1;
@@ -86,7 +86,7 @@ void* someThread(void* tmp)
   { // only time this for loop
     apex::profiler * st = apex::start((apex_function_address)someThread);
     for (i = 0 ; i < ITERATIONS ; i++) {
-        apex::task_wrapper * foo_ptr = apex::new_task((apex_function_address)foo);
+        std::shared_ptr<apex::task_wrapper> foo_ptr = apex::new_task((apex_function_address)foo);
         apex::start(foo_ptr);
         total += foo(i);
         total += bar(i, foo_ptr);

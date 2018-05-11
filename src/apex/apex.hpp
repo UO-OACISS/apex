@@ -32,6 +32,7 @@
 #include "apex_options.hpp"
 #include "apex_export.h"
 #include <unordered_map>
+#include <unordered_set>
 #include "apex_cxx_shared_lock.hpp"
 
 #ifdef APEX_HAVE_RCR

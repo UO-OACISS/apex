@@ -84,10 +84,10 @@ public:
   static bool map_id_to_worker(int id);
   static int get_num_threads(void) { return _num_threads; };
   std::string map_addr_to_name(apex_function_address function_address);
-  static profiler * restore_children_profilers(task_wrapper * tt_ptr);
+  static profiler * restore_children_profilers(std::shared_ptr<task_wrapper> &tt_ptr);
   static void set_current_profiler(profiler * the_profiler);
   static profiler * get_current_profiler(void);
-  static void clear_current_profiler(profiler * the_profiler, bool save_children, task_wrapper * tt_ptr);
+  static void clear_current_profiler(profiler * the_profiler, bool save_children, std::shared_ptr<task_wrapper> &tt_ptr);
   static const char * program_path(void);
   static bool is_worker() { return instance()._is_worker; }
   static uint64_t get_guid() { return instance()._get_guid(); }
@@ -97,7 +97,7 @@ public:
   static void add_open_profiler(profiler* p) {
       std::unique_lock<std::mutex> l(_open_profiler_mutex);
       std::stringstream ss;
-      ss << p->task_id->get_name();
+      ss << p->get_task_id()->get_name();
       ss << p->time_point_to_nanoseconds(p->start);
       open_profilers.insert(ss.str());
   }
@@ -105,7 +105,7 @@ public:
       if (p == NULL) return;
       std::unique_lock<std::mutex> l(_open_profiler_mutex);
       std::stringstream ss;
-      ss << p->task_id->get_name();
+      ss << p->get_task_id()->get_name();
       ss << p->time_point_to_nanoseconds(p->start);
       auto tmp = open_profilers.find(ss.str());
       if (tmp != open_profilers.end()) {

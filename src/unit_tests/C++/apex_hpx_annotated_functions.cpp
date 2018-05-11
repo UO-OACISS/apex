@@ -8,6 +8,7 @@
 
 uint32_t numthreads = 0;
 int threads_per_core = 8;
+__thread uint64_t guid = 0;
 const int num_iterations = 10;
 
 #ifdef DEBUG
@@ -43,63 +44,19 @@ int nsleep(long miliseconds, int tid)
    return nanosleep(&req , &rem);
 }
 
+static void init_guid(int tid) {
+    guid = ((UINT64_MAX/numthreads) * tid);
+}
+
 void innerLoop(int *tid) {
     std::shared_ptr<apex::task_wrapper> tt_ptr = apex::new_task(__func__);
-#ifdef __DEBUG_PRINT__
-    std::stringstream buf;
-    buf << "APP: " << *tid << ": Starting thread " << tt_ptr->guid << "\n"; std::cout << buf.str();
-#endif
+    apex::update_task(tt_ptr, "foo");
     apex::start(tt_ptr);
 
     /* do some computation */
 	int ret = nsleep(10, *tid); // after - t: 10, af: 0
 
-	/* Start a timer like an "direct_action" */
-    std::shared_ptr<apex::task_wrapper> af = apex::new_task("direct_action", UINTMAX_MAX, tt_ptr);
-#ifdef __DEBUG_PRINT__
-    buf.str(""); buf.clear();
-    buf << "APP: " << *tid << ": Starting direct_action " << af->guid << "\n"; std::cout << buf.str();
-#endif
-    apex::start(af);
-
-    /* do some computation */
-	ret = nsleep(10, *tid); // after - t: 20, af: 10
-
-	/* "yield" the outer task */
-#ifdef __DEBUG_PRINT__
-    buf.str(""); buf.clear();
-    buf << "APP: " << *tid << ": Yielding thread " << tt_ptr->guid << "\n"; std::cout << buf.str();
-#endif
-	apex::yield(tt_ptr);
-
-    /* do some computation */
-	ret = nsleep(10, *tid); // after - t: 20, af: 10 - everyone yielded!
-
-	/* resume our current thread */
-#ifdef __DEBUG_PRINT__
-    buf.str(""); buf.clear();
-    buf << "APP: " << *tid << ": Resuming thread " << tt_ptr->guid << "\n"; std::cout << buf.str();
-#endif
-    apex::start(tt_ptr);
-
-    /* do some computation */
-	ret = nsleep(10, *tid); // after - t: 30, af: 20
-
-    /* stop the direct_action */
-#ifdef __DEBUG_PRINT__
-    buf.str(""); buf.clear();
-    buf << "APP: " << *tid << ": Stopping direct_action " << af->guid << "\n"; std::cout << buf.str();
-#endif
-    apex::stop(af);
-
-    /* do some computation */
-	ret = nsleep(10, *tid); // after - t: 40, af: 20
-
     /* stop the timer */
-#ifdef __DEBUG_PRINT__
-    buf.str(""); buf.clear();
-    buf << "APP: " << *tid << ": Stopping thread " << tt_ptr->guid << "\n"; std::cout << buf.str();
-#endif
     apex::stop(tt_ptr);
 }
 
@@ -115,6 +72,7 @@ void* someThread(void* tmp)
 #endif
 #endif
     apex::register_thread(name);
+    init_guid(*tid);
 
     apex::profiler* p = apex::start(__func__);
     for (int i = 0 ; i < num_iterations ; i++) {

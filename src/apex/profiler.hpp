@@ -5,13 +5,18 @@
 
 #pragma once
 
+// forward declaration
+namespace apex {
+class profiler;
+};
+
 #include <iostream>
 #include <sstream>
 #include <math.h>
 #include "apex_options.hpp"
 #include "apex_types.h"
 #include <chrono>
-#include "task_identifier.hpp"
+#include "task_wrapper.hpp"
 #if defined(APEX_HAVE_HPX)
 #include <hpx/util/hardware/timestamp.hpp>
 #endif
@@ -64,7 +69,10 @@ typedef rdtsc_clock<1> OneHzClock;
 #endif
 
 class profiler {
+private:
+    task_identifier * task_id; // for counters, timers
 public:
+    std::shared_ptr<task_wrapper> tt_ptr;     // for timers
     MYCLOCK::time_point start;
     MYCLOCK::time_point end;
 #if APEX_HAVE_PAPI
@@ -76,15 +84,20 @@ public:
     //apex_function_address action_address;
     //std::string * timer_name;
     //bool have_name;
-	task_identifier * task_id;
     uint64_t guid;
     bool is_counter;
     bool is_resume; // for yield or resume
     reset_type is_reset;
     bool stopped;
-    profiler(task_identifier * id,
+    task_identifier * get_task_id(void) {
+        return task_id;
+    }
+    // this constructor is for regular timers
+    profiler(std::shared_ptr<task_wrapper> &task,
              bool resume = false,
              reset_type reset = reset_type::NONE) :
+        task_id(task->get_task_id()),
+        tt_ptr(task),
         start(MYCLOCK::now()),
 #if APEX_HAVE_PAPI
         papi_start_values{0,0,0,0,0,0,0,0},
@@ -92,12 +105,31 @@ public:
 #endif
         value(0.0),
         children_value(0.0),
-		task_id(id),
         guid(0),
         is_counter(false),
         is_resume(resume),
         is_reset(reset), stopped(false) { };
+    // this constructor is for resetting profile values
+    profiler(task_identifier * id,
+             bool resume = false,
+             reset_type reset = reset_type::NONE) :
+        task_id(id),
+        tt_ptr(nullptr),
+        start(MYCLOCK::now()),
+#if APEX_HAVE_PAPI
+        papi_start_values{0,0,0,0,0,0,0,0},
+        papi_stop_values{0,0,0,0,0,0,0,0},
+#endif
+        value(0.0),
+        children_value(0.0),
+        guid(0),
+        is_counter(false),
+        is_resume(resume),
+        is_reset(reset), stopped(false) { };
+    // this constructor is for counters
     profiler(task_identifier * id, double value_) :
+        task_id(id),
+        tt_ptr(nullptr),
         start(MYCLOCK::now()),
 #if APEX_HAVE_PAPI
         papi_start_values{0,0,0,0,0,0,0,0},
@@ -105,25 +137,28 @@ public:
 #endif
         value(value_),
         children_value(0.0),
-		task_id(id),
         is_counter(true),
         is_resume(false),
         is_reset(reset_type::NONE), stopped(true) { };
     //copy constructor
-    profiler(const profiler& in) : start(in.start), end(in.end) {
+    profiler(const profiler& in) :
+        task_id(in.task_id),
+           tt_ptr(in.tt_ptr),
+        start(in.start),
+        end(in.end),
+        value(in.value),
+        children_value(in.children_value),
+        is_counter(in.is_counter),
+        is_resume(in.is_resume), // for yield or resume
+        is_reset(in.is_reset),
+        stopped(in.stopped)
+    {
 #if APEX_HAVE_PAPI
         for (int i = 0 ; i < 8 ; i++) {
             papi_start_values[i] = in.papi_start_values[i];
             papi_stop_values[i] = in.papi_stop_values[i];
         }
 #endif
-    value = in.value;
-    children_value = in.children_value;
-	task_id = in.task_id;
-    is_counter = in.is_counter;
-    is_resume = in.is_resume; // for yield or resume
-    is_reset = in.is_reset;
-    stopped = in.stopped;
     }
     ~profiler(void) { /* not much to do here. */ };
     // for "yield" support

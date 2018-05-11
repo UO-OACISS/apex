@@ -812,8 +812,8 @@ namespace apex {
         return;
     }
 
-    bool otf2_listener::on_start(task_wrapper * tt_ptr) {
-        task_identifier * id = tt_ptr->task_id;
+    bool otf2_listener::on_start(std::shared_ptr<task_wrapper> &tt_ptr) {
+        task_identifier * id = tt_ptr->get_task_id();
         // don't close the archive on us!
         read_lock_type lock(_archive_mutex);
         // not likely, but just in case...
@@ -849,7 +849,7 @@ namespace apex {
         return false;
     }
 
-    bool otf2_listener::on_resume(task_wrapper * tt_ptr) {
+    bool otf2_listener::on_resume(std::shared_ptr<task_wrapper> &tt_ptr) {
         return on_start(tt_ptr);
     }
 
@@ -865,7 +865,7 @@ namespace apex {
             // create an attribute
             OTF2_AttributeList_AddUint64( al, 0, p->guid );
             if (thread_instance::get_id() == 0) {
-                uint64_t idx = get_region_index(p->task_id);
+                uint64_t idx = get_region_index(p->get_task_id());
                 // Because the event writer for thread 0 is also
                 // used for communication events and sampled values,
                 // we have to get a lock for it.
@@ -879,7 +879,7 @@ namespace apex {
             } else {
                 uint64_t stamp = get_time();
                 OTF2_EC(OTF2_EvtWriter_Leave( local_evt_writer, al, stamp, 
-                        get_region_index(p->task_id) /* region */ ));
+                        get_region_index(p->get_task_id()) /* region */ ));
             }
             // delete the attribute list
             OTF2_AttributeList_Delete(al);

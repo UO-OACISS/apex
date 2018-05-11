@@ -141,12 +141,12 @@ bool concurrency_handler::common_start(task_identifier *id) {
   }
 }
 
-bool concurrency_handler::on_start(task_wrapper * tt_ptr) {
-    return common_start(tt_ptr->task_id);
+bool concurrency_handler::on_start(std::shared_ptr<task_wrapper> &tt_ptr) {
+    return common_start(tt_ptr->get_task_id());
 }
 
-bool concurrency_handler::on_resume(task_wrapper * tt_ptr) {
-    return common_start(tt_ptr->task_id);
+bool concurrency_handler::on_resume(std::shared_ptr<task_wrapper> &tt_ptr) {
+    return common_start(tt_ptr->get_task_id());
 }
 
 void concurrency_handler::common_stop(std::shared_ptr<profiler> &p) {

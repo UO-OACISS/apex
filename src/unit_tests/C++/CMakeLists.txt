@@ -35,6 +35,7 @@ set(example_programs
     apex_shutdown_throttling
     apex_hpx_direct_actions
     apex_hpx_task_wrapper_direct_actions
+    apex_hpx_annotated_functions
     apex_profiler_guids
     apex_fibonacci_std_async
    )

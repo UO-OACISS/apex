@@ -442,22 +442,22 @@ namespace apex {
 		call_policies(exit_thread_policies, (void *)&data, APEX_EXIT_THREAD);
 	}
 
-	bool policy_handler::on_start(task_wrapper * tt_ptr) {
-		call_policies(start_event_policies, (void *)tt_ptr->task_id, APEX_START_EVENT);
+	bool policy_handler::on_start(std::shared_ptr<task_wrapper> &tt_ptr) {
+		call_policies(start_event_policies, (void *)tt_ptr->get_task_id(), APEX_START_EVENT);
 		return true;
 	}
 
-	bool policy_handler::on_resume(task_wrapper * tt_ptr) {
-		call_policies(resume_event_policies, (void *)tt_ptr->task_id, APEX_RESUME_EVENT);
+	bool policy_handler::on_resume(std::shared_ptr<task_wrapper> &tt_ptr) {
+		call_policies(resume_event_policies, (void *)tt_ptr->get_task_id(), APEX_RESUME_EVENT);
 		return true;
 	}
 
 	void policy_handler::on_stop(std::shared_ptr<profiler> &p) {
-		call_policies(stop_event_policies, (void *)p->task_id, APEX_STOP_EVENT);
+		call_policies(stop_event_policies, (void *)p->tt_ptr->get_task_id(), APEX_STOP_EVENT);
 	}
 
 	void policy_handler::on_yield(std::shared_ptr<profiler> &p) {
-		call_policies(yield_event_policies, (void *)p->task_id, APEX_YIELD_EVENT);
+		call_policies(yield_event_policies, (void *)p->tt_ptr->get_task_id(), APEX_YIELD_EVENT);
 	}
 
 	void policy_handler::on_sample_value(sample_value_event_data &data) {

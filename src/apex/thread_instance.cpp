@@ -66,7 +66,6 @@ std::unordered_set<std::string> thread_instance::open_profilers;
 // Global static unordered map of parent GUIDs to child GUIDs
 // to handle "overlapping timer" problem.
 std::unordered_map<uint64_t, std::vector<profiler*>* > thread_instance::children_to_resume;
-static std::mutex _profiler_stack_mutex;
 
 thread_instance& thread_instance::instance(bool is_worker) {
   if( _instance == nullptr ) {
@@ -266,7 +265,7 @@ void thread_instance::set_current_profiler(profiler * the_profiler) {
     instance().current_profilers.push_back(the_profiler);
 }
 
-profiler * thread_instance::restore_children_profilers(task_wrapper * tt_ptr) {
+profiler * thread_instance::restore_children_profilers(std::shared_ptr<task_wrapper> &tt_ptr) {
     profiler * parent = instance().get_current_profiler();
     // if there are no children to restore, return.
     if (tt_ptr == nullptr || tt_ptr->data_ptr.size() == 0) {return parent;}
@@ -287,7 +286,7 @@ profiler * thread_instance::restore_children_profilers(task_wrapper * tt_ptr) {
     return parent;
 }
 
-void thread_instance::clear_current_profiler(profiler * the_profiler, bool save_children, task_wrapper * tt_ptr) {
+void thread_instance::clear_current_profiler(profiler * the_profiler, bool save_children, std::shared_ptr<task_wrapper> &tt_ptr) {
     // this is a stack variable that provides safety when using recursion.
     static APEX_NATIVE_TLS bool fixing_stack = false;
     // this is a serious problem...
@@ -324,7 +323,7 @@ void thread_instance::clear_current_profiler(profiler * the_profiler, bool save_
                 tt_ptr->data_ptr.push_back(tmp);
                 /* Stop the copy. The original will get reset when the
                 parent resumes. */
-                stop(profiler_copy);  // we better be re-entrant safe!
+                stop(profiler_copy, false);  // we better be re-entrant safe!
             } else {
                 // since we aren't yielding, just stop the children.
                 stop(tmp);  // we better be re-entrant safe!

@@ -139,30 +139,30 @@ void tau_listener::on_exit_thread(event_data &data) {
   return;
 }
 
-inline bool tau_listener::_common_start(task_wrapper * tt_ptr) {
+inline bool tau_listener::_common_start(std::shared_ptr<task_wrapper> &tt_ptr) {
   if (!_terminate) {
-    my_Tau_start(tt_ptr->task_id->get_name().c_str());
+    my_Tau_start(tt_ptr->get_task_id()->get_name().c_str());
   } else {
       return false;
   }
   return true;
 }
 
-bool tau_listener::on_start(task_wrapper * tt_ptr) {
+bool tau_listener::on_start(std::shared_ptr<task_wrapper> &tt_ptr) {
   return _common_start(tt_ptr);
 }
 
-bool tau_listener::on_resume(task_wrapper * tt_ptr) {
+bool tau_listener::on_resume(std::shared_ptr<task_wrapper> &tt_ptr) {
   return _common_start(tt_ptr);
 }
 
 inline void tau_listener::_common_stop(std::shared_ptr<profiler> &p) {
   static string empty("");
   if (!_terminate) {
-      if (p->task_id->get_name().compare(empty) == 0) {
+      if (p->tt_ptr->get_task_id()->get_name().compare(empty) == 0) {
           my_Tau_global_stop(); // stop the top level timer
       } else {
-          my_Tau_stop(p->task_id->get_name().c_str());
+          my_Tau_stop(p->tt_ptr->get_task_id()->get_name().c_str());
       }
   }
   return;

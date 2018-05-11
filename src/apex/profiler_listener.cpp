@@ -10,13 +10,13 @@
 
 #include "profiler_listener.hpp"
 #include "profiler.hpp"
+#include "task_wrapper.hpp"
 #include "thread_instance.hpp"
 #include <iostream>
 #include <iomanip>
 #include <fstream>
 #include <math.h>
 #include "apex_options.hpp"
-#include "profiler.hpp"
 #include "profile.hpp"
 #include "apex.hpp"
 
@@ -242,7 +242,7 @@ std::unordered_set<profile*> free_profiles;
     } 
 #ifdef APEX_WITH_JUPYTER_SUPPORT
     // restart the main timer
-    main_timer = std::make_shared<profiler>(task_identifier::get_task_id(string(APEX_MAIN)));
+    main_timer = std::make_shared<profiler>(task_wrapper::get_apex_main_wrapper());
 #endif
   }
 
@@ -272,7 +272,7 @@ std::unordered_set<profile*> free_profiles;
     }
 #endif
     std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
-    unordered_map<task_identifier, profile*>::const_iterator it = task_map.find(*(p->task_id));
+    unordered_map<task_identifier, profile*>::const_iterator it = task_map.find(*(p->get_task_id()));
     if (it != task_map.end()) {
           // A profile for this ID already exists.
         theprofile = (*it).second;
@@ -291,22 +291,22 @@ std::unordered_set<profile*> free_profiles;
               unordered_set<task_identifier>::const_iterator it2;
               {
                   read_lock_type l(throttled_event_set_mutex);
-                it2 = throttled_tasks.find(*(p->task_id));
+                it2 = throttled_tasks.find(*(p->get_task_id()));
               }
               if (it2 == throttled_tasks.end()) {
                   // lock the set for insert
                   {
                         write_lock_type l(throttled_event_set_mutex);
                       // was it inserted when we were waiting?
-                      it2 = throttled_tasks.find(*(p->task_id));
+                      it2 = throttled_tasks.find(*(p->get_task_id()));
                       // no? OK - insert it.
                       if (it2 == throttled_tasks.end()) {
-                          throttled_tasks.insert(*(p->task_id));
+                          throttled_tasks.insert(*(p->get_task_id()));
                       }
                   }
                   if (apex_options::use_screen_output()) {
                       cout << "APEX: disabling lightweight timer "
-                           << p->task_id->get_name()
+                           << p->get_task_id()->get_name()
                             << endl;
                       fflush(stdout);
                   }
@@ -317,13 +317,13 @@ std::unordered_set<profile*> free_profiles;
       } else {
         // Create a new profile for this name.
         theprofile = new profile(p->is_reset == reset_type::CURRENT ? 0.0 : p->elapsed(), tmp_num_counters, values, p->is_resume, p->is_counter ? APEX_COUNTER : APEX_TIMER);
-        task_map[*(p->task_id)] = theprofile;
+        task_map[*(p->get_task_id())] = theprofile;
         task_map_lock.unlock();
 #ifdef APEX_HAVE_HPX
 #ifdef APEX_REGISTER_HPX3_COUNTERS
         if(!_done) {
-            if(get_hpx_runtime_ptr() != nullptr && p->task_id->has_name()) {
-                std::string timer_name(p->task_id->get_name());
+            if(get_hpx_runtime_ptr() != nullptr && p->get_task_id()->has_name()) {
+                std::string timer_name(p->get_task_id()->get_name());
                 //Don't register timers containing "/"
                 if(timer_name.find("/") == std::string::npos) {
                     hpx::performance_counters::install_counter_type(
@@ -349,13 +349,13 @@ std::unordered_set<profile*> free_profiles;
         if (!p->is_counter) {
             static int thresh = RAND_MAX/100;
             if (std::rand() < thresh) {
-                /* before calling p->task_id->get_name(), make sure we create
+                /* before calling p->get_task_id()->get_name(), make sure we create
                  * a thread_instance object that is NOT a worker. */
                 thread_instance::instance(false);
                 std::unique_lock<std::mutex> task_map_lock(_mtx);
                 task_scatterplot_samples << p->normalized_timestamp() << " "
                             << p->elapsed()*profiler::get_cpu_mhz()*1000000 << " "
-                            << "'" << p->task_id->get_name() << "'" << endl;
+                            << "'" << p->get_task_id()->get_name() << "'" << endl;
                 int loc0 = task_scatterplot_samples.tellp();
                 if (loc0 > 32768) {
                     // lock access to the file
@@ -757,6 +757,13 @@ node_color * get_node_color(double v,double vmin,double vmax)
     }
     task_dependencies.clear();
 
+    // our TOTAL available time is the elapsed * the number of threads, or cores
+    int num_worker_threads = thread_instance::get_num_threads();
+#ifdef APEX_HAVE_HPX
+    num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
+#endif
+    //double total_main = main_timer->elapsed() * fmin(hardware_concurrency(), num_worker_threads);
+
     // output nodes with  "main" [shape=box; style=filled; fillcolor="#ff0000" ];
     unordered_map<task_identifier, profile*>::const_iterator it;
     std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
@@ -915,9 +922,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
           profiler_listener * pl = inst->the_profiler_listener;
           if (pl != nullptr) {
 #ifdef APEX_TRACE_APEX
-      profiler * p = start("apex::process_profiles");
-              pl->process_profiles();
-      stop(p);
+              scoped_timer p("apex::process_profiles");
 #else
               pl->process_profiles();
 #endif
@@ -1142,7 +1147,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
 #endif
 
       // time the whole application.
-      main_timer = std::make_shared<profiler>(task_identifier::get_task_id(string(APEX_MAIN)));
+      main_timer = std::make_shared<profiler>(task_wrapper::get_apex_main_wrapper());
 #if APEX_HAVE_PAPI
       if (num_papi_counters > 0 && !apex_options::papi_suspend() && thread_papi_state == papi_running) {
         int rc = PAPI_read( EventSet, main_timer->papi_start_values );
@@ -1167,6 +1172,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
 
       // output to screen?
       if ((apex_options::use_screen_output() ||
+           apex_options::use_taskgraph_output() ||
            apex_options::use_csv_output()) && node_id == 0)
       {
         size_t ignored = 0;
@@ -1239,7 +1245,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       }
 #endif
       // restart the main timer
-      main_timer = std::make_shared<profiler>(task_identifier::get_task_id(string(APEX_MAIN)));
+      main_timer = std::make_shared<profiler>(task_wrapper::get_apex_main_wrapper());
       if (data.reset) {
           reset_all();
       }
@@ -1306,7 +1312,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
 
   /* When a start event happens, create a profiler object. Unless this
    * named event is throttled, in which case do nothing, as quickly as possible */
-  inline bool profiler_listener::_common_start(task_wrapper * tt_ptr, bool is_resume) {
+  inline bool profiler_listener::_common_start(std::shared_ptr<task_wrapper> &tt_ptr, bool is_resume) {
     if (!_done) {
 #if defined(APEX_THROTTLE)
       if (!apex_options::use_tau()) {
@@ -1314,7 +1320,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         unordered_set<task_identifier>::const_iterator it;
         {
               read_lock_type l(throttled_event_set_mutex);
-            it = throttled_tasks.find(*tt_ptr->task_id);
+            it = throttled_tasks.find(*tt_ptr->get_task_id());
         }
         if (it != throttled_tasks.end()) {
             /*
@@ -1327,8 +1333,9 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       }
 #endif
       // start the profiler object, which starts our timers
-      //std::shared_ptr<profiler> p = std::make_shared<profiler>(tt_ptr->task_id, is_resume);
-      profiler * p = new profiler(tt_ptr->task_id, is_resume);
+      //std::shared_ptr<profiler> p = std::make_shared<profiler>(tt_ptr, is_resume);
+      // get the right task identifier, based on whether there are aliases
+      profiler * p = new profiler(tt_ptr, is_resume);
       p->guid = thread_instance::get_guid();
       thread_instance::instance().set_current_profiler(p);
 #if APEX_HAVE_PAPI
@@ -1361,7 +1368,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         // if we aren't processing profiler objects, just return.
         if (!apex_options::process_async_state()) { return; }
 #ifdef APEX_TRACE_APEX
-        if (p->task_id->name == "apex::process_profiles") { return; }
+        if (p->get_task_id()->name == "apex::process_profiles") { return; }
 #endif
       // we have to make a local copy, because lockfree queues DO NOT SUPPORT shared_ptrs!
       thequeue()->enqueue(p);
@@ -1398,13 +1405,13 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
   }
 
   /* Start the timer */
-  bool profiler_listener::on_start(task_wrapper * tt_ptr) {
+  bool profiler_listener::on_start(std::shared_ptr<task_wrapper> &tt_ptr) {
     return _common_start(tt_ptr, false);
   }
 
   /* This is just like starting a timer, but don't increment the number of calls
    * value. That is because we are restarting an existing timer. */
-  bool profiler_listener::on_resume(task_wrapper * tt_ptr) {
+  bool profiler_listener::on_resume(std::shared_ptr<task_wrapper> &tt_ptr) {
     return _common_start(tt_ptr, true);
   }
 
@@ -1442,22 +1449,19 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
     }
   }
 
-  void profiler_listener::on_new_task(task_wrapper * tt_ptr, task_wrapper * parent_ptr) {
+  void profiler_listener::on_task_complete(std::shared_ptr<task_wrapper> &tt_ptr) {
     //printf("New task: %llu\n", task_id); fflush(stdout);
     if (!apex_options::use_taskgraph_output()) { return; }
+    // get the right task identifier, based on whether there are aliases
+    task_identifier * id = tt_ptr->get_task_id();
     // if the parent task is not null, use it (obviously)
-    if (parent_ptr != nullptr) {
-        dependency_queue()->enqueue(new task_dependency(parent_ptr->task_id, tt_ptr->task_id));
+    if (tt_ptr->parent != nullptr) {
+        task_identifier * pid = tt_ptr->parent->get_task_id();
+        dependency_queue.enqueue(new task_dependency(pid, id));
         return;
     }
-    // get the current profiler
-    profiler * p = thread_instance::instance().get_current_profiler();
-    if (p != NULL) {
-        dependency_queue()->enqueue(new task_dependency(p->task_id, tt_ptr->task_id));
-    } else {
-        task_identifier * parent = task_identifier::get_task_id(string(APEX_MAIN));
-        dependency_queue()->enqueue(new task_dependency(parent, tt_ptr->task_id));
-    }
+    task_identifier * parent = task_wrapper::get_apex_main_wrapper()->task_id;
+    dependency_queue.enqueue(new task_dependency(parent, id));
   }
 
   /* Communication send event. Save the number of bytes. */
