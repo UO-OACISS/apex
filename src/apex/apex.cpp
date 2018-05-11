@@ -1048,7 +1048,9 @@ std::shared_ptr<task_wrapper> new_task(
     return tt_ptr;
 }
 
-std::shared_ptr<task_wrapper> update_task(std::shared_ptr<task_wrapper> &wrapper, const std::string &timer_name) {
+std::shared_ptr<task_wrapper> update_task(
+    std::shared_ptr<task_wrapper> &wrapper, 
+    const std::string &timer_name) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return nullptr; }
     // if APEX is suspended, do nothing.
@@ -1061,7 +1063,9 @@ std::shared_ptr<task_wrapper> update_task(std::shared_ptr<task_wrapper> &wrapper
     return wrapper;
 }
 
-std::shared_ptr<task_wrapper> update_task(std::shared_ptr<task_wrapper> &wrapper, apex_function_address function_address) {
+std::shared_ptr<task_wrapper> update_task(
+    std::shared_ptr<task_wrapper> &wrapper, 
+    const apex_function_address function_address) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return nullptr; }
     // if APEX is suspended, do nothing.

@@ -369,7 +369,9 @@ APEX_EXPORT std::shared_ptr<task_wrapper> new_task(
  \param name The new name of the timer.
  */
 
-APEX_EXPORT std::shared_ptr<task_wrapper> update_task(std::shared_ptr<task_wrapper> &wrapper, const std::string &name);
+APEX_EXPORT std::shared_ptr<task_wrapper> update_task(
+    std::shared_ptr<task_wrapper> &wrapper, 
+    const std::string &name);
 
 /**
  \brief Update a task wrapper (dependency).
@@ -380,7 +382,9 @@ APEX_EXPORT std::shared_ptr<task_wrapper> update_task(std::shared_ptr<task_wrapp
  \param function_address The new function address of the timer.
  */
 
-APEX_EXPORT std::shared_ptr<task_wrapper> update_task(std::shared_ptr<task_wrapper> &wrapper, apex_function_address function_address);
+APEX_EXPORT std::shared_ptr<task_wrapper> update_task(
+    std::shared_ptr<task_wrapper> &wrapper, 
+    const apex_function_address function_address);
 
 /**
  \brief Register an event type with APEX.
