@@ -896,7 +896,7 @@ public:
       std::ostringstream _s_foo; \
       _s_foo << __func__ << " [" << __FILE__ << ":" << __LINE__ << "]"; \
       _name_foo = std::string(_s_foo.str()); \
-    self_stopping_timer __foo(_name_foo); 
+    scoped_timer __foo(_name_foo); 
 
 } //namespace apex
 
