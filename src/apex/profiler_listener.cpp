@@ -742,8 +742,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
 #endif
-    double total_main = main_timer->elapsed() *
-        fmin(hardware_concurrency(), num_worker_threads);
+    //double total_main = main_timer->elapsed() * fmin(hardware_concurrency(), num_worker_threads);
 
     // output nodes with  "main" [shape=box; style=filled; fillcolor="#ff0000" ];
     unordered_map<task_identifier, profile*>::const_iterator it;
@@ -901,9 +900,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
           profiler_listener * pl = inst->the_profiler_listener;
           if (pl != nullptr) {
 #ifdef APEX_TRACE_APEX
-      profiler * p = start("apex::process_profiles");
-              pl->process_profiles();
-      stop(p);
+              scoped_timer p("apex::process_profiles");
 #else
               pl->process_profiles();
 #endif
@@ -1285,7 +1282,6 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       // start the profiler object, which starts our timers
       //std::shared_ptr<profiler> p = std::make_shared<profiler>(tt_ptr, is_resume);
       // get the right task identifier, based on whether there are aliases
-      task_identifier * id = tt_ptr->get_task_id();
       profiler * p = new profiler(tt_ptr, is_resume);
       p->guid = thread_instance::get_guid();
       thread_instance::instance().set_current_profiler(p);

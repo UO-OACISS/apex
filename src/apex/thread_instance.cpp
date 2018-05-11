@@ -66,7 +66,6 @@ std::unordered_set<std::string> thread_instance::open_profilers;
 // Global static unordered map of parent GUIDs to child GUIDs
 // to handle "overlapping timer" problem.
 std::unordered_map<uint64_t, std::vector<profiler*>* > thread_instance::children_to_resume;
-static std::mutex _profiler_stack_mutex;
 
 thread_instance& thread_instance::instance(bool is_worker) {
   if( _instance == nullptr ) {

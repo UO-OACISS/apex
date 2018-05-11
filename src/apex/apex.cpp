@@ -145,9 +145,9 @@ static void finalize_hpx_runtime(void) {
         }
     }
     // Tell other localities to shutdown APEX
-    apex_schedule_shutdown();
+    //apex_schedule_shutdown();
     // Shutdown APEX
-    finalize();
+    //finalize();
     hpx_finalized = true;
     FUNCTION_EXIT
 }
@@ -459,7 +459,7 @@ profiler* start(const std::string &timer_name)
         APEX_UTIL_REF_COUNT_APEX_INTERNAL_START
         return profiler::get_disabled_profiler(); // don't process our own events - queue scrubbing tasks.
     }
-#ifdef APEX_HAVE_HPX
+#ifdef APEX_HAVE_HPX_disabled
     // Finalize at the _start_ of HPX shutdown so that we can stop any
     // outstanding hpx::util::interval_timer instances. If any are left
     // running, HPX shutdown will never complete.
@@ -880,7 +880,7 @@ void stop(task_wrapper * tt_ptr) {
         }
     }
     // TODO - need to think about how to safely do this.  The parent may finish before the child.
-    delete(tt_ptr);
+    //delete(tt_ptr);
 }
 
 void yield(profiler* the_profiler)
