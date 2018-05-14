@@ -1,4 +1,4 @@
-![Lame APEX logo](doc/logo-cropped.png){:height="25%" width="25%"}
+![Lame APEX logo](doc/logo-cropped.png)
 
 Please Note:
 ===========
