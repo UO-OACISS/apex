@@ -37,7 +37,6 @@ set(example_programs
     apex_hpx_task_wrapper_direct_actions
     apex_hpx_annotated_functions
     apex_profiler_guids
-    apex_fibonacci_std_async
    )
     #apex_set_thread_cap
     #apex_setup_power_cap_throttling
@@ -50,6 +49,10 @@ endif (OPENMP_FOUND)
 
 if ((NOT PAPI_FOUND) AND (NOT OTF2_FOUND))
     set(example_programs "${example_programs};apex_pthread_flood")
+endif()
+
+if ((NOT OTF2_FOUND))
+    set(example_programs "${example_programs};apex_fibonacci_std_async")
 endif()
 
 # std::threads crash when linked statically. :(
