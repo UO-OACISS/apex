@@ -830,7 +830,7 @@ void stop(std::shared_ptr<task_wrapper> &tt_ptr) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { 
         APEX_UTIL_REF_COUNT_DISABLED_STOP
-        delete(tt_ptr);
+        tt_ptr = nullptr;
         return; 
     }
     if (tt_ptr == nullptr || tt_ptr->prof == nullptr) {
