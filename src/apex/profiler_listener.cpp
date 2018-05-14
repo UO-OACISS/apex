@@ -928,6 +928,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
 #endif
           }
       }
+      consumer_task_running.clear(memory_order_release);
   }
 
   bool profiler_listener::concurrent_cleanup(int i){
@@ -994,7 +995,6 @@ node_color * get_node_color(double v,double vmin,double vmax)
             }
         }
     }
-    consumer_task_running.clear(memory_order_release);
 #else
     // Main loop. Stay in this loop unless "done".
     while (!_done) {
@@ -1021,6 +1021,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
         if (apex_options::use_tau()) {
             Tau_stop("profiler_listener::process_profiles: main loop");
         }
+        // release the flag, and wait for the queue_signal
         consumer_task_running.clear(memory_order_release);
     }
 #endif
@@ -1249,6 +1250,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       if (data.reset) {
           reset_all();
       }
+      // on_dump() releasing the "task_running" flag
       consumer_task_running.clear(memory_order_release);
   }
 
@@ -1542,11 +1544,11 @@ void apex_schedule_process_profiles() {
         if(!consumer_task_running.test_and_set(memory_order_acq_rel)) {
             apex_internal_process_profiles_action act;
             try {
-                   hpx::apply(act, hpx::find_here());
+                hpx::apply(act, hpx::find_here());
             } catch(...) {
-                   // During shutdown, we can't schedule a new task,
-                   // so we process profiles ourselves.
-                   profiler_listener::process_profiles_wrapper();
+                // During shutdown, we can't schedule a new task,
+                // so we process profiles ourselves.
+                profiler_listener::process_profiles_wrapper();
             }
         }
     }
