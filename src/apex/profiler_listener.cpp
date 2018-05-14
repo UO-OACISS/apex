@@ -1457,11 +1457,11 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
     // if the parent task is not null, use it (obviously)
     if (tt_ptr->parent != nullptr) {
         task_identifier * pid = tt_ptr->parent->get_task_id();
-        dependency_queue.enqueue(new task_dependency(pid, id));
+        dependency_queue()->enqueue(new task_dependency(pid, id));
         return;
     }
     task_identifier * parent = task_wrapper::get_apex_main_wrapper()->task_id;
-    dependency_queue.enqueue(new task_dependency(parent, id));
+    dependency_queue()->enqueue(new task_dependency(parent, id));
   }
 
   /* Communication send event. Save the number of bytes. */
