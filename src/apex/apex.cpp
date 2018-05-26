@@ -640,7 +640,7 @@ profiler* resume(const std::string &timer_name) {
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
                 instance->listeners[i]->on_resume(tt_ptr);
             }
-        } catch (disabled_profiler_exception e) { 
+        } catch (disabled_profiler_exception &e) { 
             APEX_UTIL_REF_COUNT_FAILED_RESUME
             return profiler::get_disabled_profiler(); 
         }
@@ -681,7 +681,7 @@ profiler* resume(const apex_function_address function_address) {
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
                 instance->listeners[i]->on_resume(tt_ptr);
             }
-        } catch (disabled_profiler_exception e) { 
+        } catch (disabled_profiler_exception &e) { 
             APEX_UTIL_REF_COUNT_FAILED_RESUME
             return profiler::get_disabled_profiler(); 
         }
@@ -719,7 +719,7 @@ profiler* resume(profiler * p) {
             for (unsigned int i = 1 ; i < instance->listeners.size() ; i++) {
                 instance->listeners[i]->on_resume(p->tt_ptr);
             }
-        } catch (disabled_profiler_exception e) { 
+        } catch (disabled_profiler_exception &e) { 
             APEX_UTIL_REF_COUNT_FAILED_RESUME
             return profiler::get_disabled_profiler(); 
         }
@@ -1837,7 +1837,7 @@ extern "C" {
 
 } // extern "C"
 
-#ifdef APEX_HAVE_HPX
+#ifdef APEX_HAVE_HPX_disabled
 HPX_DECLARE_ACTION(APEX_TOP_LEVEL_PACKAGE::finalize, apex_internal_shutdown_action);
 HPX_ACTION_HAS_CRITICAL_PRIORITY(apex_internal_shutdown_action);
 HPX_PLAIN_ACTION(APEX_TOP_LEVEL_PACKAGE::finalize, apex_internal_shutdown_action);

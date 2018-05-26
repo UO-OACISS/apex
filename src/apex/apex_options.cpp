@@ -53,11 +53,11 @@ namespace apex
 #define apex_macro(name, member_variable, type, default_value) \
     option = getenv(#name); \
     if (option == NULL) { \
-        int length = strlen(default_value) + 1; \
+        size_t length = strlen(default_value) + 1; \
         _##member_variable = (type)(calloc(length, sizeof(char))); \
         strncpy(_##member_variable, default_value, length); \
     } else { \
-        int length = strlen(option) + 1; \
+        size_t length = strlen(option) + 1; \
         _##member_variable = (type)(calloc(length, sizeof(char))); \
         strncpy(_##member_variable, option, length); \
     }
@@ -68,11 +68,11 @@ namespace apex
     type _##member_variable; /* declare the local variable */ \
     option = getenv(#name); \
     if (option == NULL) { \
-        int length = strlen(default_value) + 1; \
+        size_t length = strlen(default_value) + 1; \
         _##member_variable = (type)(calloc(length, sizeof(char))); \
         strncpy(_##member_variable, default_value, length); \
     } else { \
-        int length = strlen(option) + 1; \
+        size_t length = strlen(option) + 1; \
         _##member_variable = (type)(calloc(length, sizeof(char))); \
         strncpy(_##member_variable, option, length); \
     }
