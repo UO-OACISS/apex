@@ -423,12 +423,16 @@ inline std::shared_ptr<task_wrapper> _new_task(
     const std::shared_ptr<task_wrapper> &parent_task, apex* instance) {
     std::shared_ptr<task_wrapper> tt_ptr = make_shared<task_wrapper>();
     tt_ptr->task_id = id;
+    // if not tracking dependencies, don't save the parent
+    if ((!apex_options::use_taskgraph_output()) &&
+         !apex_options::use_otf2()) {
+        tt_ptr->parent = task_wrapper::get_apex_main_wrapper();
     // was a parent passed in?
-    if (parent_task != nullptr) {
+    } else if (parent_task != nullptr) {
         tt_ptr->parent_guid = parent_task->guid;
         tt_ptr->parent = parent_task;
+    // if not, is there a current timer?
     } else {
-        // if not, is there a current timer?
         profiler * p = thread_instance::instance().get_current_profiler();
         if (p != nullptr) {
             tt_ptr->parent_guid = p->guid;
