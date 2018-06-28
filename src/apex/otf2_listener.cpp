@@ -428,6 +428,13 @@ namespace apex {
                 parent_guid_ref, parent_name_ref, parent_desc_ref, OTF2_TYPE_UINT64);
     }
 
+    inline void convert_upper(std::string& str, std::string& converted)
+    {
+        for(size_t i = 0; i < str.size(); ++i) {
+            converted += toupper(str[i]);
+        }
+    }
+
     void otf2_listener::write_otf2_regions(void) {
         // only write these out once!
         static APEX_NATIVE_TLS bool written = false;
@@ -437,14 +444,26 @@ namespace apex {
             string id = i.first;
             uint64_t idx = i.second;
             OTF2_GlobalDefWriter_WriteString( global_def_writer, get_string_index(id), id.c_str() );
-			size_t found = id.find(string("UNRESOLVED"));
+            OTF2_Paradigm paradigm = OTF2_PARADIGM_USER;
+            string uppercase;
+            convert_upper(id, uppercase);
+			size_t found = uppercase.find(string("APEX"));
+			if (found != std::string::npos) { paradigm = OTF2_PARADIGM_MEASUREMENT_SYSTEM; }
+			found = uppercase.find(string("UNRESOLVED"));
+			if (found != std::string::npos) { paradigm = OTF2_PARADIGM_MEASUREMENT_SYSTEM; }
+			found = uppercase.find(string("OPENMP"));
+			if (found != std::string::npos) { paradigm = OTF2_PARADIGM_OPENMP; }
+			found = uppercase.find(string("PTHREAD"));
+			if (found != std::string::npos) { paradigm = OTF2_PARADIGM_PTHREAD; }
+			found = uppercase.find(string("MPI"));
+			if (found != std::string::npos) { paradigm = OTF2_PARADIGM_MPI; }
             OTF2_GlobalDefWriter_WriteRegion( global_def_writer,
                     idx /* id */,
                     get_string_index(id) /* region name  */,
                     get_string_index(empty) /* alternative name */,
                     get_string_index(empty) /* description */,
                     (found != std::string::npos) ? OTF2_REGION_ROLE_ARTIFICIAL : OTF2_REGION_ROLE_TASK,
-					(found != std::string::npos) ? OTF2_PARADIGM_MEASUREMENT_SYSTEM : OTF2_PARADIGM_USER,
+					paradigm,
                     OTF2_REGION_FLAG_NONE,
                     get_string_index(empty) /* source file */,
                     get_string_index(empty) /* begin lno */,
@@ -812,6 +831,22 @@ namespace apex {
         return;
     }
 
+    void otf2_listener::write_papi_counters(OTF2_EvtWriter* writer, profiler* prof, uint64_t stamp) {
+        // create a union for storing the value
+        OTF2_MetricValue omv[1];
+        // tell the union what type this is
+        OTF2_Type omt[1];
+        omt[0]=OTF2_TYPE_DOUBLE;
+        int i = 0;
+        uint64_t idx = 0L;
+        for (auto metric : apex::instance()->the_profiler_listener->get_metric_names()) {
+            omv[0].floating_point = prof->papi_start_values[i++];
+            idx = get_metric_index(metric);
+            // write our counter into the event stream
+            OTF2_EC(OTF2_EvtWriter_Metric( writer, NULL, stamp, idx, 1, omt, omv ));
+        }
+    }
+
     bool otf2_listener::on_start(std::shared_ptr<task_wrapper> &tt_ptr) {
         task_identifier * id = tt_ptr->get_task_id();
         // don't close the archive on us!
@@ -826,8 +861,9 @@ namespace apex {
             // create an attribute
             OTF2_AttributeList_AddUint64( al, 0, tt_ptr->guid );
             OTF2_AttributeList_AddUint64( al, 1, tt_ptr->parent_guid );
+            uint64_t idx = get_region_index(id);
+            uint64_t stamp = 0L;
             if (thread_instance::get_id() == 0) {
-                uint64_t idx = get_region_index(id);
                 // Because the event writer for thread 0 is also
                 // used for communication events and sampled values,
                 // we have to get a lock for it.
@@ -836,11 +872,15 @@ namespace apex {
                 // profiler object. bummer. it has to be taken after
                 // the lock is acquired, so that events happen on
                 // thread 0 in monotonic order.
-                uint64_t stamp = get_time();
+                stamp = get_time();
                 OTF2_EC(OTF2_EvtWriter_Enter( local_evt_writer, al, stamp, idx /* region */ ));
+                // write PAPI metrics!
+                write_papi_counters(local_evt_writer, tt_ptr->prof, stamp);
             } else {
-                uint64_t stamp = get_time();
-                OTF2_EC(OTF2_EvtWriter_Enter( local_evt_writer, al, stamp, get_region_index(id) /* region */ ));
+                stamp = get_time();
+                OTF2_EC(OTF2_EvtWriter_Enter( local_evt_writer, al, stamp, idx /* region */ ));
+                // write PAPI metrics!
+                write_papi_counters(local_evt_writer, tt_ptr->prof, stamp);
             }
             // delete the attribute list
             OTF2_AttributeList_Delete(al);
@@ -864,22 +904,26 @@ namespace apex {
             OTF2_AttributeList * al = OTF2_AttributeList_New();
             // create an attribute
             OTF2_AttributeList_AddUint64( al, 0, p->guid );
+            // unfortunately, we can't use the timestamp from the
+            // profiler object. bummer. it has to be taken after
+            // the lock is acquired, so that events happen on
+            // thread 0 in monotonic order.
+            uint64_t stamp = 0L;
+            uint64_t idx = get_region_index(p->get_task_id());
             if (thread_instance::get_id() == 0) {
-                uint64_t idx = get_region_index(p->get_task_id());
                 // Because the event writer for thread 0 is also
                 // used for communication events and sampled values,
                 // we have to get a lock for it.
                 std::unique_lock<std::mutex> lock(_comm_mutex);
-                // unfortunately, we can't use the timestamp from the
-                // profiler object. bummer. it has to be taken after
-                // the lock is acquired, so that events happen on
-                // thread 0 in monotonic order.
-                uint64_t stamp = get_time();
+                stamp = get_time();
                 OTF2_EC(OTF2_EvtWriter_Leave( local_evt_writer, al, stamp, idx /* region */ ));
+                // write PAPI metrics!
+                write_papi_counters(local_evt_writer, p.get(), stamp);
             } else {
-                uint64_t stamp = get_time();
-                OTF2_EC(OTF2_EvtWriter_Leave( local_evt_writer, al, stamp, 
-                        get_region_index(p->get_task_id()) /* region */ ));
+                stamp = get_time();
+                OTF2_EC(OTF2_EvtWriter_Leave( local_evt_writer, al, stamp, idx /* region */ ));
+                // write PAPI metrics!
+                write_papi_counters(local_evt_writer, p.get(), stamp);
             }
             // delete the attribute list
             OTF2_AttributeList_Delete(al);

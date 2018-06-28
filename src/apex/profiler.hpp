@@ -108,7 +108,7 @@ public:
         guid(0),
         is_counter(false),
         is_resume(resume),
-        is_reset(reset), stopped(false) { };
+        is_reset(reset), stopped(false) { task->prof = this; };
     // this constructor is for resetting profile values
     profiler(task_identifier * id,
              bool resume = false,
