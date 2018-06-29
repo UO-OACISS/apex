@@ -160,7 +160,9 @@ namespace apex {
         std::map<std::string,uint64_t> reduced_region_map;
         std::map<std::string,uint64_t> reduced_metric_map;
         std::unique_ptr<std::tuple<std::map<int,int>, std::map<int,std::string> > > reduce_node_properties(std::string&& str);
+#if APEX_HAVE_PAPI
         void write_papi_counters(OTF2_EvtWriter* writer, profiler* prof, uint64_t stamp);
+#endif
     public:
         otf2_listener (void);
         //~otf2_listener (void) { shutdown_event_data data(my_saved_node_id,0); on_shutdown(data); };

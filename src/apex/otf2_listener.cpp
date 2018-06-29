@@ -831,6 +831,7 @@ namespace apex {
         return;
     }
 
+#if APEX_HAVE_PAPI
     void otf2_listener::write_papi_counters(OTF2_EvtWriter* writer, profiler* prof, uint64_t stamp) {
         // create a union for storing the value
         OTF2_MetricValue omv[1];
@@ -846,6 +847,7 @@ namespace apex {
             OTF2_EC(OTF2_EvtWriter_Metric( writer, NULL, stamp, idx, 1, omt, omv ));
         }
     }
+#endif
 
     bool otf2_listener::on_start(std::shared_ptr<task_wrapper> &tt_ptr) {
         task_identifier * id = tt_ptr->get_task_id();
@@ -874,13 +876,17 @@ namespace apex {
                 // thread 0 in monotonic order.
                 stamp = get_time();
                 OTF2_EC(OTF2_EvtWriter_Enter( local_evt_writer, al, stamp, idx /* region */ ));
+#if APEX_HAVE_PAPI
                 // write PAPI metrics!
                 write_papi_counters(local_evt_writer, tt_ptr->prof, stamp);
+#endif
             } else {
                 stamp = get_time();
                 OTF2_EC(OTF2_EvtWriter_Enter( local_evt_writer, al, stamp, idx /* region */ ));
+#if APEX_HAVE_PAPI
                 // write PAPI metrics!
                 write_papi_counters(local_evt_writer, tt_ptr->prof, stamp);
+#endif
             }
             // delete the attribute list
             OTF2_AttributeList_Delete(al);
@@ -917,13 +923,17 @@ namespace apex {
                 std::unique_lock<std::mutex> lock(_comm_mutex);
                 stamp = get_time();
                 OTF2_EC(OTF2_EvtWriter_Leave( local_evt_writer, al, stamp, idx /* region */ ));
+#if APEX_HAVE_PAPI
                 // write PAPI metrics!
                 write_papi_counters(local_evt_writer, p.get(), stamp);
+#endif
             } else {
                 stamp = get_time();
                 OTF2_EC(OTF2_EvtWriter_Leave( local_evt_writer, al, stamp, idx /* region */ ));
+#if APEX_HAVE_PAPI
                 // write PAPI metrics!
                 write_papi_counters(local_evt_writer, p.get(), stamp);
+#endif
             }
             // delete the attribute list
             OTF2_AttributeList_Delete(al);

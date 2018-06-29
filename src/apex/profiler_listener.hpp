@@ -212,7 +212,9 @@ public:
   static void consumer_process_profiles_wrapper(void);
   void public_process_profile(std::shared_ptr<profiler> &p) { process_profile(p,0); };
   bool concurrent_cleanup(int i);
+#if APEX_HAVE_PAPI
   std::vector<std::string>& get_metric_names(void) { return metric_names; };
+#endif
 };
 
 }
