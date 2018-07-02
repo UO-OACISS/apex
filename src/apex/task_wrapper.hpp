@@ -49,26 +49,6 @@ struct task_wrapper {
         tt_ptr->task_id = task_identifier::get_task_id(apex_main_str);
         return tt_ptr;
     }
-    static inline std::shared_ptr<task_wrapper> & get_apex_hpx_shutdown_wrapper(void) {
-        static std::shared_ptr<task_wrapper> tt_ptr(nullptr);
-        if (tt_ptr.get() != nullptr) {
-            return tt_ptr;
-        }
-        const std::string apex_shutdown_str("shutdown_all_action");
-        tt_ptr = std::make_shared<task_wrapper>();
-        tt_ptr->task_id = task_identifier::get_task_id(apex_shutdown_str);
-        return tt_ptr;
-    }
-    static inline std::shared_ptr<task_wrapper> & get_apex_hpx_timer_wrapper(void) {
-        static std::shared_ptr<task_wrapper> tt_ptr(nullptr);
-        if (tt_ptr.get() != nullptr) {
-            return tt_ptr;
-        }
-        const std::string apex_timer_str("at_timer (expire at)");
-        tt_ptr = std::make_shared<task_wrapper>();
-        tt_ptr->task_id = task_identifier::get_task_id(apex_timer_str);
-        return tt_ptr;
-    }
 }; // struct task_wrapper
 
 }; // namespace apex

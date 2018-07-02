@@ -54,9 +54,9 @@
 static void apex_schedule_shutdown(void);
 #endif
 
-#if 0
-#define FUNCTION_ENTER printf("enter %lu *** %s!\n", thread_instance::get_id(), __func__); fflush(stdout);
-#define FUNCTION_EXIT  printf("exit  %lu *** %s!\n", thread_instance::get_id(), __func__); fflush(stdout);
+#if APEX_DEBUG
+#define FUNCTION_ENTER printf("enter %lu *** %s:%d!\n", thread_instance::get_id(), __func__, __LINE__); fflush(stdout);
+#define FUNCTION_EXIT  printf("exit  %lu *** %s:%d!\n", thread_instance::get_id(), __func__, __LINE__); fflush(stdout);
 #else
 #define FUNCTION_ENTER
 #define FUNCTION_EXIT
@@ -211,7 +211,7 @@ void apex::_initialize()
 #ifdef APEX_HAVE_HPX
     this->m_hpx_runtime = nullptr;
     hpx::register_startup_function(init_hpx_runtime_ptr);
-    hpx::register_pre_shutdown_function(finalize_hpx_runtime);
+    //hpx::register_pre_shutdown_function(finalize_hpx_runtime);
 #endif
 #ifdef APEX_HAVE_RCR
     energyDaemonInit();
@@ -335,13 +335,16 @@ hpx::runtime * apex::get_hpx_runtime(void) {
 #endif
 
 uint64_t init(const char * thread_name, uint64_t comm_rank, uint64_t comm_size) {
+    FUNCTION_ENTER
     // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { return APEX_ERROR; }
+    if (apex_options::disable() == true) { FUNCTION_EXIT; return APEX_ERROR; }
     // protect against multiple initializations
 #ifdef APEX_WITH_JUPYTER_SUPPORT
     if (_registered || _initialized) { 
         // reset all counters, and return.
         reset(APEX_NULL_FUNCTION_ADDRESS);
+        
+        FUNCTION_EXIT
         return APEX_NOERROR; 
     }
 #else
@@ -356,6 +359,7 @@ uint64_t init(const char * thread_name, uint64_t comm_rank, uint64_t comm_size) 
                 instance->listeners[i]->set_node_id((int)comm_rank, (int)comm_size);
             }
         }
+        FUNCTION_EXIT
         return APEX_ERROR; 
     }
 #endif
@@ -370,7 +374,10 @@ uint64_t init(const char * thread_name, uint64_t comm_rank, uint64_t comm_size) 
       instance->set_num_ranks(comm_size);
     }
     //printf("Node %lu of %lu\n", comm_rank, comm_size);
-    if (!instance || _exited) return APEX_ERROR; // protect against calls after finalization
+    if (!instance || _exited) {
+        FUNCTION_EXIT
+        return APEX_ERROR; // protect against calls after finalization
+    }
     init_plugins();
     startup_event_data data(comm_rank, comm_size);
     if (_notify_listeners) {
@@ -406,6 +413,7 @@ uint64_t init(const char * thread_name, uint64_t comm_rank, uint64_t comm_size) 
     }
     /* register the finalization function, for program exit */
     std::atexit(cleanup);
+    FUNCTION_EXIT
     return APEX_NOERROR;
 }
 
@@ -466,23 +474,6 @@ profiler* start(const std::string &timer_name)
         APEX_UTIL_REF_COUNT_APEX_INTERNAL_START
         return profiler::get_disabled_profiler(); // don't process our own events - queue scrubbing tasks.
     }
-#ifdef APEX_HAVE_HPX_disabled
-    // Finalize at the _start_ of HPX shutdown so that we can stop any
-    // outstanding hpx::util::interval_timer instances. If any are left
-    // running, HPX shutdown will never complete.
-    //if (starts_with(timer_name, string("shutdown_all"))) {
-    static const std::string shutdown_str("shutdown_all_action");
-    if (timer_name.compare(shutdown_str) == 0) {
-        APEX_UTIL_REF_COUNT_HPX_SHUTDOWN_START
-        finalize();
-        return profiler::get_disabled_profiler();
-    }
-    static const std::string periodic_str("at_timer (expire at)");
-    if (timer_name.compare(periodic_str) == 0) {
-        APEX_UTIL_REF_COUNT_HPX_TIMER_START
-        return profiler::get_disabled_profiler();
-    }
-#endif
     apex* instance = apex::instance(); // get the Apex static instance
     // protect against calls after finalization
     if (!instance || _exited) {
@@ -571,7 +562,7 @@ void debug_print(const char * event, std::shared_ptr<task_wrapper> &tt_ptr) {
 }
 
 profiler* start(std::shared_ptr<task_wrapper> &tt_ptr) {
-#if defined(APEX_DEBUG_disabled)
+#if defined(APEX_DEBUG)//_disabled)
     debug_print("Start", tt_ptr);
 #endif
     if (tt_ptr == nullptr) {
@@ -828,7 +819,7 @@ void stop(profiler* the_profiler, bool cleanup) {
 }
 
 void stop(std::shared_ptr<task_wrapper> &tt_ptr) {
-#if defined(APEX_DEBUG_disabled)
+#if defined(APEX_DEBUG)//_disabled)
     debug_print("Stop", tt_ptr);
 #endif
     // if APEX is disabled, do nothing.
@@ -922,7 +913,7 @@ void yield(profiler* the_profiler)
 
 void yield(std::shared_ptr<task_wrapper> &tt_ptr)
 {
-#if defined(APEX_DEBUG_disabled)
+#if defined(APEX_DEBUG)//_disabled)
     debug_print("Yield", tt_ptr);
 #endif
     // if APEX is disabled, do nothing.
@@ -1124,12 +1115,14 @@ hpx::runtime * get_hpx_runtime_ptr(void) {
 #endif
 
 void init_plugins(void) {
-    if (apex_options::disable() == true) { return; }
 #ifdef APEX_USE_PLUGINS
+    FUNCTION_ENTER
+    if (apex_options::disable() == true) { return; }
     std::string plugin_names_str{apex_options::plugins()};
     std::string plugins_prefix{apex_options::plugins_path()};
     std::string plugins_suffix{".so"};
     if(plugin_names_str.empty()) {
+        FUNCTION_EXIT
         return;
     }
     std::vector<std::string> plugin_names;
@@ -1143,23 +1136,27 @@ void init_plugins(void) {
         void * plugin_handle = dlopen(path, RTLD_NOW);
         if(!plugin_handle) {
             std::cerr << "Error loading plugin " << path << ": " << dlerror() << std::endl;
+            FUNCTION_EXIT
             continue;
         }
         int (*init_fn)() = (int (*)()) ((uintptr_t) dlsym(plugin_handle, "apex_plugin_init"));
         if(!init_fn) {
             std::cerr << "Error loading apex_plugin_init from " << path << ": " << dlerror() << std::endl;
             dlclose(plugin_handle);
+            FUNCTION_EXIT
             continue;
         }
         int (*finalize_fn)() = (int (*)()) ((uintptr_t) dlsym(plugin_handle, "apex_plugin_finalize"));
         if(!finalize_fn) {
             std::cerr << "Error loading apex_plugin_finalize from " << path << ": " << dlerror() << std::endl;
             dlclose(plugin_handle);
+            FUNCTION_EXIT
             continue;
         }
         apex * instance = apex::instance();
         if(!instance) {
             std::cerr << "Error getting APEX instance while registering finalize function from " << path << std::endl;
+            FUNCTION_EXIT
             continue;
         }
         instance->finalize_functions.push_back(finalize_fn);
@@ -1167,16 +1164,18 @@ void init_plugins(void) {
         if(result != 0) {
             std::cerr << "Error: apex_plugin_init for " << path << " returned " << result << std::endl;
             dlclose(plugin_handle);
+            FUNCTION_EXIT
             continue;
         }
     }
+    FUNCTION_EXIT
 #endif
 }
 
 void finalize_plugins(void) {
+#ifdef APEX_USE_PLUGINS
     FUNCTION_ENTER
     if (apex_options::disable() == true) { return; }
-#ifdef APEX_USE_PLUGINS
     apex * instance = apex::instance();
     if(!instance) return;
     for(int (*finalize_function)() : instance->finalize_functions) {
@@ -1186,8 +1185,8 @@ void finalize_plugins(void) {
             continue;
         }
     }
-#endif
     FUNCTION_EXIT
+#endif
 }
 
 std::string dump(bool reset) {
@@ -1313,6 +1312,7 @@ void cleanup(void) {
 
 void register_thread(const std::string &name)
 {
+    FUNCTION_ENTER
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
     apex* instance = apex::instance(); // get the Apex static instance
@@ -1848,6 +1848,7 @@ HPX_PLAIN_ACTION(APEX_TOP_LEVEL_PACKAGE::finalize, apex_internal_shutdown_action
 
 void apex_schedule_shutdown() {
     if(get_hpx_runtime_ptr() == nullptr) return;
+    return;
     //if(!thread_instance::is_worker()) return;
     apex_internal_shutdown_action act;
     try {
