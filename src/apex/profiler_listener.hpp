@@ -19,9 +19,6 @@
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>
-#ifdef APEX_HAVE_HPX
-#include <boost/thread.hpp>
-#endif
 
 #include "profile.hpp"
 #include "thread_instance.hpp"
@@ -119,9 +116,7 @@ private:
   std::vector<std::string> metric_names;
   void initialize_PAPI(bool first_time);
 #endif
-#ifdef APEX_HAVE_HPX
-  boost::thread * consumer_thread;
-#else
+#ifndef APEX_HAVE_HPX
   std::thread * consumer_thread;
 #endif
   semaphore queue_signal;

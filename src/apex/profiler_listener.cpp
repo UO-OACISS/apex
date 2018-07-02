@@ -758,17 +758,21 @@ node_color * get_node_color(double v,double vmin,double vmax)
     task_dependencies.clear();
 
     // our TOTAL available time is the elapsed * the number of threads, or cores
+    /*
     int num_worker_threads = thread_instance::get_num_threads();
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
 #endif
-    //double total_main = main_timer->elapsed() * fmin(hardware_concurrency(), num_worker_threads);
+    double total_main = main_timer->elapsed() * fmin(hardware_concurrency(), num_worker_threads);
+    */
 
     // output nodes with  "main" [shape=box; style=filled; fillcolor="#ff0000" ];
     unordered_map<task_identifier, profile*>::const_iterator it;
     std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
     for(it = task_map.begin(); it != task_map.end(); it++) {
       profile * p = it->second;
+      // shouldn't happen, but?
+      if (p == nullptr) continue;
       if (p->get_type() == APEX_TIMER) {
         node_color * c = get_node_color_visible(p->get_mean(), 0.0, main_timer->elapsed());
         task_identifier task_id = it->first;
