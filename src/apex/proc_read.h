@@ -181,6 +181,7 @@ inline long long  read_dram (void) {
   fff=fopen("/sys/class/powercap/intel-rapl/intel-rapl:0/intel-rapl:0:0/energy_uj","r");
   if (fff==NULL) {
     //std::cerr << "Error opening dram!" << std::endl;
+    tmplong = 0LL;
   } else {
     fscanf(fff,"%lld",&tmplong);
     fclose(fff);
