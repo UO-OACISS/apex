@@ -11,11 +11,11 @@ if (${CMAKE_MAJOR_VERSION} GREATER 2)
   cmake_policy(SET CMP0042 NEW)
 endif()
 
-if (${CMAKE_MAJOR_VERSION} GREATER 2)
-    if (${CMAKE_MAJOR_VERSION} GREATER 1)
-        cmake_policy(SET CMP0054 OLD)
-    endif()
-endif()
+#if (${CMAKE_MAJOR_VERSION} GREATER 2)
+#    if (${CMAKE_MAJOR_VERSION} GREATER 1)
+#        cmake_policy(SET CMP0054 OLD)
+#    endif()
+#endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules")
 
