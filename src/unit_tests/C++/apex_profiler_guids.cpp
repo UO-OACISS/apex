@@ -13,7 +13,7 @@ const int num_tasks = 1<<8;
 
 void check_guid(uint64_t guid) {
     return;
-    std::unique_lock<std::mutex>(guid_mutex);
+    std::unique_lock<std::mutex> l(guid_mutex);
 #ifdef __VERBOSE_OUTPUT__
     // output like this so that we don't get interleaved output
     std::stringstream ss;

@@ -55,6 +55,9 @@ void innerLoop(int *tid) {
 
     /* do some computation */
 	int ret = nsleep(10, *tid); // after - t: 10, af: 0
+    if (ret != 0) {
+        perror("Error occurred while sleeping");
+    }
 
     /* stop the timer */
     apex::stop(tt_ptr);
