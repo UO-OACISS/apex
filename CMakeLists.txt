@@ -68,6 +68,7 @@ IF("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
   set(BUILD_TESTS TRUE)
   set(BUILD_EXAMPLES TRUE)
   add_definitions(-DDEBUG)
+  add_definitions(-DAPEX_DEBUG)
 endif()
 
 IF("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo")
