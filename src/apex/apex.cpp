@@ -65,6 +65,7 @@ static void apex_schedule_shutdown(void);
 APEX_NATIVE_TLS bool _registered = false;
 APEX_NATIVE_TLS bool _exited = false;
 static bool _initialized = false;
+static std::atomic<bool> _program_over(false);
 
 using namespace std;
 
@@ -550,6 +551,7 @@ profiler* start(const apex_function_address function_address) {
 }
 
 void debug_print(const char * event, std::shared_ptr<task_wrapper> &tt_ptr) {
+    if (_program_over) return;
     static std::mutex this_mutex;
     std::unique_lock<std::mutex> l(this_mutex);
     if (tt_ptr == nullptr) {
@@ -1279,6 +1281,7 @@ void finalize()
 
 void cleanup(void) {
     FUNCTION_ENTER
+    _program_over = true;
 #ifdef APEX_HAVE_HPX
     // prevent crash at shutdown.
     return;
