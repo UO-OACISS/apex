@@ -40,7 +40,6 @@ void apex_ompt_task_start(const char * state, ompt_data_t * task_id) {
 }
 
 void apex_ompt_task_stop(const char * state, ompt_data_t * task_id) {
-  fprintf(stderr,"stop %s : %llu\n", state, task_id->value); fflush(stderr);
   APEX_UNUSED(state);
   APEX_UNUSED(task_id);
   if (timer_stack->empty()) { // uh-oh...
@@ -104,7 +103,6 @@ static void apex_parallel_region_begin (
     ompt_invoker_t invoker,                      /* invoker of master task              */
     const void *codeptr_ra                       /* return address of runtime call      */
 ) {
-  //fprintf(stderr,"begin: %lu, %p, %lu, %u, %p\n", parent_task_id, parent_task_frame, parallel_id, requested_team_size, parallel_function); fflush(stderr);
     char regionIDstr[128] = {0}; 
     sprintf(regionIDstr, "OpenMP_PARALLEL_REGION: UNRESOLVED ADDR %p", codeptr_ra);
     apex_ompt_start(regionIDstr, parallel_data);
@@ -172,6 +170,60 @@ extern "C" void apex_implicit_task(
     }
     */
 }
+
+extern "C" void apex_target (
+    ompt_target_type_t kind,
+    ompt_scope_endpoint_t endpoint,
+    uint64_t device_num,
+    ompt_data_t *task_data,
+    ompt_id_t target_id,
+    const void *codeptr_ra
+) {
+}
+
+extern "C" void apex_target_data_op (
+    ompt_id_t target_id,
+    ompt_id_t host_op_id,
+    ompt_target_data_op_t optype,
+    void *host_addr,
+    void *device_addr,
+    size_t bytes
+) {
+}
+
+extern "C" void apex_target_submit (
+    ompt_id_t target_id,
+    ompt_id_t host_op_id
+) {
+}
+
+extern "C" void apex_device_initialize (
+    uint64_t device_num,
+    const char *type,
+    ompt_device_t *device,
+    ompt_function_lookup_t lookup,
+    const char *documentation
+);
+
+extern "C" void apex_device_finalize (
+    uint64_t device_num
+);
+
+extern "C" void apex_device_load_t (
+    uint64_t device_num,
+    const char * filename,
+    int64_t offset_in_file,
+    void * vma_in_file,
+    size_t bytes,
+    void * host_addr,
+    void * device_addr,
+    uint64_t module_id
+);
+
+extern "C" void apex_device_unload (
+    uint64_t device_num,
+    uint64_t module_id
+);
 
 extern "C" void apex_control(uint64_t command, uint64_t modifier) {
   APEX_UNUSED(command);
@@ -291,8 +343,14 @@ int ompt_initialize(ompt_function_lookup_t lookup, ompt_data_t* tool_data) {
     apex_ompt_register(ompt_callback_implicit_task,
         (ompt_callback_t)&apex_implicit_task, "implicit_task");
     // Event 8: target
+    apex_ompt_register(ompt_callback_target,
+        (ompt_callback_t)&apex_target, "target");
     // Event 9: target data operation
+    apex_ompt_register(ompt_callback_target_data_op,
+        (ompt_callback_t)&apex_target_data_op, "target_data_operation");
     // Event 10: target submit
+    apex_ompt_register(ompt_callback_target_submit,
+        (ompt_callback_t)&apex_target_submit, "target_submit");
     // Event 11: control tool
     apex_ompt_register(ompt_callback_control_tool,
         (ompt_callback_t)&apex_control, "event_control");

@@ -5,8 +5,8 @@ include_directories (${APEX_SOURCE_DIR}/src/apex)
 link_directories (${APEX_BINARY_DIR}/src/apex) 
 #link_directories (${APEX_BINARY_DIR}/src/apex_pthread_wrapper) 
 
-set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS} –fopenmp-targets=nvptx64-nvidia-cuda")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} –fopenmp-targets=nvptx64-nvidia-cuda")
 
 set(example_programs
     ompt_thread
@@ -14,6 +14,7 @@ set(example_programs
     ompt_task
     ompt_single
     ompt_sections
+    ompt_target
    )
 
 foreach(example_program ${example_programs})
@@ -29,7 +30,6 @@ foreach(example_program ${example_programs})
     add_dependencies (${example_program} apex)
     add_dependencies (tests ${example_program})
     add_test ("test_${example_program}" ${example_program})
-    set_tests_properties("test_${example_program}" PROPERTIES ENVIRONMENT "APEX_OMPT_REQUIRED_EVENTS_ONLY=0")
-    set_tests_properties("test_${example_program}" PROPERTIES ENVIRONMENT "APEX_OMPT_HIGH_OVERHEAD_EVENTS=1")
+    set_tests_properties("test_${example_program}" PROPERTIES ENVIRONMENT "APEX_SCREEN_OUTPUT=1;APEX_OMPT_HIGH_OVERHEAD_EVENTS=1")
 endforeach()
 
