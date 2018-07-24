@@ -128,7 +128,11 @@ extern "C" void apex_task_create (
     const void *codeptr_ra                       /* return address of runtime call      */
 ) {
     char regionIDstr[128] = {0}; 
-    sprintf(regionIDstr, "OpenMP_TASK: UNRESOLVED ADDR %p", codeptr_ra);
+    if (codeptr_ra != NULL) {
+        sprintf(regionIDstr, "OpenMP_TASK: UNRESOLVED ADDR %p", codeptr_ra);
+    } else {
+        sprintf(regionIDstr, "OpenMP_TASK");
+    }
     apex::sample_value(std::string(regionIDstr),1);
 }
  
@@ -159,16 +163,14 @@ extern "C" void apex_implicit_task(
     unsigned int team_size,               /* team size                           */
     unsigned int thread_num               /* thread number of calling thread     */
   ) {
-    apex::sample_value(std::string("OpenMP_IMPLICIT_TASK"),1);
-    /*
     if (endpoint == ompt_scope_begin) {
-        fprintf(stderr,"implicit task start, %u of %u : %llu\n", thread_num, team_size, task_data->value); fflush(stderr);
+        apex::sample_value(std::string("OpenMP_IMPLICIT_TASK"),1);
+        //fprintf(stderr,"implicit task start, %u of %u : %lu\n", thread_num, team_size, task_data->value); fflush(stderr);
         apex_ompt_task_start("OpenMP_IMPLICIT_TASK", task_data);
     } else {
-        fprintf(stderr,"implicit task stop, %u of %u : %llu\n", thread_num, team_size, task_data->value); fflush(stderr);
+        //fprintf(stderr,"implicit task stop, %u of %u : %lu\n", thread_num, team_size, task_data->value); fflush(stderr);
         apex_ompt_task_stop("OpenMP_IMPLICIT_TASK", task_data);
     }
-    */
 }
 
 extern "C" void apex_target (

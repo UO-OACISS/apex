@@ -5,8 +5,8 @@ include_directories (${APEX_SOURCE_DIR}/src/apex)
 link_directories (${APEX_BINARY_DIR}/src/apex) 
 #link_directories (${APEX_BINARY_DIR}/src/apex_pthread_wrapper) 
 
-set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS} –fopenmp-targets=nvptx64-nvidia-cuda")
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} –fopenmp-targets=nvptx64-nvidia-cuda")
+set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 
 set(example_programs
     ompt_thread
@@ -23,7 +23,7 @@ foreach(example_program ${example_programs})
     source_group("Source Files" FILES ${sources})
 
     add_executable(${example_program} ${sources})
-    target_link_libraries (${example_program} apex ${LIBS} stdc++ m)
+    target_link_libraries (${example_program} ${OMPT_LIBRARIES} apex ${LIBS} stdc++ m)
     if (BUILD_STATIC_EXECUTABLES)
         set_target_properties(${example_program} PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
     endif()
