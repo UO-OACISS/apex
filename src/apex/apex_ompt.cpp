@@ -32,16 +32,27 @@ static ompt_get_proc_id_t ompt_get_proc_id;
 static ompt_enumerate_states_t ompt_enumerate_states;
 static ompt_enumerate_mutex_impls_t ompt_enumerate_mutex_impls;
 
+/* These methods are some helper functions for starting/stopping timers */
+
 void apex_ompt_task_start(const char * state, ompt_data_t * task_id) {
   std::shared_ptr<apex::task_wrapper> tmp = apex::new_task(std::string(state), task_id->value);
+  // Save the address of the shared pointer with the task, so we can stop
+  // the timer later
   task_id->ptr = (void*)(&tmp);
+  // start the APEX timer
   apex::start(tmp);
+  // unfortunately, we need to store a local reference to the timer so that it
+  // doesn't go out of scope and get destroyed. This stack may get replaced with
+  // a hash map, using the ID of the task.
   timer_stack->push(std::move(tmp));
 }
 
 void apex_ompt_task_stop(const char * state, ompt_data_t * task_id) {
-  APEX_UNUSED(state);
-  APEX_UNUSED(task_id);
+  // ideally, we would use the timer that we stored with the task_id
+  // structure.  However, the LLVM runtime isn't maintaining it for us,
+  // so we will *assume* that this thread started this task, and stop
+  // its top level timer. This could be a bad assumption with the HPX
+  // OpenMP implementation.
   if (timer_stack->empty()) { // uh-oh...
     apex::profiler * p = nullptr;
     apex::stop(p);
