@@ -20,7 +20,6 @@ int main (int argc, char** argv) {
             omp_get_num_threads());
         fflush(stdout);
     }
-    apex_finalize();
     return 0;
 }
 

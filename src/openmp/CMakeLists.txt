@@ -11,10 +11,13 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 set(example_programs
     ompt_thread
     ompt_parallel_region
+    ompt_reduction
     ompt_task
     ompt_single
     ompt_sections
     ompt_target
+    ompt_sync_region_wait
+    ompt_master
    )
 
 foreach(example_program ${example_programs})
