@@ -1,6 +1,8 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <omp.h>
+#include <apex.h>
+#include "apex.h"
 
 /* Example taken from:
    https://computing.llnl.gov/tutorials/openMP/#REDUCTION
@@ -8,7 +10,9 @@
 
 int main (int argc, char** argv) {
 	int   i, n, chunk;
- 	float a[100], b[100], result;
+ 	double a[100], b[100], result;
+ 	apex_init(__func__, 0, 1);
+    apex_set_use_screen_output(1);
 
  	/* Some initializations */
  	n = 100;
@@ -25,6 +29,8 @@ int main (int argc, char** argv) {
      	result = result + (a[i] * b[i]);
 
  	printf("Final result= %f\n",result);
+
+    apex_finalize();
     return 0;
 }
 
