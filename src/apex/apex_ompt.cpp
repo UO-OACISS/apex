@@ -7,6 +7,7 @@
 #include "thread_instance.hpp"
 #include "apex_cxx_shared_lock.hpp"
 #include <atomic>
+#include "assert.h"
 
 typedef enum apex_ompt_thread_type_e {
  apex_ompt_thread_initial = 1,
