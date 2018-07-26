@@ -1,5 +1,6 @@
 #include <omp.h>
 #include <stdio.h>
+#include "apex.h"
 
 void a() {
     printf("in function a\n");
@@ -12,6 +13,8 @@ void c() {
 }
 
 int main (void) {
+ 	apex_init(__func__, 0, 1);
+    apex_set_use_screen_output(1);
 #pragma omp parallel sections
     {
     #pragma omp section
@@ -21,4 +24,5 @@ int main (void) {
     #pragma omp section
         c();
     }
+    apex_finalize();
 }

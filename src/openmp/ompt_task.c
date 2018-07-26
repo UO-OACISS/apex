@@ -1,30 +1,56 @@
-#include <unistd.h>
+/******************************************************************************
+*   OpenMp Example - Matrix Multiply - C Version
+*   Demonstrates a matrix multiply using OpenMP. 
+*
+*   Modified from here:
+*   https://computing.llnl.gov/tutorials/openMP/samples/C/omp_mm.c
+*
+*   For  PAPI_FP_INS, the exclusive count for the event: 
+*   for (null) [OpenMP location: file:matmult.c ]
+*   should be  2E+06 / Number of Threads 
+******************************************************************************/
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <omp.h>
+#include <math.h>
 
-/* Example taken from:
-   https://computing.llnl.gov/tutorials/openMP/#REDUCTION
-*/
+int fib(int n) {
+  int x,y;
+  if (n<2) return n;
+  #pragma omp task untied shared(x)
+  { x = fib(n-1); }
+  #pragma omp task untied shared(y)
+  { y = fib(n-2); }
+  #pragma omp taskwait
+  return x+y;
+}
 
-int main (int argc, char** argv) {
-	int   i, n, chunk;
- 	float a[100], b[100], result;
+int fibouter(int n) {
+  int answer = 0;
+  #pragma omp parallel shared(answer)
+  {
+    #pragma omp single 
+    {
+      #pragma omp task shared(answer) 
+      {
+	    answer = fib(n);
+      }
+    }
+  }
+  return answer;
+}
 
- 	/* Some initializations */
- 	n = 100;
- 	chunk = 10;
- 	result = 0.0;
- 	for (i=0; i < n; i++) {
-   		a[i] = i * 1.0;
-   		b[i] = i * 2.0;
-   	}
+int main (int argc, char *argv[]) 
+{
+  printf("Main...\n");
+  fflush(stdout);
+  printf ("\nDoing forking tasks..."); fflush(stdout);
+  fibouter(2);
 
-#pragma omp parallel for default(shared) private(i) schedule(static,chunk) reduction(+:result)
+  printf ("Done.\n");
+  fflush(stdout);
 
-   	for (i=0; i < n; i++)
-     	result = result + (a[i] * b[i]);
-
- 	printf("Final result= %f\n",result);
-    return 0;
+  return 0;
 }
 

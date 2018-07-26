@@ -13,7 +13,7 @@ int main (void) {
   		// To avoid race conditions, add a barrier here.
 #pragma omp for reduction(+:a)
   		for (i = 0; i < 10; i++) { a += i; }
-#pragma omp single
+#pragma omp master
   		printf ("Sum is %d\n", a);
 	}
     apex_finalize();
