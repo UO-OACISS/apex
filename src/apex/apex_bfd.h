@@ -62,7 +62,7 @@ struct ApexBfdInfo
                 lineno(-1), discriminator(0)
     { }
     ~ApexBfdInfo() {
-        if (demangled != funcname) free(const_cast<char*>(demangled));
+        if (funcname != NULL && demangled != funcname) free(const_cast<char*>(demangled));
     }
 
     // Makes all fields safe to query

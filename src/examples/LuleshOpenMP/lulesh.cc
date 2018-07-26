@@ -2753,7 +2753,7 @@ int main(int argc, char *argv[])
    numRanks = 1;
    myRank = 0;
 #endif   
-   apex_init("lulesh",numRanks,myRank);
+   apex_init("lulesh",myRank,numRanks);
 
    /* Set defaults that can be overridden by command line opts */
    opts.its = 9999999;

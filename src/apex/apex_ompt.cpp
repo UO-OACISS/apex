@@ -1,6 +1,5 @@
 #include <ompt.h>
 #include <unordered_map>
-#include <stack>
 #include "string.h"
 #include "stdio.h"
 #include "apex_api.hpp"
@@ -8,31 +7,7 @@
 #include "thread_instance.hpp"
 #include "apex_cxx_shared_lock.hpp"
 #include <atomic>
-
-//#include "global_constructor_destructor.h"
-
-typedef struct status_flags {
-    char idle; // 4 bytes
-    char busy; // 4 bytes
-    char parallel; // 4 bytes
-    char ordered_region_wait; // 4 bytes
-    char ordered_region; // 4 bytes
-    char task_exec; // 4 bytes
-    char looping; // 4 bytes
-    char acquired; // 4 bytes
-    char waiting; // 4 bytes
-    unsigned long regionid; // 8 bytes
-    unsigned long taskid; // 8 bytes
-    int *signal_message; // preallocated message for signal handling, 8 bytes
-    int *region_message; // preallocated message for region handling, 8 bytes
-    int *task_message; // preallocated message for task handling, 8 bytes
-} status_flags_t;
-
-#define OMPT_WAIT_ACQ_CRITICAL  0x01
-#define OMPT_WAIT_ACQ_ORDERED   0x02
-#define OMPT_WAIT_ACQ_ATOMIC    0x04
-#define OMPT_WAIT_ACQ_LOCK      0x08
-#define OMPT_WAIT_ACQ_NEST_LOCK 0x10
+#include "assert.h"
 
 typedef enum apex_ompt_thread_type_e {
  apex_ompt_thread_initial = 1,
@@ -40,82 +15,87 @@ typedef enum apex_ompt_thread_type_e {
  apex_ompt_thread_other = 3
 } apex_ompt_thread_type_t;
 
-std::unordered_map<ompt_parallel_id_t, void*> task_addresses;
-#define NUM_REGIONS 128
-std::atomic<void*> parallel_regions[NUM_REGIONS];
-apex::shared_mutex_type _region_mutex;
+std::mutex threadid_mutex;
+std::atomic<uint64_t> numthreads(0);
+APEX_NATIVE_TLS uint64_t threadid(-1);
 
-APEX_NATIVE_TLS std::stack<apex::profiler*> *timer_stack;
-APEX_NATIVE_TLS status_flags_t *status;
+class linked_timer {
+    public:
+        void * prev;
+        std::shared_ptr<apex::task_wrapper> tw;
+        bool timing;
+        inline void start(void) { apex::start(tw); timing = true;  }
+        inline void yield(void) { apex::yield(tw); timing = false; }
+        inline void stop(void)  { apex::stop(tw);  timing = false; }
+        /* constructor */
+        linked_timer(const char * name, 
+            uint64_t task_id,
+            void *p, 
+            std::shared_ptr<apex::task_wrapper> &parent,
+            bool auto_start) :
+            prev(p), timing(auto_start) { 
+            tw = apex::new_task(name, task_id, parent);
+            if (auto_start) { this->start(); }
+        }
+        /* destructor */
+        ~linked_timer() {
+            if (timing) {
+                apex::stop(tw);
+            }
+        }
+};
 
-ompt_set_callback_t ompt_set_callback;
+/* Function pointers.  These are all queried from the runtime during
+ *  * ompt_initialize() */
+static ompt_set_callback_t ompt_set_callback;
+static ompt_get_task_info_t ompt_get_task_info;
+static ompt_get_thread_data_t ompt_get_thread_data;
+static ompt_get_parallel_info_t ompt_get_parallel_info;
+static ompt_get_unique_id_t ompt_get_unique_id;
+static ompt_get_num_places_t ompt_get_num_places;
+static ompt_get_place_proc_ids_t ompt_get_place_proc_ids;
+static ompt_get_place_num_t ompt_get_place_num;
+static ompt_get_partition_place_nums_t ompt_get_partition_place_nums;
+static ompt_get_proc_id_t ompt_get_proc_id;
+static ompt_enumerate_states_t ompt_enumerate_states;
+static ompt_enumerate_mutex_impls_t ompt_enumerate_mutex_impls;
 
-void format_name_fast(const char * state, ompt_parallel_id_t parallel_id, char * result) {
-	// get the parallel region address
-    void* ip = parallel_regions[(parallel_id%NUM_REGIONS)];
-	// format it.
-    sprintf(result, "%s: UNRESOLVED ADDR %p", state, (void*)ip);
+/* These methods are some helper functions for starting/stopping timers */
+
+void apex_ompt_start(const char * state, ompt_data_t * ompt_data,
+        ompt_data_t * region_data, bool auto_start) {
+    static std::shared_ptr<apex::task_wrapper> nothing(nullptr);
+    /* if the ompt_data->ptr pointer is not null, that means we have an implicit
+     * parent and there's no need to specify a parent */
+    linked_timer* tmp;
+    if (ompt_data->ptr == nullptr && region_data != nullptr) {
+        /* Get the parent scoped timer */
+        linked_timer* parent = (linked_timer*)(region_data->ptr);
+        if (parent != nullptr) {
+            tmp = new linked_timer(state, ompt_data->value, ompt_data->ptr, parent->tw, auto_start);
+        } else {
+            tmp = new linked_timer(state, ompt_data->value, ompt_data->ptr, nothing, auto_start);
+        }
+#if 1
+    } else if (ompt_data->ptr != nullptr) {
+        /* Get the parent scoped timer */
+        linked_timer* parent = (linked_timer*)(ompt_data->ptr);
+        tmp = new linked_timer(state, ompt_data->value, ompt_data->ptr, parent->tw, true);
+#endif
+    } else {
+        tmp = new linked_timer(state, ompt_data->value, ompt_data->ptr, nothing, auto_start);
+    }
+
+    /* Save the address of the scoped timer with the parallel region
+     * or task, so we can stop the timer later */
+    ompt_data->ptr = (void*)(tmp);
 }
 
-void format_task_name_fast(const char * state, ompt_task_id_t task_id, char * result) {
-	// get the parallel region address
-	std::unordered_map<ompt_parallel_id_t, void*>::const_iterator got;
-	{
-    	apex::read_lock_type l(_region_mutex);
-	    got = task_addresses.find (task_id);
-	}
-	if ( got == task_addresses.end() ) { // not found.
-		// format it.
-    	sprintf(result, "%s", state);
-	} else {
-		// format it.
-    	sprintf(result, "%s: UNRESOLVED ADDR %p", state, (void*)got->second);
-	}
-}
-
-void apex_ompt_idle_start() {
-  //fprintf(stderr,"start %s : %lu\n",state, parallel_id); fflush(stderr);
-  const std::string regionIDstr("OpenMP_IDLE"); 
-  apex::profiler* p = apex::start(regionIDstr);
-  timer_stack->push(p);
-}
-
-void apex_ompt_task_start(const char * state, ompt_task_id_t task_id) {
-  //fprintf(stderr,"start %s : %lu\n",state, parallel_id); fflush(stderr);
-  char regionIDstr[128] = {0}; 
-  format_task_name_fast(state, task_id, regionIDstr);
-  apex::profiler* p = apex::start(std::string(regionIDstr));
-  timer_stack->push(p);
-}
-
-void apex_ompt_pr_start(const char * state, ompt_parallel_id_t parallel_id) {
-  //fprintf(stderr,"start %s : %lu\n",state, parallel_id); fflush(stderr);
-  char regionIDstr[128] = {0}; 
-  format_name_fast(state, parallel_id, regionIDstr);
-  apex::profiler* p = apex::start(std::string(regionIDstr));
-  timer_stack->push(p);
-}
-
-void apex_ompt_start(const char * state, ompt_parallel_id_t parallel_id) {
-  //fprintf(stderr,"start %s : %lu\n",state, parallel_id); fflush(stderr);
-  char regionIDstr[128] = {0}; 
-  format_name_fast(state, parallel_id, regionIDstr);
-  apex::profiler* p = apex::start(std::string(regionIDstr));
-  timer_stack->push(p);
-}
-
-void apex_ompt_stop(const char * state, ompt_parallel_id_t parallel_id) {
-  //fprintf(stderr,"stop %s : %lu\n",state, parallel_id); fflush(stderr);
-  APEX_UNUSED(state);
-  APEX_UNUSED(parallel_id);
-  if (timer_stack->empty()) { // uh-oh...
-    apex::profiler * p = nullptr;
-    apex::stop(p);
-  } else {
-    apex::profiler* p = timer_stack->top();
-    apex::stop(p);
-    timer_stack->pop();
-  }
+void apex_ompt_stop(ompt_data_t * ompt_data) {
+    assert(ompt_data->ptr);
+    void* tmp = ((linked_timer*)(ompt_data->ptr))->prev;
+    delete((linked_timer*)(ompt_data->ptr));
+    ompt_data->ptr = tmp;
 }
 
 /*
@@ -124,313 +104,662 @@ void apex_ompt_stop(const char * state, ompt_parallel_id_t parallel_id) {
  * The following events are supported by all OMPT implementations.
  */
 
-extern "C" void apex_parallel_region_begin (
-  ompt_task_id_t parent_task_id,    /* id of parent task            */
-  ompt_frame_t *parent_task_frame,  /* frame data of parent task    */
-  ompt_parallel_id_t parallel_id,   /* id of parallel region        */
-  uint32_t requested_team_size,     /* Region team size             */
-  void *parallel_function)          /* pointer to outlined function */
-{
-  APEX_UNUSED(parent_task_id);
-  APEX_UNUSED(parent_task_frame);
-  APEX_UNUSED(requested_team_size);
-  //fprintf(stderr,"begin: %lu, %p, %lu, %u, %p\n", parent_task_id, parent_task_frame, parallel_id, requested_team_size, parallel_function); fflush(stderr);
-  parallel_regions[(parallel_id%NUM_REGIONS)] = parallel_function;
-  apex_ompt_pr_start("OpenMP_PARALLEL_REGION", parallel_id);
-}
-
-extern "C" void apex_parallel_region_end (
-  ompt_parallel_id_t parallel_id,   /* id of parallel region        */
-  ompt_task_id_t parent_task_id)    /* id of parent task            */
-{
-  APEX_UNUSED(parent_task_id);
-  APEX_UNUSED(parallel_id);
-  apex_ompt_stop("OpenMP_PARALLEL_REGION", parallel_id);
-}
-
-extern "C" void apex_task_begin (
-  ompt_task_id_t parent_task_id,    /* id of parent task            */
-  ompt_frame_t *parent_task_frame,  /* frame data for parent task   */
-  ompt_task_id_t  new_task_id,      /* id of created task           */
-  void *task_function)              /* pointer to outlined function */
-{
-  APEX_UNUSED(parent_task_id);
-  APEX_UNUSED(parent_task_frame);
-  {
-    apex::write_lock_type l(_region_mutex);
-    task_addresses[new_task_id] = task_function;
-  }
-  apex_ompt_task_start("OpenMP_TASK", new_task_id);
-}
- 
-extern "C" void apex_task_end (
-  ompt_task_id_t  task_id)      /* id of task           */
-{
-  apex_ompt_stop("OpenMP_TASK", task_id);
-}
-
-extern "C" void apex_thread_begin(apex_ompt_thread_type_t thread_type, ompt_thread_id_t thread_id) {
-  APEX_UNUSED(thread_type);
-  APEX_UNUSED(thread_id);
-  timer_stack = new std::stack<apex::profiler*>();
-  status = new status_flags();
-  apex::register_thread("OpenMP Thread");
-}
-
-void cleanup(void) {
-    if (timer_stack != nullptr) { 
-        delete(timer_stack); 
-        timer_stack = nullptr;
+/* Event #1, thread begin */
+extern "C" void apex_thread_begin(
+    ompt_thread_type_t thread_type,       /* type of thread                      */
+    ompt_data_t *thread_data              /* data of thread                      */
+) {
+    {
+        std::unique_lock<std::mutex> l(threadid_mutex);
+        threadid = numthreads++;
+    }
+    switch (thread_type) {
+        case ompt_thread_initial:
+            apex::register_thread("OpenMP Initial Thread");
+            apex::sample_value("OpenMP Initial Thread", 1);
+            break;
+        case ompt_thread_worker:
+            apex::register_thread("OpenMP Worker Thread");
+            apex::sample_value("OpenMP Worker Thread", 1);
+            break;
+        case ompt_thread_other:
+            apex::register_thread("OpenMP Other Thread");
+            apex::sample_value("OpenMP Other Thread", 1);
+            break;
+        case ompt_thread_unknown:
+        default:
+            apex::register_thread("OpenMP Unknown Thread");
+            apex::sample_value("OpenMP Unknown Thread", 1);
     }
 }
 
-extern "C" void apex_thread_end(apex_ompt_thread_type_t thread_type, ompt_thread_id_t thread_id) {
-  APEX_UNUSED(thread_type);
-  APEX_UNUSED(thread_id);
-  apex::exit_thread();
-  delete(status);
-  cleanup();
+/* Event #2, thread end */
+extern "C" void apex_thread_end(
+    ompt_data_t *thread_data              /* data of thread                      */
+) {
+    APEX_UNUSED(thread_data);
+    apex::exit_thread();
 }
 
-extern "C" void apex_control(uint64_t command, uint64_t modifier) {
-  APEX_UNUSED(command);
-  APEX_UNUSED(modifier);
+/* Event #3, parallel region begin */
+static void apex_parallel_region_begin (
+    ompt_data_t *encountering_task_data,         /* data of encountering task           */
+    const omp_frame_t *encountering_task_frame,  /* frame data of encountering task     */
+    ompt_data_t *parallel_data,                  /* data of parallel region             */
+    unsigned int requested_team_size,            /* requested number of threads in team */
+    ompt_invoker_t invoker,                      /* invoker of master task              */
+    const void *codeptr_ra                       /* return address of runtime call      */
+) {
+    char regionIDstr[128] = {0}; 
+    sprintf(regionIDstr, "OpenMP Parallel Region: UNRESOLVED ADDR %p", codeptr_ra);
+    apex_ompt_start(regionIDstr, parallel_data, NULL, true);
+    //printf("%llu: Parallel Region Begin parent: %p, apex_parent: %p, region: %p, apex_region: %p\n", threadid, encountering_task_data, encountering_task_data->ptr, parallel_data, parallel_data->ptr); fflush(stdout);
 }
 
-extern "C" void apex_shutdown() {
-  cleanup();
-  apex::finalize();
+/* Event #4, parallel region end */
+static void apex_parallel_region_end (
+    ompt_data_t *parallel_data,           /* data of parallel region             */
+    ompt_data_t *encountering_task_data,  /* data of encountering task           */
+    ompt_invoker_t invoker,               /* invoker of master task              */
+    const void *codeptr_ra                /* return address of runtime call      */
+) {
+    //printf("%llu: Parallel Region End parent: %p, apex_parent: %p, region: %p, apex_region: %p\n", threadid, encountering_task_data, encountering_task_data->ptr, parallel_data, parallel_data->ptr); fflush(stdout);
+    apex_ompt_stop(parallel_data);
 }
+
+/* Event #5, task create */
+extern "C" void apex_task_create (
+    ompt_data_t *encountering_task_data,         /* data of parent task                 */
+    const omp_frame_t *encountering_task_frame,  /* frame data for parent task          */
+    ompt_data_t *new_task_data,                  /* data of created task                */
+    ompt_task_type_t type,                       /* type of created task                */
+    int has_dependences,                         /* created task has dependences        */
+    const void *codeptr_ra                       /* return address of runtime call      */
+) {
+    char * type_str;
+    static const char * initial_str = "OpenMP Initial Task";
+    static const char * implicit_str = "OpenMP Implicit Task";
+    static const char * explicit_str = "OpenMP Explicit Task";
+    static const char * target_str = "OpenMP Target Task";
+    static const char * undeferred_str = "OpenMP Undeferred Task";
+    static const char * untied_str = "OpenMP Untied Task";
+    static const char * final_str = "OpenMP Final Task";
+    static const char * mergable_str = "OpenMP Mergable Task";
+    static const char * merged_str = "OpenMP Merged Task";
+    switch (type) {
+        case ompt_task_initial:
+            type_str = const_cast<char*>(initial_str);
+            break;
+        case ompt_task_implicit:
+            type_str = const_cast<char*>(implicit_str);
+            break;
+        case ompt_task_explicit:
+            type_str = const_cast<char*>(explicit_str);
+            break;
+        case ompt_task_target:
+            type_str = const_cast<char*>(target_str);
+            break;
+        case ompt_task_undeferred:
+            type_str = const_cast<char*>(undeferred_str);
+            break;
+        case ompt_task_untied:
+            type_str = const_cast<char*>(untied_str);
+            break;
+        case ompt_task_final:
+            type_str = const_cast<char*>(final_str);
+            break;
+        case ompt_task_mergeable:
+            type_str = const_cast<char*>(mergable_str);
+            break;
+        case ompt_task_merged:
+        default:
+            type_str = const_cast<char*>(merged_str);
+    }
+    //printf("%llu: %s Task Create parent: %p, child: %p\n", threadid, type_str, encountering_task_data, new_task_data); fflush(stdout);
+
+    if (codeptr_ra != NULL) {
+        char regionIDstr[128] = {0}; 
+        sprintf(regionIDstr, "%s: UNRESOLVED ADDR %p", type_str, codeptr_ra);
+        apex_ompt_start(regionIDstr, new_task_data, encountering_task_data, false);
+    } else {
+        apex_ompt_start(type_str, new_task_data, encountering_task_data, false);
+    }
+}
+ 
+/* Event #6, task schedule */
+extern "C" void apex_task_schedule(
+    ompt_data_t *prior_task_data,         /* data of prior task                  */
+    ompt_task_status_t prior_task_status, /* status of prior task                */
+    ompt_data_t *next_task_data           /* data of next task                   */
+    ) {
+    //printf("%llu: Task Schedule prior: %p, status: %d, next: %p\n", threadid, prior_task_data, prior_task_status, next_task_data); fflush(stdout);
+    if (prior_task_data != nullptr) {
+        linked_timer* prior = (linked_timer*)(prior_task_data->ptr);
+        if (prior != nullptr) {
+            switch (prior_task_status) {
+                case ompt_task_yield:
+                case ompt_task_others:
+                    prior->yield();
+                    break;
+                case ompt_task_complete:
+                case ompt_task_cancel:
+                default:
+                    void* tmp = prior->prev;
+                    delete(prior);
+                    prior_task_data->ptr = tmp;
+            }
+        }
+    }
+    //apex_ompt_start("OpenMP Task", next_task_data, NULL, true);
+    linked_timer* next = (linked_timer*)(next_task_data->ptr);
+    //assert(next);
+    if (next != nullptr) {
+        next->start();
+    }
+}
+
+/* Event #7, implicit task */
+extern "C" void apex_implicit_task(
+    ompt_scope_endpoint_t endpoint,       /* endpoint of implicit task           */
+    ompt_data_t *parallel_data,           /* data of parallel region             */
+    ompt_data_t *task_data,               /* data of implicit task               */
+    unsigned int team_size,               /* team size                           */
+    unsigned int thread_num               /* thread number of calling thread     */
+  ) {
+    if (endpoint == ompt_scope_begin) {
+        apex_ompt_start("OpenMP Implicit Task", task_data, parallel_data, false);
+    } else {
+        apex_ompt_stop(task_data);
+    }
+    //printf("%llu: Implicit Task task: %p, apex: %p, region: %p, %d\n", threadid, task_data, task_data->ptr, parallel_data, endpoint); fflush(stdout);
+}
+
+/* These are placeholder functions */
+
+#if 0
+
+/* Event #8, target */
+extern "C" void apex_target (
+    ompt_target_type_t kind,
+    ompt_scope_endpoint_t endpoint,
+    uint64_t device_num,
+    ompt_data_t *task_data,
+    ompt_id_t target_id,
+    const void *codeptr_ra
+) {
+}
+
+/* Event #9, target data */
+extern "C" void apex_target_data_op (
+    ompt_id_t target_id,
+    ompt_id_t host_op_id,
+    ompt_target_data_op_t optype,
+    void *host_addr,
+    void *device_addr,
+    size_t bytes
+) {
+}
+
+/* Event #10, target submit */
+extern "C" void apex_target_submit (
+    ompt_id_t target_id,
+    ompt_id_t host_op_id
+) {
+}
+
+/* Event #11, tool control */
+extern "C" void apex_control(
+    uint64_t command,                     /* command of control call             */
+    uint64_t modifier,                    /* modifier of control call            */
+    void *arg,                            /* argument of control call            */
+    const void *codeptr_ra                /* return address of runtime call      */
+    ) {
+}
+
+/* Event #12, device initialize */
+extern "C" void apex_device_initialize (
+    uint64_t device_num,
+    const char *type,
+    ompt_device_t *device,
+    ompt_function_lookup_t lookup,
+    const char *documentation
+) {
+}
+
+/* Event #13, device finalize */
+extern "C" void apex_device_finalize (
+    uint64_t device_num
+) {
+}
+
+/* Event #14, device load */
+extern "C" void apex_device_load_t (
+    uint64_t device_num,
+    const char * filename,
+    int64_t offset_in_file,
+    void * vma_in_file,
+    size_t bytes,
+    void * host_addr,
+    void * device_addr,
+    uint64_t module_id
+) {
+}
+
+/* Event #15, device load */
+extern "C" void apex_device_unload (
+    uint64_t device_num,
+    uint64_t module_id
+) {
+}
+
+#endif // placeholder functions
 
 /**********************************************************************/
 /* End Mandatory Events */
 /**********************************************************************/
 
-#define APEX_OMPT_WAIT_ACQUIRE_RELEASE(WAIT_FUNC,ACQUIRED_FUNC,RELEASE_FUNC,WAIT_NAME,REGION_NAME,CAUSE) \
-extern "C" void WAIT_FUNC (ompt_wait_id_t waitid) { \
-  APEX_UNUSED(waitid); \
-  if (status->waiting>0) { \
-    apex_ompt_stop(WAIT_NAME,0); \
-  } \
-  apex_ompt_start(WAIT_NAME,0); \
-  status->waiting = CAUSE; \
-} \
- \
-extern "C" void ACQUIRED_FUNC (ompt_wait_id_t waitid) { \
-  APEX_UNUSED(waitid); \
-  if (status->waiting>0) { \
-    apex_ompt_stop(WAIT_NAME,0); \
-  } \
-  status->waiting = 0; \
-  apex_ompt_start(REGION_NAME,0); \
-  status->acquired += CAUSE; \
-} \
- \
-extern "C" void RELEASE_FUNC (ompt_wait_id_t waitid) { \
-  APEX_UNUSED(waitid); \
-  if (status->acquired>0) { \
-    apex_ompt_stop(REGION_NAME,0); \
-    status->acquired -= CAUSE; \
-  } \
-} \
-
-APEX_OMPT_WAIT_ACQUIRE_RELEASE(apex_wait_atomic,apex_acquired_atomic,apex_release_atomic,"OpenMP_ATOMIC_REGION_WAIT","OpenMP_ATOMIC_REGION",OMPT_WAIT_ACQ_ATOMIC)
-APEX_OMPT_WAIT_ACQUIRE_RELEASE(apex_wait_ordered,apex_acquired_ordered,apex_release_ordered,"OpenMP_ORDERED_REGION_WAIT","OpenMP_ORDERED_REGION",OMPT_WAIT_ACQ_ORDERED)
-APEX_OMPT_WAIT_ACQUIRE_RELEASE(apex_wait_critical,apex_acquired_critical,apex_release_critical,"OpenMP_CRITICAL_REGION_WAIT","OpenMP_CRITICAL_REGION",OMPT_WAIT_ACQ_CRITICAL)
-//APEX_OMPT_WAIT_ACQUIRE_RELEASE(apex_wait_lock,apex_acquired_lock,apex_release_lock,"OpenMP_LOCK_WAIT","OpenMP_LOCK",OMPT_WAIT_ACQ_LOCK)
-//APEX_OMPT_WAIT_ACQUIRE_RELEASE(apex_wait_nest_lock,apex_acquired_nest_lock,apex_release_nest_lock,"OpenMP_LOCK_WAIT","OpenMP_LOCK",OMPT_WAIT_ACQ_NEST_LOCK)
-
-#undef APEX_OMPT_WAIT_ACQUIRE_RELEASE
-
 /**********************************************************************/
-/* Macros for common begin / end functionality. */
+/* Optional events */
 /**********************************************************************/
 
-#define APEX_OMPT_SIMPLE_BEGIN_AND_END(BEGIN_FUNCTION,END_FUNCTION,NAME) \
-extern "C" void BEGIN_FUNCTION (ompt_parallel_id_t parallel_id, ompt_task_id_t task_id) { \
-  status->regionid = parallel_id; \
-  status->taskid = task_id; \
-  apex_ompt_start(NAME, parallel_id); \
-} \
-\
-extern "C" void END_FUNCTION (ompt_parallel_id_t parallel_id, ompt_task_id_t task_id) { \
-  status->regionid = parallel_id; \
-  status->taskid = task_id; \
-  apex_ompt_stop(NAME, parallel_id); \
-}
-
-#define APEX_OMPT_TASK_BEGIN_AND_END(BEGIN_FUNCTION,END_FUNCTION,NAME) \
-extern "C" void BEGIN_FUNCTION (ompt_task_id_t task_id) { \
-  status->taskid = task_id; \
-  apex_ompt_start(NAME, task_id); \
-} \
-\
-extern "C" void END_FUNCTION (ompt_task_id_t task_id) { \
-  status->taskid = task_id; \
-  apex_ompt_stop(NAME, task_id); \
-}
-
-#define APEX_OMPT_LOOP_BEGIN_AND_END(BEGIN_FUNCTION,END_FUNCTION,NAME) \
-extern "C" void BEGIN_FUNCTION (ompt_parallel_id_t parallel_id, ompt_task_id_t task_id) { \
-  status->regionid = parallel_id; \
-  status->taskid = task_id; \
-  apex_ompt_start(NAME, parallel_id); \
-  status->looping=1; \
-} \
-\
-extern "C" void END_FUNCTION (ompt_parallel_id_t parallel_id, ompt_task_id_t task_id) { \
-  status->regionid = parallel_id; \
-  status->taskid = task_id; \
-  if (status->looping==1) { \
-  apex_ompt_stop(NAME, parallel_id); } \
-  status->looping=0; \
-}
-
-#define APEX_OMPT_WORKSHARE_BEGIN_AND_END(BEGIN_FUNCTION,END_FUNCTION,NAME) \
-extern "C" void BEGIN_FUNCTION (ompt_parallel_id_t parallel_id, ompt_task_id_t task_id, void *parallel_function) { \
-  status->regionid = parallel_id; \
-  status->taskid = task_id; \
-  /*{ \
-    apex::write_lock_type l(_region_mutex); \
-    task_addresses[task_id] = parallel_function; \
-  }*/ \
-  apex_ompt_start(NAME, parallel_id); \
-} \
-\
-extern "C" void END_FUNCTION (ompt_parallel_id_t parallel_id, ompt_task_id_t task_id) { \
-  status->regionid = parallel_id; \
-  status->taskid = task_id; \
-  apex_ompt_stop(NAME, parallel_id); \
-}
-
-APEX_OMPT_TASK_BEGIN_AND_END(apex_initial_task_begin,apex_initial_task_end,"OpenMP_INITIAL_TASK")
-APEX_OMPT_SIMPLE_BEGIN_AND_END(apex_barrier_begin,apex_barrier_end,"OpenMP_BARRIER")
-APEX_OMPT_SIMPLE_BEGIN_AND_END(apex_implicit_task_begin,apex_implicit_task_end,"OpenMP_IMPLICIT_TASK")
-APEX_OMPT_SIMPLE_BEGIN_AND_END(apex_wait_barrier_begin,apex_wait_barrier_end,"OpenMP_WAIT_BARRIER")
-APEX_OMPT_SIMPLE_BEGIN_AND_END(apex_master_begin,apex_master_end,"OpenMP_MASTER_REGION")
-APEX_OMPT_SIMPLE_BEGIN_AND_END(apex_single_others_begin,apex_single_others_end,"OpenMP_SINGLE_OTHERS") 
-APEX_OMPT_SIMPLE_BEGIN_AND_END(apex_taskwait_begin,apex_taskwait_end,"OpenMP_TASKWAIT") 
-APEX_OMPT_SIMPLE_BEGIN_AND_END(apex_wait_taskwait_begin,apex_wait_taskwait_end,"OpenMP_WAIT_TASKWAIT") 
-APEX_OMPT_SIMPLE_BEGIN_AND_END(apex_taskgroup_begin,apex_taskgroup_end,"OpenMP_TASKGROUP") 
-APEX_OMPT_SIMPLE_BEGIN_AND_END(apex_wait_taskgroup_begin,apex_wait_taskgroup_end,"OpenMP_WAIT_TASKGROUP") 
-APEX_OMPT_WORKSHARE_BEGIN_AND_END(apex_loop_begin,apex_loop_end,"OpenMP_LOOP")
-APEX_OMPT_WORKSHARE_BEGIN_AND_END(apex_single_in_block_begin,apex_single_in_block_end,"OpenMP_SINGLE_IN_BLOCK") 
-APEX_OMPT_WORKSHARE_BEGIN_AND_END(apex_workshare_begin,apex_workshare_end,"OpenMP_WORKSHARE")
-APEX_OMPT_WORKSHARE_BEGIN_AND_END(apex_sections_begin,apex_sections_end,"OpenMP_SECTIONS") 
-
-#undef APEX_OMPT_SIMPLE_BEGIN_AND_END
-
-/**********************************************************************/
-/* Specialized begin / end functionality. */
-/**********************************************************************/
-
-/* Thread end idle */
-extern "C" void apex_idle_end(ompt_thread_id_t thread_id) {
-  APEX_UNUSED(thread_id);
-  apex_ompt_stop("OpenMP_IDLE", 0);
-  //if (status->parallel==0) {
-    //apex_ompt_start("OpenMP_PARALLEL_REGION", 0);
-    //status->busy = 1;
-  //}
-  status->idle = 0;
-}
-
-/* Thread begin idle */
-extern "C" void apex_idle_begin(ompt_thread_id_t thread_id) {
-  APEX_UNUSED(thread_id);
-  if (status->parallel==0) {
-    if (status->idle == 1 && status->busy == 0) {
-        return;
+/* Event #16, sync region wait       */
+extern "C" void apex_sync_region_wait (
+    ompt_sync_region_kind_t kind,         /* kind of sync region                 */
+    ompt_scope_endpoint_t endpoint,       /* endpoint of sync region             */
+    ompt_data_t *parallel_data,           /* data of parallel region             */
+    ompt_data_t *task_data,               /* data of task                        */
+    const void *codeptr_ra                /* return address of runtime call      */
+) {
+    char * tmp_str;
+    static const char * barrier_str = "Barrier Wait";
+    static const char * task_str = "Task Wait";
+    static const char * task_group_str = "Task Group Wait";
+    if (kind == ompt_sync_region_barrier) {
+        tmp_str = const_cast<char*>(barrier_str);
+    } else if (kind == ompt_sync_region_taskwait) {
+        tmp_str = const_cast<char*>(task_str);
+    } else if (kind == ompt_sync_region_taskgroup) {
+        tmp_str = const_cast<char*>(task_group_str);
     }
-    if (status->busy == 1) {
-        //apex_ompt_stop("OpenMP_PARALLEL_REGION", 0);
-        status->busy = 0;
+    if (endpoint == ompt_scope_begin) {
+        char regionIDstr[128] = {0}; 
+        if (codeptr_ra != NULL) {
+            sprintf(regionIDstr, "OpenMP %s: UNRESOLVED ADDR %p", tmp_str, codeptr_ra);
+            apex_ompt_start(regionIDstr, task_data, parallel_data, true);
+        } else {
+            sprintf(regionIDstr, "OpenMP %s", tmp_str);
+            apex_ompt_start(regionIDstr, task_data, parallel_data, true);
+        }
+    } else {
+        apex_ompt_stop(task_data);
     }
-  }
-  status->idle = 1;
-  apex_ompt_idle_start();
 }
 
+/* Event #20, task at work begin or end       */
+extern "C" void apex_ompt_work (
+    ompt_work_type_t wstype,              /* type of work region                 */
+    ompt_scope_endpoint_t endpoint,       /* endpoint of work region             */
+    ompt_data_t *parallel_data,           /* data of parallel region             */
+    ompt_data_t *task_data,               /* data of task                        */
+    uint64_t count,                       /* quantity of work                    */
+    const void *codeptr_ra                /* return address of runtime call      */
+    ) {
 
-// This macro is for checking that the function registration worked.
-#define CHECK(EVENT,FUNCTION,NAME) \
-  /* fprintf(stderr,"Registering OMPT callback %s...",NAME); fflush(stderr); */ \
-  if (ompt_set_callback(EVENT, (ompt_callback_t)(FUNCTION)) == 0) { \
-    /* fprintf(stderr,"\n\tFailed to register OMPT callback %s!\n",NAME); fflush(stderr); */ \
-  } else { \
-    /* fprintf(stderr,"success.\n"); */ \
-  } \
+    char * tmp_str;
+    static const char * sections_str = "Sections";
+    static const char * single_executor_str = "Single Executor";
+    static const char * single_other_str = "Single Other";
+    static const char * workshare_str = "Workshare";
+    static const char * distribute_str = "Distribute";
+    static const char * taskgroup_str = "Taskloop";
+    static const char * loop_str = "Loop";
+    if (wstype == ompt_work_sections) {
+        tmp_str = const_cast<char*>(sections_str);
+    } else if (wstype == ompt_work_single_executor) {
+        tmp_str = const_cast<char*>(single_executor_str);
+    } else if (wstype == ompt_work_single_other) {
+        tmp_str = const_cast<char*>(single_other_str);
+    } else if (wstype == ompt_work_workshare) {
+        tmp_str = const_cast<char*>(workshare_str);
+    } else if (wstype == ompt_work_distribute) {
+        tmp_str = const_cast<char*>(distribute_str);
+    } else if (wstype == ompt_work_taskloop) {
+        tmp_str = const_cast<char*>(taskgroup_str);
+    } else {
+        tmp_str = const_cast<char*>(loop_str);
+    }
+    if (endpoint == ompt_scope_begin) {
+        char regionIDstr[128] = {0}; 
+        //printf("%llu: %s Begin task: %p, region: %p\n", threadid, tmp_str, task_data, parallel_data); fflush(stdout);
+        if (codeptr_ra != NULL) {
+            sprintf(regionIDstr, "OpenMP Work %s: UNRESOLVED ADDR %p", tmp_str, codeptr_ra);
+            apex_ompt_start(regionIDstr, task_data, parallel_data, true);
+        } else {
+            sprintf(regionIDstr, "OpenMP Work %s", tmp_str);
+            apex_ompt_start(regionIDstr, task_data, parallel_data, true);
+        }
+    } else {
+        //printf("%llu: %s End task: %p, region: %p\n", threadid, tmp_str, task_data, parallel_data); fflush(stdout);
+        apex_ompt_stop(task_data);
+    }
+}
 
-inline int __ompt_initialize() {
-  apex::init("OPENMP_PROGRAM",0,1);
-  timer_stack = new std::stack<apex::profiler*>();
-  fprintf(stderr,"Registering OMPT events..."); fflush(stderr);
-  CHECK(ompt_event_parallel_begin, apex_parallel_region_begin, "parallel_begin");
-  CHECK(ompt_event_parallel_end, apex_parallel_region_end, "parallel_end");
+/* Event #21, task at master begin or end       */
+extern "C" void apex_ompt_master (
+    ompt_scope_endpoint_t endpoint,       /* endpoint of master region           */
+    ompt_data_t *parallel_data,           /* data of parallel region             */
+    ompt_data_t *task_data,               /* data of task                        */
+    const void *codeptr_ra                /* return address of runtime call      */
+) {
+    if (endpoint == ompt_scope_begin) {
+        if (codeptr_ra != NULL) {
+            char regionIDstr[128] = {0}; 
+            sprintf(regionIDstr, "OpenMP Master: UNRESOLVED ADDR %p", codeptr_ra);
+            apex_ompt_start(regionIDstr, task_data, parallel_data, true);
+        } else {
+            apex_ompt_start("OpenMP Master", task_data, parallel_data, true);
+        }
+    } else {
+        apex_ompt_stop(task_data);
+    }
+}
 
-  CHECK(ompt_event_task_begin, apex_task_begin, "task_begin");
-  CHECK(ompt_event_task_end, apex_task_end, "task_end");
-  CHECK(ompt_event_thread_begin, apex_thread_begin, "thread_begin");
-  CHECK(ompt_event_thread_end, apex_thread_end, "thread_end");
-  CHECK(ompt_event_control, apex_control, "event_control");
-  CHECK(ompt_event_runtime_shutdown, apex_shutdown, "runtime_shutdown");
+/* Event #23, sync region begin or end */
+extern "C" void apex_ompt_sync_region (
+    ompt_sync_region_kind_t kind,         /* kind of sync region                 */
+    ompt_scope_endpoint_t endpoint,       /* endpoint of sync region             */
+    ompt_data_t *parallel_data,           /* data of parallel region             */
+    ompt_data_t *task_data,               /* data of task                        */
+    const void *codeptr_ra                /* return address of runtime call      */
+) {
+    char * tmp_str;
+    static const char * barrier_str = "Barrier";
+    static const char * task_str = "Task";
+    static const char * task_group_str = "Task Group";
+    if (kind == ompt_sync_region_barrier) {
+        tmp_str = const_cast<char*>(barrier_str);
+    } else if (kind == ompt_sync_region_taskwait) {
+        tmp_str = const_cast<char*>(task_str);
+    } else if (kind == ompt_sync_region_taskgroup) {
+        tmp_str = const_cast<char*>(task_group_str);
+    }
+    if (endpoint == ompt_scope_begin) {
+        char regionIDstr[128] = {0}; 
+        if (codeptr_ra != NULL) {
+            sprintf(regionIDstr, "OpenMP %s: UNRESOLVED ADDR %p", tmp_str, codeptr_ra);
+            apex_ompt_start(regionIDstr, task_data, parallel_data, true);
+        } else {
+            sprintf(regionIDstr, "OpenMP %s", tmp_str);
+            apex_ompt_start(regionIDstr, task_data, parallel_data, true);
+        }
+    } else {
+        apex_ompt_stop(task_data);
+    }
+}
 
-  if (!apex::apex_options::ompt_required_events_only()) {
-    //CHECK(ompt_event_wait_lock, apex_wait_lock, "wait_lock");
-    //CHECK(ompt_event_wait_nest_lock, apex_wait_nest_lock, "wait_nest_lock");
-    CHECK(ompt_event_wait_critical, apex_wait_critical, "wait_critical");
-    CHECK(ompt_event_wait_atomic, apex_wait_atomic, "wait_atomic");
-    CHECK(ompt_event_wait_ordered, apex_wait_ordered, "wait_ordered");
+/* Event #29, flush event */
+extern "C" void apex_ompt_flush (
+    ompt_data_t *thread_data,             /* data of thread                      */
+    const void *codeptr_ra                /* return address of runtime call      */
+) {
+    if (codeptr_ra != NULL) {
+        char regionIDstr[128] = {0}; 
+        sprintf(regionIDstr, "OpenMP Flush: UNRESOLVED ADDR %p", codeptr_ra);
+        apex::sample_value(regionIDstr, 1);
+    } else {
+        apex::sample_value(std::string("OpenMP Flush"),1);
+    }
+}
 
-    //CHECK(ompt_event_acquired_lock, apex_acquired_lock, "acquired_lock");
-    //CHECK(ompt_event_acquired_nest_lock, apex_acquired_nest_lock, "acquired_nest_lock");
-    CHECK(ompt_event_acquired_critical, apex_acquired_critical, "acquired_critical");
-    CHECK(ompt_event_acquired_atomic, apex_acquired_atomic, "acquired_atomic");
-    CHECK(ompt_event_acquired_ordered, apex_acquired_ordered, "acquired_ordered");
+/* Event #30, cancel event */
+extern "C" void apex_ompt_cancel (
+    ompt_data_t *task_data,               /* data of task                        */
+    int flags,                            /* cancel flags                        */
+    const void *codeptr_ra                /* return address of runtime call      */
+) {
+    char regionIDstr[128] = {0}; 
+    if (flags & ompt_cancel_parallel) {
+        if (codeptr_ra != NULL) {
+            sprintf(regionIDstr, "OpenMP Cancel Parallel: UNRESOLVED ADDR %p", codeptr_ra);
+            apex::sample_value(std::string(regionIDstr),1);
+        } else {
+            apex::sample_value(std::string("OpenMP Cancel Parallel"),1);
+        }
+    }
+    if (flags & ompt_cancel_sections) {
+        if (codeptr_ra != NULL) {
+            sprintf(regionIDstr, "OpenMP Cancel Sections: UNRESOLVED ADDR %p", codeptr_ra);
+            apex::sample_value(std::string(regionIDstr),1);
+        } else {
+            apex::sample_value(std::string("OpenMP Cancel Sections"),1);
+        }
+    }
+    if (flags & ompt_cancel_do) {
+        if (codeptr_ra != NULL) {
+            sprintf(regionIDstr, "OpenMP Cancel Do: UNRESOLVED ADDR %p", codeptr_ra);
+            apex::sample_value(std::string(regionIDstr),1);
+        } else {
+            apex::sample_value(std::string("OpenMP Cancel Do"),1);
+        }
+    }
+    if (flags & ompt_cancel_taskgroup) {
+        if (codeptr_ra != NULL) {
+            sprintf(regionIDstr, "OpenMP Cancel Taskgroup: UNRESOLVED ADDR %p", codeptr_ra);
+            apex::sample_value(std::string(regionIDstr),1);
+        } else {
+            apex::sample_value(std::string("OpenMP Cancel Taskgroup"),1);
+        }
+    }
+    if (flags & ompt_cancel_activated) {
+        if (codeptr_ra != NULL) {
+            sprintf(regionIDstr, "OpenMP Cancel Activated: UNRESOLVED ADDR %p", codeptr_ra);
+            apex::sample_value(std::string(regionIDstr),1);
+        } else {
+            apex::sample_value(std::string("OpenMP Cancel Activated"),1);
+        }
+    }
+    if (flags & ompt_cancel_detected) {
+        if (codeptr_ra != NULL) {
+            sprintf(regionIDstr, "OpenMP Cancel Detected: UNRESOLVED ADDR %p", codeptr_ra);
+            apex::sample_value(std::string(regionIDstr),1);
+        } else {
+            apex::sample_value(std::string("OpenMP Cancel Detected"),1);
+        }
+    }
+    if (flags & ompt_cancel_discarded_task) {
+        if (codeptr_ra != NULL) {
+            sprintf(regionIDstr, "OpenMP Cancel Discarded Task: UNRESOLVED ADDR %p", codeptr_ra);
+            apex::sample_value(std::string(regionIDstr),1);
+        } else {
+            apex::sample_value(std::string("OpenMP Cancel Discarded Task"),1);
+        }
+    }
+    apex_ompt_stop(task_data);
+}
 
-    //CHECK(ompt_event_release_lock, apex_release_lock, "release_lock");
-    //CHECK(ompt_event_release_nest_lock, apex_release_nest_lock, "release_nest_lock");
-    CHECK(ompt_event_release_critical, apex_release_critical, "release_critical");
-    CHECK(ompt_event_release_atomic, apex_release_atomic, "release_atomic");
-    CHECK(ompt_event_release_ordered, apex_release_ordered, "release_ordered");
+/* Event #30, cancel event */
+extern "C" void apex_ompt_idle (
+    ompt_scope_endpoint_t endpoint        /* endpoint of idle time               */
+) {
+    static APEX_NATIVE_TLS apex::profiler* p = nullptr;
+    if (endpoint == ompt_scope_begin) {
+        p = apex::start("OpenMP Idle");
+    } else {
+        apex::stop(p);
+    }
+}
 
-    CHECK(ompt_event_barrier_begin, apex_barrier_begin, "barrier_begin");
-    CHECK(ompt_event_barrier_end, apex_barrier_end, "barrier_end");
-    CHECK(ompt_event_master_begin, apex_master_begin, "master_begin");
-    CHECK(ompt_event_master_end, apex_master_end, "master_end");
-    CHECK(ompt_event_loop_begin, apex_loop_begin, "loop_begin");
-    CHECK(ompt_event_loop_end, apex_loop_end, "loop_end");
-    if (apex::apex_options::ompt_high_overhead_events()) {
-      CHECK(ompt_event_sections_begin, apex_sections_begin, "sections_begin");
-      CHECK(ompt_event_sections_end, apex_sections_end, "sections_end");
-      CHECK(ompt_event_taskwait_begin, apex_taskwait_begin, "taskwait_begin");
-      CHECK(ompt_event_taskwait_end, apex_taskwait_end, "taskwait_end");
-      CHECK(ompt_event_taskgroup_begin, apex_taskgroup_begin, "taskgroup_begin");
-      CHECK(ompt_event_taskgroup_end, apex_taskgroup_end, "taskgroup_end");
-      CHECK(ompt_event_workshare_begin, apex_workshare_begin, "workshare_begin");
-      CHECK(ompt_event_workshare_end, apex_workshare_end, "workshare_end");
+/**********************************************************************/
+/* End Optional events */
+/**********************************************************************/
 
-    /* These are high overhead events! */
-      CHECK(ompt_event_implicit_task_begin, apex_implicit_task_begin, "task_begin");
-      CHECK(ompt_event_implicit_task_end, apex_implicit_task_end, "task_end");
-      CHECK(ompt_event_idle_begin, apex_idle_begin, "idle_begin");
-      CHECK(ompt_event_idle_end, apex_idle_end, "idle_end");
-	}
+// This function is for checking that the function registration worked.
+int apex_ompt_register(ompt_callbacks_t e, ompt_callback_t c , const char * name) {
+  fprintf(stderr,"Registering OMPT callback %s...",name); fflush(stderr);
+  if (ompt_set_callback(e, c) == 0) { \
+    fprintf(stderr,"\n\tFailed to register OMPT callback %s!\n",name); fflush(stderr);
+  } else {
+    fprintf(stderr,"success.\n");
   }
-  fprintf(stderr,"done.\n"); fflush(stderr);
-  return 1;
+  return 0;
 }
 
 extern "C" {
 
-void ompt_initialize(ompt_function_lookup_t lookup, const char *runtime_version, unsigned int ompt_version) {
-  APEX_UNUSED(lookup);
-  APEX_UNUSED(runtime_version);
-  APEX_UNUSED(ompt_version);
-  ompt_set_callback = (ompt_set_callback_t) lookup("ompt_set_callback");
-  __ompt_initialize();
+int ompt_initialize(ompt_function_lookup_t lookup, ompt_data_t* tool_data) {
+    {
+        std::unique_lock<std::mutex> l(threadid_mutex);
+        threadid = numthreads++;
+    }
+    fprintf(stderr,"Getting OMPT functions..."); fflush(stderr);
+    ompt_set_callback = (ompt_set_callback_t) lookup("ompt_set_callback");
+    ompt_get_task_info = (ompt_get_task_info_t) lookup("ompt_get_task_info");
+    ompt_get_thread_data = (ompt_get_thread_data_t) lookup("ompt_get_thread_data");
+    ompt_get_parallel_info = (ompt_get_parallel_info_t) lookup("ompt_get_parallel_info");
+    ompt_get_unique_id = (ompt_get_unique_id_t) lookup("ompt_get_unique_id");
+
+    ompt_get_num_places = (ompt_get_num_places_t) lookup("ompt_get_num_places");
+    ompt_get_place_proc_ids = (ompt_get_place_proc_ids_t) lookup("ompt_get_place_proc_ids");
+    ompt_get_place_num = (ompt_get_place_num_t) lookup("ompt_get_place_num");
+    ompt_get_partition_place_nums = (ompt_get_partition_place_nums_t) lookup("ompt_get_partition_place_nums");
+    ompt_get_proc_id = (ompt_get_proc_id_t) lookup("ompt_get_proc_id");
+    ompt_enumerate_states = (ompt_enumerate_states_t) lookup("ompt_enumerate_states");
+    ompt_enumerate_mutex_impls = (ompt_enumerate_mutex_impls_t) lookup("ompt_enumerate_mutex_impls");
+
+    apex::init("OpenMP Program",0,1);
+    fprintf(stderr,"Registering OMPT events..."); fflush(stderr);
+
+    /* Mandatory events */
+
+    // Event 1: thread begin
+    apex_ompt_register(ompt_callback_thread_begin,
+        (ompt_callback_t)&apex_thread_begin, "thread_begin");
+    // Event 2: thread end
+    apex_ompt_register(ompt_callback_thread_end,
+        (ompt_callback_t)&apex_thread_end, "thread_end");
+    // Event 3: parallel begin
+    apex_ompt_register(ompt_callback_parallel_begin,
+        (ompt_callback_t)&apex_parallel_region_begin, "parallel_begin");
+    // Event 4: parallel end
+    apex_ompt_register(ompt_callback_parallel_end,
+        (ompt_callback_t)&apex_parallel_region_end, "parallel_end");
+    if (apex::apex_options::ompt_high_overhead_events()) {
+        // Event 5: task create
+        apex_ompt_register(ompt_callback_task_create,
+            (ompt_callback_t)&apex_task_create, "task_create");
+        // Event 6: task schedule (start/stop)
+        apex_ompt_register(ompt_callback_task_schedule,
+            (ompt_callback_t)&apex_task_schedule, "task_schedule");
+/* The LLVM runtime seems to be not storing the implicit task data correctly.
+ * Disable this event for now. */
+#if !defined(__clang__)
+        // Event 7: implicit task (start/stop)
+        apex_ompt_register(ompt_callback_implicit_task,
+            (ompt_callback_t)&apex_implicit_task, "implicit_task");
+#endif
+    }
+
+ #if 0
+    // Event 8: target
+    apex_ompt_register(ompt_callback_target,
+        (ompt_callback_t)&apex_target, "target");
+    // Event 9: target data operation
+    apex_ompt_register(ompt_callback_target_data_op,
+        (ompt_callback_t)&apex_target_data_op, "target_data_operation");
+    // Event 10: target submit
+    apex_ompt_register(ompt_callback_target_submit,
+        (ompt_callback_t)&apex_target_submit, "target_submit");
+    // Event 11: control tool
+    apex_ompt_register(ompt_callback_control_tool,
+        (ompt_callback_t)&apex_control, "event_control");
+    // Event 12: device initialize
+    apex_ompt_register(ompt_callback_device_initialize,
+        (ompt_callback_t)&apex_device_initialize, "device_initialize");
+    // Event 13: device finalize
+    apex_ompt_register(ompt_callback_device_finalize,
+        (ompt_callback_t)&apex_device_finalize, "device_finalize");
+    // Event 14: device load
+    apex_ompt_register(ompt_callback_device_load,
+        (ompt_callback_t)&apex_device_load, "device_load");
+    // Event 15: device unload
+    apex_ompt_register(ompt_callback_device_unload,
+        (ompt_callback_t)&apex_device_unload, "device_unload");
+
+#endif
+
+    /* optional events */
+
+    if (!apex::apex_options::ompt_required_events_only()) {
+        // Event 20: task at work begin or end
+        apex_ompt_register(ompt_callback_work,
+            (ompt_callback_t)&apex_ompt_work, "work");
+        /* Event 21: task at master begin or end     */
+        apex_ompt_register(ompt_callback_master,
+            (ompt_callback_t)&apex_ompt_master, "master");
+#if 0
+        /* Event 22: target map                      */
+#endif
+        /* Event 29: after executing flush           */
+        apex_ompt_register(ompt_callback_flush,
+            (ompt_callback_t)&apex_ompt_flush, "flush");
+        /* Event 30: cancel innermost binding region */
+        apex_ompt_register(ompt_callback_cancel,
+            (ompt_callback_t)&apex_ompt_cancel, "cancel");
+
+        if (apex::apex_options::ompt_high_overhead_events()) {
+            // Event 16: sync region wait begin or end
+            apex_ompt_register(ompt_callback_sync_region_wait,
+                (ompt_callback_t)&apex_sync_region_wait, "sync_region_wait");
+#if 0
+            // Event 17: mutex released
+            apex_ompt_register(ompt_callback_mutex_released,
+                (ompt_callback_t)&apex_mutex_released, "mutex_released");
+            // Event 18: report task dependences
+            apex_ompt_register(ompt_callback_report_task_dependences,
+                (ompt_callback_t)&apex_report_task_dependences, "mutex_report_task_dependences");
+            // Event 19: report task dependence
+            apex_ompt_register(ompt_callback_report_task_dependence,
+                (ompt_callback_t)&apex_report_task_dependence, "mutex_report_task_dependence");
+#endif
+            /* Event 23: sync region begin or end        */
+            apex_ompt_register(ompt_callback_sync_region,
+                (ompt_callback_t)&apex_ompt_sync_region, "sync_region");
+            /* Event 31: begin or end idle state         */
+            apex_ompt_register(ompt_callback_idle,
+                (ompt_callback_t)&apex_ompt_idle, "idle");
+#if 0
+            /* Event 24: lock init                       */
+            /* Event 25: lock destroy                    */
+            /* Event 26: mutex acquire                   */
+            apex_ompt_register(ompt_callback_mutex_acquire,
+                (ompt_callback_t)&apex_mutex_acquire, "mutex_acquire");
+            /* Event 27: mutex acquired                  */
+            apex_ompt_register(ompt_callback_mutex_acquired,
+                (ompt_callback_t)&apex_mutex_acquired, "mutex_acquired");
+            /* Event 28: nest lock                       */
+#endif
+        }
+
+    }
+
+    fprintf(stderr,"done.\n"); fflush(stderr);
+    return 1;
 }
 
-ompt_initialize_t ompt_tool() { return ompt_initialize; }
+void ompt_finalize(ompt_data_t* tool_data)
+{
+    printf("OpenMP runtime is shutting down...\n");
+    apex::finalize();
+}
+
+ompt_start_tool_result_t * ompt_start_tool(
+    unsigned int omp_version, const char *runtime_version) {
+    static ompt_start_tool_result_t result;
+    result.initialize = &ompt_initialize;
+    result.finalize = &ompt_finalize;
+    result.tool_data.value = 0L;
+    result.tool_data.ptr = NULL;
+    return &result;
+}
 
 }; // extern "C"

@@ -39,9 +39,10 @@ if(BUILD_OMPT OR (NOT OMPT_FOUND))
   message(INFO " A working internet connection is required!")
   include(ExternalProject)
   ExternalProject_Add(project_ompt
-    GIT_REPOSITORY https://github.com/khuck/LLVM-openmp.git
-	GIT_TAG v0.2
-    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/LLVM-ompt-0.1
+      #GIT_REPOSITORY https://github.com/khuck/LLVM-openmp.git
+      GIT_REPOSITORY https://github.com/OpenMPToolsInterface/LLVM-openmp.git
+	GIT_TAG master
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/LLVM-ompt-5.0
     CONFIGURE_COMMAND cmake -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -DCMAKE_BUILD_TYPE=Release ../project_ompt
     BUILD_COMMAND make libomp-needed-headers all
     INSTALL_COMMAND make install

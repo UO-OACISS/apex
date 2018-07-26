@@ -846,7 +846,7 @@ class scoped_timer {
  \param func The address of a function used to identify the timer type
  \param thread_name The name of this new worker thread in the runtime
  */
-        scoped_timer(uint64_t func, std::shared_ptr<apex::task_wrapper> parent)
+        scoped_timer(uint64_t func, std::shared_ptr<apex::task_wrapper> &parent)
             : twp(nullptr) {
             twp = apex::new_task((apex_function_address)func, UINTMAX_MAX, parent);
             apex::start(twp);
@@ -857,7 +857,7 @@ class scoped_timer {
  \param func The name of a function used to identify the timer type
  \param thread_name The name of this new worker thread in the runtime
  */
-        scoped_timer(std::string func, std::shared_ptr<apex::task_wrapper> parent)
+        scoped_timer(std::string func, std::shared_ptr<apex::task_wrapper> &parent)
             : twp(nullptr) {
             twp = apex::new_task(func, UINTMAX_MAX, parent);
             apex::start(twp);
@@ -883,7 +883,7 @@ class scoped_timer {
 /*
  \brief Get the internal task wrapper object
  */
-        std::shared_ptr<apex::task_wrapper> get_task_wrapper(void) {
+        std::shared_ptr<apex::task_wrapper>& get_task_wrapper(void) {
             return twp;
         }
 };

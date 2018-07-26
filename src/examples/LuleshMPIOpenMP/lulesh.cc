@@ -2721,7 +2721,7 @@ int main(int argc, char *argv[])
    numRanks = 1;
    myRank = 0;
 #endif   
-   apex::init("lulesh",numRanks,myRank);
+   apex::init("lulesh",myRank,numRanks);
    apex::print_options();
    //apex_global_setup(APEX_NAME_STRING, (void*)("Main Iteration"));
    //custom_event = apex::register_custom_event("balance power");
