@@ -46,7 +46,7 @@ int main (int argc, char *argv[])
   printf("Main...\n");
   fflush(stdout);
   printf ("\nDoing forking tasks..."); fflush(stdout);
-  fibouter(5);
+  fibouter(2);
 
   printf ("Done.\n");
   fflush(stdout);

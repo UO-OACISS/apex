@@ -24,11 +24,12 @@ class linked_timer {
         inline void stop(void)  { apex::stop(tw);  timing = false; }
         /* constructor */
         linked_timer(const char * name, 
+            uint64_t task_id,
             void *p, 
             std::shared_ptr<apex::task_wrapper> &parent,
             bool auto_start) :
             prev(p), timing(auto_start) { 
-            tw = apex::new_task(name, UINTMAX_MAX, parent);
+            tw = apex::new_task(name, task_id, parent);
             if (auto_start) { this->start(); }
         }
         /* destructor */
@@ -68,9 +69,9 @@ void apex_ompt_start(const char * state, ompt_data_t * ompt_data,
         if (parent != nullptr) {
             /* Get the task wrapper */
             std::shared_ptr<apex::task_wrapper> &parent_tw = parent->tw;
-            tmp = new linked_timer(state, ompt_data->ptr, parent_tw, auto_start);
+            tmp = new linked_timer(state, ompt_data->value, ompt_data->ptr, parent_tw, auto_start);
         } else {
-            tmp = new linked_timer(state, ompt_data->ptr, nothing, auto_start);
+            tmp = new linked_timer(state, ompt_data->value, ompt_data->ptr, nothing, auto_start);
         }
 #if 0
     } else if (ompt_data->ptr != nullptr) {
@@ -78,10 +79,10 @@ void apex_ompt_start(const char * state, ompt_data_t * ompt_data,
         linked_timer* parent = (linked_timer*)(ompt_data->ptr);
         /* Get the task wrapper */
         std::shared_ptr<apex::task_wrapper> &parent_tw = parent->st.get_task_wrapper();
-        tmp = new linked_timer(state, ompt_data->ptr, parent_tw, true);
+        tmp = new linked_timer(state, ompt_data->value, ompt_data->ptr, parent_tw, true);
 #endif
     } else {
-        tmp = new linked_timer(state, ompt_data->ptr, nothing, auto_start);
+        tmp = new linked_timer(state, ompt_data->value, ompt_data->ptr, nothing, auto_start);
     }
 
     /* Save the address of the scoped timer with the parallel region
