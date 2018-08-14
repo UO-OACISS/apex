@@ -6,6 +6,7 @@
 #ifdef APEX_HAVE_HPX
 #include <hpx/config.hpp>
 #include <hpx/include/runtime.hpp>
+#include <boost/bind.hpp>
 #endif
 
 #include "apex_api.hpp"
