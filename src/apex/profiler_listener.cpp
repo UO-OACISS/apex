@@ -1529,6 +1529,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
     for (auto tmp : free_profiles) {
         delete(tmp);
     }
+    delete profiler::disabled_profiler;
 
   };
 

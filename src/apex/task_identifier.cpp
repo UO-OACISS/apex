@@ -26,14 +26,26 @@ std::mutex bfd_mutex;;
 
     task_identifier::apex_name_map::apex_name_map() : tid(thread_instance::get_id()) {};
     task_identifier::apex_name_map::~apex_name_map(void) {
-        if (tid == 0) 
+        if (tid == 0) {
             finalize();
+        }
+        /* We have a small leak of the task_identifier objects in this map.
+           unfortunately, we can't clean up the map because some profile
+           objects will refer to the pointers in the map, and they won't
+           be resolved correctly at exit. The leak only becomes a leak when
+           the program exits and the pointers aren't needed any more. */
     }
 
     task_identifier::apex_addr_map::apex_addr_map() : tid(thread_instance::get_id()) {};
     task_identifier::apex_addr_map::~apex_addr_map(void) {
-        if (tid == 0) 
+        if (tid == 0) {
             finalize();
+        }
+        /* We have a small leak of the task_identifier objects in this map.
+           unfortunately, we can't clean up the map because some profile
+           objects will refer to the pointers in the map, and they won't
+           be resolved correctly at exit. The leak only becomes a leak when
+           the program exits and the pointers aren't needed any more. */
     }
 
 const std::string& task_identifier::get_name(bool resolve) {
