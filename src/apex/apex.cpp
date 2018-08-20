@@ -1358,8 +1358,6 @@ void register_thread(const std::string &name)
 
 void exit_thread(void)
 {
-    // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { return; }
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance || _exited) return; // protect against calls after finalization
     if (top_level_timer != nullptr) { stop(top_level_timer); }
