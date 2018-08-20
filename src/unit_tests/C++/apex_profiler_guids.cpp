@@ -37,9 +37,9 @@ int foo(int input) {
 
 void* someThread(void* tmp)
 {
-    int* tid = (int*)tmp;
+    int tid = *(int*)tmp;
     char name[32];
-    sprintf(name, "worker thread %d", *tid);
+    sprintf(name, "worker thread %d", tid);
     /* Register this thread with APEX */
     apex::register_thread(name);
     /* Start a timer */
@@ -48,7 +48,7 @@ void* someThread(void* tmp)
     /* ... */
     /* do some computation */
     for (int i = 0 ; i < num_tasks ; i++) {
-        foo(i+(*tid));
+        foo(i+tid);
     }
     /* ... */
     /* stop the timer */
@@ -66,9 +66,10 @@ int main (int argc, char** argv) {
     check_guid(p->guid);
     /* Spawn two threads */
     pthread_t thread[num_threads];
+    int tids[num_threads];
     for (int i = 0 ; i < num_threads ; i++) {
-        int tid = i;
-        pthread_create(&(thread[i]), NULL, someThread, &tid);
+        tids[i] = i;
+        pthread_create(&(thread[i]), NULL, someThread, &(tids[i]));
     }
     for (int i = 0 ; i < num_threads ; i++) {
         /* wait for the thread to finish. Not concurrent, but tests task guid generation. */
