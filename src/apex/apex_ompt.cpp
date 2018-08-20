@@ -15,9 +15,9 @@ typedef enum apex_ompt_thread_type_e {
  apex_ompt_thread_other = 3
 } apex_ompt_thread_type_t;
 
-std::mutex threadid_mutex;
-std::atomic<uint64_t> numthreads(0);
-APEX_NATIVE_TLS uint64_t threadid(-1);
+std::mutex apex_apex_threadid_mutex;
+std::atomic<uint64_t> apex_numthreads(0);
+APEX_NATIVE_TLS uint64_t apex_threadid(-1);
 
 class linked_timer {
     public:
@@ -110,8 +110,8 @@ extern "C" void apex_thread_begin(
     ompt_data_t *thread_data              /* data of thread                      */
 ) {
     {
-        std::unique_lock<std::mutex> l(threadid_mutex);
-        threadid = numthreads++;
+        std::unique_lock<std::mutex> l(apex_apex_threadid_mutex);
+        apex_threadid = apex_numthreads++;
     }
     switch (thread_type) {
         case ompt_thread_initial:
@@ -153,7 +153,7 @@ static void apex_parallel_region_begin (
     char regionIDstr[128] = {0}; 
     sprintf(regionIDstr, "OpenMP Parallel Region: UNRESOLVED ADDR %p", codeptr_ra);
     apex_ompt_start(regionIDstr, parallel_data, NULL, true);
-    //printf("%llu: Parallel Region Begin parent: %p, apex_parent: %p, region: %p, apex_region: %p\n", threadid, encountering_task_data, encountering_task_data->ptr, parallel_data, parallel_data->ptr); fflush(stdout);
+    //printf("%llu: Parallel Region Begin parent: %p, apex_parent: %p, region: %p, apex_region: %p\n", apex_threadid, encountering_task_data, encountering_task_data->ptr, parallel_data, parallel_data->ptr); fflush(stdout);
 }
 
 /* Event #4, parallel region end */
@@ -163,7 +163,7 @@ static void apex_parallel_region_end (
     ompt_invoker_t invoker,               /* invoker of master task              */
     const void *codeptr_ra                /* return address of runtime call      */
 ) {
-    //printf("%llu: Parallel Region End parent: %p, apex_parent: %p, region: %p, apex_region: %p\n", threadid, encountering_task_data, encountering_task_data->ptr, parallel_data, parallel_data->ptr); fflush(stdout);
+    //printf("%llu: Parallel Region End parent: %p, apex_parent: %p, region: %p, apex_region: %p\n", apex_threadid, encountering_task_data, encountering_task_data->ptr, parallel_data, parallel_data->ptr); fflush(stdout);
     apex_ompt_stop(parallel_data);
 }
 
@@ -215,7 +215,7 @@ extern "C" void apex_task_create (
         default:
             type_str = const_cast<char*>(merged_str);
     }
-    //printf("%llu: %s Task Create parent: %p, child: %p\n", threadid, type_str, encountering_task_data, new_task_data); fflush(stdout);
+    //printf("%llu: %s Task Create parent: %p, child: %p\n", apex_threadid, type_str, encountering_task_data, new_task_data); fflush(stdout);
 
     if (codeptr_ra != NULL) {
         char regionIDstr[128] = {0}; 
@@ -232,7 +232,7 @@ extern "C" void apex_task_schedule(
     ompt_task_status_t prior_task_status, /* status of prior task                */
     ompt_data_t *next_task_data           /* data of next task                   */
     ) {
-    //printf("%llu: Task Schedule prior: %p, status: %d, next: %p\n", threadid, prior_task_data, prior_task_status, next_task_data); fflush(stdout);
+    //printf("%llu: Task Schedule prior: %p, status: %d, next: %p\n", apex_threadid, prior_task_data, prior_task_status, next_task_data); fflush(stdout);
     if (prior_task_data != nullptr) {
         linked_timer* prior = (linked_timer*)(prior_task_data->ptr);
         if (prior != nullptr) {
@@ -271,7 +271,7 @@ extern "C" void apex_implicit_task(
     } else {
         apex_ompt_stop(task_data);
     }
-    //printf("%llu: Implicit Task task: %p, apex: %p, region: %p, %d\n", threadid, task_data, task_data->ptr, parallel_data, endpoint); fflush(stdout);
+    //printf("%llu: Implicit Task task: %p, apex: %p, region: %p, %d\n", apex_threadid, task_data, task_data->ptr, parallel_data, endpoint); fflush(stdout);
 }
 
 /* These are placeholder functions */
@@ -430,7 +430,7 @@ extern "C" void apex_ompt_work (
     }
     if (endpoint == ompt_scope_begin) {
         char regionIDstr[128] = {0}; 
-        //printf("%llu: %s Begin task: %p, region: %p\n", threadid, tmp_str, task_data, parallel_data); fflush(stdout);
+        //printf("%llu: %s Begin task: %p, region: %p\n", apex_threadid, tmp_str, task_data, parallel_data); fflush(stdout);
         if (codeptr_ra != NULL) {
             sprintf(regionIDstr, "OpenMP Work %s: UNRESOLVED ADDR %p", tmp_str, codeptr_ra);
             apex_ompt_start(regionIDstr, task_data, parallel_data, true);
@@ -439,7 +439,7 @@ extern "C" void apex_ompt_work (
             apex_ompt_start(regionIDstr, task_data, parallel_data, true);
         }
     } else {
-        //printf("%llu: %s End task: %p, region: %p\n", threadid, tmp_str, task_data, parallel_data); fflush(stdout);
+        //printf("%llu: %s End task: %p, region: %p\n", apex_threadid, tmp_str, task_data, parallel_data); fflush(stdout);
         apex_ompt_stop(task_data);
     }
 }
@@ -608,8 +608,8 @@ extern "C" {
 
 int ompt_initialize(ompt_function_lookup_t lookup, ompt_data_t* tool_data) {
     {
-        std::unique_lock<std::mutex> l(threadid_mutex);
-        threadid = numthreads++;
+        std::unique_lock<std::mutex> l(apex_apex_threadid_mutex);
+        apex_threadid = apex_numthreads++;
     }
     fprintf(stderr,"Getting OMPT functions..."); fflush(stderr);
     ompt_set_callback = (ompt_set_callback_t) lookup("ompt_set_callback");
