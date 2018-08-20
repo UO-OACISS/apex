@@ -55,25 +55,25 @@ void* someThread(void* tmp)
 int main(int argc, char **argv)
 {
   apex::init(argv[0], 0, 1);
-  unsigned numthreads = apex::hardware_concurrency();
+  unsigned test_numthreads = apex::hardware_concurrency();
   if (argc > 1) {
-    numthreads = strtoul(argv[1],NULL,0);
+    test_numthreads = strtoul(argv[1],NULL,0);
   }
   apex::apex_options::use_screen_output(true);
   sleep(1); // if we don't sleep, the proc_read thread won't have time to read anything.
 
   apex::scoped_timer proxy((apex_function_address)main);
   printf("PID of this process: %d\n", getpid());
-  std::cout << "Expecting " << numthreads << " threads." << std::endl;
-  pthread_t * thread = (pthread_t*)(malloc(sizeof(pthread_t) * numthreads));
-  unsigned long * results = (unsigned long *)malloc(sizeof(unsigned long) * numthreads);
+  std::cout << "Expecting " << test_numthreads << " threads." << std::endl;
+  pthread_t * thread = (pthread_t*)(malloc(sizeof(pthread_t) * test_numthreads));
+  unsigned long * results = (unsigned long *)malloc(sizeof(unsigned long) * test_numthreads);
   std::atomic<int> thread_count(0);
   for (unsigned f = 0 ; f < FLOOD_LEVEL ; f++) {
 #ifdef APEX_HAVE_TAU
     if (thread_count >= 120) { break; }
 #endif
     unsigned i;
-    for (i = 0 ; i < numthreads ; i++) {
+    for (i = 0 ; i < test_numthreads ; i++) {
         pthread_create(&(thread[i]), NULL, someThread, &(results[i]));
         thread_count++;
 #ifdef APEX_HAVE_TAU
@@ -81,7 +81,7 @@ int main(int argc, char **argv)
 #endif
     }
     unsigned newbreak = i;
-    for (i = 0 ; i < numthreads && i < newbreak ; i++) {
+    for (i = 0 ; i < test_numthreads && i < newbreak ; i++) {
         pthread_join(thread[i], NULL);
     }
   }

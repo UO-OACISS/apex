@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include "apex_api.hpp"
 
-uint32_t numthreads = 0;
+uint32_t test_numthreads = 0;
 int threads_per_core = 8;
 const int num_iterations = 10;
 
@@ -136,24 +136,24 @@ int main (int argc, char** argv) {
     apex::profiler* p = apex::start("main");
     /* Spawn X threads */
     if (argc > 1) {
-        numthreads = strtoul(argv[1],NULL,0);
+        test_numthreads = strtoul(argv[1],NULL,0);
     } else {
-        numthreads = apex::hardware_concurrency() * threads_per_core; // many threads per core. Stress it!
+        test_numthreads = apex::hardware_concurrency() * threads_per_core; // many threads per core. Stress it!
     }
 #ifndef __APPLE__
-    pthread_barrier_init(&barrier, NULL, numthreads);
+    pthread_barrier_init(&barrier, NULL, test_numthreads);
 #endif
     if (apex::apex_options::use_tau() || apex::apex_options::use_otf2()) { 
-        numthreads = std::min(numthreads, apex::hardware_concurrency());
+        test_numthreads = std::min(test_numthreads, apex::hardware_concurrency());
     }
-    int * tids = (int*)calloc(numthreads, sizeof(int));
-    pthread_t * thread = (pthread_t*)calloc(numthreads, sizeof(pthread_t));
-    for (uint32_t i = 0 ; i < numthreads ; i++) {
+    int * tids = (int*)calloc(test_numthreads, sizeof(int));
+    pthread_t * thread = (pthread_t*)calloc(test_numthreads, sizeof(pthread_t));
+    for (uint32_t i = 0 ; i < test_numthreads ; i++) {
         tids[i] = i;
         pthread_create(&(thread[i]), NULL, someThread, &(tids[i]));
     }
     /* wait for the threads to finish */
-    for (uint32_t i = 0 ; i < numthreads ; i++) {
+    for (uint32_t i = 0 ; i < test_numthreads ; i++) {
         pthread_join(thread[i], NULL);
     }
     free(tids);
@@ -167,7 +167,7 @@ int main (int argc, char** argv) {
   	if (profile1 && profile2) {
     	std::cout << "direct_action reported calls : " << profile1->calls << std::endl;
     	std::cout << "innerLoop     reported calls : " << profile2->calls << std::endl;
-    	if (profile1->calls == num_iterations * numthreads &&
+    	if (profile1->calls == num_iterations * test_numthreads &&
     	    profile1->calls == profile1->calls) {
         	std::cout << "Test passed." << std::endl;
     	}
