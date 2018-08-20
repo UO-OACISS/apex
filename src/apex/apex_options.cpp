@@ -68,13 +68,9 @@ namespace apex
     type _##member_variable; /* declare the local variable */ \
     option = getenv(#name); \
     if (option == NULL) { \
-        size_t length = strlen(default_value) + 1; \
-        _##member_variable = (type)(calloc(length, sizeof(char))); \
-        strncpy(_##member_variable, default_value, length); \
+        _##member_variable = strdup(default_value); \
     } else { \
-        size_t length = strlen(option) + 1; \
-        _##member_variable = (type)(calloc(length, sizeof(char))); \
-        strncpy(_##member_variable, option, length); \
+        _##member_variable = strdup(option); \
     }
     FOREACH_EXTERNAL_STRING_OPTION(apex_macro)
 #undef apex_macro
