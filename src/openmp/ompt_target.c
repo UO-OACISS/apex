@@ -14,7 +14,7 @@ int main (void) {
   printf("Num devices available: %d\n",omp_get_num_devices() );
 
 #pragma omp target parallel for map(tofrom:sum)
-  for(int i = 0 ; i < 2000000000; i++) {
+  for(int i = 0 ; i < 200000000; i++) {
     sum += 2;
 
 }
