@@ -8,7 +8,7 @@
 // forward declaration
 namespace apex {
 class profiler;
-};
+}
 
 #include <iostream>
 #include <sstream>
