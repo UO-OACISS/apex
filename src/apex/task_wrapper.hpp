@@ -2,7 +2,7 @@
 
 namespace apex {
 struct task_wrapper;
-};
+}
 
 #include "task_identifier.hpp"
 #include "profiler.hpp"
@@ -19,7 +19,7 @@ struct task_wrapper {
     std::shared_ptr<task_wrapper> parent;
     std::vector<profiler*> data_ptr;
     std::unordered_set<task_identifier*> aliases;
-    task_wrapper(void) : 
+    task_wrapper(void) :
         task_id(nullptr),
         prof(nullptr),
         guid(0ull),
@@ -51,4 +51,4 @@ struct task_wrapper {
     }
 }; // struct task_wrapper
 
-}; // namespace apex
+} // namespace apex

@@ -225,5 +225,5 @@ inline char filesystem_separator()
 #endif
 }
 
-};
+}
 
