@@ -51,8 +51,10 @@
 #include <hpx/include/actions.hpp>
 #include <hpx/include/util.hpp>
 #include <hpx/lcos/local/composable_guard.hpp>
+#ifdef APEX_HAVE_HPX_disabled
 static void apex_schedule_shutdown(void);
-#endif
+#endif // APEX_HAVE_HPX_disabled
+#endif // APEX_HAVE_HPX
 
 #if APEX_DEBUG
 #define FUNCTION_ENTER printf("enter %lu *** %s:%d!\n", thread_instance::get_id(), __func__, __LINE__); fflush(stdout);
@@ -131,6 +133,7 @@ static void init_hpx_runtime_ptr(void) {
     }
 }
 
+#ifdef APEX_HAVE_HPX_disabled
 static void finalize_hpx_runtime(void) {
     FUNCTION_ENTER
     if (apex_options::disable() == true) { return; }
@@ -146,13 +149,14 @@ static void finalize_hpx_runtime(void) {
         }
     }
     // Tell other localities to shutdown APEX
-    //apex_schedule_shutdown();
+    apex_schedule_shutdown();
     // Shutdown APEX
-    //finalize();
+    finalize();
     hpx_finalized = true;
     FUNCTION_EXIT
 }
-#endif
+#endif // APEX_HAVE_HPX_disabled
+#endif // APEX_HAVE_HPX
 
 /*
  * This private method is used to perform whatever initialization
