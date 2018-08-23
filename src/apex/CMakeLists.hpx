@@ -5,6 +5,15 @@
 
 # Create a library called "apex"
 
+cmake_minimum_required (VERSION 2.8.12 FATAL_ERROR)
+cmake_policy(VERSION 2.8.12)
+if (${CMAKE_MAJOR_VERSION} GREATER 2)
+  cmake_policy(SET CMP0042 NEW)
+    if (${CMAKE_MINOR_VERSION} GREATER 11)
+        cmake_policy(SET CMP0074 NEW)
+    endif()
+endif()
+
 list(APPEND CMAKE_MODULE_PATH "${HPX_SOURCE_DIR}/apex/cmake/Modules")
 hpx_info("apex" "Will build APEX")
 
