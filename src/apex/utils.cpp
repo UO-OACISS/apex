@@ -50,20 +50,42 @@ std::vector<std::string> &split(const std::string &s, char delim, std::vector<st
 }
 
 std::string demangle(const std::string& timer_name) {
-  std::string demangled(timer_name);
+    std::string demangled(timer_name);
 #if defined(__GNUC__)
-  int     status;
-  char *realname = abi::__cxa_demangle(timer_name.c_str(), 0, 0, &status);
-  if (status == 0 && realname != NULL) {
-    char* index = strstr(realname, "<");
-    if (index != NULL) {
-      *index = 0; // terminate before templates for brevity
+    int     status;
+    char *realname = abi::__cxa_demangle(timer_name.c_str(), 0, 0, &status);
+    if (status == 0 && realname != NULL) {
+    /*
+        char* index = strstr(realname, "<");
+        if (index != NULL) {
+            *index = 0; // terminate before templates for brevity
+        }
+    */
+        demangled = std::string(realname);
+        free(realname);
+    } else {
+#if defined(APEX_DEBUG)
+        switch (status) {
+            case 0:
+                printf("The demangling operation succeeded, but realname is NULL\n");
+                break;
+            case -1:
+                printf("The demangling operation failed: A memory allocation failiure occurred.\n");
+                break;
+            case -2:
+                printf("The demangling operation failed: '%s' is not a valid name under the C++ ABI mangling rules.\n", timer_name.c_str());
+                break;
+            case -3:
+                printf("The demangling operation failed: One of the arguments is invalid.\n");
+                break;
+            default:
+                printf("The demangling operation failed: Unknown error.\n");
+                break;
+        }
+#endif // defined(APEX_DEBUG)
     }
-    demangled = std::string(realname);
-    free(realname);
-  }
 #endif
-  return demangled;
+    return demangled;
 }
 
 #define handle_error_en(en, msg) \
