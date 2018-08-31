@@ -51,13 +51,12 @@ if ((NOT PAPI_FOUND) AND (NOT OTF2_FOUND))
     set(example_programs "${example_programs};apex_pthread_flood")
 endif()
 
-if ((NOT OTF2_FOUND))
-    set(example_programs "${example_programs};apex_fibonacci_std_async")
-endif()
-
 # std::threads crash when linked statically. :(
 if (NOT BUILD_STATIC_EXECUTABLES)
-  set(example_programs "${example_programs};apex_new_task;apex_task_wrapper")
+  if ((NOT OTF2_FOUND))
+    set(example_programs "${example_programs};apex_fibonacci_std_async;apex_fibonacci_std_async2")
+  endif()
+  set(example_programs "${example_programs};apex_new_task;apex_task_wrapper;apex_task_wrapper2")
   if ((NOT DEFINED TAU_ROOT) AND (NOT USE_TAU) AND (NOT TAU_FOUND))
     if (APEX_THROTTLE)
       set(example_programs "${example_programs};apex_throttle_event")

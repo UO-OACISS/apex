@@ -141,7 +141,9 @@ void tau_listener::on_exit_thread(event_data &data) {
 
 inline bool tau_listener::_common_start(std::shared_ptr<task_wrapper> &tt_ptr) {
   if (!_terminate) {
-    my_Tau_start(tt_ptr->get_task_id()->get_name().c_str());
+    const char * tmp = tt_ptr->get_task_id()->get_name().c_str();
+    //printf("Starting: %s\n", tmp);
+    my_Tau_start(tmp);
   } else {
       return false;
   }
@@ -159,11 +161,15 @@ bool tau_listener::on_resume(std::shared_ptr<task_wrapper> &tt_ptr) {
 inline void tau_listener::_common_stop(std::shared_ptr<profiler> &p) {
   static string empty("");
   if (!_terminate) {
-      if (p->tt_ptr->get_task_id()->get_name().compare(empty) == 0) {
+      //if (p->tt_ptr->get_task_id()->get_name().compare(empty) == 0) {
           my_Tau_global_stop(); // stop the top level timer
+          /*
       } else {
-          my_Tau_stop(p->tt_ptr->get_task_id()->get_name().c_str());
+          const char * tmp = p->tt_ptr->get_task_id()->get_name().c_str();
+          printf("Stopping: %s\n", tmp);
+          my_Tau_stop(tmp);
       }
+      */
   }
   return;
 }
