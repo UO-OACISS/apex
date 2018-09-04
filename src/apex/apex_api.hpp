@@ -825,13 +825,14 @@ APEX_EXPORT void recv (uint64_t tag, uint64_t size, uint64_t source_rank, uint64
 class scoped_timer {
     private:
         std::shared_ptr<apex::task_wrapper> twp;
+        bool timing;
     public:
 /**
  \brief Construct and start an APEX timer.
 
  \param func The address of a function used to identify the timer type
  */
-        scoped_timer(uint64_t func) : twp(nullptr) {
+        scoped_timer(uint64_t func) : twp(nullptr), timing(true) {
             twp = apex::new_task((apex_function_address)func);
             apex::start(twp);
         }
@@ -840,7 +841,7 @@ class scoped_timer {
 
  \param func The name of a function used to identify the timer type
  */
-        scoped_timer(std::string func) : twp(nullptr) {
+        scoped_timer(std::string func) : twp(nullptr), timing(true) {
             twp = apex::new_task(func);
             apex::start(twp);
         }
@@ -851,7 +852,7 @@ class scoped_timer {
  \param thread_name The name of this new worker thread in the runtime
  */
         scoped_timer(uint64_t func, std::shared_ptr<apex::task_wrapper> &parent)
-            : twp(nullptr) {
+            : twp(nullptr), timing(true) {
             twp = apex::new_task((apex_function_address)func, UINTMAX_MAX, parent);
             apex::start(twp);
         }
@@ -862,24 +863,54 @@ class scoped_timer {
  \param thread_name The name of this new worker thread in the runtime
  */
         scoped_timer(std::string func, std::shared_ptr<apex::task_wrapper> &parent)
-            : twp(nullptr) {
+            : twp(nullptr), timing(true) {
             twp = apex::new_task(func, UINTMAX_MAX, parent);
             apex::start(twp);
+        }
+/**
+ \brief Start the APEX timer.
+
+ */
+        void start(void) {
+            if (!timing) { 
+                apex::start(twp); 
+                timing = true;
+            } 
         }
 /**
  \brief Stop the APEX timer.
 
  */
         void stop(void) {
-            if (twp != nullptr) { 
+            if (timing) { 
                 apex::stop(twp); 
-                twp = nullptr; 
+                timing = false;
             } 
+        }
+/**
+ \brief Yield the APEX timer.
+
+ */
+        void yield(void) {
+            if (timing) { 
+                apex::yield(twp); 
+                timing = false;
+            } 
+        } 
+/**
+ \brief Resume the APEX timer.
+
+ */
+        void resume(void) {
+            if (!timing) { 
+                apex::resume(twp); 
+                timing = true;
+            } 
+        } 
  /**
  \brief Destructor.
 
  */
-       }
         ~scoped_timer() { 
             stop();
         }
