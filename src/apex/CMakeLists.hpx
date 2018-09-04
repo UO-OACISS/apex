@@ -30,7 +30,11 @@ hpx_info("apex" "APEX binary dir is ${APEX_BINARY_DIR}")
 
 include_directories(${CMAKE_SOURCE_DIR}/apex/src/apex ${CMAKE_BINARY_DIR} ${APEX_BINARY_DIR} ${CMAKE_SOURCE_DIR}/apex/src/contrib)
 
-add_definitions(-DAPEX_HAVE_HPX)
+# This macro will make sure that the hpx/config.h file is included
+add_definitions(-DAPEX_HAVE_HPX_CONFIG)
+# This macro will be added to the hpx/config.h file.
+hpx_add_config_define(APEX_HAVE_HPX)   # tell HPX that we use APEX
+
 if(APEX_DEBUG)
     add_definitions(-DAPEX_DEBUG)
 endif()
