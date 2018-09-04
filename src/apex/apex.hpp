@@ -12,7 +12,11 @@
 /** @file */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
-#ifdef APEX_HAVE_HPX
+/* This is annoying and confusing.  We have to set a define so that the
+ * HPX config file will be included, which will define APEX_HAVE_HPX
+ * for us.  We can't use the same name because then the macro is defined
+ * twice.  So, we have a macro to make sure the macro is defined. */
+#ifdef APEX_HAVE_HPX_CONFIG
 #include <hpx/config.hpp>
 #include <hpx/include/runtime.hpp>
 #if defined(_MSC_VER)

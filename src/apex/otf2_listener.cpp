@@ -440,9 +440,15 @@ namespace apex {
         static APEX_NATIVE_TLS bool written = false;
         if (written) return;
         written = true;
+        // need to sort the map by ID, not name.
+        std::map<uint64_t,std::string> sorted_reduced_region_map;
         for (auto const &i : reduced_region_map) {
-            string id = i.first;
-            uint64_t idx = i.second;
+            sorted_reduced_region_map[i.second] = i.first;
+        }
+
+        for (auto const &i : sorted_reduced_region_map) {
+            string id = i.second;
+            uint64_t idx = i.first;
             OTF2_GlobalDefWriter_WriteString( global_def_writer, get_string_index(id), id.c_str() );
             OTF2_Paradigm paradigm = OTF2_PARADIGM_USER;
             string uppercase;

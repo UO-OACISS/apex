@@ -1,12 +1,16 @@
 //  Copyright (c) 2014 University of Oregon
 //
 
-#ifdef APEX_HAVE_HPX
+/* This is annoying and confusing.  We have to set a define so that the
+ * HPX config file will be included, which will define APEX_HAVE_HPX
+ * for us.  We can't use the same name because then the macro is defined
+ * twice.  So, we have a macro to make sure the macro is defined. */
+#ifdef APEX_HAVE_HPX_CONFIG
 #include <hpx/config.hpp>
 #ifdef APEX_HAVE_OTF2
 #define APEX_TRACE_APEX
 #endif // APEX_HAVE_OTF2
-#endif // APEX_HAVE_HPX
+#endif // APEX_HAVE_HPX_CONFIG
 
 #include "profiler_listener.hpp"
 #include "profiler.hpp"
