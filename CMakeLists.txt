@@ -181,7 +181,7 @@ endif()
 
 set(NORMAL_COMPILER_WARNINGS "-Wextra -Waddress -Warray-bounds -Wuninitialized -Wreturn-type -Wall -fno-omit-frame-pointer ")
 
-# SET SANITIZE OPTIONS, IF DESIRED 
+# SET SANITIZE OPTIONS, IF DESIRED
 
 # defaults
 set(APEX_SANITIZE_OPTIONS "")
@@ -216,7 +216,7 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   set(C_PEDANTIC_COMPILER_WARNINGS "-fdiagnostics-show-option -Wall -Wmaybe-uninitialized -Wcast-align -Wcast-qual -Wdouble-promotion -Werror=format -Werror=missing-braces -Werror=parentheses -Werror=reorder -Werror=return-type -Werror=sequence-point -Werror=sign-compare -Werror=trampolines -Werror=uninitialized -Werror=vla -Wextra -Wformat=2 -Winit-self -Wno-attributes -Wno-cast-align -Wno-format-nonliteral -Wno-ignored-qualifiers -Wno-strict-aliasing -Wno-sync-nand -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-local-typedefs -Wno-unused-parameter ")
   set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 ${CXX_PEDANTIC_COMPILER_WARNINGS} ${APEX_SANITIZE_OPTIONS} -DAPEX_ERROR_HANDLING")
   set(CMAKE_C_FLAGS_DEBUG "-g -O0 ${C_PEDANTIC_COMPILER_WARNINGS} ${APEX_SANITIZE_OPTIONS} -DAPEX_ERROR_HANDLING")
-  # -march=native is broken on sandybridge architectures. 
+  # -march=native is broken on sandybridge architectures.
   execute_process(COMMAND lscpu COMMAND grep Model: OUTPUT_VARIABLE CPUMODEL_STRING)
   string(REPLACE " " ";" CPUMODEL_LIST ${CPUMODEL_STRING})
   list(LENGTH CPUMODEL_LIST CPUMODEL_LENGTH)
@@ -298,7 +298,7 @@ endif()
 
 # If not x86, don't use RDTSC
 if(NOT APEX_ARCH_X86 OR CMAKE_SYSTEM_PROCESSOR MATCHES "(aarch64)")
-  add_definitions(-DAPEX_USE_CLOCK_TIMESTAMP=1)  
+  add_definitions(-DAPEX_USE_CLOCK_TIMESTAMP=1)
 endif()
 
 if (BUILD_STATIC_EXECUTABLES)
@@ -552,7 +552,7 @@ endif()
 ################################################################################
 
 if((DEFINED USE_OTF2) AND (NOT USE_OTF2))
-    # just in case, disable 
+    # just in case, disable
     unset(OTF2_ROOT)
     unset(ENV{OTF2_ROOT})
     unset(BUILD_OTF2)
@@ -566,7 +566,7 @@ if((DEFINED OTF2_ROOT) OR (USE_OTF2) OR (BUILD_OTF2))
         if (NOT BUILD_STATIC_EXECUTABLES)
             set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${OTF2_LIBRARY_DIR})
         endif()
-        # add_definitions(-DAPEX_USE_CLOCK_TIMESTAMP=1)  
+        # add_definitions(-DAPEX_USE_CLOCK_TIMESTAMP=1)
         if(NOT APPLE)
             find_library(RTLIB rt)
             set(LIBS ${LIBS} ${RTLIB})
@@ -784,21 +784,21 @@ endif()
 # turn on "make test" support
 enable_testing()
 
-# Recurse into the "Apex" and "Demo" subdirectories. This does not actually 
-# cause another cmake executable to run. The same process will walk through 
-# the project's entire directory structure. 
-add_subdirectory (src/apex) 
-add_subdirectory (src/ITTNotify) 
-add_subdirectory (src/comm) 
+# Recurse into the "Apex" and "Demo" subdirectories. This does not actually
+# cause another cmake executable to run. The same process will walk through
+# the project's entire directory structure.
+add_subdirectory (src/apex)
+add_subdirectory (src/ITTNotify)
+add_subdirectory (src/comm)
 if (NOT BUILD_STATIC_EXECUTABLES)
-    add_subdirectory (src/wrappers) 
+    add_subdirectory (src/wrappers)
 endif()
 if(MPI_CXX_FOUND)
-  add_subdirectory (src/comm/mpi) 
+  add_subdirectory (src/comm/mpi)
 endif()
-add_subdirectory (src/scripts) 
+add_subdirectory (src/scripts)
 
-add_subdirectory (doc) 
+add_subdirectory (doc)
 
 add_custom_target(tests)
 add_custom_target(examples)
@@ -818,8 +818,8 @@ if(BUILD_TESTS)
   add_subdirectory (src/unit_tests/C)
   add_subdirectory (src/unit_tests/C++)
 else()
-    #add_subdirectory (src/unit_tests/C EXCLUDE_FROM_ALL) 
-    #add_subdirectory (src/unit_tests/C++ EXCLUDE_FROM_ALL) 
+    #add_subdirectory (src/unit_tests/C EXCLUDE_FROM_ALL)
+    #add_subdirectory (src/unit_tests/C++ EXCLUDE_FROM_ALL)
 endif(BUILD_TESTS)
 
 if(BUILD_EXAMPLES)
