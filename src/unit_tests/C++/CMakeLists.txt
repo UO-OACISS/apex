@@ -26,6 +26,7 @@ set(example_programs
     apex_register_policy
     apex_register_policy_set
     apex_register_periodic_policy
+    apex_stop_all_async_threads
     apex_deregister_policy
     apex_get_profile
     apex_current_power_high

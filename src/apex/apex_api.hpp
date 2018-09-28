@@ -525,6 +525,18 @@ APEX_EXPORT apex_policy_handle* sample_runtime_counter(unsigned long period, con
 APEX_EXPORT void deregister_policy(apex_policy_handle * handle);
 
 /**
+ \brief Stop all asynchronous APEX background threads.
+
+ This function will stop all background threads from all listeners, and force them
+ to exit.  This is necessary for stopping perodic policies that would otherwise
+ prevent runtimes from finishing work and calling apex::finalize().
+
+ \sa apex::deregister_policy, apex::register_policy apex::finalize
+ */
+
+APEX_EXPORT void stop_all_async_threads(void);
+
+/**
  \brief Get the current profile for the specified function address.
 
  This function will return the current profile for the specified address.

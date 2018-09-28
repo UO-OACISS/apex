@@ -11,6 +11,8 @@
 
 #if __cplusplus > 201701L && defined(GCC_COMPILER)
 	#include <shared_mutex>
+#elif __cplusplus >= 201500L && defined(GCC_COMPILER) // if we've got gcc 6.1+ and -std=c++17
+	#include <shared_mutex>
 #elif __cplusplus > 201402L
 	#include <mutex>
 #else
