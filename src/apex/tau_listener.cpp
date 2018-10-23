@@ -20,7 +20,7 @@ int (*my_Tau_start)(const char *);
 int (*my_Tau_stop)(const char *);
 int (*my_Tau_exit)(const char*);
 int (*my_Tau_set_node)(int);
-int (*my_Tau_dump)(void);
+int (*my_Tau_dump_prefix)(const char *prefix);
 int (*my_Tau_profile_exit_all_threads)(void);
 int (*my_Tau_get_thread)(void);
 int (*my_Tau_profile_exit_all_tasks)(void);
@@ -49,8 +49,8 @@ bool assign_function_pointers(void) {
   if (Tau_stop != nullptr) {
     my_Tau_stop = &Tau_stop;
   }
-  if (Tau_dump != nullptr) {
-    my_Tau_dump = &Tau_dump;
+  if (Tau_dump_prefix != nullptr) {
+    my_Tau_dump_prefix = &Tau_dump_prefix;
   }
   if (Tau_exit != nullptr) {
     my_Tau_exit = &Tau_exit;
@@ -103,7 +103,8 @@ void tau_listener::on_startup(startup_event_data &data) {
 void tau_listener::on_dump(dump_event_data &data) {
   APEX_UNUSED(data);
   if (!_terminate) {
-      my_Tau_dump();
+      // this will iterate over remaning threads and write them out.
+      //my_Tau_dump_prefix("profile");
   }
   return;
 }
@@ -144,9 +145,10 @@ void tau_listener::on_exit_thread(event_data &data) {
 
 inline bool tau_listener::_common_start(std::shared_ptr<task_wrapper> &tt_ptr) {
   if (!_terminate) {
+    //char * tmp = strdup(tt_ptr->get_task_id()->get_name().c_str());
     const char * tmp = tt_ptr->get_task_id()->get_name().c_str();
-    //printf("Starting: %s\n", tmp);
     my_Tau_start(tmp);
+    //free (tmp);
   } else {
       return false;
   }

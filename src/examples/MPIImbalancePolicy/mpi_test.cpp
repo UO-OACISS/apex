@@ -20,11 +20,11 @@ static unit_result_t do_work(unit_of_work_t work);
 using namespace std;
 
 static int dummy = 0;
-int * data;
+int * work_data;
 
-void initialize_work(int * data, int size) {
+void initialize_work(int * work_data, int size) {
     int index = 0;
-    for (index = 0 ; index < size ; index++) { data[index] = index; }
+    for (index = 0 ; index < size ; index++) { work_data[index] = index; }
     return;
 }
 
@@ -51,14 +51,14 @@ int main(int argc, char **argv) {
   apex_global_setup(APEX_FUNCTION_ADDRESS, (void*)(do_work));
 
   int size = TOTAL_WORK;
-  data = (int*)(malloc(size * sizeof(int)));
+  work_data = (int*)(malloc(size * sizeof(int)));
 
   if (myrank == 0) {
-    initialize_work(data, size);
-    MPI_Bcast(data, size, MPI_INT, 0, MPI_COMM_WORLD);
+    initialize_work(work_data, size);
+    MPI_Bcast(work_data, size, MPI_INT, 0, MPI_COMM_WORLD);
     master();
   } else {
-    MPI_Bcast(data, size, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(work_data, size, MPI_INT, 0, MPI_COMM_WORLD);
     worker();
   }
 
@@ -94,8 +94,8 @@ static void master(void) {
     /* Send it to each rank */
 
     MPI_Send(work,             /* message buffer */
-             2,                 /* one data item */
-             MPI_INT,           /* data item is an integer */
+             2,                 /* one work_data item */
+             MPI_INT,           /* work_data item is an integer */
              rank,              /* destination process rank */
              WORKTAG,           /* user chosen message tag */
              MPI_COMM_WORLD);   /* default communicator */
@@ -170,7 +170,7 @@ static unit_result_t do_work(unit_of_work_t work) {
   //printf("%d working...\n\n", rank);
     for (multiplier = 0 ; multiplier < ((rank % 2) + 1) ; multiplier++) {
       for (i = 0 ; i < 250000000 ; i++) {
-        dummy = dummy * (dummy + data[work]);
+        dummy = dummy * (dummy + work_data[work]);
         if (dummy > (INT_MAX >> 1)) {
           dummy = 1;
         }

@@ -1000,9 +1000,8 @@ node_color * get_node_color(double v,double vmin,double vmax)
           if (pl != nullptr) {
 #ifdef APEX_TRACE_APEX
               scoped_timer p("apex::process_profiles");
-#else
-              pl->process_profiles();
 #endif
+              pl->process_profiles();
           }
       }
       consumer_task_running.clear(memory_order_release);

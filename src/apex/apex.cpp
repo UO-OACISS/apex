@@ -1315,21 +1315,10 @@ void finalize()
     dump(false);
     // if not done already...
     shutdown_throttling();
-    // get the Apex static instance
-    apex* instance = apex::instance();
-    // protect against calls after finalization
-    if (!instance) { FUNCTION_EXIT return; }
-    finalize_plugins();
-    instance->stop_all_policy_handles();
-#if APEX_HAVE_PROC
-    if (instance->pd_reader != nullptr) {
-        instance->pd_reader->stop_reading();
-    }
-#endif
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance) { FUNCTION_EXIT return; } // protect against calls after finalization
+    stop_all_async_threads();
     exit_thread();
-#if APEX_HAVE_MSR
-    apex_finalize_msr();
-#endif
     if (!_measurement_stopped)
     {
         _measurement_stopped = true;
@@ -1525,7 +1514,7 @@ int register_policy(std::chrono::duration<Rep, Period> const& period,
 
 apex_policy_handle* register_periodic_policy(unsigned long period_microseconds,
                     std::function<int(apex_context const&)> f)
- {
+{
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return nullptr; }
     int id = -1;
@@ -1649,6 +1638,23 @@ void deregister_policy(apex_policy_handle * handle) {
     //_notify_listeners = true;
     apex::instance()->pop_policy_handle(handle);
     delete(handle);
+}
+
+void stop_all_async_threads(void) {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance) { FUNCTION_EXIT return; } // protect against calls after finalization
+    finalize_plugins();
+    instance->stop_all_policy_handles();
+#if APEX_HAVE_PROC
+    if (instance->pd_reader != nullptr) {
+        instance->pd_reader->stop_reading();
+    }
+#endif
+#if APEX_HAVE_MSR
+    apex_finalize_msr();
+#endif
 }
 
 apex_profile* get_profile(apex_function_address action_address) {

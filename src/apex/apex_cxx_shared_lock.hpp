@@ -5,10 +5,17 @@
 
 #pragma once
 
-#if __cplusplus > 201701L
+// It's gotten fun.  Apparently gcc 7 supports shared_mutex, but even though
+// clang 5/6 *claims* to support c++17, it doesn't have shared_mutex.h
+#define GCC_COMPILER (defined(__GNUC__) && !defined(__clang__))
+
+#if __cplusplus > 201701L && defined(GCC_COMPILER)
+    #include <shared_mutex>
+#elif __cplusplus >= 201500L && defined(GCC_COMPILER)
+    // if we've got gcc 6.1+ and -std=c++17
     #include <shared_mutex>
 #elif __cplusplus > 201402L
-    #include <shared_mutex>
+    #include <mutex>
 #else
     #if defined(_POSIX_VERSION) && !defined(_MSC_VER) && !defined(__APPLE__)
         #include <pthread.h>
@@ -20,7 +27,8 @@
 namespace apex
 {
 
-#if __cplusplus > 201500L // if we've got gcc 6.1 and -std=c++17
+#if __cplusplus > 201701L && defined(GCC_COMPILER)
+    // if we've got gcc 6.1 and -std=c++17
     typedef std::shared_mutex shared_mutex_type;
     typedef std::shared_lock<shared_mutex_type> read_lock_type;
     typedef std::unique_lock<shared_mutex_type> write_lock_type;

@@ -6,7 +6,7 @@
 #include <apex_api.hpp>
 
 #define NUM_THREADS 8
-#define ITERATIONS 1000000
+#define ITERATIONS 50000
 
 apex_event_type custom_type_1;
 apex_event_type custom_type_2;
@@ -70,7 +70,8 @@ int startup_policy(apex_context const context) {
 int main(int argc, char **argv)
 {
   apex::init("apex_register_periodic_policy unit test", 0, 1);
-  apex_policy_handle * on_periodic = apex::register_periodic_policy(1000000, policy_periodic);
+  apex::apex_options::use_screen_output(true);
+  apex_policy_handle * on_periodic = apex::register_periodic_policy(100000, policy_periodic);
   apex::profiler* my_profiler = apex::start((apex_function_address)&main);
   pthread_t thread[NUM_THREADS];
   int i;
@@ -81,8 +82,10 @@ int main(int argc, char **argv)
     pthread_join(thread[i], NULL);
   }
   if (on_periodic != nullptr) {
-      printf("Deregistering %d...\n", on_periodic->id);
-      apex::deregister_policy(on_periodic);
+      //printf("Deregistering %d...\n", on_periodic->id);
+      //apex::deregister_policy(on_periodic);
+      apex::dump(false);
+      apex::stop_all_async_threads();
   }
 
   printf("Running without policies now...\n");

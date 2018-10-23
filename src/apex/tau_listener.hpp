@@ -57,7 +57,7 @@ APEX_EXPORT APEX_WEAK_PRE int Tau_start(const char *) APEX_WEAK_POST;
 APEX_EXPORT APEX_WEAK_PRE int Tau_stop(const char *) APEX_WEAK_POST;
 APEX_EXPORT APEX_WEAK_PRE int Tau_init(int, char**) APEX_WEAK_POST;
 APEX_EXPORT APEX_WEAK_PRE int Tau_exit(const char*) APEX_WEAK_POST;
-APEX_EXPORT APEX_WEAK_PRE int Tau_dump(void) APEX_WEAK_POST;
+APEX_EXPORT APEX_WEAK_PRE int Tau_dump_prefix(const char *prefix) APEX_WEAK_POST;
 APEX_EXPORT APEX_WEAK_PRE int Tau_set_node(int) APEX_WEAK_POST;
 APEX_EXPORT APEX_WEAK_PRE int Tau_profile_exit_all_threads(void) APEX_WEAK_POST;
 APEX_EXPORT APEX_WEAK_PRE int Tau_get_thread(void) APEX_WEAK_POST;
