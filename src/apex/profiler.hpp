@@ -16,6 +16,7 @@ class profiler;
 #include "apex_options.hpp"
 #include "apex_types.h"
 #include <chrono>
+#include <memory>
 #include "task_wrapper.hpp"
 #if defined(APEX_HAVE_HPX)
 #include <hpx/util/hardware/timestamp.hpp>
@@ -179,7 +180,9 @@ public:
         if(is_counter) {
             return value;
         } else {
-            std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
+            std::chrono::duration<double> time_span =
+            std::chrono::duration_cast<std::chrono::duration<double>>(end -
+            start);
             return time_span.count();
         }
     }
@@ -202,8 +205,10 @@ public:
 #else
         static double ticks_per_period = 0.0;
         if (ticks_per_period == 0.0) {
-            typedef std::chrono::duration<double, typename MYCLOCK::period> CycleA;
-            typedef std::chrono::duration<double, typename std::chrono::CLOCK_TYPE::period> CycleB;
+            typedef std::chrono::duration<double,
+                typename MYCLOCK::period> CycleA;
+            typedef std::chrono::duration<double,
+                typename std::chrono::CLOCK_TYPE::period> CycleB;
             const int N = 100000000;
             auto t0a = MYCLOCK::now();
             auto t0b = std::chrono::CLOCK_TYPE::now();
@@ -215,12 +220,16 @@ public:
             auto t1a = MYCLOCK::now();
             auto t1b = std::chrono::CLOCK_TYPE::now();
             // Get the clock ticks per time period
-            //std::cout << CycleA(t1a-t0a).count() << " 1MHz ticks seen." << std::endl;
-            //std::cout << std::chrono::duration_cast<std::chrono::seconds>(CycleB(t1b-t0b)).count() << " Seconds? seen." << std::endl;
+            //std::cout << CycleA(t1a-t0a).count() << " 1MHz ticks seen." <<
+            //std::endl;
+            //std::cout <<
+            //std::chrono::duration_cast<std::chrono::seconds>(CycleB(t1b-t0b)).count()
+            //<< " Seconds? seen." << std::endl;
             ticks_per_period = CycleB(t1b-t0b)/CycleA(t1a-t0a);
             /*
             if (apex_options::use_screen_output()) {
-                std::cout << "CPU is " << (1.0/ticks_per_period) << " Hz." << std::endl;
+                std::cout << "CPU is " << (1.0/ticks_per_period) << " Hz." <<
+                std::endl;
             }
             */
         }
@@ -241,14 +250,17 @@ public:
     }
     static uint64_t time_point_to_nanoseconds(MYCLOCK::time_point tp) {
         auto value = tp.time_since_epoch();
-        uint64_t duration = std::chrono::duration_cast<std::chrono::nanoseconds>(value).count();
+        uint64_t duration =
+            std::chrono::duration_cast<std::chrono::nanoseconds>(value).count();
         return duration;
     }
     double normalized_timestamp(void) {
         if(is_counter) {
             return value;
         } else {
-            std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(start - get_global_start());
+            std::chrono::duration<double> time_span =
+                std::chrono::duration_cast<std::chrono::duration<double>>(start -
+                get_global_start());
             return time_span.count()*get_cpu_mhz();
         }
     }

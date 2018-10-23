@@ -27,7 +27,7 @@ typedef void* apex_profiler_handle; // address of internal C++ object
  * Used when a null APEX profile handle is to be passed in to
  * apex::stop when the profiler object wasn't retained locally.
  */
-#define APEX_NULL_PROFILER_HANDLE (apex_profiler_handle)(NULL) // for comparisons
+#define APEX_NULL_PROFILER_HANDLE (apex_profiler_handle)(nullptr) // for comparisons
 
 /** Rather than use void pointers everywhere, be explicit about
  * what the functions are expecting.
@@ -50,7 +50,8 @@ typedef enum _error_codes {
   APEX_ERROR        /*!< Some error occurred - check stderr output for details */
 } apex_error_code;
 
-#define APEX_MAX_EVENTS 128 /*!< The maximum number of event types. Allows for many custom events. */
+#define APEX_MAX_EVENTS 128 /*!< The maximum number of event types.
+Allows for many custom events. */
 
 /**
  * Typedef for enumerating the different event types
@@ -199,7 +200,7 @@ typedef uint32_t apex_tuning_session_handle;
  * any apex functions to represent "all functions".
  */
 #define APEX_NULL_FUNCTION_ADDRESS 0L // for comparisons
-//#define APEX_NULL_FUNCTION_ADDRESS (apex_function_address)(NULL) // for comparisons
+//#define APEX_NULL_FUNCTION_ADDRESS (apex_function_address)(nullptr) // for comparisons
 
 /**
  * Special profile counter for derived idle time
@@ -244,7 +245,7 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_DISABLE, disable, bool, false) \
     macro (APEX_SUSPEND, suspend, bool, false) \
     macro (APEX_PAPI_SUSPEND, papi_suspend, bool, false) \
-	macro (APEX_PROCESS_ASYNC_STATE, process_async_state, bool, true) \
+    macro (APEX_PROCESS_ASYNC_STATE, process_async_state, bool, true) \
     macro (APEX_TAU, use_tau, bool, false) \
     macro (APEX_OTF2, use_otf2, bool, false) \
     macro (APEX_OTF2_TESTING, otf2_testing, bool, false) \
@@ -263,16 +264,23 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_PROC_SELF_IO, use_proc_self_io, bool, false) \
     macro (APEX_PROC_STAT, use_proc_stat, bool, true) \
     macro (APEX_PROC_PERIOD, proc_period, int, 1000000) \
-    macro (APEX_THROTTLE_CONCURRENCY, throttle_concurrency, bool, false) \
-    macro (APEX_THROTTLING_MAX_THREADS, throttling_max_threads, int, sc_nprocessors_onln()) \
-    macro (APEX_THROTTLING_MIN_THREADS, throttling_min_threads, int, 1) \
+    macro (APEX_THROTTLE_CONCURRENCY, throttle_concurrency, \
+        bool, false) \
+    macro (APEX_THROTTLING_MAX_THREADS, throttling_max_threads, \
+        int, sc_nprocessors_onln()) \
+    macro (APEX_THROTTLING_MIN_THREADS, throttling_min_threads, \
+        int, 1) \
     macro (APEX_THROTTLE_ENERGY, throttle_energy, bool, false) \
-    macro (APEX_THROTTLE_ENERGY_PERIOD, throttle_energy_period, int, 1000000) \
+    macro (APEX_THROTTLE_ENERGY_PERIOD, throttle_energy_period, \
+        int, 1000000) \
     macro (APEX_THROTTLING_MAX_WATTS, throttling_max_watts, int, 300) \
     macro (APEX_THROTTLING_MIN_WATTS, throttling_min_watts, int, 150) \
-    macro (APEX_PTHREAD_WRAPPER_STACK_SIZE, pthread_wrapper_stack_size, int, 0) \
-    macro (APEX_OMPT_REQUIRED_EVENTS_ONLY, ompt_required_events_only, bool, false) \
-    macro (APEX_OMPT_HIGH_OVERHEAD_EVENTS, ompt_high_overhead_events, bool, false) \
+    macro (APEX_PTHREAD_WRAPPER_STACK_SIZE, pthread_wrapper_stack_size, \
+        int, 0) \
+    macro (APEX_OMPT_REQUIRED_EVENTS_ONLY, ompt_required_events_only, \
+        bool, false) \
+    macro (APEX_OMPT_HIGH_OVERHEAD_EVENTS, ompt_high_overhead_events, \
+        bool, false) \
     macro (APEX_PIN_APEX_THREADS, pin_apex_threads, bool, true) \
     macro (APEX_TASK_SCATTERPLOT, task_scatterplot, bool, false) \
     macro (APEX_TIME_TOP_LEVEL_OS_THREADS, top_level_os_threads, bool, false) \
@@ -283,8 +291,10 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_PLUGINS, plugins, char*, "") \
     macro (APEX_PLUGINS_PATH, plugins_path, char*, "./") \
     macro (APEX_OUTPUT_FILE_PATH, output_file_path, char*, "./") \
-    macro (APEX_OTF2_ARCHIVE_PATH, otf2_archive_path, char*, APEX_DEFAULT_OTF2_ARCHIVE_PATH) \
-    macro (APEX_OTF2_ARCHIVE_NAME, otf2_archive_name, char*, APEX_DEFAULT_OTF2_ARCHIVE_NAME)
+    macro (APEX_OTF2_ARCHIVE_PATH, otf2_archive_path, char*, \
+        APEX_DEFAULT_OTF2_ARCHIVE_PATH) \
+    macro (APEX_OTF2_ARCHIVE_NAME, otf2_archive_name, char*, \
+        APEX_DEFAULT_OTF2_ARCHIVE_NAME)
 
 // Do the clang check first
 #if defined(__APPLE__) || defined(__clang__)

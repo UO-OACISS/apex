@@ -6,6 +6,7 @@
 #include "address_resolution.hpp"
 #include <sstream>
 #include <iostream>
+#include <unordered_map>
 
 using namespace std;
 
@@ -31,7 +32,8 @@ namespace apex {
       write_lock_type l(ar->_bfd_mutex);
       // now that we have the lock, did someone else resolve it?
       const std::unordered_map<uintptr_t,
-            address_resolution::my_hash_node*>::const_iterator it2 = ar->my_hash_table.find(ip);
+            address_resolution::my_hash_node*>::const_iterator it2 =
+            ar->my_hash_table.find(ip);
       if (it2 == ar->my_hash_table.end()) {
         // ...no - so go get it!
         node = new address_resolution::my_hash_node();

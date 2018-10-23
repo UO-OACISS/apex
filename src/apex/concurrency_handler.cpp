@@ -14,7 +14,10 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <atomic>
 #include <utility>
+#include <memory>
+#include <vector>
 #include "utils.hpp"
 
 #include "tau_listener.hpp"
@@ -31,15 +34,18 @@ concurrency_handler::concurrency_handler (void) : handler(), _stack_count(0) {
   _init();
 }
 
-concurrency_handler::concurrency_handler (int option) : handler(), _stack_count(0), _option(option) {
+concurrency_handler::concurrency_handler (int option) :
+    handler(), _stack_count(0), _option(option) {
   _init();
 }
 
-concurrency_handler::concurrency_handler (unsigned int period) : handler(period), _stack_count(0) {
+concurrency_handler::concurrency_handler (unsigned int period) :
+    handler(period), _stack_count(0) {
   _init();
 }
 
-concurrency_handler::concurrency_handler (unsigned int period, int option) : handler(period), _stack_count(0), _option(option) {
+concurrency_handler::concurrency_handler (unsigned int period, int option) :
+    handler(period), _stack_count(0), _option(option) {
   _init();
 }
 
@@ -58,7 +64,7 @@ concurrency_handler::~concurrency_handler () {
 inline void concurrency_handler::insert_function(task_identifier& func) {
     std::lock_guard<std::mutex> l(_function_mutex);
     if (_functions.find(func) == _functions.end()) {
-    	_functions.insert(func);
+        _functions.insert(func);
     }
 }
 
@@ -73,7 +79,8 @@ bool concurrency_handler::_handler(void) {
   if (apex_options::use_tau()) {
     Tau_start("concurrency_handler::_handler");
   }
-  map<task_identifier, unsigned int> *counts = new(map<task_identifier, unsigned int>);
+  map<task_identifier, unsigned int> *counts = new(map<task_identifier,
+    unsigned int>);
   stack<task_identifier>* tmp;
 //  std::mutex* mut;
   for (unsigned int i = 0 ; i < _stack_count ; i++) {
@@ -123,7 +130,7 @@ bool concurrency_handler::_handler(void) {
 
 void concurrency_handler::_init(void) {
   // initialize the vector with ncores elements. For most applications, this
-  // should be good enough to avoid data races during initialization. 
+  // should be good enough to avoid data races during initialization.
   add_thread(hardware_concurrency());
   run();
   return;
@@ -199,7 +206,8 @@ void concurrency_handler::on_shutdown(shutdown_event_data &data) {
     cancel();
 }
 
-inline stack<task_identifier>* concurrency_handler::get_event_stack(unsigned int tid) {
+inline stack<task_identifier>* concurrency_handler::get_event_stack(
+    unsigned int tid) {
   // it's possible we could get a "start" event without a "new thread" event.
   stack<task_identifier>* tmp;
   if (tid >= _stack_count) {
@@ -219,7 +227,8 @@ inline void concurrency_handler::add_thread(unsigned int tid) {
   _stack_count = _event_stack.size();
 }
 
-bool sort_functions(pair<task_identifier,int> first, pair<task_identifier,int> second) {
+bool sort_functions(pair<task_identifier,int> first,
+    pair<task_identifier,int> second) {
   if (first.second > second.second)
     return true;
   return false;
@@ -253,12 +262,14 @@ void concurrency_handler::output_samples(int node_id) {
   // limit ourselves to N functions.
   map<task_identifier, int> func_count;
   // initialize the map
-  for (set<task_identifier>::iterator it=_functions.begin(); it!=_functions.end(); ++it) {
+  for (set<task_identifier>::iterator it=_functions.begin();
+    it!=_functions.end(); ++it) {
     func_count[*it] = 0;
   }
   // count all function instances
   for (unsigned int i = 0 ; i < _states.size() ; i++) {
-    for (set<task_identifier>::iterator it=_functions.begin(); it!=_functions.end(); ++it) {
+    for (set<task_identifier>::iterator it=_functions.begin();
+        it!=_functions.end(); ++it) {
       if (_states[i]->find(*it) == _states[i]->end()) {
         continue;
       } else {
@@ -267,10 +278,12 @@ void concurrency_handler::output_samples(int node_id) {
     }
   }
   // sort the map
-  vector<pair<task_identifier,int> > my_vec(func_count.begin(), func_count.end());
+  vector<pair<task_identifier,int> > my_vec(func_count.begin(),
+    func_count.end());
   sort(my_vec.begin(),my_vec.end(),&sort_functions);
   set<task_identifier> top_x;
-  for (vector<pair<task_identifier, int> >::iterator it=my_vec.begin(); it!=my_vec.end(); ++it) {
+  for (vector<pair<task_identifier, int> >::iterator it=my_vec.begin();
+    it!=my_vec.end(); ++it) {
     //if (top_x.size() < 15 && (*it).first != "APEX THREAD MAIN")
     if (top_x.size() < MAX_FUNCTIONS_IN_CHART)
       top_x.insert((*it).first);
@@ -305,7 +318,8 @@ void concurrency_handler::output_samples(int node_id) {
     }
     unsigned int tmp_max = 0;
     int other = 0;
-    for (set<task_identifier>::iterator it=_functions.begin(); it!=_functions.end(); ++it) {
+    for (set<task_identifier>::iterator it=_functions.begin();
+        it!=_functions.end(); ++it) {
       // this is the idle event.
       //if (*it == "APEX THREAD MAIN")
         //continue;
@@ -379,7 +393,8 @@ void concurrency_handler::output_samples(int node_id) {
       myfile << filesystem_separator();
   }
   myfile << "concurrency.png'" << endl;
-  myfile << "everyNth(col) = (int(column(col))%" << (int)(max_X/10) << "==0)?stringcolumn(1):\"\"" << endl;
+  myfile << "everyNth(col) = (int(column(col))%" <<
+    (int)(max_X/10) << "==0)?stringcolumn(1):\"\"" << endl;
   myfile << "set key outside bottom center invert box" << endl;
   myfile << "set xtics auto nomirror" << endl;
   myfile << "set ytics 4 nomirror" << endl;
@@ -392,7 +407,9 @@ void concurrency_handler::output_samples(int node_id) {
   myfile << "set y2label \"Power\"" << endl;
   myfile << "# Select histogram data" << endl;
   myfile << "set style data histogram" << endl;
-  myfile << "# Give the bars a plain fill pattern, and draw a solid line around them." << endl;
+  myfile <<
+  "# Give the bars a plain fill pattern, and draw a solid line around them."
+    << endl;
   myfile << "set style fill solid border" << endl;
   myfile << "set style histogram rowstacked" << endl;
   myfile << "set boxwidth 1.0 relative" << endl;
@@ -401,15 +418,18 @@ void concurrency_handler::output_samples(int node_id) {
   myfile << "set key noenhanced" << endl; // this allows underscores in names
   myfile << "plot for [COL=" << (4+num_params) << ":" << top_x.size()+num_params+4;
   myfile << "] '" << datname.str().c_str();
-  myfile << "' using COL:xticlabel(everyNth(1)) palette frac (COL-" << (3+num_params) << ")/" << top_x.size()+1;
+  myfile << "' using COL:xticlabel(everyNth(1)) palette frac (COL-" <<
+    (3+num_params) << ")/" << top_x.size()+1;
   myfile << ". title columnheader axes x1y1, '"  << datname.str().c_str();
-  myfile << "' using 2 with lines linecolor rgb \"red\" axes x1y1 title columnheader, '" << datname.str().c_str();
+  myfile << "' using 2 with lines linecolor rgb \"red\" axes x1y1 title columnheader, '"
+    << datname.str().c_str();
   myfile << "' using 3 with lines linecolor rgb \"black\" axes x1y2 title columnheader";
   if (num_params > 0) {
     myfile << ",";
   }
   for(int p = 0; p < num_params; ++p) {
-    myfile << "'" << datname.str().c_str() << "' using " << (4+p) << " with linespoints axes x1y2 title columnheader,";
+    myfile << "'" << datname.str().c_str() << "' using " << (4+p) <<
+        " with linespoints axes x1y2 title columnheader,";
   }
   myfile << endl;
   myfile.close();

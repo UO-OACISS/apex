@@ -19,17 +19,20 @@
 #include <map>
 #include <mutex>
 #include "apex_cxx_shared_lock.hpp"
+#include <unordered_map>
 
 namespace apex {
 
   class address_resolution {
       private:
         static address_resolution * _instance;
-        address_resolution(void) { 
+        address_resolution(void) {
           my_bfd_unit_handle = Apex_bfd_registerUnit();
         };
-        address_resolution(address_resolution const&);  // copy constructor is private
-        address_resolution& operator=(address_resolution const& a); // assignment operator is private
+        // copy constructor is private
+        address_resolution(address_resolution const&);
+        // assignment operator is private
+        address_resolution& operator=(address_resolution const& a);
       public:
         static shared_mutex_type _bfd_mutex;
 
@@ -41,7 +44,7 @@ namespace apex {
         std::string * location;
       };
 
-      static address_resolution * instance() { 
+      static address_resolution * instance() {
           if (_instance == nullptr) {
               // only one thread should instantiate it!
               write_lock_type l(_bfd_mutex);
@@ -49,16 +52,16 @@ namespace apex {
                   _instance = new address_resolution();
               }
           }
-          return _instance; 
+          return _instance;
       }
-      static void delete_instance() { 
-          delete(_instance); 
+      static void delete_instance() {
+          delete(_instance);
       }
       ~address_resolution(void) {
         // call apex::finalize() just in case!
         finalize();
-        for ( std::unordered_map<uintptr_t, 
-              my_hash_node*>::iterator it = my_hash_table.begin(); 
+        for ( std::unordered_map<uintptr_t,
+              my_hash_node*>::iterator it = my_hash_table.begin();
               it != my_hash_table.end(); ++it ) {
           my_hash_node * node = it->second;
           if (node->location) {

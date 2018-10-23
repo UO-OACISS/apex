@@ -7,6 +7,14 @@
 #include "thread_instance.hpp"
 #include <sstream>
 #include <ostream>
+#include <fstream>
+#include <iostream>
+#include <map>
+#include <memory>
+#include <set>
+#include <string>
+#include <utility>
+#include <vector>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -19,7 +27,8 @@
 #define OTF2_EC(call) { \
     OTF2_ErrorCode ec = call; \
     if (ec != OTF2_SUCCESS) { \
-        printf("OTF2 Error: %s, %s\n", OTF2_Error_GetName(ec), OTF2_Error_GetDescription (ec)); \
+        printf("OTF2 Error: %s, %s\n", OTF2_Error_GetName(ec),\
+        OTF2_Error_GetDescription (ec)); \
     } \
 }
 
@@ -27,7 +36,8 @@ using namespace std;
 
 namespace apex {
 
-    /* Stupid Intel compiler CLAIMS to be C++14, but doesn't have support for std::unique_ptr. */
+    /* Stupid Intel compiler CLAIMS to be C++14, but doesn't have support for
+     * std::unique_ptr. */
 #if __cplusplus < 201402L || defined(__INTEL_COMPILER)
     template<typename T, typename... Args>
     std::unique_ptr<T> my_make_unique(Args&&... args) {
@@ -39,7 +49,8 @@ namespace apex {
 #endif
 
     struct string_sort_by_value {
-        bool operator()(const std::pair<std::string,int> &left, const std::pair<std::string,int> &right) {
+        bool operator()(const std::pair<std::string,int> &left, const
+            std::pair<std::string,int> &right) {
             return left.second < right.second;
         }
     };
@@ -73,7 +84,8 @@ namespace apex {
     OTF2_CallbackCode otf2_listener::my_OTF2CreateLocalComm (void *userData,
             OTF2_CollectiveContext **localCommContext, OTF2_CollectiveContext
             *globalCommContext, uint32_t globalRank, uint32_t globalSize, uint32_t
-            localRank, uint32_t localSize, uint32_t fileNumber, uint32_t numberOfFiles) {
+            localRank, uint32_t localSize, uint32_t fileNumber, uint32_t
+            numberOfFiles) {
         /* Create a new disjoint partitioning of the the globalCommContext
            communication context. numberOfFiles denotes the number of the partitions.
            fileNumber denotes in which of the partitions this OTF2_Archive should belong.
@@ -294,26 +306,30 @@ namespace apex {
             comm_evt_writer = nullptr;
         }
         if (evt_writer != nullptr) {
-            //printf("closing event writer %p for thread %lu\n", evt_writer, thread_instance::get_id()); fflush(stdout);
+            //printf("closing event writer %p for thread %lu\n", evt_writer,
+            //thread_instance::get_id()); fflush(stdout);
             // FOR SOME REASON, OTF2 CRASHES ON EXIT
             // Not closing the event writers seems to prevent that?
             // OTF2_Archive_CloseEvtWriter( archive, evt_writer );
             evt_writer = nullptr;
         }
       }
-      //printf("using event writer %p for thread %lu\n", evt_writer, thread_instance::get_id()); fflush(stdout);
+      //printf("using event writer %p for thread %lu\n", evt_writer,
+      //thread_instance::get_id()); fflush(stdout);
       return evt_writer;
     }
 
     bool otf2_listener::event_file_exists (int threadid) {
         // get exclusive access to the set - unlocks on exit
         std::unique_lock<std::mutex> l(_event_set_mutex);
-        if (_event_threads.find(threadid) == _event_threads.end()) {return false;} else {return true;}
+        if (_event_threads.find(threadid) == _event_threads.end())
+        {return false;} else {return true;}
     }
 
     OTF2_DefWriter* otf2_listener::getDefWriter(int threadid) {
         OTF2_DefWriter* def_writer;
-        //printf("creating definition writer for thread %d\n", threadid); fflush(stdout);
+        //printf("creating definition writer for thread %d\n", threadid);
+        //fflush(stdout);
         uint64_t my_node_id = my_saved_node_id;
         my_node_id = (my_node_id << 32) + threadid;
         def_writer = OTF2_Archive_GetDefWriter( archive, my_node_id );
@@ -327,19 +343,28 @@ namespace apex {
     };
 
     /* constructor for the OTF2 listener class */
-    otf2_listener::otf2_listener (void) : _terminate(false), _initialized(false), comm_evt_writer(nullptr), global_def_writer(nullptr) {
+    otf2_listener::otf2_listener (void) : _terminate(false),
+        _initialized(false), comm_evt_writer(nullptr),
+        global_def_writer(nullptr) {
         /* get a start time for the trace */
         globalOffset = get_time();
         /* set the flusher */
-        flush_callbacks = { 
-            .otf2_pre_flush  = otf2_listener::pre_flush, 
-            .otf2_post_flush = otf2_listener::post_flush 
+        flush_callbacks = {
+            .otf2_pre_flush  = otf2_listener::pre_flush,
+            .otf2_post_flush = otf2_listener::post_flush
         };
-        index_filename = string(string(apex_options::otf2_archive_path()) + "/.locality.");
-        region_filename_prefix = string(string(apex_options::otf2_archive_path()) + "/.regions.");
-        metric_filename_prefix = string(string(apex_options::otf2_archive_path()) + "/.metrics.");
-        lock_filename_prefix = string(string(apex_options::otf2_archive_path()) + "/.regions.lock.");
-        lock2_filename_prefix = string(string(apex_options::otf2_archive_path()) + "/.metrics.lock.");
+        index_filename = string(string(apex_options::otf2_archive_path())
+            + "/.locality.");
+        region_filename_prefix =
+            string(string(apex_options::otf2_archive_path()) + "/.regions.");
+        metric_filename_prefix =
+            string(string(apex_options::otf2_archive_path()) + "/.metrics.");
+        lock_filename_prefix =
+            string(string(apex_options::otf2_archive_path()) +
+            "/.regions.lock.");
+        lock2_filename_prefix =
+            string(string(apex_options::otf2_archive_path()) +
+            "/.metrics.lock.");
     }
 
     bool otf2_listener::create_archive(void) {
@@ -366,14 +391,15 @@ namespace apex {
                 OTF2_SUBSTRATE_POSIX,
                 OTF2_COMPRESSION_NONE );
         /* set the flush callbacks, basically getting timestamps */
-        OTF2_EC(OTF2_Archive_SetFlushCallbacks( archive, &flush_callbacks, NULL ));
+        OTF2_EC(OTF2_Archive_SetFlushCallbacks( archive, &flush_callbacks,
+            nullptr ));
         /* set the creator name */
         stringstream tmp;
         tmp << "APEX version " << version();
         OTF2_EC(OTF2_Archive_SetCreator(archive, tmp.str().c_str()));
         /* we have no collective callbacks. */
-        OTF2_EC(OTF2_Archive_SetCollectiveCallbacks(archive, 
-            get_collective_callbacks(), NULL, NULL, NULL));
+        OTF2_EC(OTF2_Archive_SetCollectiveCallbacks(archive,
+            get_collective_callbacks(), nullptr, nullptr, nullptr));
         /* open the event files for this archive */
         OTF2_EC(OTF2_Archive_OpenEvtFiles( archive ));
         created = true;
@@ -387,8 +413,10 @@ namespace apex {
         // around when we are finalizing everything.
         my_saved_node_id = apex::instance()->get_node_id();
         my_saved_node_count = apex::instance()->get_num_ranks();
-        cout << "Rank " << my_saved_node_id << " of " << my_saved_node_count << "." << endl;
-        // now is a good time to make sure the archive is open on this rank/locality
+        cout << "Rank " << my_saved_node_id << " of " << my_saved_node_count <<
+            "." << endl;
+        // now is a good time to make sure the archive is open on this
+        // rank/locality
         static bool archive_created = create_archive();
         if ((!_terminate) && archive_created) {
             // set up the event writer for communication (thread 0).
@@ -412,20 +440,24 @@ namespace apex {
         OTF2_StringRef name_ref = get_string_index(name);
         OTF2_StringRef desc_ref = get_string_index(description);
         OTF2_GlobalDefWriter_WriteString( global_def_writer, name_ref, name );
-        OTF2_GlobalDefWriter_WriteString( global_def_writer, desc_ref, description );
+        OTF2_GlobalDefWriter_WriteString( global_def_writer, desc_ref,
+            description );
         OTF2_AttributeRef guid_ref = 0;
-        OTF2_GlobalDefWriter_WriteAttribute( global_def_writer, 
+        OTF2_GlobalDefWriter_WriteAttribute( global_def_writer,
                 guid_ref, name_ref, desc_ref, OTF2_TYPE_UINT64);
         // write the parent GUID attribute
         const char * parent_name = "Parent GUID";
-        const char * parent_description = "Globaly unique identifier of the parent task";
+        const char * parent_description =
+            "Globaly unique identifier of the parent task";
         OTF2_StringRef parent_name_ref = get_string_index(parent_name);
         OTF2_StringRef parent_desc_ref = get_string_index(parent_description);
-        OTF2_GlobalDefWriter_WriteString( global_def_writer, parent_name_ref, parent_name );
-        OTF2_GlobalDefWriter_WriteString( global_def_writer, parent_desc_ref, parent_description );
+        OTF2_GlobalDefWriter_WriteString( global_def_writer, parent_name_ref,
+            parent_name );
+        OTF2_GlobalDefWriter_WriteString( global_def_writer, parent_desc_ref,
+            parent_description );
         OTF2_AttributeRef parent_guid_ref = 1;
-        OTF2_GlobalDefWriter_WriteAttribute( global_def_writer, 
-                parent_guid_ref, parent_name_ref, parent_desc_ref, OTF2_TYPE_UINT64);
+        OTF2_GlobalDefWriter_WriteAttribute( global_def_writer,
+            parent_guid_ref, parent_name_ref, parent_desc_ref, OTF2_TYPE_UINT64);
     }
 
     inline void convert_upper(std::string& str, std::string& converted)
@@ -449,27 +481,39 @@ namespace apex {
         for (auto const &i : sorted_reduced_region_map) {
             string id = i.second;
             uint64_t idx = i.first;
-            OTF2_GlobalDefWriter_WriteString( global_def_writer, get_string_index(id), id.c_str() );
+            OTF2_GlobalDefWriter_WriteString( global_def_writer,
+                get_string_index(id), id.c_str() );
             OTF2_Paradigm paradigm = OTF2_PARADIGM_USER;
             string uppercase;
             convert_upper(id, uppercase);
-			size_t found = uppercase.find(string("APEX"));
-			if (found != std::string::npos) { paradigm = OTF2_PARADIGM_MEASUREMENT_SYSTEM; }
-			found = uppercase.find(string("UNRESOLVED"));
-			if (found != std::string::npos) { paradigm = OTF2_PARADIGM_MEASUREMENT_SYSTEM; }
-			found = uppercase.find(string("OPENMP"));
-			if (found != std::string::npos) { paradigm = OTF2_PARADIGM_OPENMP; }
-			found = uppercase.find(string("PTHREAD"));
-			if (found != std::string::npos) { paradigm = OTF2_PARADIGM_PTHREAD; }
-			found = uppercase.find(string("MPI"));
-			if (found != std::string::npos) { paradigm = OTF2_PARADIGM_MPI; }
+            size_t found = uppercase.find(string("APEX"));
+            if (found != std::string::npos) {
+                paradigm = OTF2_PARADIGM_MEASUREMENT_SYSTEM;
+            }
+            found = uppercase.find(string("UNRESOLVED"));
+            if (found != std::string::npos) {
+                paradigm = OTF2_PARADIGM_MEASUREMENT_SYSTEM;
+            }
+            found = uppercase.find(string("OPENMP"));
+            if (found != std::string::npos) {
+                paradigm = OTF2_PARADIGM_OPENMP;
+            }
+            found = uppercase.find(string("PTHREAD"));
+            if (found != std::string::npos) {
+                paradigm = OTF2_PARADIGM_PTHREAD;
+            }
+            found = uppercase.find(string("MPI"));
+            if (found != std::string::npos) {
+                paradigm = OTF2_PARADIGM_MPI;
+            }
             OTF2_GlobalDefWriter_WriteRegion( global_def_writer,
                     idx /* id */,
                     get_string_index(id) /* region name  */,
                     get_string_index(empty) /* alternative name */,
                     get_string_index(empty) /* description */,
-                    (found != std::string::npos) ? OTF2_REGION_ROLE_ARTIFICIAL : OTF2_REGION_ROLE_TASK,
-					paradigm,
+                    (found != std::string::npos) ? OTF2_REGION_ROLE_ARTIFICIAL
+                        : OTF2_REGION_ROLE_TASK,
+                    paradigm,
                     OTF2_REGION_FLAG_NONE,
                     get_string_index(empty) /* source file */,
                     get_string_index(empty) /* begin lno */,
@@ -483,7 +527,8 @@ namespace apex {
         if (written) return;
         written = true;
         // write a "unit" string
-        OTF2_GlobalDefWriter_WriteString( global_def_writer, get_string_index("count"), "count" );
+        OTF2_GlobalDefWriter_WriteString( global_def_writer,
+            get_string_index("count"), "count" );
         // copy the reduced map to a pair, so we can sort by value
         std::vector<std::pair<std::string, int>> pairs;
         for (auto const &i : reduced_metric_map) {
@@ -494,23 +539,27 @@ namespace apex {
         for (auto const &i : pairs) {
             string id = i.first;
             uint64_t idx = i.second;
-            OTF2_GlobalDefWriter_WriteString( global_def_writer, get_string_index(id), id.c_str() );
-              OTF2_GlobalDefWriter_WriteMetricMember( global_def_writer,
+            OTF2_GlobalDefWriter_WriteString( global_def_writer,
+                get_string_index(id), id.c_str() );
+            OTF2_GlobalDefWriter_WriteMetricMember( global_def_writer,
                 idx, get_string_index(id), get_string_index(id),
-                OTF2_METRIC_TYPE_OTHER, OTF2_METRIC_ABSOLUTE_POINT, 
-                OTF2_TYPE_DOUBLE, OTF2_BASE_DECIMAL, 0, get_string_index("count"));
+                OTF2_METRIC_TYPE_OTHER, OTF2_METRIC_ABSOLUTE_POINT,
+                OTF2_TYPE_DOUBLE, OTF2_BASE_DECIMAL, 0,
+                get_string_index("count"));
             OTF2_MetricMemberRef omr[1];
             omr[0]=idx;
-            OTF2_GlobalDefWriter_WriteMetricClass( global_def_writer, 
-                    idx, 1, omr, OTF2_METRIC_ASYNCHRONOUS, 
+            OTF2_GlobalDefWriter_WriteMetricClass( global_def_writer,
+                    idx, 1, omr, OTF2_METRIC_ASYNCHRONOUS,
                     OTF2_RECORDER_KIND_UNKNOWN);
         }
     }
 
-    void otf2_listener::write_region_map(std::map<std::string,uint64_t>& reduced_region_map) {
+    void otf2_listener::write_region_map(std::map<std::string,uint64_t>&
+        reduced_region_map) {
         // build the array of uint64_t values
         if (global_region_indices.size() > 0) {
-            uint64_t * mappings = (uint64_t*)(malloc(sizeof(uint64_t) * global_region_indices.size()));
+            uint64_t * mappings = (uint64_t*)(malloc(sizeof(uint64_t) *
+                global_region_indices.size()));
             for (auto const &i : global_region_indices) {
                 task_identifier id = i.first;
                 uint64_t idx = i.second;
@@ -519,10 +568,12 @@ namespace apex {
             }
             // create a map
             uint64_t map_size = global_region_indices.size();
-            OTF2_IdMap * my_map = OTF2_IdMap_CreateFromUint64Array(map_size, mappings, false);
+            OTF2_IdMap * my_map = OTF2_IdMap_CreateFromUint64Array(map_size,
+                mappings, false);
             for (int i = 0 ; i < thread_instance::get_num_threads() ; i++) {
                 if (event_file_exists(i)) {
-                    OTF2_DefWriter_WriteMappingTable(getDefWriter(i), OTF2_MAPPING_REGION, my_map);
+                    OTF2_DefWriter_WriteMappingTable(getDefWriter(i),
+                        OTF2_MAPPING_REGION, my_map);
                 }
             }
             // free the map
@@ -531,10 +582,12 @@ namespace apex {
         }
     }
 
-    void otf2_listener::write_metric_map(std::map<std::string,uint64_t>& reduced_metric_map) {
+    void otf2_listener::write_metric_map(std::map<std::string,uint64_t>&
+        reduced_metric_map) {
         // build the array of uint64_t values
         if (global_metric_indices.size() > 0) {
-            uint64_t * mappings = (uint64_t*)(malloc(sizeof(uint64_t) * global_metric_indices.size()));
+            uint64_t * mappings = (uint64_t*)(malloc(sizeof(uint64_t) *
+                global_metric_indices.size()));
             for (auto const &i : global_metric_indices) {
                 string name = i.first;
                 uint64_t idx = i.second;
@@ -543,10 +596,12 @@ namespace apex {
             }
             // create a map
             uint64_t map_size = global_metric_indices.size();
-            OTF2_IdMap * my_map = OTF2_IdMap_CreateFromUint64Array(map_size, mappings, false);
+            OTF2_IdMap * my_map = OTF2_IdMap_CreateFromUint64Array(map_size,
+                mappings, false);
             for (int i = 0 ; i < thread_instance::get_num_threads() ; i++) {
                 if (event_file_exists(i)) {
-                    OTF2_DefWriter_WriteMappingTable(getDefWriter(i), OTF2_MAPPING_METRIC, my_map);
+                    OTF2_DefWriter_WriteMappingTable(getDefWriter(i),
+                        OTF2_MAPPING_METRIC, my_map);
                 }
             }
             // free the map
@@ -565,7 +620,8 @@ namespace apex {
 
     /* For this rank, pid, hostname, write all that data into the
      * trace definition */
-    void otf2_listener::write_host_properties(int rank, int pid, std::string& hostname) {
+    void otf2_listener::write_host_properties(int rank, int pid, std::string&
+        hostname) {
         static std::set<std::string> threadnames;
         static std::map<std::string, uint64_t> hostnames;
         static const std::string node("node");
@@ -577,7 +633,7 @@ namespace apex {
             node_index = hostnames.size();
             hostnames[hostname] = node_index;
             // write the hostname string
-            OTF2_GlobalDefWriter_WriteString( global_def_writer, 
+            OTF2_GlobalDefWriter_WriteString( global_def_writer,
                 get_string_index(hostname), hostname.c_str());
             // add our host to the system tree
             OTF2_GlobalDefWriter_WriteSystemTreeNode( global_def_writer,
@@ -597,7 +653,7 @@ namespace apex {
         stringstream locality;
         locality << "process " << pid;
         // write our process name to the trace
-        OTF2_GlobalDefWriter_WriteString( global_def_writer, 
+        OTF2_GlobalDefWriter_WriteString( global_def_writer,
             get_string_index(locality.str()), locality.str().c_str() );
         // write the process location to the system tree
         OTF2_GlobalDefWriter_WriteLocationGroup( global_def_writer,
@@ -613,12 +669,12 @@ namespace apex {
             // have we written this thread name before?
             auto tmp = threadnames.find(thread.str());
             if (tmp == threadnames.end()) {
-                OTF2_GlobalDefWriter_WriteString( global_def_writer, 
+                OTF2_GlobalDefWriter_WriteString( global_def_writer,
                     get_string_index(thread.str()), thread.str().c_str() );
                 threadnames.insert(thread.str());
             }
             // write out the thread location into the system tree
-            OTF2_GlobalDefWriter_WriteLocation( global_def_writer, 
+            OTF2_GlobalDefWriter_WriteLocation( global_def_writer,
                 thread_id /* id */,
                 get_string_index(thread.str()) /* name */,
                 OTF2_LOCATION_TYPE_CPU_THREAD,
@@ -649,11 +705,11 @@ namespace apex {
             _terminate = true;
             /* sleep a tiny bit, to make sure all other threads get the word
              * that we are done. */
-			//std::cout << "Waiting for all support threads to exit..." << std::endl;
+            //std::cout << "Waiting for all support threads to exit..." << std::endl;
             usleep(apex_options::policy_drain_timeout()); // sleep 1ms (default)
             /* close event files */
             if (my_saved_node_id == 0) {
-			    std::cout << "Closing OTF2 event files..." << std::endl;
+                std::cout << "Closing OTF2 event files..." << std::endl;
             }
             OTF2_EC(OTF2_Archive_CloseEvtFiles( archive ));
             // write node properties
@@ -662,11 +718,11 @@ namespace apex {
             if (my_saved_node_id == 0) {
                 // save my number of threads
                 rank_thread_map[0] = thread_instance::get_num_threads();
-				std::cout << "Writing OTF2 definition files..." << std::endl;
+                std::cout << "Writing OTF2 definition files..." << std::endl;
                 // make a common list of regions and metrics across all nodes...
                 reduce_regions();
                 reduce_metrics();
-				std::cout << "Writing OTF2 Global definition file..." << std::endl;
+                std::cout << "Writing OTF2 Global definition file..." << std::endl;
                 // create the global definition writer
                 global_def_writer = OTF2_Archive_GetGlobalDefWriter( archive );
                 // write an "empty" string - only once
@@ -682,7 +738,7 @@ namespace apex {
                 write_clock_properties();
                 // write a "node" string - only once
                 const string node("node");
-                OTF2_EC(OTF2_GlobalDefWriter_WriteString( global_def_writer, 
+                OTF2_EC(OTF2_GlobalDefWriter_WriteString( global_def_writer,
                     get_string_index(node), node.c_str() ));
                 // let rank/locality 0 know this rank's properties.
                 auto rank_pid_map = std::get<0>(*map_pair);
@@ -692,7 +748,7 @@ namespace apex {
                 // and the "location" is thread 0 of that process.
                 vector<uint64_t>group_members;
                 vector<uint64_t>group_members_threads;
-				std::cout << "Writing OTF2 Node information..." << std::endl;
+                std::cout << "Writing OTF2 Node information..." << std::endl;
                 // iterate over the ranks (in order) and write them out
                 for (auto const &i : rank_pid_map) {
                     int rank = i.first;
@@ -704,37 +760,41 @@ namespace apex {
                     /*
                     // add threads of the rank to the communicator location group
                     for (int i = 0 ; i < rank_thread_map[rank] ; i++) {
-                        group_members_threads.push_back((group_members[rank] << 32) + i);
+                        group_members_threads.push_back((group_members[rank] <<
+                        32) + i);
                     }
                     */
                     group_members_threads.push_back((group_members[rank] << 32));
                 }
-				std::cout << "Writing OTF2 Communicators..." << std::endl;
+                std::cout << "Writing OTF2 Communicators..." << std::endl;
                 // create the map of locations
                 const char * world_locations = "MPI_COMM_WORLD_LOCATIONS";
                 OTF2_EC(OTF2_GlobalDefWriter_WriteString( global_def_writer,
                     get_string_index(world_locations), world_locations ));
                 OTF2_EC(OTF2_GlobalDefWriter_WriteGroup ( global_def_writer,
-                    0, get_string_index(world_locations), OTF2_GROUP_TYPE_COMM_LOCATIONS,
-                    OTF2_PARADIGM_MPI, OTF2_GROUP_FLAG_NONE, group_members_threads.size(),
-                    &group_members_threads[0]));   
-                // create the map of ranks in the communicator - these have to be consectutive ranks.
+                    0, get_string_index(world_locations),
+                    OTF2_GROUP_TYPE_COMM_LOCATIONS,
+                    OTF2_PARADIGM_MPI, OTF2_GROUP_FLAG_NONE,
+                    group_members_threads.size(),
+                    &group_members_threads[0]));
+                // create the map of ranks in the communicator - these have to
+                // be consectutive ranks.
                 const char * world_group = "MPI_COMM_WORLD_GROUP";
                 OTF2_EC(OTF2_GlobalDefWriter_WriteString( global_def_writer,
                     get_string_index(world_group), world_group ));
                 OTF2_EC(OTF2_GlobalDefWriter_WriteGroup ( global_def_writer,
                     1, get_string_index(world_group), OTF2_GROUP_TYPE_COMM_GROUP,
-                    OTF2_PARADIGM_MPI, OTF2_GROUP_FLAG_NONE, group_members.size(),
-                    &group_members[0]));   
+                    OTF2_PARADIGM_MPI, OTF2_GROUP_FLAG_NONE,
+                    group_members.size(), &group_members[0]));
                 // create the communicator
                 const char * world = "MPI_COMM_WORLD";
                 OTF2_EC(OTF2_GlobalDefWriter_WriteString( global_def_writer,
                     get_string_index(world), world ));
                 OTF2_EC(OTF2_GlobalDefWriter_WriteComm  ( global_def_writer,
-                    0, get_string_index(world), 
+                    0, get_string_index(world),
                     1, OTF2_UNDEFINED_COMM));
             } else {
-                // not rank 0? 
+                // not rank 0?
                 // write out the timer names we saw
                 reduce_regions();
                 // write out the counter names we saw
@@ -743,11 +803,12 @@ namespace apex {
             for (int i = 0 ; i < thread_instance::get_num_threads() ; i++) {
                 /* close (and possibly create) the definition files */
                 if (event_file_exists(i)) {
-                    OTF2_EC(OTF2_Archive_CloseDefWriter( archive, getDefWriter(i) ));
+                    OTF2_EC(OTF2_Archive_CloseDefWriter( archive,
+                        getDefWriter(i) ));
                 }
             }
             if (my_saved_node_id == 0) {
-			    std::cout << "Closing the archive..." << std::endl;
+                std::cout << "Closing the archive..." << std::endl;
             }
             // close the archive! we are done!
             OTF2_EC(OTF2_Archive_Close( archive ));
@@ -765,15 +826,15 @@ namespace apex {
             }
             */
             if (my_saved_node_id == 0) {
-			    std::cout << "done." << std::endl;
+                std::cout << "done." << std::endl;
             }
         }
         return;
     }
-    
+
     /* We need to check in with locality/rank 0 to let
      * it know how many localities/ranks there are in
-     * the job. We do that by writing our rank to the 
+     * the job. We do that by writing our rank to the
      * master rank file (assuming a shared filesystem)
      * if it is larger than the current rank in there. */
     std::string otf2_listener::write_my_node_properties() {
@@ -806,10 +867,11 @@ namespace apex {
  * fourth parameter. */
 #if 0
             OTF2_EvtWriter* local_evt_writer = getEvtWriter(true);
-            if (local_evt_writer != NULL) {
+            if (local_evt_writer != nullptr) {
               // insert a thread begin event
               uint64_t stamp = get_time();
-              OTF2_EvtWriter_ThreadBegin( local_evt_writer, NULL, stamp, 0, thread_instance::get_id() );
+              OTF2_EvtWriter_ThreadBegin( local_evt_writer, nullptr, stamp, 0,
+                thread_instance::get_id() );
             }
 #endif
         APEX_UNUSED(data);
@@ -828,8 +890,8 @@ namespace apex {
         if (thread_instance::get_id() != 0) {
             // insert a thread end event
             uint64_t stamp = get_time();
-            OTF2_EvtWriter_ThreadEnd( getEvtWriter(false), NULL, stamp, 0, 0);
-        } 
+            OTF2_EvtWriter_ThreadEnd( getEvtWriter(false), nullptr, stamp, 0, 0);
+        }
 #endif
         //_event_threads.insert(thread_instance::get_id());
         getEvtWriter(false);
@@ -838,7 +900,8 @@ namespace apex {
     }
 
 #if APEX_HAVE_PAPI
-    void otf2_listener::write_papi_counters(OTF2_EvtWriter* writer, profiler* prof, uint64_t stamp) {
+    void otf2_listener::write_papi_counters(OTF2_EvtWriter* writer, profiler*
+        prof, uint64_t stamp) {
         // create a union for storing the value
         OTF2_MetricValue omv[1];
         // tell the union what type this is
@@ -846,11 +909,13 @@ namespace apex {
         omt[0]=OTF2_TYPE_DOUBLE;
         int i = 0;
         uint64_t idx = 0L;
-        for (auto metric : apex::instance()->the_profiler_listener->get_metric_names()) {
+        for (auto metric :
+            apex::instance()->the_profiler_listener->get_metric_names()) {
             omv[0].floating_point = prof->papi_start_values[i++];
             idx = get_metric_index(metric);
             // write our counter into the event stream
-            OTF2_EC(OTF2_EvtWriter_Metric( writer, NULL, stamp, idx, 1, omt, omv ));
+            OTF2_EC(OTF2_EvtWriter_Metric( writer, nullptr, stamp, idx,
+                1, omt, omv ));
         }
     }
 #endif
@@ -881,17 +946,20 @@ namespace apex {
                 // the lock is acquired, so that events happen on
                 // thread 0 in monotonic order.
                 stamp = get_time();
-                OTF2_EC(OTF2_EvtWriter_Enter( local_evt_writer, al, stamp, idx /* region */ ));
+                OTF2_EC(OTF2_EvtWriter_Enter( local_evt_writer, al,
+                    stamp, idx /* region */ ));
 #if APEX_HAVE_PAPI
                 // write PAPI metrics!
                 write_papi_counters(local_evt_writer, tt_ptr->prof, stamp);
 #endif
             } else {
                 stamp = get_time();
-                OTF2_EC(OTF2_EvtWriter_Enter( local_evt_writer, al, stamp, idx /* region */ ));
+                OTF2_EC(OTF2_EvtWriter_Enter( local_evt_writer, al,
+                    stamp, idx /* region */ ));
 #if APEX_HAVE_PAPI
                 // write PAPI metrics!
-                write_papi_counters(local_evt_writer, tt_ptr->prof, stamp);
+                write_papi_counters(local_evt_writer, tt_ptr->prof,
+                    stamp);
 #endif
             }
             // delete the attribute list
@@ -928,14 +996,16 @@ namespace apex {
                 // we have to get a lock for it.
                 std::unique_lock<std::mutex> lock(_comm_mutex);
                 stamp = get_time();
-                OTF2_EC(OTF2_EvtWriter_Leave( local_evt_writer, al, stamp, idx /* region */ ));
+                OTF2_EC(OTF2_EvtWriter_Leave( local_evt_writer, al,
+                    stamp, idx /* region */ ));
 #if APEX_HAVE_PAPI
                 // write PAPI metrics!
                 write_papi_counters(local_evt_writer, p.get(), stamp);
 #endif
             } else {
                 stamp = get_time();
-                OTF2_EC(OTF2_EvtWriter_Leave( local_evt_writer, al, stamp, idx /* region */ ));
+                OTF2_EC(OTF2_EvtWriter_Leave( local_evt_writer, al,
+                    stamp, idx /* region */ ));
 #if APEX_HAVE_PAPI
                 // write PAPI metrics!
                 write_papi_counters(local_evt_writer, p.get(), stamp);
@@ -957,7 +1027,7 @@ namespace apex {
         read_lock_type lock(_archive_mutex);
         // not likely, but just in case...
         if (_terminate) { return; }
-        if (comm_evt_writer != NULL) {
+        if (comm_evt_writer != nullptr) {
             // create an empty attribute list. could be null?
             OTF2_AttributeList * attributeList = OTF2_AttributeList_New();
             // only one communicator, so hard coded.
@@ -987,7 +1057,7 @@ namespace apex {
         read_lock_type lock(_archive_mutex);
         // not likely, but just in case...
         if (_terminate) { return; }
-        if (comm_evt_writer != NULL) {
+        if (comm_evt_writer != nullptr) {
             // create an empty attribute list. could be null?
             OTF2_AttributeList * attributeList = OTF2_AttributeList_New();
             // only one communicator, so hard coded.
@@ -1000,7 +1070,8 @@ namespace apex {
                 // that time stamps are monotonically increasing. :(
                 uint64_t stamp = get_time();
                 // write our recv into the event stream
-                //std::cout << "receiving from: " << data.source_thread << std::endl;
+                //std::cout << "receiving from: " << data.source_thread <<
+                //std::endl;
                 OTF2_EC(OTF2_EvtWriter_MpiRecv  ( comm_evt_writer,
                         attributeList, stamp, data.source_rank, communicator,
                         data.tag, data.size ));
@@ -1014,7 +1085,7 @@ namespace apex {
     void otf2_listener::on_sample_value(sample_value_event_data &data) {
         // This could be an asynchronous sampled counter, may have gotten
         // here before initialization is done.  Wait a sec...hopefully not longer.
-        while (!_initialized) { 
+        while (!_initialized) {
             usleep(apex_options::policy_drain_timeout()); // sleep 1ms (default)
         }
         // don't close the archive on us!
@@ -1036,8 +1107,9 @@ namespace apex {
             // that time stamps are monotonically increasing. :(
             uint64_t stamp = get_time();
             // write our counter into the event stream
-            if (comm_evt_writer != NULL) {
-                OTF2_EC(OTF2_EvtWriter_Metric( comm_evt_writer, NULL, stamp, idx, 1, omt, omv ));
+            if (comm_evt_writer != nullptr) {
+                OTF2_EC(OTF2_EvtWriter_Metric( comm_evt_writer, nullptr, stamp,
+                idx, 1, omt, omv ));
             }
         }
         return;
@@ -1048,7 +1120,8 @@ namespace apex {
 #if defined(APEX_HAVE_HPX)
 
 
-    std::unique_ptr<std::tuple<std::map<int,int>, std::map<int,std::string> > > otf2_listener::reduce_node_properties(std::string&& str) {
+    std::unique_ptr<std::tuple<std::map<int,int>, std::map<int,std::string> > >
+    otf2_listener::reduce_node_properties(std::string&& str) {
         return nullptr;
     }
 
@@ -1059,7 +1132,9 @@ namespace apex {
 
     /* MPI implementations */
 
-    std::unique_ptr<std::tuple<std::map<int,int>, std::map<int,std::string> > > otf2_listener::reduce_node_properties(std::string&& str) {
+    std::unique_ptr<std::tuple<std::map<int,int>,
+                    std::map<int,std::string> > >
+         otf2_listener::reduce_node_properties(std::string&& str) {
         const int hostlength = 128;
         // get all hostnames
         char tmp[hostlength];
@@ -1068,7 +1143,8 @@ namespace apex {
         // make array for all hostnames
         char * allhostnames = nullptr;
         if (my_saved_node_id == 0) {
-            allhostnames = (char*)calloc(hostlength*my_saved_node_count, sizeof(char));
+            allhostnames = (char*)calloc(hostlength*my_saved_node_count,
+                sizeof(char));
         }
 
         if (my_saved_node_count > 1) {
@@ -1099,8 +1175,10 @@ namespace apex {
             rank_pid_map[rank] = pid;
             rank_hostname_map[rank] = hostname;
             host_index = host_index + hostlength;
-        }    
-        return APEX_MAKE_UNIQUE<std::tuple<std::map<int,int>, std::map<int,string> > >(rank_pid_map, rank_hostname_map);
+        }
+        return APEX_MAKE_UNIQUE<std::tuple<std::map<int,int>,
+                                std::map<int,string> > >(
+                                rank_pid_map, rank_hostname_map);
     }
 
     std::string otf2_listener::write_my_regions(void) {
@@ -1127,7 +1205,7 @@ namespace apex {
 
         if (my_saved_node_count > 1) {
             // get the max length from all nodes
-            PMPI_Allreduce(&length, &max_length, 1, MPI_INT, 
+            PMPI_Allreduce(&length, &max_length, 1, MPI_INT,
                            MPI_MAX, MPI_COMM_WORLD);
         } else {
             max_length = length;
@@ -1145,7 +1223,8 @@ namespace apex {
 
         if (my_saved_node_count > 1) {
             // gather the strings to node 0
-            PMPI_Gather(sbuf, max_length, MPI_CHAR, rbuf, max_length, MPI_CHAR, 0, MPI_COMM_WORLD);
+            PMPI_Gather(sbuf, max_length, MPI_CHAR, rbuf,
+                max_length, MPI_CHAR, 0, MPI_COMM_WORLD);
         } else {
             rbuf = sbuf;
         }
@@ -1166,7 +1245,8 @@ namespace apex {
             for (int i = 1 ; i < my_saved_node_count ; i++) {
                 comm_size++;
                 rank_region_map[i] = 0;
-                std::string region_file_string(rbuf+(max_length * i), max_length);
+                std::string region_file_string(rbuf+(max_length * i),
+                    max_length);
                 // get the number of threads from this rank
                 std::string region_line;
                 std::stringstream region_file(region_file_string);
@@ -1177,8 +1257,10 @@ namespace apex {
                 while (std::getline(region_file, region_line)) {
                     rank_region_map[i] = rank_region_map[i] + 1;
                     // trim the newline
-                    region_line.erase(std::remove(region_line.begin(), region_line.end(), '\n'), region_line.end());
-                    if (reduced_region_map.find(region_line) == reduced_region_map.end()) {
+                    region_line.erase(std::remove(region_line.begin(),
+                        region_line.end(), '\n'), region_line.end());
+                    if (reduced_region_map.find(region_line) ==
+                        reduced_region_map.end()) {
                         uint64_t idx = reduced_region_map.size();
                         reduced_region_map[region_line] = idx;
                     }
@@ -1262,7 +1344,7 @@ namespace apex {
 
         if (my_saved_node_count > 1) {
             // get the max length from all nodes
-            PMPI_Allreduce(&length, &max_length, 1, MPI_INT, 
+            PMPI_Allreduce(&length, &max_length, 1, MPI_INT,
                            MPI_MAX, MPI_COMM_WORLD);
         } else {
             max_length = length;
@@ -1280,7 +1362,8 @@ namespace apex {
 
         if (my_saved_node_count > 1) {
             // gather the strings to node 0
-            PMPI_Gather(sbuf, max_length, MPI_CHAR, rbuf, max_length, MPI_CHAR, 0, MPI_COMM_WORLD);
+            PMPI_Gather(sbuf, max_length, MPI_CHAR, rbuf,
+                max_length, MPI_CHAR, 0, MPI_COMM_WORLD);
         } else {
             rbuf = sbuf;
         }
@@ -1301,7 +1384,8 @@ namespace apex {
             for (int i = 1 ; i < my_saved_node_count ; i++) {
                 comm_size++;
                 rank_metric_map[i] = 0;
-                std::string metric_file_string(rbuf+(max_length * i), max_length);
+                std::string metric_file_string(rbuf+(max_length * i),
+                    max_length);
                 // get the number of threads from this rank
                 std::string metric_line;
                 std::stringstream metric_file(metric_file_string);
@@ -1312,8 +1396,10 @@ namespace apex {
                 while (std::getline(metric_file, metric_line)) {
                     rank_metric_map[i] = rank_metric_map[i] + 1;
                     // trim the newline
-                    metric_line.erase(std::remove(metric_line.begin(), metric_line.end(), '\n'), metric_line.end());
-                    if (reduced_metric_map.find(metric_line) == reduced_metric_map.end()) {
+                    metric_line.erase(std::remove(metric_line.begin(),
+                        metric_line.end(), '\n'), metric_line.end());
+                    if (reduced_metric_map.find(metric_line) ==
+                        reduced_metric_map.end()) {
                         uint64_t idx = reduced_metric_map.size();
                         reduced_metric_map[metric_line] = idx;
                     }
@@ -1372,7 +1458,9 @@ namespace apex {
 
     /* When not using HPX or MPI, use the filesystem. Ick. */
 
-    std::unique_ptr<std::tuple<std::map<int,int>, std::map<int,std::string> > > otf2_listener::reduce_node_properties(std::string&& str) {
+    std::unique_ptr<std::tuple<std::map<int,int>,
+                    std::map<int,std::string> > >
+                    otf2_listener::reduce_node_properties(std::string&& str) {
         std::ofstream index_file(index_filename + to_string(my_saved_node_id));
         // write our info
         index_file << str.c_str();
@@ -1403,11 +1491,12 @@ namespace apex {
                 ss >> rank >> pid >> hostname;
                 rank_pid_map[rank] = pid;
                 rank_hostname_map[rank] = hostname;
-            }    
+            }
             myfile.close();
             std::remove(full_index_filename.str().c_str());
         }
-        return APEX_MAKE_UNIQUE<std::tuple<std::map<int,int>, std::map<int,string> > >(rank_pid_map, rank_hostname_map);
+        return APEX_MAKE_UNIQUE<std::tuple<std::map<int,int>,
+            std::map<int,string> > >(rank_pid_map, rank_hostname_map);
     }
 
     std::string otf2_listener::write_my_regions(void) {
@@ -1462,7 +1551,7 @@ namespace apex {
             // skip myself
             if (i == 0) continue;
             rank_region_map[i] = 0;
-            struct stat buffer;   
+            struct stat buffer;
             // wait on the map file to exist
             ostringstream region_filename;
             region_filename << region_filename_prefix << i;
@@ -1482,8 +1571,10 @@ namespace apex {
             while (std::getline(region_file, region_line)) {
                 rank_region_map[i] = rank_region_map[i] + 1;
                 // trim the newline
-                region_line.erase(std::remove(region_line.begin(), region_line.end(), '\n'), region_line.end());
-                if (reduced_region_map.find(region_line) == reduced_region_map.end()) {
+                region_line.erase(std::remove(region_line.begin(),
+                    region_line.end(), '\n'), region_line.end());
+                if (reduced_region_map.find(region_line) ==
+                    reduced_region_map.end()) {
                     uint64_t idx = reduced_region_map.size();
                     reduced_region_map[region_line] = idx;
                 }
@@ -1520,7 +1611,7 @@ namespace apex {
 
         // read the reduced data
         if (my_saved_node_count > 1) {
-            struct stat buffer;   
+            struct stat buffer;
             std::map<std::string,uint64_t> reduced_region_map;
             // wait on the map file from rank 0 to exist
             ostringstream region_filename;
@@ -1595,7 +1686,7 @@ namespace apex {
             // skip myself
             if (i == 0) continue;
             rank_metric_map[i] = 0;
-            struct stat buffer;   
+            struct stat buffer;
             // wait on the map file to exist
             ostringstream metric_filename;
             metric_filename << metric_filename_prefix << i;
@@ -1614,8 +1705,10 @@ namespace apex {
             while (std::getline(metric_file, metric_line)) {
                 rank_metric_map[i] = rank_metric_map[i] + 1;
                 // trim the newline
-                metric_line.erase(std::remove(metric_line.begin(), metric_line.end(), '\n'), metric_line.end());
-                if (reduced_metric_map.find(metric_line) == reduced_metric_map.end()) {
+                metric_line.erase(std::remove(metric_line.begin(),
+                    metric_line.end(), '\n'), metric_line.end());
+                if (reduced_metric_map.find(metric_line) ==
+                    reduced_metric_map.end()) {
                     uint64_t idx = reduced_metric_map.size();
                     reduced_metric_map[metric_line] = idx;
                 }
@@ -1652,7 +1745,7 @@ namespace apex {
 
         // read the reduced data
         if (my_saved_node_count > 1) {
-            struct stat buffer;   
+            struct stat buffer;
             std::map<std::string,uint64_t> reduced_metric_map;
             // wait on the map file from rank 0 to exist
             ostringstream metric_filename;

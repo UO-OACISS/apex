@@ -32,7 +32,8 @@ class pthread_wrapper {
         unsigned int _timeout_microseconds;
     public:
         std::atomic<bool> _running;
-        pthread_wrapper(void*(*func)(void*), void* context, unsigned int timeout_microseconds) :
+        pthread_wrapper(void*(*func)(void*), void* context,
+            unsigned int timeout_microseconds) :
                 done(false),
                 _func(func),
                 _context_object(context),
@@ -47,12 +48,12 @@ class pthread_wrapper {
                 perror("pthread_mutex_init error");
                 exit(1);
             }
-            if ((rc = pthread_cond_init(&_my_cond, NULL)) != 0) {
+            if ((rc = pthread_cond_init(&_my_cond, nullptr)) != 0) {
                 errno = rc;
                 perror("pthread_cond_init error");
                 exit(1);
             }
-            int ret = pthread_create(&worker_thread, NULL, _func, (void*)(this));
+            int ret = pthread_create(&worker_thread, nullptr, _func, (void*)(this));
             if (ret != 0) {
                 errno = ret;
                 perror("Error: pthread_create (1) fails\n");
@@ -114,12 +115,12 @@ class pthread_wrapper {
                 struct timespec ts;
                 ts.tv_sec  = seconds;
                 ts.tv_nsec = 1000 * microseconds;
-                int rc = nanosleep(&ts, NULL);
+                int rc = nanosleep(&ts, nullptr);
                 if (rc != 0) return false;
 #else
                 struct timespec ts;
                 struct timeval  tp;
-                gettimeofday(&tp, NULL);
+                gettimeofday(&tp, nullptr);
                 // add our timeout to "now"
                 int seconds = _timeout_microseconds / MILLION;
                 int microseconds = _timeout_microseconds % MILLION;

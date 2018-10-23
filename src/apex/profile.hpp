@@ -21,7 +21,8 @@ class profile {
 private:
     apex_profile _profile;
 public:
-    profile(double initial, int num_metrics, double * papi_metrics, bool yielded = false, apex_profile_type type = APEX_TIMER) {
+    profile(double initial, int num_metrics, double * papi_metrics, bool
+        yielded = false, apex_profile_type type = APEX_TIMER) {
         _profile.type = type;
         if (!yielded) {
             _profile.calls = 1.0;
@@ -38,7 +39,8 @@ public:
         _profile.maximum = initial;
 #endif
     };
-    void increment(double increase, int num_metrics, double * papi_metrics, bool yielded) {
+    void increment(double increase, int num_metrics, double * papi_metrics,
+        bool yielded) {
         _profile.accumulated += increase;
         for (int i = 0 ; i < num_metrics ; i++) {
             _profile.papi_metrics[i] += papi_metrics[i];
@@ -51,7 +53,7 @@ public:
 #endif
         if (!yielded) {
           _profile.calls = _profile.calls + 1.0;
-        } 
+        }
     }
     void reset() {
         _profile.calls = 0.0;

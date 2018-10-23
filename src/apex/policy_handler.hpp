@@ -59,7 +59,8 @@ private:
     std::list<std::shared_ptr<policy_instance> > send_policies;
     std::list<std::shared_ptr<policy_instance> > recv_policies;
     std::list<std::shared_ptr<policy_instance> > periodic_policies;
-    std::array<std::list<std::shared_ptr<policy_instance> >,APEX_MAX_EVENTS > custom_event_policies;
+    std::array<std::list<std::shared_ptr<policy_instance> >,APEX_MAX_EVENTS >
+        custom_event_policies;
     shared_mutex_type startup_mutex;
     shared_mutex_type shutdown_mutex;
     shared_mutex_type new_node_mutex;
@@ -90,7 +91,7 @@ public:
     ~policy_handler (void) { };
     void on_startup(startup_event_data &data);
     void on_dump(dump_event_data &data);
-    void on_reset(task_identifier * id) 
+    void on_reset(task_identifier * id)
         { APEX_UNUSED(id); };
     void on_shutdown(shutdown_event_data &data);
     void on_new_node(node_event_data &data);
@@ -100,7 +101,7 @@ public:
     void on_stop(std::shared_ptr<profiler> &p);
     void on_yield(std::shared_ptr<profiler> &p);
     bool on_resume(std::shared_ptr<task_wrapper> &tt_ptr);
-    void on_task_complete(std::shared_ptr<task_wrapper> &tt_ptr) { 
+    void on_task_complete(std::shared_ptr<task_wrapper> &tt_ptr) {
         APEX_UNUSED(tt_ptr);
     };
     void on_sample_value(sample_value_event_data &data);
@@ -108,7 +109,8 @@ public:
     void on_periodic(periodic_event_data &data);
     void on_send(message_event_data &data);
     void on_recv(message_event_data &data);
-    void set_node_id(int node_id, int node_count) { APEX_UNUSED(node_id); APEX_UNUSED(node_count); }
+    void set_node_id(int node_id, int node_count) { APEX_UNUSED(node_id);
+        APEX_UNUSED(node_count); }
 
     int register_policy(const apex_event_type & when,
                         std::function<int(apex_context const&)> f);

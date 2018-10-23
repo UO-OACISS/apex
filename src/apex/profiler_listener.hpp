@@ -23,6 +23,8 @@
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>
+#include <sstream>
+#include <string>
 
 #include "profile.hpp"
 #include "thread_instance.hpp"
@@ -37,6 +39,7 @@
 #endif
 #include "concurrentqueue/concurrentqueue.h"
 
+#include "apex_assert.hpp"
 #include "semaphore.hpp"
 #include "task_identifier.hpp"
 #include "task_dependency.hpp"
@@ -81,8 +84,10 @@ private:
   std::atomic<int> active_tasks;
   std::shared_ptr<profiler> main_timer; // not a shared pointer, yet...
   void write_one_timer(task_identifier &task_id, profile * p,
-                       std::stringstream &screen_output, std::stringstream &csv_output,
-                       double &total_accumulated, double &total_main, bool timer);
+                       std::stringstream &screen_output,
+                       std::stringstream &csv_output,
+                       double &total_accumulated,
+                       double &total_main, bool timer);
   void finalize_profiles(dump_event_data &data);
   void write_taskgraph(void);
   void write_profile(void);
@@ -95,12 +100,15 @@ private:
   unsigned int process_dependency(task_dependency* td);
   int node_id;
   std::mutex _mtx;
-  bool _common_start(std::shared_ptr<task_wrapper> &tt_ptr, bool is_resume); // internal, inline function
-  void _common_stop(std::shared_ptr<profiler> &p, bool is_yield); // internal, inline function
+  bool _common_start(std::shared_ptr<task_wrapper> &tt_ptr,
+    bool is_resume); // internal, inline function
+  void _common_stop(std::shared_ptr<profiler> &p,
+    bool is_yield); // internal, inline function
   void push_profiler(int my_tid, std::shared_ptr<profiler> &p);
   std::unordered_map<task_identifier, profile*> task_map;
   std::mutex _task_map_mutex;
-  std::unordered_map<task_identifier, std::unordered_map<task_identifier, int>* > task_dependencies;
+  std::unordered_map<task_identifier, std::unordered_map<task_identifier,
+    int>* > task_dependencies;
   /* an vector of profiler queues - so the consumer thread can access them */
   std::mutex queue_mtx;
   std::vector<profiler_queue_t*> allqueues;
@@ -129,9 +137,11 @@ private:
   std::stringstream task_scatterplot_samples;
 public:
   void set_node_id(int node_id, int node_count) { this->node_id = node_id; }
-  profiler_listener (void) : _initialized(false), _done(false), node_id(0), task_map()
+  profiler_listener (void) : _initialized(false), _done(false),
+                             node_id(0), task_map()
 #if APEX_HAVE_PAPI
-                             , num_papi_counters(0), event_sets(8), metric_names(0)
+                             , num_papi_counters(0), event_sets(8),
+                             metric_names(0)
 #endif
   {
 #if APEX_HAVE_PAPI
@@ -154,27 +164,29 @@ public:
             if (seconds > 10) {
                 /* create the file */
                 std::ofstream tmp;
-				tmp.open(ss.str());
-        		tmp << "#timestamp value   name" << std::endl << std::flush;
-				/* yes, close the file because we will use some
-				   low-level calls to have concurrent access
+                tmp.open(ss.str());
+                tmp << "#timestamp value   name" << std::endl << std::flush;
+                /* yes, close the file because we will use some
+                   low-level calls to have concurrent access
                    across processes/threads. */
-				tmp.close();
+                tmp.close();
             }
-		} else {
+        } else {
             /* create the file */
             std::ofstream tmp;
-			tmp.open(ss.str());
-        	tmp << "#timestamp value   name" << std::endl << std::flush;
-			/* yes, close the file because we will use some
-			low-level calls to have concurrent access
+            tmp.open(ss.str());
+            tmp << "#timestamp value   name" << std::endl << std::flush;
+            /* yes, close the file because we will use some
+            low-level calls to have concurrent access
             across processes/threads. */
-			tmp.close();
+            tmp.close();
         }
-		// open the file
-		task_scatterplot_sample_file = open(ss.str().c_str(), O_APPEND | O_WRONLY );
-        if (task_scatterplot_sample_file < 0) { perror("opening scatterplot sample file"); }
-		assert(task_scatterplot_sample_file >= 0);
+        // open the file
+        task_scatterplot_sample_file = open(ss.str().c_str(), O_APPEND | O_WRONLY );
+        if (task_scatterplot_sample_file < 0) {
+            perror("opening scatterplot sample file");
+        }
+        APEX_ASSERT(task_scatterplot_sample_file >= 0);
         profiler::get_global_start();
       }
   };
@@ -209,7 +221,9 @@ public:
   void process_profiles(void);
   static void process_profiles_wrapper(void);
   static void consumer_process_profiles_wrapper(void);
-  void public_process_profile(std::shared_ptr<profiler> &p) { process_profile(p,0); };
+  void public_process_profile(std::shared_ptr<profiler> &p) {
+    process_profile(p,0);
+  };
   bool concurrent_cleanup(int i);
 #if APEX_HAVE_PAPI
   std::vector<std::string>& get_metric_names(void) { return metric_names; };

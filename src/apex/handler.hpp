@@ -87,20 +87,20 @@ protected:
 #endif
   }
 public:
-  handler() : 
-      _period(default_period), 
+  handler() :
+      _period(default_period),
       _timer_thread(nullptr),
-      _handler_initialized(false), 
+      _handler_initialized(false),
       _terminate(false)
     { }
-  handler(unsigned int period) : 
+  handler(unsigned int period) :
       _period(period),
       _timer_thread(nullptr),
       _handler_initialized(false),
       _terminate(false)
     { }
   void cancel(void) {
-      _terminate = true; 
+      _terminate = true;
       if(_timer_thread != nullptr) {
 #if defined(_MSC_VER) || defined(__APPLE__)
         cv.notify_all();

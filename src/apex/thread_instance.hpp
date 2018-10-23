@@ -13,6 +13,9 @@
 #include <memory>
 #include <map>
 #include <vector>
+#include <iostream>
+#include <sstream>
+#include <string>
 #include "profiler.hpp"
 #include "task_wrapper.hpp"
 #include <exception>
@@ -60,7 +63,11 @@ private:
   // thread specific data
   static APEX_NATIVE_TLS thread_instance * _instance;
   // constructor
-  thread_instance (bool is_worker) : _id(-1), _id_reversed(UINTMAX_MAX), _runtime_id(-1), _top_level_timer_name(), _is_worker(is_worker), _task_count(0) { _instance = nullptr; };
+  thread_instance (bool is_worker) :
+        _id(-1), _id_reversed(UINTMAX_MAX), _runtime_id(-1),
+        _top_level_timer_name(), _is_worker(is_worker), _task_count(0) {
+            _instance = nullptr;
+  };
   // map from function address to name - unique to all threads to avoid locking
   std::map<apex_function_address, std::string> _function_map;
   std::vector<profiler*> current_profilers;
@@ -87,7 +94,8 @@ public:
   static profiler * restore_children_profilers(std::shared_ptr<task_wrapper> &tt_ptr);
   static void set_current_profiler(profiler * the_profiler);
   static profiler * get_current_profiler(void);
-  static void clear_current_profiler(profiler * the_profiler, bool save_children, std::shared_ptr<task_wrapper> &tt_ptr);
+  static void clear_current_profiler(profiler * the_profiler,
+        bool save_children, std::shared_ptr<task_wrapper> &tt_ptr);
   static const char * program_path(void);
   static bool is_worker() { return instance()._is_worker; }
   static uint64_t get_guid() { return instance()._get_guid(); }
@@ -102,7 +110,7 @@ public:
       open_profilers.insert(ss.str());
   }
   static void remove_open_profiler(int id, profiler *p) {
-      if (p == NULL) return;
+      if (p == nullptr) return;
       std::unique_lock<std::mutex> l(_open_profiler_mutex);
       std::stringstream ss;
       ss << p->get_task_id()->get_name();
@@ -111,7 +119,8 @@ public:
       if (tmp != open_profilers.end()) {
         open_profilers.erase(ss.str());
       } else {
-        std::cout << id << ": Warning! Can't find open profiler: " << ss.str() << std::endl;fflush(stdout);
+        std::cout << id << ": Warning! Can't find open profiler: "
+            << ss.str() << std::endl;fflush(stdout);
       }
   }
   static std::unordered_set<std::string>& get_open_profilers(void) {

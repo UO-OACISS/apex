@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <mutex>
 #include <utility>
+#include <cstddef>
 
 namespace apex {
 
@@ -53,7 +54,7 @@ public:
   // updated by another thread. Therefore, leave it unresolved, no one will
   // ask for the resolved name until program exit, or in policies.
   task_identifier(const task_identifier& rhs) :
-      address(rhs.address), name(rhs.name), 
+      address(rhs.address), name(rhs.name),
       _resolved_name(""), has_name(rhs.has_name) { };
 
   static task_identifier * get_task_id (apex_function_address a);

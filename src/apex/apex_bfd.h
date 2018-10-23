@@ -1,4 +1,4 @@
-//  Copyright (c) 2014 University of Oregon
+//  Copyright (c) 2014-2018 University of Oregon
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -42,7 +42,7 @@ struct ApexBfdAddrMap
         // Safely copy the name string and always
         // end with a NUL char.
         int end = 1;
-        if(_name != NULL) {
+        if(_name != nullptr) {
             strncpy(name, _name, sizeof(name));
             end = sizeof(name);
         }
@@ -58,11 +58,12 @@ struct ApexBfdAddrMap
 struct ApexBfdInfo
 {
     ApexBfdInfo() :
-        probeAddr(0), filename(NULL), funcname(NULL), demangled(NULL),
+        probeAddr(0), filename(nullptr), funcname(nullptr), demangled(nullptr),
                 lineno(-1), discriminator(0)
     { }
     ~ApexBfdInfo() {
-        if (funcname != NULL && demangled != funcname) free(const_cast<char*>(demangled));
+        if (funcname != nullptr && demangled != funcname)
+            free(const_cast<char*>(demangled));
     }
 
     // Makes all fields safe to query

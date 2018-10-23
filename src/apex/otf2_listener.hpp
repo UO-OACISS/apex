@@ -37,80 +37,82 @@ namespace apex {
         /* The global offset is referenced from the get_time static function,
          * so it needs to be static itself. */
         static uint64_t globalOffset;
-        /* All OTF2 callback functions have to be declared static, so that they 
+        /* All OTF2 callback functions have to be declared static, so that they
          * can be registered with the OTF2 library */
         static OTF2_TimeStamp get_time( void ) {
             using namespace std::chrono;
-            uint64_t stamp = duration_cast<nanoseconds>(system_clock::now().time_since_epoch()).count();
+            uint64_t stamp =
+                duration_cast<nanoseconds>(
+                system_clock::now().time_since_epoch()).count();
             stamp = stamp - globalOffset;
             return stamp;
         }
-        static OTF2_FlushType pre_flush( void* userData, 
-                                         OTF2_FileType fileType, 
-                                         OTF2_LocationRef location, 
-                                         void* callerData, bool final ) 
+        static OTF2_FlushType pre_flush( void* userData,
+                                         OTF2_FileType fileType,
+                                         OTF2_LocationRef location,
+                                         void* callerData, bool final )
         { return OTF2_FLUSH; }
-        static OTF2_TimeStamp post_flush( void* userData, 
-                                          OTF2_FileType fileType, 
-                                          OTF2_LocationRef location ) 
+        static OTF2_TimeStamp post_flush( void* userData,
+                                          OTF2_FileType fileType,
+                                          OTF2_LocationRef location )
         { return get_time(); }
 
-        static OTF2_CallbackCode my_OTF2GetSize(void *userData, 
-            OTF2_CollectiveContext *commContext, 
+        static OTF2_CallbackCode my_OTF2GetSize(void *userData,
+            OTF2_CollectiveContext *commContext,
             uint32_t *size);
         static OTF2_CallbackCode my_OTF2GetRank (void *userData,
-            OTF2_CollectiveContext *commContext, 
+            OTF2_CollectiveContext *commContext,
             uint32_t *rank);
         static OTF2_CallbackCode my_OTF2CreateLocalComm (void *userData,
-            OTF2_CollectiveContext **localCommContext, 
-            OTF2_CollectiveContext *globalCommContext, 
-            uint32_t globalRank, 
-            uint32_t globalSize, 
-            uint32_t localRank, 
-            uint32_t localSize, 
-            uint32_t fileNumber, 
+            OTF2_CollectiveContext **localCommContext,
+            OTF2_CollectiveContext *globalCommContext,
+            uint32_t globalRank,
+            uint32_t globalSize,
+            uint32_t localRank,
+            uint32_t localSize,
+            uint32_t fileNumber,
             uint32_t numberOfFiles);
         static OTF2_CallbackCode my_OTF2FreeLocalComm (void *userData,
             OTF2_CollectiveContext *localCommContext);
         static OTF2_CallbackCode my_OTF2Barrier (void *userData,
             OTF2_CollectiveContext *commContext);
         static OTF2_CallbackCode my_OTF2Bcast (void *userData,
-            OTF2_CollectiveContext *commContext, 
-            void *data, 
+            OTF2_CollectiveContext *commContext,
+            void *data,
             uint32_t numberElements,
-            OTF2_Type type, 
+            OTF2_Type type,
             uint32_t root);
-        static OTF2_CallbackCode my_OTF2Gather (void *userData, 
-            OTF2_CollectiveContext *commContext, 
-            const void *inData, 
+        static OTF2_CallbackCode my_OTF2Gather (void *userData,
+            OTF2_CollectiveContext *commContext,
+            const void *inData,
             void *outData,
-            uint32_t numberElements, 
-            OTF2_Type type, 
+            uint32_t numberElements,
+            OTF2_Type type,
             uint32_t root);
-        static OTF2_CallbackCode my_OTF2Gatherv (void *userData, 
-            OTF2_CollectiveContext *commContext, 
-            const void *inData, 
-            uint32_t inElements, 
-            void *outData, 
-            const uint32_t *outElements, 
+        static OTF2_CallbackCode my_OTF2Gatherv (void *userData,
+            OTF2_CollectiveContext *commContext,
+            const void *inData,
+            uint32_t inElements,
+            void *outData,
+            const uint32_t *outElements,
             OTF2_Type type, uint32_t root);
-        static OTF2_CallbackCode my_OTF2Scatter (void *userData, 
-            OTF2_CollectiveContext *commContext, 
-            const void *inData, 
-            void *outData, 
-            uint32_t numberElements, 
-            OTF2_Type type, 
+        static OTF2_CallbackCode my_OTF2Scatter (void *userData,
+            OTF2_CollectiveContext *commContext,
+            const void *inData,
+            void *outData,
+            uint32_t numberElements,
+            OTF2_Type type,
             uint32_t root);
-        static OTF2_CallbackCode my_OTF2Scatterv (void *userData, 
-            OTF2_CollectiveContext *commContext, 
-            const void *inData, 
-            const uint32_t *inElements, 
-            void *outData, 
-            uint32_t outElements, 
-            OTF2_Type type, 
+        static OTF2_CallbackCode my_OTF2Scatterv (void *userData,
+            OTF2_CollectiveContext *commContext,
+            const void *inData,
+            const uint32_t *inElements,
+            void *outData,
+            uint32_t outElements,
+            OTF2_Type type,
             uint32_t root);
-        static void my_OTF2Release (void *userData, 
-            OTF2_CollectiveContext *globalCommContext, 
+        static void my_OTF2Release (void *userData,
+            OTF2_CollectiveContext *globalCommContext,
             OTF2_CollectiveContext *localCommContext);
         static OTF2_CollectiveCallbacks * get_collective_callbacks (void);
         static OTF2_FlushCallbacks flush_callbacks;
@@ -138,7 +140,8 @@ namespace apex {
         void write_otf2_regions(void);
         std::string write_my_regions(void);
         int reduce_regions(void);
-        void write_region_map(std::map<std::string,uint64_t>& reduced_region_map);
+        void write_region_map(std::map<std::string,uint64_t>&
+            reduced_region_map);
         void write_otf2_metrics(void);
         std::string write_my_metrics(void);
         void reduce_metrics(void);
@@ -159,21 +162,25 @@ namespace apex {
         std::map<int,int> rank_metric_map;
         std::map<std::string,uint64_t> reduced_region_map;
         std::map<std::string,uint64_t> reduced_metric_map;
-        std::unique_ptr<std::tuple<std::map<int,int>, std::map<int,std::string> > > reduce_node_properties(std::string&& str);
+        std::unique_ptr<std::tuple<std::map<int,int>,
+            std::map<int,std::string> > >
+            reduce_node_properties(std::string&& str);
 #if APEX_HAVE_PAPI
-        void write_papi_counters(OTF2_EvtWriter* writer, profiler* prof, uint64_t stamp);
+        void write_papi_counters(OTF2_EvtWriter* writer, profiler* prof,
+            uint64_t stamp);
 #endif
     public:
         otf2_listener (void);
-        //~otf2_listener (void) { shutdown_event_data data(my_saved_node_id,0); on_shutdown(data); };
+        //~otf2_listener (void) { shutdown_event_data data(my_saved_node_id,0);
+        //on_shutdown(data); };
         ~otf2_listener (void) { finalize(); };
-        void set_node_id(int node_id, int node_count) { 
+        void set_node_id(int node_id, int node_count) {
             this->my_saved_node_id = node_id;
-            this->my_saved_node_count = node_count; 
+            this->my_saved_node_count = node_count;
         }
         void on_startup(startup_event_data &data);
         void on_dump(dump_event_data &data);
-        void on_reset(task_identifier * id) 
+        void on_reset(task_identifier * id)
             { APEX_UNUSED(id); };
         void on_shutdown(shutdown_event_data &data);
         void on_new_node(node_event_data &data);
@@ -184,8 +191,8 @@ namespace apex {
         void on_yield(std::shared_ptr<profiler> &p);
         bool on_resume(std::shared_ptr<task_wrapper> &tt_ptr);
         void on_sample_value(sample_value_event_data &data);
-        void on_task_complete(std::shared_ptr<task_wrapper> &tt_ptr) { 
-            APEX_UNUSED(tt_ptr); 
+        void on_task_complete(std::shared_ptr<task_wrapper> &tt_ptr) {
+            APEX_UNUSED(tt_ptr);
         };
         void on_periodic(periodic_event_data &data)
             { APEX_UNUSED(data); };

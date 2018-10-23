@@ -22,12 +22,17 @@
 #include <dirent.h>
 #endif
 #include <sys/stat.h>
-#include <cassert>
+#include "apex_assert.hpp"
+#include <atomic>
+#include <iostream>
+#include <string>
+#include <vector>
 
 namespace apex {
 
 /* Idea borrowed from:
- * http://stackoverflow.com/questions/931827/stdstring-comparison-check-whether-string-begins-with-another-string */
+ * http://stackoverflow.com/questions/931827/
+    stdstring-comparison-check-whether-string-begins-with-another-string */
 bool starts_with(const std::string& input, const std::string& match)
 {
         return input.size() >= match.size()
@@ -37,7 +42,8 @@ bool starts_with(const std::string& input, const std::string& match)
 /* Idea borrowed from:
  * http://stackoverflow.com/questions/236129/split-a-string-in-c
  */
-std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems) {
+std::vector<std::string> &split(const std::string &s, char delim,
+    std::vector<std::string> &elems) {
     std::stringstream ss(s);
     std::string item;
     while (std::getline(ss, item, delim)) {
@@ -54,10 +60,10 @@ std::string demangle(const std::string& timer_name) {
 #if defined(__GNUC__)
     int     status;
     char *realname = abi::__cxa_demangle(timer_name.c_str(), 0, 0, &status);
-    if (status == 0 && realname != NULL) {
+    if (status == 0 && realname != nullptr) {
     /*
         char* index = strstr(realname, "<");
-        if (index != NULL) {
+        if (index != nullptr) {
             *index = 0; // terminate before templates for brevity
         }
     */
@@ -70,13 +76,17 @@ std::string demangle(const std::string& timer_name) {
                 printf("The demangling operation succeeded, but realname is NULL\n");
                 break;
             case -1:
-                printf("The demangling operation failed: A memory allocation failiure occurred.\n");
+                printf("The demangling operation failed:");
+                printf(" A memory allocation failiure occurred.\n");
                 break;
             case -2:
-                printf("The demangling operation failed: '%s' is not a valid name under the C++ ABI mangling rules.\n", timer_name.c_str());
+                printf("The demangling operation failed:");
+                printf(" '%s' is not a valid name under the C++ ABI");
+                printf(" mangling rules.\n", timer_name.c_str());
                 break;
             case -3:
-                printf("The demangling operation failed: One of the arguments is invalid.\n");
+                printf("The demangling operation failed: One of the");
+                printf(" arguments is invalid.\n");
                 break;
             default:
                 printf("The demangling operation failed: Unknown error.\n");
@@ -160,24 +170,24 @@ void set_thread_affinity(void) {
 
 void remove_path(const char *pathname) {
 #if !defined(_MSC_VER)
-    struct dirent *entry = NULL;
-    DIR *dir = NULL;
+    struct dirent *entry = nullptr;
+    DIR *dir = nullptr;
     struct stat sb;
     if (stat(pathname, &sb) == 0 && S_ISDIR(sb.st_mode)) {
         dir = opendir(pathname);
-        while((entry = readdir(dir)) != NULL) {
-            DIR *sub_dir = NULL;
-            FILE *file = NULL;
+        while((entry = readdir(dir)) != nullptr) {
+            DIR *sub_dir = nullptr;
+            FILE *file = nullptr;
             std::stringstream abs_path;
             if(*(entry->d_name) != '.') {
                 abs_path << pathname << "/" <<  entry->d_name;
                 sub_dir = opendir(abs_path.str().c_str());
-                if(sub_dir != NULL) {
+                if(sub_dir != nullptr) {
                     closedir(sub_dir);
                     remove_path(abs_path.str().c_str());
                 } else {
                     file = fopen(abs_path.str().c_str(), "r");
-                    if(file != NULL) {
+                    if(file != nullptr) {
                         fclose(file);
                         //printf("Removing: %s\n", abs_path);
                         remove(abs_path.str().c_str());
@@ -226,11 +236,11 @@ std::atomic<uint64_t> reference_counter::double_stops(0L);
 std::atomic<uint64_t> reference_counter::exit_stops(0L);
 std::atomic<uint64_t> reference_counter::apex_internal_stops(0L);
 std::atomic<uint64_t> reference_counter::stops_after_finalize(0L);
- 
+
 void reference_counter::report_stats(void) {
     unsigned int ins = starts + resumes;
-    unsigned int all_ins = 
-        starts + 
+    unsigned int all_ins =
+        starts +
         resumes +
         disabled_starts +
         disabled_resumes +
@@ -401,7 +411,7 @@ void reference_counter::report_stats(void) {
 */
     }
     std::cout << ss.str(); // flush it!
-    //assert(ins == outs);
+    //APEX_ASSERT(ins == outs);
 }
 
 /* This function reverses the bits of a 32 bit unsigned integer. */

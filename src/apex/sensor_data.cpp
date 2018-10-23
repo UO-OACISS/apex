@@ -1,3 +1,8 @@
+//  Copyright (c) 2014-2018 University of Oregon
+//
+//  Distributed under the Boost Software License, Version 1.0. (See accompanying
+//  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
 #include "sensor_data.hpp"
 #include <sensors/sensors.h>
 #include <string>
@@ -35,7 +40,7 @@ const char * feature_name[] = {
 const char * feature_units[] = {
     "", //      = 0x00,
     "RPM", //     = 0x01,
-    "°C", //        = 0x02,
+    "degrees C", //        = 0x02,
     "W", //       = 0x03,
     "J", //      = 0x04,
     "AMP", //        = 0x05,
@@ -61,13 +66,13 @@ static const char *sprintf_chip_name(const sensors_chip_name *name)
     static char buf[BUF_SIZE];
 
     if (sensors_snprintf_chip_name(buf, BUF_SIZE, name) < 0)
-        return NULL;
+        return nullptr;
     return buf;
 }
 
 sensor_data::sensor_data()
 {
-   sensors_init(NULL);
+   sensors_init(nullptr);
 }
 
 sensor_data::~sensor_data()

@@ -1,5 +1,7 @@
-//  Copyright (c) 2014 University of Oregon
+//  Copyright (c) 2014-2018 University of Oregon
 //
+//  Distributed under the Boost Software License, Version 1.0. (See accompanying
+//  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 /* This is annoying and confusing.  We have to set a define so that the
  * HPX config file will be included, which will define APEX_HAVE_HPX
@@ -15,6 +17,8 @@
 #include <stdlib.h>
 #include <iostream>
 #include <fstream>
+#include <string>
+#include <vector>
 #include "utils.hpp"
 
 namespace apex
@@ -43,12 +47,12 @@ namespace apex
             }
         }
 
-        char* option = NULL;
+        char* option = nullptr;
 // getenv is not thread-safe, but the constructor for this static singleton is.
 #define apex_macro(name, member_variable, type, default_value) \
     _##member_variable = default_value; \
     option = getenv(#name); \
-    if (option != NULL) { \
+    if (option != nullptr) { \
         _##member_variable = (type)(atoi(option)); \
     }
     FOREACH_APEX_OPTION(apex_macro)
@@ -56,7 +60,7 @@ namespace apex
 
 #define apex_macro(name, member_variable, type, default_value) \
     option = getenv(#name); \
-    if (option == NULL) { \
+    if (option == nullptr) { \
         _##member_variable = strdup(default_value); \
     } else { \
         _##member_variable = strdup(option); \
@@ -67,7 +71,7 @@ namespace apex
 #define apex_macro(name, member_variable, type, default_value) \
     type _##member_variable; /* declare the local variable */ \
     option = getenv(#name); \
-    if (option == NULL) { \
+    if (option == nullptr) { \
         _##member_variable = strdup(default_value); \
     } else { \
         _##member_variable = strdup(option); \
@@ -112,8 +116,10 @@ namespace apex
     }
 
 #define apex_macro(name, member_variable, type, default_value) \
-    void apex_options::member_variable (type inval) { instance()._##member_variable = inval; } \
-    type apex_options::member_variable (void) { return instance()._##member_variable; }
+    void apex_options::member_variable (type inval) { \
+    instance()._##member_variable = inval; } \
+    type apex_options::member_variable (void) { \
+    return instance()._##member_variable; }
     FOREACH_APEX_OPTION(apex_macro)
     FOREACH_APEX_STRING_OPTION(apex_macro)
 #undef apex_macro
@@ -139,8 +145,10 @@ using namespace apex;
 extern "C" {
 
 #define apex_macro(name, member_variable, type, default_value) \
-    void apex_set_##member_variable (type inval) { apex_options::member_variable(inval); } \
-    type apex_get_##member_variable (void) { return apex_options::member_variable(); }
+    void apex_set_##member_variable (type inval) { \
+    apex_options::member_variable(inval); } \
+    type apex_get_##member_variable (void) { \
+    return apex_options::member_variable(); }
     FOREACH_APEX_OPTION(apex_macro)
 #undef apex_macro
 

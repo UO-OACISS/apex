@@ -7,6 +7,13 @@
 #include "apex.hpp"
 #include "thread_instance.hpp"
 #include <iostream>
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+#include "apex_assert.hpp"
 
 #include <stdio.h>
 
@@ -29,8 +36,6 @@
 #if defined(__APPLE__)
 #include <dlfcn.h>
 #endif
-
-#include <assert.h>
 
 using namespace std;
 
@@ -65,7 +70,8 @@ std::unordered_set<std::string> thread_instance::open_profilers;
 
 // Global static unordered map of parent GUIDs to child GUIDs
 // to handle "overlapping timer" problem.
-std::unordered_map<uint64_t, std::vector<profiler*>* > thread_instance::children_to_resume;
+std::unordered_map<uint64_t, std::vector<profiler*>* >
+    thread_instance::children_to_resume;
 
 thread_instance& thread_instance::instance(bool is_worker) {
   if( _instance == nullptr ) {
@@ -76,7 +82,8 @@ thread_instance& thread_instance::instance(bool is_worker) {
         _instance->_id = _num_threads++;
       /* reverse the TID and shift it 32 bits, so we can use it to generate
          task-private GUIDS that are unique within the process space. */
-        _instance->_id_reversed = ((uint64_t)(simple_reverse((uint32_t)_instance->_id))) << 32;
+        _instance->_id_reversed =
+            ((uint64_t)(simple_reverse((uint32_t)_instance->_id))) << 32;
     }
     _instance->_runtime_id = _instance->_id; // can be set later, if necessary
     _active_threads++;
@@ -156,21 +163,21 @@ const char* thread_instance::program_path(void) {
 
 #if defined(_WIN32) || defined(_WIN64)
 
-    if (_program_path == NULL) {
+    if (_program_path == nullptr) {
         char path[MAX_PATH + 1] = { '\0' };
-        if (!GetModuleFileName(NULL, path, sizeof(path)))
-            return NULL;
+        if (!GetModuleFileName(nullptr, path, sizeof(path)))
+            return nullptr;
         _program_path = new string(path);
     }
     return _program_path->c_str();
 
 #elif defined(__linux) || defined(linux) || defined(__linux__)
 
-    if (_program_path == NULL) {
+    if (_program_path == nullptr) {
         char path[PATH_MAX];
         memset(path,0,PATH_MAX);
         if (readlink("/proc/self/exe", path, PATH_MAX) == -1) {
-            return NULL;
+            return nullptr;
         }
         _program_path = new string(path);
     }
@@ -178,12 +185,12 @@ const char* thread_instance::program_path(void) {
 
 #elif defined(__APPLE__)
 
-    if (_program_path == NULL) {
+    if (_program_path == nullptr) {
         char path[PATH_MAX + 1];
         std::uint32_t len = sizeof(path) / sizeof(path[0]);
 
         if (0 != _NSGetExecutablePath(path, &len))
-            return NULL;
+            return nullptr;
 
         path[len] = '\0';
         _program_path = new string(path);
@@ -192,15 +199,15 @@ const char* thread_instance::program_path(void) {
 
 #elif defined(__FreeBSD__)
 
-    if (_program_path == NULL) {
+    if (_program_path == nullptr) {
         int mib[] = { CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1 };
         size_t cb = 0;
-        sysctl(mib, 4, NULL, &cb, NULL, 0);
+        sysctl(mib, 4, nullptr, &cb, nullptr, 0);
         if (!cb)
-            return NULL;
+            return nullptr;
 
         std::vector<char> buf(cb);
-        sysctl(mib, 4, &buf[0], &cb, NULL, 0);
+        sysctl(mib, 4, &buf[0], &cb, nullptr, 0);
         _program_path = new string(&buf[0]);
     }
     return _program_path->c_str();
@@ -208,7 +215,7 @@ const char* thread_instance::program_path(void) {
 #else
 #  error Unsupported platform
 #endif
-    return NULL;
+    return nullptr;
 }
 
 string thread_instance::map_addr_to_name(apex_function_address function_address) {
@@ -247,10 +254,11 @@ string thread_instance::map_addr_to_name(apex_function_address function_address)
 #endif
     stringstream ss;
     const char * progname = program_path();
-    if (progname == NULL) {
+    if (progname == nullptr) {
         ss << "UNRESOLVED  ADDR 0x" << hex << function_address;
     } else {
-        ss << "UNRESOLVED " << string(progname) << " ADDR " << hex << function_address;
+        ss << "UNRESOLVED " << string(progname) << " ADDR "
+            << hex << function_address;
     }
     string name = string(ss.str());
     {
@@ -265,14 +273,15 @@ void thread_instance::set_current_profiler(profiler * the_profiler) {
     instance().current_profilers.push_back(the_profiler);
 }
 
-profiler * thread_instance::restore_children_profilers(std::shared_ptr<task_wrapper> &tt_ptr) {
+profiler * thread_instance::restore_children_profilers(
+    std::shared_ptr<task_wrapper> &tt_ptr) {
     profiler * parent = instance().get_current_profiler();
     // if there are no children to restore, return.
     if (tt_ptr == nullptr || tt_ptr->data_ptr.size() == 0) {return parent;}
     // Get the vector of children that we stored
     std::vector<profiler*> * myvec = &tt_ptr->data_ptr;
     // iterate over the children, in reverse order.
-    for (std::vector<profiler*>::reverse_iterator myprof = myvec->rbegin(); 
+    for (std::vector<profiler*>::reverse_iterator myprof = myvec->rbegin();
          myprof != myvec->rend(); ++myprof) {
         resume((*myprof));
         // make sure to set the current profiler - the profiler_listener
@@ -286,15 +295,16 @@ profiler * thread_instance::restore_children_profilers(std::shared_ptr<task_wrap
     return parent;
 }
 
-void thread_instance::clear_current_profiler(profiler * the_profiler, bool save_children, std::shared_ptr<task_wrapper> &tt_ptr) {
+void thread_instance::clear_current_profiler(profiler * the_profiler,
+    bool save_children, std::shared_ptr<task_wrapper> &tt_ptr) {
     // this is a stack variable that provides safety when using recursion.
     static APEX_NATIVE_TLS bool fixing_stack = false;
     // this is a serious problem...
-    if (instance().current_profilers.empty()) { 
+    if (instance().current_profilers.empty()) {
         // unless...we happen to be exiting.  Bets are off.
         if (apex_options::suspend() == true) { return; }
         std::cerr << "Warning! empty profiler stack!!!\n";
-        assert(false);
+        APEX_ASSERT(false);
         // redundant, but assert gets bypassed in a debug build.
         abort();
     }
@@ -313,7 +323,7 @@ void thread_instance::clear_current_profiler(profiler * the_profiler, bool save_
         // if the data pointer location isn't available, we can't support this runtime.
         // create a vector to store the children
         if (save_children == true) {
-            assert(tt_ptr != nullptr);
+            APEX_ASSERT(tt_ptr != nullptr);
         }
         while (tmp != the_profiler) {
             if (save_children == true) {
@@ -331,11 +341,11 @@ void thread_instance::clear_current_profiler(profiler * the_profiler, bool save_
             // pop the original child, we've saved it in the vector
             the_stack.pop_back();
             // this is a serious problem...
-            if (the_stack.empty()) { 
+            if (the_stack.empty()) {
                 // unless...we happen to be exiting.  Bets are off.
                 if (apex_options::suspend() == true) { return; }
                 std::cerr << "Warning! empty profiler stack!\n";
-                assert(false);
+                APEX_ASSERT(false);
                 abort();
                 return;
             }

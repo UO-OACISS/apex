@@ -1,4 +1,7 @@
-//  Copyright (c) 2014 University of Oregon
+//  Copyright (c) 2014-2018 University of Oregon
+//
+//  Distributed under the Boost Software License, Version 1.0. (See accompanying
+//  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
 /* This is annoying and confusing.  We have to set a define so that the
@@ -18,6 +21,10 @@
 #include <utility>
 #include <memory>
 #include <algorithm>
+#include <atomic>
+#include <set>
+#include <sstream>
+#include <vector>
 #if APEX_USE_PLUGINS
 #include <dlfcn.h>
 #endif
@@ -27,6 +34,7 @@
 #include "policy_handler.hpp"
 #include "thread_instance.hpp"
 #include "utils.hpp"
+#include "apex_assert.hpp"
 
 #include "tau_listener.hpp"
 #include "profiler_listener.hpp"
@@ -50,7 +58,7 @@
 
 #ifdef APEX_HAVE_HPX
 #include <boost/assign.hpp>
-#include <boost/cstdint.hpp>
+#include <cstdint.hpp>
 #include <hpx/include/performance_counters.hpp>
 #include <hpx/include/actions.hpp>
 #include <hpx/include/util.hpp>
@@ -61,8 +69,10 @@ static void apex_schedule_shutdown(void);
 #endif // APEX_HAVE_HPX
 
 #if APEX_DEBUG
-#define FUNCTION_ENTER printf("enter %lu *** %s:%d!\n", thread_instance::get_id(), __func__, __LINE__); fflush(stdout);
-#define FUNCTION_EXIT  printf("exit  %lu *** %s:%d!\n", thread_instance::get_id(), __func__, __LINE__); fflush(stdout);
+#define FUNCTION_ENTER printf("enter %lu *** %s:%d!\n", \
+thread_instance::get_id(), __func__, __LINE__); fflush(stdout);
+#define FUNCTION_EXIT  printf("exit  %lu *** %s:%d!\n", \
+thread_instance::get_id(), __func__, __LINE__); fflush(stdout);
 #else
 #define FUNCTION_ENTER
 #define FUNCTION_EXIT
@@ -131,7 +141,8 @@ static void init_hpx_runtime_ptr(void) {
         instance->set_hpx_runtime(runtime);
 /*
         std::stringstream ss;
-        ss << "/threads{locality#" << instance->get_node_id() << "/total}/count/cumulative";
+        ss << "/threads{locality#" << instance->get_node_id() <<
+            "/total}/count/cumulative";
         instance->setup_runtime_counter(ss.str());
 */
     }
@@ -258,7 +269,9 @@ void apex::_initialize()
         if (apex_options::use_concurrency() > 0)
 #endif
         {
-            listeners.push_back(new concurrency_handler(apex_options::concurrency_period(), apex_options::use_concurrency()));
+            listeners.push_back(new
+                concurrency_handler(apex_options::concurrency_period(),
+            apex_options::use_concurrency()));
         }
         startup_throttling();
 /* For the Jupyter support, always enable the policy listener. */
@@ -343,33 +356,35 @@ hpx::runtime * apex::get_hpx_runtime(void) {
 }
 #endif
 
-uint64_t init(const char * thread_name, uint64_t comm_rank, uint64_t comm_size) {
+uint64_t init(const char * thread_name, uint64_t comm_rank,
+    uint64_t comm_size) {
     FUNCTION_ENTER
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { FUNCTION_EXIT; return APEX_ERROR; }
     // protect against multiple initializations
 #ifdef APEX_WITH_JUPYTER_SUPPORT
-    if (_registered || _initialized) { 
+    if (_registered || _initialized) {
         // reset all counters, and return.
         reset(APEX_NULL_FUNCTION_ADDRESS);
-        
         FUNCTION_EXIT
-        return APEX_NOERROR; 
+        return APEX_NOERROR;
     }
 #else
-    if (_registered || _initialized) { 
+    if (_registered || _initialized) {
         /* check to see if APEX was initialized by OMPT before MPI had a chance
          * to pass in any values */
         if ((comm_rank < comm_size) && (comm_size > 1)) { // simple validation
-            apex* instance = apex::instance(); // get/create the Apex static instance
+            // get/create the Apex static instance
+            apex* instance = apex::instance();
             instance->set_node_id(comm_rank);
             instance->set_num_ranks(comm_size);
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-                instance->listeners[i]->set_node_id((int)comm_rank, (int)comm_size);
+                instance->listeners[i]->set_node_id((int)comm_rank,
+                    (int)comm_size);
             }
         }
         FUNCTION_EXIT
-        return APEX_ERROR; 
+        return APEX_ERROR;
     }
 #endif
     _registered = true;
@@ -409,7 +424,8 @@ uint64_t init(const char * thread_name, uint64_t comm_rank, uint64_t comm_size) 
       std::cout << version() << std::endl;
       apex_options::print_options();
     }
-    if (apex_options::throttle_energy() && apex_options::throttle_concurrency() ) {
+    if (apex_options::throttle_energy() &&
+        apex_options::throttle_concurrency() ) {
       setup_power_cap_throttling();
     }
     // this code should be absorbed from "new node" event to "on_startup" event.
@@ -428,14 +444,16 @@ uint64_t init(const char * thread_name, uint64_t comm_rank, uint64_t comm_size) 
 
 string& version() {
     // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { static string tmp("disabled"); return tmp; }
+    if (apex_options::disable() == true) {
+        static string tmp("disabled"); return tmp;
+    }
     apex* instance = apex::instance(); // get the Apex static instance
     return instance->version_string;
 }
 
 /* Populate the new task_wrapper object, and notify listeners. */
 inline std::shared_ptr<task_wrapper> _new_task(
-    task_identifier * id, 
+    task_identifier * id,
     const uint64_t task_id,
     const std::shared_ptr<task_wrapper> &parent_task, apex* instance) {
     std::shared_ptr<task_wrapper> tt_ptr = make_shared<task_wrapper>();
@@ -473,15 +491,17 @@ inline std::shared_ptr<task_wrapper> _new_task(
 profiler* start(const std::string &timer_name)
 {
     // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { 
+    if (apex_options::disable() == true) {
         APEX_UTIL_REF_COUNT_DISABLED_START
-        return nullptr; 
+        return nullptr;
     }
-    //printf("%lu: %s\n", thread_instance::get_id(), timer_name.c_str()); fflush(stdout);
+    //printf("%lu: %s\n", thread_instance::get_id(), timer_name.c_str());
+    //fflush(stdout);
     static const std::string apex_internal("apex_internal");
     if (starts_with(timer_name, apex_internal)) {
         APEX_UTIL_REF_COUNT_APEX_INTERNAL_START
-        return profiler::get_disabled_profiler(); // don't process our own events - queue scrubbing tasks.
+        // don't process our own events - queue scrubbing tasks.
+        return profiler::get_disabled_profiler();
     }
     apex* instance = apex::instance(); // get the Apex static instance
     // protect against calls after finalization
@@ -490,9 +510,9 @@ profiler* start(const std::string &timer_name)
         return nullptr;
     }
     // if APEX is suspended, do nothing.
-    if (apex_options::suspend() == true) { 
+    if (apex_options::suspend() == true) {
         APEX_UTIL_REF_COUNT_SUSPENDED_START
-        return profiler::get_disabled_profiler(); 
+        return profiler::get_disabled_profiler();
     }
     std::shared_ptr<task_wrapper> tt_ptr(nullptr);
     if (_notify_listeners) {
@@ -501,11 +521,13 @@ profiler* start(const std::string &timer_name)
         tt_ptr = _new_task(id, UINTMAX_MAX, null_task_wrapper, instance);
         APEX_UTIL_REF_COUNT_TASK_WRAPPER
         //read_lock_type l(instance->listener_mutex);
-        //cout << thread_instance::get_id() << " Start : " << id->get_name() << endl; fflush(stdout);
+        //cout << thread_instance::get_id() << " Start : " << id->get_name() <<
+        //endl; fflush(stdout);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             success = instance->listeners[i]->on_start(tt_ptr);
             if (!success && i == 0) {
-                //cout << thread_instance::get_id() << " *** Not success! " << id->get_name() << endl; fflush(stdout);
+                //cout << thread_instance::get_id() << " *** Not success! " <<
+                //id->get_name() << endl; fflush(stdout);
                 APEX_UTIL_REF_COUNT_FAILED_START
                 return profiler::get_disabled_profiler();
             }
@@ -522,9 +544,9 @@ profiler* start(const std::string &timer_name)
 
 profiler* start(const apex_function_address function_address) {
     // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { 
+    if (apex_options::disable() == true) {
         APEX_UTIL_REF_COUNT_DISABLED_START
-        return nullptr; 
+        return nullptr;
     }
     apex* instance = apex::instance(); // get the Apex static instance
     // protect against calls after finalization
@@ -533,9 +555,9 @@ profiler* start(const apex_function_address function_address) {
         return nullptr;
     }
     // if APEX is suspended, do nothing.
-    if (apex_options::suspend() == true) { 
+    if (apex_options::suspend() == true) {
         APEX_UTIL_REF_COUNT_SUSPENDED_START
-        return profiler::get_disabled_profiler(); 
+        return profiler::get_disabled_profiler();
     }
     std::shared_ptr<task_wrapper> tt_ptr(nullptr);
     if (_notify_listeners) {
@@ -543,12 +565,14 @@ profiler* start(const apex_function_address function_address) {
         task_identifier * id = task_identifier::get_task_id(function_address);
         tt_ptr = _new_task(id, UINTMAX_MAX, null_task_wrapper, instance);
         APEX_UTIL_REF_COUNT_TASK_WRAPPER
-        //cout << thread_instance::get_id() << " Start : " << id->get_name() << endl; fflush(stdout);
+        //cout << thread_instance::get_id() << " Start : " << id->get_name() <<
+        //endl; fflush(stdout);
         //read_lock_type l(instance->listener_mutex);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             success = instance->listeners[i]->on_start(tt_ptr);
             if (!success && i == 0) {
-                //cout << thread_instance::get_id() << " *** Not success! " << id->get_name() << endl; fflush(stdout);
+                //cout << thread_instance::get_id() << " *** Not success! " <<
+                //id->get_name() << endl; fflush(stdout);
                 APEX_UTIL_REF_COUNT_FAILED_START
                 return profiler::get_disabled_profiler();
             }
@@ -564,12 +588,12 @@ void debug_print(const char * event, std::shared_ptr<task_wrapper> &tt_ptr) {
     std::unique_lock<std::mutex> l(this_mutex);
     std::stringstream ss;
     if (tt_ptr == nullptr) {
-        ss << thread_instance::get_id() << " " << event << " : (null) : (null)" 
-            << endl; 
+        ss << thread_instance::get_id() << " " << event << " : (null) : (null)"
+            << endl;
         cout << ss.str(); fflush(stdout);
     } else {
-        ss << thread_instance::get_id() << " " << event << " : " << tt_ptr->guid << " : " <<
-            tt_ptr->get_task_id()->get_name() << endl; 
+        ss << thread_instance::get_id() << " " << event << " : " <<
+            tt_ptr->guid << " : " << tt_ptr->get_task_id()->get_name() << endl;
         cout << ss.str(); fflush(stdout);
     }
 }
@@ -583,9 +607,9 @@ profiler* start(std::shared_ptr<task_wrapper> &tt_ptr) {
         return nullptr;
     }
     // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { 
+    if (apex_options::disable() == true) {
         APEX_UTIL_REF_COUNT_DISABLED_START
-        return nullptr; 
+        return nullptr;
     }
     apex* instance = apex::instance(); // get the Apex static instance
     // protect against calls after finalization
@@ -594,19 +618,21 @@ profiler* start(std::shared_ptr<task_wrapper> &tt_ptr) {
         return nullptr;
     }
     // if APEX is suspended, do nothing.
-    if (apex_options::suspend() == true) { 
+    if (apex_options::suspend() == true) {
         APEX_UTIL_REF_COUNT_SUSPENDED_START
-        return profiler::get_disabled_profiler(); 
+        return profiler::get_disabled_profiler();
     }
     if (_notify_listeners) {
         bool success = true;
-        //cout << thread_instance::get_id() << " Start : " << id->get_name() << endl; fflush(stdout);
+        //cout << thread_instance::get_id() << " Start : " << id->get_name() <<
+        //endl; fflush(stdout);
         //read_lock_type l(instance->listener_mutex);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             success = instance->listeners[i]->on_start(tt_ptr);
             tt_ptr->prof = thread_instance::instance().get_current_profiler();
             if (!success && i == 0) {
-                //cout << thread_instance::get_id() << " *** Not success! " << id->get_name() << endl; fflush(stdout);
+                //cout << thread_instance::get_id() << " *** Not success! " <<
+                //id->get_name() << endl; fflush(stdout);
                 APEX_UTIL_REF_COUNT_FAILED_START
                 return profiler::get_disabled_profiler();
             }
@@ -618,14 +644,14 @@ profiler* start(std::shared_ptr<task_wrapper> &tt_ptr) {
 
 profiler* resume(const std::string &timer_name) {
     // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { 
+    if (apex_options::disable() == true) {
         APEX_UTIL_REF_COUNT_DISABLED_RESUME
-        return nullptr; 
+        return nullptr;
     }
     // if APEX is suspended, do nothing.
-    if (apex_options::suspend() == true) { 
+    if (apex_options::suspend() == true) {
         APEX_UTIL_REF_COUNT_SUSPENDED_RESUME
-        return profiler::get_disabled_profiler(); 
+        return profiler::get_disabled_profiler();
     }
     // don't process our own events
     if (starts_with(timer_name, string("apex_internal"))) {
@@ -648,9 +674,9 @@ profiler* resume(const std::string &timer_name) {
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
                 instance->listeners[i]->on_resume(tt_ptr);
             }
-        } catch (disabled_profiler_exception &e) { 
+        } catch (disabled_profiler_exception &e) {
             APEX_UTIL_REF_COUNT_FAILED_RESUME
-            return profiler::get_disabled_profiler(); 
+            return profiler::get_disabled_profiler();
         }
     }
     static std::string apex_process_profile_str("apex::process_profiles");
@@ -664,14 +690,14 @@ profiler* resume(const std::string &timer_name) {
 
 profiler* resume(const apex_function_address function_address) {
     // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { 
+    if (apex_options::disable() == true) {
         APEX_UTIL_REF_COUNT_DISABLED_RESUME
-        return nullptr; 
+        return nullptr;
     }
     // if APEX is suspended, do nothing.
-    if (apex_options::suspend() == true) { 
+    if (apex_options::suspend() == true) {
         APEX_UTIL_REF_COUNT_SUSPENDED_RESUME
-        return profiler::get_disabled_profiler(); 
+        return profiler::get_disabled_profiler();
     }
     apex* instance = apex::instance(); // get the Apex static instance
     // protect against calls after finalization
@@ -689,9 +715,9 @@ profiler* resume(const apex_function_address function_address) {
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
                 instance->listeners[i]->on_resume(tt_ptr);
             }
-        } catch (disabled_profiler_exception &e) { 
+        } catch (disabled_profiler_exception &e) {
             APEX_UTIL_REF_COUNT_FAILED_RESUME
-            return profiler::get_disabled_profiler(); 
+            return profiler::get_disabled_profiler();
         }
     }
     APEX_UTIL_REF_COUNT_RESUME
@@ -700,18 +726,18 @@ profiler* resume(const apex_function_address function_address) {
 
 profiler* resume(profiler * p) {
     // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { 
+    if (apex_options::disable() == true) {
         APEX_UTIL_REF_COUNT_DISABLED_RESUME
-        return nullptr; 
+        return nullptr;
     }
     // if APEX is suspended, do nothing.
-    if (apex_options::suspend() == true) { 
+    if (apex_options::suspend() == true) {
         APEX_UTIL_REF_COUNT_SUSPENDED_RESUME
-        return profiler::get_disabled_profiler(); 
+        return profiler::get_disabled_profiler();
     }
     if (p->stopped) {
         APEX_UTIL_REF_COUNT_DOUBLE_STOP
-        return profiler::get_disabled_profiler(); 
+        return profiler::get_disabled_profiler();
     }
     apex* instance = apex::instance(); // get the Apex static instance
     // protect against calls after finalization
@@ -727,13 +753,14 @@ profiler* resume(profiler * p) {
             for (unsigned int i = 1 ; i < instance->listeners.size() ; i++) {
                 instance->listeners[i]->on_resume(p->tt_ptr);
             }
-        } catch (disabled_profiler_exception &e) { 
+        } catch (disabled_profiler_exception &e) {
             APEX_UTIL_REF_COUNT_FAILED_RESUME
-            return profiler::get_disabled_profiler(); 
+            return profiler::get_disabled_profiler();
         }
     }
     static std::string apex_process_profile_str("apex::process_profiles");
-    if (p->tt_ptr->get_task_id()->get_name(false).compare(apex_process_profile_str) == 0) {
+    if (p->tt_ptr->get_task_id()->get_name(false).compare(apex_process_profile_str)
+        == 0) {
         APEX_UTIL_REF_COUNT_APEX_INTERNAL_RESUME
     } else {
         APEX_UTIL_REF_COUNT_RESUME
@@ -782,9 +809,9 @@ void set_state(apex_thread_state state) {
 
 void stop(profiler* the_profiler, bool cleanup) {
     // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { 
+    if (apex_options::disable() == true) {
         APEX_UTIL_REF_COUNT_DISABLED_STOP
-        return; 
+        return;
     }
     if (the_profiler == profiler::get_disabled_profiler()) {
         APEX_UTIL_REF_COUNT_DISABLED_STOP
@@ -798,12 +825,13 @@ void stop(profiler* the_profiler, bool cleanup) {
         APEX_UTIL_REF_COUNT_DOUBLE_STOP
         return;
     }
-    thread_instance::instance().clear_current_profiler(the_profiler, false, null_task_wrapper);
+    thread_instance::instance().clear_current_profiler(the_profiler, false,
+        null_task_wrapper);
     apex* instance = apex::instance(); // get the Apex static instance
     // protect against calls after finalization
-    if (!instance || _exited || _measurement_stopped) { 
+    if (!instance || _exited || _measurement_stopped) {
         APEX_UTIL_REF_COUNT_STOP_AFTER_FINALIZE
-        return; 
+        return;
     }
     std::shared_ptr<profiler> p{the_profiler};
     if (_notify_listeners) {
@@ -812,9 +840,11 @@ void stop(profiler* the_profiler, bool cleanup) {
             instance->listeners[i]->on_stop(p);
         }
     }
-    //cout << thread_instance::get_id() << " Stop : " << the_profiler->tt_ptr->get_task_id()->get_name() << endl; fflush(stdout);
+    //cout << thread_instance::get_id() << " Stop : " <<
+    //the_profiler->tt_ptr->get_task_id()->get_name() << endl; fflush(stdout);
     static std::string apex_process_profile_str("apex::process_profiles");
-    if (p->tt_ptr->get_task_id()->get_name(false).compare(apex_process_profile_str) == 0) {
+    if (p->tt_ptr->get_task_id()->get_name(false).compare(apex_process_profile_str)
+        == 0) {
         APEX_UTIL_REF_COUNT_APEX_INTERNAL_STOP
     } else {
         APEX_UTIL_REF_COUNT_STOP
@@ -836,10 +866,10 @@ void stop(std::shared_ptr<task_wrapper> &tt_ptr) {
     debug_print("Stop", tt_ptr);
 #endif
     // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { 
+    if (apex_options::disable() == true) {
         APEX_UTIL_REF_COUNT_DISABLED_STOP
         tt_ptr = nullptr;
-        return; 
+        return;
     }
     if (tt_ptr == nullptr || tt_ptr->prof == nullptr) {
         APEX_UTIL_REF_COUNT_NULL_STOP
@@ -854,11 +884,12 @@ void stop(std::shared_ptr<task_wrapper> &tt_ptr) {
         APEX_UTIL_REF_COUNT_DOUBLE_STOP
         return;
     }
-    thread_instance::instance().clear_current_profiler(tt_ptr->prof, false, null_task_wrapper);
+    thread_instance::instance().clear_current_profiler(tt_ptr->prof, false,
+        null_task_wrapper);
     // protect against calls after finalization
-    if (!instance || _exited || _measurement_stopped) { 
+    if (!instance || _exited || _measurement_stopped) {
         APEX_UTIL_REF_COUNT_STOP_AFTER_FINALIZE
-        return; 
+        return;
     }
     std::shared_ptr<profiler> p{tt_ptr->prof};
     if (_notify_listeners) {
@@ -867,9 +898,11 @@ void stop(std::shared_ptr<task_wrapper> &tt_ptr) {
             instance->listeners[i]->on_stop(p);
         }
     }
-    //cout << thread_instance::get_id() << " Stop : " << tt_ptr->tt_ptr->get_task_id()->get_name() << endl; fflush(stdout);
+    //cout << thread_instance::get_id() << " Stop : " <<
+    //tt_ptr->tt_ptr->get_task_id()->get_name() << endl; fflush(stdout);
     static std::string apex_process_profile_str("apex::process_profiles");
-    if (p->tt_ptr->get_task_id()->get_name(false).compare(apex_process_profile_str) == 0) {
+    if (p->tt_ptr->get_task_id()->get_name(false).compare(apex_process_profile_str)
+        == 0) {
         APEX_UTIL_REF_COUNT_APEX_INTERNAL_STOP
     } else {
         APEX_UTIL_REF_COUNT_STOP
@@ -885,11 +918,11 @@ void stop(std::shared_ptr<task_wrapper> &tt_ptr) {
 void yield(profiler* the_profiler)
 {
     // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { 
+    if (apex_options::disable() == true) {
         APEX_UTIL_REF_COUNT_DISABLED_YIELD
-        return; 
+        return;
     }
-    if (the_profiler == profiler::get_disabled_profiler()) { 
+    if (the_profiler == profiler::get_disabled_profiler()) {
         APEX_UTIL_REF_COUNT_DISABLED_YIELD
         return; // profiler was throttled.
     }
@@ -907,7 +940,8 @@ void yield(profiler* the_profiler)
         APEX_UTIL_REF_COUNT_DOUBLE_YIELD
         return;
     }
-    thread_instance::instance().clear_current_profiler(the_profiler, false, null_task_wrapper);
+    thread_instance::instance().clear_current_profiler(the_profiler, false,
+        null_task_wrapper);
     std::shared_ptr<profiler> p{the_profiler};
     if (_notify_listeners) {
         //read_lock_type l(instance->listener_mutex);
@@ -915,9 +949,11 @@ void yield(profiler* the_profiler)
             instance->listeners[i]->on_yield(p);
         }
     }
-    //cout << thread_instance::get_id() << " Yield : " << the_profiler->tt_ptr->get_task_id()->get_name() << endl; fflush(stdout);
+    //cout << thread_instance::get_id() << " Yield : " <<
+    //the_profiler->tt_ptr->get_task_id()->get_name() << endl; fflush(stdout);
     static std::string apex_process_profile_str("apex::process_profiles");
-    if (p->tt_ptr->get_task_id()->get_name(false).compare(apex_process_profile_str) == 0) {
+    if (p->tt_ptr->get_task_id()->get_name(false).compare(apex_process_profile_str)
+        == 0) {
         APEX_UTIL_REF_COUNT_APEX_INTERNAL_YIELD
     } else {
         APEX_UTIL_REF_COUNT_YIELD
@@ -930,15 +966,15 @@ void yield(std::shared_ptr<task_wrapper> &tt_ptr)
     debug_print("Yield", tt_ptr);
 #endif
     // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { 
+    if (apex_options::disable() == true) {
         APEX_UTIL_REF_COUNT_DISABLED_YIELD
-        return; 
+        return;
     }
     if (tt_ptr == nullptr || tt_ptr->prof == nullptr) {
         APEX_UTIL_REF_COUNT_NULL_YIELD
         return;
     }
-    if (tt_ptr->prof == profiler::get_disabled_profiler()) { 
+    if (tt_ptr->prof == profiler::get_disabled_profiler()) {
         APEX_UTIL_REF_COUNT_DISABLED_YIELD
         return; // profiler was throttled.
     }
@@ -952,7 +988,8 @@ void yield(std::shared_ptr<task_wrapper> &tt_ptr)
         APEX_UTIL_REF_COUNT_DOUBLE_YIELD
         return;
     }
-    thread_instance::instance().clear_current_profiler(tt_ptr->prof, true, tt_ptr);
+    thread_instance::instance().clear_current_profiler(tt_ptr->prof,
+        true, tt_ptr);
     std::shared_ptr<profiler> p{tt_ptr->prof};
     if (_notify_listeners) {
         //read_lock_type l(instance->listener_mutex);
@@ -960,9 +997,11 @@ void yield(std::shared_ptr<task_wrapper> &tt_ptr)
             instance->listeners[i]->on_yield(p);
         }
     }
-    //cout << thread_instance::get_id() << " Yield : " << tt_ptr->prof->tt_ptr->get_task_id()->get_name() << endl; fflush(stdout);
+    //cout << thread_instance::get_id() << " Yield : " <<
+    //tt_ptr->prof->tt_ptr->get_task_id()->get_name() << endl; fflush(stdout);
     static std::string apex_process_profile_str("apex::process_profiles");
-    if (p->tt_ptr->get_task_id()->get_name(false).compare(apex_process_profile_str) == 0) {
+    if (p->tt_ptr->get_task_id()->get_name(false).compare(apex_process_profile_str)
+        == 0) {
         APEX_UTIL_REF_COUNT_APEX_INTERNAL_YIELD
     } else {
         APEX_UTIL_REF_COUNT_YIELD
@@ -990,8 +1029,8 @@ void sample_value(const std::string &name, double value)
             // tokenize by / character
             char* token = strtok(const_cast<char*>(tmp_name.c_str()), "/");
             while (token!=nullptr) {
-              if (strstr(token, "worker-thread")==NULL) { break; }
-              token = strtok(NULL, "/");
+              if (strstr(token, "worker-thread")==nullptr) { break; }
+              token = strtok(nullptr, "/");
             }
             if (token != nullptr) {
               // strip the trailing close bracket
@@ -1013,8 +1052,8 @@ void sample_value(const std::string &name, double value)
 }
 
 std::shared_ptr<task_wrapper> new_task(
-    const std::string &timer_name, 
-    const uint64_t task_id, 
+    const std::string &timer_name,
+    const uint64_t task_id,
     const std::shared_ptr<task_wrapper> &parent_task)
 {
     // if APEX is disabled, do nothing.
@@ -1024,42 +1063,47 @@ std::shared_ptr<task_wrapper> new_task(
     static const std::string apex_internal("apex_internal");
     if (starts_with(timer_name, apex_internal)) {
         APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER
-        return nullptr; // don't process our own events - queue scrubbing tasks.
+        // don't process our own events - queue scrubbing tasks.
+        return nullptr;
     }
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance || _exited) { 
+    if (!instance || _exited) {
         APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER
-        return nullptr; 
+        return nullptr;
     } // protect against calls after finalization
     task_identifier * id = task_identifier::get_task_id(timer_name);
-    std::shared_ptr<task_wrapper> tt_ptr(_new_task(id, task_id, parent_task, instance));
+    std::shared_ptr<task_wrapper>
+        tt_ptr(_new_task(id, task_id, parent_task, instance));
     APEX_UTIL_REF_COUNT_TASK_WRAPPER
     return tt_ptr;
 }
 
 std::shared_ptr<task_wrapper> new_task(
-    const apex_function_address function_address, 
-    const uint64_t task_id, 
+    const apex_function_address function_address,
+    const uint64_t task_id,
     const std::shared_ptr<task_wrapper> &parent_task) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return nullptr; }
     // if APEX is suspended, do nothing.
     if (apex_options::suspend() == true) { return nullptr; }
-    apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance || _exited) { return nullptr; } // protect against calls after finalization
+    // get the Apex static instance
+    apex* instance = apex::instance();
+    // protect against calls after finalization
+    if (!instance || _exited) { return nullptr; }
     task_identifier * id = task_identifier::get_task_id(function_address);
-    std::shared_ptr<task_wrapper> tt_ptr(_new_task(id, task_id, parent_task, instance));
+    std::shared_ptr<task_wrapper>
+        tt_ptr(_new_task(id, task_id, parent_task, instance));
     return tt_ptr;
 }
 
 std::shared_ptr<task_wrapper> update_task(
-    std::shared_ptr<task_wrapper> &wrapper, 
+    std::shared_ptr<task_wrapper> &wrapper,
     const std::string &timer_name) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return nullptr; }
     // if APEX is suspended, do nothing.
     if (apex_options::suspend() == true) { return nullptr; }
-    assert(wrapper);
+    APEX_ASSERT(wrapper != nullptr);
     task_identifier * id = task_identifier::get_task_id(timer_name);
     if (id != wrapper->get_task_id()) {
         wrapper->aliases.insert(id);
@@ -1068,15 +1112,17 @@ std::shared_ptr<task_wrapper> update_task(
 }
 
 std::shared_ptr<task_wrapper> update_task(
-    std::shared_ptr<task_wrapper> &wrapper, 
+    std::shared_ptr<task_wrapper> &wrapper,
     const apex_function_address function_address) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return nullptr; }
     // if APEX is suspended, do nothing.
     if (apex_options::suspend() == true) { return nullptr; }
     if (wrapper == nullptr) {
-        apex* instance = apex::instance(); // get the Apex static instance
-        if (!instance || _exited) { return nullptr; } // protect against calls after finalization
+        // get the Apex static instance
+        apex* instance = apex::instance();
+        // protect against calls after finalization
+        if (!instance || _exited) { return nullptr; }
         task_identifier * id = task_identifier::get_task_id(function_address);
         wrapper = _new_task(id, UINTMAX_MAX, null_task_wrapper, instance);
     } else {
@@ -1091,9 +1137,11 @@ apex_event_type register_custom_event(const std::string &name) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return APEX_CUSTOM_EVENT_1; }
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance || _exited) return APEX_CUSTOM_EVENT_1; // protect against calls after finalization
+    // protect against calls after finalization
+    if (!instance || _exited) return APEX_CUSTOM_EVENT_1;
     if (custom_event_count == APEX_MAX_EVENTS) {
-      std::cerr << "Cannot register more than MAX Events! (set to " << APEX_MAX_EVENTS << ")" << std::endl;
+      std::cerr << "Cannot register more than MAX Events! (set to " <<
+      APEX_MAX_EVENTS << ")" << std::endl;
     }
     write_lock_type l(instance->custom_event_mutex);
     instance->custom_event_names[custom_event_count] = name;
@@ -1105,8 +1153,10 @@ apex_event_type register_custom_event(const std::string &name) {
 void custom_event(apex_event_type event_type, void * custom_data) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
-    apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance || _exited) return; // protect against calls after finalization
+    // get the Apex static instance
+    apex* instance = apex::instance();
+    // protect against calls after finalization
+    if (!instance || _exited) { return; }
     custom_event_data data(event_type, custom_data);
     if (_notify_listeners) {
         //read_lock_type l(instance->listener_mutex);
@@ -1142,40 +1192,48 @@ void init_plugins(void) {
     std::vector<std::string> plugin_paths;
     split( plugin_names_str, ':', plugin_names);
     for(const std::string & plugin_name : plugin_names) {
-        plugin_paths.push_back(plugins_prefix + "/" + plugin_name + plugins_suffix);
+        plugin_paths.push_back(plugins_prefix + "/" + plugin_name +
+        plugins_suffix);
     }
     for(const std::string & plugin_path : plugin_paths) {
         const char * path = plugin_path.c_str();
         void * plugin_handle = dlopen(path, RTLD_NOW);
         if(!plugin_handle) {
-            std::cerr << "Error loading plugin " << path << ": " << dlerror() << std::endl;
+            std::cerr << "Error loading plugin " << path << ": " << dlerror()
+            << std::endl;
             FUNCTION_EXIT
             continue;
         }
-        int (*init_fn)() = (int (*)()) ((uintptr_t) dlsym(plugin_handle, "apex_plugin_init"));
+        int (*init_fn)() = (int (*)()) ((uintptr_t) dlsym(plugin_handle,
+            "apex_plugin_init"));
         if(!init_fn) {
-            std::cerr << "Error loading apex_plugin_init from " << path << ": " << dlerror() << std::endl;
+            std::cerr << "Error loading apex_plugin_init from " << path << ": "
+                << dlerror() << std::endl;
             dlclose(plugin_handle);
             FUNCTION_EXIT
             continue;
         }
-        int (*finalize_fn)() = (int (*)()) ((uintptr_t) dlsym(plugin_handle, "apex_plugin_finalize"));
+        int (*finalize_fn)() = (int (*)()) ((uintptr_t) dlsym(plugin_handle,
+            "apex_plugin_finalize"));
         if(!finalize_fn) {
-            std::cerr << "Error loading apex_plugin_finalize from " << path << ": " << dlerror() << std::endl;
+            std::cerr << "Error loading apex_plugin_finalize from " << path <<
+                ": " << dlerror() << std::endl;
             dlclose(plugin_handle);
             FUNCTION_EXIT
             continue;
         }
         apex * instance = apex::instance();
         if(!instance) {
-            std::cerr << "Error getting APEX instance while registering finalize function from " << path << std::endl;
+            std::cerr << "Error getting APEX instance while registering
+                finalize function from " << path << std::endl;
             FUNCTION_EXIT
             continue;
         }
         instance->finalize_functions.push_back(finalize_fn);
         int result = init_fn();
         if(result != 0) {
-            std::cerr << "Error: apex_plugin_init for " << path << " returned " << result << std::endl;
+            std::cerr << "Error: apex_plugin_init for " << path << " returned "
+                << result << std::endl;
             dlclose(plugin_handle);
             FUNCTION_EXIT
             continue;
@@ -1194,7 +1252,8 @@ void finalize_plugins(void) {
     for(int (*finalize_function)() : instance->finalize_functions) {
         int result = finalize_function();
         if(result != 0) {
-            std::cerr << "Error: plugin finalize function returned " << result << std::endl;
+            std::cerr << "Error: plugin finalize function returned " << result
+                << std::endl;
             continue;
         }
     }
@@ -1211,10 +1270,13 @@ std::string dump(bool reset) {
     apex_options::use_screen_output(true);
 #endif
 
-    apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) { FUNCTION_EXIT return(std::string("")); } // protect against calls after finalization
+    // get the Apex static instance
+    apex* instance = apex::instance();
+    // protect against calls after finalization
+    if (!instance) { FUNCTION_EXIT return(std::string("")); }
     if (_notify_listeners) {
-        dump_event_data data(instance->get_node_id(), thread_instance::get_id(), reset);
+        dump_event_data data(instance->get_node_id(),
+            thread_instance::get_id(), reset);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_dump(data);
         }
@@ -1233,7 +1295,8 @@ void finalize()
     return;
 #endif
     FUNCTION_ENTER
-    // prevent re-entry, be extra strict about race conditions - it is possible.
+    // prevent re-entry, be extra strict about race conditions - it is
+    // possible.
     mutex shutdown_mutex;
     static bool finalized = false;
     {
@@ -1243,7 +1306,8 @@ void finalize()
     }
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
-    // FIRST, stop the top level timer, while the infrastructure is still functioning.
+    // FIRST, stop the top level timer, while the infrastructure is still
+    // functioning.
     if (top_level_timer != nullptr) { stop(top_level_timer); }
     // stop processing new timers/counters/messages/tasks/etc.
     apex_options::suspend(true);
@@ -1251,8 +1315,10 @@ void finalize()
     dump(false);
     // if not done already...
     shutdown_throttling();
-    apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) { FUNCTION_EXIT return; } // protect against calls after finalization
+    // get the Apex static instance
+    apex* instance = apex::instance();
+    // protect against calls after finalization
+    if (!instance) { FUNCTION_EXIT return; }
     finalize_plugins();
     instance->stop_all_policy_handles();
 #if APEX_HAVE_PROC
@@ -1273,7 +1339,8 @@ void finalize()
          * to register a new thread. */
         shutdown_event_data data(instance->get_node_id(), 0);
 #else
-        shutdown_event_data data(instance->get_node_id(), thread_instance::get_id());
+        shutdown_event_data data(instance->get_node_id(),
+            thread_instance::get_id());
 #endif
         _notify_listeners = false;
         {
@@ -1297,7 +1364,8 @@ void cleanup(void) {
     // prevent crash at shutdown.
     return;
 #endif
-    // prevent re-entry, be extra strict about race conditions - it is possible.
+    // prevent re-entry, be extra strict about race conditions - it is
+    // possible.
     mutex shutdown_mutex;
     static bool finalized = false;
     {
@@ -1307,8 +1375,10 @@ void cleanup(void) {
     }
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { FUNCTION_EXIT return; }
-    apex* instance = apex::__instance(); // get the Apex static instance
-    if (!instance) { FUNCTION_EXIT return; } // protect against multiple calls
+    // get the Apex static instance
+    apex* instance = apex::__instance();
+    // protect against multiple calls
+    if (!instance) { FUNCTION_EXIT return; }
     if (!_measurement_stopped) {
         finalize();
     }
@@ -1329,16 +1399,19 @@ void register_thread(const std::string &name)
     FUNCTION_ENTER
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
-    apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance || _exited) return; // protect against calls after finalization
-    if (_registered) return; // protect against multiple registrations on the same thread
+    // get the Apex static instance
+    apex* instance = apex::instance();
+    // protect against calls after finalization
+    if (!instance || _exited) return;
+    // protect against multiple registrations on the same thread
+    if (_registered) return;
     _registered = true;
     thread_instance::set_name(name);
     instance->resize_state(thread_instance::get_id());
     instance->set_state(thread_instance::get_id(), APEX_BUSY);
     new_thread_event_data data(name);
     if (_notify_listeners) {
-            //read_lock_type l(instance->listener_mutex);
+        //read_lock_type l(instance->listener_mutex);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_new_thread(data);
         }
@@ -1366,8 +1439,10 @@ void register_thread(const std::string &name)
 
 void exit_thread(void)
 {
-    apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance || _exited) return; // protect against calls after finalization
+    // get the Apex static instance
+    apex* instance = apex::instance();
+    // protect against calls after finalization
+    if (!instance || _exited) return;
     if (top_level_timer != nullptr) { stop(top_level_timer); }
     _exited = true;
     event_data data;
@@ -1393,7 +1468,7 @@ void apex::pop_policy_handle(apex_policy_handle* handle) {
 
 bool apex::policy_handle_exists(apex_policy_handle* handle) {
     return (std::find(apex_policy_handles.begin(),
-                      apex_policy_handles.end(), 
+                      apex_policy_handles.end(),
                       handle) != apex_policy_handles.end());
 }
 
@@ -1428,7 +1503,9 @@ std::set<apex_policy_handle*> register_policy(std::set<apex_event_type> when,
                     std::function<int(apex_context const&)> f)
 {
     // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { return std::set<apex_policy_handle*>(); }
+    if (apex_options::disable() == true) {
+        return std::set<apex_policy_handle*>();
+    }
     std::set<apex_event_type>::iterator it;
     std::set<apex_policy_handle*> handles;
     for (it = when.begin(); it != when.end(); ++it)
@@ -1452,7 +1529,8 @@ apex_policy_handle* register_periodic_policy(unsigned long period_microseconds,
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return nullptr; }
     int id = -1;
-    policy_handler * handler = apex::instance()->get_policy_handler(period_microseconds);
+    policy_handler * handler =
+        apex::instance()->get_policy_handler(period_microseconds);
     if(handler != nullptr)
     {
         id = handler->register_policy(APEX_PERIODIC, f);
@@ -1477,7 +1555,8 @@ int apex::setup_runtime_counter(const std::string & counter_name) {
             id_type id = get_counter(counter_name);
             if (id == hpx::naming::invalid_id) {
                 if (instance()->get_node_id() == 0 && !messaged) {
-                    std::cerr << "Error: invalid HPX counter: " << counter_name << std::endl;
+                    std::cerr << "Error: invalid HPX counter: " << counter_name
+                        << std::endl;
                     messaged = true;
                 }
                 return APEX_ERROR;
@@ -1487,7 +1566,8 @@ int apex::setup_runtime_counter(const std::string & counter_name) {
             //std::cout << "Started counter " << counter_name << std::endl;
         } catch(hpx::exception const & /*e*/) {
             if (instance()->get_node_id() == 0) {
-                std::cerr << "Error: unable to start HPX counter: " << counter_name << std::endl;
+                std::cerr << "Error: unable to start HPX counter: " <<
+                    counter_name << std::endl;
             }
             return APEX_ERROR;
         }
@@ -1504,14 +1584,16 @@ void apex::query_runtime_counters(void) {
     for (auto counter : registered_counters) {
         string name = counter.first;
         id_type id = counter.second;
-        counter_value value1 = performance_counter::get_value(hpx::launch::sync, id);
+        counter_value value1 =
+            performance_counter::get_value(hpx::launch::sync, id);
         const int value = value1.get_value<int>();
         sample_value(name, value);
     }
 }
 #endif
 
-apex_policy_handle * sample_runtime_counter(unsigned long period, const std::string & counter_name) {
+apex_policy_handle * sample_runtime_counter(unsigned long period, const
+    std::string & counter_name) {
     apex_policy_handle * handle = nullptr;
 #ifdef APEX_HAVE_HPX
     if(get_hpx_runtime_ptr() != nullptr) {
@@ -1521,23 +1603,29 @@ apex_policy_handle * sample_runtime_counter(unsigned long period, const std::str
         using hpx::performance_counters::counter_value;
         id_type id = get_counter(counter_name);
         if (id == hpx::naming::invalid_id) {
-            std::cerr << "Error: invalid HPX counter: " << counter_name << std::endl;
+            std::cerr << "Error: invalid HPX counter: " << counter_name <<
+                std::endl;
         }
         performance_counter::start(hpx::launch::sync, id);
-        handle = register_periodic_policy(period, [=](apex_context const& ctx) -> int {
+        handle = register_periodic_policy(period,
+                 [=](apex_context const& ctx) -> int {
             try {
-                counter_value value1 = performance_counter::get_value(hpx::launch::sync, id);
+                counter_value value1 =
+                    performance_counter::get_value(hpx::launch::sync, id);
                 const int value = value1.get_value<int>();
                 sample_value(counter_name, value);
             } catch(hpx::exception const & /*e*/) {
-                std::cerr << "Error: unable to start HPX counter: " << counter_name << std::endl;
+                std::cerr << "Error: unable to start HPX counter: " <<
+                    counter_name << std::endl;
                 return APEX_ERROR;
             }
             return APEX_NOERROR;
         });
     }
 #else
-    std::cerr << "WARNING: Runtime counter sampling is not implemented for your runtime" << std::endl;
+    std::cerr <<
+        "WARNING: Runtime counter sampling is not implemented for your runtime"
+        << std::endl;
 #endif
     return handle;
 }
@@ -1593,9 +1681,11 @@ double current_power_high(void) {
     //std::cout << "Read power from MSR: " << power << std::endl;
 #elif APEX_HAVE_PROC
     power = (double)read_power();
-    //std::cout << "Read power from Cray Power Monitoring and Management: " << power << std::endl;
+    //std::cout << "Read power from Cray Power Monitoring and Management: " <<
+    //power << std::endl;
 #else
-    //std::cout << "NO POWER READING! Did you configure with RCR, MSR or Cray?" << std::endl;
+    //std::cout << "NO POWER READING! Did you configure with RCR, MSR or Cray?"
+    //<< std::endl;
 #endif
     return power;
 }
@@ -1627,7 +1717,8 @@ void send (uint64_t tag, uint64_t size, uint64_t target) {
 
     if (_notify_listeners) {
         // eventually, we want to use the thread id, but for now, just use 0.
-        //message_event_data data(tag, size, instance->get_node_id(), thread_instance::get_id(), target);
+        //message_event_data data(tag, size, instance->get_node_id(),
+        //thread_instance::get_id(), target);
         message_event_data data(tag, size, instance->get_node_id(), 0, target);
         if (_notify_listeners) {
             //read_lock_type l(instance->listener_mutex);
@@ -1638,7 +1729,8 @@ void send (uint64_t tag, uint64_t size, uint64_t target) {
     }
 }
 
-void recv (uint64_t tag, uint64_t size, uint64_t source_rank, uint64_t source_thread) {
+void recv (uint64_t tag, uint64_t size, uint64_t source_rank, uint64_t
+    source_thread) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return ; }
     // if APEX is suspended, do nothing.
@@ -1652,8 +1744,10 @@ void recv (uint64_t tag, uint64_t size, uint64_t source_rank, uint64_t source_th
 
     if (_notify_listeners) {
         // eventually, we want to use the thread id, but for now, just use 0.
-        //message_event_data data(tag, size, source_rank, source_thread, instance->get_node_id());
-        message_event_data data(tag, size, source_rank, 0, instance->get_node_id());
+        //message_event_data data(tag, size, source_rank, source_thread,
+        //instance->get_node_id());
+        message_event_data data(tag, size, source_rank, 0,
+            instance->get_node_id());
         if (_notify_listeners) {
             //read_lock_type l(instance->listener_mutex);
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -1667,10 +1761,12 @@ void recv (uint64_t tag, uint64_t size, uint64_t source_rank, uint64_t source_th
 
 using namespace apex;
 
+/* Implementation of the C API */
+
 extern "C" {
 
-    int apex_init(const char * thread_name, unsigned long int comm_rank, unsigned long int comm_size)
-    {
+    int apex_init(const char * thread_name, unsigned long int comm_rank,
+        unsigned long int comm_size) {
         return init(thread_name, comm_rank, comm_size);
     }
 
@@ -1682,18 +1778,15 @@ extern "C" {
         return init("FORTRAN thread", comm_rank, comm_size);
     }
 
-    void apex_cleanup()
-    {
+    void apex_cleanup() {
         cleanup();
     }
 
-    const char * apex_dump(bool reset)
-    {
+    const char * apex_dump(bool reset) {
         return(dump(reset).c_str());
     }
 
-    void apex_finalize()
-    {
+    void apex_finalize() {
         finalize();
     }
 
@@ -1701,38 +1794,41 @@ extern "C" {
 
     void apex_finalize__() { finalize(); }
 
-    const char * apex_version()
-    {
+    const char * apex_version() {
         return version().c_str();
     }
 
-    apex_profiler_handle apex_start(apex_profiler_type type, void * identifier)
-    {
-      assert(identifier);
-      if (type == APEX_FUNCTION_ADDRESS) {
-          return reinterpret_cast<apex_profiler_handle>(start((apex_function_address)identifier));
-      } else if (type == APEX_NAME_STRING) {
-          string tmp((const char *)identifier);
-          return reinterpret_cast<apex_profiler_handle>(start(tmp));
-      }
-      return APEX_NULL_PROFILER_HANDLE;
+    apex_profiler_handle apex_start(apex_profiler_type type,
+        void * identifier) {
+        APEX_ASSERT(identifier != nullptr);
+        if (type == APEX_FUNCTION_ADDRESS) {
+            return
+            reinterpret_cast<apex_profiler_handle>(
+                start((apex_function_address)identifier));
+        } else if (type == APEX_NAME_STRING) {
+            string tmp((const char *)identifier);
+            return reinterpret_cast<apex_profiler_handle>(start(tmp));
+        }
+        return APEX_NULL_PROFILER_HANDLE;
     }
 
-    void apex_start_(apex_profiler_type type, void * identifier, apex_profiler_handle profiler) {
-      apex_profiler_handle p = apex_start(type, identifier);
-      if (profiler != nullptr) profiler = p;
+    void apex_start_(apex_profiler_type type, void * identifier,
+        apex_profiler_handle profiler) {
+        apex_profiler_handle p = apex_start(type, identifier);
+        if (profiler != nullptr) profiler = p;
     }
 
-    apex_profiler_handle apex_resume(apex_profiler_type type, void * identifier)
-    {
-      assert(identifier);
-      if (type == APEX_FUNCTION_ADDRESS) {
-          return reinterpret_cast<apex_profiler_handle>(resume((apex_function_address)identifier));
-      } else if (type == APEX_NAME_STRING) {
-          string tmp((const char *)identifier);
-          return reinterpret_cast<apex_profiler_handle>(resume(tmp));
-      }
-      return APEX_NULL_PROFILER_HANDLE;
+    apex_profiler_handle apex_resume(apex_profiler_type type,
+        void * identifier) {
+        APEX_ASSERT(identifier != nullptr);
+        if (type == APEX_FUNCTION_ADDRESS) {
+            return reinterpret_cast<apex_profiler_handle>(
+                resume((apex_function_address)identifier));
+        } else if (type == APEX_NAME_STRING) {
+            string tmp((const char *)identifier);
+            return reinterpret_cast<apex_profiler_handle>(resume(tmp));
+        }
+        return APEX_NULL_PROFILER_HANDLE;
     }
 
     void apex_reset(apex_profiler_type type, void * identifier) {
@@ -1748,23 +1844,19 @@ extern "C" {
         set_state(state);
     }
 
-    void apex_stop(apex_profiler_handle the_profiler)
-    {
+    void apex_stop(apex_profiler_handle the_profiler) {
         stop(reinterpret_cast<profiler*>(the_profiler));
     }
 
-    void apex_stop_(apex_profiler_handle the_profiler)
-    {
+    void apex_stop_(apex_profiler_handle the_profiler) {
         stop(reinterpret_cast<profiler*>(the_profiler));
     }
 
-    void apex_yield(apex_profiler_handle the_profiler)
-    {
+    void apex_yield(apex_profiler_handle the_profiler) {
         yield(reinterpret_cast<profiler*>(the_profiler));
     }
 
-    void apex_sample_value(const char * name, double value)
-    {
+    void apex_sample_value(const char * name, double value) {
         string tmp(name);
         sample_value(tmp, value);
     }
@@ -1779,19 +1871,17 @@ extern "C" {
         }
     }
 
-    apex_event_type apex_register_custom_event(const char * name)
-    {
+    apex_event_type apex_register_custom_event(const char * name) {
         string tmp(name);
         return register_custom_event(tmp);
     }
 
-    void apex_custom_event(apex_event_type event_type, void * custom_data)
-    {
+    void apex_custom_event(apex_event_type event_type,
+        void * custom_data) {
         custom_event(event_type, custom_data);
     }
 
-    void apex_register_thread(const char * name)
-    {
+    void apex_register_thread(const char * name) {
         if (name) {
             string tmp(name);
             register_thread(tmp);
@@ -1801,16 +1891,17 @@ extern "C" {
         }
     }
 
-    void apex_exit_thread(void)
-    {
+    void apex_exit_thread(void) {
         exit_thread();
     }
 
-    apex_policy_handle* apex_register_policy(const apex_event_type when, int (f)(apex_context const)) {
+    apex_policy_handle* apex_register_policy(const apex_event_type when,
+        int (f)(apex_context const)) {
         return register_policy(when, f);
     }
 
-    apex_policy_handle* apex_register_periodic_policy(unsigned long period, int (f)(apex_context const)) {
+    apex_policy_handle* apex_register_periodic_policy(
+        unsigned long period, int (f)(apex_context const)) {
         return register_periodic_policy(period, f);
     }
 
@@ -1818,8 +1909,9 @@ extern "C" {
         return deregister_policy(handle);
     }
 
-    apex_profile* apex_get_profile(apex_profiler_type type, void * identifier) {
-        assert(identifier);
+    apex_profile* apex_get_profile(apex_profiler_type type,
+        void * identifier) {
+        APEX_ASSERT(identifier != nullptr);
         if (type == APEX_FUNCTION_ADDRESS) {
             return get_profile((apex_function_address)(identifier));
         } else {
@@ -1842,7 +1934,8 @@ extern "C" {
         return send(tag, size, target);
     }
 
-    void apex_recv (uint64_t tag, uint64_t size, uint64_t source_rank, uint64_t source_thread) {
+    void apex_recv (uint64_t tag, uint64_t size, uint64_t source_rank,
+        uint64_t source_thread) {
         return recv(tag, size, source_rank, source_thread);
     }
 
@@ -1854,9 +1947,11 @@ extern "C" {
 } // extern "C"
 
 #ifdef APEX_HAVE_HPX_disabled
-HPX_DECLARE_ACTION(APEX_TOP_LEVEL_PACKAGE::finalize, apex_internal_shutdown_action);
+HPX_DECLARE_ACTION(APEX_TOP_LEVEL_PACKAGE::finalize,
+    apex_internal_shutdown_action);
 HPX_ACTION_HAS_CRITICAL_PRIORITY(apex_internal_shutdown_action);
-HPX_PLAIN_ACTION(APEX_TOP_LEVEL_PACKAGE::finalize, apex_internal_shutdown_action);
+HPX_PLAIN_ACTION(APEX_TOP_LEVEL_PACKAGE::finalize,
+    apex_internal_shutdown_action);
 
 void apex_schedule_shutdown() {
     if(get_hpx_runtime_ptr() == nullptr) return;

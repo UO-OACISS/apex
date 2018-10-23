@@ -20,10 +20,11 @@ namespace apex {
 
 class apex_options {
 private:
-    // singleton instance. 
-    static apex_options * _instance; 
+    // singleton instance.
+    static apex_options * _instance;
     /* Declare the private member variables */
-#define apex_macro(name, member_variable, type, default_value) std::atomic<type> _##member_variable;
+#define apex_macro(name, member_variable, type, default_value)\
+    std::atomic<type> _##member_variable;
     FOREACH_APEX_OPTION(apex_macro)
     FOREACH_APEX_STRING_OPTION(apex_macro)
 #undef apex_macro

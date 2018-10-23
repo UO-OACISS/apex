@@ -27,6 +27,9 @@
 #include <string>
 #include <vector>
 #include <stdint.h>
+#include <atomic>
+#include <list>
+#include <map>
 #include "apex_types.h"
 #include "apex_config.h"
 #include "handler.hpp"
@@ -110,7 +113,7 @@ public:
     static apex* instance(); // singleton instance
     static apex* instance(uint64_t comm_rank, uint64_t comm_size); // singleton instance
     static apex* __instance(); // special case - for cleanup only!
-	static void async_thread_setup();
+    static void async_thread_setup();
     int get_node_id(void);
     int get_num_ranks(void);
     void set_node_id(uint64_t rank) { m_node_id = rank; }
@@ -126,10 +129,13 @@ public:
     policy_handler * get_policy_handler(void) const;
 /*
     template <typename Rep, typename Period>
-    policy_handler * get_policy_handler(std::chrono::duration<Rep, Period> const& period);
+    policy_handler * get_policy_handler(
+        std::chrono::duration<Rep, Period> const& period);
 */
     policy_handler * get_policy_handler(uint64_t const& period_microseconds);
-    void set_state(int thread_id, apex_thread_state state) { thread_states[thread_id] = state; }
+    void set_state(int thread_id, apex_thread_state state) {
+        thread_states[thread_id] = state;
+    }
     apex_thread_state get_state(int thread_id) {
         if ((unsigned int)thread_id >= thread_states.size()) {
             return APEX_IDLE;

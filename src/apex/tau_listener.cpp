@@ -7,6 +7,7 @@
 #include "thread_instance.hpp"
 #include <iostream>
 #include <fstream>
+#include <memory>
 
 using namespace std;
 
@@ -27,47 +28,49 @@ int (*my_Tau_global_stop)(void);
 int (*my_Tau_trigger_context_event_thread)(char*, double, int);
 
 bool assign_function_pointers(void) {
-  if (Tau_init == NULL) {
+  if (Tau_init == nullptr) {
     /* Print an error message, because TAU wasn't preloaded! */
-    std::cerr << "WARNING! TAU libraries not loaded, TAU support unavailable!" << std::endl;
+    std::cerr <<
+        "WARNING! TAU libraries not loaded, TAU support unavailable!"
+        << std::endl;
     return false;
   } else {
     my_Tau_init = &Tau_init;
   }
-  if (Tau_register_thread != NULL) {
+  if (Tau_register_thread != nullptr) {
     my_Tau_register_thread = &Tau_register_thread;
   }
-  if (Tau_create_top_level_timer_if_necessary != NULL) {
+  if (Tau_create_top_level_timer_if_necessary != nullptr) {
     my_Tau_create_top_level_timer_if_necessary = &Tau_create_top_level_timer_if_necessary;
   }
-  if (Tau_start != NULL) {
+  if (Tau_start != nullptr) {
     my_Tau_start = &Tau_start;
   }
-  if (Tau_stop != NULL) {
+  if (Tau_stop != nullptr) {
     my_Tau_stop = &Tau_stop;
   }
-  if (Tau_dump != NULL) {
+  if (Tau_dump != nullptr) {
     my_Tau_dump = &Tau_dump;
   }
-  if (Tau_exit != NULL) {
+  if (Tau_exit != nullptr) {
     my_Tau_exit = &Tau_exit;
   }
-  if (Tau_set_node != NULL) {
+  if (Tau_set_node != nullptr) {
     my_Tau_set_node = &Tau_set_node;
   }
-  if (Tau_profile_exit_all_threads != NULL) {
+  if (Tau_profile_exit_all_threads != nullptr) {
     my_Tau_profile_exit_all_threads = &Tau_profile_exit_all_threads;
   }
-  if (Tau_get_thread != NULL) {
+  if (Tau_get_thread != nullptr) {
     my_Tau_get_thread = &Tau_get_thread;
   }
-  if (Tau_profile_exit_all_tasks != NULL) {
+  if (Tau_profile_exit_all_tasks != nullptr) {
     my_Tau_profile_exit_all_tasks = &Tau_profile_exit_all_tasks;
   }
-  if (Tau_global_stop != NULL) {
+  if (Tau_global_stop != nullptr) {
     my_Tau_global_stop = &Tau_global_stop;
   }
-  if (Tau_trigger_context_event_thread != NULL) {
+  if (Tau_trigger_context_event_thread != nullptr) {
     my_Tau_trigger_context_event_thread = &Tau_trigger_context_event_thread;
   }
   return true;
@@ -184,7 +187,9 @@ void tau_listener::on_yield(std::shared_ptr<profiler> &p) {
 
 void tau_listener::on_sample_value(sample_value_event_data &data) {
   if (!_terminate) {
-      my_Tau_trigger_context_event_thread(const_cast<char*>(data.counter_name->c_str()), data.counter_value, data.thread_id);
+      my_Tau_trigger_context_event_thread(
+        const_cast<char*>(data.counter_name->c_str()),
+        data.counter_value, data.thread_id);
   }
   return;
 }

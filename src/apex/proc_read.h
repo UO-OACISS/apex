@@ -17,6 +17,7 @@
 #include <mutex>
 #include <atomic>
 #include <thread>
+#include <string>
 #include "pthread_wrapper.hpp"
 #include "apex_options.hpp"
 
@@ -45,7 +46,8 @@ private:
 public:
     static void* read_proc(void * _pdr);
     proc_data_reader(void) {
-        worker_thread = new pthread_wrapper(&proc_data_reader::read_proc, (void*)(this), apex_options::proc_period());
+        worker_thread = new pthread_wrapper(&proc_data_reader::read_proc,
+        (void*)(this), apex_options::proc_period());
     };
 
     void stop_reading(void) {
@@ -83,7 +85,8 @@ public:
   long long package0;
   long long dram;
 #endif
-  //softirq 10953997190 0 1380880059 1495447920 1585783785 15525789 0 12 661586214 0 1519806115
+  //softirq 10953997190 0 1380880059 1495447920 1585783785 ...
+  //        15525789 0 12 661586214 0 1519806115
   ~ProcData(void);
   ProcData* diff(const ProcData& rhs);
   void dump(std::ostream& out);
@@ -164,7 +167,7 @@ inline long long read_package0 (void) {
   long long tmplong;
   FILE *fff;
   fff=fopen("/sys/class/powercap/intel-rapl/intel-rapl:0/energy_uj","r");
-  if (fff==NULL) {
+  if (fff==nullptr) {
     //std::cerr << "Error opening package0!" << std::endl;
     tmplong = 0LL;
   } else {
@@ -178,8 +181,10 @@ inline long long  read_dram (void) {
   //std::cout << "Reading dram" << std::endl;
   long long  tmplong;
   FILE *fff;
-  fff=fopen("/sys/class/powercap/intel-rapl/intel-rapl:0/intel-rapl:0:0/energy_uj","r");
-  if (fff==NULL) {
+  fff=fopen(
+    "/sys/class/powercap/intel-rapl/intel-rapl:0/intel-rapl:0:0/energy_uj",
+    "r");
+  if (fff==nullptr) {
     //std::cerr << "Error opening dram!" << std::endl;
     tmplong = 0LL;
   } else {

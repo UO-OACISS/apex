@@ -22,7 +22,7 @@ public:
   static bool initialize_tau(int argc, char** avgv);
   void on_startup(startup_event_data &data);
   void on_dump(dump_event_data &data);
-  void on_reset(task_identifier * id) 
+  void on_reset(task_identifier * id)
       { APEX_UNUSED(id); };
   void on_shutdown(shutdown_event_data &data);
   void on_new_node(node_event_data &data);
@@ -32,8 +32,8 @@ public:
   void on_stop(std::shared_ptr<profiler> &p);
   void on_yield(std::shared_ptr<profiler> &p);
   bool on_resume(std::shared_ptr<task_wrapper> &tt_ptr);
-  void on_task_complete(std::shared_ptr<task_wrapper> &tt_ptr) { 
-    APEX_UNUSED(tt_ptr); 
+  void on_task_complete(std::shared_ptr<task_wrapper> &tt_ptr) {
+    APEX_UNUSED(tt_ptr);
   };
   void on_sample_value(sample_value_event_data &data);
   void on_periodic(periodic_event_data &data);
@@ -51,7 +51,8 @@ int initialize_worker_thread_for_tau(void);
 /* Weak symbols that are redefined if we load TAU at link or runtime */
 extern "C" {
 APEX_EXPORT APEX_WEAK_PRE int Tau_register_thread(void) APEX_WEAK_POST;
-APEX_EXPORT APEX_WEAK_PRE int Tau_create_top_level_timer_if_necessary(void) APEX_WEAK_POST;
+APEX_EXPORT APEX_WEAK_PRE int
+    Tau_create_top_level_timer_if_necessary(void) APEX_WEAK_POST;
 APEX_EXPORT APEX_WEAK_PRE int Tau_start(const char *) APEX_WEAK_POST;
 APEX_EXPORT APEX_WEAK_PRE int Tau_stop(const char *) APEX_WEAK_POST;
 APEX_EXPORT APEX_WEAK_PRE int Tau_init(int, char**) APEX_WEAK_POST;
@@ -62,5 +63,6 @@ APEX_EXPORT APEX_WEAK_PRE int Tau_profile_exit_all_threads(void) APEX_WEAK_POST;
 APEX_EXPORT APEX_WEAK_PRE int Tau_get_thread(void) APEX_WEAK_POST;
 APEX_EXPORT APEX_WEAK_PRE int Tau_profile_exit_all_tasks(void) APEX_WEAK_POST;
 APEX_EXPORT APEX_WEAK_PRE int Tau_global_stop(void) APEX_WEAK_POST;
-APEX_EXPORT APEX_WEAK_PRE int Tau_trigger_context_event_thread(char*, double, int) APEX_WEAK_POST;
+APEX_EXPORT APEX_WEAK_PRE int
+    Tau_trigger_context_event_thread(char*, double, int) APEX_WEAK_POST;
 }

@@ -27,7 +27,8 @@ static void apex_custom_signal_handler(int sig) {
   //std::unique_lock<std::mutex> l(output_mutex);
   fflush(stderr);
   std::cerr << std::endl;
-  std::cerr << "********* Thread " << apex::thread_instance::get_id() << " " << strsignal(sig) << " *********";
+  std::cerr << "********* Thread " << apex::thread_instance::get_id() << " " <<
+  strsignal(sig) << " *********";
   std::cerr << std::endl;
   std::cerr << std::endl;
   if(errnum) {
@@ -84,11 +85,11 @@ int apex_register_signal_handler() {
   sigemptyset(&act.sa_mask);
   act.sa_flags = 0;
   act.sa_handler = apex_custom_signal_handler;
-  sigaction( SIGILL, &act, NULL);  
-  sigaction( SIGABRT, &act, NULL);  
-  sigaction( SIGFPE, &act, NULL);  
-  sigaction( SIGSEGV, &act, NULL);  
-  sigaction( SIGBUS, &act, NULL);  
+  sigaction( SIGILL, &act, nullptr);
+  sigaction( SIGABRT, &act, nullptr);
+  sigaction( SIGFPE, &act, nullptr);
+  sigaction( SIGSEGV, &act, nullptr);
+  sigaction( SIGBUS, &act, nullptr);
   return 0;
 }
 

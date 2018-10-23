@@ -15,7 +15,9 @@
 #include <atomic>
 #include <list>
 #include <map>
-#include <string.h>
+#include <string>
+#include <utility>
+#include <vector>
 
 #ifdef APEX_HAVE_ACTIVEHARMONY
 #include "hclient.h"
@@ -25,7 +27,8 @@
 #include "apex_policies.h"
 
 enum class apex_param_type : int {NONE, LONG, DOUBLE, ENUM};
-enum class apex_ah_tuning_strategy : int {EXHAUSTIVE, RANDOM, NELDER_MEAD, PARALLEL_RANK_ORDER};
+enum class apex_ah_tuning_strategy : int {EXHAUSTIVE, RANDOM, NELDER_MEAD,
+PARALLEL_RANK_ORDER};
 
 struct apex_tuning_session;
 class apex_tuning_request;
@@ -45,10 +48,15 @@ class apex_param {
         virtual /*const*/ apex_param_type get_type() const {
             return apex_param_type::NONE;
         };
-        
-        friend apex_tuning_session_handle __setup_custom_tuning(apex_tuning_request & request);
-        friend int __common_setup_custom_tuning(std::shared_ptr<apex_tuning_session> tuning_session, apex_tuning_request & request);
-        friend int __active_harmony_custom_setup(std::shared_ptr<apex_tuning_session> tuning_session, apex_tuning_request & request);
+
+        friend apex_tuning_session_handle
+        __setup_custom_tuning(apex_tuning_request & request);
+        friend int
+        __common_setup_custom_tuning(std::shared_ptr<apex_tuning_session>
+        tuning_session, apex_tuning_request & request);
+        friend int
+        __active_harmony_custom_setup(std::shared_ptr<apex_tuning_session>
+        tuning_session, apex_tuning_request & request);
 };
 
 class apex_param_long : public apex_param {
@@ -66,13 +74,15 @@ class apex_param_long : public apex_param {
         virtual ~apex_param_long() {};
 
         /*const*/ long get_value() const {
-            return *value;    
+            return *value;
         };
 
         virtual /*const*/ apex_param_type get_type() const {
             return apex_param_type::LONG;
         };
-        friend int __active_harmony_custom_setup(std::shared_ptr<apex_tuning_session> tuning_session, apex_tuning_request & request);
+        friend int
+        __active_harmony_custom_setup(std::shared_ptr<apex_tuning_session>
+        tuning_session, apex_tuning_request & request);
 };
 
 class apex_param_double : public apex_param {
@@ -90,13 +100,15 @@ class apex_param_double : public apex_param {
         virtual ~apex_param_double() {};
 
         /*const*/ double get_value() const {
-            return *value;    
+            return *value;
         };
 
         virtual /*const*/ apex_param_type get_type() const {
             return apex_param_type::DOUBLE;
         };
-        friend int __active_harmony_custom_setup(std::shared_ptr<apex_tuning_session> tuning_session, apex_tuning_request & request);
+        friend int
+        __active_harmony_custom_setup(std::shared_ptr<apex_tuning_session>
+        tuning_session, apex_tuning_request & request);
 };
 
 class apex_param_enum : public apex_param {
@@ -106,8 +118,11 @@ class apex_param_enum : public apex_param {
         std::list<std::string> possible_values;
 
     public:
-        apex_param_enum(const std::string & name, const std::string & init_val, const std::list<std::string> possible_values) :
-              apex_param(name), init_value{init_val}, value{std::make_shared<const char*>(strdup(init_value.c_str()))}, possible_values{possible_values} {};
+        apex_param_enum(const std::string & name, const std::string & init_val,
+        const std::list<std::string> possible_values) :
+              apex_param(name), init_value{init_val},
+              value{std::make_shared<const char*>(strdup(init_value.c_str()))},
+              possible_values{possible_values} {};
         virtual ~apex_param_enum() {};
 
         const std::string get_value() const {
@@ -117,7 +132,9 @@ class apex_param_enum : public apex_param {
         virtual /*const*/ apex_param_type get_type() const {
             return apex_param_type::ENUM;
         };
-        friend int __active_harmony_custom_setup(std::shared_ptr<apex_tuning_session> tuning_session, apex_tuning_request & request);
+        friend int
+        __active_harmony_custom_setup(std::shared_ptr<apex_tuning_session>
+        tuning_session, apex_tuning_request & request);
 };
 
 
@@ -125,7 +142,7 @@ class apex_tuning_request {
     protected:
         std::string name;
         std::function<double()> metric;
-        std::map<std::string, std::shared_ptr<apex_param>> params;        
+        std::map<std::string, std::shared_ptr<apex_param>> params;
         apex_event_type trigger;
         apex_tuning_session_handle tuning_session_handle;
         bool running;
@@ -135,33 +152,50 @@ class apex_tuning_request {
         std::string aggregation_function;
 
     public:
-        apex_tuning_request(const std::string & name, std::function<double()> metric, apex_event_type trigger) 
-            : name{name}, metric{metric}, trigger{trigger}, tuning_session_handle{0},
-            running{false}, strategy{apex_ah_tuning_strategy::PARALLEL_RANK_ORDER}  {};
-        apex_tuning_request(const std::string & name) : name{name}, trigger{APEX_INVALID_EVENT},
-            tuning_session_handle{0}, running{false}, strategy{apex_ah_tuning_strategy::PARALLEL_RANK_ORDER}, radius(0.5), aggregation_times(1), aggregation_function("median") {};
+        apex_tuning_request(const std::string & name, std::function<double()>
+        metric, apex_event_type trigger)
+            : name{name}, metric{metric}, trigger{trigger},
+            tuning_session_handle{0},
+            running{false},
+            strategy{apex_ah_tuning_strategy::PARALLEL_RANK_ORDER}  {};
+        apex_tuning_request(const std::string & name) : name{name},
+        trigger{APEX_INVALID_EVENT},
+            tuning_session_handle{0}, running{false},
+            strategy{apex_ah_tuning_strategy::PARALLEL_RANK_ORDER},
+            radius(0.5), aggregation_times(1), aggregation_function("median")
+            {};
         virtual ~apex_tuning_request()  {};
 
         const std::string & get_name() const {
             return name;
         }
 
-        std::shared_ptr<apex_param_long> add_param_long(const std::string & name, const long init_value, const long min,
-                            const long max, const long step) {
-            std::shared_ptr<apex_param_long> param{std::make_shared<apex_param_long>(name, init_value, min, max, step)};
+        std::shared_ptr<apex_param_long> add_param_long(const std::string &
+        name, const long init_value, const long min, const long max,
+        const long step) {
+            std::shared_ptr<apex_param_long>
+            param{std::make_shared<apex_param_long>(name, init_value, min, max,
+            step)};
             params.insert(std::make_pair(name, param));
             return param;
         };
 
-        std::shared_ptr<apex_param_double> add_param_double(const std::string & name, const double init_value, const double min,
+        std::shared_ptr<apex_param_double> add_param_double(const std::string &
+        name, const double init_value, const double min,
                               const double max, const double step) {
-            std::shared_ptr<apex_param_double> param{std::make_shared<apex_param_double>(name, init_value, min, max, step)};
+            std::shared_ptr<apex_param_double>
+            param{std::make_shared<apex_param_double>(name, init_value, min,
+            max, step)};
             params.insert(std::make_pair(name, param));
             return param;
         };
 
-        std::shared_ptr<apex_param_enum> add_param_enum(const std::string & name, const std::string & init_value, const std::list<std::string> & possible_values) {
-            std::shared_ptr<apex_param_enum> param{std::make_shared<apex_param_enum>(name, init_value, possible_values)};
+        std::shared_ptr<apex_param_enum> add_param_enum(const std::string &
+        name, const std::string & init_value, const std::list<std::string> &
+        possible_values) {
+            std::shared_ptr<apex_param_enum>
+            param{std::make_shared<apex_param_enum>(name, init_value,
+            possible_values)};
             params.insert(std::make_pair(name, param));
             return param;
         };
@@ -215,9 +249,14 @@ class apex_tuning_request {
             strategy = s;
         };
 
-        friend apex_tuning_session_handle __setup_custom_tuning(apex_tuning_request & request);
-        friend int __common_setup_custom_tuning(std::shared_ptr<apex_tuning_session> tuning_session, apex_tuning_request & request);
-        friend int __active_harmony_custom_setup(std::shared_ptr<apex_tuning_session> tuning_session, apex_tuning_request & request);
+        friend apex_tuning_session_handle
+        __setup_custom_tuning(apex_tuning_request & request);
+        friend int
+        __common_setup_custom_tuning(std::shared_ptr<apex_tuning_session>
+        tuning_session, apex_tuning_request & request);
+        friend int
+        __active_harmony_custom_setup(std::shared_ptr<apex_tuning_session>
+        tuning_session, apex_tuning_request & request);
 
 };
 
@@ -226,13 +265,13 @@ struct apex_tuning_session {
     apex_tuning_session_handle id;
 
 #ifdef APEX_HAVE_ACTIVEHARMONY
-    hdesc_t * hdesc = NULL;
-    hdef_t  * hdef = NULL;
-    htask_t * htask = NULL;
+    hdesc_t * hdesc = nullptr;
+    hdef_t  * hdef = nullptr;
+    htask_t * htask = nullptr;
 #else
-    void * hdesc = NULL;
-    void * hdef = NULL;
-    void * htask = NULL;
+    void * hdesc = nullptr;
+    void * hdef = nullptr;
+    void * htask = nullptr;
 #endif
 
     int test_pp = 0;
@@ -264,8 +303,8 @@ struct apex_tuning_session {
     std::vector<std::pair<std::string,long*>> tunable_params;
 
     // variables for hill climbing
-    double * evaluations = NULL;
-    int * observations = NULL;
+    double * evaluations = nullptr;
+    int * observations = nullptr;
     std::ofstream cap_data;
     bool cap_data_open = false;
 

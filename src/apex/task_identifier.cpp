@@ -7,6 +7,8 @@
 #include "thread_instance.hpp"
 #include "apex_api.hpp"
 #include <mutex>
+#include <string>
+#include <utility>
 
 #if APEX_HAVE_BFD
 #include "address_resolution.hpp"
@@ -55,7 +57,7 @@ const std::string& task_identifier::get_name(bool resolve) {
       std::unique_lock<std::mutex> queue_lock(bfd_mutex);
         // check again, another thread may have resolved it.
         if (_resolved_name == "") {
-          //_resolved_name = lookup_address((uintptr_t)address, false);         
+          //_resolved_name = lookup_address((uintptr_t)address, false);
           _resolved_name = thread_instance::instance().map_addr_to_name(address);
           _resolved_name.assign(demangle(_resolved_name));
         }
@@ -67,7 +69,8 @@ const std::string& task_identifier::get_name(bool resolve) {
             REGEX_NAMESPACE::regex rx (".*UNRESOLVED ADDR (.*)");
             if (REGEX_NAMESPACE::regex_match (name,rx)) {
                 const REGEX_NAMESPACE::regex separator(" ADDR ");
-                REGEX_NAMESPACE::sregex_token_iterator token(name.begin(), name.end(), separator, -1);
+                REGEX_NAMESPACE::sregex_token_iterator
+                    token(name.begin(), name.end(), separator, -1);
                 *token++; // ignore
                 std::string addr_str = *token++;
                 void* addr_addr;

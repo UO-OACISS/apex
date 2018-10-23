@@ -13,6 +13,8 @@
 #include <set>
 #include <memory>
 #include <mutex>
+#include <atomic>
+#include <string>
 #include "task_identifier.hpp"
 #include "apex_cxx_shared_lock.hpp"
 
@@ -64,15 +66,16 @@ public:
   void on_stop(std::shared_ptr<profiler> &p);
   void on_yield(std::shared_ptr<profiler> &p);
   bool on_resume(std::shared_ptr<task_wrapper> &tt_ptr);
-  void on_task_complete(std::shared_ptr<task_wrapper> &tt_ptr) { 
-    APEX_UNUSED(tt_ptr); 
+  void on_task_complete(std::shared_ptr<task_wrapper> &tt_ptr) {
+    APEX_UNUSED(tt_ptr);
   };
   void on_sample_value(sample_value_event_data &data) { APEX_UNUSED(data); };
   void on_periodic(periodic_event_data &data) { APEX_UNUSED(data); };
   void on_custom_event(custom_event_data &data) { APEX_UNUSED(data); };
   void on_send(message_event_data &data) { APEX_UNUSED(data); };
   void on_recv(message_event_data &data) { APEX_UNUSED(data); };
-  void set_node_id(int node_id, int node_count) { APEX_UNUSED(node_id); APEX_UNUSED(node_count); }
+  void set_node_id(int node_id, int node_count) { APEX_UNUSED(node_id);
+    APEX_UNUSED(node_count); }
 
   bool _handler(void);
   std::stack<task_identifier>* get_event_stack(unsigned int tid);

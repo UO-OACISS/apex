@@ -10,9 +10,11 @@
  * http://stackoverflow.com/questions/4792449/c0x-has-no-semaphores-how-to-synchronize-threads
  */
 
-#if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
+#if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || \
+    (defined(__APPLE__) && defined(__MACH__)))
     /* UNIX-style OS. ------------------------------------------- */
 #include <unistd.h>
+#include <iostream>
 #endif
 
 #if defined(_POSIX_VERSION) && !defined(_MSC_VER) && !defined(__APPLE__)
@@ -35,16 +37,18 @@ private:
     std::atomic<uint64_t> true_posts;
     std::atomic<uint64_t> waits;
 public:
-    semaphore() : work_waiting(0), posts(0), true_posts(0), waits(0) { 
+    semaphore() : work_waiting(0), posts(0), true_posts(0), waits(0) {
 #if defined(__APPLE__) // handle the new way on systems like Apple
-        the_semaphore_p = sem_open("work waiting", O_CREAT, S_IRWXU, 1); 
+        the_semaphore_p = sem_open("work waiting", O_CREAT, S_IRWXU, 1);
 #else
-        the_semaphore_p = &the_semaphore; sem_init(the_semaphore_p, 1, 1); 
+        the_semaphore_p = &the_semaphore; sem_init(the_semaphore_p, 1, 1);
 #endif
     }
-    void dump_stats() { 
+    void dump_stats() {
 #ifdef APEX_DEBUG
-        std::cout << "Semaphore stats: " << posts << " posts, " << true_posts << " true posts, " << waits << " waits." << std::endl; fflush(stdout);
+        std::cout << "Semaphore stats: " << posts << " posts, "
+        << true_posts << " true posts, " << waits << " waits."
+        << std::endl; fflush(stdout);
 #endif
     }
     /*
@@ -52,7 +56,7 @@ public:
      * waiting for the post (it is a synchronization point across all threads), don't
      * post if there is already work on the queue.
      */
-    inline void post() { 
+    inline void post() {
         //posts++;
         if (work_waiting) return ;
         work_waiting = true;
@@ -65,7 +69,7 @@ public:
      */
     inline void wait() { sem_wait(the_semaphore_p);
         //waits++;
-        work_waiting=false; 
+        work_waiting=false;
     }
 };
 

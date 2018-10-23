@@ -1,3 +1,8 @@
+//  Copyright (c) 2014-2018 University of Oregon
+//
+//  Distributed under the Boost Software License, Version 1.0. (See accompanying
+//  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
 #if defined(APEX_HAVE_PROC)
 
 #include <stdio.h>
@@ -8,6 +13,8 @@
 #include "apex_api.hpp"
 #include "apex.hpp"
 #include <sstream>
+#include <atomic>
+#include <unordered_set>
 #include <string>
 #ifdef __MIC__
 #include "boost/regex.hpp"
@@ -45,34 +52,34 @@ void get_popen_data(char *cmnd) {
     FILE *pf;
     string command;
     char data[DATA_SIZE];
- 
+
     // Execute a process listing
-    command = "cat /proc/"; 
-    command = command + cmnd; 
- 
+    command = "cat /proc/";
+    command = command + cmnd;
+
     // Setup our pipe for reading and execute our command.
-    pf = popen(command.c_str(),"r"); 
- 
+    pf = popen(command.c_str(),"r");
+
     if(!pf){
       cerr << "Could not open pipe for output." << endl;
       return;
     }
- 
+
     // Grab data from process execution
     while ( fgets( data, DATA_SIZE, pf)) {
-      cout << "-> " << data << endl; 
+      cout << "-> " << data << endl;
       fflush(pf);
     }
- 
+
     if (pclose(pf) != 0) {
         cerr << "Error: Failed to close command stream" << endl;
     }
- 
+
     return;
 }
 
 ProcData* parse_proc_stat(void) {
-  if (!apex_options::use_proc_stat()) return NULL;
+  if (!apex_options::use_proc_stat()) return nullptr;
 
   /*  Reading proc/stat as a file  */
   FILE * pFile;
@@ -80,32 +87,33 @@ ProcData* parse_proc_stat(void) {
   char dummy[32];
   pFile = fopen ("/proc/stat","r");
   ProcData* procData = new ProcData();
-  if (pFile == NULL) perror ("Error opening file");
+  if (pFile == nullptr) perror ("Error opening file");
   else {
     CPUStat* cpu_stat;
     while ( fgets( line, 128, pFile)) {
-      if ( strncmp (line, "cpu", 3) == 0 ) { 
+      if ( strncmp (line, "cpu", 3) == 0 ) {
         cpu_stat = new CPUStat();
         /*  Note, this will only work on linux 2.6.24 through 3.5  */
-        sscanf(line, "%s %lld %lld %lld %lld %lld %lld %lld %lld %lld\n", 
-            cpu_stat->name, &cpu_stat->user, &cpu_stat->nice, 
-            &cpu_stat->system, &cpu_stat->idle, 
-            &cpu_stat->iowait, &cpu_stat->irq, &cpu_stat->softirq, 
+        sscanf(line, "%s %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
+            cpu_stat->name, &cpu_stat->user, &cpu_stat->nice,
+            &cpu_stat->system, &cpu_stat->idle,
+            &cpu_stat->iowait, &cpu_stat->irq, &cpu_stat->softirq,
             &cpu_stat->steal, &cpu_stat->guest);
         procData->cpus.push_back(cpu_stat);
       }
-      else if ( strncmp (line, "ctxt", 4) == 0 ) { 
+      else if ( strncmp (line, "ctxt", 4) == 0 ) {
         sscanf(line, "%s %lld\n", dummy, &procData->ctxt);
-      } else if ( strncmp (line, "btime", 5) == 0 ) { 
+      } else if ( strncmp (line, "btime", 5) == 0 ) {
         sscanf(line, "%s %lld\n", dummy, &procData->btime);
-      } else if ( strncmp (line, "processes", 9) == 0 ) { 
+      } else if ( strncmp (line, "processes", 9) == 0 ) {
         sscanf(line, "%s %ld\n", dummy, &procData->processes);
-      } else if ( strncmp (line, "procs_running", 13) == 0 ) { 
+      } else if ( strncmp (line, "procs_running", 13) == 0 ) {
         sscanf(line, "%s %ld\n", dummy, &procData->procs_running);
-      } else if ( strncmp (line, "procs_blocked", 13) == 0 ) { 
+      } else if ( strncmp (line, "procs_blocked", 13) == 0 ) {
         sscanf(line, "%s %ld\n", dummy, &procData->procs_blocked);
-      //} else if ( strncmp (line, "softirq", 5) == 0 ) { 
-        // softirq 10953997190 0 1380880059 1495447920 1585783785 15525789 0 12 661586214 0 1519806115
+      //} else if ( strncmp (line, "softirq", 5) == 0 ) {
+        // softirq 10953997190 0 1380880059 1495447920 1585783785...
+        // ...15525789 0 12 661586214 0 1519806115
         //sscanf(line, "%s %d\n", dummy, &procData->btime);
       }
       // don't waste time parsing anything but the mean
@@ -141,7 +149,7 @@ ProcData* ProcData::diff(ProcData const& rhs) {
   for (i = 0 ; i < cpus.size() ; i++) {
     cpu_stat = new CPUStat();
     strcpy(cpu_stat->name, cpus[i]->name);
-    cpu_stat->user = cpus[i]->user - rhs.cpus[i]->user; 
+    cpu_stat->user = cpus[i]->user - rhs.cpus[i]->user;
     cpu_stat->nice = cpus[i]->nice - rhs.cpus[i]->nice;
     cpu_stat->system = cpus[i]->system - rhs.cpus[i]->system;
     cpu_stat->idle = cpus[i]->idle - rhs.cpus[i]->idle;
@@ -171,7 +179,8 @@ ProcData* ProcData::diff(ProcData const& rhs) {
 }
 
 void ProcData::dump(ostream &out) {
-  out << "name\tuser\tnice\tsys\tidle\tiowait\tirq\tsoftirq\tsteal\tguest" << endl;
+  out << "name\tuser\tnice\tsys\tidle\tiowait"
+    << "\tirq\tsoftirq\tsteal\tguest" << endl;
   CPUs::iterator iter;
   long long total = 0L;
   double idle_ratio = 0.0;
@@ -179,18 +188,20 @@ void ProcData::dump(ostream &out) {
   double system_ratio = 0.0;
   for (iter = cpus.begin(); iter != cpus.end(); ++iter) {
     CPUStat* cpu_stat=*iter;
-    out << cpu_stat->name << "\t" 
-        << cpu_stat->user << "\t" 
-        << cpu_stat->nice << "\t" 
-        << cpu_stat->system << "\t" 
-        << cpu_stat->idle << "\t" 
-        << cpu_stat->iowait << "\t" 
-        << cpu_stat->irq << "\t" 
-        << cpu_stat->softirq << "\t" 
-        << cpu_stat->steal << "\t" 
+    out << cpu_stat->name << "\t"
+        << cpu_stat->user << "\t"
+        << cpu_stat->nice << "\t"
+        << cpu_stat->system << "\t"
+        << cpu_stat->idle << "\t"
+        << cpu_stat->iowait << "\t"
+        << cpu_stat->irq << "\t"
+        << cpu_stat->softirq << "\t"
+        << cpu_stat->steal << "\t"
         << cpu_stat->guest << endl;
     if (strcmp(cpu_stat->name, "cpu") == 0) {
-      total = cpu_stat->user + cpu_stat->nice + cpu_stat->system + cpu_stat->idle + cpu_stat->iowait + cpu_stat->irq + cpu_stat->softirq + cpu_stat->steal + cpu_stat->guest;
+      total = cpu_stat->user + cpu_stat->nice + cpu_stat->system +
+        cpu_stat->idle + cpu_stat->iowait + cpu_stat->irq + cpu_stat->softirq +
+        cpu_stat->steal + cpu_stat->guest;
       user_ratio = (double)cpu_stat->user / (double)total;
       system_ratio = (double)cpu_stat->system / (double)total;
       idle_ratio = (double)cpu_stat->idle / (double)total;
@@ -210,20 +221,21 @@ void ProcData::dump_mean(ostream &out) {
   CPUs::iterator iter;
   iter = cpus.begin();
     CPUStat* cpu_stat=*iter;
-    out << cpu_stat->name << "\t" 
-        << cpu_stat->user << "\t" 
-        << cpu_stat->nice << "\t" 
-        << cpu_stat->system << "\t" 
-        << cpu_stat->idle << "\t" 
-        << cpu_stat->iowait << "\t" 
-        << cpu_stat->irq << "\t" 
-        << cpu_stat->softirq << "\t" 
-        << cpu_stat->steal << "\t" 
+    out << cpu_stat->name << "\t"
+        << cpu_stat->user << "\t"
+        << cpu_stat->nice << "\t"
+        << cpu_stat->system << "\t"
+        << cpu_stat->idle << "\t"
+        << cpu_stat->iowait << "\t"
+        << cpu_stat->irq << "\t"
+        << cpu_stat->softirq << "\t"
+        << cpu_stat->steal << "\t"
         << cpu_stat->guest << endl;
 }
 
 void ProcData::dump_header(ostream &out) {
-  out << "name\tuser\tnice\tsys\tidle\tiowait\tirq\tsoftirq\tsteal\tguest" << endl;
+  out << "name\tuser\tnice\tsys\tidle\tiowait"
+    << "\tirq\tsoftirq\tsteal\tguest" << endl;
 }
 
 double ProcData::get_cpu_user() {
@@ -234,7 +246,9 @@ double ProcData::get_cpu_user() {
   for (iter = cpus.begin(); iter != cpus.end(); ++iter) {
     CPUStat* cpu_stat=*iter;
       if (strcmp(cpu_stat->name, "cpu") == 0) {
-        total = cpu_stat->user + cpu_stat->nice + cpu_stat->system + cpu_stat->idle + cpu_stat->iowait + cpu_stat->irq + cpu_stat->softirq + cpu_stat->steal + cpu_stat->guest;
+        total = cpu_stat->user + cpu_stat->nice + cpu_stat->system +
+        cpu_stat->idle + cpu_stat->iowait + cpu_stat->irq + cpu_stat->softirq +
+        cpu_stat->steal + cpu_stat->guest;
         user_ratio = (double)cpu_stat->user / (double)total;
       break;
       }
@@ -276,7 +290,9 @@ void ProcData::sample_values(void) {
   double total;
   CPUs::iterator iter = cpus.begin();
   CPUStat* cpu_stat=*iter;
-  total = (double)(cpu_stat->user + cpu_stat->nice + cpu_stat->system + cpu_stat->idle + cpu_stat->iowait + cpu_stat->irq + cpu_stat->softirq + cpu_stat->steal + cpu_stat->guest);
+  total = (double)(cpu_stat->user + cpu_stat->nice + cpu_stat->system +
+  cpu_stat->idle + cpu_stat->iowait + cpu_stat->irq + cpu_stat->softirq +
+  cpu_stat->steal + cpu_stat->guest);
   total = total * 0.01; // so we have a percentage in the final values
   sample_value("CPU User %",     ((double)(cpu_stat->user))    / total);
   sample_value("CPU Nice %",     ((double)(cpu_stat->nice))    / total);
@@ -309,17 +325,18 @@ bool parse_proc_cpuinfo() {
     int cpuid = 0;
     while ( fgets( line, 4096, f)) {
         string tmp(line);
-		tmp = trim(tmp);
-		// check for empty line
-		if (tmp.size() == 0) continue;
+        tmp = trim(tmp);
+        // check for empty line
+        if (tmp.size() == 0) continue;
         const REGEX_NAMESPACE::regex separator(":");
-        REGEX_NAMESPACE::sregex_token_iterator token(tmp.begin(), tmp.end(), separator, -1);
+        REGEX_NAMESPACE::sregex_token_iterator token(tmp.begin(), tmp.end(),
+            separator, -1);
         REGEX_NAMESPACE::sregex_token_iterator end;
         string name = *token;
         if (++token != end) {
           string value = *token;
-		  // check for no value
-		  if (value.size() == 0) continue;
+          // check for no value
+          if (value.size() == 0) continue;
           name = trim(name);
           char* pEnd;
           double d1 = strtod (value.c_str(), &pEnd);
@@ -344,7 +361,8 @@ bool parse_proc_meminfo() {
     while ( fgets( line, 4096, f)) {
         string tmp(line);
         const REGEX_NAMESPACE::regex separator(":");
-        REGEX_NAMESPACE::sregex_token_iterator token(tmp.begin(), tmp.end(), separator, -1);
+        REGEX_NAMESPACE::sregex_token_iterator token(tmp.begin(), tmp.end(),
+            separator, -1);
         REGEX_NAMESPACE::sregex_token_iterator end;
         string name = *token++;
         if (token != end) {
@@ -372,7 +390,8 @@ bool parse_proc_self_status() {
         string tmp(line);
         if (!tmp.compare(0,prefix.size(),prefix)) {
             const REGEX_NAMESPACE::regex separator(":");
-            REGEX_NAMESPACE::sregex_token_iterator token(tmp.begin(), tmp.end(), separator, -1);
+            REGEX_NAMESPACE::sregex_token_iterator token(tmp.begin(),
+                tmp.end(), separator, -1);
             REGEX_NAMESPACE::sregex_token_iterator end;
             string name = *token++;
             if (token != end) {
@@ -399,7 +418,8 @@ bool parse_proc_self_io() {
     while ( fgets( line, 4096, f)) {
         string tmp(line);
         const REGEX_NAMESPACE::regex separator(":");
-        REGEX_NAMESPACE::sregex_token_iterator token(tmp.begin(), tmp.end(), separator, -1);
+        REGEX_NAMESPACE::sregex_token_iterator token(tmp.begin(), tmp.end(),
+            separator, -1);
         REGEX_NAMESPACE::sregex_token_iterator end;
         string name = *token++;
         if (token != end) {
@@ -423,12 +443,12 @@ bool parse_proc_netdev() {
   if (f) {
     char line[4096] = {0};
     char * rc = fgets(line, 4096, f); // skip this line
-    if (rc == NULL) {
+    if (rc == nullptr) {
         fclose(f);
         return false;
     }
     rc = fgets(line, 4096, f); // skip this line
-    if (rc == NULL) {
+    if (rc == nullptr) {
         fclose(f);
         return false;
     }
@@ -436,7 +456,8 @@ bool parse_proc_netdev() {
         string outer_tmp(line);
         outer_tmp = trim(outer_tmp);
         const REGEX_NAMESPACE::regex separator("[|:\\s]+");
-        REGEX_NAMESPACE::sregex_token_iterator token(outer_tmp.begin(), outer_tmp.end(), separator, -1);
+        REGEX_NAMESPACE::sregex_token_iterator token(outer_tmp.begin(),
+            outer_tmp.end(), separator, -1);
         REGEX_NAMESPACE::sregex_token_iterator end;
         string devname = *token++; // device name
         string tmp = *token++;
@@ -536,7 +557,8 @@ bool parse_sensor_data() {
   devices.append(string("coretemp.0"));
   devices.append(string("coretemp.1"));
   devices.append(string("i5k_amb.0"));
-  for (std::unordered_set<string>::const_iterator it = devices.begin(); it != devices.end(); it++) {
+  for (std::unordered_set<string>::const_iterator it = devices.begin();
+    it != devices.end(); it++) {
     // for each device, find out how many sensors there are.
   }
 #endif
@@ -577,9 +599,9 @@ void* proc_data_reader::read_proc(void * _ptw) {
 #ifdef APEX_HAVE_LM_SENSORS
   mysensors->read_sensors();
 #endif
-  ProcData *newData = NULL;
-  ProcData *periodData = NULL;
-  
+  ProcData *newData = nullptr;
+  ProcData *periodData = nullptr;
+ 
   while(ptw->wait()) {
     if (done) break;
     if (apex_options::use_tau()) {
@@ -631,11 +653,12 @@ void apex_init_msr(void) {
         fprintf(stderr, "Unable to initialize libmsr: %d.\n", status);
         return;
     }
-    struct rapl_data * r = NULL;
-    uint64_t * rapl_flags = NULL;
+    struct rapl_data * r = nullptr;
+    uint64_t * rapl_flags = nullptr;
     status = rapl_init(&r, &rapl_flags);
     if(status < 0) {
-        fprintf(stderr, "Unable to initialize rapl component of libmsr: %d.\n", status);
+        fprintf(stderr, "Unable to initialize rapl component of libmsr: %d.\n",
+        status);
         return;
     }
 }
@@ -646,8 +669,8 @@ void apex_finalize_msr(void) {
 
 double msr_current_power_high(void) {
     static int initialized = 0;
-    static uint64_t * rapl_flags = NULL;
-    static struct rapl_data * r = NULL;
+    static uint64_t * rapl_flags = nullptr;
+    static struct rapl_data * r = nullptr;
     static uint64_t sockets = 0;
 
     if(!initialized) {
@@ -663,9 +686,9 @@ double msr_current_power_high(void) {
     poll_rapl_data();
     double watts = 0.0;
     for(int s = 0; s < sockets; ++s) {
-        if(r->pkg_watts != NULL) {
+        if(r->pkg_watts != nullptr) {
             watts += r->pkg_watts[s];
-        }    
+        }
     }
     return watts;
 }
