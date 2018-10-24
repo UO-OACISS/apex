@@ -58,7 +58,7 @@
 
 #ifdef APEX_HAVE_HPX
 #include <boost/assign.hpp>
-#include <cstdint.hpp>
+#include <cstdint>
 #include <hpx/include/performance_counters.hpp>
 #include <hpx/include/actions.hpp>
 #include <hpx/include/util.hpp>
