@@ -224,7 +224,7 @@ inline unsigned int hardware_concurrency()
     return(hwc);
 }
 
-std::string demangle(const std::string& timer_name);
+std::string* demangle(const std::string& timer_name);
 
 void set_thread_affinity(void);
 void set_thread_affinity(int core);

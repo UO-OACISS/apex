@@ -55,8 +55,8 @@ std::vector<std::string> &split(const std::string &s, char delim,
     return elems;
 }
 
-std::string demangle(const std::string& timer_name) {
-    std::string demangled(timer_name);
+std::string* demangle(const std::string& timer_name) {
+    std::string* demangled = new std::string(timer_name);
 #if defined(__GNUC__)
     int     status;
     char *realname = abi::__cxa_demangle(timer_name.c_str(), 0, 0, &status);
@@ -67,7 +67,7 @@ std::string demangle(const std::string& timer_name) {
             *index = 0; // terminate before templates for brevity
         }
     */
-        demangled = std::string(realname);
+        demangled = new std::string(realname);
         free(realname);
     } else {
 #if defined(APEX_DEBUG)

@@ -59,7 +59,7 @@ const std::string& task_identifier::get_name(bool resolve) {
         if (_resolved_name == "") {
           //_resolved_name = lookup_address((uintptr_t)address, false);
           _resolved_name = thread_instance::instance().map_addr_to_name(address);
-          _resolved_name.assign(demangle(_resolved_name));
+          _resolved_name.assign((*demangle(_resolved_name)));
         }
       }
       return _resolved_name;
@@ -77,10 +77,10 @@ const std::string& task_identifier::get_name(bool resolve) {
                 sscanf(addr_str.c_str(), "%p", &addr_addr);
                 std::string * tmp = lookup_address((uintptr_t)addr_addr, true);
                 REGEX_NAMESPACE::regex old_address("UNRESOLVED ADDR " + addr_str);
-                name = REGEX_NAMESPACE::regex_replace(name, old_address, demangle(*tmp));
+                name = REGEX_NAMESPACE::regex_replace(name, old_address, (*demangle(*tmp)));
             }
 #endif
-            name.assign(demangle(name));
+            name.assign((*demangle(name)));
         }
       return name;
     }
