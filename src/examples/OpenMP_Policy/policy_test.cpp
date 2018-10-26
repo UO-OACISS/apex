@@ -23,7 +23,7 @@ int main (int argc, char *argv[]) {
     int final_chunk_size_2 = -1;
     int final_schedule_2 = -1;
 
-    int iters = 1000;
+    int iters = 100;
 
 	if (argc == 1) {
 		std::cout << "No iterations specified. Using default of " << iters << "." << std::endl;
@@ -38,7 +38,7 @@ int main (int argc, char *argv[]) {
 
     /* Fork a team of threads giving them their own copies of variables */
     for(int i = 0; i < iters; ++i) {
-    	//std::cout << "Iteration: " << i << std::endl;;
+    	std::cout << "Iteration: " << i << std::endl;;
 
 #pragma omp parallel private(nthreads)
         {

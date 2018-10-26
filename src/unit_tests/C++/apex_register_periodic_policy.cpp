@@ -5,8 +5,8 @@
 #include <stdlib.h>
 #include <apex_api.hpp>
 
-#define NUM_THREADS 8
-#define ITERATIONS 1000000
+#define NUM_THREADS 4
+#define ITERATIONS 100000
 
 apex_event_type custom_type_1;
 apex_event_type custom_type_2;
