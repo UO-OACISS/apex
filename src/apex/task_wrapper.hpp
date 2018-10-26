@@ -18,6 +18,9 @@ struct task_wrapper;
 
 namespace apex {
 
+/**
+  \brief A wrapper around APEX tasks.
+  */
 struct task_wrapper {
     task_identifier * task_id;
     profiler * prof;

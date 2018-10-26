@@ -48,7 +48,12 @@ class apex_tuning_request;
 namespace apex
 {
 
-// declare a default "null" pointer for std::shared_ptr<task_wrapper>& references
+/**
+ \brief declare a default "null" pointer for std::shared_ptr<task_wrapper>&
+ references
+
+ \sa @ref apex::task_wrapper
+ */
 static std::shared_ptr<task_wrapper> null_task_wrapper(nullptr);
 
 // These are all static functions for the class. There should be only
@@ -948,6 +953,14 @@ class scoped_timer {
         }
 };
 
+/**
+ \brief A convenience class for creating a scoped thread.
+
+ This object will register a thread when it starts, and when the
+ object goes out of scope, it will tell APEX that the thread
+ has exited.
+
+ */
 class scoped_thread {
 public:
     scoped_thread(const std::string& thread_name) {
