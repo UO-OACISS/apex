@@ -13,7 +13,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include "apex_assert.hpp"
+#include "apex_assert.h"
 
 #include <stdio.h>
 

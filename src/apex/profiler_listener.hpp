@@ -39,7 +39,7 @@
 #endif
 #include "concurrentqueue/concurrentqueue.h"
 
-#include "apex_assert.hpp"
+#include "apex_assert.h"
 #include "semaphore.hpp"
 #include "task_identifier.hpp"
 #include "task_dependency.hpp"

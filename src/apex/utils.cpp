@@ -22,7 +22,7 @@
 #include <dirent.h>
 #endif
 #include <sys/stat.h>
-#include "apex_assert.hpp"
+#include "apex_assert.h"
 #include <atomic>
 #include <iostream>
 #include <string>

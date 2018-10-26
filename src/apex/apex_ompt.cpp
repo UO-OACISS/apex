@@ -14,7 +14,7 @@
 #include <atomic>
 #include <memory>
 #include <string>
-#include "apex_assert.hpp"
+#include "apex_assert.h"
 
 typedef enum apex_ompt_thread_type_e {
  apex_ompt_thread_initial = 1,

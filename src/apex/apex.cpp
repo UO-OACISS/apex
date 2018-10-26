@@ -34,7 +34,7 @@
 #include "policy_handler.hpp"
 #include "thread_instance.hpp"
 #include "utils.hpp"
-#include "apex_assert.hpp"
+#include "apex_assert.h"
 
 #include "tau_listener.hpp"
 #include "profiler_listener.hpp"
@@ -1224,8 +1224,8 @@ void init_plugins(void) {
         }
         apex * instance = apex::instance();
         if(!instance) {
-            std::cerr << "Error getting APEX instance while registering
-                finalize function from " << path << std::endl;
+            std::cerr << "Error getting APEX instance while registering"
+                << " finalize function from " << path << std::endl;
             FUNCTION_EXIT
             continue;
         }

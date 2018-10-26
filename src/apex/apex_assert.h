@@ -6,22 +6,19 @@
 
 #pragma once
 
-#include "apex_export.h"
+#include <stdio.h>
+#include <stdlib.h>
 
-namespace apex {
-
-inline void apex_assert(const char* expression, const char* file, int line)
+inline void _apex_assert(const char* expression, const char* file, int line)
 {
     fprintf(stderr, "Assertion '%s' failed, file '%s' line '%d'.",
         expression, file, line);
     abort();
 }
 
-}
-
 #ifdef NDEBUG
 #define APEX_ASSERT(EXPRESSION) ((void)0)
 #else
 #define APEX_ASSERT(EXPRESSION) ((EXPRESSION) ? (void)0 : \
-    APEX_TOP_LEVEL_PACKAGE::apex_assert(#EXPRESSION, __FILE__, __LINE__))
+    _apex_assert(#EXPRESSION, __FILE__, __LINE__))
 #endif

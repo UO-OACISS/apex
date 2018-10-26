@@ -25,7 +25,7 @@
 #include <utility>
 #include <vector>
 #include "apex_cxx_shared_lock.hpp"
-#include "apex_assert.hpp"
+#include "apex_assert.h"
 
 #ifdef APEX_HAVE_RCR
 #include "libenergy.h"
