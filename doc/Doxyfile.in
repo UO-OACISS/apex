@@ -780,6 +780,7 @@ FILE_PATTERNS          = apex.h \
                          apex_api.hpp \
                          apex_types.h \
                          apex_global.h \
+                         task_wrapper.hpp \
                          apex.dox
 
 # The RECURSIVE tag can be used to specify whether or not subdirectories should

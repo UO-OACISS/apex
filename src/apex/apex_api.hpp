@@ -159,8 +159,7 @@ APEX_EXPORT profiler * start(const apex_function_address function_address);
  handle to the object.  The object will be associated with the
  task_wrapper passed in to this function.
 
- \param function_address The address of the function to be timed
- \param apex::task_wrapper A pointer to an apex::task_wrapper created
+ \param task_wrapper_ptr A pointer to an apex::task_wrapper created
          by apex::new_task. APEX will use this to store the
          profiler data.
  \return The handle for the profiler object in APEX. Not intended to be
@@ -179,6 +178,7 @@ APEX_EXPORT profiler * start(std::shared_ptr<task_wrapper> &task_wrapper_ptr);
  eventually added to the profile for the process.
 
  \param the_profiler The handle of the profiler object.
+ \param cleanup Internal use only.
  \return No return value.
  \sa @ref apex::start, @ref apex::yield, @ref apex::resume
  */
@@ -275,8 +275,7 @@ APEX_EXPORT profiler * resume(const apex_function_address function_address);
  function is that the number of calls to that
  timer will not be incremented.
 
- \param function_address The address of the function to be timed
- \param apex::task_wrapper A pointer to an apex::task_wrapper created
+ \param task_wrapper_ptr A pointer to an apex::task_wrapper created
          by apex::new_task. APEX will use this to store the
          profiler data.
  \return The handle for the timer object in APEX. Not intended to be
@@ -350,6 +349,8 @@ APEX_EXPORT void sample_value(const std::string &name, double value);
  \param name The name of the timer.
  \param task_id The ID of the task (default of UINTMAX_MAX implies none
         provided by runtime)
+ \param parent_task The apex::task_wrapper (if available) that is the parent
+        task of this task
  \return pointer to an apex::task_wrapper object
  */
 
@@ -366,6 +367,8 @@ APEX_EXPORT std::shared_ptr<task_wrapper> new_task(
 
  \param function_address The function address of the timer.
  \param task_id The ID of the task (default of -1 implies none provided by runtime)
+ \param parent_task The apex::task_wrapper (if available) that is the parent
+        task of this task
  \return pointer to an apex::task_wrapper object
  */
 
@@ -878,7 +881,7 @@ class scoped_timer {
  \brief Register a new thread with APEX, then construct and start an APEX timer.
 
  \param func The address of a function used to identify the timer type
- \param thread_name The name of this new worker thread in the runtime
+ \param parent The parent task wrapper (if available) of this new scoped_timer
  */
         scoped_timer(uint64_t func, std::shared_ptr<apex::task_wrapper> &parent)
             : twp(nullptr), timing(true) {
@@ -889,7 +892,7 @@ class scoped_timer {
  \brief Register a new thread with APEX, then construct and start an APEX timer.
 
  \param func The name of a function used to identify the timer type
- \param thread_name The name of this new worker thread in the runtime
+ \param parent The parent task wrapper (if available) of this new scoped_timer
  */
         scoped_timer(std::string func,
             std::shared_ptr<apex::task_wrapper> &parent)
@@ -937,15 +940,14 @@ class scoped_timer {
                 timing = true;
             }
         }
- /**
+/**
  \brief Destructor.
-
  */
         ~scoped_timer() {
             stop();
         }
 
-/*
+/**
  \brief Get the internal task wrapper object
  */
         std::shared_ptr<apex::task_wrapper>& get_task_wrapper(void) {
@@ -963,9 +965,16 @@ class scoped_timer {
  */
 class scoped_thread {
 public:
+/**
+ \brief Constructor.
+ \param thread_name The name of this thread (nullptr allowed).
+ */
     scoped_thread(const std::string& thread_name) {
         apex::register_thread(thread_name);
     }
+/**
+ \brief Destructor.
+ */
     ~scoped_thread() {
         apex::exit_thread();
     }
