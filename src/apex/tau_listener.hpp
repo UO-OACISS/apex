@@ -16,6 +16,7 @@ private:
   bool _terminate;
   bool _common_start(std::shared_ptr<task_wrapper> &tt_ptr);
   void _common_stop(std::shared_ptr<profiler> &p);
+  static bool _initialized;
 public:
   tau_listener (void);
   ~tau_listener (void) { };
