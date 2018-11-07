@@ -80,8 +80,19 @@ private:
 public:
   ~thread_instance(void);
   static thread_instance& instance(bool is_worker=true);
+  // this following funciton is for new task creation which may come from a new thread that we dont
+  // want to term as a worker thread
+  static thread_instance& instance_non_worker_task_guid(void);
   static void delete_instance();
-  static long unsigned int get_id(void) { return instance()._id; }
+  static long unsigned int get_id(void) { 
+      return instance()._id; 
+  }
+
+  // this following funciton is called to avoid default is_worker=true 
+  static long unsigned int get_id_non_worker_task_guid(void) { 
+      return instance_non_worker_task_guid()._id; 
+  }
+ 
   static long unsigned int get_runtime_id(void) { return instance()._runtime_id; }
   static void set_runtime_id(long unsigned int id) { instance()._runtime_id = id; }
   static std::string get_name(void);

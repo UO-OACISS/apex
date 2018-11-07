@@ -91,6 +91,29 @@ thread_instance& thread_instance::instance(bool is_worker) {
   return *_instance;
 }
 
+  // this following funciton creates a thread instance for non worker threads 
+  // (e.g.parcel coalescing) and this function does not increase the number of worker
+  // threads but serve the purpose to return necessary information for generating 
+  // the guid
+
+thread_instance& thread_instance::instance_non_worker_task_guid(void) {
+  if( _instance == nullptr ) {
+    // first time called by this thread
+    // construct test element to be used in all subsequent calls from this thread
+    _instance = new thread_instance(is_worker);
+        _instance->_id = _num_threads + 1 ;
+      /* reverse the TID and shift it 32 bits, so we can use it to generate
+         task-private GUIDS that are unique within the process space. */
+        _instance->_id_reversed =
+            ((uint64_t)(simple_reverse((uint32_t)_instance->_id))) << 32;
+
+    _instance->_runtime_id = _instance->_id; // can be set later, if necessary
+    _active_threads++;
+  }
+  return *_instance;
+}
+
+
 void thread_instance::delete_instance(void) {
   if (_instance != nullptr) {
     delete(_instance);
