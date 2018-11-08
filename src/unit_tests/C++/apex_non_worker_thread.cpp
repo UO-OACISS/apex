@@ -3,9 +3,10 @@
 #include <stdio.h>
 #include <thread>
 #include <string>
+#include "thread_instance.hpp"
 
-#define MAX_OUTER 500
-#define MAX_INNER 500
+#define MAX_OUTER 50
+#define MAX_INNER 50
 #define MAX_THREADS 8
 
 uint64_t func(uint64_t i) {
@@ -19,6 +20,7 @@ uint64_t func(uint64_t i) {
 
 uint64_t foo(uint64_t i) {
     uint64_t j=0;
+    apex::register_thread(__func__);
     apex::profiler* p = apex::start((apex_function_address)(&foo));
     for (uint64_t x = 0 ; x < MAX_OUTER ; x++) {
         for (uint64_t y = 0 ; y < MAX_INNER ; y++) {
@@ -31,14 +33,17 @@ uint64_t foo(uint64_t i) {
 
 // no timer!
 uint64_t bar(uint64_t i) {
+    // ask for a thread instance, as a test.
+    //
+    //apex::thread_instance::instance(false);
+    // create a task, but don't start a timer.
+    apex::new_task((apex_function_address)&bar);
     uint64_t j=0;
     for (uint64_t x = 0 ; x < MAX_OUTER ; x++) {
         for (uint64_t y = 0 ; y < MAX_INNER ; y++) {
             j += (x*x) * (y*y) + i;
         }
     }
-    // ask for a thread instance, as a test.
-    apex::thread_instance::instance(false);
     return j;
 }
 
