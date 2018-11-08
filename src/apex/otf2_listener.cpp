@@ -293,7 +293,8 @@ namespace apex {
       if (evt_writer == nullptr && create) {
         // should already be locked by the "new thread" event.
         uint64_t my_node_id = my_saved_node_id;
-        my_node_id = (my_node_id << 32) + thread_instance::get_id();
+        //my_node_id = (my_node_id << 32) + thread_instance::get_id();
+        my_node_id = (my_node_id << 32) + _event_threads.size();
         evt_writer = OTF2_Archive_GetEvtWriter( archive, my_node_id );
         if (thread_instance::get_id() == 0) {
             comm_evt_writer = evt_writer;
@@ -570,11 +571,12 @@ namespace apex {
             uint64_t map_size = global_region_indices.size();
             OTF2_IdMap * my_map = OTF2_IdMap_CreateFromUint64Array(map_size,
                 mappings, false);
-            for (int i = 0 ; i < thread_instance::get_num_threads() ; i++) {
-                if (event_file_exists(i)) {
+            //for (int i = 0 ; i < thread_instance::get_num_threads() ; i++) {
+            for (size_t i = 0 ; i < _event_threads.size() ; i++) {
+                //if (event_file_exists(i)) {
                     OTF2_DefWriter_WriteMappingTable(getDefWriter(i),
                         OTF2_MAPPING_REGION, my_map);
-                }
+                //}
             }
             // free the map
             OTF2_IdMap_Free(my_map);
@@ -598,11 +600,12 @@ namespace apex {
             uint64_t map_size = global_metric_indices.size();
             OTF2_IdMap * my_map = OTF2_IdMap_CreateFromUint64Array(map_size,
                 mappings, false);
-            for (int i = 0 ; i < thread_instance::get_num_threads() ; i++) {
-                if (event_file_exists(i)) {
+            //for (int i = 0 ; i < thread_instance::get_num_threads() ; i++) {
+            for (size_t i = 0 ; i < _event_threads.size() ; i++) {
+                //if (event_file_exists(i)) {
                     OTF2_DefWriter_WriteMappingTable(getDefWriter(i),
                         OTF2_MAPPING_METRIC, my_map);
-                }
+                //}
             }
             // free the map
             OTF2_IdMap_Free(my_map);
@@ -717,7 +720,8 @@ namespace apex {
             /* if we are node 0, write the global definitions */
             if (my_saved_node_id == 0) {
                 // save my number of threads
-                rank_thread_map[0] = thread_instance::get_num_threads();
+                //rank_thread_map[0] = thread_instance::get_num_threads();
+                rank_thread_map[0] = _event_threads.size();
                 std::cout << "Writing OTF2 definition files..." << std::endl;
                 // make a common list of regions and metrics across all nodes...
                 reduce_regions();
@@ -800,12 +804,13 @@ namespace apex {
                 // write out the counter names we saw
                 reduce_metrics();
             }
-            for (int i = 0 ; i < thread_instance::get_num_threads() ; i++) {
+            //for (int i = 0 ; i < thread_instance::get_num_threads() ; i++) {
+            for (size_t i = 0 ; i < _event_threads.size() ; i++) {
                 /* close (and possibly create) the definition files */
-                if (event_file_exists(i)) {
+                //if (event_file_exists(i)) {
                     OTF2_EC(OTF2_Archive_CloseDefWriter( archive,
                         getDefWriter(i) ));
-                }
+                //}
             }
             if (my_saved_node_id == 0) {
                 std::cout << "Closing the archive..." << std::endl;
@@ -1184,7 +1189,8 @@ namespace apex {
     std::string otf2_listener::write_my_regions(void) {
         stringstream region_file;
         // first, output our number of threads.
-        region_file << thread_instance::get_num_threads() << endl;
+        //region_file << thread_instance::get_num_threads() << endl;
+        region_file << _event_threads.size() << endl;
         // then iterate over the regions and write them out.
         for (auto const &i : global_region_indices) {
             task_identifier id = i.first;
@@ -1323,7 +1329,8 @@ namespace apex {
     std::string otf2_listener::write_my_metrics(void) {
         stringstream metric_file;
         // first, output our number of threads.
-        metric_file << thread_instance::get_num_threads() << endl;
+        //metric_file << thread_instance::get_num_threads() << endl;
+        metric_file << _event_threads.size() << endl;
         // then iterate over the metrics and write them out.
         for (auto const &i : global_metric_indices) {
             string id = i.first;
@@ -1512,7 +1519,8 @@ namespace apex {
         region_filename << region_filename_prefix << my_saved_node_id;
         ofstream region_file(region_filename.str(), ios::out | ios::trunc );
         // first, output our number of threads.
-        region_file << thread_instance::get_num_threads() << endl;
+        //region_file << thread_instance::get_num_threads() << endl;
+        region_file << _event_threads.size() << endl;
         // then iterate over the regions and write them out.
         for (auto const &i : global_region_indices) {
             task_identifier id = i.first;
@@ -1649,7 +1657,8 @@ namespace apex {
         metric_filename << metric_filename_prefix << my_saved_node_id;
         ofstream metric_file(metric_filename.str(), ios::out | ios::trunc );
         // first, output our number of threads.
-        metric_file << thread_instance::get_num_threads() << endl;
+        //metric_file << thread_instance::get_num_threads() << endl;
+        metric_file << _event_threads.size() << endl;
         // then iterate over the metrics and write them out.
         for (auto const &i : global_metric_indices) {
             string id = i.first;
