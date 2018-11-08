@@ -64,7 +64,7 @@ private:
   static APEX_NATIVE_TLS thread_instance * _instance;
   // constructor
   thread_instance (bool is_worker) :
-        _id(0), _id_reversed(UINTMAX_MAX), _runtime_id(-1),
+        _id(-1), _id_reversed(UINTMAX_MAX), _runtime_id(-1),
         _top_level_timer_name(), _is_worker(is_worker), _task_count(0) {
             _instance = nullptr;
   };
