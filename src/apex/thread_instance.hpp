@@ -64,7 +64,7 @@ private:
   static APEX_NATIVE_TLS thread_instance * _instance;
   // constructor
   thread_instance (bool is_worker) :
-        _id(-1), _id_reversed(UINTMAX_MAX), _runtime_id(-1),
+        _id(0), _id_reversed(UINTMAX_MAX), _runtime_id(-1),
         _top_level_timer_name(), _is_worker(is_worker), _task_count(0) {
             _instance = nullptr;
   };
@@ -79,7 +79,14 @@ private:
   }
 public:
   ~thread_instance(void);
+  // HPX has lots of extra threads. Some of the helper threads make calls into APEX.
+  // OTF2 doesn't capture them all, and we only want to know how many worker threads
+  // we have.  So for HPX, make the default false (they'll get set as workers later).
+#if defined(APEX_HAVE_HPX)
+  static thread_instance& instance(bool is_worker=false);
+#else
   static thread_instance& instance(bool is_worker=true);
+#endif
   static void delete_instance();
   static long unsigned int get_id(void) { return instance()._id; }
   static long unsigned int get_runtime_id(void) { return instance()._runtime_id; }

@@ -361,6 +361,9 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
     FUNCTION_ENTER
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { FUNCTION_EXIT; return APEX_ERROR; }
+    // FIRST! make sure APEX thinks this is a worker thread (the main thread
+    // is always a worker thread)
+    thread_instance::instance(true);
     // protect against multiple initializations
 #ifdef APEX_WITH_JUPYTER_SUPPORT
     if (_registered || _initialized) {
@@ -387,6 +390,7 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
         return APEX_ERROR;
     }
 #endif
+    thread_instance::set_worker(true);
     _registered = true;
     _initialized = true;
     apex* instance = apex::instance(); // get/create the Apex static instance
@@ -1395,6 +1399,8 @@ void register_thread(const std::string &name)
     // protect against multiple registrations on the same thread
     if (_registered) return;
     _registered = true;
+    // FIRST! make sure APEX thinks this is a worker thread
+    thread_instance::instance(true);
     thread_instance::set_name(name);
     instance->resize_state(thread_instance::get_id());
     instance->set_state(thread_instance::get_id(), APEX_BUSY);

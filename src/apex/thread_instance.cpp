@@ -46,7 +46,7 @@ namespace apex {
 
 // Global static pointer used to ensure a single instance of the class.
 APEX_NATIVE_TLS thread_instance * thread_instance::_instance(nullptr);
-// Global static count of threads in system
+// Global static count of worker threads in system
 std::atomic_int thread_instance::_num_threads(0);
 // Global static count of *active* threads in system
 std::atomic_int thread_instance::_active_threads(0);
@@ -106,6 +106,13 @@ thread_instance::~thread_instance(void) {
 }
 
 void thread_instance::set_worker(bool is_worker) {
+  // if was previously not a worker...
+  if (!instance()._is_worker) {
+    // ...and is now a worker...
+    if (is_worker) {
+      _instance->_id = _num_threads++;
+    } // do the opposite?
+  }
   instance()._is_worker = is_worker;
   std::unique_lock<std::mutex> l(_worker_map_mutex);
   _worker_map[get_id()] = is_worker;
