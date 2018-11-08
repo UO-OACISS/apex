@@ -38,6 +38,7 @@ set(example_programs
     apex_hpx_task_wrapper_direct_actions
     apex_hpx_annotated_functions
     apex_profiler_guids
+    apex_non_worker_thread
    )
     #apex_set_thread_cap
     #apex_setup_power_cap_throttling
