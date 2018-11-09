@@ -1425,7 +1425,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       //is_resume);
       // get the right task identifier, based on whether there are aliases
       profiler * p = new profiler(tt_ptr, is_resume);
-      p->guid = thread_instance::get_guid();
+      p->guid = tt_ptr->guid;
       thread_instance::instance().set_current_profiler(p);
 #if APEX_HAVE_PAPI
       if (num_papi_counters > 0 && !apex_options::papi_suspend()) {

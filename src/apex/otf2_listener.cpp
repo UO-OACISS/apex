@@ -983,7 +983,8 @@ namespace apex {
             // create an attribute list
             OTF2_AttributeList * al = OTF2_AttributeList_New();
             // create an attribute
-            OTF2_AttributeList_AddUint64( al, 0, p->guid );
+            OTF2_AttributeList_AddUint64( al, 0, p->tt_ptr->guid );
+            OTF2_AttributeList_AddUint64( al, 1, p->tt_ptr->parent_guid );
             // unfortunately, we can't use the timestamp from the
             // profiler object. bummer. it has to be taken after
             // the lock is acquired, so that events happen on
