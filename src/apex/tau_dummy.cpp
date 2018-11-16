@@ -8,6 +8,8 @@
 
 using namespace std;
 
+#ifdef APEX_USE_WEAK_SYMBOLS
+
 /* Weak symbols that are redefined if we use TAU at runtime */
 extern "C" {
 APEX_EXPORT APEX_WEAK_PRE int Tau_init(int, char**) APEX_WEAK_POST {
@@ -24,7 +26,7 @@ APEX_EXPORT APEX_WEAK_PRE int
 APEX_EXPORT APEX_WEAK_PRE int Tau_start(const char *) APEX_WEAK_POST {return 0;}
 APEX_EXPORT APEX_WEAK_PRE int Tau_stop(const char *) APEX_WEAK_POST {return 0;}
 APEX_EXPORT APEX_WEAK_PRE int Tau_exit(const char*) APEX_WEAK_POST {return 0;}
-APEX_EXPORT APEX_WEAK_PRE int Tau_dump(void) APEX_WEAK_POST {return 0;}
+APEX_EXPORT APEX_WEAK_PRE int Tau_dump_prefix(const char*) APEX_WEAK_POST {return 0;}
 APEX_EXPORT APEX_WEAK_PRE int Tau_set_node(int) APEX_WEAK_POST {return 0;}
 APEX_EXPORT APEX_WEAK_PRE int
     Tau_profile_exit_all_threads(void) APEX_WEAK_POST {return 0;}
@@ -35,3 +37,5 @@ APEX_EXPORT APEX_WEAK_PRE int Tau_global_stop(void) APEX_WEAK_POST {return 0;}
 APEX_EXPORT APEX_WEAK_PRE int
     Tau_trigger_context_event_thread(char*, double, int) APEX_WEAK_POST {return 0;}
 }
+
+#endif // APEX_USE_WEAK_SYMBOLS

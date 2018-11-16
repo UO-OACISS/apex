@@ -784,6 +784,13 @@ CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/pkgconfig/apex.pc.in
                ${CMAKE_BINARY_DIR}/pkgconfig/apex.pc @ONLY)
 INSTALL_FILES(/lib/pkgconfig FILES pkgconfig/apex.pc)
 
+if (APEX_USE_WEAK_SYMBOLS) 
+    add_definitions(-DAPEX_USE_WEAK_SYMBOLS)
+else()
+    find_library(DYNAMICLIB dl)
+    set(LIBS ${LIBS} ${DYNAMICLIB})
+endif (APEX_USE_WEAK_SYMBOLS)
+
 message(INFO " Getting processor count...")
 include(ProcessorCount) # how many cores at our disposal?
 if(PROCESSOR_COUNT)

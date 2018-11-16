@@ -71,12 +71,12 @@ namespace apex {
         this->_reset();
         if (_terminate) return true;
         if (apex_options::use_tau()) {
-            Tau_start("policy_handler::_handler");
+            tau_listener::Tau_start_wrapper("policy_handler::_handler");
         }
         periodic_event_data data;
         this->on_periodic(data);
         if (apex_options::use_tau()) {
-            Tau_stop("policy_handler::_handler");
+            tau_listener::Tau_stop_wrapper("policy_handler::_handler");
         }
         return true;
     }

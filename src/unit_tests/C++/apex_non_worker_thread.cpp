@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <thread>
 #include <string>
+#include <cinttypes>
 #include "thread_instance.hpp"
 
 #define MAX_OUTER 50
@@ -11,7 +12,7 @@
 
 uint64_t func(uint64_t i) {
     char name[128];
-    sprintf(name, "func %lu", i);
+    sprintf(name, "func %llu", static_cast<unsigned long long>(i));
     apex::profiler* p = apex::start(std::string(name));
     uint64_t j = i * i;
     apex::stop(p);

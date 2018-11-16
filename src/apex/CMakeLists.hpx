@@ -304,6 +304,13 @@ if(APEX_WITH_MSR)
     hpx_libraries(${MSR_LIBRARIES})
 endif()
 
+if (APEX_USE_WEAK_SYMBOLS)
+    add_definitions(-DAPEX_USE_WEAK_SYMBOLS)
+else()
+    find_library(DYNAMICLIB dl)
+    hpx_libraries(${DYNAMICLIB})
+endif (APEX_USE_WEAK_SYMBOLS)
+
 set(apex_sources
     apex.cpp
     apex_options.cpp

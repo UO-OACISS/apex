@@ -587,7 +587,7 @@ std::unordered_set<profile*> free_profiles;
    * file, or both. */
   void profiler_listener::finalize_profiles(dump_event_data &data) {
     if (apex_options::use_tau()) {
-      Tau_start("profiler_listener::finalize_profiles");
+      tau_listener::Tau_start_wrapper("profiler_listener::finalize_profiles");
     }
     // our TOTAL available time is the elapsed * the number of threads, or cores
     int num_worker_threads = thread_instance::get_num_threads();
@@ -718,7 +718,7 @@ std::unordered_set<profile*> free_profiles;
         csvfile.close();
     }
     if (apex_options::use_tau()) {
-      Tau_stop("profiler_listener::finalize_profiles");
+      tau_listener::Tau_stop_wrapper("profiler_listener::finalize_profiles");
     }
   }
 
@@ -1038,7 +1038,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
       _initialized = true;
     }
     if (apex_options::use_tau()) {
-      Tau_start("profiler_listener::process_profiles");
+      tau_listener::Tau_start_wrapper("profiler_listener::process_profiles");
     }
 
     std::shared_ptr<profiler> p;
@@ -1076,7 +1076,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
     while (!_done) {
         queue_signal.wait();
         if (apex_options::use_tau()) {
-            Tau_start("profiler_listener::process_profiles: main loop");
+            tau_listener::Tau_start_wrapper("profiler_listener::process_profiles: main loop");
         }
         {
             std::unique_lock<std::mutex> queue_lock(queue_mtx);
@@ -1095,7 +1095,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
             }
         }
         if (apex_options::use_tau()) {
-            Tau_stop("profiler_listener::process_profiles: main loop");
+            tau_listener::Tau_stop_wrapper("profiler_listener::process_profiles: main loop");
         }
         // release the flag, and wait for the queue_signal
         consumer_task_running.clear(memory_order_release);
@@ -1109,7 +1109,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
 #endif
 
     if (apex_options::use_tau()) {
-      Tau_stop("profiler_listener::process_profiles");
+      tau_listener::Tau_stop_wrapper("profiler_listener::process_profiles");
     }
   }
 
@@ -1276,11 +1276,11 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
             std::unique_lock<std::mutex> queue_lock(queue_mtx);
             for (unsigned int i=0; i<allqueues.size(); ++i) {
                 if (apex_options::use_tau()) {
-                    Tau_start("profiler_listener::concurrent_cleanup");
+                    tau_listener::Tau_start_wrapper("profiler_listener::concurrent_cleanup");
                 }
                 concurrent_cleanup(i);
                 if (apex_options::use_tau()) {
-                    Tau_stop("profiler_listener::concurrent_cleanup");
+                    tau_listener::Tau_stop_wrapper("profiler_listener::concurrent_cleanup");
                 }
             }
         }
