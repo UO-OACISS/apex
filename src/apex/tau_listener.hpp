@@ -21,6 +21,7 @@ public:
   tau_listener (void);
   ~tau_listener (void) { };
   static bool initialize_tau(int argc, char** avgv);
+  inline static bool initialized(void) { return _initialized; }
   void on_startup(startup_event_data &data);
   void on_dump(dump_event_data &data);
   void on_reset(task_identifier * id)
@@ -42,12 +43,17 @@ public:
   void on_send(message_event_data &data) { APEX_UNUSED(data); };
   void on_recv(message_event_data &data) { APEX_UNUSED(data); };
   void set_node_id(int node_id, int node_count);
+  void set_metadata(const char * name, const char * value);
 
+  static void Tau_start_wrapper(const char * name);
+  static void Tau_stop_wrapper(const char * name);
 };
 
 int initialize_worker_thread_for_tau(void);
 
 }
+
+#ifdef APEX_USE_WEAK_SYMBOLS
 
 /* Weak symbols that are redefined if we load TAU at link or runtime */
 extern "C" {
@@ -67,3 +73,5 @@ APEX_EXPORT APEX_WEAK_PRE int Tau_global_stop(void) APEX_WEAK_POST;
 APEX_EXPORT APEX_WEAK_PRE int
     Tau_trigger_context_event_thread(char*, double, int) APEX_WEAK_POST;
 }
+
+#endif // APEX_USE_WEAK_SYMBOLS

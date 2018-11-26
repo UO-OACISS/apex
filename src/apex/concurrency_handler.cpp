@@ -77,7 +77,7 @@ bool concurrency_handler::_handler(void) {
   apex* inst = apex::instance();
   if (inst == nullptr) return false; // running after finalization!
   if (apex_options::use_tau()) {
-    Tau_start("concurrency_handler::_handler");
+    tau_listener::Tau_start_wrapper("concurrency_handler::_handler");
   }
   map<task_identifier, unsigned int> *counts = new(map<task_identifier,
     unsigned int>);
@@ -119,7 +119,7 @@ bool concurrency_handler::_handler(void) {
     _power_samples.push_back(power);
   }
   if (apex_options::use_tau()) {
-    Tau_stop("concurrency_handler::_handler");
+    tau_listener::Tau_stop_wrapper("concurrency_handler::_handler");
   }
 #ifdef APEX_WITH_JUPYTER_SUPPORT
   // update the timeout, if the user changed it.

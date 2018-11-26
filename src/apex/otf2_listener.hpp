@@ -9,7 +9,7 @@
 #include "event_listener.hpp"
 #include <otf2/otf2.h>
 #include <map>
-#include <unordered_set>
+#include <set>
 #include <string>
 #include <tuple>
 #include <memory>
@@ -29,7 +29,7 @@ namespace apex {
         std::mutex _metric_mutex;
         std::mutex _comm_mutex;
         std::mutex _event_set_mutex;
-        std::unordered_set<int> _event_threads;
+        std::set<int> _event_threads;
         /* this is a reader/writer lock. Don't close the archive
          * if other threads are writing to it. but allow concurrent
          * access from the writer threads. */

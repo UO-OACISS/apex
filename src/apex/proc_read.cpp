@@ -583,7 +583,7 @@ void* proc_data_reader::read_proc(void * _ptw) {
       _initialized = true;
   }
   if (apex_options::use_tau()) {
-    Tau_start("proc_data_reader::read_proc");
+    tau_listener::Tau_start_wrapper("proc_data_reader::read_proc");
   }
   if (done) { return nullptr; }
 #ifdef APEX_HAVE_LM_SENSORS
@@ -605,7 +605,7 @@ void* proc_data_reader::read_proc(void * _ptw) {
   while(ptw->wait()) {
     if (done) break;
     if (apex_options::use_tau()) {
-      Tau_start("proc_data_reader::read_proc: main loop");
+      tau_listener::Tau_start_wrapper("proc_data_reader::read_proc: main loop");
     }
     if (apex_options::use_proc_stat()) {
         // take a reading
@@ -630,7 +630,7 @@ void* proc_data_reader::read_proc(void * _ptw) {
 #endif
 
     if (apex_options::use_tau()) {
-      Tau_stop("proc_data_reader::read_proc: main loop");
+      tau_listener::Tau_stop_wrapper("proc_data_reader::read_proc: main loop");
     }
   }
 #ifdef APEX_HAVE_LM_SENSORS
@@ -638,7 +638,7 @@ void* proc_data_reader::read_proc(void * _ptw) {
 #endif
 
   if (apex_options::use_tau()) {
-    Tau_stop("proc_data_reader::read_proc");
+    tau_listener::Tau_stop_wrapper("proc_data_reader::read_proc");
   }
   delete(oldData);
   thread_instance::delete_instance();

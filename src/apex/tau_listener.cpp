@@ -9,6 +9,26 @@
 #include <fstream>
 #include <memory>
 
+#ifndef APEX_USE_WEAK_SYMBOLS
+#define _GNU_SOURCE
+#include <dlfcn.h>
+#endif // APEX_USE_WEAK_SYMBOLS
+
+typedef int (*Tau_init_type)(int argc, char **argv);
+typedef int (*Tau_register_thread_type)(void);
+typedef int (*Tau_create_top_level_timer_if_necessary_type)(void);
+typedef int (*Tau_start_type)(const char *);
+typedef int (*Tau_stop_type)(const char *);
+typedef int (*Tau_exit_type)(const char*);
+typedef int (*Tau_dump_prefix_type)(const char *prefix);
+typedef int (*Tau_set_node_type)(int);
+typedef int (*Tau_profile_exit_all_threads_type)(void);
+typedef int (*Tau_get_thread_type)(void);
+typedef int (*Tau_profile_exit_all_tasks_type)(void);
+typedef int (*Tau_global_stop_type)(void);
+typedef int (*Tau_trigger_context_event_thread_type)(char*, double, int);
+typedef int (*Tau_metadata_type)(const char*, const char*);
+
 using namespace std;
 
 namespace apex {
@@ -26,8 +46,11 @@ int (*my_Tau_get_thread)(void) = nullptr;
 int (*my_Tau_profile_exit_all_tasks)(void) = nullptr;
 int (*my_Tau_global_stop)(void) = nullptr;
 int (*my_Tau_trigger_context_event_thread)(char*, double, int) = nullptr;
+int (*my_Tau_metadata)(const char*, const char*) = NULL;
 
 bool tau_listener::_initialized(false);
+
+#ifdef APEX_USE_WEAK_SYMBOLS
 
 bool assign_function_pointers(void) {
     if (Tau_init == nullptr) {
@@ -77,6 +100,79 @@ bool assign_function_pointers(void) {
     }
     return true;
 }
+
+#else
+
+void open_preload_libraries(void) {
+    /* We might be in a static executable.  Get the ld_preload variable */
+    const char * preload = getenv("LD_PRELOAD");
+    if (preload != NULL) {
+        fprintf(stderr, "LD_PRELOAD:\n%s\n", preload);
+        /* tokenize it */
+        char* token = strtok(const_cast<char*>(preload), ":");
+        while (token) {
+            printf("token: %s\n", token);
+            /* then, dlopen() first and re-try the dlsym() call. */
+            dlopen(token, RTLD_LAZY);
+            token = strtok(NULL, ":");
+        }
+    }
+}
+
+bool assign_function_pointers(void) {
+    my_Tau_init = (Tau_init_type)dlsym(RTLD_DEFAULT,"Tau_init");
+    if (my_Tau_init == NULL) {
+        open_preload_libraries();
+        my_Tau_init = (Tau_init_type)dlsym(RTLD_DEFAULT,"Tau_init");
+        if (my_Tau_init == NULL) {
+            /* Optional - print an error message, because TAU wasn't preloaded! */
+            fprintf(stderr, "TAU libraries not loaded, TAU support unavailable:\n\t%s\n", dlerror());
+            return false;
+        }
+    }
+    my_Tau_register_thread =
+        (Tau_register_thread_type)
+        dlsym(RTLD_DEFAULT,"Tau_register_thread");
+    my_Tau_create_top_level_timer_if_necessary =
+        (Tau_create_top_level_timer_if_necessary_type)
+        dlsym(RTLD_DEFAULT,"Tau_create_top_level_timer_if_necessary");
+    my_Tau_start =
+        (Tau_start_type)
+        dlsym(RTLD_DEFAULT,"Tau_start");
+    my_Tau_stop =
+        (Tau_stop_type)
+        dlsym(RTLD_DEFAULT,"Tau_stop");
+    my_Tau_dump_prefix =
+        (Tau_dump_prefix_type)
+        dlsym(RTLD_DEFAULT,"Tau_dump_prefix");
+    my_Tau_exit =
+        (Tau_exit_type)
+        dlsym(RTLD_DEFAULT,"Tau_exit");
+    my_Tau_set_node =
+        (Tau_set_node_type)
+        dlsym(RTLD_DEFAULT,"Tau_set_node");
+    my_Tau_profile_exit_all_threads =
+        (Tau_profile_exit_all_threads_type)
+        dlsym(RTLD_DEFAULT,"Tau_profile_exit_all_threads");
+    my_Tau_get_thread =
+        (Tau_get_thread_type)
+        dlsym(RTLD_DEFAULT,"Tau_get_thread");
+    my_Tau_profile_exit_all_tasks =
+        (Tau_profile_exit_all_tasks_type)
+        dlsym(RTLD_DEFAULT,"Tau_profile_exit_all_tasks");
+    my_Tau_global_stop =
+        (Tau_global_stop_type)
+        dlsym(RTLD_DEFAULT,"Tau_global_stop");
+    my_Tau_trigger_context_event_thread =
+        (Tau_trigger_context_event_thread_type)
+        dlsym(RTLD_DEFAULT,"Tau_trigger_context_event_thread");
+    my_Tau_metadata =
+        (Tau_metadata_type)
+        dlsym(RTLD_DEFAULT,"Tau_metadata");
+    return true;
+}
+
+#endif // APEX_USE_WEAK_SYMBOLS
 
 bool tau_listener::initialize_tau(int argc, char** argv) {
     _initialized = assign_function_pointers();
@@ -217,9 +313,13 @@ bool tau_listener::initialize_tau(int argc, char** argv) {
         my_Tau_set_node(node_id);
     }
 
+    void tau_listener::set_metadata(const char * name, const char * value) {
+        my_Tau_metadata(name, value);
+    }
+
     /* This function is used by APEX threads so that TAU knows about them. */
     int initialize_worker_thread_for_tau(void) {
-        if (apex_options::use_tau())
+        if (tau_listener::initialized())
         {
             my_Tau_register_thread();
             my_Tau_create_top_level_timer_if_necessary();
@@ -227,5 +327,16 @@ bool tau_listener::initialize_tau(int argc, char** argv) {
         return 0;
     }
 
+    void tau_listener::Tau_start_wrapper(const char * name) {
+        if (tau_listener::initialized()) {
+            my_Tau_start(name);
+        }
+    }
+
+    void tau_listener::Tau_stop_wrapper(const char * name) {
+        if (tau_listener::initialized()) {
+            my_Tau_global_stop(); // stop the top level timer
+        }
+    }
 }
 

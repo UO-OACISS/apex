@@ -52,7 +52,8 @@ void innerLoop(int *tid) {
     std::shared_ptr<apex::task_wrapper> tt_ptr = apex::new_task(__func__);
 #ifdef __DEBUG_PRINT__
     std::stringstream buf;
-    buf << "APP: " << *tid << ": Starting thread " << tt_ptr->guid << "\n"; std::cout << buf.str();
+    buf << "APP: " << *tid << ": Starting innerLoop " << tt_ptr->guid <<
+        " Parent: " << tt_ptr->parent_guid << "\n"; std::cout << buf.str();
 #endif
     apex::start(tt_ptr);
 
@@ -63,7 +64,8 @@ void innerLoop(int *tid) {
     std::shared_ptr<apex::task_wrapper> af = apex::new_task("direct_action");
 #ifdef __DEBUG_PRINT__
     buf.str(""); buf.clear();
-    buf << "APP: " << *tid << ": Starting direct_action " << af->guid << "\n"; std::cout << buf.str();
+    buf << "APP: " << *tid << ": Starting direct_action " << af->guid <<
+        " Parent: " << tt_ptr->parent_guid << "\n"; std::cout << buf.str();
 #endif
     apex::start(af);
 
@@ -144,7 +146,8 @@ int main (int argc, char** argv) {
     if (argc > 1) {
         test_numthreads = strtoul(argv[1],NULL,0);
     } else {
-        test_numthreads = apex::hardware_concurrency() * threads_per_core; // many threads per core. Stress it!
+        // many threads per core. Stress it!
+        test_numthreads = apex::hardware_concurrency() * threads_per_core;
     }
 #ifndef __APPLE__
     pthread_barrier_init(&barrier, NULL, test_numthreads);
