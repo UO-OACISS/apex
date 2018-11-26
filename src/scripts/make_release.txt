@@ -1,0 +1,15 @@
+1) Generate a changelog from the last tag:
+
+git log $(git describe --tags --abbrev=0)..HEAD --pretty=format:'<li> <a href="http://github.com/khuck/xpress-apex/commit/%H">view commit &bull;</a> %s</li> ' --reverse > changelog.txt
+
+2) create a new tag
+
+git tag -a -F changelog.txt v2.1.1
+
+3) push that tag, merge iwth master
+
+git checkout master
+git pull
+git merge develop
+git push origin
+git push --tags origin
