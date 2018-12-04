@@ -43,6 +43,7 @@ int main (int argc, char ** argv) {
 
     apex_tuning_session_handle session = apex::setup_custom_tuning(request);
     (void)session; // ignore unused warning
+    bool exhaustive = false;
 
     for(int i = 0; i < 150; ++i) {
         apex::profiler * p = apex::start("Iteration");
@@ -58,8 +59,10 @@ int main (int argc, char ** argv) {
             x = 3.0;
         } else if(s == "d") {
             x = -1.0;
+            exhaustive = true;
         } else if(s == "e") {
             x = -1.0;
+            exhaustive = true;
         }
 
         value = x*(y+z);
@@ -72,7 +75,7 @@ int main (int argc, char ** argv) {
 #endif
 
 #ifdef APEX_HAVE_ACTIVEHARMONY
-    if(value < 0) {
+    if(value < 0 || !exhaustive) {
         std::cout << "Test passed." << std::endl;
     } else {
         std::cout << "Test failed." << std::endl;
