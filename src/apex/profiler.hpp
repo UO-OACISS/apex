@@ -93,6 +93,9 @@ public:
     task_identifier * get_task_id(void) {
         return task_id;
     }
+    void set_task_id(task_identifier * tid) {
+        task_id = tid;
+    }
     // this constructor is for regular timers
     profiler(std::shared_ptr<task_wrapper> &task,
              bool resume = false,

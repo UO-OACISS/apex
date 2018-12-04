@@ -1111,6 +1111,10 @@ std::shared_ptr<task_wrapper> update_task(
     task_identifier * id = task_identifier::get_task_id(timer_name);
     if (id != wrapper->get_task_id()) {
         wrapper->aliases.insert(id);
+        //printf("New alias: %s to %s\n", wrapper->task_id->get_name().c_str(), timer_name.c_str());
+    }
+    if (wrapper->prof != nullptr) {
+        wrapper->prof->set_task_id(wrapper->task_id);
     }
     return wrapper;
 }
@@ -1130,7 +1134,12 @@ std::shared_ptr<task_wrapper> update_task(
         task_identifier * id = task_identifier::get_task_id(function_address);
         wrapper = _new_task(id, UINTMAX_MAX, null_task_wrapper, instance);
     } else {
+        //printf("New alias: %s", wrapper->task_id->get_name().c_str());
         wrapper->task_id = task_identifier::get_task_id(function_address);
+        //printf(" to %s\n", wrapper->task_id->get_name().c_str());
+    }
+    if (wrapper->prof != nullptr) {
+        wrapper->prof->set_task_id(wrapper->task_id);
     }
     return wrapper;
 }
