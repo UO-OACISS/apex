@@ -10,7 +10,9 @@
 #include <memory>
 
 #ifndef APEX_USE_WEAK_SYMBOLS
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif // _GNU_SOURCE
 #include <dlfcn.h>
 #endif // APEX_USE_WEAK_SYMBOLS
 
