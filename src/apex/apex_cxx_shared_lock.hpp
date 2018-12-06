@@ -7,11 +7,15 @@
 
 // It's gotten fun.  Apparently gcc 7 supports shared_mutex, but even though
 // clang 5/6 *claims* to support c++17, it doesn't have shared_mutex.h
-#define GCC_COMPILER (defined(__GNUC__) && !defined(__clang__))
+#if (defined(__GNUC__) && !defined(__clang__))
+#define GCC_COMPILER_7
+#else
+#undef GCC_COMPILER_7
+#endif
 
-#if __cplusplus > 201701L && defined(GCC_COMPILER)
+#if __cplusplus > 201701L && GCC_COMPILER_7
     #include <shared_mutex>
-#elif __cplusplus >= 201500L && defined(GCC_COMPILER)
+#elif __cplusplus >= 201500L && GCC_COMPILER_7
     // if we've got gcc 6.1+ and -std=c++17
     #include <shared_mutex>
 #elif __cplusplus > 201402L
@@ -27,12 +31,12 @@
 namespace apex
 {
 
-#if __cplusplus > 201701L && defined(GCC_COMPILER)
+#if __cplusplus > 201701L && GCC_COMPILER_7
     // if we've got gcc 6.1 and -std=c++17
     typedef std::shared_mutex shared_mutex_type;
     typedef std::shared_lock<shared_mutex_type> read_lock_type;
     typedef std::unique_lock<shared_mutex_type> write_lock_type;
-#elif __cplusplus > 201402L // if we've got gcc 4.9+ and -std=c++14
+#elif __cplusplus > 201402L && GCC_COMPILER_7 // if we've got gcc 4.9+ and -std=c++14
     typedef std::shared_timed_mutex shared_mutex_type;
     typedef std::shared_lock<shared_mutex_type> read_lock_type;
     typedef std::unique_lock<shared_mutex_type> write_lock_type;
