@@ -14,7 +14,7 @@ set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 
 # Link the executable to the Apex library. 
-target_link_libraries (openmp_overhead apex ${OMPT_LIBRARIES} ${LIBS}) 
+target_link_libraries (openmp_overhead apex ${OMPT_LIBRARIES} ${LIBS} stdc++) 
 if (BUILD_STATIC_EXECUTABLES)
     set_target_properties(openmp_overhead PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
 endif()
