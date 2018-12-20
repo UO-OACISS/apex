@@ -346,6 +346,8 @@ endif()
 
 #add_hpx_library(taudummy SHARED NOLIBS SOURCES tau_dummy.cpp HEADERS ${apex_headers} FOLDER "Core/Dependencies")
 
+include(GNUInstallDirs)
+
 add_hpx_library(apex
   STATIC NOLIBS
   SOURCES ${apex_sources}
