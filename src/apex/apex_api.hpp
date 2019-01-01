@@ -995,3 +995,31 @@ public:
 
 } //namespace apex
 
+#ifdef APEX_HAVE_HPX
+namespace hpx { namespace util { namespace external_timer {
+    class apex_impl : public timer_interface {
+        public:
+            static uint64_t init(const char * thread_name,
+                const uint64_t comm_rank, const uint64_t comm_size);
+            static void finalize(void);
+            static void register_thread(const std::string &name);
+            static std::shared_ptr<task_wrapper> new_task(
+                const std::string &name, const uint64_t task_id,
+                const std::shared_ptr<task_wrapper> &parent_task);
+            static std::shared_ptr<task_wrapper> new_task(
+                uintptr_t address, const uint64_t task_id,
+                const std::shared_ptr<task_wrapper> &parent_task);
+            static void sample_value(const std::string &name, double value);
+            static void send (uint64_t tag, uint64_t size, uint64_t target);
+            static void recv (uint64_t tag, uint64_t size,
+                uint64_t source_rank, uint64_t source_thread);
+            static std::shared_ptr<task_wrapper> update_task(
+                std::shared_ptr<task_wrapper> &wrapper, const std::string &name);
+            static std::shared_ptr<task_wrapper> update_task(
+                std::shared_ptr<task_wrapper> &wrapper, uintptr_t address);
+            static profiler * start(std::shared_ptr<task_wrapper> &task_wrapper_ptr);
+            static void stop(std::shared_ptr<task_wrapper> &task_wrapper_ptr);
+            static void yield(std::shared_ptr<task_wrapper> &task_wrapper_ptr);
+    };
+}}} // namespace hpx::util::external_timer
+#endif

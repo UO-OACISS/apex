@@ -1966,6 +1966,66 @@ extern "C" {
 
 } // extern "C"
 
+#ifdef APEX_HAVE_HPX
+namespace hpx { namespace util { namespace external_timer {
+    uint64_t apex_impl::init(const char * thread_name,
+        const uint64_t comm_rank, const uint64_t comm_size) { 
+        return APEX_TOP_LEVEL_PACKAGE::init(thread_name, comm_rank, comm_size);
+    };
+    void apex_impl::finalize(void) {
+        APEX_TOP_LEVEL_PACKAGE::finalize();
+    };
+    void apex_impl::register_thread(const std::string &name) {
+        APEX_TOP_LEVEL_PACKAGE::register_thread(name);
+    };
+    std::shared_ptr<task_wrapper> apex_impl::new_task(
+        const std::string &name, const uint64_t task_id,
+        const std::shared_ptr<task_wrapper> &parent_task) {
+        return APEX_TOP_LEVEL_PACKAGE::new_task(name, task_id, 
+            dynamic_cast<const std::shared_ptr<APEX_TOP_LEVEL_PACKAGE::task_wrapper>& >(parent_task));
+    };
+    std::shared_ptr<task_wrapper> apex_impl::new_task(
+        uintptr_t address, const uint64_t task_id,
+        const std::shared_ptr<task_wrapper> &parent_task) {
+        return APEX_TOP_LEVEL_PACKAGE::new_task(address, task_id, parent_task);
+    };
+    void apex_impl::sample_value(const std::string &name, double value) {
+        APEX_TOP_LEVEL_PACKAGE::sample_value(name, value);
+    };
+    void apex_impl::send (uint64_t tag, uint64_t size, uint64_t target) {
+        APEX_TOP_LEVEL_PACKAGE::send(tag, size, target);
+    };
+    void apex_impl::recv (uint64_t tag, uint64_t size,
+        uint64_t source_rank, uint64_t source_thread) {
+        APEX_TOP_LEVEL_PACKAGE::recv(tag, size, source_rank, source_thread);
+    };
+    std::shared_ptr<task_wrapper> apex_impl::update_task(
+        std::shared_ptr<task_wrapper> &wrapper, const std::string &name) {
+        return APEX_TOP_LEVEL_PACKAGE::update_task(wrapper, name);
+    };
+    std::shared_ptr<task_wrapper> apex_impl::update_task(
+        std::shared_ptr<task_wrapper> &wrapper, uintptr_t address) {
+        return APEX_TOP_LEVEL_PACKAGE::update_task(wrapper, address);
+    };
+    profiler * apex_impl::start(std::shared_ptr<task_wrapper> &task_wrapper_ptr) {
+        return APEX_TOP_LEVEL_PACKAGE::start(task_wrapper_ptr);
+    };
+    void apex_impl::stop(std::shared_ptr<task_wrapper> &task_wrapper_ptr) {
+        APEX_TOP_LEVEL_PACKAGE::stop(task_wrapper_ptr);
+    };
+    void apex_impl::yield(std::shared_ptr<task_wrapper> &task_wrapper_ptr) {
+        APEX_TOP_LEVEL_PACKAGE::yield(task_wrapper_ptr);
+    };
+}}} // namespace hpx::util::external_timer
+
+void apex_register_with_hpx(void) {
+    hpx::util::external_timer::apex_impl impl;
+    hpx_register_external_timer(std::move(impl));
+}
+DEFINE_CONSTRUCTOR(apex_register_with_hpx)
+
+#endif
+
 #ifdef APEX_HAVE_HPX_disabled
 HPX_DECLARE_ACTION(APEX_TOP_LEVEL_PACKAGE::finalize,
     apex_internal_shutdown_action);

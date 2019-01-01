@@ -9,6 +9,10 @@ namespace apex {
 struct task_wrapper;
 }
 
+#ifdef APEX_HAVE_HPX_CONFIG
+#include <hpx/config.hpp>
+#include <hpx/util/external_timer.hpp>
+#endif
 #include "task_identifier.hpp"
 #include "profiler.hpp"
 #include <vector>
@@ -21,7 +25,11 @@ namespace apex {
 /**
   \brief A wrapper around APEX tasks.
   */
+#ifdef APEX_HAVE_HPX_CONFIG
+struct task_wrapper : public hpx::util::external_timer::task_wrapper {
+#else
 struct task_wrapper {
+#endif
 /**
   \brief A pointer to the task_identifier for this task_wrapper.
   */
