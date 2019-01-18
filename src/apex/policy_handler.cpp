@@ -417,7 +417,7 @@ namespace apex {
             my_context.data = data;
             // last chance to interrupt policy execution at shutdown
             if (_terminate) return;
-            // to check if policy is already deregistered(race condition). 
+            // to check if policy is already deregistered(race condition).
             if(policy == nullptr) continue;
             const bool result = policy->func(my_context);
             if(result != APEX_NOERROR) {

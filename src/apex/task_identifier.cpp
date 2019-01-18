@@ -77,7 +77,8 @@ const std::string& task_identifier::get_name(bool resolve) {
                 sscanf(addr_str.c_str(), "%p", &addr_addr);
                 std::string * tmp = lookup_address((uintptr_t)addr_addr, true);
                 REGEX_NAMESPACE::regex old_address("UNRESOLVED ADDR " + addr_str);
-                name = REGEX_NAMESPACE::regex_replace(name, old_address, (*demangle(*tmp)));
+                name = REGEX_NAMESPACE::regex_replace(name, old_address,
+                                                      (*demangle(*tmp)));
             }
 #endif
             name.assign((*demangle(name)));

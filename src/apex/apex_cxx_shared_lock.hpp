@@ -36,7 +36,8 @@ namespace apex
     typedef std::shared_mutex shared_mutex_type;
     typedef std::shared_lock<shared_mutex_type> read_lock_type;
     typedef std::unique_lock<shared_mutex_type> write_lock_type;
-#elif __cplusplus > 201402L && defined(GCC_COMPILER_7) // if we've got gcc 4.9+ and -std=c++14
+#elif __cplusplus > 201402L && defined(GCC_COMPILER_7)
+    // if we've got gcc 4.9+ and -std=c++14
     typedef std::shared_timed_mutex shared_mutex_type;
     typedef std::shared_lock<shared_mutex_type> read_lock_type;
     typedef std::unique_lock<shared_mutex_type> write_lock_type;

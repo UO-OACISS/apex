@@ -47,7 +47,7 @@ class linked_timer {
                 } else {
                     tw = apex::new_task(name, task_id, parent);
                 }
-                if (auto_start) { this->start(); 
+                if (auto_start) { this->start();
             }
         }
         /* destructor */

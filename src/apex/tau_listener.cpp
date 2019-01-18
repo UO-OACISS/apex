@@ -48,7 +48,7 @@ int (*my_Tau_get_thread)(void) = nullptr;
 int (*my_Tau_profile_exit_all_tasks)(void) = nullptr;
 int (*my_Tau_global_stop)(void) = nullptr;
 int (*my_Tau_trigger_context_event_thread)(char*, double, int) = nullptr;
-int (*my_Tau_metadata)(const char*, const char*) = NULL;
+int (*my_Tau_metadata)(const char*, const char*) = nullptr;
 
 bool tau_listener::_initialized(false);
 
@@ -68,7 +68,8 @@ bool assign_function_pointers(void) {
         my_Tau_register_thread = &Tau_register_thread;
     }
     if (Tau_create_top_level_timer_if_necessary != nullptr) {
-        my_Tau_create_top_level_timer_if_necessary = &Tau_create_top_level_timer_if_necessary;
+        my_Tau_create_top_level_timer_if_necessary =
+            &Tau_create_top_level_timer_if_necessary;
     }
     if (Tau_start != nullptr) {
         my_Tau_start = &Tau_start;
@@ -108,7 +109,7 @@ bool assign_function_pointers(void) {
 void open_preload_libraries(void) {
     /* We might be in a static executable.  Get the ld_preload variable */
     const char * preload = getenv("LD_PRELOAD");
-    if (preload != NULL) {
+    if (preload != nullptr) {
         fprintf(stderr, "LD_PRELOAD:\n%s\n", preload);
         /* tokenize it */
         char* token = strtok(const_cast<char*>(preload), ":");
@@ -116,19 +117,21 @@ void open_preload_libraries(void) {
             printf("token: %s\n", token);
             /* then, dlopen() first and re-try the dlsym() call. */
             dlopen(token, RTLD_LAZY);
-            token = strtok(NULL, ":");
+            token = strtok(nullptr, ":");
         }
     }
 }
 
 bool assign_function_pointers(void) {
     my_Tau_init = (Tau_init_type)dlsym(RTLD_DEFAULT,"Tau_init");
-    if (my_Tau_init == NULL) {
+    if (my_Tau_init == nullptr) {
         open_preload_libraries();
         my_Tau_init = (Tau_init_type)dlsym(RTLD_DEFAULT,"Tau_init");
-        if (my_Tau_init == NULL) {
+        if (my_Tau_init == nullptr) {
             /* Optional - print an error message, because TAU wasn't preloaded! */
-            fprintf(stderr, "TAU libraries not loaded, TAU support unavailable:\n\t%s\n", dlerror());
+            fprintf(stderr,
+                "TAU libraries not loaded, TAU support unavailable:\n\t%s\n",
+                dlerror());
             return false;
         }
     }
