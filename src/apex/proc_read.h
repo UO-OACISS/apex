@@ -18,6 +18,7 @@
 #include <atomic>
 #include <thread>
 #include <string>
+#include <memory>
 #include "pthread_wrapper.hpp"
 #include "apex_options.hpp"
 
@@ -59,6 +60,7 @@ public:
         stop_reading();
         delete worker_thread;
     }
+    static std::unique_ptr<std::string> get_command_line(void);
 };
 
 class ProcData {

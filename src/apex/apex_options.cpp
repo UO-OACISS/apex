@@ -19,7 +19,9 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <memory>
 #include "utils.hpp"
+#include "proc_read.h"
 
 namespace apex
 {
@@ -136,6 +138,10 @@ namespace apex
         std::cout << #name << " : " << options.member_variable() << std::endl;
         FOREACH_APEX_STRING_OPTION(apex_macro)
 #undef apex_macro
+        std::unique_ptr<std::string> tmpstr = proc_data_reader::get_command_line();
+        if (tmpstr.length() > 0) {
+            std::cout << tmpstr << std::endl;
+        }
         return;
     }
 }

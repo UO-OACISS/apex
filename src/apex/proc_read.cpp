@@ -694,6 +694,21 @@ double msr_current_power_high(void) {
 }
 #endif
 
+std::unique_ptr<std::string> proc_data_reader::get_command_line(void) {
+  std::string line;
+  std::fstream myfile ("/proc/self/cmdline");
+  std::stringstream ss;
+  if (myfile.is_open())
+  {
+    while ( getline (myfile,line) )
+    {
+      ss << line << '\n';
+    }
+    myfile.close();
+  } else {
+    // it wasn't there, so return nothing.
+  }
+  return std::move(ss.str());
 }
 
 #endif // APEX_HAVE_PROC
