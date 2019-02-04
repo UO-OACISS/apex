@@ -701,6 +701,14 @@ std::string proc_data_reader::get_command_line(void) {
   if (myfile.is_open()) { 
       getline (myfile,line);
       myfile.close();
+      /* From the documentation:
+       * This  holds  the complete command line for the process, unless the
+       * process is a zombie.  In the latter case, there is nothing in this
+       * file: that is, a read on  this  file  will return  0 characters.  The
+       * command-line arguments appear in this file as a set of null-separated
+       * strings, with a further null byte ('\0') after the last string. */
+      // so replace all the nulls with spaces
+      std::replace(line.begin(), line.end(), '\0', ' ');
   } else {
       // it wasn't there, so return nothing.
   }
