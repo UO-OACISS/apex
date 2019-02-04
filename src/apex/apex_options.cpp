@@ -138,9 +138,9 @@ namespace apex
         std::cout << #name << " : " << options.member_variable() << std::endl;
         FOREACH_APEX_STRING_OPTION(apex_macro)
 #undef apex_macro
-        std::unique_ptr<std::string> tmpstr = proc_data_reader::get_command_line();
+        std::string tmpstr(proc_data_reader::get_command_line());
         if (tmpstr.length() > 0) {
-            std::cout << tmpstr << std::endl;
+            std::cout << "Command line: " << tmpstr << std::endl;
         }
         return;
     }

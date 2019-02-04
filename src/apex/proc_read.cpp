@@ -13,6 +13,7 @@
 #include "apex_api.hpp"
 #include "apex.hpp"
 #include <sstream>
+#include <fstream>
 #include <atomic>
 #include <unordered_set>
 #include <string>
@@ -694,21 +695,18 @@ double msr_current_power_high(void) {
 }
 #endif
 
-std::unique_ptr<std::string> proc_data_reader::get_command_line(void) {
+std::string proc_data_reader::get_command_line(void) {
   std::string line;
-  std::fstream myfile ("/proc/self/cmdline");
-  std::stringstream ss;
-  if (myfile.is_open())
-  {
-    while ( getline (myfile,line) )
-    {
-      ss << line << '\n';
-    }
-    myfile.close();
+  std::fstream myfile("/proc/self/cmdline", ios_base::in);
+  if (myfile.is_open()) { 
+      getline (myfile,line);
+      myfile.close();
   } else {
-    // it wasn't there, so return nothing.
+      // it wasn't there, so return nothing.
   }
-  return std::move(ss.str());
+  return line;
 }
+
+} // namespace
 
 #endif // APEX_HAVE_PROC

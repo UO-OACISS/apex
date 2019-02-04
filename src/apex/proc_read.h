@@ -60,7 +60,7 @@ public:
         stop_reading();
         delete worker_thread;
     }
-    static std::unique_ptr<std::string> get_command_line(void);
+    static std::string get_command_line(void);
 };
 
 class ProcData {
