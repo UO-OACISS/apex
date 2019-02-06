@@ -47,6 +47,7 @@ namespace apex
 #endif
                 }
             }
+            conf_file.close();
         }
 
         char* option = nullptr;
@@ -138,9 +139,29 @@ namespace apex
         std::cout << #name << " : " << options.member_variable() << std::endl;
         FOREACH_APEX_STRING_OPTION(apex_macro)
 #undef apex_macro
+#ifdef APEX_HAVE_PROC
         std::string tmpstr(proc_data_reader::get_command_line());
         if (tmpstr.length() > 0) {
             std::cout << "Command line: " << tmpstr << std::endl;
+        }
+#endif
+        return;
+    }
+
+    void apex_options::make_default_config() {
+        apex* instance = apex::instance();
+        apex_options& options = apex_options::instance();
+        std::ofstream conf_file(config_file_name, std::ofstream::out);
+        if(conf_file.good()) {
+#define apex_macro(name, member_variable, type, default_value) \
+            conf_file << #name << "=" << options.member_variable() << std::endl;
+            FOREACH_APEX_OPTION(apex_macro)
+#undef apex_macro
+#define apex_macro(name, member_variable, type, default_value) \
+            conf_file << #name << "=" << options.member_variable() << std::endl;
+            FOREACH_APEX_STRING_OPTION(apex_macro)
+#undef apex_macro
+            conf_file.close();
         }
         return;
     }

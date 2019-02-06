@@ -49,6 +49,7 @@ public:
 #undef apex_macro
     /* The debugging methods */
     APEX_EXPORT static void print_options(void);
+    APEX_EXPORT static void make_default_config(void);
 };
 
 }

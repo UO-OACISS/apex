@@ -821,6 +821,8 @@ if(NOT MSVC)
     endif()
 endif()
 
+add_subdirectory (src/utils)
+
 if(BUILD_TESTS)
   message(INFO " Building unit tests.")
   if(OMPT_FOUND)

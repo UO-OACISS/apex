@@ -11,5 +11,8 @@ git tag -a -F changelog.txt v2.1.1
 git checkout master
 git pull
 git merge develop
+git checkout develop
 git push origin
 git push --tags origin
+
+4) Update github, make release
