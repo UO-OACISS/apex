@@ -162,6 +162,7 @@ namespace apex
             FOREACH_APEX_STRING_OPTION(apex_macro)
 #undef apex_macro
             conf_file.close();
+            std::cout << "Default config written to : " << config_file_name << std::endl;
         }
         return;
     }
