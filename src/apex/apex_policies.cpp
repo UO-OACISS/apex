@@ -811,10 +811,15 @@ int apex_custom_tuning_policy(shared_ptr<apex_tuning_session> tuning_session,
             tuning_session->converged_message = true;
             cout << "Tuning has converged for session " << tuning_session->id
             << "." << endl;
+	    
+	    if (ah_best(tuning_session->htask) < 0) {
+        	cerr << "Error retrieving best tuning point." << endl;
+        	return APEX_ERROR;
+    	    }
         }
         return APEX_NOERROR;
     }
-
+ 
     // get a measurement of our current setting
     double new_value = tuning_session->metric_of_interest();
 
