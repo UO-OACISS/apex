@@ -28,7 +28,7 @@ set(APEX_BINARY_DIR ${APEX_BINARY_DIR} PARENT_SCOPE)
 hpx_info("apex" "APEX source dir is ${APEX_SOURCE_DIR}")
 hpx_info("apex" "APEX binary dir is ${APEX_BINARY_DIR}")
 
-include_directories(${CMAKE_SOURCE_DIR}/apex/src/apex ${CMAKE_BINARY_DIR} ${APEX_BINARY_DIR} ${CMAKE_SOURCE_DIR}/apex/src/contrib ${HPX.pp_SOURCE_DIR}/include)
+include_directories(${CMAKE_SOURCE_DIR}/apex/src/apex ${CMAKE_BINARY_DIR} ${APEX_BINARY_DIR} ${CMAKE_SOURCE_DIR}/apex/src/contrib)
 
 # This macro will make sure that the hpx/config.h file is included
 add_definitions(-DAPEX_HAVE_HPX_CONFIG)
@@ -352,7 +352,7 @@ add_hpx_library(apex
   STATIC NOLIBS
   SOURCES ${apex_sources}
   HEADERS ${apex_headers}
-  DEPENDENCIES hpx.pp
+  DEPENDENCIES hpx_preprocessor
   FOLDER "Core/Dependencies")
 
 #if(APPLE)
