@@ -352,7 +352,7 @@ add_hpx_library(apex
   STATIC NOLIBS
   SOURCES ${apex_sources}
   HEADERS ${apex_headers}
-  DEPENDENCIES hpx_preprocessor
+  DEPENDENCIES hpx_cache
   FOLDER "Core/Dependencies")
 
 #if(APPLE)
