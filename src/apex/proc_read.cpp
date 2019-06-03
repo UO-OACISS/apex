@@ -46,6 +46,98 @@ using namespace std;
 
 namespace apex {
 
+#if defined(APEX_HAVE_PAPI)
+
+#include "papi.h"
+
+static bool papi_initialized = false;
+static int EventSet = PAPI_NULL;
+
+void initialize_papi_events(void) {
+  char events[6][BUFSIZ] = {
+    "PACKAGE_ENERGY:PACKAGE0",
+    "PACKAGE_ENERGY:PACKAGE1",
+    "DRAM_ENERGY:PACKAGE0",
+    "DRAM_ENERGY:PACKAGE1",
+    "PP0_ENERGY:PACKAGE0",
+    "PP0_ENERGY:PACKAGE1"
+  };
+  // get the PAPI components
+  int num_components = PAPI_num_components();
+  const PAPI_component_info_t *comp_info;
+  bool comp_found = false;
+  // are there any components?
+  for (int i = 0 ; i < num_components ; i++) {
+    comp_info = PAPI_get_component_info(i);
+    if (comp_info == NULL) {
+      fprintf(stderr, "PAPI component info unavailable, no power measurements will be done.\n");
+      return;
+    }
+    // do we have the RAPL components?
+    if (strstr(comp_info->name, "linux-rapl")) {
+      printf("PAPI RAPL component found...\n");
+      if (comp_info->num_native_events == 0) {
+        fprintf(stderr, "No RAPL events found.\n");
+        return;
+      }
+      comp_found = true;
+      break;
+    }
+  }
+  if (!comp_found) {
+    return;
+  }
+  int retval = PAPI_create_eventset(&EventSet);
+  if (retval != PAPI_OK) {
+    fprintf(stderr, "Error creating PAPI eventset.\n");
+    return;
+  }
+  for (int i = 0 ; i < 6 ; i++) {
+    retval = PAPI_add_named_event(EventSet, events[i]);
+    if (retval != PAPI_OK) {
+      fprintf(stderr, "Error adding PAPI event.\n");
+      return;
+    }
+  }
+  retval = PAPI_start(EventSet);
+  if (retval != PAPI_OK) {
+    fprintf(stderr, "Error starting PAPI eventset.\n");
+    return;
+  }
+  papi_initialized = true;
+}
+
+void read_papi_power(ProcData * data) {
+  if (papi_initialized == false) {
+    data->package_energy_package0 = 0LL;
+    data->package_energy_package1 = 0LL;
+    data->dram_energy_package0 = 0LL;
+    data->dram_energy_package1 = 0LL;
+    data->pp0_energy_package0 = 0LL;
+    data->pp0_energy_package1 = 0LL;
+    data->uncore_energy_package0 = 0LL;
+    data->uncore_energy_package1 = 0LL;
+    return;
+  }
+  long long values[6];
+  int retval = PAPI_stop(EventSet, values);
+  if (retval != PAPI_OK) {
+    fprintf(stderr, "Error stopping PAPI eventset.\n");
+    return;
+  }
+  data->package_energy_package0 = values[0];
+  data->package_energy_package1 = values[1];
+  data->dram_energy_package0 = values[2];
+  data->dram_energy_package1 = values[3];
+  data->pp0_energy_package0 = values[4];
+  data->pp0_energy_package1 = values[5];
+  data->uncore_energy_package0 = values[0]-values[4];
+  data->uncore_energy_package1 = values[1]-values[5];
+  return;
+}
+
+#endif // defined(APEX_HAVE_PAPI)
+
 std::atomic<bool> proc_data_reader::done(false);
 
 
@@ -133,6 +225,9 @@ ProcData* parse_proc_stat(void) {
   procData->package0 = read_package0();
   procData->dram = read_dram();
 #endif
+#if defined(APEX_HAVE_PAPI)
+  read_papi_power(procData);
+#endif
   return procData;
 }
 
@@ -175,6 +270,16 @@ ProcData* ProcData::diff(ProcData const& rhs) {
 #if defined(APEX_HAVE_POWERCAP_POWER)
   d->package0 = package0 - rhs.package0;
   d->dram = dram - rhs.dram;
+#endif
+#if defined(APEX_HAVE_PAPI)
+  d->package_energy_package0 = package_energy_package0 - rhs.package_energy_package0;
+  d->package_energy_package1 = package_energy_package1 - rhs.package_energy_package1;
+  d->dram_energy_package0 = dram_energy_package0 - rhs.dram_energy_package0;
+  d->dram_energy_package1 = dram_energy_package1 - rhs.dram_energy_package1;
+  d->pp0_energy_package0 = pp0_energy_package0 - rhs.pp0_energy_package0;
+  d->pp0_energy_package1 = pp0_energy_package1 - rhs.pp0_energy_package1;
+  d->uncore_energy_package0 = uncore_energy_package0 - rhs.uncore_energy_package0;
+  d->uncore_energy_package1 = uncore_energy_package1 - rhs.uncore_energy_package1;
 #endif
   return d;
 }
@@ -314,6 +419,18 @@ void ProcData::sample_values(void) {
 #if defined(APEX_HAVE_POWERCAP_POWER)
   sample_value("Package-0 Energy", package0);
   sample_value("DRAM Energy", dram);
+#endif
+#if defined(APEX_HAVE_PAPI)
+  if (papi_initialized) {
+    sample_value("PACKAGE_ENERGY_PACKAGE_0", package_energy_package0);
+    sample_value("PACKAGE_ENERGY_PACKAGE_1", package_energy_package1);
+    sample_value("DRAM_ENERGY_PACKAGE_0", dram_energy_package0);
+    sample_value("DRAM_ENERGY_PACKAGE_1", dram_energy_package1);
+    sample_value("PP0_ENERGY_PACKAGE_0", pp0_energy_package0);
+    sample_value("PP0_ENERGY_PACKAGE_1", pp0_energy_package1);
+    sample_value("UNCORE_ENERGY_PACKAGE_0", uncore_energy_package0);
+    sample_value("UNCORE_ENERGY_PACKAGE_1", uncore_energy_package1);
+  }
 #endif
 }
 
