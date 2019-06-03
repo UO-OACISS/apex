@@ -1,6 +1,6 @@
 
-oldtag=v2.1.1
-tagname=v2.1.2
+oldtag=v2.1.2
+tagname=v2.1.3
 
 echo "Commit Log:" >> ${tagname}.txt
 
