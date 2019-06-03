@@ -650,6 +650,25 @@ endif(BFD_FOUND OR OTF2_FOUND)
 
 include(GitExternal)
 
+### Set up concurrentqueue stuff
+git_external(concurrentqueue
+    https://github.com/cameron314/concurrentqueue.git
+    master
+    VERBOSE)
+
+find_file(
+    CONCURRENTQUEUE_HEADER
+    NAMES concurrentqueue.h
+    PATHS ${PROJECT_SOURCE_DIR}/concurrentqueue)
+
+if(CONCURRENTQUEUE_HEADER)
+    message(INFO " Found concurrentqueue at ${PROJECT_SOURCE_DIR}/concurrentqueue")
+    include_directories(${PROJECT_SOURCE_DIR})
+else()
+    message(FATAL_ERROR " concurrentqueue not found. This should have been checked out automatically. "
+            "Try manually check out https://github.com/cameron314/concurrentqueue.git to ${PROJECT_SOURCE_DIR}")
+endif()
+
 if(USE_PLUGINS)
     message(INFO " apex will be built with plugin support.")
     set(LIBS ${LIBS} ${CMAKE_DL_LIBS})
