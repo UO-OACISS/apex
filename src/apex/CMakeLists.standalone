@@ -1,7 +1,7 @@
 # Create a library called "Apex" which includes the source file "apex.cxx". 
 # The extension is already found. Any number of sources could be listed here. 
 
-include_directories(${PROJECT_BINARY_DIR}/src/apex ${APEX_SOURCE_DIR}/src/contrib)
+include_directories(${PROJECT_BINARY_DIR}/src/apex)
 
 SET(tau_SOURCE tau_listener.cpp)
 
