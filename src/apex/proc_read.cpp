@@ -51,7 +51,7 @@ namespace apex {
 #include "papi.h"
 
 static bool papi_initialized = false;
-static int EventSet = PAPI_NULL;
+static int EventSet;
 
 void initialize_papi_events(void) {
   char events[6][BUFSIZ] = {
@@ -74,7 +74,7 @@ void initialize_papi_events(void) {
       return;
     }
     // do we have the RAPL components?
-    if (strstr(comp_info->name, "linux-rapl")) {
+    if (strstr(comp_info->name, "rapl")) {
       printf("PAPI RAPL component found...\n");
       if (comp_info->num_native_events == 0) {
         fprintf(stderr, "No RAPL events found.\n");
@@ -87,6 +87,7 @@ void initialize_papi_events(void) {
   if (!comp_found) {
     return;
   }
+  EventSet = PAPI_NULL;
   int retval = PAPI_create_eventset(&EventSet);
   if (retval != PAPI_OK) {
     fprintf(stderr, "Error creating PAPI eventset.\n");
@@ -120,9 +121,9 @@ void read_papi_power(ProcData * data) {
     return;
   }
   long long values[6];
-  int retval = PAPI_stop(EventSet, values);
+  int retval = PAPI_read(EventSet, values);
   if (retval != PAPI_OK) {
-    fprintf(stderr, "Error stopping PAPI eventset.\n");
+    fprintf(stderr, "Error reading PAPI eventset.\n");
     return;
   }
   data->package_energy_package0 = values[0];
@@ -131,8 +132,8 @@ void read_papi_power(ProcData * data) {
   data->dram_energy_package1 = values[3];
   data->pp0_energy_package0 = values[4];
   data->pp0_energy_package1 = values[5];
-  data->uncore_energy_package0 = values[0]-values[4];
-  data->uncore_energy_package1 = values[1]-values[5];
+  data->uncore_energy_package0 = data->package_energy_package0-data->pp0_energy_package0;
+  data->uncore_energy_package1 = data->package_energy_package1-data->pp0_energy_package1;
   return;
 }
 
@@ -422,14 +423,14 @@ void ProcData::sample_values(void) {
 #endif
 #if defined(APEX_HAVE_PAPI)
   if (papi_initialized) {
-    sample_value("PACKAGE_ENERGY_PACKAGE_0", package_energy_package0);
-    sample_value("PACKAGE_ENERGY_PACKAGE_1", package_energy_package1);
-    sample_value("DRAM_ENERGY_PACKAGE_0", dram_energy_package0);
-    sample_value("DRAM_ENERGY_PACKAGE_1", dram_energy_package1);
-    sample_value("PP0_ENERGY_PACKAGE_0", pp0_energy_package0);
-    sample_value("PP0_ENERGY_PACKAGE_1", pp0_energy_package1);
-    sample_value("UNCORE_ENERGY_PACKAGE_0", uncore_energy_package0);
-    sample_value("UNCORE_ENERGY_PACKAGE_1", uncore_energy_package1);
+    sample_value("Package-0 Energy (J)", (double)(package_energy_package0)/1.0e9);
+    sample_value("Package-1 Energy (J)", (double)(package_energy_package1)/1.0e9);
+    sample_value("DRAM-0 Energy (J)", (double)(dram_energy_package0)/1.0e9);
+    sample_value("DRAM-1 Energy (J)", (double)(dram_energy_package1)/1.0e9);
+    sample_value("PowerPlane-0 Energy (J)", (double)(pp0_energy_package0)/1.0e9);
+    sample_value("PowerPlane-1 Energy (J)", (double)(pp0_energy_package1)/1.0e9);
+    sample_value("Uncore-0 Energy (J)", (double)(uncore_energy_package0)/1.0e9);
+    sample_value("Uncore-1 Energy (J)", (double)(uncore_energy_package1)/1.0e9);
   }
 #endif
 }
@@ -704,6 +705,9 @@ void* proc_data_reader::read_proc(void * _ptw) {
     tau_listener::Tau_start_wrapper("proc_data_reader::read_proc");
   }
   if (done) { return nullptr; }
+#if defined(APEX_HAVE_PAPI)
+  initialize_papi_events();
+#endif
 #ifdef APEX_HAVE_LM_SENSORS
   sensor_data * mysensors = new sensor_data();
 #endif
