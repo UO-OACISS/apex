@@ -50,22 +50,18 @@ namespace apex {
 
 #include "papi.h"
 
-static bool papi_initialized = false;
-static int EventSet;
+static bool rapl_initialized = false;
+static bool nvml_initialized = false;
+static int rapl_EventSet;
+static int nvml_EventSet;
+static std::vector<std::string> nvml_event_names;
 
 void initialize_papi_events(void) {
-  char events[6][BUFSIZ] = {
-    "PACKAGE_ENERGY:PACKAGE0",
-    "PACKAGE_ENERGY:PACKAGE1",
-    "DRAM_ENERGY:PACKAGE0",
-    "DRAM_ENERGY:PACKAGE1",
-    "PP0_ENERGY:PACKAGE0",
-    "PP0_ENERGY:PACKAGE1"
-  };
   // get the PAPI components
   int num_components = PAPI_num_components();
   const PAPI_component_info_t *comp_info;
-  bool comp_found = false;
+  bool rapl_found = false;
+  bool nvml_found = false;
   // are there any components?
   for (int i = 0 ; i < num_components ; i++) {
     comp_info = PAPI_get_component_info(i);
@@ -78,62 +74,148 @@ void initialize_papi_events(void) {
       printf("PAPI RAPL component found...\n");
       if (comp_info->num_native_events == 0) {
         fprintf(stderr, "No RAPL events found.\n");
-        return;
+      } else {
+        rapl_found = true;
       }
-      comp_found = true;
-      break;
+    }
+    // do we have the NVML (cuda) components?
+    if (strstr(comp_info->name, "nvml")) {
+      printf("PAPI NVML component found...\n");
+      if (comp_info->num_native_events == 0) {
+        fprintf(stderr, "No NVML events found.\n");
+      } else {
+        nvml_found = true;
+        int code = PAPI_NATIVE_MASK;
+        int event_modifier = PAPI_ENUM_FIRST;
+        for ( int ii=0; ii< comp_info->num_native_events; ii++ ) {
+          int retval = PAPI_enum_cmp_event( &code, event_modifier, i );
+          event_modifier = PAPI_ENUM_EVENTS;
+          if ( retval != PAPI_OK ) fprintf( stderr, "%s %d %s %d\n", __FILE__, __LINE__, "PAPI_event_code_to_name", retval );
+          char event_name[PAPI_MAX_STR_LEN];
+          retval = PAPI_event_code_to_name( code, event_name );
+          char *ss;
+          // We need events that END in :power, etc.
+          /*
+          ss = strstr(event_name, ":allocated_memory");              // get position of this string.
+          if (ss != NULL) {
+            nvml_event_names.push_back(std::string(event_name)); // Valid! Remember the name.
+            printf("Found event '%s'\n", event_name);   // Report what we found.
+          }
+          */
+          ss = strstr(event_name, ":power");              // get position of this string.
+          if (ss != NULL && ss[6] != '_') {
+            nvml_event_names.push_back(std::string(event_name)); // Valid! Remember the name.
+            printf("Found event '%s'\n", event_name);   // Report what we found.
+          }
+          /*
+          ss = strstr(event_name, ":temperature");              // get position of this string.
+          if (ss != NULL) {
+            nvml_event_names.push_back(std::string(event_name)); // Valid! Remember the name.
+            printf("Found event '%s'\n", event_name);   // Report what we found.
+          }
+          ss = strstr(event_name, ":gpu_utilization");              // get position of this string.
+          if (ss != NULL) {
+            nvml_event_names.push_back(std::string(event_name)); // Valid! Remember the name.
+            printf("Found event '%s'\n", event_name);   // Report what we found.
+          }
+          ss = strstr(event_name, ":memory_utilization");              // get position of this string.
+          if (ss != NULL) {
+            nvml_event_names.push_back(std::string(event_name)); // Valid! Remember the name.
+            printf("Found event '%s'\n", event_name);   // Report what we found.
+          }
+          */
+        }
+      }
     }
   }
-  if (!comp_found) {
+  if (!rapl_found && !nvml_found) {
     return;
   }
-  EventSet = PAPI_NULL;
-  int retval = PAPI_create_eventset(&EventSet);
-  if (retval != PAPI_OK) {
-    fprintf(stderr, "Error creating PAPI eventset.\n");
-    return;
-  }
-  for (int i = 0 ; i < 6 ; i++) {
-    retval = PAPI_add_named_event(EventSet, events[i]);
+  if (rapl_found) {
+    rapl_EventSet = PAPI_NULL;
+    int retval = PAPI_create_eventset(&rapl_EventSet);
     if (retval != PAPI_OK) {
-      fprintf(stderr, "Error adding PAPI event.\n");
+      fprintf(stderr, "Error creating PAPI eventset.\n");
       return;
     }
+    char rapl_events[6][BUFSIZ] = {
+      "PACKAGE_ENERGY:PACKAGE0",
+      "PACKAGE_ENERGY:PACKAGE1",
+      "DRAM_ENERGY:PACKAGE0",
+      "DRAM_ENERGY:PACKAGE1",
+      "PP0_ENERGY:PACKAGE0",
+      "PP0_ENERGY:PACKAGE1"
+    };
+    for (int i = 0 ; i < 6 ; i++) {
+      retval = PAPI_add_named_event(rapl_EventSet, rapl_events[i]);
+      if (retval != PAPI_OK) {
+        fprintf(stderr, "Error adding PAPI event.\n");
+        return;
+      }
+    }
+    retval = PAPI_start(rapl_EventSet);
+    if (retval != PAPI_OK) {
+      fprintf(stderr, "Error starting PAPI eventset.\n");
+      return;
+    }
+    rapl_initialized = true;
   }
-  retval = PAPI_start(EventSet);
-  if (retval != PAPI_OK) {
-    fprintf(stderr, "Error starting PAPI eventset.\n");
-    return;
+  if (nvml_found) {
+    nvml_EventSet = PAPI_NULL;
+    int retval = PAPI_create_eventset(&nvml_EventSet);
+    if (retval != PAPI_OK) {
+      fprintf(stderr, "Error creating PAPI eventset.\n");
+      return;
+    }
+    for (size_t i = 0 ; i < nvml_event_names.size() ; i++) {
+      int event;
+      retval = PAPI_event_name_to_code( nvml_event_names[i].c_str(), &event );
+      if (retval != PAPI_OK) {
+        fprintf(stderr, "Error coding NVML event.\n");
+        return;
+      }
+      retval = PAPI_add_events(nvml_EventSet, &event, 1);
+      if (retval != PAPI_OK) {
+        fprintf(stderr, "Error adding NVML event.\n");
+        return;
+      }
+    }
+    retval = PAPI_start(nvml_EventSet);
+    if (retval != PAPI_OK) {
+      fprintf(stderr, "Error starting PAPI eventset.\n");
+      return;
+    }
+    nvml_initialized = true;
   }
-  papi_initialized = true;
 }
 
 void read_papi_power(ProcData * data) {
-  if (papi_initialized == false) {
-    data->package_energy_package0 = 0LL;
-    data->package_energy_package1 = 0LL;
-    data->dram_energy_package0 = 0LL;
-    data->dram_energy_package1 = 0LL;
-    data->pp0_energy_package0 = 0LL;
-    data->pp0_energy_package1 = 0LL;
-    data->uncore_energy_package0 = 0LL;
-    data->uncore_energy_package1 = 0LL;
-    return;
+  long long values[256] = {0LL};
+  if (rapl_initialized) {
+    int retval = PAPI_read(rapl_EventSet, values);
+    if (retval != PAPI_OK) {
+      fprintf(stderr, "Error reading PAPI eventset.\n");
+      return;
+    }
+    data->package_energy_package0 = values[0];
+    data->package_energy_package1 = values[1];
+    data->dram_energy_package0 = values[2];
+    data->dram_energy_package1 = values[3];
+    data->pp0_energy_package0 = values[4];
+    data->pp0_energy_package1 = values[5];
+    data->uncore_energy_package0 = data->package_energy_package0-data->pp0_energy_package0;
+    data->uncore_energy_package1 = data->package_energy_package1-data->pp0_energy_package1;
   }
-  long long values[6];
-  int retval = PAPI_read(EventSet, values);
-  if (retval != PAPI_OK) {
-    fprintf(stderr, "Error reading PAPI eventset.\n");
-    return;
+  if (nvml_initialized) {
+    int retval = PAPI_read(nvml_EventSet, values);
+    if (retval != PAPI_OK) {
+      fprintf(stderr, "Error reading PAPI eventset.\n");
+      return;
+    }
+    for (size_t i = 0 ; i < nvml_event_names.size() ; i++) {
+      data->nvml_metrics.push_back(values[i++]);
+    }
   }
-  data->package_energy_package0 = values[0];
-  data->package_energy_package1 = values[1];
-  data->dram_energy_package0 = values[2];
-  data->dram_energy_package1 = values[3];
-  data->pp0_energy_package0 = values[4];
-  data->pp0_energy_package1 = values[5];
-  data->uncore_energy_package0 = data->package_energy_package0-data->pp0_energy_package0;
-  data->uncore_energy_package1 = data->package_energy_package1-data->pp0_energy_package1;
   return;
 }
 
@@ -273,14 +355,19 @@ ProcData* ProcData::diff(ProcData const& rhs) {
   d->dram = dram - rhs.dram;
 #endif
 #if defined(APEX_HAVE_PAPI)
-  d->package_energy_package0 = package_energy_package0 - rhs.package_energy_package0;
-  d->package_energy_package1 = package_energy_package1 - rhs.package_energy_package1;
-  d->dram_energy_package0 = dram_energy_package0 - rhs.dram_energy_package0;
-  d->dram_energy_package1 = dram_energy_package1 - rhs.dram_energy_package1;
-  d->pp0_energy_package0 = pp0_energy_package0 - rhs.pp0_energy_package0;
-  d->pp0_energy_package1 = pp0_energy_package1 - rhs.pp0_energy_package1;
-  d->uncore_energy_package0 = uncore_energy_package0 - rhs.uncore_energy_package0;
-  d->uncore_energy_package1 = uncore_energy_package1 - rhs.uncore_energy_package1;
+  d->package_energy_package0 = package_energy_package0;
+  d->package_energy_package1 = package_energy_package1;
+  d->dram_energy_package0 = dram_energy_package0;
+  d->dram_energy_package1 = dram_energy_package1;
+  d->pp0_energy_package0 = pp0_energy_package0;
+  d->pp0_energy_package1 = pp0_energy_package1;
+  d->uncore_energy_package0 = uncore_energy_package0;
+  d->uncore_energy_package1 = uncore_energy_package1;
+  if (nvml_initialized) {
+    for (size_t i = 0 ; i < nvml_event_names.size() ; i++) {
+        d->nvml_metrics.push_back(nvml_metrics[i]);
+    }
+  }
 #endif
   return d;
 }
@@ -422,7 +509,7 @@ void ProcData::sample_values(void) {
   sample_value("DRAM Energy", dram);
 #endif
 #if defined(APEX_HAVE_PAPI)
-  if (papi_initialized) {
+  if (rapl_initialized) {
     sample_value("Package-0 Energy (J)", (double)(package_energy_package0)/1.0e9);
     sample_value("Package-1 Energy (J)", (double)(package_energy_package1)/1.0e9);
     sample_value("DRAM-0 Energy (J)", (double)(dram_energy_package0)/1.0e9);
@@ -431,6 +518,11 @@ void ProcData::sample_values(void) {
     sample_value("PowerPlane-1 Energy (J)", (double)(pp0_energy_package1)/1.0e9);
     sample_value("Uncore-0 Energy (J)", (double)(uncore_energy_package0)/1.0e9);
     sample_value("Uncore-1 Energy (J)", (double)(uncore_energy_package1)/1.0e9);
+  }
+  if (nvml_initialized) {
+    for (size_t i = 0 ; i < nvml_event_names.size() ; i++) {
+      sample_value(nvml_event_names[i].c_str(), (double)nvml_metrics[i]);
+    }
   }
 #endif
 }
