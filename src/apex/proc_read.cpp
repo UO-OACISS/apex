@@ -169,7 +169,7 @@ void initialize_papi_events(void) {
     }
     for (size_t i = 0 ; i < nvml_event_names.size() ; i++) {
       int event;
-      retval = PAPI_event_name_to_code( nvml_event_names[i].c_str(), &event );
+      retval = PAPI_event_name_to_code( const_cast<char*>(nvml_event_names[i].c_str()), &event );
       if (retval != PAPI_OK) {
         fprintf(stderr, "Error coding NVML event.\n");
         return;
