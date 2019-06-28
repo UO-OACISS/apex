@@ -1,6 +1,6 @@
 
-oldtag=v2.1.1
-tagname=v2.1.2
+oldtag=v2.1.3
+tagname=v2.1.4
 
 echo "Commit Log:" >> ${tagname}.txt
 
@@ -9,4 +9,4 @@ git log ${oldtag}..HEAD --pretty=format:'<li> <a href="http://github.com/khuck/x
 
 vi ${tagname}.txt
 
-# git tag -a -f -F ${tagname}.txt ${tagname}
+git tag -a -f -F ${tagname}.txt ${tagname}
