@@ -283,17 +283,7 @@ void apex::_initialize()
             listeners.push_back(this->m_policy_handler);
         }
     }
-#if APEX_HAVE_PROC
-    if (apex_options::use_proc_cpuinfo() ||
-        apex_options::use_proc_meminfo() ||
-        apex_options::use_proc_net_dev() ||
-        apex_options::use_proc_self_status() ||
-        apex_options::use_proc_stat()) {
-        pd_reader = new proc_data_reader();
-    } else {
-        pd_reader = nullptr;
-    }
-#endif
+    pd_reader = nullptr;
     this->resize_state(1);
     this->set_state(0, APEX_BUSY);
 }
@@ -414,6 +404,15 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
             instance->listeners[i]->on_startup(data);
         }
     }
+#if APEX_HAVE_PROC
+    if (apex_options::use_proc_cpuinfo() ||
+        apex_options::use_proc_meminfo() ||
+        apex_options::use_proc_net_dev() ||
+        apex_options::use_proc_self_status() ||
+        apex_options::use_proc_stat()) {
+        instance->pd_reader = new proc_data_reader();
+    }
+#endif
     if (apex_options::top_level_os_threads()) {
         // start top-level timers for threads
         if (thread_name) {

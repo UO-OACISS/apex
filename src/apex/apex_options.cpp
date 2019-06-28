@@ -150,6 +150,7 @@ namespace apex
 
     void apex_options::make_default_config() {
         apex* instance = apex::instance();
+        APEX_UNUSED(instance);
         apex_options& options = apex_options::instance();
         std::ofstream conf_file(config_file_name, std::ofstream::out);
         if(conf_file.good()) {
