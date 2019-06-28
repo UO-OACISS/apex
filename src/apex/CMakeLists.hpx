@@ -368,6 +368,7 @@ include(GNUInstallDirs)
 
 add_hpx_library(apex
   STATIC NOLIBS
+  NOEXPORT
   SOURCES ${apex_sources}
   HEADERS ${apex_headers}
   DEPENDENCIES hpx_cache
