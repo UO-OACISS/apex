@@ -15,10 +15,10 @@ set(example_programs
     ompt_task
     ompt_single
     ompt_sections
-    ompt_target
     ompt_sync_region_wait
     ompt_master
    )
+#    ompt_target
 
 foreach(example_program ${example_programs})
     set(sources ${example_program}.c)

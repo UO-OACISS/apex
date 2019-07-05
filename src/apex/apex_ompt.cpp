@@ -400,14 +400,38 @@ extern "C" void apex_sync_region_wait (
 ) {
     char * tmp_str;
     static const char * barrier_str = "Barrier Wait";
-    static const char * task_str = "Task Wait";
+    static const char * barrier_i_str = "Implicit Barrier Wait";
+    static const char * barrier_e_str = "Explicit Barrier Wait";
+    static const char * barrier_imp_str = "Barrier Implementation Wait";
+    static const char * task_wait_str = "Task Wait";
     static const char * task_group_str = "Task Group Wait";
-    if (kind == ompt_sync_region_barrier) {
-        tmp_str = const_cast<char*>(barrier_str);
-    } else if (kind == ompt_sync_region_taskwait) {
-        tmp_str = const_cast<char*>(task_str);
-    } else if (kind == ompt_sync_region_taskgroup) {
-        tmp_str = const_cast<char*>(task_group_str);
+    static const char * reduction_str = "Reduction Wait";
+    static const char * unknown_str = "Unknown Wait";
+    switch (kind) {
+        case ompt_sync_region_barrier:
+            tmp_str = const_cast<char*>(barrier_str);
+            break;
+        case ompt_sync_region_barrier_implicit:
+            tmp_str = const_cast<char*>(barrier_i_str);
+            break;
+        case ompt_sync_region_barrier_explicit:
+            tmp_str = const_cast<char*>(barrier_e_str);
+            break;
+        case ompt_sync_region_barrier_implementation:
+            tmp_str = const_cast<char*>(barrier_imp_str);
+            break;
+        case ompt_sync_region_taskwait:
+            tmp_str = const_cast<char*>(task_wait_str);
+            break;
+        case ompt_sync_region_taskgroup:
+            tmp_str = const_cast<char*>(task_group_str);
+            break;
+        case ompt_sync_region_reduction:
+            tmp_str = const_cast<char*>(reduction_str);
+            break;
+        default:
+            tmp_str = const_cast<char*>(unknown_str);
+            break;
     }
     if (endpoint == ompt_scope_begin) {
         char regionIDstr[128] = {0};
@@ -435,27 +459,39 @@ extern "C" void apex_ompt_work (
     ) {
 
     char * tmp_str;
+    static const char * loop_str = "Loop";
     static const char * sections_str = "Sections";
     static const char * single_executor_str = "Single Executor";
     static const char * single_other_str = "Single Other";
     static const char * workshare_str = "Workshare";
     static const char * distribute_str = "Distribute";
-    static const char * taskgroup_str = "Taskloop";
-    static const char * loop_str = "Loop";
-    if (wstype == ompt_work_sections) {
-        tmp_str = const_cast<char*>(sections_str);
-    } else if (wstype == ompt_work_single_executor) {
-        tmp_str = const_cast<char*>(single_executor_str);
-    } else if (wstype == ompt_work_single_other) {
-        tmp_str = const_cast<char*>(single_other_str);
-    } else if (wstype == ompt_work_workshare) {
-        tmp_str = const_cast<char*>(workshare_str);
-    } else if (wstype == ompt_work_distribute) {
-        tmp_str = const_cast<char*>(distribute_str);
-    } else if (wstype == ompt_work_taskloop) {
-        tmp_str = const_cast<char*>(taskgroup_str);
-    } else {
-        tmp_str = const_cast<char*>(loop_str);
+    static const char * taskloop_str = "Taskloop";
+    static const char * unknown_str = "Unknown";
+    switch(wstype) {
+        case ompt_work_loop:
+            tmp_str = const_cast<char*>(loop_str);
+            break;
+        case ompt_work_sections:
+            tmp_str = const_cast<char*>(sections_str);
+            break;
+        case ompt_work_single_executor:
+            tmp_str = const_cast<char*>(single_executor_str);
+            break;
+        case ompt_work_single_other:
+            tmp_str = const_cast<char*>(single_other_str);
+            break;
+        case ompt_work_workshare:
+            tmp_str = const_cast<char*>(workshare_str);
+            break;
+        case ompt_work_distribute:
+            tmp_str = const_cast<char*>(distribute_str);
+            break;
+        case ompt_work_taskloop:
+            tmp_str = const_cast<char*>(taskloop_str);
+            break;
+        default:
+            tmp_str = const_cast<char*>(unknown_str);
+            break;
     }
     if (endpoint == ompt_scope_begin) {
         char regionIDstr[128] = {0};
@@ -507,14 +543,38 @@ extern "C" void apex_ompt_sync_region (
 ) {
     char * tmp_str;
     static const char * barrier_str = "Barrier";
+    static const char * barrier_i_str = "Implicit Barrier";
+    static const char * barrier_e_str = "Explicit Barrier";
+    static const char * barrier_imp_str = "Barrier Implementation";
     static const char * task_str = "Task";
     static const char * task_group_str = "Task Group";
-    if (kind == ompt_sync_region_barrier) {
-        tmp_str = const_cast<char*>(barrier_str);
-    } else if (kind == ompt_sync_region_taskwait) {
-        tmp_str = const_cast<char*>(task_str);
-    } else if (kind == ompt_sync_region_taskgroup) {
-        tmp_str = const_cast<char*>(task_group_str);
+    static const char * reduction_str = "Reduction";
+    static const char * unknown_str = "Unknown";
+    switch (kind) {
+        case ompt_sync_region_barrier:
+            tmp_str = const_cast<char*>(barrier_str);
+            break;
+        case ompt_sync_region_barrier_implicit:
+            tmp_str = const_cast<char*>(barrier_i_str);
+            break;
+        case ompt_sync_region_barrier_explicit:
+            tmp_str = const_cast<char*>(barrier_e_str);
+            break;
+        case ompt_sync_region_barrier_implementation:
+            tmp_str = const_cast<char*>(barrier_imp_str);
+            break;
+        case ompt_sync_region_taskwait:
+            tmp_str = const_cast<char*>(task_str);
+            break;
+        case ompt_sync_region_taskgroup:
+            tmp_str = const_cast<char*>(task_group_str);
+            break;
+        case ompt_sync_region_reduction:
+            tmp_str = const_cast<char*>(reduction_str);
+            break;
+        default:
+            tmp_str = const_cast<char*>(unknown_str);
+            break;
     }
     if (endpoint == ompt_scope_begin) {
         char regionIDstr[128] = {0};
