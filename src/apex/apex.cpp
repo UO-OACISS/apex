@@ -283,7 +283,9 @@ void apex::_initialize()
             listeners.push_back(this->m_policy_handler);
         }
     }
+#if APEX_HAVE_PROC
     pd_reader = nullptr;
+#endif
     this->resize_state(1);
     this->set_state(0, APEX_BUSY);
 }
