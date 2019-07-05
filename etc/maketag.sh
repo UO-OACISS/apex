@@ -1,3 +1,5 @@
+git checkout master
+git merge develop
 
 oldtag=v2.1.3
 tagname=v2.1.4
@@ -10,3 +12,5 @@ git log ${oldtag}..HEAD --pretty=format:'<li> <a href="http://github.com/khuck/x
 vi ${tagname}.txt
 
 git tag -a -f -F ${tagname}.txt ${tagname}
+
+git checkout develop
