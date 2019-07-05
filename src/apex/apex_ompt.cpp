@@ -16,12 +16,6 @@
 #include <string>
 #include "apex_assert.h"
 
-typedef enum apex_ompt_thread_type_e {
- apex_ompt_thread_initial = 1,
- apex_ompt_thread_worker = 2,
- apex_ompt_thread_other = 3
-} apex_ompt_thread_type_t;
-
 std::mutex apex_apex_threadid_mutex;
 std::atomic<uint64_t> apex_numthreads(0);
 APEX_NATIVE_TLS uint64_t apex_threadid(-1);
@@ -123,7 +117,7 @@ void apex_ompt_stop(ompt_data_t * ompt_data) {
 
 /* Event #1, thread begin */
 extern "C" void apex_thread_begin(
-    ompt_thread_type_t thread_type,       /* type of thread                      */
+    ompt_thread_t thread_type,       /* type of thread                      */
     ompt_data_t *thread_data              /* data of thread                      */
 ) {
     {
@@ -161,10 +155,10 @@ extern "C" void apex_thread_end(
 /* Event #3, parallel region begin */
 static void apex_parallel_region_begin (
     ompt_data_t *encountering_task_data,         /* data of encountering task           */
-    const omp_frame_t *encountering_task_frame,  /* frame data of encountering task     */
+    const ompt_frame_t *encountering_task_frame,  /* frame data of encountering task     */
     ompt_data_t *parallel_data,                  /* data of parallel region             */
     unsigned int requested_team_size,            /* requested number of threads in team */
-    ompt_invoker_t invoker,                      /* invoker of master task              */
+    int flags,                                   /* flags */
     const void *codeptr_ra                       /* return address of runtime call      */
 ) {
     char regionIDstr[128] = {0};
@@ -180,7 +174,7 @@ static void apex_parallel_region_begin (
 static void apex_parallel_region_end (
     ompt_data_t *parallel_data,           /* data of parallel region             */
     ompt_data_t *encountering_task_data,  /* data of encountering task           */
-    ompt_invoker_t invoker,               /* invoker of master task              */
+    int flags,                            /* flags              */
     const void *codeptr_ra                /* return address of runtime call      */
 ) {
     //printf("%llu: Parallel Region End parent: %p, apex_parent: %p, region:
@@ -193,9 +187,9 @@ static void apex_parallel_region_end (
 /* Event #5, task create */
 extern "C" void apex_task_create (
     ompt_data_t *encountering_task_data,        /* data of parent task            */
-    const omp_frame_t *encountering_task_frame, /* frame data for parent task     */
+    const ompt_frame_t *encountering_task_frame, /* frame data for parent task     */
     ompt_data_t *new_task_data,                 /* data of created task           */
-    ompt_task_type_t type,                      /* type of created task           */
+    int type,                                   /* flags */
     int has_dependences,                        /* created task has dependences   */
     const void *codeptr_ra                      /* return address of runtime call */
 ) {
@@ -209,7 +203,7 @@ extern "C" void apex_task_create (
     static const char * final_str = "OpenMP Final Task";
     static const char * mergable_str = "OpenMP Mergable Task";
     static const char * merged_str = "OpenMP Merged Task";
-    switch (type) {
+    switch ((ompt_task_flag_t)(type)) {
         case ompt_task_initial:
             type_str = const_cast<char*>(initial_str);
             break;
@@ -266,10 +260,13 @@ extern "C" void apex_task_schedule(
         if (prior != nullptr) {
             switch (prior_task_status) {
                 case ompt_task_yield:
-                case ompt_task_others:
+                case ompt_task_detach:
+                case ompt_task_switch:
                     prior->yield();
                     break;
                 case ompt_task_complete:
+                case ompt_task_early_fulfill:
+                case ompt_task_late_fulfill:
                 case ompt_task_cancel:
                 default:
                     void* tmp = prior->prev;
@@ -311,7 +308,7 @@ extern "C" void apex_implicit_task(
 
 /* Event #8, target */
 extern "C" void apex_target (
-    ompt_target_type_t kind,
+    ompt_target_t kind,
     ompt_scope_endpoint_t endpoint,
     uint64_t device_num,
     ompt_data_t *task_data,
@@ -395,7 +392,7 @@ extern "C" void apex_device_unload (
 
 /* Event #16, sync region wait       */
 extern "C" void apex_sync_region_wait (
-    ompt_sync_region_kind_t kind,   /* kind of sync region            */
+    ompt_sync_region_t kind,        /* kind of sync region            */
     ompt_scope_endpoint_t endpoint, /* endpoint of sync region        */
     ompt_data_t *parallel_data,     /* data of parallel region        */
     ompt_data_t *task_data,         /* data of task                   */
@@ -429,7 +426,7 @@ extern "C" void apex_sync_region_wait (
 
 /* Event #20, task at work begin or end       */
 extern "C" void apex_ompt_work (
-    ompt_work_type_t wstype,        /* type of work region            */
+    ompt_work_t wstype,             /* type of work region            */
     ompt_scope_endpoint_t endpoint, /* endpoint of work region        */
     ompt_data_t *parallel_data,     /* data of parallel region        */
     ompt_data_t *task_data,         /* data of task                   */
@@ -502,7 +499,7 @@ extern "C" void apex_ompt_master (
 
 /* Event #23, sync region begin or end */
 extern "C" void apex_ompt_sync_region (
-    ompt_sync_region_kind_t kind,   /* kind of sync region                 */
+    ompt_sync_region_t kind,        /* kind of sync region                 */
     ompt_scope_endpoint_t endpoint, /* endpoint of sync region             */
     ompt_data_t *parallel_data,     /* data of parallel region             */
     ompt_data_t *task_data,         /* data of task                        */
@@ -572,7 +569,7 @@ extern "C" void apex_ompt_cancel (
             apex::sample_value(std::string("OpenMP Cancel Sections"),1);
         }
     }
-    if (flags & ompt_cancel_do) {
+    if (flags & ompt_cancel_loop) {
         if (codeptr_ra != nullptr) {
             sprintf(regionIDstr, "OpenMP Cancel Do: UNRESOLVED ADDR %p",
             codeptr_ra);
@@ -651,7 +648,9 @@ int apex_ompt_register(ompt_callbacks_t e, ompt_callback_t c ,
 
 extern "C" {
 
-int ompt_initialize(ompt_function_lookup_t lookup, ompt_data_t* tool_data) {
+int ompt_initialize(ompt_function_lookup_t lookup, int initial_device_num,
+    ompt_data_t* tool_data) {
+    APEX_UNUSED(initial_device_num);
     {
         std::unique_lock<std::mutex> l(apex_apex_threadid_mutex);
         apex_threadid = apex_numthreads++;
@@ -783,8 +782,8 @@ int ompt_initialize(ompt_function_lookup_t lookup, ompt_data_t* tool_data) {
             apex_ompt_register(ompt_callback_sync_region,
                 (ompt_callback_t)&apex_ompt_sync_region, "sync_region");
             /* Event 31: begin or end idle state         */
-            apex_ompt_register(ompt_callback_idle,
-                (ompt_callback_t)&apex_ompt_idle, "idle");
+//            apex_ompt_register(ompt_callback_idle,
+//                (ompt_callback_t)&apex_ompt_idle, "idle");
 #if 0
             /* Event 24: lock init                       */
             /* Event 25: lock destroy                    */

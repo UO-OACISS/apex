@@ -655,10 +655,21 @@ std::unordered_set<profile*> free_profiles;
     }
     csv_output << "\"task\",\"num calls\",\"total cycles\",\"total "
         << "microseconds\"";
+    std::string re("PAPI_");
+    std::string tmpstr(apex_options::papi_metrics());
+    size_t index = 0;
+    while (true) {
+         /* Locate the substring to replace. */
+         index = tmpstr.find(re, index);
+         if (index == std::string::npos) break;
+         /* Make the replacement. */
+         tmpstr.replace(index, re.size(), "| ");
+         /* Advance index forward so the next iteration doesn't pick it up as well. */
+         index += 2;
+    }
     screen_output << "Timer                                                : "
         << "#calls  |    mean  |   total  |  % total  "
-        << std::regex_replace(apex_options::papi_metrics(),
-            std::regex("PAPI_"), "| ") << endl;
+        << tmpstr << endl;
     screen_output << "----------------------------------------------"
         << "--------------------------------------------------" << endl;
      id_vector.clear();

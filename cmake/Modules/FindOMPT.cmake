@@ -7,6 +7,21 @@
 
 find_package(PkgConfig)
 
+# First, check if the compiler has built-in support for OpenMP 5.0:
+INCLUDE(CheckCCompilerFlag)
+CHECK_C_COMPILER_FLAG(-fopenmp HAVE_OPENMP)
+try_compile(APEX_HAVE_OMPT_NATIVE ${CMAKE_CURRENT_BINARY_DIR}/ompt_test
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/tests/ompt_test ompt_test ompt_test
+    CMAKE_FLAGS -DCMAKE_CXX_FLAGS:STRING="${OpenMP_CXX_FLAGS}" 
+    -DCMAKE_CMAKE_EXE_LINKER_FLAGS:STRING="${OpenMP_CXX_FLAGS}")
+
+if(${APEX_HAVE_OMPT_NATIVE})
+    set(OMPT_FOUND TRUE)
+    mark_as_advanced(OMPT_INCLUDE_DIR OMPT_LIBRARY)
+    add_custom_target(project_ompt)
+    message("Detected compiler has native OpenMP 5.0 OMPT support.")
+else(${APEX_HAVE_OMPT_NATIVE})
+
 # This if statement is specific to OMPT, and should not be copied into other
 # Find cmake scripts.
 
@@ -39,8 +54,8 @@ if(BUILD_OMPT OR (NOT OMPT_FOUND))
   message(INFO " A working internet connection is required!")
   include(ExternalProject)
   ExternalProject_Add(project_ompt
-      #GIT_REPOSITORY https://github.com/khuck/LLVM-openmp.git
-      GIT_REPOSITORY https://github.com/OpenMPToolsInterface/LLVM-openmp.git
+      #GIT_REPOSITORY https://github.com/OpenMPToolsInterface/LLVM-openmp.git
+      GIT_REPOSITORY https://github.com/llvm-mirror/openmp.git
 	GIT_TAG master
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/LLVM-ompt-5.0
     CONFIGURE_COMMAND cmake -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -DCMAKE_BUILD_TYPE=Release ../project_ompt
@@ -66,6 +81,8 @@ if(BUILD_OMPT OR (NOT OMPT_FOUND))
 else()
   add_custom_target(project_ompt)
 endif()
+endif(${APEX_HAVE_OMPT_NATIVE})
+
 # --------- DOWNLOAD AND BUILD THE EXTERNAL PROJECT! ------------ #
 
 if(OMPT_FOUND)
