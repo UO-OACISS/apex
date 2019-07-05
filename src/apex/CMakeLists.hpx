@@ -371,7 +371,7 @@ add_hpx_library(apex
   NOEXPORT
   SOURCES ${apex_sources}
   HEADERS ${apex_headers}
-  DEPENDENCIES hpx_cache
+  DEPENDENCIES hpx_assertion hpx_cache
   FOLDER "Core/Dependencies")
 
 #if(APPLE)
