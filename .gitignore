@@ -9,3 +9,4 @@ rapidjson
 regression*
 *.sh
 *DS_Store
+concurrentqueue
