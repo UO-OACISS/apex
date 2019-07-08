@@ -14,12 +14,19 @@ if (${CMAKE_MAJOR_VERSION} GREATER 2)
     endif()
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${HPX_SOURCE_DIR}/apex/cmake/Modules")
 hpx_info("apex" "Will build APEX")
 
 set (APEX_VERSION_MAJOR 0)
 set (APEX_VERSION_MINOR 1)
 
+if (NOT APEX_ROOT)
+  if (EXISTS ${HPX_SOURCE_DIR}/apex)
+    set(APEX_ROOT ${HPX_SOURCE_DIR}/apex)
+  else()
+    hpx_info("Apex not found")
+  endif()
+endif()
+list(APPEND CMAKE_MODULE_PATH "${APEX_ROOT}/cmake/Modules")
 set(APEX_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(APEX_SOURCE_DIR ${APEX_SOURCE_DIR} PARENT_SCOPE)
 set(APEX_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
@@ -28,7 +35,7 @@ set(APEX_BINARY_DIR ${APEX_BINARY_DIR} PARENT_SCOPE)
 hpx_info("apex" "APEX source dir is ${APEX_SOURCE_DIR}")
 hpx_info("apex" "APEX binary dir is ${APEX_BINARY_DIR}")
 
-include_directories(${CMAKE_SOURCE_DIR}/apex/src/apex ${CMAKE_BINARY_DIR} ${APEX_BINARY_DIR} ${CMAKE_SOURCE_DIR}/apex/src/contrib)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_BINARY_DIR} ${APEX_BINARY_DIR} ${CMAKE_SOURCE_DIR}/apex/src/contrib)
 
 # This macro will make sure that the hpx/config.h file is included
 add_definitions(-DAPEX_HAVE_HPX_CONFIG)
@@ -59,6 +66,7 @@ if(NOT APEX_ARCH_X86)
 endif()
 
 ### Set up concurrentqueue stuff
+include(GitExternal)
 git_external(concurrentqueue
     https://github.com/cameron314/concurrentqueue.git
     master
@@ -67,13 +75,13 @@ git_external(concurrentqueue
 find_file(
     CONCURRENTQUEUE_HEADER
     NAMES concurrentqueue.h
-    PATHS ${PROJECT_SOURCE_DIR}/apex/src/apex/concurrentqueue)
+    PATHS ${APEX_SOURCE_DIR}/concurrentqueue)
 
 if(CONCURRENTQUEUE_HEADER)
-    message(INFO " Found concurrentqueue at ${PROJECT_SOURCE_DIR}/apex/src/apex/concurrentqueue")
+    message(INFO " Found concurrentqueue at ${APEX_SOURCE_DIR}/concurrentqueue")
 else()
     message(FATAL_ERROR " concurrentqueue not found. This should have been checked out automatically. "
-            "Try manually check out https://github.com/cameron314/concurrentqueue.git to ${PROJECT_SOURCE_DIR}/apex/src/apex")
+            "Try manually check out https://github.com/cameron314/concurrentqueue.git to ${APEX_SOURCE_DIR}")
 endif()
 
 ################################################################################
