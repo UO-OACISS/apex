@@ -79,6 +79,9 @@ private:
     apex() :
         m_node_id(0),
         m_num_ranks(1),
+#if APEX_HAVE_PROC
+        pd_reader(nullptr),
+#endif
         m_my_locality(std::string("0"))
     {
         _initialize();
