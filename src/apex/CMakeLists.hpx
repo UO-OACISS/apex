@@ -377,7 +377,7 @@ add_hpx_library(apex
   NOEXPORT
   SOURCES ${apex_sources}
   HEADERS ${apex_headers}
-  DEPENDENCIES hpx_assertion hpx_cache hpx_hardware
+  DEPENDENCIES hpx_algorithms hpx_assertion hpx_cache hpx_format hpx_hardware
   FOLDER "Core/Dependencies")
 target_include_directories(apex PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
