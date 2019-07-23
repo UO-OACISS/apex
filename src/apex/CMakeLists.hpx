@@ -379,11 +379,12 @@ add_hpx_library(apex
   HEADERS ${apex_headers}
   DEPENDENCIES hpx_algorithms hpx_assertion hpx_cache hpx_format hpx_hardware
   FOLDER "Core/Dependencies")
+
 target_include_directories(apex PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
     $<BUILD_INTERFACE:${APEX_BINARY_DIR}>
-    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/apex/src/contrib>)
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>)
 
 #if(APPLE)
   #hpx_add_link_flag("-weak_library libhpx_taudummy.dylib -flat_namespace")
