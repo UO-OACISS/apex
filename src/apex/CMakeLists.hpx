@@ -373,7 +373,7 @@ endif()
 include(GNUInstallDirs)
 
 add_hpx_library(apex
-  STATIC NOLIBS
+  STATIC NOLIBS EXCLUDE_FROM_ALL
   NOEXPORT
   SOURCES ${apex_sources}
   HEADERS ${apex_headers}
