@@ -19,7 +19,7 @@ class profiler;
 #include <memory>
 #include "task_wrapper.hpp"
 #if defined(APEX_HAVE_HPX)
-#include <hpx/hardware/timestamp.hpp>
+#include <hpx/util/hardware/timestamp.hpp>
 #endif
 
 #ifdef __INTEL_COMPILER
