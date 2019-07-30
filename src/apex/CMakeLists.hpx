@@ -26,7 +26,11 @@ if (NOT APEX_ROOT)
     hpx_info("Apex not found")
   endif()
 endif()
+
+# Module path both apex and hpx
 list(APPEND CMAKE_MODULE_PATH "${APEX_ROOT}/cmake/Modules")
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+
 set(APEX_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(APEX_SOURCE_DIR ${APEX_SOURCE_DIR} PARENT_SCOPE)
 set(APEX_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
