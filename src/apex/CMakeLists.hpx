@@ -379,9 +379,9 @@ add_hpx_library(apex
   HEADERS ${apex_headers}
   DEPENDENCIES hpx_algorithms hpx_allocator_support hpx_assertion hpx_cache
   hpx_collectives hpx_concepts hpx_config hpx_datastructures hpx_format
-  hpx_hardware hpx_hashing hpx_iterator_support hpx_logging hpx_preprocessor
-  hpx_statistics hpx_testing hpx_thread_support hpx_timing hpx_type_support hpx_util
-  FOLDER "Core/Dependencies")
+  hpx_hardware hpx_hashing hpx_iterator_support hpx_logging hpx_parallel_executors
+  hpx_preprocessor hpx_segmented_algorithms hpx_statistics hpx_testing
+  hpx_thread_support hpx_timing hpx_type_support hpx_util FOLDER "Core/Dependencies")
 
 target_include_directories(apex PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
