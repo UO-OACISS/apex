@@ -4,7 +4,7 @@
 #include <string.h>
 #include "apex.h"
 
-#define MAX_ITERATIONS 500
+#define MAX_ITERATIONS 10
 #define N 4096*4096
 #define MAX_THREADS 256
 
@@ -88,29 +88,26 @@ int main(int argc, char** argv)
   static double x[N];
   static double y[N];
   apex_init("openmp test", 0, 1);
-  printf("Initializing...\n"); fflush(stdout);
+  printf("Initializing x...\n"); fflush(stdout);
   my_init(x);
-  printf("Initializing...\n"); fflush(stdout);
+  printf("Initializing y...\n"); fflush(stdout);
   my_init(y);
 
   double result = 0.0;
   int i = 0;
 
   for (i = 0 ; i < MAX_ITERATIONS ; i++) {
-  	//printf("Reduction sharing... "); fflush(stdout);
+  	printf("%d Reduction sharing... ", i); fflush(stdout);
   	result = openmp_reduction(x, y);
-  	//printf("Result: %f\n", result);
+  	printf("%d Result: %f\n", i, result);
 
-  	//printf("False sharing... "); fflush(stdout);
+  	printf("%d False sharing... ", i); fflush(stdout);
   	result = false_sharing(x, y);
-  	//printf("Result: %f\n", result);
+  	printf("%d Result: %f\n", i, result);
 
-  	//printf("No Sharing... "); fflush(stdout);
+  	printf("%d No Sharing... ", i); fflush(stdout);
   	result = no_sharing(x, y);
-  	//printf("Result: %f\n", result);
-	if (i % 50 == 0) {
-  		printf("%d Result: %f\n", i, result);
-	}
+  	printf("%d Result: %f\n", i, result); fflush(stdout);
   }
 
   apex_finalize();

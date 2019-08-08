@@ -258,6 +258,7 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_CSV_OUTPUT, use_csv_output, int, false) \
     macro (APEX_TASKGRAPH_OUTPUT, use_taskgraph_output, bool, false) \
     macro (APEX_PROC_CPUINFO, use_proc_cpuinfo, bool, false) \
+    macro (APEX_PROC_LOADAVG, use_proc_loadavg, bool, true) \
     macro (APEX_PROC_MEMINFO, use_proc_meminfo, bool, false) \
     macro (APEX_PROC_NET_DEV, use_proc_net_dev, bool, false) \
     macro (APEX_PROC_SELF_STATUS, use_proc_self_status, bool, false) \

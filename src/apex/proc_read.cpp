@@ -17,6 +17,7 @@
 #include <atomic>
 #include <unordered_set>
 #include <string>
+#include <cctype>
 #ifdef __MIC__
 #include "boost/regex.hpp"
 #define REGEX_NAMESPACE boost
@@ -548,6 +549,7 @@ bool parse_proc_cpuinfo() {
           string value = *token;
           // check for no value
           if (value.size() == 0) continue;
+          if (!isdigit(trim(value)[0])) continue;
           name = trim(name);
           char* pEnd;
           double d1 = strtod (value.c_str(), &pEnd);
@@ -556,6 +558,35 @@ bool parse_proc_cpuinfo() {
           cname << "cpuinfo." << cpuid << ":" << name;
           if (pEnd) { sample_value(cname.str(), d1); }
         }
+    }
+    fclose(f);
+  } else {
+    return false;
+  }
+  return true;
+}
+
+bool parse_proc_loadavg() {
+  if (!apex_options::use_proc_loadavg()) return false;
+
+  FILE *f = fopen("/proc/loadavg", "r");
+  if (f) {
+    char line[4096] = {0};
+    while ( fgets( line, 4096, f)) {
+        string tmp(line);
+        tmp = trim(tmp);
+        // check for empty line
+        if (tmp.size() == 0) continue;
+        const REGEX_NAMESPACE::regex separator("0");
+        REGEX_NAMESPACE::sregex_token_iterator token(tmp.begin(), tmp.end(),
+            separator, -1);
+        REGEX_NAMESPACE::sregex_token_iterator end;
+        string value = *token;
+        if (value.size() == 0) continue;
+        char* pEnd;
+        double d1 = strtod (value.c_str(), &pEnd);
+        string cname("1 Minute Load average");
+        if (pEnd) { sample_value(cname, d1); }
     }
     fclose(f);
   } else {
@@ -650,7 +681,7 @@ bool parse_proc_self_io() {
 
 bool parse_proc_netdev() {
   if (!apex_options::use_proc_net_dev()) return false;
-  FILE *f = fopen("/proc/net/dev", "r");
+  FILE *f = fopen("/proc/self/net/dev", "r");
   if (f) {
     char line[4096] = {0};
     char * rc = fgets(line, 4096, f); // skip this line
@@ -809,6 +840,7 @@ void* proc_data_reader::read_proc(void * _ptw) {
   parse_proc_meminfo(); // some things change, others don't...
   parse_proc_self_status(); // some things change, others don't...
   parse_proc_self_io(); // some things change, others don't...
+  parse_proc_loadavg(); // this will change
   parse_proc_netdev();
 #ifdef APEX_HAVE_LM_SENSORS
   mysensors->read_sensors();
@@ -833,7 +865,7 @@ void* proc_data_reader::read_proc(void * _ptw) {
         delete(periodData);
         oldData = newData;
     }
-    if (done) break;
+    parse_proc_loadavg();
     parse_proc_meminfo(); // some things change, others don't...
     parse_proc_self_status();
     parse_proc_self_io();
