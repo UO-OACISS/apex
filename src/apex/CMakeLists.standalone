@@ -25,7 +25,7 @@ if (OTF2_FOUND)
 SET(OTF2_SOURCE otf2_listener.cpp)
 endif(OTF2_FOUND)
 
-SET(all_SOURCE task_identifier.cpp apex.cpp thread_instance.cpp event_listener.cpp concurrency_handler.cpp policy_handler.cpp handler.cpp utils.cpp ${tau_SOURCE} profiler_listener.cpp ${bfd_SOURCE} apex_options.cpp apex_policies.cpp ${PROC_SOURCE} ${OMPT_SOURCE} ${SENSOR_SOURCE} ${OTF2_SOURCE})
+SET(all_SOURCE task_identifier.cpp apex.cpp thread_instance.cpp event_listener.cpp concurrency_handler.cpp policy_handler.cpp handler.cpp utils.cpp ${tau_SOURCE} profiler_listener.cpp ${bfd_SOURCE} apex_options.cpp apex_policies.cpp perftool_implementation.cpp ${PROC_SOURCE} ${OMPT_SOURCE} ${SENSOR_SOURCE} ${OTF2_SOURCE})
 
 add_library (apex ${all_SOURCE})
 add_library (taudummy tau_dummy.cpp)

@@ -669,6 +669,25 @@ else()
             "Try manually check out https://github.com/cameron314/concurrentqueue.git to ${PROJECT_SOURCE_DIR}")
 endif()
 
+### Set up perfstubs stuff
+git_external(perfstubs
+    https://github.com/khuck/perfstubs.git
+    master
+    VERBOSE)
+
+find_file(
+    PERFSTUBS_HEADER
+    NAMES perfstubs_api/Tool.h
+    PATHS ${PROJECT_SOURCE_DIR}/perfstubs)
+
+if(PERFSTUBS_HEADER)
+    message(INFO " Found perfstubs at ${PROJECT_SOURCE_DIR}/perfstubs")
+    include_directories(${PROJECT_SOURCE_DIR})
+else()
+    message(FATAL_ERROR " perfstubs not found. This should have been checked out automatically. "
+            "Try manually check out https://github.com/khuck/perfstubs.git to ${PROJECT_SOURCE_DIR}")
+endif()
+
 if(USE_PLUGINS)
     message(INFO " apex will be built with plugin support.")
     set(LIBS ${LIBS} ${CMAKE_DL_LIBS})
