@@ -53,9 +53,12 @@ namespace apex {
 
 static bool rapl_initialized = false;
 static bool nvml_initialized = false;
+static bool lms_initialized = false;
 static int rapl_EventSet;
 static int nvml_EventSet;
+static int lms_EventSet;
 static std::vector<std::string> nvml_event_names;
+static std::vector<std::string> lms_event_names;
 
 void initialize_papi_events(void) {
   // get the PAPI components
@@ -63,6 +66,7 @@ void initialize_papi_events(void) {
   const PAPI_component_info_t *comp_info;
   bool rapl_found = false;
   bool nvml_found = false;
+  bool lms_found = false;
   // are there any components?
   for (int i = 0 ; i < num_components ; i++) {
     comp_info = PAPI_get_component_info(i);
@@ -75,6 +79,9 @@ void initialize_papi_events(void) {
       printf("PAPI RAPL component found...\n");
       if (comp_info->num_native_events == 0) {
         fprintf(stderr, "No RAPL events found.\n");
+        if (comp_info->disabled != 0) {
+            fprintf(stderr, "%s.\n", comp_info->disabled_reason);
+        }
       } else {
         rapl_found = true;
       }
@@ -84,6 +91,9 @@ void initialize_papi_events(void) {
       printf("PAPI NVML component found...\n");
       if (comp_info->num_native_events == 0) {
         fprintf(stderr, "No NVML events found.\n");
+        if (comp_info->disabled != 0) {
+            fprintf(stderr, "%s.\n", comp_info->disabled_reason);
+        }
       } else {
         nvml_found = true;
         int code = PAPI_NATIVE_MASK;
@@ -94,6 +104,7 @@ void initialize_papi_events(void) {
           if ( retval != PAPI_OK ) fprintf( stderr, "%s %d %s %d\n", __FILE__, __LINE__, "PAPI_event_code_to_name", retval );
           char event_name[PAPI_MAX_STR_LEN];
           retval = PAPI_event_code_to_name( code, event_name );
+#if 0
           char *ss;
           // We need events that END in :power, etc.
           /*
@@ -125,11 +136,43 @@ void initialize_papi_events(void) {
             printf("Found event '%s'\n", event_name);   // Report what we found.
           }
           */
+#else
+            // add all NVML events!
+            nvml_event_names.push_back(std::string(event_name)); // Valid! Remember the name.
+            //printf("Found event '%s'\n", event_name);   // Report what we found.
+#endif
+        }
+      }
+    }
+    if (strstr(comp_info->name, "lmsensors")) {
+      printf("PAPI lmsensors component found...\n");
+      if (comp_info->num_native_events == 0) {
+        fprintf(stderr, "No lmsensors events found.\n");
+        if (comp_info->disabled != 0) {
+            fprintf(stderr, "%s.\n", comp_info->disabled_reason);
+        }
+      } else {
+        lms_found = true;
+        int code = PAPI_NATIVE_MASK;
+        int event_modifier = PAPI_ENUM_FIRST;
+        for ( int ii=0; ii< comp_info->num_native_events; ii++ ) {
+          int retval = PAPI_enum_cmp_event( &code, event_modifier, i );
+          event_modifier = PAPI_ENUM_EVENTS;
+          if ( retval != PAPI_OK ) fprintf( stderr, "%s %d %s %d\n", __FILE__, __LINE__, "PAPI_event_code_to_name", retval );
+          char event_name[PAPI_MAX_STR_LEN];
+          retval = PAPI_event_code_to_name( code, event_name );
+          // add all LMSensors events!  Except the "Core" specific ones.  Can be too many.
+          char *ss;
+          ss = strstr(event_name, ".Core "); // get position of this string.
+          if (ss == NULL) {
+            lms_event_names.push_back(std::string(event_name)); // Valid! Remember the name.
+            //printf("Found event '%s'\n", event_name);   // Report what we found.
+          }
         }
       }
     }
   }
-  if (!rapl_found && !nvml_found) {
+  if (!rapl_found && !nvml_found && !lms_found) {
     return;
   }
   if (rapl_found) {
@@ -188,6 +231,33 @@ void initialize_papi_events(void) {
     }
     nvml_initialized = true;
   }
+  if (lms_found) {
+    lms_EventSet = PAPI_NULL;
+    int retval = PAPI_create_eventset(&lms_EventSet);
+    if (retval != PAPI_OK) {
+      fprintf(stderr, "Error creating PAPI eventset.\n");
+      return;
+    }
+    for (size_t i = 0 ; i < lms_event_names.size() ; i++) {
+      int event;
+      retval = PAPI_event_name_to_code( const_cast<char*>(lms_event_names[i].c_str()), &event );
+      if (retval != PAPI_OK) {
+        fprintf(stderr, "Error coding lm_sensors event: '%s'.\n", lms_event_names[i].c_str());
+        continue;
+      }
+      retval = PAPI_add_events(lms_EventSet, &event, 1);
+      if (retval != PAPI_OK) {
+        fprintf(stderr, "Error adding lm_sensors event.\n");
+        continue;
+      }
+    }
+    retval = PAPI_start(lms_EventSet);
+    if (retval != PAPI_OK) {
+      fprintf(stderr, "Error starting PAPI eventset.\n");
+      return;
+    }
+    lms_initialized = true;
+  }
 }
 
 void read_papi_power(ProcData * data) {
@@ -195,7 +265,7 @@ void read_papi_power(ProcData * data) {
   if (rapl_initialized) {
     int retval = PAPI_read(rapl_EventSet, values);
     if (retval != PAPI_OK) {
-      fprintf(stderr, "Error reading PAPI eventset.\n");
+      fprintf(stderr, "Error reading PAPI RAPL eventset.\n");
       return;
     }
     data->package_energy_package0 = values[0];
@@ -210,11 +280,21 @@ void read_papi_power(ProcData * data) {
   if (nvml_initialized) {
     int retval = PAPI_read(nvml_EventSet, values);
     if (retval != PAPI_OK) {
-      fprintf(stderr, "Error reading PAPI eventset.\n");
+      fprintf(stderr, "Error reading PAPI NVML eventset.\n");
       return;
     }
     for (size_t i = 0 ; i < nvml_event_names.size() ; i++) {
       data->nvml_metrics.push_back(values[i++]);
+    }
+  }
+  if (lms_initialized) {
+    int retval = PAPI_read(lms_EventSet, values);
+    if (retval != PAPI_OK) {
+      fprintf(stderr, "Error reading PAPI lmsensors eventset.\n");
+      return;
+    }
+    for (size_t i = 0 ; i < lms_event_names.size() ; i++) {
+      data->lms_metrics.push_back(values[i++]);
     }
   }
   return;
@@ -367,6 +447,11 @@ ProcData* ProcData::diff(ProcData const& rhs) {
   if (nvml_initialized) {
     for (size_t i = 0 ; i < nvml_event_names.size() ; i++) {
         d->nvml_metrics.push_back(nvml_metrics[i]);
+    }
+  }
+  if (lms_initialized) {
+    for (size_t i = 0 ; i < lms_event_names.size() ; i++) {
+        d->lms_metrics.push_back(lms_metrics[i]);
     }
   }
 #endif
@@ -523,6 +608,11 @@ void ProcData::sample_values(void) {
   if (nvml_initialized) {
     for (size_t i = 0 ; i < nvml_event_names.size() ; i++) {
       sample_value(nvml_event_names[i].c_str(), (double)nvml_metrics[i]);
+    }
+  }
+  if (lms_initialized) {
+    for (size_t i = 0 ; i < lms_event_names.size() ; i++) {
+      sample_value(lms_event_names[i].c_str(), (double)lms_metrics[i]);
     }
   }
 #endif

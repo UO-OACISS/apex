@@ -97,6 +97,7 @@ public:
   long long uncore_energy_package0;
   long long uncore_energy_package1;
   std::vector<long long> nvml_metrics;
+  std::vector<long long> lms_metrics;
 #endif
   //softirq 10953997190 0 1380880059 1495447920 1585783785 ...
   //        15525789 0 12 661586214 0 1519806115

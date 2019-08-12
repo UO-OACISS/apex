@@ -479,7 +479,7 @@ std::unordered_set<profile*> free_profiles;
           return; // don't write out apex main timer
       }
       string shorter(action_name);
-      size_t maxlength = 30;
+      size_t maxlength = 41;
       if (timer) maxlength = 52;
       // to keep formatting pretty, trim any long timer names
       if (shorter.size() > maxlength) {
@@ -490,7 +490,7 @@ std::unordered_set<profile*> free_profiles;
       if (timer) {
           screen_output << string_format("%52s", shorter.c_str()) << " : ";
       } else {
-          screen_output << string_format("%30s", shorter.c_str()) << " : ";
+          screen_output << string_format("%41s", shorter.c_str()) << " : ";
       }
 #if defined(APEX_THROTTLE)
       if (!apex_options::use_tau()) {
@@ -527,11 +527,21 @@ std::unordered_set<profile*> free_profiles;
         csv_output << std::llround(p->get_accumulated()*
             profiler::get_cpu_mhz()*1000000);
         //screen_output << " --n/a--   " ;
-        screen_output << string_format(FORMAT_SCIENTIFIC,
-            (p->get_mean()*profiler::get_cpu_mhz())) << "   " ;
+        if (p->get_mean()*profiler::get_cpu_mhz() > 10000) {
+            screen_output << string_format(FORMAT_SCIENTIFIC,
+                (p->get_mean()*profiler::get_cpu_mhz())) << "   " ;
+        } else {
+            screen_output << string_format(FORMAT_PERCENT,
+                (p->get_mean()*profiler::get_cpu_mhz())) << "   " ;
+        }
         //screen_output << " --n/a--   " ;
-        screen_output << string_format(FORMAT_SCIENTIFIC,
-            (p->get_accumulated()*profiler::get_cpu_mhz())) << "   " ;
+        if (p->get_accumulated()*profiler::get_cpu_mhz() > 10000) {
+            screen_output << string_format(FORMAT_SCIENTIFIC,
+                (p->get_accumulated()*profiler::get_cpu_mhz())) << "   " ;
+        } else {
+            screen_output << string_format(FORMAT_PERCENT,
+                (p->get_accumulated()*profiler::get_cpu_mhz())) << "   " ;
+        }
         //screen_output << " --n/a--   " ;
         if (task_id.get_name().compare(APEX_MAIN) == 0) {
             screen_output << string_format(FORMAT_PERCENT, 100.0);
@@ -555,30 +565,26 @@ std::unordered_set<profile*> free_profiles;
         screen_output << endl;
         csv_output << endl;
       } else {
-        if (action_name.find('%') == string::npos) {
-          screen_output << string_format(FORMAT_SCIENTIFIC,
-            p->get_minimum()) << "   " ;
-          screen_output << string_format(FORMAT_SCIENTIFIC,
-            p->get_mean()) << "   " ;
-          screen_output << string_format(FORMAT_SCIENTIFIC,
-            p->get_maximum()) << "   " ;
-          screen_output << string_format(FORMAT_SCIENTIFIC,
-            p->get_accumulated()) << "   " ;
-          screen_output << string_format(FORMAT_SCIENTIFIC,
-            p->get_stddev()) << "   " ;
+        if (action_name.find('%') == string::npos && p->get_minimum() > 10000) {
+          screen_output << string_format(FORMAT_SCIENTIFIC, p->get_minimum()) << "   " ;
         } else {
-          screen_output << string_format(FORMAT_PERCENT,
-            p->get_minimum()) << "   " ;
-          screen_output << string_format(FORMAT_PERCENT,
-            p->get_mean()) << "   " ;
-          screen_output << string_format(FORMAT_PERCENT,
-            p->get_maximum()) << "   " ;
-          screen_output << string_format(FORMAT_PERCENT,
-            p->get_accumulated()) << "   " ;
-          screen_output << string_format(FORMAT_PERCENT,
-            p->get_stddev()) << "   " ;
+          screen_output << string_format(FORMAT_PERCENT, p->get_minimum()) << "   " ;
         }
-        //screen_output << " --n/a-- "  << endl;
+        if (action_name.find('%') == string::npos && p->get_mean() > 10000) {
+          screen_output << string_format(FORMAT_SCIENTIFIC, p->get_mean()) << "   " ;
+        } else {
+          screen_output << string_format(FORMAT_PERCENT, p->get_mean()) << "   " ;
+        }
+        if (action_name.find('%') == string::npos && p->get_maximum() > 10000) {
+          screen_output << string_format(FORMAT_SCIENTIFIC, p->get_maximum()) << "   " ;
+        } else {
+          screen_output << string_format(FORMAT_PERCENT, p->get_maximum()) << "   " ;
+        }
+        if (action_name.find('%') == string::npos && p->get_stddev() > 10000) {
+          screen_output << string_format(FORMAT_SCIENTIFIC, p->get_stddev()) << "   " ;
+        } else {
+          screen_output << string_format(FORMAT_PERCENT, p->get_stddev()) << "   " ;
+        }
         screen_output << endl;
       }
   }
@@ -636,8 +642,10 @@ std::unordered_set<profile*> free_profiles;
         }
     }
     if (id_vector.size() > 0) {
-        screen_output << "Counter                        : #samples "
-        << "minimum |    mean  |  maximum |   total  |  stddev " << endl;
+        screen_output << "Counter                                   : "
+        << "#samples | minimum |    mean  |  maximum |  stddev " << endl;
+        //screen_output << "Counter                        : #samples | "
+        //<< "minimum |    mean  |  maximum |   total  |  stddev " << endl;
         screen_output << "------------------------------------------"
         << "------------------------------------------------------" << endl;
         std::sort(id_vector.begin(), id_vector.end());
@@ -699,7 +707,11 @@ std::unordered_set<profile*> free_profiles;
       screen_output << string_format("%52s", APEX_IDLE_TIME) << " : ";
       // pad with spaces for #calls, mean
       screen_output << "                      ";
-      screen_output << string_format(FORMAT_SCIENTIFIC, idle_rate) << "   " ;
+      if (idle_rate > 10000) {
+        screen_output << string_format(FORMAT_SCIENTIFIC, idle_rate) << "   " ;
+      } else {
+        screen_output << string_format(FORMAT_PERCENT, idle_rate) << "   " ;
+      }
       screen_output << string_format(FORMAT_PERCENT,
         ((idle_rate/total_main)*100)) << endl;
     }
