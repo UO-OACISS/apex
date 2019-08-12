@@ -527,11 +527,21 @@ std::unordered_set<profile*> free_profiles;
         csv_output << std::llround(p->get_accumulated()*
             profiler::get_cpu_mhz()*1000000);
         //screen_output << " --n/a--   " ;
-        screen_output << string_format(FORMAT_SCIENTIFIC,
-            (p->get_mean()*profiler::get_cpu_mhz())) << "   " ;
+        if (p->get_mean()*profiler::get_cpu_mhz() > 10000) {
+            screen_output << string_format(FORMAT_SCIENTIFIC,
+                (p->get_mean()*profiler::get_cpu_mhz())) << "   " ;
+        } else {
+            screen_output << string_format(FORMAT_PERCENT,
+                (p->get_mean()*profiler::get_cpu_mhz())) << "   " ;
+        }
         //screen_output << " --n/a--   " ;
-        screen_output << string_format(FORMAT_SCIENTIFIC,
-            (p->get_accumulated()*profiler::get_cpu_mhz())) << "   " ;
+        if (p->get_accumulated()*profiler::get_cpu_mhz() > 10000) {
+            screen_output << string_format(FORMAT_SCIENTIFIC,
+                (p->get_accumulated()*profiler::get_cpu_mhz())) << "   " ;
+        } else {
+            screen_output << string_format(FORMAT_PERCENT,
+                (p->get_accumulated()*profiler::get_cpu_mhz())) << "   " ;
+        }
         //screen_output << " --n/a--   " ;
         if (task_id.get_name().compare(APEX_MAIN) == 0) {
             screen_output << string_format(FORMAT_PERCENT, 100.0);
@@ -697,7 +707,11 @@ std::unordered_set<profile*> free_profiles;
       screen_output << string_format("%52s", APEX_IDLE_TIME) << " : ";
       // pad with spaces for #calls, mean
       screen_output << "                      ";
-      screen_output << string_format(FORMAT_SCIENTIFIC, idle_rate) << "   " ;
+      if (idle_rate > 10000) {
+        screen_output << string_format(FORMAT_SCIENTIFIC, idle_rate) << "   " ;
+      } else {
+        screen_output << string_format(FORMAT_PERCENT, idle_rate) << "   " ;
+      }
       screen_output << string_format(FORMAT_PERCENT,
         ((idle_rate/total_main)*100)) << endl;
     }
