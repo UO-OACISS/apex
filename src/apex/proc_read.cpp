@@ -95,6 +95,7 @@ void initialize_papi_events(void) {
           char event_name[PAPI_MAX_STR_LEN];
           retval = PAPI_event_code_to_name( code, event_name );
           char *ss;
+#if 0
           // We need events that END in :power, etc.
           /*
           ss = strstr(event_name, ":allocated_memory");              // get position of this string.
@@ -125,6 +126,10 @@ void initialize_papi_events(void) {
             printf("Found event '%s'\n", event_name);   // Report what we found.
           }
           */
+#else
+            nvml_event_names.push_back(std::string(event_name)); // Valid! Remember the name.
+            printf("Found event '%s'\n", event_name);   // Report what we found.
+#endif
         }
       }
     }
