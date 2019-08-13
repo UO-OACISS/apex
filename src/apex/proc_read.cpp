@@ -59,6 +59,7 @@ static int nvml_EventSet;
 static int lms_EventSet;
 static std::vector<std::string> nvml_event_names;
 static std::vector<std::string> lms_event_names;
+static std::vector<int> lms_event_codes;
 
 void initialize_papi_events(void) {
   // get the PAPI components
@@ -68,8 +69,8 @@ void initialize_papi_events(void) {
   bool nvml_found = false;
   bool lms_found = false;
   // are there any components?
-  for (int i = 0 ; i < num_components ; i++) {
-    comp_info = PAPI_get_component_info(i);
+  for (int component_id = 0 ; component_id < num_components ; component_id++) {
+    comp_info = PAPI_get_component_info(component_id);
     if (comp_info == NULL) {
       fprintf(stderr, "PAPI component info unavailable, no power measurements will be done.\n");
       return;
@@ -99,9 +100,15 @@ void initialize_papi_events(void) {
         int code = PAPI_NATIVE_MASK;
         int event_modifier = PAPI_ENUM_FIRST;
         for ( int ii=0; ii< comp_info->num_native_events; ii++ ) {
-          int retval = PAPI_enum_cmp_event( &code, event_modifier, i );
+          int retval = PAPI_enum_cmp_event( &code, event_modifier, component_id );
           event_modifier = PAPI_ENUM_EVENTS;
           if ( retval != PAPI_OK ) fprintf( stderr, "%s %d %s %d\n", __FILE__, __LINE__, "PAPI_event_code_to_name", retval );
+          PAPI_event_info_t evinfo;
+          retval = PAPI_get_event_info(code,&evinfo);
+          if (retval != PAPI_OK) {
+              fprintf(stderr, "%s %d %s %d\n",
+              __FILE__, __LINE__, "Error getting event info\n",retval);
+          }
           char event_name[PAPI_MAX_STR_LEN];
           retval = PAPI_event_code_to_name( code, event_name );
 #if 0
@@ -156,16 +163,30 @@ void initialize_papi_events(void) {
         int code = PAPI_NATIVE_MASK;
         int event_modifier = PAPI_ENUM_FIRST;
         for ( int ii=0; ii< comp_info->num_native_events; ii++ ) {
-          int retval = PAPI_enum_cmp_event( &code, event_modifier, i );
+          int retval = PAPI_enum_cmp_event( &code, event_modifier, component_id );
           event_modifier = PAPI_ENUM_EVENTS;
-          if ( retval != PAPI_OK ) fprintf( stderr, "%s %d %s %d\n", __FILE__, __LINE__, "PAPI_event_code_to_name", retval );
+          if ( retval != PAPI_OK ) {
+              fprintf( stderr, "%s %d %s %d\n",
+              __FILE__, __LINE__, "PAPI_event_code_to_name", retval );
+          }
+          PAPI_event_info_t evinfo;
+          retval = PAPI_get_event_info(code,&evinfo);
+          if (retval != PAPI_OK) {
+              fprintf(stderr, "%s %d %s %d\n",
+              __FILE__, __LINE__, "Error getting event info\n",retval);
+          }
           char event_name[PAPI_MAX_STR_LEN];
           retval = PAPI_event_code_to_name( code, event_name );
           // add all LMSensors events!  Except the "Core" specific ones.  Can be too many.
-          char *ss;
-          ss = strstr(event_name, ".Core "); // get position of this string.
-          if (ss == NULL) {
-            lms_event_names.push_back(std::string(event_name)); // Valid! Remember the name.
+          char *Core_sub = strstr(event_name, ".Core "); // get position of this string.
+          // ignore the values that don't change over time, either.
+          char *max_sub = strstr(event_name, "_max"); // get position of this string.
+          char *crit_sub = strstr(event_name, "_crit"); // get position of this string.
+          char *interval_sub = strstr(event_name, "_interval"); // get position of this string.
+          if (Core_sub == NULL && max_sub == NULL && 
+              crit_sub == NULL && interval_sub == NULL) {
+            lms_event_names.push_back(std::string(event_name)); // Remember the name.
+            lms_event_codes.push_back(code); // remember the code.
             //printf("Found event '%s'\n", event_name);   // Report what we found.
           }
         }
@@ -239,13 +260,7 @@ void initialize_papi_events(void) {
       return;
     }
     for (size_t i = 0 ; i < lms_event_names.size() ; i++) {
-      int event;
-      retval = PAPI_event_name_to_code( const_cast<char*>(lms_event_names[i].c_str()), &event );
-      if (retval != PAPI_OK) {
-        fprintf(stderr, "Error coding lm_sensors event: '%s'.\n", lms_event_names[i].c_str());
-        continue;
-      }
-      retval = PAPI_add_events(lms_EventSet, &event, 1);
+      retval = PAPI_add_event(lms_EventSet, lms_event_codes[i]);
       if (retval != PAPI_OK) {
         fprintf(stderr, "Error adding lm_sensors event.\n");
         continue;
@@ -612,7 +627,9 @@ void ProcData::sample_values(void) {
   }
   if (lms_initialized) {
     for (size_t i = 0 ; i < lms_event_names.size() ; i++) {
-      sample_value(lms_event_names[i].c_str(), (double)lms_metrics[i]);
+      // PAPI scales LM sensor data by 1000, 
+      // because it doesn't have floating point values..
+      sample_value(lms_event_names[i].c_str(), (double)lms_metrics[i]/1000.0);
     }
   }
 #endif
