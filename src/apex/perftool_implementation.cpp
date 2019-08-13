@@ -26,13 +26,13 @@ extern "C" {
 
     // measurement function declarations
     void perftool_timer_start(const char *timer_name) {
-        apex_start(APEX_NAME_STRING, (void*)timer_name);
+        apex_start(APEX_NAME_STRING, (void*)const_cast<char*>(timer_name));
     }
     void perftool_timer_stop(const char *timer_name) {
         apex_stop(apex::thread_instance::instance().get_current_profiler());
     }
     void perftool_static_phase_start(const char *phase_name) {
-        apex_start(APEX_NAME_STRING, (void*)phase_name);
+        apex_start(APEX_NAME_STRING, (void*)const_cast<char*>(phase_name));
     }
     void perftool_static_phase_stop(const char *phase_name) {
         apex_stop(apex::thread_instance::instance().get_current_profiler());
@@ -41,7 +41,7 @@ extern "C" {
                                       int iteration_number) {
         std::stringstream ss;
         ss << iteration_prefix << " " << iteration_number;
-        apex_start(APEX_NAME_STRING, (void*)(ss.str().c_str()));
+        apex_start(APEX_NAME_STRING, (void*)const_cast<char*>(ss.str().c_str()));
     }
     void perftool_dynamic_phase_stop(const char *iteration_prefix,
                                      int iteration_number) {

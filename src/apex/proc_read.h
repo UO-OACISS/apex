@@ -88,14 +88,7 @@ public:
   long long dram;
 #endif
 #if defined(APEX_HAVE_PAPI)
-  long long package_energy_package0;
-  long long package_energy_package1;
-  long long dram_energy_package0;
-  long long dram_energy_package1;
-  long long pp0_energy_package0;
-  long long pp0_energy_package1;
-  long long uncore_energy_package0;
-  long long uncore_energy_package1;
+  std::vector<long long> rapl_metrics;
   std::vector<long long> nvml_metrics;
   std::vector<long long> lms_metrics;
 #endif
@@ -212,7 +205,7 @@ inline long long  read_dram (void) {
 
 #if defined(APEX_HAVE_PAPI)
 void initialize_papi_events(void);
-void read_papi_power(ProcData * data);
+void read_papi_components(ProcData * data);
 #endif
 
 #ifdef APEX_HAVE_MSR
