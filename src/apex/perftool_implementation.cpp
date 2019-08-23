@@ -8,6 +8,29 @@
 #include <stdlib.h>
 #include "apex.h"
 #include "thread_instance.hpp"
+#include <mutex>
+
+std::mutex my_mutex;
+
+namespace external {
+    namespace ps_implementation {
+        class profiler {
+            public:
+                profiler(const std::string& name) : _name(name) {}
+                std::string _name;
+                apex_profiler_handle p;
+        };
+        class counter {
+            public:
+                counter(const std::string& name) : _name(name) {}
+                std::string _name;
+        };
+    }
+}
+
+namespace apex_ex = external::ps_implementation;
+std::unordered_map<std::string, apex_ex::profiler*> profilers;
+std::unordered_map<std::string, apex_ex::counter*> counters;
 
 extern "C" {
     // library function declarations
@@ -25,17 +48,24 @@ extern "C" {
     }
 
     // measurement function declarations
-    void perftool_timer_start(const char *timer_name) {
-        apex_start(APEX_NAME_STRING, (void*)const_cast<char*>(timer_name));
+    void* perftool_timer_create(const char *timer_name) {
+        std::string name(timer_name);
+        std::lock_guard<std::mutex> guard(my_mutex);
+        auto iter = profilers.find(name);
+        if (iter == profilers.end()) {
+            apex_ex::profiler * p = new apex_ex::profiler(name);
+            profilers.insert(std::pair<std::string,apex_ex::profiler*>(name,p));
+            return (void*)p;
+        }
+        return (void*)iter->second;
     }
-    void perftool_timer_stop(const char *timer_name) {
-        apex_stop(apex::thread_instance::instance().get_current_profiler());
+    void perftool_timer_start(const void *timer) {
+        apex_ex::profiler * p = (apex_ex::profiler *)(const_cast<void*>(timer));
+        p->p = apex_start(APEX_NAME_STRING, (void*)(p->_name.c_str()));
     }
-    void perftool_static_phase_start(const char *phase_name) {
-        apex_start(APEX_NAME_STRING, (void*)const_cast<char*>(phase_name));
-    }
-    void perftool_static_phase_stop(const char *phase_name) {
-        apex_stop(apex::thread_instance::instance().get_current_profiler());
+    void perftool_timer_stop(const void *timer) {
+        apex_ex::profiler * p = (apex_ex::profiler *)(const_cast<void*>(timer));
+        apex_stop(p->p);
     }
     void perftool_dynamic_phase_start(const char *iteration_prefix,
                                       int iteration_number) {
@@ -47,8 +77,20 @@ extern "C" {
                                      int iteration_number) {
         apex_stop(apex::thread_instance::instance().get_current_profiler());
     }
-    void perftool_sample_counter(const char *counter_name, double value) {
-        apex_sample_value(counter_name, value);
+    void* perftool_create_counter(const char *counter_name) {
+        std::string name(counter_name);
+        std::lock_guard<std::mutex> guard(my_mutex);
+        auto iter = counters.find(name);
+        if (iter == counters.end()) {
+            apex_ex::counter * c = new apex_ex::counter(name);
+            counters.insert(std::pair<std::string,apex_ex::counter*>(name,c));
+            return (void*)c;
+        }
+        return (void*)iter->second;
+    }
+    void perftool_sample_counter(const void *counter, double value) {
+        apex_ex::counter * c = (apex_ex::counter *)(const_cast<void*>(counter));
+        apex_sample_value(c->_name.c_str(), value);
     }
     void perftool_metadata(const char *name, const char *value) {
         // do nothing
