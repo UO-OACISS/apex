@@ -118,8 +118,8 @@ config_step()
     rm -rf ${dirname}
     mkdir -p ${dirname}
     cd ${dirname}
-    #rm -rf /dev/shm/hpx
-    #git clone --branch stable https://github.com/STEllAR-GROUP/hpx.git /dev/shm/hpx
+    rm -rf /dev/shm/hpx
+    git clone --branch stable https://github.com/STEllAR-GROUP/hpx.git /dev/shm/hpx
     mkdir build
     cd build
     cmake_cmd="cmake \
