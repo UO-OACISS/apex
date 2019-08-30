@@ -152,11 +152,12 @@ compile_step()
 
 test_step()
 {
-    cd ${dirname}
-    . ../etc/configuration-files/${envfile}
+    cd ${dirname}/build
+    . ../../etc/configuration-files/${envfile}
     env | grep APEX
     export CTEST_OUTPUT_ON_FAILURE=1
-    make test
+    make ${1} tests.unit
+    # make ${1} tests.regressions
 }
 
 install_step()
@@ -212,7 +213,7 @@ if [ ${step} == "pcompile" ] ; then
     compile_step -j${ncores} -l${ncores}
 fi
 if [ ${step} == "test" ] ; then
-    test_step
+    test_step -j${ncores} -l${ncores}
 fi
 if [ ${step} == "install" ] ; then
     install_step
@@ -224,5 +225,5 @@ if [ ${step} == "all" ] ; then
     cd ..
     test_step
     cd ..
-    install_step
+    #install_step
 fi
