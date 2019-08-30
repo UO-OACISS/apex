@@ -431,6 +431,7 @@ add_hpx_library(apex
     hpx_iterator_support
     hpx_logging
     hpx_parallel_executors
+    hpx_program_options
     hpx_segmented_algorithms
     hpx_thread_support
     hpx_topology
