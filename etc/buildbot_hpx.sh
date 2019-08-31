@@ -156,8 +156,9 @@ test_step()
     . ../../etc/configuration-files/${envfile}
     env | grep APEX
     export CTEST_OUTPUT_ON_FAILURE=1
-    make ${1} tests.unit
-    # make ${1} tests.regressions
+    export APEX_SCREEN_OUTPUT=1
+    make ${1} tests.examples
+    ctest -V --timeout 10 -R tests.examples
 }
 
 install_step()
