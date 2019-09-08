@@ -426,11 +426,13 @@ add_hpx_library(apex
     hpx_datastructures
     hpx_errors
     hpx_format
+    hpx_functional
     hpx_hardware
     hpx_hashing
     hpx_iterator_support
     hpx_logging
     hpx_parallel_executors
+    hpx_plugin
     hpx_program_options
     hpx_segmented_algorithms
     hpx_thread_support

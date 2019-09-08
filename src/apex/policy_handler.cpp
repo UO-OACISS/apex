@@ -10,7 +10,7 @@
 #ifdef APEX_HAVE_HPX_CONFIG
 #include <hpx/config.hpp>
 #include <hpx/include/runtime.hpp>
-#include <hpx/util/bind.hpp>
+#include <hpx/functional/bind.hpp>
 #endif
 
 #include "apex_api.hpp"
