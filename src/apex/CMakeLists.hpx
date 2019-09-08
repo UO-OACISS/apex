@@ -438,6 +438,7 @@ add_hpx_library(apex
     hpx_thread_support
     hpx_topology
     hpx_util
+    ${LIBS}
   FOLDER "Core/Dependencies")
 
 target_include_directories(apex PUBLIC
