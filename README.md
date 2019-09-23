@@ -6,29 +6,29 @@ Please Note:
 
 Build Status:
 ===========
-The [Buildbot](http://ktau.nic.uoregon.edu:8010/#/grid) continuous integration
+The [Buildbot](http://omega.nic.uoregon.edu:8010/#/grid) continuous integration
 service tracks the current build status on several platforms and compilers:
-[![01-default-release](http://ktau.nic.uoregon.edu:8010/badges/01-default-release.svg?left_text=01-default-release)](http://ktau.nic.uoregon.edu:8010/#/)
-[![02-base-release](http://ktau.nic.uoregon.edu:8010/badges/02-base-release.svg?left_text=02-base-release)](http://ktau.nic.uoregon.edu:8010/#/)
-[![03-malloc-release](http://ktau.nic.uoregon.edu:8010/badges/03-malloc-release.svg?left_text=03-malloc-release)](http://ktau.nic.uoregon.edu:8010/#/)
-[![04-bfd-release](http://ktau.nic.uoregon.edu:8010/badges/04-bfd-release.svg?left_text=04-bfd-release)](http://ktau.nic.uoregon.edu:8010/#/)
-[![05-ah-release](http://ktau.nic.uoregon.edu:8010/badges/05-ah-release.svg?left_text=05-ah-release)](http://ktau.nic.uoregon.edu:8010/#/)
-[![06-ompt-release](http://ktau.nic.uoregon.edu:8010/badges/06-ompt-release.svg?left_text=06-ompt-release)](http://ktau.nic.uoregon.edu:8010/#/)
-[![07-papi-release](http://ktau.nic.uoregon.edu:8010/badges/07-papi-release.svg?left_text=07-papi-release)](http://ktau.nic.uoregon.edu:8010/#/)
-[![08-mpi-release](http://ktau.nic.uoregon.edu:8010/badges/08-mpi-release.svg?left_text=08-mpi-release)](http://ktau.nic.uoregon.edu:8010/#/)
-[![09-otf-release](http://ktau.nic.uoregon.edu:8010/badges/09-otf-release.svg?left_text=09-otf-release)](http://ktau.nic.uoregon.edu:8010/#/)
-[![10-install-release](http://ktau.nic.uoregon.edu:8010/badges/10-install-release.svg?left_text=10-install-release)](http://ktau.nic.uoregon.edu:8010/#/)
+[![01-default-release](http://omega.nic.uoregon.edu:8010/badges/01-default-release.svg?left_text=01-default-release)](http://omega.nic.uoregon.edu:8010/#/)
+[![02-base-release](http://omega.nic.uoregon.edu:8010/badges/02-base-release.svg?left_text=02-base-release)](http://omega.nic.uoregon.edu:8010/#/)
+[![03-malloc-release](http://omega.nic.uoregon.edu:8010/badges/03-malloc-release.svg?left_text=03-malloc-release)](http://omega.nic.uoregon.edu:8010/#/)
+[![04-bfd-release](http://omega.nic.uoregon.edu:8010/badges/04-bfd-release.svg?left_text=04-bfd-release)](http://omega.nic.uoregon.edu:8010/#/)
+[![05-ah-release](http://omega.nic.uoregon.edu:8010/badges/05-ah-release.svg?left_text=05-ah-release)](http://omega.nic.uoregon.edu:8010/#/)
+[![06-ompt-release](http://omega.nic.uoregon.edu:8010/badges/06-ompt-release.svg?left_text=06-ompt-release)](http://omega.nic.uoregon.edu:8010/#/)
+[![07-papi-release](http://omega.nic.uoregon.edu:8010/badges/07-papi-release.svg?left_text=07-papi-release)](http://omega.nic.uoregon.edu:8010/#/)
+[![08-mpi-release](http://omega.nic.uoregon.edu:8010/badges/08-mpi-release.svg?left_text=08-mpi-release)](http://omega.nic.uoregon.edu:8010/#/)
+[![09-otf-release](http://omega.nic.uoregon.edu:8010/badges/09-otf-release.svg?left_text=09-otf-release)](http://omega.nic.uoregon.edu:8010/#/)
+[![10-install-release](http://omega.nic.uoregon.edu:8010/badges/10-install-release.svg?left_text=10-install-release)](http://omega.nic.uoregon.edu:8010/#/)
 
-[![01-default-debug](http://ktau.nic.uoregon.edu:8010/badges/01-default-debug.svg?left_text=01-default-debug)](http://ktau.nic.uoregon.edu:8010/#/)
-[![02-base-debug](http://ktau.nic.uoregon.edu:8010/badges/02-base-debug.svg?left_text=02-base-debug)](http://ktau.nic.uoregon.edu:8010/#/)
-[![03-malloc-debug](http://ktau.nic.uoregon.edu:8010/badges/03-malloc-debug.svg?left_text=03-malloc-debug)](http://ktau.nic.uoregon.edu:8010/#/)
-[![04-bfd-debug](http://ktau.nic.uoregon.edu:8010/badges/04-bfd-debug.svg?left_text=04-bfd-debug)](http://ktau.nic.uoregon.edu:8010/#/)
-[![05-ah-debug](http://ktau.nic.uoregon.edu:8010/badges/05-ah-debug.svg?left_text=05-ah-debug)](http://ktau.nic.uoregon.edu:8010/#/)
-[![06-ompt-debug](http://ktau.nic.uoregon.edu:8010/badges/06-ompt-debug.svg?left_text=06-ompt-debug)](http://ktau.nic.uoregon.edu:8010/#/)
-[![07-papi-debug](http://ktau.nic.uoregon.edu:8010/badges/07-papi-debug.svg?left_text=07-papi-debug)](http://ktau.nic.uoregon.edu:8010/#/)
-[![08-mpi-debug](http://ktau.nic.uoregon.edu:8010/badges/08-mpi-debug.svg?left_text=08-mpi-debug)](http://ktau.nic.uoregon.edu:8010/#/)
-[![09-otf-debug](http://ktau.nic.uoregon.edu:8010/badges/09-otf-debug.svg?left_text=09-otf-debug)](http://ktau.nic.uoregon.edu:8010/#/)
-[![10-install-debug](http://ktau.nic.uoregon.edu:8010/badges/10-install-debug.svg?left_text=10-install-debug)](http://ktau.nic.uoregon.edu:8010/#/)
+[![01-default-debug](http://omega.nic.uoregon.edu:8010/badges/01-default-debug.svg?left_text=01-default-debug)](http://omega.nic.uoregon.edu:8010/#/)
+[![02-base-debug](http://omega.nic.uoregon.edu:8010/badges/02-base-debug.svg?left_text=02-base-debug)](http://omega.nic.uoregon.edu:8010/#/)
+[![03-malloc-debug](http://omega.nic.uoregon.edu:8010/badges/03-malloc-debug.svg?left_text=03-malloc-debug)](http://omega.nic.uoregon.edu:8010/#/)
+[![04-bfd-debug](http://omega.nic.uoregon.edu:8010/badges/04-bfd-debug.svg?left_text=04-bfd-debug)](http://omega.nic.uoregon.edu:8010/#/)
+[![05-ah-debug](http://omega.nic.uoregon.edu:8010/badges/05-ah-debug.svg?left_text=05-ah-debug)](http://omega.nic.uoregon.edu:8010/#/)
+[![06-ompt-debug](http://omega.nic.uoregon.edu:8010/badges/06-ompt-debug.svg?left_text=06-ompt-debug)](http://omega.nic.uoregon.edu:8010/#/)
+[![07-papi-debug](http://omega.nic.uoregon.edu:8010/badges/07-papi-debug.svg?left_text=07-papi-debug)](http://omega.nic.uoregon.edu:8010/#/)
+[![08-mpi-debug](http://omega.nic.uoregon.edu:8010/badges/08-mpi-debug.svg?left_text=08-mpi-debug)](http://omega.nic.uoregon.edu:8010/#/)
+[![09-otf-debug](http://omega.nic.uoregon.edu:8010/badges/09-otf-debug.svg?left_text=09-otf-debug)](http://omega.nic.uoregon.edu:8010/#/)
+[![10-install-debug](http://omega.nic.uoregon.edu:8010/badges/10-install-debug.svg?left_text=10-install-debug)](http://omega.nic.uoregon.edu:8010/#/)
 
 Overview:
 =========
