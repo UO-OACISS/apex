@@ -8,6 +8,7 @@ Build Status:
 ===========
 The [Buildbot](http://omega.nic.uoregon.edu:8010/#/grid) continuous integration
 service tracks the current build status on several platforms and compilers:
+
 [![A-default-release](http://omega.nic.uoregon.edu:8010/badges/A-default-release.svg?left_text=default-release)](http://omega.nic.uoregon.edu:8010/#/)
 [![02-base-release](http://omega.nic.uoregon.edu:8010/badges/B-base-release.svg?left_text=base-release)](http://omega.nic.uoregon.edu:8010/#/)
 [![03-malloc-release](http://omega.nic.uoregon.edu:8010/badges/C-malloc-release.svg?left_text=malloc-release)](http://omega.nic.uoregon.edu:8010/#/)
