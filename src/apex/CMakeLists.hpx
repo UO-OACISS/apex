@@ -413,12 +413,19 @@ endif()
 
 include(GNUInstallDirs)
 
+# At some point, use the HPX_LIBS macro.  Unfortunately, it isn't defined when
+# the apex directory is included, so it isn't defined at this point.
+
+foreach(_module ${HPX_LIBS})
+  set(_dependencies ${_dependencies} "hpx_${_module}")
+endforeach()
+
 add_hpx_library(apex
   STATIC NOLIBS EXCLUDE_FROM_ALL
   NOEXPORT
   SOURCES ${apex_sources}
   HEADERS ${apex_headers}
-  DEPENDENCIES
+  DEPENDENCIES ${_dependencies}
     hpx_algorithms
     hpx_allocator_support
     hpx_assertion
