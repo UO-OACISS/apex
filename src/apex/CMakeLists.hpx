@@ -430,6 +430,7 @@ add_hpx_library(apex
     hpx_allocator_support
     hpx_assertion
     hpx_cache
+    hpx_collectives
     hpx_datastructures
     hpx_errors
     hpx_execution
