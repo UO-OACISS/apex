@@ -118,8 +118,8 @@ config_step()
     rm -rf ${dirname}
     mkdir -p ${dirname}
     cd ${dirname}
-    rm -rf /dev/shm/hpx
-    git clone --branch stable https://github.com/STEllAR-GROUP/hpx.git /dev/shm/hpx
+    rm -rf /dev/shm/`whoami`/hpx
+    git clone --branch stable --depth 1 https://github.com/STEllAR-GROUP/hpx.git /dev/shm/`whoami`/hpx
     mkdir build
     cd build
     cmake_cmd="cmake \
@@ -137,7 +137,7 @@ config_step()
         -DHPX_WITH_APEX_NO_UPDATE=TRUE \
         -DHPX_WITH_APEX_TAG=develop \
         ${options} ${static} \
-        /dev/shm/hpx"
+        /dev/shm/`whoami`/hpx"
 
     #cmake_cmd="${cmake_prefix}${buildtype} ${options} ${static} ${sanitize}"
     echo ${cmake_cmd}
