@@ -270,6 +270,13 @@ if(APEX_WITH_OTF2)
   set(otf2_sources otf2_listener.cpp)
 endif()
 
+if(HPX_WITH_HPXMP)
+  set(ompt_sources apex_ompt.cpp)
+  include(APEX_SetupHPXMP)
+  set(ompt_dependency apex::hpxmp)
+endif(HPX_WITH_HPXMP)
+
+
 ##################################
 # Setup main apex static library #
 set(apex_headers
@@ -318,6 +325,7 @@ set(apex_sources
     ${bfd_sources}
     ${sensor_sources}
     ${otf2_sources}
+    ${ompt_sources}
     )
 
 #add_hpx_library(taudummy SHARED NOLIBS SOURCES tau_dummy.cpp HEADERS ${apex_headers} FOLDER "Core/Dependencies")
@@ -357,6 +365,7 @@ add_hpx_library(apex
     hpx_thread_support
     hpx_topology
     hpx_util
+    ${ompt_dependency}
   FOLDER "Core/Dependencies")
 
 target_include_directories(apex PUBLIC
