@@ -162,13 +162,10 @@ APEX_EXPORT profiler * start(const apex_function_address function_address);
  \param task_wrapper_ptr A pointer to an apex::task_wrapper created
          by apex::new_task. APEX will use this to store the
          profiler data.
- \return The handle for the profiler object in APEX. Not intended to be
-         queried by the application. Should be retained locally, if
-         possible, and passed in to the matching apex::stop
-         call when the timer should be stopped.
+ \return No return value.
  \sa @ref apex::stop, @ref apex::yield, @ref apex::resume @ref apex::new_task
  */
-APEX_EXPORT profiler * start(std::shared_ptr<task_wrapper> &task_wrapper_ptr);
+APEX_EXPORT void start(std::shared_ptr<task_wrapper> task_wrapper_ptr);
 
 /**
  \brief Stop a timer.
@@ -195,7 +192,7 @@ APEX_EXPORT void stop(profiler * the_profiler, bool cleanup=true);
  \return No return value.
  \sa @ref apex::start, @ref apex::yield, @ref apex::resume, @ref apex::new_task
  */
-APEX_EXPORT void stop(std::shared_ptr<task_wrapper> &task_wrapper_ptr);
+APEX_EXPORT void stop(std::shared_ptr<task_wrapper> task_wrapper_ptr);
 
 /**
  \brief Stop a timer, but don't increment the number of calls.
@@ -225,7 +222,7 @@ APEX_EXPORT void yield(profiler * the_profiler);
  \return No return value.
  \sa @ref apex::start, @ref apex::stop, @ref apex::resume
  */
-APEX_EXPORT void yield(std::shared_ptr<task_wrapper> &task_wrapper_ptr);
+APEX_EXPORT void yield(std::shared_ptr<task_wrapper> task_wrapper_ptr);
 
 /**
  \brief Resume a timer.
@@ -278,13 +275,10 @@ APEX_EXPORT profiler * resume(const apex_function_address function_address);
  \param task_wrapper_ptr A pointer to an apex::task_wrapper created
          by apex::new_task. APEX will use this to store the
          profiler data.
- \return The handle for the timer object in APEX. Not intended to be
-         queried by the application. Should be retained locally, if
-         possible, and passed in to the matching apex::stop
-         call when the timer should be stopped.
+ \return No return value.
  \sa apex::stop, apex::yield, apex::start
  */
-APEX_EXPORT profiler * resume(std::shared_ptr<task_wrapper> &task_wrapper_ptr);
+APEX_EXPORT void resume(std::shared_ptr<task_wrapper> task_wrapper_ptr);
 
 /*
  * Functions for resetting timer values
@@ -357,7 +351,7 @@ APEX_EXPORT void sample_value(const std::string &name, double value);
 APEX_EXPORT std::shared_ptr<task_wrapper> new_task(
     const std::string &name,
     const uint64_t task_id = UINTMAX_MAX,
-    const std::shared_ptr<apex::task_wrapper> &parent_task = null_task_wrapper);
+    const std::shared_ptr<apex::task_wrapper> parent_task = null_task_wrapper);
 
 /**
  \brief Create a new task (dependency).
@@ -375,7 +369,7 @@ APEX_EXPORT std::shared_ptr<task_wrapper> new_task(
 APEX_EXPORT std::shared_ptr<task_wrapper> new_task(
     const apex_function_address function_address,
     const uint64_t task_id = UINTMAX_MAX,
-    const std::shared_ptr<apex::task_wrapper> &parent_task = null_task_wrapper);
+    const std::shared_ptr<apex::task_wrapper> parent_task = null_task_wrapper);
 
 /**
  \brief Update a task (dependency).
@@ -387,7 +381,7 @@ APEX_EXPORT std::shared_ptr<task_wrapper> new_task(
  */
 
 APEX_EXPORT std::shared_ptr<task_wrapper> update_task(
-    std::shared_ptr<task_wrapper> &wrapper,
+    std::shared_ptr<task_wrapper> wrapper,
     const std::string &name);
 
 /**
@@ -400,7 +394,7 @@ APEX_EXPORT std::shared_ptr<task_wrapper> update_task(
  */
 
 APEX_EXPORT std::shared_ptr<task_wrapper> update_task(
-    std::shared_ptr<task_wrapper> &wrapper,
+    std::shared_ptr<task_wrapper> wrapper,
     const apex_function_address function_address);
 
 /**
@@ -883,7 +877,7 @@ class scoped_timer {
  \param func The address of a function used to identify the timer type
  \param parent The parent task wrapper (if available) of this new scoped_timer
  */
-        scoped_timer(uint64_t func, std::shared_ptr<apex::task_wrapper> &parent)
+        scoped_timer(uint64_t func, std::shared_ptr<apex::task_wrapper> parent)
             : twp(nullptr), timing(true) {
             twp = apex::new_task((apex_function_address)func, UINTMAX_MAX, parent);
             apex::start(twp);
@@ -895,7 +889,7 @@ class scoped_timer {
  \param parent The parent task wrapper (if available) of this new scoped_timer
  */
         scoped_timer(std::string func,
-            std::shared_ptr<apex::task_wrapper> &parent)
+            std::shared_ptr<apex::task_wrapper> parent)
             : twp(nullptr), timing(true) {
             twp = apex::new_task(func, UINTMAX_MAX, parent);
             apex::start(twp);
@@ -950,7 +944,7 @@ class scoped_timer {
 /**
  \brief Get the internal task wrapper object
  */
-        std::shared_ptr<apex::task_wrapper>& get_task_wrapper(void) {
+        std::shared_ptr<apex::task_wrapper> get_task_wrapper(void) {
             return twp;
         }
 };
@@ -995,31 +989,3 @@ public:
 
 } //namespace apex
 
-#ifdef APEX_HAVE_HPX
-namespace hpx { namespace util { namespace external_timer {
-    class apex_impl : public timer_interface {
-        public:
-            static uint64_t init(const char * thread_name,
-                const uint64_t comm_rank, const uint64_t comm_size);
-            static void finalize(void);
-            static void register_thread(const std::string &name);
-            static std::shared_ptr<task_wrapper> new_task(
-                const std::string &name, const uint64_t task_id,
-                const std::shared_ptr<task_wrapper> &parent_task);
-            static std::shared_ptr<task_wrapper> new_task(
-                uintptr_t address, const uint64_t task_id,
-                const std::shared_ptr<task_wrapper> &parent_task);
-            static void sample_value(const std::string &name, double value);
-            static void send (uint64_t tag, uint64_t size, uint64_t target);
-            static void recv (uint64_t tag, uint64_t size,
-                uint64_t source_rank, uint64_t source_thread);
-            static std::shared_ptr<task_wrapper> update_task(
-                std::shared_ptr<task_wrapper> &wrapper, const std::string &name);
-            static std::shared_ptr<task_wrapper> update_task(
-                std::shared_ptr<task_wrapper> &wrapper, uintptr_t address);
-            static profiler * start(std::shared_ptr<task_wrapper> &task_wrapper_ptr);
-            static void stop(std::shared_ptr<task_wrapper> &task_wrapper_ptr);
-            static void yield(std::shared_ptr<task_wrapper> &task_wrapper_ptr);
-    };
-}}} // namespace hpx::util::external_timer
-#endif
