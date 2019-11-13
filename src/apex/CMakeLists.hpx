@@ -51,12 +51,6 @@ if(APEX_DEBUG)
   target_compile_definitions(apex_flags INTERFACE APEX_DEBUG)
 endif()
 
-# If TAU is used, don't allow throttling - it can potentially lead to
-# overlapping timer errors in TAU.
-#if((DEFINED APEX_THROTTLE) AND (APEX_THROTTLE))
-#  target_compile_definitions(apex_flags INTERFACE APEX_THROTTLE)
-#endif()
-
 # Check if architecture is x86 or not
 message("System architecture: ${CMAKE_SYSTEM_PROCESSOR}")
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)")
@@ -126,10 +120,6 @@ if(${HOSTNAME_LENGTH} GREATER 5)
 else()
     set (HOST_BASENAME ${HOSTNAME})
 endif()
-
-# this will be statically linked to the core HPX library
-target_compile_definitions(apex_flags INTERFACE HPX_EXPORTS)
-target_compile_definitions(apex_flags INTERFACE HPX_COROUTINE_EXPORTS)
 
 if(NOT MSVC)
   target_compile_options(apex_flags INTERFACE -fPIC)
@@ -320,43 +310,17 @@ set(apex_sources
     ${otf2_sources}
     )
 
-#add_hpx_library(taudummy SHARED NOLIBS SOURCES tau_dummy.cpp HEADERS ${apex_headers} FOLDER "Core/Dependencies")
-
 include(GNUInstallDirs)
 
-# At some point, use the HPX_LIBS macro.  Unfortunately, it isn't defined when
-# the apex directory is included, so it isn't defined at this point.
-
-foreach(_module ${HPX_LIBS})
-  set(_dependencies ${_dependencies} "hpx_${_module}")
-endforeach()
+# APEX has one dependency in HPX, just the main library.
 
 add_hpx_library(apex
-  STATIC NOLIBS EXCLUDE_FROM_ALL
+  DYNAMIC NOLIBS EXCLUDE_FROM_ALL
   NOEXPORT
   SOURCES ${apex_sources}
   HEADERS ${apex_headers}
   DEPENDENCIES ${_dependencies}
-    hpx_algorithms
-    hpx_allocator_support
-    hpx_assertion
-    hpx_cache
-    hpx_collectives
-    hpx_datastructures
-    hpx_errors
-    hpx_execution
-    hpx_format
-    hpx_functional
-    hpx_hardware
-    hpx_hashing
-    hpx_iterator_support
-    hpx_logging
-    hpx_plugin
-    hpx_program_options
-    hpx_segmented_algorithms
-    hpx_thread_support
-    hpx_topology
-    hpx_util
+    hpx
   FOLDER "Core/Dependencies")
 
 target_include_directories(apex PUBLIC
@@ -382,12 +346,6 @@ else()
   find_library(DYNAMICLIB dl)
   target_link_libraries(apex PUBLIC ${DYNAMICLIB})
 endif (APEX_USE_WEAK_SYMBOLS)
-
-
-#if(APPLE)
-  #hpx_add_link_flag("-weak_library libhpx_taudummy.dylib -flat_namespace")
-#endif(APPLE)
-# add_hpx_pseudo_dependencies (apex_lib taudummy_lib project_activeharmony project_binutils project_otf2)
 
 # TODO: see how to remove those global include directories
 # add the binary tree to the search path for include files
