@@ -648,6 +648,7 @@ void start(std::shared_ptr<task_wrapper> tt_ptr) {
         }
     }
     APEX_UTIL_REF_COUNT_START
+    thread_instance::instance().restore_children_profilers(tt_ptr);
     return;
 }
 
