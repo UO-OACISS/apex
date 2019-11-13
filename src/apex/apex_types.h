@@ -254,6 +254,7 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_MEASURE_CONCURRENCY, use_concurrency, int, 0) \
     macro (APEX_MEASURE_CONCURRENCY_PERIOD, concurrency_period, int, 1000000) \
     macro (APEX_SCREEN_OUTPUT, use_screen_output, bool, false) \
+    macro (APEX_VERBOSE, use_verbose, bool, false) \
     macro (APEX_PROFILE_OUTPUT, use_profile_output, int, false) \
     macro (APEX_CSV_OUTPUT, use_csv_output, int, false) \
     macro (APEX_TASKGRAPH_OUTPUT, use_taskgraph_output, bool, false) \

@@ -318,7 +318,7 @@ std::unordered_set<profile*> free_profiles;
                           throttled_tasks.insert(*(p->get_task_id()));
                       }
                   }
-                  if (apex_options::use_screen_output()) {
+                  if (apex_options::use_verbose()) {
                       cout << "APEX: disabling lightweight timer "
                            << p->get_task_id()->get_name()
                             << endl;

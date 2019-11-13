@@ -424,7 +424,7 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
             top_level_timer = start("OS Thread");
         }
     }
-    if (apex_options::use_screen_output() && instance->get_node_id() == 0) {
+    if (apex_options::use_verbose() && instance->get_node_id() == 0) {
       std::cout << version() << std::endl;
       apex_options::print_options();
     }
@@ -1283,9 +1283,9 @@ void finalize_plugins(void) {
 std::string dump(bool reset) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return(std::string("")); }
-    bool old_screen_output = apex_options::use_screen_output();
 #ifdef APEX_WITH_JUPYTER_SUPPORT
     // force output in the Jupyter notebook
+    bool old_screen_output = apex_options::use_screen_output();
     apex_options::use_screen_output(true);
 #endif
 
@@ -1299,10 +1299,14 @@ std::string dump(bool reset) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_dump(data);
         }
+#ifdef APEX_WITH_JUPYTER_SUPPORT
         apex_options::use_screen_output(old_screen_output);
+#endif
         return(data.output);
     }
+#ifdef APEX_WITH_JUPYTER_SUPPORT
     apex_options::use_screen_output(old_screen_output);
+#endif
     return(std::string(""));
 }
 
