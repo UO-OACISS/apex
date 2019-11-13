@@ -1,3 +1,5 @@
+#!/bin/bash -e
+
 git checkout master
 git merge develop
 
