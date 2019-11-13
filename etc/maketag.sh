@@ -1,8 +1,8 @@
 git checkout master
 git merge develop
 
-oldtag=v2.1.3
-tagname=v2.1.4
+oldtag=v2.1.4
+tagname=v2.1.5
 
 echo "Commit Log:" >> ${tagname}.txt
 
