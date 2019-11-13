@@ -608,7 +608,6 @@ void start(std::shared_ptr<task_wrapper> tt_ptr) {
 #endif
     if (tt_ptr == nullptr) {
         APEX_UTIL_REF_COUNT_APEX_INTERNAL_START
-        tt_ptr->prof = nullptr;
         return;
     }
     // if APEX is disabled, do nothing.

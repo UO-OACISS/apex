@@ -36,7 +36,7 @@ typedef void*(*start_routine_t)(void*);
 
 void* someThread(void* tmp)
 {
-  apex::scoped_thread("threadTest thread");
+  apex::scoped_thread mythread("threadTest thread");
   unsigned long * result = (unsigned long *)tmp;
   int i = 0;
   unsigned long total = 0;
