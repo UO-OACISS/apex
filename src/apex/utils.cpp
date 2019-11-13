@@ -81,8 +81,8 @@ std::string* demangle(const std::string& timer_name) {
                 break;
             case -2:
                 printf("The demangling operation failed:");
-                printf(" '%s' is not a valid name under the C++ ABI");
-                printf(" mangling rules.\n", timer_name.c_str());
+                printf(" '%s' is not a valid", timer_name.c_str());
+                printf(" name under the C++ ABI mangling rules.\n");
                 break;
             case -3:
                 printf("The demangling operation failed: One of the");
