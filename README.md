@@ -99,7 +99,7 @@ Supported Runtime Systems
 HPX (Louisiana State University)
 ---------------------------------
 
-HPX (High Performance ParalleX) is the original implementation of the ParalleX model. Developed and maintained by the Ste||ar Group at Louisiana State University, HPX is implemented in C++. For more information, see [http://stellar.cct.lsu.edu/tag/hpx/](http://stellar.cct.lsu.edu/tag/hpx/).  For a tutorial on HPX with APEX (presented at SC'17, Austin TX) see [http://www.nic.uoregon.edu/~khuck/SC17-HPX-APEX.pdf](http://www.nic.uoregon.edu/~khuck/SC17-HPX-APEX.pdf).
+HPX (High Performance ParalleX) is the original implementation of the ParalleX model. Developed and maintained by the Ste||ar Group at Louisiana State University, HPX is implemented in C++. For more information, see [http://stellar.cct.lsu.edu/tag/hpx/](http://stellar.cct.lsu.edu/tag/hpx/).  For a tutorial on HPX with APEX (presented at SC'17, Austin TX) see [http://www.nic.uoregon.edu/~khuck/SC17-HPX-APEX.pdf](http://www.nic.uoregon.edu/~khuck/SC17-HPX-APEX.pdf).  The integration specification is available [here](http://www.nic.uoregon.edu/~khuck/Phylanx/2019_report.pdf).
 
 HPX5 (Indiana University)
 -------------------------

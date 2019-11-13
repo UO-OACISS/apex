@@ -260,6 +260,13 @@ if(APEX_WITH_OTF2)
   set(otf2_sources otf2_listener.cpp)
 endif()
 
+if(HPX_WITH_HPXMP)
+  set(ompt_sources apex_ompt.cpp)
+  include(APEX_SetupHPXMP)
+  set(ompt_dependency apex::hpxmp)
+endif(HPX_WITH_HPXMP)
+
+
 ##################################
 # Setup main apex static library #
 set(apex_headers
@@ -308,11 +315,13 @@ set(apex_sources
     ${bfd_sources}
     ${sensor_sources}
     ${otf2_sources}
+    ${ompt_sources}
     )
 
 include(GNUInstallDirs)
 
 # APEX has one dependency in HPX, just the main library.
+# Unless HPXMP is also used.
 
 add_hpx_library(apex
   DYNAMIC NOLIBS EXCLUDE_FROM_ALL
@@ -321,6 +330,7 @@ add_hpx_library(apex
   HEADERS ${apex_headers}
   DEPENDENCIES ${_dependencies}
     hpx
+    ${ompt_dependency}
   FOLDER "Core/Dependencies")
 
 target_include_directories(apex PUBLIC
