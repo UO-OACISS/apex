@@ -248,8 +248,8 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 endif()
 
 # The version number.
-set (APEX_VERSION_MAJOR 0)
-set (APEX_VERSION_MINOR 5)
+set (APEX_VERSION_MAJOR 2)
+set (APEX_VERSION_MINOR 1)
 
 # add_definitions(-std=c++11)
 include(CheckCXXCompilerFlag)
