@@ -167,7 +167,7 @@ namespace apex {
             reduce_node_properties(std::string&& str);
 #if APEX_HAVE_PAPI
         void write_papi_counters(OTF2_EvtWriter* writer, profiler* prof,
-            uint64_t stamp);
+            uint64_t stamp, bool is_enter);
 #endif
     public:
         otf2_listener (void);
