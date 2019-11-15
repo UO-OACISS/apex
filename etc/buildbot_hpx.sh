@@ -119,7 +119,7 @@ config_step()
     mkdir -p ${dirname}
     cd ${dirname}
     rm -rf /dev/shm/`whoami`/hpx
-    git clone --branch stable --depth 1 https://github.com/STEllAR-GROUP/hpx.git /dev/shm/`whoami`/hpx
+    git clone --branch master --depth 1 https://github.com/STEllAR-GROUP/hpx.git /dev/shm/`whoami`/hpx
     mkdir build
     cd build
     cmake_cmd="cmake \
