@@ -33,6 +33,8 @@ namespace apex {
     std::atomic<int> next_id(0);
 
 #ifdef APEX_HAVE_HPX
+    std::atomic<bool> hpx_timer_stopped{false};
+    std::mutex hpx_timer_mutex;
     policy_handler::policy_handler (void) : handler() { }
 #else
     policy_handler::policy_handler (void) : handler() { }
@@ -93,8 +95,13 @@ namespace apex {
     inline void policy_handler::_reset(void) {
 #ifdef APEX_HAVE_HPX
         if (_terminate) {
-                        std::cout << "Stopping HPX timer" << std::endl;
-            hpx_timer.stop();
+            // the timer can only be stopped once, by one thread.
+            std::unique_lock<mutex> l(hpx_timer_mutex);
+            if (!hpx_timer_stopped) {
+                std::cout << "Stopping HPX timer" << std::endl;
+                hpx_timer.stop();
+                hpx_timer_stopped = true;
+            }
         }
 #endif
     }
