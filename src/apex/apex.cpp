@@ -1730,7 +1730,7 @@ std::vector<std::string> get_available_profiles() {
 void print_options() {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
-    print_options();
+    apex_options::print_options();
     return;
 }
 
