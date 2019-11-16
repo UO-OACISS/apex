@@ -158,7 +158,7 @@ test_step()
     export CTEST_OUTPUT_ON_FAILURE=1
     export APEX_SCREEN_OUTPUT=1
     make ${1} tests.examples
-    ctest -V --timeout 10 -R tests.examples
+    ctest --timeout 100 -R tests.examples
 }
 
 install_step()
