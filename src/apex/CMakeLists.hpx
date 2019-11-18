@@ -10,13 +10,13 @@ cmake_policy(VERSION 2.8.12)
 if (${CMAKE_MAJOR_VERSION} GREATER 2)
   cmake_policy(SET CMP0042 NEW)
     if (${CMAKE_MINOR_VERSION} GREATER 11)
-        cmake_policy(SET CMP0074 NEW)
+      cmake_policy(SET CMP0074 NEW)
     endif()
 endif()
 
 hpx_info("apex" "Will build APEX")
 
-set (APEX_VERSION_MAJOR 0)
+set (APEX_VERSION_MAJOR 2)
 set (APEX_VERSION_MINOR 1)
 
 if (NOT APEX_ROOT)
@@ -26,7 +26,11 @@ if (NOT APEX_ROOT)
     hpx_info("Apex not found")
   endif()
 endif()
+
+# Module path both apex and hpx
 list(APPEND CMAKE_MODULE_PATH "${APEX_ROOT}/cmake/Modules")
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+
 set(APEX_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(APEX_SOURCE_DIR ${APEX_SOURCE_DIR} PARENT_SCOPE)
 set(APEX_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
@@ -35,20 +39,17 @@ set(APEX_BINARY_DIR ${APEX_BINARY_DIR} PARENT_SCOPE)
 hpx_info("apex" "APEX source dir is ${APEX_SOURCE_DIR}")
 hpx_info("apex" "APEX binary dir is ${APEX_BINARY_DIR}")
 
+# Add a target to store the flags
+add_library(apex_flags INTERFACE)
+
 # This macro will make sure that the hpx/config.h file is included
-add_definitions(-DAPEX_HAVE_HPX_CONFIG)
+target_compile_definitions(apex_flags INTERFACE APEX_HAVE_HPX_CONFIG)
 # This macro will be added to the hpx/config.h file.
 hpx_add_config_define(APEX_HAVE_HPX)   # tell HPX that we use APEX
 
 if(APEX_DEBUG)
-    add_definitions(-DAPEX_DEBUG)
+  target_compile_definitions(apex_flags INTERFACE APEX_DEBUG)
 endif()
-
-# If TAU is used, don't allow throttling - it can potentially lead to
-# overlapping timer errors in TAU.
-#if((DEFINED APEX_THROTTLE) AND (APEX_THROTTLE))
-#    add_definitions(-DAPEX_THROTTLE)
-#endif()
 
 # Check if architecture is x86 or not
 message("System architecture: ${CMAKE_SYSTEM_PROCESSOR}")
@@ -60,26 +61,28 @@ endif()
 
 # If not x86, don't use RDTSC
 if(NOT APEX_ARCH_X86)
-  add_definitions(-DAPEX_USE_CLOCK_TIMESTAMP=1)
+  target_compile_definitions(apex_flags INTERFACE APEX_USE_CLOCK_TIMESTAMP=1)
 endif()
 
 ### Set up concurrentqueue stuff
-include(GitExternal)
-git_external(concurrentqueue
+if(NOT EXISTS ${APEX_SOURCE_DIR}/concurrentqueue)
+  include(GitExternal)
+  git_external(concurrentqueue
     https://github.com/cameron314/concurrentqueue.git
     master
     VERBOSE)
+endif()
 
 find_file(
-    CONCURRENTQUEUE_HEADER
-    NAMES concurrentqueue.h
-    PATHS ${APEX_SOURCE_DIR}/concurrentqueue)
+  CONCURRENTQUEUE_HEADER
+  NAMES concurrentqueue.h
+  PATHS ${APEX_SOURCE_DIR}/concurrentqueue)
 
 if(CONCURRENTQUEUE_HEADER)
-    message(INFO " Found concurrentqueue at ${APEX_SOURCE_DIR}/concurrentqueue")
+  message(INFO " Found concurrentqueue at ${APEX_SOURCE_DIR}/concurrentqueue")
 else()
-    message(FATAL_ERROR " concurrentqueue not found. This should have been checked out automatically. "
-            "Try manually check out https://github.com/cameron314/concurrentqueue.git to ${APEX_SOURCE_DIR}")
+  message(FATAL_ERROR " concurrentqueue not found. This should have been checked out automatically. "
+    "Try manually check out https://github.com/cameron314/concurrentqueue.git to ${APEX_SOURCE_DIR}")
 endif()
 
 ################################################################################
@@ -118,16 +121,12 @@ else()
     set (HOST_BASENAME ${HOSTNAME})
 endif()
 
-# this will be statically linked to the core HPX library
-add_definitions(-DHPX_EXPORTS)
-add_definitions(-DHPX_COROUTINE_EXPORTS)
-
 if(NOT MSVC)
-  add_definitions(-fPIC)
+  target_compile_options(apex_flags INTERFACE -fPIC)
 else()
-  add_definitions(-D_WINDOWS)
-  add_definitions(-D_WIN32)
-  add_definitions(-D_WIN32_WINNT=0x0601)
+  target_compile_definitions(apex_flags INTERFACE -D_WINDOWS)
+  target_compile_definitions(apex_flags INTERFACE -D_WIN32)
+  target_compile_definitions(apex_flags INTERFACE -D_WIN32_WINNT=0x0601)
   hpx_add_compile_flag(-wd4800)     # forcing value to bool 'true' or 'false' (performance warning)
   hpx_add_compile_flag(-wd4244)     # conversion from '...' to '...', possible loss of data
   hpx_add_compile_flag(-wd4267)     # conversion from '...' to '...', possible loss of data
@@ -163,39 +162,113 @@ else()
   hpx_add_compile_flag(-MP)     # Multiprocessor build
 endif()
 
+# Proc
 if(EXISTS "/proc/stat" AND NOT APEX_DISABLE_PROC)
-    hpx_info("apex" "Building APEX with /proc/stat sampler")
-    set(APEX_HAVE_PROC TRUE)
-    add_definitions(-DAPEX_HAVE_PROC)
+  hpx_info("apex" "Building APEX with /proc/stat sampler")
+  set(APEX_HAVE_PROC TRUE)
+  target_compile_definitions(apex_flags INTERFACE APEX_HAVE_PROC)
+  set(proc_headers proc_read.h)
+  set(proc_sources proc_read.cpp)
 endif()
-
 
 if("${HOST_BASENAME}" STREQUAL "edison")
     hpx_info("apex" "This is Edison, will build with Cray Power support")
     set(APEX_HAVE_CRAY_POWER TRUE)
-    add_definitions(-DAPEX_HAVE_CRAY_POWER)
+    target_compile_definitions(apex_flags INTERFACE APEX_HAVE_CRAY_POWER)
 else()
     hpx_info("apex" "This is not edison")
 endif()
 
-if(APEX_HAVE_PROC)
-    set(PROC_SOURCE proc_read.cpp)
-    set(PROC_HEADER proc_read.h)
-endif()
-
-IF("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
   hpx_info("apex" "APEX is being built with a debug configuration")
-  add_definitions(-DDEBUG)
+  target_compile_definitions(apex_flags INTERFACE DEBUG)
 endif()
 
-#include(GitExternal)
-#git_external(rapidjson
-    #https://github.com/miloyip/rapidjson.git
-    #master
-    #VERBOSE)
-#include_directories("${PROJECT_BINARY_DIR}/apex/src/apex/rapidjson/include")
-#include_directories("${PROJECT_SOURCE_DIR}/apex/src/apex/rapidjson/include")
 
+#######################################################
+# We create one target per imported library (cleaner) #
+set(_apex_imported_targets "")
+
+# Setup PAPI
+include(APEX_SetupPAPI)
+
+# Setup LM Sensors
+include(APEX_SetupLMSensors)
+if(APEX_WITH_LM_SENSORS)
+  set(sensor_sources sensor_data.cpp)
+endif()
+
+# Setup Active Harmony
+include(APEX_SetupActiveHarmony)
+
+# Currently setup Rapidjson
+include(APEX_SetupPlugins)
+
+if((DEFINED RCR_ROOT) OR (APEX_WITH_RCR) OR (APEX_BUILD_RCR))
+	find_package(RCR)
+endif()
+
+# RCR
+if(HAVE_RCR)
+	hpx_add_config_define(HPX_HAVE_RCR 1)
+else()
+  if(("${HOST_BASENAME}" STREQUAL "edison") OR ("$ENV{NERSC_HOST}" STREQUAL "edison") OR
+    ("${HOST_BASENAME}" STREQUAL "cori") OR ("$ENV{NERSC_HOST}" STREQUAL "cori"))
+    #add_definitions(-fPIC)
+    set (APEX_HAVE_CRAY_POWER TRUE)
+    target_compile_definitions(apex_flags INTERFACE APEX_HAVE_CRAY_POWER)
+    message(INFO " System has Cray energy monitoring support.")
+  else()
+    if(EXISTS "/sys/class/powercap/intel-rapl/intel-rapl:0")
+      set (APEX_HAVE_POWERCAP_POWER TRUE)
+      target_compile_definitions(apex_flags INTERFACE APEX_HAVE_POWERCAP_POWER)
+      message(INFO " System has Powercap energy monitoring support.")
+    endif()
+  endif()
+endif()
+
+# JUPYTER
+if(APEX_WITH_JUPYTER_SUPPORT)
+  target_compile_definitions(apex_flags INTERFACE APEX_WITH_JUPYTER_SUPPORT)
+  message(INFO " Including Jupyter Notebook support.")
+endif(APEX_WITH_JUPYTER_SUPPORT)
+
+# Setup BFD
+if((DEFINED BFD_ROOT) OR (APEX_WITH_BFD) OR (APEX_BUILD_BFD))
+  set(USE_BFD ${APEX_WITH_BFD})
+  set(BUILD_BFD ${APEX_BUILD_BFD})
+  # Setup BFD
+  include(APEX_SetupBFD)
+  set(bfd_sources apex_bfd.cpp address_resolution.cpp)
+  # Setup DEMANGLE
+  include(APEX_SetupDemangle)
+  # Setup Zlib
+	if(NOT APEX_INTEL_MIC)
+    include(APEX_SetupZlib)
+	endif(NOT APEX_INTEL_MIC)
+else()
+	add_custom_target(project_binutils)
+endif()
+
+# Setup MSR
+include(APEX_SetupMSR)
+
+# Setup OTF2
+include(APEX_SetupOTF2)
+if(APEX_WITH_OTF2)
+  set(otf2_headers otf2_listener.hpp)
+  set(otf2_sources otf2_listener.cpp)
+endif()
+
+if(HPX_WITH_HPXMP)
+  set(ompt_sources apex_ompt.cpp)
+  include(APEX_SetupHPXMP)
+  set(ompt_dependency apex::hpxmp)
+endif(HPX_WITH_HPXMP)
+
+
+##################################
+# Setup main apex static library #
 set(apex_headers
     apex.h
     apex.hpp
@@ -219,161 +292,10 @@ set(apex_headers
     task_wrapper.hpp
     tau_listener.hpp
     utils.hpp
-    ${PROC_HEADER})
+    ${proc_headers}
+    ${otf2_headers}
+    )
     #apex_config.h
-
-if(APEX_WITH_PAPI)
-    find_package(PAPI)
-    if(NOT PAPI_FOUND)
-        hpx_error("apex" "Requested APEX_WITH_PAPI but could not find PAPI. Please specify PAPI_ROOT.")
-    endif()
-    hpx_info("apex" "Building APEX with PAPI support.")
-    include_directories(${PAPI_INCLUDE_DIR})
-    set(LIBS ${LIBS} ${PAPI_LIBRARIES})
-    set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${PAPI_LIBRARY_DIR})
-    add_definitions(-DAPEX_HAVE_PAPI)
-    hpx_libraries(${PAPI_LIBRARIES})
-endif()
-
-################################################################################
-# LM Sensors configuration
-################################################################################
-
-if(APEX_WITH_LM_SENSORS)
-    find_package(LMSensors)
-    if (LM_SENSORS_FOUND)
-        include_directories(${LM_SENSORS_INCLUDE_DIRS})
-        set(LIBS ${LIBS} ${LM_SENSORS_LIBRARIES})
-        set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${LM_SENSORS_LIBRARY_DIR})
-        add_definitions(-DAPEX_HAVE_LM_SENSORS)
-        hpx_libraries(${LM_SENSORS_LIBRARIES})
-        SET(SENSOR_SOURCE sensor_data.cpp)
-    endif()
-endif()
-
-if(APEX_WITH_ACTIVEHARMONY)
-    find_package(ActiveHarmony)
-    if(NOT ACTIVEHARMONY_FOUND)
-        hpx_error("apex" "Requested APEX_WITH_ACTIVEHARMONY but could not find Active Harmony. Please specify ACTIVEHARMONY_ROOT.")
-    endif()
-    hpx_info("apex" "Building APEX with Active Harmony support.")
-    include_directories(${ACTIVEHARMONY_INCLUDE_DIR})
-    set(LIBS ${LIBS} ${ACTIVEHARMONY_LIBRARIES})
-    set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${ACTIVEHARMONY_LIBRARY_DIR})
-    add_definitions(-DAPEX_HAVE_ACTIVEHARMONY)
-    hpx_libraries(${ACTIVEHARMONY_LIBRARIES})
-else()
-    add_custom_target(project_activeharmony)
-endif()
-
-if(APEX_WITH_PLUGINS)
-    message(INFO " apex will be built with plugin support.")
-    set(LIBS ${LIBS} ${CMAKE_DL_LIBS})
-    add_definitions("-DAPEX_USE_PLUGINS")
-
-	git_external(rapidjson
-    	https://github.com/miloyip/rapidjson.git
-    	master
-    	VERBOSE)
-
-	find_path(
-    	RAPIDJSON_INCLUDE_DIR
-    	NAMES rapidjson
-    	PATHS ${APEX_SOURCE_DIR}/rapidjson/include)
-
-	if(RAPIDJSON_INCLUDE_DIR)
-    	message(INFO " Found rapidjson at ${RAPIDJSON_INCLUDE_DIR}")
-    	include_directories(${RAPIDJSON_INCLUDE_DIR})
-	else()
-    	message(FATAL_ERROR " rapidjson not found. This should have been checked out automatically. "
-        	"Try manually check out https://github.com/miloyip/rapidjson.git to ${PROJECT_SOURCE_DIR}")
-	endif()
-endif()
-
-if((DEFINED RCR_ROOT) OR (APEX_WITH_RCR) OR (APEX_BUILD_RCR))
-	find_package(RCR)
-endif()
-
-if(HAVE_RCR)
-	hpx_add_config_define(HPX_HAVE_RCR 1)
-else()
-   	IF(("${HOST_BASENAME}" STREQUAL "edison") OR ("$ENV{NERSC_HOST}" STREQUAL "edison") OR
-      	("${HOST_BASENAME}" STREQUAL "cori") OR ("$ENV{NERSC_HOST}" STREQUAL "cori"))
-       	#add_definitions(-fPIC)
-       	set (APEX_HAVE_CRAY_POWER TRUE)
-       	add_definitions(-DAPEX_HAVE_CRAY_POWER)
-       	message(INFO " System has Cray energy monitoring support.")
-   	else()
-     	if(EXISTS "/sys/class/powercap/intel-rapl/intel-rapl:0")
-       	    set (APEX_HAVE_POWERCAP_POWER TRUE)
-       	    add_definitions(-DAPEX_HAVE_POWERCAP_POWER)
-       	    message(INFO " System has Powercap energy monitoring support.")
-     	endif()
-   	endif()
-endif()
-
-if(APEX_WITH_JUPYTER_SUPPORT)
-    add_definitions(-DAPEX_WITH_JUPYTER_SUPPORT)
-    message(INFO " Including Jupyter Notebook support.")
-endif(APEX_WITH_JUPYTER_SUPPORT)
-
-if((DEFINED BFD_ROOT) OR (APEX_WITH_BFD) OR (APEX_BUILD_BFD))
-    set(USE_BFD ${APEX_WITH_BFD})
-    set(BUILD_BFD ${APEX_BUILD_BFD})
-    find_package(BFD)
-    if (BFD_FOUND)
-        include_directories(${BFD_INCLUDE_DIRS})
-        set(LIBS ${LIBS} ${BFD_LIBRARIES})
-        set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${BFD_LIBRARY_DIR})
-        hpx_libraries(${BFD_LIBRARIES})
-        message(INFO " Using binutils: ${BFD_LIBRARY_DIR} ${BFD_LIBRARIES}")
-        set(BFD_SOURCE apex_bfd.cpp address_resolution.cpp)
-	endif()
-
-	find_package(Demangle)
-	if (DEMANGLE_FOUND)
-		include_directories(${DEMANGLE_INCLUDE_DIRS})
-		set(LIBS ${LIBS} ${DEMANGLE_LIBRARIES})
-		set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${DEMANGLE_LIBRARY_DIR})
-        hpx_libraries(${DEMANGLE_LIBRARIES})
-        message(INFO " Using demangle: ${DEMANGLE_LIBRARY_DIR} ${DEMANGLE_LIBRARIES}")
-	else()
-  	unset(DEMANGLE_LIBRARY)
-  	unset(DEMANGLE_LIBRARIES)
-  	unset(DEMANGLE_DIR)
-	endif()
-	if(NOT APEX_INTEL_MIC)
-		find_package(ZLIB)
-		if (ZLIB_FOUND)
-			set(LIBS ${LIBS} ${ZLIB_LIBRARIES})
-			set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${ZLIB_LIBRARY_DIR})
-            hpx_libraries(${ZLIB_LIBRARIES})
-        	message(INFO " Using zlib: ${ZLIB_LIBRARY_DIR} ${ZLIB_LIBRARIES}")
-		endif()
-	endif(NOT APEX_INTEL_MIC)
-else()
-	add_custom_target(project_binutils)
-endif()
-
-if(APEX_WITH_MSR)
-    find_package(MSR)
-    if(NOT MSR_FOUND)
-        hpx_error("apex" "Requested APEX_WITH_MSR but could not find MSR. Please specify MSR_ROOT.")
-    endif()
-    hpx_info("apex" "Building APEX with libmsr support.")
-    include_directories(${MSR_INCLUDE_DIR})
-    set(LIBS ${LIBS} ${MSR_LIBRARIES})
-    set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${MSR_LIBRARY_DIR})
-    add_definitions(-DAPEX_HAVE_MSR)
-    hpx_libraries(${MSR_LIBRARIES})
-endif()
-
-if (APEX_USE_WEAK_SYMBOLS)
-    add_definitions(-DAPEX_USE_WEAK_SYMBOLS)
-else()
-    find_library(DYNAMICLIB dl)
-    hpx_libraries(${DYNAMICLIB})
-endif (APEX_USE_WEAK_SYMBOLS)
 
 set(apex_sources
     apex.cpp
@@ -389,63 +311,26 @@ set(apex_sources
     tau_dummy.cpp
     thread_instance.cpp
     utils.cpp
-    ${BFD_SOURCE}
-    ${SENSOR_SOURCE}
-    ${PROC_SOURCE})
-
-if(APEX_WITH_OTF2)
-    find_package(OTF2 REQUIRED)
-    if (NOT OTF2_FOUND)
-        hpx_error("apex" "Requested APEX_WITH_OTF2 but could not find OTF2 library. Please specify OTF2_ROOT.")
-    endif()
-    include_directories(${OTF2_INCLUDE_DIRS})
-    set(LIBS ${LIBS} ${OTF2_LIBRARIES})
-    set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${OTF2_LIBRARY_DIR})
-    set(apex_headers ${apex_headers} otf2_listener.hpp)
-    set(apex_sources ${apex_sources} otf2_listener.cpp)
-    #add_definitions(-DAPEX_USE_CLOCK_TIMESTAMP=1)
-    hpx_libraries(${OTF2_LIBRARIES})
-else()
-    add_custom_target(project_otf2)
-endif()
-
-#add_hpx_library(taudummy SHARED NOLIBS SOURCES tau_dummy.cpp HEADERS ${apex_headers} FOLDER "Core/Dependencies")
+    ${proc_sources}
+    ${bfd_sources}
+    ${sensor_sources}
+    ${otf2_sources}
+    ${ompt_sources}
+    )
 
 include(GNUInstallDirs)
 
-# At some point, use the HPX_LIBS macro.  Unfortunately, it isn't defined when
-# the apex directory is included, so it isn't defined at this point.
-
-foreach(_module ${HPX_LIBS})
-  set(_dependencies ${_dependencies} "hpx_${_module}")
-endforeach()
+# APEX has one dependency in HPX, just the main library.
+# Unless HPXMP is also used.
 
 add_hpx_library(apex
-  STATIC NOLIBS EXCLUDE_FROM_ALL
+  DYNAMIC NOLIBS EXCLUDE_FROM_ALL
   NOEXPORT
   SOURCES ${apex_sources}
   HEADERS ${apex_headers}
   DEPENDENCIES ${_dependencies}
-    hpx_algorithms
-    hpx_allocator_support
-    hpx_assertion
-    hpx_cache
-    hpx_datastructures
-    hpx_errors
-    hpx_execution
-    hpx_format
-    hpx_functional
-    hpx_hardware
-    hpx_hashing
-    hpx_iterator_support
-    hpx_logging
-    hpx_plugin
-    hpx_program_options
-    hpx_segmented_algorithms
-    hpx_thread_support
-    hpx_topology
-    hpx_util
-    ${LIBS}
+    hpx
+    ${ompt_dependency}
   FOLDER "Core/Dependencies")
 
 target_include_directories(apex PUBLIC
@@ -454,17 +339,31 @@ target_include_directories(apex PUBLIC
     $<BUILD_INTERFACE:${APEX_BINARY_DIR}>
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>)
 
-#if(APPLE)
-  #hpx_add_link_flag("-weak_library libhpx_taudummy.dylib -flat_namespace")
-#endif(APPLE)
-# add_hpx_pseudo_dependencies (apex_lib taudummy_lib project_activeharmony project_binutils project_otf2)
+# To have the compile options and definitions
+target_link_libraries(apex PUBLIC apex_flags)
 
+# Link to all imported targets
+foreach(lib IN LISTS _apex_imported_targets)
+  if (TARGET "${lib}")
+    target_link_libraries(apex PUBLIC ${lib})
+  endif()
+endforeach()
+
+# Link to dl
+if (APEX_USE_WEAK_SYMBOLS)
+  target_compile_definitions(apex_flags INTERFACE APEX_USE_WEAK_SYMBOLS)
+else()
+  find_library(DYNAMICLIB dl)
+  target_link_libraries(apex PUBLIC ${DYNAMICLIB})
+endif (APEX_USE_WEAK_SYMBOLS)
+
+# TODO: see how to remove those global include directories
 # add the binary tree to the search path for include files
 # so that we will find apex_config.h
 if(HAVE_RCR)
-include_directories("${PROJECT_BINARY_DIR}/apex/src/apex" ${RCR_INCLUDE_PATH})
+  target_include_directories(apex PUBLIC "${PROJECT_BINARY_DIR}/apex/src/apex" ${RCR_INCLUDE_PATH})
 else()
-include_directories("${PROJECT_BINARY_DIR}/apex/src/apex")
+  target_include_directories(apex PUBLIC "${PROJECT_BINARY_DIR}/apex/src/apex")
 endif()
 
 configure_file (

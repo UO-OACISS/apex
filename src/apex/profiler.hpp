@@ -230,7 +230,7 @@ public:
             //<< " Seconds? seen." << std::endl;
             ticks_per_period = CycleB(t1b-t0b)/CycleA(t1a-t0a);
             /*
-            if (apex_options::use_screen_output()) {
+            if (apex_options::use_verbose()) {
                 std::cout << "CPU is " << (1.0/ticks_per_period) << " Hz." <<
                 std::endl;
             }

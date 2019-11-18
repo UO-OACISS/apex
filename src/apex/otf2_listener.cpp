@@ -906,7 +906,7 @@ namespace apex {
 
 #if APEX_HAVE_PAPI
     void otf2_listener::write_papi_counters(OTF2_EvtWriter* writer, profiler*
-        prof, uint64_t stamp) {
+        prof, uint64_t stamp, bool is_enter) {
         // create a union for storing the value
         OTF2_MetricValue omv[1];
         // tell the union what type this is
@@ -916,7 +916,11 @@ namespace apex {
         uint64_t idx = 0L;
         for (auto metric :
             apex::instance()->the_profiler_listener->get_metric_names()) {
-            omv[0].floating_point = prof->papi_start_values[i++];
+            if (is_enter) {
+                omv[0].floating_point = prof->papi_start_values[i++];
+            } else {
+                omv[0].floating_point = prof->papi_stop_values[i++];
+            }
             idx = get_metric_index(metric);
             // write our counter into the event stream
             OTF2_EC(OTF2_EvtWriter_Metric( writer, nullptr, stamp, idx,
@@ -955,7 +959,8 @@ namespace apex {
                     stamp, idx /* region */ ));
 #if APEX_HAVE_PAPI
                 // write PAPI metrics!
-                write_papi_counters(local_evt_writer, tt_ptr->prof, stamp);
+                write_papi_counters(local_evt_writer, tt_ptr->prof,
+                    stamp, true);
 #endif
             } else {
                 stamp = get_time();
@@ -964,7 +969,7 @@ namespace apex {
 #if APEX_HAVE_PAPI
                 // write PAPI metrics!
                 write_papi_counters(local_evt_writer, tt_ptr->prof,
-                    stamp);
+                    stamp, true);
 #endif
             }
             // delete the attribute list
@@ -1006,7 +1011,8 @@ namespace apex {
                     stamp, idx /* region */ ));
 #if APEX_HAVE_PAPI
                 // write PAPI metrics!
-                write_papi_counters(local_evt_writer, p.get(), stamp);
+                write_papi_counters(local_evt_writer, p.get(),
+                    stamp, false);
 #endif
             } else {
                 stamp = get_time();
@@ -1014,7 +1020,8 @@ namespace apex {
                     stamp, idx /* region */ ));
 #if APEX_HAVE_PAPI
                 // write PAPI metrics!
-                write_papi_counters(local_evt_writer, p.get(), stamp);
+                write_papi_counters(local_evt_writer, p.get(),
+                    stamp, false);
 #endif
             }
             // delete the attribute list

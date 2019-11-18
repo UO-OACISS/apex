@@ -319,10 +319,10 @@ namespace apex {
             int retval = PAPI_read(rapl_EventSet, rapl_values);
             if (retval != PAPI_OK) {
                 fprintf(stderr, "Error reading PAPI RAPL eventset.\n");
-                return;
-            }
-            for (size_t i = 0 ; i < rapl_event_names.size() ; i++) {
-                data->rapl_metrics.push_back(rapl_values[i]);
+            } else {
+                for (size_t i = 0 ; i < rapl_event_names.size() ; i++) {
+                    data->rapl_metrics.push_back(rapl_values[i]);
+                }
             }
             free(rapl_values);
         }
@@ -331,10 +331,10 @@ namespace apex {
             int retval = PAPI_read(nvml_EventSet, nvml_values);
             if (retval != PAPI_OK) {
                 fprintf(stderr, "Error reading PAPI NVML eventset.\n");
-                return;
-            }
-            for (size_t i = 0 ; i < nvml_event_names.size() ; i++) {
-                data->nvml_metrics.push_back(nvml_values[i]);
+            } else {
+                for (size_t i = 0 ; i < nvml_event_names.size() ; i++) {
+                    data->nvml_metrics.push_back(nvml_values[i]);
+                }
             }
             free(nvml_values);
         }
@@ -343,10 +343,10 @@ namespace apex {
             int retval = PAPI_read(lms_EventSet, lms_values);
             if (retval != PAPI_OK) {
                 fprintf(stderr, "Error reading PAPI lmsensors eventset.\n");
-                return;
-            }
-            for (size_t i = 0 ; i < lms_event_names.size() ; i++) {
-                data->lms_metrics.push_back(lms_values[i]);
+            } else {
+                for (size_t i = 0 ; i < lms_event_names.size() ; i++) {
+                    data->lms_metrics.push_back(lms_values[i]);
+                }
             }
             free(lms_values);
         }
@@ -490,17 +490,20 @@ namespace apex {
 #endif
 #if defined(APEX_HAVE_PAPI)
         if (rapl_initialized) {
-            for (size_t i = 0 ; i < rapl_event_names.size() ; i++) {
+            // reading might have failed, so only copy if there's data
+            for (size_t i = 0 ; i < rapl_metrics.size() ; i++) {
                 d->rapl_metrics.push_back(rapl_metrics[i]);
             }
         }
         if (nvml_initialized) {
-            for (size_t i = 0 ; i < nvml_event_names.size() ; i++) {
+            // reading might have failed, so only copy if there's data
+            for (size_t i = 0 ; i < nvml_metrics.size() ; i++) {
                 d->nvml_metrics.push_back(nvml_metrics[i]);
             }
         }
         if (lms_initialized) {
-            for (size_t i = 0 ; i < lms_event_names.size() ; i++) {
+            // reading might have failed, so only copy if there's data
+            for (size_t i = 0 ; i < lms_metrics.size() ; i++) {
                 d->lms_metrics.push_back(lms_metrics[i]);
             }
         }
@@ -646,7 +649,8 @@ namespace apex {
 #endif
 #if defined(APEX_HAVE_PAPI)
         if (rapl_initialized) {
-            for (size_t i = 0 ; i < rapl_event_names.size() ; i++) {
+            // reading might have failed, so only iterate over the data
+            for (size_t i = 0 ; i < rapl_metrics.size() ; i++) {
                 stringstream ss;
                 ss << rapl_event_names[i];
                 if (rapl_event_units[i].length() > 0) {
@@ -664,7 +668,8 @@ namespace apex {
             }
         }
         if (nvml_initialized) {
-            for (size_t i = 0 ; i < nvml_event_names.size() ; i++) {
+            // reading might have failed, so only iterate over the data
+            for (size_t i = 0 ; i < nvml_metrics.size() ; i++) {
                 stringstream ss;
                 ss << nvml_event_names[i];
                 if (nvml_event_units[i].length() > 0) {
@@ -681,7 +686,8 @@ namespace apex {
             }
         }
         if (lms_initialized) {
-            for (size_t i = 0 ; i < lms_event_names.size() ; i++) {
+            // reading might have failed, so only iterate over the data
+            for (size_t i = 0 ; i < lms_metrics.size() ; i++) {
                 // PAPI scales LM sensor data by 1000, 
                 // because it doesn't have floating point values..
                 sample_value(lms_event_names[i].c_str(), (double)lms_metrics[i]/1000.0);
@@ -1020,7 +1026,7 @@ namespace apex {
                 newData = parse_proc_stat();
                 periodData = newData->diff(*oldData);
                 // save the values
-                if (done) break;
+                if (done) break; // double-check...
                 periodData->sample_values();
                 // free the memory
                 delete(oldData);
