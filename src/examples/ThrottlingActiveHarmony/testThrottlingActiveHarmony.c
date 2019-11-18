@@ -10,7 +10,7 @@
 #define MAX(a,b) ((a) > (b) ? a : b)
 #define MIN(a,b) ((a) < (b) ? a : b)
 
-#define ITERATIONS 1000
+#define ITERATIONS 10000
 #define SLEEPY_TIME 10000 // 10,000
 
 int num_threads = 1;
@@ -96,9 +96,10 @@ int main(int argc, char **argv)
   }
   apex_stop(p);
   int final_cap = apex_get_thread_cap();
-  if (final_cap < original_cap) {
+  if (final_cap <= original_cap) {
       printf ("Test passed.\n");
   }
+  apex_shutdown_throttling();
   apex_finalize();
   free(thread);
   return(0);

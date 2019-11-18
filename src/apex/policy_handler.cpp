@@ -203,6 +203,9 @@ namespace apex {
     }
 
     int policy_handler::deregister_policy(apex_policy_handle * handle) {
+        if (handle == nullptr) {
+            return APEX_NOERROR;
+        }
         // save the old policy setting
         bool old_policy_setting = apex_options::use_policy();
         // prevent policies from iterating - kind of like a lock, but faster.
@@ -406,6 +409,7 @@ namespace apex {
                 break;
             }
         }
+        handle = nullptr;
         apex_options::use_policy(old_policy_setting);
         return APEX_NOERROR;
     }
