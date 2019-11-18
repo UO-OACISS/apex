@@ -56,11 +56,11 @@ struct task_wrapper {
   */
     std::vector<profiler*> data_ptr;
 /**
-  \brief An unordered set of other names for this task.  If the task changes names
+  \brief If the task changes names
          after creation (due to the application of an annotation) then the alias
          becomes the new task_identifier for the task.
   */
-    std::unordered_set<task_identifier*> aliases;
+    task_identifier* alias;
 /**
   \brief Constructor.
   */
@@ -69,22 +69,16 @@ struct task_wrapper {
         prof(nullptr),
         guid(0ull),
         parent_guid(0ull),
-        parent(nullptr)
+        parent(nullptr),
+        alias(nullptr)
     { }
 /**
   \brief Get the task_identifier for this task_wrapper.
   \returns A pointer to the task_identifier
   */
     inline task_identifier * get_task_id(void) {
-        if (!aliases.empty()) {
-            task_identifier * id = nullptr;
-            // find the first alias that isn't the same as the original name
-            for (auto tmp : aliases) {
-                if (tmp != id) {
-                    id = tmp;
-                    return id;
-                }
-            }
+        if (alias != nullptr) {
+            return alias;
         }
         return task_id;
     }
