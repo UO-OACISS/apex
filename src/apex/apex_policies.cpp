@@ -44,6 +44,9 @@ static unordered_map<apex_tuning_session_handle,
     shared_ptr<apex_tuning_session>> session_map;
 static std::atomic<apex_tuning_session_handle> next_handle{1};
 
+apex_policy_handle * power_throttling_policy_handle;
+apex_policy_handle * common_setup_timer_throttling_handle;
+
 static shared_ptr<apex_tuning_session> get_session(
     const apex_tuning_session_handle & h) {
   apex::read_lock_type l(session_map_mutex);
@@ -926,7 +929,8 @@ inline int __setup_power_cap_throttling()
             << thread_cap_tuning_session->min_watts << " max watts: "
             << thread_cap_tuning_session->max_watts << endl;
       }
-      apex::register_periodic_policy(apex::apex_options::throttle_energy_period(),
+      power_throttling_policy_handle =
+        apex::register_periodic_policy(apex::apex_options::throttle_energy_period(),
         apex_power_throttling_policy);
       // get an initial power reading
       apex::current_power_high();
@@ -1315,13 +1319,16 @@ inline int __common_setup_timer_throttling(apex_optimization_criteria_t
             thread_cap_tuning_session->cap_data_open = true;
         }
         if (method == APEX_SIMPLE_HYSTERESIS) {
+            common_setup_timer_throttling_handle =
             apex::register_periodic_policy(update_interval,
             apex_throughput_throttling_policy);
         } else if (method == APEX_DISCRETE_HILL_CLIMBING) {
+            common_setup_timer_throttling_handle =
             apex::register_periodic_policy(update_interval,
             apex_throughput_throttling_dhc_policy);
         } else if (method == APEX_ACTIVE_HARMONY) {
             __apex_active_harmony_setup(thread_cap_tuning_session);
+            common_setup_timer_throttling_handle =
             apex::register_periodic_policy(update_interval,
             apex_throughput_throttling_ah_policy);
         }
@@ -1501,6 +1508,8 @@ inline int __shutdown_throttling(void)
         free(thread_cap_tuning_session->observations);
         delete thread_cap_tuning_session;
         thread_cap_tuning_session = nullptr;
+        apex::deregister_policy(power_throttling_policy_handle);
+        apex::deregister_policy(common_setup_timer_throttling_handle);
         return APEX_NOERROR;
     } else {
         return APEX_ERROR;
