@@ -8,12 +8,12 @@ find_package(ZLIB)
 if (ZLIB_FOUND)
 
   # Add an imported target
-  add_library(apex::zlib INTERFACE IMPORTED)
-  set_property(TARGET apex::zlib PROPERTY
+  add_library(zlib INTERFACE IMPORTED)
+  set_property(TARGET zlib PROPERTY
     INTERFACE_LINK_LIBRARIES ${ZLIB_LIBRARIES})
   set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${ZLIB_LIBRARY_DIR})
   message(INFO " Using zlib: ${ZLIB_LIBRARY_DIR} ${ZLIB_LIBRARIES}")
 
-  list(APPEND _apex_imported_targets apex::zlib)
+  list(APPEND _apex_imported_targets zlib)
 
 endif()

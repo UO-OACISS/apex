@@ -12,18 +12,18 @@ if(APEX_WITH_ACTIVEHARMONY)
   endif()
 
   # Add an imported target
-  add_library(apex::activeharmony INTERFACE IMPORTED)
+  add_library(activeharmony INTERFACE IMPORTED)
   hpx_info("apex" "Building APEX with Active Harmony support.")
-  set_property(TARGET apex::activeharmony PROPERTY
+  set_property(TARGET activeharmony PROPERTY
     INTERFACE_INCLUDE_DIRECTORIES ${ACTIVEHARMONY_INCLUDE_DIR})
-  set_property(TARGET apex::activeharmony PROPERTY
+  set_property(TARGET activeharmony PROPERTY
     INTERFACE_LINK_LIBRARIES ${ACTIVEHARMONY_LIBRARIES})
   set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${ACTIVEHARMONY_LIBRARY_DIR})
 
   # Add the right definitions to the apex_flags target
   target_compile_definitions(apex_flags INTERFACE APEX_HAVE_ACTIVEHARMONY)
 
-  list(APPEND _apex_imported_targets apex::activeharmony)
+  list(APPEND _apex_imported_targets activeharmony)
 
 else()
 

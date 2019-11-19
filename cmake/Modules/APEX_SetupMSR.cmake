@@ -13,15 +13,15 @@ if(APEX_WITH_MSR)
   hpx_info("apex" "Building APEX with libmsr support.")
 
   # Add an imported target
-  add_library(apex::msr INTERFACE IMPORTED)
-  set_property(TARGET apex::msr PROPERTY
+  add_library(msr INTERFACE IMPORTED)
+  set_property(TARGET msr PROPERTY
     INTERFACE_INCLUDE_DIRECTORIES ${MSR_INCLUDE_DIR})
-  set_property(TARGET apex::msr PROPERTY
+  set_property(TARGET msr PROPERTY
     INTERFACE_LINK_LIBRARIES ${MSR_LIBRARIES})
 
   set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${MSR_LIBRARY_DIR})
   target_compile_definitions(apex_flags INTERFACE APEX_HAVE_MSR)
 
-  list(APPEND _apex_imported_targets apex::msr)
+  list(APPEND _apex_imported_targets msr)
 
 endif()

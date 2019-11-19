@@ -8,16 +8,16 @@ find_package(Demangle)
 if (DEMANGLE_FOUND)
 
   # Add an imported target
-  add_library(apex::demangle INTERFACE IMPORTED)
-  set_property(TARGET apex::demangle PROPERTY
+  add_library(demangle INTERFACE IMPORTED)
+  set_property(TARGET demangle PROPERTY
     INTERFACE_INCLUDE_DIRECTORIES ${DEMANGLE_INCLUDE_DIRS})
-  set_property(TARGET apex::demangle PROPERTY
+  set_property(TARGET demangle PROPERTY
     INTERFACE_LINK_LIBRARIES ${DEMANGLE_LIBRARIES})
 
 	set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${DEMANGLE_LIBRARY_DIR})
   message(INFO " Using demangle: ${DEMANGLE_LIBRARY_DIR} ${DEMANGLE_LIBRARIES}")
 
-  list(APPEND _apex_imported_targets apex::demangle)
+  list(APPEND _apex_imported_targets demangle)
 
 else()
 

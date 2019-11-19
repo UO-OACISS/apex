@@ -11,16 +11,16 @@ if(APEX_WITH_OTF2)
   endif()
 
   # Add an imported target
-  add_library(apex::otf2 INTERFACE IMPORTED)
-  set_property(TARGET apex::otf2 PROPERTY
+  add_library(otf2 INTERFACE IMPORTED)
+  set_property(TARGET otf2 PROPERTY
     INTERFACE_INCLUDE_DIRECTORIES ${OTF2_INCLUDE_DIRS})
-  set_property(TARGET apex::otf2 PROPERTY
+  set_property(TARGET otf2 PROPERTY
     INTERFACE_LINK_LIBRARIES ${OTF2_LIBRARIES})
 
   set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${OTF2_LIBRARY_DIR})
   #target_compile_definitions(apex_flags INTERFACE APEX_USE_CLOCK_TIMESTAMP=1)
 
-  list(APPEND _apex_imported_targets apex::otf2)
+  list(APPEND _apex_imported_targets otf2)
 
 else()
   add_custom_target(project_otf2)
