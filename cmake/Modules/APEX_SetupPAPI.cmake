@@ -13,15 +13,15 @@ if(APEX_WITH_PAPI)
   hpx_info("apex" "Building APEX with PAPI support.")
 
   # Add an imported target
-  add_library(apex::papi INTERFACE IMPORTED)
-  set_property(TARGET apex::papi PROPERTY
+  add_library(papi INTERFACE IMPORTED)
+  set_property(TARGET papi PROPERTY
     INTERFACE_INCLUDE_DIRECTORIES ${PAPI_INCLUDE_DIR})
-  set_property(TARGET apex::papi PROPERTY
+  set_property(TARGET papi PROPERTY
     INTERFACE_LINK_LIBRARIES ${PAPI_LIBRARIES})
 
   set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${PAPI_LIBRARY_DIR})
   target_compile_definitions(apex_flags INTERFACE APEX_HAVE_PAPI)
 
-  list(APPEND _apex_imported_targets apex::papi)
+  list(APPEND _apex_imported_targets papi)
 
 endif()

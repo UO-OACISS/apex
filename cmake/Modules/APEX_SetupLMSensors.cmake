@@ -18,16 +18,16 @@ if(APEX_WITH_LM_SENSORS)
   endif()
 
   # Add an imported target
-  add_library(apex::lm_sensors INTERFACE IMPORTED)
-  set_property(TARGET apex::lm_sensors PROPERTY
+  add_library(lm_sensors INTERFACE IMPORTED)
+  set_property(TARGET lm_sensors PROPERTY
     INTERFACE_INCLUDE_DIRECTORIES ${LM_SENSORS_INCLUDE_DIRS})
-  set_property(TARGET apex::lm_sensors PROPERTY
+  set_property(TARGET lm_sensors PROPERTY
     INTERFACE_LINK_LIBRARIES ${LM_SENSORS_LIBRARIES})
   set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${LM_SENSORS_LIBRARY_DIR})
 
   target_compile_definitions(apex_flags INTERFACE APEX_HAVE_LM_SENSORS)
 
-  list(APPEND _apex_imported_targets apex::lm_sensors)
+  list(APPEND _apex_imported_targets lm_sensors)
 
 endif()
 
