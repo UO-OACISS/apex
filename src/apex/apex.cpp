@@ -63,7 +63,7 @@
 #include <hpx/include/performance_counters.hpp>
 #include <hpx/include/actions.hpp>
 #include <hpx/include/util.hpp>
-#include <hpx/lcos/local/composable_guard.hpp>
+#include <hpx/local_lcos/composable_guard.hpp>
 #include "global_constructor_destructor.h"
 #ifdef APEX_HAVE_HPX_disabled
 static void apex_schedule_shutdown(void);
