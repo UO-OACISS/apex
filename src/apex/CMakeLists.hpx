@@ -64,27 +64,6 @@ if(NOT APEX_ARCH_X86)
   target_compile_definitions(apex_flags INTERFACE APEX_USE_CLOCK_TIMESTAMP=1)
 endif()
 
-### Set up concurrentqueue stuff
-if(NOT EXISTS ${APEX_SOURCE_DIR}/concurrentqueue)
-  include(GitExternal)
-  git_external(concurrentqueue
-    https://github.com/cameron314/concurrentqueue.git
-    master
-    VERBOSE)
-endif()
-
-find_file(
-  CONCURRENTQUEUE_HEADER
-  NAMES concurrentqueue.h
-  PATHS ${APEX_SOURCE_DIR}/concurrentqueue)
-
-if(CONCURRENTQUEUE_HEADER)
-  message(INFO " Found concurrentqueue at ${APEX_SOURCE_DIR}/concurrentqueue")
-else()
-  message(FATAL_ERROR " concurrentqueue not found. This should have been checked out automatically. "
-    "Try manually check out https://github.com/cameron314/concurrentqueue.git to ${APEX_SOURCE_DIR}")
-endif()
-
 ################################################################################
 # Get the GIT version of the code
 ################################################################################

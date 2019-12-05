@@ -37,7 +37,12 @@
 #ifndef ATOMIC_POINTER_LOCK_FREE
 #define ATOMIC_POINTER_LOCK_FREE   __GCC_ATOMIC_POINTER_LOCK_FREE
 #endif
+// HPX has its own version of moodycamel concurrent queue
+#ifdef APEX_HAVE_HPX_CONFIG
+#include "hpx/concurrency/concurrentqueue.hpp"
+#else
 #include "concurrentqueue/concurrentqueue.h"
+#endif
 
 #include "apex_assert.h"
 #include "semaphore.hpp"
