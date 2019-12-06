@@ -15,6 +15,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <ios>
+#include <iomanip>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -668,7 +670,7 @@ namespace apex {
         for (int i = 0 ; i < rank_thread_map[rank] ; i++) {
             uint64_t thread_id = node_id + i;
             stringstream thread;
-            thread << "thread " << i;
+            thread << "thread " << std::internal << std::setfill('0') << std::setw(2) << i;
             // have we written this thread name before?
             auto tmp = threadnames.find(thread.str());
             if (tmp == threadnames.end()) {

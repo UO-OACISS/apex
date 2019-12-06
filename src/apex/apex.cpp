@@ -1125,8 +1125,10 @@ std::shared_ptr<task_wrapper> update_task(
         } else {
             wrapper->alias = id;
         }
+        /*
         printf("%llu New alias: %s to %s\n", wrapper->guid,
            wrapper->task_id->get_name().c_str(), timer_name.c_str());
+           */
     }
     return wrapper;
 }
