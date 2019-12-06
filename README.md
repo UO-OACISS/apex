@@ -60,6 +60,10 @@ Installation
 
 [Full installation documentation is available here] (http://khuck.github.io/xpress-apex). Below is a quickstart for the impatient...
 
+Please Note:
+===========
+*These instructions are for building the stand-alone APEX library.  For instructions on building APEX with HPX, please see [http://khuck.github.io/xpress-apex/usage/#hpx-louisiana-state-university](http://khuck.github.io/xpress-apex/usage/#hpx-louisiana-state-university)*
+
 APEX is built with CMake. The minimum CMake settings needed for APEX are:
 
 * `-DCMAKE_INSTALL_PREFIX=<some path to an installation location>`
