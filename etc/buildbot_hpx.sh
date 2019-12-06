@@ -157,8 +157,8 @@ test_step()
     env | grep APEX
     export CTEST_OUTPUT_ON_FAILURE=1
     export APEX_SCREEN_OUTPUT=1
-    make ${1} tests.examples
-    ctest --timeout 100 -R tests.examples
+    make ${1} tests.unit.apex
+    ctest --timeout 100 -R tests.unit.apex
 }
 
 install_step()
