@@ -3,8 +3,8 @@
 git checkout master
 git merge develop
 
-oldtag=v2.1.5
-tagname=v2.1.6
+if [ -z ${oldtag+x} ]; then echo "oldtag is unset"; else echo "oldtag is set to '$oldtag'"; fi
+if [ -z ${tagname+x} ]; then echo "tagname is unset"; else echo "tagname is set to '$tagname'"; fi
 
 echo "Commit Log:" >> ${tagname}.txt
 
