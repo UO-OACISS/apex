@@ -1112,23 +1112,31 @@ std::shared_ptr<task_wrapper> update_task(
     if (apex_options::disable() == true) { return nullptr; }
     // if APEX is suspended, do nothing.
     if (apex_options::suspend() == true) { return nullptr; }
-    APEX_ASSERT(wrapper != nullptr);
-    task_identifier * id = task_identifier::get_task_id(timer_name);
-    // only have to do something if the ID has changed
-    if (id != wrapper->get_task_id()) {
-        // If a profiler was already started, yield it and start a new one with the new ID
-        if (wrapper->prof != nullptr) {
-            yield(wrapper);
-            //wrapper->prof->set_task_id(wrapper->get_task_id());
-            wrapper->alias = id;
-            start(wrapper);
-        } else {
-            wrapper->alias = id;
-        }
+    if (wrapper == nullptr) {
+        // get the Apex static instance
+        apex* instance = apex::instance();
+        // protect against calls after finalization
+        if (!instance || _exited) { return nullptr; }
+        task_identifier * id = task_identifier::get_task_id(timer_name);
+        wrapper = _new_task(id, UINTMAX_MAX, null_task_wrapper, instance);
+    } else {
+        task_identifier * id = task_identifier::get_task_id(timer_name);
+        // only have to do something if the ID has changed
+        if (id != wrapper->get_task_id()) {
+            // If a profiler was already started, yield it and start a new one with the new ID
+            if (wrapper->prof != nullptr) {
+                yield(wrapper);
+                //wrapper->prof->set_task_id(wrapper->get_task_id());
+                wrapper->alias = id;
+                start(wrapper);
+            } else {
+                wrapper->alias = id;
+            }
         /*
         printf("%llu New alias: %s to %s\n", wrapper->guid,
            wrapper->task_id->get_name().c_str(), timer_name.c_str());
            */
+        }
     }
     return wrapper;
 }
