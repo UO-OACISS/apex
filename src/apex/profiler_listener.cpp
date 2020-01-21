@@ -662,7 +662,7 @@ std::unordered_set<profile*> free_profiles;
             << endl;;
     }
     csv_output << "\"task\",\"num calls\",\"total cycles\",\"total "
-        << "microseconds\"";
+        << "microseconds\"" << std::endl;
     std::string re("PAPI_");
     std::string tmpstr(apex_options::papi_metrics());
     size_t index = 0;
@@ -727,7 +727,7 @@ std::unordered_set<profile*> free_profiles;
     total_ss << std::fixed << ((uint64_t)total_hpx_threads);
         screen_output << total_ss.str() << std::endl;
     //}
-    if (apex_options::use_screen_output()) {
+    if (apex_options::use_screen_output() && node_id == 0) {
         cout << screen_output.str();
         data.output = screen_output.str();
     }
@@ -736,6 +736,7 @@ std::unordered_set<profile*> free_profiles;
         stringstream csvname;
         csvname << apex_options::output_file_path();
         csvname << filesystem_separator() << "apex." << node_id << ".csv";
+        // std::cout << "Writing: " << csvname.str() << std::endl;
         csvfile.open(csvname.str(), ios::out);
         csvfile << csv_output.str();
         csvfile.close();
@@ -1278,9 +1279,9 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       push_profiler((unsigned int)thread_instance::get_id(), main_timer);
 
       // output to screen?
-      if ((apex_options::use_screen_output() ||
+      if ((apex_options::use_screen_output() && node_id == 0) ||
            apex_options::use_taskgraph_output() ||
-           apex_options::use_csv_output()) && node_id == 0)
+           apex_options::use_csv_output())
       {
         size_t ignored = 0;
         { // we need to lock in case another thread appears
