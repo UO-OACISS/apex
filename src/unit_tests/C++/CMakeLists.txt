@@ -95,3 +95,29 @@ endif (OPENMP_FOUND)
 #target_link_libraries (apex_fibonacci_std_async_cpp apex_pthread_wrapper)        
 #add_dependencies (apex_fibonacci_std_async_cpp apex_pthread_wrapper)    
 
+
+
+
+# Make sure the compiler can find include files from our Apex library. 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MPI_COMPILE_FLAGS}")
+include_directories (. ${APEX_SOURCE_DIR}/src/apex ${MPI_CXX_INCLUDE_PATH})
+
+# Make sure the linker can find the Apex library once it is built. 
+link_directories (${APEX_BINARY_DIR}/src/apex)
+
+# Add executable called "apex_hpx_annotated_functions_mpi" that is built from the source file
+# "apex_hpx_annotated_functions.cpp". The extensions are automatically found. 
+add_executable (apex_hpx_annotated_functions_mpi apex_hpx_annotated_functions.cpp)
+add_dependencies (apex_hpx_annotated_functions_mpi apex)
+add_dependencies (examples apex_hpx_annotated_functions_mpi)
+
+# Link the executable to the Apex library. 
+target_link_libraries (apex_hpx_annotated_functions_mpi apex ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES} ${LIBS} stdc++ m)
+if (BUILD_STATIC_EXECUTABLES)
+    set_target_properties(apex_hpx_annotated_functions_mpi PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
+endif()
+
+INSTALL(TARGETS apex_hpx_annotated_functions_mpi
+  RUNTIME DESTINATION bin OPTIONAL
+)
+

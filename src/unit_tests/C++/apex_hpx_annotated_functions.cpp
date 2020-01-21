@@ -5,13 +5,18 @@
 #include <time.h>
 #include <stdint.h>
 #include "apex_api.hpp"
+#if defined(APEX_HAVE_MPI)
+#include <mpi.h>
+#endif
 
 uint32_t test_numthreads = 0;
 int threads_per_core = 8;
 __thread uint64_t guid = 0;
 const int num_iterations = 10;
+int comm_rank = 0;
+int comm_size = 1;
 
-#ifdef DEBUG
+#ifdef DEBUG__
 #define __DEBUG_PRINT__ 1
 #endif
 
@@ -50,7 +55,9 @@ static void init_guid(int tid) {
 
 void innerLoop(int *tid) {
     std::shared_ptr<apex::task_wrapper> tt_ptr = apex::new_task(__func__);
-    apex::update_task(tt_ptr, "foo");
+
+    const char * new_label = ((comm_rank % 2 == 0) ? "foo" : "bar");
+    apex::update_task(tt_ptr, new_label);
     apex::start(tt_ptr);
 
     /* do some computation */
@@ -90,7 +97,15 @@ void* someThread(void* tmp)
 
 int main (int argc, char** argv) {
     /* initialize APEX */
+    #if defined(APEX_HAVE_MPI)
+    MPI_Init(&argc, &argv);
+    MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
+    std::cout << "APP: rank " << comm_rank << " of " << comm_size << std::endl;
+    apex::init("apex::start unit test", comm_rank, comm_size);
+    #else
     apex::init("apex::start unit test", 0, 1);
+    #endif
 	/* important, to make sure we get correct profiles at the end */
     apex::apex_options::use_screen_output(true); 
     /* start a timer */
@@ -134,6 +149,9 @@ int main (int argc, char** argv) {
     	}
   	}
   	apex::cleanup();
+    #if defined(APEX_HAVE_MPI)
+    MPI_Finalize();
+    #endif
     return 0;
 }
 
