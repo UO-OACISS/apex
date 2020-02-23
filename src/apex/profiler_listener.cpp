@@ -508,7 +508,11 @@ std::unordered_set<profile*> free_profiles;
         }
       }
 #endif
-      if(p->get_calls() < 1) {
+      if(p->get_calls() == 0 && p->get_times_reset() > 0) {
+            screen_output << "Not called since reset." << endl;
+            return;
+      }
+      if(p->get_calls() < 1 && p->get_times_reset() == 0) {
         p->get_profile()->calls = 1;
       }
       if (p->get_calls() < 999999) {
@@ -1275,7 +1279,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
     while(consumer_task_running.test_and_set(memory_order_acq_rel)) { }
 
       // stop the main timer, and process that profile?
-      main_timer->stop();
+      main_timer->stop(true);
       push_profiler((unsigned int)thread_instance::get_id(), main_timer);
 
       // output to screen?

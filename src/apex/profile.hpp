@@ -61,6 +61,7 @@ public:
         _profile.sum_squares = 0.0;
         _profile.minimum = 0.0;
         _profile.maximum = 0.0;
+        _profile.times_reset++;
     };
     double get_calls() { return _profile.calls; }
     double get_mean() { return (_profile.accumulated / _profile.calls); }
@@ -68,6 +69,7 @@ public:
     double * get_papi_metrics() { return (_profile.papi_metrics); }
     double get_minimum() { return (_profile.minimum); }
     double get_maximum() { return (_profile.maximum); }
+    int get_times_reset() { return (_profile.times_reset); }
     double get_variance() {
         double mean = get_mean();
         double variance = ((_profile.sum_squares / _profile.calls) - (mean * mean));

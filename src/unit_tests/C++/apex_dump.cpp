@@ -20,8 +20,11 @@ int main (int argc, char** argv) {
     profiler * p = start("bar");
     stop(p);
   }    
+
   // dump and reset everything
+  cout << "\n\n *** Should see 30 calls to foo, and 40 calls to bar...\n\n" << endl;
   dump(true);
+
   usleep(100);
   // Call "foo" 3 times
   for(int i = 0; i < 3; ++i) {
@@ -42,9 +45,10 @@ int main (int argc, char** argv) {
     stop(p);
   }    
   // dump and reset nothing
+  cout << "\n\n *** Should see 3 calls to foo, and 4 calls to bar, and 100 calls to Test Timer...\n\n" << endl;
   dump(false);
   // Reset "Test Timer"
-  reset("Test Timer");
+  reset("foo");
   usleep(100);
   // Call "Test Timer" 25 times
   for(int i = 0; i < 25; ++i) {
@@ -53,6 +57,7 @@ int main (int argc, char** argv) {
   }    
   // The profile should show "Test Timer" was called 25 times.
   stop(main_profiler);
+  cout << "\n\n *** Should see 0 calls to foo, and 4 calls to bar, and 100+ calls to Test Timer...\n\n" << endl;
   finalize();
   apex_profile * profile = get_profile("Test Timer");
   if (profile) {
