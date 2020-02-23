@@ -1074,10 +1074,14 @@ node_color * get_node_color(double v,double vmin,double vmax)
 #ifdef APEX_HAVE_HPX
     bool schedule_another_task = false;
     {
-        std::unique_lock<std::mutex> queue_lock(queue_mtx);
-        for (auto a_queue : allqueues) {
+        size_t num_queues = 0;
+        {
+            std::unique_lock<std::mutex> queue_lock(queue_mtx);
+            num_queues = allqueues.size();
+        }
+        for (size_t q = 0 ; q < num_queues ; q++) {
             int i = 0;
-            while(!_done && a_queue->try_dequeue(p)) {
+            while(!_done && allqueues[q]->try_dequeue(p)) {
                 process_profile(p, 0);
                 if (++i > 1000) {
                     schedule_another_task = true;
@@ -1087,10 +1091,14 @@ node_color * get_node_color(double v,double vmin,double vmax)
         }
     }
     if (apex_options::use_taskgraph_output()) {
-        std::unique_lock<std::mutex> queue_lock(queue_mtx);
-        for (auto a_queue : dependency_queues) {
+        size_t num_queues = 0;
+        {
+            std::unique_lock<std::mutex> queue_lock(queue_mtx);
+            num_queues = dependency_queues.size();
+        }
+        for (size_t q = 0 ; q < num_queues ; q++) {
             int i = 0;
-            while(!_done && a_queue->try_dequeue(td)) {
+            while(!_done && dependency_queues[q]->try_dequeue(td)) {
                 process_dependency(td);
                 if (++i > 1000) {
                     schedule_another_task = true;
@@ -1108,17 +1116,25 @@ node_color * get_node_color(double v,double vmin,double vmax)
                 "profiler_listener::process_profiles: main loop");
         }
         {
-            std::unique_lock<std::mutex> queue_lock(queue_mtx);
-            for (auto a_queue : allqueues) {
-                while(!_done && a_queue->try_dequeue(p)) {
+            size_t num_queues = 0;
+            {
+                std::unique_lock<std::mutex> queue_lock(queue_mtx);
+                num_queues = allqueues.size();
+            }
+            for (size_t q = 0 ; q < num_queues ; q++) {
+                while(!_done && allqueues[q]->try_dequeue(p)) {
                     process_profile(p, 0);
                 }
             }
         }
         if (apex_options::use_taskgraph_output()) {
-            std::unique_lock<std::mutex> queue_lock(queue_mtx);
-            for (auto a_queue : dependency_queues) {
-                while(!_done && a_queue->try_dequeue(td)) {
+            size_t num_queues = 0;
+            {
+                std::unique_lock<std::mutex> queue_lock(queue_mtx);
+                num_queues = dependency_queues.size();
+            }
+            for (size_t q = 0 ; q < num_queues ; q++) {
+                while(!_done && dependency_queues[q]->try_dequeue(td)) {
                     process_dependency(td);
                 }
             }
@@ -1289,9 +1305,13 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       {
         size_t ignored = 0;
         { // we need to lock in case another thread appears
-            std::unique_lock<std::mutex> queue_lock(queue_mtx);
-            for (auto a_queue : allqueues) {
-                ignored += a_queue->size_approx();
+            size_t num_queues = 0;
+            {
+                std::unique_lock<std::mutex> queue_lock(queue_mtx);
+                num_queues = allqueues.size();
+            }
+            for (size_t q = 0 ; q < num_queues ; q++) {
+                ignored += allqueues[q]->size_approx();
             }
         }
         if (ignored > 100000) {
@@ -1303,8 +1323,12 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
          * so just process the queue. Anyway, it shouldn't get backed up that
          * much without suggesting there is a bigger problem. */
         {
-            std::unique_lock<std::mutex> queue_lock(queue_mtx);
-            for (unsigned int i=0; i<allqueues.size(); ++i) {
+            size_t num_queues = 0;
+            {
+                std::unique_lock<std::mutex> queue_lock(queue_mtx);
+                num_queues = allqueues.size();
+            }
+            for (unsigned int i=0 ; i < num_queues ; ++i) {
                 if (apex_options::use_tau()) {
                     tau_listener::Tau_start_wrapper(
                         "profiler_listener::concurrent_cleanup");
