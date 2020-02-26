@@ -4,7 +4,7 @@
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#include "perfstubs/perfstubs_api/Tool.h"
+#include "perfstubs/perfstubs_api/tool.h"
 #include <stdlib.h>
 #include "apex.h"
 #include "thread_instance.hpp"
@@ -15,54 +15,54 @@ std::mutex my_mutex;
 
 extern "C" {
     // library function declarations
-    void perftool_init(void) {
+    void ps_initialize(void) {
         apex_init("PerfStubs API", 0, 1);
     }
-    void perftool_register_thread(void) {
+    void ps_register_thread(void) {
         apex_register_thread("PerfStubs Thread");
     }
-    void perftool_exit(void) {
+    void ps_finalize(void) {
         apex_exit_thread();
     }
-    void perftool_dump(void) {
+    void ps_dump_data(void) {
         apex_dump(false);
     }
 
     // measurement function declarations
-    void* perftool_timer_create(const char *timer_name) {
+    void* ps_timer_create(const char *timer_name) {
         return strdup(timer_name);
     }
-    void perftool_timer_start(const void *timer) {
+    void ps_timer_start(const void *timer) {
         apex_start(APEX_NAME_STRING, const_cast<void*>(timer));
     }
-    void perftool_timer_stop(const void *timer) {
+    void ps_timer_stop(const void *timer) {
         apex_stop(apex::thread_instance::instance().get_current_profiler());
     }
-    void perftool_dynamic_phase_start(const char *iteration_prefix,
+    void ps_dynamic_phase_start(const char *iteration_prefix,
                                       int iteration_number) {
         std::stringstream ss;
         ss << iteration_prefix << " " << iteration_number;
         apex_start(APEX_NAME_STRING, (void*)const_cast<char*>(ss.str().c_str()));
     }
-    void perftool_dynamic_phase_stop(const char *iteration_prefix,
+    void ps_dynamic_phase_stop(const char *iteration_prefix,
                                      int iteration_number) {
         apex_stop(apex::thread_instance::instance().get_current_profiler());
     }
-    void* perftool_create_counter(const char *counter_name) {
+    void* ps_create_counter(const char *counter_name) {
         return (void*)(strdup(counter_name));
     }
-    void perftool_sample_counter(const void *counter, double value) {
+    void ps_sample_counter(const void *counter, double value) {
         apex_sample_value((const char *)(counter), value);
     }
-    void perftool_metadata(const char *name, const char *value) {
+    void ps_set_metadata(const char *name, const char *value) {
         // do nothing
     }
 
     // data query function declarations
-    void perftool_get_timer_data(perftool_timer_data_t *timer_data) {
-        memset(timer_data, 0, sizeof(perftool_timer_data_t));
+    void ps_get_timer_data(ps_tool_timer_data_t *timer_data) {
+        memset(timer_data, 0, sizeof(ps_tool_timer_data_t));
     }
-    void perftool_free_timer_data(perftool_timer_data_t *timer_data) {
+    void ps_free_timer_data(ps_tool_timer_data_t *timer_data) {
         if (timer_data == nullptr)
         {
             return;
@@ -83,12 +83,12 @@ extern "C" {
             timer_data->values = nullptr;
         }
     }
-    void perftool_get_counter_data(perftool_counter_data_t *counter_data) {
-        memset(counter_data, 0, sizeof(perftool_counter_data_t));
+    void ps_get_counter_data(ps_tool_counter_data_t *counter_data) {
+        memset(counter_data, 0, sizeof(ps_tool_counter_data_t));
     }
-    void perftool_free_counter_data(perftool_counter_data_t *counter_data) {
+    void ps_free_counter_data(ps_tool_counter_data_t *counter_data) {
         if (counter_data == nullptr)
-        {   
+        {
             return;
         }
         if (counter_data->counter_names != nullptr)
@@ -122,10 +122,10 @@ extern "C" {
             counter_data->value_sumsqr = nullptr;
         }
     }
-    void perftool_get_metadata(perftool_metadata_t *metadata) {
-        memset(metadata, 0, sizeof(perftool_metadata_t));
+    void ps_get_metadata(ps_tool_metadata_t *metadata) {
+        memset(metadata, 0, sizeof(ps_tool_metadata_t));
     }
-    void perftool_free_metadata(perftool_metadata_t *metadata) {
+    void ps_free_metadata(ps_tool_metadata_t *metadata) {
         if (metadata == nullptr)
         {
             return;
