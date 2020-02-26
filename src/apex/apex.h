@@ -26,6 +26,7 @@
 #include "apex_types.h"
 #include "apex_export.h"
 #include "stdbool.h"
+#include "stdint.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -53,8 +54,8 @@ extern "C" {
  \return APEX_NOERROR on success, or APEX_ERROR on failure.
  \sa @ref apex_finalize
  */
-APEX_EXPORT int apex_init(const char * thread_name, const unsigned int
-    comm_rank, const unsigned int comm_size);
+APEX_EXPORT int apex_init(const char * thread_name, const uint64_t comm_rank,
+    const uint64_t comm_size);
 
 /**
  \brief Dump output from APEX.
