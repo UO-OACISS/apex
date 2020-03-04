@@ -569,6 +569,12 @@ std::unordered_set<profile*> free_profiles;
         screen_output << endl;
         csv_output << endl;
       } else {
+        csv_output << "\"" << action_name << "\",";
+        csv_output << llround(p->get_calls()) << ",";
+        csv_output << std::llround(p->get_minimum()) << ",";
+        csv_output << std::llround(p->get_mean()) << ",";
+        csv_output << std::llround(p->get_maximum()) << ",";
+        csv_output << std::llround(p->get_stddev()) << endl;
         if (action_name.find('%') == string::npos && p->get_minimum() > 10000) {
           screen_output << string_format(FORMAT_SCIENTIFIC, p->get_minimum()) << "   " ;
         } else {
@@ -627,12 +633,6 @@ std::unordered_set<profile*> free_profiles;
     screen_output << "Available CPU time: "
         << total_main << " seconds" << endl << endl;
     map<apex_function_address, profile*>::const_iterator it;
-#if APEX_HAVE_PAPI
-    for (int i = 0 ; i < num_papi_counters ; i++) {
-       csv_output << ",\"" << metric_names[i] << "\"";
-    }
-#endif
-    csv_output << endl;
     double total_accumulated = 0.0;
     unordered_map<task_identifier, profile*>::const_iterator it2;
     std::vector<task_identifier> id_vector;
@@ -645,6 +645,8 @@ std::unordered_set<profile*> free_profiles;
             id_vector.push_back(task_id);
         }
     }
+    csv_output << "\"counter\",\"num samples\",\"minimum\",\"mean\""
+        << "\"maximum\",\"stddev\"" << endl;
     if (id_vector.size() > 0) {
         screen_output << "Counter                                   : "
         << "#samples | minimum |    mean  |  maximum |  stddev " << endl;
@@ -665,8 +667,14 @@ std::unordered_set<profile*> free_profiles;
             << "------------------------------------------------------" << endl
             << endl;;
     }
-    csv_output << "\"task\",\"num calls\",\"total cycles\",\"total "
-        << "microseconds\"" << std::endl;
+    csv_output << "\n\n\"task\",\"num calls\",\"total cycles\",\"total "
+        << "microseconds\"";
+#if APEX_HAVE_PAPI
+    for (int i = 0 ; i < num_papi_counters ; i++) {
+       csv_output << ",\"" << metric_names[i] << "\"";
+    }
+#endif
+    csv_output << endl;
     std::string re("PAPI_");
     std::string tmpstr(apex_options::papi_metrics());
     size_t index = 0;
