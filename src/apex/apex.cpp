@@ -1818,16 +1818,16 @@ using namespace apex;
 
 extern "C" {
 
-    int apex_init(const char * thread_name, unsigned long int comm_rank,
-        unsigned long int comm_size) {
+    int apex_init(const char * thread_name, const uint64_t comm_rank,
+        const uint64_t comm_size) {
         return init(thread_name, comm_rank, comm_size);
     }
 
-    int apex_init_(unsigned long int comm_rank, unsigned long int comm_size) {
+    int apex_init_(const uint64_t comm_rank, const uint64_t comm_size) {
         return init("FORTRAN thread", comm_rank, comm_size);
     }
 
-    int apex_init__(unsigned long int comm_rank, unsigned long int comm_size) {
+    int apex_init__(const uint64_t comm_rank, const uint64_t comm_size) {
         return init("FORTRAN thread", comm_rank, comm_size);
     }
 
