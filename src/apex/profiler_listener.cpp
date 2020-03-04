@@ -475,9 +475,10 @@ std::unordered_set<profile*> free_profiles;
        * a thread_instance object that is NOT a worker. */
       thread_instance::instance(false);
       string action_name = task_id.get_name();
+      /*
       if (action_name.compare(APEX_MAIN) == 0) {
           return; // don't write out apex main timer
-      }
+      } */
       string shorter(action_name);
       size_t maxlength = 41;
       if (timer) maxlength = 52;
