@@ -654,7 +654,7 @@ include(GitExternal)
 git_external(concurrentqueue
     https://github.com/cameron314/concurrentqueue.git
     master
-    VERBOSE)
+    VERBOSE NO_UPDATE)
 
 find_file(
     CONCURRENTQUEUE_HEADER
@@ -670,7 +670,7 @@ else()
 endif()
 
 ### Set up perfstubs stuff
-git_external(perfstubs.git
+git_external(perfstubs
     https://github.com/khuck/perfstubs.git
     master
     VERBOSE)
@@ -678,11 +678,11 @@ git_external(perfstubs.git
 find_file(
     PERFSTUBS_HEADER
     NAMES perfstubs_api/tool.h
-    PATHS ${PROJECT_SOURCE_DIR}/perfstubs.git)
+    PATHS ${PROJECT_SOURCE_DIR}/perfstubs)
 
 if(PERFSTUBS_HEADER)
-    message(INFO " Found perfstubs at ${PROJECT_SOURCE_DIR}/perfstubs.git")
-    include_directories(${PROJECT_SOURCE_DIR}/perfstubs.git)
+    message(INFO " Found perfstubs at ${PROJECT_SOURCE_DIR}/perfstubs")
+    include_directories(${PROJECT_SOURCE_DIR}/perfstubs)
 else()
     message(FATAL_ERROR " perfstubs not found. This should have been checked out automatically. "
             "Try manually check out https://github.com/khuck/perfstubs.git to ${PROJECT_SOURCE_DIR}")

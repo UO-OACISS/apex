@@ -19,12 +19,12 @@
 #
 # [optional] Flags which control behaviour
 #  NO_UPDATE
-#    When set, GitExternal will not change a repo that has already been checked out. 
-#    The purpose of this is to allow one to set a default branch to be checked out, 
-#    but stop GitExternal from changing back to that branch if the user has checked 
+#    When set, GitExternal will not change a repo that has already been checked out.
+#    The purpose of this is to allow one to set a default branch to be checked out,
+#    but stop GitExternal from changing back to that branch if the user has checked
 #    out and is working on another.
-#  VERBOSE 
-#    When set, displays information about git commands that are executed  
+#  VERBOSE
+#    When set, displays information about git commands that are executed
 #
 
 find_package(Git)
@@ -101,15 +101,15 @@ function(GIT_EXTERNAL DIR REPO TAG)
       endif()
 
       # update tag
-#      GIT_EXTERNAL_MESSAGE("git rebase FETCH_HEAD")
-#      execute_process(COMMAND ${GIT_EXECUTABLE} rebase FETCH_HEAD
-#        RESULT_VARIABLE RESULT OUTPUT_VARIABLE OUTPUT ERROR_VARIABLE OUTPUT
-#        WORKING_DIRECTORY "${DIR}")
-#      if(RESULT)
-#        message(STATUS "git rebase failed, aborting ${DIR} merge")
-#        execute_process(COMMAND ${GIT_EXECUTABLE} rebase --abort
-#          WORKING_DIRECTORY "${DIR}")
-#      endif()
+      GIT_EXTERNAL_MESSAGE("git rebase FETCH_HEAD")
+      execute_process(COMMAND ${GIT_EXECUTABLE} rebase FETCH_HEAD
+        RESULT_VARIABLE RESULT OUTPUT_VARIABLE OUTPUT ERROR_VARIABLE OUTPUT
+        WORKING_DIRECTORY "${DIR}")
+      if(RESULT)
+        message(STATUS "git rebase failed, aborting ${DIR} merge")
+        execute_process(COMMAND ${GIT_EXECUTABLE} rebase --abort
+          WORKING_DIRECTORY "${DIR}")
+      endif()
 
     endif()
   else()
