@@ -682,7 +682,7 @@ find_file(
 
 if(PERFSTUBS_HEADER)
     message(INFO " Found perfstubs at ${PROJECT_SOURCE_DIR}/perfstubs.git")
-    include_directories(${PROJECT_SOURCE_DIR})
+    include_directories(${PROJECT_SOURCE_DIR}/perfstubs.git)
 else()
     message(FATAL_ERROR " perfstubs not found. This should have been checked out automatically. "
             "Try manually check out https://github.com/khuck/perfstubs.git to ${PROJECT_SOURCE_DIR}")
