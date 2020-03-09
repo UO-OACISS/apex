@@ -670,7 +670,7 @@ else()
 endif()
 
 ### Set up perfstubs stuff
-git_external(perfstubs
+git_external(perfstubs.git
     https://github.com/khuck/perfstubs.git
     master
     VERBOSE)
@@ -678,10 +678,10 @@ git_external(perfstubs
 find_file(
     PERFSTUBS_HEADER
     NAMES perfstubs_api/tool.h
-    PATHS ${PROJECT_SOURCE_DIR}/perfstubs)
+    PATHS ${PROJECT_SOURCE_DIR}/perfstubs.git)
 
 if(PERFSTUBS_HEADER)
-    message(INFO " Found perfstubs at ${PROJECT_SOURCE_DIR}/perfstubs")
+    message(INFO " Found perfstubs at ${PROJECT_SOURCE_DIR}/perfstubs.git")
     include_directories(${PROJECT_SOURCE_DIR})
 else()
     message(FATAL_ERROR " perfstubs not found. This should have been checked out automatically. "
