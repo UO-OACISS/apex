@@ -39,7 +39,7 @@ yes_otf=" -DUSE_OTF2=TRUE -DOTF2_ROOT=/usr/local/otf2/2.1"
 yes_ompt=" -DUSE_OMPT=TRUE -DOMPT_ROOT=/usr/local/ompt/5.0"
 #yes_mpi=" -DUSE_MPI=TRUE -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx"
 yes_mpi=" -DUSE_MPI=TRUE"
-yes_papi=" -DUSE_PAPI=TRUE -DPAPI_ROOT=/usr/local/papi/5.5.0"
+yes_papi=" -DUSE_PAPI=TRUE -DPAPI_ROOT=/usr"
 yes_tau=" -DUSE_TAU=TRUE -DTAU_ROOT=/usr/local/tau/git -DTAU_ARCH=x86_64 -DTAU_OPTIONS=-pthread"
 
 # set defaults

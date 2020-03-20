@@ -15,7 +15,7 @@
 #ifdef APEX_HAVE_TAU
 #define FLOOD_LEVEL 15 // TAU has a limit of 128 threads.
 #else
-#define FLOOD_LEVEL 1000
+#define FLOOD_LEVEL 100
 #endif
 
 inline int foo (int i) {

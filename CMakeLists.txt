@@ -654,7 +654,7 @@ include(GitExternal)
 git_external(concurrentqueue
     https://github.com/cameron314/concurrentqueue.git
     master
-    VERBOSE)
+    VERBOSE NO_UPDATE)
 
 find_file(
     CONCURRENTQUEUE_HEADER
@@ -677,12 +677,12 @@ git_external(perfstubs
 
 find_file(
     PERFSTUBS_HEADER
-    NAMES perfstubs_api/Tool.h
+    NAMES perfstubs_api/tool.h
     PATHS ${PROJECT_SOURCE_DIR}/perfstubs)
 
 if(PERFSTUBS_HEADER)
     message(INFO " Found perfstubs at ${PROJECT_SOURCE_DIR}/perfstubs")
-    include_directories(${PROJECT_SOURCE_DIR})
+    include_directories(${PROJECT_SOURCE_DIR}/perfstubs)
 else()
     message(FATAL_ERROR " perfstubs not found. This should have been checked out automatically. "
             "Try manually check out https://github.com/khuck/perfstubs.git to ${PROJECT_SOURCE_DIR}")
@@ -817,7 +817,7 @@ CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/pkgconfig/apex.pc.in
                ${CMAKE_BINARY_DIR}/pkgconfig/apex.pc @ONLY)
 INSTALL_FILES(/lib/pkgconfig FILES pkgconfig/apex.pc)
 
-if (APEX_USE_WEAK_SYMBOLS) 
+if (APEX_USE_WEAK_SYMBOLS)
     add_definitions(-DAPEX_USE_WEAK_SYMBOLS)
 else()
     find_library(DYNAMICLIB dl)

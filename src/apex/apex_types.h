@@ -183,6 +183,7 @@ typedef struct _profile
     double maximum;       /*!< Maximum value seen by the timer or counter */
     apex_profile_type type; /*!< Whether this is a timer or a counter */
     double papi_metrics[8];  /*!< Array of accumulated PAPI hardware metrics */
+    int times_reset;      /*!< How many times was this timer reset */
 } apex_profile;
 
 /** Rather than use void pointers everywhere, be explicit about
