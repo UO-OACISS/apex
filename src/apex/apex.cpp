@@ -1585,10 +1585,11 @@ int apex::setup_runtime_counter(const std::string & counter_name) {
     if(get_hpx_runtime_ptr() != nullptr) {
         using hpx::naming::id_type;
         using hpx::performance_counters::get_counter;
-        using hpx::performance_counters::stubs::performance_counter;
+        using hpx::performance_counters::performance_counter;
         using hpx::performance_counters::counter_value;
         try {
-            id_type id = get_counter(counter_name);
+            performance_counter counter(counter_name);
+            /*
             if (id == hpx::naming::invalid_id) {
                 if (instance()->get_node_id() == 0 && !messaged) {
                     std::cerr << "Error: invalid HPX counter: " << counter_name
@@ -1596,9 +1597,9 @@ int apex::setup_runtime_counter(const std::string & counter_name) {
                     messaged = true;
                 }
                 return APEX_ERROR;
-            }
-            performance_counter::start(hpx::launch::sync, id);
-            registered_counters.emplace(std::make_pair(counter_name, id));
+            }*/
+            counter.start(hpx::launch::sync);
+            registered_counters.emplace(std::make_pair(counter_name, counter));
             //std::cout << "Started counter " << counter_name << std::endl;
         } catch(hpx::exception const & /*e*/) {
             if (instance()->get_node_id() == 0) {
@@ -1615,14 +1616,13 @@ void apex::query_runtime_counters(void) {
     if (instance()->get_node_id() > 0) {return;}
     using hpx::naming::id_type;
     using hpx::performance_counters::get_counter;
-    using hpx::performance_counters::stubs::performance_counter;
+    using hpx::performance_counters::performance_counter;
     using hpx::performance_counters::counter_value;
     for (auto counter : registered_counters) {
         string name = counter.first;
-        id_type id = counter.second;
-        counter_value value1 =
-            performance_counter::get_value(hpx::launch::sync, id);
-        const int value = value1.get_value<int>();
+        performance_counter c = counter.second;
+        counter_value cv = c.get_counter_value(hpx::launch::sync);
+        const int value = cv.get_value<int>();
         sample_value(name, value);
     }
 }
@@ -1635,20 +1635,21 @@ apex_policy_handle * sample_runtime_counter(unsigned long period, const
     if(get_hpx_runtime_ptr() != nullptr) {
         using hpx::naming::id_type;
         using hpx::performance_counters::get_counter;
-        using hpx::performance_counters::stubs::performance_counter;
+        using hpx::performance_counters::performance_counter;
         using hpx::performance_counters::counter_value;
-        id_type id = get_counter(counter_name);
+        performance_counter counter(counter_name);
+        /*
         if (id == hpx::naming::invalid_id) {
             std::cerr << "Error: invalid HPX counter: " << counter_name <<
                 std::endl;
         }
-        performance_counter::start(hpx::launch::sync, id);
+        */
+        counter.start(hpx::launch::sync);
         handle = register_periodic_policy(period,
                  [=](apex_context const& ctx) -> int {
             try {
-                counter_value value1 =
-                    performance_counter::get_value(hpx::launch::sync, id);
-                const int value = value1.get_value<int>();
+                counter_value cv = counter.get_counter_value(hpx::launch::sync);
+                const int value = cv.get_value<int>();
                 sample_value(counter_name, value);
             } catch(hpx::exception const & /*e*/) {
                 std::cerr << "Error: unable to start HPX counter: " <<
