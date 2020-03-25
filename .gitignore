@@ -4,9 +4,10 @@ build_*
 test
 doc/webdocs/site
 install*
-rapidjson
 *.swp
 regression*
 *.sh
 *DS_Store
 concurrentqueue
+perfstubs
+rapidjson

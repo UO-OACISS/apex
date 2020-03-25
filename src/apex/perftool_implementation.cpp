@@ -4,7 +4,7 @@
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#include "perfstubs/perfstubs_api/tool.h"
+#include "perfstubs_api/tool.h"
 #include <stdlib.h>
 #include "apex.h"
 #include "thread_instance.hpp"
