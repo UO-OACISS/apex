@@ -1,6 +1,9 @@
 #!/bin/bash
 #set -x # echo all commands
 
+source /usr/local/spack/share/spack/setup-env.sh
+spack load cmake
+
 my_readlink()
 {
     TARGET=$1
