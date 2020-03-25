@@ -33,6 +33,7 @@ public:
         for (int i = 0 ; i < num_metrics ; i++) {
             _profile.papi_metrics[i] = papi_metrics[i];
         }
+        times_reset = 0;
 #ifdef FULL_STATISTICS
         _profile.sum_squares = initial*initial;
         _profile.minimum = initial;
