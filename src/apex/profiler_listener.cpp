@@ -610,6 +610,18 @@ std::unordered_set<profile*> free_profiles;
     int num_worker_threads = thread_instance::get_num_threads();
     task_identifier main_id(APEX_MAIN);
     profile * total_time = get_profile(main_id);
+    /* The profiles haven't been processed yet. */
+    while (total_time == nullptr) {
+#ifdef APEX_HAVE_HPX
+        // schedule an HPX action
+        apex_schedule_process_profiles();
+#else
+        queue_signal.post();
+#endif
+        // wait for profiles to update
+        usleep(100);
+        total_time = get_profile(main_id);
+    }
     double wall_clock_main = total_time->get_accumulated() *
         profiler::get_cpu_mhz();
 #ifdef APEX_HAVE_HPX
@@ -1300,6 +1312,13 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
   void profiler_listener::on_dump(dump_event_data &data) {
     if (_done) { return; }
 
+    // trigger statistics updating
+#ifdef APEX_HAVE_HPX
+    // schedule an HPX action
+    apex_schedule_process_profiles();
+#else
+    queue_signal.post();
+#endif
     // wait until any other threads are done processing dependencies
     while(consumer_task_running.test_and_set(memory_order_acq_rel)) { }
 
