@@ -47,14 +47,17 @@ sanitize=""
 ncores=2
 osname=`uname`
 if [ ${osname} == "Darwin" ]; then
-ncores=`sysctl -n hw.ncpu`
-export CC=`which clang`
-export CXX=`which clang++`
-#cmake_generator="-G Xcode"
+    ncores=`sysctl -n hw.ncpu`
+    export CC=`which clang`
+    export CXX=`which clang++`
+    #cmake_generator="-G Xcode"
 else
-ncores=`nproc --all`
-ncores=`expr $ncores / 2`
+    # Get the true number of total cores, not threads.
+    ncoresper=`lscpu | grep -E '^Core' | awk '{print $NF}'`
+    nsockets=`lscpu | grep -E '^Socket' | awk '{print $NF}'`
+    let ncores=$ncoresper*$nsockets
 fi
+
 
 echo "Num parallel builds: $ncores"
 
