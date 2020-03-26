@@ -1,8 +1,11 @@
 #!/bin/bash
 #set -x # echo all commands
 
-source /usr/local/spack/share/spack/setup-env.sh
-spack load cmake
+host=`hostname`
+if [ "$host" == "ktau" ] ; then
+    source /usr/local/spack/share/spack/setup-env.sh
+    spack load cmake
+fi
 
 my_readlink()
 {
@@ -19,7 +22,7 @@ my_readlink()
         TARGET=$(basename "$TARGET")
     done
 
-    # Compute the canonicalized name by finding the physical path 
+    # Compute the canonicalized name by finding the physical path
     # for the directory we're in and appending the target file.
     DIR=`pwd -P`
     RESULT="$DIR/$TARGET"
@@ -44,6 +47,15 @@ yes_ompt=" -DUSE_OMPT=TRUE -DOMPT_ROOT=/usr/local/ompt/5.0"
 yes_mpi=" -DUSE_MPI=TRUE"
 yes_papi=" -DUSE_PAPI=TRUE -DPAPI_ROOT=/usr"
 yes_tau=" -DUSE_TAU=TRUE -DTAU_ROOT=/usr/local/tau/git -DTAU_ARCH=x86_64 -DTAU_OPTIONS=-pthread"
+if [ "$host" == "delphi" ] ; then
+  yes_bfd=" -DUSE_BFD=TRUE -DBFD_ROOT=/usr/local/packages/binutils/2.27"
+  yes_malloc=" -DUSE_JEMALLOC=TRUE -DJEMALLOC_ROOT=/usr/local/packages/jemalloc/5.0.1-gcc"
+  yes_ah=" -DUSE_ACTIVEHARMONY=TRUE -DACTIVEHARMONY_ROOT=/usr/local/packages/activeharmony/4.6.0-gcc -DUSE_PLUGINS=TRUE"
+  yes_otf=" -DUSE_OTF2=TRUE -DOTF2_ROOT=/usr/local/packages/otf2/2.1"
+  yes_ompt=" -DUSE_OMPT=TRUE -DOMPT_ROOT=/usr/local/packages/llvm-openmp/2020-03-25"
+  yes_papi=" -DUSE_PAPI=TRUE -DPAPI_ROOT=/usr/local/packages/papi/5.6.0"
+  yes_tau=" -DUSE_TAU=TRUE "
+fi
 
 # set defaults
 build="default"
@@ -56,12 +68,15 @@ sanitize=""
 ncores=2
 osname=`uname`
 if [ ${osname} == "Darwin" ]; then
-ncores=`sysctl -n hw.ncpu`
-export CC=`which clang`
-export CXX=`which clang++`
-#cmake_generator="-G Xcode"
+    ncores=`sysctl -n hw.ncpu`
+    export CC=`which clang`
+    export CXX=`which clang++`
+    #cmake_generator="-G Xcode"
 else
-ncores=`nproc --all`
+    # Get the true number of total cores, not threads.
+    ncoresper=`lscpu | grep -E '^Core' | awk '{print $NF}'`
+    nsockets=`lscpu | grep -E '^Socket' | awk '{print $NF}'`
+    let ncores=$ncoresper*$nsockets
 fi
 
 echo "Num parallel builds: $ncores"

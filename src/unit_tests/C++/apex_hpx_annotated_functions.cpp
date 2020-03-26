@@ -26,21 +26,22 @@ pthread_barrier_t barrier;
 
 int nsleep(long miliseconds, int tid)
 {
+   APEX_UNUSED(tid);
    struct timespec req, rem;
    // add some variation
    double randval = 1.0 + (((double)(rand())) / RAND_MAX);
    miliseconds = (int)(miliseconds * randval);
 
    if(miliseconds > 999)
-   {   
+   {
         req.tv_sec = (int)(miliseconds / 1000);                            /* Must be Non-Negative */
         req.tv_nsec = (miliseconds - ((long)req.tv_sec * 1000)) * 1000000; /* Must be in range of 0 to 999999999 */
-   }   
+   }
    else
-   {   
+   {
         req.tv_sec = 0;                         /* Must be Non-Negative */
         req.tv_nsec = miliseconds * 1000000;    /* Must be in range of 0 to 999999999 */
-   }   
+   }
 
 #ifdef __DEBUG_PRINT__
     std::stringstream buf;
@@ -107,7 +108,7 @@ int main (int argc, char** argv) {
     apex::init("apex::start unit test", 0, 1);
     #endif
 	/* important, to make sure we get correct profiles at the end */
-    apex::apex_options::use_screen_output(true); 
+    apex::apex_options::use_screen_output(true);
     /* start a timer */
     apex::profiler* p = apex::start("main");
     /* Spawn X threads */
@@ -119,7 +120,7 @@ int main (int argc, char** argv) {
 #ifndef __APPLE__
     pthread_barrier_init(&barrier, NULL, test_numthreads);
 #endif
-    if (apex::apex_options::use_tau() || apex::apex_options::use_otf2()) { 
+    if (apex::apex_options::use_tau() || apex::apex_options::use_otf2()) {
         test_numthreads = std::min(test_numthreads, apex::hardware_concurrency());
     }
     int * tids = (int*)calloc(test_numthreads, sizeof(int));

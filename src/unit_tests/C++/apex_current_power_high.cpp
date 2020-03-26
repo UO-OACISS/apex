@@ -26,8 +26,10 @@ void* someThread(void* tmp)
 
 int main(int argc, char **argv)
 {
+  APEX_UNUSED(argc);
+  APEX_UNUSED(argv);
   apex::init(NULL, 0, 1);
-  apex::scoped_timer proxy((apex_function_address)main);
+  apex::scoped_timer proxy(__func__);
   double currentpower = apex::current_power_high();
   printf("Power at start: %f Watts\n", currentpower);
   printf("PID of this process: %d\n", getpid());

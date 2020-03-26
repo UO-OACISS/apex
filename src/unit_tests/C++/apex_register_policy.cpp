@@ -40,6 +40,7 @@ int foo (int i) {
 
 void* someThread(void* tmp)
 {
+  APEX_UNUSED(tmp);
   apex::register_thread("threadTest thread");
   apex::custom_event(custom_type_1, NULL);
   apex::sample_value("some value", 42);
@@ -140,12 +141,15 @@ int policy_event(apex_context const context) {
 }
 
 int startup_policy(apex_context const context) {
+    APEX_UNUSED(context);
     printf("Startup Policy...\n");
     return APEX_NOERROR;
 }
 
 int main(int argc, char **argv)
 {
+  APEX_UNUSED(argc);
+  APEX_UNUSED(argv);
   apex_policy_handle * on_startup = apex::register_policy(APEX_STARTUP, startup_policy);
   apex::register_policy(APEX_SHUTDOWN, policy_event);
   apex_policy_handle * on_new_node = apex::register_policy(APEX_NEW_NODE, policy_event);
@@ -165,7 +169,7 @@ int main(int argc, char **argv)
   apex_policy_handle * on_custom_event_1 = apex::register_policy(custom_type_1, policy_event);
   apex_policy_handle * on_custom_event_2 = apex::register_policy(custom_type_2, policy_event);
 
-  apex::profiler* my_profiler = apex::start((apex_function_address)&main);
+  apex::profiler* my_profiler = apex::start(__func__);
   pthread_t thread[NUM_THREADS];
   int i;
   for (i = 0 ; i < NUM_THREADS ; i++) {
@@ -174,7 +178,7 @@ int main(int argc, char **argv)
   for (i = 0 ; i < NUM_THREADS ; i++) {
     pthread_join(thread[i], NULL);
   }
-  // now un-register the policies 
+  // now un-register the policies
   if (on_startup != nullptr) {
       printf("Deregistering %d...\n", on_startup->id);
       apex::deregister_policy(on_startup);

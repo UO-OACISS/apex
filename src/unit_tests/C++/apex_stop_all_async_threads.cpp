@@ -40,6 +40,7 @@ int foo (int i) {
 
 void* someThread(void* tmp)
 {
+  APEX_UNUSED(tmp);
   apex::register_thread("threadTest thread");
   apex::custom_event(custom_type_1, NULL);
   apex::sample_value("some value", 42);
@@ -55,24 +56,28 @@ void* someThread(void* tmp)
 }
 
 int policy_periodic(apex_context const context) {
+    APEX_UNUSED(context);
     apex_profile * p = apex::get_profile((apex_function_address)&foo);
     if (p != NULL) {
-        printf("Periodic Policy: %p %d %f seconds.\n", foo, (int)p->calls, p->accumulated/p->calls);
+        printf("Periodic Policy: %p %d %f seconds.\n", (void*)foo, (int)p->calls, p->accumulated/p->calls);
     }
     return APEX_NOERROR;
 }
 
 int startup_policy(apex_context const context) {
+    APEX_UNUSED(context);
     printf("Startup Policy...\n");
     return APEX_NOERROR;
 }
 
 int main(int argc, char **argv)
 {
+  APEX_UNUSED(argc);
+  APEX_UNUSED(argv);
   apex::init("apex_register_periodic_policy unit test", 0, 1);
   apex::apex_options::use_screen_output(true);
   apex_policy_handle * on_periodic = apex::register_periodic_policy(100000, policy_periodic);
-  apex::profiler* my_profiler = apex::start((apex_function_address)&main);
+  apex::profiler* my_profiler = apex::start(__func__);
   pthread_t thread[NUM_THREADS];
   int i;
   for (i = 0 ; i < NUM_THREADS ; i++) {

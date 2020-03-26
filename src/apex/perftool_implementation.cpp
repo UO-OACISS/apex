@@ -36,6 +36,7 @@ extern "C" {
         apex_start(APEX_NAME_STRING, const_cast<void*>(timer));
     }
     void ps_timer_stop(const void *timer) {
+        APEX_UNUSED(timer);
         apex_stop(apex::thread_instance::instance().get_current_profiler());
     }
     void ps_dynamic_phase_start(const char *iteration_prefix,
@@ -46,6 +47,8 @@ extern "C" {
     }
     void ps_dynamic_phase_stop(const char *iteration_prefix,
                                      int iteration_number) {
+        APEX_UNUSED(iteration_prefix);
+        APEX_UNUSED(iteration_number);
         apex_stop(apex::thread_instance::instance().get_current_profiler());
     }
     void* ps_create_counter(const char *counter_name) {
@@ -55,6 +58,8 @@ extern "C" {
         apex_sample_value((const char *)(counter), value);
     }
     void ps_set_metadata(const char *name, const char *value) {
+        APEX_UNUSED(name);
+        APEX_UNUSED(value);
         // do nothing
     }
 

@@ -265,6 +265,7 @@ std::unordered_set<profile*> free_profiles;
   unsigned int profiler_listener::process_profile(
     std::shared_ptr<profiler> &p, unsigned int tid)
   {
+    APEX_UNUSED(tid);
     if(p == nullptr) return 0;
     profile * theprofile;
     if(p->is_reset == reset_type::ALL) {
@@ -1433,6 +1434,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
   /* On the shutdown event, notify the consumer thread that we are done
    * and set the "terminate" flag. */
   void profiler_listener::on_shutdown(shutdown_event_data &data) {
+    APEX_UNUSED(data);
     if (_done) { return; }
     if (!_done) {
       _done = true;
@@ -1539,10 +1541,11 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
 
   inline void profiler_listener::push_profiler(int my_tid,
     std::shared_ptr<profiler> &p) {
-        // if we aren't processing profiler objects, just return.
-        if (!apex_options::process_async_state()) { return; }
+      APEX_UNUSED(my_tid);
+      // if we aren't processing profiler objects, just return.
+      if (!apex_options::process_async_state()) { return; }
 #ifdef APEX_TRACE_APEX
-        if (p->get_task_id()->name == "apex::process_profiles") { return; }
+      if (p->get_task_id()->name == "apex::process_profiles") { return; }
 #endif
       // we have to make a local copy, because lockfree queues DO NOT SUPPORT
       // shared_ptrs!
@@ -1707,7 +1710,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
     }
     delete profiler::disabled_profiler;
 
-  };
+  }
 
 }
 

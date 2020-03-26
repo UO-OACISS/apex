@@ -57,8 +57,9 @@ void* someThread(void* tmp)
 
 int main(int argc, char **argv)
 {
+  APEX_UNUSED(argc);
   apex::init(argv[0], 0, 1);
-  apex::scoped_timer proxy((apex_function_address)main);
+  apex::scoped_timer proxy(__func__);
   printf("PID of this process: %d\n", getpid());
   pthread_t thread[NUM_THREADS];
   int i;
@@ -76,9 +77,9 @@ int main(int argc, char **argv)
   apex_profile * profile = apex::get_profile((apex_function_address)(do_work));
   if (profile) {
     std::cout << "Value Reported : " << profile->calls << std::endl;
-    if ((func_count - yield_count) == profile->calls) { 
+    if ((func_count - yield_count) == profile->calls) {
         std::cout << "Test passed." << std::endl;
-    } else if ((func_count - yield_count) > profile->calls) { 
+    } else if ((func_count - yield_count) > profile->calls) {
 	    // OK to under-report.
         std::cout << "Test passed." << std::endl;
 	}

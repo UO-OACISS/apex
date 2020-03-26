@@ -5,7 +5,7 @@
 #include <atomic>
 #if defined (_OPENMP)
 #include "omp.h"
-#else 
+#else
 #define omp_get_max_threads() 1
 #endif
 #include "apex_api.hpp"
@@ -93,14 +93,14 @@ void dump_array(std::vector<double> * my_array) {
  */
 inline void solve_cell(std::vector<double> & in_array, std::vector<double> & out_array, long index) {
     if (__builtin_expect(index == 0,0)) {
-        out_array[index] = (in_array[index] + 
+        out_array[index] = (in_array[index] +
                             in_array[index+1]) / 2.0;
     } else if (__builtin_expect(index == num_cells - 1,0)) {
-        out_array[index] = (in_array[index-1] + 
+        out_array[index] = (in_array[index-1] +
                             in_array[index]) / 2.0;
     } else {
-        out_array[index] = (in_array[index-1] + 
-                            in_array[index] + 
+        out_array[index] = (in_array[index-1] +
+                            in_array[index] +
                             in_array[index+1]) / 3.0;
     }
 }
@@ -181,13 +181,13 @@ int main (int argc, char ** argv) {
     MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
     apex::init("MPI TEST", myrank, num_ranks);
     apex_example_set_rank_info(myrank, num_ranks);
-    
+
 #ifdef APEX_HAVE_ACTIVEHARMONY
-    long * inputs[1] = {0L};
+    //long * inputs[1] = {0L};
     long mins[3] = {1};    // all minimums are 1
     long maxs[3] = {0};    // we'll set these later
     long steps[3] = {1};   // all step sizes are 1
-    inputs[0] = &active_threads;
+    //inputs[0] = &active_threads;
     mins[0] = apex::apex_options::throttling_min_threads(); // allow user configuration
     maxs[0] = apex::apex_options::throttling_max_threads(); // allow user configuration
     std::cout <<"Tuning Parameters:" << std::endl;

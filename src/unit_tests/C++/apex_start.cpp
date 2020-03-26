@@ -23,6 +23,8 @@ void* someThread(void* tmp)
 }
 
 int main (int argc, char** argv) {
+    APEX_UNUSED(argc);
+    APEX_UNUSED(argv);
     /* initialize APEX */
     apex::init("apex::start unit test", 0, 1);
     /* start a timer */

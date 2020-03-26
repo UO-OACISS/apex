@@ -3,6 +3,8 @@
 using namespace apex;
 
 int main (int argc, char** argv) {
+  APEX_UNUSED(argc);
+  APEX_UNUSED(argv);
   init("apex_set_state unit test", 0, 1);
   apex_options::use_screen_output(true);
   set_state(APEX_IDLE);

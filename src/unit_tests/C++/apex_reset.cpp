@@ -6,21 +6,23 @@ using namespace std;
 
 
 int main (int argc, char** argv) {
+  APEX_UNUSED(argc);
+  APEX_UNUSED(argv);
   init("apex::reset unit test", 0, 1);
   cout << "APEX Version : " << version() << endl;
-  profiler * main_profiler = start((apex_function_address)(main));
+  profiler * main_profiler = start(__func__);
   // Call "foo" 30 times
   for(int i = 0; i < 30; ++i) {
     profiler * p = start("foo");
     usleep(1000);
     stop(p);
-  }    
+  }
   // Call "bar" 40 times
   for(int i = 0; i < 40; ++i) {
     profiler * p = start("bar");
     usleep(1000);
     stop(p);
-  }    
+  }
   // Reset everything
   reset(APEX_NULL_FUNCTION_ADDRESS);
   usleep(1000);
@@ -29,22 +31,22 @@ int main (int argc, char** argv) {
     profiler * p = start("foo");
     usleep(1000);
     stop(p);
-  }    
+  }
   // Call "bar" 4 times
   for(int i = 0; i < 4; ++i) {
     profiler * p = start("bar");
     usleep(1000);
     stop(p);
-  }    
+  }
   // The profile should show "foo" was called 3 times
   // and bar was called 4 times.
-  
+
   // Call "Test Timer" 100 times
   for(int i = 0; i < 100; ++i) {
     profiler * p = start("Test Timer");
     usleep(1000);
     stop(p);
-  }    
+  }
   // Reset "Test Timer"
   reset("Test Timer");
   usleep(1000);
@@ -53,7 +55,7 @@ int main (int argc, char** argv) {
     profiler * p = start("Test Timer");
     usleep(1000);
     stop(p);
-  }    
+  }
   // The profile should show "Test Timer" was called 25 times.
   stop(main_profiler);
   finalize();

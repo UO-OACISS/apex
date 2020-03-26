@@ -448,6 +448,7 @@ namespace apex {
     }
 
     void policy_handler::on_shutdown(shutdown_event_data &data) {
+        APEX_UNUSED(data);
         if (_terminate) return;
         // prevent periodic policies from executing while we are shutting down.
         _terminate = true;

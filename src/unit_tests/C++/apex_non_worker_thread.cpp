@@ -49,8 +49,10 @@ uint64_t bar(uint64_t i) {
 }
 
 int main (int argc, char** argv) {
+    APEX_UNUSED(argc);
+    APEX_UNUSED(argv);
     apex::init("apex_start unit test", 0, 1);
-    apex::profiler* p = apex::start((apex_function_address)&main);
+    apex::profiler* p = apex::start(__func__);
     uint64_t i = 0;
     std::thread threads[MAX_THREADS];
     for (i = 0 ; i < MAX_THREADS ; i++) {

@@ -425,5 +425,5 @@ uint32_t simple_reverse(uint32_t x)
     return x;
 }
 
-};
+} // namespace apex
 

@@ -201,6 +201,7 @@ bool tau_listener::initialize_tau(int argc, char** argv) {
     }
 
     void tau_listener::on_startup(startup_event_data &data) {
+        APEX_UNUSED(data);
         return;
     }
 
@@ -268,6 +269,7 @@ bool tau_listener::initialize_tau(int argc, char** argv) {
     }
 
     inline void tau_listener::_common_stop(std::shared_ptr<profiler> &p) {
+        APEX_UNUSED(p);
         static string empty("");
         if (!_terminate) {
             //if (p->tt_ptr->get_task_id()->get_name().compare(empty) == 0) {
@@ -315,6 +317,7 @@ bool tau_listener::initialize_tau(int argc, char** argv) {
     }
 
     void tau_listener::set_node_id(int node_id, int node_count) {
+        APEX_UNUSED(node_count);
         my_Tau_set_node(node_id);
     }
 
@@ -339,6 +342,7 @@ bool tau_listener::initialize_tau(int argc, char** argv) {
     }
 
     void tau_listener::Tau_stop_wrapper(const char * name) {
+        APEX_UNUSED(name);
         if (tau_listener::initialized()) {
             my_Tau_global_stop(); // stop the top level timer
         }

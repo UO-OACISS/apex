@@ -460,6 +460,7 @@ inline std::shared_ptr<task_wrapper> _new_task(
     task_identifier * id,
     const uint64_t task_id,
     const std::shared_ptr<task_wrapper> parent_task, apex* instance) {
+    APEX_UNUSED(instance);
     std::shared_ptr<task_wrapper> tt_ptr = make_shared<task_wrapper>();
     tt_ptr->task_id = id;
     // if not tracking dependencies, don't save the parent
@@ -1660,6 +1661,8 @@ apex_policy_handle * sample_runtime_counter(unsigned long period, const
         });
     }
 #else
+    APEX_UNUSED(period);
+    APEX_UNUSED(counter_name);
     std::cerr <<
         "WARNING: Runtime counter sampling is not implemented for your runtime"
         << std::endl;
@@ -1785,6 +1788,7 @@ void send (uint64_t tag, uint64_t size, uint64_t target) {
 
 void recv (uint64_t tag, uint64_t size, uint64_t source_rank, uint64_t
     source_thread) {
+    APEX_UNUSED(source_thread);
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return ; }
     // if APEX is suspended, do nothing.

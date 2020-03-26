@@ -148,7 +148,7 @@ class pthread_wrapper {
         }
 }; // class
 
-}; // namespace
+} // namespace
 
 #endif
 

@@ -117,9 +117,10 @@ void apex_ompt_stop(ompt_data_t * ompt_data) {
 
 /* Event #1, thread begin */
 extern "C" void apex_thread_begin(
-    ompt_thread_t thread_type,       /* type of thread                      */
-    ompt_data_t *thread_data              /* data of thread                      */
-) {
+    ompt_thread_t thread_type,   /* type of thread */
+    ompt_data_t *thread_data     /* data of thread */)
+{
+    APEX_UNUSED(thread_data);
     {
         std::unique_lock<std::mutex> l(apex_apex_threadid_mutex);
         apex_threadid = apex_numthreads++;
@@ -161,6 +162,10 @@ static void apex_parallel_region_begin (
     int flags,                                   /* flags */
     const void *codeptr_ra                       /* return address of runtime call      */
 ) {
+    APEX_UNUSED(encountering_task_data);
+    APEX_UNUSED(encountering_task_frame);
+    APEX_UNUSED(requested_team_size);
+    APEX_UNUSED(flags);
     char regionIDstr[128] = {0};
     sprintf(regionIDstr, "OpenMP Parallel Region: UNRESOLVED ADDR %p", codeptr_ra);
     apex_ompt_start(regionIDstr, parallel_data, nullptr, true);
@@ -177,6 +182,9 @@ static void apex_parallel_region_end (
     int flags,                            /* flags              */
     const void *codeptr_ra                /* return address of runtime call      */
 ) {
+    APEX_UNUSED(encountering_task_data);
+    APEX_UNUSED(flags);
+    APEX_UNUSED(codeptr_ra);
     //printf("%llu: Parallel Region End parent: %p, apex_parent: %p, region:
     //%p, apex_region: %p\n", apex_threadid, encountering_task_data,
     //encountering_task_data->ptr, parallel_data, parallel_data->ptr);
@@ -193,6 +201,9 @@ extern "C" void apex_task_create (
     int has_dependences,                        /* created task has dependences   */
     const void *codeptr_ra                      /* return address of runtime call */
 ) {
+    APEX_UNUSED(encountering_task_frame);
+    APEX_UNUSED(has_dependences);
+    APEX_UNUSED(codeptr_ra);
     char * type_str;
     static const char * initial_str = "OpenMP Initial Task";
     static const char * implicit_str = "OpenMP Implicit Task";
@@ -291,6 +302,8 @@ extern "C" void apex_implicit_task(
     unsigned int team_size,         /* team size                       */
     unsigned int thread_num         /* thread number of calling thread */
   ) {
+    APEX_UNUSED(team_size);
+    APEX_UNUSED(thread_num);
     if (endpoint == ompt_scope_begin) {
         apex_ompt_start("OpenMP Implicit Task", task_data, parallel_data,
         false);
@@ -457,6 +470,7 @@ extern "C" void apex_ompt_work (
     uint64_t count,                 /* quantity of work               */
     const void *codeptr_ra          /* return address of runtime call */
     ) {
+    APEX_UNUSED(count);
 
     char * tmp_str;
     static const char * loop_str = "Loop";
@@ -595,6 +609,7 @@ extern "C" void apex_ompt_flush (
     ompt_data_t *thread_data, /* data of thread                      */
     const void *codeptr_ra    /* return address of runtime call      */
 ) {
+    APEX_UNUSED(thread_data);
     if (codeptr_ra != nullptr) {
         char regionIDstr[128] = {0};
         sprintf(regionIDstr, "OpenMP Flush: UNRESOLVED ADDR %p", codeptr_ra);
@@ -711,6 +726,7 @@ extern "C" {
 int ompt_initialize(ompt_function_lookup_t lookup, int initial_device_num,
     ompt_data_t* tool_data) {
     APEX_UNUSED(initial_device_num);
+    APEX_UNUSED(tool_data);
     {
         std::unique_lock<std::mutex> l(apex_apex_threadid_mutex);
         apex_threadid = apex_numthreads++;
@@ -865,12 +881,15 @@ int ompt_initialize(ompt_function_lookup_t lookup, int initial_device_num,
 
 void ompt_finalize(ompt_data_t* tool_data)
 {
+    APEX_UNUSED(tool_data);
     printf("OpenMP runtime is shutting down...\n");
     apex::finalize();
 }
 
 ompt_start_tool_result_t * ompt_start_tool(
     unsigned int omp_version, const char *runtime_version) {
+    APEX_UNUSED(omp_version);
+    APEX_UNUSED(runtime_version);
     static ompt_start_tool_result_t result;
     result.initialize = &ompt_initialize;
     result.finalize = &ompt_finalize;
@@ -879,4 +898,4 @@ ompt_start_tool_result_t * ompt_start_tool(
     return &result;
 }
 
-}; // extern "C"
+} // extern "C"

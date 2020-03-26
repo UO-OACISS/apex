@@ -81,9 +81,6 @@ namespace apex {
         // get the PAPI components
         int num_components = PAPI_num_components();
         const PAPI_component_info_t *comp_info;
-        bool rapl_found = false;
-        bool nvml_found = false;
-        bool lms_found = false;
         int retval = PAPI_OK;
         // are there any components?
         for (int component_id = 0 ; component_id < num_components ; component_id++) {
@@ -101,7 +98,6 @@ namespace apex {
                         fprintf(stderr, "%s.\n", comp_info->disabled_reason);
                     }
                 } else {
-                    rapl_found = true;
                     rapl_EventSet = PAPI_NULL;
                     retval = PAPI_create_eventset(&rapl_EventSet);
                     if (retval != PAPI_OK) {
@@ -166,7 +162,7 @@ namespace apex {
                     rapl_initialized = true;
                 }
             }
-            // do we have the RAPL (cuda) components?
+            // do we have the NVML (cuda) components?
             if (strstr(comp_info->name, "nvml")) {
                 printf("PAPI NVML component found...\n");
                 if (comp_info->num_native_events == 0) {
@@ -175,7 +171,6 @@ namespace apex {
                         fprintf(stderr, "%s.\n", comp_info->disabled_reason);
                     }
                 } else {
-                    nvml_found = true;
                     nvml_EventSet = PAPI_NULL;
                     retval = PAPI_create_eventset(&nvml_EventSet);
                     if (retval != PAPI_OK) {
@@ -246,7 +241,6 @@ namespace apex {
                         fprintf(stderr, "%s.\n", comp_info->disabled_reason);
                     }
                 } else {
-                    lms_found = true;
                     lms_EventSet = PAPI_NULL;
                     retval = PAPI_create_eventset(&lms_EventSet);
                     if (retval != PAPI_OK) {
@@ -287,7 +281,7 @@ namespace apex {
                         char *max_sub = strstr(event_name, "_max");
                         char *crit_sub = strstr(event_name, "_crit");
                         char *interval_sub = strstr(event_name, "_interval");
-                        if (max_sub == NULL && 
+                        if (max_sub == NULL &&
                                 crit_sub == NULL && interval_sub == NULL) {
                             // save the event info
                             //printf("Found event '%s (%s)'\n", event_name, unit);
@@ -688,7 +682,7 @@ namespace apex {
         if (lms_initialized) {
             // reading might have failed, so only iterate over the data
             for (size_t i = 0 ; i < lms_metrics.size() ; i++) {
-                // PAPI scales LM sensor data by 1000, 
+                // PAPI scales LM sensor data by 1000,
                 // because it doesn't have floating point values..
                 sample_value(lms_event_names[i].c_str(), (double)lms_metrics[i]/1000.0);
             }
@@ -1111,7 +1105,7 @@ namespace apex {
     std::string proc_data_reader::get_command_line(void) {
         std::string line;
         std::fstream myfile("/proc/self/cmdline", ios_base::in);
-        if (myfile.is_open()) { 
+        if (myfile.is_open()) {
             getline (myfile,line);
             myfile.close();
 /* From the documentation:

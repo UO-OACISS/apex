@@ -202,6 +202,7 @@ void concurrency_handler::on_reset(task_identifier * id) {
 }
 
 void concurrency_handler::on_shutdown(shutdown_event_data &data) {
+    APEX_UNUSED(data);
     _terminate = true; // because there are crashes
     cancel();
 }

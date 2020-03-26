@@ -95,7 +95,7 @@ namespace apex
     free (_##member_variable);
     FOREACH_EXTERNAL_STRING_OPTION(apex_macro)
 #undef apex_macro
-    };
+    }
 
     apex_options::~apex_options(void) {
 #define apex_macro(name, member_variable, type, default_value) \

@@ -90,6 +90,7 @@ void* someThread(void* tmp)
 }
 
 int main (int argc, char** argv) {
+    APEX_UNUSED(argc);
     /* Initialize APEX */
     apex::init(argv[0], 0, 1);
     /* Get some version and verbose option information */

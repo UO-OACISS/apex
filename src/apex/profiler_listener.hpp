@@ -141,7 +141,10 @@ private:
   int task_scatterplot_sample_file;
   std::stringstream task_scatterplot_samples;
 public:
-  void set_node_id(int node_id, int node_count) { this->node_id = node_id; }
+  void set_node_id(int node_id, int node_count) {
+    APEX_UNUSED(node_count);
+    this->node_id = node_id;
+  }
   profiler_listener (void) : _initialized(false), _done(false),
                              node_id(0), task_map()
 #if APEX_HAVE_PAPI

@@ -62,7 +62,7 @@ int main(int argc, char **argv)
   apex::apex_options::use_screen_output(true);
   sleep(1); // if we don't sleep, the proc_read thread won't have time to read anything.
 
-  apex::scoped_timer proxy((apex_function_address)main);
+  apex::scoped_timer proxy(__func__);
   printf("PID of this process: %d\n", getpid());
   std::cout << "Expecting " << test_numthreads << " threads." << std::endl;
   pthread_t * thread = (pthread_t*)(malloc(sizeof(pthread_t) * test_numthreads));

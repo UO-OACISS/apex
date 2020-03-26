@@ -14,28 +14,30 @@ apex_event_type my_custom_event = APEX_CUSTOM_EVENT_1;
  * The Main function
  */
 int main (int argc, char ** argv) {
+    APEX_UNUSED(argc);
+    APEX_UNUSED(argv);
     apex::init("Custom Tuning Test", 0, 1);
 
 #ifdef APEX_HAVE_ACTIVEHARMONY
 
     apex_tuning_request request("tuning_request_example");
-    
+
     // Trigger
     my_custom_event = apex::register_custom_event("Get New Params");
     request.set_trigger(my_custom_event);
 
     std::shared_ptr<apex_param_long> param_long =
         request.add_param_long("long", 5, 0, 20, 1);
-    
+
     std::shared_ptr<apex_param_double> param_double =
         request.add_param_double("double", 5.0, 0.0, 20.0, 1.0);
-    
+
     std::list<std::string> enum_vals{"a", "b", "c", "d", "e"};
     std::shared_ptr<apex_param_enum> param_enum =
         request.add_param_enum("enum", "c", enum_vals);
 
     double value = 0.0;
-    
+
     std::function<double(void)> func = [&]()->double{
         return value;
     };

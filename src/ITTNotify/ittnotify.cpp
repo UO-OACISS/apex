@@ -146,43 +146,43 @@ void __itt_thread_set_name (const char * name) {
   apex::register_thread(string(name));
 }
 
-void __itt_sync_create(void*, const char*, const char*, int) { APEX_TRACER };
-void __itt_sync_rename(void*, const char*) { APEX_TRACER };
-void __itt_sync_prepare(void*) { APEX_TRACER };
-void __itt_sync_acquired(void*) { APEX_TRACER };
-void __itt_sync_cancel(void*) { APEX_TRACER };
-void __itt_sync_releasing(void*) { APEX_TRACER };
-void __itt_sync_destroy(void*) { APEX_TRACER };
-void __itt_thread_ignore() { APEX_TRACER };
+void __itt_sync_create(void*, const char*, const char*, int) { APEX_TRACER }
+void __itt_sync_rename(void*, const char*) { APEX_TRACER }
+void __itt_sync_prepare(void*) { APEX_TRACER }
+void __itt_sync_acquired(void*) { APEX_TRACER }
+void __itt_sync_cancel(void*) { APEX_TRACER }
+void __itt_sync_releasing(void*) { APEX_TRACER }
+void __itt_sync_destroy(void*) { APEX_TRACER }
+void __itt_thread_ignore() { APEX_TRACER }
 __itt_heap_function __itt_heap_function_create(const char*, const char*) {
-APEX_TRACER return nullptr; };
+APEX_TRACER return nullptr; }
 void __itt_heap_allocate_begin(__itt_heap_function, std::size_t, int) {
-APEX_TRACER };
+APEX_TRACER }
 void __itt_heap_allocate_end(__itt_heap_function, void**, std::size_t, int) {
-APEX_TRACER };
-void __itt_heap_free_begin(__itt_heap_function, void*) { APEX_TRACER };
-void __itt_heap_free_end(__itt_heap_function, void*) { APEX_TRACER };
+APEX_TRACER }
+void __itt_heap_free_begin(__itt_heap_function, void*) { APEX_TRACER }
+void __itt_heap_free_end(__itt_heap_function, void*) { APEX_TRACER }
 void __itt_heap_reallocate_begin(__itt_heap_function, void*, std::size_t, int)
-{ APEX_TRACER };
+{ APEX_TRACER }
 void __itt_heap_reallocate_end(__itt_heap_function a, void* b, void** c,
 std::size_t d, int e) { APEX_TRACER ;APEX_UNUSED(a); APEX_UNUSED(b);
-APEX_UNUSED(c); APEX_UNUSED(d); APEX_UNUSED(e); };
-void __itt_heap_internal_access_begin() { APEX_TRACER };
-void __itt_heap_internal_access_end() { APEX_TRACER };
+APEX_UNUSED(c); APEX_UNUSED(d); APEX_UNUSED(e); }
+void __itt_heap_internal_access_begin() { APEX_TRACER }
+void __itt_heap_internal_access_end() { APEX_TRACER }
 
 __itt_mark_type __itt_mark_create(char const* name) { APEX_TRACER ;
-APEX_UNUSED(name); return 0; };
+APEX_UNUSED(name); return 0; }
 int __itt_mark_off(__itt_mark_type mark) { APEX_TRACER ; APEX_UNUSED(mark);
-return 0; };
+return 0; }
 int __itt_mark(__itt_mark_type mark, char const* par) { APEX_TRACER ;
-APEX_UNUSED(mark); APEX_UNUSED(par); return 0; };
-__itt_caller __itt_stack_caller_create() { APEX_TRACER return nullptr; };
+APEX_UNUSED(mark); APEX_UNUSED(par); return 0; }
+__itt_caller __itt_stack_caller_create() { APEX_TRACER return nullptr; }
 void __itt_stack_callee_enter(__itt_caller ctx) { APEX_TRACER ;
-APEX_UNUSED(ctx); };
+APEX_UNUSED(ctx); }
 void __itt_stack_callee_leave(__itt_caller ctx) { APEX_TRACER ;
-APEX_UNUSED(ctx); };
+APEX_UNUSED(ctx); }
 void __itt_stack_caller_destroy(__itt_caller ctx) { APEX_TRACER ;
-APEX_UNUSED(ctx); };
+APEX_UNUSED(ctx); }
 
 // assign some function pointers
 #if defined(_WIN32) || defined(_WIN64)

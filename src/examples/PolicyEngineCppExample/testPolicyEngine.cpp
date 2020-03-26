@@ -42,11 +42,12 @@ void* someThread(void* tmp)
 
 int main(int argc, char **argv)
 {
+  APEX_UNUSED(argc);
   apex::init(argv[0], 0, 1);
   apex::apex_options::use_policy(true);
   apex::apex_options::use_screen_output(true);
   apex::apex_options::use_profile_output(true);
-  apex::profiler * profiler = apex::start((apex_function_address)main);
+  apex::profiler * profiler = apex::start(__func__);
   const apex_event_type when = APEX_STOP_EVENT;
   apex::register_periodic_policy(1000000, [](apex_context const& context){
        UNUSED(context);

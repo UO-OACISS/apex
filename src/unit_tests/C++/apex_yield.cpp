@@ -25,10 +25,12 @@ void* someThread(void* tmp)
 }
 
 int main (int argc, char** argv) {
+  APEX_UNUSED(argc);
+  APEX_UNUSED(argv);
   init("apex::start unit test", 0, 1);
   cout << "APEX Version : " << version() << endl;
   apex_options::print_options();
-  profiler* p = start((apex_function_address)(main));
+  profiler* p = start(__func__);
   pthread_t thread[2];
   int tid = 0;
   pthread_create(&(thread[0]), NULL, someThread, &tid);

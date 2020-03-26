@@ -1,13 +1,13 @@
 /******************************************************************************
 *   OpenMp Example - Matrix Multiply - C Version
-*   Demonstrates a matrix multiply using OpenMP. 
+*   Demonstrates a matrix multiply using OpenMP.
 *
 *   Modified from here:
 *   https://computing.llnl.gov/tutorials/openMP/samples/C/omp_mm.c
 *
-*   For  PAPI_FP_INS, the exclusive count for the event: 
+*   For  PAPI_FP_INS, the exclusive count for the event:
 *   for (null) [OpenMP location: file:matmult.c ]
-*   should be  2E+06 / Number of Threads 
+*   should be  2E+06 / Number of Threads
 ******************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
@@ -72,9 +72,9 @@ void compute_nested(double **a, double **b, double **c, int rows_a, int cols_a, 
         for (k=0; k<cols_a; k++) {
 #ifdef APP_USE_INLINE_MULTIPLY
           c[i][j] += multiply(a[i][k], b[k][j]);
-#else 
+#else
           c[i][j] += a[i][k] * b[k][j];
-#endif 
+#endif
         }
       }
       }
@@ -136,7 +136,7 @@ double do_work(void) {
   **c;           /* result matrix C */
   a = allocateMatrix(NRA, NCA);
   b = allocateMatrix(NCA, NCB);
-  c = allocateMatrix(NRA, NCB);  
+  c = allocateMatrix(NRA, NCB);
 
 /*** Spawn a parallel region explicitly scoping all variables ***/
 
@@ -166,8 +166,9 @@ void * threaded_func(void *data)
   return NULL;
 }
 
-int main (int argc, char *argv[]) 
+int main (int argc, char *argv[])
 {
+  APEX_UNUSED(argc);
   apex::init(argv[0], 0, 1);
   //apex::profiler* p = apex::start((void*)(main));
   apex::profiler* p = apex::start(__func__);
@@ -182,21 +183,21 @@ int main (int argc, char *argv[])
   {
     printf("Error: pthread_create (1) fails ret = %d\n", ret);
     exit(1);
-  }   
+  }
   printf("Spawned thread 1...\n");
 
   if ((ret = pthread_create(&tid2, NULL, threaded_func, NULL) ))
   {
     printf("Error: pthread_create (2) fails ret = %d\n", ret);
     exit(1);
-  }   
+  }
   printf("Spawned thread 2...\n");
 
   if ((ret = pthread_create(&tid3, NULL, threaded_func, NULL) ))
   {
     printf("Error: pthread_create (3) fails ret = %d\n", ret);
     exit(1);
-  }   
+  }
   printf("Spawned thread 3...\n");
 
 #endif /* PTHREADS */
@@ -204,24 +205,24 @@ int main (int argc, char *argv[])
 /* On thread 0: */
   do_work();
 
-#ifdef PTHREADS 
+#ifdef PTHREADS
   if ((ret = pthread_join(tid1, NULL) ))
   {
     printf("Error: pthread_join (1) fails ret = %d\n", ret);
     exit(1);
-  }   
+  }
 
   if ((ret = pthread_join(tid2, NULL) ))
   {
     printf("Error: pthread_join (2) fails ret = %d\n", ret);
     exit(1);
-  }   
+  }
 
   if ((ret = pthread_join(tid3, NULL) ))
   {
     printf("Error: pthread_join (3) fails ret = %d\n", ret);
     exit(1);
-  }   
+  }
 #endif /* PTHREADS */
 
   printf ("Done.\n");

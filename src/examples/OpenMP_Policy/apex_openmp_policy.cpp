@@ -20,7 +20,7 @@
 
 #include <rapidjson/document.h>
 #include <rapidjson/istreamwrapper.h>
-            
+
 #include <omp.h>
 
 #include "apex_api.hpp"
@@ -101,7 +101,7 @@ void handle_start(const std::string & name) {
             if(profile == nullptr) {
                 std::cerr << "ERROR: no profile for " << name << std::endl;
                 return 0.0;
-            } 
+            }
             if(profile->calls == 0.0) {
                 std::cerr << "ERROR: calls = 0 for " << name << std::endl;
                 return 0.0;
@@ -157,7 +157,7 @@ void handle_stop(const std::string & name) {
             apex::reset(name);
         }
     }
-};
+}
 
 int policy(const apex_context context) {
 	//std::cout << __func__ << std::endl;
@@ -179,7 +179,7 @@ int policy(const apex_context context) {
         if(name.find("OpenMP_PARALLEL_REGION") == 0) {
             handle_stop(name);
         }
-    }        
+    }
     return APEX_NOERROR;
 }
 
@@ -233,7 +233,7 @@ void read_results(const std::string & filename) {
                 std::shared_ptr<apex_param_enum> threads_param = request->add_param_enum("omp_num_threads", threads, {threads});
                 std::shared_ptr<apex_param_enum> schedule_param = request->add_param_enum("omp_schedule", schedule, {schedule});
                 std::shared_ptr<apex_param_enum> chunk_param = request->add_param_enum("omp_chunk_size", chunk_size, {chunk_size});
-                
+
                 if(apex_openmp_policy_verbose) {
                    fprintf(stderr, "Added %s -> (%s, %s, %s) from history.\n", name.c_str(), threads.c_str(), schedule.c_str(), chunk_size.c_str());
                 }
@@ -347,7 +347,7 @@ bool parse_space_file(const std::string & filename) {
               }
         }
         thread_space = new std::list<std::string>{num_threads_list};
-        
+
         // omp_schedule
         std::list<std::string> schedule_list;
         for(auto itr = omp_schedule_array.Begin(); itr != omp_schedule_array.End(); ++itr) {
@@ -379,7 +379,7 @@ bool parse_space_file(const std::string & filename) {
               }
         }
         chunk_space = new std::list<std::string>{chunk_size_list};
-        
+
     }
     return true;
 }
@@ -420,7 +420,7 @@ void print_tuning_space() {
 
 int register_policy() {
     // Process environment variables
-    
+
     // APEX_OPENMP_VERBOSE
     const char * apex_openmp_policy_verbose_option = std::getenv("APEX_OPENMP_VERBOSE");
     if(apex_openmp_policy_verbose_option != nullptr) {
@@ -430,7 +430,7 @@ int register_policy() {
     // APEX_OPENMP_WINDOW
     const char * option = std::getenv("APEX_OPENMP_WINDOW");
     if(option != nullptr) {
-        apex_openmp_policy_tuning_window = atoi(option);        
+        apex_openmp_policy_tuning_window = atoi(option);
     }
     if(apex_openmp_policy_verbose) {
         std::cerr << "apex_openmp_policy_tuning_window = " << apex_openmp_policy_tuning_window << std::endl;
@@ -439,8 +439,8 @@ int register_policy() {
     // APEX_OPENMP_STRATEGY
     const char * apex_openmp_policy_tuning_strategy_option = std::getenv("APEX_OPENMP_STRATEGY");
     std::string apex_openmp_policy_tuning_strategy_str = (apex_openmp_policy_tuning_strategy_option == nullptr) ? std::string() : std::string(apex_openmp_policy_tuning_strategy_option);
-    transform(apex_openmp_policy_tuning_strategy_str.begin(), 
-       apex_openmp_policy_tuning_strategy_str.end(), 
+    transform(apex_openmp_policy_tuning_strategy_str.begin(),
+       apex_openmp_policy_tuning_strategy_str.end(),
        apex_openmp_policy_tuning_strategy_str.begin(), ::toupper);
     if(apex_openmp_policy_tuning_strategy_str.empty()) {
         // default
@@ -486,7 +486,7 @@ int register_policy() {
         if(!using_space_file) {
             std::cerr << "WARNING: Unable to use tuning space file " << apex_openmp_policy_space_file_option << ". Using default tuning space instead." << std::endl;
         }
-    } 
+    }
 
     // Set up the search spaces
     if(!using_space_file) {
@@ -515,22 +515,22 @@ int register_policy() {
 
     // Register the policy functions with APEX
     std::function<int(apex_context const&)> policy_fn{policy};
-    start_policy = apex::register_policy(APEX_START_EVENT, policy_fn);    
-    stop_policy  = apex::register_policy(APEX_STOP_EVENT,  policy_fn);    
+    start_policy = apex::register_policy(APEX_START_EVENT, policy_fn);
+    stop_policy  = apex::register_policy(APEX_STOP_EVENT,  policy_fn);
     if(start_policy == nullptr || stop_policy == nullptr) {
         return APEX_ERROR;
     } else {
         return APEX_NOERROR;
     }
 }
- 
+
 extern "C" {
 
     int apex_plugin_init() {
 		std::cout << __func__ << std::endl;
         if(!apex_openmp_policy_running) {
             fprintf(stderr, "apex_openmp_policy init\n");
-            apex_openmp_policy_tuning_requests = new std::unordered_map<std::string, std::shared_ptr<apex_tuning_request>>(); 
+            apex_openmp_policy_tuning_requests = new std::unordered_map<std::string, std::shared_ptr<apex_tuning_request>>();
             int status =  register_policy();
             apex_openmp_policy_running = true;
             return status;

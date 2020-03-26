@@ -37,6 +37,7 @@ int foo (int i) {
 
 void* someThread(void* tmp)
 {
+  APEX_UNUSED(tmp);
   apex::register_thread("threadTest thread");
   apex::sample_value("some value", 42);
   apex::profiler* my_profiler = apex::start((apex_function_address)&someThread);
@@ -50,15 +51,18 @@ void* someThread(void* tmp)
 }
 
 int startup_policy(apex_context const context) {
+    APEX_UNUSED(context);
     printf("Startup Policy...\n");
     return APEX_NOERROR;
 }
 
 int main(int argc, char **argv)
 {
+  APEX_UNUSED(argc);
+  APEX_UNUSED(argv);
   std::set<apex_event_type> when = {APEX_STARTUP, APEX_SHUTDOWN, APEX_NEW_NODE, APEX_NEW_THREAD,
       APEX_START_EVENT, APEX_STOP_EVENT, APEX_SAMPLE_VALUE};
-  std::set<apex_policy_handle*> handles = 
+  std::set<apex_policy_handle*> handles =
   apex::register_policy(when, [](apex_context const& context)->int{
     switch(context.event_type) {
       case APEX_STARTUP: std::cout      << "Startup event\n"; fflush(stdout); break;
@@ -77,7 +81,7 @@ int main(int argc, char **argv)
 
   apex::init("apex_register_policy_set unit test", 0, 1);
 
-  apex::profiler* my_profiler = apex::start((apex_function_address)&main);
+  apex::profiler* my_profiler = apex::start(__func__);
   pthread_t thread[NUM_THREADS];
   int i;
   for (i = 0 ; i < NUM_THREADS ; i++) {

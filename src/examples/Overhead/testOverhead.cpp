@@ -152,7 +152,7 @@ int main(int argc, char **argv)
   }
   sleep(1); // if we don't sleep, the proc_read thread won't have time to read anything.
 
-  apex::profiler * m = apex::start((apex_function_address)main);
+  apex::profiler * m = apex::start(__func__);
   printf("PID of this process: %d\n", getpid());
   std::cout << "Expecting " << numthreads << " threads." << std::endl;
   pthread_t * thread = (pthread_t*)(malloc(sizeof(pthread_t) * numthreads));
@@ -214,11 +214,11 @@ int main(int argc, char **argv)
     std::cout << "Estimated overhead per timer: ";
 #ifdef APEX_USE_CLOCK_TIMESTAMP
     std::cout << overhead_per_call*1.0e9;
-    std::cout << METRIC << " (" << percent_increase*100.0 << 
+    std::cout << METRIC << " (" << percent_increase*100.0 <<
         "%), per call time in foo: " << (foo_per_call*1.0e9) << METRIC << std::endl;
 #else
     std::cout << overhead_per_call;
-    std::cout << METRIC << " (" << percent_increase*100.0 << 
+    std::cout << METRIC << " (" << percent_increase*100.0 <<
         "%), per call time in foo: " << foo_per_call << METRIC << std::endl;
 #endif
   }

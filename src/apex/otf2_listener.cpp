@@ -38,6 +38,8 @@ using namespace std;
 
 namespace apex {
 
+    OTF2_FlushCallbacks otf2_listener::flush_callbacks;
+
     /* Stupid Intel compiler CLAIMS to be C++14, but doesn't have support for
      * std::unique_ptr. */
 #if __cplusplus < 201402L || defined(__INTEL_COMPILER)
@@ -69,6 +71,8 @@ namespace apex {
            communication context. */
         //cout << __func__ << " " << apex_options::otf2_collective_size() << endl;
         //*size = apex_options::otf2_collective_size();
+        APEX_UNUSED(userData);
+        APEX_UNUSED(commContext);
         *size = my_saved_node_count;
         return OTF2_CALLBACK_SUCCESS;
     }
@@ -79,6 +83,9 @@ namespace apex {
            context. A number between 0 and one less of the size of the communication
            context. */
         //cout << __func__ << " " << my_saved_node_id << endl;
+        APEX_UNUSED(userData);
+        APEX_UNUSED(commContext);
+        APEX_UNUSED(rank);
         *rank = my_saved_node_id;
         return OTF2_CALLBACK_SUCCESS;
     }
@@ -93,6 +100,15 @@ namespace apex {
            fileNumber denotes in which of the partitions this OTF2_Archive should belong.
            localSize is the size of this partition and localRank the rank of this
            OTF2_Archive in the partition. */
+        APEX_UNUSED(userData);
+        APEX_UNUSED(localCommContext);
+        APEX_UNUSED(globalCommContext);
+        APEX_UNUSED(globalRank);
+        APEX_UNUSED(globalSize);
+        APEX_UNUSED(localRank);
+        APEX_UNUSED(localSize);
+        APEX_UNUSED(fileNumber);
+        APEX_UNUSED(numberOfFiles);
         return OTF2_CALLBACK_SUCCESS;
     }
 
@@ -100,12 +116,16 @@ namespace apex {
             OTF2_CollectiveContext *localCommContext) {
         /* Destroys the communication context previous created by the
            OTF2CreateLocalComm callback. */
+        APEX_UNUSED(userData);
+        APEX_UNUSED(localCommContext);
         return OTF2_CALLBACK_SUCCESS;
     }
 
     OTF2_CallbackCode otf2_listener::my_OTF2Barrier (void *userData,
             OTF2_CollectiveContext *commContext) {
         /* Performs a barrier collective on the given communication context. */
+        APEX_UNUSED(userData);
+        APEX_UNUSED(commContext);
         return OTF2_CALLBACK_SUCCESS;
     }
 
@@ -113,6 +133,12 @@ namespace apex {
             OTF2_CollectiveContext *commContext, void *data, uint32_t numberElements,
             OTF2_Type type, uint32_t root) {
         /* Performs a broadcast collective on the given communication context. */
+        APEX_UNUSED(userData);
+        APEX_UNUSED(commContext);
+        APEX_UNUSED(data);
+        APEX_UNUSED(numberElements);
+        APEX_UNUSED(type);
+        APEX_UNUSED(root);
         return OTF2_CALLBACK_SUCCESS;
     }
 
@@ -122,6 +148,13 @@ namespace apex {
         /* Performs a gather collective on the given communication context where
            each ranks contribute the same number of elements. outData is only valid at
            rank root. */
+        APEX_UNUSED(userData);
+        APEX_UNUSED(commContext);
+        APEX_UNUSED(inData);
+        APEX_UNUSED(outData);
+        APEX_UNUSED(numberElements);
+        APEX_UNUSED(type);
+        APEX_UNUSED(root);
         return OTF2_CALLBACK_SUCCESS;
     }
 
@@ -131,6 +164,14 @@ namespace apex {
         /* Performs a gather collective on the given communication context where
            each ranks contribute different number of elements. outData and outElements are
            only valid at rank root. */
+        APEX_UNUSED(userData);
+        APEX_UNUSED(commContext);
+        APEX_UNUSED(inData);
+        APEX_UNUSED(inElements);
+        APEX_UNUSED(outData);
+        APEX_UNUSED(outElements);
+        APEX_UNUSED(type);
+        APEX_UNUSED(root);
         return OTF2_CALLBACK_SUCCESS;
     }
 
@@ -140,6 +181,13 @@ namespace apex {
         /* Performs a scatter collective on the given communication context where
            each ranks contribute the same number of elements. inData is only valid at rank
            root. */
+        APEX_UNUSED(userData);
+        APEX_UNUSED(commContext);
+        APEX_UNUSED(inData);
+        APEX_UNUSED(outData);
+        APEX_UNUSED(numberElements);
+        APEX_UNUSED(type);
+        APEX_UNUSED(root);
         return OTF2_CALLBACK_SUCCESS;
     }
 
@@ -150,11 +198,22 @@ namespace apex {
         /* Performs a scatter collective on the given communication context where
            each ranks contribute different number of elements. inData and inElements are
            only valid at rank root. */
+        APEX_UNUSED(userData);
+        APEX_UNUSED(commContext);
+        APEX_UNUSED(inData);
+        APEX_UNUSED(inElements);
+        APEX_UNUSED(outData);
+        APEX_UNUSED(outElements);
+        APEX_UNUSED(type);
+        APEX_UNUSED(root);
         return OTF2_CALLBACK_SUCCESS;
     }
 
     void otf2_listener::my_OTF2Release (void *userData, OTF2_CollectiveContext
             *globalCommContext, OTF2_CollectiveContext *localCommContext) {
+        APEX_UNUSED(userData);
+        APEX_UNUSED(globalCommContext);
+        APEX_UNUSED(localCommContext);
         /* Optionally called in OTF2_Archive_Close or OTF2_Reader_Close
            respectively. */
         return;
@@ -339,12 +398,6 @@ namespace apex {
         return def_writer;
     }
 
-    OTF2_FlushCallbacks otf2_listener::flush_callbacks =
-    {
-        .otf2_pre_flush  = pre_flush,
-        .otf2_post_flush = post_flush
-    };
-
     /* constructor for the OTF2 listener class */
     otf2_listener::otf2_listener (void) : _terminate(false),
         _initialized(false), comm_evt_writer(nullptr),
@@ -352,10 +405,8 @@ namespace apex {
         /* get a start time for the trace */
         globalOffset = get_time();
         /* set the flusher */
-        flush_callbacks = {
-            .otf2_pre_flush  = otf2_listener::pre_flush,
-            .otf2_post_flush = otf2_listener::post_flush
-        };
+        flush_callbacks.otf2_pre_flush  = otf2_listener::pre_flush;
+        flush_callbacks.otf2_post_flush = otf2_listener::post_flush;
         index_filename = string(string(apex_options::otf2_archive_path())
             + "/.locality.");
         region_filename_prefix =
@@ -410,6 +461,7 @@ namespace apex {
      }
 
     void otf2_listener::on_startup(startup_event_data &data) {
+        APEX_UNUSED(data);
        // add the empty string to the string definitions
         get_string_index(empty);
         // save the node id, because the apex object my not be
@@ -857,6 +909,7 @@ namespace apex {
     }
 
     void otf2_listener::on_new_node(node_event_data &data) {
+        APEX_UNUSED(data);
         return;
     }
 
@@ -1152,7 +1205,7 @@ namespace apex {
          otf2_listener::reduce_node_properties(std::string&& str) {
         const int hostlength = 128;
         // get all hostnames
-        char tmp[hostlength];
+        char tmp[hostlength+1];
         strncpy(tmp, str.c_str(), hostlength);
 
         // make array for all hostnames
@@ -1183,7 +1236,7 @@ namespace apex {
         char * host_index = allhostnames;
         // find the lowest rank with my hostname
         for (int i = 0 ; i < my_saved_node_count ; i++) {
-            char line[hostlength];
+            char line[hostlength+1];
             strncpy(line, host_index, hostlength);
             istringstream ss(line);
             ss >> rank >> pid >> hostname;

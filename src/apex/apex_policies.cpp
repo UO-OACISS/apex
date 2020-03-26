@@ -1262,8 +1262,12 @@ tuning_session) {
 
 #else
 inline void __apex_active_harmony_setup(shared_ptr<apex_tuning_session>
-    tuning_session) { }
-inline void __apex_active_harmony_setup(apex_tuning_session * tuning_session) { }
+    tuning_session) {
+    APEX_UNUSED(tuning_session);
+}
+inline void __apex_active_harmony_setup(apex_tuning_session * tuning_session) {
+    APEX_UNUSED(tuning_session);
+}
 inline void __active_harmony_throughput_setup(int num_inputs, long ** inputs,
     long * mins, long * maxs, long * steps) {
   APEX_UNUSED(num_inputs);

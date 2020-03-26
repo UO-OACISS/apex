@@ -5,6 +5,7 @@
 #include <time.h>
 #include <stdint.h>
 #include "apex_api.hpp"
+#include "apex_assert.h"
 
 uint32_t test_numthreads = 0;
 int threads_per_core = 8;
@@ -26,19 +27,21 @@ int nsleep(long miliseconds, int tid)
    miliseconds = (int)(miliseconds * randval);
 
    if(miliseconds > 999)
-   {   
+   {
         req.tv_sec = (int)(miliseconds / 1000);                            /* Must be Non-Negative */
         req.tv_nsec = (miliseconds - ((long)req.tv_sec * 1000)) * 1000000; /* Must be in range of 0 to 999999999 */
-   }   
+   }
    else
-   {   
+   {
         req.tv_sec = 0;                         /* Must be Non-Negative */
         req.tv_nsec = miliseconds * 1000000;    /* Must be in range of 0 to 999999999 */
-   }   
+   }
 
 #ifdef __DEBUG_PRINT__
     std::stringstream buf;
     buf << "APP: " << tid << ": Computing " << miliseconds << " miliseconds\n"; std::cout << buf.str();
+#else
+    APEX_UNUSED(tid);
 #endif
    return nanosleep(&req , &rem);
 }
@@ -48,11 +51,18 @@ void innerLoop(int *tid) {
 #ifdef __DEBUG_PRINT__
     std::stringstream buf;
     buf << "APP: " << *tid << ": Starting thread " << tt_ptr->guid << "\n"; std::cout << buf.str();
+#else
+    APEX_UNUSED(tid);
 #endif
     apex::start(tt_ptr);
 
     /* do some computation */
 	int ret = nsleep(10, *tid); // after - t: 10, af: 0
+#ifdef NDEBUG
+    APEX_UNUSED(ret);
+#else
+    APEX_ASSERT(ret == 0);
+#endif
 
 	/* Start a timer like an "direct_action" */
     std::shared_ptr<apex::task_wrapper> af = apex::new_task("direct_action", UINTMAX_MAX, tt_ptr);
@@ -131,7 +141,7 @@ int main (int argc, char** argv) {
     /* initialize APEX */
     apex::init("apex::start unit test", 0, 1);
 	/* important, to make sure we get correct profiles at the end */
-    apex::apex_options::use_screen_output(true); 
+    apex::apex_options::use_screen_output(true);
     /* start a timer */
     apex::profiler* p = apex::start("main");
     /* Spawn X threads */
@@ -143,7 +153,7 @@ int main (int argc, char** argv) {
 #ifndef __APPLE__
     pthread_barrier_init(&barrier, NULL, test_numthreads);
 #endif
-    if (apex::apex_options::use_tau() || apex::apex_options::use_otf2()) { 
+    if (apex::apex_options::use_tau() || apex::apex_options::use_otf2()) {
         test_numthreads = std::min(test_numthreads, apex::hardware_concurrency());
     }
     int * tids = (int*)calloc(test_numthreads, sizeof(int));

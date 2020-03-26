@@ -69,6 +69,7 @@ void* someThread(void* tmp)
 
 int main(int argc, char **argv)
 {
+  APEX_UNUSED(argc);
   init(argv[0], 0, 1);
   //print_options();
 
@@ -76,7 +77,7 @@ int main(int argc, char **argv)
           APEX_DISCRETE_HILL_CLIMBING, 1000000);
   int original_cap = get_thread_cap();
 
-  profiler* p = start((apex_function_address)main);
+  profiler* p = start(__func__);
   printf("PID of this process: %d\n", getpid());
   pthread_t thread[NUM_THREADS];
   int i;

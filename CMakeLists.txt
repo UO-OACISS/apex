@@ -18,6 +18,13 @@ if (${CMAKE_MAJOR_VERSION} GREATER 2)
     endif()
 endif()
 
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  # using GCC
+  if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
+     message(FATAL_ERROR "GCC version must be at least 4.9!")
+  endif()
+endif()
+
 #if (${CMAKE_MAJOR_VERSION} GREATER 2)
 #    if (${CMAKE_MAJOR_VERSION} GREATER 1)
 #        cmake_policy(SET CMP0054 OLD)
@@ -201,51 +208,33 @@ if (DEFINED APEX_SANITIZE_THREAD AND APEX_SANITIZE_THREAD)
 endif (DEFINED APEX_SANITIZE_THREAD AND APEX_SANITIZE_THREAD)
 
 # set debug options
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${APEX_SANITIZE_OPTIONS} -DAPEX_ERROR_HANDLING")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${APEX_SANITIZE_OPTIONS} -DAPEX_ERROR_HANDLING")
 
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -march=native -DNDEBUG -Wno-deprecated")
-  set(CMAKE_C_FLAGS_RELEASE "-Ofast -march=native -DNDEBUG -Wno-deprecated")
-  # using Clang
-  set(CXX_PEDANTIC_COMPILER_WARNINGS "-Werror -Wsometimes-uninitialized -fdiagnostics-show-option -Wall -Wcast-align -Wcast-qual -Werror=format -Werror=missing-braces -Werror=parentheses -Werror=reorder -Werror=return-type -Werror=sequence-point -Werror=sign-compare -Werror=uninitialized -Werror=vla -Wextra -Wformat=2 -Winit-self -Wno-attributes -Wno-cast-align -Wno-delete-non-virtual-dtor -Wno-format-nonliteral -Wno-ignored-qualifiers -Wno-sign-promo -Wno-strict-aliasing -Wno-unused-parameter -Wno-unused-variable -Wno-unused-local-typedefs -Wno-unused-parameter ")
-  set(C_PEDANTIC_COMPILER_WARNINGS "-Werror -Wsometimes-uninitialized -fdiagnostics-show-option -Wall -Wcast-align -Wcast-qual -Werror=format -Werror=missing-braces -Werror=parentheses -Werror=reorder -Werror=return-type -Werror=sequence-point -Werror=sign-compare -Werror=uninitialized -Werror=vla -Wextra -Wformat=2 -Winit-self -Wno-attributes -Wno-cast-align -Wno-format-nonliteral -Wno-ignored-qualifiers -Wno-strict-aliasing -Wno-unused-parameter -Wno-unused-variable -Wno-unused-local-typedefs -Wno-unused-parameter ")
-  set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 ${CXX_PEDANTIC_COMPILER_WARNINGS} ${APEX_SANITIZE_OPTIONS} -DAPEX_ERROR_HANDLING")
-  set(CMAKE_C_FLAGS_DEBUG "-g -O0 ${C_PEDANTIC_COMPILER_WARNINGS} ${APEX_SANITIZE_OPTIONS} -DAPEX_ERROR_HANDLING")
-elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-  # using GCC
-  if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
-     message(FATAL_ERROR "GCC version must be at least 4.9!")
-  endif()
+# ---------------------------------------------------
+# Set pedantic error flags if available
+# ---------------------------------------------------
+include(CheckCXXCompilerFlag)
 
-  set(CXX_PEDANTIC_COMPILER_WARNINGS "-fdiagnostics-show-option -Wall -Wmaybe-uninitialized -Wcast-align -Wcast-qual -Wdouble-promotion -Werror=format -Werror=missing-braces -Werror=parentheses -Werror=reorder -Werror=return-type -Werror=sequence-point -Werror=sign-compare -Werror=trampolines -Werror=uninitialized -Werror=vla -Wextra -Wformat=2 -Winit-self -Wno-attributes -Wno-cast-align -Wno-delete-non-virtual-dtor -Wno-format-nonliteral -Wno-ignored-qualifiers -Wno-sign-promo -Wno-strict-aliasing -Wno-sync-nand -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-local-typedefs -Wno-unused-parameter ")
-  set(C_PEDANTIC_COMPILER_WARNINGS "-fdiagnostics-show-option -Wall -Wmaybe-uninitialized -Wcast-align -Wcast-qual -Wdouble-promotion -Werror=format -Werror=missing-braces -Werror=parentheses -Werror=reorder -Werror=return-type -Werror=sequence-point -Werror=sign-compare -Werror=trampolines -Werror=uninitialized -Werror=vla -Wextra -Wformat=2 -Winit-self -Wno-attributes -Wno-cast-align -Wno-format-nonliteral -Wno-ignored-qualifiers -Wno-strict-aliasing -Wno-sync-nand -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-local-typedefs -Wno-unused-parameter ")
-  set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 ${CXX_PEDANTIC_COMPILER_WARNINGS} ${APEX_SANITIZE_OPTIONS} -DAPEX_ERROR_HANDLING")
-  set(CMAKE_C_FLAGS_DEBUG "-g -O0 ${C_PEDANTIC_COMPILER_WARNINGS} ${APEX_SANITIZE_OPTIONS} -DAPEX_ERROR_HANDLING")
-  # -march=native is broken on sandybridge architectures.
-  execute_process(COMMAND lscpu COMMAND grep Model: OUTPUT_VARIABLE CPUMODEL_STRING)
-  string(REPLACE " " ";" CPUMODEL_LIST ${CPUMODEL_STRING})
-  list(LENGTH CPUMODEL_LIST CPUMODEL_LENGTH)
-  math(EXPR CPUMODEL_LENGTH "${CPUMODEL_LENGTH} - 1")
-  list(GET CPUMODEL_LIST ${CPUMODEL_LENGTH} CPUMODEL)
-  # message(STATUS "CPU Model: ${CPUMODEL}")
-  if(CPUMODEL EQUAL 63)
-    message(STATUS "Detected Sandybridge CPU - using special optimization flags")
-    SET(CMAKE_CXX_FLAGS_RELEASE "-Ofast -march=corei7-avx -mtune=corei7-avx -mno-avx -mno-aes -flto -DNDEBUG -Wno-deprecated")
-    SET(CMAKE_C_FLAGS_RELEASE "-Ofast -march=corei7-avx -mtune=corei7-avx -mno-avx -mno-aes -flto -DNDEBUG -Wno-deprecated")
-  else()
-    SET(CMAKE_CXX_FLAGS_RELEASE "-Ofast -march=native -flto -DNDEBUG -Wno-deprecated")
-    SET(CMAKE_C_FLAGS_RELEASE "-Ofast -march=native -flto -DNDEBUG -Wno-deprecated")
-  endif()
-  set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS} -flto")
-elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
-  # using Intel C++
-  set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 ")
-  set(CMAKE_C_FLAGS_DEBUG "-g -O0 ")
-  set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -march=native -ipo -DNDEBUG -Wno-deprecated")
-  set(CMAKE_C_FLAGS_RELEASE "-Ofast -march=native -ipo -DNDEBUG -Wno-deprecated")
-  set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS} -ipo")
-elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-  # using Visual Studio C++
-endif()
+function(enable_cxx_compiler_flag_if_supported flag)
+    string(FIND "${CMAKE_CXX_FLAGS}" "${flag}" flag_already_set)
+    if(flag_already_set EQUAL -1)
+        check_cxx_compiler_flag("${flag}" flag_supported)
+        if(flag_supported)
+            message(INFO " ${flag} supported by compiler, enabling it")
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}" PARENT_SCOPE)
+        endif()
+        unset(flag_supported CACHE)
+    endif()
+endfunction()
+
+# example usage
+enable_cxx_compiler_flag_if_supported("-Wall")
+enable_cxx_compiler_flag_if_supported("-Werror")
+enable_cxx_compiler_flag_if_supported("-Wextra")
+enable_cxx_compiler_flag_if_supported("-Wpedantic")
+enable_cxx_compiler_flag_if_supported("-pedantic")
+# ---------------------------------------------------
 
 # The version number.
 set (APEX_VERSION_MAJOR 2)

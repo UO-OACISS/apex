@@ -74,6 +74,7 @@ void* someThread(void* tmp)
 
 int main(int argc, char **argv)
 {
+  APEX_UNUSED(argc);
   init(argv[0], 0, 1);
   //print_options();
   apex_options::throttle_concurrency(true);
@@ -83,7 +84,7 @@ int main(int argc, char **argv)
           APEX_DISCRETE_HILL_CLIMBING, 100000);
   int original_cap = get_thread_cap();
 
-  profiler* p = start((apex_function_address)main);
+  profiler* p = start(__func__);
   printf("PID of this process: %d\n", getpid());
   pthread_t* thread = new pthread_t[NUM_THREADS];
   int* ids = new int[NUM_THREADS];

@@ -51,11 +51,23 @@ namespace apex {
                                          OTF2_FileType fileType,
                                          OTF2_LocationRef location,
                                          void* callerData, bool final )
-        { return OTF2_FLUSH; }
+        {
+            APEX_UNUSED(userData);
+            APEX_UNUSED(fileType);
+            APEX_UNUSED(location);
+            APEX_UNUSED(callerData);
+            APEX_UNUSED(final);
+            return OTF2_FLUSH;
+        }
         static OTF2_TimeStamp post_flush( void* userData,
                                           OTF2_FileType fileType,
                                           OTF2_LocationRef location )
-        { return get_time(); }
+        {
+            APEX_UNUSED(userData);
+            APEX_UNUSED(fileType);
+            APEX_UNUSED(location);
+            return get_time();
+        }
 
         static OTF2_CallbackCode my_OTF2GetSize(void *userData,
             OTF2_CollectiveContext *commContext,

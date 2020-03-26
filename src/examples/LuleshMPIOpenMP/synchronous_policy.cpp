@@ -5,7 +5,7 @@
 #include <atomic>
 #if defined (_OPENMP)
 #include "omp.h"
-#else 
+#else
 #define omp_get_max_threads() 1
 #endif
 #include "apex_api.hpp"
@@ -24,6 +24,7 @@ void apex_example_set_function_address(apex_function_address addr) {
 }
 
 int apex_example_policy_func(apex_context const context) {
+  APEX_UNUSED(context);
   // get value
   apex_profile * p = NULL;
   p = apex_get_profile(APEX_FUNCTION_ADDRESS, (void*)function_address);
@@ -32,7 +33,7 @@ int apex_example_policy_func(apex_context const context) {
     current_value = p->accumulated;
   }
   // wait for the application to warm up
-  static int countdown = 10; 
+  static int countdown = 10;
   if (countdown > 0) {
     countdown = countdown - 1;
     return APEX_NOERROR;
@@ -51,7 +52,7 @@ int apex_example_policy_func(apex_context const context) {
   // should we change our cap? - are we off by more than 1/2 of a thread?
   //double one_worker = (1.0/apex::apex_options::throttling_max_threads())*0.55;
   double one_worker = (1.0/__active_threads)*0.51;
-  if (((mytimer/outvalues[1]) > ((__active_threads/outvalues[0]) + one_worker)) 
+  if (((mytimer/outvalues[1]) > ((__active_threads/outvalues[0]) + one_worker))
       && (__active_threads < apex::apex_options::throttling_max_threads())) {
     std::cout << __myrank << ": " << one_worker << " timer: " << (mytimer/outvalues[1])
 	  << " thread: " << (__active_threads/outvalues[0]) << std::endl;

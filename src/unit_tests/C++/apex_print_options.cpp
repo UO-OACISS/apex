@@ -7,6 +7,8 @@ using namespace apex;
 using namespace std;
 
 int main (int argc, char** argv) {
+  APEX_UNUSED(argc);
+  APEX_UNUSED(argv);
   apex_options::use_screen_output(true);
   init("apex::print_options unit test", 0, 1);
   cout << "APEX Version : " << version() << endl;

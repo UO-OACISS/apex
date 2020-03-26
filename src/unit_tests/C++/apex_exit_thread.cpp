@@ -23,6 +23,8 @@ void* someThread(void* tmp)
 }
 
 int main (int argc, char** argv) {
+  APEX_UNUSED(argc);
+  APEX_UNUSED(argv);
   init("apex::exit_thread unit test", 0, 1);
   cout << "APEX Version : " << version() << endl;
   apex_options::print_options();

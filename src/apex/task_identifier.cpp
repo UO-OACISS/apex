@@ -24,9 +24,10 @@
 namespace apex {
 
 // only let one thread at a time resolve the name of this task
-std::mutex bfd_mutex;;
+std::mutex bfd_mutex;
 
-    task_identifier::apex_name_map::apex_name_map() : tid(thread_instance::get_id()) {};
+    task_identifier::apex_name_map::apex_name_map() :
+        tid(thread_instance::get_id()) {}
     task_identifier::apex_name_map::~apex_name_map(void) {
         if (tid == 0) {
             finalize();
@@ -38,7 +39,8 @@ std::mutex bfd_mutex;;
            the program exits and the pointers aren't needed any more. */
     }
 
-    task_identifier::apex_addr_map::apex_addr_map() : tid(thread_instance::get_id()) {};
+    task_identifier::apex_addr_map::apex_addr_map() :
+        tid(thread_instance::get_id()) {}
     task_identifier::apex_addr_map::~apex_addr_map(void) {
         if (tid == 0) {
             finalize();
