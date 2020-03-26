@@ -72,6 +72,7 @@ std::mutex event_set_mutex;
 #include <hpx/local_lcos/composable_guard.hpp>
 static void apex_schedule_process_profiles(void); // not in apex namespace
 const int num_non_worker_threads_registered = 1; // including the main thread
+//bool synchronous_flush{false};
 #endif
 
 #define APEX_MAIN "APEX MAIN"
@@ -1094,7 +1095,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
     std::shared_ptr<profiler> p;
     task_dependency* td;
 #ifdef APEX_HAVE_HPX
-    bool schedule_another_task = false;
+    //bool schedule_another_task = false;
     {
         size_t num_queues = 0;
         {
@@ -1105,10 +1106,12 @@ node_color * get_node_color(double v,double vmin,double vmax)
             int i = 0;
             while(!_done && allqueues[q]->try_dequeue(p)) {
                 process_profile(p, 0);
-                if (++i > 1000) {
+                /*
+                if (++i > 1000 && !synchronous_flush) {
                     schedule_another_task = true;
                     break;
                 }
+                */
             }
         }
     }
@@ -1122,10 +1125,12 @@ node_color * get_node_color(double v,double vmin,double vmax)
             int i = 0;
             while(!_done && dependency_queues[q]->try_dequeue(td)) {
                 process_dependency(td);
-                if (++i > 1000) {
+                /*
+                if (++i > 1000 && !synchronous_flush) {
                     schedule_another_task = true;
                     break;
                 }
+                */
             }
         }
     }
@@ -1171,9 +1176,11 @@ node_color * get_node_color(double v,double vmin,double vmax)
 #endif
 
 #ifdef APEX_HAVE_HPX // don't hang out in this task too long.
+    /*
     if (schedule_another_task) {
         apex_schedule_process_profiles();
     }
+    */
 #endif
 
     if (apex_options::use_tau()) {
@@ -1313,19 +1320,23 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
   void profiler_listener::on_dump(dump_event_data &data) {
     if (_done) { return; }
 
+    // stop the main timer, and process that profile?
+    main_timer->stop(true);
+    push_profiler((unsigned int)thread_instance::get_id(), main_timer);
+
     // trigger statistics updating
 #ifdef APEX_HAVE_HPX
-    // schedule an HPX action
-    apex_schedule_process_profiles();
+    // We can't schedule an action, because the runtime might be gone
+    // if we are in the dump() during finalize.  So synchronously
+    // process the queue.
+    // synchronous_flush = true;
+    process_profiles_wrapper();
+    // synchronous_flush = false;
 #else
     queue_signal.post();
 #endif
     // wait until any other threads are done processing dependencies
     while(consumer_task_running.test_and_set(memory_order_acq_rel)) { }
-
-      // stop the main timer, and process that profile?
-      main_timer->stop(true);
-      push_profiler((unsigned int)thread_instance::get_id(), main_timer);
 
       // output to screen?
       if ((apex_options::use_screen_output() && node_id == 0) ||

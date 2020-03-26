@@ -1,5 +1,5 @@
-# Create a library called "Apex" which includes the source file "apex.cxx". 
-# The extension is already found. Any number of sources could be listed here. 
+# Create a library called "Apex" which includes the source file "apex.cxx".
+# The extension is already found. Any number of sources could be listed here.
 
 include_directories(${PROJECT_BINARY_DIR}/src/apex)
 
@@ -25,7 +25,27 @@ if (OTF2_FOUND)
 SET(OTF2_SOURCE otf2_listener.cpp)
 endif(OTF2_FOUND)
 
-SET(all_SOURCE task_identifier.cpp apex.cpp thread_instance.cpp event_listener.cpp concurrency_handler.cpp policy_handler.cpp handler.cpp utils.cpp ${tau_SOURCE} profiler_listener.cpp ${bfd_SOURCE} apex_options.cpp apex_policies.cpp perftool_implementation.cpp ${PROC_SOURCE} ${OMPT_SOURCE} ${SENSOR_SOURCE} ${OTF2_SOURCE})
+# Try to keep this in alphabetical order
+SET(all_SOURCE
+apex.cpp
+apex_options.cpp
+apex_policies.cpp
+${bfd_SOURCE}
+${OMPT_SOURCE}
+concurrency_handler.cpp
+event_listener.cpp
+handler.cpp
+${OTF2_SOURCE}
+perftool_implementation.cpp
+policy_handler.cpp
+${PROC_SOURCE}
+profiler_listener.cpp
+${SENSOR_SOURCE}
+task_identifier.cpp
+${tau_SOURCE}
+thread_instance.cpp
+utils.cpp
+)
 
 add_library (apex ${all_SOURCE})
 add_library (taudummy tau_dummy.cpp)
@@ -74,7 +94,7 @@ else()
 include_directories("${PROJECT_BINARY_DIR}/src/apex")
 endif()
 
-INSTALL(FILES apex.h 
+INSTALL(FILES apex.h
     apex_api.hpp
     apex_types.h
     apex_policies.h

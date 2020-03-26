@@ -46,7 +46,7 @@ yes_ompt=" -DUSE_OMPT=TRUE -DOMPT_ROOT=/usr/local/ompt/5.0"
 #yes_mpi=" -DUSE_MPI=TRUE -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx"
 yes_mpi=" -DUSE_MPI=TRUE"
 yes_papi=" -DUSE_PAPI=TRUE -DPAPI_ROOT=/usr"
-yes_tau=" -DUSE_TAU=TRUE -DTAU_ROOT=/usr/local/tau/git -DTAU_ARCH=x86_64 -DTAU_OPTIONS=-pthread"
+yes_tau=" -DUSE_TAU=TRUE "
 if [ "$host" == "delphi" ] ; then
   yes_bfd=" -DUSE_BFD=TRUE -DBFD_ROOT=/usr/local/packages/binutils/2.27"
   yes_malloc=" -DUSE_JEMALLOC=TRUE -DJEMALLOC_ROOT=/usr/local/packages/jemalloc/5.0.1-gcc"
@@ -54,7 +54,6 @@ if [ "$host" == "delphi" ] ; then
   yes_otf=" -DUSE_OTF2=TRUE -DOTF2_ROOT=/usr/local/packages/otf2/2.1"
   yes_ompt=" -DUSE_OMPT=TRUE -DOMPT_ROOT=/usr/local/packages/llvm-openmp/2020-03-25"
   yes_papi=" -DUSE_PAPI=TRUE -DPAPI_ROOT=/usr/local/packages/papi/5.6.0"
-  yes_tau=" -DUSE_TAU=TRUE "
 fi
 
 # set defaults
