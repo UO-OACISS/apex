@@ -55,7 +55,7 @@ else
     # Get the true number of total cores, not threads.
     ncoresper=`lscpu | grep -E '^Core' | awk '{print $NF}'`
     nsockets=`lscpu | grep -E '^Socket' | awk '{print $NF}'`
-    let ncores=$ncoresper*$nsockets
+    let ncores=($ncoresper*$nsockets)/2
 fi
 
 
