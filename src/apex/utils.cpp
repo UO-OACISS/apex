@@ -130,6 +130,8 @@ void set_thread_affinity(int core) {
         }
     }
     */
+#else
+    APEX_UNUSED(core);
 #endif
     return;
 }

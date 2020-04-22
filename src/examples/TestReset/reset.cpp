@@ -9,7 +9,7 @@ int main (int argc, char** argv) {
   APEX_UNUSED(argc);
   init(argv[0], 0, 1);
   cout << "APEX Version : " << version() << endl;
-  profiler * main_profiler = start((apex_function_address)(main));
+  profiler * main_profiler = start(__func__);
   // Call "foo" 30 times
   for(int i = 0; i < 30; ++i) {
     profiler * p = start("foo");

@@ -98,7 +98,7 @@ int main (int argc, char** argv) {
     apex::apex_options::print_options();
     apex::apex_options::use_screen_output(true);
     /* Start a timer for the main function, using its address (requires binutils) */
-    apex::profiler* p = apex::start((apex_function_address)(main));
+    apex::profiler* p = apex::start(__func__);
     /* Launch two threads */
     pthread_t thread[2];
     int tid = 0;
