@@ -1734,7 +1734,7 @@ void apex_schedule_process_profiles() {
     } else {
         if(!consumer_task_running.test_and_set(memory_order_acq_rel)) {
             try {
-                hpx::async(&profiler_listener::process_profiles_wrapper);
+                hpx::apply(&profiler_listener::process_profiles_wrapper);
             } catch(...) {
                 // During shutdown, we can't schedule a new task,
                 // so we process profiles ourselves.
