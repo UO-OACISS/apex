@@ -1726,14 +1726,6 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
 }
 
 #ifdef APEX_HAVE_HPX
-HPX_DECLARE_ACTION(
-    APEX_TOP_LEVEL_PACKAGE::profiler_listener::process_profiles_wrapper,
-    apex_internal_process_profiles_action);
-HPX_ACTION_HAS_CRITICAL_PRIORITY(apex_internal_process_profiles_action);
-HPX_PLAIN_ACTION(
-    APEX_TOP_LEVEL_PACKAGE::profiler_listener::process_profiles_wrapper,
-    apex_internal_process_profiles_action);
-
 void apex_schedule_process_profiles() {
     if(get_hpx_runtime_ptr() == nullptr) return;
     if(!thread_instance::is_worker()) return;
@@ -1741,9 +1733,8 @@ void apex_schedule_process_profiles() {
         APEX_TOP_LEVEL_PACKAGE::profiler_listener::process_profiles_wrapper();
     } else {
         if(!consumer_task_running.test_and_set(memory_order_acq_rel)) {
-            apex_internal_process_profiles_action act;
             try {
-                hpx::apply(act, hpx::find_here());
+                hpx::async(&profiler_listener::process_profiles_wrapper);
             } catch(...) {
                 // During shutdown, we can't schedule a new task,
                 // so we process profiles ourselves.

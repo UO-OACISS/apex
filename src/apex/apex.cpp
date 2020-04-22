@@ -65,9 +65,6 @@
 #include <hpx/include/util.hpp>
 #include <hpx/local_lcos/composable_guard.hpp>
 #include "global_constructor_destructor.h"
-#ifdef APEX_HAVE_HPX_disabled
-static void apex_schedule_shutdown(void);
-#endif // APEX_HAVE_HPX_disabled
 #endif // APEX_HAVE_HPX
 
 #if APEX_DEBUG
@@ -165,8 +162,6 @@ static void finalize_hpx_runtime(void) {
             instance->query_runtime_counters();
         }
     }
-    // Tell other localities to shutdown APEX
-    apex_schedule_shutdown();
     // Shutdown APEX
     finalize();
     hpx_finalized = true;
@@ -2097,28 +2092,6 @@ static void apex_register_with_hpx(void) {
     reg.type = hpx::util::external_timer::yield_flag;
     reg.record.yield = &yield_adapter;
     hpx::util::external_timer::register_external_timer(reg);
-}
-#endif
-
-#ifdef APEX_HAVE_HPX_disabled
-HPX_DECLARE_ACTION(APEX_TOP_LEVEL_PACKAGE::finalize,
-    apex_internal_shutdown_action);
-HPX_ACTION_HAS_CRITICAL_PRIORITY(apex_internal_shutdown_action);
-HPX_PLAIN_ACTION(APEX_TOP_LEVEL_PACKAGE::finalize,
-    apex_internal_shutdown_action);
-
-void apex_schedule_shutdown() {
-    if(get_hpx_runtime_ptr() == nullptr) return;
-    return;
-    //if(!thread_instance::is_worker()) return;
-    apex_internal_shutdown_action act;
-    try {
-        for(auto locality : hpx::find_all_localities()) {
-            hpx::apply(act, locality);
-        }
-    } catch(...) {
-        // what to do?
-    }
 }
 #endif
 
