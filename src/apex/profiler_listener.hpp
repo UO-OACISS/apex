@@ -40,8 +40,10 @@
 // HPX has its own version of moodycamel concurrent queue
 #ifdef APEX_HAVE_HPX_CONFIG
 #include "hpx/concurrency/concurrentqueue.hpp"
+using hpx::concurrency::ConcurrentQueue;
 #else
 #include "concurrentqueue/concurrentqueue.h"
+using moodycamel::ConcurrentQueue;
 #endif
 
 #include "apex_assert.h"
@@ -63,7 +65,7 @@
 
 namespace apex {
 
-class profiler_queue_t : public moodycamel::ConcurrentQueue<std::shared_ptr<profiler> > {
+class profiler_queue_t : public ConcurrentQueue<std::shared_ptr<profiler> > {
 public:
   profiler_queue_t() {}
   virtual ~profiler_queue_t() {
@@ -71,7 +73,7 @@ public:
   }
 };
 
-class dependency_queue_t : public moodycamel::ConcurrentQueue<task_dependency*> {
+class dependency_queue_t : public ConcurrentQueue<task_dependency*> {
 public:
   dependency_queue_t() {}
   virtual ~dependency_queue_t() {
@@ -123,7 +125,7 @@ private:
   std::vector<dependency_queue_t*> dependency_queues;
   dependency_queue_t * _construct_dependency_queue(void);
   dependency_queue_t * dependency_queue(void);
-  //moodycamel::ConcurrentQueue<task_dependency*> dependency_queue;
+  //ConcurrentQueue<task_dependency*> dependency_queue;
 #if defined(APEX_THROTTLE)
   std::unordered_set<task_identifier> throttled_tasks;
 #endif
