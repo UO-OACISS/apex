@@ -641,7 +641,7 @@ include(GitExternal)
 
 ### Set up concurrentqueue stuff
 git_external(concurrentqueue
-    https://github.com/cameron314/concurrentqueue.git
+    https://github.com/khuck/concurrentqueue.git
     master
     VERBOSE NO_UPDATE)
 
