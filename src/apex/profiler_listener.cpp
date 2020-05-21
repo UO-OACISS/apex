@@ -34,6 +34,7 @@
 #include <unistd.h>
 #include <sched.h>
 #endif
+#include <chrono>
 #include <cstdio>
 #include <vector>
 #include <string>
@@ -621,7 +622,7 @@ std::unordered_set<profile*> free_profiles;
         queue_signal.post();
 #endif
         // wait for profiles to update
-        usleep(100);
+        std::this_thread::sleep_for(std::chrono::microseconds(100));
         total_time = get_profile(main_id);
     }
     double wall_clock_main = total_time->get_accumulated() *

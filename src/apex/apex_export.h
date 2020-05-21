@@ -7,8 +7,12 @@
 #define APEX_EXPORT_H
 
 #if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
+#if defined(HPX_LIBRARY_EXPORTS)
 #define APEX_EXPORT __declspec(dllexport)
-#define APEX_WEAK_PRE __declspec(selectany)
+#else
+#define APEX_EXPORT __declspec(dllimport)
+#endif
+#define APEX_WEAK_PRE
 #define APEX_WEAK_POST
 #else
 
