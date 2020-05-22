@@ -342,12 +342,12 @@ foreach(lib IN LISTS _apex_imported_targets)
 endforeach()
 
 # Link to dl
-if (APEX_USE_WEAK_SYMBOLS)
+if (APEX_USE_WEAK_SYMBOLS OR MSVC)
   target_compile_definitions(apex_flags INTERFACE APEX_USE_WEAK_SYMBOLS)
 else()
   find_library(DYNAMICLIB dl)
   target_link_libraries(apex PRIVATE ${DYNAMICLIB})
-endif (APEX_USE_WEAK_SYMBOLS)
+endif (APEX_USE_WEAK_SYMBOLS OR MSVC)
 
 # TODO: see how to remove those global include directories
 # add the binary tree to the search path for include files
