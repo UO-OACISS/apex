@@ -853,7 +853,25 @@ node_color * get_node_color(double v,double vmin,double vmax)
     dotname << filesystem_separator() << "taskgraph." << node_id << ".dot";
     myfile.open(dotname.str().c_str());
 
-    myfile << "digraph prof {\n rankdir=\"LR\";\n node [shape=box];\n";
+    // our TOTAL available time is the elapsed * the number of threads, or cores
+    int num_worker_threads = thread_instance::get_num_threads();
+#ifdef APEX_HAVE_HPX
+    num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
+#endif
+    double total_main = main_timer->elapsed() * fmin(hardware_concurrency(),
+        num_worker_threads);
+
+    myfile << "digraph prof {\n";
+    myfile << " label = \"Elapsed Time: " << main_timer->elapsed()*profiler::get_cpu_mhz();
+    myfile << " seconds\\lCores detected: " << hardware_concurrency();
+    myfile << "\\lWorker threads observed: " << num_worker_threads;
+    myfile << "\\lAvailable CPU time: " << total_main*profiler::get_cpu_mhz() << " seconds\\l\"\n";
+    myfile << " labelloc = \"t\";\n";
+    myfile << " labeljust = \"l\";\n";
+    myfile << " overlap = false;\n";
+    myfile << " splines = true;\n";
+    myfile << " rankdir = \"LR\";\n";
+    myfile << " node [shape=box];\n";
     for(auto dep = task_dependencies.begin();
         dep != task_dependencies.end(); dep++) {
         task_identifier parent = dep->first;
@@ -877,17 +895,6 @@ node_color * get_node_color(double v,double vmin,double vmax)
     }
     task_dependencies.clear();
 
-    // our TOTAL available time is the elapsed * the number of threads, or cores
-    /*
-    int num_worker_threads = thread_instance::get_num_threads();
-#ifdef APEX_HAVE_HPX
-    num_worker_threads = num_worker_threads -
-        num_non_worker_threads_registered;
-#endif
-    double total_main = main_timer->elapsed() * fmin(hardware_concurrency(),
-        num_worker_threads);
-    */
-
     // output nodes with  "main" [shape=box; style=filled; fillcolor="#ff0000" ];
     unordered_map<task_identifier, profile*>::const_iterator it;
     std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
@@ -895,18 +902,27 @@ node_color * get_node_color(double v,double vmin,double vmax)
       profile * p = it->second;
       // shouldn't happen, but?
       if (p == nullptr) continue;
+      int divisor = num_worker_threads;
+      std::string divided_label("time per thread: ");
+      if (num_worker_threads > p->get_calls()) {
+          divisor = p->get_calls();
+          divided_label = "time per call: ";
+      }
       if (p->get_type() == APEX_TIMER) {
-        node_color * c = get_node_color_visible(p->get_mean(), 0.0,
-            main_timer->elapsed());
+        node_color * c = get_node_color_visible(
+            p->get_accumulated()/divisor, 0.0, main_timer->elapsed());
         task_identifier task_id = it->first;
+        double accumulated = p->get_accumulated()*profiler::get_cpu_mhz();
         myfile << "  \"" << task_id.get_name() <<
             "\" [shape=box; style=filled; fillcolor=\"#" <<
             setfill('0') << setw(2) << hex << c->convert(c->red) <<
             setfill('0') << setw(2) << hex << c->convert(c->green) <<
-            setfill('0') << setw(2) << hex << c->convert(c->blue) << "\"" <<
-            "; label=\"" << task_id.get_name() << ":\\n(" <<
-            (p->get_calls()) << ") " <<
-            (p->get_mean()*profiler::get_cpu_mhz()) << "s\" ];" << std::endl;
+            setfill('0') << setw(2) << hex << c->convert(c->blue) <<
+            "\"; label=\"" << task_id.get_name() <<
+            ":\\ltotal calls: " << p->get_calls() <<
+            "\\ltotal time: " << accumulated <<
+            "s\\l" << divided_label << accumulated/divisor <<
+            "s\\l\" ];" << std::endl;
         delete(c);
       }
     }
