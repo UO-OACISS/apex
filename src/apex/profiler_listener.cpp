@@ -934,8 +934,8 @@ node_color * get_node_color(double v,double vmin,double vmax)
   void format_line(ofstream &myfile, profile * p) {
     myfile << p->get_calls() << " ";
     myfile << 0 << " ";
-    myfile << ((p->get_accumulated()*profiler::get_cpu_mhz())) << " ";
-    myfile << ((p->get_accumulated()*profiler::get_cpu_mhz())) << " ";
+    myfile << ((p->get_accumulated()*profiler::get_cpu_mhz()*1000000)) << " ";
+    myfile << ((p->get_accumulated()*profiler::get_cpu_mhz()*1000000)) << " ";
     myfile << 0 << " ";
     myfile << "GROUP=\"TAU_USER\" ";
     myfile << endl;
@@ -945,9 +945,9 @@ node_color * get_node_color(double v,double vmin,double vmax)
   void format_line(ofstream &myfile, profile * p, double not_main) {
     myfile << p->get_calls() << " ";
     myfile << 0 << " ";
-    myfile << (std::max<double>(((p->get_accumulated()*profiler::get_cpu_mhz())
+    myfile << (std::max<double>(((p->get_accumulated()*profiler::get_cpu_mhz()*1000000)
         - not_main),0.0)) << " ";
-    myfile << ((p->get_accumulated()*profiler::get_cpu_mhz())) << " ";
+    myfile << ((p->get_accumulated()*profiler::get_cpu_mhz())*1000000) << " ";
     myfile << 0 << " ";
     myfile << "GROUP=\"TAU_USER\" ";
     myfile << endl;
