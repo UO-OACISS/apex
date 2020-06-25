@@ -515,6 +515,7 @@ profiler* start(const std::string &timer_name)
         return profiler::get_disabled_profiler();
     }
     std::shared_ptr<task_wrapper> tt_ptr(nullptr);
+    profiler * new_profiler = nullptr;
     if (_notify_listeners) {
         bool success = true;
         task_identifier * id = task_identifier::get_task_id(timer_name);
@@ -532,12 +533,20 @@ profiler* start(const std::string &timer_name)
                 return profiler::get_disabled_profiler();
             }
         }
+        // If we are allowing untied timers, clear the timer stack on this thread
+        if (apex_options::untied_timers() == true) {
+            new_profiler = thread_instance::instance().get_current_profiler();
+            thread_instance::instance().clear_current_profiler();
+        }
     }
     static std::string apex_process_profile_str("apex::process_profiles");
     if (timer_name.compare(apex_process_profile_str) == 0) {
         APEX_UTIL_REF_COUNT_APEX_INTERNAL_START
     } else {
         APEX_UTIL_REF_COUNT_START
+    }
+    if (apex_options::untied_timers() == true) {
+        return new_profiler;
     }
     return thread_instance::instance().restore_children_profilers(tt_ptr);
 }
@@ -560,6 +569,7 @@ profiler* start(const apex_function_address function_address) {
         return profiler::get_disabled_profiler();
     }
     std::shared_ptr<task_wrapper> tt_ptr(nullptr);
+    profiler * new_profiler = nullptr;
     if (_notify_listeners) {
         bool success = true;
         task_identifier * id = task_identifier::get_task_id(function_address);
@@ -577,8 +587,16 @@ profiler* start(const apex_function_address function_address) {
                 return profiler::get_disabled_profiler();
             }
         }
+        // If we are allowing untied timers, clear the timer stack on this thread
+        if (apex_options::untied_timers() == true) {
+            new_profiler = thread_instance::instance().get_current_profiler();
+            thread_instance::instance().clear_current_profiler();
+        }
     }
     APEX_UTIL_REF_COUNT_START
+    if (apex_options::untied_timers() == true) {
+        return new_profiler;
+    }
     return thread_instance::instance().restore_children_profilers(tt_ptr);
 }
 
@@ -640,6 +658,10 @@ void start(std::shared_ptr<task_wrapper> tt_ptr) {
                 tt_ptr->prof = profiler::get_disabled_profiler();
                 return;
             }
+        }
+        // If we are allowing untied timers, clear the timer stack on this thread
+        if (apex_options::untied_timers() == true) {
+            thread_instance::instance().clear_current_profiler();
         }
     }
     APEX_UTIL_REF_COUNT_START

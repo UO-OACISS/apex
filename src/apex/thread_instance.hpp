@@ -103,6 +103,9 @@ public:
   static profiler * get_current_profiler(void);
   static void clear_current_profiler(profiler * the_profiler,
         bool save_children, std::shared_ptr<task_wrapper> &tt_ptr);
+  static void clear_current_profiler() {
+    instance().current_profilers.pop_back();
+  }
   static const char * program_path(void);
   static bool is_worker() { return instance()._is_worker; }
   static uint64_t get_guid() { return instance()._get_guid(); }

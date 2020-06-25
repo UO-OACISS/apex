@@ -310,7 +310,13 @@ void thread_instance::clear_current_profiler(profiler * the_profiler,
     if (instance().current_profilers.empty()) {
         // unless...we happen to be exiting.  Bets are off.
         if (apex_options::suspend() == true) { return; }
-        std::cerr << "Warning! empty profiler stack!!!\n";
+        if (apex_options::untied_timers() == true) { return; }
+        std::cerr << "APEX: Warning! empty profiler stack!!!\n";
+        std::cerr << "If a profiler object was started on one OS thread ";
+        std::cerr << "and stopped/yielded on another, please run with the ";
+        std::cerr << "environment variable 'APEX_UNTIED_TIMERS=1' or ";
+        std::cerr << "use the C++ API call 'apex::untied_timers(true);' ";
+        std::cerr << "or C API call 'apex_set_untied_timers(1);'\n" << std::endl;
         APEX_ASSERT(false);
         // redundant, but assert gets bypassed in a debug build.
         abort();

@@ -1,9 +1,9 @@
-# Make sure the compiler can find include files from our Apex library. 
-include_directories (${APEX_SOURCE_DIR}/src/apex) 
+# Make sure the compiler can find include files from our Apex library.
+include_directories (${APEX_SOURCE_DIR}/src/apex)
 
-# Make sure the linker can find the Apex library once it is built. 
-link_directories (${APEX_BINARY_DIR}/src/apex) 
-#link_directories (${APEX_BINARY_DIR}/src/apex_pthread_wrapper) 
+# Make sure the linker can find the Apex library once it is built.
+link_directories (${APEX_BINARY_DIR}/src/apex)
+#link_directories (${APEX_BINARY_DIR}/src/apex_pthread_wrapper)
 
 set(example_programs
     apex_init
@@ -39,6 +39,7 @@ set(example_programs
     apex_hpx_annotated_functions
     apex_profiler_guids
     apex_non_worker_thread
+    apex_swap_threads
    )
     #apex_set_thread_cap
     #apex_setup_power_cap_throttling
@@ -92,26 +93,26 @@ if (OPENMP_FOUND)
 endif (OPENMP_FOUND)
 
 #set_target_properties(apex_fibonacci_std_async_cpp PROPERTIES LINK_FLAGS "-fsplit-stack")
-#target_link_libraries (apex_fibonacci_std_async_cpp apex_pthread_wrapper)        
-#add_dependencies (apex_fibonacci_std_async_cpp apex_pthread_wrapper)    
+#target_link_libraries (apex_fibonacci_std_async_cpp apex_pthread_wrapper)
+#add_dependencies (apex_fibonacci_std_async_cpp apex_pthread_wrapper)
 
 
 
 
-# Make sure the compiler can find include files from our Apex library. 
+# Make sure the compiler can find include files from our Apex library.
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MPI_COMPILE_FLAGS}")
 include_directories (. ${APEX_SOURCE_DIR}/src/apex ${MPI_CXX_INCLUDE_PATH})
 
-# Make sure the linker can find the Apex library once it is built. 
+# Make sure the linker can find the Apex library once it is built.
 link_directories (${APEX_BINARY_DIR}/src/apex)
 
 # Add executable called "apex_hpx_annotated_functions_mpi" that is built from the source file
-# "apex_hpx_annotated_functions.cpp". The extensions are automatically found. 
+# "apex_hpx_annotated_functions.cpp". The extensions are automatically found.
 add_executable (apex_hpx_annotated_functions_mpi apex_hpx_annotated_functions.cpp)
 add_dependencies (apex_hpx_annotated_functions_mpi apex)
 add_dependencies (examples apex_hpx_annotated_functions_mpi)
 
-# Link the executable to the Apex library. 
+# Link the executable to the Apex library.
 target_link_libraries (apex_hpx_annotated_functions_mpi apex ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES} ${LIBS} stdc++ m)
 if (BUILD_STATIC_EXECUTABLES)
     set_target_properties(apex_hpx_annotated_functions_mpi PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)

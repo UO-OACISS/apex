@@ -247,6 +247,7 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_SUSPEND, suspend, bool, false) \
     macro (APEX_PAPI_SUSPEND, papi_suspend, bool, false) \
     macro (APEX_PROCESS_ASYNC_STATE, process_async_state, bool, true) \
+    macro (APEX_UNTIED_TIMERS, untied_timers, bool, false) \
     macro (APEX_TAU, use_tau, bool, false) \
     macro (APEX_OTF2, use_otf2, bool, false) \
     macro (APEX_OTF2_TESTING, otf2_testing, bool, false) \
