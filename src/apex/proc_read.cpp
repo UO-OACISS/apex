@@ -787,12 +787,27 @@ namespace apex {
     bool parse_proc_self_status() {
         if (!apex_options::use_proc_self_status()) return false;
         FILE *f = fopen("/proc/self/status", "r");
-        const std::string prefix("Vm");
+        const std::string vm_prefix("Vm");
+        const std::string thread_prefix("Threads");
         if (f) {
             char line[4096] = {0};
             while ( fgets( line, 4096, f)) {
                 string tmp(line);
-                if (!tmp.compare(0,prefix.size(),prefix)) {
+                if (!tmp.compare(0,vm_prefix.size(),vm_prefix)) {
+                    const REGEX_NAMESPACE::regex separator(":");
+                    REGEX_NAMESPACE::sregex_token_iterator token(tmp.begin(),
+                            tmp.end(), separator, -1);
+                    REGEX_NAMESPACE::sregex_token_iterator end;
+                    string name = *token++;
+                    if (token != end) {
+                        string value = *token;
+                        char* pEnd;
+                        double d1 = strtod (value.c_str(), &pEnd);
+                        string mname("status:" + name);
+                        if (pEnd) { sample_value(mname, d1); }
+                    }
+                }
+                if (!tmp.compare(0,thread_prefix.size(),thread_prefix)) {
                     const REGEX_NAMESPACE::regex separator(":");
                     REGEX_NAMESPACE::sregex_token_iterator token(tmp.begin(),
                             tmp.end(), separator, -1);
