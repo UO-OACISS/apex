@@ -789,6 +789,7 @@ namespace apex {
         FILE *f = fopen("/proc/self/status", "r");
         const std::string vm_prefix("Vm");
         const std::string thread_prefix("Threads");
+        const std::string ctx_substr("ctxt_switches");
         if (f) {
             char line[4096] = {0};
             while ( fgets( line, 4096, f)) {
@@ -808,6 +809,20 @@ namespace apex {
                     }
                 }
                 if (!tmp.compare(0,thread_prefix.size(),thread_prefix)) {
+                    const REGEX_NAMESPACE::regex separator(":");
+                    REGEX_NAMESPACE::sregex_token_iterator token(tmp.begin(),
+                            tmp.end(), separator, -1);
+                    REGEX_NAMESPACE::sregex_token_iterator end;
+                    string name = *token++;
+                    if (token != end) {
+                        string value = *token;
+                        char* pEnd;
+                        double d1 = strtod (value.c_str(), &pEnd);
+                        string mname("status:" + name);
+                        if (pEnd) { sample_value(mname, d1); }
+                    }
+                }
+                if (tmp.find(ctx_substr) != tmp.npos) {
                     const REGEX_NAMESPACE::regex separator(":");
                     REGEX_NAMESPACE::sregex_token_iterator token(tmp.begin(),
                             tmp.end(), separator, -1);
