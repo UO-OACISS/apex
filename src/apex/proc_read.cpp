@@ -114,7 +114,7 @@ namespace apex {
                         event_modifier = PAPI_ENUM_EVENTS;
                         if ( retval != PAPI_OK ) {
                             fprintf( stderr, "%s %d %s %d\n", __FILE__,
-                                    __LINE__, "PAPI_enum_cmp_event failed.");
+                                    __LINE__, "PAPI_enum_cmp_event failed.", retval);
                             fprintf(stderr, "PAPI error %d: %s\n", retval,
                                     PAPI_strerror(retval));
                             continue;
