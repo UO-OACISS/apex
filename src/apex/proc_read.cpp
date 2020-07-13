@@ -102,6 +102,8 @@ namespace apex {
                     retval = PAPI_create_eventset(&rapl_EventSet);
                     if (retval != PAPI_OK) {
                         fprintf(stderr, "Error creating PAPI eventset.\n");
+                        fprintf(stderr, "PAPI error %d: %s\n", retval,
+                                PAPI_strerror(retval));
                         return;
                     }
                     int code = PAPI_NATIVE_MASK;
@@ -112,15 +114,19 @@ namespace apex {
                         event_modifier = PAPI_ENUM_EVENTS;
                         if ( retval != PAPI_OK ) {
                             fprintf( stderr, "%s %d %s %d\n", __FILE__,
-                                    __LINE__, "PAPI_event_code_to_name", retval );
+                                    __LINE__, "PAPI_enum_cmp_event failed.");
+                            fprintf(stderr, "PAPI error %d: %s\n", retval,
+                                    PAPI_strerror(retval));
                             continue;
                         }
                         // get the event name
                         char event_name[PAPI_MAX_STR_LEN];
                         retval = PAPI_event_code_to_name( code, event_name );
                         if (retval != PAPI_OK) {
-                            fprintf(stderr, "%s %d %s %d\n", __FILE__,
-                                    __LINE__, "Error getting event name\n",retval);
+                            fprintf(stderr, "%s %d %s\n", __FILE__,
+                                    __LINE__, "PAPI_event_code_to_name failed");
+                            fprintf(stderr, "PAPI error %d: %s\n", retval,
+                                    PAPI_strerror(retval));
                             continue;
                         }
                         // skip the counter events...
@@ -129,8 +135,10 @@ namespace apex {
                         PAPI_event_info_t evinfo;
                         retval = PAPI_get_event_info(code,&evinfo);
                         if (retval != PAPI_OK) {
-                            fprintf(stderr, "%s %d %s %d\n", __FILE__,
-                                    __LINE__, "Error getting event info\n",retval);
+                            fprintf(stderr, "%s %d %s\n", __FILE__,
+                                    __LINE__, "Error getting event info");
+                            fprintf(stderr, "PAPI error %d: %s\n", retval,
+                                    PAPI_strerror(retval));
                             continue;
                         }
                         // get the event units
@@ -151,6 +159,8 @@ namespace apex {
                         retval = PAPI_add_event(rapl_EventSet, code);
                         if (retval != PAPI_OK) {
                             fprintf(stderr, "Error adding RAPL event.\n");
+                            fprintf(stderr, "PAPI error %d: %s\n", retval,
+                                    PAPI_strerror(retval));
                             return;
                         }
                     }
@@ -175,6 +185,8 @@ namespace apex {
                     retval = PAPI_create_eventset(&nvml_EventSet);
                     if (retval != PAPI_OK) {
                         fprintf(stderr, "Error creating PAPI eventset.\n");
+                        fprintf(stderr, "PAPI error %d: %s\n", retval,
+                                PAPI_strerror(retval));
                         return;
                     }
                     int code = PAPI_NATIVE_MASK;
@@ -186,6 +198,8 @@ namespace apex {
                         if ( retval != PAPI_OK ) {
                             fprintf( stderr, "%s %d %s %d\n", __FILE__,
                                     __LINE__, "PAPI_event_code_to_name", retval );
+                            fprintf(stderr, "PAPI error %d: %s\n", retval,
+                                    PAPI_strerror(retval));
                             continue;
                         }
                         // get the event name
@@ -194,6 +208,8 @@ namespace apex {
                         if (retval != PAPI_OK) {
                             fprintf(stderr, "%s %d %s %d\n", __FILE__,
                                     __LINE__, "Error getting event name\n",retval);
+                            fprintf(stderr, "PAPI error %d: %s\n", retval,
+                                    PAPI_strerror(retval));
                             continue;
                         }
                         // get the event info
@@ -202,6 +218,8 @@ namespace apex {
                         if (retval != PAPI_OK) {
                             fprintf(stderr, "%s %d %s %d\n", __FILE__,
                                     __LINE__, "Error getting event info\n",retval);
+                            fprintf(stderr, "PAPI error %d: %s\n", retval,
+                                    PAPI_strerror(retval));
                             continue;
                         }
                         // get the event units
@@ -222,12 +240,16 @@ namespace apex {
                         retval = PAPI_add_event(nvml_EventSet, code);
                         if (retval != PAPI_OK) {
                             fprintf(stderr, "Error adding NVML event.\n");
+                            fprintf(stderr, "PAPI error %d: %s\n", retval,
+                                    PAPI_strerror(retval));
                             return;
                         }
                     }
                     retval = PAPI_start(nvml_EventSet);
                     if (retval != PAPI_OK) {
                         fprintf(stderr, "Error starting PAPI eventset.\n");
+                        fprintf(stderr, "PAPI error %d: %s\n", retval,
+                                PAPI_strerror(retval));
                         return;
                     }
                     nvml_initialized = true;
@@ -245,6 +267,8 @@ namespace apex {
                     retval = PAPI_create_eventset(&lms_EventSet);
                     if (retval != PAPI_OK) {
                         fprintf(stderr, "Error creating PAPI eventset.\n");
+                        fprintf(stderr, "PAPI error %d: %s\n", retval,
+                                PAPI_strerror(retval));
                         return;
                     }
                     int code = PAPI_NATIVE_MASK;
@@ -256,6 +280,8 @@ namespace apex {
                         if ( retval != PAPI_OK ) {
                             fprintf( stderr, "%s %d %s %d\n",
                                     __FILE__, __LINE__, "PAPI_event_code_to_name", retval );
+                            fprintf(stderr, "PAPI error %d: %s\n", retval,
+                                    PAPI_strerror(retval));
                         }
                         // get the event name
                         char event_name[PAPI_MAX_STR_LEN];
@@ -263,6 +289,8 @@ namespace apex {
                         if (retval != PAPI_OK) {
                             fprintf(stderr, "%s %d %s %d\n", __FILE__,
                                     __LINE__, "Error getting event name\n",retval);
+                            fprintf(stderr, "PAPI error %d: %s\n", retval,
+                                    PAPI_strerror(retval));
                             continue;
                         }
                         // get the event info
@@ -271,6 +299,8 @@ namespace apex {
                         if (retval != PAPI_OK) {
                             fprintf(stderr, "%s %d %s %d\n",
                                     __FILE__, __LINE__, "Error getting event info\n",retval);
+                            fprintf(stderr, "PAPI error %d: %s\n", retval,
+                                    PAPI_strerror(retval));
                         }
                         // get the event units
                         char unit[PAPI_MAX_STR_LEN] = {0};
@@ -292,6 +322,8 @@ namespace apex {
                             retval = PAPI_add_event(lms_EventSet, code);
                             if (retval != PAPI_OK) {
                                 fprintf(stderr, "Error adding lm_sensors event.\n");
+                                fprintf(stderr, "PAPI error %d: %s\n", retval,
+                                        PAPI_strerror(retval));
                                 continue;
                             }
                         }
@@ -300,6 +332,8 @@ namespace apex {
                 retval = PAPI_start(lms_EventSet);
                 if (retval != PAPI_OK) {
                     fprintf(stderr, "Error starting PAPI eventset.\n");
+                    fprintf(stderr, "PAPI error %d: %s\n", retval,
+                            PAPI_strerror(retval));
                     return;
                 }
                 lms_initialized = true;
@@ -313,6 +347,8 @@ namespace apex {
             int retval = PAPI_read(rapl_EventSet, rapl_values);
             if (retval != PAPI_OK) {
                 fprintf(stderr, "Error reading PAPI RAPL eventset.\n");
+                fprintf(stderr, "PAPI error %d: %s\n", retval,
+                        PAPI_strerror(retval));
             } else {
                 for (size_t i = 0 ; i < rapl_event_names.size() ; i++) {
                     data->rapl_metrics.push_back(rapl_values[i]);
@@ -325,6 +361,8 @@ namespace apex {
             int retval = PAPI_read(nvml_EventSet, nvml_values);
             if (retval != PAPI_OK) {
                 fprintf(stderr, "Error reading PAPI NVML eventset.\n");
+                fprintf(stderr, "PAPI error %d: %s\n", retval,
+                        PAPI_strerror(retval));
             } else {
                 for (size_t i = 0 ; i < nvml_event_names.size() ; i++) {
                     data->nvml_metrics.push_back(nvml_values[i]);
@@ -337,6 +375,8 @@ namespace apex {
             int retval = PAPI_read(lms_EventSet, lms_values);
             if (retval != PAPI_OK) {
                 fprintf(stderr, "Error reading PAPI lmsensors eventset.\n");
+                fprintf(stderr, "PAPI error %d: %s\n", retval,
+                        PAPI_strerror(retval));
             } else {
                 for (size_t i = 0 ; i < lms_event_names.size() ; i++) {
                     data->lms_metrics.push_back(lms_values[i]);
