@@ -2,6 +2,8 @@
 #define _GNU_SOURCE
 #endif
 
+#include <pthread.h>
+
 #if !defined(__APPLE__)
 #define APEX_PTHREAD_BARRIER_AVAILABLE
 #endif

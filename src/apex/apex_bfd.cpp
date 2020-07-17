@@ -67,6 +67,19 @@
 #include <psapi.h>
 #endif
 
+/* When BFD 2.34 was released, some API calls were replaced. */
+#if !defined(bfd_get_section)
+#define TAU_BFD_GET_SECTION_FLAGS(_abfd, _section) bfd_section_flags(_section)
+#define TAU_BFD_GET_SECTION_VMA(_abfd, _section) bfd_section_vma(_section)
+#define TAU_BFD_GET_SECTION_SIZE(_section) bfd_section_size(_section)
+#define TAU_BFD_GET_SECTION(_symbol) bfd_asymbol_section(_symbol)
+#else
+#define TAU_BFD_GET_SECTION_FLAGS(_abfd, _section) bfd_get_section_flags(_abfd, _section)
+#define TAU_BFD_GET_SECTION_VMA(_abfd, _section) bfd_get_section_vma(_abfd, _section)
+#define TAU_BFD_GET_SECTION_SIZE(_section) bfd_get_section_size(_section)
+#define TAU_BFD_GET_SECTION(_symbol) bfd_get_section(_symbol)
+#endif
+
 using namespace std;
 
 char const * Apex_bfd_internal_getExecutablePath();
@@ -988,14 +1001,14 @@ void Apex_bfd_internal_locateAddress(bfd * bfdptr,
   if (data.found) return;
 
   // Skip this section if it isn't a debug info section
-  if ((bfd_get_section_flags(bfdptr, section) & SEC_ALLOC) == 0) return;
+  if ((TAU_BFD_GET_SECTION_FLAGS(bfdptr, section) & SEC_ALLOC) == 0) return;
 
   // Skip this section if the address is before the section start
-  bfd_vma vma = bfd_get_section_vma(bfdptr, section);
+  bfd_vma vma = TAU_BFD_GET_SECTION_VMA(bfdptr, section);
   if (data.info.probeAddr < vma) return;
 
   // Skip this section if the address is after the section end
-  bfd_size_type size = bfd_get_section_size(section);
+  bfd_size_type size = TAU_BFD_GET_SECTION_SIZE(section);
   if (data.info.probeAddr >= vma + size) return;
 
   // The section contains this address, so try to resolve info
