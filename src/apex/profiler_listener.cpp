@@ -70,7 +70,7 @@ std::mutex event_set_mutex;
 #include <hpx/include/performance_counters.hpp>
 #include <hpx/include/actions.hpp>
 #include <hpx/include/util.hpp>
-#include <hpx/local_lcos/composable_guard.hpp>
+#include <hpx/lcos_local/composable_guard.hpp>
 static void apex_schedule_process_profiles(void); // not in apex namespace
 const int num_non_worker_threads_registered = 1; // including the main thread
 //bool synchronous_flush{false};

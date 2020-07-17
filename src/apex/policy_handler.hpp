@@ -7,7 +7,7 @@
 
 #ifdef APEX_HAVE_HPX
 #include <hpx/hpx.hpp>
-#include <hpx/util/interval_timer.hpp>
+#include <hpx/modules/runtime_local.hpp>
 #endif
 
 #include "apex_types.h"
