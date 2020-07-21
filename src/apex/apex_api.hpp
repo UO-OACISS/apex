@@ -974,6 +974,8 @@ public:
     }
 };
 
+} //namespace apex
+
 /**
  \brief A convenient macro for inserting an APEX self-stopping timer.
 
@@ -982,10 +984,7 @@ public:
 
  */
 #define APEX_SCOPED_TIMER \
-      std::ostringstream _s_foo; \
-      _s_foo << __func__ << " [" << __FILE__ << ":" << __LINE__ << "]"; \
-      _name_foo = std::string(_s_foo.str()); \
-    scoped_timer __foo(_name_foo);
-
-} //namespace apex
+    std::ostringstream _s_foo; \
+    _s_foo << __func__ << " [" << __FILE__ << ":" << __LINE__ << "]"; \
+    apex::scoped_timer __foo(_s_foo.str());
 
