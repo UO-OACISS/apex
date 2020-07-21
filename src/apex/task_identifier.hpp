@@ -56,6 +56,7 @@ public:
   task_identifier(const task_identifier& rhs) :
       address(rhs.address), name(rhs.name),
       _resolved_name(""), has_name(rhs.has_name) { };
+  task_identifier& operator=(const task_identifier& rhs) = default;
 
   static task_identifier * get_task_id (apex_function_address a);
   static task_identifier * get_task_id (const std::string& n);
