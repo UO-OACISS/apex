@@ -1350,8 +1350,13 @@ std::string dump(bool reset) {
     return(std::string(""));
 }
 
+void flushTrace(void);
+
 void finalize()
 {
+#ifdef APEX_USE_CUDA
+    flushTrace();
+#endif
 #ifdef APEX_WITH_JUPYTER_SUPPORT
     // reset all counters, and return.
     //reset(APEX_NULL_FUNCTION_ADDRESS);

@@ -7,13 +7,16 @@ link_directories (${APEX_BINARY_DIR}/src/apex)
 
 set(example_programs
     apex_cuda
+    apex_vector
    )
+
+message(INFO "Using CUDA libraries: ${CUDA_LIBRARIES}")
 
 foreach(example_program ${example_programs})
   set(sources ${example_program}.cu)
   source_group("Source Files" FILES ${sources})
   add_executable("${example_program}_cu" ${sources})
-  target_link_libraries ("${example_program}_cu" apex ${LIBS})
+  target_link_libraries ("${example_program}_cu" apex ${LIBS} cuda)
     if (BUILD_STATIC_EXECUTABLES)
         set_target_properties("${example_program}_cu" PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
     endif()
