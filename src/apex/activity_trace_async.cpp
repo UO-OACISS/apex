@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <cuda.h>
 #include <cupti.h>
+#include <stack>
 #include "apex.hpp"
 
 static void __attribute__((constructor)) initTrace(void);
@@ -385,55 +386,32 @@ void CUPTIAPI bufferCompleted(CUcontext ctx, uint32_t streamId, uint8_t *buffer,
 
 void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
     CUpti_CallbackId id, const void *params) {
+    /* Supposedly, we can use the ud or cbdata->contextData fields
+     * to pass data from the start to the end event, but it isn't
+     * broadly supported in the CUPTI interface, so we'll manage the
+     * timer stack locally. */
+    thread_local static std::stack<apex::profiler*> timer_stack;
     APEX_UNUSED(ud);
     APEX_UNUSED(id);
-    APEX_UNUSED(params);
+    APEX_UNUSED(domain);
+    if (params == NULL) return;
+    apex::profiler *p = nullptr;
     CUpti_CallbackData * cbdata = (CUpti_CallbackData*)(params);
-    switch(domain) {
-        case CUPTI_CB_DOMAIN_DRIVER_API: // = 1
-        //Domain containing callback points for all driver API functions.
-        case CUPTI_CB_DOMAIN_RUNTIME_API: // = 2
-        //Domain containing callback points for all runtime API functions.
-        {
-            if (cbdata->callbackSite == CUPTI_API_ENTER) {
-                // check for a memory copy event
-                if (cbdata->symbolName != NULL) {
-                    std::stringstream ss;
-                    ss << cbdata->functionName << ": " << cbdata->symbolName;
-                    ud = (void*)apex::start(ss.str());
-                } else {
-                    ud = (void*)apex::start(cbdata->functionName);
-                }
-            } else { // if (cbdata->callbackSite == CUPTI_API_EXIT) {
-                if (ud != nullptr) {
-                    apex::profiler * p = (apex::profiler*)(ud);
-                    p->stop();
-                }
-            }
-            break;
+
+    if (cbdata->callbackSite == CUPTI_API_ENTER) {
+        // check for a memory copy event
+        if (cbdata->symbolName != NULL) {
+            std::stringstream ss;
+            ss << cbdata->functionName << ": " << cbdata->symbolName;
+            p = apex::start(ss.str());
+        } else {
+            p = apex::start(cbdata->functionName);
         }
-        case CUPTI_CB_DOMAIN_RESOURCE: // = 3
-        //Domain containing callback points for CUDA resource tracking.
-        {
-            printf("RESOURCE\n");
-            break;
-        }
-        case CUPTI_CB_DOMAIN_SYNCHRONIZE: // = 4
-        //Domain containing callback points for CUDA synchronization.
-        {
-            printf("SYNCHRONIZE\n");
-            break;
-        }
-        case CUPTI_CB_DOMAIN_NVTX: // = 5
-        //Domain containing callback points for NVTX API functions.
-        {
-            printf("NVTX\n");
-            break;
-        }
-        default:
-        {
-            break;
-        }
+        timer_stack.push(p);
+    } else if (!timer_stack.empty()) {
+        p = timer_stack.top();
+        apex::stop(p);
+        timer_stack.pop();
     }
 }
 
@@ -528,9 +506,11 @@ initTrace()
     (CUpti_CallbackFunc)apex_cupti_callback_dispatch, NULL));
   // get device callbacks
   CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_RUNTIME_API));
-  CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_DRIVER_API));
+  //CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_DRIVER_API));
+  /* These events aren't begin/end callbacks, so no need to support them. */
   //CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_SYNCHRONIZE));
   //CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_RESOURCE));
+  //CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_NVTX));
 
   CUPTI_CALL(cuptiGetTimestamp(&startTimestamp));
 }
