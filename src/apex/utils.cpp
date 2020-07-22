@@ -102,7 +102,7 @@ std::string* demangle(const std::string& timer_name) {
                do { errno = en; perror(msg); exit(EXIT_FAILURE); } while (0)
 
 void set_thread_affinity(int core) {
-#if !defined(__APPLE__) && !defined(_MSC_VER)
+#if !defined(__APPLE__) && !defined(_MSC_VER) && !defined(APEX_HAVE_HPX)
     int s;
     cpu_set_t cpuset;
     pthread_t thread;
@@ -137,7 +137,7 @@ void set_thread_affinity(int core) {
 }
 
 void set_thread_affinity(void) {
-#if !defined(__APPLE__) && !defined(_MSC_VER)
+#if !defined(__APPLE__) && !defined(_MSC_VER) && !defined(APEX_HAVE_HPX)
     int s, j;
     cpu_set_t cpuset;
     pthread_t thread;
