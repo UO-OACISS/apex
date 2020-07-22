@@ -87,6 +87,7 @@ public:
     //bool have_name;
     uint64_t guid;
     bool is_counter;
+    bool is_device;
     bool is_resume; // for yield or resume
     reset_type is_reset;
     bool stopped;
@@ -111,6 +112,7 @@ public:
         children_value(0.0),
         guid(0),
         is_counter(false),
+        is_device(false),
         is_resume(resume),
         is_reset(reset), stopped(false) { task->prof = this; };
     // this constructor is for resetting profile values
@@ -128,6 +130,7 @@ public:
         children_value(0.0),
         guid(0),
         is_counter(false),
+        is_device(false),
         is_resume(resume),
         is_reset(reset), stopped(false) { };
     // this constructor is for counters
@@ -142,6 +145,7 @@ public:
         value(value_),
         children_value(0.0),
         is_counter(true),
+        is_device(true),
         is_resume(false),
         is_reset(reset_type::NONE), stopped(true) { };
     //copy constructor
@@ -153,6 +157,7 @@ public:
         value(in.value),
         children_value(in.children_value),
         is_counter(in.is_counter),
+        is_device(in.is_device),
         is_resume(in.is_resume), // for yield or resume
         is_reset(in.is_reset),
         stopped(in.stopped)
@@ -182,6 +187,8 @@ public:
     double elapsed(void) {
         if(is_counter) {
             return value;
+        } else if (is_device) {
+            return value/1000.0;
         } else {
             std::chrono::duration<double> time_span =
             std::chrono::duration_cast<std::chrono::duration<double>>(end -
@@ -258,7 +265,7 @@ public:
         return duration;
     }
     double normalized_timestamp(void) {
-        if(is_counter) {
+        if(is_counter || is_device) {
             return value;
         } else {
             std::chrono::duration<double> time_span =

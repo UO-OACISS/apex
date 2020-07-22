@@ -238,6 +238,9 @@ public:
 #if APEX_HAVE_PAPI
   std::vector<std::string>& get_metric_names(void) { return metric_names; };
 #endif
+  void push_profiler_public(std::shared_ptr<profiler> &p) {
+    push_profiler(0, p);
+  }
 };
 
 }
