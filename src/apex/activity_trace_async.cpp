@@ -35,28 +35,42 @@ static void __attribute__((constructor)) initTrace(void);
 // timestamps
 static uint64_t startTimestamp;
 
+/* The callback subscriber */
+CUpti_SubscriberHandle subscriber;
+
+void store_profiler_data(const char * name, uint64_t start, uint64_t end) {
+      static apex::apex* instance = apex::apex::instance();
+      // get the elapsed time and scale to nanoseconds
+      double nanoseconds = ((double)(end - start)/1000.0);
+      // create an APEX profiler to store this data
+      std::shared_ptr<apex::profiler> p =
+        std::make_shared<apex::profiler>(apex::task_identifier::get_task_id(
+        name), nanoseconds, true);
+      instance->the_profiler_listener->push_profiler_public(p);
+}
+
 static const char *
 getMemcpyKindString(CUpti_ActivityMemcpyKind kind)
 {
   switch (kind) {
   case CUPTI_ACTIVITY_MEMCPY_KIND_HTOD:
-    return "HtoD";
+    return "GPU: Memory Copy HtoD";
   case CUPTI_ACTIVITY_MEMCPY_KIND_DTOH:
-    return "DtoH";
+    return "GPU: Memory Copy DtoH";
   case CUPTI_ACTIVITY_MEMCPY_KIND_HTOA:
-    return "HtoA";
+    return "GPU: Memory Copy HtoA";
   case CUPTI_ACTIVITY_MEMCPY_KIND_ATOH:
-    return "AtoH";
+    return "GPU: Memory Copy AtoH";
   case CUPTI_ACTIVITY_MEMCPY_KIND_ATOA:
-    return "AtoA";
+    return "GPU: Memory Copy AtoA";
   case CUPTI_ACTIVITY_MEMCPY_KIND_ATOD:
-    return "AtoD";
+    return "GPU: Memory Copy AtoD";
   case CUPTI_ACTIVITY_MEMCPY_KIND_DTOA:
-    return "DtoA";
+    return "GPU: Memory Copy DtoA";
   case CUPTI_ACTIVITY_MEMCPY_KIND_DTOD:
-    return "DtoD";
+    return "GPU: Memory Copy DtoD";
   case CUPTI_ACTIVITY_MEMCPY_KIND_HTOH:
-    return "HtoH";
+    return "GPU: Memory Copy HtoH";
   default:
     break;
   }
@@ -69,13 +83,13 @@ getActivityOverheadKindString(CUpti_ActivityOverheadKind kind)
 {
   switch (kind) {
   case CUPTI_ACTIVITY_OVERHEAD_DRIVER_COMPILER:
-    return "COMPILER";
+    return "GPU: COMPILER";
   case CUPTI_ACTIVITY_OVERHEAD_CUPTI_BUFFER_FLUSH:
-    return "BUFFER_FLUSH";
+    return "GPU: BUFFER_FLUSH";
   case CUPTI_ACTIVITY_OVERHEAD_CUPTI_INSTRUMENTATION:
-    return "INSTRUMENTATION";
+    return "GPU: INSTRUMENTATION";
   case CUPTI_ACTIVITY_OVERHEAD_CUPTI_RESOURCE:
-    return "RESOURCE";
+    return "GPU: RESOURCE";
   default:
     break;
   }
@@ -88,15 +102,15 @@ getActivityObjectKindString(CUpti_ActivityObjectKind kind)
 {
   switch (kind) {
   case CUPTI_ACTIVITY_OBJECT_PROCESS:
-    return "PROCESS";
+    return "GPU: PROCESS";
   case CUPTI_ACTIVITY_OBJECT_THREAD:
-    return "THREAD";
+    return "GPU: THREAD";
   case CUPTI_ACTIVITY_OBJECT_DEVICE:
-    return "DEVICE";
+    return "GPU: DEVICE";
   case CUPTI_ACTIVITY_OBJECT_CONTEXT:
-    return "CONTEXT";
+    return "GPU: CONTEXT";
   case CUPTI_ACTIVITY_OBJECT_STREAM:
-    return "STREAM";
+    return "GPU: STREAM";
   default:
     break;
   }
@@ -174,25 +188,46 @@ printActivity(CUpti_Activity *record)
       break;
     }
   case CUPTI_ACTIVITY_KIND_MEMCPY:
+  case CUPTI_ACTIVITY_KIND_MEMCPY2:
     {
       CUpti_ActivityMemcpy *memcpy = (CUpti_ActivityMemcpy *) record;
+#if 0
       printf("MEMCPY %s [ %llu - %llu ] device %u, context %u, stream %u, correlation %u/r%u\n",
              getMemcpyKindString((CUpti_ActivityMemcpyKind) memcpy->copyKind),
              (unsigned long long) (memcpy->start - startTimestamp),
              (unsigned long long) (memcpy->end - startTimestamp),
              memcpy->deviceId, memcpy->contextId, memcpy->streamId,
              memcpy->correlationId, memcpy->runtimeCorrelationId);
+#endif
+      store_profiler_data(getMemcpyKindString((CUpti_ActivityMemcpyKind) memcpy->copyKind), memcpy->start, memcpy->end);
       break;
     }
+#if 0 // not until CUDA 11
+  case CUPTI_ACTIVITY_KIND_MEMCPY2:
+    {
+      CUpti_ActivityMemcpyPtoP *memcpy = (CUpti_ActivityMemcpyPtoP *) record;
+      printf("MEMCPY2 %s [ %llu - %llu ] device %u, context %u, stream %u, correlation %u/r%u\n",
+             getMemcpyKindString((CUpti_ActivityMemcpyKind) memcpy->copyKind),
+             (unsigned long long) (memcpy->start - startTimestamp),
+             (unsigned long long) (memcpy->end - startTimestamp),
+             memcpy->deviceId, memcpy->contextId, memcpy->streamId,
+             memcpy->correlationId, memcpy->runtimeCorrelationId);
+      store_profiler_data(getMemcpyKindString((CUpti_ActivityMemcpyKind) memcpy->copyKind), memcpy->start, memcpy->end);
+      break;
+    }
+#endif
   case CUPTI_ACTIVITY_KIND_MEMSET:
     {
       CUpti_ActivityMemset *memset = (CUpti_ActivityMemset *) record;
+#if 0
       printf("MEMSET value=%u [ %llu - %llu ] device %u, context %u, stream %u, correlation %u\n",
              memset->value,
              (unsigned long long) (memset->start - startTimestamp),
              (unsigned long long) (memset->end - startTimestamp),
              memset->deviceId, memset->contextId, memset->streamId,
              memset->correlationId);
+#endif
+      store_profiler_data("GPU: Memset", memset->start, memset->end);
       break;
     }
   case CUPTI_ACTIVITY_KIND_KERNEL:
@@ -215,14 +250,9 @@ printActivity(CUpti_Activity *record)
              kernel->staticSharedMemory, kernel->dynamicSharedMemory);
       printf("%f\n", nanoseconds);
 #endif
-      double nanoseconds = ((double)(kernel->end - kernel->start)/1000.0);
-      std::shared_ptr<apex::profiler> p =
-        std::make_shared<apex::profiler>(apex::task_identifier::get_task_id(
-        kernel->name), nanoseconds);
-      p->is_counter = false;
-      p->is_device = true;
-      apex::apex* instance = apex::apex::instance();
-      instance->the_profiler_listener->push_profiler_public(p);
+      std::stringstream ss;
+      ss << "GPU: " << kernel->name;
+      store_profiler_data(ss.str().c_str(), kernel->start, kernel->end);
       break;
     }
   case CUPTI_ACTIVITY_KIND_DRIVER:
@@ -353,6 +383,60 @@ void CUPTIAPI bufferCompleted(CUcontext ctx, uint32_t streamId, uint8_t *buffer,
   free(buffer);
 }
 
+void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
+    CUpti_CallbackId id, const void *params) {
+    APEX_UNUSED(ud);
+    APEX_UNUSED(id);
+    APEX_UNUSED(params);
+    CUpti_CallbackData * cbdata = (CUpti_CallbackData*)(params);
+    switch(domain) {
+        case CUPTI_CB_DOMAIN_DRIVER_API: // = 1
+        //Domain containing callback points for all driver API functions.
+        case CUPTI_CB_DOMAIN_RUNTIME_API: // = 2
+        //Domain containing callback points for all runtime API functions.
+        {
+            if (cbdata->callbackSite == CUPTI_API_ENTER) {
+                // check for a memory copy event
+                if (cbdata->symbolName != NULL) {
+                    std::stringstream ss;
+                    ss << cbdata->functionName << ": " << cbdata->symbolName;
+                    ud = (void*)apex::start(ss.str());
+                } else {
+                    ud = (void*)apex::start(cbdata->functionName);
+                }
+            } else { // if (cbdata->callbackSite == CUPTI_API_EXIT) {
+                if (ud != nullptr) {
+                    apex::profiler * p = (apex::profiler*)(ud);
+                    p->stop();
+                }
+            }
+            break;
+        }
+        case CUPTI_CB_DOMAIN_RESOURCE: // = 3
+        //Domain containing callback points for CUDA resource tracking.
+        {
+            printf("RESOURCE\n");
+            break;
+        }
+        case CUPTI_CB_DOMAIN_SYNCHRONIZE: // = 4
+        //Domain containing callback points for CUDA synchronization.
+        {
+            printf("SYNCHRONIZE\n");
+            break;
+        }
+        case CUPTI_CB_DOMAIN_NVTX: // = 5
+        //Domain containing callback points for NVTX API functions.
+        {
+            printf("NVTX\n");
+            break;
+        }
+        default:
+        {
+            break;
+        }
+    }
+}
+
 void
 initTrace()
 {
@@ -362,10 +446,11 @@ initTrace()
   CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_DEVICE)); // 8
   // Enable all other activity record kinds.
   CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_CONCURRENT_KERNEL)); // 10
-#if 0
   CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_MEMCPY)); // 1
+  CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_MEMCPY2)); // 22
   CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_MEMSET)); // 2
-  CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_KERNEL)); // 3
+#if 0
+  CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_KERNEL)); // 3   <- disables concurrency
   CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_DRIVER)); // 4
   CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_RUNTIME)); // 5
   CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_EVENT)); // 6
@@ -382,7 +467,6 @@ initTrace()
   CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_PREEMPTION)); // 19
   CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_ENVIRONMENT)); // 20
   CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_EVENT_INSTANCE)); // 21
-  CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_MEMCPY2)); // 22
   CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_METRIC_INSTANCE)); // 23
   CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_INSTRUCTION_EXECUTION)); // 24
   CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_UNIFIED_MEMORY_COUNTER)); // 25
@@ -411,6 +495,8 @@ initTrace()
   CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_INTERNAL_LAUNCH_API)); // 48
   CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_COUNT)); // 49
 #endif
+#if 0 // not until CUDA 11
+#endif
 
   // Register callbacks for buffer requests and for buffers completed by CUPTI.
   CUPTI_CALL(cuptiActivityRegisterCallbacks(bufferRequested, bufferCompleted));
@@ -436,6 +522,15 @@ initTrace()
   attrValue *= 2;
   CUPTI_CALL(cuptiActivitySetAttribute(
     CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_POOL_LIMIT, &attrValueSize, &attrValue));
+
+  /* now that the activity is configured, subscribe to callback support, too. */
+  CUPTI_CALL(cuptiSubscribe(&subscriber,
+    (CUpti_CallbackFunc)apex_cupti_callback_dispatch, NULL));
+  // get device callbacks
+  CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_RUNTIME_API));
+  CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_DRIVER_API));
+  //CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_SYNCHRONIZE));
+  //CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_RESOURCE));
 
   CUPTI_CALL(cuptiGetTimestamp(&startTimestamp));
 }
