@@ -167,10 +167,10 @@ std::unordered_set<profile*> free_profiles;
       }
 #endif
       if (p->get_type() == APEX_TIMER) {
-        non_idle_time += p->get_accumulated();
+        non_idle_time += p->get_accumulated(true);
       }
     }
-    return non_idle_time*profiler::get_cpu_mhz();
+    return non_idle_time;
   }
 
   profile * profiler_listener::get_idle_time() {
@@ -187,6 +187,7 @@ std::unordered_set<profile*> free_profiles;
                 fmin(hardware_concurrency(), num_worker_threads);
     double elapsed = total_main - non_idle_time;
     elapsed = elapsed > 0.0 ? elapsed : 0.0;
+    // is scaling this necessary?
     profile * theprofile = new profile(elapsed*profiler::get_cpu_mhz(),
         0, nullptr, false);
     {
@@ -375,7 +376,7 @@ std::unordered_set<profile*> free_profiles;
                 thread_instance::instance(false);
                 std::unique_lock<std::mutex> task_map_lock(_mtx);
                 task_scatterplot_samples << p->normalized_timestamp() << " "
-                            << p->elapsed()*profiler::get_cpu_mhz()*1000000 << " "
+                            << p->elapsed(true)*1000000 << " "
                             << "'" << p->get_task_id()->get_name() << "'" << endl;
                 int loc0 = task_scatterplot_samples.tellp();
                 if (loc0 > 32768) {
@@ -532,30 +533,29 @@ std::unordered_set<profile*> free_profiles;
         // convert MHz to Hz
         csv_output << std::llround(p->get_accumulated()) << ",";
         // convert MHz to microseconds
-        csv_output << std::llround(p->get_accumulated()*
-            profiler::get_cpu_mhz()*1000000);
+        csv_output << std::llround(p->get_accumulated(true)*1000000);
         //screen_output << " --n/a--   " ;
-        if (p->get_mean()*profiler::get_cpu_mhz() > 10000) {
+        if (p->get_mean(true) > 10000) {
             screen_output << string_format(FORMAT_SCIENTIFIC,
-                (p->get_mean()*profiler::get_cpu_mhz())) << "   " ;
+                (p->get_mean(true))) << "   " ;
         } else {
             screen_output << string_format(FORMAT_PERCENT,
-                (p->get_mean()*profiler::get_cpu_mhz())) << "   " ;
+                (p->get_mean(true))) << "   " ;
         }
         //screen_output << " --n/a--   " ;
-        if (p->get_accumulated()*profiler::get_cpu_mhz() > 10000) {
+        if (p->get_accumulated(true) > 10000) {
             screen_output << string_format(FORMAT_SCIENTIFIC,
-                (p->get_accumulated()*profiler::get_cpu_mhz())) << "   " ;
+                (p->get_accumulated(true))) << "   " ;
         } else {
             screen_output << string_format(FORMAT_PERCENT,
-                (p->get_accumulated()*profiler::get_cpu_mhz())) << "   " ;
+                (p->get_accumulated(true))) << "   " ;
         }
         //screen_output << " --n/a--   " ;
         if (task_id.get_name().compare(APEX_MAIN) == 0) {
             screen_output << string_format(FORMAT_PERCENT, 100.0);
         } else {
             total_accumulated += p->get_accumulated();
-            double tmp = ((p->get_accumulated()*profiler::get_cpu_mhz())
+            double tmp = ((p->get_accumulated(true))
                 /total_main)*100.0;
             if (tmp > 100.0) {
                 screen_output << " --n/a--   " ;
@@ -625,8 +625,7 @@ std::unordered_set<profile*> free_profiles;
         std::this_thread::sleep_for(std::chrono::microseconds(100));
         total_time = get_profile(main_id);
     }
-    double wall_clock_main = total_time->get_accumulated() *
-        profiler::get_cpu_mhz();
+    double wall_clock_main = total_time->get_accumulated(true);
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
 #endif
@@ -730,7 +729,7 @@ std::unordered_set<profile*> free_profiles;
             }
         }
     }
-    double idle_rate = total_main - (total_accumulated*profiler::get_cpu_mhz());
+    double idle_rate = total_main - total_accumulated;
     if (idle_rate >= 0.0) {
       screen_output << string_format("%52s", APEX_IDLE_TIME) << " : ";
       // pad with spaces for #calls, mean
@@ -862,9 +861,10 @@ node_color * get_node_color(double v,double vmin,double vmax)
         num_worker_threads);
 
     myfile << "digraph prof {\n";
-    myfile << " label = \"Elapsed Time: " << main_timer->elapsed()*profiler::get_cpu_mhz();
+    myfile << " label = \"Elapsed Time: " << main_timer->elapsed(true);
     myfile << " seconds\\lCores detected: " << hardware_concurrency();
     myfile << "\\lWorker threads observed: " << num_worker_threads;
+    // is scaling this necessary?
     myfile << "\\lAvailable CPU time: " << total_main*profiler::get_cpu_mhz() << " seconds\\l\"\n";
     myfile << " labelloc = \"t\";\n";
     myfile << " labeljust = \"l\";\n";
@@ -912,7 +912,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
         node_color * c = get_node_color_visible(
             p->get_accumulated()/divisor, 0.0, main_timer->elapsed());
         task_identifier task_id = it->first;
-        double accumulated = p->get_accumulated()*profiler::get_cpu_mhz();
+        double accumulated = p->get_accumulated(true);
         myfile << "  \"" << task_id.get_name() <<
             "\" [shape=box; style=filled; fillcolor=\"#" <<
             setfill('0') << setw(2) << hex << c->convert(c->red) <<
@@ -934,8 +934,8 @@ node_color * get_node_color(double v,double vmin,double vmax)
   void format_line(ofstream &myfile, profile * p) {
     myfile << p->get_calls() << " ";
     myfile << 0 << " ";
-    myfile << ((p->get_accumulated()*profiler::get_cpu_mhz()*1000000)) << " ";
-    myfile << ((p->get_accumulated()*profiler::get_cpu_mhz()*1000000)) << " ";
+    myfile << ((p->get_accumulated(true)*1000000)) << " ";
+    myfile << ((p->get_accumulated(true)*1000000)) << " ";
     myfile << 0 << " ";
     myfile << "GROUP=\"TAU_USER\" ";
     myfile << endl;
@@ -945,9 +945,9 @@ node_color * get_node_color(double v,double vmin,double vmax)
   void format_line(ofstream &myfile, profile * p, double not_main) {
     myfile << p->get_calls() << " ";
     myfile << 0 << " ";
-    myfile << (std::max<double>(((p->get_accumulated()*profiler::get_cpu_mhz()*1000000)
+    myfile << (std::max<double>(((p->get_accumulated(true)*1000000)
         - not_main),0.0)) << " ";
-    myfile << ((p->get_accumulated()*profiler::get_cpu_mhz())*1000000) << " ";
+    myfile << ((p->get_accumulated(true))*1000000) << " ";
     myfile << 0 << " ";
     myfile << "GROUP=\"TAU_USER\" ";
     myfile << endl;
@@ -1009,7 +1009,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
         } else {
           myfile << "\"" << action_name << "\" ";
           format_line (myfile, p);
-          not_main += (p->get_accumulated()*profiler::get_cpu_mhz()*1000000);
+          not_main += (p->get_accumulated(true)*1000000);
         }
       }
     }

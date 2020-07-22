@@ -83,7 +83,24 @@ const std::string& task_identifier::get_name(bool resolve) {
                                                       (*demangle(*tmp)));
             }
 #endif
-            name.assign((*demangle(name)));
+            static std::string cudastr("GPU: ");
+            static std::string kernel("cuLaunchKernel: ");
+            static std::string kernel2("cudaLaunchKernel: ");
+            if (name.find(cudastr) != std::string::npos) {
+              std::stringstream ss;
+              ss << cudastr << *demangle(name.erase(0,cudastr.length()));
+              name.assign(ss.str());
+            } else if (name.find(kernel) != std::string::npos) {
+              std::stringstream ss;
+              ss << kernel << *demangle(name.erase(0,kernel.length()));
+              name.assign(ss.str());
+            } else if (name.find(kernel2) != std::string::npos) {
+              std::stringstream ss;
+              ss << kernel2 << *demangle(name.erase(0,kernel2.length()));
+              name.assign(ss.str());
+            } else {
+              name.assign((*demangle(name)));
+            }
         }
       return name;
     }

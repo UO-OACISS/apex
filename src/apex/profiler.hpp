@@ -133,8 +133,8 @@ public:
         is_device(false),
         is_resume(resume),
         is_reset(reset), stopped(false) { };
-    // this constructor is for counters
-    profiler(task_identifier * id, double value_) :
+    // this constructor is for counters and device measurements
+    profiler(task_identifier * id, double value_, bool is_device_ = false) :
         task_id(id),
         tt_ptr(nullptr),
         start(MYCLOCK::now()),
@@ -144,8 +144,8 @@ public:
 #endif
         value(value_),
         children_value(0.0),
-        is_counter(true),
-        is_device(true),
+        is_counter(!is_device_),
+        is_device(is_device_),
         is_resume(false),
         is_reset(reset_type::NONE), stopped(true) { };
     //copy constructor
@@ -184,7 +184,7 @@ public:
         this->is_resume = true;
         start = MYCLOCK::now();
     };
-    double elapsed(void) {
+    double elapsed(bool scaled = false) {
         if(is_counter) {
             return value;
         } else if (is_device) {
@@ -193,7 +193,11 @@ public:
             std::chrono::duration<double> time_span =
             std::chrono::duration_cast<std::chrono::duration<double>>(end -
             start);
-            return time_span.count();
+            if (scaled) {
+                return time_span.count()*get_cpu_mhz();
+            } else {
+                return time_span.count();
+            }
         }
     }
     double exclusive_elapsed(void) {
