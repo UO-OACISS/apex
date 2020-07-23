@@ -185,10 +185,8 @@ public:
         start = MYCLOCK::now();
     };
     double elapsed(bool scaled = false) {
-        if(is_counter) {
+        if(is_counter || is_device) {
             return value;
-        } else if (is_device) {
-            return value/1000.0;
         } else {
             std::chrono::duration<double> time_span =
             std::chrono::duration_cast<std::chrono::duration<double>>(end -

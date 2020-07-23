@@ -836,6 +836,15 @@ void set_state(apex_thread_state state) {
     instance->set_state(thread_instance::get_id(), state);
 }
 
+void apex::complete_task(std::shared_ptr<task_wrapper> task_wrapper_ptr) {
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (_notify_listeners) {
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            instance->listeners[i]->on_task_complete(task_wrapper_ptr);
+        }
+    }
+}
+
 void stop(profiler* the_profiler, bool cleanup) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) {
@@ -879,12 +888,7 @@ void stop(profiler* the_profiler, bool cleanup) {
         APEX_UTIL_REF_COUNT_STOP
     }
     if (cleanup) {
-        if (_notify_listeners) {
-            //read_lock_type l(instance->listener_mutex);
-            for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-                instance->listeners[i]->on_task_complete(p->tt_ptr);
-            }
-        }
+        instance->complete_task(p->tt_ptr);
         //instance->active_task_wrappers.erase(p->tt_ptr);
         p->tt_ptr = nullptr;
     }
@@ -936,12 +940,7 @@ void stop(std::shared_ptr<task_wrapper> tt_ptr) {
     } else {
         APEX_UTIL_REF_COUNT_STOP
     }
-    if (_notify_listeners) {
-        //read_lock_type l(instance->listener_mutex);
-        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_task_complete(tt_ptr);
-        }
-    }
+    instance->complete_task(tt_ptr);
 }
 
 void yield(profiler* the_profiler)

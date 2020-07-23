@@ -190,8 +190,6 @@ endif()
 # Compiler detection code
 ################################################################################
 
-set(NORMAL_COMPILER_WARNINGS "-Wextra -Waddress -Warray-bounds -Wuninitialized -Wreturn-type -Wall -fno-omit-frame-pointer ")
-
 # SET SANITIZE OPTIONS, IF DESIRED
 
 # defaults

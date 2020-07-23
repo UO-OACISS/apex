@@ -42,18 +42,30 @@ static uint64_t startTimestamp;
 CUpti_SubscriberHandle subscriber;
 
 /* The map that holds correlation IDs and matches them to GUIDs */
-std::unordered_map<uint32_t, uint64_t> correlation_map;
+std::unordered_map<uint32_t, std::shared_ptr<apex::task_wrapper>> correlation_map;
 std::mutex map_mutex;
 
-void store_profiler_data(const char * name, uint64_t start, uint64_t end) {
-      static apex::apex* instance = apex::apex::instance();
-      // get the elapsed time and scale to nanoseconds
-      double nanoseconds = ((double)(end - start)/1000.0);
-      // create an APEX profiler to store this data
-      std::shared_ptr<apex::profiler> p =
-        std::make_shared<apex::profiler>(apex::task_identifier::get_task_id(
-        name), nanoseconds, true);
-      instance->the_profiler_listener->push_profiler_public(p);
+void store_profiler_data(const char * name, uint32_t correlationId,
+    uint64_t start, uint64_t end) {
+    static apex::apex* instance = apex::apex::instance();
+    // get the elapsed time and scale to microseconds
+    double nanoseconds = ((double)(end - start)/1000000.0);
+    // get the parent GUID, then erase the correlation from the map
+    map_mutex.lock();
+    auto parent = correlation_map[correlationId];
+    correlation_map.erase(correlationId);
+    map_mutex.unlock();
+    // create a task_wrapper, as a child of the parent launch
+    auto tt = apex::new_task(name, UINT64_MAX, parent);
+    // create an APEX profiler to store this data
+    auto prof = std::make_shared<apex::profiler>(tt->task_id, nanoseconds, true);
+    tt->prof = prof.get();
+    prof->guid = tt->guid;
+    prof->tt_ptr = tt;
+    // fake out the profiler_listener
+    instance->the_profiler_listener->push_profiler_public(prof);
+    // have the listeners handle the end of this task
+    instance->complete_task(tt);
 }
 
 static const char *
@@ -206,7 +218,8 @@ printActivity(CUpti_Activity *record)
              memcpy->deviceId, memcpy->contextId, memcpy->streamId,
              memcpy->correlationId, memcpy->runtimeCorrelationId);
 #endif
-      store_profiler_data(getMemcpyKindString((CUpti_ActivityMemcpyKind) memcpy->copyKind), memcpy->start, memcpy->end);
+      store_profiler_data(getMemcpyKindString((CUpti_ActivityMemcpyKind) memcpy->copyKind),
+        memcpy->correlationId, memcpy->start, memcpy->end);
       break;
     }
 #if 0 // not until CUDA 11
@@ -219,7 +232,8 @@ printActivity(CUpti_Activity *record)
              (unsigned long long) (memcpy->end - startTimestamp),
              memcpy->deviceId, memcpy->contextId, memcpy->streamId,
              memcpy->correlationId, memcpy->runtimeCorrelationId);
-      store_profiler_data(getMemcpyKindString((CUpti_ActivityMemcpyKind) memcpy->copyKind), memcpy->start, memcpy->end);
+      store_profiler_data(getMemcpyKindString((CUpti_ActivityMemcpyKind) memcpy->copyKind),
+        memcpy->correlationId, memcpy->start, memcpy->end);
       break;
     }
 #endif
@@ -234,7 +248,7 @@ printActivity(CUpti_Activity *record)
              memset->deviceId, memset->contextId, memset->streamId,
              memset->correlationId);
 #endif
-      store_profiler_data("GPU: Memset", memset->start, memset->end);
+      store_profiler_data("GPU: Memset", memset->correlationId, memset->start, memset->end);
       break;
     }
   case CUPTI_ACTIVITY_KIND_KERNEL:
@@ -259,7 +273,7 @@ printActivity(CUpti_Activity *record)
 #endif
       std::stringstream ss;
       ss << "GPU: " << kernel->name;
-      store_profiler_data(ss.str().c_str(), kernel->start, kernel->end);
+      store_profiler_data(ss.str().c_str(), kernel->correlationId, kernel->start, kernel->end);
       break;
     }
   case CUPTI_ACTIVITY_KIND_DRIVER:
@@ -396,27 +410,28 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
      * to pass data from the start to the end event, but it isn't
      * broadly supported in the CUPTI interface, so we'll manage the
      * timer stack locally. */
-    thread_local static std::stack<apex::profiler*> timer_stack;
+    thread_local static std::stack<std::shared_ptr<apex::task_wrapper> > timer_stack;
     APEX_UNUSED(ud);
     APEX_UNUSED(id);
     APEX_UNUSED(domain);
     if (params == NULL) return;
-    apex::profiler *p = nullptr;
     CUpti_CallbackData * cbdata = (CUpti_CallbackData*)(params);
 
     if (cbdata->callbackSite == CUPTI_API_ENTER) {
-        // check for a memory copy event
+        std::stringstream ss;
+        ss << cbdata->functionName;
         if (cbdata->symbolName != NULL) {
-            std::stringstream ss;
-            ss << cbdata->functionName << ": " << cbdata->symbolName;
-            p = apex::start(ss.str());
-        } else {
-            p = apex::start(cbdata->functionName);
+            ss << ": " << cbdata->symbolName;
         }
-        timer_stack.push(p);
+        auto timer = apex::new_task(ss.str());
+        apex::start(timer);
+        timer_stack.push(timer);
+        map_mutex.lock();
+        correlation_map[cbdata->correlationId] = timer;
+        map_mutex.unlock();
     } else if (!timer_stack.empty()) {
-        p = timer_stack.top();
-        apex::stop(p);
+        auto timer = timer_stack.top();
+        apex::stop(timer);
         timer_stack.pop();
     }
 }

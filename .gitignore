@@ -11,3 +11,5 @@ regression*
 concurrentqueue
 perfstubs
 rapidjson
+taskgraph*dot
+apex*csv
