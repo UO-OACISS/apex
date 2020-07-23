@@ -10,6 +10,8 @@
 #include <cuda.h>
 #include <cupti.h>
 #include <stack>
+#include <unordered_map>
+#include <mutex>
 #include "apex.hpp"
 
 static void __attribute__((constructor)) initTrace(void);
@@ -38,6 +40,10 @@ static uint64_t startTimestamp;
 
 /* The callback subscriber */
 CUpti_SubscriberHandle subscriber;
+
+/* The map that holds correlation IDs and matches them to GUIDs */
+std::unordered_map<uint32_t, uint64_t> correlation_map;
+std::mutex map_mutex;
 
 void store_profiler_data(const char * name, uint64_t start, uint64_t end) {
       static apex::apex* instance = apex::apex::instance();
