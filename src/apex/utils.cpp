@@ -433,14 +433,27 @@ uint64_t test_for_MPI_comm_rank(uint64_t commrank) {
      * they are running in an MPI application.  For that reason, we double
      * check to make sure that we aren't in an MPI execution by checking
      * for some common environment variables. */
+    // PMI, MPICH, Cray, Intel, MVAPICH2...
+    const char * tmpvar = getenv("PMI_RANK");
+    if (tmpvar != NULL) {
+        commrank = atol(tmpvar);
+        // printf("Changing MPICH rank to %lu\n", commrank);
+        return commrank;
+    }
     // OpenMPI, Spectrum
-    const char * tmpvar = getenv("OMPI_COMM_WORLD_RANK");
+    tmpvar = getenv("OMPI_COMM_WORLD_RANK");
     if (tmpvar != NULL) {
         commrank = atol(tmpvar);
         // printf("Changing openMPI rank to %lu\n", commrank);
         return commrank;
     }
-    // Slurm
+    // PBS/Torque
+    tmpvar = getenv("PBS_TASKNUM");
+    if (tmpvar != NULL) {
+        commrank = atol(tmpvar);
+        return commrank;
+    }
+    // Slurm - last resort
     tmpvar = getenv("SLURM_PROCID");
     if (tmpvar != NULL) {
         commrank = atol(tmpvar);
@@ -455,14 +468,29 @@ uint64_t test_for_MPI_comm_size(uint64_t commsize) {
      * they are running in an MPI application.  For that reason, we double
      * check to make sure that we aren't in an MPI execution by checking
      * for some common environment variables. */
+    // PMI, MPICH, Cray, Intel, MVAPICH2...
+    const char * tmpvar = getenv("PMI_SIZE");
+    if (tmpvar != NULL) {
+        commsize = atol(tmpvar);
+        // printf("Changing MPICH size to %lu\n", commsize);
+        return commsize;
+    }
     // OpenMPI, Spectrum
-    const char * tmpvar = getenv("OMPI_COMM_WORLD_SIZE");
+    tmpvar = getenv("OMPI_COMM_WORLD_SIZE");
     if (tmpvar != NULL) {
         commsize = atol(tmpvar);
         // printf("Changing openMPI size to %lu\n", commsize);
         return commsize;
     }
-    // Slurm
+    // PBS/Torque - no variable specifies number of nodes...
+#if 0
+    tmpvar = getenv("PBS_TASKNUM"); // number of tasks requested
+    if (tmpvar != NULL) {
+        commsize = atol(tmpvar);
+        return commsize;
+    }
+#endif
+    // Slurm - last resort
     tmpvar = getenv("SLURM_NNODES");
     if (tmpvar != NULL) {
         commsize = atol(tmpvar);
