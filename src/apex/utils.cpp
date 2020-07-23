@@ -427,5 +427,49 @@ uint32_t simple_reverse(uint32_t x)
     return x;
 }
 
+uint64_t test_for_MPI_comm_rank(uint64_t commrank) {
+    /* Some configurations might use MPI without telling APEX - they can
+     * call apex::init() with a rank of 0 and size of 1 even though
+     * they are running in an MPI application.  For that reason, we double
+     * check to make sure that we aren't in an MPI execution by checking
+     * for some common environment variables. */
+    // OpenMPI, Spectrum
+    const char * tmpvar = getenv("OMPI_COMM_WORLD_RANK");
+    if (tmpvar != NULL) {
+        commrank = atol(tmpvar);
+        // printf("Changing openMPI rank to %lu\n", commrank);
+        return commrank;
+    }
+    // Slurm
+    tmpvar = getenv("SLURM_PROCID");
+    if (tmpvar != NULL) {
+        commrank = atol(tmpvar);
+        return commrank;
+    }
+    return commrank;
+}
+
+uint64_t test_for_MPI_comm_size(uint64_t commsize) {
+    /* Some configurations might use MPI without telling APEX - they can
+     * call apex::init() with a rank of 0 and size of 1 even though
+     * they are running in an MPI application.  For that reason, we double
+     * check to make sure that we aren't in an MPI execution by checking
+     * for some common environment variables. */
+    // OpenMPI, Spectrum
+    const char * tmpvar = getenv("OMPI_COMM_WORLD_SIZE");
+    if (tmpvar != NULL) {
+        commsize = atol(tmpvar);
+        // printf("Changing openMPI size to %lu\n", commsize);
+        return commsize;
+    }
+    // Slurm
+    tmpvar = getenv("SLURM_NNODES");
+    if (tmpvar != NULL) {
+        commsize = atol(tmpvar);
+        return commsize;
+    }
+    return commsize;
+}
+
 } // namespace apex
 

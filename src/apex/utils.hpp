@@ -241,5 +241,8 @@ inline char filesystem_separator()
 #endif
 }
 
+uint64_t test_for_MPI_comm_rank(uint64_t commrank);
+uint64_t test_for_MPI_comm_size(uint64_t commsize);
+
 }
 

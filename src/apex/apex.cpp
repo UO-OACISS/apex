@@ -350,6 +350,8 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
     // FIRST! make sure APEX thinks this is a worker thread (the main thread
     // is always a worker thread)
     thread_instance::instance(true);
+    comm_rank = test_for_MPI_comm_rank(comm_rank);
+    comm_size = test_for_MPI_comm_size(comm_size);
     // protect against multiple initializations
 #ifdef APEX_WITH_JUPYTER_SUPPORT
     if (_registered || _initialized) {
