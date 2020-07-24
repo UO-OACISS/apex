@@ -30,7 +30,6 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake/Modules)
 if(APEX_USE_CUDA)
     enable_language(CUDA)
     find_package(CUDAToolkit REQUIRED QUIET COMPONENTS CUPTI)
-    set(USE_CLOCK_TIMESTAMP ON)
 endif(APEX_USE_CUDA)
 
 # if the user didn't specify, set the installation directory.

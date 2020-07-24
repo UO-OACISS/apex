@@ -52,59 +52,64 @@ std::mutex bfd_mutex;
            the program exits and the pointers aren't needed any more. */
     }
 
-const std::string& task_identifier::get_name(bool resolve) {
-    if (!has_name && resolve) {
-      if (_resolved_name == "" && address != APEX_NULL_FUNCTION_ADDRESS) {
-      // only let one thread update the name of this task_identifier
-      std::unique_lock<std::mutex> queue_lock(bfd_mutex);
-        // check again, another thread may have resolved it.
-        if (_resolved_name == "") {
-          //_resolved_name = lookup_address((uintptr_t)address, false);
-          _resolved_name = thread_instance::instance().map_addr_to_name(address);
-          _resolved_name.assign((*demangle(_resolved_name)));
-        }
-      }
-      return _resolved_name;
-    } else {
-        if (resolve) {
+    std::string task_identifier::get_name(bool resolve) {
+        if (!has_name && resolve) {
+            if (_resolved_name == "" && address != APEX_NULL_FUNCTION_ADDRESS) {
+                // only let one thread update the name of this task_identifier
+                std::unique_lock<std::mutex> queue_lock(bfd_mutex);
+                // check again, another thread may have resolved it.
+                if (_resolved_name == "") {
+                    //_resolved_name = lookup_address((uintptr_t)address, false);
+                    _resolved_name = thread_instance::instance().map_addr_to_name(address);
+                    _resolved_name.assign((*demangle(_resolved_name)));
+                }
+            }
+            std::string retval(_resolved_name);
+            return retval;
+        } else {
+            std::string retval(name);
+            if (resolve) {
 #ifdef APEX_HAVE_BFD
-            REGEX_NAMESPACE::regex rx (".*UNRESOLVED ADDR (.*)");
-            if (REGEX_NAMESPACE::regex_match (name,rx)) {
-                const REGEX_NAMESPACE::regex separator(" ADDR ");
-                REGEX_NAMESPACE::sregex_token_iterator
-                    token(name.begin(), name.end(), separator, -1);
-                *token++; // ignore
-                std::string addr_str = *token++;
-                void* addr_addr;
-                sscanf(addr_str.c_str(), "%p", &addr_addr);
-                std::string * tmp = lookup_address((uintptr_t)addr_addr, true);
-                REGEX_NAMESPACE::regex old_address("UNRESOLVED ADDR " + addr_str);
-                name = REGEX_NAMESPACE::regex_replace(name, old_address,
-                                                      (*demangle(*tmp)));
-            }
+                REGEX_NAMESPACE::regex rx (".*UNRESOLVED ADDR (.*)");
+                if (REGEX_NAMESPACE::regex_match (retval,rx)) {
+                    const REGEX_NAMESPACE::regex separator(" ADDR ");
+                    REGEX_NAMESPACE::sregex_token_iterator
+                        token(retval.begin(), retval.end(), separator, -1);
+                    *token++; // ignore
+                    std::string addr_str = *token++;
+                    void* addr_addr;
+                    sscanf(addr_str.c_str(), "%p", &addr_addr);
+                    std::string * tmp = lookup_address((uintptr_t)addr_addr, true);
+                    REGEX_NAMESPACE::regex old_address("UNRESOLVED ADDR " + addr_str);
+                    retval = REGEX_NAMESPACE::regex_replace(retval, old_address,
+                            (*demangle(*tmp)));
+                }
 #endif
-            static std::string cudastr("GPU: ");
-            static std::string kernel("cuLaunchKernel: ");
-            static std::string kernel2("cudaLaunchKernel: ");
-            if (name.find(cudastr) != std::string::npos) {
-              std::stringstream ss;
-              ss << cudastr << *demangle(name.erase(0,cudastr.length()));
-              name.assign(ss.str());
-            } else if (name.find(kernel) != std::string::npos) {
-              std::stringstream ss;
-              ss << kernel << *demangle(name.erase(0,kernel.length()));
-              name.assign(ss.str());
-            } else if (name.find(kernel2) != std::string::npos) {
-              std::stringstream ss;
-              ss << kernel2 << *demangle(name.erase(0,kernel2.length()));
-              name.assign(ss.str());
-            } else {
-              name.assign((*demangle(name)));
+                static std::string cudastr("GPU: ");
+                static std::string kernel("cudaLaunchKernel: ");
+                if (retval.find(cudastr) != std::string::npos) {
+                    std::stringstream ss;
+                    std::string tmp = retval.substr(cudastr.size(),
+                            retval.size() - cudastr.size());
+                    std::string * demangled = demangle(tmp);
+                    ss << cudastr << *demangled;
+                    free(demangled);
+                    retval.assign(ss.str());
+                } else if (retval.find(kernel) != std::string::npos) {
+                    std::stringstream ss;
+                    std::string tmp = retval.substr(kernel.size(),
+                            retval.size() - kernel.size());
+                    std::string * demangled = demangle(tmp);
+                    ss << kernel << *demangled;
+                    free(demangled);
+                    retval.assign(ss.str());
+                } else {
+                    retval.assign((*demangle(retval)));
+                }
             }
+            return retval;
         }
-      return name;
     }
-  }
 
   task_identifier::apex_name_map& task_identifier::get_task_id_name_map(void) {
       static APEX_NATIVE_TLS apex_name_map task_id_name_map;

@@ -13,6 +13,8 @@
 #include <unordered_map>
 #include <mutex>
 #include "apex.hpp"
+#include "profiler.hpp"
+#include "thread_instance.hpp"
 
 static void __attribute__((constructor)) initTrace(void);
 //static void __attribute__((destructor)) flushTrace(void);
@@ -45,56 +47,90 @@ CUpti_SubscriberHandle subscriber;
 std::unordered_map<uint32_t, std::shared_ptr<apex::task_wrapper>> correlation_map;
 std::mutex map_mutex;
 
+bool& get_registered(void) {
+    static APEX_NATIVE_TLS bool registered{false};
+    return registered;
+}
+
+bool register_myself(void) {
+    bool& registered = get_registered();
+    if (!registered) {
+        // make sure APEX knows this is not a worker thread
+        apex::thread_instance::instance(false);
+        /* make sure the profiler_listener has a queue that this
+         * thread can push sampled values to */
+        apex::apex::async_thread_setup();
+        registered = true;
+    }
+    return registered;
+}
+
 void store_profiler_data(const char * name, uint32_t correlationId,
     uint64_t start, uint64_t end) {
+    // Get the singleton APEX instance
     static apex::apex* instance = apex::apex::instance();
-    // get the elapsed time and scale to microseconds
-    double nanoseconds = ((double)(end - start)/1000000.0);
     // get the parent GUID, then erase the correlation from the map
     map_mutex.lock();
     auto parent = correlation_map[correlationId];
     correlation_map.erase(correlationId);
     map_mutex.unlock();
-    // create a task_wrapper, as a child of the parent launch
-    auto tt = apex::new_task(name, UINT64_MAX, parent);
-    // create an APEX profiler to store this data
-    auto prof = std::make_shared<apex::profiler>(tt->task_id, nanoseconds, true);
-    tt->prof = prof.get();
-    prof->guid = tt->guid;
-    prof->tt_ptr = tt;
+    // Build the name
+    std::stringstream ss;
+    ss << "GPU: " << name;
+    std::string tmp{ss.str()};
+    // create a task_wrapper, as a GPU child of the parent on the CPU side
+    auto tt = apex::new_task(tmp, UINT64_MAX, parent);
+    // create an APEX profiler to store this data - we can't start
+    // then stop because we have timestamps already.
+    auto prof = std::make_shared<apex::profiler>(tt->task_id);
+    prof->set_start(start);
+    prof->set_end(end);
+    //tt->prof = prof.get();
+    //prof->guid = tt->guid;
+    //prof->tt_ptr = tt;
     // fake out the profiler_listener
     instance->the_profiler_listener->push_profiler_public(prof);
     // have the listeners handle the end of this task
     instance->complete_task(tt);
 }
 
-static const char *
+static const std::string&
 getMemcpyKindString(CUpti_ActivityMemcpyKind kind)
 {
-  switch (kind) {
-  case CUPTI_ACTIVITY_MEMCPY_KIND_HTOD:
-    return "GPU: Memory Copy HtoD";
-  case CUPTI_ACTIVITY_MEMCPY_KIND_DTOH:
-    return "GPU: Memory Copy DtoH";
-  case CUPTI_ACTIVITY_MEMCPY_KIND_HTOA:
-    return "GPU: Memory Copy HtoA";
-  case CUPTI_ACTIVITY_MEMCPY_KIND_ATOH:
-    return "GPU: Memory Copy AtoH";
-  case CUPTI_ACTIVITY_MEMCPY_KIND_ATOA:
-    return "GPU: Memory Copy AtoA";
-  case CUPTI_ACTIVITY_MEMCPY_KIND_ATOD:
-    return "GPU: Memory Copy AtoD";
-  case CUPTI_ACTIVITY_MEMCPY_KIND_DTOA:
-    return "GPU: Memory Copy DtoA";
-  case CUPTI_ACTIVITY_MEMCPY_KIND_DTOD:
-    return "GPU: Memory Copy DtoD";
-  case CUPTI_ACTIVITY_MEMCPY_KIND_HTOH:
-    return "GPU: Memory Copy HtoH";
-  default:
-    break;
-  }
+    static const std::string htod{"Memory Copy HtoD"};
+    static const std::string dtoh{"Memory Copy DtoH"};
+    static const std::string htoa{"Memory Copy HtoA"};
+    static const std::string atoh{"Memory Copy AtoH"};
+    static const std::string atoa{"Memory Copy AtoA"};
+    static const std::string atod{"Memory Copy AtoD"};
+    static const std::string dtoa{"Memory Copy DtoA"};
+    static const std::string dtod{"Memory Copy DtoD"};
+    static const std::string htoh{"Memory Copy HtoH"};
+    static const std::string unknown{"<unknown>"};
+    switch (kind) {
+        case CUPTI_ACTIVITY_MEMCPY_KIND_HTOD:
+            return htod;
+        case CUPTI_ACTIVITY_MEMCPY_KIND_DTOH:
+            return dtoh;
+        case CUPTI_ACTIVITY_MEMCPY_KIND_HTOA:
+            return htoa;
+        case CUPTI_ACTIVITY_MEMCPY_KIND_ATOH:
+            return atoh;
+        case CUPTI_ACTIVITY_MEMCPY_KIND_ATOA:
+            return atoa;
+        case CUPTI_ACTIVITY_MEMCPY_KIND_ATOD:
+            return atod;
+        case CUPTI_ACTIVITY_MEMCPY_KIND_DTOA:
+            return dtoa;
+        case CUPTI_ACTIVITY_MEMCPY_KIND_DTOD:
+            return dtod;
+        case CUPTI_ACTIVITY_MEMCPY_KIND_HTOH:
+            return htoh;
+        default:
+            break;
+    }
 
-  return "<unknown>";
+    return unknown;
 }
 
 const char *
@@ -102,13 +138,13 @@ getActivityOverheadKindString(CUpti_ActivityOverheadKind kind)
 {
   switch (kind) {
   case CUPTI_ACTIVITY_OVERHEAD_DRIVER_COMPILER:
-    return "GPU: COMPILER";
+    return "COMPILER";
   case CUPTI_ACTIVITY_OVERHEAD_CUPTI_BUFFER_FLUSH:
-    return "GPU: BUFFER_FLUSH";
+    return "BUFFER_FLUSH";
   case CUPTI_ACTIVITY_OVERHEAD_CUPTI_INSTRUMENTATION:
-    return "GPU: INSTRUMENTATION";
+    return "INSTRUMENTATION";
   case CUPTI_ACTIVITY_OVERHEAD_CUPTI_RESOURCE:
-    return "GPU: RESOURCE";
+    return "RESOURCE";
   default:
     break;
   }
@@ -121,15 +157,15 @@ getActivityObjectKindString(CUpti_ActivityObjectKind kind)
 {
   switch (kind) {
   case CUPTI_ACTIVITY_OBJECT_PROCESS:
-    return "GPU: PROCESS";
+    return "PROCESS";
   case CUPTI_ACTIVITY_OBJECT_THREAD:
-    return "GPU: THREAD";
+    return "THREAD";
   case CUPTI_ACTIVITY_OBJECT_DEVICE:
-    return "GPU: DEVICE";
+    return "DEVICE";
   case CUPTI_ACTIVITY_OBJECT_CONTEXT:
-    return "GPU: CONTEXT";
+    return "CONTEXT";
   case CUPTI_ACTIVITY_OBJECT_STREAM:
-    return "GPU: STREAM";
+    return "STREAM";
   default:
     break;
   }
@@ -158,6 +194,7 @@ getActivityObjectKindId(CUpti_ActivityObjectKind kind, CUpti_ActivityObjectKindI
   return 0xffffffff;
 }
 
+#if 0
 static const char *
 getComputeApiKindString(CUpti_ActivityComputeApiKind kind)
 {
@@ -172,12 +209,14 @@ getComputeApiKindString(CUpti_ActivityComputeApiKind kind)
 
   return "<unknown>";
 }
+#endif
 
 static void
 printActivity(CUpti_Activity *record)
 {
   switch (record->kind)
   {
+#if 0
   case CUPTI_ACTIVITY_KIND_DEVICE:
     {
       CUpti_ActivityDevice2 *device = (CUpti_ActivityDevice2 *) record;
@@ -206,6 +245,7 @@ printActivity(CUpti_Activity *record)
              (int) context->nullStreamId);
       break;
     }
+#endif
   case CUPTI_ACTIVITY_KIND_MEMCPY:
   case CUPTI_ACTIVITY_KIND_MEMCPY2:
     {
@@ -218,7 +258,7 @@ printActivity(CUpti_Activity *record)
              memcpy->deviceId, memcpy->contextId, memcpy->streamId,
              memcpy->correlationId, memcpy->runtimeCorrelationId);
 #endif
-      store_profiler_data(getMemcpyKindString((CUpti_ActivityMemcpyKind) memcpy->copyKind),
+      store_profiler_data(getMemcpyKindString((CUpti_ActivityMemcpyKind) memcpy->copyKind).c_str(),
         memcpy->correlationId, memcpy->start, memcpy->end);
       break;
     }
@@ -248,7 +288,7 @@ printActivity(CUpti_Activity *record)
              memset->deviceId, memset->contextId, memset->streamId,
              memset->correlationId);
 #endif
-      store_profiler_data("GPU: Memset", memset->correlationId, memset->start, memset->end);
+      store_profiler_data("Memset", memset->correlationId, memset->start, memset->end);
       break;
     }
   case CUPTI_ACTIVITY_KIND_KERNEL:
@@ -271,11 +311,10 @@ printActivity(CUpti_Activity *record)
              kernel->staticSharedMemory, kernel->dynamicSharedMemory);
       printf("%f\n", nanoseconds);
 #endif
-      std::stringstream ss;
-      ss << "GPU: " << kernel->name;
-      store_profiler_data(ss.str().c_str(), kernel->correlationId, kernel->start, kernel->end);
+      store_profiler_data(kernel->name, kernel->correlationId, kernel->start, kernel->end);
       break;
     }
+#if 0
   case CUPTI_ACTIVITY_KIND_DRIVER:
     {
       CUpti_ActivityAPI *api = (CUpti_ActivityAPI *) record;
@@ -355,8 +394,11 @@ printActivity(CUpti_Activity *record)
              getActivityObjectKindId(overhead->objectKind, &overhead->objectId));
       break;
     }
+#endif
   default:
+#if 0
     printf("  <unknown>\n");
+#endif
     break;
   }
 }
@@ -376,6 +418,8 @@ void CUPTIAPI bufferRequested(uint8_t **buffer, size_t *size, size_t *maxNumReco
 
 void CUPTIAPI bufferCompleted(CUcontext ctx, uint32_t streamId, uint8_t *buffer, size_t size, size_t validSize)
 {
+  static bool registered = register_myself();
+  APEX_UNUSED(registered);
   CUptiResult status;
   CUpti_Activity *record = NULL;
   APEX_UNUSED(size);
@@ -410,7 +454,7 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
      * to pass data from the start to the end event, but it isn't
      * broadly supported in the CUPTI interface, so we'll manage the
      * timer stack locally. */
-    thread_local static std::stack<std::shared_ptr<apex::task_wrapper> > timer_stack;
+    static APEX_NATIVE_TLS std::stack<std::shared_ptr<apex::task_wrapper> > timer_stack;
     APEX_UNUSED(ud);
     APEX_UNUSED(id);
     APEX_UNUSED(domain);
@@ -420,10 +464,14 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
     if (cbdata->callbackSite == CUPTI_API_ENTER) {
         std::stringstream ss;
         ss << cbdata->functionName;
-        if (cbdata->symbolName != NULL) {
+        if (cbdata->symbolName != NULL && strlen(cbdata->symbolName) > 0) {
             ss << ": " << cbdata->symbolName;
         }
-        auto timer = apex::new_task(ss.str());
+        std::string tmp(ss.str());
+        /*
+        std::string tmp(cbdata->functionName);
+        */
+        auto timer = apex::new_task(tmp);
         apex::start(timer);
         timer_stack.push(timer);
         map_mutex.lock();
@@ -436,9 +484,10 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
     }
 }
 
-void
-initTrace()
-{
+void initTrace() {
+  bool& registered = get_registered();
+  registered = true;
+
   size_t attrValue = 0, attrValueSize = sizeof(size_t);
   // Device activity record is created when CUDA initializes, so we
   // want to enable it before cuInit() or any CUDA runtime call.

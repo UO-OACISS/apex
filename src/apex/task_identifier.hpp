@@ -47,8 +47,7 @@ public:
   task_identifier(apex_function_address a) :
       address(a), name(""), _resolved_name(""), has_name(false) {};
   task_identifier(const std::string& n) :
-      address(0L), name(n), _resolved_name(""), has_name(true) {
-      };
+      address(0L), name(n), _resolved_name(""), has_name(true) {};
   // The copy constructor doesn't copy the resolved name.  That's because
   // it would be too expensive to lock control to it, since it can be
   // updated by another thread. Therefore, leave it unresolved, no one will
@@ -60,7 +59,7 @@ public:
 
   static task_identifier * get_task_id (apex_function_address a);
   static task_identifier * get_task_id (const std::string& n);
-  const std::string& get_name(bool resolve = true);
+  std::string get_name(bool resolve = true);
   ~task_identifier() { }
   // requried for using this class as a key in an unordered map.
   // the hash function is defined below.

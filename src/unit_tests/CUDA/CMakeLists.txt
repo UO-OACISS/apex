@@ -9,8 +9,11 @@ set(example_programs
     apex_cuda
     apex_vector
     multiGpuThread
-    pi
    )
+
+if (OPENMP_FOUND)
+  set(example_programs "${example_programs};pi")
+endif (OPENMP_FOUND)
 
 message(INFO "Using CUDA libraries: ${CUDA_LIBRARIES}")
 
@@ -21,7 +24,7 @@ foreach(example_program ${example_programs})
   set(sources ${example_program}.cu)
   source_group("Source Files" FILES ${sources})
   add_executable("${example_program}_cu" ${sources})
-  target_link_libraries ("${example_program}_cu" apex ${OMPT_LIBRARIES} ${LIBS} cuda curand)
+  target_link_libraries ("${example_program}_cu" apex ${LIBS} OpenMP::OpenMP_CXX cuda curand)
     if (BUILD_STATIC_EXECUTABLES)
         set_target_properties("${example_program}_cu" PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
     endif()

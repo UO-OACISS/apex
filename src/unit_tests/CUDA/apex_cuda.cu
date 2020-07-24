@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include "apex_api.hpp"
 
+#define ITERATIONS 64
+
 struct DataElement
 {
   char *name;
@@ -35,7 +37,10 @@ int main(int argc, char * argv[])
   cudaMallocManaged((void**)&(e->name), sizeof(char) * (strlen("hello") + 1) );
   strcpy(e->name, "hello");
 
-  launch(e);
+  int i;
+  for(i = 0 ; i < ITERATIONS ; i++) {
+    launch(e);
+  }
 
   printf("On host: name=%s, value=%d\n", e->name, e->value);
 

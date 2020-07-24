@@ -42,7 +42,7 @@ class disabled_profiler_exception : public std::exception {
     }
 };
 
-#ifndef APEX_USE_CLOCK_TIMESTAMP
+#if !defined(APEX_USE_CLOCK_TIMESTAMP) && !defined(APEX_USE_CUDA)
 template<std::intmax_t clock_freq>
 struct rdtsc_clock {
     typedef unsigned long long rep;
@@ -62,7 +62,7 @@ struct rdtsc_clock {
 };
 #endif
 
-#ifdef APEX_USE_CLOCK_TIMESTAMP
+#if defined(APEX_USE_CLOCK_TIMESTAMP) || defined(APEX_USE_CUDA)
 #define MYCLOCK std::chrono::CLOCK_TYPE
 #else
 typedef rdtsc_clock<1> OneHzClock;
@@ -87,7 +87,6 @@ public:
     //bool have_name;
     uint64_t guid;
     bool is_counter;
-    bool is_device;
     bool is_resume; // for yield or resume
     reset_type is_reset;
     bool stopped;
@@ -110,9 +109,8 @@ public:
 #endif
         value(0.0),
         children_value(0.0),
-        guid(0),
+        guid(task->guid),
         is_counter(false),
-        is_device(false),
         is_resume(resume),
         is_reset(reset), stopped(false) { task->prof = this; };
     // this constructor is for resetting profile values
@@ -130,11 +128,10 @@ public:
         children_value(0.0),
         guid(0),
         is_counter(false),
-        is_device(false),
         is_resume(resume),
         is_reset(reset), stopped(false) { };
-    // this constructor is for counters and device measurements
-    profiler(task_identifier * id, double value_, bool is_device_ = false) :
+    // this constructor is for counters
+    profiler(task_identifier * id, double value_) :
         task_id(id),
         tt_ptr(nullptr),
         start(MYCLOCK::now()),
@@ -144,24 +141,24 @@ public:
 #endif
         value(value_),
         children_value(0.0),
-        is_counter(!is_device_),
-        is_device(is_device_),
+        is_counter(true),
         is_resume(false),
         is_reset(reset_type::NONE), stopped(true) { };
     //copy constructor
     profiler(const profiler& in) :
         task_id(in.task_id),
-           tt_ptr(in.tt_ptr),
+        tt_ptr(in.tt_ptr),
         start(in.start),
         end(in.end),
         value(in.value),
         children_value(in.children_value),
+        guid(in.guid),
         is_counter(in.is_counter),
-        is_device(in.is_device),
         is_resume(in.is_resume), // for yield or resume
         is_reset(in.is_reset),
         stopped(in.stopped)
     {
+        printf("COPY!\n"); fflush(stdout);
 #if APEX_HAVE_PAPI
         for (int i = 0 ; i < 8 ; i++) {
             papi_start_values[i] = in.papi_start_values[i];
@@ -171,6 +168,12 @@ public:
     }
     ~profiler(void) { /* not much to do here. */ };
     // for "yield" support
+    void set_start(uint64_t timestamp) {
+        start = MYCLOCK::time_point(MYCLOCK::duration(timestamp));
+    }
+    void set_end(uint64_t timestamp) {
+        end = MYCLOCK::time_point(MYCLOCK::duration(timestamp));
+    }
     void stop(bool is_resume) {
         this->is_resume = is_resume;
         end = MYCLOCK::now();
@@ -185,7 +188,7 @@ public:
         start = MYCLOCK::now();
     };
     double elapsed(bool scaled = false) {
-        if(is_counter || is_device) {
+        if(is_counter) {
             return value;
         } else {
             std::chrono::duration<double> time_span =
@@ -212,7 +215,7 @@ public:
 
     /* This function returns 1/X, where "X" is the MHz rating of the CPU. */
     static double get_cpu_mhz () {
-#ifdef APEX_USE_CLOCK_TIMESTAMP
+#if defined(APEX_USE_CLOCK_TIMESTAMP) || defined (APEX_USE_CUDA)
         return 1.0;
 #else
         static double ticks_per_period = 0.0;
@@ -267,7 +270,7 @@ public:
         return duration;
     }
     double normalized_timestamp(void) {
-        if(is_counter || is_device) {
+        if(is_counter) {
             return value;
         } else {
             std::chrono::duration<double> time_span =

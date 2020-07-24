@@ -369,8 +369,7 @@ std::unordered_set<profile*> free_profiles;
       /* write the sample to the file */
       if (apex_options::task_scatterplot()) {
         if (!p->is_counter) {
-            //static int thresh = RAND_MAX/100;
-            static int thresh = RAND_MAX;
+            static int thresh = RAND_MAX/100;
             if (std::rand() < thresh) {
                 /* before calling p->get_task_id()->get_name(), make sure we create
                  * a thread_instance object that is NOT a worker. */
