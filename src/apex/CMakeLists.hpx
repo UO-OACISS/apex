@@ -59,6 +59,13 @@ else()
   set(APEX_ARCH_X86 FALSE)
 endif()
 
+if(APEX_USE_CUDA)
+    enable_language(CUDA)
+    include(APEX_SetupCUPTI)
+    set(cupti_sources activity_trace_sync.cpp)
+    include_directories (${CUDAToolkit_INCLUDE_DIR})
+endif(APEX_USE_CUDA)
+
 # If not x86, don't use RDTSC
 if(NOT APEX_ARCH_X86)
   target_compile_definitions(apex_flags INTERFACE APEX_USE_CLOCK_TIMESTAMP=1)
@@ -307,6 +314,7 @@ set(apex_sources
     ${sensor_sources}
     ${otf2_sources}
     ${ompt_sources}
+    ${cupti_sources}
     )
 
 include(GNUInstallDirs)
