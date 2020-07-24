@@ -345,6 +345,8 @@ hpx::runtime * apex::get_hpx_runtime(void) {
 uint64_t init(const char * thread_name, uint64_t comm_rank,
     uint64_t comm_size) {
     FUNCTION_ENTER
+    /* register the finalization function, for program exit */
+    std::atexit(cleanup);
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { FUNCTION_EXIT; return APEX_ERROR; }
     // FIRST! make sure APEX thinks this is a worker thread (the main thread
@@ -437,8 +439,6 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
             instance->listeners[i]->on_new_node(node_data);
         }
     }
-    /* register the finalization function, for program exit */
-    std::atexit(cleanup);
     FUNCTION_EXIT
     return APEX_NOERROR;
 }

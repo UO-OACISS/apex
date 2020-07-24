@@ -94,6 +94,30 @@ void store_profiler_data(const char * name, uint32_t correlationId,
     instance->complete_task(tt);
 }
 
+void store_counter_data(const char * name, const char * context, uint64_t end, double value) {
+    APEX_UNUSED(end);
+    std::stringstream ss;
+    ss << name;
+    if (context != nullptr) {
+        std::string * tmp = apex::demangle(context);
+        ss << " <- " << *tmp;
+        delete(tmp);
+    }
+    apex::sample_value(ss.str(), value);
+}
+
+void store_counter_data(const char * name, const char * context, uint64_t end, int32_t value) {
+    store_counter_data(name, context, end, (double)(value));
+}
+
+void store_counter_data(const char * name, const char * context, uint64_t end, uint32_t value) {
+    store_counter_data(name, context, end, (double)(value));
+}
+
+void store_counter_data(const char * name, const char * context, uint64_t end, uint64_t value) {
+    store_counter_data(name, context, end, (double)(value));
+}
+
 static const std::string&
 getMemcpyKindString(CUpti_ActivityMemcpyKind kind)
 {
@@ -216,12 +240,12 @@ printActivity(CUpti_Activity *record)
 {
   switch (record->kind)
   {
-#if 0
   case CUPTI_ACTIVITY_KIND_DEVICE:
     {
       CUpti_ActivityDevice2 *device = (CUpti_ActivityDevice2 *) record;
-      printf("DEVICE %s (%u), capability %u.%u, global memory (bandwidth %u GB/s, size %u MB), "
-             "multiprocessors %u, clock %u MHz\n",
+      printf("DEVICE %s (%u), capability %u.%u,\n"
+             "\tglobal memory (bandwidth %u GB/s, size %u MB),\n"
+             "\tmultiprocessors %u, clock %u MHz\n",
              device->name, device->id,
              device->computeCapabilityMajor, device->computeCapabilityMinor,
              (unsigned int) (device->globalMemoryBandwidth / 1024 / 1024),
@@ -229,6 +253,7 @@ printActivity(CUpti_Activity *record)
              device->numMultiprocessors, (unsigned int) (device->coreClockRate / 1000));
       break;
     }
+#if 0
   case CUPTI_ACTIVITY_KIND_DEVICE_ATTRIBUTE:
     {
       CUpti_ActivityDeviceAttribute *attribute = (CUpti_ActivityDeviceAttribute *)record;
@@ -258,8 +283,13 @@ printActivity(CUpti_Activity *record)
              memcpy->deviceId, memcpy->contextId, memcpy->streamId,
              memcpy->correlationId, memcpy->runtimeCorrelationId);
 #endif
-      store_profiler_data(getMemcpyKindString((CUpti_ActivityMemcpyKind) memcpy->copyKind).c_str(),
-        memcpy->correlationId, memcpy->start, memcpy->end);
+      const std::string & name{getMemcpyKindString((CUpti_ActivityMemcpyKind) memcpy->copyKind)};
+      store_profiler_data(name.c_str(), memcpy->correlationId, memcpy->start, memcpy->end);
+      store_counter_data("GPU: Bytes", name.c_str(), memcpy->end, memcpy->bytes);
+      uint64_t duration = memcpy->end - memcpy->start;
+      // dividing bytes by nanoseconds should give us GB/s
+      double bandwidth = (double)(memcpy->bytes) / (double)(duration);
+      store_counter_data("GPU: Bandwith (GB/s)", name.c_str(), memcpy->end, bandwidth);
       break;
     }
 #if 0 // not until CUDA 11
@@ -312,6 +342,18 @@ printActivity(CUpti_Activity *record)
       printf("%f\n", nanoseconds);
 #endif
       store_profiler_data(kernel->name, kernel->correlationId, kernel->start, kernel->end);
+      store_counter_data("GPU: Block X", kernel->name, kernel->end, kernel->blockX);
+      store_counter_data("GPU: Block Y", kernel->name, kernel->end, kernel->blockY);
+      store_counter_data("GPU: Block Z", kernel->name, kernel->end, kernel->blockZ);
+      store_counter_data("GPU: Dynamic Shared Memory (B)", kernel->name, kernel->end, kernel->dynamicSharedMemory);
+      store_counter_data("GPU: Grid X", kernel->name, kernel->end, kernel->gridX);
+      store_counter_data("GPU: Grid Y", kernel->name, kernel->end, kernel->gridY);
+      store_counter_data("GPU: Grid Z", kernel->name, kernel->end, kernel->gridZ);
+      store_counter_data("GPU: Local Memory Per Thread (B)", kernel->name, kernel->end, kernel->localMemoryPerThread);
+      store_counter_data("GPU: Local Memory Total (B)", kernel->name, kernel->end, kernel->localMemoryTotal);
+      store_counter_data("GPU: Registers Per Thread", kernel->name, kernel->end, kernel->registersPerThread);
+      store_counter_data("GPU: Shared Memory Size (B)", kernel->name, kernel->end, kernel->sharedMemoryExecuted);
+      store_counter_data("GPU: Static Shared Memory (B)", kernel->name, kernel->end, kernel->staticSharedMemory);
       break;
     }
 #if 0
@@ -448,8 +490,15 @@ void CUPTIAPI bufferCompleted(CUcontext ctx, uint32_t streamId, uint8_t *buffer,
   free(buffer);
 }
 
+bool initialize_first_time() {
+    apex::init("APEX CUDA support", 0, 1);
+    return true;
+}
+
 void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
     CUpti_CallbackId id, const void *params) {
+    static bool initialized = initialize_first_time();
+    APEX_UNUSED(initialized);
     /* Supposedly, we can use the ud or cbdata->contextData fields
      * to pass data from the start to the end event, but it isn't
      * broadly supported in the CUPTI interface, so we'll manage the
