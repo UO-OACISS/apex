@@ -9,15 +9,20 @@ if(APEX_WITH_CUDA)
 
   # Add an imported target
   add_library(cuda INTERFACE IMPORTED)
-  add_library(${CUDA_cupti_LIBRARY} INTERFACE IMPORTED)
+  add_library(cupti INTERFACE IMPORTED)
+  hpx_info("apex" "Building APEX with CUDA/CUPTI support.")
   set_property(TARGET cupti PROPERTY
     INTERFACE_INCLUDE_DIRECTORIES ${CUDAToolkit_INCLUDE_DIR})
-  #set_property(TARGET cuda PROPERTY
-    #INTERFACE_LINK_LIBRARIES ${CUDA_LIBRARY})
-  #set_property(TARGET cupti PROPERTY
-    #INTERFACE_LINK_LIBRARIES ${CUDA_cupti_LIBRARY})
+  set_property(TARGET cuda PROPERTY
+    INTERFACE_LINK_LIBRARIES ${CUDA_LIBRARY})
+  set_property(TARGET cupti PROPERTY
+    INTERFACE_LINK_LIBRARIES ${CUDA_cupti_LIBRARY})
 
-  list(APPEND _apex_imported_targets cuda cupti)
+  # Add the right definitions to the apex_flags target
+  target_compile_definitions(apex_flags INTERFACE APEX_WITH_CUDA)
+
+  list(APPEND _apex_imported_targets cuda)
+  list(APPEND _apex_imported_targets cupti)
 
 else()
   add_custom_target(project_cuda)

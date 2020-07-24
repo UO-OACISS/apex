@@ -42,7 +42,7 @@ class disabled_profiler_exception : public std::exception {
     }
 };
 
-#if !defined(APEX_USE_CLOCK_TIMESTAMP) && !defined(APEX_USE_CUDA)
+#if !defined(APEX_USE_CLOCK_TIMESTAMP) && !defined(APEX_WITH_CUDA)
 template<std::intmax_t clock_freq>
 struct rdtsc_clock {
     typedef unsigned long long rep;
@@ -62,7 +62,7 @@ struct rdtsc_clock {
 };
 #endif
 
-#if defined(APEX_USE_CLOCK_TIMESTAMP) || defined(APEX_USE_CUDA)
+#if defined(APEX_USE_CLOCK_TIMESTAMP) || defined(APEX_WITH_CUDA)
 #define MYCLOCK std::chrono::CLOCK_TYPE
 #else
 typedef rdtsc_clock<1> OneHzClock;
@@ -215,7 +215,7 @@ public:
 
     /* This function returns 1/X, where "X" is the MHz rating of the CPU. */
     static double get_cpu_mhz () {
-#if defined(APEX_USE_CLOCK_TIMESTAMP) || defined (APEX_USE_CUDA)
+#if defined(APEX_USE_CLOCK_TIMESTAMP) || defined (APEX_WITH_CUDA)
         return 1.0;
 #else
         static double ticks_per_period = 0.0;

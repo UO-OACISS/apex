@@ -25,9 +25,9 @@ if (OTF2_FOUND)
 SET(OTF2_SOURCE otf2_listener.cpp)
 endif(OTF2_FOUND)
 
-if (APEX_USE_CUDA)
+if (APEX_WITH_CUDA)
 SET(CUPTI_SOURCE activity_trace_async.cpp)
-endif(APEX_USE_CUDA)
+endif(APEX_WITH_CUDA)
 
 # Try to keep this in alphabetical order
 SET(all_SOURCE
@@ -80,9 +80,9 @@ if (MPI_CXX_FOUND)
   include_directories (${MPI_CXX_INCLUDE_PATH})
 endif(MPI_CXX_FOUND)
 
-if (APEX_USE_CUDA)
+if (APEX_WITH_CUDA)
   include_directories (${CUDAToolkit_INCLUDE_DIR})
-endif(APEX_USE_CUDA)
+endif(APEX_WITH_CUDA)
 
 # If we are building libapex.so, we want to include all the other libraries,
 # so that we can LD_PRELOAD this library with all requirements met.

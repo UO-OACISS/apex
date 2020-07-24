@@ -59,13 +59,6 @@ else()
   set(APEX_ARCH_X86 FALSE)
 endif()
 
-if(APEX_USE_CUDA)
-    enable_language(CUDA)
-    include(APEX_SetupCUPTI)
-    set(cupti_sources activity_trace_async.cpp)
-    include_directories (${CUDAToolkit_INCLUDE_DIR})
-endif(APEX_USE_CUDA)
-
 # If not x86, don't use RDTSC
 if(NOT APEX_ARCH_X86)
   target_compile_definitions(apex_flags INTERFACE APEX_USE_CLOCK_TIMESTAMP=1)
@@ -174,6 +167,12 @@ endif()
 #######################################################
 # We create one target per imported library (cleaner) #
 set(_apex_imported_targets "")
+
+include(APEX_SetupCUPTI)
+if(APEX_WITH_CUDA)
+    set(cupti_sources activity_trace_async.cpp)
+    #include_directories (${CUDAToolkit_INCLUDE_DIR})
+endif(APEX_WITH_CUDA)
 
 # Setup PAPI
 include(APEX_SetupPAPI)
@@ -343,8 +342,10 @@ target_include_directories(apex PUBLIC
 target_link_libraries(apex PRIVATE apex_flags)
 
 # Link to all imported targets
+hpx_info("apex" "Will build APEX with imported targets:")
 foreach(lib IN LISTS _apex_imported_targets)
   if (TARGET "${lib}")
+    hpx_info("apex" "    ${lib}")
     target_link_libraries(apex PRIVATE ${lib})
   endif()
 endforeach()

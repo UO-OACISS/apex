@@ -1355,7 +1355,7 @@ void flushTrace(void);
 
 void finalize()
 {
-#ifdef APEX_USE_CUDA
+#ifdef APEX_WITH_CUDA
     flushTrace();
 #endif
 #ifdef APEX_WITH_JUPYTER_SUPPORT
