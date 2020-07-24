@@ -62,7 +62,7 @@ endif()
 if(APEX_USE_CUDA)
     enable_language(CUDA)
     include(APEX_SetupCUPTI)
-    set(cupti_sources activity_trace_sync.cpp)
+    set(cupti_sources activity_trace_async.cpp)
     include_directories (${CUDAToolkit_INCLUDE_DIR})
 endif(APEX_USE_CUDA)
 
