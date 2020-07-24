@@ -27,10 +27,10 @@ endif()
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake/Modules)
 
-if(APEX_USE_CUDA)
+if(APEX_WITH_CUDA)
     enable_language(CUDA)
     find_package(CUDAToolkit REQUIRED QUIET COMPONENTS CUPTI)
-endif(APEX_USE_CUDA)
+endif(APEX_WITH_CUDA)
 
 # if the user didn't specify, set the installation directory.
 if(NOT DEFINED CMAKE_INSTALL_PREFIX OR CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -574,10 +574,14 @@ add_dependencies (project_otf2 project_activeharmony)
 # CUDA configuration
 ################################################################################
 
-if (APEX_USE_CUDA)
-    set(LIBS ${LIBS} cuda ${CUDA_cupti_LIBRARY})
-    add_definitions(-DAPEX_USE_CUDA)
-endif (APEX_USE_CUDA)
+if (APEX_WITH_CUDA)
+    find_package(CUPTI REQUIRED)
+    set(LIBS ${LIBS} ${CUPTI_LIBRARIES})
+    add_definitions(-DAPEX_WITH_CUDA)
+    message(INFO " Using CUPTI include: ${CUPTI_INCLUDE_DIRS}")
+    include_directories(${CUPTI_INCLUDE_DIRS})
+
+endif (APEX_WITH_CUDA)
 
 ################################################################################
 # MSR configuration

@@ -6,22 +6,23 @@
 if(APEX_WITH_CUDA)
   enable_language(CUDA)
   find_package(CUDAToolkit REQUIRED QUIET COMPONENTS CUPTI)
+  find_package(CUPTI REQUIRED QUIET COMPONENTS CUPTI)
 
   # Add an imported target
   add_library(cuda INTERFACE IMPORTED)
   add_library(cupti INTERFACE IMPORTED)
   hpx_info("apex" "Building APEX with CUDA/CUPTI support.")
   set_property(TARGET cupti PROPERTY
-    INTERFACE_INCLUDE_DIRECTORIES ${CUDAToolkit_INCLUDE_DIR})
+    INTERFACE_INCLUDE_DIRECTORIES ${CUPTI_INCLUDE_DIRS})
   set_property(TARGET cuda PROPERTY
     INTERFACE_LINK_LIBRARIES ${CUDA_LIBRARY})
   set_property(TARGET cupti PROPERTY
-    INTERFACE_LINK_LIBRARIES ${CUDA_cupti_LIBRARY})
+    INTERFACE_LINK_LIBRARIES ${CUPTI_LIBRARIES})
 
   # Add the right definitions to the apex_flags target
   target_compile_definitions(apex_flags INTERFACE APEX_WITH_CUDA)
 
-  list(APPEND _apex_imported_targets cuda)
+  list(APPEND _apex_imported_targets cudart)
   list(APPEND _apex_imported_targets cupti)
 
 else()
