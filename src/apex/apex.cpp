@@ -39,6 +39,7 @@
 
 #include "tau_listener.hpp"
 #include "profiler_listener.hpp"
+#include "trace_event_listener.hpp"
 #if defined(APEX_DEBUG) || defined(APEX_ERROR_HANDLING)
 // #define APEX_DEBUG_disabled
 #include "apex_error_handling.hpp"
@@ -260,6 +261,10 @@ void apex::_initialize()
             listeners.push_back(new otf2_listener());
         }
 #endif
+        if (apex_options::use_trace_event())
+        {
+            listeners.push_back(new trace_event_listener());
+        }
 
 /* For the Jupyter support, always enable the concurrency handler. */
 #ifndef APEX_WITH_JUPYTER_SUPPORT
