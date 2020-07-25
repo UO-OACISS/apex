@@ -288,7 +288,9 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_PIN_APEX_THREADS, pin_apex_threads, bool, true) \
     macro (APEX_TASK_SCATTERPLOT, task_scatterplot, bool, false) \
     macro (APEX_TIME_TOP_LEVEL_OS_THREADS, top_level_os_threads, bool, false) \
-    macro (APEX_POLICY_DRAIN_TIMEOUT, policy_drain_timeout, int, 1000)
+    macro (APEX_POLICY_DRAIN_TIMEOUT, policy_drain_timeout, int, 1000) \
+    macro (APEX_CUDA_COUNTERS, use_cuda_counters, int, false) \
+    macro (APEX_CUDA_KERNEL_DETAILS, use_cuda_kernel_details, int, false) \
 
 #define FOREACH_APEX_STRING_OPTION(macro) \
     macro (APEX_PAPI_METRICS, papi_metrics, char*, "") \

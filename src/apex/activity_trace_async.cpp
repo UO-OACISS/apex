@@ -65,10 +65,23 @@ bool register_myself(void) {
     return registered;
 }
 
-void store_profiler_data(const char * name, uint32_t correlationId,
+/*
+class foo : public std::set<std::string> {
+    public:
+    ~foo() {
+        for (auto i : *this) {
+            std::cout << i << std::endl;
+        }
+    }
+};
+*/
+
+void store_profiler_data(const std::string &name, uint32_t correlationId,
     uint64_t start, uint64_t end) {
     // Get the singleton APEX instance
     static apex::apex* instance = apex::apex::instance();
+    //static foo kernels;
+    //kernels.insert(std::string(name));
     // get the parent GUID, then erase the correlation from the map
     map_mutex.lock();
     auto parent = correlation_map[correlationId];
@@ -76,7 +89,7 @@ void store_profiler_data(const char * name, uint32_t correlationId,
     map_mutex.unlock();
     // Build the name
     std::stringstream ss;
-    ss << "GPU: " << name;
+    ss << "GPU: " << std::string(name);
     std::string tmp{ss.str()};
     // create a task_wrapper, as a GPU child of the parent on the CPU side
     auto tt = apex::new_task(tmp, UINT64_MAX, parent);
@@ -94,67 +107,52 @@ void store_profiler_data(const char * name, uint32_t correlationId,
     instance->complete_task(tt);
 }
 
-void store_counter_data(const char * name, const char * context, uint64_t end, double value) {
+void store_counter_data(const char * name, const std::string& context, uint64_t end, double value) {
     APEX_UNUSED(end);
     std::stringstream ss;
-    ss << name;
-    if (context != nullptr) {
-        std::string * tmp = apex::demangle(context);
-        ss << " <- " << *tmp;
-        delete(tmp);
-    }
+    ss << name << " <- " << context;
     apex::sample_value(ss.str(), value);
 }
 
-void store_counter_data(const char * name, const char * context, uint64_t end, int32_t value) {
+void store_counter_data(const char * name, const std::string& context, uint64_t end, int32_t value) {
     store_counter_data(name, context, end, (double)(value));
 }
 
-void store_counter_data(const char * name, const char * context, uint64_t end, uint32_t value) {
+void store_counter_data(const char * name, const std::string& context, uint64_t end, uint32_t value) {
     store_counter_data(name, context, end, (double)(value));
 }
 
-void store_counter_data(const char * name, const char * context, uint64_t end, uint64_t value) {
+void store_counter_data(const char * name, const std::string& context, uint64_t end, uint64_t value) {
     store_counter_data(name, context, end, (double)(value));
 }
 
-static const std::string&
+static const char *
 getMemcpyKindString(CUpti_ActivityMemcpyKind kind)
 {
-    static const std::string htod{"Memory Copy HtoD"};
-    static const std::string dtoh{"Memory Copy DtoH"};
-    static const std::string htoa{"Memory Copy HtoA"};
-    static const std::string atoh{"Memory Copy AtoH"};
-    static const std::string atoa{"Memory Copy AtoA"};
-    static const std::string atod{"Memory Copy AtoD"};
-    static const std::string dtoa{"Memory Copy DtoA"};
-    static const std::string dtod{"Memory Copy DtoD"};
-    static const std::string htoh{"Memory Copy HtoH"};
-    static const std::string unknown{"<unknown>"};
-    switch (kind) {
-        case CUPTI_ACTIVITY_MEMCPY_KIND_HTOD:
-            return htod;
-        case CUPTI_ACTIVITY_MEMCPY_KIND_DTOH:
-            return dtoh;
-        case CUPTI_ACTIVITY_MEMCPY_KIND_HTOA:
-            return htoa;
-        case CUPTI_ACTIVITY_MEMCPY_KIND_ATOH:
-            return atoh;
-        case CUPTI_ACTIVITY_MEMCPY_KIND_ATOA:
-            return atoa;
-        case CUPTI_ACTIVITY_MEMCPY_KIND_ATOD:
-            return atod;
-        case CUPTI_ACTIVITY_MEMCPY_KIND_DTOA:
-            return dtoa;
-        case CUPTI_ACTIVITY_MEMCPY_KIND_DTOD:
-            return dtod;
-        case CUPTI_ACTIVITY_MEMCPY_KIND_HTOH:
-            return htoh;
-        default:
-            break;
-    }
+  switch (kind) {
+  case CUPTI_ACTIVITY_MEMCPY_KIND_HTOD:
+    return "Memcpy HtoD";
+  case CUPTI_ACTIVITY_MEMCPY_KIND_DTOH:
+    return "Memcpy DtoH";
+  case CUPTI_ACTIVITY_MEMCPY_KIND_HTOA:
+    return "Memcpy HtoA";
+  case CUPTI_ACTIVITY_MEMCPY_KIND_ATOH:
+    return "Memcpy AtoH";
+  case CUPTI_ACTIVITY_MEMCPY_KIND_ATOA:
+    return "Memcpy AtoA";
+  case CUPTI_ACTIVITY_MEMCPY_KIND_ATOD:
+    return "Memcpy AtoD";
+  case CUPTI_ACTIVITY_MEMCPY_KIND_DTOA:
+    return "Memcpy DtoA";
+  case CUPTI_ACTIVITY_MEMCPY_KIND_DTOD:
+    return "Memcpy DtoD";
+  case CUPTI_ACTIVITY_MEMCPY_KIND_HTOH:
+    return "Memcpy HtoH";
+  default:
+    break;
+  }
 
-    return unknown;
+  return "<unknown>";
 }
 
 const char *
@@ -283,13 +281,15 @@ printActivity(CUpti_Activity *record)
              memcpy->deviceId, memcpy->contextId, memcpy->streamId,
              memcpy->correlationId, memcpy->runtimeCorrelationId);
 #endif
-      const std::string & name{getMemcpyKindString((CUpti_ActivityMemcpyKind) memcpy->copyKind)};
-      store_profiler_data(name.c_str(), memcpy->correlationId, memcpy->start, memcpy->end);
-      store_counter_data("GPU: Bytes", name.c_str(), memcpy->end, memcpy->bytes);
-      uint64_t duration = memcpy->end - memcpy->start;
-      // dividing bytes by nanoseconds should give us GB/s
-      double bandwidth = (double)(memcpy->bytes) / (double)(duration);
-      store_counter_data("GPU: Bandwith (GB/s)", name.c_str(), memcpy->end, bandwidth);
+      std::string name{getMemcpyKindString((CUpti_ActivityMemcpyKind) memcpy->copyKind)};
+      store_profiler_data(name, memcpy->correlationId, memcpy->start, memcpy->end);
+      if (apex::apex_options::use_cuda_counters()) {
+        store_counter_data("GPU: Bytes", name, memcpy->end, memcpy->bytes);
+        uint64_t duration = memcpy->end - memcpy->start;
+        // dividing bytes by nanoseconds should give us GB/s
+        double bandwidth = (double)(memcpy->bytes) / (double)(duration);
+        store_counter_data("GPU: Bandwith (GB/s)", name, memcpy->end, bandwidth);
+      }
       break;
     }
 #if 0 // not until CUDA 11
@@ -318,7 +318,8 @@ printActivity(CUpti_Activity *record)
              memset->deviceId, memset->contextId, memset->streamId,
              memset->correlationId);
 #endif
-      store_profiler_data("Memset", memset->correlationId, memset->start, memset->end);
+      static std::string name{"Memset"};
+      store_profiler_data(name, memset->correlationId, memset->start, memset->end);
       break;
     }
   case CUPTI_ACTIVITY_KIND_KERNEL:
@@ -341,19 +342,24 @@ printActivity(CUpti_Activity *record)
              kernel->staticSharedMemory, kernel->dynamicSharedMemory);
       printf("%f\n", nanoseconds);
 #endif
-      store_profiler_data(kernel->name, kernel->correlationId, kernel->start, kernel->end);
-      store_counter_data("GPU: Block X", kernel->name, kernel->end, kernel->blockX);
-      store_counter_data("GPU: Block Y", kernel->name, kernel->end, kernel->blockY);
-      store_counter_data("GPU: Block Z", kernel->name, kernel->end, kernel->blockZ);
-      store_counter_data("GPU: Dynamic Shared Memory (B)", kernel->name, kernel->end, kernel->dynamicSharedMemory);
-      store_counter_data("GPU: Grid X", kernel->name, kernel->end, kernel->gridX);
-      store_counter_data("GPU: Grid Y", kernel->name, kernel->end, kernel->gridY);
-      store_counter_data("GPU: Grid Z", kernel->name, kernel->end, kernel->gridZ);
-      store_counter_data("GPU: Local Memory Per Thread (B)", kernel->name, kernel->end, kernel->localMemoryPerThread);
-      store_counter_data("GPU: Local Memory Total (B)", kernel->name, kernel->end, kernel->localMemoryTotal);
-      store_counter_data("GPU: Registers Per Thread", kernel->name, kernel->end, kernel->registersPerThread);
-      store_counter_data("GPU: Shared Memory Size (B)", kernel->name, kernel->end, kernel->sharedMemoryExecuted);
-      store_counter_data("GPU: Static Shared Memory (B)", kernel->name, kernel->end, kernel->staticSharedMemory);
+      //std::string * tmp = apex::demangle(kernel->name);
+      std::string tmp = std::string(kernel->name);
+      store_profiler_data(tmp, kernel->correlationId, kernel->start, kernel->end);
+      if (apex::apex_options::use_cuda_counters()) {
+        //store_counter_data("GPU: Block X", tmp, kernel->end, kernel->blockX);
+        //store_counter_data("GPU: Block Y", tmp, kernel->end, kernel->blockY);
+        //store_counter_data("GPU: Block Z", tmp, kernel->end, kernel->blockZ);
+        store_counter_data("GPU: Dynamic Shared Memory (B)", tmp, kernel->end, kernel->dynamicSharedMemory);
+        //store_counter_data("GPU: Grid X", tmp, kernel->end, kernel->gridX);
+        //store_counter_data("GPU: Grid Y", tmp, kernel->end, kernel->gridY);
+        //store_counter_data("GPU: Grid Z", tmp, kernel->end, kernel->gridZ);
+        store_counter_data("GPU: Local Memory Per Thread (B)", tmp, kernel->end, kernel->localMemoryPerThread);
+        store_counter_data("GPU: Local Memory Total (B)", tmp, kernel->end, kernel->localMemoryTotal);
+        store_counter_data("GPU: Registers Per Thread", tmp, kernel->end, kernel->registersPerThread);
+        store_counter_data("GPU: Shared Memory Size (B)", tmp, kernel->end, kernel->sharedMemoryExecuted);
+        store_counter_data("GPU: Static Shared Memory (B)", tmp, kernel->end, kernel->staticSharedMemory);
+      }
+      //delete(tmp);
       break;
     }
 #if 0
@@ -513,8 +519,10 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
     if (cbdata->callbackSite == CUPTI_API_ENTER) {
         std::stringstream ss;
         ss << cbdata->functionName;
-        if (cbdata->symbolName != NULL && strlen(cbdata->symbolName) > 0) {
-            ss << ": " << cbdata->symbolName;
+        if (apex::apex_options::use_cuda_kernel_details()) {
+            if (cbdata->symbolName != NULL && strlen(cbdata->symbolName) > 0) {
+                ss << ": " << cbdata->symbolName;
+            }
         }
         std::string tmp(ss.str());
         /*
