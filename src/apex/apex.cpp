@@ -250,7 +250,7 @@ void apex::_initialize()
         //write_lock_type l(listener_mutex);
         this->the_profiler_listener = new profiler_listener();
         // this is always the first listener!
-           listeners.push_back(the_profiler_listener);
+        listeners.push_back(the_profiler_listener);
         if (apex_options::use_tau() && tau_loaded)
         {
             listeners.push_back(new tau_listener());
@@ -263,7 +263,8 @@ void apex::_initialize()
 #endif
         if (apex_options::use_trace_event())
         {
-            listeners.push_back(new trace_event_listener());
+            the_trace_event_listener = new trace_event_listener();
+            listeners.push_back(the_trace_event_listener);
         }
 
 /* For the Jupyter support, always enable the concurrency handler. */

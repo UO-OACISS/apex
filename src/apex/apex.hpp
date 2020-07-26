@@ -102,6 +102,8 @@ private:
 #endif
 public:
     profiler_listener * the_profiler_listener;
+    event_listener * the_trace_event_listener;
+    event_listener * the_otf2_listener;
 #if APEX_HAVE_PROC
     proc_data_reader * pd_reader;
 #endif

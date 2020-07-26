@@ -15,6 +15,7 @@ class profiler;
 #include <math.h>
 #include "apex_options.hpp"
 #include "apex_types.h"
+#include "apex_assert.h"
 #include <chrono>
 #include <memory>
 #include "task_wrapper.hpp"
@@ -25,7 +26,7 @@ class profiler;
 #ifdef __INTEL_COMPILER
 #define CLOCK_TYPE high_resolution_clock
 #else
-#define CLOCK_TYPE steady_clock
+#define CLOCK_TYPE system_clock
 #endif
 
 namespace apex {
@@ -179,13 +180,30 @@ public:
         this->is_resume = true;
         start = MYCLOCK::now();
     };
+    uint64_t get_start() {
+        APEX_ASSERT(!is_counter);
+        using namespace std::chrono;
+        uint64_t stamp = duration_cast<nanoseconds>(start.time_since_epoch()).count();
+        return stamp;
+    }
+    uint64_t get_stop() {
+        APEX_ASSERT(!is_counter);
+        using namespace std::chrono;
+        uint64_t stamp = duration_cast<nanoseconds>(end.time_since_epoch()).count();
+        return stamp;
+    }
+    static uint64_t get_time( void ) {
+        using namespace std::chrono;
+        uint64_t stamp = duration_cast<nanoseconds>(MYCLOCK::now().time_since_epoch()).count();
+        return stamp;
+    }
     double elapsed(void) {
         if(is_counter) {
             return value;
         } else {
-            std::chrono::duration<double> time_span =
-            std::chrono::duration_cast<std::chrono::duration<double>>(end -
-            start);
+            using namespace std::chrono;
+            duration<double> time_span =
+            duration_cast<duration<double>>(end - start);
             return time_span.count();
         }
     }

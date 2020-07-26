@@ -5,6 +5,7 @@
 
 #include "trace_event_listener.hpp"
 #include "thread_instance.hpp"
+#include "apex.hpp"
 #include <iostream>
 #include <fstream>
 #include <memory>
@@ -15,7 +16,24 @@ namespace apex {
 
 bool trace_event_listener::_initialized(false);
 
-trace_event_listener::trace_event_listener (void) : _terminate(false) {
+trace_event_listener::trace_event_listener (void) : _terminate(false),
+    saved_node_id(apex::instance()->get_node_id()) {
+    std::stringstream ss;
+    ss << "trace_events." << saved_node_id << ".json";
+    trace.open(ss.str());
+    trace << fixed << "{\n";
+    trace << "\"displayTimeUnit\": \"ns\",\n";
+    trace << "\"traceEvents\": [\n";
+    trace << "{\"name\": \"program\", \"cat\": \"PERF\", \"ph\": \"B\", \"pid\": \"" <<
+        saved_node_id << "\", \"tid\": \"0\", \"ts\": \"" << profiler::get_time() << "\"},\n";
+    _initialized = true;
+}
+
+trace_event_listener::~trace_event_listener (void) {
+    trace << "{\"name\": \"program\", \"cat\": \"PERF\", \"ph\": \"E\", \"pid\": \"" <<
+        saved_node_id << "\", \"tid\": \"0\", \"ts\": \"" << profiler::get_time() << "\"}\n";
+    trace << "]\n}\n" << std::endl;
+    trace.close();
     _initialized = true;
 }
 
@@ -62,8 +80,13 @@ void trace_event_listener::on_exit_thread(event_data &data) {
 }
 
 inline bool trace_event_listener::_common_start(std::shared_ptr<task_wrapper> &tt_ptr) {
-    APEX_UNUSED(tt_ptr);
     if (!_terminate) {
+        _mutex.lock();
+        trace << "{\"name\": \"" << tt_ptr->task_id->get_name()
+              << "\", \"cat\": \"PERF\", \"ph\": \"B\", \"pid\": \""
+              << saved_node_id << "\", \"tid\": " << thread_instance::get_id()
+              << ", \"ts\": \"" << tt_ptr->prof->get_start() << "\"},\n";
+        _mutex.unlock();
     } else {
         return false;
     }
@@ -79,8 +102,13 @@ bool trace_event_listener::on_resume(std::shared_ptr<task_wrapper> &tt_ptr) {
 }
 
 inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
-    APEX_UNUSED(p);
     if (!_terminate) {
+        _mutex.lock();
+        trace << "{\"name\": \"" << p->get_task_id()->get_name()
+              << "\", \"cat\": \"PERF\", \"ph\": \"E\", \"pid\": \"" << saved_node_id
+              << "\", \"tid\": " << thread_instance::get_id()
+              << ", \"ts\": \"" << p->get_stop() << "\"},\n";
+        _mutex.unlock();
     }
     return;
 }
@@ -122,6 +150,35 @@ void trace_event_listener::set_node_id(int node_id, int node_count) {
 void trace_event_listener::set_metadata(const char * name, const char * value) {
     APEX_UNUSED(name);
     APEX_UNUSED(value);
+}
+
+std::string trace_event_listener::make_tid (uint32_t device, uint32_t context, uint32_t stream) {
+    cuda_thread_node tmp(device, context, stream);
+    size_t tid;
+    if (vthread_map.count(tmp) == 0) {
+        vthread_map.insert(std::pair<cuda_thread_node, size_t>(tmp,vthread_map.size()));
+    }
+    tid = vthread_map[tmp];
+    std::stringstream ss;
+    ss << "GPU: " << tid;
+    std::string label{ss.str()};
+    return label;
+}
+
+void trace_event_listener::on_async_event(uint32_t device, uint32_t context,
+    uint32_t stream, std::shared_ptr<profiler> &p) {
+    if (!_terminate) {
+        _mutex.lock();
+        trace << "{\"name\": \"" << p->get_task_id()->get_name()
+              << "\", \"cat\": \"PERF\", \"ph\": \"B\", \"pid\": \""
+              << saved_node_id << "\", \"tid\": " << make_tid(device, context, stream)
+              << ", \"ts\": \"" << p->get_start() << "\"},\n";
+        trace << "{\"name\": \"" << p->get_task_id()->get_name()
+              << "\", \"cat\": \"PERF\", \"ph\": \"E\", \"pid\": \"" << saved_node_id
+              << "\", \"tid\": " << make_tid(device, context, stream)
+              << ", \"ts\": \"" << p->get_stop() << "\"},\n";
+        _mutex.unlock();
+    }
 }
 
 /* This function is used by APEX threads so that TAU knows about them. */

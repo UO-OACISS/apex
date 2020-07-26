@@ -681,11 +681,6 @@ if(USE_PLUGINS)
     message(INFO " apex will be built with plugin support.")
     set(LIBS ${LIBS} ${CMAKE_DL_LIBS})
     add_definitions("-DAPEX_USE_PLUGINS")
-endif()
-
-################################################################################
-# Need JSON for writing trace events
-################################################################################
 
 	git_external(rapidjson
     	https://github.com/miloyip/rapidjson.git
@@ -704,6 +699,7 @@ endif()
     	message(FATAL_ERROR " rapidjson not found. This should have been checked out automatically. "
         	"Try manually check out https://github.com/miloyip/rapidjson.git to ${PROJECT_SOURCE_DIR}")
 	endif()
+endif()
 
 ################################################################################
 # Standard Library configuration
