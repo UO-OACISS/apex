@@ -49,6 +49,7 @@ ${SENSOR_SOURCE}
 task_identifier.cpp
 ${tau_SOURCE}
 thread_instance.cpp
+trace_event_listener.cpp
 utils.cpp
 )
 
