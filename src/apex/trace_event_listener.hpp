@@ -10,6 +10,7 @@
 #include <iostream>
 #include <fstream>
 #include <map>
+#include <atomic>
 
 namespace apex {
 
@@ -74,13 +75,17 @@ public:
 private:
   	void _init(void);
   	bool _terminate;
+    void flush_trace(void);
+    void flush_trace_if_necessary(void);
   	bool _common_start(std::shared_ptr<task_wrapper> &tt_ptr);
   	void _common_stop(std::shared_ptr<profiler> &p);
   	static bool _initialized;
-  	std::ofstream trace;
+    int saved_node_id;
+    std::atomic<size_t> num_events;
+  	std::ofstream trace_file;
+  	std::stringstream trace;
     std::mutex _mutex;
     std::map<cuda_thread_node, size_t> vthread_map;
-    int saved_node_id;
 };
 
 int initialize_worker_thread_for_tau(void);

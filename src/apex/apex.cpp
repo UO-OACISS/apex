@@ -1361,6 +1361,9 @@ void flushTrace(void);
 
 void finalize()
 {
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance) { FUNCTION_EXIT return; } // protect against calls after finalization
+    instance->the_profiler_listener->stop_main_timer();
 #ifdef APEX_WITH_CUDA
     flushTrace();
 #endif
@@ -1390,8 +1393,6 @@ void finalize()
     dump(false);
     // if not done already...
     shutdown_throttling();
-    apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) { FUNCTION_EXIT return; } // protect against calls after finalization
     stop_all_async_threads();
     exit_thread();
     if (!_measurement_stopped)

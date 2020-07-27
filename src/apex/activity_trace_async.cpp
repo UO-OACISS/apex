@@ -12,9 +12,12 @@
 #include <stack>
 #include <unordered_map>
 #include <mutex>
+#include <atomic>
 #include "apex.hpp"
 #include "profiler.hpp"
 #include "thread_instance.hpp"
+#include "apex_options.hpp"
+#include "trace_event_listener.hpp"
 
 static void __attribute__((constructor)) initTrace(void);
 //static void __attribute__((destructor)) flushTrace(void);
@@ -42,6 +45,11 @@ static uint64_t startTimestamp;
 
 /* The callback subscriber */
 CUpti_SubscriberHandle subscriber;
+
+/* The buffer count */
+std::atomic<uint64_t> num_buffers{0};
+std::atomic<uint64_t> num_buffers_processed{0};
+bool flushing{false};
 
 /* The map that holds correlation IDs and matches them to GUIDs */
 std::unordered_map<uint32_t, std::shared_ptr<apex::task_wrapper>> correlation_map;
@@ -77,7 +85,7 @@ class foo : public std::set<std::string> {
 */
 
 void store_profiler_data(const std::string &name, uint32_t correlationId,
-    uint64_t start, uint64_t end) {
+    uint64_t start, uint64_t end, uint32_t device, uint32_t context, uint32_t stream) {
     // Get the singleton APEX instance
     static apex::apex* instance = apex::apex::instance();
     //static foo kernels;
@@ -103,6 +111,12 @@ void store_profiler_data(const std::string &name, uint32_t correlationId,
     //prof->tt_ptr = tt;
     // fake out the profiler_listener
     instance->the_profiler_listener->push_profiler_public(prof);
+    if (apex::apex_options::use_trace_event()) {
+        apex::trace_event_listener * tel =
+            (apex::trace_event_listener*)instance->the_trace_event_listener;
+        tel->on_async_event(device, context, stream, prof);
+    }
+
     // have the listeners handle the end of this task
     instance->complete_task(tt);
 }
@@ -238,6 +252,7 @@ printActivity(CUpti_Activity *record)
 {
   switch (record->kind)
   {
+#if 0
   case CUPTI_ACTIVITY_KIND_DEVICE:
     {
       CUpti_ActivityDevice2 *device = (CUpti_ActivityDevice2 *) record;
@@ -251,7 +266,6 @@ printActivity(CUpti_Activity *record)
              device->numMultiprocessors, (unsigned int) (device->coreClockRate / 1000));
       break;
     }
-#if 0
   case CUPTI_ACTIVITY_KIND_DEVICE_ATTRIBUTE:
     {
       CUpti_ActivityDeviceAttribute *attribute = (CUpti_ActivityDeviceAttribute *)record;
@@ -282,7 +296,7 @@ printActivity(CUpti_Activity *record)
              memcpy->correlationId, memcpy->runtimeCorrelationId);
 #endif
       std::string name{getMemcpyKindString((CUpti_ActivityMemcpyKind) memcpy->copyKind)};
-      store_profiler_data(name, memcpy->correlationId, memcpy->start, memcpy->end);
+      store_profiler_data(name, memcpy->correlationId, memcpy->start, memcpy->end, memcpy->deviceId, memcpy->contextId, 0);
       if (apex::apex_options::use_cuda_counters()) {
         store_counter_data("GPU: Bytes", name, memcpy->end, memcpy->bytes);
         uint64_t duration = memcpy->end - memcpy->start;
@@ -302,7 +316,7 @@ printActivity(CUpti_Activity *record)
              (unsigned long long) (memcpy->end - startTimestamp),
              memcpy->deviceId, memcpy->contextId, memcpy->streamId,
              memcpy->correlationId, memcpy->runtimeCorrelationId);
-      store_profiler_data(getMemcpyKindString((CUpti_ActivityMemcpyKind) memcpy->copyKind),
+      store_profiler_data(getMemcpyKindString((CUpti_ActivityMemcpyKind) memcpy->copyKind, memcpy->deviceId, memcpy->contextId, 0),
         memcpy->correlationId, memcpy->start, memcpy->end);
       break;
     }
@@ -319,7 +333,7 @@ printActivity(CUpti_Activity *record)
              memset->correlationId);
 #endif
       static std::string name{"Memset"};
-      store_profiler_data(name, memset->correlationId, memset->start, memset->end);
+      store_profiler_data(name, memset->correlationId, memset->start, memset->end, memset->deviceId, memset->contextId, 0);
       break;
     }
   case CUPTI_ACTIVITY_KIND_KERNEL:
@@ -344,7 +358,7 @@ printActivity(CUpti_Activity *record)
 #endif
       //std::string * tmp = apex::demangle(kernel->name);
       std::string tmp = std::string(kernel->name);
-      store_profiler_data(tmp, kernel->correlationId, kernel->start, kernel->end);
+      store_profiler_data(tmp, kernel->correlationId, kernel->start, kernel->end, kernel->deviceId, kernel->contextId, kernel->streamId);
       if (apex::apex_options::use_cuda_counters()) {
         //store_counter_data("GPU: Block X", tmp, kernel->end, kernel->blockX);
         //store_counter_data("GPU: Block Y", tmp, kernel->end, kernel->blockY);
@@ -453,6 +467,7 @@ printActivity(CUpti_Activity *record)
 
 void CUPTIAPI bufferRequested(uint8_t **buffer, size_t *size, size_t *maxNumRecords)
 {
+  num_buffers++;
   uint8_t *bfr = (uint8_t *) malloc(BUF_SIZE + ALIGN_SIZE);
   if (bfr == NULL) {
     printf("Error: out of memory\n");
@@ -467,6 +482,8 @@ void CUPTIAPI bufferRequested(uint8_t **buffer, size_t *size, size_t *maxNumReco
 void CUPTIAPI bufferCompleted(CUcontext ctx, uint32_t streamId, uint8_t *buffer, size_t size, size_t validSize)
 {
   static bool registered = register_myself();
+  num_buffers_processed++;
+  if (flushing) { std::cout << "." << std::flush; }
   APEX_UNUSED(registered);
   CUptiResult status;
   CUpti_Activity *record = NULL;
@@ -612,19 +629,19 @@ void initTrace() {
   // e.g. to be applied to all device buffer allocations (see documentation).
   CUPTI_CALL(cuptiActivityGetAttribute(
     CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_SIZE, &attrValueSize, &attrValue));
+  attrValue = attrValue / 4;
   printf("%s = %llu\n",
     "CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_SIZE",
     (long long unsigned)attrValue);
-  attrValue *= 2;
   CUPTI_CALL(cuptiActivitySetAttribute(
     CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_SIZE, &attrValueSize, &attrValue));
 
   CUPTI_CALL(cuptiActivityGetAttribute(
     CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_POOL_LIMIT, &attrValueSize, &attrValue));
+  attrValue = attrValue * 4;
   printf("%s = %llu\n",
     "CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_POOL_LIMIT",
         (long long unsigned)attrValue);
-  attrValue *= 2;
   CUPTI_CALL(cuptiActivitySetAttribute(
     CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_POOL_LIMIT, &attrValueSize, &attrValue));
 
@@ -647,6 +664,17 @@ void initTrace() {
  * that APEX will call directly. */
 namespace apex {
     void flushTrace(void) {
+        flushing = true;
+        bool progress{false};
+        if (num_buffers_processed < num_buffers) {
+            progress = true;
+            std::cout << "Flushing remaining " << std::fixed
+                      << num_buffers-num_buffers_processed << " of " << num_buffers
+                      << " CUDA/CUPTI buffers..." << std::endl;
+        }
         cuptiActivityFlushAll(CUPTI_ACTIVITY_FLAG_NONE);
+        if (progress) {
+            std::cout << std::endl;
+        }
     }
 }

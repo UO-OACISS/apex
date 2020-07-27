@@ -241,6 +241,7 @@ public:
   void push_profiler_public(std::shared_ptr<profiler> &p) {
     push_profiler(0, p);
   }
+  void stop_main_timer(void);
 };
 
 }

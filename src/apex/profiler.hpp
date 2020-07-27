@@ -205,14 +205,18 @@ public:
         uint64_t stamp = duration_cast<nanoseconds>(MYCLOCK::now().time_since_epoch()).count();
         return stamp;
     }
-    double elapsed(void) {
+    double elapsed(bool scaled = false) {
         if(is_counter) {
             return value;
         } else {
             using namespace std::chrono;
             duration<double> time_span =
             duration_cast<duration<double>>(end - start);
-            return time_span.count();
+            if (scaled) {
+                return time_span.count()*get_cpu_mhz();
+            } else {
+                return time_span.count();
+            }
         }
     }
     double exclusive_elapsed(void) {

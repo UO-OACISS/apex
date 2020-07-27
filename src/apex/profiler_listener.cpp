@@ -180,10 +180,13 @@ std::unordered_set<profile*> free_profiles;
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
 #endif
+/*
     std::chrono::duration<double> time_span =
         std::chrono::duration_cast<std::chrono::duration<double>>
            (MYCLOCK::now() - main_timer->start);
     double total_main = time_span.count() *
+    */
+    double total_main = main_timer->elapsed(true) *
                 fmin(hardware_concurrency(), num_worker_threads);
     double elapsed = total_main - non_idle_time;
     elapsed = elapsed > 0.0 ? elapsed : 0.0;
@@ -204,10 +207,13 @@ std::unordered_set<profile*> free_profiles;
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
 #endif
+/*
     std::chrono::duration<double> time_span =
         std::chrono::duration_cast<std::chrono::duration<double>>
            (MYCLOCK::now() - main_timer->start);
     double total_main = time_span.count() *
+    */
+    double total_main = main_timer->elapsed(true) *
                 fmin(hardware_concurrency(), num_worker_threads);
     double elapsed = total_main - non_idle_time;
     double rate = elapsed > 0.0 ? ((elapsed/total_main)) : 0.0;
@@ -1338,7 +1344,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
     if (_done) { return; }
 
     // stop the main timer, and process that profile?
-    main_timer->stop(true);
+    stop_main_timer();
     push_profiler((unsigned int)thread_instance::get_id(), main_timer);
 
     // trigger statistics updating
@@ -1738,6 +1744,14 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
     }
     delete profiler::disabled_profiler;
 
+  }
+
+  void profiler_listener::stop_main_timer(void) {
+    static bool stopped{false};
+    if (!stopped) {
+        main_timer->stop(true);
+        stopped = true;
+    }
   }
 
 }
