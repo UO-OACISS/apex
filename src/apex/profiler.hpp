@@ -188,22 +188,22 @@ public:
         this->is_resume = true;
         start = MYCLOCK::now();
     };
-    uint64_t get_start() {
+    double get_start() {
         APEX_ASSERT(!is_counter);
         using namespace std::chrono;
-        uint64_t stamp = duration_cast<nanoseconds>(start.time_since_epoch()).count();
-        return stamp;
+        double stamp = duration_cast<nanoseconds>(start.time_since_epoch()).count();
+        return stamp*10e-4;
     }
-    uint64_t get_stop() {
+    double get_stop() {
         APEX_ASSERT(!is_counter);
         using namespace std::chrono;
-        uint64_t stamp = duration_cast<nanoseconds>(end.time_since_epoch()).count();
-        return stamp;
+        double stamp = duration_cast<nanoseconds>(end.time_since_epoch()).count();
+        return stamp*10e-4;
     }
-    static uint64_t get_time( void ) {
+    static double get_time( void ) {
         using namespace std::chrono;
-        uint64_t stamp = duration_cast<nanoseconds>(MYCLOCK::now().time_since_epoch()).count();
-        return stamp;
+        double stamp = duration_cast<nanoseconds>(MYCLOCK::now().time_since_epoch()).count();
+        return stamp*10e-4;
     }
     double elapsed(bool scaled = false) {
         if(is_counter) {

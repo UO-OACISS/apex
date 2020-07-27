@@ -22,16 +22,16 @@ trace_event_listener::trace_event_listener (void) : _terminate(false),
     ss << "trace_events." << saved_node_id << ".json";
     trace_file.open(ss.str());
     trace << fixed << "{\n";
-    trace << "\"displayTimeUnit\": \"ns\",\n";
+    trace << "\"displayTimeUnit\": \"ms\",\n";
     trace << "\"traceEvents\": [\n";
     trace << "{\"name\": \"program\", \"cat\": \"PERF\", \"ph\": \"B\", \"pid\": \"" <<
-        saved_node_id << "\", \"tid\": \"0\", \"ts\": \"" << profiler::get_time() << "\"},\n";
+        saved_node_id << "\", \"tid\": \"0\", \"ts\": " << profiler::get_time() << "},\n";
     _initialized = true;
 }
 
 trace_event_listener::~trace_event_listener (void) {
     trace << "{\"name\": \"program\", \"cat\": \"PERF\", \"ph\": \"E\", \"pid\": \"" <<
-        saved_node_id << "\", \"tid\": \"0\", \"ts\": \"" << profiler::get_time() << "\"}\n";
+        saved_node_id << "\", \"tid\": \"0\", \"ts\": " << profiler::get_time() << "}\n";
     trace << "]\n}\n" << std::endl;
     flush_trace();
     trace_file.close();
@@ -86,7 +86,7 @@ inline bool trace_event_listener::_common_start(std::shared_ptr<task_wrapper> &t
         ss << "{\"name\": \"" << tt_ptr->task_id->get_name()
               << "\", \"cat\": \"PERF\", \"ph\": \"B\", \"pid\": \""
               << saved_node_id << "\", \"tid\": " << thread_instance::get_id()
-              << ", \"ts\": \"" << tt_ptr->prof->get_start() << "\"},\n";
+              << ", \"ts\": " << fixed << tt_ptr->prof->get_start() << "},\n";
         _mutex.lock();
         trace << ss.rdbuf();
         _mutex.unlock();
@@ -111,7 +111,7 @@ inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
         ss << "{\"name\": \"" << p->get_task_id()->get_name()
               << "\", \"cat\": \"PERF\", \"ph\": \"E\", \"pid\": \"" << saved_node_id
               << "\", \"tid\": " << thread_instance::get_id()
-              << ", \"ts\": \"" << p->get_stop() << "\"},\n";
+              << ", \"ts\": " << fixed << p->get_stop() << "},\n";
         _mutex.lock();
         trace << ss.rdbuf();
         _mutex.unlock();
@@ -184,11 +184,11 @@ void trace_event_listener::on_async_event(uint32_t device, uint32_t context,
         ss << "{\"name\": \"" << p->get_task_id()->get_name()
               << "\", \"cat\": \"PERF\", \"ph\": \"B\", \"pid\": \""
               << saved_node_id << "\", \"tid\": " << make_tid(device, context, stream)
-              << ", \"ts\": \"" << p->get_start() << "\"},\n";
+              << ", \"ts\": " << fixed << p->get_start() << "},\n";
         ss << "{\"name\": \"" << p->get_task_id()->get_name()
               << "\", \"cat\": \"PERF\", \"ph\": \"E\", \"pid\": \"" << saved_node_id
               << "\", \"tid\": " << make_tid(device, context, stream)
-              << ", \"ts\": \"" << p->get_stop() << "\"},\n";
+              << ", \"ts\": " << fixed << p->get_stop() << "},\n";
         _mutex.lock();
         trace << ss.rdbuf();
         _mutex.unlock();
