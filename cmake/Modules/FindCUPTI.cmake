@@ -23,6 +23,9 @@ find_path(CUPTI_INCLUDE_DIR NAMES cupti.h
 find_library(CUPTI_LIBRARY NAMES cupti
     HINTS ${CUDAToolkit_LIBRARY_DIR} ${CUPTI_ROOT} ${CUPTI_ROOT}/lib64 ${CUPTI_ROOT}/lib)
 
+find_library(CUDA_LIBRARY NAMES cudart
+    HINTS ${CUDAToolkit_LIBRARY_DIR})
+
 include(FindPackageHandleStandardArgs)
 # handle the QUIETLY and REQUIRED arguments and set CUPTI_FOUND to TRUE
 # if all listed variables are TRUE
@@ -32,8 +35,8 @@ find_package_handle_standard_args(CUPTI  DEFAULT_MSG
 mark_as_advanced(CUPTI_INCLUDE_DIR CUPTI_LIBRARY)
 
 if(CUPTI_FOUND)
-  set(CUPTI_LIBRARIES ${CUPTI_LIBRARY} )
-  set(CUPTI_INCLUDE_DIRS ${CUPTI_INCLUDE_DIR})
+  set(CUPTI_LIBRARIES ${CUDA_LIBRARY} ${CUPTI_LIBRARY} )
+  set(CUPTI_INCLUDE_DIRS ${CUDAToolkit_INCLUDE_DIRS} ${CUPTI_INCLUDE_DIR})
   set(CUPTI_DIR ${CUPTI_ROOT})
   add_definitions(-DAPEX_HAVE_CUPTI)
 endif()
