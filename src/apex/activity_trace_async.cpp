@@ -333,7 +333,7 @@ printActivity(CUpti_Activity *record)
              memset->correlationId);
 #endif
       static std::string name{"Memset"};
-      store_profiler_data(name, memset->correlationId, memset->start, memset->end, memset->deviceId, memset->contextId, 0);
+      store_profiler_data(name, memset->correlationId, memset->start, memset->end, memset->deviceId, memset->contextId, memset->streamId);
       break;
     }
   case CUPTI_ACTIVITY_KIND_KERNEL:
@@ -664,16 +664,14 @@ void initTrace() {
  * that APEX will call directly. */
 namespace apex {
     void flushTrace(void) {
-        flushing = true;
-        bool progress{false};
-        if (num_buffers_processed < num_buffers) {
-            progress = true;
+        if ((num_buffers_processed + 10) < num_buffers) {
+            flushing = true;
             std::cout << "Flushing remaining " << std::fixed
                       << num_buffers-num_buffers_processed << " of " << num_buffers
                       << " CUDA/CUPTI buffers..." << std::endl;
         }
         cuptiActivityFlushAll(CUPTI_ACTIVITY_FLAG_NONE);
-        if (progress) {
+        if (flushing) {
             std::cout << std::endl;
         }
     }

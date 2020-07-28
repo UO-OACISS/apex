@@ -69,8 +69,7 @@ public:
   	void set_metadata(const char * name, const char * value);
     void on_async_event(uint32_t device, uint32_t context,
         uint32_t stream, std::shared_ptr<profiler> &p);
-    std::string make_tid (uint32_t device, uint32_t context,
-        uint32_t stream);
+    void end_trace_time(void);
 
 private:
   	void _init(void);
@@ -79,13 +78,16 @@ private:
     void flush_trace_if_necessary(void);
   	bool _common_start(std::shared_ptr<task_wrapper> &tt_ptr);
   	void _common_stop(std::shared_ptr<profiler> &p);
+    std::string make_tid (uint32_t device, uint32_t context,
+        uint32_t stream);
   	static bool _initialized;
     int saved_node_id;
     std::atomic<size_t> num_events;
   	std::ofstream trace_file;
   	std::stringstream trace;
-    std::mutex _mutex;
+    std::mutex _vthread_mutex;
     std::map<cuda_thread_node, size_t> vthread_map;
+    double _end_time;
 };
 
 int initialize_worker_thread_for_tau(void);

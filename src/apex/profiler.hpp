@@ -188,21 +188,37 @@ public:
         this->is_resume = true;
         start = MYCLOCK::now();
     };
-    double get_start() {
+    uint64_t get_start_ns() {
         APEX_ASSERT(!is_counter);
         using namespace std::chrono;
-        double stamp = duration_cast<nanoseconds>(start.time_since_epoch()).count();
+        uint64_t stamp = duration_cast<nanoseconds>(start.time_since_epoch()).count();
+        return stamp;
+    }
+    double get_start_us() {
+        APEX_ASSERT(!is_counter);
+        double stamp = (double)get_start_ns();
         return stamp*10e-4;
     }
-    double get_stop() {
+    uint64_t get_stop_ns() {
         APEX_ASSERT(!is_counter);
         using namespace std::chrono;
-        double stamp = duration_cast<nanoseconds>(end.time_since_epoch()).count();
+        uint64_t stamp = duration_cast<nanoseconds>(end.time_since_epoch()).count();
+        return stamp;
+    }
+    double get_stop_us() {
+        APEX_ASSERT(!is_counter);
+        using namespace std::chrono;
+        double stamp = (double)get_stop_ns();
         return stamp*10e-4;
     }
-    static double get_time( void ) {
+    static uint64_t get_time_ns( void ) {
         using namespace std::chrono;
-        double stamp = duration_cast<nanoseconds>(MYCLOCK::now().time_since_epoch()).count();
+        uint64_t stamp = duration_cast<nanoseconds>(MYCLOCK::now().time_since_epoch()).count();
+        return stamp;
+    }
+    static double get_time_us( void ) {
+        using namespace std::chrono;
+        double stamp = (double)get_time_ns();
         return stamp*10e-4;
     }
     double elapsed(bool scaled = false) {

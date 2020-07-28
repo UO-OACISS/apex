@@ -17,25 +17,36 @@ namespace apex {
 bool trace_event_listener::_initialized(false);
 
 trace_event_listener::trace_event_listener (void) : _terminate(false),
-    saved_node_id(apex::instance()->get_node_id()), num_events(0) {
+    saved_node_id(apex::instance()->get_node_id()), num_events(0), _end_time(0.0) {
     std::stringstream ss;
     ss << "trace_events." << saved_node_id << ".json";
     trace_file.open(ss.str());
     trace << fixed << "{\n";
     trace << "\"displayTimeUnit\": \"ms\",\n";
     trace << "\"traceEvents\": [\n";
-    trace << "{\"name\": \"program\", \"cat\": \"PERF\", \"ph\": \"B\", \"pid\": \"" <<
-        saved_node_id << "\", \"tid\": \"0\", \"ts\": " << profiler::get_time() << "},\n";
+    trace << "{\"name\":\"program\""
+          << ", \"ph\": \"B\", \"pid\": \""
+          << saved_node_id << "\", \"tid\": \"0\", \"ts\": "
+          << profiler::get_time_us() << "},\n";
     _initialized = true;
 }
 
 trace_event_listener::~trace_event_listener (void) {
-    trace << "{\"name\": \"program\", \"cat\": \"PERF\", \"ph\": \"E\", \"pid\": \"" <<
-        saved_node_id << "\", \"tid\": \"0\", \"ts\": " << profiler::get_time() << "}\n";
-    trace << "]\n}\n" << std::endl;
+    trace << "{\"name\":\"program\""
+          << ", \"ph\": \"E\", \"pid\": \""
+          << saved_node_id << "\", \"tid\": \"0\", \"ts\": "
+          << _end_time << "}\n";
+    trace << "]\n";
+    trace << "}\n" << std::endl;
     flush_trace();
     trace_file.close();
     _initialized = true;
+}
+
+void trace_event_listener::end_trace_time(void) {
+    if (_end_time == 0.0) {
+        _end_time = profiler::get_time_us();
+    }
 }
 
 void trace_event_listener::on_startup(startup_event_data &data) {
@@ -45,14 +56,13 @@ void trace_event_listener::on_startup(startup_event_data &data) {
 
 void trace_event_listener::on_dump(dump_event_data &data) {
     APEX_UNUSED(data);
-    if (!_terminate) {
-    }
     return;
 }
 
 void trace_event_listener::on_shutdown(shutdown_event_data &data) {
     APEX_UNUSED(data);
     if (!_terminate) {
+        end_trace_time();
         _terminate = true;
     }
     return;
@@ -83,13 +93,13 @@ void trace_event_listener::on_exit_thread(event_data &data) {
 inline bool trace_event_listener::_common_start(std::shared_ptr<task_wrapper> &tt_ptr) {
     if (!_terminate) {
         std::stringstream ss;
-        ss << "{\"name\": \"" << tt_ptr->task_id->get_name()
-              << "\", \"cat\": \"PERF\", \"ph\": \"B\", \"pid\": \""
-              << saved_node_id << "\", \"tid\": " << thread_instance::get_id()
-              << ", \"ts\": " << fixed << tt_ptr->prof->get_start() << "},\n";
-        _mutex.lock();
+        ss << "{\"name\":\"" << tt_ptr->task_id->get_name()
+              << "\",\"id\":" << tt_ptr->guid << ",\"ph\":\"B\",\"pid\":\""
+              << saved_node_id << "\",\"tid\":" << thread_instance::get_id()
+              << ",\"ts\":" << fixed << tt_ptr->prof->get_start_us() << "},\n";
+        _vthread_mutex.lock();
         trace << ss.rdbuf();
-        _mutex.unlock();
+        _vthread_mutex.unlock();
         flush_trace_if_necessary();
     } else {
         return false;
@@ -108,13 +118,12 @@ bool trace_event_listener::on_resume(std::shared_ptr<task_wrapper> &tt_ptr) {
 inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
     if (!_terminate) {
         std::stringstream ss;
-        ss << "{\"name\": \"" << p->get_task_id()->get_name()
-              << "\", \"cat\": \"PERF\", \"ph\": \"E\", \"pid\": \"" << saved_node_id
-              << "\", \"tid\": " << thread_instance::get_id()
-              << ", \"ts\": " << fixed << p->get_stop() << "},\n";
-        _mutex.lock();
+        ss << "{\"ph\":\"E\",\"pid\":\"" << saved_node_id
+              << "\",\"tid\":" << thread_instance::get_id()
+              << ",\"ts\":" << fixed << p->get_stop_us() << "},\n";
+        _vthread_mutex.lock();
         trace << ss.rdbuf();
-        _mutex.unlock();
+        _vthread_mutex.unlock();
         flush_trace_if_necessary();
     }
     return;
@@ -129,8 +138,17 @@ void trace_event_listener::on_yield(std::shared_ptr<profiler> &p) {
 }
 
 void trace_event_listener::on_sample_value(sample_value_event_data &data) {
-    APEX_UNUSED(data);
     if (!_terminate) {
+        std::stringstream ss;
+        ss << "{\"name\": \"" << *(data.counter_name)
+              << "\",\"ph\":\"C\",\"pid\": " << saved_node_id
+              << ",\"ts\":" << fixed << profiler::get_time_us()
+              << ",\"args\":{\"value\":" << fixed << data.counter_value
+              << "}},\n";
+        _vthread_mutex.lock();
+        trace << ss.rdbuf();
+        _vthread_mutex.unlock();
+        flush_trace_if_necessary();
     }
     return;
 }
@@ -181,28 +199,25 @@ void trace_event_listener::on_async_event(uint32_t device, uint32_t context,
     uint32_t stream, std::shared_ptr<profiler> &p) {
     if (!_terminate) {
         std::stringstream ss;
-        ss << "{\"name\": \"" << p->get_task_id()->get_name()
-              << "\", \"cat\": \"PERF\", \"ph\": \"B\", \"pid\": \""
-              << saved_node_id << "\", \"tid\": " << make_tid(device, context, stream)
-              << ", \"ts\": " << fixed << p->get_start() << "},\n";
-        ss << "{\"name\": \"" << p->get_task_id()->get_name()
-              << "\", \"cat\": \"PERF\", \"ph\": \"E\", \"pid\": \"" << saved_node_id
-              << "\", \"tid\": " << make_tid(device, context, stream)
-              << ", \"ts\": " << fixed << p->get_stop() << "},\n";
-        _mutex.lock();
+        ss << "{\"name\":\"" << p->get_task_id()->get_name()
+              << "\",\"id\":" << p->guid << ",\"ph\":\"X\",\"pid\":\""
+              << saved_node_id << "\",\"tid\":" << make_tid(device, context, stream)
+              << ",\"ts\":" << fixed << p->get_start_us() << ", \"dur\": "
+              << p->get_stop_us() - p->get_start_us() << "},\n";
+        _vthread_mutex.lock();
         trace << ss.rdbuf();
-        _mutex.unlock();
+        _vthread_mutex.unlock();
         flush_trace_if_necessary();
     }
 }
 
 void trace_event_listener::flush_trace(void) {
-    _mutex.lock();
+    _vthread_mutex.lock();
     // flush the trace
     trace_file << trace.rdbuf() << std::flush;
     // reset the buffer
     trace.str("");
-    _mutex.unlock();
+    _vthread_mutex.unlock();
 }
 
 void trace_event_listener::flush_trace_if_necessary(void) {
