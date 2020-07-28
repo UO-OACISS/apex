@@ -140,33 +140,55 @@ void store_counter_data(const char * name, const std::string& context, uint64_t 
     store_counter_data(name, context, end, (double)(value));
 }
 
-static const char *
+    static const char *
 getMemcpyKindString(CUpti_ActivityMemcpyKind kind)
 {
-  switch (kind) {
-  case CUPTI_ACTIVITY_MEMCPY_KIND_HTOD:
-    return "Memcpy HtoD";
-  case CUPTI_ACTIVITY_MEMCPY_KIND_DTOH:
-    return "Memcpy DtoH";
-  case CUPTI_ACTIVITY_MEMCPY_KIND_HTOA:
-    return "Memcpy HtoA";
-  case CUPTI_ACTIVITY_MEMCPY_KIND_ATOH:
-    return "Memcpy AtoH";
-  case CUPTI_ACTIVITY_MEMCPY_KIND_ATOA:
-    return "Memcpy AtoA";
-  case CUPTI_ACTIVITY_MEMCPY_KIND_ATOD:
-    return "Memcpy AtoD";
-  case CUPTI_ACTIVITY_MEMCPY_KIND_DTOA:
-    return "Memcpy DtoA";
-  case CUPTI_ACTIVITY_MEMCPY_KIND_DTOD:
-    return "Memcpy DtoD";
-  case CUPTI_ACTIVITY_MEMCPY_KIND_HTOH:
-    return "Memcpy HtoH";
-  default:
-    break;
-  }
+    switch (kind) {
+        case CUPTI_ACTIVITY_MEMCPY_KIND_HTOD:
+            return "Memcpy HtoD";
+        case CUPTI_ACTIVITY_MEMCPY_KIND_DTOH:
+            return "Memcpy DtoH";
+        case CUPTI_ACTIVITY_MEMCPY_KIND_HTOA:
+            return "Memcpy HtoA";
+        case CUPTI_ACTIVITY_MEMCPY_KIND_ATOH:
+            return "Memcpy AtoH";
+        case CUPTI_ACTIVITY_MEMCPY_KIND_ATOA:
+            return "Memcpy AtoA";
+        case CUPTI_ACTIVITY_MEMCPY_KIND_ATOD:
+            return "Memcpy AtoD";
+        case CUPTI_ACTIVITY_MEMCPY_KIND_DTOA:
+            return "Memcpy DtoA";
+        case CUPTI_ACTIVITY_MEMCPY_KIND_DTOD:
+            return "Memcpy DtoD";
+        case CUPTI_ACTIVITY_MEMCPY_KIND_HTOH:
+            return "Memcpy HtoH";
+        default:
+            break;
+    }
+    return "<unknown>";
+}
 
-  return "<unknown>";
+static const char *
+getUvmCounterKindString(CUpti_ActivityUnifiedMemoryCounterKind kind)
+{
+    switch (kind)
+    {
+        case CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_BYTES_TRANSFER_HTOD:
+            return "Unified Memory copy HTOD";
+        case CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_BYTES_TRANSFER_DTOH:
+            return "Unified Memory copy DTOH";
+        case CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_CPU_PAGE_FAULT_COUNT:
+            return "Unified Memory CPU Page Fault";
+        case CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_GPU_PAGE_FAULT:
+            return "Unified Memory GPU Page Fault";
+        case CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_THRASHING:
+            return "Unified Memory Trashing";
+        case CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_THROTTLING:
+            return "Unified Memory Throttling";
+        default:
+            break;
+    }
+    return "<unknown>";
 }
 
 const char *
@@ -302,6 +324,20 @@ printActivity(CUpti_Activity *record)
         uint64_t duration = memcpy->end - memcpy->start;
         // dividing bytes by nanoseconds should give us GB/s
         double bandwidth = (double)(memcpy->bytes) / (double)(duration);
+        store_counter_data("GPU: Bandwith (GB/s)", name, memcpy->end, bandwidth);
+      }
+      break;
+    }
+  case CUPTI_ACTIVITY_KIND_UNIFIED_MEMORY_COUNTER:
+    {
+      CUpti_ActivityUnifiedMemoryCounter2 *memcpy = (CUpti_ActivityUnifiedMemoryCounter2 *) record;
+      std::string name{getUvmCounterKindString((CUpti_ActivityUnifiedMemoryCounterKind) memcpy->counterKind)};
+      store_profiler_data(name, 0, memcpy->start, memcpy->end);
+      if (apex::apex_options::use_cuda_counters()) {
+        store_counter_data("GPU: Bytes", name, memcpy->end, memcpy->value);
+        uint64_t duration = memcpy->end - memcpy->start;
+        // dividing bytes by nanoseconds should give us GB/s
+        double bandwidth = (double)(memcpy->value) / (double)(duration);
         store_counter_data("GPU: Bandwith (GB/s)", name, memcpy->end, bandwidth);
       }
       break;
@@ -513,8 +549,40 @@ void CUPTIAPI bufferCompleted(CUcontext ctx, uint32_t streamId, uint8_t *buffer,
   free(buffer);
 }
 
+/* this has to happen AFTER cuInit(). */
+void configureUnifiedMemorySupport(void) {
+    CUpti_ActivityUnifiedMemoryCounterConfig config[2];
+
+    // configure unified memory counters
+    config[0].scope = CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_SCOPE_PROCESS_SINGLE_DEVICE;
+    config[0].kind = CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_BYTES_TRANSFER_HTOD;
+    config[0].deviceId = 0;
+    config[0].enable = 1;
+
+    config[1].scope = CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_SCOPE_PROCESS_SINGLE_DEVICE;
+    config[1].kind = CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_BYTES_TRANSFER_DTOH;
+    config[1].deviceId = 0;
+    config[1].enable = 1;
+
+    CUptiResult res = cuptiActivityConfigureUnifiedMemoryCounter(config, 2);
+    if (res == CUPTI_ERROR_UM_PROFILING_NOT_SUPPORTED) {
+        printf("Test is waived, unified memory is not supported on the underlying platform.\n");
+    }
+    else if (res == CUPTI_ERROR_UM_PROFILING_NOT_SUPPORTED_ON_DEVICE) {
+        printf("Test is waived, unified memory is not supported on the device.\n");
+    }
+    else if (res == CUPTI_ERROR_UM_PROFILING_NOT_SUPPORTED_ON_NON_P2P_DEVICES) {
+        printf("Test is waived, unified memory is not supported on the non-P2P multi-gpu setup.\n");
+    }
+    else {
+        CUPTI_CALL(res);
+    }
+    CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_UNIFIED_MEMORY_COUNTER)); // 25
+}
+
 bool initialize_first_time() {
     apex::init("APEX CUDA support", 0, 1);
+    configureUnifiedMemorySupport();
     return true;
 }
 
