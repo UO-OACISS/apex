@@ -183,9 +183,12 @@ std::string trace_event_listener::make_tid (uint32_t device, uint32_t context, u
     tid = vthread_map[tmp];
     APEX_UNUSED(tid);
     std::stringstream ss;
-    ss << "\"GPU Dev:" << device << " Ctx:" << context;
-    if (stream > 0) {
-      ss << " Str:" << stream;
+    ss << "\"GPU Dev:" << device;
+    if (context > 0) {
+        ss << " Ctx:" << context;
+        if (stream > 0) {
+            ss << " Str:" << stream;
+        }
     }
     ss << "\"";
     std::string label{ss.str()};

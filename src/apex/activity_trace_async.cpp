@@ -91,10 +91,13 @@ void store_profiler_data(const std::string &name, uint32_t correlationId,
     //static foo kernels;
     //kernels.insert(std::string(name));
     // get the parent GUID, then erase the correlation from the map
-    map_mutex.lock();
-    auto parent = correlation_map[correlationId];
-    correlation_map.erase(correlationId);
-    map_mutex.unlock();
+    std::shared_ptr<apex::task_wrapper> parent = nullptr;
+    if (correlationId > 0) {
+        map_mutex.lock();
+        parent = correlation_map[correlationId];
+        correlation_map.erase(correlationId);
+        map_mutex.unlock();
+    }
     // Build the name
     std::stringstream ss;
     ss << "GPU: " << std::string(name);
@@ -332,7 +335,7 @@ printActivity(CUpti_Activity *record)
     {
       CUpti_ActivityUnifiedMemoryCounter2 *memcpy = (CUpti_ActivityUnifiedMemoryCounter2 *) record;
       std::string name{getUvmCounterKindString((CUpti_ActivityUnifiedMemoryCounterKind) memcpy->counterKind)};
-      store_profiler_data(name, 0, memcpy->start, memcpy->end);
+      store_profiler_data(name, 0, memcpy->start, memcpy->end, memcpy->dstId, 0, 0);
       if (apex::apex_options::use_cuda_counters()) {
         store_counter_data("GPU: Bytes", name, memcpy->end, memcpy->value);
         uint64_t duration = memcpy->end - memcpy->start;
