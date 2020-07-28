@@ -8,6 +8,16 @@
 #define ARR_SIZE    10
 #define NUM_THR  8
 
+#define RUNTIME_API_CALL(apiFuncCall)                                          \
+do {                                                                           \
+    cudaError_t _status = apiFuncCall;                                         \
+    if (_status != cudaSuccess) {                                              \
+        fprintf(stderr, "%s:%d: error: function %s failed with error %s.\n",   \
+                __FILE__, __LINE__, #apiFuncCall, cudaGetErrorString(_status));\
+        exit(-1);                                                              \
+    }                                                                          \
+} while (0)
+
 typedef struct {
     int *arr;
     int *dev_arr;
@@ -30,14 +40,21 @@ void *thread_func(void* struc)
     cuda_st * data = (cuda_st*)struc;
     printf("thread %d func start\n", data->thr_num);
     printf("arr %d = ", data->dev_num);
-    for(int i=0; i<10; i++) {
+    int i;
+    for(i=0; i<10; i++) {
         printf("%d ", data->arr[i]);
     }
     printf("\n");
     cudaSetDevice(data->dev_num);
-    cudaMemcpy(data->dev_arr, data->arr,  sizeof(int)*ARR_SIZE, cudaMemcpyHostToDevice);
-    kernel_fc<<<1,ARR_SIZE>>>(data->dev_arr, data->dev_result);
-    cudaMemcpy(data->result, data->dev_result, sizeof(int), cudaMemcpyDeviceToHost);
+    cudaStream_t stream;
+    RUNTIME_API_CALL(cudaStreamCreate(&stream));
+    for (i=0 ; i<10 ; i++) {
+        cudaMemcpy(data->dev_arr, data->arr,  sizeof(int)*ARR_SIZE, cudaMemcpyHostToDevice);
+        kernel_fc<<<1,ARR_SIZE,0,stream>>>(data->dev_arr, data->dev_result);
+        cudaMemcpy(data->result, data->dev_result, sizeof(int), cudaMemcpyDeviceToHost);
+        RUNTIME_API_CALL(cudaStreamSynchronize(stream));
+    }
+    RUNTIME_API_CALL(cudaStreamDestroy(stream));
     printf("thread %d func exit\n", data->thr_num);
     return NULL;
 }

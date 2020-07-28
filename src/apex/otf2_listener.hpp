@@ -16,6 +16,7 @@
 #include <mutex>
 #include <chrono>
 #include "apex_cxx_shared_lock.hpp"
+#include "profiler.hpp"
 
 namespace apex {
 
@@ -40,10 +41,7 @@ namespace apex {
         /* All OTF2 callback functions have to be declared static, so that they
          * can be registered with the OTF2 library */
         static OTF2_TimeStamp get_time( void ) {
-            using namespace std::chrono;
-            uint64_t stamp =
-                duration_cast<nanoseconds>(
-                system_clock::now().time_since_epoch()).count();
+            uint64_t stamp = profiler::get_time_ns();
             stamp = stamp - globalOffset;
             return stamp;
         }
