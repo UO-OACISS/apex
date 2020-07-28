@@ -17,10 +17,7 @@ namespace apex {
 bool trace_event_listener::_initialized(false);
 
 trace_event_listener::trace_event_listener (void) : _terminate(false),
-    saved_node_id(apex::instance()->get_node_id()), num_events(0), _end_time(0.0) {
-    std::stringstream ss;
-    ss << "trace_events." << saved_node_id << ".json";
-    trace_file.open(ss.str());
+    num_events(0), _end_time(0.0) {
     trace << fixed << "{\n";
     trace << "\"displayTimeUnit\": \"ms\",\n";
     trace << "\"traceEvents\": [\n";
@@ -213,6 +210,13 @@ void trace_event_listener::on_async_event(uint32_t device, uint32_t context,
 
 void trace_event_listener::flush_trace(void) {
     _vthread_mutex.lock();
+    // check if the file is open
+    if (!trace_file.is_open()) {
+        saved_node_id = apex::instance()->get_node_id();
+        std::stringstream ss;
+        ss << "trace_events." << saved_node_id << ".json";
+        trace_file.open(ss.str());
+    }
     // flush the trace
     trace_file << trace.rdbuf() << std::flush;
     // reset the buffer
