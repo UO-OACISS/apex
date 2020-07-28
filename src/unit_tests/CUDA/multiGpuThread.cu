@@ -6,7 +6,7 @@
 #include "apex_api.hpp"
 
 #define ARR_SIZE    10
-#define NUM_THR  8
+#define NUM_THR  4
 
 #define RUNTIME_API_CALL(apiFuncCall)                                          \
 do {                                                                           \
@@ -30,7 +30,7 @@ typedef struct {
 __global__ void kernel_fc(int *dev_arr, int *dev_result)
 {
     int idx = threadIdx.x;
-    printf("dev_arr[%d] = %d\n", idx, dev_arr[idx]);
+    //printf("dev_arr[%d] = %d\n", idx, dev_arr[idx]);
     atomicAdd(dev_result, dev_arr[idx]);
 }
 
@@ -39,19 +39,23 @@ void *thread_func(void* struc)
     APEX_SCOPED_TIMER;
     cuda_st * data = (cuda_st*)struc;
     printf("thread %d func start\n", data->thr_num);
-    printf("arr %d = ", data->dev_num);
     int i;
+    /*
+    printf("arr %d = ", data->dev_num);
     for(i=0; i<10; i++) {
         printf("%d ", data->arr[i]);
     }
     printf("\n");
-    cudaSetDevice(data->dev_num);
+    */
+    RUNTIME_API_CALL(cudaSetDevice(data->dev_num));
     cudaStream_t stream;
     RUNTIME_API_CALL(cudaStreamCreate(&stream));
     for (i=0 ; i<10 ; i++) {
-        cudaMemcpy(data->dev_arr, data->arr,  sizeof(int)*ARR_SIZE, cudaMemcpyHostToDevice);
+        RUNTIME_API_CALL(cudaMemcpy(data->dev_arr, data->arr,
+            sizeof(int)*ARR_SIZE, cudaMemcpyHostToDevice));
         kernel_fc<<<1,ARR_SIZE,0,stream>>>(data->dev_arr, data->dev_result);
-        cudaMemcpy(data->result, data->dev_result, sizeof(int), cudaMemcpyDeviceToHost);
+        RUNTIME_API_CALL(cudaMemcpy(data->result, data->dev_result,
+            sizeof(int), cudaMemcpyDeviceToHost));
         RUNTIME_API_CALL(cudaStreamSynchronize(stream));
     }
     RUNTIME_API_CALL(cudaStreamDestroy(stream));
@@ -64,18 +68,14 @@ int main(void)
     apex::init("apex::cuda multiple thread test", 0, 1);
     apex::apex_options::use_screen_output(true);
 
-    cudaError_t err;
 	int count = 0;
-	err = cudaGetDeviceCount(&count);
-    if (err != cudaSuccess) {
-       std::cout << "error in cudaGetDeviceCount(), #=" << cudaGetErrorString(err) << std::endl;
-    }
+	RUNTIME_API_CALL(cudaGetDeviceCount(&count));
 	printf("%d devices found.\n", count);
 
     for(int i=0; i<count; i++) {
-        cudaSetDevice(i);
+        RUNTIME_API_CALL(cudaSetDevice(i));
         cudaDeviceProp deviceProp;
-        cudaGetDeviceProperties(&deviceProp, i);
+        RUNTIME_API_CALL(cudaGetDeviceProperties(&deviceProp, i));
         std::cout << "Using device " << i << ", name: " << deviceProp.name << std::endl;
     }
 
@@ -99,6 +99,7 @@ int main(void)
     }
 
     // To confirm host array data
+    /*
     for(int i=0; i<count; i++) {
         printf("arr[%d] = ", i);
         for(int j=0; j<ARR_SIZE; j++) {
@@ -106,6 +107,7 @@ int main(void)
         }
         printf("\n");
     }
+    */
 
     // Result memory allocation
     int *result[count];
@@ -117,16 +119,16 @@ int main(void)
     // Device array memory allocation
     int *dev_arr[count];
     for(int i=0; i<count; i++) {
-        cudaSetDevice(i);
-        cudaMalloc(&dev_arr[i], sizeof(int)*ARR_SIZE);
+        RUNTIME_API_CALL(cudaSetDevice(i));
+        RUNTIME_API_CALL(cudaMalloc(&dev_arr[i], sizeof(int)*ARR_SIZE));
     }
 
     // Device result memory allocation
     int *dev_result[count];
     for(int i=0; i<count; i++) {
-        cudaSetDevice(i);
-        cudaMalloc(&dev_result[i], sizeof(int));
-        cudaMemset(dev_result[i], 0, sizeof(int));
+        RUNTIME_API_CALL(cudaSetDevice(i));
+        RUNTIME_API_CALL(cudaMalloc(&dev_result[i], sizeof(int)));
+        RUNTIME_API_CALL(cudaMemset(dev_result[i], 0, sizeof(int)));
     }
 
     // Connect these pointers with object
@@ -150,7 +152,7 @@ int main(void)
         // Join pthread
         for(int j=0; j<NUM_THR; j++) {
             pthread_join(pthread[j], NULL);
-            printf("result[%d][%d] = %d\n", i,j, (*cuda[i][j].result));
+            //printf("result[%d][%d] = %d\n", i,j, (*cuda[i][j].result));
         }
     }
 

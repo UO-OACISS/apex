@@ -89,9 +89,9 @@ do_pass(cudaStream_t stream)
   free(h_A);
   free(h_B);
   free(h_C);
-  cudaFree(d_A);
-  cudaFree(d_B);
-  cudaFree(d_C);
+  RUNTIME_API_CALL(cudaFree(d_A));
+  RUNTIME_API_CALL(cudaFree(d_B));
+  RUNTIME_API_CALL(cudaFree(d_C));
 }
 
 int
