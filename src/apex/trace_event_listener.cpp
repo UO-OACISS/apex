@@ -29,15 +29,7 @@ trace_event_listener::trace_event_listener (void) : _terminate(false),
 }
 
 trace_event_listener::~trace_event_listener (void) {
-    trace << "{\"name\":\"program\""
-          << ", \"ph\": \"E\", \"pid\": \""
-          << saved_node_id << "\", \"tid\": \"0\", \"ts\": "
-          << _end_time << "}\n";
-    trace << "]\n";
-    trace << "}\n" << std::endl;
-    flush_trace();
-    trace_file.close();
-    _initialized = true;
+    close_trace();
 }
 
 void trace_event_listener::end_trace_time(void) {
@@ -60,6 +52,8 @@ void trace_event_listener::on_shutdown(shutdown_event_data &data) {
     APEX_UNUSED(data);
     if (!_terminate) {
         end_trace_time();
+        flush_trace();
+        close_trace();
         _terminate = true;
     }
     return;
@@ -229,8 +223,22 @@ void trace_event_listener::flush_trace(void) {
 
 void trace_event_listener::flush_trace_if_necessary(void) {
     auto tmp = ++num_events;
+    /* flush after every million events */
     if (tmp % 1000000 == 0) {
         flush_trace();
+    }
+}
+
+void trace_event_listener::close_trace(void) {
+    if (trace_file.is_open()) {
+        trace << "{\"name\":\"program\""
+            << ", \"ph\": \"E\", \"pid\": \""
+            << saved_node_id << "\", \"tid\": \"0\", \"ts\": "
+            << _end_time << "}\n";
+        trace << "]\n";
+        trace << "}\n" << std::endl;
+        flush_trace();
+        trace_file.close();
     }
 }
 

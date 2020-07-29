@@ -75,6 +75,7 @@ private:
   	void _init(void);
   	bool _terminate;
     void flush_trace(void);
+    void close_trace(void);
     void flush_trace_if_necessary(void);
   	bool _common_start(std::shared_ptr<task_wrapper> &tt_ptr);
   	void _common_stop(std::shared_ptr<profiler> &p);
