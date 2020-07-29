@@ -306,6 +306,7 @@ set(apex_sources
     tau_listener.cpp
     tau_dummy.cpp
     thread_instance.cpp
+    trace_event_listener.cpp
     utils.cpp
     ${proc_sources}
     ${bfd_sources}
