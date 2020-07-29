@@ -477,7 +477,8 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
     APEX_UNUSED(ud);
     APEX_UNUSED(id);
     APEX_UNUSED(domain);
-    if (params == NULL) return;
+    if (!apex::thread_instance::is_worker()) { return; }
+    if (params == NULL) { return; }
     CUpti_CallbackData * cbdata = (CUpti_CallbackData*)(params);
 
     if (cbdata->callbackSite == CUPTI_API_ENTER) {
