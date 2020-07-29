@@ -41,7 +41,9 @@ static void __attribute__((constructor)) initTrace(void);
 
 // Timestamp at trace initialization time. Used to normalized other
 // timestamps
-static uint64_t startTimestamp;
+static uint64_t startTimestampGPU{0};
+static uint64_t startTimestampCPU{0};
+static int64_t deltaTimestamp{0};
 
 /* The callback subscriber */
 CUpti_SubscriberHandle subscriber;
@@ -94,8 +96,8 @@ void store_profiler_data(const std::string &name, uint32_t correlationId,
     // create an APEX profiler to store this data - we can't start
     // then stop because we have timestamps already.
     auto prof = std::make_shared<apex::profiler>(tt->task_id);
-    prof->set_start(start);
-    prof->set_end(end);
+    prof->set_start(start + deltaTimestamp);
+    prof->set_end(end + deltaTimestamp);
     // fake out the profiler_listener
     instance->the_profiler_listener->push_profiler_public(prof);
     if (apex::apex_options::use_trace_event()) {
@@ -601,7 +603,12 @@ void initTrace() {
     //CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_RESOURCE));
     //CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_NVTX));
 
-    CUPTI_CALL(cuptiGetTimestamp(&startTimestamp));
+    // synchronize timestamps
+    startTimestampCPU = apex::profiler::get_time_ns();
+    cuptiGetTimestamp(&startTimestampGPU);
+    // assume CPU timestamp is greater than GPU
+    deltaTimestamp = (int64_t)(startTimestampCPU) - (int64_t)(startTimestampGPU);
+    printf("Delta computed to be: %ld\n", deltaTimestamp);
 }
 
 /* This is the global "shutdown" method for flushing the buffer.  This is
