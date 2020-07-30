@@ -46,8 +46,10 @@ namespace apex {
 
 // Global static pointer used to ensure a single instance of the class.
 APEX_NATIVE_TLS thread_instance * thread_instance::_instance(nullptr);
-// Global static count of worker threads in system
+// Global static count of all known threads in system
 std::atomic_int thread_instance::_num_threads(0);
+// Global static count of worker threads in system
+std::atomic_int thread_instance::_num_workers(0);
 // Global static count of *active* threads in system
 std::atomic_int thread_instance::_active_threads(0);
 // Global static map of HPX thread names to TAU thread IDs
@@ -78,12 +80,15 @@ thread_instance& thread_instance::instance(bool is_worker) {
     // first time called by this thread
     // construct test element to be used in all subsequent calls from this thread
     _instance = new thread_instance(is_worker);
+    /* Even do this for non-workers, because for CUPTI processing we need to
+     * generate GUIDs for the activity events! */
+    _instance->_id = _num_threads++;
+    /* reverse the TID and shift it 32 bits, so we can use it to generate
+       task-private GUIDS that are unique within the process space. */
+    _instance->_id_reversed =
+        ((uint64_t)(simple_reverse((uint32_t)_instance->_id))) << 32;
     if (is_worker) {
-        _instance->_id = _num_threads++;
-      /* reverse the TID and shift it 32 bits, so we can use it to generate
-         task-private GUIDS that are unique within the process space. */
-        _instance->_id_reversed =
-            ((uint64_t)(simple_reverse((uint32_t)_instance->_id))) << 32;
+        _num_workers++;
     }
     _instance->_runtime_id = _instance->_id; // can be set later, if necessary
     _active_threads++;

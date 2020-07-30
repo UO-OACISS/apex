@@ -57,6 +57,7 @@ private:
   static std::map<int, bool> _worker_map;
   static std::mutex _worker_map_mutex;
   static std::atomic_int _num_threads;
+  static std::atomic_int _num_workers;
   static std::atomic_int _active_threads;
   static std::string * _program_path;
   static std::unordered_map<uint64_t, std::vector<profiler*>* > children_to_resume;
@@ -97,6 +98,7 @@ public:
   static int map_name_to_id(std::string name);
   static bool map_id_to_worker(int id);
   static int get_num_threads(void) { return _num_threads; };
+  static int get_num_workers(void) { return _num_workers; };
   std::string map_addr_to_name(apex_function_address function_address);
   static profiler * restore_children_profilers(std::shared_ptr<task_wrapper> &tt_ptr);
   static void set_current_profiler(profiler * the_profiler);
