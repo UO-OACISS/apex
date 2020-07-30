@@ -467,11 +467,12 @@ inline std::shared_ptr<task_wrapper> _new_task(
     std::shared_ptr<task_wrapper> tt_ptr = make_shared<task_wrapper>();
     tt_ptr->task_id = id;
     // if not tracking dependencies, don't save the parent
+    /* Why?
     if ((!apex_options::use_taskgraph_output()) &&
          !apex_options::use_otf2()) {
         tt_ptr->parent = task_wrapper::get_apex_main_wrapper();
     // was a parent passed in?
-    } else if (parent_task != nullptr) {
+    } else */ if (parent_task != nullptr) {
         tt_ptr->parent_guid = parent_task->guid;
         tt_ptr->parent = parent_task;
     // if not, is there a current timer?
@@ -1363,10 +1364,6 @@ void finalize()
 {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) { FUNCTION_EXIT return; } // protect against calls after finalization
-    instance->the_profiler_listener->stop_main_timer();
-#ifdef APEX_WITH_CUDA
-    flushTrace();
-#endif
 #ifdef APEX_WITH_JUPYTER_SUPPORT
     // reset all counters, and return.
     //reset(APEX_NULL_FUNCTION_ADDRESS);
@@ -1387,6 +1384,10 @@ void finalize()
     // FIRST, stop the top level timer, while the infrastructure is still
     // functioning.
     if (top_level_timer != nullptr) { stop(top_level_timer); }
+    instance->the_profiler_listener->stop_main_timer();
+#ifdef APEX_WITH_CUDA
+    flushTrace();
+#endif
     // stop processing new timers/counters/messages/tasks/etc.
     apex_options::suspend(true);
     // now, process all output
