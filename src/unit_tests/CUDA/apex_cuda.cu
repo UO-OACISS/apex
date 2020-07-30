@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include "apex_api.hpp"
 
-#define ITERATIONS 64
+#define ITERATIONS 4
 
 #define RUNTIME_API_CALL(apiFuncCall)                                          \
 do {                                                                           \

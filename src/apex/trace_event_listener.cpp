@@ -9,6 +9,7 @@
 #include <iostream>
 #include <fstream>
 #include <memory>
+#include <iomanip>
 
 using namespace std;
 
@@ -202,9 +203,12 @@ std::string trace_event_listener::make_tid (uint32_t device, uint32_t context, u
            << ",\"args\":{\"name\":"
            << "\"GPU Dev:" << device;
         if (context > 0) {
-            ss << " Ctx:" << context;
+            ss << std::setfill('0');
+            ss << " Ctx:";
+            ss << std::setw(2) << context;
             if (stream > 0) {
-                ss << " Str:" << stream;
+                ss << " Str:";
+                ss << setw(5) << stream;
             }
         }
         ss << "\"";

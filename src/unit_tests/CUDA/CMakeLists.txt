@@ -7,6 +7,7 @@ link_directories (${APEX_BINARY_DIR}/src/apex)
 
 set(example_programs
     apex_cuda
+    apex_multi_cuda
     apex_vector
     multiGpuThread
    )
