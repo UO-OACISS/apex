@@ -18,6 +18,7 @@
 #include "thread_instance.hpp"
 #include "apex_options.hpp"
 #include "trace_event_listener.hpp"
+#include "otf2_listener.hpp"
 
 static void __attribute__((constructor)) initTrace(void);
 //static void __attribute__((destructor)) flushTrace(void);
@@ -105,6 +106,11 @@ void store_profiler_data(const std::string &name, uint32_t correlationId,
             (apex::trace_event_listener*)instance->the_trace_event_listener;
         tel->on_async_event(device, context, stream, prof);
     }
+    if (apex::apex_options::use_otf2()) {
+        apex::otf2_listener * tol =
+            (apex::otf2_listener*)instance->the_otf2_listener;
+        tol->on_async_event(device, context, stream, prof);
+    }
 
     // have the listeners handle the end of this task
     instance->complete_task(tt);
@@ -144,23 +150,23 @@ static const char * getMemcpyKindString(uint8_t kind)
 {
     switch (kind) {
         case CUPTI_ACTIVITY_MEMCPY_KIND_HTOD:
-            return "Memcpy HtoD";
+            return "Memory copy HtoD";
         case CUPTI_ACTIVITY_MEMCPY_KIND_DTOH:
-            return "Memcpy DtoH";
+            return "Memory copy DtoH";
         case CUPTI_ACTIVITY_MEMCPY_KIND_HTOA:
-            return "Memcpy HtoA";
+            return "Memory copy HtoA";
         case CUPTI_ACTIVITY_MEMCPY_KIND_ATOH:
-            return "Memcpy AtoH";
+            return "Memory copy AtoH";
         case CUPTI_ACTIVITY_MEMCPY_KIND_ATOA:
-            return "Memcpy AtoA";
+            return "Memory copy AtoA";
         case CUPTI_ACTIVITY_MEMCPY_KIND_ATOD:
-            return "Memcpy AtoD";
+            return "Memory copy AtoD";
         case CUPTI_ACTIVITY_MEMCPY_KIND_DTOA:
-            return "Memcpy DtoA";
+            return "Memory copy DtoA";
         case CUPTI_ACTIVITY_MEMCPY_KIND_DTOD:
-            return "Memcpy DtoD";
+            return "Memory copy DtoD";
         case CUPTI_ACTIVITY_MEMCPY_KIND_HTOH:
-            return "Memcpy HtoH";
+            return "Memory copy HtoH";
         default:
             break;
     }

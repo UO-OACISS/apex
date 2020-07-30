@@ -258,7 +258,8 @@ void apex::_initialize()
 #ifdef APEX_HAVE_OTF2
         if (apex_options::use_otf2())
         {
-            listeners.push_back(new otf2_listener());
+            the_otf2_listener = new otf2_listener();
+            listeners.push_back(the_otf2_listener);
         }
 #endif
         if (apex_options::use_trace_event())

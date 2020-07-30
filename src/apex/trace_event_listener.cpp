@@ -21,7 +21,7 @@ trace_event_listener::trace_event_listener (void) : _terminate(false),
     trace << fixed << "{\n";
     trace << "\"displayTimeUnit\": \"ms\",\n";
     trace << "\"traceEvents\": [\n";
-    trace << "{\"name\":\"program\""
+    trace << "{\"name\":\"APEX MAIN\""
           << ",\"ph\":\"B\",\"pid\":"
           << saved_node_id << ",\"tid\":0,\"ts\":"
           << profiler::get_time_us() << "},\n";
@@ -272,7 +272,7 @@ void trace_event_listener::flush_trace_if_necessary(void) {
 
 void trace_event_listener::close_trace(void) {
     if (trace_file.is_open()) {
-        trace << "{\"name\":\"program\""
+        trace << "{\"name\":\"APEX MAIN\""
             << ", \"ph\":\"E\",\"pid\":"
             << saved_node_id << ",\"tid\":0,\"ts\":"
             << _end_time << "}\n";

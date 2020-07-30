@@ -38,6 +38,39 @@ using namespace std;
 
 namespace apex {
 
+    uint32_t otf2_listener::make_vtid (uint32_t device, uint32_t context, uint32_t stream) {
+        cuda_thread_node tmp(device, context, stream);
+        size_t tid;
+        /* There is a potential for overlap here, but not a high potential.  The CPU and the GPU
+        * would BOTH have to spawn 64k+ threads/streams for this to happen. */
+        if (vthread_map.count(tmp) == 0) {
+            // lock the archive lock, we need to make an event writer
+            write_lock_type lock(_archive_mutex);
+            // lock the set of thread IDs
+            _event_set_mutex.lock();
+            // get the next ID
+            uint32_t id = (uint32_t)_event_threads.size();
+            // reverse it, so as to avoid collisions with CPU threads
+            // uint32_t id_reversed = simple_reverse(id);
+            // insert it.
+            //std::cout << "GPU Inserting " << _event_threads.size() << std::endl;
+            _event_threads.insert(_event_threads.size());
+            // done with the set of event threads, so unlock.
+            _event_set_mutex.unlock();
+            // use the OTF2 thread index (not reversed) for the vthread_map
+            vthread_map.insert(std::pair<cuda_thread_node, size_t>(tmp,id));
+            // construct a globally unique ID for this thread on this rank
+            uint64_t my_node_id = my_saved_node_id;
+            my_node_id = (my_node_id << 32) + id;
+            // construct the event writer
+            OTF2_EvtWriter* evt_writer = OTF2_Archive_GetEvtWriter( archive, my_node_id );
+            // add it to the map of virtual thread IDs to event writers
+            vthread_evt_writer_map.insert(std::pair<size_t, OTF2_EvtWriter*>(id, evt_writer));
+        }
+        tid = vthread_map[tmp];
+        return tid;
+    }
+
     OTF2_FlushCallbacks otf2_listener::flush_callbacks;
 
     /* Stupid Intel compiler CLAIMS to be C++14, but doesn't have support for
@@ -354,14 +387,16 @@ namespace apex {
       if (evt_writer == nullptr && create) {
         // should already be locked by the "new thread" event.
         uint64_t my_node_id = my_saved_node_id;
+        std::unique_lock<std::mutex> l(_event_set_mutex);
         //my_node_id = (my_node_id << 32) + thread_instance::get_id();
         my_node_id = (my_node_id << 32) + _event_threads.size();
         evt_writer = OTF2_Archive_GetEvtWriter( archive, my_node_id );
         if (thread_instance::get_id() == 0) {
             comm_evt_writer = evt_writer;
         }
-        std::unique_lock<std::mutex> l(_event_set_mutex);
-        _event_threads.insert(thread_instance::get_id());
+        //_event_threads.insert(thread_instance::get_id());
+        //std::cout << "CPU Inserting " << _event_threads.size() << std::endl;
+        _event_threads.insert(_event_threads.size());
       // Are we closing an event writer?
       } else if (!create) {
         if (thread_instance::get_id() == 0) {
@@ -381,14 +416,14 @@ namespace apex {
       return evt_writer;
     }
 
-    bool otf2_listener::event_file_exists (int threadid) {
+    bool otf2_listener::event_file_exists (uint32_t threadid) {
         // get exclusive access to the set - unlocks on exit
         std::unique_lock<std::mutex> l(_event_set_mutex);
         if (_event_threads.find(threadid) == _event_threads.end())
         {return false;} else {return true;}
     }
 
-    OTF2_DefWriter* otf2_listener::getDefWriter(int threadid) {
+    OTF2_DefWriter* otf2_listener::getDefWriter(uint32_t threadid) {
         OTF2_DefWriter* def_writer;
         //printf("creating definition writer for thread %d\n", threadid);
         //fflush(stdout);
@@ -401,7 +436,7 @@ namespace apex {
     /* constructor for the OTF2 listener class */
     otf2_listener::otf2_listener (void) : _terminate(false),
         _initialized(false), comm_evt_writer(nullptr),
-        global_def_writer(nullptr) {
+        global_def_writer(nullptr), dropped(0) {
         /* get a start time for the trace */
         globalOffset = get_time();
         /* set the flusher */
@@ -539,19 +574,24 @@ namespace apex {
             OTF2_GlobalDefWriter_WriteString( global_def_writer,
                 get_string_index(id), id.c_str() );
             OTF2_Paradigm paradigm = OTF2_PARADIGM_USER;
+            OTF2_RegionRole role = OTF2_REGION_ROLE_TASK;
             string uppercase;
             convert_upper(id, uppercase);
-            size_t found = uppercase.find(string("APEX"));
+            // does the original string contain APEX?
+            size_t found = id.find(string("APEX"));
             if (found != std::string::npos) {
                 paradigm = OTF2_PARADIGM_MEASUREMENT_SYSTEM;
+                role = OTF2_REGION_ROLE_ARTIFICIAL;
             }
             found = uppercase.find(string("UNRESOLVED"));
             if (found != std::string::npos) {
                 paradigm = OTF2_PARADIGM_MEASUREMENT_SYSTEM;
+                role = OTF2_REGION_ROLE_ARTIFICIAL;
             }
             found = uppercase.find(string("OPENMP"));
             if (found != std::string::npos) {
                 paradigm = OTF2_PARADIGM_OPENMP;
+                role = OTF2_REGION_ROLE_WRAPPER;
             }
             found = uppercase.find(string("PTHREAD"));
             if (found != std::string::npos) {
@@ -560,14 +600,46 @@ namespace apex {
             found = uppercase.find(string("MPI"));
             if (found != std::string::npos) {
                 paradigm = OTF2_PARADIGM_MPI;
+                role = OTF2_REGION_ROLE_WRAPPER;
+            }
+            // does the original string start with GPU:?
+            found = id.find(string("GPU: "));
+            if (found != std::string::npos) {
+                paradigm = OTF2_PARADIGM_CUDA;
+                role = OTF2_REGION_ROLE_FUNCTION;
+                found = id.find(string("Memory copy"));
+                if (found != std::string::npos) {
+                    role = OTF2_REGION_ROLE_DATA_TRANSFER;
+                }
+            }
+            // does the original string start with cuda?
+            found = id.rfind(string("cuda"),0);
+            if (found == 0) {
+                paradigm = OTF2_PARADIGM_CUDA;
+                role = OTF2_REGION_ROLE_WRAPPER;
+                found = uppercase.find(string("MEMCPY"));
+                if (found != std::string::npos) {
+                    role = OTF2_REGION_ROLE_DATA_TRANSFER;
+                }
+                found = uppercase.find(string("SYNC"));
+                if (found != std::string::npos) {
+                    role = OTF2_REGION_ROLE_TASK_WAIT;
+                }
+                found = uppercase.find(string("MALLOC"));
+                if (found != std::string::npos) {
+                    role = OTF2_REGION_ROLE_ALLOCATE;
+                }
+                found = uppercase.find(string("FREE"));
+                if (found != std::string::npos) {
+                    role = OTF2_REGION_ROLE_DEALLOCATE;
+                }
             }
             OTF2_GlobalDefWriter_WriteRegion( global_def_writer,
                     idx /* id */,
                     get_string_index(id) /* region name  */,
                     get_string_index(empty) /* alternative name */,
                     get_string_index(empty) /* description */,
-                    (found != std::string::npos) ? OTF2_REGION_ROLE_ARTIFICIAL
-                        : OTF2_REGION_ROLE_TASK,
+                    role,
                     paradigm,
                     OTF2_REGION_FLAG_NONE,
                     get_string_index(empty) /* source file */,
@@ -625,12 +697,9 @@ namespace apex {
             uint64_t map_size = global_region_indices.size();
             OTF2_IdMap * my_map = OTF2_IdMap_CreateFromUint64Array(map_size,
                 mappings, false);
-            //for (int i = 0 ; i < thread_instance::get_num_threads() ; i++) {
             for (size_t i = 0 ; i < _event_threads.size() ; i++) {
-                //if (event_file_exists(i)) {
-                    OTF2_DefWriter_WriteMappingTable(getDefWriter(i),
-                        OTF2_MAPPING_REGION, my_map);
-                //}
+                OTF2_DefWriter_WriteMappingTable(getDefWriter(i),
+                    OTF2_MAPPING_REGION, my_map);
             }
             // free the map
             OTF2_IdMap_Free(my_map);
@@ -654,12 +723,9 @@ namespace apex {
             uint64_t map_size = global_metric_indices.size();
             OTF2_IdMap * my_map = OTF2_IdMap_CreateFromUint64Array(map_size,
                 mappings, false);
-            //for (int i = 0 ; i < thread_instance::get_num_threads() ; i++) {
             for (size_t i = 0 ; i < _event_threads.size() ; i++) {
-                //if (event_file_exists(i)) {
-                    OTF2_DefWriter_WriteMappingTable(getDefWriter(i),
-                        OTF2_MAPPING_METRIC, my_map);
-                //}
+                OTF2_DefWriter_WriteMappingTable(getDefWriter(i),
+                    OTF2_MAPPING_METRIC, my_map);
             }
             // free the map
             OTF2_IdMap_Free(my_map);
@@ -1845,5 +1911,55 @@ namespace apex {
 
 #endif
 
+    void otf2_listener::on_async_event(uint32_t device, uint32_t context,
+        uint32_t stream, std::shared_ptr<profiler> &p) {
+        uint32_t tid{make_vtid(device, context, stream)};
+        task_identifier * id = p->tt_ptr->get_task_id();
+        uint64_t idx = get_region_index(id);
+        //static map<uint32_t,std::string> last_p;
+        if (last_ts.count(tid) == 0) {
+            last_ts[tid] = 0ULL;
+        }
+        uint64_t last = last_ts[tid];
+        // not likely, but just in case...
+        if (_terminate) { return; }
+        /* validate the time stamp.  CUPTI is notorious for giving out-of-order
+         * events, so make sure this one isn't before the previous. */
+        uint64_t stamp = 0L;
+        stamp = p->get_start_ns() - globalOffset;
+        if(stamp < last) {
+            dropped++;
+            /*
+            std::cerr << "APEX: Warning - Events delivered out of order on Device "
+                      << device << ", Context " << context << ", Stream " << stream
+                      << ".\nIgnoring event " << p->tt_ptr->task_id->get_name()
+                      << " with timestamp of " << stamp << " after last event "
+                      << "with timestamp of " << last << std::endl;
+                      */
+            return;
+        }
+        // don't close the archive on us!
+        read_lock_type lock(_archive_mutex);
+        // before we process the event, make sure the event write is open
+        OTF2_EvtWriter* local_evt_writer = vthread_evt_writer_map[tid];
+        if (local_evt_writer != nullptr) {
+            // create an attribute list
+            OTF2_AttributeList * al = OTF2_AttributeList_New();
+            // create an attribute
+            OTF2_AttributeList_AddUint64( al, 0, p->tt_ptr->guid );
+            OTF2_AttributeList_AddUint64( al, 1, p->tt_ptr->parent_guid );
+            OTF2_EC(OTF2_EvtWriter_Enter( local_evt_writer, al,
+                stamp, idx /* region */ ));
+            stamp = p->get_stop_ns() - globalOffset;
+            OTF2_EC(OTF2_EvtWriter_Leave( local_evt_writer, al,
+                stamp, idx /* region */ ));
+            last_ts[tid] = stamp;
+            //last_p[tid] = std::string(p->tt_ptr->task_id->get_name());
+            // delete the attribute list
+            OTF2_AttributeList_Delete(al);
+        }
+        return;
+
+    }
 
 }

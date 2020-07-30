@@ -17,6 +17,7 @@
 #include <chrono>
 #include "apex_cxx_shared_lock.hpp"
 #include "profiler.hpp"
+#include "cuda_thread_node.hpp"
 
 namespace apex {
 
@@ -30,7 +31,7 @@ namespace apex {
         std::mutex _metric_mutex;
         std::mutex _comm_mutex;
         std::mutex _event_set_mutex;
-        std::set<int> _event_threads;
+        std::set<uint32_t> _event_threads;
         /* this is a reader/writer lock. Don't close the archive
          * if other threads are writing to it. but allow concurrent
          * access from the writer threads. */
@@ -131,8 +132,8 @@ namespace apex {
         OTF2_EvtWriter* comm_evt_writer;
         //APEX_NATIVE_TLS OTF2_DefWriter* def_writer;
         OTF2_EvtWriter* getEvtWriter(bool create);
-        bool event_file_exists (int threadid);
-        OTF2_DefWriter* getDefWriter(int threadid);
+        bool event_file_exists (uint32_t threadid);
+        OTF2_DefWriter* getDefWriter(uint32_t threadid);
         OTF2_GlobalDefWriter* global_def_writer;
         std::map<task_identifier,uint64_t>& get_region_indices(void);
         std::map<std::string,uint64_t> global_string_indices;
@@ -179,11 +180,25 @@ namespace apex {
         void write_papi_counters(OTF2_EvtWriter* writer, profiler* prof,
             uint64_t stamp, bool is_enter);
 #endif
+        std::mutex _vthread_mutex;
+        std::map<cuda_thread_node, size_t> vthread_map;
+        std::map<uint32_t, OTF2_EvtWriter*> vthread_evt_writer_map;
+        uint32_t make_vtid (uint32_t device, uint32_t context, uint32_t stream);
+        std::map<uint32_t,uint64_t> last_ts;
+        uint64_t dropped;
     public:
         otf2_listener (void);
         //~otf2_listener (void) { shutdown_event_data data(my_saved_node_id,0);
         //on_shutdown(data); };
-        ~otf2_listener (void) { finalize(); };
+        ~otf2_listener (void) {
+            if (dropped > 0) {
+                std::cerr << "APEX: Warning! "
+                      << dropped << " Aysnchronous Events were delivered out of "
+                      << "order by CUDA/CUPTI.\n"
+                      << "These events were ignored. Trace may be impcomplete."
+                      << std::endl;
+            }
+            finalize(); };
         void set_node_id(int node_id, int node_count) {
             this->my_saved_node_id = node_id;
             this->my_saved_node_count = node_count;
@@ -210,6 +225,9 @@ namespace apex {
             { APEX_UNUSED(data); };
         void on_send(message_event_data &data);
         void on_recv(message_event_data &data);
+        void on_async_event(uint32_t device, uint32_t context,
+            uint32_t stream, std::shared_ptr<profiler> &p);
+
     };
 }
 
