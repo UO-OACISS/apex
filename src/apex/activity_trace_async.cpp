@@ -95,7 +95,7 @@ void store_profiler_data(const std::string &name, uint32_t correlationId,
     auto tt = apex::new_task(tmp, UINT64_MAX, parent);
     // create an APEX profiler to store this data - we can't start
     // then stop because we have timestamps already.
-    auto prof = std::make_shared<apex::profiler>(tt->task_id);
+    auto prof = std::make_shared<apex::profiler>(tt);
     prof->set_start(start + deltaTimestamp);
     prof->set_end(end + deltaTimestamp);
     // fake out the profiler_listener
@@ -421,6 +421,7 @@ void CUPTIAPI bufferCompleted(CUcontext ctx, uint32_t streamId,
 /* this has to happen AFTER cuInit(). */
 void configureUnifiedMemorySupport(void) {
     CUpti_ActivityUnifiedMemoryCounterConfig config[4];
+    int num_counters = 2;
 
     // configure unified memory counters
     config[0].scope = CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_SCOPE_PROCESS_ALL_DEVICES;
@@ -433,17 +434,20 @@ void configureUnifiedMemorySupport(void) {
     config[1].deviceId = 0;
     config[1].enable = 1;
 
-    config[2].scope = CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_SCOPE_PROCESS_ALL_DEVICES;
-    config[2].kind = CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_CPU_PAGE_FAULT_COUNT;
-    config[2].deviceId = 0;
-    config[2].enable = 1;
+    if (apex::apex_options::use_cuda_counters()) {
+        num_counters = 4;
+        config[2].scope = CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_SCOPE_PROCESS_ALL_DEVICES;
+        config[2].kind = CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_CPU_PAGE_FAULT_COUNT;
+        config[2].deviceId = 0;
+        config[2].enable = 1;
 
-    config[3].scope = CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_SCOPE_PROCESS_ALL_DEVICES;
-    config[3].kind = CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_GPU_PAGE_FAULT;
-    config[3].deviceId = 0;
-    config[3].enable = 1;
+        config[3].scope = CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_SCOPE_PROCESS_ALL_DEVICES;
+        config[3].kind = CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_GPU_PAGE_FAULT;
+        config[3].deviceId = 0;
+        config[3].enable = 1;
+    }
 
-    CUptiResult res = cuptiActivityConfigureUnifiedMemoryCounter(config, 4);
+    CUptiResult res = cuptiActivityConfigureUnifiedMemoryCounter(config, num_counters);
     if (res == CUPTI_ERROR_UM_PROFILING_NOT_SUPPORTED) {
         printf("Test is waived, unified memory is not supported on the underlying platform.\n");
     }
@@ -578,18 +582,22 @@ void initTrace() {
     CUPTI_CALL(cuptiActivityGetAttribute(
                 CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_SIZE, &attrValueSize, &attrValue));
     attrValue = attrValue / 4;
+    /*
     printf("%s = %llu\n",
             "CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_SIZE",
             (long long unsigned)attrValue);
+            */
     CUPTI_CALL(cuptiActivitySetAttribute(
                 CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_SIZE, &attrValueSize, &attrValue));
 
     CUPTI_CALL(cuptiActivityGetAttribute(
                 CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_POOL_LIMIT, &attrValueSize, &attrValue));
     attrValue = attrValue * 4;
+    /*
     printf("%s = %llu\n",
             "CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_POOL_LIMIT",
             (long long unsigned)attrValue);
+            */
     CUPTI_CALL(cuptiActivitySetAttribute(
                 CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_POOL_LIMIT, &attrValueSize, &attrValue));
 
