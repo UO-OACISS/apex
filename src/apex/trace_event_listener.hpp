@@ -77,10 +77,10 @@ private:
     void flush_trace(void);
     void close_trace(void);
     void flush_trace_if_necessary(void);
-  	bool _common_start(std::shared_ptr<task_wrapper> &tt_ptr);
   	void _common_stop(std::shared_ptr<profiler> &p);
     std::string make_tid (uint32_t device, uint32_t context,
         uint32_t stream);
+    int get_thread_id_metadata();
   	static bool _initialized;
     int saved_node_id;
     std::atomic<size_t> num_events;

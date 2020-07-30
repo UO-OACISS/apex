@@ -22,9 +22,17 @@ trace_event_listener::trace_event_listener (void) : _terminate(false),
     trace << "\"displayTimeUnit\": \"ms\",\n";
     trace << "\"traceEvents\": [\n";
     trace << "{\"name\":\"program\""
-          << ", \"ph\": \"B\", \"pid\": \""
-          << saved_node_id << "\", \"tid\": \"0\", \"ts\": "
+          << ",\"ph\":\"B\",\"pid\":"
+          << saved_node_id << ",\"tid\":0,\"ts\":"
           << profiler::get_time_us() << "},\n";
+    trace << "{\"name\":\"process_name\""
+          << ",\"ph\":\"M\",\"pid\":" << saved_node_id
+          << ",\"args\":{\"name\":"
+          << "\"Process " << saved_node_id << "\"}},\n";
+    trace << "{\"name\":\"process_sort_index\""
+          << ",\"ph\":\"M\",\"pid\":" << saved_node_id
+          << ",\"args\":{\"sort_index\":"
+          << saved_node_id << "}},\n";
     _initialized = true;
 }
 
@@ -61,57 +69,67 @@ void trace_event_listener::on_shutdown(shutdown_event_data &data) {
 
 void trace_event_listener::on_new_node(node_event_data &data) {
     APEX_UNUSED(data);
-    if (!_terminate) {
-        // set node id
-    }
     return;
 }
 
 void trace_event_listener::on_new_thread(new_thread_event_data &data) {
     APEX_UNUSED(data);
-    if (!_terminate) {
-    }
     return;
 }
 
 void trace_event_listener::on_exit_thread(event_data &data) {
     APEX_UNUSED(data);
-    if (!_terminate) {
-    }
     return;
 }
 
-inline bool trace_event_listener::_common_start(std::shared_ptr<task_wrapper> &tt_ptr) {
-    if (!_terminate) {
-        std::stringstream ss;
-        ss << "{\"name\":\"" << tt_ptr->task_id->get_name()
-              << "\",\"id\":" << tt_ptr->guid << ",\"ph\":\"B\",\"pid\":\""
-              << saved_node_id << "\",\"tid\":" << thread_instance::get_id()
-              << ",\"ts\":" << fixed << tt_ptr->prof->get_start_us() << "},\n";
-        _vthread_mutex.lock();
-        trace << ss.rdbuf();
-        _vthread_mutex.unlock();
-        flush_trace_if_necessary();
-    } else {
-        return false;
-    }
+bool trace_event_listener::on_start(std::shared_ptr<task_wrapper> &tt_ptr) {
+    APEX_UNUSED(tt_ptr);
+    /*
+     * Do nothing - we can do a "complete" record at stop
+    */
     return true;
 }
 
-bool trace_event_listener::on_start(std::shared_ptr<task_wrapper> &tt_ptr) {
-    return _common_start(tt_ptr);
+bool trace_event_listener::on_resume(std::shared_ptr<task_wrapper> &tt_ptr) {
+    APEX_UNUSED(tt_ptr);
+    /*
+     * Do nothing - we can do a "complete" record at stop
+    */
+    return true;
 }
 
-bool trace_event_listener::on_resume(std::shared_ptr<task_wrapper> &tt_ptr) {
-    return _common_start(tt_ptr);
+int trace_event_listener::get_thread_id_metadata() {
+    int tid = thread_instance::get_id();
+    std::stringstream ss;
+    ss << "{\"name\":\"thread_name\""
+       << ",\"ph\":\"M\",\"pid\":" << saved_node_id
+       << ",\"tid\":" << tid
+       << ",\"args\":{\"name\":"
+       << "\"CPU Thread " << tid << "\"}},\n";
+    ss << "{\"name\":\"thread_sort_index\""
+       << ",\"ph\":\"M\",\"pid\":" << saved_node_id
+       << ",\"tid\":" << tid
+       << ",\"args\":{\"sort_index\":" << tid << "}},\n";
+    _vthread_mutex.lock();
+    trace << ss.rdbuf();
+    _vthread_mutex.unlock();
+    return tid;
 }
 
 inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
+    static APEX_NATIVE_TLS int tid = get_thread_id_metadata();
     if (!_terminate) {
         std::stringstream ss;
-        ss << "{\"ph\":\"E\",\"pid\":\"" << saved_node_id
-              << "\",\"tid\":" << thread_instance::get_id()
-              << ",\"ts\":" << fixed << p->get_stop_us() << "},\n";
+        uint64_t pguid = 0;
+        if (p->tt_ptr != nullptr && p->tt_ptr->parent != nullptr) {
+            pguid = p->tt_ptr->parent->guid;
+        }
+        ss << "{\"name\":\"" << p->get_task_id()->get_name()
+              << "\",\"ph\":\"X\",\"pid\":"
+              << saved_node_id << ",\"tid\":" << tid
+              << ",\"ts\":" << fixed << p->get_start_us() << ", \"dur\": "
+              << p->get_stop_us() - p->get_start_us()
+              << ",\"args\":{\"GUID\":" << p->guid << ",\"Parent GUID\":" << pguid << "}},\n";
         _vthread_mutex.lock();
         trace << ss.rdbuf();
         _vthread_mutex.unlock();
@@ -171,20 +189,38 @@ void trace_event_listener::set_metadata(const char * name, const char * value) {
 std::string trace_event_listener::make_tid (uint32_t device, uint32_t context, uint32_t stream) {
     cuda_thread_node tmp(device, context, stream);
     size_t tid;
+    /* There is a potential for overlap here, but not a high potential.  The CPU and the GPU
+     * would BOTH have to spawn 64k+ threads/streams for this to happen. */
     if (vthread_map.count(tmp) == 0) {
-        vthread_map.insert(std::pair<cuda_thread_node, size_t>(tmp,vthread_map.size()));
+        size_t id = vthread_map.size()+1;
+        uint32_t id_reversed = simple_reverse(id);
+        std::cout << "New GPU thread with id: " << id << " and reversed: " << id_reversed << std::endl;
+        vthread_map.insert(std::pair<cuda_thread_node, size_t>(tmp,id_reversed));
+        std::stringstream ss;
+        ss << "{\"name\":\"thread_name\""
+           << ",\"ph\":\"M\",\"pid\":" << saved_node_id
+           << ",\"tid\":" << id_reversed
+           << ",\"args\":{\"name\":"
+           << "\"GPU Dev:" << device;
+        if (context > 0) {
+            ss << " Ctx:" << context;
+            if (stream > 0) {
+                ss << " Str:" << stream;
+            }
+        }
+        ss << "\"";
+        ss << "}},\n";
+        ss << "{\"name\":\"thread_sort_index\""
+           << ",\"ph\":\"M\",\"pid\":" << saved_node_id
+           << ",\"tid\":" << id_reversed
+           << ",\"args\":{\"sort_index\":" << simple_reverse(1L) << "}},\n";
+        _vthread_mutex.lock();
+        trace << ss.rdbuf();
+        _vthread_mutex.unlock();
     }
     tid = vthread_map[tmp];
-    APEX_UNUSED(tid);
     std::stringstream ss;
-    ss << "\"GPU Dev:" << device;
-    if (context > 0) {
-        ss << " Ctx:" << context;
-        if (stream > 0) {
-            ss << " Str:" << stream;
-        }
-    }
-    ss << "\"";
+    ss << tid;
     std::string label{ss.str()};
     return label;
 }
@@ -193,11 +229,17 @@ void trace_event_listener::on_async_event(uint32_t device, uint32_t context,
     uint32_t stream, std::shared_ptr<profiler> &p) {
     if (!_terminate) {
         std::stringstream ss;
+        std::string tid{make_tid(device, context, stream)};
+        uint64_t pguid = 0;
+        if (p->tt_ptr != nullptr && p->tt_ptr->parent != nullptr) {
+            pguid = p->tt_ptr->parent->guid;
+        }
         ss << "{\"name\":\"" << p->get_task_id()->get_name()
-              << "\",\"id\":" << p->guid << ",\"ph\":\"X\",\"pid\":\""
-              << saved_node_id << "\",\"tid\":" << make_tid(device, context, stream)
-              << ",\"ts\":" << fixed << p->get_start_us() << ", \"dur\": "
-              << p->get_stop_us() - p->get_start_us() << "},\n";
+              << "\",\"ph\":\"X\",\"pid\":"
+              << saved_node_id << ",\"tid\":" << tid
+              << ",\"ts\":" << fixed << p->get_start_us() << ",\"dur\":"
+              << p->get_stop_us() - p->get_start_us()
+              << ",\"args\":{\"GUID\":" << p->guid << ",\"Parent GUID\":" << pguid << "}},\n";
         _vthread_mutex.lock();
         trace << ss.rdbuf();
         _vthread_mutex.unlock();
@@ -232,8 +274,8 @@ void trace_event_listener::flush_trace_if_necessary(void) {
 void trace_event_listener::close_trace(void) {
     if (trace_file.is_open()) {
         trace << "{\"name\":\"program\""
-            << ", \"ph\": \"E\", \"pid\": \""
-            << saved_node_id << "\", \"tid\": \"0\", \"ts\": "
+            << ", \"ph\":\"E\",\"pid\":"
+            << saved_node_id << ",\"tid\":0,\"ts\":"
             << _end_time << "}\n";
         trace << "]\n";
         trace << "}\n" << std::endl;
