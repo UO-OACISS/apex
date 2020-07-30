@@ -194,7 +194,6 @@ std::string trace_event_listener::make_tid (uint32_t device, uint32_t context, u
     if (vthread_map.count(tmp) == 0) {
         size_t id = vthread_map.size()+1;
         uint32_t id_reversed = simple_reverse(id);
-        std::cout << "New GPU thread with id: " << id << " and reversed: " << id_reversed << std::endl;
         vthread_map.insert(std::pair<cuda_thread_node, size_t>(tmp,id_reversed));
         std::stringstream ss;
         ss << "{\"name\":\"thread_name\""
