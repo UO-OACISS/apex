@@ -176,7 +176,7 @@ std::unordered_set<profile*> free_profiles;
   profile * profiler_listener::get_idle_time() {
     double non_idle_time = get_non_idle_time();
     /* Subtract the accumulated time from the main time span. */
-    int num_worker_threads = thread_instance::get_num_threads();
+    int num_worker_threads = thread_instance::get_num_workers();
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
 #endif
@@ -203,7 +203,7 @@ std::unordered_set<profile*> free_profiles;
   profile * profiler_listener::get_idle_rate() {
     double non_idle_time = get_non_idle_time();
     /* Subtract the accumulated time from the main time span. */
-    int num_worker_threads = thread_instance::get_num_threads();
+    int num_worker_threads = thread_instance::get_num_workers();
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
 #endif
@@ -616,7 +616,7 @@ std::unordered_set<profile*> free_profiles;
       tau_listener::Tau_start_wrapper("profiler_listener::finalize_profiles");
     }
     // our TOTAL available time is the elapsed * the number of threads, or cores
-    int num_worker_threads = thread_instance::get_num_threads();
+    int num_worker_threads = thread_instance::get_num_workers();
     task_identifier main_id(APEX_MAIN);
     profile * total_time = get_profile(main_id);
     /* The profiles haven't been processed yet. */
@@ -859,7 +859,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
     myfile.open(dotname.str().c_str());
 
     // our TOTAL available time is the elapsed * the number of threads, or cores
-    int num_worker_threads = thread_instance::get_num_threads();
+    int num_worker_threads = thread_instance::get_num_workers();
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
 #endif
