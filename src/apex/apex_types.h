@@ -292,6 +292,8 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_POLICY_DRAIN_TIMEOUT, policy_drain_timeout, int, 1000) \
     macro (APEX_CUDA_COUNTERS, use_cuda_counters, int, false) \
     macro (APEX_CUDA_KERNEL_DETAILS, use_cuda_kernel_details, int, false) \
+    macro (APEX_CUDA_RUNTIME_API, use_cuda_runtime_api, int, true) \
+    macro (APEX_CUDA_DRIVER_API, use_cuda_driver_api, int, false) \
 
 #define FOREACH_APEX_STRING_OPTION(macro) \
     macro (APEX_PAPI_METRICS, papi_metrics, char*, "") \

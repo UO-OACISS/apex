@@ -87,6 +87,7 @@ std::mutex bfd_mutex;
 #endif
                 static std::string cudastr("GPU: ");
                 static std::string kernel("cudaLaunchKernel: ");
+                static std::string kernel2("cuLaunchKernel: ");
                 if (retval.find(cudastr) != std::string::npos) {
                     std::stringstream ss;
                     std::string tmp = retval.substr(cudastr.size(),
@@ -101,6 +102,14 @@ std::mutex bfd_mutex;
                             retval.size() - kernel.size());
                     std::string * demangled = demangle(tmp);
                     ss << kernel << *demangled;
+                    free(demangled);
+                    retval.assign(ss.str());
+                } else if (retval.find(kernel2) != std::string::npos) {
+                    std::stringstream ss;
+                    std::string tmp = retval.substr(kernel2.size(),
+                            retval.size() - kernel2.size());
+                    std::string * demangled = demangle(tmp);
+                    ss << kernel2 << *demangled;
                     free(demangled);
                     retval.assign(ss.str());
                 } else {

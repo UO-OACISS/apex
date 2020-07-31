@@ -58,6 +58,7 @@ bool flushing{false};
 std::unordered_map<uint32_t, std::shared_ptr<apex::task_wrapper>> correlation_map;
 std::mutex map_mutex;
 
+/* Make sure APEX knows about this thread */
 bool& get_registered(void) {
     static APEX_NATIVE_TLS bool registered{false};
     return registered;
@@ -366,6 +367,61 @@ printActivity(CUpti_Activity *record)
                 }
                 break;
             }
+        case CUPTI_ACTIVITY_KIND_ENVIRONMENT:
+            {
+                CUpti_ActivityEnvironment *env =
+                    (CUpti_ActivityEnvironment*)record;
+                std::stringstream ss;
+                ss << "GPU: Device " << env->deviceId << " ";
+                std::string prefix{ss.str()};
+                switch (env->environmentKind) {
+                    case CUPTI_ACTIVITY_ENVIRONMENT_COOLING: {
+                        std::stringstream label;
+                        label << prefix << " Fan Speed (%max)";
+                        double value = (double)(env->data.cooling.fanSpeed);
+                        store_counter_data(nullptr, label.str(), apex::profiler::get_time_ns(), value);
+                        break;
+                    }
+                    case CUPTI_ACTIVITY_ENVIRONMENT_TEMPERATURE: {
+                        std::stringstream label;
+                        label << prefix << " Temperature (C)";
+                        double value = (double)(env->data.temperature.gpuTemperature);
+                        store_counter_data(nullptr, label.str(), apex::profiler::get_time_ns(), value);
+                        break;
+                    }
+                    case CUPTI_ACTIVITY_ENVIRONMENT_POWER: {
+                        std::stringstream label;
+                        label << prefix << " Power (mW)";
+                        double power = (double)(env->data.power.power);
+                        double limit = (double)(env->data.power.powerLimit);
+                        double utilization = (power/limit) * 100.0;
+                        uint64_t timestamp = apex::profiler::get_time_ns();
+                        store_counter_data(nullptr, label.str(), timestamp, power);
+                        label.str("");
+                        label << prefix << " Power Limit (mW)";
+                        store_counter_data(nullptr, label.str(), timestamp, limit);
+                        label.str("");
+                        label << prefix << " Power Utilization (%)";
+                        store_counter_data(nullptr, label.str(), timestamp, utilization);
+                        break;
+                    }
+                    case CUPTI_ACTIVITY_ENVIRONMENT_SPEED: {
+                        // sample the clock and memory speeds
+                        std::stringstream label;
+                        uint64_t timestamp = apex::profiler::get_time_ns();
+                        label << prefix << " SM Frequency (MHz)";
+                        double value = (double)(env->data.speed.smClock);
+                        store_counter_data(nullptr, label.str(), timestamp, value);
+                        label.str("");
+                        label << prefix << " Memory Frequency (MHz)";
+                        value = (double)(env->data.speed.memoryClock);
+                        store_counter_data(nullptr, label.str(), timestamp, value);
+                        break;
+                    }
+                    default:
+                        break;
+                }
+            }
         default:
 #if 0
             printf("  <unknown>\n");
@@ -472,6 +528,11 @@ void configureUnifiedMemorySupport(void) {
 bool initialize_first_time() {
     apex::init("APEX CUDA support", 0, 1);
     configureUnifiedMemorySupport();
+    /* Create a CUDA device context, so we can collect environment.  This is done by
+     * making a cuda call. HOWEVER, we need to disable the callback handler or we will
+     * end up in a recursive loop.
+     */
+    // CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_ENVIRONMENT)); // 20
     return true;
 }
 
@@ -526,8 +587,8 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
 
 void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
         CUpti_CallbackId id, const void *params) {
-    static bool initialized = initialize_first_time();
-    APEX_UNUSED(initialized);
+    //static bool initialized = initialize_first_time();
+    //APEX_UNUSED(initialized);
     /* Supposedly, we can use the ud or cbdata->contextData fields
      * to pass data from the start to the end event, but it isn't
      * broadly supported in the CUPTI interface, so we'll manage the
@@ -560,6 +621,14 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
         map_mutex.unlock();
         getBytesIfMalloc(id, cbdata->functionParams, tmp);
     } else if (!timer_stack.empty()) {
+        /*
+        static bool first{true};
+        // now that a kernel has been launched, we an set up environment tracking
+        if (first && cbdata->symbolName != NULL && strlen(cbdata->symbolName) > 0) {
+            CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_ENVIRONMENT)); // 20
+            first = false;
+        }
+        */
         auto timer = timer_stack.top();
         apex::stop(timer);
         timer_stack.pop();
@@ -570,11 +639,43 @@ void initTrace() {
     bool& registered = get_registered();
     registered = true;
 
+    // Register callbacks for buffer requests and for buffers completed by CUPTI.
+    CUPTI_CALL(cuptiActivityRegisterCallbacks(bufferRequested, bufferCompleted));
+
+    // Get and set activity attributes.
+    // Attributes can be set by the CUPTI client to change behavior of the activity API.
+    // Some attributes require to be set before any CUDA context is created to be effective,
+    // e.g. to be applied to all device buffer allocations (see documentation).
     size_t attrValue = 0, attrValueSize = sizeof(size_t);
-    // Device activity record is created when CUDA initializes, so we
-    // want to enable it before cuInit() or any CUDA runtime call.
-    CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_DEVICE)); // 8
-    // Enable all other activity record kinds.
+    CUPTI_CALL(cuptiActivityGetAttribute(
+                CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_SIZE, &attrValueSize, &attrValue));
+    attrValue = attrValue / 4;
+    CUPTI_CALL(cuptiActivitySetAttribute(
+                CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_SIZE, &attrValueSize, &attrValue));
+
+    CUPTI_CALL(cuptiActivityGetAttribute(
+                CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_POOL_LIMIT, &attrValueSize, &attrValue));
+    attrValue = attrValue * 4;
+    CUPTI_CALL(cuptiActivitySetAttribute(
+                CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_POOL_LIMIT, &attrValueSize, &attrValue));
+
+    /* now that the activity is configured, subscribe to callback support, too. */
+    CUPTI_CALL(cuptiSubscribe(&subscriber,
+                (CUpti_CallbackFunc)apex_cupti_callback_dispatch, NULL));
+    // get device callbacks
+    if (apex::apex_options::use_cuda_runtime_api()) {
+        CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_RUNTIME_API));
+    }
+    if (apex::apex_options::use_cuda_driver_api()) {
+        CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_DRIVER_API));
+    }
+    /* These events aren't begin/end callbacks, so no need to support them. */
+    //CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_SYNCHRONIZE));
+    //CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_RESOURCE));
+    //CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_NVTX));
+
+    /* Register for async activity */
+
     CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_CONCURRENT_KERNEL)); // 10
     CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_MEMCPY)); // 1
     CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_MEMCPY2)); // 22
@@ -585,6 +686,7 @@ void initTrace() {
     CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_RUNTIME)); // 5
     CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_EVENT)); // 6
     CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_METRIC)); // 7
+    CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_DEVICE)); // 8
     CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_CONTEXT)); // 9
     CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_NAME)); // 11
     CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_MARKER)); // 12
@@ -625,48 +727,6 @@ void initTrace() {
     CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_INTERNAL_LAUNCH_API)); // 48
     CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_COUNT)); // 49
 #endif
-#if 0 // not until CUDA 11
-#endif
-
-    // Register callbacks for buffer requests and for buffers completed by CUPTI.
-    CUPTI_CALL(cuptiActivityRegisterCallbacks(bufferRequested, bufferCompleted));
-
-    // Get and set activity attributes.
-    // Attributes can be set by the CUPTI client to change behavior of the activity API.
-    // Some attributes require to be set before any CUDA context is created to be effective,
-    // e.g. to be applied to all device buffer allocations (see documentation).
-    CUPTI_CALL(cuptiActivityGetAttribute(
-                CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_SIZE, &attrValueSize, &attrValue));
-    attrValue = attrValue / 4;
-    /*
-    printf("%s = %llu\n",
-            "CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_SIZE",
-            (long long unsigned)attrValue);
-            */
-    CUPTI_CALL(cuptiActivitySetAttribute(
-                CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_SIZE, &attrValueSize, &attrValue));
-
-    CUPTI_CALL(cuptiActivityGetAttribute(
-                CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_POOL_LIMIT, &attrValueSize, &attrValue));
-    attrValue = attrValue * 4;
-    /*
-    printf("%s = %llu\n",
-            "CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_POOL_LIMIT",
-            (long long unsigned)attrValue);
-            */
-    CUPTI_CALL(cuptiActivitySetAttribute(
-                CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_POOL_LIMIT, &attrValueSize, &attrValue));
-
-    /* now that the activity is configured, subscribe to callback support, too. */
-    CUPTI_CALL(cuptiSubscribe(&subscriber,
-                (CUpti_CallbackFunc)apex_cupti_callback_dispatch, NULL));
-    // get device callbacks
-    CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_RUNTIME_API));
-    //CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_DRIVER_API));
-    /* These events aren't begin/end callbacks, so no need to support them. */
-    //CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_SYNCHRONIZE));
-    //CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_RESOURCE));
-    //CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_NVTX));
 
     // synchronize timestamps
     startTimestampCPU = apex::profiler::get_time_ns();
