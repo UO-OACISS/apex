@@ -32,6 +32,7 @@ namespace apex {
         std::mutex _comm_mutex;
         std::mutex _event_set_mutex;
         std::set<uint32_t> _event_threads;
+        std::map<uint32_t, std::string> _event_thread_names;
         /* this is a reader/writer lock. Don't close the archive
          * if other threads are writing to it. but allow concurrent
          * access from the writer threads. */
@@ -157,6 +158,8 @@ namespace apex {
         std::string write_my_metrics(void);
         void reduce_metrics(void);
         void write_metric_map(std::map<std::string,uint64_t>& reduced_metric_map);
+        std::string write_my_threads(void);
+        void reduce_threads(void);
         void write_clock_properties(void);
         void write_host_properties(int rank, int pid, std::string& hostname);
         std::string index_filename;
@@ -164,6 +167,7 @@ namespace apex {
         std::string lock2_filename_prefix;
         std::string region_filename_prefix;
         std::string metric_filename_prefix;
+        std::string thread_filename_prefix;
         bool create_archive(void);
         std::string write_my_node_properties(void);
         static int my_saved_node_id;
@@ -171,6 +175,7 @@ namespace apex {
         std::map<int,int> rank_thread_map;
         std::map<int,int> rank_region_map;
         std::map<int,int> rank_metric_map;
+        std::map<int,std::map<uint32_t,std::string> > rank_thread_name_map;
         std::map<std::string,uint64_t> reduced_region_map;
         std::map<std::string,uint64_t> reduced_metric_map;
         std::unique_ptr<std::tuple<std::map<int,int>,

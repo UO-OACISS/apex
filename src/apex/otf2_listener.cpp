@@ -44,6 +44,19 @@ namespace apex {
         /* There is a potential for overlap here, but not a high potential.  The CPU and the GPU
         * would BOTH have to spawn 64k+ threads/streams for this to happen. */
         if (vthread_map.count(tmp) == 0) {
+            // build the thread name for viewers
+            std::stringstream ss;
+            ss << "GPU Dev: " << device;
+            if (context > 0) {
+                ss << std::setfill('0');
+                ss << " Ctx:";
+                ss << std::setw(2) << context;
+                if (stream > 0) {
+                    ss << " Str:";
+                    ss << setw(5) << stream;
+                }
+            }
+            std::string name{ss.str()};
             // lock the archive lock, we need to make an event writer
             write_lock_type lock(_archive_mutex);
             // lock the set of thread IDs
@@ -54,7 +67,9 @@ namespace apex {
             // uint32_t id_reversed = simple_reverse(id);
             // insert it.
             //std::cout << "GPU Inserting " << _event_threads.size() << std::endl;
-            _event_threads.insert(_event_threads.size());
+            size_t tmpid = _event_threads.size();
+            _event_threads.insert(tmpid);
+            _event_thread_names.insert(std::pair<uint32_t, std::string>(tmpid, name));
             // done with the set of event threads, so unlock.
             _event_set_mutex.unlock();
             // use the OTF2 thread index (not reversed) for the vthread_map
@@ -396,7 +411,13 @@ namespace apex {
         }
         //_event_threads.insert(thread_instance::get_id());
         //std::cout << "CPU Inserting " << _event_threads.size() << std::endl;
-        _event_threads.insert(_event_threads.size());
+        size_t tmpid = _event_threads.size();
+        _event_threads.insert(tmpid);
+        // construct and save the name of this thread
+        std::stringstream ss;
+        ss << "CPU thread " << thread_instance::get_id();
+        std::string name{ss.str()};
+        _event_thread_names.insert(std::pair<uint32_t, std::string>(tmpid, name));
       // Are we closing an event writer?
       } else if (!create) {
         if (thread_instance::get_id() == 0) {
@@ -448,6 +469,8 @@ namespace apex {
             string(string(apex_options::otf2_archive_path()) + "/.regions.");
         metric_filename_prefix =
             string(string(apex_options::otf2_archive_path()) + "/.metrics.");
+        thread_filename_prefix =
+            string(string(apex_options::otf2_archive_path()) + "/.threads.");
         lock_filename_prefix =
             string(string(apex_options::otf2_archive_path()) +
             "/.regions.lock.");
@@ -785,22 +808,27 @@ namespace apex {
             OTF2_LOCATION_GROUP_TYPE_PROCESS,
             node_index /* system tree node ID */ );
         // write out the thread locations
-        for (int i = 0 ; i < rank_thread_map[rank] ; i++) {
-            uint64_t thread_id = node_id + i;
-            stringstream thread;
-            thread << "thread " << std::internal << std::setfill('0') << std::setw(2) << i;
+        //for (int i = 0 ; i < rank_thread_name_map[rank] ; i++) {
+        for (auto iter : rank_thread_name_map[rank]) {
+            uint32_t index = iter.first;
+            std::string name = iter.second;
+            uint64_t thread_id = node_id + index;
             // have we written this thread name before?
-            auto tmp = threadnames.find(thread.str());
+            auto tmp = threadnames.find(name);
             if (tmp == threadnames.end()) {
                 OTF2_GlobalDefWriter_WriteString( global_def_writer,
-                    get_string_index(thread.str()), thread.str().c_str() );
-                threadnames.insert(thread.str());
+                    get_string_index(name), name.c_str() );
+                threadnames.insert(name);
+            }
+            OTF2_LocationType lt = OTF2_LOCATION_TYPE_CPU_THREAD;
+            if (name.rfind("GPU ",0) == 0) {
+                lt = OTF2_LOCATION_TYPE_GPU;
             }
             // write out the thread location into the system tree
             OTF2_GlobalDefWriter_WriteLocation( global_def_writer,
                 thread_id /* id */,
-                get_string_index(thread.str()) /* name */,
-                OTF2_LOCATION_TYPE_CPU_THREAD,
+                get_string_index(name) /* name */,
+                lt,
                 rank_region_map[rank] /* number of events */,
                 rank /* location group ID */ );
         }
@@ -846,6 +874,7 @@ namespace apex {
                 // make a common list of regions and metrics across all nodes...
                 reduce_regions();
                 reduce_metrics();
+                reduce_threads();
                 std::cout << "Writing OTF2 Global definition file..." << std::endl;
                 // create the global definition writer
                 global_def_writer = OTF2_Archive_GetGlobalDefWriter( archive );
@@ -923,6 +952,8 @@ namespace apex {
                 reduce_regions();
                 // write out the counter names we saw
                 reduce_metrics();
+                // write out the thread names we saw
+                reduce_threads();
             }
             //for (int i = 0 ; i < thread_instance::get_num_threads() ; i++) {
             for (size_t i = 0 ; i < _event_threads.size() ; i++) {
@@ -1590,6 +1621,60 @@ namespace apex {
         }
      }
 
+    std::string otf2_listener::write_my_threads(void) {
+        stringstream metric_file;
+        // first, output our number of threads.
+        //metric_file << thread_instance::get_num_threads() << endl;
+        metric_file << _event_threads.size() << endl;
+        // then iterate over the threads and write them out.
+        for (auto const i : _event_threads) {
+            metric_file << i << "=" << _event_thread_names[i] << endl;
+        }
+        return metric_file.str();
+    }
+
+    void otf2_listener::reduce_threads(void) {
+        std::string my_threads = write_my_threads();
+        std::cout << my_threads.rdbuf() << std::endl;
+        int length = my_threads.size();
+        int full_length = 0;
+        int max_length = 0;
+        char * sbuf = nullptr;
+        char * rbuf = nullptr;
+
+        if (my_saved_node_count > 1) {
+            // get the max length from all nodes
+            PMPI_Allreduce(&length, &max_length, 1, MPI_INT,
+                           MPI_MAX, MPI_COMM_WORLD);
+        } else {
+            max_length = length;
+        }
+        // get the total length
+        full_length = max_length * my_saved_node_count;
+
+        // allocate space to store the strings on node 0
+        if (my_saved_node_id == 0) {
+            rbuf = (char*) calloc(full_length, sizeof(char));
+        }
+        // put the local data in a fixed length string
+        sbuf = (char*) calloc(max_length, sizeof(char));
+        strncpy(sbuf, my_threads.c_str(), max_length);
+
+        if (my_saved_node_count > 1) {
+            // gather the strings to node 0
+            PMPI_Gather(sbuf, max_length, MPI_CHAR, rbuf,
+                max_length, MPI_CHAR, 0, MPI_COMM_WORLD);
+        } else {
+            rbuf = sbuf;
+        }
+
+        int fullmap_length = 0;
+        char * fullmap = nullptr;
+        if (my_saved_node_id == 0) {
+            // TODO!
+        }
+     }
+
 #else
 
     /* When not using HPX or MPI, use the filesystem. Ick. */
@@ -1906,6 +1991,80 @@ namespace apex {
             metric_file.close();
             // ...and distribute them back out
             write_metric_map(reduced_metric_map);
+        }
+    }
+
+    std::string otf2_listener::write_my_threads(void) {
+        // create my lock file.
+        ostringstream lock_filename;
+        lock_filename << lock2_filename_prefix << my_saved_node_id;
+        ofstream lock_file(lock_filename.str(), ios::out | ios::trunc );
+        lock_file.close();
+        // open my thread file
+        ostringstream thread_filename;
+        thread_filename << thread_filename_prefix << my_saved_node_id;
+        ofstream thread_file(thread_filename.str(), ios::out | ios::trunc );
+        // first, output our number of threads.
+        //thread_file << thread_instance::get_num_threads() << endl;
+        thread_file << _event_threads.size() << endl;
+        // then iterate over the threads and write them out.
+        for (auto const i : _event_threads) {
+            thread_file << i << "=" << _event_thread_names[i] << endl;
+        }
+        // close the thread file
+        thread_file.close();
+        // delete the lock file, so rank 0 can read our data.
+        std::remove(lock_filename.str().c_str());
+        return std::string();
+    }
+
+    void otf2_listener::reduce_threads(void) {
+        write_my_threads();
+
+        if (my_saved_node_id == 0) {
+        // create my lock file.
+        ostringstream my_lock_filename;
+        my_lock_filename << lock2_filename_prefix << "all";
+        ofstream lock_file(my_lock_filename.str(), ios::out | ios::trunc );
+        lock_file.close();
+        // iterate over my thread map, and build a map of strings to ids
+        // save my number of threads
+        std::map<uint32_t, std::string> thread_name_map;
+        for (auto const i : _event_threads) {
+            thread_name_map[i] = _event_thread_names[i];
+        }
+        rank_thread_name_map[0] = std::move(thread_name_map);
+        // iterate over the other ranks in the index file
+        for (int i = 1 ; i < my_saved_node_count ; i++) {
+            std::map<uint32_t, std::string> tmp_thread_name_map;
+            struct stat buffer;
+            // wait on the map file to exist
+            ostringstream thread_filename;
+            thread_filename << thread_filename_prefix << i;
+            while (stat (thread_filename.str().c_str(), &buffer) != 0) {}
+            // wait for the lock file to not exist
+            ostringstream lock_filename;
+            lock_filename << lock2_filename_prefix << i;
+            while (stat (lock_filename.str().c_str(), &buffer) == 0) {}
+            // get the number of threads from that rank
+            std::string thread_line;
+            std::ifstream thread_file(thread_filename.str());
+            std::getline(thread_file, thread_line);
+            // read the map from that rank
+            while (std::getline(thread_file, thread_line)) {
+                // trim the newline
+                thread_line.erase(std::remove(thread_line.begin(),
+                    thread_line.end(), '\n'), thread_line.end());
+                uint32_t index = atol(strtok((char*)(thread_line.c_str()), "="));
+                char * name = strtok(NULL, "=");
+                tmp_thread_name_map.insert(std::pair<uint32_t,std::string>(index, std::string(name)));
+            }
+            // close the thread file
+            thread_file.close();
+            // remove that rank's map
+            std::remove(thread_filename.str().c_str());
+            rank_thread_name_map[i] = std::move(tmp_thread_name_map);
+        }
         }
     }
 
