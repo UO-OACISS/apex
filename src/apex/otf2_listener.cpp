@@ -1094,6 +1094,9 @@ namespace apex {
 #endif
 
     bool otf2_listener::on_start(std::shared_ptr<task_wrapper> &tt_ptr) {
+        // This could be a callback from a library before APEX is ready
+        // Something like OpenMP or CUDA/CUPTI or...?
+        if (!_initialized) return false;
         task_identifier * id = tt_ptr->get_task_id();
         // don't close the archive on us!
         read_lock_type lock(_archive_mutex);
@@ -1148,6 +1151,9 @@ namespace apex {
     }
 
     void otf2_listener::on_stop(std::shared_ptr<profiler> &p) {
+        // This could be a callback from a library before APEX is ready
+        // Something like OpenMP or CUDA/CUPTI or...?
+        if (!_initialized) return ;
         // don't close the archive on us!
         read_lock_type lock(_archive_mutex);
         OTF2_EvtWriter* local_evt_writer = getEvtWriter(true);
@@ -2094,6 +2100,9 @@ namespace apex {
 
     void otf2_listener::on_async_event(uint32_t device, uint32_t context,
         uint32_t stream, std::shared_ptr<profiler> &p) {
+        // This could be a callback from a library before APEX is ready
+        // Something like OpenMP or CUDA/CUPTI or...?
+        if (!_initialized) return ;
         uint32_t tid{make_vtid(device, context, stream)};
         task_identifier * id = p->tt_ptr->get_task_id();
         uint64_t idx = get_region_index(id);

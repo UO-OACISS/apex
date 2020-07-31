@@ -352,8 +352,6 @@ hpx::runtime * apex::get_hpx_runtime(void) {
 uint64_t init(const char * thread_name, uint64_t comm_rank,
     uint64_t comm_size) {
     FUNCTION_ENTER
-    /* register the finalization function, for program exit */
-    std::atexit(cleanup);
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { FUNCTION_EXIT; return APEX_ERROR; }
     // FIRST! make sure APEX thinks this is a worker thread (the main thread
@@ -387,9 +385,10 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
         return APEX_ERROR;
     }
 #endif
+    /* register the finalization function, for program exit */
+    std::atexit(cleanup);
     thread_instance::set_worker(true);
     _registered = true;
-    _initialized = true;
     apex* instance = apex::instance(); // get/create the Apex static instance
     // assign the rank and size.  Why not in the constructor?
     // because, if we registered a startup policy, the default
@@ -411,6 +410,8 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
             instance->listeners[i]->on_startup(data);
         }
     }
+    // start accepting requests, now that all listeners are started
+    _initialized = true;
 #if APEX_HAVE_PROC
     if (apex_options::use_proc_cpuinfo() ||
         apex_options::use_proc_meminfo() ||
