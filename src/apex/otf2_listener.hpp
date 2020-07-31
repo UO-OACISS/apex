@@ -165,6 +165,7 @@ namespace apex {
         std::string index_filename;
         std::string lock_filename_prefix;
         std::string lock2_filename_prefix;
+        std::string lock3_filename_prefix;
         std::string region_filename_prefix;
         std::string metric_filename_prefix;
         std::string thread_filename_prefix;

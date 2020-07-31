@@ -477,6 +477,9 @@ namespace apex {
         lock2_filename_prefix =
             string(string(apex_options::otf2_archive_path()) +
             "/.metrics.lock.");
+        lock3_filename_prefix =
+            string(string(apex_options::otf2_archive_path()) +
+            "/.threads.lock.");
     }
 
     bool otf2_listener::create_archive(void) {
@@ -715,6 +718,15 @@ namespace apex {
                 uint64_t idx = i.second;
                 uint64_t mapped_index = reduced_region_map[id.get_name()];
                 mappings[idx] = mapped_index;
+                if (my_saved_node_id > 0) {
+                /* Debug output
+                std::cout << my_saved_node_id
+                          << " idx: " << idx
+                          << " mapped_index: " << mapped_index
+                          << " id: " << id.get_name()
+                          << std::endl;
+                 */
+                }
             }
             // create a map
             uint64_t map_size = global_region_indices.size();
@@ -1480,7 +1492,7 @@ namespace apex {
                 ss >> idx >> region_name;
                 reduced_region_map[region_name] = idx;
             }
-            // ...and distribute them back out
+            // ...and write the map to the local definitions
             write_region_map(reduced_region_map);
         }
         return my_saved_node_count;
@@ -1808,7 +1820,7 @@ namespace apex {
         }
         // open my region file
         ostringstream region_filename;
-        region_filename << region_filename_prefix << my_saved_node_id;
+        region_filename << region_filename_prefix << "reduced." << my_saved_node_id;
         ofstream region_file(region_filename.str(), ios::out | ios::trunc );
         // copy the reduced map to a pair, so we can sort by value
         std::vector<std::pair<std::string, int>> pairs;
@@ -1837,24 +1849,34 @@ namespace apex {
             std::map<std::string,uint64_t> reduced_region_map;
             // wait on the map file from rank 0 to exist
             ostringstream region_filename;
-            region_filename << region_filename_prefix << 0;
+            region_filename << region_filename_prefix << "reduced." << 0;
             while (stat (region_filename.str().c_str(), &buffer) != 0) {}
             // wait for the lock file from rank 0 to NOT exist
             ostringstream lock_filename;
             lock_filename << lock_filename_prefix << "all";
             while (stat (lock_filename.str().c_str(), &buffer) == 0) {}
             std::string region_line;
-            std::ifstream region_file(region_filename.str());
             std::string region_name;
+            std::ifstream region_file(region_filename.str());
             int idx;
             // read the map from rank 0
             while (std::getline(region_file, region_line)) {
-                istringstream ss(region_line);
-                ss >> idx >> region_name;
+                std::cout << region_line << std::endl;
+                // find the first tab
+                size_t index = region_line.find("\t");
+                std::string tmp = region_line.substr(0,index);
+                region_name = region_line.substr(index+1);
+                idx = atoi(tmp.c_str());
                 reduced_region_map[region_name] = idx;
+                /* Debug output
+                std::cout << my_saved_node_id << " PARSING"
+                          << " idx: " << idx
+                          << " id: " << region_name
+                          << std::endl;
+                 */
             }
             region_file.close();
-            // ...and distribute them back out
+            // ...and write the map to the local definitions
             write_region_map(reduced_region_map);
         }
         return my_saved_node_count;
@@ -1997,7 +2019,7 @@ namespace apex {
     std::string otf2_listener::write_my_threads(void) {
         // create my lock file.
         ostringstream lock_filename;
-        lock_filename << lock2_filename_prefix << my_saved_node_id;
+        lock_filename << lock3_filename_prefix << my_saved_node_id;
         ofstream lock_file(lock_filename.str(), ios::out | ios::trunc );
         lock_file.close();
         // open my thread file
@@ -2024,7 +2046,7 @@ namespace apex {
         if (my_saved_node_id == 0) {
         // create my lock file.
         ostringstream my_lock_filename;
-        my_lock_filename << lock2_filename_prefix << "all";
+        my_lock_filename << lock3_filename_prefix << "all";
         ofstream lock_file(my_lock_filename.str(), ios::out | ios::trunc );
         lock_file.close();
         // iterate over my thread map, and build a map of strings to ids
@@ -2044,7 +2066,7 @@ namespace apex {
             while (stat (thread_filename.str().c_str(), &buffer) != 0) {}
             // wait for the lock file to not exist
             ostringstream lock_filename;
-            lock_filename << lock2_filename_prefix << i;
+            lock_filename << lock3_filename_prefix << i;
             while (stat (lock_filename.str().c_str(), &buffer) == 0) {}
             // get the number of threads from that rank
             std::string thread_line;
