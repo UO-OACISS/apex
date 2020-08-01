@@ -147,6 +147,7 @@ int main(int argc, char **argv)
   apex::init(argv[0], 0, 1);
   apex::apex_options::use_screen_output(true);
   unsigned numthreads = apex::hardware_concurrency();
+  if (numthreads > 16) numthreads = 16;
   if (argc > 1) {
     numthreads = strtoul(argv[1],NULL,0);
   }

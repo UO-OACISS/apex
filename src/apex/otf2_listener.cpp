@@ -1640,20 +1640,18 @@ namespace apex {
      }
 
     std::string otf2_listener::write_my_threads(void) {
-        stringstream metric_file;
+        stringstream thread_file;
         // first, output our number of threads.
-        //metric_file << thread_instance::get_num_threads() << endl;
-        metric_file << _event_threads.size() << endl;
+        // thread_file << _event_threads.size() << endl;
         // then iterate over the threads and write them out.
         for (auto const i : _event_threads) {
-            metric_file << i << "=" << _event_thread_names[i] << endl;
+            thread_file << i << "=" << _event_thread_names[i] << endl;
         }
-        return metric_file.str();
+        return thread_file.str();
     }
 
     void otf2_listener::reduce_threads(void) {
         std::string my_threads = write_my_threads();
-        std::cout << my_threads.rdbuf() << std::endl;
         int length = my_threads.size();
         int full_length = 0;
         int max_length = 0;
@@ -1686,10 +1684,32 @@ namespace apex {
             rbuf = sbuf;
         }
 
-        int fullmap_length = 0;
-        char * fullmap = nullptr;
-        if (my_saved_node_id == 0) {
-            // TODO!
+        if (my_saved_node_id > 0) return;
+        // iterate over my thread map, and build a map of strings to ids
+        // save my number of threads
+        std::map<uint32_t, std::string> thread_name_map;
+        for (auto const i : _event_threads) {
+            thread_name_map[i] = _event_thread_names[i];
+        }
+        rank_thread_name_map[0] = std::move(thread_name_map);
+        // iterate over the other ranks in the index file
+        for (int i = 1 ; i < my_saved_node_count ; i++) {
+            std::map<uint32_t, std::string> tmp_thread_name_map;
+            // get the number of threads from that rank
+            std::string thread_line;
+            std::string tmpmap(rbuf+(max_length * i),
+                max_length);
+            std::stringstream thread_file(tmpmap);
+            // read the map from that rank
+            while (std::getline(thread_file, thread_line)) {
+                // trim the newline
+                thread_line.erase(std::remove(thread_line.begin(),
+                    thread_line.end(), '\n'), thread_line.end());
+                uint32_t index = atol(strtok((char*)(thread_line.c_str()), "="));
+                char * name = strtok(NULL, "=");
+                tmp_thread_name_map.insert(std::pair<uint32_t,std::string>(index, std::string(name)));
+            }
+            rank_thread_name_map[i] = std::move(tmp_thread_name_map);
         }
      }
 
