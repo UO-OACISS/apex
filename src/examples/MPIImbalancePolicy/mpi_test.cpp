@@ -169,7 +169,7 @@ static unit_result_t do_work(unit_of_work_t work) {
   // introduce an imbalance
   //printf("%d working...\n\n", rank);
     for (multiplier = 0 ; multiplier < ((rank % 2) + 1) ; multiplier++) {
-      for (i = 0 ; i < 250000000 ; i++) {
+      for (i = 0 ; i < 100 ; i++) {
         dummy = dummy * (dummy + work_data[work]);
         if (dummy > (INT_MAX >> 1)) {
           dummy = 1;
