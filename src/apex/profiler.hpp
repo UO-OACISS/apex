@@ -15,7 +15,7 @@ class profiler;
 #include <math.h>
 #include "apex_options.hpp"
 #include "apex_types.h"
-#include "apex_assert.h"
+// #include "apex_assert.h"
 #include <chrono>
 #include <memory>
 #include "task_wrapper.hpp"
@@ -189,24 +189,24 @@ public:
         start = MYCLOCK::now();
     };
     uint64_t get_start_ns() {
-        APEX_ASSERT(!is_counter);
+        // APEX_ASSERT(!is_counter);
         using namespace std::chrono;
         uint64_t stamp = duration_cast<nanoseconds>(start.time_since_epoch()).count();
         return stamp;
     }
     double get_start_us() {
-        APEX_ASSERT(!is_counter);
+        // APEX_ASSERT(!is_counter);
         double stamp = (double)get_start_ns();
         return stamp*10e-4;
     }
     uint64_t get_stop_ns() {
-        APEX_ASSERT(!is_counter);
+        // APEX_ASSERT(!is_counter);
         using namespace std::chrono;
         uint64_t stamp = duration_cast<nanoseconds>(end.time_since_epoch()).count();
         return stamp;
     }
     double get_stop_us() {
-        APEX_ASSERT(!is_counter);
+        // APEX_ASSERT(!is_counter);
         using namespace std::chrono;
         double stamp = (double)get_stop_ns();
         return stamp*10e-4;
