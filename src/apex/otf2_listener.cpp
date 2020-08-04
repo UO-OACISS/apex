@@ -1703,12 +1703,16 @@ namespace apex {
             std::stringstream thread_file(tmpmap);
             // read the map from that rank
             while (std::getline(thread_file, thread_line)) {
-                // trim the newline
-                thread_line.erase(std::remove(thread_line.begin(),
-                    thread_line.end(), '\n'), thread_line.end());
-                uint32_t index = atol(strtok((char*)(thread_line.c_str()), "="));
-                char * name = strtok(NULL, "=");
-                tmp_thread_name_map.insert(std::pair<uint32_t,std::string>(index, std::string(name)));
+                if (thread_line.find("=") != std::string::npos) {
+                    // trim the newline
+                    thread_line.erase(std::remove(thread_line.begin(),
+                        thread_line.end(), '\n'), thread_line.end());
+                    uint32_t index = atol(strtok((char*)(thread_line.c_str()), "="));
+                    char * name = strtok(NULL, "=");
+                    tmp_thread_name_map.insert(
+                        std::pair<uint32_t,std::string>(
+                        index, std::string(name)));
+                }
             }
             rank_thread_name_map[i] = std::move(tmp_thread_name_map);
         }

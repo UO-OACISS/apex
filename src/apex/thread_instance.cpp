@@ -120,7 +120,7 @@ void thread_instance::set_worker(bool is_worker) {
   }
   instance()._is_worker = is_worker;
   std::unique_lock<std::mutex> l(_worker_map_mutex);
-  _worker_map[get_id()] = is_worker;
+  _worker_map.insert(std::pair<int,bool>(get_id(), is_worker));
 }
 
 string thread_instance::get_name(void) {
