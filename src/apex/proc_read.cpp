@@ -28,6 +28,7 @@
 #include <set>
 #include "utils.hpp"
 #include <chrono>
+#include <iomanip>
 
 #define COMMAND_LEN 20
 #define DATA_SIZE 512
@@ -459,9 +460,11 @@ namespace apex {
                     // softirq 10953997190 0 1380880059 1495447920 1585783785...
                     // ...15525789 0 12 661586214 0 1519806115
                     //sscanf(line, "%s %d\n", dummy, &procData->btime);
-            }
-            // don't waste time parsing anything but the mean
-            break;
+                }
+                // don't waste time parsing anything but the mean
+                if (!apex_options::use_proc_stat_details()) {
+                    break;
+                }
             }
         }
         fclose (pFile);
@@ -617,7 +620,7 @@ namespace apex {
                     cpu_stat->idle + cpu_stat->iowait + cpu_stat->irq + cpu_stat->softirq +
                     cpu_stat->steal + cpu_stat->guest;
                 user_ratio = (double)cpu_stat->user / (double)total;
-                break;
+                //break;
             }
         }
 
@@ -670,6 +673,55 @@ namespace apex {
         sample_value("CPU soft IRQ %", ((double)(cpu_stat->softirq)) / total);
         sample_value("CPU Steal %",    ((double)(cpu_stat->steal))   / total);
         sample_value("CPU Guest %",    ((double)(cpu_stat->guest))   / total);
+        if (apex_options::use_proc_stat_details()) {
+            iter++;
+            int index = 0;
+            int width = 1;
+            if (cpus.size() > 100) { width = 3; }
+            else if (cpus.size() > 10) { width = 2; }
+            while (iter != cpus.end()) {
+                std::stringstream id;
+                id << std::setfill('0');
+                CPUStat* cpu_stat=*iter;
+                total = (double)(cpu_stat->user + cpu_stat->nice + cpu_stat->system +
+                        cpu_stat->idle + cpu_stat->iowait + cpu_stat->irq + cpu_stat->softirq +
+                        cpu_stat->steal + cpu_stat->guest);
+                double busy = total - cpu_stat->idle;
+                total = total * 0.01; // so we have a percentage in the final values
+                id << "CPU_" << std::setw(width) << index << " Utilized %";
+                sample_value(id.str(), busy / total);
+                /*
+                id << "CPU_" << std::setw(width) << index << " User %";
+                sample_value(id.str(), ((double)(cpu_stat->user)) / total);
+                id.str("");
+                id << "CPU_" << std::setw(width) << index << " Nice %";
+                sample_value(id.str(), ((double)(cpu_stat->nice)) / total);
+                id.str("");
+                id << "CPU_" << std::setw(width) << index << " System %";
+                sample_value(id.str(), ((double)(cpu_stat->system)) / total);
+                id.str("");
+                id << "CPU_" << std::setw(width) << index << " Idle %";
+                sample_value(id.str(), ((double)(cpu_stat->idle)) / total);
+                id.str("");
+                id << "CPU_" << std::setw(width) << index << " I/O Wait %";
+                sample_value(id.str(), ((double)(cpu_stat->iowait)) / total);
+                id.str("");
+                id << "CPU_" << std::setw(width) << index << " IRQ %";
+                sample_value(id.str(), ((double)(cpu_stat->irq)) / total);
+                id.str("");
+                id << "CPU_" << std::setw(width) << index << " soft IRQ %";
+                sample_value(id.str(), ((double)(cpu_stat->softirq)) / total);
+                id.str("");
+                id << "CPU_" << std::setw(width) << index << " Steal %";
+                sample_value(id.str(), ((double)(cpu_stat->steal)) / total);
+                id.str("");
+                id << "CPU_" << std::setw(width) << index << " Guest %";
+                sample_value(id.str(), ((double)(cpu_stat->guest)) / total);
+                */
+                iter++;
+                index++;
+            }
+        }
 #if defined(APEX_HAVE_CRAY_POWER)
         sample_value("Power", power);
         sample_value("Power Cap", power_cap);

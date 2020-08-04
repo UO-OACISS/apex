@@ -268,6 +268,7 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_PROC_SELF_STATUS, use_proc_self_status, bool, false) \
     macro (APEX_PROC_SELF_IO, use_proc_self_io, bool, false) \
     macro (APEX_PROC_STAT, use_proc_stat, bool, true) \
+    macro (APEX_PROC_STAT_DETAILS, use_proc_stat_details, bool, false) \
     macro (APEX_PROC_PERIOD, proc_period, int, 1000000) \
     macro (APEX_THROTTLE_CONCURRENCY, throttle_concurrency, \
         bool, false) \

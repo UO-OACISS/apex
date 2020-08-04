@@ -1749,6 +1749,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
   void profiler_listener::stop_main_timer(void) {
     static bool stopped{false};
     if (!stopped) {
+        APEX_ASSERT(main_timer != nullptr);
         main_timer->stop(true);
         stopped = true;
     }

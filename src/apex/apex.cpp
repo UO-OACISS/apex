@@ -65,8 +65,8 @@
 #include <hpx/include/actions.hpp>
 #include <hpx/include/util.hpp>
 #include <hpx/lcos_local/composable_guard.hpp>
-#include "global_constructor_destructor.h"
 #endif // APEX_HAVE_HPX
+#include "global_constructor_destructor.h"
 
 #if APEX_DEBUG
 #define FUNCTION_ENTER printf("enter %lu *** %s:%d!\n", \
@@ -1869,6 +1869,12 @@ extern "C" {
         return init("FORTRAN thread", comm_rank, comm_size);
     }
 
+/*
+    static void apex_init_static_void(void) {
+        init("APEX Void Constructor", 0, 1);
+    }
+*/
+
     void apex_cleanup() {
         cleanup();
     }
@@ -1877,9 +1883,15 @@ extern "C" {
         return(dump(reset).c_str());
     }
 
-    void apex_finalize() {
+    void apex_finalize(void) {
         finalize();
     }
+
+/*
+ static void apex_finalize_static_void(void) {
+        finalize();
+    }
+*/
 
     void apex_finalize_() { finalize(); }
 

@@ -13,3 +13,5 @@ perfstubs
 rapidjson
 taskgraph*dot
 apex*csv
+trace_events.*.json
+OTF2_archive

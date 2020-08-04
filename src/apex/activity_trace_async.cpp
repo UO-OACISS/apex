@@ -64,15 +64,17 @@ bool& get_registered(void) {
     return registered;
 }
 
-bool register_myself(void) {
+bool register_myself(bool isWorker = true) {
     bool& registered = get_registered();
-    if (!registered) {
+    if (!registered && !isWorker) {
         // make sure APEX knows this is not a worker thread
         apex::thread_instance::instance(false);
         /* make sure the profiler_listener has a queue that this
          * thread can push sampled values to */
         apex::apex::async_thread_setup();
         registered = true;
+    } else if (!registered && isWorker) {
+        apex::register_thread("APEX CUDA support");
     }
     return registered;
 }
@@ -448,7 +450,7 @@ void CUPTIAPI bufferRequested(uint8_t **buffer, size_t *size,
 void CUPTIAPI bufferCompleted(CUcontext ctx, uint32_t streamId,
     uint8_t *buffer, size_t size, size_t validSize)
 {
-    static bool registered = register_myself();
+    static bool registered = register_myself(false);
     num_buffers_processed++;
     if (flushing) { std::cout << "." << std::flush; }
     APEX_UNUSED(registered);
@@ -587,8 +589,10 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
 
 void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
         CUpti_CallbackId id, const void *params) {
-    //static bool initialized = initialize_first_time();
-    //APEX_UNUSED(initialized);
+    static bool initialized = initialize_first_time();
+    APEX_UNUSED(initialized);
+    static APEX_NATIVE_TLS bool registered = register_myself(true);
+    APEX_UNUSED(registered);
     /* Supposedly, we can use the ud or cbdata->contextData fields
      * to pass data from the start to the end event, but it isn't
      * broadly supported in the CUPTI interface, so we'll manage the

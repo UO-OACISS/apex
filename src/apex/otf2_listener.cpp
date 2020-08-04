@@ -1278,6 +1278,7 @@ namespace apex {
         // create a union for storing the value
         OTF2_MetricValue omv[1];
         omv[0].floating_point = data.counter_value;
+        //printf("%s = %f\n", data.counter_name->c_str(), omv[0].floating_point);
         // tell the union what type this is
         OTF2_Type omt[1];
         omt[0]=OTF2_TYPE_DOUBLE;
@@ -1887,7 +1888,7 @@ namespace apex {
             int idx;
             // read the map from rank 0
             while (std::getline(region_file, region_line)) {
-                std::cout << region_line << std::endl;
+                // std::cout << region_line << std::endl;
                 // find the first tab
                 size_t index = region_line.find("\t");
                 std::string tmp = region_line.substr(0,index);
