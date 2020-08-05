@@ -529,8 +529,10 @@ namespace apex {
         // around when we are finalizing everything.
         my_saved_node_id = apex::instance()->get_node_id();
         my_saved_node_count = apex::instance()->get_num_ranks();
-        cout << "Rank " << my_saved_node_id << " of " << my_saved_node_count <<
-            "." << endl;
+        /*
+        cout << "Rank " << my_saved_node_id << " of "
+             << my_saved_node_count << "." << endl;
+         */
         // now is a good time to make sure the archive is open on this
         // rank/locality
         static bool archive_created = create_archive();
