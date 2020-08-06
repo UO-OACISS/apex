@@ -108,6 +108,7 @@ namespace apex {
     };
 
     uint64_t otf2_listener::globalOffset(0);
+    uint64_t otf2_listener::saved_end_timestamp(0);
     const std::string otf2_listener::empty("");
     int otf2_listener::my_saved_node_id(0);
     int otf2_listener::my_saved_node_count(1);
@@ -773,7 +774,7 @@ namespace apex {
     void otf2_listener::write_clock_properties(void) {
         /* write the clock properties */
         uint64_t ticks_per_second = 1e9;
-        uint64_t traceLength = get_time();
+        uint64_t traceLength = saved_end_timestamp;
         OTF2_GlobalDefWriter_WriteClockProperties( global_def_writer,
             ticks_per_second, 0 /* start */, traceLength /* length */ );
     }
@@ -852,6 +853,12 @@ namespace apex {
     void otf2_listener::on_dump(dump_event_data &data) {
         APEX_UNUSED(data);
         return;
+    }
+
+    /* Before shutdown, take a timestamp in case the shutdown process
+     * takes a really long time, we don't want to confuse the user */
+    void otf2_listener::on_pre_shutdown(void) {
+        saved_end_timestamp = get_time();
     }
 
     /* At shutdown, we need to reduce all the global information,

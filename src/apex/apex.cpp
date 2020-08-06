@@ -1386,7 +1386,15 @@ void finalize()
     // FIRST, stop the top level timer, while the infrastructure is still
     // functioning.
     if (top_level_timer != nullptr) { stop(top_level_timer); }
-    instance->the_profiler_listener->stop_main_timer();
+    // if not done already...
+    shutdown_throttling(); // stop thread scheduler policies
+    stop_all_async_threads(); // stop OS/HW monitoring
+    // notify all listeners that we are going to stop soon
+    for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+        instance->listeners[i]->on_pre_shutdown();
+    }
+    //instance->the_profiler_listener->stop_main_timer();
+    /* This could take a while */
 #ifdef APEX_WITH_CUDA
     flushTrace();
 #endif
@@ -1394,9 +1402,6 @@ void finalize()
     apex_options::suspend(true);
     // now, process all output
     dump(false);
-    // if not done already...
-    shutdown_throttling();
-    stop_all_async_threads();
     exit_thread();
     if (!_measurement_stopped)
     {

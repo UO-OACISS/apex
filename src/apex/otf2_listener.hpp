@@ -40,6 +40,9 @@ namespace apex {
         /* The global offset is referenced from the get_time static function,
          * so it needs to be static itself. */
         static uint64_t globalOffset;
+        /* We take an end timestamp before shutdown, because we don't
+         * want to confuse the user with a long trace time */
+        static uint64_t saved_end_timestamp;
         /* All OTF2 callback functions have to be declared static, so that they
          * can be registered with the OTF2 library */
         static OTF2_TimeStamp get_time( void ) {
@@ -213,6 +216,7 @@ namespace apex {
         void on_dump(dump_event_data &data);
         void on_reset(task_identifier * id)
             { APEX_UNUSED(id); };
+        void on_pre_shutdown(void);
         void on_shutdown(shutdown_event_data &data);
         void on_new_node(node_event_data &data);
         void on_new_thread(new_thread_event_data &data);

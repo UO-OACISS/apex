@@ -58,6 +58,7 @@ public:
   void on_startup(startup_event_data &data) { APEX_UNUSED(data); };
   void on_dump(dump_event_data &data);
   void on_reset(task_identifier * id);
+  void on_pre_shutdown(void) { } ;
   void on_shutdown(shutdown_event_data &data);
   void on_new_node(node_event_data &data) { APEX_UNUSED(data); };
   void on_new_thread(new_thread_event_data &data);

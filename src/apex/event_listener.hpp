@@ -113,6 +113,7 @@ public:
   virtual ~event_listener() {};
   // all methods in the interface that a handler has to override
   virtual void on_startup(startup_event_data &data) = 0;
+  virtual void on_pre_shutdown(void) = 0;
   virtual void on_shutdown(shutdown_event_data &data) = 0;
   virtual void on_dump(dump_event_data &data) = 0;
   virtual void on_reset(task_identifier * id) = 0;

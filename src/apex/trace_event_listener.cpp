@@ -57,6 +57,10 @@ void trace_event_listener::on_dump(dump_event_data &data) {
     return;
 }
 
+void trace_event_listener::on_pre_shutdown(void) {
+    end_trace_time();
+}
+
 void trace_event_listener::on_shutdown(shutdown_event_data &data) {
     APEX_UNUSED(data);
     if (!_terminate) {
