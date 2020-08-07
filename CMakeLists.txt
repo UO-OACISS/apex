@@ -227,10 +227,13 @@ endfunction()
 
 # example usage
 enable_cxx_compiler_flag_if_supported("-Wall")
-enable_cxx_compiler_flag_if_supported("-Werror")
 enable_cxx_compiler_flag_if_supported("-Wextra")
 enable_cxx_compiler_flag_if_supported("-Wpedantic")
 enable_cxx_compiler_flag_if_supported("-pedantic")
+if (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "PGI")
+    enable_cxx_compiler_flag_if_supported("-Werror")
+endif (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "PGI")
+
 # ---------------------------------------------------
 
 # The version number.

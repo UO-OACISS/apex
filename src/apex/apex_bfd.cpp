@@ -52,6 +52,9 @@
 #include <demangle.h>
 #define DEFAULT_DEMANGLE_FLAGS DMGL_PARAMS | DMGL_ANSI | DMGL_VERBOSE | DMGL_TYPES
 #ifdef __PGI
+#ifndef DMGL_ARM
+#define DMGL_ARM         (1 << 11)      /* Use C++ ARM name mangling */
+#endif
 #define DEMANGLE_FLAGS DEFAULT_DEMANGLE_FLAGS | DMGL_ARM
 #else
 #define DEMANGLE_FLAGS DEFAULT_DEMANGLE_FLAGS
