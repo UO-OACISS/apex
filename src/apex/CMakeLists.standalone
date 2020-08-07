@@ -33,6 +33,7 @@ endif(APEX_WITH_CUDA)
 SET(all_SOURCE
 ${CUPTI_SOURCE}
 apex.cpp
+apex_kokkos.cpp
 apex_options.cpp
 apex_policies.cpp
 ${bfd_SOURCE}
