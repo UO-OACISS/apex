@@ -1114,6 +1114,10 @@ node_color * get_node_color(double v,double vmin,double vmax)
     if (apex_options::use_tau()) {
       tau_listener::Tau_start_wrapper("profiler_listener::process_profiles");
     }
+    /*
+    static auto prof = new_task(__func__);
+    start(prof);
+    */
 
     std::shared_ptr<profiler> p;
     task_dependency* td;
@@ -1206,6 +1210,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
     */
 #endif
 
+    //stop(prof);
     if (apex_options::use_tau()) {
       tau_listener::Tau_stop_wrapper("profiler_listener::process_profiles");
     }
@@ -1406,7 +1411,9 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         if (ignored > 100000) {
           std::cerr << "done." << std::endl;
         }
-        finalize_profiles(data);
+        if (apex_options::process_async_state()) {
+            finalize_profiles(data);
+        }
       }
       if (apex_options::use_taskgraph_output() && node_id == 0)
       {
