@@ -78,6 +78,10 @@ thread_instance::get_id(), __func__, __LINE__); fflush(stdout);
 #define FUNCTION_EXIT
 #endif
 
+#if defined(APEX_HAVE_MPI)
+#include "mpi.h"
+#endif
+
 APEX_NATIVE_TLS bool _registered = false;
 APEX_NATIVE_TLS bool _exited = false;
 static bool _initialized = false;
@@ -2051,6 +2055,18 @@ extern "C" {
         return hardware_concurrency();
     }
 
+/* When running with MPI and OTF (or other event unification at the end of
+ * execution) we need to finalize APEX before MPI_Finalize() is called, so
+ * that we can use MPI for the wrap-up.  We can override the weak MPI
+ * implementation of Finalize, and do what we need to. */
+#if defined(APEX_HAVE_MPI)
+    int MPI_Finalize(void) {
+        apex::finalize();
+        int retval = PMPI_Finalize();
+        apex::cleanup();
+        return retval;
+    }
+#endif
 
 } // extern "C"
 
