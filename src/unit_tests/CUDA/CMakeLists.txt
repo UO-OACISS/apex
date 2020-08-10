@@ -1,5 +1,12 @@
+if(MPI_CXX_FOUND)
+    set(APEX_CUDA_CXX_FLAGS ${MPI_COMPILE_FLAGS})
+    set(APEX_CUDA_C_FLAGS ${MPI_COMPILE_FLAGS})
+    set(APEX_CUDA_EXTRA_INCLUDE ${MPI_CXX_INCLUDE_PATH})
+    set(APEX_CUDA_CXX_LINK_FLAGS ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES})
+endif()
+
 # Make sure the compiler can find include files from our Apex library.
-include_directories (${APEX_SOURCE_DIR}/src/apex)
+include_directories (${APEX_SOURCE_DIR}/src/apex ${APEX_CUDA_EXTRA_INCLUDE})
 
 # Make sure the linker can find the Apex library once it is built.
 link_directories (${APEX_BINARY_DIR}/src/apex)
@@ -18,14 +25,14 @@ endif (OPENMP_FOUND)
 
 message(INFO "Using CUDA libraries: ${CUDA_LIBRARIES}")
 
-set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS} ${APEX_CUDA_C_FLAGS}")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} ${APEX_CUDA_CXX_FLAGS}")
 
 foreach(example_program ${example_programs})
   set(sources ${example_program}.cu)
   source_group("Source Files" FILES ${sources})
   add_executable("${example_program}_cu" ${sources})
-  target_link_libraries ("${example_program}_cu" apex ${LIBS} OpenMP::OpenMP_CXX CUDA::cuda_driver CUDA::curand)
+  target_link_libraries ("${example_program}_cu" apex ${LIBS} OpenMP::OpenMP_CXX CUDA::cuda_driver CUDA::curand ${APEX_CUDA_CXX_LINK_FLAGS})
     if (BUILD_STATIC_EXECUTABLES)
         set_target_properties("${example_program}_cu" PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
     endif()
