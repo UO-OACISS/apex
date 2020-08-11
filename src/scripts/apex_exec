@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash
 
 LANG="C"
 export LANG
@@ -45,11 +45,11 @@ fi
     if [ ! -x "$prog" ] ; then
 	prog=`which $prog 2>/dev/null`
     fi
-    
+
     if [ ! -x "$prog" ] ; then
 	echo "apex_exec: $1: command not found"
 	exit
-    fi 
+    fi
 #fi
 
     if [ $apple = 1 ]; then
@@ -57,14 +57,15 @@ fi
       export DYLD_INSERT_LIBRARIES=$APEX_LD_PRELOAD
       export DYLD_FORCE_FLAT_NAMESPACE=1
     else
-      echo "LD_LIBRARY_PATH=$APEX_LD_LIBRARY_PATH"
+      #echo "LD_LIBRARY_PATH=$APEX_LD_LIBRARY_PATH"
       export LD_AUDIT=$APEX_LD_AUDITOR
-      echo "LD_PRELOAD=$APEX_LD_PRELOAD"
+      #echo "LD_PRELOAD=$APEX_LD_PRELOAD"
       export LD_LIBRARY_PATH=$APEX_LD_LIBRARY_PATH
-      echo "LD_AUDIT=$APEX_LD_AUDITOR"
+      #echo "LD_AUDIT=$APEX_LD_AUDITOR"
       export LD_PRELOAD=$APEX_LD_PRELOAD
     fi
-    
+    export KOKKOS_PROFILE_LIBRARY=$BASEDIR/lib/libapex$SHLIBX
+
     $@
     retval=$?
     unset LD_PRELOAD
