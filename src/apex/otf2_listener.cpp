@@ -1519,6 +1519,7 @@ namespace apex {
         // first, output our number of threads.
         //metric_file << thread_instance::get_num_threads() << endl;
         metric_file << _event_threads.size() << endl;
+        metric_file << saved_end_timestamp << endl;
         // then iterate over the metrics and write them out.
         for (auto const &i : global_metric_indices) {
             string id = i.first;
@@ -1587,6 +1588,12 @@ namespace apex {
                 std::getline(metric_file, metric_line);
                 std::string::size_type sz;   // alias of size_t
                 rank_thread_map[i] = std::stoi(metric_line,&sz);
+                // get the last timestamp
+                std::getline(metric_file, metric_line);
+                uint64_t tmp_timestamp = std::stol(metric_line, &sz);
+                if (saved_end_timestamp < tmp_timestamp) {
+                    saved_end_timestamp = tmp_timestamp;
+                }
                 // read the map from that rank
                 while (std::getline(metric_file, metric_line)) {
                     rank_metric_map[i] = rank_metric_map[i] + 1;
@@ -1935,6 +1942,7 @@ namespace apex {
         // first, output our number of threads.
         //metric_file << thread_instance::get_num_threads() << endl;
         metric_file << _event_threads.size() << endl;
+        metric_file << saved_end_timestamp << endl;
         // then iterate over the metrics and write them out.
         for (auto const &i : global_metric_indices) {
             string id = i.first;
@@ -1986,6 +1994,12 @@ namespace apex {
             std::getline(metric_file, metric_line);
             std::string::size_type sz;   // alias of size_t
             rank_thread_map[i] = std::stoi(metric_line,&sz);
+            // get the last timestamp
+            std::getline(metric_file, metric_line);
+            uint64_t tmp_timestamp = std::stol(metric_line, &sz);
+            if (saved_end_timestamp < tmp_timestamp) {
+                saved_end_timestamp = tmp_timestamp;
+            }
             // read the map from that rank
             while (std::getline(metric_file, metric_line)) {
                 rank_metric_map[i] = rank_metric_map[i] + 1;
@@ -2159,7 +2173,7 @@ namespace apex {
                       << ".\nIgnoring event " << p->tt_ptr->task_id->get_name()
                       << " with timestamp of " << stamp << " after last event "
                       << "with timestamp of " << last << std::endl;
-                      */
+            */
             return;
         }
         // don't close the archive on us!

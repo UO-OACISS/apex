@@ -4,6 +4,9 @@
 #include <curand.h>
 #include <omp.h>
 #include "apex_api.hpp"
+#if defined(APEX_HAVE_MPI)
+#include "mpi.h"
+#endif
 
 #define CUDA_CALL(x) do { if((x)!=cudaSuccess) { \
     printf("Error at %s Line %d: %s\n",__FILE__,__LINE__,cudaGetErrorString(x));}} while(0)
@@ -26,12 +29,20 @@ __global__ void montecarlo(float* pt1, float* pt2, int* result, int total_thread
 }
 
 int main(int argc, char * argv[]) {
-  apex::init("apex cuda openmpi test", 0, 1);
+#if defined(APEX_HAVE_MPI)
+  MPI_Init(&argc, &argv);
+  int rank, size;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
+  apex::init("apex::cuda PI test", rank, size);
+#else
+  apex::init("apex cuda PI test", 0, 1);
+#endif
   apex::apex_options::use_screen_output(true);
   omp_set_num_threads(2);
 
   int num_darts = 1<<23; //
-  int N = 1<<29;  // can't be more than 2^30 or memory errors
+  int N = 1<<25;  // can't be more than 2^30 or memory errors
   int Nx = omp_get_num_threads()*2; // must be even, can be arbitrarily large
   int num_threads = 256;
   int num_blocks = 128;
@@ -161,6 +172,9 @@ int main(int argc, char * argv[]) {
     free(results_host[i]);
   }
   free(results_host);
+#if defined(APEX_HAVE_MPI)
+  MPI_Finalize();
+#endif
   apex::finalize();
   apex::cleanup();
 }

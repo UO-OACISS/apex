@@ -1,6 +1,9 @@
 #include <string.h>
 #include <stdio.h>
 #include "apex_api.hpp"
+#if defined(APEX_HAVE_MPI)
+#include "mpi.h"
+#endif
 
 #define ITERATIONS 4
 
@@ -36,9 +39,17 @@ void launch(DataElement *elem) {
 
 int main(int argc, char * argv[])
 {
+#if defined(APEX_HAVE_MPI)
+  MPI_Init(&argc, &argv);
+  int rank, size;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
+  apex::init("apex::cuda unit test", rank, size);
+#else
   APEX_UNUSED(argc);
   APEX_UNUSED(argv);
   apex::init("apex::cuda unit test", 0, 1);
+#endif
   apex::apex_options::use_screen_output(true);
   DataElement *e;
   RUNTIME_API_CALL(cudaMallocManaged((void**)&e, sizeof(DataElement)));
@@ -56,6 +67,9 @@ int main(int argc, char * argv[])
 
   RUNTIME_API_CALL(cudaFree(e->name));
   RUNTIME_API_CALL(cudaFree(e));
+#if defined(APEX_HAVE_MPI)
+  MPI_Finalize();
+#endif
   apex::finalize();
   apex::cleanup();
 }
