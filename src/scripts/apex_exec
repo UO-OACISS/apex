@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash
 
 LANG="C"
 export LANG
@@ -45,11 +45,11 @@ fi
     if [ ! -x "$prog" ] ; then
 	prog=`which $prog 2>/dev/null`
     fi
-    
+
     if [ ! -x "$prog" ] ; then
 	echo "apex_exec: $1: command not found"
 	exit
-    fi 
+    fi
 #fi
 
     if [ $apple = 1 ]; then
@@ -64,7 +64,8 @@ fi
       echo "LD_AUDIT=$APEX_LD_AUDITOR"
       export LD_PRELOAD=$APEX_LD_PRELOAD
     fi
-    
+    export KOKKOS_PROFILE_LIBRARY=$BASEDIR/lib/libapex$SHLIBX
+
     $@
     retval=$?
     unset LD_PRELOAD
