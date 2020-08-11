@@ -63,6 +63,10 @@ endif()
 if(NOT APEX_ARCH_X86)
   target_compile_definitions(apex_flags INTERFACE APEX_USE_CLOCK_TIMESTAMP=1)
 endif()
+# If forced, don't use RDTSC
+if((DEFINED APEX_USE_CLOCK_TIMESTAMP) AND (APEX_USE_CLOCK_TIMESTAMP))
+  target_compile_definitions(apex_flags INTERFACE APEX_USE_CLOCK_TIMESTAMP=1)
+endif()
 
 ################################################################################
 # Get the GIT version of the code
