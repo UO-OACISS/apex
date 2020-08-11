@@ -1504,8 +1504,12 @@ namespace apex {
             int idx;
             // read the map from rank 0
             while (std::getline(region_file, region_line)) {
-                istringstream ss(region_line);
-                ss >> idx >> region_name;
+                //istringstream ss(region_line);
+                //ss >> idx >> region_name;
+                size_t index = region_line.find("\t");
+                std::string tmp = region_line.substr(0,index);
+                region_name = region_line.substr(index+1);
+                idx = atoi(tmp.c_str());
                 reduced_region_map[region_name] = idx;
             }
             // ...and write the map to the local definitions
@@ -1647,8 +1651,12 @@ namespace apex {
             int idx;
             // read the map from rank 0
             while (std::getline(metric_file, metric_line)) {
-                istringstream ss(metric_line);
-                ss >> idx >> metric_name;
+                //istringstream ss(metric_line);
+                //ss >> idx >> metric_name;
+                size_t index = metric_line.find("\t");
+                std::string tmp = metric_line.substr(0,index);
+                metric_name = metric_line.substr(index+1);
+                idx = atoi(tmp.c_str());
                 reduced_metric_map[metric_name] = idx;
             }
             // ...and distribute them back out
@@ -1741,11 +1749,22 @@ namespace apex {
     std::unique_ptr<std::tuple<std::map<int,int>,
                     std::map<int,std::string> > >
                     otf2_listener::reduce_node_properties(std::string&& str) {
+        // create my lock file.
+        ostringstream lock_filename;
+        lock_filename << lock_filename_prefix << my_saved_node_id;
+        ofstream lock_file(lock_filename.str(), ios::out | ios::trunc );
+        lock_file << "lock" << endl;
+        lock_file.close();
+        lock_file.flush();
+
         std::ofstream index_file(index_filename + to_string(my_saved_node_id));
         // write our info
         index_file << str.c_str();
         // close the file
         index_file.close();
+
+        // delete the lock file, so rank 0 can read our data.
+        std::remove(lock_filename.str().c_str());
 
         if (my_saved_node_id > 0) {
             return nullptr;
@@ -1765,6 +1784,10 @@ namespace apex {
             full_index_filename << index_filename << to_string(i);
             // wait for the file to exist
             while (stat (full_index_filename.str().c_str(), &buffer) != 0) {}
+            ostringstream lock_filename2;
+            lock_filename2 << lock_filename_prefix << i;
+            // wait for the lock file to not exist
+            while (stat (lock_filename2.str().c_str(), &buffer) == 0) {}
             std::ifstream myfile(full_index_filename.str());
             while (std::getline(myfile, line)) {
                 istringstream ss(line);
@@ -1836,11 +1859,11 @@ namespace apex {
             // wait on the map file to exist
             ostringstream region_filename;
             region_filename << region_filename_prefix << i;
-            // wait for the lock file to not exist
+            // wait for the region file to exist
             while (stat (region_filename.str().c_str(), &buffer) != 0) {}
             ostringstream lock_filename;
             lock_filename << lock_filename_prefix << i;
-            // wait for the region file to exist
+            // wait for the lock file to not exist
             while (stat (lock_filename.str().c_str(), &buffer) == 0) {}
             // get the number of threads from that rank
             std::string region_line;
@@ -1908,7 +1931,6 @@ namespace apex {
             int idx;
             // read the map from rank 0
             while (std::getline(region_file, region_line)) {
-                // std::cout << region_line << std::endl;
                 // find the first tab
                 size_t index = region_line.find("\t");
                 std::string tmp = region_line.substr(0,index);
@@ -2019,7 +2041,7 @@ namespace apex {
         }
         // open my metric file
         ostringstream metric_filename;
-        metric_filename << metric_filename_prefix << my_saved_node_id;
+        metric_filename << metric_filename_prefix << "reduced." << my_saved_node_id;
         ofstream metric_file(metric_filename.str(), ios::out | ios::trunc );
         // copy the reduced map to a pair, so we can sort by value
         std::vector<std::pair<std::string, int>> pairs;
@@ -2048,7 +2070,7 @@ namespace apex {
             std::map<std::string,uint64_t> reduced_metric_map;
             // wait on the map file from rank 0 to exist
             ostringstream metric_filename;
-            metric_filename << metric_filename_prefix << 0;
+            metric_filename << metric_filename_prefix << "reduced." << 0;
             while (stat (metric_filename.str().c_str(), &buffer) != 0) {}
             // wait for the lock file from rank 0 to NOT exist
             ostringstream lock_filename;
@@ -2060,8 +2082,12 @@ namespace apex {
             int idx;
             // read the map from rank 0
             while (std::getline(metric_file, metric_line)) {
-                istringstream ss(metric_line);
-                ss >> idx >> metric_name;
+                //istringstream ss(metric_line);
+                //ss >> idx >> metric_name;
+                size_t index = metric_line.find("\t");
+                std::string tmp = metric_line.substr(0,index);
+                metric_name = metric_line.substr(index+1);
+                idx = atoi(tmp.c_str());
                 reduced_metric_map[metric_name] = idx;
             }
             metric_file.close();

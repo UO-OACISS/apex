@@ -364,31 +364,17 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
     comm_rank = test_for_MPI_comm_rank(comm_rank);
     comm_size = test_for_MPI_comm_size(comm_size);
     // protect against multiple initializations
-#ifdef APEX_WITH_JUPYTER_SUPPORT
     if (_registered || _initialized) {
+#ifdef APEX_WITH_JUPYTER_SUPPORT
         // reset all counters, and return.
         reset(APEX_NULL_FUNCTION_ADDRESS);
         FUNCTION_EXIT
         return APEX_NOERROR;
-    }
 #else
-    if (_registered || _initialized) {
-        /* check to see if APEX was initialized by OMPT before MPI had a chance
-         * to pass in any values */
-        if ((comm_rank < comm_size) && (comm_size > 1)) { // simple validation
-            // get/create the Apex static instance
-            apex* instance = apex::instance();
-            instance->set_node_id(comm_rank);
-            instance->set_num_ranks(comm_size);
-            for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-                instance->listeners[i]->set_node_id((int)comm_rank,
-                    (int)comm_size);
-            }
-        }
         FUNCTION_EXIT
         return APEX_ERROR;
-    }
 #endif
+    }
     /* register the finalization function, for program exit */
     std::atexit(cleanup);
     thread_instance::set_worker(true);
