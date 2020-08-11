@@ -16,11 +16,13 @@
 #include <stack>
 #include <vector>
 
+/*
 static std::mutex memory_mtx;
 static std::unordered_map<void*,apex::profiler*>& memory_map() {
     static std::unordered_map<void*,apex::profiler*> themap;
     return themap;
 }
+*/
 static std::stack<apex::profiler*>& timer_stack() {
     static APEX_NATIVE_TLS std::stack<apex::profiler*> thestack;
     return thestack;
@@ -159,13 +161,16 @@ extern "C" void kokkosp_pop_profile_region() {
  */
 extern "C" void kokkosp_allocate_data(SpaceHandle_t handle, const char* name,
     void* ptr, uint64_t size) {
+    APEX_UNUSED(ptr);
     std::stringstream ss;
     ss << "Kokkos " << handle.name << " data, " << name;
+    /*
     std::string tmp{ss.str()};
     auto p = apex::start(tmp);
     memory_mtx.lock();
     memory_map().insert(std::pair<void*,apex::profiler*>(ptr, p));
     memory_mtx.unlock();
+    */
     ss << ": Bytes";
     std::string tmp2{ss.str()};
     double bytes = (double)(size);
@@ -181,12 +186,15 @@ extern "C" void kokkosp_deallocate_data(SpaceHandle handle, const char* name,
     void* ptr, uint64_t size) {
     APEX_UNUSED(handle);
     APEX_UNUSED(name);
+    APEX_UNUSED(ptr);
     APEX_UNUSED(size);
+    /*
     memory_mtx.lock();
     auto p = memory_map()[ptr];
     memory_map().erase(ptr);
     memory_mtx.unlock();
     apex::stop(p);
+    */
 }
 
 /* This function will be called whenever a Kokkos::deep_copy function is
