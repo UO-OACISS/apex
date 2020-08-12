@@ -4,7 +4,7 @@
 #include <string.h>
 #include "apex.h"
 
-#define N 4096*4096
+#define N 1024*1024
 #define MAX_THREADS 256
 
 #if defined(__GNUC__)

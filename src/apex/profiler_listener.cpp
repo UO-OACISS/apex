@@ -260,10 +260,10 @@ std::unordered_set<profile*> free_profiles;
     for(auto &it : task_map) {
         it.second->reset();
     }
-#ifdef APEX_WITH_JUPYTER_SUPPORT
-    // restart the main timer
-    main_timer = std::make_shared<profiler>(task_wrapper::get_apex_main_wrapper());
-#endif
+    if (apex_options::use_jupyter_support()) {
+        // restart the main timer
+        main_timer = std::make_shared<profiler>(task_wrapper::get_apex_main_wrapper());
+    }
   }
 
   /* After the consumer thread pulls a profiler off of the queue,

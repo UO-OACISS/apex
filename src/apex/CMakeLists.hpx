@@ -215,12 +215,6 @@ else()
   endif()
 endif()
 
-# JUPYTER
-if(APEX_WITH_JUPYTER_SUPPORT)
-  target_compile_definitions(apex_flags INTERFACE APEX_WITH_JUPYTER_SUPPORT)
-  message(INFO " Including Jupyter Notebook support.")
-endif(APEX_WITH_JUPYTER_SUPPORT)
-
 # Setup BFD
 if((DEFINED BFD_ROOT) OR (APEX_WITH_BFD) OR (APEX_BUILD_BFD))
   set(USE_BFD ${APEX_WITH_BFD})
@@ -252,7 +246,10 @@ if(HPX_WITH_HPXMP)
   set(ompt_sources apex_ompt.cpp)
   include(APEX_SetupHPXMP)
   set(ompt_dependency apex::hpxmp)
+  target_compile_definitions(apex_flags INTERFACE APEX_WITH_OMPT)
+  target_compile_definitions(apex_flags INTERFACE ${OpenMP_CXX_FLAGS})
 endif(HPX_WITH_HPXMP)
+
 
 # RPATH related stuff
 # APEX is always a shared object library with HPX now.

@@ -121,10 +121,10 @@ bool concurrency_handler::_handler(void) {
   if (apex_options::use_tau()) {
     tau_listener::Tau_stop_wrapper("concurrency_handler::_handler");
   }
-#ifdef APEX_WITH_JUPYTER_SUPPORT
-  // update the timeout, if the user changed it.
-  set_timeout(apex_options::concurrency_period());
-#endif
+  if (apex_options::use_jupyter_support()) {
+    // update the timeout, if the user changed it.
+    set_timeout(apex_options::concurrency_period());
+  }
   return true;
 }
 

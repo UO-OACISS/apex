@@ -273,20 +273,16 @@ void apex::_initialize()
         }
 
 /* For the Jupyter support, always enable the concurrency handler. */
-#ifndef APEX_WITH_JUPYTER_SUPPORT
-        if (apex_options::use_concurrency() > 0)
-#endif
-        {
+        if (apex_options::use_jupyter_support() ||
+            apex_options::use_concurrency() > 0) {
             listeners.push_back(new
                 concurrency_handler(apex_options::concurrency_period(),
             apex_options::use_concurrency()));
         }
         startup_throttling();
 /* For the Jupyter support, always enable the policy listener. */
-#ifndef APEX_WITH_JUPYTER_SUPPORT
-        if (apex_options::use_policy())
-#endif
-        {
+        if (apex_options::use_jupyter_support() ||
+            apex_options::use_policy()) {
             this->m_policy_handler = new policy_handler();
             listeners.push_back(this->m_policy_handler);
         }
@@ -365,15 +361,15 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
     comm_size = test_for_MPI_comm_size(comm_size);
     // protect against multiple initializations
     if (_registered || _initialized) {
-#ifdef APEX_WITH_JUPYTER_SUPPORT
-        // reset all counters, and return.
-        reset(APEX_NULL_FUNCTION_ADDRESS);
-        FUNCTION_EXIT
-        return APEX_NOERROR;
-#else
-        FUNCTION_EXIT
-        return APEX_ERROR;
-#endif
+        if (apex_options::use_jupyter_support()) {
+            // reset all counters, and return.
+            reset(APEX_NULL_FUNCTION_ADDRESS);
+            FUNCTION_EXIT
+            return APEX_NOERROR;
+        } else {
+            FUNCTION_EXIT
+            return APEX_ERROR;
+        }
     }
     /* register the finalization function, for program exit */
     std::atexit(cleanup);
@@ -1323,11 +1319,11 @@ void finalize_plugins(void) {
 std::string dump(bool reset) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return(std::string("")); }
-#ifdef APEX_WITH_JUPYTER_SUPPORT
-    // force output in the Jupyter notebook
     bool old_screen_output = apex_options::use_screen_output();
-    apex_options::use_screen_output(true);
-#endif
+    if (apex_options::use_jupyter_support()) {
+        // force output in the Jupyter notebook
+        apex_options::use_screen_output(true);
+    }
 
     // get the Apex static instance
     apex* instance = apex::instance();
@@ -1339,28 +1335,31 @@ std::string dump(bool reset) {
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_dump(data);
         }
-#ifdef APEX_WITH_JUPYTER_SUPPORT
-        apex_options::use_screen_output(old_screen_output);
-#endif
+        if (apex_options::use_jupyter_support()) {
+            apex_options::use_screen_output(old_screen_output);
+        }
         return(data.output);
     }
-#ifdef APEX_WITH_JUPYTER_SUPPORT
-    apex_options::use_screen_output(old_screen_output);
-#endif
+    if (apex_options::use_jupyter_support()) {
+        apex_options::use_screen_output(old_screen_output);
+    }
     return(std::string(""));
 }
 
+// forward declare CUPTI buffer flushing
 void flushTrace(void);
+// forward declare OMPT runtime shutdown
+void ompt_force_shutdown(void);
 
 void finalize()
 {
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) { FUNCTION_EXIT return; } // protect against calls after finalization
-#ifdef APEX_WITH_JUPYTER_SUPPORT
-    // reset all counters, and return.
-    //reset(APEX_NULL_FUNCTION_ADDRESS);
-    return;
-#endif
+    if (apex_options::use_jupyter_support()) {
+        // reset all counters, and return.
+        reset(APEX_NULL_FUNCTION_ADDRESS);
+        return;
+    }
     FUNCTION_ENTER
     // prevent re-entry, be extra strict about race conditions - it is
     // possible.
@@ -1387,6 +1386,9 @@ void finalize()
     /* This could take a while */
 #ifdef APEX_WITH_CUDA
     flushTrace();
+#endif
+#ifdef APEX_WITH_OMPT
+    ompt_force_shutdown();
 #endif
     // stop processing new timers/counters/messages/tasks/etc.
     apex_options::suspend(true);
@@ -1427,6 +1429,10 @@ void cleanup(void) {
     // prevent crash at shutdown.
     return;
 #endif
+    if (apex_options::use_jupyter_support()) {
+        apex_options::use_jupyter_support(false);
+        finalize();
+    }
     // prevent re-entry, be extra strict about race conditions - it is
     // possible.
     mutex shutdown_mutex;
@@ -1875,7 +1881,7 @@ extern "C" {
     }
 
     const char * apex_dump(bool reset) {
-        return(dump(reset).c_str());
+        return(strdup(dump(reset).c_str()));
     }
 
     void apex_finalize(void) {

@@ -16,6 +16,14 @@
 #include <string>
 #include "apex_assert.h"
 
+#ifdef DEBUG
+#define DEBUG_PRINT(...) do{ \
+fprintf( stderr, __VA_ARGS__ ); fflush(stderr); \
+} while( false )
+#else
+#define DEBUG_PRINT(...) do{ } while ( false )
+#endif
+
 std::mutex apex_apex_threadid_mutex;
 std::atomic<uint64_t> apex_numthreads(0);
 APEX_NATIVE_TLS uint64_t apex_threadid(-1);
@@ -54,18 +62,38 @@ class linked_timer {
 
 /* Function pointers.  These are all queried from the runtime during
  *  * ompt_initialize() */
+static ompt_enumerate_states_t ompt_enumerate_states;
+static ompt_enumerate_mutex_impls_t ompt_enumerate_mutex_impls;
 static ompt_set_callback_t ompt_set_callback;
-static ompt_get_task_info_t ompt_get_task_info;
+static ompt_get_callback_t ompt_get_callback;
 static ompt_get_thread_data_t ompt_get_thread_data;
-static ompt_get_parallel_info_t ompt_get_parallel_info;
-static ompt_get_unique_id_t ompt_get_unique_id;
+static ompt_get_num_procs_t ompt_get_num_procs;
 static ompt_get_num_places_t ompt_get_num_places;
 static ompt_get_place_proc_ids_t ompt_get_place_proc_ids;
 static ompt_get_place_num_t ompt_get_place_num;
 static ompt_get_partition_place_nums_t ompt_get_partition_place_nums;
 static ompt_get_proc_id_t ompt_get_proc_id;
-static ompt_enumerate_states_t ompt_enumerate_states;
-static ompt_enumerate_mutex_impls_t ompt_enumerate_mutex_impls;
+static ompt_get_parallel_info_t ompt_get_parallel_info;
+static ompt_get_task_info_t ompt_get_task_info;
+static ompt_get_task_memory_t ompt_get_task_memory;
+static ompt_get_target_info_t ompt_get_target_info;
+static ompt_get_num_devices_t ompt_get_num_devices;
+static ompt_get_unique_id_t ompt_get_unique_id;
+static ompt_finalize_tool_t ompt_finalize_tool;
+static ompt_function_lookup_t ompt_function_lookup;
+
+namespace apex {
+
+/* This function is used by APEX to tell the OpenMP runtime to stop sending
+ * OMPT events.  This is when apex::finalize() happens before ompt_finalize().
+ * It is called from apex::finalize().
+ */
+void ompt_force_shutdown(void) {
+    DEBUG_PRINT("Forcing shutdown of OpenMP Tools API\n");
+    ompt_finalize_tool();
+}
+
+} // end apex namespace
 
 /* These methods are some helper functions for starting/stopping timers */
 
@@ -169,10 +197,9 @@ static void apex_parallel_region_begin (
     char regionIDstr[128] = {0};
     sprintf(regionIDstr, "OpenMP Parallel Region: UNRESOLVED ADDR %p", codeptr_ra);
     apex_ompt_start(regionIDstr, parallel_data, nullptr, true);
-    //printf("%llu: Parallel Region Begin parent: %p, apex_parent: %p, region:
+    //DEBUG_PRINT("%llu: Parallel Region Begin parent: %p, apex_parent: %p, region:
     //%p, apex_region: %p\n", apex_threadid, encountering_task_data,
     //encountering_task_data->ptr, parallel_data, parallel_data->ptr);
-    //fflush(stdout);
 }
 
 /* Event #4, parallel region end */
@@ -185,10 +212,9 @@ static void apex_parallel_region_end (
     APEX_UNUSED(encountering_task_data);
     APEX_UNUSED(flags);
     APEX_UNUSED(codeptr_ra);
-    //printf("%llu: Parallel Region End parent: %p, apex_parent: %p, region:
+    //DEBUG_PRINT("%llu: Parallel Region End parent: %p, apex_parent: %p, region:
     //%p, apex_region: %p\n", apex_threadid, encountering_task_data,
     //encountering_task_data->ptr, parallel_data, parallel_data->ptr);
-    //fflush(stdout);
     apex_ompt_stop(parallel_data);
 }
 
@@ -243,8 +269,8 @@ extern "C" void apex_task_create (
         default:
             type_str = const_cast<char*>(merged_str);
     }
-    //printf("%llu: %s Task Create parent: %p, child: %p\n", apex_threadid,
-    //type_str, encountering_task_data, new_task_data); fflush(stdout);
+    //DEBUG_PRINT("%llu: %s Task Create parent: %p, child: %p\n", apex_threadid,
+    //type_str, encountering_task_data, new_task_data);
 
     if (codeptr_ra != nullptr) {
         char regionIDstr[128] = {0};
@@ -263,9 +289,8 @@ extern "C" void apex_task_schedule(
     ompt_task_status_t prior_task_status, /* status of prior task */
     ompt_data_t *next_task_data           /* data of next task    */
     ) {
-    //printf("%llu: Task Schedule prior: %p, status: %d, next: %p\n",
+    //DEBUG_PRINT("%llu: Task Schedule prior: %p, status: %d, next: %p\n",
     //apex_threadid, prior_task_data, prior_task_status, next_task_data);
-    //fflush(stdout);
     if (prior_task_data != nullptr) {
         linked_timer* prior = (linked_timer*)(prior_task_data->ptr);
         if (prior != nullptr) {
@@ -305,14 +330,13 @@ extern "C" void apex_implicit_task(
     APEX_UNUSED(team_size);
     APEX_UNUSED(thread_num);
     if (endpoint == ompt_scope_begin) {
-        apex_ompt_start("OpenMP Implicit Task", task_data, parallel_data,
+        apex_ompt_start("7 OpenMP Implicit Task", task_data, parallel_data,
         false);
     } else {
         apex_ompt_stop(task_data);
     }
-    //printf("%llu: Implicit Task task: %p, apex: %p, region: %p, %d\n",
+    //DEBUG_PRINT("%llu: Implicit Task task: %p, apex: %p, region: %p, %d\n",
     //apex_threadid, task_data, task_data->ptr, parallel_data, endpoint);
-    //fflush(stdout);
 }
 
 /* These are placeholder functions */
@@ -509,8 +533,8 @@ extern "C" void apex_ompt_work (
     }
     if (endpoint == ompt_scope_begin) {
         char regionIDstr[128] = {0};
-        //printf("%llu: %s Begin task: %p, region: %p\n", apex_threadid,
-        //tmp_str, task_data, parallel_data); fflush(stdout);
+        //DEBUG_PRINT("%llu: %s Begin task: %p, region: %p\n", apex_threadid,
+        //tmp_str, task_data, parallel_data);
         if (codeptr_ra != nullptr) {
             sprintf(regionIDstr, "OpenMP Work %s: UNRESOLVED ADDR %p", tmp_str,
             codeptr_ra);
@@ -520,8 +544,8 @@ extern "C" void apex_ompt_work (
             apex_ompt_start(regionIDstr, task_data, parallel_data, true);
         }
     } else {
-        //printf("%llu: %s End task: %p, region: %p\n", apex_threadid, tmp_str,
-        //task_data, parallel_data); fflush(stdout);
+        //DEBUG_PRINT("%llu: %s End task: %p, region: %p\n", apex_threadid, tmp_str,
+        //task_data, parallel_data);
         apex_ompt_stop(task_data);
     }
 }
@@ -711,12 +735,12 @@ extern "C" void apex_ompt_idle (
 // This function is for checking that the function registration worked.
 int apex_ompt_register(ompt_callbacks_t e, ompt_callback_t c ,
     const char * name) {
-  fprintf(stderr,"Registering OMPT callback %s...",name); fflush(stderr);
+  DEBUG_PRINT("Registering OMPT callback %s...",name); fflush(stderr);
   if (ompt_set_callback(e, c) == 0) { \
     fprintf(stderr,"\n\tFailed to register OMPT callback %s!\n",name);
     fflush(stderr);
   } else {
-    fprintf(stderr,"success.\n");
+    DEBUG_PRINT("success.\n");
   }
   return 0;
 }
@@ -731,34 +755,49 @@ int ompt_initialize(ompt_function_lookup_t lookup, int initial_device_num,
         std::unique_lock<std::mutex> l(apex_apex_threadid_mutex);
         apex_threadid = apex_numthreads++;
     }
-    fprintf(stderr,"Getting OMPT functions..."); fflush(stderr);
-    ompt_set_callback = (ompt_set_callback_t) lookup("ompt_set_callback");
-    ompt_get_task_info = (ompt_get_task_info_t) lookup("ompt_get_task_info");
-    ompt_get_thread_data =
-        (ompt_get_thread_data_t) lookup("ompt_get_thread_data");
-    ompt_get_parallel_info =
-        (ompt_get_parallel_info_t) lookup("ompt_get_parallel_info");
-    ompt_get_unique_id =
-        (ompt_get_unique_id_t) lookup("ompt_get_unique_id");
-
-    ompt_get_num_places =
-        (ompt_get_num_places_t) lookup("ompt_get_num_places");
-    ompt_get_place_proc_ids =
-        (ompt_get_place_proc_ids_t) lookup("ompt_get_place_proc_ids");
-    ompt_get_place_num =
-        (ompt_get_place_num_t) lookup("ompt_get_place_num");
-    ompt_get_partition_place_nums =
-        (ompt_get_partition_place_nums_t)
+    DEBUG_PRINT("Getting OMPT functions..."); fflush(stderr);
+    ompt_function_lookup = lookup;
+    ompt_finalize_tool = (ompt_finalize_tool_t)
+        lookup("ompt_finalize_tool");
+    ompt_set_callback = (ompt_set_callback_t)
+        lookup("ompt_set_callback");
+    ompt_get_callback = (ompt_get_callback_t)
+        lookup("ompt_get_callback");
+    ompt_get_task_info = (ompt_get_task_info_t)
+        lookup("ompt_get_task_info");
+    ompt_get_task_memory = (ompt_get_task_memory_t)
+        lookup("ompt_get_task_memory");
+    ompt_get_thread_data = (ompt_get_thread_data_t)
+        lookup("ompt_get_thread_data");
+    ompt_get_parallel_info = (ompt_get_parallel_info_t)
+        lookup("ompt_get_parallel_info");
+    ompt_get_unique_id = (ompt_get_unique_id_t)
+        lookup("ompt_get_unique_id");
+    ompt_get_num_places = (ompt_get_num_places_t)
+        lookup("ompt_get_num_places");
+    ompt_get_num_devices = (ompt_get_num_devices_t)
+        lookup("ompt_get_num_devices");
+    ompt_get_num_procs = (ompt_get_num_procs_t)
+        lookup("ompt_get_num_procs");
+    ompt_get_place_proc_ids = (ompt_get_place_proc_ids_t)
+        lookup("ompt_get_place_proc_ids");
+    ompt_get_place_num = (ompt_get_place_num_t)
+        lookup("ompt_get_place_num");
+    ompt_get_partition_place_nums = (ompt_get_partition_place_nums_t)
         lookup("ompt_get_partition_place_nums");
-    ompt_get_proc_id =
-        (ompt_get_proc_id_t) lookup("ompt_get_proc_id");
-    ompt_enumerate_states =
-        (ompt_enumerate_states_t) lookup("ompt_enumerate_states");
-    ompt_enumerate_mutex_impls =
-        (ompt_enumerate_mutex_impls_t) lookup("ompt_enumerate_mutex_impls");
+    ompt_get_proc_id = (ompt_get_proc_id_t)
+        lookup("ompt_get_proc_id");
+    ompt_get_target_info = (ompt_get_target_info_t)
+        lookup("ompt_get_target_info");
+    ompt_enumerate_states = (ompt_enumerate_states_t)
+        lookup("ompt_enumerate_states");
+    ompt_enumerate_mutex_impls = (ompt_enumerate_mutex_impls_t)
+        lookup("ompt_enumerate_mutex_impls");
+
+    DEBUG_PRINT("success.\n");
 
     apex::init("OpenMP Program",0,1);
-    fprintf(stderr,"Registering OMPT events..."); fflush(stderr);
+    DEBUG_PRINT("Registering OMPT events...\n"); fflush(stderr);
 
     /* Mandatory events */
 
@@ -875,21 +914,29 @@ int ompt_initialize(ompt_function_lookup_t lookup, int initial_device_num,
 
     }
 
-    fprintf(stderr,"done.\n"); fflush(stderr);
+    DEBUG_PRINT("done.\n"); fflush(stderr);
     return 1;
 }
 
 void ompt_finalize(ompt_data_t* tool_data)
 {
     APEX_UNUSED(tool_data);
-    printf("OpenMP runtime is shutting down...\n");
+    DEBUG_PRINT("OpenMP runtime is shutting down...\n");
     apex::finalize();
 }
 
+/* According to the OpenMP 5.0 specification, this function needs to be
+ * defined in the application address space.  The runtime will see it,
+ * and run it. */
 ompt_start_tool_result_t * ompt_start_tool(
     unsigned int omp_version, const char *runtime_version) {
-    APEX_UNUSED(omp_version);
-    APEX_UNUSED(runtime_version);
+    APEX_UNUSED(runtime_version); // in case we aren't printing debug messages
+    DEBUG_PRINT("APEX: OMPT Tool Start, version %d, '%s'\n",
+        omp_version, runtime_version);
+    if (_OPENMP != omp_version) {
+       DEBUG_PRINT("APEX: WARNING! %d != %d (OpenMP Version used to compile APEX)\n",
+          omp_version, _OPENMP);
+    }
     static ompt_start_tool_result_t result;
     result.initialize = &ompt_initialize;
     result.finalize = &ompt_finalize;

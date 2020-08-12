@@ -295,6 +295,7 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_CUDA_KERNEL_DETAILS, use_cuda_kernel_details, int, false) \
     macro (APEX_CUDA_RUNTIME_API, use_cuda_runtime_api, int, true) \
     macro (APEX_CUDA_DRIVER_API, use_cuda_driver_api, int, false) \
+    macro (APEX_JUPYTER_SUPPORT, use_jupyter_support, int, false) \
 
 #define FOREACH_APEX_STRING_OPTION(macro) \
     macro (APEX_PAPI_METRICS, papi_metrics, char*, "") \
