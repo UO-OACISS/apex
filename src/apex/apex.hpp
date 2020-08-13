@@ -18,6 +18,8 @@
  * twice.  So, we have a macro to make sure the macro is defined. */
 #ifdef APEX_HAVE_HPX_CONFIG
 #include <hpx/config.hpp>
+#include <hpx/hpx.hpp>
+#include <hpx/hpx_init.hpp>
 #include <hpx/include/runtime.hpp>
 #if defined(_MSC_VER)
 #include <winsock2.h>
