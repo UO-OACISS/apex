@@ -10,7 +10,6 @@
 int main (int argc, char** argv) {
 	int   i, n, chunk;
  	double a[100], b[100], result;
- 	apex_init(__func__, 0, 1);
     apex_set_use_screen_output(1);
 
  	/* Some initializations */
@@ -33,7 +32,6 @@ int main (int argc, char** argv) {
 
  	printf("Final result= %f\n",result);
 
-    apex_finalize();
     return 0;
 }
 

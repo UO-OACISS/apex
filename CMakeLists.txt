@@ -230,8 +230,11 @@ enable_cxx_compiler_flag_if_supported("-Wall")
 enable_cxx_compiler_flag_if_supported("-Wextra")
 enable_cxx_compiler_flag_if_supported("-Wpedantic")
 enable_cxx_compiler_flag_if_supported("-pedantic")
+# PGI and Intel don't like the concurrentqueue code.
 if (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "PGI")
-    enable_cxx_compiler_flag_if_supported("-Werror")
+    if (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
+        enable_cxx_compiler_flag_if_supported("-Werror")
+    endif (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
 endif (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "PGI")
 
 # ---------------------------------------------------
@@ -279,6 +282,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
         set(CMAKE_CXX_SUPPORT_FLAG "-std=c++14" CACHE STRING "CXX Support Flag" FORCE)
     endif()
 endif()
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_SUPPORT_FLAG}")
 
 # Check if architecture is x86 or not

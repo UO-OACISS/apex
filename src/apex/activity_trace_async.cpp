@@ -18,7 +18,9 @@
 #include "thread_instance.hpp"
 #include "apex_options.hpp"
 #include "trace_event_listener.hpp"
+#ifdef APEX_HAVE_OTF2
 #include "otf2_listener.hpp"
+#endif
 
 static void __attribute__((constructor)) initTrace(void);
 //static void __attribute__((destructor)) flushTrace(void);
@@ -109,12 +111,13 @@ void store_profiler_data(const std::string &name, uint32_t correlationId,
             (apex::trace_event_listener*)instance->the_trace_event_listener;
         tel->on_async_event(device, context, stream, prof);
     }
+#ifdef APEX_HAVE_OTF2
     if (apex::apex_options::use_otf2()) {
         apex::otf2_listener * tol =
             (apex::otf2_listener*)instance->the_otf2_listener;
         tol->on_async_event(device, context, stream, prof);
     }
-
+#endif
     // have the listeners handle the end of this task
     instance->complete_task(tt);
 }

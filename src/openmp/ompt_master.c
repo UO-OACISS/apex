@@ -4,7 +4,6 @@
 
 int main (void) {
 	int a, i;
- 	apex_init(__func__, 0, 1);
     apex_set_use_screen_output(1);
 #pragma omp parallel shared(a) private(i)
 	{
@@ -16,5 +15,4 @@ int main (void) {
 #pragma omp master
   		printf ("Sum is %d\n", a);
 	}
-    apex_finalize();
 }

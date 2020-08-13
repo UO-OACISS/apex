@@ -3,7 +3,7 @@
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <ompt.h>
+#include <omp-tools.h>
 #include <unordered_map>
 #include "string.h"
 #include "stdio.h"
@@ -25,8 +25,9 @@ fprintf( stderr, __VA_ARGS__ ); fflush(stderr); \
 #endif
 
 std::mutex apex_apex_threadid_mutex;
-std::atomic<uint64_t> apex_numthreads(0);
-APEX_NATIVE_TLS uint64_t apex_threadid(-1);
+std::atomic<uint64_t> apex_numthreads{0};
+APEX_NATIVE_TLS int64_t apex_threadid{-1};
+static std::atomic<bool> enabled{false};
 
 class linked_timer {
     public:
@@ -90,7 +91,10 @@ namespace apex {
  */
 void ompt_force_shutdown(void) {
     DEBUG_PRINT("Forcing shutdown of OpenMP Tools API\n");
+    /* The Intel generated code has some odd destructor race conditions, so
+     * don't force the runtime to shut down. */
     /* OpenMP might not have been used... */
+    enabled = false;
     if (ompt_finalize_tool) {
         ompt_finalize_tool();
     }
@@ -102,6 +106,7 @@ void ompt_force_shutdown(void) {
 
 void apex_ompt_start(const char * state, ompt_data_t * ompt_data,
         ompt_data_t * region_data, bool auto_start) {
+    if (!enabled) { return; }
     static std::shared_ptr<apex::task_wrapper> nothing(nullptr);
     linked_timer* tmp;
     /* First check if there's a parent "region" - could be a task */
@@ -135,6 +140,7 @@ void apex_ompt_start(const char * state, ompt_data_t * ompt_data,
 }
 
 void apex_ompt_stop(ompt_data_t * ompt_data) {
+    if (!enabled) { return; }
     APEX_ASSERT(ompt_data->ptr);
     void* tmp = ((linked_timer*)(ompt_data->ptr))->prev;
     delete((linked_timer*)(ompt_data->ptr));
@@ -152,6 +158,7 @@ extern "C" void apex_thread_begin(
     ompt_thread_t thread_type,   /* type of thread */
     ompt_data_t *thread_data     /* data of thread */)
 {
+    if (!enabled) { return; }
     APEX_UNUSED(thread_data);
     {
         std::unique_lock<std::mutex> l(apex_apex_threadid_mutex);
@@ -182,6 +189,7 @@ extern "C" void apex_thread_begin(
 extern "C" void apex_thread_end(
     ompt_data_t *thread_data              /* data of thread                      */
 ) {
+    if (!enabled) { return; }
     APEX_UNUSED(thread_data);
     apex::exit_thread();
 }
@@ -195,6 +203,7 @@ static void apex_parallel_region_begin (
     int flags,                                   /* flags */
     const void *codeptr_ra                       /* return address of runtime call      */
 ) {
+    if (!enabled) { return; }
     APEX_UNUSED(encountering_task_data);
     APEX_UNUSED(encountering_task_frame);
     APEX_UNUSED(requested_team_size);
@@ -212,6 +221,7 @@ static void apex_parallel_region_end (
     int flags,                            /* flags              */
     const void *codeptr_ra                /* return address of runtime call      */
 ) {
+    if (!enabled) { return; }
     APEX_UNUSED(encountering_task_data);
     APEX_UNUSED(flags);
     APEX_UNUSED(codeptr_ra);
@@ -228,6 +238,7 @@ extern "C" void apex_task_create (
     int has_dependences,                        /* created task has dependences   */
     const void *codeptr_ra                      /* return address of runtime call */
 ) {
+    if (!enabled) { return; }
     APEX_UNUSED(encountering_task_frame);
     APEX_UNUSED(has_dependences);
     APEX_UNUSED(codeptr_ra);
@@ -289,6 +300,7 @@ extern "C" void apex_task_schedule(
     ompt_task_status_t prior_task_status, /* status of prior task */
     ompt_data_t *next_task_data           /* data of next task    */
     ) {
+    if (!enabled) { return; }
     DEBUG_PRINT("%lu: Task Schedule prior: %p, status: %d, next: %p\n", apex_threadid, (void*)prior_task_data, prior_task_status, (void*)next_task_data);
     if (prior_task_data != nullptr) {
         linked_timer* prior = (linked_timer*)(prior_task_data->ptr);
@@ -327,6 +339,7 @@ extern "C" void apex_implicit_task(
     unsigned int thread_num,        /* thread number of calling thread */
     int flags
   ) {
+    if (!enabled) { return; }
     APEX_UNUSED(team_size);
     APEX_UNUSED(thread_num);
     APEX_UNUSED(flags);
@@ -358,6 +371,7 @@ extern "C" void apex_target (
     ompt_id_t target_id,
     const void *codeptr_ra
 ) {
+    if (!enabled) { return; }
 }
 
 /* Event #9, target data */
@@ -369,6 +383,7 @@ extern "C" void apex_target_data_op (
     void *device_addr,
     size_t bytes
 ) {
+    if (!enabled) { return; }
 }
 
 /* Event #10, target submit */
@@ -376,6 +391,7 @@ extern "C" void apex_target_submit (
     ompt_id_t target_id,
     ompt_id_t host_op_id
 ) {
+    if (!enabled) { return; }
 }
 
 /* Event #11, tool control */
@@ -385,6 +401,7 @@ extern "C" void apex_control(
     void *arg,             /* argument of control call            */
     const void *codeptr_ra /* return address of runtime call      */
     ) {
+    if (!enabled) { return; }
 }
 
 /* Event #12, device initialize */
@@ -395,12 +412,14 @@ extern "C" void apex_device_initialize (
     ompt_function_lookup_t lookup,
     const char *documentation
 ) {
+    if (!enabled) { return; }
 }
 
 /* Event #13, device finalize */
 extern "C" void apex_device_finalize (
     uint64_t device_num
 ) {
+    if (!enabled) { return; }
 }
 
 /* Event #14, device load */
@@ -414,6 +433,7 @@ extern "C" void apex_device_load_t (
     void * device_addr,
     uint64_t module_id
 ) {
+    if (!enabled) { return; }
 }
 
 /* Event #15, device load */
@@ -421,6 +441,7 @@ extern "C" void apex_device_unload (
     uint64_t device_num,
     uint64_t module_id
 ) {
+    if (!enabled) { return; }
 }
 
 #endif // placeholder functions
@@ -441,6 +462,7 @@ extern "C" void apex_sync_region_wait (
     ompt_data_t *task_data,         /* data of task                   */
     const void *codeptr_ra          /* return address of runtime call */
 ) {
+    if (!enabled) { return; }
     char * tmp_str;
     static const char * barrier_str = "Barrier Wait";
     static const char * barrier_i_str = "Implicit Barrier Wait";
@@ -504,6 +526,7 @@ extern "C" void apex_ompt_work (
     uint64_t count,                 /* quantity of work               */
     const void *codeptr_ra          /* return address of runtime call */
     ) {
+    if (!enabled) { return; }
     APEX_UNUSED(count); // unused on end
 
     char * tmp_str;
@@ -584,6 +607,7 @@ extern "C" void apex_ompt_master (
     ompt_data_t *task_data,         /* data of task                        */
     const void *codeptr_ra          /* return address of runtime call      */
 ) {
+    if (!enabled) { return; }
     if (endpoint == ompt_scope_begin) {
         if (codeptr_ra != nullptr) {
             char regionIDstr[128] = {0};
@@ -660,6 +684,7 @@ extern "C" void apex_ompt_flush (
     ompt_data_t *thread_data, /* data of thread                      */
     const void *codeptr_ra    /* return address of runtime call      */
 ) {
+    if (!enabled) { return; }
     APEX_UNUSED(thread_data);
     if (codeptr_ra != nullptr) {
         char regionIDstr[128] = {0};
@@ -676,6 +701,7 @@ extern "C" void apex_ompt_cancel (
     int flags,                /* cancel flags                        */
     const void *codeptr_ra    /* return address of runtime call      */
 ) {
+    if (!enabled) { return; }
     char regionIDstr[128] = {0};
     if (flags & ompt_cancel_parallel) {
         if (codeptr_ra != nullptr) {
@@ -747,6 +773,7 @@ extern "C" void apex_ompt_cancel (
 extern "C" void apex_ompt_idle (
     ompt_scope_endpoint_t endpoint /* endpoint of idle time               */
 ) {
+    if (!enabled) { return; }
     static APEX_NATIVE_TLS apex::profiler* p = nullptr;
     if (endpoint == ompt_scope_begin) {
         p = apex::start("OpenMP Idle");
@@ -935,6 +962,7 @@ int ompt_initialize(ompt_function_lookup_t lookup, int initial_device_num,
         }
 
     }
+    enabled = true;
 
     DEBUG_PRINT("done.\n"); fflush(stderr);
     return 1;
@@ -944,6 +972,7 @@ void ompt_finalize(ompt_data_t* tool_data)
 {
     APEX_UNUSED(tool_data);
     DEBUG_PRINT("OpenMP runtime is shutting down...\n");
+    enabled = false;
     apex::finalize();
 }
 

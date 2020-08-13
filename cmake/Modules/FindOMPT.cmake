@@ -32,7 +32,7 @@ endif()
 pkg_check_modules(PC_OMPT QUIET OMPT)
 set(OMPT_DEFINITIONS ${PC_OMPT_CFLAGS_OTHER})
 
-find_path(OMPT_INCLUDE_DIR ompt.h
+find_path(OMPT_INCLUDE_DIR omp-tools.h
           HINTS ${PC_OMPT_INCLUDEDIR} ${PC_OMPT_INCLUDE_DIRS} ${OMPT_ROOT}/include)
 
 find_library(OMPT_LIBRARY NAMES omp iomp5 gomp

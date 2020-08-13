@@ -4,7 +4,6 @@
 #include "apex.h"
 
 int main (int argc, char** argv) {
- 	apex_init(__func__, 0, 1);
     apex_set_use_screen_output(1);
 #pragma omp parallel
     {

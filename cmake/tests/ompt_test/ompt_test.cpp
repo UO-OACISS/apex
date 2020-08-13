@@ -2,7 +2,7 @@
 
 #include "stdio.h"
 #include <omp.h>
-#include <ompt.h>
+#include <omp-tools.h>
 #include <iostream>
 
 #define cb_t(name) (ompt_callback_t)&name
@@ -49,11 +49,11 @@ on_ompt_callback_parallel_end(
 inline static void register_callback(ompt_callbacks_t name, ompt_callback_t cb) {
   int ret = ompt_set_callback(name, cb);
 
-  switch(ret) { 
+  switch(ret) {
     case ompt_set_never:
-      fprintf(stderr, "TAU: WARNING: Callback for event %d could not be registered\n", name); 
-      break; 
-    case ompt_set_sometimes: 
+      fprintf(stderr, "TAU: WARNING: Callback for event %d could not be registered\n", name);
+      break;
+    case ompt_set_sometimes:
       printf("TAU: Callback for event %d registered with return value %s\n", name, "ompt_set_sometimes");
       break;
     case ompt_set_sometimes_paired:
@@ -95,7 +95,7 @@ extern "C" int ompt_initialize(
   register_callback(ompt_callback_parallel_end, cb_t(on_ompt_callback_parallel_end));
   //register_callback(ompt_callback_task_create, cb_t(on_ompt_callback_task_create));
   //register_callback(ompt_callback_task_schedule, cb_t(on_ompt_callback_task_schedule));
-  //register_callback(ompt_callback_implicit_task, cb_t(on_ompt_callback_implicit_task)); //Sometimes high-overhead, but unfortunately we cannot avoid this as it is a required event 
+  //register_callback(ompt_callback_implicit_task, cb_t(on_ompt_callback_implicit_task)); //Sometimes high-overhead, but unfortunately we cannot avoid this as it is a required event
   //register_callback(ompt_callback_thread_begin, cb_t(on_ompt_callback_thread_begin));
   //register_callback(ompt_callback_thread_end, cb_t(on_ompt_callback_thread_end));
 

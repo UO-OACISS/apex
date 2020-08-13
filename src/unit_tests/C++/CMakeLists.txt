@@ -57,6 +57,8 @@ endif()
 
 # std::threads crash when linked statically. :(
 if (NOT BUILD_STATIC_EXECUTABLES)
+# Intel can't do std::futures (std::__once_callable)
+if (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
   if ((NOT OTF2_FOUND))
     set(example_programs "${example_programs};apex_fibonacci_std_async;apex_fibonacci_std_async2")
   endif()
@@ -66,6 +68,7 @@ if (NOT BUILD_STATIC_EXECUTABLES)
       set(example_programs "${example_programs};apex_throttle_event")
     endif (APEX_THROTTLE)
   endif ((NOT DEFINED TAU_ROOT) AND (NOT USE_TAU) AND (NOT TAU_FOUND))
+endif (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
 endif()
 
 foreach(example_program ${example_programs})
