@@ -1353,6 +1353,7 @@ void ompt_force_shutdown(void);
 
 void finalize()
 {
+    if (!_initialized) { FUNCTION_EXIT return; } // protect against finalization without initialization
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) { FUNCTION_EXIT return; } // protect against calls after finalization
     if (apex_options::use_jupyter_support()) {

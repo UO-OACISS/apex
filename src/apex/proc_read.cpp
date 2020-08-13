@@ -92,9 +92,9 @@ namespace apex {
             }
             // do we have the RAPL components?
             if (strstr(comp_info->name, "rapl")) {
-                printf("PAPI RAPL component found...\n");
                 if (comp_info->num_native_events == 0) {
-                    fprintf(stderr, "No RAPL events found.\n");
+                    fprintf(stderr, "PAPI RAPL component found, but ");
+                    fprintf(stderr, "no RAPL events found.\n");
                     if (comp_info->disabled != 0) {
                         fprintf(stderr, "%s.\n", comp_info->disabled_reason);
                     }
@@ -102,7 +102,7 @@ namespace apex {
                     rapl_EventSet = PAPI_NULL;
                     retval = PAPI_create_eventset(&rapl_EventSet);
                     if (retval != PAPI_OK) {
-                        fprintf(stderr, "Error creating PAPI eventset.\n");
+                        fprintf(stderr, "Error creating RAPL PAPI eventset.\n");
                         fprintf(stderr, "PAPI error %d: %s\n", retval,
                                 PAPI_strerror(retval));
                         return;
@@ -115,7 +115,7 @@ namespace apex {
                         event_modifier = PAPI_ENUM_EVENTS;
                         if ( retval != PAPI_OK ) {
                             fprintf( stderr, "%s %d %s %d\n", __FILE__,
-                                    __LINE__, "PAPI_enum_cmp_event failed.", retval);
+                                    __LINE__, "RAPL PAPI_enum_cmp_event failed.", retval);
                             fprintf(stderr, "PAPI error %d: %s\n", retval,
                                     PAPI_strerror(retval));
                             continue;
@@ -125,7 +125,7 @@ namespace apex {
                         retval = PAPI_event_code_to_name( code, event_name );
                         if (retval != PAPI_OK) {
                             fprintf(stderr, "%s %d %s\n", __FILE__,
-                                    __LINE__, "PAPI_event_code_to_name failed");
+                                    __LINE__, "RAPL PAPI_event_code_to_name failed");
                             fprintf(stderr, "PAPI error %d: %s\n", retval,
                                     PAPI_strerror(retval));
                             continue;
@@ -137,7 +137,7 @@ namespace apex {
                         retval = PAPI_get_event_info(code,&evinfo);
                         if (retval != PAPI_OK) {
                             fprintf(stderr, "%s %d %s\n", __FILE__,
-                                    __LINE__, "Error getting event info");
+                                    __LINE__, "Error getting RAPL event info");
                             fprintf(stderr, "PAPI error %d: %s\n", retval,
                                     PAPI_strerror(retval));
                             continue;
@@ -167,7 +167,7 @@ namespace apex {
                     }
                     retval = PAPI_start(rapl_EventSet);
                     if (retval != PAPI_OK) {
-                        fprintf(stderr, "Error starting PAPI eventset.\n");
+                        fprintf(stderr, "Error starting PAPI RAPL eventset.\n");
                         return;
                     }
                     rapl_initialized = true;
@@ -175,9 +175,9 @@ namespace apex {
             }
             // do we have the NVML (cuda) components?
             if (strstr(comp_info->name, "nvml")) {
-                printf("PAPI NVML component found...\n");
                 if (comp_info->num_native_events == 0) {
-                    fprintf(stderr, "No NVML events found.\n");
+                    fprintf(stderr, "PAPI NVML component found, but ");
+                    fprintf(stderr, "no NVML events found.\n");
                     if (comp_info->disabled != 0) {
                         fprintf(stderr, "%s.\n", comp_info->disabled_reason);
                     }
@@ -185,7 +185,7 @@ namespace apex {
                     nvml_EventSet = PAPI_NULL;
                     retval = PAPI_create_eventset(&nvml_EventSet);
                     if (retval != PAPI_OK) {
-                        fprintf(stderr, "Error creating PAPI eventset.\n");
+                        fprintf(stderr, "Error creating NVML PAPI eventset.\n");
                         fprintf(stderr, "PAPI error %d: %s\n", retval,
                                 PAPI_strerror(retval));
                         return;
@@ -198,7 +198,7 @@ namespace apex {
                         event_modifier = PAPI_ENUM_EVENTS;
                         if ( retval != PAPI_OK ) {
                             fprintf( stderr, "%s %d %s %d\n", __FILE__,
-                                    __LINE__, "PAPI_event_code_to_name", retval );
+                                    __LINE__, "NVML PAPI_event_code_to_name", retval );
                             fprintf(stderr, "PAPI error %d: %s\n", retval,
                                     PAPI_strerror(retval));
                             continue;
@@ -208,7 +208,7 @@ namespace apex {
                         retval = PAPI_event_code_to_name( code, event_name );
                         if (retval != PAPI_OK) {
                             fprintf(stderr, "%s %d %s %d\n", __FILE__,
-                                    __LINE__, "Error getting event name\n",retval);
+                                    __LINE__, "NVML Error getting event name\n",retval);
                             fprintf(stderr, "PAPI error %d: %s\n", retval,
                                     PAPI_strerror(retval));
                             continue;
@@ -218,7 +218,7 @@ namespace apex {
                         retval = PAPI_get_event_info(code,&evinfo);
                         if (retval != PAPI_OK) {
                             fprintf(stderr, "%s %d %s %d\n", __FILE__,
-                                    __LINE__, "Error getting event info\n",retval);
+                                    __LINE__, "Error getting NVML event info\n",retval);
                             fprintf(stderr, "PAPI error %d: %s\n", retval,
                                     PAPI_strerror(retval));
                             continue;
@@ -248,7 +248,7 @@ namespace apex {
                     }
                     retval = PAPI_start(nvml_EventSet);
                     if (retval != PAPI_OK) {
-                        fprintf(stderr, "Error starting PAPI eventset.\n");
+                        fprintf(stderr, "Error starting PAPI NVML eventset.\n");
                         fprintf(stderr, "PAPI error %d: %s\n", retval,
                                 PAPI_strerror(retval));
                         return;
@@ -257,9 +257,9 @@ namespace apex {
                 }
             }
             if (strstr(comp_info->name, "lmsensors")) {
-                printf("PAPI lmsensors component found...\n");
                 if (comp_info->num_native_events == 0) {
-                    fprintf(stderr, "No lmsensors events found.\n");
+                    fprintf(stderr, "PAPI lmsensors component found, but ");
+                    fprintf(stderr, "no lmsensors events found.\n");
                     if (comp_info->disabled != 0) {
                         fprintf(stderr, "%s.\n", comp_info->disabled_reason);
                     }
@@ -267,7 +267,7 @@ namespace apex {
                     lms_EventSet = PAPI_NULL;
                     retval = PAPI_create_eventset(&lms_EventSet);
                     if (retval != PAPI_OK) {
-                        fprintf(stderr, "Error creating PAPI eventset.\n");
+                        fprintf(stderr, "Error creating PAPI lmsensors eventset.\n");
                         fprintf(stderr, "PAPI error %d: %s\n", retval,
                                 PAPI_strerror(retval));
                         return;
@@ -280,7 +280,7 @@ namespace apex {
                         event_modifier = PAPI_ENUM_EVENTS;
                         if ( retval != PAPI_OK ) {
                             fprintf( stderr, "%s %d %s %d\n",
-                                    __FILE__, __LINE__, "PAPI_event_code_to_name", retval );
+                                    __FILE__, __LINE__, "lmsensors PAPI_event_code_to_name", retval );
                             fprintf(stderr, "PAPI error %d: %s\n", retval,
                                     PAPI_strerror(retval));
                         }
@@ -289,7 +289,7 @@ namespace apex {
                         retval = PAPI_event_code_to_name( code, event_name );
                         if (retval != PAPI_OK) {
                             fprintf(stderr, "%s %d %s %d\n", __FILE__,
-                                    __LINE__, "Error getting event name\n",retval);
+                                    __LINE__, "Error getting lmsensors event name\n",retval);
                             fprintf(stderr, "PAPI error %d: %s\n", retval,
                                     PAPI_strerror(retval));
                             continue;
@@ -299,7 +299,7 @@ namespace apex {
                         retval = PAPI_get_event_info(code,&evinfo);
                         if (retval != PAPI_OK) {
                             fprintf(stderr, "%s %d %s %d\n",
-                                    __FILE__, __LINE__, "Error getting event info\n",retval);
+                                    __FILE__, __LINE__, "Error getting lmsensors event info\n",retval);
                             fprintf(stderr, "PAPI error %d: %s\n", retval,
                                     PAPI_strerror(retval));
                         }
@@ -322,7 +322,7 @@ namespace apex {
                             lms_event_names.push_back(std::string(event_name));
                             retval = PAPI_add_event(lms_EventSet, code);
                             if (retval != PAPI_OK) {
-                                fprintf(stderr, "Error adding lm_sensors event.\n");
+                                fprintf(stderr, "Error adding lmsensors event.\n");
                                 fprintf(stderr, "PAPI error %d: %s\n", retval,
                                         PAPI_strerror(retval));
                                 continue;
@@ -332,7 +332,7 @@ namespace apex {
                 }
                 retval = PAPI_start(lms_EventSet);
                 if (retval != PAPI_OK) {
-                    fprintf(stderr, "Error starting PAPI eventset.\n");
+                    fprintf(stderr, "Error starting PAPI lmsensors eventset.\n");
                     fprintf(stderr, "PAPI error %d: %s\n", retval,
                             PAPI_strerror(retval));
                     return;
