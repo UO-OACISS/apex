@@ -40,6 +40,7 @@ set(example_programs
     apex_profiler_guids
     apex_non_worker_thread
     apex_swap_threads
+    apex_openmp
    )
     #apex_set_thread_cap
     #apex_setup_power_cap_throttling
@@ -90,6 +91,8 @@ if (OPENMP_FOUND)
     set_property (TEST test_apex_setup_throughput_tuning_cpp
         APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_CONCURRENCY=TRUE")
   endif (PROCESSOR_COUNT)
+  set_target_properties(apex_openmp_cpp PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
+  set_target_properties(apex_openmp_cpp PROPERTIES LINK_FLAGS ${OpenMP_CXX_FLAGS})
 endif (OPENMP_FOUND)
 
 #set_target_properties(apex_fibonacci_std_async_cpp PROPERTIES LINK_FLAGS "-fsplit-stack")

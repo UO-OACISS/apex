@@ -1758,6 +1758,8 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
     if (!stopped) {
         APEX_ASSERT(main_timer != nullptr);
         main_timer->stop(true);
+        //_common_stop(main_timer, false);
+        //on_task_complete(main_timer->tt_ptr);
         stopped = true;
     }
   }
