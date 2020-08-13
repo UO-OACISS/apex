@@ -90,7 +90,10 @@ namespace apex {
  */
 void ompt_force_shutdown(void) {
     DEBUG_PRINT("Forcing shutdown of OpenMP Tools API\n");
-    ompt_finalize_tool();
+    /* OpenMP might not have been used... */
+    if (ompt_finalize_tool) {
+        ompt_finalize_tool();
+    }
 }
 
 } // end apex namespace
