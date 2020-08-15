@@ -31,6 +31,10 @@ if (APEX_WITH_CUDA)
 SET(CUPTI_SOURCE activity_trace_async.cpp)
 endif(APEX_WITH_CUDA)
 
+if (OpenACC_CXX_FOUND)
+    set(OPENACC_SOURCE apex_openacc.cpp)
+endif (OpenACC_CXX_FOUND)
+
 # Try to keep this in alphabetical order
 SET(all_SOURCE
 ${CUPTI_SOURCE}
@@ -40,6 +44,7 @@ apex_options.cpp
 apex_policies.cpp
 ${bfd_SOURCE}
 ${OMPT_SOURCE}
+${OPENACC_SOURCE}
 concurrency_handler.cpp
 event_listener.cpp
 handler.cpp

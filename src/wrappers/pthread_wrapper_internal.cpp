@@ -12,11 +12,11 @@
 #include <memory>
 #include <atomic>
 
-std::atomic<uint64_t> task_id(-1);
+std::atomic<int64_t> task_id(-1);
 
 /*
  * This "class" is used to make sure APEX is initialized
- * before the first pthread is created and finalized 
+ * before the first pthread is created and finalized
  * when this object is destroyed.
  */
 struct apex_system_wrapper_t
@@ -24,9 +24,9 @@ struct apex_system_wrapper_t
   bool initialized;
   apex_system_wrapper_t() : initialized(true) {
     apex::init("APEX Pthread Wrapper",0,1);
-    /* 
+    /*
      * Here we are limiting the stack size to 16kB. Do it after we
-     * initialized APEX, because APEX spawns two other threads 
+     * initialized APEX, because APEX spawns two other threads
      * that may require more. This limit can be overridden with a runtime option.
      */
     struct rlimit limits;
@@ -39,8 +39,8 @@ struct apex_system_wrapper_t
       limits.rlim_max = 16384;
     }
     int rc = setrlimit(RLIMIT_STACK,&limits);
-    if (rc != 0) { 
-      std::cerr << "WARNING: unable to cap the stack size..." << std::endl; 
+    if (rc != 0) {
+      std::cerr << "WARNING: unable to cap the stack size..." << std::endl;
     }
   }
   virtual ~apex_system_wrapper_t() {
@@ -129,14 +129,14 @@ void delete_key(void* wrapper) {
 /*
  * This key is made once, by the pthread system.
  */
-static void make_key() { 
+static void make_key() {
   // create the key
   int rc = pthread_key_create(&wrapper_flags_key, &delete_key);
   switch (rc) {
-    case EAGAIN: 
+    case EAGAIN:
       std::cout << "ERROR: The system lacked the necessary resources to create another thread-specific data key, or the system-imposed limit on the total number of keys per process {PTHREAD_KEYS_MAX} has been exceeded." << std::endl;
       break;
-    case ENOMEM: 
+    case ENOMEM:
       std::cout << "ERROR: Insufficient memory exists to create the key." << std::endl;
       break;
     default:

@@ -239,6 +239,16 @@ const char* openacc_event_names[] = {
     "OpenACC free" // "CUPTI_OPENACC_EVENT_KIND_FREE"
 };
 
+const char* openmp_event_names[] = {
+    "OpenMP Invalid", // CUPTI_OPENMP_EVENT_KIND_INVALID
+    "OpenMP Parallel", // CUPTI_OPENMP_EVENT_KIND_PARALLEL
+    "OpenMP Task", // CUPTI_OPENMP_EVENT_KIND_TASK
+    "OpenMP Thread", // CUPTI_OPENMP_EVENT_KIND_THREAD
+    "OpenMP Idle", // CUPTI_OPENMP_EVENT_KIND_IDLE
+    "OpenMP Wait Barrier", // CUPTI_OPENMP_EVENT_KIND_WAIT_BARRIER
+    "OpenMP Wait Taskwait" // CUPTI_OPENMP_EVENT_KIND_WAIT_TASKWAIT
+};
+
 #if 0
 static const char * getComputeApiKindString(uint16_t kind) {
     switch (kind) {
@@ -347,6 +357,7 @@ static void kernelActivity(CUpti_Activity *record) {
     CUpti_ActivityKernel4 *kernel =
         (CUpti_ActivityKernel4 *) record;
     std::string tmp = std::string(kernel->name);
+    DEBUG_PRINT("Kernel CorrelationId: %u\n", kernel->correlationId);
     store_profiler_data(tmp, kernel->correlationId, kernel->start,
             kernel->end, kernel->deviceId, kernel->contextId,
             kernel->streamId);
@@ -446,6 +457,19 @@ static void openaccKernelActivity(CUpti_Activity *record) {
     store_counter_data(label.c_str(), lanes, data->end, data->vectorLength);
 }
 
+static void openaccOtherActivity(CUpti_Activity *record) {
+    CUpti_ActivityOpenAccOther *data = (CUpti_ActivityOpenAccOther *) record;
+    std::string label{openacc_event_names[data->eventKind]};
+    store_profiler_data(label, data->externalId, data->start,
+            data->end, data->cuDeviceId, data->cuContextId,
+            data->cuStreamId);
+}
+
+static void openmpActivity(CUpti_Activity *record) {
+    CUpti_ActivityOpenMp *data = (CUpti_ActivityOpenMp *) record;
+    std::string label{openmp_event_names[data->eventKind]};
+}
+
 static void printActivity(CUpti_Activity *record) {
     switch (record->kind)
     {
@@ -492,11 +516,22 @@ static void printActivity(CUpti_Activity *record) {
             break;
         }
         case CUPTI_ACTIVITY_KIND_OPENACC_DATA: {
+            DEBUG_PRINT("OpenACC Data!\n");
             openaccDataActivity(record);
             break;
         }
         case CUPTI_ACTIVITY_KIND_OPENACC_LAUNCH: {
+            DEBUG_PRINT("OpenACC Launch!\n");
             openaccKernelActivity(record);
+            break;
+        }
+        case CUPTI_ACTIVITY_KIND_OPENACC_OTHER: {
+            DEBUG_PRINT("OpenACC Other!\n");
+            openaccOtherActivity(record);
+            break;
+        }
+        case CUPTI_ACTIVITY_KIND_OPENMP: {
+            openmpActivity(record);
             break;
         }
         case CUPTI_ACTIVITY_KIND_ENVIRONMENT: {
@@ -686,8 +721,10 @@ void register_new_context(const void *params) {
     CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_MEMCPY2)); // 22
     CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_MEMSET)); // 2
 #endif
-    //CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_OPENACC_DATA)); // 33
-    //CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_OPENACC_LAUNCH)); // 34
+    CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_OPENACC_DATA)); // 33
+    CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_OPENACC_LAUNCH)); // 34
+    CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_OPENACC_OTHER)); // 35
+    CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_OPENMP)); // 47
 #if 0
     CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_KERNEL)); // 3   <- disables concurrency
     CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_DRIVER)); // 4
@@ -717,7 +754,6 @@ void register_new_context(const void *params) {
     CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_PC_SAMPLING)); // 30
     CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_PC_SAMPLING_RECORD_INFO)); // 31
     CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_INSTRUCTION_CORRELATION)); // 32
-    CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_OPENACC_OTHER)); // 35
     CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_CUDA_EVENT)); // 36
     CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_STREAM)); // 37
     CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_SYNCHRONIZATION)); // 38
@@ -729,7 +765,6 @@ void register_new_context(const void *params) {
     CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_INSTANTANEOUS_METRIC_INSTANCE)); // 44
     CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_MEMORY)); // 45
     CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_PCIE)); // 46
-    CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_OPENMP)); // 47
     CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_INTERNAL_LAUNCH_API)); // 48
     CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_COUNT)); // 49
 #endif

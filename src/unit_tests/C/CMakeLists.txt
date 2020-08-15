@@ -1,9 +1,13 @@
-# Make sure the compiler can find include files from our Apex library. 
-include_directories (${APEX_SOURCE_DIR}/src/apex) 
+# Make sure the compiler can find include files from our Apex library.
+include_directories (${APEX_SOURCE_DIR}/src/apex)
 
-# Make sure the linker can find the Apex library once it is built. 
-link_directories (${APEX_BINARY_DIR}/src/apex) 
-#link_directories (${APEX_BINARY_DIR}/src/apex_pthread_wrapper) 
+# Make sure the linker can find the Apex library once it is built.
+link_directories (${APEX_BINARY_DIR}/src/apex)
+#link_directories (${APEX_BINARY_DIR}/src/apex_pthread_wrapper)
+
+if(OpenACC_C_FOUND)
+    set(APEX_OPENACC_TEST apex_openacc)
+endif(OpenACC_C_FOUND)
 
 set(example_programs
     apex_init
@@ -34,6 +38,7 @@ set(example_programs
     apex_get_thread_cap
     apex_shutdown_throttling
     apex_disable
+    ${APEX_OPENACC_TEST}
    )
 #    apex_setup_power_cap_throttling
 #    apex_setup_throughput_tuning
@@ -70,6 +75,11 @@ foreach(example_program ${example_programs})
     add_test ("test_${example_program}" ${example_program})
     # install(TARGETS ${example_program} RUNTIME DESTINATION "bin/apex_unit_tests" OPTIONAL)
 endforeach()
+
+if(OpenACC_C_FOUND)
+    set_target_properties(apex_openacc PROPERTIES COMPILE_FLAGS ${OpenACC_C_FLAGS})
+    set_target_properties(apex_openacc PROPERTIES LINK_FLAGS ${OpenACC_C_FLAGS})
+endif(OpenACC_C_FOUND)
 
 set_tests_properties(test_apex_disable PROPERTIES ENVIRONMENT "APEX_DISABLE=1")
 

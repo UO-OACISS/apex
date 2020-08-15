@@ -20,6 +20,14 @@
 #endif
 #include <atomic>
 
+#ifdef DEBUG
+#define DEBUG_PRINT(...) do{ \
+fprintf( stderr, __VA_ARGS__ ); fflush(stderr); \
+} while( false )
+#else
+#define DEBUG_PRINT(...) do{ } while ( false )
+#endif
+
 namespace apex {
 
 bool starts_with(const std::string& input, const std::string& match);

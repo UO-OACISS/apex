@@ -65,6 +65,7 @@ fi
       export LD_PRELOAD=$APEX_LD_PRELOAD
     fi
     export KOKKOS_PROFILE_LIBRARY=$BASEDIR/lib/libapex$SHLIBX
+    export ACC_PROFLIB=$BASEDIR/lib/libapex$SHLIBX
 
     $@
     retval=$?

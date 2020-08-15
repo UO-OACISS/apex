@@ -160,5 +160,5 @@ extern "C" {
             metadata->values = nullptr;
         }
     }
-
 }
+

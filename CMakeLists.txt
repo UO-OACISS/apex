@@ -28,7 +28,14 @@ endif()
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake/Modules)
 
 if(APEX_WITH_CUDA)
-    enable_language(CUDA)
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND
+        CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 9.0)
+        message(INFO " Building CUPTI support, but GCC is too new for CUDA tests")
+    else()
+        # OK to enable CUDA tests
+        enable_language(CUDA)
+        set(APEX_CUDA_TESTS TRUE)
+    endif()
     find_package(CUDAToolkit REQUIRED QUIET COMPONENTS CUPTI)
 endif(APEX_WITH_CUDA)
 
@@ -413,6 +420,7 @@ endif()
 ################################################################################
 
 find_package(OpenMP)
+find_package(OpenACC)
 
 if((DEFINED USE_OMPT) AND (NOT USE_OMPT))
     # just in case, disable all ompt
@@ -874,9 +882,9 @@ if(BUILD_TESTS)
     endif(OMPT_FOUND)
     add_subdirectory (src/unit_tests/C)
     add_subdirectory (src/unit_tests/C++)
-    if (APEX_WITH_CUDA)
+    if (APEX_CUDA_TESTS)
         add_subdirectory (src/unit_tests/CUDA)
-    endif (APEX_WITH_CUDA)
+    endif (APEX_CUDA_TESTS)
 else()
     #add_subdirectory (src/unit_tests/C EXCLUDE_FROM_ALL)
     #add_subdirectory (src/unit_tests/C++ EXCLUDE_FROM_ALL)

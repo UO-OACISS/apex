@@ -16,14 +16,6 @@
 #include <string>
 #include "apex_assert.h"
 
-#ifdef DEBUG
-#define DEBUG_PRINT(...) do{ \
-fprintf( stderr, __VA_ARGS__ ); fflush(stderr); \
-} while( false )
-#else
-#define DEBUG_PRINT(...) do{ } while ( false )
-#endif
-
 std::mutex apex_apex_threadid_mutex;
 std::atomic<uint64_t> apex_numthreads{0};
 APEX_NATIVE_TLS int64_t apex_threadid{-1};
