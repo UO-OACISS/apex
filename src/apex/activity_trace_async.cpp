@@ -357,7 +357,7 @@ static void kernelActivity(CUpti_Activity *record) {
     CUpti_ActivityKernel4 *kernel =
         (CUpti_ActivityKernel4 *) record;
     std::string tmp = std::string(kernel->name);
-    DEBUG_PRINT("Kernel CorrelationId: %u\n", kernel->correlationId);
+    //DEBUG_PRINT("Kernel CorrelationId: %u\n", kernel->correlationId);
     store_profiler_data(tmp, kernel->correlationId, kernel->start,
             kernel->end, kernel->deviceId, kernel->contextId,
             kernel->streamId);

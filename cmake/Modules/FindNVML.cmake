@@ -20,7 +20,7 @@ endif()
 find_path(NVML_INCLUDE_DIR NAMES nvml.h
 	HINTS ${CUDAToolkit_INCLUDE_DIRS} ${NVML_ROOT}/include)
 
-find_library(NVML_LIBRARY NAMES nvml
+find_library(NVML_LIBRARY NAMES nvml nvidia-ml
     HINTS ${CUDAToolkit_LIBRARY_DIR} ${NVML_ROOT} ${NVML_ROOT}/lib64 ${NVML_ROOT}/lib)
 
 find_library(CUDA_LIBRARY NAMES cudart

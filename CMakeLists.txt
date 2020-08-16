@@ -420,7 +420,12 @@ endif()
 ################################################################################
 
 find_package(OpenMP)
-find_package(OpenACC)
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND
+    CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 9.0)
+    find_package(OpenACC)
+else()
+    message(INFO " GCC is too old for OpenACC profiling support")
+endif()
 
 if((DEFINED USE_OMPT) AND (NOT USE_OMPT))
     # just in case, disable all ompt
@@ -592,10 +597,12 @@ add_dependencies (project_otf2 project_activeharmony)
 if (APEX_WITH_CUDA)
     find_package(CUPTI REQUIRED)
     find_package(NVML REQUIRED)
-    set(LIBS ${LIBS} ${CUPTI_LIBRARIES})
+    set(LIBS ${LIBS} ${CUPTI_LIBRARIES} ${NVML_LIBRARIES})
     add_definitions(-DAPEX_WITH_CUDA)
     message(INFO " Using CUPTI include: ${CUPTI_INCLUDE_DIRS}")
     include_directories(${CUPTI_INCLUDE_DIRS})
+    message(INFO " Using NVML include: ${NVML_INCLUDE_DIRS}")
+    include_directories(${NVML_INCLUDE_DIRS})
 
 endif (APEX_WITH_CUDA)
 

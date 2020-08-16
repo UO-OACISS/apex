@@ -44,6 +44,10 @@
 #include <msr/msr_rapl.h>
 #endif
 
+#ifdef APEX_WITH_CUDA
+#include "apex_nvml.hpp"
+#endif
+
 using namespace std;
 
 namespace apex {
@@ -1131,7 +1135,10 @@ namespace apex {
 #endif
         ProcData *newData = nullptr;
         ProcData *periodData = nullptr;
-
+#ifdef APEX_WITH_CUDA
+        nvml::monitor nvml_reader;
+        nvml_reader.query();
+#endif
         while(ptw->wait()) {
             if (done) break;
             if (apex_options::use_tau()) {
@@ -1158,7 +1165,9 @@ namespace apex {
 #ifdef APEX_HAVE_LM_SENSORS
             mysensors->read_sensors();
 #endif
-
+#ifdef APEX_WITH_CUDA
+            nvml_reader.query();
+#endif
             if (apex_options::use_tau()) {
                 tau_listener::Tau_stop_wrapper("proc_data_reader::read_proc: main loop");
             }

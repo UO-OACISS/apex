@@ -17,9 +17,7 @@ public:
     ~monitor (void);
     void query();
 private:
-    uint32_t totalDeviceCount;
-    uint32_t unitCount;
-    std::vector<nvmlUnit_t> units;
+    uint32_t deviceCount;
     std::vector<nvmlDevice_t> devices;
 }; // class monitor
 

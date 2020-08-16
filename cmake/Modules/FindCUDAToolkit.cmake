@@ -752,7 +752,7 @@ if(CUDAToolkit_FOUND)
 
     set(search_names ${lib_name} ${arg_ALT})
 
-    message(STATUS "arg_EXTRA_PATH_SUFFIXES: ${arg_EXTRA_PATH_SUFFIXES}")
+    # message(STATUS "arg_EXTRA_PATH_SUFFIXES: ${arg_EXTRA_PATH_SUFFIXES}")
     find_library(CUDA_${lib_name}_LIBRARY
       NAMES ${search_names}
       HINTS ${CUDAToolkit_LIBRARY_DIR}

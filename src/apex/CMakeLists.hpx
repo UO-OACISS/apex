@@ -175,6 +175,7 @@ set(_apex_imported_targets "")
 include(APEX_SetupCUPTI)
 if(APEX_WITH_CUDA)
     set(cupti_sources activity_trace_async.cpp)
+    set(cupti_sources apex_nvml.cpp)
 endif(APEX_WITH_CUDA)
 
 # Setup PAPI
