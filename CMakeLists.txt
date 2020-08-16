@@ -591,6 +591,7 @@ add_dependencies (project_otf2 project_activeharmony)
 
 if (APEX_WITH_CUDA)
     find_package(CUPTI REQUIRED)
+    find_package(NVML REQUIRED)
     set(LIBS ${LIBS} ${CUPTI_LIBRARIES})
     add_definitions(-DAPEX_WITH_CUDA)
     message(INFO " Using CUPTI include: ${CUPTI_INCLUDE_DIRS}")

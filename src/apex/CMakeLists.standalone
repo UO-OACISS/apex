@@ -27,9 +27,13 @@ if (OTF2_FOUND)
 SET(OTF2_SOURCE otf2_listener.cpp)
 endif(OTF2_FOUND)
 
-if (APEX_WITH_CUDA)
+if (CUPTI_FOUND)
 SET(CUPTI_SOURCE activity_trace_async.cpp)
-endif(APEX_WITH_CUDA)
+endif(CUPTI_FOUND)
+
+if (NVML_FOUND)
+SET(NVML_SOURCE apex_nvml.cpp)
+endif(NVML_FOUND)
 
 if (OpenACC_CXX_FOUND)
     set(OPENACC_SOURCE apex_openacc.cpp)
@@ -38,6 +42,7 @@ endif (OpenACC_CXX_FOUND)
 # Try to keep this in alphabetical order
 SET(all_SOURCE
 ${CUPTI_SOURCE}
+${NVML_SOURCE}
 apex.cpp
 apex_kokkos.cpp
 apex_options.cpp
