@@ -122,6 +122,7 @@ void monitor::query(void) {
         }
 
         /* Get clock throttle reasons */
+#if 0
         unsigned long long reasons = 0ULL;
         NVML_CALL(nvmlDeviceGetCurrentClocksThrottleReasons(devices[d],
             &reasons));
@@ -167,6 +168,7 @@ void monitor::query(void) {
             std::string tmp{ss.str()};
             sample_value(tmp, 1);
         }
+#endif
 
         /* Get fan speed? */
 #if 0

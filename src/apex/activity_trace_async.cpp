@@ -829,7 +829,8 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
         timer_stack.pop();
 
         /* Check for SetDevice call! */
-        if (id == CUPTI_RUNTIME_TRACE_CBID_cudaSetDevice_v3020) {
+        if (id == CUPTI_RUNTIME_TRACE_CBID_cudaSetDevice_v3020 ||
+            id == CUPTI_DRIVER_TRACE_CBID_cuCtxSetCurrent) {
             /* Can't trust the parameter!  It lies. */
             //int device = ((cudaSetDevice_v3020_params_st*)(params))->device;
             uint32_t device{0};
