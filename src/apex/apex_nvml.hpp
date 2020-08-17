@@ -24,6 +24,7 @@ private:
     std::vector<nvmlDevice_t> devices;
     static std::set<uint32_t> activeDeviceIndices;
     static std::mutex indexMutex;
+    double convertValue(nvmlFieldValue_t &value);
 }; // class monitor
 
 } // namespace nvml

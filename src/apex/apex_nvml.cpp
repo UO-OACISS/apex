@@ -7,6 +7,7 @@
 #include "apex_nvml.hpp"
 #include "nvml.h"
 #include "utils.hpp"
+#include "apex_assert.h"
 
 #define NVML_CALL(call)                                                      \
 do {                                                                         \
@@ -53,7 +54,6 @@ void monitor::query(void) {
     auto indexSet{activeDeviceIndices};
     indexMutex.unlock();
 
-    //for (size_t d = 0 ; d < devices.size() ; d++) {
     for (auto d : indexSet) {
         /* Get overall utilization percentages */
         nvmlUtilization_t utilization;
@@ -185,7 +185,7 @@ void monitor::query(void) {
 
         /* Get PCIe throughput */
         uint32_t throughput = 0;
-        NVML_CALL(nvmlDeviceGetPcieThroughput(devices[0],
+        NVML_CALL(nvmlDeviceGetPcieThroughput(devices[d],
             NVML_PCIE_UTIL_TX_BYTES, &throughput));
         {
             std::stringstream ss;
@@ -194,7 +194,7 @@ void monitor::query(void) {
             double value = (double)(throughput) * PCIE_THROUGHPUT;
             sample_value(tmp, value);
         }
-        NVML_CALL(nvmlDeviceGetPcieThroughput(devices[0],
+        NVML_CALL(nvmlDeviceGetPcieThroughput(devices[d],
             NVML_PCIE_UTIL_RX_BYTES, &throughput));
         {
             std::stringstream ss;
@@ -205,7 +205,7 @@ void monitor::query(void) {
         }
 
         uint32_t power = 0;
-        NVML_CALL(nvmlDeviceGetPowerUsage(devices[0], &power));
+        NVML_CALL(nvmlDeviceGetPowerUsage(devices[d], &power));
         {
             std::stringstream ss;
             ss << "Device " << d << " GPU Power (W)";
@@ -215,7 +215,7 @@ void monitor::query(void) {
         }
 
         uint32_t temperature = 0;
-        NVML_CALL(nvmlDeviceGetTemperature(devices[0], NVML_TEMPERATURE_GPU,
+        NVML_CALL(nvmlDeviceGetTemperature(devices[d], NVML_TEMPERATURE_GPU,
             &temperature));
         {
             std::stringstream ss;
@@ -224,7 +224,61 @@ void monitor::query(void) {
             double value = (double)(temperature);
             sample_value(tmp, value);
         }
+
+        int valuesCount{4};
+        nvmlFieldValue_t values[4];
+        values[0].fieldId = NVML_FI_DEV_NVLINK_BANDWIDTH_C0_TOTAL;
+        values[1].fieldId = NVML_FI_DEV_NVLINK_BANDWIDTH_C1_TOTAL;
+        values[2].fieldId = NVML_FI_DEV_NVLINK_SPEED_MBPS_COMMON;
+        values[3].fieldId = NVML_FI_DEV_NVLINK_LINK_COUNT;
+        NVML_CALL(nvmlDeviceGetFieldValues(devices[d],
+            valuesCount, values));
+        if (convertValue(values[3]) > 0.0) {
+            {
+                std::stringstream ss;
+                ss << "Device " << d << " GPU NvLink Utilization C0";
+                std::string tmp{ss.str()};
+                double value = convertValue(values[0]);
+                sample_value(tmp, value);
+            }
+            {
+                std::stringstream ss;
+                ss << "Device " << d << " GPU NvLink Utilization C1";
+                std::string tmp{ss.str()};
+                double value = convertValue(values[1]);
+                sample_value(tmp, value);
+            }
+            {
+                std::stringstream ss;
+                ss << "Device " << d << " GPU NvLink Speed MB/s";
+                std::string tmp{ss.str()};
+                double value = convertValue(values[2]);
+                sample_value(tmp, value);
+            }
+            {
+                std::stringstream ss;
+                ss << "Device " << d << " GPU NvLink Link Count";
+                std::string tmp{ss.str()};
+                double value = convertValue(values[3]);
+                sample_value(tmp, value);
+            }
+        }
     }
+}
+
+double monitor::convertValue(nvmlFieldValue_t &value) {
+    if (value.valueType == NVML_VALUE_TYPE_DOUBLE) {
+        return value.value.dVal;
+    } else if (value.valueType == NVML_VALUE_TYPE_UNSIGNED_INT) {
+        return (double)(value.value.uiVal);
+    } else if (value.valueType == NVML_VALUE_TYPE_UNSIGNED_LONG) {
+        return (double)(value.value.ulVal);
+    } else if (value.valueType == NVML_VALUE_TYPE_UNSIGNED_LONG_LONG) {
+        return (double)(value.value.ullVal);
+    } else if (value.valueType == NVML_VALUE_TYPE_SIGNED_LONG_LONG) {
+        return (double)(value.value.sllVal);
+    }
+    return 0.0;
 }
 
 void monitor::activateDeviceIndex(uint32_t index) {
