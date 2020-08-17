@@ -8,6 +8,8 @@
 
 #include "apex.hpp"
 #include "nvml.h"
+#include <set>
+#include <mutex>
 
 namespace apex { namespace nvml {
 
@@ -16,9 +18,12 @@ public:
     monitor (void);
     ~monitor (void);
     void query();
+    static void activateDeviceIndex(uint32_t index);
 private:
     uint32_t deviceCount;
     std::vector<nvmlDevice_t> devices;
+    static std::set<uint32_t> activeDeviceIndices;
+    static std::mutex indexMutex;
 }; // class monitor
 
 } // namespace nvml

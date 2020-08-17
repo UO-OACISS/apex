@@ -25,6 +25,9 @@ do {                                                                         \
 
 namespace apex { namespace nvml {
 
+std::set<uint32_t> monitor::activeDeviceIndices;
+std::mutex monitor::indexMutex;
+
 monitor::monitor (void) {
     NVML_CALL(nvmlInit_v2());
     // get the total device count
@@ -34,16 +37,24 @@ monitor::monitor (void) {
     // get the unit handles
     for (uint32_t i = 0 ; i < deviceCount ; i++) {
         nvmlDevice_t device;
-        NVML_CALL(nvmlDeviceGetHandleByIndex(i, &device));
+        NVML_CALL(nvmlDeviceGetHandleByIndex_v2(i, &device));
         devices.push_back(device);
     }
+    // assume the first device is used by default
+    activateDeviceIndex(0);
 }
 monitor::~monitor (void) {
     NVML_CALL(nvmlShutdown());
 }
 
 void monitor::query(void) {
-    for (size_t d = 0 ; d < devices.size() ; d++) {
+    indexMutex.lock();
+    // use the copy constructor to get the set of active indices
+    auto indexSet{activeDeviceIndices};
+    indexMutex.unlock();
+
+    //for (size_t d = 0 ; d < devices.size() ; d++) {
+    for (auto d : indexSet) {
         /* Get overall utilization percentages */
         nvmlUtilization_t utilization;
         NVML_CALL(nvmlDeviceGetUtilizationRates(devices[d], &utilization));
@@ -212,6 +223,12 @@ void monitor::query(void) {
             sample_value(tmp, value);
         }
     }
+}
+
+void monitor::activateDeviceIndex(uint32_t index) {
+    indexMutex.lock();
+    activeDeviceIndices.insert(index);
+    indexMutex.unlock();
 }
 
 } // namespace nvml

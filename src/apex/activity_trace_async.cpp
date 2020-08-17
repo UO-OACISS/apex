@@ -18,6 +18,7 @@
 #include "thread_instance.hpp"
 #include "apex_options.hpp"
 #include "trace_event_listener.hpp"
+#include "apex_nvml.hpp"
 #ifdef APEX_HAVE_OTF2
 #include "otf2_listener.hpp"
 #endif
@@ -826,6 +827,15 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
         auto timer = timer_stack.top();
         apex::stop(timer);
         timer_stack.pop();
+
+        /* Check for SetDevice call! */
+        if (id == CUPTI_RUNTIME_TRACE_CBID_cudaSetDevice_v3020) {
+            /* Can't trust the parameter!  It lies. */
+            //int device = ((cudaSetDevice_v3020_params_st*)(params))->device;
+            uint32_t device{0};
+            cuptiGetDeviceId(cbdata->context, &device);
+            apex::nvml::monitor::activateDeviceIndex(device);
+        }
     }
 }
 
