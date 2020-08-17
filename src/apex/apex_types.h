@@ -265,7 +265,7 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_PROC_LOADAVG, use_proc_loadavg, bool, true) \
     macro (APEX_PROC_MEMINFO, use_proc_meminfo, bool, false) \
     macro (APEX_PROC_NET_DEV, use_proc_net_dev, bool, false) \
-    macro (APEX_PROC_SELF_STATUS, use_proc_self_status, bool, false) \
+    macro (APEX_PROC_SELF_STATUS, use_proc_self_status, bool, true) \
     macro (APEX_PROC_SELF_IO, use_proc_self_io, bool, false) \
     macro (APEX_PROC_STAT, use_proc_stat, bool, true) \
     macro (APEX_PROC_STAT_DETAILS, use_proc_stat_details, bool, false) \

@@ -65,6 +65,7 @@ void monitor::query(void) {
         /* Get memory bytes allocated */
         nvmlMemory_t memory;
         NVML_CALL(nvmlDeviceGetMemoryInfo(devices[d], &memory));
+        /* Doesn't change, no need to capture this
         {
             std::stringstream ss;
             ss << "Device " << d << " GPU Memory Total (MB)";
@@ -72,6 +73,7 @@ void monitor::query(void) {
             double value = (double)(memory.total) * MILLIONTH;
             sample_value(tmp, value);
         }
+        */
         {
             std::stringstream ss;
             ss << "Device " << d << " GPU Memory Free (MB)";
