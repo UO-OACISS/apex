@@ -5,6 +5,10 @@ include_directories (${APEX_SOURCE_DIR}/src/apex)
 link_directories (${APEX_BINARY_DIR}/src/apex)
 #link_directories (${APEX_BINARY_DIR}/src/apex_pthread_wrapper)
 
+if(OpenMP_FOUND)
+    set(APEX_OPENMP_TEST apex_openmp)
+endif(OpenMP_FOUND)
+
 set(example_programs
     apex_init
     apex_init_args
@@ -40,7 +44,7 @@ set(example_programs
     apex_profiler_guids
     apex_non_worker_thread
     apex_swap_threads
-    apex_openmp
+    ${APEX_OPENMP}
    )
     #apex_set_thread_cap
     #apex_setup_power_cap_throttling
