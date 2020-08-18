@@ -1881,7 +1881,7 @@ extern "C" {
     }
 
     const char * apex_dump(bool reset) {
-        return(dump(reset).c_str());
+        return(strdup(dump(reset).c_str()));
     }
 
     void apex_finalize(void) {

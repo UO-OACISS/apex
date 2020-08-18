@@ -250,10 +250,10 @@ bool tau_listener::initialize_tau(int argc, char** argv) {
 
     inline bool tau_listener::_common_start(std::shared_ptr<task_wrapper> &tt_ptr) {
         if (!_terminate) {
-            //char * tmp = strdup(tt_ptr->get_task_id()->get_name().c_str());
-            const char * tmp = tt_ptr->get_task_id()->get_name().c_str();
+            char * tmp = strdup(tt_ptr->get_task_id()->get_name().c_str());
+            //const char * tmp = tt_ptr->get_task_id()->get_name().c_str();
             my_Tau_start(tmp);
-            //free (tmp);
+            free (tmp);
         } else {
             return false;
         }
