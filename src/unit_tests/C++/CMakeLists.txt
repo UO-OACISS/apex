@@ -44,7 +44,7 @@ set(example_programs
     apex_profiler_guids
     apex_non_worker_thread
     apex_swap_threads
-    ${APEX_OPENMP}
+    ${APEX_OPENMP_TEST}
    )
     #apex_set_thread_cap
     #apex_setup_power_cap_throttling
