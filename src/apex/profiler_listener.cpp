@@ -1590,7 +1590,8 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
 #endif
       // we have to make a local copy, because lockfree queues DO NOT SUPPORT
       // shared_ptrs!
-      thequeue()->enqueue(p);
+      //thequeue()->enqueue(p);
+      process_profile(p,0);
 
 #ifndef APEX_HAVE_HPX
       // Check to see if the consumer is already running, to avoid calling
