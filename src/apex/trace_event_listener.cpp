@@ -19,21 +19,23 @@ bool trace_event_listener::_initialized(false);
 
 trace_event_listener::trace_event_listener (void) : _terminate(false),
     num_events(0), _end_time(0.0) {
-    trace << fixed << "{\n";
-    trace << "\"displayTimeUnit\": \"ms\",\n";
-    trace << "\"traceEvents\": [\n";
-    trace << "{\"name\":\"APEX MAIN\""
-          << ",\"ph\":\"B\",\"pid\":"
-          << saved_node_id << ",\"tid\":0,\"ts\":"
-          << profiler::get_time_us() << "},\n";
-    trace << "{\"name\":\"process_name\""
-          << ",\"ph\":\"M\",\"pid\":" << saved_node_id
-          << ",\"args\":{\"name\":"
-          << "\"Process " << saved_node_id << "\"}},\n";
-    trace << "{\"name\":\"process_sort_index\""
-          << ",\"ph\":\"M\",\"pid\":" << saved_node_id
-          << ",\"args\":{\"sort_index\":"
-          << saved_node_id << "}},\n";
+    std::stringstream ss;
+    ss << fixed << "{\n";
+    ss << "\"displayTimeUnit\": \"ms\",\n";
+    ss << "\"traceEvents\": [\n";
+    ss << "{\"name\":\"APEX MAIN\""
+       << ",\"ph\":\"B\",\"pid\":"
+       << saved_node_id << ",\"tid\":0,\"ts\":"
+       << profiler::get_time_us() << "},\n";
+    ss << "{\"name\":\"process_name\""
+       << ",\"ph\":\"M\",\"pid\":" << saved_node_id
+       << ",\"args\":{\"name\":"
+       << "\"Process " << saved_node_id << "\"}},\n";
+    ss << "{\"name\":\"process_sort_index\""
+       << ",\"ph\":\"M\",\"pid\":" << saved_node_id
+       << ",\"args\":{\"sort_index\":"
+       << saved_node_id << "}},\n";
+    write_to_trace(ss);
     _initialized = true;
 }
 
@@ -115,9 +117,7 @@ int trace_event_listener::get_thread_id_metadata() {
        << ",\"ph\":\"M\",\"pid\":" << saved_node_id
        << ",\"tid\":" << tid
        << ",\"args\":{\"sort_index\":" << tid << "}},\n";
-    _vthread_mutex.lock();
-    trace << ss.rdbuf();
-    _vthread_mutex.unlock();
+    write_to_trace(ss);
     return tid;
 }
 
@@ -135,9 +135,7 @@ inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
               << ",\"ts\":" << fixed << p->get_start_us() << ", \"dur\": "
               << p->get_stop_us() - p->get_start_us()
               << ",\"args\":{\"GUID\":" << p->guid << ",\"Parent GUID\":" << pguid << "}},\n";
-        _vthread_mutex.lock();
-        trace << ss.rdbuf();
-        _vthread_mutex.unlock();
+        write_to_trace(ss);
         flush_trace_if_necessary();
     }
     return;
@@ -159,9 +157,7 @@ void trace_event_listener::on_sample_value(sample_value_event_data &data) {
               << ",\"ts\":" << fixed << profiler::get_time_us()
               << ",\"args\":{\"value\":" << fixed << data.counter_value
               << "}},\n";
-        _vthread_mutex.lock();
-        trace << ss.rdbuf();
-        _vthread_mutex.unlock();
+        write_to_trace(ss);
         flush_trace_if_necessary();
     }
     return;
@@ -221,9 +217,7 @@ std::string trace_event_listener::make_tid (uint32_t device, uint32_t context, u
            << ",\"ph\":\"M\",\"pid\":" << saved_node_id
            << ",\"tid\":" << id_reversed
            << ",\"args\":{\"sort_index\":" << simple_reverse(1L) << "}},\n";
-        _vthread_mutex.lock();
-        trace << ss.rdbuf();
-        _vthread_mutex.unlock();
+        write_to_trace(ss);
     }
     tid = vthread_map[tmp];
     std::stringstream ss;
@@ -247,15 +241,71 @@ void trace_event_listener::on_async_event(uint32_t device, uint32_t context,
               << ",\"ts\":" << fixed << p->get_start_us() << ",\"dur\":"
               << p->get_stop_us() - p->get_start_us()
               << ",\"args\":{\"GUID\":" << p->guid << ",\"Parent GUID\":" << pguid << "}},\n";
-        _vthread_mutex.lock();
-        trace << ss.rdbuf();
-        _vthread_mutex.unlock();
+        write_to_trace(ss);
         flush_trace_if_necessary();
     }
 }
 
-void trace_event_listener::flush_trace(void) {
+size_t trace_event_listener::get_thread_index(void) {
+    static size_t numthreads{0};
     _vthread_mutex.lock();
+    size_t tmpval = numthreads++;
+    _vthread_mutex.unlock();
+    return tmpval;
+}
+
+//#define SERIAL 1
+
+std::mutex* trace_event_listener::get_thread_mutex(size_t index) {
+#ifdef SERIAL
+    APEX_UNUSED(index);
+    return &_vthread_mutex;
+#else
+    std::mutex * tmp;
+    // control access to the map of mutex objects
+    _vthread_mutex.lock();
+    if (mutexes.count(index) == 0) {
+        tmp = new std::mutex();
+        mutexes.insert(std::pair<size_t, std::mutex*>(index, tmp));
+    } else {
+        tmp = mutexes[index];
+    }
+    _vthread_mutex.unlock();
+    return tmp;
+#endif
+}
+
+std::stringstream* trace_event_listener::get_thread_stream(size_t index) {
+#ifdef SERIAL
+    APEX_UNUSED(index);
+    return &trace;
+#else
+    std::stringstream * tmp;
+    // control access to the map of stringstream objects
+    _vthread_mutex.lock();
+    if (streams.count(index) == 0) {
+        tmp = new std::stringstream();
+        streams.insert(std::pair<size_t, std::stringstream*>(index,tmp));
+    } else {
+        tmp = streams[index];
+    }
+    _vthread_mutex.unlock();
+    return tmp;
+#endif
+}
+
+void trace_event_listener::write_to_trace(std::stringstream& events) {
+    static APEX_NATIVE_TLS size_t index = get_thread_index();
+    static APEX_NATIVE_TLS std::mutex * mtx = get_thread_mutex(index);
+    static APEX_NATIVE_TLS std::stringstream * strm = get_thread_stream(index);
+    mtx->lock();
+    (*strm) << events.rdbuf();
+    mtx->unlock();
+}
+
+void trace_event_listener::flush_trace(void) {
+    //_vthread_mutex.lock();
+    auto p = start("APEX: Buffer Flush");
     // check if the file is open
     if (!trace_file.is_open()) {
         saved_node_id = apex::instance()->get_node_id();
@@ -263,11 +313,27 @@ void trace_event_listener::flush_trace(void) {
         ss << "trace_events." << saved_node_id << ".json";
         trace_file.open(ss.str());
     }
+#ifdef SERIAL
     // flush the trace
     trace_file << trace.rdbuf() << std::flush;
     // reset the buffer
     trace.str("");
-    _vthread_mutex.unlock();
+#else
+    size_t count = streams.size();
+    std::stringstream ss;
+    for (size_t index = 0 ; index < count ; index++) {
+        std::mutex * mtx = get_thread_mutex(index);
+        std::stringstream * strm = get_thread_stream(index);
+        mtx->lock();
+        ss << strm->rdbuf();
+        strm->str("");
+        mtx->unlock();
+    }
+    // flush the trace
+    trace_file << ss.rdbuf() << std::flush;
+#endif
+    stop(p);
+    //_vthread_mutex.unlock();
 }
 
 void trace_event_listener::flush_trace_if_necessary(void) {
@@ -280,12 +346,14 @@ void trace_event_listener::flush_trace_if_necessary(void) {
 
 void trace_event_listener::close_trace(void) {
     if (trace_file.is_open()) {
-        trace << "{\"name\":\"APEX MAIN\""
-            << ", \"ph\":\"E\",\"pid\":"
-            << saved_node_id << ",\"tid\":0,\"ts\":"
-            << _end_time << "}\n";
-        trace << "]\n";
-        trace << "}\n" << std::endl;
+        std::stringstream ss;
+        ss << "{\"name\":\"APEX MAIN\""
+           << ", \"ph\":\"E\",\"pid\":"
+           << saved_node_id << ",\"tid\":0,\"ts\":"
+           << fixed << _end_time << "}\n";
+        ss << "]\n";
+        ss << "}\n" << std::endl;
+        write_to_trace(ss);
         flush_trace();
         trace_file.close();
     }

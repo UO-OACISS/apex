@@ -59,7 +59,11 @@ namespace apex {
     if (withFileInfo) {
       return node->location;
     } else {
-      return new string(node->info.funcname);
+      if (node->info.funcname != nullptr) {
+        return new string(node->info.funcname);
+      } else {
+        return new string("<unknown>");
+      }
     }
   }
 }

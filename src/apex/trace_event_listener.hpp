@@ -12,6 +12,7 @@
 #include <fstream>
 #include <map>
 #include <atomic>
+#include <map>
 
 namespace apex {
 
@@ -60,10 +61,16 @@ private:
         uint32_t stream);
     int get_thread_id_metadata();
   	static bool _initialized;
+    size_t get_thread_index(void);
+    std::mutex * get_thread_mutex(size_t index);
+    std::stringstream * get_thread_stream(size_t index);
+    void write_to_trace(std::stringstream& events);
     int saved_node_id;
     std::atomic<size_t> num_events;
   	std::ofstream trace_file;
   	std::stringstream trace;
+    std::map<size_t, std::mutex*> mutexes;
+    std::map<size_t, std::stringstream*> streams;
     std::mutex _vthread_mutex;
     std::map<cuda_thread_node, size_t> vthread_map;
     double _end_time;
