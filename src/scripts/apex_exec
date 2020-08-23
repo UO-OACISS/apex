@@ -3,15 +3,6 @@
 LANG="C"
 export LANG
 
-# Absolute path to this script, e.g. /home/user/bin/foo.sh
-SCRIPT=$(readlink -f "$0")
-# Absolute path this script is in, thus /home/user/bin
-SCRIPTPATH=$(dirname "$SCRIPT")
-echo $SCRIPTPATH
-BASEDIR=$SCRIPTPATH/..
-
-echo "Program to run : $@"
-
 if [ `uname -s ` = Darwin ]; then
   apple=1
   SHLIBX=.dylib
@@ -20,55 +11,296 @@ else
   SHLIBX=.so
 fi
 
-if [ "x$LD_LIBRARY_PATH" = "x" ] ; then
-  APEX_LD_LIBRARY_PATH=$BASEDIR/lib
-else
-  APEX_LD_LIBRARY_PATH=$BASEDIR/lib:$LD_LIBRARY_PATH
+# Absolute path this script is in, thus /home/user/bin
+SCRIPTPATH="$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+#echo $SCRIPTPATH
+BASEDIR="$(dirname $SCRIPTPATH)"
+
+usage() {
+    message="
+Usage:
+$(basename "$0") <APEX options> executable <executable options>
+
+where APEX options are zero or more of:
+    --apex:help            show this usage message
+    --apex:debug           run with APEX in debugger
+    --apex:verbose         enable verbose list of APEX environment variables
+    --apex:screen          enable screen text output
+    --apex:csv             enable csv text output
+    --apex:tau             enable tau profile output
+    --apex:taskgraph       enable taskgraph output
+                           (graphviz required for post-processing)
+    --apex:otf2            enable OTF2 trace output
+    --apex:otf2path        specify location of OTF2 archive
+                           (default: ./OTF2_archive)
+    --apex:otf2name        specify name of OTF2 file (default: APEX)
+    --apex:gtrace          enable Google Trace Events output
+    --apex:scatter         enable scatterplot output
+                           (python required for post-processing)
+    --apex:openacc         enable OpenACC support
+    --apex:kokkos          enable Kokkos support
+    --apex:pthread         enable pthread wrapper support
+    --apex:untied          enable tasks to migrate cores/OS threads
+                           during execution (not compatible with trace output)
+    --apex:cuda_counters   enable CUDA/CUPTI counter support
+    --apex:cuda_driver     enable CUDA driver API callbacks
+    --apex:cpuinfo         enable sampling of /proc/cpuinfo (Linux only)
+    --apex:meminfo         enable sampling of /proc/meminfo (Linux only)
+    --apex:net             enable sampling of /proc/net/dev (Linux only)
+    --apex:status          enable sampling of /proc/self/status (Linux only)
+    --apex:io              enable sampling of /proc/self/io (Linux only)
+    --apex:period          specify frequency of OS/HW sampling
+    "
+    echo "${message}"
+    exit 1
+}
+
+openacc=no
+kokkos=no
+otf2=no
+gtrace=no
+scatter=no
+taskgraph=no
+screen=no
+csv=no
+tau=no
+debug=no
+cuda_counters=no
+cuda_driver=no
+untied=no
+cpuinfo=no
+meminfo=no
+net=no
+stat=no
+period=1000000
+io=no
+pthread=no
+debugger=""
+prog=""
+
+if [ $# -eq 0 ] ; then
+    usage
 fi
-if [ $apple = 1 ]; then
-  APEX_LD_PRELOAD=$BASEDIR/lib/libapex$SHLIBX:@OMPT_LIBRARY@
+
+PARAMS=""
+while (( "$#" )); do
+  case "$1" in
+    --apex:openacc)
+      openacc=yes
+      shift
+      ;;
+    --apex:kokkos)
+      kokkos=yes
+      shift
+      ;;
+    --apex:debug)
+      debug=yes
+      shift
+      ;;
+    --apex:pthread)
+      pthread=yes
+      shift
+      ;;
+    --apex:otf2)
+      otf2=yes
+      export APEX_OTF2=1
+      shift
+      ;;
+    --apex:verbose)
+      export APEX_VERBOSE=1
+      shift
+      ;;
+    --apex:gtrace)
+      gtrace=yes
+      export APEX_TRACE_EVENT=1
+      shift
+      ;;
+    --apex:scatter)
+      scatter=yes
+      export APEX_TASK_SCATTERPLOT=1
+      shift
+      ;;
+    --apex:taskgraph)
+      taskgraph=yes
+      export APEX_TASKGRAPH_OUTPUT=1
+      shift
+      ;;
+    --apex:screen)
+      screen=yes
+      export APEX_SCREEN_OUTPUT=1
+      shift
+      ;;
+    --apex:csv)
+      csv=yes
+      export APEX_CSV_OUTPUT=1
+      shift
+      ;;
+    --apex:tau)
+      tau=yes
+      export APEX_PROFILE_OUTPUT=1
+      shift
+      ;;
+    --apex:cuda_counters)
+      cuda_counters=yes
+      export APEX_CUDA_COUNTERS=1
+      shift
+      ;;
+    --apex:cuda_driver)
+      cuda_driver=yes
+      export APEX_CUDA_DRIVER_API=1
+      shift
+      ;;
+    --apex:cpuinfo)
+      cpuinfo=yes
+      export APEX_PROC_CPUINFO=1
+      shift
+      ;;
+    --apex:meminfo)
+      meminfo=yes
+      export APEX_PROC_MEMINFO=1
+      shift
+      ;;
+    --apex:net)
+      net=yes
+      export APEX_PROC_NET_DEV=1
+      shift
+      ;;
+    --apex:status)
+      stat=yes
+      export APEX_PROC_SELF_STATUS=1
+      shift
+      ;;
+    --apex:io)
+      io=yes
+      export APEX_PROC_SELF_IO=1
+      shift
+      ;;
+    --apex:untied)
+      untied=yes
+      export APEX_UNTIED_TIMERS=1
+      shift
+      ;;
+    --apex:otf2path)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        export APEX_OTF2_ARCHIVE_PATH=$2
+        shift 2
+      else
+        echo "Error: Argument for $1 is missing" >&2
+        usage
+      fi
+      ;;
+    --apex:otf2name)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        export APEX_OTF2_ARCHIVE_NAME=$2
+        shift 2
+      else
+        echo "Error: Argument for $1 is missing" >&2
+        usage
+      fi
+      ;;
+    --apex:period)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        export APEX_PROC_PERIOD=$2
+        shift 2
+      else
+        echo "Error: Argument for $1 is missing" >&2
+        usage
+      fi
+      ;;
+    --apex:*) # unsupported flags
+      echo "Error: Unsupported flag $1" >&2
+      usage
+      ;;
+    *) # preserve positional arguments
+      if [ "$prog" = "" ] ; then
+        prog=$1
+      fi
+      PARAMS="$PARAMS $1"
+      shift
+      ;;
+  esac
+done
+# set positional arguments in their proper place
+eval set -- "${PARAMS}"
+
+echo "Program to run : ${PARAMS}"
+
+if [ "x${LD_LIBRARY_PATH}" = "x" ] ; then
+  APEX_LD_LIBRARY_PATH=${BASEDIR}/lib
 else
-  APEX_LD_PRELOAD=$BASEDIR/lib/libapex$SHLIBX:@OMPT_LIBRARY@:$LD_PRELOAD
+  APEX_LD_LIBRARY_PATH=${BASEDIR}/lib:${LD_LIBRARY_PATH}
+fi
+if [ $pthread = 1 ]; then
+    PTHREAD_LIB=${BASEDIR}/lib/libapex_pthread_wrapper${SHLIBX}:
+fi
+if [ ${apple} = 1 ]; then
+    APEX_LD_PRELOAD=${PTHREAD_LIB}${BASEDIR}/lib/libapex${SHLIBX}:@OMPT_LIBRARY@
+else
+    APEX_LD_PRELOAD=${PTHREAD_LIB}${BASEDIR}/lib/libapex${SHLIBX}:@OMPT_LIBRARY@:${LD_PRELOAD}
 fi
 
 # remove double colons
-APEX_LD_PRELOAD=`echo $APEX_LD_PRELOAD | sed -e "s/::/:/g" -e "s/:$//"`
+APEX_LD_PRELOAD=`echo ${APEX_LD_PRELOAD} | sed -e "s/::/:/g" -e "s/:$//"`
 
-if [ $apple = 1 ]; then
+if [ ${apple} = 1 ]; then
   APEX_LDD='otool -L'
 else
   APEX_LDD=ldd
 fi
 
-#if [ $qsub_mode = false ]; then
-    prog="$1"
-    if [ ! -x "$prog" ] ; then
-	prog=`which $prog 2>/dev/null`
-    fi
+if [ ! -x "${prog}" ] ; then
+    prog=`which ${prog} 2>/dev/null`
+fi
 
-    if [ ! -x "$prog" ] ; then
-	echo "apex_exec: $1: command not found"
-	exit
-    fi
-#fi
+if [ ! -x "${prog}" ] ; then
+    echo "apex_exec: $1: command not found"
+    exit
+fi
 
-    if [ $apple = 1 ]; then
-      export DYLD_LIBRARY_PATH=$APEX_LD_LIBRARY_PATH
-      export DYLD_INSERT_LIBRARIES=$APEX_LD_PRELOAD
-      export DYLD_FORCE_FLAT_NAMESPACE=1
-    else
-      #echo "LD_LIBRARY_PATH=$APEX_LD_LIBRARY_PATH"
-      export LD_AUDIT=$APEX_LD_AUDITOR
-      #echo "LD_PRELOAD=$APEX_LD_PRELOAD"
-      export LD_LIBRARY_PATH=$APEX_LD_LIBRARY_PATH
-      #echo "LD_AUDIT=$APEX_LD_AUDITOR"
-      export LD_PRELOAD=$APEX_LD_PRELOAD
+if [ $apple = 1 ]; then
+    export DYLD_LIBRARY_PATH=${APEX_LD_LIBRARY_PATH}
+    export DYLD_INSERT_LIBRARIES=${APEX_LD_PRELOAD}
+    export DYLD_FORCE_FLAT_NAMESPACE=1
+    if [ $debug = yes ] ; then
+        echo "_regexp-env DYLD_LIBRARY_PATH=${APEX_LD_LIBRARY_PATH}" >> ./.gdbcmds
+        echo "_regexp-env DYLD_INSERT_LIBRARIES=${APEX_LD_PRELOAD}" >> ./.gdbcmds
+        echo "_regexp-env DYLD_FORCE_FLAT_NAMESPACE=1" >> ./.gdbcmds
+        debugger="lldb -s ./.gdbcmds --"
+        if [ $# -gt 1 ] ; then
+            echo "settings set target.run-args ${*:2}" >> .gdb_commands
+        fi
     fi
-    export KOKKOS_PROFILE_LIBRARY=$BASEDIR/lib/libapex$SHLIBX
-    export ACC_PROFLIB=$BASEDIR/lib/libapex$SHLIBX
+else
+    export LD_LIBRARY_PATH=${APEX_LD_LIBRARY_PATH}
+    export LD_PRELOAD=${APEX_LD_PRELOAD}
+    if [ $debug = yes ] ; then
+        echo "set env LD_LIBRARY_PATH=${APEX_LD_LIBRARY_PATH}" >> ./.gdbcmds
+        echo "set env LD_PRELOAD=${APEX_LD_PRELOAD}" >> ./.gdbcmds
+        debugger="gdb -x ./.gdbcmds --args"
+    fi
+fi
 
-    $@
-    retval=$?
-    unset LD_PRELOAD
-    exit $retval
+if [ $kokkos = yes ] ; then
+    export KOKKOS_PROFILE_LIBRARY=${BASEDIR}/lib/libapex${SHLIBX}
+fi
+if [ $openacc = yes ] ; then
+    export ACC_PROFLIB=${BASEDIR}/lib/libapex${SHLIBX}
+fi
+
+${debugger} ${PARAMS}
+retval=$?
+unset LD_PRELOAD
+rm -f ./.gdbcmds
+
+if [ ${retval} != 0 ] ; then
+    exit ${retval}
+fi
+
+if [ ${scatter} = yes ] ; then
+    ${SCRIPTPATH}/task_scatterplot.py
+fi
+
+if [ ${taskgraph} = yes ] ; then
+    dot -Tpdf -O taskgraph.0.dot
+fi
 
