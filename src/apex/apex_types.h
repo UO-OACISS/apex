@@ -35,7 +35,11 @@ typedef void* apex_profiler_handle; // address of internal C++ object
 typedef uintptr_t apex_function_address; // generic function pointer
 
 /**
- * Typedef for enumerating the different timer types
+ * \struct apex_profiler_type
+ * \brief Typedef for enumerating the different timer types
+ *
+ * \var APEX_FUNCTION_ADDRESS
+ * \var APEX_NAME_STRING
  */
 typedef enum _apex_profiler_type {
     APEX_FUNCTION_ADDRESS = 0, /*!< The ID is a function (or instruction) address */
@@ -54,7 +58,8 @@ typedef enum _error_codes {
 Allows for many custom events. */
 
 /**
- * Typedef for enumerating the different event types
+ * \struct apex_event_type
+ * \brief Typedef for enumerating the different event types
  */
 typedef enum _event_type {
   APEX_INVALID_EVENT = -1,
