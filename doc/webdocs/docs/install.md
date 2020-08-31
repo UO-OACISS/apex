@@ -1,13 +1,34 @@
-# Downloading APEX
+# Installing APEX
+
+## Installation with HPX
+
+APEX is integrated into the [HPX runtime](https://hpx.stellar-group.org), and is integrated into the HPX build system.  To enable APEX measurement with HPX, enable the following CMake flags:
+
+```
+-DHPX_WITH_APEX=TRUE
+```
+
+The `-DHPX_WITH_APEX_TAG=develop` can be used to indicate a specific release version of APEX, or to use a specific GitHub branch of APEX.  We recommend using the default configured version that comes with HPX (currently `v2.2.0`) or the `develop` branch.  Additional CMake flags include:
+
+* `-DAPEX_WITH_LM_SENSORS=TRUE` to enable [LM sensors](https://hwmon.wiki.kernel.org/lm_sensors) support (assumed to be installed in default system paths)
+* `-DAPEX_WITH_PAPI=TRUE` and `-DPAPI_ROOT=...` to enable [PAPI](https://icl.utk.edu/papi/) support
+* `-DAPEX_WITH_BFD=TRUE` and `-DBFD_ROOT=...` *or* `-DBUILD_BFD=TRUE` to enable [Binutils](https://www.gnu.org/software/binutils/) support for converting function/lambda/instruction pointers to human-readable code regions.  For demangling of C++ symbols, `demangle.h` needs to be installed with the binutils headers (not typical in system installations). 
+* `-DAPEX_WITH_MSR=TRUE` to enable [libmsr](https://github.com/LLNL/libmsr) support for RAPL power measurement (typically not needed, as RAPL support is natively handled where available)
+* `-DAPEX_WITH_OTF2=TRUE` and `-DOTF2_ROOT=...` to enable [OTF2 tracing](https://www.vi-hps.org/projects/score-p/index.html) support
+* `-DHPX_WITH_HPXMP=TRUE` to enable HPX OpenMP support and OMPT measurement support from APEX
+* `-DAPEX_WITH_ACTIVEHARMONY=TRUE` and `-DACTIVEHARMONY_ROOT=...` to enable [Active Harmony](https://www.dyninst.org/harmony) support
+* `-DAPEX_WITH_CUDA=TRUE` to enable CUPTI and/or NVML support.  This support requires a working `nvcc` compiler in your path.
+
+## Standalone Installation
 
 APEX is open source, and available on Github at <http://github.com/khuck/xpress-apex>.
 
-For stability, most users will want to download the most recent release of APEX (for example, v0.5):
+For stability, most users will want to download the most recent release of APEX (for example, v2.2.0):
 
 ```bash
-wget https://github.com/khuck/xpress-apex/archive/v0.5.tar.gz
-tar -xvzf v0.5.tar.gz
-cd xpress-apex-0.5
+wget https://github.com/khuck/xpress-apex/archive/v2.2.0.tar.gz
+tar -xvzf v2.2.0.tar.gz
+cd xpress-apex-2.2.0
 ```
 
 Other users may want to work with the most recent code available, in which case you can clone the git repo:
@@ -17,22 +38,18 @@ git clone https://github.com/khuck/xpress-apex.git
 cd xpress-apex
 ```
 
-# Installation Option 1: Configuring and building APEX with bootstrap scripts
-
-This option is useful for HPC resources where a configuration script already exists, such as Edison@NERSC, Cori@NERSC, Babbage@NERSC, etc.  To use this option, copy and modify ./bootstrap-configs/bootstrap-$arch.sh as necessary, and run it.
-
-# Installation Option 2: Configuring and building APEX with CMake directly (recommended for most users)
+### Configuring and building APEX with CMake
 
 APEX is built with CMake. The minimum CMake settings needed for APEX are:
 
-* -DCMAKE_INSTALL_PREFIX= some path to an installation location
-* -DCMAKE_BUILD_TYPE= one of Release, Debug, or RelWithDebInfo (recommended)
+* `-DCMAKE_INSTALL_PREFIX=...` some path to an installation location
+* `-DCMAKE_BUILD_TYPE=...` one of Release, Debug, or RelWithDebInfo (recommended)
 
-When building on Intel Phi, Boost is required if the compiler toolset does not include the latest GNU C++11 support.
+Boost is **NOT** required to install APEX.  When building on Intel Phi, Boost is required if the compiler toolset does not include the latest GNU C++11 support.
 
-* -DBOOST_ROOT= the path to a Boost installation, 1.54 or newer
+* `-DBOOST_ROOT=...` the path to a Boost installation, 1.65 or newer
 
-**Note:** *If the BOOST_ROOT environment variable is set to a working Boost installation directory, CMake will find it automatically. If Boost is not installed locally, use the -DBUILD_BOOST=TRUE option, which will automatically download and build Boost as a subproject of APEX.*
+**Note:** *If the `BOOST_ROOT` environment variable is set to a working Boost installation directory, CMake will find it automatically.*
 
 The process for building APEX is:
 
@@ -41,7 +58,7 @@ The process for building APEX is:
 2) Enter the repo directory, make a build directory:
 
 ```bash
-cd xpress-apex-0.5
+cd xpress-apex-2.2.0
 mkdir build
 cd build
 ```
@@ -52,7 +69,7 @@ cd build
 cmake -DCMAKE_INSTALL_PREFIX=<installation-path> -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 ```
 
-If Boost is required (Intel Phi):
+If Boost is required (Intel Phi **only**):
 
 ```bash
 cmake -DBOOST_ROOT=<path-to-boost> -DCMAKE_INSTALL_PREFIX=<installation-path> -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
@@ -67,22 +84,21 @@ make doc
 make install
 ```
 
-# Other CMake settings, depending on your needs/wants
+### Other CMake settings, depending on your needs/wants
 
 **Note 1:** *The **recommended** packages include:*
 
 * **Active Harmony** - for autotuning policies
 * **OMPT** - if OpenMP support is required ([See the OpenMP use case](usecases.md#openmp-example) for an example)
-* **Binutils/BFD** - if your runtime/application uses instruction addresses to identify timers, e.g. HPX-5 and OpenMP
-* **TAU** *or* **PAPI** - if you want post-mortem performance analysis ([See the TAU use case](usecases.md#with-tau) for an example) or your policies will require hardware counters ([See the PAPI use case](usecases.md#with-papi) for an example)
+* **Binutils/BFD** - if your runtime/application uses instruction addresses to identify timers, e.g. OpenMP
+* **PAPI** - if you want hardware counter support ([See the PAPI use case](usecases.md#with-papi) for an example)
 * **JEMalloc/TCMalloc** - if your application is not already using a heap manager - see Note 2, below
+* **CUDA** - if your application uses CUDA, APEX will use CUPTI/NVML to measure GPU activity
 
-**Note 2:** *TCMalloc or JEMalloc will speed up memory allocations *significantly* in APEX (and in your application). HOWEVER, If your application already uses TCMalloc, JEMalloc or TBBMalloc, **DO NOT** configure APEX with TCMalloc or JEMalloc. They will be included at application link time, and may conflict with the version detected by and linked into APEX.*
+**Note 2:** *TCMalloc or JEMalloc will potentially speed up memory allocations **significantly** in APEX (and in your application). HOWEVER, If your application already uses TCMalloc, JEMalloc or TBBMalloc, **DO NOT** configure APEX with TCMalloc or JEMalloc. They will be included at application link time, and may conflict with the version detected by and linked into APEX.*
 
 There are several utility libraries that provide additional functionality in APEX. Not all libraries are required, but some are recommended.  For the following options, the default values are in *italics*.
 
-* **-DBUILD\_BOOST=**
-  TRUE or *FALSE*.  In the event that Boost isn't pre-installed on your system, this option forces CMake to download and build Boost as part of the APEX project.
 * **-DUSE\_ACTIVEHARMONY=**
   *TRUE* or FALSE.  Active Harmony is a library that intelligently searches for parametric combinations to support adapting to heterogeneous and changing environments.  For more information, see <http://www.dyninst.org/harmony>.  APEX uses Active Harmony for runtime adaptation.
 * **-DACTIVEHARMONY\_ROOT=**
@@ -90,7 +106,7 @@ There are several utility libraries that provide additional functionality in APE
 * **-DBUILD\_ACTIVEHARMONY=**
   TRUE or *FALSE*.  Whether or not Active Harmony is installed on the system, this option forces CMake to automatically download and build Active Harmony as part of the APEX project.
 * **-DUSE\_OMPT=**
-  TRUE or *FALSE*.  OMPT is a proposed standard for OpenMP runtimes to provide callback hooks to performance tools. For more information, see <http://openmp.org/mp-documents/ompt-tr2.pdf>.  APEX has support for most OMPT OpenMP trace events. See [the OpenMP use case](usecases.md#openmp-example) for an example.
+  TRUE or *FALSE*.  OMPT is a proposed standard for OpenMP runtimes to provide callback hooks to performance tools. For more information, see the [OpenMP specification](https://www.openmp.org/specifications/) v5.0 or newer.  APEX has support for most OMPT OpenMP trace events. See [the OpenMP use case](usecases.md#openmp-example) for an example.  Some compilers (Clang 10+, Intel 19+, IBM XL 16+) include OMPT support already, and APEX will use the built-in support.  For GCC, older Clang and older Intel Compilers, APEX can build and use the [LLVM OpenMP runtime](https://github.com/llvm-mirror/openmp) which provides KMP and GOMP API calls for those compilers.
 * **-DOMPT\_ROOT=**
   the path to OMPT, or set the OMPT_ROOT environment variable before running cmake.
 * **-DBUILD\_OMPT=**
@@ -101,18 +117,6 @@ There are several utility libraries that provide additional functionality in APE
   path to Binutils, or set the BFD_ROOT environment variable.
 * **-DBUILD\_BFD=**
   TRUE or FALSE.  Whether or not binutils is found by CMake, this option forces CMake to automatically download and build binutils as part of the APEX project.
-* **-DUSE\_TAU=**
-  TRUE or *FALSE*.  TAU (Tuning and Analysis Utilities) is a performance measurement and analysis framework for large scale parallel applications. For more information see <http://tau.uoregon.edu>.  APEX uses TAU to generate profiles for post-mortem performance analysis. See [the TAU use case](usecases.md#tau-example) for an example.
-* **-DTAU\_ROOT=**
-  path to TAU, or set the TAU_ROOT environment variable before running cmake.
-* **-DTAU\_ARCH=**
-  the TAU architecture, like x86_64, craycnl, mic_linux, bgq, etc.
-* **-DTAU\_OPTIONS=**
-  a TAU configuration with thread support, like -pthread or -icpc-pthread.
-* **-DUSE\_RCR=**
-  TRUE or *FALSE*.  RCR (Resource Centric Reflection) is a library for system monitoring of resources that require root access.  For more information, see <http://www.renci.org/wp-content/pub/techreports/TR-10-01.pdf>.  APEX uses RCR to access 'uncore' counters and system health information such as power and energy counters.
-* **-DRCR\_ROOT=**
-  the path to RCR, or set the RCR_ROOT environment variable.
 * **-DUSE\_TCMALLOC=**
   TRUE or *FALSE*.  TCMalloc is a heap management library distributed as part of Google perftools. For more information, see <https://github.com/gperftools/gperftools>.  TCMalloc provides faster memory performance in multithreaded environments.
 * **-DGPERFTOOLS\_ROOT=**
@@ -132,9 +136,9 @@ There are several utility libraries that provide additional functionality in APE
 * **-DBUILD\_TESTS=**
   *TRUE* or FALSE. Whether or not to build the APEX unit tests.
 * **-DCMAKE\_C\_COMPILER=**
-  *gcc*
+  *gcc* or the `CC` environment variable setting
 * **-DCMAKE\_CXX\_COMPILER=**
-  *g++*
+  *g++* or the `CXX` environment variable setting
 * **-DCMAKE\_BUILD\_TYPE=**
   Release, *Debug*, RelWithDebInfo. Unfortunately, the cmake default (when not specified) is Debug. For faster performance, configure APEX to build RelWithDebInfo or Release.
 * **-DBUILD\_SHARED\_LIBS=**
