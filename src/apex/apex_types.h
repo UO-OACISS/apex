@@ -255,7 +255,6 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_UNTIED_TIMERS, untied_timers, bool, false) \
     macro (APEX_TAU, use_tau, bool, false) \
     macro (APEX_OTF2, use_otf2, bool, false) \
-    macro (APEX_OTF2_TESTING, otf2_testing, bool, false) \
     macro (APEX_OTF2_COLLECTIVE_SIZE, otf2_collective_size, int, 1) \
     macro (APEX_TRACE_EVENT, use_trace_event, bool, false) \
     macro (APEX_POLICY, use_policy, bool, true) \

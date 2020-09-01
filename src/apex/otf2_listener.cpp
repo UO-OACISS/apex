@@ -490,10 +490,11 @@ namespace apex {
         static bool created = false;
         if (created) return true;
 
-        if (apex_options::otf2_testing() && my_saved_node_id == 0) {
+        if (my_saved_node_id == 0) {
             // is this a good idea?
-            /* NO! why? because we don't know which rank we are, and
+            /* NO! why? because we might not know which rank we are, and
              * we don't know if the archive is supposed to be there or not.
+             * DO IT ANYWAY
              */
             std::cout << "removing path!" << std::endl; fflush(stdout);
             remove_path(apex_options::otf2_archive_path());
