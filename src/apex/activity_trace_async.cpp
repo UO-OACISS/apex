@@ -672,6 +672,11 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
         }
         case CUPTI_RUNTIME_TRACE_CBID_cudaMallocHost_v3020: {
             bytes = ((cudaMallocHost_v3020_params_st*)(params))->size;
+            // we have a special case - handle it differently...
+            double value = (double)(bytes);
+            store_counter_data("Host: Page-locked Bytes Allocated", context,
+                apex::profiler::get_time_ns(), value);
+            return true;
             break;
         }
         case CUPTI_RUNTIME_TRACE_CBID_cudaMalloc3D_v3020: {
