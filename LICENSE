@@ -1,22 +1,22 @@
 *************************************************************************
 
-APEX - Autonomic Performance Environment for eXascale                  
+APEX - Autonomic Performance Environment for eXascale
 
-sub-project of:                                                        
+sub-project of:
 
 Phylanx - A Distributed Array Toolkit
 http://phylanx.stellar-group.org
 HPX - High Performance ParalleX
 http://stellar.cct.lsu.edu/projects/hpx/
-eXascale PRogramming Environment and System Software (XPRESS)          
-http://xstack.sandia.gov/xpress/                                       
+eXascale PRogramming Environment and System Software (XPRESS)
+http://xstack.sandia.gov/xpress/
 
 *************************************************************************
 
-Copyright 2013-2018                                                  
+Copyright 2013-2020
 
-Department of Computer and Information Science, University of Oregon 
-    and partner institutions:                                          
+Department of Computer and Information Science, University of Oregon
+    and partner institutions:
 Sandia National Laboratories (XPRESS)
 Indiana University (XPRESS)
 Lawrence Berkeley National Laboratory (XPRESS)
@@ -29,7 +29,7 @@ University of North Carolina (XPRESS)
 All Rights Reserved.
 
 *************************************************************************
-  
+
 Permission to use, copy, modify, and distribute this software and its
 documentation for any purpose and without fee is hereby granted, provided that
 the above copyright notice appear in all copies and that both that copyright

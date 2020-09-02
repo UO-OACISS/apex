@@ -1,7 +1,10 @@
-//  Copyright (c) 2014 University of Oregon
-//
-//  Distributed under the Boost Software License, Version 1.0. (See accompanying
-//  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/*
+ * Copyright (c) 2014-2020 Kevin Huck
+ * Copyright (c) 2014-2020 University of Oregon
+ *
+ * Distributed under the Boost Software License, Version 1.0. (See accompanying
+ * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ */
 
 #ifndef APEX_POLICIES_H
 #define APEX_POLICIES_H

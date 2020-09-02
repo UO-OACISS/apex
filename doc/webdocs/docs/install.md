@@ -99,61 +99,52 @@ make install
 
 There are several utility libraries that provide additional functionality in APEX. Not all libraries are required, but some are recommended.  For the following options, the default values are in *italics*.
 
-* **-DUSE\_ACTIVEHARMONY=**
+* `-DUSE_ACTIVEHARMONY=`
   *TRUE* or FALSE.  Active Harmony is a library that intelligently searches for parametric combinations to support adapting to heterogeneous and changing environments.  For more information, see <http://www.dyninst.org/harmony>.  APEX uses Active Harmony for runtime adaptation.
-* **-DACTIVEHARMONY\_ROOT=**
+* `-DACTIVEHARMONY_ROOT=`
   the path to Active Harmony, or set the ACTIVEHARMONY_ROOT environment variable before running cmake.  It should be noted that if Active Harmony is not specified and -DUSE_ACTIVEHARMONY is TRUE or not set, APEX will download and build Active Harmony as a CMake project. To disable Active Harmony entirely, specify -DUSE_ACTIVEHARMONY=FALSE.
-* **-DBUILD\_ACTIVEHARMONY=**
+* `-DBUILD_ACTIVEHARMONY=`
   TRUE or *FALSE*.  Whether or not Active Harmony is installed on the system, this option forces CMake to automatically download and build Active Harmony as part of the APEX project.
-* **-DUSE\_OMPT=**
+* `-DUSE_OMPT=`
   TRUE or *FALSE*.  OMPT is a proposed standard for OpenMP runtimes to provide callback hooks to performance tools. For more information, see the [OpenMP specification](https://www.openmp.org/specifications/) v5.0 or newer.  APEX has support for most OMPT OpenMP trace events. See [the OpenMP use case](usecases.md#openmp-example) for an example.  Some compilers (Clang 10+, Intel 19+, IBM XL 16+) include OMPT support already, and APEX will use the built-in support.  For GCC, older Clang and older Intel Compilers, APEX can build and use the [LLVM OpenMP runtime](https://github.com/llvm-mirror/openmp) which provides KMP and GOMP API calls for those compilers.
-* **-DOMPT\_ROOT=**
+* `-DOMPT_ROOT=`
   the path to OMPT, or set the OMPT_ROOT environment variable before running cmake.
-* **-DBUILD\_OMPT=**
-  TRUE or *FALSE*. Whether or not an OpenMP library with OMPT support is found by CMake, this option forces CMake to automatically download and build an OpenMP runtime with OMPT support as part of the APEX project.
-* **-DUSE\_BFD=**
-  TRUE or *FALSE*.  APEX uses libbfd to convert instruction addresses to source code locations. BFD support is useful for generating human-readable output for summaries and concurrency graphs. Libbfd is not required for runtime adaptation.
-* **-DBFD\_ROOT=**
+* `-DBUILD_OMPT=`
+  TRUE or *FALSE*. Whether or not an OpenMP library with OMPT support is found by CMake, this option forces CMake to automatically download and build an OpenMP runtime with OMPT support as part of the APEX project.  In most cases, only relevant for gcc/g++.
+* `-DUSE_BFD=`
+  TRUE or *FALSE*.  APEX uses libbfd (Binutils) to convert instruction addresses to source code locations. BFD support is useful for generating human-readable output for summaries and concurrency graphs. Libbfd is not required for runtime adaptation.  For more information, see <https://www.gnu.org/software/binutils/>.
+* `-DBFD_ROOT=`
   path to Binutils, or set the BFD_ROOT environment variable.
-* **-DBUILD\_BFD=**
+* `-DBUILD_BFD=`
   TRUE or FALSE.  Whether or not binutils is found by CMake, this option forces CMake to automatically download and build binutils as part of the APEX project.
-* **-DUSE\_TCMALLOC=**
+* `-DUSE_TCMALLOC=`
   TRUE or *FALSE*.  TCMalloc is a heap management library distributed as part of Google perftools. For more information, see <https://github.com/gperftools/gperftools>.  TCMalloc provides faster memory performance in multithreaded environments.
-* **-DGPERFTOOLS\_ROOT=**
+* `-DGPERFTOOLS_ROOT=`
   path to gperftools (TCMalloc), or set the GPERFTOOLS_ROOT environment variable before running cmake.
-* **-DUSE\_JEMALLOC=**
+* `-DUSE_JEMALLOC=`
   TRUE or *FALSE*.  JEMalloc is a heap management library.  For more information, see <http://www.canonware.com/jemalloc/>.  JEMalloc provides faster memory performance in multithreaded environments.
-* **-DJEMALLOC\_ROOT=**
+* `-DJEMALLOC\_ROOT=`
   path to JEMalloc, or set the JEMALLOC_ROOT environment variable before running cmake.
-* **-DUSE\_PAPI=**
+* `-DUSE_PAPI=`
   TRUE or *FALSE*.  PAPI (Performance Application Programming Interface) provides the tool designer and application engineer with a consistent interface and methodology for use of the performance counter hardware found in most major microprocessors.  For more information, see <http://icl.cs.utk.edu/papi/>.  APEX uses PAPI to optionally collect hardware counters for timed events.
-* **-DPAPI\_ROOT=**
+* `-DPAPI_ROOT=`
   some path to PAPI, or set the PAPI_ROOT environment variable before running cmake. See [the PAPI use case](usecases.md#papi-example) for an example.
-* **-DUSE\_LM\_SENSORS=**
+* `-DUSE_LM_SENSORS=`
   TRUE or *FALSE*. Lm\_sensors (Linux Monitoring Sensors) is a library for monitoring hardware temperatures and fan speeds. For more information, see <https://en.wikipedia.org/wiki/Lm_sensors>.  APEX uses lm\_sensors to monitor hardware, where available.
-* **-DBUILD\_EXAMPLES=**
+* `-DBUILD_EXAMPLES=`
   TRUE or *FALSE*. Whether or not to build the application examples in APEX.
-* **-DBUILD\_TESTS=**
+* `-DBUILD_TESTS=`
   *TRUE* or FALSE. Whether or not to build the APEX unit tests.
-* **-DCMAKE\_C\_COMPILER=**
-  *gcc* or the `CC` environment variable setting
-* **-DCMAKE\_CXX\_COMPILER=**
-  *g++* or the `CXX` environment variable setting
-* **-DCMAKE\_BUILD\_TYPE=**
-  Release, *Debug*, RelWithDebInfo. Unfortunately, the cmake default (when not specified) is Debug. For faster performance, configure APEX to build RelWithDebInfo or Release.
-* **-DBUILD\_SHARED\_LIBS=**
-  TRUE or FALSE
-* **-DUSE\_MPI=**
+* `-DUSE_MPI=`
   TRUE or *FALSE*. Whether to build MPI global support and related examples.
-* **-DMPI\_C\_INCLUDE\_PATH=**
-  path to MPI headers
-* **-DMPI\_CXX\_INCLUDE\_PATH=**
-  path to MPI headers
-* **-DMPI\_C\_LIBRARIES=**
-  paths to MPI libraries, library names
-* **-DMPI\_CXX\_LIBRARIES=**
-  paths to MPI libraries, library names
-* **-DMPI\_C\_COMPILER=**
-  mpicc
-* **-DMPI\_CXX\_COMPILER=**
-  mpicxx
+
+### Other CMake variables of interest
+
+* `-DCMAKE_C_COMPILER=`
+  *gcc* or the `CC` environment variable setting
+* `-DCMAKE_CXX_COMPILER=`
+  *g++* or the `CXX` environment variable setting
+* `-DCMAKE_BUILD`_TYPE=`
+  Release, *Debug*, RelWithDebInfo. Unfortunately, the cmake default (when not specified) is Debug. For faster performance, configure APEX to build RelWithDebInfo or Release.
+* `-DBUILD_SHARED_LIBS=`
+  TRUE or FALSE
