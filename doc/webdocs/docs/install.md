@@ -12,7 +12,7 @@ The `-DHPX_WITH_APEX_TAG=develop` can be used to indicate a specific release ver
 
 * `-DAPEX_WITH_LM_SENSORS=TRUE` to enable [LM sensors](https://hwmon.wiki.kernel.org/lm_sensors) support (assumed to be installed in default system paths)
 * `-DAPEX_WITH_PAPI=TRUE` and `-DPAPI_ROOT=...` to enable [PAPI](https://icl.utk.edu/papi/) support
-* `-DAPEX_WITH_BFD=TRUE` and `-DBFD_ROOT=...` *or* `-DBUILD_BFD=TRUE` to enable [Binutils](https://www.gnu.org/software/binutils/) support for converting function/lambda/instruction pointers to human-readable code regions.  For demangling of C++ symbols, `demangle.h` needs to be installed with the binutils headers (not typical in system installations). 
+* `-DAPEX_WITH_BFD=TRUE` and `-DBFD_ROOT=...` *or* `-DBUILD_BFD=TRUE` to enable [Binutils](https://www.gnu.org/software/binutils/) support for converting function/lambda/instruction pointers to human-readable code regions.  For demangling of C++ symbols, `demangle.h` needs to be installed with the binutils headers (not typical in system installations).
 * `-DAPEX_WITH_MSR=TRUE` to enable [libmsr](https://github.com/LLNL/libmsr) support for RAPL power measurement (typically not needed, as RAPL support is natively handled where available)
 * `-DAPEX_WITH_OTF2=TRUE` and `-DOTF2_ROOT=...` to enable [OTF2 tracing](https://www.vi-hps.org/projects/score-p/index.html) support
 * `-DHPX_WITH_HPXMP=TRUE` to enable HPX OpenMP support and OMPT measurement support from APEX
@@ -144,7 +144,7 @@ There are several utility libraries that provide additional functionality in APE
   *gcc* or the `CC` environment variable setting
 * `-DCMAKE_CXX_COMPILER=`
   *g++* or the `CXX` environment variable setting
-* `-DCMAKE_BUILD`_TYPE=`
+* `-DCMAKE_BUILD_TYPE=`
   Release, *Debug*, RelWithDebInfo. Unfortunately, the cmake default (when not specified) is Debug. For faster performance, configure APEX to build RelWithDebInfo or Release.
 * `-DBUILD_SHARED_LIBS=`
   TRUE or FALSE
