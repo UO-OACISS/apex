@@ -3,32 +3,30 @@
 <!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
 <head>
   <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>API Specification - APEX</title>
-  
-
+  <meta name="author" content="Kevin Huck (khuck@cs.uoregon.edu)">
+  <link rel="canonical" href="http://khuck.github.io/xpress-apex/spec/">
   <link rel="shortcut icon" href="../img/favicon.ico">
+  <title>API Specification - APEX</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
 
-  
-  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
-
-  <link rel="stylesheet" href="../css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../css/theme_extra.css" type="text/css" />
-  <link rel="stylesheet" href="../css/highlight.css">
-  <link href="../custom.css" rel="stylesheet">
-
+  <link rel="stylesheet" href="../css/theme.css" />
+  <link rel="stylesheet" href="../css/theme_extra.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css" />
   
   <script>
     // Current page data
     var mkdocs_page_name = "API Specification";
+    var mkdocs_page_input_path = "spec.md";
+    var mkdocs_page_url = "/xpress-apex/spec/";
   </script>
   
-  <script src="../js/jquery-2.1.1.min.js"></script>
-  <script src="../js/modernizr-2.8.3.min.js"></script>
-  <script type="text/javascript" src="../js/highlight.pack.js"></script>
-  <script src="../js/theme.js"></script> 
-
+  <script src="../js/jquery-2.1.1.min.js" defer></script>
+  <script src="../js/modernizr-2.8.3.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script> 
   
 </head>
 
@@ -38,111 +36,153 @@
 
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
       <div class="wy-side-nav-search">
         <a href=".." class="icon icon-home"> APEX</a>
         <div role="search">
   <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
   </form>
 </div>
       </div>
 
       <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-        <ul class="current">
-          
-            <li>
-    <li class="toctree-l1 ">
-        <a class="" href="..">Home</a>
-        
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../quickstarthpx/">Quick Start (HPX)</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../quickstart/">Quick Start (standalone)</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../feature/">Feature Overview</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../install/">Installation</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../usage/">Usage</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../environment/">Useful Environment Variables</a>
+                    </li>
+                </ul>
+                <ul class="current">
+                    <li class="toctree-l1 current"><a class="reference internal current" href="./">API Specification</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#read_me_first">READ ME FIRST!</a>
     </li>
-<li>
-          
-            <li>
-    <li class="toctree-l1 ">
-        <a class="" href="../feature/">Feature Overview</a>
-        
+    <li class="toctree-l2"><a class="reference internal" href="#introduction">Introduction</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#a_note_about_c">A note about C++</a>
     </li>
-<li>
-          
-            <li>
-    <li class="toctree-l1 ">
-        <a class="" href="../install/">Getting Started</a>
-        
+    <li class="toctree-l3"><a class="reference internal" href="#terminology">Terminology</a>
     </li>
-<li>
-          
-            <li>
-    <li class="toctree-l1 ">
-        <a class="" href="../usage/">Usage</a>
-        
+    <li class="toctree-l3"><a class="reference internal" href="#c_example">C example</a>
     </li>
-<li>
-          
-            <li>
-    <li class="toctree-l1 ">
-        <a class="" href="../usecases/">Use Cases</a>
-        
+    <li class="toctree-l3"><a class="reference internal" href="#c_example_1">C++ example</a>
     </li>
-<li>
-          
-            <li>
-    <li class="toctree-l1 ">
-        <a class="" href="../environment/">Useful Environment Variables</a>
-        
-    </li>
-<li>
-          
-            <li>
-    <li class="toctree-l1 ">
-        <a class="" href="../examples/">Research Examples</a>
-        
-    </li>
-<li>
-          
-            <li>
-    <li class="toctree-l1 current">
-        <a class="current" href="./">API Specification</a>
-        
-            <ul>
-            
-                <li class="toctree-l3"><a href="#apex-specification-draft">APEX Specification (DRAFT)</a></li>
-                
-                    <li><a class="toctree-l4" href="#read-me-first">READ ME FIRST!</a></li>
-                
-                    <li><a class="toctree-l4" href="#introduction">Introduction</a></li>
-                
-                    <li><a class="toctree-l4" href="#constants-types-and-enumerations">Constants, types and enumerations</a></li>
-                
-                    <li><a class="toctree-l4" href="#data-structures-and-classes">Data structures and classes</a></li>
-                
-                    <li><a class="toctree-l4" href="#environment-variables">Environment variables</a></li>
-                
-                    <li><a class="toctree-l4" href="#general-utility-functions">General Utility functions</a></li>
-                
-                    <li><a class="toctree-l4" href="#basic-measurement-functions-introspection">Basic measurement Functions (introspection)</a></li>
-                
-                    <li><a class="toctree-l4" href="#policy-related-methods-adaptation">Policy-related methods (adaptation)</a></li>
-                
-                    <li><a class="toctree-l4" href="#concurrency-throttling-policy-functions">Concurrency Throttling Policy Functions</a></li>
-                
-                    <li><a class="toctree-l4" href="#event-based-api-ocr-legion-support-tbd">Event-based API (OCR, Legion support - TBD)</a></li>
-                
-            
-            </ul>
-        
-    </li>
-<li>
-          
-            <li>
-    <li class="toctree-l1 ">
-        <a class="" href="../refman/">API Doxygen Reference</a>
-        
-    </li>
-<li>
-          
         </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#constants_types_and_enumerations">Constants, types and enumerations</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#constants">Constants</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#pre-defined_types">Pre-defined types</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#enumerations">Enumerations</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#data_structures_and_classes">Data structures and classes</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#environment_variables">Environment variables</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#general_utility_functions">General Utility functions</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#initialization">Initialization</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#finalization">Finalization</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#cleanup">Cleanup</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#setting_node_id">Setting node ID</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#registering_threads">Registering threads</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#exiting_a_thread">Exiting a thread</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#getting_the_apex_version">Getting the APEX version</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#getting_the_apex_settings">Getting the APEX settings</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#basic_measurement_functions_introspection">Basic measurement Functions (introspection)</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#starting_a_timer">Starting a timer</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#stopping_a_timer">Stopping a timer</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#yielding_a_timer">Yielding a timer</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#resuming_a_timer">Resuming a timer</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#creating_a_new_task_dependency">Creating a new task dependency</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#sampling_a_value">Sampling a value</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#setting_the_os_thread_state">Setting the OS thread state</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#policy-related_methods_adaptation">Policy-related methods (adaptation)</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#registering_an_event-based_policy_function">Registering an event-based policy function</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#registering_a_periodic_policy">Registering a periodic policy</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#de-registering_a_policy">De-registering a policy</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#registering_a_custom_event">Registering a custom event</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#trigger_a_custom_event">Trigger a custom event</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#request_a_profile_from_apex">Request a profile from APEX</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#reset_a_profile">Reset a profile</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#concurrency_throttling_policy_functions">Concurrency Throttling Policy Functions</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#setup_tuning_for_adaptation">Setup tuning for adaptation</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#get_the_current_thread_cap">Get the current thread cap</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#set_the_current_thread_cap">Set the current thread cap</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#event-based_api_ocr_legion_support_-_tbd">Event-based API (OCR, Legion support - TBD)</a>
+    </li>
+    </ul>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../refman/">API Doxygen Reference</a>
+                    </li>
+                </ul>
       </div>
-      &nbsp;
+    </div>
     </nav>
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
@@ -165,26 +205,26 @@
     <li>API Specification</li>
     <li class="wy-breadcrumbs-aside">
       
-        
-          <a href="http://github.com/khuck/xpress-apex" class="icon icon-github"> Edit on GitHub</a>
-        
+        <a href="http://github.com/khuck/xpress-apex/edit/master/docs/spec.md"
+          class="icon icon-github"> Edit on GitHub</a>
       
     </li>
   </ul>
+  
   <hr/>
 </div>
           <div role="main">
             <div class="section">
               
-                <h1 id="apex-specification-draft">APEX Specification <em>(DRAFT)</em></h1>
-<p><em>...to be fully implemented in a future release.  While the following 
+                <h1 id="apex_specification_draft">APEX Specification <em>(DRAFT)</em><a class="headerlink" href="#apex_specification_draft" title="Permanent link">&para;</a></h1>
+<p>*...to be fully implemented in a future release.  While the following 
 specification is slightly different than the current implementation,
 the differences are minor. When in doubt, the current implementation
 is documented by Doxygen, and is available here:
 <a href="http://www.nic.uoregon.edu/~khuck/apex_docs/doc/html/index.html">http://www.nic.uoregon.edu/~khuck/apex_docs/doc/html/index.html</a>
 <a href="http://www.nic.uoregon.edu/~khuck/apex_docs/doc/refman.pdf">http://www.nic.uoregon.edu/~khuck/apex_docs/doc/refman.pdf</a>
-</em></p>
-<h2 id="read-me-first">READ ME FIRST!</h2>
+*</p>
+<h2 id="read_me_first">READ ME FIRST!<a class="headerlink" href="#read_me_first" title="Permanent link">&para;</a></h2>
 <p>The API specification is provided for users who wish to instrument their
 own applications, or who wish to instrument a runtime. Please note that 
 the <a href="../usage/#hpx-louisiana-state-university">HPX</a>,
@@ -193,22 +233,22 @@ the <a href="../usage/#hpx-louisiana-state-university">HPX</a>,
 with draft OMPT support) runtimes have already been instrumented,
 and that users typically do not have to make any calls to the APEX API, other
 than to add application level timers or to write custom policy rules.</p>
-<h2 id="introduction">Introduction</h2>
+<h2 id="introduction">Introduction<a class="headerlink" href="#introduction" title="Permanent link">&para;</a></h2>
 <p>This page contains the API specification for APEX. The API specification
 provides a high-level overview of the API and its functionality. The
 implementation has Doxygen comments inserted, so for full implementation
 details, please see the <a href="../refman/">API Reference Manual</a>.  </p>
-<h3 id="a-note-about-c">A note about C++</h3>
+<h3 id="a_note_about_c">A note about C++<a class="headerlink" href="#a_note_about_c" title="Permanent link">&para;</a></h3>
 <p>The following specification contains both the C and the the C++ API. Typically,
 the C++ names use overloading for different argument lists, and will replace
 the <code>apex_</code> prefix with the <code>apex::</code> namespace. Because both APIs return 
 handles to internal APEX objects, the type definitions of these objects 
 use the C naming convention.</p>
-<h3 id="terminology">Terminology</h3>
+<h3 id="terminology">Terminology<a class="headerlink" href="#terminology" title="Permanent link">&para;</a></h3>
 <p>Unfortunately, many terms in Computer Science are overloaded. The following definitions are in use in this document:</p>
 <p><strong>Thread</strong>: an operating system (OS) thread of execution. For example, Posix threads (pthreads).  </p>
 <p><strong>Task</strong>: a scheduled unit of work, such as an OpenMP task or an HPX thread. APEX timers are typically used to measure tasks.</p>
-<h3 id="c-example">C example</h3>
+<h3 id="c_example">C example<a class="headerlink" href="#c_example" title="Permanent link">&para;</a></h3>
 <p>The following is a very small C program that uses the APEX API. For more
 examples, please see the programs in the <code>src/examples</code> and <code>src/unit_tests/C</code>
 directories of the APEX source code.</p>
@@ -244,7 +284,7 @@ int main (int argc, char** argv) {
 }
 </code></pre>
 
-<h3 id="c-example_1">C++ example</h3>
+<h3 id="c_example_1">C++ example<a class="headerlink" href="#c_example_1" title="Permanent link">&para;</a></h3>
 <p>The following is a slightly more complicated C++ pthread program that uses the
 APEX API. For more examples, please see the programs in the <code>src/examples</code> and
 <code>src/unit_tests/C++</code> directories of the APEX source code.</p>
@@ -298,8 +338,8 @@ int main (int argc, char** argv) {
 }
 </code></pre>
 
-<h2 id="constants-types-and-enumerations">Constants, types and enumerations</h2>
-<h3 id="constants">Constants</h3>
+<h2 id="constants_types_and_enumerations">Constants, types and enumerations<a class="headerlink" href="#constants_types_and_enumerations" title="Permanent link">&para;</a></h2>
+<h3 id="constants">Constants<a class="headerlink" href="#constants" title="Permanent link">&para;</a></h3>
 <pre><code class="c">/** A null pointer representing an APEX profiler handle.
  * Used when a null APEX profile handle is to be passed in to
  * apex::stop when the profiler object was not retained locally.
@@ -311,7 +351,7 @@ int main (int argc, char** argv) {
 #define APEX_NULL_FUNCTION_ADDRESS 0L // for comparisons
 </code></pre>
 
-<h3 id="pre-defined-types">Pre-defined types</h3>
+<h3 id="pre-defined_types">Pre-defined types<a class="headerlink" href="#pre-defined_types" title="Permanent link">&para;</a></h3>
 <pre><code class="c">/** The address of a C++ object in APEX.
  * Not useful for the caller that gets it back, but required
  * for stopping the timer later.
@@ -329,7 +369,7 @@ typedef uintptr_t apex_policy_handle; // address of internal C++ object
 typedef uintptr_t apex_function_address; // generic function pointer
 </code></pre>
 
-<h3 id="enumerations">Enumerations</h3>
+<h3 id="enumerations">Enumerations<a class="headerlink" href="#enumerations" title="Permanent link">&para;</a></h3>
 <pre><code class="c">/**
  * Typedef for enumerating the different timer types
  */
@@ -415,7 +455,7 @@ typedef enum _profile_type {
 
 </code></pre>
 
-<h2 id="data-structures-and-classes">Data structures and classes</h2>
+<h2 id="data_structures_and_classes">Data structures and classes<a class="headerlink" href="#data_structures_and_classes" title="Permanent link">&para;</a></h2>
 <pre><code class="c">/** 
  * The APEX context when an event occurs. This context will be passed to 
  * any policies registered for this event.
@@ -469,7 +509,7 @@ typedef struct _apex_tuning_request {
 } apex_tuning_request_struct;
 </code></pre>
 
-<h2 id="environment-variables">Environment variables</h2>
+<h2 id="environment_variables">Environment variables<a class="headerlink" href="#environment_variables" title="Permanent link">&para;</a></h2>
 <p>Please see the <a href="../environment/">environment variables</a> section of the
 documentation. Please note that all environment variables can also be
 queried or set at runtime with associated API calls. For example, the 
@@ -478,8 +518,8 @@ APEX_CSV_OUTPUT variable can also be set/queried with:</p>
 int apex_get_csv_output (void);
 </code></pre>
 
-<h2 id="general-utility-functions">General Utility functions</h2>
-<h3 id="initialization">Initialization</h3>
+<h2 id="general_utility_functions">General Utility functions<a class="headerlink" href="#general_utility_functions" title="Permanent link">&para;</a></h2>
+<h3 id="initialization">Initialization<a class="headerlink" href="#initialization" title="Permanent link">&para;</a></h3>
 <pre><code class="c++">/* C++ */
 void apex::init (const char *thread_name);
 </code></pre>
@@ -493,7 +533,7 @@ necessary helper threads, including the background system state query thread,
 the policy engine thread, and the profile handler thread. The thread name
 parameter will be used as the top-level timer for the the main thread of
 execution.</p>
-<h3 id="finalization">Finalization</h3>
+<h3 id="finalization">Finalization<a class="headerlink" href="#finalization" title="Permanent link">&para;</a></h3>
 <pre><code class="c++">/* C++ */
 void apex::finalize (void);
 </code></pre>
@@ -507,7 +547,7 @@ profile, etc.) and terminate all APEX helper threads. No memory is freed at
 this point - that is done by the <code>apex_cleanup()</code> call.  The reason for this is
 that applications may want to perform reporting after finalization, so the
 performance state of the application should still exist. </p>
-<h3 id="cleanup">Cleanup</h3>
+<h3 id="cleanup">Cleanup<a class="headerlink" href="#cleanup" title="Permanent link">&para;</a></h3>
 <pre><code class="c++">/* C++ */
 void apex::cleanup (void);
 </code></pre>
@@ -517,7 +557,7 @@ void apex_cleanup (void);
 </code></pre>
 
 <p>APEX cleanup frees all memory associated with APEX. </p>
-<h3 id="setting-node-id">Setting node ID</h3>
+<h3 id="setting_node_id">Setting node ID<a class="headerlink" href="#setting_node_id" title="Permanent link">&para;</a></h3>
 <pre><code class="c++">/* C++ */
 void apex::set_node_id (const uint64_t id);
 </code></pre>
@@ -528,7 +568,7 @@ void apex_set_node_id (const uint64_t id);
 
 <p>When running in distributed environments, assign the specified id number as the
 APEX node ID. This can be an MPI rank or an HPX locality, for example. </p>
-<h3 id="registering-threads">Registering threads</h3>
+<h3 id="registering_threads">Registering threads<a class="headerlink" href="#registering_threads" title="Permanent link">&para;</a></h3>
 <pre><code class="c++">/* C++ */
 void apex::register_thread (const std::string &amp;name);
 </code></pre>
@@ -540,7 +580,7 @@ void apex_register_thread (const char *name);
 <p>Register a new OS thread with APEX.  This method should be called whenever a
 new OS thread is spawned by the application or the runtime.  An empty string
 or null string is valid input.</p>
-<h3 id="exiting-a-thread">Exiting a thread</h3>
+<h3 id="exiting_a_thread">Exiting a thread<a class="headerlink" href="#exiting_a_thread" title="Permanent link">&para;</a></h3>
 <pre><code class="c++">/* C++ */
 void apex::exit_thread (void);
 </code></pre>
@@ -553,7 +593,7 @@ void apex_exit_thread (void);
 that the thread is exiting. The main thread should not call this function, but
 apex_finalize instead. Exiting the thread will trigger an event in APEX, so 
 any policies associated with a thread exit will be executed.</p>
-<h3 id="getting-the-apex-version">Getting the APEX version</h3>
+<h3 id="getting_the_apex_version">Getting the APEX version<a class="headerlink" href="#getting_the_apex_version" title="Permanent link">&para;</a></h3>
 <pre><code class="c++">/* C++ */
 std::string &amp; apex::version (void);
 </code></pre>
@@ -563,7 +603,7 @@ const char * apex_version (void);
 </code></pre>
 
 <p>Return the APEX version as a string.</p>
-<h3 id="getting-the-apex-settings">Getting the APEX settings</h3>
+<h3 id="getting_the_apex_settings">Getting the APEX settings<a class="headerlink" href="#getting_the_apex_settings" title="Permanent link">&para;</a></h3>
 <pre><code class="c++">/* C++ */
 std::string &amp; apex::get_options (void);
 </code></pre>
@@ -573,8 +613,8 @@ const char * apex_get_options (void);
 </code></pre>
 
 <p>Return the current APEX options as a string.</p>
-<h2 id="basic-measurement-functions-introspection">Basic measurement Functions (introspection)</h2>
-<h3 id="starting-a-timer">Starting a timer</h3>
+<h2 id="basic_measurement_functions_introspection">Basic measurement Functions (introspection)<a class="headerlink" href="#basic_measurement_functions_introspection" title="Permanent link">&para;</a></h2>
+<h3 id="starting_a_timer">Starting a timer<a class="headerlink" href="#starting_a_timer" title="Permanent link">&para;</a></h3>
 <pre><code class="c++">/* C++ */
 apex_profiler_handle apex::start (const std::string &amp;timer_name);
 apex_profiler_handle apex::start (const apex_function_address function_address);
@@ -587,7 +627,7 @@ apex_profiler_handle apex_start (apex_profiler_type type, const void * identifie
 <p>Create an APEX timer and start it. An APEX profiler object is returned,
 containing an identifier that APEX uses to stop the timer.  The timer is either
 identified by a name or a function/task instruction pointer address.</p>
-<h3 id="stopping-a-timer">Stopping a timer</h3>
+<h3 id="stopping_a_timer">Stopping a timer<a class="headerlink" href="#stopping_a_timer" title="Permanent link">&para;</a></h3>
 <pre><code class="c++">/* C++ */
 void apex::stop (apex_profiler_handle the_profiler);
 </code></pre>
@@ -602,7 +642,7 @@ background.  The profiler object is flagged as "stopped", so that when the
 profiler is processed the call count for this particular timer will be
 incremented by 1, <em>unless</em> the timer was started by <code>apex_resume()</code> (see
 below). The profiler handle will be freed internally by APEX after processing.</p>
-<h3 id="yielding-a-timer">Yielding a timer</h3>
+<h3 id="yielding_a_timer">Yielding a timer<a class="headerlink" href="#yielding_a_timer" title="Permanent link">&para;</a></h3>
 <pre><code class="c++">/* C++ */
 void apex::yield (apex_profiler_handle the_profiler);
 </code></pre>
@@ -619,7 +659,7 @@ using apex_yield should not use apex_resume to restart the timer, it should use
 apex_start. <code>apex_yield()</code> is intended for situations when the completion state
 of the task is known and the state is <em>not complete</em>.
 below). The profiler handle will be freed internally by APEX after processing.</p>
-<h3 id="resuming-a-timer">Resuming a timer</h3>
+<h3 id="resuming_a_timer">Resuming a timer<a class="headerlink" href="#resuming_a_timer" title="Permanent link">&para;</a></h3>
 <pre><code class="c++">/* C++ */
 apex_profiler_handle apex::resume (const std::string &amp;timer_name);
 apex_profiler_handle apex::resume (const apex_function_address function_address);
@@ -636,7 +676,7 @@ count for this particular timer will not be incremented. Apex_resume is intended
 for situations when the completion state of a task is NOT known when control
 is returned to the task scheduler, but is known when an interrupted task is 
 resumed.</p>
-<h3 id="creating-a-new-task-dependency">Creating a new task dependency</h3>
+<h3 id="creating_a_new_task_dependency">Creating a new task dependency<a class="headerlink" href="#creating_a_new_task_dependency" title="Permanent link">&para;</a></h3>
 <pre><code class="c++">/* C++ */
 void apex::new_task (std::string &amp; name, const void * task_id);
 void apex::new_task (const apex_function_address function_address, const void * task_id);
@@ -651,7 +691,7 @@ APEX. APEX assumes that the current APEX profiler refers to the task that is
 the parent of this new task. The task_info object is a generic pointer to
 whatever data might need to be passed to a policy executed on when a new task
 is created.</p>
-<h3 id="sampling-a-value">Sampling a value</h3>
+<h3 id="sampling_a_value">Sampling a value<a class="headerlink" href="#sampling_a_value" title="Permanent link">&para;</a></h3>
 <pre><code class="c++">/* C++ */
 void apex::sample_value (const std::string &amp; name, const double value)
 </code></pre>
@@ -662,7 +702,7 @@ void apex_sample_value (const char * name, const double value);
 
 <p>Record a measurement of the specified counter with the specified value. For
 example, "bytes transferred" and "1024".</p>
-<h3 id="setting-the-os-thread-state">Setting the OS thread state</h3>
+<h3 id="setting_the_os_thread_state">Setting the OS thread state<a class="headerlink" href="#setting_the_os_thread_state" title="Permanent link">&para;</a></h3>
 <pre><code class="c++">/* C++ */
 void apex::set_state (apex_thread_state state);
 </code></pre>
@@ -673,8 +713,8 @@ void apex_set_state (apex_thread_state state);
 
 <p>Set the state of the current OS thread.  States can include things like idle,
 busy, waiting, throttled, blocked.</p>
-<h2 id="policy-related-methods-adaptation">Policy-related methods (adaptation)</h2>
-<h3 id="registering-an-event-based-policy-function">Registering an event-based policy function</h3>
+<h2 id="policy-related_methods_adaptation">Policy-related methods (adaptation)<a class="headerlink" href="#policy-related_methods_adaptation" title="Permanent link">&para;</a></h2>
+<h3 id="registering_an_event-based_policy_function">Registering an event-based policy function<a class="headerlink" href="#registering_an_event-based_policy_function" title="Permanent link">&para;</a></h3>
 <pre><code class="c++">/* C++ */
 apex_policy_handle apex::register_policy (const apex_event_type when, std::function&lt;int(apex_context const&amp;)&gt; f);
 std::set&lt;apex_policy_handle&gt; apex::register_policy (std::set&lt;apex_event_type&gt; when, std::function&lt;int(apex_context const&amp;)&gt; f);
@@ -691,7 +731,7 @@ function is called. The context for the event will be passed to the registered
 function. A set of events can also be used to register a policy function, which will
 return a set of policy handles. When any event in the set occurs, the function will
 be called.</p>
-<h3 id="registering-a-periodic-policy">Registering a periodic policy</h3>
+<h3 id="registering_a_periodic_policy">Registering a periodic policy<a class="headerlink" href="#registering_a_periodic_policy" title="Permanent link">&para;</a></h3>
 <pre><code class="c++">/* C++ */
 apex_policy_handle apex::register_periodic_policy(const unsigned long period, std::function&lt;int(apex_context const&amp;)&gt; f);
 </code></pre>
@@ -704,7 +744,7 @@ apex_policy_handle apex_register_periodic_policy (const unsigned long period, in
 periodically. This method assigns the passed in function to be called on a
 periodic basis. The context for the event will be passed to the registered
 function.  The period units are in microseconds (us).</p>
-<h3 id="de-registering-a-policy">De-registering a policy</h3>
+<h3 id="de-registering_a_policy">De-registering a policy<a class="headerlink" href="#de-registering_a_policy" title="Permanent link">&para;</a></h3>
 <pre><code class="c++">/* C++ */
 apex::deregister_policy (apex_policy_handle handle);
 </code></pre>
@@ -717,7 +757,7 @@ apex_deregister_policy (apex_policy_handle handle);
 is event-based or periodic. The calling code should not try to dereference the
 policy handle after this call, as the memory pointed to by the handle will be
 freed.</p>
-<h3 id="registering-a-custom-event">Registering a custom event</h3>
+<h3 id="registering_a_custom_event">Registering a custom event<a class="headerlink" href="#registering_a_custom_event" title="Permanent link">&para;</a></h3>
 <pre><code class="c++">/* C++ */
 apex_event_type apex::register_custom_event (const std::string &amp; name);
 </code></pre>
@@ -727,7 +767,7 @@ apex_event_type apex_register_custom_event (const char * name);
 </code></pre>
 
 <p>Register a new event type with APEX.</p>
-<h3 id="trigger-a-custom-event">Trigger a custom event</h3>
+<h3 id="trigger_a_custom_event">Trigger a custom event<a class="headerlink" href="#trigger_a_custom_event" title="Permanent link">&para;</a></h3>
 <pre><code class="c++">/* C++ */
 void apex::custom_event (apex_event_type event_type, const void * event_data);
 </code></pre>
@@ -741,7 +781,7 @@ event listeners. Each listeners' custom event handler will handle the custom
 event. Policy functions will be passed the custom event name in the event
 context.  The event data pointer is to be used to pass memory to the policy
 function from the code that triggered the event.</p>
-<h3 id="request-a-profile-from-apex">Request a profile from APEX</h3>
+<h3 id="request_a_profile_from_apex">Request a profile from APEX<a class="headerlink" href="#request_a_profile_from_apex" title="Permanent link">&para;</a></h3>
 <pre><code class="c++">/* C++ */
 apex_profile * apex::get_profile (const std::string &amp; name);
 apex_profile * apex::get_profile (const apex_function_address function_address);
@@ -754,7 +794,7 @@ apex_profile * apex_get_profile (apex_profiler_type type, const void * identifie
 <p>This function will return the current profile for the specified identifier.
 Because profiles are updated out-of-band, it is possible that this profile
 values are out of date. This profile can be either a timer or a sampled value.</p>
-<h3 id="reset-a-profile">Reset a profile</h3>
+<h3 id="reset_a_profile">Reset a profile<a class="headerlink" href="#reset_a_profile" title="Permanent link">&para;</a></h3>
 <pre><code class="c++">/* C++ */
 void apex::reset (const std::string &amp; timer_name);
 void apex::reset (const apex_function_address function_address);
@@ -767,8 +807,8 @@ void apex_reset (apex_profiler_type type, const void * identifier)
 <p>This function will reset the profile associated with the specified timer or
 counter id to zero.  If the identifier is null, all timers and counters will be
 reset.</p>
-<h2 id="concurrency-throttling-policy-functions">Concurrency Throttling Policy Functions</h2>
-<h3 id="setup-tuning-for-adaptation">Setup tuning for adaptation</h3>
+<h2 id="concurrency_throttling_policy_functions">Concurrency Throttling Policy Functions<a class="headerlink" href="#concurrency_throttling_policy_functions" title="Permanent link">&para;</a></h2>
+<h3 id="setup_tuning_for_adaptation">Setup tuning for adaptation<a class="headerlink" href="#setup_tuning_for_adaptation" title="Permanent link">&para;</a></h3>
 <pre><code class="c++">/* C++ */
 apex_tuning_session_handle setup_custom_tuning(apex_tuning_request &amp; request);
 </code></pre>
@@ -781,7 +821,7 @@ multiple input criteria.  This function will initialize a policy to optimize a
 custom metric, using the list of tunable parameters. The system tries to
 minimize the custom metric. After evaluating the state of the system, the
 policy will assign new values to the inputs.</p>
-<h3 id="get-the-current-thread-cap">Get the current thread cap</h3>
+<h3 id="get_the_current_thread_cap">Get the current thread cap<a class="headerlink" href="#get_the_current_thread_cap" title="Permanent link">&para;</a></h3>
 <pre><code class="c++">/* C++ */
 int apex::get_thread_cap (void);
 </code></pre>
@@ -791,7 +831,7 @@ int apex_get_thread_cap (void);
 </code></pre>
 
 <p>This function will return the current thread cap based on the throttling policy.</p>
-<h3 id="set-the-current-thread-cap">Set the current thread cap</h3>
+<h3 id="set_the_current_thread_cap">Set the current thread cap<a class="headerlink" href="#set_the_current_thread_cap" title="Permanent link">&para;</a></h3>
 <pre><code class="c++">/* C++ */
 void apex::set_thread_cap (int new_cap);
 </code></pre>
@@ -801,7 +841,7 @@ void apex_set_thread_cap (int new_cap);
 </code></pre>
 
 <p>This function will set the current thread cap based on an external throttling policy.</p>
-<h2 id="event-based-api-ocr-legion-support-tbd">Event-based API (OCR, Legion support - <em>TBD</em>)</h2>
+<h2 id="event-based_api_ocr_legion_support_-_tbd">Event-based API (OCR, Legion support - <em>TBD</em>)<a class="headerlink" href="#event-based_api_ocr_legion_support_-_tbd" title="Permanent link">&para;</a></h2>
 <p>The OCR and Legion runtimes teams have met to propose a common API for
 measuring asynchronous task-based runtimes.
 For more details, see <a href="https://github.com/khuck/xpress-apex/issues/37">https://github.com/khuck/xpress-apex/issues/37</a>.</p>
@@ -833,10 +873,10 @@ apex::event_destroy (uint64_t event_id)
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="../refman/" class="btn btn-neutral float-right" title="API Doxygen Reference"/>Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="../refman/" class="btn btn-neutral float-right" title="API Doxygen Reference">Next <span class="icon icon-circle-arrow-right"></span></a>
       
       
-        <a href="../examples/" class="btn btn-neutral" title="Research Examples"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../environment/" class="btn btn-neutral" title="Useful Environment Variables"><span class="icon icon-circle-arrow-left"></span> Previous</a>
       
     </div>
   
@@ -846,13 +886,13 @@ apex::event_destroy (uint64_t event_id)
   <div role="contentinfo">
     <!-- Copyright etc -->
     
-      <p>(C) 2016 University of Oregon, All Rights Reserved</p>
+      <p>(C) 2014-2020 University of Oregon, All Rights Reserved</p>
     
   </div>
 
-  Built with <a href="http://www.mkdocs.org">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 </footer>
-	  
+      
         </div>
       </div>
 
@@ -860,19 +900,27 @@ apex::event_destroy (uint64_t event_id)
 
   </div>
 
-<div class="rst-versions" role="note" style="cursor: pointer">
+  <div class="rst-versions" role="note" aria-label="versions">
     <span class="rst-current-version" data-toggle="rst-current-version">
       
-          <a class="icon icon-github" style="float: left; color: #fcfcfc"> GitHub</a>
+          <a href="http://github.com/khuck/xpress-apex/" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
       
       
-        <span><a href="../examples/" style="color: #fcfcfc;">&laquo; Previous</a></span>
+        <span><a href="../environment/" style="color: #fcfcfc;">&laquo; Previous</a></span>
       
       
         <span style="margin-left: 15px"><a href="../refman/" style="color: #fcfcfc">Next &raquo;</a></span>
       
     </span>
 </div>
+    <script>var base_url = '..';</script>
+    <script src="../js/theme.js" defer></script>
+      <script src="../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
 
 </body>
 </html>

@@ -3,32 +3,30 @@
 <!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
 <head>
   <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
+  <meta name="description" content="APEX - Autonomic Performance Environment for eXascale v2.20.0">
+  <meta name="author" content="Kevin Huck (khuck@cs.uoregon.edu)">
+  <link rel="canonical" href="http://khuck.github.io/xpress-apex/">
+  <link rel="shortcut icon" href="img/favicon.ico">
   <title>APEX</title>
-  
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
 
-  <link rel="shortcut icon" href="./img/favicon.ico">
-
-  
-  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
-
-  <link rel="stylesheet" href="./css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="./css/theme_extra.css" type="text/css" />
-  <link rel="stylesheet" href="./css/highlight.css">
-  <link href="./custom.css" rel="stylesheet">
-
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/theme_extra.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css" />
   
   <script>
     // Current page data
-    var mkdocs_page_name = "None";
+    var mkdocs_page_name = "Home";
+    var mkdocs_page_input_path = "index.md";
+    var mkdocs_page_url = "/xpress-apex/";
   </script>
   
-  <script src="./js/jquery-2.1.1.min.js"></script>
-  <script src="./js/modernizr-2.8.3.min.js"></script>
-  <script type="text/javascript" src="./js/highlight.pack.js"></script>
-  <script src="./js/theme.js"></script> 
-
+  <script src="js/jquery-2.1.1.min.js" defer></script>
+  <script src="js/modernizr-2.8.3.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script> 
   
 </head>
 
@@ -38,97 +36,63 @@
 
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
       <div class="wy-side-nav-search">
         <a href="." class="icon icon-home"> APEX</a>
         <div role="search">
   <form id ="rtd-search-form" class="wy-form" action="./search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
   </form>
 </div>
       </div>
 
       <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-        <ul class="current">
-          
-            <li>
-    <li class="toctree-l1 current">
-        <a class="current" href=".">Home</a>
-        
-            <ul>
-            
-                <li class="toctree-l3"><a href="#apex-autonomic-performance-environment-for-exascale">APEX: Autonomic Performance Environment for eXascale</a></li>
-                
-                    <li><a class="toctree-l4" href="#introspection">Introspection</a></li>
-                
-                    <li><a class="toctree-l4" href="#runtime-adaptation">Runtime Adaptation</a></li>
-                
-                    <li><a class="toctree-l4" href="#references">References</a></li>
-                
-            
-            </ul>
-        
+                <ul class="current">
+                    <li class="toctree-l1 current"><a class="reference internal current" href=".">Home</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#introspection">Introspection</a>
     </li>
-<li>
-          
-            <li>
-    <li class="toctree-l1 ">
-        <a class="" href="feature/">Feature Overview</a>
-        
+    <li class="toctree-l2"><a class="reference internal" href="#runtime_adaptation">Runtime Adaptation</a>
     </li>
-<li>
-          
-            <li>
-    <li class="toctree-l1 ">
-        <a class="" href="install/">Getting Started</a>
-        
+    <li class="toctree-l2"><a class="reference internal" href="#references_apex-related_publications">References &amp; APEX-related Publications</a>
     </li>
-<li>
-          
-            <li>
-    <li class="toctree-l1 ">
-        <a class="" href="usage/">Usage</a>
-        
-    </li>
-<li>
-          
-            <li>
-    <li class="toctree-l1 ">
-        <a class="" href="usecases/">Use Cases</a>
-        
-    </li>
-<li>
-          
-            <li>
-    <li class="toctree-l1 ">
-        <a class="" href="environment/">Useful Environment Variables</a>
-        
-    </li>
-<li>
-          
-            <li>
-    <li class="toctree-l1 ">
-        <a class="" href="examples/">Research Examples</a>
-        
-    </li>
-<li>
-          
-            <li>
-    <li class="toctree-l1 ">
-        <a class="" href="spec/">API Specification</a>
-        
-    </li>
-<li>
-          
-            <li>
-    <li class="toctree-l1 ">
-        <a class="" href="refman/">API Doxygen Reference</a>
-        
-    </li>
-<li>
-          
-        </ul>
+    </ul>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="quickstarthpx/">Quick Start (HPX)</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="quickstart/">Quick Start (standalone)</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="feature/">Feature Overview</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="install/">Installation</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="usage/">Usage</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="environment/">Useful Environment Variables</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="spec/">API Specification</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="refman/">API Doxygen Reference</a>
+                    </li>
+                </ul>
       </div>
-      &nbsp;
+    </div>
     </nav>
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
@@ -151,30 +115,38 @@
     <li>Home</li>
     <li class="wy-breadcrumbs-aside">
       
-        
-          <a href="http://github.com/khuck/xpress-apex" class="icon icon-github"> Edit on GitHub</a>
-        
+        <a href="http://github.com/khuck/xpress-apex/edit/master/docs/index.md"
+          class="icon icon-github"> Edit on GitHub</a>
       
     </li>
   </ul>
+  
   <hr/>
 </div>
           <div role="main">
             <div class="section">
               
-                <p><img alt="image" src="./img/logo-cropped.png" title="APEX" />
+                <p><img alt="image" src="img/logo-cropped.png" title="APEX" />
 <!--<img alt="image" src="https://github.com/khuck/xpress-apex/raw/master/doc/logo-cropped.png" title="APEX" /> --></p>
-<h1 id="apex-autonomic-performance-environment-for-exascale">APEX: Autonomic Performance Environment for eXascale</h1>
-<p>One of the key components of the XPRESS project is a new approach to performance observation, measurement, analysis and runtime decision making in order to optimize performance. The particular challenges of accurately measuring the performance characteristics of ParalleX <a href="#fn1">[1]</a> applications (as well as other asynchronous multitasking runtime architectures) requires a new approach to parallel performance observation. The standard model of multiple operating system processes and threads observing themselves in a first-person manner while writing out performance profiles or traces for offline analysis will not adequately capture the full execution context, nor provide opportunities for runtime adaptation within OpenX. The approach taken in the XPRESS project is a new performance measurement system, called (Autonomic Performance Environment for eXascale). APEX includes methods for information sharing between the layers of the software stack, from the hardware through operating and runtime systems, all the way to domain specific or legacy applications. The performance measurement components incorporate relevant information across stack layers, with merging of third-person performance observation of node-level and global resources, remote processes, and both operating and runtime system threads.  For a complete academic description of APEX, see the publication "APEX: An Autonomic Performance Environment for eXascale" <a href="#References">[2]</a>.</p>
+<h1 id="apex_autonomic_performance_environment_for_exascale">APEX: Autonomic Performance Environment for eXascale<a class="headerlink" href="#apex_autonomic_performance_environment_for_exascale" title="Permanent link">&para;</a></h1>
+<p>One of the key components of the US Department of Energy funded <em>XPRESS</em> project was a new approach to performance observation, measurement, analysis and runtime decision making in order to optimize performance. The particular challenges of accurately measuring the performance characteristics of ParalleX <a href="#fn1">[1]</a> (e.g. HPX) applications (as well as other asynchronous multitasking runtime architectures) requires a new approach to parallel performance observation. The traditional model of multiple operating system processes and threads observing themselves in a first-person manner while writing out performance profiles or traces for offline analysis will not adequately capture the full execution context, nor provide opportunities for runtime adaptation. The approach taken in the completed XPRESS project was a new performance measurement system, called (Autonomic Performance Environment for eXascale). APEX includes methods for information sharing between the layers of the software stack, from the hardware through operating and runtime systems, all the way to domain specific or legacy applications. The performance measurement components incorporate relevant information across stack layers, with merging of third-person performance observation of node-level and global resources, remote processes, and both operating and runtime system threads.  For a complete design description of APEX, see the publication "APEX: An Autonomic Performance Environment for eXascale" <a href="#References">[3]</a>.  Since it's original project, APEX has been extended to support multiple runtime systems.</p>
 <p>In short, APEX is an introspection and runtime adaptation library for asynchronous multitasking runtime systems. However, APEX is not <em>only</em> useful for AMT/AMR runtimes running on future exascale systems - it can be used by any application wanting to perform runtime adaptation to deal with heterogeneous and/or variable environments.</p>
-<h2 id="introspection">Introspection</h2>
-<p>APEX provides an API for measuring actions within a runtime. The API includes methods for timer start/stop, as well as sampled counter values. APEX is designed to be integrated into a runtime, library and/or application and provide performance introspection for the purpose of runtime adaptation. While APEX <em>can</em> provide rudimentary post-mortem performance analysis measurement, there are many other performance measurement tools that perform that task much better (such as TAU http://tau.uoregon.edu).  That said, APEX includes an event listener that integrates with the TAU measurement system, so APEX events can be forwarded to TAU and collected in a TAU profile and/or trace to be used for post-mortem performance anlaysis.</p>
-<h2 id="runtime-adaptation">Runtime Adaptation</h2>
-<p>APEX provides a mechanism for dynamic runtime behavior, either for autotuning or adaptation to changing environment.  The infrastruture that provides the adaptation is the Policy Engine, which executes policies either periodically or triggered by events. The policies have access to the performance state as observed by the APEX introspection API. APEX is integrated with Active Harmony (http://www.dyninst.org/harmony) to provide dynamic search for autotuning.</p>
-<h2 id="references">References</h2>
+<h2 id="introspection">Introspection<a class="headerlink" href="#introspection" title="Permanent link">&para;</a></h2>
+<p>APEX provides an API for measuring actions within a runtime. The API includes methods for timer start/stop, as well as sampled counter values. APEX is designed to be integrated into a runtime, library and/or application and provide performance introspection for the purpose of runtime adaptation. While APEX <em>can</em> provide rudimentary post-mortem performance analysis measurement, there are many other performance measurement tools that perform that task more robustly (such as TAU http://tau.uoregon.edu).  That said, APEX includes an event listener that integrates with the TAU measurement system, so APEX events can be forwarded to TAU and collected in a TAU profile and/or trace to be used for post-mortem performance anlaysis.</p>
+<h2 id="runtime_adaptation">Runtime Adaptation<a class="headerlink" href="#runtime_adaptation" title="Permanent link">&para;</a></h2>
+<p>APEX provides a mechanism for dynamic runtime behavior, either for autotuning or adaptation to changing environment.  The infrastruture that provides the adaptation is the <em>Policy Engine</em>, which executes policies either periodically or triggered by events. The policies have access to the performance state as observed by the APEX introspection API. APEX is integrated with Active Harmony (http://www.dyninst.org/harmony) to provide dynamic search for autotuning.</p>
+<h2 id="references_apex-related_publications">References &amp; APEX-related Publications<a class="headerlink" href="#references_apex-related_publications" title="Permanent link">&para;</a></h2>
 <ol>
 <li><a name="fn1"></a> Thomas Sterling, Daniel Kogler, Matthew Anderson, and Maciej Brodowicz. "SLOWER: A performance model for Exascale computing". <em>Supercomputing Frontiers and Innovations</em>, 1:42–57, September 2014. <a href="http://superfri.org/superfri/article/view/10">http://superfri.org/superfri/article/view/10</a></li>
-<li><a name="fn2"></a> Kevin A. Huck, Allan Porterfield, Nick Chaimov, Hartmut Kaiser, Allen D. Malony, Thomas Sterling, Rob Fowler. "An Autonomic Performance Environment for eXascale", <em>Journal of Supercomputing Frontiers and Innovations</em>, 2015. <a href="http://superfri.org/superfri/article/view/64">http://superfri.org/superfri/article/view/64</a></li>
+<li><a name="fn2"></a> Koniges, Alice, Jayashree Ajay Candadai, Hartmut Kaiser, Kevin Huck, Jeremy Kemp, Thomas Heller, Matthew Anderson et al. "HPX Applications and Performance Adaptation". No. SAND2015-8999C. Sandia National Lab.(SNL-NM), Albuquerque, NM (United States), 2015. <a href="https://www.osti.gov/servlets/purl/1332791">https://www.osti.gov/servlets/purl/1332791</a></li>
+<li><a name="fn3"></a> Kevin A. Huck, Allan Porterfield, Nick Chaimov, Hartmut Kaiser, Allen D. Malony, Thomas Sterling, Rob Fowler. "An Autonomic Performance Environment for eXascale", <em>Journal of Supercomputing Frontiers and Innovations</em>, 2015. <a href="http://superfri.org/superfri/article/view/64">http://superfri.org/superfri/article/view/64</a></li>
+<li><a name="fn4"></a> Grubel, Patricia, Hartmut Kaiser, Kevin Huck, and Jeanine Cook. "Using intrinsic performance counters to assess efficiency in task-based parallel applications." In <em>2016 IEEE International Parallel and Distributed Processing Symposium Workshops (IPDPSW)</em>, pp. 1692-1701. IEEE, 2016. <a href="https://www.cs.uoregon.edu/research/paracomp/papers/ipdps16/hpcmaspa2016.pdf">https://www.cs.uoregon.edu/research/paracomp/papers/ipdps16/hpcmaspa2016.pdf</a></li>
+<li><a name="fn5"></a> Bari, Md Abdullah Shahneous, Nicholas Chaimov, Abid M. Malik, Kevin A. Huck, Barbara Chapman, Allen D. Malony, and Osman Sarood. "Arcs: Adaptive runtime configuration selection for power-constrained openmp applications." In <em>2016 IEEE International Conference on Cluster Computing (CLUSTER)</em>, pp. 461-470. IEEE, 2016. <a href="https://www.cs.uoregon.edu/research/paracomp/papers/cluster16/arcs.pdf">https://www.cs.uoregon.edu/research/paracomp/papers/cluster16/arcs.pdf</a></li>
+<li><a name="fn6"></a> Tohid, R., Bibek Wagle, Shahrzad Shirzad, Patrick Diehl, Adrian Serio, Alireza Kheirkhahan, Parsa Amini et al. "Asynchronous execution of python code on task-based runtime systems." In 2018 IEEE/ACM 4th International Workshop on Extreme Scale Programming Models and Middleware (ESPM2), pp. 37-45. IEEE, 2018. <a href="http://hdc.cs.arizona.edu/papers/espm2_2018_phylanx.pdf">http://hdc.cs.arizona.edu/papers/espm2_2018_phylanx.pdf</a></li>
+<li>Heller, Thomas, Bryce Adelstein Lelbach, Kevin A. Huck, John Biddiscombe, Patricia Grubel, Alice E. Koniges, Matthias Kretz et al. "Harnessing billions of tasks for a scalable portable hydrodynamic simulation of the merger of two stars." The International Journal of High Performance Computing Applications 33, no. 4 (2019): 699-715. <a href="https://journals.sagepub.com/doi/full/10.1177/1094342018819744">https://journals.sagepub.com/doi/full/10.1177/1094342018819744</a></li>
+<li>Wagle, Bibek, Mohammad Alaul Haque Monil, Kevin Huck, Allen D. Malony, Adrian Serio, and Hartmut Kaiser. "Runtime adaptive task inlining on asynchronous multitasking runtime systems." In Proceedings of the 48th International Conference on Parallel Processing, pp. 1-10. 2019. <a href="https://dl.acm.org/doi/abs/10.1145/3337821.3337915">https://dl.acm.org/doi/abs/10.1145/3337821.3337915</a></li>
+<li>Daiß, Gregor, Parsa Amini, John Biddiscombe, Patrick Diehl, Juhan Frank, Kevin Huck, Hartmut Kaiser, Dominic Marcello, David Pfander, and Dirk Pfüger. "From piz daint to the stars: simulation of stellar mergers using high-level abstractions." In Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis, pp. 1-37. 2019. <a href="https://arxiv.org/abs/1908.03121">https://arxiv.org/abs/1908.03121</a></li>
+<li>Steven R. Brandt, Alex Bigelow, Sayef Azad Sakin, Katy Williams, Katherine E. Isaacs, Kevin Huck, Rod Tohid, Bibek Wagle, Shahrzad Shirzad, and Hartmut Kaiser. 2020. JetLag: An Interactive, Asynchronous Array Computing Environment. In Practice and Experience in Advanced Research Computing (PEARC '20). Association for Computing Machinery, New York, NY, USA, 8–12. DOI: <a href="https://doi.org/10.1145/3311790.3396657">https://doi.org/10.1145/3311790.3396657</a></li>
 </ol>
               
             </div>
@@ -183,7 +155,7 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="feature/" class="btn btn-neutral float-right" title="Feature Overview"/>Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="quickstarthpx/" class="btn btn-neutral float-right" title="Quick Start (HPX)">Next <span class="icon icon-circle-arrow-right"></span></a>
       
       
     </div>
@@ -194,13 +166,13 @@
   <div role="contentinfo">
     <!-- Copyright etc -->
     
-      <p>(C) 2016 University of Oregon, All Rights Reserved</p>
+      <p>(C) 2014-2020 University of Oregon, All Rights Reserved</p>
     
   </div>
 
-  Built with <a href="http://www.mkdocs.org">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 </footer>
-	  
+      
         </div>
       </div>
 
@@ -208,22 +180,30 @@
 
   </div>
 
-<div class="rst-versions" role="note" style="cursor: pointer">
+  <div class="rst-versions" role="note" aria-label="versions">
     <span class="rst-current-version" data-toggle="rst-current-version">
       
-          <a class="icon icon-github" style="float: left; color: #fcfcfc"> GitHub</a>
+          <a href="http://github.com/khuck/xpress-apex/" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
       
       
       
-        <span style="margin-left: 15px"><a href="feature/" style="color: #fcfcfc">Next &raquo;</a></span>
+        <span style="margin-left: 15px"><a href="quickstarthpx/" style="color: #fcfcfc">Next &raquo;</a></span>
       
     </span>
 </div>
+    <script>var base_url = '.';</script>
+    <script src="js/theme.js" defer></script>
+      <script src="search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
 
 </body>
 </html>
 
 <!--
-MkDocs version : 0.14.0
-Build Date UTC : 2016-05-13 17:07:01.372098
+MkDocs version : 1.1.2
+Build Date UTC : 2020-09-04 20:35:31.582314+00:00
 -->
