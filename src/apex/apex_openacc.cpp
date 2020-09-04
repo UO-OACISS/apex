@@ -89,10 +89,10 @@ void apex_read_api_info(acc_api_info* api_info, bool context) {
         std::cout << " Device vendor: " << api_info->vendor << std::endl;
     }
     if (context && first) {
-        std::cout << "Device Handle: " << api_info->device_handle;
-        std::cout << " Context: " << api_info->context_handle;
-        std::cout << " Queue/Stream: " << api_info->async_handle << std::endl;
-        //first = false;
+        //std::cout << "Device Handle: " << api_info->device_handle;
+        //std::cout << " Context: " << api_info->context_handle;
+        //std::cout << " Queue/Stream: " << api_info->async_handle << std::endl;
+        first = false;
     }
 }
 

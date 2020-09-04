@@ -55,7 +55,7 @@ struct ApexBfdAddrMap
     unsigned long start;
     unsigned long end;
     unsigned long offset;
-    char name[512];
+    char name[4096];
 };
 
 struct ApexBfdInfo

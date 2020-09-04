@@ -31,6 +31,8 @@ if(APEX_WITH_CUDA)
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND
         CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 9.0)
         message(INFO " Building CUPTI support, but GCC is too new for CUDA tests")
+    elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+        message(INFO " Building CUPTI support, but Clang can't build CUDA tests")
     else()
         # OK to enable CUDA tests
         enable_language(CUDA)
@@ -49,7 +51,7 @@ endif()
 if((DEFINED APEX_LXK_KITTEN) AND (APEX_LXK_KITTEN))
     SET(BUILD_STATIC_EXECUTABLES TRUE CACHE BOOL "Build Static Libraries and Executables" FORCE)
     SET(READ_PROC_FILESYSTEM FALSE CACHE BOOL "Periodically read the /proc filesystem status" FORCE)
-    SET(USE_CLOCK_TIMESTAMP TRUE CACHE BOOL "Disable assembly code timestamp call" FORCE)
+    SET(USE_CLOCK_TIMESTAMP FALSE CACHE BOOL "Disable assembly code timestamp call" FORCE)
 endif()
 
 ################################################################################
@@ -421,10 +423,10 @@ endif()
 
 find_package(OpenMP)
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND
-    CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 9.0)
-    find_package(OpenACC)
-else()
+    CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
     message(INFO " GCC is too old for OpenACC profiling support")
+else()
+    find_package(OpenACC)
 endif()
 
 if((DEFINED USE_OMPT) AND (NOT USE_OMPT))
