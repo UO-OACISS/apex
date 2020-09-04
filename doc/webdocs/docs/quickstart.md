@@ -2,7 +2,7 @@
 
 ## Installation
 
-For detailed instructions, see [build instructions](install.md#standalone_installation)
+For detailed instructions and information on dependencies, see [build instructions](install.md#standalone_installation)
 
 To build APEX stand-alone (to use with OpenMP, OpenACC, CUDA, Kokkos, TBB, C++ threads, etc.) do the following:
 

@@ -2,7 +2,7 @@
 
 ## Installation
 
-For detailed instructions, see [build instructions](install.md#installation_with_hpx)
+For detailed instructions and information on dependencies, see [build instructions](install.md#installation_with_hpx).
 
 APEX is integrated into the [HPX runtime](https://hpx.stellar-group.org), and is integrated into the HPX build system.  To enable APEX measurement with HPX, enable the following CMake flags:
 
