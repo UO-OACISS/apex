@@ -2,7 +2,7 @@ site_name: APEX
 site_url: http://khuck.github.io/xpress-apex
 repo_url: http://github.com/khuck/xpress-apex
 repo_name: GitHub
-site_description: APEX - Autonomic Performance Environment for eXascale v2.20.0
+site_description: APEX - Autonomic Performance Environment for eXascale v2.2.0
 site_author: Kevin Huck (khuck@cs.uoregon.edu)
 copyright: (C) 2014-2020 University of Oregon, All Rights Reserved
 nav:

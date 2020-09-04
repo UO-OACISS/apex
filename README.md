@@ -61,41 +61,72 @@ Installation
 [Full installation documentation is available here] (http://khuck.github.io/xpress-apex). Below is a quickstart for the impatient...
 
 Please Note:
-===========
-*These instructions are for building the stand-alone APEX library.  For instructions on building APEX with HPX, please see [http://khuck.github.io/xpress-apex/usage/#hpx-louisiana-state-university](http://khuck.github.io/xpress-apex/usage/#hpx-louisiana-state-university)*
+------------
+*These instructions are for building the stand-alone APEX library.  For instructions on building APEX with HPX, please see [http://khuck.github.io/xpress-apex/usage](http://khuck.github.io/xpress-apex/usage)*
 
-APEX is built with CMake. The minimum CMake settings needed for APEX are:
 
-* `-DCMAKE_INSTALL_PREFIX=<some path to an installation location>`
-* `-DCMAKE_BUILD_TYPE=<one of Release, Debug, or RelWithDebInfo (recommended)>`
+To build APEX stand-alone (to use with OpenMP, OpenACC, CUDA, Kokkos, TBB, C++ threads, etc.) do the following:
 
-When building for Intel Xeon Phi, Boost may be required if the compiler suite is not up-to-date:
+```
+git clone https://github.com/khuck/xpress-apex.git
+cd xpress-apex
+mkdir build
+cd build
+cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_EXAMPLES=TRUE ..
+make -j
+```
 
-* `-DBOOST_ROOT=<the path to a Boost installation, 1.54 or newer>`
+Runtime Usage
+-------------
 
-The process for building APEX is:
+To run an example (since `-DBUILD_EXAMPLES=TRUE` was set), just run the Matmult example and you should get similar output:
 
-1) Get the code (assuming v0.5 is the most recent version)::
+```
+[khuck@eagle xpress-apex]$ ./build/src/examples/Matmult/matmult
+Spawned thread 1...
+Spawned thread 2...
+Spawned thread 3...
+Done.
 
-    wget https://github.com/khuck/xpress-apex/archive/v0.5.tar.gz
-    tar -xvzf v0.5.tar.gz
+Elapsed time: 0.300207 seconds
+Cores detected: 128
+Worker Threads observed: 4
+Available CPU time: 1.20083 seconds
 
-2) Enter the repo directory, make a build directory::
+Counter                                   : #samples | minimum |    mean  |  maximum |  stddev
+------------------------------------------------------------------------------------------------
+                           status:Threads :        1      6.000      6.000      6.000      0.000
+                            status:VmData :        1   4.93e+04   4.93e+04   4.93e+04      0.000
+                             status:VmExe :        1     64.000     64.000     64.000      0.000
+                             status:VmHWM :        1   7808.000   7808.000   7808.000      0.000
+                             status:VmLck :        1      0.000      0.000      0.000      0.000
+                             status:VmLib :        1   6336.000   6336.000   6336.000      0.000
+                             status:VmPMD :        1     16.000     16.000     16.000      0.000
+                             status:VmPTE :        1      4.000      4.000      4.000      0.000
+                            status:VmPeak :        1   3.80e+05   3.80e+05   3.80e+05      0.000
+                             status:VmPin :        1      0.000      0.000      0.000      0.000
+                             status:VmRSS :        1   7808.000   7808.000   7808.000      0.000
+                            status:VmSize :        1   3.15e+05   3.15e+05   3.15e+05      0.000
+                             status:VmStk :        1    192.000    192.000    192.000      0.000
+                            status:VmSwap :        1      0.000      0.000      0.000      0.000
+        status:nonvoluntary_ctxt_switches :        1      0.000      0.000      0.000      0.000
+           status:voluntary_ctxt_switches :        1     77.000     77.000     77.000      0.000
+------------------------------------------------------------------------------------------------
 
-    cd xpress-apex-0.05
-    mkdir build
-    cd build
+Timer                                                : #calls  |    mean  |   total  |  % total
+------------------------------------------------------------------------------------------------
+                                           APEX MAIN :        1      0.300      0.300    100.000
+                                      allocateMatrix :       12      0.009      0.108      9.023
+                                             compute :        4      0.206      0.825     68.736
+                                 compute_interchange :        4      0.064      0.257     21.369
+                                             do_work :        4      0.298      1.193     99.313
+                                          freeMatrix :       12      0.000      0.000      0.025
+                                          initialize :       12      0.000      0.002      0.146
+                                                main :        1      0.299      0.299     24.930
+------------------------------------------------------------------------------------------------
+                                        Total timers : 49
 
-3) configure using CMake::
-
-    cmake -DCMAKE_INSTALL_PREFIX=<installation-path> -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
-
-4) build with make::
-
-    make
-    make test
-    make doc
-    make install
+```
 
 Supported Runtime Systems
 =========================
@@ -114,6 +145,21 @@ OpenMP
 ------
 
 The OpenMP API supports multi-platform shared-memory parallel programming in C/C++ and Fortran. The OpenMP API defines a portable, scalable model with a simple and flexible interface for developing parallel applications on platforms from the desktop to the supercomputer.  For more information, see [http://openmp.org/](http://openmp.org/).
+
+OpenACC
+-------
+
+OpenACC is a user-driven directive-based performance-portable parallel programming model. It is designed for scientists and engineers interested in porting their codes to a wide-variety of heterogeneous HPC hardware platforms and architectures with significantly less programming effort than required with a low-level model. The OpenACC specification supports C, C++, Fortran programming languages and multiple hardware architectures including X86 & POWER CPUs, and NVIDIA GPUs.
+
+Kokkos
+------
+
+Kokkos Core implements a programming model in C++ for writing performance portable applications targeting all major HPC platforms. For that purpose it provides abstractions for both parallel execution of code and data management. Kokkos is designed to target complex node architectures with N-level memory hierarchies and multiple types of execution resources. It currently can use CUDA, HPX, OpenMP and Pthreads as backend programming models with several other backends in development.
+
+CUDA
+----
+
+CUDA® is a parallel computing platform and programming model developed by NVIDIA for general computing on graphical processing units (GPUs). With CUDA, developers are able to dramatically speed up computing applications by harnessing the power of GPUs.
 
 References
 ==========
