@@ -25,7 +25,8 @@ where APEX options are zero or more of:
     --apex:help            show this usage message
     --apex:debug           run with APEX in debugger
     --apex:verbose         enable verbose list of APEX environment variables
-    --apex:screen          enable screen text output
+    --apex:screen          enable screen text output (on by default)
+    --apex:quiet           disable screen text output
     --apex:csv             enable csv text output
     --apex:tau             enable tau profile output
     --apex:taskgraph       enable taskgraph output
@@ -61,7 +62,7 @@ otf2=no
 gtrace=no
 scatter=no
 taskgraph=no
-screen=no
+screen=yes
 csv=no
 tau=no
 debug=no
@@ -127,7 +128,10 @@ while (( "$#" )); do
       ;;
     --apex:screen)
       screen=yes
-      export APEX_SCREEN_OUTPUT=1
+      shift
+      ;;
+    --apex:quiet)
+      screen=no
       shift
       ;;
     --apex:csv)
@@ -278,6 +282,12 @@ else
         echo "set env LD_PRELOAD=${APEX_LD_PRELOAD}" >> ./.gdbcmds
         debugger="gdb -x ./.gdbcmds --args"
     fi
+fi
+
+if [ $screen = yes ] ; then
+    export APEX_SCREEN_OUTPUT=1
+else
+    export APEX_SCREEN_OUTPUT=0
 fi
 
 if [ $kokkos = yes ] ; then
