@@ -70,43 +70,75 @@
                 <ul class="current">
                     <li class="toctree-l1 current"><a class="reference internal current" href="./">Usage</a>
     <ul class="current">
-    <li class="toctree-l2"><a class="reference internal" href="#hpx_louisiana_state_university">HPX (Louisiana State University)</a>
+    <li class="toctree-l2"><a class="reference internal" href="#supported_runtime_systems">Supported Runtime Systems</a>
         <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#configuring_hpx_with_apex">Configuring HPX with APEX</a>
+    <li class="toctree-l3"><a class="reference internal" href="#hpx_louisiana_state_university">HPX (Louisiana State University)</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#configuring_hpx_with_apex">Configuring HPX with APEX</a>
     </li>
-    <li class="toctree-l3"><a class="reference internal" href="#running_hpx_with_apex">Running HPX with APEX</a>
+    <li class="toctree-l4"><a class="reference internal" href="#running_hpx_with_apex">Running HPX with APEX</a>
     </li>
         </ul>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#openmp">OpenMP</a>
+    <li class="toctree-l3"><a class="reference internal" href="#openmp">OpenMP</a>
         <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#configuring_apex_for_openmp_ompt_support">Configuring APEX for OpenMP OMPT support</a>
+    <li class="toctree-l4"><a class="reference internal" href="#configuring_apex_for_openmp_ompt_support">Configuring APEX for OpenMP OMPT support</a>
     </li>
-    <li class="toctree-l3"><a class="reference internal" href="#running_openmp_applications_with_apex">Running OpenMP applications with APEX</a>
+    <li class="toctree-l4"><a class="reference internal" href="#running_openmp_applications_with_apex">Running OpenMP applications with APEX</a>
     </li>
         </ul>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#openacc">OpenACC</a>
+    <li class="toctree-l3"><a class="reference internal" href="#openacc">OpenACC</a>
         <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#configuring_apex_for_openacc_support">Configuring APEX for OpenACC support</a>
+    <li class="toctree-l4"><a class="reference internal" href="#configuring_apex_for_openacc_support">Configuring APEX for OpenACC support</a>
     </li>
-    <li class="toctree-l3"><a class="reference internal" href="#running_openacc_programs_with_apex">Running OpenACC programs with APEX</a>
+    <li class="toctree-l4"><a class="reference internal" href="#running_openacc_programs_with_apex">Running OpenACC programs with APEX</a>
     </li>
         </ul>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#cuda">CUDA</a>
+    <li class="toctree-l3"><a class="reference internal" href="#cuda">CUDA</a>
         <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#configuring_apex_for_cuda_support">Configuring APEX for CUDA support</a>
+    <li class="toctree-l4"><a class="reference internal" href="#configuring_apex_for_cuda_support">Configuring APEX for CUDA support</a>
     </li>
-    <li class="toctree-l3"><a class="reference internal" href="#running_cuda_programs_with_apex">Running CUDA programs with APEX</a>
+    <li class="toctree-l4"><a class="reference internal" href="#running_cuda_programs_with_apex">Running CUDA programs with APEX</a>
     </li>
         </ul>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#kokkos">Kokkos</a>
+    <li class="toctree-l3"><a class="reference internal" href="#kokkos">Kokkos</a>
         <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#configuring_apex_for_kokkos_support">Configuring APEX for Kokkos support</a>
+    <li class="toctree-l4"><a class="reference internal" href="#configuring_apex_for_kokkos_support">Configuring APEX for Kokkos support</a>
     </li>
-    <li class="toctree-l3"><a class="reference internal" href="#running_kokkos_programs_with_apex">Running Kokkos programs with APEX</a>
+    <li class="toctree-l4"><a class="reference internal" href="#running_kokkos_programs_with_apex">Running Kokkos programs with APEX</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#c_threads">C++ Threads</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#configuring_apex_for_c_thread_support">Configuring APEX for C++ Thread support</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#running_c_thread_programs_with_apex">Running C++ Thread programs with APEX</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#other_runtime_systems">Other Runtime Systems</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#performance_measurement_features">Performance Measurement Features</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#profiling">Profiling</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#profiling_with_csv_output">Profiling with CSV output</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#profiling_with_tau_profile_output">Profiling with TAU profile output</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#profiling_with_taskgraph_output">Profiling with Taskgraph output</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#profiling_with_scatterplot_output">Profiling with Scatterplot output</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#profiling_with_otf2_trace_output">Profiling with OTF2 Trace output</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#profiling_with_google_trace_events_format_output">Profiling with Google Trace Events Format output</a>
     </li>
         </ul>
     </li>
@@ -160,8 +192,9 @@
           <div role="main">
             <div class="section">
               
-                <h1 id="supported_runtime_systems">Supported Runtime Systems<a class="headerlink" href="#supported_runtime_systems" title="Permanent link">&para;</a></h1>
-<h2 id="hpx_louisiana_state_university">HPX (Louisiana State University)<a class="headerlink" href="#hpx_louisiana_state_university" title="Permanent link">&para;</a></h2>
+                <h1 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">&para;</a></h1>
+<h2 id="supported_runtime_systems">Supported Runtime Systems<a class="headerlink" href="#supported_runtime_systems" title="Permanent link">&para;</a></h2>
+<h3 id="hpx_louisiana_state_university">HPX (Louisiana State University)<a class="headerlink" href="#hpx_louisiana_state_university" title="Permanent link">&para;</a></h3>
 <p>HPX (High Performance ParalleX) is the original implementation of the ParalleX
 model. Developed and maintained by the Ste||ar Group at Louisiana State
 University, HPX is implemented in C++. For more information, see
@@ -172,19 +205,19 @@ University, HPX is implemented in C++. For more information, see
 donwload it separately - it will be automatically checked out from Github as
 part of the HPX Cmake configuration.  However, you do need to pass the correct
 Cmake options to the HPX configuration step.</p>
-<h3 id="configuring_hpx_with_apex">Configuring HPX with APEX<a class="headerlink" href="#configuring_hpx_with_apex" title="Permanent link">&para;</a></h3>
+<h4 id="configuring_hpx_with_apex">Configuring HPX with APEX<a class="headerlink" href="#configuring_hpx_with_apex" title="Permanent link">&para;</a></h4>
 <p>See <a href="../install/#installation_with_hpx">Intallation with HPX</a>.</p>
-<h3 id="running_hpx_with_apex">Running HPX with APEX<a class="headerlink" href="#running_hpx_with_apex" title="Permanent link">&para;</a></h3>
+<h4 id="running_hpx_with_apex">Running HPX with APEX<a class="headerlink" href="#running_hpx_with_apex" title="Permanent link">&para;</a></h4>
 <p>See <a href="../quickstarthpx/#runtime">APEX Quickstart</a>.</p>
-<h2 id="openmp">OpenMP<a class="headerlink" href="#openmp" title="Permanent link">&para;</a></h2>
+<h3 id="openmp">OpenMP<a class="headerlink" href="#openmp" title="Permanent link">&para;</a></h3>
 <p>The OpenMP API supports multi-platform shared-memory parallel programming in C/C++ and Fortran. The OpenMP API defines a portable, scalable model with a simple and flexible interface for developing parallel applications on platforms from the desktop to the supercomputer.  For more information, see <a href="http://openmp.org/">http://openmp.org/</a>.</p>
-<h3 id="configuring_apex_for_openmp_ompt_support">Configuring APEX for OpenMP OMPT support<a class="headerlink" href="#configuring_apex_for_openmp_ompt_support" title="Permanent link">&para;</a></h3>
+<h4 id="configuring_apex_for_openmp_ompt_support">Configuring APEX for OpenMP OMPT support<a class="headerlink" href="#configuring_apex_for_openmp_ompt_support" title="Permanent link">&para;</a></h4>
 <p>The CMake process will automatically detect whether your compiler has OpenMP support.  If you configure APEX with <code>-DUSE_OMPT=TRUE</code> and have a compiler with full OpenMP 5.0 OMPT support, APEX will detect the support.  If your compiler is GCC, Intel or Clang and does <em>not</em> have native OMPT support, APEX can build and use the open source LLVM OpenMP runtime as a drop-in replacement for the compiler's native runtime library.</p>
 <p>APEX uses Binutils to resolve the OpenMP outlined regions from instruction addresses to human-readable names, so also configure APEX with <code>-DUSE_BFD=TRUE</code> (see <a href="../install/#other_cmake_settings_depending_on_your_needswants">Other CMake Settings</a>).  The following example was configured and run with Intel 20 compilers.  The CMake configuration for this example was:</p>
 <pre><code>cmake -DCMAKE_C_COMPILER=`which icc` -DCMAKE_CXX_COMPILER=`which icpc` -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=../install -DBUILD_TESTS=TRUE -DUSE_BFD=TRUE -DBFD_ROOT=/usr/local/packages/binutils/2.34 -DUSE_OMPT=TRUE ..
 </code></pre>
 
-<h3 id="running_openmp_applications_with_apex">Running OpenMP applications with APEX<a class="headerlink" href="#running_openmp_applications_with_apex" title="Permanent link">&para;</a></h3>
+<h4 id="running_openmp_applications_with_apex">Running OpenMP applications with APEX<a class="headerlink" href="#running_openmp_applications_with_apex" title="Permanent link">&para;</a></h4>
 <p>Using the <code>apex_exec</code> wrapper script, execute the OpenMP program as normal:</p>
 <pre><code>[khuck@delphi xpress-apex]$ ./install/bin/apex_exec --apex:screen --apex:taskgraph build/src/unit_tests/C++/apex_openmp_cpp
 Program to run :  build/src/unit_tests/C++/apex_openmp_cpp
@@ -241,14 +274,14 @@ OpenMP Work Single Other: L__Z7my_initPd_39__par_... :      141      0.001      
 
 <p>If GraphViz is installed on your system, the <code>dot</code> program will generate a taskgraph image based on the taskgraph.0.dot file that was generated by APEX:</p>
 <p><img alt="OpenMP task graph" src="../img/openmp_taskgraph.png" /></p>
-<h2 id="openacc">OpenACC<a class="headerlink" href="#openacc" title="Permanent link">&para;</a></h2>
-<h3 id="configuring_apex_for_openacc_support">Configuring APEX for OpenACC support<a class="headerlink" href="#configuring_apex_for_openacc_support" title="Permanent link">&para;</a></h3>
+<h3 id="openacc">OpenACC<a class="headerlink" href="#openacc" title="Permanent link">&para;</a></h3>
+<h4 id="configuring_apex_for_openacc_support">Configuring APEX for OpenACC support<a class="headerlink" href="#configuring_apex_for_openacc_support" title="Permanent link">&para;</a></h4>
 <p>Nothing special needs to be done to enable OpenACC support.  If your compiler supports OpenACC (PGI, GCC 10+), then CMake will detect it and enable OpenACC support in APEX.</p>
 <p>In this example, APEX was configured with GCC 10.0.0:</p>
 <pre><code>cmake -DCMAKE_C_COMPILER=`which gcc` -DCMAKE_CXX_COMPILER=`which g++` -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=../install -DBUILD_TESTS=TRUE -DUSE_BFD=FALSE -DBFD_ROOT=/usr/local/packages/binutils/2.34 ..
 </code></pre>
 
-<h3 id="running_openacc_programs_with_apex">Running OpenACC programs with APEX<a class="headerlink" href="#running_openacc_programs_with_apex" title="Permanent link">&para;</a></h3>
+<h4 id="running_openacc_programs_with_apex">Running OpenACC programs with APEX<a class="headerlink" href="#running_openacc_programs_with_apex" title="Permanent link">&para;</a></h4>
 <p>Enabling OpenACC support requires setting the <code>ACC_PROFLIB</code> environment variable with the path to <code>libapex.so</code>, or by using the <code>apex_exec</code> script with the <code>--apex:openacc</code> flag:</p>
 <pre><code>[khuck@gorgon xpress-apex]$ ./install/bin/apex_exec --apex:screen --apex:taskgraph --apex:openacc ./build/src/unit_tests/C/apex_openacc
 Program to run :  ./build/src/unit_tests/C/apex_openacc
@@ -306,13 +339,13 @@ OpenACC enqueue launch: main$_omp_fn$1 (implicit)... :      100      0.000      
 </code></pre>
 
 <p><img alt="OpenACC task graph" src="../img/openacc_taskgraph.png" /></p>
-<h2 id="cuda">CUDA<a class="headerlink" href="#cuda" title="Permanent link">&para;</a></h2>
-<h3 id="configuring_apex_for_cuda_support">Configuring APEX for CUDA support<a class="headerlink" href="#configuring_apex_for_cuda_support" title="Permanent link">&para;</a></h3>
+<h3 id="cuda">CUDA<a class="headerlink" href="#cuda" title="Permanent link">&para;</a></h3>
+<h4 id="configuring_apex_for_cuda_support">Configuring APEX for CUDA support<a class="headerlink" href="#configuring_apex_for_cuda_support" title="Permanent link">&para;</a></h4>
 <p>Enabling CUDA support in APEX requires the <code>-DAPEX_WITH_CUDA=TRUE</code> flag and the <code>-DCUDA_ROOT=/path/to/cuda</code> CMake variables at configuration time.  CMake will look for the CUPTI and NVML libraries in the installation, and if found the support will be enabled.</p>
 <pre><code>cmake -DCMAKE_C_COMPILER=`which gcc` -DCMAKE_CXX_COMPILER=`which g++` -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=../install -DBUILD_TESTS=TRUE -DUSE_BFD=TRUE -DAPEX_WITH_CUDA=TRUE -DCUDA_ROOT=/usr/local/packages/cuda/10.2 -DBFD_ROOT=/usr/local/packages/binutils/2.34 ..
 </code></pre>
 
-<h3 id="running_cuda_programs_with_apex">Running CUDA programs with APEX<a class="headerlink" href="#running_cuda_programs_with_apex" title="Permanent link">&para;</a></h3>
+<h4 id="running_cuda_programs_with_apex">Running CUDA programs with APEX<a class="headerlink" href="#running_cuda_programs_with_apex" title="Permanent link">&para;</a></h4>
 <p>Enabling CUDA support only requires using the <code>apex_exec</code> wrapper script.</p>
 <pre><code>[khuck@gorgon xpress-apex]$ ./install/bin/apex_exec --apex:screen --apex:taskgraph ./build/src/unit_tests/CUDA/apex_cuda_cu
 Program to run :  ./build/src/unit_tests/CUDA/apex_cuda_cu
@@ -472,11 +505,54 @@ launch [/home/users/khuck/src/xpress-apex/src/uni... :        4      0.000      
 </code></pre>
 
 <p><img alt="CUDA task graph" src="../img/cuda_taskgraph.png" /></p>
-<h2 id="kokkos">Kokkos<a class="headerlink" href="#kokkos" title="Permanent link">&para;</a></h2>
-<h3 id="configuring_apex_for_kokkos_support">Configuring APEX for Kokkos support<a class="headerlink" href="#configuring_apex_for_kokkos_support" title="Permanent link">&para;</a></h3>
+<h3 id="kokkos">Kokkos<a class="headerlink" href="#kokkos" title="Permanent link">&para;</a></h3>
+<h4 id="configuring_apex_for_kokkos_support">Configuring APEX for Kokkos support<a class="headerlink" href="#configuring_apex_for_kokkos_support" title="Permanent link">&para;</a></h4>
 <p>Like OpenACC, nothing special needs to be done to enable Kokkos support.</p>
-<h3 id="running_kokkos_programs_with_apex">Running Kokkos programs with APEX<a class="headerlink" href="#running_kokkos_programs_with_apex" title="Permanent link">&para;</a></h3>
+<h4 id="running_kokkos_programs_with_apex">Running Kokkos programs with APEX<a class="headerlink" href="#running_kokkos_programs_with_apex" title="Permanent link">&para;</a></h4>
 <p>Enabling Kokkos support requires setting the <code>KOKKOS_PROFILE_LIBRARY</code> environment variable with the path to <code>libapex.so</code>, or by using the <code>apex_exec</code> script with the <code>--apex:kokkos</code> flag.</p>
+<h3 id="c_threads">C++ Threads<a class="headerlink" href="#c_threads" title="Permanent link">&para;</a></h3>
+<p>APEX suports C++ threads on Linux, with the assumption that they are implemented on top of POSIX threads.</p>
+<h4 id="configuring_apex_for_c_thread_support">Configuring APEX for C++ Thread support<a class="headerlink" href="#configuring_apex_for_c_thread_support" title="Permanent link">&para;</a></h4>
+<p>Nothing special needs to be done to enable C++ thread support.</p>
+<h4 id="running_c_thread_programs_with_apex">Running C++ Thread programs with APEX<a class="headerlink" href="#running_c_thread_programs_with_apex" title="Permanent link">&para;</a></h4>
+<p>Enabling C++ Thread support requires using the <code>apex_exec</code> script with the <code>--apex:pthread</code> flag.  That will enable the preloading of a wrapper library to intercept <code>pthread_create()</code> calls.  A sample program with C++ threads is in the APEX unit tests:</p>
+<pre><code>khuck@Kevins-MacBook-Air build % ../install/bin/apex_exec --apex:pthread src/unit_tests/C++/apex_fibonacci_std_async_cpp
+Program to run :  src/unit_tests/C++/apex_fibonacci_std_async_cpp
+usage: apex_fibonacci_std_async_cpp &lt;integer value&gt;
+Using default value of 10
+fib of 10 is 55 (valid value: 55)
+
+Elapsed time: 0.005359 seconds
+Cores detected: 8
+Worker Threads observed: 178
+Available CPU time: 0.042872 seconds
+
+Timer                                                : #calls  |    mean  |   total  |  % total
+------------------------------------------------------------------------------------------------
+  fib(int, std::__1::shared_ptr&lt;apex::task_wrapper&gt;) :      177      0.001      0.171    --n/a--
+                                           APEX MAIN :        1      0.005      0.005    100.000
+------------------------------------------------------------------------------------------------
+                                        Total timers : 177
+</code></pre>
+
+<p>Note that APEX detected 178 total OS threads.  That is because some C++ thread implementations (GCC, Clang, others) implement <em>every</em> <code>std::async()</code> call as a new OS thread, resulting in a <code>pthread_create()</code> call.</p>
+<h3 id="other_runtime_systems">Other Runtime Systems<a class="headerlink" href="#other_runtime_systems" title="Permanent link">&para;</a></h3>
+<p>We are currently evaluating support for TBB, OpenCL, SYCL/DPC++/OneAPI, among others.</p>
+<h2 id="performance_measurement_features">Performance Measurement Features<a class="headerlink" href="#performance_measurement_features" title="Permanent link">&para;</a></h2>
+<h3 id="profiling">Profiling<a class="headerlink" href="#profiling" title="Permanent link">&para;</a></h3>
+<p><em>coming soon</em></p>
+<h3 id="profiling_with_csv_output">Profiling with CSV output<a class="headerlink" href="#profiling_with_csv_output" title="Permanent link">&para;</a></h3>
+<p><em>coming soon</em></p>
+<h3 id="profiling_with_tau_profile_output">Profiling with TAU profile output<a class="headerlink" href="#profiling_with_tau_profile_output" title="Permanent link">&para;</a></h3>
+<p><em>coming soon</em></p>
+<h3 id="profiling_with_taskgraph_output">Profiling with Taskgraph output<a class="headerlink" href="#profiling_with_taskgraph_output" title="Permanent link">&para;</a></h3>
+<p><em>coming soon</em></p>
+<h3 id="profiling_with_scatterplot_output">Profiling with Scatterplot output<a class="headerlink" href="#profiling_with_scatterplot_output" title="Permanent link">&para;</a></h3>
+<p><em>coming soon</em></p>
+<h3 id="profiling_with_otf2_trace_output">Profiling with OTF2 Trace output<a class="headerlink" href="#profiling_with_otf2_trace_output" title="Permanent link">&para;</a></h3>
+<p><em>coming soon</em></p>
+<h3 id="profiling_with_google_trace_events_format_output">Profiling with Google Trace Events Format output<a class="headerlink" href="#profiling_with_google_trace_events_format_output" title="Permanent link">&para;</a></h3>
+<p><em>coming soon</em></p>
               
             </div>
           </div>
