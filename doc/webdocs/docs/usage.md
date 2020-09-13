@@ -1,6 +1,8 @@
-# Supported Runtime Systems
+# Usage
 
-## HPX (Louisiana State University)
+## Supported Runtime Systems
+
+### HPX (Louisiana State University)
 
 HPX (High Performance ParalleX) is the original implementation of the ParalleX
 model. Developed and maintained by the Ste||ar Group at Louisiana State
@@ -14,19 +16,19 @@ donwload it separately - it will be automatically checked out from Github as
 part of the HPX Cmake configuration.  However, you do need to pass the correct
 Cmake options to the HPX configuration step.
 
-### Configuring HPX with APEX
+#### Configuring HPX with APEX
 
 See [Intallation with HPX](install.md#installation_with_hpx).
 
-### Running HPX with APEX
+#### Running HPX with APEX
 
 See [APEX Quickstart](quickstarthpx.md#runtime).
 
-## OpenMP
+### OpenMP
 
 The OpenMP API supports multi-platform shared-memory parallel programming in C/C++ and Fortran. The OpenMP API defines a portable, scalable model with a simple and flexible interface for developing parallel applications on platforms from the desktop to the supercomputer.  For more information, see <http://openmp.org/>.
 
-### Configuring APEX for OpenMP OMPT support
+#### Configuring APEX for OpenMP OMPT support
 
 The CMake process will automatically detect whether your compiler has OpenMP support.  If you configure APEX with `-DUSE_OMPT=TRUE` and have a compiler with full OpenMP 5.0 OMPT support, APEX will detect the support.  If your compiler is GCC, Intel or Clang and does *not* have native OMPT support, APEX can build and use the open source LLVM OpenMP runtime as a drop-in replacement for the compiler's native runtime library.
 
@@ -36,7 +38,7 @@ APEX uses Binutils to resolve the OpenMP outlined regions from instruction addre
 cmake -DCMAKE_C_COMPILER=`which icc` -DCMAKE_CXX_COMPILER=`which icpc` -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=../install -DBUILD_TESTS=TRUE -DUSE_BFD=TRUE -DBFD_ROOT=/usr/local/packages/binutils/2.34 -DUSE_OMPT=TRUE ..
 ```
 
-### Running OpenMP applications with APEX
+#### Running OpenMP applications with APEX
 
 Using the `apex_exec` wrapper script, execute the OpenMP program as normal:
 
@@ -98,9 +100,9 @@ If GraphViz is installed on your system, the `dot` program will generate a taskg
 
 ![OpenMP task graph](img/openmp_taskgraph.png)
 
-## OpenACC
+### OpenACC
 
-### Configuring APEX for OpenACC support
+#### Configuring APEX for OpenACC support
 
 Nothing special needs to be done to enable OpenACC support.  If your compiler supports OpenACC (PGI, GCC 10+), then CMake will detect it and enable OpenACC support in APEX.
 
@@ -110,7 +112,7 @@ In this example, APEX was configured with GCC 10.0.0:
 cmake -DCMAKE_C_COMPILER=`which gcc` -DCMAKE_CXX_COMPILER=`which g++` -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=../install -DBUILD_TESTS=TRUE -DUSE_BFD=FALSE -DBFD_ROOT=/usr/local/packages/binutils/2.34 ..
 ```
 
-### Running OpenACC programs with APEX
+#### Running OpenACC programs with APEX
 
 Enabling OpenACC support requires setting the `ACC_PROFLIB` environment variable with the path to `libapex.so`, or by using the `apex_exec` script with the `--apex:openacc` flag:
 
@@ -172,9 +174,9 @@ OpenACC enqueue launch: main$_omp_fn$1 (implicit)... :      100      0.000      
 
 ![OpenACC task graph](img/openacc_taskgraph.png)
 
-## CUDA
+### CUDA
 
-### Configuring APEX for CUDA support
+#### Configuring APEX for CUDA support
 
 Enabling CUDA support in APEX requires the `-DAPEX_WITH_CUDA=TRUE` flag and the `-DCUDA_ROOT=/path/to/cuda` CMake variables at configuration time.  CMake will look for the CUPTI and NVML libraries in the installation, and if found the support will be enabled.
 
@@ -182,7 +184,7 @@ Enabling CUDA support in APEX requires the `-DAPEX_WITH_CUDA=TRUE` flag and the 
 cmake -DCMAKE_C_COMPILER=`which gcc` -DCMAKE_CXX_COMPILER=`which g++` -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=../install -DBUILD_TESTS=TRUE -DUSE_BFD=TRUE -DAPEX_WITH_CUDA=TRUE -DCUDA_ROOT=/usr/local/packages/cuda/10.2 -DBFD_ROOT=/usr/local/packages/binutils/2.34 ..
 ```
 
-### Running CUDA programs with APEX
+#### Running CUDA programs with APEX
 
 Enabling CUDA support only requires using the `apex_exec` wrapper script.
 
@@ -348,15 +350,80 @@ launch [/home/users/khuck/src/xpress-apex/src/uni... :        4      0.000      
 
 ![CUDA task graph](img/cuda_taskgraph.png)
 
-## Kokkos
+### Kokkos
 
-### Configuring APEX for Kokkos support
+#### Configuring APEX for Kokkos support
 
 Like OpenACC, nothing special needs to be done to enable Kokkos support.
 
-### Running Kokkos programs with APEX
+#### Running Kokkos programs with APEX
 
 Enabling Kokkos support requires setting the `KOKKOS_PROFILE_LIBRARY` environment variable with the path to `libapex.so`, or by using the `apex_exec` script with the `--apex:kokkos` flag.
 
+### C++ Threads
 
+APEX suports C++ threads on Linux, with the assumption that they are implemented on top of POSIX threads.
+
+#### Configuring APEX for C++ Thread support
+
+Nothing special needs to be done to enable C++ thread support.
+
+#### Running C++ Thread programs with APEX
+
+Enabling C++ Thread support requires using the `apex_exec` script with the `--apex:pthread` flag.  That will enable the preloading of a wrapper library to intercept `pthread_create()` calls.  A sample program with C++ threads is in the APEX unit tests:
+
+```
+khuck@Kevins-MacBook-Air build % ../install/bin/apex_exec --apex:pthread src/unit_tests/C++/apex_fibonacci_std_async_cpp
+Program to run :  src/unit_tests/C++/apex_fibonacci_std_async_cpp
+usage: apex_fibonacci_std_async_cpp <integer value>
+Using default value of 10
+fib of 10 is 55 (valid value: 55)
+
+Elapsed time: 0.005359 seconds
+Cores detected: 8
+Worker Threads observed: 178
+Available CPU time: 0.042872 seconds
+
+Timer                                                : #calls  |    mean  |   total  |  % total
+------------------------------------------------------------------------------------------------
+  fib(int, std::__1::shared_ptr<apex::task_wrapper>) :      177      0.001      0.171    --n/a--
+                                           APEX MAIN :        1      0.005      0.005    100.000
+------------------------------------------------------------------------------------------------
+                                        Total timers : 177
+```
+Note that APEX detected 178 total OS threads.  That is because some C++ thread implementations (GCC, Clang, others) implement *every* `std::async()` call as a new OS thread, resulting in a `pthread_create()` call.
+
+### Other Runtime Systems
+
+We are currently evaluating support for TBB, OpenCL, SYCL/DPC++/OneAPI, among others.
+
+## Performance Measurement Features
+
+### Profiling
+
+*coming soon*
+
+### Profiling with CSV output
+
+*coming soon*
+
+### Profiling with TAU profile output
+
+*coming soon*
+
+### Profiling with Taskgraph output
+
+*coming soon*
+
+### Profiling with Scatterplot output
+
+*coming soon*
+
+### Profiling with OTF2 Trace output
+
+*coming soon*
+
+### Profiling with Google Trace Events Format output
+
+*coming soon*
 

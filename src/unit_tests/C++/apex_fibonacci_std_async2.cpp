@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
 #endif
 
     if (argc != 2) {
-        std::cerr << "usage: pthreads <integer value>" << std::endl;
+        std::cerr << "usage: apex_fibonacci_std_async2_cpp <integer value>" << std::endl;
         std::cerr << "Using default value of 10" << std::endl;
     } else {
         i = atol(argv[1]);
