@@ -51,7 +51,7 @@ endif()
 if((DEFINED APEX_LXK_KITTEN) AND (APEX_LXK_KITTEN))
     SET(BUILD_STATIC_EXECUTABLES TRUE CACHE BOOL "Build Static Libraries and Executables" FORCE)
     SET(READ_PROC_FILESYSTEM FALSE CACHE BOOL "Periodically read the /proc filesystem status" FORCE)
-    SET(USE_CLOCK_TIMESTAMP FALSE CACHE BOOL "Disable assembly code timestamp call" FORCE)
+    SET(USE_CLOCK_TIMESTAMP TRUE CACHE BOOL "Disable assembly code timestamp call" FORCE)
 endif()
 
 ################################################################################
@@ -94,7 +94,9 @@ IF("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
 endif()
 
 IF("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo")
-  add_definitions(-DDEBUG)
+  set(BUILD_TESTS TRUE)
+  set(BUILD_EXAMPLES TRUE)
+  add_definitions(-DNDEBUG)
 endif()
 
 IF("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
