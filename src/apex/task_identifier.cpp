@@ -124,12 +124,16 @@ std::mutex bfd_mutex;
     }
 
   task_identifier::apex_name_map& task_identifier::get_task_id_name_map(void) {
-      static APEX_NATIVE_TLS apex_name_map task_id_name_map;
-      return task_id_name_map;
+      /* By allocating this map on the heap, it won't get destroyed at shutdown,
+       * which causes a crash with Intel compilers.  Can't figure out why. */
+      static APEX_NATIVE_TLS apex_name_map * task_id_name_map = new apex_name_map();
+      return *task_id_name_map;
   }
   task_identifier::apex_addr_map& task_identifier::get_task_id_addr_map(void) {
-      static APEX_NATIVE_TLS apex_addr_map task_id_addr_map;
-      return task_id_addr_map;
+      /* By allocating this map on the heap, it won't get destroyed at shutdown,
+       * which causes a crash with Intel compilers.  Can't figure out why. */
+      static APEX_NATIVE_TLS apex_addr_map * task_id_addr_map = new apex_addr_map();
+      return *task_id_addr_map;
   }
 
   task_identifier * task_identifier::get_task_id (apex_function_address a) {
