@@ -6,6 +6,11 @@
  * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
+#if defined(APEX_HAVE_HPX_CONFIG) || defined(APEX_HAVE_HPX)
+#include <hpx/config.hpp>
+#include <hpx/include/lcos.hpp>
+#include <hpx/modules/collectives.hpp>
+#endif
 #include "otf2_listener.hpp"
 #include "thread_instance.hpp"
 #include <sstream>
@@ -1314,19 +1319,319 @@ namespace apex {
     }
 
 /* HPX implementation - TBD - for now, stick with file based reduction */
-/*
 #if defined(APEX_HAVE_HPX)
 
+    std::unique_ptr<std::tuple<std::map<int,int>,
+                    std::map<int,std::string> > >
+         otf2_listener::reduce_node_properties(std::string&& str) {
+        // get all hostnames
+        constexpr char const* gather_basename = "/otf2/properties/gather/";
 
-    std::unique_ptr<std::tuple<std::map<int,int>, std::map<int,std::string> > >
-    otf2_listener::reduce_node_properties(std::string&& str) {
-        return nullptr;
+        // if not root, we have a simple job...
+        if (my_saved_node_id > 0) {
+            hpx::future<void> overall_result = hpx::lcos::gather_there(
+                gather_basename, str);
+            overall_result.get();
+            return nullptr;
+        }
+        // if root, gather the names...
+        hpx::future<std::vector<std::string>> overall_result =
+            hpx::lcos::gather_here(gather_basename,
+                str, my_saved_node_count);
+        std::vector<std::string> allhostnames = overall_result.get();
+
+        std::map<int,int> rank_pid_map;
+        std::map<int,string> rank_hostname_map;
+        int rank, pid;
+        std::string hostname;
+
+        // find the lowest rank with my hostname
+        for (int i = 0 ; i < my_saved_node_count ; i++) {
+            istringstream ss(allhostnames[i]);
+            ss >> rank >> pid >> hostname;
+            rank_pid_map[rank] = pid;
+            rank_hostname_map[rank] = hostname;
+        }
+        return APEX_MAKE_UNIQUE<std::tuple<std::map<int,int>,
+                                std::map<int,string> > >(
+                                rank_pid_map, rank_hostname_map);
     }
 
-#elif defined(APEX_HAVE_MPI)
-*/
+    std::string otf2_listener::write_my_regions(void) {
+        stringstream region_file;
+        // first, output our number of threads.
+        region_file << _event_threads.size() << endl;
+        // then iterate over the regions and write them out.
+        for (auto const &i : global_region_indices) {
+            task_identifier id = i.first;
+            region_file << id.get_name() << endl;
+        }
+        return region_file.str();
+    }
 
-#if defined(APEX_HAVE_MPI)
+    std::uint32_t f1()
+    {
+        return hpx::get_locality_id();
+    }
+    HPX_PLAIN_ACTION(f1);
+
+    int otf2_listener::reduce_regions(void) {
+        std::string my_regions{write_my_regions()};
+        std::string fullmap;
+
+        // if not root, we have a simple job...
+        if (my_saved_node_id > 0) {
+            hpx::future<void> overall_result = hpx::lcos::gather_there(
+                gather_basename, my_regions);
+            overall_result.get();
+        } else {
+            // if root, gather the names...
+            hpx::future<std::vector<std::string>> overall_result =
+                hpx::lcos::gather_here(gather_basename,
+                    my_regions, my_saved_node_count);
+            std::vector<std::string> rbuf = overall_result.get();
+
+            // iterate over my region map, and build a map of strings to ids
+            // save my number of regions
+            rank_region_map[0] = global_region_indices.size();
+            for (auto const &i : global_region_indices) {
+                task_identifier id = i.first;
+                uint64_t idx = i.second;
+                reduced_region_map[id.get_name()] = idx;
+            }
+            // iterate over the other ranks in the index files
+            for (int i = 1 ; i < my_saved_node_count ; i++) {
+                rank_region_map[i] = 0;
+                std::string region_file_string(rbuf[i]);
+                // get the number of threads from this rank
+                std::string region_line;
+                std::stringstream region_file(region_file_string);
+                std::getline(region_file, region_line);
+                std::string::size_type sz;   // alias of size_t
+                rank_thread_map[i] = std::stoi(region_line,&sz);
+                // read the map from that rank
+                while (std::getline(region_file, region_line)) {
+                    rank_region_map[i] = rank_region_map[i] + 1;
+                    // trim the newline
+                    region_line.erase(std::remove(region_line.begin(),
+                        region_line.end(), '\n'), region_line.end());
+                    if (reduced_region_map.find(region_line) ==
+                        reduced_region_map.end()) {
+                        uint64_t idx = reduced_region_map.size();
+                        reduced_region_map[region_line] = idx;
+                    }
+                }
+            }
+            // copy the reduced map to a pair, so we can sort by value
+            std::vector<std::pair<std::string, int>> pairs;
+            for (auto const &i : reduced_region_map) {
+                pairs.push_back(i);
+            }
+            sort(pairs.begin(), pairs.end(), string_sort_by_value());
+            std::stringstream region_file;
+            // iterate over the regions and build the string
+            for (auto const &i : pairs) {
+                std::string name = i.first;
+                uint64_t idx = i.second;
+                region_file << idx << "\t" << name << endl;
+            }
+            fullmap = region_file.str();
+        }
+
+        if (my_saved_node_count > 1) {
+            hpx::lcos::barrier("/otf2/barrier");
+            fullmap = hpx::lcos::broadcast<f1_action>(fullmap).get();
+        }
+
+        // read the reduced data
+        if (my_saved_node_count > 1) {
+            std::map<std::string,uint64_t> reduced_region_map;
+            std::string region_line;
+            std::stringstream region_file(fullmap);
+            std::string region_name;
+            int idx;
+            // read the map from rank 0
+            while (std::getline(region_file, region_line)) {
+                //istringstream ss(region_line);
+                //ss >> idx >> region_name;
+                size_t index = region_line.find("\t");
+                std::string tmp = region_line.substr(0,index);
+                region_name = region_line.substr(index+1);
+                idx = atoi(tmp.c_str());
+                reduced_region_map[region_name] = idx;
+            }
+            // ...and write the map to the local definitions
+            write_region_map(reduced_region_map);
+        }
+        return my_saved_node_count;
+    }
+
+    std::string otf2_listener::write_my_metrics(void) {
+        stringstream metric_file;
+        // first, output our number of threads.
+        metric_file << _event_threads.size() << endl;
+        // then, output our end timestamp
+        metric_file << saved_end_timestamp << endl;
+        // then iterate over the metrics and write them out.
+        for (auto const &i : global_metric_indices) {
+            string id = i.first;
+            metric_file << id << endl;
+        }
+        return metric_file.str();
+    }
+
+    void otf2_listener::reduce_metrics(void) {
+        std::string my_metrics = write_my_metrics();
+        std::string fullmap;
+
+        // if not root, we have a simple job...
+        if (my_saved_node_id > 0) {
+            hpx::future<void> overall_result = hpx::lcos::gather_there(
+                gather_basename, my_regions);
+            overall_result.get();
+        } else {
+            // if root, gather the names...
+            hpx::future<std::vector<std::string>> overall_result =
+                hpx::lcos::gather_here(gather_basename,
+                    my_metrics, my_saved_node_count);
+            std::vector<std::string> rbuf = overall_result.get();
+
+            // iterate over my metric map, and build a map of strings to ids
+            // save my number of metrics
+            rank_metric_map[0] = global_metric_indices.size();
+            for (auto const &i : global_metric_indices) {
+                task_identifier id = i.first;
+                uint64_t idx = i.second;
+                reduced_metric_map[id.get_name()] = idx;
+            }
+            // iterate over the other ranks in the index files
+            for (int i = 1 ; i < my_saved_node_count ; i++) {
+                rank_metric_map[i] = 0;
+                std::string metric_file_string(rbuf[i]);
+                // get the number of threads from this rank
+                std::string metric_line;
+                std::stringstream metric_file(metric_file_string);
+                std::getline(metric_file, metric_line);
+                std::string::size_type sz;   // alias of size_t
+                rank_thread_map[i] = std::stoi(metric_line,&sz);
+                // get the last timestamp
+                std::getline(metric_file, metric_line);
+                uint64_t tmp_timestamp = std::stol(metric_line, &sz);
+                if (saved_end_timestamp < tmp_timestamp) {
+                    saved_end_timestamp = tmp_timestamp;
+                }
+                // read the map from that rank
+                while (std::getline(metric_file, metric_line)) {
+                    rank_metric_map[i] = rank_metric_map[i] + 1;
+                    // trim the newline
+                    metric_line.erase(std::remove(metric_line.begin(),
+                        metric_line.end(), '\n'), metric_line.end());
+                    if (reduced_metric_map.find(metric_line) ==
+                        reduced_metric_map.end()) {
+                        uint64_t idx = reduced_metric_map.size();
+                        reduced_metric_map[metric_line] = idx;
+                    }
+                }
+            }
+            // copy the reduced map to a pair, so we can sort by value
+            std::vector<std::pair<std::string, int>> pairs;
+            for (auto const &i : reduced_metric_map) {
+                pairs.push_back(i);
+            }
+            sort(pairs.begin(), pairs.end(), string_sort_by_value());
+            std::stringstream metric_file;
+            // iterate over the metrics and build the string
+            for (auto const &i : pairs) {
+                std::string name = i.first;
+                uint64_t idx = i.second;
+                metric_file << idx << "\t" << name << endl;
+            }
+            fullmap = metric_file.str();
+        }
+
+        if (my_saved_node_count > 1) {
+            hpx::lcos::barrier("/otf2/barrier");
+            fullmap = hpx::lcos::broadcast<f1_action>(fullmap).get();
+        }
+
+        // read the reduced data
+        if (my_saved_node_count > 1) {
+            std::map<std::string,uint64_t> reduced_metric_map;
+            std::string metric_line;
+            std::stringstream metric_file(fullmap);
+            std::string metric_name;
+            int idx;
+            // read the map from rank 0
+            while (std::getline(metric_file, metric_line)) {
+                //istringstream ss(metric_line);
+                //ss >> idx >> metric_name;
+                size_t index = metric_line.find("\t");
+                std::string tmp = metric_line.substr(0,index);
+                metric_name = metric_line.substr(index+1);
+                idx = atoi(tmp.c_str());
+                reduced_metric_map[metric_name] = idx;
+            }
+            // ...and distribute them back out
+            write_metric_map(reduced_metric_map);
+        }
+     }
+
+    std::string otf2_listener::write_my_threads(void) {
+        stringstream thread_file;
+        // iterate over the threads and write them out.
+        for (auto const i : _event_threads) {
+            thread_file << i << "=" << _event_thread_names[i] << endl;
+        }
+        return thread_file.str();
+    }
+
+    void otf2_listener::reduce_threads(void) {
+        std::string my_threads = write_my_threads();
+
+        // if not root, we have a simple job...
+        if (my_saved_node_id > 0) {
+            hpx::future<void> overall_result = hpx::lcos::gather_there(
+                gather_basename, my_regions);
+            overall_result.get();
+            return;
+        // if root, gather the names...
+        hpx::future<std::vector<std::string>> overall_result =
+            hpx::lcos::gather_here(gather_basename,
+                my_metrics, my_saved_node_count);
+        std::vector<std::string> rbuf = overall_result.get();
+
+        // iterate over my thread map, and build a map of strings to ids
+        // save my number of threads
+        std::map<uint32_t, std::string> thread_name_map;
+        for (auto const i : _event_threads) {
+            thread_name_map[i] = _event_thread_names[i];
+        }
+        rank_thread_name_map[0] = std::move(thread_name_map);
+        // iterate over the other ranks in the index file
+        for (int i = 1 ; i < my_saved_node_count ; i++) {
+            std::map<uint32_t, std::string> tmp_thread_name_map;
+            // get the number of threads from that rank
+            std::string thread_line;
+            std::string tmpmap(rbuf[i]);
+            std::stringstream thread_file(tmpmap);
+            // read the map from that rank
+            while (std::getline(thread_file, thread_line)) {
+                if (thread_line.find("=") != std::string::npos) {
+                    // trim the newline
+                    thread_line.erase(std::remove(thread_line.begin(),
+                        thread_line.end(), '\n'), thread_line.end());
+                    uint32_t index = atol(strtok((char*)(thread_line.c_str()), "="));
+                    char * name = strtok(NULL, "=");
+                    tmp_thread_name_map.insert(
+                        std::pair<uint32_t,std::string>(
+                        index, std::string(name)));
+                }
+            }
+            rank_thread_name_map[i] = std::move(tmp_thread_name_map);
+        }
+     }
+
+#elif defined(APEX_HAVE_MPI)
 
     /* MPI implementations */
 
