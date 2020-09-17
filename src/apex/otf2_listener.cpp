@@ -7,9 +7,10 @@
  */
 
 #if defined(APEX_HAVE_HPX_CONFIG) || defined(APEX_HAVE_HPX)
-#include <hpx/config.hpp>
+#include <hpx/hpx.hpp>
 #include <hpx/include/lcos.hpp>
 #include <hpx/modules/collectives.hpp>
+//#include <hpx/collectives/all_to_all.hpp>
 #endif
 #include "otf2_listener.hpp"
 #include "thread_instance.hpp"
@@ -1318,28 +1319,32 @@ namespace apex {
         return;
     }
 
-/* HPX implementation - TBD - for now, stick with file based reduction */
+/* HPX implementation */
 #if defined(APEX_HAVE_HPX)
 
     std::unique_ptr<std::tuple<std::map<int,int>,
                     std::map<int,std::string> > >
          otf2_listener::reduce_node_properties(std::string&& str) {
         // get all hostnames
-        constexpr char const* gather_basename = "/otf2/properties/gather/";
+        constexpr char const* gather_basename = "/otf2/properties/gather_direct/";
 
         // if not root, we have a simple job...
         if (my_saved_node_id > 0) {
             hpx::future<void> overall_result = hpx::lcos::gather_there(
-                gather_basename, str);
+                gather_basename, hpx::make_ready_future(str));
             overall_result.get();
             return nullptr;
         }
-        // if root, gather the names...
-        hpx::future<std::vector<std::string>> overall_result =
-            hpx::lcos::gather_here(gather_basename,
-                str, my_saved_node_count);
-        std::vector<std::string> allhostnames = overall_result.get();
-
+        std::vector<std::string> allhostnames;
+        if (my_saved_node_count > 1) {
+            // if root, gather the names...
+            hpx::future<std::vector<std::string>> overall_result =
+                hpx::lcos::gather_here(gather_basename, hpx::make_ready_future(str),
+                    my_saved_node_count);
+            allhostnames = overall_result.get();
+        } else {
+            allhostnames.push_back(str);
+        }
         std::map<int,int> rank_pid_map;
         std::map<int,string> rank_hostname_map;
         int rank, pid;
@@ -1369,27 +1374,27 @@ namespace apex {
         return region_file.str();
     }
 
-    std::uint32_t f1()
-    {
-        return hpx::get_locality_id();
-    }
-    HPX_PLAIN_ACTION(f1);
-
     int otf2_listener::reduce_regions(void) {
         std::string my_regions{write_my_regions()};
         std::string fullmap;
 
+        constexpr char const* gather_basename = "/otf2/regions/gather_direct/";
         // if not root, we have a simple job...
         if (my_saved_node_id > 0) {
             hpx::future<void> overall_result = hpx::lcos::gather_there(
-                gather_basename, my_regions);
+                gather_basename, hpx::make_ready_future(my_regions));
             overall_result.get();
         } else {
-            // if root, gather the names...
-            hpx::future<std::vector<std::string>> overall_result =
-                hpx::lcos::gather_here(gather_basename,
-                    my_regions, my_saved_node_count);
-            std::vector<std::string> rbuf = overall_result.get();
+            std::vector<std::string> rbuf;
+            if (my_saved_node_count > 1) {
+                // if root, gather the names...
+                hpx::future<std::vector<std::string>> overall_result =
+                    hpx::lcos::gather_here(gather_basename, hpx::make_ready_future(my_regions),
+                        my_saved_node_count);
+                rbuf = overall_result.get();
+            } else {
+                rbuf.push_back(my_regions);
+            }
 
             // iterate over my region map, and build a map of strings to ids
             // save my number of regions
@@ -1438,16 +1443,30 @@ namespace apex {
             fullmap = region_file.str();
         }
 
+        std::vector<std::string> fullmap_vector;
         if (my_saved_node_count > 1) {
             hpx::lcos::barrier("/otf2/barrier");
-            fullmap = hpx::lcos::broadcast<f1_action>(fullmap).get();
+            constexpr char const* bcast_basename = "/otf2/broadcast/regions/";
+            if (my_saved_node_id > 0) {
+                hpx::future<std::string> overall_result =
+                    hpx::lcos::broadcast_from<std::string>(bcast_basename);
+                fullmap_vector.push_back(overall_result.get());
+            } else {
+                hpx::future<void> overall_result =
+                    hpx::lcos::broadcast_to(bcast_basename,
+                        hpx::make_ready_future(fullmap));
+                overall_result.get();
+                fullmap_vector.push_back(fullmap);
+            }
+        } else {
+            fullmap_vector.push_back(fullmap);
         }
 
         // read the reduced data
         if (my_saved_node_count > 1) {
             std::map<std::string,uint64_t> reduced_region_map;
             std::string region_line;
-            std::stringstream region_file(fullmap);
+            std::stringstream region_file(fullmap_vector[0]);
             std::string region_name;
             int idx;
             // read the map from rank 0
@@ -1484,17 +1503,23 @@ namespace apex {
         std::string my_metrics = write_my_metrics();
         std::string fullmap;
 
+        constexpr char const* gather_basename = "/otf2/metrics/gather_direct/";
         // if not root, we have a simple job...
         if (my_saved_node_id > 0) {
             hpx::future<void> overall_result = hpx::lcos::gather_there(
-                gather_basename, my_regions);
+                gather_basename, hpx::make_ready_future(my_metrics));
             overall_result.get();
         } else {
-            // if root, gather the names...
-            hpx::future<std::vector<std::string>> overall_result =
-                hpx::lcos::gather_here(gather_basename,
-                    my_metrics, my_saved_node_count);
-            std::vector<std::string> rbuf = overall_result.get();
+            std::vector<std::string> rbuf;
+            if (my_saved_node_count > 1) {
+                // if root, gather the names...
+                hpx::future<std::vector<std::string>> overall_result =
+                    hpx::lcos::gather_here(gather_basename, hpx::make_ready_future(my_metrics),
+                        my_saved_node_count);
+                rbuf = overall_result.get();
+            } else {
+                rbuf.push_back(my_metrics);
+            }
 
             // iterate over my metric map, and build a map of strings to ids
             // save my number of metrics
@@ -1549,16 +1574,30 @@ namespace apex {
             fullmap = metric_file.str();
         }
 
+        std::vector<std::string> fullmap_vector;
         if (my_saved_node_count > 1) {
             hpx::lcos::barrier("/otf2/barrier");
-            fullmap = hpx::lcos::broadcast<f1_action>(fullmap).get();
+            constexpr char const* bcast_basename = "/otf2/broadcast/metrics/";
+            if (my_saved_node_id > 0) {
+                hpx::future<std::string> overall_result =
+                    hpx::lcos::broadcast_from<std::string>(bcast_basename);
+                fullmap_vector.push_back(overall_result.get());
+            } else {
+                hpx::future<void> overall_result =
+                    hpx::lcos::broadcast_to(bcast_basename,
+                        hpx::make_ready_future(fullmap));
+                overall_result.get();
+                fullmap_vector.push_back(fullmap);
+            }
+        } else {
+            fullmap_vector.push_back(fullmap);
         }
 
         // read the reduced data
         if (my_saved_node_count > 1) {
             std::map<std::string,uint64_t> reduced_metric_map;
             std::string metric_line;
-            std::stringstream metric_file(fullmap);
+            std::stringstream metric_file(fullmap_vector[0]);
             std::string metric_name;
             int idx;
             // read the map from rank 0
@@ -1588,17 +1627,24 @@ namespace apex {
     void otf2_listener::reduce_threads(void) {
         std::string my_threads = write_my_threads();
 
+        constexpr char const* gather_basename = "/otf2/threads/gather_direct/";
         // if not root, we have a simple job...
         if (my_saved_node_id > 0) {
             hpx::future<void> overall_result = hpx::lcos::gather_there(
-                gather_basename, my_regions);
+                gather_basename, hpx::make_ready_future(my_threads));
             overall_result.get();
             return;
-        // if root, gather the names...
-        hpx::future<std::vector<std::string>> overall_result =
-            hpx::lcos::gather_here(gather_basename,
-                my_metrics, my_saved_node_count);
-        std::vector<std::string> rbuf = overall_result.get();
+        }
+        std::vector<std::string> rbuf;
+        if (my_saved_node_count > 1) {
+            // if root, gather the names...
+            hpx::future<std::vector<std::string>> overall_result =
+                hpx::lcos::gather_here(gather_basename, hpx::make_ready_future(my_threads),
+                    my_saved_node_count);
+                rbuf = overall_result.get();
+        } else {
+            rbuf.push_back(my_threads);
+        }
 
         // iterate over my thread map, and build a map of strings to ids
         // save my number of threads
