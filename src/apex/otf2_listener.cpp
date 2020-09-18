@@ -8,9 +8,10 @@
 
 #if defined(APEX_HAVE_HPX_CONFIG) || defined(APEX_HAVE_HPX)
 #include <hpx/hpx.hpp>
+#if defined(HPX_HAVE_NETWORKING)
 #include <hpx/include/lcos.hpp>
 #include <hpx/modules/collectives.hpp>
-//#include <hpx/collectives/all_to_all.hpp>
+#endif
 #endif
 #include "otf2_listener.hpp"
 #include "thread_instance.hpp"
@@ -1320,7 +1321,7 @@ namespace apex {
     }
 
 /* HPX implementation */
-#if defined(APEX_HAVE_HPX)
+#if defined(APEX_HAVE_HPX) && defined(HPX_HAVE_NETWORKING)
 
     std::unique_ptr<std::tuple<std::map<int,int>,
                     std::map<int,std::string> > >
