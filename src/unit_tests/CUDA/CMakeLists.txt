@@ -3,10 +3,14 @@ if(MPI_CXX_FOUND)
     set(APEX_CUDA_C_FLAGS ${MPI_COMPILE_FLAGS})
     set(APEX_CUDA_EXTRA_INCLUDE ${MPI_CXX_INCLUDE_PATH})
     set(APEX_CUDA_CXX_LINK_FLAGS ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES})
+    set(APEX_RING_EXAMPLE apex_ring_dtod)
+    set(APEX_P2P_EXAMPLE apex_p2p)
+    #set(APEX_PING_PONG_EXAMPLE apex_ping_pong)
 endif()
 
 # Make sure the compiler can find include files from our Apex library.
 include_directories (${APEX_SOURCE_DIR}/src/apex ${APEX_CUDA_EXTRA_INCLUDE})
+include_directories(${APEX_SOURCE_DIR}/src/unit_tests/CUDA)
 
 # Make sure the linker can find the Apex library once it is built.
 link_directories (${APEX_BINARY_DIR}/src/apex)
@@ -17,6 +21,9 @@ set(example_programs
     apex_multi_cuda
     apex_vector
     multiGpuThread
+    ${APEX_RING_EXAMPLE}
+    ${APEX_P2P_EXAMPLE}
+    ${APEX_PING_PONG_EXAMPLE}
    )
 
 if (OPENMP_FOUND)

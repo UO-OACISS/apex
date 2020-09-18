@@ -139,7 +139,7 @@ void store_counter_data(const char * name, const std::string& context,
         std::stringstream ss;
         ss << name;
         if (apex::apex_options::use_cuda_kernel_details() || force) {
-            ss << " <- " << context;
+            ss << ": " << context;
         }
         apex::sample_value(ss.str(), value);
     }
@@ -164,23 +164,25 @@ static const char * getMemcpyKindString(uint8_t kind)
 {
     switch (kind) {
         case CUPTI_ACTIVITY_MEMCPY_KIND_HTOD:
-            return "Memory copy HtoD";
+            return "Memcpy HtoD";
         case CUPTI_ACTIVITY_MEMCPY_KIND_DTOH:
-            return "Memory copy DtoH";
+            return "Memcpy DtoH";
         case CUPTI_ACTIVITY_MEMCPY_KIND_HTOA:
-            return "Memory copy HtoA";
+            return "Memcpy HtoA";
         case CUPTI_ACTIVITY_MEMCPY_KIND_ATOH:
-            return "Memory copy AtoH";
+            return "Memcpy AtoH";
         case CUPTI_ACTIVITY_MEMCPY_KIND_ATOA:
-            return "Memory copy AtoA";
+            return "Memcpy AtoA";
         case CUPTI_ACTIVITY_MEMCPY_KIND_ATOD:
-            return "Memory copy AtoD";
+            return "Memcpy AtoD";
         case CUPTI_ACTIVITY_MEMCPY_KIND_DTOA:
-            return "Memory copy DtoA";
+            return "Memcpy DtoA";
         case CUPTI_ACTIVITY_MEMCPY_KIND_DTOD:
-            return "Memory copy DtoD";
+            return "Memcpy DtoD";
         case CUPTI_ACTIVITY_MEMCPY_KIND_HTOH:
-            return "Memory copy HtoH";
+            return "Memcpy HtoH";
+        case CUPTI_ACTIVITY_MEMCPY_KIND_PTOP:
+            return "Memcpy PtoP";
         default:
             break;
     }
@@ -193,9 +195,9 @@ getUvmCounterKindString(CUpti_ActivityUnifiedMemoryCounterKind kind)
     switch (kind)
     {
         case CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_BYTES_TRANSFER_HTOD:
-            return "Unified Memory copy HTOD";
+            return "Unified Memcpy HTOD";
         case CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_BYTES_TRANSFER_DTOH:
-            return "Unified Memory copy DTOH";
+            return "Unified Memcpy DTOH";
         case CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_CPU_PAGE_FAULT_COUNT:
             return "Unified Memory CPU Page Fault Count";
         case CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_GPU_PAGE_FAULT:
@@ -301,8 +303,33 @@ static void contextActivity(CUpti_Activity *record) {
 }
 #endif
 
+static void memoryActivity2(CUpti_Activity *record) {
+    CUpti_ActivityMemcpy2 *memcpy = (CUpti_ActivityMemcpy2 *) record;
+    std::stringstream ss;
+    ss << getMemcpyKindString(memcpy->copyKind) << " "
+       << memcpy->deviceId << "->" << memcpy->dstDeviceId;
+    std::string name{ss.str()};
+    store_profiler_data(name, memcpy->correlationId, memcpy->start,
+            memcpy->end, memcpy->deviceId, memcpy->contextId, memcpy->streamId);
+    if (apex::apex_options::use_cuda_counters()) {
+        store_counter_data("GPU: Bytes", name, memcpy->end,
+            memcpy->bytes, true);
+        // (1024 * 1024 * 1024) / 1,000,000,000
+        constexpr double GIGABYTES{1.073741824};
+        double duration = (double)(memcpy->end - memcpy->start);
+        double gbytes = (double)(memcpy->bytes) / GIGABYTES;
+        // dividing bytes by nanoseconds should give us GB/s
+        double bandwidth = gbytes / duration;
+        store_counter_data("GPU: Bandwidth (GB/s)", name,
+            memcpy->end, bandwidth, true);
+    }
+}
+
 static void memoryActivity(CUpti_Activity *record) {
     CUpti_ActivityMemcpy *memcpy = (CUpti_ActivityMemcpy *) record;
+    if (memcpy->copyKind == CUPTI_ACTIVITY_MEMCPY_KIND_DTOD) {
+        return memoryActivity2(record);
+    }
     std::string name{getMemcpyKindString(memcpy->copyKind)};
     store_profiler_data(name, memcpy->correlationId, memcpy->start,
             memcpy->end, memcpy->deviceId, memcpy->contextId, memcpy->streamId);
@@ -502,9 +529,13 @@ static void printActivity(CUpti_Activity *record) {
         }
 #endif
         case CUPTI_ACTIVITY_KIND_MEMCPY:
-        case CUPTI_ACTIVITY_KIND_MEMCPY2:
         {
             memoryActivity(record);
+            break;
+        }
+        case CUPTI_ACTIVITY_KIND_MEMCPY2:
+        {
+            memoryActivity2(record);
             break;
         }
         case CUPTI_ACTIVITY_KIND_UNIFIED_MEMORY_COUNTER: {
