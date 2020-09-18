@@ -417,7 +417,10 @@ namespace apex {
         //my_node_id = (my_node_id << 32) + thread_instance::get_id();
         my_node_id = (my_node_id << 32) + _event_threads.size();
         evt_writer = OTF2_Archive_GetEvtWriter( archive, my_node_id );
-        if (thread_instance::get_id() == 0) {
+        //if (thread_instance::get_id() == 0) {
+        // If this is the first thread, make it the comm_evt_writer
+        // (assume it is the master thread)
+        if (comm_evt_writer == nullptr) {
             comm_evt_writer = evt_writer;
         }
         //_event_threads.insert(thread_instance::get_id());
@@ -431,7 +434,8 @@ namespace apex {
         _event_thread_names.insert(std::pair<uint32_t, std::string>(tmpid, name));
       // Are we closing an event writer?
       } else if (!create) {
-        if (thread_instance::get_id() == 0) {
+        //if (thread_instance::get_id() == 0) {
+        if (evt_writer == comm_evt_writer) {
             comm_evt_writer = nullptr;
         }
         if (evt_writer != nullptr) {
@@ -501,12 +505,8 @@ namespace apex {
         if (created) return true;
 
         if (my_saved_node_id == 0) {
-            // is this a good idea?
-            /* NO! why? because we might not know which rank we are, and
-             * we don't know if the archive is supposed to be there or not.
-             * DO IT ANYWAY
-             */
-            std::cout << "removing path!" << std::endl; fflush(stdout);
+            // is this a good idea?  Sure.
+            //std::cout << "removing path!" << std::endl; fflush(stdout);
             remove_path(apex_options::otf2_archive_path());
         }
         /* open the OTF2 archive */
@@ -618,7 +618,7 @@ namespace apex {
             string uppercase;
             convert_upper(id, uppercase);
             // does the original string contain APEX?
-            size_t found = id.find(string("APEX"));
+            size_t found = uppercase.find(string("APEX"));
             if (found != std::string::npos) {
                 paradigm = OTF2_PARADIGM_MEASUREMENT_SYSTEM;
                 role = OTF2_REGION_ROLE_ARTIFICIAL;
@@ -1330,6 +1330,7 @@ namespace apex {
 
         // if not root, we have a simple job...
         if (my_saved_node_id > 0) {
+            //printf("%d: calling gather_there from %s\n", my_saved_node_id, __func__);
             hpx::future<void> overall_result = hpx::lcos::gather_there(
                 gather_basename, hpx::make_ready_future(str));
             overall_result.get();
@@ -1337,6 +1338,7 @@ namespace apex {
         }
         std::vector<std::string> allhostnames;
         if (my_saved_node_count > 1) {
+            //printf("%d: calling gather_here from %s\n", my_saved_node_id, __func__);
             // if root, gather the names...
             hpx::future<std::vector<std::string>> overall_result =
                 hpx::lcos::gather_here(gather_basename, hpx::make_ready_future(str),
@@ -1381,12 +1383,14 @@ namespace apex {
         constexpr char const* gather_basename = "/otf2/regions/gather_direct/";
         // if not root, we have a simple job...
         if (my_saved_node_id > 0) {
+            //printf("%d: calling gather_there from %s\n", my_saved_node_id, __func__);
             hpx::future<void> overall_result = hpx::lcos::gather_there(
                 gather_basename, hpx::make_ready_future(my_regions));
             overall_result.get();
         } else {
             std::vector<std::string> rbuf;
             if (my_saved_node_count > 1) {
+                //printf("%d: calling gather_here from %s\n", my_saved_node_id, __func__);
                 // if root, gather the names...
                 hpx::future<std::vector<std::string>> overall_result =
                     hpx::lcos::gather_here(gather_basename, hpx::make_ready_future(my_regions),
@@ -1448,13 +1452,15 @@ namespace apex {
             hpx::lcos::barrier("/otf2/barrier");
             constexpr char const* bcast_basename = "/otf2/broadcast/regions/";
             if (my_saved_node_id > 0) {
+                //printf("%d: calling broadcast_from from %s\n", my_saved_node_id, __func__);
                 hpx::future<std::string> overall_result =
                     hpx::lcos::broadcast_from<std::string>(bcast_basename);
                 fullmap_vector.push_back(overall_result.get());
             } else {
+                //printf("%d: calling broadcast_to from %s\n", my_saved_node_id, __func__);
                 hpx::future<void> overall_result =
                     hpx::lcos::broadcast_to(bcast_basename,
-                        hpx::make_ready_future(fullmap));
+                        hpx::make_ready_future(fullmap), my_saved_node_count);
                 overall_result.get();
                 fullmap_vector.push_back(fullmap);
             }
@@ -1506,12 +1512,14 @@ namespace apex {
         constexpr char const* gather_basename = "/otf2/metrics/gather_direct/";
         // if not root, we have a simple job...
         if (my_saved_node_id > 0) {
+            //printf("%d: calling gather_there from %s\n", my_saved_node_id, __func__);
             hpx::future<void> overall_result = hpx::lcos::gather_there(
                 gather_basename, hpx::make_ready_future(my_metrics));
             overall_result.get();
         } else {
             std::vector<std::string> rbuf;
             if (my_saved_node_count > 1) {
+                //printf("%d: calling gather_here from %s\n", my_saved_node_id, __func__);
                 // if root, gather the names...
                 hpx::future<std::vector<std::string>> overall_result =
                     hpx::lcos::gather_here(gather_basename, hpx::make_ready_future(my_metrics),
@@ -1579,13 +1587,15 @@ namespace apex {
             hpx::lcos::barrier("/otf2/barrier");
             constexpr char const* bcast_basename = "/otf2/broadcast/metrics/";
             if (my_saved_node_id > 0) {
+                //printf("%d: calling broadcast_from from %s\n", my_saved_node_id, __func__);
                 hpx::future<std::string> overall_result =
                     hpx::lcos::broadcast_from<std::string>(bcast_basename);
                 fullmap_vector.push_back(overall_result.get());
             } else {
+                //printf("%d: calling broadcast_to from %s\n", my_saved_node_id, __func__);
                 hpx::future<void> overall_result =
                     hpx::lcos::broadcast_to(bcast_basename,
-                        hpx::make_ready_future(fullmap));
+                        hpx::make_ready_future(fullmap), my_saved_node_count);
                 overall_result.get();
                 fullmap_vector.push_back(fullmap);
             }
@@ -1630,6 +1640,7 @@ namespace apex {
         constexpr char const* gather_basename = "/otf2/threads/gather_direct/";
         // if not root, we have a simple job...
         if (my_saved_node_id > 0) {
+            //printf("%d: calling gather_there from %s\n", my_saved_node_id, __func__);
             hpx::future<void> overall_result = hpx::lcos::gather_there(
                 gather_basename, hpx::make_ready_future(my_threads));
             overall_result.get();
@@ -1637,6 +1648,7 @@ namespace apex {
         }
         std::vector<std::string> rbuf;
         if (my_saved_node_count > 1) {
+            //printf("%d: calling gather_here from %s\n", my_saved_node_id, __func__);
             // if root, gather the names...
             hpx::future<std::vector<std::string>> overall_result =
                 hpx::lcos::gather_here(gather_basename, hpx::make_ready_future(my_threads),

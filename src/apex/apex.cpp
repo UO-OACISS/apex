@@ -154,7 +154,7 @@ static void init_hpx_runtime_ptr(void) {
     }
 }
 
-#ifdef APEX_HAVE_HPX_disabled
+#ifdef APEX_HAVE_HPX
 static void finalize_hpx_runtime(void) {
     FUNCTION_ENTER
     if (apex_options::disable() == true) { return; }
@@ -168,6 +168,9 @@ static void finalize_hpx_runtime(void) {
         if(hpx::get_runtime_ptr() != nullptr) {
             instance->query_runtime_counters();
         }
+    }
+    if (instance->get_node_id() == 0) {
+        printf("APEX Finalizing...\n");
     }
     // Shutdown APEX
     finalize();
@@ -235,7 +238,7 @@ void apex::_initialize()
 #ifdef APEX_HAVE_HPX
     this->m_hpx_runtime = nullptr;
     hpx::register_startup_function(init_hpx_runtime_ptr);
-    //hpx::register_pre_shutdown_function(finalize_hpx_runtime);
+    hpx::register_pre_shutdown_function(finalize_hpx_runtime);
 #endif
 #ifdef APEX_HAVE_RCR
     energyDaemonInit();
