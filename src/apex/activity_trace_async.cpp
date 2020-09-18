@@ -309,10 +309,13 @@ static void memoryActivity(CUpti_Activity *record) {
     if (apex::apex_options::use_cuda_counters()) {
         store_counter_data("GPU: Bytes", name, memcpy->end,
             memcpy->bytes, true);
-        uint64_t duration = memcpy->end - memcpy->start;
+        // (1024 * 1024 * 1024) / 1,000,000,000
+        constexpr double GIGABYTES{1.073741824};
+        double duration = (double)(memcpy->end - memcpy->start);
+        double gbytes = (double)(memcpy->bytes) / GIGABYTES;
         // dividing bytes by nanoseconds should give us GB/s
-        double bandwidth = (double)(memcpy->bytes) / (double)(duration);
-        store_counter_data("GPU: Bandwith (GB/s)", name,
+        double bandwidth = gbytes / duration;
+        store_counter_data("GPU: Bandwidth (GB/s)", name,
             memcpy->end, bandwidth, true);
     }
 }
@@ -335,10 +338,13 @@ static void unifiedMemoryActivity(CUpti_Activity *record) {
         if (apex::apex_options::use_cuda_counters()) {
             store_counter_data("GPU: Bytes", name, memcpy->end,
                     memcpy->value, true);
-            uint64_t duration = memcpy->end - memcpy->start;
+            // (1024 * 1024 * 1024) / 1,000,000,000
+            constexpr double GIGABYTES{1.073741824};
+            double duration = (double)(memcpy->end - memcpy->start);
+            double gbytes = (double)(memcpy->value) / GIGABYTES;
             // dividing bytes by nanoseconds should give us GB/s
-            double bandwidth = (double)(memcpy->value) / (double)(duration);
-            store_counter_data("GPU: Bandwith (GB/s)", name,
+            double bandwidth = gbytes / duration;
+            store_counter_data("GPU: Bandwidth (GB/s)", name,
                     memcpy->end, bandwidth, true);
         }
     } else if (memcpy->counterKind ==
