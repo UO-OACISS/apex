@@ -7,14 +7,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
   <meta name="author" content="Kevin Huck (khuck@cs.uoregon.edu)">
-  <link rel="canonical" href="http://khuck.github.io/xpress-apex/install/">
   <link rel="shortcut icon" href="../img/favicon.ico">
   <title>Installation - APEX</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
 
-  <link rel="stylesheet" href="../css/theme.css" />
-  <link rel="stylesheet" href="../css/theme_extra.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css" />
+  <link rel="stylesheet" href="../css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../css/theme_extra.css" type="text/css" />
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css">
   
   <script>
     // Current page data
@@ -25,7 +24,7 @@
   
   <script src="../js/jquery-2.1.1.min.js" defer></script>
   <script src="../js/modernizr-2.8.3.min.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
   <script>hljs.initHighlightingOnLoad();</script> 
   
 </head>
@@ -36,7 +35,6 @@
 
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
-    <div class="wy-side-scroll">
       <div class="wy-side-nav-search">
         <a href=".." class="icon icon-home"> APEX</a>
         <div role="search">
@@ -47,58 +45,71 @@
       </div>
 
       <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../quickstarthpx/">Quick Start (HPX)</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../quickstart/">Quick Start (standalone)</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../feature/">Feature Overview</a>
-                    </li>
-                </ul>
-                <ul class="current">
-                    <li class="toctree-l1 current"><a class="reference internal current" href="./">Installation</a>
-    <ul class="current">
-    <li class="toctree-l2"><a class="reference internal" href="#installation_with_hpx">Installation with HPX</a>
-    </li>
-    <li class="toctree-l2"><a class="reference internal" href="#standalone_installation">Standalone Installation</a>
+	<ul class="current">
+	  
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="..">Home</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../quickstarthpx/">Quick Start (HPX)</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../quickstart/">Quick Start (standalone)</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../feature/">Feature Overview</a>
+	    </li>
+          
+            <li class="toctree-l1 current">
+		
+    <a class="current" href="./">Installation</a>
+    <ul class="subnav">
+            
+    <li class="toctree-l2"><a href="#installing_apex">Installing APEX</a></li>
+    
         <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#configuring_and_building_apex_with_cmake">Configuring and building APEX with CMake</a>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#other_cmake_settings_depending_on_your_needswants">Other CMake settings, depending on your needs/wants</a>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#other_cmake_variables_of_interest">Other CMake variables of interest</a>
-    </li>
+        
+            <li><a class="toctree-l3" href="#installation_with_hpx">Installation with HPX</a></li>
+        
+            <li><a class="toctree-l3" href="#standalone_installation">Standalone Installation</a></li>
+        
         </ul>
-    </li>
+    
+
     </ul>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../usage/">Usage</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../environment/">Useful Environment Variables</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../spec/">API Specification</a>
-                    </li>
-                </ul>
-                <ul>
-                    <li class="toctree-l1"><a class="reference internal" href="../refman/">API Doxygen Reference</a>
-                    </li>
-                </ul>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../usage/">Usage</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../environment/">Useful Environment Variables</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../spec/">API Specification</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../refman/">API Doxygen Reference</a>
+	    </li>
+          
+        </ul>
       </div>
-    </div>
+      &nbsp;
     </nav>
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
@@ -126,7 +137,6 @@
       
     </li>
   </ul>
-  
   <hr/>
 </div>
           <div role="main">
@@ -197,7 +207,7 @@ make install
 </code></pre>
 
 <h3 id="other_cmake_settings_depending_on_your_needswants">Other CMake settings, depending on your needs/wants<a class="headerlink" href="#other_cmake_settings_depending_on_your_needswants" title="Permanent link">&para;</a></h3>
-<p><strong>Note 1:</strong> <em>The </em><em>recommended</em><em> packages include:</em></p>
+<p><strong>Note 1:</strong> <em>The <strong>recommended</strong> packages include:</em></p>
 <ul>
 <li><strong>Active Harmony</strong> - for autotuning policies</li>
 <li><strong>OMPT</strong> - if OpenMP support is required (<a href="../usecases/#openmp-example">See the OpenMP use case</a> for an example)</li>
@@ -206,7 +216,7 @@ make install
 <li><strong>JEMalloc/TCMalloc</strong> - if your application is not already using a heap manager - see Note 2, below</li>
 <li><strong>CUDA</strong> - if your application uses CUDA, APEX will use CUPTI/NVML to measure GPU activity</li>
 </ul>
-<p><strong>Note 2:</strong> <em>TCMalloc or JEMalloc will potentially speed up memory allocations </em><em>significantly</em><em> in APEX (and in your application). HOWEVER, If your application already uses TCMalloc, JEMalloc or TBBMalloc, </em><em>DO NOT</em><em> configure APEX with TCMalloc or JEMalloc. They will be included at application link time, and may conflict with the version detected by and linked into APEX.</em></p>
+<p><strong>Note 2:</strong> <em>TCMalloc or JEMalloc will potentially speed up memory allocations <strong>significantly</strong> in APEX (and in your application). HOWEVER, If your application already uses TCMalloc, JEMalloc or TBBMalloc, <strong>DO NOT</strong> configure APEX with TCMalloc or JEMalloc. They will be included at application link time, and may conflict with the version detected by and linked into APEX.</em></p>
 <p>There are several utility libraries that provide additional functionality in APEX. Not all libraries are required, but some are recommended.  For the following options, the default values are in <em>italics</em>.</p>
 <ul>
 <li><code>-DUSE_ACTIVEHARMONY=</code>
@@ -283,7 +293,7 @@ make install
     
   </div>
 
-  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+  Built with <a href="http://www.mkdocs.org">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 </footer>
       
         </div>
@@ -293,7 +303,7 @@ make install
 
   </div>
 
-  <div class="rst-versions" role="note" aria-label="versions">
+  <div class="rst-versions" role="note" style="cursor: pointer">
     <span class="rst-current-version" data-toggle="rst-current-version">
       
           <a href="http://github.com/khuck/xpress-apex/" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
@@ -309,11 +319,6 @@ make install
     <script>var base_url = '..';</script>
     <script src="../js/theme.js" defer></script>
       <script src="../search/main.js" defer></script>
-    <script defer>
-        window.onload = function () {
-            SphinxRtdTheme.Navigation.enable(true);
-        };
-    </script>
 
 </body>
 </html>
