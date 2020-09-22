@@ -157,7 +157,7 @@ int main(int argc, char **argv)
     }
 
     // Allocate buffers
-    const size_t buf_size = 1024 * 1024 * 16 * sizeof(float);
+    const size_t buf_size = 1024 * 1024 * 256 * sizeof(float);
     printf("Allocating buffers (%iMB on GPU%d, GPU%d and CPU Host)...\n", int(buf_size / 1024 / 1024), gpuid[0], gpuid[1]);
     checkCudaErrors(cudaSetDevice(gpuid[0]));
     float *g0;

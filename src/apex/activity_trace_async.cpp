@@ -315,9 +315,9 @@ static void memoryActivity2(CUpti_Activity *record) {
         store_counter_data("GPU: Bytes", name, memcpy->end,
             memcpy->bytes, true);
         // (1024 * 1024 * 1024) / 1,000,000,000
-        constexpr double GIGABYTES{1.073741824};
+        // constexpr double GIGABYTES{1.073741824};
         double duration = (double)(memcpy->end - memcpy->start);
-        double gbytes = (double)(memcpy->bytes) / GIGABYTES;
+        double gbytes = (double)(memcpy->bytes); // / GIGABYTES;
         // dividing bytes by nanoseconds should give us GB/s
         double bandwidth = gbytes / duration;
         store_counter_data("GPU: Bandwidth (GB/s)", name,
@@ -337,9 +337,9 @@ static void memoryActivity(CUpti_Activity *record) {
         store_counter_data("GPU: Bytes", name, memcpy->end,
             memcpy->bytes, true);
         // (1024 * 1024 * 1024) / 1,000,000,000
-        constexpr double GIGABYTES{1.073741824};
+        // constexpr double GIGABYTES{1.073741824};
         double duration = (double)(memcpy->end - memcpy->start);
-        double gbytes = (double)(memcpy->bytes) / GIGABYTES;
+        double gbytes = (double)(memcpy->bytes); // / GIGABYTES;
         // dividing bytes by nanoseconds should give us GB/s
         double bandwidth = gbytes / duration;
         store_counter_data("GPU: Bandwidth (GB/s)", name,

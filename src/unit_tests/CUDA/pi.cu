@@ -41,8 +41,8 @@ int main(int argc, char * argv[]) {
   apex::apex_options::use_screen_output(true);
   omp_set_num_threads(2);
 
-  int num_darts = 1<<23; //
-  int N = 1<<25;  // can't be more than 2^30 or memory errors
+  int num_darts = 1<<25; //
+  int N = 1<<27;  // can't be more than 2^30 or memory errors
   int Nx = omp_get_num_threads()*2; // must be even, can be arbitrarily large
   int num_threads = 256;
   int num_blocks = 128;
