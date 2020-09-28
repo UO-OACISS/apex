@@ -89,14 +89,18 @@ struct task_wrapper {
   \brief Static method to get a pre-defined task_wrapper around "main".
   \returns A shared pointer to the task_wrapper
   */
-    static inline std::shared_ptr<task_wrapper> & get_apex_main_wrapper(void) {
+    static std::shared_ptr<task_wrapper> & get_apex_main_wrapper(void) {
         static std::shared_ptr<task_wrapper> tt_ptr(nullptr);
-        if (tt_ptr.get() != nullptr) {
-            return tt_ptr;
+        static std::mutex mtx;
+        if (tt_ptr.get() == nullptr) {
+            mtx.lock();
+            if (tt_ptr.get() == nullptr) {
+                const std::string apex_main_str("APEX MAIN");
+                tt_ptr = std::make_shared<task_wrapper>();
+                tt_ptr->task_id = task_identifier::get_task_id(apex_main_str);
+            }
+            mtx.unlock();
         }
-        const std::string apex_main_str("APEX MAIN");
-        tt_ptr = std::make_shared<task_wrapper>();
-        tt_ptr->task_id = task_identifier::get_task_id(apex_main_str);
         return tt_ptr;
     }
 }; // struct task_wrapper
