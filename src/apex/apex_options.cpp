@@ -23,6 +23,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <mutex>
 #include "utils.hpp"
 #include "proc_read.h"
 
@@ -108,8 +109,13 @@ namespace apex
     }
 
     apex_options& apex_options::instance(void) {
+        static std::mutex mtx;
         if (_instance == nullptr) {
-            _instance = new apex_options();
+            mtx.lock();
+            if (_instance == nullptr) {
+                _instance = new apex_options();
+            }
+            mtx.unlock();
         }
         return *_instance;
     }
