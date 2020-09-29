@@ -233,8 +233,8 @@ std::unordered_set<profile*> free_profiles;
   profile * profiler_listener::get_profile(task_identifier &id) {
     /* Maybe we aren't processing profiler objects yet? Fire off a request. */
 #ifdef APEX_HAVE_HPX
-      // schedule an HPX action
-    apex_schedule_process_profiles();
+    // don't schedule an HPX action - just do it.
+    process_profiles_wrapper();
 #else
     queue_signal.post();
 #endif
@@ -1595,7 +1595,10 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       // shared_ptrs!
       //thequeue()->enqueue(p);
       process_profile(p,0);
+      /* Now that we synchronously process, return! */
+      return;
 
+/*
 #ifndef APEX_HAVE_HPX
       // Check to see if the consumer is already running, to avoid calling
       // "post" too frequently - it is rather costly.
@@ -1609,6 +1612,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         apex_schedule_process_profiles();
       }
 #endif
+*/
   }
 
   /* Stop the timer, if applicable, and queue the profiler object */
