@@ -169,9 +169,11 @@ static void finalize_hpx_runtime(void) {
             instance->query_runtime_counters();
         }
     }
+    /*
     if (instance->get_node_id() == 0) {
         printf("APEX Finalizing...\n");
     }
+    */
     // Shutdown APEX
     finalize();
     hpx_finalized = true;
