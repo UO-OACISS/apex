@@ -222,7 +222,10 @@ bool tau_listener::initialize_tau(int argc, char** argv) {
         if (!_terminate) {
             _terminate = true;
             my_Tau_profile_exit_all_threads();
-            my_Tau_exit("APEX exiting");
+            /* Don't exit!  If we aren't thread 0, this will cause problems
+             * with merged profiles, among other things.
+             * Just let regular TAU shutdown handle things. */
+            //my_Tau_exit("APEX exiting");
         }
         return;
     }
