@@ -27,7 +27,7 @@ typedef int (*Tau_stop_type)(const char *);
 typedef int (*Tau_exit_type)(const char*);
 typedef int (*Tau_dump_prefix_type)(const char *prefix);
 typedef int (*Tau_set_node_type)(int);
-typedef int (*Tau_profile_exit_all_threads_type)(void);
+typedef int (*Tau_profile_exit_most_threads_type)(void);
 typedef int (*Tau_get_thread_type)(void);
 typedef int (*Tau_profile_exit_all_tasks_type)(void);
 typedef int (*Tau_global_stop_type)(void);
@@ -46,7 +46,7 @@ int (*my_Tau_stop)(const char *) = nullptr;
 int (*my_Tau_exit)(const char*) = nullptr;
 int (*my_Tau_set_node)(int) = nullptr;
 int (*my_Tau_dump_prefix)(const char *prefix) = nullptr;
-int (*my_Tau_profile_exit_all_threads)(void) = nullptr;
+int (*my_Tau_profile_exit_most_threads)(void) = nullptr;
 int (*my_Tau_get_thread)(void) = nullptr;
 int (*my_Tau_profile_exit_all_tasks)(void) = nullptr;
 int (*my_Tau_global_stop)(void) = nullptr;
@@ -89,8 +89,8 @@ bool assign_function_pointers(void) {
     if (Tau_set_node != nullptr) {
         my_Tau_set_node = &Tau_set_node;
     }
-    if (Tau_profile_exit_all_threads != nullptr) {
-        my_Tau_profile_exit_all_threads = &Tau_profile_exit_all_threads;
+    if (Tau_profile_exit_most_threads != nullptr) {
+        my_Tau_profile_exit_most_threads = &Tau_profile_exit_most_threads;
     }
     if (Tau_get_thread != nullptr) {
         my_Tau_get_thread = &Tau_get_thread;
@@ -159,9 +159,9 @@ bool assign_function_pointers(void) {
     my_Tau_set_node =
         (Tau_set_node_type)
         dlsym(RTLD_DEFAULT,"Tau_set_node");
-    my_Tau_profile_exit_all_threads =
-        (Tau_profile_exit_all_threads_type)
-        dlsym(RTLD_DEFAULT,"Tau_profile_exit_all_threads");
+    my_Tau_profile_exit_most_threads =
+        (Tau_profile_exit_most_threads_type)
+        dlsym(RTLD_DEFAULT,"Tau_profile_exit_most_threads");
     my_Tau_get_thread =
         (Tau_get_thread_type)
         dlsym(RTLD_DEFAULT,"Tau_get_thread");
@@ -221,10 +221,7 @@ bool tau_listener::initialize_tau(int argc, char** argv) {
         APEX_UNUSED(data);
         if (!_terminate) {
             _terminate = true;
-            my_Tau_profile_exit_all_threads();
-            /* Don't exit!  If we aren't thread 0, this will cause problems
-             * with merged profiles, among other things.
-             * Just let regular TAU shutdown handle things. */
+            my_Tau_profile_exit_most_threads();
             //my_Tau_exit("APEX exiting");
         }
         return;
