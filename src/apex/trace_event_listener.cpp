@@ -249,6 +249,21 @@ void trace_event_listener::on_async_event(uint32_t device, uint32_t context,
     }
 }
 
+void trace_event_listener::on_async_metric(uint32_t device, uint32_t context,
+    uint32_t stream, std::shared_ptr<profiler> &p) {
+    if (!_terminate) {
+        std::stringstream ss;
+        std::string tid{make_tid(device, context, stream)};
+        ss << "{\"name\": \"" << p->get_task_id()->get_name()
+              << "\",\"ph\":\"C\",\"pid\": " << saved_node_id
+              << ",\"ts\":" << fixed << p->get_stop_us()
+              << ",\"args\":{\"value\":" << fixed << p->value
+              << "}},\n";
+        write_to_trace(ss);
+        flush_trace_if_necessary();
+    }
+}
+
 size_t trace_event_listener::get_thread_index(void) {
     static size_t numthreads{0};
     _vthread_mutex.lock();

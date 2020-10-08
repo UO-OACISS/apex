@@ -240,6 +240,8 @@ namespace apex {
         void on_recv(message_event_data &data);
         void on_async_event(uint32_t device, uint32_t context,
             uint32_t stream, std::shared_ptr<profiler> &p);
+        void on_async_metric(uint32_t device, uint32_t context,
+            uint32_t stream, std::shared_ptr<profiler> &p);
 
     };
 }

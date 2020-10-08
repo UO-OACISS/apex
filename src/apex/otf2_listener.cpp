@@ -2595,4 +2595,33 @@ namespace apex {
 
     }
 
+    void otf2_listener::on_async_metric(uint32_t device, uint32_t context,
+        uint32_t stream, std::shared_ptr<profiler> &p) {
+        // This could be a callback from a library before APEX is ready
+        // Something like OpenMP or CUDA/CUPTI or...?
+        if (!_initialized) return ;
+        uint32_t tid{make_vtid(device, context, stream)};
+        // not likely, but just in case...
+        if (_terminate) { return; }
+        // create a union for storing the value
+        OTF2_MetricValue omv[1];
+        omv[0].floating_point = p->value;
+        // tell the union what type this is
+        OTF2_Type omt[1];
+        omt[0]=OTF2_TYPE_DOUBLE;
+        task_identifier * id = p->get_task_id();
+        uint64_t idx = get_metric_index(id->name);
+        uint64_t stamp = p->get_stop_ns() - globalOffset;
+        // don't close the archive on us!
+        read_lock_type lock(_archive_mutex);
+        // before we process the event, make sure the event write is open
+        OTF2_EvtWriter* local_evt_writer = vthread_evt_writer_map[tid];
+        if (local_evt_writer != nullptr) {
+            // write our counter into the event stream
+            OTF2_EC(OTF2_EvtWriter_Metric( local_evt_writer, nullptr, stamp,
+            idx, 1, omt, omv ));
+        }
+        return;
+    }
+
 }
