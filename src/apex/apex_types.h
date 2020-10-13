@@ -312,7 +312,8 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_OTF2_ARCHIVE_PATH, otf2_archive_path, char*, \
         APEX_DEFAULT_OTF2_ARCHIVE_PATH) \
     macro (APEX_OTF2_ARCHIVE_NAME, otf2_archive_name, char*, \
-        APEX_DEFAULT_OTF2_ARCHIVE_NAME)
+        APEX_DEFAULT_OTF2_ARCHIVE_NAME) \
+    macro (APEX_EVENT_FILTER_FILE, task_event_filter_file, char*, "")
 
 // Do the clang check first
 #if defined(__APPLE__) || defined(__clang__)

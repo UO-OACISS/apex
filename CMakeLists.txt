@@ -207,12 +207,12 @@ set(APEX_SANITIZE_OPTIONS "")
 
 # memory, other
 if (DEFINED APEX_SANITIZE AND APEX_SANITIZE)
-  set(APEX_SANITIZE_OPTIONS "-fsanitize=address -fsanitize=undefined ")
+  set(APEX_SANITIZE_OPTIONS "-fsanitize=address -fsanitize=undefined -fsanitize-recover=address ")
 endif (DEFINED APEX_SANITIZE AND APEX_SANITIZE)
 
 # race conditions
 if (DEFINED APEX_SANITIZE_THREAD AND APEX_SANITIZE_THREAD)
-  set(APEX_SANITIZE_OPTIONS "-fsanitize=thread ")
+  set(APEX_SANITIZE_OPTIONS "-fsanitize=thread -fsanitize-recover=thread ")
 endif (DEFINED APEX_SANITIZE_THREAD AND APEX_SANITIZE_THREAD)
 
 # set debug options

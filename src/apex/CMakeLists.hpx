@@ -302,6 +302,7 @@ set(apex_sources
     apex_policies.cpp
     concurrency_handler.cpp
     event_listener.cpp
+    event_filter.cpp
     policy_handler.cpp
     handler.cpp
     profiler_listener.cpp
@@ -337,6 +338,7 @@ add_hpx_library(apex
 
 target_include_directories(apex PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>/../../rapidjson
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
     $<BUILD_INTERFACE:${APEX_BINARY_DIR}>
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>

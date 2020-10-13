@@ -38,6 +38,7 @@
 #include "thread_instance.hpp"
 #include "utils.hpp"
 #include "apex_assert.h"
+#include "event_filter.hpp"
 
 #include "tau_listener.hpp"
 #include "profiler_listener.hpp"
@@ -507,6 +508,10 @@ profiler* start(const std::string &timer_name)
         // don't process our own events - queue scrubbing tasks.
         return profiler::get_disabled_profiler();
     }
+    // don't time filtered events
+    if (!event_filter::include(timer_name)) {
+        return profiler::get_disabled_profiler();
+    }
     apex* instance = apex::instance(); // get the Apex static instance
     // protect against calls after finalization
     if (!instance || _exited) {
@@ -631,6 +636,11 @@ void start(std::shared_ptr<task_wrapper> tt_ptr) {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) {
         APEX_UTIL_REF_COUNT_DISABLED_START
+        tt_ptr->prof = nullptr;
+        return;
+    }
+    // don't time filtered events
+    if (!event_filter::include(tt_ptr->task_id->get_name())) {
         tt_ptr->prof = nullptr;
         return;
     }
