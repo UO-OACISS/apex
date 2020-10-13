@@ -699,6 +699,10 @@ profiler* resume(const std::string &timer_name) {
         APEX_UTIL_REF_COUNT_APEX_INTERNAL_RESUME
         return profiler::get_disabled_profiler();
     }
+    // don't time filtered events
+    if (!event_filter::include(timer_name)) {
+        return profiler::get_disabled_profiler();
+    }
     apex* instance = apex::instance(); // get the Apex static instance
     // protect against calls after finalization
     if (!instance || _exited) {
