@@ -45,6 +45,17 @@ static void __attribute__((constructor)) initTrace(void);
         }                                                                   \
     } while (0)
 
+#define CUDA_CALL(apiFuncCall)                                          \
+do {                                                                           \
+    cudaError_t _status = apiFuncCall;                                         \
+    if (_status != cudaSuccess) {                                              \
+        fprintf(stderr, "%s:%d: error: function %s failed with error %s.\n",   \
+                __FILE__, __LINE__, #apiFuncCall, cudaGetErrorString(_status));\
+        exit(-1);                                                              \
+    }                                                                          \
+} while (0)
+
+
 #define BUF_SIZE (32 * 1024)
 #define ALIGN_SIZE (8)
 #define ALIGN_BUFFER(buffer, align)                                            \
@@ -761,6 +772,40 @@ bool initialize_first_time() {
     return true;
 }
 
+// void(CUDART_CB* cudaHostFn_t )( void*  userData )
+void kernelComplete(void* userData) {
+    char * name = (char *)(userData);
+    std::cout << name << " complete." << std::endl;
+    free(name);
+}
+
+void notifyKernelComplete(CUpti_CallbackId id, const void* params, const char * symbolName) {
+    cudaStream_t stream;
+    switch (id) {
+        case CUPTI_RUNTIME_TRACE_CBID_cudaLaunchKernel_v7000:
+        {
+            stream = ((cudaLaunchKernel_v7000_params_st*)(params))->stream;
+            break;
+        }
+        case CUPTI_RUNTIME_TRACE_CBID_cudaLaunchKernel_ptsz_v7000:
+        {
+            stream = ((cudaLaunchKernel_ptsz_v7000_params_st*)(params))->stream;
+            break;
+        }
+        case CUPTI_RUNTIME_TRACE_CBID_cudaLaunchCooperativeKernel_v9000:
+        case CUPTI_RUNTIME_TRACE_CBID_cudaLaunchCooperativeKernel_ptsz_v9000:
+        case CUPTI_RUNTIME_TRACE_CBID_cudaLaunchCooperativeKernelMultiDevice_v9000:
+        case CUPTI_RUNTIME_TRACE_CBID_cudaGraphKernelNodeGetParams_v10000:
+        case CUPTI_RUNTIME_TRACE_CBID_cudaGraphKernelNodeSetParams_v10000:
+        case CUPTI_RUNTIME_TRACE_CBID_cudaGraphAddKernelNode_v10000:
+        case CUPTI_RUNTIME_TRACE_CBID_cudaGraphExecKernelNodeSetParams_v10010:
+        default:
+            return;
+    }
+    CUDA_CALL(cudaLaunchHostFunc(stream, kernelComplete, (void*)(strdup(symbolName))));
+    return;
+}
+
 bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string context) {
     size_t bytes = 0;
     switch (id) {
@@ -928,7 +973,18 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
         correlation_map[cbdata->correlationId] = timer;
         map_mutex.unlock();
         getBytesIfMalloc(id, cbdata->functionParams, tmp);
-    } else if (!timer_stack.empty()) {
+    } else {
+        /* Not sure how to use this yet... if this is a kernel launch, we can
+         * run a function on the host, launched from the stream.  That gives us
+         * a synchronous callback to tell us an event when the kernel finished.
+         */
+        /*
+        if (cbdata->callbackSite == CUPTI_API_EXIT &&
+            cbdata->functionName != nullptr &&
+            cbdata->symbolName != nullptr)
+            notifyKernelComplete(id, cbdata->functionParams, cbdata->symbolName);
+        */
+        if (!timer_stack.empty()) {
         /*
         static bool first{true};
         // now that a kernel has been launched, we an set up environment tracking
@@ -949,6 +1005,7 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
             uint32_t device{0};
             cuptiGetDeviceId(cbdata->context, &device);
             apex::nvml::monitor::activateDeviceIndex(device);
+        }
         }
     }
 }
