@@ -2,7 +2,7 @@
 
 Please Note:
 ===========
-*All documentation is outdated and currently going through a review and update.  Thanks for your patience.*
+*All documentation has been recently updated.  Thanks for your patience!*
 
 Build Status:
 ===========
