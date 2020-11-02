@@ -2666,13 +2666,12 @@ namespace apex {
             std::cerr << "APEX: Warning - Events delivered out of order on Device "
                       << node._device << ", Context " << node._context
                       << ", Stream " << node._stream
-                      << ".\nIgnoring event " << p->tt_ptr->task_id->get_name()
+                      << ".\nIgnoring event " << id->name
                       << " with timestamp of " << stamp << " after last event "
                       << "with timestamp of " << last << std::endl;
             /*
                 return;
             */
-            }
             /* This activity doesn't fully overlap with the previous, so
              * we are safe to just adjust the start time. */
             stamp = last;
