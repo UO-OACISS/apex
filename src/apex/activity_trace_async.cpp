@@ -29,6 +29,7 @@
 #ifdef APEX_HAVE_OTF2
 #include "otf2_listener.hpp"
 #endif
+#include "cuda_thread_node.hpp"
 
 static void __attribute__((constructor)) initTrace(void);
 //static void __attribute__((destructor)) flushTrace(void);
@@ -56,7 +57,7 @@ do {                                                                           \
 } while (0)
 
 
-#define BUF_SIZE (32 * 1024)
+#define BUF_SIZE (1024 * 1024)
 #define ALIGN_SIZE (8)
 #define ALIGN_BUFFER(buffer, align)                                            \
     (((uintptr_t) (buffer) & ((align)-1)) ? ((buffer) + (align) - ((uintptr_t) (buffer) & ((align)-1))) : (buffer))
@@ -77,6 +78,8 @@ bool flushing{false};
 
 /* The map that holds correlation IDs and matches them to GUIDs */
 std::unordered_map<uint32_t, std::shared_ptr<apex::task_wrapper>> correlation_map;
+/* The map that holds context IDs and matches them to device IDs */
+std::unordered_map<uint32_t, uint32_t> context_map;
 std::mutex map_mutex;
 
 /* Make sure APEX knows about this thread */
@@ -95,13 +98,14 @@ bool register_myself(bool isWorker = true) {
         apex::apex::async_thread_setup();
         registered = true;
     } else if (!registered && isWorker) {
-        apex::register_thread("APEX CUDA support");
+        apex::register_thread("APEX CUPTI support");
     }
     return registered;
 }
 
 void store_profiler_data(const std::string &name, uint32_t correlationId,
-        uint64_t start, uint64_t end, uint32_t device, uint32_t context, uint32_t stream) {
+        uint64_t start, uint64_t end, apex::cuda_thread_node &node,
+        bool otf2_trace = true) {
     // Get the singleton APEX instance
     static apex::apex* instance = apex::apex::instance();
     // get the parent GUID, then erase the correlation from the map
@@ -129,13 +133,13 @@ void store_profiler_data(const std::string &name, uint32_t correlationId,
     if (apex::apex_options::use_trace_event()) {
         apex::trace_event_listener * tel =
             (apex::trace_event_listener*)instance->the_trace_event_listener;
-        tel->on_async_event(device, context, stream, prof);
+        tel->on_async_event(node, prof);
     }
 #ifdef APEX_HAVE_OTF2
-    if (apex::apex_options::use_otf2()) {
+    if (apex::apex_options::use_otf2() && otf2_trace) {
         apex::otf2_listener * tol =
             (apex::otf2_listener*)instance->the_otf2_listener;
-        tol->on_async_event(device, context, stream, prof);
+        tol->on_async_event(node, prof);
     }
 #endif
     // have the listeners handle the end of this task
@@ -160,8 +164,7 @@ void store_sync_counter_data(const char * name, const std::string& context,
 
 /* Handle counters from asynchronous activity */
 void store_counter_data(const char * name, const std::string& ctx,
-    uint64_t end, double value, uint32_t device, uint32_t context,
-    uint32_t stream, bool force = false) {
+    uint64_t end, double value, apex::cuda_thread_node &node, bool force = false) {
     std::stringstream ss;
     if (name == nullptr) {
         ss << ctx;
@@ -185,33 +188,30 @@ void store_counter_data(const char * name, const std::string& ctx,
     if (apex::apex_options::use_trace_event()) {
         apex::trace_event_listener * tel =
             (apex::trace_event_listener*)instance->the_trace_event_listener;
-        tel->on_async_metric(device, context, stream, prof);
+        tel->on_async_metric(node, prof);
     }
 #ifdef APEX_HAVE_OTF2
     if (apex::apex_options::use_otf2()) {
         apex::otf2_listener * tol =
             (apex::otf2_listener*)instance->the_otf2_listener;
-        tol->on_async_metric(device, context, stream, prof);
+        tol->on_async_metric(node, prof);
     }
 #endif
 }
 
 void store_counter_data(const char * name, const std::string& ctx,
-    uint64_t end, int32_t value, uint32_t device, uint32_t context,
-    uint32_t stream, bool force = false) {
-    store_counter_data(name, ctx, end, (double)(value), device, context, stream, force);
+    uint64_t end, int32_t value, apex::cuda_thread_node &node, bool force = false) {
+    store_counter_data(name, ctx, end, (double)(value), node, force);
 }
 
 void store_counter_data(const char * name, const std::string& ctx,
-    uint64_t end, uint32_t value, uint32_t device, uint32_t context,
-    uint32_t stream, bool force = false) {
-    store_counter_data(name, ctx, end, (double)(value), device, context, stream, force);
+    uint64_t end, uint32_t value, apex::cuda_thread_node &node, bool force = false) {
+    store_counter_data(name, ctx, end, (double)(value), node, force);
 }
 
 void store_counter_data(const char * name, const std::string& ctx,
-    uint64_t end, uint64_t value, uint32_t device, uint32_t context,
-    uint32_t stream, bool force = false) {
-    store_counter_data(name, ctx, end, (double)(value), device, context, stream, force);
+    uint64_t end, uint64_t value, apex::cuda_thread_node &node, bool force = false) {
+    store_counter_data(name, ctx, end, (double)(value), node, force);
 }
 
 static const char * getMemcpyKindString(uint8_t kind)
@@ -313,6 +313,14 @@ const char* openmp_event_names[] = {
     "OpenMP Wait Taskwait" // CUPTI_OPENMP_EVENT_KIND_WAIT_TASKWAIT
 };
 
+const char * sync_event_names[] = {
+    "Unknown", // CUPTI_ACTIVITY_SYNCHRONIZATION_TYPE_UNKNOWN = 0
+    "Event Synchronize", // CUPTI_ACTIVITY_SYNCHRONIZATION_TYPE_EVENT_SYNCHRONIZE = 1
+    "Stream Wait", // CUPTI_ACTIVITY_SYNCHRONIZATION_TYPE_STREAM_WAIT_EVENT = 2
+    "Stream Synchronize", // CUPTI_ACTIVITY_SYNCHRONIZATION_TYPE_STREAM_SYNCHRONIZE = 3
+    "Context Synchronize" // CUPTI_ACTIVITY_SYNCHRONIZATION_TYPE_CONTEXT_SYNCHRONIZE = 4
+};
+
 #if 0
 static const char * getComputeApiKindString(uint16_t kind) {
     switch (kind) {
@@ -357,18 +365,19 @@ static void contextActivity(CUpti_Activity *record) {
 }
 #endif
 
-static void memoryActivity2(CUpti_Activity *record) {
+static void memcpyActivity2(CUpti_Activity *record) {
     CUpti_ActivityMemcpy2 *memcpy = (CUpti_ActivityMemcpy2 *) record;
     std::stringstream ss;
     ss << getMemcpyKindString(memcpy->copyKind) << " "
        << memcpy->deviceId << "->" << memcpy->dstDeviceId;
     std::string name{ss.str()};
+    apex::cuda_thread_node node(memcpy->deviceId, memcpy->contextId,
+        memcpy->streamId, APEX_CUDA_MEMORY);
     store_profiler_data(name, memcpy->correlationId, memcpy->start,
-            memcpy->end, memcpy->deviceId, memcpy->contextId, memcpy->streamId);
+            memcpy->end, node);
     if (apex::apex_options::use_cuda_counters()) {
         store_counter_data("GPU: Bytes", name, memcpy->end,
-            memcpy->bytes, memcpy->deviceId, memcpy->contextId,
-            memcpy->streamId, true);
+            memcpy->bytes, node, true);
         // (1024 * 1024 * 1024) / 1,000,000,000
         // constexpr double GIGABYTES{1.073741824};
         double duration = (double)(memcpy->end - memcpy->start);
@@ -376,23 +385,23 @@ static void memoryActivity2(CUpti_Activity *record) {
         // dividing bytes by nanoseconds should give us GB/s
         double bandwidth = gbytes / duration;
         store_counter_data("GPU: Bandwidth (GB/s)", name,
-            memcpy->end, bandwidth, memcpy->deviceId, memcpy->contextId,
-            memcpy->streamId, true);
+            memcpy->end, bandwidth, node, true);
     }
 }
 
-static void memoryActivity(CUpti_Activity *record) {
+static void memcpyActivity(CUpti_Activity *record) {
     CUpti_ActivityMemcpy *memcpy = (CUpti_ActivityMemcpy *) record;
     if (memcpy->copyKind == CUPTI_ACTIVITY_MEMCPY_KIND_DTOD) {
-        return memoryActivity2(record);
+        return memcpyActivity2(record);
     }
     std::string name{getMemcpyKindString(memcpy->copyKind)};
+    apex::cuda_thread_node node(memcpy->deviceId, memcpy->contextId,
+        memcpy->streamId, APEX_CUDA_MEMORY);
     store_profiler_data(name, memcpy->correlationId, memcpy->start,
-            memcpy->end, memcpy->deviceId, memcpy->contextId, memcpy->streamId);
+            memcpy->end, node);
     if (apex::apex_options::use_cuda_counters()) {
         store_counter_data("GPU: Bytes", name, memcpy->end,
-            memcpy->bytes, memcpy->deviceId, memcpy->contextId,
-            memcpy->streamId, true);
+            memcpy->bytes, node, true);
         // (1024 * 1024 * 1024) / 1,000,000,000
         // constexpr double GIGABYTES{1.073741824};
         double duration = (double)(memcpy->end - memcpy->start);
@@ -400,8 +409,7 @@ static void memoryActivity(CUpti_Activity *record) {
         // dividing bytes by nanoseconds should give us GB/s
         double bandwidth = gbytes / duration;
         store_counter_data("GPU: Bandwidth (GB/s)", name,
-            memcpy->end, bandwidth, memcpy->deviceId, memcpy->contextId,
-            memcpy->streamId, true);
+            memcpy->end, bandwidth, node, true);
     }
 }
 
@@ -412,17 +420,17 @@ static void unifiedMemoryActivity(CUpti_Activity *record) {
     uint32_t device = getUvmCounterDevice(
             (CUpti_ActivityUnifiedMemoryCounterKind) memcpy->counterKind,
             memcpy->srcId, memcpy->dstId);
+    apex::cuda_thread_node node(device, 0, 0, APEX_CUDA_MEMORY);
     if (memcpy->counterKind ==
             CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_BYTES_TRANSFER_HTOD
             || memcpy->counterKind ==
             CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_BYTES_TRANSFER_DTOH) {
         // The context isn't available, and the streamID isn't valid
         // (per CUPTI documentation)
-        store_profiler_data(name, 0, memcpy->start, memcpy->end,
-                device, 0, 0);
+        store_profiler_data(name, 0, memcpy->start, memcpy->end, node);
         if (apex::apex_options::use_cuda_counters()) {
             store_counter_data("GPU: Bytes", name, memcpy->end,
-                    memcpy->value, device, 0, 0, true);
+                    memcpy->value, node, true);
             // (1024 * 1024 * 1024) / 1,000,000,000
             constexpr double GIGABYTES{1.073741824};
             double duration = (double)(memcpy->end - memcpy->start);
@@ -430,26 +438,26 @@ static void unifiedMemoryActivity(CUpti_Activity *record) {
             // dividing bytes by nanoseconds should give us GB/s
             double bandwidth = gbytes / duration;
             store_counter_data("GPU: Bandwidth (GB/s)", name,
-                    memcpy->end, bandwidth, device, 0, 0, true);
+                    memcpy->end, bandwidth, node, true);
         }
     } else if (memcpy->counterKind ==
             CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_CPU_PAGE_FAULT_COUNT) {
         store_counter_data(nullptr, name, memcpy->start,
-                1, device, 0, 0);
+                1, node);
     } else if (memcpy->counterKind ==
             CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_GPU_PAGE_FAULT) {
         store_counter_data(nullptr, name, memcpy->start,
-                memcpy->value, device, 0, 0);
+                memcpy->value, node);
     }
 }
 
 static void memsetActivity(CUpti_Activity *record) {
-    CUpti_ActivityMemset *memset =
-        (CUpti_ActivityMemset *) record;
+    CUpti_ActivityMemset *memset = (CUpti_ActivityMemset *) record;
     static std::string name{"Memset"};
+    apex::cuda_thread_node node(memset->deviceId, memset->contextId,
+            memset->streamId, APEX_CUDA_MEMORY);
     store_profiler_data(name, memset->correlationId, memset->start,
-            memset->end, memset->deviceId, memset->contextId,
-            memset->streamId);
+            memset->end, node);
 }
 
 static void kernelActivity(CUpti_Activity *record) {
@@ -457,128 +465,59 @@ static void kernelActivity(CUpti_Activity *record) {
         (CUpti_ActivityKernel4 *) record;
     std::string tmp = std::string(kernel->name);
     //DEBUG_PRINT("Kernel CorrelationId: %u\n", kernel->correlationId);
+    apex::cuda_thread_node node(kernel->deviceId, kernel->contextId,
+            kernel->streamId, APEX_CUDA_KERNEL);
     store_profiler_data(tmp, kernel->correlationId, kernel->start,
-            kernel->end, kernel->deviceId, kernel->contextId,
-            kernel->streamId);
+            kernel->end, node);
     if (apex::apex_options::use_cuda_counters()) {
         std::string * demangled = apex::demangle(kernel->name);
         store_counter_data("GPU: Dynamic Shared Memory (B)",
-                *demangled, kernel->end, kernel->dynamicSharedMemory,
-                kernel->deviceId, kernel->contextId, kernel->streamId);
+                *demangled, kernel->end, kernel->dynamicSharedMemory, node);
         store_counter_data("GPU: Local Memory Per Thread (B)",
-                *demangled, kernel->end, kernel->localMemoryPerThread,
-                kernel->deviceId, kernel->contextId, kernel->streamId);
+                *demangled, kernel->end, kernel->localMemoryPerThread, node);
         store_counter_data("GPU: Local Memory Total (B)",
-                *demangled, kernel->end, kernel->localMemoryTotal,
-                kernel->deviceId, kernel->contextId, kernel->streamId);
+                *demangled, kernel->end, kernel->localMemoryTotal, node);
         store_counter_data("GPU: Registers Per Thread",
-                *demangled, kernel->end, kernel->registersPerThread,
-                kernel->deviceId, kernel->contextId, kernel->streamId);
+                *demangled, kernel->end, kernel->registersPerThread, node);
         store_counter_data("GPU: Shared Memory Size (B)",
-                *demangled, kernel->end, kernel->sharedMemoryExecuted,
-                kernel->deviceId, kernel->contextId, kernel->streamId);
+                *demangled, kernel->end, kernel->sharedMemoryExecuted, node);
         store_counter_data("GPU: Static Shared Memory (B)",
-                *demangled, kernel->end, kernel->staticSharedMemory,
-                kernel->deviceId, kernel->contextId, kernel->streamId);
+                *demangled, kernel->end, kernel->staticSharedMemory, node);
         delete(demangled);
-    }
-}
-
-static void environmentActivity(CUpti_Activity *record) {
-    CUpti_ActivityEnvironment *env =
-        (CUpti_ActivityEnvironment*)record;
-    std::stringstream ss;
-    ss << "GPU: Device " << env->deviceId << " ";
-    std::string prefix{ss.str()};
-    switch (env->environmentKind) {
-        case CUPTI_ACTIVITY_ENVIRONMENT_COOLING: {
-            std::stringstream label;
-            label << prefix << " Fan Speed (%max)";
-            double value = (double)(env->data.cooling.fanSpeed);
-            store_counter_data(nullptr, label.str(), apex::profiler::get_time_ns(), value,
-            env->deviceId, 0, 0);
-            break;
-        }
-        case CUPTI_ACTIVITY_ENVIRONMENT_TEMPERATURE: {
-            std::stringstream label;
-            label << prefix << " Temperature (C)";
-            double value = (double)(env->data.temperature.gpuTemperature);
-            store_counter_data(nullptr, label.str(), apex::profiler::get_time_ns(), value,
-            env->deviceId, 0, 0);
-            break;
-        }
-        case CUPTI_ACTIVITY_ENVIRONMENT_POWER: {
-            std::stringstream label;
-            label << prefix << " Power (mW)";
-            double power = (double)(env->data.power.power);
-            double limit = (double)(env->data.power.powerLimit);
-            double utilization = (power/limit) * 100.0;
-            uint64_t timestamp = apex::profiler::get_time_ns();
-            store_counter_data(nullptr, label.str(), timestamp, power,
-            env->deviceId, 0, 0);
-            label.str("");
-            label << prefix << " Power Limit (mW)";
-            store_counter_data(nullptr, label.str(), timestamp, limit,
-            env->deviceId, 0, 0);
-            label.str("");
-            label << prefix << " Power Utilization (%)";
-            store_counter_data(nullptr, label.str(), timestamp, utilization,
-            env->deviceId, 0, 0);
-            break;
-        }
-        case CUPTI_ACTIVITY_ENVIRONMENT_SPEED: {
-            // sample the clock and memory speeds
-            std::stringstream label;
-            uint64_t timestamp = apex::profiler::get_time_ns();
-            label << prefix << " SM Frequency (MHz)";
-            double value = (double)(env->data.speed.smClock);
-            store_counter_data(nullptr, label.str(), timestamp, value,
-            env->deviceId, 0, 0);
-            label.str("");
-            label << prefix << " Memory Frequency (MHz)";
-            value = (double)(env->data.speed.memoryClock);
-            store_counter_data(nullptr, label.str(), timestamp, value,
-            env->deviceId, 0, 0);
-            break;
-        }
-        default:
-            break;
     }
 }
 
 static void openaccDataActivity(CUpti_Activity *record) {
     CUpti_ActivityOpenAccData *data = (CUpti_ActivityOpenAccData *) record;
     std::string label{openacc_event_names[data->eventKind]};
-    store_profiler_data(label, data->externalId, data->start,
-        data->end, data->cuDeviceId, data->cuContextId, data->cuStreamId);
+    apex::cuda_thread_node node(data->cuDeviceId, data->cuContextId,
+        data->cuStreamId, APEX_CUDA_MEMORY);
+    store_profiler_data(label, data->externalId, data->start, data->end, node);
     static std::string bytes{"Bytes Transferred"};
-    store_counter_data(label.c_str(), bytes, data->end, data->bytes,
-        data->cuDeviceId, data->cuContextId, data->cuStreamId);
+    store_counter_data(label.c_str(), bytes, data->end, data->bytes, node);
 }
 
 static void openaccKernelActivity(CUpti_Activity *record) {
     CUpti_ActivityOpenAccLaunch *data = (CUpti_ActivityOpenAccLaunch *) record;
     std::string label{openacc_event_names[data->eventKind]};
+    apex::cuda_thread_node node(data->cuDeviceId, data->cuContextId,
+        data->cuStreamId, APEX_CUDA_KERNEL);
     store_profiler_data(label, data->externalId, data->start,
-            data->end, data->cuDeviceId, data->cuContextId,
-            data->cuStreamId);
+            data->end, node);
     static std::string gangs{"Num Gangs"};
-    store_counter_data(label.c_str(), gangs, data->end, data->numGangs,
-        data->cuDeviceId, data->cuContextId, data->cuStreamId);
+    store_counter_data(label.c_str(), gangs, data->end, data->numGangs, node);
     static std::string workers{"Num Workers"};
-    store_counter_data(label.c_str(), workers, data->end, data->numWorkers,
-        data->cuDeviceId, data->cuContextId, data->cuStreamId);
+    store_counter_data(label.c_str(), workers, data->end, data->numWorkers, node);
     static std::string lanes{"Num Vector Lanes"};
-    store_counter_data(label.c_str(), lanes, data->end, data->vectorLength,
-        data->cuDeviceId, data->cuContextId, data->cuStreamId);
+    store_counter_data(label.c_str(), lanes, data->end, data->vectorLength, node);
 }
 
 static void openaccOtherActivity(CUpti_Activity *record) {
     CUpti_ActivityOpenAccOther *data = (CUpti_ActivityOpenAccOther *) record;
     std::string label{openacc_event_names[data->eventKind]};
-    store_profiler_data(label, data->externalId, data->start,
-            data->end, data->cuDeviceId, data->cuContextId,
-            data->cuStreamId);
+    apex::cuda_thread_node node(data->cuDeviceId, data->cuContextId,
+        data->cuStreamId, APEX_CUDA_OTHER);
+    store_profiler_data(label, data->externalId, data->start, data->end, node);
 }
 
 static void openmpActivity(CUpti_Activity *record) {
@@ -586,7 +525,36 @@ static void openmpActivity(CUpti_Activity *record) {
     std::string label{openmp_event_names[data->eventKind]};
 }
 
+static void syncActivity(CUpti_Activity *record) {
+    CUpti_ActivitySynchronization *data =
+        (CUpti_ActivitySynchronization *) record;
+    /* Check whether there is timing information */
+    if (data->start == 0 && data->end == 0) { return; }
+    std::string label{sync_event_names[data->type]};
+    uint32_t device = 0;
+    map_mutex.lock();
+    device = context_map[data->contextId];
+    map_mutex.unlock();
+    uint32_t context = data->contextId;
+    uint32_t stream = 0;
+    /* only these events have a stream ID */
+    if (data->type == CUPTI_ACTIVITY_SYNCHRONIZATION_TYPE_STREAM_WAIT_EVENT ||
+        data->type == CUPTI_ACTIVITY_SYNCHRONIZATION_TYPE_STREAM_SYNCHRONIZE) {
+        stream = data->streamId;
+    }
+    apex::cuda_thread_node node(device, context, stream, APEX_CUDA_SYNCHRONIZE);
+    /* Event Synchronize doesn't have a stream ID, and can come from any thread,
+     * and can overlap.  So if we are OTF2 tracing, ignore them. */
+    if (apex::apex_options::use_otf2() &&
+        data->type == CUPTI_ACTIVITY_SYNCHRONIZATION_TYPE_EVENT_SYNCHRONIZE) {
+        store_profiler_data(label, data->correlationId, data->start, data->end, node, false);
+    } else {
+        store_profiler_data(label, data->correlationId, data->start, data->end, node);
+    }
+}
+
 static void printActivity(CUpti_Activity *record) {
+    //auto p = apex::scoped_timer("APEX: CUPTI printActivity");
     switch (record->kind)
     {
 #if 0
@@ -605,12 +573,12 @@ static void printActivity(CUpti_Activity *record) {
 #endif
         case CUPTI_ACTIVITY_KIND_MEMCPY:
         {
-            memoryActivity(record);
+            memcpyActivity(record);
             break;
         }
         case CUPTI_ACTIVITY_KIND_MEMCPY2:
         {
-            memoryActivity2(record);
+            memcpyActivity2(record);
             break;
         }
         case CUPTI_ACTIVITY_KIND_UNIFIED_MEMORY_COUNTER: {
@@ -654,8 +622,8 @@ static void printActivity(CUpti_Activity *record) {
             openmpActivity(record);
             break;
         }
-        case CUPTI_ACTIVITY_KIND_ENVIRONMENT: {
-            environmentActivity(record);
+        case CUPTI_ACTIVITY_KIND_SYNCHRONIZATION: {
+            syncActivity(record);
             break;
         }
         default:
@@ -684,6 +652,8 @@ void CUPTIAPI bufferRequested(uint8_t **buffer, size_t *size,
 void CUPTIAPI bufferCompleted(CUcontext ctx, uint32_t streamId,
     uint8_t *buffer, size_t size, size_t validSize)
 {
+    //auto p = apex::scoped_timer("APEX: CUPTI Buffer Completed");
+    //printf("%s...", __func__); fflush(stdout);
     static bool registered = register_myself(false);
     num_buffers_processed++;
     if (flushing) { std::cout << "." << std::flush; }
@@ -714,6 +684,7 @@ void CUPTIAPI bufferCompleted(CUcontext ctx, uint32_t streamId,
     }
 
     free(buffer);
+    //printf("done."); fflush(stdout);
 }
 
 /* this has to happen AFTER cuInit(). */
@@ -762,13 +733,8 @@ void configureUnifiedMemorySupport(void) {
 }
 
 bool initialize_first_time() {
-    apex::init("APEX CUDA support", 0, 1);
+    //apex::init("APEX CUDA support", 0, 1);
     configureUnifiedMemorySupport();
-    /* Create a CUDA device context, so we can collect environment.  This is done by
-     * making a cuda call. HOWEVER, we need to disable the callback handler or we will
-     * end up in a recursive loop.
-     */
-    // CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_ENVIRONMENT)); // 20
     return true;
 }
 
@@ -863,23 +829,17 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
 void register_new_context(const void *params) {
     //printf("New Context\n");
     APEX_UNUSED(params);
-#if 0
-    CUpti_ResourceData * rd = (CUpti_ResourceData*)(params);
-    /* Register for async activity ON THIS CONTEXT! */
-    CUPTI_CALL(cuptiActivityEnableContext(rd->context,
-        CUPTI_ACTIVITY_KIND_CONCURRENT_KERNEL)); // 10
-    CUPTI_CALL(cuptiActivityEnableContext(rd->context,
-        CUPTI_ACTIVITY_KIND_MEMCPY)); // 1
-    CUPTI_CALL(cuptiActivityEnableContext(rd->context,
-        CUPTI_ACTIVITY_KIND_MEMCPY2)); // 22
-    CUPTI_CALL(cuptiActivityEnableContext(rd->context,
-        CUPTI_ACTIVITY_KIND_MEMSET)); // 2
-#else
-    CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_CONCURRENT_KERNEL)); // 10
-    CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_MEMCPY)); // 1
-    CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_MEMCPY2)); // 22
-    CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_MEMSET)); // 2
-#endif
+    if (apex::apex_options::use_cuda_kernel_activity()) {
+        CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_CONCURRENT_KERNEL)); // 10
+    }
+    if (apex::apex_options::use_cuda_memory_activity()) {
+        CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_MEMCPY)); // 1
+        CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_MEMCPY2)); // 22
+        CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_MEMSET)); // 2
+    }
+    if (apex::apex_options::use_cuda_sync_activity()) {
+        CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_SYNCHRONIZATION)); // 38
+    }
     CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_OPENACC_DATA)); // 33
     CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_OPENACC_LAUNCH)); // 34
     CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_OPENACC_OTHER)); // 35
@@ -985,14 +945,6 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
             notifyKernelComplete(id, cbdata->functionParams, cbdata->symbolName);
         */
         if (!timer_stack.empty()) {
-        /*
-        static bool first{true};
-        // now that a kernel has been launched, we an set up environment tracking
-        if (first && cbdata->symbolName != NULL && strlen(cbdata->symbolName) > 0) {
-            CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_ENVIRONMENT)); // 20
-            first = false;
-        }
-        */
         auto timer = timer_stack.top();
         apex::stop(timer);
         timer_stack.pop();
@@ -1003,8 +955,13 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
             /* Can't trust the parameter!  It lies. */
             //int device = ((cudaSetDevice_v3020_params_st*)(params))->device;
             uint32_t device{0};
+            uint32_t context{0};
             cuptiGetDeviceId(cbdata->context, &device);
+            cuptiGetContextId(cbdata->context, &context);
             apex::nvml::monitor::activateDeviceIndex(device);
+            map_mutex.lock();
+            context_map[context] = device;
+            map_mutex.unlock();
         }
         }
     }
@@ -1024,15 +981,18 @@ void initTrace() {
     size_t attrValue = 0, attrValueSize = sizeof(size_t);
     CUPTI_CALL(cuptiActivityGetAttribute(
                 CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_SIZE, &attrValueSize, &attrValue));
-    attrValue = attrValue / 4;
+    //attrValue = attrValue / 4;
+    attrValue = BUF_SIZE;
     CUPTI_CALL(cuptiActivitySetAttribute(
                 CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_SIZE, &attrValueSize, &attrValue));
 
+    /*
     CUPTI_CALL(cuptiActivityGetAttribute(
                 CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_POOL_LIMIT, &attrValueSize, &attrValue));
     attrValue = attrValue * 4;
     CUPTI_CALL(cuptiActivitySetAttribute(
                 CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_POOL_LIMIT, &attrValueSize, &attrValue));
+    */
 
     /* now that the activity is configured, subscribe to callback support, too. */
     CUPTI_CALL(cuptiSubscribe(&subscriber,

@@ -49,10 +49,8 @@ public:
   	void on_recv(message_event_data &data) { APEX_UNUSED(data); };
   	void set_node_id(int node_id, int node_count);
   	void set_metadata(const char * name, const char * value);
-    void on_async_event(uint32_t device, uint32_t context,
-        uint32_t stream, std::shared_ptr<profiler> &p);
-    void on_async_metric(uint32_t device, uint32_t context,
-        uint32_t stream, std::shared_ptr<profiler> &p);
+    void on_async_event(cuda_thread_node &node, std::shared_ptr<profiler> &p);
+    void on_async_metric(cuda_thread_node &node, std::shared_ptr<profiler> &p);
     void end_trace_time(void);
 
 private:
@@ -62,8 +60,7 @@ private:
     void close_trace(void);
     void flush_trace_if_necessary(void);
   	void _common_stop(std::shared_ptr<profiler> &p);
-    std::string make_tid (uint32_t device, uint32_t context,
-        uint32_t stream);
+    std::string make_tid (cuda_thread_node &node);
     int get_thread_id_metadata();
   	static bool _initialized;
     size_t get_thread_index(void);

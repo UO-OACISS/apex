@@ -190,50 +190,45 @@ void trace_event_listener::set_metadata(const char * name, const char * value) {
     APEX_UNUSED(value);
 }
 
-std::string trace_event_listener::make_tid (uint32_t device, uint32_t context, uint32_t stream) {
-    cuda_thread_node tmp(device, context, stream);
+std::string trace_event_listener::make_tid (cuda_thread_node &node) {
     size_t tid;
     /* There is a potential for overlap here, but not a high potential.  The CPU and the GPU
      * would BOTH have to spawn 64k+ threads/streams for this to happen. */
-    if (vthread_map.count(tmp) == 0) {
+    if (vthread_map.count(node) == 0) {
         size_t id = vthread_map.size()+1;
-        uint32_t id_reversed = simple_reverse(id);
-        vthread_map.insert(std::pair<cuda_thread_node, size_t>(tmp,id_reversed));
+        //uint32_t id_reversed = simple_reverse(id);
+        uint32_t id_shifted = id << 16;
+        vthread_map.insert(std::pair<cuda_thread_node, size_t>(node,id_shifted));
         std::stringstream ss;
         ss << "{\"name\":\"thread_name\""
            << ",\"ph\":\"M\",\"pid\":" << saved_node_id
-           << ",\"tid\":" << id_reversed
+           << ",\"tid\":" << id_shifted
            << ",\"args\":{\"name\":"
-           << "\"GPU Dev:" << device;
-        if (context > 0) {
-            ss << std::setfill('0');
-            ss << " Ctx:";
-            ss << std::setw(2) << context;
-            if (stream > 0) {
-                ss << " Str:";
-                ss << setw(5) << stream;
-            }
-        }
+           << "\"CUDA [" << node._device << ":" << node._context
+           << ":" << std::setfill('0') << setw(5) << node._stream << "]";
+        //ss << "" << activity_to_string(node._activity);
         ss << "\"";
         ss << "}},\n";
+        /* make sure the GPU threads come after CPU threads
+         * by giving them a thread sort index of max int. */
         ss << "{\"name\":\"thread_sort_index\""
            << ",\"ph\":\"M\",\"pid\":" << saved_node_id
-           << ",\"tid\":" << id_reversed
-           << ",\"args\":{\"sort_index\":" << simple_reverse(1L) << "}},\n";
+           << ",\"tid\":" << id_shifted
+           << ",\"args\":{\"sort_index\":" << UINT32_MAX << "}},\n";
         write_to_trace(ss);
     }
-    tid = vthread_map[tmp];
+    tid = vthread_map[node];
     std::stringstream ss;
     ss << tid;
     std::string label{ss.str()};
     return label;
 }
 
-void trace_event_listener::on_async_event(uint32_t device, uint32_t context,
-    uint32_t stream, std::shared_ptr<profiler> &p) {
+void trace_event_listener::on_async_event(cuda_thread_node &node,
+    std::shared_ptr<profiler> &p) {
     if (!_terminate) {
         std::stringstream ss;
-        std::string tid{make_tid(device, context, stream)};
+        std::string tid{make_tid(node)};
         uint64_t pguid = 0;
         if (p->tt_ptr != nullptr && p->tt_ptr->parent != nullptr) {
             pguid = p->tt_ptr->parent->guid;
@@ -249,11 +244,11 @@ void trace_event_listener::on_async_event(uint32_t device, uint32_t context,
     }
 }
 
-void trace_event_listener::on_async_metric(uint32_t device, uint32_t context,
-    uint32_t stream, std::shared_ptr<profiler> &p) {
+void trace_event_listener::on_async_metric(cuda_thread_node &node,
+    std::shared_ptr<profiler> &p) {
     if (!_terminate) {
         std::stringstream ss;
-        std::string tid{make_tid(device, context, stream)};
+        std::string tid{make_tid(node)};
         ss << "{\"name\": \"" << p->get_task_id()->get_name()
               << "\",\"ph\":\"C\",\"pid\": " << saved_node_id
               << ",\"ts\":" << fixed << p->get_stop_us()
@@ -272,7 +267,7 @@ size_t trace_event_listener::get_thread_index(void) {
     return tmpval;
 }
 
-//#define SERIAL 1
+#define SERIAL 1
 
 std::mutex* trace_event_listener::get_thread_mutex(size_t index) {
 #ifdef SERIAL
@@ -323,7 +318,7 @@ void trace_event_listener::write_to_trace(std::stringstream& events) {
 
 void trace_event_listener::flush_trace(void) {
     //_vthread_mutex.lock();
-    auto p = start("APEX: Buffer Flush");
+    //auto p = scoped_timer("APEX: Buffer Flush");
     // check if the file is open
     if (!trace_file.is_open()) {
         saved_node_id = apex::instance()->get_node_id();
@@ -350,14 +345,13 @@ void trace_event_listener::flush_trace(void) {
     // flush the trace
     trace_file << ss.rdbuf() << std::flush;
 #endif
-    stop(p);
     //_vthread_mutex.unlock();
 }
 
 void trace_event_listener::flush_trace_if_necessary(void) {
     auto tmp = ++num_events;
     /* flush after every million events */
-    if (tmp % 1000000 == 0) {
+    if (tmp % 100000 == 0) {
         flush_trace();
     }
 }
@@ -373,6 +367,7 @@ void trace_event_listener::close_trace(void) {
         ss << "}\n" << std::endl;
         write_to_trace(ss);
         flush_trace();
+        //printf("Closing trace...\n"); fflush(stdout);
         trace_file.close();
     }
 }

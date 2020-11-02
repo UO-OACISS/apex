@@ -47,6 +47,7 @@ APEX_NATIVE_TLS uint64_t my_task_id = 0;
 
 namespace apex {
 
+/*
 // Global static pointer used to ensure a single instance of the class.
 APEX_NATIVE_TLS thread_instance * thread_instance::_instance(nullptr);
 // Global static count of all known threads in system
@@ -67,50 +68,28 @@ map<int, bool> thread_instance::_worker_map;
 std::mutex thread_instance::_worker_map_mutex;
 // Global static path to executable name
 string * thread_instance::_program_path = nullptr;
+// Global static unordered map of parent GUIDs to child GUIDs
+// to handle "overlapping timer" problem.
+std::unordered_map<uint64_t, std::vector<profiler*>* >
+    thread_instance::_children_to_resume;
+*/
 #ifdef APEX_DEBUG
 // Global static mutex to control access for debugging purposes
 std::mutex thread_instance::_open_profiler_mutex;
 std::unordered_set<std::string> thread_instance::open_profilers;
 #endif
 
-// Global static unordered map of parent GUIDs to child GUIDs
-// to handle "overlapping timer" problem.
-std::unordered_map<uint64_t, std::vector<profiler*>* >
-    thread_instance::children_to_resume;
-
 thread_instance& thread_instance::instance(bool is_worker) {
-  if( _instance == nullptr ) {
-    // first time called by this thread
-    // construct test element to be used in all subsequent calls from this thread
-    _instance = new thread_instance(is_worker);
-    /* Even do this for non-workers, because for CUPTI processing we need to
-     * generate GUIDs for the activity events! */
-    _instance->_id = _num_threads++;
-    /* reverse the TID and shift it 32 bits, so we can use it to generate
-       task-private GUIDS that are unique within the process space. */
-    _instance->_id_reversed =
-        ((uint64_t)(simple_reverse((uint32_t)_instance->_id))) << 32;
-    if (is_worker) {
-        _num_workers++;
-    }
-    _instance->_runtime_id = _instance->_id; // can be set later, if necessary
-    _active_threads++;
-  }
-  return *_instance;
-}
-
-void thread_instance::delete_instance(void) {
-  if (_instance != nullptr) {
-    delete(_instance);
-    _instance = nullptr;
-  }
+  // thread specific data
+  static APEX_NATIVE_TLS thread_instance _instance(is_worker);
+  return _instance;
 }
 
 thread_instance::~thread_instance(void) {
     if (_id == 0) {
         finalize();
     }
-    _active_threads--;
+    common()._active_threads--;
 }
 
 void thread_instance::set_worker(bool is_worker) {
@@ -118,12 +97,12 @@ void thread_instance::set_worker(bool is_worker) {
   if (!instance()._is_worker) {
     // ...and is now a worker...
     if (is_worker) {
-      _instance->_id = _num_threads++;
+      instance()._id = common()._num_threads++;
     } // do the opposite?
   }
   instance()._is_worker = is_worker;
-  std::unique_lock<std::mutex> l(_worker_map_mutex);
-  _worker_map.insert(std::pair<int,bool>(get_id(), is_worker));
+  std::unique_lock<std::mutex> l(common()._worker_map_mutex);
+  common()._worker_map.insert(std::pair<int,bool>(get_id(), is_worker));
 }
 
 string thread_instance::get_name(void) {
@@ -135,8 +114,8 @@ void thread_instance::set_name(string name) {
   {
     instance()._top_level_timer_name = name;
     {
-        std::unique_lock<std::mutex> l(_name_map_mutex);
-        _name_map[name] = get_id();
+        std::unique_lock<std::mutex> l(common()._name_map_mutex);
+        common()._name_map[name] = get_id();
     }
 #if defined(APEX_HAVE_HPX)
     if (name.find("worker-thread") != string::npos) {
@@ -152,9 +131,9 @@ int thread_instance::map_name_to_id(string name) {
   //cout << "Looking for " << name << endl;
   int tmp = -1;
   {
-    std::unique_lock<std::mutex> l(_name_map_mutex);
-    map<string, int>::const_iterator it = _name_map.find(name);
-    if (it != _name_map.end()) {
+    std::unique_lock<std::mutex> l(common()._name_map_mutex);
+    map<string, int>::const_iterator it = common()._name_map.find(name);
+    if (it != common()._name_map.end()) {
       tmp = (*it).second;
     }
   }
@@ -165,9 +144,9 @@ bool thread_instance::map_id_to_worker(int id) {
   //cout << "Looking for " << name << endl;
   bool worker = false;
   {
-    std::unique_lock<std::mutex> l(_worker_map_mutex);
-    map<int, bool>::const_iterator it = _worker_map.find(id);
-    if (it != _worker_map.end()) {
+    std::unique_lock<std::mutex> l(common()._worker_map_mutex);
+    map<int, bool>::const_iterator it = common()._worker_map.find(id);
+    if (it != common()._worker_map.end()) {
       worker = (*it).second;
     }
   }
@@ -178,29 +157,29 @@ const char* thread_instance::program_path(void) {
 
 #if defined(_WIN32) || defined(_WIN64)
 
-    if (_program_path == nullptr) {
+    if (common()._program_path == nullptr) {
         char path[MAX_PATH + 1] = { '\0' };
         if (!GetModuleFileName(nullptr, path, sizeof(path)))
             return nullptr;
-        _program_path = new string(path);
+        common()._program_path = new string(path);
     }
-    return _program_path->c_str();
+    return common()._program_path->c_str();
 
 #elif defined(__linux) || defined(linux) || defined(__linux__)
 
-    if (_program_path == nullptr) {
+    if (common()._program_path == nullptr) {
         char path[PATH_MAX];
         memset(path,0,PATH_MAX);
         if (readlink("/proc/self/exe", path, PATH_MAX) == -1) {
             return nullptr;
         }
-        _program_path = new string(path);
+        common()._program_path = new string(path);
     }
-    return _program_path->c_str();
+    return common()._program_path->c_str();
 
 #elif defined(__APPLE__)
 
-    if (_program_path == nullptr) {
+    if (common()._program_path == nullptr) {
         char path[PATH_MAX + 1];
         std::uint32_t len = sizeof(path) / sizeof(path[0]);
 
@@ -208,13 +187,13 @@ const char* thread_instance::program_path(void) {
             return nullptr;
 
         path[len] = '\0';
-        _program_path = new string(path);
+        common()._program_path = new string(path);
     }
-    return _program_path->c_str();
+    return common()._program_path->c_str();
 
 #elif defined(__FreeBSD__)
 
-    if (_program_path == nullptr) {
+    if (common()._program_path == nullptr) {
         int mib[] = { CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1 };
         size_t cb = 0;
         sysctl(mib, 4, nullptr, &cb, nullptr, 0);
@@ -223,9 +202,9 @@ const char* thread_instance::program_path(void) {
 
         std::vector<char> buf(cb);
         sysctl(mib, 4, &buf[0], &cb, nullptr, 0);
-        _program_path = new string(&buf[0]);
+        common()._program_path = new string(&buf[0]);
     }
-    return _program_path->c_str();
+    return common()._program_path->c_str();
 
 #else
 #  error Unsupported platform
@@ -236,7 +215,7 @@ const char* thread_instance::program_path(void) {
 string thread_instance::map_addr_to_name(apex_function_address function_address) {
     // look up the address
     {
-        read_lock_type l(_function_map_mutex);
+        read_lock_type l(common()._function_map_mutex);
         auto it = _function_map.find(function_address);
         if (it != _function_map.end()) {
           return (*it).second;
@@ -246,11 +225,11 @@ string thread_instance::map_addr_to_name(apex_function_address function_address)
     // resolve the address
     string * name = lookup_address(function_address, false);
     {
-        write_lock_type l(_function_map_mutex);
+        write_lock_type l(common()._function_map_mutex);
         _function_map[function_address] = *name;
         delete(name);
     }
-    read_lock_type l(_function_map_mutex);
+    read_lock_type l(common()._function_map_mutex);
     return _function_map[function_address];
 #else
 #if defined(__APPLE__)
@@ -260,10 +239,10 @@ string thread_instance::map_addr_to_name(apex_function_address function_address)
     if (rc != 0) {
         string name(info.dli_sname);
         {
-            write_lock_type l(_function_map_mutex);
+            write_lock_type l(common()._function_map_mutex);
             _function_map[function_address] = name;
         }
-        read_lock_type l(_function_map_mutex);
+        read_lock_type l(common()._function_map_mutex);
         return _function_map[function_address];
     }
 #endif
@@ -277,7 +256,7 @@ string thread_instance::map_addr_to_name(apex_function_address function_address)
     }
     string name = string(ss.str());
     {
-        write_lock_type l(_function_map_mutex);
+        write_lock_type l(common()._function_map_mutex);
         _function_map[function_address] = name;
     }
     return name;

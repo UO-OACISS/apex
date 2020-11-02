@@ -195,7 +195,7 @@ namespace apex {
         std::mutex _vthread_mutex;
         std::map<cuda_thread_node, size_t> vthread_map;
         std::map<uint32_t, OTF2_EvtWriter*> vthread_evt_writer_map;
-        uint32_t make_vtid (uint32_t device, uint32_t context, uint32_t stream);
+        uint32_t make_vtid (cuda_thread_node &node);
         std::map<uint32_t,uint64_t> last_ts;
         uint64_t dropped;
     public:
@@ -238,10 +238,10 @@ namespace apex {
             { APEX_UNUSED(data); };
         void on_send(message_event_data &data);
         void on_recv(message_event_data &data);
-        void on_async_event(uint32_t device, uint32_t context,
-            uint32_t stream, std::shared_ptr<profiler> &p);
-        void on_async_metric(uint32_t device, uint32_t context,
-            uint32_t stream, std::shared_ptr<profiler> &p);
+        void on_async_event(cuda_thread_node &node,
+            std::shared_ptr<profiler> &p);
+        void on_async_metric(cuda_thread_node &node,
+            std::shared_ptr<profiler> &p);
 
     };
 }

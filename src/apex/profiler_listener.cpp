@@ -1062,7 +1062,6 @@ node_color * get_node_color(double v,double vmin,double vmax)
             set_thread_affinity();
       }
       process_profiles_wrapper();
-      thread_instance::delete_instance();
   }
 
   /*
@@ -1174,8 +1173,8 @@ node_color * get_node_color(double v,double vmin,double vmax)
         }
         {
             size_t num_queues = 0;
-            {
                 std::unique_lock<std::mutex> queue_lock(queue_mtx);
+            {
                 num_queues = allqueues.size();
             }
             for (size_t q = 0 ; q < num_queues ; q++) {
@@ -1186,8 +1185,8 @@ node_color * get_node_color(double v,double vmin,double vmax)
         }
         if (apex_options::use_taskgraph_output()) {
             size_t num_queues = 0;
-            {
                 std::unique_lock<std::mutex> queue_lock(queue_mtx);
+            {
                 num_queues = dependency_queues.size();
             }
             for (size_t q = 0 ; q < num_queues ; q++) {

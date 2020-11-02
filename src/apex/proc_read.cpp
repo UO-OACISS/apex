@@ -1183,7 +1183,6 @@ namespace apex {
             tau_listener::Tau_stop_wrapper("proc_data_reader::read_proc");
         }
         delete(oldData);
-        thread_instance::delete_instance();
         ptw->_running = false;
         return nullptr;
     }

@@ -48,24 +48,17 @@ using namespace std;
 
 namespace apex {
 
-    uint32_t otf2_listener::make_vtid (uint32_t device, uint32_t context, uint32_t stream) {
-        cuda_thread_node tmp(device, context, stream);
+    uint32_t otf2_listener::make_vtid (cuda_thread_node &node) {
         size_t tid;
         /* There is a potential for overlap here, but not a high potential.  The CPU and the GPU
         * would BOTH have to spawn 64k+ threads/streams for this to happen. */
-        if (vthread_map.count(tmp) == 0) {
+        if (vthread_map.count(node) == 0) {
             // build the thread name for viewers
             std::stringstream ss;
-            ss << "GPU Dev: " << device;
-            if (context > 0) {
-                ss << std::setfill('0');
-                ss << " Ctx:";
-                ss << std::setw(2) << context;
-                if (stream > 0) {
-                    ss << " Str:";
-                    ss << setw(5) << stream;
-                }
-            }
+            ss << "CUDA[" << node._device;
+            ss << ":" << node._context;
+            ss << ":" << node._stream;
+            ss << "] " << activity_to_string(node._activity);
             std::string name{ss.str()};
             // lock the archive lock, we need to make an event writer
             write_lock_type lock(_archive_mutex);
@@ -83,7 +76,7 @@ namespace apex {
             // done with the set of event threads, so unlock.
             _event_set_mutex.unlock();
             // use the OTF2 thread index (not reversed) for the vthread_map
-            vthread_map.insert(std::pair<cuda_thread_node, size_t>(tmp,id));
+            vthread_map.insert(std::pair<cuda_thread_node, size_t>(node,id));
             // construct a globally unique ID for this thread on this rank
             uint64_t my_node_id = my_saved_node_id;
             my_node_id = (my_node_id << 32) + id;
@@ -92,7 +85,7 @@ namespace apex {
             // add it to the map of virtual thread IDs to event writers
             vthread_evt_writer_map.insert(std::pair<size_t, OTF2_EvtWriter*>(id, evt_writer));
         }
-        tid = vthread_map[tmp];
+        tid = vthread_map[node];
         return tid;
     }
 
@@ -119,7 +112,7 @@ namespace apex {
     };
 
     uint64_t otf2_listener::globalOffset(0);
-    uint64_t otf2_listener::saved_end_timestamp(0);
+    uint64_t otf2_listener::saved_end_timestamp(UINT64_MAX);
     const std::string otf2_listener::empty("");
     int otf2_listener::my_saved_node_id(0);
     int otf2_listener::my_saved_node_count(1);
@@ -598,6 +591,107 @@ namespace apex {
         }
     }
 
+    void getParadigmAndRole(string id, OTF2_Paradigm &paradigm,
+            OTF2_RegionRole &role) {
+        string uppercase;
+        convert_upper(id, uppercase);
+        // does the original string contain APEX?
+        if (id.find("APEX",0) == 0) {
+            paradigm = OTF2_PARADIGM_NONE;
+            role = OTF2_REGION_ROLE_FUNCTION;
+            return;
+        }
+        if (id.find("OS Thread:",0) == 0) {
+            paradigm = OTF2_PARADIGM_PTHREAD;
+            role = OTF2_REGION_ROLE_FUNCTION;
+            return;
+        }
+        size_t found = uppercase.find(string("UNRESOLVED"));
+        if (found != std::string::npos) {
+            paradigm = OTF2_PARADIGM_MEASUREMENT_SYSTEM;
+            role = OTF2_REGION_ROLE_ARTIFICIAL;
+            return;
+        }
+        found = uppercase.find(string("OPENMP"));
+        if (found != std::string::npos) {
+            paradigm = OTF2_PARADIGM_OPENMP;
+            role = OTF2_REGION_ROLE_FUNCTION;
+            return;
+        }
+        found = uppercase.find(string("PTHREAD"));
+        if (found != std::string::npos) {
+            paradigm = OTF2_PARADIGM_PTHREAD;
+            return;
+        }
+        found = uppercase.find(string("MPI"));
+        if (found != std::string::npos) {
+            paradigm = OTF2_PARADIGM_MPI;
+            role = OTF2_REGION_ROLE_FUNCTION;
+            return;
+        }
+        // does the original string start with GPU:?
+        found = id.find(string("GPU: "));
+        if (found != std::string::npos) {
+            paradigm = OTF2_PARADIGM_CUDA;
+            role = OTF2_REGION_ROLE_FUNCTION;
+            found = uppercase.find(string("MEMCPY"));
+            if (found != std::string::npos) {
+                role = OTF2_REGION_ROLE_DATA_TRANSFER;
+            } else {
+                found = uppercase.find(string("SYNC"));
+                if (found != std::string::npos) {
+                    role = OTF2_REGION_ROLE_TASK_WAIT;
+                } else {
+                    found = uppercase.find(string("MEMSET"));
+                    if (found != std::string::npos) {
+                        role = OTF2_REGION_ROLE_DATA_TRANSFER;
+                    } else {
+                        found = uppercase.find(string("STREAM WAIT"));
+                        if (found != std::string::npos) {
+                            role = OTF2_REGION_ROLE_TASK_WAIT;
+                        }
+                    }
+                }
+            }
+            return;
+        }
+        // does the original string start with cu or cuda?
+        if (apex_options::use_cuda_driver_api()) {
+            found = id.rfind(string("cu"),0);
+        } else {
+            found = id.rfind(string("cuda"),0);
+        }
+        if (found == 0) {
+            paradigm = OTF2_PARADIGM_CUDA;
+            role = OTF2_REGION_ROLE_FUNCTION;
+            found = uppercase.find(string("MEMCPY"));
+            if (found != std::string::npos) {
+                role = OTF2_REGION_ROLE_DATA_TRANSFER;
+            } else {
+                found = uppercase.find(string("SYNC"));
+                if (found != std::string::npos) {
+                    role = OTF2_REGION_ROLE_TASK_WAIT;
+                } else {
+                    found = uppercase.find(string("MALLOC"));
+                    if (found != std::string::npos) {
+                        role = OTF2_REGION_ROLE_ALLOCATE;
+                    } else {
+                        found = uppercase.find(string("FREE"));
+                        if (found != std::string::npos) {
+                            role = OTF2_REGION_ROLE_DEALLOCATE;
+                        } else {
+                            found = uppercase.find(string("STREAMWAIT"));
+                            if (found != std::string::npos) {
+                                role = OTF2_REGION_ROLE_TASK_WAIT;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return;
+    }
+
     void otf2_listener::write_otf2_regions(void) {
         // only write these out once!
         static APEX_NATIVE_TLS bool written = false;
@@ -616,65 +710,7 @@ namespace apex {
                 get_string_index(id), id.c_str() );
             OTF2_Paradigm paradigm = OTF2_PARADIGM_USER;
             OTF2_RegionRole role = OTF2_REGION_ROLE_TASK;
-            string uppercase;
-            convert_upper(id, uppercase);
-            // does the original string contain APEX?
-            size_t found = uppercase.find(string("APEX"));
-            if (found != std::string::npos) {
-                paradigm = OTF2_PARADIGM_MEASUREMENT_SYSTEM;
-                role = OTF2_REGION_ROLE_ARTIFICIAL;
-            }
-            found = uppercase.find(string("UNRESOLVED"));
-            if (found != std::string::npos) {
-                paradigm = OTF2_PARADIGM_MEASUREMENT_SYSTEM;
-                role = OTF2_REGION_ROLE_ARTIFICIAL;
-            }
-            found = uppercase.find(string("OPENMP"));
-            if (found != std::string::npos) {
-                paradigm = OTF2_PARADIGM_OPENMP;
-                role = OTF2_REGION_ROLE_WRAPPER;
-            }
-            found = uppercase.find(string("PTHREAD"));
-            if (found != std::string::npos) {
-                paradigm = OTF2_PARADIGM_PTHREAD;
-            }
-            found = uppercase.find(string("MPI"));
-            if (found != std::string::npos) {
-                paradigm = OTF2_PARADIGM_MPI;
-                role = OTF2_REGION_ROLE_WRAPPER;
-            }
-            // does the original string start with GPU:?
-            found = id.find(string("GPU: "));
-            if (found != std::string::npos) {
-                paradigm = OTF2_PARADIGM_CUDA;
-                role = OTF2_REGION_ROLE_FUNCTION;
-                found = id.find(string("Memory copy"));
-                if (found != std::string::npos) {
-                    role = OTF2_REGION_ROLE_DATA_TRANSFER;
-                }
-            }
-            // does the original string start with cuda?
-            found = id.rfind(string("cuda"),0);
-            if (found == 0) {
-                paradigm = OTF2_PARADIGM_CUDA;
-                role = OTF2_REGION_ROLE_WRAPPER;
-                found = uppercase.find(string("MEMCPY"));
-                if (found != std::string::npos) {
-                    role = OTF2_REGION_ROLE_DATA_TRANSFER;
-                }
-                found = uppercase.find(string("SYNC"));
-                if (found != std::string::npos) {
-                    role = OTF2_REGION_ROLE_TASK_WAIT;
-                }
-                found = uppercase.find(string("MALLOC"));
-                if (found != std::string::npos) {
-                    role = OTF2_REGION_ROLE_ALLOCATE;
-                }
-                found = uppercase.find(string("FREE"));
-                if (found != std::string::npos) {
-                    role = OTF2_REGION_ROLE_DEALLOCATE;
-                }
-            }
+            getParadigmAndRole(id, paradigm, role);
             OTF2_GlobalDefWriter_WriteRegion( global_def_writer,
                     idx /* id */,
                     get_string_index(id) /* region name  */,
@@ -2541,12 +2577,12 @@ namespace apex {
 
 #endif
 
-    void otf2_listener::on_async_event(uint32_t device, uint32_t context,
-        uint32_t stream, std::shared_ptr<profiler> &p) {
+    void otf2_listener::on_async_event(cuda_thread_node &node,
+        std::shared_ptr<profiler> &p) {
         // This could be a callback from a library before APEX is ready
         // Something like OpenMP or CUDA/CUPTI or...?
         if (!_initialized) return ;
-        uint32_t tid{make_vtid(device, context, stream)};
+        uint32_t tid{make_vtid(node)};
         task_identifier * id = p->tt_ptr->get_task_id();
         uint64_t idx = get_region_index(id);
         //static map<uint32_t,std::string> last_p;
@@ -2561,15 +2597,22 @@ namespace apex {
         uint64_t stamp = 0L;
         stamp = p->get_start_ns() - globalOffset;
         if(stamp < last) {
-            dropped++;
+            uint64_t estamp = p->get_stop_ns() - globalOffset;
+            if(estamp < last) {
+                dropped++;
             /*
-            std::cerr << "APEX: Warning - Events delivered out of order on Device "
-                      << device << ", Context " << context << ", Stream " << stream
-                      << ".\nIgnoring event " << p->tt_ptr->task_id->get_name()
-                      << " with timestamp of " << stamp << " after last event "
-                      << "with timestamp of " << last << std::endl;
+                std::cerr << "APEX: Warning - Events delivered out of order on Device "
+                          << node._device << ", Context " << node._context
+                          << ", Stream " << node._stream
+                          << ".\nIgnoring event " << p->tt_ptr->task_id->get_name()
+                          << " with timestamp of " << stamp << " after last event "
+                          << "with timestamp of " << last << std::endl;
             */
-            return;
+                return;
+            }
+            /* This activity doesn't fully overlap with the previous, so
+             * we are safe to just adjust the start time. */
+            stamp = last;
         }
         // don't close the archive on us!
         read_lock_type lock(_archive_mutex);
@@ -2595,12 +2638,12 @@ namespace apex {
 
     }
 
-    void otf2_listener::on_async_metric(uint32_t device, uint32_t context,
-        uint32_t stream, std::shared_ptr<profiler> &p) {
+    void otf2_listener::on_async_metric(cuda_thread_node &node,
+        std::shared_ptr<profiler> &p) {
         // This could be a callback from a library before APEX is ready
         // Something like OpenMP or CUDA/CUPTI or...?
         if (!_initialized) return ;
-        uint32_t tid{make_vtid(device, context, stream)};
+        uint32_t tid{make_vtid(node)};
         // not likely, but just in case...
         if (_terminate) { return; }
         // create a union for storing the value

@@ -100,7 +100,10 @@ std::atomic<apex*> apex::m_pInstance(nullptr);
 
 std::atomic<bool> _notify_listeners(true);
 std::atomic<bool> _measurement_stopped(false);
-APEX_NATIVE_TLS profiler * top_level_timer = nullptr;
+profiler * top_level_timer() {
+    static APEX_NATIVE_TLS profiler * top_level_timer = nullptr;
+    return top_level_timer;
+}
 
 /*
  * The destructor will request power data from RCRToolkit
@@ -381,7 +384,7 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
     }
     /* register the finalization function, for program exit */
     std::atexit(cleanup);
-    thread_instance::set_worker(true);
+    //thread_instance::set_worker(true);
     _registered = true;
     apex* instance = apex::instance(); // get/create the Apex static instance
     // assign the rank and size.  Why not in the constructor?
@@ -416,14 +419,17 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
     }
 #endif
     if (apex_options::top_level_os_threads()) {
+        auto tmp = top_level_timer();
         // start top-level timers for threads
         if (thread_name) {
             stringstream ss;
             ss << "OS Thread: " << thread_name;
-            top_level_timer = start(ss.str().c_str());
+            tmp = start(ss.str().c_str());
         } else {
-            top_level_timer = start("OS Thread");
+            tmp = start("OS Thread");
         }
+        // to protect against compiler errors
+        APEX_UNUSED(tmp);
     }
     if (apex_options::use_verbose() && instance->get_node_id() == 0) {
       std::cout << version() << std::endl;
@@ -1396,7 +1402,7 @@ void finalize()
     if (apex_options::disable() == true) { return; }
     // FIRST, stop the top level timer, while the infrastructure is still
     // functioning.
-    if (top_level_timer != nullptr) { stop(top_level_timer); }
+    if (top_level_timer() != nullptr) { stop(top_level_timer()); }
     // if not done already...
     shutdown_throttling(); // stop thread scheduler policies
     stop_all_async_threads(); // stop OS/HW monitoring
@@ -1437,7 +1443,6 @@ void finalize()
             }
         }
     }
-    thread_instance::delete_instance();
 #if APEX_HAVE_BFD
     address_resolution::delete_instance();
 #endif
@@ -1512,21 +1517,24 @@ void register_thread(const std::string &name)
     if (apex_options::top_level_os_threads()) {
         stringstream ss;
         ss << "OS Thread: ";
+        auto tmp = top_level_timer();
         // start top-level timers for threads
         if (name.find("worker-thread") != name.npos) {
             ss << "worker-thread";
-            top_level_timer = start(ss.str());
+            tmp = start(ss.str());
         } else {
             string::size_type index = name.find("#");
             if (index!=std::string::npos) {
                 string short_name = name.substr(0,index);
                 ss << short_name;
-                top_level_timer = start(ss.str());
+                tmp = start(ss.str());
             } else {
                 ss << name;
-                top_level_timer = start(ss.str());
+                tmp = start(ss.str());
             }
         }
+        // to protect against compiler errors
+        APEX_UNUSED(tmp);
     }
 }
 
@@ -1536,7 +1544,7 @@ void exit_thread(void)
     apex* instance = apex::instance();
     // protect against calls after finalization
     if (!instance || _exited) return;
-    if (top_level_timer != nullptr) { stop(top_level_timer); }
+    if (top_level_timer() != nullptr) { stop(top_level_timer()); }
     _exited = true;
     event_data data;
     if (_notify_listeners) {
@@ -1544,10 +1552,6 @@ void exit_thread(void)
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             instance->listeners[i]->on_exit_thread(data);
         }
-    }
-    // delete the thread local instance
-    if (thread_instance::get_id() != 0) {
-        thread_instance::delete_instance();
     }
 }
 

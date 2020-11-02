@@ -133,6 +133,15 @@ typedef enum {APEX_SIMPLE_HYSTERESIS,      /*!< optimize using sliding window of
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 /**
+ * Typedef for enumerating the different asynchronous activity types
+ */
+typedef enum {APEX_CUDA_KERNEL,          /* CUDA Kernel */
+              APEX_CUDA_MEMORY,          /* CUDA memory copy */
+              APEX_CUDA_SYNCHRONIZE,     /* CUDA Synchronization events */
+              APEX_CUDA_OTHER            /* CUDA OpenACC "other" events */
+} apex_cuda_async_activity_t;
+
+/**
  * Structure that holds a profiler ID
  */
 typedef struct _apex_profiler_id
@@ -302,6 +311,9 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_CUDA_KERNEL_DETAILS, use_cuda_kernel_details, int, false) \
     macro (APEX_CUDA_RUNTIME_API, use_cuda_runtime_api, int, true) \
     macro (APEX_CUDA_DRIVER_API, use_cuda_driver_api, int, false) \
+    macro (APEX_CUDA_SYNC_ACTIVITY, use_cuda_sync_activity, int, false) \
+    macro (APEX_CUDA_MEMORY_ACTIVITY, use_cuda_memory_activity, int, true) \
+    macro (APEX_CUDA_KERNEL_ACTIVITY, use_cuda_kernel_activity, int, true) \
     macro (APEX_JUPYTER_SUPPORT, use_jupyter_support, int, false) \
 
 #define FOREACH_APEX_STRING_OPTION(macro) \

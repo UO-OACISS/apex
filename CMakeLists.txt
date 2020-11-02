@@ -29,7 +29,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake/Modules)
 
 if(APEX_WITH_CUDA)
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND
-        CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 9.0)
+        CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 9)
         message(INFO " Building CUPTI support, but GCC is too new for CUDA tests")
     elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
         message(INFO " Building CUPTI support, but Clang can't build CUDA tests")
@@ -207,7 +207,8 @@ set(APEX_SANITIZE_OPTIONS "")
 
 # memory, other
 if (DEFINED APEX_SANITIZE AND APEX_SANITIZE)
-  set(APEX_SANITIZE_OPTIONS "-fsanitize=address -fsanitize=undefined -fsanitize-recover=address ")
+  #set(APEX_SANITIZE_OPTIONS "-fsanitize=address -fsanitize=undefined -fsanitize-recover=address ")
+  set(APEX_SANITIZE_OPTIONS "-fsanitize=address -fsanitize-recover=address ")
 endif (DEFINED APEX_SANITIZE AND APEX_SANITIZE)
 
 # race conditions

@@ -38,6 +38,22 @@ class empty_stack_exception : public std::exception {
 } ;
 */
 
+class common_data {
+public:
+  // map from name to thread id - common to all threads
+  std::map<std::string, int> _name_map;
+  std::mutex _name_map_mutex;
+  shared_mutex_type _function_map_mutex;
+  // map from thread id to is_worker
+  std::map<int, bool> _worker_map;
+  std::mutex _worker_map_mutex;
+  std::atomic_int _num_threads;
+  std::atomic_int _num_workers;
+  std::atomic_int _active_threads;
+  std::string * _program_path;
+  std::unordered_map<uint64_t, std::vector<profiler*>* > _children_to_resume;
+};
+
 class thread_instance {
 private:
   // APEX id of the thread
@@ -52,6 +68,11 @@ private:
   bool _is_worker;
   // a thread-specific task counter for generating GUIDS
   uint64_t _task_count;
+  static common_data& common() {
+    static common_data common;
+    return common;
+  };
+  /*
   // map from name to thread id - common to all threads
   static std::map<std::string, int> _name_map;
   static std::mutex _name_map_mutex;
@@ -63,14 +84,24 @@ private:
   static std::atomic_int _num_workers;
   static std::atomic_int _active_threads;
   static std::string * _program_path;
-  static std::unordered_map<uint64_t, std::vector<profiler*>* > children_to_resume;
-  // thread specific data
-  static APEX_NATIVE_TLS thread_instance * _instance;
+  static std::unordered_map<uint64_t, std::vector<profiler*>* > _children_to_resume;
+  */
   // constructor
   thread_instance (bool is_worker) :
         _id(-1), _id_reversed(UINTMAX_MAX), _runtime_id(-1),
         _top_level_timer_name(), _is_worker(is_worker), _task_count(0) {
-            _instance = nullptr;
+    /* Even do this for non-workers, because for CUPTI processing we need to
+     * generate GUIDs for the activity events! */
+    _id = common()._num_threads++;
+    /* reverse the TID and shift it 32 bits, so we can use it to generate
+       task-private GUIDS that are unique within the process space. */
+    _id_reversed = ((uint64_t)(simple_reverse((uint32_t)_id))) << 32;
+    if (is_worker) {
+        common()._num_workers++;
+    }
+    _runtime_id = _id; // can be set later, if necessary
+    common()._active_threads++;
+
   };
   // map from function address to name - unique to all threads to avoid locking
   std::map<apex_function_address, std::string> _function_map;
@@ -91,7 +122,6 @@ public:
 #else
   static thread_instance& instance(bool is_worker=true);
 #endif
-  static void delete_instance();
   static long unsigned int get_id(void) { return instance()._id; }
   static long unsigned int get_runtime_id(void) { return instance()._runtime_id; }
   static void set_runtime_id(long unsigned int id) { instance()._runtime_id = id; }
@@ -100,8 +130,8 @@ public:
   static void set_worker(bool is_worker);
   static int map_name_to_id(std::string name);
   static bool map_id_to_worker(int id);
-  static int get_num_threads(void) { return _num_threads; };
-  static int get_num_workers(void) { return _num_workers; };
+  static int get_num_threads(void) { return common()._num_threads; };
+  static int get_num_workers(void) { return common()._num_workers; };
   std::string map_addr_to_name(apex_function_address function_address);
   static profiler * restore_children_profilers(std::shared_ptr<task_wrapper> &tt_ptr);
   static void set_current_profiler(profiler * the_profiler);

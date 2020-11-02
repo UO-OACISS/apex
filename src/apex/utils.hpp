@@ -31,6 +31,8 @@ fprintf( stderr, __VA_ARGS__ ); fflush(stderr); \
 #define DEBUG_PRINT(...) do{ } while ( false )
 #endif
 
+#include "apex_types.h"
+
 namespace apex {
 
 bool starts_with(const std::string& input, const std::string& match);
@@ -254,6 +256,8 @@ inline char filesystem_separator()
 
 uint64_t test_for_MPI_comm_rank(uint64_t commrank);
 uint64_t test_for_MPI_comm_size(uint64_t commsize);
+
+std::string activity_to_string(apex_cuda_async_activity_t activity);
 
 }
 
