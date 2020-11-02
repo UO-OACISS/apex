@@ -1325,8 +1325,13 @@ namespace apex {
     void otf2_listener::on_sample_value(sample_value_event_data &data) {
         // This could be an asynchronous sampled counter, may have gotten
         // here before initialization is done.  Wait a sec...hopefully not longer.
+        /*
         while (!_initialized) {
             usleep(apex_options::policy_drain_timeout()); // sleep 1ms (default)
+            */
+        // on second thought, just return.
+        if (!_initialized) {
+            return;
         }
         // don't close the archive on us!
         read_lock_type lock(_archive_mutex);

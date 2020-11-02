@@ -253,13 +253,19 @@ getUvmCounterKindString(CUpti_ActivityUnifiedMemoryCounterKind kind)
         case CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_BYTES_TRANSFER_DTOH:
             return "Unified Memcpy DTOH";
         case CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_CPU_PAGE_FAULT_COUNT:
-            return "Unified Memory CPU Page Fault Count";
+            return "Unified Memory CPU Page Fault";
         case CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_GPU_PAGE_FAULT:
-            return "Unified Memory GPU Page Fault Groups";
+            return "Unified Memory GPU Page Fault";
         case CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_THRASHING:
             return "Unified Memory Trashing";
         case CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_THROTTLING:
             return "Unified Memory Throttling";
+        case CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_REMOTE_MAP:
+            return "Unified Memory Remote Map";
+        case CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_BYTES_TRANSFER_DTOD:
+            return "Unified Memory DTOD";
+        case CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_COUNT:
+            return "Unified Memory Count";
         default:
             break;
     }
@@ -441,13 +447,19 @@ static void unifiedMemoryActivity(CUpti_Activity *record) {
                     memcpy->end, bandwidth, node, true);
         }
     } else if (memcpy->counterKind ==
+            CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_THROTTLING) {
+        store_profiler_data(name, 0, memcpy->start, memcpy->end, node);
+    } else if (memcpy->counterKind ==
+            CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_GPU_PAGE_FAULT) {
+        store_profiler_data(name, 0, memcpy->start, memcpy->end, node);
+        store_counter_data("Groups for same page", name, memcpy->end,
+                memcpy->value, node);
+    /*
+    } else if (memcpy->counterKind ==
             CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_CPU_PAGE_FAULT_COUNT) {
         store_counter_data(nullptr, name, memcpy->start,
                 1, node);
-    } else if (memcpy->counterKind ==
-            CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_GPU_PAGE_FAULT) {
-        store_counter_data(nullptr, name, memcpy->start,
-                memcpy->value, node);
+    */
     }
 }
 
@@ -733,7 +745,7 @@ void configureUnifiedMemorySupport(void) {
 }
 
 bool initialize_first_time() {
-    //apex::init("APEX CUDA support", 0, 1);
+    apex::init("APEX CUDA support", 0, 1);
     configureUnifiedMemorySupport();
     return true;
 }
