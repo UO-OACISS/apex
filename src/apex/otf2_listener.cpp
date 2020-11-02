@@ -2594,13 +2594,13 @@ namespace apex {
         if (last_ts.count(tid) == 0) {
             last_ts[tid] = 0ULL;
         }
-        uint64_t last = last_ts[tid];
         // not likely, but just in case...
         if (_terminate) { return; }
         /* validate the time stamp.  CUPTI is notorious for giving out-of-order
          * events, so make sure this one isn't before the previous. */
         uint64_t stamp = 0L;
         stamp = p->get_start_ns() - globalOffset;
+        uint64_t last = last_ts[tid];
         if(stamp < last) {
             uint64_t estamp = p->get_stop_ns() - globalOffset;
             if(estamp < last) {
@@ -2660,6 +2660,25 @@ namespace apex {
         task_identifier * id = p->get_task_id();
         uint64_t idx = get_metric_index(id->name);
         uint64_t stamp = p->get_stop_ns() - globalOffset;
+        uint64_t last = last_ts[tid];
+        if(stamp < last) {
+            uint64_t estamp = p->get_stop_ns() - globalOffset;
+            if(estamp < last) {
+                dropped++;
+                std::cerr << "APEX: Warning - Events delivered out of order on Device "
+                          << node._device << ", Context " << node._context
+                          << ", Stream " << node._stream
+                          << ".\nIgnoring event " << p->tt_ptr->task_id->get_name()
+                          << " with timestamp of " << stamp << " after last event "
+                          << "with timestamp of " << last << std::endl;
+            /*
+            */
+                return;
+            }
+            /* This activity doesn't fully overlap with the previous, so
+             * we are safe to just adjust the start time. */
+            stamp = last;
+        }
         // don't close the archive on us!
         read_lock_type lock(_archive_mutex);
         // before we process the event, make sure the event write is open
@@ -2669,6 +2688,7 @@ namespace apex {
             OTF2_EC(OTF2_EvtWriter_Metric( local_evt_writer, nullptr, stamp,
             idx, 1, omt, omv ));
         }
+        last_ts[tid] = stamp;
         return;
     }
 
