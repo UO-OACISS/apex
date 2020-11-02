@@ -45,6 +45,7 @@ where APEX options are zero or more of:
                            during execution (not compatible with trace output)
     --apex:cuda_counters   enable CUDA/CUPTI counter support
     --apex:cuda_driver     enable CUDA driver API callbacks
+    --apex:cuda_details    enable per-kernel statistics where available
     --apex:cpuinfo         enable sampling of /proc/cpuinfo (Linux only)
     --apex:meminfo         enable sampling of /proc/meminfo (Linux only)
     --apex:net             enable sampling of /proc/net/dev (Linux only)
@@ -68,6 +69,7 @@ tau=no
 debug=no
 cuda_counters=no
 cuda_driver=no
+cuda_details=no
 untied=no
 cpuinfo=no
 meminfo=no
@@ -152,6 +154,11 @@ while (( "$#" )); do
     --apex:cuda_driver)
       cuda_driver=yes
       export APEX_CUDA_DRIVER_API=1
+      shift
+      ;;
+    --apex:cuda_details)
+      cuda_details=yes
+      export APEX_CUDA_KERNEL_DETAILS=1
       shift
       ;;
     --apex:cpuinfo)
