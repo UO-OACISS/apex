@@ -2604,7 +2604,6 @@ namespace apex {
         if(stamp < last) {
             uint64_t estamp = p->get_stop_ns() - globalOffset;
             if(estamp < last) {
-                dropped++;
             /*
                 std::cerr << "APEX: Warning - Events delivered out of order on Device "
                           << node._device << ", Context " << node._context
@@ -2613,6 +2612,7 @@ namespace apex {
                           << " with timestamp of " << stamp << " after last event "
                           << "with timestamp of " << last << std::endl;
             */
+                dropped++;
                 return;
             }
             /* This activity doesn't fully overlap with the previous, so
@@ -2662,19 +2662,19 @@ namespace apex {
         uint64_t stamp = p->get_stop_ns() - globalOffset;
         uint64_t last = last_ts[tid];
         if(stamp < last) {
-            dropped++;
+            /*
             std::cerr << "APEX: Warning - Events delivered out of order on Device "
                       << node._device << ", Context " << node._context
                       << ", Stream " << node._stream
                       << ".\nIgnoring event " << id->name
                       << " with timestamp of " << stamp << " after last event "
                       << "with timestamp of " << last << std::endl;
-            /*
-                return;
             */
+            dropped++;
+                return;
             /* This activity doesn't fully overlap with the previous, so
              * we are safe to just adjust the start time. */
-            stamp = last;
+            //stamp = last;
         }
         // don't close the archive on us!
         read_lock_type lock(_archive_mutex);
