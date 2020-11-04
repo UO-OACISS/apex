@@ -59,13 +59,14 @@ monitor::~monitor (void) {
 void monitor::query(void) {
     indexMutex.lock();
     // use the copy constructor to get the set of active indices
-    auto indexSet{activeDeviceIndices};
+    std::set<uint32_t> indexSet{activeDeviceIndices};
     indexMutex.unlock();
 
-    for (auto d : indexSet) {
+    for (uint32_t d : indexSet) {
         /* Get overall utilization percentages */
         nvmlUtilization_t utilization;
-        NVML_CALL(nvmlDeviceGetUtilizationRates(devices[d], &utilization));
+        nvmlDevice_t dev = devices[d];
+        NVML_CALL(nvmlDeviceGetUtilizationRates(dev, &utilization));
         {
             std::stringstream ss;
             ss << "GPU: Device " << d << " Utilization %";
