@@ -149,7 +149,7 @@ void handle_stop(const std::string & name) {
     } else {
         apex_profile * profile = apex::get_profile(name);
         if(apex_openmp_policy_tuning_window == 1 || (profile != nullptr && profile->calls >= apex_openmp_policy_tuning_window)) {
-            std::cout << "Num calls: " << profile->calls << std::endl;
+            //std::cout << "Num calls: " << profile->calls << std::endl;
             std::shared_ptr<apex_tuning_request> request = search->second;
             // Evaluate the results
             apex::custom_event(request->get_trigger(), NULL);
@@ -172,11 +172,11 @@ int policy(const apex_context context) {
     }
     std::string name = id->get_name(false);
     if(context.event_type == APEX_START_EVENT) {
-        if(name.find("OpenMP_PARALLEL_REGION") == 0) {
+        if(name.find("OpenMP Parallel Region:") == 0) {
             handle_start(name);
         }
     } else if(context.event_type == APEX_STOP_EVENT) {
-        if(name.find("OpenMP_PARALLEL_REGION") == 0) {
+        if(name.find("OpenMP Parallel Region:") == 0) {
             handle_stop(name);
         }
     }
