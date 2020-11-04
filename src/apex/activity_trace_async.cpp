@@ -141,6 +141,8 @@ void store_profiler_data(const std::string &name, uint32_t correlationId,
             (apex::otf2_listener*)instance->the_otf2_listener;
         tol->on_async_event(node, prof);
     }
+#else
+    APEX_UNUSED(otf2_trace);
 #endif
     // have the listeners handle the end of this task
     instance->complete_task(tt);
