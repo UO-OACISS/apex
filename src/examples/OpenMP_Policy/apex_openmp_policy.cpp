@@ -38,13 +38,14 @@ static std::string apex_openmp_policy_history_file = "";
 static const std::list<std::string> default_thread_space{"2", "4", "8", "16", "24", "32"};
 static const std::list<std::string> default_schedule_space{"static", "dynamic", "guided"};
 static const std::list<std::string> default_chunk_space{"1", "8", "32", "64", "128", "256", "512"};
+static uint32_t thread_cap = 1; // it'll grow from here
 
 static const std::list<std::string> * thread_space = nullptr;
 static const std::list<std::string> * schedule_space = nullptr;
 static const std::list<std::string> * chunk_space = nullptr;
 
-static apex_policy_handle * start_policy;
-static apex_policy_handle * stop_policy;
+static apex_policy_handle * start_policy_handle;
+static apex_policy_handle * stop_policy_handle;
 
 static void set_omp_params(std::shared_ptr<apex_tuning_request> request) {
 	//std::cout << __func__ << std::endl;
@@ -120,7 +121,7 @@ void handle_start(const std::string & name) {
         //int max_threads = omp_get_num_procs();
 
         // Create a parameter for number of threads.
-        std::shared_ptr<apex_param_enum> threads_param = request->add_param_enum("omp_num_threads", std::to_string(apex::hardware_concurrency()), *thread_space);
+        std::shared_ptr<apex_param_enum> threads_param = request->add_param_enum("omp_num_threads", std::to_string(thread_cap), *thread_space);
 
         // Create a parameter for scheduling policy.
         std::shared_ptr<apex_param_enum> schedule_param = request->add_param_enum("omp_schedule", "static", *schedule_space);
@@ -159,7 +160,7 @@ void handle_stop(const std::string & name) {
     }
 }
 
-int policy(const apex_context context) {
+int start_policy(const apex_context context) {
 	//std::cout << __func__ << std::endl;
     if(context.data == nullptr) {
         std::cerr << "ERROR: No task_identifier for event!" << std::endl;
@@ -171,14 +172,26 @@ int policy(const apex_context context) {
         return APEX_NOERROR;
     }
     std::string name = id->get_name(false);
-    if(context.event_type == APEX_START_EVENT) {
-        if(name.find("OpenMP Parallel Region:") == 0) {
-            handle_start(name);
-        }
-    } else if(context.event_type == APEX_STOP_EVENT) {
-        if(name.find("OpenMP Parallel Region:") == 0) {
-            handle_stop(name);
-        }
+    if(name.find("OpenMP Parallel Region:") == 0) {
+        handle_start(name);
+    }
+    return APEX_NOERROR;
+}
+
+int stop_policy(const apex_context context) {
+	//std::cout << __func__ << std::endl;
+    if(context.data == nullptr) {
+        std::cerr << "ERROR: No task_identifier for event!" << std::endl;
+        return APEX_ERROR;
+    }
+    apex::task_identifier * id = (apex::task_identifier *) context.data;
+    if(!id->has_name) {
+        // Skip events without names.
+        return APEX_NOERROR;
+    }
+    std::string name = id->get_name(false);
+    if(name.find("OpenMP Parallel Region:") == 0) {
+        handle_stop(name);
     }
     return APEX_NOERROR;
 }
@@ -334,12 +347,15 @@ bool parse_space_file(const std::string & filename) {
                   if (this_num_threads <= apex::hardware_concurrency()) {
                       const std::string this_num_threads_str = std::to_string(this_num_threads);
                       num_threads_list.push_back(this_num_threads_str);
+                      thread_cap = thread_cap < this_num_threads ? this_num_threads : thread_cap;
                   }
               } else if(itr->IsString()) {
                   const char * this_num_threads = itr->GetString();
-                  if ((unsigned int)(atoi(this_num_threads)) <= apex::hardware_concurrency()) {
+                  unsigned int tmpint = (unsigned int)(atoi(this_num_threads));
+                  if (tmpint <= apex::hardware_concurrency()) {
                       const std::string this_num_threads_str = std::string(this_num_threads, itr->GetStringLength());
                       num_threads_list.push_back(this_num_threads_str);
+                      thread_cap = thread_cap < tmpint ? tmpint : thread_cap;
                   }
               } else {
                   std::cerr << "Parameter space file's 'omp_num_threads' member must contain only integers or strings" << std::endl;
@@ -514,10 +530,11 @@ int register_policy() {
 
 
     // Register the policy functions with APEX
-    std::function<int(apex_context const&)> policy_fn{policy};
-    start_policy = apex::register_policy(APEX_START_EVENT, policy_fn);
-    stop_policy  = apex::register_policy(APEX_STOP_EVENT,  policy_fn);
-    if(start_policy == nullptr || stop_policy == nullptr) {
+    std::function<int(apex_context const&)> start_policy_fn{start_policy};
+    std::function<int(apex_context const&)> stop_policy_fn{stop_policy};
+    start_policy_handle = apex::register_policy(APEX_START_EVENT, start_policy_fn);
+    stop_policy_handle  = apex::register_policy(APEX_STOP_EVENT,  stop_policy_fn);
+    if(start_policy_handle == nullptr || stop_policy_handle == nullptr) {
         return APEX_ERROR;
     } else {
         return APEX_NOERROR;
@@ -544,8 +561,8 @@ extern "C" {
 		std::cout << __func__ << std::endl;
         if(apex_openmp_policy_running) {
             fprintf(stderr, "apex_openmp_policy finalize\n");
-            //apex::deregister_policy(start_policy);
-            //apex::deregister_policy(stop_policy);
+            //apex::deregister_policy(start_policy_handle);
+            //apex::deregister_policy(stop_policy_handle);
             print_summary();
             delete apex_openmp_policy_tuning_requests;
             apex_openmp_policy_running = false;

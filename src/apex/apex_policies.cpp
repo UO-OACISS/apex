@@ -811,8 +811,13 @@ int apex_custom_tuning_policy(shared_ptr<apex_tuning_session> tuning_session,
     apex_context const context) {
     APEX_UNUSED(context);
     if (apex_final) return APEX_NOERROR; // we terminated, RCR has shut down.
+    static std::set<htask_t*> converged;
     std::unique_lock<std::mutex> l{shutdown_mutex};
+    if (converged.count(tuning_session->htask) > 0) {
+        return APEX_NOERROR;
+    }
     if (ah_converged(tuning_session->htask)) {
+        converged.insert(tuning_session->htask);
         if (!tuning_session->converged_message) {
             tuning_session->converged_message = true;
             cout << "Tuning has converged for session " << tuning_session->id

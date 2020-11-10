@@ -1,17 +1,17 @@
 
 #add_subdirectory (PthreadWrapper)
 add_subdirectory (DemoCpp)
-add_subdirectory (DemoC)  
+add_subdirectory (DemoC)
 # Add a test program which actually uses the CPU
-add_subdirectory (Matmult)  
+add_subdirectory (Matmult)
 if(MPI_CXX_FOUND)
-  add_subdirectory (MPITest)  
-  add_subdirectory (LuleshMPI)  
+  add_subdirectory (MPITest)
+  add_subdirectory (LuleshMPI)
   if(OPENMP_FOUND)
-    add_subdirectory (MPIImbalancePolicy)  
-    #add_subdirectory (MPIGlobalTest)  
-    add_subdirectory (LuleshMPIOpenMP)  
-    add_subdirectory (MPIAutoBalance)  
+    add_subdirectory (MPIImbalancePolicy)
+    #add_subdirectory (MPIGlobalTest)
+    add_subdirectory (LuleshMPIOpenMP)
+    add_subdirectory (MPIAutoBalance)
   endif()
 endif()
 add_subdirectory (TestITT)
@@ -45,6 +45,7 @@ if(OPENMP_FOUND)
 endif()
 add_subdirectory (CustomTuning)
 add_subdirectory (TuningRequest)
+add_subdirectory (EventFilter)
 
 # does the application run
 add_test (ExampleDemoC DemoC/apexCDemo)
@@ -53,37 +54,37 @@ add_test (ExampleDemoCpp DemoCpp/apexCppDemo)
 set_tests_properties(ExampleDemoCpp PROPERTIES PASS_REGULAR_EXPRESSION "APEX Version : ")
 
 # Run the test program which actually uses the CPU
-add_test (ExampleMatmult Matmult/matmult)  
+add_test (ExampleMatmult Matmult/matmult)
 set_tests_properties(ExampleMatmult PROPERTIES PASS_REGULAR_EXPRESSION "Done.")
 
 # Run the test program which tests the ITT interface
-add_test (ExampleTestITT TestITT/testITT)  
+add_test (ExampleTestITT TestITT/testITT)
 set_tests_properties(ExampleTestITT PROPERTIES PASS_REGULAR_EXPRESSION "ITT demo.")
 
 # Run the test program which tests the threads interface
-add_test (ExampleTestThreads TestThreads/testThreads)  
+add_test (ExampleTestThreads TestThreads/testThreads)
 set_tests_properties(ExampleTestThreads PROPERTIES PASS_REGULAR_EXPRESSION "The ID of this thread is:")
 
 # Run the test program which tests the yielding
-add_test (ExampleCountCalls CountCalls/count_calls)  
+add_test (ExampleCountCalls CountCalls/count_calls)
 set_tests_properties(ExampleCountCalls PROPERTIES PASS_REGULAR_EXPRESSION
 "Test passed.")
 
 # Run the test program which tests the overhead in the threads interface
-add_test (ExampleOverhead Overhead/testOverhead)  
+add_test (ExampleOverhead Overhead/testOverhead)
 set_tests_properties(ExampleOverhead PROPERTIES PASS_REGULAR_EXPRESSION "Estimated overhead per timer")
 
 # TEst the policy engine support
-add_test (ExamplePolicyUnitTest PolicyUnitTest/policyUnitTest)  
+add_test (ExamplePolicyUnitTest PolicyUnitTest/policyUnitTest)
 set_tests_properties(ExamplePolicyUnitTest PROPERTIES ENVIRONMENT "APEX_POLICY=1")
 set_tests_properties(ExamplePolicyUnitTest PROPERTIES FAIL_REGULAR_EXPRESSION "Warning: registered policy function failed!")
 
 # TEst the policy engine support
-add_test (ExamplePolicyEngineExample PolicyEngineExample/testPolicyEngine)  
+add_test (ExamplePolicyEngineExample PolicyEngineExample/testPolicyEngine)
 set_tests_properties(ExamplePolicyEngineExample PROPERTIES ENVIRONMENT "APEX_POLICY=1")
 set_tests_properties(ExamplePolicyEngineExample PROPERTIES FAIL_REGULAR_EXPRESSION "Warning: registered policy function failed!")
 
-add_test (ExamplePolicyEngineCppExample PolicyEngineCppExample/testCppPolicyEngine)  
+add_test (ExamplePolicyEngineCppExample PolicyEngineCppExample/testCppPolicyEngine)
 set_tests_properties(ExamplePolicyEngineCppExample PROPERTIES ENVIRONMENT "APEX_POLICY=1")
 set_tests_properties(ExamplePolicyEngineCppExample PROPERTIES FAIL_REGULAR_EXPRESSION "Warning: registered policy function failed!")
 
@@ -96,14 +97,14 @@ add_test (ExampleGetPower TestGetPower/testpower)
 set_tests_properties(ExampleGetPower PROPERTIES PASS_REGULAR_EXPRESSION "Power at end:")
 
 # Test the throttling support
-add_test (ExampleThrottling Throttling/testThrottling)  
+add_test (ExampleThrottling Throttling/testThrottling)
 set_tests_properties(ExampleThrottling PROPERTIES PASS_REGULAR_EXPRESSION
 "Test passed.")
 set_property(TEST ExampleThrottling PROPERTY ENVIRONMENT "APEX_POLICY=1")
 set_property(TEST ExampleThrottling APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_CONCURRENCY=1")
 set_property(TEST ExampleThrottling APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_ENERGY=1")
 
-add_test (ExampleThrottlingCpp ThrottlingCpp/testThrottlingCpp)  
+add_test (ExampleThrottlingCpp ThrottlingCpp/testThrottlingCpp)
 set_tests_properties(ExampleThrottlingCpp PROPERTIES PASS_REGULAR_EXPRESSION
 "Test passed.")
 set_property(TEST ExampleThrottlingCpp PROPERTY ENVIRONMENT "APEX_POLICY=1")
@@ -111,7 +112,7 @@ set_property(TEST ExampleThrottlingCpp APPEND PROPERTY ENVIRONMENT "APEX_THROTTL
 set_property(TEST ExampleThrottling APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_ENERGY=1")
 
 if (ACTIVEHARMONY_FOUND)
-add_test (ExampleThrottlingActiveHarmony ThrottlingActiveHarmony/testThrottlingActiveHarmony)  
+add_test (ExampleThrottlingActiveHarmony ThrottlingActiveHarmony/testThrottlingActiveHarmony)
 set_tests_properties(ExampleThrottlingActiveHarmony PROPERTIES
 PASS_REGULAR_EXPRESSION "Test passed.")
 set_property(TEST ExampleThrottlingActiveHarmony PROPERTY ENVIRONMENT "APEX_POLICY=1")
@@ -119,13 +120,13 @@ set_property(TEST ExampleThrottlingActiveHarmony APPEND PROPERTY ENVIRONMENT "AP
 set_property(TEST ExampleThrottlingActiveHarmony APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_CONCURRENCY=1")
 set_property(TEST ExampleThrottlingActiveHarmony APPEND PROPERTY ENVIRONMENT "HARMONY_HOME=${ACTIVEHARMONY_ROOT}")
 
-add_test (ExampleCustomTuning CustomTuning/custom_tuning)  
+add_test (ExampleCustomTuning CustomTuning/custom_tuning)
 set_tests_properties(ExampleCustomTuning PROPERTIES
 PASS_REGULAR_EXPRESSION "Test passed.")
 set_property(TEST ExampleCustomTuning PROPERTY ENVIRONMENT "APEX_POLICY=1")
 set_property(TEST ExampleCustomTuning APPEND PROPERTY ENVIRONMENT "HARMONY_HOME=${ACTIVEHARMONY_ROOT}")
 
-add_test (ExampleTuningRequest TuningRequest/tuning_request)  
+add_test (ExampleTuningRequest TuningRequest/tuning_request)
 set_tests_properties(ExampleTuningRequest PROPERTIES
 PASS_REGULAR_EXPRESSION "Test passed.")
 set_property(TEST ExampleTuningRequest PROPERTY ENVIRONMENT "APEX_POLICY=1")
@@ -136,28 +137,28 @@ endif()
 if(MPI_CXX_FOUND)
 # Run the test program which tests the mpi interface
   add_test (ExampleMPITest ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
-    ${MPIEXEC_PREFLAGS} MPITest/mpi_test ${MPIEXEC_POSTFLAGS})  
+    ${MPIEXEC_PREFLAGS} MPITest/mpi_test ${MPIEXEC_POSTFLAGS})
   set_tests_properties(ExampleMPITest PROPERTIES ENVIRONMENT "APEX_POLICY=1")
   string(TIMESTAMP VERSION "%Y-%m-%d_%H.%M.%S")
   set_property(TEST ExampleMPITest APPEND PROPERTY ENVIRONMENT "APEX_OTF2_ARCHIVE_PATH=OTF2_archive_mpi_test_${VERSION}")
   #add_test (ExampleMPIGlobalTest ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
-  #${MPIEXEC_PREFLAGS} MPIGlobalTest/mpi_global_test ${MPIEXEC_POSTFLAGS})  
+  #${MPIEXEC_PREFLAGS} MPIGlobalTest/mpi_global_test ${MPIEXEC_POSTFLAGS})
   #set_tests_properties(ExampleMPIGlobalTest PROPERTIES ENVIRONMENT "APEX_POLICY=1")
   #set_property(TEST ExampleMPIGlobalTest APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_ENERGY=1")
   #set_property(TEST ExampleMPIGlobalTest APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_CONCURRENCY=1")
   add_test (ExampleMPIImbalancePolicy ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
-    ${MPIEXEC_PREFLAGS} MPIImbalancePolicy/mpi_imbalance_test ${MPIEXEC_POSTFLAGS})  
+    ${MPIEXEC_PREFLAGS} MPIImbalancePolicy/mpi_imbalance_test ${MPIEXEC_POSTFLAGS})
   set_tests_properties(ExampleMPIImbalancePolicy PROPERTIES ENVIRONMENT "APEX_POLICY=1")
   string(TIMESTAMP VERSION "%Y-%m-%d_%H.%M.%S")
   set_property(TEST ExampleMPIImbalancePolicy APPEND PROPERTY ENVIRONMENT "APEX_OTF2_ARCHIVE_PATH=OTF2_archive_mpi_imbalance_test_${VERSION}")
 #  add_test (ExampleLuleshMPI ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 8
-#    ${MPIEXEC_PREFLAGS} LuleshMPI/lulesh_MPI_2.0 -s 15 ${MPIEXEC_POSTFLAGS})  
+#    ${MPIEXEC_PREFLAGS} LuleshMPI/lulesh_MPI_2.0 -s 15 ${MPIEXEC_POSTFLAGS})
   if(OPENMP_FOUND)
 #    add_test (ExampleLuleshMPIOpenMP ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 8
 #      ${MPIEXEC_PREFLAGS} LuleshMPIOpenMP/lulesh_MPI_OpenMP_2.0
-#      -s 15 ${MPIEXEC_POSTFLAGS})  
+#      -s 15 ${MPIEXEC_POSTFLAGS})
     add_test (ExampleMPIAutoBalance ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
-      ${MPIEXEC_PREFLAGS} MPIAutoBalance/mpi_auto_balance ${MPIEXEC_POSTFLAGS})  
+      ${MPIEXEC_PREFLAGS} MPIAutoBalance/mpi_auto_balance ${MPIEXEC_POSTFLAGS})
       if (PROCESSOR_COUNT)
         set_tests_properties(ExampleMPIAutoBalance PROPERTIES
 		PASS_REGULAR_EXPRESSION "Test passed.")
@@ -207,7 +208,7 @@ if(OPENMP_FOUND)
   endif()
 endif()
 
-if (PAPI_FOUND AND NOT TAU_FOUND) 
+if (PAPI_FOUND AND NOT TAU_FOUND)
     set_property (TEST
         ExampleDemoC
         ExampleDemoCpp
@@ -223,7 +224,7 @@ if (PAPI_FOUND AND NOT TAU_FOUND)
         ExampleGetPower
         ExampleThrottling
         ExampleThrottlingCpp
-        APPEND PROPERTY ENVIRONMENT 
+        APPEND PROPERTY ENVIRONMENT
          "APEX_PAPI_METRICS=PAPI_TOT_CYC PAPI_TOT_INS PAPI_LD_INS")
-endif (PAPI_FOUND AND NOT TAU_FOUND) 
+endif (PAPI_FOUND AND NOT TAU_FOUND)
 

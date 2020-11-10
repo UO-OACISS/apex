@@ -1,0 +1,4 @@
+{
+    "exclude": ["scoped.*"],
+    "include": ["task.*", "main"]
+}

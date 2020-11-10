@@ -6,22 +6,20 @@
 
 namespace apex {
 
-event_filter * event_filter::_instance{nullptr};
-
-event_filter::event_filter() {
+event_filter::event_filter() : have_filter(false) {
     try {
         std::ifstream cfg(apex_options::task_event_filter_file());
         if (!cfg.good()) {
             // fail silently, nothing to do but use defaults
-            no_filter = true;
             return;
         }
         rapidjson::IStreamWrapper file_wrapper(cfg);
         configuration.ParseStream(file_wrapper);
         cfg.close();
-        no_filter = false;
+        have_filter = true;
     } catch (...) {
-        no_filter = true;
+        // fail silently, nothing to do but use defaults
+        return;
     }
 }
 
@@ -72,11 +70,11 @@ void handle_error(std::regex_error& e) {
     }
 }
 
-bool event_filter::_include(const std::string &name) {
-    if (no_filter) { return true; }
-    if (configuration.HasMember("include")) {
-        auto & include_filter = configuration["include"];
-        for(auto itr = include_filter.Begin(); itr != include_filter.End(); ++itr) {
+bool event_filter::_exclude(const std::string &name) {
+    // check if this timer should be explicitly ignored
+    if (configuration.HasMember("exclude")) {
+        auto & exclude_filter = configuration["exclude"];
+        for(auto itr = exclude_filter.Begin(); itr != exclude_filter.End(); ++itr) {
             std::string needle(itr->GetString());
             needle.erase(std::remove(needle.begin(),needle.end(),'\"'),needle.end());
             try {
@@ -91,12 +89,13 @@ bool event_filter::_include(const std::string &name) {
                 handle_error(e);
             }
         }
-        // not found in the include filters
-        return false;
+        // not found in the exclude filters
+        // ...but don't assume anything yet - check for include list
     }
-    if (configuration.HasMember("exclude")) {
-        auto & exclude_filter = configuration["exclude"];
-        for(auto itr = exclude_filter.Begin(); itr != exclude_filter.End(); ++itr) {
+    // check if this timer should be implicitly ignored
+    if (configuration.HasMember("include")) {
+        auto & include_filter = configuration["include"];
+        for(auto itr = include_filter.Begin(); itr != include_filter.End(); ++itr) {
             std::string needle(itr->GetString());
             needle.erase(std::remove(needle.begin(),needle.end(),'\"'),needle.end());
             try {
@@ -111,26 +110,19 @@ bool event_filter::_include(const std::string &name) {
                 handle_error(e);
             }
         }
-        // not found in the exclude filters
+        // not found in the whitelist
         return true;
     }
-    return true; // no filters
+    return false; // no filters
 }
 
-bool event_filter::include(const std::string &name) {
-    return instance()._include(name);
+bool event_filter::exclude(const std::string &name) {
+    return instance()._exclude(name);
 }
 
 event_filter& event_filter::instance(void) {
-    static std::mutex mtx;
-    if (_instance == nullptr) {
-        mtx.lock();
-        if (_instance == nullptr) {
-            _instance = new event_filter();
-        }
-        mtx.unlock();
-    }
-    return *_instance;
+    static event_filter _instance;
+    return _instance;
 }
 
 

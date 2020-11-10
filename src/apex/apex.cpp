@@ -515,7 +515,7 @@ profiler* start(const std::string &timer_name)
         return profiler::get_disabled_profiler();
     }
     // don't time filtered events
-    if (!event_filter::include(timer_name)) {
+    if (event_filter::instance().have_filter && event_filter::exclude(timer_name)) {
         return profiler::get_disabled_profiler();
     }
     apex* instance = apex::instance(); // get the Apex static instance
@@ -646,7 +646,7 @@ void start(std::shared_ptr<task_wrapper> tt_ptr) {
         return;
     }
     // don't time filtered events
-    if (!event_filter::include(tt_ptr->task_id->get_name())) {
+    if (event_filter::instance().have_filter && event_filter::exclude(tt_ptr->task_id->get_name())) {
         tt_ptr->prof = nullptr;
         return;
     }
@@ -706,7 +706,7 @@ profiler* resume(const std::string &timer_name) {
         return profiler::get_disabled_profiler();
     }
     // don't time filtered events
-    if (!event_filter::include(timer_name)) {
+    if (event_filter::instance().have_filter && event_filter::exclude(timer_name)) {
         return profiler::get_disabled_profiler();
     }
     apex* instance = apex::instance(); // get the Apex static instance
