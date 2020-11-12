@@ -14,10 +14,9 @@
  */
 
 #include <stdio.h>
-#include <cuda.h>
-#include <cupti.h>
 #include <stack>
 #include <unordered_map>
+#include <sstream>
 #include <mutex>
 #include <atomic>
 #include "apex.hpp"
@@ -30,6 +29,13 @@
 #include "otf2_listener.hpp"
 #endif
 #include "cuda_thread_node.hpp"
+
+#include <cuda.h>
+#include <cupti.h>
+#include <nvToolsExt.h>
+#include <nvToolsExtSync.h>
+#include <generated_nvtx_meta.h>
+#include <dlfcn.h>
 
 static void __attribute__((constructor)) initTrace(void);
 //static void __attribute__((destructor)) flushTrace(void);
@@ -61,6 +67,186 @@ do {                                                                           \
 #define ALIGN_SIZE (8)
 #define ALIGN_BUFFER(buffer, align)                                            \
     (((uintptr_t) (buffer) & ((align)-1)) ? ((buffer) + (align) - ((uintptr_t) (buffer) & ((align)-1))) : (buffer))
+
+#define RESET_DLERROR() dlerror()
+#define CHECK_DLERROR() { \
+  char const * err = dlerror(); \
+  if (err) { \
+    printf("Error getting %s handle: %s\n", name, err); \
+    fflush(stdout); \
+    exit(1); \
+  } \
+}
+
+static
+void * get_system_function_handle(char const * name, void * caller)
+{
+  void * handle;
+
+  // Reset error pointer
+  RESET_DLERROR();
+
+  // Attempt to get the function handle
+  handle = dlsym(RTLD_NEXT, name);
+
+  // Detect errors
+  CHECK_DLERROR();
+
+  // Prevent recursion if more than one wrapping approach has been loaded.
+  // This happens because we support wrapping pthreads three ways at once:
+  // #defines in Profiler.h, -Wl,-wrap on the link line, and LD_PRELOAD.
+  if (handle == caller) {
+    RESET_DLERROR();
+    void * syms = dlopen(NULL, RTLD_NOW);
+    CHECK_DLERROR();
+    do {
+      RESET_DLERROR();
+      handle = dlsym(syms, name);
+      CHECK_DLERROR();
+    } while (handle == caller);
+  }
+
+  return handle;
+}
+
+std::map<nvtxDomainHandle_t, std::string>& get_domain_map() {
+    static std::map<nvtxDomainHandle_t, std::string> the_map;
+    return the_map;
+}
+
+std::map<nvtxRangeId_t, apex::profiler*>& get_range_map() {
+    static std::map<nvtxRangeId_t, apex::profiler*> the_map;
+    return the_map;
+}
+
+/* Wrap some NVTX functions
+ *
+ * Because CUPTI doesn't give us a way to map domain/range names to their
+ * ids, we have to intercept the function calls and manage them ourselves.
+ */
+
+// forward declare a useful function, defined below
+std::string get_nvtx_message(const nvtxEventAttributes_t * eventAttrib);
+
+// Make sure we have C binding on these things
+extern "C" {
+
+// Some typedefs for functions that we are wrapping
+typedef nvtxDomainHandle_t (*nvtxDomainCreateA_p)(const char * name);
+typedef nvtxRangeId_t (*nvtxRangeStartA_p)(const char * message);
+typedef nvtxRangeId_t (*nvtxRangeStartW_p)(const wchar_t * message);
+typedef nvtxRangeId_t (*nvtxRangeStartEx_p)(const nvtxEventAttributes_t *eventAttrib);
+typedef nvtxRangeId_t (*nvtxDomainRangeStartEx_p)(nvtxDomainHandle_t domain, const nvtxEventAttributes_t *eventAttrib);
+
+/* Define the wrapper for nvtxDomainCreateA */
+nvtxDomainHandle_t apex_nvtxDomainCreateA_wrapper(
+    nvtxDomainCreateA_p nvtxDomainCreateA_call, const char * name) {
+    auto handle = nvtxDomainCreateA_call(name);
+    std::string tmp{name};
+    get_domain_map().insert(std::pair<nvtxDomainHandle_t, std::string>(handle, tmp));
+    return handle;
+}
+
+/* Define the interceptor for nvtxDomainCreateA */
+NVTX_DECLSPEC nvtxDomainHandle_t NVTX_API nvtxDomainCreateA (const char * name) {
+    static nvtxDomainCreateA_p _nvtxDomainCreateA =
+        (nvtxDomainCreateA_p)(get_system_function_handle("nvtxDomainCreateA", (void*)(nvtxDomainCreateA)));
+    return apex_nvtxDomainCreateA_wrapper(_nvtxDomainCreateA, name);
+}
+
+/* Define the wrapper for nvtxRangeStartA */
+nvtxRangeId_t apex_nvtxRangeStartA_wrapper (
+    nvtxRangeStartA_p nvtxRangeStartA_call, const char * message) {
+    auto handle = nvtxRangeStartA_call(message);
+    /* Range start/end is too risky for OTF2 */
+    if (!apex::apex_options::use_otf2()) {
+        std::string tmp{message};
+        auto p = apex::start(tmp);
+        get_range_map().insert(std::pair<nvtxRangeId_t, apex::profiler*>(handle, p));
+    }
+    return handle;
+}
+
+/* Define the interceptor for nvtxRangeStartA */
+NVTX_DECLSPEC nvtxRangeId_t NVTX_API nvtxRangeStartA (const char * message) {
+    static nvtxRangeStartA_p _nvtxRangeStartA =
+        (nvtxRangeStartA_p)(get_system_function_handle("nvtxRangeStartA", (void*)(nvtxRangeStartA)));
+    return apex_nvtxRangeStartA_wrapper(_nvtxRangeStartA, message);
+}
+
+/* Define the wrapper for nvtxRangeStartW */
+nvtxRangeId_t apex_nvtxRangeStartW_wrapper (
+    nvtxRangeStartW_p nvtxRangeStartW_call, const wchar_t * message) {
+    auto handle = nvtxRangeStartW_call(message);
+    /* Range start/end is too risky for OTF2 */
+    if (!apex::apex_options::use_otf2()) {
+        std::wstring wtmp(message);
+        std::string tmp = std::string(wtmp.begin(), wtmp.end());
+        auto p = apex::start(tmp);
+        get_range_map().insert(std::pair<nvtxRangeId_t, apex::profiler*>(handle, p));
+    }
+    return handle;
+}
+
+/* Define the interceptor for nvtxRangeStartW */
+NVTX_DECLSPEC nvtxRangeId_t NVTX_API nvtxRangeStartW (const wchar_t * message) {
+    static nvtxRangeStartW_p _nvtxRangeStartW =
+        (nvtxRangeStartW_p)(get_system_function_handle("nvtxRangeStartW", (void*)(nvtxRangeStartW)));
+    return apex_nvtxRangeStartW_wrapper(_nvtxRangeStartW, message);
+}
+
+/* Define the wrapper for nvtxRangeStartEx */
+nvtxRangeId_t apex_nvtxRangeStartEx_wrapper (
+    nvtxRangeStartEx_p nvtxRangeStartEx_call,
+    const nvtxEventAttributes_t *eventAttrib) {
+    auto handle = nvtxRangeStartEx_call(eventAttrib);
+    /* Range start/end is too risky for OTF2 */
+    if (!apex::apex_options::use_otf2()) {
+        std::string tmp{get_nvtx_message(eventAttrib)};
+        auto p = apex::start(tmp);
+        get_range_map().insert(std::pair<nvtxRangeId_t, apex::profiler*>(handle, p));
+    }
+    return handle;
+}
+
+/* Define the interceptor for nvtxRangeStartEx */
+NVTX_DECLSPEC nvtxRangeId_t NVTX_API nvtxRangeStartEx (const nvtxEventAttributes_t *eventAttrib) {
+    static nvtxRangeStartEx_p _nvtxRangeStartEx =
+        (nvtxRangeStartEx_p)(get_system_function_handle("nvtxRangeStartEx", (void*)(nvtxRangeStartEx)));
+    return apex_nvtxRangeStartEx_wrapper(_nvtxRangeStartEx, eventAttrib);
+}
+
+/* Define the wrapper for nvtxDomainRangeStartEx */
+nvtxRangeId_t apex_nvtxDomainRangeStartEx_wrapper (
+    nvtxDomainRangeStartEx_p nvtxDomainRangeStartEx_call,
+    nvtxDomainHandle_t domain,
+    const nvtxEventAttributes_t *eventAttrib) {
+    auto handle = nvtxDomainRangeStartEx_call(domain, eventAttrib);
+    /* Range start/end is too risky for OTF2 */
+    if (!apex::apex_options::use_otf2()) {
+        std::string tmp;
+        if (domain != NULL) {
+            std::string domain_name(get_domain_map()[domain]);
+            std::stringstream ss;
+            ss << domain_name << ": " << get_nvtx_message(eventAttrib);
+            tmp = ss.str();
+        } else {
+            tmp = get_nvtx_message(eventAttrib);
+        }
+        auto p = apex::start(tmp);
+        get_range_map().insert(std::pair<nvtxRangeId_t, apex::profiler*>(handle, p));
+    }
+    return handle;
+}
+
+/* Define the interceptor for nvtxDomainRangeStartEx */
+NVTX_DECLSPEC nvtxRangeId_t NVTX_API nvtxDomainRangeStartEx (nvtxDomainHandle_t domain, const nvtxEventAttributes_t *eventAttrib) {
+    static nvtxDomainRangeStartEx_p _nvtxDomainRangeStartEx =
+        (nvtxDomainRangeStartEx_p)(get_system_function_handle("nvtxDomainRangeStartEx", (void*)(nvtxDomainRangeStartEx)));
+    return apex_nvtxDomainRangeStartEx_wrapper(_nvtxDomainRangeStartEx, domain, eventAttrib);
+}
+
+} /* extern "C" */
 
 // Timestamp at trace initialization time. Used to normalized other
 // timestamps
@@ -150,8 +336,7 @@ void store_profiler_data(const std::string &name, uint32_t correlationId,
 
 /* Handle counters from synchronous callbacks */
 void store_sync_counter_data(const char * name, const std::string& context,
-    uint64_t end, double value, bool force = false) {
-    APEX_UNUSED(end);
+    double value, bool force = false) {
     if (name == nullptr) {
         apex::sample_value(context, value);
     } else {
@@ -807,8 +992,8 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
             bytes = ((cudaMallocHost_v3020_params_st*)(params))->size;
             // we have a special case - handle it differently...
             double value = (double)(bytes);
-            store_sync_counter_data("Host: Page-locked Bytes Allocated", context,
-                apex::profiler::get_time_ns(), value);
+            store_sync_counter_data("Host: Page-locked Bytes Allocated",
+                context, value);
             return true;
             break;
         }
@@ -836,7 +1021,7 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
         }
     }
     double value = (double)(bytes);
-    store_sync_counter_data("GPU: Bytes Allocated", context, apex::profiler::get_time_ns(), value);
+    store_sync_counter_data("GPU: Bytes Allocated", context, value);
     return true;
 }
 
@@ -903,6 +1088,222 @@ void register_new_context(const void *params) {
 #endif
 }
 
+std::string get_nvtx_message(const nvtxEventAttributes_t * eventAttrib) {
+    std::string tmp;
+    if (eventAttrib->messageType == NVTX_MESSAGE_TYPE_ASCII) {
+        tmp = std::string(eventAttrib->message.ascii);
+    } else {
+        std::wstring wtmp(eventAttrib->message.unicode);
+        tmp = std::string(wtmp.begin(), wtmp.end());
+    }
+    return tmp;
+}
+
+double get_nvtx_payload(const nvtxEventAttributes_t * eventAttrib) {
+    double payload;
+    switch (eventAttrib->payloadType) {
+        case NVTX_PAYLOAD_TYPE_UNSIGNED_INT64:
+        {
+            payload = (double)eventAttrib->payload.ullValue;
+            break;
+        }
+        case NVTX_PAYLOAD_TYPE_INT64:
+        {
+            payload = (double)eventAttrib->payload.llValue;
+            break;
+        }
+        case NVTX_PAYLOAD_TYPE_DOUBLE:
+        {
+            payload = (double)eventAttrib->payload.dValue;
+            break;
+        }
+        case NVTX_PAYLOAD_TYPE_UNSIGNED_INT32:
+        {
+            payload = (double)eventAttrib->payload.uiValue;
+            break;
+        }
+        case NVTX_PAYLOAD_TYPE_INT32:
+        {
+            payload = (double)eventAttrib->payload.iValue;
+            break;
+        }
+        case NVTX_PAYLOAD_TYPE_FLOAT:
+        {
+            payload = (double)eventAttrib->payload.fValue;
+            break;
+        }
+        default:
+        {
+            payload = 0.0;
+            break;
+        }
+    }
+    return payload;
+}
+
+void handle_nvtx_callback(CUpti_CallbackId id, const void *cbdata,
+    std::stack<std::shared_ptr<apex::task_wrapper> >& timer_stack) {
+
+    /* Unfortunately, when ranges are started/ended, they can overlap.
+     * Unlike push/pop, which are a true stack.  Even worse, CUDA/CUPTI
+     * doesn't give us any way to tie the start with the end - the start
+     * is identified with a string, and the end is identified with an
+     * index.  We can't match them up. So, we'll just treat them as a
+     * stack for safety.  Also - ranges can start/end on different threads!
+     * So that means we have to use a common stack and hope for the best?
+     * Maybe we should just ignore the range start/end events.
+     */
+
+    const CUpti_NvtxData *nvtxInfo = (CUpti_NvtxData *)cbdata;
+
+    switch (id) {
+        /* Domain events */
+        case CUPTI_CBID_NVTX_nvtxDomainCreateA:
+        case CUPTI_CBID_NVTX_nvtxDomainCreateW:
+        {
+            /* nothing to do - handled in the wrapper. */
+            break;
+        }
+        case CUPTI_CBID_NVTX_nvtxDomainDestroy:
+        {
+            nvtxDomainDestroy_params *params =
+                (nvtxDomainDestroy_params *)nvtxInfo->functionParams;
+            get_domain_map().erase(params->domain);
+            break;
+        }
+        /* Range start events */
+        case CUPTI_CBID_NVTX_nvtxRangeStartEx:
+        case CUPTI_CBID_NVTX_nvtxRangeStartA:
+        case CUPTI_CBID_NVTX_nvtxRangeStartW:
+        {
+            /* nothing to do, handled in the wrapper */
+            break;
+        }
+        /* Range end events */
+        case CUPTI_CBID_NVTX_nvtxRangeEnd:
+        {
+            /* Range start/end is too risky for OTF2 */
+            if (apex::apex_options::use_otf2()) { break; }
+            nvtxRangeEnd_params *params =
+                (nvtxRangeEnd_params *)nvtxInfo->functionParams;
+            apex::stop(get_range_map()[params->id]);
+            get_range_map().erase(params->id);
+            break;
+        }
+        case CUPTI_CBID_NVTX_nvtxDomainRangeEnd:
+        {
+            /* Range start/end is too risky for OTF2 */
+            if (apex::apex_options::use_otf2()) { break; }
+            nvtxDomainRangeEnd_params *params =
+                (nvtxDomainRangeEnd_params *)nvtxInfo->functionParams;
+            apex::stop(get_range_map()[params->core.id]);
+            get_range_map().erase(params->core.id);
+            break;
+        }
+        /* Range push events */
+        case CUPTI_CBID_NVTX_nvtxRangePushA: {
+            nvtxRangePushA_params *params =
+                (nvtxRangePushA_params *)nvtxInfo->functionParams;
+            std::string tmp(params->message);
+            auto timer = apex::new_task(tmp);
+            apex::start(timer);
+            timer_stack.push(timer);
+            break;
+        }
+        case CUPTI_CBID_NVTX_nvtxRangePushW: {
+            nvtxRangePushW_params *params =
+                (nvtxRangePushW_params *)nvtxInfo->functionParams;
+            std::wstring wtmp(params->message);
+            std::string tmp(wtmp.begin(), wtmp.end());
+            auto timer = apex::new_task(tmp);
+            apex::start(timer);
+            timer_stack.push(timer);
+            break;
+        }
+        case CUPTI_CBID_NVTX_nvtxRangePushEx: {
+            nvtxRangePushEx_params *params =
+                (nvtxRangePushEx_params *)nvtxInfo->functionParams;
+            std::string tmp = get_nvtx_message(params->eventAttrib);
+            auto timer = apex::new_task(tmp);
+            apex::start(timer);
+            timer_stack.push(timer);
+            break;
+        }
+        case CUPTI_CBID_NVTX_nvtxDomainRangePushEx: {
+            nvtxDomainRangePushEx_params *params =
+                (nvtxDomainRangePushEx_params *)nvtxInfo->functionParams;
+            std::string tmp;
+            if (params->domain != NULL) {
+                std::string domain(get_domain_map()[params->domain]);
+                std::stringstream ss;
+                ss << domain << ": " << get_nvtx_message(params->core.eventAttrib);
+                tmp = ss.str();
+            } else {
+                tmp = get_nvtx_message(params->core.eventAttrib);
+            }
+            auto timer = apex::new_task(tmp);
+            apex::start(timer);
+            timer_stack.push(timer);
+            break;
+        }
+        /* Range pop events */
+        case CUPTI_CBID_NVTX_nvtxRangePop:
+        {
+            if (!timer_stack.empty()) {
+                auto timer = timer_stack.top();
+                apex::stop(timer);
+                timer_stack.pop();
+            }
+            break;
+        }
+        case CUPTI_CBID_NVTX_nvtxMarkA:
+        {
+            /* marker event with dummy value */
+            nvtxMarkA_params *params =
+                (nvtxMarkA_params *)nvtxInfo->functionParams;
+            std::string tmp(params->message);
+            store_sync_counter_data(nullptr, tmp, 0);
+            break;
+        }
+        case CUPTI_CBID_NVTX_nvtxMarkW:
+        {
+            /* marker event with dummy value */
+            nvtxMarkW_params *params =
+                (nvtxMarkW_params *)nvtxInfo->functionParams;
+            std::wstring wtmp(params->message);
+            std::string tmp(wtmp.begin(), wtmp.end());
+            store_sync_counter_data(nullptr, tmp, 0);
+            break;
+        }
+        case CUPTI_CBID_NVTX_nvtxMarkEx:
+        {
+            nvtxMarkEx_params *params =
+                (nvtxMarkEx_params *)nvtxInfo->functionParams;
+            std::string tmp = get_nvtx_message(params->eventAttrib);
+            double payload = get_nvtx_payload(params->eventAttrib);
+            store_sync_counter_data(nullptr, tmp, payload);
+            break;
+        }
+        case CUPTI_CBID_NVTX_nvtxDomainMarkEx:
+        {
+            nvtxDomainMarkEx_params *params =
+                (nvtxDomainMarkEx_params *)nvtxInfo->functionParams;
+            std::string tmp = get_nvtx_message(params->core.eventAttrib);
+            double payload = get_nvtx_payload(params->core.eventAttrib);
+            if (params->domain != NULL) {
+                std::string domain(get_domain_map()[params->domain]);
+                store_sync_counter_data(domain.c_str(), tmp, payload, true);
+            } else {
+                store_sync_counter_data(nullptr, tmp, payload);
+            }
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+}
+
 void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
         CUpti_CallbackId id, const void *params) {
     static bool initialized = initialize_first_time();
@@ -920,9 +1321,17 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
     if (!apex::thread_instance::is_worker()) { return; }
     if (params == NULL) { return; }
 
-    if (domain == CUPTI_CB_DOMAIN_RESOURCE &&
-        id == CUPTI_CBID_RESOURCE_CONTEXT_CREATED) {
-        register_new_context(params);
+    /* Check for a new context */
+    if (domain == CUPTI_CB_DOMAIN_RESOURCE) {
+        if (id == CUPTI_CBID_RESOURCE_CONTEXT_CREATED) {
+            register_new_context(params);
+        }
+        return;
+    }
+
+    /* Check for user-level instrumentation */
+    if (domain == CUPTI_CB_DOMAIN_NVTX) {
+        handle_nvtx_callback(id, params, timer_stack);
         return;
     }
 
@@ -1018,12 +1427,13 @@ void initTrace() {
     if (apex::apex_options::use_cuda_driver_api()) {
         CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_DRIVER_API));
     }
+    // get user-added instrumentation
+    CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_NVTX));
     // Make sure we see CUPTI_CBID_RESOURCE_CONTEXT_CREATED events!
     CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_RESOURCE));
 
     /* These events aren't begin/end callbacks, so no need to support them. */
     //CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_SYNCHRONIZE));
-    //CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_NVTX));
 
     // synchronize timestamps
     startTimestampCPU = apex::profiler::get_time_ns();
