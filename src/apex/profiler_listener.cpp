@@ -1417,7 +1417,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
             finalize_profiles(data);
         }
       }
-      if (apex_options::use_taskgraph_output() && node_id == 0)
+      if (apex_options::use_taskgraph_output())
       {
         write_taskgraph();
       }
