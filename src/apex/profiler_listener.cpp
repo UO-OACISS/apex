@@ -759,7 +759,10 @@ std::unordered_set<profile*> free_profiles;
         //to_string((int)(total_hpx_threads))) << std::endl;
     //} else {
     std::stringstream total_ss;
+    // the GCC 9 compiler on Apple doesn't do locale correctly!
+#if !defined(__APPLE__) && (__GNUC__ != 9)
     total_ss.imbue(std::locale(""));
+#endif
     total_ss << std::fixed << ((uint64_t)total_hpx_threads);
         screen_output << total_ss.str() << std::endl;
     //}

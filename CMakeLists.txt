@@ -425,11 +425,9 @@ endif()
 ################################################################################
 
 find_package(OpenMP)
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND
-    CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
-    message(INFO " GCC is too old for OpenACC profiling support")
-else()
-    find_package(OpenACC)
+find_package(OpenACC)
+if(OpenACC_CXX_FOUND)
+    find_package(OpenACCProfiling)
 endif()
 
 if((DEFINED USE_OMPT) AND (NOT USE_OMPT))
@@ -608,8 +606,23 @@ if (APEX_WITH_CUDA)
     include_directories(${CUPTI_INCLUDE_DIRS})
     message(INFO " Using NVML include: ${NVML_INCLUDE_DIRS}")
     include_directories(${NVML_INCLUDE_DIRS})
-
 endif (APEX_WITH_CUDA)
+
+################################################################################
+# RAJA configuration
+################################################################################
+
+if (APEX_WITH_RAJA)
+    find_package(RAJA REQUIRED)
+    if(RAJA_FOUND)
+        set(LIBS ${LIBS} ${RAJA_LIBRARIES})
+        add_definitions(-DAPEX_WITH_RAJA)
+        message(INFO " Using RAJA include: ${RAJA_DIR}/include")
+        include_directories(${RAJA_DIR}/include)
+    else()
+        message(ERROR " RAJA not found in ${RAJA_DIR}")
+    endif()
+endif (APEX_WITH_RAJA)
 
 ################################################################################
 # MSR configuration
