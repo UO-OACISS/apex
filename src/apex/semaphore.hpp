@@ -121,7 +121,7 @@ public:
     }
 };
 
-};
+}
 
 #endif
 // end of "No posix"

@@ -40,6 +40,7 @@ where APEX options are zero or more of:
                            (python required for post-processing)
     --apex:openacc         enable OpenACC support
     --apex:kokkos          enable Kokkos support
+    --apex:raja            enable RAJA support
     --apex:pthread         enable pthread wrapper support
     --apex:untied          enable tasks to migrate cores/OS threads
                            during execution (not compatible with trace output)
@@ -59,6 +60,7 @@ where APEX options are zero or more of:
 
 openacc=no
 kokkos=no
+raja=no
 otf2=no
 gtrace=no
 scatter=no
@@ -94,6 +96,10 @@ while (( "$#" )); do
       ;;
     --apex:kokkos)
       kokkos=yes
+      shift
+      ;;
+    --apex:raja)
+      raja=yes
       shift
       ;;
     --apex:debug)
@@ -299,6 +305,9 @@ fi
 
 if [ $kokkos = yes ] ; then
     export KOKKOS_PROFILE_LIBRARY=${BASEDIR}/lib/libapex${SHLIBX}
+fi
+if [ $raja = yes ] ; then
+    export RAJA_PLUGINS=${BASEDIR}/lib/libapex${SHLIBX}
 fi
 if [ $openacc = yes ] ; then
     export ACC_PROFLIB=${BASEDIR}/lib/libapex${SHLIBX}

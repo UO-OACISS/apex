@@ -18,6 +18,7 @@
 #include <memory>
 #include <string>
 #include "apex_assert.h"
+#include "inttypes.h"
 
 std::mutex apex_apex_threadid_mutex;
 std::atomic<uint64_t> apex_numthreads{0};
@@ -205,7 +206,7 @@ static void apex_parallel_region_begin (
     char regionIDstr[128] = {0};
     sprintf(regionIDstr, "OpenMP Parallel Region: UNRESOLVED ADDR %p", codeptr_ra);
     apex_ompt_start(regionIDstr, parallel_data, encountering_task_data, true);
-    DEBUG_PRINT("%lu: Parallel Region Begin parent: %p, apex_parent: %p, region: %p, apex_region: %p, %s\n", apex_threadid, (void*)encountering_task_data, encountering_task_data->ptr, (void*)parallel_data, parallel_data->ptr, regionIDstr);
+    DEBUG_PRINT("%" PRId64 ": Parallel Region Begin parent: %p, apex_parent: %p, region: %p, apex_region: %p, %s\n", apex_threadid, (void*)encountering_task_data, encountering_task_data->ptr, (void*)parallel_data, parallel_data->ptr, regionIDstr);
 }
 
 /* Event #4, parallel region end */
@@ -219,7 +220,7 @@ static void apex_parallel_region_end (
     APEX_UNUSED(encountering_task_data);
     APEX_UNUSED(flags);
     APEX_UNUSED(codeptr_ra);
-    DEBUG_PRINT("%lu: Parallel Region End parent: %p, apex_parent: %p, region: %p, apex_region: %p\n", apex_threadid, (void*)encountering_task_data, encountering_task_data->ptr, (void*)parallel_data, parallel_data->ptr);
+    DEBUG_PRINT("%" PRId64 ": Parallel Region End parent: %p, apex_parent: %p, region: %p, apex_region: %p\n", apex_threadid, (void*)encountering_task_data, encountering_task_data->ptr, (void*)parallel_data, parallel_data->ptr);
     apex_ompt_stop(parallel_data);
 }
 
@@ -275,7 +276,7 @@ extern "C" void apex_task_create (
         default:
             type_str = const_cast<char*>(merged_str);
     }
-    DEBUG_PRINT("%lu: %s Task Create parent: %p, child: %p\n", apex_threadid, type_str, (void*)encountering_task_data, (void*)new_task_data);
+    DEBUG_PRINT("%" PRId64 ": %s Task Create parent: %p, child: %p\n", apex_threadid, type_str, (void*)encountering_task_data, (void*)new_task_data);
 
     if (codeptr_ra != nullptr) {
         char regionIDstr[128] = {0};
@@ -295,7 +296,7 @@ extern "C" void apex_task_schedule(
     ompt_data_t *next_task_data           /* data of next task    */
     ) {
     if (!enabled) { return; }
-    DEBUG_PRINT("%lu: Task Schedule prior: %p, status: %d, next: %p\n", apex_threadid, (void*)prior_task_data, prior_task_status, (void*)next_task_data);
+    DEBUG_PRINT("%" PRId64 ": Task Schedule prior: %p, status: %d, next: %p\n", apex_threadid, (void*)prior_task_data, prior_task_status, (void*)next_task_data);
     if (prior_task_data != nullptr) {
         linked_timer* prior = (linked_timer*)(prior_task_data->ptr);
         if (prior != nullptr) {
@@ -346,7 +347,7 @@ extern "C" void apex_implicit_task(
     } else {
         apex_ompt_stop(task_data);
     }
-    DEBUG_PRINT("%lu: Initial/Implicit Task task [%u:%u]: %p, apex: %p, region: %p, region ptr: %p, %d\n",
+    DEBUG_PRINT("%" PRId64 ": Initial/Implicit Task task [%u:%u]: %p, apex: %p, region: %p, region ptr: %p, %d\n",
         apex_threadid, thread_num, team_size, (void*)task_data, task_data->ptr,
         (void*)parallel_data, parallel_data ? parallel_data->ptr : nullptr,
         endpoint);
@@ -505,7 +506,7 @@ extern "C" void apex_sync_region_wait (
     } else {
         apex_ompt_stop(task_data);
     }
-    DEBUG_PRINT("%lu: %s: %p, apex: %p, region: %p, region ptr: %p, %d\n",
+    DEBUG_PRINT("%" PRId64 ": %s: %p, apex: %p, region: %p, region ptr: %p, %d\n",
         apex_threadid, tmp_str, (void*)task_data, task_data->ptr,
         (void*)parallel_data, parallel_data ? parallel_data->ptr : nullptr,
         endpoint);
@@ -573,7 +574,7 @@ extern "C" void apex_ompt_work (
     }
     if (endpoint == ompt_scope_begin) {
         char regionIDstr[128] = {0};
-        DEBUG_PRINT("%lu: %s Begin task: %p, region: %p\n", apex_threadid,
+        DEBUG_PRINT("%" PRId64 ": %s Begin task: %p, region: %p\n", apex_threadid,
         tmp_str, (void*)task_data, (void*)parallel_data);
         if (codeptr_ra != nullptr) {
             sprintf(regionIDstr, "OpenMP Work %s: UNRESOLVED ADDR %p", tmp_str,
@@ -588,7 +589,7 @@ extern "C" void apex_ompt_work (
         std::string tmp{ss.str()};
         apex::sample_value(tmp, count);
     } else {
-        DEBUG_PRINT("%lu: %s End task: %p, region: %p\n", apex_threadid, tmp_str,
+        DEBUG_PRINT("%" PRId64 ": %s End task: %p, region: %p\n", apex_threadid, tmp_str,
         (void*)task_data, (void*)parallel_data);
         apex_ompt_stop(task_data);
     }
