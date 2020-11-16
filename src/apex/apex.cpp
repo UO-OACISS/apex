@@ -2084,6 +2084,56 @@ extern "C" {
         apex::cleanup();
         return retval;
     }
+    int MPI_Wait(MPI_Request *request, MPI_Status *status) {
+        auto p = start(__func__);
+        int retval = PMPI_Wait(request, status);
+        stop(p);
+        return retval;
+    }
+    int MPI_Barrier(MPI_Comm comm) {
+        auto p = start(__func__);
+        int retval = PMPI_Barrier(comm);
+        stop(p);
+        return retval;
+    }
+    int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest,
+        int tag, MPI_Comm comm, MPI_Request *request) {
+        auto p = start(__func__);
+        int retval = PMPI_Isend(buf, count, datatype, dest, tag, comm, request);
+        stop(p);
+        return retval;
+    }
+    int MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
+        int source, int tag, MPI_Comm comm, MPI_Request *request) {
+        auto p = start(__func__);
+        int retval = PMPI_Irecv(buf, count, datatype, source, tag, comm,
+            request);
+        stop(p);
+        return retval;
+    }
+    int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest,
+        int tag, MPI_Comm comm){
+        auto p = start(__func__);
+        int retval = PMPI_Send(buf, count, datatype, dest, tag, comm);
+        stop(p);
+        return retval;
+    }
+    int MPI_Recv(void *buf, int count, MPI_Datatype datatype,
+        int source, int tag, MPI_Comm comm, MPI_Status *status){
+        auto p = start(__func__);
+        int retval = PMPI_Recv(buf, count, datatype, source, tag, comm, status);
+        stop(p);
+        return retval;
+    }
+    int MPI_Gather(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
+        void *recvbuf, int recvcount, MPI_Datatype recvtype,
+        int root, MPI_Comm comm) {
+        auto p = start(__func__);
+        int retval = PMPI_Gather(sendbuf, sendcount, sendtype, recvbuf,
+            recvcount, recvtype, root, comm);
+        stop(p);
+        return retval;
+    }
 #endif
 
 } // extern "C"
