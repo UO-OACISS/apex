@@ -53,6 +53,8 @@ where APEX options are zero or more of:
     --apex:status          enable sampling of /proc/self/status (Linux only)
     --apex:io              enable sampling of /proc/self/io (Linux only)
     --apex:period          specify frequency of OS/HW sampling
+    --apex:ompt_simple     only enable OpenMP Tools required events
+    --apex:ompt_details    enable all OpenMP Tools events
     "
     echo "${message}"
     exit 1
@@ -197,6 +199,14 @@ while (( "$#" )); do
       export APEX_UNTIED_TIMERS=1
       shift
       ;;
+    --apex:ompt_simple)
+      export APEX_OMPT_REQUIRED_EVENTS_ONLY=1
+      shift
+      ;;
+    --apex:ompt_details)
+      export APEX_OMPT_HIGH_OVERHEAD_EVENTS=1
+      shift
+      ;;
     --apex:otf2path)
       if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
         export APEX_OTF2_ARCHIVE_PATH=$2
@@ -327,6 +337,7 @@ if [ ${scatter} = yes ] ; then
 fi
 
 if [ ${taskgraph} = yes ] ; then
+    echo "Generating taskgraph with GraphViz..."
     dot -Tpdf -O taskgraph.0.dot
 fi
 
