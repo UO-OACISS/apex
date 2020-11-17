@@ -806,12 +806,13 @@ node_color * get_node_color_visible(double v, double vmin, double vmax) {
    if (v > vmax)
       v = vmax;
    dv = vmax - vmin;
-   // Green should be full on.
-   c->blue = 1.0;
-   // red and green should increase as the fraction decreases.
+   // blue should be full on.
+   c->red = 1.0;
+   // red should increase as the fraction increases.
    double fraction = 1.0 - ( (v - vmin) / dv );
-   c->red = 0.10 + (0.90 * fraction);
-   c->green = 0.75 + (0.25 * fraction);
+   c->blue = (1.00 * fraction);
+   // green should increase as the fraction increases.
+   c->green = (1.0 * fraction);
    return c;
 }
 
@@ -844,6 +845,7 @@ node_color * get_node_color(double v,double vmin,double vmax)
 }
 
   void profiler_listener::write_taskgraph(void) {
+    std::cout << "Writing APEX taskgraph..." << std::endl;
     { // we need to lock in case another thread appears
         std::unique_lock<std::mutex> queue_lock(queue_mtx);
         // get all the remaining dependencies
@@ -914,15 +916,20 @@ node_color * get_node_color(double v,double vmin,double vmax)
       profile * p = it->second;
       // shouldn't happen, but?
       if (p == nullptr) continue;
+      /*
       int divisor = num_worker_threads;
       std::string divided_label("time per thread: ");
       if (num_worker_threads > p->get_calls()) {
           divisor = p->get_calls();
           divided_label = "time per call: ";
       }
+      */
+      int divisor = p->get_calls();
+      std::string divided_label("time per call: ");
       if (p->get_type() == APEX_TIMER) {
         node_color * c = get_node_color_visible(
-            p->get_accumulated()/divisor, 0.0, main_timer->elapsed());
+            p->get_accumulated(), 0.0, main_timer->elapsed());
+            //p->get_accumulated()/divisor, 0.0, main_timer->elapsed());
         task_identifier task_id = it->first;
         double accumulated = p->get_accumulated(true);
         myfile << "  \"" << task_id.get_name() <<
