@@ -524,3 +524,18 @@ std::string activity_to_string(apex_cuda_async_activity_t activity) {
 
 } // namespace apex
 
+extern "C" void __cyg_profile_func_enter(void *this_fn, void *call_site) __attribute__((no_instrument_function));
+extern "C" void __cyg_profile_func_exit(void *this_fn, void *call_site) __attribute__((no_instrument_function));
+
+extern "C" void __cyg_profile_func_enter(void *this_fn, void *call_site)
+{
+    APEX_UNUSED(call_site);
+    apex::start((apex_function_address)this_fn);
+} /* __cyg_profile_func_enter */
+
+extern "C" void __cyg_profile_func_exit(void *this_fn, void *call_site)
+{
+    APEX_UNUSED(this_fn);
+    APEX_UNUSED(call_site);
+    apex::stop(apex::thread_instance::instance().get_current_profiler());
+} /* __cyg_profile_func_enter */
