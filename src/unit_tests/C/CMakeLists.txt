@@ -5,9 +5,9 @@ include_directories (${APEX_SOURCE_DIR}/src/apex)
 link_directories (${APEX_BINARY_DIR}/src/apex)
 #link_directories (${APEX_BINARY_DIR}/src/apex_pthread_wrapper)
 
-if(OpenACC_C_FOUND)
+if(OpenACC_C_FOUND AND OpenACCProfiling_FOUND)
     set(APEX_OPENACC_TEST apex_openacc)
-endif(OpenACC_C_FOUND)
+endif(OpenACC_C_FOUND AND OpenACCProfiling_FOUND)
 
 set(example_programs
     apex_init
@@ -76,10 +76,10 @@ foreach(example_program ${example_programs})
     # install(TARGETS ${example_program} RUNTIME DESTINATION "bin/apex_unit_tests" OPTIONAL)
 endforeach()
 
-if(OpenACC_C_FOUND)
+if(OpenACC_C_FOUND AND OpenACCProfiling_FOUND)
     set_target_properties(apex_openacc PROPERTIES COMPILE_FLAGS ${OpenACC_C_FLAGS})
     set_target_properties(apex_openacc PROPERTIES LINK_FLAGS ${OpenACC_C_FLAGS})
-endif(OpenACC_C_FOUND)
+endif(OpenACC_C_FOUND AND OpenACCProfiling_FOUND)
 
 set_tests_properties(test_apex_disable PROPERTIES ENVIRONMENT "APEX_DISABLE=1")
 
