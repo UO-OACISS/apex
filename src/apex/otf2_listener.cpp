@@ -35,6 +35,7 @@
 #include <mpi.h>
 #endif
 #include <atomic>
+#include "otf2/OTF2_MPI_Collectives.h"
 
 #define OTF2_EC(call) { \
     OTF2_ErrorCode ec = call; \
@@ -518,9 +519,15 @@ namespace apex {
         stringstream tmp;
         tmp << "APEX version " << version();
         OTF2_EC(OTF2_Archive_SetCreator(archive, tmp.str().c_str()));
+#if defined(APEX_HAVE_MPI_disabled)
+        OTF2_MPI_Archive_SetCollectiveCallbacks(archive,
+            MPI_COMM_WORLD, MPI_COMM_NULL);
+#else
+        /* we should implement something for HPX, too... */
         /* we have no collective callbacks. */
         OTF2_EC(OTF2_Archive_SetCollectiveCallbacks(archive,
             get_collective_callbacks(), nullptr, nullptr, nullptr));
+#endif
         /* open the event files for this archive */
         OTF2_EC(OTF2_Archive_OpenEvtFiles( archive ));
         created = true;
