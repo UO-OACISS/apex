@@ -15,8 +15,8 @@ add_executable (lulesh_MPI_OpenMP_2.0 lulesh.cc lulesh-comm.cc lulesh-init.cc lu
 add_dependencies (lulesh_MPI_OpenMP_2.0 apex)
 add_dependencies (examples lulesh_MPI_OpenMP_2.0)
 
-set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS} -O3 -DUSE_MPI=1 -Wall")
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} -O3 -DUSE_MPI=1 -Wall")
+set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS} -O3 -DAPEX_WITH_MPI=1 -Wall")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} -O3 -DAPEX_WITH_MPI=1 -Wall")
 
 # Link the executable to the Apex library. 
 target_link_libraries (lulesh_MPI_OpenMP_2.0 apex apex_mpi ${OMPT_LIBRARIES} 

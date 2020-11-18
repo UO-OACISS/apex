@@ -1,3 +1,5 @@
+#pragma once
+
 #include "RAJA/util/PluginStrategy.hpp"
 #include "apex_api.hpp"
 #include <stack>

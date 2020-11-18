@@ -6,7 +6,7 @@
 if(APEX_WITH_PLUGINS)
   message(INFO " apex will be built with plugin support.")
   set(LIBS ${LIBS} ${CMAKE_DL_LIBS})
-  target_compile_definitions(apex_flags INTERFACE APEX_USE_PLUGINS)
+  target_compile_definitions(apex_flags INTERFACE APEX_WITH_PLUGINS)
 endif()
 
 # Regardless, APEX now depends on JSON for event filtering support.

@@ -18,14 +18,15 @@ if (${CMAKE_MAJOR_VERSION} GREATER 2)
     endif()
 endif()
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake/Modules)
+include(APEX_DefaultOptions)
+
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   # using GCC
   if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
      message(FATAL_ERROR "GCC version must be at least 4.9!")
   endif()
 endif()
-
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake/Modules)
 
 if(APEX_WITH_CUDA)
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND
@@ -51,7 +52,7 @@ endif()
 if((DEFINED APEX_LXK_KITTEN) AND (APEX_LXK_KITTEN))
     SET(BUILD_STATIC_EXECUTABLES TRUE CACHE BOOL "Build Static Libraries and Executables" FORCE)
     SET(READ_PROC_FILESYSTEM FALSE CACHE BOOL "Periodically read the /proc filesystem status" FORCE)
-    SET(USE_CLOCK_TIMESTAMP TRUE CACHE BOOL "Disable assembly code timestamp call" FORCE)
+    SET(APEX_USE_CLOCK_TIMESTAMP TRUE CACHE BOOL "Disable assembly code timestamp call" FORCE)
 endif()
 
 ################################################################################
@@ -83,31 +84,31 @@ endif()
 ################################################################################
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Configuration type (one of Debug, RelWithDebInfo, Release, MinSizeRel)" FORCE)
-  set(BUILD_EXAMPLES TRUE)
+  set(APEX_BUILD_EXAMPLES TRUE)
 endif()
 
 IF("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-  set(BUILD_TESTS TRUE)
-  set(BUILD_EXAMPLES TRUE)
+  set(APEX_BUILD_TESTS TRUE)
+  set(APEX_BUILD_EXAMPLES TRUE)
   add_definitions(-DDEBUG)
   #add_definitions(-DAPEX_DEBUG)
 endif()
 
 IF("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo")
-  set(BUILD_TESTS TRUE)
-  set(BUILD_EXAMPLES TRUE)
+  set(APEX_BUILD_TESTS TRUE)
+  set(APEX_BUILD_EXAMPLES TRUE)
   add_definitions(-DNDEBUG)
 endif()
 
 IF("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
   add_definitions(-DNDEBUG)
   # they will still be configured, but excluded from "all"
-  if(NOT DEFINED BUILD_TESTS)
-    set(BUILD_TESTS FALSE)
-  endif(NOT DEFINED BUILD_TESTS)
-  if(NOT DEFINED BUILD_EXAMPLES)
-    set(BUILD_EXAMPLES FALSE)
-  endif(NOT DEFINED BUILD_EXAMPLES)
+  if(NOT DEFINED APEX_BUILD_TESTS)
+    set(APEX_BUILD_TESTS FALSE)
+  endif(NOT DEFINED APEX_BUILD_TESTS)
+  if(NOT DEFINED APEX_BUILD_EXAMPLES)
+    set(APEX_BUILD_EXAMPLES FALSE)
+  endif(NOT DEFINED APEX_BUILD_EXAMPLES)
 endif()
 
 # set(APEX_BUILD_TYPE "${CMAKE_BUILD_TYPE}" CACHE STRING "Configuration type (one of Debug, RelWithDebInfo, Release, MinSizeRel)" FORCE)
@@ -121,7 +122,7 @@ set(CMAKE_CONFIGURATION_TYPES "${CMAKE_BUILD_TYPE}" CACHE INTERNAL
 if(APPLE)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -undefined dynamic_lookup")
   set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -undefined dynamic_lookup")
-  set(USE_CLOCK_TIMESTAMP ON CACHE INTERNAL "Use gettimeofday not cycle counter" FORCE)
+  set(APEX_USE_CLOCK_TIMESTAMP ON CACHE INTERNAL "Use gettimeofday not cycle counter" FORCE)
 endif(APPLE)
 
 # If TAU is used, don't allow throttling - it can potentially lead to
@@ -130,7 +131,7 @@ if((DEFINED APEX_THROTTLE) AND (APEX_THROTTLE))
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPEX_THROTTLE")
 endif()
 
-if((DEFINED USE_CLOCK_TIMESTAMP) AND (USE_CLOCK_TIMESTAMP))
+if((DEFINED APEX_USE_CLOCK_TIMESTAMP) AND (APEX_USE_CLOCK_TIMESTAMP))
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPEX_USE_CLOCK_TIMESTAMP")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DAPEX_USE_CLOCK_TIMESTAMP")
 endif()
@@ -253,7 +254,7 @@ endif (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "PGI")
 
 # The version number.
 set (APEX_VERSION_MAJOR 2)
-set (APEX_VERSION_MINOR 1)
+set (APEX_VERSION_MINOR 3)
 
 # add_definitions(-std=c++11)
 include(CheckCXXCompilerFlag)
@@ -320,9 +321,9 @@ if (BUILD_STATIC_EXECUTABLES)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
     set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS)
     set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS)
-    set(USE_JEMALLOC FALSE)
+    set(APEX_WITH_JEMALLOC FALSE)
     unset(JEMALLOC_ROOT)
-    set(USE_TCMALLOC FALSE)
+    set(APEX_WITH_TCMALLOC FALSE)
     unset(GPERFTOOLS_ROOT)
 else()
     # use PIC for shared objects
@@ -375,7 +376,7 @@ endif(APEX_INTEL_MIC)
 # MPI configuration
 ################################################################################
 
-if(USE_MPI)
+if(APEX_WITH_MPI)
   find_package(MPI REQUIRED)
 endif()
 
@@ -430,16 +431,16 @@ if(OpenACC_CXX_FOUND)
     find_package(OpenACCProfiling)
 endif()
 
-if((DEFINED USE_OMPT) AND (NOT USE_OMPT))
+if((DEFINED APEX_WITH_OMPT) AND (NOT APEX_WITH_OMPT))
     # just in case, disable all ompt
     unset(OMPT_ROOT)
     unset(ENV{OMPT_ROOT})
-    unset(BUILD_OMPT)
+    unset(APEX_BUILD_OMPT)
 endif()
 
-if ((NOT DEFINED USE_OMPT) OR (USE_OMPT) OR (BUILD_OMPT))
+if ((NOT DEFINED APEX_WITH_OMPT) OR (APEX_WITH_OMPT) OR (APEX_BUILD_OMPT))
     if (OPENMP_FOUND)
-        if ((DEFINED OMPT_ROOT) OR (USE_OMPT) OR (BUILD_OMPT))
+        if ((DEFINED OMPT_ROOT) OR (APEX_WITH_OMPT) OR (APEX_BUILD_OMPT))
             find_package(OMPT)
             if (OMPT_FOUND)
                 include_directories(${OMPT_INCLUDE_DIRS})
@@ -456,7 +457,7 @@ if ((NOT DEFINED USE_OMPT) OR (USE_OMPT) OR (BUILD_OMPT))
     endif()
 else()
     add_custom_target(project_ompt)
-endif ((NOT DEFINED USE_OMPT) OR (USE_OMPT) OR (BUILD_OMPT))
+endif ((NOT DEFINED APEX_WITH_OMPT) OR (APEX_WITH_OMPT) OR (APEX_BUILD_OMPT))
 
 # Just in case, to prevent concurrent builds
 if(APEX_INTEL_MIC)
@@ -478,7 +479,7 @@ endif()
 # JE/TCMalloc configuration
 ################################################################################
 
-if((DEFINED JEMALLOC_ROOT) OR (USE_JEMALLOC))
+if((DEFINED JEMALLOC_ROOT) OR (APEX_WITH_JEMALLOC))
     find_package(JEmalloc)
     if (JEmalloc_FOUND)
         include_directories(${JEmalloc_INCLUDE_DIRS})
@@ -489,7 +490,7 @@ if((DEFINED JEMALLOC_ROOT) OR (USE_JEMALLOC))
     endif()
 endif()
 
-if((DEFINED GPERFTOOLS_ROOT) OR (USE_TCMALLOC))
+if((DEFINED GPERFTOOLS_ROOT) OR (APEX_WITH_TCMALLOC))
     find_package(Tcmalloc)
     if (Tcmalloc_FOUND)
         include_directories(${Tcmalloc_INCLUDE_DIRS})
@@ -521,14 +522,14 @@ endif()
 # ActiveHarmony configuration
 ################################################################################
 
-if((DEFINED USE_ACTIVEHARMONY) AND (NOT USE_ACTIVEHARMONY))
+if((DEFINED APEX_WITH_ACTIVEHARMONY) AND (NOT APEX_WITH_ACTIVEHARMONY))
     # just in case, disable all Active Harmony
     unset(ACTIVEHARMONY_ROOT)
     unset(ENV{ACTIVEHARMONY_ROOT})
-    unset(BUILD_ACTIVEHARMONY)
+    unset(APEX_BUILD_ACTIVEHARMONY)
 endif()
 
-if(((DEFINED ACTIVEHARMONY_ROOT) OR (BUILD_ACTIVEHARMONY)) OR (USE_ACTIVEHARMONY))
+if(((DEFINED ACTIVEHARMONY_ROOT) OR (APEX_BUILD_ACTIVEHARMONY)) OR (APEX_WITH_ACTIVEHARMONY))
     find_package(ActiveHarmony)
     if (ACTIVEHARMONY_FOUND)
         include_directories(${ACTIVEHARMONY_INCLUDE_DIRS})
@@ -549,7 +550,7 @@ add_dependencies (project_activeharmony project_ompt)
 # PAPI configuration
 ################################################################################
 
-if((DEFINED PAPI_ROOT) OR (USE_PAPI))
+if((DEFINED PAPI_ROOT) OR (APEX_WITH_PAPI))
     find_package(PAPI)
     if (PAPI_FOUND)
         include_directories(${PAPI_INCLUDE_DIRS})
@@ -564,14 +565,14 @@ endif()
 # OTF2 configuration
 ################################################################################
 
-if((DEFINED USE_OTF2) AND (NOT USE_OTF2))
+if((DEFINED APEX_WITH_OTF2) AND (NOT APEX_WITH_OTF2))
     # just in case, disable
     unset(OTF2_ROOT)
     unset(ENV{OTF2_ROOT})
-    unset(BUILD_OTF2)
+    unset(APEX_BUILD_OTF2)
 endif()
 
-if((DEFINED OTF2_ROOT) OR (USE_OTF2) OR (BUILD_OTF2))
+if((DEFINED OTF2_ROOT) OR (APEX_WITH_OTF2) OR (APEX_BUILD_OTF2))
     find_package(OTF2)
     if (OTF2_FOUND)
         include_directories(${OTF2_INCLUDE_DIRS})
@@ -645,7 +646,7 @@ endif()
 # Binutils configuration
 ################################################################################
 
-if((DEFINED BFD_ROOT) OR (USE_BFD) OR (BUILD_BFD))
+if((DEFINED BFD_ROOT) OR (APEX_WITH_BFD) OR (APEX_BUILD_BFD))
     find_package(BFD)
     if (BFD_FOUND)
         include_directories(${BFD_INCLUDE_DIRS})
@@ -728,10 +729,10 @@ else()
             "Try manually check out https://github.com/khuck/perfstubs.git to ${PROJECT_SOURCE_DIR}")
 endif()
 
-if(USE_PLUGINS)
+if(APEX_WITH_PLUGINS)
     message(INFO " apex will be built with plugin support.")
     set(LIBS ${LIBS} ${CMAKE_DL_LIBS})
-    add_definitions("-DAPEX_USE_PLUGINS")
+    add_definitions("-DAPEX_WITH_PLUGINS")
 endif()
 
 git_external(rapidjson
@@ -901,7 +902,7 @@ endif()
 
 add_subdirectory (src/utils)
 
-if(BUILD_TESTS)
+if(APEX_BUILD_TESTS)
     message(INFO " Building unit tests.")
     if(OMPT_FOUND)
         add_subdirectory (src/openmp)
@@ -914,12 +915,39 @@ if(BUILD_TESTS)
 else()
     #add_subdirectory (src/unit_tests/C EXCLUDE_FROM_ALL)
     #add_subdirectory (src/unit_tests/C++ EXCLUDE_FROM_ALL)
-endif(BUILD_TESTS)
+endif(APEX_BUILD_TESTS)
 
-if(BUILD_EXAMPLES)
+if(APEX_BUILD_EXAMPLES)
   message(INFO " Building examples.")
   add_subdirectory (src/examples)
 else()
     #add_subdirectory (src/examples EXCLUDE_FROM_ALL)
-endif(BUILD_EXAMPLES)
+endif(APEX_BUILD_EXAMPLES)
 
+function(dump_cmake_variables)
+    get_cmake_property(_variableNames VARIABLES)
+    list (SORT _variableNames)
+    foreach (_variableName ${_variableNames})
+        if (ARGV0)
+            unset(MATCHED)
+            string(REGEX MATCH ${ARGV0} MATCHED ${_variableName})
+            if (NOT MATCHED)
+                continue()
+            endif()
+        endif()
+        message(STATUS "${_variableName} = ${${_variableName}}")
+    endforeach()
+endfunction()
+
+message(STATUS "----------------------------------------------------------------------")
+message(STATUS "APEX Variable Report:")
+message(STATUS "----------------------------------------------------------------------")
+dump_cmake_variables("^APEX")
+MESSAGE(STATUS "Build type: " ${CMAKE_BUILD_TYPE})
+MESSAGE(STATUS "Libraries: " ${LIBS})
+MESSAGE(STATUS "Compiler cxx debug flags:" ${CMAKE_CXX_FLAGS_DEBUG})
+MESSAGE(STATUS "Compiler cxx release flags:" ${CMAKE_CXX_FLAGS_RELEASE})
+MESSAGE(STATUS "Compiler cxx min size flags:" ${CMAKE_CXX_FLAGS_MINSIZEREL})
+MESSAGE(STATUS "Compiler cxx flags:" ${CMAKE_CXX_FLAGS})
+MESSAGE(STATUS "Install Prefix:" ${CMAKE_INSTALL_PREFIX})
+message(STATUS "----------------------------------------------------------------------")

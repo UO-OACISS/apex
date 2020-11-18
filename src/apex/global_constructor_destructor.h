@@ -9,8 +9,7 @@
 /* Portable global constructor/destructor for GCC and MSVC.
  * I found this code here: http://www.gonwan.com/?p=8 */
 
-#ifndef GLOBAL_CONSTRUCTOR_DESTRUCTOR_H
-#define GLOBAL_CONSTRUCTOR_DESTRUCTOR_H
+#pragma once
 
 #include <stdlib.h>
 #if defined (_MSC_VER)
@@ -70,4 +69,3 @@ DEFINE_DESTRUCTOR(apex_finalize_static_void)
 #endif
 */
 
-#endif // GLOBAL_CONSTRUCTOR_DESTRUCTOR_H

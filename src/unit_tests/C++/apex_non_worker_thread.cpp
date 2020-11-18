@@ -1,10 +1,9 @@
-#include "apex_api.hpp"
 #include <unistd.h>
 #include <stdio.h>
 #include <thread>
 #include <string>
 #include <cinttypes>
-#include "thread_instance.hpp"
+#include "apex_api.hpp"
 
 #define MAX_OUTER 50
 #define MAX_INNER 50
@@ -36,7 +35,6 @@ uint64_t foo(uint64_t i) {
 uint64_t bar(uint64_t i) {
     // ask for a thread instance, as a test.
     //
-    //apex::thread_instance::instance(false);
     // create a task, but don't start a timer.
     apex::new_task((apex_function_address)&bar);
     uint64_t j=0;

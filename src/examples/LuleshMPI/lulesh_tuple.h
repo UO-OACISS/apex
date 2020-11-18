@@ -1,5 +1,5 @@
-#if !defined(USE_MPI)
-# error "You should specify USE_MPI=0 or USE_MPI=1 on the compile line"
+#if !defined(APEX_WITH_MPI)
+# error "You should specify APEX_WITH_MPI=0 or APEX_WITH_MPI=1 on the compile line"
 #endif
 
 
@@ -7,7 +7,7 @@
 // used supports it (i.e. the _OPENMP symbol is defined)
 #define USE_OMP 1
 
-#if USE_MPI
+#if APEX_WITH_MPI
 #include <mpi.h>
 #endif
 
@@ -390,7 +390,7 @@ class Domain {
    // MPI-Related additional data
    //
 
-#if USE_MPI   
+#if APEX_WITH_MPI   
    // Communication Work space 
    Real_t *commDataSend ;
    Real_t *commDataRecv ;

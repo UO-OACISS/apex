@@ -42,7 +42,7 @@ find_package_handle_standard_args(BFD  DEFAULT_MSG
 mark_as_advanced(BFD_INCLUDE_DIR BFD_LIBRARY)
 
 # --------- DOWNLOAD AND BUILD THE EXTERNAL PROJECT! ------------ #
-if((BUILD_BFD OR (NOT BFD_FOUND)) AND NOT APPLE)
+if((APEX_BUILD_BFD OR (NOT BFD_FOUND)) AND NOT APPLE)
   message("Attention: Downloading and Building binutils as external project!")
   message(INFO " A working internet connection is required!")
   include(ExternalProject)

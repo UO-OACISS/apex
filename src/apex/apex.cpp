@@ -28,7 +28,7 @@
 #include <set>
 #include <sstream>
 #include <vector>
-#if APEX_USE_PLUGINS
+#if APEX_WITH_PLUGINS
 #include <dlfcn.h>
 #endif
 //#include <cxxabi.h> // this is for demangling strings.
@@ -1260,7 +1260,7 @@ hpx::runtime * get_hpx_runtime_ptr(void) {
 #endif
 
 void init_plugins(void) {
-#ifdef APEX_USE_PLUGINS
+#ifdef APEX_WITH_PLUGINS
     FUNCTION_ENTER
     if (apex_options::disable() == true) { return; }
     std::string plugin_names_str{apex_options::plugins()};
@@ -1326,7 +1326,7 @@ void init_plugins(void) {
 }
 
 void finalize_plugins(void) {
-#ifdef APEX_USE_PLUGINS
+#ifdef APEX_WITH_PLUGINS
     FUNCTION_ENTER
     if (apex_options::disable() == true) { return; }
     apex * instance = apex::instance();

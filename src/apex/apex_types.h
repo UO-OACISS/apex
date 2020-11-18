@@ -6,9 +6,7 @@
  * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
-// apex main class
-#ifndef APEX_TYPES_HPP
-#define APEX_TYPES_HPP
+#pragma once
 
 /* required for Doxygen */
 
@@ -348,4 +346,3 @@ inline unsigned int sc_nprocessors_onln()
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
-#endif //APEX_TYPES_HPP

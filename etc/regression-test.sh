@@ -163,13 +163,13 @@ conditional_build()
 
 # Clean settings
 malloc=""
-bfd="-DUSE_BFD=FALSE"
-ah="-DUSE_ACTIVEHARMONY=FALSE"
-ompt="-DUSE_OMPT=FALSE"
-papi="-DUSE_PAPI=FALSE"
-mpi="-DUSE_MPI=FALSE"
-otf="-DUSE_OTF2=FALSE"
-tau="-DUSE_TAU=FALSE"
+bfd="-DAPEX_WITH_BFD=FALSE"
+ah="-DAPEX_WITH_ACTIVEHARMONY=FALSE"
+ompt="-DAPEX_WITH_OMPT=FALSE"
+papi="-DAPEX_WITH_PAPI=FALSE"
+mpi="-DAPEX_WITH_MPI=FALSE"
+otf="-DAPEX_WITH_OTF2=FALSE"
+tau="-DAPEX_WITH_TAU=FALSE"
 
 workdir=${rootdir}/regression-${host}
 

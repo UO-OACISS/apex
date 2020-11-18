@@ -23,6 +23,8 @@
  * The C API is required for HPX5 support.
  */
 
+#pragma once
+
 #ifndef APEX_H
 #define APEX_H
 
