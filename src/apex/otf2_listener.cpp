@@ -31,11 +31,11 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/file.h>
-#if defined(APEX_HAVE_MPI)
+#if !defined(HPX_HAVE_NETWORKING) && defined(APEX_HAVE_MPI)
 #include <mpi.h>
+#include "otf2/OTF2_MPI_Collectives.h"
 #endif
 #include <atomic>
-#include "otf2/OTF2_MPI_Collectives.h"
 
 #define OTF2_EC(call) { \
     OTF2_ErrorCode ec = call; \
