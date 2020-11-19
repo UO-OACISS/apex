@@ -682,6 +682,21 @@ static void kernelActivity(CUpti_Activity *record) {
                 *demangled, kernel->end, kernel->sharedMemoryExecuted, node);
         store_counter_data("GPU: Static Shared Memory (B)",
                 *demangled, kernel->end, kernel->staticSharedMemory, node);
+        /* Get grid and block values */
+        if (apex::apex_options::use_cuda_kernel_details()) {
+            store_counter_data("GPU: blockX",
+                *demangled, kernel->end, kernel->blockX, node);
+            store_counter_data("GPU: blockY",
+                *demangled, kernel->end, kernel->blockY, node);
+            store_counter_data("GPU: blockZ",
+                *demangled, kernel->end, kernel->blockZ, node);
+            store_counter_data("GPU: gridX",
+                *demangled, kernel->end, kernel->gridX, node);
+            store_counter_data("GPU: gridY",
+                *demangled, kernel->end, kernel->gridY, node);
+            store_counter_data("GPU: gridZ",
+                *demangled, kernel->end, kernel->gridZ, node);
+        }
         delete(demangled);
     }
 }
