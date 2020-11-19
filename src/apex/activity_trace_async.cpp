@@ -696,6 +696,16 @@ static void kernelActivity(CUpti_Activity *record) {
                 *demangled, kernel->end, kernel->gridY, node);
             store_counter_data("GPU: gridZ",
                 *demangled, kernel->end, kernel->gridZ, node);
+            if (kernel->queued != CUPTI_TIMESTAMP_UNKNOWN) {
+                store_counter_data("GPU: queue delay (us)",
+                    *demangled, kernel->end,
+                    (kernel->start - kernel->queued)*1.0e-3, node);
+            }
+            if (kernel->submitted != CUPTI_TIMESTAMP_UNKNOWN) {
+                store_counter_data("GPU: submit delay (us)",
+                    *demangled, kernel->end,
+                    (kernel->start - kernel->submitted)*1.0e-3, node);
+            }
         }
         delete(demangled);
     }
@@ -1442,6 +1452,12 @@ void initTrace() {
     if (apex::apex_options::use_cuda_driver_api()) {
         CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_DRIVER_API));
     }
+    if (apex::apex_options::use_cuda_kernel_details()) {
+        uint8_t enable = 1;
+        CUPTI_CALL(cuptiActivityEnableLatencyTimestamps(enable));
+    }
+
+
     // get user-added instrumentation
     CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_NVTX));
     // Make sure we see CUPTI_CBID_RESOURCE_CONTEXT_CREATED events!
