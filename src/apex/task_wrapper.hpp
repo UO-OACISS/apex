@@ -14,7 +14,7 @@ struct task_wrapper;
 
 #ifdef APEX_HAVE_HPX_CONFIG
 #include <hpx/config.hpp>
-#include <hpx/util/external_timer.hpp>
+#include <hpx/modules/threading_base.hpp>
 #endif
 #include "task_identifier.hpp"
 #include "profiler.hpp"

@@ -12,7 +12,7 @@
  * twice.  So, we have a macro to make sure the macro is defined. */
 #ifdef APEX_HAVE_HPX_CONFIG
 #include <hpx/config.hpp>
-#include <hpx/util/external_timer.hpp>
+#include <hpx/modules/threading_base.hpp>
 #endif
 
 #include "apex.hpp"
