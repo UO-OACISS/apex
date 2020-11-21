@@ -4,7 +4,6 @@
 #include <thread>
 #include <string>
 #include <cinttypes>
-#include "thread_instance.hpp"
 
 #define MAX_OUTER 50
 #define MAX_INNER 50

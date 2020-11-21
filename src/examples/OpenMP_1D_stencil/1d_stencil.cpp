@@ -122,13 +122,13 @@ inline void solve_cell_b(std::vector<double> & in_array, std::vector<double> & o
  */
 inline void solve_a(std::vector<double> & in_array, std::vector<double> & out_array,
                 long start_index, long end_index) {
-    //apex::profiler* p = apex::start((apex_function_address)solve_a);
+    apex::scoped_timer((apex_function_address)&solve_a);
     long index = 0;
     end_index = std::min(end_index, num_cells);
+#pragma omp simd
     for ( index = start_index ; index < end_index ; index++) {
         solve_cell_a(in_array, out_array, index);
     }
-    //apex::stop(p);
 }
 
 /**
@@ -136,13 +136,13 @@ inline void solve_a(std::vector<double> & in_array, std::vector<double> & out_ar
  */
 inline void solve_b(std::vector<double> & in_array, std::vector<double> & out_array,
                 long start_index, long end_index) {
-    //apex::profiler* p = apex::start((apex_function_address)solve_b);
+    apex::scoped_timer((apex_function_address)&solve_b);
     long index = 0;
     end_index = std::min(end_index, num_cells);
+#pragma omp simd
     for ( index = start_index ; index < end_index ; index++) {
         solve_cell_b(in_array, out_array, index);
     }
-    //apex::stop(p);
 }
 
 /**
@@ -156,7 +156,7 @@ void solve_iteration(std::vector<double> * in_array, std::vector<double> * out_a
         {
 #pragma omp single
             for (long j = 0; j < num_cells ; j += block_size) {
-#pragma omp task
+#pragma omp task untied
                 solve_a(*in_array,*out_array,j,j+block_size);
             }
 // #pragma omp taskwait
@@ -166,7 +166,7 @@ void solve_iteration(std::vector<double> * in_array, std::vector<double> * out_a
         {
 #pragma omp single
             for (long j = 0; j < num_cells ; j += block_size) {
-#pragma omp task
+#pragma omp task untied
                 solve_b(*in_array,*out_array,j,j+block_size);
             }
 // #pragma omp taskwait
@@ -200,7 +200,7 @@ int main (int argc, char ** argv) {
     parse_arguments(argc, argv);
 
 #ifdef APEX_HAVE_ACTIVEHARMONY
-    int num_inputs = 2; // 2 for threads, block size; 3 for threads, block size, method
+    int num_inputs = 3; // 2 for threads, block size; 3 for threads, block size, method
     long * inputs[3] = {0L,0L,0L};
     long mins[3] = {1,1,DIVIDE_METHOD};    // all minimums are 1
     long maxs[3] = {0,0,0};    // we'll set these later
