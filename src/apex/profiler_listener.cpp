@@ -54,11 +54,6 @@
 #include "apex_cxx_shared_lock.hpp"
 apex::shared_mutex_type throttled_event_set_mutex;
 #define APEX_THROTTLE_CALLS 1000
-#ifdef APEX_USE_CLOCK_TIMESTAMP
-#define APEX_THROTTLE_PERCALL 0.00001 // 10 microseconds.
-#else
-#define APEX_THROTTLE_PERCALL 50000 // 50k cycles.
-#endif
 #endif
 
 #if APEX_HAVE_PAPI

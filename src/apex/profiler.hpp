@@ -32,6 +32,13 @@ class profiler;
 #define CLOCK_TYPE system_clock
 #endif
 
+/* Disabled rdtsc timer until we figure out whether it's worth it.
+   We have timers coming from all over (CUDA, etc.) so is the overhead
+   avoidance worth it? */
+#ifndef APEX_USE_CLOCK_TIMESTAMP
+#define APEX_USE_CLOCK_TIMESTAMP
+#endif
+
 namespace apex {
 
 enum struct reset_type {
@@ -45,6 +52,12 @@ class disabled_profiler_exception : public std::exception {
       return "Disabled profiler.";
     }
 };
+
+#ifdef APEX_USE_CLOCK_TIMESTAMP
+#define APEX_THROTTLE_PERCALL 0.00001 // 10 microseconds.
+#else
+#define APEX_THROTTLE_PERCALL 50000 // 50k cycles.
+#endif
 
 #if !defined(APEX_USE_CLOCK_TIMESTAMP) && !defined(APEX_WITH_CUDA)
 template<std::intmax_t clock_freq>
