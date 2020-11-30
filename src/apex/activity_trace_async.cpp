@@ -998,53 +998,122 @@ void notifyKernelComplete(CUpti_CallbackId id, const void* params, const char * 
 
 bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string context) {
     size_t bytes = 0;
-    switch (id) {
-        case CUPTI_RUNTIME_TRACE_CBID_cudaMalloc_v3020: {
-            bytes = ((cudaMalloc_v3020_params_st*)(params))->size;
-            break;
+    if (apex::apex_options::use_cuda_driver_api() ||
+        apex::apex_options::use_cuda_kernel_details()) {
+        switch (id) {
+            case CUPTI_DRIVER_TRACE_CBID_cuMemAlloc: {
+                bytes = ((cuMemAlloc_params_st*)(params))->bytesize;
+                break;
+            }
+            case CUPTI_DRIVER_TRACE_CBID_cuMemAllocPitch: {
+                bytes = ((cuMemAllocPitch_params_st*)(params))->WidthInBytes *
+                        ((cuMemAllocPitch_params_st*)(params))->Height *
+                        ((cuMemAllocPitch_params_st*)(params))->ElementSizeBytes;
+                break;
+            }
+            /*
+            case CUPTI_DRIVER_TRACE_CBID_cu64MemAlloc: {
+                break;
+            }
+            case CUPTI_DRIVER_TRACE_CBID_cu64MemAllocPitch: {
+                break;
+            }
+            case CUPTI_DRIVER_TRACE_CBID_cu64MemHostAlloc: {
+                break;
+            }
+            case CUPTI_DRIVER_TRACE_CBID_cuMemHostAlloc_v2: {
+                bytes = ((cuMemHostAlloc_v2_params_st*)(params))->bytesize;
+                break;
+            }
+            */
+            case CUPTI_DRIVER_TRACE_CBID_cuMemAllocHost: {
+                bytes = ((cuMemAllocHost_params_st*)(params))->bytesize;
+                break;
+            }
+            case CUPTI_DRIVER_TRACE_CBID_cuMemHostAlloc: {
+                bytes = ((cuMemHostAlloc_params_st*)(params))->bytesize;
+                break;
+            }
+            case CUPTI_DRIVER_TRACE_CBID_cuMemAlloc_v2: {
+                bytes = ((cuMemAlloc_v2_params_st*)(params))->bytesize;
+                break;
+            }
+            case CUPTI_DRIVER_TRACE_CBID_cuMemAllocPitch_v2: {
+                bytes = ((cuMemAllocPitch_v2_params_st*)(params))->WidthInBytes *
+                        ((cuMemAllocPitch_v2_params_st*)(params))->Height *
+                        ((cuMemAllocPitch_v2_params_st*)(params))->ElementSizeBytes;
+                break;
+            }
+            case CUPTI_DRIVER_TRACE_CBID_cuMemAllocHost_v2: {
+                bytes = ((cuMemAllocHost_v2_params_st*)(params))->bytesize;
+                break;
+            }
+            case CUPTI_DRIVER_TRACE_CBID_cuMemAllocManaged: {
+                bytes = ((cuMemAllocManaged_params_st*)(params))->bytesize;
+                break;
+            }
+            default: {
+                // return false;
+                break;
+            }
         }
-        case CUPTI_RUNTIME_TRACE_CBID_cudaMallocPitch_v3020: {
-            bytes = ((cudaMallocPitch_v3020_params_st*)(params))->width *
-                    ((cudaMallocPitch_v3020_params_st*)(params))->height;
-            break;
-        }
-        case CUPTI_RUNTIME_TRACE_CBID_cudaMallocArray_v3020: {
-            bytes = ((cudaMallocArray_v3020_params_st*)(params))->width *
-                    ((cudaMallocArray_v3020_params_st*)(params))->height;
-            break;
-        }
-        case CUPTI_RUNTIME_TRACE_CBID_cudaMallocHost_v3020: {
-            bytes = ((cudaMallocHost_v3020_params_st*)(params))->size;
-            // we have a special case - handle it differently...
+        if (bytes > 0) {
             double value = (double)(bytes);
-            store_sync_counter_data("Host: Page-locked Bytes Allocated",
-                context, value);
+            store_sync_counter_data("GPU: Bytes Allocated", context, value);
             return true;
-            break;
-        }
-        case CUPTI_RUNTIME_TRACE_CBID_cudaMalloc3D_v3020: {
-            cudaExtent extent = ((cudaMalloc3D_v3020_params_st*)(params))->extent;
-            bytes = extent.depth * extent.height * extent.width;
-            break;
-        }
-        case CUPTI_RUNTIME_TRACE_CBID_cudaMalloc3DArray_v3020: {
-            cudaExtent extent = ((cudaMalloc3DArray_v3020_params_st*)(params))->extent;
-            bytes = extent.depth * extent.height * extent.width;
-            break;
-        }
-        case CUPTI_RUNTIME_TRACE_CBID_cudaMallocMipmappedArray_v5000: {
-            cudaExtent extent = ((cudaMallocMipmappedArray_v5000_params_st*)(params))->extent;
-            bytes = extent.depth * extent.height * extent.width;
-            break;
-        }
-        case CUPTI_RUNTIME_TRACE_CBID_cudaMallocManaged_v6000: {
-            bytes = ((cudaMallocManaged_v6000_params_st*)(params))->size;
-            break;
-        }
-        default: {
-            return false;
         }
     }
+    if (!apex::apex_options::use_cuda_driver_api() ||
+        apex::apex_options::use_cuda_kernel_details()) {
+        switch (id) {
+            case CUPTI_RUNTIME_TRACE_CBID_cudaMalloc_v3020: {
+                bytes = ((cudaMalloc_v3020_params_st*)(params))->size;
+                break;
+            }
+            case CUPTI_RUNTIME_TRACE_CBID_cudaMallocPitch_v3020: {
+                bytes = ((cudaMallocPitch_v3020_params_st*)(params))->width *
+                        ((cudaMallocPitch_v3020_params_st*)(params))->height;
+                break;
+            }
+            case CUPTI_RUNTIME_TRACE_CBID_cudaMallocArray_v3020: {
+                bytes = ((cudaMallocArray_v3020_params_st*)(params))->width *
+                        ((cudaMallocArray_v3020_params_st*)(params))->height;
+                break;
+            }
+            case CUPTI_RUNTIME_TRACE_CBID_cudaMallocHost_v3020: {
+                bytes = ((cudaMallocHost_v3020_params_st*)(params))->size;
+                // we have a special case - handle it differently...
+                double value = (double)(bytes);
+                store_sync_counter_data("Host: Page-locked Bytes Allocated",
+                    context, value);
+                return true;
+                break;
+            }
+            case CUPTI_RUNTIME_TRACE_CBID_cudaMalloc3D_v3020: {
+                cudaExtent extent = ((cudaMalloc3D_v3020_params_st*)(params))->extent;
+                bytes = extent.depth * extent.height * extent.width;
+                break;
+            }
+            case CUPTI_RUNTIME_TRACE_CBID_cudaMalloc3DArray_v3020: {
+                cudaExtent extent = ((cudaMalloc3DArray_v3020_params_st*)(params))->extent;
+                bytes = extent.depth * extent.height * extent.width;
+                break;
+            }
+            case CUPTI_RUNTIME_TRACE_CBID_cudaMallocMipmappedArray_v5000: {
+                cudaExtent extent = ((cudaMallocMipmappedArray_v5000_params_st*)(params))->extent;
+                bytes = extent.depth * extent.height * extent.width;
+                break;
+            }
+            case CUPTI_RUNTIME_TRACE_CBID_cudaMallocManaged_v6000: {
+                bytes = ((cudaMallocManaged_v6000_params_st*)(params))->size;
+                break;
+            }
+            default: {
+                return false;
+            }
+        }
+    }
+    if (bytes == 0) return false;
     double value = (double)(bytes);
     store_sync_counter_data("GPU: Bytes Allocated", context, value);
     return true;
