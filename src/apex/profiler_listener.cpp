@@ -794,18 +794,17 @@ public:
 
 node_color * get_node_color_visible(double v, double vmin, double vmax) {
    node_color * c = new node_color();
-   double dv;
 
    if (v < vmin)
       v = vmin;
    if (v > vmax)
       v = vmax;
-   dv = vmax - vmin;
-   // blue should be full on.
-   c->red = 1.0;
-   // red should increase as the fraction increases.
+   double dv = vmax - vmin;
    double fraction = 1.0 - ( (v - vmin) / dv );
-   c->blue = (1.00 * fraction);
+   // red should be full on.
+   c->red = 1.0;
+   // blue should increase as the fraction increases.
+   c->blue = (1.0 * fraction);
    // green should increase as the fraction increases.
    c->green = (1.0 * fraction);
    return c;
