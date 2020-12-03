@@ -2077,7 +2077,7 @@ extern "C" {
  * execution) we need to finalize APEX before MPI_Finalize() is called, so
  * that we can use MPI for the wrap-up.  We can override the weak MPI
  * implementation of Finalize, and do what we need to. */
-#if defined(APEX_HAVE_MPI)
+#if defined(APEX_HAVE_MPI) && !defined(HPX_HAVE_NETWORKING)
     int MPI_Finalize(void) {
         apex::finalize();
         int retval = PMPI_Finalize();
