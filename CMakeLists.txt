@@ -5,6 +5,12 @@
 # set the project name
 project (APEX CXX C)
 
+# The version number.
+set (APEX_DESCRIPTION "Autonomic Performance Environment for eXascale" CACHE STRING "APEX project description")
+set (APEX_VERSION_MAJOR 2 CACHE STRING "APEX Major Version")
+set (APEX_VERSION_MINOR 3 CACHE STRING "APEX Minor Version")
+set (APEX_HOMEPAGE_URL "http://github.com/khuck/xpress-apex" CACHE STRING "APEX homepage URL")
+
 cmake_minimum_required (VERSION 2.8.12 FATAL_ERROR)
 cmake_policy(VERSION 2.8.12)
 if (${CMAKE_MAJOR_VERSION} GREATER 2)
@@ -251,10 +257,6 @@ if (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "PGI")
 endif (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "PGI")
 
 # ---------------------------------------------------
-
-# The version number.
-set (APEX_VERSION_MAJOR 2)
-set (APEX_VERSION_MINOR 3)
 
 # add_definitions(-std=c++11)
 include(CheckCXXCompilerFlag)

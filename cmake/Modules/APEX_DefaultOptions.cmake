@@ -8,6 +8,7 @@ option (APEX_WITH_BFD "Enable Binutils (BFD)support" TRUE)
 option (APEX_WITH_CUDA "Enable CUDA (CUPTI) support" TRUE)
 option (APEX_WITH_MPI "Enable MPI support" TRUE)
 option (APEX_WITH_OMPT "Enable OpenMP Tools (OMPT) support" TRUE)
+option (APEX_WITH_OTF2 "Enable Open Trace Format 2 (OTF2) support" TRUE)
 option (APEX_WITH_PAPI "Enable PAPI support" FALSE)
 option (APEX_WITH_PLUGINS "Enable APEX policy plugin support" TRUE)
 option (APEX_WITH_TCMALLOC "Enable TCMalloc heap management" FALSE)
@@ -49,6 +50,12 @@ endif()
 if(DEFINED USE_PAPI)
     message(WARNING "USE_PAPI is deprecated - please use APEX_WITH_PAPI")
     set(APEX_WITH_PAPI CACHE BOOL ${USE_PAPI})
+endif()
+
+# Provide some backwards compatability
+if(DEFINED USE_OTF2)
+    message(WARNING "USE_OTF2 is deprecated - please use APEX_WITH_OTF2")
+    set(APEX_WITH_OTF2 CACHE BOOL ${USE_OTF2})
 endif()
 
 # Provide some backwards compatability
