@@ -6,8 +6,7 @@
  * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
-#ifndef APEX_POLICIES_H
-#define APEX_POLICIES_H
+#pragma once
 
 #include "apex_export.h"
 
@@ -31,4 +30,3 @@ typedef enum {
 #define APEX_MIN_THREADS 1
 #define MAX_WINDOW_SIZE 3
 
-#endif // APEX_POLICIES_H

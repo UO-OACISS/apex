@@ -58,21 +58,21 @@ class Apex(CMakePackage):
             args.append('-DAPEX_WITH_CUDA=TRUE')
         if '+binutils' in spec:
             args.append('-DBFD_ROOT={0}'.format(spec['binutils'].prefix))
-            args.append('-DUSE_BFD=TRUE')
+            args.append('-DAPEX_WITH_BFD=TRUE')
         if '+activeharmony' in spec:
             args.append('-DACTIVEHARMONY_ROOT={0}'.format(spec['activeharmony'].prefix))
-            args.append('-DUSE_ACTIVEHARMONY=TRUE')
+            args.append('-DAPEX_WITH_ACTIVEHARMONY=TRUE')
         if '+otf2' in spec:
             args.append('-DOTF2_ROOT={0}'.format(spec['otf2'].prefix))
-            args.append('-DUSE_OTF2=TRUE')
+            args.append('-DAPEX_WITH_OTF2=TRUE')
         if '+openmp' in spec:
-            args.append('-DUSE_OMPT=TRUE')
+            args.append('-DAPEX_WITH_OMPT=TRUE')
         if '+gperftools' in spec:
             args.append('-DGPERFTOOLS_ROOT={0}'.format(spec['gperftools'].prefix))
-            args.append('-DUSE_TCMALLOC=TRUE')
+            args.append('-DAPEX_WITH_TCMALLOC=TRUE')
         if '+jemalloc' in spec:
             args.append('-DJEMALLOC_ROOT={0}'.format(spec['jemalloc'].prefix))
-            args.append('-DUSE_JEMALLOC=TRUE')
+            args.append('-DAPEX_WITH_JEMALLOC=TRUE')
         if '+boost' in spec:
             args.append('-DBOOST_ROOT={0}'.format(spec['boost'].prefix))
 

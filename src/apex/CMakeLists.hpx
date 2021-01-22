@@ -18,7 +18,7 @@ endif()
 hpx_info("apex" "Will build APEX")
 
 set (APEX_VERSION_MAJOR 2)
-set (APEX_VERSION_MINOR 1)
+set (APEX_VERSION_MINOR 3)
 
 if (NOT APEX_ROOT)
   if (EXISTS ${HPX_SOURCE_DIR}/apex)
@@ -219,8 +219,8 @@ endif()
 
 # Setup BFD
 if((DEFINED BFD_ROOT) OR (APEX_WITH_BFD) OR (APEX_BUILD_BFD))
-  set(USE_BFD ${APEX_WITH_BFD})
-  set(BUILD_BFD ${APEX_BUILD_BFD})
+  set(APEX_WITH_BFD ${APEX_WITH_BFD})
+  set(APEX_BUILD_BFD ${APEX_BUILD_BFD})
   # Setup BFD
   include(APEX_SetupBFD)
   set(bfd_sources apex_bfd.cpp address_resolution.cpp)

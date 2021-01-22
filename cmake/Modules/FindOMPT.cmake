@@ -57,7 +57,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 endif()
 
 # --------- DOWNLOAD AND BUILD THE EXTERNAL PROJECT! ------------ #
-if(BUILD_OMPT OR (NOT OMPT_FOUND))
+if(APEX_BUILD_OMPT OR (NOT OMPT_FOUND))
   set(CACHE OMPT_ROOT ${CMAKE_INSTALL_PREFIX} STRING "OMPT Root directory")
   message("Attention: Downloading and Building OMPT as external project!")
   message(INFO " A working internet connection is required!")
