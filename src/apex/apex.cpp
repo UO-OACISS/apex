@@ -1374,9 +1374,13 @@ std::string dump(bool reset) {
 }
 
 // forward declare CUPTI buffer flushing
+#ifdef APEX_WITH_CUDA
 void flushTrace(void);
+#endif
 // forward declare OMPT runtime shutdown
+#ifdef APEX_WITH_OMPT
 void ompt_force_shutdown(void);
+#endif
 
 void finalize()
 {
@@ -1406,6 +1410,11 @@ void finalize()
     // if not done already...
     shutdown_throttling(); // stop thread scheduler policies
     stop_all_async_threads(); // stop OS/HW monitoring
+#ifdef APEX_WITH_OMPT
+    /* Do this before OTF2 grabs a final timestamp - we might have
+     * to terminate some OMPT events. */
+    ompt_force_shutdown();
+#endif
     // notify all listeners that we are going to stop soon
     for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
         instance->listeners[i]->on_pre_shutdown();
@@ -1414,9 +1423,6 @@ void finalize()
     /* This could take a while */
 #ifdef APEX_WITH_CUDA
     flushTrace();
-#endif
-#ifdef APEX_WITH_OMPT
-    ompt_force_shutdown();
 #endif
     // stop processing new timers/counters/messages/tasks/etc.
     apex_options::suspend(true);
