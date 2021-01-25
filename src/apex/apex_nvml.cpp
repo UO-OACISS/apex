@@ -257,10 +257,10 @@ void monitor::query(void) {
                     sample_value(tmp, value);
                 }
         }
-        nvmlFieldValue_t values[2];
+#if defined(NVML_FI_DEV_NVLINK_THROUGHPUT_DATA_TX)
+        nvmlFieldValue_t values[6];
         values[0].fieldId = NVML_FI_DEV_NVLINK_BANDWIDTH_C0_TOTAL;
         values[1].fieldId = NVML_FI_DEV_NVLINK_BANDWIDTH_C1_TOTAL;
-#if defined(NVML_FI_DEV_NVLINK_THROUGHPUT_DATA_TX)
         values[2].fieldId = NVML_FI_DEV_NVLINK_THROUGHPUT_DATA_TX;
         values[3].fieldId = NVML_FI_DEV_NVLINK_THROUGHPUT_DATA_RX;
         values[4].fieldId = NVML_FI_DEV_NVLINK_THROUGHPUT_RAW_TX;
@@ -271,6 +271,9 @@ void monitor::query(void) {
         values[5].scopeId = UINT_MAX;
         int valuesCount{6};
 #else
+        nvmlFieldValue_t values[2];
+        values[0].fieldId = NVML_FI_DEV_NVLINK_BANDWIDTH_C0_TOTAL;
+        values[1].fieldId = NVML_FI_DEV_NVLINK_BANDWIDTH_C1_TOTAL;
         int valuesCount{2};
 #endif
         NVML_CALL(nvmlDeviceGetFieldValues(devices[d],
@@ -297,7 +300,7 @@ void monitor::query(void) {
                 std::stringstream ss;
                 ss << "GPU: Device " << d << " NvLink Throughput Data TX";
                 std::string tmp{ss.str()};
-                double value = convertValue(values[4]);
+                double value = convertValue(values[2]);
                 sample_value(tmp, value);
             }
         if (values[3].nvmlReturn == NVML_SUCCESS)
@@ -305,7 +308,7 @@ void monitor::query(void) {
                 std::stringstream ss;
                 ss << "GPU: Device " << d << " NvLink Throughput Data RX";
                 std::string tmp{ss.str()};
-                double value = convertValue(values[5]);
+                double value = convertValue(values[3]);
                 sample_value(tmp, value);
             }
         if (values[4].nvmlReturn == NVML_SUCCESS)
@@ -313,7 +316,7 @@ void monitor::query(void) {
                 std::stringstream ss;
                 ss << "GPU: Device " << d << " NvLink Throughput Raw TX";
                 std::string tmp{ss.str()};
-                double value = convertValue(values[6]);
+                double value = convertValue(values[4]);
                 sample_value(tmp, value);
             }
         if (values[5].nvmlReturn == NVML_SUCCESS)
@@ -321,7 +324,7 @@ void monitor::query(void) {
                 std::stringstream ss;
                 ss << "GPU: Device " << d << " NvLink Throughput Raw RX";
                 std::string tmp{ss.str()};
-                double value = convertValue(values[7]);
+                double value = convertValue(values[5]);
                 sample_value(tmp, value);
             }
 #endif
