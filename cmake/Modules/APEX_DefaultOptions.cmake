@@ -13,6 +13,7 @@ option (APEX_WITH_PAPI "Enable PAPI support" FALSE)
 option (APEX_WITH_PLUGINS "Enable APEX policy plugin support" TRUE)
 option (APEX_WITH_TCMALLOC "Enable TCMalloc heap management" FALSE)
 option (APEX_WITH_JEMALLOC "Enable JEMalloc heap management" FALSE)
+option (APEX_WITH_LM_SENSORS "Enable LM Sensors support" FALSE)
 option (APEX_BUILD_TESTS "Build APEX tests (for 'make test')" TRUE)
 option (APEX_BUILD_EXAMPLES "Build APEX examples" TRUE)
 option (APEX_SANITIZE "Enable compiler sanitizer flags" FALSE)
@@ -68,6 +69,12 @@ endif()
 if(DEFINED USE_TCMALLOC)
     message(WARNING "USE_TCMALLOC is deprecated - please use APEX_WITH_TCMALLOC")
     set(APEX_WITH_TCMALLOC CACHE BOOL ${USE_TCMALLOC})
+endif()
+
+# Provide some backwards compatability
+if(DEFINED USE_LM_SENSORS)
+    message(WARNING "USE_LM_SENSORS is deprecated - please use APEX_WITH_LM_SENSORS")
+    set(APEX_WITH_LM_SENSORS CACHE BOOL ${USE_LM_SENSORS})
 endif()
 
 # Provide some backwards compatability

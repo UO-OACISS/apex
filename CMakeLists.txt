@@ -508,7 +508,7 @@ endif()
 # LM Sensors configuration
 ################################################################################
 
-if((DEFINED LM_SENSORS_ROOT) OR (USE_LM_SENSORS))
+if((DEFINED LM_SENSORS_ROOT) OR (APEX_WITH_LM_SENSORS))
     find_package(LMSensors)
     if (LM_SENSORS_FOUND)
         include_directories(${LM_SENSORS_INCLUDE_DIRS})
