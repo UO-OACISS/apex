@@ -10,7 +10,7 @@
 # Setup an imported target for lmsensors
 if(APEX_WITH_LM_SENSORS)
 
-  find_package(LMSensors)
+  find_package(LM_SENSORS)
 
   if (NOT LM_SENSORS_FOUND)
     hpx_error("apex" "Requested APEX_WITH_LM_SENSORS but could not find LM \

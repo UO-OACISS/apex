@@ -5,7 +5,7 @@
 
 if(APEX_WITH_ACTIVEHARMONY)
 
-  find_package(ActiveHarmony)
+  find_package(ACTIVEHARMONY)
   if(NOT ACTIVEHARMONY_FOUND)
       hpx_error("apex" "Requested APEX_WITH_ACTIVEHARMONY but could not find \
       Active Harmony. Please specify ACTIVEHARMONY_ROOT.")

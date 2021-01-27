@@ -509,7 +509,7 @@ endif()
 ################################################################################
 
 if((DEFINED LM_SENSORS_ROOT) OR (APEX_WITH_LM_SENSORS))
-    find_package(LMSensors)
+    find_package(LM_SENSORS)
     if (LM_SENSORS_FOUND)
         include_directories(${LM_SENSORS_INCLUDE_DIRS})
         set(LIBS ${LIBS} ${LM_SENSORS_LIBRARIES})
@@ -531,7 +531,7 @@ if((DEFINED APEX_WITH_ACTIVEHARMONY) AND (NOT APEX_WITH_ACTIVEHARMONY))
 endif()
 
 if(((DEFINED ACTIVEHARMONY_ROOT) OR (APEX_BUILD_ACTIVEHARMONY)) OR (APEX_WITH_ACTIVEHARMONY))
-    find_package(ActiveHarmony)
+    find_package(ACTIVEHARMONY)
     if (ACTIVEHARMONY_FOUND)
         include_directories(${ACTIVEHARMONY_INCLUDE_DIRS})
         set(LIBS ${LIBS} ${ACTIVEHARMONY_LIBRARIES})
