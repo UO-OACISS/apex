@@ -5,7 +5,7 @@
 # All CMAKE options for the APEX project...
 option (APEX_WITH_ACTIVEHARMONY "Enable ActiveHarmony support" TRUE)
 option (APEX_WITH_BFD "Enable Binutils (BFD)support" TRUE)
-option (APEX_WITH_CUDA "Enable CUDA (CUPTI) support" TRUE)
+option (APEX_WITH_CUDA "Enable CUDA (CUPTI) support" FALSE)
 option (APEX_WITH_MPI "Enable MPI support" TRUE)
 option (APEX_WITH_OMPT "Enable OpenMP Tools (OMPT) support" TRUE)
 option (APEX_WITH_OTF2 "Enable Open Trace Format 2 (OTF2) support" TRUE)
