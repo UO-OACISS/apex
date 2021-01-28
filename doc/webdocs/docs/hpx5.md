@@ -16,18 +16,17 @@ APEX is built as a pre-requisite dependency of HPX-5. So, before configuring and
 
 **Note:** *HPX-5 uses JEMalloc, TBB Malloc or DLMalloc, so **DO NOT** configure APEX with either TCMalloc or JEMalloc.*
 
-For example, assume TAU is installed in /usr/local/tau/2.25 and we will have CMake download and build Binutils and Active Harmony, and we want to install APEX to /usr/local/apex/0.5.  To configure, build and install APEX in the main source directory (your paths may vary):
+For example, assume TAU is installed in /usr/local/tau/2.25 and we will have CMake download and build Binutils and Active Harmony, and we want to install APEX to /usr/local/apex/2.3.1.  To configure, build and install APEX in the main source directory (your paths may vary):
 
 ```bash
 cd $HOME/src
-wget https://github.com/khuck/xpress-apex/archive/v0.5.tar.gz
-tar -xvzf v0.5.tar.gz
-cd xpress-apex-0.5
+wget https://github.com/khuck/xpress-apex/archive/v2.3.1.tar.gz
+tar -xvzf v2.3.1.tar.gz
+cd xpress-apex-2.3.1
 mkdir build
 cd build
 cmake \
--DUSE_TAU=TRUE -DTAU_ROOT=/usr/local/tau/2.25 -DTAU_OPTIONS=-papi-pthread -DTAU_ARCH=x86_64 \
--DBUILD_BFD=TRUE -DCMAKE_INSTALL_PREFIX=/usr/local/xpress-apex/0.5 -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
+-DBUILD_BFD=TRUE -DCMAKE_INSTALL_PREFIX=/usr/local/xpress-apex/2.3.1 -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 make
 make test # optional
 make doc # optional
@@ -37,7 +36,7 @@ make install
 Keep in mind that APEX will automatically download, configure and build Active Harmony as part of the build process, unless you pass `-DUSE_ACTIVEHARMONY=FALSE` to the cmake command.  After the build is complete, add the package configuration path to your PKG_CONFIG_PATH environment variable (HPX-5 uses autotools for configuration so it will find APEX using the utility pkg-config):
 
 ```bash
-export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/xpress-apex/0.5/lib/pkgconfig
+export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/xpress-apex/2.3.1/lib/pkgconfig
 ```
 
 To confirm the PKG_CONFIG_PATH variable is set correctly, try executing the pkg-config command:
@@ -49,7 +48,7 @@ pkg-config --libs apex
 Which should give the following output (or something similar):
 
 ```bash
--L/usr/local/xpress-apex/0.5/lib -L/usr/local/tau/2.25/x86_64/lib -L/usr/local/xpress-apex/0.5/lib -lapex -lpthread -lTAUsh-papi-pthread -lharmony -lbfd -liberty -lz -lm -Wl,-rpath,/usr/local/tau/2.25/x86_64/lib,-rpath,/usr/local/xpress-apex/0.5/lib -lstdc++
+-L/usr/local/xpress-apex/2.3.1/lib -L/usr/local/tau/2.25/x86_64/lib -L/usr/local/xpress-apex/2.3.1/lib -lapex -lpthread -lTAUsh-papi-pthread -lharmony -lbfd -liberty -lz -lm -Wl,-rpath,/usr/local/tau/2.25/x86_64/lib,-rpath,/usr/local/xpress-apex/2.3.1/lib -lstdc++
 ```
 
 Once APEX is installed, you can configure and build HPX-5 with APEX.  To include APEX in the HPX-5 configuration, include the --with-apex=yes option when calling configure.  Assuming you have downloaded HPX-5 v.3.0, you would do the following:
@@ -58,7 +57,7 @@ Once APEX is installed, you can configure and build HPX-5 with APEX.  To include
 # go to the HPX source directory
 cd HPX_Release_v3.0.0/hpx
 # If you haven't already set the pkgconfig path, do so now...
-export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/xpress-apex/0.5/lib/pkgconfig
+export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/xpress-apex/2.3.1/lib/pkgconfig
 # configure
 ./bootstrap
 ./configure --enable-testsuite --prefix=/home/khuck/src/hpx-iu/hpx-install --with-apex=yes

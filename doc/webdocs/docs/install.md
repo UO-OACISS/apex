@@ -8,7 +8,7 @@ APEX is integrated into the [HPX runtime](https://hpx.stellar-group.org), and is
 -DHPX_WITH_APEX=TRUE
 ```
 
-The `-DHPX_WITH_APEX_TAG=develop` can be used to indicate a specific release version of APEX, or to use a specific GitHub branch of APEX.  We recommend using the default configured version that comes with HPX (currently `v2.2.0`) or the `develop` branch.  Additional CMake flags include:
+The `-DHPX_WITH_APEX_TAG=develop` can be used to indicate a specific release version of APEX, or to use a specific GitHub branch of APEX.  We recommend using the default configured version that comes with HPX (currently `v2.3.1`) or the `develop` branch.  Additional CMake flags include:
 
 * `-DAPEX_WITH_LM_SENSORS=TRUE` to enable [LM sensors](https://hwmon.wiki.kernel.org/lm_sensors) support (assumed to be installed in default system paths)
 * `-DAPEX_WITH_PAPI=TRUE` and `-DPAPI_ROOT=...` to enable [PAPI](https://icl.utk.edu/papi/) support
@@ -23,12 +23,12 @@ The `-DHPX_WITH_APEX_TAG=develop` can be used to indicate a specific release ver
 
 APEX is open source, and available on Github at <http://github.com/khuck/xpress-apex>.
 
-For stability, most users will want to download the most recent release of APEX (for example, v2.2.0):
+For stability, most users will want to download the most recent release of APEX (for example, v2.3.1):
 
 ```bash
-wget https://github.com/khuck/xpress-apex/archive/v2.2.0.tar.gz
-tar -xvzf v2.2.0.tar.gz
-cd xpress-apex-2.2.0
+wget https://github.com/khuck/xpress-apex/archive/v2.3.1.tar.gz
+tar -xvzf v2.3.1.tar.gz
+cd xpress-apex-2.3.1
 ```
 
 Other users may want to work with the most recent code available, in which case you can clone the git repo:
@@ -45,7 +45,7 @@ APEX is built with CMake. The minimum CMake settings needed for APEX are:
 * `-DCMAKE_INSTALL_PREFIX=...` some path to an installation location
 * `-DCMAKE_BUILD_TYPE=...` one of Release, Debug, or RelWithDebInfo (recommended)
 
-Boost is **NOT** required to install APEX.  When building on Intel Phi, Boost is required if the compiler toolset does not include the latest GNU C++11 support.
+Boost is **NOT** required to install APEX.  When building on Intel Phi, Boost is required if the compiler toolset does not include the latest GNU C++11 support. (may not still be true)
 
 * `-DBOOST_ROOT=...` the path to a Boost installation, 1.65 or newer
 
@@ -58,7 +58,7 @@ The process for building APEX is:
 2) Enter the repo directory, make a build directory:
 
 ```bash
-cd xpress-apex-2.2.0
+cd xpress-apex-2.3.1
 mkdir build
 cd build
 ```

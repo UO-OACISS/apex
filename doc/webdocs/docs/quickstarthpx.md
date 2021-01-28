@@ -10,7 +10,7 @@ APEX is integrated into the [HPX runtime](https://hpx.stellar-group.org), and is
 -DHPX_WITH_APEX=TRUE
 ```
 
-The `-DHPX_WITH_APEX_TAG=develop` can be used to indicate a specific release version of APEX, or to use a specific GitHub branch of APEX.  We recommend using the default configured version that comes with HPX (currently `v2.2.0`) or the `develop` branch.
+The `-DHPX_WITH_APEX_TAG=develop` can be used to indicate a specific release version of APEX, or to use a specific GitHub branch of APEX.  We recommend using the default configured version that comes with HPX (currently `v2.3.1`) or the `develop` branch.
 
 ## Runtime
 

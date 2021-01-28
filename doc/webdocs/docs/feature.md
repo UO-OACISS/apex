@@ -47,6 +47,7 @@ APEX provides both *performance awareness* and *performance adaptation*.
 * **OpenMP** - Using the OpenMP 5.0 OMPT interface, APEX can capture performance data related to OpenMP pragmas.
 * **OpenACC** - Using the OpenACC Profiling interface, APEX can capture performance data related to OpenACC pragmas.
 * **Kokkos** - Using the Kokkos profiling interface, APEX can capture performance data related to Kokkos parallel abstractions.
+* **RAJA** - Using the RAJA profiling interface, APEX can capture performance data related to RAJA parallel abstractions.  Unlike Kokkos, RAJA doesn't give any details, so don't expect much.
 * **CUDA** - Using the NVIDIA CUPTI and NVML libraries, APEX can capture runtime and driver API calls as well as memory transfers and kernels executed on a device, and monitor GPU utilization.
 * **Distributed Execution over MPI** - While APEX doesn't measure MPI function calls, it is "MPI-aware", and can detect when used in a distributed run so that each process can write separate or aggregated performance data.
 
@@ -54,7 +55,6 @@ APEX provides both *performance awareness* and *performance adaptation*.
 
 * **Argobots** - APEX has been used to instrument services based on Argobots, but it is not integrated into the runtime.
 * **TBB** - The APEX team is evaluating integrated TBB support.
-* **RAJA** - The APEX team is evaluating integrated RAJA support.
 * **Legion** - No plans at this time, but open to exploring it.
 * **Charm++** - No plans at this time.
 

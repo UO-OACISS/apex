@@ -76,7 +76,8 @@ where APEX options are zero or more of:
     --apex:help            show this usage message
     --apex:debug           run with APEX in debugger
     --apex:verbose         enable verbose list of APEX environment variables
-    --apex:screen          enable screen text output
+    --apex:screen          enable screen text output (on by default)
+    --apex:quiet           disable screen text output
     --apex:csv             enable csv text output
     --apex:tau             enable tau profile output
     --apex:taskgraph       enable taskgraph output
@@ -90,15 +91,19 @@ where APEX options are zero or more of:
                            (python required for post-processing)
     --apex:openacc         enable OpenACC support
     --apex:kokkos          enable Kokkos support
+    --apex:raja            enable RAJA support
     --apex:pthread         enable pthread wrapper support
     --apex:untied          enable tasks to migrate cores/OS threads
                            during execution (not compatible with trace output)
     --apex:cuda_counters   enable CUDA/CUPTI counter support
     --apex:cuda_driver     enable CUDA driver API callbacks
+    --apex:cuda_details    enable per-kernel statistics where available
     --apex:cpuinfo         enable sampling of /proc/cpuinfo (Linux only)
     --apex:meminfo         enable sampling of /proc/meminfo (Linux only)
     --apex:net             enable sampling of /proc/net/dev (Linux only)
     --apex:status          enable sampling of /proc/self/status (Linux only)
     --apex:io              enable sampling of /proc/self/io (Linux only)
     --apex:period          specify frequency of OS/HW sampling
+    --apex:ompt_simple     only enable OpenMP Tools required events
+    --apex:ompt_details    enable all OpenMP Tools events
 ```

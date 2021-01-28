@@ -34,6 +34,10 @@ the `apex_` prefix with the `apex::` namespace. Because both APIs return
 handles to internal APEX objects, the type definitions of these objects 
 use the C naming convention.
 
+In addition to the simple API presented below, the C++ API includes scoped
+timers and threads.  See <http://www.nic.uoregon.edu/~khuck/apex_docs/doc/html/namespaceapex.html>
+for details.
+
 ### Terminology
 
 Unfortunately, many terms in Computer Science are overloaded. The following definitions are in use in this document:

@@ -360,6 +360,14 @@ Like OpenACC, nothing special needs to be done to enable Kokkos support.
 
 Enabling Kokkos support requires setting the `KOKKOS_PROFILE_LIBRARY` environment variable with the path to `libapex.so`, or by using the `apex_exec` script with the `--apex:kokkos` flag.
 
+#### Configuring APEX for RAJA support
+
+Like OpenACC, nothing special needs to be done to enable RAJA support.
+
+#### Running RAJA programs with APEX
+
+Enabling RAJA support requires setting the `RAJA_PLUGINS` environment variable with the path to `libapex.so`, or by using the `apex_exec` script with the `--apex:raja` flag.
+
 ### C++ Threads
 
 APEX suports C++ threads on Linux, with the assumption that they are implemented on top of POSIX threads.
