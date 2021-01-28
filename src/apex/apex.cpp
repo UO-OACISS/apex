@@ -204,7 +204,9 @@ void apex::_initialize()
 #if defined (GIT_TAG)
     tmp << GIT_TAG;
 #else
-    tmp << APEX_VERSION_MAJOR + (APEX_VERSION_MINOR/10.0);
+    tmp << APEX_VERSION_MAJOR << "."
+        << APEX_VERSION_MINOR << "."
+        << APEX_VERSION_PATCH;
 #endif
 #if defined (GIT_COMMIT_HASH)
     tmp << "-" << GIT_COMMIT_HASH ;
