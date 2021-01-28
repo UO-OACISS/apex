@@ -148,11 +148,11 @@
 <pre><code>-DHPX_WITH_APEX=TRUE
 </code></pre>
 
-<p>The <code>-DHPX_WITH_APEX_TAG=develop</code> can be used to indicate a specific release version of APEX, or to use a specific GitHub branch of APEX.  We recommend using the default configured version that comes with HPX (currently <code>v2.2.0</code>) or the <code>develop</code> branch.  Additional CMake flags include:</p>
+<p>The <code>-DHPX_WITH_APEX_TAG=develop</code> can be used to indicate a specific release version of APEX, or to use a specific GitHub branch of APEX.  We recommend using the default configured version that comes with HPX (currently <code>v2.3.1</code>) or the <code>develop</code> branch.  Additional CMake flags include:</p>
 <ul>
 <li><code>-DAPEX_WITH_LM_SENSORS=TRUE</code> to enable <a href="https://hwmon.wiki.kernel.org/lm_sensors">LM sensors</a> support (assumed to be installed in default system paths)</li>
 <li><code>-DAPEX_WITH_PAPI=TRUE</code> and <code>-DPAPI_ROOT=...</code> to enable <a href="https://icl.utk.edu/papi/">PAPI</a> support</li>
-<li><code>-DAPEX_WITH_BFD=TRUE</code> and <code>-DBFD_ROOT=...</code> <em>or</em> <code>-DBUILD_BFD=TRUE</code> to enable <a href="https://www.gnu.org/software/binutils/">Binutils</a> support for converting function/lambda/instruction pointers to human-readable code regions.  For demangling of C++ symbols, <code>demangle.h</code> needs to be installed with the binutils headers (not typical in system installations).</li>
+<li><code>-DAPEX_WITH_BFD=TRUE</code> and <code>-DBFD_ROOT=...</code> <em>or</em> <code>-DAPEX_BUILD_BFD=TRUE</code> to enable <a href="https://www.gnu.org/software/binutils/">Binutils</a> support for converting function/lambda/instruction pointers to human-readable code regions.  For demangling of C++ symbols, <code>demangle.h</code> needs to be installed with the binutils headers (not typical in system installations).</li>
 <li><code>-DAPEX_WITH_MSR=TRUE</code> to enable <a href="https://github.com/LLNL/libmsr">libmsr</a> support for RAPL power measurement (typically not needed, as RAPL support is natively handled where available)</li>
 <li><code>-DAPEX_WITH_OTF2=TRUE</code> and <code>-DOTF2_ROOT=...</code> to enable <a href="https://www.vi-hps.org/projects/score-p/index.html">OTF2 tracing</a> support</li>
 <li><code>-DHPX_WITH_HPXMP=TRUE</code> to enable HPX OpenMP support and OMPT measurement support from APEX</li>
@@ -161,10 +161,10 @@
 </ul>
 <h2 id="standalone_installation">Standalone Installation<a class="headerlink" href="#standalone_installation" title="Permanent link">&para;</a></h2>
 <p>APEX is open source, and available on Github at <a href="http://github.com/khuck/xpress-apex">http://github.com/khuck/xpress-apex</a>.</p>
-<p>For stability, most users will want to download the most recent release of APEX (for example, v2.2.0):</p>
-<pre><code class="bash">wget https://github.com/khuck/xpress-apex/archive/v2.2.0.tar.gz
-tar -xvzf v2.2.0.tar.gz
-cd xpress-apex-2.2.0
+<p>For stability, most users will want to download the most recent release of APEX (for example, v2.3.1):</p>
+<pre><code class="bash">wget https://github.com/khuck/xpress-apex/archive/v2.3.1.tar.gz
+tar -xvzf v2.3.1.tar.gz
+cd xpress-apex-2.3.1
 </code></pre>
 
 <p>Other users may want to work with the most recent code available, in which case you can clone the git repo:</p>
@@ -178,7 +178,7 @@ cd xpress-apex
 <li><code>-DCMAKE_INSTALL_PREFIX=...</code> some path to an installation location</li>
 <li><code>-DCMAKE_BUILD_TYPE=...</code> one of Release, Debug, or RelWithDebInfo (recommended)</li>
 </ul>
-<p>Boost is <strong>NOT</strong> required to install APEX.  When building on Intel Phi, Boost is required if the compiler toolset does not include the latest GNU C++11 support.</p>
+<p>Boost is <strong>NOT</strong> required to install APEX.  When building on Intel Phi, Boost is required if the compiler toolset does not include the latest GNU C++11 support. (may not still be true)</p>
 <ul>
 <li><code>-DBOOST_ROOT=...</code> the path to a Boost installation, 1.65 or newer</li>
 </ul>
@@ -186,7 +186,7 @@ cd xpress-apex
 <p>The process for building APEX is:</p>
 <p>1) Get the code (see above)</p>
 <p>2) Enter the repo directory, make a build directory:</p>
-<pre><code class="bash">cd xpress-apex-2.2.0
+<pre><code class="bash">cd xpress-apex-2.3.1
 mkdir build
 cd build
 </code></pre>
@@ -219,43 +219,43 @@ make install
 <p><strong>Note 2:</strong> <em>TCMalloc or JEMalloc will potentially speed up memory allocations <strong>significantly</strong> in APEX (and in your application). HOWEVER, If your application already uses TCMalloc, JEMalloc or TBBMalloc, <strong>DO NOT</strong> configure APEX with TCMalloc or JEMalloc. They will be included at application link time, and may conflict with the version detected by and linked into APEX.</em></p>
 <p>There are several utility libraries that provide additional functionality in APEX. Not all libraries are required, but some are recommended.  For the following options, the default values are in <em>italics</em>.</p>
 <ul>
-<li><code>-DUSE_ACTIVEHARMONY=</code>
+<li><code>-DAPEX_WITH_ACTIVEHARMONY=</code>
   <em>TRUE</em> or FALSE.  Active Harmony is a library that intelligently searches for parametric combinations to support adapting to heterogeneous and changing environments.  For more information, see <a href="http://www.dyninst.org/harmony">http://www.dyninst.org/harmony</a>.  APEX uses Active Harmony for runtime adaptation.</li>
 <li><code>-DACTIVEHARMONY_ROOT=</code>
-  the path to Active Harmony, or set the ACTIVEHARMONY_ROOT environment variable before running cmake.  It should be noted that if Active Harmony is not specified and -DUSE_ACTIVEHARMONY is TRUE or not set, APEX will download and build Active Harmony as a CMake project. To disable Active Harmony entirely, specify -DUSE_ACTIVEHARMONY=FALSE.</li>
-<li><code>-DBUILD_ACTIVEHARMONY=</code>
+  the path to Active Harmony, or set the ACTIVEHARMONY_ROOT environment variable before running cmake.  It should be noted that if Active Harmony is not specified and -DAPEX_WITH_ACTIVEHARMONY is TRUE or not set, APEX will download and build Active Harmony as a CMake project. To disable Active Harmony entirely, specify -DAPEX_WITH_ACTIVEHARMONY=FALSE.</li>
+<li><code>-DAPEX_BUILD_ACTIVEHARMONY=</code>
   TRUE or <em>FALSE</em>.  Whether or not Active Harmony is installed on the system, this option forces CMake to automatically download and build Active Harmony as part of the APEX project.</li>
-<li><code>-DUSE_OMPT=</code>
+<li><code>-DAPEX_WITH_OMPT=</code>
   TRUE or <em>FALSE</em>.  OMPT is a proposed standard for OpenMP runtimes to provide callback hooks to performance tools. For more information, see the <a href="https://www.openmp.org/specifications/">OpenMP specification</a> v5.0 or newer.  APEX has support for most OMPT OpenMP trace events. See <a href="../usecases/#openmp-example">the OpenMP use case</a> for an example.  Some compilers (Clang 10+, Intel 19+, IBM XL 16+) include OMPT support already, and APEX will use the built-in support.  For GCC, older Clang and older Intel Compilers, APEX can build and use the <a href="https://github.com/llvm-mirror/openmp">LLVM OpenMP runtime</a> which provides KMP and GOMP API calls for those compilers.</li>
 <li><code>-DOMPT_ROOT=</code>
   the path to OMPT, or set the OMPT_ROOT environment variable before running cmake.</li>
-<li><code>-DBUILD_OMPT=</code>
+<li><code>-DAPEX_BUILD_OMPT=</code>
   TRUE or <em>FALSE</em>. Whether or not an OpenMP library with OMPT support is found by CMake, this option forces CMake to automatically download and build an OpenMP runtime with OMPT support as part of the APEX project.  In most cases, only relevant for gcc/g++.</li>
-<li><code>-DUSE_BFD=</code>
+<li><code>-DAPEX_WITH_BFD=</code>
   TRUE or <em>FALSE</em>.  APEX uses libbfd (Binutils) to convert instruction addresses to source code locations. BFD support is useful for generating human-readable output for summaries and concurrency graphs. Libbfd is not required for runtime adaptation.  For more information, see <a href="https://www.gnu.org/software/binutils/">https://www.gnu.org/software/binutils/</a>.</li>
 <li><code>-DBFD_ROOT=</code>
   path to Binutils, or set the BFD_ROOT environment variable.</li>
-<li><code>-DBUILD_BFD=</code>
+<li><code>-DAPEX_BUILD_BFD=</code>
   TRUE or FALSE.  Whether or not binutils is found by CMake, this option forces CMake to automatically download and build binutils as part of the APEX project.</li>
-<li><code>-DUSE_TCMALLOC=</code>
+<li><code>-DAPEX_WITH_TCMALLOC=</code>
   TRUE or <em>FALSE</em>.  TCMalloc is a heap management library distributed as part of Google perftools. For more information, see <a href="https://github.com/gperftools/gperftools">https://github.com/gperftools/gperftools</a>.  TCMalloc provides faster memory performance in multithreaded environments.</li>
 <li><code>-DGPERFTOOLS_ROOT=</code>
   path to gperftools (TCMalloc), or set the GPERFTOOLS_ROOT environment variable before running cmake.</li>
-<li><code>-DUSE_JEMALLOC=</code>
+<li><code>-DAPEX_WITH_JEMALLOC=</code>
   TRUE or <em>FALSE</em>.  JEMalloc is a heap management library.  For more information, see <a href="http://www.canonware.com/jemalloc/">http://www.canonware.com/jemalloc/</a>.  JEMalloc provides faster memory performance in multithreaded environments.</li>
 <li><code>-DJEMALLOC\_ROOT=</code>
   path to JEMalloc, or set the JEMALLOC_ROOT environment variable before running cmake.</li>
-<li><code>-DUSE_PAPI=</code>
+<li><code>-DAPEX_WITH_PAPI=</code>
   TRUE or <em>FALSE</em>.  PAPI (Performance Application Programming Interface) provides the tool designer and application engineer with a consistent interface and methodology for use of the performance counter hardware found in most major microprocessors.  For more information, see <a href="http://icl.cs.utk.edu/papi/">http://icl.cs.utk.edu/papi/</a>.  APEX uses PAPI to optionally collect hardware counters for timed events.</li>
 <li><code>-DPAPI_ROOT=</code>
   some path to PAPI, or set the PAPI_ROOT environment variable before running cmake. See <a href="../usecases/#papi-example">the PAPI use case</a> for an example.</li>
-<li><code>-DUSE_LM_SENSORS=</code>
+<li><code>-DAPEX_WITH_LM_SENSORS=</code>
   TRUE or <em>FALSE</em>. Lm_sensors (Linux Monitoring Sensors) is a library for monitoring hardware temperatures and fan speeds. For more information, see <a href="https://en.wikipedia.org/wiki/Lm_sensors">https://en.wikipedia.org/wiki/Lm_sensors</a>.  APEX uses lm_sensors to monitor hardware, where available.</li>
-<li><code>-DBUILD_EXAMPLES=</code>
+<li><code>-DAPEX_BUILD_EXAMPLES=</code>
   TRUE or <em>FALSE</em>. Whether or not to build the application examples in APEX.</li>
-<li><code>-DBUILD_TESTS=</code>
+<li><code>-DAPEX_BUILD_TESTS=</code>
   <em>TRUE</em> or FALSE. Whether or not to build the APEX unit tests.</li>
-<li><code>-DUSE_MPI=</code>
+<li><code>-DAPEX_WITH_MPI=</code>
   TRUE or <em>FALSE</em>. Whether to build MPI global support and related examples.</li>
 </ul>
 <h3 id="other_cmake_variables_of_interest">Other CMake variables of interest<a class="headerlink" href="#other_cmake_variables_of_interest" title="Permanent link">&para;</a></h3>
@@ -289,7 +289,7 @@ make install
   <div role="contentinfo">
     <!-- Copyright etc -->
     
-      <p>(C) 2014-2020 University of Oregon, All Rights Reserved</p>
+      <p>(C) 2014-2021 University of Oregon, All Rights Reserved</p>
     
   </div>
 

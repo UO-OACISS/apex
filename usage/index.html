@@ -460,6 +460,10 @@ launch [/home/users/khuck/src/xpress-apex/src/uni... :        4      0.000      
 <p>Like OpenACC, nothing special needs to be done to enable Kokkos support.</p>
 <h4 id="running_kokkos_programs_with_apex">Running Kokkos programs with APEX<a class="headerlink" href="#running_kokkos_programs_with_apex" title="Permanent link">&para;</a></h4>
 <p>Enabling Kokkos support requires setting the <code>KOKKOS_PROFILE_LIBRARY</code> environment variable with the path to <code>libapex.so</code>, or by using the <code>apex_exec</code> script with the <code>--apex:kokkos</code> flag.</p>
+<h4 id="configuring_apex_for_raja_support">Configuring APEX for RAJA support<a class="headerlink" href="#configuring_apex_for_raja_support" title="Permanent link">&para;</a></h4>
+<p>Like OpenACC, nothing special needs to be done to enable RAJA support.</p>
+<h4 id="running_raja_programs_with_apex">Running RAJA programs with APEX<a class="headerlink" href="#running_raja_programs_with_apex" title="Permanent link">&para;</a></h4>
+<p>Enabling RAJA support requires setting the <code>RAJA_PLUGINS</code> environment variable with the path to <code>libapex.so</code>, or by using the <code>apex_exec</code> script with the <code>--apex:raja</code> flag.</p>
 <h3 id="c_threads">C++ Threads<a class="headerlink" href="#c_threads" title="Permanent link">&para;</a></h3>
 <p>APEX suports C++ threads on Linux, with the assumption that they are implemented on top of POSIX threads.</p>
 <h4 id="configuring_apex_for_c_thread_support">Configuring APEX for C++ Thread support<a class="headerlink" href="#configuring_apex_for_c_thread_support" title="Permanent link">&para;</a></h4>
@@ -811,7 +815,7 @@ done.
   <div role="contentinfo">
     <!-- Copyright etc -->
     
-      <p>(C) 2014-2020 University of Oregon, All Rights Reserved</p>
+      <p>(C) 2014-2021 University of Oregon, All Rights Reserved</p>
     
   </div>
 

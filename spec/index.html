@@ -186,6 +186,9 @@ the C++ names use overloading for different argument lists, and will replace
 the <code>apex_</code> prefix with the <code>apex::</code> namespace. Because both APIs return 
 handles to internal APEX objects, the type definitions of these objects 
 use the C naming convention.</p>
+<p>In addition to the simple API presented below, the C++ API includes scoped
+timers and threads.  See <a href="http://www.nic.uoregon.edu/~khuck/apex_docs/doc/html/namespaceapex.html">http://www.nic.uoregon.edu/~khuck/apex_docs/doc/html/namespaceapex.html</a>
+for details.</p>
 <h3 id="terminology">Terminology<a class="headerlink" href="#terminology" title="Permanent link">&para;</a></h3>
 <p>Unfortunately, many terms in Computer Science are overloaded. The following definitions are in use in this document:</p>
 <p><strong>Thread</strong>: an operating system (OS) thread of execution. For example, Posix threads (pthreads).  </p>
@@ -828,7 +831,7 @@ apex::event_destroy (uint64_t event_id)
   <div role="contentinfo">
     <!-- Copyright etc -->
     
-      <p>(C) 2014-2020 University of Oregon, All Rights Reserved</p>
+      <p>(C) 2014-2021 University of Oregon, All Rights Reserved</p>
     
   </div>
 

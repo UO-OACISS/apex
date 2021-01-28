@@ -209,6 +209,7 @@
 <li><strong>OpenMP</strong> - Using the OpenMP 5.0 OMPT interface, APEX can capture performance data related to OpenMP pragmas.</li>
 <li><strong>OpenACC</strong> - Using the OpenACC Profiling interface, APEX can capture performance data related to OpenACC pragmas.</li>
 <li><strong>Kokkos</strong> - Using the Kokkos profiling interface, APEX can capture performance data related to Kokkos parallel abstractions.</li>
+<li><strong>RAJA</strong> - Using the RAJA profiling interface, APEX can capture performance data related to RAJA parallel abstractions.  Unlike Kokkos, RAJA doesn't give any details, so don't expect much.</li>
 <li><strong>CUDA</strong> - Using the NVIDIA CUPTI and NVML libraries, APEX can capture runtime and driver API calls as well as memory transfers and kernels executed on a device, and monitor GPU utilization.</li>
 <li><strong>Distributed Execution over MPI</strong> - While APEX doesn't measure MPI function calls, it is "MPI-aware", and can detect when used in a distributed run so that each process can write separate or aggregated performance data.</li>
 </ul>
@@ -216,7 +217,6 @@
 <ul>
 <li><strong>Argobots</strong> - APEX has been used to instrument services based on Argobots, but it is not integrated into the runtime.</li>
 <li><strong>TBB</strong> - The APEX team is evaluating integrated TBB support.</li>
-<li><strong>RAJA</strong> - The APEX team is evaluating integrated RAJA support.</li>
 <li><strong>Legion</strong> - No plans at this time, but open to exploring it.</li>
 <li><strong>Charm++</strong> - No plans at this time.</li>
 </ul>
@@ -315,7 +315,7 @@ Callback functions define the policy rules - “If x &lt; y then...(take some ac
   <div role="contentinfo">
     <!-- Copyright etc -->
     
-      <p>(C) 2014-2020 University of Oregon, All Rights Reserved</p>
+      <p>(C) 2014-2021 University of Oregon, All Rights Reserved</p>
     
   </div>
 
