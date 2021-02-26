@@ -35,20 +35,6 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   endif()
 endif()
 
-if(APEX_WITH_CUDA)
-    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND
-        CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 9)
-        message(INFO " Building CUPTI support, but GCC is too new for CUDA tests")
-    elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-        message(INFO " Building CUPTI support, but Clang can't build CUDA tests")
-    else()
-        # OK to enable CUDA tests
-        enable_language(CUDA)
-        set(APEX_CUDA_TESTS TRUE)
-    endif()
-    find_package(CUDAToolkit REQUIRED QUIET COMPONENTS CUPTI)
-endif(APEX_WITH_CUDA)
-
 # if the user didn't specify, set the installation directory.
 if(NOT DEFINED CMAKE_INSTALL_PREFIX OR CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     SET(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}" CACHE STRING "APEX Installation directory" FORCE)
@@ -117,6 +103,29 @@ IF("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
     set(APEX_BUILD_EXAMPLES FALSE)
   endif(NOT DEFINED APEX_BUILD_EXAMPLES)
 endif()
+
+if(APEX_WITH_CUDA)
+    # This is needed so that the nvcc compiler test passes, and we can use it to
+    # compile the test cases.
+    if(APEX_BUILD_TESTS)
+        if ( (CMAKE_CXX_COMPILER_ID MATCHES GNU) AND (CMAKE_SYSTEM_PROCESSOR MATCHES "^(powerpc|ppc)64.*$") )
+            if ( (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 8.0) AND (CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 11.0) )
+                set (CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler -std=c++11")
+            endif ()
+        endif ()
+        if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND
+            CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 9)
+            message(INFO " Building CUPTI support, but GCC is too new for CUDA tests")
+        elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+            message(INFO " Building CUPTI support, but Clang can't build CUDA tests")
+        else()
+            # OK to enable CUDA tests
+            enable_language(CUDA)
+            set(APEX_CUDA_TESTS TRUE)
+        endif()
+    endif()
+    find_package(CUDAToolkit REQUIRED QUIET COMPONENTS CUPTI)
+endif(APEX_WITH_CUDA)
 
 # set(APEX_BUILD_TYPE "${CMAKE_BUILD_TYPE}" CACHE STRING "Configuration type (one of Debug, RelWithDebInfo, Release, MinSizeRel)" FORCE)
 
