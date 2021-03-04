@@ -575,6 +575,18 @@ APEX_EXPORT apex_profile* get_profile(apex_function_address function_address);
  */
 APEX_EXPORT apex_profile* get_profile(const std::string &timer_name);
 
+/**
+ \brief Get the current profile for the specified task_identifier.
+
+ This function will return the current profile for the specified task_identifier.
+ Because profiles are updated out-of-band, it is possible that this profile
+ value is out of date.  This profile can be either a timer or a sampled value.
+
+ \param task_id The task_identifier of the timer/counter
+ \return The current profile for that timed function or sampled value.
+ */
+APEX_EXPORT apex_profile* get_profile(const task_identifier &task_id);
+
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 /**
@@ -585,10 +597,9 @@ APEX_EXPORT apex_profile* get_profile(const std::string &timer_name);
  Because profiles are updated out-of-band, it is possible that this profile
  value is out of date.  This profile can be either a timer or a sampled value.
 
- \return A vector of strings containing the list of names.
+ \return A vector of task_identifier objects
  */
-/* Disabled, after adding task_identifier support */
-//APEX_EXPORT std::vector<std::string> get_available_profiles();
+APEX_EXPORT std::vector<task_identifier>& get_available_profiles();
 
 /**
  \brief Get the current power reading

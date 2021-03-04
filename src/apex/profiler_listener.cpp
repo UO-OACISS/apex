@@ -225,7 +225,7 @@ std::unordered_set<profile*> free_profiles;
 
   /* Return the requested profile object to the user.
    * Return nullptr if doesn't exist. */
-  profile * profiler_listener::get_profile(task_identifier &id) {
+  profile * profiler_listener::get_profile(const task_identifier &id) {
     /* Maybe we aren't processing profiler objects yet? Fire off a request. */
 #ifdef APEX_HAVE_HPX
     // don't schedule an HPX action - just do it.

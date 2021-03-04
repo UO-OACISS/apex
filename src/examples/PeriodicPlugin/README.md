@@ -34,7 +34,7 @@ test 82
     Start 82: ExamplePeriodicPlugin
 
 82: Test command: /Users/khuck/src/xpress-apex/build/src/examples/PeriodicPlugin/periodic_policy_test
-82: Environment variables: 
+82: Environment variables:
 82:  APEX_POLICY=1
 82:  APEX_SCREEN_OUTPUT=1
 82:  APEX_PLUGINS_PATH=/Users/khuck/src/xpress-apex/build/src/examples/PeriodicPlugin
@@ -51,24 +51,35 @@ test 82
 82: Iteration: 1
 82: Iteration: 2
 ...
-82: Iteration: 96
-82: periodic_policy
-82: Iteration: 97
 82: Iteration: 98
 82: periodic_policy
+82: Found 2 profiles so far.
+82: pthread_join
+82: void* std::__1::__thread_proxy<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct> >, void (*)(int), int> >(void*)
+82: pthread_join : Num Calls : 392
+82: pthread_join : Accumulated : 29.0294
+82: pthread_join : Max : 0.539959
+82:
 82: Iteration: 99
 82: periodic_policy
+82: Found 2 profiles so far.
+82: pthread_join
+82: void* std::__1::__thread_proxy<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct> >, void (*)(int), int> >(void*)
+82: pthread_join : Num Calls : 396
+82: pthread_join : Accumulated : 29.5747
+82: pthread_join : Max : 0.545258
+82:
 82: Test passed.
-82: 
+82:
 82: apex_plugin_finalize
 82: apex_openmp_policy finalize
-82: 
+82:
 82: Elapsed time: 30.0875 seconds
 82: Cores detected: 8
 82: Worker Threads observed: 403
 82: Available CPU time: 240.7 seconds
-82: 
-82: Timer                                                : #calls  |    mean  |   total  |  % total  
+82:
+82: Timer                                                : #calls  |    mean  |   total  |  % total
 82: ------------------------------------------------------------------------------------------------
 82: void* std::__1::__thread_proxy<std::__1::tuple<st... :      400      0.300    120.101     49.897
 82: void* std::__1::__thread_proxy<std::__1::tuple<st... :        1     30.089     30.089     12.500

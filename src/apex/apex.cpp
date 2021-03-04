@@ -1802,6 +1802,15 @@ apex_profile* get_profile(const std::string &timer_name) {
     return nullptr;
 }
 
+apex_profile* get_profile(const task_identifier &task_id) {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return nullptr; }
+    profile * tmp = apex::__instance()->the_profiler_listener->get_profile(task_id);
+    if (tmp != nullptr)
+        return tmp->get_profile();
+    return nullptr;
+}
+
 double current_power_high(void) {
     double power = 0.0;
 #ifdef APEX_HAVE_RCR
@@ -1821,11 +1830,9 @@ double current_power_high(void) {
     return power;
 }
 
-/*
-std::vector<std::string> get_available_profiles() {
+std::vector<task_identifier>& get_available_profiles() {
     return apex::__instance()->the_profiler_listener->get_available_profiles();
 }
-*/
 
 void print_options() {
     // if APEX is disabled, do nothing.

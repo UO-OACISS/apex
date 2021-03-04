@@ -227,11 +227,22 @@ public:
   // other methods
   void reset(task_identifier * id);
   void reset_all(void);
-  profile * get_profile(task_identifier &id);
+  profile * get_profile(const task_identifier &id);
   double get_non_idle_time(void);
   profile * get_idle_time(void);
   profile * get_idle_rate(void);
-  //std::vector<std::string> get_available_profiles();
+  std::vector<task_identifier>& get_available_profiles() {
+    static std::vector<task_identifier> ids;
+    _task_map_mutex.lock();
+    if (task_map.size() > ids.size()) {
+        ids.clear();
+        for (auto kv : task_map) {
+           ids.push_back(kv.first);
+        }
+    }
+    _task_map_mutex.unlock();
+    return ids;
+  }
   void process_profiles(void);
   static void process_profiles_wrapper(void);
   static void consumer_process_profiles_wrapper(void);

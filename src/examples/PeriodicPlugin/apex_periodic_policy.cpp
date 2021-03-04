@@ -8,6 +8,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <sstream>
 #include <memory>
 #include <utility>
 #include <cstdlib>
@@ -27,6 +28,22 @@ int periodic_policy(const apex_context context) {
         std::cerr << "ERROR: No task_identifier for event!" << std::endl;
         return APEX_ERROR;
     }
+    auto task_ids = apex::get_available_profiles();
+    std::stringstream ss;
+    ss << "Found " << task_ids.size() << " profiles so far.\n";
+    for (auto t : task_ids) {
+        ss << t.get_name() << "\n";
+    }
+    /* Get one specific task_identifier */
+    apex::task_identifier tid("pthread_join");
+    apex_profile * profile = get_profile(tid);
+    if (profile) {
+        ss << "pthread_join : Num Calls : " << profile->calls << "\n";
+        ss << "pthread_join : Accumulated : " << profile->accumulated << "\n";
+        ss << "pthread_join : Max : " << profile->maximum << "\n";
+    }
+    std::cout << ss.str() << std::endl;
+
     return APEX_NOERROR;
 }
 
