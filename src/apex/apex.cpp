@@ -68,8 +68,10 @@
 #include <hpx/include/actions.hpp>
 #include <hpx/include/util.hpp>
 #include <hpx/lcos_local/composable_guard.hpp>
-#endif // APEX_HAVE_HPX
+#else // APEX_HAVE_HPX
+/* When running with apex_exec, we want to initialize APEX on library load */
 #include "global_constructor_destructor.h"
+#endif // APEX_HAVE_HPX
 
 #if APEX_DEBUG
 #define FUNCTION_ENTER printf("enter %lu *** %s:%d!\n", \
@@ -1267,7 +1269,11 @@ void init_plugins(void) {
     if (apex_options::disable() == true) { return; }
     std::string plugin_names_str{apex_options::plugins()};
     std::string plugins_prefix{apex_options::plugins_path()};
+#if defined(__APPLE__)
+    std::string plugins_suffix{".dylib"};
+#else
     std::string plugins_suffix{".so"};
+#endif
     if(plugin_names_str.empty()) {
         FUNCTION_EXIT
         return;
@@ -1904,11 +1910,9 @@ extern "C" {
         return init("FORTRAN thread", comm_rank, comm_size);
     }
 
-/*
     static void apex_init_static_void(void) {
         init("APEX Void Constructor", 0, 1);
     }
-*/
 
     void apex_cleanup() {
         cleanup();
@@ -1922,11 +1926,9 @@ extern "C" {
         finalize();
     }
 
-/*
- static void apex_finalize_static_void(void) {
+    static void apex_finalize_static_void(void) {
         finalize();
     }
-*/
 
     void apex_finalize_() { finalize(); }
 
