@@ -60,10 +60,3 @@
 #warning "Global constructors and destructors not defined!"
 #endif
 
-#ifdef HAS_CONSTRUCTORS
-extern "C" {
-DEFINE_CONSTRUCTOR(apex_init_static_void)
-DEFINE_DESTRUCTOR(apex_finalize_static_void)
-}
-#endif
-

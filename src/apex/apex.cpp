@@ -68,10 +68,17 @@
 #include <hpx/include/actions.hpp>
 #include <hpx/include/util.hpp>
 #include <hpx/lcos_local/composable_guard.hpp>
-#else // APEX_HAVE_HPX
-/* When running with apex_exec, we want to initialize APEX on library load */
 #include "global_constructor_destructor.h"
+#else
+#include "global_constructor_destructor.h"
+#ifdef HAS_CONSTRUCTORS
+extern "C" {
+DEFINE_CONSTRUCTOR(apex_init_static_void)
+DEFINE_DESTRUCTOR(apex_finalize_static_void)
+}
+#endif
 #endif // APEX_HAVE_HPX
+
 
 #if APEX_DEBUG
 #define FUNCTION_ENTER printf("enter %lu *** %s:%d!\n", \
