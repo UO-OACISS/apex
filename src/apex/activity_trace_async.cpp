@@ -338,14 +338,14 @@ void store_profiler_data(const std::string &name, uint32_t correlationId,
 void store_sync_counter_data(const char * name, const std::string& context,
     double value, bool force = false) {
     if (name == nullptr) {
-        apex::sample_value(context, value);
+        apex::sample_value(context, value, true);
     } else {
         std::stringstream ss;
         ss << name;
         if (apex::apex_options::use_cuda_kernel_details() || force) {
             ss << ": " << context;
         }
-        apex::sample_value(ss.str(), value);
+        apex::sample_value(ss.str(), value, true);
     }
 }
 

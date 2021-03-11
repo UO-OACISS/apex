@@ -1344,6 +1344,11 @@ namespace apex {
         read_lock_type lock(_archive_mutex);
         // not likely, but just in case...
         if (_terminate) { return; }
+
+        OTF2_EvtWriter* local_evt_writer = comm_evt_writer;
+        if (data.is_threaded) {
+            local_evt_writer = getEvtWriter(true);
+        }
         // create a union for storing the value
         OTF2_MetricValue omv[1];
         omv[0].floating_point = data.counter_value;
@@ -1360,8 +1365,8 @@ namespace apex {
             // that time stamps are monotonically increasing. :(
             uint64_t stamp = get_time();
             // write our counter into the event stream
-            if (comm_evt_writer != nullptr) {
-                OTF2_EC(OTF2_EvtWriter_Metric( comm_evt_writer, nullptr, stamp,
+            if (local_evt_writer != nullptr) {
+                OTF2_EC(OTF2_EvtWriter_Metric( local_evt_writer, nullptr, stamp,
                 idx, 1, omt, omv ));
             }
         }

@@ -1070,7 +1070,7 @@ void yield(std::shared_ptr<task_wrapper> tt_ptr)
     tt_ptr->prof = nullptr;
 }
 
-void sample_value(const std::string &name, double value)
+void sample_value(const std::string &name, double value, bool threaded)
 {
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
@@ -1103,7 +1103,7 @@ void sample_value(const std::string &name, double value)
             }
         }
     }
-    sample_value_event_data data(tid, name, value);
+    sample_value_event_data data(tid, name, value, threaded);
     if (_notify_listeners) {
         //read_lock_type l(instance->listener_mutex);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -2010,9 +2010,9 @@ extern "C" {
         yield(reinterpret_cast<profiler*>(the_profiler));
     }
 
-    void apex_sample_value(const char * name, double value) {
+    void apex_sample_value(const char * name, double value, bool threaded) {
         string tmp(name);
-        sample_value(tmp, value);
+        sample_value(tmp, value, threaded);
     }
 
     void apex_new_task(apex_profiler_type type, void * identifier,
