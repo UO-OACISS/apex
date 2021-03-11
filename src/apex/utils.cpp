@@ -15,7 +15,11 @@
 #endif
 // for setting thread affinity
 #if !defined(__APPLE__) && !defined(_MSC_VER)
-#include <pthread.h>
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+#include <sched.h>
+#include <unistd.h>
 #endif
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,6 +34,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <mutex>
 
 namespace apex {
 
@@ -106,33 +111,18 @@ std::string* demangle(const std::string& timer_name) {
 
 void set_thread_affinity(int core) {
 #if !defined(__APPLE__) && !defined(_MSC_VER) && !defined(APEX_HAVE_HPX)
-    int s;
     cpu_set_t cpuset;
-    pthread_t thread;
+    cpu_set_t mask;
 
-    thread = pthread_self();
-
-    /* Set affinity mask to include CPUs 0 to 7 */
-
-    CPU_ZERO(&cpuset);
-    CPU_SET(core, &cpuset);
-
-    s = pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
-    if (s != 0) handle_error_en(s, "pthread_setaffinity_np");
-
-    /* Check the actual affinity mask assigned to the thread */
-
-    /*
-    s = pthread_getaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
-    if (s != 0) handle_error_en(s, "pthread_getaffinity_np");
-
-    printf("Set returned by pthread_getaffinity_np() contained:\n");
-    for (j = 0; j < CPU_SETSIZE; j++) {
-        if (CPU_ISSET(j, &cpuset)) {
-            printf("    CPU %d\n", j);
-        }
+    if (sched_getaffinity(0, sizeof(cpu_set_t), &mask) == -1) {
+        perror("sched_getaffinity");
+        return;
     }
-    */
+    if (CPU_ISSET(core, &mask)) {
+        CPU_ZERO(&cpuset);
+        CPU_SET(core, &cpuset);
+        sched_setaffinity(0, sizeof(cpu_set_t), &cpuset);
+    }
 #else
     APEX_UNUSED(core);
 #endif
@@ -141,34 +131,28 @@ void set_thread_affinity(int core) {
 
 void set_thread_affinity(void) {
 #if !defined(__APPLE__) && !defined(_MSC_VER) && !defined(APEX_HAVE_HPX)
-    int s, j;
     cpu_set_t cpuset;
-    pthread_t thread;
+    cpu_set_t mask;
 
-    thread = pthread_self();
+    // only let one thread in here at a time
+    std::mutex _mutex;
+    std::unique_lock<std::mutex> l(_mutex);
+    static unsigned int last_assigned = my_hardware_concurrency();
 
-    /* Set affinity mask to include CPUs 0 to 7 */
-
-    CPU_ZERO(&cpuset);
-    j = my_hardware_concurrency() - 1;
-    CPU_SET(j, &cpuset);
-
-    s = pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
-    if (s != 0) handle_error_en(s, "pthread_setaffinity_np");
-
-    /* Check the actual affinity mask assigned to the thread */
-
-    /*
-    s = pthread_getaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
-    if (s != 0) handle_error_en(s, "pthread_getaffinity_np");
-
-    printf("Set returned by pthread_getaffinity_np() contained:\n");
-    for (j = 0; j < CPU_SETSIZE; j++) {
-        if (CPU_ISSET(j, &cpuset)) {
-            printf("    CPU %d\n", j);
+    if (sched_getaffinity(0, sizeof(cpu_set_t), &mask) == -1) {
+        perror("sched_getaffinity");
+        return;
+    }
+    unsigned int j = my_hardware_concurrency() - 1;
+    for (unsigned int i = j ; i > 0 ; i--) {
+        if (CPU_ISSET(i, &mask) && i < last_assigned) {
+            CPU_ZERO(&cpuset);
+            CPU_SET(i, &cpuset);
+            sched_setaffinity(0, sizeof(cpu_set_t), &cpuset);
+            last_assigned = i;
+            break;
         }
     }
-    */
 #endif
     return;
 }
