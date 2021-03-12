@@ -16,6 +16,7 @@ set_target_properties(apex_periodic_policy PROPERTIES OUTPUT_NAME apex_periodic_
 
 add_executable (periodic_policy_test policy_test.cpp)
 add_dependencies (periodic_policy_test apex)
+target_link_libraries (periodic_policy_test ${LIBS})
 
 INSTALL(TARGETS apex_periodic_policy periodic_policy_test
     RUNTIME DESTINATION bin

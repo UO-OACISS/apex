@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <stack>
 #include <unordered_map>
+#include <map>
 #include <sstream>
 #include <mutex>
 #include <atomic>
@@ -336,16 +337,16 @@ void store_profiler_data(const std::string &name, uint32_t correlationId,
 
 /* Handle counters from synchronous callbacks */
 void store_sync_counter_data(const char * name, const std::string& context,
-    double value, bool force = false) {
+    double value, bool force = false, bool threaded = true) {
     if (name == nullptr) {
-        apex::sample_value(context, value);
+        apex::sample_value(context, value, true);
     } else {
         std::stringstream ss;
         ss << name;
         if (apex::apex_options::use_cuda_kernel_details() || force) {
             ss << ": " << context;
         }
-        apex::sample_value(ss.str(), value);
+        apex::sample_value(ss.str(), value, threaded);
     }
 }
 
@@ -996,16 +997,29 @@ void notifyKernelComplete(CUpti_CallbackId id, const void* params, const char * 
     return;
 }
 
-bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string context) {
+bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string context, bool isEnter) {
     size_t bytes = 0;
+    bool onHost = false;
+    bool managed = false;
+    void* ptr = nullptr;
+    static std::atomic<double> totalAllocated = 0.0;
+    static std::unordered_map<void*,double> memoryMap;
+    std::mutex mapMutex;
+    static std::atomic<double> hostTotalAllocated = 0.0;
+    static std::unordered_map<void*,double> hostMemoryMap;
+    std::mutex hostMapMutex;
+    bool free = false;
     if (apex::apex_options::use_cuda_driver_api() ||
         apex::apex_options::use_cuda_kernel_details()) {
         switch (id) {
             case CUPTI_DRIVER_TRACE_CBID_cuMemAlloc: {
+                size_t tmp = (size_t)*((cuMemAlloc_params_st*)(params))->dptr;
+                ptr = (void*)(tmp);
                 bytes = ((cuMemAlloc_params_st*)(params))->bytesize;
                 break;
             }
             case CUPTI_DRIVER_TRACE_CBID_cuMemAllocPitch: {
+                ptr = ((cuMemAllocPitch_params_st*)(params))->dptr;
                 bytes = ((cuMemAllocPitch_params_st*)(params))->WidthInBytes *
                         ((cuMemAllocPitch_params_st*)(params))->Height *
                         ((cuMemAllocPitch_params_st*)(params))->ElementSizeBytes;
@@ -1027,29 +1041,61 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
             }
             */
             case CUPTI_DRIVER_TRACE_CBID_cuMemAllocHost: {
+                ptr = *((cuMemAllocHost_params_st*)(params))->pp;
                 bytes = ((cuMemAllocHost_params_st*)(params))->bytesize;
+                onHost = true;
                 break;
             }
             case CUPTI_DRIVER_TRACE_CBID_cuMemHostAlloc: {
+                ptr = *((cuMemHostAlloc_params_st*)(params))->pp;
                 bytes = ((cuMemHostAlloc_params_st*)(params))->bytesize;
+                onHost = true;
                 break;
             }
             case CUPTI_DRIVER_TRACE_CBID_cuMemAlloc_v2: {
+                ptr = (void*)*((cuMemAlloc_v2_params_st*)(params))->dptr;
                 bytes = ((cuMemAlloc_v2_params_st*)(params))->bytesize;
                 break;
             }
             case CUPTI_DRIVER_TRACE_CBID_cuMemAllocPitch_v2: {
+                ptr = (void*)*((cuMemAllocPitch_v2_params_st*)(params))->dptr;
                 bytes = ((cuMemAllocPitch_v2_params_st*)(params))->WidthInBytes *
                         ((cuMemAllocPitch_v2_params_st*)(params))->Height *
                         ((cuMemAllocPitch_v2_params_st*)(params))->ElementSizeBytes;
                 break;
             }
             case CUPTI_DRIVER_TRACE_CBID_cuMemAllocHost_v2: {
+                ptr = *((cuMemAllocHost_v2_params_st*)(params))->pp;
                 bytes = ((cuMemAllocHost_v2_params_st*)(params))->bytesize;
+                onHost = true;
                 break;
             }
             case CUPTI_DRIVER_TRACE_CBID_cuMemAllocManaged: {
+                ptr = (void*)*((cuMemAllocManaged_params_st*)(params))->dptr;
                 bytes = ((cuMemAllocManaged_params_st*)(params))->bytesize;
+                managed = true;
+                break;
+            }
+            case CUPTI_DRIVER_TRACE_CBID_cuMemFree_v2: {
+                ptr = (void*)((cuMemFree_v2_params_st*)(params))->dptr;
+                free = true;
+                break;
+            }
+            case CUPTI_DRIVER_TRACE_CBID_cuMemFreeHost: {
+                ptr = ((cuMemFreeHost_params_st*)(params))->p;
+                free = true;
+                onHost = true;
+                break;
+            }
+            case CUPTI_DRIVER_TRACE_CBID_cuMemAddressFree: {
+                ptr = (void*)((cuMemAddressFree_params_st*)(params))->ptr;
+                free = true;
+                break;
+            }
+            case CUPTI_DRIVER_TRACE_CBID_cuMemFree: {
+                size_t tmp = (size_t)((cuMemFree_params_st*)(params))->dptr;
+                ptr = (void*)(tmp);
+                free = true;
                 break;
             }
             default: {
@@ -1057,55 +1103,81 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
                 break;
             }
         }
-        if (bytes > 0) {
-            double value = (double)(bytes);
-            store_sync_counter_data("GPU: Bytes Allocated", context, value);
-            return true;
-        }
     }
     if (!apex::apex_options::use_cuda_driver_api() ||
         apex::apex_options::use_cuda_kernel_details()) {
         switch (id) {
             case CUPTI_RUNTIME_TRACE_CBID_cudaMalloc_v3020: {
+                ptr = *((cudaMalloc_v3020_params_st*)(params))->devPtr;
                 bytes = ((cudaMalloc_v3020_params_st*)(params))->size;
                 break;
             }
             case CUPTI_RUNTIME_TRACE_CBID_cudaMallocPitch_v3020: {
+                ptr = *((cudaMallocPitch_v3020_params_st*)(params))->devPtr;
                 bytes = ((cudaMallocPitch_v3020_params_st*)(params))->width *
                         ((cudaMallocPitch_v3020_params_st*)(params))->height;
                 break;
             }
             case CUPTI_RUNTIME_TRACE_CBID_cudaMallocArray_v3020: {
+                ptr = ((cudaMallocArray_v3020_params_st*)(params))->array;
                 bytes = ((cudaMallocArray_v3020_params_st*)(params))->width *
                         ((cudaMallocArray_v3020_params_st*)(params))->height;
                 break;
             }
+            case CUPTI_RUNTIME_TRACE_CBID_cudaHostAlloc_v3020: {
+                bytes = ((cudaHostAlloc_v3020_params_st*)(params))->size;
+                ptr = *((cudaHostAlloc_v3020_params_st*)(params))->pHost;
+                onHost = true;
+                break;
+            }
             case CUPTI_RUNTIME_TRACE_CBID_cudaMallocHost_v3020: {
                 bytes = ((cudaMallocHost_v3020_params_st*)(params))->size;
-                // we have a special case - handle it differently...
-                double value = (double)(bytes);
-                store_sync_counter_data("Host: Page-locked Bytes Allocated",
-                    context, value);
-                return true;
+                onHost = true;
                 break;
             }
             case CUPTI_RUNTIME_TRACE_CBID_cudaMalloc3D_v3020: {
+                ptr = ((cudaMalloc3D_v3020_params_st*)(params))->pitchedDevPtr->ptr;
                 cudaExtent extent = ((cudaMalloc3D_v3020_params_st*)(params))->extent;
                 bytes = extent.depth * extent.height * extent.width;
                 break;
             }
             case CUPTI_RUNTIME_TRACE_CBID_cudaMalloc3DArray_v3020: {
+                ptr = ((cudaMalloc3DArray_v3020_params_st*)(params))->array;
                 cudaExtent extent = ((cudaMalloc3DArray_v3020_params_st*)(params))->extent;
                 bytes = extent.depth * extent.height * extent.width;
                 break;
             }
             case CUPTI_RUNTIME_TRACE_CBID_cudaMallocMipmappedArray_v5000: {
+                ptr = ((cudaMallocMipmappedArray_v5000_params_st*)(params))->mipmappedArray;
                 cudaExtent extent = ((cudaMallocMipmappedArray_v5000_params_st*)(params))->extent;
                 bytes = extent.depth * extent.height * extent.width;
                 break;
             }
             case CUPTI_RUNTIME_TRACE_CBID_cudaMallocManaged_v6000: {
+                ptr = *((cudaMallocManaged_v6000_params_st*)(params))->devPtr;
                 bytes = ((cudaMallocManaged_v6000_params_st*)(params))->size;
+                managed = true;
+                break;
+            }
+            case CUPTI_RUNTIME_TRACE_CBID_cudaFree_v3020: {
+                ptr = ((cudaFree_v3020_params*)(params))->devPtr;
+                free = true;
+                break;
+            }
+            case CUPTI_RUNTIME_TRACE_CBID_cudaFreeArray_v3020: {
+                ptr = ((cudaFreeArray_v3020_params*)(params))->array;
+                free = true;
+                break;
+            }
+            case CUPTI_RUNTIME_TRACE_CBID_cudaFreeHost_v3020: {
+                ptr = ((cudaFreeHost_v3020_params*)(params))->ptr;
+                free = true;
+                onHost = true;
+                break;
+            }
+            case CUPTI_RUNTIME_TRACE_CBID_cudaFreeMipmappedArray_v5000: {
+                ptr = ((cudaFreeMipmappedArray_v5000_params*)(params))->mipmappedArray;
+                free = true;
                 break;
             }
             default: {
@@ -1113,9 +1185,69 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
             }
         }
     }
-    if (bytes == 0) return false;
-    double value = (double)(bytes);
-    store_sync_counter_data("GPU: Bytes Allocated", context, value);
+    // If we are in the enter of a function, and we are freeing memory,
+    // then update and record the bytes allocated
+    if (free && isEnter) {
+        double value = 0;
+        //std::cout << "Freeing " << ptr << std::endl;
+        if (onHost) {
+            hostMapMutex.lock();
+            if (hostMemoryMap.count(ptr) > 0) {
+                value = hostMemoryMap[ptr];
+                hostMemoryMap.erase(ptr);
+            } else {
+                hostMapMutex.unlock();
+                return false;
+            }
+            hostMapMutex.unlock();
+            store_sync_counter_data("Host: Page-locked Bytes Freed", context, value);
+            hostTotalAllocated = hostTotalAllocated - value;
+            store_sync_counter_data("GPU: Total Bytes Occupied on Host", context, hostTotalAllocated, false, false);
+        } else {
+            mapMutex.lock();
+            if (memoryMap.count(ptr) > 0) {
+                value = memoryMap[ptr];
+                memoryMap.erase(ptr);
+            } else {
+                mapMutex.unlock();
+                return false;
+            }
+            mapMutex.unlock();
+            if (managed) {
+                store_sync_counter_data("GPU: Bytes Freed (Managed)", context, value);
+            } else {
+                store_sync_counter_data("GPU: Bytes Freed", context, value);
+            }
+            totalAllocated = totalAllocated - value;
+            store_sync_counter_data("GPU: Total Bytes Occupied on Device", context, totalAllocated, false, false);
+        }
+    // If we are in the exit of a function, and we are allocating memory,
+    // then update and record the bytes allocated
+    } else if (!free && !isEnter) {
+        if (bytes == 0) return false;
+        double value = (double)(bytes);
+        //std::cout << "Allocating " << value << " bytes at " << ptr << std::endl;
+        if (onHost) {
+            store_sync_counter_data("Host: Page-locked Bytes Allocated", context, value);
+            hostMapMutex.lock();
+            hostMemoryMap[ptr] = value;
+            hostMapMutex.unlock();
+            hostTotalAllocated = hostTotalAllocated + value;
+            store_sync_counter_data("GPU: Total Bytes Occupied on Host", context, hostTotalAllocated, false, false);
+            return true;
+        } else {
+            if (managed) {
+                store_sync_counter_data("GPU: Bytes Allocated (Managed)", context, value);
+            } else {
+                store_sync_counter_data("GPU: Bytes Allocated", context, value);
+            }
+            mapMutex.lock();
+            memoryMap[ptr] = value;
+            mapMutex.unlock();
+            totalAllocated = totalAllocated + value;
+            store_sync_counter_data("GPU: Total Bytes Occupied on Device", context, totalAllocated, false, false);
+        }
+    }
     return true;
 }
 
@@ -1449,7 +1581,7 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
         map_mutex.lock();
         correlation_map[cbdata->correlationId] = timer;
         map_mutex.unlock();
-        getBytesIfMalloc(id, cbdata->functionParams, tmp);
+        getBytesIfMalloc(id, cbdata->functionParams, tmp, true);
     } else {
         /* Not sure how to use this yet... if this is a kernel launch, we can
          * run a function on the host, launched from the stream.  That gives us
@@ -1461,6 +1593,18 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
             cbdata->symbolName != nullptr)
             notifyKernelComplete(id, cbdata->functionParams, cbdata->symbolName);
         */
+
+        /* If this is a malloc/free, keep track of total bytes */
+        std::stringstream ss;
+        ss << cbdata->functionName;
+        if (apex::apex_options::use_cuda_kernel_details()) {
+            if (cbdata->symbolName != NULL && strlen(cbdata->symbolName) > 0) {
+                ss << ": " << cbdata->symbolName;
+            }
+        }
+        std::string tmp(ss.str());
+        getBytesIfMalloc(id, cbdata->functionParams, tmp, false);
+
         if (!timer_stack.empty()) {
         auto timer = timer_stack.top();
         apex::stop(timer);
@@ -1550,7 +1694,7 @@ namespace apex {
     void flushTrace(void) {
         if ((num_buffers_processed + 10) < num_buffers) {
             if (apex::instance()->get_node_id() == 0) {
-                //flushing = true;
+                flushing = true;
                 std::cout << "Flushing remaining " << std::fixed
                     << num_buffers-num_buffers_processed << " of " << num_buffers
                     << " CUDA/CUPTI buffers..." << std::endl;
