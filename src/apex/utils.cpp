@@ -506,6 +506,55 @@ std::string activity_to_string(apex_cuda_async_activity_t activity) {
     }
 }
 
+/* The following code is from:
+   http://stackoverflow.com/questions/7706339/
+   grayscale-to-red-green-blue-matlab-jet-color-scale */
+node_color * get_node_color_visible(double v, double vmin, double vmax) {
+   node_color * c = new node_color();
+
+   if (v < vmin)
+      v = vmin;
+   if (v > vmax)
+      v = vmax;
+   double dv = vmax - vmin;
+   double fraction = 1.0 - ( (v - vmin) / dv );
+   // red should be full on.
+   c->red = 1.0;
+   // blue should increase as the fraction increases.
+   c->blue = (1.0 * fraction);
+   // green should increase as the fraction increases.
+   c->green = (1.0 * fraction);
+   return c;
+}
+
+node_color * get_node_color(double v,double vmin,double vmax)
+{
+   node_color * c = new node_color();
+   double dv;
+
+   if (v < vmin)
+      v = vmin;
+   if (v > vmax)
+      v = vmax;
+   dv = vmax - vmin;
+
+   if (v < (vmin + 0.25 * dv)) {
+      c->red = 0;
+      c->green = 4 * (v - vmin) / dv;
+   } else if (v < (vmin + 0.5 * dv)) {
+      c->red = 0;
+      c->blue = 1 + 4 * (vmin + 0.25 * dv - v) / dv;
+   } else if (v < (vmin + 0.75 * dv)) {
+      c->red = 4 * (v - vmin - 0.5 * dv) / dv;
+      c->blue = 0;
+   } else {
+      c->green = 1 + 4 * (vmin + 0.75 * dv - v) / dv;
+      c->blue = 0;
+   }
+
+   return(c);
+}
+
 } // namespace apex
 
 extern "C" void __cyg_profile_func_enter(void *this_fn, void *call_site) __attribute__((no_instrument_function));

@@ -63,6 +63,7 @@ ${OMPT_SOURCE}
 ${OpenACC_SOURCE}
 ${RAJA_SOURCE}
 concurrency_handler.cpp
+dependency_tree.cpp
 event_listener.cpp
 handler.cpp
 ${OTF2_SOURCE}

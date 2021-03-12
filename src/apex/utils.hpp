@@ -259,5 +259,17 @@ uint64_t test_for_MPI_comm_size(uint64_t commsize);
 
 std::string activity_to_string(apex_cuda_async_activity_t activity);
 
+class node_color {
+public:
+    double red;
+    double green;
+    double blue;
+    node_color() : red(1.0), green(1.0), blue(1.0) {}
+    int convert(double in) { return (int)(in * 255.0); }
+} ;
+
+node_color * get_node_color_visible(double v, double vmin, double vmax);
+node_color * get_node_color(double v,double vmin,double vmax);
+
 }
 

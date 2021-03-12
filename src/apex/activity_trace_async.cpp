@@ -1218,7 +1218,7 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
             } else {
                 store_sync_counter_data("GPU: Bytes Freed", context, value);
             }
-            totalAllocated = totalAllocated - value;
+            totalAllocated.fetch_sub(value, std::memory_order_relaxed);
             store_sync_counter_data("GPU: Total Bytes Occupied on Device", context, totalAllocated, false, false);
         }
     // If we are in the exit of a function, and we are allocating memory,
@@ -1244,7 +1244,7 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
             mapMutex.lock();
             memoryMap[ptr] = value;
             mapMutex.unlock();
-            totalAllocated = totalAllocated + value;
+            totalAllocated.fetch_add(value, std::memory_order_relaxed);
             store_sync_counter_data("GPU: Total Bytes Occupied on Device", context, totalAllocated, false, false);
         }
     }

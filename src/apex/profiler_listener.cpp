@@ -414,6 +414,9 @@ std::unordered_set<profile*> free_profiles;
         }
       }
 #endif
+    if (apex_options::use_tasktree_output()) {
+        p->tt_ptr->tree_node->addAccumulated(p->elapsed(), p->is_resume);
+    }
     return 1;
   }
 
@@ -780,64 +783,6 @@ std::unordered_set<profile*> free_profiles;
     }
   }
 
-/* The following code is from:
-   http://stackoverflow.com/questions/7706339/
-   grayscale-to-red-green-blue-matlab-jet-color-scale */
-class node_color {
-public:
-    double red;
-    double green;
-    double blue;
-    node_color() : red(1.0), green(1.0), blue(1.0) {}
-    int convert(double in) { return (int)(in * 255.0); }
-} ;
-
-node_color * get_node_color_visible(double v, double vmin, double vmax) {
-   node_color * c = new node_color();
-
-   if (v < vmin)
-      v = vmin;
-   if (v > vmax)
-      v = vmax;
-   double dv = vmax - vmin;
-   double fraction = 1.0 - ( (v - vmin) / dv );
-   // red should be full on.
-   c->red = 1.0;
-   // blue should increase as the fraction increases.
-   c->blue = (1.0 * fraction);
-   // green should increase as the fraction increases.
-   c->green = (1.0 * fraction);
-   return c;
-}
-
-node_color * get_node_color(double v,double vmin,double vmax)
-{
-   node_color * c = new node_color();
-   double dv;
-
-   if (v < vmin)
-      v = vmin;
-   if (v > vmax)
-      v = vmax;
-   dv = vmax - vmin;
-
-   if (v < (vmin + 0.25 * dv)) {
-      c->red = 0;
-      c->green = 4 * (v - vmin) / dv;
-   } else if (v < (vmin + 0.5 * dv)) {
-      c->red = 0;
-      c->blue = 1 + 4 * (vmin + 0.25 * dv - v) / dv;
-   } else if (v < (vmin + 0.75 * dv)) {
-      c->red = 4 * (v - vmin - 0.5 * dv) / dv;
-      c->blue = 0;
-   } else {
-      c->green = 1 + 4 * (vmin + 0.75 * dv - v) / dv;
-      c->blue = 0;
-   }
-
-   return(c);
-}
-
   void profiler_listener::write_taskgraph(void) {
     std::cout << "Writing APEX taskgraph..." << std::endl;
     { // we need to lock in case another thread appears
@@ -974,6 +919,44 @@ node_color * get_node_color(double v,double vmin,double vmax)
     myfile << p->get_mean() << " ";        // mean
     myfile << p->get_sum_squares() << " ";
     myfile << endl;
+  }
+
+  void profiler_listener::write_tasktree(void) {
+    std::cout << "Writing APEX tasktree..." << std::endl;
+    /* before calling parent.get_name(), make sure we create
+     * a thread_instance object that is NOT a worker. */
+    thread_instance::instance(false);
+    ofstream myfile;
+    stringstream dotname;
+    dotname << apex_options::output_file_path();
+    dotname << filesystem_separator() << "tasktree." << node_id << ".dot";
+    myfile.open(dotname.str().c_str());
+
+    // our TOTAL available time is the elapsed * the number of threads, or cores
+    int num_worker_threads = thread_instance::get_num_workers();
+#ifdef APEX_HAVE_HPX
+    num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
+#endif
+    double total_main = main_timer->elapsed() * fmin(hardware_concurrency(),
+        num_worker_threads);
+
+    myfile << "digraph prof {\n";
+    myfile << " label = \"Elapsed Time: " << main_timer->elapsed(true);
+    myfile << " seconds\\lCores detected: " << hardware_concurrency();
+    myfile << "\\lWorker threads observed: " << num_worker_threads;
+    // is scaling this necessary?
+    myfile << "\\lAvailable CPU time: " << total_main*profiler::get_cpu_mhz() << " seconds\\l\";\n";
+    myfile << " labelloc = \"t\";\n";
+    myfile << " labeljust = \"l\";\n";
+    myfile << " overlap = false;\n";
+    myfile << " splines = true;\n";
+    myfile << " rankdir = \"LR\";\n";
+    myfile << " node [shape=box];\n";
+    auto root = task_wrapper::get_apex_main_wrapper();
+    // recursively write out the tree
+    root->tree_node->writeNode(myfile, main_timer->elapsed());
+    myfile << "}\n";
+    myfile.close();
   }
 
   /* Write TAU profiles from the collected data. */
@@ -1424,6 +1407,10 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       if (apex_options::use_taskgraph_output())
       {
         write_taskgraph();
+      }
+      else if (apex_options::use_tasktree_output())
+      {
+        write_tasktree();
       }
 
       // output to 1 TAU profile per process?

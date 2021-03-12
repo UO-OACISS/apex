@@ -22,6 +22,7 @@ struct task_wrapper;
 #include <memory>
 #include <string>
 #include <unordered_set>
+#include "dependency_tree.hpp"
 
 namespace apex {
 
@@ -54,6 +55,10 @@ struct task_wrapper {
   */
     std::shared_ptr<task_wrapper> parent;
 /**
+  \brief A node in the task tree representing this task type
+  */
+    dependency::Node* tree_node;
+/**
   \brief Internal usage, used to manage HPX direct actions when their
          parent task is yielded by the runtime.
   */
@@ -73,6 +78,7 @@ struct task_wrapper {
         guid(0ull),
         parent_guid(0ull),
         parent(nullptr),
+        tree_node(nullptr),
         alias(nullptr)
     { }
 /**
@@ -98,10 +104,19 @@ struct task_wrapper {
                 const std::string apex_main_str("APEX MAIN");
                 tt_ptr = std::make_shared<task_wrapper>();
                 tt_ptr->task_id = task_identifier::get_task_id(apex_main_str);
+                tt_ptr->tree_node = new dependency::Node(tt_ptr->task_id, nullptr);
             }
             mtx.unlock();
         }
         return tt_ptr;
+    }
+    void assign_heritage() {
+        // make/find a node for ourselves
+        tree_node = parent->tree_node->appendChild(task_id);
+    }
+    void update_heritage() {
+        // make/find a node for ourselves
+        tree_node = parent->tree_node->replaceChild(task_id, alias);
     }
 }; // struct task_wrapper
 

@@ -129,6 +129,9 @@ int main (int argc, char** argv) {
         tids[i] = i;
         pthread_create(&(thread[i]), NULL, someThread, &(tids[i]));
     }
+    for (int i = 0 ; i < num_iterations ; i++) {
+        innerLoop(&(tids[i]));
+    }
     /* wait for the threads to finish */
     for (uint32_t i = 0 ; i < test_numthreads ; i++) {
         pthread_join(thread[i], NULL);

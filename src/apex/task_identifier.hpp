@@ -103,7 +103,8 @@ namespace std {
     {
       std::size_t h1 = std::hash<std::size_t>()(k.address);
       std::size_t h2 = std::hash<std::string>()(k.name);
-      return h1 ^ (h2 << 1);; // instead of boost::hash_combine
+      std::size_t h3 = h1 ^ (h2 << 1);
+      return h3; // instead of boost::hash_combine
     }
   };
 

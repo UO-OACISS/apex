@@ -71,7 +71,7 @@
 #include "global_constructor_destructor.h"
 #else
 #include "global_constructor_destructor.h"
-#ifdef HAS_CONSTRUCTORS
+#if defined(HAS_CONSTRUCTORS)
 extern "C" {
 DEFINE_CONSTRUCTOR(apex_init_static_void)
 DEFINE_DESTRUCTOR(apex_finalize_static_void)
@@ -498,6 +498,9 @@ inline std::shared_ptr<task_wrapper> _new_task(
             tt_ptr->parent = task_wrapper::get_apex_main_wrapper();
             // tt_ptr->parent_guid is 0 by default
         }
+    }
+    if (apex_options::use_tasktree_output()) {
+        tt_ptr->assign_heritage();
     }
     if (task_id == UINTMAX_MAX) {
         // generate a GUID
@@ -1184,6 +1187,9 @@ std::shared_ptr<task_wrapper> update_task(
             } else {
                 wrapper->alias = id;
             }
+            if (apex_options::use_tasktree_output()) {
+                wrapper->update_heritage();
+            }
         /*
         printf("%llu New alias: %s to %s\n", wrapper->guid,
            wrapper->task_id->get_name().c_str(), timer_name.c_str());
@@ -1218,6 +1224,9 @@ std::shared_ptr<task_wrapper> update_task(
                 start(wrapper);
             } else {
                 wrapper->alias = id;
+            }
+            if (apex_options::use_tasktree_output()) {
+                wrapper->update_heritage();
             }
         }
     }

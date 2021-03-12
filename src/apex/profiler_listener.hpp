@@ -100,6 +100,7 @@ private:
                        double &total_main, bool timer);
   void finalize_profiles(dump_event_data &data);
   void write_taskgraph(void);
+  void write_tasktree(void);
   void write_profile(void);
   void delete_profiles(void);
 #ifdef APEX_HAVE_HPX

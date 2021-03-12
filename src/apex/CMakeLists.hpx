@@ -278,6 +278,7 @@ set(apex_headers
     apex_policies.hpp
     apex_types.h
     concurrency_handler.hpp
+    dependency_tree.hpp
     event_listener.hpp
     handler.hpp
     policy_handler.hpp
@@ -300,6 +301,7 @@ set(apex_sources
     apex_options.cpp
     apex_policies.cpp
     concurrency_handler.cpp
+    dependency_tree.cpp
     event_listener.cpp
     event_filter.cpp
     policy_handler.cpp
