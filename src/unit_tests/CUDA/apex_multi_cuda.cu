@@ -41,9 +41,8 @@ int main(int argc, char * argv[])
   apex::apex_options::use_screen_output(true);
   DataElement *e;
   RUNTIME_API_CALL(cudaMallocManaged((void**)&e, sizeof(DataElement)));
-
-  e->value = 10;
   RUNTIME_API_CALL(cudaMallocManaged((void**)&(e->name), sizeof(char) * (strlen("hello") + 1) ));
+  e->value = 10;
   strcpy(e->name, "hello");
 
   std::vector<std::thread*> threads;

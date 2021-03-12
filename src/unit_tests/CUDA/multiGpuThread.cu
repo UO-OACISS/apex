@@ -156,6 +156,15 @@ int main(void)
         }
     }
 
+    for(int i=0; i<count; i++) {
+        RUNTIME_API_CALL(cudaSetDevice(i));
+        RUNTIME_API_CALL(cudaFree(dev_arr[i]));
+    }
+    for(int i=0; i<count; i++) {
+        RUNTIME_API_CALL(cudaSetDevice(i));
+        RUNTIME_API_CALL(cudaFree(dev_result[i]));
+    }
+
     apex::finalize();
     apex::cleanup();
     return 0;
