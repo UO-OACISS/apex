@@ -1002,11 +1002,11 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
     bool onHost = false;
     bool managed = false;
     void* ptr = nullptr;
-    static std::atomic<double> totalAllocated = 0.0;
-    static std::unordered_map<void*,double> memoryMap;
+    static std::atomic<size_t> totalAllocated = 0.0;
+    static std::unordered_map<void*,size_t> memoryMap;
     std::mutex mapMutex;
-    static std::atomic<double> hostTotalAllocated = 0.0;
-    static std::unordered_map<void*,double> hostMemoryMap;
+    static std::atomic<size_t> hostTotalAllocated = 0.0;
+    static std::unordered_map<void*,size_t> hostMemoryMap;
     std::mutex hostMapMutex;
     bool free = false;
     if (apex::apex_options::use_cuda_driver_api() ||
@@ -1193,33 +1193,37 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
         if (onHost) {
             hostMapMutex.lock();
             if (hostMemoryMap.count(ptr) > 0) {
-                value = hostMemoryMap[ptr];
+                bytes = hostMemoryMap[ptr];
                 hostMemoryMap.erase(ptr);
             } else {
                 hostMapMutex.unlock();
                 return false;
             }
             hostMapMutex.unlock();
+            value = (double)(bytes);
             store_sync_counter_data("Host: Page-locked Bytes Freed", context, value);
-            hostTotalAllocated = hostTotalAllocated - value;
-            store_sync_counter_data("GPU: Total Bytes Occupied on Host", context, hostTotalAllocated, false, false);
+            hostTotalAllocated.fetch_sub(bytes, std::memory_order_relaxed);
+            value = (double)(hostTotalAllocated);
+            store_sync_counter_data("GPU: Total Bytes Occupied on Host", context, value, false, false);
         } else {
             mapMutex.lock();
             if (memoryMap.count(ptr) > 0) {
-                value = memoryMap[ptr];
+                bytes = memoryMap[ptr];
                 memoryMap.erase(ptr);
             } else {
                 mapMutex.unlock();
                 return false;
             }
             mapMutex.unlock();
+            value = (double)(bytes);
             if (managed) {
                 store_sync_counter_data("GPU: Bytes Freed (Managed)", context, value);
             } else {
                 store_sync_counter_data("GPU: Bytes Freed", context, value);
             }
             totalAllocated.fetch_sub(value, std::memory_order_relaxed);
-            store_sync_counter_data("GPU: Total Bytes Occupied on Device", context, totalAllocated, false, false);
+            value = (double)(totalAllocated);
+            store_sync_counter_data("GPU: Total Bytes Occupied on Device", context, value, false, false);
         }
     // If we are in the exit of a function, and we are allocating memory,
     // then update and record the bytes allocated
@@ -1232,8 +1236,9 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
             hostMapMutex.lock();
             hostMemoryMap[ptr] = value;
             hostMapMutex.unlock();
-            hostTotalAllocated = hostTotalAllocated + value;
-            store_sync_counter_data("GPU: Total Bytes Occupied on Host", context, hostTotalAllocated, false, false);
+            hostTotalAllocated.fetch_add(bytes, std::memory_order_relaxed);
+            value = (double)(hostTotalAllocated);
+            store_sync_counter_data("GPU: Total Bytes Occupied on Host", context, value, false, false);
             return true;
         } else {
             if (managed) {
@@ -1244,8 +1249,9 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
             mapMutex.lock();
             memoryMap[ptr] = value;
             mapMutex.unlock();
-            totalAllocated.fetch_add(value, std::memory_order_relaxed);
-            store_sync_counter_data("GPU: Total Bytes Occupied on Device", context, totalAllocated, false, false);
+            totalAllocated.fetch_add(bytes, std::memory_order_relaxed);
+            value = (double)(totalAllocated);
+            store_sync_counter_data("GPU: Total Bytes Occupied on Device", context, value, false, false);
         }
     }
     return true;
