@@ -42,6 +42,7 @@ where APEX options are zero or more of:
     --apex:kokkos          enable Kokkos support
     --apex:raja            enable RAJA support
     --apex:pthread         enable pthread wrapper support
+    --apex:memory          enable memory wrapper support
     --apex:untied          enable tasks to migrate cores/OS threads
                            during execution (not compatible with trace output)
     --apex:cuda_counters   enable CUDA/CUPTI counter support
@@ -82,6 +83,7 @@ stat=no
 period=1000000
 io=no
 pthread=no
+memory=no
 debugger=""
 prog=""
 
@@ -110,6 +112,10 @@ while (( "$#" )); do
       ;;
     --apex:pthread)
       pthread=yes
+      shift
+      ;;
+    --apex:memory)
+      memory=yes
       shift
       ;;
     --apex:otf2)
@@ -259,6 +265,9 @@ else
 fi
 if [ $pthread = 1 ]; then
     PTHREAD_LIB=${BASEDIR}/lib/libapex_pthread_wrapper${SHLIBX}:
+fi
+if [ $memory = 1 ]; then
+    PTHREAD_LIB=${BASEDIR}/lib/libapex_memory_wrapper${SHLIBX}:
 fi
 if [ ${apple} = 1 ]; then
     APEX_LD_PRELOAD=${PTHREAD_LIB}${BASEDIR}/lib/libapex${SHLIBX}:@OMPT_LIBRARY@
