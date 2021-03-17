@@ -2223,6 +2223,10 @@ void yield_adapter(std::shared_ptr<hpx::util::external_timer::task_wrapper> tt_p
         static_pointer_cast<APEX_TOP_LEVEL_PACKAGE::task_wrapper>(tt_ptr));
 }
 
+void sample_value_adapter(const std::string &name, double value) {
+    APEX_TOP_LEVEL_PACKAGE::sample_value(name, value, false);
+}
+
 static void apex_register_with_hpx(void) {
     hpx::util::external_timer::registration reg;
     reg.type = hpx::util::external_timer::init_flag;
@@ -2241,7 +2245,7 @@ static void apex_register_with_hpx(void) {
     reg.record.new_task_address = &new_task_adapter;
     hpx::util::external_timer::register_external_timer(reg);
     reg.type = hpx::util::external_timer::sample_value_flag;
-    reg.record.sample_value = &APEX_TOP_LEVEL_PACKAGE::sample_value;
+    reg.record.sample_value = &sample_value_adapter;
     hpx::util::external_timer::register_external_timer(reg);
     reg.type = hpx::util::external_timer::send_flag;
     reg.record.send = &APEX_TOP_LEVEL_PACKAGE::send;
