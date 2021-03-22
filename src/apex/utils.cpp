@@ -424,7 +424,21 @@ uint64_t test_for_MPI_comm_rank(uint64_t commrank) {
     const char * tmpvar = getenv("PMI_RANK");
     if (tmpvar != NULL) {
         commrank = atol(tmpvar);
-        // printf("Changing MPICH rank to %lu\n", commrank);
+        // printf("Changing PMI rank to %lu\n", commrank);
+        return commrank;
+    }
+    // cray ALPS
+    tmpvar = getenv("ALPS_APP_PE");
+    if (tmpvar != NULL) {
+        commrank = atol(tmpvar);
+        // printf("Changing ALPS rank to %lu\n", commrank);
+        return commrank;
+    }
+    // cray
+    tmpvar = getenv("CRAY_PMI_RANK");
+    if (tmpvar != NULL) {
+        commrank = atol(tmpvar);
+        // printf("Changing CRAY_PMI rank to %lu\n", commrank);
         return commrank;
     }
     // OpenMPI, Spectrum
@@ -457,6 +471,12 @@ uint64_t test_for_MPI_comm_size(uint64_t commsize) {
      * for some common environment variables. */
     // PMI, MPICH, Cray, Intel, MVAPICH2...
     const char * tmpvar = getenv("PMI_SIZE");
+    if (tmpvar != NULL) {
+        commsize = atol(tmpvar);
+        // printf("Changing MPICH size to %lu\n", commsize);
+        return commsize;
+    }
+    tmpvar = getenv("CRAY_PMI_SIZE");
     if (tmpvar != NULL) {
         commsize = atol(tmpvar);
         // printf("Changing MPICH size to %lu\n", commsize);
