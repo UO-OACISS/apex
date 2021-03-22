@@ -237,7 +237,7 @@ inline unsigned int hardware_concurrency()
     return(hwc);
 }
 
-std::string* demangle(const std::string& timer_name);
+std::string demangle(const std::string& timer_name);
 
 void set_thread_affinity(void);
 void set_thread_affinity(int core);
@@ -271,5 +271,19 @@ public:
 node_color * get_node_color_visible(double v, double vmin, double vmax);
 node_color * get_node_color(double v,double vmin,double vmax);
 
+/* Defined in memory_wrapper_shudown.cpp */
+void enable_memory_wrapper(void);
+void disable_memory_wrapper(void);
+
+#include <sys/syscall.h>
+
+class in_apex {
+    public:
+        static size_t& get();
+        in_apex();
+        ~in_apex();
+};
+
 }
+
 

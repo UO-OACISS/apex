@@ -1,35 +1,130 @@
-#include "apex_api.hpp"
 #include "memory_wrapper.h"
 #include <memory>
+#include <atomic>
+#include <unordered_map>
+#include <mutex>
+#include <vector>
+#include "apex_api.hpp"
+#include "utils.hpp"
+//#include <bits/stdc++.h>
 
 ///////////////////////////////////////////////////////////////////////////////
 // Below is the malloc wrapper
 ///////////////////////////////////////////////////////////////////////////////
+
+typedef struct book_s {
+    std::atomic<size_t> totalAllocated = 0.0;
+    std::unordered_map<void*,size_t> memoryMap;
+    std::mutex mapMutex;
+} book_t;
+
+book_t& getBook() {
+    static book_t book;
+    return book;
+}
+
+void record_alloc(size_t bytes, void* ptr) {
+    static book_t& book = getBook();
+    double value = (double)(bytes);
+    apex::sample_value("Memory: Bytes Allocated", value, true);
+    book.mapMutex.lock();
+    book.memoryMap[ptr] = value;
+    book.mapMutex.unlock();
+    book.totalAllocated.fetch_add(bytes, std::memory_order_relaxed);
+    value = (double)(book.totalAllocated);
+    apex::sample_value("Memory: Total Bytes Occupied", value);
+}
+
+void record_free(void* ptr) {
+    static book_t& book = getBook();
+    size_t bytes;
+    book.mapMutex.lock();
+    if (book.memoryMap.count(ptr) > 0) {
+        bytes = book.memoryMap[ptr];
+        book.memoryMap.erase(ptr);
+    } else {
+        book.mapMutex.unlock();
+        return;
+    }
+    book.mapMutex.unlock();
+    double value = (double)(bytes);
+    apex::sample_value("Memory: Bytes Freed", value, true);
+    book.totalAllocated.fetch_sub(bytes, std::memory_order_relaxed);
+    value = (double)(book.totalAllocated);
+    apex::sample_value("Memory: Total Bytes Occupied", value);
+}
+
+/* We need to access this global before the memory wrapper is enabled.
+ * Otherwise, when it is constructed during the first allocation, we
+ * could end up with a deadlock. */
+void apex_memory_wrapper_init() {
+    static book_t& book = getBook();
+    APEX_UNUSED(book);
+}
 
 bool& inWrapper() {
     thread_local static bool _inWrapper = false;
     return _inWrapper;
 }
 
-extern "C"
 void* apex_malloc_wrapper(malloc_p malloc_call, size_t size) {
-    if(inWrapper()) {
+    if(inWrapper() || apex::in_apex::get() > 0) {
         // Another wrapper has already intercepted the call so just pass through
         return malloc_call(size);
-        printf("Here!\n");
-    } else {
-        inWrapper() = true;
-        printf("Here!\n");
+    }
+    inWrapper() = true;
+    // do the allocation
+    auto retval = malloc_call(size);
+    // record the state
+    record_alloc(size, retval);
+    inWrapper() = false;
+    return retval;
+}
 
-        // do the allocation
-        auto retval = malloc_call(size);
-        apex::sample_value("malloc bytes", size, true);
+void apex_free_wrapper(free_p free_call, void* ptr) {
+    if(inWrapper() || apex::in_apex::get() > 0) {
+        // Another wrapper has already intercepted the call so just pass through
+        return free_call(ptr);
+    }
+    inWrapper() = true;
+    // record the state
+    record_free(ptr);
+    // do the allocation
+    free_call(ptr);
+    inWrapper() = false;
+    return;
+}
 
-        inWrapper() = false;
-        return retval;
+// Comparator function to sort pairs descending, according to second value
+bool cmp(std::pair<void*, size_t>& a,
+        std::pair<void*, size_t>& b)
+{
+    return a.second > b.second;
+}
+
+void apex_report_leaks() {
+    static book_t& book = getBook();
+    // Declare vector of pairs
+    std::vector<std::pair<void*, size_t> > sorted;
+
+    // Copy key-value pair from Map
+    // to vector of pairs
+    book.mapMutex.lock();
+    for (auto& it : book.memoryMap) {
+        sorted.push_back(it);
+    }
+    book.mapMutex.unlock();
+
+    // Sort using comparator function
+    sort(sorted.begin(), sorted.end(), cmp);
+
+    // Print the sorted value
+    for (auto& it : sorted) {
+        std::cout << it.first << " leaked " << it.second << " bytes." << std::endl;
     }
 }
 
+#if 0
 extern "C"
 void* apex_calloc_wrapper(calloc_p calloc_call, size_t nmemb, size_t size) {
     if(inWrapper()) {
@@ -152,26 +247,17 @@ size_t apex_malloc_usable_size_wrapper(malloc_usable_size_p malloc_usable_size_c
 }
 #endif
 
-extern "C"
-void apex_free_wrapper(free_p free_call, void* ptr) {
-    if(inWrapper()) {
-        // Another wrapper has already intercepted the call so just pass through
-        return free_call(ptr);
-    } else {
-        inWrapper() = true;
-
-        // do the allocation
-        free_call(ptr);
-
-        inWrapper() = false;
-        return;
-    }
-}
+#endif
 
 extern "C" void* apex_malloc(size_t size) {
   return apex_malloc_wrapper(malloc, size);
 }
 
+extern "C" void apex_free(void* ptr) {
+  return apex_free_wrapper(free, ptr);
+}
+
+#if 0
 extern "C" void* apex_calloc(size_t nmemb, size_t size) {
   return apex_calloc_wrapper(calloc, nmemb, size);
 }
@@ -210,8 +296,6 @@ extern "C" void* apex_malloc_usable_size(void* ptr) {
 }
 #endif
 
-extern "C" void apex_free(void* ptr) {
-  return apex_free_wrapper(free, ptr);
-}
+#endif
 
 

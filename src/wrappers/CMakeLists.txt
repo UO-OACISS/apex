@@ -11,11 +11,15 @@ add_dependencies (apex_pthread_wrapper apex)
 target_link_libraries (apex_pthread_wrapper apex)
 
 # Add library called "apex_memory_wrapper" that is built from the source file
-add_library (apex_memory_wrapper memory_wrapper.c memory_wrapper_internal.cpp)
+add_library (apex_memory_wrapper memory_wrapper.cpp memory_wrapper_internal.cpp)
 add_dependencies (apex_memory_wrapper apex)
 target_link_libraries (apex_memory_wrapper apex)
 
-INSTALL(TARGETS apex_pthread_wrapper apex_memory_wrapper
+# Add library called "apex_dl_auditor" that is built from the source file
+add_library (apex_dl_auditor dl_auditor.c)
+target_link_libraries (apex_dl_auditor dl)
+
+INSTALL(TARGETS apex_pthread_wrapper apex_memory_wrapper apex_dl_auditor
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib

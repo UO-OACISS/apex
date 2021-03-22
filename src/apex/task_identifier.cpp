@@ -64,7 +64,7 @@ std::mutex bfd_mutex;
                 if (_resolved_name == "") {
                     //_resolved_name = lookup_address((uintptr_t)address, false);
                     _resolved_name = thread_instance::instance().map_addr_to_name(address);
-                    _resolved_name.assign((*demangle(_resolved_name)));
+                    _resolved_name.assign((demangle(_resolved_name)));
                 }
             }
             std::string retval(_resolved_name);
@@ -85,7 +85,7 @@ std::mutex bfd_mutex;
                     std::string * tmp = lookup_address((uintptr_t)addr_addr, true);
                     REGEX_NAMESPACE::regex old_address("UNRESOLVED ADDR " + addr_str);
                     retval = REGEX_NAMESPACE::regex_replace(retval, old_address,
-                            (*demangle(*tmp)));
+                            (demangle(*tmp)));
                 }
 #endif
                 static std::string cudastr("GPU: ");
@@ -95,28 +95,25 @@ std::mutex bfd_mutex;
                     std::stringstream ss;
                     std::string tmp = retval.substr(cudastr.size(),
                             retval.size() - cudastr.size());
-                    std::string * demangled = demangle(tmp);
-                    ss << cudastr << *demangled;
-                    free(demangled);
+                    std::string demangled = demangle(tmp);
+                    ss << cudastr << demangled;
                     retval.assign(ss.str());
                 } else if (retval.find(kernel) != std::string::npos) {
                     std::stringstream ss;
                     std::string tmp = retval.substr(kernel.size(),
                             retval.size() - kernel.size());
-                    std::string * demangled = demangle(tmp);
-                    ss << kernel << *demangled;
-                    free(demangled);
+                    std::string demangled = demangle(tmp);
+                    ss << kernel << demangled;
                     retval.assign(ss.str());
                 } else if (retval.find(kernel2) != std::string::npos) {
                     std::stringstream ss;
                     std::string tmp = retval.substr(kernel2.size(),
                             retval.size() - kernel2.size());
-                    std::string * demangled = demangle(tmp);
-                    ss << kernel2 << *demangled;
-                    free(demangled);
+                    std::string demangled = demangle(tmp);
+                    ss << kernel2 << demangled;
                     retval.assign(ss.str());
                 } else {
-                    retval.assign((*demangle(retval)));
+                    retval.assign((demangle(retval)));
                 }
             }
             return retval;

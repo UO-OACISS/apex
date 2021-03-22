@@ -1767,6 +1767,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
   }
 
   void profiler_listener::push_profiler_public(std::shared_ptr<profiler> &p) {
+    in_apex prevent_deadlocks;
     push_profiler(0, p);
   }
 

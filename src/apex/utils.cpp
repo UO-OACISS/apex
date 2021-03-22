@@ -63,8 +63,8 @@ std::vector<std::string> &split(const std::string &s, char delim,
     return elems;
 }
 
-std::string* demangle(const std::string& timer_name) {
-    std::string* demangled = new std::string(timer_name);
+std::string demangle(const std::string& timer_name) {
+    std::string demangled = std::string(timer_name);
 #if defined(__GNUC__)
     int     status;
     char *realname = abi::__cxa_demangle(timer_name.c_str(), 0, 0, &status);
@@ -75,7 +75,7 @@ std::string* demangle(const std::string& timer_name) {
             *index = 0; // terminate before templates for brevity
         }
     */
-        demangled = new std::string(realname);
+        demangled = std::string(realname);
         free(realname);
     } else {
 #if defined(APEX_DEBUG)
@@ -553,6 +553,19 @@ node_color * get_node_color(double v,double vmin,double vmax)
    }
 
    return(c);
+}
+
+size_t& in_apex::get() {
+    thread_local static size_t _in = 0;
+    return _in;
+}
+in_apex::in_apex() {
+    get()++;
+    //printf("IN %lu, %lu\n", syscall(SYS_gettid), get());
+}
+in_apex::~in_apex() {
+    get()--;
+    //printf("OUT %lu, %lu\n", syscall(SYS_gettid), get());
 }
 
 } // namespace apex

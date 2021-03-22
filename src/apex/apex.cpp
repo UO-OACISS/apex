@@ -79,6 +79,9 @@ DEFINE_DESTRUCTOR(apex_finalize_static_void)
 #endif
 #endif // APEX_HAVE_HPX
 
+#ifdef APEX_HAVE_TCMALLOC
+#include "tcmalloc_hooks.hpp"
+#endif
 
 #if APEX_DEBUG
 #define FUNCTION_ENTER printf("enter %lu *** %s:%d!\n", \
@@ -374,6 +377,7 @@ hpx::runtime * apex::get_hpx_runtime(void) {
 uint64_t init(const char * thread_name, uint64_t comm_rank,
     uint64_t comm_size) {
     FUNCTION_ENTER
+    in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { FUNCTION_EXIT; return APEX_ERROR; }
     // FIRST! make sure APEX thinks this is a worker thread (the main thread
@@ -458,6 +462,12 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
             instance->listeners[i]->on_new_node(node_data);
         }
     }
+#ifdef APEX_HAVE_TCMALLOC
+    //tcmalloc::init_hook();
+    enable_memory_wrapper();
+#else
+    enable_memory_wrapper();
+#endif
     FUNCTION_EXIT
     return APEX_NOERROR;
 }
@@ -515,6 +525,7 @@ inline std::shared_ptr<task_wrapper> _new_task(
 
 profiler* start(const std::string &timer_name)
 {
+    in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) {
         APEX_UTIL_REF_COUNT_DISABLED_START
@@ -581,6 +592,7 @@ profiler* start(const std::string &timer_name)
 }
 
 profiler* start(const apex_function_address function_address) {
+    in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) {
         APEX_UTIL_REF_COUNT_DISABLED_START
@@ -646,6 +658,7 @@ void debug_print(const char * event, std::shared_ptr<task_wrapper> tt_ptr) {
 }
 
 void start(std::shared_ptr<task_wrapper> tt_ptr) {
+    in_apex prevent_deadlocks;
 #if defined(APEX_DEBUG)//_disabled)
     debug_print("Start", tt_ptr);
 #endif
@@ -679,7 +692,7 @@ void start(std::shared_ptr<task_wrapper> tt_ptr) {
     }
     if (_notify_listeners) {
         bool success = true;
-        //cout << thread_instance::get_id() << " Start : " << id->get_name() <<
+        //cout << thread_instance::get_id() << " Start : " <<tt_ptr->task_id->get_name() <<
         //endl; fflush(stdout);
         //read_lock_type l(instance->listener_mutex);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -704,6 +717,7 @@ void start(std::shared_ptr<task_wrapper> tt_ptr) {
 }
 
 profiler* resume(const std::string &timer_name) {
+    in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) {
         APEX_UTIL_REF_COUNT_DISABLED_RESUME
@@ -754,6 +768,7 @@ profiler* resume(const std::string &timer_name) {
 }
 
 profiler* resume(const apex_function_address function_address) {
+    in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) {
         APEX_UTIL_REF_COUNT_DISABLED_RESUME
@@ -790,6 +805,7 @@ profiler* resume(const apex_function_address function_address) {
 }
 
 profiler* resume(profiler * p) {
+    in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) {
         APEX_UTIL_REF_COUNT_DISABLED_RESUME
@@ -834,6 +850,7 @@ profiler* resume(profiler * p) {
 }
 
 void reset(const std::string &timer_name) {
+    in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
     apex* instance = apex::instance(); // get the Apex static instance
@@ -848,6 +865,7 @@ void reset(const std::string &timer_name) {
 }
 
 void reset(apex_function_address function_address) {
+    in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
     apex* instance = apex::instance(); // get the Apex static instance
@@ -882,6 +900,7 @@ void apex::complete_task(std::shared_ptr<task_wrapper> task_wrapper_ptr) {
 }
 
 void stop(profiler* the_profiler, bool cleanup) {
+    in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) {
         APEX_UTIL_REF_COUNT_DISABLED_STOP
@@ -931,6 +950,7 @@ void stop(profiler* the_profiler, bool cleanup) {
 }
 
 void stop(std::shared_ptr<task_wrapper> tt_ptr) {
+    in_apex prevent_deadlocks;
 #if defined(APEX_DEBUG)//_disabled)
     debug_print("Stop", tt_ptr);
 #endif
@@ -968,7 +988,7 @@ void stop(std::shared_ptr<task_wrapper> tt_ptr) {
         }
     }
     //cout << thread_instance::get_id() << " Stop : " <<
-    //tt_ptr->tt_ptr->get_task_id()->get_name() << endl; fflush(stdout);
+    //tt_ptr->get_task_id()->get_name() << endl; fflush(stdout);
     static std::string apex_process_profile_str("apex::process_profiles");
     if (p->tt_ptr->get_task_id()->get_name(false).compare(apex_process_profile_str)
         == 0) {
@@ -981,6 +1001,7 @@ void stop(std::shared_ptr<task_wrapper> tt_ptr) {
 
 void yield(profiler* the_profiler)
 {
+    in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) {
         APEX_UTIL_REF_COUNT_DISABLED_YIELD
@@ -1026,6 +1047,7 @@ void yield(profiler* the_profiler)
 
 void yield(std::shared_ptr<task_wrapper> tt_ptr)
 {
+    in_apex prevent_deadlocks;
 #if defined(APEX_DEBUG)//_disabled)
     debug_print("Yield", tt_ptr);
 #endif
@@ -1075,6 +1097,7 @@ void yield(std::shared_ptr<task_wrapper> tt_ptr)
 
 void sample_value(const std::string &name, double value, bool threaded)
 {
+    in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
     // if APEX is suspended, do nothing.
@@ -1120,6 +1143,7 @@ std::shared_ptr<task_wrapper> new_task(
     const uint64_t task_id,
     const std::shared_ptr<task_wrapper> parent_task)
 {
+    in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return nullptr; }
     // if APEX is suspended, do nothing.
@@ -1146,6 +1170,7 @@ std::shared_ptr<task_wrapper> new_task(
     const apex_function_address function_address,
     const uint64_t task_id,
     const std::shared_ptr<task_wrapper> parent_task) {
+    in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return nullptr; }
     // if APEX is suspended, do nothing.
@@ -1163,6 +1188,7 @@ std::shared_ptr<task_wrapper> new_task(
 std::shared_ptr<task_wrapper> update_task(
     std::shared_ptr<task_wrapper> wrapper,
     const std::string &timer_name) {
+    in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return nullptr; }
     // if APEX is suspended, do nothing.
@@ -1202,6 +1228,7 @@ std::shared_ptr<task_wrapper> update_task(
 std::shared_ptr<task_wrapper> update_task(
     std::shared_ptr<task_wrapper> wrapper,
     const apex_function_address function_address) {
+    in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return nullptr; }
     // if APEX is suspended, do nothing.
@@ -1236,6 +1263,7 @@ std::shared_ptr<task_wrapper> update_task(
 std::atomic<int> custom_event_count(APEX_CUSTOM_EVENT_1);
 
 apex_event_type register_custom_event(const std::string &name) {
+    in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return APEX_CUSTOM_EVENT_1; }
     apex* instance = apex::instance(); // get the Apex static instance
@@ -1253,6 +1281,7 @@ apex_event_type register_custom_event(const std::string &name) {
 }
 
 void custom_event(apex_event_type event_type, void * custom_data) {
+    in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
     // get the Apex static instance
@@ -1368,6 +1397,7 @@ void finalize_plugins(void) {
 }
 
 std::string dump(bool reset) {
+    in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return(std::string("")); }
     bool old_screen_output = apex_options::use_screen_output();
@@ -1408,26 +1438,27 @@ void ompt_force_shutdown(void);
 
 void finalize()
 {
-    if (!_initialized) { FUNCTION_EXIT return; } // protect against finalization without initialization
-    apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance) { FUNCTION_EXIT return; } // protect against calls after finalization
-    if (apex_options::use_jupyter_support()) {
-        // reset all counters, and return.
-        reset(APEX_NULL_FUNCTION_ADDRESS);
-        return;
-    }
-    FUNCTION_ENTER
+    in_apex prevent_deadlocks;
+    if (!_initialized) { return; } // protect against finalization without initialization
     // prevent re-entry, be extra strict about race conditions - it is
     // possible.
     mutex shutdown_mutex;
     static bool finalized = false;
     {
         unique_lock<mutex> l(shutdown_mutex);
-        if (finalized) { FUNCTION_EXIT return; };
+        if (finalized) { return; };
         finalized = true;
+    }
+    apex* instance = apex::instance(); // get the Apex static instance
+    if (!instance) { return; } // protect against calls after finalization
+    if (apex_options::use_jupyter_support()) {
+        // reset all counters, and return.
+        reset(APEX_NULL_FUNCTION_ADDRESS);
+        return;
     }
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
+    FUNCTION_ENTER
     // FIRST, stop the top level timer, while the infrastructure is still
     // functioning.
     if (top_level_timer() != nullptr) { stop(top_level_timer()); }
@@ -1447,6 +1478,12 @@ void finalize()
     /* This could take a while */
 #ifdef APEX_WITH_CUDA
     flushTrace();
+#endif
+#ifdef APEX_HAVE_TCMALLOC
+    //tcmalloc::destroy_hook();
+    disable_memory_wrapper();
+#else
+    disable_memory_wrapper();
 #endif
     // stop processing new timers/counters/messages/tasks/etc.
     apex_options::suspend(true);
@@ -1480,6 +1517,7 @@ void finalize()
 }
 
 void cleanup(void) {
+    in_apex prevent_deadlocks;
     FUNCTION_ENTER
     _program_over = true;
 #ifdef APEX_HAVE_HPX
@@ -1522,6 +1560,7 @@ void cleanup(void) {
 
 void register_thread(const std::string &name)
 {
+    in_apex prevent_deadlocks;
     FUNCTION_ENTER
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
@@ -1570,6 +1609,7 @@ void register_thread(const std::string &name)
 
 void exit_thread(void)
 {
+    in_apex prevent_deadlocks;
     // get the Apex static instance
     apex* instance = apex::instance();
     // protect against calls after finalization
@@ -1610,6 +1650,7 @@ void apex::stop_all_policy_handles(void) {
 apex_policy_handle* register_policy(const apex_event_type when,
                     std::function<int(apex_context const&)> f)
 {
+    in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return nullptr; }
     int id = -1;
@@ -1629,6 +1670,7 @@ apex_policy_handle* register_policy(const apex_event_type when,
 std::set<apex_policy_handle*> register_policy(std::set<apex_event_type> when,
                     std::function<int(apex_context const&)> f)
 {
+    in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) {
         return std::set<apex_policy_handle*>();
@@ -1653,6 +1695,7 @@ int register_policy(std::chrono::duration<Rep, Period> const& period,
 apex_policy_handle* register_periodic_policy(unsigned long period_microseconds,
                     std::function<int(apex_context const&)> f)
 {
+    in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return nullptr; }
     int id = -1;
@@ -1761,6 +1804,7 @@ apex_policy_handle * sample_runtime_counter(unsigned long period, const
 }
 
 void deregister_policy(apex_policy_handle * handle) {
+    in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
     // disable processing of policy for now
@@ -1799,6 +1843,7 @@ void stop_all_async_threads(void) {
 }
 
 apex_profile* get_profile(apex_function_address action_address) {
+    in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return nullptr; }
     task_identifier id(action_address);
@@ -1809,6 +1854,7 @@ apex_profile* get_profile(apex_function_address action_address) {
 }
 
 apex_profile* get_profile(const std::string &timer_name) {
+    in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return nullptr; }
     task_identifier id(timer_name);
@@ -1819,6 +1865,7 @@ apex_profile* get_profile(const std::string &timer_name) {
 }
 
 apex_profile* get_profile(const task_identifier &task_id) {
+    in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return nullptr; }
     profile * tmp = apex::__instance()->the_profiler_listener->get_profile(task_id);
@@ -1858,6 +1905,7 @@ void print_options() {
 }
 
 void send (uint64_t tag, uint64_t size, uint64_t target) {
+    in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return ; }
     // if APEX is suspended, do nothing.
@@ -1885,6 +1933,7 @@ void send (uint64_t tag, uint64_t size, uint64_t target) {
 
 void recv (uint64_t tag, uint64_t size, uint64_t source_rank, uint64_t
     source_thread) {
+    in_apex prevent_deadlocks;
     APEX_UNUSED(source_thread);
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return ; }
@@ -2223,6 +2272,10 @@ void yield_adapter(std::shared_ptr<hpx::util::external_timer::task_wrapper> tt_p
         static_pointer_cast<APEX_TOP_LEVEL_PACKAGE::task_wrapper>(tt_ptr));
 }
 
+void sample_value_adapter(const std::string &name, double value) {
+    APEX_TOP_LEVEL_PACKAGE::sample_value(name, value, false);
+}
+
 static void apex_register_with_hpx(void) {
     hpx::util::external_timer::registration reg;
     reg.type = hpx::util::external_timer::init_flag;
@@ -2241,7 +2294,7 @@ static void apex_register_with_hpx(void) {
     reg.record.new_task_address = &new_task_adapter;
     hpx::util::external_timer::register_external_timer(reg);
     reg.type = hpx::util::external_timer::sample_value_flag;
-    reg.record.sample_value = &APEX_TOP_LEVEL_PACKAGE::sample_value;
+    reg.record.sample_value = &sample_value_adapter;
     hpx::util::external_timer::register_external_timer(reg);
     reg.type = hpx::util::external_timer::send_flag;
     reg.record.send = &APEX_TOP_LEVEL_PACKAGE::send;

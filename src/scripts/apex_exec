@@ -116,6 +116,7 @@ while (( "$#" )); do
       ;;
     --apex:memory)
       memory=yes
+      export APEX_TRACK_MEMORY=1
       shift
       ;;
     --apex:otf2)
@@ -263,16 +264,17 @@ if [ "x${LD_LIBRARY_PATH}" = "x" ] ; then
 else
   APEX_LD_LIBRARY_PATH=${BASEDIR}/lib:${LD_LIBRARY_PATH}
 fi
-if [ $pthread = 1 ]; then
+if [ $pthread = yes ]; then
     PTHREAD_LIB=${BASEDIR}/lib/libapex_pthread_wrapper${SHLIBX}:
 fi
-if [ $memory = 1 ]; then
-    PTHREAD_LIB=${BASEDIR}/lib/libapex_memory_wrapper${SHLIBX}:
+if [ $memory = yes ]; then
+    MEMORY_LIB=${BASEDIR}/lib/libapex_memory_wrapper${SHLIBX}:
+    APEX_LD_AUDIT=${BASEDIR}/lib/libapex_dl_auditor${SHLIBX}
 fi
 if [ ${apple} = 1 ]; then
-    APEX_LD_PRELOAD=${PTHREAD_LIB}${BASEDIR}/lib/libapex${SHLIBX}:@OMPT_LIBRARY@
+    APEX_LD_PRELOAD=${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/lib/libapex${SHLIBX}:@OMPT_LIBRARY@
 else
-    APEX_LD_PRELOAD=${PTHREAD_LIB}${BASEDIR}/lib/libapex${SHLIBX}:@OMPT_LIBRARY@:${LD_PRELOAD}
+    APEX_LD_PRELOAD=${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/lib/libapex${SHLIBX}:@OMPT_LIBRARY@:${LD_PRELOAD}
 fi
 
 # remove double colons
@@ -309,9 +311,12 @@ if [ $apple = 1 ]; then
 else
     export LD_LIBRARY_PATH=${APEX_LD_LIBRARY_PATH}
     export LD_PRELOAD=${APEX_LD_PRELOAD}
+    # Not sure if the DL auditor is necessary
+    #export LD_AUDIT=${APEX_LD_AUDIT}
     if [ $debug = yes ] ; then
         echo "set env LD_LIBRARY_PATH=${APEX_LD_LIBRARY_PATH}" >> ./.gdbcmds
         echo "set env LD_PRELOAD=${APEX_LD_PRELOAD}" >> ./.gdbcmds
+        #echo "set env LD_AUDIT=${APEX_LD_AUDIT}" >> ./.gdbcmds
         debugger="gdb -x ./.gdbcmds --args"
     fi
 fi

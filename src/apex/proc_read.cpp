@@ -1100,6 +1100,7 @@ namespace apex {
 
     /* This is the main function for the reader thread. */
     void* proc_data_reader::read_proc(void * _ptw) {
+        in_apex prevent_deadlocks;
         pthread_wrapper* ptw = (pthread_wrapper*)_ptw;
         // make sure APEX knows this is not a worker thread
         thread_instance::instance(false);

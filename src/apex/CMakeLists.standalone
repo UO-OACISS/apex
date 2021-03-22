@@ -66,6 +66,7 @@ concurrency_handler.cpp
 dependency_tree.cpp
 event_listener.cpp
 handler.cpp
+memory_wrapper.cpp
 ${OTF2_SOURCE}
 perftool_implementation.cpp
 policy_handler.cpp
@@ -73,6 +74,7 @@ ${PROC_SOURCE}
 profiler_listener.cpp
 ${SENSOR_SOURCE}
 task_identifier.cpp
+tcmalloc_hooks.cpp
 ${tau_SOURCE}
 thread_instance.cpp
 trace_event_listener.cpp

@@ -293,6 +293,7 @@ bool register_myself(bool isWorker = true) {
 void store_profiler_data(const std::string &name, uint32_t correlationId,
         uint64_t start, uint64_t end, apex::cuda_thread_node &node,
         bool otf2_trace = true) {
+    apex::in_apex prevent_deadlocks;
     // Get the singleton APEX instance
     static apex::apex* instance = apex::apex::instance();
     // get the parent GUID, then erase the correlation from the map
@@ -353,6 +354,7 @@ void store_sync_counter_data(const char * name, const std::string& context,
 /* Handle counters from asynchronous activity */
 void store_counter_data(const char * name, const std::string& ctx,
     uint64_t end, double value, apex::cuda_thread_node &node, bool force = false) {
+    apex::in_apex prevent_deadlocks;
     std::stringstream ss;
     if (name == nullptr) {
         ss << ctx;
@@ -670,45 +672,44 @@ static void kernelActivity(CUpti_Activity *record) {
     store_profiler_data(tmp, kernel->correlationId, kernel->start,
             kernel->end, node);
     if (apex::apex_options::use_cuda_counters()) {
-        std::string * demangled = apex::demangle(kernel->name);
+        std::string demangled = apex::demangle(kernel->name);
         store_counter_data("GPU: Dynamic Shared Memory (B)",
-                *demangled, kernel->end, kernel->dynamicSharedMemory, node);
+                demangled, kernel->end, kernel->dynamicSharedMemory, node);
         store_counter_data("GPU: Local Memory Per Thread (B)",
-                *demangled, kernel->end, kernel->localMemoryPerThread, node);
+                demangled, kernel->end, kernel->localMemoryPerThread, node);
         store_counter_data("GPU: Local Memory Total (B)",
-                *demangled, kernel->end, kernel->localMemoryTotal, node);
+                demangled, kernel->end, kernel->localMemoryTotal, node);
         store_counter_data("GPU: Registers Per Thread",
-                *demangled, kernel->end, kernel->registersPerThread, node);
+                demangled, kernel->end, kernel->registersPerThread, node);
         store_counter_data("GPU: Shared Memory Size (B)",
-                *demangled, kernel->end, kernel->sharedMemoryExecuted, node);
+                demangled, kernel->end, kernel->sharedMemoryExecuted, node);
         store_counter_data("GPU: Static Shared Memory (B)",
-                *demangled, kernel->end, kernel->staticSharedMemory, node);
+                demangled, kernel->end, kernel->staticSharedMemory, node);
         /* Get grid and block values */
         if (apex::apex_options::use_cuda_kernel_details()) {
             store_counter_data("GPU: blockX",
-                *demangled, kernel->end, kernel->blockX, node);
+                demangled, kernel->end, kernel->blockX, node);
             store_counter_data("GPU: blockY",
-                *demangled, kernel->end, kernel->blockY, node);
+                demangled, kernel->end, kernel->blockY, node);
             store_counter_data("GPU: blockZ",
-                *demangled, kernel->end, kernel->blockZ, node);
+                demangled, kernel->end, kernel->blockZ, node);
             store_counter_data("GPU: gridX",
-                *demangled, kernel->end, kernel->gridX, node);
+                demangled, kernel->end, kernel->gridX, node);
             store_counter_data("GPU: gridY",
-                *demangled, kernel->end, kernel->gridY, node);
+                demangled, kernel->end, kernel->gridY, node);
             store_counter_data("GPU: gridZ",
-                *demangled, kernel->end, kernel->gridZ, node);
+                demangled, kernel->end, kernel->gridZ, node);
             if (kernel->queued != CUPTI_TIMESTAMP_UNKNOWN) {
                 store_counter_data("GPU: queue delay (us)",
-                    *demangled, kernel->end,
+                    demangled, kernel->end,
                     (kernel->start - kernel->queued)*1.0e-3, node);
             }
             if (kernel->submitted != CUPTI_TIMESTAMP_UNKNOWN) {
                 store_counter_data("GPU: submit delay (us)",
-                    *demangled, kernel->end,
+                    demangled, kernel->end,
                     (kernel->start - kernel->submitted)*1.0e-3, node);
             }
         }
-        delete(demangled);
     }
 }
 
@@ -1002,10 +1003,10 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
     bool onHost = false;
     bool managed = false;
     void* ptr = nullptr;
-    static std::atomic<size_t> totalAllocated = 0.0;
+    static std::atomic<size_t> totalAllocated{0};
     static std::unordered_map<void*,size_t> memoryMap;
     std::mutex mapMutex;
-    static std::atomic<size_t> hostTotalAllocated = 0.0;
+    static std::atomic<size_t> hostTotalAllocated{0};
     static std::unordered_map<void*,size_t> hostMemoryMap;
     std::mutex hostMapMutex;
     bool free = false;
@@ -1087,11 +1088,13 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
                 onHost = true;
                 break;
             }
+#ifdef CUPTI_DRIVER_TRACE_CBID_cuMemAddressFree
             case CUPTI_DRIVER_TRACE_CBID_cuMemAddressFree: {
                 ptr = (void*)((cuMemAddressFree_params_st*)(params))->ptr;
                 free = true;
                 break;
             }
+#endif
             case CUPTI_DRIVER_TRACE_CBID_cuMemFree: {
                 size_t tmp = (size_t)((cuMemFree_params_st*)(params))->dptr;
                 ptr = (void*)(tmp);
