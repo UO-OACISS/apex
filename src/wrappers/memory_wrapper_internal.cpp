@@ -124,23 +124,37 @@ void apex_report_leaks() {
     }
 }
 
-#if 0
-extern "C"
 void* apex_calloc_wrapper(calloc_p calloc_call, size_t nmemb, size_t size) {
-    if(inWrapper()) {
+    if(inWrapper() || apex::in_apex::get() > 0) {
         // Another wrapper has already intercepted the call so just pass through
         return calloc_call(nmemb, size);
-    } else {
-        inWrapper() = true;
-
-        // do the allocation
-        auto retval = calloc_call(nmemb, size);
-
-        inWrapper() = false;
-        return retval;
     }
+    inWrapper() = true;
+    // do the allocation
+    auto retval = calloc_call(nmemb, size);
+    // record the state
+    record_alloc(size, retval);
+    inWrapper() = false;
+    return retval;
 }
 
+void* apex_realloc_wrapper(realloc_p realloc_call, void* ptr, size_t size) {
+    if(inWrapper() || apex::in_apex::get() > 0) {
+        // Another wrapper has already intercepted the call so just pass through
+        return realloc_call(ptr, size);
+    }
+    inWrapper() = true;
+    // record the state
+    record_free(ptr);
+    // do the allocation
+    auto retval = realloc_call(ptr, size);
+    // record the state
+    record_alloc(size, retval);
+    inWrapper() = false;
+    return retval;
+}
+
+#if 0
 #if defined(memalign)
 extern "C"
 void* apex_memalign_wrapper(memalign_p memalign_call, size_t nmemb, size_t size) {
@@ -158,22 +172,6 @@ void* apex_memalign_wrapper(memalign_p memalign_call, size_t nmemb, size_t size)
     }
 }
 #endif
-
-extern "C"
-void* apex_realloc_wrapper(realloc_p realloc_call, void* ptr, size_t size) {
-    if(inWrapper()) {
-        // Another wrapper has already intercepted the call so just pass through
-        return realloc_call(ptr, size);
-    } else {
-        inWrapper() = true;
-
-        // do the allocation
-        auto retval = realloc_call(ptr, size);
-
-        inWrapper() = false;
-        return retval;
-    }
-}
 
 #if defined(reallocarray)
 extern "C"
@@ -257,20 +255,20 @@ extern "C" void apex_free(void* ptr) {
   return apex_free_wrapper(free, ptr);
 }
 
-#if 0
 extern "C" void* apex_calloc(size_t nmemb, size_t size) {
   return apex_calloc_wrapper(calloc, nmemb, size);
 }
 
+extern "C" void* apex_realloc(void* ptr, size_t size) {
+  return apex_realloc_wrapper(realloc, ptr, size);
+}
+
+#if 0
 #if defined(memalign)
 extern "C" void* apex_memalign(size_t nmemb, size_t size) {
   return apex_memalign_wrapper(memalign, nmemb, size);
 }
 #endif
-
-extern "C" void* apex_realloc(void* ptr, size_t size) {
-  return apex_realloc_wrapper(realloc, ptr, size);
-}
 
 #if defined(reallocarray)
 extern "C" void* apex_reallocarray(void* ptr, size_t nmemb, size_t size) {

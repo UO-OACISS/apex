@@ -226,15 +226,55 @@ int puts (const char* s) {
     return r;
 }
 
-#if 0
+extern "C"
 void* calloc (size_t nmemb, size_t size) {
     static calloc_p _calloc = NULL;
-    if (!_calloc) {
-        _calloc = (calloc_p)get_system_function_handle("calloc", (void*)calloc);
+    static bool initializing = false;
+    static bool bootstrapped = false;
+    if (!bootstrapped) {
+        if (!initializing) {
+            initializing = true;
+            _calloc = (calloc_p)get_system_function_handle("calloc", (void*)calloc);
+        }
+        if (!_calloc) {
+            return bootstrap_alloc(0, (nmemb*size));
+        }
+        if (!all_clear()) {
+            return _calloc(nmemb, size);
+        }
+        bootstrapped = true;
     }
-    return apex_calloc_wrapper(_calloc, nmemb, size);
+    if (all_clear()) {
+        return apex_calloc_wrapper(_calloc, nmemb, size);
+    }
+    return _calloc(nmemb, size);
 }
 
+extern "C"
+void* realloc (void* ptr, size_t size) {
+    static realloc_p _realloc = NULL;
+    static bool initializing = false;
+    static bool bootstrapped = false;
+    if (!bootstrapped) {
+        if (!initializing) {
+            initializing = true;
+            _realloc = (realloc_p)get_system_function_handle("realloc", (void*)realloc);
+        }
+        if (!_realloc) {
+            return bootstrap_alloc(0, size);
+        }
+        if (!all_clear()) {
+            return _realloc(ptr, size);
+        }
+        bootstrapped = true;
+    }
+    if (all_clear()) {
+        return apex_realloc_wrapper(_realloc, ptr, size);
+    }
+    return _realloc(ptr, size);
+}
+
+#if 0
 #if defined(memalign)
 void* memalign (size_t alignment, size_t size) {
     static memalign_p _memalign = NULL;
@@ -244,14 +284,6 @@ void* memalign (size_t alignment, size_t size) {
     return apex_memalign_wrapper(_memalign, alignment, size);
 }
 #endif
-
-void* realloc (void* ptr, size_t size) {
-    static realloc_p _realloc = NULL;
-    if (!_realloc) {
-        _realloc = (realloc_p)get_system_function_handle("realloc", (void*)realloc);
-    }
-    return apex_realloc_wrapper(_realloc, ptr, size);
-}
 
 #if defined(reallocarray)
 void* reallocarray (void* ptr, size_t nmemb, size_t size) {
@@ -307,23 +339,23 @@ void __wrap_free(void* ptr) {
     return apex_free_wrapper(__real_free, ptr);
 }
 
-#if 0
 void* __real_calloc(size_t, size_t);
 void* __wrap_calloc(size_t nmemb, size_t size) {
     return apex_calloc_wrapper(__real_calloc, nmemb, size);
 }
 
+void* __real_realloc(void*, size_t);
+void* __wrap_realloc(void* ptr, size_t size) {
+    return apex_realloc_wrapper(__real_realloc, ptr, size);
+}
+
+#if 0
 #if defined(memalign)
 void* __real_memalign(size_t, size_t);
 void* __wrap_memalign(size_t alignment, size_t size) {
     return apex_memalign_wrapper(__real_memalign, alignment, size);
 }
 #endif
-
-void* __real_realloc(void*, size_t);
-void* __wrap_realloc(void* ptr, size_t size) {
-    return apex_realloc_wrapper(__real_realloc, ptr, size);
-}
 
 #if defined(reallocarray)
 void* __real_reallocarray(void*, size_t, size_t);

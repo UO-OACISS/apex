@@ -24,9 +24,9 @@
 typedef void* (*malloc_p)(size_t);
 typedef void  (*free_p)(void*);
 typedef int   (*puts_p)(const char*);
-#if 0
 typedef void* (*calloc_p)(size_t, size_t);
 typedef void* (*realloc_p)(void*, size_t);
+#if 0
 #if defined(memalign)
 typedef void* (*memalign_p)(void*, size_t, size_t);
 #endif
@@ -51,14 +51,14 @@ extern "C" {
 void* apex_malloc_wrapper(malloc_p malloc_call, size_t size);
 void  apex_free_wrapper(free_p free_call, void* ptr);
 int   apex_puts_wrapper(const char* s);
+void* apex_calloc_wrapper(calloc_p calloc_call, size_t nmemb, size_t size);
+void* apex_realloc_wrapper(realloc_p realloc_call, void* ptr, size_t size);
 void  apex_memory_wrapper_init(void);
 void  apex_report_leaks(void);
 #if 0
-void* apex_calloc_wrapper(calloc_p calloc_call, size_t nmemb, size_t size);
 #if defined(memalign)
 void* apex_memalign_wrapper(memalign_p calloc_call, size_t align, size_t size);
 #endif
-void* apex_realloc_wrapper(realloc_p realloc_call, void* ptr, size_t size);
 #if defined(reallocarray)
 void* apex_reallocarray_wrapper(reallocarray_p reallocarray_call, void* ptr, size_t nmemb, size_t size);
 #endif

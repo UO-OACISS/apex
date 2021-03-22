@@ -68,3 +68,12 @@ void disable_memory_wrapper() {
 }
 
 }
+
+extern "C" void enable_memory_wrapper(void) {
+    apex::enable_memory_wrapper();
+}
+
+extern "C" void disable_memory_wrapper(void) {
+    apex::disable_memory_wrapper();
+}
+

@@ -44,6 +44,7 @@ set(example_programs
     apex_profiler_guids
     apex_non_worker_thread
     apex_swap_threads
+    apex_malloc
     ${APEX_OPENMP_TEST}
    )
     #apex_set_thread_cap
@@ -107,7 +108,12 @@ endif (OPENMP_FOUND)
 #add_dependencies (apex_fibonacci_std_async_cpp apex_pthread_wrapper)
 
 
-
+set_property (TEST test_apex_malloc_cpp APPEND PROPERTY ENVIRONMENT
+    "LD_PRELOAD=${APEX_BINARY_DIR}/src/wrappers/libapex_memory_wrapper.so")
+set_property (TEST test_apex_malloc_cpp APPEND PROPERTY ENVIRONMENT
+    "APEX_PROC_STAT=0")
+#set_property (TEST test_apex_malloc_cpp APPEND PROPERTY ENVIRONMENT
+#    "APEX_TRACK_MEMORY=1")
 
 # Make sure the compiler can find include files from our Apex library.
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MPI_COMPILE_FLAGS}")
