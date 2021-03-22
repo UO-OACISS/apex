@@ -1002,10 +1002,10 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
     bool onHost = false;
     bool managed = false;
     void* ptr = nullptr;
-    static std::atomic<size_t> totalAllocated = 0.0;
+    static std::atomic<size_t> totalAllocated{0};
     static std::unordered_map<void*,size_t> memoryMap;
     std::mutex mapMutex;
-    static std::atomic<size_t> hostTotalAllocated = 0.0;
+    static std::atomic<size_t> hostTotalAllocated{0};
     static std::unordered_map<void*,size_t> hostMemoryMap;
     std::mutex hostMapMutex;
     bool free = false;
@@ -1087,11 +1087,13 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
                 onHost = true;
                 break;
             }
+#ifdef CUPTI_DRIVER_TRACE_CBID_cuMemAddressFree
             case CUPTI_DRIVER_TRACE_CBID_cuMemAddressFree: {
                 ptr = (void*)((cuMemAddressFree_params_st*)(params))->ptr;
                 free = true;
                 break;
             }
+#endif
             case CUPTI_DRIVER_TRACE_CBID_cuMemFree: {
                 size_t tmp = (size_t)((cuMemFree_params_st*)(params))->dptr;
                 ptr = (void*)(tmp);
