@@ -434,7 +434,7 @@ uint64_t test_for_MPI_comm_rank(uint64_t commrank) {
         // printf("Changing ALPS rank to %lu\n", commrank);
         return commrank;
     }
-    // cray
+    // cray PMI
     tmpvar = getenv("CRAY_PMI_RANK");
     if (tmpvar != NULL) {
         commrank = atol(tmpvar);
