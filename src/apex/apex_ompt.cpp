@@ -176,20 +176,20 @@ extern "C" void apex_thread_begin(
     switch (thread_type) {
         case ompt_thread_initial:
             apex::register_thread("OpenMP Initial Thread");
-            apex::sample_value("OpenMP Initial Thread", 1);
+            //apex::sample_value("OpenMP Initial Thread", 1);
             break;
         case ompt_thread_worker:
             apex::register_thread("OpenMP Worker Thread");
-            apex::sample_value("OpenMP Worker Thread", 1);
+            //apex::sample_value("OpenMP Worker Thread", 1);
             break;
         case ompt_thread_other:
             apex::register_thread("OpenMP Other Thread");
-            apex::sample_value("OpenMP Other Thread", 1);
+            //apex::sample_value("OpenMP Other Thread", 1);
             break;
         case ompt_thread_unknown:
         default:
             apex::register_thread("OpenMP Unknown Thread");
-            apex::sample_value("OpenMP Unknown Thread", 1);
+            //apex::sample_value("OpenMP Unknown Thread", 1);
     }
     DEBUG_PRINT("New %d thread\n", thread_type);
 }
@@ -635,10 +635,12 @@ extern "C" void apex_ompt_work (
             sprintf(regionIDstr, "OpenMP Work %s", tmp_str);
             apex_ompt_start(regionIDstr, task_data, parallel_data, true);
         }
-        std::stringstream ss;
-        ss << count_type << ": " << regionIDstr;
-        std::string tmp{ss.str()};
-        apex::sample_value(tmp, count);
+        if (apex::apex_options::ompt_high_overhead_events()) {
+            std::stringstream ss;
+            ss << count_type << ": " << regionIDstr;
+            std::string tmp{ss.str()};
+            apex::sample_value(tmp, count);
+        }
     } else {
         DEBUG_PRINT("%" PRId64 ": %s End task: %p, region: %p\n", apex_threadid, tmp_str,
         (void*)task_data, (void*)parallel_data);
