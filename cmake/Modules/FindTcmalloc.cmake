@@ -13,10 +13,10 @@ endif ()
 
 if(DEFINED GPERFTOOLS_ROOT)
     message(STATUS "GPERFTOOLS_ROOT: ${GPERFTOOLS_ROOT}")
-    find_path(Tcmalloc_INCLUDE_DIR google/heap-checker.h ${GPERFTOOLS_ROOT}/include)
+    find_path(Tcmalloc_INCLUDE_DIR gperftools/malloc_hook.h ${GPERFTOOLS_ROOT}/include)
     find_library(Tcmalloc_LIBRARY NAME tcmalloc PATHS ${GPERFTOOLS_ROOT}/lib NO_DEFAULT_PATH)
 else()
-    find_path(Tcmalloc_INCLUDE_DIR google/heap-checker.h
+    find_path(Tcmalloc_INCLUDE_DIR gperftools/malloc_hook.h
         /opt/local/include
         /usr/local/include
         /usr/include
