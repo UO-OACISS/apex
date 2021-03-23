@@ -304,8 +304,9 @@ set(apex_sources
     dependency_tree.cpp
     event_listener.cpp
     event_filter.cpp
-    policy_handler.cpp
     handler.cpp
+    memory_wrapper.cpp
+    policy_handler.cpp
     profiler_listener.cpp
     task_identifier.cpp
     tau_listener.cpp
