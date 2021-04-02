@@ -242,6 +242,9 @@ public:
             return value;
         } else {
             using namespace std::chrono;
+            if (!stopped) {
+                end = MYCLOCK::now();
+            }
             duration<double> time_span =
             duration_cast<duration<double>>(end - start);
             if (scaled) {

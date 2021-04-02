@@ -92,7 +92,7 @@ private:
   bool _initialized;
   std::atomic<bool> _done;
   std::atomic<int> active_tasks;
-  std::shared_ptr<profiler> main_timer; // not a shared pointer, yet...
+  std::shared_ptr<profiler> main_timer;
   void write_one_timer(task_identifier &task_id, profile * p,
                        std::stringstream &screen_output,
                        std::stringstream &csv_output,
@@ -252,6 +252,8 @@ public:
   std::vector<std::string>& get_metric_names(void) { return metric_names; };
 #endif
   void stop_main_timer(void);
+  void yield_main_timer(void);
+  void resume_main_timer(void);
   void push_profiler_public(std::shared_ptr<profiler> &p);
 };
 
