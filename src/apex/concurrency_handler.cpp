@@ -29,7 +29,10 @@
 
 using namespace std;
 
-std::vector<std::mutex*> _per_thread_mutex;
+std::vector<std::mutex*>& _per_thread_mutex() {
+    static std::vector<std::mutex*> ptm;
+    return ptm;
+}
 
 namespace apex {
 
@@ -56,9 +59,10 @@ concurrency_handler::~concurrency_handler () {
     for (auto tmp : _event_stack) {
         delete(tmp);
     }
-    for (auto tmp : _per_thread_mutex) {
-        delete(tmp);
-    }
+    // for some reason this causes shutdown crashes
+//    for (auto tmp : _per_thread_mutex()) {
+//        delete(tmp);
+//    }
     for (auto tmp : _states) {
         delete(tmp);
     }
@@ -95,7 +99,7 @@ bool concurrency_handler::_handler(void) {
     task_identifier func;
     if (tmp != nullptr && tmp->size() > 0) {
       {
-        std::lock_guard<std::mutex> l(*_per_thread_mutex[i]);
+        std::lock_guard<std::mutex> l(*(_per_thread_mutex()[i]));
         if (tmp->size() > 0) {
           func = tmp->top();
         } else {
@@ -143,7 +147,7 @@ bool concurrency_handler::common_start(task_identifier *id) {
   if (!_terminate) {
     int i = thread_instance::get_id();
     stack<task_identifier>* my_stack = get_event_stack(i);
-    std::lock_guard<std::mutex> l(*_per_thread_mutex[i]);
+    std::lock_guard<std::mutex> l(*(_per_thread_mutex()[i]));
     my_stack->push(*id);
     return true;
   } else {
@@ -163,7 +167,7 @@ void concurrency_handler::common_stop(std::shared_ptr<profiler> &p) {
   if (!_terminate) {
     int i = thread_instance::get_id();
     stack<task_identifier>* my_stack = get_event_stack(i);
-    std::lock_guard<std::mutex> l(*_per_thread_mutex[i]);
+    std::lock_guard<std::mutex> l(*(_per_thread_mutex()[i]));
     if (!my_stack->empty()) {
       my_stack->pop();
     }
@@ -226,7 +230,7 @@ inline void concurrency_handler::add_thread(unsigned int tid) {
   std::lock_guard<std::mutex> l(_vector_mutex);
   while(_event_stack.size() <= tid) {
     _event_stack.push_back(new stack<task_identifier>);
-    _per_thread_mutex.push_back(new std::mutex());
+    _per_thread_mutex().push_back(new std::mutex());
   }
   _stack_count = _event_stack.size();
 }
