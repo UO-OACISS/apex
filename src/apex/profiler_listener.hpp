@@ -72,7 +72,7 @@ class profiler_queue_t : public ConcurrentQueue<std::shared_ptr<profiler> > {
 public:
   profiler_queue_t() {}
   virtual ~profiler_queue_t() {
-      finalize();
+      //finalize();
   }
 };
 
@@ -80,7 +80,7 @@ class dependency_queue_t : public ConcurrentQueue<task_dependency*> {
 public:
   dependency_queue_t() {}
   virtual ~dependency_queue_t() {
-      finalize();
+      //finalize();
   }
 };
 

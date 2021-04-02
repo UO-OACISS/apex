@@ -31,6 +31,8 @@ where APEX options are zero or more of:
     --apex:tau             enable tau profile output
     --apex:taskgraph       enable taskgraph output
                            (graphviz required for post-processing)
+    --apex:tasktree        enable tasktree output
+                           (graphviz required for post-processing)
     --apex:otf2            enable OTF2 trace output
     --apex:otf2path        specify location of OTF2 archive
                            (default: ./OTF2_archive)
@@ -68,6 +70,7 @@ otf2=no
 gtrace=no
 scatter=no
 taskgraph=no
+tasktree=no
 screen=yes
 csv=no
 tau=no
@@ -141,6 +144,11 @@ while (( "$#" )); do
     --apex:taskgraph)
       taskgraph=yes
       export APEX_TASKGRAPH_OUTPUT=1
+      shift
+      ;;
+    --apex:tasktree)
+      tasktree=yes
+      export APEX_TASKTREE_OUTPUT=1
       shift
       ;;
     --apex:screen)
@@ -353,5 +361,10 @@ fi
 if [ ${taskgraph} = yes ] ; then
     echo "Generating taskgraph with GraphViz..."
     dot -Tpdf -O taskgraph.0.dot
+fi
+
+if [ ${tasktree} = yes ] ; then
+    echo "Generating tasktree with GraphViz..."
+    dot -Tpdf -O tasktree.0.dot
 fi
 

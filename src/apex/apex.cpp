@@ -1999,7 +1999,9 @@ extern "C" {
     }
 
     static void apex_finalize_static_void(void) {
+#if !defined(APEX_HAVE_MPI)
         finalize();
+#endif
     }
 
     void apex_finalize_() { finalize(); }
