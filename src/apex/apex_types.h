@@ -276,6 +276,7 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_CSV_OUTPUT, use_csv_output, int, false) \
     macro (APEX_TASKGRAPH_OUTPUT, use_taskgraph_output, bool, false) \
     macro (APEX_TASKTREE_OUTPUT, use_tasktree_output, bool, false) \
+    macro (APEX_SOURCE_LOCATION, use_source_location, bool, false) \
     macro (APEX_PROC_CPUINFO, use_proc_cpuinfo, bool, false) \
     macro (APEX_PROC_LOADAVG, use_proc_loadavg, bool, true) \
     macro (APEX_PROC_MEMINFO, use_proc_meminfo, bool, false) \

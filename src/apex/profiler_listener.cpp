@@ -807,14 +807,17 @@ std::unordered_set<profile*> free_profiles;
 
     // our TOTAL available time is the elapsed * the number of threads, or cores
     int num_worker_threads = thread_instance::get_num_workers();
+    task_identifier main_id(APEX_MAIN);
+    profile * total_time = get_profile(main_id);
+    double wall_clock_main = total_time->get_accumulated(true);
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
 #endif
-    double total_main = main_timer->elapsed() * fmin(hardware_concurrency(),
+    double total_main = wall_clock_main * fmin(hardware_concurrency(),
         num_worker_threads);
 
     myfile << "digraph prof {\n";
-    myfile << " label = \"Elapsed Time: " << main_timer->elapsed(true);
+    myfile << " label = \"Elapsed Time: " << wall_clock_main;
     myfile << " seconds\\lCores detected: " << hardware_concurrency();
     myfile << "\\lWorker threads observed: " << num_worker_threads;
     // is scaling this necessary?
@@ -867,8 +870,8 @@ std::unordered_set<profile*> free_profiles;
       std::string divided_label("time per call: ");
       if (p->get_type() == APEX_TIMER) {
         node_color * c = get_node_color_visible(
-            p->get_accumulated(), 0.0, main_timer->elapsed());
-            //p->get_accumulated()/divisor, 0.0, main_timer->elapsed());
+            p->get_accumulated(), 0.0, wall_clock_main);
+            //p->get_accumulated()/divisor, 0.0, wall_clock_main);
         task_identifier task_id = it->first;
         double accumulated = p->get_accumulated(true);
         myfile << "  \"" << task_id.get_name() <<
@@ -934,14 +937,17 @@ std::unordered_set<profile*> free_profiles;
 
     // our TOTAL available time is the elapsed * the number of threads, or cores
     int num_worker_threads = thread_instance::get_num_workers();
+    task_identifier main_id(APEX_MAIN);
+    profile * total_time = get_profile(main_id);
+    double wall_clock_main = total_time->get_accumulated(true);
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
 #endif
-    double total_main = main_timer->elapsed() * fmin(hardware_concurrency(),
+    double total_main = wall_clock_main * fmin(hardware_concurrency(),
         num_worker_threads);
 
     myfile << "digraph prof {\n";
-    myfile << " label = \"Elapsed Time: " << main_timer->elapsed(true);
+    myfile << " label = \"Elapsed Time: " << wall_clock_main;
     myfile << " seconds\\lCores detected: " << hardware_concurrency();
     myfile << "\\lWorker threads observed: " << num_worker_threads;
     // is scaling this necessary?
@@ -954,7 +960,7 @@ std::unordered_set<profile*> free_profiles;
     myfile << " node [shape=box];\n";
     auto root = task_wrapper::get_apex_main_wrapper();
     // recursively write out the tree
-    root->tree_node->writeNode(myfile, main_timer->elapsed());
+    root->tree_node->writeNode(myfile, wall_clock_main);
     myfile << "}\n";
     myfile.close();
   }

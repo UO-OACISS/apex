@@ -81,11 +81,16 @@ namespace apex {
         } else if (node->info.funcname) {
           location << node->info.funcname ;
         }
-        location << " [{" ;
-        if (node->info.filename) {
-          location << node->info.filename ;
+        if (apex_options::use_source_location()) {
+            location << " [{" ;
+            if (node->info.filename) {
+            location << node->info.filename ;
+            }
+            location << "} {" << node->info.lineno << ",0}]";
+        } else {
+            // to disambiguate C++ functions
+            location << ":" << node->info.lineno;
         }
-        location << "} {" << node->info.lineno << ",0}]";
         node->location = new string(location.str());
         ar->my_hash_table[ip] = node;
       } else {
