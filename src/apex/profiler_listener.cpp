@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2014-2020 Kevin Huck
- * Copyright (c) 2014-2020 University of Oregon
+ * Copyright (c) 2014-2021 Kevin Huck
+ * Copyright (c) 2014-2021 University of Oregon
  *
  * Distributed under the Boost Software License, Version 1.0. (See accompanying
  * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -414,7 +414,7 @@ std::unordered_set<profile*> free_profiles;
         }
       }
 #endif
-    if (apex_options::use_tasktree_output()) {
+    if (apex_options::use_tasktree_output() && !p->is_counter) {
         p->tt_ptr->tree_node->addAccumulated(p->elapsed(), p->is_resume);
     }
     return 1;
