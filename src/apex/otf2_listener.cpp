@@ -1503,7 +1503,8 @@ namespace apex {
 
         std::vector<std::string> fullmap_vector;
         if (my_saved_node_count > 1) {
-            hpx::lcos::barrier("apex1", my_saved_node_count, my_saved_node_id);
+            hpx::lcos::barrier barrier("apex1", my_saved_node_count, my_saved_node_id);
+            barrier.wait();
             constexpr char const* bcast_basename = "/otf2/broadcast/regions/";
             if (my_saved_node_id > 0) {
                 //printf("%d: calling broadcast_from from %s\n", my_saved_node_id, __func__);
@@ -1638,7 +1639,8 @@ namespace apex {
 
         std::vector<std::string> fullmap_vector;
         if (my_saved_node_count > 1) {
-            hpx::lcos::barrier("apex2", my_saved_node_count, my_saved_node_id);
+            hpx::lcos::barrier barrier("apex2", my_saved_node_count, my_saved_node_id);
+            barrier.wait();
             constexpr char const* bcast_basename = "/otf2/broadcast/metrics/";
             if (my_saved_node_id > 0) {
                 //printf("%d: calling broadcast_from from %s\n", my_saved_node_id, __func__);
