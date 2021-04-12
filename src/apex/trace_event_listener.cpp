@@ -29,7 +29,7 @@ trace_event_listener::trace_event_listener (void) : _terminate(false),
     ss << "{\"name\":\"APEX MAIN\""
        << ",\"ph\":\"B\",\"pid\":"
        << saved_node_id << ",\"tid\":0,\"ts\":"
-       << profiler::get_time_us() << "},\n";
+       << profiler::now_us() << "},\n";
     ss << "{\"name\":\"process_name\""
        << ",\"ph\":\"M\",\"pid\":" << saved_node_id
        << ",\"args\":{\"name\":"
@@ -48,7 +48,7 @@ trace_event_listener::~trace_event_listener (void) {
 
 void trace_event_listener::end_trace_time(void) {
     if (_end_time == 0.0) {
-        _end_time = profiler::get_time_us();
+        _end_time = profiler::now_us();
     }
 }
 
@@ -157,7 +157,7 @@ void trace_event_listener::on_sample_value(sample_value_event_data &data) {
         std::stringstream ss;
         ss << "{\"name\": \"" << *(data.counter_name)
               << "\",\"ph\":\"C\",\"pid\": " << saved_node_id
-              << ",\"ts\":" << fixed << profiler::get_time_us()
+              << ",\"ts\":" << fixed << profiler::now_us()
               << ",\"args\":{\"value\":" << fixed << data.counter_value
               << "}},\n";
         write_to_trace(ss);

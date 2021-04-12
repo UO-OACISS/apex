@@ -165,7 +165,7 @@ std::unordered_set<profile*> free_profiles;
       }
 #endif
       if (p->get_type() == APEX_TIMER) {
-        non_idle_time += p->get_accumulated(true);
+        non_idle_time += p->get_accumulated();
       }
     }
     return non_idle_time;
@@ -178,19 +178,11 @@ std::unordered_set<profile*> free_profiles;
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
 #endif
-/*
-    std::chrono::duration<double> time_span =
-        std::chrono::duration_cast<std::chrono::duration<double>>
-           (MYCLOCK::now() - main_timer->start);
-    double total_main = time_span.count() *
-    */
-    double total_main = main_timer->elapsed(true) *
+    double total_main = main_timer->elapsed() *
                 fmin(hardware_concurrency(), num_worker_threads);
     double elapsed = total_main - non_idle_time;
     elapsed = elapsed > 0.0 ? elapsed : 0.0;
-    // is scaling this necessary?
-    profile * theprofile = new profile(elapsed*profiler::get_cpu_mhz(),
-        0, nullptr, false);
+    profile * theprofile = new profile(elapsed, 0, nullptr, false);
     {
         std::unique_lock<std::mutex> l(free_profile_set_mutex);
         free_profiles.insert(theprofile);
@@ -205,13 +197,7 @@ std::unordered_set<profile*> free_profiles;
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
 #endif
-/*
-    std::chrono::duration<double> time_span =
-        std::chrono::duration_cast<std::chrono::duration<double>>
-           (MYCLOCK::now() - main_timer->start);
-    double total_main = time_span.count() *
-    */
-    double total_main = main_timer->elapsed(true) *
+    double total_main = main_timer->elapsed() *
                 fmin(hardware_concurrency(), num_worker_threads);
     double elapsed = total_main - non_idle_time;
     double rate = elapsed > 0.0 ? ((elapsed/total_main)) : 0.0;
@@ -380,7 +366,7 @@ std::unordered_set<profile*> free_profiles;
                 thread_instance::instance(false);
                 std::unique_lock<std::mutex> task_map_lock(_mtx);
                 task_scatterplot_samples << p->normalized_timestamp() << " "
-                            << p->elapsed(true)*1000000 << " "
+                            << p->elapsed() << " "
                             << "'" << p->get_task_id()->get_name() << "'" << endl;
                 int loc0 = task_scatterplot_samples.tellp();
                 if (loc0 > 32768) {
@@ -415,7 +401,7 @@ std::unordered_set<profile*> free_profiles;
       }
 #endif
     if (apex_options::use_tasktree_output() && !p->is_counter) {
-        p->tt_ptr->tree_node->addAccumulated(p->elapsed(), p->is_resume);
+        p->tt_ptr->tree_node->addAccumulated(p->elapsed_seconds(), p->is_resume);
     }
     return 1;
   }
@@ -537,32 +523,29 @@ std::unordered_set<profile*> free_profiles;
       if (p->get_type() == APEX_TIMER) {
         csv_output << "\"" << action_name << "\",";
         csv_output << llround(p->get_calls()) << ",";
-        // convert MHz to Hz
-        csv_output << std::llround(p->get_accumulated()) << ",";
-        // convert MHz to microseconds
-        csv_output << std::llround(p->get_accumulated(true)*1000000);
+        csv_output << std::llround(p->get_accumulated_useconds()) << ",";
         //screen_output << " --n/a--   " ;
-        if (p->get_mean(true) > 10000) {
+        if (p->get_mean_seconds() > 10000) {
             screen_output << string_format(FORMAT_SCIENTIFIC,
-                (p->get_mean(true))) << "   " ;
+                (p->get_mean_seconds())) << "   " ;
         } else {
             screen_output << string_format(FORMAT_PERCENT,
-                (p->get_mean(true))) << "   " ;
+                (p->get_mean_seconds())) << "   " ;
         }
         //screen_output << " --n/a--   " ;
-        if (p->get_accumulated(true) > 10000) {
+        if (p->get_accumulated_seconds() > 10000) {
             screen_output << string_format(FORMAT_SCIENTIFIC,
-                (p->get_accumulated(true))) << "   " ;
+                (p->get_accumulated_seconds())) << "   " ;
         } else {
             screen_output << string_format(FORMAT_PERCENT,
-                (p->get_accumulated(true))) << "   " ;
+                (p->get_accumulated_seconds())) << "   " ;
         }
         //screen_output << " --n/a--   " ;
         if (task_id.get_name().compare(APEX_MAIN) == 0) {
             screen_output << string_format(FORMAT_PERCENT, 100.0);
         } else {
-            total_accumulated += p->get_accumulated();
-            double tmp = ((p->get_accumulated(true))
+            total_accumulated += p->get_accumulated_seconds();
+            double tmp = ((p->get_accumulated_seconds())
                 /total_main)*100.0;
             if (tmp > 100.0) {
                 screen_output << " --n/a--   " ;
@@ -632,7 +615,7 @@ std::unordered_set<profile*> free_profiles;
         std::this_thread::sleep_for(std::chrono::microseconds(100));
         total_time = get_profile(main_id);
     }
-    double wall_clock_main = total_time->get_accumulated(true);
+    double wall_clock_main = total_time->get_accumulated_seconds();
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
 #endif
@@ -689,8 +672,7 @@ std::unordered_set<profile*> free_profiles;
             << "------------------------------------------------------" << endl
             << endl;;
     }
-    csv_output << "\n\n\"task\",\"num calls\",\"total cycles\",\"total "
-        << "microseconds\"";
+    csv_output << "\n\n\"task\",\"num calls\",\"total microseconds\"";
 #if APEX_HAVE_PAPI
     for (int i = 0 ; i < num_papi_counters ; i++) {
        csv_output << ",\"" << metric_names[i] << "\"";
@@ -809,7 +791,7 @@ std::unordered_set<profile*> free_profiles;
     int num_worker_threads = thread_instance::get_num_workers();
     task_identifier main_id(APEX_MAIN);
     profile * total_time = get_profile(main_id);
-    double wall_clock_main = total_time->get_accumulated(true);
+    double wall_clock_main = total_time->get_accumulated_seconds();
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
 #endif
@@ -821,7 +803,7 @@ std::unordered_set<profile*> free_profiles;
     myfile << " seconds\\lCores detected: " << hardware_concurrency();
     myfile << "\\lWorker threads observed: " << num_worker_threads;
     // is scaling this necessary?
-    myfile << "\\lAvailable CPU time: " << total_main*profiler::get_cpu_mhz() << " seconds\\l\"\n";
+    myfile << "\\lAvailable CPU time: " << total_main << " seconds\\l\"\n";
     myfile << " labelloc = \"t\";\n";
     myfile << " labeljust = \"l\";\n";
     myfile << " overlap = false;\n";
@@ -870,10 +852,10 @@ std::unordered_set<profile*> free_profiles;
       std::string divided_label("time per call: ");
       if (p->get_type() == APEX_TIMER) {
         node_color * c = get_node_color_visible(
-            p->get_accumulated(), 0.0, wall_clock_main);
-            //p->get_accumulated()/divisor, 0.0, wall_clock_main);
+            p->get_accumulated_seconds(), 0.0, wall_clock_main);
+            //p->get_accumulated_seconds()/divisor, 0.0, wall_clock_main);
         task_identifier task_id = it->first;
-        double accumulated = p->get_accumulated(true);
+        double accumulated = p->get_accumulated_seconds();
         myfile << "  \"" << task_id.get_name() <<
             "\" [shape=box; style=filled; fillcolor=\"#" <<
             setfill('0') << setw(2) << hex << c->convert(c->red) <<
@@ -895,8 +877,8 @@ std::unordered_set<profile*> free_profiles;
   void format_line(ofstream &myfile, profile * p) {
     myfile << p->get_calls() << " ";
     myfile << 0 << " ";
-    myfile << ((p->get_accumulated(true)*1000000)) << " ";
-    myfile << ((p->get_accumulated(true)*1000000)) << " ";
+    myfile << ((p->get_accumulated_useconds())) << " ";
+    myfile << ((p->get_accumulated_useconds())) << " ";
     myfile << 0 << " ";
     myfile << "GROUP=\"TAU_USER\" ";
     myfile << endl;
@@ -906,9 +888,9 @@ std::unordered_set<profile*> free_profiles;
   void format_line(ofstream &myfile, profile * p, double not_main) {
     myfile << p->get_calls() << " ";
     myfile << 0 << " ";
-    myfile << (std::max<double>(((p->get_accumulated(true)*1000000)
+    myfile << (std::max<double>(((p->get_accumulated_useconds())
         - not_main),0.0)) << " ";
-    myfile << ((p->get_accumulated(true))*1000000) << " ";
+    myfile << ((p->get_accumulated_useconds())) << " ";
     myfile << 0 << " ";
     myfile << "GROUP=\"TAU_USER\" ";
     myfile << endl;
@@ -939,7 +921,7 @@ std::unordered_set<profile*> free_profiles;
     int num_worker_threads = thread_instance::get_num_workers();
     task_identifier main_id(APEX_MAIN);
     profile * total_time = get_profile(main_id);
-    double wall_clock_main = total_time->get_accumulated(true);
+    double wall_clock_main = total_time->get_accumulated_seconds();
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
 #endif
@@ -951,7 +933,7 @@ std::unordered_set<profile*> free_profiles;
     myfile << " seconds\\lCores detected: " << hardware_concurrency();
     myfile << "\\lWorker threads observed: " << num_worker_threads;
     // is scaling this necessary?
-    myfile << "\\lAvailable CPU time: " << total_main*profiler::get_cpu_mhz() << " seconds\\l\";\n";
+    myfile << "\\lAvailable CPU time: " << total_main << " seconds\\l\";\n";
     myfile << " labelloc = \"t\";\n";
     myfile << " labeljust = \"l\";\n";
     myfile << " overlap = false;\n";
@@ -1011,7 +993,7 @@ std::unordered_set<profile*> free_profiles;
         } else {
           myfile << "\"" << action_name << "\" ";
           format_line (myfile, p);
-          not_main += (p->get_accumulated(true)*1000000);
+          not_main += (p->get_accumulated_useconds());
         }
       }
     }

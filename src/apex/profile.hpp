@@ -68,49 +68,41 @@ public:
         _profile.times_reset++;
     };
     double get_calls() { return _profile.calls; }
-    double get_mean(bool scaled = false) {
-        if (scaled) {
-            return (_profile.accumulated / _profile.calls) * profiler::get_cpu_mhz();
-        } else {
-            return (_profile.accumulated / _profile.calls);
-        }
+    double get_mean() {
+        return (get_accumulated() / _profile.calls);
     }
-    double get_accumulated(bool scaled = false) {
-        if (scaled) {
-            return (_profile.accumulated * profiler::get_cpu_mhz());
-        } else {
-            return (_profile.accumulated);
-        }
+    double get_mean_useconds() {
+        return (get_accumulated_useconds() / _profile.calls);
+    }
+    double get_mean_seconds() {
+        return (get_accumulated_seconds() / _profile.calls);
+    }
+    double get_accumulated() {
+        return (_profile.accumulated);
+    }
+    double get_accumulated_useconds() {
+        return (_profile.accumulated * 1.0e-3);
+    }
+    double get_accumulated_seconds() {
+        return (_profile.accumulated * 1.0e-9);
     }
     double * get_papi_metrics() { return (_profile.papi_metrics); }
-    double get_minimum(bool scaled = false) {
-        if (scaled) {
-            return (_profile.minimum * profiler::get_cpu_mhz());
-        } else {
-            return (_profile.minimum);
-        }
+    double get_minimum() {
+        return (_profile.minimum);
     }
-    double get_maximum(bool scaled = false) {
-        if (scaled) {
-            return (_profile.maximum * profiler::get_cpu_mhz());
-        } else {
-            return (_profile.maximum);
-        }
+    double get_maximum() {
+        return (_profile.maximum);
     }
     int get_times_reset() { return (_profile.times_reset); }
-    double get_variance(bool scaled = false) {
-        double mean = get_mean(scaled);
+    double get_variance() {
+        double mean = get_mean();
         double variance = ((_profile.sum_squares / _profile.calls) - (mean * mean));
         return variance >= 0.0 ? variance : 0.0;
     }
-    double get_sum_squares(bool scaled = false) {
-        if (scaled) {
-            return (_profile.sum_squares * profiler::get_cpu_mhz());
-        } else {
-            return _profile.sum_squares;
-        }
+    double get_sum_squares() {
+        return _profile.sum_squares;
     }
-    double get_stddev(bool scaled = false) { return sqrt(get_variance(scaled)); }
+    double get_stddev() { return sqrt(get_variance()); }
     apex_profile_type get_type() { return _profile.type; }
     apex_profile * get_profile() { return &_profile; };
 

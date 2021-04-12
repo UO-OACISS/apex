@@ -22,22 +22,6 @@ class profiler;
 #include <chrono>
 #include <memory>
 #include "task_wrapper.hpp"
-#if defined(APEX_HAVE_HPX)
-#include <hpx/hardware/timestamp.hpp>
-#endif
-
-#ifdef __INTEL_COMPILER
-#define CLOCK_TYPE high_resolution_clock
-#else
-#define CLOCK_TYPE system_clock
-#endif
-
-/* Disabled rdtsc timer until we figure out whether it's worth it.
-   We have timers coming from all over (CUDA, etc.) so is the overhead
-   avoidance worth it? */
-#ifndef APEX_USE_CLOCK_TIMESTAMP
-#define APEX_USE_CLOCK_TIMESTAMP
-#endif
 
 namespace apex {
 
@@ -59,49 +43,21 @@ class disabled_profiler_exception : public std::exception {
 #define APEX_THROTTLE_PERCALL 50000 // 50k cycles.
 #endif
 
-#if !defined(APEX_USE_CLOCK_TIMESTAMP) && !defined(APEX_WITH_CUDA)
-template<std::intmax_t clock_freq>
-struct rdtsc_clock {
-    typedef unsigned long long rep;
-    typedef std::ratio<1, clock_freq> period;
-    typedef std::chrono::duration<rep, period> duration;
-    typedef std::chrono::time_point<rdtsc_clock> time_point;
-    static const bool is_steady = true;
-    static time_point now() noexcept {
-#if defined(APEX_HAVE_HPX)
-        return time_point(duration(hpx::util::hardware::timestamp()));
-#else
-        unsigned lo, hi;
-        asm volatile("rdtsc" : "=a" (lo), "=d" (hi));
-        return time_point(duration(static_cast<rep>(hi) << 32 | lo));
-#endif
-    }
-};
-#endif
-
-#if defined(APEX_USE_CLOCK_TIMESTAMP) || defined(APEX_WITH_CUDA)
-#define MYCLOCK std::chrono::CLOCK_TYPE
-#else
-typedef rdtsc_clock<1> OneHzClock;
-#define MYCLOCK OneHzClock
-#endif
+#define MYCLOCK std::chrono::system_clock
 
 class profiler {
 private:
     task_identifier * task_id; // for counters, timers
 public:
     std::shared_ptr<task_wrapper> tt_ptr;     // for timers
-    MYCLOCK::time_point start;
-    MYCLOCK::time_point end;
+    uint64_t start_ns;
+    uint64_t end_ns;
 #if APEX_HAVE_PAPI
     long long papi_start_values[8];
     long long papi_stop_values[8];
 #endif
     double value;
     double children_value;
-    //apex_function_address action_address;
-    //std::string * timer_name;
-    //bool have_name;
     uint64_t guid;
     bool is_counter;
     bool is_resume; // for yield or resume
@@ -119,7 +75,7 @@ public:
              reset_type reset = reset_type::NONE) :
         task_id(task->get_task_id()),
         tt_ptr(task),
-        start(MYCLOCK::now()),
+        start_ns(now_ns()),
 #if APEX_HAVE_PAPI
         papi_start_values{0,0,0,0,0,0,0,0},
         papi_stop_values{0,0,0,0,0,0,0,0},
@@ -136,7 +92,7 @@ public:
              reset_type reset = reset_type::NONE) :
         task_id(id),
         tt_ptr(nullptr),
-        start(MYCLOCK::now()),
+        start_ns(now_ns()),
 #if APEX_HAVE_PAPI
         papi_start_values{0,0,0,0,0,0,0,0},
         papi_stop_values{0,0,0,0,0,0,0,0},
@@ -151,7 +107,7 @@ public:
     profiler(task_identifier * id, double value_) :
         task_id(id),
         tt_ptr(nullptr),
-        start(MYCLOCK::now()),
+        start_ns(now_ns()),
 #if APEX_HAVE_PAPI
         papi_start_values{0,0,0,0,0,0,0,0},
         papi_stop_values{0,0,0,0,0,0,0,0},
@@ -165,8 +121,8 @@ public:
     profiler(const profiler& in) :
         task_id(in.task_id),
         tt_ptr(in.tt_ptr),
-        start(in.start),
-        end(in.end),
+        start_ns(in.start_ns),
+        end_ns(in.end_ns),
         value(in.value),
         children_value(in.children_value),
         guid(in.guid),
@@ -186,76 +142,68 @@ public:
     ~profiler(void) { /* not much to do here. */ };
     // for "yield" support
     void set_start(uint64_t timestamp) {
-        start = MYCLOCK::time_point(MYCLOCK::duration(timestamp));
+        start_ns = timestamp;
     }
     void set_end(uint64_t timestamp) {
-        end = MYCLOCK::time_point(MYCLOCK::duration(timestamp));
+        end_ns = timestamp;
     }
     void stop(bool is_resume) {
         this->is_resume = is_resume;
-        end = MYCLOCK::now();
+        end_ns = now_ns();
         stopped = true;
     };
     void stop() {
-        end = MYCLOCK::now();
+        end_ns = now_ns();
         stopped = true;
     };
     void restart() {
         this->is_resume = true;
-        start = MYCLOCK::now();
+        start_ns = now_ns();
     };
     uint64_t get_start_ns() {
-        // APEX_ASSERT(!is_counter);
-        using namespace std::chrono;
-        uint64_t stamp = duration_cast<nanoseconds>(start.time_since_epoch()).count();
-        return stamp;
+        return start_ns;
     }
     double get_start_us() {
-        // APEX_ASSERT(!is_counter);
-        double stamp = (double)get_start_ns();
-        return stamp*10e-4;
+        return start_ns*1.0e-3;
     }
     uint64_t get_stop_ns() {
-        // APEX_ASSERT(!is_counter);
-        using namespace std::chrono;
-        uint64_t stamp = duration_cast<nanoseconds>(end.time_since_epoch()).count();
-        return stamp;
+        return end_ns;
     }
     double get_stop_us() {
-        // APEX_ASSERT(!is_counter);
-        using namespace std::chrono;
-        double stamp = (double)get_stop_ns();
-        return stamp*10e-4;
+        return end_ns*1.0e-3;
     }
-    static uint64_t get_time_ns( void ) {
-        using namespace std::chrono;
-        uint64_t stamp = duration_cast<nanoseconds>(MYCLOCK::now().time_since_epoch()).count();
-        return stamp;
+    static double now_us( void ) {
+        double stamp = (double)now_ns();
+        return stamp*1.0e-3;
     }
-    static double get_time_us( void ) {
-        using namespace std::chrono;
-        double stamp = (double)get_time_ns();
-        return stamp*10e-4;
-    }
-    double elapsed(bool scaled = false) {
+    double elapsed() {
         if(is_counter) {
             return value;
         } else {
-            using namespace std::chrono;
             if (!stopped) {
-                end = MYCLOCK::now();
+                end_ns = now_ns();
             }
-            duration<double> time_span =
-            duration_cast<duration<double>>(end - start);
-            if (scaled) {
-                return time_span.count()*get_cpu_mhz();
-            } else {
-                return time_span.count();
-            }
+            return ((double)(end_ns-start_ns));
         }
+    }
+    double elapsed_us() {
+        return elapsed() * 1.0e-3;
+    }
+    double elapsed_seconds() {
+        return elapsed() * 1.0e-9;
     }
     double exclusive_elapsed(void) {
         return elapsed() - children_value;
+    }
+
+    static uint64_t time_point_to_nanoseconds(std::chrono::time_point<MYCLOCK> tp) {
+        auto value = tp.time_since_epoch();
+        uint64_t duration =
+            std::chrono::duration_cast<std::chrono::nanoseconds>(value).count();
+        return duration;
+    }
+    static uint64_t now_ns() {
+        return time_point_to_nanoseconds(MYCLOCK::now());
     }
 
     static inline profiler* get_disabled_profiler(void) {
@@ -266,70 +214,22 @@ public:
     // dummy profiler to indicate that stop/yield should resume immediately
     static profiler* disabled_profiler; // initialized in profiler_listener.cpp
 
-    /* This function returns 1/X, where "X" is the MHz rating of the CPU. */
-    static double get_cpu_mhz () {
-#if defined(APEX_USE_CLOCK_TIMESTAMP) || defined (APEX_WITH_CUDA)
-        return 1.0;
-#else
-        static double ticks_per_period = 0.0;
-        if (ticks_per_period == 0.0) {
-            typedef std::chrono::duration<double,
-                typename MYCLOCK::period> CycleA;
-            typedef std::chrono::duration<double,
-                typename std::chrono::CLOCK_TYPE::period> CycleB;
-            const int N = 100000000;
-            auto t0a = MYCLOCK::now();
-            auto t0b = std::chrono::CLOCK_TYPE::now();
-            for (int j = 0; j < N; ++j) {
-#if !defined(_MSC_VER)
-                asm volatile("");
-#endif
-            }
-            auto t1a = MYCLOCK::now();
-            auto t1b = std::chrono::CLOCK_TYPE::now();
-            // Get the clock ticks per time period
-            //std::cout << CycleA(t1a-t0a).count() << " 1MHz ticks seen." <<
-            //std::endl;
-            //std::cout <<
-            //std::chrono::duration_cast<std::chrono::seconds>(CycleB(t1b-t0b)).count()
-            //<< " Seconds? seen." << std::endl;
-            ticks_per_period = CycleB(t1b-t0b)/CycleA(t1a-t0a);
-            /*
-            if (apex_options::use_verbose()) {
-                std::cout << "CPU is " << (1.0/ticks_per_period) << " Hz." <<
-                std::endl;
-            }
-            */
-        }
-        return ticks_per_period;
-#endif
-    }
-
     /* this is for OTF2 tracing.
      * We want a timestamp for the start of the trace.
      * We will also need one for the end of the trace. */
-    static MYCLOCK::time_point get_global_start(void) {
-        static MYCLOCK::time_point global_now = MYCLOCK::now();
+    static uint64_t get_global_start(void) {
+        static uint64_t global_now = now_ns();
         return global_now;
     }
     /* this is for getting the endpoint of the trace. */
-    static MYCLOCK::time_point get_global_end(void) {
-        return MYCLOCK::now();
-    }
-    static uint64_t time_point_to_nanoseconds(MYCLOCK::time_point tp) {
-        auto value = tp.time_since_epoch();
-        uint64_t duration =
-            std::chrono::duration_cast<std::chrono::nanoseconds>(value).count();
-        return duration;
+    static uint64_t get_global_end(void) {
+        return now_ns();
     }
     double normalized_timestamp(void) {
         if(is_counter) {
             return value;
         } else {
-            std::chrono::duration<double> time_span =
-                std::chrono::duration_cast<std::chrono::duration<double>>(start -
-                get_global_start());
-            return time_span.count()*get_cpu_mhz();
+            return now_ns() - get_global_start();
         }
     }
 };

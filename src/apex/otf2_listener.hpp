@@ -49,7 +49,7 @@ namespace apex {
         /* All OTF2 callback functions have to be declared static, so that they
          * can be registered with the OTF2 library */
         static OTF2_TimeStamp get_time( void ) {
-            uint64_t stamp = profiler::get_time_ns();
+            uint64_t stamp = profiler::now_ns();
             stamp = stamp - globalOffset;
             return stamp;
         }
