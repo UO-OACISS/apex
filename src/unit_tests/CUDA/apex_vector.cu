@@ -54,7 +54,7 @@ VecSub(const int* A, const int* B, int* C, int N)
 static void
 do_pass(cudaStream_t stream)
 {
-  APEX_SCOPED_TIMER;
+  //APEX_SCOPED_TIMER;
   int *h_A, *h_B, *h_C;
   int *d_A, *d_B, *d_C;
   size_t size = COMPUTE_N * sizeof(int);

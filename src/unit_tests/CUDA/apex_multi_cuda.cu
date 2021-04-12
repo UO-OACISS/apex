@@ -28,7 +28,7 @@ void Kernel(DataElement *elem) {
 }
 
 void launch(DataElement *elem) {
-  APEX_SCOPED_TIMER;
+  //APEX_SCOPED_TIMER;
   Kernel<<< 1, 1 >>>(elem);
   RUNTIME_API_CALL(cudaDeviceSynchronize());
 }

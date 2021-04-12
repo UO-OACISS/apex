@@ -11,7 +11,7 @@
 /* For user instrumentation */
 #include "nvToolsExt.h"
 
-#define ITERATIONS 4
+#define ITERATIONS 1
 
 #define DRIVER_API_CALL(apiFuncCall)                                           \
 do {                                                                           \
@@ -89,7 +89,7 @@ void do_marker_payload(const char * name, int payload, nvtxDomainHandle_t domain
 }
 
 void launch(DataElement *elem) {
-  APEX_SCOPED_TIMER;
+  //APEX_SCOPED_TIMER;
   nvtxDomainHandle_t domain = nvtxDomainCreateA("apex.example.loop.domain");
   do_marker_payload(elem->name, elem->value, domain);
   Kernel<<< 1, 1 >>>(elem);

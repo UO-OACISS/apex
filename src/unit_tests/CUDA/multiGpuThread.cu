@@ -36,7 +36,7 @@ __global__ void kernel_fc(int *dev_arr, int *dev_result)
 
 void *thread_func(void* struc)
 {
-    APEX_SCOPED_TIMER;
+    //APEX_SCOPED_TIMER;
     cuda_st * data = (cuda_st*)struc;
     printf("thread %d func start\n", data->thr_num);
     int i;
