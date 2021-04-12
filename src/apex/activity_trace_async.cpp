@@ -315,6 +315,8 @@ void store_profiler_data(const std::string &name, uint32_t correlationId,
     auto prof = std::make_shared<apex::profiler>(tt);
     prof->set_start(start + deltaTimestamp);
     prof->set_end(end + deltaTimestamp);
+    // important!  Otherwise we might get the wrong end timestamp.
+    prof->stopped = true;
     // fake out the profiler_listener
     instance->the_profiler_listener->push_profiler_public(prof);
     // Handle tracing, if necessary
@@ -1689,10 +1691,18 @@ void initTrace() {
     //CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_SYNCHRONIZE));
 
     // synchronize timestamps
-    startTimestampCPU = apex::profiler::get_time_ns();
+    // We'll take a CPU timestamp before and after taking a GPU timestmp, then
+    // take the average of those two, hoping that it's roughly at the same time
+    // as the GPU timestamp.
+    startTimestampCPU = apex::profiler::now_ns();
     cuptiGetTimestamp(&startTimestampGPU);
+    startTimestampCPU += apex::profiler::now_ns();
+    startTimestampCPU = startTimestampCPU / 2;
+
     // assume CPU timestamp is greater than GPU
     deltaTimestamp = (int64_t)(startTimestampCPU) - (int64_t)(startTimestampGPU);
+    //printf("CPU: %ld\n", startTimestampCPU);
+    //printf("GPU: %ld\n", startTimestampGPU);
     //printf("Delta computed to be: %ld\n", deltaTimestamp);
 }
 
