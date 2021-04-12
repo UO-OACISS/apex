@@ -116,8 +116,9 @@ if(APEX_WITH_CUDA)
         if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND
             CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 9)
             message(INFO " Building CUPTI support, but GCC is too new for CUDA tests")
-        elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-            message(INFO " Building CUPTI support, but Clang can't build CUDA tests")
+        elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" AND
+            CMAKE_CXX_COMPILER_VERSION VERSION_LESS 11)
+            message(INFO " Building CUPTI support, but Clang < 11 can't build CUDA tests")
         else()
             # OK to enable CUDA tests
             enable_language(CUDA)
