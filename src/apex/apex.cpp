@@ -1410,6 +1410,9 @@ std::string dump(bool reset) {
     apex* instance = apex::instance();
     // protect against calls after finalization
     if (!instance) { FUNCTION_EXIT return(std::string("")); }
+#ifdef APEX_WITH_CUDA
+    flushTrace();
+#endif
     if (_notify_listeners) {
         dump_event_data data(instance->get_node_id(),
             thread_instance::get_id(), reset);
