@@ -383,8 +383,12 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
     // FIRST! make sure APEX thinks this is a worker thread (the main thread
     // is always a worker thread)
     thread_instance::instance(true);
-    comm_rank = test_for_MPI_comm_rank(comm_rank);
-    comm_size = test_for_MPI_comm_size(comm_size);
+    // Just in case, if we got initialized without the correct rank and size,
+    // Check the environment if there are MPI settings.
+    if (comm_rank == 0 && comm_size == 1) {
+        comm_rank = test_for_MPI_comm_rank(comm_rank);
+        comm_size = test_for_MPI_comm_size(comm_size);
+    }
     // protect against multiple initializations
     if (_registered || _initialized) {
         if (apex_options::use_jupyter_support()) {
