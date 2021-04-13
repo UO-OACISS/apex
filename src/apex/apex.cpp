@@ -1396,6 +1396,11 @@ void finalize_plugins(void) {
 #endif
 }
 
+// forward declare CUPTI buffer flushing
+#ifdef APEX_WITH_CUDA
+void flushTrace(void);
+#endif
+
 std::string dump(bool reset) {
     in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
@@ -1430,10 +1435,6 @@ std::string dump(bool reset) {
     return(std::string(""));
 }
 
-// forward declare CUPTI buffer flushing
-#ifdef APEX_WITH_CUDA
-void flushTrace(void);
-#endif
 // forward declare OMPT runtime shutdown
 #ifdef APEX_WITH_OMPT
 void ompt_force_shutdown(void);
