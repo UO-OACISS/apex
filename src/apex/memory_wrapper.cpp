@@ -10,7 +10,6 @@
 #define _GNU_SOURCE
 #endif
 #include <dlfcn.h>
-#include <link.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "apex_api.hpp"
