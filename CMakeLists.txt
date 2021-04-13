@@ -77,7 +77,6 @@ endif()
 ################################################################################
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Configuration type (one of Debug, RelWithDebInfo, Release, MinSizeRel)" FORCE)
-  set(APEX_BUILD_EXAMPLES TRUE)
 endif()
 
 IF("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
