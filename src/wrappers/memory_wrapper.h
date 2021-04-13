@@ -24,6 +24,9 @@
 // Starting on macOS 11, PAGE_SIZE is not constant on macOS
 // Apple recommends using PAGE_MAX_SIZE instead.
 // see https://developer.apple.com/videos/play/wwdc2020/10214/?time=549
+#ifndef PAGE_MAX_SIZE
+#define PAGE_MAX_SIZE 4096
+#endif
 #define BOOTSTRAP_HEAP_SIZE (3*PAGE_MAX_SIZE)
 #else
 #define BOOTSTRAP_HEAP_SIZE (3*PAGE_SIZE)
