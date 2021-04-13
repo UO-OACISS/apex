@@ -56,6 +56,7 @@ where APEX options are zero or more of:
     --apex:status          enable sampling of /proc/self/status (Linux only)
     --apex:io              enable sampling of /proc/self/io (Linux only)
     --apex:period          specify frequency of OS/HW sampling
+    --apex:ompt            enable OpenMP profiling (requires runtime support)
     --apex:ompt_simple     only enable OpenMP Tools required events
     --apex:ompt_details    enable all OpenMP Tools events
     "
@@ -81,6 +82,7 @@ cuda_details=no
 untied=no
 cpuinfo=no
 meminfo=no
+ompt=no
 net=no
 stat=no
 period=1000000
@@ -214,6 +216,10 @@ while (( "$#" )); do
       export APEX_UNTIED_TIMERS=1
       shift
       ;;
+    --apex:ompt)
+      ompt=yes
+      shift
+      ;;
     --apex:ompt_simple)
       export APEX_OMPT_REQUIRED_EVENTS_ONLY=1
       shift
@@ -275,14 +281,17 @@ fi
 if [ $pthread = yes ]; then
     PTHREAD_LIB=${BASEDIR}/lib/libapex_pthread_wrapper${SHLIBX}:
 fi
+if [ $ompt = yes ]; then
+    OMPT_LIB=@OMPT_LIBRARY@:
+fi
 if [ $memory = yes ]; then
     MEMORY_LIB=${BASEDIR}/lib/libapex_memory_wrapper${SHLIBX}:
     APEX_LD_AUDIT=${BASEDIR}/lib/libapex_dl_auditor${SHLIBX}
 fi
 if [ ${apple} = 1 ]; then
-    APEX_LD_PRELOAD=${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/lib/libapex${SHLIBX}:@OMPT_LIBRARY@
+    APEX_LD_PRELOAD=${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/lib/libapex${SHLIBX}:${OMPT_LIB}
 else
-    APEX_LD_PRELOAD=${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/lib/libapex${SHLIBX}:@OMPT_LIBRARY@:${LD_PRELOAD}
+    APEX_LD_PRELOAD=${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/lib/libapex${SHLIBX}:${OMPT_LIB}:${LD_PRELOAD}
 fi
 
 # remove double colons
