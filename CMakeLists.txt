@@ -80,15 +80,23 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 IF("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-  set(APEX_BUILD_TESTS TRUE)
-  set(APEX_BUILD_EXAMPLES TRUE)
+  if(NOT DEFINED APEX_BUILD_TESTS)
+    set(APEX_BUILD_TESTS TRUE)
+  endif(NOT DEFINED APEX_BUILD_TESTS)
+  if(NOT DEFINED APEX_BUILD_EXAMPLES)
+    set(APEX_BUILD_EXAMPLES TRUE)
+  endif(NOT DEFINED APEX_BUILD_EXAMPLES)
   add_definitions(-DDEBUG)
   #add_definitions(-DAPEX_DEBUG)
 endif()
 
 IF("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo")
-  set(APEX_BUILD_TESTS TRUE)
-  set(APEX_BUILD_EXAMPLES TRUE)
+  if(NOT DEFINED APEX_BUILD_TESTS)
+    set(APEX_BUILD_TESTS TRUE)
+  endif(NOT DEFINED APEX_BUILD_TESTS)
+  if(NOT DEFINED APEX_BUILD_EXAMPLES)
+    set(APEX_BUILD_EXAMPLES TRUE)
+  endif(NOT DEFINED APEX_BUILD_EXAMPLES)
   add_definitions(-DNDEBUG)
 endif()
 
@@ -570,6 +578,18 @@ if((DEFINED PAPI_ROOT) OR (APEX_WITH_PAPI))
         if (NOT BUILD_STATIC_EXECUTABLES)
             set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${PAPI_LIBRARY_DIR})
         endif()
+    endif()
+endif()
+
+################################################################################
+# Kokkos configuration
+################################################################################
+
+if((DEFINED Kokkos_ROOT) OR (APEX_WITH_Kokkos))
+    find_package(Kokkos REQUIRED)
+    if (Kokkos_FOUND)
+        include_directories(${Kokkos_INCLUDE_DIRS})
+        add_definitions(-DAPEX_HAVE_Kokkos)
     endif()
 endif()
 
