@@ -1057,6 +1057,7 @@ inline void __active_harmony_throughput_setup(int num_inputs, long ** inputs,
     if (!thread_cap_tuning_session->htask) {
         cerr << "Failed to join Active Harmony tuning session" << endl;
         cerr << ah_error() << endl;
+        APEX_ASSERT(false);
         return;
     }
 
@@ -1117,6 +1118,7 @@ inline int __active_harmony_custom_setup(shared_ptr<apex_tuning_session>
     if (!tuning_session->htask) {
         cerr << "Failed to join Active Harmony tuning session" << endl;
         cerr << ah_error() << endl;
+        APEX_ASSERT(false);
         return APEX_ERROR;
     }
 
@@ -1254,6 +1256,7 @@ inline int __active_harmony_custom_setup(
     if (!tuning_session->htask) {
         cerr << "Failed to join Active Harmony tuning session" << endl;
         cerr << ah_error() << endl;
+        APEX_ASSERT(false);
         return APEX_ERROR;
     }
 

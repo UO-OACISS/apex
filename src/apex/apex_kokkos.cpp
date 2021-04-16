@@ -25,6 +25,7 @@
 #include <vector>
 #include <set>
 #include <unordered_map>
+#include "apex.hpp"
 
 /*
 static std::mutex memory_mtx;
@@ -405,12 +406,21 @@ public:
     size_t id;
     std::string name;
     Kokkos_Tools_VariableInfo info;
-    std::list<std::string> space;
+    std::list<double> dspace; // double space
+    std::list<uint64_t> lspace; // long space
+    std::list<std::string> espace; // enum space
+    double dmin;
+    double dmax;
+    double dstep;
+    uint64_t lmin;
+    uint64_t lmax;
+    uint64_t lstep;
     void makeSpace(void);
 };
 
 class KokkosSession {
 public:
+// EXHAUSTIVE, RANDOM, NELDER_MEAD, PARALLEL_RANK_ORDER
     KokkosSession() :
         window(3),
         strategy(apex_ah_tuning_strategy::NELDER_MEAD),
@@ -420,8 +430,7 @@ public:
         history_file("") {
     }
     int window;
-    apex_ah_tuning_strategy
-        strategy{apex_ah_tuning_strategy::NELDER_MEAD};
+    apex_ah_tuning_strategy strategy;
     std::unordered_map<std::string, std::shared_ptr<apex_tuning_request>>
         requests;
     bool verbose;
@@ -433,6 +442,7 @@ public:
     apex_policy_handle * start_policy_handle;
     apex_policy_handle * stop_policy_handle;
     std::unordered_map<size_t, std::string> active_requests;
+    std::unordered_map<size_t, uint64_t> context_starts;
 };
 
 KokkosSession& getSession() {
@@ -454,15 +464,13 @@ void Variable::makeSpace(void) {
             if (info.valueQuantity == kokkos_value_set) {
                 for (size_t index = 0 ; index < info.candidates.set.size ; index++) {
                     if (info.type == kokkos_value_double) {
-                        space.push_back(
-                            std::to_string(
-                                info.candidates.set.values.double_value[index]));
+                        dspace.push_back(
+                                info.candidates.set.values.double_value[index]);
                     } else if (info.type == kokkos_value_int64) {
-                        space.push_back(
-                            std::to_string(
-                                info.candidates.set.values.int_value[index]));
+                        lspace.push_back(
+                                info.candidates.set.values.int_value[index]);
                     } else if (info.type == kokkos_value_string) {
-                        space.push_back(
+                        espace.push_back(
                             std::string(
                                 info.candidates.set.values.string_value[index]));
                     }
@@ -474,30 +482,24 @@ void Variable::makeSpace(void) {
         {
             if (info.valueQuantity == kokkos_value_range) {
                 if (info.type == kokkos_value_double) {
-                    double step = info.candidates.range.step.double_value;
-                    double start = info.candidates.range.lower.double_value;
-                    double end = info.candidates.range.upper.double_value;
+                    dstep = info.candidates.range.step.double_value;
+                    dmin = info.candidates.range.lower.double_value;
+                    dmax = info.candidates.range.upper.double_value;
                     if (info.candidates.range.openLower) {
-                        start = start + step;
+                        dmin = dmin + dstep;
                     }
                     if (info.candidates.range.openUpper) {
-                        end = end - step;
-                    }
-                    for ( double v = start ; v <= end ; v += step) {
-                        space.push_back(std::to_string(v));
+                        dmax = dmax - dstep;
                     }
                 } else if (info.type == kokkos_value_int64) {
-                    auto step = info.candidates.range.step.int_value;
-                    auto start = info.candidates.range.lower.int_value;
-                    auto end = info.candidates.range.upper.int_value;
+                    lstep = info.candidates.range.step.int_value;
+                    lmin = info.candidates.range.lower.int_value;
+                    lmax = info.candidates.range.upper.int_value;
                     if (info.candidates.range.openLower) {
-                        start = start + step;
+                        lmin = lmin + lstep;
                     }
                     if (info.candidates.range.openUpper) {
-                        end = end - step;
-                    }
-                    for ( double v = start ; v <= end ; v += step) {
-                        space.push_back(std::to_string(v));
+                        lmax = lmax - lstep;
                     }
                 }
             }
@@ -638,11 +640,6 @@ void printTuning(const size_t numVars, Kokkos_Tools_VariableValue* values) {
     std::cout << std::endl;
 }
 
-static std::stack<std::shared_ptr<apex::task_wrapper> >& context_stack() {
-    static APEX_NATIVE_TLS std::stack<std::shared_ptr<apex::task_wrapper> > thestack;
-    return thestack;
-}
-
 void set_params(std::shared_ptr<apex_tuning_request> request,
     const size_t vars,
     Kokkos_Tools_VariableValue* values) {
@@ -650,19 +647,18 @@ void set_params(std::shared_ptr<apex_tuning_request> request,
     for (size_t i = 0 ; i < vars ; i++) {
         auto id = values[i].type_id;
         Variable* var{getSession().outputs[id]};
-        auto thread_param = std::static_pointer_cast<apex_param_enum>(request->get_param(var->name));
-        switch (var->info.type) {
-            case kokkos_value_double:
-                values[i].value.double_value = strtod(thread_param->get_value().c_str(), nullptr);
-                break;
-            case kokkos_value_int64:
-                values[i].value.int_value = atol(thread_param->get_value().c_str());
-                break;
-            case kokkos_value_string:
-                strncpy(values[i].value.string_value, thread_param->get_value().c_str(), 64);
-                break;
-            default:
-                break;
+        if (var->info.type == kokkos_value_double) {
+            auto thread_param = std::static_pointer_cast<apex_param_double>(
+                request->get_param(var->name));
+            values[i].value.double_value = thread_param->get_value();
+        } else if (var->info.type == kokkos_value_int64) {
+            auto thread_param = std::static_pointer_cast<apex_param_long>(
+                request->get_param(var->name));
+            values[i].value.int_value = thread_param->get_value();
+        } else if (var->info.type == kokkos_value_string) {
+            auto thread_param = std::static_pointer_cast<apex_param_enum>(
+                request->get_param(var->name));
+            strncpy(values[i].value.string_value, thread_param->get_value().c_str(), 64);
         }
     }
 }
@@ -695,9 +691,9 @@ void handle_start(const std::string & name, const size_t vars,
                 return 0.0;
             }
             double result = profile->accumulated/profile->calls;
-            if(session.verbose) {
-                fprintf(stderr, "time per call: %f\n", result);
-            }
+            //if(session.verbose) {
+                fprintf(stderr, "time per call: %f\n", (double)(result)/1000000000.0);
+            //}
             return result;
         };
         request->set_metric(metric);
@@ -707,10 +703,32 @@ void handle_start(const std::string & name, const size_t vars,
 
         for (size_t i = 0 ; i < vars ; i++) {
             auto id = values[i].type_id;
-            auto tmp = request->add_param_enum(
-                session.outputs[id]->name,
-                session.outputs[id]->space.front(),
-                session.outputs[id]->space);
+            Variable* var{getSession().outputs[id]};
+            if (var->info.type == kokkos_value_double) {
+                std::cout << session.outputs[id]->name << " init: " <<
+                    session.outputs[id]->dmin << " min: " <<
+                    session.outputs[id]->dmin << " max: " <<
+                    session.outputs[id]->dmax << " step: " <<
+                    session.outputs[id]->dstep << std::endl;
+                auto tmp = request->add_param_double(
+                    session.outputs[id]->name,
+                    session.outputs[id]->dmin,
+                    session.outputs[id]->dmin,
+                    session.outputs[id]->dmax,
+                    session.outputs[id]->dstep);
+            } else if (var->info.type == kokkos_value_int64) {
+                auto tmp = request->add_param_long(
+                    session.outputs[id]->name,
+                    session.outputs[id]->lmin,
+                    session.outputs[id]->lmin,
+                    session.outputs[id]->lmax,
+                    session.outputs[id]->lstep);
+            } else if (var->info.type == kokkos_value_string) {
+                auto tmp = request->add_param_enum(
+                    session.outputs[id]->name,
+                    session.outputs[id]->espace.front(),
+                    session.outputs[id]->espace);
+            }
         }
 
         // Set OpenMP runtime parameters to initial values.
@@ -728,7 +746,7 @@ void handle_start(const std::string & name, const size_t vars,
 void handle_stop(const std::string & name) {
     auto search = getSession().requests.find(name);
     if(search == getSession().requests.end()) {
-        std::cerr << "ERROR: Stop received on \"" << name << "\" but we've never seen a start for it." << std::endl;
+        std::cerr << "ERROR: No data for \"" << name << std::endl;
     } else {
         apex_profile * profile = apex::get_profile(name);
         if(getSession().window == 1 ||
@@ -776,15 +794,14 @@ void kokkosp_request_values(
         printContext(numContextVariables, contextVariableValues);
     }
     std::string name{hashContext(numContextVariables, contextVariableValues)};
-    auto twp = context_stack().top();
-    apex::update_task(twp, name);
-    apex::start(twp);
     handle_start(name, numTuningVariables, tuningVariableValues);
     getSession().active_requests.insert(std::pair<uint32_t, std::string>(contextId, name));
     //if (getSession().verbose) {
         //std::cout << std::endl << std::string(getDepth(), ' ');
         printTuning(numTuningVariables, tuningVariableValues);
     //}
+    // throw away the time spent in this step!
+    getSession().context_starts[contextId] = apex::profiler::now_ns();
 }
 
 /* This starts the context pointed at by contextId. If tools use
@@ -797,11 +814,8 @@ void kokkosp_begin_context(size_t contextId) {
         std::cout << __func__ << "\t" << contextId << std::endl;
     }
     std::stringstream ss;
-    ss << "Kokkos context: " << contextId;
-    std::string tmp{ss.str()};
-    auto twp = apex::new_task(tmp);
-    context_stack().push(twp);
-    apex::start(twp);
+    getSession().context_starts.insert(
+        std::pair<uint32_t, uint64_t>(contextId, apex::profiler::now_ns()));
 }
 
 /* This simply says that the contextId in the argument is now over.
@@ -813,12 +827,15 @@ void kokkosp_end_context(const size_t contextId) {
         std::cout << std::string(--getDepth(), ' ');
         std::cout << __func__ << "\t" << contextId << std::endl;
     }
-    auto twp = context_stack().top();
-    apex::stop(twp);
-    context_stack().pop();
+    uint64_t end = apex::profiler::now_ns();
+    auto start = getSession().context_starts.find(contextId);
     auto name = getSession().active_requests.find(contextId);
-    if (name != getSession().active_requests.end()) {
+    if (name != getSession().active_requests.end() &&
+        start != getSession().context_starts.end()) {
+        apex::sample_value(name->second, (double)(end-start->second));
         handle_stop(name->second);
+        getSession().active_requests.erase(contextId);
+        getSession().context_starts.erase(contextId);
     }
 }
 
