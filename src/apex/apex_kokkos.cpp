@@ -545,6 +545,7 @@ void kokkosp_declare_output_type(const char* name, const size_t id,
     Variable * output = new Variable(id, name, info);
     output->makeSpace();
     getSession().outputs.insert(std::make_pair(id, output));
+    getSession().inputs.insert(std::make_pair(id, output));
     return;
 }
 
@@ -560,6 +561,7 @@ void kokkosp_declare_input_type(const char* name, const size_t id,
     std::cout << __func__ << std::endl;
     Variable * input = new Variable(id, name, info);
     getSession().inputs.insert(std::make_pair(id, input));
+    getSession().outputs.insert(std::make_pair(id, input));
 }
 
 void printContext(size_t numVars, const Kokkos_Tools_VariableValue* values) {
@@ -796,10 +798,10 @@ void kokkosp_request_values(
     std::string name{hashContext(numContextVariables, contextVariableValues)};
     handle_start(name, numTuningVariables, tuningVariableValues);
     getSession().active_requests.insert(std::pair<uint32_t, std::string>(contextId, name));
-    //if (getSession().verbose) {
-        //std::cout << std::endl << std::string(getDepth(), ' ');
+    if (getSession().verbose) {
+        std::cout << std::endl << std::string(getDepth(), ' ');
+    }
         printTuning(numTuningVariables, tuningVariableValues);
-    //}
     // throw away the time spent in this step!
     getSession().context_starts[contextId] = apex::profiler::now_ns();
 }
