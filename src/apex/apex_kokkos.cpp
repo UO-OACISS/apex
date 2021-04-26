@@ -841,6 +841,7 @@ void kokkosp_end_context(const size_t contextId) {
     }
 }
 
+} // extern "C"
+
 #endif // APEX_HAVE_KOKKOS
 
-} // extern "C"
