@@ -300,10 +300,10 @@ void kokkosp_profile_event( const char* name ) {
 
 } // extern "C"
 
-#ifdef APEX_HAVE_KOKKOS
+//#ifdef APEX_HAVE_KOKKOS
 //#pragma message("Enabling Kokkos auto-tuning support")
 
-#include "impl/Kokkos_Profiling_C_Interface.h"
+#include "Kokkos_Profiling_C_Interface.h"
 #include "apex_api.hpp"
 #include "apex_policies.hpp"
 
@@ -613,7 +613,6 @@ std::string hashContext(size_t numVars, const Kokkos_Tools_VariableValue* values
     for (size_t i = 0 ; i < numVars ; i++) {
         auto id = values[i].type_id;
         ss << d << id << ":";
-        /*
         Variable* var{getSession().inputs[id]};
         switch (var->info.type) {
             case kokkos_value_double:
@@ -628,8 +627,9 @@ std::string hashContext(size_t numVars, const Kokkos_Tools_VariableValue* values
             default:
                 break;
         }
-        */
+        /*
         ss << values[i].value.string_value;
+        */
         d = ",";
     }
     ss << "]";
@@ -875,5 +875,5 @@ void kokkosp_end_context(const size_t contextId) {
 
 } // extern "C"
 
-#endif // APEX_HAVE_KOKKOS
+//#endif // APEX_HAVE_KOKKOS
 

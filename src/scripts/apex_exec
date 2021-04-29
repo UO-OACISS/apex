@@ -89,6 +89,7 @@ period=1000000
 io=no
 pthread=no
 memory=no
+policy=yes
 debugger=""
 prog=""
 
@@ -270,6 +271,9 @@ while (( "$#" )); do
 done
 # set positional arguments in their proper place
 eval set -- "${PARAMS}"
+
+export APEX_POLICY=1
+export HARMONY_HOME=@ACTIVEHARMONY_ROOT@
 
 echo "Program to run : ${PARAMS}"
 
