@@ -454,6 +454,12 @@ uint64_t test_for_MPI_comm_rank(uint64_t commrank) {
         commrank = atol(tmpvar);
         return commrank;
     }
+    // PBS/Torque on some systems...
+    tmpvar = getenv("PBS_O_TASKNUM");
+    if (tmpvar != NULL) {
+        commrank = atol(tmpvar) - 1;
+        return commrank;
+    }
     // Slurm - last resort
     tmpvar = getenv("SLURM_PROCID");
     if (tmpvar != NULL) {
@@ -489,18 +495,36 @@ uint64_t test_for_MPI_comm_size(uint64_t commsize) {
         // printf("Changing openMPI size to %lu\n", commsize);
         return commsize;
     }
-    // PBS/Torque - no variable specifies number of nodes...
-#if 0
-    tmpvar = getenv("PBS_TASKNUM"); // number of tasks requested
+    // PBS/Torque - no specific variable specifies number of nodes?
+    tmpvar = getenv("PBS_NP"); // number of processes requested
     if (tmpvar != NULL) {
         commsize = atol(tmpvar);
         return commsize;
     }
-#endif
+    // PBS/Torque - no specific variable specifies number of nodes?
+    tmpvar = getenv("PBS_NUM_NODES"); // number of nodes requested
+    const char * tmpvar2 = getenv("PBS_NUM_PPN"); // number of processes per node
+    if (tmpvar != NULL && tmpvar2 != NULL) {
+        commsize = atol(tmpvar) * atol(tmpvar2);
+        return commsize;
+    }
     // Slurm - last resort
-    tmpvar = getenv("SLURM_NNODES");
+    tmpvar = getenv("SLURM_NPROCS");
     if (tmpvar != NULL) {
         commsize = atol(tmpvar);
+        return commsize;
+    }
+    // Slurm - last resort
+    tmpvar = getenv("SLURM_NTASKS");
+    if (tmpvar != NULL) {
+        commsize = atol(tmpvar);
+        return commsize;
+    }
+    // Slurm - last resort, do some math
+    tmpvar = getenv("SLURM_JOB_NUM_NODES");
+    tmpvar2 = getenv("SLURM_TASKS_PER_NODE");
+    if (tmpvar != NULL && tmpvar2 != NULL) {
+        commsize = atol(tmpvar) * atol(tmpvar2);
         return commsize;
     }
     return commsize;
