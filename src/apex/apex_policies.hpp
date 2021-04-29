@@ -51,6 +51,10 @@ class apex_param {
             return apex_param_type::NONE;
         };
 
+        virtual /*const*/ std::string get_init() const {
+            return "";
+        };
+
         friend apex_tuning_session_handle
         __setup_custom_tuning(apex_tuning_request & request);
         friend int
@@ -64,6 +68,7 @@ class apex_param {
 class apex_param_long : public apex_param {
     protected:
         std::shared_ptr<long> value;
+        const long init;
         const long min;
         const long max;
         const long step;
@@ -72,11 +77,15 @@ class apex_param_long : public apex_param {
         apex_param_long(const std::string & name, const long init_value,
                         const long min, const long max, const long step)
             : apex_param(name), value{std::make_shared<long>(init_value)},
-              min{min}, max{max}, step{step} {};
+              init{init_value}, min{min}, max{max}, step{step} {};
         virtual ~apex_param_long() {};
 
         /*const*/ long get_value() const {
             return *value;
+        };
+
+        virtual /*const*/ std::string get_init() const {
+            return std::to_string(init);
         };
 
         virtual /*const*/ apex_param_type get_type() const {
@@ -90,6 +99,7 @@ class apex_param_long : public apex_param {
 class apex_param_double : public apex_param {
     protected:
         std::shared_ptr<double> value;
+        const double init;
         const double min;
         const double max;
         const double step;
@@ -98,11 +108,15 @@ class apex_param_double : public apex_param {
         apex_param_double(const std::string & name, const double init_value,
                         const double min, const double max, const double step)
             : apex_param(name), value{std::make_shared<double>(init_value)},
-              min{min}, max{max}, step{step} {};
+              init{init_value}, min{min}, max{max}, step{step} {};
         virtual ~apex_param_double() {};
 
         /*const*/ double get_value() const {
             return *value;
+        };
+
+        virtual /*const*/ std::string get_init() const {
+            return std::to_string(init);
         };
 
         virtual /*const*/ apex_param_type get_type() const {
@@ -129,6 +143,10 @@ class apex_param_enum : public apex_param {
 
         const std::string get_value() const {
             return std::string{*value};
+        };
+
+        virtual /*const*/ std::string get_init() const {
+            return init_value;
         };
 
         virtual /*const*/ apex_param_type get_type() const {
@@ -164,7 +182,7 @@ class apex_tuning_request {
         trigger{APEX_INVALID_EVENT},
             tuning_session_handle{0}, running{false},
             strategy{apex_ah_tuning_strategy::PARALLEL_RANK_ORDER},
-            radius(0.5), aggregation_times(1), aggregation_function("median")
+            radius(0.5), aggregation_times(3), aggregation_function("min")
             {};
         virtual ~apex_tuning_request()  {};
 
@@ -249,6 +267,18 @@ class apex_tuning_request {
 
         void set_strategy(apex_ah_tuning_strategy s) {
             strategy = s;
+        };
+
+        void set_radius(double r) {
+            radius = r;
+        };
+
+        void set_aggregation_times(size_t t) {
+            aggregation_times = t;
+        };
+
+        void set_aggregation_function(std::string f) {
+            aggregation_function = f;
         };
 
         friend apex_tuning_session_handle

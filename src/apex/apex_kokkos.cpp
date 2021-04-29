@@ -25,6 +25,7 @@
 #include <vector>
 #include <set>
 #include <unordered_map>
+#include <stdlib.h>
 #include "apex.hpp"
 
 /*
@@ -422,12 +423,25 @@ class KokkosSession {
 public:
 // EXHAUSTIVE, RANDOM, NELDER_MEAD, PARALLEL_RANK_ORDER
     KokkosSession() :
-        window(3),
+        window(1),
         strategy(apex_ah_tuning_strategy::NELDER_MEAD),
         verbose(false),
         use_history(false),
         running(false),
         history_file("") {
+            const char * verb = getenv("APEX_KOKKOS_VERBOSE");
+            if (verb != nullptr) {
+                if (strcmp(verb, "1") == 0) { verbose = true; }
+                if (strcmp(verb, "yes") == 0) { verbose = true; }
+                if (strcmp(verb, "YES") == 0) { verbose = true; }
+                if (strcmp(verb, "Yes") == 0) { verbose = true; }
+                if (strcmp(verb, "on") == 0) { verbose = true; }
+                if (strcmp(verb, "ON") == 0) { verbose = true; }
+                if (strcmp(verb, "On") == 0) { verbose = true; }
+                if (strcmp(verb, "true") == 0) { verbose = true; }
+                if (strcmp(verb, "TRUE") == 0) { verbose = true; }
+                if (strcmp(verb, "True") == 0) { verbose = true; }
+            }
     }
     int window;
     apex_ah_tuning_strategy strategy;
@@ -485,20 +499,20 @@ void Variable::makeSpace(void) {
                     dstep = info.candidates.range.step.double_value;
                     dmin = info.candidates.range.lower.double_value;
                     dmax = info.candidates.range.upper.double_value;
-                    if (info.candidates.range.openLower) {
+                    if (!info.candidates.range.openLower) {
                         dmin = dmin + dstep;
                     }
-                    if (info.candidates.range.openUpper) {
+                    if (!info.candidates.range.openUpper) {
                         dmax = dmax - dstep;
                     }
                 } else if (info.type == kokkos_value_int64) {
                     lstep = info.candidates.range.step.int_value;
                     lmin = info.candidates.range.lower.int_value;
                     lmax = info.candidates.range.upper.int_value;
-                    if (info.candidates.range.openLower) {
+                    if (!info.candidates.range.openLower) {
                         lmin = lmin + lstep;
                     }
-                    if (info.candidates.range.openUpper) {
+                    if (!info.candidates.range.openUpper) {
                         lmax = lmax - lstep;
                     }
                 }
@@ -540,8 +554,10 @@ size_t& getDepth() {
  */
 void kokkosp_declare_output_type(const char* name, const size_t id,
     Kokkos_Tools_VariableInfo& info) {
-    std::cout << std::string(getDepth(), ' ');
-    std::cout << __func__ << std::endl;
+    if(getSession().verbose) {
+        std::cout << std::string(getDepth(), ' ');
+        std::cout << __func__ << std::endl;
+    }
     Variable * output = new Variable(id, name, info);
     output->makeSpace();
     getSession().outputs.insert(std::make_pair(id, output));
@@ -557,8 +573,10 @@ void kokkosp_declare_output_type(const char* name, const size_t id,
  */
 void kokkosp_declare_input_type(const char* name, const size_t id,
     Kokkos_Tools_VariableInfo& info) {
-    std::cout << std::string(getDepth(), ' ');
-    std::cout << __func__ << std::endl;
+    if(getSession().verbose) {
+        std::cout << std::string(getDepth(), ' ');
+        std::cout << __func__ << std::endl;
+    }
     Variable * input = new Variable(id, name, info);
     getSession().inputs.insert(std::make_pair(id, input));
     getSession().outputs.insert(std::make_pair(id, input));
@@ -595,6 +613,7 @@ std::string hashContext(size_t numVars, const Kokkos_Tools_VariableValue* values
     for (size_t i = 0 ; i < numVars ; i++) {
         auto id = values[i].type_id;
         ss << d << id << ":";
+        /*
         Variable* var{getSession().inputs[id]};
         switch (var->info.type) {
             case kokkos_value_double:
@@ -609,6 +628,8 @@ std::string hashContext(size_t numVars, const Kokkos_Tools_VariableValue* values
             default:
                 break;
         }
+        */
+        ss << values[i].value.string_value;
         d = ",";
     }
     ss << "]";
@@ -693,25 +714,31 @@ void handle_start(const std::string & name, const size_t vars,
                 return 0.0;
             }
             double result = profile->accumulated/profile->calls;
-            //if(session.verbose) {
-                fprintf(stderr, "time per call: %f\n", (double)(result)/1000000000.0);
-            //}
+            if(session.verbose) {
+                fprintf(stdout, "time per call: %fs\n", (double)(result)/1000000000.0);
+            }
             return result;
         };
         request->set_metric(metric);
 
         // Set apex_openmp_policy_tuning_strategy
         request->set_strategy(session.strategy);
+        request->set_radius(0.05);
+        request->set_aggregation_times(3);
+        // min, max, mean
+        request->set_aggregation_function("min");
 
         for (size_t i = 0 ; i < vars ; i++) {
             auto id = values[i].type_id;
             Variable* var{getSession().outputs[id]};
             if (var->info.type == kokkos_value_double) {
-                std::cout << session.outputs[id]->name << " init: " <<
-                    session.outputs[id]->dmin << " min: " <<
-                    session.outputs[id]->dmin << " max: " <<
-                    session.outputs[id]->dmax << " step: " <<
-                    session.outputs[id]->dstep << std::endl;
+                if (session.verbose) {
+                    std::cout << "\n" << session.outputs[id]->name <<
+                        " init: " << session.outputs[id]->dmin <<
+                        " min: " << session.outputs[id]->dmin <<
+                        " max: " << session.outputs[id]->dmax <<
+                        " step: " << session.outputs[id]->dstep;
+                }
                 auto tmp = request->add_param_double(
                     session.outputs[id]->name,
                     session.outputs[id]->dmin,
@@ -732,6 +759,7 @@ void handle_start(const std::string & name, const size_t vars,
                     session.outputs[id]->espace);
             }
         }
+        std::cout << std::endl;
 
         // Set OpenMP runtime parameters to initial values.
         set_params(request, vars, values);
@@ -800,8 +828,8 @@ void kokkosp_request_values(
     getSession().active_requests.insert(std::pair<uint32_t, std::string>(contextId, name));
     if (getSession().verbose) {
         std::cout << std::endl << std::string(getDepth(), ' ');
-    }
         printTuning(numTuningVariables, tuningVariableValues);
+    }
     // throw away the time spent in this step!
     getSession().context_starts[contextId] = apex::profiler::now_ns();
 }
@@ -811,10 +839,12 @@ void kokkosp_request_values(
  * starting measurement.
  */
 void kokkosp_begin_context(size_t contextId) {
+    /*
     if (getSession().verbose) {
         std::cout << std::string(getDepth()++, ' ');
         std::cout << __func__ << "\t" << contextId << std::endl;
     }
+    */
     std::stringstream ss;
     getSession().context_starts.insert(
         std::pair<uint32_t, uint64_t>(contextId, apex::profiler::now_ns()));
@@ -825,10 +855,12 @@ void kokkosp_begin_context(size_t contextId) {
  * values can now be associated with a result.
  */
 void kokkosp_end_context(const size_t contextId) {
+    /*
     if (getSession().verbose) {
         std::cout << std::string(--getDepth(), ' ');
         std::cout << __func__ << "\t" << contextId << std::endl;
     }
+    */
     uint64_t end = apex::profiler::now_ns();
     auto start = getSession().context_starts.find(contextId);
     auto name = getSession().active_requests.find(contextId);

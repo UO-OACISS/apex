@@ -29,6 +29,7 @@
 #include <vector>
 #include "apex_cxx_shared_lock.hpp"
 #include "apex_assert.h"
+#include <unistd.h>
 
 #ifdef APEX_HAVE_RCR
 #include "libenergy.h"
@@ -1125,10 +1126,13 @@ inline int __active_harmony_custom_setup(shared_ptr<apex_tuning_session>
     return APEX_NOERROR;
 }
 
-inline int __active_harmony_custom_setup(
-    shared_ptr<apex_tuning_session> tuning_session,
-    apex_tuning_request & request) {
-    const char* session_name = request.name.c_str();
+inline int apex_start_session (shared_ptr<apex_tuning_session> tuning_session,
+    const char* session_name, bool restart = false) {
+
+       /* Leave the session, if started */
+    if(restart && tuning_session->hdesc != nullptr) {
+        ah_free(tuning_session->hdesc);
+    }
     tuning_session->hdesc = ah_alloc();
     if (tuning_session->hdesc == nullptr) {
         cerr << "Failed to allocate Active Harmony session" << endl;
@@ -1138,6 +1142,19 @@ inline int __active_harmony_custom_setup(
         cerr << "Could not set Active Harmony session name" << endl;
         return APEX_ERROR;
     }
+    if (ah_connect(tuning_session->hdesc, nullptr, 0) != 0) {
+        cerr << "Failed to launch Active Harmony tuning session: " <<
+            endl << ah_error() << endl;
+        return APEX_ERROR;
+    }
+    return APEX_NOERROR;
+}
+
+inline int __active_harmony_custom_setup(
+    shared_ptr<apex_tuning_session> tuning_session,
+    apex_tuning_request & request) {
+    const char* session_name = request.name.c_str();
+    apex_start_session(tuning_session, session_name);
     tuning_session->hdef = ah_def_alloc();
     if(tuning_session->hdef == nullptr) {
         cerr << "Could not allocate Active Harmony definition descriptor." << endl;
@@ -1156,10 +1173,21 @@ inline int __active_harmony_custom_setup(
         << library_name << endl;
         return APEX_ERROR;
     }
-    if (ah_def_cfg(tuning_session->hdef, "INIT_RADIUS",
-        std::to_string(request.radius).c_str()) != 0) {
-        cerr << "Failed to set Active Harmony tuning raduis to "
-        << request.radius << endl;
+    std::stringstream ss;
+    /* Log the search */
+    ss << "agg.so:log.so";
+    std::string layers{ss.str()};
+    if (ah_def_layers(tuning_session->hdef, layers.c_str()) != 0) {
+        cerr << "Failed to set Active Harmony layers to "
+        << layers << endl;
+        return APEX_ERROR;
+    }
+    if (ah_def_cfg(tuning_session->hdef, "LOG_FILE", "/tmp/ah_search.log") != 0) {
+        cerr << "Failed to set Active Harmony log file name" << endl;
+        return APEX_ERROR;
+    }
+    if (ah_def_cfg(tuning_session->hdef, "LOG_MODE", "w") != 0) {
+        cerr << "Failed to set Active Harmony log file mode" << endl;
         return APEX_ERROR;
     }
     /* Instruct the aggregator to collect X performance values for
@@ -1173,13 +1201,16 @@ inline int __active_harmony_custom_setup(
             << request.aggregation_times << endl;
             return APEX_ERROR;
         }
-        if (ah_def_cfg(tuning_session->hdef, "AGG_FUNC", "median") != 0) {
+        if (ah_def_cfg(tuning_session->hdef, "AGG_FUNC",
+            request.aggregation_function.c_str()) != 0) {
             cerr << "Failed to set Active Harmony tuning aggregation function to "
             << request.aggregation_function << endl;
             return APEX_ERROR;
         }
     }
 
+    std::stringstream inits;
+    std::string delimiter{""};
     for(auto & kv : request.params) {
        auto & param = kv.second;
        const char * param_name = param->get_name().c_str();
@@ -1195,6 +1226,8 @@ inline int __active_harmony_custom_setup(
                    endl;
                    return APEX_ERROR;
                }
+               inits << delimiter << param_long->get_init();
+               delimiter = ", ";
            }
            break;
 
@@ -1209,6 +1242,8 @@ inline int __active_harmony_custom_setup(
                    << endl;
                    return APEX_ERROR;
                }
+               inits << delimiter << param_double->get_init();
+               delimiter = ", ";
            }
            break;
 
@@ -1235,6 +1270,8 @@ inline int __active_harmony_custom_setup(
                        return APEX_ERROR;
                    }
                }
+               inits << delimiter << param_enum->get_init();
+               delimiter = ", ";
            };
            break;
 
@@ -1245,20 +1282,33 @@ inline int __active_harmony_custom_setup(
                return APEX_ERROR;
        }
     }
-
-    if (ah_connect(tuning_session->hdesc, nullptr, 0) != 0) {
-        cerr << "Failed to launch Active Harmony tuning session: " <<
-            endl << ah_error() << endl;
+    std::string init_point{inits.str()};
+    if (ah_def_cfg(tuning_session->hdef, "INIT_POINT", init_point.c_str()) != 0) {
+        cerr << "Failed to set Active Harmony initial point to " << init_point << endl;
         return APEX_ERROR;
     }
 
-    tuning_session->htask = ah_start(tuning_session->hdesc, tuning_session->hdef);
-    if (!tuning_session->htask) {
-        cerr << "Failed to join Active Harmony tuning session" << endl;
-        cerr << ah_error() << endl;
-        APEX_ASSERT(false);
-        return APEX_ERROR;
-    }
+    do {
+        useconds_t sleepytime = 1000;
+        tuning_session->htask = ah_start(tuning_session->hdesc, tuning_session->hdef);
+        if (!tuning_session->htask) {
+            cerr << "Failed to join Active Harmony tuning session. Reason:" << endl;
+            cerr << ah_error() << endl;
+            cerr << "Retrying..." << endl;
+        } else {
+            cout << "Joined Active Harmony tuning session" << endl;
+            break;
+        }
+        sleepytime = sleepytime * sleepytime;
+        if (sleepytime > 1000000) {
+            APEX_ASSERT(false);
+            return APEX_ERROR;
+        }
+        usleep(sleepytime);
+        apex_start_session(tuning_session, session_name, true);
+    } while (true);
+
+    ah_def_free(tuning_session->hdef);
 
     return APEX_NOERROR;
 }
