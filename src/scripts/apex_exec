@@ -273,7 +273,7 @@ done
 eval set -- "${PARAMS}"
 
 export APEX_POLICY=1
-export HARMONY_HOME=@ACTIVEHARMONY_ROOT@
+export HARMONY_HOME="@ACTIVEHARMONY_ROOT@"
 
 echo "Program to run : ${PARAMS}"
 
