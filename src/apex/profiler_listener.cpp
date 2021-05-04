@@ -400,7 +400,7 @@ std::unordered_set<profile*> free_profiles;
         }
       }
 #endif
-    if (apex_options::use_tasktree_output() && !p->is_counter) {
+    if (apex_options::use_tasktree_output() && !p->is_counter && p->tt_ptr != nullptr) {
         p->tt_ptr->tree_node->addAccumulated(p->elapsed_seconds(), p->is_resume);
     }
     return 1;

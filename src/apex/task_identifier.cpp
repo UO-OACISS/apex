@@ -72,6 +72,34 @@ std::mutex bfd_mutex;
         } else {
             std::string retval(name);
             if (resolve) {
+                static std::string cudastr("GPU: ");
+                static std::string kernel("cudaLaunchKernel: ");
+                static std::string kernel2("cuLaunchKernel: ");
+                if (retval.find(cudastr) != std::string::npos) {
+                    std::stringstream ss;
+                    std::string tmp = retval.substr(cudastr.size(),
+                            retval.size() - cudastr.size());
+                    std::string demangled = demangle(tmp);
+                    ss << cudastr << demangled;
+                    retval.assign(ss.str());
+                    return retval;
+                } else if (retval.find(kernel) != std::string::npos) {
+                    std::stringstream ss;
+                    std::string tmp = retval.substr(kernel.size(),
+                            retval.size() - kernel.size());
+                    std::string demangled = demangle(tmp);
+                    ss << kernel << demangled;
+                    retval.assign(ss.str());
+                    return retval;
+                } else if (retval.find(kernel2) != std::string::npos) {
+                    std::stringstream ss;
+                    std::string tmp = retval.substr(kernel2.size(),
+                            retval.size() - kernel2.size());
+                    std::string demangled = demangle(tmp);
+                    ss << kernel2 << demangled;
+                    retval.assign(ss.str());
+                    return retval;
+                }
 #ifdef APEX_HAVE_BFD
                 REGEX_NAMESPACE::regex rx (".*UNRESOLVED ADDR (.*)");
                 if (REGEX_NAMESPACE::regex_match (retval,rx)) {
@@ -88,33 +116,6 @@ std::mutex bfd_mutex;
                             (demangle(*tmp)));
                 }
 #endif
-                static std::string cudastr("GPU: ");
-                static std::string kernel("cudaLaunchKernel: ");
-                static std::string kernel2("cuLaunchKernel: ");
-                if (retval.find(cudastr) != std::string::npos) {
-                    std::stringstream ss;
-                    std::string tmp = retval.substr(cudastr.size(),
-                            retval.size() - cudastr.size());
-                    std::string demangled = demangle(tmp);
-                    ss << cudastr << demangled;
-                    retval.assign(ss.str());
-                } else if (retval.find(kernel) != std::string::npos) {
-                    std::stringstream ss;
-                    std::string tmp = retval.substr(kernel.size(),
-                            retval.size() - kernel.size());
-                    std::string demangled = demangle(tmp);
-                    ss << kernel << demangled;
-                    retval.assign(ss.str());
-                } else if (retval.find(kernel2) != std::string::npos) {
-                    std::stringstream ss;
-                    std::string tmp = retval.substr(kernel2.size(),
-                            retval.size() - kernel2.size());
-                    std::string demangled = demangle(tmp);
-                    ss << kernel2 << demangled;
-                    retval.assign(ss.str());
-                } else {
-                    retval.assign((demangle(retval)));
-                }
             }
             return retval;
         }

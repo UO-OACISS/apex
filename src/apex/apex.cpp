@@ -472,6 +472,14 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
 #else
     enable_memory_wrapper();
 #endif
+
+    // Unset the LD_PRELOAD variable, because Active Harmony is going to
+    // fork/execv a new session-core process, and we don't want APEX in
+    // that forked process.
+    const char * preload = getenv("LD_PRELOAD");
+    if (preload != nullptr) {
+        unsetenv("LD_PRELOAD");
+    }
     FUNCTION_EXIT
     return APEX_NOERROR;
 }
