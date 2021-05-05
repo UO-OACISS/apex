@@ -310,12 +310,14 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_POLICY_DRAIN_TIMEOUT, policy_drain_timeout, int, 1000) \
     macro (APEX_CUDA_COUNTERS, use_cuda_counters, int, false) \
     macro (APEX_CUDA_KERNEL_DETAILS, use_cuda_kernel_details, int, false) \
-    macro (APEX_CUDA_RUNTIME_API, use_cuda_runtime_api, int, true) \
-    macro (APEX_CUDA_DRIVER_API, use_cuda_driver_api, int, false) \
-    macro (APEX_CUDA_SYNC_ACTIVITY, use_cuda_sync_activity, int, true) \
-    macro (APEX_CUDA_MEMORY_ACTIVITY, use_cuda_memory_activity, int, true) \
-    macro (APEX_CUDA_KERNEL_ACTIVITY, use_cuda_kernel_activity, int, true) \
+    macro (APEX_CUDA_RUNTIME_API, use_cuda_runtime_api, bool, true) \
+    macro (APEX_CUDA_DRIVER_API, use_cuda_driver_api, bool, false) \
+    macro (APEX_CUDA_SYNC_ACTIVITY, use_cuda_sync_activity, bool, true) \
+    macro (APEX_CUDA_MEMORY_ACTIVITY, use_cuda_memory_activity, bool, true) \
+    macro (APEX_CUDA_KERNEL_ACTIVITY, use_cuda_kernel_activity, bool, true) \
     macro (APEX_JUPYTER_SUPPORT, use_jupyter_support, int, false) \
+    macro (APEX_KOKKOS_VERBOSE, use_kokkos_verbose, bool, false) \
+    macro (APEX_KOKKOS_TUNING, use_kokkos_tuning, bool, true) \
 
 #define FOREACH_APEX_STRING_OPTION(macro) \
     macro (APEX_PAPI_METRICS, papi_metrics, char*, "") \

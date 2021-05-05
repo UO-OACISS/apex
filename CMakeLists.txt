@@ -582,18 +582,6 @@ if((DEFINED PAPI_ROOT) OR (APEX_WITH_PAPI))
 endif()
 
 ################################################################################
-# Kokkos configuration
-################################################################################
-
-if((DEFINED Kokkos_ROOT) OR (APEX_WITH_Kokkos))
-    find_package(Kokkos REQUIRED)
-    if (Kokkos_FOUND)
-        include_directories(${Kokkos_INCLUDE_DIRS})
-        add_definitions(-DAPEX_HAVE_Kokkos)
-    endif()
-endif()
-
-################################################################################
 # OTF2 configuration
 ################################################################################
 

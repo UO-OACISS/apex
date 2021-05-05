@@ -274,6 +274,7 @@ set(apex_headers
     apex_cxx_shared_lock.hpp
     apex_export.h
     apex_api.hpp
+    apex_kokkos.hpp
     apex_options.hpp
     apex_policies.hpp
     apex_types.h
@@ -298,6 +299,8 @@ set(apex_headers
 
 set(apex_sources
     apex.cpp
+    apex_kokkos.cpp
+    apex_kokkos_tuning.cpp
     apex_options.cpp
     apex_policies.cpp
     concurrency_handler.cpp
