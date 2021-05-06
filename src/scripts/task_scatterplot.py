@@ -24,7 +24,7 @@ def shorten_name(name):
     return short.replace('_', '$\_$')
 
 dictionary = {}
-with open ('apex_task_samples.csv', 'rb') as csvfile:
+with open ('apex_task_samples.csv', 'r') as csvfile:
     spamreader = csv.reader(csvfile, delimiter=' ', quotechar='\'')
     index = 0
     for row in spamreader:
@@ -39,7 +39,7 @@ with open ('apex_task_samples.csv', 'rb') as csvfile:
                 dictionary[row[2]] = [mytup]
             else:
                 dictionary[row[2]].append(mytup)
-    print "Parsed", index, "samples"
+    print ("Parsed", index, "samples")
 
 #resize the figure
 # Get current size
@@ -56,7 +56,7 @@ index = 0
 numplots = min(len(dictionary), 10)
 for key in sorted(dictionary, key=lambda key: len(dictionary[key]), reverse=True):
     index = index + 1
-    print "Plotting", key
+    print ("Plotting", key)
     axes = pl.subplot(((numplots+1)/2), 2, index)
     timestamps = np.array([x[0] for x in dictionary[key]])
     values = np.array([x[1] for x in dictionary[key]])
@@ -72,7 +72,7 @@ for key in sorted(dictionary, key=lambda key: len(dictionary[key]), reverse=True
     pl.xlabel("seconds from program start")
     if index >= numplots:
         break
-print "Rendering..."
+print ("Rendering...")
 pl.tight_layout()
 #pl.show()
 pl.savefig("image.png")
