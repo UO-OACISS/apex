@@ -254,6 +254,8 @@ public:
   void stop_main_timer(void);
   void yield_main_timer(void);
   void resume_main_timer(void);
+  void increment_main_timer_allocations(double bytes);
+  void increment_main_timer_frees(double bytes);
   void push_profiler_public(std::shared_ptr<profiler> &p);
 };
 

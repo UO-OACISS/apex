@@ -189,16 +189,20 @@ typedef enum _profile_type {
  */
 typedef struct _profile
 {
-    double calls;         /*!< Number of times a timer was called, or the number
-                              of samples collected for a counter */
-    double accumulated;   /*!< Accumulated values for all calls/samples */
-    double sum_squares;   /*!< Running sum of squares calculation for all
-                              calls/samples */
-    double minimum;       /*!< Minimum value seen by the timer or counter */
-    double maximum;       /*!< Maximum value seen by the timer or counter */
+    double calls;           /*!< Number of times a timer was called, or the number
+                                 of samples collected for a counter */
+    double accumulated;     /*!< Accumulated values for all calls/samples */
+    double sum_squares;     /*!< Running sum of squares calculation for all
+                                 calls/samples */
+    double minimum;         /*!< Minimum value seen by the timer or counter */
+    double maximum;         /*!< Maximum value seen by the timer or counter */
     apex_profile_type type; /*!< Whether this is a timer or a counter */
-    double papi_metrics[8];  /*!< Array of accumulated PAPI hardware metrics */
-    int times_reset;      /*!< How many times was this timer reset */
+    double papi_metrics[8]; /*!< Array of accumulated PAPI hardware metrics */
+    size_t allocations;     /*!< total calls to [m/c/re]alloc and related */
+    size_t frees;           /*!< total calls to free and related (realloc) */
+    size_t bytes_allocated; /*!< total bytes allocated in this task */
+    size_t bytes_freed;     /*!< total bytes freed in this task */
+    int times_reset;        /*!< How many times was this timer reset */
 } apex_profile;
 
 /** Rather than use void pointers everywhere, be explicit about

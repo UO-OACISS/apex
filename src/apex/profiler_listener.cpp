@@ -287,8 +287,14 @@ std::unordered_set<profile*> free_profiles;
         if(p->is_reset == reset_type::CURRENT) {
             theprofile->reset();
         } else {
-            theprofile->increment(p->elapsed(), tmp_num_counters,
-                values, p->is_resume);
+            if (apex_options::track_memory()) {
+                theprofile->increment(p->elapsed(), tmp_num_counters,
+                    values, p->allocations, p->frees, p->bytes_allocated,
+                    p->bytes_freed, p->is_resume);
+            } else {
+                theprofile->increment(p->elapsed(), tmp_num_counters,
+                    values, p->is_resume);
+            }
         }
 #if defined(APEX_THROTTLE)
         if (!apex_options::use_tau()) {
@@ -324,11 +330,20 @@ std::unordered_set<profile*> free_profiles;
 #endif
       } else {
         // Create a new profile for this name.
-        theprofile = new profile(p->is_reset ==
-            reset_type::CURRENT ? 0.0 : p->elapsed(),
-            tmp_num_counters, values, p->is_resume,
-            p->is_counter ? APEX_COUNTER : APEX_TIMER);
-        task_map[*(p->get_task_id())] = theprofile;
+        if (apex_options::track_memory() && !p->is_counter) {
+            theprofile = new profile(p->is_reset ==
+                reset_type::CURRENT ? 0.0 : p->elapsed(),
+                tmp_num_counters, values, p->is_resume,
+                p->allocations, p->frees, p->bytes_allocated,
+                p->bytes_freed);
+            task_map[*(p->get_task_id())] = theprofile;
+        } else {
+            theprofile = new profile(p->is_reset ==
+                reset_type::CURRENT ? 0.0 : p->elapsed(),
+                tmp_num_counters, values, p->is_resume,
+                p->is_counter ? APEX_COUNTER : APEX_TIMER);
+            task_map[*(p->get_task_id())] = theprofile;
+        }
         task_map_lock.unlock();
 #ifdef APEX_HAVE_HPX
 #ifdef APEX_REGISTER_HPX3_COUNTERS
@@ -548,7 +563,7 @@ std::unordered_set<profile*> free_profiles;
             double tmp = ((p->get_accumulated_seconds())
                 /total_main)*100.0;
             if (tmp > 100.0) {
-                screen_output << " --n/a--   " ;
+                screen_output << " --n/a--" ;
             } else {
                 screen_output << string_format(FORMAT_PERCENT, tmp);
             }
@@ -560,6 +575,43 @@ std::unordered_set<profile*> free_profiles;
             csv_output << "," << std::llround(p->get_papi_metrics()[i]);
         }
 #endif
+        if (apex_options::track_memory()) {
+            if (p->get_allocations() > 999999) {
+                screen_output  << "   " << string_format(FORMAT_SCIENTIFIC,
+                    (p->get_allocations()));
+            } else {
+                screen_output  << "   " << string_format(PAD_WITH_SPACES,
+                    to_string((int)p->get_allocations()).c_str());
+            }
+            csv_output << "," << std::llround(p->get_allocations());
+
+            if (p->get_bytes_allocated() > 999999) {
+                screen_output  << "   " << string_format(FORMAT_SCIENTIFIC,
+                    (p->get_bytes_allocated()));
+            } else {
+                screen_output  << "   " << string_format(PAD_WITH_SPACES,
+                    to_string((int)p->get_bytes_allocated()).c_str());
+            }
+            csv_output << "," << std::llround(p->get_bytes_allocated());
+
+            if (p->get_frees() > 999999) {
+                screen_output  << "   " << string_format(FORMAT_SCIENTIFIC,
+                    (p->get_frees()));
+            } else {
+                screen_output  << "   " << string_format(PAD_WITH_SPACES,
+                    to_string((int)p->get_frees()).c_str());
+            }
+            csv_output << "," << std::llround(p->get_frees());
+
+            if (p->get_bytes_freed() > 999999) {
+                screen_output  << "   " << string_format(FORMAT_SCIENTIFIC,
+                    (p->get_bytes_freed()));
+            } else {
+                screen_output  << "   " << string_format(PAD_WITH_SPACES,
+                    to_string((int)p->get_bytes_freed()).c_str());
+            }
+            csv_output << "," << std::llround(p->get_bytes_freed());
+        }
         screen_output << endl;
         csv_output << endl;
       } else {
@@ -669,8 +721,8 @@ std::unordered_set<profile*> free_profiles;
             }
         }
         screen_output << "------------------------------------------"
-            << "------------------------------------------------------" << endl
-            << endl;;
+            << "------------------------------------------------------\n";
+        screen_output << "\n" << endl;
     }
     csv_output << "\n\n\"task\",\"num calls\",\"total microseconds\"";
 #if APEX_HAVE_PAPI
@@ -678,6 +730,9 @@ std::unordered_set<profile*> free_profiles;
        csv_output << ",\"" << metric_names[i] << "\"";
     }
 #endif
+    if (apex_options::track_memory()) {
+       csv_output << ",\"allocations\", \"bytes allocated\", \"frees\", \"bytes freed\"";
+    }
     csv_output << endl;
     std::string re("PAPI_");
     std::string tmpstr(apex_options::papi_metrics());
@@ -693,10 +748,18 @@ std::unordered_set<profile*> free_profiles;
     }
     screen_output << "Timer                                                : "
         << "#calls  |    mean  |   total  |  % total  "
-        << tmpstr << endl;
+        << tmpstr;
+    if (apex_options::track_memory()) {
+       screen_output << "|  allocs |  (bytes) |    frees |   (bytes) ";
+    }
+    screen_output << endl;
     screen_output << "----------------------------------------------"
-        << "--------------------------------------------------" << endl;
-     id_vector.clear();
+        << "--------------------------------------------------";
+    if (apex_options::track_memory()) {
+        screen_output << "--------------------------------------------";
+    }
+    screen_output << endl;
+    id_vector.clear();
     // iterate over the timers
     for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
         profile * p = it2->second;
@@ -732,7 +795,11 @@ std::unordered_set<profile*> free_profiles;
         ((idle_rate/total_main)*100)) << endl;
     }
     screen_output << "--------------------------------------------------"
-        << "----------------------------------------------" << endl;
+        << "----------------------------------------------";
+    if (apex_options::track_memory()) {
+        screen_output << "--------------------------------------------";
+    }
+    screen_output << endl;
     screen_output << string_format("%52s", "Total timers") << " : ";
     //if (total_hpx_threads < 999999) {
         //screen_output << string_format(PAD_WITH_SPACES,
@@ -1746,6 +1813,18 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
   void profiler_listener::resume_main_timer(void) {
       APEX_ASSERT(main_timer != nullptr);
       main_timer->restart();
+  }
+
+  void profiler_listener::increment_main_timer_allocations(double bytes) {
+      APEX_ASSERT(main_timer != nullptr);
+      main_timer->allocations++;
+      main_timer->bytes_allocated += bytes;
+  }
+
+  void profiler_listener::increment_main_timer_frees(double bytes) {
+      APEX_ASSERT(main_timer != nullptr);
+      main_timer->frees++;
+      main_timer->bytes_freed += bytes;
   }
 
   void profiler_listener::stop_main_timer(void) {

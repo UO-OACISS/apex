@@ -56,6 +56,10 @@ public:
     long long papi_start_values[8];
     long long papi_stop_values[8];
 #endif
+    double allocations;
+    double frees;
+    double bytes_allocated;
+    double bytes_freed;
     double value;
     double children_value;
     uint64_t guid;
@@ -80,6 +84,7 @@ public:
         papi_start_values{0,0,0,0,0,0,0,0},
         papi_stop_values{0,0,0,0,0,0,0,0},
 #endif
+        allocations(0), frees(0), bytes_allocated(0), bytes_freed(0),
         value(0.0),
         children_value(0.0),
         guid(task->guid),
@@ -97,6 +102,7 @@ public:
         papi_start_values{0,0,0,0,0,0,0,0},
         papi_stop_values{0,0,0,0,0,0,0,0},
 #endif
+        allocations(0), frees(0), bytes_allocated(0), bytes_freed(0),
         value(0.0),
         children_value(0.0),
         guid(0),
@@ -112,6 +118,7 @@ public:
         papi_start_values{0,0,0,0,0,0,0,0},
         papi_stop_values{0,0,0,0,0,0,0,0},
 #endif
+        allocations(0), frees(0), bytes_allocated(0), bytes_freed(0),
         value(value_),
         children_value(0.0),
         is_counter(true),
@@ -123,6 +130,10 @@ public:
         tt_ptr(in.tt_ptr),
         start_ns(in.start_ns),
         end_ns(in.end_ns),
+        allocations(in.allocations),
+        frees(in.frees),
+        bytes_allocated(in.bytes_allocated),
+        bytes_freed(in.bytes_freed),
         value(in.value),
         children_value(in.children_value),
         guid(in.guid),

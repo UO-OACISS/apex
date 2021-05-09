@@ -51,8 +51,8 @@ namespace apex
 #endif
                 }
             }
-            conf_file.close();
         }
+        conf_file.close();
 
         char* option = nullptr;
 // getenv is not thread-safe, but the constructor for this static singleton is.

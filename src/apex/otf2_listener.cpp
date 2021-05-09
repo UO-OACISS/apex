@@ -924,6 +924,11 @@ namespace apex {
         static bool _finalized = false;
         if (_finalized) { return; }
         _finalized = true;
+        // if we are tracking memory, there are some alloc/free events
+        // we recorded before the end of the trace.
+        if (apex_options::track_memory()) {
+            saved_end_timestamp = get_time();
+        }
          // get an exclusive lock, to make sure no other threads
         // are writing to the archive.
         write_lock_type lock(_archive_mutex);

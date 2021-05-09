@@ -1110,12 +1110,16 @@ void yield(std::shared_ptr<task_wrapper> tt_ptr)
 void sample_value(const std::string &name, double value, bool threaded)
 {
     in_apex prevent_deadlocks;
+    // check these before checking the options, because if we have already
+    // cleaned up, checking the options can cause deadlock. This can
+    // happen if we are tracking memory.
+    if (_exited || _measurement_stopped) return; // protect against calls after finalization
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
     // if APEX is suspended, do nothing.
     if (apex_options::suspend() == true) { return; }
     apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance || _exited) return; // protect against calls after finalization
+    if (!instance) return; // protect against calls after finalization
     // parse the counter name
     // either /threadqueue{locality#0/total}/length
     // or     /threadqueue{locality#0/worker-thread#0}/length
@@ -1411,6 +1415,7 @@ void finalize_plugins(void) {
 // forward declare CUPTI buffer flushing
 #ifdef APEX_WITH_CUDA
 void flushTrace(void);
+void finalizeCuda(void);
 #endif
 
 std::string dump(bool reset) {
@@ -1494,6 +1499,7 @@ void finalize()
     /* This could take a while */
 #ifdef APEX_WITH_CUDA
     flushTrace();
+    finalizeCuda();
 #endif
 #ifdef APEX_HAVE_TCMALLOC
     //tcmalloc::destroy_hook();
@@ -1571,6 +1577,7 @@ void cleanup(void) {
     }
     */
     delete(instance);
+    // stop tracking memory!
     FUNCTION_EXIT
 }
 

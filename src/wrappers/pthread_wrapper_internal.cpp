@@ -52,7 +52,6 @@ struct apex_system_wrapper_t
     }
   }
   virtual ~apex_system_wrapper_t() {
-    apex::apex_options::use_screen_output(true);
     apex::finalize();
   }
 };
@@ -210,6 +209,9 @@ int apex_pthread_create_wrapper(pthread_create_p pthread_create_call,
     pthread_t * threadp, const pthread_attr_t * attr,
     start_routine_p start_routine, void * arg)
 {
+  // disable the memory wrapper
+  apex::in_apex prevent_problems;
+  apex::profiler * p = apex::start("pthread_create");
   // JUST ONCE, create the key
   (void) pthread_once(&key_once, make_key);
   // get the thread-local variable
@@ -238,6 +240,7 @@ int apex_pthread_create_wrapper(pthread_create_p pthread_create_call,
     }
     wrapper->_wrapped = false;
   }
+  apex::stop(p);
   return retval;
 }
 
@@ -245,6 +248,8 @@ extern "C"
 int apex_pthread_join_wrapper(pthread_join_p pthread_join_call,
     pthread_t thread, void ** retval)
 {
+  // disable the memory wrapper
+  apex::in_apex prevent_problems;
   apex_wrapper * wrapper = get_tl_wrapper();
 
   int ret;

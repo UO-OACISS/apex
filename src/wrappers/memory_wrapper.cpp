@@ -54,9 +54,14 @@ void apex_memory_initialized() {
 }
 
 extern "C"
-void apex_memory_finalized() {
+void apex_memory_lights_out() {
     apex_ready() = false;
     apex_report_leaks();
+}
+
+extern "C"
+void apex_memory_finalized() {
+    //apex_memory_lights_out();
 }
 
 extern "C"
@@ -71,12 +76,19 @@ void apex_memory_dl_initialized() {
 char bootstrap_heap[BOOTSTRAP_HEAP_SIZE];
 char * bootstrap_base = bootstrap_heap;
 
+uintptr_t reportHeapLocation() {
+    printf("Bootstrap heap located at: %p\n", &bootstrap_heap[0]);
+    return (uintptr_t)&bootstrap_heap[0];
+}
+
 static inline int is_bootstrap(void * ptr) {
     char const * const p = (char*)ptr;
     return (p < bootstrap_heap + BOOTSTRAP_HEAP_SIZE) && (bootstrap_heap < p);
 }
 
 static void * bootstrap_alloc(size_t align, size_t size) {
+    //static uintptr_t dummy = reportHeapLocation();
+    //APEX_UNUSED(dummy);
     char * ptr;
 
     // Check alignment.  Default alignment is sizeof(long)

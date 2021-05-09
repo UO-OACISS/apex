@@ -123,6 +123,7 @@ while (( "$#" )); do
     --apex:memory)
       memory=yes
       export APEX_TRACK_MEMORY=1
+      export APEX_SOURCE_LOCATION=1
       shift
       ;;
     --apex:otf2)

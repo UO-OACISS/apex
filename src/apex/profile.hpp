@@ -42,6 +42,34 @@ public:
         _profile.minimum = initial;
         _profile.maximum = initial;
 #endif
+        _profile.allocations = 0;
+        _profile.frees = 0;
+        _profile.bytes_allocated = 0;
+        _profile.bytes_freed = 0;
+    };
+    profile(double initial, int num_metrics, double * papi_metrics, bool
+        yielded, double allocations, double frees, double bytes_allocated,
+        double bytes_freed) {
+        _profile.type = APEX_TIMER;
+        if (!yielded) {
+            _profile.calls = 1.0;
+        } else {
+            _profile.calls = 0.0;
+        }
+        _profile.accumulated = initial;
+        for (int i = 0 ; i < num_metrics ; i++) {
+            _profile.papi_metrics[i] = papi_metrics[i];
+        }
+        _profile.times_reset = 0;
+#ifdef FULL_STATISTICS
+        _profile.sum_squares = initial*initial;
+        _profile.minimum = initial;
+        _profile.maximum = initial;
+#endif
+        _profile.allocations = allocations;
+        _profile.frees = frees;
+        _profile.bytes_allocated = bytes_allocated;
+        _profile.bytes_freed = bytes_freed;
     };
     void increment(double increase, int num_metrics, double * papi_metrics,
         bool yielded) {
@@ -58,6 +86,15 @@ public:
         if (!yielded) {
           _profile.calls = _profile.calls + 1.0;
         }
+    }
+    void increment(double increase, int num_metrics, double * papi_metrics,
+        double allocations, double frees, double bytes_allocated, double bytes_freed,
+        bool yielded) {
+        increment(increase, num_metrics, papi_metrics, yielded);
+        _profile.allocations += allocations;
+        _profile.frees += frees;
+        _profile.bytes_allocated += bytes_allocated;
+        _profile.bytes_freed += bytes_freed;
     }
     void reset() {
         _profile.calls = 0.0;
@@ -103,6 +140,10 @@ public:
         return _profile.sum_squares;
     }
     double get_stddev() { return sqrt(get_variance()); }
+    double get_allocations() { return _profile.allocations; }
+    double get_frees() { return _profile.frees; }
+    double get_bytes_allocated() { return _profile.bytes_allocated; }
+    double get_bytes_freed() { return _profile.bytes_freed; }
     apex_profile_type get_type() { return _profile.type; }
     apex_profile * get_profile() { return &_profile; };
 

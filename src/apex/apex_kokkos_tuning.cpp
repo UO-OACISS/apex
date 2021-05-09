@@ -463,7 +463,9 @@ extern "C" {
  */
 void kokkosp_declare_output_type(const char* name, const size_t id,
     Kokkos_Tools_VariableInfo& info) {
-    if (!apex::apex_options::use_kokkos_tuning()) { return; }
+    // don't track memory in this function.
+    apex::in_apex prevent_memory_tracking;
+    //if (!apex::apex_options::use_kokkos_tuning()) { return; }
     if(getSession().verbose) {
         std::cout << std::string(getDepth(), ' ');
         std::cout << __func__ << std::endl;
@@ -483,7 +485,9 @@ void kokkosp_declare_output_type(const char* name, const size_t id,
  */
 void kokkosp_declare_input_type(const char* name, const size_t id,
     Kokkos_Tools_VariableInfo& info) {
-    if (!apex::apex_options::use_kokkos_tuning()) { return; }
+    // don't track memory in this function.
+    apex::in_apex prevent_memory_tracking;
+    //if (!apex::apex_options::use_kokkos_tuning()) { return; }
     if(getSession().verbose) {
         std::cout << std::string(getDepth(), ' ');
         std::cout << __func__ << std::endl;
@@ -519,7 +523,8 @@ void kokkosp_request_values(
     const Kokkos_Tools_VariableValue* contextVariableValues,
     const size_t numTuningVariables,
     Kokkos_Tools_VariableValue* tuningVariableValues) {
-    if (!apex::apex_options::use_kokkos_tuning()) { return; }
+    // don't track memory in this function.
+    apex::in_apex prevent_memory_tracking;
     if (getSession().verbose) {
         std::cout << std::string(getDepth(), ' ');
         std::cout << __func__ << " ctx: " << contextId;
@@ -527,9 +532,11 @@ void kokkosp_request_values(
     }
     std::string name{hashContext(numContextVariables, contextVariableValues,
         getSession().inputs)};
-    handle_start(name, numTuningVariables, tuningVariableValues);
     getSession().active_requests.insert(
         std::pair<uint32_t, std::string>(contextId, name));
+    if (apex::apex_options::use_kokkos_tuning()) {
+        handle_start(name, numTuningVariables, tuningVariableValues);
+    }
     if (getSession().verbose) {
         std::cout << std::endl << std::string(getDepth(), ' ');
         printTuning(numTuningVariables, tuningVariableValues);
@@ -543,7 +550,9 @@ void kokkosp_request_values(
  * starting measurement.
  */
 void kokkosp_begin_context(size_t contextId) {
-    if (!apex::apex_options::use_kokkos_tuning()) { return; }
+    // don't track memory in this function.
+    apex::in_apex prevent_memory_tracking;
+    //if (!apex::apex_options::use_kokkos_tuning()) { return; }
     if (getSession().verbose) {
         std::cout << std::string(getDepth()++, ' ');
         std::cout << __func__ << "\t" << contextId << std::endl;
@@ -558,7 +567,8 @@ void kokkosp_begin_context(size_t contextId) {
  * values can now be associated with a result.
  */
 void kokkosp_end_context(const size_t contextId) {
-    if (!apex::apex_options::use_kokkos_tuning()) { return; }
+    // don't track memory in this function.
+    apex::in_apex prevent_memory_tracking;
     if (getSession().verbose) {
         std::cout << std::string(--getDepth(), ' ');
         std::cout << __func__ << "\t" << contextId << std::endl;
@@ -569,7 +579,9 @@ void kokkosp_end_context(const size_t contextId) {
     if (name != getSession().active_requests.end() &&
         start != getSession().context_starts.end()) {
         apex::sample_value(name->second, (double)(end-start->second));
-        handle_stop(name->second);
+        if (apex::apex_options::use_kokkos_tuning()) {
+            handle_stop(name->second);
+        }
         getSession().active_requests.erase(contextId);
         getSession().context_starts.erase(contextId);
     }
