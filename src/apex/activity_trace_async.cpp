@@ -1548,16 +1548,30 @@ void handle_nvtx_callback(CUpti_CallbackId id, const void *cbdata,
     }
 }
 
-inline bool ignoreMalloc(CUpti_CallbackId id) {
-    if (id == CUPTI_RUNTIME_TRACE_CBID_cudaDeviceSynchronize_v3020 ||
-        id == CUPTI_RUNTIME_TRACE_CBID_cudaGetDeviceCount_v3020 ||
-        id == CUPTI_RUNTIME_TRACE_CBID_cudaGetDevice_v3020 ||
-        id == CUPTI_RUNTIME_TRACE_CBID_cudaSetDevice_v3020 ||
-        id == CUPTI_RUNTIME_TRACE_CBID_cudaChooseDevice_v3020 ||
-        id == CUPTI_RUNTIME_TRACE_CBID_cudaGetDeviceProperties_v3020) {
-        return true;
+bool ignoreMalloc(CUpti_CallbackDomain domain,
+    CUpti_ApiCallbackSite site, CUpti_CallbackId id) {
+    static bool ignore{true};
+    // this is a one way switch, when changed it never changes again
+    // We want to ignore memory tracking on only the first CUPTI Runtime
+    // call, because CUPTI leaks so much memory!
+    if (ignore) {
+        if (domain == CUPTI_CB_DOMAIN_RUNTIME_API) {
+            if (site == CUPTI_API_ENTER) {
+                //printf("Ignoring on event %d\n", id);
+                apex::in_apex::get()++;
+            } else if (site == CUPTI_API_EXIT) {
+                //printf("Ignoring on event %d\n", id);
+                apex::in_apex::get()--;
+                // All of the events under the code of cudaMalloc don't
+                // do much, so until we see a "real" API call that does
+                // significant work, ignore memory accesses.
+                if (id > CUPTI_RUNTIME_TRACE_CBID_cudaSetDeviceFlags_v3020) {
+                    ignore = false;
+                }
+            }
+        }
     }
-    return false;
+    return ignore;
 }
 
 void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
@@ -1595,9 +1609,12 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
 
     CUpti_CallbackData * cbdata = (CUpti_CallbackData*)(params);
 
+    // sadly, CUPTI leaks a lot of memory from the first runtime API call.
+    if (apex::apex_options::track_memory()) {
+        ignoreMalloc(domain, cbdata->callbackSite, id);
+    }
+
     if (cbdata->callbackSite == CUPTI_API_ENTER) {
-        // sadly, CUPTI leaks a lot of memory.  Don't track memory in CUPTI or CUDA.
-        // apex::in_apex::get()++;
         std::stringstream ss;
         ss << cbdata->functionName;
         if (apex::apex_options::use_cuda_kernel_details()) {
@@ -1617,12 +1634,6 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
         map_mutex.unlock();
         getBytesIfMalloc(id, cbdata->functionParams, tmp, true);
     } else {
-        // sadly, CUPTI leaks a lot of memory.  Don't track memory in CUPTI or CUDA.
-        /*
-        if (cbdata->callbackSite == CUPTI_API_EXIT) {
-            apex::in_apex::get()--;
-        }
-        */
         /* Not sure how to use this yet... if this is a kernel launch, we can
          * run a function on the host, launched from the stream.  That gives us
          * a synchronous callback to tell us an event when the kernel finished.
@@ -1671,7 +1682,7 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
 void initTrace() {
     // disable memory management tracking in APEX during this initialization
     apex::in_apex prevent_deadlocks;
-    // make a first call into CUDA
+    // make sure APEX doesn't re-register this thread
     bool& registered = get_registered();
     registered = true;
 
@@ -1757,61 +1768,8 @@ namespace apex {
     }
 
     void finalizeCuda(void) {
-        std::cout << "Finalizing CUPTI " << std::endl;
         flushTrace();
         CUPTI_CALL(cuptiUnsubscribe(subscriber));
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_UNIFIED_MEMORY_COUNTER)); // 25
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_CONCURRENT_KERNEL)); // 10
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_MEMCPY)); // 1
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_MEMCPY2)); // 22
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_MEMSET)); // 2
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_SYNCHRONIZATION)); // 38
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_OPENACC_DATA)); // 33
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_OPENACC_LAUNCH)); // 34
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_OPENACC_OTHER)); // 35
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_OPENMP)); // 47
-        #if 0
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_KERNEL)); // 3   <- disables concurrency
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_DRIVER)); // 4
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_RUNTIME)); // 5
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_EVENT)); // 6
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_METRIC)); // 7
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_DEVICE)); // 8
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_CONTEXT)); // 9
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_NAME)); // 11
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_MARKER)); // 12
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_MARKER_DATA)); // 13
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_SOURCE_LOCATOR)); // 14
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_GLOBAL_ACCESS)); // 15
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_BRANCH)); // 16
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_OVERHEAD)); // 17
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_CDP_KERNEL)); // 18
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_PREEMPTION)); // 19
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_ENVIRONMENT)); // 20
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_EVENT_INSTANCE)); // 21
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_METRIC_INSTANCE)); // 23
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_INSTRUCTION_EXECUTION)); // 24
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_UNIFIED_MEMORY_COUNTER)); // 25
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_FUNCTION)); // 26
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_MODULE)); // 27
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_DEVICE_ATTRIBUTE)); // 28
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_SHARED_ACCESS)); // 29
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_PC_SAMPLING)); // 30
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_PC_SAMPLING_RECORD_INFO)); // 31
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_INSTRUCTION_CORRELATION)); // 32
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_CUDA_EVENT)); // 36
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_STREAM)); // 37
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_SYNCHRONIZATION)); // 38
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION)); // 39
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_NVLINK)); // 40
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_INSTANTANEOUS_EVENT)); // 41
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_INSTANTANEOUS_EVENT_INSTANCE)); // 42
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_INSTANTANEOUS_METRIC)); // 43
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_INSTANTANEOUS_METRIC_INSTANCE)); // 44
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_MEMORY)); // 45
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_PCIE)); // 46
-        CUPTI_CALL(cuptiActivityDisable(CUPTI_ACTIVITY_KIND_COUNT)); // 49
-        #endif
-        cuptiFinalize();
+        CUPTI_CALL(cuptiFinalize());
     }
 }
