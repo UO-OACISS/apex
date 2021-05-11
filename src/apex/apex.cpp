@@ -1501,12 +1501,6 @@ void finalize()
     flushTrace();
     finalizeCuda();
 #endif
-#ifdef APEX_HAVE_TCMALLOC
-    //tcmalloc::destroy_hook();
-    disable_memory_wrapper();
-#else
-    disable_memory_wrapper();
-#endif
     // stop processing new timers/counters/messages/tasks/etc.
     apex_options::suspend(true);
     // now, process all output
@@ -1532,6 +1526,10 @@ void finalize()
             }
         }
     }
+#ifdef APEX_HAVE_TCMALLOC
+    //tcmalloc::destroy_hook();
+#endif
+    disable_memory_wrapper();
 #if APEX_HAVE_BFD
     address_resolution::delete_instance();
 #endif
@@ -1577,7 +1575,6 @@ void cleanup(void) {
     }
     */
     delete(instance);
-    // stop tracking memory!
     FUNCTION_EXIT
 }
 

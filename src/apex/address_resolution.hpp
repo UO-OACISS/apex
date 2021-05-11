@@ -58,6 +58,7 @@ namespace apex {
           return _instance;
       }
       static void delete_instance() {
+          disable_memory_wrapper();
           delete(_instance);
       }
       ~address_resolution(void) {
