@@ -32,7 +32,8 @@ class Node {
         static size_t nodeCount;
     public:
         Node(task_identifier* id, Node* p) :
-            data(id), parent(p), count(1), calls(0), accumulated(0), index(++nodeCount) {
+            data(id), parent(p), count(1), calls(0), accumulated(0),
+            min(0), max(0), sumsqr(0), index(++nodeCount) {
         }
         ~Node() {
             treeMutex.lock();

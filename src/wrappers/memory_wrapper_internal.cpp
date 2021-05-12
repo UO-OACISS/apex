@@ -268,9 +268,10 @@ void apex_report_leaks() {
     if (book.saved_node_id == 0) {
         std::cout << "Aggregating leaks by task and writing report..." << std::endl;
 #ifdef APEX_WITH_CUDA
-        std::cout << "Ignoring known leaks in CUPTI..." << std::endl;
+        std::cout << "Ignoring known leaks in CUDA/CUPTI..." << std::endl;
 #endif
     }
+    size_t actual_leaks{0};
     // Print the sorted value
     for (auto& it : sorted) {
         std::stringstream ss;
@@ -280,17 +281,33 @@ void apex_report_leaks() {
             //break;
         //}
         std::string name{"(no timer)"};
+        bool nameless{true};
         if (it.second.id != nullptr) {
-            name = it.second.id->name;
+            name = it.second.id->get_name();
             // skip known CUPTI leaks.
-            if (name.rfind("cuda", 0) == 0) { continue; }
+            //if (name.rfind("cuda", 0) == 0) { continue; }
+            nameless = false;
         }
         ss << name << " on tid " << it.second.tid << " with backtrace: " << std::endl;
         ss << "\t" << allocator_strings[it.second.alloc] << std::endl;
         char** strings = backtrace_symbols( it.second.backtrace.data(), it.second.size );
+        bool skip{false};
         for(size_t i = 3; i < it.second.size; i++ ){
-            ss << "\t" << apex::demangle(strings[i]) << std::endl;
+            std::string tmp{strings[i]};
+            if (tmp.find("cuInit", 0) != std::string::npos) { skip = true; break; }
+            if (tmp.find("libcudart", 0) != std::string::npos) { skip = true; break; }
+            if (tmp.find("libcupti", 0) != std::string::npos) { skip = true; break; }
+            if (tmp.find("pthread_once", 0) != std::string::npos) { skip = true; break; }
+            if (tmp.find("atexit", 0) != std::string::npos) { skip = true; break; }
+            if (tmp.find("apex_pthread_function", 0) != std::string::npos) { skip = true; break; }
+            if (nameless) {
+                if (tmp.find("libcuda", 0) != std::string::npos) { skip = true; break; }
+                if (tmp.find("GOMP_parallel", 0) != std::string::npos) { skip = true; break; }
+            }
+            std::string* tmp2{apex::lookup_address(((uintptr_t)it.second.backtrace[i]), true)};
+            ss << "\t" << *tmp2 << std::endl;
         }
+        if (skip) { continue; }
 
         /*
         //for (auto a : it.second.backtrace) {
@@ -310,8 +327,10 @@ void apex_report_leaks() {
         }
         */
         report << ss.str();
+        actual_leaks++;
     }
     report.close();
+    std::cout << "Reported " << actual_leaks << " 'actual' leaks.\nExpect false positives if memory was freed after exit." << std::endl;
 
 /*
     std::cout << "sorting task leaks by size..." << std::endl;

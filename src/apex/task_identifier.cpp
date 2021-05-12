@@ -62,7 +62,8 @@ std::mutex bfd_mutex;
             shorter = shorter.substr(0, trim_at);
         }
         trim_at = shorter.find("<");
-        if (trim_at != std::string::npos) {
+        size_t addr = shorter.find("addr", 0);
+        if (trim_at != std::string::npos && addr == std::string::npos) {
             shorter = shorter.substr(0, trim_at);
         }
         size_t maxlength = 50;

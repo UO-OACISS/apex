@@ -75,6 +75,7 @@ int main(int argc, char * argv[]) {
     CURAND_CALL(curandGenerateUniform(gen, rand_dev1, N));
     CUDA_CALL(cudaMemcpy(rand_host[i], rand_dev1, N * sizeof(float),cudaMemcpyDeviceToHost));
   }
+  CURAND_CALL(curandDestroyGenerator(gen));
 
   cudaDeviceSynchronize();
 

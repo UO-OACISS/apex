@@ -56,12 +56,16 @@ void apex_memory_initialized() {
 extern "C"
 void apex_memory_lights_out() {
     apex_ready() = false;
-    apex_report_leaks();
+    static bool once{false};
+    if (!once) {
+        apex_report_leaks();
+        once = true;
+    }
 }
 
 extern "C"
 void apex_memory_finalized() {
-    //apex_memory_lights_out();
+    apex_memory_lights_out();
 }
 
 extern "C"

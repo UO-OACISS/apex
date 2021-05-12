@@ -104,16 +104,16 @@ double Node::writeNodeASCII(double total, size_t indent) {
     double acc = (data == task_identifier::get_task_id(apex_main_str)) ?
         total : accumulated;
     double percentage = (accumulated / total) * 100.0;
-    std::cout << std::setprecision(5) << acc << " - "
-              << std::setprecision(4) << percentage << "% [";
+    std::cout << std::fixed << std::setprecision(5) << acc << " - "
+              << std::fixed << std::setprecision(4) << percentage << "% [";
     // write the number of calls
     double ncalls = (calls == 0) ? 1 : calls;
-    std::cout << ncalls << "]";
+    std::cout << std::fixed << std::setprecision(0) << ncalls << "]";
     // write other stats - min, max, stddev
     double mean = acc / ncalls;
     double variance = ((sumsqr / ncalls) - (mean * mean));
     double stddev = sqrt(variance);
-    std::cout << " {min=" << std::setprecision(4) << min << ", max=" << max
+    std::cout << " {min=" << std::fixed << std::setprecision(4) << min << ", max=" << max
               << ", mean=" << mean << ", var=" << variance
               << ", std dev=" << stddev << "}";
     // end the line
