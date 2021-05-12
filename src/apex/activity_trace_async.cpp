@@ -1771,5 +1771,6 @@ namespace apex {
         flushTrace();
         CUPTI_CALL(cuptiUnsubscribe(subscriber));
         CUPTI_CALL(cuptiFinalize());
+        get_range_map().clear();
     }
 }

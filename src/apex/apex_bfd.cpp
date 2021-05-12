@@ -273,6 +273,8 @@ struct apex_bfd_unit_vector_t : public std::vector<ApexBfdUnit*>
         //addresses. Bummer.
         apex::finalize();
         //printf("deleting BFD objects\n");
+        // memory leak detection uses this class, so make sure it's done
+        apex::disable_memory_wrapper();
     }
 };
 

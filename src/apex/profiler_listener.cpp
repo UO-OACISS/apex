@@ -134,10 +134,6 @@ std::unordered_set<profile*> free_profiles;
         return _thequeue;
     }
 
-  /* THis is a special profiler, indicating that the timer requested is
-     throttled, and shouldn't be processed. */
-  profiler* profiler::disabled_profiler = new profiler();
-
   /* Flag indicating whether a consumer task is currently running */
   std::atomic_flag consumer_task_running = ATOMIC_FLAG_INIT;
 #ifdef APEX_HAVE_HPX
@@ -1805,8 +1801,6 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
     for (auto tmp : free_profiles) {
         delete(tmp);
     }
-    delete profiler::disabled_profiler;
-
   }
 
   void profiler_listener::yield_main_timer(void) {

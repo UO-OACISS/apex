@@ -217,13 +217,13 @@ public:
         return time_point_to_nanoseconds(MYCLOCK::now());
     }
 
-    static inline profiler* get_disabled_profiler(void) {
-        return disabled_profiler;
+    static profiler* get_disabled_profiler(void) {
+        static profiler disabled_profiler;
+        return &disabled_profiler;
     }
     // default constructor for the dummy profiler
     profiler(void) {};
     // dummy profiler to indicate that stop/yield should resume immediately
-    static profiler* disabled_profiler; // initialized in profiler_listener.cpp
 
     /* this is for OTF2 tracing.
      * We want a timestamp for the start of the trace.
