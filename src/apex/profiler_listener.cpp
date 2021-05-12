@@ -970,7 +970,7 @@ std::unordered_set<profile*> free_profiles;
   }
 
   void profiler_listener::write_tasktree(void) {
-    std::cout << "Writing APEX tasktree..." << std::endl;
+    //std::cout << "Writing APEX tasktree..." << std::endl;
     /* before calling parent.get_name(), make sure we create
      * a thread_instance object that is NOT a worker. */
     thread_instance::instance(false);

@@ -276,7 +276,13 @@ eval set -- "${PARAMS}"
 export APEX_POLICY=1
 export HARMONY_HOME="@ACTIVEHARMONY_ROOT@"
 
-echo "Program to run : ${PARAMS}"
+echo_screen() {
+    if [ ${screen} = yes ] ; then
+        echo $1
+    fi
+}
+
+echo_screen "Program to run : ${PARAMS}"
 
 if [ "x${LD_LIBRARY_PATH}" = "x" ] ; then
   APEX_LD_LIBRARY_PATH=${BASEDIR}/lib
@@ -343,19 +349,19 @@ else
     fi
 fi
 
-if [ $screen = yes ] ; then
+if [ ${screen} = yes ] ; then
     export APEX_SCREEN_OUTPUT=1
 else
     export APEX_SCREEN_OUTPUT=0
 fi
 
-if [ $kokkos = yes ] ; then
+if [ ${kokkos} = yes ] ; then
     export KOKKOS_PROFILE_LIBRARY=${BASEDIR}/lib/libapex${SHLIBX}
 fi
-if [ $raja = yes ] ; then
+if [ ${raja} = yes ] ; then
     export RAJA_PLUGINS=${BASEDIR}/lib/libapex${SHLIBX}
 fi
-if [ $openacc = yes ] ; then
+if [ ${openacc} = yes ] ; then
     export ACC_PROFLIB=${BASEDIR}/lib/libapex${SHLIBX}
 fi
 
@@ -373,15 +379,17 @@ if [ ${scatter} = yes ] ; then
 fi
 
 if [ ${taskgraph} = yes ] ; then
-    echo "Generating taskgraph with GraphViz..."
+    echo_screen "Generating taskgraph with GraphViz..."
     dot -Tpdf -O taskgraph.0.dot
 fi
 
 if [ ${tasktree} = yes ] ; then
-    echo "Generating tasktree with GraphViz..."
+    echo_screen "Generating tasktree with GraphViz..."
     dot -Tpdf -O tasktree.0.dot
-    echo "Human readable tree in tasktree.*.txt:"
-    head tasktree.0.txt
-    echo "..."
+    echo_screen "Human readable tree in tasktree.*.txt:"
+    if [ ${screen} = yes ] ; then
+        head tasktree.0.txt
+    fi
+    echo_screen "..."
 fi
 
