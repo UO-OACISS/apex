@@ -23,6 +23,9 @@ class Node {
         size_t count;
         double calls;
         double accumulated;
+        double min;
+        double max;
+        double sumsqr;
         size_t index;
         std::unordered_map<task_identifier, Node*> children;
         static std::mutex treeMutex;
@@ -48,6 +51,7 @@ class Node {
         void addAccumulated(double value, bool is_resume);
         size_t getIndex() { return index; };
         void writeNode(std::ofstream& outfile, double total);
+        void writeNodeASCII(double total, size_t indent);
 };
 
 } // dependency_tree

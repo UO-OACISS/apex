@@ -55,6 +55,25 @@ std::mutex bfd_mutex;
            the program exits and the pointers aren't needed any more. */
     }
 
+    std::string task_identifier::get_short_name() {
+        std::string shorter(get_name(true));
+        size_t trim_at = shorter.find("(");
+        if (trim_at != std::string::npos) {
+            shorter = shorter.substr(0, trim_at);
+        }
+        trim_at = shorter.find("<");
+        if (trim_at != std::string::npos) {
+            shorter = shorter.substr(0, trim_at);
+        }
+        size_t maxlength = 50;
+        // to keep formatting pretty, trim any long timer names
+        if (shorter.size() > maxlength) {
+            shorter.resize(maxlength-3);
+            shorter.resize(maxlength, '.');
+        }
+        return shorter;
+    }
+
     std::string task_identifier::get_name(bool resolve) {
         if (!has_name && resolve) {
             if (_resolved_name == "" && address != APEX_NULL_FUNCTION_ADDRESS) {

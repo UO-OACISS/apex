@@ -63,6 +63,7 @@ public:
   static task_identifier * get_task_id (apex_function_address a);
   static task_identifier * get_task_id (const std::string& n);
   std::string get_name(bool resolve = true);
+  std::string get_short_name();
   ~task_identifier() { }
   // requried for using this class as a key in an unordered map.
   // the hash function is defined below.

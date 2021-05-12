@@ -1012,6 +1012,10 @@ std::unordered_set<profile*> free_profiles;
     root->tree_node->writeNode(myfile, wall_clock_main);
     myfile << "}\n";
     myfile.close();
+    // dump the tree to the screen, for now
+    std::cout << std::endl;
+    root->tree_node->writeNodeASCII(wall_clock_main, 0);
+    std::cout << std::endl;
   }
 
   /* Write TAU profiles from the collected data. */

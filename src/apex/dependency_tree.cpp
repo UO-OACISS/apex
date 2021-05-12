@@ -9,6 +9,8 @@
 #include "dependency_tree.hpp"
 #include "utils.hpp"
 #include <iomanip>
+#include <sstream>
+#include <math.h>
 
 namespace apex {
 
@@ -90,11 +92,47 @@ void Node::writeNode(std::ofstream& outfile, double total) {
     }
 }
 
+void Node::writeNodeASCII(double total, size_t indent) {
+    for (size_t i = 0 ; i < indent ; i++) {
+        std::cout << "|   ";
+    }
+    indent++;
+    // Write out the name
+    std::cout << data->get_short_name() << ": ";
+    // write out the inclusive and percent of total
+    const std::string apex_main_str("APEX MAIN");
+    double acc = (data == task_identifier::get_task_id(apex_main_str)) ?
+        total : accumulated;
+    double percentage = (accumulated / total) * 100.0;
+    std::cout << std::setprecision(5) << acc << " - "
+              << std::setprecision(4) << percentage << "% [";
+    // write the number of calls
+    double ncalls = (calls == 0) ? 1 : calls;
+    std::cout << ncalls << "]";
+    // write other stats - min, max, stddev
+    double mean = acc / ncalls;
+    double variance = ((sumsqr / ncalls) - (mean * mean));
+    double stddev = sqrt(variance);
+    std::cout << " {min=" << std::setprecision(4) << min << ", max=" << max
+              << ", mean=" << mean << ", var=" << variance
+              << ", std dev=" << stddev << "}";
+    // end the line
+    std::cout << std::endl;
+
+    // do all the children
+    for (auto c : children) {
+        c.second->writeNodeASCII(acc, indent);
+    }
+}
+
 void Node::addAccumulated(double value, bool is_resume) {
     static std::mutex m;
     m.lock();
     if (!is_resume) { calls+=1; }
     accumulated = accumulated + value;
+    if (min == 0.0 || value < min) { min = value; }
+    if (value > max) { max = value; }
+    sumsqr = sumsqr + (value*value);
     m.unlock();
 }
 
