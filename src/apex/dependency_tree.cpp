@@ -92,7 +92,7 @@ void Node::writeNode(std::ofstream& outfile, double total) {
     }
 }
 
-void Node::writeNodeASCII(double total, size_t indent) {
+double Node::writeNodeASCII(double total, size_t indent) {
     for (size_t i = 0 ; i < indent ; i++) {
         std::cout << "|   ";
     }
@@ -120,9 +120,19 @@ void Node::writeNodeASCII(double total, size_t indent) {
     std::cout << std::endl;
 
     // do all the children
+    double remainder = acc;
     for (auto c : children) {
-        c.second->writeNodeASCII(acc, indent);
+        double tmp = c.second->writeNodeASCII(acc, indent);
+        remainder = remainder - tmp;
     }
+    if (children.size() > 0 && remainder > 0.0) {
+        for (size_t i = 0 ; i < indent ; i++) {
+            std::cout << "|   ";
+        }
+        percentage = (remainder / total) * 100.0;
+        std::cout << "Remainder: " << remainder << " - " << percentage << "%" << std::endl;
+    }
+    return acc;
 }
 
 void Node::addAccumulated(double value, bool is_resume) {

@@ -51,7 +51,7 @@ class Node {
         void addAccumulated(double value, bool is_resume);
         size_t getIndex() { return index; };
         void writeNode(std::ofstream& outfile, double total);
-        void writeNodeASCII(double total, size_t indent);
+        double writeNodeASCII(double total, size_t indent);
 };
 
 } // dependency_tree
