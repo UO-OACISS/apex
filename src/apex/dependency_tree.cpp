@@ -92,45 +92,56 @@ void Node::writeNode(std::ofstream& outfile, double total) {
     }
 }
 
-double Node::writeNodeASCII(double total, size_t indent) {
+bool cmp(std::pair<task_identifier, Node*>& a, std::pair<task_identifier, Node*>& b) {
+    return a.second->getAccumulated() > b.second->getAccumulated();
+}
+
+double Node::writeNodeASCII(std::ofstream& outfile, double total, size_t indent) {
     for (size_t i = 0 ; i < indent ; i++) {
-        std::cout << "|   ";
+        outfile << "|   ";
     }
     indent++;
     // Write out the name
-    std::cout << data->get_short_name() << ": ";
+    outfile << data->get_short_name() << ": ";
     // write out the inclusive and percent of total
     const std::string apex_main_str("APEX MAIN");
     double acc = (data == task_identifier::get_task_id(apex_main_str)) ?
         total : accumulated;
     double percentage = (accumulated / total) * 100.0;
-    std::cout << std::fixed << std::setprecision(5) << acc << " - "
-              << std::fixed << std::setprecision(4) << percentage << "% [";
+    outfile << std::fixed << std::setprecision(5) << acc << " - "
+            << std::fixed << std::setprecision(4) << percentage << "% [";
     // write the number of calls
     double ncalls = (calls == 0) ? 1 : calls;
-    std::cout << std::fixed << std::setprecision(0) << ncalls << "]";
+    outfile << std::fixed << std::setprecision(0) << ncalls << "]";
     // write other stats - min, max, stddev
     double mean = acc / ncalls;
     double variance = ((sumsqr / ncalls) - (mean * mean));
     double stddev = sqrt(variance);
-    std::cout << " {min=" << std::fixed << std::setprecision(4) << min << ", max=" << max
-              << ", mean=" << mean << ", var=" << variance
-              << ", std dev=" << stddev << "}";
+    outfile << " {min=" << std::fixed << std::setprecision(4) << min << ", max=" << max
+            << ", mean=" << mean << ", var=" << variance
+            << ", std dev=" << stddev << "}";
     // end the line
-    std::cout << std::endl;
+    outfile << std::endl;
+
+    // sort the children by accumulated time
+    std::vector<std::pair<task_identifier, Node*> > sorted;
+    for (auto& it : children) {
+        sorted.push_back(it);
+    }
+    sort(sorted.begin(), sorted.end(), cmp);
 
     // do all the children
     double remainder = acc;
-    for (auto c : children) {
-        double tmp = c.second->writeNodeASCII(acc, indent);
+    for (auto c : sorted) {
+        double tmp = c.second->writeNodeASCII(outfile, acc, indent);
         remainder = remainder - tmp;
     }
     if (children.size() > 0 && remainder > 0.0) {
         for (size_t i = 0 ; i < indent ; i++) {
-            std::cout << "|   ";
+            outfile << "|   ";
         }
         percentage = (remainder / total) * 100.0;
-        std::cout << "Remainder: " << remainder << " - " << percentage << "%" << std::endl;
+        outfile << "Remainder: " << remainder << " - " << percentage << "%" << std::endl;
     }
     return acc;
 }

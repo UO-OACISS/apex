@@ -1008,10 +1008,13 @@ std::unordered_set<profile*> free_profiles;
     root->tree_node->writeNode(myfile, wall_clock_main);
     myfile << "}\n";
     myfile.close();
-    // dump the tree to the screen, for now
-    std::cout << std::endl;
-    root->tree_node->writeNodeASCII(wall_clock_main, 0);
-    std::cout << std::endl;
+    // dump the tree to a human readable file
+    stringstream txtname;
+    txtname << apex_options::output_file_path();
+    txtname << filesystem_separator() << "tasktree." << node_id << ".txt";
+    myfile.open(txtname.str().c_str());
+    root->tree_node->writeNodeASCII(myfile, wall_clock_main, 0);
+    myfile.close();
   }
 
   /* Write TAU profiles from the collected data. */

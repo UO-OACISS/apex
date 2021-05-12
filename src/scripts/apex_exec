@@ -380,5 +380,8 @@ fi
 if [ ${tasktree} = yes ] ; then
     echo "Generating tasktree with GraphViz..."
     dot -Tpdf -O tasktree.0.dot
+    echo "Human readable tree in tasktree.*.txt:"
+    head tasktree.0.txt
+    echo "..."
 fi
 
