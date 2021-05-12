@@ -184,6 +184,7 @@ Variable::Variable(size_t _id, std::string _name,
 void Variable::makeSpace(void) {
     switch(info.category) {
         case kokkos_value_categorical:
+        case kokkos_value_ordinal:
         {
             if (info.valueQuantity == kokkos_value_set) {
                 for (size_t index = 0 ; index < info.candidates.set.size ; index++) {
@@ -205,26 +206,27 @@ void Variable::makeSpace(void) {
             break;
         }
         case kokkos_value_interval:
+        case kokkos_value_ratio:
         {
             if (info.valueQuantity == kokkos_value_range) {
                 if (info.type == kokkos_value_double) {
                     dstep = info.candidates.range.step.double_value;
                     dmin = info.candidates.range.lower.double_value;
                     dmax = info.candidates.range.upper.double_value;
-                    if (!info.candidates.range.openLower) {
+                    if (info.candidates.range.openLower) {
                         dmin = dmin + dstep;
                     }
-                    if (!info.candidates.range.openUpper) {
+                    if (info.candidates.range.openUpper) {
                         dmax = dmax - dstep;
                     }
                 } else if (info.type == kokkos_value_int64) {
                     lstep = info.candidates.range.step.int_value;
                     lmin = info.candidates.range.lower.int_value;
                     lmax = info.candidates.range.upper.int_value;
-                    if (!info.candidates.range.openLower) {
+                    if (info.candidates.range.openLower) {
                         lmin = lmin + lstep;
                     }
-                    if (!info.candidates.range.openUpper) {
+                    if (info.candidates.range.openUpper) {
                         lmax = lmax - lstep;
                     }
                 }
@@ -248,8 +250,6 @@ void Variable::makeSpace(void) {
             }
             break;
         }
-        case kokkos_value_ordinal:
-        case kokkos_value_ratio:
         default:
         {
             break;
