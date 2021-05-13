@@ -145,8 +145,8 @@ class KokkosSession {
 public:
 // EXHAUSTIVE, RANDOM, NELDER_MEAD, PARALLEL_RANK_ORDER
     KokkosSession() :
-        window(1),
-        strategy(apex_ah_tuning_strategy::NELDER_MEAD),
+        window(3),
+        strategy(apex_ah_tuning_strategy::SIMULATED_ANNEALING),
         verbose(false),
         use_history(false),
         running(false),
@@ -213,20 +213,20 @@ void Variable::makeSpace(void) {
                     dstep = info.candidates.range.step.double_value;
                     dmin = info.candidates.range.lower.double_value;
                     dmax = info.candidates.range.upper.double_value;
-                    if (info.candidates.range.openLower) {
+                    if (info.candidates.range.openLower == 0) {
                         dmin = dmin + dstep;
                     }
-                    if (info.candidates.range.openUpper) {
+                    if (info.candidates.range.openUpper == 0) {
                         dmax = dmax - dstep;
                     }
                 } else if (info.type == kokkos_value_int64) {
                     lstep = info.candidates.range.step.int_value;
                     lmin = info.candidates.range.lower.int_value;
                     lmax = info.candidates.range.upper.int_value;
-                    if (info.candidates.range.openLower) {
+                    if (info.candidates.range.openLower == 0) {
                         lmin = lmin + lstep;
                     }
-                    if (info.candidates.range.openUpper) {
+                    if (info.candidates.range.openUpper == 0) {
                         lmax = lmax - lstep;
                     }
                 }

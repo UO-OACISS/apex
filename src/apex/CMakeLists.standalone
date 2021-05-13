@@ -74,6 +74,7 @@ policy_handler.cpp
 ${PROC_SOURCE}
 profiler_listener.cpp
 ${SENSOR_SOURCE}
+simulated_annealing.cpp
 task_identifier.cpp
 tcmalloc_hooks.cpp
 ${tau_SOURCE}
@@ -144,6 +145,7 @@ INSTALL(FILES apex.h
     utils.hpp
     apex_options.hpp
     profiler.hpp
+    simulated_annealing.hpp
     task_wrapper.hpp
     task_identifier.hpp
     DESTINATION include)

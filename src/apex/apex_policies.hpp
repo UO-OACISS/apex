@@ -27,10 +27,12 @@
 
 // include the C API
 #include "apex_policies.h"
+// include the simulated annealing class
+#include "simulated_annealing.hpp"
 
 enum class apex_param_type : int {NONE, LONG, DOUBLE, ENUM};
 enum class apex_ah_tuning_strategy : int {EXHAUSTIVE, RANDOM, NELDER_MEAD,
-PARALLEL_RANK_ORDER};
+PARALLEL_RANK_ORDER, SIMULATED_ANNEALING};
 
 struct apex_tuning_session;
 class apex_tuning_request;
@@ -63,6 +65,8 @@ class apex_param {
         friend int
         __active_harmony_custom_setup(std::shared_ptr<apex_tuning_session>
         tuning_session, apex_tuning_request & request);
+        friend int __sa_setup(std::shared_ptr<apex_tuning_session>
+            tuning_session, apex_tuning_request & request);
 };
 
 class apex_param_long : public apex_param {
@@ -94,6 +98,8 @@ class apex_param_long : public apex_param {
         friend int
         __active_harmony_custom_setup(std::shared_ptr<apex_tuning_session>
         tuning_session, apex_tuning_request & request);
+        friend int __sa_setup(std::shared_ptr<apex_tuning_session>
+            tuning_session, apex_tuning_request & request);
 };
 
 class apex_param_double : public apex_param {
@@ -125,6 +131,8 @@ class apex_param_double : public apex_param {
         friend int
         __active_harmony_custom_setup(std::shared_ptr<apex_tuning_session>
         tuning_session, apex_tuning_request & request);
+        friend int __sa_setup(std::shared_ptr<apex_tuning_session>
+            tuning_session, apex_tuning_request & request);
 };
 
 class apex_param_enum : public apex_param {
@@ -155,6 +163,8 @@ class apex_param_enum : public apex_param {
         friend int
         __active_harmony_custom_setup(std::shared_ptr<apex_tuning_session>
         tuning_session, apex_tuning_request & request);
+        friend int __sa_setup(std::shared_ptr<apex_tuning_session>
+            tuning_session, apex_tuning_request & request);
 };
 
 
@@ -289,7 +299,8 @@ class apex_tuning_request {
         friend int
         __active_harmony_custom_setup(std::shared_ptr<apex_tuning_session>
         tuning_session, apex_tuning_request & request);
-
+        friend int __sa_setup(std::shared_ptr<apex_tuning_session>
+            tuning_session, apex_tuning_request & request);
 };
 
 
@@ -310,6 +321,8 @@ struct apex_tuning_session {
     std::atomic<bool> apex_energy_init{false};
     std::atomic<bool> apex_timer_init{false};
 
+    // if using simulated annealing, this is the request.
+    apex::simulated_annealing::SimulatedAnnealing sa_session;
     bool converged_message = false;
 
     // variables related to power throttling

@@ -85,7 +85,7 @@ static const char * library_for_strategy(apex_ah_tuning_strategy s) {
             return "pro.so";
         default:
             std::cerr <<
-                "ERROR: Unknown tuning strategy encountered." << std::endl;
+                "ERROR: Unknown Active Harmony tuning strategy encountered." << std::endl;
             return "";
     }
 }
@@ -878,6 +878,36 @@ int apex_custom_tuning_policy(shared_ptr<apex_tuning_session> tuning_session,
 }
 #endif // APEX_HAVE_ACTIVEHARMONY
 
+int apex_sa_policy(shared_ptr<apex_tuning_session> tuning_session,
+    apex_context const context) {
+    APEX_UNUSED(context);
+    if (apex_final) return APEX_NOERROR; // we terminated
+    std::unique_lock<std::mutex> l{shutdown_mutex};
+    if (tuning_session->sa_session.converged()) {
+        if (!tuning_session->converged_message) {
+            tuning_session->converged_message = true;
+            cout << "Tuning has converged for session " << tuning_session->id
+            << "." << endl;
+            tuning_session->sa_session.saveBestSettings();
+            tuning_session->sa_session.printBestSettings();
+        }
+        tuning_session->sa_session.saveBestSettings();
+        return APEX_NOERROR;
+    }
+
+    // get a measurement of our current setting
+    double new_value = tuning_session->metric_of_interest();
+
+    /* Report the performance we've just measured. */
+    tuning_session->sa_session.evaluate(new_value);
+
+    /* Request new settings for next time */
+    tuning_session->sa_session.getNewSettings();
+
+    return APEX_NOERROR;
+}
+
+
 /// ----------------------------------------------------------------------------
 ///
 /// Functions to setup and shutdown energy measurements during execution
@@ -1363,6 +1393,67 @@ inline int __active_harmony_custom_setup(shared_ptr<apex_tuning_session>
 inline void __apex_active_harmony_shutdown(void) { }
 #endif
 
+inline int __sa_setup(shared_ptr<apex_tuning_session>
+    tuning_session, apex_tuning_request & request) {
+  APEX_UNUSED(tuning_session);
+  // set up the Simulated annealing!
+  // iterate over the parameters, and create variables.
+  using namespace apex::simulated_annealing;
+  for(auto & kv : request.params) {
+      auto & param = kv.second;
+      const char * param_name = param->get_name().c_str();
+      switch(param->get_type()) {
+          case apex_param_type::LONG: {
+              auto param_long =
+              std::static_pointer_cast<apex_param_long>(param);
+              Variable v(VariableType::longtype, param_long->value.get());
+              long lvalue = param_long->min;
+              do {
+                  v.lvalues.push_back(lvalue);
+                  lvalue = lvalue + param_long->step;
+              } while (lvalue < param_long->max);
+              v.set_init();
+              tuning_session->sa_session.add_var(param_name, std::move(v));
+          }
+          break;
+          case apex_param_type::DOUBLE: {
+              auto param_double =
+              std::static_pointer_cast<apex_param_double>(param);
+              Variable v(VariableType::doubletype, param_double->value.get());
+              double dvalue = param_double->min;
+              do {
+                  v.dvalues.push_back(dvalue);
+                  dvalue = dvalue + param_double->step;
+              } while (dvalue < param_double->max);
+              v.set_init();
+              tuning_session->sa_session.add_var(param_name, std::move(v));
+          }
+          break;
+          case apex_param_type::ENUM: {
+              auto param_enum =
+              std::static_pointer_cast<apex_param_enum>(param);
+              Variable v(VariableType::stringtype, param_enum->value.get());
+              for(const std::string & possible_value :
+                             param_enum->possible_values) {
+                  v.svalues.push_back(possible_value);
+              }
+              v.set_init();
+              tuning_session->sa_session.add_var(param_name, std::move(v));
+          }
+          break;
+          default:
+              cerr <<
+              "ERROR: Attempted to register tuning parameter with unknown type."
+              << endl;
+              return APEX_ERROR;
+      }
+  }
+  /* request initial settings */
+  tuning_session->sa_session.getNewSettings();
+
+  return APEX_NOERROR;
+}
+
 inline int __common_setup_timer_throttling(apex_optimization_criteria_t
     criteria, apex_optimization_method_t method, unsigned long update_interval)
 {
@@ -1444,14 +1535,28 @@ inline int __common_setup_custom_tuning(shared_ptr<apex_tuning_session>
 inline int __common_setup_custom_tuning(shared_ptr<apex_tuning_session>
     tuning_session, apex_tuning_request & request) {
     __read_common_variables(tuning_session);
-    int status = __active_harmony_custom_setup(tuning_session, request);
-    if(status == APEX_NOERROR) {
-        apex::register_policy(
-          request.trigger,
-          [=](apex_context const & context)->int {
-            return apex_custom_tuning_policy(tuning_session, context);
-          }
-        );
+    int status = APEX_NOERROR;
+    // if using the simulated annealing strategy, don't use AH!
+    if (request.strategy == apex_ah_tuning_strategy::SIMULATED_ANNEALING) {
+        status = __sa_setup(tuning_session, request);
+        if(status == APEX_NOERROR) {
+            apex::register_policy(
+            request.trigger,
+            [=](apex_context const & context)->int {
+                return apex_sa_policy(tuning_session, context);
+            }
+            );
+        }
+    } else {
+        int status = __active_harmony_custom_setup(tuning_session, request);
+        if(status == APEX_NOERROR) {
+            apex::register_policy(
+            request.trigger,
+            [=](apex_context const & context)->int {
+                return apex_custom_tuning_policy(tuning_session, context);
+            }
+            );
+        }
     }
     return status;
 }

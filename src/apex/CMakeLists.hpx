@@ -287,6 +287,7 @@ set(apex_headers
     profiler.hpp
     profiler_listener.hpp
     semaphore.hpp
+    simulated_annealing.hpp
     thread_instance.hpp
     task_identifier.hpp
     task_wrapper.hpp
@@ -311,6 +312,7 @@ set(apex_sources
     memory_wrapper.cpp
     policy_handler.cpp
     profiler_listener.cpp
+    simulated_annealing.cpp
     task_identifier.cpp
     tau_listener.cpp
     tau_dummy.cpp
