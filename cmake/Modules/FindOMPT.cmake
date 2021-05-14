@@ -47,12 +47,20 @@ find_package_handle_standard_args(OMPT  DEFAULT_MSG
 
 mark_as_advanced(OMPT_INCLUDE_DIR OMPT_LIBRARY)
 
+# CUDA 10 doesn't work with GCC  9+ so disable target offload in that case
+# CUDA 11 doesn't work with GCC 10+ so disable target offload in that case
 set(APEX_OMPT_EXTRA_CONFIG "")
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   # using GCC
-    if (NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9)
-        message(ERROR " GCC version must be 8 or less to enable target offload.!")
+    if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 10 AND
+        CUDAToolkit_VERSION VERSION_GREATER_EQUAL 11)
+        message(ERROR " Disabling OpenMP target offload for GCC 10+")
         set(APEX_OMPT_EXTRA_CONFIG "-DOPENMP_ENABLE_LIBOMPTARGET=FALSE")
+    else()
+        if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 9)
+            message(ERROR " Disabling OpenMP target offload for GCC 9+")
+            set(APEX_OMPT_EXTRA_CONFIG "-DOPENMP_ENABLE_LIBOMPTARGET=FALSE")
+        endif()
     endif()
 endif()
 
@@ -62,10 +70,10 @@ if(APEX_BUILD_OMPT OR (NOT OMPT_FOUND))
   message("Attention: Downloading and Building OMPT as external project!")
   message(INFO " A working internet connection is required!")
   include(ExternalProject)
+# The GCC 9 compiler added new GOMP functions, so use an archive of the LLVM 12 compiler runtime.
   ExternalProject_Add(project_ompt
-      #GIT_REPOSITORY https://github.com/OpenMPToolsInterface/LLVM-openmp.git
-      GIT_REPOSITORY https://github.com/llvm-mirror/openmp.git
-	GIT_TAG master
+    #URL http://www.cs.uoregon.edu/research/paracomp/tau/tauprofile/dist/LLVM-openmp-2021-05-14.tar.gz
+    URL http://tau.uoregon.edu/LLVM-openmp-2021-05-14.tar.gz
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/LLVM-ompt-5.0
     CONFIGURE_COMMAND cmake -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -DCMAKE_BUILD_TYPE=Release ${APEX_OMPT_EXTRA_CONFIG} ../project_ompt
     BUILD_COMMAND make libomp-needed-headers all
