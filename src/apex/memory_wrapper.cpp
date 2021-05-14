@@ -35,8 +35,8 @@ void enable_memory_wrapper() {
     if ((err = dlerror())) {
       printf("APEX: ERROR obtaining symbol info in auditor: %s\n", err);
     } else {
-      apex_memory_initialized();
       printf("APEX: Starting memory tracking\n");
+      apex_memory_initialized();
     }
     dlclose(memory_so);
   } else {
