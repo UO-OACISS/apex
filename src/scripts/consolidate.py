@@ -1,13 +1,10 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 from __future__ import print_function
 import os.path
 import sys
 import glob
 import csv
-
-True = 1
-False = 0
 
 colnames = []
 columns = dict()
