@@ -23,6 +23,7 @@ option (APEX_BUILD_BFD "Build Binutils library if not found" FALSE)
 option (APEX_BUILD_OMPT "Build OpenMP runtime with OMPT if support not found" FALSE)
 option (APEX_BUILD_OTF2 "Build OTF2 library if not found" FALSE)
 option (APEX_USE_CLOCK_TIMESTAMP "On x86_64 systems, disable RDTSC timing" TRUE)
+option (APEX_USE_PEDANTIC "Enable pedantic compiler flags" FALSE)
 
 # Provide some backwards compatability
 if(DEFINED USE_ACTIVEHARMONY)

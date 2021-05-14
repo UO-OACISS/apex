@@ -265,8 +265,12 @@ endfunction()
 # example usage
 enable_cxx_compiler_flag_if_supported("-Wall")
 enable_cxx_compiler_flag_if_supported("-Wextra")
-enable_cxx_compiler_flag_if_supported("-Wpedantic")
-enable_cxx_compiler_flag_if_supported("-pedantic")
+# Great, the GCC 9 compiler has a pedantic warning error.
+if (APEX_USE_PEDANTIC)
+    enable_cxx_compiler_flag_if_supported("-Wpedantic")
+    enable_cxx_compiler_flag_if_supported("-pedantic")
+endif (APEX_USE_PEDANTIC)
+
 # PGI and Intel don't like the concurrentqueue code.
 if (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "PGI")
     if (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
