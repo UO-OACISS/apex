@@ -238,9 +238,9 @@ public:
     }
     double normalized_timestamp(void) {
         if(is_counter) {
-            return value;
-        } else {
             return now_ns() - get_global_start();
+        } else {
+            return start_ns - get_global_start();
         }
     }
 };

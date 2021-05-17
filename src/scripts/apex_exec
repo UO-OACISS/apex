@@ -376,6 +376,7 @@ fi
 
 if [ ${scatter} = yes ] ; then
     ${SCRIPTPATH}/task_scatterplot.py
+    ${SCRIPTPATH}/counter_scatterplot.py
 fi
 
 if [ ${taskgraph} = yes ] ; then

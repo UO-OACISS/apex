@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import glob
 import sys
 import sqlite3
 import numpy as np
@@ -24,22 +25,23 @@ def shorten_name(name):
     return short.replace('_', '$\_$')
 
 dictionary = {}
-with open ('apex_task_samples.csv', 'r') as csvfile:
-    spamreader = csv.reader(csvfile, delimiter=' ', quotechar='\'')
-    index = 0
-    for row in spamreader:
-        index = index + 1
-        if len(row) == 3 and not row[0].strip().startswith("#"):
-            try:
-                mytup = (float(row[0]),float(row[1]))
-            except ValueError as e:
-                print(index, " Bad row: ", row)
-                continue
-            if row[2] not in dictionary:
-                dictionary[row[2]] = [mytup]
-            else:
-                dictionary[row[2]].append(mytup)
-    print ("Parsed", index, "samples")
+for counter, infile in enumerate(glob.glob('apex_task_samples.*.csv')):
+    with open (infile, 'r') as csvfile:
+        spamreader = csv.reader(csvfile, delimiter=' ', quotechar='\'')
+        index = 0
+        for row in spamreader:
+            index = index + 1
+            if len(row) == 3 and not row[0].strip().startswith("#"):
+                try:
+                    mytup = (float(row[0]),float(row[1]))
+                except ValueError as e:
+                    print(index, " Bad row: ", row)
+                    continue
+                if row[2] not in dictionary:
+                    dictionary[row[2]] = [mytup]
+                else:
+                    dictionary[row[2]].append(mytup)
+        print ("Parsed", index, "samples")
 
 #resize the figure
 # Get current size

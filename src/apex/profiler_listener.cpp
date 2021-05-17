@@ -366,7 +366,6 @@ std::unordered_set<profile*> free_profiles;
 #endif
 #endif
       }
-#if !defined(_MSC_VER)
       /* write the sample to the file */
       if (apex_options::task_scatterplot()) {
         if (!p->is_counter) {
@@ -381,36 +380,25 @@ std::unordered_set<profile*> free_profiles;
                             << "'" << p->get_task_id()->get_name() << "'" << endl;
                 int loc0 = task_scatterplot_samples.tellp();
                 if (loc0 > 32768) {
-                    // lock access to the file
-                    // write using low-level file locking!
-                    struct flock fl;
-                    fl.l_type   = F_WRLCK;  /* F_RDLCK, F_WRLCK, F_UNLCK    */
-                    fl.l_whence = SEEK_SET; /* SEEK_SET, SEEK_CUR, SEEK_END */
-                    fl.l_start  = 0;        /* Offset from l_whence         */
-                    fl.l_len    = 0;        /* length, 0 = to EOF           */
-                    fl.l_pid    = getpid(); /* our PID                      */
-                    /* F_GETLK, F_SETLK, F_SETLKW */
-                    fcntl(task_scatterplot_sample_file, F_SETLKW, &fl);
-                    // flush the string stream to the file
-                    //lseek(task_scatterplot_sample_file, 0, SEEK_END);
-                    ssize_t bytes_written = write(task_scatterplot_sample_file,
-                          task_scatterplot_samples.str().c_str(), loc0);
-                    if (bytes_written < 0) {
-                        int errsv = errno;
-                        perror("Error writing to scatterplot!");
-                        fprintf(stderr, "Error writing scatterplot:\n%s\n",
-                                strerror(errsv));
-                    }
-                    fl.l_type   = F_UNLCK;   /* tell it to unlock the region */
-                    /* set the region to unlocked */
-                    fcntl(task_scatterplot_sample_file, F_SETLK, &fl);
+                    task_scatterplot_sample_file << task_scatterplot_samples.rdbuf();
                     // reset the stringstream
                     task_scatterplot_samples.str("");
                 }
             }
-        }
+        } else {
+                thread_instance::instance(false);
+                std::unique_lock<std::mutex> task_map_lock(_mtx);
+                counter_scatterplot_samples << p->normalized_timestamp() << " "
+                            << p->elapsed() << " "
+                            << "'" << p->get_task_id()->get_name() << "'" << endl;
+                int loc0 = task_scatterplot_samples.tellp();
+                if (loc0 > 32768) {
+                    counter_scatterplot_sample_file << counter_scatterplot_samples.rdbuf();
+                    // reset the stringstream
+                    counter_scatterplot_samples.str("");
+                }
+	}
       }
-#endif
     if (apex_options::use_tasktree_output() && !p->is_counter && p->tt_ptr != nullptr) {
         p->tt_ptr->tree_node->addAccumulated(p->elapsed_seconds(), p->is_resume);
     }
@@ -1477,36 +1465,12 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       if (apex_options::use_profile_output() && !apex_options::use_tau()) {
         write_profile();
       }
-#if !defined(_MSC_VER)
       if (apex_options::task_scatterplot()) {
-          // get the length of the stream
-          int loc0 = task_scatterplot_samples.tellp();
-          // lock access to the file
-          // write using low-level file locking!
-          struct flock fl;
-          fl.l_type   = F_WRLCK;  /* F_RDLCK, F_WRLCK, F_UNLCK    */
-          fl.l_whence = SEEK_SET; /* SEEK_SET, SEEK_CUR, SEEK_END */
-          fl.l_start  = 0;        /* Offset from l_whence         */
-          fl.l_len    = 0;        /* length, 0 = to EOF           */
-          fl.l_pid    = getpid();      /* our PID                      */
-          /* F_GETLK, F_SETLK, F_SETLKW */
-          fcntl(task_scatterplot_sample_file, F_SETLKW, &fl);
-          // flush the string stream to the file
-          //lseek(task_scatterplot_sample_file, 0, SEEK_END);
-          ssize_t bytes_written = write(task_scatterplot_sample_file,
-                task_scatterplot_samples.str().c_str(), loc0);
-          if (bytes_written < 0) {
-              int errsv = errno;
-              perror("Error writing to scatterplot!");
-              fprintf(stderr, "Error writing scatterplot:\n%s\n",
-                      strerror(errsv));
-          }
-          fl.l_type   = F_UNLCK;   /* tell it to unlock the region */
-          /* set the region to unlocked */
-          fcntl(task_scatterplot_sample_file, F_SETLK, &fl);
-          close(task_scatterplot_sample_file);
+          task_scatterplot_sample_file << task_scatterplot_samples.rdbuf();
+          task_scatterplot_sample_file.close();
+          counter_scatterplot_sample_file << counter_scatterplot_samples.rdbuf();
+          counter_scatterplot_sample_file.close();
       }
-#endif
       if (data.reset) {
           reset_all();
       }

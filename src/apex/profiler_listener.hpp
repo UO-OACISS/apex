@@ -55,8 +55,8 @@ using moodycamel::ConcurrentQueue;
 #include "task_dependency.hpp"
 #include <sys/stat.h>
 #if !defined(_MSC_VER)
-#include <unistd.h>
-#include <sys/file.h>
+//#include <unistd.h>
+//#include <sys/file.h>
 #else // not _MSC_VER
 #if !defined(__APPLE__)
 #include <io.h>
@@ -84,7 +84,8 @@ public:
   }
 };
 
-static const char * task_scatterplot_sample_filename = "apex_task_samples.csv";
+static const char * task_scatterplot_sample_filename = "apex_task_samples.";
+static const char * counter_scatterplot_sample_filename = "apex_counter_samples.";
 
 class profiler_listener : public event_listener {
 private:
@@ -143,9 +144,10 @@ private:
   std::thread * consumer_thread;
 #endif
   semaphore queue_signal;
-  //std::ofstream task_scatterplot_sample_file;
-  int task_scatterplot_sample_file;
+  std::ofstream task_scatterplot_sample_file;
+  std::ofstream counter_scatterplot_sample_file;
   std::stringstream task_scatterplot_samples;
+  std::stringstream counter_scatterplot_samples;
 public:
   void set_node_id(int node_id, int node_count) {
     APEX_UNUSED(node_count);
@@ -162,45 +164,27 @@ public:
       num_papi_counters = 0;
 #endif
       if (apex_options::task_scatterplot()) {
-        // check if the samples file exists
-        struct stat buffer;
         std::stringstream ss;
         ss << apex_options::output_file_path();
         ss << filesystem_separator();
-        ss << task_scatterplot_sample_filename;
-        if (stat (ss.str().c_str(), &buffer) == 0) {
-            struct tm *timeinfo = localtime(&buffer.st_mtime);
-            time_t filetime = mktime(timeinfo);
-            time_t nowish;
-            time(&nowish);
-            double seconds = difftime(nowish, filetime);
-            /* if the file exists, was it recently created? */
-            if (seconds > 10) {
-                /* create the file */
-                std::ofstream tmp;
-                tmp.open(ss.str());
-                tmp << "#timestamp value   name" << std::endl << std::flush;
-                /* yes, close the file because we will use some
-                   low-level calls to have concurrent access
-                   across processes/threads. */
-                tmp.close();
-            }
-        } else {
-            /* create the file */
-            std::ofstream tmp;
-            tmp.open(ss.str());
-            tmp << "#timestamp value   name" << std::endl << std::flush;
-            /* yes, close the file because we will use some
-            low-level calls to have concurrent access
-            across processes/threads. */
-            tmp.close();
-        }
+        ss << task_scatterplot_sample_filename << node_id << ".csv";
         // open the file
-        task_scatterplot_sample_file = open(ss.str().c_str(), O_APPEND | O_WRONLY );
-        if (task_scatterplot_sample_file < 0) {
+        task_scatterplot_sample_file.open(ss.str(), std::ofstream::out);
+        if (!task_scatterplot_sample_file.is_open()) {
             perror("opening scatterplot sample file");
         }
-        APEX_ASSERT(task_scatterplot_sample_file >= 0);
+        APEX_ASSERT(task_scatterplot_sample_file.is_open());
+
+        ss.str("");
+        ss << apex_options::output_file_path();
+        ss << filesystem_separator();
+        ss << counter_scatterplot_sample_filename << node_id << ".csv";
+        // open the file
+        counter_scatterplot_sample_file.open(ss.str(), std::ofstream::out);
+        if (!counter_scatterplot_sample_file.is_open()) {
+            perror("opening scatterplot sample file");
+        }
+        APEX_ASSERT(counter_scatterplot_sample_file.is_open());
         profiler::get_global_start();
       }
   };
