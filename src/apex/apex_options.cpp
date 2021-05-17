@@ -65,6 +65,16 @@ namespace apex
     FOREACH_APEX_OPTION(apex_macro)
 #undef apex_macro
 
+// getenv is not thread-safe, but the constructor for this static singleton is.
+#define apex_macro(name, member_variable, type, default_value) \
+    _##member_variable = default_value; \
+    option = getenv(#name); \
+    if (option != nullptr) { \
+        _##member_variable = (type)(atof(option)); \
+    }
+    FOREACH_APEX_FLOAT_OPTION(apex_macro)
+#undef apex_macro
+
 #define apex_macro(name, member_variable, type, default_value) \
     option = getenv(#name); \
     if (option == nullptr) { \
@@ -133,6 +143,7 @@ namespace apex
     type apex_options::member_variable (void) { \
     return instance()._##member_variable; }
     FOREACH_APEX_OPTION(apex_macro)
+    FOREACH_APEX_FLOAT_OPTION(apex_macro)
     FOREACH_APEX_STRING_OPTION(apex_macro)
 #undef apex_macro
 
@@ -143,9 +154,7 @@ namespace apex
 #define apex_macro(name, member_variable, type, default_value) \
         std::cout << #name << " : " << options.member_variable() << std::endl;
         FOREACH_APEX_OPTION(apex_macro)
-#undef apex_macro
-#define apex_macro(name, member_variable, type, default_value) \
-        std::cout << #name << " : " << options.member_variable() << std::endl;
+    	FOREACH_APEX_FLOAT_OPTION(apex_macro)
         FOREACH_APEX_STRING_OPTION(apex_macro)
 #undef apex_macro
 #ifdef APEX_HAVE_PROC
@@ -166,9 +175,7 @@ namespace apex
 #define apex_macro(name, member_variable, type, default_value) \
             conf_file << #name << "=" << options.member_variable() << std::endl;
             FOREACH_APEX_OPTION(apex_macro)
-#undef apex_macro
-#define apex_macro(name, member_variable, type, default_value) \
-            conf_file << #name << "=" << options.member_variable() << std::endl;
+    	    FOREACH_APEX_FLOAT_OPTION(apex_macro)
             FOREACH_APEX_STRING_OPTION(apex_macro)
 #undef apex_macro
             conf_file.close();
@@ -188,6 +195,8 @@ extern "C" {
     type apex_get_##member_variable (void) { \
     return apex_options::member_variable(); }
     FOREACH_APEX_OPTION(apex_macro)
+    FOREACH_APEX_FLOAT_OPTION(apex_macro)
+    FOREACH_APEX_STRING_OPTION(apex_macro)
 #undef apex_macro
 
 }

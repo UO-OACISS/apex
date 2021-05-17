@@ -323,6 +323,9 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_KOKKOS_VERBOSE, use_kokkos_verbose, bool, false) \
     macro (APEX_KOKKOS_TUNING, use_kokkos_tuning, bool, true) \
 
+#define FOREACH_APEX_FLOAT_OPTION(macro) \
+    macro (APEX_SCATTERPLOT_FRACTION, scatterplot_fraction, double, 0.01) \
+
 #define FOREACH_APEX_STRING_OPTION(macro) \
     macro (APEX_PAPI_METRICS, papi_metrics, char*, "") \
     macro (APEX_PLUGINS, plugins, char*, "") \

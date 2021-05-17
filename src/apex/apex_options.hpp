@@ -28,6 +28,7 @@ private:
 #define apex_macro(name, member_variable, type, default_value)\
     std::atomic<type> _##member_variable;
     FOREACH_APEX_OPTION(apex_macro)
+    FOREACH_APEX_FLOAT_OPTION(apex_macro)
     FOREACH_APEX_STRING_OPTION(apex_macro)
 #undef apex_macro
     /* Declare the constructor, only used by the "instance" method.
@@ -47,6 +48,7 @@ public:
     APEX_EXPORT static void member_variable (type inval); \
     APEX_EXPORT static type member_variable (void);
     FOREACH_APEX_OPTION(apex_macro)
+    FOREACH_APEX_FLOAT_OPTION(apex_macro)
     FOREACH_APEX_STRING_OPTION(apex_macro)
 #undef apex_macro
     /* The debugging methods */

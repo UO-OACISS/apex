@@ -595,6 +595,7 @@ APEX_EXPORT uint64_t apex_hardware_concurrency (void);
 void apex_set_##member_variable (type inval); \
 type apex_get_##member_variable (void);
 FOREACH_APEX_OPTION(apex_macro)
+FOREACH_APEX_FLOAT_OPTION(apex_macro)
 #undef apex_macro
 
 #define apex_macro(name, member_variable, type, default_value) \
