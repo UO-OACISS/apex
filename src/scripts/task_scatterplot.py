@@ -22,7 +22,7 @@ def shorten_name(name):
         tmp = tokens1[0] + '()' + tokens2[len(tokens2)-1]
     # otherwise, just take the first 64 characters.
     short = (tmp[:77] + '...') if len(tmp) > 77 else tmp
-    return short.replace('_', '$\_$')
+    return short.replace('_', '$\\_$')
 
 dictionary = {}
 for counter, infile in enumerate(glob.glob('apex_task_samples.*.csv')):
