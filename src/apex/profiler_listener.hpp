@@ -144,8 +144,8 @@ private:
   std::thread * consumer_thread;
 #endif
   semaphore queue_signal;
-  std::ofstream task_scatterplot_sample_file;
-  std::ofstream counter_scatterplot_sample_file;
+  std::ofstream _task_scatterplot_sample_file;
+  std::ofstream _counter_scatterplot_sample_file;
   std::stringstream task_scatterplot_samples;
   std::stringstream counter_scatterplot_samples;
 public:
@@ -164,27 +164,6 @@ public:
       num_papi_counters = 0;
 #endif
       if (apex_options::task_scatterplot()) {
-        std::stringstream ss;
-        ss << apex_options::output_file_path();
-        ss << filesystem_separator();
-        ss << task_scatterplot_sample_filename << node_id << ".csv";
-        // open the file
-        task_scatterplot_sample_file.open(ss.str(), std::ofstream::out);
-        if (!task_scatterplot_sample_file.is_open()) {
-            perror("opening scatterplot sample file");
-        }
-        APEX_ASSERT(task_scatterplot_sample_file.is_open());
-
-        ss.str("");
-        ss << apex_options::output_file_path();
-        ss << filesystem_separator();
-        ss << counter_scatterplot_sample_filename << node_id << ".csv";
-        // open the file
-        counter_scatterplot_sample_file.open(ss.str(), std::ofstream::out);
-        if (!counter_scatterplot_sample_file.is_open()) {
-            perror("opening scatterplot sample file");
-        }
-        APEX_ASSERT(counter_scatterplot_sample_file.is_open());
         profiler::get_global_start();
       }
   };
@@ -210,6 +189,36 @@ public:
   void on_send(message_event_data &data);
   void on_recv(message_event_data &data);
   // other methods
+  std::ofstream& task_scatterplot_sample_file() {
+      if (!_task_scatterplot_sample_file.is_open()) {
+        std::stringstream ss;
+        ss << apex_options::output_file_path();
+        ss << filesystem_separator();
+        ss << task_scatterplot_sample_filename << node_id << ".csv";
+        // open the file
+        _task_scatterplot_sample_file.open(ss.str(), std::ofstream::out);
+        if (!_task_scatterplot_sample_file.is_open()) {
+            perror("opening scatterplot sample file");
+        }
+        APEX_ASSERT(_task_scatterplot_sample_file.is_open());
+      }
+      return _task_scatterplot_sample_file;
+  }
+  std::ofstream& counter_scatterplot_sample_file () {
+      if (!_counter_scatterplot_sample_file.is_open()) {
+        std::stringstream ss;
+        ss << apex_options::output_file_path();
+        ss << filesystem_separator();
+        ss << counter_scatterplot_sample_filename << node_id << ".csv";
+        // open the file
+        _counter_scatterplot_sample_file.open(ss.str(), std::ofstream::out);
+        if (!_counter_scatterplot_sample_file.is_open()) {
+            perror("opening scatterplot sample file");
+        }
+        APEX_ASSERT(_counter_scatterplot_sample_file.is_open());
+      }
+      return _counter_scatterplot_sample_file;
+  }
   void reset(task_identifier * id);
   void reset_all(void);
   profile * get_profile(const task_identifier &id);
