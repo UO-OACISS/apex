@@ -53,7 +53,7 @@ pl.rcParams["figure.figsize"] = fig_size
 
 mymark = ('o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd')
 mycolor = ('blue', 'green', 'red', 'royalblue', 'darkmagenta', 'darkslategrey', 'black', 'darkblue', 'darkgreen', 'darkred')
-#mycolor = iter([pl.cm.Dark2(i) for i in range(8)])
+#mycolor = ([pl.cm.tab10(i) for i in range(10)])
 
 index = 0
 numplots = min(len(dictionary), 10)
@@ -65,8 +65,7 @@ for key in sorted(dictionary, key=lambda key: len(dictionary[key]), reverse=True
     values = np.array([x[1]/1000 for x in dictionary[key]])
     name = shorten_name(key)
     axes.set_title(name);
-    pl.plot(timestamps, values, color=mycolor[index-1], marker='.', linestyle=' ', label=name)
-    #pl.plot(timestamps, values, color=mycolor[next(mycolor)], marker='.', linestyle=' ', label=name)
+    pl.plot(timestamps, values, color=mycolor[(index-1)%10], marker='.', linestyle=' ', label=name)
     #pl.plot(timestamps, values, color=mycolor[index-1], marker=mymark[index-1], linestyle=' ', label=name)
     #pl.semilogy(timestamps, values, color=mycolor[index-1], marker=mymark[index-1], linestyle=' ', label=name)
     pl.draw()
