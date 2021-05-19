@@ -47,12 +47,13 @@ for counter, infile in enumerate(glob.glob('apex_task_samples.*.csv')):
 # Get current size
 fig_size = pl.rcParams["figure.figsize"]
 # Set figure width to 12 and height to 9
-fig_size[0] = 12
-fig_size[1] = 9
+fig_size[0] = 16
+fig_size[1] = 10
 pl.rcParams["figure.figsize"] = fig_size
 
 mymark = ('o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd')
-mycolor = ('blue', 'green', 'red', 'cyan', 'magenta', 'yellow', 'black', 'darkblue', 'darkgreen', 'darkred')
+mycolor = ('blue', 'green', 'red', 'royalblue', 'darkmagenta', 'darkslategrey', 'black', 'darkblue', 'darkgreen', 'darkred')
+#mycolor = iter([pl.cm.Dark2(i) for i in range(8)])
 
 index = 0
 numplots = min(len(dictionary), 10)
@@ -60,12 +61,14 @@ for key in sorted(dictionary, key=lambda key: len(dictionary[key]), reverse=True
     index = index + 1
     print ("Plotting", key)
     axes = pl.subplot(((numplots+1)/2), 2, index)
-    timestamps = np.array([x[0] for x in dictionary[key]])
-    values = np.array([x[1] for x in dictionary[key]])
+    timestamps = np.array([x[0]/1000000000 for x in dictionary[key]])
+    values = np.array([x[1]/1000 for x in dictionary[key]])
     name = shorten_name(key)
     axes.set_title(name);
+    pl.plot(timestamps, values, color=mycolor[index-1], marker='.', linestyle=' ', label=name)
+    #pl.plot(timestamps, values, color=mycolor[next(mycolor)], marker='.', linestyle=' ', label=name)
     #pl.plot(timestamps, values, color=mycolor[index-1], marker=mymark[index-1], linestyle=' ', label=name)
-    pl.semilogy(timestamps, values, color=mycolor[index-1], marker=mymark[index-1], linestyle=' ', label=name)
+    #pl.semilogy(timestamps, values, color=mycolor[index-1], marker=mymark[index-1], linestyle=' ', label=name)
     pl.draw()
     axes.set_autoscale_on(True) # enable autoscale
     axes.autoscale_view(True,True,True)
