@@ -380,7 +380,7 @@ std::unordered_set<profile*> free_profiles;
                             << "'" << p->get_task_id()->get_name() << "'" << endl;
                 int loc0 = task_scatterplot_samples.tellp();
                 if (loc0 > 32768) {
-                    task_scatterplot_sample_file << task_scatterplot_samples.rdbuf();
+                    task_scatterplot_sample_file() << task_scatterplot_samples.rdbuf();
                     // reset the stringstream
                     task_scatterplot_samples.str("");
                 }
@@ -393,7 +393,7 @@ std::unordered_set<profile*> free_profiles;
                             << "'" << p->get_task_id()->get_name() << "'" << endl;
                 int loc0 = task_scatterplot_samples.tellp();
                 if (loc0 > 32768) {
-                    counter_scatterplot_sample_file << counter_scatterplot_samples.rdbuf();
+                    counter_scatterplot_sample_file() << counter_scatterplot_samples.rdbuf();
                     // reset the stringstream
                     counter_scatterplot_samples.str("");
                 }
@@ -1466,10 +1466,10 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         write_profile();
       }
       if (apex_options::task_scatterplot()) {
-          task_scatterplot_sample_file << task_scatterplot_samples.rdbuf();
-          task_scatterplot_sample_file.close();
-          counter_scatterplot_sample_file << counter_scatterplot_samples.rdbuf();
-          counter_scatterplot_sample_file.close();
+          task_scatterplot_sample_file() << task_scatterplot_samples.rdbuf();
+          task_scatterplot_sample_file().close();
+          counter_scatterplot_sample_file() << counter_scatterplot_samples.rdbuf();
+          counter_scatterplot_sample_file().close();
       }
       if (data.reset) {
           reset_all();
