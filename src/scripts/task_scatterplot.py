@@ -65,7 +65,12 @@ for key in sorted(dictionary, key=lambda key: len(dictionary[key]), reverse=True
     values = np.array([x[1]/1000 for x in dictionary[key]])
     name = shorten_name(key)
     axes.set_title(name);
-    pl.plot(timestamps, values, color=mycolor[(index-1)%10], marker='.', linestyle=' ', label=name)
+    extension = '.pdf'
+    marker = '.'
+    if len(timestamps) > 1000000:
+        marker = ','
+        extension = '.png'
+    pl.plot(timestamps, values, color=mycolor[(index-1)%10], marker=marker, linestyle=' ', label=name)
     #pl.plot(timestamps, values, color=mycolor[index-1], marker=mymark[index-1], linestyle=' ', label=name)
     #pl.semilogy(timestamps, values, color=mycolor[index-1], marker=mymark[index-1], linestyle=' ', label=name)
     pl.draw()
@@ -79,4 +84,4 @@ for key in sorted(dictionary, key=lambda key: len(dictionary[key]), reverse=True
 print ("Rendering...")
 pl.tight_layout()
 #pl.show()
-pl.savefig("image.png")
+pl.savefig("top_task_scatterplot"+extension)

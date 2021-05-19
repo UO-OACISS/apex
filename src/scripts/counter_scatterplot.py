@@ -60,7 +60,7 @@ for key in sorted(dictionary, key=lambda key: len(dictionary[key]), reverse=True
     values = np.array([x[1] for x in dictionary[key]])
     name = shorten_name(key)
     pl.title(name);
-    marker = '1'
+    marker = '.'
     extension = '.pdf'
     if len(timestamps) > 1000000:
         marker = ','
