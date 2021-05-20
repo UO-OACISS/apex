@@ -25,6 +25,7 @@ def shorten_name(name):
     return short.replace('_', '$\\_$')
 
 dictionary = {}
+max_timestamp = 0
 for counter, infile in enumerate(glob.glob('apex_task_samples.*.csv')):
     with open (infile, 'r') as csvfile:
         spamreader = csv.reader(csvfile, delimiter=' ', quotechar='\'')
@@ -41,6 +42,8 @@ for counter, infile in enumerate(glob.glob('apex_task_samples.*.csv')):
                     dictionary[row[2]] = [mytup]
                 else:
                     dictionary[row[2]].append(mytup)
+                if float(row[0]) > max_timestamp:
+                    max_timestamp = float(row[0])
         print ("Parsed", index, "samples")
 
 #resize the figure
@@ -75,7 +78,8 @@ for key in sorted(dictionary, key=lambda key: len(dictionary[key]), reverse=True
     #pl.semilogy(timestamps, values, color=mycolor[index-1], marker=mymark[index-1], linestyle=' ', label=name)
     pl.draw()
     axes.set_autoscale_on(True) # enable autoscale
-    axes.autoscale_view(True,True,True)
+    axes.autoscale_view(True,False,True)
+    axes.set_xlim(left=0, right=(max_timestamp/1000000000))
     pl.legend(prop={'size':8})
     pl.ylabel("usec")
     pl.xlabel("seconds from program start")
