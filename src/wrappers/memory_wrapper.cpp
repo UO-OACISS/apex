@@ -144,16 +144,16 @@ static inline void bootstrap_free(void * ptr) {
     } \
 }
 
-static
-void * get_system_function_handle(char const * name, void * caller)
+template<class T> T
+get_system_function_handle(char const * name, T caller)
 {
-    void * handle;
+    T handle;
 
     // Reset error pointer
     RESET_DLERROR();
 
     // Attempt to get the function handle
-    handle = dlsym(RTLD_NEXT, name);
+    handle = reinterpret_cast<T>(dlsym(RTLD_NEXT, name));
 
     // Detect errors
     CHECK_DLERROR();
@@ -167,7 +167,7 @@ void * get_system_function_handle(char const * name, void * caller)
         CHECK_DLERROR();
         do {
             RESET_DLERROR();
-            handle = dlsym(syms, name);
+            handle = reinterpret_cast<T>(dlsym(syms, name));
             CHECK_DLERROR();
         } while (handle == caller);
     }
@@ -183,7 +183,7 @@ void* malloc (size_t size) {
     if (!bootstrapped) {
         if (!initializing) {
             initializing = true;
-            _malloc = (malloc_p)get_system_function_handle("malloc", (void*)malloc);
+            _malloc = get_system_function_handle<malloc_p>("malloc", &malloc);
         }
         if (!_malloc) {
             return bootstrap_alloc(0, size);
@@ -211,7 +211,7 @@ void free (void* ptr) {
     if (!bootstrapped) {
         if (!initializing) {
             initializing = true;
-            _free = (free_p)get_system_function_handle("free", (void*)free);
+            _free = get_system_function_handle<free_p>("free", &free);
         }
         if (!_free) {
             // do nothing, effectively
@@ -236,7 +236,7 @@ int puts (const char* s) {
     if (!bootstrapped) {
         if (!initializing) {
             initializing = true;
-            _puts = (puts_p)get_system_function_handle("puts", (void*)puts);
+            _puts = get_system_function_handle<puts_p>("puts", &puts);
         }
         if (!_puts) {
             // do nothing, effectively
@@ -258,7 +258,7 @@ void* calloc (size_t nmemb, size_t size) {
     if (!bootstrapped) {
         if (!initializing) {
             initializing = true;
-            _calloc = (calloc_p)get_system_function_handle("calloc", (void*)calloc);
+            _calloc = get_system_function_handle<calloc_p>("calloc", &calloc);
         }
         if (!_calloc) {
             return bootstrap_alloc(0, (nmemb*size));
@@ -282,7 +282,7 @@ void* realloc (void* ptr, size_t size) {
     if (!bootstrapped) {
         if (!initializing) {
             initializing = true;
-            _realloc = (realloc_p)get_system_function_handle("realloc", (void*)realloc);
+            _realloc = get_system_function_handle<realloc_p>("realloc", &realloc);
         }
         if (!_realloc) {
             return bootstrap_alloc(0, size);
@@ -303,7 +303,7 @@ void* realloc (void* ptr, size_t size) {
 void* memalign (size_t alignment, size_t size) {
     static memalign_p _memalign = NULL;
     if (!_memalign) {
-        _memalign = (memalign_p)get_system_function_handle("memalign", (void*)memalign);
+        _memalign = get_system_function_handle<memalign_p>("memalign", &memalign);
     }
     return apex_memalign_wrapper(_memalign, alignment, size);
 }
@@ -313,7 +313,7 @@ void* memalign (size_t alignment, size_t size) {
 void* reallocarray (void* ptr, size_t nmemb, size_t size) {
     static reallocarray_p _reallocarray = NULL;
     if (!_reallocarray) {
-        _reallocarray = (reallocarray_p)get_system_function_handle("reallocarray", (void*)reallocarray);
+        _reallocarray = get_system_function_handle<reallocarray_p>("reallocarray", &reallocarray);
     }
     return apex_reallocarray_wrapper(_reallocarray, ptr, nmemb, size);
 }
@@ -323,7 +323,7 @@ void* reallocarray (void* ptr, size_t nmemb, size_t size) {
 void* reallocf (void* ptr, size_t size) {
     static reallocf_p _reallocf = NULL;
     if (!_reallocf) {
-        _reallocf = (reallocf_p)get_system_function_handle("reallocf", (void*)reallocf);
+        _reallocf = get_system_function_handle<reallocf_p>("reallocf", &reallocf);
     }
     return apex_reallocf_wrapper(_reallocf, ptr, size);
 }
@@ -333,7 +333,7 @@ void* reallocf (void* ptr, size_t size) {
 void* valloc (size_t size) {
     static valloc_p _valloc = NULL;
     if (!_valloc) {
-        _valloc = (valloc_p)get_system_function_handle("valloc", (void*)valloc);
+        _valloc = get_system_function_handle<valloc_p>("valloc", &valloc);
     }
     return apex_valloc_wrapper(_valloc, size);
 }
@@ -343,7 +343,7 @@ void* valloc (size_t size) {
 size_t malloc_usable_size (void* ptr) {
     static malloc_usable_size_p _malloc_usable_size = NULL;
     if (!_malloc_usable_size) {
-        _malloc_usable_size = (malloc_usable_size_p)get_system_function_handle("malloc_usable_size", (void*)malloc_usable_size);
+        _malloc_usable_size = get_system_function_handle<malloc_usable_size_p>("malloc_usable_size", &malloc_usable_size);
     }
     return apex_malloc_usable_size_wrapper(_malloc_usable_size, ptr);
 }
