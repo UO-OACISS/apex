@@ -135,6 +135,16 @@ if(APEX_WITH_CUDA)
     find_package(CUDAToolkit REQUIRED QUIET COMPONENTS CUPTI)
 endif(APEX_WITH_CUDA)
 
+if(APEX_WITH_HIP)
+    # This is needed so that the clang compiler test passes, and we can use it to
+    # compile the test cases.
+    if(APEX_BUILD_TESTS)
+        find_package(hip REQUIRED)
+        # OK to enable HIP tests
+        set(APEX_HIP_TESTS TRUE)
+    endif()
+endif(APEX_WITH_HIP)
+
 # set(APEX_BUILD_TYPE "${CMAKE_BUILD_TYPE}" CACHE STRING "Configuration type (one of Debug, RelWithDebInfo, Release, MinSizeRel)" FORCE)
 
 # Always force CMAKE_CONFIGURATION_TYPES to be the same as CMAKE_BUILD_TYPE
@@ -274,7 +284,10 @@ endif (APEX_USE_PEDANTIC)
 # PGI and Intel don't like the concurrentqueue code.
 if (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "PGI")
     if (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
-        enable_cxx_compiler_flag_if_supported("-Werror")
+        # ROCM Clang++ has an unused library in the link.
+        if (NOT ${APEX_WITH_HIP})
+            enable_cxx_compiler_flag_if_supported("-Werror")
+        endif (NOT ${APEX_WITH_HIP})
     endif (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
 endif (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "PGI")
 
@@ -634,6 +647,21 @@ if (APEX_WITH_CUDA)
 endif (APEX_WITH_CUDA)
 
 ################################################################################
+# HIP configuration
+################################################################################
+
+if (APEX_WITH_HIP)
+    find_package(ROCTRACER REQUIRED)
+    find_package(ROCTX REQUIRED)
+    set(LIBS ${LIBS} ${ROCTRACER_LIBRARIES} ${ROCTX_LIBRARIES})
+    add_definitions(-DAPEX_WITH_HIP)
+    message(INFO " Using ROCTRACER include: ${ROCTRACER_INCLUDE_DIRS}")
+    include_directories(${ROCTRACER_INCLUDE_DIRS})
+    message(INFO " Using ROCTX include: ${ROCTX_INCLUDE_DIRS}")
+    include_directories(${ROCTX_INCLUDE_DIRS})
+endif (APEX_WITH_HIP)
+
+################################################################################
 # RAJA configuration
 ################################################################################
 
@@ -936,6 +964,9 @@ if(APEX_BUILD_TESTS)
     if (APEX_CUDA_TESTS)
         add_subdirectory (src/unit_tests/CUDA)
     endif (APEX_CUDA_TESTS)
+    if (APEX_HIP_TESTS)
+        add_subdirectory (src/unit_tests/HIP)
+    endif (APEX_HIP_TESTS)
 else()
     #add_subdirectory (src/unit_tests/C EXCLUDE_FROM_ALL)
     #add_subdirectory (src/unit_tests/C++ EXCLUDE_FROM_ALL)
