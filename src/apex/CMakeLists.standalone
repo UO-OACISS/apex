@@ -34,8 +34,12 @@ SET(OTF2_SOURCE otf2_listener.cpp)
 endif(OTF2_FOUND)
 
 if (CUPTI_FOUND)
-SET(CUPTI_SOURCE activity_trace_async.cpp)
+SET(CUPTI_SOURCE cupti_trace.cpp)
 endif(CUPTI_FOUND)
+
+if (ROCTRACER_FOUND)
+SET(ROCTRACER_SOURCE hip_trace.cpp)
+endif(ROCTRACER_FOUND)
 
 if (NVML_FOUND)
 SET(NVML_SOURCE apex_nvml.cpp)
@@ -52,6 +56,7 @@ endif (APEX_WITH_RAJA AND RAJA_FOUND)
 # Try to keep this in alphabetical order
 SET(all_SOURCE
 ${CUPTI_SOURCE}
+${ROCTRACER_SOURCE}
 ${NVML_SOURCE}
 apex.cpp
 apex_kokkos.cpp
@@ -125,6 +130,10 @@ if (NOT BUILD_STATIC_EXECUTABLES)
         target_link_libraries(apex ${LIBS} taudummy)
     endif(APPLE)
 endif()
+
+if (APEX_WITH_HIP)
+    include_directories(${ROCM_ROOT}/include ${ROCM_ROOT}/include/hsa)
+endif (APEX_WITH_HIP)
 
 # add the binary tree to the search path for include files
 # so that we will find ApexConfig.h

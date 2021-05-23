@@ -1417,6 +1417,10 @@ void finalize_plugins(void) {
 void flushTrace(void);
 void finalizeCuda(void);
 #endif
+#ifdef APEX_WITH_HIP
+void flush_hip_trace(void);
+void stop_hip_trace(void);
+#endif
 
 std::string dump(bool reset) {
     in_apex prevent_deadlocks;
@@ -1434,6 +1438,9 @@ std::string dump(bool reset) {
     if (!instance) { FUNCTION_EXIT return(std::string("")); }
 #ifdef APEX_WITH_CUDA
     flushTrace();
+#endif
+#ifdef APEX_WITH_HIP
+    flush_hip_trace();
 #endif
     if (_notify_listeners) {
         dump_event_data data(instance->get_node_id(),
@@ -1500,6 +1507,10 @@ void finalize()
 #ifdef APEX_WITH_CUDA
     flushTrace();
     finalizeCuda();
+#endif
+#ifdef APEX_WITH_HIP
+    flush_hip_trace();
+    stop_hip_trace();
 #endif
     // stop processing new timers/counters/messages/tasks/etc.
     apex_options::suspend(true);
