@@ -2610,7 +2610,7 @@ namespace apex {
 
 #endif
 
-    void otf2_listener::on_async_event(thread_node &node,
+    void otf2_listener::on_async_event(async_thread_node &node,
         std::shared_ptr<profiler> &p) {
         // This could be a callback from a library before APEX is ready
         // Something like OpenMP or CUDA/CUPTI or...?
@@ -2671,7 +2671,7 @@ namespace apex {
 
     }
 
-    void otf2_listener::on_async_metric(thread_node &node,
+    void otf2_listener::on_async_metric(async_thread_node &node,
         std::shared_ptr<profiler> &p) {
         // This could be a callback from a library before APEX is ready
         // Something like OpenMP or CUDA/CUPTI or...?

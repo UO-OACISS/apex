@@ -92,6 +92,22 @@ std::mutex bfd_mutex;
         } else {
             std::string retval(name);
             if (resolve) {
+#ifdef APEX_HAVE_BFD
+                REGEX_NAMESPACE::regex rx (".*UNRESOLVED ADDR (.*)");
+                if (REGEX_NAMESPACE::regex_match (retval,rx)) {
+                    const REGEX_NAMESPACE::regex separator(" ADDR ");
+                    REGEX_NAMESPACE::sregex_token_iterator
+                        token(retval.begin(), retval.end(), separator, -1);
+                    *token++; // ignore
+                    std::string addr_str = *token++;
+                    void* addr_addr;
+                    sscanf(addr_str.c_str(), "%p", &addr_addr);
+                    std::string * tmp = lookup_address((uintptr_t)addr_addr, true);
+                    REGEX_NAMESPACE::regex old_address("UNRESOLVED ADDR " + addr_str);
+                    retval = REGEX_NAMESPACE::regex_replace(retval, old_address,
+                            (demangle(*tmp)));
+                }
+#endif
                 static std::string cudastr("GPU: ");
                 static std::string kernel("cudaLaunchKernel: ");
                 static std::string kernel2("cuLaunchKernel: ");
@@ -120,22 +136,6 @@ std::mutex bfd_mutex;
                     retval.assign(ss.str());
                     return retval;
                 }
-#ifdef APEX_HAVE_BFD
-                REGEX_NAMESPACE::regex rx (".*UNRESOLVED ADDR (.*)");
-                if (REGEX_NAMESPACE::regex_match (retval,rx)) {
-                    const REGEX_NAMESPACE::regex separator(" ADDR ");
-                    REGEX_NAMESPACE::sregex_token_iterator
-                        token(retval.begin(), retval.end(), separator, -1);
-                    *token++; // ignore
-                    std::string addr_str = *token++;
-                    void* addr_addr;
-                    sscanf(addr_str.c_str(), "%p", &addr_addr);
-                    std::string * tmp = lookup_address((uintptr_t)addr_addr, true);
-                    REGEX_NAMESPACE::regex old_address("UNRESOLVED ADDR " + addr_str);
-                    retval = REGEX_NAMESPACE::regex_replace(retval, old_address,
-                            (demangle(*tmp)));
-                }
-#endif
             }
             return retval;
         }

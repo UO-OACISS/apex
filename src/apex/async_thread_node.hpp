@@ -93,7 +93,7 @@ namespace apex {
 }
 
 #ifdef APEX_WITH_CUDA
-using async_thread_node = apex::hip_thread_node;
+using async_thread_node = apex::cuda_thread_node;
 #endif
 
 #ifdef APEX_WITH_HIP
