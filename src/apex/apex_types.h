@@ -133,11 +133,11 @@ typedef enum {APEX_SIMPLE_HYSTERESIS,      /*!< optimize using sliding window of
 /**
  * Typedef for enumerating the different asynchronous activity types
  */
-typedef enum {APEX_CUDA_KERNEL,          /* CUDA Kernel */
-              APEX_CUDA_MEMORY,          /* CUDA memory copy */
-              APEX_CUDA_SYNCHRONIZE,     /* CUDA Synchronization events */
-              APEX_CUDA_OTHER            /* CUDA OpenACC "other" events */
-} apex_cuda_async_activity_t;
+typedef enum {APEX_ASYNC_KERNEL,          /* Kernel */
+              APEX_ASYNC_MEMORY,          /* memory copy */
+              APEX_ASYNC_SYNCHRONIZE,     /* Synchronization events */
+              APEX_ASYNC_OTHER            /* OpenACC or "other" events */
+} apex_async_activity_t;
 
 /**
  * Structure that holds a profiler ID
@@ -319,6 +319,13 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_CUDA_SYNC_ACTIVITY, use_cuda_sync_activity, bool, true) \
     macro (APEX_CUDA_MEMORY_ACTIVITY, use_cuda_memory_activity, bool, true) \
     macro (APEX_CUDA_KERNEL_ACTIVITY, use_cuda_kernel_activity, bool, true) \
+    macro (APEX_HIP_COUNTERS, use_hip_counters, int, false) \
+    macro (APEX_HIP_KERNEL_DETAILS, use_hip_kernel_details, int, false) \
+    macro (APEX_HIP_RUNTIME_API, use_hip_runtime_api, bool, true) \
+    macro (APEX_HIP_KFD_API, use_hip_kfd_api, bool, false) \
+    macro (APEX_HIP_SYNC_ACTIVITY, use_hip_sync_activity, bool, true) \
+    macro (APEX_HIP_MEMORY_ACTIVITY, use_hip_memory_activity, bool, true) \
+    macro (APEX_HIP_KERNEL_ACTIVITY, use_hip_kernel_activity, bool, true) \
     macro (APEX_JUPYTER_SUPPORT, use_jupyter_support, int, false) \
     macro (APEX_KOKKOS_VERBOSE, use_kokkos_verbose, bool, false) \
     macro (APEX_KOKKOS_TUNING, use_kokkos_tuning, bool, true) \

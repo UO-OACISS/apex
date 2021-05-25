@@ -190,7 +190,7 @@ void trace_event_listener::set_metadata(const char * name, const char * value) {
     APEX_UNUSED(value);
 }
 
-std::string trace_event_listener::make_tid (cuda_thread_node &node) {
+std::string trace_event_listener::make_tid (async_thread_node &node) {
     size_t tid;
     /* There is a potential for overlap here, but not a high potential.  The CPU and the GPU
      * would BOTH have to spawn 64k+ threads/streams for this to happen. */
@@ -198,14 +198,23 @@ std::string trace_event_listener::make_tid (cuda_thread_node &node) {
         size_t id = vthread_map.size()+1;
         //uint32_t id_reversed = simple_reverse(id);
         uint32_t id_shifted = id << 16;
-        vthread_map.insert(std::pair<cuda_thread_node, size_t>(node,id_shifted));
+        vthread_map.insert(std::pair<async_thread_node, size_t>(node,id_shifted));
         std::stringstream ss;
         ss << "{\"name\":\"thread_name\""
            << ",\"ph\":\"M\",\"pid\":" << saved_node_id
            << ",\"tid\":" << id_shifted
-           << ",\"args\":{\"name\":"
-           << "\"CUDA [" << node._device << ":" << node._context
+           << ",\"args\":{\"name\":";
+#ifdef APEX_WITH_CUDA
+        ss << "\"CUDA [" << node._device << ":" << node._context
            << ":" << std::setfill('0') << setw(5) << node._stream << "]";
+#endif
+#ifdef APEX_WITH_HIP
+        ss << "\"HIP [" << node._device
+           << ":" << std::setfill('0') << setw(5) << node._queue << "]";
+#endif
+#if !defined(APEX_WITH_CUDA) && !defined(APEX_WITH_HIP)
+        ss << "\"GPU [" << node._device << "]";
+#endif
         //ss << "" << activity_to_string(node._activity);
         ss << "\"";
         ss << "}},\n";
@@ -224,7 +233,7 @@ std::string trace_event_listener::make_tid (cuda_thread_node &node) {
     return label;
 }
 
-void trace_event_listener::on_async_event(cuda_thread_node &node,
+void trace_event_listener::on_async_event(async_thread_node &node,
     std::shared_ptr<profiler> &p) {
     if (!_terminate) {
         std::stringstream ss;
@@ -244,7 +253,7 @@ void trace_event_listener::on_async_event(cuda_thread_node &node,
     }
 }
 
-void trace_event_listener::on_async_metric(cuda_thread_node &node,
+void trace_event_listener::on_async_metric(async_thread_node &node,
     std::shared_ptr<profiler> &p) {
     if (!_terminate) {
         std::stringstream ss;

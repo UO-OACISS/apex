@@ -257,7 +257,7 @@ inline char filesystem_separator()
 uint64_t test_for_MPI_comm_rank(uint64_t commrank);
 uint64_t test_for_MPI_comm_size(uint64_t commsize);
 
-std::string activity_to_string(apex_cuda_async_activity_t activity);
+std::string activity_to_string(apex_async_activity_t activity);
 
 class node_color {
 public:

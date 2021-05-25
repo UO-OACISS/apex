@@ -29,7 +29,7 @@
 #ifdef APEX_HAVE_OTF2
 #include "otf2_listener.hpp"
 #endif
-#include "cuda_thread_node.hpp"
+#include "async_thread_node.hpp"
 
 #include <cuda.h>
 #include <cupti.h>
@@ -570,7 +570,7 @@ static void memcpyActivity2(CUpti_Activity *record) {
        << memcpy->deviceId << "->" << memcpy->dstDeviceId;
     std::string name{ss.str()};
     apex::cuda_thread_node node(memcpy->deviceId, memcpy->contextId,
-        memcpy->streamId, APEX_CUDA_MEMORY);
+        memcpy->streamId, APEX_ASYNC_MEMORY);
     store_profiler_data(name, memcpy->correlationId, memcpy->start,
             memcpy->end, node);
     if (apex::apex_options::use_cuda_counters()) {
@@ -594,7 +594,7 @@ static void memcpyActivity(CUpti_Activity *record) {
     }
     std::string name{getMemcpyKindString(memcpy->copyKind)};
     apex::cuda_thread_node node(memcpy->deviceId, memcpy->contextId,
-        memcpy->streamId, APEX_CUDA_MEMORY);
+        memcpy->streamId, APEX_ASYNC_MEMORY);
     store_profiler_data(name, memcpy->correlationId, memcpy->start,
             memcpy->end, node);
     if (apex::apex_options::use_cuda_counters()) {
@@ -618,7 +618,7 @@ static void unifiedMemoryActivity(CUpti_Activity *record) {
     uint32_t device = getUvmCounterDevice(
             (CUpti_ActivityUnifiedMemoryCounterKind) memcpy->counterKind,
             memcpy->srcId, memcpy->dstId);
-    apex::cuda_thread_node node(device, 0, 0, APEX_CUDA_MEMORY);
+    apex::cuda_thread_node node(device, 0, 0, APEX_ASYNC_MEMORY);
     if (memcpy->counterKind ==
             CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_BYTES_TRANSFER_HTOD
             || memcpy->counterKind ==
@@ -659,7 +659,7 @@ static void memsetActivity(CUpti_Activity *record) {
     CUpti_ActivityMemset *memset = (CUpti_ActivityMemset *) record;
     static std::string name{"Memset"};
     apex::cuda_thread_node node(memset->deviceId, memset->contextId,
-            memset->streamId, APEX_CUDA_MEMORY);
+            memset->streamId, APEX_ASYNC_MEMORY);
     store_profiler_data(name, memset->correlationId, memset->start,
             memset->end, node);
 }
@@ -670,7 +670,7 @@ static void kernelActivity(CUpti_Activity *record) {
     std::string tmp = std::string(kernel->name);
     //DEBUG_PRINT("Kernel CorrelationId: %u\n", kernel->correlationId);
     apex::cuda_thread_node node(kernel->deviceId, kernel->contextId,
-            kernel->streamId, APEX_CUDA_KERNEL);
+            kernel->streamId, APEX_ASYNC_KERNEL);
     store_profiler_data(tmp, kernel->correlationId, kernel->start,
             kernel->end, node);
     if (apex::apex_options::use_cuda_counters()) {
@@ -719,7 +719,7 @@ static void openaccDataActivity(CUpti_Activity *record) {
     CUpti_ActivityOpenAccData *data = (CUpti_ActivityOpenAccData *) record;
     std::string label{openacc_event_names[data->eventKind]};
     apex::cuda_thread_node node(data->cuDeviceId, data->cuContextId,
-        data->cuStreamId, APEX_CUDA_MEMORY);
+        data->cuStreamId, APEX_ASYNC_MEMORY);
     store_profiler_data(label, data->externalId, data->start, data->end, node);
     static std::string bytes{"Bytes Transferred"};
     store_counter_data(label.c_str(), bytes, data->end, data->bytes, node);
@@ -729,7 +729,7 @@ static void openaccKernelActivity(CUpti_Activity *record) {
     CUpti_ActivityOpenAccLaunch *data = (CUpti_ActivityOpenAccLaunch *) record;
     std::string label{openacc_event_names[data->eventKind]};
     apex::cuda_thread_node node(data->cuDeviceId, data->cuContextId,
-        data->cuStreamId, APEX_CUDA_KERNEL);
+        data->cuStreamId, APEX_ASYNC_KERNEL);
     store_profiler_data(label, data->externalId, data->start,
             data->end, node);
     static std::string gangs{"Num Gangs"};
@@ -744,7 +744,7 @@ static void openaccOtherActivity(CUpti_Activity *record) {
     CUpti_ActivityOpenAccOther *data = (CUpti_ActivityOpenAccOther *) record;
     std::string label{openacc_event_names[data->eventKind]};
     apex::cuda_thread_node node(data->cuDeviceId, data->cuContextId,
-        data->cuStreamId, APEX_CUDA_OTHER);
+        data->cuStreamId, APEX_ASYNC_OTHER);
     store_profiler_data(label, data->externalId, data->start, data->end, node);
 }
 
@@ -771,7 +771,7 @@ static void syncActivity(CUpti_Activity *record) {
         data->type == CUPTI_ACTIVITY_SYNCHRONIZATION_TYPE_STREAM_SYNCHRONIZE) {
         stream = data->streamId;
     }
-    apex::cuda_thread_node node(device, context, stream, APEX_CUDA_SYNCHRONIZE);
+    apex::cuda_thread_node node(device, context, stream, APEX_ASYNC_SYNCHRONIZE);
     /* Event Synchronize doesn't have a stream ID, and can come from any thread,
      * and can overlap.  So if we are OTF2 tracing, ignore them. */
     if (apex::apex_options::use_otf2() &&

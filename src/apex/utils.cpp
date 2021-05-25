@@ -530,20 +530,20 @@ uint64_t test_for_MPI_comm_size(uint64_t commsize) {
     return commsize;
 }
 
-std::string activity_to_string(apex_cuda_async_activity_t activity) {
+std::string activity_to_string(apex_async_activity_t activity) {
     static std::string kernel{"Compute"};
     static std::string memory{"Memory"};
     static std::string sync{"Sync"};
     static std::string other{"Other"};
     static std::string empty{""};
     switch (activity) {
-        case APEX_CUDA_KERNEL:
+        case APEX_ASYNC_KERNEL:
             return kernel;
-        case APEX_CUDA_MEMORY:
+        case APEX_ASYNC_MEMORY:
             return memory;
-        case APEX_CUDA_SYNCHRONIZE:
+        case APEX_ASYNC_SYNCHRONIZE:
             return sync;
-        case APEX_CUDA_OTHER:
+        case APEX_ASYNC_OTHER:
             return other;
         default:
             return empty;
