@@ -178,6 +178,7 @@ if(APEX_WITH_CUDA)
     set(nvml_sources apex_nvml.cpp)
 endif(APEX_WITH_CUDA)
 
+include(APEX_SetupHIP)
 if(APEX_WITH_HIP)
     set(hip_sources hip_trace.cpp)
 endif(APEX_WITH_HIP)
