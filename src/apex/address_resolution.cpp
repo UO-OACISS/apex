@@ -88,8 +88,10 @@ namespace apex {
             }
             location << "} {" << node->info.lineno << ",0}]";
         } else {
-            // to disambiguate C++ functions
-            location << ":" << node->info.lineno;
+            if (node->info.lineno != 0) {
+                // to disambiguate C++ functions
+                location << ":" << node->info.lineno;
+            }
         }
         node->location = new string(location.str());
         ar->my_hash_table[ip] = node;
