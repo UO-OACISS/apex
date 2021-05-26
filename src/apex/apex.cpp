@@ -2014,7 +2014,9 @@ extern "C" {
     }
 
     static void apex_init_static_void(void) {
-        init("APEX Void Constructor", 0, 1);
+        if (!apex_options::use_otf2()) {
+            init("APEX Void Constructor", 0, 1);
+        }
     }
 
     void apex_cleanup() {

@@ -196,6 +196,198 @@ void handle_roc_kfd(uint32_t cid, const void* callback_data, void* arg) {
     return;
 }
 
+/* Handle counters from synchronous callbacks */
+void store_sync_counter_data(const char * name, const std::string& context,
+    double value, bool threaded) {
+    if (name == nullptr) {
+        std::stringstream ss;
+        ss << "GPU: " << context;
+        apex::sample_value(ss.str(), value, threaded);
+    } else {
+        std::stringstream ss;
+        ss << "GPU: " << name << ": " << context;
+        apex::sample_value(ss.str(), value, threaded);
+    }
+}
+
+bool getBytesIfMalloc(uint32_t cid, const hip_api_data_t* data,
+    std::string context, bool isEnter) {
+    size_t bytes = 0;
+    bool onHost = false;
+    bool managed = false;
+    void* ptr = nullptr;
+    static std::atomic<size_t> totalAllocated{0};
+    static std::unordered_map<void*,size_t> memoryMap;
+    std::mutex mapMutex;
+    static std::atomic<size_t> hostTotalAllocated{0};
+    static std::unordered_map<void*,size_t> hostMemoryMap;
+    std::mutex hostMapMutex;
+    bool free = false;
+        switch (cid) {
+            /*
+            case HIP_API_ID_hipMallocPitch: {
+                ptr = *data->args.hipMallocPitch.ptr;
+                bytes = data->args.hipMallocPitch.width * data->args.hipMallocPitch.height;
+                break;
+            }
+            */
+            case HIP_API_ID_hipMalloc: {
+                ptr = *data->args.hipMalloc.ptr;
+                bytes = data->args.hipMalloc.size;
+                break;
+            }
+            /*
+            case HIP_API_ID_hipMalloc3DArray: {
+                ptr = ?
+                bytes = ?
+                break;
+            }
+            */
+            case HIP_API_ID_hipMallocHost: {
+                ptr = *data->args.hipMallocHost.ptr;
+                bytes = data->args.hipMallocHost.size;
+                onHost = true;
+                break;
+            }
+            /*
+            case HIP_API_ID_hipMallocArray: {
+                ptr = ?
+                bytes = ?
+                break;
+            }
+            */
+            /*
+            case HIP_API_ID_hipMallocMappedArray: {
+                ptr = ?
+                bytes = ?
+                break;
+            }
+            */
+            case HIP_API_ID_hipHostMalloc: {
+                ptr = *data->args.hipHostMalloc.ptr;
+                bytes = data->args.hipHostMalloc.size;
+                onHost = true;
+                break;
+            }
+            case HIP_API_ID_hipMallocManaged: {
+                ptr = *data->args.hipMallocManaged.dev_ptr;
+                bytes = data->args.hipMallocManaged.size;
+                managed = true;
+                break;
+            }
+            /*
+            case HIP_API_ID_hipMalloc3D: {
+                ptr = ?
+                bytes = ?
+                break;
+            }
+            */
+            case HIP_API_ID_hipExtMallocWithFlags: {
+                ptr = *data->args.hipExtMallocWithFlags.ptr;
+                bytes = data->args.hipExtMallocWithFlags.sizeBytes;
+                break;
+            }
+            case HIP_API_ID_hipFreeHost: {
+                ptr = data->args.hipFreeHost.ptr;
+                free = true;
+                onHost = true;
+                break;
+            }
+            case HIP_API_ID_hipFreeArray: {
+                ptr = data->args.hipFreeArray.array;
+                free = true;
+                break;
+            }
+            /*
+            case HIP_API_ID_hipFreeMipmappedArray: {
+                ptr = data->args.hipFreeMipmappedArray.mimappedArray;
+                free = true;
+                break;
+            }
+            */
+            case HIP_API_ID_hipFree: {
+                ptr = data->args.hipFree.ptr;
+                free = true;
+                break;
+            }
+            case HIP_API_ID_hipHostFree: {
+                ptr = data->args.hipHostFree.ptr;
+                free = true;
+                onHost = true;
+                break;
+            }
+            default: {
+                return false;
+            }
+        }
+    // If we are in the enter of a function, and we are freeing memory,
+    // then update and record the bytes allocated
+    if (free && isEnter) {
+        double value = 0;
+        //std::cout << "Freeing " << ptr << std::endl;
+        if (onHost) {
+            hostMapMutex.lock();
+            if (hostMemoryMap.count(ptr) > 0) {
+                bytes = hostMemoryMap[ptr];
+                hostMemoryMap.erase(ptr);
+            } else {
+                hostMapMutex.unlock();
+                return false;
+            }
+            hostMapMutex.unlock();
+            value = (double)(bytes);
+            store_sync_counter_data("Host Bytes Freed", context, value, true);
+            hostTotalAllocated.fetch_sub(bytes, std::memory_order_relaxed);
+            value = (double)(hostTotalAllocated);
+            store_sync_counter_data(nullptr, "Total Bytes Occupied on Host", value, false);
+        } else {
+            mapMutex.lock();
+            if (memoryMap.count(ptr) > 0) {
+                bytes = memoryMap[ptr];
+                memoryMap.erase(ptr);
+            } else {
+                mapMutex.unlock();
+                return false;
+            }
+            mapMutex.unlock();
+            value = (double)(bytes);
+            store_sync_counter_data("Bytes Freed", context, value, true);
+            totalAllocated.fetch_sub(value, std::memory_order_relaxed);
+            value = (double)(totalAllocated);
+            store_sync_counter_data(nullptr, "Total Bytes Occupied on Device", value, false);
+        }
+    // If we are in the exit of a function, and we are allocating memory,
+    // then update and record the bytes allocated
+    } else if (!free && !isEnter) {
+        if (bytes == 0) return false;
+        double value = (double)(bytes);
+        //std::cout << "Allocating " << value << " bytes at " << ptr << std::endl;
+        if (onHost) {
+            store_sync_counter_data("Bytes Allocated", context, value, true);
+            hostMapMutex.lock();
+            hostMemoryMap[ptr] = value;
+            hostMapMutex.unlock();
+            hostTotalAllocated.fetch_add(bytes, std::memory_order_relaxed);
+            value = (double)(hostTotalAllocated);
+            store_sync_counter_data(nullptr, "Total Bytes Occupied on Host", value, false);
+            return true;
+        } else {
+            if (managed) {
+                store_sync_counter_data("Bytes Allocated (Managed)", context, value, true);
+            } else {
+                store_sync_counter_data("Bytes Allocated", context, value, true);
+            }
+            mapMutex.lock();
+            memoryMap[ptr] = value;
+            mapMutex.unlock();
+            totalAllocated.fetch_add(bytes, std::memory_order_relaxed);
+            value = (double)(totalAllocated);
+            store_sync_counter_data(nullptr, "Total Bytes Occupied on Device", value, false);
+        }
+    }
+    return true;
+}
+
 /* The HIP callback API.  For these events, we have to check whether it's
  * the entry or exit event, and act accordingly.
  */
@@ -209,9 +401,9 @@ void handle_hip(uint32_t cid, const void* callback_data, void* arg) {
             data->correlation_id,
             (data->phase == ACTIVITY_API_PHASE_ENTER) ?
             "on-enter" : "on-exit", GetPid(), GetTid());
+    std::string context{roctracer_op_string(ACTIVITY_DOMAIN_HIP_API, cid, 0)};
     if (data->phase == ACTIVITY_API_PHASE_ENTER) {
-        auto timer = apex::new_task(
-			roctracer_op_string(ACTIVITY_DOMAIN_HIP_API, cid, 0));
+        auto timer = apex::new_task(context);
         apex::start(timer);
         timer_stack.push(timer);
         correlation_map_mutex.lock();
@@ -219,20 +411,22 @@ void handle_hip(uint32_t cid, const void* callback_data, void* arg) {
         correlation_map_mutex.unlock();
 
         switch (cid) {
-            case HIP_API_ID_hipMemcpy:
-                SPRINT("dst(%p) src(%p) size(0x%x) kind(%u)",
-                        data->args.hipMemcpy.dst,
-                        data->args.hipMemcpy.src,
-                        (uint32_t)(data->args.hipMemcpy.sizeBytes),
-                        (uint32_t)(data->args.hipMemcpy.kind));
-                break;
+            case HIP_API_ID_hipMallocPitch:
             case HIP_API_ID_hipMalloc:
-                SPRINT("ptr(%p) size(0x%x)",
-                        data->args.hipMalloc.ptr,
-                        (uint32_t)(data->args.hipMalloc.size));
-                break;
+            case HIP_API_ID_hipMalloc3DArray:
+            case HIP_API_ID_hipMallocHost:
+            case HIP_API_ID_hipMallocArray:
+            case HIP_API_ID_hipMallocMipmappedArray:
+            case HIP_API_ID_hipHostMalloc:
+            case HIP_API_ID_hipMallocManaged:
+            case HIP_API_ID_hipMalloc3D:
+            case HIP_API_ID_hipExtMallocWithFlags:
+            case HIP_API_ID_hipFreeHost:
+            case HIP_API_ID_hipFreeArray:
+            case HIP_API_ID_hipFreeMipmappedArray:
             case HIP_API_ID_hipFree:
-                SPRINT("ptr(%p)", data->args.hipFree.ptr);
+            case HIP_API_ID_hipHostFree:
+                getBytesIfMalloc(cid, data, context, true);
                 break;
             case HIP_API_ID_hipLaunchKernel:
                 correlation_map_mutex.lock();
@@ -270,8 +464,22 @@ void handle_hip(uint32_t cid, const void* callback_data, void* arg) {
         }
 
         switch (cid) {
+            case HIP_API_ID_hipMallocPitch:
             case HIP_API_ID_hipMalloc:
-                SPRINT("*ptr(0x%p)", *(data->args.hipMalloc.ptr));
+            case HIP_API_ID_hipMalloc3DArray:
+            case HIP_API_ID_hipMallocHost:
+            case HIP_API_ID_hipMallocArray:
+            case HIP_API_ID_hipMallocMipmappedArray:
+            case HIP_API_ID_hipHostMalloc:
+            case HIP_API_ID_hipMallocManaged:
+            case HIP_API_ID_hipMalloc3D:
+            case HIP_API_ID_hipExtMallocWithFlags:
+            case HIP_API_ID_hipFreeHost:
+            case HIP_API_ID_hipFreeArray:
+            case HIP_API_ID_hipFreeMipmappedArray:
+            case HIP_API_ID_hipFree:
+            case HIP_API_ID_hipHostFree:
+                getBytesIfMalloc(cid, data, context, false);
                 break;
             default:
                 break;
@@ -293,6 +501,7 @@ bool run_once() {
 
     // assume CPU timestamp is greater than GPU
     deltaTimestamp = (int64_t)(startTimestampCPU) - (int64_t)(startTimestampGPU);
+    apex::init("APEX HIP wrapper", 0, 1);
     return true;
 }
 
@@ -363,6 +572,46 @@ void store_profiler_data(const std::string &name, uint32_t correlationId,
     instance->complete_task(tt);
 }
 
+/* Handle counters from asynchronous activity */
+void store_counter_data(const char * name, const std::string& ctx,
+    uint64_t end, double value, apex::hip_thread_node &node) {
+    apex::in_apex prevent_deadlocks;
+    std::stringstream ss;
+    if (name == nullptr) {
+        ss << "GPU: " << ctx;
+    } else {
+        ss << "GPU: " << name << " " << ctx;
+    }
+    std::string tmp{ss.str()};
+    auto task_id = apex::task_identifier::get_task_id(tmp);
+    std::shared_ptr<apex::profiler> prof =
+        std::make_shared<apex::profiler>(task_id, value);
+    prof->is_counter = true;
+    prof->set_end(end + deltaTimestamp);
+    // Get the singleton APEX instance
+    static apex::apex* instance = apex::apex::instance();
+    // fake out the profiler_listener
+    instance->the_profiler_listener->push_profiler_public(prof);
+    // Handle tracing, if necessary
+    if (apex::apex_options::use_trace_event()) {
+        apex::trace_event_listener * tel =
+            (apex::trace_event_listener*)instance->the_trace_event_listener;
+        tel->on_async_metric(node, prof);
+    }
+#ifdef APEX_HAVE_OTF2
+    if (apex::apex_options::use_otf2()) {
+        apex::otf2_listener * tol =
+            (apex::otf2_listener*)instance->the_otf2_listener;
+        tol->on_async_metric(node, prof);
+    }
+#endif
+}
+
+void store_counter_data(const char * name, const std::string& ctx,
+    uint64_t end, size_t value, apex::hip_thread_node &node) {
+    store_counter_data(name, ctx, end, (double)(value), node);
+}
+
 void handle_hip_activity(const roctracer_record_t* record) {
     const char * name = roctracer_op_string(record->domain, record->op, record->kind);
     switch(record->op) {
@@ -382,6 +631,8 @@ void handle_hip_activity(const roctracer_record_t* record) {
             apex::hip_thread_node node(record->device_id, record->queue_id, APEX_ASYNC_MEMORY);
    	        store_profiler_data(name, record->correlation_id, record->begin_ns,
                 record->end_ns, node);
+            store_counter_data(name, "Bytes", record->end_ns,
+                record->bytes, node);
             break;
         }
         case HIP_OP_ID_BARRIER: {
@@ -415,27 +666,14 @@ void activity_callback(const char* begin, const char* end, void* arg) {
                 record->correlation_id,
                 record->begin_ns,
                 record->end_ns);
-        /* Not interested in these.  This is the same as the callback call
-         * and we don't need to record it twice. */
-        /*
-        if ((record->domain == ACTIVITY_DOMAIN_HIP_API) || (record->domain == ACTIVITY_DOMAIN_KFD_API)) {
-            SPRINT(" process_id(%u) thread_id(%u)",
-                    record->process_id,
-                    record->thread_id);
-        } else */ if (record->domain == ACTIVITY_DOMAIN_HIP_OPS) {
+        if (record->domain == ACTIVITY_DOMAIN_HIP_OPS) {
         // FYI, ACTIVITY_DOMAIN_HIP_OPS = ACTIVITY_DOMAIN_HCC_OPS = ACTIVITY_DOMAIN_HIP_VDI...
             SPRINT(" device_id(%d) queue_id(%lu)",
                     record->device_id,
                     record->queue_id);
             handle_hip_activity(record);
             if (record->op == HIP_OP_ID_COPY) SPRINT(" bytes(0x%zx)", record->bytes);
-        } /* We have no interest in the samples, either - for now */
-        /* else if (record->domain == ACTIVITY_DOMAIN_HSA_OPS) {
-            SPRINT(" se(%u) cycle(%lu) pc(%lx)",
-                    record->pc_sample.se,
-                    record->pc_sample.cycle,
-                    record->pc_sample.pc);
-        } */ else if (record->domain == ACTIVITY_DOMAIN_EXT_API) {
+        } else if (record->domain == ACTIVITY_DOMAIN_EXT_API) {
             SPRINT(" external_id(%lu)", record->external_id);
         } else {
             fprintf(stderr, "Bad domain %d\n\n", record->domain);
