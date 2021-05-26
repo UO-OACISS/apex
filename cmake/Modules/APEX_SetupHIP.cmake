@@ -22,6 +22,7 @@ if(APEX_WITH_HIP)
 
   # Add the right definitions to the apex_flags target
   target_compile_definitions(apex_flags INTERFACE APEX_WITH_HIP)
+  target_compile_definitions(apex_flags INTERFACE __HIP_PLATFORM_HCC__)
 
   list(APPEND _apex_imported_targets roctracer)
   list(APPEND _apex_imported_targets roctx)

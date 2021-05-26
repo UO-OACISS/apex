@@ -27,6 +27,9 @@ find_path(ROCTRACER_INCLUDE_DIR NAMES roctracer.h
 find_path(HSA_INCLUDE_DIR NAMES hsa.h
 	HINTS ${ROCM_ROOT}/include/hsa)
 
+find_path(HIP_INCLUDE_DIR NAMES hip/hip_runtime_api.h
+	HINTS ${ROCM_ROOT}/hip/include)
+
 find_library(ROCTRACER_LIBRARY NAMES roctracer64
     HINTS ${ROCM_ROOT}/lib64 ${ROCM_ROOT}/lib ${ROCTRACER_ROOT}/lib64 ${ROCTRACER_ROOT}/lib)
 
@@ -38,13 +41,13 @@ include(FindPackageHandleStandardArgs)
 # if all listed variables are TRUE
 find_package_handle_standard_args(ROCTRACER  DEFAULT_MSG
                                   ROCTRACER_LIBRARY ROCTRACER_LIBRARY_2
-                                  ROCTRACER_INCLUDE_DIR HSA_INCLUDE_DIR)
+                                  ROCTRACER_INCLUDE_DIR HSA_INCLUDE_DIR HIP_INCLUDE_DIR)
 
-mark_as_advanced(ROCTRACER_INCLUDE_DIR HSA_INCLUDE_DIR ROCTRACER_LIBRARY)
+mark_as_advanced(ROCTRACER_INCLUDE_DIR HSA_INCLUDE_DIR HIP_INCLUDE_DIR ROCTRACER_LIBRARY)
 
 if(ROCTRACER_FOUND)
   set(ROCTRACER_LIBRARIES ${ROCTRACER_LIBRARY} ${ROCTRACER_LIBRARY_2} )
-  set(ROCTRACER_INCLUDE_DIRS ${ROCTRACER_INCLUDE_DIR} ${HSA_INCLUDE_DIR})
+  set(ROCTRACER_INCLUDE_DIRS ${ROCTRACER_INCLUDE_DIR} ${HSA_INCLUDE_DIR} ${HIP_INCLUDE_DIR})
   set(ROCTRACER_DIR ${ROCTRACER_ROOT})
   add_definitions(-DAPEX_HAVE_ROCTRACER)
 endif()
