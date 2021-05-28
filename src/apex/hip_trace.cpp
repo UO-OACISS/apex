@@ -24,12 +24,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifdef __cplusplus
 #include <cstdlib>
 using namespace std;
-#else
-#include <stdlib.h>
-#endif
 
 // roctx header file
 #include <roctx.h>
@@ -47,35 +43,8 @@ using namespace std;
 #include <mutex>
 #include <map>
 
-#if 0
-static thread_local const size_t msg_size = 512;
-static thread_local char* msg_buf = NULL;
-static thread_local char* message = NULL;
-
-void SPRINT(const char* fmt, ...) {
-    if (msg_buf == NULL) {
-        msg_buf = (char*) calloc(msg_size, 1);
-        message = msg_buf;
-    }
-
-    va_list args;
-    va_start(args, fmt);
-    message += vsnprintf(message, msg_size - (message - msg_buf), fmt, args);
-    va_end(args);
-}
-void SFLUSH() {
-    if (msg_buf == NULL) abort();
-    message = msg_buf;
-    msg_buf[msg_size - 1] = 0;
-    fprintf(stdout, "%s", msg_buf);
-    fflush(stdout);
-}
-#else
-void SPRINT(const char* fmt, ...) { APEX_UNUSED(fmt); }
-void SFLUSH() { }
-#endif
-
-static void __attribute__((constructor)) init_tracing(void);
+#include "global_constructor_destructor.h"
+DEFINE_CONSTRUCTOR(init_tracing);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // HIP Callbacks/Activity tracing
@@ -99,22 +68,41 @@ static void __attribute__((constructor)) init_tracing(void);
         }                                                       \
     } while (0)
 
-static inline uint32_t GetTid() { return syscall(__NR_gettid); }
-static inline uint32_t GetPid() { return syscall(__NR_getpid); }
-
 // Timestamp at trace initialization time. Used to normalized other
 // timestamps
 static uint64_t startTimestampGPU{0};
 static uint64_t startTimestampCPU{0};
 static int64_t deltaTimestamp{0};
 
+bool run_once() {
+    static bool once{false};
+    if (once) { return once; }
+    // synchronize timestamps
+    // We'll take a CPU timestamp before and after taking a GPU timestmp, then
+    // take the average of those two, hoping that it's roughly at the same time
+    // as the GPU timestamp.
+    startTimestampCPU = apex::profiler::now_ns();
+    roctracer_get_timestamp(&startTimestampGPU);
+    startTimestampCPU += apex::profiler::now_ns();
+    startTimestampCPU = startTimestampCPU / 2;
+
+    // assume CPU timestamp is greater than GPU
+    deltaTimestamp = (int64_t)(startTimestampCPU) - (int64_t)(startTimestampGPU);
+    apex::init("APEX HIP wrapper", 0, 1);
+    once = true;
+    return once;
+}
+
 /* This is like the CUDA NVTX API.  User-added instrumentation for
  * ranges that can be pushed/popped on a stack (and common to a thread
  * of execution) or started/stopped (and can be started by one thread
  * and stopped by another).
  */
-void handle_roctx(uint32_t cid, const void* callback_data, void* arg) {
+void handle_roctx(uint32_t domain, uint32_t cid, const void* callback_data, void* arg) {
+    APEX_UNUSED(domain);
     APEX_UNUSED(arg);
+    static bool once = run_once();
+    APEX_UNUSED(once);
     static thread_local std::stack<apex::profiler*> timer_stack;
     static std::map<roctx_range_id_t, apex::profiler*> timer_map;
     static std::mutex map_lock;
@@ -168,16 +156,13 @@ std::unordered_map<uint32_t, const void*> correlation_kernel_map;
 std::mutex correlation_map_mutex;
 
 /* This is the "low level" API - lots of events if interested. */
-void handle_roc_kfd(uint32_t cid, const void* callback_data, void* arg) {
+void handle_roc_kfd(uint32_t domain, uint32_t cid, const void* callback_data, void* arg) {
+    APEX_UNUSED(domain);
     APEX_UNUSED(arg);
+    static bool once = run_once();
+    APEX_UNUSED(once);
     static APEX_NATIVE_TLS std::stack<std::shared_ptr<apex::task_wrapper> > timer_stack;
     const kfd_api_data_t* data = (const kfd_api_data_t*)(callback_data);
-    SPRINT("<%s id(%u)\tcorrelation_id(%lu) %s pid(%d) tid(%d)>\n",
-            roctracer_op_string(ACTIVITY_DOMAIN_KFD_API, cid, 0),
-            cid,
-            data->correlation_id,
-            (data->phase == ACTIVITY_API_PHASE_ENTER) ?
-            "on-enter" : "on-exit", GetPid(), GetTid());
     if (data->phase == ACTIVITY_API_PHASE_ENTER) {
         auto timer = apex::new_task(
 			roctracer_op_string(ACTIVITY_DOMAIN_KFD_API, cid, 0));
@@ -391,16 +376,13 @@ bool getBytesIfMalloc(uint32_t cid, const hip_api_data_t* data,
 /* The HIP callback API.  For these events, we have to check whether it's
  * the entry or exit event, and act accordingly.
  */
-void handle_hip(uint32_t cid, const void* callback_data, void* arg) {
+void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* arg) {
+    APEX_UNUSED(domain);
     APEX_UNUSED(arg);
+    static bool once = run_once();
+    APEX_UNUSED(once);
     static APEX_NATIVE_TLS std::stack<std::shared_ptr<apex::task_wrapper> > timer_stack;
     const hip_api_data_t* data = (const hip_api_data_t*)(callback_data);
-    SPRINT("<%s id(%u)\tcorrelation_id(%lu) %s pid(%d) tid(%d)> ",
-            roctracer_op_string(ACTIVITY_DOMAIN_HIP_API, cid, 0),
-            cid,
-            data->correlation_id,
-            (data->phase == ACTIVITY_API_PHASE_ENTER) ?
-            "on-enter" : "on-exit", GetPid(), GetTid());
     std::string context{roctracer_op_string(ACTIVITY_DOMAIN_HIP_API, cid, 0)};
     if (data->phase == ACTIVITY_API_PHASE_ENTER) {
         auto timer = apex::new_task(context);
@@ -485,43 +467,6 @@ void handle_hip(uint32_t cid, const void* callback_data, void* arg) {
                 break;
         }
     }
-    SPRINT("\n");
-    SFLUSH();
-}
-
-bool run_once() {
-    // synchronize timestamps
-    // We'll take a CPU timestamp before and after taking a GPU timestmp, then
-    // take the average of those two, hoping that it's roughly at the same time
-    // as the GPU timestamp.
-    startTimestampCPU = apex::profiler::now_ns();
-    roctracer_get_timestamp(&startTimestampGPU);
-    startTimestampCPU += apex::profiler::now_ns();
-    startTimestampCPU = startTimestampCPU / 2;
-
-    // assume CPU timestamp is greater than GPU
-    deltaTimestamp = (int64_t)(startTimestampCPU) - (int64_t)(startTimestampGPU);
-    apex::init("APEX HIP wrapper", 0, 1);
-    return true;
-}
-
-// Runtime API callback function
-void api_callback(uint32_t domain, uint32_t cid,
-        const void* callback_data, void* arg) {
-    (void)arg;
-    static bool dummy = run_once();
-    APEX_UNUSED(dummy);
-
-    if (domain == ACTIVITY_DOMAIN_ROCTX) {
-        handle_roctx(cid, callback_data, arg);
-        return;
-    }
-    if (domain == ACTIVITY_DOMAIN_KFD_API) {
-        handle_roc_kfd(cid, callback_data, arg);
-        return;
-    }
-    /* Everything else is HIP API */
-    handle_hip(cid, callback_data, arg);
 }
 
 void store_profiler_data(const std::string &name, uint32_t correlationId,
@@ -612,7 +557,7 @@ void store_counter_data(const char * name, const std::string& ctx,
     store_counter_data(name, ctx, end, (double)(value), node);
 }
 
-void handle_hip_activity(const roctracer_record_t* record) {
+void process_hip_record(const roctracer_record_t* record) {
     const char * name = roctracer_op_string(record->domain, record->op, record->kind);
     switch(record->op) {
         case HIP_OP_ID_DISPATCH: {
@@ -652,35 +597,19 @@ void handle_hip_activity(const roctracer_record_t* record) {
 }
 
 // Activity tracing callback
-//   hipMalloc id(3) correlation_id(1): begin_ns(1525888652762640464) end_ns(1525888652762877067)
 void activity_callback(const char* begin, const char* end, void* arg) {
     APEX_UNUSED(arg);
     const roctracer_record_t* record = (const roctracer_record_t*)(begin);
     const roctracer_record_t* end_record = (const roctracer_record_t*)(end);
 
-    SPRINT("\tActivity records:\n");
     while (record < end_record) {
-        const char * name = roctracer_op_string(record->domain, record->op, record->kind);
-        SPRINT("\t%s\tcorrelation_id(%lu) time_ns(%lu:%lu)",
-                name,
-                record->correlation_id,
-                record->begin_ns,
-                record->end_ns);
-        if (record->domain == ACTIVITY_DOMAIN_HIP_OPS) {
         // FYI, ACTIVITY_DOMAIN_HIP_OPS = ACTIVITY_DOMAIN_HCC_OPS = ACTIVITY_DOMAIN_HIP_VDI...
-            SPRINT(" device_id(%d) queue_id(%lu)",
-                    record->device_id,
-                    record->queue_id);
-            handle_hip_activity(record);
-            if (record->op == HIP_OP_ID_COPY) SPRINT(" bytes(0x%zx)", record->bytes);
-        } else if (record->domain == ACTIVITY_DOMAIN_EXT_API) {
-            SPRINT(" external_id(%lu)", record->external_id);
+        if (record->domain == ACTIVITY_DOMAIN_HIP_OPS) {
+            process_hip_record(record);
         } else {
             fprintf(stderr, "Bad domain %d\n\n", record->domain);
             abort();
         }
-        SPRINT("\n");
-        SFLUSH();
 
         ROCTRACER_CALL(roctracer_next_record(record, &record));
     }
@@ -699,13 +628,13 @@ void init_tracing() {
     ROCTRACER_CALL(roctracer_open_pool(&properties));
 
     // Enable HIP API callbacks
-    ROCTRACER_CALL(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_HIP_API, api_callback, NULL));
+    ROCTRACER_CALL(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_HIP_API, handle_hip, NULL));
     // Enable KFD API tracing
     if (apex::apex_options::use_hip_kfd_api()) {
-        ROCTRACER_CALL(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_KFD_API, api_callback, NULL));
+        ROCTRACER_CALL(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_KFD_API, handle_roc_kfd, NULL));
     }
     // Enable rocTX
-    ROCTRACER_CALL(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_ROCTX, api_callback, NULL));
+    ROCTRACER_CALL(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_ROCTX, handle_roctx, NULL));
 
     // Enable HIP activity tracing
     //ROCTRACER_CALL(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_HIP_API));

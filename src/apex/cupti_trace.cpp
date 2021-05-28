@@ -38,8 +38,9 @@
 #include <generated_nvtx_meta.h>
 #include <dlfcn.h>
 
-static void __attribute__((constructor)) initTrace(void);
-//static void __attribute__((destructor)) flushTrace(void);
+#include "global_constructor_destructor.h"
+DEFINE_CONSTRUCTOR(initTrace);
+//DEFINE_DESTRUCTOR(flushTrace);
 
 #define CUPTI_CALL(call)                                                \
     do {                                                                  \
