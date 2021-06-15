@@ -7,9 +7,9 @@
  */
 
 #if defined(APEX_HAVE_HPX_CONFIG) || defined(APEX_HAVE_HPX)
+#include <hpx/config.hpp>
 #include <hpx/hpx.hpp>
 #if defined(HPX_HAVE_NETWORKING)
-#include <hpx/include/lcos.hpp>
 #include <hpx/modules/collectives.hpp>
 #endif
 #endif
@@ -1395,12 +1395,18 @@ namespace apex {
          otf2_listener::reduce_node_properties(std::string&& str) {
         // get all hostnames
         constexpr char const* gather_basename = "/otf2/properties/gather_direct/";
+        using namespace hpx::collectives;
+        static std::uint32_t generation{0};
+        std::uint32_t num_localities = hpx::get_num_localities(hpx::launch::sync);
+        std::uint32_t this_locality = hpx::get_locality_id();
 
         // if not root, we have a simple job...
         if (my_saved_node_id > 0) {
             //printf("%d: calling gather_there from %s\n", my_saved_node_id, __func__);
-            hpx::future<void> overall_result = hpx::lcos::gather_there(
-                gather_basename, hpx::make_ready_future(str));
+            hpx::future<void> overall_result =
+                gather_there(gather_basename, str,
+                this_site_arg(this_locality),
+                generation_arg(generation++));
             overall_result.get();
             return nullptr;
         }
@@ -1409,8 +1415,10 @@ namespace apex {
             //printf("%d: calling gather_here from %s\n", my_saved_node_id, __func__);
             // if root, gather the names...
             hpx::future<std::vector<std::string>> overall_result =
-                hpx::lcos::gather_here(gather_basename, hpx::make_ready_future(str),
-                    my_saved_node_count);
+                gather_here(gather_basename, str,
+                num_sites_arg(num_localities),
+                this_site_arg(this_locality),
+                generation_arg(generation++));
             allhostnames = overall_result.get();
         } else {
             allhostnames.push_back(str);
@@ -1449,11 +1457,18 @@ namespace apex {
         std::string fullmap;
 
         constexpr char const* gather_basename = "/otf2/regions/gather_direct/";
+        using namespace hpx::collectives;
+        static std::uint32_t generation{0};
+        std::uint32_t num_localities = hpx::get_num_localities(hpx::launch::sync);
+        std::uint32_t this_locality = hpx::get_locality_id();
+
         // if not root, we have a simple job...
         if (my_saved_node_id > 0) {
             //printf("%d: calling gather_there from %s\n", my_saved_node_id, __func__);
-            hpx::future<void> overall_result = hpx::lcos::gather_there(
-                gather_basename, hpx::make_ready_future(my_regions));
+            hpx::future<void> overall_result =
+		gather_there(gather_basename, my_regions,
+                this_site_arg(this_locality),
+                generation_arg(generation++));
             overall_result.get();
         } else {
             std::vector<std::string> rbuf;
@@ -1461,8 +1476,10 @@ namespace apex {
                 //printf("%d: calling gather_here from %s\n", my_saved_node_id, __func__);
                 // if root, gather the names...
                 hpx::future<std::vector<std::string>> overall_result =
-                    hpx::lcos::gather_here(gather_basename, hpx::make_ready_future(my_regions),
-                        my_saved_node_count);
+                    gather_here(gather_basename, my_regions,
+                    num_sites_arg(num_localities),
+                    this_site_arg(this_locality),
+                    generation_arg(generation++));
                 rbuf = overall_result.get();
             } else {
                 rbuf.push_back(my_regions);
@@ -1520,16 +1537,25 @@ namespace apex {
             hpx::lcos::barrier barrier("apex1", my_saved_node_count, my_saved_node_id);
             barrier.wait();
             constexpr char const* bcast_basename = "/otf2/broadcast/regions/";
+            using namespace hpx::collectives;
+            static std::uint32_t generation{0};
+            std::uint32_t num_localities = hpx::get_num_localities(hpx::launch::sync);
+            std::uint32_t this_locality = hpx::get_locality_id();
+
             if (my_saved_node_id > 0) {
                 //printf("%d: calling broadcast_from from %s\n", my_saved_node_id, __func__);
                 hpx::future<std::string> overall_result =
-                    hpx::lcos::broadcast_from<std::string>(bcast_basename);
+                    broadcast_from<std::string>(bcast_basename,
+                    this_site_arg(this_locality),
+                    generation_arg(generation++));
                 fullmap_vector.push_back(overall_result.get());
             } else {
                 //printf("%d: calling broadcast_to from %s\n", my_saved_node_id, __func__);
                 hpx::future<void> overall_result =
-                    hpx::lcos::broadcast_to(bcast_basename,
-                        hpx::make_ready_future(fullmap), my_saved_node_count);
+                    broadcast_to(bcast_basename, fullmap,
+                    num_sites_arg(num_localities),
+                    this_site_arg(this_locality),
+                    generation_arg(generation++));
                 overall_result.get();
                 fullmap_vector.push_back(fullmap);
             }
@@ -1579,11 +1605,18 @@ namespace apex {
         std::string fullmap;
 
         constexpr char const* gather_basename = "/otf2/metrics/gather_direct/";
+        using namespace hpx::collectives;
+        static std::uint32_t generation{0};
+        std::uint32_t num_localities = hpx::get_num_localities(hpx::launch::sync);
+        std::uint32_t this_locality = hpx::get_locality_id();
+
         // if not root, we have a simple job...
         if (my_saved_node_id > 0) {
             //printf("%d: calling gather_there from %s\n", my_saved_node_id, __func__);
-            hpx::future<void> overall_result = hpx::lcos::gather_there(
-                gather_basename, hpx::make_ready_future(my_metrics));
+            hpx::future<void> overall_result =
+		gather_there(gather_basename, my_metrics,
+                this_site_arg(this_locality),
+                generation_arg(generation++));
             overall_result.get();
         } else {
             std::vector<std::string> rbuf;
@@ -1591,8 +1624,10 @@ namespace apex {
                 //printf("%d: calling gather_here from %s\n", my_saved_node_id, __func__);
                 // if root, gather the names...
                 hpx::future<std::vector<std::string>> overall_result =
-                    hpx::lcos::gather_here(gather_basename, hpx::make_ready_future(my_metrics),
-                        my_saved_node_count);
+                    gather_here(gather_basename, my_metrics,
+                    num_sites_arg(num_localities),
+                    this_site_arg(this_locality),
+                    generation_arg(generation++));
                 rbuf = overall_result.get();
             } else {
                 rbuf.push_back(my_metrics);
@@ -1656,16 +1691,25 @@ namespace apex {
             hpx::lcos::barrier barrier("apex2", my_saved_node_count, my_saved_node_id);
             barrier.wait();
             constexpr char const* bcast_basename = "/otf2/broadcast/metrics/";
+            using namespace hpx::collectives;
+            static std::uint32_t generation{0};
+            std::uint32_t num_localities = hpx::get_num_localities(hpx::launch::sync);
+            std::uint32_t this_locality = hpx::get_locality_id();
+
             if (my_saved_node_id > 0) {
                 //printf("%d: calling broadcast_from from %s\n", my_saved_node_id, __func__);
                 hpx::future<std::string> overall_result =
-                    hpx::lcos::broadcast_from<std::string>(bcast_basename);
+                    broadcast_from<std::string>(bcast_basename,
+                    this_site_arg(this_locality),
+                    generation_arg(generation++));
                 fullmap_vector.push_back(overall_result.get());
             } else {
                 //printf("%d: calling broadcast_to from %s\n", my_saved_node_id, __func__);
                 hpx::future<void> overall_result =
-                    hpx::lcos::broadcast_to(bcast_basename,
-                        hpx::make_ready_future(fullmap), my_saved_node_count);
+                    broadcast_to(bcast_basename, fullmap,
+                    num_sites_arg(num_localities),
+                    this_site_arg(this_locality),
+                    generation_arg(generation++));
                 overall_result.get();
                 fullmap_vector.push_back(fullmap);
             }
@@ -1708,11 +1752,18 @@ namespace apex {
         std::string my_threads = write_my_threads();
 
         constexpr char const* gather_basename = "/otf2/threads/gather_direct/";
+        using namespace hpx::collectives;
+        static std::uint32_t generation{0};
+        std::uint32_t num_localities = hpx::get_num_localities(hpx::launch::sync);
+        std::uint32_t this_locality = hpx::get_locality_id();
+
         // if not root, we have a simple job...
         if (my_saved_node_id > 0) {
             //printf("%d: calling gather_there from %s\n", my_saved_node_id, __func__);
-            hpx::future<void> overall_result = hpx::lcos::gather_there(
-                gather_basename, hpx::make_ready_future(my_threads));
+            hpx::future<void> overall_result =
+		gather_there(gather_basename, my_threads,
+                this_site_arg(this_locality),
+                generation_arg(generation++));
             overall_result.get();
             return;
         }
@@ -1721,8 +1772,10 @@ namespace apex {
             //printf("%d: calling gather_here from %s\n", my_saved_node_id, __func__);
             // if root, gather the names...
             hpx::future<std::vector<std::string>> overall_result =
-                hpx::lcos::gather_here(gather_basename, hpx::make_ready_future(my_threads),
-                    my_saved_node_count);
+                gather_here(gather_basename, my_threads,
+                num_sites_arg(num_localities),
+                this_site_arg(this_locality),
+                generation_arg(generation++));
                 rbuf = overall_result.get();
         } else {
             rbuf.push_back(my_threads);
