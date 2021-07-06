@@ -561,6 +561,13 @@ namespace apex {
         if ((!_terminate) && archive_created) {
             // set up the event writer for communication (thread 0).
             getEvtWriter(true);
+
+            // synchronize global time offset based on archive creation time
+            struct stat stat_buf;
+            if(stat(apex_options::otf2_archive_path(), &stat_buf) == 0) {
+                globalOffset = stat_buf.st_mtim.tv_sec * 1000000000 +
+                    stat_buf.st_mtim.tv_nsec;
+            }
         } else {
             std::cerr << "Archive not created!" << std::endl; fflush(stderr);
             return;
@@ -576,7 +583,7 @@ namespace apex {
         written = true;
         // write the GUID attribute
         const char * name = "GUID";
-        const char * description = "Globaly unique identifier";
+        const char * description = "Globally unique identifier";
         OTF2_StringRef name_ref = get_string_index(name);
         OTF2_StringRef desc_ref = get_string_index(description);
         OTF2_GlobalDefWriter_WriteString( global_def_writer, name_ref, name );
@@ -588,7 +595,7 @@ namespace apex {
         // write the parent GUID attribute
         const char * parent_name = "Parent GUID";
         const char * parent_description =
-            "Globaly unique identifier of the parent task";
+            "Globally unique identifier of the parent task";
         OTF2_StringRef parent_name_ref = get_string_index(parent_name);
         OTF2_StringRef parent_desc_ref = get_string_index(parent_description);
         OTF2_GlobalDefWriter_WriteString( global_def_writer, parent_name_ref,
