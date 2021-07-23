@@ -34,9 +34,8 @@ HPX_PLAIN_ACTION(apex::otf2::get_remote_timestamp,
 HPX_PLAIN_ACTION(apex::otf2::null_action, apex_otf2_null_action);
 
 namespace apex {
-namespace otf2 {
 
-int64_t getClockOffset(void) {
+int64_t otf2_listener::getClockOffset(void) {
     int64_t offset{0};
     uint64_t offset_time{0};
 
@@ -67,7 +66,22 @@ int64_t getClockOffset(void) {
     return offset;
 }
 
-} // namespace otf2
+int otf2_listener::getCommRank() {
+    static int rank{-1};
+    if (rank == -1) {
+        rank = hpx::get_locality_id();
+    }
+    return rank;
+}
+
+int otf2_listener::getCommSize() {
+    static int size{-1};
+    if (size == -1) {
+        size = hpx::get_num_localities(hpx::launch::sync);
+    }
+    return size;
+}
+
 } // namespace apex
 
 #endif

@@ -30,7 +30,7 @@ SET(SENSOR_SOURCE sensor_data.cpp)
 endif(LM_SENSORS_FOUND)
 
 if (OTF2_FOUND)
-SET(OTF2_SOURCE otf2_listener.cpp)
+SET(OTF2_SOURCE otf2_listener.cpp otf2_listener_mpi.cpp otf2_listener_nompi.cpp)
 endif(OTF2_FOUND)
 
 if (CUPTI_FOUND)

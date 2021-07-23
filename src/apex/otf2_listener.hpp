@@ -198,6 +198,9 @@ namespace apex {
         uint32_t make_vtid (async_thread_node &node);
         std::map<uint32_t,uint64_t> last_ts;
         uint64_t dropped;
+        int64_t synchronizeClocks(void);
+        int getCommRank(void);
+        int getCommSize(void);
     public:
         otf2_listener (void);
         //~otf2_listener (void) { shutdown_event_data data(my_saved_node_id,0);

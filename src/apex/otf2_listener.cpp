@@ -477,8 +477,6 @@ namespace apex {
     otf2_listener::otf2_listener (void) : _terminate(false),
         _initialized(false), comm_evt_writer(nullptr),
         global_def_writer(nullptr), dropped(0) {
-        /* get a start time for the trace */
-        globalOffset = get_time();
         /* set the flusher */
         flush_callbacks.otf2_pre_flush  = otf2_listener::pre_flush;
         flush_callbacks.otf2_post_flush = otf2_listener::post_flush;
@@ -528,7 +526,7 @@ namespace apex {
         stringstream tmp;
         tmp << "APEX version " << version();
         OTF2_EC(OTF2_Archive_SetCreator(archive, tmp.str().c_str()));
-#if defined(APEX_HAVE_MPI_disabled)
+#if defined(APEX_HAVE_MPI)
         OTF2_MPI_Archive_SetCollectiveCallbacks(archive,
             MPI_COMM_WORLD, MPI_COMM_NULL);
 #else
@@ -549,11 +547,11 @@ namespace apex {
         get_string_index(empty);
         // save the node id, because the apex object my not be
         // around when we are finalizing everything.
-        my_saved_node_id = apex::instance()->get_node_id();
-        my_saved_node_count = apex::instance()->get_num_ranks();
-        /*
+        my_saved_node_id = getCommRank();
+        my_saved_node_count = getCommSize();
         cout << "Rank " << my_saved_node_id << " of "
              << my_saved_node_count << "." << endl;
+        /*
          */
         // now is a good time to make sure the archive is open on this
         // rank/locality
@@ -564,6 +562,14 @@ namespace apex {
         } else {
             std::cerr << "Archive not created!" << std::endl; fflush(stderr);
             return;
+        }
+        // synchronize global time offset based on archive creation time
+        struct stat stat_buf;
+        if(stat(apex_options::otf2_archive_path(), &stat_buf) == 0) {
+            /* get a start time for the trace, relative to when
+             * the archive was created. */
+            globalOffset = (stat_buf.st_mtim.tv_sec * 1000000000) +
+            stat_buf.st_mtim.tv_nsec + synchronizeClocks();
         }
         _initialized = true;
         return;

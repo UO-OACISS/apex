@@ -35,13 +35,15 @@ class pthread_wrapper {
         unsigned int _timeout_microseconds;
     public:
         std::atomic<bool> _running;
+        std::atomic<bool> _attached;
         pthread_wrapper(void*(*func)(void*), void* context,
             unsigned int timeout_microseconds) :
                 done(false),
                 _func(func),
                 _context_object(context),
                 _timeout_microseconds(timeout_microseconds),
-                _running(false) {
+                _running(false),
+                _attached(true) {
             pthread_mutexattr_t Attr;
             pthread_mutexattr_init(&Attr);
             pthread_mutexattr_settype(&Attr, PTHREAD_MUTEX_ERRORCHECK);
@@ -62,6 +64,21 @@ class pthread_wrapper {
                 perror("Error: pthread_create (1) fails\n");
                 exit(1);
             }
+            // be free, little thread!
+            ret = pthread_detach(worker_thread);
+            if (ret != 0) {
+                switch (ret) {
+                    case ESRCH:
+                        // no thread found?
+                    case EINVAL:
+                        // not joinable?
+                    default:
+                        errno = ret;
+                        perror("Warning: pthread_detach failed\n");
+                        return;
+                }
+            }
+            _attached = false;
         };
 
         void set_timeout(unsigned int timeout_microseconds) {
@@ -78,7 +95,7 @@ class pthread_wrapper {
             // In some cases, the proc_read thread is already done
             // and if we try to join it, we get a segv. So, check to
             // see if it is still running before joining.
-            if (_running) {
+            if (_running && _attached) {
                 int ret = pthread_join(worker_thread, &retval);
                 if (ret != 0) {
                     switch (ret) {
@@ -141,6 +158,7 @@ class pthread_wrapper {
                 if (rc == ETIMEDOUT) {
                     return true;
                 } else if (rc == EINVAL) {
+                    _running = false;
                     pthread_mutex_unlock(&_my_mutex);
                     return false;
                 } else if (rc == EPERM) {
