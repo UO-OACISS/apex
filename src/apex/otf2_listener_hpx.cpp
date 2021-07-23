@@ -20,6 +20,7 @@
 #include <hpx/include/util.hpp>
 
 #include "otf2_listener.hpp"
+#include <limits>
 
 namespace apex {
 namespace otf2 {
@@ -37,7 +38,7 @@ namespace apex {
 
 int64_t otf2_listener::getClockOffset(void) {
     int64_t offset{0};
-    uint64_t offset_time{0};
+    const int attempts{10};
 
     std::uint32_t num_localities = hpx::get_num_localities(hpx::launch::sync);
     std::uint32_t this_locality = hpx::get_locality_id();
@@ -49,16 +50,25 @@ int64_t otf2_listener::getClockOffset(void) {
             offset = 0;
         }
     } else {
-        std::vector<hpx::id_type> locs = hpx::find_all_localities();
-        // take a timestamp now!
-        uint64_t before = apex::otf2_listener::get_time();
-        apex_otf2_get_remote_timestamp act;
-        act(locs[0]);
-        uint64_t after = apex::otf2_listener::get_time();
-        uint64_t ref_time = act.get();
-        uint64_t latency = (after - before) / 2;
+        uint64_t min_latency{ULLONG_MAX};
+        uint64_t mytime{0};
+        uint64_t ref_ts{0};
+        for (int i = 0 ; i < attempts ; i++) {
+            // take a timestamp now!
+            uint64_t before = get_time();
+            apex_otf2_get_remote_timestamp act;
+            act(hpx::naming::get_id_from_locality_id(0));
+            uint64_t ref_time = act.get();
+            uint64_t after = get_time();
+            uint64_t latency = (after - before) / 2;
+            if (latency < min_latency) {
+                min_latency = latency;
+                ref_ts = ref_time;
+                mytime = after - latency;
+            }
+        }
         // our offset is the reference time minus our timestamp between messages.
-        offset = ref_time - (mytime + latency);
+        offset = ref_ts - mytime;
     }
     // synchronize all ranks again
     hpx::lcos::barrier barrier("apex_barrier_sync_2", num_localities, this_locality);
