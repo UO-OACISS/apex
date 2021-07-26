@@ -11,6 +11,11 @@
 */
 
 // only compile this file if we have NO networking support!
+#if defined(APEX_HAVE_HPX_CONFIG) || defined(APEX_HAVE_HPX)
+#include <hpx/config.hpp>
+#include <hpx/hpx.hpp>
+#endif
+
 #if !defined(HPX_HAVE_NETWORKING) && !defined(APEX_HAVE_MPI)
 
 #include "otf2_listener.hpp"
