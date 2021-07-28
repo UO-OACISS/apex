@@ -392,21 +392,21 @@ void handle_start(const std::string & name, const size_t vars,
             Variable* var{getSession().outputs[id]};
             if (var->info.valueQuantity == kokkos_value_set) {
                 std::list<std::string>& space = session.outputs[id]->space;
-                std::string& front = session.outputs[id]->space.front();
+                std::string& front = std::string(values[i].value.string_value);
                 auto tmp = request->add_param_enum(
                     session.outputs[id]->name, front, space);
             } else {
                 if (var->info.type == kokkos_value_double) {
                     auto tmp = request->add_param_double(
                         session.outputs[id]->name,
-                        session.outputs[id]->dmin,
+                        values[i].value.double_value,
                         session.outputs[id]->dmin,
                         session.outputs[id]->dmax,
                         session.outputs[id]->dstep);
                 } else if (var->info.type == kokkos_value_int64) {
                     auto tmp = request->add_param_long(
                         session.outputs[id]->name,
-                        session.outputs[id]->lmin,
+                        values[i].value.int_value,
                         session.outputs[id]->lmin,
                         session.outputs[id]->lmax,
                         session.outputs[id]->lstep);
