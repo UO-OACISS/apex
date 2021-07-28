@@ -390,11 +390,23 @@ void handle_start(const std::string & name, const size_t vars,
         for (size_t i = 0 ; i < vars ; i++) {
             auto id = values[i].type_id;
             Variable* var{getSession().outputs[id]};
+            /* If it's a set, the initial value can be a double, int or string
+             * because we store all interval sets as enumerations of strings */
             if (var->info.valueQuantity == kokkos_value_set) {
                 std::list<std::string>& space = session.outputs[id]->space;
-                std::string& front = std::string(values[i].value.string_value);
-                auto tmp = request->add_param_enum(
-                    session.outputs[id]->name, front, space);
+                if (var->info.type == kokkos_value_double) {
+                    std::string front = std::to_string(values[i].value.double_value);
+                    auto tmp = request->add_param_enum(
+                        session.outputs[id]->name, front, space);
+                } else if (var->info.type == kokkos_value_int64) {
+                    std::string front = std::to_string(values[i].value.int_value);
+                    auto tmp = request->add_param_enum(
+                        session.outputs[id]->name, front, space);
+                } else if (var->info.type == kokkos_value_int64) {
+                    std::string front = std::string(values[i].value.string_value);
+                    auto tmp = request->add_param_enum(
+                        session.outputs[id]->name, front, space);
+                }
             } else {
                 if (var->info.type == kokkos_value_double) {
                     auto tmp = request->add_param_double(
