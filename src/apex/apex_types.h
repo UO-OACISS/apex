@@ -55,7 +55,7 @@ typedef enum _error_codes {
   APEX_ERROR        /*!< Some error occurred - check stderr output for details */
 } apex_error_code;
 
-#define APEX_MAX_EVENTS 128 /*!< The maximum number of event types.
+#define APEX_MAX_EVENTS INT32_MAX /*!< The maximum number of event types.
 Allows for many custom events. */
 
 /**
@@ -64,26 +64,26 @@ Allows for many custom events. */
  */
 typedef enum _event_type {
   APEX_INVALID_EVENT = -1,
-  APEX_STARTUP = 0,        /*!< APEX is initialized */
-  APEX_SHUTDOWN,       /*!< APEX is terminated */
-  APEX_DUMP,           /*!< APEX is dumping output */
-  APEX_RESET,          /*!< APEX is resetting data structures */
-  APEX_NEW_NODE,       /*!< APEX has registered a new process ID */
-  APEX_NEW_THREAD,     /*!< APEX has registered a new OS thread */
-  APEX_EXIT_THREAD,    /*!< APEX has exited an OS thread */
-  APEX_START_EVENT,    /*!< APEX has processed a timer start event */
-  APEX_RESUME_EVENT,   /*!< APEX has processed a timer resume event (the number
-                           of calls is not incremented) */
-  APEX_STOP_EVENT,     /*!< APEX has processed a timer stop event */
-  APEX_YIELD_EVENT,    /*!< APEX has processed a timer yield event */
-  APEX_SAMPLE_VALUE,   /*!< APEX has processed a sampled value */
-  APEX_SEND,           /*!< APEX has processed a send event */
-  APEX_RECV,           /*!< APEX has processed a recv event */
-  APEX_PERIODIC,       /*!< APEX has processed a periodic timer */
-  APEX_CUSTOM_EVENT_1,   /*!< APEX has processed a custom event - useful for large
-                           granularity application control events */
-  APEX_CUSTOM_EVENT_2, // these are just here for padding, and so we can
-  APEX_CUSTOM_EVENT_3, // test with them.
+  APEX_STARTUP = 0,         /*!< APEX is initialized */
+  APEX_SHUTDOWN,     /* 1*/ /*!< APEX is terminated */
+  APEX_DUMP,         /* 2*/ /*!< APEX is dumping output */
+  APEX_RESET,        /* 3*/ /*!< APEX is resetting data structures */
+  APEX_NEW_NODE,     /* 4*/ /*!< APEX has registered a new process ID */
+  APEX_NEW_THREAD,   /* 5*/ /*!< APEX has registered a new OS thread */
+  APEX_EXIT_THREAD,  /* 6*/ /*!< APEX has exited an OS thread */
+  APEX_START_EVENT,  /* 7*/ /*!< APEX has processed a timer start event */
+  APEX_RESUME_EVENT, /* 8*/ /*!< APEX has processed a timer resume event (the number
+                                 of calls is not incremented) */
+  APEX_STOP_EVENT,   /* 9*/ /*!< APEX has processed a timer stop event */
+  APEX_YIELD_EVENT,  /*10*/ /*!< APEX has processed a timer yield event */
+  APEX_SAMPLE_VALUE, /*11*/ /*!< APEX has processed a sampled value */
+  APEX_SEND,         /*12*/ /*!< APEX has processed a send event */
+  APEX_RECV,         /*13*/ /*!< APEX has processed a recv event */
+  APEX_PERIODIC,     /*14*/ /*!< APEX has processed a periodic timer */
+  APEX_CUSTOM_EVENT_1,      /*!< APEX has processed a custom event - useful for large
+                                 granularity application control events */
+  APEX_CUSTOM_EVENT_2,      // these are just here for padding, and so we can
+  APEX_CUSTOM_EVENT_3,      // test with them.
   APEX_CUSTOM_EVENT_4,
   APEX_CUSTOM_EVENT_5,
   APEX_CUSTOM_EVENT_6,

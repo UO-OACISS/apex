@@ -24,6 +24,7 @@
 #include <iostream>
 #include <list>
 #include <atomic>
+#include <mutex>
 #include <memory>
 #if !defined(_WIN32) && (defined(__unix__) || defined(__unix) ||\
     (defined(__APPLE__) && defined(__MACH__)))
@@ -34,6 +35,20 @@
 using namespace std;
 
 namespace apex {
+
+    class policy_manager {
+    public:
+        static std::atomic<size_t>& get() {
+            static std::atomic<size_t> active;
+            return active;
+        };
+        policy_manager() {
+            get()++;
+        }
+        ~policy_manager() {
+            get()--;
+        }
+    };
 
     std::atomic<int> next_id(0);
 
@@ -89,6 +104,7 @@ namespace apex {
     }
 
     void policy_handler::_init(void) {
+        policy_manager::get() = 0;
 #ifdef APEX_HAVE_HPX
         hpx_timer.start();
 #else
@@ -111,7 +127,6 @@ namespace apex {
 #endif
     }
 
-
     int policy_handler::register_policy(const apex_event_type & when,
             std::function<int(apex_context const&)> f) {
         // save the old policy setting
@@ -121,11 +136,13 @@ namespace apex {
         // Sleep just a tiny bit - that allows other threads that might be
         // currently processing policies to clear out. This is actually
         // more efficient than a lock transaction on every policy execution.
+        while(policy_manager::get() > 0) {
 #if defined(_WIN32)
-        Sleep(1);
+            Sleep(1);
 #else
-        usleep(apex_options::policy_drain_timeout()); // sleep 1ms
+            usleep(apex_options::policy_drain_timeout()); // sleep 1ms
 #endif
+        }
         int id = next_id++;
         std::shared_ptr<policy_instance> instance(
                 std::make_shared<policy_instance>(id, f));
@@ -198,6 +215,13 @@ namespace apex {
             //case APEX_CUSTOM_EVENT_1:
             default: {
                 //write_lock_type l(custom_event_mutex);
+                static std::mutex foo;
+                foo.lock();
+                while(custom_event_policies.size() < (size_t)(when+1)) {
+                    std::list<std::shared_ptr<policy_instance> > new_list;
+                    custom_event_policies.push_back(std::move(new_list));
+                }
+                foo.unlock();
                 custom_event_policies[when].push_back(instance);
                 break;
             }
@@ -218,11 +242,13 @@ namespace apex {
         // Sleep just a tiny bit - that allows other threads that might be
         // currently processing policies to clear out. This is actually
         // more efficient than a lock transaction on every policy execution.
+        while (policy_manager::get() > 0) {
 #if defined(_WIN32)
-        Sleep(1);
+            Sleep(1);
 #else
-        usleep(apex_options::policy_drain_timeout()); // sleep 1ms
+            usleep(apex_options::policy_drain_timeout()); // sleep 1ms
 #endif
+        }
         switch(handle->event_type) {
             case APEX_STARTUP: {
                 //write_lock_type l(startup_mutex);
@@ -426,6 +452,9 @@ namespace apex {
          * list of policies. If the list changes, we can't iterate
          * over it. */
         if (!apex_options::use_policy()) { return; }
+        // scoped variable to increment/decrement active policies
+        policy_manager mgr;
+        APEX_UNUSED(mgr);
         for(const std::shared_ptr<policy_instance>& policy : policies) {
             apex_context my_context;
             my_context.event_type = event_type;
@@ -524,6 +553,9 @@ namespace apex {
 
     void policy_handler::on_custom_event(custom_event_data &data) {
         if (!apex_options::use_policy()) { return; }
+        // scoped variable to increment/decrement active policies
+        policy_manager mgr;
+        APEX_UNUSED(mgr);
         for(const std::shared_ptr<policy_instance>& policy :
             custom_event_policies[data.event_type_]) {
             apex_context my_context;

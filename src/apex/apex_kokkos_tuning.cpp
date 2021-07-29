@@ -402,6 +402,7 @@ void handle_start(const std::string & name, const size_t vars,
                 } else if (var->info.type == kokkos_value_int64) {
                     front = std::string(values[i].value.string_value);
                 }
+                //printf("Initial value: %s\n", front.c_str()); fflush(stdout);
                 auto tmp = request->add_param_enum(
                     session.outputs[id]->name, front, space);
             } else {
@@ -422,7 +423,6 @@ void handle_start(const std::string & name, const size_t vars,
                 }
             }
         }
-        std::cout << std::endl;
 
         // Set OpenMP runtime parameters to initial values.
         set_params(request, vars, values);
