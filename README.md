@@ -68,7 +68,7 @@ Please Note:
 To build APEX stand-alone (to use with OpenMP, OpenACC, CUDA, Kokkos, TBB, C++ threads, etc.) do the following:
 
 ```
-git clone https://github.com/khuck/xpress-apex.git
+git clone https://github.com/UO-OACISS/apex.git
 cd xpress-apex
 mkdir build
 cd build

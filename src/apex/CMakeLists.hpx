@@ -245,7 +245,7 @@ include(APEX_SetupMSR)
 include(APEX_SetupOTF2)
 if(APEX_WITH_OTF2)
   set(otf2_headers otf2_listener.hpp)
-  set(otf2_sources otf2_listener.cpp)
+  set(otf2_sources otf2_listener.cpp otf2_listener_hpx.cpp otf2_listener_nompi.cpp)
 endif()
 
 if(HPX_WITH_HPXMP)

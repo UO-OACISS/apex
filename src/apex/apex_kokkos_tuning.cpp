@@ -390,30 +390,39 @@ void handle_start(const std::string & name, const size_t vars,
         for (size_t i = 0 ; i < vars ; i++) {
             auto id = values[i].type_id;
             Variable* var{getSession().outputs[id]};
+            /* If it's a set, the initial value can be a double, int or string
+             * because we store all interval sets as enumerations of strings */
             if (var->info.valueQuantity == kokkos_value_set) {
                 std::list<std::string>& space = session.outputs[id]->space;
-                std::string& front = session.outputs[id]->space.front();
+                std::string front;
+                if (var->info.type == kokkos_value_double) {
+                    front = std::to_string(values[i].value.double_value);
+                } else if (var->info.type == kokkos_value_int64) {
+                    front = std::to_string(values[i].value.int_value);
+                } else if (var->info.type == kokkos_value_int64) {
+                    front = std::string(values[i].value.string_value);
+                }
+                //printf("Initial value: %s\n", front.c_str()); fflush(stdout);
                 auto tmp = request->add_param_enum(
                     session.outputs[id]->name, front, space);
             } else {
                 if (var->info.type == kokkos_value_double) {
                     auto tmp = request->add_param_double(
                         session.outputs[id]->name,
-                        session.outputs[id]->dmin,
+                        values[i].value.double_value,
                         session.outputs[id]->dmin,
                         session.outputs[id]->dmax,
                         session.outputs[id]->dstep);
                 } else if (var->info.type == kokkos_value_int64) {
                     auto tmp = request->add_param_long(
                         session.outputs[id]->name,
-                        session.outputs[id]->lmin,
+                        values[i].value.int_value,
                         session.outputs[id]->lmin,
                         session.outputs[id]->lmax,
                         session.outputs[id]->lstep);
                 }
             }
         }
-        std::cout << std::endl;
 
         // Set OpenMP runtime parameters to initial values.
         set_params(request, vars, values);

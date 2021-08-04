@@ -19,8 +19,6 @@ static int myrank = -1;
 static int commsize = -1;
 
 int main(int argc, char **argv) {
-  DEBUG_MSG;
-
   /* Initialize MPI */
 
   /*
@@ -38,6 +36,7 @@ int main(int argc, char **argv) {
 
   MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
   MPI_Comm_size(MPI_COMM_WORLD, &commsize);
+  DEBUG_MSG;
   apex::init("MPI TEST", myrank, commsize);
   apex::profiler* p = apex::start((apex_function_address)(main));
   MPI_Barrier(MPI_COMM_WORLD);
