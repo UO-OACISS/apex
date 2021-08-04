@@ -35,6 +35,8 @@
 #include <string>
 #include <vector>
 #include <mutex>
+#include <thread>
+#include <chrono>
 
 namespace apex {
 
@@ -528,6 +530,38 @@ uint64_t test_for_MPI_comm_size(uint64_t commsize) {
         return commsize;
     }
     return commsize;
+}
+
+/* Thread that sleeps for a bit then enables data collection */
+void threaded_start_delay() {
+    std::this_thread::sleep_for(
+        std::chrono::seconds(
+        apex_options::start_delay_seconds()));
+    // enable data collection
+    apex_options::suspend(false);
+}
+
+/* Thread that sleeps for a bit then disables data collection */
+void threaded_stop_recording() {
+    std::this_thread::sleep_for(
+        std::chrono::seconds(
+        apex_options::start_delay_seconds() +
+        apex_options::max_duration_seconds()));
+    // disable data collection
+    apex_options::suspend(true);
+}
+
+void handle_delayed_start() {
+    if (apex_options::start_delay_seconds() > 0) {
+        // disable data collection
+        apex_options::suspend(true);
+        static std::thread delayed_start(threaded_start_delay);
+        delayed_start.detach();
+    }
+    if (apex_options::max_duration_seconds() > 0) {
+        static std::thread stop_recording(threaded_stop_recording);
+        stop_recording.detach();
+    }
 }
 
 std::string activity_to_string(apex_async_activity_t activity) {

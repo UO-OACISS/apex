@@ -329,6 +329,8 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_JUPYTER_SUPPORT, use_jupyter_support, int, false) \
     macro (APEX_KOKKOS_VERBOSE, use_kokkos_verbose, bool, false) \
     macro (APEX_KOKKOS_TUNING, use_kokkos_tuning, bool, true) \
+    macro (APEX_START_DELAY_SECONDS, start_delay_seconds, int, 0) \
+    macro (APEX_MAX_DURATION_SECONDS, max_duration_seconds, int, 0) \
 
 #define FOREACH_APEX_FLOAT_OPTION(macro) \
     macro (APEX_SCATTERPLOT_FRACTION, scatterplot_fraction, double, 0.01) \

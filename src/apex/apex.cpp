@@ -426,6 +426,7 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
             instance->listeners[i]->on_startup(data);
         }
     }
+    handle_delayed_start();
     // start accepting requests, now that all listeners are started
     _initialized = true;
 #if APEX_HAVE_PROC
