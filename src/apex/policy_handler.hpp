@@ -84,7 +84,6 @@ private:
 #ifdef APEX_HAVE_HPX
     hpx::util::interval_timer hpx_timer;
 #endif
-    std::atomic<size_t> active_policies;
 public:
     policy_handler (void);
 /*

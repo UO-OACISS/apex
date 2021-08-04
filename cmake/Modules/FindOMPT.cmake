@@ -66,7 +66,7 @@ endif()
 
 # --------- DOWNLOAD AND BUILD THE EXTERNAL PROJECT! ------------ #
 if(APEX_BUILD_OMPT OR (NOT OMPT_FOUND))
-  set(CACHE OMPT_ROOT ${CMAKE_INSTALL_PREFIX} STRING "OMPT Root directory")
+  set(CACHE OMPT_ROOT ${CMAKE_INSTALL_PREFIX}/ompt STRING "OMPT Root directory")
   message("Attention: Downloading and Building OMPT as external project!")
   message(INFO " A working internet connection is required!")
   include(ExternalProject)
@@ -75,19 +75,18 @@ if(APEX_BUILD_OMPT OR (NOT OMPT_FOUND))
     #URL http://www.cs.uoregon.edu/research/paracomp/tau/tauprofile/dist/LLVM-openmp-2021-05-14.tar.gz
     URL http://tau.uoregon.edu/LLVM-openmp-2021-05-14.tar.gz
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/LLVM-ompt-5.0
-    CONFIGURE_COMMAND cmake -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -DCMAKE_BUILD_TYPE=Release ${APEX_OMPT_EXTRA_CONFIG} ../project_ompt
+    CONFIGURE_COMMAND cmake -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_INSTALL_PREFIX=${OMPT_ROOT} -DCMAKE_BUILD_TYPE=Release ${APEX_OMPT_EXTRA_CONFIG} ../project_ompt
     BUILD_COMMAND make libomp-needed-headers all
     INSTALL_COMMAND make install
-    INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
+    INSTALL_DIR ${OMPT_ROOT}
     LOG_DOWNLOAD 1
     LOG_CONFIGURE 1
     LOG_BUILD 1
     LOG_INSTALL 1
   )
-  set(OMPT_ROOT ${CMAKE_INSTALL_PREFIX})
   #ExternalProject_Get_Property(project_ompt install_dir)
   add_library(omp SHARED IMPORTED)
-  set_property(TARGET omp PROPERTY IMPORTED_LOCATION ${CMAKE_INSTALL_PREFIX}/lib/libomp.so)
+  set_property(TARGET omp PROPERTY IMPORTED_LOCATION ${OMPT_ROOT}/lib/libomp.so)
   set(OMPT_INCLUDE_DIR "${OMPT_ROOT}/include")
   set(OMPT_LIBRARY "${OMPT_ROOT}/lib/libomp.so")
   # handle the QUIETLY and REQUIRED arguments and set OMPT_FOUND to TRUE

@@ -1061,6 +1061,8 @@ ompt_start_tool_result_t * ompt_start_tool(
        DEBUG_PRINT("APEX: WARNING! %d != %d (OpenMP Version used to compile APEX)\n",
           omp_version, _OPENMP);
     }
+#else
+    APEX_UNUSED(omp_version); // in case we aren't printing debug messages
 #endif
     static ompt_start_tool_result_t result;
     result.initialize = &ompt_initialize;
