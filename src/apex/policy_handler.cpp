@@ -217,9 +217,9 @@ namespace apex {
                 //write_lock_type l(custom_event_mutex);
                 static std::mutex foo;
                 foo.lock();
-                while(custom_event_policies.size() < (size_t)(when+1)) {
+                if(custom_event_policies.find(when) == custom_event_policies.end()) {
                     std::list<std::shared_ptr<policy_instance> > new_list;
-                    custom_event_policies.push_back(std::move(new_list));
+                    custom_event_policies.insert(std::make_pair(when, std::move(new_list)));
                 }
                 foo.unlock();
                 custom_event_policies[when].push_back(instance);
