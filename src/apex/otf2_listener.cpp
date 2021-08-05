@@ -569,8 +569,13 @@ namespace apex {
         while (stat(apex_options::otf2_archive_path(), &stat_buf) != 0) {}
         /* get a start time for the trace, relative to when
          * the archive was created. */
+#if defined(__APPLE__)
+        globalOffset = (stat_buf.st_mtimespec.tv_sec * 1000000000) +
+        stat_buf.st_mtimespec.tv_nsec + synchronizeClocks();
+#else
         globalOffset = (stat_buf.st_mtim.tv_sec * 1000000000) +
         stat_buf.st_mtim.tv_nsec + synchronizeClocks();
+#endif
         _initialized = true;
         return;
     }
