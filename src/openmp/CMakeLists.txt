@@ -20,8 +20,7 @@ if (OpenMP_FOUND) # don't think we'd be in here otherwise...
         set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} -fopenmp-targets=amdgcn-amd-amdhsa -Xopenmp-target=amdgcn-amd-amdhsa -march=gfx906")
     endif (ROCTRACER_FOUND)
     if (ROCTRACER_FOUND OR CUPTI_FOUND)
-        #set(OMPT_TARGET_TEST ompt_target ompt_target_matmult ompt_target_daxpy ompt_target_vector_add)
-        set(OMPT_TARGET_TEST ompt_target)
+        set(OMPT_TARGET_TEST ompt_target ompt_target_matmult ompt_target_daxpy ompt_target_vector_add)
     endif (ROCTRACER_FOUND OR CUPTI_FOUND)
 endif (OpenMP_FOUND)
 
