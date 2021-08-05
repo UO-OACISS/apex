@@ -1,12 +1,29 @@
-# Make sure the compiler can find include files from our Apex library. 
-include_directories (${APEX_SOURCE_DIR}/src/apex) 
+# Make sure the compiler can find include files from our Apex library.
+include_directories (${APEX_SOURCE_DIR}/src/apex)
 
-# Make sure the linker can find the Apex library once it is built. 
-link_directories (${APEX_BINARY_DIR}/src/apex) 
-#link_directories (${APEX_BINARY_DIR}/src/apex_pthread_wrapper) 
+# Make sure the linker can find the Apex library once it is built.
+link_directories (${APEX_BINARY_DIR}/src/apex)
+#link_directories (${APEX_BINARY_DIR}/src/apex_pthread_wrapper)
 
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+
+if (OpenMP_FOUND) # don't think we'd be in here otherwise...
+    if (CUPTI_FOUND)
+        #set (CLANG_OPENMP_NVPTX_DEFAULT_ARCH "sm_60")
+        #set (LIBOMPTARGET_NVPTX_COMPUTE_CAPABILITIES "35,60,70")
+        set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS} -fopenmp-targets=nvptx64-nvidia-cuda -Xopenmp-target=nvptx64-nvidia-cuda")
+        set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} -fopenmp-targets=nvptx64-nvidia-cuda -Xopenmp-target=nvptx64-nvidia-cuda")
+    endif (CUPTI_FOUND)
+    if (ROCTRACER_FOUND)
+        set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS} -fopenmp-targets=amdgcn-amd-amdhsa -Xopenmp-target=amdgcn-amd-amdhsa -march=gfx906")
+        set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} -fopenmp-targets=amdgcn-amd-amdhsa -Xopenmp-target=amdgcn-amd-amdhsa -march=gfx906")
+    endif (ROCTRACER_FOUND)
+    if (ROCTRACER_FOUND OR CUPTI_FOUND)
+        #set(OMPT_TARGET_TEST ompt_target ompt_target_matmult ompt_target_daxpy ompt_target_vector_add)
+        set(OMPT_TARGET_TEST ompt_target)
+    endif (ROCTRACER_FOUND OR CUPTI_FOUND)
+endif (OpenMP_FOUND)
 
 set(example_programs
     ompt_thread
@@ -17,8 +34,8 @@ set(example_programs
     ompt_sections
     ompt_sync_region_wait
     ompt_master
+    ${OMPT_TARGET_TEST}
    )
-#    ompt_target
 
 foreach(example_program ${example_programs})
     set(sources ${example_program}.c)

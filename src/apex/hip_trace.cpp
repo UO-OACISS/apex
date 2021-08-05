@@ -77,6 +77,9 @@ static int64_t deltaTimestamp{0};
 bool run_once() {
     static bool once{false};
     if (once) { return once; }
+    if (apex::apex_options::use_hip_kfd_api()) {
+        ROCTRACER_CALL(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_KFD_API));
+    }
     // synchronize timestamps
     // We'll take a CPU timestamp before and after taking a GPU timestmp, then
     // take the average of those two, hoping that it's roughly at the same time
@@ -88,6 +91,9 @@ bool run_once() {
 
     // assume CPU timestamp is greater than GPU
     deltaTimestamp = (int64_t)(startTimestampCPU) - (int64_t)(startTimestampGPU);
+    //printf("HIP timestamp:      %lu\n", startTimestampGPU);
+    //printf("CPU timestamp:      %lu\n", startTimestampCPU);
+    //printf("HIP delta timestamp: %ld\n", deltaTimestamp);
     apex::init("APEX HIP wrapper", 0, 1);
     once = true;
     return once;
@@ -166,6 +172,32 @@ void handle_roc_kfd(uint32_t domain, uint32_t cid, const void* callback_data, vo
     if (data->phase == ACTIVITY_API_PHASE_ENTER) {
         auto timer = apex::new_task(
 			roctracer_op_string(ACTIVITY_DOMAIN_KFD_API, cid, 0));
+        apex::start(timer);
+        timer_stack.push(timer);
+        correlation_map_mutex.lock();
+        correlation_map[data->correlation_id] = timer;
+        correlation_map_mutex.unlock();
+    } else {
+        if (!timer_stack.empty()) {
+            auto timer = timer_stack.top();
+            apex::stop(timer);
+            timer_stack.pop();
+        }
+    }
+    return;
+}
+
+/* This is the "OpenMP" API - lots of events if interested. */
+void handle_roc_hsa(uint32_t domain, uint32_t cid, const void* callback_data, void* arg) {
+    APEX_UNUSED(domain);
+    APEX_UNUSED(arg);
+    static bool once = run_once();
+    APEX_UNUSED(once);
+    static APEX_NATIVE_TLS std::stack<std::shared_ptr<apex::task_wrapper> > timer_stack;
+    const hsa_api_data_t* data = (const hsa_api_data_t*)(callback_data);
+    if (data->phase == ACTIVITY_API_PHASE_ENTER) {
+        auto timer = apex::new_task(
+			roctracer_op_string(ACTIVITY_DOMAIN_HSA_API, cid, 0));
         apex::start(timer);
         timer_stack.push(timer);
         correlation_map_mutex.lock();
@@ -629,6 +661,8 @@ void init_tracing() {
 
     // Enable HIP API callbacks
     ROCTRACER_CALL(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_HIP_API, handle_hip, NULL));
+    // Enable HIP HSA (OpenMP) callbacks
+    //ROCTRACER_CALL(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_HSA_API, handle_roc_hsa, NULL));
     // Enable KFD API tracing
     if (apex::apex_options::use_hip_kfd_api()) {
         ROCTRACER_CALL(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_KFD_API, handle_roc_kfd, NULL));
@@ -640,6 +674,7 @@ void init_tracing() {
     //ROCTRACER_CALL(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_HIP_API));
     // FYI, ACTIVITY_DOMAIN_HIP_OPS = ACTIVITY_DOMAIN_HCC_OPS = ACTIVITY_DOMAIN_HIP_VDI...
     ROCTRACER_CALL(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_HIP_OPS));
+    //ROCTRACER_CALL(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_HSA_OPS));
     // Enable PC sampling
     //ROCTRACER_CALL(roctracer_enable_op_activity(ACTIVITY_DOMAIN_HSA_OPS, HSA_OP_ID_RESERVED1));
     roctracer_start();
@@ -656,6 +691,7 @@ namespace apex {
         roctracer_stop();
         /* CAllbacks */
         ROCTRACER_CALL(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_HIP_API));
+        ROCTRACER_CALL(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_HSA_API));
         if (apex_options::use_hip_kfd_api()) {
             ROCTRACER_CALL(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_KFD_API));
         }
@@ -666,7 +702,7 @@ namespace apex {
         // FYI, ACTIVITY_DOMAIN_HIP_OPS = ACTIVITY_DOMAIN_HCC_OPS = ACTIVITY_DOMAIN_HIP_VDI...
         ROCTRACER_CALL(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_HIP_OPS));
         ROCTRACER_CALL(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_EXT_API));
-        //ROCTRACER_CALL(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_HSA_OPS));
+        ROCTRACER_CALL(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_HSA_OPS));
         ROCTRACER_CALL(roctracer_flush_activity());
         printf("# STOP  #############################\n");
     }
