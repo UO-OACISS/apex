@@ -18,8 +18,8 @@ pkg_check_modules(PC_BFD QUIET BFD)
 set(BFD_DEFINITIONS ${PC_BFD_CFLAGS_OTHER})
 
 find_path(BFD_INCLUDE_DIR bfd.h
-          HINTS ${BFD_ROOT}/include 
-          ${PC_BFD_INCLUDEDIR} 
+          HINTS ${BFD_ROOT}/include
+          ${PC_BFD_INCLUDEDIR}
           ${PC_BFD_INCLUDE_DIRS}
           PATH_SUFFIXES BFD )
 
@@ -29,8 +29,8 @@ if ($TMP_PATH)
 endif()
 find_library(BFD_LIBRARY NAMES bfd
              HINTS ${BFD_ROOT}/lib ${BFD_ROOT}/lib64
-             ${PC_BFD_LIBDIR} 
-             ${PC_BFD_LIBRARY_DIRS} 
+             ${PC_BFD_LIBDIR}
+             ${PC_BFD_LIBRARY_DIRS}
              ${LD_LIBRARY_PATH_STR})
 
 include(FindPackageHandleStandardArgs)
@@ -49,7 +49,7 @@ if((APEX_BUILD_BFD OR (NOT BFD_FOUND)) AND NOT APPLE)
   ExternalProject_Add(project_binutils
     URL "http://ftp.gnu.org/gnu/binutils/binutils-2.25.tar.bz2"
     URL_HASH SHA256=22defc65cfa3ef2a3395faaea75d6331c6e62ea5dfacfed3e2ec17b08c882923
-    CONFIGURE_COMMAND <SOURCE_DIR>/configure CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} CFLAGS=${CMAKE_C_FLAGS} CXXFLAGS=${CMAKE_CXX_FLAGS} LDFLAGS=${CMAKE_EXE_LINKER_FLAGS} --prefix=${CMAKE_INSTALL_PREFIX} --disable-dependency-tracking --enable-interwork --disable-multilib --enable-shared --enable-64-bit-bfd --target=${TARGET_ARCH} --enable-install-libiberty
+    CONFIGURE_COMMAND <SOURCE_DIR>/configure CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} CFLAGS=${CMAKE_C_FLAGS} CXXFLAGS=${CMAKE_CXX_FLAGS} LDFLAGS=${CMAKE_EXE_LINKER_FLAGS} --prefix=${CMAKE_INSTALL_PREFIX}/binutils --disable-dependency-tracking --enable-interwork --disable-multilib --enable-shared --enable-64-bit-bfd --target=${TARGET_ARCH} --enable-install-libiberty
     BUILD_COMMAND make MAKEINFO=true -j${MAKEJOBS}
     INSTALL_COMMAND make MAKEINFO=true install
     LOG_DOWNLOAD 1
@@ -59,11 +59,17 @@ if((APEX_BUILD_BFD OR (NOT BFD_FOUND)) AND NOT APPLE)
   )
   ExternalProject_Add_Step(project_binutils basedirs
     DEPENDEES install
-    COMMAND cp <SOURCE_DIR>/include/demangle.h ${CMAKE_INSTALL_PREFIX}/include/.
+    COMMAND cp <SOURCE_DIR>/include/demangle.h ${CMAKE_INSTALL_PREFIX}/binutils/include/.
     COMMENT "Copying additional headers"
   )
+  ExternalProject_Add_Step(project_binutils basedirs2
+    DEPENDEES install
+    COMMAND cp <SOURCE_DIR>/include/demangle.h ${CMAKE_INSTALL_PREFIX}/binutils/include/.
+    COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_INSTALL_PREFIX}/binutils/lib ${CMAKE_INSTALL_PREFIX}/binutils/lib64
+    COMMENT "Adding lib64 simlink"
+  )
 
-  set(BFD_ROOT ${CMAKE_INSTALL_PREFIX})
+  set(BFD_ROOT ${CMAKE_INSTALL_PREFIX}/binutils)
   ExternalProject_Get_Property(project_binutils install_dir)
   add_library(bfd STATIC IMPORTED)
   set_property(TARGET bfd PROPERTY IMPORTED_LOCATION ${install_dir}/lib/libbfd.so)

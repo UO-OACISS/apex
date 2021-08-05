@@ -1,4 +1,5 @@
 #include "simulated_annealing.hpp"
+#include <algorithm>
 
 namespace apex {
 
@@ -13,15 +14,15 @@ size_t SimulatedAnnealing::get_max_iterations() {
     for (auto& v : vars) {
         switch (v.second.vtype) {
             case VariableType::doubletype: {
-                max_iter = max_iter + v.second.dvalues.size();
+                max_iter = max_iter * v.second.dvalues.size();
                 break;
             }
             case VariableType::longtype: {
-                max_iter = max_iter + v.second.lvalues.size();
+                max_iter = max_iter * v.second.lvalues.size();
                 break;
             }
             case VariableType::stringtype: {
-                max_iter = max_iter + v.second.svalues.size();
+                max_iter = max_iter * v.second.svalues.size();
                 break;
             }
             default: {
@@ -31,7 +32,7 @@ size_t SimulatedAnnealing::get_max_iterations() {
     }
     //return max_iter / vars.size();
     //return max_iter * vars.size() *vars.size();
-    return max_iter / 3; // the window
+    return std::min(max_iterations, (std::max(min_iterations, max_iter)));
 }
 
 double SimulatedAnnealing::acceptance_probability(double new_cost) {

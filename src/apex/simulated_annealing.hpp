@@ -134,12 +134,15 @@ private:
     size_t kmax;
     size_t k;
     std::map<std::string, Variable> vars;
+    const size_t max_iterations{200};
+    const size_t min_iterations{100};
 public:
     void evaluate(double new_cost);
     SimulatedAnnealing() :
         restart(0), since_restart(0), temp(0), kmax(0), k(1) {
         cost = std::numeric_limits<double>::max();
         best_cost = cost;
+        std::cout << "New Session!" << std::endl;
     }
     double getEnergy() { return best_cost; }
     bool converged() {
@@ -167,7 +170,7 @@ public:
         vars.insert(std::make_pair(name, var));
         kmax = get_max_iterations();
         /* get max iterations */
-        //std::cout << "Max iterations : " << kmax << std::endl;
+        std::cout << "Max iterations : " << kmax << std::endl;
         restart = kmax / 10;
     }
 };

@@ -62,7 +62,7 @@ private:
     std::list<std::shared_ptr<policy_instance> > send_policies;
     std::list<std::shared_ptr<policy_instance> > recv_policies;
     std::list<std::shared_ptr<policy_instance> > periodic_policies;
-    std::vector<std::list<std::shared_ptr<policy_instance> > >
+    std::map<apex_event_type, std::list<std::shared_ptr<policy_instance > > >
         custom_event_policies;
     shared_mutex_type startup_mutex;
     shared_mutex_type shutdown_mutex;
@@ -84,7 +84,6 @@ private:
 #ifdef APEX_HAVE_HPX
     hpx::util::interval_timer hpx_timer;
 #endif
-    std::atomic<size_t> active_policies;
 public:
     policy_handler (void);
 /*

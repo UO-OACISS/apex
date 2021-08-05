@@ -329,6 +329,7 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_JUPYTER_SUPPORT, use_jupyter_support, int, false) \
     macro (APEX_KOKKOS_VERBOSE, use_kokkos_verbose, bool, false) \
     macro (APEX_KOKKOS_TUNING, use_kokkos_tuning, bool, true) \
+    macro (APEX_KOKKOS_PROFILING_FENCES, use_kokkos_profiling_fences, bool, false) \
     macro (APEX_START_DELAY_SECONDS, start_delay_seconds, int, 0) \
     macro (APEX_MAX_DURATION_SECONDS, max_duration_seconds, int, 0) \
 
@@ -344,7 +345,8 @@ inline unsigned int sc_nprocessors_onln()
         APEX_DEFAULT_OTF2_ARCHIVE_PATH) \
     macro (APEX_OTF2_ARCHIVE_NAME, otf2_archive_name, char*, \
         APEX_DEFAULT_OTF2_ARCHIVE_NAME) \
-    macro (APEX_EVENT_FILTER_FILE, task_event_filter_file, char*, "")
+    macro (APEX_EVENT_FILTER_FILE, task_event_filter_file, char*, "") \
+    macro (APEX_KOKKOS_TUNING_CACHE, kokkos_tuning_cache, char*, "")
 
 // Do the clang check first
 #if defined(__APPLE__) || defined(__clang__)

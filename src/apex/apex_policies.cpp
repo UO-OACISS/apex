@@ -884,7 +884,7 @@ int apex_sa_policy(shared_ptr<apex_tuning_session> tuning_session,
     if (apex_final) return APEX_NOERROR; // we terminated
     std::unique_lock<std::mutex> l{shutdown_mutex};
     if (tuning_session->sa_session.converged()) {
-        if (!tuning_session->converged_message) {
+        if (!tuning_session->converged_message && apex::apex_options::use_verbose()) {
             tuning_session->converged_message = true;
             cout << "Tuning has converged for session " << tuning_session->id
             << "." << endl;
