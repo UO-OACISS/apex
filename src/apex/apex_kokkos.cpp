@@ -27,6 +27,7 @@
 #include <unordered_map>
 #include <stdlib.h>
 #include "apex.hpp"
+#include "Kokkos_Profiling_C_Interface.h"
 
 /*
 static std::mutex memory_mtx;
@@ -72,6 +73,14 @@ void kokkosp_init_library(int loadseq, uint64_t version,
  */
 void kokkosp_finalize_library() {
     apex::finalize();
+}
+
+/* This is a new function to tell Kokkos to not fence */
+void kokkosp_request_tool_settings(int num_actions,
+    struct Kokkos_Tools_ToolSettings *settings) {
+    if ((num_actions > 0) && (settings != nullptr)) {
+        settings->requires_global_fencing = apex::apex_options::use_kokkos_profiling_fences();
+    }
 }
 
 /* These functions are called before their respective parallel constructs
