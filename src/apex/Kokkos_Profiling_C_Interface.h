@@ -198,7 +198,6 @@ enum Kokkos_Tools_VariableInfo_ValueType {
   kokkos_value_int64,
   kokkos_value_string,
 };
-
 enum Kokkos_Tools_VariableInfo_StatisticalCategory {
   kokkos_value_categorical,  // unordered distinct objects
   kokkos_value_ordinal,      // ordered distinct objects

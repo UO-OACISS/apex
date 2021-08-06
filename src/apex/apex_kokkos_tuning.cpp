@@ -153,6 +153,7 @@ private:
         running(false),
         cacheFilename("./apex_converged_tuning.yaml") {
             verbose = apex::apex_options::use_kokkos_verbose();
+            // don't do this until the object is constructed!
     }
 public:
     ~KokkosSession() {
@@ -177,10 +178,13 @@ public:
     std::unordered_map<size_t, uint64_t> context_starts;
     void writeCache();
     bool checkForCache();
+    void readCache();
     void saveInputVar(size_t id, Variable * var);
     void saveOutputVar(size_t id, Variable * var);
+    void parseVariableCache(std::ifstream& results);
     std::stringstream cachedResults;
     std::string cacheFilename;
+    std::unordered_map<size_t, Kokkos_Tools_VariableInfo> cachedVariables;
 };
 
 /* If we've cached values, we can bypass a lot. */
@@ -193,6 +197,7 @@ bool KokkosSession::checkForCache() {
     if (f.good()) {
         use_history = true;
         std::cout << "Cache found" << std::endl;
+        readCache();
     } else {
         std::cout << "Cache not found" << std::endl;
     }
@@ -201,14 +206,18 @@ bool KokkosSession::checkForCache() {
 
 void KokkosSession::saveInputVar(size_t id, Variable * var) {
     inputs.insert(std::make_pair(id, var));
-    cachedResults << "Input_" << id << ":" << std::endl;
-    cachedResults << var->toString();
+    if (!use_history) {
+        cachedResults << "Input_" << id << ":" << std::endl;
+        cachedResults << var->toString();
+    }
 }
 
 void KokkosSession::saveOutputVar(size_t id, Variable * var) {
     outputs.insert(std::make_pair(id, var));
-    cachedResults << "Output_" << id << ":" << std::endl;
-    cachedResults << var->toString();
+    if (!use_history) {
+        cachedResults << "Output_" << id << ":" << std::endl;
+        cachedResults << var->toString();
+    }
 }
 
 void KokkosSession::writeCache(void) {
@@ -230,12 +239,85 @@ void KokkosSession::writeCache(void) {
                 auto param = std::static_pointer_cast<apex_param_enum>(
                     request->get_param(var->name));
                 results << "    id: " << id << std::endl;
-                results << "    value: \"" << param->get_value() << "\"" << std::endl;
+                results << "    value: " << param->get_value() << std::endl;
             }
         }
         // if not converged, need to get the "best so far" values for the parameters.
     }
     results.close();
+}
+
+void KokkosSession::parseVariableCache(std::ifstream& results) {
+    std::string line;
+    std::string delimiter = ": ";
+    Kokkos_Tools_VariableInfo info;
+    memset(&info, 0, sizeof(Kokkos_Tools_VariableInfo));
+    // name
+    std::getline(results, line);
+    std::string name = line.substr(line.find(delimiter)+2);
+    // id
+    std::getline(results, line);
+    size_t id = atol(line.substr(line.find(delimiter)+2).c_str());
+    // info.type
+    std::getline(results, line);
+    std::string type = line.substr(line.find(delimiter)+2);
+    if (type.find("double") != std::string::npos) {
+        info.type = kokkos_value_double;
+    } else if (type.find("int64") != std::string::npos) {
+        info.type = kokkos_value_int64;
+    } else if (type.find("string") != std::string::npos) {
+        info.type = kokkos_value_string;
+    }
+    // info.category
+    std::getline(results, line);
+    std::string category = line.substr(line.find(delimiter)+2);
+    if (category.find("categorical") != std::string::npos) {
+        info.category = kokkos_value_categorical;
+    } else if (category.find("ordinal") != std::string::npos) {
+        info.category = kokkos_value_ordinal;
+    } else if (category.find("interval") != std::string::npos) {
+        info.category = kokkos_value_interval;
+    } else if (category.find("ratio") != std::string::npos) {
+        info.category = kokkos_value_ratio;
+    }
+    // info.valueQuantity
+    std::getline(results, line);
+    std::string valueQuantity = line.substr(line.find(delimiter)+2);
+    if (valueQuantity.find("set") != std::string::npos) {
+        info.valueQuantity = kokkos_value_set;
+        info.candidates.set.size = 0;
+    } else if (valueQuantity.find("range") != std::string::npos) {
+        info.valueQuantity = kokkos_value_range;
+        info.candidates.set.size = 0;
+    } else if (valueQuantity.find("unbounded") != std::string::npos) {
+        info.valueQuantity = kokkos_value_unbounded;
+    }
+    // info.candidates
+    std::getline(results, line);
+    std::string candidates = line.substr(line.find(delimiter)+2);
+    // ...eh, who cares.  We don't need the candidate values.
+    info.valueQuantity = kokkos_value_unbounded;
+    //cachedVariables.insert(std::make_pair(id, std::move(info)));
+}
+
+void KokkosSession::readCache(void) {
+    std::ifstream results(cacheFilename);
+    std::cout << "Reading cache of Kokkos tuning results from: '" << cacheFilename << "'" << std::endl;
+    std::string line;
+    while (std::getline(results, line))
+    {
+        std::istringstream iss(line);
+        if (line.find("Input_", 0) != std::string::npos) {
+            //std::cout << line << std::endl;
+            parseVariableCache(results);
+            continue;
+        }
+        if (line.find("Output_", 0) != std::string::npos) {
+            //std::cout << line << std::endl;
+            parseVariableCache(results);
+            continue;
+        }
+    }
 }
 
 KokkosSession& KokkosSession::getSession() {
@@ -245,9 +327,11 @@ KokkosSession& KokkosSession::getSession() {
 
 Variable::Variable(size_t _id, std::string _name,
     Kokkos_Tools_VariableInfo& _info) : id(_id), name(_name), info(_info) {
+    /*
     if (KokkosSession::getSession().verbose) {
         std::cout << toString();
     }
+    */
 }
 
 void Variable::makeSpace(void) {
