@@ -205,7 +205,7 @@ static void finalize_hpx_runtime(void) {
 void apex::_initialize()
 {
 #if defined(APEX_DEBUG) || defined(APEX_ERROR_HANDLING)
-    //apex_register_signal_handler();
+    apex_register_signal_handler();
 #endif
     this->m_pInstance = this;
     this->m_policy_handler = nullptr;

@@ -24,7 +24,7 @@
 #include <stack>
 #include <vector>
 #include <set>
-#include <unordered_map>
+#include <map>
 #include <stdlib.h>
 #include "apex.hpp"
 #include "Kokkos_Profiling_C_Interface.h"
@@ -149,9 +149,8 @@ private:
         strategy(apex_ah_tuning_strategy::SIMULATED_ANNEALING),
         //strategy(apex_ah_tuning_strategy::NELDER_MEAD),
         verbose(false),
-        use_history(checkForCache()),
-        running(false),
-        cacheFilename("./apex_converged_tuning.yaml") {
+        use_history(false),
+        running(false){
             verbose = apex::apex_options::use_kokkos_verbose();
             // don't do this until the object is constructed!
     }
@@ -170,11 +169,12 @@ public:
     bool verbose;
     bool use_history;
     bool running;
-    std::unordered_map<size_t, Variable*> inputs;
-    std::unordered_map<size_t, Variable*> outputs;
+    std::map<size_t, Variable*> inputs;
+    std::map<size_t, Variable*> outputs;
     apex_policy_handle * start_policy_handle;
     apex_policy_handle * stop_policy_handle;
     std::unordered_map<size_t, std::string> active_requests;
+    std::set<size_t> used_history;
     std::unordered_map<size_t, uint64_t> context_starts;
     void writeCache();
     bool checkForCache();
@@ -182,24 +182,36 @@ public:
     void saveInputVar(size_t id, Variable * var);
     void saveOutputVar(size_t id, Variable * var);
     void parseVariableCache(std::ifstream& results);
+    void parseContextCache(std::ifstream& results);
     std::stringstream cachedResults;
     std::string cacheFilename;
-    std::unordered_map<size_t, Kokkos_Tools_VariableInfo> cachedVariables;
+    std::map<size_t, struct Kokkos_Tools_VariableInfo> cachedVariables;
+    std::map<size_t, std::string> cachedVariableNames;
+    std::map<std::string, std::map<size_t, struct Kokkos_Tools_VariableValue> > cachedTunings;
 };
 
 /* If we've cached values, we can bypass a lot. */
 bool KokkosSession::checkForCache() {
+    static bool once{false};
+    if (once) { return use_history; }
+    once = true;
     // did the user specify a file?
     if (strlen(apex::apex_options::kokkos_tuning_cache()) > 0) {
         cacheFilename = std::string(apex::apex_options::kokkos_tuning_cache());
+    } else {
+        cacheFilename = std::string("./apex_converged_tuning.yaml");
     }
     std::ifstream f(cacheFilename);
     if (f.good()) {
         use_history = true;
-        std::cout << "Cache found" << std::endl;
+        if(session.verbose) {
+            std::cout << "Cache found" << std::endl;
+        }
         readCache();
     } else {
-        std::cout << "Cache not found" << std::endl;
+        if(session.verbose) {
+            std::cout << "Cache not found" << std::endl;
+        }
     }
     return use_history;
 }
@@ -222,6 +234,12 @@ void KokkosSession::saveOutputVar(size_t id, Variable * var) {
 
 void KokkosSession::writeCache(void) {
     if(use_history) { return; }
+    // did the user specify a file?
+    if (strlen(apex::apex_options::kokkos_tuning_cache()) > 0) {
+        cacheFilename = std::string(apex::apex_options::kokkos_tuning_cache());
+    } else {
+        cacheFilename = std::string("./apex_converged_tuning.yaml");
+    }
     std::ofstream results(cacheFilename);
     std::cout << "Writing cache of Kokkos tuning results to: '" << cacheFilename << "'" << std::endl;
     results << cachedResults.rdbuf();
@@ -234,6 +252,7 @@ void KokkosSession::writeCache(void) {
             (request->has_converged() ? "true" : "false") << std::endl;
         if (request->has_converged()) {
             results << "  Results:" << std::endl;
+            results << "    NumVars: " << var_ids[req.first].size() << std::endl;
             for (const auto &id : var_ids[req.first]) {
                 Variable* var{KokkosSession::getSession().outputs[id]};
                 auto param = std::static_pointer_cast<apex_param_enum>(
@@ -250,8 +269,8 @@ void KokkosSession::writeCache(void) {
 void KokkosSession::parseVariableCache(std::ifstream& results) {
     std::string line;
     std::string delimiter = ": ";
-    Kokkos_Tools_VariableInfo info;
-    memset(&info, 0, sizeof(Kokkos_Tools_VariableInfo));
+    struct Kokkos_Tools_VariableInfo info;
+    memset(&info, 0, sizeof(struct Kokkos_Tools_VariableInfo));
     // name
     std::getline(results, line);
     std::string name = line.substr(line.find(delimiter)+2);
@@ -296,8 +315,50 @@ void KokkosSession::parseVariableCache(std::ifstream& results) {
     std::getline(results, line);
     std::string candidates = line.substr(line.find(delimiter)+2);
     // ...eh, who cares.  We don't need the candidate values.
-    info.valueQuantity = kokkos_value_unbounded;
-    //cachedVariables.insert(std::make_pair(id, std::move(info)));
+    cachedVariables.insert(std::make_pair(id, std::move(info)));
+    cachedVariableNames.insert(std::make_pair(id, name));
+}
+
+void KokkosSession::parseContextCache(std::ifstream& results) {
+    std::string line;
+    std::string delimiter = ": ";
+    // name
+    std::getline(results, line);
+    std::string name = line.substr(line.find(delimiter)+2);
+    name.erase(std::remove(name.begin(),name.end(),'\"'),name.end());
+    // converged?
+    std::getline(results, line);
+    std::string converged = line.substr(line.find(delimiter)+2);
+    if (converged.find("true") != std::string::npos) {
+        std::map<size_t, struct Kokkos_Tools_VariableValue> vars;
+        // Results
+        std::getline(results, line);
+        // NumVars
+        std::getline(results, line);
+        size_t numvars = atol(line.substr(line.find(delimiter)+2).c_str());
+        for (size_t i = 0 ; i < numvars ; i++) {
+            struct Kokkos_Tools_VariableValue var;
+            memset(&var, 0, sizeof(struct Kokkos_Tools_VariableValue));
+            // id
+            std::getline(results, line);
+            size_t id = atol(line.substr(line.find(delimiter)+2).c_str());
+            var.type_id = id;
+            // value
+            std::getline(results, line);
+            std::string value = line.substr(line.find(delimiter)+2);
+            auto info = cachedVariables.find(id);
+            if (info->second.type == kokkos_value_double) {
+                var.value.double_value = atof(value.c_str());
+            } else if (info->second.type == kokkos_value_int64) {
+                var.value.int_value = atol(value.c_str());
+            } else {
+                strcpy(var.value.string_value, value.c_str());
+            }
+            var.metadata = &(info->second);
+            vars.insert(std::make_pair(id, std::move(var)));
+        }
+        cachedTunings.insert(std::make_pair(name, std::move(vars)));
+    }
 }
 
 void KokkosSession::readCache(void) {
@@ -315,6 +376,11 @@ void KokkosSession::readCache(void) {
         if (line.find("Output_", 0) != std::string::npos) {
             //std::cout << line << std::endl;
             parseVariableCache(results);
+            continue;
+        }
+        if (line.find("Context_", 0) != std::string::npos) {
+            //std::cout << line << std::endl;
+            parseContextCache(results);
             continue;
         }
     }
@@ -421,7 +487,7 @@ size_t& getDepth() {
 
 std::string hashContext(size_t numVars,
     const Kokkos_Tools_VariableValue* values,
-    std::unordered_map<size_t, Variable*>& varmap) {
+    std::map<size_t, Variable*>& varmap) {
     std::stringstream ss;
     std::string d{"["};
     for (size_t i = 0 ; i < numVars ; i++) {
@@ -459,6 +525,36 @@ void printTuning(const size_t numVars, Kokkos_Tools_VariableValue* values) {
     std::cout << std::endl;
 }
 
+bool getCachedTunings(std::string name,
+    const size_t vars,
+    Kokkos_Tools_VariableValue* values) {
+    KokkosSession& session = KokkosSession::getSession();
+    auto result = session.cachedTunings.find(name);
+    // don't have a tuning for this context?
+    if (result == session.cachedTunings.end()) { return false; }
+    for (size_t i = 0 ; i < vars ; i++) {
+        auto id = values[i].type_id;
+        auto variter = result->second.find(id);
+        auto nameiter = session.cachedVariableNames.find(id);
+        if (variter == result->second.end()) { return false; }
+        if (nameiter == session.cachedVariableNames.end()) { return false; }
+        auto var = variter->second;
+        auto varname = nameiter->second;
+        if (var.metadata->type == kokkos_value_double) {
+            values[i].value.double_value = var.value.double_value;
+            //std::string tmp(name+":"+varname);
+            //apex::sample_value(tmp, var.value.double_value);
+        } else if (var.metadata->type == kokkos_value_int64) {
+            values[i].value.int_value = var.value.int_value;
+            //std::string tmp(name+":"+varname);
+            //apex::sample_value(tmp, var.value.int_value);
+        } else if (var.metadata->type == kokkos_value_string) {
+            strncpy(values[i].value.string_value, var.value.string_value, KOKKOS_TOOLS_TUNING_STRING_LENGTH);
+        }
+    }
+    return true;
+}
+
 void set_params(std::shared_ptr<apex_tuning_request> request,
     const size_t vars,
     Kokkos_Tools_VariableValue* values) {
@@ -477,7 +573,7 @@ void set_params(std::shared_ptr<apex_tuning_request> request,
                 std::string tmp(request->get_name()+":"+var->name);
                 apex::sample_value(tmp, values[i].value.int_value);
             } else if (var->info.type == kokkos_value_string) {
-                strncpy(values[i].value.string_value, param->get_value().c_str(), 64);
+                strncpy(values[i].value.string_value, param->get_value().c_str(), KOKKOS_TOOLS_TUNING_STRING_LENGTH);
             }
         } else { // range
             if (var->info.type == kokkos_value_double) {
@@ -608,7 +704,7 @@ void handle_stop(const std::string & name) {
     KokkosSession& session = KokkosSession::getSession();
     auto search = session.requests.find(name);
     if(search == session.requests.end()) {
-        std::cerr << "ERROR: No data for \"" << name << std::endl;
+        std::cerr << "ERROR: No data for " << name << std::endl;
     } else {
         apex_profile * profile = apex::get_profile(name);
         if(session.window == 1 ||
@@ -641,10 +737,11 @@ extern "C" {
  */
 void kokkosp_declare_output_type(const char* name, const size_t id,
     Kokkos_Tools_VariableInfo& info) {
+    if (!apex::apex_options::use_kokkos_tuning()) { return; }
     // don't track memory in this function.
     apex::in_apex prevent_memory_tracking;
     KokkosSession& session = KokkosSession::getSession();
-    //if (!apex::apex_options::use_kokkos_tuning()) { return; }
+    session.checkForCache();
     if(session.verbose) {
         std::cout << std::string(getDepth(), ' ');
         std::cout << __func__ << std::endl;
@@ -663,10 +760,11 @@ void kokkosp_declare_output_type(const char* name, const size_t id,
  */
 void kokkosp_declare_input_type(const char* name, const size_t id,
     Kokkos_Tools_VariableInfo& info) {
+    if (!apex::apex_options::use_kokkos_tuning()) { return; }
     // don't track memory in this function.
     apex::in_apex prevent_memory_tracking;
     KokkosSession& session = KokkosSession::getSession();
-    //if (!apex::apex_options::use_kokkos_tuning()) { return; }
+    session.checkForCache();
     if(session.verbose) {
         std::cout << std::string(getDepth(), ' ');
         std::cout << __func__ << std::endl;
@@ -701,6 +799,7 @@ void kokkosp_request_values(
     const Kokkos_Tools_VariableValue* contextVariableValues,
     const size_t numTuningVariables,
     Kokkos_Tools_VariableValue* tuningVariableValues) {
+    if (!apex::apex_options::use_kokkos_tuning()) { return; }
     // don't track memory in this function.
     apex::in_apex prevent_memory_tracking;
     KokkosSession& session = KokkosSession::getSession();
@@ -709,15 +808,24 @@ void kokkosp_request_values(
         std::cout << __func__ << " ctx: " << contextId;
         printContext(numContextVariables, contextVariableValues);
     }
+    // create a unique name for this combination of input vars
     std::string name{hashContext(numContextVariables, contextVariableValues,
         session.inputs)};
+    // add this name to our map of active contexts
     session.active_requests.insert(
         std::pair<uint32_t, std::string>(contextId, name));
-    if (apex::apex_options::use_kokkos_tuning()) {
+    // check if we have a cached result
+    bool success{false};
+    if (session.use_history) {
+        success = getCachedTunings(name, numTuningVariables, tuningVariableValues);
+    }
+    if (success) {
+        session.used_history.insert(contextId);
+    } else {
         uint64_t delta = 0;
         if (handle_start(name, numTuningVariables, tuningVariableValues, &delta)) {
             // throw away the time spent setting up tuning
-            session.context_starts[contextId] = session.context_starts[contextId] + delta;
+            //session.context_starts[contextId] = session.context_starts[contextId] + delta;
         }
     }
     if (session.verbose) {
@@ -731,15 +839,14 @@ void kokkosp_request_values(
  * starting measurement.
  */
 void kokkosp_begin_context(size_t contextId) {
+    if (!apex::apex_options::use_kokkos_tuning()) { return; }
     // don't track memory in this function.
     apex::in_apex prevent_memory_tracking;
     KokkosSession& session = KokkosSession::getSession();
-    //if (!apex::apex_options::use_kokkos_tuning()) { return; }
     if (session.verbose) {
         std::cout << std::string(getDepth()++, ' ');
         std::cout << __func__ << "\t" << contextId << std::endl;
     }
-    std::stringstream ss;
     session.context_starts.insert(
         std::pair<uint32_t, uint64_t>(contextId, apex::profiler::now_ns()));
 }
@@ -749,6 +856,7 @@ void kokkosp_begin_context(size_t contextId) {
  * values can now be associated with a result.
  */
 void kokkosp_end_context(const size_t contextId) {
+    if (!apex::apex_options::use_kokkos_tuning()) { return; }
     // don't track memory in this function.
     apex::in_apex prevent_memory_tracking;
     KokkosSession& session = KokkosSession::getSession();
@@ -762,9 +870,11 @@ void kokkosp_end_context(const size_t contextId) {
     }
     if (name != session.active_requests.end() &&
         start != session.context_starts.end()) {
-        apex::sample_value(name->second, (double)(end-(start->second)));
-        if (apex::apex_options::use_kokkos_tuning()) {
+        if (session.used_history.count(contextId) == 0) {
+            apex::sample_value(name->second, (double)(end-(start->second)));
             handle_stop(name->second);
+        } else {
+            session.used_history.erase(contextId);
         }
         session.active_requests.erase(contextId);
         session.context_starts.erase(contextId);
