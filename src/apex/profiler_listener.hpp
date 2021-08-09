@@ -108,7 +108,7 @@ private:
   void schedule_process_profiles(void);
 #endif
   unsigned int process_profile(std::shared_ptr<profiler> &p, unsigned int tid);
-  unsigned int process_profile(profiler* p, unsigned int tid);
+  unsigned int process_profile(profiler& p, unsigned int tid);
   unsigned int process_dependency(task_dependency* td);
   int node_id;
   std::mutex _mtx;
@@ -117,6 +117,7 @@ private:
   void _common_stop(std::shared_ptr<profiler> &p,
     bool is_yield); // internal, inline function
   void push_profiler(int my_tid, std::shared_ptr<profiler> &p);
+  void push_profiler(int my_tid, profiler &p);
   std::unordered_map<task_identifier, profile*> task_map;
   std::mutex _task_map_mutex;
   std::unordered_map<task_identifier, std::unordered_map<task_identifier,
