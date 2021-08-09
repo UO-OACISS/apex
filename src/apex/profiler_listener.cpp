@@ -75,6 +75,7 @@ const int num_non_worker_threads_registered = 1; // including the main thread
 #endif
 
 #define APEX_MAIN "APEX MAIN"
+#define APEX_SYNCHRONOUS_PROCESSING 1
 
 #include "tau_listener.hpp"
 #include "utils.hpp"
@@ -209,12 +210,14 @@ std::unordered_set<profile*> free_profiles;
    * Return nullptr if doesn't exist. */
   profile * profiler_listener::get_profile(const task_identifier &id) {
     /* Maybe we aren't processing profiler objects yet? Fire off a request. */
+#ifndef APEX_SYNCHRONOUS_PROCESSING
 #ifdef APEX_HAVE_HPX
     // don't schedule an HPX action - just do it.
     process_profiles_wrapper();
 #else
     queue_signal.post();
 #endif
+#endif // APEX_SYNCHRONOUS_PROCESSING
     if (id.name == string(APEX_IDLE_RATE)) {
         return get_idle_rate();
     } else if (id.name == string(APEX_IDLE_TIME)) {
@@ -641,11 +644,13 @@ std::unordered_set<profile*> free_profiles;
     profile * total_time = get_profile(main_id);
     /* The profiles haven't been processed yet. */
     while (total_time == nullptr) {
+#ifndef APEX_SYNCHRONOUS_PROCESSING
 #ifdef APEX_HAVE_HPX
         // schedule an HPX action
         apex_schedule_process_profiles();
 #else
         queue_signal.post();
+#endif
 #endif
         // wait for profiles to update
         std::this_thread::sleep_for(std::chrono::microseconds(100));
@@ -1320,10 +1325,12 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
     if (!_done) {
       my_tid = (unsigned int)thread_instance::get_id();
       async_thread_setup();
+#ifndef APEX_SYNCHRONOUS_PROCESSING
 #ifndef APEX_HAVE_HPX
       // Start the consumer thread, to process profiler objects.
       consumer_thread = new std::thread(consumer_process_profiles_wrapper);
 #endif
+#endif // APEX_SYNCHRONOUS_PROCESSING
 
 #if APEX_HAVE_PAPI
       initialize_PAPI(true);
@@ -1390,6 +1397,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
     resume_main_timer();
 
     // trigger statistics updating
+#ifndef APEX_SYNCHRONOUS_PROCESSING
 #ifdef APEX_HAVE_HPX
     // We can't schedule an action, because the runtime might be gone
     // if we are in the dump() during finalize.  So synchronously
@@ -1399,6 +1407,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
     // synchronous_flush = false;
 #else
     queue_signal.post();
+#endif
 #endif
     // wait until any other threads are done processing dependencies
     while(consumer_task_running.test_and_set(memory_order_acq_rel)) { }
@@ -1495,6 +1504,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       _done = true;
       //node_id = data.node_id;
       //sleep(1);
+#ifndef APEX_SYNCHRONOUS_PROCESSING
 #ifndef APEX_HAVE_HPX
       queue_signal.post();
       queue_signal.dump_stats();
@@ -1503,6 +1513,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
           consumer_thread->join();
       }
 #endif
+#endif // APEX_SYNCHRONOUS_PROCESSING
 
     }
   }
@@ -1602,14 +1613,14 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
 #ifdef APEX_TRACE_APEX
       if (p->get_task_id()->name == "apex::process_profiles") { return; }
 #endif
-      // we have to make a local copy, because lockfree queues DO NOT SUPPORT
-      // shared_ptrs!
-      //thequeue()->enqueue(p);
+
+#ifdef APEX_SYNCHRONOUS_PROCESSING
       process_profile(p,0);
       /* Now that we synchronously process, return! */
       return;
+#else
+      thequeue()->enqueue(p);
 
-/*
 #ifndef APEX_HAVE_HPX
       // Check to see if the consumer is already running, to avoid calling
       // "post" too frequently - it is rather costly.
@@ -1623,7 +1634,8 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         apex_schedule_process_profiles();
       }
 #endif
-*/
+
+#endif //APEX_SYNCHRONOUS_PROCESSING
   }
 
   /* Stop the timer, if applicable, and queue the profiler object */
@@ -1749,9 +1761,11 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       _done = true; // yikes!
       finalize();
       delete_profiles();
+#ifndef APEX_SYNCHRONOUS_PROCESSING
 #ifndef APEX_HAVE_HPX
 #ifndef APEX_STATIC // unbelievable.  Deleting this object can crash in a static link.
       delete consumer_thread;
+#endif
 #endif
 #endif
     std::unique_lock<std::mutex> queue_lock(queue_mtx);
