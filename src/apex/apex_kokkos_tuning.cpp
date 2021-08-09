@@ -204,12 +204,12 @@ bool KokkosSession::checkForCache() {
     std::ifstream f(cacheFilename);
     if (f.good()) {
         use_history = true;
-        if(session.verbose) {
+        if(verbose) {
             std::cout << "Cache found" << std::endl;
         }
         readCache();
     } else {
-        if(session.verbose) {
+        if(verbose) {
             std::cout << "Cache not found" << std::endl;
         }
     }
