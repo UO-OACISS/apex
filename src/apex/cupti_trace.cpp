@@ -1681,6 +1681,7 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
 }
 
 void initTrace() {
+    if (!apex::apex_options::use_cuda()) { return; }
     // disable memory management tracking in APEX during this initialization
     apex::in_apex prevent_deadlocks;
     // make sure APEX doesn't re-register this thread
@@ -1754,6 +1755,7 @@ void initTrace() {
  * that APEX will call directly. */
 namespace apex {
     void flushTrace(void) {
+        if (!apex_options::use_cuda()) { return; }
         if ((num_buffers_processed + 10) < num_buffers) {
             if (apex::instance()->get_node_id() == 0) {
                 flushing = true;
@@ -1769,6 +1771,7 @@ namespace apex {
     }
 
     void finalizeCuda(void) {
+        if (!apex_options::use_cuda()) { return; }
         flushTrace();
         CUPTI_CALL(cuptiUnsubscribe(subscriber));
         CUPTI_CALL(cuptiFinalize());

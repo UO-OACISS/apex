@@ -649,7 +649,7 @@ void activity_callback(const char* begin, const char* end, void* arg) {
 
 // Init tracing routine
 void init_tracing() {
-    printf("# INIT #############################\n");
+    if (!apex::apex_options::use_hip()) { return; }
     // roctracer properties
     roctracer_set_properties(ACTIVITY_DOMAIN_HIP_API, NULL);
     // Allocating tracing pool
@@ -684,10 +684,12 @@ void init_tracing() {
 namespace apex {
     // Stop tracing routine
     void flush_hip_trace() {
+        if (!apex::apex_options::use_hip()) { return; }
         ROCTRACER_CALL(roctracer_flush_activity());
     }
 
     void stop_hip_trace() {
+        if (!apex::apex_options::use_hip()) { return; }
         roctracer_stop();
         /* CAllbacks */
         ROCTRACER_CALL(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_HIP_API));
@@ -704,7 +706,6 @@ namespace apex {
         ROCTRACER_CALL(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_EXT_API));
         ROCTRACER_CALL(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_HSA_OPS));
         ROCTRACER_CALL(roctracer_flush_activity());
-        printf("# STOP  #############################\n");
     }
 } // namespace apex
 

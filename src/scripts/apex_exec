@@ -47,9 +47,14 @@ where APEX options are zero or more of:
     --apex:memory          enable memory wrapper support
     --apex:untied          enable tasks to migrate cores/OS threads
                            during execution (not compatible with trace output)
-    --apex:cuda_counters   enable CUDA/CUPTI counter support
-    --apex:cuda_driver     enable CUDA driver API callbacks
-    --apex:cuda_details    enable per-kernel statistics where available
+    --apex:cuda            enable CUDA/CUPTI measurement (default: off)
+    --apex:cuda_counters   enable CUDA/CUPTI counter support (default: off)
+    --apex:cuda_driver     enable CUDA driver API callbacks (default: off)
+    --apex:cuda_details    enable per-kernel statistics where available (default: off)
+    --apex:hip             enable HIP/ROCTracer measurement (default: off)
+    --apex:hip_counters    enable HIP/ROCTracer counter support (default: off)
+    --apex:hip_driver      enable HIP/ROCTracer KSA driver API callbacks (default: off)
+    --apex:hip_details     enable per-kernel statistics where available (default: off)
     --apex:cpuinfo         enable sampling of /proc/cpuinfo (Linux only)
     --apex:meminfo         enable sampling of /proc/meminfo (Linux only)
     --apex:net             enable sampling of /proc/net/dev (Linux only)
@@ -76,9 +81,14 @@ screen=yes
 csv=no
 tau=no
 debug=no
+cuda=no
 cuda_counters=no
 cuda_driver=no
 cuda_details=no
+hip=no
+hip_counters=no
+hip_driver=no
+hip_details=no
 untied=no
 cpuinfo=no
 meminfo=no
@@ -173,19 +183,48 @@ while (( "$#" )); do
       export APEX_PROFILE_OUTPUT=1
       shift
       ;;
+    --apex:cuda)
+      export APEX_ENABLE_CUDA=1
+      shift
+      ;;
     --apex:cuda_counters)
       cuda_counters=yes
+      export APEX_ENABLE_CUDA=1
       export APEX_CUDA_COUNTERS=1
       shift
       ;;
     --apex:cuda_driver)
       cuda_driver=yes
+      export APEX_ENABLE_CUDA=1
       export APEX_CUDA_DRIVER_API=1
       shift
       ;;
     --apex:cuda_details)
       cuda_details=yes
+      export APEX_ENABLE_CUDA=1
       export APEX_CUDA_KERNEL_DETAILS=1
+      shift
+      ;;
+    --apex:hip)
+      export APEX_ENABLE_HIP=1
+      shift
+      ;;
+    --apex:hip_counters)
+      hip_counters=yes
+      export APEX_ENABLE_HIP=1
+      export APEX_HIP_COUNTERS=1
+      shift
+      ;;
+    --apex:hip_driver)
+      hip_driver=yes
+      export APEX_ENABLE_HIP=1
+      export APEX_HIP_KFD_API=1
+      shift
+      ;;
+    --apex:hip_details)
+      hip_details=yes
+      export APEX_ENABLE_HIP=1
+      export APEX_HIP_KERNEL_DETAILS=1
       shift
       ;;
     --apex:cpuinfo)
@@ -304,9 +343,11 @@ if [ ${apple} = 1 ]; then
 else
     APEX_LD_PRELOAD=${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/lib/libapex${SHLIBX}:${OMPT_LIB}:${LD_PRELOAD}
 fi
+APEX_LD_PRELOAD=/usr/local/packages/gperftools/2.8/lib/libprofiler.so:${APEX_LD_PRELOAD}
 
 # remove double colons
 APEX_LD_PRELOAD=`echo ${APEX_LD_PRELOAD} | sed -e "s/::/:/g" -e "s/:$//"`
+export CPUPROFILE=two_vars.prof
 
 if [ ${apple} = 1 ]; then
   APEX_LDD='otool -L'

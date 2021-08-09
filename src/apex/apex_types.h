@@ -312,6 +312,7 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_TASK_SCATTERPLOT, task_scatterplot, bool, false) \
     macro (APEX_TIME_TOP_LEVEL_OS_THREADS, top_level_os_threads, bool, false) \
     macro (APEX_POLICY_DRAIN_TIMEOUT, policy_drain_timeout, int, 1000) \
+    macro (APEX_ENABLE_CUDA, use_cuda, int, false) \
     macro (APEX_CUDA_COUNTERS, use_cuda_counters, int, false) \
     macro (APEX_CUDA_KERNEL_DETAILS, use_cuda_kernel_details, int, false) \
     macro (APEX_CUDA_RUNTIME_API, use_cuda_runtime_api, bool, true) \
@@ -319,6 +320,7 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_CUDA_SYNC_ACTIVITY, use_cuda_sync_activity, bool, true) \
     macro (APEX_CUDA_MEMORY_ACTIVITY, use_cuda_memory_activity, bool, true) \
     macro (APEX_CUDA_KERNEL_ACTIVITY, use_cuda_kernel_activity, bool, true) \
+    macro (APEX_ENABLE_HIP, use_hip, int, false) \
     macro (APEX_HIP_COUNTERS, use_hip_counters, int, false) \
     macro (APEX_HIP_KERNEL_DETAILS, use_hip_kernel_details, int, false) \
     macro (APEX_HIP_RUNTIME_API, use_hip_runtime_api, bool, true) \
