@@ -1617,7 +1617,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       // if we aren't processing profiler objects, just return.
       if (!apex_options::process_async_state()) { return; }
 #ifdef APEX_TRACE_APEX
-      if (p->get_task_id()->name == "apex::process_profiles_sync") { return; }
+      if (p.get_task_id()->name == "apex::process_profiles_sync") { return; }
 #endif
       process_profile(p,0);
       return;
