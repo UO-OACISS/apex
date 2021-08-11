@@ -537,8 +537,13 @@ if((DEFINED GPERFTOOLS_ROOT) OR (APEX_WITH_TCMALLOC))
         endif()
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free")
+    else()
+        add_custom_target(project_gperftools)
     endif()
+else()
+    add_custom_target(project_gperftools)
 endif()
+add_dependencies (project_gperftools project_ompt)
 
 ################################################################################
 # LM Sensors configuration
@@ -581,7 +586,7 @@ else()
     add_custom_target(project_activeharmony)
 endif()
 # Just in case, to prevent concurrent builds
-add_dependencies (project_activeharmony project_ompt)
+add_dependencies (project_activeharmony project_gperftools)
 
 ################################################################################
 # PAPI configuration

@@ -33,11 +33,11 @@ pkg_check_modules(PC_OMPT QUIET OMPT)
 set(OMPT_DEFINITIONS ${PC_OMPT_CFLAGS_OTHER})
 
 find_path(OMPT_INCLUDE_DIR omp-tools.h
-          HINTS ${PC_OMPT_INCLUDEDIR} ${PC_OMPT_INCLUDE_DIRS} ${OMPT_ROOT}/include)
+          HINTS ${PC_OMPT_INCLUDEDIR} ${PC_OMPT_INCLUDE_DIRS} ${OMPT_ROOT}/include ${CMAKE_INSTALL_PREFIX}/ompt/include )
 
 find_library(OMPT_LIBRARY NAMES omp iomp5 gomp
              HINTS ${PC_OMPT_LIBDIR} ${PC_OMPT_LIBRARY_DIRS} ${OMPT_ROOT}/lib
-			 ${OMPT_ROOT}/lib/* NO_DEFAULT_PATH)
+			 ${OMPT_ROOT}/lib/* ${CMAKE_INSTALL_PREFIX}/ompt/lib NO_DEFAULT_PATH)
 
 include(FindPackageHandleStandardArgs)
 # handle the QUIETLY and REQUIRED arguments and set OMPT_FOUND to TRUE
@@ -66,7 +66,7 @@ endif()
 
 # --------- DOWNLOAD AND BUILD THE EXTERNAL PROJECT! ------------ #
 if(APEX_BUILD_OMPT OR (NOT OMPT_FOUND))
-  set(CACHE OMPT_ROOT ${CMAKE_INSTALL_PREFIX}/ompt STRING "OMPT Root directory")
+  set(OMPT_ROOT ${CMAKE_INSTALL_PREFIX}/ompt CACHE STRING "OMPT Root directory")
   message("Attention: Downloading and Building OMPT as external project!")
   message(INFO " A working internet connection is required!")
   include(ExternalProject)
@@ -76,13 +76,13 @@ if(APEX_BUILD_OMPT OR (NOT OMPT_FOUND))
     URL http://tau.uoregon.edu/LLVM-openmp-2021-05-14.tar.gz
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/LLVM-ompt-5.0
     CONFIGURE_COMMAND cmake -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_INSTALL_PREFIX=${OMPT_ROOT} -DCMAKE_BUILD_TYPE=Release ${APEX_OMPT_EXTRA_CONFIG} ../project_ompt
-    BUILD_COMMAND make libomp-needed-headers all
+    BUILD_COMMAND make libomp-needed-headers all -j${MAKEJOBS}
     INSTALL_COMMAND make install
     INSTALL_DIR ${OMPT_ROOT}
-    LOG_DOWNLOAD 1
-    LOG_CONFIGURE 1
-    LOG_BUILD 1
-    LOG_INSTALL 1
+    #LOG_DOWNLOAD 1
+    #LOG_CONFIGURE 1
+    #LOG_BUILD 1
+    #LOG_INSTALL 1
   )
   #ExternalProject_Get_Property(project_ompt install_dir)
   add_library(omp SHARED IMPORTED)

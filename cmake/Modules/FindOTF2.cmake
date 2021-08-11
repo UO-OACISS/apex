@@ -5,7 +5,7 @@
 #  OTF2_LIBRARIES - The libraries needed to use OTF2
 #  OTF2_DEFINITIONS - Compiler switches required for using OTF2
 
-if(NOT DEFINED $OTF2_ROOT)
+if(NOT DEFINED OTF2_ROOT)
 	if(DEFINED ENV{OTF2_ROOT})
 		# message("   env OTF2_ROOT is defined as $ENV{OTF2_ROOT}")
 		set(OTF2_ROOT $ENV{OTF2_ROOT})
@@ -13,14 +13,14 @@ if(NOT DEFINED $OTF2_ROOT)
 endif()
 
 find_path(OTF2_INCLUDE_DIR NAMES otf2
-	HINTS ${OTF2_ROOT}/include $ENV{OTF2_ROOT}/include)
+	HINTS ${OTF2_ROOT}/include ${CMAKE_INSTALL_PREFIX}/otf2/include)
 
 if(APPLE)
     find_library(OTF2_LIBRARY NAMES libotf2.a otf2
-	    HINTS ${OTF2_ROOT}/* $ENV{OTF2_ROOT}/*)
+	    HINTS ${OTF2_ROOT}/lib ${CMAKE_INSTALL_PREFIX}/otf2/lib)
 else()
     find_library(OTF2_LIBRARY NAMES otf2
-	    HINTS ${OTF2_ROOT}/* $ENV{OTF2_ROOT}/*)
+	    HINTS ${OTF2_ROOT}/lib ${CMAKE_INSTALL_PREFIX}/otf2/lib)
 endif(APPLE)
 
 include(FindPackageHandleStandardArgs)
@@ -33,7 +33,7 @@ mark_as_advanced(OTF2_INCLUDE_DIR OTF2_LIBRARY)
 
 # --------- DOWNLOAD AND BUILD THE EXTERNAL PROJECT! ------------ #
 if(APEX_BUILD_OTF2 OR (NOT OTF2_FOUND))
-  set(CACHE OTF2_ROOT ${CMAKE_INSTALL_PREFIX}/otf2 STRING "OTF2 Root directory")
+  set(OTF2_ROOT ${CMAKE_INSTALL_PREFIX}/otf2 CACHE STRING "OTF2 Root directory" FORCE)
   message("Attention: Downloading and Building OTF2 as external project!")
   message(INFO " A working internet connection is required!")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
@@ -42,19 +42,18 @@ if(APEX_BUILD_OTF2 OR (NOT OTF2_FOUND))
   ExternalProject_Add(project_otf2
     URL https://www.vi-hps.org/cms/upload/packages/otf2/otf2-2.0.tar.gz
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/otf2-2.0
-    CONFIGURE_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/otf2-2.0/src/project_otf2 && ./configure CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} CFLAGS=${CMAKE_C_FLAGS} CXXFLAGS=${CMAKE_CXX_FLAGS} LDFLAGS=${CMAKE_EXE_LINKER_FLAGS} --prefix=${CMAKE_INSTALL_PREFIX}/otf2 --enable-shared
-    BUILD_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/otf2-2.0/src/project_otf2 && make
+    CONFIGURE_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/otf2-2.0/src/project_otf2 && ./configure CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} CFLAGS=${CMAKE_C_FLAGS} CXXFLAGS=${CMAKE_CXX_FLAGS} LDFLAGS=${CMAKE_EXE_LINKER_FLAGS} --prefix=${OTF2_ROOT} --enable-shared
+    BUILD_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/otf2-2.0/src/project_otf2 && make -j${MAKEJOBS}
     INSTALL_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/otf2-2.0/src/project_otf2 && make install
-    INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/otf2
+    INSTALL_DIR ${OTF2_ROOT}
     LOG_DOWNLOAD 1
-    LOG_CONFIGURE 1
-    LOG_BUILD 1
-    LOG_INSTALL 1
+    # LOG_CONFIGURE 1
+    # LOG_BUILD 1
+    # LOG_INSTALL 1
   )
-  set(OTF2_ROOT ${CMAKE_INSTALL_PREFIX}/otf2)
   #ExternalProject_Get_Property(project_otf2 install_dir)
   add_library(otf2 STATIC IMPORTED)
-  set_property(TARGET otf2 PROPERTY IMPORTED_LOCATION ${CMAKE_INSTALL_PREFIX}/otf2/lib/libotf2.a)
+  set_property(TARGET otf2 PROPERTY IMPORTED_LOCATION ${OTF2_ROOT}/lib/libotf2.a)
   set(OTF2_INCLUDE_DIR "${OTF2_ROOT}/include")
   set(OTF2_LIBRARY "${OTF2_ROOT}/lib/libotf2.a")
   # handle the QUIETLY and REQUIRED arguments and set OTF2_FOUND to TRUE
