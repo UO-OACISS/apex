@@ -343,7 +343,6 @@ if [ ${apple} = 1 ]; then
 else
     APEX_LD_PRELOAD=${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/lib/libapex${SHLIBX}:${OMPT_LIB}:${LD_PRELOAD}
 fi
-APEX_LD_PRELOAD=/usr/local/packages/gperftools/2.8/lib/libprofiler.so:${APEX_LD_PRELOAD}
 
 # remove double colons
 APEX_LD_PRELOAD=`echo ${APEX_LD_PRELOAD} | sed -e "s/::/:/g" -e "s/:$//"`
