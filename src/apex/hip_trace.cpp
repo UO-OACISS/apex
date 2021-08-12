@@ -684,12 +684,12 @@ void init_tracing() {
 namespace apex {
     // Stop tracing routine
     void flush_hip_trace() {
-        if (!apex::apex_options::use_hip()) { return; }
+        if (!apex_options::use_hip()) { return; }
         ROCTRACER_CALL(roctracer_flush_activity());
     }
 
     void stop_hip_trace() {
-        if (!apex::apex_options::use_hip()) { return; }
+        if (!apex_options::use_hip()) { return; }
         roctracer_stop();
         /* CAllbacks */
         ROCTRACER_CALL(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_HIP_API));
