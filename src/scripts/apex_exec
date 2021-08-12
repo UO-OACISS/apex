@@ -128,6 +128,7 @@ while (( "$#" )); do
       ;;
     --apex:pthread)
       pthread=yes
+      export APEX_TIME_TOP_LEVEL_OS_THREADS=1
       shift
       ;;
     --apex:memory)
@@ -344,8 +345,8 @@ else
     APEX_LD_PRELOAD=${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/lib/libapex${SHLIBX}:${OMPT_LIB}:${LD_PRELOAD}
 fi
 
-# remove double colons
-APEX_LD_PRELOAD=`echo ${APEX_LD_PRELOAD} | sed -e "s/::/:/g" -e "s/:$//"`
+# remove spaces and double colons
+APEX_LD_PRELOAD=`echo ${APEX_LD_PRELOAD} | sed -e "s/ /:/g" -e "s/::/:/g" -e "s/:$//"`
 export CPUPROFILE=two_vars.prof
 
 if [ ${apple} = 1 ]; then
