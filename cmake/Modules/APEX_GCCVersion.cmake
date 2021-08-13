@@ -7,7 +7,7 @@ apex_include(Option)
 
 set(APEX_GCCVERSION_LOADED TRUE)
 
-set(source_dir "${CMAKE_SOURCE_DIR}/cmake/tests")
+set(source_dir "${PROJECT_SOURCE_DIR}/cmake/tests")
 
 if(NOT MSVC)
   include(APEX_Include)
@@ -24,17 +24,17 @@ if(NOT MSVC)
     set(source_dir "$ENV{APEX_ROOT}/share/apex/cmake/tests")
   endif()
 
-  file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/config_tests)
+  file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/config_tests)
 
   apex_compile(gcc_version SOURCE ${source_dir}/gcc_version.cpp
     LANGUAGE CXX
-    OUTPUT ${CMAKE_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/config_tests/gcc_version
+    OUTPUT ${PROJECT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/config_tests/gcc_version
     FLAGS -I${BOOST_INCLUDE_DIR} ${include_dir})
 
   if("${gcc_version_RESULT}" STREQUAL "0")
     if(NOT GCC_VERSION)
       execute_process(
-        COMMAND "${CMAKE_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/config_tests/gcc_version"
+        COMMAND "${PROJECT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/config_tests/gcc_version"
         OUTPUT_VARIABLE GCC_VERSION)
     endif()
 

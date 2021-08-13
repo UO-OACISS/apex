@@ -42,6 +42,7 @@ where APEX options are zero or more of:
                            (python required for post-processing)
     --apex:openacc         enable OpenACC support
     --apex:kokkos          enable Kokkos support
+    --apex:kokkos_tuning   enable Kokkos runtime autotuning support
     --apex:raja            enable RAJA support
     --apex:pthread         enable pthread wrapper support
     --apex:memory          enable memory wrapper support
@@ -71,6 +72,7 @@ where APEX options are zero or more of:
 
 openacc=no
 kokkos=no
+kokkos_tuning=no
 raja=no
 otf2=no
 gtrace=no
@@ -116,6 +118,11 @@ while (( "$#" )); do
       ;;
     --apex:kokkos)
       kokkos=yes
+      shift
+      ;;
+    --apex:kokkos_tuning)
+      kokkos=yes
+      kokkos_tuning=yes
       shift
       ;;
     --apex:raja)
@@ -404,6 +411,9 @@ fi
 
 if [ ${kokkos} = yes ] ; then
     export KOKKOS_PROFILE_LIBRARY=${BASEDIR}/lib/libapex${SHLIBX}
+fi
+if [ ${kokkos_tuning} = yes ] ; then
+    export APEX_KOKKOS_TUNING=1
 fi
 if [ ${raja} = yes ] ; then
     export RAJA_PLUGINS=${BASEDIR}/lib/libapex${SHLIBX}

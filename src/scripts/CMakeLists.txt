@@ -1,6 +1,6 @@
 CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/src/scripts/apex_exec
 	${PROJECT_BINARY_DIR}/src/scripts/apex_exec @ONLY)
-#INSTALL_FILES(bin FILES ${CMAKE_BINARY_DIR}/src/scripts/apex_exec)
+#INSTALL_FILES(bin FILES ${PROJECT_BINARY_DIR}/src/scripts/apex_exec)
 
 
 if (BUILD_STATIC_EXECUTABLES)

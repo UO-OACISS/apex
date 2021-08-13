@@ -37,7 +37,7 @@ endif()
 
 # if the user didn't specify, set the installation directory.
 if(NOT DEFINED CMAKE_INSTALL_PREFIX OR CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-    SET(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}" CACHE STRING "APEX Installation directory" FORCE)
+    SET(CMAKE_INSTALL_PREFIX "${PROJECT_BINARY_DIR}" CACHE STRING "APEX Installation directory" FORCE)
 endif()
 
 # check if we are building for Kitten / LXK, and force some settings.
