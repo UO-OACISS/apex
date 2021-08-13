@@ -23,7 +23,9 @@ set(DEMANGLE_DEFINITIONS ${PC_DEMANGLE_CFLAGS_OTHER})
 
 find_path(DEMANGLE_INCLUDE_DIR demangle.h
           HINTS ${PC_DEMANGLE_INCLUDEDIR} ${PC_DEMANGLE_INCLUDE_DIRS}
-          ${DEMANGLE_ROOT}/include ${BFD_ROOT}/include ${BFD_ROOT}/include/extra /usr/include
+          ${DEMANGLE_ROOT}/include ${BFD_ROOT}/include ${BFD_ROOT}/include/extra
+          ${CMAKE_INSTALL_PREFIX}/binutils/include
+          ${CMAKE_INSTALL_PREFIX}/binutils/include/extra /usr/include
           ${PC_DEMANGLE_INCLUDEDIR}/* ${PC_DEMANGLE_INCLUDE_DIRS}/*
           ${DEMANGLE_ROOT}/* ${BFD_ROOT}/* /usr/include/*
           PATH_SUFFIXES DEMANGLE )
@@ -32,6 +34,8 @@ find_path(LIBIBERTY_INCLUDE_DIR libiberty.h
           HINTS ${PC_DEMANGLE_INCLUDEDIR} ${PC_DEMANGLE_INCLUDE_DIRS}
           ${DEMANGLE_ROOT}/include ${DEMANGLE_ROOT}/include/libiberty
 		  ${BFD_ROOT}/include ${BFD_ROOT}/include/extra ${BFD_ROOT}/include/libiberty
+          ${CMAKE_INSTALL_PREFIX}/binutils/include
+          ${CMAKE_INSTALL_PREFIX}/binutils/include/extra
           ${PC_DEMANGLE_INCLUDEDIR}/* ${PC_DEMANGLE_INCLUDE_DIRS}/*
           ${DEMANGLE_ROOT}/* ${BFD_ROOT}/* /usr/include /usr/include/*
           PATH_SUFFIXES LIBIBERTY)
@@ -39,6 +43,8 @@ find_path(LIBIBERTY_INCLUDE_DIR libiberty.h
 find_library(DEMANGLE_LIBRARY NAMES iberty HINTS
     ${DEMANGLE_ROOT}/lib ${BFD_ROOT}/lib
     ${DEMANGLE_ROOT}/lib64 ${BFD_ROOT}/lib64
+    ${CMAKE_INSTALL_PREFIX}/binutils/lib
+    ${CMAKE_INSTALL_PREFIX}/binutils/lib64
     ${PC_DEMANGLE_LIBDIR} ${PC_DEMANGLE_LIBRARY_DIRS})
 
 include(FindPackageHandleStandardArgs)

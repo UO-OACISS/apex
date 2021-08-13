@@ -21,6 +21,7 @@ find_path(BFD_INCLUDE_DIR bfd.h
           HINTS ${BFD_ROOT}/include
           ${PC_BFD_INCLUDEDIR}
           ${PC_BFD_INCLUDE_DIRS}
+          ${CMAKE_INSTALL_PREFIX}/binutils/include
           PATH_SUFFIXES BFD )
 
 set(TMP_PATH $ENV{LD_LIBRARY_PATH})
@@ -31,6 +32,8 @@ find_library(BFD_LIBRARY NAMES bfd
              HINTS ${BFD_ROOT}/lib ${BFD_ROOT}/lib64
              ${PC_BFD_LIBDIR}
              ${PC_BFD_LIBRARY_DIRS}
+             ${CMAKE_INSTALL_PREFIX}/binutils/lib
+             ${CMAKE_INSTALL_PREFIX}/binutils/lib64
              ${LD_LIBRARY_PATH_STR})
 
 include(FindPackageHandleStandardArgs)

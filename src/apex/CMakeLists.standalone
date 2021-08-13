@@ -45,6 +45,10 @@ if (NVML_FOUND)
 SET(NVML_SOURCE apex_nvml.cpp)
 endif(NVML_FOUND)
 
+if (RSMI_FOUND)
+SET(RSMI_SOURCE apex_rocm_smi.cpp)
+endif(RSMI_FOUND)
+
 if (OpenACC_CXX_FOUND AND OpenACCProfiling_FOUND)
     set(OpenACC_SOURCE apex_openacc.cpp)
 endif (OpenACC_CXX_FOUND AND OpenACCProfiling_FOUND)
@@ -58,6 +62,7 @@ SET(all_SOURCE
 ${CUPTI_SOURCE}
 ${ROCTRACER_SOURCE}
 ${NVML_SOURCE}
+${RSMI_SOURCE}
 apex.cpp
 apex_kokkos.cpp
 apex_kokkos_tuning.cpp

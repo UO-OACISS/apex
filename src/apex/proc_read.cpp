@@ -51,6 +51,10 @@
 #include "apex_nvml.hpp"
 #endif
 
+#ifdef APEX_WITH_HIP
+#include "apex_rocm_smi.hpp"
+#endif
+
 using namespace std;
 
 namespace apex {
@@ -1145,6 +1149,10 @@ namespace apex {
         nvml::monitor nvml_reader;
         nvml_reader.query();
 #endif
+#ifdef APEX_WITH_HIP
+        rsmi::monitor rsmi_reader;
+        rsmi_reader.query();
+#endif
         while(ptw->wait()) {
             if (done) break;
             if (apex_options::use_tau()) {
@@ -1173,6 +1181,9 @@ namespace apex {
 #endif
 #ifdef APEX_WITH_CUDA
             nvml_reader.query();
+#endif
+#ifdef APEX_WITH_HIP
+            rsmi_reader.query();
 #endif
             if (apex_options::use_tau()) {
                 tau_listener::Tau_stop_wrapper("proc_data_reader::read_proc: main loop");
