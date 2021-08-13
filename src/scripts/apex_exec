@@ -322,6 +322,12 @@ echo_screen() {
     fi
 }
 
+if [ "x${APEX_OUTPUT_FILE_PATH}" = "x" ] ; then
+    output_path="."
+else
+    output_path=${APEX_OUTPUT_FILE_PATH}
+fi
+
 echo_screen "Program to run : ${PARAMS}"
 
 if [ "x${LD_LIBRARY_PATH}" = "x" ] ; then
@@ -415,6 +421,8 @@ if [ ${retval} != 0 ] ; then
     exit ${retval}
 fi
 
+cd ${output_path}
+
 if [ ${scatter} = yes ] ; then
     ${SCRIPTPATH}/task_scatterplot.py
     ${SCRIPTPATH}/counter_scatterplot.py
@@ -435,3 +443,4 @@ if [ ${tasktree} = yes ] ; then
     echo_screen "..."
 fi
 
+cd -
