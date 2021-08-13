@@ -35,7 +35,7 @@ if((APEX_BUILD_ACTIVEHARMONY OR (NOT ACTIVEHARMONY_FOUND)) AND NOT APPLE)
   ExternalProject_Add(project_activeharmony
     URL http://www.dyninst.org/sites/default/files/downloads/harmony/ah-4.6.0.tar.gz
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/activeharmony-4.6.0
-    PATCH_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/activeharmony-4.6.0/src/project_activeharmony && patch -p0 code-server/code_generator.cxx < ${CMAKE_SOURCE_DIR}/cmake/Modules/ActiveHarmony.patch
+    PATCH_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/activeharmony-4.6.0/src/project_activeharmony && patch -p0 code-server/code_generator.cxx < ${PROJECT_SOURCE_DIR}/cmake/Modules/ActiveHarmony.patch
     CONFIGURE_COMMAND ""
     BUILD_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/activeharmony-4.6.0/src/project_activeharmony && make -j${MAKEJOBS} MPICC=mpicc_disabled CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} CFLAGS=${CMAKE_C_FLAGS} CXXFLAGS=${CMAKE_CXX_FLAGS} LDFLAGS=${CMAKE_C_FLAGS}
     INSTALL_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/activeharmony-4.6.0/src/project_activeharmony && make MPICC=mpicc_disabled CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} CFLAGS=${CMAKE_C_FLAGS} CXXFLAGS=${CMAKE_CXX_FLAGS} LDFLAGS=${CMAKE_C_FLAGS} install prefix=${ACTIVEHARMONY_ROOT}

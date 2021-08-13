@@ -254,11 +254,23 @@ void KokkosSession::writeCache(void) {
             results << "  Results:" << std::endl;
             results << "    NumVars: " << var_ids[req.first].size() << std::endl;
             for (const auto &id : var_ids[req.first]) {
-                Variable* var{KokkosSession::getSession().outputs[id]};
-                auto param = std::static_pointer_cast<apex_param_enum>(
-                    request->get_param(var->name));
                 results << "    id: " << id << std::endl;
-                results << "    value: " << param->get_value() << std::endl;
+                Variable* var{KokkosSession::getSession().outputs[id]};
+                if (var->info.valueQuantity == kokkos_value_set) {
+                    auto param = std::static_pointer_cast<apex_param_enum>(
+                        request->get_param(var->name));
+                    results << "    value: " << param->get_value() << std::endl;
+                } else if (var->info.valueQuantity == kokkos_value_range) {
+                    if (var->info.type == kokkos_value_double) {
+                        auto param = std::static_pointer_cast<apex_param_double>(
+                            request->get_param(var->name));
+                        results << "    value: " << param->get_value() << std::endl;
+                    } else if (var->info.type == kokkos_value_int64) {
+                        auto param = std::static_pointer_cast<apex_param_long>(
+                            request->get_param(var->name));
+                        results << "    value: " << param->get_value() << std::endl;
+                    }
+                }
             }
         }
         // if not converged, need to get the "best so far" values for the parameters.
@@ -567,11 +579,13 @@ void set_params(std::shared_ptr<apex_tuning_request> request,
             if (var->info.type == kokkos_value_double) {
                 values[i].value.double_value = std::stod(param->get_value());
                 std::string tmp(request->get_name()+":"+var->name);
-                apex::sample_value(tmp, values[i].value.double_value);
+                if (!request->has_converged())
+                    apex::sample_value(tmp, values[i].value.double_value);
             } else if (var->info.type == kokkos_value_int64) {
                 values[i].value.int_value = std::stol(param->get_value());
                 std::string tmp(request->get_name()+":"+var->name);
-                apex::sample_value(tmp, values[i].value.int_value);
+                if (!request->has_converged())
+                    apex::sample_value(tmp, values[i].value.int_value);
             } else if (var->info.type == kokkos_value_string) {
                 strncpy(values[i].value.string_value, param->get_value().c_str(), KOKKOS_TOOLS_TUNING_STRING_LENGTH);
             }
@@ -581,25 +595,27 @@ void set_params(std::shared_ptr<apex_tuning_request> request,
                     request->get_param(var->name));
                 values[i].value.double_value = param->get_value();
                 std::string tmp(request->get_name()+":"+var->name);
-                apex::sample_value(tmp, values[i].value.double_value);
+                if (!request->has_converged())
+                    apex::sample_value(tmp, values[i].value.double_value);
             } else if (var->info.type == kokkos_value_int64) {
                 auto param = std::static_pointer_cast<apex_param_long>(
                     request->get_param(var->name));
                 values[i].value.int_value = param->get_value();
                 std::string tmp(request->get_name()+":"+var->name);
-                apex::sample_value(tmp, values[i].value.int_value);
+                if (!request->has_converged())
+                    apex::sample_value(tmp, values[i].value.int_value);
             }
         }
     }
 }
 
 bool handle_start(const std::string & name, const size_t vars,
-    Kokkos_Tools_VariableValue* values, uint64_t * delta) {
+    Kokkos_Tools_VariableValue* values, uint64_t& delta, bool& converged) {
     KokkosSession& session = KokkosSession::getSession();
     auto search = session.requests.find(name);
     bool newSearch = false;
     if(search == session.requests.end()) {
-        *delta = apex::profiler::now_ns();
+        delta = apex::profiler::now_ns();
         // Start a new tuning session.
         if(session.verbose) {
             fprintf(stderr, "Starting tuning session for %s\n", name.c_str());
@@ -691,11 +707,12 @@ bool handle_start(const std::string & name, const size_t vars,
         apex::setup_custom_tuning(*request);
         newSearch = true;
         // measure how long it took us to set this up
-        *delta = apex::profiler::now_ns() - *delta;
+        delta = apex::profiler::now_ns() - delta;
     } else {
         // We've seen this region before.
         std::shared_ptr<apex_tuning_request> request = search->second;
         set_params(request, vars, values);
+        converged = request->has_converged();
     }
     return newSearch;
 }
@@ -811,9 +828,6 @@ void kokkosp_request_values(
     // create a unique name for this combination of input vars
     std::string name{hashContext(numContextVariables, contextVariableValues,
         session.inputs)};
-    // add this name to our map of active contexts
-    session.active_requests.insert(
-        std::pair<uint32_t, std::string>(contextId, name));
     // check if we have a cached result
     bool success{false};
     if (session.use_history) {
@@ -823,9 +837,15 @@ void kokkosp_request_values(
         session.used_history.insert(contextId);
     } else {
         uint64_t delta = 0;
-        if (handle_start(name, numTuningVariables, tuningVariableValues, &delta)) {
+        bool converged = false;
+        if (handle_start(name, numTuningVariables, tuningVariableValues, delta, converged)) {
             // throw away the time spent setting up tuning
             //session.context_starts[contextId] = session.context_starts[contextId] + delta;
+        }
+        if (!converged) {
+            // add this name to our map of active contexts
+            session.active_requests.insert(
+                std::pair<uint32_t, std::string>(contextId, name));
         }
     }
     if (session.verbose) {
@@ -877,8 +897,8 @@ void kokkosp_end_context(const size_t contextId) {
             session.used_history.erase(contextId);
         }
         session.active_requests.erase(contextId);
-        session.context_starts.erase(contextId);
     }
+    session.context_starts.erase(contextId);
 }
 
 } // extern "C"
