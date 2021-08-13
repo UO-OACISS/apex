@@ -195,7 +195,7 @@ persists.")
 # Get the current working branch
 execute_process(
   COMMAND git rev-parse --abbrev-ref HEAD
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   OUTPUT_VARIABLE GIT_BRANCH
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
@@ -203,7 +203,7 @@ execute_process(
 # Get the current working tag
 execute_process(
   COMMAND git describe --abbrev=0 --tags
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   OUTPUT_VARIABLE GIT_TAG
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
@@ -211,7 +211,7 @@ execute_process(
 # Get the latest abbreviated commit hash of the working branch
 execute_process(
   COMMAND git log -1 --format=%h
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   OUTPUT_VARIABLE GIT_COMMIT_HASH
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
@@ -913,8 +913,8 @@ if (RCR_FOUND)
 SET(extraincludes "-I${RCR_INCLUDE_DIR}")
 endif (RCR_FOUND)
 SET(requirements "")
-CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/pkgconfig/apex.pc.in
-               ${CMAKE_BINARY_DIR}/pkgconfig/apex.pc @ONLY)
+CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/pkgconfig/apex.pc.in
+	${PROJECT_BINARY_DIR}/pkgconfig/apex.pc @ONLY)
 INSTALL_FILES(/lib/pkgconfig FILES pkgconfig/apex.pc)
 
 if (APEX_USE_WEAK_SYMBOLS)
