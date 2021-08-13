@@ -332,6 +332,7 @@ void trace_event_listener::flush_trace(void) {
     if (!trace_file.is_open()) {
         saved_node_id = apex::instance()->get_node_id();
         std::stringstream ss;
+        ss << apex_options::output_file_path() << "/";
         ss << "trace_events." << saved_node_id << ".json";
         trace_file.open(ss.str());
     }
