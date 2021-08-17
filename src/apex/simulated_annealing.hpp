@@ -63,7 +63,6 @@ public:
         //int delta = (int)(myrandn() * quarter * scope);
         int delta = (int)(myrandn() * quarter * scope);
         //int delta = myrandn();
-        //printf("Trying %d...", delta);
         if (delta < 0 && (current_index < (size_t)(abs(delta)))) {
             // do nothing
             //neighbor_index = 0;
@@ -82,6 +81,12 @@ public:
         else {
             *((const char**)(value)) = svalues[neighbor_index].c_str();
         }
+/*      std::cout << "scope: " << scope
+                  << " quarter: " << quarter
+                  << " delta: " << delta
+                  << " current_index: " << delta
+                  << " neighbor_index: " << delta
+                  << std::endl; */
     }
     void choose_neighbor() { current_index = neighbor_index; }
     void save_best() { best_index = current_index; }
@@ -91,7 +96,8 @@ public:
         maxlen = (std::max(std::max(dvalues.size(),
             lvalues.size()), svalues.size())) - 1;
         half = maxlen/2;
-        quarter = (double)half/2;
+        // we need a minimum value of 2 to get movement at all
+        quarter = (double)(std::max((half/2), size_t(2)));
         current_index = neighbor_index = best_index = half;
         //std::cout << "Initialized to " << current_index << std::endl;
     }
