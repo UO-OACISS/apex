@@ -67,8 +67,9 @@ if((APEX_BUILD_BFD OR (NOT BFD_FOUND)) AND NOT APPLE)
   )
   ExternalProject_Add_Step(project_binutils basedirs2
     DEPENDEES install
-    COMMAND cp <SOURCE_DIR>/include/demangle.h ${CMAKE_INSTALL_PREFIX}/binutils/include/.
-    COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_INSTALL_PREFIX}/binutils/lib ${CMAKE_INSTALL_PREFIX}/binutils/lib64
+    if(NOT EXISTS ${CMAKE_INSTALL_PREFIX}/binutils/lib64)
+    	COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_INSTALL_PREFIX}/binutils/lib ${CMAKE_INSTALL_PREFIX}/binutils/lib64
+    endif()
     COMMENT "Adding lib64 simlink"
   )
 
