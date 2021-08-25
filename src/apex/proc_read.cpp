@@ -104,10 +104,12 @@ namespace apex {
             // do we have the RAPL components?
             if (strstr(comp_info->name, "rapl")) {
                 if (comp_info->num_native_events == 0) {
-                    fprintf(stderr, "PAPI RAPL component found, but ");
-                    fprintf(stderr, "no RAPL events found.\n");
-                    if (comp_info->disabled != 0) {
-                        fprintf(stderr, "%s.\n", comp_info->disabled_reason);
+                    if (apex_options::use_verbose()) {
+                        fprintf(stderr, "PAPI RAPL component found, but ");
+                        fprintf(stderr, "no RAPL events found.\n");
+                        if (comp_info->disabled != 0) {
+                            fprintf(stderr, "%s.\n", comp_info->disabled_reason);
+                        }
                     }
                 } else {
                     rapl_EventSet = PAPI_NULL;
@@ -187,10 +189,12 @@ namespace apex {
             // do we have the NVML (cuda) components?
             if (strstr(comp_info->name, "nvml")) {
                 if (comp_info->num_native_events == 0) {
-                    fprintf(stderr, "PAPI NVML component found, but ");
-                    fprintf(stderr, "no NVML events found.\n");
-                    if (comp_info->disabled != 0) {
-                        fprintf(stderr, "%s.\n", comp_info->disabled_reason);
+                    if (apex_options::use_verbose()) {
+                        fprintf(stderr, "PAPI NVML component found, but ");
+                        fprintf(stderr, "no NVML events found.\n");
+                        if (comp_info->disabled != 0) {
+                            fprintf(stderr, "%s.\n", comp_info->disabled_reason);
+                        }
                     }
                 } else {
                     nvml_EventSet = PAPI_NULL;
@@ -269,10 +273,12 @@ namespace apex {
             }
             if (strstr(comp_info->name, "lmsensors")) {
                 if (comp_info->num_native_events == 0) {
-                    fprintf(stderr, "PAPI lmsensors component found, but ");
-                    fprintf(stderr, "no lmsensors events found.\n");
-                    if (comp_info->disabled != 0) {
-                        fprintf(stderr, "%s.\n", comp_info->disabled_reason);
+                    if (apex_options::use_verbose()) {
+                        fprintf(stderr, "PAPI lmsensors component found, but ");
+                        fprintf(stderr, "no lmsensors events found.\n");
+                        if (comp_info->disabled != 0) {
+                            fprintf(stderr, "%s.\n", comp_info->disabled_reason);
+                        }
                     }
                 } else {
                     lms_EventSet = PAPI_NULL;
@@ -1147,11 +1153,15 @@ namespace apex {
         ProcData *periodData = nullptr;
 #ifdef APEX_WITH_CUDA
         nvml::monitor nvml_reader;
-        nvml_reader.query();
+        if (apex_options::monitor_gpu()) {
+            nvml_reader.query();
+        }
 #endif
 #ifdef APEX_WITH_HIP
         rsmi::monitor rsmi_reader;
-        rsmi_reader.query();
+        if (apex_options::monitor_gpu()) {
+            rsmi_reader.query();
+        }
 #endif
         while(ptw->wait()) {
             if (done) break;
@@ -1179,12 +1189,14 @@ namespace apex {
 #ifdef APEX_HAVE_LM_SENSORS
             mysensors->read_sensors();
 #endif
+            if (apex_options::monitor_gpu()) {
 #ifdef APEX_WITH_CUDA
-            nvml_reader.query();
+                nvml_reader.query();
 #endif
 #ifdef APEX_WITH_HIP
-            rsmi_reader.query();
+                rsmi_reader.query();
 #endif
+            }
             if (apex_options::use_tau()) {
                 tau_listener::Tau_stop_wrapper("proc_data_reader::read_proc: main loop");
             }

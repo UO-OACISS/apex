@@ -683,6 +683,7 @@ std::unordered_set<profile*> free_profiles;
         << num_worker_threads << endl;
     screen_output << "Available CPU time: "
         << total_main << " seconds" << endl << endl;
+    double divisor = wall_clock_main; // could be total_main, for available CPU time.
     map<apex_function_address, profile*>::const_iterator it;
     double total_accumulated = 0.0;
     unordered_map<task_identifier, profile*>::const_iterator it2;
@@ -711,7 +712,7 @@ std::unordered_set<profile*> free_profiles;
             profile * p = task_map[task_id];
             if (p) {
                 write_one_timer(task_id, p, screen_output, csv_output,
-                    total_accumulated, total_main, false);
+                    total_accumulated, divisor, false);
             }
         }
         screen_output << "------------------------------------------"
@@ -769,7 +770,7 @@ std::unordered_set<profile*> free_profiles;
         profile * p = task_map[task_id];
         if (p) {
             write_one_timer(task_id, p, screen_output, csv_output,
-                total_accumulated, total_main, true);
+                total_accumulated, divisor, true);
             if (task_id.get_name().compare(APEX_MAIN) != 0) {
                 total_hpx_threads = total_hpx_threads + p->get_calls();
             }
@@ -1559,6 +1560,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
    * named event is throttled, in which case do nothing, as quickly as possible */
   inline bool profiler_listener::_common_start(std::shared_ptr<task_wrapper>
     &tt_ptr, bool is_resume) {
+    //std::cout << "Starting " << tt_ptr->get_task_id()->get_name() << std::endl;
     if (!_done) {
 #if defined(APEX_THROTTLE)
       if (!apex_options::use_tau()) {
@@ -1660,7 +1662,11 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
             PAPI_ERROR_CHECK("PAPI_read");
         }
 #endif
+#ifdef APEX_SYNCHRONOUS_PROCESSING
+        push_profiler(my_tid, *p);
+#else // APEX_SYNCHRONOUS_PROCESSING
         push_profiler(my_tid, p);
+#endif // APEX_SYNCHRONOUS_PROCESSING
       }
     }
   }

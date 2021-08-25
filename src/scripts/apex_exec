@@ -43,6 +43,7 @@ where APEX options are zero or more of:
     --apex:openacc         enable OpenACC support
     --apex:kokkos          enable Kokkos support
     --apex:kokkos_tuning   enable Kokkos runtime autotuning support
+    --apex:kokkos_fence    enable Kokkos fences for async kernels
     --apex:raja            enable RAJA support
     --apex:pthread         enable pthread wrapper support
     --apex:memory          enable memory wrapper support
@@ -56,6 +57,7 @@ where APEX options are zero or more of:
     --apex:hip_counters    enable HIP/ROCTracer counter support (default: off)
     --apex:hip_driver      enable HIP/ROCTracer KSA driver API callbacks (default: off)
     --apex:hip_details     enable per-kernel statistics where available (default: off)
+    --apex:monitor_gpu     enable GPU monitoring services (CUDA NVML, ROCm SMI)
     --apex:cpuinfo         enable sampling of /proc/cpuinfo (Linux only)
     --apex:meminfo         enable sampling of /proc/meminfo (Linux only)
     --apex:net             enable sampling of /proc/net/dev (Linux only)
@@ -73,6 +75,7 @@ where APEX options are zero or more of:
 openacc=no
 kokkos=no
 kokkos_tuning=no
+kokkos_fence=no
 raja=no
 otf2=no
 gtrace=no
@@ -91,6 +94,7 @@ hip=no
 hip_counters=no
 hip_driver=no
 hip_details=no
+monitor_gpu=no
 untied=no
 cpuinfo=no
 meminfo=no
@@ -123,6 +127,12 @@ while (( "$#" )); do
     --apex:kokkos_tuning)
       kokkos=yes
       kokkos_tuning=yes
+      shift
+      ;;
+    --apex:kokkos_fence)
+      kokkos=yes
+      kokkos_fence=yes
+      export APEX_KOKKOS_PROFILING_FENCES=1
       shift
       ;;
     --apex:raja)
@@ -235,6 +245,11 @@ while (( "$#" )); do
       export APEX_HIP_KERNEL_DETAILS=1
       shift
       ;;
+    --apex:monitor_gpu)
+      monitor_gpu=yes
+      export APEX_MONITOR_GPU=1
+      shift
+      ;;
     --apex:cpuinfo)
       cpuinfo=yes
       export APEX_PROC_CPUINFO=1
@@ -267,6 +282,7 @@ while (( "$#" )); do
       ;;
     --apex:ompt)
       ompt=yes
+      export APEX_ENABLE_OMPT=1
       shift
       ;;
     --apex:ompt_simple)

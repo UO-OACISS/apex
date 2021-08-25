@@ -873,6 +873,7 @@ int ompt_initialize(ompt_function_lookup_t lookup, int initial_device_num,
     ompt_data_t* tool_data) {
     APEX_UNUSED(initial_device_num);
     APEX_UNUSED(tool_data);
+    if (!apex::apex_options::use_ompt()) { return 0; }
     {
         std::unique_lock<std::mutex> l(apex_apex_threadid_mutex);
         apex_threadid = apex_numthreads++;
@@ -1039,6 +1040,7 @@ int ompt_initialize(ompt_function_lookup_t lookup, int initial_device_num,
 void ompt_finalize(ompt_data_t* tool_data)
 {
     APEX_UNUSED(tool_data);
+    if (!apex::apex_options::use_ompt()) { return; }
     DEBUG_PRINT("OpenMP runtime is shutting down...\n");
     if (the_initial_task != nullptr) {
         apex_ompt_stop(the_initial_task);
@@ -1054,16 +1056,18 @@ void ompt_finalize(ompt_data_t* tool_data)
 ompt_start_tool_result_t * ompt_start_tool(
     unsigned int omp_version, const char *runtime_version) {
     APEX_UNUSED(runtime_version); // in case we aren't printing debug messages
-    DEBUG_PRINT("APEX: OMPT Tool Start, version %d, '%s'\n",
-        omp_version, runtime_version);
+    if (apex::apex_options::use_verbose()) {
+        DEBUG_PRINT("APEX: OMPT Tool Start, version %d, '%s'\n",
+            omp_version, runtime_version);
 #if defined(_OPENMP)
-    if (_OPENMP != omp_version) {
-       DEBUG_PRINT("APEX: WARNING! %d != %d (OpenMP Version used to compile APEX)\n",
-          omp_version, _OPENMP);
-    }
+        if (_OPENMP != omp_version) {
+        DEBUG_PRINT("APEX: WARNING! %d != %d (OpenMP Version used to compile APEX)\n",
+            omp_version, _OPENMP);
+        }
 #else
-    APEX_UNUSED(omp_version); // in case we aren't printing debug messages
+        APEX_UNUSED(omp_version); // in case we aren't printing debug messages
 #endif
+    }
     static ompt_start_tool_result_t result;
     result.initialize = &ompt_initialize;
     result.finalize = &ompt_finalize;

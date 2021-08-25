@@ -303,6 +303,7 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_THROTTLING_MIN_WATTS, throttling_min_watts, int, 150) \
     macro (APEX_PTHREAD_WRAPPER_STACK_SIZE, pthread_wrapper_stack_size, \
         int, 0) \
+    macro (APEX_ENABLE_OMPT, use_ompt, bool, false) \
     macro (APEX_OMPT_REQUIRED_EVENTS_ONLY, ompt_required_events_only, \
         bool, false) \
     macro (APEX_OMPT_HIGH_OVERHEAD_EVENTS, ompt_high_overhead_events, \
@@ -328,6 +329,7 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_HIP_SYNC_ACTIVITY, use_hip_sync_activity, bool, true) \
     macro (APEX_HIP_MEMORY_ACTIVITY, use_hip_memory_activity, bool, true) \
     macro (APEX_HIP_KERNEL_ACTIVITY, use_hip_kernel_activity, bool, true) \
+    macro (APEX_MONITOR_GPU, monitor_gpu, bool, false) \
     macro (APEX_JUPYTER_SUPPORT, use_jupyter_support, int, false) \
     macro (APEX_KOKKOS_VERBOSE, use_kokkos_verbose, bool, false) \
     macro (APEX_KOKKOS_TUNING, use_kokkos_tuning, bool, true) \
