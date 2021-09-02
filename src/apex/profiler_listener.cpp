@@ -79,6 +79,7 @@ const int num_non_worker_threads_registered = 1; // including the main thread
 
 #include "tau_listener.hpp"
 #include "utils.hpp"
+#include "profile_reducer.hpp"
 
 #include <cstdlib>
 #include <ctime>
@@ -471,18 +472,10 @@ std::unordered_set<profile*> free_profiles;
       return string( buf.get(), buf.get() + size - 1 );
   }
 
-  void profiler_listener::write_one_timer(task_identifier &task_id,
+  void profiler_listener::write_one_timer(std::string &action_name,
           profile * p, stringstream &screen_output,
           stringstream &csv_output, double &total_accumulated,
           double &total_main, bool timer) {
-      /* before calling task_id.get_name(), make sure we create
-       * a thread_instance object that is NOT a worker. */
-      thread_instance::instance(false);
-      string action_name = task_id.get_name();
-      /*
-      if (action_name.compare(APEX_MAIN) == 0) {
-          return; // don't write out apex main timer
-      } */
       string shorter(action_name);
       size_t maxlength = 41;
       if (timer) maxlength = 52;
@@ -548,7 +541,7 @@ std::unordered_set<profile*> free_profiles;
                 (p->get_accumulated_seconds())) << "   " ;
         }
         //screen_output << " --n/a--   " ;
-        if (task_id.get_name().compare(APEX_MAIN) == 0) {
+        if (action_name.compare(APEX_MAIN) == 0) {
             screen_output << string_format(FORMAT_PERCENT, 100.0);
         } else {
             total_accumulated += p->get_accumulated_seconds();
@@ -639,7 +632,7 @@ std::unordered_set<profile*> free_profiles;
 
   /* At program termination, write the measurements to the screen, or to CSV
    * file, or both. */
-  void profiler_listener::finalize_profiles(dump_event_data &data) {
+  void profiler_listener::finalize_profiles(dump_event_data &data, std::map<std::string, apex_profile*>& all_profiles) {
     if (apex_options::use_tau()) {
       tau_listener::Tau_start_wrapper("profiler_listener::finalize_profiles");
     }
@@ -668,6 +661,7 @@ std::unordered_set<profile*> free_profiles;
     double total_hpx_threads = 0;
     double total_main = wall_clock_main *
         fmin(hardware_concurrency(), num_worker_threads);
+    DEBUG_PRINT("%s:%d\n", __func__, __LINE__);
     // create a stringstream to hold all the screen output - we may not
     // want to write it out
     stringstream screen_output;
@@ -677,24 +671,25 @@ std::unordered_set<profile*> free_profiles;
     // iterate over the profiles in the address map
     screen_output << endl << "Elapsed time: " << wall_clock_main
         << " seconds" << endl;
-    screen_output << "Cores detected: " << hardware_concurrency()
+    screen_output << "Total processes detected: " << apex::instance()->get_num_ranks()
         << endl;
-    screen_output << "Worker Threads observed: "
+    screen_output << "Cores detected on rank 0: " << hardware_concurrency()
+        << endl;
+    screen_output << "Worker Threads observed on rank 0: "
         << num_worker_threads << endl;
-    screen_output << "Available CPU time: "
+    screen_output << "Available CPU time on rank 0: "
         << total_main << " seconds" << endl << endl;
     double divisor = wall_clock_main; // could be total_main, for available CPU time.
-    map<apex_function_address, profile*>::const_iterator it;
+
     double total_accumulated = 0.0;
-    unordered_map<task_identifier, profile*>::const_iterator it2;
-    std::vector<task_identifier> id_vector;
+    std::vector<std::string> id_vector;
     // iterate over the counters, and sort their names
     std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
-    for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
-        task_identifier task_id = it2->first;
-        profile * p = it2->second;
-        if (p->get_type() != APEX_TIMER) {
-            id_vector.push_back(task_id);
+    for(auto it2 : all_profiles) {
+        std::string name = it2.first;
+        apex_profile * p = it2.second;
+        if (p->type != APEX_TIMER) {
+            id_vector.push_back(name);
         }
     }
     csv_output << "\"counter\",\"num samples\",\"minimum\",\"mean\""
@@ -708,10 +703,11 @@ std::unordered_set<profile*> free_profiles;
         << "------------------------------------------------------" << endl;
         std::sort(id_vector.begin(), id_vector.end());
         // iterate over the counters
-        for(task_identifier task_id : id_vector) {
-            profile * p = task_map[task_id];
-            if (p) {
-                write_one_timer(task_id, p, screen_output, csv_output,
+        for(auto name : id_vector) {
+            auto p = all_profiles.find(name);
+            if (p != all_profiles.end()) {
+                profile tmp(p->second);
+                write_one_timer(name, &tmp, screen_output, csv_output,
                     total_accumulated, divisor, false);
             }
         }
@@ -756,27 +752,29 @@ std::unordered_set<profile*> free_profiles;
     screen_output << endl;
     id_vector.clear();
     // iterate over the timers
-    for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
-        profile * p = it2->second;
-        task_identifier task_id = it2->first;
-        if (p->get_type() == APEX_TIMER) {
-            id_vector.push_back(task_id);
+    for(auto it2 : all_profiles) {
+        string name = it2.first;
+        apex_profile * p = it2.second;
+        if (p->type == APEX_TIMER) {
+            id_vector.push_back(name);
         }
     }
     // sort by name
     std::sort(id_vector.begin(), id_vector.end());
     // iterate over the timers
-    for(task_identifier task_id : id_vector) {
-        profile * p = task_map[task_id];
-        if (p) {
-            write_one_timer(task_id, p, screen_output, csv_output,
+    for(auto name : id_vector) {
+        auto p = all_profiles.find(name);
+        if (p != all_profiles.end()) {
+            profile tmp(p->second);
+            write_one_timer(name, &tmp, screen_output, csv_output,
                 total_accumulated, divisor, true);
-            if (task_id.get_name().compare(APEX_MAIN) != 0) {
-                total_hpx_threads = total_hpx_threads + p->get_calls();
+            if (name.compare(APEX_MAIN) != 0) {
+                total_hpx_threads = total_hpx_threads + tmp.get_calls();
             }
         }
     }
-    double idle_rate = total_main - total_accumulated;
+    double all_total_main = total_main * apex::instance()->get_num_ranks();
+    double idle_rate = all_total_main - total_accumulated;
     if (idle_rate >= 0.0) {
       screen_output << string_format("%52s", APEX_IDLE_TIME) << " : ";
       // pad with spaces for #calls, mean
@@ -787,7 +785,7 @@ std::unordered_set<profile*> free_profiles;
         screen_output << string_format(FORMAT_PERCENT, idle_rate) << "   " ;
       }
       screen_output << string_format(FORMAT_PERCENT,
-        ((idle_rate/total_main)*100)) << endl;
+        ((idle_rate/all_total_main)*100)) << endl;
     }
     screen_output << "--------------------------------------------------"
         << "----------------------------------------------";
@@ -1419,9 +1417,10 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
 #endif // APEX_SYNCHRONOUS_PROCESSING
 
       // output to screen?
-      if ((apex_options::use_screen_output() && node_id == 0) ||
-           apex_options::use_taskgraph_output() ||
-           apex_options::use_csv_output())
+      if (apex_options::use_screen_output() ||
+          apex_options::use_taskgraph_output() ||
+          apex_options::use_tasktree_output() ||
+          apex_options::use_csv_output())
       {
         size_t ignored = 0;
         { // we need to lock in case another thread appears
@@ -1463,8 +1462,16 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         if (ignored > 100000) {
           std::cerr << "done." << std::endl;
         }
-        if (apex_options::process_async_state()) {
-            finalize_profiles(data);
+      }
+      if (apex_options::use_screen_output()) {
+        DEBUG_PRINT("%s:%d:%d\n", __func__, __LINE__, node_id);
+        // reduce/gather all profiles from all ranks
+        auto reduced = reduce_profiles();
+        DEBUG_PRINT("%s:%d:%d\n", __func__, __LINE__, node_id);
+        if (node_id == 0) {
+          if (apex_options::process_async_state()) {
+            finalize_profiles(data, reduced);
+          }
         }
       }
       if (apex_options::use_taskgraph_output())

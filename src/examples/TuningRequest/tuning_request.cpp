@@ -47,7 +47,7 @@ int main (int argc, char ** argv) {
     (void)session; // ignore unused warning
     bool exhaustive = false;
 
-    for(int i = 0; i < 150; ++i) {
+    for(int i = 0; i < 500; ++i) {
         apex::profiler * p = apex::start("Iteration");
         std::string s = param_enum->get_value();
         double x = 0.0;

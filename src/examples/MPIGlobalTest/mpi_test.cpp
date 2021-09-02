@@ -2,7 +2,9 @@
 #include <limits.h>
 #include "apex_api.hpp"
 #include "apex_global.h"
+#ifdef _OPENMP
 #include "omp.h"
+#endif
 
 #define WORKTAG 1
 #define DIETAG 2
@@ -129,8 +131,8 @@ static void master(void) {
              MPI_COMM_WORLD);   /* default communicator */
 
     work = get_next_work_item();
-    } 
-    
+    }
+
     // do some work myself
     if (work != 0) {
       result = do_work(work);
@@ -191,8 +193,8 @@ static void worker(void) {
 static unit_of_work_t* init_data(int datarange) {
   int *tmp = (unit_of_work_t*)(malloc(sizeof(unit_of_work_t) * datarange));
   int i;
-  for (i = 0 ; i < datarange ; i++) { 
-    tmp[i] = i; 
+  for (i = 0 ; i < datarange ; i++) {
+    tmp[i] = i;
   }
   return tmp;
 }
@@ -212,11 +214,13 @@ static unit_result_t do_work(unit_of_work_t work) {
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   int i;
-  int n = 500000000;
-  if (rank % 2 == 0) n = 250000000;
+  int n = 5000000;
+  if (rank % 2 == 0) n = 2500000;
 #pragma omp parallel
   {
+#ifdef _OPENMP
   omp_set_num_threads(apex_get_thread_cap());
+#endif
 #pragma omp for
   for (i = 0 ; i < n ; i++) {
     dummy = dummy * (dummy + work);

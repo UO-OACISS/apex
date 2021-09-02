@@ -94,12 +94,12 @@ private:
   std::atomic<bool> _done;
   std::atomic<int> active_tasks;
   std::shared_ptr<profiler> main_timer;
-  void write_one_timer(task_identifier &task_id, profile * p,
+  void write_one_timer(std::string &name, profile * p,
                        std::stringstream &screen_output,
                        std::stringstream &csv_output,
                        double &total_accumulated,
                        double &total_main, bool timer);
-  void finalize_profiles(dump_event_data &data);
+  void finalize_profiles(dump_event_data &data, std::map<std::string, apex_profile*>& profiles);
   void write_taskgraph(void);
   void write_tasktree(void);
   void write_profile(void);

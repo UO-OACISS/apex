@@ -82,6 +82,7 @@ ${OTF2_SOURCE}
 perftool_implementation.cpp
 policy_handler.cpp
 ${PROC_SOURCE}
+profile_reducer.cpp
 profiler_listener.cpp
 ${SENSOR_SOURCE}
 simulated_annealing.cpp

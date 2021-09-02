@@ -15,6 +15,8 @@
 
 #include "otf2_listener.hpp"
 #include "mpi.h"
+#include <inttypes.h>
+
 
 namespace apex {
 
@@ -63,7 +65,7 @@ int64_t otf2_listener::synchronizeClocks(void) {
             ref_time[1] = my_min;
             PMPI_Send(ref_time, 2, MPI_UNSIGNED_LONG_LONG, index, 1, MPI_COMM_WORLD);
             offset = 0;
-            printf("0->%d: Before: %lu   After: %lu Latency: %lu\n", index, before[my_min], after[my_min], latency);
+            printf("0->%d: Before: %" PRIu64 "   After: %" PRIu64 " Latency: %" PRIu64 "\n", index, before[my_min], after[my_min], latency);
         }
     } else {
         uint64_t mytime[attempts];
@@ -79,7 +81,7 @@ int64_t otf2_listener::synchronizeClocks(void) {
         PMPI_Recv(ref_time, 2, MPI_UNSIGNED_LONG_LONG, 0, 1, MPI_COMM_WORLD, &status);
         // our offset is the reference time minus our timestamp between messages.
         offset = ref_time[0] - mytime[ref_time[1]];
-        printf("   %d: mytime: %lu reftime: %lu  offset: %ld\n", rank, mytime[ref_time[1]], ref_time[0], offset);
+        printf("   %d: mytime: %" PRIu64 " reftime: %" PRIu64 "  offset: %" PRId64" \n", rank, mytime[ref_time[1]], ref_time[0], offset);
     }
     // synchronize all ranks again
     PMPI_Barrier(MPI_COMM_WORLD);

@@ -9,6 +9,7 @@
 #include "task_identifier.hpp"
 #include "thread_instance.hpp"
 #include "apex_api.hpp"
+#include "utils.hpp"
 #include <mutex>
 #include <string>
 #include <utility>
@@ -85,6 +86,7 @@ std::mutex bfd_mutex;
                     //_resolved_name = lookup_address((uintptr_t)address, false);
                     _resolved_name = thread_instance::instance().map_addr_to_name(address);
                     _resolved_name.assign((demangle(_resolved_name)));
+                    DEBUG_PRINT("Resolved %p to %s\n", (void*)address, _resolved_name.c_str());
                 }
             }
             std::string retval(_resolved_name);

@@ -2197,9 +2197,9 @@ extern "C" {
  * implementation of Finalize, and do what we need to. */
 #if defined(APEX_HAVE_MPI) && !defined(HPX_HAVE_NETWORKING)
     int MPI_Finalize(void) {
-        apex::finalize();
+        finalize();
         int retval = PMPI_Finalize();
-        apex::cleanup();
+        cleanup();
         return retval;
     }
     int MPI_Wait(MPI_Request *request, MPI_Status *status) {

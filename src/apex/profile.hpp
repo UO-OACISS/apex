@@ -26,6 +26,7 @@ private:
 public:
     profile(double initial, int num_metrics, double * papi_metrics, bool
         yielded = false, apex_profile_type type = APEX_TIMER) {
+        memset(&(this->_profile), 0, sizeof(apex_profile));
         _profile.type = type;
         if (!yielded) {
             _profile.calls = 1.0;
@@ -33,9 +34,14 @@ public:
             _profile.calls = 0.0;
         }
         _profile.accumulated = initial;
+#if APEX_HAVE_PAPI
         for (int i = 0 ; i < num_metrics ; i++) {
             _profile.papi_metrics[i] = papi_metrics[i];
         }
+#else
+        APEX_UNUSED(num_metrics);
+        APEX_UNUSED(papi_metrics);
+#endif
         _profile.times_reset = 0;
 #ifdef FULL_STATISTICS
         _profile.sum_squares = initial*initial;
@@ -57,9 +63,14 @@ public:
             _profile.calls = 0.0;
         }
         _profile.accumulated = initial;
+#if APEX_HAVE_PAPI
         for (int i = 0 ; i < num_metrics ; i++) {
             _profile.papi_metrics[i] = papi_metrics[i];
         }
+#else
+        APEX_UNUSED(num_metrics);
+        APEX_UNUSED(papi_metrics);
+#endif
         _profile.times_reset = 0;
 #ifdef FULL_STATISTICS
         _profile.sum_squares = initial*initial;
@@ -71,12 +82,22 @@ public:
         _profile.bytes_allocated = bytes_allocated;
         _profile.bytes_freed = bytes_freed;
     };
+    /* This constructor is so that we can create a dummy wrapper around profile
+     * data after we've done a reduction across ranks. */
+    profile(apex_profile * values) {
+        std::memcpy(&_profile, values, sizeof(apex_profile));
+    }
     void increment(double increase, int num_metrics, double * papi_metrics,
         bool yielded) {
         _profile.accumulated += increase;
+#if APEX_HAVE_PAPI
         for (int i = 0 ; i < num_metrics ; i++) {
             _profile.papi_metrics[i] += papi_metrics[i];
         }
+#else
+        APEX_UNUSED(num_metrics);
+        APEX_UNUSED(papi_metrics);
+#endif
 #ifdef FULL_STATISTICS
         _profile.sum_squares += (increase * increase);
         // if not a fully completed task, don't modify these until it is done

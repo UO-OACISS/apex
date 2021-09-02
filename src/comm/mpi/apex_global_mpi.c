@@ -5,7 +5,7 @@
 #include "math.h"
 #include "stdio.h"
 #include <float.h> // DBL_MAX
-#ifndef __clang__ // no OpenMP support.
+#ifdef _OPENMP
 #include "omp.h"
 #endif
 
@@ -53,7 +53,7 @@ bool apex_set_new_thread_caps(int count, apex_profile * values) {
   //double period_max = reduced_value.maximum;
   // set each node thread cap to a relative multiple of that
   int i;
-  for (i = 0; i < count; ++i) { 
+  for (i = 0; i < count; ++i) {
     int old_cap = thread_caps[i];
     // how much accumulated in the last period?
     double last_period = values[i].accumulated - previous_values[i];
@@ -81,30 +81,30 @@ void apex_sum(int count, apex_profile * values) {
   double* tmp = current_values;
   current_values = previous_values;
   previous_values = tmp;
-  reduced_value.calls = values[0].calls; 
-  reduced_value.accumulated = values[0].accumulated; 
-  reduced_value.sum_squares = values[0].sum_squares; 
-  //reduced_value.minimum = values[0].minimum; 
-  //reduced_value.maximum = values[0].maximum; 
+  reduced_value.calls = values[0].calls;
+  reduced_value.accumulated = values[0].accumulated;
+  reduced_value.sum_squares = values[0].sum_squares;
+  //reduced_value.minimum = values[0].minimum;
+  //reduced_value.maximum = values[0].maximum;
   reduced_value.minimum = values[0].accumulated;
   reduced_value.maximum = values[0].accumulated;
   current_values[0] = values[0].accumulated;
   min_rank = max_rank = 0;
   int local_good_values = (values[0].calls > 0.0 && values[0].accumulated > 0.0) ? 1 : 0;
   int i;
-  for (i = 1; i < count; ++i) { 
-    reduced_value.calls += values[i].calls; 
-    reduced_value.accumulated += values[i].accumulated; 
-    reduced_value.sum_squares += values[i].sum_squares; 
-    //reduced_value.minimum = fmin(reduced_value.minimum,values[i].minimum); 
+  for (i = 1; i < count; ++i) {
+    reduced_value.calls += values[i].calls;
+    reduced_value.accumulated += values[i].accumulated;
+    reduced_value.sum_squares += values[i].sum_squares;
+    //reduced_value.minimum = fmin(reduced_value.minimum,values[i].minimum);
       double accum = values[i].accumulated;
       if (accum < reduced_value.minimum) {
-        reduced_value.minimum = accum; 
+        reduced_value.minimum = accum;
         min_rank = i;
       }
-      //reduced_value.maximum = fmax(reduced_value.maximum,values[i].maximum); 
+      //reduced_value.maximum = fmax(reduced_value.maximum,values[i].maximum);
       if (accum > reduced_value.maximum) {
-        reduced_value.maximum = accum; 
+        reduced_value.maximum = accum;
         max_rank = i;
       }
       current_values[i] = values[i].accumulated;
@@ -195,7 +195,7 @@ void apex_global_setup(apex_profiler_type type, void* in_action) {
     char* tmp = (char *)in_action;
     profiled_action_name = strdup(tmp);
   }
-    
+
   apex_register_periodic_policy(1000000, apex_periodic_policy_func);
   apex_set_use_policy(true);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -209,25 +209,25 @@ void apex_global_setup(apex_profiler_type type, void* in_action) {
     //inValues = (apex_profile*)(malloc(apex_profile_size * size));
     MPI_Alloc_mem(num_ranks * apex_profile_size, MPI_INFO_NULL, &inValues);
     memset(&(inValues[0]), 0, (apex_profile_size * num_ranks));
-    MPI_Win_create(inValues, apex_profile_size * num_ranks, apex_profile_size, 
+    MPI_Win_create(inValues, apex_profile_size * num_ranks, apex_profile_size,
                    MPI_INFO_NULL, MPI_COMM_WORLD, &profile_window);
     // get the max number of threads. All throttling will be done relative to this.
 #pragma omp parallel
     {
-#ifndef __clang__
+#ifdef _OPENMP
     global_max_threads = omp_get_max_threads();
 #endif
     printf("Got %d threads!\n", global_max_threads);
     }
     thread_caps = calloc(num_ranks, sizeof(int));
     int i;
-    for (i = 0; i < num_ranks; ++i) { 
+    for (i = 0; i < num_ranks; ++i) {
       thread_caps[i] = global_max_threads;
     }
     previous_values = calloc(num_ranks, sizeof(double));
     current_values = calloc(num_ranks, sizeof(double));
   } else {
-    MPI_Win_create(inValues, 0, apex_profile_size, 
+    MPI_Win_create(inValues, 0, apex_profile_size,
                    MPI_INFO_NULL, MPI_COMM_WORLD, &profile_window);
   }
 }

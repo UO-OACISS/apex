@@ -7,9 +7,9 @@ add_subdirectory (Matmult)
 if(MPI_CXX_FOUND)
   add_subdirectory (MPITest)
   add_subdirectory (LuleshMPI)
+  add_subdirectory (MPIGlobalTest)
   if(OPENMP_FOUND)
     add_subdirectory (MPIImbalancePolicy)
-    #add_subdirectory (MPIGlobalTest)
     add_subdirectory (LuleshMPIOpenMP)
     add_subdirectory (MPIAutoBalance)
   endif()
@@ -144,22 +144,22 @@ if(MPI_CXX_FOUND)
   set_tests_properties(ExampleMPITest PROPERTIES ENVIRONMENT "APEX_POLICY=1")
   string(TIMESTAMP VERSION "%Y-%m-%d_%H.%M.%S")
   set_property(TEST ExampleMPITest APPEND PROPERTY ENVIRONMENT "APEX_OTF2_ARCHIVE_PATH=OTF2_archive_mpi_test_${VERSION}")
-  #add_test (ExampleMPIGlobalTest ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
-  #${MPIEXEC_PREFLAGS} MPIGlobalTest/mpi_global_test ${MPIEXEC_POSTFLAGS})
-  #set_tests_properties(ExampleMPIGlobalTest PROPERTIES ENVIRONMENT "APEX_POLICY=1")
-  #set_property(TEST ExampleMPIGlobalTest APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_ENERGY=1")
-  #set_property(TEST ExampleMPIGlobalTest APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_CONCURRENCY=1")
-  add_test (ExampleMPIImbalancePolicy ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
-    ${MPIEXEC_PREFLAGS} MPIImbalancePolicy/mpi_imbalance_test ${MPIEXEC_POSTFLAGS})
-  set_tests_properties(ExampleMPIImbalancePolicy PROPERTIES ENVIRONMENT "APEX_POLICY=1")
-  string(TIMESTAMP VERSION "%Y-%m-%d_%H.%M.%S")
-  set_property(TEST ExampleMPIImbalancePolicy APPEND PROPERTY ENVIRONMENT "APEX_OTF2_ARCHIVE_PATH=OTF2_archive_mpi_imbalance_test_${VERSION}")
+  add_test (ExampleMPIGlobalTest ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
+  ${MPIEXEC_PREFLAGS} MPIGlobalTest/mpi_global_test ${MPIEXEC_POSTFLAGS})
+  set_tests_properties(ExampleMPIGlobalTest PROPERTIES ENVIRONMENT "APEX_POLICY=1")
+  set_property(TEST ExampleMPIGlobalTest APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_ENERGY=1")
+  set_property(TEST ExampleMPIGlobalTest APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_CONCURRENCY=1")
 #  add_test (ExampleLuleshMPI ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 8
 #    ${MPIEXEC_PREFLAGS} LuleshMPI/lulesh_MPI_2.0 -s 15 ${MPIEXEC_POSTFLAGS})
   if(OPENMP_FOUND)
 #    add_test (ExampleLuleshMPIOpenMP ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 8
 #      ${MPIEXEC_PREFLAGS} LuleshMPIOpenMP/lulesh_MPI_OpenMP_2.0
 #      -s 15 ${MPIEXEC_POSTFLAGS})
+    add_test (ExampleMPIImbalancePolicy ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
+        ${MPIEXEC_PREFLAGS} MPIImbalancePolicy/mpi_imbalance_test ${MPIEXEC_POSTFLAGS})
+    set_tests_properties(ExampleMPIImbalancePolicy PROPERTIES ENVIRONMENT "APEX_POLICY=1")
+    string(TIMESTAMP VERSION "%Y-%m-%d_%H.%M.%S")
+    set_property(TEST ExampleMPIImbalancePolicy APPEND PROPERTY ENVIRONMENT "APEX_OTF2_ARCHIVE_PATH=OTF2_archive_mpi_imbalance_test_${VERSION}")
     add_test (ExampleMPIAutoBalance ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
       ${MPIEXEC_PREFLAGS} MPIAutoBalance/mpi_auto_balance ${MPIEXEC_POSTFLAGS})
       if (PROCESSOR_COUNT)
