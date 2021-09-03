@@ -60,9 +60,11 @@ class linked_timer {
 
 /* Function pointers.  These are all queried from the runtime during
  *  * ompt_initialize() */
+static ompt_set_callback_t ompt_set_callback;
+static ompt_finalize_tool_t ompt_finalize_tool;
+/*
 static ompt_enumerate_states_t ompt_enumerate_states;
 static ompt_enumerate_mutex_impls_t ompt_enumerate_mutex_impls;
-static ompt_set_callback_t ompt_set_callback;
 static ompt_get_callback_t ompt_get_callback;
 static ompt_get_thread_data_t ompt_get_thread_data;
 static ompt_get_num_procs_t ompt_get_num_procs;
@@ -77,8 +79,8 @@ static ompt_get_task_memory_t ompt_get_task_memory;
 static ompt_get_target_info_t ompt_get_target_info;
 static ompt_get_num_devices_t ompt_get_num_devices;
 static ompt_get_unique_id_t ompt_get_unique_id;
-static ompt_finalize_tool_t ompt_finalize_tool;
 static ompt_function_lookup_t ompt_function_lookup;
+*/
 
 // forward declare so we can stop the initial task when forced to shut down
 void apex_ompt_stop(ompt_data_t * ompt_data);
@@ -879,11 +881,12 @@ int ompt_initialize(ompt_function_lookup_t lookup, int initial_device_num,
         apex_threadid = apex_numthreads++;
     }
     DEBUG_PRINT("Getting OMPT functions..."); fflush(stderr);
-    ompt_function_lookup = lookup;
+    //ompt_function_lookup = lookup;
     ompt_finalize_tool = (ompt_finalize_tool_t)
         lookup("ompt_finalize_tool");
     ompt_set_callback = (ompt_set_callback_t)
         lookup("ompt_set_callback");
+        /*
     ompt_get_callback = (ompt_get_callback_t)
         lookup("ompt_get_callback");
     ompt_get_task_info = (ompt_get_task_info_t)
@@ -916,6 +919,7 @@ int ompt_initialize(ompt_function_lookup_t lookup, int initial_device_num,
         lookup("ompt_enumerate_states");
     ompt_enumerate_mutex_impls = (ompt_enumerate_mutex_impls_t)
         lookup("ompt_enumerate_mutex_impls");
+        */
 
     DEBUG_PRINT("success.\n");
 
