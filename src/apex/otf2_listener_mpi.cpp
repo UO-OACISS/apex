@@ -27,6 +27,13 @@ int64_t otf2_listener::synchronizeClocks(void) {
     MPI_Status status;
     const int attempts{10};
 
+    /* Check to make sure we're actually in an MPI application */
+    int initialized;
+    PMPI_Initialized(&initialized);
+    if (!initialized) {
+        return offset;
+    }
+
     // synchronize all ranks
     PMPI_Barrier(MPI_COMM_WORLD);
 
@@ -92,7 +99,13 @@ int64_t otf2_listener::synchronizeClocks(void) {
 int otf2_listener::getCommRank() {
     static int rank{-1};
     if (rank == -1) {
-        PMPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        int initialized;
+        PMPI_Initialized(&initialized);
+        if (initialized) {
+            PMPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        } else {
+            rank = 0;
+        }
     }
     return rank;
 }
@@ -100,7 +113,13 @@ int otf2_listener::getCommRank() {
 int otf2_listener::getCommSize() {
     static int size{-1};
     if (size == -1) {
-        PMPI_Comm_size(MPI_COMM_WORLD, &size);
+        int initialized;
+        PMPI_Initialized(&initialized);
+        if (initialized) {
+            PMPI_Comm_size(MPI_COMM_WORLD, &size);
+        } else {
+            size = 1;
+        }
     }
     return size;
 }

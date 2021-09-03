@@ -22,6 +22,22 @@ bool trace_event_listener::_initialized(false);
 
 trace_event_listener::trace_event_listener (void) : _terminate(false),
     num_events(0), _end_time(0.0) {
+    _initialized = true;
+}
+
+trace_event_listener::~trace_event_listener (void) {
+    close_trace();
+}
+
+void trace_event_listener::end_trace_time(void) {
+    if (_end_time == 0.0) {
+        _end_time = profiler::now_us();
+    }
+}
+
+void trace_event_listener::on_startup(startup_event_data &data) {
+    APEX_UNUSED(data);
+    saved_node_id = apex::instance()->get_node_id();
     std::stringstream ss;
     ss << fixed << "{\n";
     ss << "\"displayTimeUnit\": \"ms\",\n";
@@ -39,21 +55,6 @@ trace_event_listener::trace_event_listener (void) : _terminate(false),
        << ",\"args\":{\"sort_index\":"
        << saved_node_id << "}},\n";
     write_to_trace(ss);
-    _initialized = true;
-}
-
-trace_event_listener::~trace_event_listener (void) {
-    close_trace();
-}
-
-void trace_event_listener::end_trace_time(void) {
-    if (_end_time == 0.0) {
-        _end_time = profiler::now_us();
-    }
-}
-
-void trace_event_listener::on_startup(startup_event_data &data) {
-    APEX_UNUSED(data);
     return;
 }
 
