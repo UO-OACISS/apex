@@ -14,6 +14,7 @@
 #include <math.h>
 #include "apex_options.hpp"
 #include "apex_types.h"
+#include "string.h"
 
 // Use this if you want the min, max and stddev.
 #define FULL_STATISTICS
@@ -85,7 +86,7 @@ public:
     /* This constructor is so that we can create a dummy wrapper around profile
      * data after we've done a reduction across ranks. */
     profile(apex_profile * values) {
-        std::memcpy(&_profile, values, sizeof(apex_profile));
+        memcpy(&_profile, values, sizeof(apex_profile));
     }
     void increment(double increase, int num_metrics, double * papi_metrics,
         bool yielded) {

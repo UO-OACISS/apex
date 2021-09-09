@@ -40,8 +40,8 @@ namespace apex {
 std::map<std::string, apex_profile*> reduce_profiles() {
     int commrank = 0;
     int commsize = 1;
-    int mpi_initialized = 0;
 #if !defined(HPX_HAVE_NETWORKING) && defined(APEX_HAVE_MPI)
+    int mpi_initialized = 0;
     MPI_CALL(MPI_Initialized( &mpi_initialized ));
     if (mpi_initialized) {
         MPI_CALL(PMPI_Comm_rank(MPI_COMM_WORLD, &commrank));
@@ -237,3 +237,4 @@ std::map<std::string, apex_profile*> reduce_profiles() {
 }
 
 }
+

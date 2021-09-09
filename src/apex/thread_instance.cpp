@@ -208,8 +208,8 @@ const char* thread_instance::program_path(void) {
 
 #else
 #  error Unsupported platform
-#endif
     return nullptr;
+#endif
 }
 
 string thread_instance::map_addr_to_name(apex_function_address function_address) {

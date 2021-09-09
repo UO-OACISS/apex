@@ -2162,11 +2162,10 @@ extern "C" {
         APEX_ASSERT(identifier != nullptr);
         if (type == APEX_FUNCTION_ADDRESS) {
             return get_profile((apex_function_address)(identifier));
-        } else {
+        } // else {
             string tmp((const char *)identifier);
             return get_profile(tmp);
-        }
-        return nullptr;
+        // }
     }
 
     double apex_current_power_high() {

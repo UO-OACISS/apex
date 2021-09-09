@@ -1561,7 +1561,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
     APEX_UNUSED(data);
   }
 
-  extern "C" int main (int, char**);
+  //extern "C" int main (int, char**);
 
   /* When a start event happens, create a profiler object. Unless this
    * named event is throttled, in which case do nothing, as quickly as possible */
