@@ -39,10 +39,8 @@ void trace_event_listener::on_startup(startup_event_data &data) {
     APEX_UNUSED(data);
     saved_node_id = apex::instance()->get_node_id();
     std::stringstream ss;
-    ss << fixed << "{\n";
-    ss << "\"displayTimeUnit\": \"ms\",\n";
-    ss << "\"traceEvents\": [\n";
-    ss << "{\"name\":\"APEX MAIN\""
+    ss << fixed
+       << "{\"name\":\"APEX MAIN\""
        << ",\"ph\":\"B\",\"pid\":"
        << saved_node_id << ",\"tid\":0,\"ts\":"
        << profiler::now_us() << "},\n";
@@ -111,8 +109,10 @@ bool trace_event_listener::on_resume(std::shared_ptr<task_wrapper> &tt_ptr) {
 
 int trace_event_listener::get_thread_id_metadata() {
     int tid = thread_instance::get_id();
+    saved_node_id = apex::instance()->get_node_id();
     std::stringstream ss;
-    ss << "{\"name\":\"thread_name\""
+    ss << fixed
+       << "{\"name\":\"thread_name\""
        << ",\"ph\":\"M\",\"pid\":" << saved_node_id
        << ",\"tid\":" << tid
        << ",\"args\":{\"name\":"
@@ -129,6 +129,7 @@ inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
     static APEX_NATIVE_TLS int tid = get_thread_id_metadata();
     if (!_terminate) {
         std::stringstream ss;
+        ss << fixed;
         uint64_t pguid = 0;
         if (p->tt_ptr != nullptr && p->tt_ptr->parent != nullptr) {
             pguid = p->tt_ptr->parent->guid;
@@ -136,7 +137,7 @@ inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
         ss << "{\"name\":\"" << p->get_task_id()->get_name()
               << "\",\"ph\":\"X\",\"pid\":"
               << saved_node_id << ",\"tid\":" << tid
-              << ",\"ts\":" << fixed << p->get_start_us() << ", \"dur\": "
+              << ",\"ts\":" << p->get_start_us() << ", \"dur\": "
               << p->get_stop_us() - p->get_start_us()
               << ",\"args\":{\"GUID\":" << p->guid << ",\"Parent GUID\":" << pguid << "}},\n";
         write_to_trace(ss);
@@ -156,10 +157,11 @@ void trace_event_listener::on_yield(std::shared_ptr<profiler> &p) {
 void trace_event_listener::on_sample_value(sample_value_event_data &data) {
     if (!_terminate) {
         std::stringstream ss;
+        ss << fixed;
         ss << "{\"name\": \"" << *(data.counter_name)
               << "\",\"ph\":\"C\",\"pid\": " << saved_node_id
-              << ",\"ts\":" << fixed << profiler::now_us()
-              << ",\"args\":{\"value\":" << fixed << data.counter_value
+              << ",\"ts\":" << profiler::now_us()
+              << ",\"args\":{\"value\":" << data.counter_value
               << "}},\n";
         write_to_trace(ss);
         flush_trace_if_necessary();
@@ -201,6 +203,7 @@ std::string trace_event_listener::make_tid (async_thread_node &node) {
         uint32_t id_shifted = id << 16;
         vthread_map.insert(std::pair<async_thread_node, size_t>(node,id_shifted));
         std::stringstream ss;
+        ss << fixed;
         ss << "{\"name\":\"thread_name\""
            << ",\"ph\":\"M\",\"pid\":" << saved_node_id
            << ",\"tid\":" << id_shifted
@@ -238,6 +241,7 @@ void trace_event_listener::on_async_event(async_thread_node &node,
     std::shared_ptr<profiler> &p) {
     if (!_terminate) {
         std::stringstream ss;
+        ss << fixed;
         std::string tid{make_tid(node)};
         uint64_t pguid = 0;
         if (p->tt_ptr != nullptr && p->tt_ptr->parent != nullptr) {
@@ -246,7 +250,7 @@ void trace_event_listener::on_async_event(async_thread_node &node,
         ss << "{\"name\":\"" << p->get_task_id()->get_name()
               << "\",\"ph\":\"X\",\"pid\":"
               << saved_node_id << ",\"tid\":" << tid
-              << ",\"ts\":" << fixed << p->get_start_us() << ",\"dur\":"
+              << ",\"ts\":" << p->get_start_us() << ",\"dur\":"
               << p->get_stop_us() - p->get_start_us()
               << ",\"args\":{\"GUID\":" << p->guid << ",\"Parent GUID\":" << pguid << "}},\n";
         write_to_trace(ss);
@@ -258,11 +262,12 @@ void trace_event_listener::on_async_metric(async_thread_node &node,
     std::shared_ptr<profiler> &p) {
     if (!_terminate) {
         std::stringstream ss;
+        ss << fixed;
         std::string tid{make_tid(node)};
         ss << "{\"name\": \"" << p->get_task_id()->get_name()
               << "\",\"ph\":\"C\",\"pid\": " << saved_node_id
-              << ",\"ts\":" << fixed << p->get_stop_us()
-              << ",\"args\":{\"value\":" << fixed << p->value
+              << ",\"ts\":" << p->get_stop_us()
+              << ",\"args\":{\"value\":" << p->value
               << "}},\n";
         write_to_trace(ss);
         flush_trace_if_necessary();
@@ -336,6 +341,10 @@ void trace_event_listener::flush_trace(void) {
         ss << apex_options::output_file_path() << "/";
         ss << "trace_events." << saved_node_id << ".json";
         trace_file.open(ss.str());
+        // write the preamble
+        trace_file << fixed << "{\n";
+        trace_file << "\"displayTimeUnit\": \"ms\",\n";
+        trace_file << "\"traceEvents\": [\n";
     }
 #ifdef SERIAL
     // flush the trace
@@ -370,6 +379,7 @@ void trace_event_listener::flush_trace_if_necessary(void) {
 void trace_event_listener::close_trace(void) {
     if (trace_file.is_open()) {
         std::stringstream ss;
+        ss << fixed;
         ss << "{\"name\":\"APEX MAIN\""
            << ", \"ph\":\"E\",\"pid\":"
            << saved_node_id << ",\"tid\":0,\"ts\":"
