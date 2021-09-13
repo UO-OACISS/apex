@@ -14,6 +14,7 @@ set(example_programs
     apex_init_args
     apex_finalize
     apex_cleanup
+    apex_exit
     apex_start
     apex_stop
     apex_yield

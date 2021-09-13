@@ -112,8 +112,11 @@ std::atomic<apex*> apex::m_pInstance(nullptr);
 
 std::atomic<bool> _notify_listeners(true);
 std::atomic<bool> _measurement_stopped(false);
-profiler * top_level_timer() {
+profiler * top_level_timer(profiler * _p = nullptr, bool force = false) {
     static APEX_NATIVE_TLS profiler * top_level_timer = nullptr;
+    if (_p != nullptr || force) {
+        top_level_timer = _p;
+    }
     return top_level_timer;
 }
 
@@ -448,8 +451,7 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
         } else {
             tmp = start("OS Thread");
         }
-        // to protect against compiler errors
-        APEX_UNUSED(tmp);
+        top_level_timer(tmp);
     }
     if (apex_options::use_verbose() && instance->get_node_id() == 0) {
       std::cout << version() << std::endl;
@@ -1490,7 +1492,7 @@ void finalize()
     FUNCTION_ENTER
     // FIRST, stop the top level timer, while the infrastructure is still
     // functioning.
-    if (top_level_timer() != nullptr) { stop(top_level_timer()); }
+    if (top_level_timer() != nullptr) { stop(top_level_timer()); top_level_timer(nullptr, true); }
     // if not done already...
     shutdown_throttling(); // stop thread scheduler policies
     stop_all_async_threads(); // stop OS/HW monitoring
@@ -1634,8 +1636,7 @@ void register_thread(const std::string &name)
                 tmp = start(ss.str());
             }
         }
-        // to protect against compiler errors
-        APEX_UNUSED(tmp);
+        top_level_timer(tmp);
     }
 }
 
@@ -1646,7 +1647,7 @@ void exit_thread(void)
     apex* instance = apex::instance();
     // protect against calls after finalization
     if (!instance || _exited) return;
-    if (top_level_timer() != nullptr) { stop(top_level_timer()); }
+    if (top_level_timer() != nullptr) { stop(top_level_timer()); top_level_timer(nullptr, true); }
     _exited = true;
     event_data data;
     if (_notify_listeners) {
@@ -2016,7 +2017,7 @@ extern "C" {
 
     static void apex_init_static_void(void) {
         if (!apex_options::use_otf2()) {
-            init("APEX Void Constructor", 0, 1);
+            init("APEX main thread", 0, 1);
         }
     }
 
