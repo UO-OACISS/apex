@@ -678,7 +678,9 @@ std::unordered_set<profile*> free_profiles;
     screen_output << "Worker Threads observed on rank 0: "
         << num_worker_threads << endl;
     screen_output << "Available CPU time on rank 0: "
-        << total_main << " seconds" << endl << endl;
+        << total_main << " seconds" << endl;
+    screen_output << "Available CPU time on all ranks: "
+        << total_main * apex::instance()->get_num_ranks() << " seconds" << endl << endl;
     double divisor = wall_clock_main; // could be total_main, for available CPU time.
 
     double total_accumulated = 0.0;

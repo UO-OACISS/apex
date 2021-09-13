@@ -68,7 +68,7 @@ std::map<std::string, apex_profile*> reduce_profiles() {
         if (tmp.compare("APEX MAIN") == 0) { continue; }
         //DEBUG_PRINT("%d Inserting: %s\n", commrank, tmp.c_str());
         all_names.insert(tmp);
-        tid_map.insert(std::pair(tmp, tid));
+        tid_map.insert(std::pair<std::string, task_identifier>(tmp, tid));
     }
     size_t length[2];
     size_t max_length[2];
@@ -203,7 +203,7 @@ std::map<std::string, apex_profile*> reduce_profiles() {
                 p->type = (apex_profile_type)(dptr[6]);
                 // set the minimum to something rediculous
                 p->minimum = std::numeric_limits<double>::max();
-                all_profiles.insert(std::pair(name, p));
+                all_profiles.insert(std::pair<std::string, apex_profile*>(name, p));
             } else {
                 p = next->second;
             }
