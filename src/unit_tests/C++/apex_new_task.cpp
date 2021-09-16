@@ -20,12 +20,12 @@ int fib (int in, std::shared_ptr< apex::task_wrapper > this_task) {
     }
     int a = in-1;
 	// called from the parent, not when the child is spawned!
-    auto task_1 = apex::new_task((apex_function_address)&fib, ++task_id);
+    auto task_1 = apex::new_task((apex_function_address)&fib, ++task_id, this_task);
     auto future_a = std::async(std::launch::async, fib, a, task_1);
 
     int b = in-2;
 	// called from the parent, not when the child is spawned!
-    auto task_2 = apex::new_task((apex_function_address)&fib, ++task_id);
+    auto task_2 = apex::new_task((apex_function_address)&fib, ++task_id, this_task);
     auto future_b = std::async(std::launch::async, fib, b, task_2);
 
     int result_a = future_a.get();
