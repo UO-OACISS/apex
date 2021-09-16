@@ -86,6 +86,7 @@ thread_instance& thread_instance::instance(bool is_worker) {
 }
 
 thread_instance::~thread_instance(void) {
+    if (apex::get_program_over()) { return; }
     if (_id == 0) {
         finalize();
     }

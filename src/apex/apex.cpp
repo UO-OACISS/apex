@@ -100,12 +100,16 @@ thread_instance::get_id(), __func__, __LINE__); fflush(stdout);
 APEX_NATIVE_TLS bool _registered = false;
 APEX_NATIVE_TLS bool _exited = false;
 static bool _initialized = false;
-static std::atomic<bool> _program_over(false);
 
 using namespace std;
 
 namespace apex
 {
+
+bool& apex::get_program_over() {
+    static bool _program_over{false};
+    return _program_over;
+}
 
 // Global static pointer used to ensure a single instance of the class.
 std::atomic<apex*> apex::m_pInstance(nullptr);
@@ -441,15 +445,19 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
         instance->pd_reader = new proc_data_reader();
     }
 #endif
-    if (apex_options::top_level_os_threads()) {
+    /* For the main thread, we should always start a top level timer.
+     * The reason is that if the program calls "exit", our atexit() processing
+     * will stop this timer, effectively stopping all of its children as well,
+     * so we will get an accurate measurement for abnormal termination. */
+    if (apex_options::top_level_os_threads() || thread_name != nullptr) {
         auto tmp = top_level_timer();
         // start top-level timers for threads
         if (thread_name) {
             stringstream ss;
-            ss << "OS Thread: " << thread_name;
+            ss << "Main Thread: " << thread_name;
             tmp = start(ss.str().c_str());
         } else {
-            tmp = start("OS Thread");
+            tmp = start("Main Thread");
         }
         top_level_timer(tmp);
     }
@@ -657,7 +665,7 @@ profiler* start(const apex_function_address function_address) {
 }
 
 void debug_print(const char * event, std::shared_ptr<task_wrapper> tt_ptr) {
-    if (_program_over) return;
+    if (apex::get_program_over()) return;
     static std::mutex this_mutex;
     std::unique_lock<std::mutex> l(this_mutex);
     std::stringstream ss;
@@ -1553,7 +1561,7 @@ void finalize()
 void cleanup(void) {
     in_apex prevent_deadlocks;
     FUNCTION_ENTER
-    _program_over = true;
+    apex::get_program_over() = true;
 #ifdef APEX_HAVE_HPX
     // prevent crash at shutdown.
     return;
