@@ -10,9 +10,8 @@ int fib_results[FIB_RESULTS_PRE] = {0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610
 
 std::atomic<uint64_t> task_id(-1);
 
-int fib (int in) {
-    apex::scoped_thread ast("fib thread");
-    apex::scoped_timer foo((uint64_t)&fib);
+int fib (int in, std::shared_ptr< apex::task_wrapper > this_task) {
+    apex::start(this_task);
     if (in == 0) {
         return 0;
     }
@@ -21,16 +20,17 @@ int fib (int in) {
     }
     int a = in-1;
 	// called from the parent, not when the child is spawned!
-    apex::new_task((apex_function_address)&fib, ++task_id);
-    auto future_a = std::async(std::launch::async, fib, a);
+    auto task_1 = apex::new_task((apex_function_address)&fib, ++task_id);
+    auto future_a = std::async(std::launch::async, fib, a, task_1);
 
     int b = in-2;
 	// called from the parent, not when the child is spawned!
-    apex::new_task((apex_function_address)&fib, ++task_id);
-    auto future_b = std::async(std::launch::async, fib, b);
+    auto task_2 = apex::new_task((apex_function_address)&fib, ++task_id);
+    auto future_b = std::async(std::launch::async, fib, b, task_2);
 
     int result_a = future_a.get();
     int result_b = future_b.get();
+    apex::stop(this_task);
     return (result_a + result_b);
 }
 
@@ -56,8 +56,8 @@ int main(int argc, char *argv[]) {
     }
 
 	// called from the parent, not when the child is spawned!
-    apex::new_task((apex_function_address)&fib, ++task_id);
-    auto future = std::async(std::launch::async, fib, i);
+    auto task = apex::new_task((apex_function_address)&fib, ++task_id);
+    auto future = std::async(std::launch::async, fib, i, task);
     int result = future.get();
     std::cout << "fib of " << i << " is " << result << " (valid value: " << fib_results[i] << ")" << std::endl;
 	foo.stop();
