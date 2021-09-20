@@ -100,9 +100,8 @@ double Node::writeNodeASCII(std::ofstream& outfile, double total, size_t indent)
     for (size_t i = 0 ; i < indent ; i++) {
         outfile << "|   ";
     }
+    outfile << "|-> ";
     indent++;
-    // Write out the name
-    outfile << data->get_short_name() << ": ";
     // write out the inclusive and percent of total
     const std::string apex_main_str("APEX MAIN");
     double acc = (data == task_identifier::get_task_id(apex_main_str)) ?
@@ -119,7 +118,9 @@ double Node::writeNodeASCII(std::ofstream& outfile, double total, size_t indent)
     double stddev = sqrt(variance);
     outfile << " {min=" << std::fixed << std::setprecision(4) << min << ", max=" << max
             << ", mean=" << mean << ", var=" << variance
-            << ", std dev=" << stddev << "}";
+            << ", std dev=" << stddev << "} ";
+    // Write out the name
+    outfile << data->get_name() << " ";
     // end the line
     outfile << std::endl;
 

@@ -22,49 +22,53 @@ Usage:
 $(basename "$0") <APEX options> executable <executable options>
 
 where APEX options are zero or more of:
-    --apex:help            show this usage message
-    --apex:debug           run with APEX in debugger
-    --apex:verbose         enable verbose list of APEX environment variables
-    --apex:screen          enable screen text output (on by default)
-    --apex:quiet           disable screen text output
-    --apex:csv             enable csv text output
-    --apex:tau             enable tau profile output
-    --apex:taskgraph       enable taskgraph output
-                           (graphviz required for post-processing)
-    --apex:tasktree        enable tasktree output
-                           (graphviz required for post-processing)
-    --apex:otf2            enable OTF2 trace output
-    --apex:otf2path        specify location of OTF2 archive
-                           (default: ./OTF2_archive)
-    --apex:otf2name        specify name of OTF2 file (default: APEX)
-    --apex:gtrace          enable Google Trace Events output
-    --apex:scatter         enable scatterplot output
-                           (python required for post-processing)
-    --apex:openacc         enable OpenACC support
-    --apex:kokkos          enable Kokkos support
-    --apex:kokkos_tuning   enable Kokkos runtime autotuning support
-    --apex:raja            enable RAJA support
-    --apex:pthread         enable pthread wrapper support
-    --apex:memory          enable memory wrapper support
-    --apex:untied          enable tasks to migrate cores/OS threads
-                           during execution (not compatible with trace output)
-    --apex:cuda            enable CUDA/CUPTI measurement (default: off)
-    --apex:cuda_counters   enable CUDA/CUPTI counter support (default: off)
-    --apex:cuda_driver     enable CUDA driver API callbacks (default: off)
-    --apex:cuda_details    enable per-kernel statistics where available (default: off)
-    --apex:hip             enable HIP/ROCTracer measurement (default: off)
-    --apex:hip_counters    enable HIP/ROCTracer counter support (default: off)
-    --apex:hip_driver      enable HIP/ROCTracer KSA driver API callbacks (default: off)
-    --apex:hip_details     enable per-kernel statistics where available (default: off)
-    --apex:cpuinfo         enable sampling of /proc/cpuinfo (Linux only)
-    --apex:meminfo         enable sampling of /proc/meminfo (Linux only)
-    --apex:net             enable sampling of /proc/net/dev (Linux only)
-    --apex:status          enable sampling of /proc/self/status (Linux only)
-    --apex:io              enable sampling of /proc/self/io (Linux only)
-    --apex:period          specify frequency of OS/HW sampling
-    --apex:ompt            enable OpenMP profiling (requires runtime support)
-    --apex:ompt_simple     only enable OpenMP Tools required events
-    --apex:ompt_details    enable all OpenMP Tools events
+    --apex:help             show this usage message
+    --apex:debug            run with APEX in debugger
+    --apex:verbose          enable verbose list of APEX environment variables
+    --apex:screen           enable screen text output (on by default)
+    --apex:quiet            disable screen text output
+    --apex:csv              enable csv text output
+    --apex:tau              enable tau profile output
+    --apex:taskgraph        enable taskgraph output
+                            (graphviz required for post-processing)
+    --apex:tasktree         enable tasktree output
+                            (graphviz required for post-processing)
+    --apex:otf2             enable OTF2 trace output
+    --apex:otf2path <value> specify location of OTF2 archive
+                            (default: ./OTF2_archive)
+    --apex:otf2name <value> specify name of OTF2 file (default: APEX)
+    --apex:gtrace           enable Google Trace Events output
+    --apex:scatter          enable scatterplot output
+                            (python required for post-processing)
+    --apex:openacc          enable OpenACC support
+    --apex:kokkos           enable Kokkos support
+    --apex:kokkos_tuning    enable Kokkos runtime autotuning support
+    --apex:kokkos_fence     enable Kokkos fences for async kernels
+    --apex:raja             enable RAJA support
+    --apex:pthread          enable pthread wrapper support
+    --apex:memory           enable memory wrapper support
+    --apex:untied           enable tasks to migrate cores/OS threads
+                            during execution (not compatible with trace output)
+    --apex:cuda             enable CUDA/CUPTI measurement (default: off)
+    --apex:cuda_counters    enable CUDA/CUPTI counter support (default: off)
+    --apex:cuda_driver      enable CUDA driver API callbacks (default: off)
+    --apex:cuda_details     enable per-kernel statistics where available (default: off)
+    --apex:hip              enable HIP/ROCTracer measurement (default: off)
+    --apex:hip_counters     enable HIP/ROCTracer counter support (default: off)
+    --apex:hip_driver       enable HIP/ROCTracer KSA driver API callbacks (default: off)
+    --apex:hip_details      enable per-kernel statistics where available (default: off)
+    --apex:monitor_gpu      enable GPU monitoring services (CUDA NVML, ROCm SMI)
+    --apex:cpuinfo          enable sampling of /proc/cpuinfo (Linux only)
+    --apex:meminfo          enable sampling of /proc/meminfo (Linux only)
+    --apex:net              enable sampling of /proc/net/dev (Linux only)
+    --apex:status           enable sampling of /proc/self/status (Linux only)
+    --apex:io               enable sampling of /proc/self/io (Linux only)
+    --apex:period <value>   specify frequency of OS/HW sampling
+    --apex:ompt             enable OpenMP profiling (requires runtime support)
+    --apex:ompt_simple      only enable OpenMP Tools required events
+    --apex:ompt_details     enable all OpenMP Tools events
+    --apex:preload <lib>    extra libraries to load with LD_PRELOAD _before_ APEX libraries
+                            (LD_PRELOAD value is added _after_ APEX libraries)
     "
     echo "${message}"
     exit 1
@@ -73,6 +77,7 @@ where APEX options are zero or more of:
 openacc=no
 kokkos=no
 kokkos_tuning=no
+kokkos_fence=no
 raja=no
 otf2=no
 gtrace=no
@@ -91,6 +96,7 @@ hip=no
 hip_counters=no
 hip_driver=no
 hip_details=no
+monitor_gpu=no
 untied=no
 cpuinfo=no
 meminfo=no
@@ -104,6 +110,7 @@ memory=no
 policy=yes
 debugger=""
 prog=""
+preload=no
 
 if [ $# -eq 0 ] ; then
     usage
@@ -123,6 +130,12 @@ while (( "$#" )); do
     --apex:kokkos_tuning)
       kokkos=yes
       kokkos_tuning=yes
+      shift
+      ;;
+    --apex:kokkos_fence)
+      kokkos=yes
+      kokkos_fence=yes
+      export APEX_KOKKOS_PROFILING_FENCES=1
       shift
       ;;
     --apex:raja)
@@ -235,6 +248,11 @@ while (( "$#" )); do
       export APEX_HIP_KERNEL_DETAILS=1
       shift
       ;;
+    --apex:monitor_gpu)
+      monitor_gpu=yes
+      export APEX_MONITOR_GPU=1
+      shift
+      ;;
     --apex:cpuinfo)
       cpuinfo=yes
       export APEX_PROC_CPUINFO=1
@@ -267,6 +285,7 @@ while (( "$#" )); do
       ;;
     --apex:ompt)
       ompt=yes
+      export APEX_ENABLE_OMPT=1
       shift
       ;;
     --apex:ompt_simple)
@@ -298,6 +317,16 @@ while (( "$#" )); do
     --apex:period)
       if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
         export APEX_PROC_PERIOD=$2
+        shift 2
+      else
+        echo "Error: Argument for $1 is missing" >&2
+        usage
+      fi
+      ;;
+    --apex:preload)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        export USER_PRELOAD=$2
+        preload=yes
         shift 2
       else
         echo "Error: Argument for $1 is missing" >&2
@@ -353,9 +382,9 @@ if [ $memory = yes ]; then
     APEX_LD_AUDIT=${BASEDIR}/lib/libapex_dl_auditor${SHLIBX}
 fi
 if [ ${apple} = 1 ]; then
-    APEX_LD_PRELOAD=${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/lib/libapex${SHLIBX}:${OMPT_LIB}
+    APEX_LD_PRELOAD=${USER_PRELOAD}:${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/lib/libapex${SHLIBX}:${OMPT_LIB}
 else
-    APEX_LD_PRELOAD=${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/lib/libapex${SHLIBX}:${OMPT_LIB}:${LD_PRELOAD}
+    APEX_LD_PRELOAD=${USER_PRELOAD}:${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/lib/libapex${SHLIBX}:${OMPT_LIB}:${LD_PRELOAD}
 fi
 
 # remove spaces and double colons

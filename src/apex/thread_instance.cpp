@@ -86,6 +86,7 @@ thread_instance& thread_instance::instance(bool is_worker) {
 }
 
 thread_instance::~thread_instance(void) {
+    if (apex::get_program_over()) { return; }
     if (_id == 0) {
         finalize();
     }
@@ -208,8 +209,8 @@ const char* thread_instance::program_path(void) {
 
 #else
 #  error Unsupported platform
-#endif
     return nullptr;
+#endif
 }
 
 string thread_instance::map_addr_to_name(apex_function_address function_address) {

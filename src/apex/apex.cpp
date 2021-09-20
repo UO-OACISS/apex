@@ -100,20 +100,27 @@ thread_instance::get_id(), __func__, __LINE__); fflush(stdout);
 APEX_NATIVE_TLS bool _registered = false;
 APEX_NATIVE_TLS bool _exited = false;
 static bool _initialized = false;
-static std::atomic<bool> _program_over(false);
 
 using namespace std;
 
 namespace apex
 {
 
+bool& apex::get_program_over() {
+    static bool _program_over{false};
+    return _program_over;
+}
+
 // Global static pointer used to ensure a single instance of the class.
 std::atomic<apex*> apex::m_pInstance(nullptr);
 
 std::atomic<bool> _notify_listeners(true);
 std::atomic<bool> _measurement_stopped(false);
-profiler * top_level_timer() {
+profiler * top_level_timer(profiler * _p = nullptr, bool force = false) {
     static APEX_NATIVE_TLS profiler * top_level_timer = nullptr;
+    if (_p != nullptr || force) {
+        top_level_timer = _p;
+    }
     return top_level_timer;
 }
 
@@ -438,18 +445,21 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
         instance->pd_reader = new proc_data_reader();
     }
 #endif
-    if (apex_options::top_level_os_threads()) {
+    /* For the main thread, we should always start a top level timer.
+     * The reason is that if the program calls "exit", our atexit() processing
+     * will stop this timer, effectively stopping all of its children as well,
+     * so we will get an accurate measurement for abnormal termination. */
+    if (apex_options::top_level_os_threads() || thread_name != nullptr) {
         auto tmp = top_level_timer();
         // start top-level timers for threads
         if (thread_name) {
             stringstream ss;
-            ss << "OS Thread: " << thread_name;
+            ss << "Main Thread: " << thread_name;
             tmp = start(ss.str().c_str());
         } else {
-            tmp = start("OS Thread");
+            tmp = start("Main Thread");
         }
-        // to protect against compiler errors
-        APEX_UNUSED(tmp);
+        top_level_timer(tmp);
     }
     if (apex_options::use_verbose() && instance->get_node_id() == 0) {
       std::cout << version() << std::endl;
@@ -655,7 +665,7 @@ profiler* start(const apex_function_address function_address) {
 }
 
 void debug_print(const char * event, std::shared_ptr<task_wrapper> tt_ptr) {
-    if (_program_over) return;
+    if (apex::get_program_over()) return;
     static std::mutex this_mutex;
     std::unique_lock<std::mutex> l(this_mutex);
     std::stringstream ss;
@@ -1490,7 +1500,7 @@ void finalize()
     FUNCTION_ENTER
     // FIRST, stop the top level timer, while the infrastructure is still
     // functioning.
-    if (top_level_timer() != nullptr) { stop(top_level_timer()); }
+    if (top_level_timer() != nullptr) { stop(top_level_timer()); top_level_timer(nullptr, true); }
     // if not done already...
     shutdown_throttling(); // stop thread scheduler policies
     stop_all_async_threads(); // stop OS/HW monitoring
@@ -1551,7 +1561,7 @@ void finalize()
 void cleanup(void) {
     in_apex prevent_deadlocks;
     FUNCTION_ENTER
-    _program_over = true;
+    apex::get_program_over() = true;
 #ifdef APEX_HAVE_HPX
     // prevent crash at shutdown.
     return;
@@ -1634,8 +1644,7 @@ void register_thread(const std::string &name)
                 tmp = start(ss.str());
             }
         }
-        // to protect against compiler errors
-        APEX_UNUSED(tmp);
+        top_level_timer(tmp);
     }
 }
 
@@ -1646,7 +1655,7 @@ void exit_thread(void)
     apex* instance = apex::instance();
     // protect against calls after finalization
     if (!instance || _exited) return;
-    if (top_level_timer() != nullptr) { stop(top_level_timer()); }
+    if (top_level_timer() != nullptr) { stop(top_level_timer()); top_level_timer(nullptr, true); }
     _exited = true;
     event_data data;
     if (_notify_listeners) {
@@ -2016,7 +2025,7 @@ extern "C" {
 
     static void apex_init_static_void(void) {
         if (!apex_options::use_otf2()) {
-            init("APEX Void Constructor", 0, 1);
+            init("APEX main thread", 0, 1);
         }
     }
 
@@ -2162,11 +2171,10 @@ extern "C" {
         APEX_ASSERT(identifier != nullptr);
         if (type == APEX_FUNCTION_ADDRESS) {
             return get_profile((apex_function_address)(identifier));
-        } else {
+        } // else {
             string tmp((const char *)identifier);
             return get_profile(tmp);
-        }
-        return nullptr;
+        // }
     }
 
     double apex_current_power_high() {
@@ -2197,9 +2205,9 @@ extern "C" {
  * implementation of Finalize, and do what we need to. */
 #if defined(APEX_HAVE_MPI) && !defined(HPX_HAVE_NETWORKING)
     int MPI_Finalize(void) {
-        apex::finalize();
+        finalize();
         int retval = PMPI_Finalize();
-        apex::cleanup();
+        cleanup();
         return retval;
     }
     int MPI_Wait(MPI_Request *request, MPI_Status *status) {

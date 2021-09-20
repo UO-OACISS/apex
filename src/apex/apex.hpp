@@ -105,6 +105,7 @@ private:
     hpx::runtime * m_hpx_runtime;
 #endif
 public:
+    static bool& get_program_over();
     profiler_listener * the_profiler_listener;
     event_listener * the_trace_event_listener;
     event_listener * the_otf2_listener;

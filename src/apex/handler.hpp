@@ -32,7 +32,7 @@ private:
     std::mutex cv_m;
     static std::chrono::microseconds default_period;
     void _threadfunc(void) {
-        while (true) {
+        while (!_terminate) {
             std::unique_lock<std::mutex> lk(cv_m);
             auto now = std::chrono::system_clock::now();
             auto rc = cv.wait_until(lk, now + _period);
@@ -106,7 +106,9 @@ public:
       if(_timer_thread != nullptr) {
 #if defined(_MSC_VER) || defined(__APPLE__)
         cv.notify_all();
-        _timer_thread->join();
+        if (_timer_thread->joinable()) {
+            _timer_thread->join();
+        }
 #else
         _timer_thread->stop_thread();
 #endif

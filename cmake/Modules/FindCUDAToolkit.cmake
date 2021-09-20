@@ -486,7 +486,7 @@ endif()
 # Try language- or user-provided path first.
 if(CUDAToolkit_BIN_DIR)
   find_program(CUDAToolkit_NVCC_EXECUTABLE
-    NAMES nvcc nvcc.exe
+    NAMES nvc nvcc nvcc.exe
     PATHS ${CUDAToolkit_BIN_DIR}
     NO_DEFAULT_PATH
     )
@@ -494,7 +494,7 @@ endif()
 
 # Search using CUDAToolkit_ROOT
 find_program(CUDAToolkit_NVCC_EXECUTABLE
-  NAMES nvcc nvcc.exe
+  NAMES nvc nvcc nvcc.exe
   PATHS ENV CUDA_PATH
   PATH_SUFFIXES bin
 )

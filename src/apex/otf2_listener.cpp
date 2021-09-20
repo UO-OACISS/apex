@@ -549,9 +549,9 @@ namespace apex {
         // around when we are finalizing everything.
         my_saved_node_id = getCommRank();
         my_saved_node_count = getCommSize();
+        /*
         cout << "Rank " << my_saved_node_id << " of "
              << my_saved_node_count << "." << endl;
-        /*
          */
         // now is a good time to make sure the archive is open on this
         // rank/locality
