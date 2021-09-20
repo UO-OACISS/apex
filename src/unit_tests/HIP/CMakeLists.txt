@@ -10,7 +10,7 @@ set(example_programs
     MatrixTranspose
    )
 
-message(INFO "Using HIP libraries: ${HIP_LIBRARIES}")
+message(INFO " Using HIP libraries for tests: ${HIP_LIBRARIES}")
 
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${APEX_HIP_C_FLAGS}")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${APEX_HIP_CXX_FLAGS}")
@@ -25,6 +25,8 @@ foreach(example_program ${example_programs})
     endif()
   add_dependencies ("${example_program}_hip" apex)
   add_dependencies (tests "${example_program}_hip")
+  target_compile_definitions("${example_program}_hip" PUBLIC AMD_INTERNAL_BUILD)
+  target_compile_definitions("${example_program}_hip" PUBLIC __HIP_PLATFORM_HCC__)
   add_test ("test_${example_program}_hip" "${example_program}_hip")
 endforeach()
 

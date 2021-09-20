@@ -51,7 +51,10 @@ DEFINE_CONSTRUCTOR(init_tracing);
 //
 #include <roctracer_hip.h>
 #include <roctracer_hcc.h>
+#if 0 // disabled for now to simplify compiling
+// This rquires the -DAMD_INTERNAL_BUILD compiler flag
 #include <roctracer_hsa.h>
+#endif
 #include <roctracer_kfd.h>
 #include <roctracer_roctx.h>
 
@@ -188,6 +191,7 @@ void handle_roc_kfd(uint32_t domain, uint32_t cid, const void* callback_data, vo
 }
 
 /* This is the "OpenMP" API - lots of events if interested. */
+#if 0 // disabled for now to simplify compiling
 void handle_roc_hsa(uint32_t domain, uint32_t cid, const void* callback_data, void* arg) {
     APEX_UNUSED(domain);
     APEX_UNUSED(arg);
@@ -212,6 +216,7 @@ void handle_roc_hsa(uint32_t domain, uint32_t cid, const void* callback_data, vo
     }
     return;
 }
+#endif
 
 /* Handle counters from synchronous callbacks */
 void store_sync_counter_data(const char * name, const std::string& context,

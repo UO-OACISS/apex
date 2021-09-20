@@ -23,6 +23,19 @@ do {                                                                         \
     }                                                                        \
 } while (0);
 
+#define RSMI_CALL_NOEXIT(call)                                               \
+do {                                                                         \
+    rsmi_status_t _status = call;                                            \
+    if (_status != RSMI_STATUS_SUCCESS) {                                    \
+        const char *errstr;                                                  \
+        if (rsmi_status_string(_status, &errstr) == RSMI_STATUS_SUCCESS) {   \
+        fprintf(stderr, "%s:%d: error: function %s failed with error %d: %s.\n", \
+                __FILE__, __LINE__, #call, _status, errstr);                 \
+        success = false;                                                     \
+        }                                                                    \
+    }                                                                        \
+} while (0);
+
 #define MILLIONTH 1.0e-6 // scale to MB
 #define BILLIONTH 1.0e-9 // scale to GB
 #define PCIE_THROUGHPUT 1.0e-3  // to scale KB to MB
@@ -38,7 +51,9 @@ std::set<uint32_t> monitor::activeDeviceIndices;
 std::mutex monitor::indexMutex;
 
 monitor::monitor (void) {
-    RSMI_CALL(rsmi_init(0));
+    success = true; // used by RSMI_CALL_NOEXIT
+    RSMI_CALL_NOEXIT(rsmi_init(0));
+    if (!success) return;
     // get the total device count
     RSMI_CALL(rsmi_num_monitor_devices(&deviceCount));
     rsmi_version_t version;
@@ -88,10 +103,12 @@ monitor::monitor (void) {
     activateDeviceIndex(0);
 }
 monitor::~monitor (void) {
+    if (!success) return;
     RSMI_CALL(rsmi_shut_down());
 }
 
 void monitor::query(void) {
+    if (!success) return;
     indexMutex.lock();
     // use the copy constructor to get the set of active indices
     std::set<uint32_t> indexSet{activeDeviceIndices};
@@ -242,6 +259,7 @@ void monitor::query(void) {
         ss.str("");
 #endif
 
+#if defined(rsmi_gpu_metrics_t)
 		// This function retrieves the gpu metrics information.
 		rsmi_gpu_metrics_t pgpu_metrics;
 		RSMI_CALL(rsmi_dev_gpu_metrics_info_get (d, &pgpu_metrics));
@@ -275,6 +293,7 @@ void monitor::query(void) {
         value = (double)(pgpu_metrics.throttle_status);
         sample_value(tmp, value);
         ss.str("");
+#endif
 
 /*
 Get the performance level of the device with provided device index.

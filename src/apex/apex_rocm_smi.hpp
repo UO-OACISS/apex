@@ -62,6 +62,7 @@ public:
     void query();
     static void activateDeviceIndex(uint32_t index);
 private:
+    bool success;
     uint32_t deviceCount;
     std::vector<uint64_t> devices;
     std::vector<DeviceInfo> deviceInfos;
