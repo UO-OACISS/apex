@@ -12,7 +12,7 @@
 #include "async_thread_node.hpp"
 #include <memory>
 #include <sstream>
-#ifdef APEX_WITH_ZLIB
+#ifdef APEX_HAVE_ZLIB
 #include "gzstream.hpp"
 #else
 #include <fstream>
@@ -74,7 +74,7 @@ private:
     int saved_node_id;
     std::atomic<size_t> num_events;
     std::string get_file_name();
-#ifdef APEX_WITH_ZLIB
+#ifdef APEX_HAVE_ZLIB
   	io::gzofstream& get_trace_file();
 #else
   	std::ofstream& get_trace_file();

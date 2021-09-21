@@ -282,7 +282,7 @@ size_t trace_event_listener::get_thread_index(void) {
     return tmpval;
 }
 
-#define SERIAL 1
+#define SERIAL 0
 
 std::mutex* trace_event_listener::get_thread_mutex(size_t index) {
 #ifdef SERIAL
@@ -336,19 +336,20 @@ std::string trace_event_listener::get_file_name() {
     std::stringstream ss;
     ss << apex_options::output_file_path() << "/";
     ss << "trace_events." << saved_node_id << ".json";
-#ifdef APEX_WITH_ZLIB
+#ifdef APEX_HAVE_ZLIB
     ss << ".gz";
 #endif
     std::string tmp{ss.str()};
     return tmp;
 }
 
-#ifdef APEX_WITH_ZLIB
+#ifdef APEX_HAVE_ZLIB
 io::gzofstream& trace_event_listener::get_trace_file() {
     static io::gzofstream _trace_file(get_file_name());
     // automatically opens
     static bool header{false};
     if (!header) {
+        header = true;
         _trace_file << fixed << "{\n";
         _trace_file << "\"displayTimeUnit\": \"ms\",\n";
         _trace_file << "\"traceEvents\": [\n";
@@ -369,14 +370,15 @@ std::ofstream& trace_event_listener::get_trace_file() {
 #endif
 
 void trace_event_listener::flush_trace(void) {
-    //_vthread_mutex.lock();
     //auto p = scoped_timer("APEX: Buffer Flush");
     auto& trace_file = get_trace_file();
 #ifdef SERIAL
     // flush the trace
+    _vthread_mutex.lock();
     trace_file << trace.rdbuf() << std::flush;
     // reset the buffer
     trace.str("");
+    _vthread_mutex.unlock();
 #else
     size_t count = streams.size();
     std::stringstream ss;
@@ -391,14 +393,18 @@ void trace_event_listener::flush_trace(void) {
     // flush the trace
     trace_file << ss.rdbuf() << std::flush;
 #endif
-    //_vthread_mutex.unlock();
 }
 
 void trace_event_listener::flush_trace_if_necessary(void) {
     auto tmp = ++num_events;
-    /* flush after every million events */
+    /* flush after every 100k events */
     if (tmp % 100000 == 0) {
+        // only let 1 thread do this!
+        // ...not likely, but possible.  Not expensive to hold this
+        // lock while flushing.
+        _vthread_mutex.lock();
         flush_trace();
+        _vthread_mutex.unlock();
     }
 }
 

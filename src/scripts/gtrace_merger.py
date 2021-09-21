@@ -8,6 +8,8 @@ import gzip
 import argparse
 
 parser = argparse.ArgumentParser(description='Merge APEX Google Trace Event trace files.')
+parser.add_argument('--compressed', dest='compressed', action='store_true',
+                    help='Merge trace_events.*.json.gz files (default: merge trace_events.*.json files)')
 parser.add_argument('--strip', dest='strip', action='store_true',
                     help='Strip counters from the data (save timers only)')
 
@@ -15,24 +17,34 @@ args = parser.parse_args()
 
 # Iterate over all other trace files
 all_data = None
-for counter, infile in enumerate(sorted(glob.glob('trace_events.*.json'))):
+
+if args.compressed:
+    myglob = 'trace_events.*.json.gz'
+else:
+    myglob = 'trace_events.*.json'
+
+for counter, infile in enumerate(sorted(glob.glob(myglob))):
     print("Reading ", infile)
-    with open (infile, 'r') as jsonfile:
-        data = json.load(jsonfile)
-        if args.strip:
-            events = []
-            for line in data['traceEvents']:
-                if line['ph'] != 'C':
-                    events.append(line)
-            data['traceEvents'] = events
-        if (counter == 0):
-            all_data = data
-        else:
-            if (all_data['displayTimeUnit'] != data['displayTimeUnit']):
-                print('Error!  traces have different time units!')
-                sys.exit(99)
-            all_data['traceEvents'] = all_data['traceEvents'] + data['traceEvents']
-        jsonfile.close()
+    #with open (infile, 'r') as jsonfile:
+    if args.compressed:
+        jsonfile = gzip.open(infile, 'r')
+    else:
+        jsonfile = open(infile, 'r')
+    data = json.load(jsonfile)
+    if args.strip:
+        events = []
+        for line in data['traceEvents']:
+            if line['ph'] != 'C':
+                events.append(line)
+        data['traceEvents'] = events
+    if (counter == 0):
+        all_data = data
+    else:
+        if (all_data['displayTimeUnit'] != data['displayTimeUnit']):
+            print('Error!  traces have different time units!')
+            sys.exit(99)
+        all_data['traceEvents'] = all_data['traceEvents'] + data['traceEvents']
+    jsonfile.close()
 
 #json_str = json.dumps(all_data) + '\n'
 #json_bytes = json_str.encode('utf-8')

@@ -186,6 +186,9 @@ endif(APEX_WITH_HIP)
 # Setup PAPI
 include(APEX_SetupPAPI)
 
+# Setup ZLIB
+include(APEX_SetupZlib)
+
 # Setup LM Sensors
 include(APEX_SetupLMSensors)
 if(APEX_WITH_LM_SENSORS)
@@ -230,10 +233,10 @@ if((DEFINED BFD_ROOT) OR (APEX_WITH_BFD) OR (APEX_BUILD_BFD))
   set(bfd_sources apex_bfd.cpp address_resolution.cpp)
   # Setup DEMANGLE
   include(APEX_SetupDemangle)
-  # Setup Zlib
-	if(NOT APEX_INTEL_MIC)
-    include(APEX_SetupZlib)
-	endif(NOT APEX_INTEL_MIC)
+  # Setup Zlib - already done for google trace events output
+#	if(NOT APEX_INTEL_MIC)
+#    include(APEX_SetupZlib)
+#	endif(NOT APEX_INTEL_MIC)
 else()
 	add_custom_target(project_binutils)
 endif()
