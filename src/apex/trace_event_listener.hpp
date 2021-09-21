@@ -11,8 +11,12 @@
 #include "event_listener.hpp"
 #include "async_thread_node.hpp"
 #include <memory>
-#include <iostream>
+#include <sstream>
+#ifdef APEX_WITH_ZLIB
+#include "gzstream.hpp"
+#else
 #include <fstream>
+#endif
 #include <map>
 #include <atomic>
 #include <map>
@@ -69,7 +73,12 @@ private:
     void write_to_trace(std::stringstream& events);
     int saved_node_id;
     std::atomic<size_t> num_events;
-  	std::ofstream trace_file;
+    std::string get_file_name();
+#ifdef APEX_WITH_ZLIB
+  	io::gzofstream& get_trace_file();
+#else
+  	std::ofstream& get_trace_file();
+#endif
   	std::stringstream trace;
     std::map<size_t, std::mutex*> mutexes;
     std::map<size_t, std::stringstream*> streams;

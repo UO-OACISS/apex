@@ -1,0 +1,93 @@
+/**
+ * Original code from https://github.com/meta-toolkit/meta
+ * See LICENSE.txt in root directory
+ *
+ * @file gzstream.cpp
+ * @author Chase Geigle
+ */
+
+#include "gzstream.hpp"
+
+namespace apex
+{
+namespace io
+{
+
+gzstreambuf::gzstreambuf(const char* filename, const char* openmode,
+                         size_t buffer_size)
+    : buffer_(buffer_size), file_{gzopen(filename, openmode)}
+{
+    auto end = &buffer_.back() + 1;
+    setg(end, end, end);
+
+    auto begin = &buffer_.front();
+    setp(begin, end - 1);
+}
+
+void gzstreambuf::close()
+{
+    sync();
+    gzclose(file_);
+    file_ = nullptr;
+}
+
+gzstreambuf::~gzstreambuf()
+{
+    if (file_ != nullptr) {
+        close();
+    }
+}
+
+auto gzstreambuf::underflow() -> int_type
+{
+    if (gptr() && (gptr() < egptr()))
+        return traits_type::to_int_type(*gptr());
+
+    if (!is_open())
+        return traits_type::eof();
+
+    auto bytes = gzread(file_, &buffer_[0], static_cast<unsigned>(buffer_.size()));
+    if (bytes <= 0)
+    {
+        setg(&buffer_[0], &buffer_[0], &buffer_[0]);
+        return traits_type::eof();
+    }
+
+    setg(&buffer_[0], &buffer_[0], &buffer_[0] + bytes);
+
+    return traits_type::to_int_type(*gptr());
+}
+
+auto gzstreambuf::overflow(int_type ch) -> int_type
+{
+    if (ch != traits_type::eof())
+    {
+        *pptr() = traits_type::to_char_type(ch);
+        pbump(1);
+        if (sync() == 0)
+            return ch;
+    }
+
+    return traits_type::eof();
+}
+
+int gzstreambuf::sync()
+{
+    auto bytes = static_cast<int>(pptr() - pbase());
+    if (bytes > 0)
+    {
+
+        if (gzwrite(file_, pbase(), static_cast<unsigned>(bytes)) != bytes)
+            return -1;
+        pbump(-bytes);
+    }
+
+    return 0;
+}
+
+bool gzstreambuf::is_open() const
+{
+    return file_ != nullptr;
+}
+}
+}

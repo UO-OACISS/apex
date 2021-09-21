@@ -49,6 +49,10 @@ if (RSMI_FOUND)
 SET(RSMI_SOURCE apex_rocm_smi.cpp)
 endif(RSMI_FOUND)
 
+if (ZLIB_FOUND)
+SET(ZLIB_SOURCE gzstream.cpp)
+endif(ZLIB_FOUND)
+
 if (OpenACC_CXX_FOUND AND OpenACCProfiling_FOUND)
     set(OpenACC_SOURCE apex_openacc.cpp)
 endif (OpenACC_CXX_FOUND AND OpenACCProfiling_FOUND)
@@ -92,6 +96,7 @@ ${tau_SOURCE}
 thread_instance.cpp
 trace_event_listener.cpp
 utils.cpp
+${ZLIB_SOURCE}
 )
 
 add_library (apex ${all_SOURCE})

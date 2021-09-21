@@ -639,6 +639,18 @@ endif()
 add_dependencies (project_otf2 project_activeharmony)
 
 ################################################################################
+# ZLIB configuration
+################################################################################
+
+find_package(ZLIB)
+if(ZLIB_FOUND)
+    set(LIBS ${LIBS} ${ZLIB_LIBRARIES})
+    add_definitions(-DAPEX_WITH_ZLIB)
+    message(INFO " Using ZLIB include: ${ZLIB_INCLUDE_DIRS}")
+    include_directories(${ZLIB_INCLUDE_DIRS})
+endif(ZLIB_FOUND)
+
+################################################################################
 # CUDA configuration
 ################################################################################
 

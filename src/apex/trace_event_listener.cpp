@@ -331,21 +331,47 @@ void trace_event_listener::write_to_trace(std::stringstream& events) {
     mtx->unlock();
 }
 
+std::string trace_event_listener::get_file_name() {
+    saved_node_id = apex::instance()->get_node_id();
+    std::stringstream ss;
+    ss << apex_options::output_file_path() << "/";
+    ss << "trace_events." << saved_node_id << ".json";
+#ifdef APEX_WITH_ZLIB
+    ss << ".gz";
+#endif
+    std::string tmp{ss.str()};
+    return tmp;
+}
+
+#ifdef APEX_WITH_ZLIB
+io::gzofstream& trace_event_listener::get_trace_file() {
+    static io::gzofstream _trace_file(get_file_name());
+    // automatically opens
+    static bool header{false};
+    if (!header) {
+        _trace_file << fixed << "{\n";
+        _trace_file << "\"displayTimeUnit\": \"ms\",\n";
+        _trace_file << "\"traceEvents\": [\n";
+    }
+    return _trace_file;
+}
+#else
+std::ofstream& trace_event_listener::get_trace_file() {
+    static std::ofstream _trace_file;
+    if (!_trace_file.is_open()) {
+        _trace_file.open(get_file_name());
+        _trace_file << fixed << "{\n";
+        _trace_file << "\"displayTimeUnit\": \"ms\",\n";
+        _trace_file << "\"traceEvents\": [\n";
+    }
+    return _trace_file;
+}
+#endif
+
 void trace_event_listener::flush_trace(void) {
     //_vthread_mutex.lock();
     //auto p = scoped_timer("APEX: Buffer Flush");
-    // check if the file is open
-    if (!trace_file.is_open()) {
-        saved_node_id = apex::instance()->get_node_id();
-        std::stringstream ss;
-        ss << apex_options::output_file_path() << "/";
-        ss << "trace_events." << saved_node_id << ".json";
-        trace_file.open(ss.str());
-        // write the preamble
-        trace_file << fixed << "{\n";
-        trace_file << "\"displayTimeUnit\": \"ms\",\n";
-        trace_file << "\"traceEvents\": [\n";
-    }
+    auto& trace_file = get_trace_file();
 #ifdef SERIAL
     // flush the trace
     trace_file << trace.rdbuf() << std::flush;
@@ -377,20 +403,19 @@ void trace_event_listener::flush_trace_if_necessary(void) {
 }
 
 void trace_event_listener::close_trace(void) {
-    if (trace_file.is_open()) {
-        std::stringstream ss;
-        ss << fixed;
-        ss << "{\"name\":\"APEX MAIN\""
-           << ", \"ph\":\"E\",\"pid\":"
-           << saved_node_id << ",\"tid\":0,\"ts\":"
-           << fixed << _end_time << "}\n";
-        ss << "]\n";
-        ss << "}\n" << std::endl;
-        write_to_trace(ss);
-        flush_trace();
-        //printf("Closing trace...\n"); fflush(stdout);
-        trace_file.close();
-    }
+    auto& trace_file = get_trace_file();
+    std::stringstream ss;
+    ss << fixed;
+    ss << "{\"name\":\"APEX MAIN\""
+       << ", \"ph\":\"E\",\"pid\":"
+       << saved_node_id << ",\"tid\":0,\"ts\":"
+       << fixed << _end_time << "}\n";
+    ss << "]\n";
+    ss << "}\n" << std::endl;
+    write_to_trace(ss);
+    flush_trace();
+    //printf("Closing trace...\n"); fflush(stdout);
+    trace_file.close();
 }
 
 /* This function is used by APEX threads so that TAU knows about them. */
