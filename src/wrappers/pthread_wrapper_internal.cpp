@@ -81,46 +81,46 @@ static pthread_once_t key_once = PTHREAD_ONCE_INIT;
  */
 class apex_wrapper {
 public:
-  apex_wrapper(void) : _wrapped(false), _p(nullptr), _func(nullptr) {
+  apex_wrapper(void) : _wrapped(false), _twp(nullptr), _timing(false) {
   }
-  apex_wrapper(start_routine_p func) : _wrapped(false), _p(nullptr), _func(func) {
-    apex::register_thread("APEX pthread wrapper");
+  apex_wrapper(start_routine_p func, std::shared_ptr<apex::task_wrapper> parent) :
+    _wrapped(false), _twp(nullptr), _timing(false) {
+    apex::register_thread("APEX pthread wrapper", parent);
+    //_twp = apex::new_task((apex_function_address)func, UINTMAX_MAX, parent);
+    _twp = apex::new_task((apex_function_address)func);
   }
   ~apex_wrapper() {
     this->stop();
     apex::exit_thread();
   }
   void start(void) {
-    if (_func != NULL) {
-      //_p = std::make_shared<apex::profiler>(apex::start((apex_function_address)_func));
-      _p = apex::start((apex_function_address)_func);
+    if (_twp != nullptr) {
+      apex::start(_twp);
+      _timing = true;
     }
   }
   void restart(void) {
-    if (_func != NULL) {
-      //_p = std::make_shared<apex::profiler>(apex::start((apex_function_address)_func));
-      _p = apex::start((apex_function_address)_func);
+    if (_twp != nullptr) {
+      apex::start(_twp);
+      _timing = true;
     }
   }
   void yield(void) {
-    if (_p != NULL && !_p->stopped) {
-      //apex::yield(_p.get());
-      apex::yield(_p);
-      _p = nullptr;
+    if (_timing) {
+      apex::yield(_twp);
+      _timing = false;
     }
   }
   void stop(void) {
-    if (_p != NULL && !_p->stopped) {
-      //apex::stop(_p.get());
-      apex::stop(_p);
-      _p = nullptr;
+    if (_timing) {
+      apex::stop(_twp);
+      _timing = false;
     }
   }
   bool _wrapped;
 private:
-  //std::shared_ptr<apex::profiler> _p;
-  apex::profiler * _p;
-  start_routine_p _func;
+  std::shared_ptr<apex::task_wrapper> _twp;
+  bool _timing;
 };
 
 /*
@@ -158,6 +158,7 @@ struct apex_pthread_pack
 {
   start_routine_p start_routine;
   void * arg;
+  std::shared_ptr<apex::task_wrapper> parent;
 };
 
 /*
@@ -172,7 +173,7 @@ void * apex_pthread_function(void *arg)
   apex_wrapper * wrapper = (apex_wrapper*)pthread_getspecific(wrapper_flags_key);
   // if it doesn't exist, create one.
   if (wrapper == NULL) {
-    wrapper = new apex_wrapper(pack->start_routine);
+    wrapper = new apex_wrapper(pack->start_routine, pack->parent);
     pthread_setspecific(wrapper_flags_key, (void*)wrapper);
   }
 
@@ -211,7 +212,8 @@ int apex_pthread_create_wrapper(pthread_create_p pthread_create_call,
 {
   // disable the memory wrapper
   apex::in_apex prevent_problems;
-  apex::profiler * p = apex::start("pthread_create");
+  std::shared_ptr<apex::task_wrapper> parent_task = apex::new_task("pthread_create");
+  apex::start(parent_task);
   // JUST ONCE, create the key
   (void) pthread_once(&key_once, make_key);
   // get the thread-local variable
@@ -230,17 +232,20 @@ int apex_pthread_create_wrapper(pthread_create_p pthread_create_call,
     apex_pthread_pack * pack = new apex_pthread_pack;
     pack->start_routine = start_routine;
     pack->arg = arg;
+    pack->parent = parent_task;
 
     // create the pthread, pass in our proxy function and the packed data
     retval = pthread_create_call(threadp, attr, apex_pthread_function, (void*)pack);
 
     // register the dependency with APEX.
+    /*
     if (retval == 0) {
         apex::new_task((apex_function_address)start_routine, ++task_id);
     }
+    */
     wrapper->_wrapped = false;
   }
-  apex::stop(p);
+  apex::stop(parent_task);
   return retval;
 }
 

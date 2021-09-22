@@ -325,7 +325,7 @@ while (( "$#" )); do
       ;;
     --apex:preload)
       if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
-        export USER_PRELOAD=$2
+        export USER_PRELOAD="${2}:"
         preload=yes
         shift 2
       else
@@ -382,9 +382,9 @@ if [ $memory = yes ]; then
     APEX_LD_AUDIT=${BASEDIR}/lib/libapex_dl_auditor${SHLIBX}
 fi
 if [ ${apple} = 1 ]; then
-    APEX_LD_PRELOAD=${USER_PRELOAD}:${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/lib/libapex${SHLIBX}:${OMPT_LIB}
+    APEX_LD_PRELOAD=${USER_PRELOAD}${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/lib/libapex${SHLIBX}:${OMPT_LIB}
 else
-    APEX_LD_PRELOAD=${USER_PRELOAD}:${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/lib/libapex${SHLIBX}:${OMPT_LIB}:${LD_PRELOAD}
+    APEX_LD_PRELOAD=${USER_PRELOAD}${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/lib/libapex${SHLIBX}:${OMPT_LIB}:${LD_PRELOAD}
 fi
 
 # remove spaces and double colons
@@ -454,6 +454,7 @@ fi
 ${debugger} ${PARAMS}
 retval=$?
 unset LD_PRELOAD
+unset DYLD_INSERT_LIBRARIES
 rm -f ./.gdbcmds
 
 if [ ${retval} != 0 ] ; then

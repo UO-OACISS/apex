@@ -20,13 +20,10 @@ int fib (int in, std::shared_ptr<apex::task_wrapper> parent) {
     int b = in-2;
     auto future_a = std::async(std::launch::async, fib, a, ast.get_task_wrapper());
 
-    ast.yield();
+    //ast.yield();
     int result_b = fib(b, nullptr);
-    ast.start();
-
-    //apex::yield(twp);
     int result_a = future_a.get();
-    //apex::start(twp);
+    //ast.start();
     int result = result_a + result_b;
     return result;
 }

@@ -1600,7 +1600,8 @@ void cleanup(void) {
     FUNCTION_EXIT
 }
 
-void register_thread(const std::string &name)
+void register_thread(const std::string &name,
+    std::shared_ptr<task_wrapper> parent)
 {
     in_apex prevent_deadlocks;
     FUNCTION_ENTER
@@ -1630,19 +1631,27 @@ void register_thread(const std::string &name)
         ss << "OS Thread: ";
         auto tmp = top_level_timer();
         // start top-level timers for threads
+        std::string task_name;
         if (name.find("worker-thread") != name.npos) {
             ss << "worker-thread";
-            tmp = start(ss.str());
+            task_name = ss.str();
         } else {
             string::size_type index = name.find("#");
             if (index!=std::string::npos) {
                 string short_name = name.substr(0,index);
                 ss << short_name;
-                tmp = start(ss.str());
             } else {
                 ss << name;
-                tmp = start(ss.str());
             }
+            task_name = ss.str();
+        }
+        if (parent == nullptr) {
+            tmp = start(task_name);
+        } else {
+            std::shared_ptr<task_wrapper> twp =
+            new_task(task_name, UINTMAX_MAX, parent);
+            start(twp);
+            tmp = twp->prof;
         }
         top_level_timer(tmp);
     }

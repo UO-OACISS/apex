@@ -177,15 +177,25 @@ public:
     double get_start_us() {
         return start_ns*1.0e-3;
     }
+    double get_start_ms() {
+        return start_ns*1.0e-6;
+    }
     uint64_t get_stop_ns() {
         return end_ns;
     }
     double get_stop_us() {
         return end_ns*1.0e-3;
     }
+    double get_stop_ms() {
+        return end_ns*1.0e-6;
+    }
     static double now_us( void ) {
         double stamp = (double)now_ns();
         return stamp*1.0e-3;
+    }
+    static double now_ms( void ) {
+        double stamp = (double)now_ns();
+        return stamp*1.0e-6;
     }
     double elapsed() {
         if(is_counter) {
@@ -199,6 +209,9 @@ public:
     }
     double elapsed_us() {
         return elapsed() * 1.0e-3;
+    }
+    double elapsed_ms() {
+        return elapsed() * 1.0e-6;
     }
     double elapsed_seconds() {
         return elapsed() * 1.0e-9;

@@ -11,7 +11,7 @@ void* someThread(void* tmp)
     /* Register this thread with APEX */
     apex::register_thread(name);
     /* Start a timer */
-    apex::profiler* p = apex::start((apex_function_address)&someThread);
+    apex::profiler* p = apex::start("someThread (internal)");
     /* ... */
     /* do some computation */
     /* ... */

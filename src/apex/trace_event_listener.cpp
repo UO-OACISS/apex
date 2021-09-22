@@ -31,7 +31,7 @@ trace_event_listener::~trace_event_listener (void) {
 
 void trace_event_listener::end_trace_time(void) {
     if (_end_time == 0.0) {
-        _end_time = profiler::now_us();
+        _end_time = profiler::now_ms();
     }
 }
 
@@ -43,7 +43,7 @@ void trace_event_listener::on_startup(startup_event_data &data) {
        << "{\"name\":\"APEX MAIN\""
        << ",\"ph\":\"B\",\"pid\":"
        << saved_node_id << ",\"tid\":0,\"ts\":"
-       << profiler::now_us() << "},\n";
+       << profiler::now_ms() << "},\n";
     ss << "{\"name\":\"process_name\""
        << ",\"ph\":\"M\",\"pid\":" << saved_node_id
        << ",\"args\":{\"name\":"
@@ -135,10 +135,11 @@ inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
             pguid = p->tt_ptr->parent->guid;
         }
         ss << "{\"name\":\"" << p->get_task_id()->get_name()
-              << "\",\"ph\":\"X\",\"pid\":"
+              << "\",\"cat\":\"CPU\""
+              << ",\"ph\":\"X\",\"pid\":"
               << saved_node_id << ",\"tid\":" << tid
-              << ",\"ts\":" << p->get_start_us() << ", \"dur\": "
-              << p->get_stop_us() - p->get_start_us()
+              << ",\"ts\":" << p->get_start_ms() << ",\"dur\":"
+              << p->get_stop_ms() - p->get_start_ms()
               << ",\"args\":{\"GUID\":" << p->guid << ",\"Parent GUID\":" << pguid << "}},\n";
         write_to_trace(ss);
         flush_trace_if_necessary();
@@ -158,9 +159,10 @@ void trace_event_listener::on_sample_value(sample_value_event_data &data) {
     if (!_terminate) {
         std::stringstream ss;
         ss << fixed;
-        ss << "{\"name\": \"" << *(data.counter_name)
-              << "\",\"ph\":\"C\",\"pid\": " << saved_node_id
-              << ",\"ts\":" << profiler::now_us()
+        ss << "{\"name\":\"" << *(data.counter_name)
+              << "\",\"cat\":\"CPU\""
+              << ",\"ph\":\"C\",\"pid\":" << saved_node_id
+              << ",\"ts\":" << profiler::now_ms()
               << ",\"args\":{\"value\":" << data.counter_value
               << "}},\n";
         write_to_trace(ss);
@@ -248,10 +250,11 @@ void trace_event_listener::on_async_event(async_thread_node &node,
             pguid = p->tt_ptr->parent->guid;
         }
         ss << "{\"name\":\"" << p->get_task_id()->get_name()
-              << "\",\"ph\":\"X\",\"pid\":"
+              << "\",\"cat\":\"GPU\""
+              << ",\"ph\":\"X\",\"pid\":"
               << saved_node_id << ",\"tid\":" << tid
-              << ",\"ts\":" << p->get_start_us() << ",\"dur\":"
-              << p->get_stop_us() - p->get_start_us()
+              << ",\"ts\":" << p->get_start_ms() << ",\"dur\":"
+              << p->get_stop_ms() - p->get_start_ms()
               << ",\"args\":{\"GUID\":" << p->guid << ",\"Parent GUID\":" << pguid << "}},\n";
         write_to_trace(ss);
         flush_trace_if_necessary();
@@ -265,8 +268,9 @@ void trace_event_listener::on_async_metric(async_thread_node &node,
         ss << fixed;
         std::string tid{make_tid(node)};
         ss << "{\"name\": \"" << p->get_task_id()->get_name()
-              << "\",\"ph\":\"C\",\"pid\": " << saved_node_id
-              << ",\"ts\":" << p->get_stop_us()
+              << "\",\"cat\":\"GPU\""
+              << ",\"ph\":\"C\",\"pid\": " << saved_node_id
+              << ",\"ts\":" << p->get_stop_ms()
               << ",\"args\":{\"value\":" << p->value
               << "}},\n";
         write_to_trace(ss);

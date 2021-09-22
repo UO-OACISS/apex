@@ -17,15 +17,14 @@ int fib (int in, std::shared_ptr<apex::task_wrapper> parent) {
         return 1;
     }
     int a = in-1;
-    auto future_a = std::async(std::launch::async, fib, a, ast.get_task_wrapper());
-
     int b = in-2;
+    auto future_a = std::async(std::launch::async, fib, a, ast.get_task_wrapper());
     auto future_b = std::async(std::launch::async, fib, b, ast.get_task_wrapper());
 
-    //apex::yield(twp);
+    //ast.yield();
     int result_a = future_a.get();
     int result_b = future_b.get();
-    //apex::start(twp);
+    //ast.start();
     int result = result_a + result_b;
     return result;
 }

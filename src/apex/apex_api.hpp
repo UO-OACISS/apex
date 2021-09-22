@@ -445,9 +445,11 @@ APEX_EXPORT std::string& version(void);
  values for this thread.
 
  \param name The name that will be assigned to the new thread.
+ \param parent The task that will be the new thread's parent (optional).
  \return No return value.
  */
-APEX_EXPORT void register_thread(const std::string &name);
+APEX_EXPORT void register_thread(const std::string &name,
+    std::shared_ptr<task_wrapper> parent = nullptr);
 
 /**
  \brief Exit a thread.
