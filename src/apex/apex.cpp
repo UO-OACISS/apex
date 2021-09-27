@@ -1645,6 +1645,10 @@ void cleanup(void) {
     FUNCTION_EXIT
 }
 
+void register_thread_hpx(const std::string &name) {
+    register_thread(name);
+}
+
 void register_thread(const std::string &name,
     std::shared_ptr<task_wrapper> parent)
 {
@@ -2393,7 +2397,7 @@ static void apex_register_with_hpx(void) {
     reg.record.finalize = &APEX_TOP_LEVEL_PACKAGE::finalize;
     hpx::util::external_timer::register_external_timer(reg);
     reg.type = hpx::util::external_timer::register_thread_flag;
-    reg.record.register_thread = &APEX_TOP_LEVEL_PACKAGE::register_thread;
+    reg.record.register_thread = &APEX_TOP_LEVEL_PACKAGE::register_thread_hpx;
     hpx::util::external_timer::register_external_timer(reg);
     reg.type = hpx::util::external_timer::new_task_string_flag;
     reg.record.new_task_string = &new_task_adapter;
