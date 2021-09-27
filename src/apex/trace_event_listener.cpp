@@ -39,12 +39,14 @@ void trace_event_listener::on_startup(startup_event_data &data) {
     APEX_UNUSED(data);
     saved_node_id = apex::instance()->get_node_id();
     std::stringstream ss;
+    /*
     ss << fixed
-       << "{\"name\":\"APEX MAIN\""
+       << "{\"name\":\"" << APEX_MAIN_STR << "\""
        << ",\"ph\":\"B\",\"pid\":"
        << saved_node_id << ",\"tid\":0,\"ts\":"
        << profiler::now_ms() << "},\n";
-    ss << "{\"name\":\"process_name\""
+       */
+    ss << fixed << "{\"name\":\"process_name\""
        << ",\"ph\":\"M\",\"pid\":" << saved_node_id
        << ",\"args\":{\"name\":"
        << "\"Process " << saved_node_id << "\"}},\n";
@@ -416,10 +418,12 @@ void trace_event_listener::close_trace(void) {
     auto& trace_file = get_trace_file();
     std::stringstream ss;
     ss << fixed;
-    ss << "{\"name\":\"APEX MAIN\""
+    /*
+    ss << "{\"name\":\"" << APEX_MAIN_STR << "\""
        << ", \"ph\":\"E\",\"pid\":"
        << saved_node_id << ",\"tid\":0,\"ts\":"
        << fixed << _end_time << "}\n";
+       */
     ss << "]\n";
     ss << "}\n" << std::endl;
     write_to_trace(ss);

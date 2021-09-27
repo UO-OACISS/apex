@@ -68,6 +68,10 @@ private:
   bool _is_worker;
   // a thread-specific task counter for generating GUIDS
   uint64_t _task_count;
+  // the top level timer on this thread
+  std::shared_ptr<task_wrapper> _top_level_timer;
+  // flag to help with cleanup
+  bool _exiting;
   static common_data& common() {
     static common_data common;
     return common;
@@ -89,20 +93,27 @@ private:
   // constructor
   thread_instance (bool is_worker) :
         _id(-1), _id_reversed(UINTMAX_MAX), _runtime_id(-1),
-        _top_level_timer_name(), _is_worker(is_worker), _task_count(0) {
+        _top_level_timer_name(), _is_worker(is_worker), _task_count(0),
+        _top_level_timer(nullptr), _exiting(false) {
     /* Even do this for non-workers, because for CUPTI processing we need to
      * generate GUIDs for the activity events! */
     _id = common()._num_threads++;
     /* reverse the TID and shift it 32 bits, so we can use it to generate
        task-private GUIDS that are unique within the process space. */
     _id_reversed = ((uint64_t)(simple_reverse((uint32_t)_id))) << 32;
-    if (is_worker) {
+    if (is_worker && !_exiting) {
         common()._num_workers++;
     }
     _runtime_id = _id; // can be set later, if necessary
     common()._active_threads++;
 
   };
+  // private default constructor
+  thread_instance () = delete;
+  // private copy constructor
+  thread_instance (thread_instance const&)= delete;
+  // private assignment constructor
+  thread_instance& operator=(thread_instance const&)= delete;
   // map from function address to name - unique to all threads to avoid locking
   std::map<apex_function_address, std::string> _function_map;
   std::vector<profiler*> current_profilers;
@@ -144,6 +155,19 @@ public:
   static const char * program_path(void);
   static bool is_worker() { return instance()._is_worker; }
   static uint64_t get_guid() { return instance()._get_guid(); }
+  static std::shared_ptr<task_wrapper>& get_top_level_timer() {
+    return instance(false)._top_level_timer;
+  }
+  static void set_top_level_timer(std::shared_ptr<task_wrapper>& tlt) {
+    instance(false)._top_level_timer = tlt;
+  }
+  static void clear_top_level_timer() {
+    instance(false)._top_level_timer = nullptr;
+  }
+  static void exiting() {
+    instance(false)._exiting = true;
+  }
+
 #ifdef APEX_DEBUG
   static std::mutex _open_profiler_mutex;
   static std::unordered_set<std::string> open_profilers;

@@ -65,7 +65,7 @@ std::map<std::string, apex_profile*> reduce_profiles() {
     for (auto tid : tids) {
         std::string tmp{tid.get_name()};
         // skip APEX MAIN, it's bogus anyway
-        if (tmp.compare("APEX MAIN") == 0) { continue; }
+        if (tmp.compare(APEX_MAIN_STR) == 0) { continue; }
         //DEBUG_PRINT("%d Inserting: %s\n", commrank, tmp.c_str());
         all_names.insert(tmp);
         tid_map.insert(std::pair<std::string, task_identifier>(tmp, tid));

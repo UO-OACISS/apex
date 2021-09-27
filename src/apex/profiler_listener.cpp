@@ -74,7 +74,6 @@ const int num_non_worker_threads_registered = 1; // including the main thread
 //bool synchronous_flush{false};
 #endif
 
-#define APEX_MAIN "APEX MAIN"
 #define APEX_SYNCHRONOUS_PROCESSING 1
 
 #include "tau_listener.hpp"
@@ -541,7 +540,7 @@ std::unordered_set<profile*> free_profiles;
                 (p->get_accumulated_seconds())) << "   " ;
         }
         //screen_output << " --n/a--   " ;
-        if (action_name.compare(APEX_MAIN) == 0) {
+        if (action_name.compare(APEX_MAIN_STR) == 0) {
             screen_output << string_format(FORMAT_PERCENT, 100.0);
         } else {
             total_accumulated += p->get_accumulated_seconds();
@@ -638,22 +637,22 @@ std::unordered_set<profile*> free_profiles;
     }
     // our TOTAL available time is the elapsed * the number of threads, or cores
     int num_worker_threads = thread_instance::get_num_workers();
-    task_identifier main_id(APEX_MAIN);
-    profile * total_time = get_profile(main_id);
+    auto main_id = task_identifier::get_main_task_id();
+    profile * total_time = get_profile(*main_id);
+#ifndef APEX_SYNCHRONOUS_PROCESSING
     /* The profiles haven't been processed yet. */
     while (total_time == nullptr) {
-#ifndef APEX_SYNCHRONOUS_PROCESSING
 #ifdef APEX_HAVE_HPX
         // schedule an HPX action
         apex_schedule_process_profiles();
 #else
         queue_signal.post();
 #endif
-#endif  // APEX_SYNCHRONOUS_PROCESSING
         // wait for profiles to update
         std::this_thread::sleep_for(std::chrono::microseconds(100));
         total_time = get_profile(main_id);
     }
+#endif  // APEX_SYNCHRONOUS_PROCESSING
     double wall_clock_main = total_time->get_accumulated_seconds();
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
@@ -770,7 +769,7 @@ std::unordered_set<profile*> free_profiles;
             profile tmp(p->second);
             write_one_timer(name, &tmp, screen_output, csv_output,
                 total_accumulated, divisor, true);
-            if (name.compare(APEX_MAIN) != 0) {
+            if (name.compare(APEX_MAIN_STR) != 0) {
                 total_hpx_threads = total_hpx_threads + tmp.get_calls();
             }
         }
@@ -851,8 +850,8 @@ std::unordered_set<profile*> free_profiles;
 
     // our TOTAL available time is the elapsed * the number of threads, or cores
     int num_worker_threads = thread_instance::get_num_workers();
-    task_identifier main_id(APEX_MAIN);
-    profile * total_time = get_profile(main_id);
+    auto main_id = task_identifier::get_main_task_id();
+    profile * total_time = get_profile(*main_id);
     double wall_clock_main = total_time->get_accumulated_seconds();
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
@@ -981,8 +980,8 @@ std::unordered_set<profile*> free_profiles;
 
     // our TOTAL available time is the elapsed * the number of threads, or cores
     int num_worker_threads = thread_instance::get_num_workers();
-    task_identifier main_id(APEX_MAIN);
-    profile * total_time = get_profile(main_id);
+    auto main_id = task_identifier::get_main_task_id();
+    profile * total_time = get_profile(*main_id);
     double wall_clock_main = total_time->get_accumulated_seconds();
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
@@ -1057,7 +1056,7 @@ std::unordered_set<profile*> free_profiles;
       task_identifier task_id = it2->first;
       if(p->get_type() == APEX_TIMER) {
         string action_name = task_id.get_name();
-        if(strcmp(action_name.c_str(), APEX_MAIN) == 0) {
+        if(action_name.compare(APEX_MAIN_STR) == 0) {
           mainp = p;
         } else {
           myfile << "\"" << action_name << "\" ";
@@ -1067,7 +1066,7 @@ std::unordered_set<profile*> free_profiles;
       }
     }
     if (mainp != nullptr) {
-      myfile << "\"" << APEX_MAIN << "\" ";
+      myfile << "\"" << APEX_MAIN_STR << "\" ";
       format_line (myfile, mainp, not_main);
     }
 
@@ -1746,8 +1745,6 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         dependency_queue()->enqueue(new task_dependency(pid, id));
         return;
     }
-    task_identifier * parent = task_wrapper::get_apex_main_wrapper()->task_id;
-    dependency_queue()->enqueue(new task_dependency(parent, id));
   }
 
   /* Communication send event. Save the number of bytes. */

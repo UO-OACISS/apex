@@ -116,12 +116,16 @@ std::atomic<apex*> apex::m_pInstance(nullptr);
 
 std::atomic<bool> _notify_listeners(true);
 std::atomic<bool> _measurement_stopped(false);
-profiler * top_level_timer(profiler * _p = nullptr, bool force = false) {
-    static APEX_NATIVE_TLS profiler * top_level_timer = nullptr;
-    if (_p != nullptr || force) {
-        top_level_timer = _p;
-    }
+/*
+std::shared_ptr<task_wrapper>& top_level_timer() {
+    static APEX_NATIVE_TLS std::shared_ptr<task_wrapper> top_level_timer = nullptr;
     return top_level_timer;
+}
+*/
+
+std::shared_ptr<task_wrapper>& main_timer() {
+    static std::shared_ptr<task_wrapper> main_timer = nullptr;
+    return main_timer;
 }
 
 /*
@@ -449,17 +453,24 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
      * The reason is that if the program calls "exit", our atexit() processing
      * will stop this timer, effectively stopping all of its children as well,
      * so we will get an accurate measurement for abnormal termination. */
-    if (apex_options::top_level_os_threads() || thread_name != nullptr) {
-        auto tmp = top_level_timer();
-        // start top-level timers for threads
+    auto main = task_wrapper::get_apex_main_wrapper();
+    start(main);
+    main_timer() = main;
+    if (apex_options::top_level_os_threads()) {
+        // start top-level timer for main thread, it will get automatically
+        // stopped when the main wrapper timer is stopped.
+        string task_name;
         if (thread_name) {
             stringstream ss;
             ss << "Main Thread: " << thread_name;
-            tmp = start(ss.str().c_str());
+            task_name = ss.str();
         } else {
-            tmp = start("Main Thread");
+            task_name = "Main Thread";
         }
-        top_level_timer(tmp);
+        std::shared_ptr<task_wrapper> twp =
+            new_task(task_name, UINTMAX_MAX, main);
+        start(twp);
+        thread_instance::set_top_level_timer(twp);
     }
     if (apex_options::use_verbose() && instance->get_node_id() == 0) {
       std::cout << version() << std::endl;
@@ -529,7 +540,6 @@ inline std::shared_ptr<task_wrapper> _new_task(
             tt_ptr->parent = p->tt_ptr;
         } else {
             tt_ptr->parent = task_wrapper::get_apex_main_wrapper();
-            // tt_ptr->parent_guid is 0 by default
         }
     }
     if (apex_options::use_tasktree_output()) {
@@ -585,10 +595,15 @@ profiler* start(const std::string &timer_name)
         tt_ptr = _new_task(id, UINTMAX_MAX, null_task_wrapper, instance);
         APEX_UTIL_REF_COUNT_TASK_WRAPPER
         //read_lock_type l(instance->listener_mutex);
-        //cout << thread_instance::get_id() << " Start : " << id->get_name() <<
-        //endl; fflush(stdout);
+        /*
+        std::stringstream dbg;
+        dbg << thread_instance::get_id() << " Start : " << id->get_name() << endl;
+            printf("%s\n",dbg.str().c_str());
+        fflush(stdout);
+        */
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             success = instance->listeners[i]->on_start(tt_ptr);
+            tt_ptr->prof = thread_instance::instance().get_current_profiler();
             if (!success && i == 0) {
                 //cout << thread_instance::get_id() << " *** Not success! " <<
                 //id->get_name() << endl; fflush(stdout);
@@ -639,11 +654,16 @@ profiler* start(const apex_function_address function_address) {
         task_identifier * id = task_identifier::get_task_id(function_address);
         tt_ptr = _new_task(id, UINTMAX_MAX, null_task_wrapper, instance);
         APEX_UTIL_REF_COUNT_TASK_WRAPPER
-        //cout << thread_instance::get_id() << " Start : " << id->get_name() <<
-        //endl; fflush(stdout);
+        /*
+        std::stringstream dbg;
+        dbg << thread_instance::get_id() << " Start : " << id->get_name() << endl;
+            printf("%s\n",dbg.str().c_str());
+        fflush(stdout);
+        */
         //read_lock_type l(instance->listener_mutex);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             success = instance->listeners[i]->on_start(tt_ptr);
+            tt_ptr->prof = thread_instance::instance().get_current_profiler();
             if (!success && i == 0) {
                 //cout << thread_instance::get_id() << " *** Not success! " <<
                 //id->get_name() << endl; fflush(stdout);
@@ -715,8 +735,12 @@ void start(std::shared_ptr<task_wrapper> tt_ptr) {
     }
     if (_notify_listeners) {
         bool success = true;
-        //cout << thread_instance::get_id() << " Start : " <<tt_ptr->task_id->get_name() <<
-        //endl; fflush(stdout);
+        /*
+        std::stringstream dbg;
+        dbg << thread_instance::get_id() << " Start : " << tt_ptr->task_id->get_name() << endl;
+        printf("%s\n",dbg.str().c_str());
+        fflush(stdout);
+        */
         //read_lock_type l(instance->listener_mutex);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             success = instance->listeners[i]->on_start(tt_ptr);
@@ -956,8 +980,13 @@ void stop(profiler* the_profiler, bool cleanup) {
             instance->listeners[i]->on_stop(p);
         }
     }
-    //cout << thread_instance::get_id() << " Stop : " <<
-    //the_profiler->tt_ptr->get_task_id()->get_name() << endl; fflush(stdout);
+    /*
+    std::stringstream dbg;
+    dbg << thread_instance::get_id() << "->" << the_profiler->tt_ptr->thread_id << " Stop : " <<
+    the_profiler->tt_ptr->get_task_id()->get_name() << endl;
+            printf("%s\n",dbg.str().c_str());
+    fflush(stdout);
+    */
     static std::string apex_process_profile_str("apex::process_profiles");
     if (p->tt_ptr->get_task_id()->get_name(false).compare(apex_process_profile_str)
         == 0) {
@@ -1010,8 +1039,13 @@ void stop(std::shared_ptr<task_wrapper> tt_ptr) {
             instance->listeners[i]->on_stop(p);
         }
     }
-    //cout << thread_instance::get_id() << " Stop : " <<
-    //tt_ptr->get_task_id()->get_name() << endl; fflush(stdout);
+    /*
+    std::stringstream dbg;
+    dbg << thread_instance::get_id() << "->" << tt_ptr->thread_id << " Stop : " <<
+    tt_ptr->get_task_id()->get_name() << endl;
+            printf("%s\n",dbg.str().c_str());
+    fflush(stdout);
+    */
     static std::string apex_process_profile_str("apex::process_profiles");
     if (p->tt_ptr->get_task_id()->get_name(false).compare(apex_process_profile_str)
         == 0) {
@@ -1500,7 +1534,18 @@ void finalize()
     FUNCTION_ENTER
     // FIRST, stop the top level timer, while the infrastructure is still
     // functioning.
-    if (top_level_timer() != nullptr) { stop(top_level_timer()); top_level_timer(nullptr, true); }
+    auto tmp = thread_instance::get_top_level_timer();
+    if (tmp != nullptr) {
+        stop(tmp);
+        thread_instance::clear_top_level_timer();
+    }
+    // Second, stop the main timer, while the infrastructure is still
+    // functioning.
+    tmp = main_timer();
+    if (tmp != nullptr) {
+        stop(tmp);
+        main_timer() = nullptr;
+    }
     // if not done already...
     shutdown_throttling(); // stop thread scheduler policies
     stop_all_async_threads(); // stop OS/HW monitoring
@@ -1629,7 +1674,6 @@ void register_thread(const std::string &name,
     if (apex_options::top_level_os_threads()) {
         stringstream ss;
         ss << "OS Thread: ";
-        auto tmp = top_level_timer();
         // start top-level timers for threads
         std::string task_name;
         if (name.find("worker-thread") != name.npos) {
@@ -1645,15 +1689,14 @@ void register_thread(const std::string &name,
             }
             task_name = ss.str();
         }
-        if (parent == nullptr) {
-            tmp = start(task_name);
-        } else {
-            std::shared_ptr<task_wrapper> twp =
-            new_task(task_name, UINTMAX_MAX, parent);
-            start(twp);
-            tmp = twp->prof;
-        }
-        top_level_timer(tmp);
+        // if the parent is null, then assume the new thread was
+        // spawned by the main timer.
+        std::shared_ptr<task_wrapper> twp =
+            new_task(task_name, UINTMAX_MAX,
+            (parent == nullptr ? main_timer() : parent));
+        start(twp);
+        //printf("New thread: %p\n", &(*twp));
+        thread_instance::set_top_level_timer(twp);
     }
 }
 
@@ -1664,7 +1707,19 @@ void exit_thread(void)
     apex* instance = apex::instance();
     // protect against calls after finalization
     if (!instance || _exited) return;
-    if (top_level_timer() != nullptr) { stop(top_level_timer()); top_level_timer(nullptr, true); }
+    // protect against multiple calls from the same thread
+    static APEX_NATIVE_TLS bool _exiting = false;
+    if (_exiting) return;
+    _exiting = true;
+    auto tmp = thread_instance::get_top_level_timer();
+    // tell the timer cleanup that we are exiting
+    thread_instance::exiting();
+    //printf("Old thread: %p\n", &(*tmp));
+    if (tmp != nullptr) {
+        stop(tmp);
+        thread_instance::clear_top_level_timer();
+    }
+    // ok to set this now - we need everything still running
     _exited = true;
     event_data data;
     if (_notify_listeners) {

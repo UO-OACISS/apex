@@ -17,6 +17,8 @@
 #include <utility>
 #include <cstddef>
 
+constexpr char APEX_MAIN_STR[] = "APEX MAIN";
+
 namespace apex {
 
 class task_identifier {
@@ -62,6 +64,10 @@ public:
 
   static task_identifier * get_task_id (apex_function_address a);
   static task_identifier * get_task_id (const std::string& n);
+  static task_identifier * get_main_task_id () {
+    static const std::string apex_main_str{APEX_MAIN_STR};
+    return get_task_id(apex_main_str);
+  };
   std::string get_name(bool resolve = true);
   std::string get_short_name();
   ~task_identifier() { }

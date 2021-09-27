@@ -71,8 +71,7 @@ void Node::writeNode(std::ofstream& outfile, double total) {
         outfile << std::endl;
     }
 
-    const std::string apex_main_str("APEX MAIN");
-    double acc = (data == task_identifier::get_task_id(apex_main_str)) ?
+    double acc = (data == task_identifier::get_main_task_id()) ?
         total : accumulated;
     node_color * c = get_node_color_visible(acc, 0.0, total);
     double ncalls = (calls == 0) ? 1 : calls;
@@ -103,8 +102,7 @@ double Node::writeNodeASCII(std::ofstream& outfile, double total, size_t indent)
     outfile << "|-> ";
     indent++;
     // write out the inclusive and percent of total
-    const std::string apex_main_str("APEX MAIN");
-    double acc = (data == task_identifier::get_task_id(apex_main_str)) ?
+    double acc = (data == task_identifier::get_main_task_id()) ?
         total : accumulated;
     double percentage = (accumulated / total) * 100.0;
     outfile << std::fixed << std::setprecision(5) << acc << " - "

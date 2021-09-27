@@ -87,6 +87,10 @@ thread_instance& thread_instance::instance(bool is_worker) {
 
 thread_instance::~thread_instance(void) {
     if (apex::get_program_over()) { return; }
+    if (_top_level_timer != nullptr) {
+        stop(_top_level_timer);
+        _top_level_timer = nullptr;
+    }
     if (_id == 0) {
         finalize();
     }
@@ -266,6 +270,7 @@ string thread_instance::map_addr_to_name(apex_function_address function_address)
 
 void thread_instance::set_current_profiler(profiler * the_profiler) {
     instance().current_profilers.push_back(the_profiler);
+    //printf("%lu pushing %s\n", get_id(), the_profiler->get_task_id()->get_short_name().c_str());
 }
 
 profiler * thread_instance::restore_children_profilers(
@@ -299,6 +304,8 @@ void thread_instance::clear_current_profiler(profiler * the_profiler,
         // unless...we happen to be exiting.  Bets are off.
         if (apex_options::suspend() == true) { return; }
         if (apex_options::untied_timers() == true) { return; }
+        // if we've already cleared the stack on this thread, we're fine
+        if (instance()._exiting) { return; }
         std::cerr << "APEX: Warning! empty profiler stack!!!\n";
         std::cerr << "If a profiler object was started on one OS thread ";
         std::cerr << "and stopped/yielded on another, please run with the ";
@@ -314,6 +321,7 @@ void thread_instance::clear_current_profiler(profiler * the_profiler,
     // get the current stack of timers
     auto &the_stack = instance().current_profilers;
     auto tmp = the_stack.back();
+    //printf("%lu popping %s\n", get_id(), tmp->get_task_id()->get_short_name().c_str());
     /* Uh-oh! Someone has caused the dreaded "overlapping timer" problem to
      * happen! No problem - stop the child timer.
      * Keep the children around, along with a reference to the parent's
@@ -345,6 +353,8 @@ void thread_instance::clear_current_profiler(profiler * the_profiler,
             if (the_stack.empty()) {
                 // unless...we happen to be exiting.  Bets are off.
                 if (apex_options::suspend() == true) { return; }
+                // if we've already cleared the stack on this thread, we're fine
+                if (instance()._exiting) { return; }
                 std::cerr << "Warning! empty profiler stack!\n";
                 APEX_ASSERT(false);
                 abort();
@@ -352,6 +362,7 @@ void thread_instance::clear_current_profiler(profiler * the_profiler,
             }
             // get the new top of the stack
             tmp = the_stack.back();
+            //printf("%lu popping? %s\n", get_id(), tmp->get_task_id()->get_short_name().c_str());
         }
         // done with the stack, allow proper recursion again.
         fixing_stack = false;

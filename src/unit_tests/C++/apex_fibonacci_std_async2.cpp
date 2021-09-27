@@ -9,7 +9,8 @@ int fib_results[FIB_RESULTS_PRE] = {0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610
 
 int fib (int in, std::shared_ptr<apex::task_wrapper> parent) {
     apex::scoped_thread st("fib thread");
-    apex::scoped_timer ast((uint64_t)&fib, parent);
+    apex::scoped_timer ast((uint64_t)&fib,
+        apex::apex_options::top_level_os_threads() ? nullptr : parent);
     if (in == 0) {
         return 0;
     }
@@ -21,7 +22,7 @@ int fib (int in, std::shared_ptr<apex::task_wrapper> parent) {
     auto future_a = std::async(std::launch::async, fib, a, ast.get_task_wrapper());
 
     //ast.yield();
-    int result_b = fib(b, nullptr);
+    int result_b = fib(b, ast.get_task_wrapper());
     int result_a = future_a.get();
     //ast.start();
     int result = result_a + result_b;
@@ -48,7 +49,8 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    auto future = std::async(fib, i, nullptr);
+    std::shared_ptr<apex::task_wrapper> parent = nullptr;
+    auto future = std::async(fib, i, parent);
     int result = future.get();
     std::cout << "fib of " << i << " is " << result << " (valid value: " << fib_results[i] << ")" << std::endl;
     apex::finalize();
