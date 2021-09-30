@@ -168,6 +168,7 @@ INSTALL(FILES apex.h
     simulated_annealing.hpp
     task_wrapper.hpp
     task_identifier.hpp
+    dependency_tree.hpp
     DESTINATION include)
 
 INSTALL(TARGETS apex RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
