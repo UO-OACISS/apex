@@ -629,6 +629,11 @@ std::unordered_set<profile*> free_profiles;
       }
   }
 
+  bool timer_cmp(pair<std::string, apex_profile*>& a,
+                 pair<std::string, apex_profile*>& b) {
+      return a.second->accumulated > b.second->accumulated;
+  }
+
   /* At program termination, write the measurements to the screen, or to CSV
    * file, or both. */
   void profiler_listener::finalize_profiles(dump_event_data &data, std::map<std::string, apex_profile*>& all_profiles) {
@@ -680,7 +685,8 @@ std::unordered_set<profile*> free_profiles;
         << total_main << " seconds" << endl;
     screen_output << "Available CPU time on all ranks: "
         << total_main * apex::instance()->get_num_ranks() << " seconds" << endl << endl;
-    double divisor = wall_clock_main; // could be total_main, for available CPU time.
+    //double divisor = wall_clock_main; // could be total_main, for available CPU time.
+    double divisor = total_main; // could be total_main, for available CPU time.
 
     double total_accumulated = 0.0;
     std::vector<std::string> id_vector;
@@ -751,19 +757,21 @@ std::unordered_set<profile*> free_profiles;
         screen_output << "--------------------------------------------";
     }
     screen_output << endl;
-    id_vector.clear();
+    // Declare vector of pairs
+    vector<pair<std::string, apex_profile*> > timer_vector;
     // iterate over the timers
-    for(auto it2 : all_profiles) {
-        string name = it2.first;
+    for(auto& it2 : all_profiles) {
         apex_profile * p = it2.second;
         if (p->type == APEX_TIMER) {
-            id_vector.push_back(name);
+            timer_vector.push_back(it2);
         }
     }
-    // sort by name
-    std::sort(id_vector.begin(), id_vector.end());
+    // sort by accumulated value
+    std::sort(timer_vector.begin(), timer_vector.end(), timer_cmp);
+
     // iterate over the timers
-    for(auto name : id_vector) {
+    for(auto& pair_itr : timer_vector) {
+        std::string name = pair_itr.first;
         auto p = all_profiles.find(name);
         if (p != all_profiles.end()) {
             profile tmp(p->second);
