@@ -22,6 +22,9 @@ class profiler;
 #include <chrono>
 #include <memory>
 #include "task_wrapper.hpp"
+#ifdef APEX_WITH_HIP
+#include <roctracer_ext.h>
+#endif
 
 namespace apex {
 
@@ -227,7 +230,17 @@ public:
         return duration;
     }
     static uint64_t now_ns() {
+    // This kinda sucks.  The clock drift between the GPU and the CPU is pretty bad
+    // with AMD GPUS.  No matter what we do, we can't get a correct delta between
+    // the GPU and the CPU clocks.  So, on AMD GPUS, take *ALL* timestamps on the
+    // GPU, even for host-side events.  Hopefully this isn't costly...
+#ifdef APEX_WITH_HIP
+        uint64_t ts;
+        roctracer_get_timestamp(&ts);
+        return ts;
+#else
         return time_point_to_nanoseconds(MYCLOCK::now());
+#endif
     }
 
     static profiler* get_disabled_profiler(void) {

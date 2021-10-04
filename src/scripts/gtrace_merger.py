@@ -23,6 +23,16 @@ if args.compressed:
 else:
     myglob = 'trace_events.*.json'
 
+tracefiles = glob.glob(myglob);
+if len(tracefiles) == 0:
+    print("No files found!")
+    if args.compressed:
+        print("  Are you sure they're compressed?")
+    else:
+        print("  Are they compressed?  If so, please use the --compressed argument")
+    parser.print_usage()
+    sys.exit(1)
+
 for counter, infile in enumerate(sorted(glob.glob(myglob))):
     print("Reading ", infile)
     #with open (infile, 'r') as jsonfile:

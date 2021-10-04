@@ -563,6 +563,9 @@ namespace apex {
             std::cerr << "Archive not created!" << std::endl; fflush(stderr);
             return;
         }
+#ifdef APEX_WITH_HIP
+        globalOffset = get_time() + synchronizeClocks();
+#else
         // synchronize global time offset based on archive creation time
         struct stat stat_buf;
         // wait for the file to exist
@@ -575,7 +578,8 @@ namespace apex {
 #else
         globalOffset = (stat_buf.st_mtim.tv_sec * 1000000000) +
         stat_buf.st_mtim.tv_nsec + synchronizeClocks();
-#endif
+#endif // __APPLE__
+#endif // APEX_WITH_HIP
         _initialized = true;
         return;
     }

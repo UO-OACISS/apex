@@ -1152,16 +1152,14 @@ namespace apex {
         ProcData *newData = nullptr;
         ProcData *periodData = nullptr;
 #ifdef APEX_WITH_CUDA
+        // monitoring option is checked in the constructor
         nvml::monitor nvml_reader;
-        if (apex_options::monitor_gpu()) {
-            nvml_reader.query();
-        }
+        nvml_reader.query();
 #endif
 #ifdef APEX_WITH_HIP
+        // monitoring option is checked in the constructor
         rsmi::monitor rsmi_reader;
-        if (apex_options::monitor_gpu()) {
-            rsmi_reader.query();
-        }
+        rsmi_reader.query();
 #endif
         while(ptw->wait()) {
             if (done) break;
@@ -1189,14 +1187,12 @@ namespace apex {
 #ifdef APEX_HAVE_LM_SENSORS
             mysensors->read_sensors();
 #endif
-            if (apex_options::monitor_gpu()) {
 #ifdef APEX_WITH_CUDA
-                nvml_reader.query();
+            nvml_reader.query();
 #endif
 #ifdef APEX_WITH_HIP
-                rsmi_reader.query();
+            rsmi_reader.query();
 #endif
-            }
             if (apex_options::use_tau()) {
                 tau_listener::Tau_stop_wrapper("proc_data_reader::read_proc: main loop");
             }

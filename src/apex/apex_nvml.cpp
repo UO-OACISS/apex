@@ -34,6 +34,11 @@ std::set<uint32_t> monitor::activeDeviceIndices;
 std::mutex monitor::indexMutex;
 
 monitor::monitor (void) {
+    if (!apex_options::monitor_gpu()) {
+        success = false;
+        return;
+    }
+    success = true;
     NVML_CALL(nvmlInit_v2());
     // get the total device count
     NVML_CALL(nvmlDeviceGetCount_v2(&deviceCount));
@@ -53,10 +58,13 @@ monitor::monitor (void) {
     activateDeviceIndex(0);
 }
 monitor::~monitor (void) {
-    NVML_CALL(nvmlShutdown());
+    if (success) {
+        NVML_CALL(nvmlShutdown());
+    }
 }
 
 void monitor::query(void) {
+    if (!success) { return; }
     indexMutex.lock();
     // use the copy constructor to get the set of active indices
     std::set<uint32_t> indexSet{activeDeviceIndices};
