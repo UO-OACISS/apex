@@ -35,7 +35,7 @@ int rank, num_ranks;
 
 // window location
 apex_profile * inValues = NULL;
-MPI_Win profile_window;
+MPI_Win profile_window = MPI_WIN_NULL;
 MPI_Group window_group;
 MPI_Datatype profile_type;
 size_t apex_profile_size;
@@ -244,7 +244,7 @@ void apex_global_teardown(void) {
 #ifdef __APPLE__
     if (profile_window != 0L) {
 #else
-    if (profile_window != NULL) {
+    if (profile_window != MPI_WIN_NULL) {
 #endif
     MPI_Win_free(&profile_window);
   }
