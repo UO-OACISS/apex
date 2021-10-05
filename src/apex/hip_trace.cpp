@@ -27,6 +27,9 @@
 #include <cstdlib>
 using namespace std;
 
+//#define APEX_WITH_KFD
+//#define APEX_WITH_HSA
+
 // roctx header file
 #include <roctx.h>
 // roctracer extension API
@@ -49,14 +52,22 @@ DEFINE_CONSTRUCTOR(init_tracing);
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // HIP Callbacks/Activity tracing
 //
-#define AMD_INTERNAL_BUILD
+//#if defined(__HCC__) || (defined(__clang__) && defined(__HIP__))
+#define __HIP_PLATFORM_AMD__
+//#endif
+//#if defined(__NVCC__) || defined(__CUDACC__)
+//#define __HIP_PLATFORM_NVIDIA__
+//#endif
+//#define AMD_INTERNAL_BUILD
 #include <roctracer_hip.h>
 #include <roctracer_hcc.h>
-#if defined(AMD_INTERNAL_BUILD) // enabled for now to simplify clock synchronization
+#if defined(APEX_WITH_HSA) && defined(AMD_INTERNAL_BUILD) // enabled for now to simplify clock synchronization
 // This rquires the -DAMD_INTERNAL_BUILD compiler flag
 #include <roctracer_hsa.h>
 #endif
+#if defined(APEX_WITH_KFD) // enabled for now to simplify compiling
 #include <roctracer_kfd.h>
+#endif
 #include <roctracer_roctx.h>
 
 #include <unistd.h>
@@ -83,9 +94,11 @@ static int64_t deltaTimestamp = {0};
 bool run_once() {
     static bool once{false};
     if (once) { return once; }
+#if defined(APEX_WITH_KFD)
     if (apex::apex_options::use_hip_kfd_api()) {
         ROCTRACER_CALL(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_KFD_API));
     }
+#endif
     // NOTE: This code isn't really useful.  It would be if we were
     // using CPU timestamps for the host activity, but we can't seem
     // to sync the clocks right, so *ALL* timestamps are taken on the
@@ -179,6 +192,7 @@ std::unordered_map<uint32_t, std::shared_ptr<apex::task_wrapper>> correlation_ma
 std::unordered_map<uint32_t, std::string> correlation_kernel_name_map;
 std::mutex correlation_map_mutex;
 
+#if defined(APEX_WITH_KFD)
 /* This is the "low level" API - lots of events if interested. */
 void handle_roc_kfd(uint32_t domain, uint32_t cid, const void* callback_data, void* arg) {
     APEX_UNUSED(domain);
@@ -204,9 +218,10 @@ void handle_roc_kfd(uint32_t domain, uint32_t cid, const void* callback_data, vo
     }
     return;
 }
+#endif
 
 /* This is the "OpenMP" API - lots of events if interested. */
-#if defined(AMD_INTERNAL_BUILD) // disabled for now to simplify compiling
+#if defined(APEX_WITH_HSA)
 void handle_roc_hsa(uint32_t domain, uint32_t cid, const void* callback_data, void* arg) {
     APEX_UNUSED(domain);
     APEX_UNUSED(arg);
@@ -727,13 +742,15 @@ void init_tracing() {
     // Enable HIP API callbacks
     ROCTRACER_CALL(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_HIP_API, handle_hip, NULL));
     // Enable HIP HSA (OpenMP) callbacks
-#if defined(AMD_INTERNAL_BUILD) // disabled for now to simplify compiling
+#if defined(APEX_WITH_HSA)
     ROCTRACER_CALL(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_HSA_API, handle_roc_hsa, NULL));
 #endif
     // Enable KFD API tracing
+#if defined(APEX_WITH_KFD)
     if (apex::apex_options::use_hip_kfd_api()) {
         ROCTRACER_CALL(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_KFD_API, handle_roc_kfd, NULL));
     }
+#endif
     // Enable rocTX
     ROCTRACER_CALL(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_ROCTX, handle_roctx, NULL));
 
@@ -741,13 +758,15 @@ void init_tracing() {
     //ROCTRACER_CALL(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_HIP_API));
     // FYI, ACTIVITY_DOMAIN_HIP_OPS = ACTIVITY_DOMAIN_HCC_OPS = ACTIVITY_DOMAIN_HIP_VDI...
     ROCTRACER_CALL(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_HIP_OPS));
-#if defined(AMD_INTERNAL_BUILD) // disabled for now to simplify compiling
+#if defined(APEX_WITH_HSA) // disabled for now to simplify compiling
     ROCTRACER_CALL(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_HSA_OPS));
 #endif
     // Enable PC sampling
     //ROCTRACER_CALL(roctracer_enable_op_activity(ACTIVITY_DOMAIN_HSA_OPS, HSA_OP_ID_RESERVED1));
     roctracer_start();
+#if defined(APEX_WITH_HSA)
     hsa_init();
+#endif
     std::cout << "RocTracer started" << std::endl;
 }
 
@@ -763,10 +782,14 @@ namespace apex {
         roctracer_stop();
         /* CAllbacks */
         ROCTRACER_CALL(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_HIP_API));
+#if defined(APEX_WITH_HSA)
         ROCTRACER_CALL(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_HSA_API));
+#endif
+#if defined(APEX_WITH_KFD)
         if (apex_options::use_hip_kfd_api()) {
             ROCTRACER_CALL(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_KFD_API));
         }
+#endif
         ROCTRACER_CALL(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_ROCTX));
 
         /* Activity */
@@ -776,7 +799,9 @@ namespace apex {
         ROCTRACER_CALL(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_EXT_API));
         ROCTRACER_CALL(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_HSA_OPS));
         ROCTRACER_CALL(roctracer_flush_activity());
+#if defined(APEX_WITH_HSA)
         hsa_shut_down();
+#endif
     }
 } // namespace apex
 

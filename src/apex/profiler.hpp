@@ -234,7 +234,7 @@ public:
     // with AMD GPUS.  No matter what we do, we can't get a correct delta between
     // the GPU and the CPU clocks.  So, on AMD GPUS, take *ALL* timestamps on the
     // GPU, even for host-side events.  Hopefully this isn't costly...
-#ifdef APEX_WITH_HIP
+#ifdef APEX_WITH_HSA
         uint64_t ts;
         roctracer_get_timestamp(&ts);
         return ts;
