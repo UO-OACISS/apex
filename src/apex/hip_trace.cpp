@@ -49,9 +49,10 @@ DEFINE_CONSTRUCTOR(init_tracing);
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // HIP Callbacks/Activity tracing
 //
+#define AMD_INTERNAL_BUILD
 #include <roctracer_hip.h>
 #include <roctracer_hcc.h>
-#if 0 // disabled for now to simplify compiling
+#if defined(AMD_INTERNAL_BUILD) // enabled for now to simplify clock synchronization
 // This rquires the -DAMD_INTERNAL_BUILD compiler flag
 #include <roctracer_hsa.h>
 #endif
@@ -60,6 +61,7 @@ DEFINE_CONSTRUCTOR(init_tracing);
 
 #include <unistd.h>
 #include <sys/syscall.h>   /* For SYS_xxx definitions */
+#include <inttypes.h>
 
 // Macro to check ROC-tracer calls status
 #define ROCTRACER_CALL(call)                                    \
@@ -73,9 +75,10 @@ DEFINE_CONSTRUCTOR(init_tracing);
 
 // Timestamp at trace initialization time. Used to normalized other
 // timestamps
-static uint64_t startTimestampGPU{0};
-static uint64_t startTimestampCPU{0};
-static int64_t deltaTimestamp{0};
+constexpr int attempts = 10;
+static uint64_t startTimestampGPU[attempts] = {0};
+static uint64_t startTimestampCPU[attempts] = {0};
+static int64_t deltaTimestamp = {0};
 
 bool run_once() {
     static bool once{false};
@@ -83,20 +86,32 @@ bool run_once() {
     if (apex::apex_options::use_hip_kfd_api()) {
         ROCTRACER_CALL(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_KFD_API));
     }
+    // NOTE: This code isn't really useful.  It would be if we were
+    // using CPU timestamps for the host activity, but we can't seem
+    // to sync the clocks right, so *ALL* timestamps are taken on the
+    // GPU for now.
     // synchronize timestamps
-    // We'll take a CPU timestamp before and after taking a GPU timestmp, then
-    // take the average of those two, hoping that it's roughly at the same time
-    // as the GPU timestamp.
-    startTimestampCPU = apex::profiler::now_ns();
-    roctracer_get_timestamp(&startTimestampGPU);
-    startTimestampCPU += apex::profiler::now_ns();
-    startTimestampCPU = startTimestampCPU / 2;
+    // this is a common algorithm, see otf2_listener_mpi.cpp for synchronizing across ranks
+    for (int i = 0 ; i < attempts ; i++) {
+        startTimestampCPU[i] = apex::profiler::now_ns();
+        roctracer_get_timestamp(&(startTimestampGPU[i]));
+    }
+    // assume the GPU clock is less than the CPU clock
+    int64_t latency = (int64_t)(startTimestampCPU[0]) - (int64_t)(startTimestampGPU[0]);
+    int my_min{0};
+    for (int i = 1 ; i < attempts ; i++) {
+        int64_t next = (int64_t)(startTimestampCPU[i]) - (int64_t)(startTimestampGPU[i]);
+        if (std::abs(next) < std::abs(latency)) {
+            latency = next;
+            my_min = i;
+        }
+    }
 
     // assume CPU timestamp is greater than GPU
-    deltaTimestamp = (int64_t)(startTimestampCPU) - (int64_t)(startTimestampGPU);
-    //printf("HIP timestamp:      %lu\n", startTimestampGPU);
-    //printf("CPU timestamp:      %lu\n", startTimestampCPU);
-    //printf("HIP delta timestamp: %ld\n", deltaTimestamp);
+    deltaTimestamp = ((int64_t)(startTimestampCPU[my_min]) - (int64_t)(startTimestampGPU[my_min]));
+    printf("HIP timestamp:      %" PRIu64 "\n", startTimestampGPU[my_min]);
+    printf("CPU timestamp:      %" PRIu64 "\n", startTimestampCPU[my_min]);
+    printf("HIP delta timestamp: %" PRId64 "\n", deltaTimestamp);
     apex::init("APEX HIP wrapper", 0, 1);
     once = true;
     return once;
@@ -161,7 +176,7 @@ void handle_roctx(uint32_t domain, uint32_t cid, const void* callback_data, void
 
 /* The map that holds correlation IDs and matches them to GUIDs */
 std::unordered_map<uint32_t, std::shared_ptr<apex::task_wrapper>> correlation_map;
-std::unordered_map<uint32_t, const void*> correlation_kernel_map;
+std::unordered_map<uint32_t, std::string> correlation_kernel_name_map;
 std::mutex correlation_map_mutex;
 
 /* This is the "low level" API - lots of events if interested. */
@@ -191,7 +206,7 @@ void handle_roc_kfd(uint32_t domain, uint32_t cid, const void* callback_data, vo
 }
 
 /* This is the "OpenMP" API - lots of events if interested. */
-#if 0 // disabled for now to simplify compiling
+#if defined(AMD_INTERNAL_BUILD) // disabled for now to simplify compiling
 void handle_roc_hsa(uint32_t domain, uint32_t cid, const void* callback_data, void* arg) {
     APEX_UNUSED(domain);
     APEX_UNUSED(arg);
@@ -410,6 +425,39 @@ bool getBytesIfMalloc(uint32_t cid, const hip_api_data_t* data,
     return true;
 }
 
+std::string lookup_kernel_name_ptr(const void* address, hipStream_t stream_id) {
+    // no need to lock, because we are locked before entering this function
+    static std::map<const void*, std::string> the_map;
+    auto entry = the_map.find(address);
+    std::string tmp;
+    if (entry != the_map.end()) {
+        tmp = entry->second;
+    } else {
+        // look it up using the right method
+        tmp = std::string(hipKernelNameRefByPtr(address, stream_id));
+        tmp = apex::demangle(tmp);
+        // add it to the map
+        the_map.insert(std::make_pair(address, tmp));
+    }
+    return tmp;
+}
+
+std::string lookup_kernel_name(const hipFunction_t f) {
+    // no need to lock, because we are locked before entering this function
+    static std::map<const hipFunction_t, std::string> the_map;
+    auto entry = the_map.find(f);
+    std::string tmp;
+    if (entry != the_map.end()) {
+        tmp = entry->second;
+    } else {
+        tmp = hipKernelNameRef(f);
+        tmp = apex::demangle(tmp);
+        // add it to the map
+        the_map.insert(std::make_pair(f, tmp));
+    }
+    return tmp;
+}
+
 /* The HIP callback API.  For these events, we have to check whether it's
  * the entry or exit event, and act accordingly.
  */
@@ -417,6 +465,11 @@ void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* 
     APEX_UNUSED(domain);
     APEX_UNUSED(arg);
     static bool once = run_once();
+    /* Check for a couple of useless callbacks, we don't need to track them */
+    if (cid == HIP_API_ID___hipPushCallConfiguration ||
+        cid == HIP_API_ID___hipPopCallConfiguration) {
+        return;
+    }
     APEX_UNUSED(once);
     static APEX_NATIVE_TLS std::stack<std::shared_ptr<apex::task_wrapper> > timer_stack;
     const hip_api_data_t* data = (const hip_api_data_t*)(callback_data);
@@ -449,27 +502,36 @@ void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* 
                 break;
             case HIP_API_ID_hipLaunchKernel:
                 correlation_map_mutex.lock();
-                correlation_kernel_map[data->correlation_id] = (const void*)data->args.hipLaunchKernel.function_address;
+                correlation_kernel_name_map[data->correlation_id] =
+                    lookup_kernel_name_ptr(
+                        data->args.hipLaunchKernel.function_address,
+                        data->args.hipLaunchKernel.stream);
                 correlation_map_mutex.unlock();
                 break;
             case HIP_API_ID_hipModuleLaunchKernel:
                 correlation_map_mutex.lock();
-                correlation_kernel_map[data->correlation_id] = (const void*)data->args.hipModuleLaunchKernel.f;
+                correlation_kernel_name_map[data->correlation_id] =
+                    lookup_kernel_name(data->args.hipModuleLaunchKernel.f);
                 correlation_map_mutex.unlock();
                 break;
             case HIP_API_ID_hipHccModuleLaunchKernel:
                 correlation_map_mutex.lock();
-                correlation_kernel_map[data->correlation_id] = (const void*)data->args.hipHccModuleLaunchKernel.f;
+                correlation_kernel_name_map[data->correlation_id] =
+                    lookup_kernel_name(data->args.hipHccModuleLaunchKernel.f);
                 correlation_map_mutex.unlock();
                 break;
             case HIP_API_ID_hipExtModuleLaunchKernel:
                 correlation_map_mutex.lock();
-                correlation_kernel_map[data->correlation_id] = (const void*)data->args.hipExtModuleLaunchKernel.f;
+                correlation_kernel_name_map[data->correlation_id] =
+                    lookup_kernel_name(data->args.hipExtModuleLaunchKernel.f);
                 correlation_map_mutex.unlock();
                 break;
             case HIP_API_ID_hipExtLaunchKernel:
                 correlation_map_mutex.lock();
-                correlation_kernel_map[data->correlation_id] = (const void*)data->args.hipExtLaunchKernel.function_address;
+                correlation_kernel_name_map[data->correlation_id] =
+                    lookup_kernel_name_ptr(
+                        data->args.hipExtLaunchKernel.function_address,
+                        data->args.hipExtLaunchKernel.stream);
                 correlation_map_mutex.unlock();
                 break;
             default:
@@ -599,13 +661,11 @@ void process_hip_record(const roctracer_record_t* record) {
     switch(record->op) {
         case HIP_OP_ID_DISPATCH: {
             correlation_map_mutex.lock();
-            const void* f = correlation_kernel_map[record->correlation_id];
-            correlation_kernel_map.erase(record->correlation_id);
+            std::string name = correlation_kernel_name_map[record->correlation_id];
+            correlation_kernel_name_map.erase(record->correlation_id);
             correlation_map_mutex.unlock();
             apex::hip_thread_node node(record->device_id, record->queue_id, APEX_ASYNC_KERNEL);
-            std::stringstream ss;
-            ss << "UNRESOLVED ADDR " << std::hex << f ;
-   	        store_profiler_data(ss.str(), record->correlation_id, record->begin_ns,
+   	        store_profiler_data(name, record->correlation_id, record->begin_ns,
                 record->end_ns, node);
             break;
         }
@@ -667,7 +727,9 @@ void init_tracing() {
     // Enable HIP API callbacks
     ROCTRACER_CALL(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_HIP_API, handle_hip, NULL));
     // Enable HIP HSA (OpenMP) callbacks
-    //ROCTRACER_CALL(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_HSA_API, handle_roc_hsa, NULL));
+#if defined(AMD_INTERNAL_BUILD) // disabled for now to simplify compiling
+    ROCTRACER_CALL(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_HSA_API, handle_roc_hsa, NULL));
+#endif
     // Enable KFD API tracing
     if (apex::apex_options::use_hip_kfd_api()) {
         ROCTRACER_CALL(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_KFD_API, handle_roc_kfd, NULL));
@@ -679,11 +741,14 @@ void init_tracing() {
     //ROCTRACER_CALL(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_HIP_API));
     // FYI, ACTIVITY_DOMAIN_HIP_OPS = ACTIVITY_DOMAIN_HCC_OPS = ACTIVITY_DOMAIN_HIP_VDI...
     ROCTRACER_CALL(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_HIP_OPS));
-    //ROCTRACER_CALL(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_HSA_OPS));
+#if defined(AMD_INTERNAL_BUILD) // disabled for now to simplify compiling
+    ROCTRACER_CALL(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_HSA_OPS));
+#endif
     // Enable PC sampling
     //ROCTRACER_CALL(roctracer_enable_op_activity(ACTIVITY_DOMAIN_HSA_OPS, HSA_OP_ID_RESERVED1));
     roctracer_start();
-
+    hsa_init();
+    std::cout << "RocTracer started" << std::endl;
 }
 
 namespace apex {
@@ -711,6 +776,7 @@ namespace apex {
         ROCTRACER_CALL(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_EXT_API));
         ROCTRACER_CALL(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_HSA_OPS));
         ROCTRACER_CALL(roctracer_flush_activity());
+        hsa_shut_down();
     }
 } // namespace apex
 

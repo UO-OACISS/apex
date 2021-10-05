@@ -22,6 +22,7 @@ public:
     void query();
     static void activateDeviceIndex(uint32_t index);
 private:
+    bool success;
     uint32_t deviceCount;
     std::vector<nvmlDevice_t> devices;
     std::vector<bool> queried_once;

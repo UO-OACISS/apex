@@ -720,7 +720,7 @@ std::unordered_set<profile*> free_profiles;
         }
         screen_output << "------------------------------------------"
             << "------------------------------------------------------\n";
-        screen_output << "\n" << endl;
+        screen_output << endl;
     }
     csv_output << "\n\n\"task\",\"num calls\",\"total microseconds\"";
 #if APEX_HAVE_PAPI
@@ -744,19 +744,7 @@ std::unordered_set<profile*> free_profiles;
          /* Advance index forward so the next iteration doesn't pick it up as well. */
          index += 2;
     }
-    screen_output << "Timer                                                : "
-        << "#calls  |    mean  |   total  |  % total  "
-        << tmpstr;
-    if (apex_options::track_memory()) {
-       screen_output << "|  allocs |  (bytes) |    frees |   (bytes) ";
-    }
-    screen_output << endl;
-    screen_output << "----------------------------------------------"
-        << "--------------------------------------------------";
-    if (apex_options::track_memory()) {
-        screen_output << "--------------------------------------------";
-    }
-    screen_output << endl;
+
     // Declare vector of pairs
     vector<pair<std::string, apex_profile*> > timer_vector;
     // iterate over the timers
@@ -769,9 +757,21 @@ std::unordered_set<profile*> free_profiles;
     // sort by accumulated value
     std::sort(timer_vector.begin(), timer_vector.end(), timer_cmp);
 
+    screen_output << "GPU Timers                                           : "
+        << "#calls  |    mean  |   total  |  % total  "
+        << tmpstr;
+    if (apex_options::track_memory()) {
+       screen_output << "|  allocs |  (bytes) |    frees |   (bytes) ";
+    }
+    screen_output << endl;
+    screen_output << "----------------------------------------------"
+        << "--------------------------------------------------";
+
+    screen_output << endl;
     // iterate over the timers
     for(auto& pair_itr : timer_vector) {
         std::string name = pair_itr.first;
+        if (name.find("GPU: ", 0) == std::string::npos) continue;
         auto p = all_profiles.find(name);
         if (p != all_profiles.end()) {
             profile tmp(p->second);
@@ -782,6 +782,51 @@ std::unordered_set<profile*> free_profiles;
             }
         }
     }
+
+    screen_output << "--------------------------------------------------"
+        << "----------------------------------------------";
+    if (apex_options::track_memory()) {
+        screen_output << "--------------------------------------------";
+    }
+    screen_output << endl;
+    screen_output << endl;
+
+    screen_output << "CPU Timers                                           : "
+        << "#calls  |    mean  |   total  |  % total  "
+        << tmpstr;
+    if (apex_options::track_memory()) {
+       screen_output << "|  allocs |  (bytes) |    frees |   (bytes) ";
+    }
+    screen_output << endl;
+    screen_output << "----------------------------------------------"
+        << "--------------------------------------------------";
+    if (apex_options::track_memory()) {
+        screen_output << "--------------------------------------------";
+    }
+    screen_output << endl;
+
+    // iterate over the timers
+    for(auto& pair_itr : timer_vector) {
+        std::string name = pair_itr.first;
+        if (name.find("GPU: ", 0) != std::string::npos) continue;
+        auto p = all_profiles.find(name);
+        if (p != all_profiles.end()) {
+            profile tmp(p->second);
+            write_one_timer(name, &tmp, screen_output, csv_output,
+                total_accumulated, divisor, true);
+            if (name.compare(APEX_MAIN_STR) != 0) {
+                total_hpx_threads = total_hpx_threads + tmp.get_calls();
+            }
+        }
+    }
+    screen_output << "--------------------------------------------------"
+        << "----------------------------------------------";
+    if (apex_options::track_memory()) {
+        screen_output << "--------------------------------------------";
+    }
+    screen_output << endl;
+    screen_output << endl;
+
     double all_total_main = total_main * apex::instance()->get_num_ranks();
     double idle_rate = all_total_main - total_accumulated;
     if (idle_rate >= 0.0) {
@@ -802,11 +847,8 @@ std::unordered_set<profile*> free_profiles;
         screen_output << "--------------------------------------------";
     }
     screen_output << endl;
+
     screen_output << string_format("%52s", "Total timers") << " : ";
-    //if (total_hpx_threads < 999999) {
-        //screen_output << string_format(PAD_WITH_SPACES,
-        //to_string((int)(total_hpx_threads))) << std::endl;
-    //} else {
     std::stringstream total_ss;
     // the GCC 9 compiler on Apple doesn't do locale correctly!
 #if !defined(__APPLE__) && (__GNUC__ != 9)
@@ -814,11 +856,12 @@ std::unordered_set<profile*> free_profiles;
 #endif
     total_ss << std::fixed << ((uint64_t)total_hpx_threads);
         screen_output << total_ss.str() << std::endl;
-    //}
+
     if (apex_options::use_screen_output() && node_id == 0) {
         cout << screen_output.str();
         data.output = screen_output.str();
     }
+
     if (apex_options::use_csv_output()) {
         ofstream csvfile;
         stringstream csvname;

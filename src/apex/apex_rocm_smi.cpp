@@ -51,6 +51,11 @@ std::set<uint32_t> monitor::activeDeviceIndices;
 std::mutex monitor::indexMutex;
 
 monitor::monitor (void) {
+    // if disabled, do nothing...
+    if (!apex_options::monitor_gpu()) {
+        success = false;
+        return;
+    }
     success = true; // used by RSMI_CALL_NOEXIT
     RSMI_CALL_NOEXIT(rsmi_init(0));
     if (!success) return;
