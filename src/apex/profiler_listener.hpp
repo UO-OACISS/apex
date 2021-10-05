@@ -91,6 +91,7 @@ class profiler_listener : public event_listener {
 private:
   void _init(void);
   bool _initialized;
+  bool _main_stopped;
   std::atomic<bool> _done;
   std::atomic<int> active_tasks;
   std::shared_ptr<profiler> main_timer;
@@ -154,7 +155,7 @@ public:
     APEX_UNUSED(node_count);
     this->node_id = node_id;
   }
-  profiler_listener (void) : _initialized(false), _done(false),
+  profiler_listener (void) : _initialized(false), _main_stopped(false), _done(false),
                              node_id(0), task_map()
 #if APEX_HAVE_PAPI
                              , num_papi_counters(0), event_sets(8),

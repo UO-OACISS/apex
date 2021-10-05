@@ -1403,11 +1403,13 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
   void profiler_listener::on_dump(dump_event_data &data) {
     if (_done) { return; }
 
-    // stop the main timer, and process that profile?
-    yield_main_timer();
-    push_profiler((unsigned int)thread_instance::get_id(), *main_timer);
-    // restart the main timer
-    resume_main_timer();
+    if (!_main_timer_stopped) {
+        // stop the main timer, and process that profile?
+        yield_main_timer();
+        push_profiler((unsigned int)thread_instance::get_id(), *main_timer);
+        // restart the main timer
+        resume_main_timer();
+    }
 
     // trigger statistics updating
 #ifndef APEX_SYNCHRONOUS_PROCESSING
@@ -1836,8 +1838,10 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
   }
 
   void profiler_listener::yield_main_timer(void) {
+    if (!_main_timer_stopped) {
       APEX_ASSERT(main_timer != nullptr);
       main_timer->stop(true);
+    }
   }
 
   void profiler_listener::resume_main_timer(void) {
@@ -1858,13 +1862,12 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
   }
 
   void profiler_listener::stop_main_timer(void) {
-    static bool stopped{false};
-    if (!stopped) {
+    if (!_main_timer_stopped) {
         APEX_ASSERT(main_timer != nullptr);
         main_timer->stop(true);
         //_common_stop(main_timer, false);
         //on_task_complete(main_timer->tt_ptr);
-        stopped = true;
+        _main_timer_stopped = true;
     }
   }
 
