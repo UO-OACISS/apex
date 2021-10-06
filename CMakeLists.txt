@@ -286,7 +286,7 @@ if (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "PGI")
     if (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
         # ROCM Clang++ has an unused library in the link.
         if (NOT ${APEX_WITH_HIP})
-            enable_cxx_compiler_flag_if_supported("-Werror")
+            #enable_cxx_compiler_flag_if_supported("-Werror")
         endif (NOT ${APEX_WITH_HIP})
     endif (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
 endif (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "PGI")

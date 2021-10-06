@@ -15,9 +15,9 @@ DIFFERENCES BETWEEN THIS VERSION (2.x) AND EARLIER VERSIONS:
 * Addition of regions to make work more representative of multi-material codes
 * Default size of each domain is 30^3 (27000 elem) instead of 45^3. This is
   more representative of our actual working set sizes
-* Single source distribution supports pure serial, pure OpenMP, MPI-only, 
+* Single source distribution supports pure serial, pure OpenMP, MPI-only,
   and MPI+OpenMP
-* Addition of ability to visualize the mesh using VisIt 
+* Addition of ability to visualize the mesh using VisIt
   https://wci.llnl.gov/codes/visit/download.html
 * Various command line options (see ./lulesh2.0 -h)
  -q              : quiet mode - suppress stdout
@@ -61,7 +61,7 @@ lulesh-util.cc - Non-timed functions
 *   Four of the LULESH routines are now performed on a region-by-region basis,
 *     making the memory access patterns non-unit stride
 *   Artificial load imbalances can be easily introduced that could impact
-*     parallelization strategies.  
+*     parallelization strategies.
 * The load balance flag changes region assignment.  Region number is raised to
 *   the power entered for assignment probability.  Most likely regions changes
 *   with MPI process id.
@@ -213,14 +213,14 @@ void TimeIncrement(Domain& domain)
          gnewdt = domain.dthydro() * Real_t(2.0) / Real_t(3.0) ;
       }
 
-#if APEX_WITH_MPI      
+#if APEX_WITH_MPI
       MPI_Allreduce(&gnewdt, &newdt, 1,
                     ((sizeof(Real_t) == 4) ? MPI_FLOAT : MPI_DOUBLE),
                     MPI_MIN, MPI_COMM_WORLD) ;
 #else
       newdt = gnewdt;
 #endif
-      
+
       ratio = newdt / olddt ;
       if (ratio >= Real_t(1.0)) {
          if (ratio < domain.deltatimemultlb()) {
@@ -310,7 +310,7 @@ void InitStressTermsForElems(Domain &domain,
    // pull in the stresses appropriate to the hydro integration
    //
 
-#pragma omp parallel 
+#pragma omp parallel
 #pragma omp for firstprivate(numElem) schedule(runtime)
    for (Index_t i = 0 ; i < numElem ; ++i){
       sigxx[i] = sigyy[i] = sigzz[i] =  - domain.p(i) - domain.q(i) ;
@@ -550,7 +550,7 @@ void IntegrateStressForElems( Domain &domain,
   }
   // loop over all elements
 
-#pragma omp parallel 
+#pragma omp parallel
 #pragma omp for firstprivate(numElem) schedule(runtime)
   for( Index_t k=0 ; k<numElem ; ++k )
   {
@@ -595,7 +595,7 @@ void IntegrateStressForElems( Domain &domain,
   if (numthreads > 1) {
      // If threaded, then we need to copy the data out of the temporary
      // arrays used above into the final forces field
-#pragma omp parallel 
+#pragma omp parallel
 #pragma omp for firstprivate(numNode) schedule(runtime)
      for( Index_t gnode=0 ; gnode<numNode ; ++gnode )
      {
@@ -761,12 +761,12 @@ void CalcFBHourglassForceForElems( Domain &domain,
     *               force.
     *
     *************************************************/
-  
+
    Index_t numElem8 = numElem * 8 ;
 
-   Real_t *fx_elem; 
-   Real_t *fy_elem; 
-   Real_t *fz_elem; 
+   Real_t *fx_elem;
+   Real_t *fy_elem;
+   Real_t *fz_elem;
 
    if(numthreads > 1) {
       fx_elem = Allocate<Real_t>(numElem8) ;
@@ -813,7 +813,7 @@ void CalcFBHourglassForceForElems( Domain &domain,
 /*    compute the hourglass modes */
 
 
-#pragma omp parallel 
+#pragma omp parallel
 #pragma omp for firstprivate(numElem, hourg) schedule(runtime)
    for(Index_t i2=0;i2<numElem;++i2){
       Real_t *fx_local, *fy_local, *fz_local ;
@@ -1042,7 +1042,7 @@ void CalcHourglassControlForElems(Domain& domain,
    Real_t *z8n  = Allocate<Real_t>(numElem8) ;
 
    /* start loop over elements */
-#pragma omp parallel 
+#pragma omp parallel
 #pragma omp for firstprivate(numElem) schedule(runtime)
    for (Index_t i=0 ; i<numElem ; ++i){
       Real_t  x1[8],  y1[8],  z1[8] ;
@@ -1069,7 +1069,7 @@ void CalcHourglassControlForElems(Domain& domain,
 
       /* Do a check for negative volumes */
       if ( domain.v(i) <= Real_t(0.0) ) {
-#if APEX_WITH_MPI         
+#if APEX_WITH_MPI
          MPI_Abort(MPI_COMM_WORLD, VolumeError) ;
 #else
          exit(VolumeError);
@@ -1116,11 +1116,11 @@ void CalcVolumeForceForElems(Domain& domain)
                                domain.numNode()) ;
 
       // check for negative element volume
-#pragma omp parallel 
+#pragma omp parallel
 #pragma omp for firstprivate(numElem) schedule(runtime)
       for ( Index_t k=0 ; k<numElem ; ++k ) {
          if (determ[k] <= Real_t(0.0)) {
-#if APEX_WITH_MPI            
+#if APEX_WITH_MPI
             MPI_Abort(MPI_COMM_WORLD, VolumeError) ;
 #else
             exit(VolumeError);
@@ -1143,13 +1143,13 @@ static inline void CalcForceForNodes(Domain& domain)
 {
   Index_t numNode = domain.numNode() ;
 
-#if APEX_WITH_MPI  
+#if APEX_WITH_MPI
   CommRecv(domain, MSG_COMM_SBN, 3,
            domain.sizeX() + 1, domain.sizeY() + 1, domain.sizeZ() + 1,
            true, false) ;
-#endif  
+#endif
 
-#pragma omp parallel 
+#pragma omp parallel
 #pragma omp for firstprivate(numNode) schedule(runtime)
   for (Index_t i=0; i<numNode; ++i) {
      domain.fx(i) = Real_t(0.0) ;
@@ -1160,17 +1160,17 @@ static inline void CalcForceForNodes(Domain& domain)
   /* Calcforce calls partial, force, hourq */
   CalcVolumeForceForElems(domain) ;
 
-#if APEX_WITH_MPI  
+#if APEX_WITH_MPI
   Domain_member fieldData[3] ;
   fieldData[0] = &Domain::fx ;
   fieldData[1] = &Domain::fy ;
   fieldData[2] = &Domain::fz ;
-  
+
   CommSend(domain, MSG_COMM_SBN, 3, fieldData,
            domain.sizeX() + 1, domain.sizeY() + 1, domain.sizeZ() +  1,
            true, false) ;
   CommSBN(domain, 3, fieldData) ;
-#endif  
+#endif
 }
 
 /******************************************/
@@ -1178,8 +1178,8 @@ static inline void CalcForceForNodes(Domain& domain)
 static inline
 void CalcAccelerationForNodes(Domain &domain, Index_t numNode)
 {
-   
-#pragma omp parallel 
+
+#pragma omp parallel
 #pragma omp for firstprivate(numNode) schedule(runtime)
    for (Index_t i = 0; i < numNode; ++i) {
       domain.xdd(i) = domain.fx(i) / domain.nodalMass(i);
@@ -1276,16 +1276,16 @@ void LagrangeNodal(Domain& domain)
    * acceleration boundary conditions. */
   CalcForceForNodes(domain);
 
-#if APEX_WITH_MPI  
+#if APEX_WITH_MPI
 #ifdef SEDOV_SYNC_POS_VEL_EARLY
    CommRecv(domain, MSG_SYNC_POS_VEL, 6,
             domain.sizeX() + 1, domain.sizeY() + 1, domain.sizeZ() + 1,
             false, false) ;
 #endif
 #endif
-   
+
    CalcAccelerationForNodes(domain, domain.numNode());
-   
+
    ApplyAccelerationBoundaryConditionsForNodes(domain);
 
    CalcVelocityForNodes( domain, delt, u_cut, domain.numNode()) ;
@@ -1306,7 +1306,7 @@ void LagrangeNodal(Domain& domain)
    CommSyncPosVel(domain) ;
 #endif
 #endif
-   
+
   return;
 }
 
@@ -1544,7 +1544,7 @@ void CalcElemVelocityGradient( const Real_t* const xvel,
 /******************************************/
 
 //static inline
-void CalcKinematicsForElems( Domain &domain, Real_t *vnew, 
+void CalcKinematicsForElems( Domain &domain, Real_t *vnew,
                              Real_t deltaTime, Index_t numElem )
 {
 
@@ -1624,7 +1624,7 @@ void CalcLagrangeElements(Domain& domain, Real_t* vnew)
       CalcKinematicsForElems(domain, vnew, deltatime, numElem) ;
 
       // element loop to do some stuff not included in the elemlib function.
-#pragma omp parallel 
+#pragma omp parallel
 #pragma omp for firstprivate(numElem) schedule(runtime)
       for ( Index_t k=0 ; k<numElem ; ++k )
       {
@@ -1641,7 +1641,7 @@ void CalcLagrangeElements(Domain& domain, Real_t* vnew)
         // See if any volumes are negative, and take appropriate action.
          if (vnew[k] <= Real_t(0.0))
         {
-#if APEX_WITH_MPI           
+#if APEX_WITH_MPI
            MPI_Abort(MPI_COMM_WORLD, VolumeError) ;
 #else
            exit(VolumeError);
@@ -1812,7 +1812,7 @@ void CalcMonotonicQRegionForElems(Domain &domain, Int_t r,
    Real_t qlc_monoq = domain.qlc_monoq();
    Real_t qqc_monoq = domain.qqc_monoq();
 
-#pragma omp parallel 
+#pragma omp parallel
 #pragma omp for firstprivate(qlc_monoq, qqc_monoq, monoq_limiter_mult, monoq_max_slope, ptiny) schedule(runtime)
    for ( Index_t ielem = 0 ; ielem < domain.regElemSize(r); ++ielem ) {
       Index_t i = domain.regElemlist(r,ielem);
@@ -1970,10 +1970,10 @@ void CalcMonotonicQRegionForElems(Domain &domain, Int_t r,
 
 static inline
 void CalcMonotonicQForElems(Domain& domain, Real_t vnew[])
-{  
+{
    //
    // initialize parameters
-   // 
+   //
    const Real_t ptiny = Real_t(1.e-36) ;
 
    //
@@ -2006,18 +2006,18 @@ void CalcQForElems(Domain& domain, Real_t vnew[])
 
       domain.AllocateGradients(numElem, allElem);
 
-#if APEX_WITH_MPI      
+#if APEX_WITH_MPI
       CommRecv(domain, MSG_MONOQ, 3,
                domain.sizeX(), domain.sizeY(), domain.sizeZ(),
                true, true) ;
-#endif      
+#endif
 
       /* Calculate velocity gradients */
       CalcMonotonicQGradientsForElems(domain, vnew);
 
-#if APEX_WITH_MPI      
+#if APEX_WITH_MPI
       Domain_member fieldData[3] ;
-      
+
       /* Transfer veloctiy gradients in the first order elements */
       /* problem->commElements->Transfer(CommElements::monoQ) ; */
 
@@ -2030,7 +2030,7 @@ void CalcQForElems(Domain& domain, Real_t vnew[])
                true, true) ;
 
       CommMonoQ(domain) ;
-#endif      
+#endif
 
       CalcMonotonicQForElems(domain, vnew) ;
 
@@ -2038,7 +2038,7 @@ void CalcQForElems(Domain& domain, Real_t vnew[])
       domain.DeallocateGradients();
 
       /* Don't allow excessive artificial viscosity */
-      Index_t idx = -1; 
+      Index_t idx = -1;
       for (Index_t i=0; i<numElem; ++i) {
          if ( domain.q(i) > domain.qstop() ) {
             idx = i ;
@@ -2047,7 +2047,7 @@ void CalcQForElems(Domain& domain, Real_t vnew[])
       }
 
       if(idx >= 0) {
-#if APEX_WITH_MPI         
+#if APEX_WITH_MPI
          MPI_Abort(MPI_COMM_WORLD, QStopError) ;
 #else
          exit(QStopError);
@@ -2078,7 +2078,7 @@ void CalcPressureForElems(Real_t* p_new, Real_t* bvc,
 #pragma omp for firstprivate(length, pmin, p_cut, eosvmax) schedule(runtime)
    for (Index_t i = 0 ; i < length ; ++i){
       Index_t elem = regElemList[i];
-      
+
       p_new[i] = bvc[i] * e_old[i] ;
 
       if    (FABS(p_new[i]) <  p_cut   )
@@ -2276,7 +2276,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
    Real_t emin    = domain.emin() ;
    Real_t rho0    = domain.refdens() ;
 
-   // These temporaries will be of different size for 
+   // These temporaries will be of different size for
    // each call (due to different sized region element
    // lists)
    Real_t *e_old = Allocate<Real_t>(numElemReg) ;
@@ -2293,8 +2293,8 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
    Real_t *q_new = Allocate<Real_t>(numElemReg) ;
    Real_t *bvc = Allocate<Real_t>(numElemReg) ;
    Real_t *pbvc = Allocate<Real_t>(numElemReg) ;
- 
-   //loop to add load imbalance based on region number 
+
+   //loop to add load imbalance based on region number
    for(Int_t j = 0; j < rep; j++) {
       /* compress data, minimal set */
 #pragma omp parallel
@@ -2343,7 +2343,7 @@ void EvalEOSForElems(Domain& domain, Real_t *vnewc,
 
 #pragma omp for firstprivate(numElemReg) schedule(runtime)
          for (Index_t i = 0 ; i < numElemReg ; ++i) {
-            work[i] = Real_t(0.) ; 
+            work[i] = Real_t(0.) ;
          }
       }
       CalcEnergyForElems(p_new, e_new, q_new, bvc, pbvc,
@@ -2430,7 +2430,7 @@ void ApplyMaterialPropertiesForElems(Domain& domain, Real_t vnew[])
                 vc = eosvmax ;
           }
           if (vc <= 0.) {
-#if APEX_WITH_MPI             
+#if APEX_WITH_MPI
              MPI_Abort(MPI_COMM_WORLD, VolumeError) ;
 #else
              exit(VolumeError);
@@ -2508,7 +2508,7 @@ void CalcCourantConstraintForElems(Domain &domain, Index_t length,
                                    Index_t *regElemlist,
                                    Real_t qqc, Real_t& dtcourant)
 {
-#if _OPENMP   
+#if _OPENMP
    Index_t threads = MAX_THREADS;
    static Index_t *courant_elem_per_thread;
    static Real_t *dtcourant_per_thread;
@@ -2519,9 +2519,9 @@ void CalcCourantConstraintForElems(Domain &domain, Index_t length,
      first = false;
    }
 #else
-   Index_t threads = 1;
-   Index_t courant_elem_per_thread[1];
-   Real_t  dtcourant_per_thread[1];
+   constexpr Index_t threads = 1;
+   Index_t courant_elem_per_thread[threads];
+   Real_t  dtcourant_per_thread[threads];
 #endif
 
    Index_t num_threads = 1;
@@ -2541,7 +2541,7 @@ void CalcCourantConstraintForElems(Domain &domain, Index_t length,
       Index_t thread_num = omp_get_thread_num();
 #else
       Index_t thread_num = 0;
-#endif      
+#endif
 
 #pragma omp for  schedule(runtime)
       for (Index_t i = 0 ; i < length ; ++i) {
@@ -2590,7 +2590,7 @@ static inline
 void CalcHydroConstraintForElems(Domain &domain, Index_t length,
                                  Index_t *regElemlist, Real_t dvovmax, Real_t& dthydro)
 {
-#if _OPENMP   
+#if _OPENMP
    Index_t threads = MAX_THREADS;
    static Index_t *hydro_elem_per_thread;
    static Real_t *dthydro_per_thread;
@@ -2601,9 +2601,9 @@ void CalcHydroConstraintForElems(Domain &domain, Index_t length,
      first = false;
    }
 #else
-   Index_t threads = 1;
-   Index_t hydro_elem_per_thread[1];
-   Real_t  dthydro_per_thread[1];
+   constexpr Index_t threads = 1;
+   Index_t hydro_elem_per_thread[threads];
+   Real_t  dthydro_per_thread[threads];
 #endif
 
    Index_t num_threads = 1;
@@ -2613,16 +2613,16 @@ void CalcHydroConstraintForElems(Domain &domain, Index_t length,
       Real_t dthydro_tmp = dthydro ;
       Index_t hydro_elem = -1 ;
 
-#if _OPENMP      
+#if _OPENMP
 #pragma omp single
       {
         num_threads = omp_get_num_threads();
-      }      
+      }
 
       Index_t thread_num = omp_get_thread_num();
-#else      
+#else
       Index_t thread_num = 0;
-#endif      
+#endif
 
 #pragma omp for schedule(runtime)
       for (Index_t i = 0 ; i < length ; ++i) {
@@ -2701,7 +2701,7 @@ void LagrangeLeapFrog(Domain& domain)
     * material states */
    LagrangeElements(domain, domain.numElem());
 
-#if APEX_WITH_MPI   
+#if APEX_WITH_MPI
 #ifdef SEDOV_SYNC_POS_VEL_LATE
    CommRecv(domain, MSG_SYNC_POS_VEL, 6,
             domain.sizeX() + 1, domain.sizeY() + 1, domain.sizeZ() + 1,
@@ -2713,20 +2713,20 @@ void LagrangeLeapFrog(Domain& domain)
    fieldData[3] = &Domain::xd ;
    fieldData[4] = &Domain::yd ;
    fieldData[5] = &Domain::zd ;
-   
+
    CommSend(domain, MSG_SYNC_POS_VEL, 6, fieldData,
             domain.sizeX() + 1, domain.sizeY() + 1, domain.sizeZ() + 1,
             false, false) ;
 #endif
-#endif   
+#endif
 
    CalcTimeConstraintsForElems(domain);
 
-#if APEX_WITH_MPI   
+#if APEX_WITH_MPI
 #ifdef SEDOV_SYNC_POS_VEL_LATE
    CommSyncPosVel(domain) ;
 #endif
-#endif   
+#endif
 }
 
 //extern "C" void TAU_SOS_send_data(void);
@@ -2740,7 +2740,7 @@ int main(int argc, char *argv[])
    Int_t myRank ;
    struct cmdLineOpts opts;
 
-#if APEX_WITH_MPI   
+#if APEX_WITH_MPI
    Domain_member fieldData ;
 
    MPI_Init(&argc, &argv) ;
@@ -2752,7 +2752,7 @@ int main(int argc, char *argv[])
 #else
    numRanks = 1;
    myRank = 0;
-#endif   
+#endif
    apex_init("lulesh",myRank,numRanks);
 
    /* Set defaults that can be overridden by command line opts */
@@ -2793,10 +2793,10 @@ int main(int argc, char *argv[])
                        side, opts.numReg, opts.balance, opts.cost) ;
 
 
-#if APEX_WITH_MPI   
+#if APEX_WITH_MPI
    fieldData = &Domain::nodalMass ;
 
-   // Initial domain boundary communication 
+   // Initial domain boundary communication
    CommRecv(*locDom, MSG_COMM_SBN, 1,
             locDom->sizeX() + 1, locDom->sizeY() + 1, locDom->sizeZ() + 1,
             true, false) ;
@@ -2807,10 +2807,10 @@ int main(int argc, char *argv[])
 
    // End initialization
    MPI_Barrier(MPI_COMM_WORLD);
-#endif   
-   
+#endif
+
    // BEGIN timestep to solution */
-#if APEX_WITH_MPI   
+#if APEX_WITH_MPI
    double start = MPI_Wtime();
 #else
    timeval start;
@@ -2835,7 +2835,7 @@ int main(int argc, char *argv[])
 
    // Use reduced max elapsed time
    double elapsed_time;
-#if APEX_WITH_MPI   
+#if APEX_WITH_MPI
    elapsed_time = MPI_Wtime() - start;
 #else
    timeval end;
@@ -2843,7 +2843,7 @@ int main(int argc, char *argv[])
    elapsed_time = (double)(end.tv_sec - start.tv_sec) + ((double)(end.tv_usec - start.tv_usec))/1000000 ;
 #endif
    double elapsed_timeG;
-#if APEX_WITH_MPI   
+#if APEX_WITH_MPI
    MPI_Reduce(&elapsed_time, &elapsed_timeG, 1, MPI_DOUBLE,
               MPI_MAX, 0, MPI_COMM_WORLD);
 #else
@@ -2854,7 +2854,7 @@ int main(int argc, char *argv[])
    if (opts.viz) {
       DumpToVisit(*locDom, opts.numFiles, myRank, numRanks) ;
    }
-   
+
    if ((myRank == 0) && (opts.quiet == 0)) {
       VerifyAndWriteFinalOutput(elapsed_timeG, *locDom, opts.nx, numRanks);
    }

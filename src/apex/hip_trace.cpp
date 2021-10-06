@@ -52,8 +52,10 @@ DEFINE_CONSTRUCTOR(init_tracing);
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // HIP Callbacks/Activity tracing
 //
-//#if defined(__HCC__) || (defined(__clang__) && defined(__HIP__))
+// Required by the hip header
+#if !defined(__HIP_PLATFORM_AMD__)
 #define __HIP_PLATFORM_AMD__
+#endif
 //#endif
 //#if defined(__NVCC__) || defined(__CUDACC__)
 //#define __HIP_PLATFORM_NVIDIA__
