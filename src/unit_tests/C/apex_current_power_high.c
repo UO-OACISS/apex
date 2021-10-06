@@ -13,7 +13,7 @@ void* someThread(void* tmp)
 {
   UNUSED(tmp);
   apex_register_thread("threadTest thread");
-  apex_profiler_handle profiler = apex_start(APEX_FUNCTION_ADDRESS,(void*)&someThread);
+  apex_profiler_handle profiler = apex_start(APEX_FUNCTION_ADDRESS,(const void*)&someThread);
   printf("PID of this process: %d\n", getpid());
 #if defined (__APPLE__)
   printf("The ID of this thread is: %lu\n", (unsigned long)pthread_self());
@@ -30,7 +30,7 @@ int main(int argc, char **argv)
   apex_init("apex_current_power_high unit test", 0, 1);
   double currentpower = apex_current_power_high();
   printf("Power at start: %f Watts\n", currentpower);
-  apex_profiler_handle profiler = apex_start(APEX_FUNCTION_ADDRESS,(void*)&main);
+  apex_profiler_handle profiler = apex_start(APEX_FUNCTION_ADDRESS,(const void*)&main);
   pthread_t * thread = (pthread_t*)(malloc(sizeof(pthread_t) * NUM_THREADS));
   int i;
   for (i = 0 ; i < NUM_THREADS ; i++) {

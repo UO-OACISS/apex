@@ -2124,7 +2124,7 @@ extern "C" {
     }
 
     apex_profiler_handle apex_start(apex_profiler_type type,
-        void * identifier) {
+        const void * identifier) {
         APEX_ASSERT(identifier != nullptr);
         if (type == APEX_FUNCTION_ADDRESS) {
             return
@@ -2137,14 +2137,14 @@ extern "C" {
         return APEX_NULL_PROFILER_HANDLE;
     }
 
-    void apex_start_(apex_profiler_type type, void * identifier,
+    void apex_start_(apex_profiler_type type, const void * identifier,
         apex_profiler_handle profiler) {
         apex_profiler_handle p = apex_start(type, identifier);
         if (profiler != nullptr) profiler = p;
     }
 
     apex_profiler_handle apex_resume(apex_profiler_type type,
-        void * identifier) {
+        const void * identifier) {
         APEX_ASSERT(identifier != nullptr);
         if (type == APEX_FUNCTION_ADDRESS) {
             return reinterpret_cast<apex_profiler_handle>(
@@ -2156,7 +2156,7 @@ extern "C" {
         return APEX_NULL_PROFILER_HANDLE;
     }
 
-    void apex_reset(apex_profiler_type type, void * identifier) {
+    void apex_reset(apex_profiler_type type, const void * identifier) {
         if (type == APEX_FUNCTION_ADDRESS) {
             reset((apex_function_address)(identifier));
         } else {
@@ -2186,7 +2186,7 @@ extern "C" {
         sample_value(tmp, value, threaded);
     }
 
-    void apex_new_task(apex_profiler_type type, void * identifier,
+    void apex_new_task(apex_profiler_type type, const void * identifier,
                        unsigned long long task_id) {
         if (type == APEX_FUNCTION_ADDRESS) {
             new_task((apex_function_address)(identifier), task_id);
@@ -2235,7 +2235,7 @@ extern "C" {
     }
 
     apex_profile* apex_get_profile(apex_profiler_type type,
-        void * identifier) {
+        const void * identifier) {
         APEX_ASSERT(identifier != nullptr);
         if (type == APEX_FUNCTION_ADDRESS) {
             return get_profile((apex_function_address)(identifier));

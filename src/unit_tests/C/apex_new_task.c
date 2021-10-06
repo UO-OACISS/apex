@@ -22,7 +22,7 @@ typedef struct scratchpad {
 
 void * fib (void * in) {
     apex_register_thread("fib thread");
-    apex_profiler_handle p = apex_start(APEX_FUNCTION_ADDRESS, &fib);
+    apex_profiler_handle p = apex_start(APEX_FUNCTION_ADDRESS, (const void *)&fib);
     scratchpad_t* scratch = (scratchpad_t*)(in);
     if (scratch->x == 0) {
         scratch->f_x = 0;
@@ -39,7 +39,7 @@ void * fib (void * in) {
     scratchpad_t a;
     a.x = (scratch->x)-1;
     a.f_x = 0;
-    pthread_attr_t attr_a; 
+    pthread_attr_t attr_a;
     pthread_attr_init(&attr_a);
 #ifdef APEX_HAVE_TAU
     pthread_attr_setstacksize(&attr_a, PTHREAD_STACK_MIN);
@@ -54,13 +54,13 @@ void * fib (void * in) {
         printf("No permission to set the scheduling policy and parameters specified in attr.");
     }
 	__sync_fetch_and_add(&task_id, 1L);
-    apex_new_task(APEX_FUNCTION_ADDRESS, &fib, task_id);
+    apex_new_task(APEX_FUNCTION_ADDRESS, (const void *)&fib, task_id);
     pthread_attr_destroy(&attr_a);
 
     scratchpad_t b;
     b.x = (scratch->x)-2;
     b.f_x = 0;
-    pthread_attr_t attr_b; 
+    pthread_attr_t attr_b;
     pthread_attr_init(&attr_b);
 #ifdef APEX_HAVE_TAU
     pthread_attr_setstacksize(&attr_b, PTHREAD_STACK_MIN);
@@ -75,11 +75,11 @@ void * fib (void * in) {
         printf("No permission to set the scheduling policy and parameters specified in attr.");
     }
 	__sync_fetch_and_add(&task_id, 1L);
-    apex_new_task(APEX_FUNCTION_ADDRESS, &fib, task_id);
+    apex_new_task(APEX_FUNCTION_ADDRESS, (const void *)&fib, task_id);
     pthread_attr_destroy(&attr_a);
 
-    pthread_join(thread_a,NULL);    
-    pthread_join(thread_b,NULL);    
+    pthread_join(thread_a,NULL);
+    pthread_join(thread_b,NULL);
     if (a.f_x != fib_results[a.x]) {
       printf("WRONG! fib of %d is NOT %d (valid value: %d)\n", a.x, a.f_x, fib_results[a.x]);
       //printf("WRONG! %d\n", fib_results[a.x]);
@@ -119,7 +119,7 @@ int main(int argc, char *argv[]) {
     scratch.x = i;
     scratch.f_x = 0;
 
-    pthread_attr_t attr; 
+    pthread_attr_t attr;
     pthread_attr_init(&attr);
     size_t oldStackSize;
     pthread_attr_getstacksize(&attr, &oldStackSize);

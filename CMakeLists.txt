@@ -139,9 +139,14 @@ if(APEX_WITH_HIP)
     # This is needed so that the clang compiler test passes, and we can use it to
     # compile the test cases.
     if(APEX_BUILD_TESTS)
-        find_package(hip REQUIRED)
-        # OK to enable HIP tests
-        set(APEX_HIP_TESTS TRUE)
+        # Don't do this without hipcc!  It will try to compile all of APEX with
+        # hipcc / clang++ and that for some reason is a hot mess...
+        if(CMAKE_CXX_COMPILER_ID STREQUAL "ROCMClang"
+             OR CMAKE_CXX_COMPILER MATCHES ".*hipcc")
+            # OK to enable HIP tests
+            find_package(hip REQUIRED)
+            set(APEX_HIP_TESTS TRUE)
+        endif()
     endif()
 endif(APEX_WITH_HIP)
 

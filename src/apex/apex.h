@@ -123,7 +123,7 @@ APEX_EXPORT void apex_cleanup();
  \sa @ref apex_stop, @ref apex_resume, @ref apex_yield
  */
 APEX_EXPORT apex_profiler_handle apex_start(apex_profiler_type type,
-    void * identifier);
+    const void * identifier);
 
 /**
  \brief Start a timer.
@@ -145,7 +145,7 @@ APEX_EXPORT apex_profiler_handle apex_start(apex_profiler_type type,
  \sa @ref apex_stop, @ref apex_resume, @ref apex_yield
  */
 APEX_EXPORT apex_profiler_handle apex_start_guid(apex_profiler_type type,
-    void * identifier, uint64_t guid);
+    const void * identifier, uint64_t guid);
 
 /**
  \brief Stop a timer.
@@ -196,7 +196,7 @@ APEX_EXPORT void apex_yield(apex_profiler_handle profiler);
  \sa @ref apex_start, @ref apex_stop, @ref apex_yield
 */
 APEX_EXPORT apex_profiler_handle apex_resume(apex_profiler_type type,
-    void * identifier);
+    const void * identifier);
 
 /**
  \brief Resume a timer.
@@ -220,7 +220,7 @@ APEX_EXPORT apex_profiler_handle apex_resume(apex_profiler_type type,
  \sa @ref apex_start, @ref apex_stop, @ref apex_yield
 */
 APEX_EXPORT apex_profiler_handle apex_resume_guid(apex_profiler_type type,
-    void * identifier, uint64_t guid);
+    const void * identifier, uint64_t guid);
 
 /*
  * Functions for resetting timer values
@@ -239,7 +239,7 @@ APEX_EXPORT apex_profiler_handle apex_resume_guid(apex_profiler_type type,
  \return No return value.
  \sa @ref apex_get_profile
  */
-APEX_EXPORT void apex_reset(apex_profiler_type type, void * identifier);
+APEX_EXPORT void apex_reset(apex_profiler_type type, const void * identifier);
 
 /**
  \brief Set the thread state
@@ -282,7 +282,7 @@ APEX_EXPORT void apex_sample_value(const char * name, double value);
  \return No return value.
  */
 
-APEX_EXPORT void apex_new_task(apex_profiler_type type, void * identifier,
+APEX_EXPORT void apex_new_task(apex_profiler_type type, const void * identifier,
     uint64_t task_id);
 
 /**
@@ -411,7 +411,7 @@ APEX_EXPORT void apex_deregister_policy(apex_policy_handle * handle);
  \return The current profile for that timed function or sampled value.
  */
 APEX_EXPORT apex_profile * apex_get_profile(apex_profiler_type type,
-    void * identifier);
+    const void * identifier);
 
 /**
  \brief Get the current power reading
@@ -476,7 +476,7 @@ APEX_EXPORT int apex_setup_power_cap_throttling(void);      // initialize
  */
 
 APEX_EXPORT int apex_setup_timer_throttling(apex_profiler_type type,
-        void * identifier,
+        const void * identifier,
         apex_optimization_criteria_t criteria,
         apex_optimization_method_t method, unsigned long update_interval);
 
@@ -506,7 +506,7 @@ APEX_EXPORT int apex_setup_timer_throttling(apex_profiler_type type,
  */
 APEX_EXPORT int apex_setup_throughput_tuning(
         apex_profiler_type type,
-        void * identifier,
+        const void * identifier,
         apex_optimization_criteria_t criteria,
         apex_event_type event_type, int num_inputs, long ** inputs, long * mins,
         long * maxs, long * steps);

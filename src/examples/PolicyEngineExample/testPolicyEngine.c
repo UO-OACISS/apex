@@ -11,7 +11,7 @@ int foo (int i) {
 #ifdef __APPLE__
   apex_profiler_handle my_profiler = apex_start(APEX_NAME_STRING, "foo");
 #else
-  apex_profiler_handle my_profiler = apex_start(APEX_FUNCTION_ADDRESS, &foo);
+  apex_profiler_handle my_profiler = apex_start(APEX_FUNCTION_ADDRESS, (const void *)&foo);
 #endif
   int result = i*i;
   apex_stop(my_profiler);
@@ -26,7 +26,7 @@ void* someThread(void* tmp)
 #ifdef __APPLE__
   apex_profiler_handle my_profiler = apex_start(APEX_NAME_STRING, "someThread");
 #else
-  apex_profiler_handle my_profiler = apex_start(APEX_FUNCTION_ADDRESS, &someThread);
+  apex_profiler_handle my_profiler = apex_start(APEX_FUNCTION_ADDRESS, (const void *)&someThread);
 #endif
   printf("PID of this process: %d\n", getpid());
 #if defined (__APPLE__)
@@ -52,7 +52,7 @@ int policy_periodic(apex_context const context) {
         printf("Periodic Policy: 'foo' %d %f seconds.\n", (int)p->calls, p->accumulated/p->calls);
     }
 #else
-    apex_profile * p = apex_get_profile(APEX_FUNCTION_ADDRESS, &foo);
+    apex_profile * p = apex_get_profile(APEX_FUNCTION_ADDRESS, (const void *)&foo);
     if (p != NULL) {
         printf("Periodic Policy: %p %d %f seconds.\n", foo, (int)p->calls, p->accumulated/p->calls);
     }
@@ -69,7 +69,7 @@ int policy_event(apex_context const context) {
         printf("Event Policy: 'foo' %d %f seconds.\n", (int)p->calls, p->accumulated/p->calls);
     }
 #else
-    apex_profile * p = apex_get_profile(APEX_FUNCTION_ADDRESS, &foo);
+    apex_profile * p = apex_get_profile(APEX_FUNCTION_ADDRESS, (const void *)&foo);
     if (p != NULL) {
         printf("Event Policy: %p %d %f seconds.\n", foo, (int)p->calls, p->accumulated/p->calls);
     }
@@ -89,7 +89,7 @@ int main(int argc, char **argv)
 #ifdef __APPLE__
   apex_profiler_handle my_profiler = apex_start(APEX_NAME_STRING, "main");
 #else
-  apex_profiler_handle my_profiler = apex_start(APEX_FUNCTION_ADDRESS, &main);
+  apex_profiler_handle my_profiler = apex_start(APEX_FUNCTION_ADDRESS, (const void *)&main);
 #endif
   printf("PID of this process: %d\n", getpid());
   pthread_t thread[NUM_THREADS];
@@ -101,7 +101,7 @@ int main(int argc, char **argv)
     pthread_join(thread[i], NULL);
     printf("Joined thread %d\n", i);
   }
-  // now un-register the policies 
+  // now un-register the policies
   apex_deregister_policy(on_periodic);
   apex_deregister_policy(on_event);
 

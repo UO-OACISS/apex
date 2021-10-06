@@ -28,7 +28,7 @@ if (OpenMP_FOUND) # don't think we'd be in here otherwise...
             unset(flag_supported CACHE)
         endif()
     endif (CUPTI_FOUND)
-    if (ROCTRACER_FOUND)
+    if (ROCTRACER_FOUND AND APEX_HIP_TESTS)
         set (omp_target_flags "${OpenMP_C_FLAGS} -fopenmp-targets=amdgcn-amd-amdhsa -Xopenmp-target=amdgcn-amd-amdhsa -march=gfx906")
         check_cxx_compiler_flag("${omp_target_flags}" flag_supported)
         if(flag_supported)
@@ -39,7 +39,7 @@ if (OpenMP_FOUND) # don't think we'd be in here otherwise...
             set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
             set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
         endif()
-    endif (ROCTRACER_FOUND)
+    endif (ROCTRACER_FOUND AND APEX_HIP_TESTS)
 endif (OpenMP_FOUND)
 
 set(example_programs

@@ -9,18 +9,18 @@ int main (int argc, char** argv) {
   apex_init("apex_get_idle_rate unit test", 0, 1);
   apex_set_use_screen_output(1);
   printf("APEX Version : %s\n", apex_version());
-  apex_profiler_handle main_profiler = apex_start(APEX_FUNCTION_ADDRESS,(void*)(main));
+  apex_profiler_handle main_profiler = apex_start(APEX_FUNCTION_ADDRESS,(const void*)(main));
   int i = 0;
   // Call "foo" 30 times
   for(i = 0; i < 30; ++i) {
     apex_profiler_handle p = apex_start(APEX_NAME_STRING,"foo");
     apex_stop(p);
-  }    
+  }
   // Call "bar" 40 times
   for(i = 0; i < 40; ++i) {
     apex_profiler_handle p = apex_start(APEX_NAME_STRING,"bar");
     apex_stop(p);
-  }    
+  }
   // suspend measurement
   apex_set_suspend(true);
   usleep(100);
@@ -28,20 +28,20 @@ int main (int argc, char** argv) {
   for(i = 0; i < 3; ++i) {
     apex_profiler_handle p = apex_start(APEX_NAME_STRING,"foo");
     apex_stop(p);
-  }    
+  }
   // Call "bar" 4 times
   for(i = 0; i < 4; ++i) {
     apex_profiler_handle p = apex_start(APEX_NAME_STRING,"bar");
     apex_stop(p);
-  }    
+  }
   // The profile should show "foo" was called 3 times
   // and bar was called 4 times.
-  
+
   // Call "Test Timer" 100 times
   for(i = 0; i < 100; ++i) {
     apex_profiler_handle p = apex_start(APEX_NAME_STRING,"Test Timer");
     apex_stop(p);
-  }    
+  }
   // resume measurement
   apex_set_suspend(false);
   usleep(100);
@@ -49,7 +49,7 @@ int main (int argc, char** argv) {
   for(i = 0; i < 25; ++i) {
     apex_profiler_handle p = apex_start(APEX_NAME_STRING,"Test Timer");
     apex_stop(p);
-  }    
+  }
   // The profile should show special "APEX Idle Time" counter.
   apex_profile * profile = apex_get_profile(APEX_NAME_STRING,APEX_IDLE_TIME);
   if (profile) {

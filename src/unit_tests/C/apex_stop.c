@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 int foo(int i) {
-  apex_profiler_handle profiler = apex_start(APEX_FUNCTION_ADDRESS, &foo);
+  apex_profiler_handle profiler = apex_start(APEX_FUNCTION_ADDRESS, (const void *)&foo);
   int j = i * i;
   apex_stop(profiler);
   return j;
@@ -12,7 +12,7 @@ int foo(int i) {
 int main (int argc, char** argv) {
   apex_init("apex_stop unit test", 0, 1);
   apex_set_use_screen_output(1);
-  apex_profiler_handle profiler = apex_start(APEX_FUNCTION_ADDRESS, &main);
+  apex_profiler_handle profiler = apex_start(APEX_FUNCTION_ADDRESS, (const void *)&main);
   int i,j = 0;
   for (i = 0 ; i < 3 ; i++)
     j += foo(i);

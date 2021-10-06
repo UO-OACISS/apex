@@ -8,15 +8,15 @@
 #define NUM_THREADS 8
 #define ITERATIONS 10
 
-int custom_type_1;
-int custom_type_2;
+apex_event_type custom_type_1;
+apex_event_type custom_type_2;
 
 int foo (int i) {
   static __thread apex_profiler_handle my_profiler;
   if (i % 2 == 0) {
-    my_profiler = apex_start(APEX_FUNCTION_ADDRESS, &foo);
+    my_profiler = apex_start(APEX_FUNCTION_ADDRESS, (const void *)&foo);
   } else {
-    my_profiler = apex_resume(APEX_FUNCTION_ADDRESS, &foo);
+    my_profiler = apex_resume(APEX_FUNCTION_ADDRESS, (const void *)&foo);
   }
   int result = i*i;
   if (i % 2 == 0) {
@@ -32,7 +32,7 @@ void* someThread(void* tmp)
   apex_register_thread("threadTest thread");
   apex_custom_event(custom_type_1, NULL);
   apex_sample_value("some value", 42);
-  apex_profiler_handle my_profiler = apex_start(APEX_FUNCTION_ADDRESS, &someThread);
+  apex_profiler_handle my_profiler = apex_start(APEX_FUNCTION_ADDRESS, (const void *)&someThread);
   int i = 0;
   for (i = 0 ; i < ITERATIONS ; i++) {
       foo(i);
@@ -44,7 +44,7 @@ void* someThread(void* tmp)
 }
 
 int policy_periodic(apex_context const context) {
-    apex_profile * p = apex_get_profile(APEX_FUNCTION_ADDRESS, &foo);
+    apex_profile * p = apex_get_profile(APEX_FUNCTION_ADDRESS, (const void *)&foo);
     if (p != NULL) {
         printf("Periodic Policy: %p %d %f seconds.\n", foo, (int)p->calls, p->accumulated/p->calls);
     }
@@ -149,7 +149,7 @@ int main(int argc, char **argv)
 
   apex_policy_handle * on_periodic = apex_register_periodic_policy(1000000, policy_periodic);
 
-  apex_profiler_handle my_profiler = apex_start(APEX_FUNCTION_ADDRESS, &main);
+  apex_profiler_handle my_profiler = apex_start(APEX_FUNCTION_ADDRESS, (const void *)&main);
   pthread_t thread[NUM_THREADS];
   int i;
   for (i = 0 ; i < NUM_THREADS ; i++) {
@@ -158,7 +158,7 @@ int main(int argc, char **argv)
   for (i = 0 ; i < NUM_THREADS ; i++) {
     pthread_join(thread[i], NULL);
   }
-  // now un-register the policies 
+  // now un-register the policies
   printf("Deregistering %d...\n", on_startup->id);
   printf("Deregistering %d...\n", on_shutdown->id);
   printf("Deregistering %d...\n", on_new_node->id);

@@ -8,8 +8,8 @@
 #define NUM_THREADS 8
 #define ITERATIONS 10
 
-int custom_type_1;
-int custom_type_2;
+apex_event_type custom_type_1;
+apex_event_type custom_type_2;
 
 int foo (int i) {
   static __thread apex_profiler_handle my_profiler;
@@ -17,20 +17,20 @@ int foo (int i) {
 
   if (i % 2 == 0) {
     // do start/yield/start/stop
-    my_profiler = apex_start(APEX_FUNCTION_ADDRESS, &foo);
+    my_profiler = apex_start(APEX_FUNCTION_ADDRESS, (const void *)&foo);
     result = i*i; // work
     apex_yield(my_profiler);
     result += i*i; // work
-    my_profiler = apex_start(APEX_FUNCTION_ADDRESS, &foo);
+    my_profiler = apex_start(APEX_FUNCTION_ADDRESS, (const void *)&foo);
     result += i*i; // work
     apex_stop(my_profiler);
   } else {
     // do start/stop/resume/stop
-    my_profiler = apex_start(APEX_FUNCTION_ADDRESS, &foo);
+    my_profiler = apex_start(APEX_FUNCTION_ADDRESS, (const void *)&foo);
     result = i*i; // work
     apex_stop(my_profiler);
     result += i*i; // work
-    my_profiler = apex_resume(APEX_FUNCTION_ADDRESS, &foo);
+    my_profiler = apex_resume(APEX_FUNCTION_ADDRESS, (const void *)&foo);
     result += i*i; // work
     apex_stop(my_profiler);
   }
@@ -43,7 +43,7 @@ void* someThread(void* tmp)
   apex_register_thread("threadTest thread");
   apex_custom_event(custom_type_1, NULL);
   apex_sample_value("some value", 42);
-  apex_profiler_handle my_profiler = apex_start(APEX_FUNCTION_ADDRESS, &someThread);
+  apex_profiler_handle my_profiler = apex_start(APEX_FUNCTION_ADDRESS, (const void *)&someThread);
   int i = 0;
   for (i = 0 ; i < ITERATIONS ; i++) {
       foo(i);
@@ -150,7 +150,7 @@ int main(int argc, char **argv)
   apex_policy_handle * on_custom_event_1 = apex_register_policy(custom_type_1, policy_event);
   apex_policy_handle * on_custom_event_2 = apex_register_policy(custom_type_2, policy_event);
 
-  apex_profiler_handle my_profiler = apex_start(APEX_FUNCTION_ADDRESS, &main);
+  apex_profiler_handle my_profiler = apex_start(APEX_FUNCTION_ADDRESS, (const void *)&main);
   pthread_t thread[NUM_THREADS];
   int i;
   for (i = 0 ; i < NUM_THREADS ; i++) {
@@ -159,7 +159,7 @@ int main(int argc, char **argv)
   for (i = 0 ; i < NUM_THREADS ; i++) {
     pthread_join(thread[i], NULL);
   }
-  // now un-register the policies 
+  // now un-register the policies
   if (on_startup != NULL) {
       printf("Deregistering %d...\n", on_startup->id);
       apex_deregister_policy(on_startup);

@@ -19,7 +19,7 @@ bool test_passed = false;
 int original_cap = NUM_THREADS;
 
 int foo (int i) {
-  apex_profiler_handle p = apex_start(APEX_FUNCTION_ADDRESS, &foo);
+  apex_profiler_handle p = apex_start(APEX_FUNCTION_ADDRESS, (const void *)&foo);
   int j = i*i;
   double randval = 1.0 + (((double)(rand())) / RAND_MAX);
   struct timespec tim, tim2;
@@ -43,7 +43,7 @@ void* someThread(void* tmp)
 {
   int *myid = (int*)tmp;
   apex_register_thread("threadTest thread");
-  apex_profiler_handle p = apex_start(APEX_FUNCTION_ADDRESS, &someThread);
+  apex_profiler_handle p = apex_start(APEX_FUNCTION_ADDRESS, (const void *)&someThread);
   printf("PID of this process: %d\n", getpid());
 #if defined (__APPLE__)
   printf("The ID of this thread is: %lu\n", (unsigned long)pthread_self());
@@ -78,12 +78,12 @@ int main(int argc, char **argv)
   apex_init("apex_setup_timer_throttling unit test", 0, 1);
   apex_set_throttle_concurrency(1);
 
-  apex_setup_timer_throttling(APEX_FUNCTION_ADDRESS, &foo, APEX_MINIMIZE_ACCUMULATED,
+  apex_setup_timer_throttling(APEX_FUNCTION_ADDRESS, (const void *)&foo, APEX_MINIMIZE_ACCUMULATED,
           APEX_DISCRETE_HILL_CLIMBING, 100000);
 
   original_cap = apex_get_thread_cap();
 
-  apex_profiler_handle p = apex_start(APEX_FUNCTION_ADDRESS, &main);
+  apex_profiler_handle p = apex_start(APEX_FUNCTION_ADDRESS, (const void *)&main);
   //printf("PID of this process: %d\n", getpid());
   pthread_t thread[NUM_THREADS];
   int i;

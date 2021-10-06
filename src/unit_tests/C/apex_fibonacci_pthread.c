@@ -20,7 +20,7 @@ typedef struct scratchpad {
 
 void * fib (void * in) {
     apex_register_thread("fib thread");
-    apex_profiler_handle p = apex_start(APEX_FUNCTION_ADDRESS, &fib);
+    apex_profiler_handle p = apex_start(APEX_FUNCTION_ADDRESS, (const void *)&fib);
     scratchpad_t* scratch = (scratchpad_t*)(in);
     if (scratch->x == 0) {
         scratch->f_x = 0;
@@ -37,7 +37,7 @@ void * fib (void * in) {
     scratchpad_t a;
     a.x = (scratch->x)-1;
     a.f_x = 0;
-    pthread_attr_t attr_a; 
+    pthread_attr_t attr_a;
     pthread_attr_init(&attr_a);
     //pthread_attr_setstacksize(&attr_a, PTHREAD_STACK_MIN);
     pthread_t thread_a;
@@ -54,7 +54,7 @@ void * fib (void * in) {
     scratchpad_t b;
     b.x = (scratch->x)-2;
     b.f_x = 0;
-    pthread_attr_t attr_b; 
+    pthread_attr_t attr_b;
     pthread_attr_init(&attr_b);
     //pthread_attr_setstacksize(&attr_b, PTHREAD_STACK_MIN);
     pthread_t thread_b;
@@ -73,7 +73,7 @@ void * fib (void * in) {
       fib((void*)&a);
       //a.f_x == fib_results[a.x];
     } else {
-      pthread_join(thread_a,NULL);    
+      pthread_join(thread_a,NULL);
     }
 
     if (rc_b > 0) {
@@ -81,7 +81,7 @@ void * fib (void * in) {
       fib((void*)&b);
       //b.f_x == fib_results[b.x];
     } else {
-      pthread_join(thread_b,NULL);    
+      pthread_join(thread_b,NULL);
     }
 
     if (a.f_x != fib_results[a.x]) {
@@ -123,7 +123,7 @@ int main(int argc, char *argv[]) {
     scratch.x = i;
     scratch.f_x = 0;
 
-    pthread_attr_t attr; 
+    pthread_attr_t attr;
     pthread_attr_init(&attr);
     size_t oldStackSize;
     pthread_attr_getstacksize(&attr, &oldStackSize);

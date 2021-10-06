@@ -15,7 +15,7 @@ void* someThread(void* tmp)
 {
     uintptr_t myid = (uintptr_t)tmp;
     apex_register_thread("threadTest thread");
-    apex_profiler_handle p = apex_start(APEX_FUNCTION_ADDRESS,(void*)&someThread);
+    apex_profiler_handle p = apex_start(APEX_FUNCTION_ADDRESS,(const void*)&someThread);
     // Even-numbered threads start the timers
     if (myid % 2 == 0) {
         handles[myid] = apex_start(APEX_NAME_STRING,"cross-thread timer");
@@ -41,7 +41,7 @@ int main(int argc, char **argv)
 {
     apex_set_use_screen_output(1);
     apex_init("apex_exit_thread unit test", 0, 1);
-    apex_profiler_handle profiler = apex_start(APEX_FUNCTION_ADDRESS,(void*)&main);
+    apex_profiler_handle profiler = apex_start(APEX_FUNCTION_ADDRESS,(const void*)&main);
     pthread_t * thread = (pthread_t*)(malloc(sizeof(pthread_t) * NUM_THREADS));
     uintptr_t i;
     for (i = 0 ; i < NUM_THREADS ; i++) {

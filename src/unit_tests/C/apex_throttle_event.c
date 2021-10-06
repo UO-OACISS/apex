@@ -16,7 +16,7 @@ int func(int i) {
 
 uintptr_t foo(uintptr_t i) {
     int j = 0;
-    apex_profiler_handle profiler = apex_start(APEX_FUNCTION_ADDRESS, &foo);
+    apex_profiler_handle profiler = apex_start(APEX_FUNCTION_ADDRESS, (const void *)&foo);
     int x,y;
     for (x = 0 ; x < MAX_OUTER ; x++) {
         for (y = 0 ; y < MAX_INNER ; y++) {
@@ -29,7 +29,7 @@ uintptr_t foo(uintptr_t i) {
 
 int main (int argc, char** argv) {
     apex_init("apex_start unit test", 0, 1);
-    apex_profiler_handle profiler = apex_start(APEX_FUNCTION_ADDRESS, &main);
+    apex_profiler_handle profiler = apex_start(APEX_FUNCTION_ADDRESS, (const void *)&main);
     int i,j = 0;
     for (i = 0 ; i < 3 ; i++) {
         j += foo(i);
