@@ -384,7 +384,9 @@ void trace_event_listener::flush_trace(void) {
     trace.str("");
     _vthread_mutex.unlock();
 #else
+    _vthread_mutex.lock();
     size_t count = streams.size();
+    _vthread_mutex.unlock();
     std::stringstream ss;
     for (size_t index = 0 ; index < count ; index++) {
         std::mutex * mtx = get_thread_mutex(index);
@@ -403,12 +405,7 @@ void trace_event_listener::flush_trace_if_necessary(void) {
     auto tmp = ++num_events;
     /* flush after every 100k events */
     if (tmp % 100000 == 0) {
-        // only let 1 thread do this!
-        // ...not likely, but possible.  Not expensive to hold this
-        // lock while flushing.
-        _vthread_mutex.lock();
         flush_trace();
-        _vthread_mutex.unlock();
     }
 }
 

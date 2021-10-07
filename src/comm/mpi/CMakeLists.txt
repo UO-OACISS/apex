@@ -3,7 +3,7 @@
 #  cmake_policy(SET CMP0004 OLD)
 #endif()
 
-message(${MPI_INCLUDE_PATH})
+message(INFO ${MPI_INCLUDE_PATH})
 include_directories(${MPI_INCLUDE_PATH})
 
 # Make sure the compiler can find include files from our Apex library.
