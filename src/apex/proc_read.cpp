@@ -1115,7 +1115,7 @@ namespace apex {
         in_apex prevent_nonsense;
         pthread_wrapper* ptw = (pthread_wrapper*)_ptw;
         // make sure APEX knows this is not a worker thread
-        thread_instance::instance(false);
+        thread_instance::instance(false).set_worker(false);
         ptw->_running = true;
         if (apex_options::pin_apex_threads()) {
             set_thread_affinity();
