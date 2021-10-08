@@ -617,12 +617,14 @@ profiler* start(const std::string &timer_name)
             thread_instance::instance().clear_current_profiler();
         }
     }
+#if defined(APEX_DEBUG)
     static std::string apex_process_profile_str("apex::process_profiles");
     if (timer_name.compare(apex_process_profile_str) == 0) {
         APEX_UTIL_REF_COUNT_APEX_INTERNAL_START
     } else {
         APEX_UTIL_REF_COUNT_START
     }
+#endif
     if (apex_options::untied_timers() == true) {
         return new_profiler;
     }
@@ -805,12 +807,14 @@ profiler* resume(const std::string &timer_name) {
             return profiler::get_disabled_profiler();
         }
     }
+#if defined(APEX_DEBUG)
     static std::string apex_process_profile_str("apex::process_profiles");
     if (timer_name.compare(apex_process_profile_str) == 0) {
         APEX_UTIL_REF_COUNT_APEX_INTERNAL_RESUME
     } else {
         APEX_UTIL_REF_COUNT_RESUME
     }
+#endif
     return thread_instance::instance().restore_children_profilers(tt_ptr);
 }
 
@@ -886,6 +890,7 @@ profiler* resume(profiler * p) {
             return profiler::get_disabled_profiler();
         }
     }
+#if defined(APEX_DEBUG)
     static std::string apex_process_profile_str("apex::process_profiles");
     if (p->tt_ptr->get_task_id()->get_name(false).compare(apex_process_profile_str)
         == 0) {
@@ -893,6 +898,7 @@ profiler* resume(profiler * p) {
     } else {
         APEX_UTIL_REF_COUNT_RESUME
     }
+#endif
     return p;
 }
 
@@ -987,6 +993,7 @@ void stop(profiler* the_profiler, bool cleanup) {
             printf("%s\n",dbg.str().c_str());
     fflush(stdout);
     */
+#if defined(APEX_DEBUG)
     static std::string apex_process_profile_str("apex::process_profiles");
     if (p->tt_ptr->get_task_id()->get_name(false).compare(apex_process_profile_str)
         == 0) {
@@ -994,6 +1001,7 @@ void stop(profiler* the_profiler, bool cleanup) {
     } else {
         APEX_UTIL_REF_COUNT_STOP
     }
+#endif
     if (cleanup) {
         instance->complete_task(p->tt_ptr);
         //instance->active_task_wrappers.erase(p->tt_ptr);
@@ -1046,13 +1054,14 @@ void stop(std::shared_ptr<task_wrapper> tt_ptr) {
             printf("%s\n",dbg.str().c_str());
     fflush(stdout);
     */
+#if defined(APEX_DEBUG)
     static std::string apex_process_profile_str("apex::process_profiles");
     if (p->tt_ptr->get_task_id()->get_name(false).compare(apex_process_profile_str)
-        == 0) {
         APEX_UTIL_REF_COUNT_APEX_INTERNAL_STOP
     } else {
         APEX_UTIL_REF_COUNT_STOP
     }
+#endif
     instance->complete_task(tt_ptr);
 }
 
@@ -1093,6 +1102,7 @@ void yield(profiler* the_profiler)
     }
     //cout << thread_instance::get_id() << " Yield : " <<
     //the_profiler->tt_ptr->get_task_id()->get_name() << endl; fflush(stdout);
+#if defined(APEX_DEBUG)
     static std::string apex_process_profile_str("apex::process_profiles");
     if (p->tt_ptr->get_task_id()->get_name(false).compare(apex_process_profile_str)
         == 0) {
@@ -1100,6 +1110,7 @@ void yield(profiler* the_profiler)
     } else {
         APEX_UTIL_REF_COUNT_YIELD
     }
+#endif
 }
 
 void yield(std::shared_ptr<task_wrapper> tt_ptr)
@@ -1142,6 +1153,7 @@ void yield(std::shared_ptr<task_wrapper> tt_ptr)
     }
     //cout << thread_instance::get_id() << " Yield : " <<
     //tt_ptr->prof->tt_ptr->get_task_id()->get_name() << endl; fflush(stdout);
+#if defined(APEX_DEBUG)
     static std::string apex_process_profile_str("apex::process_profiles");
     if (p->tt_ptr->get_task_id()->get_name(false).compare(apex_process_profile_str)
         == 0) {
@@ -1149,6 +1161,7 @@ void yield(std::shared_ptr<task_wrapper> tt_ptr)
     } else {
         APEX_UTIL_REF_COUNT_YIELD
     }
+#endif
     tt_ptr->prof = nullptr;
 }
 
