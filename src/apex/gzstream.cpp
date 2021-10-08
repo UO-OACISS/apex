@@ -8,10 +8,7 @@
 
 #include "gzstream.hpp"
 
-namespace apex
-{
-namespace io
-{
+namespace apex { namespace io {
 
 gzstreambuf::gzstreambuf(const char* filename, const char* openmode,
                          size_t buffer_size)
@@ -89,5 +86,5 @@ bool gzstreambuf::is_open() const
 {
     return file_ != nullptr;
 }
-}
-}
+} // namespace io
+} // namespace apex

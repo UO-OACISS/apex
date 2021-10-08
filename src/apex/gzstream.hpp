@@ -139,5 +139,5 @@ using gzifstream = zifstream<gzstreambuf>;
  */
 using gzofstream = zofstream<gzstreambuf>;
 
-}
-}
+} // namespace io
+} // namespace apex
