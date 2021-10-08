@@ -99,11 +99,11 @@ thread_instance::~thread_instance(void) {
 
 void thread_instance::set_worker(bool is_worker) {
   // if was previously not a worker...
-  if (!instance()._is_worker) {
-    // ...and is now a worker...
-    if (is_worker) {
-      instance()._id = common()._num_threads++;
-    } // do the opposite?
+  // ...and is now a worker...
+  if (!instance()._is_worker && is_worker) {
+      instance()._id = common()._num_workers++;
+  } else if (instance()._is_worker && !is_worker) {
+      instance()._id = common()._num_workers--;
   }
   instance()._is_worker = is_worker;
   std::unique_lock<std::mutex> l(common()._worker_map_mutex);
