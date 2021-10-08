@@ -410,6 +410,8 @@ void trace_event_listener::flush_trace_if_necessary(void) {
 }
 
 void trace_event_listener::close_trace(void) {
+    static bool closed{false};
+    if (closed) return;
     auto& trace_file = get_trace_file();
     std::stringstream ss;
     ss << fixed;
@@ -421,8 +423,9 @@ void trace_event_listener::close_trace(void) {
     ss << "}\n" << std::endl;
     write_to_trace(ss);
     flush_trace();
-    //printf("Closing trace...\n"); fflush(stdout);
+    printf("Closing trace...\n"); fflush(stdout);
     trace_file.close();
+    closed = true;
 }
 
 /* This function is used by APEX threads so that TAU knows about them. */
