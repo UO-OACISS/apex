@@ -839,8 +839,12 @@ namespace apex {
         ROCTRACER_CALL(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_HIP_OPS));
         ROCTRACER_CALL(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_EXT_API));
         if (apex_options::use_hip_kfd_api()) {
+#if defined(APEX_WITH_HSA)
             ROCTRACER_CALL(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_HSA_API));
+#endif
+#if defined(APEX_WITH_KFD)
             ROCTRACER_CALL(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_KFD_API));
+#endif
         }
         ROCTRACER_CALL(roctracer_flush_activity());
 #if defined(APEX_WITH_HSA)
