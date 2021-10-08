@@ -27,8 +27,8 @@
 #include <cstdlib>
 using namespace std;
 
-//#define APEX_WITH_KFD
-//#define APEX_WITH_HSA
+#define APEX_WITH_KFD
+#define APEX_WITH_HSA
 
 // roctx header file
 #include <roctx.h>
@@ -56,18 +56,16 @@ DEFINE_CONSTRUCTOR(init_tracing);
 #if !defined(__HIP_PLATFORM_AMD__)
 #define __HIP_PLATFORM_AMD__
 #endif
-//#endif
-//#if defined(__NVCC__) || defined(__CUDACC__)
-//#define __HIP_PLATFORM_NVIDIA__
-//#endif
-//#define AMD_INTERNAL_BUILD
+#if !defined(AMD_INTERNAL_BUILD)
+#define AMD_INTERNAL_BUILD
+#endif
 #include <roctracer_hip.h>
 #include <roctracer_hcc.h>
-#if defined(APEX_WITH_HSA) && defined(AMD_INTERNAL_BUILD) // enabled for now to simplify clock synchronization
+#if defined(APEX_WITH_HSA)
 // This rquires the -DAMD_INTERNAL_BUILD compiler flag
 #include <roctracer_hsa.h>
 #endif
-#if defined(APEX_WITH_KFD) // enabled for now to simplify compiling
+#if defined(APEX_WITH_KFD)
 #include <roctracer_kfd.h>
 #endif
 #include <roctracer_roctx.h>
@@ -93,14 +91,31 @@ static uint64_t startTimestampGPU[attempts] = {0};
 static uint64_t startTimestampCPU[attempts] = {0};
 static int64_t deltaTimestamp = {0};
 
+/* Needed to prevent re-entry when profiling with kfd/hsa */
+class handler_lock {
+public:
+    bool mine;
+    handler_lock() : mine(false) {
+        // is the callstack on this thread aleady in a handler?
+        // if not, you get it.
+        if (!handling()) {
+            mine = true;
+            handling() = true;
+        }
+    }
+    // if I have the lock, release it.
+    ~handler_lock() { if (mine) handling() = false; }
+    // put this in a function, so it can be initialized correctly by some compilers
+    bool& handling() {
+        static APEX_NATIVE_TLS bool handling{false};
+        return handling;
+    }
+};
+
+/* SHOULD only effectively get called from init */
 bool run_once() {
     static bool once{false};
     if (once) { return once; }
-#if defined(APEX_WITH_KFD)
-    if (apex::apex_options::use_hip_kfd_api()) {
-        ROCTRACER_CALL(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_KFD_API));
-    }
-#endif
     // NOTE: This code isn't really useful.  It would be if we were
     // using CPU timestamps for the host activity, but we can't seem
     // to sync the clocks right, so *ALL* timestamps are taken on the
@@ -108,8 +123,8 @@ bool run_once() {
     // synchronize timestamps
     // this is a common algorithm, see otf2_listener_mpi.cpp for synchronizing across ranks
     for (int i = 0 ; i < attempts ; i++) {
-        startTimestampCPU[i] = apex::profiler::now_ns();
         roctracer_get_timestamp(&(startTimestampGPU[i]));
+        startTimestampCPU[i] = apex::profiler::now_ns();
     }
     // assume the GPU clock is less than the CPU clock
     int64_t latency = (int64_t)(startTimestampCPU[0]) - (int64_t)(startTimestampGPU[0]);
@@ -138,6 +153,9 @@ bool run_once() {
  * and stopped by another).
  */
 void handle_roctx(uint32_t domain, uint32_t cid, const void* callback_data, void* arg) {
+    // prevent re-entry
+    handler_lock hl;
+    if (!hl.mine) { return; }
     APEX_UNUSED(domain);
     APEX_UNUSED(arg);
     static bool once = run_once();
@@ -197,6 +215,11 @@ std::mutex correlation_map_mutex;
 #if defined(APEX_WITH_KFD)
 /* This is the "low level" API - lots of events if interested. */
 void handle_roc_kfd(uint32_t domain, uint32_t cid, const void* callback_data, void* arg) {
+    // ignore timestamp requests
+    if (cid == KFD_API_ID_hsaKmtGetClockCounters) return;
+    // prevent re-entry
+    handler_lock hl;
+    if (!hl.mine) { return; }
     APEX_UNUSED(domain);
     APEX_UNUSED(arg);
     static bool once = run_once();
@@ -225,6 +248,11 @@ void handle_roc_kfd(uint32_t domain, uint32_t cid, const void* callback_data, vo
 /* This is the "OpenMP" API - lots of events if interested. */
 #if defined(APEX_WITH_HSA)
 void handle_roc_hsa(uint32_t domain, uint32_t cid, const void* callback_data, void* arg) {
+    // ignore timestamp requests
+    if (cid == KFD_API_ID_hsaKmtGetClockCounters) return;
+    // prevent re-entry
+    handler_lock hl;
+    if (!hl.mine) { return; }
     APEX_UNUSED(domain);
     APEX_UNUSED(arg);
     static bool once = run_once();
@@ -479,15 +507,18 @@ std::string lookup_kernel_name(const hipFunction_t f) {
  * the entry or exit event, and act accordingly.
  */
 void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* arg) {
+    // prevent re-entry
+    handler_lock hl;
+    if (!hl.mine) { return; }
     APEX_UNUSED(domain);
     APEX_UNUSED(arg);
     static bool once = run_once();
+    APEX_UNUSED(once);
     /* Check for a couple of useless callbacks, we don't need to track them */
     if (cid == HIP_API_ID___hipPushCallConfiguration ||
         cid == HIP_API_ID___hipPopCallConfiguration) {
         return;
     }
-    APEX_UNUSED(once);
     static APEX_NATIVE_TLS std::stack<std::shared_ptr<apex::task_wrapper> > timer_stack;
     const hip_api_data_t* data = (const hip_api_data_t*)(callback_data);
     std::string context{roctracer_op_string(ACTIVITY_DOMAIN_HIP_API, cid, 0)};
@@ -721,7 +752,7 @@ void activity_callback(const char* begin, const char* end, void* arg) {
         if (record->domain == ACTIVITY_DOMAIN_HIP_OPS) {
             process_hip_record(record);
         } else {
-            fprintf(stderr, "Bad domain %d\n\n", record->domain);
+            fprintf(stderr, "Unsupported domain %d\n\n", record->domain);
             abort();
         }
 
@@ -732,6 +763,12 @@ void activity_callback(const char* begin, const char* end, void* arg) {
 // Init tracing routine
 void init_tracing() {
     if (!apex::apex_options::use_hip()) { return; }
+#if defined(APEX_WITH_HSA)
+    hsa_init();
+    std::cout << "HSA Initialized by APEX" << std::endl;
+    static bool once = run_once();
+    APEX_UNUSED(once);
+#endif
     // roctracer properties
     roctracer_set_properties(ACTIVITY_DOMAIN_HIP_API, NULL);
     // Allocating tracing pool
@@ -743,16 +780,16 @@ void init_tracing() {
 
     // Enable HIP API callbacks
     ROCTRACER_CALL(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_HIP_API, handle_hip, NULL));
-    // Enable HIP HSA (OpenMP) callbacks
-#if defined(APEX_WITH_HSA)
-    ROCTRACER_CALL(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_HSA_API, handle_roc_hsa, NULL));
-#endif
-    // Enable KFD API tracing
-#if defined(APEX_WITH_KFD)
     if (apex::apex_options::use_hip_kfd_api()) {
+#if defined(APEX_WITH_KFD)
+        // Enable KFD API tracing
         ROCTRACER_CALL(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_KFD_API, handle_roc_kfd, NULL));
-    }
 #endif
+#if defined(APEX_WITH_HSA)
+        // Enable HIP HSA (OpenMP?) callbacks
+        ROCTRACER_CALL(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_HSA_API, handle_roc_hsa, NULL));
+#endif
+    }
     // Enable rocTX
     ROCTRACER_CALL(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_ROCTX, handle_roctx, NULL));
 
@@ -760,15 +797,17 @@ void init_tracing() {
     //ROCTRACER_CALL(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_HIP_API));
     // FYI, ACTIVITY_DOMAIN_HIP_OPS = ACTIVITY_DOMAIN_HCC_OPS = ACTIVITY_DOMAIN_HIP_VDI...
     ROCTRACER_CALL(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_HIP_OPS));
+    if (apex::apex_options::use_hip_kfd_api()) {
 #if defined(APEX_WITH_HSA) // disabled for now to simplify compiling
-    ROCTRACER_CALL(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_HSA_OPS));
+        ROCTRACER_CALL(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_HSA_OPS));
 #endif
+#if defined(APEX_WITH_KFD)
+        ROCTRACER_CALL(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_KFD_API));
+#endif
+    }
     // Enable PC sampling
     //ROCTRACER_CALL(roctracer_enable_op_activity(ACTIVITY_DOMAIN_HSA_OPS, HSA_OP_ID_RESERVED1));
     roctracer_start();
-#if defined(APEX_WITH_HSA)
-    hsa_init();
-#endif
     std::cout << "RocTracer started" << std::endl;
 }
 
@@ -784,11 +823,11 @@ namespace apex {
         roctracer_stop();
         /* CAllbacks */
         ROCTRACER_CALL(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_HIP_API));
+        if (apex_options::use_hip_kfd_api()) {
 #if defined(APEX_WITH_HSA)
-        ROCTRACER_CALL(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_HSA_API));
+            ROCTRACER_CALL(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_HSA_API));
 #endif
 #if defined(APEX_WITH_KFD)
-        if (apex_options::use_hip_kfd_api()) {
             ROCTRACER_CALL(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_KFD_API));
         }
 #endif
@@ -799,7 +838,10 @@ namespace apex {
         // FYI, ACTIVITY_DOMAIN_HIP_OPS = ACTIVITY_DOMAIN_HCC_OPS = ACTIVITY_DOMAIN_HIP_VDI...
         ROCTRACER_CALL(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_HIP_OPS));
         ROCTRACER_CALL(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_EXT_API));
-        ROCTRACER_CALL(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_HSA_OPS));
+        if (apex_options::use_hip_kfd_api()) {
+            ROCTRACER_CALL(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_HSA_API));
+            ROCTRACER_CALL(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_KFD_API));
+        }
         ROCTRACER_CALL(roctracer_flush_activity());
 #if defined(APEX_WITH_HSA)
         hsa_shut_down();

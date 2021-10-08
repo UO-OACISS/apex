@@ -131,7 +131,7 @@ public:
 #if defined(APEX_HAVE_HPX)
   static thread_instance& instance(bool is_worker=false);
 #else
-  static thread_instance& instance(bool is_worker=true);
+  static thread_instance& instance(bool is_worker=false);
 #endif
   static long unsigned int get_id(void) { return instance()._id; }
   static long unsigned int get_runtime_id(void) { return instance()._runtime_id; }
