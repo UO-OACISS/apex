@@ -29,7 +29,7 @@
 
 namespace apex
 {
-    static const std::string config_file_name = "apex.conf";
+    static const char * config_file_name = "apex.conf";
     apex_options * apex_options::_instance(nullptr);
 
     apex_options::apex_options(void) {
