@@ -67,6 +67,8 @@ where APEX options are zero or more of:
     --apex:ompt             enable OpenMP profiling (requires runtime support)
     --apex:ompt_simple      only enable OpenMP Tools required events
     --apex:ompt_details     enable all OpenMP Tools events
+    --apex:source           resolve function, file and line info for address lookups with binutils
+                            (default: function only)
     --apex:preload <lib>    extra libraries to load with LD_PRELOAD _before_ APEX libraries
                             (LD_PRELOAD value is added _after_ APEX libraries)
     "
@@ -294,6 +296,10 @@ while (( "$#" )); do
       ;;
     --apex:ompt_details)
       export APEX_OMPT_HIGH_OVERHEAD_EVENTS=1
+      shift
+      ;;
+    --apex:source)
+      export APEX_SOURCE_LOCATION=1
       shift
       ;;
     --apex:otf2path)

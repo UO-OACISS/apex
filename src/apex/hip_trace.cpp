@@ -37,6 +37,7 @@ using namespace std;
 
 #include "apex_api.hpp"
 #include "apex.hpp"
+#include "address_resolution.hpp"
 #include "async_thread_node.hpp"
 #include "trace_event_listener.hpp"
 #ifdef APEX_HAVE_OTF2
@@ -90,6 +91,7 @@ constexpr int attempts = 10;
 static uint64_t startTimestampGPU[attempts] = {0};
 static uint64_t startTimestampCPU[attempts] = {0};
 static int64_t deltaTimestamp = {0};
+static std::string devicestub("__device_stub__");
 
 /* Needed to prevent re-entry when profiling with kfd/hsa */
 class handler_lock {
@@ -479,8 +481,18 @@ std::string lookup_kernel_name_ptr(const void* address, hipStream_t stream_id) {
         tmp = entry->second;
     } else {
         // look it up using the right method
-        tmp = std::string(hipKernelNameRefByPtr(address, stream_id));
-        tmp = apex::demangle(tmp);
+        if (apex::apex_options::use_source_location()) {
+            tmp = *(apex::lookup_address((uintptr_t)address, true));
+            tmp = apex::demangle(tmp);
+            // clean up the kernel name (strip '__device_stub__')
+            size_t pos = tmp.find(devicestub);
+            if (pos != std::string::npos) {
+                tmp.erase(pos, devicestub.length());
+            }
+        } else {
+            tmp = std::string(hipKernelNameRefByPtr(address, stream_id));
+            tmp = apex::demangle(tmp);
+        }
         // add it to the map
         the_map.insert(std::make_pair(address, tmp));
     }
@@ -495,8 +507,18 @@ std::string lookup_kernel_name(const hipFunction_t f) {
     if (entry != the_map.end()) {
         tmp = entry->second;
     } else {
-        tmp = hipKernelNameRef(f);
-        tmp = apex::demangle(tmp);
+        if (apex::apex_options::use_source_location()) {
+            tmp = *(apex::lookup_address((uintptr_t)f, true));
+            tmp = apex::demangle(tmp);
+            // clean up the kernel name (strip '__device_stub__')
+            size_t pos = tmp.find(devicestub);
+            if (pos != std::string::npos) {
+                tmp.erase(pos, devicestub.length());
+            }
+        } else {
+            tmp = hipKernelNameRef(f);
+            tmp = apex::demangle(tmp);
+        }
         // add it to the map
         the_map.insert(std::make_pair(f, tmp));
     }
