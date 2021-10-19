@@ -1147,7 +1147,9 @@ namespace apex {
         parse_proc_loadavg(); // this will change
         parse_proc_netdev();
 #ifdef APEX_HAVE_LM_SENSORS
-        mysensors->read_sensors();
+        if (apex_options::use_lm_sensors()) {
+            mysensors->read_sensors();
+        }
 #endif
         ProcData *newData = nullptr;
         ProcData *periodData = nullptr;
@@ -1185,7 +1187,9 @@ namespace apex {
             parse_proc_netdev();
 
 #ifdef APEX_HAVE_LM_SENSORS
-            mysensors->read_sensors();
+            if (apex_options::use_lm_sensors()) {
+                mysensors->read_sensors();
+            }
 #endif
 #ifdef APEX_WITH_CUDA
             nvml_reader.query();

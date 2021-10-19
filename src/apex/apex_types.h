@@ -288,6 +288,7 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_PROC_SELF_STATUS, use_proc_self_status, bool, true) \
     macro (APEX_PROC_SELF_IO, use_proc_self_io, bool, false) \
     macro (APEX_PROC_STAT, use_proc_stat, bool, true) \
+    macro (APEX_LM_SENSORS, use_lm_sensors, bool, false) \
     macro (APEX_PROC_STAT_DETAILS, use_proc_stat_details, bool, false) \
     macro (APEX_PROC_PERIOD, proc_period, int, 1000000) \
     macro (APEX_THROTTLE_CONCURRENCY, throttle_concurrency, \
@@ -332,6 +333,7 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_MONITOR_GPU, monitor_gpu, bool, false) \
     macro (APEX_JUPYTER_SUPPORT, use_jupyter_support, int, false) \
     macro (APEX_KOKKOS_VERBOSE, use_kokkos_verbose, bool, false) \
+    macro (APEX_KOKKOS_COUNTERS, use_kokkos_counters, bool, false) \
     macro (APEX_KOKKOS_TUNING, use_kokkos_tuning, bool, true) \
     macro (APEX_KOKKOS_PROFILING_FENCES, use_kokkos_profiling_fences, bool, false) \
     macro (APEX_START_DELAY_SECONDS, start_delay_seconds, int, 0) \

@@ -114,9 +114,50 @@ std::string pCan(Kokkos_Tools_VariableInfo& i) {
     return std::string("unknown candidate values\n");
 }
 
+class Bin {
+public:
+    Bin(double value, size_t idx) :
+        mean((double)value),
+        total(value),
+        min(value),
+        max(value),
+        count(1) {
+        std::stringstream ss;
+        ss << "bin_" << idx;
+        name = ss.str();
+    }
+    double mean;
+    double total;
+    double min;
+    double max;
+    size_t count;
+    std::string name;
+    bool contains(double value) {
+        if (value <= max && value >= min) {
+            return true;
+        } else if (value <= (mean * 1.25) &&
+                   value >= (mean * 0.75)) {
+            return true;
+        }
+        return false;
+    }
+    void add(double value) {
+        count++;
+        total += value;
+        mean = (double)total / (double)count;
+        if (value < min) min = value;
+        if (value > max) max = value;
+    }
+    std::string getName() {
+        return name;
+    }
+};
+
+
 class Variable {
 public:
     Variable(size_t _id, std::string _name, Kokkos_Tools_VariableInfo& _info);
+    void deepCopy(Kokkos_Tools_VariableInfo& _info);
     std::string toString() {
         std::stringstream ss;
         ss << "  name: " << name << std::endl;
@@ -125,6 +166,16 @@ public:
         ss << "  info.category: " << pCat(info.category) << std::endl;
         ss << "  info.valueQuantity: " << pCVT(info.valueQuantity) << std::endl;
         ss << "  info.candidates: " << pCan(info);
+        if (info.valueQuantity == kokkos_value_unbounded) {
+            ss << "  num_bins: " << bins.size() << std::endl;
+            for (auto b : bins) {
+                ss << "  " << b->name << ": " << std::endl;
+                ss << "    min: " << std::fixed << b->min << std::endl;
+                ss << "    mean: " << std::fixed << b->mean << std::endl;
+                ss << "    max: " << std::fixed << b->max << std::endl;
+                ss << "    count: " << std::fixed << b->count << std::endl;
+            }
+        }
         std::string tmp{ss.str()};
         return tmp;
     }
@@ -138,7 +189,22 @@ public:
     uint64_t lmin;
     uint64_t lmax;
     uint64_t lstep;
+    uint64_t lvar;
+    uint64_t numValues;
     void makeSpace(void);
+    std::vector<Bin*> bins;
+    std::string getBin(double value) {
+        for (auto b : bins) {
+            if (b->contains(value)) {
+                b->add(value);
+                return b->getName();
+            }
+        }
+        Bin * b = new Bin(value, bins.size());
+        std::string tmp{b->getName()};
+        bins.push_back(b);
+        return tmp;
+    }
 };
 
 class KokkosSession {
@@ -183,7 +249,7 @@ public:
     void saveOutputVar(size_t id, Variable * var);
     void parseVariableCache(std::ifstream& results);
     void parseContextCache(std::ifstream& results);
-    std::stringstream cachedResults;
+    //std::stringstream cachedResults;
     std::string cacheFilename;
     std::map<size_t, struct Kokkos_Tools_VariableInfo> cachedVariables;
     std::map<size_t, std::string> cachedVariableNames;
@@ -218,22 +284,27 @@ bool KokkosSession::checkForCache() {
 
 void KokkosSession::saveInputVar(size_t id, Variable * var) {
     inputs.insert(std::make_pair(id, var));
+    /*
     if (!use_history) {
         cachedResults << "Input_" << id << ":" << std::endl;
         cachedResults << var->toString();
     }
+    */
 }
 
 void KokkosSession::saveOutputVar(size_t id, Variable * var) {
     outputs.insert(std::make_pair(id, var));
+    /*
     if (!use_history) {
         cachedResults << "Output_" << id << ":" << std::endl;
         cachedResults << var->toString();
     }
+    */
 }
 
 void KokkosSession::writeCache(void) {
     if(use_history) { return; }
+    if(apex::apex::instance()->get_node_id() != 0) { return; }
     // did the user specify a file?
     if (strlen(apex::apex_options::kokkos_tuning_cache()) > 0) {
         cacheFilename = std::string(apex::apex_options::kokkos_tuning_cache());
@@ -242,7 +313,18 @@ void KokkosSession::writeCache(void) {
     }
     std::ofstream results(cacheFilename);
     std::cout << "Writing cache of Kokkos tuning results to: '" << cacheFilename << "'" << std::endl;
-    results << cachedResults.rdbuf();
+    for (auto i : inputs) {
+        size_t id = i.first;
+        Variable* v = i.second;
+        results << "Input_" << id << ":" << std::endl;
+        results << v->toString();
+    }
+    for (auto o : outputs) {
+        size_t id = o.first;
+        Variable* v = o.second;
+        results << "Output_" << id << ":" << std::endl;
+        results << v->toString();
+    }
     size_t count = 0;
     for (const auto &req : requests) {
         results << "Context_" << count++ << ":" << std::endl;
@@ -329,6 +411,25 @@ void KokkosSession::parseVariableCache(std::ifstream& results) {
     // ...eh, who cares.  We don't need the candidate values.
     cachedVariables.insert(std::make_pair(id, std::move(info)));
     cachedVariableNames.insert(std::make_pair(id, name));
+    /*
+    if (candidates.find("unbounded") != std::string::npos) {
+        info.candidates = kokkos_value_unbounded;
+        // bin_*: - can be skipped
+        std::getline(results, line);
+        //min: 3751.000000
+        std::getline(results, line);
+        std::string min = line.substr(line.find(delimiter)+2);
+        //mean: 4094.721536
+        std::getline(results, line);
+        std::string mean = line.substr(line.find(delimiter)+2);
+        //max: 4480.000000
+        std::getline(results, line);
+        std::string max = line.substr(line.find(delimiter)+2);
+        //count: 729
+        std::getline(results, line);
+        std::string count = line.substr(line.find(delimiter)+2);
+    }
+    */
 }
 
 void KokkosSession::parseContextCache(std::ifstream& results) {
@@ -403,8 +504,109 @@ KokkosSession& KokkosSession::getSession() {
     return session;
 }
 
+/* Have to make a deep copy of the variable to use it at exit */
+void Variable::deepCopy(Kokkos_Tools_VariableInfo& _info) {
+    info.type = _info.type;
+    info.category = _info.category;
+    info.valueQuantity = _info.valueQuantity;
+    switch(info.category) {
+        case kokkos_value_categorical:
+        case kokkos_value_ordinal:
+        {
+            if (info.valueQuantity == kokkos_value_set) {
+                size_t size = _info.candidates.set.size;
+                info.candidates.set.size = size;
+                if (info.type == kokkos_value_double) {
+                    info.candidates.set.values.double_value =
+                        (double*)(malloc(sizeof(double) * size));
+                } else if (info.type == kokkos_value_int64) {
+                    info.candidates.set.values.int_value =
+                        (int64_t*)(malloc(sizeof(int64_t) * size));
+                } else if (info.type == kokkos_value_string) {
+                    info.candidates.set.values.string_value =
+                        (Kokkos_Tools_Tuning_String*)(malloc(sizeof(Kokkos_Tools_Tuning_String) * size));
+                }
+                for (size_t index = 0 ; index < info.candidates.set.size ; index++) {
+                    if (info.type == kokkos_value_double) {
+                        info.candidates.set.values.double_value[index] =
+                            _info.candidates.set.values.double_value[index];
+                    } else if (info.type == kokkos_value_int64) {
+                        info.candidates.set.values.int_value[index] =
+                            _info.candidates.set.values.int_value[index];
+                    } else if (info.type == kokkos_value_string) {
+                        //info.candidates.set.values.string_value[index] =
+                        //    (Kokkos_Tools_Tuning_String*)(malloc(sizeof(Kokkos_Tools_Tuning_String)));
+                        memcpy(&(info.candidates.set.values.string_value[index]),
+                               &(_info.candidates.set.values.string_value[index]),
+                               sizeof(Kokkos_Tools_Tuning_String));
+                    }
+                }
+            }
+            break;
+        }
+        case kokkos_value_interval:
+        case kokkos_value_ratio:
+        {
+            if (info.valueQuantity == kokkos_value_range) {
+                if (info.type == kokkos_value_double) {
+                    info.candidates.range.step.double_value =
+                        _info.candidates.range.step.double_value;
+                    info.candidates.range.lower.double_value =
+                        _info.candidates.range.lower.double_value;
+                    info.candidates.range.upper.double_value =
+                        _info.candidates.range.upper.double_value;
+                } else if (info.type == kokkos_value_int64) {
+                    info.candidates.range.step.int_value =
+                        _info.candidates.range.step.int_value;
+                    info.candidates.range.lower.int_value =
+                        _info.candidates.range.lower.int_value;
+                    info.candidates.range.upper.int_value =
+                        _info.candidates.range.upper.int_value;
+                }
+                info.candidates.range.openLower = _info.candidates.range.openLower;
+                info.candidates.range.openUpper = _info.candidates.range.openUpper;
+            }
+            if (info.valueQuantity == kokkos_value_set) {
+                size_t size = _info.candidates.set.size;
+                info.candidates.set.size = size;
+                if (info.type == kokkos_value_double) {
+                    info.candidates.set.values.double_value =
+                        (double*)(malloc(sizeof(double) * size));
+                } else if (info.type == kokkos_value_int64) {
+                    info.candidates.set.values.int_value =
+                        (int64_t*)(malloc(sizeof(int64_t) * size));
+                } else if (info.type == kokkos_value_string) {
+                    info.candidates.set.values.string_value =
+                        (Kokkos_Tools_Tuning_String*)(malloc(sizeof(Kokkos_Tools_Tuning_String) * size));
+                }
+                for (size_t index = 0 ; index < info.candidates.set.size ; index++) {
+                    if (info.type == kokkos_value_double) {
+                        info.candidates.set.values.double_value[index] =
+                            _info.candidates.set.values.double_value[index];
+                    } else if (info.type == kokkos_value_int64) {
+                        info.candidates.set.values.int_value[index] =
+                            _info.candidates.set.values.int_value[index];
+                    } else if (info.type == kokkos_value_string) {
+                        //info.candidates.set.values.string_value[index] =
+                        //    (Kokkos_Tools_Tuning_String*)(malloc(sizeof(Kokkos_Tools_Tuning_String)));
+                        memcpy(&(info.candidates.set.values.string_value[index]),
+                               &(_info.candidates.set.values.string_value[index]),
+                               sizeof(Kokkos_Tools_Tuning_String));
+                    }
+                }
+            }
+            break;
+        }
+        default:
+        {
+            break;
+        }
+    }
+}
+
 Variable::Variable(size_t _id, std::string _name,
-    Kokkos_Tools_VariableInfo& _info) : id(_id), name(_name), info(_info) {
+    Kokkos_Tools_VariableInfo& _info) : id(_id), name(_name) {
+        deepCopy(_info);
     /*
     if (KokkosSession::getSession().verbose) {
         std::cout << toString();
@@ -508,10 +710,18 @@ std::string hashContext(size_t numVars,
         Variable* var{varmap[id]};
         switch (var->info.type) {
             case kokkos_value_double:
-                ss << values[i].value.double_value;
+                if (var->info.valueQuantity == kokkos_value_unbounded) {
+                    ss << var->getBin(values[i].value.double_value);
+                } else {
+                    ss << values[i].value.double_value;
+                }
                 break;
             case kokkos_value_int64:
-                ss << values[i].value.int_value;
+                if (var->info.valueQuantity == kokkos_value_unbounded) {
+                    ss << var->getBin(values[i].value.int_value);
+                } else {
+                    ss << values[i].value.int_value;
+                }
                 break;
             case kokkos_value_string:
                 ss << values[i].value.string_value;

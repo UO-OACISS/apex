@@ -199,7 +199,9 @@ void kokkosp_allocate_data(SpaceHandle_t handle, const char* name,
     ss << ": Bytes";
     std::string tmp2{ss.str()};
     double bytes = (double)(size);
-    apex::sample_value(tmp2, bytes);
+    if (apex::apex_options::use_kokkos_counters()) {
+        apex::sample_value(tmp2, bytes);
+    }
 }
 
 /* This function will be called whenever a shared allocation is destroyed. The
@@ -243,7 +245,9 @@ void kokkosp_begin_deep_copy(
     ss << ": Bytes";
     std::string tmp2{ss.str()};
     double bytes = (double)(size);
-    apex::sample_value(tmp2, bytes);
+    if (apex::apex_options::use_kokkos_counters()) {
+        apex::sample_value(tmp2, bytes);
+    }
     APEX_UNUSED(src_ptr);
     APEX_UNUSED(dst_ptr);
 }
@@ -306,7 +310,9 @@ void kokkosp_destroy_profile_section( uint32_t sec_id) {
 /* Marks an event during an application with a user provided name.
  */
 void kokkosp_profile_event( const char* name ) {
-    apex::sample_value(name, 0.0);
+    if (apex::apex_options::use_kokkos_counters()) {
+        apex::sample_value(name, 0.0);
+    }
 }
 
 } // extern "C"
