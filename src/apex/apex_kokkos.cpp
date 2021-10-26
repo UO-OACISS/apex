@@ -50,6 +50,62 @@ static std::unordered_map<uint32_t, apex::profiler*>& active_sections() {
     return themap;
 }
 
+/* THis code is copied from Kokkos_Profiling_Interface.hpp
+ * AND IT COULD NEED TO CHANGE IN THE FUTURE! */
+
+enum struct DeviceType {
+  Serial,
+  OpenMP,
+  Cuda,
+  HIP,
+  OpenMPTarget,
+  HPX,
+  Threads,
+  SYCL,
+  Unknown
+};
+
+struct ExecutionSpaceIdentifier {
+  DeviceType type;
+  uint32_t device_id;
+  uint32_t instance_id;
+};
+inline DeviceType devicetype_from_uint32t(const uint32_t in) {
+  switch (in) {
+    case 0: return DeviceType::Serial;
+    case 1: return DeviceType::OpenMP;
+    case 2: return DeviceType::Cuda;
+    case 3: return DeviceType::HIP;
+    case 4: return DeviceType::OpenMPTarget;
+    case 5: return DeviceType::HPX;
+    case 6: return DeviceType::Threads;
+    case 7: return DeviceType::SYCL;
+    default: return DeviceType::Unknown;  // TODO: error out?
+  }
+}
+
+inline ExecutionSpaceIdentifier identifier_from_devid(const uint32_t in) {
+  return {devicetype_from_uint32t(in >> 24),  // first 8 bits
+          ((in & 0x00FFFFFF) >> 17),  // next 7 bits
+           (in & 0x0001FFFF)}; // last 17 bits
+}
+
+/* "Top 8 bits represent the device type. Next 7 are the device id (think
+ * GPU). Last 17 are the instance id (think stream) */
+inline const char * devicestring_from_type(const DeviceType in) {
+  switch (in) {
+    case DeviceType::Serial: return "Serial";
+    case DeviceType::OpenMP: return "OpenMP";
+    case DeviceType::Cuda: return "Cuda";
+    case DeviceType::HIP: return "HIP";
+    case DeviceType::OpenMPTarget: return "OpenMPTarget";
+    case DeviceType::HPX: return "HPX";
+    case DeviceType::Threads: return "Threads";
+    case DeviceType::SYCL: return "SYCL";
+    default: return "Unknown";  // TODO: error out?
+  }
+}
+
 extern "C" {
 
 /* This function will be called only once, prior to calling any other hooks
@@ -96,7 +152,10 @@ void kokkosp_request_tool_settings(int num_actions,
 void kokkosp_begin_parallel_for(const char* name,
     uint32_t devid, uint64_t* kernid) {
     std::stringstream ss;
-    ss << "Kokkos for, Dev: " << devid << ", " << name;
+    ExecutionSpaceIdentifier space_id = identifier_from_devid(devid);
+    ss << "Kokkos::parallel_for [Type:"
+       << devicestring_from_type(space_id.type)
+       << ", Device: " << space_id.device_id << "] " << name;
     std::string tmp{ss.str()};
     // Start a new profiler, with no known parent
     // (current timer on stack, if exists)
@@ -108,7 +167,10 @@ void kokkosp_begin_parallel_for(const char* name,
 void kokkosp_begin_parallel_reduce(const char* name,
     uint32_t devid, uint64_t* kernid) {
     std::stringstream ss;
-    ss << "Kokkos reduce, Dev: " << devid << ", " << name;
+    ExecutionSpaceIdentifier space_id = identifier_from_devid(devid);
+    ss << "Kokkos::parallel_reduce [Type:"
+       << devicestring_from_type(space_id.type)
+       << ", Device: " << space_id.device_id << "] " << name;
     std::string tmp{ss.str()};
     // Start a new profiler, with no known parent
     // (current timer on stack, if exists)
@@ -120,7 +182,10 @@ void kokkosp_begin_parallel_reduce(const char* name,
 void kokkosp_begin_parallel_scan(const char* name,
     uint32_t devid, uint64_t* kernid) {
     std::stringstream ss;
-    ss << "Kokkos scan, Dev: " << devid << ", " << name;
+    ExecutionSpaceIdentifier space_id = identifier_from_devid(devid);
+    ss << "Kokkos::parallel_scan [Type:"
+       << devicestring_from_type(space_id.type)
+       << ", Device: " << space_id.device_id << "] " << name;
     std::string tmp{ss.str()};
     // Start a new profiler, with no known parent
     // (current timer on stack, if exists)
