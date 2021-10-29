@@ -31,7 +31,7 @@ trace_event_listener::~trace_event_listener (void) {
 
 void trace_event_listener::end_trace_time(void) {
     if (_end_time == 0.0) {
-        _end_time = profiler::now_ms();
+        _end_time = profiler::now_us();
     }
 }
 
@@ -43,7 +43,7 @@ void trace_event_listener::on_startup(startup_event_data &data) {
        << "{\"name\":\"APEX Trace Begin\""
        << ",\"ph\":\"R\",\"pid\":"
        << saved_node_id << ",\"tid\":0,\"ts\":"
-       << profiler::now_ms() << "},\n";
+       << profiler::now_us() << "},\n";
     ss << fixed << "{\"name\":\"process_name\""
        << ",\"ph\":\"M\",\"pid\":" << saved_node_id
        << ",\"args\":{\"name\":"
@@ -138,8 +138,8 @@ inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
               << "\",\"cat\":\"CPU\""
               << ",\"ph\":\"X\",\"pid\":"
               << saved_node_id << ",\"tid\":" << tid
-              << ",\"ts\":" << p->get_start_ms() << ",\"dur\":"
-              << p->get_stop_ms() - p->get_start_ms()
+              << ",\"ts\":" << p->get_start_us() << ",\"dur\":"
+              << p->get_stop_us() - p->get_start_us()
               << ",\"args\":{\"GUID\":" << p->guid << ",\"Parent GUID\":" << pguid << "}},\n";
         write_to_trace(ss);
         flush_trace_if_necessary();
@@ -162,7 +162,7 @@ void trace_event_listener::on_sample_value(sample_value_event_data &data) {
         ss << "{\"name\":\"" << *(data.counter_name)
               << "\",\"cat\":\"CPU\""
               << ",\"ph\":\"C\",\"pid\":" << saved_node_id
-              << ",\"ts\":" << profiler::now_ms()
+              << ",\"ts\":" << profiler::now_us()
               << ",\"args\":{\"value\":" << data.counter_value
               << "}},\n";
         write_to_trace(ss);
@@ -239,8 +239,19 @@ std::string trace_event_listener::make_tid (async_thread_node &node) {
     return label;
 }
 
+void write_flow_event(std::stringstream& ss, double ts, char ph,
+    std::string cat, uint64_t id, uint64_t pid, uint64_t tid, std::string name) {
+    ss << "{\"ts\":" << ts
+       << ",\"ph\":\"" << ph
+       << "\",\"cat\":\"" << cat
+       << "\",\"id\":" << id
+       << ",\"pid\":" << pid
+       << ",\"tid\":" << tid
+       << ",\"name\":\"" << name << "\"},\n";
+}
+
 void trace_event_listener::on_async_event(async_thread_node &node,
-    std::shared_ptr<profiler> &p) {
+    std::shared_ptr<profiler> &p, const async_event_data& data) {
     if (!_terminate) {
         std::stringstream ss;
         ss << fixed;
@@ -253,9 +264,14 @@ void trace_event_listener::on_async_event(async_thread_node &node,
               << "\",\"cat\":\"GPU\""
               << ",\"ph\":\"X\",\"pid\":"
               << saved_node_id << ",\"tid\":" << tid
-              << ",\"ts\":" << p->get_start_ms() << ",\"dur\":"
-              << p->get_stop_ms() - p->get_start_ms()
+              << ",\"ts\":" << p->get_start_us() << ",\"dur\":"
+              << p->get_stop_us() - p->get_start_us()
               << ",\"args\":{\"GUID\":" << p->guid << ",\"Parent GUID\":" << pguid << "}},\n";
+        // write a flow event pair!
+        // {"ts":2001649221954,"ph":"s","cat":"DataFlow","id":0,"pid":2,"tid":114555,"name":"dep"},
+        // {"ts":2001649221954,"ph":"t","cat":"DataFlow","id":0,"pid":1,"tid":0,"name":"dep"},
+        write_flow_event(ss, data.parent_ts, 's', data.cat, data.id, saved_node_id, data.parent_tid, data.name);
+        write_flow_event(ss, p->get_start_us(), 't', data.cat, data.id, saved_node_id, atol(tid.c_str()), data.name);
         write_to_trace(ss);
         flush_trace_if_necessary();
     }
@@ -270,7 +286,7 @@ void trace_event_listener::on_async_metric(async_thread_node &node,
         ss << "{\"name\": \"" << p->get_task_id()->get_name()
               << "\",\"cat\":\"GPU\""
               << ",\"ph\":\"C\",\"pid\": " << saved_node_id
-              << ",\"ts\":" << p->get_stop_ms()
+              << ",\"ts\":" << p->get_stop_us()
               << ",\"args\":{\"value\":" << p->value
               << "}},\n";
         write_to_trace(ss);
@@ -355,7 +371,7 @@ io::gzofstream& trace_event_listener::get_trace_file() {
     if (!header) {
         header = true;
         _trace_file << fixed << "{\n";
-        _trace_file << "\"displayTimeUnit\": \"ms\",\n";
+        //_trace_file << "\"displayTimeUnit\": \"us\",\n";
         _trace_file << "\"traceEvents\": [\n";
     }
     return _trace_file;

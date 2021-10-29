@@ -53,7 +53,8 @@ public:
   	void on_recv(message_event_data &data) { APEX_UNUSED(data); };
   	void set_node_id(int node_id, int node_count);
   	void set_metadata(const char * name, const char * value);
-    void on_async_event(async_thread_node &node, std::shared_ptr<profiler> &p);
+    void on_async_event(async_thread_node &node, std::shared_ptr<profiler> &p,
+        const async_event_data& data);
     void on_async_metric(async_thread_node &node, std::shared_ptr<profiler> &p);
     void end_trace_time(void);
 

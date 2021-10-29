@@ -212,6 +212,7 @@ void handle_roctx(uint32_t domain, uint32_t cid, const void* callback_data, void
 /* The map that holds correlation IDs and matches them to GUIDs */
 std::unordered_map<uint32_t, std::shared_ptr<apex::task_wrapper>> correlation_map;
 std::unordered_map<uint32_t, std::string> correlation_kernel_name_map;
+std::unordered_map<uint32_t, apex::async_event_data> correlation_kernel_data_map;
 std::mutex correlation_map_mutex;
 
 #if defined(APEX_WITH_KFD)
@@ -611,6 +612,25 @@ void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* 
         if (!timer_stack.empty()) {
             auto timer = timer_stack.top();
             apex::stop(timer);
+            std::string category("DataFlow");
+            switch (cid) {
+                case HIP_API_ID_hipLaunchKernel:
+                case HIP_API_ID_hipModuleLaunchKernel:
+                case HIP_API_ID_hipHccModuleLaunchKernel:
+                case HIP_API_ID_hipExtModuleLaunchKernel:
+                case HIP_API_ID_hipExtLaunchKernel:
+                    category = "ControlFlow";
+                    break;
+                default:
+                    break;
+            }
+            apex::async_event_data as_data(
+                (timer->prof->get_stop_us() + timer->prof->get_start_us())*0.5,
+                category, data->correlation_id,
+                apex::thread_instance::get_id(), context);
+            correlation_map_mutex.lock();
+            correlation_kernel_data_map[data->correlation_id] = as_data;
+            correlation_map_mutex.unlock();
             timer_stack.pop();
         }
 
@@ -646,10 +666,12 @@ void store_profiler_data(const std::string &name, uint32_t correlationId,
     static apex::apex* instance = apex::apex::instance();
     // get the parent GUID, then erase the correlation from the map
     std::shared_ptr<apex::task_wrapper> parent = nullptr;
+    apex::async_event_data as_data;
     if (correlationId > 0) {
         correlation_map_mutex.lock();
         parent = correlation_map[correlationId];
         correlation_map.erase(correlationId);
+        as_data = correlation_kernel_data_map[correlationId];
         correlation_map_mutex.unlock();
     }
     // Build the name
@@ -671,7 +693,7 @@ void store_profiler_data(const std::string &name, uint32_t correlationId,
     if (apex::apex_options::use_trace_event()) {
         apex::trace_event_listener * tel =
             (apex::trace_event_listener*)instance->the_trace_event_listener;
-        tel->on_async_event(node, prof);
+        tel->on_async_event(node, prof, as_data);
     }
 #ifdef APEX_HAVE_OTF2
     if (apex::apex_options::use_otf2() && otf2_trace) {

@@ -102,6 +102,24 @@ public:
   periodic_event_data();
 };
 
+class async_event_data : public event_data {
+public:
+  double parent_ts;
+  std::string cat;
+  uint64_t id;
+  uint64_t parent_tid;
+  std::string name;
+  async_event_data() {};
+  async_event_data(double _parent_ts, std::string _cat, uint64_t _id,
+    uint64_t _parent_tid, std::string _name) :
+    parent_ts(_parent_ts),
+    cat(_cat),
+    id(_id),
+    parent_tid(_parent_tid),
+    name(_name) {};
+  ~async_event_data() {};
+};
+
 class custom_event_data : public event_data {
 public:
   custom_event_data(apex_event_type event_type, void * custom_data);
