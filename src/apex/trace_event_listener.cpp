@@ -268,10 +268,18 @@ void trace_event_listener::on_async_event(async_thread_node &node,
               << p->get_stop_us() - p->get_start_us()
               << ",\"args\":{\"GUID\":" << p->guid << ",\"Parent GUID\":" << pguid << "}},\n";
         // write a flow event pair!
-        // {"ts":2001649221954,"ph":"s","cat":"DataFlow","id":0,"pid":2,"tid":114555,"name":"dep"},
-        // {"ts":2001649221954,"ph":"t","cat":"DataFlow","id":0,"pid":1,"tid":0,"name":"dep"},
-        write_flow_event(ss, data.parent_ts, 's', data.cat, data.id, saved_node_id, data.parent_tid, data.name);
-        write_flow_event(ss, p->get_start_us(), 't', data.cat, data.id, saved_node_id, atol(tid.c_str()), data.name);
+        // make sure the start of the flow is before the end of the flow, ideally the middle of the parent
+        if (data.reverse_flow) {
+            double begin_ts = (p->get_stop_us() + p->get_start_us()) * 0.5;
+            double end_ts = std::min(p->get_stop_us(), data.parent_ts_stop);
+            write_flow_event(ss, begin_ts, 's', data.cat, data.id, saved_node_id, atol(tid.c_str()), data.name);
+            write_flow_event(ss, end_ts, 't', data.cat, data.id, saved_node_id, data.parent_tid, data.name);
+        } else {
+            double begin_ts = std::min(p->get_start_us(), ((data.parent_ts_stop + data.parent_ts_start) * 0.5));
+            double end_ts = p->get_start_us();
+            write_flow_event(ss, begin_ts, 's', data.cat, data.id, saved_node_id, data.parent_tid, data.name);
+            write_flow_event(ss, end_ts, 't', data.cat, data.id, saved_node_id, atol(tid.c_str()), data.name);
+        }
         write_to_trace(ss);
         flush_trace_if_necessary();
     }

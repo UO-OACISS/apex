@@ -268,6 +268,7 @@ bool flushing{false};
 std::unordered_map<uint32_t, std::shared_ptr<apex::task_wrapper>> correlation_map;
 /* The map that holds context IDs and matches them to device IDs */
 std::unordered_map<uint32_t, uint32_t> context_map;
+std::unordered_map<uint32_t, apex::async_event_data> correlation_kernel_data_map;
 std::mutex map_mutex;
 
 /* Make sure APEX knows about this thread */
@@ -293,16 +294,19 @@ bool register_myself(bool isWorker = true) {
 
 void store_profiler_data(const std::string &name, uint32_t correlationId,
         uint64_t start, uint64_t end, apex::cuda_thread_node &node,
-        bool otf2_trace = true) {
+        std::string category, bool reverseFlow = false, bool otf2_trace = true) {
     apex::in_apex prevent_deadlocks;
     // Get the singleton APEX instance
     static apex::apex* instance = apex::apex::instance();
     // get the parent GUID, then erase the correlation from the map
     std::shared_ptr<apex::task_wrapper> parent = nullptr;
+    apex::async_event_data as_data;
     if (correlationId > 0) {
         map_mutex.lock();
         parent = correlation_map[correlationId];
+        as_data = correlation_kernel_data_map[correlationId];
         correlation_map.erase(correlationId);
+        correlation_kernel_data_map.erase(correlationId);
         map_mutex.unlock();
     }
     // Build the name
@@ -324,7 +328,9 @@ void store_profiler_data(const std::string &name, uint32_t correlationId,
     if (apex::apex_options::use_trace_event()) {
         apex::trace_event_listener * tel =
             (apex::trace_event_listener*)instance->the_trace_event_listener;
-        tel->on_async_event(node, prof);
+        as_data.cat = category;
+        as_data.reverse_flow = reverseFlow;
+        tel->on_async_event(node, prof, as_data);
     }
 #ifdef APEX_HAVE_OTF2
     if (apex::apex_options::use_otf2() && otf2_trace) {
@@ -573,7 +579,8 @@ static void memcpyActivity2(CUpti_Activity *record) {
     apex::cuda_thread_node node(memcpy->deviceId, memcpy->contextId,
         memcpy->streamId, APEX_ASYNC_MEMORY);
     store_profiler_data(name, memcpy->correlationId, memcpy->start,
-            memcpy->end, node);
+            memcpy->end, node, "DataFlow",
+            memcpy->copyKind == CUPTI_ACTIVITY_MEMCPY_KIND_DTOH);
     if (apex::apex_options::use_cuda_counters()) {
         store_counter_data("GPU: Bytes", name, memcpy->end,
             memcpy->bytes, node, true);
@@ -597,7 +604,8 @@ static void memcpyActivity(CUpti_Activity *record) {
     apex::cuda_thread_node node(memcpy->deviceId, memcpy->contextId,
         memcpy->streamId, APEX_ASYNC_MEMORY);
     store_profiler_data(name, memcpy->correlationId, memcpy->start,
-            memcpy->end, node);
+            memcpy->end, node, "DataFlow",
+            memcpy->copyKind == CUPTI_ACTIVITY_MEMCPY_KIND_DTOH);
     if (apex::apex_options::use_cuda_counters()) {
         store_counter_data("GPU: Bytes", name, memcpy->end,
             memcpy->bytes, node, true);
@@ -626,7 +634,7 @@ static void unifiedMemoryActivity(CUpti_Activity *record) {
             CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_BYTES_TRANSFER_DTOH) {
         // The context isn't available, and the streamID isn't valid
         // (per CUPTI documentation)
-        store_profiler_data(name, 0, memcpy->start, memcpy->end, node);
+        store_profiler_data(name, 0, memcpy->start, memcpy->end, node, "DataFlow");
         if (apex::apex_options::use_cuda_counters()) {
             store_counter_data("GPU: Bytes", name, memcpy->end,
                     memcpy->value, node, true);
@@ -641,10 +649,10 @@ static void unifiedMemoryActivity(CUpti_Activity *record) {
         }
     } else if (memcpy->counterKind ==
             CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_THROTTLING) {
-        store_profiler_data(name, 0, memcpy->start, memcpy->end, node);
+        store_profiler_data(name, 0, memcpy->start, memcpy->end, node, "DataFlow");
     } else if (memcpy->counterKind ==
             CUPTI_ACTIVITY_UNIFIED_MEMORY_COUNTER_KIND_GPU_PAGE_FAULT) {
-        store_profiler_data(name, 0, memcpy->start, memcpy->end, node);
+        store_profiler_data(name, 0, memcpy->start, memcpy->end, node, "DataFlow");
         store_counter_data("Groups for same page", name, memcpy->end,
                 memcpy->value, node);
     /*
@@ -662,7 +670,7 @@ static void memsetActivity(CUpti_Activity *record) {
     apex::cuda_thread_node node(memset->deviceId, memset->contextId,
             memset->streamId, APEX_ASYNC_MEMORY);
     store_profiler_data(name, memset->correlationId, memset->start,
-            memset->end, node);
+            memset->end, node, "DataFlow");
 }
 
 static void kernelActivity(CUpti_Activity *record) {
@@ -673,7 +681,7 @@ static void kernelActivity(CUpti_Activity *record) {
     apex::cuda_thread_node node(kernel->deviceId, kernel->contextId,
             kernel->streamId, APEX_ASYNC_KERNEL);
     store_profiler_data(tmp, kernel->correlationId, kernel->start,
-            kernel->end, node);
+            kernel->end, node, "ControlFlow");
     if (apex::apex_options::use_cuda_counters()) {
         std::string demangled = apex::demangle(kernel->name);
         store_counter_data("GPU: Dynamic Shared Memory (B)",
@@ -721,7 +729,7 @@ static void openaccDataActivity(CUpti_Activity *record) {
     std::string label{openacc_event_names[data->eventKind]};
     apex::cuda_thread_node node(data->cuDeviceId, data->cuContextId,
         data->cuStreamId, APEX_ASYNC_MEMORY);
-    store_profiler_data(label, data->externalId, data->start, data->end, node);
+    store_profiler_data(label, data->externalId, data->start, data->end, node, "DataFlow");
     static std::string bytes{"Bytes Transferred"};
     store_counter_data(label.c_str(), bytes, data->end, data->bytes, node);
 }
@@ -732,7 +740,7 @@ static void openaccKernelActivity(CUpti_Activity *record) {
     apex::cuda_thread_node node(data->cuDeviceId, data->cuContextId,
         data->cuStreamId, APEX_ASYNC_KERNEL);
     store_profiler_data(label, data->externalId, data->start,
-            data->end, node);
+            data->end, node, "ControlFlow");
     static std::string gangs{"Num Gangs"};
     store_counter_data(label.c_str(), gangs, data->end, data->numGangs, node);
     static std::string workers{"Num Workers"};
@@ -746,7 +754,7 @@ static void openaccOtherActivity(CUpti_Activity *record) {
     std::string label{openacc_event_names[data->eventKind]};
     apex::cuda_thread_node node(data->cuDeviceId, data->cuContextId,
         data->cuStreamId, APEX_ASYNC_OTHER);
-    store_profiler_data(label, data->externalId, data->start, data->end, node);
+    store_profiler_data(label, data->externalId, data->start, data->end, node, "OtherFlow");
 }
 
 static void openmpActivity(CUpti_Activity *record) {
@@ -777,9 +785,9 @@ static void syncActivity(CUpti_Activity *record) {
      * and can overlap.  So if we are OTF2 tracing, ignore them. */
     if (apex::apex_options::use_otf2() &&
         data->type == CUPTI_ACTIVITY_SYNCHRONIZATION_TYPE_EVENT_SYNCHRONIZE) {
-        store_profiler_data(label, data->correlationId, data->start, data->end, node, false);
+        store_profiler_data(label, data->correlationId, data->start, data->end, node, "SyncFlow", false, false);
     } else {
-        store_profiler_data(label, data->correlationId, data->start, data->end, node);
+        store_profiler_data(label, data->correlationId, data->start, data->end, node, "SyncFlow");
     }
 }
 
@@ -1630,8 +1638,12 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
         auto timer = apex::new_task(tmp);
         apex::start(timer);
         timer_stack.push(timer);
+        apex::async_event_data as_data(timer->prof->get_start_us(),
+            "OtherFlow", cbdata->correlationId,
+            apex::thread_instance::get_id(), cbdata->functionName);
         map_mutex.lock();
         correlation_map[cbdata->correlationId] = timer;
+        correlation_kernel_data_map[cbdata->correlationId] = as_data;
         map_mutex.unlock();
         getBytesIfMalloc(id, cbdata->functionParams, tmp, true);
     } else {
@@ -1660,6 +1672,14 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
         if (!timer_stack.empty()) {
         auto timer = timer_stack.top();
         apex::stop(timer);
+
+        map_mutex.lock();
+        apex::async_event_data as_data =
+            correlation_kernel_data_map[cbdata->correlationId];
+        as_data.parent_ts_stop = timer->prof->get_stop_us();
+        correlation_kernel_data_map[cbdata->correlationId] = as_data;
+        map_mutex.unlock();
+
         timer_stack.pop();
 
         /* Check for SetDevice call! */

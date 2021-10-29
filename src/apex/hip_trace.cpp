@@ -212,6 +212,7 @@ void handle_roctx(uint32_t domain, uint32_t cid, const void* callback_data, void
 /* The map that holds correlation IDs and matches them to GUIDs */
 std::unordered_map<uint32_t, std::shared_ptr<apex::task_wrapper>> correlation_map;
 std::unordered_map<uint32_t, std::string> correlation_kernel_name_map;
+/* This map holds data for "flow events" if we are tracing to Google Trace Events */
 std::unordered_map<uint32_t, apex::async_event_data> correlation_kernel_data_map;
 std::mutex correlation_map_mutex;
 
@@ -612,22 +613,11 @@ void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* 
         if (!timer_stack.empty()) {
             auto timer = timer_stack.top();
             apex::stop(timer);
-            std::string category("DataFlow");
-            switch (cid) {
-                case HIP_API_ID_hipLaunchKernel:
-                case HIP_API_ID_hipModuleLaunchKernel:
-                case HIP_API_ID_hipHccModuleLaunchKernel:
-                case HIP_API_ID_hipExtModuleLaunchKernel:
-                case HIP_API_ID_hipExtLaunchKernel:
-                    category = "ControlFlow";
-                    break;
-                default:
-                    break;
-            }
             apex::async_event_data as_data(
-                (timer->prof->get_stop_us() + timer->prof->get_start_us())*0.5,
-                category, data->correlation_id,
+                timer->prof->get_start_us(),
+                "OtherFlow", data->correlation_id,
                 apex::thread_instance::get_id(), context);
+            as_data.parent_ts_stop = timer->prof->get_stop_us();
             correlation_map_mutex.lock();
             correlation_kernel_data_map[data->correlation_id] = as_data;
             correlation_map_mutex.unlock();
@@ -659,8 +649,8 @@ void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* 
 }
 
 void store_profiler_data(const std::string &name, uint32_t correlationId,
-        uint64_t start, uint64_t end, apex::hip_thread_node &node,
-        bool otf2_trace = true) {
+        uint64_t start, uint64_t end, std::string category, apex::hip_thread_node &node,
+        bool reverse_flow = false, bool otf2_trace = true) {
     apex::in_apex prevent_deadlocks;
     // Get the singleton APEX instance
     static apex::apex* instance = apex::apex::instance();
@@ -670,8 +660,9 @@ void store_profiler_data(const std::string &name, uint32_t correlationId,
     if (correlationId > 0) {
         correlation_map_mutex.lock();
         parent = correlation_map[correlationId];
-        correlation_map.erase(correlationId);
         as_data = correlation_kernel_data_map[correlationId];
+        correlation_map.erase(correlationId);
+        correlation_kernel_data_map.erase(correlationId);
         correlation_map_mutex.unlock();
     }
     // Build the name
@@ -693,6 +684,8 @@ void store_profiler_data(const std::string &name, uint32_t correlationId,
     if (apex::apex_options::use_trace_event()) {
         apex::trace_event_listener * tel =
             (apex::trace_event_listener*)instance->the_trace_event_listener;
+        as_data.cat = category;
+        as_data.reverse_flow = reverse_flow;
         tel->on_async_event(node, prof, as_data);
     }
 #ifdef APEX_HAVE_OTF2
@@ -758,13 +751,14 @@ void process_hip_record(const roctracer_record_t* record) {
             correlation_map_mutex.unlock();
             apex::hip_thread_node node(record->device_id, record->queue_id, APEX_ASYNC_KERNEL);
    	        store_profiler_data(name, record->correlation_id, record->begin_ns,
-                record->end_ns, node);
+                record->end_ns, "ControlFlow", node);
             break;
         }
         case HIP_OP_ID_COPY: {
             apex::hip_thread_node node(record->device_id, record->queue_id, APEX_ASYNC_MEMORY);
+            bool reverse_flow = (std::string(name).find("DeviceToHost") != std::string::npos);
    	        store_profiler_data(name, record->correlation_id, record->begin_ns,
-                record->end_ns, node);
+                record->end_ns, "DataFlow", node, reverse_flow);
             store_counter_data(name, "Bytes", record->end_ns,
                 record->bytes, node);
             break;
@@ -772,14 +766,14 @@ void process_hip_record(const roctracer_record_t* record) {
         case HIP_OP_ID_BARRIER: {
             apex::hip_thread_node node(record->device_id, record->queue_id, APEX_ASYNC_SYNCHRONIZE);
    	        store_profiler_data(name, record->correlation_id, record->begin_ns,
-                record->end_ns, node);
+                record->end_ns, "SyncFlow", node, false, false);
             break;
         }
         case HIP_OP_ID_NUMBER:
         default: {
             apex::hip_thread_node node(record->device_id, record->queue_id, APEX_ASYNC_OTHER);
    	        store_profiler_data(name, record->correlation_id, record->begin_ns,
-                record->end_ns, node);
+                record->end_ns, "OtherFlow", node);
             break;
         }
     }

@@ -104,19 +104,22 @@ public:
 
 class async_event_data : public event_data {
 public:
-  double parent_ts;
+  double parent_ts_start;
+  double parent_ts_stop;
   std::string cat;
   uint64_t id;
   uint64_t parent_tid;
   std::string name;
+  bool reverse_flow;
   async_event_data() {};
-  async_event_data(double _parent_ts, std::string _cat, uint64_t _id,
+  async_event_data(double _parent_ts_start, std::string _cat, uint64_t _id,
     uint64_t _parent_tid, std::string _name) :
-    parent_ts(_parent_ts),
+    parent_ts_start(_parent_ts_start),
+    parent_ts_stop(_parent_ts_start),
     cat(_cat),
     id(_id),
     parent_tid(_parent_tid),
-    name(_name) {};
+    name(_name), reverse_flow(false) {};
   ~async_event_data() {};
 };
 
