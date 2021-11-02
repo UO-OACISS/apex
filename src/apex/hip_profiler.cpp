@@ -91,7 +91,7 @@ monitor::monitor (void) : enabled(false), status(HSA_STATUS_SUCCESS), context(nu
   properties = {};
   properties.queue = prof_queue;
   status = rocprofiler_open(agent_info->dev_id, feature, feature_count, &context,
-                            ROCPROFILER_MODE_STANDALONE, &properties);
+                            ROCPROFILER_MODE_STANDALONE | ROCPROFILER_MODE_SINGLEGROUP, &properties);
   TEST_STATUS(status == HSA_STATUS_SUCCESS);
 
   // Test initialization
