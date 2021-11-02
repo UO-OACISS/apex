@@ -1561,7 +1561,6 @@ void finalize()
     }
     // if not done already...
     shutdown_throttling(); // stop thread scheduler policies
-    stop_all_async_threads(); // stop OS/HW monitoring
 #ifdef APEX_WITH_OMPT
     /* Do this before OTF2 grabs a final timestamp - we might have
      * to terminate some OMPT events. */
@@ -1581,6 +1580,7 @@ void finalize()
     flush_hip_trace();
     stop_hip_trace();
 #endif
+    stop_all_async_threads(); // stop OS/HW monitoring
     // stop processing new timers/counters/messages/tasks/etc.
     apex_options::suspend(true);
     // now, process all output

@@ -46,7 +46,7 @@ do {                                                                         \
 
 namespace apex { namespace rocprofiler {
 
-monitor::monitor (void) : status(HSA_STATUS_SUCCESS), context(nullptr) {
+monitor::monitor (void) : enabled(false), status(HSA_STATUS_SUCCESS), context(nullptr) {
     // if disabled, do nothing...
     if (!apex_options::use_hip_profiler()) {
         return;
@@ -101,10 +101,12 @@ monitor::monitor (void) : status(HSA_STATUS_SUCCESS), context(nullptr) {
   group_n = 0;
   status = rocprofiler_start(context, group_n);
   TEST_STATUS(status == HSA_STATUS_SUCCESS);
-  std::cout << "start" << std::endl;
-
+  //std::cout << "start" << std::endl;
+  enabled = true;
 }
+
 monitor::~monitor (void) {
+    enabled = false;
     // if disabled, do nothing...
     if (!apex_options::use_hip_profiler()) {
         return;
@@ -112,7 +114,7 @@ monitor::~monitor (void) {
   // Stop counters
   status = rocprofiler_stop(context, group_n);
   TEST_STATUS(status == HSA_STATUS_SUCCESS);
-  std::cout << "stop" << std::endl;
+  //std::cout << "stop" << std::endl;
 
   // Finishing cleanup
   // Deleting profiling context will delete all allocated resources
@@ -157,7 +159,7 @@ void print_features(rocprofiler_feature_t* feature, uint32_t feature_count) {
 
 void monitor::query(void) {
     // if disabled, do nothing...
-    if (!apex_options::use_hip_profiler()) {
+    if (!apex_options::use_hip_profiler() || !enabled) {
         return;
     }
     //std::cout << "read features" << std::endl;
