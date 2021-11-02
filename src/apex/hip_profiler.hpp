@@ -20,6 +20,7 @@ public:
     ~monitor (void);
     void query();
 private:
+    bool enabled;
     // HSA status
     hsa_status_t status;
     // Profiling context
