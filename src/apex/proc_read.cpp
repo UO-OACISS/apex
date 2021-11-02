@@ -53,6 +53,7 @@
 
 #ifdef APEX_WITH_HIP
 #include "apex_rocm_smi.hpp"
+#include "hip_profiler.hpp"
 #endif
 
 using namespace std;
@@ -1162,6 +1163,8 @@ namespace apex {
         // monitoring option is checked in the constructor
         rsmi::monitor rsmi_reader;
         rsmi_reader.query();
+        rocprofiler::monitor rocprof_reader;
+        rocprof_reader.query();
 #endif
         while(ptw->wait()) {
             if (done) break;
@@ -1196,6 +1199,7 @@ namespace apex {
 #endif
 #ifdef APEX_WITH_HIP
             rsmi_reader.query();
+            rocprof_reader.query();
 #endif
             if (apex_options::use_tau()) {
                 tau_listener::Tau_stop_wrapper("proc_data_reader::read_proc: main loop");

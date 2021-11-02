@@ -330,6 +330,7 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_HIP_SYNC_ACTIVITY, use_hip_sync_activity, bool, true) \
     macro (APEX_HIP_MEMORY_ACTIVITY, use_hip_memory_activity, bool, true) \
     macro (APEX_HIP_KERNEL_ACTIVITY, use_hip_kernel_activity, bool, true) \
+    macro (APEX_HIP_PROFILER, use_hip_profiler, bool, false) \
     macro (APEX_MONITOR_GPU, monitor_gpu, bool, false) \
     macro (APEX_JUPYTER_SUPPORT, use_jupyter_support, int, false) \
     macro (APEX_KOKKOS_VERBOSE, use_kokkos_verbose, bool, false) \
