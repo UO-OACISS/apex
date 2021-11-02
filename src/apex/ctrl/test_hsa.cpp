@@ -35,7 +35,7 @@ HsaRsrcFactory* TestHsa::HsaInstantiate() {
   if (hsa_rsrc_ == NULL) {
     hsa_rsrc_ = HsaRsrcFactory::Create();
     // Print properties of the agents
-    hsa_rsrc_->PrintGpuAgents("> GPU agents");
+    // hsa_rsrc_->PrintGpuAgents("> GPU agents");
   }
   return hsa_rsrc_;
 }
