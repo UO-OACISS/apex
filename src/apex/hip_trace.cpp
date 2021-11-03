@@ -612,12 +612,12 @@ void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* 
     } else {
         if (!timer_stack.empty()) {
             auto timer = timer_stack.top();
-            apex::stop(timer);
             apex::async_event_data as_data(
                 timer->prof->get_start_us(),
                 "OtherFlow", data->correlation_id,
                 apex::thread_instance::get_id(), context);
-            as_data.parent_ts_stop = timer->prof->get_stop_us();
+            as_data.parent_ts_stop = apex::profiler::now_us();
+            apex::stop(timer);
             correlation_map_mutex.lock();
             correlation_kernel_data_map[data->correlation_id] = as_data;
             correlation_map_mutex.unlock();

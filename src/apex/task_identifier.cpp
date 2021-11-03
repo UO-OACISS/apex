@@ -95,7 +95,7 @@ std::mutex bfd_mutex;
             std::string retval(name);
             if (resolve) {
 #ifdef APEX_HAVE_BFD
-                static std::string addrstr("UNRESOLVED ADDR");
+                const std::string addrstr("UNRESOLVED ADDR");
                 if (retval.find(addrstr) != std::string::npos) {
                     REGEX_NAMESPACE::regex rx (".*UNRESOLVED ADDR (.*)");
                     if (REGEX_NAMESPACE::regex_match (retval,rx)) {
@@ -113,9 +113,9 @@ std::mutex bfd_mutex;
                     }
                 }
 #endif
-                static std::string cudastr("GPU: ");
-                static std::string kernel("cudaLaunchKernel: ");
-                static std::string kernel2("cuLaunchKernel: ");
+                const std::string cudastr("GPU: ");
+                const std::string kernel("cudaLaunchKernel: ");
+                const std::string kernel2("cuLaunchKernel: ");
                 if (retval.find(cudastr) != std::string::npos) {
                     std::stringstream ss;
                     std::string tmp = retval.substr(cudastr.size(),
