@@ -864,7 +864,7 @@ namespace apex {
         hostname) {
         static std::set<std::string> threadnames;
         static std::map<std::string, uint64_t> hostnames;
-        static const std::string node("node");
+        const std::string node("node");
         // have we written this host name before?
         auto tmp = hostnames.find(hostname);
         uint64_t node_index = 0;

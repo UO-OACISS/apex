@@ -565,11 +565,11 @@ void handle_delayed_start() {
 }
 
 std::string activity_to_string(apex_async_activity_t activity) {
-    static std::string kernel{"Compute"};
-    static std::string memory{"Memory"};
-    static std::string sync{"Sync"};
-    static std::string other{"Other"};
-    static std::string empty{""};
+    static const std::string kernel{"Compute"};
+    static const std::string memory{"Memory"};
+    static const std::string sync{"Sync"};
+    static const std::string other{"Other"};
+    static const std::string empty{""};
     switch (activity) {
         case APEX_ASYNC_KERNEL:
             return kernel;
