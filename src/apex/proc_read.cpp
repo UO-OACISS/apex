@@ -1209,6 +1209,9 @@ namespace apex {
         delete(mysensors);
 #endif
 
+#ifdef APEX_WITH_HIP
+        rocprof_reader.stop();
+#endif
         if (apex_options::use_tau()) {
             tau_listener::Tau_stop_wrapper("proc_data_reader::read_proc");
         }
