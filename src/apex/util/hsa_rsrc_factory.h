@@ -334,6 +334,7 @@ class HsaRsrcFactory {
   // @param agent_info Output parameter updated with AgentInfo
   // @return bool true if successful, false otherwise
   bool GetGpuAgentInfo(uint32_t idx, const AgentInfo** agent_info);
+  const AgentInfo* GetGpuAgentInfo(uint32_t idx);
 
   // Get the AgentInfo handle of a Cpu device
   // @param idx Cpu Agent at specified index
@@ -460,7 +461,7 @@ class HsaRsrcFactory {
       reinterpret_cast<std::atomic<uint64_t>*>(&(it->second.refs_count));
     atomic_ptr->fetch_sub(1, std::memory_order_relaxed);
   }
-  
+
   static inline void SetKernelNameRef(const uint64_t& addr, const char* name, const int& free) {
     if (symbols_map_ == NULL) {
       std::lock_guard<mutex_t> lck(mutex_);
