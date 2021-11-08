@@ -151,6 +151,7 @@ void monitor::query(void) {
 #endif
 
         // 6.7 - memory queries
+        /*
         if (!queried_once[d]) {
         	uint64_t memory_total;
             RSMI_CALL(rsmi_dev_memory_total_get(d, RSMI_MEM_TYPE_VRAM, &memory_total));
@@ -172,6 +173,7 @@ void monitor::query(void) {
             sample_value(tmp, value);
             ss.str("");
         }
+        */
 
         uint64_t memory_usage;
         RSMI_CALL(rsmi_dev_memory_usage_get(d, RSMI_MEM_TYPE_VRAM, &memory_usage));
