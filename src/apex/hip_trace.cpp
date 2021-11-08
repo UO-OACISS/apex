@@ -573,39 +573,129 @@ void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* 
                 getBytesIfMalloc(cid, data, context, true);
                 break;
             case HIP_API_ID_hipLaunchKernel:
-                correlation_map_mutex.lock();
-                correlation_kernel_name_map[data->correlation_id] =
-                    lookup_kernel_name_ptr(
+            {
+                std::string name{lookup_kernel_name_ptr(
                         data->args.hipLaunchKernel.function_address,
-                        data->args.hipLaunchKernel.stream);
-                correlation_map_mutex.unlock();
-                break;
-            case HIP_API_ID_hipModuleLaunchKernel:
+                        data->args.hipLaunchKernel.stream)};
                 correlation_map_mutex.lock();
-                correlation_kernel_name_map[data->correlation_id] =
-                    lookup_kernel_name(data->args.hipModuleLaunchKernel.f);
+                correlation_kernel_name_map[data->correlation_id] = name;
                 correlation_map_mutex.unlock();
+                if (apex::apex_options::use_hip_kernel_details()) {
+                    store_sync_counter_data("numBlocks.X", "",
+                        data->args.hipLaunchKernel.numBlocks.x, true);
+                    store_sync_counter_data("numBlocks.Y", "",
+                        data->args.hipLaunchKernel.numBlocks.y, true);
+                    store_sync_counter_data("numBlocks.Z", "",
+                        data->args.hipLaunchKernel.numBlocks.z, true);
+                    store_sync_counter_data("dimBlocks.X", "",
+                        data->args.hipLaunchKernel.dimBlocks.x, true);
+                    store_sync_counter_data("dimBlocks.Y", "",
+                        data->args.hipLaunchKernel.dimBlocks.y, true);
+                    store_sync_counter_data("dimBlocks.Z", "",
+                        data->args.hipLaunchKernel.dimBlocks.z, true);
+                    store_sync_counter_data("sharedMemBytes", "",
+                        data->args.hipLaunchKernel.sharedMemBytes, true);
+                }
                 break;
+            }
+            case HIP_API_ID_hipModuleLaunchKernel:
+            {
+                std::string name {lookup_kernel_name(data->args.hipModuleLaunchKernel.f)};
+                correlation_map_mutex.lock();
+                correlation_kernel_name_map[data->correlation_id] = name;
+                correlation_map_mutex.unlock();
+                if (apex::apex_options::use_hip_kernel_details()) {
+                    store_sync_counter_data("blockDim.X", "",
+                        data->args.hipModuleLaunchKernel.blockDimX, true);
+                    store_sync_counter_data("blockDim.Y", "",
+                        data->args.hipModuleLaunchKernel.blockDimY, true);
+                    store_sync_counter_data("blockDim.Z", "",
+                        data->args.hipModuleLaunchKernel.blockDimZ, true);
+                    store_sync_counter_data("gridDim.X", "",
+                        data->args.hipModuleLaunchKernel.gridDimX, true);
+                    store_sync_counter_data("gridDim.Y", "",
+                        data->args.hipModuleLaunchKernel.gridDimY, true);
+                    store_sync_counter_data("gridDim.Z", "",
+                        data->args.hipModuleLaunchKernel.gridDimZ, true);
+                    store_sync_counter_data("sharedMemBytes", "",
+                        data->args.hipModuleLaunchKernel.sharedMemBytes, true);
+                }
+                break;
+            }
             case HIP_API_ID_hipHccModuleLaunchKernel:
+            {
                 correlation_map_mutex.lock();
                 correlation_kernel_name_map[data->correlation_id] =
                     lookup_kernel_name(data->args.hipHccModuleLaunchKernel.f);
                 correlation_map_mutex.unlock();
+                if (apex::apex_options::use_hip_kernel_details()) {
+                    store_sync_counter_data("blockDim.X", "",
+                        data->args.hipHccModuleLaunchKernel.blockDimX, true);
+                    store_sync_counter_data("blockDim.Y", "",
+                        data->args.hipHccModuleLaunchKernel.blockDimY, true);
+                    store_sync_counter_data("blockDim.Z", "",
+                        data->args.hipHccModuleLaunchKernel.blockDimZ, true);
+                    store_sync_counter_data("globalWorkSize.X", "",
+                        data->args.hipHccModuleLaunchKernel.globalWorkSizeX, true);
+                    store_sync_counter_data("globalWorkSize.Y", "",
+                        data->args.hipHccModuleLaunchKernel.globalWorkSizeY, true);
+                    store_sync_counter_data("globalWorkSize.Z", "",
+                        data->args.hipHccModuleLaunchKernel.globalWorkSizeZ, true);
+                    store_sync_counter_data("sharedMemBytes", "",
+                        data->args.hipHccModuleLaunchKernel.sharedMemBytes, true);
+                }
                 break;
+            }
             case HIP_API_ID_hipExtModuleLaunchKernel:
+            {
                 correlation_map_mutex.lock();
                 correlation_kernel_name_map[data->correlation_id] =
                     lookup_kernel_name(data->args.hipExtModuleLaunchKernel.f);
                 correlation_map_mutex.unlock();
+                if (apex::apex_options::use_hip_kernel_details()) {
+                    store_sync_counter_data("globalWorkSize.X", "",
+                        data->args.hipExtModuleLaunchKernel.globalWorkSizeX, true);
+                    store_sync_counter_data("globalWorkSize.Y", "",
+                        data->args.hipExtModuleLaunchKernel.globalWorkSizeY, true);
+                    store_sync_counter_data("globalWorkSize.Z", "",
+                        data->args.hipExtModuleLaunchKernel.globalWorkSizeZ, true);
+                    store_sync_counter_data("localWorkSize.X", "",
+                        data->args.hipExtModuleLaunchKernel.localWorkSizeX, true);
+                    store_sync_counter_data("localWorkSize.Y", "",
+                        data->args.hipExtModuleLaunchKernel.localWorkSizeY, true);
+                    store_sync_counter_data("localWorkSize.Z", "",
+                        data->args.hipExtModuleLaunchKernel.localWorkSizeZ, true);
+                    store_sync_counter_data("sharedMemBytes", "",
+                        data->args.hipExtModuleLaunchKernel.sharedMemBytes, true);
+                }
                 break;
+            }
             case HIP_API_ID_hipExtLaunchKernel:
+            {
                 correlation_map_mutex.lock();
                 correlation_kernel_name_map[data->correlation_id] =
                     lookup_kernel_name_ptr(
                         data->args.hipExtLaunchKernel.function_address,
                         data->args.hipExtLaunchKernel.stream);
                 correlation_map_mutex.unlock();
+                if (apex::apex_options::use_hip_kernel_details()) {
+                    store_sync_counter_data("numBlocks.X", "",
+                        data->args.hipExtLaunchKernel.numBlocks.x, true);
+                    store_sync_counter_data("numBlocks.Y", "",
+                        data->args.hipExtLaunchKernel.numBlocks.y, true);
+                    store_sync_counter_data("numBlocks.Z", "",
+                        data->args.hipExtLaunchKernel.numBlocks.z, true);
+                    store_sync_counter_data("dimBlocks.X", "",
+                        data->args.hipExtLaunchKernel.dimBlocks.x, true);
+                    store_sync_counter_data("dimBlocks.Y", "",
+                        data->args.hipExtLaunchKernel.dimBlocks.y, true);
+                    store_sync_counter_data("dimBlocks.Z", "",
+                        data->args.hipExtLaunchKernel.dimBlocks.z, true);
+                    store_sync_counter_data("sharedMemBytes", "",
+                        data->args.hipExtLaunchKernel.sharedMemBytes, true);
+                }
                 break;
+            }
             default:
                 break;
         }
