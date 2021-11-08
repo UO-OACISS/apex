@@ -19,6 +19,7 @@ public:
     monitor (void);
     ~monitor (void);
     void query();
+    void stop();
 private:
     bool enabled;
     // HSA status

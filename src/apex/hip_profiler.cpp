@@ -51,47 +51,33 @@ monitor::monitor (void) : enabled(false), status(HSA_STATUS_SUCCESS), context(nu
     if (!apex_options::use_hip_profiler()) {
         return;
     }
-    feature_count = 9;
     memset(feature, 0, sizeof(feature));
-    feature[0].kind = ROCPROFILER_FEATURE_KIND_METRIC;
-    feature[0].name = "VALUUtilization";
-    feature[1].kind = ROCPROFILER_FEATURE_KIND_METRIC;
-    feature[1].name = "VALUBusy";
-    feature[2].kind = ROCPROFILER_FEATURE_KIND_METRIC;
-    feature[2].name = "SALUBusy";
-    feature[3].kind = ROCPROFILER_FEATURE_KIND_METRIC;
-    feature[3].name = "L2CacheHit";
-    feature[4].kind = ROCPROFILER_FEATURE_KIND_METRIC;
-    feature[4].name = "MemUnitBusy";
-    feature[5].kind = ROCPROFILER_FEATURE_KIND_METRIC;
-    feature[5].name = "MemUnitStalled";
-    feature[6].kind = ROCPROFILER_FEATURE_KIND_METRIC;
-    feature[6].name = "WriteUnitStalled";
-    feature[7].kind = ROCPROFILER_FEATURE_KIND_METRIC;
-    feature[7].name = "ALUStalledByLDS";
-    feature[8].kind = ROCPROFILER_FEATURE_KIND_METRIC;
-    feature[8].name = "LDSBankConflict";
+    std::stringstream metric_ss(apex_options::rocprof_metrics());
+    feature_count = 0;
+    while(metric_ss.good()) {
+        std::string metric;
+        getline(metric_ss, metric, ','); // tokenize by comma
+        feature[feature_count].kind = ROCPROFILER_FEATURE_KIND_METRIC;
+        feature[feature_count].name = strdup(metric.c_str());
+        feature_count++;
+    }
 
   // Instantiate HSA resources
   HsaRsrcFactory::Create();
 
   // Getting GPU device info
-  const AgentInfo* agent_info = NULL;
-  if (HsaRsrcFactory::Instance().GetGpuAgentInfo(0, &agent_info) == false) abort();
+  const AgentInfo* agent_info;
+  //if (HsaRsrcFactory::Instance().GetGpuAgentInfo(0, &agent_info) == false) abort();
+  agent_info = HsaRsrcFactory::Instance().GetGpuAgentInfo(0);
+  if (agent_info == nullptr) { abort(); };
 
-  // Creating the queues pool
-  const unsigned queue_count = 16;
-  hsa_queue_t* queue[queue_count];
-  for (unsigned queue_ind = 0; queue_ind < queue_count; ++queue_ind) {
-    if (HsaRsrcFactory::Instance().CreateQueue(agent_info, 128, &queue[queue_ind]) == false) abort();
-  }
-  hsa_queue_t* prof_queue = queue[0];
-
-  // Creating profiling context
+  // Creating profiling context - we want to monitor ALL queues with this...
   properties = {};
-  properties.queue = prof_queue;
+  properties.queue_depth = 128;
   status = rocprofiler_open(agent_info->dev_id, feature, feature_count, &context,
-                            ROCPROFILER_MODE_STANDALONE | ROCPROFILER_MODE_SINGLEGROUP, &properties);
+                            ROCPROFILER_MODE_STANDALONE |
+                            ROCPROFILER_MODE_CREATEQUEUE |
+                            ROCPROFILER_MODE_SINGLEGROUP, &properties);
   TEST_STATUS(status == HSA_STATUS_SUCCESS);
 
   // Test initialization
@@ -105,22 +91,30 @@ monitor::monitor (void) : enabled(false), status(HSA_STATUS_SUCCESS), context(nu
   enabled = true;
 }
 
-monitor::~monitor (void) {
+void monitor::stop (void) {
     enabled = false;
     // if disabled, do nothing...
     if (!apex_options::use_hip_profiler()) {
         return;
     }
   // Stop counters
+  std::cout << "stop..." << std::endl;
   status = rocprofiler_stop(context, group_n);
   TEST_STATUS(status == HSA_STATUS_SUCCESS);
-  //std::cout << "stop" << std::endl;
+}
 
+monitor::~monitor (void) {
+    enabled = false;
+    // if disabled, do nothing...
+    if (!apex_options::use_hip_profiler()) {
+        return;
+    }
   // Finishing cleanup
   // Deleting profiling context will delete all allocated resources
-  status = rocprofiler_close(context);
-  TEST_STATUS(status == HSA_STATUS_SUCCESS);
-
+  std::cout << "close..." << std::endl;
+  //status = rocprofiler_close(context);
+  //TEST_STATUS(status == HSA_STATUS_SUCCESS);
+  std::cout << "done." << std::endl;
 }
 
 // print profiler features
@@ -165,12 +159,13 @@ void monitor::query(void) {
     //std::cout << "read features" << std::endl;
     hsa_status_t status = rocprofiler_read(context, group_n);
     TEST_STATUS(status == HSA_STATUS_SUCCESS);
-    //std::cout << "read issue" << std::endl;
+    //std::cout << "read issue..." << std::endl;
     status = rocprofiler_get_data(context, group_n);
     TEST_STATUS(status == HSA_STATUS_SUCCESS);
     status = rocprofiler_get_metrics(context);
     TEST_STATUS(status == HSA_STATUS_SUCCESS);
     print_features(feature, feature_count);
+    //std::cout << "done" << std::endl;
 }
 
 } // namespace rocprofiler
