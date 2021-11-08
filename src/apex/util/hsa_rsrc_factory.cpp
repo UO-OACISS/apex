@@ -412,6 +412,17 @@ bool HsaRsrcFactory::GetGpuAgentInfo(uint32_t idx, const AgentInfo** agent_info)
   return true;
 }
 
+const AgentInfo* HsaRsrcFactory::GetGpuAgentInfo(uint32_t idx) {
+  // Determine if request is valid
+  uint32_t size = uint32_t(gpu_list_.size());
+  if (idx >= size) {
+    return nullptr;
+  }
+
+  // Copy AgentInfo from specified index
+  return gpu_list_[idx];
+}
+
 // Get the AgentInfo handle of a Cpu device
 //
 // @param idx Cpu Agent at specified index
