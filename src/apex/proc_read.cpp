@@ -78,18 +78,15 @@ namespace apex {
     static std::vector<std::string> lms_event_names;
     static std::vector<std::string> rapl_event_units;
     static std::vector<std::string> nvml_event_units;
-    static std::vector<std::string> rocm_event_units;
     static std::vector<std::string> lms_event_units;
     static std::vector<int> nvml_event_codes;
     static std::vector<int> rocm_event_codes;
     static std::vector<int> lms_event_codes;
     static std::vector<int> rapl_event_data_type;
     static std::vector<int> nvml_event_data_type;
-    static std::vector<int> rocm_event_data_type;
     static std::vector<int> lms_event_data_type;
     static std::vector<double> rapl_event_conversion;
     static std::vector<double> nvml_event_conversion;
-    static std::vector<double> rocm_event_conversion;
     static std::vector<double> lms_event_conversion;
 
     typedef union {
@@ -280,7 +277,7 @@ namespace apex {
                 }
             }
             // do we have the ROCm (hip/rocm) components?
-            if (strstr(comp_info->name, "rocm")) {
+            if (strstr(comp_info->name, "rocm") && !rocm_initialized) {
                 if (comp_info->num_native_events == 0) {
                     if (apex_options::use_verbose()) {
                         fprintf(stderr, "PAPI ROCm component found, but ");
@@ -333,37 +330,16 @@ namespace apex {
                         // is the event in the requested list?
                         bool found = false;
                         for (auto mn : rocm_metric_names) {
-                            if (std::string(event_name).find(mn) != std::string::npos) {
-                                found = true;
-                                break;
+                            if (std::string(event_name).find("device=0") != std::string::npos) {
+                                if (std::string(event_name).find(mn) != std::string::npos) {
+                                    found = true;
+                                    break;
+                                }
                             }
                         }
                         // if the user doesn't want this metric, don't add it
                         if (!found) { continue; }
-                        // get the event info
-                        PAPI_event_info_t evinfo;
-                        retval = PAPI_get_event_info(code,&evinfo);
-                        if (retval != PAPI_OK) {
-                            fprintf(stderr, "%s %d %s %d\n", __FILE__,
-                                    __LINE__, "Error getting ROCm event info\n",retval);
-                            fprintf(stderr, "PAPI error %d: %s\n", retval,
-                                    PAPI_strerror(retval));
-                            continue;
-                        }
-                        // get the event units
-                        char unit[PAPI_MAX_STR_LEN] = {0};
-                        strncpy(unit,evinfo.units,PAPI_MAX_STR_LEN);
-                        // save the event info
-                        //printf("Found event '%s (%s)'\n", event_name, unit);
                         rocm_event_codes.push_back(code);
-                        if(strcmp(unit, "mW") == 0) {
-                            rocm_event_units.push_back(std::string("W"));
-                            rocm_event_conversion.push_back(0.0001);
-                        } else {
-                            rocm_event_units.push_back(std::string(unit));
-                            rocm_event_conversion.push_back(1.0);
-                        }
-                        rocm_event_data_type.push_back(evinfo.data_type);
                         rocm_event_names.push_back(std::string(event_name));
                         retval = PAPI_add_event(rocm_EventSet, code);
                         if (retval != PAPI_OK) {
@@ -373,14 +349,16 @@ namespace apex {
                             return;
                         }
                     }
-                    retval = PAPI_start(rocm_EventSet);
-                    if (retval != PAPI_OK) {
-                        fprintf(stderr, "Error starting PAPI ROCm eventset.\n");
-                        fprintf(stderr, "PAPI error %d: %s\n", retval,
-                                PAPI_strerror(retval));
-                        return;
+                    if (rocm_event_codes.size() > 0) {
+                        retval = PAPI_start(rocm_EventSet);
+                        if (retval != PAPI_OK) {
+                            fprintf(stderr, "Error starting PAPI ROCm eventset.\n");
+                            fprintf(stderr, "PAPI error %d: %s\n", retval,
+                                    PAPI_strerror(retval));
+                            return;
+                        }
+                        rocm_initialized = true;
                     }
-                    rocm_initialized = true;
                 }
             }
             if (strstr(comp_info->name, "lmsensors")) {
@@ -925,17 +903,8 @@ namespace apex {
             for (size_t i = 0 ; i < rocm_metrics.size() ; i++) {
                 stringstream ss;
                 ss << rocm_event_names[i];
-                if (rocm_event_units[i].length() > 0) {
-                    ss << "(" << rocm_event_units[i] << ")";
-                }
-                if (rocm_event_data_type[i] == PAPI_DATATYPE_FP64) {
-                    event_result_t tmp;
-                    tmp.ll = rocm_metrics[i];
-                    sample_value(ss.str().c_str(), tmp.fp * rocm_event_conversion[i]);
-                } else {
-                    double tmp = rocm_metrics[i];
-                    sample_value(ss.str().c_str(), tmp * rocm_event_conversion[i]);
-                }
+                double tmp = rocm_metrics[i];
+                sample_value(ss.str().c_str(), tmp);
             }
         }
         if (lms_initialized) {
