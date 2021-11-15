@@ -278,6 +278,7 @@ namespace apex {
             }
             // do we have the ROCm (hip/rocm) components?
             if (strstr(comp_info->name, "rocm") && !rocm_initialized) {
+                printf("Found rocm PAPI component\n");
                 if (comp_info->num_native_events == 0) {
                     if (apex_options::use_verbose()) {
                         fprintf(stderr, "PAPI ROCm component found, but ");

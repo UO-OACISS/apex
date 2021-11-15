@@ -37,7 +37,9 @@ using namespace std;
 
 #include "apex_api.hpp"
 #include "apex.hpp"
+#ifdef APEX_HAVE_BFD
 #include "address_resolution.hpp"
+#endif
 #include "async_thread_node.hpp"
 #include "trace_event_listener.hpp"
 #ifdef APEX_HAVE_OTF2
@@ -85,13 +87,99 @@ DEFINE_CONSTRUCTOR(init_tracing);
         }                                                       \
     } while (0)
 
-// Timestamp at trace initialization time. Used to normalized other
-// timestamps
-constexpr int attempts = 10;
-static uint64_t startTimestampGPU[attempts] = {0};
-static uint64_t startTimestampCPU[attempts] = {0};
-static int64_t deltaTimestamp = {0};
-static std::string devicestub("__device_stub__");
+/* This class is necessary so we can clean up before our globals are destroyed at exit */
+class Globals{
+private:
+    Globals() : deltaTimestamp(0) {} // Disallow instantiation outside of the class.
+    // Timestamp at trace initialization time. Used to normalized other
+    // timestamps
+    int64_t deltaTimestamp;
+    std::mutex correlation_map_mutex;
+    std::unordered_map<uint32_t, std::shared_ptr<apex::task_wrapper>> timer_map;
+    std::unordered_map<uint32_t, std::string> name_map;
+    std::unordered_map<uint32_t, apex::async_event_data> data_map;
+public:
+    Globals(const Globals&) = delete;
+    Globals& operator=(const Globals &) = delete;
+    Globals(Globals &&) = delete;
+    Globals & operator=(Globals &&) = delete;
+    // if our globals are destroyed before APEX can finalize, then finalize now! */
+    ~Globals() {
+        apex::finalize();
+    }
+
+    static auto& instance(){
+        static Globals test;
+        return test;
+    }
+    static int64_t& delta() {
+        return instance().deltaTimestamp;
+    }
+
+    void lock() { correlation_map_mutex.lock(); }
+    void unlock() { correlation_map_mutex.unlock(); }
+
+    static void insert_timer(uint32_t id, std::shared_ptr<apex::task_wrapper> timer) {
+        instance().correlation_map_mutex.lock();
+        instance().timer_map[id] = timer;
+        instance().correlation_map_mutex.unlock();
+    }
+
+    static std::shared_ptr<apex::task_wrapper> find_timer(uint32_t id) {
+        std::shared_ptr<apex::task_wrapper> timer = nullptr;
+        Globals& g = instance();
+        g.lock();
+        auto iter = g.timer_map.find(id);
+        if (iter != g.timer_map.end()) {
+            timer = iter->second;
+        }
+        g.timer_map.erase(id);
+        g.unlock();
+        return timer;
+    }
+
+    static void insert_name(uint32_t id, std::string& name) {
+        instance().correlation_map_mutex.lock();
+        instance().name_map[id] = name;
+        instance().correlation_map_mutex.unlock();
+    }
+
+    static std::string find_name(uint32_t id) {
+        Globals& g = instance();
+        std::string name;
+        g.lock();
+        auto iter = g.name_map.find(id);
+        if (iter != g.name_map.end()) {
+            name = iter->second;
+            g.name_map.erase(id);
+        } else {
+            name = "unknown";
+        }
+        g.unlock();
+        return name;
+    }
+
+    static void insert_data(uint32_t id, apex::async_event_data& data) {
+        instance().correlation_map_mutex.lock();
+        instance().data_map[id] = data;
+        instance().correlation_map_mutex.unlock();
+    }
+
+    static apex::async_event_data find_data(uint32_t id) {
+        apex::async_event_data as_data;
+        Globals& g = instance();
+        g.lock();
+        auto iter = g.data_map.find(id);
+        if (iter != g.data_map.end()) {
+            as_data = iter->second;
+        }
+        g.data_map.erase(id);
+        g.unlock();
+        return as_data;
+    }
+};
+
+constexpr char devicestub[] = "__device_stub__";
 
 /* Needed to prevent re-entry when profiling with kfd/hsa */
 class handler_lock {
@@ -118,6 +206,9 @@ public:
 bool run_once() {
     static bool once{false};
     if (once) { return once; }
+    constexpr int attempts = 10;
+    uint64_t startTimestampGPU[attempts] = {0};
+    uint64_t startTimestampCPU[attempts] = {0};
     // NOTE: This code isn't really useful.  It would be if we were
     // using CPU timestamps for the host activity, but we can't seem
     // to sync the clocks right, so *ALL* timestamps are taken on the
@@ -140,10 +231,10 @@ bool run_once() {
     }
 
     // assume CPU timestamp is greater than GPU
-    deltaTimestamp = ((int64_t)(startTimestampCPU[my_min]) - (int64_t)(startTimestampGPU[my_min]));
+    Globals::delta() = ((int64_t)(startTimestampCPU[my_min]) - (int64_t)(startTimestampGPU[my_min]));
     printf("HIP timestamp:      %" PRIu64 "\n", startTimestampGPU[my_min]);
     printf("CPU timestamp:      %" PRIu64 "\n", startTimestampCPU[my_min]);
-    printf("HIP delta timestamp: %" PRId64 "\n", deltaTimestamp);
+    printf("HIP delta timestamp: %" PRId64 "\n", Globals::delta());
     apex::init("APEX HIP wrapper", 0, 1);
     once = true;
     return once;
@@ -209,13 +300,6 @@ void handle_roctx(uint32_t domain, uint32_t cid, const void* callback_data, void
     return;
 }
 
-/* The map that holds correlation IDs and matches them to GUIDs */
-std::unordered_map<uint32_t, std::shared_ptr<apex::task_wrapper>> correlation_map;
-std::unordered_map<uint32_t, std::string> correlation_kernel_name_map;
-/* This map holds data for "flow events" if we are tracing to Google Trace Events */
-std::unordered_map<uint32_t, apex::async_event_data> correlation_kernel_data_map;
-std::mutex correlation_map_mutex;
-
 #if defined(APEX_WITH_KFD)
 /* This is the "low level" API - lots of events if interested. */
 void handle_roc_kfd(uint32_t domain, uint32_t cid, const void* callback_data, void* arg) {
@@ -235,9 +319,7 @@ void handle_roc_kfd(uint32_t domain, uint32_t cid, const void* callback_data, vo
 			roctracer_op_string(ACTIVITY_DOMAIN_KFD_API, cid, 0));
         apex::start(timer);
         timer_stack.push(timer);
-        correlation_map_mutex.lock();
-        correlation_map[data->correlation_id] = timer;
-        correlation_map_mutex.unlock();
+        Globals::insert_timer(data->correlation_id, timer);
     } else {
         if (!timer_stack.empty()) {
             auto timer = timer_stack.top();
@@ -268,9 +350,7 @@ void handle_roc_hsa(uint32_t domain, uint32_t cid, const void* callback_data, vo
 			roctracer_op_string(ACTIVITY_DOMAIN_HSA_API, cid, 0));
         apex::start(timer);
         timer_stack.push(timer);
-        correlation_map_mutex.lock();
-        correlation_map[data->correlation_id] = timer;
-        correlation_map_mutex.unlock();
+        Globals::insert_timer(data->correlation_id, timer);
     } else {
         if (!timer_stack.empty()) {
             auto timer = timer_stack.top();
@@ -482,6 +562,7 @@ std::string lookup_kernel_name_ptr(const void* address, hipStream_t stream_id) {
     if (entry != the_map.end()) {
         tmp = entry->second;
     } else {
+#ifdef APEX_HAVE_BFD
         // look it up using the right method
         if (apex::apex_options::use_source_location()) {
             tmp = *(apex::lookup_address((uintptr_t)address, true));
@@ -489,12 +570,16 @@ std::string lookup_kernel_name_ptr(const void* address, hipStream_t stream_id) {
             // clean up the kernel name (strip '__device_stub__')
             size_t pos = tmp.find(devicestub);
             if (pos != std::string::npos) {
-                tmp.erase(pos, devicestub.length());
+                tmp.erase(pos, strlen(devicestub));
             }
         } else {
             tmp = std::string(hipKernelNameRefByPtr(address, stream_id));
             tmp = apex::demangle(tmp);
         }
+#else
+        tmp = std::string(hipKernelNameRefByPtr(address, stream_id));
+        tmp = apex::demangle(tmp);
+#endif
         // add it to the map
         the_map.insert(std::make_pair(address, tmp));
     }
@@ -509,18 +594,23 @@ std::string lookup_kernel_name(const hipFunction_t f) {
     if (entry != the_map.end()) {
         tmp = entry->second;
     } else {
+#ifdef APEX_HAVE_BFD
         if (apex::apex_options::use_source_location()) {
             tmp = *(apex::lookup_address((uintptr_t)f, true));
             tmp = apex::demangle(tmp);
             // clean up the kernel name (strip '__device_stub__')
             size_t pos = tmp.find(devicestub);
             if (pos != std::string::npos) {
-                tmp.erase(pos, devicestub.length());
+                tmp.erase(pos, strlen(devicestub));
             }
         } else {
             tmp = hipKernelNameRef(f);
             tmp = apex::demangle(tmp);
         }
+#else
+        tmp = hipKernelNameRef(f);
+        tmp = apex::demangle(tmp);
+#endif
         // add it to the map
         the_map.insert(std::make_pair(f, tmp));
     }
@@ -550,9 +640,7 @@ void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* 
         auto timer = apex::new_task(context);
         apex::start(timer);
         timer_stack.push(timer);
-        correlation_map_mutex.lock();
-        correlation_map[data->correlation_id] = timer;
-        correlation_map_mutex.unlock();
+        Globals::insert_timer(data->correlation_id, timer);
 
         switch (cid) {
             case HIP_API_ID_hipMallocPitch:
@@ -577,9 +665,7 @@ void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* 
                 std::string name{lookup_kernel_name_ptr(
                         data->args.hipLaunchKernel.function_address,
                         data->args.hipLaunchKernel.stream)};
-                correlation_map_mutex.lock();
-                correlation_kernel_name_map[data->correlation_id] = name;
-                correlation_map_mutex.unlock();
+                Globals::insert_name(data->correlation_id, name);
                 if (apex::apex_options::use_hip_kernel_details()) {
                     store_sync_counter_data("numBlocks.X", "",
                         data->args.hipLaunchKernel.numBlocks.x, true);
@@ -601,9 +687,7 @@ void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* 
             case HIP_API_ID_hipModuleLaunchKernel:
             {
                 std::string name {lookup_kernel_name(data->args.hipModuleLaunchKernel.f)};
-                correlation_map_mutex.lock();
-                correlation_kernel_name_map[data->correlation_id] = name;
-                correlation_map_mutex.unlock();
+                Globals::insert_name(data->correlation_id, name);
                 if (apex::apex_options::use_hip_kernel_details()) {
                     store_sync_counter_data("blockDim.X", "",
                         data->args.hipModuleLaunchKernel.blockDimX, true);
@@ -624,10 +708,9 @@ void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* 
             }
             case HIP_API_ID_hipHccModuleLaunchKernel:
             {
-                correlation_map_mutex.lock();
-                correlation_kernel_name_map[data->correlation_id] =
+                std::string name =
                     lookup_kernel_name(data->args.hipHccModuleLaunchKernel.f);
-                correlation_map_mutex.unlock();
+                Globals::insert_name(data->correlation_id, name);
                 if (apex::apex_options::use_hip_kernel_details()) {
                     store_sync_counter_data("blockDim.X", "",
                         data->args.hipHccModuleLaunchKernel.blockDimX, true);
@@ -648,10 +731,9 @@ void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* 
             }
             case HIP_API_ID_hipExtModuleLaunchKernel:
             {
-                correlation_map_mutex.lock();
-                correlation_kernel_name_map[data->correlation_id] =
+                std::string name =
                     lookup_kernel_name(data->args.hipExtModuleLaunchKernel.f);
-                correlation_map_mutex.unlock();
+                Globals::insert_name(data->correlation_id, name);
                 if (apex::apex_options::use_hip_kernel_details()) {
                     store_sync_counter_data("globalWorkSize.X", "",
                         data->args.hipExtModuleLaunchKernel.globalWorkSizeX, true);
@@ -672,12 +754,11 @@ void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* 
             }
             case HIP_API_ID_hipExtLaunchKernel:
             {
-                correlation_map_mutex.lock();
-                correlation_kernel_name_map[data->correlation_id] =
+                std::string name =
                     lookup_kernel_name_ptr(
                         data->args.hipExtLaunchKernel.function_address,
                         data->args.hipExtLaunchKernel.stream);
-                correlation_map_mutex.unlock();
+                Globals::insert_name(data->correlation_id, name);
                 if (apex::apex_options::use_hip_kernel_details()) {
                     store_sync_counter_data("numBlocks.X", "",
                         data->args.hipExtLaunchKernel.numBlocks.x, true);
@@ -708,9 +789,7 @@ void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* 
                 apex::thread_instance::get_id(), context);
             as_data.parent_ts_stop = apex::profiler::now_us();
             apex::stop(timer);
-            correlation_map_mutex.lock();
-            correlation_kernel_data_map[data->correlation_id] = as_data;
-            correlation_map_mutex.unlock();
+            Globals::insert_data(data->correlation_id, as_data);
             timer_stack.pop();
         }
 
@@ -748,12 +827,8 @@ void store_profiler_data(const std::string &name, uint32_t correlationId,
     std::shared_ptr<apex::task_wrapper> parent = nullptr;
     apex::async_event_data as_data;
     if (correlationId > 0) {
-        correlation_map_mutex.lock();
-        parent = correlation_map[correlationId];
-        as_data = correlation_kernel_data_map[correlationId];
-        correlation_map.erase(correlationId);
-        correlation_kernel_data_map.erase(correlationId);
-        correlation_map_mutex.unlock();
+        parent = Globals::find_timer(correlationId);
+        as_data = Globals::find_data(correlationId);
     }
     // Build the name
     std::stringstream ss;
@@ -764,8 +839,8 @@ void store_profiler_data(const std::string &name, uint32_t correlationId,
     // create an APEX profiler to store this data - we can't start
     // then stop because we have timestamps already.
     auto prof = std::make_shared<apex::profiler>(tt);
-    prof->set_start(start + deltaTimestamp);
-    prof->set_end(end + deltaTimestamp);
+    prof->set_start(start + Globals::delta());
+    prof->set_end(end + Globals::delta());
     // important!  Otherwise we might get the wrong end timestamp.
     prof->stopped = true;
     // fake out the profiler_listener
@@ -806,7 +881,7 @@ void store_counter_data(const char * name, const std::string& ctx,
     std::shared_ptr<apex::profiler> prof =
         std::make_shared<apex::profiler>(task_id, value);
     prof->is_counter = true;
-    prof->set_end(end + deltaTimestamp);
+    prof->set_end(end + Globals::delta());
     // Get the singleton APEX instance
     static apex::apex* instance = apex::apex::instance();
     // fake out the profiler_listener
@@ -835,10 +910,7 @@ void process_hip_record(const roctracer_record_t* record) {
     const char * name = roctracer_op_string(record->domain, record->op, record->kind);
     switch(record->op) {
         case HIP_OP_ID_DISPATCH: {
-            correlation_map_mutex.lock();
-            std::string name = correlation_kernel_name_map[record->correlation_id];
-            correlation_kernel_name_map.erase(record->correlation_id);
-            correlation_map_mutex.unlock();
+            std::string name = Globals::find_name(record->correlation_id);
             apex::hip_thread_node node(record->device_id, record->queue_id, APEX_ASYNC_KERNEL);
    	        store_profiler_data(name, record->correlation_id, record->begin_ns,
                 record->end_ns, "ControlFlow", node);

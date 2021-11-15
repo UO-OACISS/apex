@@ -22,7 +22,7 @@ if (NOT DEFINED $ROCM_ROOT)
 endif()
 
 find_path(ROCTRACER_INCLUDE_DIR NAMES roctracer.h
-	HINTS ${ROCM_ROOT}/include/roctracer ${ROCTRACER_ROOT}/include)
+	HINTS ${ROCTRACER_ROOT}/include ${ROCM_ROOT}/include/roctracer)
 
 find_path(HSA_INCLUDE_DIR NAMES hsa.h
 	HINTS ${ROCM_ROOT}/include/hsa)
@@ -31,16 +31,16 @@ find_path(HIP_INCLUDE_DIR NAMES hip/hip_runtime_api.h
 	HINTS ${ROCM_ROOT}/hip/include)
 
 find_library(ROCTRACER_LIBRARY NAMES roctracer64
-    HINTS ${ROCM_ROOT}/lib64 ${ROCM_ROOT}/lib ${ROCTRACER_ROOT}/lib64 ${ROCTRACER_ROOT}/lib)
+    HINTS ${ROCTRACER_ROOT}/lib64 ${ROCTRACER_ROOT}/lib ${ROCM_ROOT}/roctracer/lib64 ${ROCM_ROOT}/roctracer/lib)
 
 find_library(ROCTRACER_LIBRARY_2 NAMES kfdwrapper64
-    HINTS ${ROCM_ROOT}/lib64 ${ROCM_ROOT}/lib ${ROCTRACER_ROOT}/lib64 ${ROCTRACER_ROOT}/lib)
+    HINTS ${ROCTRACER_ROOT}/lib64 ${ROCTRACER_ROOT}/lib ${ROCM_ROOT}/roctracer/lib64 ${ROCM_ROOT}/roctracer/lib)
 
 find_library(HIP_LIBRARY NAMES amdhip64
-    HINTS ${ROCM_ROOT}/lib64 ${ROCM_ROOT}/lib ${ROCTRACER_ROOT}/lib64 ${ROCTRACER_ROOT}/lib)
+    HINTS ${ROCM_ROOT}/hip/lib64 ${ROCM_ROOT}/hip/lib ${ROCM_ROOT}/lib64 ${ROCM_ROOT}/lib)
 
 find_library(HSA_LIBRARY NAMES hsa-runtime64
-    HINTS ${ROCM_ROOT}/lib64 ${ROCM_ROOT}/lib)
+    HINTS ${ROCM_ROOT}/hsa/lib64 ${ROCM_ROOT}/hsa/lib ${ROCM_ROOT}/lib64 ${ROCM_ROOT}/lib)
 
 include(FindPackageHandleStandardArgs)
 # handle the QUIETLY and REQUIRED arguments and set ROCTRACER_FOUND to TRUE
