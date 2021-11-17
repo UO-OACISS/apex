@@ -124,10 +124,22 @@ void print_features(rocprofiler_feature_t* feature, uint32_t feature_count) {
       std::stringstream ss;
       ss << "GPU METRIC: " << p->name;
       switch (p->data.kind) {
-        case ROCPROFILER_DATA_KIND_INT64:
-          //std::cout << std::dec << " result64 (" << p->data.result_int64 << ")" << std::endl;
+        case ROCPROFILER_DATA_KIND_INT64: {
           sample_value(ss.str(), (double)(p->data.result_int64));
           break;
+        }
+        case ROCPROFILER_DATA_KIND_INT32: {
+          sample_value(ss.str(), (double)(p->data.result_int32));
+          break;
+        }
+        case ROCPROFILER_DATA_KIND_FLOAT: {
+          sample_value(ss.str(), (double)(p->data.result_float));
+          break;
+        }
+        case ROCPROFILER_DATA_KIND_DOUBLE: {
+          sample_value(ss.str(), p->data.result_double);
+          break;
+        }
         case ROCPROFILER_DATA_KIND_BYTES: {
           const char* ptr = reinterpret_cast<const char*>(p->data.result_bytes.ptr);
           uint64_t size = 0;

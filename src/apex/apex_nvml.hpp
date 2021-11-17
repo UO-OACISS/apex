@@ -20,6 +20,7 @@ public:
     monitor (void);
     ~monitor (void);
     void query();
+    void stop();
     static void activateDeviceIndex(uint32_t index);
 private:
     bool success;

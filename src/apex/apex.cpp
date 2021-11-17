@@ -73,7 +73,7 @@
 #include "global_constructor_destructor.h"
 #if defined(HAS_CONSTRUCTORS)
 extern "C" {
-//DEFINE_CONSTRUCTOR(apex_init_static_void)
+DEFINE_CONSTRUCTOR(apex_init_static_void)
 DEFINE_DESTRUCTOR(apex_finalize_static_void)
 }
 #endif
@@ -385,6 +385,11 @@ hpx::runtime * apex::get_hpx_runtime(void) {
 }
 #endif
 
+/* Need to forward declare the HIP tracing static constructor */
+#ifdef APEX_WITH_HIP
+void init_hip_tracing(void);
+#endif
+
 uint64_t init(const char * thread_name, uint64_t comm_rank,
     uint64_t comm_size) {
     FUNCTION_ENTER
@@ -440,6 +445,10 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
     handle_delayed_start();
     // start accepting requests, now that all listeners are started
     _initialized = true;
+    /* Note that because the PAPI support includes the ability to load and use
+     * any configured components in PAPI, we need to make sure it's initialized
+     * before we initialize any GPU support libraries (like cupti_init, or
+     * hsa_init). */
 #if APEX_HAVE_PROC
     if (apex_options::use_proc_cpuinfo() ||
         apex_options::use_proc_meminfo() ||
@@ -495,6 +504,10 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
     enable_memory_wrapper();
 #else
     enable_memory_wrapper();
+#endif
+
+#ifdef APEX_WITH_HIP
+    init_hip_tracing();
 #endif
 
     // Unset the LD_PRELOAD variable, because Active Harmony is going to
@@ -1573,6 +1586,8 @@ void finalize()
         instance->listeners[i]->on_pre_shutdown();
     }
     //instance->the_profiler_listener->stop_main_timer();
+    stop_all_async_threads(); // stop OS/HW monitoring, including PAPI
+    // stop processing new timers/counters/messages/tasks/etc.
     /* This could take a while */
 #ifdef APEX_WITH_CUDA
     flushTrace();
@@ -1582,8 +1597,6 @@ void finalize()
     flush_hip_trace();
     stop_hip_trace();
 #endif
-    stop_all_async_threads(); // stop OS/HW monitoring
-    // stop processing new timers/counters/messages/tasks/etc.
     apex_options::suspend(true);
     // now, process all output
     dump(false);

@@ -669,6 +669,13 @@ if (APEX_WITH_HIP)
     include_directories(${ROCTX_INCLUDE_DIRS})
     message(INFO " Using ROCm SMI include: ${RSMI_INCLUDE_DIRS}")
     include_directories(${RSMI_INCLUDE_DIRS})
+
+    find_package(ROCTRACER_KFD) # removed in ROCM 4.5.0
+    if (ROCTRACER_KFD_FOUND)
+        set(LIBS ${LIBS} ${ROCTRACER_KFD_LIBRARIES})
+        include_directories(${ROCTRACER_KFD_INCLUDE_DIRS})
+    endif (ROCTRACER_KFD_FOUND)
+
 endif (APEX_WITH_HIP)
 
 ################################################################################
