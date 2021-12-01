@@ -177,7 +177,7 @@ public:
       std::unique_lock<std::mutex> l(_open_profiler_mutex);
       std::stringstream ss;
       ss << p->get_task_id()->get_name();
-      ss << p->time_point_to_nanoseconds(p->start);
+      ss << p->start_ns;
       open_profilers.insert(ss.str());
   }
   static void remove_open_profiler(int id, profiler *p) {
@@ -185,7 +185,7 @@ public:
       std::unique_lock<std::mutex> l(_open_profiler_mutex);
       std::stringstream ss;
       ss << p->get_task_id()->get_name();
-      ss << p->time_point_to_nanoseconds(p->start);
+      ss << p->start_ns;
       auto tmp = open_profilers.find(ss.str());
       if (tmp != open_profilers.end()) {
         open_profilers.erase(ss.str());

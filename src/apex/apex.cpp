@@ -1057,6 +1057,7 @@ void stop(std::shared_ptr<task_wrapper> tt_ptr) {
 #if defined(APEX_DEBUG)
     static std::string apex_process_profile_str("apex::process_profiles");
     if (p->tt_ptr->get_task_id()->get_name(false).compare(apex_process_profile_str)
+        == 0) {
         APEX_UTIL_REF_COUNT_APEX_INTERNAL_STOP
     } else {
         APEX_UTIL_REF_COUNT_STOP
