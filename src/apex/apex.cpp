@@ -383,6 +383,8 @@ void apex::set_hpx_runtime(hpx::runtime * hpx_runtime) {
 hpx::runtime * apex::get_hpx_runtime(void) {
     return m_hpx_runtime;
 }
+
+void cupti_initTrace(void);
 #endif
 
 uint64_t init(const char * thread_name, uint64_t comm_rank,
@@ -440,6 +442,9 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
     handle_delayed_start();
     // start accepting requests, now that all listeners are started
     _initialized = true;
+#ifdef APEX_HAVE_HPX
+    cupti_initTrace();
+#endif
 #if APEX_HAVE_PROC
     if (apex_options::use_proc_cpuinfo() ||
         apex_options::use_proc_meminfo() ||
