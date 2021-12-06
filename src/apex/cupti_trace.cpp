@@ -1703,10 +1703,12 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
     }
 }
 
+namespace apex {
+
 void cupti_initTrace() {
-    if (!apex::apex_options::use_cuda()) { return; }
+    if (!apex_options::use_cuda()) { return; }
     // disable memory management tracking in APEX during this initialization
-    apex::in_apex prevent_deadlocks;
+    in_apex prevent_deadlocks;
     // make sure APEX doesn't re-register this thread
     bool& registered = get_registered();
     registered = true;
@@ -1738,13 +1740,13 @@ void cupti_initTrace() {
     CUPTI_CALL(cuptiSubscribe(&subscriber,
                 (CUpti_CallbackFunc)apex_cupti_callback_dispatch, NULL));
     // get device callbacks
-    if (apex::apex_options::use_cuda_runtime_api()) {
+    if (apex_options::use_cuda_runtime_api()) {
         CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_RUNTIME_API));
     }
-    if (apex::apex_options::use_cuda_driver_api()) {
+    if (apex_options::use_cuda_driver_api()) {
         CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_DRIVER_API));
     }
-    if (apex::apex_options::use_cuda_kernel_details()) {
+    if (apex_options::use_cuda_kernel_details()) {
         uint8_t enable = 1;
         CUPTI_CALL(cuptiActivityEnableLatencyTimestamps(enable));
     }
@@ -1761,9 +1763,9 @@ void cupti_initTrace() {
     // We'll take a CPU timestamp before and after taking a GPU timestmp, then
     // take the average of those two, hoping that it's roughly at the same time
     // as the GPU timestamp.
-    startTimestampCPU = apex::profiler::now_ns();
+    startTimestampCPU = profiler::now_ns();
     cuptiGetTimestamp(&startTimestampGPU);
-    startTimestampCPU += apex::profiler::now_ns();
+    startTimestampCPU += profiler::now_ns();
     startTimestampCPU = startTimestampCPU / 2;
 
     // assume CPU timestamp is greater than GPU
@@ -1776,7 +1778,6 @@ void cupti_initTrace() {
 /* This is the global "shutdown" method for flushing the buffer.  This is
  * called from apex::finalize().  It's the only function in the CUDA support
  * that APEX will call directly. */
-namespace apex {
     void flushTrace(void) {
         if (!apex_options::use_cuda()) { return; }
         if ((num_buffers_processed + 10) < num_buffers) {
