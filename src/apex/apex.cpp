@@ -387,6 +387,7 @@ hpx::runtime * apex::get_hpx_runtime(void) {
 #if defined (APEX_WITH_CUDA)
 void cupti_initTrace(void);
 #endif
+#endif
 
 uint64_t init(const char * thread_name, uint64_t comm_rank,
     uint64_t comm_size) {
