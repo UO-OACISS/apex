@@ -81,6 +81,8 @@ int main() {
     RUNTIME_API_CALL(hipGetDeviceProperties(&devProp, 0));
 
     std::cout << "Device name " << devProp.name << std::endl;
+    std::cout << " System major " << devProp.major << std::endl;
+    std::cout << " System minor " << devProp.minor << std::endl;
 
     int i;
     int errors;

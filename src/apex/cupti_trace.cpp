@@ -669,7 +669,7 @@ static void unifiedMemoryActivity(CUpti_Activity *record) {
 
 static void memsetActivity(CUpti_Activity *record) {
     CUpti_ActivityMemset *memset = (CUpti_ActivityMemset *) record;
-    static std::string name{"Memset"};
+    const std::string name{"Memset"};
     apex::cuda_thread_node node(memset->deviceId, memset->contextId,
             memset->streamId, APEX_ASYNC_MEMORY);
     store_profiler_data(name, memset->correlationId, memset->start,
@@ -733,7 +733,7 @@ static void openaccDataActivity(CUpti_Activity *record) {
     apex::cuda_thread_node node(data->cuDeviceId, data->cuContextId,
         data->cuStreamId, APEX_ASYNC_MEMORY);
     store_profiler_data(label, data->externalId, data->start, data->end, node, "DataFlow");
-    static std::string bytes{"Bytes Transferred"};
+    const std::string bytes{"Bytes Transferred"};
     store_counter_data(label.c_str(), bytes, data->end, data->bytes, node);
 }
 
@@ -744,11 +744,11 @@ static void openaccKernelActivity(CUpti_Activity *record) {
         data->cuStreamId, APEX_ASYNC_KERNEL);
     store_profiler_data(label, data->externalId, data->start,
             data->end, node, "ControlFlow");
-    static std::string gangs{"Num Gangs"};
+    const std::string gangs{"Num Gangs"};
     store_counter_data(label.c_str(), gangs, data->end, data->numGangs, node);
-    static std::string workers{"Num Workers"};
+    const std::string workers{"Num Workers"};
     store_counter_data(label.c_str(), workers, data->end, data->numWorkers, node);
-    static std::string lanes{"Num Vector Lanes"};
+    const std::string lanes{"Num Vector Lanes"};
     store_counter_data(label.c_str(), lanes, data->end, data->vectorLength, node);
 }
 

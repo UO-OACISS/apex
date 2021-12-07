@@ -7,7 +7,7 @@
 # Create a library called "Apex" which includes the source file "apex.cxx".
 # The extension is already found. Any number of sources could be listed here.
 
-include_directories(${PROJECT_BINARY_DIR}/src/apex ${APEX_SOURCE_DIR}/rapidjson/include)
+include_directories(${APEX_SOURCE_DIR}/src/apex ${PROJECT_BINARY_DIR}/src/apex ${APEX_SOURCE_DIR}/rapidjson/include)
 
 SET(tau_SOURCE tau_listener.cpp)
 
@@ -41,6 +41,10 @@ if (ROCTRACER_FOUND)
 SET(ROCTRACER_SOURCE hip_trace.cpp)
 endif(ROCTRACER_FOUND)
 
+if (ROCPROFILER_FOUND)
+SET(ROCPROFILER_SOURCE hip_profiler.cpp ctrl/test_hsa.cpp util/hsa_rsrc_factory.cpp util/perf_timer.cpp)
+endif(ROCPROFILER_FOUND)
+
 if (NVML_FOUND)
 SET(NVML_SOURCE apex_nvml.cpp)
 endif(NVML_FOUND)
@@ -64,6 +68,7 @@ endif (APEX_WITH_RAJA AND RAJA_FOUND)
 # Try to keep this in alphabetical order
 SET(all_SOURCE
 ${CUPTI_SOURCE}
+${ROCPROFILER_SOURCE}
 ${ROCTRACER_SOURCE}
 ${NVML_SOURCE}
 ${RSMI_SOURCE}

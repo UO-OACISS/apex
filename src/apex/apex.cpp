@@ -73,7 +73,7 @@
 #include "global_constructor_destructor.h"
 #if defined(HAS_CONSTRUCTORS)
 extern "C" {
-DEFINE_CONSTRUCTOR(apex_init_static_void)
+//DEFINE_CONSTRUCTOR(apex_init_static_void)
 DEFINE_DESTRUCTOR(apex_finalize_static_void)
 }
 #endif
@@ -452,6 +452,8 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
         apex_options::use_proc_meminfo() ||
         apex_options::use_proc_net_dev() ||
         apex_options::use_proc_self_status() ||
+        apex_options::monitor_gpu() ||
+        apex_options::use_hip_profiler() ||
         apex_options::use_proc_stat()) {
         instance->pd_reader = new proc_data_reader();
     }
@@ -573,7 +575,7 @@ profiler* start(const std::string &timer_name)
     }
     //printf("%lu: %s\n", thread_instance::get_id(), timer_name.c_str());
     //fflush(stdout);
-    static const std::string apex_internal("apex_internal");
+    const std::string apex_internal("apex_internal");
     if (starts_with(timer_name, apex_internal)) {
         APEX_UTIL_REF_COUNT_APEX_INTERNAL_START
         // don't process our own events - queue scrubbing tasks.
@@ -625,7 +627,7 @@ profiler* start(const std::string &timer_name)
         }
     }
 #if defined(APEX_DEBUG)
-    static std::string apex_process_profile_str("apex::process_profiles");
+    const std::string apex_process_profile_str("apex::process_profiles");
     if (timer_name.compare(apex_process_profile_str) == 0) {
         APEX_UTIL_REF_COUNT_APEX_INTERNAL_START
     } else {
@@ -815,7 +817,7 @@ profiler* resume(const std::string &timer_name) {
         }
     }
 #if defined(APEX_DEBUG)
-    static std::string apex_process_profile_str("apex::process_profiles");
+    const std::string apex_process_profile_str("apex::process_profiles");
     if (timer_name.compare(apex_process_profile_str) == 0) {
         APEX_UTIL_REF_COUNT_APEX_INTERNAL_RESUME
     } else {
@@ -898,7 +900,7 @@ profiler* resume(profiler * p) {
         }
     }
 #if defined(APEX_DEBUG)
-    static std::string apex_process_profile_str("apex::process_profiles");
+    const std::string apex_process_profile_str("apex::process_profiles");
     if (p->tt_ptr->get_task_id()->get_name(false).compare(apex_process_profile_str)
         == 0) {
         APEX_UTIL_REF_COUNT_APEX_INTERNAL_RESUME
@@ -1001,7 +1003,7 @@ void stop(profiler* the_profiler, bool cleanup) {
     fflush(stdout);
     */
 #if defined(APEX_DEBUG)
-    static std::string apex_process_profile_str("apex::process_profiles");
+    const std::string apex_process_profile_str("apex::process_profiles");
     if (p->tt_ptr->get_task_id()->get_name(false).compare(apex_process_profile_str)
         == 0) {
         APEX_UTIL_REF_COUNT_APEX_INTERNAL_STOP
@@ -1062,7 +1064,7 @@ void stop(std::shared_ptr<task_wrapper> tt_ptr) {
     fflush(stdout);
     */
 #if defined(APEX_DEBUG)
-    static std::string apex_process_profile_str("apex::process_profiles");
+    const std::string apex_process_profile_str("apex::process_profiles");
     if (p->tt_ptr->get_task_id()->get_name(false).compare(apex_process_profile_str)
         == 0) {
         APEX_UTIL_REF_COUNT_APEX_INTERNAL_STOP
@@ -1111,7 +1113,7 @@ void yield(profiler* the_profiler)
     //cout << thread_instance::get_id() << " Yield : " <<
     //the_profiler->tt_ptr->get_task_id()->get_name() << endl; fflush(stdout);
 #if defined(APEX_DEBUG)
-    static std::string apex_process_profile_str("apex::process_profiles");
+    const std::string apex_process_profile_str("apex::process_profiles");
     if (p->tt_ptr->get_task_id()->get_name(false).compare(apex_process_profile_str)
         == 0) {
         APEX_UTIL_REF_COUNT_APEX_INTERNAL_YIELD
@@ -1162,7 +1164,7 @@ void yield(std::shared_ptr<task_wrapper> tt_ptr)
     //cout << thread_instance::get_id() << " Yield : " <<
     //tt_ptr->prof->tt_ptr->get_task_id()->get_name() << endl; fflush(stdout);
 #if defined(APEX_DEBUG)
-    static std::string apex_process_profile_str("apex::process_profiles");
+    const std::string apex_process_profile_str("apex::process_profiles");
     if (p->tt_ptr->get_task_id()->get_name(false).compare(apex_process_profile_str)
         == 0) {
         APEX_UTIL_REF_COUNT_APEX_INTERNAL_YIELD
@@ -1230,7 +1232,7 @@ std::shared_ptr<task_wrapper> new_task(
     if (apex_options::disable() == true) { return nullptr; }
     // if APEX is suspended, do nothing.
     if (apex_options::suspend() == true) { return nullptr; }
-    static const std::string apex_internal("apex_internal");
+    const std::string apex_internal("apex_internal");
     if (starts_with(name, apex_internal)) {
         APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER
         // don't process our own events - queue scrubbing tasks.
@@ -1569,7 +1571,6 @@ void finalize()
     }
     // if not done already...
     shutdown_throttling(); // stop thread scheduler policies
-    stop_all_async_threads(); // stop OS/HW monitoring
 #ifdef APEX_WITH_OMPT
     /* Do this before OTF2 grabs a final timestamp - we might have
      * to terminate some OMPT events. */
@@ -1589,6 +1590,7 @@ void finalize()
     flush_hip_trace();
     stop_hip_trace();
 #endif
+    stop_all_async_threads(); // stop OS/HW monitoring
     // stop processing new timers/counters/messages/tasks/etc.
     apex_options::suspend(true);
     // now, process all output
