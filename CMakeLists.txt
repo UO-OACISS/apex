@@ -577,27 +577,15 @@ endif()
 # ActiveHarmony configuration
 ################################################################################
 
-if((DEFINED APEX_WITH_ACTIVEHARMONY) AND (NOT APEX_WITH_ACTIVEHARMONY))
-    # just in case, disable all Active Harmony
-    unset(ACTIVEHARMONY_ROOT)
-    unset(ENV{ACTIVEHARMONY_ROOT})
-    unset(APEX_BUILD_ACTIVEHARMONY)
+find_package(ACTIVEHARMONY)
+if (ACTIVEHARMONY_FOUND)
+    include_directories(${ACTIVEHARMONY_INCLUDE_DIRS})
+    set(LIBS ${LIBS} ${ACTIVEHARMONY_LIBRARIES})
+    if (NOT BUILD_STATIC_EXECUTABLES)
+        set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${ACTIVEHARMONY_LIBRARY_DIR})
+    endif()
 endif()
 
-if(((DEFINED ACTIVEHARMONY_ROOT) OR (APEX_BUILD_ACTIVEHARMONY)) OR (APEX_WITH_ACTIVEHARMONY))
-    find_package(ACTIVEHARMONY)
-    if (ACTIVEHARMONY_FOUND)
-        include_directories(${ACTIVEHARMONY_INCLUDE_DIRS})
-        set(LIBS ${LIBS} ${ACTIVEHARMONY_LIBRARIES})
-        if (NOT BUILD_STATIC_EXECUTABLES)
-            set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${ACTIVEHARMONY_LIBRARY_DIR})
-        endif()
-    else()
-        add_custom_target(project_activeharmony)
-    endif()
-else()
-    add_custom_target(project_activeharmony)
-endif()
 # Just in case, to prevent concurrent builds
 add_dependencies (project_activeharmony project_gperftools)
 
@@ -622,32 +610,20 @@ endif()
 # OTF2 configuration
 ################################################################################
 
-if((DEFINED APEX_WITH_OTF2) AND (NOT APEX_WITH_OTF2))
-    # just in case, disable
-    unset(OTF2_ROOT)
-    unset(ENV{OTF2_ROOT})
-    unset(APEX_BUILD_OTF2)
+find_package(OTF2)
+if (OTF2_FOUND)
+    include_directories(${OTF2_INCLUDE_DIRS})
+    set(LIBS ${LIBS} ${OTF2_LIBRARIES})
+    if (NOT BUILD_STATIC_EXECUTABLES)
+        set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${OTF2_LIBRARY_DIR})
+    endif()
+    # add_definitions(-DAPEX_USE_CLOCK_TIMESTAMP=1)
+    if(NOT APPLE)
+        find_library(RTLIB rt)
+        set(LIBS ${LIBS} ${RTLIB})
+    endif(NOT APPLE)
 endif()
 
-if((DEFINED OTF2_ROOT) OR (APEX_WITH_OTF2) OR (APEX_BUILD_OTF2))
-    find_package(OTF2)
-    if (OTF2_FOUND)
-        include_directories(${OTF2_INCLUDE_DIRS})
-        set(LIBS ${LIBS} ${OTF2_LIBRARIES})
-        if (NOT BUILD_STATIC_EXECUTABLES)
-            set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${OTF2_LIBRARY_DIR})
-        endif()
-        # add_definitions(-DAPEX_USE_CLOCK_TIMESTAMP=1)
-        if(NOT APPLE)
-            find_library(RTLIB rt)
-            set(LIBS ${LIBS} ${RTLIB})
-        endif(NOT APPLE)
-    else()
-        add_custom_target(project_otf2)
-    endif()
-else()
-    add_custom_target(project_otf2)
-endif()
 # Just in case, to prevent concurrent builds
 add_dependencies (project_otf2 project_activeharmony)
 
@@ -699,6 +675,13 @@ if (APEX_WITH_HIP)
     include_directories(${ROCTX_INCLUDE_DIRS})
     message(INFO " Using ROCm SMI include: ${RSMI_INCLUDE_DIRS}")
     include_directories(${RSMI_INCLUDE_DIRS})
+
+    find_package(ROCTRACER_KFD) # removed in ROCM 4.5.0
+    if (ROCTRACER_KFD_FOUND)
+        set(LIBS ${LIBS} ${ROCTRACER_KFD_LIBRARIES})
+        include_directories(${ROCTRACER_KFD_INCLUDE_DIRS})
+    endif (ROCTRACER_KFD_FOUND)
+
 endif (APEX_WITH_HIP)
 
 ################################################################################

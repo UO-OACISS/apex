@@ -94,6 +94,7 @@ public:
   std::vector<long long> rapl_metrics;
   std::vector<long long> nvml_metrics;
   std::vector<long long> rocm_metrics;
+  std::vector<long long> rsmi_metrics;
   std::vector<long long> lms_metrics;
 #endif
   //softirq 10953997190 0 1380880059 1495447920 1585783785 ...

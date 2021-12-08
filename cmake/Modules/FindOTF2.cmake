@@ -32,7 +32,7 @@ find_package_handle_standard_args(OTF2  DEFAULT_MSG
 mark_as_advanced(OTF2_INCLUDE_DIR OTF2_LIBRARY)
 
 # --------- DOWNLOAD AND BUILD THE EXTERNAL PROJECT! ------------ #
-if(APEX_BUILD_OTF2 OR (NOT OTF2_FOUND))
+if(APEX_BUILD_OTF2 AND (NOT OTF2_FOUND))
   set(OTF2_ROOT ${CMAKE_INSTALL_PREFIX}/otf2 CACHE STRING "OTF2 Root directory" FORCE)
   message("Attention: Downloading and Building OTF2 as external project!")
   message(INFO " A working internet connection is required!")

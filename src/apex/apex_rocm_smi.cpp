@@ -107,9 +107,14 @@ monitor::monitor (void) {
     // assume the first device is used by default
     activateDeviceIndex(0);
 }
+
 monitor::~monitor (void) {
     if (!success) return;
     RSMI_CALL(rsmi_shut_down());
+}
+
+void monitor::stop (void) {
+    if (!success) return;
 }
 
 void monitor::query(void) {
