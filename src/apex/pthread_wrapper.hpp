@@ -115,7 +115,7 @@ class pthread_wrapper {
                     }
                 }
             }
-            while (_running) {} ; // wait for the thread to exit
+            while (_running.load()) {} ; // wait for the thread to exit
         }
 
         ~pthread_wrapper(void) {

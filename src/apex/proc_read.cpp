@@ -640,7 +640,7 @@ namespace apex {
 
 #endif // defined(APEX_HAVE_PAPI)
 
-    std::atomic<bool> proc_data_reader::done(false);
+    //std::atomic<bool> proc_data_reader::done(false);
 
 
     void get_popen_data(char *cmnd) {
@@ -1387,14 +1387,16 @@ namespace apex {
     }
 
     /* This is the main function for the reader thread. */
-    void* proc_data_reader::read_proc(void * _ptw) {
+    //void* proc_data_reader::read_proc(void * _ptw) {
+    void* proc_data_reader::read_proc() {
+        printf("%s enter\n", __func__);
         in_apex prevent_deadlocks;
         // when tracking memory allocations, ignore these
         in_apex prevent_nonsense;
-        pthread_wrapper* ptw = (pthread_wrapper*)_ptw;
+        //pthread_wrapper* ptw = (pthread_wrapper*)_ptw;
         // make sure APEX knows this is not a worker thread
         thread_instance::instance(false).set_worker(false);
-        ptw->_running = true;
+        //ptw->_running = true;
         if (apex_options::pin_apex_threads()) {
             set_thread_affinity();
         }
@@ -1454,7 +1456,14 @@ namespace apex {
         }
 #endif
         // release the main thread to continue
-        while(!done && ptw->wait()) {
+        while(!done /*&& ptw->wait()*/) {
+            //usleep(apex_options::proc_period());
+            std::unique_lock<std::mutex> lk(proc_data_reader::cv_m);
+            // if we've been interrupted by the main thread, break and exit
+            if(cv.wait_for(lk, apex_options::proc_period()*1ms) ==
+               std::cv_status::no_timeout) {
+               break;
+            }
             if (done) break;
             if (apex_options::use_tau()) {
                 tau_listener::Tau_start_wrapper("proc_data_reader::read_proc: main loop");
@@ -1516,7 +1525,8 @@ namespace apex {
             tau_listener::Tau_stop_wrapper("proc_data_reader::read_proc");
         }
         delete(oldData);
-        ptw->_running = false;
+        //ptw->_running = false;
+        printf("%s exit\n", __func__);
         return nullptr;
     }
 

@@ -383,15 +383,10 @@ void apex::set_hpx_runtime(hpx::runtime * hpx_runtime) {
 hpx::runtime * apex::get_hpx_runtime(void) {
     return m_hpx_runtime;
 }
+#endif
 
 #if defined (APEX_WITH_CUDA)
-void apex_cupti_init_tracing(void);
-#endif
-
-#if defined (APEX_WITH_HIP)
-void apex_roctracer_init_tracing(void);
-#endif
-
+void init_cupti_tracing(void);
 #endif
 
 /* Need to forward declare the HIP tracing static constructor */
@@ -517,7 +512,7 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
 
     // It's now safe to initialize CUDA and/or HIP
 #ifdef APEX_WITH_CUDA
-    apex_cupti_init_tracing();
+    init_cupti_tracing();
 #endif
 #ifdef APEX_WITH_HIP
     init_hip_tracing();

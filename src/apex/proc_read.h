@@ -22,7 +22,7 @@
 #include <thread>
 #include <string>
 #include <memory>
-#include "pthread_wrapper.hpp"
+//#include "pthread_wrapper.hpp"
 #include "apex_options.hpp"
 
 namespace apex {
@@ -45,23 +45,36 @@ typedef std::vector<CPUStat*> CPUs;
 
 class proc_data_reader {
 private:
-    pthread_wrapper * worker_thread;
-    static std::atomic<bool> done;
+    //pthread_wrapper * worker_thread;
+    std::atomic<bool> done;
+    std::thread worker_thread;
+    std::condition_variable cv;
+    std::mutex cv_m;
 public:
+    /*
     static void* read_proc(void * _pdr);
     proc_data_reader(void) {
         worker_thread = new pthread_wrapper(&proc_data_reader::read_proc,
         (void*)(this), apex_options::proc_period());
     };
+    */
+    void* read_proc(void);
+    proc_data_reader(void) : done(false) {
+        worker_thread = std::thread(&proc_data_reader::read_proc, this);
+    }
 
     void stop_reading(void) {
         done = true;
-        worker_thread->stop_thread();
+        cv.notify_all();
+        //worker_thread->stop_thread();
+        if (worker_thread.joinable()) {
+            worker_thread.join();
+        }
     }
 
     ~proc_data_reader(void) {
         stop_reading();
-        delete worker_thread;
+        //delete worker_thread;
     }
     static std::string get_command_line(void);
 };
