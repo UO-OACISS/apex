@@ -60,33 +60,44 @@ using namespace std;
 
 namespace apex {
 
+    static bool papi_rapl_initialized = false;
+    static bool papi_nvml_initialized = false;
+    static bool papi_rocm_initialized = false;
+    static bool papi_rsmi_initialized = false;
+    static bool papi_lms_initialized = false;
+
 #if defined(APEX_HAVE_PAPI)
 
 #include "papi.h"
 
-    static bool rapl_initialized = false;
-    static bool nvml_initialized = false;
-    static bool rocm_initialized = false;
-    static bool lms_initialized = false;
     static int rapl_EventSet = PAPI_NULL;
     static int nvml_EventSet = PAPI_NULL;
     static int rocm_EventSet = PAPI_NULL;
+    static int rsmi_EventSet = PAPI_NULL;
     static int lms_EventSet = PAPI_NULL;
     static std::vector<std::string> rapl_event_names;
     static std::vector<std::string> nvml_event_names;
     static std::vector<std::string> rocm_event_names;
+    static std::vector<std::string> rsmi_event_names;
     static std::vector<std::string> lms_event_names;
     static std::vector<std::string> rapl_event_units;
     static std::vector<std::string> nvml_event_units;
+    static std::vector<std::string> rocm_event_units;
+    static std::vector<std::string> rsmi_event_units;
     static std::vector<std::string> lms_event_units;
     static std::vector<int> nvml_event_codes;
     static std::vector<int> rocm_event_codes;
+    static std::vector<int> rsmi_event_codes;
     static std::vector<int> lms_event_codes;
     static std::vector<int> rapl_event_data_type;
     static std::vector<int> nvml_event_data_type;
+    static std::vector<int> rocm_event_data_type;
+    static std::vector<int> rsmi_event_data_type;
     static std::vector<int> lms_event_data_type;
     static std::vector<double> rapl_event_conversion;
     static std::vector<double> nvml_event_conversion;
+    static std::vector<double> rocm_event_conversion;
+    static std::vector<double> rsmi_event_conversion;
     static std::vector<double> lms_event_conversion;
 
     typedef union {
@@ -106,6 +117,7 @@ namespace apex {
                 fprintf(stderr, "PAPI component info unavailable, no power measurements will be done.\n");
                 return;
             }
+            printf("Trying %s PAPI component\n", comp_info->name);
             // do we have the RAPL components?
             if (strstr(comp_info->name, "rapl")) {
                 if (comp_info->num_native_events == 0) {
@@ -188,7 +200,7 @@ namespace apex {
                         fprintf(stderr, "Error starting PAPI RAPL eventset.\n");
                         return;
                     }
-                    rapl_initialized = true;
+                    papi_rapl_initialized = true;
                 }
             }
             // do we have the NVML (cuda) components?
@@ -273,11 +285,12 @@ namespace apex {
                                 PAPI_strerror(retval));
                         return;
                     }
-                    nvml_initialized = true;
+                    papi_nvml_initialized = true;
                 }
             }
             // do we have the ROCm (hip/rocm) components?
-            if (strstr(comp_info->name, "rocm") && !rocm_initialized) {
+            if ((strcmp(comp_info->name, "rocm") == 0)&& !papi_rocm_initialized) {
+                printf("Found %s PAPI component\n", comp_info->name);
                 if (comp_info->num_native_events == 0) {
                     if (apex_options::use_verbose()) {
                         fprintf(stderr, "PAPI ROCm component found, but ");
@@ -339,6 +352,23 @@ namespace apex {
                         }
                         // if the user doesn't want this metric, don't add it
                         if (!found) { continue; }
+                        // get the event info
+                        PAPI_event_info_t evinfo;
+                        retval = PAPI_get_event_info(code,&evinfo);
+                        if (retval != PAPI_OK) {
+                            fprintf(stderr, "%s %d %s %d\n", __FILE__,
+                                    __LINE__, "Error getting ROCm event info\n",retval);
+                            fprintf(stderr, "PAPI error %d: %s\n", retval,
+                                    PAPI_strerror(retval));
+                            continue;
+                        }
+                        // get the event units
+                        char unit[PAPI_MAX_STR_LEN] = {0};
+                        strncpy(unit,evinfo.units,PAPI_MAX_STR_LEN);
+                        // save the event info
+                        printf("Found event '%s (%s)'\n", event_name, unit);
+                        rocm_event_conversion.push_back(1.0);
+                        rocm_event_data_type.push_back(evinfo.data_type);
                         rocm_event_codes.push_back(code);
                         rocm_event_names.push_back(std::string(event_name));
                         retval = PAPI_add_event(rocm_EventSet, code);
@@ -357,8 +387,93 @@ namespace apex {
                                     PAPI_strerror(retval));
                             return;
                         }
-                        rocm_initialized = true;
+                        papi_rocm_initialized = true;
                     }
+                }
+            }
+            // do we have the RSMI (ROCm SMI) components?
+            if (strstr(comp_info->name, "rocm_smi")) {
+                if (comp_info->num_native_events == 0) {
+                    if (apex_options::use_verbose()) {
+                        fprintf(stderr, "PAPI ROCm SMI component found, but ");
+                        fprintf(stderr, "no ROCm SMI events found.\n");
+                        if (comp_info->disabled != 0) {
+                            fprintf(stderr, "%s.\n", comp_info->disabled_reason);
+                        }
+                    }
+                } else {
+                    rsmi_EventSet = PAPI_NULL;
+                    retval = PAPI_create_eventset(&rsmi_EventSet);
+                    if (retval != PAPI_OK) {
+                        fprintf(stderr, "Error creating ROCm SMI PAPI eventset.\n");
+                        fprintf(stderr, "PAPI error %d: %s\n", retval,
+                                PAPI_strerror(retval));
+                        return;
+                    }
+                    int code = PAPI_NATIVE_MASK;
+                    int event_modifier = PAPI_ENUM_FIRST;
+                    for ( int ii=0; ii< comp_info->num_native_events; ii++ ) {
+                        // get the event
+                        retval = PAPI_enum_cmp_event( &code, event_modifier, component_id );
+                        event_modifier = PAPI_ENUM_EVENTS;
+                        if ( retval != PAPI_OK ) {
+                            fprintf( stderr, "%s %d %s %d\n", __FILE__,
+                                    __LINE__, "ROCm SMI PAPI_event_code_to_name", retval );
+                            fprintf(stderr, "PAPI error %d: %s\n", retval,
+                                    PAPI_strerror(retval));
+                            continue;
+                        }
+                        // get the event name
+                        char event_name[PAPI_MAX_STR_LEN];
+                        retval = PAPI_event_code_to_name( code, event_name );
+                        if (retval != PAPI_OK) {
+                            fprintf(stderr, "%s %d %s %d\n", __FILE__,
+                                    __LINE__, "ROCm SMI Error getting event name\n",retval);
+                            fprintf(stderr, "PAPI error %d: %s\n", retval,
+                                    PAPI_strerror(retval));
+                            continue;
+                        }
+                        // get the event info
+                        PAPI_event_info_t evinfo;
+                        retval = PAPI_get_event_info(code,&evinfo);
+                        if (retval != PAPI_OK) {
+                            fprintf(stderr, "%s %d %s %d\n", __FILE__,
+                                    __LINE__, "Error getting ROCm SMI event info\n",retval);
+                            fprintf(stderr, "PAPI error %d: %s\n", retval,
+                                    PAPI_strerror(retval));
+                            continue;
+                        }
+                        // get the event units
+                        char unit[PAPI_MAX_STR_LEN] = {0};
+                        strncpy(unit,evinfo.units,PAPI_MAX_STR_LEN);
+                        // save the event info
+                        //printf("Found event '%s (%s)'\n", event_name, unit);
+                        rsmi_event_codes.push_back(code);
+                        if(strcmp(unit, "mW") == 0) {
+                            rsmi_event_units.push_back(std::string("W"));
+                            rsmi_event_conversion.push_back(0.0001);
+                        } else {
+                            rsmi_event_units.push_back(std::string(unit));
+                            rsmi_event_conversion.push_back(1.0);
+                        }
+                        rsmi_event_data_type.push_back(evinfo.data_type);
+                        rsmi_event_names.push_back(std::string(event_name));
+                        retval = PAPI_add_event(rsmi_EventSet, code);
+                        if (retval != PAPI_OK) {
+                            fprintf(stderr, "Error adding ROCm SMI event.\n");
+                            fprintf(stderr, "PAPI error %d: %s\n", retval,
+                                    PAPI_strerror(retval));
+                            return;
+                        }
+                    }
+                    retval = PAPI_start(rsmi_EventSet);
+                    if (retval != PAPI_OK) {
+                        fprintf(stderr, "Error starting PAPI ROCm SMI eventset.\n");
+                        fprintf(stderr, "PAPI error %d: %s\n", retval,
+                                PAPI_strerror(retval));
+                        return;
+                    }
+                    papi_rsmi_initialized = true;
                 }
             }
             if (strstr(comp_info->name, "lmsensors")) {
@@ -444,13 +559,13 @@ namespace apex {
                             PAPI_strerror(retval));
                     return;
                 }
-                lms_initialized = true;
+                papi_lms_initialized = true;
             }
         }
     }
 
     void read_papi_components(ProcData * data) {
-        if (rapl_initialized) {
+        if (papi_rapl_initialized) {
             long long * rapl_values = (long long *)calloc(rapl_event_names.size(), sizeof(long long));
             int retval = PAPI_read(rapl_EventSet, rapl_values);
             if (retval != PAPI_OK) {
@@ -464,7 +579,7 @@ namespace apex {
             }
             free(rapl_values);
         }
-        if (nvml_initialized) {
+        if (papi_nvml_initialized && nvml_event_names.size() > 0) {
             long long * nvml_values = (long long *)calloc(nvml_event_names.size(), sizeof(long long));
             int retval = PAPI_read(nvml_EventSet, nvml_values);
             if (retval != PAPI_OK) {
@@ -478,7 +593,7 @@ namespace apex {
             }
             free(nvml_values);
         }
-        if (rocm_initialized) {
+        if (papi_rocm_initialized && rocm_event_names.size() > 0) {
             long long * rocm_values = (long long *)calloc(rocm_event_names.size(), sizeof(long long));
             int retval = PAPI_read(rocm_EventSet, rocm_values);
             if (retval != PAPI_OK) {
@@ -492,7 +607,21 @@ namespace apex {
             }
             free(rocm_values);
         }
-        if (lms_initialized) {
+        if (papi_rsmi_initialized && rsmi_event_names.size() > 0) {
+            long long * rsmi_values = (long long *)calloc(rsmi_event_names.size(), sizeof(long long));
+            int retval = PAPI_read(rsmi_EventSet, rsmi_values);
+            if (retval != PAPI_OK) {
+                fprintf(stderr, "Error reading PAPI ROCm SMI eventset.\n");
+                fprintf(stderr, "PAPI error %d: %s\n", retval,
+                        PAPI_strerror(retval));
+            } else {
+                for (size_t i = 0 ; i < rsmi_event_names.size() ; i++) {
+                    data->rsmi_metrics.push_back(rsmi_values[i]);
+                }
+            }
+            free(rsmi_values);
+        }
+        if (papi_lms_initialized && lms_event_names.size() > 0) {
             long long * lms_values = (long long *)calloc(lms_event_names.size(), sizeof(long long));
             int retval = PAPI_read(lms_EventSet, lms_values);
             if (retval != PAPI_OK) {
@@ -647,25 +776,31 @@ namespace apex {
         d->dram = dram - rhs.dram;
 #endif
 #if defined(APEX_HAVE_PAPI)
-        if (rapl_initialized) {
+        if (papi_rapl_initialized) {
             // reading might have failed, so only copy if there's data
             for (size_t i = 0 ; i < rapl_metrics.size() ; i++) {
                 d->rapl_metrics.push_back(rapl_metrics[i]);
             }
         }
-        if (nvml_initialized) {
+        if (papi_nvml_initialized) {
             // reading might have failed, so only copy if there's data
             for (size_t i = 0 ; i < nvml_metrics.size() ; i++) {
                 d->nvml_metrics.push_back(nvml_metrics[i]);
             }
         }
-        if (rocm_initialized) {
+        if (papi_rocm_initialized) {
             // reading might have failed, so only copy if there's data
             for (size_t i = 0 ; i < rocm_metrics.size() ; i++) {
                 d->rocm_metrics.push_back(rocm_metrics[i]);
             }
         }
-        if (lms_initialized) {
+        if (papi_rsmi_initialized) {
+            // reading might have failed, so only copy if there's data
+            for (size_t i = 0 ; i < rsmi_metrics.size() ; i++) {
+                d->rsmi_metrics.push_back(rsmi_metrics[i]);
+            }
+        }
+        if (papi_lms_initialized) {
             // reading might have failed, so only copy if there's data
             for (size_t i = 0 ; i < lms_metrics.size() ; i++) {
                 d->lms_metrics.push_back(lms_metrics[i]);
@@ -861,7 +996,7 @@ namespace apex {
         sample_value("DRAM Energy", dram);
 #endif
 #if defined(APEX_HAVE_PAPI)
-        if (rapl_initialized) {
+        if (papi_rapl_initialized) {
             // reading might have failed, so only iterate over the data
             for (size_t i = 0 ; i < rapl_metrics.size() ; i++) {
                 stringstream ss;
@@ -880,7 +1015,7 @@ namespace apex {
                 }
             }
         }
-        if (nvml_initialized) {
+        if (papi_nvml_initialized) {
             // reading might have failed, so only iterate over the data
             for (size_t i = 0 ; i < nvml_metrics.size() ; i++) {
                 stringstream ss;
@@ -898,16 +1033,40 @@ namespace apex {
                 }
             }
         }
-        if (rocm_initialized) {
+        if (papi_rocm_initialized) {
             // reading might have failed, so only iterate over the data
             for (size_t i = 0 ; i < rocm_metrics.size() ; i++) {
                 stringstream ss;
                 ss << rocm_event_names[i];
-                double tmp = rocm_metrics[i];
-                sample_value(ss.str().c_str(), tmp);
+                if (rocm_event_data_type[i] == PAPI_DATATYPE_FP64) {
+                    event_result_t tmp;
+                    tmp.ll = rocm_metrics[i];
+                    sample_value(ss.str().c_str(), tmp.fp * rocm_event_conversion[i]);
+                } else {
+                    double tmp = rocm_metrics[i];
+                    sample_value(ss.str().c_str(), tmp * rocm_event_conversion[i]);
+                }
             }
         }
-        if (lms_initialized) {
+        if (papi_rsmi_initialized) {
+            // reading might have failed, so only iterate over the data
+            for (size_t i = 0 ; i < rsmi_metrics.size() ; i++) {
+                stringstream ss;
+                ss << rsmi_event_names[i];
+                if (rsmi_event_units[i].length() > 0) {
+                    ss << "(" << rsmi_event_units[i] << ")";
+                }
+                if (rsmi_event_data_type[i] == PAPI_DATATYPE_FP64) {
+                    event_result_t tmp;
+                    tmp.ll = rsmi_metrics[i];
+                    sample_value(ss.str().c_str(), tmp.fp * rsmi_event_conversion[i]);
+                } else {
+                    double tmp = rsmi_metrics[i];
+                    sample_value(ss.str().c_str(), tmp * rsmi_event_conversion[i]);
+                }
+            }
+        }
+        if (papi_lms_initialized) {
             // reading might have failed, so only iterate over the data
             for (size_t i = 0 ; i < lms_metrics.size() ; i++) {
                 // PAPI scales LM sensor data by 1000,
@@ -1274,17 +1433,28 @@ namespace apex {
         ProcData *periodData = nullptr;
 #ifdef APEX_WITH_CUDA
         // monitoring option is checked in the constructor
-        nvml::monitor nvml_reader;
-        nvml_reader.query();
+        nvml::monitor * nvml_reader;
+        if (!papi_nvml_initialized) {
+            nvml_reader = new nvml::monitor();
+            nvml_reader->query();
+        }
 #endif
 #ifdef APEX_WITH_HIP
-        // monitoring option is checked in the constructor
-        rsmi::monitor rsmi_reader;
-        rsmi_reader.query();
-        //rocprofiler::monitor rocprof_reader;
-        //rocprof_reader.query();
+        rsmi::monitor * rsmi_reader;
+        // If PAPI support is lacking, use our own support
+        if (!papi_rsmi_initialized && apex_options::monitor_gpu()) {
+            rsmi_reader = new rsmi::monitor();
+            rsmi_reader->query();
+        }
+        rocprofiler::monitor * rocprof_reader;
+        // If PAPI support is lacking, use our own support
+        if (!papi_rocm_initialized && apex_options::use_hip_profiler()) {
+            rocprof_reader = new rocprofiler::monitor();
+            rocprof_reader->query();
+        }
 #endif
-        while(ptw->wait()) {
+        // release the main thread to continue
+        while(!done && ptw->wait()) {
             if (done) break;
             if (apex_options::use_tau()) {
                 tau_listener::Tau_start_wrapper("proc_data_reader::read_proc: main loop");
@@ -1313,11 +1483,15 @@ namespace apex {
             }
 #endif
 #ifdef APEX_WITH_CUDA
-            nvml_reader.query();
+            nvml_reader->query();
 #endif
 #ifdef APEX_WITH_HIP
-            rsmi_reader.query();
-            //rocprof_reader.query();
+            if (!papi_rsmi_initialized && apex_options::monitor_gpu()) {
+                rsmi_reader->query();
+            }
+            if (!papi_rocm_initialized && apex_options::use_hip_profiler()) {
+                rocprof_reader->query();
+            }
 #endif
             if (apex_options::use_tau()) {
                 tau_listener::Tau_stop_wrapper("proc_data_reader::read_proc: main loop");
@@ -1327,8 +1501,16 @@ namespace apex {
         delete(mysensors);
 #endif
 
+#ifdef APEX_WITH_CUDA
+        nvml_reader->stop();
+#endif
 #ifdef APEX_WITH_HIP
-        //rocprof_reader.stop();
+        if (!papi_rsmi_initialized && apex_options::monitor_gpu()) {
+            rsmi_reader->stop();
+        }
+        if (!papi_rocm_initialized && apex_options::use_hip_profiler()) {
+            rocprof_reader->stop();
+        }
 #endif
         if (apex_options::use_tau()) {
             tau_listener::Tau_stop_wrapper("proc_data_reader::read_proc");

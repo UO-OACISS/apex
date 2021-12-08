@@ -18,10 +18,10 @@ if(NOT DEFINED $RSMI_ROOT AND ROCM_PATH)
 endif()
 
 find_path(RSMI_INCLUDE_DIR NAMES rocm_smi/rocm_smi.h
-	HINTS ${CUDAToolkit_INCLUDE_DIRS} ${RSMI_ROOT}/include)
+	HINTS ${RSMI_ROOT}/include ${ROCM_ROOT}/rocm_smi/include)
 
 find_library(RSMI_LIBRARY NAMES rocm_smi64
-    HINTS ${CUDAToolkit_LIBRARY_DIR} ${RSMI_ROOT} ${RSMI_ROOT}/lib64 ${RSMI_ROOT}/lib)
+    HINTS ${RSMI_ROOT} ${RSMI_ROOT}/lib64 ${RSMI_ROOT}/lib ${ROCM_ROOT}/rocm_smi/lib64 ${ROCM_ROOT}/rocm_smi/lib)
 
 include(FindPackageHandleStandardArgs)
 # handle the QUIETLY and REQUIRED arguments and set RSMI_FOUND to TRUE

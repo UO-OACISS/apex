@@ -57,7 +57,8 @@ monitor::monitor (void) {
     // assume the first device is used by default
     activateDeviceIndex(0);
 }
-monitor::~monitor (void) {
+
+void monitor::stop (void) {
     if (success) {
         NVML_CALL(nvmlShutdown());
     }

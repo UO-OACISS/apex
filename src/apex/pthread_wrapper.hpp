@@ -115,6 +115,7 @@ class pthread_wrapper {
                     }
                 }
             }
+            while (_running) {} ; // wait for the thread to exit
         }
 
         ~pthread_wrapper(void) {
@@ -158,7 +159,6 @@ class pthread_wrapper {
                 if (rc == ETIMEDOUT) {
                     return true;
                 } else if (rc == EINVAL) {
-                    _running = false;
                     pthread_mutex_unlock(&_my_mutex);
                     return false;
                 } else if (rc == EPERM) {
