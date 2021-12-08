@@ -54,6 +54,7 @@ where APEX options are zero or more of:
     --apex:cuda_driver      enable CUDA driver API callbacks (default: off)
     --apex:cuda_details     enable per-kernel statistics where available (default: off)
     --apex:hip              enable HIP/ROCTracer measurement (default: off)
+    --apex:hip_metrics      enable HIP/ROCProfiler metric support (default: off)
     --apex:hip_counters     enable HIP/ROCTracer counter support (default: off)
     --apex:hip_driver       enable HIP/ROCTracer KSA driver API callbacks (default: off)
     --apex:hip_details      enable per-kernel statistics where available (default: off)
@@ -236,6 +237,18 @@ while (( "$#" )); do
       hip_counters=yes
       export APEX_ENABLE_HIP=1
       export APEX_HIP_COUNTERS=1
+      shift
+      ;;
+    --apex:hip_metrics)
+      hip_metrics=yes
+      export APEX_ENABLE_HIP=1
+      export APEX_HIP_PROFILER=1
+      export APEX_HIP_PROFILER=1
+      export ROCPROFILER_LOG=1
+      export HSA_VEN_AMD_AQLPROFILE_LOG=1
+      export AQLPROFILE_READ_API=1
+      export ROCP_METRICS=@ROCM_PATH@/rocprofiler/lib/metrics.xml
+      export HSA_TOOLS_LIB=@ROCM_PATH@/rocprofiler/lib/librocprofiler64.so
       shift
       ;;
     --apex:hip_driver)

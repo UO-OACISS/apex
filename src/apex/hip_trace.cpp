@@ -47,8 +47,11 @@ using namespace std;
 #include <mutex>
 #include <map>
 
+/* Not necessary, because HPX will call APEX init, which will initialize this. */
+#ifndef APEX_HAVE_HPX
 #include "global_constructor_destructor.h"
-DEFINE_CONSTRUCTOR(init_tracing);
+DEFINE_CONSTRUCTOR(apex_roctracer_init_tracing);
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // HIP Callbacks/Activity tracing
@@ -889,7 +892,7 @@ void activity_callback(const char* begin, const char* end, void* arg) {
 }
 
 // Init tracing routine
-void init_tracing() {
+void apex_roctracer_init_tracing() {
     if (!apex::apex_options::use_hip()) { return; }
 #if defined(APEX_WITH_HSA)
     hsa_init();

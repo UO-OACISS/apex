@@ -41,7 +41,7 @@
 /* Not necessary, because HPX will call APEX init, which will initialize this. */
 #ifndef APEX_HAVE_HPX
 #include "global_constructor_destructor.h"
-DEFINE_CONSTRUCTOR(cupti_initTrace);
+DEFINE_CONSTRUCTOR(apex_cupti_init_tracing);
 //DEFINE_DESTRUCTOR(flushTrace);
 #endif
 
@@ -1705,7 +1705,7 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
 
 namespace apex {
 
-void cupti_initTrace() {
+void apex_cupti_init_tracing() {
     if (!apex_options::use_cuda()) { return; }
     // disable memory management tracking in APEX during this initialization
     in_apex prevent_deadlocks;

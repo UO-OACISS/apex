@@ -69,14 +69,14 @@
 #include <hpx/include/util.hpp>
 #include <hpx/lcos_local/composable_guard.hpp>
 #include "global_constructor_destructor.h"
-#else
+#else // without HPX!
 #include "global_constructor_destructor.h"
 #if defined(HAS_CONSTRUCTORS)
 extern "C" {
 //DEFINE_CONSTRUCTOR(apex_init_static_void)
 DEFINE_DESTRUCTOR(apex_finalize_static_void)
 }
-#endif
+#endif // HAS_CONSTRUCTORS
 #endif // APEX_HAVE_HPX
 
 #ifdef APEX_HAVE_TCMALLOC
@@ -385,8 +385,13 @@ hpx::runtime * apex::get_hpx_runtime(void) {
 }
 
 #if defined (APEX_WITH_CUDA)
-void cupti_initTrace(void);
+void apex_cupti_init_tracing(void);
 #endif
+
+#if defined (APEX_WITH_HIP)
+void apex_roctracer_init_tracing(void);
+#endif
+
 #endif
 
 uint64_t init(const char * thread_name, uint64_t comm_rank,
@@ -445,7 +450,10 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
     // start accepting requests, now that all listeners are started
     _initialized = true;
 #if defined(APEX_HAVE_HPX) && defined (APEX_WITH_CUDA)
-    cupti_initTrace();
+    apex_cupti_init_tracing();
+#endif
+#if defined(APEX_HAVE_HPX) && defined (APEX_WITH_HIP)
+    apex_roctracer_init_tracing();
 #endif
 #if APEX_HAVE_PROC
     if (apex_options::use_proc_cpuinfo() ||
