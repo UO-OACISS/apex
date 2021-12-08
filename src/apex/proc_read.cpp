@@ -1460,7 +1460,7 @@ namespace apex {
             //usleep(apex_options::proc_period());
             std::unique_lock<std::mutex> lk(proc_data_reader::cv_m);
             // if we've been interrupted by the main thread, break and exit
-            if(cv.wait_for(lk, apex_options::proc_period()*1ms) ==
+            if(cv.wait_for(lk, apex_options::proc_period()*1us) ==
                std::cv_status::no_timeout) {
                break;
             }
