@@ -1017,6 +1017,36 @@ void notifyKernelComplete(CUpti_CallbackId id, const void* params, const char * 
     return;
 }
 
+bool isLaunch(CUpti_CallbackId id) {
+    if (id == CUPTI_RUNTIME_TRACE_CBID_cudaLaunch_v3020 ||
+        id == CUPTI_RUNTIME_TRACE_CBID_cudaLaunchKernel_v7000 ||
+        id == CUPTI_RUNTIME_TRACE_CBID_cudaLaunch_ptsz_v7000 ||
+        id == CUPTI_RUNTIME_TRACE_CBID_cudaLaunchKernel_ptsz_v7000 ||
+        id == CUPTI_RUNTIME_TRACE_CBID_cudaLaunchCooperativeKernel_v9000 ||
+        id == CUPTI_RUNTIME_TRACE_CBID_cudaLaunchCooperativeKernel_ptsz_v9000 ||
+        id == CUPTI_RUNTIME_TRACE_CBID_cudaLaunchCooperativeKernelMultiDevice_v9000 ||
+        id == CUPTI_DRIVER_TRACE_CBID_cuLaunch ||
+        id == CUPTI_DRIVER_TRACE_CBID_cuLaunchGrid ||
+        id == CUPTI_DRIVER_TRACE_CBID_cuLaunchGridAsync ||
+        id == CUPTI_DRIVER_TRACE_CBID_cuLaunchKernel ||
+        id == CUPTI_DRIVER_TRACE_CBID_cuLaunchKernel_ptsz ||
+        id == CUPTI_DRIVER_TRACE_CBID_cuLaunchCooperativeKernel ||
+        id == CUPTI_DRIVER_TRACE_CBID_cuLaunchCooperativeKernel_ptsz ||
+        id == CUPTI_DRIVER_TRACE_CBID_cuLaunchCooperativeKernelMultiDevice ||
+        id == CUPTI_RUNTIME_TRACE_CBID_cudaLaunchHostFunc_v10000 ||
+        id == CUPTI_RUNTIME_TRACE_CBID_cudaLaunchHostFunc_ptsz_v10000 ||
+        id == CUPTI_RUNTIME_TRACE_CBID_cudaGraphLaunch_v10000 ||
+        id == CUPTI_RUNTIME_TRACE_CBID_cudaGraphLaunch_ptsz_v10000 ||
+        id == CUPTI_DRIVER_TRACE_CBID_cuGraphLaunch ||
+        id == CUPTI_DRIVER_TRACE_CBID_cuGraphLaunch_ptsz ||
+        id == CUPTI_DRIVER_TRACE_CBID_cuLaunchHostFunc ||
+        id == CUPTI_DRIVER_TRACE_CBID_cuLaunchHostFunc_ptsz
+        ) {
+        return true;
+    }
+    return false;
+}
+
 bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string context, bool isEnter) {
     size_t bytes = 0;
     bool onHost = false;
@@ -1629,7 +1659,7 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
     if (cbdata->callbackSite == CUPTI_API_ENTER) {
         std::stringstream ss;
         ss << cbdata->functionName;
-        if (apex::apex_options::use_cuda_kernel_details()) {
+        if (apex::apex_options::use_cuda_kernel_details() && isLaunch(id)) {
             if (cbdata->symbolName != NULL && strlen(cbdata->symbolName) > 0) {
                 ss << ": " << cbdata->symbolName;
             }
@@ -1649,7 +1679,7 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
         correlation_kernel_data_map[cbdata->correlationId] = as_data;
         map_mutex.unlock();
         getBytesIfMalloc(id, cbdata->functionParams, tmp, true);
-    } else {
+    } else if (cbdata->callbackSite == CUPTI_API_EXIT) {
         /* Not sure how to use this yet... if this is a kernel launch, we can
          * run a function on the host, launched from the stream.  That gives us
          * a synchronous callback to tell us an event when the kernel finished.
@@ -1662,15 +1692,17 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
         */
 
         /* If this is a malloc/free, keep track of total bytes */
-        std::stringstream ss;
-        ss << cbdata->functionName;
-        if (apex::apex_options::use_cuda_kernel_details()) {
-            if (cbdata->symbolName != NULL && strlen(cbdata->symbolName) > 0) {
-                ss << ": " << cbdata->symbolName;
+        if (domain == CUPTI_CB_DOMAIN_RUNTIME_API || domain == CUPTI_CB_DOMAIN_DRIVER_API) {
+            std::stringstream ss;
+            ss << cbdata->functionName;
+            if (apex::apex_options::use_cuda_kernel_details() && isLaunch(id)) {
+                if (cbdata->symbolName != NULL && strlen(cbdata->symbolName) > 0) {
+                    ss << ": " << cbdata->symbolName;
+                }
             }
+            std::string tmp(ss.str());
+            getBytesIfMalloc(id, cbdata->functionParams, tmp, false);
         }
-        std::string tmp(ss.str());
-        getBytesIfMalloc(id, cbdata->functionParams, tmp, false);
 
         if (!timer_stack.empty()) {
         auto timer = timer_stack.top();

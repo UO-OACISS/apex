@@ -1435,7 +1435,7 @@ namespace apex {
         ProcData *periodData = nullptr;
 #ifdef APEX_WITH_CUDA
         // monitoring option is checked in the constructor
-        nvml::monitor * nvml_reader;
+        nvml::monitor * nvml_reader = nullptr;
         if (!papi_nvml_initialized) {
             nvml_reader = new nvml::monitor();
             nvml_reader->query();
@@ -1492,7 +1492,9 @@ namespace apex {
             }
 #endif
 #ifdef APEX_WITH_CUDA
-            nvml_reader->query();
+            if (nvml_reader != nullptr) {
+                nvml_reader->query();
+            }
 #endif
 #ifdef APEX_WITH_HIP
             if (!papi_rsmi_initialized && apex_options::monitor_gpu()) {
@@ -1511,7 +1513,9 @@ namespace apex {
 #endif
 
 #ifdef APEX_WITH_CUDA
-        nvml_reader->stop();
+        if (nvml_reader != nullptr) {
+            nvml_reader->stop();
+        }
 #endif
 #ifdef APEX_WITH_HIP
         if (!papi_rsmi_initialized && apex_options::monitor_gpu()) {
