@@ -3,7 +3,7 @@
 # to the root binary directory of the project as ${APEX_BINARY_DIR}.
 
 # All CMAKE options for the APEX project...
-option (APEX_WITH_ACTIVEHARMONY "Enable ActiveHarmony support" TRUE)
+option (APEX_WITH_ACTIVEHARMONY "Enable ActiveHarmony support" FALSE)
 option (APEX_WITH_BFD "Enable Binutils (BFD)support" FALSE)
 option (APEX_WITH_CUDA "Enable CUDA (CUPTI) support" FALSE)
 option (APEX_WITH_HIP "Enable HIP (ROCTRACER) support" FALSE)
@@ -24,7 +24,6 @@ option (APEX_BUILD_ACTIVEHARMONY "Build ActiveHarmony library if not found" FALS
 option (APEX_BUILD_BFD "Build Binutils library if not found" FALSE)
 option (APEX_BUILD_OMPT "Build OpenMP runtime with OMPT if support not found" FALSE)
 option (APEX_BUILD_OTF2 "Build OTF2 library if not found" FALSE)
-option (APEX_USE_CLOCK_TIMESTAMP "On x86_64 systems, disable RDTSC timing" TRUE)
 option (APEX_USE_PEDANTIC "Enable pedantic compiler flags" FALSE)
 
 # Provide some backwards compatability

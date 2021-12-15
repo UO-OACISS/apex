@@ -45,7 +45,6 @@ endif()
 if((DEFINED APEX_LXK_KITTEN) AND (APEX_LXK_KITTEN))
     SET(BUILD_STATIC_EXECUTABLES TRUE CACHE BOOL "Build Static Libraries and Executables" FORCE)
     SET(READ_PROC_FILESYSTEM FALSE CACHE BOOL "Periodically read the /proc filesystem status" FORCE)
-    SET(APEX_USE_CLOCK_TIMESTAMP TRUE CACHE BOOL "Disable assembly code timestamp call" FORCE)
 endif()
 
 ################################################################################
@@ -167,18 +166,12 @@ set(CMAKE_CONFIGURATION_TYPES "${CMAKE_BUILD_TYPE}" CACHE INTERNAL
 if(APPLE)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -undefined dynamic_lookup")
   set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -undefined dynamic_lookup")
-  set(APEX_USE_CLOCK_TIMESTAMP ON CACHE INTERNAL "Use gettimeofday not cycle counter" FORCE)
 endif(APPLE)
 
 # If TAU is used, don't allow throttling - it can potentially lead to
 # overlapping timer errors in TAU.
 if((DEFINED APEX_THROTTLE) AND (APEX_THROTTLE))
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPEX_THROTTLE")
-endif()
-
-if((DEFINED APEX_USE_CLOCK_TIMESTAMP) AND (APEX_USE_CLOCK_TIMESTAMP))
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DAPEX_USE_CLOCK_TIMESTAMP")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DAPEX_USE_CLOCK_TIMESTAMP")
 endif()
 
 if((DEFINED APEX_LXK_KITTEN) AND (APEX_LXK_KITTEN))
@@ -352,11 +345,6 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)|(aarch64)")
   set(APEX_ARCH_X86 TRUE)
 else()
   set(APEX_ARCH_X86 FALSE)
-endif()
-
-# If not x86, don't use RDTSC
-if(NOT APEX_ARCH_X86 OR CMAKE_SYSTEM_PROCESSOR MATCHES "(aarch64)")
-  add_definitions(-DAPEX_USE_CLOCK_TIMESTAMP=1)
 endif()
 
 if (BUILD_STATIC_EXECUTABLES)
@@ -617,7 +605,6 @@ if (OTF2_FOUND)
     if (NOT BUILD_STATIC_EXECUTABLES)
         set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${OTF2_LIBRARY_DIR})
     endif()
-    # add_definitions(-DAPEX_USE_CLOCK_TIMESTAMP=1)
     if(NOT APPLE)
         find_library(RTLIB rt)
         set(LIBS ${LIBS} ${RTLIB})

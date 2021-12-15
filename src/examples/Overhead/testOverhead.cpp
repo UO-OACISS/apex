@@ -89,7 +89,7 @@ void* someThread(void* tmp)
         std::shared_ptr<apex::task_wrapper> foo_ptr = apex::new_task((apex_function_address)foo);
         apex::start(foo_ptr);
         total += foo(i);
-        total += bar(i, foo_ptr);
+        //total += bar(i, foo_ptr);
         apex::stop(foo_ptr);
         if (i % SPLIT == 0) {
             printf("t"); fflush(stdout);
@@ -125,7 +125,7 @@ void* someUntimedThread(void* tmp)
     apex::profiler * sut = apex::start((apex_function_address)someUntimedThread);
     for (i = 0 ; i < ITERATIONS ; i++) {
         total += foo(i);
-        total += bar(i, nullptr);
+        //total += bar(i, nullptr);
         if (i % SPLIT == 0) {
             printf("u"); fflush(stdout);
         }
@@ -182,11 +182,7 @@ int main(int argc, char **argv)
   apex_profile * without = apex::get_profile((apex_function_address)&someUntimedThread);
   apex_profile * with = apex::get_profile((apex_function_address)&someThread);
   apex_profile * footime = apex::get_profile((apex_function_address)&foo);
-#ifdef APEX_USE_CLOCK_TIMESTAMP
 #define METRIC " nanoseconds"
-#else
-#define METRIC " cycles"
-#endif
   if (without) {
     double mean = without->accumulated/without->calls;
     double variance = ((without->sum_squares / without->calls) - (mean * mean));
@@ -213,15 +209,9 @@ int main(int argc, char **argv)
     double percent_increase = (with->accumulated / without->accumulated) - 1.0;
     double foo_per_call = footime->accumulated / footime->calls;
     std::cout << "Estimated overhead per timer: ";
-#ifdef APEX_USE_CLOCK_TIMESTAMP
-    std::cout << overhead_per_call*1.0e9;
-    std::cout << METRIC << " (" << percent_increase*100.0 <<
-        "%), per call time in foo: " << (foo_per_call*1.0e9) << METRIC << std::endl;
-#else
     std::cout << overhead_per_call;
     std::cout << METRIC << " (" << percent_increase*100.0 <<
-        "%), per call time in foo: " << foo_per_call << METRIC << std::endl;
-#endif
+        "%), per call time in foo: " << (foo_per_call) << METRIC << std::endl;
   }
   apex::cleanup();
   return(0);
