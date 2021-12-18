@@ -50,9 +50,6 @@ for counter, infile in enumerate(sorted(glob.glob(myglob))):
     if (counter == 0):
         all_data = data
     else:
-        if (all_data['displayTimeUnit'] != data['displayTimeUnit']):
-            print('Error!  traces have different time units!')
-            sys.exit(99)
         all_data['traceEvents'] = all_data['traceEvents'] + data['traceEvents']
     jsonfile.close()
 

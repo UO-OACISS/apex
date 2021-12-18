@@ -785,13 +785,16 @@ void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* 
     } else {
         if (!timer_stack.empty()) {
             auto timer = timer_stack.top();
-            apex::async_event_data as_data(
-                timer->prof->get_start_us(),
-                "OtherFlow", data->correlation_id,
-                apex::thread_instance::get_id(), context);
-            as_data.parent_ts_stop = apex::profiler::now_us();
-            apex::stop(timer);
-            Globals::insert_data(data->correlation_id, as_data);
+            /* This happens if we have already shut down, after Finalize. */
+            if (timer != nullptr) {
+                apex::async_event_data as_data(
+                    timer->prof->get_start_us(),
+                    "OtherFlow", data->correlation_id,
+                    apex::thread_instance::get_id(), context);
+                as_data.parent_ts_stop = apex::profiler::now_us();
+                apex::stop(timer);
+                Globals::insert_data(data->correlation_id, as_data);
+            }
             timer_stack.pop();
         }
 
