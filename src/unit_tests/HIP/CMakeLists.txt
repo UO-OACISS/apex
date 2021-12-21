@@ -10,6 +10,8 @@ set(example_programs
     MatrixTranspose
    )
 
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+
 message(INFO " Using HIP libraries for tests: ${HIP_LIBRARIES}")
 
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${APEX_HIP_C_FLAGS}")

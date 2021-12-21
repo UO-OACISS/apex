@@ -27,6 +27,8 @@ THE SOFTWARE.
 #include "roctracer_ext.h"
 // roctx header file
 #include <roctx.h>
+// openmp header file
+#include <omp.h>
 
 #define RUNTIME_API_CALL(apiFuncCall)                                          \
 do {                                                                           \
@@ -38,8 +40,9 @@ do {                                                                           \
     }                                                                          \
 } while (0)
 
-#define WIDTH 1024
-
+//#define WIDTH 1024
+#define WIDTH 8192
+#define ITERATIONS 10
 
 #define NUM (WIDTH * WIDTH)
 
@@ -61,11 +64,14 @@ __global__ void matrixTranspose(float* out, float* in, const int width) {
 
 // CPU implementation of matrix transpose
 void matrixTransposeCPUReference(float* output, float* input, const unsigned int width) {
+    roctxRangePush(__func__);
+#pragma omp parallel for
     for (unsigned int j = 0; j < width; j++) {
         for (unsigned int i = 0; i < width; i++) {
             output[i * width + j] = input[j * width + i];
         }
     }
+    roctxRangePop();
 }
 
 
@@ -96,57 +102,59 @@ int main() {
         Matrix[i] = (float)i * 10.0f;
     }
 
+    // CPU MatrixTranspose computation
+    matrixTransposeCPUReference(cpuTransposeMatrix, Matrix, WIDTH);
+
     // allocate the memory on the device side
     RUNTIME_API_CALL(hipMalloc((void**)&gpuMatrix, NUM * sizeof(float)));
     RUNTIME_API_CALL(hipMalloc((void**)&gpuTransposeMatrix, NUM * sizeof(float)));
 
-    uint32_t iterations = 100;
+    uint32_t iterations = ITERATIONS;
     while (iterations-- > 0) {
-    std::cout << "## Iteration (" << iterations << ") #################" << std::endl;
+        int rangeId = roctxRangeStart("While Loop range");
+        std::cout << "## Iteration (" << iterations << ") #################" << std::endl;
 
-    // Memory transfer from host to device
-    RUNTIME_API_CALL(hipMemcpy(gpuMatrix, Matrix, NUM * sizeof(float), hipMemcpyHostToDevice));
-    RUNTIME_API_CALL(hipDeviceSynchronize());
+        // Memory transfer from host to device
+        RUNTIME_API_CALL(hipMemcpy(gpuMatrix, Matrix, NUM * sizeof(float), hipMemcpyHostToDevice));
+        RUNTIME_API_CALL(hipDeviceSynchronize());
 
-    roctracer_mark("before HIP LaunchKernel");
-    roctxMark("before hipLaunchKernel");
-    int rangeId = roctxRangeStart("hipLaunchKernel range");
-    roctxRangePush("hipLaunchKernel");
-    // Lauching kernel from host
-    hipLaunchKernelGGL(matrixTranspose, dim3(WIDTH / THREADS_PER_BLOCK_X, WIDTH / THREADS_PER_BLOCK_Y),
-                    dim3(THREADS_PER_BLOCK_X, THREADS_PER_BLOCK_Y), 0, 0, gpuTransposeMatrix,
-                    gpuMatrix, WIDTH);
-    roctracer_mark("after HIP LaunchKernel");
-    roctxMark("after hipLaunchKernel");
-    RUNTIME_API_CALL(hipDeviceSynchronize());
+        roctracer_mark("before HIP LaunchKernel");
+        roctxMark("before hipLaunchKernel");
+        roctxRangePush("hipLaunchKernel");
+        // Lauching kernel from host
+        hipLaunchKernelGGL(matrixTranspose, dim3(WIDTH / THREADS_PER_BLOCK_X, WIDTH / THREADS_PER_BLOCK_Y),
+                        dim3(THREADS_PER_BLOCK_X, THREADS_PER_BLOCK_Y), 0, 0, gpuTransposeMatrix,
+                        gpuMatrix, WIDTH);
+        roctracer_mark("after HIP LaunchKernel");
+        roctxMark("after hipLaunchKernel");
+        RUNTIME_API_CALL(hipDeviceSynchronize());
 
-    // Memory transfer from device to host
-    roctxRangePush("hipMemcpy");
+        // Memory transfer from device to host
+        roctxRangePush("hipMemcpy");
 
-    RUNTIME_API_CALL(hipMemcpy(TransposeMatrix, gpuTransposeMatrix, NUM * sizeof(float), hipMemcpyDeviceToHost));
-    RUNTIME_API_CALL(hipDeviceSynchronize());
+        RUNTIME_API_CALL(hipMemcpy(TransposeMatrix, gpuTransposeMatrix, NUM * sizeof(float), hipMemcpyDeviceToHost));
+        RUNTIME_API_CALL(hipDeviceSynchronize());
 
-    roctxRangePop(); // for "hipMemcpy"
-    roctxRangePop(); // for "hipLaunchKernel"
-    roctxRangeStop(rangeId);
+        roctxRangePop(); // for "hipMemcpy"
+        roctxRangePop(); // for "hipLaunchKernel"
 
-    // CPU MatrixTranspose computation
-    matrixTransposeCPUReference(cpuTransposeMatrix, Matrix, WIDTH);
-
-    // verify the results
-    errors = 0;
-    double eps = 1.0E-6;
-    for (i = 0; i < NUM; i++) {
-        if (std::abs(TransposeMatrix[i] - cpuTransposeMatrix[i]) > eps) {
-            errors++;
+        roctxRangePush("Validation Step"); // for "validation"
+        // verify the results
+        errors = 0;
+        double eps = 1.0E-6;
+#pragma omp parallel for reduction(+:errors)
+        for (i = 0; i < NUM; i++) {
+            if (std::abs(TransposeMatrix[i] - cpuTransposeMatrix[i]) > eps) {
+                errors++;
+            }
         }
-    }
-    if (errors != 0) {
-        printf("FAILED: %d errors\n", errors);
-    } else {
-        printf("PASSED!\n");
-    }
-
+        if (errors != 0) {
+            printf("FAILED: %d errors\n", errors);
+        } else {
+            printf("PASSED!\n");
+        }
+        roctxRangePop(); // for "validation"
+        roctxRangeStop(rangeId);
     }
 
     // free the resources on device side
