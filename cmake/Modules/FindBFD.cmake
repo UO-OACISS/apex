@@ -46,13 +46,14 @@ mark_as_advanced(BFD_INCLUDE_DIR BFD_LIBRARY)
 
 # --------- DOWNLOAD AND BUILD THE EXTERNAL PROJECT! ------------ #
 if((APEX_BUILD_BFD OR (NOT BFD_FOUND)) AND NOT APPLE)
+  set(BFD_ROOT ${CMAKE_INSTALL_PREFIX}/binutils CACHE STRING "Binutils Root directory" FORCE)
   message("Attention: Downloading and Building binutils as external project!")
   message(INFO " A working internet connection is required!")
   include(ExternalProject)
   ExternalProject_Add(project_binutils
-    URL "http://ftp.gnu.org/gnu/binutils/binutils-2.25.tar.bz2"
-    URL_HASH SHA256=22defc65cfa3ef2a3395faaea75d6331c6e62ea5dfacfed3e2ec17b08c882923
-    CONFIGURE_COMMAND <SOURCE_DIR>/configure CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} CFLAGS=${CMAKE_C_FLAGS} CXXFLAGS=${CMAKE_CXX_FLAGS} LDFLAGS=${CMAKE_EXE_LINKER_FLAGS} --prefix=${CMAKE_INSTALL_PREFIX}/binutils --disable-dependency-tracking --enable-interwork --disable-multilib --enable-shared --enable-64-bit-bfd --target=${TARGET_ARCH} --enable-install-libiberty
+    URL "http://ftp.gnu.org/gnu/binutils/binutils-2.37.tar.bz2"
+    URL_HASH SHA256=67fc1a4030d08ee877a4867d3dcab35828148f87e1fd05da6db585ed5a166bd4
+    CONFIGURE_COMMAND <SOURCE_DIR>/configure CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} CFLAGS=${CMAKE_C_FLAGS} CXXFLAGS=${CMAKE_CXX_FLAGS} LDFLAGS=${CMAKE_EXE_LINKER_FLAGS} --prefix=${CMAKE_INSTALL_PREFIX}/binutils --disable-dependency-tracking --enable-interwork --disable-multilib --enable-shared --enable-64-bit-bfd --target=${TARGET_ARCH} --enable-install-libiberty --disable-gold --program-prefix=g --disable-nls --disable-ld --disable-lto --disable-gas
     BUILD_COMMAND make MAKEINFO=true -j${MAKEJOBS}
     INSTALL_COMMAND make MAKEINFO=true install
     LOG_DOWNLOAD 1
@@ -65,15 +66,14 @@ if((APEX_BUILD_BFD OR (NOT BFD_FOUND)) AND NOT APPLE)
     COMMAND cp <SOURCE_DIR>/include/demangle.h ${CMAKE_INSTALL_PREFIX}/binutils/include/.
     COMMENT "Copying additional headers"
   )
-  ExternalProject_Add_Step(project_binutils basedirs2
-    DEPENDEES install
-    if(NOT EXISTS ${CMAKE_INSTALL_PREFIX}/binutils/lib64)
-    	COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_INSTALL_PREFIX}/binutils/lib ${CMAKE_INSTALL_PREFIX}/binutils/lib64
-    endif()
-    COMMENT "Adding lib64 simlink"
-  )
+#  ExternalProject_Add_Step(project_binutils basedirs2
+#    DEPENDEES install
+#    if(NOT EXISTS ${CMAKE_INSTALL_PREFIX}/binutils/lib64)
+#    	COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_INSTALL_PREFIX}/binutils/lib ${CMAKE_INSTALL_PREFIX}/binutils/lib64
+#    endif()
+#    COMMENT "Adding lib64 simlink"
+#  )
 
-  set(BFD_ROOT ${CMAKE_INSTALL_PREFIX}/binutils)
   ExternalProject_Get_Property(project_binutils install_dir)
   add_library(bfd STATIC IMPORTED)
   set_property(TARGET bfd PROPERTY IMPORTED_LOCATION ${install_dir}/lib/libbfd.so)
