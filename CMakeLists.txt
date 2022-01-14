@@ -141,6 +141,18 @@ if(APEX_WITH_CUDA)
 endif(APEX_WITH_CUDA)
 
 if(APEX_WITH_HIP)
+    # First, check if the user has set ROCM_ROOT.
+    if(NOT DEFINED ROCM_ROOT)
+        find_program(HIPCC_COMPILER hipcc)
+        if (HIPCC_COMPILER)
+            get_filename_component(hipcc_bin_dir "${HIPCC_COMPILER}" DIRECTORY)
+            get_filename_component(hipcc_dir "${hipcc_bin_dir}" DIRECTORY)
+            set(ROCM_ROOT "${hipcc_dir}" CACHE PATH "" FORCE)
+            unset(hipcc_dir)
+            unset(hipcc_bin_dir)
+        endif (HIPCC_COMPILER)
+    endif(NOT DEFINED ROCM_ROOT)
+
     # This is needed so that the clang compiler test passes, and we can use it to
     # compile the test cases.
     if(APEX_BUILD_TESTS)

@@ -27,8 +27,8 @@ do {                                                                           \
 do {                                                                           \
     cudaError_t _status = apiFuncCall;                                         \
     if (_status != cudaSuccess) {                                              \
-        fprintf(stderr, "%s:%d: error: function %s failed with error %s.\n",   \
-                __FILE__, __LINE__, #apiFuncCall, cudaGetErrorString(_status));\
+        fprintf(stderr, "%s:%d: error: function %s failed with error %d, %s.\n",   \
+                __FILE__, __LINE__, #apiFuncCall, _status, cudaGetErrorString(_status));\
         exit(-1);                                                              \
     }                                                                          \
 } while (0)
@@ -123,10 +123,11 @@ int main(int argc, char * argv[])
   do_marker("nvtx: init marker");
   nvtxRangePushA("nvtx: initialization");
   DataElement *e;
-  RUNTIME_API_CALL(cudaMallocManaged((void**)&e, sizeof(DataElement)));
+  auto foo = sizeof(DataElement);
+  RUNTIME_API_CALL(cudaMallocManaged((void**)&e, foo, cudaMemAttachGlobal));
 
   e->value = 10;
-  RUNTIME_API_CALL(cudaMallocManaged((void**)&(e->name), sizeof(char) * (strlen("hello") + 1) ));
+  RUNTIME_API_CALL(cudaMallocManaged((void**)&(e->name), sizeof(char) * (strlen("hello") + 1), cudaMemAttachGlobal));
   strcpy(e->name, "hello");
   nvtxRangePop();
 
