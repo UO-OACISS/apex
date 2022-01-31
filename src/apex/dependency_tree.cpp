@@ -11,6 +11,7 @@
 #include <iomanip>
 #include <sstream>
 #include <math.h>
+#include "apex_assert.h"
 
 namespace apex {
 
@@ -96,6 +97,7 @@ bool cmp(std::pair<task_identifier, Node*>& a, std::pair<task_identifier, Node*>
 }
 
 double Node::writeNodeASCII(std::ofstream& outfile, double total, size_t indent) {
+    APEX_ASSERT(total > 0.0);
     for (size_t i = 0 ; i < indent ; i++) {
         outfile << "|   ";
     }
@@ -132,7 +134,7 @@ double Node::writeNodeASCII(std::ofstream& outfile, double total, size_t indent)
     // do all the children
     double remainder = acc;
     for (auto c : sorted) {
-        double tmp = c.second->writeNodeASCII(outfile, acc, indent);
+        double tmp = c.second->writeNodeASCII(outfile, total, indent);
         remainder = remainder - tmp;
     }
     if (children.size() > 0 && remainder > 0.0) {
