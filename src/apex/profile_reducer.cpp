@@ -136,9 +136,9 @@ std::map<std::string, apex_profile*> reduce_profiles() {
     // the set is already sorted?...
     //sort(all_names.begin(), all_names.end());
 
-    // There are 6 "values" and 8 possible papi counters
-    sbuf_length = all_names.size() * 15;
-    rbuf_length = all_names.size() * 15 * commsize;
+    // There are 8 "values" and 8 possible papi counters
+    sbuf_length = all_names.size() * 16;
+    rbuf_length = all_names.size() * 16 * commsize;
     //DEBUG_PRINT("%d Sending %" PRIu64 " bytes\n", commrank, sbuf_length * sizeof(double));
     double * s_pdata = (double*)calloc(sbuf_length, sizeof(double));
     double * r_pdata = nullptr;
@@ -155,25 +155,26 @@ std::map<std::string, apex_profile*> reduce_profiles() {
         auto p = get_profile(tid->second);
         if (p != nullptr) {
             dptr[0] = p->calls == 0.0 ? 1 : p->calls;
-            dptr[1] = p->accumulated;
-            dptr[2] = p->sum_squares;
-            dptr[3] = p->minimum;
-            dptr[4] = p->maximum;
-            dptr[5] = p->times_reset;
-            dptr[6] = (double)p->type;
+            dptr[1] = p->stops == 0.0 ? 1 : p->stops;
+            dptr[2] = p->accumulated;
+            dptr[3] = p->sum_squares;
+            dptr[4] = p->minimum;
+            dptr[5] = p->maximum;
+            dptr[6] = p->times_reset;
+            dptr[7] = (double)p->type;
             if (p->type == APEX_TIMER) {
-                dptr[7] = p->papi_metrics[0];
-                dptr[8] = p->papi_metrics[1];
-                dptr[9] = p->papi_metrics[2];
-                dptr[10] = p->papi_metrics[3];
-                dptr[11] = p->papi_metrics[4];
-                dptr[12] = p->papi_metrics[5];
-                dptr[13] = p->papi_metrics[6];
-                dptr[14] = p->papi_metrics[7];
+                dptr[8] = p->papi_metrics[0];
+                dptr[9] = p->papi_metrics[1];
+                dptr[10] = p->papi_metrics[2];
+                dptr[11] = p->papi_metrics[3];
+                dptr[12] = p->papi_metrics[4];
+                dptr[13] = p->papi_metrics[5];
+                dptr[14] = p->papi_metrics[6];
+                dptr[15] = p->papi_metrics[7];
             }
         }
         }
-        dptr = &(dptr[15]);
+        dptr = &(dptr[16]);
     }
 
     /* Reduce the data */
@@ -200,7 +201,7 @@ std::map<std::string, apex_profile*> reduce_profiles() {
             apex_profile* p;
             if (next == all_profiles.end()) {
                 p = (apex_profile*)calloc(1, sizeof(apex_profile));
-                p->type = (apex_profile_type)(dptr[6]);
+                p->type = (apex_profile_type)(dptr[7]);
                 // set the minimum to something rediculous
                 p->minimum = std::numeric_limits<double>::max();
                 all_profiles.insert(std::pair<std::string, apex_profile*>(name, p));
@@ -208,22 +209,23 @@ std::map<std::string, apex_profile*> reduce_profiles() {
                 p = next->second;
             }
             p->calls += dptr[0];
-            p->accumulated += dptr[1];
-            p->sum_squares += dptr[2];
-            p->minimum = dptr[3] < p->minimum ? dptr[3] : p->minimum;
-            p->maximum = dptr[4] > p->maximum ? dptr[4] : p->maximum;
-            p->times_reset += dptr[5];
+            p->stops += dptr[1];
+            p->accumulated += dptr[2];
+            p->sum_squares += dptr[3];
+            p->minimum = dptr[4] < p->minimum ? dptr[4] : p->minimum;
+            p->maximum = dptr[5] > p->maximum ? dptr[5] : p->maximum;
+            p->times_reset += dptr[6];
             if (p->type == APEX_TIMER) {
-                p->papi_metrics[0] += dptr[7];
-                p->papi_metrics[1] += dptr[8];
-                p->papi_metrics[2] += dptr[9];
-                p->papi_metrics[3] += dptr[10];
-                p->papi_metrics[4] += dptr[11];
-                p->papi_metrics[5] += dptr[12];
-                p->papi_metrics[6] += dptr[13];
-                p->papi_metrics[7] += dptr[14];
+                p->papi_metrics[0] += dptr[8];
+                p->papi_metrics[1] += dptr[9];
+                p->papi_metrics[2] += dptr[10];
+                p->papi_metrics[3] += dptr[11];
+                p->papi_metrics[4] += dptr[12];
+                p->papi_metrics[5] += dptr[13];
+                p->papi_metrics[6] += dptr[14];
+                p->papi_metrics[7] += dptr[15];
             }
-            dptr = &(dptr[15]);
+            dptr = &(dptr[16]);
         }
     }
 

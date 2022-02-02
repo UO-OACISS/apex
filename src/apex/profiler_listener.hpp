@@ -99,7 +99,7 @@ private:
                        std::stringstream &screen_output,
                        std::stringstream &csv_output,
                        double &total_accumulated,
-                       double &total_main, bool timer);
+                       double &total_main, bool timer, bool include_stops);
   void finalize_profiles(dump_event_data &data, std::map<std::string, apex_profile*>& profiles);
   void write_taskgraph(void);
   void write_tasktree(void);

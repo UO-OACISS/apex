@@ -474,7 +474,7 @@ std::unordered_set<profile*> free_profiles;
   void profiler_listener::write_one_timer(std::string &action_name,
           profile * p, stringstream &screen_output,
           stringstream &csv_output, double &total_accumulated,
-          double &total_main, bool timer) {
+          double &total_main, bool timer, bool include_stops = false) {
       string shorter(action_name);
       size_t maxlength = 41;
       if (timer) maxlength = 52;
@@ -518,6 +518,16 @@ std::unordered_set<profile*> free_profiles;
       } else {
           screen_output << string_format(FORMAT_SCIENTIFIC, p->get_calls())
             << "   " ;
+      }
+      if (include_stops) {
+        auto stops = std::max<double>(0.0, (p->get_stops() - p->get_calls()));
+        if (stops < 999999) {
+            screen_output << string_format(PAD_WITH_SPACES,
+                to_string((int)stops).c_str()) << "   " ;
+        } else {
+            screen_output << string_format(FORMAT_SCIENTIFIC, stops)
+                << "   " ;
+        }
       }
       if (p->get_type() == APEX_TIMER) {
         csv_output << "\"" << action_name << "\",";
@@ -792,14 +802,14 @@ std::unordered_set<profile*> free_profiles;
     screen_output << endl;
 
     screen_output << "CPU Timers                                           : "
-        << "#calls  |    mean  |   total  |  % total  "
+        << "#calls  |  #yields |    mean  |   total  |  % total  "
         << tmpstr;
     if (apex_options::track_memory()) {
        screen_output << "|  allocs |  (bytes) |    frees |   (bytes) ";
     }
     screen_output << endl;
     screen_output << "----------------------------------------------"
-        << "--------------------------------------------------";
+        << "-------------------------------------------------------------";
     if (apex_options::track_memory()) {
         screen_output << "--------------------------------------------";
     }
@@ -813,14 +823,14 @@ std::unordered_set<profile*> free_profiles;
         if (p != all_profiles.end()) {
             profile tmp(p->second);
             write_one_timer(name, &tmp, screen_output, csv_output,
-                total_accumulated, divisor, true);
+                total_accumulated, divisor, true, true);
             if (name.compare(APEX_MAIN_STR) != 0) {
                 total_hpx_threads = total_hpx_threads + tmp.get_calls();
             }
         }
     }
     screen_output << "--------------------------------------------------"
-        << "----------------------------------------------";
+        << "---------------------------------------------------------";
     if (apex_options::track_memory()) {
         screen_output << "--------------------------------------------";
     }
