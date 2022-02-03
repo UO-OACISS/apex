@@ -687,7 +687,7 @@ std::unordered_set<profile*> free_profiles;
         << " seconds" << endl;
     screen_output << "Total processes detected: " << apex::instance()->get_num_ranks()
         << endl;
-    screen_output << "Cores detected on rank 0: " << hardware_concurrency()
+    screen_output << "HW Threads detected on rank 0: " << hardware_concurrency()
         << endl;
     screen_output << "Worker Threads observed on rank 0: "
         << num_worker_threads << endl;
