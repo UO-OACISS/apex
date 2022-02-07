@@ -2315,6 +2315,9 @@ extern "C" {
         cleanup();
         return retval;
     }
+#endif
+#if defined(APEX_HAVE_MPI) || \
+    (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
     /* There are also a handful of interesting function calls that HPX uses
        that we should measure when requested */
     int MPI_Wait(MPI_Request *request, MPI_Status *status) {
