@@ -2379,7 +2379,7 @@ extern "C" {
     int MPI_Testany(int count, MPI_Request array_of_requests[], int *indx,
         int *flag, MPI_Status *status) {
         auto p = start(__func__);
-        int retval = PMPI_Testany(array_of_requests, indx, flag, status);
+        int retval = PMPI_Testany(count, array_of_requests, indx, flag, status);
         stop(p);
         return retval;
     }
