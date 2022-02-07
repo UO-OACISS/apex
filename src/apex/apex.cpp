@@ -2315,6 +2315,8 @@ extern "C" {
         cleanup();
         return retval;
     }
+    /* There are also a handful of interesting function calls that HPX uses
+       that we should measure when requested */
     int MPI_Wait(MPI_Request *request, MPI_Status *status) {
         auto p = start(__func__);
         int retval = PMPI_Wait(request, status);
@@ -2362,6 +2364,19 @@ extern "C" {
         auto p = start(__func__);
         int retval = PMPI_Gather(sendbuf, sendcount, sendtype, recvbuf,
             recvcount, recvtype, root, comm);
+        stop(p);
+        return retval;
+    }
+    int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status) {
+        auto p = start(__func__);
+        int retval = PMPI_Test(request, flag, status);
+        stop(p);
+        return retval;
+    }
+    int MPI_Testany(int count, MPI_Request array_of_requests[], int *indx,
+        int *flag, MPI_Status *status) {
+        auto p = start(__func__);
+        int retval = PMPI_Testany(array_of_requests, indx, flag, status);
         stop(p);
         return retval;
     }
