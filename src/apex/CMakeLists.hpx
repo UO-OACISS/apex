@@ -250,6 +250,8 @@ if(HPX_WITH_HPXMP)
   target_compile_definitions(apex_flags INTERFACE ${OpenMP_CXX_FLAGS})
 endif(HPX_WITH_HPXMP)
 
+# Setup MPI
+include(APEX_SetupMPI)
 
 # RPATH related stuff
 # APEX is always a shared object library with HPX now.
