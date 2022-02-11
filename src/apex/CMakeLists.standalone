@@ -164,6 +164,7 @@ INSTALL(FILES apex.h
     apex_types.h
     apex_policies.h
     apex_policies.hpp
+    dependency_tree.hpp
     handler.hpp
     profile.hpp
     apex_export.h
