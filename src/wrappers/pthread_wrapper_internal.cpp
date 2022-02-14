@@ -33,18 +33,20 @@ struct apex_system_wrapper_t
   apex_system_wrapper_t() : initialized(true) {
     apex::init("APEX Pthread Wrapper",0,1);
     /*
-     * Here we are limiting the stack size to 16kB. Do it after we
-     * initialized APEX, because APEX spawns two other threads
-     * that may require more. This limit can be overridden with a runtime option.
+     * Here we are limiting the stack size to whatever the user requests.
+     * Do it after we initialized APEX, because APEX spawns two other threads
+     * that may require more.
      */
     struct rlimit limits;
     getrlimit(RLIMIT_STACK,&limits);
     if (apex::apex_options::pthread_wrapper_stack_size() != 0) {
       limits.rlim_cur = apex::apex_options::pthread_wrapper_stack_size();
       limits.rlim_max = apex::apex_options::pthread_wrapper_stack_size();
+      /*
     } else {
       limits.rlim_cur = 16384;
       limits.rlim_max = 16384;
+      */
     }
     int rc = setrlimit(RLIMIT_STACK,&limits);
     if (rc != 0) {
