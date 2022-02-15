@@ -350,6 +350,8 @@ extern "C" void apex_implicit_task(
     int flags
   ) {
     if (!enabled) { return; }
+    /* Initial tasks confuse the callpath/taskgraph, so don't process them */
+    if (flags == ompt_task_initial) { return; }
     APEX_UNUSED(team_size);
     APEX_UNUSED(thread_num);
     APEX_UNUSED(flags);
