@@ -647,10 +647,10 @@ in_apex::~in_apex() {
 }
 
 void rank0_print(const char * fmt, ...) {
-        apex_options::use_verbose()) {
         va_list args;
         va_start (args, fmt);
     if (apex::instance()->get_node_id() == 0 &&
+        apex_options::use_verbose()) {
         vprintf(fmt, args);
     }
         va_end(args);
