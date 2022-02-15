@@ -19,7 +19,7 @@ namespace dependency {
 
 // declare an instance of the statics
 std::mutex Node::treeMutex;
-size_t Node::nodeCount{0};
+std::atomic<size_t> Node::nodeCount{0};
 
 Node* Node::appendChild(task_identifier* c) {
     treeMutex.lock();
@@ -66,6 +66,7 @@ Node* Node::replaceChild(task_identifier* old_child, task_identifier* new_child)
 }
 
 void Node::writeNode(std::ofstream& outfile, double total) {
+    static size_t depth = 0;
     // Write out the relationships
     if (parent != nullptr) {
         outfile << "  \"" << parent->getIndex() << "\" -> \"" << getIndex() << "\";";
@@ -79,17 +80,21 @@ void Node::writeNode(std::ofstream& outfile, double total) {
 
     // write out the nodes
     outfile << "  \"" << getIndex() <<
-    "\" [shape=box; style=filled; fillcolor=\"#" <<
+            "\" [shape=box; style=filled; fillcolor=\"#" <<
             std::setfill('0') << std::setw(2) << std::hex << c->convert(c->red) <<
             std::setfill('0') << std::setw(2) << std::hex << c->convert(c->green) <<
             std::setfill('0') << std::setw(2) << std::hex << c->convert(c->blue) <<
-            "\"; label=\"" << data->get_name() <<
-    ":\\ltotal calls: " << ncalls << "\\ltotal time: " << acc << "\" ];" << std::endl;
+            "\"; depth=" << std::dec << depth <<
+            "; time=" << std::fixed << acc << "; label=\"" << data->get_tree_name() <<
+            ":\\ltotal calls: " << ncalls << "\\ltotal time: " <<
+            std::defaultfloat << acc << "\" ];" << std::endl;
 
     // do all the children
+    depth++;
     for (auto c : children) {
         c.second->writeNode(outfile, total);
     }
+    depth--;
 }
 
 bool cmp(std::pair<task_identifier, Node*>& a, std::pair<task_identifier, Node*>& b) {
@@ -99,12 +104,12 @@ bool cmp(std::pair<task_identifier, Node*>& a, std::pair<task_identifier, Node*>
 double Node::writeNodeASCII(std::ofstream& outfile, double total, size_t indent) {
     APEX_ASSERT(total > 0.0);
     for (size_t i = 0 ; i < indent ; i++) {
-        outfile << "|   ";
+        outfile << "| ";
     }
     outfile << "|-> ";
     indent++;
     // write out the inclusive and percent of total
-    double acc = (data == task_identifier::get_main_task_id()) ?
+    double acc = (data == task_identifier::get_main_task_id() || accumulated == 0.0) ?
         total : accumulated;
     double percentage = (accumulated / total) * 100.0;
     outfile << std::fixed << std::setprecision(5) << acc << " - "
@@ -120,7 +125,7 @@ double Node::writeNodeASCII(std::ofstream& outfile, double total, size_t indent)
             << ", mean=" << mean << ", var=" << variance
             << ", std dev=" << stddev << "} ";
     // Write out the name
-    outfile << data->get_name() << " ";
+    outfile << data->get_tree_name() << " ";
     // end the line
     outfile << std::endl;
 
@@ -139,12 +144,82 @@ double Node::writeNodeASCII(std::ofstream& outfile, double total, size_t indent)
     }
     if (children.size() > 0 && remainder > 0.0) {
         for (size_t i = 0 ; i < indent ; i++) {
-            outfile << "|   ";
+            outfile << "| ";
         }
         percentage = (remainder / total) * 100.0;
         outfile << "Remainder: " << remainder << " - " << percentage << "%" << std::endl;
     }
     return acc;
+}
+
+void Node::writeTAUCallpath(std::ofstream& outfile, std::string prefix) {
+    static size_t depth = 0;
+
+    // if we have no children, and there's no prefix, do nothing.
+    if (prefix.size() == 0 && children.size() == 0) { return ; }
+
+    // get the inclusive amount for this timer
+    double acc = accumulated * 1000000; // stored in seconds, we need to convert to microseconds
+
+    // update the prefix
+    if (data->get_name().compare(APEX_MAIN_STR) == 0) {
+        prefix.append(".TAU application");
+    } else {
+        prefix.append(data->get_name(true));
+    }
+
+    // only do this if we are in the tree - the flat profile is written already.
+    if (depth > 0) {
+        // compute our exclusive time
+        double child_time = 0;
+        double child_calls = 0;
+        for (auto c : children) {
+            double tmp = c.second->getAccumulated() * 1000000;
+            child_time = child_time + tmp;
+            tmp = c.second->getCalls();
+            child_calls = child_calls + tmp;
+        }
+        double remainder = 0;
+        if (acc < child_time) {
+            if (acc == 0.0) {
+                acc = child_time;
+                remainder = 0.0;
+            } else {
+                remainder = acc;
+            }
+        } else {
+            remainder = acc - child_time;
+        }
+
+        // otherwise, write out this node
+        outfile << "\"" << prefix << "\" ";
+        // write the number of calls
+        double ncalls = (calls == 0) ? 1 : calls;
+        outfile << std::fixed << std::setprecision(0) << ncalls << " ";
+        // write out subroutines
+        outfile << child_calls << " ";
+        // write out exclusive
+        outfile << std::fixed << std::setprecision(3) << remainder << " ";
+        // write out inclusive
+        outfile << std::fixed << std::setprecision(3) << acc << " ";
+        // write out profilecalls and group
+        outfile << "0 GROUP=\"" << data->get_group() << " | TAU_CALLPATH\" ";
+        // end the line
+        outfile << std::endl;
+    }
+
+    // create a prefix for children
+    std::string child_prefix{prefix};
+    child_prefix.append(" => ");
+
+    // recursively do a depth-first writing of all the children and subchildren...
+    depth++;
+    for (auto c : children) {
+        c.second->writeTAUCallpath(outfile, child_prefix);
+    }
+    depth--;
+
+    return;
 }
 
 void Node::addAccumulated(double value, bool is_resume) {

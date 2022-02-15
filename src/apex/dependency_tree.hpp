@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <iostream>
 #include <fstream>
+#include <atomic>
 #include "task_identifier.hpp"
 
 namespace apex {
@@ -29,7 +30,7 @@ class Node {
         size_t index;
         std::unordered_map<task_identifier, Node*> children;
         static std::mutex treeMutex;
-        static size_t nodeCount;
+        static std::atomic<size_t> nodeCount;
     public:
         Node(task_identifier* id, Node* p) :
             data(id), parent(p), count(1), calls(0), accumulated(0),
@@ -53,6 +54,10 @@ class Node {
         size_t getIndex() { return index; };
         void writeNode(std::ofstream& outfile, double total);
         double writeNodeASCII(std::ofstream& outfile, double total, size_t indent);
+        void writeTAUCallpath(std::ofstream& outfile, std::string prefix);
+        static size_t getNodeCount() {
+            return nodeCount;
+        }
 };
 
 } // dependency_tree
