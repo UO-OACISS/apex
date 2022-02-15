@@ -701,12 +701,14 @@ std::unordered_set<profile*> free_profiles;
     double total_accumulated = 0.0;
     std::vector<std::string> id_vector;
     // iterate over the counters, and sort their names
-    std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
-    for(auto it2 : all_profiles) {
-        std::string name = it2.first;
-        apex_profile * p = it2.second;
-        if (p->type != APEX_TIMER) {
-            id_vector.push_back(name);
+    {
+        std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
+        for(auto it2 : all_profiles) {
+            std::string name = it2.first;
+            apex_profile * p = it2.second;
+            if (p->type != APEX_TIMER) {
+                id_vector.push_back(name);
+            }
         }
     }
     csv_output << "\"counter\",\"num samples\",\"minimum\",\"mean\""
@@ -995,20 +997,29 @@ std::unordered_set<profile*> free_profiles;
     myfile.close();
   }
 
+  /* When writing a TAU profile, get the appropriate TAU group */
+  inline std::string get_TAU_group(task_identifier& task_id) {
+    std::stringstream ss;
+    ss << "GROUP=\"" << task_id.get_group() << "\" ";
+    std::string group{ss.str()};
+    return group;
+  }
+
   /* When writing a TAU profile, write out a timer line */
-  void format_line(ofstream &myfile, profile * p) {
+  void format_line(ofstream &myfile, profile * p, task_identifier& task_id) {
     myfile << p->get_calls() << " ";
     myfile << 0 << " ";
     myfile << ((p->get_accumulated_useconds())) << " ";
     myfile << ((p->get_accumulated_useconds())) << " ";
     myfile << 0 << " ";
-    myfile << "GROUP=\"TAU_USER\" ";
+    myfile << get_TAU_group(task_id);
     myfile << endl;
   }
 
   /* When writing a TAU profile, write out the main timer line */
   void format_line(ofstream &myfile, profile * p, double not_main) {
-    myfile << p->get_calls() << " ";
+    double calls = p->get_calls() == 0 ? 1 : p->get_calls();
+    myfile << calls << " ";
     myfile << 0 << " ";
     myfile << (std::max<double>(((p->get_accumulated_useconds())
         - not_main),0.0)) << " ";
@@ -1092,14 +1103,20 @@ std::unordered_set<profile*> free_profiles;
     // Determine number of counter events, as these need to be
     // excluded from the number of normal timers
     unordered_map<task_identifier, profile*>::const_iterator it2;
-    std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
-    for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
-      profile * p = it2->second;
-      if(p->get_type() == APEX_COUNTER) {
-        counter_events++;
-      }
+    {
+        std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
+        for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
+            profile * p = it2->second;
+            if(p->get_type() == APEX_COUNTER) {
+                counter_events++;
+            }
+        }
     }
-    int function_count = task_map.size() - counter_events;
+    size_t function_count = task_map.size() - counter_events;
+    if (apex_options::use_tasktree_output()) {
+        auto root = task_wrapper::get_apex_main_wrapper();
+        function_count += (root->tree_node->getNodeCount() - 1);
+    }
 
     // Print the normal timers to the profile file
     // 1504 templated_functions_MULTI_TIME
@@ -1112,23 +1129,33 @@ std::unordered_set<profile*> free_profiles;
     // in a separate section, below.
     profile * mainp = nullptr;
     double not_main = 0.0;
-    for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
-      profile * p = it2->second;
-      task_identifier task_id = it2->first;
-      if(p->get_type() == APEX_TIMER) {
-        string action_name = task_id.get_name();
-        if(action_name.compare(APEX_MAIN_STR) == 0) {
-          mainp = p;
-        } else {
-          myfile << "\"" << action_name << "\" ";
-          format_line (myfile, p);
-          not_main += (p->get_accumulated_useconds());
+    {
+        std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
+        for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
+            profile * p = it2->second;
+            task_identifier task_id = it2->first;
+            if(p->get_type() == APEX_TIMER) {
+                string action_name = task_id.get_name();
+                if(action_name.compare(APEX_MAIN_STR) == 0) {
+                    mainp = p;
+                } else {
+                    myfile << "\"" << action_name << "\" ";
+                    format_line (myfile, p, task_id);
+                    not_main += (p->get_accumulated_useconds());
+                }
+            }
         }
-      }
+        if (mainp != nullptr) {
+            myfile << "\".TAU application\" ";
+            format_line (myfile, mainp, not_main);
+        }
     }
-    if (mainp != nullptr) {
-      myfile << "\"" << APEX_MAIN_STR << "\" ";
-      format_line (myfile, mainp, not_main);
+
+    // If we maintained the tasktree, we can write out the callpath.
+    if (apex_options::use_tasktree_output()) {
+        auto root = task_wrapper::get_apex_main_wrapper();
+        std::string prefix{""};
+        root->tree_node->writeTAUCallpath(myfile, prefix);
     }
 
     // 0 aggregates
