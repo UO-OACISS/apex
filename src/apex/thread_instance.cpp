@@ -312,6 +312,7 @@ void thread_instance::clear_current_profiler(profiler * the_profiler,
         std::cerr << "environment variable 'APEX_UNTIED_TIMERS=1' or ";
         std::cerr << "use the C++ API call 'apex::untied_timers(true);' ";
         std::cerr << "or C API call 'apex_set_untied_timers(1);'\n" << std::endl;
+        std::cerr << "Attempted to stop timer: " << the_profiler->get_task_id()->get_name(true) << std::endl;
         APEX_ASSERT(false);
         // redundant, but assert gets bypassed in a debug build.
         abort();
