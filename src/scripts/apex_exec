@@ -114,6 +114,7 @@ policy=yes
 debugger=""
 prog=""
 preload=no
+verbose=no
 
 if [ $# -eq 0 ] ; then
     usage
@@ -166,6 +167,7 @@ while (( "$#" )); do
       shift
       ;;
     --apex:verbose)
+      verbose=yes
       export APEX_VERBOSE=1
       shift
       ;;
@@ -247,8 +249,9 @@ while (( "$#" )); do
       export ROCPROFILER_LOG=1
       export HSA_VEN_AMD_AQLPROFILE_LOG=1
       export AQLPROFILE_READ_API=1
-      export ROCP_METRICS=@ROCM_PATH@/rocprofiler/lib/metrics.xml
-      export HSA_TOOLS_LIB=@ROCM_PATH@/rocprofiler/lib/librocprofiler64.so
+      export ROCP_METRICS=@ROCM_ROOT@/rocprofiler/lib/metrics.xml
+      export HSA_TOOLS_LIB=@ROCM_ROOT@/rocprofiler/lib/librocprofiler64.so
+      export LD_LIBRARY_PATH=@ROCM_ROOT@/rocprofiler/lib:$LD_LIBRARY_PATH
       shift
       ;;
     --apex:hip_driver)
@@ -371,9 +374,37 @@ eval set -- "${PARAMS}"
 export APEX_POLICY=1
 export HARMONY_HOME="@ACTIVEHARMONY_ROOT@"
 
+# Detect our MPI rank!
+myrank=0
+if [[ -v PMI_RANK ]] ; then
+    myrank=${PMI_RANK}
+fi
+if [[ -v ALPS_APP_PE ]] ; then
+    myrank=${ALPS_APP_PE}
+fi
+if [[ -v CRAY_PMI_RANK ]] ; then
+    myrank=${CRAY_PMI_RANK}
+fi
+if [[ -v OMPI_COMM_WORLD_RANK ]] ; then
+    myrank=${OMPI_COMM_WORLD_RANK}
+fi
+if [[ -v PBS_TASKNUM ]] ; then
+    myrank=${PBS_TASKNUM}
+fi
+if [[ -v PBS_O_TASKNUM ]] ; then
+    myrank=${PBS_O_TASKNUM}
+fi
+if [[ -v SLURM_PROCID ]] ; then
+    myrank=${SLURM_PROCID}
+fi
+
 echo_screen() {
-    if [ ${screen} = yes ] ; then
-        echo $1
+    if [ ${myrank} -eq 0 ] ; then
+        if [ ${verbose} = yes ] ; then
+            if [ ${screen} = yes ] ; then
+                echo $1
+            fi
+        fi
     fi
 }
 
@@ -489,15 +520,19 @@ fi
 
 if [ ${taskgraph} = yes ] ; then
     echo_screen "Generating taskgraph with GraphViz..."
-    dot -Tpdf -O taskgraph.0.dot
+    dot -Tpdf -O taskgraph.${myrank}.dot
 fi
 
 if [ ${tasktree} = yes ] ; then
     echo_screen "Generating tasktree with GraphViz..."
-    dot -Tpdf -O tasktree.0.dot
+    dot -Tpdf -O tasktree.${myrank}.dot
     echo_screen "Human readable tree in tasktree.*.txt:"
-    if [ ${screen} = yes ] ; then
-        head tasktree.0.txt
+    if [ ${myrank} -eq 0 ] ; then
+        if [ ${verbose} = yes ] ; then
+            if [ ${screen} = yes ] ; then
+                head tasktree.${myrank}.txt
+            fi
+        fi
     fi
     echo_screen "..."
 fi
