@@ -56,6 +56,31 @@ std::mutex bfd_mutex;
            the program exits and the pointers aren't needed any more. */
     }
 
+    std::string task_identifier::get_tree_name() {
+        std::string shorter(get_name(true));
+        size_t trim_at = shorter.find("(");
+        if (trim_at != std::string::npos) {
+            shorter = shorter.substr(0, trim_at);
+        }
+        trim_at = shorter.find("<");
+        size_t addr = shorter.find("addr", 0);
+        if (trim_at != std::string::npos && addr == std::string::npos) {
+            shorter = shorter.substr(0, trim_at);
+        }
+        // IF this is an openmp loop from a Kokkos kernel, strip the garbage
+        /*
+        size_t omp = shorter.find("OpenMP ", 0);
+        size_t colon = shorter.find(": ");
+        if (omp != std::string::npos && colon != std::string::npos) {
+            size_t kokkos = shorter.find("Kokkos::parallel");
+            if (kokkos != std::string::npos) {
+                shorter = shorter.substr(0, colon);
+            }
+        }
+        */
+        return shorter;
+    }
+
     std::string task_identifier::get_short_name() {
         std::string shorter(get_name(true));
         size_t trim_at = shorter.find("(");
@@ -145,6 +170,24 @@ std::mutex bfd_mutex;
             return retval;
         }
     }
+
+  /* When writing a TAU profile, get the appropriate TAU group */
+  std::string task_identifier::get_group() {
+    std::string name{get_name(true)};
+    std::stringstream ss;
+    if (name.rfind("GPU: ", 0) == 0) { ss << "TAU_GPU"; }
+    else if (name.rfind("OpenMP ", 0) == 0) { ss << "TAU_OPENMP"; }
+    else if (name.rfind("OpenACC ", 0) == 0) { ss << "TAU_OPENACC"; }
+    else if (name.rfind("Kokkos", 0) == 0) { ss << "TAU_KOKKOS"; }
+    else if (name.rfind("MPI_", 0) == 0) { ss << "MPI"; }
+    else if (name.rfind("cuda", 0) == 0) { ss << "TAU_CUDA"; }
+    else if (name.rfind("hip", 0) == 0) { ss << "TAU_HIP"; }
+    else if (name.rfind("pthread", 0) == 0) { ss << "TAU_PTHREAD"; }
+    else if (name.rfind("hpx", 0) == 0) { ss << "TAU_HPX"; }
+    else { ss << "TAU_USER"; }
+    std::string group{ss.str()};
+    return group;
+  }
 
   task_identifier::apex_name_map& task_identifier::get_task_id_name_map(void) {
       /* By allocating this map on the heap, it won't get destroyed at shutdown,

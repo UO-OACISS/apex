@@ -70,6 +70,8 @@ public:
   };
   std::string get_name(bool resolve = true);
   std::string get_short_name();
+  std::string get_tree_name();
+  std::string get_group();
   ~task_identifier() { }
   // requried for using this class as a key in an unordered map.
   // the hash function is defined below.
