@@ -346,6 +346,7 @@ inline unsigned int sc_nprocessors_onln()
 
 #define FOREACH_APEX_STRING_OPTION(macro) \
     macro (APEX_PAPI_METRICS, papi_metrics, char*, "") \
+    macro (APEX_PAPI_COMPONENTS, papi_components, char*, "") \
     macro (APEX_PLUGINS, plugins, char*, "") \
     macro (APEX_PLUGINS_PATH, plugins_path, char*, "./") \
     macro (APEX_OUTPUT_FILE_PATH, output_file_path, char*, "./") \
