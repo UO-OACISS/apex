@@ -460,7 +460,8 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
         apex_options::use_proc_self_status() ||
         apex_options::monitor_gpu() ||
         apex_options::use_hip_profiler() ||
-        apex_options::use_proc_stat()) {
+        apex_options::use_proc_stat() ||
+        strlen(apex_options::papi_components()) > 0) {
         instance->pd_reader = new proc_data_reader();
     }
 #endif
@@ -2320,18 +2321,6 @@ extern "C" {
     (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
     /* There are also a handful of interesting function calls that HPX uses
        that we should measure when requested */
-    int MPI_Wait(MPI_Request *request, MPI_Status *status) {
-        auto p = start(__func__);
-        int retval = PMPI_Wait(request, status);
-        stop(p);
-        return retval;
-    }
-    int MPI_Barrier(MPI_Comm comm) {
-        auto p = start(__func__);
-        int retval = PMPI_Barrier(comm);
-        stop(p);
-        return retval;
-    }
     int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest,
         int tag, MPI_Comm comm, MPI_Request *request) {
         auto p = start(__func__);
@@ -2367,6 +2356,94 @@ extern "C" {
         auto p = start(__func__);
         int retval = PMPI_Gather(sendbuf, sendcount, sendtype, recvbuf,
             recvcount, recvtype, root, comm);
+        stop(p);
+        return retval;
+    }
+    /* There are a handful of interesting Collectives! */
+    int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
+                  MPI_Datatype datatype, MPI_Op op, MPI_Comm comm) {
+        auto p = start(__func__);
+        int retval = PMPI_Allreduce(sendbuf, recvbuf, count, datatype, op, comm);
+        stop(p);
+        return retval;
+    }
+    int MPI_Reduce(const void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype,
+        MPI_Op op, int root, MPI_Comm comm) {
+        auto p = start(__func__);
+        int retval = PMPI_Reduce(sendbuf, recvbuf, count, datatype, op, root, comm);
+        stop(p);
+        return retval;
+    }
+    int MPI_Bcast( void *buffer, int count, MPI_Datatype datatype, int root,
+        MPI_Comm comm ) {
+        auto p = start(__func__);
+        int retval = PMPI_Bcast(buffer, count, datatype, root, comm );
+        stop(p);
+        return retval;
+    }
+    int MPI_Startall(int count, MPI_Request array_of_requests[]) {
+        auto p = start(__func__);
+        int retval = PMPI_Startall(count, array_of_requests);
+        stop(p);
+        return retval;
+    }
+    int MPI_Alltoall(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
+        void *recvbuf, int recvcount, MPI_Datatype recvtype, MPI_Comm comm) {
+        auto p = start(__func__);
+        int retval = PMPI_Alltoall(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm);
+        stop(p);
+        return retval;
+    }
+    int MPI_Allgather(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
+        void *recvbuf, int recvcount, MPI_Datatype recvtype, MPI_Comm comm) {
+        auto p = start(__func__);
+        int retval = PMPI_Allgather(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm);
+        stop(p);
+        return retval;
+    }
+    int MPI_Allgatherv(const void* buffer_send, int count_send, MPI_Datatype datatype_send,
+        void* buffer_recv, const int* counts_recv, const int* displacements,
+        MPI_Datatype datatype_recv, MPI_Comm communicator) {
+        auto p = start(__func__);
+        int retval = PMPI_Allgatherv(buffer_send, count_send, datatype_send,
+            buffer_recv, counts_recv, displacements, datatype_recv, communicator);
+        stop(p);
+        return retval;
+    }
+    int MPI_Gatherv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
+        void *recvbuf, const int *recvcounts, const int *displs,
+        MPI_Datatype recvtype, int root, MPI_Comm comm) {
+        auto p = start(__func__);
+        int retval = PMPI_Gatherv(sendbuf, sendcount, sendtype, recvbuf, recvcounts, displs, recvtype, root, comm);
+        stop(p);
+        return retval;
+    }
+    int MPI_Sendrecv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
+        int dest, int sendtag, void *recvbuf, int recvcount, MPI_Datatype recvtype,
+        int source, int recvtag, MPI_Comm comm, MPI_Status * status) {
+        auto p = start(__func__);
+        int retval = PMPI_Sendrecv(sendbuf, sendcount, sendtype, dest, sendtag, recvbuf, recvcount, recvtype,
+                 source, recvtag, comm, status);
+        stop(p);
+        return retval;
+    }
+    /* There are a handful of interesting Synchronization functions */
+    int MPI_Waitall(int count, MPI_Request array_of_requests[],
+        MPI_Status array_of_statuses[]) {
+        auto p = start(__func__);
+        int retval = PMPI_Waitall(count, array_of_requests, array_of_statuses);
+        stop(p);
+        return retval;
+    }
+    int MPI_Wait(MPI_Request *request, MPI_Status *status) {
+        auto p = start(__func__);
+        int retval = PMPI_Wait(request, status);
+        stop(p);
+        return retval;
+    }
+    int MPI_Barrier(MPI_Comm comm) {
+        auto p = start(__func__);
+        int retval = PMPI_Barrier(comm);
         stop(p);
         return retval;
     }
