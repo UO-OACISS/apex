@@ -103,13 +103,6 @@ public:
   long long package0;
   long long dram;
 #endif
-#if defined(APEX_HAVE_PAPI)
-  std::vector<long long> rapl_metrics;
-  std::vector<long long> nvml_metrics;
-  std::vector<long long> rocm_metrics;
-  std::vector<long long> rsmi_metrics;
-  std::vector<long long> lms_metrics;
-#endif
   //softirq 10953997190 0 1380880059 1495447920 1585783785 ...
   //        15525789 0 12 661586214 0 1519806115
   ~ProcData(void);
@@ -223,7 +216,7 @@ inline long long  read_dram (void) {
 
 #if defined(APEX_HAVE_PAPI)
 void initialize_papi_events(void);
-void read_papi_components(ProcData * data);
+void read_papi_components(void);
 #endif
 
 #ifdef APEX_HAVE_MSR
