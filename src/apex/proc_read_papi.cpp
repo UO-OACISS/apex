@@ -7,6 +7,7 @@
  */
 
 #include "papi.h"
+#define MAX_EVENTS_PER_EVENTSET 100
 
 namespace apex {
 
@@ -34,7 +35,7 @@ namespace apex {
     void initialize_papi_component(const PAPI_component_info_t *comp_info,
         int component_id) {
         int retval = PAPI_OK;
-        printf("Trying %s PAPI component\n", comp_info->name);
+        //printf("Trying %s PAPI component\n", comp_info->name);
         if (comp_info->num_native_events == 0) {
             if (apex_options::use_verbose()) {
                 fprintf(stderr, "PAPI %s component found, but ", comp_info->name);
@@ -59,7 +60,13 @@ namespace apex {
         std::vector<std::string> event_units;
         std::vector<int> event_data_types;
         std::vector<double> event_conversions;
-        for ( int ii=0; ii< comp_info->num_native_events; ii++ ) {
+        if (comp_info->num_native_events > MAX_EVENTS_PER_EVENTSET) {
+            fprintf(stderr, "WARNING! PAPI component %s has more events than "
+                "APEX is configured to support. "
+                "Some counters may be missing.\n", comp_info->name);
+        }
+        for ( int ii=0; ii< std::min(MAX_EVENTS_PER_EVENTSET,
+                 comp_info->num_native_events); ii++ ) {
             // get the event
             retval = PAPI_enum_cmp_event( &code, event_modifier, component_id );
             event_modifier = PAPI_ENUM_EVENTS;
@@ -166,12 +173,12 @@ namespace apex {
                 fprintf(stderr, "PAPI component info unavailable, no power measurements will be done.\n");
                 return;
             }
-            printf("Found %s PAPI component\n", comp_info->name);
+            //printf("Found %s PAPI component\n", comp_info->name);
             if (requested_components.find(comp_info->name) ==
                 requested_components.end()) {
                 continue;
             }
-            printf("Trying %s PAPI component\n", comp_info->name);
+            //printf("Trying %s PAPI component\n", comp_info->name);
             initialize_papi_component(comp_info, component_id);
         }
     }
@@ -179,7 +186,7 @@ namespace apex {
     void read_papi_components() {
         PAPIStats& stats = getStats();
         for (auto component : stats.active_components) {
-            long long values[100]; // = (long long *)calloc(stats.event_names.size(), sizeof(long long));
+            long long values[MAX_EVENTS_PER_EVENTSET]; // = (long long *)calloc(stats.event_names.size(), sizeof(long long));
             int retval = PAPI_read(stats.eventsets[component], values);
             if (retval != PAPI_OK) {
                 fprintf(stderr, "Error reading PAPI %s eventset.\n", component.c_str());
