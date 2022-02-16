@@ -37,6 +37,7 @@
 #include <mutex>
 #include <thread>
 #include <chrono>
+#include <cstdarg>
 
 namespace apex {
 
