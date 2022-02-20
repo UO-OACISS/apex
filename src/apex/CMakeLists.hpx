@@ -305,6 +305,7 @@ set(apex_sources
     apex.cpp
     apex_kokkos.cpp
     apex_kokkos_tuning.cpp
+    apex_mpi.cpp
     apex_options.cpp
     apex_policies.cpp
     concurrency_handler.cpp

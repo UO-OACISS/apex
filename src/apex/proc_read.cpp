@@ -467,6 +467,12 @@ namespace apex {
                     char* pEnd;
                     double d1 = strtod (value.c_str(), &pEnd);
                     string mname("meminfo:" + name);
+                    if (pEnd != NULL) {
+                        int len = strlen(pEnd);
+                        if( pEnd[len-1] == '\n' )
+                            pEnd[len-1] = 0;
+                        mname.append(pEnd);
+                    }
                     if (pEnd) { sample_value(mname, d1); }
                 }
             }
@@ -498,6 +504,12 @@ namespace apex {
                         char* pEnd;
                         double d1 = strtod (value.c_str(), &pEnd);
                         string mname("status:" + name);
+                        if (pEnd != NULL) {
+                        int len = strlen(pEnd);
+                            if( pEnd[len-1] == '\n' )
+                                pEnd[len-1] = 0;
+                            mname.append(pEnd);
+                        }
                         if (pEnd) { sample_value(mname, d1); }
                     }
                 }
@@ -512,6 +524,12 @@ namespace apex {
                         char* pEnd;
                         double d1 = strtod (value.c_str(), &pEnd);
                         string mname("status:" + name);
+                        if (pEnd != NULL) {
+                        int len = strlen(pEnd);
+                            if( pEnd[len-1] == '\n' )
+                                pEnd[len-1] = 0;
+                            mname.append(pEnd);
+                        }
                         if (pEnd) { sample_value(mname, d1); }
                     }
                 }
@@ -526,6 +544,12 @@ namespace apex {
                         char* pEnd;
                         double d1 = strtod (value.c_str(), &pEnd);
                         string mname("status:" + name);
+                        if (pEnd != NULL) {
+                        int len = strlen(pEnd);
+                            if( pEnd[len-1] == '\n' )
+                                pEnd[len-1] = 0;
+                            mname.append(pEnd);
+                        }
                         if (pEnd) { sample_value(mname, d1); }
                     }
                 }

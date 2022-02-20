@@ -75,6 +75,7 @@ ${RSMI_SOURCE}
 apex.cpp
 apex_kokkos.cpp
 apex_kokkos_tuning.cpp
+apex_mpi.cpp
 apex_options.cpp
 event_filter.cpp
 apex_policies.cpp
