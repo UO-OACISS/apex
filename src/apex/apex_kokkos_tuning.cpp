@@ -212,7 +212,8 @@ private:
 // EXHAUSTIVE, RANDOM, NELDER_MEAD, PARALLEL_RANK_ORDER
     KokkosSession() :
         window(5),
-        strategy(apex_ah_tuning_strategy::SIMULATED_ANNEALING),
+        strategy(apex_ah_tuning_strategy::APEX_EXHAUSTIVE),
+        //strategy(apex_ah_tuning_strategy::SIMULATED_ANNEALING),
         //strategy(apex_ah_tuning_strategy::NELDER_MEAD),
         verbose(false),
         use_history(false),
@@ -283,7 +284,16 @@ bool KokkosSession::checkForCache() {
 }
 
 void KokkosSession::saveInputVar(size_t id, Variable * var) {
+    // insert the id given to us
     inputs.insert(std::make_pair(id, var));
+    // get a count of how many input variables we have seen
+    size_t count = inputs.size();
+    // if the id is equal to the size, there was a mingling of input and output ids.
+    // this might burn us later, so also insert the missing ID.
+    // For example, if the input ID is 4, and the new size is 3.
+    if (id > count) {
+        inputs.insert(std::make_pair(count, var));
+    }
     /*
     if (!use_history) {
         cachedResults << "Input_" << id << ":" << std::endl;
@@ -542,6 +552,8 @@ void Variable::deepCopy(Kokkos_Tools_VariableInfo& _info) {
                     }
                 }
             }
+            if (info.valueQuantity == kokkos_value_unbounded) {
+            }
             break;
         }
         case kokkos_value_interval:
@@ -701,7 +713,7 @@ size_t& getDepth() {
 
 std::string hashContext(size_t numVars,
     const Kokkos_Tools_VariableValue* values,
-    std::map<size_t, Variable*>& varmap) {
+    std::map<size_t, Variable*>& varmap, std::string tree_node) {
     std::stringstream ss;
     std::string d{"["};
     for (size_t i = 0 ; i < numVars ; i++) {
@@ -731,19 +743,20 @@ std::string hashContext(size_t numVars,
         }
         d = ",";
     }
-    ss << "]";
+    ss << ",node:" << tree_node << "]";
     std::string tmp{ss.str()};
     return tmp;
 }
 
-void printContext(size_t numVars, const Kokkos_Tools_VariableValue* values) {
-    std::cout << ", cv: " << numVars;
-    std::cout << hashContext(numVars, values, KokkosSession::getSession().inputs);
+void printContext(size_t numVars, std::string name) {
+    std::cout << "-cv: " << numVars << name;
+    std::cout << std::endl;
 }
 
-void printTuning(const size_t numVars, Kokkos_Tools_VariableValue* values) {
-    std::cout << "tv: " << numVars;
-    std::cout << hashContext(numVars, values, KokkosSession::getSession().outputs);
+void printTuning(const size_t numVars, Kokkos_Tools_VariableValue* values,
+    KokkosSession& session) {
+    std::cout << "-tv: " << numVars;
+    std::cout << hashContext(numVars, values, session.outputs, "");
     std::cout << std::endl;
 }
 
@@ -764,12 +777,12 @@ bool getCachedTunings(std::string name,
         auto varname = nameiter->second;
         if (var.metadata->type == kokkos_value_double) {
             values[i].value.double_value = var.value.double_value;
-            //std::string tmp(name+":"+varname);
-            //apex::sample_value(tmp, var.value.double_value);
+            std::string tmp(name+":"+varname);
+            apex::sample_value(tmp, var.value.double_value);
         } else if (var.metadata->type == kokkos_value_int64) {
             values[i].value.int_value = var.value.int_value;
-            //std::string tmp(name+":"+varname);
-            //apex::sample_value(tmp, var.value.int_value);
+            std::string tmp(name+":"+varname);
+            apex::sample_value(tmp, var.value.int_value);
         } else if (var.metadata->type == kokkos_value_string) {
             strncpy(values[i].value.string_value, var.value.string_value, KOKKOS_TOOLS_TUNING_STRING_LENGTH);
         }
@@ -828,7 +841,8 @@ bool handle_start(const std::string & name, const size_t vars,
         delta = apex::profiler::now_ns();
         // Start a new tuning session.
         if(session.verbose) {
-            fprintf(stderr, "Starting tuning session for %s\n", name.c_str());
+            std::cout << std::string(getDepth(), ' ');
+            std::cout << "Starting tuning session for " << name << std::endl;
         }
         std::shared_ptr<apex_tuning_request> request{std::make_shared<apex_tuning_request>(name)};
         session.requests.insert(std::make_pair(name, request));
@@ -860,6 +874,7 @@ bool handle_start(const std::string & name, const size_t vars,
             }
             double result = profile->accumulated/profile->calls;
             if(verbose) {
+                std::cout << std::string(getDepth(), ' ');
                 std::cout << "querying time per call: " << (double)(result)/1000000000.0 << "s" << std::endl;
             }
             return result;
@@ -971,7 +986,7 @@ void kokkosp_declare_output_type(const char* name, const size_t id,
     session.checkForCache();
     if(session.verbose) {
         std::cout << std::string(getDepth(), ' ');
-        std::cout << __func__ << std::endl;
+        std::cout << __func__ << " " << id << " " << info.type << "," << info.category << "," << info.valueQuantity << std::endl;
     }
     Variable * output = new Variable(id, name, info);
     output->makeSpace();
@@ -994,7 +1009,7 @@ void kokkosp_declare_input_type(const char* name, const size_t id,
     session.checkForCache();
     if(session.verbose) {
         std::cout << std::string(getDepth(), ' ');
-        std::cout << __func__ << std::endl;
+        std::cout << __func__ << " " << id << " " << info.type << "," << info.category << "," << info.valueQuantity << std::endl;
     }
     Variable * input = new Variable(id, name, info);
     session.saveInputVar(id, input);
@@ -1027,17 +1042,24 @@ void kokkosp_request_values(
     const size_t numTuningVariables,
     Kokkos_Tools_VariableValue* tuningVariableValues) {
     if (!apex::apex_options::use_kokkos_tuning()) { return; }
+    // first, get the current timer node in the task tree
+    auto tlt = apex::thread_instance::get_top_level_timer();
+    std::string tree_node{""};
+    if (tlt != nullptr) {
+        tree_node = tlt->tree_node->getName();
+    }
     // don't track memory in this function.
     apex::in_apex prevent_memory_tracking;
     KokkosSession& session = KokkosSession::getSession();
-    if (session.verbose) {
-        std::cout << std::string(getDepth(), ' ');
-        std::cout << __func__ << " ctx: " << contextId;
-        printContext(numContextVariables, contextVariableValues);
-    }
     // create a unique name for this combination of input vars
     std::string name{hashContext(numContextVariables, contextVariableValues,
-        session.inputs)};
+        session.inputs, tree_node)};
+    if (session.verbose) {
+        std::cout << std::string(getDepth(), ' ');
+        std::cout << __func__ << " ctx: " << contextId << std::endl;
+        std::cout << std::string(getDepth(), ' ');
+        printContext(numContextVariables, name);
+    }
     // check if we have a cached result
     bool success{false};
     if (session.use_history) {
@@ -1059,8 +1081,8 @@ void kokkosp_request_values(
         }
     }
     if (session.verbose) {
-        std::cout << std::endl << std::string(getDepth(), ' ');
-        printTuning(numTuningVariables, tuningVariableValues);
+        std::cout << std::string(getDepth(), ' ');
+        printTuning(numTuningVariables, tuningVariableValues, session);
     }
 }
 
@@ -1096,10 +1118,13 @@ void kokkosp_end_context(const size_t contextId) {
     if (session.verbose) {
         std::cout << std::string(--getDepth(), ' ');
         std::cout << __func__ << "\t" << contextId << std::endl;
-        std::cout << name->second << "\t" << (end-(start->second)) << std::endl;
     }
     if (name != session.active_requests.end() &&
         start != session.context_starts.end()) {
+        if (session.verbose) {
+            std::cout << std::string(getDepth(), ' ');
+            std::cout << name->second << "\t" << (end-(start->second)) << std::endl;
+        }
         if (session.used_history.count(contextId) == 0) {
             apex::sample_value(name->second, (double)(end-(start->second)));
             handle_stop(name->second);

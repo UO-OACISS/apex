@@ -907,6 +907,35 @@ int apex_sa_policy(shared_ptr<apex_tuning_session> tuning_session,
     return APEX_NOERROR;
 }
 
+int apex_exhaustive_policy(shared_ptr<apex_tuning_session> tuning_session,
+    apex_context const context) {
+    APEX_UNUSED(context);
+    if (apex_final) return APEX_NOERROR; // we terminated
+    std::unique_lock<std::mutex> l{shutdown_mutex};
+    if (tuning_session->exhaustive_session.converged()) {
+        if (!tuning_session->converged_message) {
+            tuning_session->converged_message = true;
+            cout << "APEX: Tuning has converged for session " << tuning_session->id
+            << "." << endl;
+            tuning_session->exhaustive_session.saveBestSettings();
+            tuning_session->exhaustive_session.printBestSettings();
+        }
+        tuning_session->exhaustive_session.saveBestSettings();
+        return APEX_NOERROR;
+    }
+
+    // get a measurement of our current setting
+    double new_value = tuning_session->metric_of_interest();
+
+    /* Report the performance we've just measured. */
+    tuning_session->exhaustive_session.evaluate(new_value);
+
+    /* Request new settings for next time */
+    tuning_session->exhaustive_session.getNewSettings();
+
+    return APEX_NOERROR;
+}
+
 
 /// ----------------------------------------------------------------------------
 ///
@@ -1454,6 +1483,67 @@ inline int __sa_setup(shared_ptr<apex_tuning_session>
   return APEX_NOERROR;
 }
 
+inline int __exhaustive_setup(shared_ptr<apex_tuning_session>
+    tuning_session, apex_tuning_request & request) {
+  APEX_UNUSED(tuning_session);
+  // set up the Simulated annealing!
+  // iterate over the parameters, and create variables.
+  using namespace apex::exhaustive;
+  for(auto & kv : request.params) {
+      auto & param = kv.second;
+      const char * param_name = param->get_name().c_str();
+      switch(param->get_type()) {
+          case apex_param_type::LONG: {
+              auto param_long =
+              std::static_pointer_cast<apex_param_long>(param);
+              Variable v(VariableType::longtype, param_long->value.get());
+              long lvalue = param_long->min;
+              do {
+                  v.lvalues.push_back(lvalue);
+                  lvalue = lvalue + param_long->step;
+              } while (lvalue < param_long->max);
+              v.set_init();
+              tuning_session->exhaustive_session.add_var(param_name, std::move(v));
+          }
+          break;
+          case apex_param_type::DOUBLE: {
+              auto param_double =
+              std::static_pointer_cast<apex_param_double>(param);
+              Variable v(VariableType::doubletype, param_double->value.get());
+              double dvalue = param_double->min;
+              do {
+                  v.dvalues.push_back(dvalue);
+                  dvalue = dvalue + param_double->step;
+              } while (dvalue < param_double->max);
+              v.set_init();
+              tuning_session->exhaustive_session.add_var(param_name, std::move(v));
+          }
+          break;
+          case apex_param_type::ENUM: {
+              auto param_enum =
+              std::static_pointer_cast<apex_param_enum>(param);
+              Variable v(VariableType::stringtype, param_enum->value.get());
+              for(const std::string & possible_value :
+                             param_enum->possible_values) {
+                  v.svalues.push_back(possible_value);
+              }
+              v.set_init();
+              tuning_session->exhaustive_session.add_var(param_name, std::move(v));
+          }
+          break;
+          default:
+              cerr <<
+              "ERROR: Attempted to register tuning parameter with unknown type."
+              << endl;
+              return APEX_ERROR;
+      }
+  }
+  /* request initial settings */
+  tuning_session->exhaustive_session.getNewSettings();
+
+  return APEX_NOERROR;
+}
+
 inline int __common_setup_timer_throttling(apex_optimization_criteria_t
     criteria, apex_optimization_method_t method, unsigned long update_interval)
 {
@@ -1544,6 +1634,16 @@ inline int __common_setup_custom_tuning(shared_ptr<apex_tuning_session>
             request.trigger,
             [=](apex_context const & context)->int {
                 return apex_sa_policy(tuning_session, context);
+            }
+            );
+        }
+    } else if (request.strategy == apex_ah_tuning_strategy::APEX_EXHAUSTIVE) {
+        status = __exhaustive_setup(tuning_session, request);
+        if(status == APEX_NOERROR) {
+            apex::register_policy(
+            request.trigger,
+            [=](apex_context const & context)->int {
+                return apex_exhaustive_policy(tuning_session, context);
             }
             );
         }

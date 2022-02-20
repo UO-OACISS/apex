@@ -85,6 +85,7 @@ ${RAJA_SOURCE}
 concurrency_handler.cpp
 dependency_tree.cpp
 event_listener.cpp
+exhaustive.cpp
 handler.cpp
 memory_wrapper.cpp
 ${OTF2_SOURCE}
@@ -164,6 +165,7 @@ INSTALL(FILES apex.h
     apex_types.h
     apex_policies.h
     apex_policies.hpp
+    exhaustive.hpp
     handler.hpp
     profile.hpp
     apex_export.h

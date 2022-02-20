@@ -18,7 +18,7 @@ namespace dependency {
 
 // declare an instance of the statics
 std::mutex Node::treeMutex;
-size_t Node::nodeCount{0};
+std::atomic<size_t> Node::nodeCount{0};
 
 Node* Node::appendChild(task_identifier* c) {
     treeMutex.lock();

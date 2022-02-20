@@ -579,6 +579,22 @@ inline std::shared_ptr<task_wrapper> _new_task(
     return tt_ptr;
 }
 
+void debug_print(const char * event, std::shared_ptr<task_wrapper> tt_ptr) {
+    if (apex::get_program_over()) return;
+    static std::mutex this_mutex;
+    std::unique_lock<std::mutex> l(this_mutex);
+    std::stringstream ss;
+    if (tt_ptr == nullptr) {
+        ss << thread_instance::get_id() << " " << event << " : (null) : (null)"
+            << endl;
+        cout << ss.str(); fflush(stdout);
+    } else {
+        ss << thread_instance::get_id() << " " << event << " : " <<
+            tt_ptr->guid << " : " << tt_ptr->get_task_id()->get_name() << endl;
+        cout << ss.str(); fflush(stdout);
+    }
+}
+
 profiler* start(const std::string &timer_name)
 {
     in_apex prevent_deadlocks;
@@ -616,6 +632,9 @@ profiler* start(const std::string &timer_name)
         bool success = true;
         task_identifier * id = task_identifier::get_task_id(timer_name);
         tt_ptr = _new_task(id, UINTMAX_MAX, null_task_wrapper, instance);
+#if defined(APEX_DEBUG)//_disabled)
+    debug_print("Start", tt_ptr);
+#endif
         APEX_UTIL_REF_COUNT_TASK_WRAPPER
         //read_lock_type l(instance->listener_mutex);
         /*
@@ -678,6 +697,9 @@ profiler* start(const apex_function_address function_address) {
         bool success = true;
         task_identifier * id = task_identifier::get_task_id(function_address);
         tt_ptr = _new_task(id, UINTMAX_MAX, null_task_wrapper, instance);
+#if defined(APEX_DEBUG)//_disabled)
+    debug_print("Start", tt_ptr);
+#endif
         APEX_UTIL_REF_COUNT_TASK_WRAPPER
         /*
         std::stringstream dbg;
@@ -707,22 +729,6 @@ profiler* start(const apex_function_address function_address) {
         return new_profiler;
     }
     return thread_instance::instance().restore_children_profilers(tt_ptr);
-}
-
-void debug_print(const char * event, std::shared_ptr<task_wrapper> tt_ptr) {
-    if (apex::get_program_over()) return;
-    static std::mutex this_mutex;
-    std::unique_lock<std::mutex> l(this_mutex);
-    std::stringstream ss;
-    if (tt_ptr == nullptr) {
-        ss << thread_instance::get_id() << " " << event << " : (null) : (null)"
-            << endl;
-        cout << ss.str(); fflush(stdout);
-    } else {
-        ss << thread_instance::get_id() << " " << event << " : " <<
-            tt_ptr->guid << " : " << tt_ptr->get_task_id()->get_name() << endl;
-        cout << ss.str(); fflush(stdout);
-    }
 }
 
 void start(std::shared_ptr<task_wrapper> tt_ptr) {
@@ -994,6 +1000,9 @@ void stop(profiler* the_profiler, bool cleanup) {
         APEX_UTIL_REF_COUNT_DOUBLE_STOP
         return;
     }
+#if defined(APEX_DEBUG)//_disabled)
+    debug_print("Stop", the_profiler->tt_ptr);
+#endif
     thread_instance::instance().clear_current_profiler(the_profiler, false,
         null_task_wrapper);
     apex* instance = apex::instance(); // get the Apex static instance
