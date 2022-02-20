@@ -37,6 +37,7 @@
 #include <mutex>
 #include <thread>
 #include <chrono>
+#include <cstdarg>
 
 namespace apex {
 
@@ -646,6 +647,16 @@ in_apex::~in_apex() {
     //printf("OUT %lu, %lu\n", syscall(SYS_gettid), get());
 }
 
+void rank0_print(const char * fmt, ...) {
+        va_list args;
+        va_start (args, fmt);
+    if (apex::instance()->get_node_id() == 0 &&
+        apex_options::use_verbose()) {
+        vprintf(fmt, args);
+    }
+        va_end(args);
+}
+
 } // namespace apex
 
 extern "C" void __cyg_profile_func_enter(void *this_fn, void *call_site) __attribute__((no_instrument_function));
@@ -663,3 +674,5 @@ extern "C" void __cyg_profile_func_exit(void *this_fn, void *call_site)
     APEX_UNUSED(call_site);
     apex::stop(apex::thread_instance::instance().get_current_profiler());
 } /* __cyg_profile_func_enter */
+
+

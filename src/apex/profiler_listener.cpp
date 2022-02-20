@@ -474,7 +474,7 @@ std::unordered_set<profile*> free_profiles;
   void profiler_listener::write_one_timer(std::string &action_name,
           profile * p, stringstream &screen_output,
           stringstream &csv_output, double &total_accumulated,
-          double &total_main, bool timer) {
+          double &total_main, bool timer, bool include_stops = false) {
       string shorter(action_name);
       size_t maxlength = 41;
       if (timer) maxlength = 52;
@@ -518,6 +518,16 @@ std::unordered_set<profile*> free_profiles;
       } else {
           screen_output << string_format(FORMAT_SCIENTIFIC, p->get_calls())
             << "   " ;
+      }
+      if (include_stops) {
+        auto stops = std::max<double>(0.0, (p->get_stops() - p->get_calls()));
+        if (stops < 999999) {
+            screen_output << string_format(PAD_WITH_SPACES,
+                to_string((int)stops).c_str()) << "   " ;
+        } else {
+            screen_output << string_format(FORMAT_SCIENTIFIC, stops)
+                << "   " ;
+        }
       }
       if (p->get_type() == APEX_TIMER) {
         csv_output << "\"" << action_name << "\",";
@@ -677,7 +687,7 @@ std::unordered_set<profile*> free_profiles;
         << " seconds" << endl;
     screen_output << "Total processes detected: " << apex::instance()->get_num_ranks()
         << endl;
-    screen_output << "Cores detected on rank 0: " << hardware_concurrency()
+    screen_output << "HW Threads detected on rank 0: " << hardware_concurrency()
         << endl;
     screen_output << "Worker Threads observed on rank 0: "
         << num_worker_threads << endl;
@@ -691,12 +701,14 @@ std::unordered_set<profile*> free_profiles;
     double total_accumulated = 0.0;
     std::vector<std::string> id_vector;
     // iterate over the counters, and sort their names
-    std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
-    for(auto it2 : all_profiles) {
-        std::string name = it2.first;
-        apex_profile * p = it2.second;
-        if (p->type != APEX_TIMER) {
-            id_vector.push_back(name);
+    {
+        std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
+        for(auto it2 : all_profiles) {
+            std::string name = it2.first;
+            apex_profile * p = it2.second;
+            if (p->type != APEX_TIMER) {
+                id_vector.push_back(name);
+            }
         }
     }
     csv_output << "\"counter\",\"num samples\",\"minimum\",\"mean\""
@@ -792,14 +804,14 @@ std::unordered_set<profile*> free_profiles;
     screen_output << endl;
 
     screen_output << "CPU Timers                                           : "
-        << "#calls  |    mean  |   total  |  % total  "
+        << "#calls  |  #yields |    mean  |   total  |  % total  "
         << tmpstr;
     if (apex_options::track_memory()) {
        screen_output << "|  allocs |  (bytes) |    frees |   (bytes) ";
     }
     screen_output << endl;
     screen_output << "----------------------------------------------"
-        << "--------------------------------------------------";
+        << "-------------------------------------------------------------";
     if (apex_options::track_memory()) {
         screen_output << "--------------------------------------------";
     }
@@ -813,14 +825,14 @@ std::unordered_set<profile*> free_profiles;
         if (p != all_profiles.end()) {
             profile tmp(p->second);
             write_one_timer(name, &tmp, screen_output, csv_output,
-                total_accumulated, divisor, true);
+                total_accumulated, divisor, true, true);
             if (name.compare(APEX_MAIN_STR) != 0) {
                 total_hpx_threads = total_hpx_threads + tmp.get_calls();
             }
         }
     }
     screen_output << "--------------------------------------------------"
-        << "----------------------------------------------";
+        << "---------------------------------------------------------";
     if (apex_options::track_memory()) {
         screen_output << "--------------------------------------------";
     }
@@ -985,20 +997,29 @@ std::unordered_set<profile*> free_profiles;
     myfile.close();
   }
 
+  /* When writing a TAU profile, get the appropriate TAU group */
+  inline std::string get_TAU_group(task_identifier& task_id) {
+    std::stringstream ss;
+    ss << "GROUP=\"" << task_id.get_group() << "\" ";
+    std::string group{ss.str()};
+    return group;
+  }
+
   /* When writing a TAU profile, write out a timer line */
-  void format_line(ofstream &myfile, profile * p) {
+  void format_line(ofstream &myfile, profile * p, task_identifier& task_id) {
     myfile << p->get_calls() << " ";
     myfile << 0 << " ";
     myfile << ((p->get_accumulated_useconds())) << " ";
     myfile << ((p->get_accumulated_useconds())) << " ";
     myfile << 0 << " ";
-    myfile << "GROUP=\"TAU_USER\" ";
+    myfile << get_TAU_group(task_id);
     myfile << endl;
   }
 
   /* When writing a TAU profile, write out the main timer line */
   void format_line(ofstream &myfile, profile * p, double not_main) {
-    myfile << p->get_calls() << " ";
+    double calls = p->get_calls() == 0 ? 1 : p->get_calls();
+    myfile << calls << " ";
     myfile << 0 << " ";
     myfile << (std::max<double>(((p->get_accumulated_useconds())
         - not_main),0.0)) << " ";
@@ -1082,14 +1103,20 @@ std::unordered_set<profile*> free_profiles;
     // Determine number of counter events, as these need to be
     // excluded from the number of normal timers
     unordered_map<task_identifier, profile*>::const_iterator it2;
-    std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
-    for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
-      profile * p = it2->second;
-      if(p->get_type() == APEX_COUNTER) {
-        counter_events++;
-      }
+    {
+        std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
+        for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
+            profile * p = it2->second;
+            if(p->get_type() == APEX_COUNTER) {
+                counter_events++;
+            }
+        }
     }
-    int function_count = task_map.size() - counter_events;
+    size_t function_count = task_map.size() - counter_events;
+    if (apex_options::use_tasktree_output()) {
+        auto root = task_wrapper::get_apex_main_wrapper();
+        function_count += (root->tree_node->getNodeCount() - 1);
+    }
 
     // Print the normal timers to the profile file
     // 1504 templated_functions_MULTI_TIME
@@ -1102,23 +1129,33 @@ std::unordered_set<profile*> free_profiles;
     // in a separate section, below.
     profile * mainp = nullptr;
     double not_main = 0.0;
-    for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
-      profile * p = it2->second;
-      task_identifier task_id = it2->first;
-      if(p->get_type() == APEX_TIMER) {
-        string action_name = task_id.get_name();
-        if(action_name.compare(APEX_MAIN_STR) == 0) {
-          mainp = p;
-        } else {
-          myfile << "\"" << action_name << "\" ";
-          format_line (myfile, p);
-          not_main += (p->get_accumulated_useconds());
+    {
+        std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
+        for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
+            profile * p = it2->second;
+            task_identifier task_id = it2->first;
+            if(p->get_type() == APEX_TIMER) {
+                string action_name = task_id.get_name();
+                if(action_name.compare(APEX_MAIN_STR) == 0) {
+                    mainp = p;
+                } else {
+                    myfile << "\"" << action_name << "\" ";
+                    format_line (myfile, p, task_id);
+                    not_main += (p->get_accumulated_useconds());
+                }
+            }
         }
-      }
+        if (mainp != nullptr) {
+            myfile << "\".TAU application\" ";
+            format_line (myfile, mainp, not_main);
+        }
     }
-    if (mainp != nullptr) {
-      myfile << "\"" << APEX_MAIN_STR << "\" ";
-      format_line (myfile, mainp, not_main);
+
+    // If we maintained the tasktree, we can write out the callpath.
+    if (apex_options::use_tasktree_output()) {
+        auto root = task_wrapper::get_apex_main_wrapper();
+        std::string prefix{""};
+        root->tree_node->writeTAUCallpath(myfile, prefix);
     }
 
     // 0 aggregates

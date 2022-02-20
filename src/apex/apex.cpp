@@ -93,8 +93,12 @@ thread_instance::get_id(), __func__, __LINE__); fflush(stdout);
 #define FUNCTION_EXIT
 #endif
 
-#if defined(APEX_HAVE_MPI)
+#if defined(APEX_HAVE_MPI) || \
+    (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
 #include "mpi.h"
+#ifndef MPI_Request
+typedef int MPI_Request;
+#endif
 #endif
 
 APEX_NATIVE_TLS bool _registered = false;
@@ -460,7 +464,8 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
         apex_options::use_proc_self_status() ||
         apex_options::monitor_gpu() ||
         apex_options::use_hip_profiler() ||
-        apex_options::use_proc_stat()) {
+        apex_options::use_proc_stat() ||
+        strlen(apex_options::papi_components()) > 0) {
         instance->pd_reader = new proc_data_reader();
     }
 #endif
@@ -2312,69 +2317,6 @@ extern "C" {
     uint64_t apex_hardware_concurrency(void) {
         return hardware_concurrency();
     }
-
-/* When running with MPI and OTF (or other event unification at the end of
- * execution) we need to finalize APEX before MPI_Finalize() is called, so
- * that we can use MPI for the wrap-up.  We can override the weak MPI
- * implementation of Finalize, and do what we need to. */
-#if defined(APEX_HAVE_MPI) && !defined(HPX_HAVE_NETWORKING)
-    int MPI_Finalize(void) {
-        finalize();
-        int retval = PMPI_Finalize();
-        cleanup();
-        return retval;
-    }
-    int MPI_Wait(MPI_Request *request, MPI_Status *status) {
-        auto p = start(__func__);
-        int retval = PMPI_Wait(request, status);
-        stop(p);
-        return retval;
-    }
-    int MPI_Barrier(MPI_Comm comm) {
-        auto p = start(__func__);
-        int retval = PMPI_Barrier(comm);
-        stop(p);
-        return retval;
-    }
-    int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest,
-        int tag, MPI_Comm comm, MPI_Request *request) {
-        auto p = start(__func__);
-        int retval = PMPI_Isend(buf, count, datatype, dest, tag, comm, request);
-        stop(p);
-        return retval;
-    }
-    int MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
-        int source, int tag, MPI_Comm comm, MPI_Request *request) {
-        auto p = start(__func__);
-        int retval = PMPI_Irecv(buf, count, datatype, source, tag, comm,
-            request);
-        stop(p);
-        return retval;
-    }
-    int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest,
-        int tag, MPI_Comm comm){
-        auto p = start(__func__);
-        int retval = PMPI_Send(buf, count, datatype, dest, tag, comm);
-        stop(p);
-        return retval;
-    }
-    int MPI_Recv(void *buf, int count, MPI_Datatype datatype,
-        int source, int tag, MPI_Comm comm, MPI_Status *status){
-        auto p = start(__func__);
-        int retval = PMPI_Recv(buf, count, datatype, source, tag, comm, status);
-        stop(p);
-        return retval;
-    }
-    int MPI_Gather(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
-        void *recvbuf, int recvcount, MPI_Datatype recvtype,
-        int root, MPI_Comm comm) {
-        auto p = start(__func__);
-        int retval = PMPI_Gather(sendbuf, sendcount, sendtype, recvbuf,
-            recvcount, recvtype, root, comm);
-        stop(p);
-        return retval;
-    }
-#endif
 
 } // extern "C"
 

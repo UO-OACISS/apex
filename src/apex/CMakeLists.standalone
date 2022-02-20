@@ -75,6 +75,7 @@ ${RSMI_SOURCE}
 apex.cpp
 apex_kokkos.cpp
 apex_kokkos_tuning.cpp
+apex_mpi.cpp
 apex_options.cpp
 event_filter.cpp
 apex_policies.cpp
@@ -166,6 +167,7 @@ INSTALL(FILES apex.h
     apex_policies.h
     apex_policies.hpp
     exhaustive.hpp
+    dependency_tree.hpp
     handler.hpp
     profile.hpp
     apex_export.h

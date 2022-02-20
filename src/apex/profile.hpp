@@ -24,6 +24,12 @@ namespace apex {
 class profile {
 private:
     apex_profile _profile;
+    /* Ideally, each value in _profile would be an atomic.  however,
+     * we have to return the apex_profile type to C through the API,
+     * so it has to be a C type.  Instead, each instance of the profile
+     * class will have its own mutex, controlling access to the data in
+     * _profile.  Only needed when updating the values. */
+    std::mutex _mtx;
 public:
     profile(double initial, int num_metrics, double * papi_metrics, bool
         yielded = false, apex_profile_type type = APEX_TIMER) {
@@ -34,6 +40,7 @@ public:
         } else {
             _profile.calls = 0.0;
         }
+        _profile.stops = 1.0;
         _profile.accumulated = initial;
 #if APEX_HAVE_PAPI
         for (int i = 0 ; i < num_metrics ; i++) {
@@ -63,6 +70,7 @@ public:
         } else {
             _profile.calls = 0.0;
         }
+        _profile.stops = 1.0;
         _profile.accumulated = initial;
 #if APEX_HAVE_PAPI
         for (int i = 0 ; i < num_metrics ; i++) {
@@ -90,7 +98,9 @@ public:
     }
     void increment(double increase, int num_metrics, double * papi_metrics,
         bool yielded) {
+        _mtx.lock();
         _profile.accumulated += increase;
+        _profile.stops = _profile.stops + 1.0;
 #if APEX_HAVE_PAPI
         for (int i = 0 ; i < num_metrics ; i++) {
             _profile.papi_metrics[i] += papi_metrics[i];
@@ -108,25 +118,32 @@ public:
         if (!yielded) {
           _profile.calls = _profile.calls + 1.0;
         }
+        _mtx.unlock();
     }
     void increment(double increase, int num_metrics, double * papi_metrics,
         double allocations, double frees, double bytes_allocated, double bytes_freed,
         bool yielded) {
         increment(increase, num_metrics, papi_metrics, yielded);
+        _mtx.lock();
         _profile.allocations += allocations;
         _profile.frees += frees;
         _profile.bytes_allocated += bytes_allocated;
         _profile.bytes_freed += bytes_freed;
+        _mtx.unlock();
     }
     void reset() {
+        _mtx.lock();
         _profile.calls = 0.0;
+        _profile.stops = 0.0;
         _profile.accumulated = 0.0;
         _profile.sum_squares = 0.0;
         _profile.minimum = 0.0;
         _profile.maximum = 0.0;
         _profile.times_reset++;
+        _mtx.unlock();
     };
     double get_calls() { return _profile.calls; }
+    double get_stops() { return _profile.stops; }
     double get_mean() {
         return (get_accumulated() / _profile.calls);
     }

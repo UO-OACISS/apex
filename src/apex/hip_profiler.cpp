@@ -98,7 +98,7 @@ void monitor::stop (void) {
         return;
     }
   // Stop counters
-  std::cout << "stop..." << std::endl;
+  //std::cout << "stop..." << std::endl;
   status = rocprofiler_stop(context, group_n);
   TEST_STATUS(status == HSA_STATUS_SUCCESS);
 }

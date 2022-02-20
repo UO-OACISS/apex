@@ -50,8 +50,8 @@ void trace_event_listener::on_startup(startup_event_data &data) {
        << "\"Process " << saved_node_id << "\"}},\n";
     ss << "{\"name\":\"process_sort_index\""
        << ",\"ph\":\"M\",\"pid\":" << saved_node_id
-       << ",\"args\":{\"sort_index\":"
-       << saved_node_id << "}},\n";
+       << ",\"args\":{\"sort_index\":\""
+       << setw(8) << setfill('0') << saved_node_id << "\"}},\n";
     write_to_trace(ss);
     return;
 }
@@ -120,7 +120,7 @@ int trace_event_listener::get_thread_id_metadata() {
     ss << "{\"name\":\"thread_sort_index\""
        << ",\"ph\":\"M\",\"pid\":" << saved_node_id
        << ",\"tid\":" << tid
-       << ",\"args\":{\"sort_index\":" << tid << "}},\n";
+       << ",\"args\":{\"sort_index\":\"" << setw(5) << setfill('0') << tid << "\"}},\n";
     write_to_trace(ss);
     return tid;
 }
@@ -447,7 +447,7 @@ void trace_event_listener::close_trace(void) {
     ss << "}\n" << std::endl;
     write_to_trace(ss);
     flush_trace();
-    printf("Closing trace...\n"); fflush(stdout);
+    //printf("Closing trace...\n"); fflush(stdout);
     trace_file.close();
     closed = true;
 }

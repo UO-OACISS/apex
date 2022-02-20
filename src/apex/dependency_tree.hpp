@@ -56,6 +56,10 @@ class Node {
         std::string getName() { return data->get_name(); };
         void writeNode(std::ofstream& outfile, double total);
         double writeNodeASCII(std::ofstream& outfile, double total, size_t indent);
+        void writeTAUCallpath(std::ofstream& outfile, std::string prefix);
+        static size_t getNodeCount() {
+            return nodeCount;
+        }
 };
 
 } // dependency_tree

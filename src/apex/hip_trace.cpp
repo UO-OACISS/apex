@@ -233,9 +233,9 @@ bool run_once() {
 
     // assume CPU timestamp is greater than GPU
     Globals::delta() = ((int64_t)(startTimestampCPU[my_min]) - (int64_t)(startTimestampGPU[my_min]));
-    printf("HIP timestamp:      %" PRIu64 "\n", startTimestampGPU[my_min]);
-    printf("CPU timestamp:      %" PRIu64 "\n", startTimestampCPU[my_min]);
-    printf("HIP delta timestamp: %" PRId64 "\n", Globals::delta());
+    //printf("HIP timestamp:      %" PRIu64 "\n", startTimestampGPU[my_min]);
+    //printf("CPU timestamp:      %" PRIu64 "\n", startTimestampCPU[my_min]);
+    //printf("HIP delta timestamp: %" PRId64 "\n", Globals::delta());
     once = true;
     return once;
 }
@@ -972,7 +972,7 @@ void init_hip_tracing() {
 #if defined(APEX_WITH_HSA)
     /* now safe to initialize hsa - needed to get GPU counter offset */
     hsa_init();
-    std::cout << "HSA Initialized by APEX" << std::endl;
+    //std::cout << "HSA Initialized by APEX" << std::endl;
     static bool once = run_once();
     APEX_UNUSED(once);
 #endif
@@ -1015,7 +1015,7 @@ void init_hip_tracing() {
     // Enable PC sampling
     //ROCTRACER_CALL(roctracer_enable_op_activity(ACTIVITY_DOMAIN_HSA_OPS, HSA_OP_ID_RESERVED1));
     roctracer_start();
-    std::cout << "RocTracer started" << std::endl;
+    //std::cout << "RocTracer started" << std::endl;
 }
 
     // Stop tracing routine

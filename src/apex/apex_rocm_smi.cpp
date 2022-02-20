@@ -70,16 +70,16 @@ monitor::monitor (void) {
               << version.build << ", Found "
               << deviceCount << " total devices" << std::endl;
 
-    devices.reserve(deviceCount);
+    //devices.reserve(deviceCount);
     // get the unit handles
     for (uint32_t dv_ind = 0 ; dv_ind < deviceCount ; dv_ind++) {
         DeviceInfo info;
         // Get Unique ID
-        RSMI_CALL(rsmi_dev_unique_id_get(dv_ind, &info.unique_id));
-        devices.push_back(info.unique_id);
+        //RSMI_CALL(rsmi_dev_unique_id_get(dv_ind, &info.unique_id));
+        //devices.push_back(info.unique_id);
         queried_once.push_back(false);
         // Get the device id associated with the device with provided device index.
-         RSMI_CALL( rsmi_dev_id_get (dv_ind, &info.id));
+        RSMI_CALL( rsmi_dev_id_get (dv_ind, &info.id));
         // Get the SKU for a desired device associated with the device with provided device index.
         // RSMI_CALL( rsmi_dev_sku_get (dv_ind, info.sku)); <-- not defined in library!
         // Get the device vendor id associated with the device with provided device index.
@@ -146,8 +146,8 @@ void monitor::query(void) {
 // not available until 4.3?
 #if defined(rsmi_dev_energy_count_get)
         // energy, in microjoules
-        uint64_t energy;
-        float counter_resolution;
+        uint64_t energy = 0;
+        float counter_resolution = 0;
         RSMI_CALL(rsmi_dev_energy_count_get(d, &energy, &counter_resolution, &timestamp));
         ss << "GPU: Device " << d << " Energy (J)";
         tmp = ss.str();
@@ -180,7 +180,7 @@ void monitor::query(void) {
         }
         */
 
-        uint64_t memory_usage;
+        uint64_t memory_usage = 0;
         RSMI_CALL(rsmi_dev_memory_usage_get(d, RSMI_MEM_TYPE_VRAM, &memory_usage));
         ss << "GPU: Device " << d << " Memory Used, VRAM (GB)";
         tmp = ss.str();
@@ -200,7 +200,7 @@ void monitor::query(void) {
         sample_value(tmp, value);
         ss.str("");
 
-        uint32_t memory_busy_percent;
+        uint32_t memory_busy_percent = 0;
         RSMI_CALL(rsmi_dev_memory_busy_percent_get(d, &memory_busy_percent));
         ss << "GPU: Device " << d << " Memory Busy (%)";
         tmp = ss.str();
@@ -208,7 +208,7 @@ void monitor::query(void) {
         sample_value(tmp, value);
         ss.str("");
 
-        uint32_t memory_pages;
+        uint32_t memory_pages = 0;
         RSMI_CALL(rsmi_dev_memory_reserved_pages_get(d, &memory_pages, NULL));
         ss << "GPU: Device " << d << " Memory Reserved Pages";
         tmp = ss.str();
@@ -216,20 +216,25 @@ void monitor::query(void) {
         sample_value(tmp, value);
         ss.str("");
 
+/* The MI250X integrated, liquid cooled GCDs don't have fans... */
+#if 0
 		// Get the fan speed in RPMs of the device with the specified device index and 0-based sensor index.
-		int64_t speed;
-		RSMI_CALL(rsmi_dev_fan_rpms_get (d, sensor_index, &speed));
-		// Get the max. fan speed of the device with provided device index.
-		uint64_t max_speed;
-		RSMI_CALL(rsmi_dev_fan_speed_max_get (d, sensor_index, &max_speed));
-		double speed_percent = (speed == 0) ? 0.0 : (double)(speed) / (double)(max_speed);
-        ss << "GPU: Device " << d << " Fan Speed (%)";
-        tmp = ss.str();
-        value = speed_percent * PERCENT;
-        sample_value(tmp, value);
-        ss.str("");
+		int64_t speed = 0;
+		RSMI_CALL_NOEXIT(rsmi_dev_fan_rpms_get (d, sensor_index, &speed));
+        if (speed > 0) {
+		    // Get the max. fan speed of the device with provided device index.
+		    uint64_t max_speed = 0;
+		    RSMI_CALL_NOEXIT(rsmi_dev_fan_speed_max_get (d, sensor_index, &max_speed));
+		    double speed_percent = (speed == 0) ? 0.0 : (double)(speed) / (double)(max_speed);
+            ss << "GPU: Device " << d << " Fan Speed (%)";
+            tmp = ss.str();
+            value = speed_percent * PERCENT;
+            sample_value(tmp, value);
+            ss.str("");
+        }
+#endif
 		// Get the temperature metric value for the specified metric, from the specified temperature sensor on the specified
-		int64_t temperature;
+		int64_t temperature = 0;
 		RSMI_CALL(rsmi_dev_temp_metric_get(d, sensor_index, RSMI_TEMP_CURRENT, &temperature));
         ss << "GPU: Device " << d << " Temperature (C)";
         tmp = ss.str();
@@ -238,7 +243,7 @@ void monitor::query(void) {
         ss.str("");
 
 		// Get the voltage metric value for the specified metric, from the specified voltage sensor on the specified device.
-		int64_t voltage;
+		int64_t voltage = 0;
 		RSMI_CALL(rsmi_dev_volt_metric_get (d, RSMI_VOLT_TYPE_VDDGFX, RSMI_VOLT_CURRENT, &voltage));
         ss << "GPU: Device " << d << " Voltage (V)";
         tmp = ss.str();
@@ -247,7 +252,7 @@ void monitor::query(void) {
         ss.str("");
 
 		// Get percentage of time device is busy doing any processing.
-		uint32_t busy_percent;
+		uint32_t busy_percent = 0;
 		RSMI_CALL(rsmi_dev_busy_percent_get (d, &busy_percent));
         ss << "GPU: Device " << d << " Device Busy (%)";
         tmp = ss.str();
@@ -274,6 +279,7 @@ void monitor::query(void) {
 #if defined(rsmi_gpu_metrics_t)
 		// This function retrieves the gpu metrics information.
 		rsmi_gpu_metrics_t pgpu_metrics;
+        memset(&pgpu_metrics, 0, sizeof(rsmi_gpu_metrics_t));
 		RSMI_CALL(rsmi_dev_gpu_metrics_info_get (d, &pgpu_metrics));
         ss << "GPU: Device " << d << " Clock Frequency, GLX (MHz)";
         tmp = ss.str();

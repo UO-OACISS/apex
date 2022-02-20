@@ -39,11 +39,11 @@ int main(int argc, char * argv[]) {
   apex::init("apex cuda PI test", 0, 1);
 #endif
   apex::apex_options::use_screen_output(true);
-  omp_set_num_threads(2);
+  //omp_set_num_threads(2);
 
   int num_darts = 1<<25; //
   int N = 1<<27;  // can't be more than 2^30 or memory errors
-  int Nx = omp_get_num_threads()*2; // must be even, can be arbitrarily large
+  int Nx = 4; // omp_get_num_threads()*2; // must be even, can be arbitrarily large
   int num_threads = 256;
   int num_blocks = 128;
   double total_percent = 0.0;
@@ -103,7 +103,7 @@ int main(int argc, char * argv[]) {
   printf("starting compute\n");
   for (int n = 0; n < Nx; n +=2) {
     printf("n is %d\n", n);
-    #pragma omp parallel for
+    #pragma omp parallel for num_threads(2)
     for (int i = 0; i < num_streams; i++) {
       // do a bunch of async memcpys to device
       //printf("first memcpy\n");
@@ -113,14 +113,14 @@ int main(int argc, char * argv[]) {
       CUDA_CALL(cudaMemcpyAsync(&rand_dev2[i*num_darts], &rand_host[n+1][i*num_darts],
         num_darts*sizeof(float), cudaMemcpyHostToDevice, streams[i]));
     }
-    #pragma omp parallel for
+    #pragma omp parallel for num_threads(2)
     for (int i = 0; i < num_streams; i++) {
       // launch kernels on streams
       //printf("calling kernel\n");
       montecarlo<<<num_blocks, num_threads, 0, streams[i]>>>(&rand_dev1[i*num_darts],
         &rand_dev2[i*num_darts], &results_dev[i*num_darts], num_blocks*num_threads, num_darts);
     }
-    #pragma omp parallel for
+    #pragma omp parallel for num_threads(2)
     for (int i = 0; i < num_streams; i++) {
       // do a bunch of async memcpys from device
       //printf("copy back\n");
@@ -133,8 +133,9 @@ int main(int argc, char * argv[]) {
 
   // sum results
 
-  int num_inside[omp_get_num_threads()];
-  #pragma omp parallel for
+  //int num_inside[omp_get_num_threads()];
+  int num_inside[4];
+  #pragma omp parallel for num_threads(2)
   for (int n = 0; n < Nx/2; n++) {
     num_inside[n] = 0;
     for (int i = 0; i < N; i++) {
@@ -145,7 +146,7 @@ int main(int argc, char * argv[]) {
   }
 
   double percent[Nx/2];
-  #pragma omp parallel for reduction (+:total_percent)
+  #pragma omp parallel for reduction (+:total_percent) num_threads(2)
   for (int n = 0; n < Nx/2; n++) {
     percent[n] = num_inside[n] / (double)N;
     #pragma omp atomic

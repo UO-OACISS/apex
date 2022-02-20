@@ -284,6 +284,8 @@ class in_apex {
         ~in_apex();
 };
 
+void rank0_print(const char * fmt, ...);
+
 }
 
 
