@@ -19,9 +19,6 @@
 #if defined(APEX_HAVE_MPI) || \
     (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
 #include "mpi.h"
-#ifndef MPI_Request
-typedef int MPI_Request;
-#endif
 #endif
 
 using namespace apex;
