@@ -93,14 +93,6 @@ thread_instance::get_id(), __func__, __LINE__); fflush(stdout);
 #define FUNCTION_EXIT
 #endif
 
-#if defined(APEX_HAVE_MPI) || \
-    (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
-#include "mpi.h"
-#ifndef MPI_Request
-typedef int MPI_Request;
-#endif
-#endif
-
 APEX_NATIVE_TLS bool _registered = false;
 APEX_NATIVE_TLS bool _exited = false;
 static bool _initialized = false;
