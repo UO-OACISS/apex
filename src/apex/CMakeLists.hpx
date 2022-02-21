@@ -282,6 +282,7 @@ set(apex_headers
     concurrency_handler.hpp
     dependency_tree.hpp
     event_listener.hpp
+    exhaustive.hpp
     gzstream.hpp
     handler.hpp
     policy_handler.hpp
@@ -312,6 +313,7 @@ set(apex_sources
     dependency_tree.cpp
     event_listener.cpp
     event_filter.cpp
+    exhaustive.cpp
     gzstream.cpp
     handler.cpp
     memory_wrapper.cpp
