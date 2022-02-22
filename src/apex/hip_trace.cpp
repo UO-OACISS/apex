@@ -373,7 +373,12 @@ void store_sync_counter_data(const char * name, const std::string& context,
         apex::sample_value(ss.str(), value, threaded);
     } else {
         std::stringstream ss;
-        ss << "GPU: " << name << ": " << context;
+        ss << "GPU: " << name;
+        if (context.size() > 0 &&
+            !apex::apex_options::use_trace_event() &&
+            !apex::apex_options::use_otf2()) {
+            ss << ": " << context;
+        }
         apex::sample_value(ss.str(), value, threaded);
     }
 }
@@ -531,7 +536,7 @@ bool getBytesIfMalloc(uint32_t cid, const hip_api_data_t* data,
         double value = (double)(bytes);
         //std::cout << "Allocating " << value << " bytes at " << ptr << std::endl;
         if (onHost) {
-            store_sync_counter_data("Bytes Allocated", context, value, true);
+            store_sync_counter_data("Host Bytes Allocated", context, value, true);
             hostMapMutex.lock();
             hostMemoryMap[ptr] = value;
             hostMapMutex.unlock();
@@ -669,19 +674,19 @@ void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* 
                         data->args.hipLaunchKernel.stream)};
                 Globals::insert_name(data->correlation_id, name);
                 if (apex::apex_options::use_hip_kernel_details()) {
-                    store_sync_counter_data("numBlocks.X", "",
+                    store_sync_counter_data("numBlocks.X", name,
                         data->args.hipLaunchKernel.numBlocks.x, true);
-                    store_sync_counter_data("numBlocks.Y", "",
+                    store_sync_counter_data("numBlocks.Y", name,
                         data->args.hipLaunchKernel.numBlocks.y, true);
-                    store_sync_counter_data("numBlocks.Z", "",
+                    store_sync_counter_data("numBlocks.Z", name,
                         data->args.hipLaunchKernel.numBlocks.z, true);
-                    store_sync_counter_data("dimBlocks.X", "",
+                    store_sync_counter_data("dimBlocks.X", name,
                         data->args.hipLaunchKernel.dimBlocks.x, true);
-                    store_sync_counter_data("dimBlocks.Y", "",
+                    store_sync_counter_data("dimBlocks.Y", name,
                         data->args.hipLaunchKernel.dimBlocks.y, true);
-                    store_sync_counter_data("dimBlocks.Z", "",
+                    store_sync_counter_data("dimBlocks.Z", name,
                         data->args.hipLaunchKernel.dimBlocks.z, true);
-                    store_sync_counter_data("sharedMemBytes", "",
+                    store_sync_counter_data("sharedMemBytes", name,
                         data->args.hipLaunchKernel.sharedMemBytes, true);
                 }
                 break;
@@ -691,19 +696,19 @@ void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* 
                 std::string name {lookup_kernel_name(data->args.hipModuleLaunchKernel.f)};
                 Globals::insert_name(data->correlation_id, name);
                 if (apex::apex_options::use_hip_kernel_details()) {
-                    store_sync_counter_data("blockDim.X", "",
+                    store_sync_counter_data("blockDim.X", name,
                         data->args.hipModuleLaunchKernel.blockDimX, true);
-                    store_sync_counter_data("blockDim.Y", "",
+                    store_sync_counter_data("blockDim.Y", name,
                         data->args.hipModuleLaunchKernel.blockDimY, true);
-                    store_sync_counter_data("blockDim.Z", "",
+                    store_sync_counter_data("blockDim.Z", name,
                         data->args.hipModuleLaunchKernel.blockDimZ, true);
-                    store_sync_counter_data("gridDim.X", "",
+                    store_sync_counter_data("gridDim.X", name,
                         data->args.hipModuleLaunchKernel.gridDimX, true);
-                    store_sync_counter_data("gridDim.Y", "",
+                    store_sync_counter_data("gridDim.Y", name,
                         data->args.hipModuleLaunchKernel.gridDimY, true);
-                    store_sync_counter_data("gridDim.Z", "",
+                    store_sync_counter_data("gridDim.Z", name,
                         data->args.hipModuleLaunchKernel.gridDimZ, true);
-                    store_sync_counter_data("sharedMemBytes", "",
+                    store_sync_counter_data("sharedMemBytes", name,
                         data->args.hipModuleLaunchKernel.sharedMemBytes, true);
                 }
                 break;
@@ -714,19 +719,19 @@ void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* 
                     lookup_kernel_name(data->args.hipHccModuleLaunchKernel.f);
                 Globals::insert_name(data->correlation_id, name);
                 if (apex::apex_options::use_hip_kernel_details()) {
-                    store_sync_counter_data("blockDim.X", "",
+                    store_sync_counter_data("blockDim.X", name,
                         data->args.hipHccModuleLaunchKernel.blockDimX, true);
-                    store_sync_counter_data("blockDim.Y", "",
+                    store_sync_counter_data("blockDim.Y", name,
                         data->args.hipHccModuleLaunchKernel.blockDimY, true);
-                    store_sync_counter_data("blockDim.Z", "",
+                    store_sync_counter_data("blockDim.Z", name,
                         data->args.hipHccModuleLaunchKernel.blockDimZ, true);
-                    store_sync_counter_data("globalWorkSize.X", "",
+                    store_sync_counter_data("globalWorkSize.X", name,
                         data->args.hipHccModuleLaunchKernel.globalWorkSizeX, true);
-                    store_sync_counter_data("globalWorkSize.Y", "",
+                    store_sync_counter_data("globalWorkSize.Y", name,
                         data->args.hipHccModuleLaunchKernel.globalWorkSizeY, true);
-                    store_sync_counter_data("globalWorkSize.Z", "",
+                    store_sync_counter_data("globalWorkSize.Z", name,
                         data->args.hipHccModuleLaunchKernel.globalWorkSizeZ, true);
-                    store_sync_counter_data("sharedMemBytes", "",
+                    store_sync_counter_data("sharedMemBytes", name,
                         data->args.hipHccModuleLaunchKernel.sharedMemBytes, true);
                 }
                 break;
@@ -737,19 +742,19 @@ void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* 
                     lookup_kernel_name(data->args.hipExtModuleLaunchKernel.f);
                 Globals::insert_name(data->correlation_id, name);
                 if (apex::apex_options::use_hip_kernel_details()) {
-                    store_sync_counter_data("globalWorkSize.X", "",
+                    store_sync_counter_data("globalWorkSize.X", name,
                         data->args.hipExtModuleLaunchKernel.globalWorkSizeX, true);
-                    store_sync_counter_data("globalWorkSize.Y", "",
+                    store_sync_counter_data("globalWorkSize.Y", name,
                         data->args.hipExtModuleLaunchKernel.globalWorkSizeY, true);
-                    store_sync_counter_data("globalWorkSize.Z", "",
+                    store_sync_counter_data("globalWorkSize.Z", name,
                         data->args.hipExtModuleLaunchKernel.globalWorkSizeZ, true);
-                    store_sync_counter_data("localWorkSize.X", "",
+                    store_sync_counter_data("localWorkSize.X", name,
                         data->args.hipExtModuleLaunchKernel.localWorkSizeX, true);
-                    store_sync_counter_data("localWorkSize.Y", "",
+                    store_sync_counter_data("localWorkSize.Y", name,
                         data->args.hipExtModuleLaunchKernel.localWorkSizeY, true);
-                    store_sync_counter_data("localWorkSize.Z", "",
+                    store_sync_counter_data("localWorkSize.Z", name,
                         data->args.hipExtModuleLaunchKernel.localWorkSizeZ, true);
-                    store_sync_counter_data("sharedMemBytes", "",
+                    store_sync_counter_data("sharedMemBytes", name,
                         data->args.hipExtModuleLaunchKernel.sharedMemBytes, true);
                 }
                 break;
@@ -762,19 +767,19 @@ void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* 
                         data->args.hipExtLaunchKernel.stream);
                 Globals::insert_name(data->correlation_id, name);
                 if (apex::apex_options::use_hip_kernel_details()) {
-                    store_sync_counter_data("numBlocks.X", "",
+                    store_sync_counter_data("numBlocks.X", name,
                         data->args.hipExtLaunchKernel.numBlocks.x, true);
-                    store_sync_counter_data("numBlocks.Y", "",
+                    store_sync_counter_data("numBlocks.Y", name,
                         data->args.hipExtLaunchKernel.numBlocks.y, true);
-                    store_sync_counter_data("numBlocks.Z", "",
+                    store_sync_counter_data("numBlocks.Z", name,
                         data->args.hipExtLaunchKernel.numBlocks.z, true);
-                    store_sync_counter_data("dimBlocks.X", "",
+                    store_sync_counter_data("dimBlocks.X", name,
                         data->args.hipExtLaunchKernel.dimBlocks.x, true);
-                    store_sync_counter_data("dimBlocks.Y", "",
+                    store_sync_counter_data("dimBlocks.Y", name,
                         data->args.hipExtLaunchKernel.dimBlocks.y, true);
-                    store_sync_counter_data("dimBlocks.Z", "",
+                    store_sync_counter_data("dimBlocks.Z", name,
                         data->args.hipExtLaunchKernel.dimBlocks.z, true);
-                    store_sync_counter_data("sharedMemBytes", "",
+                    store_sync_counter_data("sharedMemBytes", name,
                         data->args.hipExtLaunchKernel.sharedMemBytes, true);
                 }
                 break;
