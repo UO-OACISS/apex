@@ -89,7 +89,18 @@ const int num_non_worker_threads_registered = 1; // including the main thread
 using namespace std;
 using namespace apex;
 
-APEX_NATIVE_TLS unsigned int my_tid = 0; // the current thread's TID in APEX
+enum papi_state { papi_running, papi_suspended };
+class profiler_listener_globals {
+public:
+    unsigned int my_tid; // the current thread's TID in APEX
+    std::vector<int> event_sets; // PAPI event sets
+    std::vector<size_t> event_set_sizes; // PAPI event set sizes
+    papi_state thread_papi_state;
+    profiler_listener_globals() : my_tid(0), thread_papi_state(papi_suspended) { }
+    ~profiler_listener_globals() { finalize(); }
+};
+
+APEX_NATIVE_TLS profiler_listener_globals _pls;
 
 namespace apex {
 
@@ -1350,27 +1361,98 @@ std::unordered_set<profile*> free_profiles;
   }
 
 #if APEX_HAVE_PAPI
-APEX_NATIVE_TLS int EventSet = PAPI_NULL;
-enum papi_state { papi_running, papi_suspended };
-APEX_NATIVE_TLS papi_state thread_papi_state = papi_suspended;
 #define PAPI_ERROR_CHECK(name) \
 if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl;
 
+// THIS MACRO EXITS if the papi call does not return PAPI_OK. Do not use for routines that
+// return anything else; e.g. PAPI_num_components, PAPI_get_component_info, PAPI_library_init.
+#define CALL_PAPI_OK(papi_routine)                                                        \
+    do {                                                                                  \
+        int _papiret = papi_routine;                                                      \
+        if (_papiret != PAPI_OK) {                                                        \
+            fprintf(stderr, "%s:%d macro: PAPI Error: function " #papi_routine " failed with ret=%d [%s].\n", \
+                    __FILE__, __LINE__, _papiret, PAPI_strerror(_papiret));               \
+            exit(-1);                                                                     \
+        }                                                                                 \
+    } while (0);
+
   void profiler_listener::initialize_PAPI(bool first_time) {
-      int rc = 0;
+      /* Do we have any metrics?  If not, return */
+      if (strlen(apex_options::papi_metrics()) == 0) {
+        return;
+      }
+
+      /* Initialize PAPI */
       if (first_time) {
-        PAPI_library_init( PAPI_VER_CURRENT );
+        int ver = PAPI_library_init( PAPI_VER_CURRENT );
+        if (ver != PAPI_VER_CURRENT) {
+            fprintf(stderr, "PAPI_library_init() failed with version=%d, expected %d.\n",
+                    ver, PAPI_VER_CURRENT);
+            exit(-1);
+        }
         //rc = PAPI_multiplex_init(); // use more counters than allowed
         //PAPI_ERROR_CHECK("PAPI_multiplex_init");
-        PAPI_thread_init( &thread_instance::get_id );
+        CALL_PAPI_OK(PAPI_thread_init( &thread_instance::get_id ));
         // default
         //rc = PAPI_set_domain(PAPI_DOM_ALL);
         //PAPI_ERROR_CHECK("PAPI_set_domain");
       } else {
-        PAPI_register_thread();
+        CALL_PAPI_OK(PAPI_register_thread());
       }
-      rc = PAPI_create_eventset(&EventSet);
-      PAPI_ERROR_CHECK("PAPI_create_eventset");
+
+      /* First, we need to tokenize the list of metrics */
+      std::stringstream tmpstr(apex_options::papi_metrics());
+      // use stream iterators to copy the stream to the vector as whitespace
+      // separated strings
+      std::istream_iterator<std::string> tmpstr_it(tmpstr);
+      std::istream_iterator<std::string> tmpstr_end;
+      std::vector<std::string> tmpstr_results(tmpstr_it, tmpstr_end);
+
+      /* Second, we need to split the metrics into component sets */
+      std::map<std::string, std::vector<std::string> > component_maps;
+      // iterate over the counter names in the vector
+      for (auto p : tmpstr_results) {
+        // is this a PAPI preset?
+        std::string papi_s{"PAPI"};
+        if (p.rfind("PAPI_", 0) == 0) {
+            //std::cout << "Found PAPI component metric" << std::endl;
+            if (component_maps.count(papi_s) == 0) {
+                std::vector<std::string> tmp_metrics;
+                //std::cout << "component metric: " << p << std::endl;
+                tmp_metrics.push_back(p);
+                component_maps.insert(
+                    std::make_pair(papi_s, tmp_metrics));
+            } else {
+                component_maps[papi_s].push_back(p);
+            }
+        } else {
+            //std::cout << "Found other component metric" << std::endl;
+            //std::cout << "component metric: " << p << std::endl;
+            /* not a PAPI preset, so this is a component metric */
+            auto index = p.find(":::");
+            if (index != std::string::npos) {
+                /* get the component name */
+                std::string c_name = p;
+                c_name.erase(index);
+                //std::cout << "component : " << c_name << std::endl;
+                if (component_maps.count(c_name) == 0) {
+                    std::vector<std::string> tmp_metrics;
+                    tmp_metrics.push_back(p);
+                    component_maps.insert(
+                        std::make_pair(c_name, tmp_metrics));
+                } else {
+                    component_maps[c_name].push_back(p);
+                }
+            }
+        }
+      }
+      /* For each component set, create an event set and add the metric */
+      for (auto c : component_maps) {
+        std::string name = c.first;
+        auto metrics = c.second;
+
+        int EventSet = PAPI_NULL;
+      CALL_PAPI_OK(PAPI_create_eventset(&EventSet));
       // default
       //rc = PAPI_assign_eventset_component (EventSet, 0);
       //PAPI_ERROR_CHECK("PAPI_assign_eventset_component");
@@ -1382,21 +1464,12 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       //PAPI_ERROR_CHECK("PAPI_set_multiplex");
       // parse the requested set of papi counters
       // The string is modified by strtok, so copy it.
-      if (strlen(apex_options::papi_metrics()) > 0) {
-        std::stringstream tmpstr(apex_options::papi_metrics());
-        // use stream iterators to copy the stream to the vector as whitespace
-        // separated strings
-        std::istream_iterator<std::string> tmpstr_it(tmpstr);
-        std::istream_iterator<std::string> tmpstr_end;
-        std::vector<std::string> tmpstr_results(tmpstr_it, tmpstr_end);
         int code;
         // iterate over the counter names in the vector
-        for (auto p : tmpstr_results) {
-          int rc = PAPI_event_name_to_code(const_cast<char*>(p.c_str()), &code);
+        for (auto p : metrics) {
+          CALL_PAPI_OK(PAPI_event_name_to_code(const_cast<char*>(p.c_str()), &code));
           if (PAPI_query_event (code) == PAPI_OK) {
-            rc = PAPI_add_event(EventSet, code);
-            PAPI_ERROR_CHECK("PAPI_add_event");
-            if (rc != 0) { printf ("Event that failed: %s\n", p.c_str()); }
+            CALL_PAPI_OK(PAPI_add_event(EventSet, code));
             if (first_time) {
               metric_names.push_back(string(p.c_str()));
               num_papi_counters++;
@@ -1404,10 +1477,11 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
           }
         }
         if (!apex_options::papi_suspend()) {
-            rc = PAPI_start( EventSet );
-            PAPI_ERROR_CHECK("PAPI_start");
-            thread_papi_state = papi_running;
+            CALL_PAPI_OK(PAPI_start( EventSet ));
+            _pls.thread_papi_state = papi_running;
         }
+        _pls.event_sets.push_back(EventSet);
+        _pls.event_set_sizes.push_back(metrics.size());
       }
   }
 
@@ -1416,7 +1490,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
   /* When APEX gets a STARTUP event, do some initialization. */
   void profiler_listener::on_startup(startup_event_data &data) {
     if (!_done) {
-      my_tid = (unsigned int)thread_instance::get_id();
+      _pls.my_tid = (unsigned int)thread_instance::get_id();
       async_thread_setup();
 #ifndef APEX_SYNCHRONOUS_PROCESSING
 #ifndef APEX_HAVE_HPX
@@ -1427,7 +1501,6 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
 
 #if APEX_HAVE_PAPI
       initialize_PAPI(true);
-      event_sets[0] = EventSet;
 #endif
 
       /* This commented out code is to change the priority of the consumer thread.
@@ -1469,9 +1542,12 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         task_wrapper::get_apex_main_wrapper());
 #if APEX_HAVE_PAPI
       if (num_papi_counters > 0 && !apex_options::papi_suspend() &&
-        thread_papi_state == papi_running) {
-        int rc = PAPI_read( EventSet, main_timer->papi_start_values );
-        PAPI_ERROR_CHECK("PAPI_read");
+        _pls.thread_papi_state == papi_running) {
+        size_t index = 0;
+        for (size_t i = 0 ; i < _pls.event_sets.size() ; i++) {
+            CALL_PAPI_OK(PAPI_read( _pls.event_sets[i], &(main_timer->papi_start_values[index]) ));
+            index = index + _pls.event_set_sizes[i];
+        }
       }
 #endif
     }
@@ -1635,18 +1711,10 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
    * to handle the new thread */
   void profiler_listener::on_new_thread(new_thread_event_data &data) {
     if (!_done) {
-      my_tid = (unsigned int)thread_instance::get_id();
+      _pls.my_tid = (unsigned int)thread_instance::get_id();
       async_thread_setup();
 #if APEX_HAVE_PAPI
       initialize_PAPI(false);
-      event_set_mutex.lock();
-      if (my_tid >= event_sets.size()) {
-        if (my_tid >= event_sets.size()) {
-          event_sets.resize(my_tid + 1);
-        }
-      }
-      event_sets[my_tid] = EventSet;
-      event_set_mutex.unlock();
 #endif
     }
     APEX_UNUSED(data);
@@ -1689,20 +1757,25 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
 #if APEX_HAVE_PAPI
       if (num_papi_counters > 0 && !apex_options::papi_suspend()) {
           // if papi was previously suspended, we need to start the counters
-          if (thread_papi_state == papi_suspended) {
-            int rc = PAPI_start( EventSet );
-            PAPI_ERROR_CHECK("PAPI_start");
-            thread_papi_state = papi_running;
+          if (_pls.thread_papi_state == papi_suspended) {
+            for (size_t i = 0 ; i < _pls.event_sets.size() ; i++) {
+                CALL_PAPI_OK(PAPI_start( _pls.event_sets[i] ));
+            }
+            _pls.thread_papi_state = papi_running;
           }
-          int rc = PAPI_read( EventSet, p->papi_start_values );
-          PAPI_ERROR_CHECK("PAPI_read");
+          size_t index = 0;
+          for (size_t i = 0 ; i < _pls.event_sets.size() ; i++) {
+              CALL_PAPI_OK(PAPI_read( _pls.event_sets[i], &(p->papi_start_values[index]) ));
+              index = index + _pls.event_set_sizes[i];
+          }
       } else {
           // if papi is still running, stop the counters
-          if (thread_papi_state == papi_running) {
+          if (_pls.thread_papi_state == papi_running) {
             long long dummy[8];
-            int rc = PAPI_stop( EventSet, dummy );
-            PAPI_ERROR_CHECK("PAPI_stop");
-            thread_papi_state = papi_suspended;
+            for (size_t i = 0 ; i < _pls.event_sets.size() ; i++) {
+                CALL_PAPI_OK(PAPI_stop( _pls.event_sets[i], dummy ));
+            }
+            _pls.thread_papi_state = papi_suspended;
           }
       }
 #endif
@@ -1755,15 +1828,18 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         p->stop(is_yield);
 #if APEX_HAVE_PAPI
         if (num_papi_counters > 0 && !apex_options::papi_suspend() &&
-            thread_papi_state == papi_running) {
-            int rc = PAPI_read( EventSet, p->papi_stop_values );
-            PAPI_ERROR_CHECK("PAPI_read");
+            _pls.thread_papi_state == papi_running) {
+            size_t index = 0;
+            for (size_t i = 0 ; i < _pls.event_sets.size() ; i++) {
+                CALL_PAPI_OK(PAPI_read( _pls.event_sets[i], &(p->papi_stop_values[index]) ));
+                index = index + _pls.event_set_sizes[i];
+            }
         }
 #endif
 #ifdef APEX_SYNCHRONOUS_PROCESSING
-        push_profiler(my_tid, *p);
+        push_profiler(_pls.my_tid, *p);
 #else // APEX_SYNCHRONOUS_PROCESSING
-        push_profiler(my_tid, p);
+        push_profiler(_pls.my_tid, p);
 #endif // APEX_SYNCHRONOUS_PROCESSING
       }
     }
@@ -1819,7 +1895,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         *data.counter_name), data.counter_value);
       p->is_counter = data.is_counter;
 #endif // APEX_SYNCHRONOUS_PROCESSING
-      push_profiler(my_tid, p);
+      push_profiler(_pls.my_tid, p);
     }
   }
 
@@ -1887,7 +1963,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
     std::shared_ptr<profiler> p =
         std::make_shared<profiler>(id, false, reset_type::CURRENT);
 #endif // APEX_SYNCHRONOUS_PROCESSING
-    push_profiler(my_tid, p);
+    push_profiler(_pls.my_tid, p);
   }
 
   profiler_listener::~profiler_listener (void) {

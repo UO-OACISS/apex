@@ -138,7 +138,6 @@ private:
 #endif
 #if APEX_HAVE_PAPI
   int num_papi_counters;
-  std::vector<int> event_sets;
   std::vector<std::string> metric_names;
   void initialize_PAPI(bool first_time);
 #endif
@@ -158,7 +157,7 @@ public:
   profiler_listener (void) : _initialized(false), _main_timer_stopped(false), _done(false),
                              node_id(0), task_map()
 #if APEX_HAVE_PAPI
-                             , num_papi_counters(0), event_sets(8),
+                             , num_papi_counters(0),
                              metric_names(0)
 #endif
   {

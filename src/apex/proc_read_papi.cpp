@@ -89,8 +89,8 @@ namespace apex {
             char event_name[PAPI_MAX_STR_LEN];
             retval = PAPI_event_code_to_name( code, event_name );
             if (retval != PAPI_OK) {
-                fprintf(stderr, "%s %d %s\n", __FILE__,
-                        __LINE__, "RAPL PAPI_event_code_to_name failed");
+                fprintf(stderr, "%s %d %s PAPI_event_code_to_name failed\n", __FILE__,
+                        __LINE__, comp_info->name);
                 fprintf(stderr, "PAPI error %d: %s\n", retval,
                         PAPI_strerror(retval));
                 continue;
