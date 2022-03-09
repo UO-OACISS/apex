@@ -35,6 +35,14 @@ namespace apex {
     void initialize_papi_component(const PAPI_component_info_t *comp_info,
         int component_id) {
         int retval = PAPI_OK;
+        // get the PAPI component metrics, if any
+        std::stringstream tmpstr(apex_options::papi_component_metrics());
+        // use stream iterators to copy the stream to the vector as whitespace
+        // separated strings
+        std::istream_iterator<std::string> tmpstr_it(tmpstr);
+        std::istream_iterator<std::string> tmpstr_end;
+        std::set<std::string> requested_component_metrics(tmpstr_it, tmpstr_end);
+
         //printf("Trying %s PAPI component\n", comp_info->name);
         if (comp_info->num_native_events == 0) {
             if (apex_options::use_verbose()) {
@@ -87,7 +95,14 @@ namespace apex {
                         PAPI_strerror(retval));
                 continue;
             }
-            if (strstr(comp_info->name, "rapl") != NULL) {
+            /* If the user requested some metrics,
+             * and the metric is in the list, collect it. */
+            if (requested_component_metrics.size() > 0) {
+                if (requested_component_metrics.find(event_name) ==
+                    requested_component_metrics.end()) {
+                    continue;
+                }
+            } else if (strstr(comp_info->name, "rapl") != NULL) {
                 // skip the counter events...
                 if (strstr(event_name, "_CNT") != NULL) { continue; }
                 // skip the unit conversion events...
