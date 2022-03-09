@@ -96,8 +96,8 @@ public:
     std::vector<int> event_sets; // PAPI event sets
     std::vector<size_t> event_set_sizes; // PAPI event set sizes
     papi_state thread_papi_state;
-    profiler_listener_globals() : my_tid(0), thread_papi_state(papi_suspended) { }
-    ~profiler_listener_globals() { finalize(); }
+    profiler_listener_globals() : my_tid(-1), thread_papi_state(papi_suspended) { }
+    ~profiler_listener_globals() { if (my_tid == 0) finalize(); }
 };
 
 APEX_NATIVE_TLS profiler_listener_globals _pls;
@@ -485,7 +485,8 @@ std::unordered_set<profile*> free_profiles;
   void profiler_listener::write_one_timer(std::string &action_name,
           profile * p, stringstream &screen_output,
           stringstream &csv_output, double &total_accumulated,
-          double &total_main, bool timer, bool include_stops = false) {
+          double &total_main, bool timer, bool include_stops = false,
+          bool include_papi = false) {
       string shorter(action_name);
       size_t maxlength = 41;
       if (timer) maxlength = 52;
@@ -574,10 +575,12 @@ std::unordered_set<profile*> free_profiles;
             }
         }
 #if APEX_HAVE_PAPI
-        for (int i = 0 ; i < num_papi_counters ; i++) {
-            screen_output  << "   " << string_format(FORMAT_SCIENTIFIC,
-                (p->get_papi_metrics()[i]));
-            csv_output << "," << std::llround(p->get_papi_metrics()[i]);
+        if (include_papi) {
+            for (int i = 0 ; i < num_papi_counters ; i++) {
+                screen_output  << "   " << string_format(FORMAT_SCIENTIFIC,
+                    (p->get_papi_metrics()[i]));
+                csv_output << "," << std::llround(p->get_papi_metrics()[i]);
+            }
         }
 #endif
         if (apex_options::track_memory()) {
@@ -781,8 +784,7 @@ std::unordered_set<profile*> free_profiles;
     std::sort(timer_vector.begin(), timer_vector.end(), timer_cmp);
 
     screen_output << "GPU Timers                                           : "
-        << "#calls  |    mean  |   total  |  % total  "
-        << tmpstr;
+        << "#calls  |    mean  |   total  |  % total  ";
     if (apex_options::track_memory()) {
        screen_output << "|  allocs |  (bytes) |    frees |   (bytes) ";
     }
@@ -828,6 +830,10 @@ std::unordered_set<profile*> free_profiles;
     }
     screen_output << endl;
 
+    // write the main timer
+    std::string tmp_main(APEX_MAIN_STR);
+    write_one_timer(tmp_main, total_time, screen_output, csv_output,
+        total_accumulated, divisor, true, true, true);
     // iterate over the timers
     for(auto& pair_itr : timer_vector) {
         std::string name = pair_itr.first;
@@ -836,7 +842,7 @@ std::unordered_set<profile*> free_profiles;
         if (p != all_profiles.end()) {
             profile tmp(p->second);
             write_one_timer(name, &tmp, screen_output, csv_output,
-                total_accumulated, divisor, true, true);
+                total_accumulated, divisor, true, true, true);
             if (name.compare(APEX_MAIN_STR) != 0) {
                 total_hpx_threads = total_hpx_threads + tmp.get_calls();
             }
@@ -1372,7 +1378,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         if (_papiret != PAPI_OK) {                                                        \
             fprintf(stderr, "%s:%d macro: PAPI Error: function " #papi_routine " failed with ret=%d [%s].\n", \
                     __FILE__, __LINE__, _papiret, PAPI_strerror(_papiret));               \
-            exit(-1);                                                                     \
+            abort();                                                                     \
         }                                                                                 \
     } while (0);
 
