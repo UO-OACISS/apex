@@ -1400,6 +1400,21 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         CALL_PAPI_OK(PAPI_register_thread());
       }
 
+      /* Before we start, we need to get the indices of the components */
+      std::map<std::string, int> component_index_map;
+      int num_components = PAPI_num_components();
+      const PAPI_component_info_t *comp_info;
+      // are there any components?
+      for (int component_id = 0 ; component_id < num_components ; component_id++) {
+          comp_info = PAPI_get_component_info(component_id);
+          if (comp_info == NULL) {
+              fprintf(stderr, "PAPI component info unavailable, no power measurements will be done.\n");
+              return;
+          }
+          std::string tmp(comp_info->name);
+          //std::cout << "component " << component_id << " = " << tmp << std::endl;
+          component_index_map[tmp] = component_id;
+      }
       /* First, we need to tokenize the list of metrics */
       std::stringstream tmpstr(apex_options::papi_metrics());
       // use stream iterators to copy the stream to the vector as whitespace
@@ -1450,23 +1465,21 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       for (auto c : component_maps) {
         std::string name = c.first;
         auto metrics = c.second;
+        //std::cout << "Getting metrics for " << name << std::endl;
 
         int EventSet = PAPI_NULL;
-      CALL_PAPI_OK(PAPI_create_eventset(&EventSet));
-      // default
-      //rc = PAPI_assign_eventset_component (EventSet, 0);
-      //PAPI_ERROR_CHECK("PAPI_assign_eventset_component");
-      // default
-      //rc = PAPI_set_granularity(PAPI_GRN_THR);
-      //PAPI_ERROR_CHECK("PAPI_set_granularity");
-      // unnecessary complexity
-      //rc = PAPI_set_multiplex(EventSet);
-      //PAPI_ERROR_CHECK("PAPI_set_multiplex");
-      // parse the requested set of papi counters
-      // The string is modified by strtok, so copy it.
+        CALL_PAPI_OK(PAPI_create_eventset(&EventSet));
+        if (name.compare("PAPI") == 0) {
+            CALL_PAPI_OK(PAPI_assign_eventset_component(EventSet, 0));
+        } else {
+            int index = component_index_map[name];
+            //std::cout << "Setting component index: " << index << std::endl;
+            CALL_PAPI_OK(PAPI_assign_eventset_component(EventSet, index));
+        }
         int code;
         // iterate over the counter names in the vector
         for (auto p : metrics) {
+          //std::cout << "Getting code for " << p << std::endl;
           CALL_PAPI_OK(PAPI_event_name_to_code(const_cast<char*>(p.c_str()), &code));
           if (PAPI_query_event (code) == PAPI_OK) {
             CALL_PAPI_OK(PAPI_add_event(EventSet, code));
