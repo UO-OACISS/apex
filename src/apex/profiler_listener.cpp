@@ -955,12 +955,12 @@ std::unordered_set<profile*> free_profiles;
         dep != task_dependencies.end(); dep++) {
         task_identifier parent = dep->first;
         auto children = dep->second;
-        string parent_name = parent.get_name();
+        string parent_name = parent.get_tree_name();
         for(auto offspring = children->begin();
             offspring != children->end(); offspring++) {
             task_identifier child = offspring->first;
             int count = offspring->second;
-            string child_name = child.get_name();
+            string child_name = child.get_tree_name();
             myfile << "  \"" << parent_name << "\" -> \"" << child_name << "\"";
             myfile << " [ label=\"  count: " << count << "\" ]; " << std::endl;
         }
@@ -990,22 +990,22 @@ std::unordered_set<profile*> free_profiles;
       }
       */
       int divisor = p->get_calls();
-      std::string divided_label("time per call: ");
+      std::string divided_label("per call: ");
       if (p->get_type() == APEX_TIMER) {
         node_color * c = get_node_color_visible(
             p->get_accumulated_seconds(), 0.0, wall_clock_main);
             //p->get_accumulated_seconds()/divisor, 0.0, wall_clock_main);
         task_identifier task_id = it->first;
         double accumulated = p->get_accumulated_seconds();
-        myfile << "  \"" << task_id.get_name() <<
+        myfile << "  \"" << task_id.get_tree_name() <<
             "\" [shape=box; style=filled; fillcolor=\"#" <<
             setfill('0') << setw(2) << hex << c->convert(c->red) <<
             setfill('0') << setw(2) << hex << c->convert(c->green) <<
             setfill('0') << setw(2) << hex << c->convert(c->blue) <<
-            "\"; label=\"" << task_id.get_name() <<
-            ":\\ltotal calls: " << p->get_calls() <<
-            "\\ltotal time: " << accumulated <<
-            "s\\l" << divided_label << accumulated/divisor <<
+            "\"; label=\"" << task_id.get_tree_name() <<
+            "\\l calls: " << p->get_calls() <<
+            "\\l time: " << accumulated <<
+            "s\\l " << divided_label << accumulated/divisor <<
             "s\\l\" ];" << std::endl;
         delete(c);
       }

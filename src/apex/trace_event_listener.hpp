@@ -66,7 +66,7 @@ private:
     void flush_trace_if_necessary(void);
   	void _common_stop(std::shared_ptr<profiler> &p);
     std::string make_tid (async_thread_node &node);
-    int get_thread_id_metadata();
+    long unsigned int get_thread_id_metadata();
   	static bool _initialized;
     size_t get_thread_index(void);
     std::mutex * get_thread_mutex(size_t index);

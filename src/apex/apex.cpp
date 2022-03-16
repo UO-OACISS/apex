@@ -543,6 +543,8 @@ inline std::shared_ptr<task_wrapper> _new_task(
     APEX_UNUSED(instance);
     std::shared_ptr<task_wrapper> tt_ptr = make_shared<task_wrapper>();
     tt_ptr->task_id = id;
+    // get the thread id that is creating this task
+    tt_ptr->thread_id = thread_instance::instance().get_id();
     // if not tracking dependencies, don't save the parent
     /* Why?
     if ((!apex_options::use_taskgraph_output()) &&
@@ -650,6 +652,8 @@ profiler* start(const std::string &timer_name)
                 return profiler::get_disabled_profiler();
             }
         }
+        // save the start of the task, in case we need to make a flow event for tracing
+        tt_ptr->start_time = tt_ptr->prof->get_start_us();
         // If we are allowing untied timers, clear the timer stack on this thread
         if (apex_options::untied_timers() == true) {
             new_profiler = thread_instance::instance().get_current_profiler();
@@ -715,6 +719,8 @@ profiler* start(const apex_function_address function_address) {
                 return profiler::get_disabled_profiler();
             }
         }
+        // save the start of the task, in case we need to make a flow event for tracing
+        tt_ptr->start_time = tt_ptr->prof->get_start_us();
         // If we are allowing untied timers, clear the timer stack on this thread
         if (apex_options::untied_timers() == true) {
             new_profiler = thread_instance::instance().get_current_profiler();
@@ -761,6 +767,8 @@ void start(std::shared_ptr<task_wrapper> tt_ptr) {
         tt_ptr->prof = profiler::get_disabled_profiler();
         return;
     }
+    // get the thread id that is running this task
+    tt_ptr->thread_id = thread_instance::instance().get_id();
     if (_notify_listeners) {
         bool success = true;
         /*
@@ -781,6 +789,8 @@ void start(std::shared_ptr<task_wrapper> tt_ptr) {
                 return;
             }
         }
+        // save the start of the task, in case we need to make a flow event for tracing
+        tt_ptr->start_time = tt_ptr->prof->get_start_us();
         // If we are allowing untied timers, clear the timer stack on this thread
         if (apex_options::untied_timers() == true) {
             thread_instance::instance().clear_current_profiler();

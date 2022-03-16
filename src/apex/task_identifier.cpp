@@ -58,15 +58,20 @@ std::mutex bfd_mutex;
 
     std::string task_identifier::get_tree_name() {
         std::string shorter(get_name(true));
-        size_t trim_at = shorter.find("(");
+        /* Strip the arguments */
+        size_t trim_at = shorter.rfind("(");
         if (trim_at != std::string::npos) {
             shorter = shorter.substr(0, trim_at);
         }
+        /* Strip the template info? */
         trim_at = shorter.find("<");
         size_t addr = shorter.find("addr", 0);
         if (trim_at != std::string::npos && addr == std::string::npos) {
             shorter = shorter.substr(0, trim_at);
         }
+        return shorter;
+
+        //std::cout << get_name(true) << " ==> " << shorter << std::endl;
         // IF this is an openmp loop from a Kokkos kernel, strip the garbage
         /*
         size_t omp = shorter.find("OpenMP ", 0);
@@ -77,8 +82,8 @@ std::mutex bfd_mutex;
                 shorter = shorter.substr(0, colon);
             }
         }
-        */
         return shorter;
+        */
     }
 
     std::string task_identifier::get_short_name() {
