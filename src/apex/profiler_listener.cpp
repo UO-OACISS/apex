@@ -2054,7 +2054,7 @@ void apex_schedule_process_profiles() {
         if(!consumer_task_running.test_and_set(memory_order_acq_rel)) {
             try {
                 hpx::apply(
-                    hpx::util::annotated_function(
+                    hpx::annotated_function(
                         &profiler_listener::process_profiles_wrapper,
                         "apex::profiler_listener::process_profiles"));
             } catch(...) {
