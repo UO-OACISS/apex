@@ -955,7 +955,7 @@ enable_testing()
 # cause another cmake executable to run. The same process will walk through
 # the project's entire directory structure.
 add_subdirectory (src/apex)
-add_subdirectory (src/ITTNotify)
+#add_subdirectory (src/ITTNotify)
 add_subdirectory (src/comm)
 if (NOT BUILD_STATIC_EXECUTABLES)
     add_subdirectory (src/wrappers)
