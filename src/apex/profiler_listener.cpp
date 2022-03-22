@@ -709,8 +709,8 @@ std::unordered_set<profile*> free_profiles;
         << total_main << " seconds" << endl;
     screen_output << "Available CPU time on all ranks: "
         << total_main * apex::instance()->get_num_ranks() << " seconds" << endl << endl;
-    //double divisor = wall_clock_main; // could be total_main, for available CPU time.
-    double divisor = total_main; // could be total_main, for available CPU time.
+    double divisor = wall_clock_main; // could be total_main, for available CPU time.
+    //double divisor = total_main; // could be total_main, for available CPU time.
 
     double total_accumulated = 0.0;
     std::vector<std::string> id_vector;

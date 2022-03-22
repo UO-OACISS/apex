@@ -70,6 +70,12 @@ struct ExecutionSpaceIdentifier {
   uint32_t device_id;
   uint32_t instance_id;
 };
+
+constexpr const uint32_t num_type_bits     = 8;
+constexpr const uint32_t num_device_bits   = 7;
+constexpr const uint32_t num_instance_bits = 17;
+constexpr const uint32_t num_avail_bits    = sizeof(uint32_t) * CHAR_BIT;
+
 inline DeviceType devicetype_from_uint32t(const uint32_t in) {
   switch (in) {
     case 0: return DeviceType::Serial;
@@ -85,9 +91,16 @@ inline DeviceType devicetype_from_uint32t(const uint32_t in) {
 }
 
 inline ExecutionSpaceIdentifier identifier_from_devid(const uint32_t in) {
+/*
   return {devicetype_from_uint32t(in >> 24),  // first 8 bits
           ((in & 0x00FFFFFF) >> 17),  // next 7 bits
            (in & 0x0001FFFF)}; // last 17 bits
+           */
+    constexpr const uint32_t shift = num_avail_bits - num_type_bits;
+    return {devicetype_from_uint32t(in >> shift), /*First 8 bits*/
+           (~((uint32_t(-1)) << num_device_bits)) &
+            (in >> num_instance_bits), /*Next 7 bits */
+           (~((uint32_t(-1)) << num_instance_bits)) & in}; /*Last 17 bits*/
 }
 
 /* "Top 8 bits represent the device type. Next 7 are the device id (think

@@ -58,6 +58,17 @@ std::mutex bfd_mutex;
 
     std::string task_identifier::get_tree_name() {
         std::string shorter(get_name(true));
+        //if (!apex_options::use_short_task_names()) {
+            return shorter;
+        //}
+        /* trim the kokkos namespaces */
+        shorter = shorter.replace("Kokkos::Experimental::Impl::", "kok:");
+        shorter = shorter.replace("Kokkos::Impl::", "kok:");
+        shorter = shorter.replace("ParallelFor", "p_for");
+        shorter = shorter.replace("ParallelReduce", "p_red");
+        shorter = shorter.replace("ParallelScan", "p_scan");
+        shorter = shorter.replace("_parallel_launch_local_memory", "_local");
+        shorter = shorter.replace("_parallel_launch_constant_memory", "_const");
         size_t trim_at = shorter.find("(");
         if (trim_at != std::string::npos) {
             shorter = shorter.substr(0, trim_at);
