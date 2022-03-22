@@ -13,6 +13,7 @@
 #include <mutex>
 #include <string>
 #include <utility>
+#include <regex>
 
 #if APEX_HAVE_BFD
 #include "address_resolution.hpp"
@@ -58,17 +59,23 @@ std::mutex bfd_mutex;
 
     std::string task_identifier::get_tree_name() {
         std::string shorter(get_name(true));
-        //if (!apex_options::use_short_task_names()) {
+        if (!apex_options::use_short_task_names()) {
             return shorter;
-        //}
+        }
         /* trim the kokkos namespaces */
-        shorter = shorter.replace("Kokkos::Experimental::Impl::", "kok:");
-        shorter = shorter.replace("Kokkos::Impl::", "kok:");
-        shorter = shorter.replace("ParallelFor", "p_for");
-        shorter = shorter.replace("ParallelReduce", "p_red");
-        shorter = shorter.replace("ParallelScan", "p_scan");
-        shorter = shorter.replace("_parallel_launch_local_memory", "_local");
-        shorter = shorter.replace("_parallel_launch_constant_memory", "_const");
+        shorter = std::regex_replace(shorter, std::regex("Kokkos::Experimental::Impl::"), "kok::");
+        shorter = std::regex_replace(shorter, std::regex("Kokkos::Experimental::"), "kok::");
+        shorter = std::regex_replace(shorter, std::regex("Kokkos::Impl::"), "kok::");
+        shorter = std::regex_replace(shorter, std::regex("Kokkos::RangePolicy"), "kok::range");
+        shorter = std::regex_replace(shorter, std::regex("Kokkos::MDRangePolicy"), "kok::md");
+        shorter = std::regex_replace(shorter, std::regex("Kokkos::TeamPolicy"), "kok::team");
+        shorter = std::regex_replace(shorter, std::regex("ParallelFor"), "p_for");
+        shorter = std::regex_replace(shorter, std::regex("ParallelReduce"), "p_red");
+        shorter = std::regex_replace(shorter, std::regex("ParallelScan"), "p_scan");
+        shorter = std::regex_replace(shorter, std::regex("_parallel_launch_local_memory"), "_local");
+        shorter = std::regex_replace(shorter, std::regex("_parallel_launch_constant_memory"), "_const");
+        return shorter;
+        /* trim the arguments? */
         size_t trim_at = shorter.rfind("(");
         if (trim_at != std::string::npos) {
             shorter = shorter.substr(0, trim_at);

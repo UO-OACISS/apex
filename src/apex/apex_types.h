@@ -340,6 +340,7 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_KOKKOS_PROFILING_FENCES, use_kokkos_profiling_fences, bool, false) \
     macro (APEX_START_DELAY_SECONDS, start_delay_seconds, int, 0) \
     macro (APEX_MAX_DURATION_SECONDS, max_duration_seconds, int, 0) \
+    macro (APEX_USE_SHORT_TASK_NAMES, use_short_task_names, bool, false) \
 
 #define FOREACH_APEX_FLOAT_OPTION(macro) \
     macro (APEX_SCATTERPLOT_FRACTION, scatterplot_fraction, double, 0.01) \
