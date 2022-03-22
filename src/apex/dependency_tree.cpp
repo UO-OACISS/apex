@@ -86,8 +86,8 @@ void Node::writeNode(std::ofstream& outfile, double total) {
             std::setfill('0') << std::setw(2) << std::hex << c->convert(c->blue) <<
             "\"; depth=" << std::dec << depth <<
             "; time=" << std::fixed << acc << "; label=\"" << data->get_tree_name() <<
-            ":\\ltotal calls: " << ncalls << "\\ltotal time: " <<
-            std::defaultfloat << acc << "\" ];" << std::endl;
+            "\\l calls: " << ncalls << "\\l time: " <<
+            std::defaultfloat << acc << "\\l\" ];" << std::endl;
 
     // do all the children
     depth++;

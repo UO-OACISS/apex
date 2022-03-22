@@ -70,6 +70,14 @@ struct task_wrapper {
   */
     task_identifier* alias;
 /**
+  \brief Thread ID of the thread that created this task.
+  */
+    long unsigned int thread_id;
+/**
+  \brief Time (in microseconds) when this task was started, if started
+  */
+    double start_time;
+/**
   \brief Constructor.
   */
     task_wrapper(void) :
@@ -79,7 +87,9 @@ struct task_wrapper {
         parent_guid(0ull),
         parent(nullptr),
         tree_node(nullptr),
-        alias(nullptr)
+        alias(nullptr),
+        thread_id(0UL),
+        start_time(0)
     { }
 /**
   \brief Get the task_identifier for this task_wrapper.

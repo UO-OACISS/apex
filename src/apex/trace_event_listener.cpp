@@ -107,7 +107,7 @@ bool trace_event_listener::on_resume(std::shared_ptr<task_wrapper> &tt_ptr) {
     return true;
 }
 
-int trace_event_listener::get_thread_id_metadata() {
+long unsigned int trace_event_listener::get_thread_id_metadata() {
     int tid = thread_instance::get_id();
     saved_node_id = apex::instance()->get_node_id();
     std::stringstream ss;
@@ -125,14 +125,33 @@ int trace_event_listener::get_thread_id_metadata() {
     return tid;
 }
 
+void write_flow_event(std::stringstream& ss, double ts, char ph,
+    std::string cat, uint64_t id, uint64_t pid, uint64_t tid, std::string name) {
+    ss << "{\"ts\":" << ts
+       << ",\"ph\":\"" << ph
+       << "\",\"cat\":\"" << cat
+       << "\",\"id\":" << id
+       << ",\"pid\":" << pid
+       << ",\"tid\":" << tid
+       << ",\"name\":\"" << name << "\"},\n";
+}
+
 inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
-    static APEX_NATIVE_TLS int tid = get_thread_id_metadata();
+    static APEX_NATIVE_TLS long unsigned int tid = get_thread_id_metadata();
     if (!_terminate) {
         std::stringstream ss;
         ss << fixed;
         uint64_t pguid = 0;
         if (p->tt_ptr != nullptr && p->tt_ptr->parent != nullptr) {
             pguid = p->tt_ptr->parent->guid;
+        }
+        // if the parent tid is not the same, create a flow event BEFORE the single event
+        if (p->tt_ptr->parent != nullptr && p->tt_ptr->parent->thread_id != tid) {
+            //std::cout << "FLOWING!" << std::endl;
+            write_flow_event(ss, p->tt_ptr->parent->start_time, 's', "ControlFlow", pguid,
+                saved_node_id, p->tt_ptr->parent->thread_id, p->tt_ptr->parent->task_id->get_name());
+            write_flow_event(ss, p->get_start_us(), 'f', "ControlFlow", pguid,
+                saved_node_id, tid, p->tt_ptr->parent->task_id->get_name());
         }
         ss << "{\"name\":\"" << p->get_task_id()->get_name()
               << "\",\"cat\":\"CPU\""
@@ -237,17 +256,6 @@ std::string trace_event_listener::make_tid (async_thread_node &node) {
     ss << tid;
     std::string label{ss.str()};
     return label;
-}
-
-void write_flow_event(std::stringstream& ss, double ts, char ph,
-    std::string cat, uint64_t id, uint64_t pid, uint64_t tid, std::string name) {
-    ss << "{\"ts\":" << ts
-       << ",\"ph\":\"" << ph
-       << "\",\"cat\":\"" << cat
-       << "\",\"id\":" << id
-       << ",\"pid\":" << pid
-       << ",\"tid\":" << tid
-       << ",\"name\":\"" << name << "\"},\n";
 }
 
 void trace_event_listener::on_async_event(async_thread_node &node,
