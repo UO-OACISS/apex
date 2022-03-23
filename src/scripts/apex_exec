@@ -115,6 +115,7 @@ debugger=""
 prog=""
 preload=no
 verbose=no
+myrank="0"
 
 if [ $# -eq 0 ] ; then
     usage
@@ -375,33 +376,32 @@ export APEX_POLICY=1
 export HARMONY_HOME="@ACTIVEHARMONY_ROOT@"
 
 # Detect our MPI rank!
-myrank=0
-if [[ -v PMI_RANK ]] ; then
+if [ ! -z ${PMI_RANK+x} ] ; then
     myrank=${PMI_RANK}
 fi
-if [[ -v ALPS_APP_PE ]] ; then
+if [ ! -z ${ALPS_APP_PE+x} ] ; then
     myrank=${ALPS_APP_PE}
 fi
-if [[ -v CRAY_PMI_RANK ]] ; then
+if [ ! -z ${CRAY_PMI_RANK+x} ] ; then
     myrank=${CRAY_PMI_RANK}
 fi
-if [[ -v OMPI_COMM_WORLD_RANK ]] ; then
+if [ ! -z ${OMPI_COMM_WORLD_RANK+x} ] ; then
     myrank=${OMPI_COMM_WORLD_RANK}
 fi
-if [[ -v PBS_TASKNUM ]] ; then
+if [ ! -z ${PBS_TASKNUM+x} ] ; then
     myrank=${PBS_TASKNUM}
 fi
-if [[ -v PBS_O_TASKNUM ]] ; then
+if [ ! -z ${PBS_O_TASKNUM+x} ] ; then
     myrank=${PBS_O_TASKNUM}
 fi
-if [[ -v SLURM_PROCID ]] ; then
+if [ ! -z ${SLURM_PROCID+x} ] ; then
     myrank=${SLURM_PROCID}
 fi
 
 echo_screen() {
-    if [ ${myrank} -eq 0 ] ; then
-        if [ ${verbose} = yes ] ; then
-            if [ ${screen} = yes ] ; then
+    if [ "${myrank}" == "0" ] ; then
+        if [ "${verbose}" == "yes" ] ; then
+            if [ "${screen}" == "yes" ] ; then
                 echo $1
             fi
         fi
@@ -527,9 +527,9 @@ if [ ${tasktree} = yes ] ; then
     echo_screen "Generating tasktree with GraphViz..."
     dot -Tpdf -O tasktree.${myrank}.dot
     echo_screen "Human readable tree in tasktree.*.txt:"
-    if [ ${myrank} -eq 0 ] ; then
-        if [ ${verbose} = yes ] ; then
-            if [ ${screen} = yes ] ; then
+    if [ "${myrank}" == "0" ] ; then
+        if [ "${verbose}" == "yes" ] ; then
+            if [ "${screen}" == "yes" ] ; then
                 head tasktree.${myrank}.txt
             fi
         fi

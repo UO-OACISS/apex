@@ -152,6 +152,59 @@ double Node::writeNodeASCII(std::ofstream& outfile, double total, size_t indent)
     return acc;
 }
 
+double Node::writeNodeJSON(std::ofstream& outfile, double total, size_t indent) {
+    APEX_ASSERT(total > 0.0);
+    for (size_t i = 0 ; i < indent ; i++) { outfile << " "; }
+    indent++;
+    // write out the opening brace
+    outfile << "{ ";
+    // write out the name
+    outfile << "\"name\": \"" << data->get_tree_name() << "\", ";
+    // write out the inclusive
+    double acc = (data == task_identifier::get_main_task_id() || accumulated == 0.0) ?
+        total : accumulated;
+    outfile << "\"size\": " << (acc * 1000000); // convert to microseconds!
+
+    // if no children, we are done
+    if (children.size() == 0) {
+        outfile << " }";
+        return acc;
+    }
+
+    // write the children label
+    outfile << ", \"children\": [\n";
+
+    // sort the children by accumulated time
+    std::vector<std::pair<task_identifier, Node*> > sorted;
+    for (auto& it : children) {
+        sorted.push_back(it);
+    }
+    sort(sorted.begin(), sorted.end(), cmp);
+
+    // do all the children
+    double remainder = acc;
+    bool first = true;
+    for (auto c : sorted) {
+        if (!first) { outfile << ",\n"; }
+        first = false;
+        double tmp = c.second->writeNodeJSON(outfile, total, indent);
+        remainder = remainder - tmp;
+    }
+    if (remainder > 0.0) {
+        outfile << ",\n";
+        for (size_t i = 0 ; i < indent ; i++) { outfile << " "; }
+        outfile << "{ \"name\": \"" << data->get_tree_name() << "\", \"size\": " << (remainder * 1000000) << " }";
+    }
+    // close the list
+    outfile << "\n";
+    for (size_t i = 0 ; i < indent-1 ; i++) { outfile << " "; }
+    outfile << "]\n";
+    // end the object
+    for (size_t i = 0 ; i < indent-1 ; i++) { outfile << " "; }
+    outfile << "}";
+    return acc;
+}
+
 void Node::writeTAUCallpath(std::ofstream& outfile, std::string prefix) {
     static size_t depth = 0;
 
