@@ -157,13 +157,13 @@ double Node::writeNodeJSON(std::ofstream& outfile, double total, size_t indent) 
     for (size_t i = 0 ; i < indent ; i++) { outfile << " "; }
     indent++;
     // write out the opening brace
-    outfile << "{ ";
+    outfile << std::fixed << std::setprecision(6) << "{ ";
     // write out the name
     outfile << "\"name\": \"" << data->get_tree_name() << "\", ";
     // write out the inclusive
     double acc = (data == task_identifier::get_main_task_id() || accumulated == 0.0) ?
-        total : accumulated;
-    outfile << "\"size\": " << (acc * 1000000); // convert to microseconds!
+        total : std::min(total, accumulated);
+    outfile << "\"size\": " << acc;
 
     // if no children, we are done
     if (children.size() == 0) {
@@ -193,7 +193,7 @@ double Node::writeNodeJSON(std::ofstream& outfile, double total, size_t indent) 
     if (remainder > 0.0) {
         outfile << ",\n";
         for (size_t i = 0 ; i < indent ; i++) { outfile << " "; }
-        outfile << "{ \"name\": \"" << data->get_tree_name() << "\", \"size\": " << (remainder * 1000000) << " }";
+        outfile << "{ \"name\": \"" << data->get_tree_name() << "\", \"size\": " << remainder << " }";
     }
     // close the list
     outfile << "\n";
