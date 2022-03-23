@@ -154,6 +154,7 @@ double Node::writeNodeASCII(std::ofstream& outfile, double total, size_t indent)
 
 double Node::writeNodeJSON(std::ofstream& outfile, double total, size_t indent) {
     APEX_ASSERT(total > 0.0);
+    // indent as necessary
     for (size_t i = 0 ; i < indent ; i++) { outfile << " "; }
     indent++;
     // write out the opening brace
@@ -163,6 +164,8 @@ double Node::writeNodeJSON(std::ofstream& outfile, double total, size_t indent) 
     // write out the inclusive
     double acc = (data == task_identifier::get_main_task_id() || accumulated == 0.0) ?
         total : std::min(total, accumulated);
+    // Don't write out synchronization events! They confuse the graph.
+    if (data->get_tree_name().find("Synchronize") != std::string::npos) acc = 0.0;
     outfile << "\"size\": " << acc;
 
     // if no children, we are done
@@ -182,19 +185,23 @@ double Node::writeNodeJSON(std::ofstream& outfile, double total, size_t indent) 
     sort(sorted.begin(), sorted.end(), cmp);
 
     // do all the children
-    double remainder = acc;
+    double children_total;
     bool first = true;
     for (auto c : sorted) {
         if (!first) { outfile << ",\n"; }
         first = false;
         double tmp = c.second->writeNodeJSON(outfile, total, indent);
-        remainder = remainder - tmp;
+        // if we didn't write the child, don't write a comma.
+        children_total = children_total + tmp;
     }
+    double remainder = acc - children_total;
+    /*
     if (remainder > 0.0) {
-        outfile << ",\n";
+        if (!first) { outfile << ",\n"; }
         for (size_t i = 0 ; i < indent ; i++) { outfile << " "; }
         outfile << "{ \"name\": \"" << data->get_tree_name() << "\", \"size\": " << remainder << " }";
     }
+    */
     // close the list
     outfile << "\n";
     for (size_t i = 0 ; i < indent-1 ; i++) { outfile << " "; }
@@ -202,7 +209,7 @@ double Node::writeNodeJSON(std::ofstream& outfile, double total, size_t indent) 
     // end the object
     for (size_t i = 0 ; i < indent-1 ; i++) { outfile << " "; }
     outfile << "}";
-    return acc;
+    return std::max(acc, children_total);
 }
 
 void Node::writeTAUCallpath(std::ofstream& outfile, std::string prefix) {
