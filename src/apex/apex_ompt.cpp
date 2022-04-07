@@ -389,7 +389,7 @@ extern "C" void apex_implicit_task(
 
 /* These are placeholder functions */
 
-#if 0
+#if 1
 
 /* Event #8, target */
 extern "C" void apex_target (
@@ -401,6 +401,23 @@ extern "C" void apex_target (
     const void *codeptr_ra
 ) {
     if (!enabled) { return; }
+    if (endpoint == ompt_scope_begin) {
+        char regionIDstr[128] = {0};
+        DEBUG_PRINT("%" PRId64 ": Begin target: %p, %p\n", apex_threadid,
+            (void*)task_data, codeptr_ra);
+        if (codeptr_ra != nullptr) {
+            sprintf(regionIDstr, "OpenMP Target: UNRESOLVED ADDR %p",
+            codeptr_ra);
+            apex_ompt_start(regionIDstr, task_data, nullptr, true, codeptr_ra);
+        } else {
+            sprintf(regionIDstr, "OpenMP Target");
+            apex_ompt_start(regionIDstr, task_data, nullptr, true);
+        }
+    } else {
+        DEBUG_PRINT("%" PRId64 ": End target: %p, %p\n", apex_threadid,
+            (void*)task_data, codeptr_ra);
+        apex_ompt_stop(task_data);
+    }
 }
 
 /* Event #9, target data */
@@ -408,19 +425,26 @@ extern "C" void apex_target_data_op (
     ompt_id_t target_id,
     ompt_id_t host_op_id,
     ompt_target_data_op_t optype,
-    void *host_addr,
-    void *device_addr,
-    size_t bytes
+    void *src_addr,
+    int src_device_num,
+    void *dest_addr,
+    int dest_device_num,
+    size_t bytes,
+    const void *codeptr_ra
 ) {
     if (!enabled) { return; }
+    printf("%s of %" PRId64 " bytes\n", __func__, bytes);
+    // get the address and save the bytes transferred
 }
 
 /* Event #10, target submit */
 extern "C" void apex_target_submit (
     ompt_id_t target_id,
-    ompt_id_t host_op_id
+    ompt_id_t host_op_id,
+    unsigned int requested_num_teams
 ) {
     if (!enabled) { return; }
+    printf("%s with %" PRId64 " teams\n", __func__, requested_num_teams);
 }
 
 /* Event #11, tool control */
@@ -431,6 +455,7 @@ extern "C" void apex_control(
     const void *codeptr_ra /* return address of runtime call      */
     ) {
     if (!enabled) { return; }
+    printf("%s\n", __func__);
 }
 
 /* Event #12, device initialize */
@@ -442,6 +467,7 @@ extern "C" void apex_device_initialize (
     const char *documentation
 ) {
     if (!enabled) { return; }
+    printf("%s\n", __func__);
 }
 
 /* Event #13, device finalize */
@@ -449,10 +475,11 @@ extern "C" void apex_device_finalize (
     uint64_t device_num
 ) {
     if (!enabled) { return; }
+    printf("%s\n", __func__);
 }
 
 /* Event #14, device load */
-extern "C" void apex_device_load_t (
+extern "C" void apex_device_load (
     uint64_t device_num,
     const char * filename,
     int64_t offset_in_file,
@@ -463,6 +490,7 @@ extern "C" void apex_device_load_t (
     uint64_t module_id
 ) {
     if (!enabled) { return; }
+    printf("%s\n", __func__);
 }
 
 /* Event #15, device load */
@@ -471,6 +499,22 @@ extern "C" void apex_device_unload (
     uint64_t module_id
 ) {
     if (!enabled) { return; }
+    printf("%s\n", __func__);
+}
+
+/* Event #22, target map */
+extern "C" void apex_target_map (
+    ompt_id_t target_id,
+    unsigned int nitems,
+    void **host_addr,
+    void **device_addr,
+    size_t *bytes,
+    unsigned int *mapping_flags,
+    const void *codeptr_ra
+) {
+    if (!enabled) { return; }
+    printf("%s\n", __func__);
+    // get the direction, and capture the bytes transferred.
 }
 
 #endif // placeholder functions
@@ -861,12 +905,32 @@ extern "C" void apex_ompt_idle (
 // This function is for checking that the function registration worked.
 int apex_ompt_register(ompt_callbacks_t e, ompt_callback_t c ,
     const char * name) {
-  DEBUG_PRINT("Registering OMPT callback %s...",name); fflush(stderr);
-  if (ompt_set_callback(e, c) == 0) { \
-    fprintf(stderr,"\n\tFailed to register OMPT callback %s!\n",name);
-    fflush(stderr);
-  } else {
-    DEBUG_PRINT("success.\n");
+  fprintf(stderr,"Registering OMPT callback %s...",name); fflush(stderr);
+  ompt_set_result_t rc = ompt_set_callback(e, c);
+  switch (rc) {
+    case ompt_set_error:
+        fprintf(stderr,"\n\tFailed to register OMPT callback %s!\n",name);
+        fflush(stderr);
+        break;
+    case ompt_set_never:
+        fprintf(stderr,"\n\tOMPT callback %s never supported by this runtime.\n",name);
+        fflush(stderr);
+        break;
+    case ompt_set_impossible:
+        fprintf(stderr,"\n\tOMPT callback %s impossible from this runtime.\n",name);
+        fflush(stderr);
+        break;
+    case ompt_set_sometimes:
+        fprintf(stderr,"\n\tOMPT callback %s sometimes supported by this runtime.\n",name);
+        fflush(stderr);
+        break;
+    case ompt_set_sometimes_paired:
+        fprintf(stderr,"\n\tOMPT callback %s sometimes paired by this runtime.\n",name);
+        fflush(stderr);
+        break;
+    case ompt_set_always:
+    default:
+        fprintf(stderr,"success.\n");
   }
   return 0;
 }
@@ -954,7 +1018,7 @@ int ompt_initialize(ompt_function_lookup_t lookup, int initial_device_num,
             (ompt_callback_t)&apex_implicit_task, "implicit_task");
     }
 
- #if 0
+ #if 1
     // Event 8: target
     apex_ompt_register(ompt_callback_target,
         (ompt_callback_t)&apex_target, "target");
@@ -990,8 +1054,10 @@ int ompt_initialize(ompt_function_lookup_t lookup, int initial_device_num,
         /* Event 21: task at master begin or end     */
         apex_ompt_register(ompt_callback_master,
             (ompt_callback_t)&apex_ompt_master, "master");
-#if 0
+#if 1
         /* Event 22: target map                      */
+        apex_ompt_register(ompt_callback_target_map,
+            (ompt_callback_t)&apex_target_map, "target_map");
 #endif
         /* Event 29: after executing flush           */
         apex_ompt_register(ompt_callback_flush,

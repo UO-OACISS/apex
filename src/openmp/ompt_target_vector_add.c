@@ -5,7 +5,7 @@
 #include <omp.h>
 
 #define ARRAY_SIZE     1024*1024*512
-#define ITERATIONS     350
+#define ITERATIONS     10
 
 int run_cpu( int argc, char** argv ) {
   printf( "The total memory allocated is %7.3lf MB.\n",

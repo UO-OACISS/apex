@@ -75,8 +75,8 @@ monitor::monitor (void) {
     for (uint32_t dv_ind = 0 ; dv_ind < deviceCount ; dv_ind++) {
         DeviceInfo info;
         // Get Unique ID
-        RSMI_CALL(rsmi_dev_unique_id_get(dv_ind, &info.unique_id));
-        devices.push_back(info.unique_id);
+        //RSMI_CALL(rsmi_dev_unique_id_get(dv_ind, &info.unique_id));
+        //devices.push_back(info.unique_id);
         queried_once.push_back(false);
         // Get the device id associated with the device with provided device index.
          RSMI_CALL( rsmi_dev_id_get (dv_ind, &info.id));
@@ -216,6 +216,7 @@ void monitor::query(void) {
         sample_value(tmp, value);
         ss.str("");
 
+#if 0   // when liquid cooled, there is no fan speed.
 		// Get the fan speed in RPMs of the device with the specified device index and 0-based sensor index.
 		int64_t speed;
 		RSMI_CALL(rsmi_dev_fan_rpms_get (d, sensor_index, &speed));
@@ -227,6 +228,7 @@ void monitor::query(void) {
         tmp = ss.str();
         value = speed_percent * PERCENT;
         sample_value(tmp, value);
+#endif
         ss.str("");
 		// Get the temperature metric value for the specified metric, from the specified temperature sensor on the specified
 		int64_t temperature;

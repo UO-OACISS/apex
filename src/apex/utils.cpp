@@ -651,15 +651,24 @@ in_apex::~in_apex() {
 extern "C" void __cyg_profile_func_enter(void *this_fn, void *call_site) __attribute__((no_instrument_function));
 extern "C" void __cyg_profile_func_exit(void *this_fn, void *call_site) __attribute__((no_instrument_function));
 
+std::stack<std::shared_ptr<apex::task_wrapper> >& __cyg_timer_stack() {
+    thread_local static std::stack<std::shared_ptr<apex::task_wrapper> > thestack;
+    return thestack;
+}
+
 extern "C" void __cyg_profile_func_enter(void *this_fn, void *call_site)
 {
     APEX_UNUSED(call_site);
-    apex::start((apex_function_address)this_fn);
+    std::shared_ptr<apex::task_wrapper> twp = apex::new_task((apex_function_address)this_fn);
+    apex::start(twp);
+    __cyg_timer_stack().push(twp);
 } /* __cyg_profile_func_enter */
 
 extern "C" void __cyg_profile_func_exit(void *this_fn, void *call_site)
 {
     APEX_UNUSED(this_fn);
     APEX_UNUSED(call_site);
-    apex::stop(apex::thread_instance::instance().get_current_profiler());
+    auto twp = __cyg_timer_stack().top();
+    apex::stop(twp);
+    __cyg_timer_stack().pop();
 } /* __cyg_profile_func_enter */
