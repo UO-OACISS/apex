@@ -14,7 +14,7 @@ if(MPI_CXX_FOUND)
     add_subdirectory (MPIAutoBalance)
   endif()
 endif()
-add_subdirectory (TestITT)
+# add_subdirectory (TestITT)
 add_subdirectory (TestThreads)
 add_subdirectory (CountCalls)
 add_subdirectory (Overhead)
@@ -61,8 +61,8 @@ add_test (ExampleMatmult Matmult/matmult)
 set_tests_properties(ExampleMatmult PROPERTIES PASS_REGULAR_EXPRESSION "Done.")
 
 # Run the test program which tests the ITT interface
-add_test (ExampleTestITT TestITT/testITT)
-set_tests_properties(ExampleTestITT PROPERTIES PASS_REGULAR_EXPRESSION "ITT demo.")
+# add_test (ExampleTestITT TestITT/testITT)
+# set_tests_properties(ExampleTestITT PROPERTIES PASS_REGULAR_EXPRESSION "ITT demo.")
 
 # Run the test program which tests the threads interface
 add_test (ExampleTestThreads TestThreads/testThreads)
@@ -231,7 +231,6 @@ if (PAPI_FOUND AND NOT TAU_FOUND)
         ExampleDemoC
         ExampleDemoCpp
         ExampleMatmult
-        ExampleTestITT
         ExampleTestThreads
         ExampleCountCalls
         ExampleOverhead
