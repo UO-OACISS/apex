@@ -45,6 +45,10 @@
 //DEFINE_DESTRUCTOR(flushTrace);
 //#endif
 
+/* Fun!  CUPTI doesn't do callbacks for end or push events.  Wheeeeee
+ * So, what we'll do is wrap the functions instead of having callbacks. */
+#define APEX_BROKEN_CUPTI_NVTX_PUSH_POP 1
+
 #define CUPTI_CALL(call)                                                \
     do {                                                                  \
         CUptiResult _status = call;                                         \
@@ -124,6 +128,11 @@ std::map<nvtxRangeId_t, apex::profiler*>& get_range_map() {
     return the_map;
 }
 
+std::stack<std::shared_ptr<apex::task_wrapper> >& get_range_stack() {
+    static APEX_NATIVE_TLS std::stack<std::shared_ptr<apex::task_wrapper> > the_stack;
+    return the_stack;
+}
+
 /* Wrap some NVTX functions
  *
  * Because CUPTI doesn't give us a way to map domain/range names to their
@@ -138,11 +147,20 @@ extern "C" {
 
 // Some typedefs for functions that we are wrapping
 typedef nvtxDomainHandle_t (*nvtxDomainCreateA_p)(const char * name);
+typedef nvtxRangeId_t (*nvtxDomainRangeStartEx_p)(nvtxDomainHandle_t domain, const nvtxEventAttributes_t *eventAttrib);
+typedef nvtxRangeId_t (*nvtxRangeStartEx_p)(const nvtxEventAttributes_t *eventAttrib);
 typedef nvtxRangeId_t (*nvtxRangeStartA_p)(const char * message);
 typedef nvtxRangeId_t (*nvtxRangeStartW_p)(const wchar_t * message);
-typedef nvtxRangeId_t (*nvtxRangeStartEx_p)(const nvtxEventAttributes_t *eventAttrib);
+#ifdef APEX_BROKEN_CUPTI_NVTX_PUSH_POP
+typedef void (*nvtxDomainRangeEnd_p)(nvtxDomainHandle_t domain, nvtxRangeId_t id);
 typedef void (*nvtxRangeEnd_p)(nvtxRangeId_t id);
-typedef nvtxRangeId_t (*nvtxDomainRangeStartEx_p)(nvtxDomainHandle_t domain, const nvtxEventAttributes_t *eventAttrib);
+typedef int (*nvtxDomainRangePushEx_p)(nvtxDomainHandle_t domain, const nvtxEventAttributes_t *eventAttrib);
+typedef int (*nvtxRangePushEx_p)(const nvtxEventAttributes_t *eventAttrib);
+typedef int (*nvtxRangePushA_p)(const char * message);
+typedef int (*nvtxRangePushW_p)(const wchar_t * message);
+typedef int (*nvtxDomainRangePop_p)(nvtxDomainHandle_t domain);
+typedef int (*nvtxRangePop_p)(void);
+#endif
 
 /* Define the wrapper for nvtxDomainCreateA */
 nvtxDomainHandle_t apex_nvtxDomainCreateA_wrapper(
@@ -160,6 +178,18 @@ NVTX_DECLSPEC nvtxDomainHandle_t NVTX_API nvtxDomainCreateA (const char * name) 
     return apex_nvtxDomainCreateA_wrapper(_nvtxDomainCreateA, name);
 }
 
+/* Define the common wrapper for a range timer */
+void apex_nvtxRangeStart (nvtxRangeId_t id, const std::string name) {
+    auto p = apex::start(name);
+    get_range_map().insert(std::pair<nvtxRangeId_t, apex::profiler*>(id, p));
+}
+
+void apex_nvtxRangePush (const std::string name) {
+    auto timer = apex::new_task(name);
+    apex::start(timer);
+    get_range_stack().push(timer);
+}
+
 /* Define the wrapper for nvtxRangeStartA */
 nvtxRangeId_t apex_nvtxRangeStartA_wrapper (
     nvtxRangeStartA_p nvtxRangeStartA_call, const char * message) {
@@ -167,8 +197,7 @@ nvtxRangeId_t apex_nvtxRangeStartA_wrapper (
     /* Range start/end is too risky for OTF2 */
     if (!apex::apex_options::use_otf2()) {
         std::string tmp{message};
-        auto p = apex::start(tmp);
-        get_range_map().insert(std::pair<nvtxRangeId_t, apex::profiler*>(handle, p));
+        apex_nvtxRangeStart(handle, tmp);
     }
     return handle;
 }
@@ -180,6 +209,23 @@ NVTX_DECLSPEC nvtxRangeId_t NVTX_API nvtxRangeStartA (const char * message) {
     return apex_nvtxRangeStartA_wrapper(_nvtxRangeStartA, message);
 }
 
+#ifdef APEX_BROKEN_CUPTI_NVTX_PUSH_POP
+/* Define the wrapper for nvtxRangePushA */
+int apex_nvtxRangePushA_wrapper (
+    nvtxRangePushA_p nvtxRangePushA_call, const char * message) {
+    auto handle = nvtxRangePushA_call(message);
+    std::string tmp{message};
+    apex_nvtxRangePush(tmp);
+    return handle;
+}
+
+/* Define the interceptor for nvtxRangePushA */
+NVTX_DECLSPEC int NVTX_API nvtxRangePushA (const char * message) {
+    static nvtxRangePushA_p _nvtxRangePushA =
+        (nvtxRangePushA_p)(get_system_function_handle("nvtxRangePushA", (void*)(nvtxRangePushA)));
+    return apex_nvtxRangePushA_wrapper(_nvtxRangePushA, message);
+}
+
 /* Define the wrapper for nvtxRangeStartW */
 nvtxRangeId_t apex_nvtxRangeStartW_wrapper (
     nvtxRangeStartW_p nvtxRangeStartW_call, const wchar_t * message) {
@@ -188,8 +234,7 @@ nvtxRangeId_t apex_nvtxRangeStartW_wrapper (
     if (!apex::apex_options::use_otf2()) {
         std::wstring wtmp(message);
         std::string tmp = std::string(wtmp.begin(), wtmp.end());
-        auto p = apex::start(tmp);
-        get_range_map().insert(std::pair<nvtxRangeId_t, apex::profiler*>(handle, p));
+        apex_nvtxRangeStart(handle, tmp);
     }
     return handle;
 }
@@ -201,6 +246,105 @@ NVTX_DECLSPEC nvtxRangeId_t NVTX_API nvtxRangeStartW (const wchar_t * message) {
     return apex_nvtxRangeStartW_wrapper(_nvtxRangeStartW, message);
 }
 
+/* Define the wrapper for nvtxRangePushW */
+int apex_nvtxRangePushW_wrapper (
+    nvtxRangePushW_p nvtxRangePushW_call, const wchar_t * message) {
+    auto handle = nvtxRangePushW_call(message);
+    /* Range start/end is too risky for OTF2 */
+    if (!apex::apex_options::use_otf2()) {
+        std::wstring wtmp(message);
+        std::string tmp = std::string(wtmp.begin(), wtmp.end());
+        apex_nvtxRangePush(tmp);
+    }
+    return handle;
+}
+
+/* Define the interceptor for nvtxRangePushW */
+NVTX_DECLSPEC int NVTX_API nvtxRangePushW (const wchar_t * message) {
+    static nvtxRangePushW_p _nvtxRangePushW =
+        (nvtxRangePushW_p)(get_system_function_handle("nvtxRangePushW", (void*)(nvtxRangePushW)));
+    return apex_nvtxRangePushW_wrapper(_nvtxRangePushW, message);
+}
+
+void apex_nvtxRangePop (void) {
+    if (!get_range_stack().empty()) {
+        auto timer = get_range_stack().top();
+        apex::stop(timer);
+        get_range_stack().pop();
+    }
+}
+
+/* Define the wrapper for nvtxRangePop */
+int apex_nvtxRangePop_wrapper (nvtxRangePop_p nvtxRangePop_call) {
+    auto handle = nvtxRangePop_call();
+    apex_nvtxRangePop();
+    return handle;
+}
+
+/* Define the interceptor for nvtxRangePop */
+NVTX_DECLSPEC int NVTX_API nvtxRangePop (void) {
+    static nvtxRangePop_p _nvtxRangePop =
+        (nvtxRangePop_p)(get_system_function_handle("nvtxRangePop", (void*)(nvtxRangePop)));
+    return apex_nvtxRangePop_wrapper(_nvtxRangePop);
+}
+
+/* Define the wrapper for nvtxDomainRangePop */
+int apex_nvtxDomainRangePop_wrapper (nvtxDomainRangePop_p nvtxDomainRangePop_call,
+    nvtxDomainHandle_t domain) {
+    auto handle = nvtxDomainRangePop_call(domain);
+    apex_nvtxRangePop();
+    return handle;
+}
+
+/* Define the interceptor for nvtxDomainRangePop */
+NVTX_DECLSPEC int NVTX_API nvtxDomainRangePop (nvtxDomainHandle_t domain) {
+    static nvtxDomainRangePop_p _nvtxDomainRangePop =
+        (nvtxDomainRangePop_p)(get_system_function_handle("nvtxDomainRangePop", (void*)(nvtxDomainRangePop)));
+    return apex_nvtxDomainRangePop_wrapper(_nvtxDomainRangePop, domain);
+}
+
+void apex_nvtxRangeEnd(nvtxRangeId_t id) {
+    /* Range start/end is too risky for OTF2 */
+    if (apex::apex_options::use_otf2()) { return; }
+    apex::stop(get_range_map()[id]);
+    get_range_map().erase(id);
+}
+
+/* Define the wrapper for nvtxRangeEnd */
+void apex_nvtxRangeEnd_wrapper (
+    nvtxRangeEnd_p nvtxRangeEnd_call,
+    const nvtxRangeId_t id) {
+    nvtxRangeEnd_call(id);
+    apex_nvtxRangeEnd(id);
+    return;
+}
+
+/* Define the interceptor for nvtxRangeEnd */
+NVTX_DECLSPEC void NVTX_API nvtxRangeEnd (nvtxRangeId_t id) {
+    static nvtxRangeEnd_p _nvtxRangeEnd =
+        (nvtxRangeEnd_p)(get_system_function_handle("nvtxRangeEnd", (void*)(nvtxRangeEnd)));
+    return apex_nvtxRangeEnd_wrapper(_nvtxRangeEnd, id);
+}
+
+/* Define the wrapper for nvtxDomainRangeEnd */
+void apex_nvtxDomainRangeEnd_wrapper (
+    nvtxDomainRangeEnd_p nvtxDomainRangeEnd_call,
+    nvtxDomainHandle_t domain,
+    const nvtxRangeId_t id) {
+    nvtxDomainRangeEnd_call(domain, id);
+    apex_nvtxRangeEnd(id);
+    return;
+}
+
+/* Define the interceptor for nvtxDomainRangeEnd */
+NVTX_DECLSPEC void NVTX_API nvtxDomainRangeEnd (nvtxDomainHandle_t domain, nvtxRangeId_t id) {
+    static nvtxDomainRangeEnd_p _nvtxDomainRangeEnd =
+        (nvtxDomainRangeEnd_p)(get_system_function_handle("nvtxDomainRangeEnd", (void*)(nvtxDomainRangeEnd)));
+    return apex_nvtxDomainRangeEnd_wrapper(_nvtxDomainRangeEnd, domain, id);
+}
+
+#endif
+
 /* Define the wrapper for nvtxRangeStartEx */
 nvtxRangeId_t apex_nvtxRangeStartEx_wrapper (
     nvtxRangeStartEx_p nvtxRangeStartEx_call,
@@ -209,8 +353,7 @@ nvtxRangeId_t apex_nvtxRangeStartEx_wrapper (
     /* Range start/end is too risky for OTF2 */
     if (!apex::apex_options::use_otf2()) {
         std::string tmp{get_nvtx_message(eventAttrib)};
-        auto p = apex::start(tmp);
-        get_range_map().insert(std::pair<nvtxRangeId_t, apex::profiler*>(handle, p));
+        apex_nvtxRangeStart(handle, tmp);
     }
     return handle;
 }
@@ -220,25 +363,6 @@ NVTX_DECLSPEC nvtxRangeId_t NVTX_API nvtxRangeStartEx (const nvtxEventAttributes
     static nvtxRangeStartEx_p _nvtxRangeStartEx =
         (nvtxRangeStartEx_p)(get_system_function_handle("nvtxRangeStartEx", (void*)(nvtxRangeStartEx)));
     return apex_nvtxRangeStartEx_wrapper(_nvtxRangeStartEx, eventAttrib);
-}
-
-/* Define the wrapper for nvtxRangeEnd */
-void apex_nvtxRangeEnd_wrapper (
-    nvtxRangeEnd_p nvtxRangeEnd_call,
-    const nvtxRangeId_t id) {
-    nvtxRangeEnd_call(id);
-    /* Range start/end is too risky for OTF2 */
-    if (apex::apex_options::use_otf2()) { return; }
-    apex::stop(get_range_map()[id]);
-    get_range_map().erase(id);
-    return;
-}
-
-/* Define the interceptor for nvtxRangeEnd */
-NVTX_DECLSPEC void NVTX_API nvtxRangeEnd (nvtxRangeId_t id) {
-    static nvtxRangeEnd_p _nvtxRangeEnd =
-        (nvtxRangeEnd_p)(get_system_function_handle("nvtxRangeEnd", (void*)(nvtxRangeEnd)));
-    return apex_nvtxRangeEnd_wrapper(_nvtxRangeEnd, id);
 }
 
 /* Define the wrapper for nvtxDomainRangeStartEx */
@@ -258,8 +382,7 @@ nvtxRangeId_t apex_nvtxDomainRangeStartEx_wrapper (
         } else {
             tmp = get_nvtx_message(eventAttrib);
         }
-        auto p = apex::start(tmp);
-        get_range_map().insert(std::pair<nvtxRangeId_t, apex::profiler*>(handle, p));
+        apex_nvtxRangeStart(handle, tmp);
     }
     return handle;
 }
@@ -269,6 +392,55 @@ NVTX_DECLSPEC nvtxRangeId_t NVTX_API nvtxDomainRangeStartEx (nvtxDomainHandle_t 
     static nvtxDomainRangeStartEx_p _nvtxDomainRangeStartEx =
         (nvtxDomainRangeStartEx_p)(get_system_function_handle("nvtxDomainRangeStartEx", (void*)(nvtxDomainRangeStartEx)));
     return apex_nvtxDomainRangeStartEx_wrapper(_nvtxDomainRangeStartEx, domain, eventAttrib);
+}
+
+/* Define the wrapper for nvtxRangePushEx */
+int apex_nvtxRangePushEx_wrapper (
+    nvtxRangePushEx_p nvtxRangePushEx_call,
+    const nvtxEventAttributes_t *eventAttrib) {
+    auto handle = nvtxRangePushEx_call(eventAttrib);
+    /* Range start/end is too risky for OTF2 */
+    if (!apex::apex_options::use_otf2()) {
+        std::string tmp{get_nvtx_message(eventAttrib)};
+        apex_nvtxRangePush(tmp);
+    }
+    return handle;
+}
+
+/* Define the interceptor for nvtxRangePushEx */
+NVTX_DECLSPEC int NVTX_API nvtxRangePushEx (const nvtxEventAttributes_t *eventAttrib) {
+    static nvtxRangePushEx_p _nvtxRangePushEx =
+        (nvtxRangePushEx_p)(get_system_function_handle("nvtxRangePushEx", (void*)(nvtxRangePushEx)));
+    return apex_nvtxRangePushEx_wrapper(_nvtxRangePushEx, eventAttrib);
+}
+
+/* Define the wrapper for nvtxDomainRangePushEx */
+int apex_nvtxDomainRangePushEx_wrapper (
+    nvtxDomainRangePushEx_p nvtxDomainRangePushEx_call,
+    nvtxDomainHandle_t domain,
+    const nvtxEventAttributes_t *eventAttrib) {
+    auto handle = nvtxDomainRangePushEx_call(domain, eventAttrib);
+    /* Range start/end is too risky for OTF2 */
+    if (!apex::apex_options::use_otf2()) {
+        std::string tmp;
+        if (domain != NULL) {
+            std::string domain_name(get_domain_map()[domain]);
+            std::stringstream ss;
+            ss << domain_name << ": " << get_nvtx_message(eventAttrib);
+            tmp = ss.str();
+        } else {
+            tmp = get_nvtx_message(eventAttrib);
+        }
+        apex_nvtxRangePush(tmp);
+    }
+    return handle;
+}
+
+/* Define the interceptor for nvtxDomainRangePushEx */
+NVTX_DECLSPEC int NVTX_API nvtxDomainRangePushEx (nvtxDomainHandle_t domain, const nvtxEventAttributes_t *eventAttrib) {
+    static nvtxDomainRangePushEx_p _nvtxDomainRangePushEx =
+        (nvtxDomainRangePushEx_p)(get_system_function_handle("nvtxDomainRangePushEx", (void*)(nvtxDomainRangePushEx)));
+    return apex_nvtxDomainRangePushEx_wrapper(_nvtxDomainRangePushEx, domain, eventAttrib);
 }
 
 } /* extern "C" */
@@ -1445,8 +1617,7 @@ double get_nvtx_payload(const nvtxEventAttributes_t * eventAttrib) {
     return payload;
 }
 
-void handle_nvtx_callback(CUpti_CallbackId id, const void *cbdata,
-    std::stack<std::shared_ptr<apex::task_wrapper> >& timer_stack) {
+void handle_nvtx_callback(CUpti_CallbackId id, const void *cbdata) {
     // disable memory management tracking in APEX during this callback
     apex::in_apex prevent_deadlocks;
 
@@ -1485,6 +1656,17 @@ void handle_nvtx_callback(CUpti_CallbackId id, const void *cbdata,
             /* nothing to do, handled in the wrapper */
             break;
         }
+#ifndef APEX_BROKEN_CUPTI_NVTX_PUSH_POP
+        case CUPTI_CBID_NVTX_nvtxDomainRangeEnd:
+        {
+            /* Range start/end is too risky for OTF2 */
+            if (apex::apex_options::use_otf2()) { break; }
+            nvtxDomainRangeEnd_params *params =
+                (nvtxDomainRangeEnd_params *)nvtxInfo->functionParams;
+            apex::stop(get_range_map()[params->core.id]);
+            get_range_map().erase(params->core.id);
+            break;
+        }
         /* Range end events */
         case CUPTI_CBID_NVTX_nvtxRangeEnd:
         {
@@ -1496,16 +1678,6 @@ void handle_nvtx_callback(CUpti_CallbackId id, const void *cbdata,
             get_range_map().erase(params->id);
             break;
         }
-        case CUPTI_CBID_NVTX_nvtxDomainRangeEnd:
-        {
-            /* Range start/end is too risky for OTF2 */
-            if (apex::apex_options::use_otf2()) { break; }
-            nvtxDomainRangeEnd_params *params =
-                (nvtxDomainRangeEnd_params *)nvtxInfo->functionParams;
-            apex::stop(get_range_map()[params->core.id]);
-            get_range_map().erase(params->core.id);
-            break;
-        }
         /* Range push events */
         case CUPTI_CBID_NVTX_nvtxRangePushA: {
             nvtxRangePushA_params *params =
@@ -1513,7 +1685,7 @@ void handle_nvtx_callback(CUpti_CallbackId id, const void *cbdata,
             std::string tmp(params->message);
             auto timer = apex::new_task(tmp);
             apex::start(timer);
-            timer_stack.push(timer);
+            get_range_stack().push(timer);
             break;
         }
         case CUPTI_CBID_NVTX_nvtxRangePushW: {
@@ -1523,7 +1695,7 @@ void handle_nvtx_callback(CUpti_CallbackId id, const void *cbdata,
             std::string tmp(wtmp.begin(), wtmp.end());
             auto timer = apex::new_task(tmp);
             apex::start(timer);
-            timer_stack.push(timer);
+            get_range_stack().push(timer);
             break;
         }
         case CUPTI_CBID_NVTX_nvtxRangePushEx: {
@@ -1532,7 +1704,7 @@ void handle_nvtx_callback(CUpti_CallbackId id, const void *cbdata,
             std::string tmp = get_nvtx_message(params->eventAttrib);
             auto timer = apex::new_task(tmp);
             apex::start(timer);
-            timer_stack.push(timer);
+            get_range_stack().push(timer);
             break;
         }
         case CUPTI_CBID_NVTX_nvtxDomainRangePushEx: {
@@ -1549,19 +1721,20 @@ void handle_nvtx_callback(CUpti_CallbackId id, const void *cbdata,
             }
             auto timer = apex::new_task(tmp);
             apex::start(timer);
-            timer_stack.push(timer);
+            get_range_stack().push(timer);
             break;
         }
         /* Range pop events */
         case CUPTI_CBID_NVTX_nvtxRangePop:
         {
-            if (!timer_stack.empty()) {
-                auto timer = timer_stack.top();
+            if (!get_range_stack().empty()) {
+                auto timer = get_range_stack().top();
                 apex::stop(timer);
-                timer_stack.pop();
+                get_range_stack().pop();
             }
             break;
         }
+#endif
         case CUPTI_CBID_NVTX_nvtxMarkA:
         {
             /* marker event with dummy value */
@@ -1666,7 +1839,7 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
 
     /* Check for user-level instrumentation */
     if (domain == CUPTI_CB_DOMAIN_NVTX) {
-        handle_nvtx_callback(id, params, timer_stack);
+        handle_nvtx_callback(id, params);
         return;
     }
 
@@ -1852,6 +2025,6 @@ void init_cupti_tracing() {
         flushTrace();
         CUPTI_CALL(cuptiUnsubscribe(subscriber));
         CUPTI_CALL(cuptiFinalize());
-        get_range_map().clear();
+        // get_range_map().clear();
     }
 }

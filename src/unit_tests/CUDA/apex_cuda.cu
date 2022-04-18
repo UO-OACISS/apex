@@ -11,7 +11,7 @@
 /* For user instrumentation */
 #include "nvToolsExt.h"
 
-#define ITERATIONS 1
+#define ITERATIONS 4
 
 #define DRIVER_API_CALL(apiFuncCall)                                           \
 do {                                                                           \
@@ -48,7 +48,8 @@ const int num_colors = sizeof(colors)/sizeof(uint32_t);
     eventAttrib.message.ascii = name; \
     nvtxDomainRangePushEx(_domain, &eventAttrib); \
 }
-#define POP_RANGE nvtxRangePop();
+
+#define POP_RANGE(_domain) nvtxDomainRangePop(_domain);
 
 struct DataElement
 {
@@ -117,11 +118,11 @@ int main(int argc, char * argv[])
   eventAttrib.version = NVTX_VERSION; \
   eventAttrib.size = NVTX_EVENT_ATTRIB_STRUCT_SIZE; \
   eventAttrib.messageType = NVTX_MESSAGE_TYPE_ASCII; \
-  eventAttrib.message.ascii = "nvtx: main"; \
+  eventAttrib.message.ascii = "nvtxDomainRangeStartEx: main"; \
   nvtxRangeId_t rid1 = nvtxDomainRangeStartEx(domain, &eventAttrib);
   printf("NVTX Range ID: %lu\n", rid1);
   do_marker("nvtx: init marker");
-  nvtxRangePushA("nvtx: initialization");
+  nvtxRangePushA("nvtxRangePushA: initialization");
   DataElement *e;
   auto foo = sizeof(DataElement);
   RUNTIME_API_CALL(cudaMallocManaged((void**)&e, foo, cudaMemAttachGlobal));
@@ -132,17 +133,17 @@ int main(int argc, char * argv[])
   nvtxRangePop();
 
   do_marker("nvtx: compute marker");
-  PUSH_RANGE(domain, "nvtx: compute",1)
   int i;
   for(i = 0 ; i < ITERATIONS ; i++) {
+    PUSH_RANGE(domain, "nvtxDomainRangePushEx: compute",1);
     launch(e);
+    POP_RANGE(domain);
   }
-  POP_RANGE
 
   printf("On host: name=%s, value=%d\n", e->name, e->value);
 
   do_marker("nvtx: complete marker");
-  nvtxRangeId_t rid2 = nvtxRangeStartA("nvtx: finalization");
+  nvtxRangeId_t rid2 = nvtxRangeStartA("nvtxRangeStartA: finalization");
   printf("NVTX Range ID: %lu\n", rid2);
   RUNTIME_API_CALL(cudaFree(e->name));
   RUNTIME_API_CALL(cudaFree(e));
