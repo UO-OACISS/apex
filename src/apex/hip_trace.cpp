@@ -261,7 +261,7 @@ void handle_roctx(uint32_t domain, uint32_t cid, const void* callback_data, void
         case ROCTX_API_ID_roctxRangePushA:
             {
                 std::stringstream ss;
-                ss << "roctx: " << data->args.message;
+                ss /* << "roctx: " */ << data->args.message;
                 timer_stack.push(apex::start(ss.str()));
                 break;
             }
@@ -274,7 +274,7 @@ void handle_roctx(uint32_t domain, uint32_t cid, const void* callback_data, void
         case ROCTX_API_ID_roctxRangeStartA:
             {
                 std::stringstream ss;
-                ss << "roctx: " << data->args.message;
+                ss /* << "roctx: " */ << data->args.message;
                 apex::profiler* p = apex::start(ss.str());
                 const std::lock_guard<std::mutex> guard(map_lock);
                 timer_map.insert(

@@ -73,7 +73,7 @@ void Node::writeNode(std::ofstream& outfile, double total) {
         outfile << std::endl;
     }
 
-    double acc = (data == task_identifier::get_main_task_id()) ?
+    double acc = (data == task_identifier::get_main_task_id() || accumulated == 0.0) ?
         total : accumulated;
     node_color * c = get_node_color_visible(acc, 0.0, total);
     double ncalls = (calls == 0) ? 1 : calls;
