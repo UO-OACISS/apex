@@ -233,6 +233,7 @@ void monitor::query(void) {
             ss.str("");
         }
 #endif
+
 		// Get the temperature metric value for the specified metric, from the specified temperature sensor on the specified
 		int64_t temperature = 0;
 		RSMI_CALL(rsmi_dev_temp_metric_get(d, sensor_index, RSMI_TEMP_CURRENT, &temperature));
