@@ -1,7 +1,6 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <omp.h>
-#include "apex.h"
 
 __attribute__((noinline)) void foo(void) {
 #pragma omp parallel
@@ -24,7 +23,6 @@ __attribute__((noinline)) void bar(void) {
 }
 
 int main (int argc, char** argv) {
-    apex_set_use_screen_output(1);
     foo();
     bar();
     return 0;

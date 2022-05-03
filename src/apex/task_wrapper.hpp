@@ -78,6 +78,10 @@ struct task_wrapper {
   */
     double start_time;
 /**
+  \brief Whether this event requires separate start/end events in gtrace
+  */
+    bool explicit_trace_start;
+/**
   \brief Constructor.
   */
     task_wrapper(void) :
@@ -89,7 +93,8 @@ struct task_wrapper {
         tree_node(nullptr),
         alias(nullptr),
         thread_id(0UL),
-        start_time(0)
+        start_time(0),
+        explicit_trace_start(false)
     { }
 /**
   \brief Get the task_identifier for this task_wrapper.

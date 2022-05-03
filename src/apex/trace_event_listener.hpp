@@ -64,6 +64,7 @@ private:
     void flush_trace(void);
     void close_trace(void);
     void flush_trace_if_necessary(void);
+  	void _common_start(std::shared_ptr<task_wrapper> &tt_ptr);
   	void _common_stop(std::shared_ptr<profiler> &p);
     std::string make_tid (base_thread_node &node);
     long unsigned int get_thread_id_metadata();
