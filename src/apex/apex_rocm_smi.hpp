@@ -61,14 +61,14 @@ public:
     ~monitor (void);
     void query();
     void stop();
-    static void activateDeviceIndex(uint32_t index);
+    void activateDeviceIndex(uint32_t index);
 private:
     bool success;
     uint32_t deviceCount;
     std::vector<uint64_t> devices;
     std::vector<DeviceInfo> deviceInfos;
     std::vector<bool> queried_once;
-    static std::set<uint32_t> activeDeviceIndices;
+    std::set<uint32_t> activeDeviceIndices;
     static std::mutex indexMutex;
     //double convertValue(nvmlFieldValue_t &value);
 }; // class monitor

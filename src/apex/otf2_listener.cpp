@@ -49,26 +49,15 @@ using namespace std;
 
 namespace apex {
 
-    uint32_t otf2_listener::make_vtid (async_thread_node &node) {
+    uint32_t otf2_listener::make_vtid (base_thread_node &node) {
         size_t tid;
         /* There is a potential for overlap here, but not a high potential.  The CPU and the GPU
         * would BOTH have to spawn 64k+ threads/streams for this to happen. */
         if (vthread_map.count(node) == 0) {
             // build the thread name for viewers
             std::stringstream ss;
-#ifdef APEX_WITH_CUPTI
-            ss << "CUDA[" << node._device;
-            ss << ":" << node._context;
-            ss << ":" << node._stream;
-#endif
-#ifdef APEX_WITH_HIP
-            ss << "HIP[" << node._device;
-            ss << ":" << node._queue;
-#endif
-#if !defined(APEX_WITH_CUPTI) && !defined(APEX_WITH_HIP)
-            ss << "GPU[" << node._device;
-#endif
-            ss << "] " << activity_to_string(node._activity);
+            ss << node.name();
+            ss << " " << activity_to_string(node._activity);
             std::string name{ss.str()};
             // lock the archive lock, we need to make an event writer
             write_lock_type lock(_archive_mutex);
@@ -86,7 +75,7 @@ namespace apex {
             // done with the set of event threads, so unlock.
             _event_set_mutex.unlock();
             // use the OTF2 thread index (not reversed) for the vthread_map
-            vthread_map.insert(std::pair<async_thread_node, size_t>(node,id));
+            vthread_map.insert(std::pair<base_thread_node, size_t>(node,id));
             // construct a globally unique ID for this thread on this rank
             uint64_t my_node_id = my_saved_node_id;
             my_node_id = (my_node_id << 32) + id;
@@ -2678,7 +2667,7 @@ namespace apex {
 
 #endif
 
-    void otf2_listener::on_async_event(async_thread_node &node,
+    void otf2_listener::on_async_event(base_thread_node &node,
         std::shared_ptr<profiler> &p) {
         // This could be a callback from a library before APEX is ready
         // Something like OpenMP or CUDA/CUPTI or...?
@@ -2739,7 +2728,7 @@ namespace apex {
 
     }
 
-    void otf2_listener::on_async_metric(async_thread_node &node,
+    void otf2_listener::on_async_metric(base_thread_node &node,
         std::shared_ptr<profiler> &p) {
         // This could be a callback from a library before APEX is ready
         // Something like OpenMP or CUDA/CUPTI or...?

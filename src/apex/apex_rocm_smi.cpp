@@ -47,7 +47,7 @@ do {                                                                         \
 
 namespace apex { namespace rsmi {
 
-std::set<uint32_t> monitor::activeDeviceIndices;
+//std::set<uint32_t> monitor::activeDeviceIndices;
 std::mutex monitor::indexMutex;
 
 monitor::monitor (void) {

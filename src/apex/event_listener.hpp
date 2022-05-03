@@ -111,6 +111,7 @@ public:
   uint64_t parent_tid;
   std::string name;
   bool reverse_flow;
+  bool flow;
   async_event_data() {};
   async_event_data(double _parent_ts_start, std::string _cat, uint64_t _id,
     uint64_t _parent_tid, std::string _name) :
@@ -119,7 +120,7 @@ public:
     cat(_cat),
     id(_id),
     parent_tid(_parent_tid),
-    name(_name), reverse_flow(false) {};
+    name(_name), reverse_flow(false), flow(true) {};
   ~async_event_data() {};
 };
 

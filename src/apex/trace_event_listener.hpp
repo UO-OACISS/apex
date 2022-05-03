@@ -53,9 +53,9 @@ public:
   	void on_recv(message_event_data &data) { APEX_UNUSED(data); };
   	void set_node_id(int node_id, int node_count);
   	void set_metadata(const char * name, const char * value);
-    void on_async_event(async_thread_node &node, std::shared_ptr<profiler> &p,
+    void on_async_event(base_thread_node &node, std::shared_ptr<profiler> &p,
         const async_event_data& data);
-    void on_async_metric(async_thread_node &node, std::shared_ptr<profiler> &p);
+    void on_async_metric(base_thread_node &node, std::shared_ptr<profiler> &p);
     void end_trace_time(void);
 
 private:
@@ -65,7 +65,7 @@ private:
     void close_trace(void);
     void flush_trace_if_necessary(void);
   	void _common_stop(std::shared_ptr<profiler> &p);
-    std::string make_tid (async_thread_node &node);
+    std::string make_tid (base_thread_node &node);
     long unsigned int get_thread_id_metadata();
   	static bool _initialized;
     size_t get_thread_index(void);
@@ -84,7 +84,7 @@ private:
     std::map<size_t, std::mutex*> mutexes;
     std::map<size_t, std::stringstream*> streams;
     std::mutex _vthread_mutex;
-    std::map<async_thread_node, size_t> vthread_map;
+    std::map<base_thread_node, size_t> vthread_map;
     double _end_time;
 };
 
