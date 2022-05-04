@@ -251,16 +251,14 @@ std::string trace_event_listener::make_tid (base_thread_node &node) {
     /* There is a potential for overlap here, but not a high potential.  The CPU and the GPU
      * would BOTH have to spawn 64k+ threads/streams for this to happen. */
     if (vthread_map.count(node) == 0) {
-        size_t id = vthread_map.size()+1;
-        //uint32_t id_reversed = simple_reverse(id);
-        uint32_t id_shifted = id << 16;
+        uint32_t id_shifted = node.sortable_tid();
         vthread_map.insert(std::pair<base_thread_node, size_t>(node,id_shifted));
         std::stringstream ss;
         ss << fixed;
         ss << "{\"name\":\"thread_name\""
            << ",\"ph\":\"M\",\"pid\":" << saved_node_id
            << ",\"tid\":" << id_shifted
-           << ",\"args\":{\"name\":";
+           << ",\"args\":{\"name\":\"";
         ss << node.name();
         //ss << "" << activity_to_string(node._activity);
         ss << "\"";
@@ -270,7 +268,7 @@ std::string trace_event_listener::make_tid (base_thread_node &node) {
         ss << "{\"name\":\"thread_sort_index\""
            << ",\"ph\":\"M\",\"pid\":" << saved_node_id
            << ",\"tid\":" << id_shifted
-           << ",\"args\":{\"sort_index\":" << UINT32_MAX << "}},\n";
+           << ",\"args\":{\"sort_index\":" << id_shifted << "}},\n";
         write_to_trace(ss);
     }
     tid = vthread_map[node];

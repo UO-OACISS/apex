@@ -632,12 +632,6 @@ namespace apex {
             role = OTF2_REGION_ROLE_ARTIFICIAL;
             return;
         }
-        found = uppercase.find(string("OPENMP"));
-        if (found != std::string::npos) {
-            paradigm = OTF2_PARADIGM_OPENMP;
-            role = OTF2_REGION_ROLE_FUNCTION;
-            return;
-        }
         found = uppercase.find(string("PTHREAD"));
         if (found != std::string::npos) {
             paradigm = OTF2_PARADIGM_PTHREAD;
@@ -655,7 +649,8 @@ namespace apex {
             paradigm = OTF2_PARADIGM_CUDA;
             role = OTF2_REGION_ROLE_FUNCTION;
             found = uppercase.find(string("MEMCPY"));
-            if (found != std::string::npos) {
+            size_t found2 = uppercase.find(string("OPENMP TARGET DATAOP XFER"));
+            if (found != std::string::npos || found2 != std::string::npos) {
                 role = OTF2_REGION_ROLE_DATA_TRANSFER;
             } else {
                 found = uppercase.find(string("SYNC"));
@@ -663,16 +658,26 @@ namespace apex {
                     role = OTF2_REGION_ROLE_TASK_WAIT;
                 } else {
                     found = uppercase.find(string("MEMSET"));
-                    if (found != std::string::npos) {
+                    found2 = uppercase.find(string("OPENMP TARGET DATAOP ALLOC"));
+                    size_t found3 = uppercase.find(string("OPENMP TARGET DATAOP DELETE"));
+                    if (found != std::string::npos ||
+                        found2 != std::string::npos || found3 != std::string::npos) {
                         role = OTF2_REGION_ROLE_DATA_TRANSFER;
                     } else {
                         found = uppercase.find(string("STREAM WAIT"));
-                        if (found != std::string::npos) {
+                        found2 = uppercase.find(string("OPENMP TARGET:"));
+                        if (found != std::string::npos || found2 != std::string::npos) {
                             role = OTF2_REGION_ROLE_TASK_WAIT;
                         }
                     }
                 }
             }
+            return;
+        }
+        found = uppercase.find(string("OPENMP"));
+        if (found != std::string::npos) {
+            paradigm = OTF2_PARADIGM_OPENMP;
+            role = OTF2_REGION_ROLE_FUNCTION;
             return;
         }
         // does the original string start with cu or cuda?

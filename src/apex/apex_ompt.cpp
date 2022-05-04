@@ -138,12 +138,15 @@ public:
 
 };
 
-std::shared_ptr<apex::task_wrapper> start_async_task(const std::string &name, uint32_t correlationId) {
+std::shared_ptr<apex::task_wrapper> start_async_task(const std::string &name, uint32_t correlationId, long unsigned int& parent_thread) {
     apex::in_apex prevent_deadlocks;
     // get the parent GUID, then erase the correlation from the map
     std::shared_ptr<apex::task_wrapper> parent = nullptr;
     if (correlationId > 0) {
         parent = Globals::find_timer(correlationId);
+        if (parent != nullptr) {
+            parent_thread = parent->thread_id;
+        }
     }
     // create a task_wrapper, as a GPU child of the parent on the CPU side
     std::shared_ptr<apex::task_wrapper> tt = apex::new_task(name, UINT64_MAX, parent);
@@ -151,13 +154,12 @@ std::shared_ptr<apex::task_wrapper> start_async_task(const std::string &name, ui
 }
 
 void stop_async_task(std::shared_ptr<apex::task_wrapper> tt, uint64_t start, uint64_t end,
-    uint32_t correlationId, apex::base_thread_node &node) {
+    uint32_t correlationId, apex::ompt_thread_node &node) {
     // create an APEX profiler to store this data - we can't start
     // then stop because we have timestamps already.
     auto prof = std::make_shared<apex::profiler>(tt);
     prof->set_start(start + Globals::delta());
     prof->set_end(end + Globals::delta());
-    std::cout << __func__ << prof->get_start_ns() << " " << prof->get_stop_ns() << std::endl;
     // important!  Otherwise we might get the wrong end timestamp.
     prof->stopped = true;
     // Get the singleton APEX instance
@@ -190,7 +192,7 @@ void stop_async_task(std::shared_ptr<apex::task_wrapper> tt, uint64_t start, uin
 }
 
 void store_profiler_data(const std::string &name,
-        uint64_t start, uint64_t end, apex::base_thread_node &node,
+        uint64_t start, uint64_t end, apex::ompt_thread_node &node,
         std::shared_ptr<apex::task_wrapper> parent, bool otf2_trace = true) {
     apex::in_apex prevent_deadlocks;
     apex::async_event_data as_data;
@@ -229,7 +231,7 @@ void store_profiler_data(const std::string &name,
 
 /* Handle counters from asynchronous activity */
 void store_counter_data(const char * name, const std::string& ctx,
-    uint64_t end, double value, apex::base_thread_node &node) {
+    uint64_t end, double value, apex::ompt_thread_node &node) {
     apex::in_apex prevent_deadlocks;
     std::stringstream ss;
     if (name == nullptr) {
@@ -263,7 +265,7 @@ void store_counter_data(const char * name, const std::string& ctx,
 }
 
 void store_counter_data(const char * name, const std::string& ctx,
-    uint64_t end, size_t value, apex::base_thread_node &node) {
+    uint64_t end, size_t value, apex::ompt_thread_node &node) {
     store_counter_data(name, ctx, end, (double)(value), node);
 }
 
@@ -279,7 +281,9 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
   static std::unordered_map<ompt_id_t,int> active_target_devices;
   static std::unordered_map<uint32_t, std::shared_ptr<apex::task_wrapper>> target_map;
   static std::unordered_map<uint32_t, uint64_t> target_start_times;
+  static std::unordered_map<uint32_t, uint64_t> target_parent_thread_ids;
   static std::mutex target_lock;
+  long unsigned int parent_thread = 0;
 
   switch (rec->type) {
   case ompt_callback_target:
@@ -296,12 +300,13 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
                 ss << ": UNRESOLVED ADDR " << target_rec.codeptr_ra;
             }
             std::string name{ss.str()};
-   	        auto tt = start_async_task(name, rec->target_id);
+   	        auto tt = start_async_task(name, rec->target_id, parent_thread);
             std::unique_lock<std::mutex> l(target_lock);
             target_map[rec->target_id] = tt;
             target_start_times[rec->target_id] = rec->time;
             active_target_addrs[rec->target_id] = target_rec.codeptr_ra;
             active_target_devices[rec->target_id] = target_rec.device_num;
+            target_parent_thread_ids[rec->target_id] = parent_thread;
          } else if (target_rec.endpoint == ompt_scope_end) {
             std::shared_ptr<apex::task_wrapper> tt;
             uint64_t start;
@@ -309,15 +314,17 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
                 std::unique_lock<std::mutex> l(target_lock);
                 tt = target_map[rec->target_id];
                 start = target_start_times[rec->target_id];
+                parent_thread = target_parent_thread_ids[rec->target_id];
                 active_target_addrs.erase(rec->target_id);
                 active_target_devices.erase(rec->target_id);
                 target_map.erase(rec->target_id);
                 target_start_times.erase(rec->target_id);
+                target_parent_thread_ids.erase(rec->target_id);
             }
             /* If we have a target region with a device id of -1, we might not get
                a target region start event - so ignore this end event for now. */
             if (tt != nullptr) {
-                apex::base_thread_node node(target_rec.device_num, APEX_ASYNC_KERNEL);
+                apex::ompt_thread_node node(target_rec.device_num, parent_thread, APEX_ASYNC_KERNEL);
    	            stop_async_task(tt, start, rec->time, rec->target_id, node);
             }
          }
@@ -335,7 +342,6 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
 	     target_data_op_rec.bytes, target_data_op_rec.end_time,
 	     target_data_op_rec.end_time - rec->time,
 	     target_data_op_rec.codeptr_ra);
-            apex::base_thread_node node(target_data_op_rec.dest_device_num, APEX_ASYNC_MEMORY);
             std::stringstream ss;
             ss << "GPU: OpenMP Target DataOp";
             switch (target_data_op_rec.optype) {
@@ -386,11 +392,14 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
                 std::unique_lock<std::mutex> l(target_lock);
                 tt = target_map[rec->target_id];
                 codeptr_ra = active_target_addrs[rec->target_id];
+                parent_thread = target_parent_thread_ids[rec->target_id];
             }
             if (codeptr_ra != nullptr) {
                 ss << ": UNRESOLVED ADDR " << codeptr_ra;
             }
             std::string name{ss.str()};
+            apex::ompt_thread_node node(target_data_op_rec.dest_device_num,
+                parent_thread, APEX_ASYNC_MEMORY);
    	        store_profiler_data(name, rec->time,
                 target_data_op_rec.end_time, node, tt);
             store_counter_data("OpenMP Target DataOp", "Bytes", target_data_op_rec.end_time,
@@ -416,12 +425,14 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
                 tt = target_map[rec->target_id];
                 codeptr_ra = active_target_addrs[rec->target_id];
                 device_num = active_target_devices[rec->target_id];
+                parent_thread = target_parent_thread_ids[rec->target_id];
             }
             if (codeptr_ra != nullptr) {
                 ss << ": UNRESOLVED ADDR " << codeptr_ra;
             }
             std::string name{ss.str()};
-            apex::base_thread_node node(device_num, APEX_ASYNC_KERNEL);
+            apex::ompt_thread_node node(device_num, parent_thread,
+                APEX_ASYNC_KERNEL);
    	        store_profiler_data(name, rec->time,
                 target_kernel_rec.end_time, node, tt);
     break;
@@ -438,7 +449,7 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
 // free is used for corresponding malloc
 static void delete_buffer_ompt(ompt_buffer_t *buffer) {
   free(buffer);
-  printf("Deallocated %p\n", buffer);
+  DEBUG_PRINT("Deallocated %p\n", buffer);
 }
 
 /* Function pointers.  These are all queried from the runtime during
@@ -1228,12 +1239,15 @@ extern "C" void apex_ompt_work (
             sprintf(regionIDstr, "OpenMP Work %s", tmp_str);
             apex_ompt_start(regionIDstr, task_data, parallel_data, true);
         }
+        APEX_UNUSED(count_type);
+        /*
         if (apex::apex_options::ompt_high_overhead_events()) {
             std::stringstream ss;
             ss << count_type << ": " << regionIDstr;
             std::string tmp{ss.str()};
             apex::sample_value(tmp, count);
         }
+        */
     } else {
         DEBUG_PRINT("%" PRId64 ": %s End task: %p, region: %p\n", apex_threadid, tmp_str,
         (void*)task_data, (void*)parallel_data);
