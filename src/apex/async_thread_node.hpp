@@ -65,13 +65,11 @@ namespace apex {
             std::stringstream ss;
             ss << "GPU [" << _device << ":" << _stream << "]";
             std::string tmp{ss.str()};
-            printf("Device: %u, Thread: %u, string: %s\n", _device, _stream, tmp.c_str());
             return tmp;
         }
         virtual uint32_t sortable_tid () {
             uint32_t tid = ((_device+1) << 28);
             tid = tid + _stream;
-            printf("Device: %u, Thread: %u, sort_index: %u\n", _device, _stream, tid);
             return tid;
         }
     };

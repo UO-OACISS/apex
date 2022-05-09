@@ -404,6 +404,10 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
                 target_data_op_rec.end_time, node, tt);
             store_counter_data("OpenMP Target DataOp", "Bytes", target_data_op_rec.end_time,
                 target_data_op_rec.bytes, node);
+            // converting from B/us to MB/s
+            double bw = (target_data_op_rec.bytes) / (target_data_op_rec.end_time - rec->time);
+            store_counter_data("OpenMP Target DataOp", "BW (MB/s)", target_data_op_rec.end_time,
+                bw, node);
       break;
     }
   case ompt_callback_target_submit:
@@ -807,12 +811,18 @@ extern "C" void apex_target (
     APEX_UNUSED(device_num);
     APEX_UNUSED(target_id);
     if (!enabled) { return; }
+    static std::unordered_map<ompt_id_t, ompt_data_t*> target_map;
     DEBUG_PRINT("Callback Target:\n"
         "\ttarget_id=%lu kind=%d endpoint=%d device_num=%d code=%p,\n"
         "\ttask_data->value=%" PRId64 ", task_data->ptr=%p\n",
         target_id, kind, endpoint, device_num, codeptr_ra,
-        task_data->value, task_data->ptr);
+        task_data == nullptr ? 0 : task_data->value, task_data == nullptr ? nullptr : task_data->ptr);
     if (endpoint == ompt_scope_begin) {
+        if (task_data == nullptr) {
+            task_data = new ompt_data_t;
+            task_data->value = 0;
+            task_data->ptr = nullptr;
+        }
         char regionIDstr[128] = {0};
         if (codeptr_ra != nullptr) {
             sprintf(regionIDstr, "OpenMP Target: UNRESOLVED ADDR %p",
@@ -822,7 +832,12 @@ extern "C" void apex_target (
             sprintf(regionIDstr, "OpenMP Target");
             apex_ompt_start(regionIDstr, task_data, nullptr, true);
         }
+        target_map[target_id] = task_data;
     } else {
+        if (task_data == nullptr) {
+            task_data = target_map[target_id];
+            target_map.erase(target_id);
+        }
         // save a copy of the task wrapper
         std::shared_ptr<apex::task_wrapper> tw = ((linked_timer*)(task_data->ptr))->tw;
         Globals::insert_timer(target_id, tw);
@@ -1136,10 +1151,11 @@ extern "C" void apex_sync_region_wait (
          * barrier, waiting for the next parallel region where they
          * are needed.  So... should that barrier be associated with
          * the previous parallel region, or just be anonymous? */
-#if 0
+
         /* If OpenMP doesn't give us a codeptr, use the one from the
          * parent, if it has one */
-        if (codeptr_ra == nullptr) {
+        if (codeptr_ra == nullptr &&
+            apex::apex_options::ompt_high_overhead_events()) {
             if (parallel_data != nullptr && parallel_data->ptr != nullptr) {
                 linked_timer* parent = (linked_timer*)(parallel_data->ptr);
                 if (parent->codeptr != nullptr) {
@@ -1147,7 +1163,6 @@ extern "C" void apex_sync_region_wait (
                 }
             }
         }
-#endif
         char regionIDstr[128] = {0};
         if (local_codeptr != nullptr) {
             sprintf(regionIDstr, "OpenMP %s: UNRESOLVED ADDR %p", tmp_str,
@@ -1327,10 +1342,11 @@ extern "C" void apex_ompt_sync_region (
          * barrier, waiting for the next parallel region where they
          * are needed.  So... should that barrier be associated with
          * the previous parallel region, or just be anonymous? */
-#if 0
+#if 1
         /* If OpenMP doesn't give us a codeptr, use the one from the
          * parent, if it has one */
-        if (codeptr_ra == nullptr) {
+        if (codeptr_ra == nullptr &&
+            apex::apex_options::ompt_high_overhead_events()) {
             if (parallel_data != nullptr && parallel_data->ptr != nullptr) {
                 linked_timer* parent = (linked_timer*)(parallel_data->ptr);
                 if (parent->codeptr != nullptr) {
@@ -1543,32 +1559,32 @@ static int apex_ompt_stop_trace() {
 // This function is for checking that the function registration worked.
 int apex_ompt_register(ompt_callbacks_t e, ompt_callback_t c ,
     const char * name) {
-  fprintf(stderr,"Registering OMPT callback %s...",name); fflush(stderr);
+  DEBUG_PRINT("Registering OMPT callback %s...",name); fflush(stderr);
   ompt_set_result_t rc = ompt_set_callback(e, c);
   switch (rc) {
     case ompt_set_error:
-        fprintf(stderr,"\n\tFailed to register OMPT callback %s!\n",name);
+        DEBUG_PRINT("\n\tFailed to register OMPT callback %s!\n",name);
         fflush(stderr);
         break;
     case ompt_set_never:
-        fprintf(stderr,"\n\tOMPT callback %s never supported by this runtime.\n",name);
+        DEBUG_PRINT("\n\tOMPT callback %s never supported by this runtime.\n",name);
         fflush(stderr);
         break;
     case ompt_set_impossible:
-        fprintf(stderr,"\n\tOMPT callback %s impossible from this runtime.\n",name);
+        DEBUG_PRINT("\n\tOMPT callback %s impossible from this runtime.\n",name);
         fflush(stderr);
         break;
     case ompt_set_sometimes:
-        fprintf(stderr,"\n\tOMPT callback %s sometimes supported by this runtime.\n",name);
+        DEBUG_PRINT("\n\tOMPT callback %s sometimes supported by this runtime.\n",name);
         fflush(stderr);
         break;
     case ompt_set_sometimes_paired:
-        fprintf(stderr,"\n\tOMPT callback %s sometimes paired by this runtime.\n",name);
+        DEBUG_PRINT("\n\tOMPT callback %s sometimes paired by this runtime.\n",name);
         fflush(stderr);
         break;
     case ompt_set_always:
     default:
-        fprintf(stderr,"success.\n");
+        DEBUG_PRINT("success.\n");
   }
   return 0;
 }

@@ -23,14 +23,14 @@
 
 #define elem(_m,_i,_j) (_m[((_i)*NRA) + (_j)])
 
-double* allocateMatrix(int rows, int cols) {
+float* allocateMatrix(int rows, int cols) {
   int i;
-  double *matrix = (double*)malloc((sizeof(double*)) * rows * cols);
+  float *matrix = (float*)malloc((sizeof(float*)) * rows * cols);
   #pragma omp target enter data map(alloc:matrix[0:rows*cols])
   return matrix;
 }
 
-void initialize(double *matrix, int rows, int cols) {
+void initialize(float *matrix, int rows, int cols) {
   int i,j;
 #pragma omp parallel private(i,j) shared(matrix)
   {
@@ -45,7 +45,7 @@ void initialize(double *matrix, int rows, int cols) {
   }
 }
 
-void freeMatrix(double* matrix, int rows, int cols) {
+void freeMatrix(float* matrix, int rows, int cols) {
   #pragma omp target exit data map(delete:matrix[0:rows*cols])
   free(matrix);
 }
@@ -54,7 +54,7 @@ void freeMatrix(double* matrix, int rows, int cols) {
 // compute multiplies a and b and returns the result in c using ijk.
 // cols_a and rows_b are the same value
 /////////////////////////////////////////////////////////////////////
-void compute(double *a, double *b, double *c, int rows_a, int cols_a, int cols_b) {
+void compute(float *a, float *b, float *c, int rows_a, int cols_a, int cols_b) {
   int i,j,k;
   printf("%s\n", __func__);
 #pragma omp parallel private(i,j,k) shared(a,b,c)
@@ -76,7 +76,7 @@ void compute(double *a, double *b, double *c, int rows_a, int cols_a, int cols_b
 // compute_interchange multiplies a and b and returns the result in c
 // using ikj loop.  cols_a and rows_b are the same value
 ///////////////////////////////////////////////////////////////////////
-void compute_interchange(double *a, double *b, double *c, int rows_a, int cols_a, int cols_b) {
+void compute_interchange(float *a, float *b, float *c, int rows_a, int cols_a, int cols_b) {
   int i,j,k;
   printf("%s\n", __func__);
 #pragma omp parallel private(i,j,k) shared(a,b,c)
@@ -98,7 +98,7 @@ void compute_interchange(double *a, double *b, double *c, int rows_a, int cols_a
 // compute_interchange multiplies a and b and returns the result in c
 // using ikj loop.  cols_a and rows_b are the same value
 ///////////////////////////////////////////////////////////////////////
-void compute_target(double *a, double *b, double *c, int rows_a, int cols_a, int cols_b) {
+void compute_target(float *a, float *b, float *c, int rows_a, int cols_a, int cols_b) {
     printf("%s\n", __func__);
     int i, j, k;
 #pragma omp target data map (to: a[0:rows_a*cols_a],b[0:cols_a*cols_b]) map (tofrom: c[0:rows_a*cols_b])
@@ -120,8 +120,8 @@ void compute_target(double *a, double *b, double *c, int rows_a, int cols_a, int
 #endif
 }
 
-double do_work(void) {
-  double *a,           /* matrix A to be multiplied */
+float do_work(void) {
+  float *a,           /* matrix A to be multiplied */
   *b,           /* matrix B to be multiplied */
   *c;           /* result matrix C */
   a = allocateMatrix(NRA, NCA);
@@ -138,7 +138,7 @@ double do_work(void) {
   // compute_interchange(a, b, c, NRA, NCA, NCB);
   compute_target(a, b, c, NRA, NCA, NCB);
 
-  double result = elem(c,0,1);
+  float result = elem(c,0,1);
 
   freeMatrix(a, NRA, NCA);
   freeMatrix(b, NCA, NCB);
