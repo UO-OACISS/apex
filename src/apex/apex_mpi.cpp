@@ -100,9 +100,16 @@ extern "C" {
         return retval;
     }
     /* There are a handful of interesting Collectives! */
+    inline int apex_measure_mpi_sync(MPI_Comm comm, const char * name) {
+        auto _p = start(std::string(name)+" (sync)");
+        int _retval = PMPI_Barrier(comm);
+        stop(_p);
+        return _retval;
+    }
     int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
                   MPI_Datatype datatype, MPI_Op op, MPI_Comm comm) {
         auto p = start(__func__);
+        apex_measure_mpi_sync(comm, __func__);
         int retval = PMPI_Allreduce(sendbuf, recvbuf, count, datatype, op, comm);
         stop(p);
         return retval;
@@ -110,6 +117,7 @@ extern "C" {
     int MPI_Reduce(const void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype,
         MPI_Op op, int root, MPI_Comm comm) {
         auto p = start(__func__);
+        apex_measure_mpi_sync(comm, __func__);
         int retval = PMPI_Reduce(sendbuf, recvbuf, count, datatype, op, root, comm);
         stop(p);
         return retval;
@@ -117,6 +125,7 @@ extern "C" {
     int MPI_Bcast( void *buffer, int count, MPI_Datatype datatype, int root,
         MPI_Comm comm ) {
         auto p = start(__func__);
+        apex_measure_mpi_sync(comm, __func__);
         int retval = PMPI_Bcast(buffer, count, datatype, root, comm );
         stop(p);
         return retval;
@@ -130,6 +139,7 @@ extern "C" {
     int MPI_Alltoall(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
         void *recvbuf, int recvcount, MPI_Datatype recvtype, MPI_Comm comm) {
         auto p = start(__func__);
+        apex_measure_mpi_sync(comm, __func__);
         int retval = PMPI_Alltoall(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm);
         stop(p);
         return retval;
@@ -137,6 +147,7 @@ extern "C" {
     int MPI_Allgather(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
         void *recvbuf, int recvcount, MPI_Datatype recvtype, MPI_Comm comm) {
         auto p = start(__func__);
+        apex_measure_mpi_sync(comm, __func__);
         int retval = PMPI_Allgather(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm);
         stop(p);
         return retval;
@@ -145,6 +156,7 @@ extern "C" {
         void* buffer_recv, const int* counts_recv, const int* displacements,
         MPI_Datatype datatype_recv, MPI_Comm communicator) {
         auto p = start(__func__);
+        apex_measure_mpi_sync(communicator, __func__);
         int retval = PMPI_Allgatherv(buffer_send, count_send, datatype_send,
             buffer_recv, counts_recv, displacements, datatype_recv, communicator);
         stop(p);
@@ -154,6 +166,7 @@ extern "C" {
         void *recvbuf, const int *recvcounts, const int *displs,
         MPI_Datatype recvtype, int root, MPI_Comm comm) {
         auto p = start(__func__);
+        apex_measure_mpi_sync(comm, __func__);
         int retval = PMPI_Gatherv(sendbuf, sendcount, sendtype, recvbuf, recvcounts, displs, recvtype, root, comm);
         stop(p);
         return retval;
@@ -162,6 +175,7 @@ extern "C" {
         int dest, int sendtag, void *recvbuf, int recvcount, MPI_Datatype recvtype,
         int source, int recvtag, MPI_Comm comm, MPI_Status * status) {
         auto p = start(__func__);
+        apex_measure_mpi_sync(comm, __func__);
         int retval = PMPI_Sendrecv(sendbuf, sendcount, sendtype, dest, sendtag, recvbuf, recvcount, recvtype,
                  source, recvtag, comm, status);
         stop(p);
