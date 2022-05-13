@@ -193,9 +193,9 @@ namespace apex {
             uint64_t stamp, bool is_enter);
 #endif
         std::mutex _vthread_mutex;
-        std::map<async_thread_node, size_t> vthread_map;
+        std::map<base_thread_node, size_t> vthread_map;
         std::map<uint32_t, OTF2_EvtWriter*> vthread_evt_writer_map;
-        uint32_t make_vtid (async_thread_node &node);
+        uint32_t make_vtid (base_thread_node &node);
         std::map<uint32_t,uint64_t> last_ts;
         uint64_t dropped;
         int64_t synchronizeClocks(void);
@@ -241,9 +241,9 @@ namespace apex {
             { APEX_UNUSED(data); };
         void on_send(message_event_data &data);
         void on_recv(message_event_data &data);
-        void on_async_event(async_thread_node &node,
+        void on_async_event(base_thread_node &node,
             std::shared_ptr<profiler> &p);
-        void on_async_metric(async_thread_node &node,
+        void on_async_metric(base_thread_node &node,
             std::shared_ptr<profiler> &p);
 
     };

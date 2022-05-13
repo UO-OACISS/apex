@@ -96,7 +96,7 @@ public:
     std::vector<int> event_sets; // PAPI event sets
     std::vector<size_t> event_set_sizes; // PAPI event set sizes
     papi_state thread_papi_state;
-    profiler_listener_globals() : my_tid(-1), thread_papi_state(papi_suspended) { }
+    profiler_listener_globals() : my_tid(0), thread_papi_state(papi_suspended) { }
     ~profiler_listener_globals() { if (my_tid == 0) finalize(); }
 };
 

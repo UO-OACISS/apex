@@ -185,7 +185,7 @@ double Node::writeNodeJSON(std::ofstream& outfile, double total, size_t indent) 
     sort(sorted.begin(), sorted.end(), cmp);
 
     // do all the children
-    double children_total;
+    double children_total = 0.0;
     bool first = true;
     for (auto c : sorted) {
         if (!first) { outfile << ",\n"; }

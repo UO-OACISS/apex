@@ -8,25 +8,28 @@
 
 #pragma once
 
+#include <iomanip>
+#include <sstream>
+#include <string>
+
 namespace apex {
 
-    class cuda_thread_node {
+    class base_thread_node {
     public:
         uint32_t _device;
         uint32_t _context;
         uint32_t _stream;
         apex_async_activity_t _activity;
-        cuda_thread_node(uint32_t device, uint32_t context, uint32_t stream,
+        base_thread_node(uint32_t device, uint32_t context, uint32_t stream,
             apex_async_activity_t activity) :
-            _device(device), _context(context), _stream(stream),
-            _activity(activity) { }
-        bool operator==(const cuda_thread_node &rhs) const {
+            _device(device), _context(context), _stream(stream), _activity(activity) { }
+        virtual bool operator==(const base_thread_node &rhs) const {
             return (_device   == rhs._device &&
                     _context  == rhs._context &&
                     _stream   == rhs._stream &&
                     _activity == rhs._activity);
         }
-        bool operator<(const cuda_thread_node &rhs) const {
+        virtual bool operator<(const base_thread_node &rhs) const {
             if (_device<rhs._device) {
                 return true;
             } else if (_device == rhs._device && _context < rhs._context) {
@@ -41,65 +44,75 @@ namespace apex {
             }
             return false;
         }
+        virtual std::string name () {
+            std::stringstream ss;
+            ss << "GPU [" << _device << "]";
+            std::string tmp{ss.str()};
+            return tmp;
+        }
+        virtual uint32_t sortable_tid () {
+            uint32_t tid = ((_device+1) << 28);
+            return tid;
+        }
     };
 
-    class hip_thread_node {
+    class ompt_thread_node : public base_thread_node {
     public:
-        uint32_t _device;
-        uint32_t _queue;
-        apex_async_activity_t _activity;
+        ompt_thread_node(uint32_t device, uint32_t thread,
+            apex_async_activity_t activity) :
+            base_thread_node(device, 0, thread, activity) { }
+        virtual std::string name () {
+            std::stringstream ss;
+            ss << "GPU [" << _device << ":" << _stream << "]";
+            std::string tmp{ss.str()};
+            return tmp;
+        }
+        virtual uint32_t sortable_tid () {
+            uint32_t tid = ((_device+1) << 28);
+            tid = tid + _stream;
+            return tid;
+        }
+    };
+
+
+    class cuda_thread_node : public base_thread_node {
+    public:
+        cuda_thread_node(uint32_t device, uint32_t context, uint32_t stream,
+            apex_async_activity_t activity) :
+            base_thread_node(device, context, stream, activity) { }
+        virtual std::string name () {
+            std::stringstream ss;
+            ss << "CUDA [" << _device << ":" << _context
+               << ":" << std::setfill('0') << std::setw(5) << _stream << "]";
+            std::string tmp{ss.str()};
+            return tmp;
+        }
+        virtual uint32_t sortable_tid () {
+            uint32_t tid = ((_device+1) << 28);
+            tid = tid + (_context << 22);
+            tid = tid + _stream;
+            return tid;
+        }
+    };
+
+    class hip_thread_node : public base_thread_node {
+    public:
         hip_thread_node(uint32_t device, uint32_t command_queue,
             apex_async_activity_t activity) :
-            _device(device), _queue(command_queue),
-            _activity(activity) { }
-        bool operator==(const hip_thread_node &rhs) const {
-            return (_device   == rhs._device &&
-                    _queue    == rhs._queue &&
-                    _activity == rhs._activity);
+            base_thread_node(device, 0, command_queue, activity) { }
+        virtual std::string name () {
+            std::stringstream ss;
+            ss << "HIP [" << _device
+               << ":" << std::setfill('0') << std::setw(5) << _stream << "]";
+            std::string tmp{ss.str()};
+            return tmp;
         }
-        bool operator<(const hip_thread_node &rhs) const {
-            if (_device<rhs._device) {
-                return true;
-            } else if (_device == rhs._device && _queue < rhs._queue) {
-                return true;
-            } else if (_device == rhs._device && _queue == rhs._queue &&
-                _activity < rhs._activity && apex_options::use_otf2()) {
-                return true;
-            }
-            return false;
-        }
-    };
-
-    class dummy_thread_node {
-    public:
-        uint32_t _device;
-        apex_async_activity_t _activity;
-        dummy_thread_node(uint32_t device, apex_async_activity_t activity) :
-            _device(device), _activity(activity) { }
-        bool operator==(const dummy_thread_node &rhs) const {
-            return (_device   == rhs._device && _activity == rhs._activity);
-        }
-        bool operator<(const dummy_thread_node &rhs) const {
-            if (_device<rhs._device) {
-                return true;
-            } else if (_device == rhs._device &&
-                _activity < rhs._activity && apex_options::use_otf2()) {
-                return true;
-            }
-            return false;
+        virtual uint32_t sortable_tid () {
+            uint32_t tid = ((_device+1) << 28);
+            tid = tid + _stream;
+            return tid;
         }
     };
 
 }
 
-#ifdef APEX_WITH_CUDA
-using async_thread_node = apex::cuda_thread_node;
-#endif
-
-#ifdef APEX_WITH_HIP
-using async_thread_node = apex::hip_thread_node;
-#endif
-
-#if !defined(APEX_WITH_CUDA) && !defined(APEX_WITH_HIP)
-using async_thread_node = apex::dummy_thread_node;
-#endif
