@@ -13,7 +13,7 @@
 #include <stdlib.h>
 
 #ifndef MATRIX_SIZE
-#define MATRIX_SIZE 4096
+#define MATRIX_SIZE 1024
 #endif
 
 #define MAX_ITERATIONS 3

@@ -96,11 +96,17 @@ inline ExecutionSpaceIdentifier identifier_from_devid(const uint32_t in) {
           ((in & 0x00FFFFFF) >> 17),  // next 7 bits
            (in & 0x0001FFFF)}; // last 17 bits
            */
+#if 0
     constexpr const uint32_t shift = num_avail_bits - num_type_bits;
     return {devicetype_from_uint32t(in >> shift), /*First 8 bits*/
            (~((uint32_t(-1)) << num_device_bits)) &
             (in >> num_instance_bits), /*Next 7 bits */
            (~((uint32_t(-1)) << num_instance_bits)) & in}; /*Last 17 bits*/
+#else
+    constexpr const uint32_t shift = num_instance_bits;
+    return {devicetype_from_uint32t(in >> shift), /*First 8 bits*/
+           0, (~((uint32_t(-1)) << num_instance_bits)) & in}; /*Last 17 bits*/
+#endif
 }
 
 /* "Top 8 bits represent the device type. Next 7 are the device id (think
