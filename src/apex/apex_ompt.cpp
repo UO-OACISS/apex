@@ -4,6 +4,7 @@
  *
  * Distributed under the Boost Software License, Version 1.0. (See accompanying
  * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ * For OMPT target offload prototype, see https://github.com/ROCm-Developer-Tools/aomp/tree/aomp-dev/examples/tools/ompt/veccopy-ompt-target-tracing
  */
 
 #include <omp-tools.h>
