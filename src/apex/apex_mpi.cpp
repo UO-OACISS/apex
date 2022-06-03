@@ -41,53 +41,73 @@ extern "C" {
 #endif
 #if defined(APEX_HAVE_MPI) || \
     (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
+    /* Get the total bytes transferred, record it, and return it
+       to be used for bandwidth calculation */
+    inline double getBytesTransferred(int count, MPI_Datatype datatype, const char * function) {
+        int typesize = 0;
+        PMPI_Type_size( datatype, &typesize );
+        double bytes = (double)(typesize) * (double)(count);
+        std::string name(function);
+        name.append(" : Bytes");
+        sample_value(name, bytes);
+        return bytes;
+    }
+    inline void getBandwidth(double bytes, profiler * p, const char * function) {
+        if (p != nullptr) {
+            std::string name(function);
+            name.append(" : BW (Bytes/second)");
+            sample_value(name, bytes/p->elapsed_seconds());
+        }
+    }
     /* There are also a handful of interesting function calls that HPX uses
        that we should measure when requested */
     int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest,
         int tag, MPI_Comm comm, MPI_Request *request) {
         /* Get the byte count */
-        int typesize = 0;
-        PMPI_Type_size( datatype, &typesize );
-        double bytes = (double)(typesize) * (double)(count);
+        double bytes = getBytesTransferred(count, datatype, __func__);
         /* start the timer */
         auto p = start(__func__);
         /* sample the bytes */
-        sample_value("MPI_Send : Bytes", bytes);
         int retval = PMPI_Isend(buf, count, datatype, dest, tag, comm, request);
         stop(p);
         /* record the bandwidth */
-        sample_value("MPI_Send : BW (Bytes/second)", bytes/p->elapsed_seconds());
+        getBandwidth(bytes, p, __func__);
         return retval;
     }
     int MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
         int source, int tag, MPI_Comm comm, MPI_Request *request) {
+        /* Get the byte count */
+        double bytes = getBytesTransferred(count, datatype, __func__);
         auto p = start(__func__);
         int retval = PMPI_Irecv(buf, count, datatype, source, tag, comm,
             request);
         stop(p);
+        /* record the bandwidth */
+        getBandwidth(bytes, p, __func__);
         return retval;
     }
     int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest,
         int tag, MPI_Comm comm){
         /* Get the byte count */
-        int typesize = 0;
-        PMPI_Type_size( datatype, &typesize );
-        double bytes = (double)(typesize) * (double)(count);
+        double bytes = getBytesTransferred(count, datatype, __func__);
         /* start the timer */
         auto p = start(__func__);
         /* sample the bytes */
-        sample_value("MPI_Send : Bytes", bytes);
         int retval = PMPI_Send(buf, count, datatype, dest, tag, comm);
         stop(p);
         /* record the bandwidth */
-        sample_value("MPI_Send : BW (Bytes/second)", bytes/p->elapsed_seconds());
+        getBandwidth(bytes, p, __func__);
         return retval;
     }
     int MPI_Recv(void *buf, int count, MPI_Datatype datatype,
         int source, int tag, MPI_Comm comm, MPI_Status *status){
+        /* Get the byte count */
+        double bytes = getBytesTransferred(count, datatype, __func__);
         auto p = start(__func__);
         int retval = PMPI_Recv(buf, count, datatype, source, tag, comm, status);
         stop(p);
+        /* record the bandwidth */
+        getBandwidth(bytes, p, __func__);
         return retval;
     }
     int MPI_Gather(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
