@@ -152,6 +152,12 @@ double Node::writeNodeASCII(std::ofstream& outfile, double total, size_t indent)
     return acc;
 }
 
+/* print something like (for Hatchet):
+{
+    "frame": {"name": "foo"},
+    "metrics": {"time (inc)": 135.0, "time": 0.0},
+    "children": [ { ...} ]
+} */
 double Node::writeNodeJSON(std::ofstream& outfile, double total, size_t indent) {
     APEX_ASSERT(total > 0.0);
     // indent as necessary
@@ -160,13 +166,18 @@ double Node::writeNodeJSON(std::ofstream& outfile, double total, size_t indent) 
     // write out the opening brace
     outfile << std::fixed << std::setprecision(6) << "{ ";
     // write out the name
-    outfile << "\"name\": \"" << data->get_tree_name() << "\", ";
+    outfile << "\"frame\": {\"name\": \"" << data->get_name() << "\"}, ";
     // write out the inclusive
     double acc = (data == task_identifier::get_main_task_id() || accumulated == 0.0) ?
         total : std::min(total, accumulated);
     // Don't write out synchronization events! They confuse the graph.
     if (data->get_tree_name().find("Synchronize") != std::string::npos) acc = 0.0;
-    outfile << "\"size\": " << acc;
+    double ncalls = (calls == 0) ? 1 : calls;
+    outfile << "\"metrics\": {\"time (inc)\": " << acc
+            << ", \"min\": " << min
+            << ", \"max\": " << max
+            << ", \"sumsqr\": " << sumsqr
+            << ", \"calls\": " << ncalls << "}";
 
     // if no children, we are done
     if (children.size() == 0) {

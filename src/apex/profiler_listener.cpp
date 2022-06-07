@@ -1102,15 +1102,13 @@ std::unordered_set<profile*> free_profiles;
     myfile.open(txtname.str().c_str());
     root->tree_node->writeNodeASCII(myfile, wall_clock_main, 0);
     myfile.close();
-    // dump the tree to an icicle/sunburst file
-    /*
+    // dump the tree to an icicle/sunburst/hatchet file
     stringstream txtname2;
     txtname2 << apex_options::output_file_path();
     txtname2 << filesystem_separator() << "tasktree." << node_id << ".json";
     myfile.open(txtname2.str().c_str());
     root->tree_node->writeNodeJSON(myfile, wall_clock_main, 0);
     myfile.close();
-    */
   }
 
   /* Write TAU profiles from the collected data. */
