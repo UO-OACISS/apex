@@ -86,11 +86,18 @@ namespace apex {
             if (node->info.filename) {
             location << node->info.filename ;
             }
-            location << "} {" << node->info.lineno << ",0}]";
+            location << "} {";
+            if (node->info.lineno != 0) {
+                location << node->info.lineno << ",0}]";
+            } else {
+                location << "0x" << std::hex << ip << "}]";
+            }
         } else {
             if (node->info.lineno != 0) {
                 // to disambiguate C++ functions
                 location << ":" << node->info.lineno;
+            } else {
+                location << ":0x" << std::hex << ip;
             }
         }
         node->location = new string(location.str());

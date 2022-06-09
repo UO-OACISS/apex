@@ -154,9 +154,21 @@ std::mutex bfd_mutex;
                         void* addr_addr;
                         sscanf(addr_str.c_str(), "%p", &addr_addr);
                         std::string * tmp = lookup_address((uintptr_t)addr_addr, true);
-                        REGEX_NAMESPACE::regex old_address("UNRESOLVED ADDR " + addr_str);
-                        retval = REGEX_NAMESPACE::regex_replace(retval, old_address,
-                                (demangle(*tmp)));
+                        /* OK, this looks weird. But...binutils will sometimes resolve
+                         * different OpenMP outlined regions to the same function,file,line.
+                         * If we don't retain the address, we won't get unique timer names.
+                         */
+                        std::string s("OpenMP ");
+                        if (retval.rfind(s, 0) == 0) {
+                            // found an OpenMP timer, so keep the address
+                            REGEX_NAMESPACE::regex old_address("UNRESOLVED ADDR");
+                            retval = REGEX_NAMESPACE::regex_replace(retval, old_address,
+                                    (demangle(*tmp)));
+                        } else {
+                            REGEX_NAMESPACE::regex old_address("UNRESOLVED ADDR " + addr_str);
+                            retval = REGEX_NAMESPACE::regex_replace(retval, old_address,
+                                    (demangle(*tmp)));
+                        }
                     }
                 }
 #endif

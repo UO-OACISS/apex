@@ -12,6 +12,7 @@
 #include <sstream>
 #include <math.h>
 #include "apex_assert.h"
+#include "apex.hpp"
 
 namespace apex {
 
@@ -166,17 +167,30 @@ double Node::writeNodeJSON(std::ofstream& outfile, double total, size_t indent) 
     // write out the opening brace
     outfile << std::fixed << std::setprecision(6) << "{ ";
     // write out the name
-    outfile << "\"frame\": {\"name\": \"" << data->get_name() << "\"}, ";
+    outfile << "\"frame\": {\"name\": \"" << data->get_name()
+            << "\", \"type\": \"function\", \"rank\": "
+            << apex::instance()->get_node_id() << "}, ";
     // write out the inclusive
     double acc = (data == task_identifier::get_main_task_id() || accumulated == 0.0) ?
         total : std::min(total, accumulated);
+
+    // solve for the exclusive
+    double excl = acc;
+    for (auto c : children) {
+        excl = excl - c.second->accumulated;
+    }
+    if (excl < 0.0) {
+        excl = 0.0;
+    }
+
     // Don't write out synchronization events! They confuse the graph.
     if (data->get_tree_name().find("Synchronize") != std::string::npos) acc = 0.0;
     double ncalls = (calls == 0) ? 1 : calls;
-    outfile << "\"metrics\": {\"time (inc)\": " << acc
-            << ", \"min\": " << min
-            << ", \"max\": " << max
-            << ", \"sumsqr\": " << sumsqr
+    outfile << "\"metrics\": {\"time\": " << excl
+            << ", \"time (inc)\": " << acc
+            << ", \"min (inc)\": " << min
+            << ", \"max (inc)\": " << max
+            << ", \"sumsqr (inc)\": " << sumsqr
             << ", \"calls\": " << ncalls << "}";
 
     // if no children, we are done
@@ -188,31 +202,15 @@ double Node::writeNodeJSON(std::ofstream& outfile, double total, size_t indent) 
     // write the children label
     outfile << ", \"children\": [\n";
 
-    // sort the children by accumulated time
-    std::vector<std::pair<task_identifier, Node*> > sorted;
-    for (auto& it : children) {
-        sorted.push_back(it);
-    }
-    sort(sorted.begin(), sorted.end(), cmp);
-
     // do all the children
     double children_total = 0.0;
     bool first = true;
-    for (auto c : sorted) {
+    for (auto c : children) {
         if (!first) { outfile << ",\n"; }
         first = false;
         double tmp = c.second->writeNodeJSON(outfile, total, indent);
-        // if we didn't write the child, don't write a comma.
         children_total = children_total + tmp;
     }
-    double remainder = acc - children_total;
-    /*
-    if (remainder > 0.0) {
-        if (!first) { outfile << ",\n"; }
-        for (size_t i = 0 ; i < indent ; i++) { outfile << " "; }
-        outfile << "{ \"name\": \"" << data->get_tree_name() << "\", \"size\": " << remainder << " }";
-    }
-    */
     // close the list
     outfile << "\n";
     for (size_t i = 0 ; i < indent-1 ; i++) { outfile << " "; }
