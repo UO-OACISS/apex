@@ -24,7 +24,9 @@
 #include "async_thread_node.hpp"
 #include "apex.hpp"
 #include "trace_event_listener.hpp"
+#ifdef APEX_HAVE_OTF2
 #include "otf2_listener.hpp"
+#endif
 
 std::mutex apex_apex_threadid_mutex;
 std::atomic<uint64_t> apex_numthreads{0};
@@ -185,8 +187,6 @@ void stop_async_task(std::shared_ptr<apex::task_wrapper> tt, uint64_t start, uin
             (apex::otf2_listener*)instance->the_otf2_listener;
         tol->on_async_event(node, prof);
     }
-#else
-    APEX_UNUSED(otf2_trace);
 #endif
     // have the listeners handle the end of this task
     instance->complete_task(tt);
