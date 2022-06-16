@@ -1118,6 +1118,9 @@ extern "C" void apex_sync_region_wait (
     static const char * task_wait_str = "Task Wait";
     static const char * task_group_str = "Task Group Wait";
     static const char * reduction_str = "Reduction Wait";
+    static const char * barrier_implicit_workshare_str = "Barrier Implicit Workshare Wait";
+    static const char * barrier_implicit_parallel_str = "Barrier Implicit Parallel Wait";
+    static const char * barrier_teams_str = "Barrier Teams Wait";
     static const char * unknown_str = "Unknown Wait";
     switch (kind) {
         case ompt_sync_region_barrier:
@@ -1140,6 +1143,15 @@ extern "C" void apex_sync_region_wait (
             break;
         case ompt_sync_region_reduction:
             tmp_str = const_cast<char*>(reduction_str);
+            break;
+        case ompt_sync_region_barrier_implicit_workshare:
+            tmp_str = const_cast<char*>(barrier_implicit_workshare_str);
+            break;
+        case ompt_sync_region_barrier_implicit_parallel:
+            tmp_str = const_cast<char*>(barrier_implicit_parallel_str);
+            break;
+        case ompt_sync_region_barrier_teams:
+            tmp_str = const_cast<char*>(barrier_teams_str);
             break;
         default:
             tmp_str = const_cast<char*>(unknown_str);
@@ -1309,6 +1321,9 @@ extern "C" void apex_ompt_sync_region (
     static const char * task_str = "Task";
     static const char * task_group_str = "Task Group";
     static const char * reduction_str = "Reduction";
+    static const char * barrier_implicit_workshare_str = "Barrier Implicit Workshare";
+    static const char * barrier_implicit_parallel_str = "Barrier Implicit Parallel";
+    static const char * barrier_teams_str = "Barrier Teams";
     static const char * unknown_str = "Unknown";
     switch (kind) {
         case ompt_sync_region_barrier:
@@ -1331,6 +1346,15 @@ extern "C" void apex_ompt_sync_region (
             break;
         case ompt_sync_region_reduction:
             tmp_str = const_cast<char*>(reduction_str);
+            break;
+        case ompt_sync_region_barrier_implicit_workshare:
+            tmp_str = const_cast<char*>(barrier_implicit_workshare_str);
+            break;
+        case ompt_sync_region_barrier_implicit_parallel:
+            tmp_str = const_cast<char*>(barrier_implicit_parallel_str);
+            break;
+        case ompt_sync_region_barrier_teams:
+            tmp_str = const_cast<char*>(barrier_teams_str);
             break;
         default:
             tmp_str = const_cast<char*>(unknown_str);

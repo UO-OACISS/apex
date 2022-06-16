@@ -161,13 +161,20 @@ std::mutex bfd_mutex;
                         std::string s("OpenMP ");
                         if (retval.rfind(s, 0) == 0) {
                             // found an OpenMP timer, so keep the address
-                            REGEX_NAMESPACE::regex old_address("UNRESOLVED ADDR");
-                            retval = REGEX_NAMESPACE::regex_replace(retval, old_address,
-                                    (demangle(*tmp)));
+                            // ...unless it's already there
+                            if (tmp->find(addr_str) != std::string::npos) {
+                                REGEX_NAMESPACE::regex old_address("UNRESOLVED ADDR " + addr_str);
+                                retval = REGEX_NAMESPACE::regex_replace(retval, old_address,
+                                        (*tmp));
+                            } else {
+                                REGEX_NAMESPACE::regex old_address("UNRESOLVED ADDR");
+                                retval = REGEX_NAMESPACE::regex_replace(retval, old_address,
+                                        (*tmp));
+                            }
                         } else {
                             REGEX_NAMESPACE::regex old_address("UNRESOLVED ADDR " + addr_str);
                             retval = REGEX_NAMESPACE::regex_replace(retval, old_address,
-                                    (demangle(*tmp)));
+                                    (*tmp));
                         }
                     }
                 }
