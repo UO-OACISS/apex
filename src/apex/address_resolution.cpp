@@ -79,7 +79,9 @@ namespace apex {
         if (node->info.demangled) {
           location << node->info.demangled ;
         } else if (node->info.funcname) {
-          location << node->info.funcname ;
+          std::string mangled(node->info.funcname);
+          std::string demangled = demangle(mangled);
+          location << demangled ;
         }
         if (apex_options::use_source_location()) {
             location << " [{" ;
