@@ -37,6 +37,10 @@ if (CUPTI_FOUND)
 SET(CUPTI_SOURCE cupti_trace.cpp)
 endif(CUPTI_FOUND)
 
+if (LEVEL0_FOUND)
+SET(LEVEL0_SOURCE apex_level0.cpp)
+endif(LEVEL0_FOUND)
+
 if (ROCTRACER_FOUND)
 SET(ROCTRACER_SOURCE hip_trace.cpp)
 endif(ROCTRACER_FOUND)
@@ -68,6 +72,7 @@ endif (APEX_WITH_RAJA AND RAJA_FOUND)
 # Try to keep this in alphabetical order
 SET(all_SOURCE
 ${CUPTI_SOURCE}
+${LEVEL0_SOURCE}
 ${ROCPROFILER_SOURCE}
 ${ROCTRACER_SOURCE}
 ${NVML_SOURCE}

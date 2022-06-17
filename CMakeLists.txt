@@ -167,6 +167,17 @@ if(APEX_WITH_HIP)
     endif()
 endif(APEX_WITH_HIP)
 
+if(APEX_WITH_LEVEL0)
+    find_package(LEVEL0 REQUIRED)
+    if (LEVEL0_FOUND)
+        include_directories(${LEVEL0_INCLUDE_DIRS})
+        set(LIBS ${LIBS} ${LEVEL0_LIBRARIES})
+        if (NOT BUILD_STATIC_EXECUTABLES)
+            set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${LEVEL0_LIBRARY_DIR})
+        endif()
+    endif()
+endif(APEX_WITH_LEVEL0)
+
 # set(APEX_BUILD_TYPE "${CMAKE_BUILD_TYPE}" CACHE STRING "Configuration type (one of Debug, RelWithDebInfo, Release, MinSizeRel)" FORCE)
 
 # Always force CMAKE_CONFIGURATION_TYPES to be the same as CMAKE_BUILD_TYPE

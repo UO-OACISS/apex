@@ -23,14 +23,15 @@
 #endif
 #include <atomic>
 
+#include "apex_types.h"
+#include "apex_options.hpp"
+
 #ifdef DEBUG
 #define DEBUG_PRINT(...) if (::apex::apex_options::use_verbose()) { \
 fprintf( stderr, __VA_ARGS__ ); fflush(stderr); }
 #else
 #define DEBUG_PRINT(...) do{ } while ( false )
 #endif
-
-#include "apex_types.h"
 
 namespace apex {
 

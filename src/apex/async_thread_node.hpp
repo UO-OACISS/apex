@@ -14,8 +14,14 @@
 
 namespace apex {
 
+    /* This is the base thread node. Duh. What it does is translate a combination
+     * of device, context, stream, queue, command queue, thread, etc. to a virtual
+     * thread for the purposes of tracing. Because asynchronous GPU activity can
+     * overlap on the device, we need to make sure we have sufficient unqiqueness
+     * that we don't cause OTF2 to barf. */
     class base_thread_node {
     public:
+        /* The base node has device, context, stream - which should handle all cases */
         uint32_t _device;
         uint32_t _context;
         uint32_t _stream;
@@ -56,6 +62,7 @@ namespace apex {
         }
     };
 
+    /* The ompt node has device, thread, using the thread value in the stream */
     class ompt_thread_node : public base_thread_node {
     public:
         ompt_thread_node(uint32_t device, uint32_t thread,
@@ -75,6 +82,7 @@ namespace apex {
     };
 
 
+    /* The ompt node has device, context, stream */
     class cuda_thread_node : public base_thread_node {
     public:
         cuda_thread_node(uint32_t device, uint32_t context, uint32_t stream,
@@ -95,6 +103,7 @@ namespace apex {
         }
     };
 
+    /* The ompt node has device, command_queue, which is stored in the stream */
     class hip_thread_node : public base_thread_node {
     public:
         hip_thread_node(uint32_t device, uint32_t command_queue,
@@ -113,6 +122,26 @@ namespace apex {
             return tid;
         }
     };
+
+    /* The level0 node has device, thread, using the thread value in the stream */
+    class level0_thread_node : public base_thread_node {
+    public:
+        level0_thread_node(uint32_t device, uint32_t thread,
+            apex_async_activity_t activity) :
+            base_thread_node(device, 0, thread, activity) { }
+        virtual std::string name () {
+            std::stringstream ss;
+            ss << "GPU [" << _device << ":" << _stream << "]";
+            std::string tmp{ss.str()};
+            return tmp;
+        }
+        virtual uint32_t sortable_tid () {
+            uint32_t tid = ((_device+1) << 28);
+            tid = tid + _stream;
+            return tid;
+        }
+    };
+
 
 }
 
