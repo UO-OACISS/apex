@@ -240,6 +240,7 @@ while (( "$#" )); do
       ;;
     --apex:level0)
       export APEX_ENABLE_LEVEL0=1
+      export ZE_ENABLE_TRACING_LAYER=1
       shift
       ;;
     --apex:hip_counters)

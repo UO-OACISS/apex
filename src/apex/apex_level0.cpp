@@ -294,6 +294,26 @@ void EnableProfiling() {
   DEBUG_PRINT("APEX: Real CPU timestamp= %ld \n",first_clock_timestamp);
   DEBUG_PRINT("APEX: CPU delta= %ld \n",cpu_delta);
   DEBUG_PRINT("APEX: GPU delta= %ld \n",gpu_delta);
+  utils::ze::GetDeviceTimestamps(device, &first_cpu_timestamp, &first_gpu_timestamp);
+  first_clock_timestamp = profiler::now_ns();
+  DEBUG_PRINT("APEX: Second CPU timestamp= %ld \n",first_cpu_timestamp);
+  DEBUG_PRINT("APEX: Second GPU timestamp= %ld \n",first_gpu_timestamp);
+  DEBUG_PRINT("APEX: Real CPU timestamp= %ld \n",first_clock_timestamp);
+  utils::ze::GetDeviceTimestamps(device, &first_cpu_timestamp, &first_gpu_timestamp);
+  first_clock_timestamp = profiler::now_ns();
+  DEBUG_PRINT("APEX: Third CPU timestamp= %ld \n",first_cpu_timestamp);
+  DEBUG_PRINT("APEX: Third GPU timestamp= %ld \n",first_gpu_timestamp);
+  DEBUG_PRINT("APEX: Real CPU timestamp= %ld \n",first_clock_timestamp);
+  utils::ze::GetDeviceTimestamps(device, &first_cpu_timestamp, &first_gpu_timestamp);
+  first_clock_timestamp = profiler::now_ns();
+  DEBUG_PRINT("APEX: Fourth CPU timestamp= %ld \n",first_cpu_timestamp);
+  DEBUG_PRINT("APEX: Fourth GPU timestamp= %ld \n",first_gpu_timestamp);
+  DEBUG_PRINT("APEX: Real CPU timestamp= %ld \n",first_clock_timestamp);
+  utils::ze::GetDeviceTimestamps(device, &first_cpu_timestamp, &first_gpu_timestamp);
+  first_clock_timestamp = profiler::now_ns();
+  DEBUG_PRINT("APEX: Fifth CPU timestamp= %ld \n",first_cpu_timestamp);
+  DEBUG_PRINT("APEX: Fifth GPU timestamp= %ld \n",first_gpu_timestamp);
+  DEBUG_PRINT("APEX: Real CPU timestamp= %ld \n",first_clock_timestamp);
 
   // For API calls, we create a new task and trigger the start/stop based on its
   // timestamps.
