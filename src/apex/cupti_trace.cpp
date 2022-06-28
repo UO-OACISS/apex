@@ -1825,7 +1825,7 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
     APEX_UNUSED(ud);
     APEX_UNUSED(id);
     APEX_UNUSED(domain);
-    printf("Callback: %d, %d\n", domain, id);
+    //printf("Callback: %d, %d\n", domain, id);
     if (!apex::thread_instance::is_worker()) { return; }
     if (params == NULL) { return; }
 
