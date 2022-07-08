@@ -204,6 +204,7 @@ typedef struct _profile
     size_t bytes_allocated; /*!< total bytes allocated in this task */
     size_t bytes_freed;     /*!< total bytes freed in this task */
     int times_reset;        /*!< How many times was this timer reset */
+    size_t num_threads;     /*!< How many threads have seen this timer? */
 } apex_profile;
 
 /** Rather than use void pointers everywhere, be explicit about

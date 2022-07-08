@@ -15,6 +15,8 @@
 #include <limits>
 #include <inttypes.h>
 
+constexpr size_t num_fields{17};
+
 #if !defined(HPX_HAVE_NETWORKING) && defined(APEX_HAVE_MPI)
 #include "mpi.h"
 #endif
@@ -137,8 +139,8 @@ std::map<std::string, apex_profile*> reduce_profiles() {
     //sort(all_names.begin(), all_names.end());
 
     // There are 8 "values" and 8 possible papi counters
-    sbuf_length = all_names.size() * 16;
-    rbuf_length = all_names.size() * 16 * commsize;
+    sbuf_length = all_names.size() * num_fields;
+    rbuf_length = all_names.size() * num_fields * commsize;
     //DEBUG_PRINT("%d Sending %" PRIu64 " bytes\n", commrank, sbuf_length * sizeof(double));
     double * s_pdata = (double*)calloc(sbuf_length, sizeof(double));
     double * r_pdata = nullptr;
@@ -162,19 +164,20 @@ std::map<std::string, apex_profile*> reduce_profiles() {
             dptr[5] = p->maximum;
             dptr[6] = p->times_reset;
             dptr[7] = (double)p->type;
+            dptr[8] = p->num_threads;
             if (p->type == APEX_TIMER) {
-                dptr[8] = p->papi_metrics[0];
-                dptr[9] = p->papi_metrics[1];
-                dptr[10] = p->papi_metrics[2];
-                dptr[11] = p->papi_metrics[3];
-                dptr[12] = p->papi_metrics[4];
-                dptr[13] = p->papi_metrics[5];
-                dptr[14] = p->papi_metrics[6];
-                dptr[15] = p->papi_metrics[7];
+                dptr[9] = p->papi_metrics[0];
+                dptr[10] = p->papi_metrics[1];
+                dptr[11] = p->papi_metrics[2];
+                dptr[12] = p->papi_metrics[3];
+                dptr[13] = p->papi_metrics[4];
+                dptr[14] = p->papi_metrics[5];
+                dptr[15] = p->papi_metrics[6];
+                dptr[16] = p->papi_metrics[7];
             }
         }
         }
-        dptr = &(dptr[16]);
+        dptr = &(dptr[num_fields]);
     }
 
     /* Reduce the data */
@@ -215,17 +218,18 @@ std::map<std::string, apex_profile*> reduce_profiles() {
             p->minimum = dptr[4] < p->minimum ? dptr[4] : p->minimum;
             p->maximum = dptr[5] > p->maximum ? dptr[5] : p->maximum;
             p->times_reset += dptr[6];
+            p->num_threads = dptr[8] > p->num_threads ? dptr[8] : p->num_threads;
             if (p->type == APEX_TIMER) {
-                p->papi_metrics[0] += dptr[8];
-                p->papi_metrics[1] += dptr[9];
-                p->papi_metrics[2] += dptr[10];
-                p->papi_metrics[3] += dptr[11];
-                p->papi_metrics[4] += dptr[12];
-                p->papi_metrics[5] += dptr[13];
-                p->papi_metrics[6] += dptr[14];
-                p->papi_metrics[7] += dptr[15];
+                p->papi_metrics[0] += dptr[9];
+                p->papi_metrics[1] += dptr[10];
+                p->papi_metrics[2] += dptr[11];
+                p->papi_metrics[3] += dptr[12];
+                p->papi_metrics[4] += dptr[13];
+                p->papi_metrics[5] += dptr[14];
+                p->papi_metrics[6] += dptr[15];
+                p->papi_metrics[7] += dptr[16];
             }
-            dptr = &(dptr[16]);
+            dptr = &(dptr[17]);
         }
     }
 

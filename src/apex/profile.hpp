@@ -15,6 +15,7 @@
 #include "apex_options.hpp"
 #include "apex_types.h"
 #include "string.h"
+#include <set>
 
 // Use this if you want the min, max and stddev.
 #define FULL_STATISTICS
@@ -30,6 +31,7 @@ private:
      * class will have its own mutex, controlling access to the data in
      * _profile.  Only needed when updating the values. */
     std::mutex _mtx;
+    std::set<uint64_t> thread_ids;
 public:
     profile(double initial, int num_metrics, double * papi_metrics, bool
         yielded = false, apex_profile_type type = APEX_TIMER) {
@@ -60,6 +62,7 @@ public:
         _profile.frees = 0;
         _profile.bytes_allocated = 0;
         _profile.bytes_freed = 0;
+        _profile.num_threads = 1;
     };
     profile(double initial, int num_metrics, double * papi_metrics, bool
         yielded, double allocations, double frees, double bytes_allocated,
@@ -90,6 +93,7 @@ public:
         _profile.frees = frees;
         _profile.bytes_allocated = bytes_allocated;
         _profile.bytes_freed = bytes_freed;
+        _profile.num_threads = 1;
     };
     /* This constructor is so that we can create a dummy wrapper around profile
      * data after we've done a reduction across ranks. */
@@ -97,7 +101,7 @@ public:
         memcpy(&_profile, values, sizeof(apex_profile));
     }
     void increment(double increase, int num_metrics, double * papi_metrics,
-        bool yielded) {
+        bool yielded, uint64_t thread_id) {
         _mtx.lock();
         _profile.accumulated += increase;
         _profile.stops = _profile.stops + 1.0;
@@ -118,17 +122,21 @@ public:
         if (!yielded) {
           _profile.calls = _profile.calls + 1.0;
         }
+        thread_ids.insert(thread_id);
+        _profile.num_threads = thread_ids.size();
         _mtx.unlock();
     }
     void increment(double increase, int num_metrics, double * papi_metrics,
         double allocations, double frees, double bytes_allocated, double bytes_freed,
-        bool yielded) {
-        increment(increase, num_metrics, papi_metrics, yielded);
+        bool yielded, uint64_t thread_id) {
+        increment(increase, num_metrics, papi_metrics, yielded, thread_id);
         _mtx.lock();
         _profile.allocations += allocations;
         _profile.frees += frees;
         _profile.bytes_allocated += bytes_allocated;
         _profile.bytes_freed += bytes_freed;
+        thread_ids.insert(thread_id);
+        _profile.num_threads = thread_ids.size();
         _mtx.unlock();
     }
     void reset() {
@@ -140,10 +148,16 @@ public:
         _profile.minimum = 0.0;
         _profile.maximum = 0.0;
         _profile.times_reset++;
+        _profile.num_threads = 1;
+        thread_ids.clear();
         _mtx.unlock();
     };
-    double get_calls() { return _profile.calls; }
-    double get_stops() { return _profile.stops; }
+    double get_calls() {
+        return _profile.calls;
+    }
+    double get_stops() {
+        return _profile.stops;
+    }
     double get_mean() {
         return (get_accumulated() / _profile.calls);
     }
@@ -154,13 +168,16 @@ public:
         return (get_accumulated_seconds() / _profile.calls);
     }
     double get_accumulated() {
-        return (_profile.accumulated);
+        return _profile.accumulated;
+    }
+    double get_accumulated_mean_threads() {
+        return (_profile.accumulated / (double)(_profile.num_threads));
     }
     double get_accumulated_useconds() {
-        return (_profile.accumulated * 1.0e-3);
+        return (get_accumulated() * 1.0e-3);
     }
     double get_accumulated_seconds() {
-        return (_profile.accumulated * 1.0e-9);
+        return (get_accumulated() * 1.0e-9);
     }
     double * get_papi_metrics() { return (_profile.papi_metrics); }
     double get_minimum() {
@@ -187,7 +204,6 @@ public:
     apex_profile * get_profile() { return &_profile; };
 
 };
-
 
 }
 

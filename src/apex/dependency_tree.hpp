@@ -12,6 +12,7 @@
 #include <iostream>
 #include <fstream>
 #include <atomic>
+#include <set>
 #include "task_identifier.hpp"
 
 namespace apex {
@@ -29,6 +30,7 @@ class Node {
         double max;
         double sumsqr;
         size_t index;
+        std::set<uint64_t> thread_ids;
         std::unordered_map<task_identifier, Node*> children;
         static std::mutex treeMutex;
         static std::atomic<size_t> nodeCount;
@@ -52,7 +54,7 @@ class Node {
         size_t getCount() { return count; }
         size_t getCalls() { return calls; }
         double getAccumulated() { return accumulated; }
-        void addAccumulated(double value, bool is_resume);
+        void addAccumulated(double value, bool is_resume, uint64_t thread_id);
         size_t getIndex() { return index; };
         std::string getName() { return data->get_name(); };
         void writeNode(std::ofstream& outfile, double total);

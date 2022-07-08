@@ -305,10 +305,10 @@ std::unordered_set<profile*> free_profiles;
             if (apex_options::track_memory()) {
                 theprofile->increment(p.elapsed(), tmp_num_counters,
                     values, p.allocations, p.frees, p.bytes_allocated,
-                    p.bytes_freed, p.is_resume);
+                    p.bytes_freed, p.is_resume, p.thread_id);
             } else {
                 theprofile->increment(p.elapsed(), tmp_num_counters,
-                    values, p.is_resume);
+                    values, p.is_resume, p.thread_id);
             }
         }
 #if defined(APEX_THROTTLE)
@@ -419,7 +419,7 @@ std::unordered_set<profile*> free_profiles;
 	}
       }
     if (apex_options::use_tasktree_output() && !p.is_counter && p.tt_ptr != nullptr) {
-        p.tt_ptr->tree_node->addAccumulated(p.elapsed_seconds(), p.is_resume);
+        p.tt_ptr->tree_node->addAccumulated(p.elapsed_seconds(), p.is_resume, p.thread_id);
     }
     return 1;
   }
@@ -1862,6 +1862,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
             }
         }
 #endif
+        p->thread_id = _pls.my_tid;
 #ifdef APEX_SYNCHRONOUS_PROCESSING
         push_profiler(_pls.my_tid, *p);
 #else // APEX_SYNCHRONOUS_PROCESSING
