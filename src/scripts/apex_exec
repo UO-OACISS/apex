@@ -250,9 +250,9 @@ while (( "$#" )); do
       export ROCPROFILER_LOG=1
       export HSA_VEN_AMD_AQLPROFILE_LOG=1
       export AQLPROFILE_READ_API=1
-      export ROCP_METRICS=@ROCM_ROOT@/rocprofiler/lib/metrics.xml
-      export HSA_TOOLS_LIB=@ROCM_ROOT@/rocprofiler/lib/librocprofiler64.so
-      export LD_LIBRARY_PATH=@ROCM_ROOT@/rocprofiler/lib:$LD_LIBRARY_PATH
+      export ROCP_METRICS=@ROCPROFILER_XML_DIRS@/metrics.xml
+      export HSA_TOOLS_LIB=@ROCPROFILER_HSA_DIRS@/librocprofiler64.so
+      export LD_LIBRARY_PATH=@ROCPROFILER_HSA_DIRS@:$LD_LIBRARY_PATH
       shift
       ;;
     --apex:hip_driver)

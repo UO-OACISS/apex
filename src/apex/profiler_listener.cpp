@@ -725,7 +725,7 @@ std::unordered_set<profile*> free_profiles;
             }
         }
     }
-    csv_output << "\"counter\",\"num samples\",\"minimum\",\"mean\""
+    csv_output << "\"counter\",\"num samples\",\"minimum\",\"mean\","
         << "\"maximum\",\"stddev\"" << endl;
     if (id_vector.size() > 0) {
         screen_output << "Counter                                   : "
