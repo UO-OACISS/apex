@@ -1479,7 +1479,10 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         std::string name = c.first;
         auto metrics = c.second;
         //std::cout << "Getting metrics for " << name << std::endl;
-
+        if (name.compare("PAPI") != 0 && !first_time) {
+            // skip this component on this thread - will be meaningless!
+            continue;
+        }
         int EventSet = PAPI_NULL;
         CALL_PAPI_OK(PAPI_create_eventset(&EventSet));
         if (name.compare("PAPI") == 0) {
@@ -1487,7 +1490,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         } else {
             int index = component_index_map[name];
             //std::cout << "Setting component index: " << index << std::endl;
-            CALL_PAPI_OK(PAPI_assign_eventset_component(EventSet, index));
+            //CALL_PAPI_OK(PAPI_assign_eventset_component(EventSet, index));
         }
         int code;
         // iterate over the counter names in the vector

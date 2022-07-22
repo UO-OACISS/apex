@@ -374,6 +374,7 @@ eval set -- "${PARAMS}"
 
 export APEX_POLICY=1
 export HARMONY_HOME="@ACTIVEHARMONY_ROOT@"
+export PAPI_ROCM_ROOT=@ROCM_ROOT@
 
 # Detect our MPI rank!
 if [ ! -z ${PMI_RANK+x} ] ; then
