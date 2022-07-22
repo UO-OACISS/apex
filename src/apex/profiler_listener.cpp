@@ -1508,10 +1508,15 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         CALL_PAPI_OK(PAPI_create_eventset(&EventSet));
         if (name.compare("PAPI") == 0) {
             CALL_PAPI_OK(PAPI_assign_eventset_component(EventSet, 0));
+/* currently not safe to add an event set to a component until events are added to it.
+ * Then, when we add the events to the event set, it will automatically be added
+ * to the component. So don't do this now. */
+#if 0
         } else {
             int index = component_index_map[name];
             //std::cout << "Setting component index: " << index << std::endl;
-            //CALL_PAPI_OK(PAPI_assign_eventset_component(EventSet, index));
+            CALL_PAPI_OK(PAPI_assign_eventset_component(EventSet, index));
+#endif
         }
         int code;
         // iterate over the counter names in the vector
