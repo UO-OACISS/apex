@@ -487,6 +487,9 @@ std::unordered_set<profile*> free_profiles;
           stringstream &csv_output, double &total_accumulated,
           double &total_main, bool timer, bool include_stops = false,
           bool include_papi = false) {
+#ifndef APEX_HAVE_PAPI
+      APEX_UNUSED(include_papi);
+#endif
       string shorter(action_name);
       size_t maxlength = 41;
       if (timer) maxlength = 52;
@@ -542,9 +545,14 @@ std::unordered_set<profile*> free_profiles;
         }
       }
       if (p->get_type() == APEX_TIMER) {
-        csv_output << "\"" << action_name << "\",";
+        csv_output << "\"" << action_name << "\",\"timer\",";
         csv_output << llround(p->get_calls()) << ",";
-        csv_output << std::llround(p->get_accumulated_useconds()) << ",";
+        // add all the extra columns for counter data
+        csv_output << std::llround(p->get_minimum()) << ",";
+        csv_output << std::llround(p->get_mean()) << ",";
+        csv_output << std::llround(p->get_maximum()) << ",";
+        csv_output << std::llround(p->get_stddev()) << ",";
+        csv_output << std::llround(p->get_accumulated_useconds());
         //screen_output << " --n/a--   " ;
         if (p->get_mean_seconds() > 10000) {
             screen_output << string_format(FORMAT_SCIENTIFIC,
@@ -623,12 +631,26 @@ std::unordered_set<profile*> free_profiles;
         screen_output << endl;
         csv_output << endl;
       } else {
-        csv_output << "\"" << action_name << "\",";
+        /* Do CSV output */
+        csv_output << "\"" << action_name << "\",\"counter\",";
         csv_output << llround(p->get_calls()) << ",";
         csv_output << std::llround(p->get_minimum()) << ",";
         csv_output << std::llround(p->get_mean()) << ",";
         csv_output << std::llround(p->get_maximum()) << ",";
-        csv_output << std::llround(p->get_stddev()) << endl;
+        csv_output << std::llround(p->get_stddev()) << ",";
+        // add all the extra columns for timer data
+        csv_output << "0"; // accumulated seconds - meaningless
+#if APEX_HAVE_PAPI
+        if (include_papi) {
+            csv_output << std::string( num_papi_counters, ',' );
+        }
+        if (apex_options::track_memory()) {
+            csv_output << std::string( 4, ',' );
+        }
+#endif
+        csv_output << endl;
+
+        /* Do Screen output */
         if (action_name.find('%') == string::npos && p->get_minimum() > 10000) {
           screen_output << string_format(FORMAT_SCIENTIFIC, p->get_minimum()) << "   " ;
         } else {
@@ -725,8 +747,17 @@ std::unordered_set<profile*> free_profiles;
             }
         }
     }
-    csv_output << "\"counter\",\"num samples\",\"minimum\",\"mean\","
-        << "\"maximum\",\"stddev\"" << endl;
+    csv_output << "\"name\",\"type\",\"num samples/calls\",\"minimum\",\"mean\","
+        << "\"maximum\",\"stddev\",\"total microseconds\"";
+#if APEX_HAVE_PAPI
+    for (int i = 0 ; i < num_papi_counters ; i++) {
+       csv_output << ",\"" << metric_names[i] << "\"";
+    }
+#endif
+    if (apex_options::track_memory()) {
+       csv_output << ",\"allocations\", \"bytes allocated\", \"frees\", \"bytes freed\"";
+    }
+    csv_output << endl;
     if (id_vector.size() > 0) {
         screen_output << "Counter                                   : "
         << "#samples | minimum |    mean  |  maximum |  stddev " << endl;
@@ -748,16 +779,6 @@ std::unordered_set<profile*> free_profiles;
             << "------------------------------------------------------\n";
         screen_output << endl;
     }
-    csv_output << "\n\n\"task\",\"num calls\",\"total microseconds\"";
-#if APEX_HAVE_PAPI
-    for (int i = 0 ; i < num_papi_counters ; i++) {
-       csv_output << ",\"" << metric_names[i] << "\"";
-    }
-#endif
-    if (apex_options::track_memory()) {
-       csv_output << ",\"allocations\", \"bytes allocated\", \"frees\", \"bytes freed\"";
-    }
-    csv_output << endl;
     std::string re("PAPI_");
     std::string tmpstr(apex_options::papi_metrics());
     size_t index = 0;
