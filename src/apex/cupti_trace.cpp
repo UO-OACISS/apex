@@ -30,6 +30,7 @@
 #include "otf2_listener.hpp"
 #endif
 #include "async_thread_node.hpp"
+#include "memory_wrapper.hpp"
 
 #include <cuda.h>
 #include <cupti.h>
@@ -1449,6 +1450,7 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
             hostTotalAllocated.fetch_sub(bytes, std::memory_order_relaxed);
             value = (double)(hostTotalAllocated);
             store_sync_counter_data("GPU: Total Bytes Occupied on Host", context, value, false, false);
+            apex::recordFree(ptr);
         } else {
             mapMutex.lock();
             if (memoryMap.count(ptr) > 0) {
@@ -1468,6 +1470,7 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
             totalAllocated.fetch_sub(value, std::memory_order_relaxed);
             value = (double)(totalAllocated);
             store_sync_counter_data("GPU: Total Bytes Occupied on Device", context, value, false, false);
+            apex::recordFree(ptr, false);
         }
     // If we are in the exit of a function, and we are allocating memory,
     // then update and record the bytes allocated
@@ -1483,6 +1486,7 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
             hostTotalAllocated.fetch_add(bytes, std::memory_order_relaxed);
             value = (double)(hostTotalAllocated);
             store_sync_counter_data("GPU: Total Bytes Occupied on Host", context, value, false, false);
+            apex::recordAlloc(bytes, ptr, apex::GPU_DEVICE_MALLOC);
             return true;
         } else {
             if (managed) {
@@ -1496,6 +1500,7 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
             totalAllocated.fetch_add(bytes, std::memory_order_relaxed);
             value = (double)(totalAllocated);
             store_sync_counter_data("GPU: Total Bytes Occupied on Device", context, value, false, false);
+            apex::recordAlloc(bytes, ptr, apex::GPU_DEVICE_MALLOC, false);
         }
     }
     return true;

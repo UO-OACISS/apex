@@ -105,7 +105,7 @@ void recordAlloc(size_t bytes, void* ptr, allocator_t alloc, bool cpu) {
     double value = (double)(bytes);
     if (cpu) sample_value("Memory: Bytes Allocated", value, true);
     profiler * p = thread_instance::instance().get_current_profiler();
-    record_t tmp(value, thread_instance::instance().get_id(), alloc);
+    record_t tmp(value, thread_instance::instance().get_id(), alloc, cpu);
     if (p != nullptr) { tmp.id = p->get_task_id(); }
     //backtrace_record_t rec(3,tmp.backtrace);
     //_Unwind_Backtrace (default_unwind, &(rec));
@@ -115,8 +115,6 @@ void recordAlloc(size_t bytes, void* ptr, allocator_t alloc, bool cpu) {
     book.memoryMap.insert(std::pair<void*,record_t>(ptr, tmp));
     book.mapMutex.unlock();
     book.totalAllocated.fetch_add(bytes, std::memory_order_relaxed);
-    value = (double)(book.totalAllocated);
-    if (cpu) sample_value("Memory: Total Bytes Occupied", value);
     if (p == nullptr) {
         auto i = apex::instance();
         // might be after finalization, so double-check!
@@ -127,6 +125,8 @@ void recordAlloc(size_t bytes, void* ptr, allocator_t alloc, bool cpu) {
         p->allocations++;
         p->bytes_allocated += value;
     }
+    value = (double)(book.totalAllocated);
+    if (cpu) sample_value("Memory: Total Bytes Occupied", value);
 }
 
 void recordFree(void* ptr, bool cpu) {
@@ -147,8 +147,6 @@ void recordFree(void* ptr, bool cpu) {
     double value = (double)(bytes);
     if (cpu) sample_value("Memory: Bytes Freed", value, true);
     book.totalAllocated.fetch_sub(bytes, std::memory_order_relaxed);
-    value = (double)(book.totalAllocated);
-    if (cpu) sample_value("Memory: Total Bytes Occupied", value);
     profiler * p = thread_instance::instance().get_current_profiler();
     if (p == nullptr) {
         auto i = apex::instance();
@@ -160,6 +158,8 @@ void recordFree(void* ptr, bool cpu) {
         p->frees++;
         p->bytes_freed += value;
     }
+    value = (double)(book.totalAllocated);
+    if (cpu) sample_value("Memory: Total Bytes Occupied", value);
 }
 
 // Comparator function to sort pairs descending, according to second value
@@ -236,15 +236,17 @@ void apex_report_leaks() {
         bool skip{false};
         for(size_t i = 3; i < it.second.size; i++ ){
             std::string tmp{strings[i]};
-            if (tmp.find("cuInit", 0) != std::string::npos) { skip = true; break; }
-            if (tmp.find("libcudart", 0) != std::string::npos) { skip = true; break; }
-            if (tmp.find("libcupti", 0) != std::string::npos) { skip = true; break; }
-            if (tmp.find("pthread_once", 0) != std::string::npos) { skip = true; break; }
-            if (tmp.find("atexit", 0) != std::string::npos) { skip = true; break; }
-            if (tmp.find("apex_pthread_function", 0) != std::string::npos) { skip = true; break; }
-            if (nameless) {
-                if (tmp.find("libcuda", 0) != std::string::npos) { skip = true; break; }
-                if (tmp.find("GOMP_parallel", 0) != std::string::npos) { skip = true; break; }
+            if (it.second.cpu) {
+                if (tmp.find("cuInit", 0) != std::string::npos) { skip = true; break; }
+                if (tmp.find("libcudart", 0) != std::string::npos) { skip = true; break; }
+                if (tmp.find("libcupti", 0) != std::string::npos) { skip = true; break; }
+                if (tmp.find("pthread_once", 0) != std::string::npos) { skip = true; break; }
+                if (tmp.find("atexit", 0) != std::string::npos) { skip = true; break; }
+                if (tmp.find("apex_pthread_function", 0) != std::string::npos) { skip = true; break; }
+                if (nameless) {
+                    if (tmp.find("libcuda", 0) != std::string::npos) { skip = true; break; }
+                    if (tmp.find("GOMP_parallel", 0) != std::string::npos) { skip = true; break; }
+                }
             }
             std::string* tmp2{lookup_address(((uintptr_t)it.second.backtrace[i]), true)};
             ss << "\t" << *tmp2 << std::endl;

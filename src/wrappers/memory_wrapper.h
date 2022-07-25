@@ -65,7 +65,6 @@ int   apex_puts_wrapper(const char* s);
 void* apex_calloc_wrapper(calloc_p calloc_call, size_t nmemb, size_t size);
 void* apex_realloc_wrapper(realloc_p realloc_call, void* ptr, size_t size);
 void  apex_memory_wrapper_init(void);
-void  apex_report_leaks(void);
 void  apex_memory_lights_out(void);
 #if 0
 #if defined(memalign)

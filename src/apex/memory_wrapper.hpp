@@ -32,11 +32,13 @@ public:
     task_identifier * id;
     size_t tid;
     allocator_t alloc;
-    record_t() : bytes(0), id(nullptr), tid(0), alloc(MALLOC) {}
-    record_t(size_t b, size_t t, allocator_t a) : bytes(b), id(nullptr), tid(t), alloc(a) {}
+    record_t() : bytes(0), id(nullptr), tid(0), alloc(MALLOC), cpu(true) {}
+    record_t(size_t b, size_t t, allocator_t a, bool on_cpu) :
+        bytes(b), id(nullptr), tid(t), alloc(a), cpu(on_cpu) {}
     //std::vector<uintptr_t> backtrace;
     std::array<void*,32> backtrace;
     size_t size;
+    bool cpu;
 };
 
 class book_t {

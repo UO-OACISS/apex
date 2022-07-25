@@ -592,42 +592,46 @@ std::unordered_set<profile*> free_profiles;
             }
         }
 #endif
+        if (include_stops) {
         if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
             if (p->get_allocations() > 999999) {
                 screen_output  << "   " << string_format(FORMAT_SCIENTIFIC,
                     (p->get_allocations()));
             } else {
                 screen_output  << "   " << string_format(PAD_WITH_SPACES,
-                    to_string((int)p->get_allocations()).c_str());
+                    to_string(std::llround(p->get_allocations())).c_str());
             }
-            csv_output << "," << std::llround(p->get_allocations());
+            csv_output << "," << p->get_allocations();
 
             if (p->get_bytes_allocated() > 999999) {
                 screen_output  << "   " << string_format(FORMAT_SCIENTIFIC,
                     (p->get_bytes_allocated()));
             } else {
                 screen_output  << "   " << string_format(PAD_WITH_SPACES,
-                    to_string((int)p->get_bytes_allocated()).c_str());
+                    to_string(std::llround(p->get_bytes_allocated())).c_str());
             }
-            csv_output << "," << std::llround(p->get_bytes_allocated());
+            csv_output << "," << p->get_bytes_allocated();
 
             if (p->get_frees() > 999999) {
                 screen_output  << "   " << string_format(FORMAT_SCIENTIFIC,
                     (p->get_frees()));
             } else {
                 screen_output  << "   " << string_format(PAD_WITH_SPACES,
-                    to_string((int)p->get_frees()).c_str());
+                    to_string(std::llround(p->get_frees())).c_str());
             }
-            csv_output << "," << std::llround(p->get_frees());
+            csv_output << "," << p->get_frees();
 
             if (p->get_bytes_freed() > 999999) {
                 screen_output  << "   " << string_format(FORMAT_SCIENTIFIC,
                     (p->get_bytes_freed()));
             } else {
                 screen_output  << "   " << string_format(PAD_WITH_SPACES,
-                    to_string((int)p->get_bytes_freed()).c_str());
+                    to_string(std::llround(p->get_bytes_freed())).c_str());
             }
-            csv_output << "," << std::llround(p->get_bytes_freed());
+            csv_output << "," << p->get_bytes_freed();
+        }
+        } else {
+            csv_output << ",0,0,0,0";
         }
         screen_output << endl;
         csv_output << endl;
@@ -807,9 +811,11 @@ std::unordered_set<profile*> free_profiles;
 
     screen_output << "GPU Timers                                           : "
         << "#calls  |    mean  |   total  |  % total  ";
+        /*
     if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
        screen_output << "|  allocs |  (bytes) |    frees |   (bytes) ";
     }
+    */
     screen_output << endl;
     screen_output << "----------------------------------------------"
         << "--------------------------------------------------";
@@ -832,9 +838,11 @@ std::unordered_set<profile*> free_profiles;
 
     screen_output << "--------------------------------------------------"
         << "----------------------------------------------";
+    /*
     if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
         screen_output << "--------------------------------------------";
     }
+    */
     screen_output << endl;
     screen_output << endl;
 

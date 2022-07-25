@@ -199,10 +199,10 @@ typedef struct _profile
     double maximum;         /*!< Maximum value seen by the timer or counter */
     apex_profile_type type; /*!< Whether this is a timer or a counter */
     double papi_metrics[8]; /*!< Array of accumulated PAPI hardware metrics */
-    size_t allocations;     /*!< total calls to [m/c/re]alloc and related */
-    size_t frees;           /*!< total calls to free and related (realloc) */
-    size_t bytes_allocated; /*!< total bytes allocated in this task */
-    size_t bytes_freed;     /*!< total bytes freed in this task */
+    double allocations;     /*!< total calls to [m/c/re]alloc and related */
+    double frees;           /*!< total calls to free and related (realloc) */
+    double bytes_allocated; /*!< total bytes allocated in this task */
+    double bytes_freed;     /*!< total bytes freed in this task */
     int times_reset;        /*!< How many times was this timer reset */
 } apex_profile;
 

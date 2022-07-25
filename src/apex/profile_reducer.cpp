@@ -15,6 +15,11 @@
 #include <limits>
 #include <inttypes.h>
 
+/* 8 values per timer/counter by default
+ * 4 values related to memory allocation tracking
+ * 8 values (up to) when PAPI enabled */
+constexpr size_t num_fields{20};
+
 #if !defined(HPX_HAVE_NETWORKING) && defined(APEX_HAVE_MPI)
 #include "mpi.h"
 #endif
@@ -137,8 +142,8 @@ std::map<std::string, apex_profile*> reduce_profiles() {
     //sort(all_names.begin(), all_names.end());
 
     // There are 8 "values" and 8 possible papi counters
-    sbuf_length = all_names.size() * 16;
-    rbuf_length = all_names.size() * 16 * commsize;
+    sbuf_length = all_names.size() * num_fields;
+    rbuf_length = all_names.size() * num_fields * commsize;
     //DEBUG_PRINT("%d Sending %" PRIu64 " bytes\n", commrank, sbuf_length * sizeof(double));
     double * s_pdata = (double*)calloc(sbuf_length, sizeof(double));
     double * r_pdata = nullptr;
@@ -154,27 +159,32 @@ std::map<std::string, apex_profile*> reduce_profiles() {
         if (tid != tid_map.end()) {
         auto p = get_profile(tid->second);
         if (p != nullptr) {
-            dptr[0] = p->calls == 0.0 ? 1 : p->calls;
-            dptr[1] = p->stops == 0.0 ? 1 : p->stops;
-            dptr[2] = p->accumulated;
-            dptr[3] = p->sum_squares;
-            dptr[4] = p->minimum;
-            dptr[5] = p->maximum;
-            dptr[6] = p->times_reset;
-            dptr[7] = (double)p->type;
+            int i{0};
+            dptr[i++] = p->calls == 0.0 ? 1 : p->calls;
+            dptr[i++] = p->stops == 0.0 ? 1 : p->stops;
+            dptr[i++] = p->accumulated;
+            dptr[i++] = p->sum_squares;
+            dptr[i++] = p->minimum;
+            dptr[i++] = p->maximum;
+            dptr[i++] = p->times_reset;
+            dptr[i++] = (double)p->type;
+            dptr[i++] = p->allocations;
+            dptr[i++] = p->frees;
+            dptr[i++] = p->bytes_allocated;
+            dptr[i++] = p->bytes_freed;
             if (p->type == APEX_TIMER) {
-                dptr[8] = p->papi_metrics[0];
-                dptr[9] = p->papi_metrics[1];
-                dptr[10] = p->papi_metrics[2];
-                dptr[11] = p->papi_metrics[3];
-                dptr[12] = p->papi_metrics[4];
-                dptr[13] = p->papi_metrics[5];
-                dptr[14] = p->papi_metrics[6];
-                dptr[15] = p->papi_metrics[7];
+                dptr[i++] = p->papi_metrics[0];
+                dptr[i++] = p->papi_metrics[1];
+                dptr[i++] = p->papi_metrics[2];
+                dptr[i++] = p->papi_metrics[3];
+                dptr[i++] = p->papi_metrics[4];
+                dptr[i++] = p->papi_metrics[5];
+                dptr[i++] = p->papi_metrics[6];
+                dptr[i++] = p->papi_metrics[7];
             }
         }
         }
-        dptr = &(dptr[16]);
+        dptr = &(dptr[num_fields]);
     }
 
     /* Reduce the data */
@@ -208,24 +218,32 @@ std::map<std::string, apex_profile*> reduce_profiles() {
             } else {
                 p = next->second;
             }
-            p->calls += dptr[0];
-            p->stops += dptr[1];
-            p->accumulated += dptr[2];
-            p->sum_squares += dptr[3];
-            p->minimum = dptr[4] < p->minimum ? dptr[4] : p->minimum;
-            p->maximum = dptr[5] > p->maximum ? dptr[5] : p->maximum;
-            p->times_reset += dptr[6];
+            int index{0};
+            p->calls += dptr[index++];
+            p->stops += dptr[index++];
+            p->accumulated += dptr[index++];
+            p->sum_squares += dptr[index++];
+            p->minimum = dptr[index] < p->minimum ? dptr[index] : p->minimum;
+            index++;
+            p->maximum = dptr[index] > p->maximum ? dptr[index] : p->maximum;
+            index++;
+            p->times_reset += dptr[index++];
+            p->type = (apex_profile_type)(dptr[index++]);
+            p->allocations = dptr[index++];
+            p->frees = dptr[index++];
+            p->bytes_allocated = dptr[index++];
+            p->bytes_freed = dptr[index++];
             if (p->type == APEX_TIMER) {
-                p->papi_metrics[0] += dptr[8];
-                p->papi_metrics[1] += dptr[9];
-                p->papi_metrics[2] += dptr[10];
-                p->papi_metrics[3] += dptr[11];
-                p->papi_metrics[4] += dptr[12];
-                p->papi_metrics[5] += dptr[13];
-                p->papi_metrics[6] += dptr[14];
-                p->papi_metrics[7] += dptr[15];
+                p->papi_metrics[0] += dptr[index++];
+                p->papi_metrics[1] += dptr[index++];
+                p->papi_metrics[2] += dptr[index++];
+                p->papi_metrics[3] += dptr[index++];
+                p->papi_metrics[4] += dptr[index++];
+                p->papi_metrics[5] += dptr[index++];
+                p->papi_metrics[6] += dptr[index++];
+                p->papi_metrics[7] += dptr[index++];
             }
-            dptr = &(dptr[16]);
+            dptr = &(dptr[num_fields]);
         }
     }
 
