@@ -66,6 +66,7 @@ void* apex_calloc_wrapper(calloc_p calloc_call, size_t nmemb, size_t size);
 void* apex_realloc_wrapper(realloc_p realloc_call, void* ptr, size_t size);
 void  apex_memory_wrapper_init(void);
 void  apex_report_leaks(void);
+void  apex_memory_lights_out(void);
 #if 0
 #if defined(memalign)
 void* apex_memalign_wrapper(memalign_p calloc_call, size_t align, size_t size);

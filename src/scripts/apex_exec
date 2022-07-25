@@ -46,7 +46,8 @@ where APEX options are zero or more of:
     --apex:kokkos_fence     enable Kokkos fences for async kernels
     --apex:raja             enable RAJA support
     --apex:pthread          enable pthread wrapper support
-    --apex:memory           enable memory wrapper support
+    --apex:gpu_memory       enable CPU memory wrapper support
+    --apex:cpu_memory       enable GPU memory wrapper support
     --apex:untied           enable tasks to migrate cores/OS threads
                             during execution (not compatible with trace output)
     --apex:cuda             enable CUDA/CUPTI measurement (default: off)
@@ -109,7 +110,8 @@ stat=no
 period=1000000
 io=no
 pthread=no
-memory=no
+gpu_memory=no
+cpu_memory=no
 policy=yes
 debugger=""
 prog=""
@@ -156,9 +158,15 @@ while (( "$#" )); do
       export APEX_TIME_TOP_LEVEL_OS_THREADS=1
       shift
       ;;
-    --apex:memory)
-      memory=yes
-      export APEX_TRACK_MEMORY=1
+    --apex:gpu_memory)
+      gpu_memory=yes
+      export APEX_TRACK_GPU_MEMORY=1
+      export APEX_SOURCE_LOCATION=1
+      shift
+      ;;
+    --apex:cpu_memory)
+      cpu_memory=yes
+      export APEX_TRACK_CPU_MEMORY=1
       export APEX_SOURCE_LOCATION=1
       shift
       ;;
@@ -428,9 +436,11 @@ fi
 if [ $ompt = yes ]; then
     OMPT_LIB=@OMPT_LIBRARY@:
 fi
-if [ $memory = yes ]; then
+if [ $cpu_memory = yes ]; then
     MEMORY_LIB=${BASEDIR}/lib/libapex_memory_wrapper${SHLIBX}:
     APEX_LD_AUDIT=${BASEDIR}/lib/libapex_dl_auditor${SHLIBX}
+    echo_screen "MEMORY_LIB: ${MEMORY_LIB}"
+    echo_screen "APEX_LD_AUDIT: ${APEX_LD_AUDIT}"
 fi
 if [ ${apple} = 1 ]; then
     APEX_LD_PRELOAD=${USER_PRELOAD}${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/lib/libapex${SHLIBX}:${OMPT_LIB}
@@ -456,6 +466,9 @@ if [ ! -x "${prog}" ] ; then
     echo "apex_exec: $1: command not found"
     exit
 fi
+
+echo_screen "APEX_LD_LIBRARY_PATH: ${APEX_LD_LIBRARY_PATH}"
+echo_screen "APEX_LD_PRELOAD: ${APEX_LD_PRELOAD}"
 
 if [ $apple = 1 ]; then
     export DYLD_LIBRARY_PATH=${APEX_LD_LIBRARY_PATH}

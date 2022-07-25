@@ -944,7 +944,7 @@ namespace apex {
         _finalized = true;
         // if we are tracking memory, there are some alloc/free events
         // we recorded before the end of the trace.
-        if (apex_options::track_memory()) {
+        if (apex_options::track_cpu_memory()) {
             saved_end_timestamp = get_time();
         }
          // get an exclusive lock, to make sure no other threads

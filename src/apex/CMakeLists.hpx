@@ -286,6 +286,7 @@ set(apex_headers
     exhaustive.hpp
     gzstream.hpp
     handler.hpp
+    memory_wrapper.hpp
     policy_handler.hpp
     profile.hpp
     profiler.hpp

@@ -68,7 +68,7 @@ void DeleteHook(const void* ptr) {
 }
 
 void init_hook() {
-    if (apex_options::track_memory()) {
+    if (apex_options::track_cpu_memory()) {
         getTracker();
         APEX_ASSERT(MallocHook::AddNewHook(&NewHook));
         APEX_ASSERT(MallocHook::AddDeleteHook(&DeleteHook));
@@ -76,7 +76,7 @@ void init_hook() {
 }
 
 void destroy_hook() {
-    if (apex_options::track_memory()) {
+    if (apex_options::track_cpu_memory()) {
         APEX_ASSERT(MallocHook::RemoveNewHook(&NewHook));
         APEX_ASSERT(MallocHook::RemoveDeleteHook(&DeleteHook));
     }

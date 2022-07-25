@@ -1846,7 +1846,7 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
     CUpti_CallbackData * cbdata = (CUpti_CallbackData*)(params);
 
     // sadly, CUPTI leaks a lot of memory from the first runtime API call.
-    if (apex::apex_options::track_memory()) {
+    if (apex::apex_options::track_gpu_memory()) {
         ignoreMalloc(domain, cbdata->callbackSite, id);
     }
 

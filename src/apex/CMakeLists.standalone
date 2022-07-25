@@ -169,6 +169,7 @@ INSTALL(FILES apex.h
     exhaustive.hpp
     dependency_tree.hpp
     handler.hpp
+    memory_wrapper.hpp
     profile.hpp
     apex_export.h
     utils.hpp

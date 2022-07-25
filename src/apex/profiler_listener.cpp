@@ -302,7 +302,7 @@ std::unordered_set<profile*> free_profiles;
         if(p.is_reset == reset_type::CURRENT) {
             theprofile->reset();
         } else {
-            if (apex_options::track_memory()) {
+            if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
                 theprofile->increment(p.elapsed(), tmp_num_counters,
                     values, p.allocations, p.frees, p.bytes_allocated,
                     p.bytes_freed, p.is_resume);
@@ -345,7 +345,8 @@ std::unordered_set<profile*> free_profiles;
 #endif
       } else {
         // Create a new profile for this name.
-        if (apex_options::track_memory() && !p.is_counter) {
+        if ((apex_options::track_cpu_memory() ||
+             apex_options::track_gpu_memory()) && !p.is_counter) {
             theprofile = new profile(p.is_reset ==
                 reset_type::CURRENT ? 0.0 : p.elapsed(),
                 tmp_num_counters, values, p.is_resume,
@@ -591,7 +592,7 @@ std::unordered_set<profile*> free_profiles;
             }
         }
 #endif
-        if (apex_options::track_memory()) {
+        if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
             if (p->get_allocations() > 999999) {
                 screen_output  << "   " << string_format(FORMAT_SCIENTIFIC,
                     (p->get_allocations()));
@@ -644,7 +645,7 @@ std::unordered_set<profile*> free_profiles;
         for (int i = 0 ; i < num_papi_counters ; i++) {
             csv_output << ",0";
         }
-        if (apex_options::track_memory()) {
+        if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
             csv_output << std::string( 4, ',' );
         }
 #endif
@@ -754,7 +755,7 @@ std::unordered_set<profile*> free_profiles;
        csv_output << ",\"" << metric_names[i] << "\"";
     }
 #endif
-    if (apex_options::track_memory()) {
+    if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
        csv_output << ",\"allocations\", \"bytes allocated\", \"frees\", \"bytes freed\"";
     }
     csv_output << endl;
@@ -806,7 +807,7 @@ std::unordered_set<profile*> free_profiles;
 
     screen_output << "GPU Timers                                           : "
         << "#calls  |    mean  |   total  |  % total  ";
-    if (apex_options::track_memory()) {
+    if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
        screen_output << "|  allocs |  (bytes) |    frees |   (bytes) ";
     }
     screen_output << endl;
@@ -831,7 +832,7 @@ std::unordered_set<profile*> free_profiles;
 
     screen_output << "--------------------------------------------------"
         << "----------------------------------------------";
-    if (apex_options::track_memory()) {
+    if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
         screen_output << "--------------------------------------------";
     }
     screen_output << endl;
@@ -840,13 +841,13 @@ std::unordered_set<profile*> free_profiles;
     screen_output << "CPU Timers                                           : "
         << "#calls  |  #yields |    mean  |   total  |  % total  "
         << tmpstr;
-    if (apex_options::track_memory()) {
+    if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
        screen_output << "|  allocs |  (bytes) |    frees |   (bytes) ";
     }
     screen_output << endl;
     screen_output << "----------------------------------------------"
         << "-------------------------------------------------------------";
-    if (apex_options::track_memory()) {
+    if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
         screen_output << "--------------------------------------------";
     }
     screen_output << endl;
@@ -871,7 +872,7 @@ std::unordered_set<profile*> free_profiles;
     }
     screen_output << "--------------------------------------------------"
         << "---------------------------------------------------------";
-    if (apex_options::track_memory()) {
+    if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
         screen_output << "--------------------------------------------";
     }
     screen_output << endl;
@@ -893,7 +894,7 @@ std::unordered_set<profile*> free_profiles;
     }
     screen_output << "--------------------------------------------------"
         << "----------------------------------------------";
-    if (apex_options::track_memory()) {
+    if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
         screen_output << "--------------------------------------------";
     }
     screen_output << endl;

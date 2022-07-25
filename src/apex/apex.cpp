@@ -61,6 +61,8 @@
 #include "proc_read.h"
 #endif
 
+#include "memory_wrapper.hpp"
+
 #ifdef APEX_HAVE_HPX
 #include <boost/assign.hpp>
 #include <cstdint>
@@ -1650,6 +1652,7 @@ void finalize()
     //tcmalloc::destroy_hook();
 #endif
     disable_memory_wrapper();
+    apex_report_leaks();
 #if APEX_HAVE_BFD
     address_resolution::delete_instance();
 #endif

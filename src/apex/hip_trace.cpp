@@ -78,6 +78,8 @@ using namespace std;
 #include <sys/syscall.h>   /* For SYS_xxx definitions */
 #include <inttypes.h>
 
+#include "memory_wrapper.hpp"
+
 // Macro to check ROC-tracer calls status
 #define ROCTRACER_CALL(call)                                    \
     do {                                                        \
@@ -513,6 +515,7 @@ bool getBytesIfMalloc(uint32_t cid, const hip_api_data_t* data,
             hostTotalAllocated.fetch_sub(bytes, std::memory_order_relaxed);
             value = (double)(hostTotalAllocated);
             store_sync_counter_data(nullptr, "Total Bytes Occupied on Host", value, false);
+            apex::recordFree(ptr);
         } else {
             mapMutex.lock();
             if (memoryMap.count(ptr) > 0) {
@@ -528,6 +531,7 @@ bool getBytesIfMalloc(uint32_t cid, const hip_api_data_t* data,
             totalAllocated.fetch_sub(value, std::memory_order_relaxed);
             value = (double)(totalAllocated);
             store_sync_counter_data(nullptr, "Total Bytes Occupied on Device", value, false);
+            apex::recordFree(ptr, false);
         }
     // If we are in the exit of a function, and we are allocating memory,
     // then update and record the bytes allocated
@@ -543,6 +547,7 @@ bool getBytesIfMalloc(uint32_t cid, const hip_api_data_t* data,
             hostTotalAllocated.fetch_add(bytes, std::memory_order_relaxed);
             value = (double)(hostTotalAllocated);
             store_sync_counter_data(nullptr, "Total Bytes Occupied on Host", value, false);
+            apex::recordAlloc(bytes, ptr, apex::GPU_HOST_MALLOC);
             return true;
         } else {
             if (managed) {
@@ -556,6 +561,7 @@ bool getBytesIfMalloc(uint32_t cid, const hip_api_data_t* data,
             totalAllocated.fetch_add(bytes, std::memory_order_relaxed);
             value = (double)(totalAllocated);
             store_sync_counter_data(nullptr, "Total Bytes Occupied on Device", value, false);
+            apex::recordAlloc(bytes, ptr, apex::GPU_DEVICE_MALLOC, false);
         }
     }
     return true;
