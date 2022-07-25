@@ -641,8 +641,8 @@ std::unordered_set<profile*> free_profiles;
         // add all the extra columns for timer data
         csv_output << "0"; // accumulated seconds - meaningless
 #if APEX_HAVE_PAPI
-        if (include_papi) {
-            csv_output << std::string( num_papi_counters, ',' );
+        for (int i = 0 ; i < num_papi_counters ; i++) {
+            csv_output << ",0";
         }
         if (apex_options::track_memory()) {
             csv_output << std::string( 4, ',' );

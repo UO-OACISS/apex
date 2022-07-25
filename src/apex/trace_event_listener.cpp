@@ -106,6 +106,22 @@ inline void trace_event_listener::_common_start(std::shared_ptr<task_wrapper> &t
               << saved_node_id << ",\"tid\":" << tid
               << ",\"ts\":" << tt_ptr->prof->get_start_us()
               << ",\"args\":{\"GUID\":" << tt_ptr->prof->guid << ",\"Parent GUID\":" << pguid << "}},\n";
+/* Only write the counter at the end, it's less data! */
+#if APEX_HAVE_PAPI
+        int i = 0;
+        for (auto metric :
+            apex::instance()->the_profiler_listener->get_metric_names()) {
+            double start = tt_ptr->prof->papi_start_values[i++];
+            // write our counter into the event stream
+            ss << fixed;
+            ss << "{\"name\":\"" << metric
+               << "\",\"cat\":\"CPU\""
+               << ",\"ph\":\"C\",\"pid\":" << saved_node_id
+               << ",\"ts\":" << tt_ptr->prof->get_start_us()
+               << ",\"args\":{\"value\":" << start
+               << "}},\n";
+        }
+#endif
         write_to_trace(ss);
         flush_trace_if_necessary();
     }
@@ -192,6 +208,23 @@ inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
               << p->get_stop_us() - p->get_start_us()
               << ",\"args\":{\"GUID\":" << p->guid << ",\"Parent GUID\":" << pguid << "}},\n";
         }
+#if APEX_HAVE_PAPI
+        int i = 0;
+        for (auto metric :
+            apex::instance()->the_profiler_listener->get_metric_names()) {
+            double start = p->papi_start_values[i];
+            double stop = p->papi_stop_values[i++];
+            // write our counter into the event stream
+            ss << fixed;
+            ss << "{\"name\":\"" << metric
+               << "\",\"cat\":\"CPU\""
+               << ",\"ph\":\"C\",\"pid\":" << saved_node_id
+               << ",\"ts\":" << p->get_stop_us()
+               << ",\"args\":{\"value\":" << stop
+               << "}},\n";
+            //std::cout << p->get_task_id()->get_name() << "." << metric << ": " << start << " -> " << stop << " = " << stop-start << std::endl;
+        }
+#endif
         write_to_trace(ss);
         flush_trace_if_necessary();
     }
