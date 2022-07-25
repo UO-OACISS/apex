@@ -502,14 +502,44 @@ if [ ${openacc} = yes ] ; then
     export ACC_PROFLIB=${BASEDIR}/lib/libapex${SHLIBX}
 fi
 
-${debugger} ${PARAMS}
-retval=$?
-unset LD_PRELOAD
-unset DYLD_INSERT_LIBRARIES
-rm -f ./.gdbcmds
+# OK! if the user requests "groups" of counters, split up the groups
+# and iterate over them, setting different output directories for each.
 
-if [ ${retval} != 0 ] ; then
-    exit ${retval}
+delim=";"
+long_metrics=${APEX_PAPI_METRICS}
+base_output_path="."
+if [ ! -z ${APEX_OUTPUT_FILE_PATH} ] ; then
+    base_output_path=${APEX_OUTPUT_FILE_PATH}
+fi
+if [[ "$long_metrics" == *"$delim"* ]]; then
+    IFS=';' tokens=( ${long_metrics} )
+    let index=0
+    for raw_t in ${tokens[@]} ; do
+        # need this here to make sure ${params} is executed correctly
+        unset IFS
+        # Strip whitespace
+        t=`echo "${raw_t}" | xargs`
+        export APEX_PAPI_METRICS=${t}
+        export APEX_OUTPUT_FILE_PATH="${base_output_path}/METRIC_GROUP_${index}"
+        mkdir -p ${APEX_OUTPUT_FILE_PATH}
+        echo "Executing with metrics: \"${t}\", writing to ${APEX_OUTPUT_FILE_PATH}"
+        ${PARAMS}
+        retval=$?
+        if [ ${retval} != 0 ] ; then
+            exit ${retval}
+        fi
+        let index=index+1
+    done
+    unset IFS
+else
+    ${debugger} ${PARAMS}
+    retval=$?
+    unset LD_PRELOAD
+    unset DYLD_INSERT_LIBRARIES
+    rm -f ./.gdbcmds
+    if [ ${retval} != 0 ] ; then
+        exit ${retval}
+    fi
 fi
 
 cd ${output_path}
