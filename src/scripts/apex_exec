@@ -382,6 +382,8 @@ eval set -- "${PARAMS}"
 
 export APEX_POLICY=1
 export HARMONY_HOME="@ACTIVEHARMONY_ROOT@"
+# So that we can use this standalone or with HPX
+export APEX_LIBRARY_NAME="@APEX_LIBRARY_NAME@"
 export PAPI_ROCM_ROOT=@ROCM_ROOT@
 
 # Detect our MPI rank!
@@ -443,9 +445,9 @@ if [ $cpu_memory = yes ]; then
     echo_screen "APEX_LD_AUDIT: ${APEX_LD_AUDIT}"
 fi
 if [ ${apple} = 1 ]; then
-    APEX_LD_PRELOAD=${USER_PRELOAD}${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/lib/libapex${SHLIBX}:${OMPT_LIB}
+    APEX_LD_PRELOAD=${USER_PRELOAD}${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/lib/${APEX_LIBRARY_NAME}${SHLIBX}:${OMPT_LIB}
 else
-    APEX_LD_PRELOAD=${USER_PRELOAD}${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/lib/libapex${SHLIBX}:${OMPT_LIB}:${LD_PRELOAD}
+    APEX_LD_PRELOAD=${USER_PRELOAD}${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/lib/${APEX_LIBRARY_NAME}${SHLIBX}:${OMPT_LIB}:${LD_PRELOAD}
 fi
 
 # remove spaces and double colons
@@ -503,16 +505,16 @@ else
 fi
 
 if [ ${kokkos} = yes ] ; then
-    export KOKKOS_PROFILE_LIBRARY=${BASEDIR}/lib/libapex${SHLIBX}
+    export KOKKOS_PROFILE_LIBRARY=${BASEDIR}/lib/${APEX_LIBRARY_NAME}${SHLIBX}
 fi
 if [ ${kokkos_tuning} = yes ] ; then
     export APEX_KOKKOS_TUNING=1
 fi
 if [ ${raja} = yes ] ; then
-    export RAJA_PLUGINS=${BASEDIR}/lib/libapex${SHLIBX}
+    export RAJA_PLUGINS=${BASEDIR}/lib/${APEX_LIBRARY_NAME}${SHLIBX}
 fi
 if [ ${openacc} = yes ] ; then
-    export ACC_PROFLIB=${BASEDIR}/lib/libapex${SHLIBX}
+    export ACC_PROFLIB=${BASEDIR}/lib/${APEX_LIBRARY_NAME}${SHLIBX}
 fi
 
 # OK! if the user requests "groups" of counters, split up the groups

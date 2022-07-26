@@ -967,6 +967,8 @@ endif()
 if(MPI_CXX_FOUND)
   add_subdirectory (src/comm/mpi)
 endif()
+# Needed to configure apex_exec
+set(APEX_LIBRARY_NAME libapex)
 add_subdirectory (src/scripts)
 
 add_subdirectory (doc)

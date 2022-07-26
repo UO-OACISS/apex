@@ -392,6 +392,15 @@ configure_file (
   "${APEX_SOURCE_DIR}/apex_config.h.in"
   "${APEX_BINARY_DIR}/apex_config.h")
 
+# Needed to configure apex_exec
+set(APEX_LIBRARY_NAME libhpx_apex)
+CONFIGURE_FILE(${APEX_SOURCE_DIR}/../scripts/apex_exec
+	${APEX_BINARY_DIR}/apex_exec @ONLY)
+INSTALL(FILES ${APEX_BINARY_DIR}/apex_exec DESTINATION bin
+    PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ
+    GROUP_EXECUTE GROUP_READ
+    WORLD_EXECUTE WORLD_READ)
+
 install(FILES ${apex_headers} DESTINATION include)
 install(FILES "${APEX_BINARY_DIR}/apex_config.h" DESTINATION include)
 
