@@ -62,15 +62,15 @@ static void apex_custom_signal_handler(int sig) {
   // skip the first frame, it is this handler
   for( i = 1; i < size; i++ ){
    std::cerr << apex::demangle(strings[i]) << std::endl;
-// #if APEX_HAVE_BFD
-   // std::cerr << apex::lookup_address((uintptr_t)trace[i], false) << std::endl;
-// #else
+#ifdef APEX_HAVE_BFD
+   std::cerr << *(apex::lookup_address((uintptr_t)trace[i], true)) << std::endl;
+#else
    char syscom[1024];
 #ifndef __APPLE__
    sprintf(syscom,"addr2line -f -i -e %s %p", exe, trace[i]);
 #endif
    system(syscom);
-// #endif
+#endif
   }
 
   std::cerr << std::endl;

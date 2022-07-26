@@ -15,6 +15,7 @@ fi
 SCRIPTPATH="$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 #echo $SCRIPTPATH
 BASEDIR="$(dirname $SCRIPTPATH)"
+BASEDIR=@CMAKE_INSTALL_PREFIX@
 
 usage() {
     message="

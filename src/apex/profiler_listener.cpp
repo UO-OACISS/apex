@@ -716,7 +716,6 @@ std::unordered_set<profile*> free_profiles;
     double total_hpx_threads = 0;
     double total_main = wall_clock_main *
         fmin(hardware_concurrency(), num_worker_threads);
-    DEBUG_PRINT("%s:%d\n", __func__, __LINE__);
     // create a stringstream to hold all the screen output - we may not
     // want to write it out
     stringstream screen_output;
@@ -1695,10 +1694,8 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         }
       }
       if (apex_options::use_screen_output()) {
-        DEBUG_PRINT("%s:%d:%d\n", __func__, __LINE__, node_id);
         // reduce/gather all profiles from all ranks
         auto reduced = reduce_profiles();
-        DEBUG_PRINT("%s:%d:%d\n", __func__, __LINE__, node_id);
         if (node_id == 0) {
           if (apex_options::process_async_state()) {
             finalize_profiles(data, reduced);

@@ -121,7 +121,9 @@ extern "C" {
     }
     /* There are a handful of interesting Collectives! */
     inline int apex_measure_mpi_sync(MPI_Comm comm, const char * name) {
-        auto _p = start(std::string(name)+" (sync)");
+        //auto _p = start(std::string(name)+" (sync)");
+        static auto _p = new_task("MPI Collective Sync");
+	start(_p);
         int _retval = PMPI_Barrier(comm);
         stop(_p);
         return _retval;

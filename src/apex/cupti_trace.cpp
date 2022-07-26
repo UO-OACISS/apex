@@ -455,6 +455,9 @@ static int64_t deltaTimestamp{0};
 /* The callback subscriber */
 CUpti_SubscriberHandle subscriber;
 
+/* Global flag to indicate we are working */
+static std::atomic<bool> allGood{false};
+
 /* The buffer count */
 std::atomic<uint64_t> num_buffers{0};
 std::atomic<uint64_t> num_buffers_processed{0};
@@ -1834,6 +1837,11 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
     if (!apex::thread_instance::is_worker()) { return; }
     if (params == NULL) { return; }
 
+    /* Check for exit */
+    if (!allGood) {
+	return;
+    } 
+
     /* Check for a new context */
     if (domain == CUPTI_CB_DOMAIN_RESOURCE) {
         if (id == CUPTI_CBID_RESOURCE_CONTEXT_CREATED) {
@@ -2004,6 +2012,7 @@ void init_cupti_tracing() {
     //printf("CPU: %ld\n", startTimestampCPU);
     //printf("GPU: %ld\n", startTimestampGPU);
     //printf("Delta computed to be: %ld\n", deltaTimestamp);
+    allGood = true;
 }
 
 /* This is the global "shutdown" method for flushing the buffer.  This is
@@ -2031,5 +2040,7 @@ void init_cupti_tracing() {
         CUPTI_CALL(cuptiUnsubscribe(subscriber));
         CUPTI_CALL(cuptiFinalize());
         // get_range_map().clear();
+	//std::cout << "* * * * * * * * EXITING CUPTI SUPPORT * * * * * * * * * *" << std::endl;
+    	allGood = false;
     }
 }
