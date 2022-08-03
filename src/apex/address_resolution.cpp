@@ -10,6 +10,7 @@
 #include <sstream>
 #include <iostream>
 #include <unordered_map>
+#include <execinfo.h>
 
 #ifdef __APPLE__
 #include <dlfcn.h>
@@ -73,7 +74,17 @@ namespace apex {
       }
 #endif
 #else
+#ifdef APEX_HAVE_BFD
         Apex_bfd_resolveBfdInfo(ar->my_bfd_unit_handle, ip, node->info);
+#else
+        const void * buffer[1] = {ip};
+        char ** names = backtrace_symbols(buffer, 1);
+        node->info.probeAddr = ip;
+        node->info.filename = strdup("??");
+        node->info.funcname = strdup(names[0]);
+        node->info.lineno = 0;
+        node->info.demangled = false;
+#endif
 #endif
 
         if (node->info.demangled) {

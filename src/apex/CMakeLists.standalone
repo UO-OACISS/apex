@@ -13,6 +13,8 @@ SET(tau_SOURCE tau_listener.cpp)
 
 if (BFD_FOUND)
 SET(bfd_SOURCE apex_bfd.cpp address_resolution.cpp)
+else(BFD_FOUND)
+SET(bfd_SOURCE address_resolution.cpp)
 endif(BFD_FOUND)
 
 if (APEX_HAVE_PROC)

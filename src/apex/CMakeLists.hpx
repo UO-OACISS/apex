@@ -230,6 +230,7 @@ if((DEFINED BFD_ROOT) OR (APEX_WITH_BFD) OR (APEX_BUILD_BFD))
 #    include(APEX_SetupZlib)
 #	endif(NOT APEX_INTEL_MIC)
 else()
+    set(bfd_sources address_resolution.cpp)
 	add_custom_target(project_binutils)
 endif()
 
