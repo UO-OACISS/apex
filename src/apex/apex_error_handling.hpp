@@ -22,23 +22,7 @@
 
 static std::mutex output_mutex;
 
-static void apex_custom_signal_handler(int sig) {
-
-  int errnum = errno;
-
-  //std::unique_lock<std::mutex> l(output_mutex);
-  fflush(stderr);
-  std::cerr << std::endl;
-  std::cerr << "********* Thread " << apex::thread_instance::get_id() << " " <<
-  strsignal(sig) << " *********";
-  std::cerr << std::endl;
-  std::cerr << std::endl;
-  if(errnum) {
-    std::cerr << "Value of errno: " << errno << std::endl;
-    perror("Error printed by perror");
-    std::cerr << "Error string: " << strerror( errnum ) << std::endl;
-  }
-
+void apex_print_backtrace() {
   void *trace[32];
   size_t size, i;
   char **strings;
@@ -72,6 +56,26 @@ static void apex_custom_signal_handler(int sig) {
    system(syscom);
 #endif
   }
+}
+
+static void apex_custom_signal_handler(int sig) {
+
+  int errnum = errno;
+
+  //std::unique_lock<std::mutex> l(output_mutex);
+  fflush(stderr);
+  std::cerr << std::endl;
+  std::cerr << "********* Thread " << apex::thread_instance::get_id() << " " <<
+  strsignal(sig) << " *********";
+  std::cerr << std::endl;
+  std::cerr << std::endl;
+  if(errnum) {
+    std::cerr << "Value of errno: " << errno << std::endl;
+    perror("Error printed by perror");
+    std::cerr << "Error string: " << strerror( errnum ) << std::endl;
+  }
+
+  apex_print_backtrace();
 
   std::cerr << std::endl;
   std::cerr << "***************************************";

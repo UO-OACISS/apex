@@ -471,6 +471,10 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
         instance->pd_reader = new proc_data_reader();
     }
 #endif
+    /* for the next section, we need to check if we are suspended,
+     * and if so, don't be suspended long enough to enable the main timer. */
+    bool suspended = apex_options::suspend();
+    apex_options::suspend(false);
     /* For the main thread, we should always start a top level timer.
      * The reason is that if the program calls "exit", our atexit() processing
      * will stop this timer, effectively stopping all of its children as well,
@@ -494,6 +498,8 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
         start(twp);
         thread_instance::set_top_level_timer(twp);
     }
+    /* restore the suspended bit */
+    apex_options::suspend(suspended);
     if (apex_options::use_verbose() && instance->get_node_id() == 0) {
       std::cout << version() << std::endl;
       apex_options::print_options();

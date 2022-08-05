@@ -59,6 +59,14 @@ if (ZLIB_FOUND)
 SET(ZLIB_SOURCE gzstream.cpp)
 endif(ZLIB_FOUND)
 
+if (APEX_WITH_MPI)
+SET(MPI_SOURCE apex_mpi.cpp)
+endif (APEX_WITH_MPI)
+
+if (MPI_Fortran_FOUND)
+SET(MPIF_SOURCE apex_mpif.F90)
+endif (MPI_Fortran_FOUND)
+
 if (OpenACC_CXX_FOUND AND OpenACCProfiling_FOUND)
     set(OpenACC_SOURCE apex_openacc.cpp)
 endif (OpenACC_CXX_FOUND AND OpenACCProfiling_FOUND)
@@ -77,7 +85,8 @@ ${RSMI_SOURCE}
 apex.cpp
 apex_kokkos.cpp
 apex_kokkos_tuning.cpp
-apex_mpi.cpp
+${MPI_SOURCE}
+${MPIF_SOURCE}
 apex_options.cpp
 event_filter.cpp
 apex_policies.cpp
@@ -135,6 +144,10 @@ endif(APEX_INTEL_MIC)
 if (MPI_CXX_FOUND)
   include_directories (${MPI_CXX_INCLUDE_PATH})
 endif(MPI_CXX_FOUND)
+
+if (MPI_Fortran_FOUND)
+  include_directories (${MPI_Fortran_INCLUDE_PATH})
+endif(MPI_Fortran_FOUND)
 
 if (APEX_WITH_CUDA)
   include_directories (${CUDAToolkit_INCLUDE_DIR})

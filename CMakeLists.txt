@@ -431,6 +431,7 @@ endif(APEX_INTEL_MIC)
 ################################################################################
 
 if(APEX_WITH_MPI)
+  enable_language(Fortran)
   find_package(MPI REQUIRED)
 endif()
 

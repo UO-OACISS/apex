@@ -2094,7 +2094,12 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
 
   void profiler_listener::push_profiler_public(std::shared_ptr<profiler> &p) {
     in_apex prevent_deadlocks;
+#ifdef APEX_SYNCHRONOUS_PROCESSING
+    // make sure we call the synchronous version!
+    push_profiler(0, *(p.get()));
+#else
     push_profiler(0, p);
+#endif
   }
 
 }
