@@ -1091,6 +1091,9 @@ void CUPTIAPI bufferRequested(uint8_t **buffer, size_t *size,
 void CUPTIAPI bufferCompleted(CUcontext ctx, uint32_t streamId,
     uint8_t *buffer, size_t size, size_t validSize)
 {
+    // if APEX is disabled, do nothing.
+    // if APEX is suspended, do nothing.
+    if (apex::apex_options::disable() || apex::apex_options::suspend()) { free(buffer); return; }
     //auto p = apex::scoped_timer("APEX: CUPTI Buffer Completed");
     //printf("%s...", __func__); fflush(stdout);
     static bool registered = register_myself(false);
@@ -1629,6 +1632,7 @@ void handle_nvtx_callback(CUpti_CallbackId id, const void *cbdata) {
     // disable memory management tracking in APEX during this callback
     apex::in_apex prevent_deadlocks;
 
+
     /* Unfortunately, when ranges are started/ended, they can overlap.
      * Unlike push/pop, which are a true stack.  Even worse, CUDA/CUPTI
      * doesn't give us any way to tie the start with the end - the start
@@ -1819,6 +1823,9 @@ bool ignoreMalloc(CUpti_CallbackDomain domain,
 
 void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
         CUpti_CallbackId id, const void *params) {
+    // if APEX is disabled, do nothing.
+    // if APEX is suspended, do nothing.
+    if (apex::apex_options::disable() || apex::apex_options::suspend()) { return; }
     // disable memory management tracking in APEX during this callback
     apex::in_apex prevent_deadlocks;
     static bool initialized = initialize_first_time();
