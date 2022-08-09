@@ -84,6 +84,7 @@ DEFINE_DESTRUCTOR(apex_finalize_static_void)
 #ifdef APEX_HAVE_TCMALLOC
 #include "tcmalloc_hooks.hpp"
 #endif
+#include "banner.hpp"
 
 #if APEX_DEBUG
 #define FUNCTION_ENTER printf("enter %lu *** %s:%d!\n", \
@@ -236,6 +237,13 @@ void apex::_initialize()
     tmp << "-" << GIT_BRANCH ;
 #endif
     tmp << std::endl << "Built on: " << __TIME__ << " " << __DATE__;
+#if CMAKE_BUILD_TYPE == 1
+    tmp << " (Release)";
+#elif CMAKE_BUILD_TYPE == 2
+    tmp << " (RelWithDebInfo)";
+#else
+    tmp << " (Debug)";
+#endif
     tmp << std::endl << "C++ Language Standard version : " << __cplusplus;
 #if defined(__clang__)
     /* Clang/LLVM. ---------------------------------------------- */
@@ -523,6 +531,10 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
     const char * preload = getenv("LD_PRELOAD");
     if (preload != nullptr) {
         unsetenv("LD_PRELOAD");
+    }
+    if (comm_rank == 0) {
+        std::cout << banner << std::endl;
+        std::cout << version() << std::endl;
     }
     FUNCTION_EXIT
     return APEX_NOERROR;
