@@ -16,6 +16,10 @@ SCRIPTPATH="$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 #echo $SCRIPTPATH
 BASEDIR="$(dirname $SCRIPTPATH)"
 BASEDIR=@CMAKE_INSTALL_PREFIX@
+LIBDIR=lib
+if [ ! -d ${BASEDIR}/${LIBDIR} ] ; then
+    LIBDIR=lib64
+fi
 
 usage() {
     message="
@@ -429,26 +433,26 @@ fi
 echo_screen "Program to run : ${PARAMS}"
 
 if [ "x${LD_LIBRARY_PATH}" = "x" ] ; then
-  APEX_LD_LIBRARY_PATH=${BASEDIR}/lib
+  APEX_LD_LIBRARY_PATH=${BASEDIR}/${LIBDIR}
 else
-  APEX_LD_LIBRARY_PATH=${BASEDIR}/lib:${LD_LIBRARY_PATH}
+  APEX_LD_LIBRARY_PATH=${BASEDIR}/${LIBDIR}:${LD_LIBRARY_PATH}
 fi
 if [ $pthread = yes ]; then
-    PTHREAD_LIB=${BASEDIR}/lib/libapex_pthread_wrapper${SHLIBX}:
+    PTHREAD_LIB=${BASEDIR}/${LIBDIR}/libapex_pthread_wrapper${SHLIBX}:
 fi
 if [ $ompt = yes ]; then
     OMPT_LIB=@OMPT_LIBRARY@:
 fi
 if [ $cpu_memory = yes ]; then
-    MEMORY_LIB=${BASEDIR}/lib/libapex_memory_wrapper${SHLIBX}:
-    APEX_LD_AUDIT=${BASEDIR}/lib/libapex_dl_auditor${SHLIBX}
+    MEMORY_LIB=${BASEDIR}/${LIBDIR}/libapex_memory_wrapper${SHLIBX}:
+    APEX_LD_AUDIT=${BASEDIR}/${LIBDIR}/libapex_dl_auditor${SHLIBX}
     echo_screen "MEMORY_LIB: ${MEMORY_LIB}"
     echo_screen "APEX_LD_AUDIT: ${APEX_LD_AUDIT}"
 fi
 if [ ${apple} = 1 ]; then
-    APEX_LD_PRELOAD=${USER_PRELOAD}${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/lib/${APEX_LIBRARY_NAME}${SHLIBX}:${OMPT_LIB}
+    APEX_LD_PRELOAD=${USER_PRELOAD}${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}:${OMPT_LIB}
 else
-    APEX_LD_PRELOAD=${USER_PRELOAD}${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/lib/${APEX_LIBRARY_NAME}${SHLIBX}:${OMPT_LIB}:${LD_PRELOAD}
+    APEX_LD_PRELOAD=${USER_PRELOAD}${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}:${OMPT_LIB}:${LD_PRELOAD}
 fi
 
 # remove spaces and double colons
@@ -506,16 +510,16 @@ else
 fi
 
 if [ ${kokkos} = yes ] ; then
-    export KOKKOS_PROFILE_LIBRARY=${BASEDIR}/lib/${APEX_LIBRARY_NAME}${SHLIBX}
+    export KOKKOS_PROFILE_LIBRARY=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}
 fi
 if [ ${kokkos_tuning} = yes ] ; then
     export APEX_KOKKOS_TUNING=1
 fi
 if [ ${raja} = yes ] ; then
-    export RAJA_PLUGINS=${BASEDIR}/lib/${APEX_LIBRARY_NAME}${SHLIBX}
+    export RAJA_PLUGINS=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}
 fi
 if [ ${openacc} = yes ] ; then
-    export ACC_PROFLIB=${BASEDIR}/lib/${APEX_LIBRARY_NAME}${SHLIBX}
+    export ACC_PROFLIB=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}
 fi
 
 # OK! if the user requests "groups" of counters, split up the groups
