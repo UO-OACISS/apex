@@ -22,10 +22,8 @@
 #include "mpi.h"
 #endif
 
-#define MPI_START_TIMER static auto p = new_task(__func__); start(p);
-#define MPI_STOP_TIMER stop(p);
-
-using namespace apex;
+#define MPI_START_TIMER static auto p = apex::new_task(__func__); apex::start(p);
+#define MPI_STOP_TIMER apex::stop(p);
 
 /* Implementation of the C API */
 
@@ -141,7 +139,7 @@ void  mpi_abort_( MPI_Fint *comm, MPI_Fint *errorcode, MPI_Fint *ierr) {
 #define APEX_MPI_FINALIZE_TEMPLATE(_symbol) \
 void  _symbol( MPI_Fint *ierr ) { \
     *ierr = MPI_Finalize(  ); \
-} 
+}
     APEX_MPI_FINALIZE_TEMPLATE(mpi_finalize)
     APEX_MPI_FINALIZE_TEMPLATE(mpi_finalize_)
     APEX_MPI_FINALIZE_TEMPLATE(mpi_finalize__)
@@ -160,14 +158,14 @@ void  _symbol( MPI_Fint *ierr ) { \
         double bytes = (double)(typesize) * (double)(count);
         std::string name(function);
         name.append(" : Bytes");
-        sample_value(name, bytes);
+        apex::sample_value(name, bytes);
         return bytes;
     }
     inline void getBandwidth(double bytes, std::shared_ptr<apex::task_wrapper> task, const char * function) {
         if ((task != nullptr) && (task->prof != nullptr)) {
             std::string name(function);
             name.append(" : BW (Bytes/second)");
-            sample_value(name, bytes/task->prof->elapsed_seconds());
+            apex::sample_value(name, bytes/task->prof->elapsed_seconds());
         }
     }
     /* There are also a handful of interesting function calls that HPX uses
@@ -602,10 +600,10 @@ void _symbol(MPI_Fint * request, MPI_Fint * status, MPI_Fint * ierr) { \
 
     int MPI_Barrier(MPI_Comm comm) {
         MPI_START_TIMER
-        static auto _p = new_task("MPI Collective Sync");
-	    start(_p);
+        static auto _p = apex::new_task("MPI Collective Sync");
+	    apex::start(_p);
         int retval = PMPI_Barrier(comm);
-	    stop(_p);
+	    apex::stop(_p);
         MPI_STOP_TIMER
         return retval;
     }
