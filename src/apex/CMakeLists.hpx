@@ -255,6 +255,11 @@ endif(HPX_WITH_HPXMP)
 # Setup MPI
 include(APEX_SetupMPI)
 
+if(HPX_WITH_PARCELPORT_MPI)
+  set(apex_mpi_sources apex_mpi.cpp)
+endif(HPX_WITH_PARCELPORT_MPI)
+
+
 # RPATH related stuff
 # APEX is always a shared object library with HPX now.
 # So set up RPATH regardless, especially for OTF, PAPI, AH, etc.
@@ -309,7 +314,7 @@ set(apex_sources
     apex.cpp
     apex_kokkos.cpp
     apex_kokkos_tuning.cpp
-    apex_mpi.cpp
+    ${apex_mpi_sources}
     apex_options.cpp
     apex_policies.cpp
     concurrency_handler.cpp
