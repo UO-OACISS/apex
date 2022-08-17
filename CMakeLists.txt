@@ -681,6 +681,8 @@ if (APEX_WITH_HIP)
     include_directories(${ROCTX_INCLUDE_DIRS})
     message(INFO " Using ROCm SMI include: ${RSMI_INCLUDE_DIRS}")
     include_directories(${RSMI_INCLUDE_DIRS})
+    # Annoyingly, the librocprofiler64.so library doesn't retain an RPATH
+    set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${ROCPROFILER_LIBRARY_DIR})
 
     find_package(ROCTRACER_KFD) # removed in ROCM 4.5.0
     if (ROCTRACER_KFD_FOUND)
