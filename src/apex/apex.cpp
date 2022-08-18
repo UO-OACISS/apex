@@ -545,7 +545,7 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
     }
     if (comm_rank == 0) {
         printf("%s", apex_banner);
-        printf("%s", instance->version_string.c_str());
+        printf("APEX Version: %s\n", instance->version_string.c_str());
     }
     FUNCTION_EXIT
     return APEX_NOERROR;
