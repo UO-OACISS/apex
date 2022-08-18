@@ -80,6 +80,14 @@ thread_instance& thread_instance::instance(bool is_worker) {
 }
 
 thread_instance::~thread_instance(void) {
+    if(apex_options::use_verbose()) {
+        if(_is_worker) {
+            std::cout << "worker ";
+        } else {
+            std::cout << "non-worker ";
+        }
+        std::cout << "thread " << _id << " exiting... " << __APEX_FUNCTION__ << std::endl;
+    }
     if (apex::get_program_over()) { return; }
     if (_top_level_timer != nullptr) {
         stop(_top_level_timer);
@@ -87,6 +95,12 @@ thread_instance::~thread_instance(void) {
     }
     if (_id == 0) {
         finalize();
+    } else {
+#if defined(APEX_HAVE_HPX)
+        if(_is_worker) {
+            finalize();
+        }
+#endif
     }
     common()._active_threads--;
 }
@@ -321,7 +335,7 @@ void thread_instance::clear_current_profiler(profiler * the_profiler,
                 if (instance()._exiting) { return; }
                 std::cerr << "Warning! empty profiler stack!\n";
                 APEX_ASSERT(false);
-                abort();
+                //abort();
                 return;
             }
             // get the new top of the stack

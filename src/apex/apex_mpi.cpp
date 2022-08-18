@@ -22,7 +22,7 @@
 #include "mpi.h"
 #endif
 
-#define MPI_START_TIMER static auto p = apex::new_task(__func__); apex::start(p);
+#define MPI_START_TIMER static auto p = apex::new_task(__APEX_FUNCTION__); apex::start(p);
 #define MPI_STOP_TIMER apex::stop(p);
 
 /* Implementation of the C API */
@@ -173,14 +173,14 @@ void  _symbol( MPI_Fint *ierr ) { \
     int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest,
         int tag, MPI_Comm comm, MPI_Request *request) {
         /* Get the byte count */
-        double bytes = getBytesTransferred(count, datatype, __func__);
+        double bytes = getBytesTransferred(count, datatype, __APEX_FUNCTION__);
         /* start the timer */
         MPI_START_TIMER
         /* sample the bytes */
         int retval = PMPI_Isend(buf, count, datatype, dest, tag, comm, request);
         MPI_STOP_TIMER
         /* record the bandwidth */
-        getBandwidth(bytes, p, __func__);
+        getBandwidth(bytes, p, __APEX_FUNCTION__);
         return retval;
     }
 #define APEX_MPI_ISEND_TEMPLATE(_symbol) \
@@ -200,13 +200,13 @@ void  _symbol( void * buf, MPI_Fint * count, MPI_Fint * datatype, MPI_Fint * des
     int MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
         int source, int tag, MPI_Comm comm, MPI_Request *request) {
         /* Get the byte count */
-        double bytes = getBytesTransferred(count, datatype, __func__);
+        double bytes = getBytesTransferred(count, datatype, __APEX_FUNCTION__);
         MPI_START_TIMER
         int retval = PMPI_Irecv(buf, count, datatype, source, tag, comm,
             request);
         MPI_STOP_TIMER
         /* record the bandwidth */
-        getBandwidth(bytes, p, __func__);
+        getBandwidth(bytes, p, __APEX_FUNCTION__);
         return retval;
     }
 #define APEX_MPI_IRECV_TEMPLATE(_symbol) \
@@ -226,14 +226,14 @@ void  _symbol( void * buf, MPI_Fint * count, MPI_Fint * datatype, MPI_Fint * sou
     int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest,
         int tag, MPI_Comm comm){
         /* Get the byte count */
-        double bytes = getBytesTransferred(count, datatype, __func__);
+        double bytes = getBytesTransferred(count, datatype, __APEX_FUNCTION__);
         /* start the timer */
         MPI_START_TIMER
         /* sample the bytes */
         int retval = PMPI_Send(buf, count, datatype, dest, tag, comm);
         MPI_STOP_TIMER
         /* record the bandwidth */
-        getBandwidth(bytes, p, __func__);
+        getBandwidth(bytes, p, __APEX_FUNCTION__);
         return retval;
     }
 #define APEX_MPI_SEND_TEMPLATE(_symbol) \
@@ -251,12 +251,12 @@ void  _symbol( void * buf, MPI_Fint * count, MPI_Fint * datatype, MPI_Fint * des
     int MPI_Recv(void *buf, int count, MPI_Datatype datatype,
         int source, int tag, MPI_Comm comm, MPI_Status *status){
         /* Get the byte count */
-        double bytes = getBytesTransferred(count, datatype, __func__);
+        double bytes = getBytesTransferred(count, datatype, __APEX_FUNCTION__);
         MPI_START_TIMER
         int retval = PMPI_Recv(buf, count, datatype, source, tag, comm, status);
         MPI_STOP_TIMER
         /* record the bandwidth */
-        getBandwidth(bytes, p, __func__);
+        getBandwidth(bytes, p, __APEX_FUNCTION__);
         return retval;
     }
 #define APEX_MPI_RECV_TEMPLATE(_symbol) \
@@ -286,7 +286,7 @@ void  _symbol( void * buf, MPI_Fint * count, MPI_Fint * datatype, MPI_Fint * sou
     int MPI_Gather(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
         void *recvbuf, int recvcount, MPI_Datatype recvtype, int root, MPI_Comm comm) {
         MPI_START_TIMER
-        apex_measure_mpi_sync(comm, __func__, p);
+        apex_measure_mpi_sync(comm, __APEX_FUNCTION__, p);
         int retval = PMPI_Gather(sendbuf, sendcount, sendtype, recvbuf,
             recvcount, recvtype, root, comm);
         MPI_STOP_TIMER
@@ -312,7 +312,7 @@ void _symbol(void * sendbuf, MPI_Fint *sendcnt, MPI_Fint *sendtype, void * recvb
     int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
                   MPI_Datatype datatype, MPI_Op op, MPI_Comm comm) {
         MPI_START_TIMER
-        apex_measure_mpi_sync(comm, __func__, p);
+        apex_measure_mpi_sync(comm, __APEX_FUNCTION__, p);
         int retval = PMPI_Allreduce(sendbuf, recvbuf, count, datatype, op, comm);
         MPI_STOP_TIMER
         return retval;
@@ -336,7 +336,7 @@ void _symbol(void * sendbuf, void * recvbuf, MPI_Fint *count, MPI_Fint *datatype
     int MPI_Reduce(const void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype,
         MPI_Op op, int root, MPI_Comm comm) {
         MPI_START_TIMER
-        apex_measure_mpi_sync(comm, __func__, p);
+        apex_measure_mpi_sync(comm, __APEX_FUNCTION__, p);
         int retval = PMPI_Reduce(sendbuf, recvbuf, count, datatype, op, root, comm);
         MPI_STOP_TIMER
         return retval;
@@ -361,7 +361,7 @@ void _symbol(void * sendbuf, void * recvbuf, MPI_Fint *count, MPI_Fint *datatype
     int MPI_Bcast( void *buffer, int count, MPI_Datatype datatype, int root,
         MPI_Comm comm ) {
         MPI_START_TIMER
-        apex_measure_mpi_sync(comm, __func__, p);
+        apex_measure_mpi_sync(comm, __APEX_FUNCTION__, p);
         int retval = PMPI_Bcast(buffer, count, datatype, root, comm );
         MPI_STOP_TIMER
         return retval;
@@ -410,7 +410,7 @@ void _symbol(MPI_Fint *count, MPI_Fint * array_of_requests, MPI_Fint *ierr) { \
     int MPI_Alltoall(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
         void *recvbuf, int recvcount, MPI_Datatype recvtype, MPI_Comm comm) {
         MPI_START_TIMER
-        apex_measure_mpi_sync(comm, __func__, p);
+        apex_measure_mpi_sync(comm, __APEX_FUNCTION__, p);
         int retval = PMPI_Alltoall(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm);
         MPI_STOP_TIMER
         return retval;
@@ -435,7 +435,7 @@ MPI_Fint *recvcnt, MPI_Fint *recvtype, MPI_Fint *comm, MPI_Fint *ierr) { \
     int MPI_Allgather(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
         void *recvbuf, int recvcount, MPI_Datatype recvtype, MPI_Comm comm) {
         MPI_START_TIMER
-        apex_measure_mpi_sync(comm, __func__, p);
+        apex_measure_mpi_sync(comm, __APEX_FUNCTION__, p);
         int retval = PMPI_Allgather(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm);
         MPI_STOP_TIMER
         return retval;
@@ -462,7 +462,7 @@ void _symbol(void * sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype, void * rec
         void* buffer_recv, const int* counts_recv, const int* displacements,
         MPI_Datatype datatype_recv, MPI_Comm communicator) {
         MPI_START_TIMER
-        apex_measure_mpi_sync(communicator, __func__, p);
+        apex_measure_mpi_sync(communicator, __APEX_FUNCTION__, p);
         int retval = PMPI_Allgatherv(buffer_send, count_send, datatype_send,
             buffer_recv, counts_recv, displacements, datatype_recv, communicator);
         MPI_STOP_TIMER
@@ -489,7 +489,7 @@ void _symbol(void * sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype, void * rec
         void *recvbuf, const int *recvcounts, const int *displs,
         MPI_Datatype recvtype, int root, MPI_Comm comm) {
         MPI_START_TIMER
-        apex_measure_mpi_sync(comm, __func__, p);
+        apex_measure_mpi_sync(comm, __APEX_FUNCTION__, p);
         int retval = PMPI_Gatherv(sendbuf, sendcount, sendtype, recvbuf, recvcounts, displs, recvtype, root, comm);
         MPI_STOP_TIMER
         return retval;
@@ -515,7 +515,7 @@ void _symbol(void * sendbuf, MPI_Fint *sendcnt, MPI_Fint *sendtype, void * recvb
         int dest, int sendtag, void *recvbuf, int recvcount, MPI_Datatype recvtype,
         int source, int recvtag, MPI_Comm comm, MPI_Status * status) {
         MPI_START_TIMER
-        apex_measure_mpi_sync(comm, __func__, p);
+        apex_measure_mpi_sync(comm, __APEX_FUNCTION__, p);
         int retval = PMPI_Sendrecv(sendbuf, sendcount, sendtype, dest, sendtag, recvbuf, recvcount, recvtype,
                  source, recvtag, comm, status);
         MPI_STOP_TIMER

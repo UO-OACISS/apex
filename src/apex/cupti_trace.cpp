@@ -1095,7 +1095,7 @@ void CUPTIAPI bufferCompleted(CUcontext ctx, uint32_t streamId,
     // if APEX is suspended, do nothing.
     if (apex::apex_options::disable() || apex::apex_options::suspend()) { free(buffer); return; }
     //auto p = apex::scoped_timer("APEX: CUPTI Buffer Completed");
-    //printf("%s...", __func__); fflush(stdout);
+    //printf("%s...", __APEX_FUNCTION__); fflush(stdout);
     static bool registered = register_myself(false);
     // when tracking memory allocations, ignore these
     apex::in_apex prevent_nonsense;

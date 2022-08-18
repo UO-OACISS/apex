@@ -372,5 +372,11 @@ inline unsigned int sc_nprocessors_onln()
 // in particular empty virtual implementations.
 #define APEX_UNUSED(expr) do { (void)(expr); } while (0)
 
+#if defined(__GNUC__)
+#define __APEX_FUNCTION__ __PRETTY_FUNCTION__
+#else
+#define __APEX_FUNCTION__ __func__
+#endif
+
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 

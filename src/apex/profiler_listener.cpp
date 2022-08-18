@@ -1301,7 +1301,7 @@ std::unordered_set<profile*> free_profiles;
       tau_listener::Tau_start_wrapper("profiler_listener::process_profiles");
     }
     /*
-    static auto prof = new_task(__func__);
+    static auto prof = new_task(__APEX_FUNCTION__);
     start(prof);
     */
 

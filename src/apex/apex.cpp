@@ -88,9 +88,9 @@ DEFINE_DESTRUCTOR(apex_finalize_static_void)
 
 #if APEX_DEBUG
 #define FUNCTION_ENTER printf("enter %lu *** %s:%d!\n", \
-thread_instance::get_id(), __func__, __LINE__); fflush(stdout);
+thread_instance::get_id(), __APEX_FUNCTION__, __LINE__); fflush(stdout);
 #define FUNCTION_EXIT  printf("exit  %lu *** %s:%d!\n", \
-thread_instance::get_id(), __func__, __LINE__); fflush(stdout);
+thread_instance::get_id(), __APEX_FUNCTION__, __LINE__); fflush(stdout);
 #else
 #define FUNCTION_ENTER
 #define FUNCTION_EXIT
@@ -236,7 +236,7 @@ void apex::_initialize()
 #if defined (GIT_BRANCH)
     tmp << "-" << GIT_BRANCH ;
 #endif
-    tmp << std::endl << "Built on: " << __TIME__ << " " << __DATE__;
+    tmp << "\nBuilt on: " << __TIME__ << " " << __DATE__;
 #if CMAKE_BUILD_TYPE == 1
     tmp << " (Release)";
 #elif CMAKE_BUILD_TYPE == 2
@@ -244,34 +244,34 @@ void apex::_initialize()
 #else
     tmp << " (Debug)";
 #endif
-    tmp << std::endl << "C++ Language Standard version : " << __cplusplus;
+    tmp << "\nC++ Language Standard version : " << __cplusplus;
 #if defined(__clang__)
     /* Clang/LLVM. ---------------------------------------------- */
-    tmp << std::endl << "Clang Compiler version : " << __VERSION__;
+    tmp << "\nClang Compiler version : " << __VERSION__;
 #elif defined(__ICC) || defined(__INTEL_COMPILER)
     /* Intel ICC/ICPC. ------------------------------------------ */
-    tmp << std::endl << "Intel Compiler version : " << __VERSION__;
+    tmp << "\nIntel Compiler version : " << __VERSION__;
 #elif defined(__GNUC__) || defined(__GNUG__)
     /* GNU GCC/G++. --------------------------------------------- */
-    tmp << std::endl << "GCC Compiler version : " << __VERSION__;
+    tmp << "\nGCC Compiler version : " << __VERSION__;
 #elif defined(__HP_cc) || defined(__HP_aCC)
     /* Hewlett-Packard C/aC++. ---------------------------------- */
-    tmp << std::endl << "HP Compiler version : " << __HP_aCC;
+    tmp << "\nHP Compiler version : " << __HP_aCC;
 #elif defined(__IBMC__) || defined(__IBMCPP__)
     /* IBM XL C/C++. -------------------------------------------- */
-    tmp << std::endl << "IBM Compiler version : " << __xlC__;
+    tmp << "\nIBM Compiler version : " << __xlC__;
 #elif defined(_MSC_VER)
     /* Microsoft Visual Studio. --------------------------------- */
-    tmp << std::endl << "Microsoft Compiler version : " << _MSC_FULL_VER;
+    tmp << "\nMicrosoft Compiler version : " << _MSC_FULL_VER;
 #elif defined(__PGI)
     /* Portland Group PGCC/PGCPP. ------------------------------- */
-    tmp << std::endl << "PGI Compiler version : " << __VERSION__;
+    tmp << "\nPGI Compiler version : " << __VERSION__;
 #elif defined(__SUNPRO_CC)
     /* Oracle Solaris Studio. ----------------------------------- */
-    tmp << std::endl << "Oracle Compiler version : " << __SUNPRO_CC;
+    tmp << "\nOracle Compiler version : " << __SUNPRO_CC;
 #endif
 
-    this->version_string = std::string(tmp.str().c_str());
+    this->version_string = std::string(tmp.str());
 #ifdef APEX_HAVE_HPX
     this->m_hpx_runtime = nullptr;
     hpx::register_startup_function(init_hpx_runtime_ptr);
@@ -400,6 +400,11 @@ void init_cupti_tracing(void);
 void init_hip_tracing(void);
 #endif
 
+void do_atexit(void) {
+    finalize();
+    cleanup();
+}
+
 uint64_t init(const char * thread_name, uint64_t comm_rank,
     uint64_t comm_size) {
     FUNCTION_ENTER
@@ -428,7 +433,7 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
         }
     }
     /* register the finalization function, for program exit */
-    std::atexit(cleanup);
+    std::atexit(do_atexit);
     //thread_instance::set_worker(true);
     _registered = true;
     apex* instance = apex::instance(); // get/create the Apex static instance
@@ -539,8 +544,8 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
         unsetenv("LD_PRELOAD");
     }
     if (comm_rank == 0) {
-        std::cout << banner << std::endl;
-        std::cout << version() << std::endl;
+        printf("%s", apex_banner);
+        printf("%s", instance->version_string.c_str());
     }
     FUNCTION_EXIT
     return APEX_NOERROR;

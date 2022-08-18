@@ -30,9 +30,9 @@ const char * banner_bloody = R"( ▄▄▄       ██▓███  ▓██�
 )";
 
 #if CMAKE_BUILD_TYPE == 1
-#define banner banner_fire
+#define apex_banner banner_fire
 #elif CMAKE_BUILD_TYPE == 2
-#define banner banner_doom
+#define apex_banner banner_doom
 #else // == 3
-#define banner banner_bloody
+#define apex_banner banner_bloody
 #endif
