@@ -1693,7 +1693,8 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
           std::cerr << "done." << std::endl;
         }
       }
-      if (apex_options::use_screen_output()) {
+      if (apex_options::use_screen_output() ||
+          apex_options::use_csv_output()) {
         // reduce/gather all profiles from all ranks
         auto reduced = reduce_profiles();
         if (node_id == 0) {
