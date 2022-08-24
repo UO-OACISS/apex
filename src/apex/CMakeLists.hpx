@@ -255,9 +255,9 @@ endif(HPX_WITH_HPXMP)
 # Setup MPI
 include(APEX_SetupMPI)
 
-if(HPX_WITH_PARCELPORT_MPI)
-  set(apex_mpi_sources apex_mpi.cpp)
-endif(HPX_WITH_PARCELPORT_MPI)
+#if(HPX_WITH_PARCELPORT_MPI)
+  #set(apex_mpi_sources apex_mpi.cpp)
+#endif(HPX_WITH_PARCELPORT_MPI)
 
 
 # RPATH related stuff
