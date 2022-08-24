@@ -130,9 +130,9 @@ void  mpi_abort_( MPI_Fint *comm, MPI_Fint *errorcode, MPI_Fint *ierr) {
  * implementation of Finalize, and do what we need to. */
 #if defined(APEX_HAVE_MPI) && !defined(HPX_HAVE_NETWORKING)
     int MPI_Finalize(void) {
-        finalize();
+        apex::finalize();
         int retval = PMPI_Finalize();
-        cleanup();
+        apex::cleanup();
         return retval;
     }
     /* Define Fortran versions */
