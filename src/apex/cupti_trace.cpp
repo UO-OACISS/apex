@@ -1876,6 +1876,12 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
            std::string tmp(cbdata->functionName);
            */
         auto timer = apex::new_task(tmp);
+	if (timer == nullptr) {
+            /* This happens when we've hit finalize but there are still some
+	     * CUDA calls that come in. Ignore it.
+	     */
+            return;
+	}
         apex::start(timer);
         timer_stack.push(timer);
         apex::async_event_data as_data(timer->prof->get_start_us(),

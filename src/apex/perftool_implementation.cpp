@@ -24,7 +24,8 @@ extern "C" {
         apex_register_thread("PerfStubs Thread");
     }
     void ps_tool_finalize(void) {
-        apex_finalize();
+        /* Debatable whether we want to do this finalize */
+        //apex_finalize();
         apex_exit_thread();
     }
     void ps_tool_dump_data(void) {

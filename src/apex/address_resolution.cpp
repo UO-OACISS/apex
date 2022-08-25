@@ -28,7 +28,7 @@ namespace apex {
   shared_mutex_type address_resolution::_bfd_mutex;
 
   /* Map a function address to a name and/or source location */
-  string * lookup_address(uintptr_t ip, bool withFileInfo) {
+  string * lookup_address(uintptr_t ip, bool withFileInfo, bool forceSourceInfo) {
     address_resolution * ar = address_resolution::instance();
     stringstream location;
     address_resolution::my_hash_node * node = nullptr;
@@ -83,7 +83,7 @@ namespace apex {
           std::string demangled = demangle(mangled);
           location << demangled ;
         }
-        if (apex_options::use_source_location()) {
+        if (apex_options::use_source_location() || forceSourceInfo) {
             location << " [{" ;
             if (node->info.filename) {
             location << node->info.filename ;

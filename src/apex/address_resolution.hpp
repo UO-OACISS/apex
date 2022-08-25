@@ -80,7 +80,7 @@ namespace apex {
       apex_bfd_handle_t my_bfd_unit_handle;
   };
 
-  std::string * lookup_address(uintptr_t ip, bool withFileInfo);
+  std::string * lookup_address(uintptr_t ip, bool withFileInfo, bool forceSourceInfo = false);
 
 }
 
