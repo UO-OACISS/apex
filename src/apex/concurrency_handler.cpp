@@ -257,7 +257,7 @@ bool path_has_suffix(const std::string &str)
 
 void concurrency_handler::output_samples(int node_id) {
   //cout << "HANDLER: writing samples " << endl;
-  cout << _states.size() << " samples seen:" << endl;
+  //cout << _states.size() << " samples seen:" << endl;
   ofstream myfile;
   stringstream datname;
   datname << apex_options::output_file_path();

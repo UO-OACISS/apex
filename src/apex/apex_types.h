@@ -199,10 +199,10 @@ typedef struct _profile
     double maximum;         /*!< Maximum value seen by the timer or counter */
     apex_profile_type type; /*!< Whether this is a timer or a counter */
     double papi_metrics[8]; /*!< Array of accumulated PAPI hardware metrics */
-    size_t allocations;     /*!< total calls to [m/c/re]alloc and related */
-    size_t frees;           /*!< total calls to free and related (realloc) */
-    size_t bytes_allocated; /*!< total bytes allocated in this task */
-    size_t bytes_freed;     /*!< total bytes freed in this task */
+    double allocations;     /*!< total calls to [m/c/re]alloc and related */
+    double frees;           /*!< total calls to free and related (realloc) */
+    double bytes_allocated; /*!< total bytes allocated in this task */
+    double bytes_freed;     /*!< total bytes freed in this task */
     int times_reset;        /*!< How many times was this timer reset */
     size_t num_threads;     /*!< How many threads have seen this timer? */
 } apex_profile;
@@ -264,102 +264,104 @@ inline unsigned int sc_nprocessors_onln()
  *  - The initial/default value
  */
 #define FOREACH_APEX_OPTION(macro) \
-    macro (APEX_DISABLE, disable, bool, false) \
-    macro (APEX_SUSPEND, suspend, bool, false) \
-    macro (APEX_PAPI_SUSPEND, papi_suspend, bool, false) \
-    macro (APEX_PROCESS_ASYNC_STATE, process_async_state, bool, true) \
-    macro (APEX_UNTIED_TIMERS, untied_timers, bool, false) \
-    macro (APEX_TAU, use_tau, bool, false) \
-    macro (APEX_OTF2, use_otf2, bool, false) \
-    macro (APEX_OTF2_COLLECTIVE_SIZE, otf2_collective_size, int, 1) \
-    macro (APEX_TRACE_EVENT, use_trace_event, bool, false) \
-    macro (APEX_POLICY, use_policy, bool, true) \
-    macro (APEX_MEASURE_CONCURRENCY, use_concurrency, int, 0) \
-    macro (APEX_MEASURE_CONCURRENCY_PERIOD, concurrency_period, int, 1000000) \
-    macro (APEX_SCREEN_OUTPUT, use_screen_output, bool, false) \
-    macro (APEX_VERBOSE, use_verbose, bool, false) \
-    macro (APEX_PROFILE_OUTPUT, use_profile_output, int, false) \
-    macro (APEX_CSV_OUTPUT, use_csv_output, int, false) \
-    macro (APEX_TASKGRAPH_OUTPUT, use_taskgraph_output, bool, false) \
-    macro (APEX_TASKTREE_OUTPUT, use_tasktree_output, bool, false) \
-    macro (APEX_SOURCE_LOCATION, use_source_location, bool, false) \
-    macro (APEX_PROC_CPUINFO, use_proc_cpuinfo, bool, false) \
-    macro (APEX_PROC_LOADAVG, use_proc_loadavg, bool, true) \
-    macro (APEX_PROC_MEMINFO, use_proc_meminfo, bool, false) \
-    macro (APEX_PROC_NET_DEV, use_proc_net_dev, bool, false) \
-    macro (APEX_PROC_SELF_STATUS, use_proc_self_status, bool, true) \
-    macro (APEX_PROC_SELF_IO, use_proc_self_io, bool, false) \
-    macro (APEX_PROC_STAT, use_proc_stat, bool, true) \
-    macro (APEX_LM_SENSORS, use_lm_sensors, bool, false) \
-    macro (APEX_PROC_STAT_DETAILS, use_proc_stat_details, bool, false) \
-    macro (APEX_PROC_PERIOD, proc_period, int, 1000000) \
+    macro (APEX_DISABLE, disable, bool, false, "Disable APEX during the application execution") \
+    macro (APEX_SUSPEND, suspend, bool, false, "Suspend APEX timers and counters during the application execution") \
+    macro (APEX_PAPI_SUSPEND, papi_suspend, bool, false, "Suspend PAPI counters during the application execution") \
+    macro (APEX_PROCESS_ASYNC_STATE, process_async_state, bool, true, "Enable/disable asynchronous processing of statistics (useful when only collecting trace data)") \
+    macro (APEX_UNTIED_TIMERS, untied_timers, bool, false, "Disable callstack state maintenance for specific OS threads. This allows APEX timers to start on one thread and stop on another. This is not compatible with tracing.") \
+    macro (APEX_TAU, use_tau, bool, false, "Enable TAU profiling (if application is executed with tau_exec).") \
+    macro (APEX_OTF2, use_otf2, bool, false, "Enable OTF2 trace output.") \
+    macro (APEX_OTF2_COLLECTIVE_SIZE, otf2_collective_size, int, 1, "") \
+    macro (APEX_TRACE_EVENT, use_trace_event, bool, false, "Enable Google Trace Event output.") \
+    macro (APEX_POLICY, use_policy, bool, true, "Enable APEX policy listener and execute registered policies.") \
+    macro (APEX_MEASURE_CONCURRENCY, use_concurrency, int, 0, "Periodically sample thread activity and output report at exit.") \
+    macro (APEX_MEASURE_CONCURRENCY_PERIOD, concurrency_period, int, 1000000, "Thread concurrency sampling period, in microseconds.") \
+    macro (APEX_SCREEN_OUTPUT, use_screen_output, bool, false, "Output APEX performance summary at exit.") \
+    macro (APEX_VERBOSE, use_verbose, bool, false, "Output APEX options at entry.") \
+    macro (APEX_PROFILE_OUTPUT, use_profile_output, int, false, "Output TAU profile of performance summary (profile.* files).") \
+    macro (APEX_CSV_OUTPUT, use_csv_output, int, false, "Output CSV profile of performance summary.") \
+    macro (APEX_TASKGRAPH_OUTPUT, use_taskgraph_output, bool, false, "Output graphviz reduced taskgraph.") \
+    macro (APEX_TASKTREE_OUTPUT, use_tasktree_output, bool, false, "Output graphviz/text/json task tree (no cycles, unique callpaths).") \
+    macro (APEX_SOURCE_LOCATION, use_source_location, bool, false, "When resolving instruction addresses with binutils, include filename and line number.") \
+    macro (APEX_PROC_CPUINFO, use_proc_cpuinfo, bool, false, "Periodically sample data from /proc/cpuinfo.") \
+    macro (APEX_PROC_LOADAVG, use_proc_loadavg, bool, true, "Periodically sample data from /proc/loadavg.") \
+    macro (APEX_PROC_MEMINFO, use_proc_meminfo, bool, false, "Periodically sample data from /proc/meminfo.") \
+    macro (APEX_PROC_NET_DEV, use_proc_net_dev, bool, false, "Periodically sample data from /proc/net/dev.") \
+    macro (APEX_PROC_SELF_STATUS, use_proc_self_status, bool, true, "Periodically sample data from /proc/self/status.") \
+    macro (APEX_PROC_SELF_IO, use_proc_self_io, bool, false, "Periodically sample data from /proc/self/io.") \
+    macro (APEX_PROC_STAT, use_proc_stat, bool, true, "Periodically sample data from /proc/stat.") \
+    macro (APEX_LM_SENSORS, use_lm_sensors, bool, false, "Periodically sample data from lm-sensors (requires CMake configuration option).") \
+    macro (APEX_PROC_STAT_DETAILS, use_proc_stat_details, bool, false, "Periodically read detailed data from /proc/self/stat.") \
+    macro (APEX_PROC_PERIOD, proc_period, int, 1000000, "/proc/* sampling period.") \
     macro (APEX_THROTTLE_CONCURRENCY, throttle_concurrency, \
-        bool, false) \
+        bool, false, "Enable thread concurrency throttling.") \
     macro (APEX_THROTTLING_MAX_THREADS, throttling_max_threads, \
-        int, sc_nprocessors_onln()) \
+        int, sc_nprocessors_onln(), "Maximum threads allowed.") \
     macro (APEX_THROTTLING_MIN_THREADS, throttling_min_threads, \
-        int, 1) \
-    macro (APEX_THROTTLE_ENERGY, throttle_energy, bool, false) \
+        int, 1, "Minimum threads allowed.") \
+    macro (APEX_THROTTLE_ENERGY, throttle_energy, bool, false, "Enable energy throttling.") \
     macro (APEX_THROTTLE_ENERGY_PERIOD, throttle_energy_period, \
-        int, 1000000) \
-    macro (APEX_THROTTLING_MAX_WATTS, throttling_max_watts, int, 300) \
-    macro (APEX_THROTTLING_MIN_WATTS, throttling_min_watts, int, 150) \
+        int, 1000000, "Power sampling period, in microseconds.") \
+    macro (APEX_THROTTLING_MAX_WATTS, throttling_max_watts, int, 300, "Maximum Watt threshold.") \
+    macro (APEX_THROTTLING_MIN_WATTS, throttling_min_watts, int, 150, "Minimum Watt threshold.") \
     macro (APEX_PTHREAD_WRAPPER_STACK_SIZE, pthread_wrapper_stack_size, \
-        int, 0) \
-    macro (APEX_ENABLE_OMPT, use_ompt, bool, false) \
+        int, 0, "When wrapping pthread_create, use this size for the stack (0 = use default).") \
+    macro (APEX_ENABLE_OMPT, use_ompt, bool, false, "Enable OpenMP Tools support.") \
     macro (APEX_OMPT_REQUIRED_EVENTS_ONLY, ompt_required_events_only, \
-        bool, false) \
+        bool, false, "Disable moderate-frequency, moderate-overhead OMPT events.") \
     macro (APEX_OMPT_HIGH_OVERHEAD_EVENTS, ompt_high_overhead_events, \
-        bool, false) \
-    macro (APEX_PIN_APEX_THREADS, pin_apex_threads, bool, true) \
-    macro (APEX_TRACK_MEMORY, track_memory, bool, false) \
-    macro (APEX_TASK_SCATTERPLOT, task_scatterplot, bool, false) \
-    macro (APEX_TIME_TOP_LEVEL_OS_THREADS, top_level_os_threads, bool, false) \
-    macro (APEX_POLICY_DRAIN_TIMEOUT, policy_drain_timeout, int, 1000) \
-    macro (APEX_ENABLE_CUDA, use_cuda, int, false) \
-    macro (APEX_CUDA_COUNTERS, use_cuda_counters, int, false) \
-    macro (APEX_CUDA_KERNEL_DETAILS, use_cuda_kernel_details, int, false) \
-    macro (APEX_CUDA_RUNTIME_API, use_cuda_runtime_api, bool, true) \
-    macro (APEX_CUDA_DRIVER_API, use_cuda_driver_api, bool, false) \
-    macro (APEX_CUDA_SYNC_ACTIVITY, use_cuda_sync_activity, bool, true) \
-    macro (APEX_CUDA_MEMORY_ACTIVITY, use_cuda_memory_activity, bool, true) \
-    macro (APEX_CUDA_KERNEL_ACTIVITY, use_cuda_kernel_activity, bool, true) \
-    macro (APEX_ENABLE_HIP, use_hip, int, false) \
-    macro (APEX_HIP_COUNTERS, use_hip_counters, int, false) \
-    macro (APEX_HIP_KERNEL_DETAILS, use_hip_kernel_details, int, false) \
-    macro (APEX_HIP_RUNTIME_API, use_hip_runtime_api, bool, true) \
-    macro (APEX_HIP_KFD_API, use_hip_kfd_api, bool, false) \
-    macro (APEX_HIP_SYNC_ACTIVITY, use_hip_sync_activity, bool, true) \
-    macro (APEX_HIP_MEMORY_ACTIVITY, use_hip_memory_activity, bool, true) \
-    macro (APEX_HIP_KERNEL_ACTIVITY, use_hip_kernel_activity, bool, true) \
-    macro (APEX_HIP_PROFILER, use_hip_profiler, bool, false) \
-    macro (APEX_MONITOR_GPU, monitor_gpu, bool, false) \
-    macro (APEX_JUPYTER_SUPPORT, use_jupyter_support, int, false) \
-    macro (APEX_KOKKOS_VERBOSE, use_kokkos_verbose, bool, false) \
-    macro (APEX_KOKKOS_COUNTERS, use_kokkos_counters, bool, false) \
-    macro (APEX_KOKKOS_TUNING, use_kokkos_tuning, bool, true) \
-    macro (APEX_KOKKOS_PROFILING_FENCES, use_kokkos_profiling_fences, bool, false) \
-    macro (APEX_START_DELAY_SECONDS, start_delay_seconds, int, 0) \
-    macro (APEX_MAX_DURATION_SECONDS, max_duration_seconds, int, 0) \
-    macro (APEX_USE_SHORT_TASK_NAMES, use_short_task_names, bool, false) \
+        bool, false, "Disable high-frequency, high-overhead OMPT events.") \
+    macro (APEX_PIN_APEX_THREADS, pin_apex_threads, bool, true, "Pin APEX asynchronous threads to the last core/PU on the system.") \
+    macro (APEX_TRACK_CPU_MEMORY, track_cpu_memory, bool, false, "Track all malloc/free/new/delete calls to CPU memory and report leaks.") \
+    macro (APEX_TRACK_GPU_MEMORY, track_gpu_memory, bool, false, "Track all malloc/free/new/delete calls to GPU memory and report leaks.") \
+    macro (APEX_TASK_SCATTERPLOT, task_scatterplot, bool, false, "Periodically sample APEX tasks, generating a scatterplot of time distributions.") \
+    macro (APEX_TIME_TOP_LEVEL_OS_THREADS, top_level_os_threads, bool, false, "When registering threads, measure their lifetimes.") \
+    macro (APEX_POLICY_DRAIN_TIMEOUT, policy_drain_timeout, int, 1000, "Internal usage only.") \
+    macro (APEX_ENABLE_CUDA, use_cuda, int, false, "Enable CUDA measurement with CUPTI support.") \
+    macro (APEX_CUDA_COUNTERS, use_cuda_counters, int, false, "Enable CUDA CUPTI counter measurement.") \
+    macro (APEX_CUDA_KERNEL_DETAILS, use_cuda_kernel_details, int, false, "Enable Context information for CUDA CUPTI counter measurement and CUDA CUPTI API callback timers.") \
+    macro (APEX_CUDA_RUNTIME_API, use_cuda_runtime_api, bool, true, "Enable callbacks for the CUDA Runtime API (cuda*() functions).") \
+    macro (APEX_CUDA_DRIVER_API, use_cuda_driver_api, bool, false, "Enable callbacks for the CUDA Driver API (cu*() functions).") \
+    macro (APEX_CUDA_SYNC_ACTIVITY, use_cuda_sync_activity, bool, true, "Enable support for tracking CUDA synchronization events on the GPU.") \
+    macro (APEX_CUDA_MEMORY_ACTIVITY, use_cuda_memory_activity, bool, true, "") \
+    macro (APEX_CUDA_KERNEL_ACTIVITY, use_cuda_kernel_activity, bool, true, "") \
+    macro (APEX_ENABLE_HIP, use_hip, int, false, "Enable HIP/ROCm measurement with Roctracer/Rocprofiler support.") \
+    macro (APEX_HIP_COUNTERS, use_hip_counters, int, false, "Enable HIP counter measurement.") \
+    macro (APEX_HIP_KERNEL_DETAILS, use_hip_kernel_details, int, false, "Enable context information for HIP/ROCm counter measurement and HIP API callback timers.") \
+    macro (APEX_HIP_RUNTIME_API, use_hip_runtime_api, bool, true, "Enable callbacks for the HIP Runtime API (hip*() functions).") \
+    macro (APEX_HIP_KFD_API, use_hip_kfd_api, bool, false, "Enable callbacks for the HIP KFD API.") \
+    macro (APEX_HIP_SYNC_ACTIVITY, use_hip_sync_activity, bool, true, "Enable support for tracking HIP synchronization events on the GPU.") \
+    macro (APEX_HIP_MEMORY_ACTIVITY, use_hip_memory_activity, bool, true, "") \
+    macro (APEX_HIP_KERNEL_ACTIVITY, use_hip_kernel_activity, bool, true, "") \
+    macro (APEX_HIP_PROFILER, use_hip_profiler, bool, false, "Enable Rocprofiler support to periodically measure ROCm counters (see /opt/rocm/rocprofiler/lib/metrics.xml).") \
+    macro (APEX_MONITOR_GPU, monitor_gpu, bool, false, "Periodically monitor the GPU using vendor-provided SMI support.") \
+    macro (APEX_JUPYTER_SUPPORT, use_jupyter_support, int, false, "Internal use only.") \
+    macro (APEX_KOKKOS_VERBOSE, use_kokkos_verbose, bool, false, "Enable verbose Kokkos autotuning and profiling messages.") \
+    macro (APEX_KOKKOS_COUNTERS, use_kokkos_counters, bool, false, "Enable Kokkos counters.") \
+    macro (APEX_KOKKOS_TUNING, use_kokkos_tuning, bool, true, "Enable Kokkos autotuning.") \
+    macro (APEX_KOKKOS_PROFILING_FENCES, use_kokkos_profiling_fences, bool, false, "Force Kokkos to fence after all Kokkos kernel launches (recommended, but not required).") \
+    macro (APEX_START_DELAY_SECONDS, start_delay_seconds, int, 0, "Delay collection of APEX data for N seconds.") \
+    macro (APEX_MAX_DURATION_SECONDS, max_duration_seconds, int, 0, "Collect APEX data for only N seconds.") \
+    macro (APEX_USE_SHORT_TASK_NAMES, use_short_task_names, bool, false, "") \
 
 #define FOREACH_APEX_FLOAT_OPTION(macro) \
-    macro (APEX_SCATTERPLOT_FRACTION, scatterplot_fraction, double, 0.01) \
+    macro (APEX_SCATTERPLOT_FRACTION, scatterplot_fraction, double, 0.01, "Fraction of kernel executions to include on scatterplot.") \
 
 #define FOREACH_APEX_STRING_OPTION(macro) \
-    macro (APEX_PAPI_METRICS, papi_metrics, char*, "") \
-    macro (APEX_PAPI_COMPONENTS, papi_components, char*, "") \
-    macro (APEX_PAPI_COMPONENT_METRICS, papi_component_metrics, char*, "") \
-    macro (APEX_PLUGINS, plugins, char*, "") \
-    macro (APEX_PLUGINS_PATH, plugins_path, char*, "./") \
-    macro (APEX_OUTPUT_FILE_PATH, output_file_path, char*, "./") \
+    macro (APEX_PAPI_METRICS, papi_metrics, char*, "", "PAPI metrics requested, separated by spaces.") \
+    macro (APEX_PAPI_COMPONENTS, papi_components, char*, "", "For periodic monitoring, which PAPI components to include.") \
+    macro (APEX_PAPI_COMPONENT_METRICS, papi_component_metrics, char*, "", "For periodic monitoring, which PAPI metrics to include.") \
+    macro (APEX_PLUGINS, plugins, char*, "", "Enable APEX plugins.") \
+    macro (APEX_PLUGINS_PATH, plugins_path, char*, "./", "Path to plugin library.") \
+    macro (APEX_OUTPUT_FILE_PATH, output_file_path, char*, "./", "Path to where APEX output data should be written.") \
     macro (APEX_OTF2_ARCHIVE_PATH, otf2_archive_path, char*, \
-        APEX_DEFAULT_OTF2_ARCHIVE_PATH) \
+        APEX_DEFAULT_OTF2_ARCHIVE_PATH, "OTF2 trace directory.") \
     macro (APEX_OTF2_ARCHIVE_NAME, otf2_archive_name, char*, \
-        APEX_DEFAULT_OTF2_ARCHIVE_NAME) \
-    macro (APEX_EVENT_FILTER_FILE, task_event_filter_file, char*, "") \
-    macro (APEX_KOKKOS_TUNING_CACHE, kokkos_tuning_cache, char*, "") \
-    macro (APEX_ROCPROF_METRICS, rocprof_metrics, char*, "MemUnitBusy,MemUnitStalled,VALUUtilization,VALUBusy,SALUBusy,L2CacheHit,WriteUnitStalled,ALUStalledByLDS,LDSBankConflict")
+        APEX_DEFAULT_OTF2_ARCHIVE_NAME, "OTF2 trace filename.") \
+    macro (APEX_EVENT_FILTER_FILE, task_event_filter_file, char*, "", "File containing names of timers to include/exclude during data collection.") \
+    macro (APEX_KOKKOS_TUNING_CACHE, kokkos_tuning_cache, char*, "", "Filename contining Kokkos autotuned results, tuned offline.") \
+    macro (APEX_ROCPROF_METRICS, rocprof_metrics, char*, "", "List of metrics to periodically sample with the Rocprofiler library (see /opt/rocm/rocprofiler/lib/metrics.xml).")
+    // macro (APEX_ROCPROF_METRICS, rocprof_metrics, char*, "MemUnitBusy,MemUnitStalled,VALUUtilization,VALUBusy,SALUBusy,L2CacheHit,WriteUnitStalled,ALUStalledByLDS,LDSBankConflict", "")
 
 #if defined(_WIN32) || defined(_WIN64)
 #  define APEX_NATIVE_TLS __declspec(thread)
@@ -370,6 +372,12 @@ inline unsigned int sc_nprocessors_onln()
 // This macro is to prevent compiler warnings for stub implementations,
 // in particular empty virtual implementations.
 #define APEX_UNUSED(expr) do { (void)(expr); } while (0)
+
+#if defined(__GNUC__)
+#define __APEX_FUNCTION__ __PRETTY_FUNCTION__
+#else
+#define __APEX_FUNCTION__ __func__
+#endif
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 

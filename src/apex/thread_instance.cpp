@@ -32,13 +32,7 @@
 #  include <sys/sysctl.h>
 #endif
 
-#ifdef APEX_HAVE_BFD
 #include "address_resolution.hpp"
-#endif
-// another method, just for the special Apple folks.
-#if defined(__APPLE__)
-#include <dlfcn.h>
-#endif
 
 using namespace std;
 
@@ -86,6 +80,14 @@ thread_instance& thread_instance::instance(bool is_worker) {
 }
 
 thread_instance::~thread_instance(void) {
+    if(apex_options::use_verbose()) {
+        if(_is_worker) {
+            std::cout << "worker ";
+        } else {
+            std::cout << "non-worker ";
+        }
+        std::cout << "thread " << _id << " exiting... " << __APEX_FUNCTION__ << std::endl;
+    }
     if (apex::get_program_over()) { return; }
     if (_top_level_timer != nullptr) {
         stop(_top_level_timer);
@@ -93,6 +95,12 @@ thread_instance::~thread_instance(void) {
     }
     if (_id == 0) {
         finalize();
+    } else {
+#if defined(APEX_HAVE_HPX)
+        if(_is_worker) {
+            finalize();
+        }
+#endif
     }
     common()._active_threads--;
 }
@@ -226,7 +234,6 @@ string thread_instance::map_addr_to_name(apex_function_address function_address)
           return (*it).second;
         } // else...
     }
-#ifdef APEX_HAVE_BFD
     // resolve the address
     string * name = lookup_address(function_address, false);
     {
@@ -236,36 +243,6 @@ string thread_instance::map_addr_to_name(apex_function_address function_address)
     }
     read_lock_type l(common()._function_map_mutex);
     return _function_map[function_address];
-#else
-#if defined(__APPLE__)
-    // resolve the address
-    Dl_info info;
-    int rc = dladdr((const void *)function_address, &info);
-    if (rc != 0) {
-        string name(info.dli_sname);
-        {
-            write_lock_type l(common()._function_map_mutex);
-            _function_map[function_address] = name;
-        }
-        read_lock_type l(common()._function_map_mutex);
-        return _function_map[function_address];
-    }
-#endif
-    stringstream ss;
-    const char * progname = program_path();
-    if (progname == nullptr) {
-        ss << "UNRESOLVED  ADDR 0x" << hex << function_address;
-    } else {
-        ss << "UNRESOLVED " << string(progname) << " ADDR "
-            << hex << function_address;
-    }
-    string name = string(ss.str());
-    {
-        write_lock_type l(common()._function_map_mutex);
-        _function_map[function_address] = name;
-    }
-    return name;
-#endif
 }
 
 void thread_instance::set_current_profiler(profiler * the_profiler) {
@@ -358,7 +335,7 @@ void thread_instance::clear_current_profiler(profiler * the_profiler,
                 if (instance()._exiting) { return; }
                 std::cerr << "Warning! empty profiler stack!\n";
                 APEX_ASSERT(false);
-                abort();
+                //abort();
                 return;
             }
             // get the new top of the stack

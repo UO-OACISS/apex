@@ -121,7 +121,7 @@ namespace apex {
             OTF2_CollectiveContext *commContext, uint32_t *size) {
         /* Returns the number of OTF2_Archive objects operating in this
            communication context. */
-        //cout << __func__ << " " << apex_options::otf2_collective_size() << endl;
+        //cout << __APEX_FUNCTION__ << " " << apex_options::otf2_collective_size() << endl;
         //*size = apex_options::otf2_collective_size();
         APEX_UNUSED(userData);
         APEX_UNUSED(commContext);
@@ -134,7 +134,7 @@ namespace apex {
         /* Returns the rank of this OTF2_Archive objects in this communication
            context. A number between 0 and one less of the size of the communication
            context. */
-        //cout << __func__ << " " << my_saved_node_id << endl;
+        //cout << __APEX_FUNCTION__ << " " << my_saved_node_id << endl;
         APEX_UNUSED(userData);
         APEX_UNUSED(commContext);
         APEX_UNUSED(rank);
@@ -944,7 +944,7 @@ namespace apex {
         _finalized = true;
         // if we are tracking memory, there are some alloc/free events
         // we recorded before the end of the trace.
-        if (apex_options::track_memory()) {
+        if (apex_options::track_cpu_memory()) {
             saved_end_timestamp = get_time();
         }
          // get an exclusive lock, to make sure no other threads
@@ -1411,7 +1411,7 @@ namespace apex {
 
         // if not root, we have a simple job...
         if (my_saved_node_id > 0) {
-            //printf("%d: calling gather_there from %s\n", my_saved_node_id, __func__);
+            //printf("%d: calling gather_there from %s\n", my_saved_node_id, __APEX_FUNCTION__);
             hpx::future<void> overall_result =
                 gather_there(gather_basename, str,
                 this_site_arg(this_locality),
@@ -1421,7 +1421,7 @@ namespace apex {
         }
         std::vector<std::string> allhostnames;
         if (my_saved_node_count > 1) {
-            //printf("%d: calling gather_here from %s\n", my_saved_node_id, __func__);
+            //printf("%d: calling gather_here from %s\n", my_saved_node_id, __APEX_FUNCTION__);
             // if root, gather the names...
             hpx::future<std::vector<std::string>> overall_result =
                 gather_here(gather_basename, str,
@@ -1473,7 +1473,7 @@ namespace apex {
 
         // if not root, we have a simple job...
         if (my_saved_node_id > 0) {
-            //printf("%d: calling gather_there from %s\n", my_saved_node_id, __func__);
+            //printf("%d: calling gather_there from %s\n", my_saved_node_id, __APEX_FUNCTION__);
             hpx::future<void> overall_result =
 		gather_there(gather_basename, my_regions,
                 this_site_arg(this_locality),
@@ -1482,7 +1482,7 @@ namespace apex {
         } else {
             std::vector<std::string> rbuf;
             if (my_saved_node_count > 1) {
-                //printf("%d: calling gather_here from %s\n", my_saved_node_id, __func__);
+                //printf("%d: calling gather_here from %s\n", my_saved_node_id, __APEX_FUNCTION__);
                 // if root, gather the names...
                 hpx::future<std::vector<std::string>> overall_result =
                     gather_here(gather_basename, my_regions,
@@ -1552,14 +1552,14 @@ namespace apex {
             std::uint32_t this_locality = hpx::get_locality_id();
 
             if (my_saved_node_id > 0) {
-                //printf("%d: calling broadcast_from from %s\n", my_saved_node_id, __func__);
+                //printf("%d: calling broadcast_from from %s\n", my_saved_node_id, __APEX_FUNCTION__);
                 hpx::future<std::string> overall_result =
                     broadcast_from<std::string>(bcast_basename,
                     this_site_arg(this_locality),
                     generation_arg(generation++));
                 fullmap_vector.push_back(overall_result.get());
             } else {
-                //printf("%d: calling broadcast_to from %s\n", my_saved_node_id, __func__);
+                //printf("%d: calling broadcast_to from %s\n", my_saved_node_id, __APEX_FUNCTION__);
                 hpx::future<void> overall_result =
                     broadcast_to(bcast_basename, fullmap,
                     num_sites_arg(num_localities),
@@ -1621,7 +1621,7 @@ namespace apex {
 
         // if not root, we have a simple job...
         if (my_saved_node_id > 0) {
-            //printf("%d: calling gather_there from %s\n", my_saved_node_id, __func__);
+            //printf("%d: calling gather_there from %s\n", my_saved_node_id, __APEX_FUNCTION__);
             hpx::future<void> overall_result =
 		gather_there(gather_basename, my_metrics,
                 this_site_arg(this_locality),
@@ -1630,7 +1630,7 @@ namespace apex {
         } else {
             std::vector<std::string> rbuf;
             if (my_saved_node_count > 1) {
-                //printf("%d: calling gather_here from %s\n", my_saved_node_id, __func__);
+                //printf("%d: calling gather_here from %s\n", my_saved_node_id, __APEX_FUNCTION__);
                 // if root, gather the names...
                 hpx::future<std::vector<std::string>> overall_result =
                     gather_here(gather_basename, my_metrics,
@@ -1706,14 +1706,14 @@ namespace apex {
             std::uint32_t this_locality = hpx::get_locality_id();
 
             if (my_saved_node_id > 0) {
-                //printf("%d: calling broadcast_from from %s\n", my_saved_node_id, __func__);
+                //printf("%d: calling broadcast_from from %s\n", my_saved_node_id, __APEX_FUNCTION__);
                 hpx::future<std::string> overall_result =
                     broadcast_from<std::string>(bcast_basename,
                     this_site_arg(this_locality),
                     generation_arg(generation++));
                 fullmap_vector.push_back(overall_result.get());
             } else {
-                //printf("%d: calling broadcast_to from %s\n", my_saved_node_id, __func__);
+                //printf("%d: calling broadcast_to from %s\n", my_saved_node_id, __APEX_FUNCTION__);
                 hpx::future<void> overall_result =
                     broadcast_to(bcast_basename, fullmap,
                     num_sites_arg(num_localities),
@@ -1768,7 +1768,7 @@ namespace apex {
 
         // if not root, we have a simple job...
         if (my_saved_node_id > 0) {
-            //printf("%d: calling gather_there from %s\n", my_saved_node_id, __func__);
+            //printf("%d: calling gather_there from %s\n", my_saved_node_id, __APEX_FUNCTION__);
             hpx::future<void> overall_result =
 		gather_there(gather_basename, my_threads,
                 this_site_arg(this_locality),
@@ -1778,7 +1778,7 @@ namespace apex {
         }
         std::vector<std::string> rbuf;
         if (my_saved_node_count > 1) {
-            //printf("%d: calling gather_here from %s\n", my_saved_node_id, __func__);
+            //printf("%d: calling gather_here from %s\n", my_saved_node_id, __APEX_FUNCTION__);
             // if root, gather the names...
             hpx::future<std::vector<std::string>> overall_result =
                 gather_here(gather_basename, my_threads,

@@ -30,7 +30,9 @@ namespace apex {
       private:
         static address_resolution * _instance;
         address_resolution(void) {
+#ifdef APEX_HAVE_BFD
           my_bfd_unit_handle = Apex_bfd_registerUnit();
+#endif
         };
         // copy constructor is private
         address_resolution(address_resolution const&);
@@ -74,7 +76,9 @@ namespace apex {
           delete node;
         }
         my_hash_table.clear();
+#ifdef APEX_HAVE_BFD
         Apex_delete_bfd_units();
+#endif
       }
       std::unordered_map<uintptr_t, my_hash_node*> my_hash_table;
       apex_bfd_handle_t my_bfd_unit_handle;

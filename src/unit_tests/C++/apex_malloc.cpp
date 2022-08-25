@@ -52,7 +52,7 @@ int main (int argc, char** argv) {
   APEX_UNUSED(argv);
   apex::init("apex memory wrapper unit test", 0, 1);
   apex::apex_options::use_screen_output(true);
-  apex::apex_options::track_memory(true);
+  apex::apex_options::track_cpu_memory(true);
   test_all();
   apex::enable_memory_wrapper();
   test_all();

@@ -17,6 +17,7 @@
 #include <sys/types.h>
 #include <memory_wrapper.h>
 #include "apex_api.hpp"
+#include "memory_wrapper.hpp"
 
 #ifdef _MSC_VER
 /* define these functions as non-intrinsic */
@@ -56,11 +57,7 @@ void apex_memory_initialized() {
 extern "C"
 void apex_memory_lights_out() {
     apex_ready() = false;
-    static bool once{false};
-    if (!once) {
-        apex_report_leaks();
-        once = true;
-    }
+    apex::apex_report_leaks();
 }
 
 extern "C"

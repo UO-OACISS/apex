@@ -979,7 +979,7 @@ extern "C" void apex_control(
     APEX_UNUSED(arg);
     APEX_UNUSED(codeptr_ra);
     if (!enabled) { return; }
-    DEBUG_PRINT("%s\n", __func__);
+    DEBUG_PRINT("%s\n", __APEX_FUNCTION__);
 }
 
 // forward declare some functions
@@ -995,7 +995,7 @@ extern "C" void apex_device_initialize (
     const char *documentation
 ) {
     if (!enabled) { return; }
-    DEBUG_PRINT("%s\n", __func__);
+    DEBUG_PRINT("%s\n", __APEX_FUNCTION__);
   DEBUG_PRINT("Init: device_num=%d type=%s device=%p lookup=%p doc=%p\n",
 	 device_num, type, device, lookup, documentation);
   if (!lookup) {
@@ -1030,7 +1030,7 @@ extern "C" void apex_device_finalize (
 ) {
     APEX_UNUSED(device_num);
     if (!enabled) { return; }
-    DEBUG_PRINT("%s\n", __func__);
+    DEBUG_PRINT("%s\n", __APEX_FUNCTION__);
     apex_ompt_flush_trace();
     apex_ompt_stop_trace();
 }
@@ -1055,7 +1055,7 @@ extern "C" void apex_device_load (
     APEX_UNUSED(device_addr);
     APEX_UNUSED(module_id);
     if (!enabled) { return; }
-    DEBUG_PRINT("%s\n", __func__);
+    DEBUG_PRINT("%s\n", __APEX_FUNCTION__);
 }
 
 /* Event #15, device load */
@@ -1066,7 +1066,7 @@ extern "C" void apex_device_unload (
     APEX_UNUSED(device_num);
     APEX_UNUSED(module_id);
     if (!enabled) { return; }
-    DEBUG_PRINT("%s\n", __func__);
+    DEBUG_PRINT("%s\n", __APEX_FUNCTION__);
 }
 
 /* Event #22, target map */
@@ -1087,7 +1087,7 @@ extern "C" void apex_target_map (
     APEX_UNUSED(mapping_flags);
     APEX_UNUSED(codeptr_ra);
     if (!enabled) { return; }
-    DEBUG_PRINT("%s\n", __func__);
+    DEBUG_PRINT("%s\n", __APEX_FUNCTION__);
     // get the direction, and capture the bytes transferred.
 }
 

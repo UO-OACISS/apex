@@ -15,6 +15,11 @@ fi
 SCRIPTPATH="$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 #echo $SCRIPTPATH
 BASEDIR="$(dirname $SCRIPTPATH)"
+BASEDIR=@CMAKE_INSTALL_PREFIX@
+LIBDIR=lib
+if [ ! -d ${BASEDIR}/${LIBDIR} ] ; then
+    LIBDIR=lib64
+fi
 
 usage() {
     message="
@@ -46,7 +51,8 @@ where APEX options are zero or more of:
     --apex:kokkos_fence     enable Kokkos fences for async kernels
     --apex:raja             enable RAJA support
     --apex:pthread          enable pthread wrapper support
-    --apex:memory           enable memory wrapper support
+    --apex:gpu_memory       enable CPU memory wrapper support
+    --apex:cpu_memory       enable GPU memory wrapper support
     --apex:untied           enable tasks to migrate cores/OS threads
                             during execution (not compatible with trace output)
     --apex:cuda             enable CUDA/CUPTI measurement (default: off)
@@ -109,7 +115,8 @@ stat=no
 period=1000000
 io=no
 pthread=no
-memory=no
+gpu_memory=no
+cpu_memory=no
 policy=yes
 debugger=""
 prog=""
@@ -156,9 +163,15 @@ while (( "$#" )); do
       export APEX_TIME_TOP_LEVEL_OS_THREADS=1
       shift
       ;;
-    --apex:memory)
-      memory=yes
-      export APEX_TRACK_MEMORY=1
+    --apex:gpu_memory)
+      gpu_memory=yes
+      export APEX_TRACK_GPU_MEMORY=1
+      export APEX_SOURCE_LOCATION=1
+      shift
+      ;;
+    --apex:cpu_memory)
+      cpu_memory=yes
+      export APEX_TRACK_CPU_MEMORY=1
       export APEX_SOURCE_LOCATION=1
       shift
       ;;
@@ -250,9 +263,9 @@ while (( "$#" )); do
       export ROCPROFILER_LOG=1
       export HSA_VEN_AMD_AQLPROFILE_LOG=1
       export AQLPROFILE_READ_API=1
-      export ROCP_METRICS=@ROCM_ROOT@/rocprofiler/lib/metrics.xml
-      export HSA_TOOLS_LIB=@ROCM_ROOT@/rocprofiler/lib/librocprofiler64.so
-      export LD_LIBRARY_PATH=@ROCM_ROOT@/rocprofiler/lib:$LD_LIBRARY_PATH
+      export ROCP_METRICS=@ROCPROFILER_XML_DIRS@/metrics.xml
+      export HSA_TOOLS_LIB=@ROCPROFILER_HSA_DIRS@/librocprofiler64.so
+      export LD_LIBRARY_PATH=@ROCPROFILER_HSA_DIRS@:$LD_LIBRARY_PATH
       shift
       ;;
     --apex:hip_driver)
@@ -374,6 +387,9 @@ eval set -- "${PARAMS}"
 
 export APEX_POLICY=1
 export HARMONY_HOME="@ACTIVEHARMONY_ROOT@"
+# So that we can use this standalone or with HPX
+export APEX_LIBRARY_NAME="@APEX_LIBRARY_NAME@"
+export PAPI_ROCM_ROOT=@ROCM_ROOT@
 
 # Detect our MPI rank!
 if [ ! -z ${PMI_RANK+x} ] ; then
@@ -417,24 +433,26 @@ fi
 echo_screen "Program to run : ${PARAMS}"
 
 if [ "x${LD_LIBRARY_PATH}" = "x" ] ; then
-  APEX_LD_LIBRARY_PATH=${BASEDIR}/lib
+  APEX_LD_LIBRARY_PATH=${BASEDIR}/${LIBDIR}
 else
-  APEX_LD_LIBRARY_PATH=${BASEDIR}/lib:${LD_LIBRARY_PATH}
+  APEX_LD_LIBRARY_PATH=${BASEDIR}/${LIBDIR}:${LD_LIBRARY_PATH}
 fi
 if [ $pthread = yes ]; then
-    PTHREAD_LIB=${BASEDIR}/lib/libapex_pthread_wrapper${SHLIBX}:
+    PTHREAD_LIB=${BASEDIR}/${LIBDIR}/libapex_pthread_wrapper${SHLIBX}:
 fi
 if [ $ompt = yes ]; then
     OMPT_LIB=@OMPT_LIBRARY@:
 fi
-if [ $memory = yes ]; then
-    MEMORY_LIB=${BASEDIR}/lib/libapex_memory_wrapper${SHLIBX}:
-    APEX_LD_AUDIT=${BASEDIR}/lib/libapex_dl_auditor${SHLIBX}
+if [ $cpu_memory = yes ]; then
+    MEMORY_LIB=${BASEDIR}/${LIBDIR}/libapex_memory_wrapper${SHLIBX}:
+    APEX_LD_AUDIT=${BASEDIR}/${LIBDIR}/libapex_dl_auditor${SHLIBX}
+    echo_screen "MEMORY_LIB: ${MEMORY_LIB}"
+    echo_screen "APEX_LD_AUDIT: ${APEX_LD_AUDIT}"
 fi
 if [ ${apple} = 1 ]; then
-    APEX_LD_PRELOAD=${USER_PRELOAD}${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/lib/libapex${SHLIBX}:${OMPT_LIB}
+    APEX_LD_PRELOAD=${USER_PRELOAD}${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}:${OMPT_LIB}
 else
-    APEX_LD_PRELOAD=${USER_PRELOAD}${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/lib/libapex${SHLIBX}:${OMPT_LIB}:${LD_PRELOAD}
+    APEX_LD_PRELOAD=${USER_PRELOAD}${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}:${OMPT_LIB}:${LD_PRELOAD}
 fi
 
 # remove spaces and double colons
@@ -455,6 +473,9 @@ if [ ! -x "${prog}" ] ; then
     echo "apex_exec: $1: command not found"
     exit
 fi
+
+echo_screen "APEX_LD_LIBRARY_PATH: ${APEX_LD_LIBRARY_PATH}"
+echo_screen "APEX_LD_PRELOAD: ${APEX_LD_PRELOAD}"
 
 if [ $apple = 1 ]; then
     export DYLD_LIBRARY_PATH=${APEX_LD_LIBRARY_PATH}
@@ -489,26 +510,66 @@ else
 fi
 
 if [ ${kokkos} = yes ] ; then
-    export KOKKOS_PROFILE_LIBRARY=${BASEDIR}/lib/libapex${SHLIBX}
+    export KOKKOS_PROFILE_LIBRARY=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}
+    export KOKKOS_TOOLS_LIBS=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}
 fi
 if [ ${kokkos_tuning} = yes ] ; then
     export APEX_KOKKOS_TUNING=1
 fi
 if [ ${raja} = yes ] ; then
-    export RAJA_PLUGINS=${BASEDIR}/lib/libapex${SHLIBX}
+    export RAJA_PLUGINS=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}
 fi
 if [ ${openacc} = yes ] ; then
-    export ACC_PROFLIB=${BASEDIR}/lib/libapex${SHLIBX}
+    export ACC_PROFLIB=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}
 fi
 
-${debugger} ${PARAMS}
-retval=$?
-unset LD_PRELOAD
-unset DYLD_INSERT_LIBRARIES
-rm -f ./.gdbcmds
+# OK! if the user requests "groups" of counters, split up the groups
+# and iterate over them, setting different output directories for each.
 
-if [ ${retval} != 0 ] ; then
-    exit ${retval}
+delim=";"
+long_metrics=${APEX_PAPI_METRICS}
+unset APEX_PAPI_METRICS
+base_output_path="."
+if [ ! -z ${APEX_OUTPUT_FILE_PATH} ] ; then
+    base_output_path=${APEX_OUTPUT_FILE_PATH}
+fi
+if [[ "$long_metrics" == *"$delim"* ]]; then
+    export APEX_SCREEN_OUTPUT=0
+    # Save our preload settings, we don't want them just yet
+    unset LD_PRELOAD
+    # Unset metrics to prevent confusion
+    unset APEX_PAPI_METRICS
+    IFS=';' tokens=( ${long_metrics} )
+    let index=0
+    for raw_t in ${tokens[@]} ; do
+        # need this here to make sure ${params} is executed correctly
+        unset IFS
+        # Strip whitespace
+        t=`echo "${raw_t}" | xargs`
+        export APEX_PAPI_METRICS=${t}
+        export APEX_OUTPUT_FILE_PATH="${base_output_path}/METRIC_GROUP_${index}"
+        mkdir -p ${APEX_OUTPUT_FILE_PATH}
+        echo "Executing with metrics: \"${t}\", writing to ${APEX_OUTPUT_FILE_PATH}"
+        # Restore our preload settings
+        export LD_PRELOAD=${APEX_LD_PRELOAD}
+        ${PARAMS}
+        retval=$?
+        unset LD_PRELOAD
+        if [ ${retval} != 0 ] ; then
+            exit ${retval}
+        fi
+        let index=index+1
+    done
+    unset IFS
+else
+    ${debugger} ${PARAMS}
+    retval=$?
+    unset LD_PRELOAD
+    unset DYLD_INSERT_LIBRARIES
+    rm -f ./.gdbcmds
+    if [ ${retval} != 0 ] ; then
+        exit ${retval}
+    fi
 fi
 
 cd ${output_path}

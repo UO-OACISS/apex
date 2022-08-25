@@ -96,7 +96,7 @@ inline ExecutionSpaceIdentifier identifier_from_devid(const uint32_t in) {
           ((in & 0x00FFFFFF) >> 17),  // next 7 bits
            (in & 0x0001FFFF)}; // last 17 bits
            */
-#if 0
+#if 1
     constexpr const uint32_t shift = num_avail_bits - num_type_bits;
     return {devicetype_from_uint32t(in >> shift), /*First 8 bits*/
            (~((uint32_t(-1)) << num_device_bits)) &
@@ -147,7 +147,9 @@ void kokkosp_init_library(int loadseq, uint64_t version,
  * profiling hooks.
  */
 void kokkosp_finalize_library() {
+#ifndef APEX_HAVE_HPX
     apex::finalize();
+#endif
 }
 
 /* This is a new function to tell Kokkos to not fence */
@@ -340,9 +342,11 @@ void kokkosp_begin_deep_copy(
  * kokkosp_begind_deep_copy call.
  */
 void kokkosp_end_deep_copy() {
-    auto p = timer_stack().top();
-    apex::stop(p);
-    timer_stack().pop();
+    if (!timer_stack().empty()) {
+        auto p = timer_stack().top();
+        apex::stop(p);
+        timer_stack().pop();
+    }
 }
 
 /* Create a profiling section handle. Sections can overlap with each other

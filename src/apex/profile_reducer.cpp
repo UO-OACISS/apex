@@ -15,7 +15,10 @@
 #include <limits>
 #include <inttypes.h>
 
-constexpr size_t num_fields{17};
+/* 9 values per timer/counter by default
+ * 4 values related to memory allocation tracking
+ * 8 values (up to) when PAPI enabled */
+constexpr size_t num_fields{21};
 
 #if !defined(HPX_HAVE_NETWORKING) && defined(APEX_HAVE_MPI)
 #include "mpi.h"
@@ -156,24 +159,29 @@ std::map<std::string, apex_profile*> reduce_profiles() {
         if (tid != tid_map.end()) {
         auto p = get_profile(tid->second);
         if (p != nullptr) {
-            dptr[0] = p->calls == 0.0 ? 1 : p->calls;
-            dptr[1] = p->stops == 0.0 ? 1 : p->stops;
-            dptr[2] = p->accumulated;
-            dptr[3] = p->sum_squares;
-            dptr[4] = p->minimum;
-            dptr[5] = p->maximum;
-            dptr[6] = p->times_reset;
-            dptr[7] = (double)p->type;
-            dptr[8] = p->num_threads;
+            int i{0};
+            dptr[i++] = p->calls == 0.0 ? 1 : p->calls;
+            dptr[i++] = p->stops == 0.0 ? 1 : p->stops;
+            dptr[i++] = p->accumulated;
+            dptr[i++] = p->sum_squares;
+            dptr[i++] = p->minimum;
+            dptr[i++] = p->maximum;
+            dptr[i++] = p->times_reset;
+            dptr[i++] = (double)p->type;
+            dptr[i++] = p->num_threads;
+            dptr[i++] = p->allocations;
+            dptr[i++] = p->frees;
+            dptr[i++] = p->bytes_allocated;
+            dptr[i++] = p->bytes_freed;
             if (p->type == APEX_TIMER) {
-                dptr[9] = p->papi_metrics[0];
-                dptr[10] = p->papi_metrics[1];
-                dptr[11] = p->papi_metrics[2];
-                dptr[12] = p->papi_metrics[3];
-                dptr[13] = p->papi_metrics[4];
-                dptr[14] = p->papi_metrics[5];
-                dptr[15] = p->papi_metrics[6];
-                dptr[16] = p->papi_metrics[7];
+                dptr[i++] = p->papi_metrics[0];
+                dptr[i++] = p->papi_metrics[1];
+                dptr[i++] = p->papi_metrics[2];
+                dptr[i++] = p->papi_metrics[3];
+                dptr[i++] = p->papi_metrics[4];
+                dptr[i++] = p->papi_metrics[5];
+                dptr[i++] = p->papi_metrics[6];
+                dptr[i++] = p->papi_metrics[7];
             }
         }
         }
@@ -211,25 +219,34 @@ std::map<std::string, apex_profile*> reduce_profiles() {
             } else {
                 p = next->second;
             }
-            p->calls += dptr[0];
-            p->stops += dptr[1];
-            p->accumulated += dptr[2];
-            p->sum_squares += dptr[3];
-            p->minimum = dptr[4] < p->minimum ? dptr[4] : p->minimum;
-            p->maximum = dptr[5] > p->maximum ? dptr[5] : p->maximum;
-            p->times_reset += dptr[6];
-            p->num_threads = dptr[8] > p->num_threads ? dptr[8] : p->num_threads;
+            int index{0};
+            p->calls += dptr[index++];
+            p->stops += dptr[index++];
+            p->accumulated += dptr[index++];
+            p->sum_squares += dptr[index++];
+            p->minimum = dptr[index] < p->minimum ? dptr[index] : p->minimum;
+            index++;
+            p->maximum = dptr[index] > p->maximum ? dptr[index] : p->maximum;
+            index++;
+            p->times_reset += dptr[index++];
+            p->type = (apex_profile_type)(dptr[index++]);
+            p->num_threads = dptr[index] > p->num_threads ? dptr[index] : p->num_threads;
+            index++;
+            p->allocations = dptr[index++];
+            p->frees = dptr[index++];
+            p->bytes_allocated = dptr[index++];
+            p->bytes_freed = dptr[index++];
             if (p->type == APEX_TIMER) {
-                p->papi_metrics[0] += dptr[9];
-                p->papi_metrics[1] += dptr[10];
-                p->papi_metrics[2] += dptr[11];
-                p->papi_metrics[3] += dptr[12];
-                p->papi_metrics[4] += dptr[13];
-                p->papi_metrics[5] += dptr[14];
-                p->papi_metrics[6] += dptr[15];
-                p->papi_metrics[7] += dptr[16];
+                p->papi_metrics[0] += dptr[index++];
+                p->papi_metrics[1] += dptr[index++];
+                p->papi_metrics[2] += dptr[index++];
+                p->papi_metrics[3] += dptr[index++];
+                p->papi_metrics[4] += dptr[index++];
+                p->papi_metrics[5] += dptr[index++];
+                p->papi_metrics[6] += dptr[index++];
+                p->papi_metrics[7] += dptr[index++];
             }
-            dptr = &(dptr[17]);
+            dptr = &(dptr[num_fields]);
         }
     }
 

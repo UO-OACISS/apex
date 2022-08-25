@@ -106,7 +106,14 @@ private:
     }
     _runtime_id = _id; // can be set later, if necessary
     common()._active_threads++;
-
+    if(apex_options::use_verbose()) {
+        if(_is_worker) {
+            std::cout << "worker ";
+        } else {
+            std::cout << "non-worker ";
+        }
+        std::cout << "thread " << _id << " starting... " << __APEX_FUNCTION__ << std::endl;
+    }
   };
   // private default constructor
   thread_instance () = delete;
