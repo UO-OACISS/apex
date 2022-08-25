@@ -1301,7 +1301,7 @@ std::unordered_set<profile*> free_profiles;
       tau_listener::Tau_start_wrapper("profiler_listener::process_profiles");
     }
     /*
-    static auto prof = new_task(__func__);
+    static auto prof = new_task(__APEX_FUNCTION__);
     start(prof);
     */
 
@@ -1693,7 +1693,8 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
           std::cerr << "done." << std::endl;
         }
       }
-      if (apex_options::use_screen_output()) {
+      if (apex_options::use_screen_output() ||
+          apex_options::use_csv_output()) {
         // reduce/gather all profiles from all ranks
         auto reduced = reduce_profiles();
         if (node_id == 0) {
@@ -2094,7 +2095,12 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
 
   void profiler_listener::push_profiler_public(std::shared_ptr<profiler> &p) {
     in_apex prevent_deadlocks;
+#ifdef APEX_SYNCHRONOUS_PROCESSING
+    // make sure we call the synchronous version!
+    push_profiler(0, *(p.get()));
+#else
     push_profiler(0, p);
+#endif
   }
 
 }

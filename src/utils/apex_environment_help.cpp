@@ -9,8 +9,8 @@ using namespace std;
 int main (int argc, char** argv) {
   APEX_UNUSED(argc);
   APEX_UNUSED(argv);
-  init("apex_make_default_config", 0, 1);
-  apex_options::make_default_config();
+  init("apex_environment_help", 0, 1);
+  apex_options::environment_help();
   finalize();
   return 0;
 }

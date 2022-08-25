@@ -16,7 +16,7 @@
 #include <atomic>
 
 #define FOREACH_EXTERNAL_STRING_OPTION(macro) \
-        macro (HARMONY_HOME, activeharmony_root, char*, ACTIVEHARMONY_ROOT) \
+        macro (HARMONY_HOME, activeharmony_root, char*, ACTIVEHARMONY_ROOT, "") \
 
 namespace apex {
 
@@ -25,7 +25,7 @@ private:
     // singleton instance.
     static apex_options * _instance;
     /* Declare the private member variables */
-#define apex_macro(name, member_variable, type, default_value)\
+#define apex_macro(name, member_variable, type, default_value, description)\
     std::atomic<type> _##member_variable;
     FOREACH_APEX_OPTION(apex_macro)
     FOREACH_APEX_FLOAT_OPTION(apex_macro)
@@ -44,7 +44,7 @@ public:
     /* and a cleanup method */
     static void delete_instance(void);
     /* The getter and setter methods */
-#define apex_macro(name, member_variable, type, default_value) \
+#define apex_macro(name, member_variable, type, default_value, description) \
     APEX_EXPORT static void member_variable (type inval); \
     APEX_EXPORT static type member_variable (void);
     FOREACH_APEX_OPTION(apex_macro)
@@ -54,6 +54,7 @@ public:
     /* The debugging methods */
     APEX_EXPORT static void print_options(void);
     APEX_EXPORT static void make_default_config(void);
+    APEX_EXPORT static void environment_help(void);
 };
 
 }

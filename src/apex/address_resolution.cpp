@@ -10,6 +10,7 @@
 #include <sstream>
 #include <iostream>
 #include <unordered_map>
+#include <execinfo.h>
 
 #ifdef __APPLE__
 #include <dlfcn.h>
@@ -48,6 +49,11 @@ namespace apex {
       if (it2 == ar->my_hash_table.end()) {
         // ...no - so go get it!
         node = new address_resolution::my_hash_node();
+        node->info.filename = nullptr;
+        node->info.funcname = nullptr;
+        node->info.lineno = 0;
+        node->info.demangled = nullptr;
+        node->location = nullptr;
 #if defined(__APPLE__)
 #if defined(APEX_HAVE_CORESYMBOLICATION)
       static CSSymbolicatorRef symbolicator = CSSymbolicatorCreateWithPid(getpid());
@@ -69,12 +75,31 @@ namespace apex {
         node->info.probeAddr = ip;
         node->info.filename = strdup(info.dli_fname);
         node->info.funcname = strdup(info.dli_sname);
-        node->info.lineno = 0; // Apple doesn't give us line numbers.
+        // Apple doesn't give us line numbers.
       }
 #endif
 #else
+#ifdef APEX_HAVE_BFD
         Apex_bfd_resolveBfdInfo(ar->my_bfd_unit_handle, ip, node->info);
+#else
+        void * const buffer[1] = {(void *)ip};
+        char ** names = backtrace_symbols((void * const *)buffer, 1);
+        /* Split the backtrace strings into tokens, and get the 4th one */
+        std::vector<std::string> result;
+	    std::istringstream iss(names[0]);
+	    for (std::string s; iss >> s; ) {
+		    result.push_back(s);
+        }
+        node->info.probeAddr = ip;
+        node->info.filename = strdup("?");
+        node->info.funcname = strdup(result[3].c_str());
 #endif
+#endif
+        if (node->info.filename == nullptr) {
+            stringstream ss;
+            ss << "UNRESOLVED  ADDR 0x" << hex << ip;
+            node->info.funcname = strdup(ss.str().c_str());
+        }
 
         if (node->info.demangled) {
           location << node->info.demangled ;
@@ -110,14 +135,13 @@ namespace apex {
     } else {
       node = it->second;
     }
+    if (node->info.demangled && (strlen(node->info.demangled) == 0)) {
+        node->info.demangled = nullptr;
+    }
     if (withFileInfo) {
       return node->location;
     } else {
-      if (node->info.funcname != nullptr) {
-        return new string(node->info.funcname);
-      } else {
-        return new string("<unknown>");
-      }
+      return new string(node->info.funcname);
     }
   }
 }

@@ -95,6 +95,8 @@ public:
   long power_cap;
   long startup;
   long version;
+  std::unordered_map<std::string,std::string> cray_power_units;
+  std::unordered_map<std::string,uint64_t> cray_power_values;
   std::unordered_map<std::string,std::string> cpuinfo;
   std::unordered_map<std::string,std::string> meminfo;
   std::unordered_map<std::string,double> netdev;
@@ -148,6 +150,10 @@ bool parse_sensor_data();
     macro(version,"/sys/cray/pm_counters/version") \
 
 #if defined(APEX_HAVE_CRAY_POWER)
+void read_cray_power(
+  std::unordered_map<std::string,std::string>& cray_power_units,
+  std::unordered_map<std::string,uint64_t>& cray_power_values);
+
 #define apex_macro(name,filename) \
 inline int read_##name (void) { \
   int tmpint; \

@@ -147,7 +147,9 @@ void kokkosp_init_library(int loadseq, uint64_t version,
  * profiling hooks.
  */
 void kokkosp_finalize_library() {
+#ifndef APEX_HAVE_HPX
     apex::finalize();
+#endif
 }
 
 /* This is a new function to tell Kokkos to not fence */
@@ -340,9 +342,11 @@ void kokkosp_begin_deep_copy(
  * kokkosp_begind_deep_copy call.
  */
 void kokkosp_end_deep_copy() {
-    auto p = timer_stack().top();
-    apex::stop(p);
-    timer_stack().pop();
+    if (!timer_stack().empty()) {
+        auto p = timer_stack().top();
+        apex::stop(p);
+        timer_stack().pop();
+    }
 }
 
 /* Create a profiling section handle. Sections can overlap with each other

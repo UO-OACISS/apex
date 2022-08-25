@@ -230,6 +230,7 @@ if((DEFINED BFD_ROOT) OR (APEX_WITH_BFD) OR (APEX_BUILD_BFD))
 #    include(APEX_SetupZlib)
 #	endif(NOT APEX_INTEL_MIC)
 else()
+    set(bfd_sources address_resolution.cpp)
 	add_custom_target(project_binutils)
 endif()
 
@@ -253,6 +254,11 @@ endif(HPX_WITH_HPXMP)
 
 # Setup MPI
 include(APEX_SetupMPI)
+
+#if(HPX_WITH_PARCELPORT_MPI)
+  #set(apex_mpi_sources apex_mpi.cpp)
+#endif(HPX_WITH_PARCELPORT_MPI)
+
 
 # RPATH related stuff
 # APEX is always a shared object library with HPX now.
@@ -308,7 +314,7 @@ set(apex_sources
     apex.cpp
     apex_kokkos.cpp
     apex_kokkos_tuning.cpp
-    apex_mpi.cpp
+    ${apex_mpi_sources}
     apex_options.cpp
     apex_policies.cpp
     concurrency_handler.cpp
