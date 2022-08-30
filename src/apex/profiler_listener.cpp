@@ -496,8 +496,9 @@ std::unordered_set<profile*> free_profiles;
       if (timer) maxlength = 52;
       // to keep formatting pretty, trim any long timer names
       if (shorter.size() > maxlength) {
-        shorter.resize(maxlength-3);
-        shorter.resize(maxlength, '.');
+        shorter.resize(maxlength-1);
+        // 0xE2 0x80 0xA6
+        shorter+="…";
       }
       //screen_output << "\"" << shorter << "\", " ;
       if (timer) {
