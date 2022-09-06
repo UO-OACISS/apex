@@ -2070,13 +2070,30 @@ double current_power_high(void) {
 #elif APEX_HAVE_MSR
     power = msr_current_power_high();
     //std::cout << "Read power from MSR: " << power << std::endl;
+#elif APEX_HAVE_POWERCAP_POWER
+    static long long lpower = 0LL;
+    long long tpower = 0LL;
+    static long long diff = 0LL;
+    tpower = read_package0(false);
+    /* Check for overflow */
+    if (lpower > 0 && tpower > lpower) {
+        diff = tpower-lpower;
+    } else {
+        diff = 0;
+    }
+    power = (double)diff;
+    lpower = tpower;
+    // convert from microjoules to joules
+    power = power * 1.0e-6;
+    // get the right joules per second
+    power = power * (1.0e6 / (double)apex_options::concurrency_period());
+    //std::cout << "Read power from Powercap: " << tpower << " " << lpower << " " << diff << " " << power << std::endl;
 #elif APEX_HAVE_PROC
     power = (double)read_power();
     //std::cout << "Read power from Cray Power Monitoring and Management: " <<
-    //power << std::endl;
 #else
-    //std::cout << "NO POWER READING! Did you configure with RCR, MSR or Cray?"
-    //<< std::endl;
+    std::cout << "NO POWER READING! Did you configure with RCR, MSR or Cray?"
+    << std::endl;
 #endif
     return power;
 }

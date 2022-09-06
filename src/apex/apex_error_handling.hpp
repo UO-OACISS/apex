@@ -47,7 +47,7 @@ void apex_print_backtrace() {
   for( i = 1; i < size; i++ ){
    std::cerr << apex::demangle(strings[i]) << std::endl;
 #ifdef APEX_HAVE_BFD
-   std::cerr << *(apex::lookup_address((uintptr_t)trace[i], true)) << std::endl;
+   std::cerr << *(apex::lookup_address((uintptr_t)trace[i], true, true)) << std::endl;
 #else
    char syscom[1024];
 #ifndef __APPLE__
