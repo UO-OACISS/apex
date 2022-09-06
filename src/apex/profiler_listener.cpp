@@ -808,42 +808,51 @@ std::unordered_set<profile*> free_profiles;
     // sort by accumulated value
     std::sort(timer_vector.begin(), timer_vector.end(), timer_cmp);
 
-    screen_output << "GPU Timers                                           : "
-        << "#calls  |    mean  |   total  |  % total  ";
-        /*
-    if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
-       screen_output << "|  allocs |  (bytes) |    frees |   (bytes) ";
-    }
-    */
-    screen_output << endl;
-    screen_output << "----------------------------------------------"
-        << "--------------------------------------------------";
-
-    screen_output << endl;
-    // iterate over the timers
+    bool have_gpu{false};
     for(auto& pair_itr : timer_vector) {
         std::string name = pair_itr.first;
-        if (name.find("GPU: ", 0) == std::string::npos) continue;
-        auto p = all_profiles.find(name);
-        if (p != all_profiles.end()) {
-            profile tmp(p->second);
-            write_one_timer(name, &tmp, screen_output, csv_output,
-                total_accumulated, divisor, true);
-            if (name.compare(APEX_MAIN_STR) != 0) {
-                total_hpx_threads = total_hpx_threads + tmp.get_calls();
-            }
+        if (name.find("GPU: ", 0) != std::string::npos) {
+            have_gpu = true;
+            break;
         }
     }
 
-    screen_output << "--------------------------------------------------"
-        << "----------------------------------------------";
-    /*
-    if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
-        screen_output << "--------------------------------------------";
+    if (have_gpu) {
+        screen_output << "GPU Timers                                           : "
+            << "#calls  |    mean  |   total  |  % total  ";
+        if (apex_options::track_gpu_memory()) {
+            screen_output << "|  allocs |  (bytes) |    frees |   (bytes) ";
+        }
+        screen_output << endl;
+        screen_output << "----------------------------------------------"
+                      << "--------------------------------------------------";
+        screen_output << endl;
+
+        // iterate over the timers
+        for(auto& pair_itr : timer_vector) {
+            std::string name = pair_itr.first;
+            if (name.find("GPU: ", 0) == std::string::npos) continue;
+            auto p = all_profiles.find(name);
+            if (p != all_profiles.end()) {
+                profile tmp(p->second);
+                write_one_timer(name, &tmp, screen_output, csv_output,
+                    total_accumulated, divisor, true);
+                if (name.compare(APEX_MAIN_STR) != 0) {
+                    total_hpx_threads = total_hpx_threads + tmp.get_calls();
+                }
+            }
+        }
+
+        screen_output << "--------------------------------------------------"
+            << "----------------------------------------------";
+        /*
+        if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
+            screen_output << "--------------------------------------------";
+        }
+        */
+        screen_output << endl;
+        screen_output << endl;
     }
-    */
-    screen_output << endl;
-    screen_output << endl;
 
     screen_output << "CPU Timers                                           : "
         << "#calls  |  #yields |    mean  |   total  |  % total  "
