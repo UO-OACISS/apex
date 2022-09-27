@@ -708,7 +708,23 @@ if (APEX_WITH_RAJA)
     endif()
 endif (APEX_WITH_RAJA)
 
+#################################################################################
+# StarPU configuration
 ################################################################################
+
+if (APEX_WITH_STARPU)
+  find_package(STARPU REQUIRED)
+  if(STARPU_FOUND)
+    set(LIBS ${LIBS} ${STARPU_LIBRARIES})
+    add_definitions(-DAPEX_WITH_STARPU)
+    message(INFO " Using StarPU include: ${STARPU_INCLUDE_DIR}")
+    include_directories(${STARPU_INCLUDE_DIR})
+  else()
+    message(ERROR " StarPU not found in ${STARPU_DIR}")
+  endif()
+endif (APEX_WITH_STARPU)
+
+###############################################################################
 # MSR configuration
 ################################################################################
 
