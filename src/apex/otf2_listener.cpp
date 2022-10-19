@@ -849,7 +849,11 @@ namespace apex {
         uint64_t ticks_per_second = 1e9;
         uint64_t traceLength = saved_end_timestamp;
         OTF2_GlobalDefWriter_WriteClockProperties( global_def_writer,
-            ticks_per_second, 0 /* start */, traceLength /* length */ );
+            ticks_per_second, 0 /* start */, traceLength /* length */
+#if OTF2_VERSION_MAJOR > 2
+            , OTF2_UNDEFINED_TIMESTAMP
+#endif
+            );
     }
 
     /* For this rank, pid, hostname, write all that data into the
@@ -894,7 +898,11 @@ namespace apex {
             rank /* id */,
             get_string_index(locality.str()) /* name */,
             OTF2_LOCATION_GROUP_TYPE_PROCESS,
-            node_index /* system tree node ID */ );
+            node_index /* system tree node ID */
+#if OTF2_VERSION_MAJOR > 2
+            , OTF2_UNDEFINED_LOCATION_GROUP
+#endif
+            );
         // write out the thread locations
         //for (int i = 0 ; i < rank_thread_name_map[rank] ; i++) {
         for (auto iter : rank_thread_name_map[rank]) {
@@ -1042,9 +1050,16 @@ namespace apex {
                 const char * world = "MPI_COMM_WORLD";
                 OTF2_EC(OTF2_GlobalDefWriter_WriteString( global_def_writer,
                     get_string_index(world), world ));
-                OTF2_EC(OTF2_GlobalDefWriter_WriteComm  ( global_def_writer,
-                    0, get_string_index(world),
-                    1, OTF2_UNDEFINED_COMM));
+                OTF2_EC(OTF2_GlobalDefWriter_WriteComm  (
+                    global_def_writer,
+                    0,
+                    get_string_index(world),
+                    1,
+                    OTF2_UNDEFINED_COMM
+#if OTF2_VERSION_MAJOR > 2
+                    , OTF2_COMM_FLAG_NONE
+#endif
+                    ));
             } else {
                 // not rank 0?
                 // write out the timer names we saw
