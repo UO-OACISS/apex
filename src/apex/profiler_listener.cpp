@@ -395,9 +395,10 @@ std::unordered_set<profile*> free_profiles;
                  * a thread_instance object that is NOT a worker. */
                 thread_instance::instance(false);
                 std::unique_lock<std::mutex> task_map_lock(_mtx);
-                task_scatterplot_samples << p.normalized_timestamp() << " "
-                            << p.elapsed() << " "
-                            << "'" << p.get_task_id()->get_name() << "'" << endl;
+                task_scatterplot_samples << std::fixed
+                    << std::setprecision(0) << p.normalized_timestamp()
+                    << " " << p.elapsed() << " "
+                    << "'" << p.get_task_id()->get_name() << "'" << endl;
                 int loc0 = task_scatterplot_samples.tellp();
                 if (loc0 > 32768) {
                     task_scatterplot_sample_file() << task_scatterplot_samples.rdbuf();
@@ -408,9 +409,10 @@ std::unordered_set<profile*> free_profiles;
         } else {
                 thread_instance::instance(false);
                 std::unique_lock<std::mutex> task_map_lock(_mtx);
-                counter_scatterplot_samples << p.normalized_timestamp() << " "
-                            << p.elapsed() << " "
-                            << "'" << p.get_task_id()->get_name() << "'" << endl;
+                counter_scatterplot_samples << std::fixed
+                    << std::setprecision(0) << p.normalized_timestamp()
+                    << " " << std::setprecision(6) << p.elapsed() << " "
+                    << "'" << p.get_task_id()->get_name() << "'" << endl;
                 int loc0 = task_scatterplot_samples.tellp();
                 if (loc0 > 32768) {
                     counter_scatterplot_sample_file() << counter_scatterplot_samples.rdbuf();
