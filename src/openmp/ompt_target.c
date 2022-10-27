@@ -24,6 +24,7 @@ int main( int argc, char** argv )
   }
 
 
+/*
   #pragma omp target teams thread_limit(5)
   #pragma omp distribute parallel for simd
   for (int i = 0 ; i < 1000 ; i++) {
@@ -33,7 +34,7 @@ int main( int argc, char** argv )
     omp_get_team_num(),
     omp_get_num_teams(), i);
   }
-
+*/
   a = (double *) malloc( sizeof(double)*num_elements );
   b = (double *) malloc( sizeof(double)*num_elements );
 

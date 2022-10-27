@@ -631,8 +631,8 @@ std::unordered_set<profile*> free_profiles;
             }
             csv_output << "," << p->get_bytes_freed();
         }
-        } else {
-            csv_output << ",0,0,0,0";
+        //} else {
+            //csv_output << ",0,0,0,0";
         }
         screen_output << endl;
         csv_output << endl;
@@ -1707,10 +1707,8 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
           apex_options::use_csv_output()) {
         // reduce/gather all profiles from all ranks
         auto reduced = reduce_profiles();
-        if (node_id == 0) {
-          if (apex_options::process_async_state()) {
+        if (apex_options::process_async_state()) {
             finalize_profiles(data, reduced);
-          }
         }
       }
       if (apex_options::use_taskgraph_output())

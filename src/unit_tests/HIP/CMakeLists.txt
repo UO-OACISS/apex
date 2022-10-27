@@ -8,6 +8,11 @@ link_directories (${APEX_BINARY_DIR}/src/apex)
 
 set(example_programs
     MatrixTranspose
+    repro_managed_slowness
+   )
+
+set(example_programs2
+    repro_managed_slowness
    )
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
@@ -30,6 +35,22 @@ foreach(example_program ${example_programs})
   target_compile_definitions("${example_program}_hip" PUBLIC AMD_INTERNAL_BUILD)
   target_compile_definitions("${example_program}_hip" PUBLIC __HIP_PLATFORM_HCC__)
   add_test ("test_${example_program}_hip" "${example_program}_hip")
+endforeach()
+
+foreach(example_program ${example_programs2})
+  set(sources ${example_program}.cpp)
+  source_group("Source Files" FILES ${sources})
+  add_executable("${example_program}_managed_hip" ${sources})
+  target_link_libraries ("${example_program}_managed_hip" apex ${LIBS} hip::host)
+    if (BUILD_STATIC_EXECUTABLES)
+        set_target_properties("${example_program}_managed_hip" PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
+    endif()
+  add_dependencies ("${example_program}_managed_hip" apex)
+  add_dependencies (tests "${example_program}_managed_hip")
+  target_compile_definitions("${example_program}_managed_hip" PUBLIC AMD_INTERNAL_BUILD)
+  target_compile_definitions("${example_program}_managed_hip" PUBLIC __HIP_PLATFORM_HCC__)
+  target_compile_definitions("${example_program}_managed_hip" PUBLIC MANAGED)
+  add_test ("test_${example_program}_managed_hip" "${example_program}_managed_hip")
 endforeach()
 
 # Make sure the linker can find the Apex library once it is built.
