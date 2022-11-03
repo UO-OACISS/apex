@@ -130,9 +130,9 @@ void  mpi_abort_( MPI_Fint *comm, MPI_Fint *errorcode, MPI_Fint *ierr) {
  * implementation of Finalize, and do what we need to. */
 #if defined(APEX_HAVE_MPI) && !defined(HPX_HAVE_NETWORKING)
     int MPI_Finalize(void) {
-        finalize();
+        apex::finalize();
         int retval = PMPI_Finalize();
-        cleanup();
+        apex::cleanup();
         return retval;
     }
     /* Define Fortran versions */
@@ -156,15 +156,15 @@ void  _symbol( MPI_Fint *ierr ) { \
         int typesize = 0;
         PMPI_Type_size( datatype, &typesize );
         double bytes = (double)(typesize) * (double)(count);
-        std::string name(function);
-        name.append(" : Bytes");
+        std::string name("Bytes : ");
+        name.append(function);
         apex::sample_value(name, bytes);
         return bytes;
     }
     inline void getBandwidth(double bytes, std::shared_ptr<apex::task_wrapper> task, const char * function) {
         if ((task != nullptr) && (task->prof != nullptr)) {
-            std::string name(function);
-            name.append(" : BW (Bytes/second)");
+            std::string name("BW (Bytes/second) : ");
+            name.append(function);
             apex::sample_value(name, bytes/task->prof->elapsed_seconds());
         }
     }
@@ -173,14 +173,14 @@ void  _symbol( MPI_Fint *ierr ) { \
     int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest,
         int tag, MPI_Comm comm, MPI_Request *request) {
         /* Get the byte count */
-        double bytes = getBytesTransferred(count, datatype, __APEX_FUNCTION__);
+        double bytes = getBytesTransferred(count, datatype, "MPI_Isend");
         /* start the timer */
         MPI_START_TIMER
         /* sample the bytes */
         int retval = PMPI_Isend(buf, count, datatype, dest, tag, comm, request);
         MPI_STOP_TIMER
         /* record the bandwidth */
-        getBandwidth(bytes, p, __APEX_FUNCTION__);
+        getBandwidth(bytes, p, "MPI_Isend");
         return retval;
     }
 #define APEX_MPI_ISEND_TEMPLATE(_symbol) \
@@ -200,13 +200,13 @@ void  _symbol( void * buf, MPI_Fint * count, MPI_Fint * datatype, MPI_Fint * des
     int MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
         int source, int tag, MPI_Comm comm, MPI_Request *request) {
         /* Get the byte count */
-        double bytes = getBytesTransferred(count, datatype, __APEX_FUNCTION__);
+        double bytes = getBytesTransferred(count, datatype, "MPI_Irecv");
         MPI_START_TIMER
         int retval = PMPI_Irecv(buf, count, datatype, source, tag, comm,
             request);
         MPI_STOP_TIMER
         /* record the bandwidth */
-        getBandwidth(bytes, p, __APEX_FUNCTION__);
+        getBandwidth(bytes, p, "MPI_Irecv");
         return retval;
     }
 #define APEX_MPI_IRECV_TEMPLATE(_symbol) \
@@ -226,14 +226,14 @@ void  _symbol( void * buf, MPI_Fint * count, MPI_Fint * datatype, MPI_Fint * sou
     int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest,
         int tag, MPI_Comm comm){
         /* Get the byte count */
-        double bytes = getBytesTransferred(count, datatype, __APEX_FUNCTION__);
+        double bytes = getBytesTransferred(count, datatype, "MPI_Send");
         /* start the timer */
         MPI_START_TIMER
         /* sample the bytes */
         int retval = PMPI_Send(buf, count, datatype, dest, tag, comm);
         MPI_STOP_TIMER
         /* record the bandwidth */
-        getBandwidth(bytes, p, __APEX_FUNCTION__);
+        getBandwidth(bytes, p, "MPI_Send");
         return retval;
     }
 #define APEX_MPI_SEND_TEMPLATE(_symbol) \
@@ -251,12 +251,12 @@ void  _symbol( void * buf, MPI_Fint * count, MPI_Fint * datatype, MPI_Fint * des
     int MPI_Recv(void *buf, int count, MPI_Datatype datatype,
         int source, int tag, MPI_Comm comm, MPI_Status *status){
         /* Get the byte count */
-        double bytes = getBytesTransferred(count, datatype, __APEX_FUNCTION__);
+        double bytes = getBytesTransferred(count, datatype, "MPI_Recv");
         MPI_START_TIMER
         int retval = PMPI_Recv(buf, count, datatype, source, tag, comm, status);
         MPI_STOP_TIMER
         /* record the bandwidth */
-        getBandwidth(bytes, p, __APEX_FUNCTION__);
+        getBandwidth(bytes, p, "MPI_Recv");
         return retval;
     }
 #define APEX_MPI_RECV_TEMPLATE(_symbol) \

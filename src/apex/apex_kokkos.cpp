@@ -174,9 +174,15 @@ void kokkosp_begin_parallel_for(const char* name,
     uint32_t devid, uint64_t* kernid) {
     std::stringstream ss;
     ExecutionSpaceIdentifier space_id = identifier_from_devid(devid);
-    ss << "Kokkos::parallel_for [Type:"
-       << devicestring_from_type(space_id.type)
-       << ", Device: " << space_id.device_id << "] " << name;
+    ss << "Kokkos::parallel_for ["
+       << devicestring_from_type(space_id.type);
+    if (space_id.type != DeviceType::Serial &&
+        space_id.type != DeviceType::OpenMP && 
+        space_id.type != DeviceType::HPX && 
+        space_id.type != DeviceType::Threads) {
+       ss << ", Dev:" << space_id.device_id;
+    }
+    ss << "] " << name;
     std::string tmp{ss.str()};
     // Start a new profiler, with no known parent
     // (current timer on stack, if exists)
@@ -189,9 +195,15 @@ void kokkosp_begin_parallel_reduce(const char* name,
     uint32_t devid, uint64_t* kernid) {
     std::stringstream ss;
     ExecutionSpaceIdentifier space_id = identifier_from_devid(devid);
-    ss << "Kokkos::parallel_reduce [Type:"
-       << devicestring_from_type(space_id.type)
-       << ", Device: " << space_id.device_id << "] " << name;
+    ss << "Kokkos::parallel_reduce ["
+       << devicestring_from_type(space_id.type);
+    if (space_id.type != DeviceType::Serial &&
+        space_id.type != DeviceType::OpenMP && 
+        space_id.type != DeviceType::HPX && 
+        space_id.type != DeviceType::Threads) {
+       ss << ", Dev:" << space_id.device_id;
+    }
+    ss << "] " << name;
     std::string tmp{ss.str()};
     // Start a new profiler, with no known parent
     // (current timer on stack, if exists)
@@ -204,9 +216,15 @@ void kokkosp_begin_parallel_scan(const char* name,
     uint32_t devid, uint64_t* kernid) {
     std::stringstream ss;
     ExecutionSpaceIdentifier space_id = identifier_from_devid(devid);
-    ss << "Kokkos::parallel_scan [Type:"
-       << devicestring_from_type(space_id.type)
-       << ", Device: " << space_id.device_id << "] " << name;
+    ss << "Kokkos::parallel_scan ["
+       << devicestring_from_type(space_id.type);
+    if (space_id.type != DeviceType::Serial &&
+        space_id.type != DeviceType::OpenMP && 
+        space_id.type != DeviceType::HPX && 
+        space_id.type != DeviceType::Threads) {
+       ss << ", Dev:" << space_id.device_id;
+    }
+    ss << "] " << name;
     std::string tmp{ss.str()};
     // Start a new profiler, with no known parent
     // (current timer on stack, if exists)

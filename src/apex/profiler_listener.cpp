@@ -395,9 +395,10 @@ std::unordered_set<profile*> free_profiles;
                  * a thread_instance object that is NOT a worker. */
                 thread_instance::instance(false);
                 std::unique_lock<std::mutex> task_map_lock(_mtx);
-                task_scatterplot_samples << p.normalized_timestamp() << " "
-                            << p.elapsed() << " "
-                            << "'" << p.get_task_id()->get_name() << "'" << endl;
+                task_scatterplot_samples << std::fixed
+                    << std::setprecision(0) << p.normalized_timestamp()
+                    << " " << p.elapsed() << " "
+                    << "'" << p.get_task_id()->get_name() << "'" << endl;
                 int loc0 = task_scatterplot_samples.tellp();
                 if (loc0 > 32768) {
                     task_scatterplot_sample_file() << task_scatterplot_samples.rdbuf();
@@ -408,9 +409,10 @@ std::unordered_set<profile*> free_profiles;
         } else {
                 thread_instance::instance(false);
                 std::unique_lock<std::mutex> task_map_lock(_mtx);
-                counter_scatterplot_samples << p.normalized_timestamp() << " "
-                            << p.elapsed() << " "
-                            << "'" << p.get_task_id()->get_name() << "'" << endl;
+                counter_scatterplot_samples << std::fixed
+                    << std::setprecision(0) << p.normalized_timestamp()
+                    << " " << std::setprecision(6) << p.elapsed() << " "
+                    << "'" << p.get_task_id()->get_name() << "'" << endl;
                 int loc0 = task_scatterplot_samples.tellp();
                 if (loc0 > 32768) {
                     counter_scatterplot_sample_file() << counter_scatterplot_samples.rdbuf();
@@ -496,8 +498,9 @@ std::unordered_set<profile*> free_profiles;
       if (timer) maxlength = 52;
       // to keep formatting pretty, trim any long timer names
       if (shorter.size() > maxlength) {
-        shorter.resize(maxlength-3);
-        shorter.resize(maxlength, '.');
+        shorter.resize(maxlength-1);
+        // 0xE2 0x80 0xA6
+        shorter+="…";
       }
       //screen_output << "\"" << shorter << "\", " ;
       if (timer) {
@@ -630,8 +633,8 @@ std::unordered_set<profile*> free_profiles;
             }
             csv_output << "," << p->get_bytes_freed();
         }
-        } else {
-            csv_output << ",0,0,0,0";
+        //} else {
+            //csv_output << ",0,0,0,0";
         }
         screen_output << endl;
         csv_output << endl;
@@ -808,42 +811,51 @@ std::unordered_set<profile*> free_profiles;
     // sort by accumulated value
     std::sort(timer_vector.begin(), timer_vector.end(), timer_cmp);
 
-    screen_output << "GPU Timers                                           : "
-        << "#calls  |    mean  |   total  |  % total  ";
-        /*
-    if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
-       screen_output << "|  allocs |  (bytes) |    frees |   (bytes) ";
-    }
-    */
-    screen_output << endl;
-    screen_output << "----------------------------------------------"
-        << "--------------------------------------------------";
-
-    screen_output << endl;
-    // iterate over the timers
+    bool have_gpu{false};
     for(auto& pair_itr : timer_vector) {
         std::string name = pair_itr.first;
-        if (name.find("GPU: ", 0) == std::string::npos) continue;
-        auto p = all_profiles.find(name);
-        if (p != all_profiles.end()) {
-            profile tmp(p->second);
-            write_one_timer(name, &tmp, screen_output, csv_output,
-                total_accumulated, divisor, true);
-            if (name.compare(APEX_MAIN_STR) != 0) {
-                total_hpx_threads = total_hpx_threads + tmp.get_calls();
-            }
+        if (name.find("GPU: ", 0) != std::string::npos) {
+            have_gpu = true;
+            break;
         }
     }
 
-    screen_output << "--------------------------------------------------"
-        << "----------------------------------------------";
-    /*
-    if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
-        screen_output << "--------------------------------------------";
+    if (have_gpu) {
+        screen_output << "GPU Timers                                           : "
+            << "#calls  |    mean  |   total  |  % total  ";
+        if (apex_options::track_gpu_memory()) {
+            screen_output << "|  allocs |  (bytes) |    frees |   (bytes) ";
+        }
+        screen_output << endl;
+        screen_output << "----------------------------------------------"
+                      << "--------------------------------------------------";
+        screen_output << endl;
+
+        // iterate over the timers
+        for(auto& pair_itr : timer_vector) {
+            std::string name = pair_itr.first;
+            if (name.find("GPU: ", 0) == std::string::npos) continue;
+            auto p = all_profiles.find(name);
+            if (p != all_profiles.end()) {
+                profile tmp(p->second);
+                write_one_timer(name, &tmp, screen_output, csv_output,
+                    total_accumulated, divisor, true);
+                if (name.compare(APEX_MAIN_STR) != 0) {
+                    total_hpx_threads = total_hpx_threads + tmp.get_calls();
+                }
+            }
+        }
+
+        screen_output << "--------------------------------------------------"
+            << "----------------------------------------------";
+        /*
+        if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
+            screen_output << "--------------------------------------------";
+        }
+        */
+        screen_output << endl;
+        screen_output << endl;
     }
-    */
-    screen_output << endl;
-    screen_output << endl;
 
     screen_output << "CPU Timers                                           : "
         << "#calls  |  #yields |    mean  |   total  |  % total  "
@@ -1697,10 +1709,8 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
           apex_options::use_csv_output()) {
         // reduce/gather all profiles from all ranks
         auto reduced = reduce_profiles();
-        if (node_id == 0) {
-          if (apex_options::process_async_state()) {
+        if (apex_options::process_async_state()) {
             finalize_profiles(data, reduced);
-          }
         }
       }
       if (apex_options::use_taskgraph_output())

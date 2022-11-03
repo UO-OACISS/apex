@@ -104,6 +104,7 @@ bool cmp(std::pair<task_identifier, Node*>& a, std::pair<task_identifier, Node*>
 
 double Node::writeNodeASCII(std::ofstream& outfile, double total, size_t indent) {
     APEX_ASSERT(total > 0.0);
+    constexpr int precision{3};
     for (size_t i = 0 ; i < indent ; i++) {
         outfile << "| ";
     }
@@ -113,8 +114,8 @@ double Node::writeNodeASCII(std::ofstream& outfile, double total, size_t indent)
     double acc = (data == task_identifier::get_main_task_id() || accumulated == 0.0) ?
         total : accumulated;
     double percentage = (accumulated / total) * 100.0;
-    outfile << std::fixed << std::setprecision(5) << acc << " - "
-            << std::fixed << std::setprecision(4) << percentage << "% [";
+    outfile << std::fixed << std::setprecision(precision) << acc << " - "
+            << std::fixed << std::setprecision(precision) << percentage << "% [";
     // write the number of calls
     double ncalls = (calls == 0) ? 1 : calls;
     outfile << std::fixed << std::setprecision(0) << ncalls << "]";
@@ -122,7 +123,7 @@ double Node::writeNodeASCII(std::ofstream& outfile, double total, size_t indent)
     double mean = acc / ncalls;
     double variance = ((sumsqr / ncalls) - (mean * mean));
     double stddev = sqrt(variance);
-    outfile << " {min=" << std::fixed << std::setprecision(4) << min << ", max=" << max
+    outfile << " {min=" << std::fixed << std::setprecision(precision) << min << ", max=" << max
             << ", mean=" << mean << ", var=" << variance
             << ", std dev=" << stddev << "} ";
     // Write out the name

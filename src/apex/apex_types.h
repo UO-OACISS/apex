@@ -275,6 +275,7 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_TRACE_EVENT, use_trace_event, bool, false, "Enable Google Trace Event output.") \
     macro (APEX_POLICY, use_policy, bool, true, "Enable APEX policy listener and execute registered policies.") \
     macro (APEX_MEASURE_CONCURRENCY, use_concurrency, int, 0, "Periodically sample thread activity and output report at exit.") \
+    macro (APEX_MEASURE_CONCURRENCY_MAX_TIMERS, concurrency_max_timers, int, 5, "Maximum number of timers in the concurrency report.") \
     macro (APEX_MEASURE_CONCURRENCY_PERIOD, concurrency_period, int, 1000000, "Thread concurrency sampling period, in microseconds.") \
     macro (APEX_SCREEN_OUTPUT, use_screen_output, bool, false, "Output APEX performance summary at exit.") \
     macro (APEX_VERBOSE, use_verbose, bool, false, "Output APEX options at entry.") \
