@@ -743,7 +743,7 @@ std::string hashContext(size_t numVars,
         }
         d = ",";
     }
-    ss << ",node:" << tree_node << "]";
+    ss << ",tree_node:" << tree_node << "]";
     std::string tmp{ss.str()};
     return tmp;
 }
@@ -1044,7 +1044,7 @@ void kokkosp_request_values(
     if (!apex::apex_options::use_kokkos_tuning()) { return; }
     // first, get the current timer node in the task tree
     auto tlt = apex::thread_instance::get_top_level_timer();
-    std::string tree_node{""};
+    std::string tree_node{"default"};
     if (tlt != nullptr) {
         tree_node = tlt->tree_node->getName();
     }
