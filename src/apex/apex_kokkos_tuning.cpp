@@ -212,8 +212,8 @@ private:
 // EXHAUSTIVE, RANDOM, NELDER_MEAD, PARALLEL_RANK_ORDER
     KokkosSession() :
         window(5),
-        strategy(apex_ah_tuning_strategy::APEX_EXHAUSTIVE),
-        //strategy(apex_ah_tuning_strategy::SIMULATED_ANNEALING),
+        //strategy(apex_ah_tuning_strategy::APEX_EXHAUSTIVE),
+        strategy(apex_ah_tuning_strategy::SIMULATED_ANNEALING),
         //strategy(apex_ah_tuning_strategy::NELDER_MEAD),
         verbose(false),
         use_history(false),
