@@ -72,7 +72,7 @@ void* someThread(void* tmp)
 {
     int* tid = (int*)tmp;
     char name[32];
-    sprintf(name, "worker-thread#%d", *tid);
+    snprintf(name, 32, "worker-thread#%d", *tid);
     /* Tell APEX that there is a new thread */
     apex::register_thread(name);
     /* Time this thread */
@@ -81,7 +81,7 @@ void* someThread(void* tmp)
     apex::sample_value("test_counter_1", 2.0);
     char counter[64];
     /* Sample another counter */
-    sprintf(counter, "test_counter_%s", name);
+    snprintf(counter, 64, "test_counter_%s", name);
     apex::sample_value(counter, 2.0);
     /* Stop timing the thread */
     apex::stop(p);

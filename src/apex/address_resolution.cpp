@@ -49,10 +49,10 @@ namespace apex {
       if (it2 == ar->my_hash_table.end()) {
         // ...no - so go get it!
         node = new address_resolution::my_hash_node();
-        node->info.filename = nullptr;
-        node->info.funcname = nullptr;
+        node->info.filename = "";
+        node->info.funcname = "";
         node->info.lineno = 0;
-        node->info.demangled = nullptr;
+        node->info.demangled = "";
         node->location = nullptr;
 #if defined(__APPLE__)
 #if defined(APEX_HAVE_CORESYMBOLICATION)
@@ -91,27 +91,24 @@ namespace apex {
 		    result.push_back(s);
         }
         node->info.probeAddr = ip;
-        node->info.filename = strdup("?");
-        node->info.funcname = strdup(result[3].c_str());
+        node->info.filename = "?";
+        node->info.funcname = result[3].c_str();
 #endif
 #endif
-        if (node->info.filename == nullptr) {
-            stringstream ss;
-            ss << "UNRESOLVED  ADDR 0x" << hex << ip;
-            node->info.funcname = strdup(ss.str().c_str());
+        if (node->info.filename.size() == 0) {
+            node->info.funcname = "UNRESOLVED  ADDR 0x" + hex2str(ip);
         }
 
-        if (node->info.demangled) {
-          location << node->info.demangled ;
-        } else if (node->info.funcname) {
-          std::string mangled(node->info.funcname);
-          std::string demangled = demangle(mangled);
-          location << demangled ;
+        if (node->info.demangled.size() >> 0) {
+            location << node->info.demangled ;
+        } else if (node->info.funcname.size() >> 0) {
+            std::string demangled = demangle(node->info.funcname);
+            location << demangled ;
         }
         if (apex_options::use_source_location() || forceSourceInfo) {
             location << " [{" ;
-            if (node->info.filename) {
-            location << node->info.filename ;
+            if (node->info.filename.size() > 0) {
+                location << node->info.filename ;
             }
             location << "} {";
             if (node->info.lineno != 0) {
@@ -134,9 +131,6 @@ namespace apex {
       }
     } else {
       node = it->second;
-    }
-    if (node->info.demangled && (strlen(node->info.demangled) == 0)) {
-        node->info.demangled = nullptr;
     }
     if (withFileInfo) {
       return node->location;

@@ -39,7 +39,7 @@ void* someThread(void* tmp)
 {
     int tid = *(int*)tmp;
     char name[32];
-    sprintf(name, "worker thread %d", tid);
+    snprintf(name, 32, "worker thread %d", tid);
     /* Register this thread with APEX */
     apex::register_thread(name);
     /* Start a timer */

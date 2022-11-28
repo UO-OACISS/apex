@@ -299,6 +299,7 @@ enable_cxx_compiler_flag_if_supported("-Wall")
 enable_cxx_compiler_flag_if_supported("-Wextra")
 # Great, the GCC 9 compiler has a pedantic warning error.
 if (APEX_USE_PEDANTIC)
+    enable_cxx_compiler_flag_if_supported("-Werror")
     enable_cxx_compiler_flag_if_supported("-Wpedantic")
     enable_cxx_compiler_flag_if_supported("-pedantic")
 endif (APEX_USE_PEDANTIC)
