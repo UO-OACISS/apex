@@ -212,8 +212,8 @@ private:
 // EXHAUSTIVE, RANDOM, NELDER_MEAD, PARALLEL_RANK_ORDER
     KokkosSession() :
         window(5),
-        strategy(apex_ah_tuning_strategy::APEX_EXHAUSTIVE),
-        //strategy(apex_ah_tuning_strategy::SIMULATED_ANNEALING),
+        //strategy(apex_ah_tuning_strategy::APEX_EXHAUSTIVE),
+        strategy(apex_ah_tuning_strategy::SIMULATED_ANNEALING),
         //strategy(apex_ah_tuning_strategy::NELDER_MEAD),
         verbose(false),
         use_history(false),
@@ -743,7 +743,7 @@ std::string hashContext(size_t numVars,
         }
         d = ",";
     }
-    ss << ",node:" << tree_node << "]";
+    ss << ",tree_node:" << tree_node << "]";
     std::string tmp{ss.str()};
     return tmp;
 }
@@ -1044,7 +1044,7 @@ void kokkosp_request_values(
     if (!apex::apex_options::use_kokkos_tuning()) { return; }
     // first, get the current timer node in the task tree
     auto tlt = apex::thread_instance::get_top_level_timer();
-    std::string tree_node{""};
+    std::string tree_node{"default"};
     if (tlt != nullptr) {
         tree_node = tlt->tree_node->getName();
     }
