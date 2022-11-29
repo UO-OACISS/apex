@@ -22,10 +22,10 @@ if (NOT DEFINED $ROCM_ROOT)
 endif()
 
 find_path(ROCTRACER_KFD_INCLUDE_DIR NAMES roctracer_kfd.h
-	HINTS ${ROCTRACER_ROOT}/include ${ROCM_ROOT}/include/roctracer)
+	HINTS ${ROCM_ROOT}/include/roctracer ${ROCTRACER_ROOT}/include)
 
 find_library(ROCTRACER_KFD_LIBRARY NAMES kfdwrapper64
-    HINTS ${ROCTRACER_ROOT}/lib64 ${ROCTRACER_ROOT}/lib ${ROCM_ROOT}/roctracer/lib64 ${ROCM_ROOT}/roctracer/lib)
+    HINTS ${ROCM_ROOT}/roctracer/lib64 ${ROCM_ROOT}/roctracer/lib ${ROCTRACER_ROOT}/lib64 ${ROCTRACER_ROOT}/lib)
 
 include(FindPackageHandleStandardArgs)
 # handle the QUIETLY and REQUIRED arguments and set ROCTRACER_FOUND to TRUE

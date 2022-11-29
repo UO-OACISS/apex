@@ -56,7 +56,7 @@ int main (int argc, char *argv[])
   const int nbytes = sizeof(double) * n;
   const int block_size = 256;
   const int nwarmup = 100;
-  const double max_seconds = 2;
+  //const double max_seconds = 2;
   double *d_a, *d_b, *d_c, *d_d;
   struct timespec start, end;
   double elapsed, total;
@@ -126,10 +126,10 @@ int main (int argc, char *argv[])
   }
   // destroy the stream
   CHECK(hipStreamDestroy(stream));
-  hipFree(d_d);
-  hipFree(d_c);
-  hipFree(d_b);
-  hipFree(d_a);
+  CHECK(hipFree(d_d));
+  CHECK(hipFree(d_c));
+  CHECK(hipFree(d_b));
+  CHECK(hipFree(d_a));
   niter -= nwarmup;
   std::cout << float(total) / niter << "\t" << niter << std::endl;
 

@@ -32,7 +32,7 @@ struct has_bytes_read
     static constexpr auto check(...) -> std::false_type;
 
     using type = decltype(check<StreamBuf>(nullptr));
-    const static constexpr bool value = type::value;
+    static constexpr bool value = type::value;
 };
 }
 

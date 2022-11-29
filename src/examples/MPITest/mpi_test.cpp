@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
   nworkitems = commsize * items_per_rank;
   DEBUG_MSG;
   apex::init("MPI TEST", myrank, commsize);
-  apex::profiler* p = apex::start((apex_function_address)(main));
+  apex::profiler* p = apex::start(__func__);
   MPI_Barrier(MPI_COMM_WORLD);
   if (myrank == 0) {
     root_node();

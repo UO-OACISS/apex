@@ -75,6 +75,7 @@ std::mutex bfd_mutex;
         shorter = std::regex_replace(shorter, std::regex("_parallel_launch_local_memory"), "_local");
         shorter = std::regex_replace(shorter, std::regex("_parallel_launch_constant_memory"), "_const");
         return shorter;
+#if 0
         /* trim the arguments? */
         size_t trim_at = shorter.rfind("(");
         if (trim_at != std::string::npos) {
@@ -101,6 +102,7 @@ std::mutex bfd_mutex;
         }
         return shorter;
         */
+#endif
     }
 
     std::string task_identifier::get_short_name() {

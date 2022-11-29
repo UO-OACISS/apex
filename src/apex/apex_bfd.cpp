@@ -611,7 +611,10 @@ char const * Apex_bfd_internal_tryDemangle(bfd * bfdImage,
     APEX_UNUSED(bfdImage);
 #endif
     if (demangled && strlen(demangled) > 0) return demangled;
-        return funcname;
+        std::string tmp{demangled};
+        return tmp;
+    }
+    return funcname;
 }
 
 unsigned long apex_getProbeAddr(bfd * bfdImage, unsigned long pc) {
