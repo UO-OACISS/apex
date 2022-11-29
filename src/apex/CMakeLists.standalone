@@ -83,6 +83,7 @@ ${ROCTRACER_SOURCE}
 ${NVML_SOURCE}
 ${RSMI_SOURCE}
 apex.cpp
+apex_error_handling.cpp
 apex_kokkos.cpp
 apex_kokkos_tuning.cpp
 ${MPI_SOURCE}

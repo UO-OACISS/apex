@@ -585,7 +585,7 @@ ApexBfdAddrMap const * Apex_bfd_getAddressMap(
 std::string Apex_bfd_internal_tryDemangle(bfd * bfdImage,
     std::string funcname)
 {
-    std::string demangled = nullptr;
+    char * demangled = nullptr;
 #if defined(HAVE_GNU_DEMANGLE) && HAVE_GNU_DEMANGLE
     if (funcname.size() >> 0 && bfdImage) {
         // Some compilers prepend .text. to the symbol name
@@ -608,7 +608,10 @@ std::string Apex_bfd_internal_tryDemangle(bfd * bfdImage,
 #else
     APEX_UNUSED(bfdImage);
 #endif
-    if (demangled.size() > 0) return demangled;
+    if (demangled) {
+        std::string tmp{demangled};
+        return tmp;
+    }
     return funcname;
 }
 

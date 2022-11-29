@@ -16,10 +16,10 @@ if(NOT DEFINED $ROCTX_ROOT)
 endif()
 
 find_path(ROCTX_INCLUDE_DIR NAMES roctx.h
-	HINTS ${ROCTX_ROOT}/include ${ROCM_ROOT}/include/roctracer)
+	HINTS ${ROCM_ROOT}/include/roctracer ${ROCTX_ROOT}/include)
 
 find_library(ROCTX_LIBRARY NAMES roctx64
-    HINTS ${ROCTX_ROOT}/lib64 ${ROCTX_ROOT}/lib ${ROCM_ROOT}/roctracer/lib64 ${ROCM_ROOT}/roctracer/lib)
+    HINTS ${ROCM_ROOT}/roctracer/lib64 ${ROCM_ROOT}/roctracer/lib ${ROCTX_ROOT}/lib64 ${ROCTX_ROOT}/lib)
 
 include(FindPackageHandleStandardArgs)
 # handle the QUIETLY and REQUIRED arguments and set ROCTX_FOUND to TRUE

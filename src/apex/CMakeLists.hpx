@@ -323,6 +323,7 @@ set(apex_headers
 
 set(apex_sources
     apex.cpp
+    apex_error_handling.cpp
     apex_kokkos.cpp
     apex_kokkos_tuning.cpp
     ${apex_mpi_sources}

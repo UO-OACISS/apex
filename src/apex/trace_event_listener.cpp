@@ -212,7 +212,7 @@ inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
         int i = 0;
         for (auto metric :
             apex::instance()->the_profiler_listener->get_metric_names()) {
-            double start = p->papi_start_values[i];
+            //double start = p->papi_start_values[i];
             double stop = p->papi_stop_values[i++];
             // write our counter into the event stream
             ss << fixed;

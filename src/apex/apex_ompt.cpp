@@ -1267,14 +1267,13 @@ extern "C" void apex_ompt_work (
             sprintf(regionIDstr, "OpenMP Work %s", tmp_str);
             apex_ompt_start(regionIDstr, task_data, parallel_data, true);
         }
-        APEX_UNUSED(count_type);
-        /*
         if (apex::apex_options::ompt_high_overhead_events()) {
             std::stringstream ss;
             ss << count_type << ": " << regionIDstr;
             std::string tmp{ss.str()};
             apex::sample_value(tmp, count);
         }
+        /*
         */
     } else {
         DEBUG_PRINT("%" PRId64 ": %s End task: %p, region: %p\n", apex_threadid, tmp_str,

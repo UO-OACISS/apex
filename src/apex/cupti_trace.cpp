@@ -32,7 +32,7 @@
 #include "async_thread_node.hpp"
 #include "memory_wrapper.hpp"
 
-#include <cuda.h>
+#include <cuda_runtime_api.h>
 #include <cupti.h>
 #include <nvToolsExt.h>
 #include <nvToolsExtSync.h>
@@ -1847,7 +1847,7 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
     /* Check for exit */
     if (!allGood) {
 	return;
-    } 
+    }
 
     /* Check for a new context */
     if (domain == CUPTI_CB_DOMAIN_RESOURCE) {

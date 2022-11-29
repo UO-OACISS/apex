@@ -22,16 +22,16 @@ if (NOT DEFINED $ROCM_ROOT)
 endif()
 
 find_path(ROCPROFILER_INCLUDE_DIR NAMES rocprofiler.h
-	HINTS ${ROCPROFILER_ROOT}/include ${ROCM_ROOT}/include/rocprofiler)
+	HINTS ${ROCM_ROOT}/include/rocprofiler ${ROCPROFILER_ROOT}/include)
 
 find_path(ROCPROFILER_XML_DIR NAMES metrics.xml
-	HINTS ${ROCPROFILER_ROOT}/lib ${ROCM_ROOT}/lib/rocprofiler ${ROCM_ROOT}/rocprofiler/lib)
+	HINTS ${ROCM_ROOT}/lib/rocprofiler ${ROCM_ROOT}/rocprofiler/lib ${ROCPROFILER_ROOT}/lib)
 
 find_path(HSA_TOOLS_DIR NAMES librocprofiler64.so
-	HINTS ${ROCPROFILER_ROOT}/lib ${ROCM_ROOT}/lib/rocprofiler ${ROCM_ROOT}/rocprofiler/lib)
+	HINTS ${ROCM_ROOT}/lib/rocprofiler ${ROCM_ROOT}/rocprofiler/lib ${ROCPROFILER_ROOT}/lib)
 
 find_library(ROCPROFILER_LIBRARY NAMES rocprofiler64
-    HINTS ${ROCPROFILER_ROOT}/lib64 ${ROCPROFILER_ROOT}/lib ${ROCM_ROOT}/rocprofiler/lib64 ${ROCM_ROOT}/rocprofiler/lib)
+    HINTS ${ROCPROFILER_ROOT}/lib ${ROCM_ROOT}/rocprofiler/lib64 ${ROCM_ROOT}/rocprofiler/lib ${ROCPROFILER_ROOT}/lib64)
 
 include(FindPackageHandleStandardArgs)
 # handle the QUIETLY and REQUIRED arguments and set ROCPROFILER_FOUND to TRUE
