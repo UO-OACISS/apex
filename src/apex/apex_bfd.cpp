@@ -89,7 +89,7 @@
 
 using namespace std;
 
-std::string Apex_bfd_internal_getExecutablePath();
+char const * Apex_bfd_internal_getExecutablePath();
 
 struct ApexBfdModule
 {
@@ -225,7 +225,7 @@ struct ApexBfdUnit
   }
 
   int apex_objopen_counter;
-  std::string executablePath;
+  char const * executablePath;
   ApexBfdModule * executableModule;
   vector<ApexBfdAddrMap*> addressMaps;
   vector<ApexBfdModule*> modules;
@@ -582,17 +582,19 @@ ApexBfdAddrMap const * Apex_bfd_getAddressMap(
   return unit->addressMaps[matchingIdx];
 }
 
-std::string Apex_bfd_internal_tryDemangle(bfd * bfdImage,
-    std::string funcname)
+char const * Apex_bfd_internal_tryDemangle(bfd * bfdImage,
+    char const * funcname)
 {
-    std::string demangled = nullptr;
+    char const * demangled = nullptr;
 #if defined(HAVE_GNU_DEMANGLE) && HAVE_GNU_DEMANGLE
-    if (funcname.size() >> 0 && bfdImage) {
+    if (funcname && bfdImage) {
         // Some compilers prepend .text. to the symbol name
-        apex::eraseSubStr(funcname, ".text.");
+        if (strncmp(funcname, ".text.", 6) == 0) {
+        funcname += 6;
+        }
 
         // Sampling sometimes gives the names as a long branch offset
-        char const * substr = strstr(funcname.c_str(), ".long_branch_r2off.");
+        char const * substr = strstr(funcname, ".long_branch_r2off.");
         if (substr) {
             char * tmp = strdup(substr+19);
             // Trim offset address from end of name
@@ -602,14 +604,14 @@ std::string Apex_bfd_internal_tryDemangle(bfd * bfdImage,
             demangled = bfd_demangle(bfdImage, tmp, DEMANGLE_FLAGS);
             free(tmp);
         } else {
-            demangled = bfd_demangle(bfdImage, funcname.c_str(), DEMANGLE_FLAGS);
+            demangled = bfd_demangle(bfdImage, funcname, DEMANGLE_FLAGS);
         }
     }
 #else
     APEX_UNUSED(bfdImage);
 #endif
-    if (demangled.size() > 0) return demangled;
-    return funcname;
+    if (demangled && strlen(demangled) > 0) return demangled;
+        return funcname;
 }
 
 unsigned long apex_getProbeAddr(bfd * bfdImage, unsigned long pc) {
@@ -706,7 +708,7 @@ bool Apex_bfd_resolveBfdInfo(apex_bfd_handle_t handle,
   }
 
   // We may have the function name but not the file name
-  if (info.funcname.size() > 0 && info.filename.size() == 0) {
+  if (info.funcname && !info.filename) {
     if (matchingIdx != -1) {
       info.filename = unit->addressMaps[matchingIdx]->name;
     } else {
@@ -714,7 +716,7 @@ bool Apex_bfd_resolveBfdInfo(apex_bfd_handle_t handle,
     }
   }
 
-  if (data.found && info.funcname.size() > 0) {
+  if (data.found && info.funcname) {
 #ifdef APEX_INTEL12
     // For Intel 12 workaround. Inform the module that the previous resolve was
     // successful.
@@ -740,7 +742,7 @@ bool Apex_bfd_resolveBfdInfo(apex_bfd_handle_t handle,
           char const * mark = strchr(const_cast<char*>(name), '$');
           if (mark) name = mark + 1;
         }
-        info.demangled = Apex_bfd_internal_tryDemangle(module->bfdImage, std::string(name));
+        info.demangled = Apex_bfd_internal_tryDemangle(module->bfdImage, name);
 #ifdef APEX_INTEL12
         // For Intel 12 workaround.
         // Inform the module that the previous resolve was successful.
@@ -764,17 +766,19 @@ bool Apex_bfd_resolveBfdInfo(apex_bfd_handle_t handle,
   // we might have partial information, like filename and line number.
   // MOST LIKELY this is an outlined region or some other code that the compiler
   // generated.
-  if ((info.funcname.size() == 0) && (info.filename.size() > 0) && (info.lineno > 0)) {
+  if ((info.funcname == nullptr) && (info.filename != nullptr) && (info.lineno > 0)) {
     info.probeAddr = probeAddr;
-    info.funcname = "anonymous";
+    info.funcname = (char*)malloc(32);
+    sprintf(const_cast<char*>(info.funcname), "anonymous");
     return true;
   }
 
   // Couldn't resolve the address so fill in fields as best we can.
-  if (info.funcname.size() == 0) {
-    info.funcname = "addr=<" + hex2str(probeAddr) + ">";
+  if (info.funcname == nullptr) {
+    info.funcname = (char*)malloc(128);
+    sprintf(const_cast<char*>(info.funcname), "addr=<%lx>", probeAddr);
   }
-  if (info.filename.size() == 0) {
+  if (info.filename == nullptr) {
     if (matchingIdx != -1) {
       info.filename = unit->addressMaps[matchingIdx]->name;
     } else {
@@ -823,16 +827,18 @@ int Apex_bfd_processBfdExecInfo(apex_bfd_handle_t handle, ApexBfdIterFn fn)
     return APEX_BFD_SYMTAB_LOAD_FAILED;
   }
   ApexBfdUnit * unit = apex_ThebfdUnits()[handle];
+
+  char const * execName = unit->executablePath;
   ApexBfdModule * module = unit->executableModule;
 
   // Only process the executable once.
   if (module->processCode != APEX_BFD_SYMTAB_NOT_LOADED) {
     printf("Apex_bfd_processBfdExecInfo:\n\t%s already processed (code %d).",
-        unit->executablePath.c_str(), module->processCode);
+        execName, module->processCode);
     printf("  Will not reprocess.\n");
     return module->processCode;
   }
-  //printf("Apex_bfd_processBfdExecInfo: processing executable %s\n", unit->executablePath.c_str());
+  //printf("Apex_bfd_processBfdExecInfo: processing executable %s\n", execName);
 
   // Make sure executable symbol table is loaded
   if (!Apex_bfd_internal_loadExecSymTab(unit)) {
@@ -904,8 +910,10 @@ bool Apex_bfd_internal_loadSymTab(ApexBfdUnit *unit, int moduleIndex)
 
 bool Apex_bfd_internal_loadExecSymTab(ApexBfdUnit *unit)
 {
+  char const * name = unit->executablePath;
   ApexBfdModule * module = unit->executableModule;
-  return module->apex_loadSymbolTable(unit->executablePath.c_str());
+
+  return module->apex_loadSymbolTable(name);
 }
 
 // Internal BFD helper functions
@@ -934,7 +942,7 @@ ApexBfdModule * Apex_bfd_internal_getModuleFromIdx(
 }
 
 #if defined(APEX_BGP)
-int Apex_bfd_internal_getBGPExePath(std::string &path)
+int Apex_bfd_internal_getBGPExePath(char * path)
 {
   DIR * pdir = opendir("/jobs");
   if (!pdir) {
@@ -950,7 +958,7 @@ int Apex_bfd_internal_getBGPExePath(std::string &path)
       return -1;
     }
   }
-  path = "/jobs/" + pent->d_name + "/exe";
+  sprintf(path, "/jobs/%s/exe", pent->d_name);
   closedir(pdir);
 
   //printf("Apex_bfd_internal_getBGPExePath: [%s]\n", path);
@@ -958,15 +966,15 @@ int Apex_bfd_internal_getBGPExePath(std::string &path)
 }
 #endif
 
-std::string Apex_bfd_internal_getExecutablePath()
+char const * Apex_bfd_internal_getExecutablePath()
 {
-  std::string path;
+  static char path[4096];
   static bool init = false;
 
   if (!init) {
     if (!init) {
 #if defined(APEX_AIX)
-      path = "/proc/" + std::string(getpid()) + "/object/a.out"; // get PID!
+      sprintf(path, "/proc/%d/object/a.out", getpid()); // get PID!
 #elif defined(APEX_BGP)
       if (Apex_bfd_internal_getBGPExePath(path) != 0) {
         fprintf(stderr, "Apex_bfd_internal_getExecutablePath: "
@@ -974,19 +982,15 @@ std::string Apex_bfd_internal_getExecutablePath()
             "symbols will not be resolved\n", path);
       }
 #elif defined(APEX_BGQ)
-      path = "/proc/self/exe";
+      sprintf(path, "%s", "/proc/self/exe");
 #elif defined(__APPLE__)
-      char tmp[8192];
-      uint32_t size = 8192;
-      _NSGetExecutablePath(tmp, &size);
-      path = tmp;
+      uint32_t size = sizeof(path);
+      _NSGetExecutablePath(path, &size);
 #elif defined(APEX_WINDOWS) && defined(APEX_MINGW)
-      char * tmp[8192];
-      GetModuleFileName(nullptr, tmp, sizeof(tmp));
-      path = tmp;
+      GetModuleFileName(nullptr, path, sizeof(path));
 #else
       // Default: Linux systems
-      path = "/proc/self/exe";
+      sprintf(path, "%s", "/proc/self/exe");
 #endif
       init = true;
     }
@@ -1021,25 +1025,17 @@ void Apex_bfd_internal_locateAddress(bfd * bfdptr,
   // ApexBfdInfo fields without an extra copy.  This also means
   // that the pointers in ApexBfdInfo must never be deleted
   // since they point directly into the module's BFD.
-  const char * filename;
-  const char * funcname;
 #if (APEX_BFD >= 022200)
   data.found = bfd_find_nearest_line_discriminator(bfdptr, section,
       data.module->syms, (data.info.probeAddr - vma),
-      &filename, &funcname,
+      &data.info.filename, &data.info.funcname,
       (unsigned int*)&data.info.lineno, &data.info.discriminator);
 #else
   data.found = bfd_find_nearest_line(bfdptr, section,
       data.module->syms, (data.info.probeAddr - vma),
-      &filename, &funcname,
+      &data.info.filename, &data.info.funcname,
       (unsigned int*)&data.info.lineno);
 #endif
-    if (filename != nullptr) {
-        data.info.filename = filename;
-    }
-    if (funcname != nullptr) {
-        data.info.funcname = funcname;
-    }
-    return;
+  return;
 }
 

@@ -39,6 +39,7 @@ namespace apex {
         // assignment operator is private
         address_resolution& operator=(address_resolution const& a);
       public:
+        uintptr_t getPieOffset();
         static shared_mutex_type _bfd_mutex;
 
 

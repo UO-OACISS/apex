@@ -62,24 +62,29 @@ struct ApexBfdAddrMap
 struct ApexBfdInfo
 {
     ApexBfdInfo() :
-        probeAddr(0), filename(""), funcname(""), demangled(""),
+        probeAddr(0), filename(nullptr), funcname(nullptr), demangled(nullptr),
                 lineno(-1), discriminator(0)
     { }
-    ~ApexBfdInfo() { }
+    ~ApexBfdInfo() {
+        if (funcname != nullptr && demangled != funcname)
+            free(const_cast<char*>(demangled));
+    }
 
     // Makes all fields safe to query
     void secure(unsigned long addr) {
         probeAddr = addr;
-        if(funcname.size() == 0) {
-            funcname = "addr=<" + hex2str(addr) + ">";
+        if(!funcname) {
+            std::string tmp = "addr=<" + hex2str(addr) + ">";
+            funcname = strdup(tmp.c_str());
         }
+        if(!filename) filename = "(unknown)";
         if(lineno < 0) lineno = 0;
     }
 
     unsigned long probeAddr;
-    std::string filename;
-    std::string funcname;
-    std::string demangled;
+    char const * filename;
+    char const * funcname;
+    char const * demangled;
     int lineno;
     unsigned int discriminator;
 };

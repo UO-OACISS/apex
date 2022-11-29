@@ -11,6 +11,11 @@
 #include <iostream>
 #include <unordered_map>
 #include <execinfo.h>
+#include <unistd.h>
+#include <elf.h>
+#include <stdio.h>
+#include <string.h>
+#include <link.h>
 
 #ifdef __APPLE__
 #include <dlfcn.h>
@@ -22,6 +27,8 @@
 
 using namespace std;
 
+extern char _start;
+
 namespace apex {
 
   // instantiate our static instances.
@@ -29,8 +36,10 @@ namespace apex {
   shared_mutex_type address_resolution::_bfd_mutex;
 
   /* Map a function address to a name and/or source location */
-  string * lookup_address(uintptr_t ip, bool withFileInfo, bool forceSourceInfo) {
+  string * lookup_address(uintptr_t ip_in, bool withFileInfo, bool forceSourceInfo) {
     address_resolution * ar = address_resolution::instance();
+    static uintptr_t base_addr = ar->getPieOffset();
+    uintptr_t ip = ip_in - base_addr;
     stringstream location;
     address_resolution::my_hash_node * node = nullptr;
     std::unordered_map<uintptr_t, address_resolution::my_hash_node*>::const_iterator it;
@@ -49,10 +58,10 @@ namespace apex {
       if (it2 == ar->my_hash_table.end()) {
         // ...no - so go get it!
         node = new address_resolution::my_hash_node();
-        node->info.filename = "";
-        node->info.funcname = "";
+        node->info.filename = nullptr;
+        node->info.funcname = nullptr;
         node->info.lineno = 0;
-        node->info.demangled = "";
+        node->info.demangled = nullptr;
         node->location = nullptr;
 #if defined(__APPLE__)
 #if defined(APEX_HAVE_CORESYMBOLICATION)
@@ -91,23 +100,26 @@ namespace apex {
 		    result.push_back(s);
         }
         node->info.probeAddr = ip;
-        node->info.filename = "?";
-        node->info.funcname = result[3].c_str();
+        node->info.filename = strdup("?");
+        node->info.funcname = strdup(result[3].c_str());
 #endif
 #endif
-        if (node->info.filename.size() == 0) {
-            node->info.funcname = "UNRESOLVED  ADDR 0x" + hex2str(ip);
+        if (node->info.filename == nullptr) {
+            stringstream ss;
+            ss << "UNRESOLVED  ADDR 0x" << hex << ip;
+            node->info.funcname = strdup(ss.str().c_str());
         }
 
-        if (node->info.demangled.size() >> 0) {
+        if (node->info.demangled) {
             location << node->info.demangled ;
-        } else if (node->info.funcname.size() >> 0) {
-            std::string demangled = demangle(node->info.funcname);
+        } else if (node->info.funcname) {
+            std::string mangled(node->info.funcname);
+            std::string demangled = demangle(mangled);
             location << demangled ;
         }
         if (apex_options::use_source_location() || forceSourceInfo) {
             location << " [{" ;
-            if (node->info.filename.size() > 0) {
+            if (node->info.filename) {
                 location << node->info.filename ;
             }
             location << "} {";
@@ -132,10 +144,32 @@ namespace apex {
     } else {
       node = it->second;
     }
+    if (node->info.demangled && (strlen(node->info.demangled) == 0)) {
+        node->info.demangled = nullptr;
+    }
     if (withFileInfo) {
       return node->location;
     } else {
       return new string(node->info.funcname);
     }
   }
+
+    // gives us the -pie offset in the executable.
+    uintptr_t address_resolution::getPieOffset() {
+#if defined(__APPLE__)
+        return 0UL;
+#else
+#if 1
+        uintptr_t entry_point = _r_debug.r_map->l_addr;
+        return entry_point;
+#else
+        Dl_info info;
+        void *extra = NULL;
+        dladdr1(&_start, &info, &extra, RTLD_DL_LINKMAP);
+        struct link_map *map = (struct link_map*)extra;
+        return (uintptr_t)(map->l_addr);
+#endif
+#endif
+    }
+
 }

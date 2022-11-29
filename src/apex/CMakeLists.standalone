@@ -77,6 +77,7 @@ endif (APEX_WITH_RAJA AND RAJA_FOUND)
 
 # Try to keep this in alphabetical order
 SET(all_SOURCE
+apex_preload.cpp
 ${CUPTI_SOURCE}
 ${ROCPROFILER_SOURCE}
 ${ROCTRACER_SOURCE}
