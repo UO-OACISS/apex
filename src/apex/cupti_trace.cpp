@@ -1874,7 +1874,9 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
         std::stringstream ss;
         ss << cbdata->functionName;
         if (apex::apex_options::use_cuda_kernel_details() && isLaunch(id)) {
-            if (cbdata->symbolName != NULL && strlen(cbdata->symbolName) > 0) {
+            // protect against stack overflows from cupti. yes, it happens.
+            if (cbdata->symbolName != NULL && cbdata->symbolName > params &&
+                strlen(cbdata->symbolName) > 0) {
                 ss << ": " << cbdata->symbolName;
             }
         }
@@ -1916,7 +1918,8 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
             std::stringstream ss;
             ss << cbdata->functionName;
             if (apex::apex_options::use_cuda_kernel_details() && isLaunch(id)) {
-                if (cbdata->symbolName != NULL && strlen(cbdata->symbolName) > 0) {
+                if (cbdata->symbolName != NULL && cbdata->symbolName > params &&
+                    strlen(cbdata->symbolName) > 0) {
                     ss << ": " << cbdata->symbolName;
                 }
             }

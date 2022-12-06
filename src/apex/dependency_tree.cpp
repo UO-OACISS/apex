@@ -121,11 +121,12 @@ double Node::writeNodeASCII(std::ofstream& outfile, double total, size_t indent)
     outfile << std::fixed << std::setprecision(0) << ncalls << "]";
     // write other stats - min, max, stddev
     double mean = acc / ncalls;
-    double variance = ((sumsqr / ncalls) - (mean * mean));
+    // avoid -0.0 which will cause a -nan for stddev
+    double variance = std::max(0.0,((sumsqr / ncalls) - (mean * mean)));
     double stddev = sqrt(variance);
     outfile << " {min=" << std::fixed << std::setprecision(precision) << min << ", max=" << max
             << ", mean=" << mean << ", var=" << variance
-            << ", std dev=" << stddev << "} ";
+            << ", std dev=" << stddev << ", threads=" << thread_ids.size() << "} ";
     // Write out the name
     outfile << data->get_tree_name() << " ";
     // end the line
@@ -190,7 +191,7 @@ double Node::writeNodeJSON(std::ofstream& outfile, double total, size_t indent) 
     outfile << "\"metrics\": {\"time\": " << excl
             << ", \"total time (inc)\": " << acc
             << ", \"time (inc)\": " << (acc / (double)(thread_ids.size()))
-            << ", \"threads\": " << thread_ids.size()
+            << ", \"num threads\": " << thread_ids.size()
             << ", \"min (inc)\": " << min
             << ", \"max (inc)\": " << max
             << ", \"sumsqr (inc)\": " << sumsqr

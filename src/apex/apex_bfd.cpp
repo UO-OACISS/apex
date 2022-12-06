@@ -611,9 +611,6 @@ char const * Apex_bfd_internal_tryDemangle(bfd * bfdImage,
     APEX_UNUSED(bfdImage);
 #endif
     if (demangled && strlen(demangled) > 0) return demangled;
-        std::string tmp{demangled};
-        return tmp;
-    }
     return funcname;
 }
 

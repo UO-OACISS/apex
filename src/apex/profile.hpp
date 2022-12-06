@@ -195,6 +195,9 @@ public:
     double get_sum_squares() {
         return _profile.sum_squares;
     }
+    double get_num_threads() {
+        return _profile.num_threads;
+    }
     double get_stddev() { return sqrt(get_variance()); }
     double get_allocations() { return _profile.allocations; }
     double get_frees() { return _profile.frees; }
