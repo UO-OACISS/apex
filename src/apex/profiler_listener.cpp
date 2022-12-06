@@ -96,7 +96,7 @@ public:
     std::vector<int> event_sets; // PAPI event sets
     std::vector<size_t> event_set_sizes; // PAPI event set sizes
     papi_state thread_papi_state;
-    profiler_listener_globals() : my_tid(-1), thread_papi_state(papi_suspended) { }
+    profiler_listener_globals() : my_tid(UINT_MAX), thread_papi_state(papi_suspended) { }
     ~profiler_listener_globals() { if (my_tid == 0) finalize(); }
 };
 
@@ -302,13 +302,13 @@ std::unordered_set<profile*> free_profiles;
         if(p.is_reset == reset_type::CURRENT) {
             theprofile->reset();
         } else {
-            if (apex_options::track_memory()) {
+            if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
                 theprofile->increment(p.elapsed(), tmp_num_counters,
                     values, p.allocations, p.frees, p.bytes_allocated,
-                    p.bytes_freed, p.is_resume);
+                    p.bytes_freed, p.is_resume, p.thread_id);
             } else {
                 theprofile->increment(p.elapsed(), tmp_num_counters,
-                    values, p.is_resume);
+                    values, p.is_resume, p.thread_id);
             }
         }
 #if defined(APEX_THROTTLE)
@@ -345,7 +345,8 @@ std::unordered_set<profile*> free_profiles;
 #endif
       } else {
         // Create a new profile for this name.
-        if (apex_options::track_memory() && !p.is_counter) {
+        if ((apex_options::track_cpu_memory() ||
+             apex_options::track_gpu_memory()) && !p.is_counter) {
             theprofile = new profile(p.is_reset ==
                 reset_type::CURRENT ? 0.0 : p.elapsed(),
                 tmp_num_counters, values, p.is_resume,
@@ -394,9 +395,10 @@ std::unordered_set<profile*> free_profiles;
                  * a thread_instance object that is NOT a worker. */
                 thread_instance::instance(false);
                 std::unique_lock<std::mutex> task_map_lock(_mtx);
-                task_scatterplot_samples << p.normalized_timestamp() << " "
-                            << p.elapsed() << " "
-                            << "'" << p.get_task_id()->get_name() << "'" << endl;
+                task_scatterplot_samples << std::fixed
+                    << std::setprecision(0) << p.normalized_timestamp()
+                    << " " << p.elapsed() << " "
+                    << "'" << p.get_task_id()->get_name() << "'" << endl;
                 int loc0 = task_scatterplot_samples.tellp();
                 if (loc0 > 32768) {
                     task_scatterplot_sample_file() << task_scatterplot_samples.rdbuf();
@@ -407,9 +409,10 @@ std::unordered_set<profile*> free_profiles;
         } else {
                 thread_instance::instance(false);
                 std::unique_lock<std::mutex> task_map_lock(_mtx);
-                counter_scatterplot_samples << p.normalized_timestamp() << " "
-                            << p.elapsed() << " "
-                            << "'" << p.get_task_id()->get_name() << "'" << endl;
+                counter_scatterplot_samples << std::fixed
+                    << std::setprecision(0) << p.normalized_timestamp()
+                    << " " << std::setprecision(6) << p.elapsed() << " "
+                    << "'" << p.get_task_id()->get_name() << "'" << endl;
                 int loc0 = task_scatterplot_samples.tellp();
                 if (loc0 > 32768) {
                     counter_scatterplot_sample_file() << counter_scatterplot_samples.rdbuf();
@@ -419,7 +422,7 @@ std::unordered_set<profile*> free_profiles;
 	}
       }
     if (apex_options::use_tasktree_output() && !p.is_counter && p.tt_ptr != nullptr) {
-        p.tt_ptr->tree_node->addAccumulated(p.elapsed_seconds(), p.is_resume);
+        p.tt_ptr->tree_node->addAccumulated(p.elapsed_seconds(), p.is_resume, p.thread_id);
     }
     return 1;
   }
@@ -485,15 +488,19 @@ std::unordered_set<profile*> free_profiles;
   void profiler_listener::write_one_timer(std::string &action_name,
           profile * p, stringstream &screen_output,
           stringstream &csv_output, double &total_accumulated,
-          double &total_main, bool timer, bool include_stops = false,
+          double &total_main, double &wall_main, bool timer, bool include_stops = false,
           bool include_papi = false) {
+#ifndef APEX_HAVE_PAPI
+      APEX_UNUSED(include_papi);
+#endif
       string shorter(action_name);
       size_t maxlength = 41;
       if (timer) maxlength = 52;
       // to keep formatting pretty, trim any long timer names
       if (shorter.size() > maxlength) {
-        shorter.resize(maxlength-3);
-        shorter.resize(maxlength, '.');
+        shorter.resize(maxlength-1);
+        // 0xE2 0x80 0xA6
+        shorter+="…";
       }
       //screen_output << "\"" << shorter << "\", " ;
       if (timer) {
@@ -542,10 +549,27 @@ std::unordered_set<profile*> free_profiles;
         }
       }
       if (p->get_type() == APEX_TIMER) {
-        csv_output << "\"" << action_name << "\",";
+        csv_output << "\"" << action_name << "\",\"timer\",";
         csv_output << llround(p->get_calls()) << ",";
+        // add all the extra columns for counter data
+        csv_output << std::llround(p->get_minimum()) << ",";
+        csv_output << std::llround(p->get_mean()) << ",";
+        csv_output << std::llround(p->get_maximum()) << ",";
+        csv_output << std::llround(p->get_stddev()) << ",";
         csv_output << std::llround(p->get_accumulated_useconds()) << ",";
+        csv_output << std::llround(p->get_num_threads()) << ",";
+        csv_output << std::llround(p->get_accumulated_useconds()/p->get_num_threads());
         //screen_output << " --n/a--   " ;
+        if (include_stops) {
+            if (p->get_num_threads() > 10000) {
+                screen_output << string_format(FORMAT_SCIENTIFIC,
+                    (p->get_num_threads())) << "   " ;
+            } else {
+                auto t = std::max<int>(1, (p->get_num_threads()));
+                screen_output << string_format(PAD_WITH_SPACES,
+                    to_string(t).c_str()) << "   " ;
+            }
+        }
         if (p->get_mean_seconds() > 10000) {
             screen_output << string_format(FORMAT_SCIENTIFIC,
                 (p->get_mean_seconds())) << "   " ;
@@ -557,17 +581,35 @@ std::unordered_set<profile*> free_profiles;
         if (p->get_accumulated_seconds() > 10000) {
             screen_output << string_format(FORMAT_SCIENTIFIC,
                 (p->get_accumulated_seconds())) << "   " ;
+            if (include_stops) {
+                screen_output << string_format(FORMAT_SCIENTIFIC,
+                    (p->get_accumulated_seconds()/p->get_num_threads())) << "   " ;
+            }
         } else {
             screen_output << string_format(FORMAT_PERCENT,
                 (p->get_accumulated_seconds())) << "   " ;
+            if (include_stops) {
+                screen_output << string_format(FORMAT_PERCENT,
+                    (p->get_accumulated_seconds()/p->get_num_threads())) << "   " ;
+            }
         }
         //screen_output << " --n/a--   " ;
         if (action_name.compare(APEX_MAIN_STR) == 0) {
+            screen_output << string_format(FORMAT_PERCENT, 100.0);
+            screen_output << "   ";
             screen_output << string_format(FORMAT_PERCENT, 100.0);
         } else {
             total_accumulated += p->get_accumulated_seconds();
             double tmp = ((p->get_accumulated_seconds())
                 /total_main)*100.0;
+            if (tmp > 100.0) {
+                screen_output << " --n/a--" ;
+            } else {
+                screen_output << string_format(FORMAT_PERCENT, tmp);
+            }
+            screen_output << "   ";
+            tmp = ((p->get_accumulated_seconds()/p->get_num_threads())
+                /wall_main)*100.0;
             if (tmp > 100.0) {
                 screen_output << " --n/a--" ;
             } else {
@@ -583,52 +625,70 @@ std::unordered_set<profile*> free_profiles;
             }
         }
 #endif
-        if (apex_options::track_memory()) {
+        if (include_stops) {
+        if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
             if (p->get_allocations() > 999999) {
                 screen_output  << "   " << string_format(FORMAT_SCIENTIFIC,
                     (p->get_allocations()));
             } else {
                 screen_output  << "   " << string_format(PAD_WITH_SPACES,
-                    to_string((int)p->get_allocations()).c_str());
+                    to_string(std::llround(p->get_allocations())).c_str());
             }
-            csv_output << "," << std::llround(p->get_allocations());
+            csv_output << "," << p->get_allocations();
 
             if (p->get_bytes_allocated() > 999999) {
                 screen_output  << "   " << string_format(FORMAT_SCIENTIFIC,
                     (p->get_bytes_allocated()));
             } else {
                 screen_output  << "   " << string_format(PAD_WITH_SPACES,
-                    to_string((int)p->get_bytes_allocated()).c_str());
+                    to_string(std::llround(p->get_bytes_allocated())).c_str());
             }
-            csv_output << "," << std::llround(p->get_bytes_allocated());
+            csv_output << "," << p->get_bytes_allocated();
 
             if (p->get_frees() > 999999) {
                 screen_output  << "   " << string_format(FORMAT_SCIENTIFIC,
                     (p->get_frees()));
             } else {
                 screen_output  << "   " << string_format(PAD_WITH_SPACES,
-                    to_string((int)p->get_frees()).c_str());
+                    to_string(std::llround(p->get_frees())).c_str());
             }
-            csv_output << "," << std::llround(p->get_frees());
+            csv_output << "," << p->get_frees();
 
             if (p->get_bytes_freed() > 999999) {
                 screen_output  << "   " << string_format(FORMAT_SCIENTIFIC,
                     (p->get_bytes_freed()));
             } else {
                 screen_output  << "   " << string_format(PAD_WITH_SPACES,
-                    to_string((int)p->get_bytes_freed()).c_str());
+                    to_string(std::llround(p->get_bytes_freed())).c_str());
             }
-            csv_output << "," << std::llround(p->get_bytes_freed());
+            csv_output << "," << p->get_bytes_freed();
+        }
+        //} else {
+            //csv_output << ",0,0,0,0";
         }
         screen_output << endl;
         csv_output << endl;
       } else {
-        csv_output << "\"" << action_name << "\",";
+        /* Do CSV output */
+        csv_output << "\"" << action_name << "\",\"counter\",";
         csv_output << llround(p->get_calls()) << ",";
         csv_output << std::llround(p->get_minimum()) << ",";
         csv_output << std::llround(p->get_mean()) << ",";
         csv_output << std::llround(p->get_maximum()) << ",";
-        csv_output << std::llround(p->get_stddev()) << endl;
+        csv_output << std::llround(p->get_stddev()) << ",";
+        // add all the extra columns for timer data
+        csv_output << "0,0,0"; // accumulated seconds, threads, per thread - meaningless
+#if APEX_HAVE_PAPI
+        for (int i = 0 ; i < num_papi_counters ; i++) {
+            csv_output << ",0";
+        }
+        if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
+            csv_output << std::string( 4, ',' );
+        }
+#endif
+        csv_output << endl;
+
+        /* Do Screen output */
         if (action_name.find('%') == string::npos && p->get_minimum() > 10000) {
           screen_output << string_format(FORMAT_SCIENTIFIC, p->get_minimum()) << "   " ;
         } else {
@@ -689,7 +749,6 @@ std::unordered_set<profile*> free_profiles;
     double total_hpx_threads = 0;
     double total_main = wall_clock_main *
         fmin(hardware_concurrency(), num_worker_threads);
-    DEBUG_PRINT("%s:%d\n", __func__, __LINE__);
     // create a stringstream to hold all the screen output - we may not
     // want to write it out
     stringstream screen_output;
@@ -709,8 +768,8 @@ std::unordered_set<profile*> free_profiles;
         << total_main << " seconds" << endl;
     screen_output << "Available CPU time on all ranks: "
         << total_main * apex::instance()->get_num_ranks() << " seconds" << endl << endl;
-    double divisor = wall_clock_main; // could be total_main, for available CPU time.
-    //double divisor = total_main; // could be total_main, for available CPU time.
+    //double divisor = wall_clock_main; // could be total_main, for available CPU time.
+    double divisor = total_main; // could be total_main, for available CPU time.
 
     double total_accumulated = 0.0;
     std::vector<std::string> id_vector;
@@ -725,8 +784,17 @@ std::unordered_set<profile*> free_profiles;
             }
         }
     }
-    csv_output << "\"counter\",\"num samples\",\"minimum\",\"mean\""
-        << "\"maximum\",\"stddev\"" << endl;
+    csv_output << "\"name\",\"type\",\"num samples/calls\",\"minimum\",\"mean\","
+        << "\"maximum\",\"stddev\",\"total microseconds\",\"num threads\",\"total per thread\"";
+#if APEX_HAVE_PAPI
+    for (int i = 0 ; i < num_papi_counters ; i++) {
+       csv_output << ",\"" << metric_names[i] << "\"";
+    }
+#endif
+    if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
+       csv_output << ",\"allocations\", \"bytes allocated\", \"frees\", \"bytes freed\"";
+    }
+    csv_output << endl;
     if (id_vector.size() > 0) {
         screen_output << "Counter                                   : "
         << "#samples | minimum |    mean  |  maximum |  stddev " << endl;
@@ -741,23 +809,13 @@ std::unordered_set<profile*> free_profiles;
             if (p != all_profiles.end()) {
                 profile tmp(p->second);
                 write_one_timer(name, &tmp, screen_output, csv_output,
-                    total_accumulated, divisor, false);
+                    total_accumulated, divisor, wall_clock_main, false);
             }
         }
         screen_output << "------------------------------------------"
             << "------------------------------------------------------\n";
         screen_output << endl;
     }
-    csv_output << "\n\n\"task\",\"num calls\",\"total microseconds\"";
-#if APEX_HAVE_PAPI
-    for (int i = 0 ; i < num_papi_counters ; i++) {
-       csv_output << ",\"" << metric_names[i] << "\"";
-    }
-#endif
-    if (apex_options::track_memory()) {
-       csv_output << ",\"allocations\", \"bytes allocated\", \"frees\", \"bytes freed\"";
-    }
-    csv_output << endl;
     std::string re("PAPI_");
     std::string tmpstr(apex_options::papi_metrics());
     size_t index = 0;
@@ -783,49 +841,62 @@ std::unordered_set<profile*> free_profiles;
     // sort by accumulated value
     std::sort(timer_vector.begin(), timer_vector.end(), timer_cmp);
 
-    screen_output << "GPU Timers                                           : "
-        << "#calls  |    mean  |   total  |  % total  ";
-    if (apex_options::track_memory()) {
-       screen_output << "|  allocs |  (bytes) |    frees |   (bytes) ";
-    }
-    screen_output << endl;
-    screen_output << "----------------------------------------------"
-        << "--------------------------------------------------";
-
-    screen_output << endl;
-    // iterate over the timers
+    bool have_gpu{false};
     for(auto& pair_itr : timer_vector) {
         std::string name = pair_itr.first;
-        if (name.find("GPU: ", 0) == std::string::npos) continue;
-        auto p = all_profiles.find(name);
-        if (p != all_profiles.end()) {
-            profile tmp(p->second);
-            write_one_timer(name, &tmp, screen_output, csv_output,
-                total_accumulated, divisor, true);
-            if (name.compare(APEX_MAIN_STR) != 0) {
-                total_hpx_threads = total_hpx_threads + tmp.get_calls();
-            }
+        if (name.find("GPU: ", 0) != std::string::npos) {
+            have_gpu = true;
+            break;
         }
     }
 
-    screen_output << "--------------------------------------------------"
-        << "----------------------------------------------";
-    if (apex_options::track_memory()) {
-        screen_output << "--------------------------------------------";
+    if (have_gpu) {
+        screen_output << "GPU Timers                                           : "
+            << "#calls  |    mean  |   total  |  % total  ";
+        if (apex_options::track_gpu_memory()) {
+            screen_output << "|  allocs |  (bytes) |    frees |   (bytes) ";
+        }
+        screen_output << endl;
+        screen_output << "----------------------------------------------"
+                      << "--------------------------------------------------";
+        screen_output << endl;
+
+        // iterate over the timers
+        for(auto& pair_itr : timer_vector) {
+            std::string name = pair_itr.first;
+            if (name.find("GPU: ", 0) == std::string::npos) continue;
+            auto p = all_profiles.find(name);
+            if (p != all_profiles.end()) {
+                profile tmp(p->second);
+                write_one_timer(name, &tmp, screen_output, csv_output,
+                    total_accumulated, divisor, wall_clock_main, true);
+                if (name.compare(APEX_MAIN_STR) != 0) {
+                    total_hpx_threads = total_hpx_threads + tmp.get_calls();
+                }
+            }
+        }
+
+        screen_output << "--------------------------------------------------"
+            << "----------------------------------------------";
+        /*
+        if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
+            screen_output << "--------------------------------------------";
+        }
+        */
+        screen_output << endl;
+        screen_output << endl;
     }
-    screen_output << endl;
-    screen_output << endl;
 
     screen_output << "CPU Timers                                           : "
-        << "#calls  |  #yields |    mean  |   total  |  % total  "
+        << "#calls  |  #yields | #threads |    mean  |   total  |  tot/thr |  % total  |  % wall   "
         << tmpstr;
-    if (apex_options::track_memory()) {
+    if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
        screen_output << "|  allocs |  (bytes) |    frees |   (bytes) ";
     }
     screen_output << endl;
-    screen_output << "----------------------------------------------"
-        << "-------------------------------------------------------------";
-    if (apex_options::track_memory()) {
+    screen_output << "--------------------------------------------------------------------"
+        << "-------------------------------------------------------------------------";
+    if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
         screen_output << "--------------------------------------------";
     }
     screen_output << endl;
@@ -833,7 +904,7 @@ std::unordered_set<profile*> free_profiles;
     // write the main timer
     std::string tmp_main(APEX_MAIN_STR);
     write_one_timer(tmp_main, total_time, screen_output, csv_output,
-        total_accumulated, divisor, true, true, true);
+        total_accumulated, divisor, wall_clock_main, true, true, true);
     // iterate over the timers
     for(auto& pair_itr : timer_vector) {
         std::string name = pair_itr.first;
@@ -842,15 +913,15 @@ std::unordered_set<profile*> free_profiles;
         if (p != all_profiles.end()) {
             profile tmp(p->second);
             write_one_timer(name, &tmp, screen_output, csv_output,
-                total_accumulated, divisor, true, true, true);
+                total_accumulated, divisor, wall_clock_main, true, true, true);
             if (name.compare(APEX_MAIN_STR) != 0) {
                 total_hpx_threads = total_hpx_threads + tmp.get_calls();
             }
         }
     }
-    screen_output << "--------------------------------------------------"
-        << "---------------------------------------------------------";
-    if (apex_options::track_memory()) {
+    screen_output << "--------------------------------------------------------------"
+        << "-------------------------------------------------------------------------------";
+    if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
         screen_output << "--------------------------------------------";
     }
     screen_output << endl;
@@ -872,7 +943,7 @@ std::unordered_set<profile*> free_profiles;
     }
     screen_output << "--------------------------------------------------"
         << "----------------------------------------------";
-    if (apex_options::track_memory()) {
+    if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
         screen_output << "--------------------------------------------";
     }
     screen_output << endl;
@@ -1102,15 +1173,13 @@ std::unordered_set<profile*> free_profiles;
     myfile.open(txtname.str().c_str());
     root->tree_node->writeNodeASCII(myfile, wall_clock_main, 0);
     myfile.close();
-    // dump the tree to an icicle/sunburst file
-    /*
+    // dump the tree to an icicle/sunburst/hatchet file
     stringstream txtname2;
     txtname2 << apex_options::output_file_path();
     txtname2 << filesystem_separator() << "tasktree." << node_id << ".json";
     myfile.open(txtname2.str().c_str());
     root->tree_node->writeNodeJSON(myfile, wall_clock_main, 0);
     myfile.close();
-    */
   }
 
   /* Write TAU profiles from the collected data. */
@@ -1274,7 +1343,7 @@ std::unordered_set<profile*> free_profiles;
       tau_listener::Tau_start_wrapper("profiler_listener::process_profiles");
     }
     /*
-    static auto prof = new_task(__func__);
+    static auto prof = new_task(__APEX_FUNCTION__);
     start(prof);
     */
 
@@ -1481,15 +1550,23 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         std::string name = c.first;
         auto metrics = c.second;
         //std::cout << "Getting metrics for " << name << std::endl;
-
+        if (name.compare("PAPI") != 0 && !first_time) {
+            // skip this component on this thread - will be meaningless!
+            continue;
+        }
         int EventSet = PAPI_NULL;
         CALL_PAPI_OK(PAPI_create_eventset(&EventSet));
         if (name.compare("PAPI") == 0) {
             CALL_PAPI_OK(PAPI_assign_eventset_component(EventSet, 0));
+/* currently not safe to add an event set to a component until events are added to it.
+ * Then, when we add the events to the event set, it will automatically be added
+ * to the component. So don't do this now. */
+#if 0
         } else {
             int index = component_index_map[name];
             //std::cout << "Setting component index: " << index << std::endl;
             CALL_PAPI_OK(PAPI_assign_eventset_component(EventSet, index));
+#endif
         }
         int code;
         // iterate over the counter names in the vector
@@ -1658,15 +1735,12 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
           std::cerr << "done." << std::endl;
         }
       }
-      if (apex_options::use_screen_output()) {
-        DEBUG_PRINT("%s:%d:%d\n", __func__, __LINE__, node_id);
+      if (apex_options::use_screen_output() ||
+          apex_options::use_csv_output()) {
         // reduce/gather all profiles from all ranks
         auto reduced = reduce_profiles();
-        DEBUG_PRINT("%s:%d:%d\n", __func__, __LINE__, node_id);
-        if (node_id == 0) {
-          if (apex_options::process_async_state()) {
+        if (apex_options::process_async_state()) {
             finalize_profiles(data, reduced);
-          }
         }
       }
       if (apex_options::use_taskgraph_output())
@@ -1864,6 +1938,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
             }
         }
 #endif
+        p->thread_id = _pls.my_tid;
 #ifdef APEX_SYNCHRONOUS_PROCESSING
         push_profiler(_pls.my_tid, *p);
 #else // APEX_SYNCHRONOUS_PROCESSING
@@ -2061,7 +2136,12 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
 
   void profiler_listener::push_profiler_public(std::shared_ptr<profiler> &p) {
     in_apex prevent_deadlocks;
+#ifdef APEX_SYNCHRONOUS_PROCESSING
+    // make sure we call the synchronous version!
+    push_profiler(0, *(p.get()));
+#else
     push_profiler(0, p);
+#endif
   }
 
 }

@@ -62,6 +62,8 @@ using namespace std;
 #include "proc_read_papi.cpp"
 #endif
 
+#include <dirent.h>
+
 namespace apex {
 
     void get_popen_data(char *cmnd) {
@@ -93,6 +95,49 @@ namespace apex {
 
         return;
     }
+
+    /* NB: We have to use C functions for File I/O because the C++ functions
+       seem to be caching the data from the virtual filesystem. So it never
+       gets refreshed... */
+    void read_cray_power(
+        std::unordered_map<std::string,std::string>& cray_power_units,
+        std::unordered_map<std::string,uint64_t>& cray_power_values) {
+        struct dirent *entry = nullptr;
+        DIR *dp = nullptr;
+        std::set<std::string> skip = { "startup", "version", "raw_scan_hz", "generation", "freshness" };
+
+        dp = opendir("/sys/cray/pm_counters");
+        if (dp != nullptr) {
+            while ((entry = readdir(dp))) {
+                if (entry->d_type == DT_DIR) continue;
+                std::string name(entry->d_name);
+                if (strstr(entry->d_name,"_cap") != 0) continue;
+                if (skip.count(name) != 0) continue;
+                uint64_t tmpint;
+                std::string tmpstr;
+                std::string fname("/sys/cray/pm_counters/");
+                fname+=name;
+                FILE * fp = fopen(fname.c_str(), "r");
+                if (fp != NULL) {
+                    char *line = NULL;
+                    size_t len = 0;
+                    ssize_t nread;
+                    while ((nread = getline(&line, &len, fp)) != -1) {
+                        std::istringstream iline{line};
+                        while (iline >> tmpint >> tmpstr) {
+                            cray_power_units[name] = tmpstr;
+                            cray_power_values[name] = tmpint;
+                            break;
+                        }
+                    }
+                }
+                fclose(fp);
+            }
+        }
+        closedir(dp);
+        return;
+    }
+
 
     ProcData* parse_proc_stat(void) {
         if (!apex_options::use_proc_stat()) return nullptr;
@@ -140,11 +185,7 @@ namespace apex {
         }
         fclose (pFile);
 #if defined(APEX_HAVE_CRAY_POWER)
-        procData->power = read_power();
-        procData->power_cap = read_power_cap();
-        procData->energy = read_energy();
-        procData->freshness = read_freshness();
-        procData->generation = read_generation();
+        read_cray_power(procData->cray_power_units, procData->cray_power_values);
 #endif
 #if defined(APEX_HAVE_POWERCAP_POWER)
         procData->package0 = read_package0();
@@ -183,11 +224,21 @@ namespace apex {
         d->procs_running = procs_running - rhs.procs_running;
         d->procs_blocked = procs_blocked - rhs.procs_blocked;
 #if defined(APEX_HAVE_CRAY_POWER)
-        d->power = power;
-        d->power_cap = power_cap;
-        d->energy = energy - rhs.energy;
-        d->freshness = freshness;
-        d->generation = generation;
+        d->cray_power_units = rhs.cray_power_units;
+        /*
+        d->cray_power_values = rhs.cray_power_values;
+        */
+        // We want relative energy values, so take a diff from the last reading.
+        for (auto it : cray_power_units) {
+            std::string name(it.first);
+            std::string unit(it.second);
+            uint64_t value{rhs.cray_power_values.find(name)->second};
+            if (unit.compare("J") == 0) {
+                d->cray_power_values[name] = cray_power_values[name] - value;
+            } else {
+                d->cray_power_values[name] = value;
+            }
+        }
 #endif
 #if defined(APEX_HAVE_POWERCAP_POWER)
         d->package0 = package0 - rhs.package0;
@@ -371,11 +422,16 @@ namespace apex {
             }
         }
 #if defined(APEX_HAVE_CRAY_POWER)
-        sample_value("Power", power);
-        sample_value("Power Cap", power_cap);
-        sample_value("Energy", energy);
-        sample_value("Freshness", freshness);
-        sample_value("Generation", generation);
+        for (auto it : cray_power_units) {
+            // Ignore zero energy values, they're misleading
+            if (cray_power_values[it.first] > 0) {
+                std::string name(it.first);
+                name += " (";
+                name += it.second;
+                name += ")";
+                sample_value(name, cray_power_values[it.first]);
+            }
+        }
 #endif
 #if defined(APEX_HAVE_POWERCAP_POWER)
         sample_value("Package-0 Energy", package0);

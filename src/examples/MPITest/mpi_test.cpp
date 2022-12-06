@@ -1,4 +1,5 @@
 #include <mpi.h>
+#include <unistd.h>
 #include "apex_api.hpp"
 
 #define WORKTAG 1
@@ -9,46 +10,33 @@
 
 /* Local functions */
 
-static void master(void);
-static void worker(void);
+static void root_node(void);
+static void worker_node(void);
 static int get_next_work_item(void);
 static int do_work(int work);
 
 static int dummy = 0;
 static int myrank = -1;
 static int commsize = -1;
+static int nworkitems = -1;
+constexpr int items_per_rank = 1;
 
 int main(int argc, char **argv) {
   /* Initialize MPI */
-
-  /*
-  int required, provided;
-  required = MPI_THREAD_FUNNELED;
-  MPI_Init_thread(&argc, &argv, required, &provided);
-  if (provided < required) {
-    printf ("Your MPI installation doesn't allow multiple threads. Exiting.\n");
-        exit(0);
-  }
-  */
   MPI_Init(&argc, &argv);
 
   /* Find out my identity in the default communicator */
-
   MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
   MPI_Comm_size(MPI_COMM_WORLD, &commsize);
+  nworkitems = commsize * items_per_rank;
   DEBUG_MSG;
   apex::init("MPI TEST", myrank, commsize);
-  apex::profiler* p = apex::start((apex_function_address)(main));
+  apex::profiler* p = apex::start(__func__);
   MPI_Barrier(MPI_COMM_WORLD);
-  if (commsize < 2) {
-    printf("Please run with 2 or more MPI ranks.\n");
-    apex::finalize();
-    MPI_Abort(MPI_COMM_WORLD, 0);
-  }
   if (myrank == 0) {
-    master();
+    root_node();
   } else {
-    worker();
+    worker_node();
   }
   MPI_Barrier(MPI_COMM_WORLD);
 
@@ -64,23 +52,18 @@ int main(int argc, char **argv) {
 }
 
 
-static void master(void) {
+static void root_node(void) {
   DEBUG_MSG;
-  int ntasks, rank;
   int work = 0;
   int result = 0;
+  int rank = 0;
   int outstanding = 0;
   MPI_Status status;
-  apex::profiler* p = apex::start((apex_function_address)(master));
+  APEX_SCOPED_TIMER;
 
-  /* Find out how many processes there are in the default
-     communicator */
+  /* Seed the worker_nodes; send one unit of work to each worker_node. */
 
-  MPI_Comm_size(MPI_COMM_WORLD, &ntasks);
-
-  /* Seed the worker; send one unit of work to each worker. */
-
-  for (rank = 1; rank < ntasks; ++rank) {
+  for (rank = 1; rank < commsize; ++rank) {
 
     /* Find the next item of work to do */
     work = get_next_work_item();
@@ -110,7 +93,7 @@ static void master(void) {
 
   while (work != 0) {
 
-    /* Receive results from a worker */
+    /* Receive results from a worker_node */
 
     while (outstanding > 0) {
         DEBUG_STATUS("receiving result");
@@ -124,7 +107,7 @@ static void master(void) {
         apex::recv(status.MPI_TAG, sizeof(int), status.MPI_SOURCE, 0);
         outstanding = outstanding - 1;
 
-        /* Send the worker a new work unit */
+        /* Send the worker_node a new work unit */
         work = get_next_work_item();
 
         if (work != 0) {
@@ -148,7 +131,7 @@ static void master(void) {
   }
 
   /* There's no more work to be done, so receive all the outstanding
-     results from the worker. */
+     results from the worker_node. */
 
   while (outstanding > 0) {
     DEBUG_STATUS("receiving result");
@@ -158,29 +141,28 @@ static void master(void) {
     outstanding = outstanding - 1;
   }
 
-  /* Tell all the worker to exit by sending an empty message with the
+  /* Tell all the worker_node to exit by sending an empty message with the
      DIETAG. */
 
-  for (rank = 1; rank < ntasks; ++rank) {
+  for (rank = 1; rank < commsize; ++rank) {
     DEBUG_STATUS("sending exit");
     apex::send(DIETAG, sizeof(int), rank);
     MPI_Send(0, 0, MPI_INT, rank, DIETAG, MPI_COMM_WORLD);
   }
-  apex::stop(p);
   DEBUG_STATUS("exiting");
 }
 
-static void worker(void) {
+static void worker_node(void) {
   DEBUG_MSG;
   int work = 0;
   MPI_Status status;
-  apex::profiler* p = apex::start((apex_function_address)(worker));
+  APEX_SCOPED_TIMER;
 
   while (1) {
     int myrank;
     MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
 
-    /* Receive a message from the master */
+    /* Receive a message from the root_node */
 
     DEBUG_STATUS("receiving work");
     MPI_Recv(&work, 1, MPI_INT, 0, MPI_ANY_TAG,
@@ -204,31 +186,42 @@ static void worker(void) {
     apex::send(0, sizeof(int), 0);
     MPI_Send(&result, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
   }
-  apex::stop(p);
   return;
 }
 
+int * get_work_items() {
+  APEX_SCOPED_TIMER;
+  int * tmp = (int*)(malloc(sizeof(int)*nworkitems));
+  for (int i = 0 ; i < nworkitems ; i++) {
+    tmp[i] = i+1;
+  }
+  return tmp;
+}
 
 static int get_next_work_item(void)
 {
+  APEX_SCOPED_TIMER;
   DEBUG_MSG;
   /* Fill in with whatever is relevant to obtain a new unit of work
-     suitable to be given to a worker. */
-    static int data[] = {1,2,3,4,5,6,7,8,9,10};
+     suitable to be given to a worker_node. */
+    static int * data = get_work_items();
     static int index = -1;
-    if (++index < 10) return (data[index]);
-    return 0;
+    int value = 0;
+    if (++index < nworkitems) {
+        value = data[index];
+    }
+    return value;
 }
 
 static int do_work(int work)
 {
+  APEX_SCOPED_TIMER;
   DEBUG_MSG;
-  apex::profiler* p = apex::start((apex_function_address)(do_work));
-  //sleep(*mywork);
+  int jiffies = work * 10;
+  usleep(jiffies);
   dummy = dummy + work;
   /* Fill in with whatever is necessary to process the work and
      generate a result */
-  apex::stop(p);
     return dummy;
 }
 

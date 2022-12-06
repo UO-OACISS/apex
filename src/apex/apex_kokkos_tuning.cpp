@@ -212,8 +212,8 @@ private:
 // EXHAUSTIVE, RANDOM, NELDER_MEAD, PARALLEL_RANK_ORDER
     KokkosSession() :
         window(5),
-        strategy(apex_ah_tuning_strategy::APEX_EXHAUSTIVE),
-        //strategy(apex_ah_tuning_strategy::SIMULATED_ANNEALING),
+        //strategy(apex_ah_tuning_strategy::APEX_EXHAUSTIVE),
+        strategy(apex_ah_tuning_strategy::SIMULATED_ANNEALING),
         //strategy(apex_ah_tuning_strategy::NELDER_MEAD),
         verbose(false),
         use_history(false),
@@ -743,7 +743,7 @@ std::string hashContext(size_t numVars,
         }
         d = ",";
     }
-    ss << ",node:" << tree_node << "]";
+    ss << ",tree_node:" << tree_node << "]";
     std::string tmp{ss.str()};
     return tmp;
 }
@@ -986,7 +986,7 @@ void kokkosp_declare_output_type(const char* name, const size_t id,
     session.checkForCache();
     if(session.verbose) {
         std::cout << std::string(getDepth(), ' ');
-        std::cout << __func__ << " " << id << " " << info.type << "," << info.category << "," << info.valueQuantity << std::endl;
+        std::cout << __APEX_FUNCTION__ << " " << id << " " << info.type << "," << info.category << "," << info.valueQuantity << std::endl;
     }
     Variable * output = new Variable(id, name, info);
     output->makeSpace();
@@ -1009,7 +1009,7 @@ void kokkosp_declare_input_type(const char* name, const size_t id,
     session.checkForCache();
     if(session.verbose) {
         std::cout << std::string(getDepth(), ' ');
-        std::cout << __func__ << " " << id << " " << info.type << "," << info.category << "," << info.valueQuantity << std::endl;
+        std::cout << __APEX_FUNCTION__ << " " << id << " " << info.type << "," << info.category << "," << info.valueQuantity << std::endl;
     }
     Variable * input = new Variable(id, name, info);
     session.saveInputVar(id, input);
@@ -1044,7 +1044,7 @@ void kokkosp_request_values(
     if (!apex::apex_options::use_kokkos_tuning()) { return; }
     // first, get the current timer node in the task tree
     auto tlt = apex::thread_instance::get_top_level_timer();
-    std::string tree_node{""};
+    std::string tree_node{"default"};
     if (tlt != nullptr) {
         tree_node = tlt->tree_node->getName();
     }
@@ -1056,7 +1056,7 @@ void kokkosp_request_values(
         session.inputs, tree_node)};
     if (session.verbose) {
         std::cout << std::string(getDepth(), ' ');
-        std::cout << __func__ << " ctx: " << contextId << std::endl;
+        std::cout << __APEX_FUNCTION__ << " ctx: " << contextId << std::endl;
         std::cout << std::string(getDepth(), ' ');
         printContext(numContextVariables, name);
     }
@@ -1097,7 +1097,7 @@ void kokkosp_begin_context(size_t contextId) {
     KokkosSession& session = KokkosSession::getSession();
     if (session.verbose) {
         std::cout << std::string(getDepth()++, ' ');
-        std::cout << __func__ << "\t" << contextId << std::endl;
+        std::cout << __APEX_FUNCTION__ << "\t" << contextId << std::endl;
     }
     session.context_starts.insert(
         std::pair<uint32_t, uint64_t>(contextId, apex::profiler::now_ns()));
@@ -1117,7 +1117,7 @@ void kokkosp_end_context(const size_t contextId) {
     auto name = session.active_requests.find(contextId);
     if (session.verbose) {
         std::cout << std::string(--getDepth(), ' ');
-        std::cout << __func__ << "\t" << contextId << std::endl;
+        std::cout << __APEX_FUNCTION__ << "\t" << contextId << std::endl;
     }
     if (name != session.active_requests.end() &&
         start != session.context_starts.end()) {

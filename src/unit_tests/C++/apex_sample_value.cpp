@@ -10,12 +10,12 @@ void* someThread(void* tmp)
 {
   int* tid = (int*)tmp;
   char name[32];
-  sprintf(name, "worker-thread#%d", *tid);
+  snprintf(name, 32, "worker-thread#%d", *tid);
   register_thread(name);
   profiler* p = start((apex_function_address)someThread);
   sample_value("/threadqueue{locality#0/total}/length", 2.0);
   char counter[64];
-  sprintf(counter, "/threadqueue{locality#0/%s}/length", name);
+  snprintf(counter, 64, "/threadqueue{locality#0/%s}/length", name);
   sample_value(counter, 2.0);
   stop(p);
   exit_thread();

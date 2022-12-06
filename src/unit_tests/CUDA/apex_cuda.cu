@@ -151,6 +151,7 @@ int main(int argc, char * argv[])
   nvtxRangeEnd(rid1);
   nvtxRangeEnd(rid2);
   nvtxDomainDestroy(domain);
+  nvtxRangePop();
 #if defined(APEX_HAVE_MPI)
   MPI_Finalize();
 #endif

@@ -12,6 +12,7 @@
 #include <sstream>
 #include <math.h>
 #include "apex_assert.h"
+#include "apex.hpp"
 
 namespace apex {
 
@@ -73,7 +74,7 @@ void Node::writeNode(std::ofstream& outfile, double total) {
         outfile << std::endl;
     }
 
-    double acc = (data == task_identifier::get_main_task_id()) ?
+    double acc = (data == task_identifier::get_main_task_id() || accumulated == 0.0) ?
         total : accumulated;
     node_color * c = get_node_color_visible(acc, 0.0, total);
     double ncalls = (calls == 0) ? 1 : calls;
@@ -103,6 +104,7 @@ bool cmp(std::pair<task_identifier, Node*>& a, std::pair<task_identifier, Node*>
 
 double Node::writeNodeASCII(std::ofstream& outfile, double total, size_t indent) {
     APEX_ASSERT(total > 0.0);
+    constexpr int precision{3};
     for (size_t i = 0 ; i < indent ; i++) {
         outfile << "| ";
     }
@@ -112,18 +114,19 @@ double Node::writeNodeASCII(std::ofstream& outfile, double total, size_t indent)
     double acc = (data == task_identifier::get_main_task_id() || accumulated == 0.0) ?
         total : accumulated;
     double percentage = (accumulated / total) * 100.0;
-    outfile << std::fixed << std::setprecision(5) << acc << " - "
-            << std::fixed << std::setprecision(4) << percentage << "% [";
+    outfile << std::fixed << std::setprecision(precision) << acc << " - "
+            << std::fixed << std::setprecision(precision) << percentage << "% [";
     // write the number of calls
     double ncalls = (calls == 0) ? 1 : calls;
     outfile << std::fixed << std::setprecision(0) << ncalls << "]";
     // write other stats - min, max, stddev
     double mean = acc / ncalls;
-    double variance = ((sumsqr / ncalls) - (mean * mean));
+    // avoid -0.0 which will cause a -nan for stddev
+    double variance = std::max(0.0,((sumsqr / ncalls) - (mean * mean)));
     double stddev = sqrt(variance);
-    outfile << " {min=" << std::fixed << std::setprecision(4) << min << ", max=" << max
+    outfile << " {min=" << std::fixed << std::setprecision(precision) << min << ", max=" << max
             << ", mean=" << mean << ", var=" << variance
-            << ", std dev=" << stddev << "} ";
+            << ", std dev=" << stddev << ", threads=" << thread_ids.size() << "} ";
     // Write out the name
     outfile << data->get_tree_name() << " ";
     // end the line
@@ -152,6 +155,12 @@ double Node::writeNodeASCII(std::ofstream& outfile, double total, size_t indent)
     return acc;
 }
 
+/* print something like (for Hatchet):
+{
+    "frame": {"name": "foo"},
+    "metrics": {"time (inc)": 135.0, "time": 0.0},
+    "children": [ { ...} ]
+} */
 double Node::writeNodeJSON(std::ofstream& outfile, double total, size_t indent) {
     APEX_ASSERT(total > 0.0);
     // indent as necessary
@@ -160,13 +169,33 @@ double Node::writeNodeJSON(std::ofstream& outfile, double total, size_t indent) 
     // write out the opening brace
     outfile << std::fixed << std::setprecision(6) << "{ ";
     // write out the name
-    outfile << "\"name\": \"" << data->get_tree_name() << "\", ";
+    outfile << "\"frame\": {\"name\": \"" << data->get_name()
+            << "\", \"type\": \"function\", \"rank\": "
+            << apex::instance()->get_node_id() << "}, ";
     // write out the inclusive
     double acc = (data == task_identifier::get_main_task_id() || accumulated == 0.0) ?
         total : std::min(total, accumulated);
+
+    // solve for the exclusive
+    double excl = acc;
+    for (auto c : children) {
+        excl = excl - c.second->accumulated;
+    }
+    if (excl < 0.0) {
+        excl = 0.0;
+    }
+
     // Don't write out synchronization events! They confuse the graph.
     if (data->get_tree_name().find("Synchronize") != std::string::npos) acc = 0.0;
-    outfile << "\"size\": " << acc;
+    double ncalls = (calls == 0) ? 1 : calls;
+    outfile << "\"metrics\": {\"time\": " << excl
+            << ", \"total time (inc)\": " << acc
+            << ", \"time (inc)\": " << (acc / (double)(thread_ids.size()))
+            << ", \"num threads\": " << thread_ids.size()
+            << ", \"min (inc)\": " << min
+            << ", \"max (inc)\": " << max
+            << ", \"sumsqr (inc)\": " << sumsqr
+            << ", \"calls\": " << ncalls << "}";
 
     // if no children, we are done
     if (children.size() == 0) {
@@ -177,31 +206,15 @@ double Node::writeNodeJSON(std::ofstream& outfile, double total, size_t indent) 
     // write the children label
     outfile << ", \"children\": [\n";
 
-    // sort the children by accumulated time
-    std::vector<std::pair<task_identifier, Node*> > sorted;
-    for (auto& it : children) {
-        sorted.push_back(it);
-    }
-    sort(sorted.begin(), sorted.end(), cmp);
-
     // do all the children
-    double children_total;
+    double children_total = 0.0;
     bool first = true;
-    for (auto c : sorted) {
+    for (auto c : children) {
         if (!first) { outfile << ",\n"; }
         first = false;
         double tmp = c.second->writeNodeJSON(outfile, total, indent);
-        // if we didn't write the child, don't write a comma.
         children_total = children_total + tmp;
     }
-    double remainder = acc - children_total;
-    /*
-    if (remainder > 0.0) {
-        if (!first) { outfile << ",\n"; }
-        for (size_t i = 0 ; i < indent ; i++) { outfile << " "; }
-        outfile << "{ \"name\": \"" << data->get_tree_name() << "\", \"size\": " << remainder << " }";
-    }
-    */
     // close the list
     outfile << "\n";
     for (size_t i = 0 ; i < indent-1 ; i++) { outfile << " "; }
@@ -282,7 +295,7 @@ void Node::writeTAUCallpath(std::ofstream& outfile, std::string prefix) {
     return;
 }
 
-void Node::addAccumulated(double value, bool is_resume) {
+void Node::addAccumulated(double value, bool is_resume, uint64_t thread_id) {
     static std::mutex m;
     m.lock();
     if (!is_resume) { calls+=1; }
@@ -290,6 +303,7 @@ void Node::addAccumulated(double value, bool is_resume) {
     if (min == 0.0 || value < min) { min = value; }
     if (value > max) { max = value; }
     sumsqr = sumsqr + (value*value);
+    thread_ids.insert(thread_id);
     m.unlock();
 }
 

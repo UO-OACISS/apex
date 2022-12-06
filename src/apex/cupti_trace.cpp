@@ -30,8 +30,9 @@
 #include "otf2_listener.hpp"
 #endif
 #include "async_thread_node.hpp"
+#include "memory_wrapper.hpp"
 
-#include <cuda.h>
+#include <cuda_runtime_api.h>
 #include <cupti.h>
 #include <nvToolsExt.h>
 #include <nvToolsExtSync.h>
@@ -453,6 +454,9 @@ static int64_t deltaTimestamp{0};
 
 /* The callback subscriber */
 CUpti_SubscriberHandle subscriber;
+
+/* Global flag to indicate we are working */
+static std::atomic<bool> allGood{false};
 
 /* The buffer count */
 std::atomic<uint64_t> num_buffers{0};
@@ -1087,8 +1091,11 @@ void CUPTIAPI bufferRequested(uint8_t **buffer, size_t *size,
 void CUPTIAPI bufferCompleted(CUcontext ctx, uint32_t streamId,
     uint8_t *buffer, size_t size, size_t validSize)
 {
+    // if APEX is disabled, do nothing.
+    // if APEX is suspended, do nothing.
+    if (apex::apex_options::disable() || apex::apex_options::suspend()) { free(buffer); return; }
     //auto p = apex::scoped_timer("APEX: CUPTI Buffer Completed");
-    //printf("%s...", __func__); fflush(stdout);
+    //printf("%s...", __APEX_FUNCTION__); fflush(stdout);
     static bool registered = register_myself(false);
     // when tracking memory allocations, ignore these
     apex::in_apex prevent_nonsense;
@@ -1449,6 +1456,7 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
             hostTotalAllocated.fetch_sub(bytes, std::memory_order_relaxed);
             value = (double)(hostTotalAllocated);
             store_sync_counter_data("GPU: Total Bytes Occupied on Host", context, value, false, false);
+            apex::recordFree(ptr);
         } else {
             mapMutex.lock();
             if (memoryMap.count(ptr) > 0) {
@@ -1468,6 +1476,7 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
             totalAllocated.fetch_sub(value, std::memory_order_relaxed);
             value = (double)(totalAllocated);
             store_sync_counter_data("GPU: Total Bytes Occupied on Device", context, value, false, false);
+            apex::recordFree(ptr, false);
         }
     // If we are in the exit of a function, and we are allocating memory,
     // then update and record the bytes allocated
@@ -1483,6 +1492,7 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
             hostTotalAllocated.fetch_add(bytes, std::memory_order_relaxed);
             value = (double)(hostTotalAllocated);
             store_sync_counter_data("GPU: Total Bytes Occupied on Host", context, value, false, false);
+            apex::recordAlloc(bytes, ptr, apex::GPU_DEVICE_MALLOC);
             return true;
         } else {
             if (managed) {
@@ -1496,6 +1506,7 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
             totalAllocated.fetch_add(bytes, std::memory_order_relaxed);
             value = (double)(totalAllocated);
             store_sync_counter_data("GPU: Total Bytes Occupied on Device", context, value, false, false);
+            apex::recordAlloc(bytes, ptr, apex::GPU_DEVICE_MALLOC, false);
         }
     }
     return true;
@@ -1620,6 +1631,7 @@ double get_nvtx_payload(const nvtxEventAttributes_t * eventAttrib) {
 void handle_nvtx_callback(CUpti_CallbackId id, const void *cbdata) {
     // disable memory management tracking in APEX during this callback
     apex::in_apex prevent_deadlocks;
+
 
     /* Unfortunately, when ranges are started/ended, they can overlap.
      * Unlike push/pop, which are a true stack.  Even worse, CUDA/CUPTI
@@ -1811,6 +1823,9 @@ bool ignoreMalloc(CUpti_CallbackDomain domain,
 
 void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
         CUpti_CallbackId id, const void *params) {
+    // if APEX is disabled, do nothing.
+    // if APEX is suspended, do nothing.
+    if (apex::apex_options::disable() || apex::apex_options::suspend()) { return; }
     // disable memory management tracking in APEX during this callback
     apex::in_apex prevent_deadlocks;
     static bool initialized = initialize_first_time();
@@ -1829,6 +1844,11 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
     if (!apex::thread_instance::is_worker()) { return; }
     if (params == NULL) { return; }
 
+    /* Check for exit */
+    if (!allGood) {
+	return;
+    }
+
     /* Check for a new context */
     if (domain == CUPTI_CB_DOMAIN_RESOURCE) {
         if (id == CUPTI_CBID_RESOURCE_CONTEXT_CREATED) {
@@ -1846,7 +1866,7 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
     CUpti_CallbackData * cbdata = (CUpti_CallbackData*)(params);
 
     // sadly, CUPTI leaks a lot of memory from the first runtime API call.
-    if (apex::apex_options::track_memory()) {
+    if (apex::apex_options::track_gpu_memory()) {
         ignoreMalloc(domain, cbdata->callbackSite, id);
     }
 
@@ -1854,7 +1874,9 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
         std::stringstream ss;
         ss << cbdata->functionName;
         if (apex::apex_options::use_cuda_kernel_details() && isLaunch(id)) {
-            if (cbdata->symbolName != NULL && strlen(cbdata->symbolName) > 0) {
+            // protect against stack overflows from cupti. yes, it happens.
+            if (cbdata->symbolName != NULL && cbdata->symbolName > params &&
+                strlen(cbdata->symbolName) > 0) {
                 ss << ": " << cbdata->symbolName;
             }
         }
@@ -1863,6 +1885,12 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
            std::string tmp(cbdata->functionName);
            */
         auto timer = apex::new_task(tmp);
+	if (timer == nullptr) {
+            /* This happens when we've hit finalize but there are still some
+	     * CUDA calls that come in. Ignore it.
+	     */
+            return;
+	}
         apex::start(timer);
         timer_stack.push(timer);
         apex::async_event_data as_data(timer->prof->get_start_us(),
@@ -1890,7 +1918,8 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
             std::stringstream ss;
             ss << cbdata->functionName;
             if (apex::apex_options::use_cuda_kernel_details() && isLaunch(id)) {
-                if (cbdata->symbolName != NULL && strlen(cbdata->symbolName) > 0) {
+                if (cbdata->symbolName != NULL && cbdata->symbolName > params &&
+                    strlen(cbdata->symbolName) > 0) {
                     ss << ": " << cbdata->symbolName;
                 }
             }
@@ -1999,6 +2028,7 @@ void init_cupti_tracing() {
     //printf("CPU: %ld\n", startTimestampCPU);
     //printf("GPU: %ld\n", startTimestampGPU);
     //printf("Delta computed to be: %ld\n", deltaTimestamp);
+    allGood = true;
 }
 
 /* This is the global "shutdown" method for flushing the buffer.  This is
@@ -2026,5 +2056,7 @@ void init_cupti_tracing() {
         CUPTI_CALL(cuptiUnsubscribe(subscriber));
         CUPTI_CALL(cuptiFinalize());
         // get_range_map().clear();
+	//std::cout << "* * * * * * * * EXITING CUPTI SUPPORT * * * * * * * * * *" << std::endl;
+    	allGood = false;
     }
 }

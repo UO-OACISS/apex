@@ -995,12 +995,12 @@ public:
 /**
  \brief A convenient macro for inserting an APEX self-stopping timer.
 
- This macro will create a timer using the values of __func__, __LINE__ and
+ This macro will create a timer using the values of __APEX_FUNCTION__, __LINE__ and
  __FILE__ from the preprocessor.
 
  */
 #define APEX_SCOPED_TIMER \
     std::ostringstream _s_foo; \
-    _s_foo << __func__ << " [" << __FILE__ << ":" << __LINE__ << "]"; \
+    _s_foo << __APEX_FUNCTION__ << " [" << __FILE__ << ":" << __LINE__ << "]"; \
     apex::scoped_timer __foo(_s_foo.str());
 

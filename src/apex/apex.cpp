@@ -61,6 +61,8 @@
 #include "proc_read.h"
 #endif
 
+#include "memory_wrapper.hpp"
+
 #ifdef APEX_HAVE_HPX
 #include <boost/assign.hpp>
 #include <cstdint>
@@ -72,22 +74,25 @@
 #else // without HPX!
 #include "global_constructor_destructor.h"
 #if defined(HAS_CONSTRUCTORS)
+/*
 extern "C" {
 DEFINE_CONSTRUCTOR(apex_init_static_void)
 DEFINE_DESTRUCTOR(apex_finalize_static_void)
 }
+*/
 #endif // HAS_CONSTRUCTORS
 #endif // APEX_HAVE_HPX
 
 #ifdef APEX_HAVE_TCMALLOC
 #include "tcmalloc_hooks.hpp"
 #endif
+#include "banner.hpp"
 
 #if APEX_DEBUG
 #define FUNCTION_ENTER printf("enter %lu *** %s:%d!\n", \
-thread_instance::get_id(), __func__, __LINE__); fflush(stdout);
+thread_instance::get_id(), __APEX_FUNCTION__, __LINE__); fflush(stdout);
 #define FUNCTION_EXIT  printf("exit  %lu *** %s:%d!\n", \
-thread_instance::get_id(), __func__, __LINE__); fflush(stdout);
+thread_instance::get_id(), __APEX_FUNCTION__, __LINE__); fflush(stdout);
 #else
 #define FUNCTION_ENTER
 #define FUNCTION_EXIT
@@ -233,35 +238,42 @@ void apex::_initialize()
 #if defined (GIT_BRANCH)
     tmp << "-" << GIT_BRANCH ;
 #endif
-    tmp << std::endl << "Built on: " << __TIME__ << " " << __DATE__;
-    tmp << std::endl << "C++ Language Standard version : " << __cplusplus;
+    tmp << "\nBuilt on: " << __TIME__ << " " << __DATE__;
+#if CMAKE_BUILD_TYPE == 1
+    tmp << " (Release)";
+#elif CMAKE_BUILD_TYPE == 2
+    tmp << " (RelWithDebInfo)";
+#else
+    tmp << " (Debug)";
+#endif
+    tmp << "\nC++ Language Standard version : " << __cplusplus;
 #if defined(__clang__)
     /* Clang/LLVM. ---------------------------------------------- */
-    tmp << std::endl << "Clang Compiler version : " << __VERSION__;
+    tmp << "\nClang Compiler version : " << __VERSION__;
 #elif defined(__ICC) || defined(__INTEL_COMPILER)
     /* Intel ICC/ICPC. ------------------------------------------ */
-    tmp << std::endl << "Intel Compiler version : " << __VERSION__;
+    tmp << "\nIntel Compiler version : " << __VERSION__;
 #elif defined(__GNUC__) || defined(__GNUG__)
     /* GNU GCC/G++. --------------------------------------------- */
-    tmp << std::endl << "GCC Compiler version : " << __VERSION__;
+    tmp << "\nGCC Compiler version : " << __VERSION__;
 #elif defined(__HP_cc) || defined(__HP_aCC)
     /* Hewlett-Packard C/aC++. ---------------------------------- */
-    tmp << std::endl << "HP Compiler version : " << __HP_aCC;
+    tmp << "\nHP Compiler version : " << __HP_aCC;
 #elif defined(__IBMC__) || defined(__IBMCPP__)
     /* IBM XL C/C++. -------------------------------------------- */
-    tmp << std::endl << "IBM Compiler version : " << __xlC__;
+    tmp << "\nIBM Compiler version : " << __xlC__;
 #elif defined(_MSC_VER)
     /* Microsoft Visual Studio. --------------------------------- */
-    tmp << std::endl << "Microsoft Compiler version : " << _MSC_FULL_VER;
+    tmp << "\nMicrosoft Compiler version : " << _MSC_FULL_VER;
 #elif defined(__PGI)
     /* Portland Group PGCC/PGCPP. ------------------------------- */
-    tmp << std::endl << "PGI Compiler version : " << __VERSION__;
+    tmp << "\nPGI Compiler version : " << __VERSION__;
 #elif defined(__SUNPRO_CC)
     /* Oracle Solaris Studio. ----------------------------------- */
-    tmp << std::endl << "Oracle Compiler version : " << __SUNPRO_CC;
+    tmp << "\nOracle Compiler version : " << __SUNPRO_CC;
 #endif
 
-    this->version_string = std::string(tmp.str().c_str());
+    this->version_string = std::string(tmp.str());
 #ifdef APEX_HAVE_HPX
     this->m_hpx_runtime = nullptr;
     hpx::register_startup_function(init_hpx_runtime_ptr);
@@ -390,6 +402,11 @@ void init_cupti_tracing(void);
 void init_hip_tracing(void);
 #endif
 
+void do_atexit(void) {
+    finalize();
+    cleanup();
+}
+
 uint64_t init(const char * thread_name, uint64_t comm_rank,
     uint64_t comm_size) {
     FUNCTION_ENTER
@@ -418,7 +435,7 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
         }
     }
     /* register the finalization function, for program exit */
-    std::atexit(cleanup);
+    std::atexit(do_atexit);
     //thread_instance::set_worker(true);
     _registered = true;
     apex* instance = apex::instance(); // get/create the Apex static instance
@@ -461,6 +478,10 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
         instance->pd_reader = new proc_data_reader();
     }
 #endif
+    /* for the next section, we need to check if we are suspended,
+     * and if so, don't be suspended long enough to enable the main timer. */
+    bool suspended = apex_options::suspend();
+    apex_options::suspend(false);
     /* For the main thread, we should always start a top level timer.
      * The reason is that if the program calls "exit", our atexit() processing
      * will stop this timer, effectively stopping all of its children as well,
@@ -484,6 +505,8 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
         start(twp);
         thread_instance::set_top_level_timer(twp);
     }
+    /* restore the suspended bit */
+    apex_options::suspend(suspended);
     if (apex_options::use_verbose() && instance->get_node_id() == 0) {
       std::cout << version() << std::endl;
       apex_options::print_options();
@@ -521,6 +544,10 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
     const char * preload = getenv("LD_PRELOAD");
     if (preload != nullptr) {
         unsetenv("LD_PRELOAD");
+    }
+    if (comm_rank == 0) {
+        printf("%s", apex_banner);
+        printf("APEX Version: %s\n", instance->version_string.c_str());
     }
     FUNCTION_EXIT
     return APEX_NOERROR;
@@ -1650,6 +1677,7 @@ void finalize()
     //tcmalloc::destroy_hook();
 #endif
     disable_memory_wrapper();
+    apex_report_leaks();
 #if APEX_HAVE_BFD
     address_resolution::delete_instance();
 #endif
@@ -2044,13 +2072,30 @@ double current_power_high(void) {
 #elif APEX_HAVE_MSR
     power = msr_current_power_high();
     //std::cout << "Read power from MSR: " << power << std::endl;
+#elif APEX_HAVE_POWERCAP_POWER
+    static long long lpower = 0LL;
+    long long tpower = 0LL;
+    static long long diff = 0LL;
+    tpower = read_package0(false);
+    /* Check for overflow */
+    if (lpower > 0 && tpower > lpower) {
+        diff = tpower-lpower;
+    } else {
+        diff = 0;
+    }
+    power = (double)diff;
+    lpower = tpower;
+    // convert from microjoules to joules
+    power = power * 1.0e-6;
+    // get the right joules per second
+    power = power * (1.0e6 / (double)apex_options::concurrency_period());
+    //std::cout << "Read power from Powercap: " << tpower << " " << lpower << " " << diff << " " << power << std::endl;
 #elif APEX_HAVE_PROC
     power = (double)read_power();
     //std::cout << "Read power from Cray Power Monitoring and Management: " <<
-    //power << std::endl;
 #else
-    //std::cout << "NO POWER READING! Did you configure with RCR, MSR or Cray?"
-    //<< std::endl;
+    std::cout << "NO POWER READING! Did you configure with RCR, MSR or Cray?"
+    << std::endl;
 #endif
     return power;
 }
@@ -2144,12 +2189,6 @@ extern "C" {
         return init("FORTRAN thread", comm_rank, comm_size);
     }
 
-    static void apex_init_static_void(void) {
-        if (!apex_options::use_otf2()) {
-            init("APEX main thread", 0, 1);
-        }
-    }
-
     void apex_cleanup() {
         cleanup();
     }
@@ -2160,12 +2199,6 @@ extern "C" {
 
     void apex_finalize(void) {
         finalize();
-    }
-
-    static void apex_finalize_static_void(void) {
-#if !defined(APEX_HAVE_MPI)
-        finalize();
-#endif
     }
 
     void apex_finalize_() { finalize(); }

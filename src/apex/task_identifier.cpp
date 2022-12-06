@@ -75,6 +75,7 @@ std::mutex bfd_mutex;
         shorter = std::regex_replace(shorter, std::regex("_parallel_launch_local_memory"), "_local");
         shorter = std::regex_replace(shorter, std::regex("_parallel_launch_constant_memory"), "_const");
         return shorter;
+#if 0
         /* trim the arguments? */
         size_t trim_at = shorter.rfind("(");
         if (trim_at != std::string::npos) {
@@ -101,6 +102,7 @@ std::mutex bfd_mutex;
         }
         return shorter;
         */
+#endif
     }
 
     std::string task_identifier::get_short_name() {
@@ -154,9 +156,28 @@ std::mutex bfd_mutex;
                         void* addr_addr;
                         sscanf(addr_str.c_str(), "%p", &addr_addr);
                         std::string * tmp = lookup_address((uintptr_t)addr_addr, true);
-                        REGEX_NAMESPACE::regex old_address("UNRESOLVED ADDR " + addr_str);
-                        retval = REGEX_NAMESPACE::regex_replace(retval, old_address,
-                                (demangle(*tmp)));
+                        /* OK, this looks weird. But...binutils will sometimes resolve
+                         * different OpenMP outlined regions to the same function,file,line.
+                         * If we don't retain the address, we won't get unique timer names.
+                         */
+                        std::string s("OpenMP ");
+                        if (retval.rfind(s, 0) == 0) {
+                            // found an OpenMP timer, so keep the address
+                            // ...unless it's already there
+                            if (tmp->find(addr_str) != std::string::npos) {
+                                REGEX_NAMESPACE::regex old_address("UNRESOLVED ADDR " + addr_str);
+                                retval = REGEX_NAMESPACE::regex_replace(retval, old_address,
+                                        (*tmp));
+                            } else {
+                                REGEX_NAMESPACE::regex old_address("UNRESOLVED ADDR");
+                                retval = REGEX_NAMESPACE::regex_replace(retval, old_address,
+                                        (*tmp));
+                            }
+                        } else {
+                            REGEX_NAMESPACE::regex old_address("UNRESOLVED ADDR " + addr_str);
+                            retval = REGEX_NAMESPACE::regex_replace(retval, old_address,
+                                    (*tmp));
+                        }
                     }
                 }
 #endif

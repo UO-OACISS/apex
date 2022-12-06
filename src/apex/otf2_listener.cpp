@@ -49,26 +49,15 @@ using namespace std;
 
 namespace apex {
 
-    uint32_t otf2_listener::make_vtid (async_thread_node &node) {
+    uint32_t otf2_listener::make_vtid (base_thread_node &node) {
         size_t tid;
         /* There is a potential for overlap here, but not a high potential.  The CPU and the GPU
         * would BOTH have to spawn 64k+ threads/streams for this to happen. */
         if (vthread_map.count(node) == 0) {
             // build the thread name for viewers
             std::stringstream ss;
-#ifdef APEX_WITH_CUPTI
-            ss << "CUDA[" << node._device;
-            ss << ":" << node._context;
-            ss << ":" << node._stream;
-#endif
-#ifdef APEX_WITH_HIP
-            ss << "HIP[" << node._device;
-            ss << ":" << node._queue;
-#endif
-#if !defined(APEX_WITH_CUPTI) && !defined(APEX_WITH_HIP)
-            ss << "GPU[" << node._device;
-#endif
-            ss << "] " << activity_to_string(node._activity);
+            ss << node.name();
+            ss << " " << activity_to_string(node._activity);
             std::string name{ss.str()};
             // lock the archive lock, we need to make an event writer
             write_lock_type lock(_archive_mutex);
@@ -86,7 +75,7 @@ namespace apex {
             // done with the set of event threads, so unlock.
             _event_set_mutex.unlock();
             // use the OTF2 thread index (not reversed) for the vthread_map
-            vthread_map.insert(std::pair<async_thread_node, size_t>(node,id));
+            vthread_map.insert(std::pair<base_thread_node, size_t>(node,id));
             // construct a globally unique ID for this thread on this rank
             uint64_t my_node_id = my_saved_node_id;
             my_node_id = (my_node_id << 32) + id;
@@ -132,7 +121,7 @@ namespace apex {
             OTF2_CollectiveContext *commContext, uint32_t *size) {
         /* Returns the number of OTF2_Archive objects operating in this
            communication context. */
-        //cout << __func__ << " " << apex_options::otf2_collective_size() << endl;
+        //cout << __APEX_FUNCTION__ << " " << apex_options::otf2_collective_size() << endl;
         //*size = apex_options::otf2_collective_size();
         APEX_UNUSED(userData);
         APEX_UNUSED(commContext);
@@ -145,7 +134,7 @@ namespace apex {
         /* Returns the rank of this OTF2_Archive objects in this communication
            context. A number between 0 and one less of the size of the communication
            context. */
-        //cout << __func__ << " " << my_saved_node_id << endl;
+        //cout << __APEX_FUNCTION__ << " " << my_saved_node_id << endl;
         APEX_UNUSED(userData);
         APEX_UNUSED(commContext);
         APEX_UNUSED(rank);
@@ -643,12 +632,6 @@ namespace apex {
             role = OTF2_REGION_ROLE_ARTIFICIAL;
             return;
         }
-        found = uppercase.find(string("OPENMP"));
-        if (found != std::string::npos) {
-            paradigm = OTF2_PARADIGM_OPENMP;
-            role = OTF2_REGION_ROLE_FUNCTION;
-            return;
-        }
         found = uppercase.find(string("PTHREAD"));
         if (found != std::string::npos) {
             paradigm = OTF2_PARADIGM_PTHREAD;
@@ -666,7 +649,8 @@ namespace apex {
             paradigm = OTF2_PARADIGM_CUDA;
             role = OTF2_REGION_ROLE_FUNCTION;
             found = uppercase.find(string("MEMCPY"));
-            if (found != std::string::npos) {
+            size_t found2 = uppercase.find(string("OPENMP TARGET DATAOP XFER"));
+            if (found != std::string::npos || found2 != std::string::npos) {
                 role = OTF2_REGION_ROLE_DATA_TRANSFER;
             } else {
                 found = uppercase.find(string("SYNC"));
@@ -674,16 +658,26 @@ namespace apex {
                     role = OTF2_REGION_ROLE_TASK_WAIT;
                 } else {
                     found = uppercase.find(string("MEMSET"));
-                    if (found != std::string::npos) {
+                    found2 = uppercase.find(string("OPENMP TARGET DATAOP ALLOC"));
+                    size_t found3 = uppercase.find(string("OPENMP TARGET DATAOP DELETE"));
+                    if (found != std::string::npos ||
+                        found2 != std::string::npos || found3 != std::string::npos) {
                         role = OTF2_REGION_ROLE_DATA_TRANSFER;
                     } else {
                         found = uppercase.find(string("STREAM WAIT"));
-                        if (found != std::string::npos) {
+                        found2 = uppercase.find(string("OPENMP TARGET:"));
+                        if (found != std::string::npos || found2 != std::string::npos) {
                             role = OTF2_REGION_ROLE_TASK_WAIT;
                         }
                     }
                 }
             }
+            return;
+        }
+        found = uppercase.find(string("OPENMP"));
+        if (found != std::string::npos) {
+            paradigm = OTF2_PARADIGM_OPENMP;
+            role = OTF2_REGION_ROLE_FUNCTION;
             return;
         }
         // does the original string start with cu or cuda?
@@ -855,7 +849,11 @@ namespace apex {
         uint64_t ticks_per_second = 1e9;
         uint64_t traceLength = saved_end_timestamp;
         OTF2_GlobalDefWriter_WriteClockProperties( global_def_writer,
-            ticks_per_second, 0 /* start */, traceLength /* length */ );
+            ticks_per_second, 0 /* start */, traceLength /* length */
+#if OTF2_VERSION_MAJOR > 2
+            , OTF2_UNDEFINED_TIMESTAMP
+#endif
+            );
     }
 
     /* For this rank, pid, hostname, write all that data into the
@@ -900,7 +898,11 @@ namespace apex {
             rank /* id */,
             get_string_index(locality.str()) /* name */,
             OTF2_LOCATION_GROUP_TYPE_PROCESS,
-            node_index /* system tree node ID */ );
+            node_index /* system tree node ID */
+#if OTF2_VERSION_MAJOR > 2
+            , OTF2_UNDEFINED_LOCATION_GROUP
+#endif
+            );
         // write out the thread locations
         //for (int i = 0 ; i < rank_thread_name_map[rank] ; i++) {
         for (auto iter : rank_thread_name_map[rank]) {
@@ -950,7 +952,7 @@ namespace apex {
         _finalized = true;
         // if we are tracking memory, there are some alloc/free events
         // we recorded before the end of the trace.
-        if (apex_options::track_memory()) {
+        if (apex_options::track_cpu_memory()) {
             saved_end_timestamp = get_time();
         }
          // get an exclusive lock, to make sure no other threads
@@ -1048,9 +1050,16 @@ namespace apex {
                 const char * world = "MPI_COMM_WORLD";
                 OTF2_EC(OTF2_GlobalDefWriter_WriteString( global_def_writer,
                     get_string_index(world), world ));
-                OTF2_EC(OTF2_GlobalDefWriter_WriteComm  ( global_def_writer,
-                    0, get_string_index(world),
-                    1, OTF2_UNDEFINED_COMM));
+                OTF2_EC(OTF2_GlobalDefWriter_WriteComm  (
+                    global_def_writer,
+                    0,
+                    get_string_index(world),
+                    1,
+                    OTF2_UNDEFINED_COMM
+#if OTF2_VERSION_MAJOR > 2
+                    , OTF2_COMM_FLAG_NONE
+#endif
+                    ));
             } else {
                 // not rank 0?
                 // write out the timer names we saw
@@ -1417,7 +1426,7 @@ namespace apex {
 
         // if not root, we have a simple job...
         if (my_saved_node_id > 0) {
-            //printf("%d: calling gather_there from %s\n", my_saved_node_id, __func__);
+            //printf("%d: calling gather_there from %s\n", my_saved_node_id, __APEX_FUNCTION__);
             hpx::future<void> overall_result =
                 gather_there(gather_basename, str,
                 this_site_arg(this_locality),
@@ -1427,7 +1436,7 @@ namespace apex {
         }
         std::vector<std::string> allhostnames;
         if (my_saved_node_count > 1) {
-            //printf("%d: calling gather_here from %s\n", my_saved_node_id, __func__);
+            //printf("%d: calling gather_here from %s\n", my_saved_node_id, __APEX_FUNCTION__);
             // if root, gather the names...
             hpx::future<std::vector<std::string>> overall_result =
                 gather_here(gather_basename, str,
@@ -1479,7 +1488,7 @@ namespace apex {
 
         // if not root, we have a simple job...
         if (my_saved_node_id > 0) {
-            //printf("%d: calling gather_there from %s\n", my_saved_node_id, __func__);
+            //printf("%d: calling gather_there from %s\n", my_saved_node_id, __APEX_FUNCTION__);
             hpx::future<void> overall_result =
 		gather_there(gather_basename, my_regions,
                 this_site_arg(this_locality),
@@ -1488,7 +1497,7 @@ namespace apex {
         } else {
             std::vector<std::string> rbuf;
             if (my_saved_node_count > 1) {
-                //printf("%d: calling gather_here from %s\n", my_saved_node_id, __func__);
+                //printf("%d: calling gather_here from %s\n", my_saved_node_id, __APEX_FUNCTION__);
                 // if root, gather the names...
                 hpx::future<std::vector<std::string>> overall_result =
                     gather_here(gather_basename, my_regions,
@@ -1558,14 +1567,14 @@ namespace apex {
             std::uint32_t this_locality = hpx::get_locality_id();
 
             if (my_saved_node_id > 0) {
-                //printf("%d: calling broadcast_from from %s\n", my_saved_node_id, __func__);
+                //printf("%d: calling broadcast_from from %s\n", my_saved_node_id, __APEX_FUNCTION__);
                 hpx::future<std::string> overall_result =
                     broadcast_from<std::string>(bcast_basename,
                     this_site_arg(this_locality),
                     generation_arg(generation++));
                 fullmap_vector.push_back(overall_result.get());
             } else {
-                //printf("%d: calling broadcast_to from %s\n", my_saved_node_id, __func__);
+                //printf("%d: calling broadcast_to from %s\n", my_saved_node_id, __APEX_FUNCTION__);
                 hpx::future<void> overall_result =
                     broadcast_to(bcast_basename, fullmap,
                     num_sites_arg(num_localities),
@@ -1627,7 +1636,7 @@ namespace apex {
 
         // if not root, we have a simple job...
         if (my_saved_node_id > 0) {
-            //printf("%d: calling gather_there from %s\n", my_saved_node_id, __func__);
+            //printf("%d: calling gather_there from %s\n", my_saved_node_id, __APEX_FUNCTION__);
             hpx::future<void> overall_result =
 		gather_there(gather_basename, my_metrics,
                 this_site_arg(this_locality),
@@ -1636,7 +1645,7 @@ namespace apex {
         } else {
             std::vector<std::string> rbuf;
             if (my_saved_node_count > 1) {
-                //printf("%d: calling gather_here from %s\n", my_saved_node_id, __func__);
+                //printf("%d: calling gather_here from %s\n", my_saved_node_id, __APEX_FUNCTION__);
                 // if root, gather the names...
                 hpx::future<std::vector<std::string>> overall_result =
                     gather_here(gather_basename, my_metrics,
@@ -1712,14 +1721,14 @@ namespace apex {
             std::uint32_t this_locality = hpx::get_locality_id();
 
             if (my_saved_node_id > 0) {
-                //printf("%d: calling broadcast_from from %s\n", my_saved_node_id, __func__);
+                //printf("%d: calling broadcast_from from %s\n", my_saved_node_id, __APEX_FUNCTION__);
                 hpx::future<std::string> overall_result =
                     broadcast_from<std::string>(bcast_basename,
                     this_site_arg(this_locality),
                     generation_arg(generation++));
                 fullmap_vector.push_back(overall_result.get());
             } else {
-                //printf("%d: calling broadcast_to from %s\n", my_saved_node_id, __func__);
+                //printf("%d: calling broadcast_to from %s\n", my_saved_node_id, __APEX_FUNCTION__);
                 hpx::future<void> overall_result =
                     broadcast_to(bcast_basename, fullmap,
                     num_sites_arg(num_localities),
@@ -1774,7 +1783,7 @@ namespace apex {
 
         // if not root, we have a simple job...
         if (my_saved_node_id > 0) {
-            //printf("%d: calling gather_there from %s\n", my_saved_node_id, __func__);
+            //printf("%d: calling gather_there from %s\n", my_saved_node_id, __APEX_FUNCTION__);
             hpx::future<void> overall_result =
 		gather_there(gather_basename, my_threads,
                 this_site_arg(this_locality),
@@ -1784,7 +1793,7 @@ namespace apex {
         }
         std::vector<std::string> rbuf;
         if (my_saved_node_count > 1) {
-            //printf("%d: calling gather_here from %s\n", my_saved_node_id, __func__);
+            //printf("%d: calling gather_here from %s\n", my_saved_node_id, __APEX_FUNCTION__);
             // if root, gather the names...
             hpx::future<std::vector<std::string>> overall_result =
                 gather_here(gather_basename, my_threads,
@@ -2678,7 +2687,7 @@ namespace apex {
 
 #endif
 
-    void otf2_listener::on_async_event(async_thread_node &node,
+    void otf2_listener::on_async_event(base_thread_node &node,
         std::shared_ptr<profiler> &p) {
         // This could be a callback from a library before APEX is ready
         // Something like OpenMP or CUDA/CUPTI or...?
@@ -2739,7 +2748,7 @@ namespace apex {
 
     }
 
-    void otf2_listener::on_async_metric(async_thread_node &node,
+    void otf2_listener::on_async_metric(base_thread_node &node,
         std::shared_ptr<profiler> &p) {
         // This could be a callback from a library before APEX is ready
         // Something like OpenMP or CUDA/CUPTI or...?

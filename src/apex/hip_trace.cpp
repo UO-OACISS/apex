@@ -78,6 +78,8 @@ using namespace std;
 #include <sys/syscall.h>   /* For SYS_xxx definitions */
 #include <inttypes.h>
 
+#include "memory_wrapper.hpp"
+
 // Macro to check ROC-tracer calls status
 #define ROCTRACER_CALL(call)                                    \
     do {                                                        \
@@ -91,10 +93,11 @@ using namespace std;
 /* This class is necessary so we can clean up before our globals are destroyed at exit */
 class Globals{
 private:
-    Globals() : deltaTimestamp(0) {} // Disallow instantiation outside of the class.
+    Globals() : deltaTimestamp(0), bad_stacks(false) {} // Disallow instantiation outside of the class.
     // Timestamp at trace initialization time. Used to normalized other
     // timestamps
     int64_t deltaTimestamp;
+    bool bad_stacks;
     std::mutex correlation_map_mutex;
     std::unordered_map<uint32_t, std::shared_ptr<apex::task_wrapper>> timer_map;
     std::unordered_map<uint32_t, std::string> name_map;
@@ -106,6 +109,10 @@ public:
     Globals & operator=(Globals &&) = delete;
     // if our globals are destroyed before APEX can finalize, then finalize now! */
     ~Globals() {
+        if (bad_stacks) {
+            std::cerr << "Warning! APEX detected more timer stops than starts.\n";
+            std::cerr << "\tPlease confirm that you have correctly matched roctx push/pops.";
+        }
         apex::finalize();
     }
 
@@ -137,6 +144,11 @@ public:
         g.timer_map.erase(id);
         g.unlock();
         return timer;
+    }
+
+    static void report_bad_stacks() {
+        Globals& g = instance();
+        g.bad_stacks = true;
     }
 
     static void insert_name(uint32_t id, std::string& name) {
@@ -246,6 +258,9 @@ bool run_once() {
  * and stopped by another).
  */
 void handle_roctx(uint32_t domain, uint32_t cid, const void* callback_data, void* arg) {
+    // if APEX is disabled, do nothing.
+    // if APEX is suspended, do nothing.
+    if (apex::apex_options::disable() || apex::apex_options::suspend()) { return; }
     // prevent re-entry
     handler_lock hl;
     if (!hl.mine) { return; }
@@ -261,20 +276,22 @@ void handle_roctx(uint32_t domain, uint32_t cid, const void* callback_data, void
         case ROCTX_API_ID_roctxRangePushA:
             {
                 std::stringstream ss;
-                ss << "roctx: " << data->args.message;
+                ss /* << "roctx: " */ << data->args.message;
                 timer_stack.push(apex::start(ss.str()));
                 break;
             }
         case ROCTX_API_ID_roctxRangePop:
             {
-                apex::stop(timer_stack.top());
-                timer_stack.pop();
+                if (!timer_stack.empty()) {
+                    apex::stop(timer_stack.top());
+                    timer_stack.pop();
+                } else { Globals::report_bad_stacks(); }
                 break;
             }
         case ROCTX_API_ID_roctxRangeStartA:
             {
                 std::stringstream ss;
-                ss << "roctx: " << data->args.message;
+                ss /* << "roctx: " */ << data->args.message;
                 apex::profiler* p = apex::start(ss.str());
                 const std::lock_guard<std::mutex> guard(map_lock);
                 timer_map.insert(
@@ -303,6 +320,9 @@ void handle_roctx(uint32_t domain, uint32_t cid, const void* callback_data, void
 #if defined(APEX_HAVE_ROCTRACER_KFD)
 /* This is the "low level" API - lots of events if interested. */
 void handle_roc_kfd(uint32_t domain, uint32_t cid, const void* callback_data, void* arg) {
+    // if APEX is disabled, do nothing.
+    // if APEX is suspended, do nothing.
+    if (apex::apex_options::disable() || apex::apex_options::suspend()) { return; }
     // ignore timestamp requests
     if (cid == KFD_API_ID_hsaKmtGetClockCounters) return;
     // prevent re-entry
@@ -325,7 +345,7 @@ void handle_roc_kfd(uint32_t domain, uint32_t cid, const void* callback_data, vo
             auto timer = timer_stack.top();
             apex::stop(timer);
             timer_stack.pop();
-        }
+        } else { Globals::report_bad_stacks(); }
     }
     return;
 }
@@ -334,6 +354,9 @@ void handle_roc_kfd(uint32_t domain, uint32_t cid, const void* callback_data, vo
 /* This is the "OpenMP" API - lots of events if interested. */
 #if defined(APEX_WITH_HSA)
 void handle_roc_hsa(uint32_t domain, uint32_t cid, const void* callback_data, void* arg) {
+    // if APEX is disabled, do nothing.
+    // if APEX is suspended, do nothing.
+    if (apex::apex_options::disable() || apex::apex_options::suspend()) { return; }
     // ignore timestamp requests
 #if defined(APEX_HAVE_ROCTRACER_KFD)
     if (cid == KFD_API_ID_hsaKmtGetClockCounters) return;
@@ -358,7 +381,7 @@ void handle_roc_hsa(uint32_t domain, uint32_t cid, const void* callback_data, vo
             auto timer = timer_stack.top();
             apex::stop(timer);
             timer_stack.pop();
-        }
+        } else { Globals::report_bad_stacks(); }
     }
     return;
 }
@@ -513,6 +536,7 @@ bool getBytesIfMalloc(uint32_t cid, const hip_api_data_t* data,
             hostTotalAllocated.fetch_sub(bytes, std::memory_order_relaxed);
             value = (double)(hostTotalAllocated);
             store_sync_counter_data(nullptr, "Total Bytes Occupied on Host", value, false);
+            apex::recordFree(ptr);
         } else {
             mapMutex.lock();
             if (memoryMap.count(ptr) > 0) {
@@ -528,6 +552,7 @@ bool getBytesIfMalloc(uint32_t cid, const hip_api_data_t* data,
             totalAllocated.fetch_sub(value, std::memory_order_relaxed);
             value = (double)(totalAllocated);
             store_sync_counter_data(nullptr, "Total Bytes Occupied on Device", value, false);
+            apex::recordFree(ptr, false);
         }
     // If we are in the exit of a function, and we are allocating memory,
     // then update and record the bytes allocated
@@ -543,6 +568,7 @@ bool getBytesIfMalloc(uint32_t cid, const hip_api_data_t* data,
             hostTotalAllocated.fetch_add(bytes, std::memory_order_relaxed);
             value = (double)(hostTotalAllocated);
             store_sync_counter_data(nullptr, "Total Bytes Occupied on Host", value, false);
+            apex::recordAlloc(bytes, ptr, apex::GPU_HOST_MALLOC);
             return true;
         } else {
             if (managed) {
@@ -556,6 +582,7 @@ bool getBytesIfMalloc(uint32_t cid, const hip_api_data_t* data,
             totalAllocated.fetch_add(bytes, std::memory_order_relaxed);
             value = (double)(totalAllocated);
             store_sync_counter_data(nullptr, "Total Bytes Occupied on Device", value, false);
+            apex::recordAlloc(bytes, ptr, apex::GPU_DEVICE_MALLOC, false);
         }
     }
     return true;
@@ -628,6 +655,9 @@ std::string lookup_kernel_name(const hipFunction_t f) {
  * the entry or exit event, and act accordingly.
  */
 void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* arg) {
+    // if APEX is disabled, do nothing.
+    // if APEX is suspended, do nothing.
+    if (apex::apex_options::disable() || apex::apex_options::suspend()) { return; }
     // prevent re-entry
     handler_lock hl;
     if (!hl.mine) { return; }
@@ -801,7 +831,7 @@ void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* 
                 Globals::insert_data(data->correlation_id, as_data);
             }
             timer_stack.pop();
-        }
+        } else { Globals::report_bad_stacks(); }
 
         switch (cid) {
             case HIP_API_ID_hipMallocPitch:
@@ -927,6 +957,15 @@ void process_hip_record(const roctracer_record_t* record) {
             break;
         }
         case HIP_OP_ID_COPY: {
+            /* Handle the "Unknown command type" object. This happens with a burst of activity
+               when using managed memory. Ignore the event for now. */
+            if (record->domain == 2 && record->kind == 1) {
+                break;
+            }
+            /*
+            if (strcmp(name, "Unknown command type") == 0) {
+                std::cerr << name << ":" << record->domain << ", COPY, " << record->kind << std::endl;
+            } */
             apex::hip_thread_node node(record->device_id, record->queue_id, APEX_ASYNC_MEMORY);
             bool reverse_flow = (std::string(name).find("DeviceToHost") != std::string::npos);
    	        store_profiler_data(name, record->correlation_id, record->begin_ns,
@@ -954,6 +993,10 @@ void process_hip_record(const roctracer_record_t* record) {
 // Activity tracing callback
 void activity_callback(const char* begin, const char* end, void* arg) {
     APEX_UNUSED(arg);
+    // if APEX is disabled, do nothing.
+    // if APEX is suspended, do nothing.
+    if (apex::apex_options::disable() || apex::apex_options::suspend()) { return; }
+
     const roctracer_record_t* record = (const roctracer_record_t*)(begin);
     const roctracer_record_t* end_record = (const roctracer_record_t*)(end);
 

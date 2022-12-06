@@ -25,8 +25,6 @@
 
 #include "tau_listener.hpp"
 
-#define MAX_FUNCTIONS_IN_CHART 5
-
 using namespace std;
 
 std::vector<std::mutex*>& _per_thread_mutex() {
@@ -257,7 +255,7 @@ bool path_has_suffix(const std::string &str)
 
 void concurrency_handler::output_samples(int node_id) {
   //cout << "HANDLER: writing samples " << endl;
-  cout << _states.size() << " samples seen:" << endl;
+  //cout << _states.size() << " samples seen:" << endl;
   ofstream myfile;
   stringstream datname;
   datname << apex_options::output_file_path();
@@ -293,7 +291,7 @@ void concurrency_handler::output_samples(int node_id) {
   for (vector<pair<task_identifier, int> >::iterator it=my_vec.begin();
     it!=my_vec.end(); ++it) {
     //if (top_x.size() < 15 && (*it).first != "APEX THREAD MAIN")
-    if (top_x.size() < MAX_FUNCTIONS_IN_CHART)
+    if (top_x.size() < (size_t)(apex_options::concurrency_max_timers()))
       top_x.insert((*it).first);
   }
 

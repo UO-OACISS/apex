@@ -13,6 +13,8 @@ SET(tau_SOURCE tau_listener.cpp)
 
 if (BFD_FOUND)
 SET(bfd_SOURCE apex_bfd.cpp address_resolution.cpp)
+else(BFD_FOUND)
+SET(bfd_SOURCE address_resolution.cpp)
 endif(BFD_FOUND)
 
 if (APEX_HAVE_PROC)
@@ -57,6 +59,14 @@ if (ZLIB_FOUND)
 SET(ZLIB_SOURCE gzstream.cpp)
 endif(ZLIB_FOUND)
 
+if (APEX_WITH_MPI)
+SET(MPI_SOURCE apex_mpi.cpp)
+endif (APEX_WITH_MPI)
+
+if (MPI_Fortran_FOUND)
+SET(MPIF_SOURCE apex_mpif.F90)
+endif (MPI_Fortran_FOUND)
+
 if (OpenACC_CXX_FOUND AND OpenACCProfiling_FOUND)
     set(OpenACC_SOURCE apex_openacc.cpp)
 endif (OpenACC_CXX_FOUND AND OpenACCProfiling_FOUND)
@@ -67,15 +77,18 @@ endif (APEX_WITH_RAJA AND RAJA_FOUND)
 
 # Try to keep this in alphabetical order
 SET(all_SOURCE
+apex_preload.cpp
 ${CUPTI_SOURCE}
 ${ROCPROFILER_SOURCE}
 ${ROCTRACER_SOURCE}
 ${NVML_SOURCE}
 ${RSMI_SOURCE}
 apex.cpp
+apex_error_handling.cpp
 apex_kokkos.cpp
 apex_kokkos_tuning.cpp
-apex_mpi.cpp
+${MPI_SOURCE}
+${MPIF_SOURCE}
 apex_options.cpp
 event_filter.cpp
 apex_policies.cpp
@@ -134,6 +147,10 @@ if (MPI_CXX_FOUND)
   include_directories (${MPI_CXX_INCLUDE_PATH})
 endif(MPI_CXX_FOUND)
 
+if (MPI_Fortran_FOUND)
+  include_directories (${MPI_Fortran_INCLUDE_PATH})
+endif(MPI_Fortran_FOUND)
+
 if (APEX_WITH_CUDA)
   include_directories (${CUDAToolkit_INCLUDE_DIR})
 endif(APEX_WITH_CUDA)
@@ -169,6 +186,7 @@ INSTALL(FILES apex.h
     exhaustive.hpp
     dependency_tree.hpp
     handler.hpp
+    memory_wrapper.hpp
     profile.hpp
     apex_export.h
     utils.hpp

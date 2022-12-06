@@ -13,6 +13,7 @@ const int num_tasks = 1<<8;
 
 void check_guid(uint64_t guid) {
     return;
+#if 0
     std::unique_lock<std::mutex> l(guid_mutex);
 #ifdef __VERBOSE_OUTPUT__
     // output like this so that we don't get interleaved output
@@ -25,6 +26,7 @@ void check_guid(uint64_t guid) {
         abort();
     }
     guids.insert(guid);
+#endif
 }
 
 int foo(int input) {
@@ -39,7 +41,7 @@ void* someThread(void* tmp)
 {
     int tid = *(int*)tmp;
     char name[32];
-    sprintf(name, "worker thread %d", tid);
+    snprintf(name, 32, "worker thread %d", tid);
     /* Register this thread with APEX */
     apex::register_thread(name);
     /* Start a timer */

@@ -96,11 +96,17 @@ inline ExecutionSpaceIdentifier identifier_from_devid(const uint32_t in) {
           ((in & 0x00FFFFFF) >> 17),  // next 7 bits
            (in & 0x0001FFFF)}; // last 17 bits
            */
+#if 1
     constexpr const uint32_t shift = num_avail_bits - num_type_bits;
     return {devicetype_from_uint32t(in >> shift), /*First 8 bits*/
            (~((uint32_t(-1)) << num_device_bits)) &
             (in >> num_instance_bits), /*Next 7 bits */
            (~((uint32_t(-1)) << num_instance_bits)) & in}; /*Last 17 bits*/
+#else
+    constexpr const uint32_t shift = num_instance_bits;
+    return {devicetype_from_uint32t(in >> shift), /*First 8 bits*/
+           0, (~((uint32_t(-1)) << num_instance_bits)) & in}; /*Last 17 bits*/
+#endif
 }
 
 /* "Top 8 bits represent the device type. Next 7 are the device id (think
@@ -141,7 +147,9 @@ void kokkosp_init_library(int loadseq, uint64_t version,
  * profiling hooks.
  */
 void kokkosp_finalize_library() {
+#ifndef APEX_HAVE_HPX
     apex::finalize();
+#endif
 }
 
 /* This is a new function to tell Kokkos to not fence */
@@ -166,9 +174,15 @@ void kokkosp_begin_parallel_for(const char* name,
     uint32_t devid, uint64_t* kernid) {
     std::stringstream ss;
     ExecutionSpaceIdentifier space_id = identifier_from_devid(devid);
-    ss << "Kokkos::parallel_for [Type:"
-       << devicestring_from_type(space_id.type)
-       << ", Device: " << space_id.device_id << "] " << name;
+    ss << "Kokkos::parallel_for ["
+       << devicestring_from_type(space_id.type);
+    if (space_id.type != DeviceType::Serial &&
+        space_id.type != DeviceType::OpenMP && 
+        space_id.type != DeviceType::HPX && 
+        space_id.type != DeviceType::Threads) {
+       ss << ", Dev:" << space_id.device_id;
+    }
+    ss << "] " << name;
     std::string tmp{ss.str()};
     // Start a new profiler, with no known parent
     // (current timer on stack, if exists)
@@ -181,9 +195,15 @@ void kokkosp_begin_parallel_reduce(const char* name,
     uint32_t devid, uint64_t* kernid) {
     std::stringstream ss;
     ExecutionSpaceIdentifier space_id = identifier_from_devid(devid);
-    ss << "Kokkos::parallel_reduce [Type:"
-       << devicestring_from_type(space_id.type)
-       << ", Device: " << space_id.device_id << "] " << name;
+    ss << "Kokkos::parallel_reduce ["
+       << devicestring_from_type(space_id.type);
+    if (space_id.type != DeviceType::Serial &&
+        space_id.type != DeviceType::OpenMP && 
+        space_id.type != DeviceType::HPX && 
+        space_id.type != DeviceType::Threads) {
+       ss << ", Dev:" << space_id.device_id;
+    }
+    ss << "] " << name;
     std::string tmp{ss.str()};
     // Start a new profiler, with no known parent
     // (current timer on stack, if exists)
@@ -196,9 +216,15 @@ void kokkosp_begin_parallel_scan(const char* name,
     uint32_t devid, uint64_t* kernid) {
     std::stringstream ss;
     ExecutionSpaceIdentifier space_id = identifier_from_devid(devid);
-    ss << "Kokkos::parallel_scan [Type:"
-       << devicestring_from_type(space_id.type)
-       << ", Device: " << space_id.device_id << "] " << name;
+    ss << "Kokkos::parallel_scan ["
+       << devicestring_from_type(space_id.type);
+    if (space_id.type != DeviceType::Serial &&
+        space_id.type != DeviceType::OpenMP && 
+        space_id.type != DeviceType::HPX && 
+        space_id.type != DeviceType::Threads) {
+       ss << ", Dev:" << space_id.device_id;
+    }
+    ss << "] " << name;
     std::string tmp{ss.str()};
     // Start a new profiler, with no known parent
     // (current timer on stack, if exists)
@@ -334,9 +360,11 @@ void kokkosp_begin_deep_copy(
  * kokkosp_begind_deep_copy call.
  */
 void kokkosp_end_deep_copy() {
-    auto p = timer_stack().top();
-    apex::stop(p);
-    timer_stack().pop();
+    if (!timer_stack().empty()) {
+        auto p = timer_stack().top();
+        apex::stop(p);
+        timer_stack().pop();
+    }
 }
 
 /* Create a profiling section handle. Sections can overlap with each other

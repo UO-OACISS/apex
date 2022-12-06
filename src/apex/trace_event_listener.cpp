@@ -91,19 +91,52 @@ void trace_event_listener::on_exit_thread(event_data &data) {
     return;
 }
 
+inline void trace_event_listener::_common_start(std::shared_ptr<task_wrapper> &tt_ptr) {
+    static APEX_NATIVE_TLS long unsigned int tid = get_thread_id_metadata();
+    if (!_terminate) {
+        std::stringstream ss;
+        ss << fixed;
+        uint64_t pguid = 0;
+        if (tt_ptr->parent != nullptr) {
+            pguid = tt_ptr->parent->guid;
+        }
+        ss << "{\"name\":\"" << tt_ptr->get_task_id()->get_name()
+              << "\",\"cat\":\"CPU\""
+              << ",\"ph\":\"B\",\"pid\":"
+              << saved_node_id << ",\"tid\":" << tid
+              << ",\"ts\":" << tt_ptr->prof->get_start_us()
+              << ",\"args\":{\"GUID\":" << tt_ptr->prof->guid << ",\"Parent GUID\":" << pguid << "}},\n";
+/* Only write the counter at the end, it's less data! */
+#if APEX_HAVE_PAPI
+        int i = 0;
+        for (auto metric :
+            apex::instance()->the_profiler_listener->get_metric_names()) {
+            double start = tt_ptr->prof->papi_start_values[i++];
+            // write our counter into the event stream
+            ss << fixed;
+            ss << "{\"name\":\"" << metric
+               << "\",\"cat\":\"CPU\""
+               << ",\"ph\":\"C\",\"pid\":" << saved_node_id
+               << ",\"ts\":" << tt_ptr->prof->get_start_us()
+               << ",\"args\":{\"value\":" << start
+               << "}},\n";
+        }
+#endif
+        write_to_trace(ss);
+        flush_trace_if_necessary();
+    }
+    return;
+}
+
 bool trace_event_listener::on_start(std::shared_ptr<task_wrapper> &tt_ptr) {
     APEX_UNUSED(tt_ptr);
-    /*
-     * Do nothing - we can do a "complete" record at stop
-    */
+    if (tt_ptr->explicit_trace_start) _common_start(tt_ptr);
     return true;
 }
 
 bool trace_event_listener::on_resume(std::shared_ptr<task_wrapper> &tt_ptr) {
     APEX_UNUSED(tt_ptr);
-    /*
-     * Do nothing - we can do a "complete" record at stop
-    */
+    if (tt_ptr->explicit_trace_start) _common_start(tt_ptr);
     return true;
 }
 
@@ -123,6 +156,11 @@ long unsigned int trace_event_listener::get_thread_id_metadata() {
        << ",\"args\":{\"sort_index\":\"" << setw(5) << setfill('0') << tid << "\"}},\n";
     write_to_trace(ss);
     return tid;
+}
+
+uint64_t get_flow_id() {
+    static uint64_t flow_id = 0;
+    return ++flow_id;
 }
 
 void write_flow_event(std::stringstream& ss, double ts, char ph,
@@ -148,18 +186,45 @@ inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
         // if the parent tid is not the same, create a flow event BEFORE the single event
         if (p->tt_ptr->parent != nullptr && p->tt_ptr->parent->thread_id != tid) {
             //std::cout << "FLOWING!" << std::endl;
-            write_flow_event(ss, p->tt_ptr->parent->start_time, 's', "ControlFlow", pguid,
+            uint64_t flow_id = get_flow_id();
+            write_flow_event(ss, p->tt_ptr->parent->start_time, 's', "ControlFlow", flow_id,
                 saved_node_id, p->tt_ptr->parent->thread_id, p->tt_ptr->parent->task_id->get_name());
-            write_flow_event(ss, p->get_start_us(), 'f', "ControlFlow", pguid,
+            write_flow_event(ss, p->get_start_us(), 'f', "ControlFlow", flow_id,
                 saved_node_id, tid, p->tt_ptr->parent->task_id->get_name());
         }
-        ss << "{\"name\":\"" << p->get_task_id()->get_name()
+        if (p->tt_ptr->explicit_trace_start) {
+            ss << "{\"name\":\"" << p->get_task_id()->get_name()
+              << "\",\"cat\":\"CPU\""
+              << ",\"ph\":\"E\",\"pid\":"
+              << saved_node_id << ",\"tid\":" << tid
+              << ",\"ts\":" << p->get_stop_us()
+              << "},\n";
+        } else {
+            ss << "{\"name\":\"" << p->get_task_id()->get_name()
               << "\",\"cat\":\"CPU\""
               << ",\"ph\":\"X\",\"pid\":"
               << saved_node_id << ",\"tid\":" << tid
               << ",\"ts\":" << p->get_start_us() << ",\"dur\":"
               << p->get_stop_us() - p->get_start_us()
               << ",\"args\":{\"GUID\":" << p->guid << ",\"Parent GUID\":" << pguid << "}},\n";
+        }
+#if APEX_HAVE_PAPI
+        int i = 0;
+        for (auto metric :
+            apex::instance()->the_profiler_listener->get_metric_names()) {
+            //double start = p->papi_start_values[i];
+            double stop = p->papi_stop_values[i++];
+            // write our counter into the event stream
+            ss << fixed;
+            ss << "{\"name\":\"" << metric
+               << "\",\"cat\":\"CPU\""
+               << ",\"ph\":\"C\",\"pid\":" << saved_node_id
+               << ",\"ts\":" << p->get_stop_us()
+               << ",\"args\":{\"value\":" << stop
+               << "}},\n";
+            //std::cout << p->get_task_id()->get_name() << "." << metric << ": " << start << " -> " << stop << " = " << stop-start << std::endl;
+        }
+#endif
         write_to_trace(ss);
         flush_trace_if_necessary();
     }
@@ -214,32 +279,20 @@ void trace_event_listener::set_metadata(const char * name, const char * value) {
     APEX_UNUSED(value);
 }
 
-std::string trace_event_listener::make_tid (async_thread_node &node) {
+std::string trace_event_listener::make_tid (base_thread_node &node) {
     size_t tid;
     /* There is a potential for overlap here, but not a high potential.  The CPU and the GPU
      * would BOTH have to spawn 64k+ threads/streams for this to happen. */
     if (vthread_map.count(node) == 0) {
-        size_t id = vthread_map.size()+1;
-        //uint32_t id_reversed = simple_reverse(id);
-        uint32_t id_shifted = id << 16;
-        vthread_map.insert(std::pair<async_thread_node, size_t>(node,id_shifted));
+        uint32_t id_shifted = node.sortable_tid();
+        vthread_map.insert(std::pair<base_thread_node, size_t>(node,id_shifted));
         std::stringstream ss;
         ss << fixed;
         ss << "{\"name\":\"thread_name\""
            << ",\"ph\":\"M\",\"pid\":" << saved_node_id
            << ",\"tid\":" << id_shifted
-           << ",\"args\":{\"name\":";
-#ifdef APEX_WITH_CUDA
-        ss << "\"CUDA [" << node._device << ":" << node._context
-           << ":" << std::setfill('0') << setw(5) << node._stream << "]";
-#endif
-#ifdef APEX_WITH_HIP
-        ss << "\"HIP [" << node._device
-           << ":" << std::setfill('0') << setw(5) << node._queue << "]";
-#endif
-#if !defined(APEX_WITH_CUDA) && !defined(APEX_WITH_HIP)
-        ss << "\"GPU [" << node._device << "]";
-#endif
+           << ",\"args\":{\"name\":\"";
+        ss << node.name();
         //ss << "" << activity_to_string(node._activity);
         ss << "\"";
         ss << "}},\n";
@@ -248,7 +301,7 @@ std::string trace_event_listener::make_tid (async_thread_node &node) {
         ss << "{\"name\":\"thread_sort_index\""
            << ",\"ph\":\"M\",\"pid\":" << saved_node_id
            << ",\"tid\":" << id_shifted
-           << ",\"args\":{\"sort_index\":" << UINT32_MAX << "}},\n";
+           << ",\"args\":{\"sort_index\":" << id_shifted << "}},\n";
         write_to_trace(ss);
     }
     tid = vthread_map[node];
@@ -258,7 +311,7 @@ std::string trace_event_listener::make_tid (async_thread_node &node) {
     return label;
 }
 
-void trace_event_listener::on_async_event(async_thread_node &node,
+void trace_event_listener::on_async_event(base_thread_node &node,
     std::shared_ptr<profiler> &p, const async_event_data& data) {
     if (!_terminate) {
         std::stringstream ss;
@@ -277,23 +330,26 @@ void trace_event_listener::on_async_event(async_thread_node &node,
               << ",\"args\":{\"GUID\":" << p->guid << ",\"Parent GUID\":" << pguid << "}},\n";
         // write a flow event pair!
         // make sure the start of the flow is before the end of the flow, ideally the middle of the parent
+        if (data.flow) {
+            uint64_t flow_id = get_flow_id();
         if (data.reverse_flow) {
             double begin_ts = (p->get_stop_us() + p->get_start_us()) * 0.5;
             double end_ts = std::min(p->get_stop_us(), data.parent_ts_stop);
-            write_flow_event(ss, begin_ts, 's', data.cat, data.id, saved_node_id, atol(tid.c_str()), data.name);
-            write_flow_event(ss, end_ts, 't', data.cat, data.id, saved_node_id, data.parent_tid, data.name);
+            write_flow_event(ss, begin_ts, 's', data.cat, flow_id, saved_node_id, atol(tid.c_str()), data.name);
+            write_flow_event(ss, end_ts, 't', data.cat, flow_id, saved_node_id, data.parent_tid, data.name);
         } else {
             double begin_ts = std::min(p->get_start_us(), ((data.parent_ts_stop + data.parent_ts_start) * 0.5));
             double end_ts = p->get_start_us();
-            write_flow_event(ss, begin_ts, 's', data.cat, data.id, saved_node_id, data.parent_tid, data.name);
-            write_flow_event(ss, end_ts, 't', data.cat, data.id, saved_node_id, atol(tid.c_str()), data.name);
+            write_flow_event(ss, begin_ts, 's', data.cat, flow_id, saved_node_id, data.parent_tid, data.name);
+            write_flow_event(ss, end_ts, 't', data.cat, flow_id, saved_node_id, atol(tid.c_str()), data.name);
+        }
         }
         write_to_trace(ss);
         flush_trace_if_necessary();
     }
 }
 
-void trace_event_listener::on_async_metric(async_thread_node &node,
+void trace_event_listener::on_async_metric(base_thread_node &node,
     std::shared_ptr<profiler> &p) {
     if (!_terminate) {
         std::stringstream ss;
