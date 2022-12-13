@@ -471,8 +471,8 @@ std::unordered_set<profile*> free_profiles;
   }
 
 #define PAD_WITH_SPACES "%6s"
-#define FORMAT_PERCENT "%4.1f"
-#define FORMAT_FLOAT "%7.2f"
+#define FORMAT_PERCENT "%5.1f"
+#define FORMAT_FLOAT "%8.2f"
 #define FORMAT_SCIENTIFIC "%1.2e"
 
   template<typename ... Args>
@@ -495,8 +495,7 @@ std::unordered_set<profile*> free_profiles;
       APEX_UNUSED(include_papi);
 #endif
       string shorter(action_name);
-      size_t maxlength = 41;
-      if (timer) maxlength = 52;
+      size_t maxlength = 52;
       // to keep formatting pretty, trim any long timer names
       if (shorter.size() > maxlength) {
         shorter.resize(maxlength-1);
@@ -504,11 +503,7 @@ std::unordered_set<profile*> free_profiles;
         shorter+="…";
       }
       //screen_output << "\"" << shorter << "\", " ;
-      if (timer) {
-          screen_output << string_format("%52s", shorter.c_str()) << " : ";
-      } else {
-          screen_output << string_format("%41s", shorter.c_str()) << " : ";
-      }
+      screen_output << string_format("%52s", shorter.c_str()) << " : ";
 #if defined(APEX_THROTTLE)
       if (!apex_options::use_tau()) {
         // if this profile was throttled, don't output the measurements.
@@ -604,7 +599,7 @@ std::unordered_set<profile*> free_profiles;
             double tmp = ((p->get_accumulated_seconds())
                 /total_main)*100.0;
             if (tmp > 100.0) {
-                screen_output << "-n/a- " ;
+                screen_output << "-n/a-" ;
             } else {
                 screen_output << string_format(FORMAT_PERCENT, tmp);
             }
@@ -612,7 +607,7 @@ std::unordered_set<profile*> free_profiles;
             tmp = ((p->get_accumulated_seconds()/p->get_num_threads())
                 /wall_main)*100.0;
             if (tmp > 100.0) {
-                screen_output << "-n/a- " ;
+                screen_output << "-n/a-" ;
             } else {
                 screen_output << string_format(FORMAT_PERCENT, tmp);
             }
@@ -797,11 +792,11 @@ std::unordered_set<profile*> free_profiles;
     }
     csv_output << endl;
     if (id_vector.size() > 0) {
-        screen_output << "Counter                                   : "
-        << "#samples | minimum |    mean  |  maximum |  stddev " << endl;
+        screen_output << "Counter                                              : "
+        << " #samp | minimum |    mean  |  maximum |  stddev " << endl;
         //screen_output << "Counter                        : #samples | "
         //<< "minimum |    mean  |  maximum |   total  |  stddev " << endl;
-        screen_output << "------------------------------------------"
+        screen_output << "---------------------------------------------------"
         << "------------------------------------------------------" << endl;
         std::sort(id_vector.begin(), id_vector.end());
         // iterate over the counters
@@ -813,8 +808,8 @@ std::unordered_set<profile*> free_profiles;
                     total_accumulated, divisor, wall_clock_main, false);
             }
         }
-        screen_output << "------------------------------------------"
-            << "------------------------------------------------------\n";
+        screen_output << "-----------------------------------------------------"
+            << "----------------------------------------------------\n";
         screen_output << endl;
     }
     std::string re("PAPI_");
@@ -853,13 +848,13 @@ std::unordered_set<profile*> free_profiles;
 
     if (have_gpu) {
         screen_output << "GPU Timers                                           : "
-            << "#calls  |    mean  |   total  |  % total  ";
+            << "#calls|     mean |    total | %total | %wall ";
         if (apex_options::track_gpu_memory()) {
             screen_output << "|  allocs |  (bytes) |    frees |   (bytes) ";
         }
         screen_output << endl;
-        screen_output << "----------------------------------------------"
-                      << "--------------------------------------------------";
+        screen_output << "--------------------------------------------------"
+                      << "-------------------------------------------------";
         screen_output << endl;
 
         // iterate over the timers
@@ -877,8 +872,8 @@ std::unordered_set<profile*> free_profiles;
             }
         }
 
-        screen_output << "--------------------------------------------------"
-            << "----------------------------------------------";
+        screen_output << "------------------------------------------------"
+            << "---------------------------------------------------";
         /*
         if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
             screen_output << "--------------------------------------------";
@@ -889,14 +884,14 @@ std::unordered_set<profile*> free_profiles;
     }
 
     screen_output << "CPU Timers                                           : "
-        << "#calls| #yields| #thread|    mean |   total | tot/thr | %total | %wall "
+        << "#calls| #yields| #thread|     mean |    total |  tot/thr | %total | %wall "
         << tmpstr;
     if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
        screen_output << "| allocs| (bytes)|  frees | (bytes) ";
     }
     screen_output << endl;
     screen_output << "--------------------------------------------------------------"
-        << "---------------------------------------------------------------";
+        << "------------------------------------------------------------------";
     if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
         screen_output << "-------------------------------------";
     }
@@ -921,7 +916,7 @@ std::unordered_set<profile*> free_profiles;
         }
     }
     screen_output << "--------------------------------------------------------------"
-        << "---------------------------------------------------------------";
+        << "------------------------------------------------------------------";
     if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
         screen_output << "------------------------------------";
     }
