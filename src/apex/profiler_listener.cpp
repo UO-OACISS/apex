@@ -470,8 +470,9 @@ std::unordered_set<profile*> free_profiles;
 
   }
 
-#define PAD_WITH_SPACES "%8s"
-#define FORMAT_PERCENT "%8.3f"
+#define PAD_WITH_SPACES "%6s"
+#define FORMAT_PERCENT "%4.1f"
+#define FORMAT_FLOAT "%7.2f"
 #define FORMAT_SCIENTIFIC "%1.2e"
 
   template<typename ... Args>
@@ -574,7 +575,7 @@ std::unordered_set<profile*> free_profiles;
             screen_output << string_format(FORMAT_SCIENTIFIC,
                 (p->get_mean_seconds())) << "   " ;
         } else {
-            screen_output << string_format(FORMAT_PERCENT,
+            screen_output << string_format(FORMAT_FLOAT,
                 (p->get_mean_seconds())) << "   " ;
         }
         //screen_output << " --n/a--   " ;
@@ -586,10 +587,10 @@ std::unordered_set<profile*> free_profiles;
                     (p->get_accumulated_seconds()/p->get_num_threads())) << "   " ;
             }
         } else {
-            screen_output << string_format(FORMAT_PERCENT,
+            screen_output << string_format(FORMAT_FLOAT,
                 (p->get_accumulated_seconds())) << "   " ;
             if (include_stops) {
-                screen_output << string_format(FORMAT_PERCENT,
+                screen_output << string_format(FORMAT_FLOAT,
                     (p->get_accumulated_seconds()/p->get_num_threads())) << "   " ;
             }
         }
@@ -603,7 +604,7 @@ std::unordered_set<profile*> free_profiles;
             double tmp = ((p->get_accumulated_seconds())
                 /total_main)*100.0;
             if (tmp > 100.0) {
-                screen_output << " --n/a--" ;
+                screen_output << "-n/a- " ;
             } else {
                 screen_output << string_format(FORMAT_PERCENT, tmp);
             }
@@ -611,7 +612,7 @@ std::unordered_set<profile*> free_profiles;
             tmp = ((p->get_accumulated_seconds()/p->get_num_threads())
                 /wall_main)*100.0;
             if (tmp > 100.0) {
-                screen_output << " --n/a--" ;
+                screen_output << "-n/a- " ;
             } else {
                 screen_output << string_format(FORMAT_PERCENT, tmp);
             }
@@ -692,22 +693,22 @@ std::unordered_set<profile*> free_profiles;
         if (action_name.find('%') == string::npos && p->get_minimum() > 10000) {
           screen_output << string_format(FORMAT_SCIENTIFIC, p->get_minimum()) << "   " ;
         } else {
-          screen_output << string_format(FORMAT_PERCENT, p->get_minimum()) << "   " ;
+          screen_output << string_format(FORMAT_FLOAT, p->get_minimum()) << "   " ;
         }
         if (action_name.find('%') == string::npos && p->get_mean() > 10000) {
           screen_output << string_format(FORMAT_SCIENTIFIC, p->get_mean()) << "   " ;
         } else {
-          screen_output << string_format(FORMAT_PERCENT, p->get_mean()) << "   " ;
+          screen_output << string_format(FORMAT_FLOAT, p->get_mean()) << "   " ;
         }
         if (action_name.find('%') == string::npos && p->get_maximum() > 10000) {
           screen_output << string_format(FORMAT_SCIENTIFIC, p->get_maximum()) << "   " ;
         } else {
-          screen_output << string_format(FORMAT_PERCENT, p->get_maximum()) << "   " ;
+          screen_output << string_format(FORMAT_FLOAT, p->get_maximum()) << "   " ;
         }
         if (action_name.find('%') == string::npos && p->get_stddev() > 10000) {
           screen_output << string_format(FORMAT_SCIENTIFIC, p->get_stddev()) << "   " ;
         } else {
-          screen_output << string_format(FORMAT_PERCENT, p->get_stddev()) << "   " ;
+          screen_output << string_format(FORMAT_FLOAT, p->get_stddev()) << "   " ;
         }
         screen_output << endl;
       }
@@ -888,16 +889,16 @@ std::unordered_set<profile*> free_profiles;
     }
 
     screen_output << "CPU Timers                                           : "
-        << "#calls  |  #yields | #threads |    mean  |   total  |  tot/thr |  % total  |  % wall   "
+        << "#calls| #yields| #thread|    mean |   total | tot/thr | %total | %wall "
         << tmpstr;
     if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
-       screen_output << "|  allocs |  (bytes) |    frees |   (bytes) ";
+       screen_output << "| allocs| (bytes)|  frees | (bytes) ";
     }
     screen_output << endl;
-    screen_output << "--------------------------------------------------------------------"
-        << "-------------------------------------------------------------------------";
+    screen_output << "--------------------------------------------------------------"
+        << "---------------------------------------------------------------";
     if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
-        screen_output << "--------------------------------------------";
+        screen_output << "-------------------------------------";
     }
     screen_output << endl;
 
@@ -920,9 +921,9 @@ std::unordered_set<profile*> free_profiles;
         }
     }
     screen_output << "--------------------------------------------------------------"
-        << "-------------------------------------------------------------------------------";
+        << "---------------------------------------------------------------";
     if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
-        screen_output << "--------------------------------------------";
+        screen_output << "------------------------------------";
     }
     screen_output << endl;
     screen_output << endl;
@@ -936,7 +937,7 @@ std::unordered_set<profile*> free_profiles;
       if (idle_rate > 10000) {
         screen_output << string_format(FORMAT_SCIENTIFIC, idle_rate) << "   " ;
       } else {
-        screen_output << string_format(FORMAT_PERCENT, idle_rate) << "   " ;
+        screen_output << string_format(FORMAT_FLOAT, idle_rate) << "   " ;
       }
       screen_output << string_format(FORMAT_PERCENT,
         ((idle_rate/all_total_main)*100)) << endl;
