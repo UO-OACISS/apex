@@ -24,7 +24,6 @@
 #define elem(_m,_i,_j) (_m[((_i)*NRA) + (_j)])
 
 float* allocateMatrix(int rows, int cols) {
-  int i;
   float *matrix = (float*)malloc((sizeof(float*)) * rows * cols);
   #pragma omp target enter data map(alloc:matrix[0:rows*cols])
   return matrix;
