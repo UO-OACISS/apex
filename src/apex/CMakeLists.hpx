@@ -309,6 +309,7 @@ set(apex_headers
     profiler.hpp
     profile_reducer.hpp
     profiler_listener.hpp
+    random.hpp
     semaphore.hpp
     simulated_annealing.hpp
     thread_instance.hpp
@@ -340,6 +341,7 @@ set(apex_sources
     policy_handler.cpp
     profile_reducer.cpp
     profiler_listener.cpp
+    random.cpp
     simulated_annealing.cpp
     task_identifier.cpp
     tau_listener.cpp

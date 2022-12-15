@@ -31,10 +31,12 @@
 #include "simulated_annealing.hpp"
 // include the exhaustive class
 #include "exhaustive.hpp"
+// include the random class
+#include "random.hpp"
 
 enum class apex_param_type : int {NONE, LONG, DOUBLE, ENUM};
 enum class apex_ah_tuning_strategy : int {EXHAUSTIVE, RANDOM, NELDER_MEAD,
-PARALLEL_RANK_ORDER, SIMULATED_ANNEALING, APEX_EXHAUSTIVE};
+PARALLEL_RANK_ORDER, SIMULATED_ANNEALING, APEX_EXHAUSTIVE, APEX_RANDOM};
 
 struct apex_tuning_session;
 class apex_tuning_request;
@@ -71,6 +73,8 @@ class apex_param {
             tuning_session, apex_tuning_request & request);
         friend int __exhaustive_setup(std::shared_ptr<apex_tuning_session>
             tuning_session, apex_tuning_request & request);
+        friend int __random_setup(std::shared_ptr<apex_tuning_session>
+            tuning_session, apex_tuning_request & request);
 };
 
 class apex_param_long : public apex_param {
@@ -105,6 +109,8 @@ class apex_param_long : public apex_param {
         friend int __sa_setup(std::shared_ptr<apex_tuning_session>
             tuning_session, apex_tuning_request & request);
         friend int __exhaustive_setup(std::shared_ptr<apex_tuning_session>
+            tuning_session, apex_tuning_request & request);
+        friend int __random_setup(std::shared_ptr<apex_tuning_session>
             tuning_session, apex_tuning_request & request);
 };
 
@@ -141,6 +147,8 @@ class apex_param_double : public apex_param {
             tuning_session, apex_tuning_request & request);
         friend int __exhaustive_setup(std::shared_ptr<apex_tuning_session>
             tuning_session, apex_tuning_request & request);
+        friend int __random_setup(std::shared_ptr<apex_tuning_session>
+            tuning_session, apex_tuning_request & request);
 };
 
 class apex_param_enum : public apex_param {
@@ -174,6 +182,8 @@ class apex_param_enum : public apex_param {
         friend int __sa_setup(std::shared_ptr<apex_tuning_session>
             tuning_session, apex_tuning_request & request);
         friend int __exhaustive_setup(std::shared_ptr<apex_tuning_session>
+            tuning_session, apex_tuning_request & request);
+        friend int __random_setup(std::shared_ptr<apex_tuning_session>
             tuning_session, apex_tuning_request & request);
 };
 
@@ -313,6 +323,8 @@ class apex_tuning_request {
             tuning_session, apex_tuning_request & request);
         friend int __exhaustive_setup(std::shared_ptr<apex_tuning_session>
             tuning_session, apex_tuning_request & request);
+        friend int __random_setup(std::shared_ptr<apex_tuning_session>
+            tuning_session, apex_tuning_request & request);
 };
 
 
@@ -337,6 +349,8 @@ struct apex_tuning_session {
     apex::simulated_annealing::SimulatedAnnealing sa_session;
     // if using exhaustive, this is the request.
     apex::exhaustive::Exhaustive exhaustive_session;
+    // if using exhaustive, this is the request.
+    apex::random::Random random_session;
     bool converged_message = false;
 
     // variables related to power throttling

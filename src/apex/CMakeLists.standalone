@@ -108,6 +108,7 @@ policy_handler.cpp
 ${PROC_SOURCE}
 profile_reducer.cpp
 profiler_listener.cpp
+random.cpp
 ${SENSOR_SOURCE}
 simulated_annealing.cpp
 task_identifier.cpp
@@ -188,6 +189,7 @@ INSTALL(FILES apex.h
     handler.hpp
     memory_wrapper.hpp
     profile.hpp
+    random.hpp
     apex_export.h
     utils.hpp
     apex_options.hpp

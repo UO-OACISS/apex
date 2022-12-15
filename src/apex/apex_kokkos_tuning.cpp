@@ -211,15 +211,25 @@ class KokkosSession {
 private:
 // EXHAUSTIVE, RANDOM, NELDER_MEAD, PARALLEL_RANK_ORDER
     KokkosSession() :
-        window(5),
-        //strategy(apex_ah_tuning_strategy::APEX_EXHAUSTIVE),
-        strategy(apex_ah_tuning_strategy::SIMULATED_ANNEALING),
-        //strategy(apex_ah_tuning_strategy::NELDER_MEAD),
+        window(apex::apex_options::kokkos_tuning_window()),
         verbose(false),
         use_history(false),
         running(false){
             verbose = apex::apex_options::use_kokkos_verbose();
             // don't do this until the object is constructed!
+            saveCache = (apex::apex::instance()->get_node_id() == 0) ? true : false;
+            if (strncmp(apex::apex_options::kokkos_tuning_policy(),
+                    "random", strlen("random")) == 0) {
+                strategy = apex_ah_tuning_strategy::APEX_RANDOM;
+            } else if (strncmp(apex::apex_options::kokkos_tuning_policy(),
+                    "exhaustive", strlen("exhaustive")) == 0) {
+                strategy = apex_ah_tuning_strategy::APEX_EXHAUSTIVE;
+            } else if (strncmp(apex::apex_options::kokkos_tuning_policy(),
+                    "simulated_annealing", strlen("simulated_annealing")) == 0) {
+                strategy = apex_ah_tuning_strategy::SIMULATED_ANNEALING;
+            } else {
+                strategy = apex_ah_tuning_strategy::NELDER_MEAD;
+            }
     }
 public:
     ~KokkosSession() {
@@ -229,13 +239,14 @@ public:
     KokkosSession(const KokkosSession&) =delete;
     KokkosSession& operator=(const KokkosSession&) =delete;
     int window;
+    bool verbose;
+    bool use_history;
+    bool running;
+    bool saveCache;
     apex_ah_tuning_strategy strategy;
     std::unordered_map<std::string, std::shared_ptr<apex_tuning_request>>
         requests;
     std::unordered_map<std::string, std::vector<int>> var_ids;
-    bool verbose;
-    bool use_history;
-    bool running;
     std::map<size_t, Variable*> inputs;
     std::map<size_t, Variable*> outputs;
     apex_policy_handle * start_policy_handle;
@@ -314,7 +325,7 @@ void KokkosSession::saveOutputVar(size_t id, Variable * var) {
 
 void KokkosSession::writeCache(void) {
     if(use_history) { return; }
-    if(apex::apex::instance()->get_node_id() != 0) { return; }
+    if(!saveCache) { return; }
     // did the user specify a file?
     if (strlen(apex::apex_options::kokkos_tuning_cache()) > 0) {
         cacheFilename = std::string(apex::apex_options::kokkos_tuning_cache());
@@ -340,9 +351,12 @@ void KokkosSession::writeCache(void) {
         results << "Context_" << count++ << ":" << std::endl;
         results << "  Name: \"" << req.first << "\"" << std::endl;
         std::shared_ptr<apex_tuning_request> request = req.second;
+        // always write the random search out
+        bool converged = request->has_converged() ||
+            strategy == apex_ah_tuning_strategy::APEX_RANDOM;
         results << "  Converged: " <<
-            (request->has_converged() ? "true" : "false") << std::endl;
-        if (request->has_converged()) {
+            (converged ? "true" : "false") << std::endl;
+        if (converged) {
             results << "  Results:" << std::endl;
             results << "    NumVars: " << var_ids[req.first].size() << std::endl;
             for (const auto &id : var_ids[req.first]) {
