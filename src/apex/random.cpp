@@ -34,7 +34,8 @@ size_t Random::get_max_iterations() {
         }
     }
     // want to see multiple values of each one
-    return max_iter;
+    //return max_iter;
+    return std::min(max_iterations, (std::max(min_iterations, max_iter)));
 }
 
 class log_wrapper {

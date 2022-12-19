@@ -16,6 +16,7 @@
 #include "apex_types.h"
 #include "string.h"
 #include <set>
+#include <limits>
 
 // Use this if you want the min, max and stddev.
 #define FULL_STATISTICS
@@ -145,7 +146,7 @@ public:
         _profile.stops = 0.0;
         _profile.accumulated = 0.0;
         _profile.sum_squares = 0.0;
-        _profile.minimum = 0.0;
+        _profile.minimum = std::numeric_limits<double>::max();
         _profile.maximum = 0.0;
         _profile.times_reset++;
         _profile.num_threads = 1;

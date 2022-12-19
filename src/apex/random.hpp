@@ -88,8 +88,8 @@ private:
     size_t kmax;
     size_t k;
     std::map<std::string, Variable> vars;
-    //const size_t max_iterations{1000};
-    //const size_t min_iterations{100};
+    const size_t max_iterations{1000};
+    const size_t min_iterations{100};
 public:
     void evaluate(double new_cost);
     Random() :

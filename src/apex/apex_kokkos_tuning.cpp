@@ -886,7 +886,8 @@ bool handle_start(const std::string & name, const size_t vars,
                 //abort();
                 return 0.0;
             }
-            double result = profile->accumulated/profile->calls;
+            double result = profile->minimum;
+            if (result == 0.0) result = profile->accumulated/profile->calls;
             if(verbose) {
                 std::cout << std::string(getDepth(), ' ');
                 std::cout << "querying time per call: " << (double)(result)/1000000000.0 << "s" << std::endl;

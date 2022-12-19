@@ -114,6 +114,17 @@ public:
         *((const char**)(value)) = svalues[best_index].c_str();
         return svalues[best_index];
     }
+    std::string toString() {
+        if (vtype == VariableType::doubletype) {
+            return std::to_string(dvalues[current_index]);
+        }
+        else if (vtype == VariableType::longtype) {
+            return std::to_string(lvalues[current_index]);
+        }
+        //else if (vtype == VariableType::stringtype) {
+        return svalues[current_index];
+        //}
+    }
 };
 
 /* In the formulation of the method by Kirkpatrick et al., the acceptance
