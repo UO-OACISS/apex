@@ -76,18 +76,32 @@ void Node::writeNode(std::ofstream& outfile, double total) {
 
     double acc = (data == task_identifier::get_main_task_id() || accumulated == 0.0) ?
         total : accumulated;
-    node_color * c = get_node_color_visible(acc, 0.0, total);
+    node_color * c = get_node_color_visible(acc, 0.0, total, data->get_tree_name());
     double ncalls = (calls == 0) ? 1 : calls;
 
+    std::string decoration;
+    std::string font;
+    // if the node is dark, make the font white for readability
+    if (acc > 0.5 * total) {
+        font = "; fontcolor=white";
+    } else {
+        font = "; fontcolor=black";
+    }
+    // if the node is GPU related, make the box dark blue
+    if (isGPUTimer(data->get_tree_name())) {
+        decoration = "shape=box; color=blue; style=filled" + font + "; fillcolor=\"#";
+    } else {
+        decoration = "shape=box; color=firebrick; style=filled" + font + "; fillcolor=\"#";
+    }
     // write out the nodes
     outfile << "  \"" << getIndex() <<
-            "\" [shape=box; style=filled; fillcolor=\"#" <<
+            "\" [" << decoration <<
             std::setfill('0') << std::setw(2) << std::hex << c->convert(c->red) <<
             std::setfill('0') << std::setw(2) << std::hex << c->convert(c->green) <<
             std::setfill('0') << std::setw(2) << std::hex << c->convert(c->blue) <<
             "\"; depth=" << std::dec << depth <<
             "; time=" << std::fixed << acc << "; label=\"" << data->get_tree_name() <<
-            "\\l calls: " << ncalls << "\\l time: " <<
+            "\\lcalls: " << ncalls << "\\ltime: " <<
             std::defaultfloat << acc << "\\l\" ];" << std::endl;
 
     // do all the children

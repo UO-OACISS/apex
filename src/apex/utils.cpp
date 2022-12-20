@@ -585,11 +585,36 @@ std::string activity_to_string(apex_async_activity_t activity) {
     }
 }
 
+bool isGPUTimer(std::string name) {
+    if (name.rfind("GPU:", 0) == 0) {
+        return true;
+    }
+    if (name.rfind("StarPU exec : GPU :", 0) == 0) {
+        return true;
+    }
+    if (name.rfind("StarPU driver init : GPU", 0) == 0) {
+        return true;
+    }
+    if (name.rfind("cuda", 0) == 0) {
+        return true;
+    }
+    if (name.rfind("hip", 0) == 0) {
+        return true;
+    }
+    if (name.rfind("OpenMP Target", 0) == 0) {
+        return true;
+    }
+    /*
+    */
+    return false;
+}
+
 /* The following code is from:
    http://stackoverflow.com/questions/7706339/
    grayscale-to-red-green-blue-matlab-jet-color-scale */
-node_color * get_node_color_visible(double v, double vmin, double vmax) {
+node_color * get_node_color_visible(double v, double vmin, double vmax, std::string name) {
    node_color * c = new node_color();
+   bool red = !isGPUTimer(name);
 
    if (v < vmin)
       v = vmin;
@@ -603,6 +628,11 @@ node_color * get_node_color_visible(double v, double vmin, double vmax) {
    c->blue = (1.0 * fraction);
    // green should increase as the fraction increases.
    c->green = (1.0 * fraction);
+   if (!red) {
+    auto tmp = c->red;
+    c->red = c->blue;
+    c->blue = tmp;
+   }
    return c;
 }
 

@@ -61,6 +61,7 @@ public:
     void* read_proc(void);
     proc_data_reader(void) : done(false) {
         worker_thread = std::thread(&proc_data_reader::read_proc, this);
+        worker_thread.detach();
     }
 
     void stop_reading(void) {
