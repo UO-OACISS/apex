@@ -961,6 +961,7 @@ extern "C" void apex_target_submit (
 ) {
     APEX_UNUSED(target_id);
     APEX_UNUSED(host_op_id);
+    APEX_UNUSED(requested_num_teams);
     if (!enabled) { return; }
     DEBUG_PRINT("Callback Submit:\n"
         "\ttarget_id=%lu host_op_id=%lu req_num_teams=%d\n",
@@ -994,6 +995,10 @@ extern "C" void apex_device_initialize (
     ompt_function_lookup_t lookup,
     const char *documentation
 ) {
+    APEX_UNUSED(device_num);
+    APEX_UNUSED(type);
+    APEX_UNUSED(device);
+    APEX_UNUSED(documentation);
     if (!enabled) { return; }
     DEBUG_PRINT("%s\n", __APEX_FUNCTION__);
   DEBUG_PRINT("Init: device_num=%d type=%s device=%p lookup=%p doc=%p\n",
@@ -1267,14 +1272,13 @@ extern "C" void apex_ompt_work (
             sprintf(regionIDstr, "OpenMP Work %s", tmp_str);
             apex_ompt_start(regionIDstr, task_data, parallel_data, true);
         }
-        APEX_UNUSED(count_type);
-        /*
         if (apex::apex_options::ompt_high_overhead_events()) {
             std::stringstream ss;
             ss << count_type << ": " << regionIDstr;
             std::string tmp{ss.str()};
             apex::sample_value(tmp, count);
         }
+        /*
         */
     } else {
         DEBUG_PRINT("%" PRId64 ": %s End task: %p, region: %p\n", apex_threadid, tmp_str,
@@ -1533,6 +1537,7 @@ static void on_ompt_callback_buffer_complete (
   ompt_buffer_cursor_t begin,
   int buffer_owned
 ) {
+    APEX_UNUSED(device_num);
   DEBUG_PRINT("Executing buffer complete callback: %d %p %lu %p %d\n",
 	 device_num, buffer, bytes, (void*)begin, buffer_owned);
 
@@ -1584,6 +1589,7 @@ static int apex_ompt_stop_trace() {
 // This function is for checking that the function registration worked.
 int apex_ompt_register(ompt_callbacks_t e, ompt_callback_t c ,
     const char * name) {
+    APEX_UNUSED(name);
   DEBUG_PRINT("Registering OMPT callback %s...",name); fflush(stderr);
   ompt_set_result_t rc = ompt_set_callback(e, c);
   switch (rc) {

@@ -11,6 +11,9 @@
 #include <iostream>
 #include <unordered_map>
 #include <execinfo.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <string.h>
 
 #ifdef __APPLE__
 #include <dlfcn.h>
@@ -18,9 +21,14 @@
 #if defined(TAU_HAVE_CORESYMBOLICATION)
 #include "CoreSymbolication.h"
 #endif
+#else
+// For PIE offset
+#include <link.h>
 #endif /* __APPLE__ */
 
 using namespace std;
+
+extern char _start;
 
 namespace apex {
 
@@ -29,8 +37,10 @@ namespace apex {
   shared_mutex_type address_resolution::_bfd_mutex;
 
   /* Map a function address to a name and/or source location */
-  string * lookup_address(uintptr_t ip, bool withFileInfo, bool forceSourceInfo) {
+  string * lookup_address(uintptr_t ip_in, bool withFileInfo, bool forceSourceInfo) {
     address_resolution * ar = address_resolution::instance();
+    static uintptr_t base_addr = ar->getPieOffset();
+    uintptr_t ip = ip_in - base_addr;
     stringstream location;
     address_resolution::my_hash_node * node = nullptr;
     std::unordered_map<uintptr_t, address_resolution::my_hash_node*>::const_iterator it;
@@ -102,16 +112,16 @@ namespace apex {
         }
 
         if (node->info.demangled) {
-          location << node->info.demangled ;
+            location << node->info.demangled ;
         } else if (node->info.funcname) {
-          std::string mangled(node->info.funcname);
-          std::string demangled = demangle(mangled);
-          location << demangled ;
+            std::string mangled(node->info.funcname);
+            std::string demangled = demangle(mangled);
+            location << demangled ;
         }
         if (apex_options::use_source_location() || forceSourceInfo) {
             location << " [{" ;
             if (node->info.filename) {
-            location << node->info.filename ;
+                location << node->info.filename ;
             }
             location << "} {";
             if (node->info.lineno != 0) {
@@ -144,4 +154,23 @@ namespace apex {
       return new string(node->info.funcname);
     }
   }
+
+    // gives us the -pie offset in the executable.
+    uintptr_t address_resolution::getPieOffset() {
+#if defined(__APPLE__)
+        return 0UL;
+#else
+#if 1
+        uintptr_t entry_point = _r_debug.r_map->l_addr;
+        return entry_point;
+#else
+        Dl_info info;
+        void *extra = NULL;
+        dladdr1(&_start, &info, &extra, RTLD_DL_LINKMAP);
+        struct link_map *map = (struct link_map*)extra;
+        return (uintptr_t)(map->l_addr);
+#endif
+#endif
+    }
+
 }

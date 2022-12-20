@@ -15,10 +15,10 @@
 #include <limits>
 #include <inttypes.h>
 
-/* 8 values per timer/counter by default
+/* 9 values per timer/counter by default
  * 4 values related to memory allocation tracking
  * 8 values (up to) when PAPI enabled */
-constexpr size_t num_fields{20};
+constexpr size_t num_fields{21};
 
 #if !defined(HPX_HAVE_NETWORKING) && defined(APEX_HAVE_MPI)
 #include "mpi.h"
@@ -168,6 +168,7 @@ std::map<std::string, apex_profile*> reduce_profiles() {
             dptr[i++] = p->maximum;
             dptr[i++] = p->times_reset;
             dptr[i++] = (double)p->type;
+            dptr[i++] = p->num_threads;
             dptr[i++] = p->allocations;
             dptr[i++] = p->frees;
             dptr[i++] = p->bytes_allocated;
@@ -229,6 +230,8 @@ std::map<std::string, apex_profile*> reduce_profiles() {
             index++;
             p->times_reset += dptr[index++];
             p->type = (apex_profile_type)(dptr[index++]);
+            p->num_threads = dptr[index] > p->num_threads ? dptr[index] : p->num_threads;
+            index++;
             p->allocations = dptr[index++];
             p->frees = dptr[index++];
             p->bytes_allocated = dptr[index++];

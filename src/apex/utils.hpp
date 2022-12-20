@@ -59,6 +59,16 @@ inline std::string& trim(std::string& s, const char* t = " \t\n\r\f\v")
     return ltrim(rtrim(s, t), t);
 }
 
+// remove substrings
+inline void eraseSubStr(std::string &mainStr, const std::string toErase) {
+    // Search for the substring in string
+    size_t pos = mainStr.find(toErase);
+    if (pos != std::string::npos) {
+        // If found then erase it from string
+        mainStr.erase(pos, toErase.length());
+    }
+}
+
 // copying versions
 
 inline std::string ltrim_copy(std::string s, const char* t = " \t\n\r\f\v")
@@ -287,6 +297,16 @@ class in_apex {
 
 void rank0_print(const char * fmt, ...);
 
+}
+
+template <typename I>
+std::string hex2str(I w, size_t hex_len = sizeof(I)<<1) {
+    static const char* digits = "0123456789ABCDEF";
+    std::string rc(hex_len,'0');
+    for (size_t i=0, j=(hex_len-1)*4 ; i<hex_len; ++i,j-=4)
+        rc[i] = digits[(w>>j) & 0x0f];
+    std::string full = "0x"+rc;
+    return full;
 }
 
 

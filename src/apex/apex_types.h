@@ -204,6 +204,7 @@ typedef struct _profile
     double bytes_allocated; /*!< total bytes allocated in this task */
     double bytes_freed;     /*!< total bytes freed in this task */
     int times_reset;        /*!< How many times was this timer reset */
+    size_t num_threads;     /*!< How many threads have seen this timer? */
 } apex_profile;
 
 /** Rather than use void pointers everywhere, be explicit about
@@ -339,6 +340,7 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_KOKKOS_VERBOSE, use_kokkos_verbose, bool, false, "Enable verbose Kokkos autotuning and profiling messages.") \
     macro (APEX_KOKKOS_COUNTERS, use_kokkos_counters, bool, false, "Enable Kokkos counters.") \
     macro (APEX_KOKKOS_TUNING, use_kokkos_tuning, bool, true, "Enable Kokkos autotuning.") \
+    macro (APEX_KOKKOS_TUNING_WINDOW, kokkos_tuning_window, int, 5, "Minimum number of tests per candidate while autotuning.") \
     macro (APEX_KOKKOS_PROFILING_FENCES, use_kokkos_profiling_fences, bool, false, "Force Kokkos to fence after all Kokkos kernel launches (recommended, but not required).") \
     macro (APEX_START_DELAY_SECONDS, start_delay_seconds, int, 0, "Delay collection of APEX data for N seconds.") \
     macro (APEX_MAX_DURATION_SECONDS, max_duration_seconds, int, 0, "Collect APEX data for only N seconds.") \
@@ -360,6 +362,7 @@ inline unsigned int sc_nprocessors_onln()
         APEX_DEFAULT_OTF2_ARCHIVE_NAME, "OTF2 trace filename.") \
     macro (APEX_EVENT_FILTER_FILE, task_event_filter_file, char*, "", "File containing names of timers to include/exclude during data collection.") \
     macro (APEX_KOKKOS_TUNING_CACHE, kokkos_tuning_cache, char*, "", "Filename contining Kokkos autotuned results, tuned offline.") \
+    macro (APEX_KOKKOS_TUNING_POLICY, kokkos_tuning_policy, char*, "simulated_annealing", "Kokkos autotuning policy: random, exhaustive, simulated_annealing, nelder_mead.") \
     macro (APEX_ROCPROF_METRICS, rocprof_metrics, char*, "", "List of metrics to periodically sample with the Rocprofiler library (see /opt/rocm/rocprofiler/lib/metrics.xml).")
     // macro (APEX_ROCPROF_METRICS, rocprof_metrics, char*, "MemUnitBusy,MemUnitStalled,VALUUtilization,VALUBusy,SALUBusy,L2CacheHit,WriteUnitStalled,ALUStalledByLDS,LDSBankConflict", "")
 

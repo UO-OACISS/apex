@@ -62,6 +62,8 @@ public:
     bool is_resume; // for yield or resume
     reset_type is_reset;
     bool stopped;
+    // needed for correct Hatchet output
+    uint64_t thread_id;
     task_identifier * get_task_id(void) {
         return task_id;
     }
@@ -103,7 +105,7 @@ public:
         guid(0),
         is_counter(false),
         is_resume(resume),
-        is_reset(reset), stopped(false) { };
+        is_reset(reset), stopped(false), thread_id(0) { };
     // this constructor is for counters
     profiler(task_identifier * id, double value_) :
         task_id(id),
@@ -135,7 +137,8 @@ public:
         is_counter(in.is_counter),
         is_resume(in.is_resume), // for yield or resume
         is_reset(in.is_reset),
-        stopped(in.stopped)
+        stopped(in.stopped),
+        thread_id(in.thread_id)
     {
         //printf("COPY!\n"); fflush(stdout);
 #if APEX_HAVE_PAPI

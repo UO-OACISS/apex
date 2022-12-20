@@ -78,6 +78,7 @@ where APEX options are zero or more of:
                             (default: function only)
     --apex:preload <lib>    extra libraries to load with LD_PRELOAD _before_ APEX libraries
                             (LD_PRELOAD value is added _after_ APEX libraries)
+    --apex:postprocess      run post-process scripts (graphviz, python) on output data after exit
     "
     echo "${message}"
     exit 1
@@ -123,6 +124,7 @@ prog=""
 preload=no
 verbose=no
 myrank="0"
+postprocess=no
 
 if [ $# -eq 0 ] ; then
     usage
@@ -332,6 +334,10 @@ while (( "$#" )); do
       export APEX_SOURCE_LOCATION=1
       shift
       ;;
+    --apex:postprocess)
+      postprocess=yes
+      shift
+      ;;
     --apex:otf2path)
       if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
         export APEX_OTF2_ARCHIVE_PATH=$2
@@ -532,12 +538,12 @@ fi
 
 delim=";"
 long_metrics=${APEX_PAPI_METRICS}
-unset APEX_PAPI_METRICS
 base_output_path="."
 if [ ! -z ${APEX_OUTPUT_FILE_PATH} ] ; then
     base_output_path=${APEX_OUTPUT_FILE_PATH}
 fi
 if [[ "$long_metrics" == *"$delim"* ]]; then
+    unset APEX_PAPI_METRICS
     export APEX_SCREEN_OUTPUT=0
     # Save our preload settings, we don't want them just yet
     unset LD_PRELOAD
@@ -576,30 +582,32 @@ else
     fi
 fi
 
-cd ${output_path}
+if [ ${postprocess} = yes ] ; then
+    cd ${output_path}
 
-if [ ${scatter} = yes ] ; then
-    ${SCRIPTPATH}/task_scatterplot.py
-    ${SCRIPTPATH}/counter_scatterplot.py
-fi
+    if [ ${scatter} = yes ] ; then
+        ${SCRIPTPATH}/task_scatterplot.py
+        ${SCRIPTPATH}/counter_scatterplot.py
+    fi
 
-if [ ${taskgraph} = yes ] ; then
-    echo_screen "Generating taskgraph with GraphViz..."
-    dot -Tpdf -O taskgraph.${myrank}.dot
-fi
+    if [ ${taskgraph} = yes ] ; then
+        echo_screen "Generating taskgraph with GraphViz..."
+        dot -Tpdf -O taskgraph.${myrank}.dot
+    fi
 
-if [ ${tasktree} = yes ] ; then
-    echo_screen "Generating tasktree with GraphViz..."
-    dot -Tpdf -O tasktree.${myrank}.dot
-    echo_screen "Human readable tree in tasktree.*.txt:"
-    if [ "${myrank}" == "0" ] ; then
-        if [ "${verbose}" == "yes" ] ; then
-            if [ "${screen}" == "yes" ] ; then
-                head tasktree.${myrank}.txt
+    if [ ${tasktree} = yes ] ; then
+        echo_screen "Generating tasktree with GraphViz..."
+        dot -Tpdf -O tasktree.${myrank}.dot
+        echo_screen "Human readable tree in tasktree.*.txt:"
+        if [ "${myrank}" == "0" ] ; then
+            if [ "${verbose}" == "yes" ] ; then
+                if [ "${screen}" == "yes" ] ; then
+                    head tasktree.${myrank}.txt
+                fi
             fi
         fi
+        echo_screen "..."
     fi
-    echo_screen "..."
+    cd -
 fi
 
-cd -

@@ -81,12 +81,14 @@ endif (APEX_WITH_RAJA AND RAJA_FOUND)
 
 # Try to keep this in alphabetical order
 SET(all_SOURCE
+apex_preload.cpp
 ${CUPTI_SOURCE}
 ${ROCPROFILER_SOURCE}
 ${ROCTRACER_SOURCE}
 ${NVML_SOURCE}
 ${RSMI_SOURCE}
 apex.cpp
+apex_error_handling.cpp
 apex_kokkos.cpp
 apex_kokkos_tuning.cpp
 ${MPI_SOURCE}
@@ -111,6 +113,7 @@ policy_handler.cpp
 ${PROC_SOURCE}
 profile_reducer.cpp
 profiler_listener.cpp
+random.cpp
 ${SENSOR_SOURCE}
 simulated_annealing.cpp
 task_identifier.cpp
@@ -191,6 +194,7 @@ INSTALL(FILES apex.h
     handler.hpp
     memory_wrapper.hpp
     profile.hpp
+    random.hpp
     apex_export.h
     utils.hpp
     apex_options.hpp

@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <utils.hpp>
 
 #include <vector>
 
@@ -73,9 +74,8 @@ struct ApexBfdInfo
     void secure(unsigned long addr) {
         probeAddr = addr;
         if(!funcname) {
-            char * tmp = (char*)malloc(256);
-            sprintf(tmp, "addr=<%p>", (void*)(size_t)(addr));
-            funcname = tmp;
+            std::string tmp = "addr=<" + hex2str(addr) + ">";
+            funcname = strdup(tmp.c_str());
         }
         if(!filename) filename = "(unknown)";
         if(lineno < 0) lineno = 0;
@@ -86,7 +86,7 @@ struct ApexBfdInfo
     char const * funcname;
     char const * demangled;
     int lineno;
-        unsigned int discriminator;
+    unsigned int discriminator;
 };
 
 

@@ -74,10 +74,12 @@
 #else // without HPX!
 #include "global_constructor_destructor.h"
 #if defined(HAS_CONSTRUCTORS)
+/*
 extern "C" {
 DEFINE_CONSTRUCTOR(apex_init_static_void)
 DEFINE_DESTRUCTOR(apex_finalize_static_void)
 }
+*/
 #endif // HAS_CONSTRUCTORS
 #endif // APEX_HAVE_HPX
 
@@ -2187,12 +2189,6 @@ extern "C" {
         return init("FORTRAN thread", comm_rank, comm_size);
     }
 
-    static void apex_init_static_void(void) {
-        if (!apex_options::use_otf2()) {
-            init("APEX main thread", 0, 1);
-        }
-    }
-
     void apex_cleanup() {
         cleanup();
     }
@@ -2203,12 +2199,6 @@ extern "C" {
 
     void apex_finalize(void) {
         finalize();
-    }
-
-    static void apex_finalize_static_void(void) {
-#if !defined(APEX_HAVE_MPI)
-        finalize();
-#endif
     }
 
     void apex_finalize_() { finalize(); }

@@ -18,8 +18,8 @@ endif()
 hpx_info("apex" "Will build APEX")
 
 set (APEX_VERSION_MAJOR 2)
-set (APEX_VERSION_MINOR 5)
-set (APEX_VERSION_PATCH 1)
+set (APEX_VERSION_MINOR 6)
+set (APEX_VERSION_PATCH 0)
 
 if (NOT APEX_ROOT)
   if (EXISTS ${HPX_SOURCE_DIR}/apex)
@@ -155,8 +155,19 @@ IF("$ENV{CRAY_CPU_TARGET}" STREQUAL "mic-knl")
 endif()
 
 if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-  hpx_info("apex" "APEX is being built with a debug configuration")
+  hpx_info("apex" "APEX is being built with a Debug configuration")
   target_compile_definitions(apex_flags INTERFACE DEBUG)
+  target_compile_definitions(apex_flags INTERFACE -DCMAKE_BUILD_TYPE=3)
+endif()
+
+IF("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo")
+  hpx_info("apex" "APEX is being built with a RelWithDebInfo configuration")
+  target_compile_definitions(apex_flags INTERFACE -DCMAKE_BUILD_TYPE=2)
+endif()
+
+IF("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
+  hpx_info("apex" "APEX is being built with a Release configuration")
+  target_compile_definitions(apex_flags INTERFACE -DCMAKE_BUILD_TYPE=1)
 endif()
 
 
@@ -298,6 +309,7 @@ set(apex_headers
     profiler.hpp
     profile_reducer.hpp
     profiler_listener.hpp
+    random.hpp
     semaphore.hpp
     simulated_annealing.hpp
     thread_instance.hpp
@@ -312,6 +324,7 @@ set(apex_headers
 
 set(apex_sources
     apex.cpp
+    apex_error_handling.cpp
     apex_kokkos.cpp
     apex_kokkos_tuning.cpp
     ${apex_mpi_sources}
@@ -328,6 +341,7 @@ set(apex_sources
     policy_handler.cpp
     profile_reducer.cpp
     profiler_listener.cpp
+    random.cpp
     simulated_annealing.cpp
     task_identifier.cpp
     tau_listener.cpp

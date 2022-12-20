@@ -10,10 +10,11 @@
 #include <limits>
 #include <map>
 #include "apex_types.h"
+#include "apex_assert.h"
 
 namespace apex {
 
-namespace exhaustive {
+namespace random {
 
 enum class VariableType { doubletype, longtype, stringtype } ;
 
@@ -42,10 +43,8 @@ public:
         }
     }
     size_t get_next_neighbor() {
-        current_index++;
-        if (current_index >= maxlen) {
-            current_index = 0;
-        }
+        current_index = (rand() % maxlen);
+        APEX_ASSERT(current_index < maxlen);
         set_current_value();
         return current_index;
     }
@@ -82,22 +81,24 @@ public:
     }
 };
 
-class Exhaustive {
+class Random {
 private:
     double cost;
     double best_cost;
     size_t kmax;
     size_t k;
     std::map<std::string, Variable> vars;
-    //const size_t max_iterations{1000};
-    //const size_t min_iterations{100};
+    const size_t max_iterations{1000};
+    const size_t min_iterations{100};
 public:
     void evaluate(double new_cost);
-    Exhaustive() :
+    Random() :
         kmax(0), k(1) {
         cost = std::numeric_limits<double>::max();
         best_cost = cost;
         //std::cout << "New Session!" << std::endl;
+        //srand (1);
+        srand (time(NULL));
     }
     double getEnergy() { return best_cost; }
     bool converged() { return (k > kmax); }
@@ -105,9 +106,6 @@ public:
         /*   Increment neighbour */
         for (auto& v : vars) {
             size_t index = v.second.get_next_neighbor();
-            if (index != 0) {
-                break;
-            }
         }
     }
     void saveBestSettings() {
@@ -131,6 +129,6 @@ public:
     }
 };
 
-} // exhaustive
+} // random
 
 } // apex

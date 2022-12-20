@@ -81,7 +81,7 @@ using namespace std;
 #include "memory_wrapper.hpp"
 
 // Macro to check ROC-tracer calls status
-#define ROCTRACER_CALL(call)                                    \
+#define ROCTRACER_CALL_CHECK(call)                                    \
     do {                                                        \
         int err = call;                                         \
         if (err != 0) {                                         \
@@ -1009,7 +1009,7 @@ void activity_callback(const char* begin, const char* end, void* arg) {
             abort();
         }
 
-        ROCTRACER_CALL(roctracer_next_record(record, &record));
+        ROCTRACER_CALL_CHECK(roctracer_next_record(record, &record));
     }
 }
 
@@ -1031,37 +1031,37 @@ void init_hip_tracing() {
     memset(&properties, 0, sizeof(roctracer_properties_t));
     properties.buffer_size = 0x1000;
     properties.buffer_callback_fun = activity_callback;
-    ROCTRACER_CALL(roctracer_open_pool(&properties));
+    ROCTRACER_CALL_CHECK(roctracer_open_pool(&properties));
 
     // Enable HIP API callbacks
-    ROCTRACER_CALL(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_HIP_API, handle_hip, NULL));
+    ROCTRACER_CALL_CHECK(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_HIP_API, handle_hip, NULL));
     if (apex_options::use_hip_kfd_api()) {
 #if defined(APEX_HAVE_ROCTRACER_KFD)
         // Enable KFD API tracing
-        ROCTRACER_CALL(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_KFD_API, handle_roc_kfd, NULL));
+        ROCTRACER_CALL_CHECK(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_KFD_API, handle_roc_kfd, NULL));
 #endif
 #if defined(APEX_WITH_HSA)
         // Enable HIP HSA (OpenMP?) callbacks
-        ROCTRACER_CALL(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_HSA_API, handle_roc_hsa, NULL));
+        ROCTRACER_CALL_CHECK(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_HSA_API, handle_roc_hsa, NULL));
 #endif
     }
     // Enable rocTX
-    ROCTRACER_CALL(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_ROCTX, handle_roctx, NULL));
+    ROCTRACER_CALL_CHECK(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_ROCTX, handle_roctx, NULL));
 
     // Enable HIP activity tracing
-    //ROCTRACER_CALL(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_HIP_API));
+    //ROCTRACER_CALL_CHECK(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_HIP_API));
     // FYI, ACTIVITY_DOMAIN_HIP_OPS = ACTIVITY_DOMAIN_HCC_OPS = ACTIVITY_DOMAIN_HIP_VDI...
-    ROCTRACER_CALL(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_HIP_OPS));
+    ROCTRACER_CALL_CHECK(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_HIP_OPS));
     if (apex_options::use_hip_kfd_api()) {
 #if defined(APEX_WITH_HSA) // disabled for now to simplify compiling
-        ROCTRACER_CALL(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_HSA_OPS));
+        ROCTRACER_CALL_CHECK(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_HSA_OPS));
 #endif
 #if defined(APEX_HAVE_ROCTRACER_KFD)
-        ROCTRACER_CALL(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_KFD_API));
+        ROCTRACER_CALL_CHECK(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_KFD_API));
 #endif
     }
     // Enable PC sampling
-    //ROCTRACER_CALL(roctracer_enable_op_activity(ACTIVITY_DOMAIN_HSA_OPS, HSA_OP_ID_RESERVED1));
+    //ROCTRACER_CALL_CHECK(roctracer_enable_op_activity(ACTIVITY_DOMAIN_HSA_OPS, HSA_OP_ID_RESERVED1));
     roctracer_start();
     //std::cout << "RocTracer started" << std::endl;
 }
@@ -1069,38 +1069,38 @@ void init_hip_tracing() {
     // Stop tracing routine
     void flush_hip_trace() {
         if (!apex_options::use_hip()) { return; }
-        ROCTRACER_CALL(roctracer_flush_activity());
+        ROCTRACER_CALL_CHECK(roctracer_flush_activity());
     }
 
     void stop_hip_trace() {
         if (!apex_options::use_hip()) { return; }
         roctracer_stop();
         /* CAllbacks */
-        ROCTRACER_CALL(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_HIP_API));
+        ROCTRACER_CALL_CHECK(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_HIP_API));
         if (apex_options::use_hip_kfd_api()) {
 #if defined(APEX_WITH_HSA)
-            ROCTRACER_CALL(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_HSA_API));
+            ROCTRACER_CALL_CHECK(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_HSA_API));
 #endif
 #if defined(APEX_HAVE_ROCTRACER_KFD)
-            ROCTRACER_CALL(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_KFD_API));
+            ROCTRACER_CALL_CHECK(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_KFD_API));
 #endif
         }
-        ROCTRACER_CALL(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_ROCTX));
+        ROCTRACER_CALL_CHECK(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_ROCTX));
 
         /* Activity */
-        //ROCTRACER_CALL(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_HIP_API));
+        //ROCTRACER_CALL_CHECK(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_HIP_API));
         // FYI, ACTIVITY_DOMAIN_HIP_OPS = ACTIVITY_DOMAIN_HCC_OPS = ACTIVITY_DOMAIN_HIP_VDI...
-        ROCTRACER_CALL(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_HIP_OPS));
-        ROCTRACER_CALL(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_EXT_API));
+        ROCTRACER_CALL_CHECK(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_HIP_OPS));
+        ROCTRACER_CALL_CHECK(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_EXT_API));
         if (apex_options::use_hip_kfd_api()) {
 #if defined(APEX_WITH_HSA)
-            ROCTRACER_CALL(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_HSA_API));
+            ROCTRACER_CALL_CHECK(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_HSA_API));
 #endif
 #if defined(APEX_HAVE_ROCTRACER_KFD)
-            ROCTRACER_CALL(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_KFD_API));
+            ROCTRACER_CALL_CHECK(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_KFD_API));
 #endif
         }
-        ROCTRACER_CALL(roctracer_flush_activity());
+        ROCTRACER_CALL_CHECK(roctracer_flush_activity());
 #if defined(APEX_WITH_HSA)
         hsa_shut_down();
 #endif

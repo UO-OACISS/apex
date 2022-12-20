@@ -1,17 +1,18 @@
-#include "exhaustive.hpp"
+#include "random.hpp"
 #include <algorithm>
 #include <iostream>
 #include <fstream>
+#include <iomanip>
 
 namespace apex {
 
-namespace exhaustive {
+namespace random {
 
 double inline myrand() {
     return ((double) rand() / (RAND_MAX));
 }
 
-size_t Exhaustive::get_max_iterations() {
+size_t Random::get_max_iterations() {
     size_t max_iter{1};
     for (auto& v : vars) {
         switch (v.second.vtype) {
@@ -33,7 +34,8 @@ size_t Exhaustive::get_max_iterations() {
         }
     }
     // want to see multiple values of each one
-    return max_iter;
+    //return max_iter;
+    return std::min(max_iterations, (std::max(min_iterations, max_iter)));
 }
 
 class log_wrapper {
@@ -54,7 +56,7 @@ class log_wrapper {
         }
 };
 
-void Exhaustive::evaluate(double new_cost) {
+void Random::evaluate(double new_cost) {
     static log_wrapper log(vars);
     static size_t count{0};
     if (++count % 10000 == 0) { std::cout << count << std::endl; }
@@ -66,7 +68,7 @@ void Exhaustive::evaluate(double new_cost) {
             best_cost = new_cost;
             std::cout << "New best! " << new_cost << " k: " << k;
             for (auto& v : vars) { v.second.save_best(); }
-            for (auto& v : vars) { std::cout  << ", index: " << v.second.current_index; }
+            for (auto& v : vars) { std::cout  << ", value: " << v.second.toString(); }
             std::cout << std::endl;
         }
         cost = new_cost;
@@ -76,7 +78,7 @@ void Exhaustive::evaluate(double new_cost) {
     return;
 }
 
-} // exhaustive
+} // random
 
 } // apex
 

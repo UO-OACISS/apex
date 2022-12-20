@@ -32,7 +32,7 @@
 #include "async_thread_node.hpp"
 #include "memory_wrapper.hpp"
 
-#include <cuda.h>
+#include <cuda_runtime_api.h>
 #include <cupti.h>
 #include <nvToolsExt.h>
 #include <nvToolsExtSync.h>
@@ -1847,7 +1847,7 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
     /* Check for exit */
     if (!allGood) {
 	return;
-    } 
+    }
 
     /* Check for a new context */
     if (domain == CUPTI_CB_DOMAIN_RESOURCE) {
@@ -1874,7 +1874,9 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
         std::stringstream ss;
         ss << cbdata->functionName;
         if (apex::apex_options::use_cuda_kernel_details() && isLaunch(id)) {
-            if (cbdata->symbolName != NULL && strlen(cbdata->symbolName) > 0) {
+            // protect against stack overflows from cupti. yes, it happens.
+            if (cbdata->symbolName != NULL && cbdata->symbolName > params &&
+                strlen(cbdata->symbolName) > 0) {
                 ss << ": " << cbdata->symbolName;
             }
         }
@@ -1916,7 +1918,8 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
             std::stringstream ss;
             ss << cbdata->functionName;
             if (apex::apex_options::use_cuda_kernel_details() && isLaunch(id)) {
-                if (cbdata->symbolName != NULL && strlen(cbdata->symbolName) > 0) {
+                if (cbdata->symbolName != NULL && cbdata->symbolName > params &&
+                    strlen(cbdata->symbolName) > 0) {
                     ss << ": " << cbdata->symbolName;
                 }
             }

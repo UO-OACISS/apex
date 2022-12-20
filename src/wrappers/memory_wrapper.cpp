@@ -78,7 +78,7 @@ char bootstrap_heap[BOOTSTRAP_HEAP_SIZE];
 char * bootstrap_base = bootstrap_heap;
 
 uintptr_t reportHeapLocation() {
-    printf("Bootstrap heap located at: %p\n", &bootstrap_heap[0]);
+    printf("Bootstrap heap located at: %p\n", (void*)(&bootstrap_heap[0]));
     return (uintptr_t)&bootstrap_heap[0];
 }
 

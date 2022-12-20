@@ -291,7 +291,7 @@ void concurrency_handler::output_samples(int node_id) {
   for (vector<pair<task_identifier, int> >::iterator it=my_vec.begin();
     it!=my_vec.end(); ++it) {
     //if (top_x.size() < 15 && (*it).first != "APEX THREAD MAIN")
-    if (top_x.size() < apex_options::concurrency_max_timers())
+    if (top_x.size() < (size_t)(apex_options::concurrency_max_timers()))
       top_x.insert((*it).first);
   }
 

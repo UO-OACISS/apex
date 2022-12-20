@@ -14,6 +14,7 @@
 
 #include "apex_bfd.h"
 #include "apex.hpp"
+#include "utils.hpp"
 
 // Intel compiler doesn't support this attribute.
 #if defined (__INTEL_COMPILER)
@@ -584,33 +585,33 @@ ApexBfdAddrMap const * Apex_bfd_getAddressMap(
 char const * Apex_bfd_internal_tryDemangle(bfd * bfdImage,
     char const * funcname)
 {
-  char const * demangled = nullptr;
+    char const * demangled = nullptr;
 #if defined(HAVE_GNU_DEMANGLE) && HAVE_GNU_DEMANGLE
-  if (funcname && bfdImage) {
-    // Some compilers prepend .text. to the symbol name
-    if (strncmp(funcname, ".text.", 6) == 0) {
-      funcname += 6;
-    }
+    if (funcname && bfdImage) {
+        // Some compilers prepend .text. to the symbol name
+        if (strncmp(funcname, ".text.", 6) == 0) {
+        funcname += 6;
+        }
 
-    // Sampling sometimes gives the names as a long branch offset
-    char const * substr = strstr(funcname, ".long_branch_r2off.");
-    if (substr) {
-      char * tmp = strdup(substr+19);
-      // Trim offset address from end of name
-      char * p = tmp + strlen(tmp) - 1;
-      while (p != tmp && isdigit(*p)) --p;
-      if (*p == '+') *p = '\0';
-      demangled = bfd_demangle(bfdImage, tmp, DEMANGLE_FLAGS);
-      free(tmp);
-    } else {
-      demangled = bfd_demangle(bfdImage, funcname, DEMANGLE_FLAGS);
+        // Sampling sometimes gives the names as a long branch offset
+        char const * substr = strstr(funcname, ".long_branch_r2off.");
+        if (substr) {
+            char * tmp = strdup(substr+19);
+            // Trim offset address from end of name
+            char * p = tmp + strlen(tmp) - 1;
+            while (p != tmp && isdigit(*p)) --p;
+            if (*p == '+') *p = '\0';
+            demangled = bfd_demangle(bfdImage, tmp, DEMANGLE_FLAGS);
+            free(tmp);
+        } else {
+            demangled = bfd_demangle(bfdImage, funcname, DEMANGLE_FLAGS);
+        }
     }
-  }
 #else
-  APEX_UNUSED(bfdImage);
+    APEX_UNUSED(bfdImage);
 #endif
-  if (demangled && strlen(demangled) > 0) return demangled;
-  return funcname;
+    if (demangled && strlen(demangled) > 0) return demangled;
+    return funcname;
 }
 
 unsigned long apex_getProbeAddr(bfd * bfdImage, unsigned long pc) {
