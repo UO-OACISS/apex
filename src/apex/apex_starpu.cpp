@@ -3,6 +3,8 @@
 #include <inttypes.h>
 #include "apex.hpp"
 #include <starpu_profiling_tool.h>
+#include <mutex>
+#include <stack>
 
 void starpu_perf_counter_collection_start( void );
 void starpu_perf_counter_collection_stop( void );
@@ -230,6 +232,39 @@ extern "C" {
     }
 }
 
+    void xferfunction_cb( struct starpu_prof_tool_info* prof_info,
+        union starpu_prof_tool_event_info* event_info,
+        struct starpu_prof_tool_api_info* api_info ) {
+
+        std::string event_name {event_types[prof_info->event_type]};
+        std::string device_name {device_types[prof_info->driver_type]};
+        std::stringstream info;
+
+        info << "[{ memnode " << prof_info->memnode << " }]";
+        event_name = event_name + info.str();
+        static thread_local std::stack<std::shared_ptr<apex::task_wrapper> > my_stack;
+        if (prof_info->event_type == starpu_prof_tool_event_end_transfer) {
+            if (my_stack.size() == 0) {
+            /*
+                static std::mutex mtx;
+                std::unique_lock<std::mutex> l(mtx);
+                std::cerr << "APEX Timer stack is empty, bug in StarPU support! "
+                    << event_name << " " << device_name
+                    << std::endl;
+                    */
+                return;
+            }
+            auto t = my_stack.top();
+            apex::stop(t);
+            my_stack.pop();
+        } else {
+            //std::cout << "Transfer start " << event_name << std::endl;
+            auto t = apex::new_task(event_name);
+            apex::start(t);
+            my_stack.push(t);
+        }
+    }
+
     /******************************************************************************/
     /*           Initialize myself as an external library.                       */
     /******************************************************************************/
@@ -238,6 +273,15 @@ extern "C" {
 
 void starpu_prof_tool_library_register(starpu_prof_tool_entry_register_func reg,
     starpu_prof_tool_entry_register_func unreg) {
+    enum  starpu_prof_tool_command info; // = starpu_prof_tool_command_reg;
+    /* This one must be called at the *beginning* of the initialization
+       Otherwise the flag might be set too late */
+    reg( starpu_prof_tool_event_init_begin, &enable_counters, info );
+    /* This one must be called at the *end* of the initialization
+       Otherwise the counters might not be ready yet */
+    reg( starpu_prof_tool_event_init_end, &init_counters, info );
+    /* This one must be called at the end, but I don't know precisely when yet */
+    reg( starpu_prof_tool_event_terminate, &finalize_counters, info );
 
     device_types[starpu_prof_tool_driver_cpu] = "CPU";
     device_types[starpu_prof_tool_driver_gpu] = "GPU";
@@ -260,16 +304,6 @@ void starpu_prof_tool_library_register(starpu_prof_tool_entry_register_func reg,
     event_types[starpu_prof_tool_event_user_start] = "StarPU user event ";
     event_types[starpu_prof_tool_event_user_end] = "StarPU user event ";
 
-    enum  starpu_prof_tool_command info; // = starpu_prof_tool_command_reg;
-    /* This one must be called at the *beginning* of the initialization
-       Otherwise the flag might be set too late */
-    reg( starpu_prof_tool_event_init_begin, &enable_counters, info );
-    /* This one must be called at the *end* of the initialization
-       Otherwise the counters might not be ready yet */
-    reg( starpu_prof_tool_event_init_end, &init_counters, info );
-    /* This one must be called at the end, but I don't know precisely when yet */
-    reg( starpu_prof_tool_event_terminate, &finalize_counters, info );
-
     reg( starpu_prof_tool_event_init_begin, &myfunction_cb, info );
     reg( starpu_prof_tool_event_init_end, &myfunction_cb, info );
     reg( starpu_prof_tool_event_init, &myfunction_cb, info );
@@ -282,8 +316,8 @@ void starpu_prof_tool_library_register(starpu_prof_tool_entry_register_func reg,
     reg( starpu_prof_tool_event_end_cpu_exec, &myfunction_cb, info );
     reg( starpu_prof_tool_event_start_gpu_exec, &myfunction_cb, info );
     reg( starpu_prof_tool_event_end_gpu_exec, &myfunction_cb, info );
-    //reg( starpu_prof_tool_event_start_transfer, &myfunction_cb, info );
-    //reg( starpu_prof_tool_event_end_transfer, &myfunction_cb, info );
+    reg( starpu_prof_tool_event_start_transfer, &xferfunction_cb, info );
+    reg( starpu_prof_tool_event_end_transfer, &xferfunction_cb, info );
 
     }
 

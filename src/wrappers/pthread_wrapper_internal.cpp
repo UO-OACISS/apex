@@ -19,6 +19,23 @@
 #include <sys/resource.h>
 #include <memory>
 #include <atomic>
+#include "apex_error_handling.hpp"
+
+#include "global_constructor_destructor.h"
+#if defined(HAS_CONSTRUCTORS)
+DEFINE_CONSTRUCTOR(apex_init_static_void)
+DEFINE_DESTRUCTOR(apex_finalize_static_void)
+
+void apex_init_static_void() {
+    //printf("Here! %s\n",__func__);
+    apex::init("APEX Pthread Wrapper",0,1);
+}
+void apex_finalize_static_void() {
+    //printf("There! %s\n",__func__);
+    apex::finalize();
+}
+#endif // HAS_CONSTRUCTORS
+
 
 std::atomic<int64_t> task_id(-1);
 
@@ -31,7 +48,7 @@ struct apex_system_wrapper_t
 {
   bool initialized;
   apex_system_wrapper_t() : initialized(true) {
-    apex::init("APEX Pthread Wrapper",0,1);
+    //apex::init("APEX Pthread Wrapper",0,1);
     /*
      * Here we are limiting the stack size to whatever the user requests.
      * Do it after we initialized APEX, because APEX spawns two other threads
@@ -212,6 +229,8 @@ int apex_pthread_create_wrapper(pthread_create_p pthread_create_call,
     pthread_t * threadp, const pthread_attr_t * attr,
     start_routine_p start_routine, void * arg)
 {
+  //printf("Here!\n");
+  //apex_print_backtrace();
   // disable the memory wrapper
   apex::in_apex prevent_problems;
   std::shared_ptr<apex::task_wrapper> parent_task = apex::new_task("pthread_create");
