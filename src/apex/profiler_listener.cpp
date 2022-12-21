@@ -1059,20 +1059,34 @@ std::unordered_set<profile*> free_profiles;
       int divisor = p->get_calls();
       std::string divided_label("per call: ");
       if (p->get_type() == APEX_TIMER) {
-        node_color * c = get_node_color_visible(
-            p->get_accumulated_seconds(), 0.0, wall_clock_main);
-            //p->get_accumulated_seconds()/divisor, 0.0, wall_clock_main);
+        std::string decoration;
+        std::string font;
         task_identifier task_id = it->first;
+        // if the node is dark, make the font white for readability
+        if (p->get_accumulated_seconds() > 0.5 * wall_clock_main) {
+            font = "; fontcolor=white";
+        } else {
+            font = "; fontcolor=black";
+        }
+        // if the node is GPU related, make the box dark blue
+        if (isGPUTimer(task_id.get_tree_name())) {
+            decoration = "shape=box; color=blue; style=filled" + font + "; fillcolor=\"#";
+        } else {
+            decoration = "shape=box; color=firebrick; style=filled" + font + "; fillcolor=\"#";
+        }
+        node_color * c = get_node_color_visible(
+            p->get_accumulated_seconds(), 0.0, wall_clock_main, task_id.get_tree_name());
+            //p->get_accumulated_seconds()/divisor, 0.0, wall_clock_main);
         double accumulated = p->get_accumulated_seconds();
         myfile << "  \"" << task_id.get_tree_name() <<
-            "\" [shape=box; style=filled; fillcolor=\"#" <<
+            "\" [" << decoration <<
             setfill('0') << setw(2) << hex << c->convert(c->red) <<
             setfill('0') << setw(2) << hex << c->convert(c->green) <<
             setfill('0') << setw(2) << hex << c->convert(c->blue) <<
             "\"; label=\"" << task_id.get_tree_name() <<
-            "\\l calls: " << p->get_calls() <<
-            "\\l time: " << accumulated <<
-            "s\\l " << divided_label << accumulated/divisor <<
+            "\\lcalls: " << p->get_calls() <<
+            "\\ltime: " << accumulated <<
+            "s\\l" << divided_label << accumulated/divisor <<
             "s\\l\" ];" << std::endl;
         delete(c);
       }

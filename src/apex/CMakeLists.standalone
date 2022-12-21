@@ -67,6 +67,10 @@ if (MPI_Fortran_FOUND)
 SET(MPIF_SOURCE apex_mpif.F90)
 endif (MPI_Fortran_FOUND)
 
+if (STARPU_FOUND)
+SET(STARPU_SOURCE apex_starpu.cpp)
+endif(STARPU_FOUND)
+
 if (OpenACC_CXX_FOUND AND OpenACCProfiling_FOUND)
     set(OpenACC_SOURCE apex_openacc.cpp)
 endif (OpenACC_CXX_FOUND AND OpenACCProfiling_FOUND)
@@ -96,6 +100,7 @@ ${bfd_SOURCE}
 ${OMPT_SOURCE}
 ${OpenACC_SOURCE}
 ${RAJA_SOURCE}
+${STARPU_SOURCE}
 concurrency_handler.cpp
 dependency_tree.cpp
 event_listener.cpp

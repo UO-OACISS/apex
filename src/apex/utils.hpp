@@ -278,7 +278,8 @@ public:
     int convert(double in) { return (int)(in * 255.0); }
 } ;
 
-node_color * get_node_color_visible(double v, double vmin, double vmax);
+bool isGPUTimer(std::string name);
+node_color * get_node_color_visible(double v, double vmin, double vmax, std::string name);
 node_color * get_node_color(double v,double vmin,double vmax);
 
 /* Defined in memory_wrapper_shudown.cpp */
