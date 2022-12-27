@@ -23,6 +23,7 @@
 #endif
 #else
 // For PIE offset
+#include <elf.h>
 #include <link.h>
 #endif /* __APPLE__ */
 

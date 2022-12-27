@@ -12,8 +12,7 @@ const int num_threads = 1<<6;
 const int num_tasks = 1<<8;
 
 void check_guid(uint64_t guid) {
-    return;
-#if 0
+#if 1
     std::unique_lock<std::mutex> l(guid_mutex);
 #ifdef __VERBOSE_OUTPUT__
     // output like this so that we don't get interleaved output
@@ -27,6 +26,7 @@ void check_guid(uint64_t guid) {
     }
     guids.insert(guid);
 #endif
+    return;
 }
 
 int foo(int input) {
