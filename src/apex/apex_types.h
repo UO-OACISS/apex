@@ -294,6 +294,7 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_LM_SENSORS, use_lm_sensors, bool, false, "Periodically sample data from lm-sensors (requires CMake configuration option).") \
     macro (APEX_PROC_STAT_DETAILS, use_proc_stat_details, bool, false, "Periodically read detailed data from /proc/self/stat.") \
     macro (APEX_PROC_PERIOD, proc_period, int, 1000000, "/proc/* sampling period.") \
+    macro (APEX_SORT_TIMERS_BY_NAME, sort_timers_by_name, bool, false, "Sort timer screen data by name.") \
     macro (APEX_THROTTLE_CONCURRENCY, throttle_concurrency, \
         bool, false, "Enable thread concurrency throttling.") \
     macro (APEX_THROTTLING_MAX_THREADS, throttling_max_threads, \

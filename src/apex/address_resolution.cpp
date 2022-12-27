@@ -12,10 +12,8 @@
 #include <unordered_map>
 #include <execinfo.h>
 #include <unistd.h>
-#include <elf.h>
 #include <stdio.h>
 #include <string.h>
-#include <link.h>
 
 #ifdef __APPLE__
 #include <dlfcn.h>
@@ -23,6 +21,9 @@
 #if defined(TAU_HAVE_CORESYMBOLICATION)
 #include "CoreSymbolication.h"
 #endif
+#else
+#include <elf.h>
+#include <link.h>
 #endif /* __APPLE__ */
 
 using namespace std;

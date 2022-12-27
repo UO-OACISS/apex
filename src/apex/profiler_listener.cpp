@@ -838,8 +838,13 @@ std::unordered_set<profile*> free_profiles;
             timer_vector.push_back(it2);
         }
     }
-    // sort by accumulated value
-    std::sort(timer_vector.begin(), timer_vector.end(), timer_cmp);
+
+    if (apex_options::sort_timers_by_name()) {
+        std::sort(timer_vector.begin(), timer_vector.end());
+    } else {
+        // sort by accumulated value
+        std::sort(timer_vector.begin(), timer_vector.end(), timer_cmp);
+    }
 
     bool have_gpu{false};
     for(auto& pair_itr : timer_vector) {
