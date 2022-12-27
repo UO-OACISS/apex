@@ -489,7 +489,7 @@ std::unordered_set<profile*> free_profiles;
   void profiler_listener::write_one_timer(std::string &action_name,
           profile * p, stringstream &screen_output,
           stringstream &csv_output, double &total_accumulated,
-          double &total_main, double &wall_main, bool timer, bool include_stops = false,
+          double &total_main, double &wall_main, bool include_stops = false,
           bool include_papi = false) {
 #ifndef APEX_HAVE_PAPI
       APEX_UNUSED(include_papi);
@@ -805,7 +805,7 @@ std::unordered_set<profile*> free_profiles;
             if (p != all_profiles.end()) {
                 profile tmp(p->second);
                 write_one_timer(name, &tmp, screen_output, csv_output,
-                    total_accumulated, divisor, wall_clock_main, false);
+                    total_accumulated, divisor, wall_clock_main);
             }
         }
         screen_output << "-----------------------------------------------------"
@@ -870,7 +870,7 @@ std::unordered_set<profile*> free_profiles;
             if (p != all_profiles.end()) {
                 profile tmp(p->second);
                 write_one_timer(name, &tmp, screen_output, csv_output,
-                    total_accumulated, divisor, wall_clock_main, true);
+                    total_accumulated, divisor, wall_clock_main);
                 if (name.compare(APEX_MAIN_STR) != 0) {
                     total_hpx_threads = total_hpx_threads + tmp.get_calls();
                 }
@@ -905,7 +905,7 @@ std::unordered_set<profile*> free_profiles;
     // write the main timer
     std::string tmp_main(APEX_MAIN_STR);
     write_one_timer(tmp_main, total_time, screen_output, csv_output,
-        total_accumulated, divisor, wall_clock_main, true, true, true);
+        total_accumulated, divisor, wall_clock_main, true, true);
     // iterate over the timers
     for(auto& pair_itr : timer_vector) {
         std::string name = pair_itr.first;
@@ -914,7 +914,7 @@ std::unordered_set<profile*> free_profiles;
         if (p != all_profiles.end()) {
             profile tmp(p->second);
             write_one_timer(name, &tmp, screen_output, csv_output,
-                total_accumulated, divisor, wall_clock_main, true, true, true);
+                total_accumulated, divisor, wall_clock_main, true, true);
             if (name.compare(APEX_MAIN_STR) != 0) {
                 total_hpx_threads = total_hpx_threads + tmp.get_calls();
             }

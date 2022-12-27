@@ -104,9 +104,7 @@ public:
     bool converged() { return (k > kmax); }
     void getNewSettings() {
         /*   Increment neighbour */
-        for (auto& v : vars) {
-            size_t index = v.second.get_next_neighbor();
-        }
+        for (auto& v : vars) { v.second.get_next_neighbor(); }
     }
     void saveBestSettings() {
         for (auto& v : vars) { v.second.getBest(); }
