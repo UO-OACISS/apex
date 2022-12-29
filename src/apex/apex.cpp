@@ -43,6 +43,7 @@
 #include "tau_listener.hpp"
 #include "profiler_listener.hpp"
 #include "trace_event_listener.hpp"
+#include "perfetto_listener.hpp"
 #if defined(APEX_DEBUG) || defined(APEX_ERROR_HANDLING)
 // #define APEX_DEBUG_disabled
 #include "apex_error_handling.hpp"
@@ -312,8 +313,10 @@ void apex::_initialize()
 #endif
         if (apex_options::use_trace_event())
         {
-            the_trace_event_listener = new trace_event_listener();
-            listeners.push_back(the_trace_event_listener);
+            //the_trace_event_listener = new trace_event_listener();
+            //listeners.push_back(the_trace_event_listener);
+            the_perfetto_listener = new perfetto_listener();
+            listeners.push_back(the_perfetto_listener);
         }
 
 /* For the Jupyter support, always enable the concurrency handler. */

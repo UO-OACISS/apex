@@ -1022,6 +1022,7 @@ enable_testing()
 # Recurse into the "Apex" and "Demo" subdirectories. This does not actually
 # cause another cmake executable to run. The same process will walk through
 # the project's entire directory structure.
+add_subdirectory (src/perfetto_sdk)
 add_subdirectory (src/apex)
 #add_subdirectory (src/ITTNotify)
 add_subdirectory (src/comm)

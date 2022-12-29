@@ -108,6 +108,8 @@ exhaustive.cpp
 handler.cpp
 memory_wrapper.cpp
 ${OTF2_SOURCE}
+perfetto_listener.cpp
+perfetto_static.cpp
 perftool_implementation.cpp
 policy_handler.cpp
 ${PROC_SOURCE}
@@ -127,7 +129,8 @@ ${ZLIB_SOURCE}
 
 add_library (apex ${all_SOURCE})
 add_library (taudummy tau_dummy.cpp)
-add_dependencies (apex taudummy)
+add_dependencies (apex taudummy perfetto)
+include_directories(${APEX_SOURCE_DIR}/src/perfetto_sdk)
 
 if(ACTIVEHARMONY_FOUND)
     add_dependencies (apex project_activeharmony)
@@ -165,10 +168,10 @@ endif(APEX_WITH_CUDA)
 # so that we can LD_PRELOAD this library with all requirements met.
 if (NOT BUILD_STATIC_EXECUTABLES)
     if(APPLE)
-        target_link_libraries(apex ${LIBS})
+        target_link_libraries(apex perfetto ${LIBS})
         set_target_properties(apex PROPERTIES LINK_FLAGS "${CMAKE_CURRENT_BINARY_DIR}/libtaudummy.dylib -flat_namespace")
     else(APPLE)
-        target_link_libraries(apex ${LIBS} taudummy)
+        target_link_libraries(apex ${LIBS} perfetto taudummy)
     endif(APPLE)
 endif()
 

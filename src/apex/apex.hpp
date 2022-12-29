@@ -108,6 +108,7 @@ public:
     static bool& get_program_over();
     profiler_listener * the_profiler_listener;
     event_listener * the_trace_event_listener;
+    event_listener * the_perfetto_listener;
     event_listener * the_otf2_listener;
 #if APEX_HAVE_PROC
     proc_data_reader * pd_reader;
