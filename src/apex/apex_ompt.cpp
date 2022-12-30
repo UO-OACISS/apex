@@ -23,6 +23,7 @@
 #include "event_listener.hpp"
 #include "async_thread_node.hpp"
 #include "apex.hpp"
+#include "perfetto_listener.hpp"
 #include "trace_event_listener.hpp"
 #ifdef APEX_HAVE_OTF2
 #include "otf2_listener.hpp"
@@ -174,7 +175,13 @@ void stop_async_task(std::shared_ptr<apex::task_wrapper> tt, uint64_t start, uin
     if (correlationId > 0) {
         as_data = Globals::find_data(correlationId);
     }
-    if (apex::apex_options::use_trace_event()) {
+    if (apex::apex_options::use_perfetto()) {
+        apex::perfetto_listener * tel =
+            (apex::perfetto_listener*)instance->the_perfetto_listener;
+        as_data.cat = "ControlFlow";
+        as_data.reverse_flow = false;
+        tel->on_async_event(node, prof, as_data);
+    } else if (apex::apex_options::use_trace_event()) {
         apex::trace_event_listener * tel =
             (apex::trace_event_listener*)instance->the_trace_event_listener;
         as_data.cat = "ControlFlow";
@@ -212,7 +219,11 @@ void store_profiler_data(const std::string &name,
     // fake out the profiler_listener
     instance->the_profiler_listener->push_profiler_public(prof);
     // Handle tracing, if necessary
-    if (apex::apex_options::use_trace_event()) {
+    if (apex::apex_options::use_perfetto()) {
+        apex::perfetto_listener * tel =
+            (apex::perfetto_listener*)instance->the_perfetto_listener;
+        tel->on_async_event(node, prof, as_data);
+    } else if (apex::apex_options::use_trace_event()) {
         apex::trace_event_listener * tel =
             (apex::trace_event_listener*)instance->the_trace_event_listener;
         tel->on_async_event(node, prof, as_data);
@@ -251,7 +262,11 @@ void store_counter_data(const char * name, const std::string& ctx,
     // fake out the profiler_listener
     instance->the_profiler_listener->push_profiler_public(prof);
     // Handle tracing, if necessary
-    if (apex::apex_options::use_trace_event()) {
+    if (apex::apex_options::use_perfetto()) {
+        apex::perfetto_listener * tel =
+            (apex::perfetto_listener*)instance->the_perfetto_listener;
+        tel->on_async_metric(node, prof);
+    } else if (apex::apex_options::use_trace_event()) {
         apex::trace_event_listener * tel =
             (apex::trace_event_listener*)instance->the_trace_event_listener;
         tel->on_async_metric(node, prof);

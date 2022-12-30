@@ -311,12 +311,12 @@ void apex::_initialize()
             listeners.push_back(the_otf2_listener);
         }
 #endif
-        if (apex_options::use_trace_event())
-        {
-            //the_trace_event_listener = new trace_event_listener();
-            //listeners.push_back(the_trace_event_listener);
+        if (apex_options::use_perfetto()) {
             the_perfetto_listener = new perfetto_listener();
             listeners.push_back(the_perfetto_listener);
+        } else if (apex_options::use_trace_event()) {
+            the_trace_event_listener = new trace_event_listener();
+            listeners.push_back(the_trace_event_listener);
         }
 
 /* For the Jupyter support, always enable the concurrency handler. */
