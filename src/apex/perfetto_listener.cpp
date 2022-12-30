@@ -61,12 +61,10 @@ perfetto_listener::~perfetto_listener (void) {
 void perfetto_listener::on_startup(startup_event_data &data) {
     APEX_UNUSED(data);
     // Give a custom name for the traced process.
-    /*
     perfetto::ProcessTrack process_track = perfetto::ProcessTrack::Current();
     perfetto::protos::gen::TrackDescriptor desc = process_track.Serialize();
     desc.mutable_process()->set_process_name(thread_instance::program_path());
     perfetto::TrackEvent::SetTrackDescriptor(process_track, desc);
-    */
     return;
 }
 
