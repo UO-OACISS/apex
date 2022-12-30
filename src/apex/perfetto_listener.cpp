@@ -61,10 +61,12 @@ perfetto_listener::~perfetto_listener (void) {
 void perfetto_listener::on_startup(startup_event_data &data) {
     APEX_UNUSED(data);
     // Give a custom name for the traced process.
+    /*
     perfetto::ProcessTrack process_track = perfetto::ProcessTrack::Current();
     perfetto::protos::gen::TrackDescriptor desc = process_track.Serialize();
-    desc.mutable_process()->set_process_name("Example");
+    desc.mutable_process()->set_process_name(thread_instance::program_path());
     perfetto::TrackEvent::SetTrackDescriptor(process_track, desc);
+    */
     return;
 }
 
@@ -99,15 +101,18 @@ void perfetto_listener::on_exit_thread(event_data &data) {
 
 inline bool perfetto_listener::_common_start(std::shared_ptr<task_wrapper> &tt_ptr) {
     APEX_UNUSED(tt_ptr);
-    TRACE_EVENT_BEGIN("APEX", perfetto::DynamicString{tt_ptr->get_task_id()->get_name()});
-    //, tt_ptr->prof->get_start_us());
+    TRACE_EVENT_BEGIN("APEX",
+        perfetto::DynamicString{tt_ptr->get_task_id()->get_name()},
+        //perfetto::ProcessTrack::Current(),
+        (uint64_t)tt_ptr->prof->get_start_ns());
     return true;
 }
 
 inline void perfetto_listener::_common_stop(std::shared_ptr<profiler> &p) {
     APEX_UNUSED(p);
-    TRACE_EVENT_END("APEX");
-    //, p->get_stop_us());
+    TRACE_EVENT_END("APEX",
+        //perfetto::ProcessTrack::Current(),
+        (uint64_t)p->get_stop_ns());
     return;
 }
 
@@ -129,7 +134,10 @@ void perfetto_listener::on_yield(std::shared_ptr<profiler> &p) {
 
 void perfetto_listener::on_sample_value(sample_value_event_data &data) {
     APEX_UNUSED(data);
-    TRACE_COUNTER("APEX", data.counter_name->c_str(), data.counter_value);
+    TRACE_COUNTER("APEX",
+        data.counter_name->c_str(),
+        (uint64_t)profiler::now_ns(),
+        data.counter_value);
     return;
 }
 
