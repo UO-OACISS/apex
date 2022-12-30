@@ -13,8 +13,19 @@
 #include <fstream>
 
 using namespace std;
+constexpr const char * _category{"APEX"};
+constexpr const char * _guid{"GUID"};
+constexpr const char * _pguid{"parent GUID"};
 
 namespace apex {
+
+void perfetto_listener::get_file_name() {
+    auto saved_node_id = apex::instance()->get_node_id();
+    std::stringstream ss;
+    ss << apex_options::output_file_path() << "/";
+    ss << "trace_events." << saved_node_id << ".pftrace";
+    filename = ss.str();
+}
 
 perfetto_listener::perfetto_listener (void) {
     perfetto::TracingInitArgs args;
@@ -34,7 +45,9 @@ perfetto_listener::perfetto_listener (void) {
     auto* ds_cfg = cfg.add_data_sources()->mutable_config();
     ds_cfg->set_name("track_event");
     tracing_session = perfetto::Tracing::NewTrace();
-    tracing_session->Setup(cfg);
+    get_file_name();
+    int file_descriptor = open(filename.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0600);
+    tracing_session->Setup(cfg, file_descriptor);
     tracing_session->StartBlocking();
 }
 
@@ -44,6 +57,7 @@ perfetto_listener::~perfetto_listener (void) {
 
     // Stop tracing and read the trace data.
     tracing_session->StopBlocking();
+    /*
     std::vector<char> trace_data(tracing_session->ReadTraceBlocking());
 
     // Write the result into a file.
@@ -56,6 +70,8 @@ perfetto_listener::~perfetto_listener (void) {
     PERFETTO_LOG(
         "Trace written in example.pftrace file. To read this trace in "
         "text form, run `./tools/traceconv text example.pftrace`");
+        */
+    close(file_descriptor);
 }
 
 void perfetto_listener::on_startup(startup_event_data &data) {
@@ -99,16 +115,18 @@ void perfetto_listener::on_exit_thread(event_data &data) {
 
 inline bool perfetto_listener::_common_start(std::shared_ptr<task_wrapper> &tt_ptr) {
     APEX_UNUSED(tt_ptr);
-    TRACE_EVENT_BEGIN("APEX",
+    TRACE_EVENT_BEGIN(_category,
         perfetto::DynamicString{tt_ptr->get_task_id()->get_name()},
         //perfetto::ProcessTrack::Current(),
-        (uint64_t)tt_ptr->prof->get_start_ns());
+        (uint64_t)tt_ptr->prof->get_start_ns(),
+        _guid, tt_ptr->guid,
+        _pguid, tt_ptr->parent_guid);
     return true;
 }
 
 inline void perfetto_listener::_common_stop(std::shared_ptr<profiler> &p) {
     APEX_UNUSED(p);
-    TRACE_EVENT_END("APEX",
+    TRACE_EVENT_END(_category,
         //perfetto::ProcessTrack::Current(),
         (uint64_t)p->get_stop_ns());
     return;
@@ -132,7 +150,7 @@ void perfetto_listener::on_yield(std::shared_ptr<profiler> &p) {
 
 void perfetto_listener::on_sample_value(sample_value_event_data &data) {
     APEX_UNUSED(data);
-    TRACE_COUNTER("APEX",
+    TRACE_COUNTER(_category,
         data.counter_name->c_str(),
         (uint64_t)profiler::now_ns(),
         data.counter_value);
@@ -154,17 +172,44 @@ void perfetto_listener::set_node_id(int node_id, int node_count) {
     APEX_UNUSED(node_count);
 }
 
+size_t perfetto_listener::make_tid (base_thread_node &node) {
+    size_t tid;
+    /* There is a potential for overlap here, but not a high potential.  The CPU and the GPU
+     * would BOTH have to spawn 64k+ threads/streams for this to happen. */
+    _vthread_mutex.lock();
+    if (vthread_map.count(node) == 0) {
+        uint32_t id_shifted = node.sortable_tid();
+        vthread_map.insert(std::pair<base_thread_node, size_t>(node,id_shifted));
+    }
+    tid = vthread_map[node];
+    _vthread_mutex.unlock();
+    return tid;
+}
+
 void perfetto_listener::on_async_event(base_thread_node &node,
     std::shared_ptr<profiler> &p, const async_event_data& data) {
-    APEX_UNUSED(node);
-    APEX_UNUSED(p);
+    const size_t tid{make_tid(node)};
+    uint64_t pguid = 0;
+    if (p->tt_ptr != nullptr && p->tt_ptr->parent != nullptr) {
+        pguid = p->tt_ptr->parent->guid;
+    }
+    TRACE_EVENT_BEGIN(_category,
+        perfetto::DynamicString{p->get_task_id()->get_name()},
+        perfetto::Track(tid),
+        (uint64_t)p->get_start_ns(), _guid, p->guid, _pguid, pguid);
+    TRACE_EVENT_END(_category,
+        perfetto::Track(tid),
+        (uint64_t)p->get_stop_ns());
     APEX_UNUSED(data);
 }
 
 void perfetto_listener::on_async_metric(base_thread_node &node,
     std::shared_ptr<profiler> &p) {
     APEX_UNUSED(node);
-    APEX_UNUSED(p);
+    TRACE_COUNTER(_category,
+        p->get_task_id()->get_name().c_str(),
+        (uint64_t)p->get_stop_ns(),
+        p->value);
 }
 
 }// end namespace

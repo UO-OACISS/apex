@@ -47,7 +47,14 @@ public:
     void on_async_metric(base_thread_node &node, std::shared_ptr<profiler> &p);
 
 private:
+    void get_file_name();
+    size_t make_tid (base_thread_node &node);
     std::unique_ptr<perfetto::TracingSession> tracing_session;
+    std::string filename;
+    int file_descriptor;
+    std::mutex _vthread_mutex;
+    std::map<base_thread_node, size_t> vthread_map;
+
 };
 
 }
