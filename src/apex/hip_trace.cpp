@@ -40,7 +40,7 @@ using namespace std;
 #include "address_resolution.hpp"
 #endif
 #include "async_thread_node.hpp"
-#include "perfetto.hpp"
+#include "perfetto_listener.hpp"
 #include "trace_event_listener.hpp"
 #ifdef APEX_HAVE_OTF2
 #include "otf2_listener.hpp"

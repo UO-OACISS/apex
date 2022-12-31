@@ -41,7 +41,7 @@ perfetto_listener::perfetto_listener (void) {
     // recording. In this example we just need the "track_event" data source,
     // which corresponds to the TRACE_EVENT trace points.
     perfetto::TraceConfig cfg;
-    cfg.add_buffers()->set_size_kb(1024);
+    cfg.add_buffers()->set_size_kb(2048);
     auto* ds_cfg = cfg.add_data_sources()->mutable_config();
     ds_cfg->set_name("track_event");
     tracing_session = perfetto::Tracing::NewTrace();
@@ -180,6 +180,9 @@ size_t perfetto_listener::make_tid (base_thread_node &node) {
     if (vthread_map.count(node) == 0) {
         uint32_t id_shifted = node.sortable_tid();
         vthread_map.insert(std::pair<base_thread_node, size_t>(node,id_shifted));
+        auto desc = perfetto::Track(id_shifted).Serialize();
+        desc.set_name(node.name());
+        perfetto::TrackEvent::SetTrackDescriptor(perfetto::Track(id_shifted), desc);
     }
     tid = vthread_map[node];
     _vthread_mutex.unlock();
