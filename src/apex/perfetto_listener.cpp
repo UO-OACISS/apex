@@ -51,7 +51,10 @@ perfetto_listener::perfetto_listener (void) {
     tracing_session->StartBlocking();
 }
 
-perfetto_listener::~perfetto_listener (void) {
+void perfetto_listener::close_trace() {
+    static bool closed{false};
+    if (closed) return;
+    closed = true;
     // Make sure the last event is closed for this example.
     perfetto::TrackEvent::Flush();
 
@@ -72,6 +75,11 @@ perfetto_listener::~perfetto_listener (void) {
         "text form, run `./tools/traceconv text example.pftrace`");
         */
     close(file_descriptor);
+
+}
+
+perfetto_listener::~perfetto_listener (void) {
+    close_trace();
 }
 
 void perfetto_listener::on_startup(startup_event_data &data) {
@@ -95,6 +103,7 @@ void perfetto_listener::on_pre_shutdown(void) {
 
 void perfetto_listener::on_shutdown(shutdown_event_data &data) {
     APEX_UNUSED(data);
+    close_trace();
     return;
 }
 

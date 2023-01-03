@@ -49,6 +49,7 @@ public:
 private:
     void get_file_name();
     size_t make_tid (base_thread_node &node);
+    void close_trace();
     std::unique_ptr<perfetto::TracingSession> tracing_session;
     std::string filename;
     int file_descriptor;
