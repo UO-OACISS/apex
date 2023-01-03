@@ -338,7 +338,7 @@ set(apex_sources
     gzstream.cpp
     handler.cpp
     memory_wrapper.cpp
-    ${APEX_SOURCE_DIR}/src/perfetto_sdk/perfetto.cc
+    ${APEX_SOURCE_DIR}/../perfetto_sdk/perfetto.cc
     perfetto_listener.cpp
     perfetto_static.cpp
     policy_handler.cpp
@@ -398,7 +398,7 @@ target_include_directories(apex PUBLIC
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
     $<BUILD_INTERFACE:${APEX_BINARY_DIR}>
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
-    $<BUILD_INTERFACE:${APEX_SOURCE_DIR}/src/perfetto_sdk>
+    $<BUILD_INTERFACE:${APEX_SOURCE_DIR}/../perfetto_sdk>
     $<INSTALL_INTERFACE:include>)
 
 # To have the compile options and definitions
