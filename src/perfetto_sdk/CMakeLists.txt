@@ -1,4 +1,8 @@
 include_directories(${APEX_SOURCE_DIR}/src/perfetto_sdk)
+# Force C++11 with NVHPC, it crashes otherwise
+if (CMAKE_CXX_COMPILER_ID MATCHES NVHPC)
+    set(CMAKE_CXX_STANDARD 11)
+endif()
 add_library (perfetto perfetto.cc)
 
 if (WIN32)

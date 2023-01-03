@@ -338,6 +338,9 @@ set(apex_sources
     gzstream.cpp
     handler.cpp
     memory_wrapper.cpp
+    ${APEX_SOURCE_DIR}/src/perfetto_sdk/perfetto.cc
+    perfetto_listener.cpp
+    perfetto_static.cpp
     policy_handler.cpp
     profile_reducer.cpp
     profiler_listener.cpp
@@ -361,6 +364,22 @@ set(apex_sources
 
 include(GNUInstallDirs)
 
+if (WIN32)
+# Enable standards-compliant mode when using the Visual Studio compiler.
+    if (MSVC)
+        SET_SOURCE_FILES_PROPERTIES( perfetto.cc PROPERTIES COMPILE_FLAGS
+            "/permissive- /bigobj -DWIN32_LEAN_AND_MEAN -DNOMINMAX" )
+    else (MSVC)
+        SET_SOURCE_FILES_PROPERTIES( perfetto.cc PROPERTIES COMPILE_FLAGS
+            "/bigobj -DWIN32_LEAN_AND_MEAN -DNOMINMAX" )
+    endif (MSVC)
+endif (WIN32)
+
+# Force C++11 with NVHPC, it crashes otherwise
+if (CMAKE_CXX_COMPILER_ID MATCHES NVHPC)
+    set(CMAKE_CXX_STANDARD 11)
+endif()
+
 # APEX has one dependency in HPX, just the main library.
 # Unless HPXMP is also used.
 
@@ -379,6 +398,7 @@ target_include_directories(apex PUBLIC
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
     $<BUILD_INTERFACE:${APEX_BINARY_DIR}>
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${APEX_SOURCE_DIR}/src/perfetto_sdk>
     $<INSTALL_INTERFACE:include>)
 
 # To have the compile options and definitions
