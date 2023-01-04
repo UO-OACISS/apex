@@ -54,8 +54,22 @@ endif()
 if(NOT DEFINED $HWLOC_DIR)
     if(DEFINED $HWLOC_ROOT)
         set(HWLOC_DIR $HWLOC_ROOT)
+    else()
+        # Search using CUDAToolkit_ROOT
+        find_program(HWLOC_LSTOPO_EXECUTABLE
+            NAMES lstopo lstopo-no-graphics hwloc-ls
+            PATHS ENV{PATH}
+            PATH_SUFFIXES bin
+        )
+        if(HWLOC_LSTOPO_EXECUTABLE)
+            get_filename_component(hwloc_dir "${HWLOC_LSTOPO_EXECUTABLE}" DIRECTORY)
+            set(HWLOC_BIN_DIR "${hwloc_dir}" CACHE PATH "" FORCE)
+            unset(hwloc_dir)
+            get_filename_component(HWLOC_DIR ${HWLOC_BIN_DIR} DIRECTORY ABSOLUTE)
+        endif()
     endif()
 endif()
+
 
 include(CheckStructHasMember)
 include(CheckCSourceCompiles)

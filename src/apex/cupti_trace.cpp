@@ -24,7 +24,9 @@
 #include "profiler.hpp"
 #include "thread_instance.hpp"
 #include "apex_options.hpp"
+#if defined(APEX_WITH_PERFETTO)
 #include "perfetto_listener.hpp"
+#endif
 #include "trace_event_listener.hpp"
 #include "apex_nvml.hpp"
 #ifdef APEX_HAVE_OTF2
@@ -525,13 +527,16 @@ void store_profiler_data(const std::string &name, uint32_t correlationId,
     // fake out the profiler_listener
     instance->the_profiler_listener->push_profiler_public(prof);
     // Handle tracing, if necessary
+#if defined(APEX_WITH_PERFETTO)
     if (apex::apex_options::use_perfetto()) {
         apex::perfetto_listener * tel =
             (apex::perfetto_listener*)instance->the_perfetto_listener;
         as_data.cat = category;
         as_data.reverse_flow = reverseFlow;
         tel->on_async_event(node, prof, as_data);
-    } else if (apex::apex_options::use_trace_event()) {
+    }
+#endif
+    if (apex::apex_options::use_trace_event()) {
         apex::trace_event_listener * tel =
             (apex::trace_event_listener*)instance->the_trace_event_listener;
         as_data.cat = category;
@@ -590,11 +595,14 @@ void store_counter_data(const char * name, const std::string& ctx,
     // fake out the profiler_listener
     instance->the_profiler_listener->push_profiler_public(prof);
     // Handle tracing, if necessary
+#if defined(APEX_WITH_PERFETTO)
     if (apex::apex_options::use_perfetto()) {
         apex::perfetto_listener * tel =
             (apex::perfetto_listener*)instance->the_perfetto_listener;
         tel->on_async_metric(node, prof);
-    } else if (apex::apex_options::use_trace_event()) {
+    }
+#endif
+    if (apex::apex_options::use_trace_event()) {
         apex::trace_event_listener * tel =
             (apex::trace_event_listener*)instance->the_trace_event_listener;
         tel->on_async_metric(node, prof);

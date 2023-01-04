@@ -79,6 +79,15 @@ if (APEX_WITH_RAJA AND RAJA_FOUND)
     set(RAJA_SOURCE apex_raja.cpp)
 endif (APEX_WITH_RAJA AND RAJA_FOUND)
 
+if(APEX_WITH_PERFETTO)
+    set(perfetto_headers perfetto_listener.hpp)
+    set(perfetto_sources
+        perfetto_listener.cpp perfetto_static.cpp)
+    set(perfetto_target perfetto)
+    add_definitions(-DAPEX_WITH_PERFETTO)
+    include_directories(${APEX_SOURCE_DIR}/src/perfetto_sdk)
+endif()
+
 # Try to keep this in alphabetical order
 SET(all_SOURCE
 apex_preload.cpp
@@ -108,8 +117,7 @@ exhaustive.cpp
 handler.cpp
 memory_wrapper.cpp
 ${OTF2_SOURCE}
-perfetto_listener.cpp
-perfetto_static.cpp
+${perfetto_sources}
 perftool_implementation.cpp
 policy_handler.cpp
 ${PROC_SOURCE}
@@ -129,8 +137,7 @@ ${ZLIB_SOURCE}
 
 add_library (apex ${all_SOURCE})
 add_library (taudummy tau_dummy.cpp)
-add_dependencies (apex taudummy perfetto)
-include_directories(${APEX_SOURCE_DIR}/src/perfetto_sdk)
+add_dependencies (apex taudummy ${perfetto_target})
 
 if(ACTIVEHARMONY_FOUND)
     add_dependencies (apex project_activeharmony)
@@ -168,10 +175,10 @@ endif(APEX_WITH_CUDA)
 # so that we can LD_PRELOAD this library with all requirements met.
 if (NOT BUILD_STATIC_EXECUTABLES)
     if(APPLE)
-        target_link_libraries(apex perfetto ${LIBS})
+        target_link_libraries(apex ${perfetto_target} ${LIBS})
         set_target_properties(apex PROPERTIES LINK_FLAGS "${CMAKE_CURRENT_BINARY_DIR}/libtaudummy.dylib -flat_namespace")
     else(APPLE)
-        target_link_libraries(apex ${LIBS} perfetto taudummy)
+        target_link_libraries(apex ${LIBS} ${perfetto_target} taudummy)
     endif(APPLE)
 endif()
 

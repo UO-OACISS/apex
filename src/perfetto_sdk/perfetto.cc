@@ -1,5 +1,5 @@
 #ifdef __NVCOMPILER
-#warning "nvc++ takes a long time to compile this file..."
+#warning "nvc++ takes a long time to compile this file...If you don't plan to use native perfetto trace output support, disable it with the CMake option -DAPEX_WITH_PERFETTO=FALSE"
 #endif
 // Copyright (C) 2019 The Android Open Source Project
 //

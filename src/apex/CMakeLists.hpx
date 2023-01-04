@@ -255,6 +255,13 @@ if(APEX_WITH_OTF2)
   set(otf2_sources otf2_listener.cpp otf2_listener_hpx.cpp otf2_listener_nompi.cpp)
 endif()
 
+if(APEX_WITH_PERFETTO)
+  set(perfetto_headers perfetto_listener.hpp perfetto_static.hpp)
+  set(perfetto_sources
+    perfetto_listener.cpp perfetto_static.cpp ../perfetto_sdk/perfetto.cc)
+  target_compile_definitions(apex_flags INTERFACE APEX_WITH_PERFETTO)
+endif()
+
 if(HPX_WITH_HPXMP)
   set(ompt_sources apex_ompt.cpp)
   include(APEX_SetupHPXMP)
@@ -317,6 +324,7 @@ set(apex_headers
     task_wrapper.hpp
     tau_listener.hpp
     utils.hpp
+    ${perfetto_headers}
     ${proc_headers}
     ${otf2_headers}
     )
@@ -338,9 +346,6 @@ set(apex_sources
     gzstream.cpp
     handler.cpp
     memory_wrapper.cpp
-    ../perfetto_sdk/perfetto.cc
-    perfetto_listener.cpp
-    perfetto_static.cpp
     policy_handler.cpp
     profile_reducer.cpp
     profiler_listener.cpp
@@ -352,6 +357,7 @@ set(apex_sources
     thread_instance.cpp
     trace_event_listener.cpp
     utils.cpp
+    ${perfetto_sources}
     ${proc_sources}
     ${bfd_sources}
     ${sensor_sources}
@@ -364,7 +370,7 @@ set(apex_sources
 
 include(GNUInstallDirs)
 
-if (WIN32)
+if (WIN32 AND APEX_WITH_PERFETTO)
 # Enable standards-compliant mode when using the Visual Studio compiler.
     if (MSVC)
         SET_SOURCE_FILES_PROPERTIES( perfetto.cc PROPERTIES COMPILE_FLAGS
