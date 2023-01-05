@@ -752,6 +752,7 @@ std::unordered_set<profile*> free_profiles;
     // want to write it out
     stringstream csv_output;
     // iterate over the profiles in the address map
+    screen_output << endl << "Start Date/Time: " << timestamp_started;
     screen_output << endl << "Elapsed time: " << wall_clock_main
         << " seconds" << endl;
     screen_output << "Total processes detected: " << apex::instance()->get_num_ranks()
@@ -1012,7 +1013,8 @@ std::unordered_set<profile*> free_profiles;
         num_worker_threads);
 
     myfile << "digraph prof {\n";
-    myfile << " label = \"Elapsed Time: " << wall_clock_main;
+    myfile << " label = \"Start Date/Time: " << timestamp_started;
+    myfile << "\\lElapsed Time: " << wall_clock_main;
     myfile << " seconds\\lCores detected: " << hardware_concurrency();
     myfile << "\\lWorker threads observed: " << num_worker_threads;
     // is scaling this necessary?
@@ -1165,7 +1167,8 @@ std::unordered_set<profile*> free_profiles;
         num_worker_threads);
 
     myfile << "digraph prof {\n";
-    myfile << " label = \"Elapsed Time: " << wall_clock_main;
+    myfile << " label = \"Start Date/Time: " << timestamp_started;
+    myfile << "\\lElapsed Time: " << wall_clock_main;
     myfile << " seconds\\lCores detected: " << hardware_concurrency();
     myfile << "\\lWorker threads observed: " << num_worker_threads;
     // is scaling this necessary?

@@ -85,6 +85,16 @@ int pthread_join(pthread_t thread, void ** retval)
   return apex_pthread_join_wrapper(_pthread_join, thread, retval);
 }
 
+int pthread_detach(pthread_t thread)
+{
+  static pthread_detach_p _pthread_detach = NULL;
+  if (!_pthread_detach) {
+    _pthread_detach = (pthread_detach_p)get_system_function_handle(
+        "pthread_detach", (void*)pthread_detach);
+  }
+  return apex_pthread_detach_wrapper(_pthread_detach, thread);
+}
+
 #if 0
 void pthread_exit(void * value_ptr)
 {
@@ -121,6 +131,12 @@ int __real_pthread_join(pthread_t, void **);
 int __wrap_pthread_join(pthread_t thread, void **retval)
 {
   return apex_pthread_join_wrapper(__real_pthread_join, thread, retval);
+}
+
+int __real_pthread_detach(pthread_t);
+int __wrap_pthread_detach(pthread_t thread)
+{
+  return apex_pthread_detach_wrapper(__real_pthread_detach, thread);
 }
 
 #if 0

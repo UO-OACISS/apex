@@ -63,6 +63,9 @@ using moodycamel::ConcurrentQueue;
 #endif // __APPLE__
 #endif // _MSC_VER
 #include <fcntl.h>
+#include <iostream>
+#include <iomanip>
+#include <ctime>
 
 #define INITIAL_NUM_THREADS 2
 
@@ -150,6 +153,7 @@ private:
   std::ofstream _counter_scatterplot_sample_file;
   std::stringstream task_scatterplot_samples;
   std::stringstream counter_scatterplot_samples;
+  std::string timestamp_started;
 public:
   void set_node_id(int node_id, int node_count) {
     APEX_UNUSED(node_count);
@@ -168,6 +172,12 @@ public:
       if (apex_options::task_scatterplot()) {
         profiler::get_global_start();
       }
+      // get a timestamp for the start of execution
+      auto t = std::time(nullptr);
+      auto tm = *std::localtime(&t);
+      std::ostringstream oss;
+      oss << std::put_time(&tm, "%d/%m/%Y %H:%M:%S");
+      timestamp_started = oss.str();
   };
   ~profiler_listener (void);
   void async_thread_setup(void);

@@ -82,26 +82,31 @@ std::string demangle(const std::string& timer_name) {
         free(realname);
     } else {
 #if defined(APEX_DEBUG)
-        switch (status) {
-            case 0:
-                printf("The demangling operation succeeded, but realname is NULL\n");
-                break;
-            case -1:
-                printf("The demangling operation failed:");
-                printf(" A memory allocation failiure occurred.\n");
-                break;
-            case -2:
-                printf("The demangling operation failed:");
-                printf(" '%s' is not a valid", timer_name.c_str());
-                printf(" name under the C++ ABI mangling rules.\n");
-                break;
-            case -3:
-                printf("The demangling operation failed: One of the");
-                printf(" arguments is invalid.\n");
-                break;
-            default:
-                printf("The demangling operation failed: Unknown error.\n");
-                break;
+        if (apex_options::use_verbose()) {
+            switch (status) {
+                case 0:
+                    fprintf(stderr, "The demangling operation succeeded, but realname is NULL\n");
+                    break;
+                case -1:
+                    fprintf(stderr, "The demangling operation failed:");
+                    fprintf(stderr, " A memory allocation failiure occurred.\n");
+                    break;
+                case -2:
+                    // Commenting out, this is a silly message.
+                    /*
+                    fprintf(stderr, "The demangling operation failed:");
+                    fprintf(stderr, " '%s' is not a valid", timer_name.c_str());
+                    fprintf(stderr, " name under the C++ ABI mangling rules.\n");
+                    */
+                    break;
+                case -3:
+                    fprintf(stderr, "The demangling operation failed: One of the");
+                    fprintf(stderr, " arguments is invalid.\n");
+                    break;
+                default:
+                    fprintf(stderr, "The demangling operation failed: Unknown error.\n");
+                    break;
+            }
         }
 #endif // defined(APEX_DEBUG)
     }

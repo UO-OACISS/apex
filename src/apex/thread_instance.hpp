@@ -176,6 +176,7 @@ public:
   static void exiting() {
     instance(false)._exiting = true;
   }
+  void clear_all_profilers(void);
 
 #ifdef APEX_DEBUG
   static std::mutex _open_profiler_mutex;

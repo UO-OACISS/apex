@@ -27,11 +27,11 @@ DEFINE_CONSTRUCTOR(apex_init_static_void)
 DEFINE_DESTRUCTOR(apex_finalize_static_void)
 
 void apex_init_static_void() {
-    //printf("Here! %s\n",__func__);
+    printf("Here! %s\n",__func__);
     apex::init("APEX Pthread Wrapper",0,1);
 }
 void apex_finalize_static_void() {
-    //printf("There! %s\n",__func__);
+    printf("There! %s\n",__func__);
     apex::finalize();
 }
 #endif // HAS_CONSTRUCTORS
@@ -300,6 +300,28 @@ int apex_pthread_join_wrapper(pthread_join_p pthread_join_call,
   return ret;
 }
 
+extern "C"
+int apex_pthread_detach_wrapper(pthread_detach_p pthread_detach_call,
+    pthread_t thread)
+{
+  // disable the memory wrapper
+  apex::in_apex prevent_problems;
+  apex_wrapper * wrapper = get_tl_wrapper();
+
+  int ret;
+  if(wrapper->_wrapped) {
+    // Another wrapper has already intercepted the call so just pass through
+    ret = pthread_detach_call(thread);
+  } else {
+    wrapper->_wrapped = true;
+    apex::profiler * p = apex::start("pthread_detach");
+    ret = pthread_detach_call(thread);
+    apex::stop(p);
+    wrapper->_wrapped = false;
+  }
+  return ret;
+}
+
 #if 0
 extern "C"
 void apex_pthread_exit_wrapper(pthread_exit_p pthread_exit_call, void * value_ptr)
@@ -364,6 +386,12 @@ extern "C"
 int apex_pthread_join(pthread_t thread, void ** retval)
 {
   return apex_pthread_join_wrapper(pthread_join, thread, retval);
+}
+
+extern "C"
+int apex_pthread_detach(pthread_t thread)
+{
+  return apex_pthread_detach_wrapper(pthread_detach, thread);
 }
 
 #if 0

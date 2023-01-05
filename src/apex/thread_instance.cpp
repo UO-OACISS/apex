@@ -272,6 +272,25 @@ profiler * thread_instance::restore_children_profilers(
     return parent;
 }
 
+void thread_instance::clear_all_profilers() {
+    // nothing to do?
+    if (current_profilers.empty() || !_is_worker) return;
+    // copy the stack
+    auto the_stack(current_profilers);
+    auto tmp = the_stack.back();
+    while (the_stack.size() > 0) {
+        /* Make a copy of the profiler object on the top of the stack. */
+        profiler * profiler_copy = new profiler(*tmp);
+        /* Stop the copy, using a special internal function. */
+        apex::stop_internal(profiler_copy);
+        // pop the child from the stack copy
+        the_stack.pop_back();
+        if (the_stack.empty()) { return; }
+        // get the new top of the stack
+        tmp = the_stack.back();
+    }
+}
+
 void thread_instance::clear_current_profiler(profiler * the_profiler,
     bool save_children, std::shared_ptr<task_wrapper> &tt_ptr) {
     // this is a stack variable that provides safety when using recursion.

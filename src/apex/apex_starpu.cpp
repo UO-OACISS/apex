@@ -92,6 +92,7 @@ extern "C" {
     */
 
     void enable_counters(starpu_prof_tool_info* prof_info, starpu_prof_tool_event_info* event_info, starpu_prof_tool_api_info* api_info ) {
+        printf("%s\n", __func__);
     }
 
     /* This one is called at the end of the initialization.
@@ -182,11 +183,26 @@ extern "C" {
     bool enter = true;
     switch(  prof_info->event_type ) {
     case starpu_prof_tool_event_init:
-    case starpu_prof_tool_event_init_begin:
+        break;
     case starpu_prof_tool_event_driver_init:
-       break;
-    case starpu_prof_tool_event_terminate:
+        break;
+    case starpu_prof_tool_event_init_begin:
+        static bool init_done_once = false;
+        if (init_done_once) return;
+        init_done_once = true;
+        enable_counters(prof_info, event_info, api_info);
+        break;
     case starpu_prof_tool_event_init_end:
+        static bool fini_done_once = false;
+        if (fini_done_once) return;
+        fini_done_once = true;
+        init_counters(prof_info, event_info, api_info);
+        enter = false;
+        break;
+    case starpu_prof_tool_event_terminate:
+        finalize_counters(prof_info, event_info, api_info);
+        enter = false;
+        break;
     case starpu_prof_tool_event_driver_deinit:
     case starpu_prof_tool_event_driver_init_end:
     case starpu_prof_tool_event_end_cpu_exec:
@@ -245,20 +261,17 @@ extern "C" {
         static thread_local std::stack<std::shared_ptr<apex::task_wrapper> > my_stack;
         if (prof_info->event_type == starpu_prof_tool_event_end_transfer) {
             if (my_stack.size() == 0) {
-            /*
                 static std::mutex mtx;
                 std::unique_lock<std::mutex> l(mtx);
-                std::cerr << "APEX Timer stack is empty, bug in StarPU support! "
-                    << event_name << " " << device_name
-                    << std::endl;
-                    */
+                DEBUG_PRINT("APEX Timer stack is empty, bug in StarPU support! %s, %s\n",
+                event_name.c_str(), device_name.c_str());
                 return;
             }
             auto t = my_stack.top();
             apex::stop(t);
             my_stack.pop();
         } else {
-            //std::cout << "Transfer start " << event_name << std::endl;
+            DEBUG_PRINT("Transfer start %s %s\n", event_name.c_str(), device_name.c_str());
             auto t = apex::new_task(event_name);
             apex::start(t);
             my_stack.push(t);
@@ -276,12 +289,12 @@ void starpu_prof_tool_library_register(starpu_prof_tool_entry_register_func reg,
     enum  starpu_prof_tool_command info; // = starpu_prof_tool_command_reg;
     /* This one must be called at the *beginning* of the initialization
        Otherwise the flag might be set too late */
-    reg( starpu_prof_tool_event_init_begin, &enable_counters, info );
+    //reg( starpu_prof_tool_event_init_begin, &enable_counters, info );
     /* This one must be called at the *end* of the initialization
        Otherwise the counters might not be ready yet */
-    reg( starpu_prof_tool_event_init_end, &init_counters, info );
+    //reg( starpu_prof_tool_event_init_end, &init_counters, info );
     /* This one must be called at the end, but I don't know precisely when yet */
-    reg( starpu_prof_tool_event_terminate, &finalize_counters, info );
+    //reg( starpu_prof_tool_event_terminate, &finalize_counters, info );
 
     device_types[starpu_prof_tool_driver_cpu] = "CPU";
     device_types[starpu_prof_tool_driver_gpu] = "GPU";
@@ -318,7 +331,6 @@ void starpu_prof_tool_library_register(starpu_prof_tool_entry_register_func reg,
     reg( starpu_prof_tool_event_end_gpu_exec, &myfunction_cb, info );
     reg( starpu_prof_tool_event_start_transfer, &xferfunction_cb, info );
     reg( starpu_prof_tool_event_end_transfer, &xferfunction_cb, info );
-
     }
 
 } // extern "C"
