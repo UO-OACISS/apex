@@ -1344,9 +1344,15 @@ std::shared_ptr<task_wrapper> new_task(
 {
     in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { return nullptr; }
+    if (apex_options::disable() == true) {
+        APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER
+        return nullptr;
+    }
     // if APEX is suspended, do nothing.
-    if (apex_options::suspend() == true) { return nullptr; }
+    if (apex_options::suspend() == true) {
+        APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER
+        return nullptr;
+    }
     const std::string apex_internal("apex_internal");
     if (starts_with(name, apex_internal)) {
         APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER
@@ -1371,13 +1377,19 @@ std::shared_ptr<task_wrapper> new_task(
     const std::shared_ptr<task_wrapper> parent_task) {
     in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { return nullptr; }
+    if (apex_options::disable() == true) {
+        APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER
+        return nullptr; }
     // if APEX is suspended, do nothing.
-    if (apex_options::suspend() == true) { return nullptr; }
+    if (apex_options::suspend() == true) {
+        APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER
+        return nullptr; }
     // get the Apex static instance
     apex* instance = apex::instance();
     // protect against calls after finalization
-    if (!instance || _exited) { return nullptr; }
+    if (!instance || _exited) {
+        APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER
+        return nullptr; }
     task_identifier * id = task_identifier::get_task_id(function_address);
     std::shared_ptr<task_wrapper>
         tt_ptr(_new_task(id, task_id, parent_task, instance));
@@ -1389,9 +1401,13 @@ std::shared_ptr<task_wrapper> update_task(
     const std::string &timer_name) {
     in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { return nullptr; }
+    if (apex_options::disable() == true) {
+        APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER
+        return nullptr; }
     // if APEX is suspended, do nothing.
-    if (apex_options::suspend() == true) { return nullptr; }
+    if (apex_options::suspend() == true) {
+        APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER
+        return nullptr; }
     if (wrapper == nullptr) {
         // get the Apex static instance
         apex* instance = apex::instance();
@@ -1429,9 +1445,13 @@ std::shared_ptr<task_wrapper> update_task(
     const apex_function_address function_address) {
     in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { return nullptr; }
+    if (apex_options::disable() == true) {
+        APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER
+        return nullptr; }
     // if APEX is suspended, do nothing.
-    if (apex_options::suspend() == true) { return nullptr; }
+    if (apex_options::suspend() == true) {
+        APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER
+        return nullptr; }
     if (wrapper == nullptr) {
         // get the Apex static instance
         apex* instance = apex::instance();
@@ -1672,13 +1692,16 @@ void finalize()
     FUNCTION_ENTER
     // FIRST FIRST, check if we have orphaned threads...
     //printf("\n\n*********** Thread count: %lu!\n\n\n", instance->known_threads.size());
-    if (!instance->known_threads.empty()) {
-        thread_instance& ti = thread_instance::instance();
-        //printf("\n\n*********** Orphaned children!\n\n\n");
-        //printf("I am thread: %p\n", &ti);
-        for (thread_instance* t : instance->known_threads) {
-            //printf("\tThread: %p\n", t);
-            t->clear_all_profilers();
+    {
+        read_lock_type l(instance->listener_mutex);
+        if (!instance->known_threads.empty()) {
+            thread_instance& ti = thread_instance::instance();
+            //printf("\n\n*********** Orphaned children!\n\n\n");
+            //printf("I am thread: %p\n", &ti);
+            for (thread_instance* t : instance->known_threads) {
+                    //printf("\tThread: %p\n", t);
+                t->clear_all_profilers();
+            }
         }
     }
     // FIRST, stop the top level timer, while the infrastructure is still
@@ -1852,9 +1875,10 @@ void register_thread(const std::string &name,
         //printf("New thread: %p\n", &(*twp));
         thread_instance::set_top_level_timer(twp);
     }
-    static std::mutex _mutex;
-    unique_lock<mutex> l(_mutex);
-    instance->known_threads.insert(&ti);
+    {
+        write_lock_type l(instance->listener_mutex);
+        instance->known_threads.insert(&ti);
+    }
 }
 
 void exit_thread(void)
@@ -1869,9 +1893,8 @@ void exit_thread(void)
     if (_exiting) return;
     _exiting = true;
     {
-        static std::mutex _mutex;
-        unique_lock<mutex> l(_mutex);
         thread_instance& ti = thread_instance::instance(false);
+        write_lock_type l(instance->listener_mutex);
         instance->known_threads.erase(&ti);
     }
     auto tmp = thread_instance::get_top_level_timer();

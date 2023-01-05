@@ -27,11 +27,11 @@ DEFINE_CONSTRUCTOR(apex_init_static_void)
 DEFINE_DESTRUCTOR(apex_finalize_static_void)
 
 void apex_init_static_void() {
-    printf("Here! %s\n",__func__);
+    //printf("Here! %s\n",__func__);
     apex::init("APEX Pthread Wrapper",0,1);
 }
 void apex_finalize_static_void() {
-    printf("There! %s\n",__func__);
+    //printf("There! %s\n",__func__);
     apex::finalize();
 }
 #endif // HAS_CONSTRUCTORS
@@ -234,7 +234,8 @@ int apex_pthread_create_wrapper(pthread_create_p pthread_create_call,
   // disable the memory wrapper
   apex::in_apex prevent_problems;
   std::shared_ptr<apex::task_wrapper> parent_task = apex::new_task("pthread_create");
-  apex::start(parent_task);
+  // can be null after finalize has started.
+  if (parent_task != nullptr) apex::start(parent_task);
   // JUST ONCE, create the key
   (void) pthread_once(&key_once, make_key);
   // get the thread-local variable
@@ -266,7 +267,8 @@ int apex_pthread_create_wrapper(pthread_create_p pthread_create_call,
     */
     wrapper->_wrapped = false;
   }
-  apex::stop(parent_task);
+  // can be null after finalize has started.
+  if (parent_task != nullptr) apex::stop(parent_task);
   return retval;
 }
 

@@ -65,12 +65,12 @@ extern "C" {
         //  printf("worker[%d]: w_total_executed = %"PRId64", w_cumul_execution_time = %lf\n", workerid, w_total_executed, w_cumul_execution_time);
 
         std::stringstream ss1;
-        ss1 << "Worker " << workerid << " w_total_executed";
+        ss1 << " w_total_executed : Worker " << std::setfill('0') << std::setw(3) << workerid;
         std::string tmp1{ss1.str()};
         apex::sample_value( tmp1, w_total_executed );
 
         std::stringstream ss2;
-        ss2 <<  "Worker " << workerid << " w_cumul_execution_time";
+        ss2 << " w_cumul_execution_time (us) : Worker " << std::setfill('0') << std::setw(3) << workerid;
         std::string tmp2{ss2.str()};
         apex::sample_value( tmp2, w_cumul_execution_time );
     }
@@ -92,7 +92,6 @@ extern "C" {
     */
 
     void enable_counters(starpu_prof_tool_info* prof_info, starpu_prof_tool_event_info* event_info, starpu_prof_tool_api_info* api_info ) {
-        printf("%s\n", __func__);
     }
 
     /* This one is called at the end of the initialization.
@@ -172,7 +171,7 @@ extern "C" {
 
     /******************************************************************************/
 
-    void myfunction_cb( struct starpu_prof_tool_info* prof_info,
+    void initfunction_cb( struct starpu_prof_tool_info* prof_info,
         union starpu_prof_tool_event_info* event_info,
         struct starpu_prof_tool_api_info* api_info ) {
 
@@ -205,25 +204,11 @@ extern "C" {
         break;
     case starpu_prof_tool_event_driver_deinit:
     case starpu_prof_tool_event_driver_init_end:
-    case starpu_prof_tool_event_end_cpu_exec:
-    case starpu_prof_tool_event_end_gpu_exec:
-    case starpu_prof_tool_event_end_transfer:
         enter = false;
         break;
     case starpu_prof_tool_event_driver_init_start:
         info << ": " << device_name.c_str(); // << ":" << prof_info->device_number  << "}]";
         event_name = event_name + info.str();
-        break;
-    case starpu_prof_tool_event_start_cpu_exec:
-    case starpu_prof_tool_event_start_gpu_exec:
-        info << ": " << device_name.c_str(); // << ":" << prof_info->device_number  << "}]";
-        info << " : UNRESOLVED ADDR " << std::hex << prof_info->fun_ptr;
-        event_name = event_name + info.str();
-        break;
-    case starpu_prof_tool_event_start_transfer:
-        info << "[{ memnode " << prof_info->memnode << " }]";
-        event_name = event_name + info.str();
-        std::cout << "Transfer start " << event_name << std::endl;
         break;
     default:
         std::cout <<  "Unknown callback " <<  prof_info->event_type << std::endl;
@@ -246,7 +231,49 @@ extern "C" {
         apex::stop(t);
         my_stack.pop();
     }
-}
+    }
+
+    void myfunction_cb( struct starpu_prof_tool_info* prof_info,
+        union starpu_prof_tool_event_info* event_info,
+        struct starpu_prof_tool_api_info* api_info ) {
+
+    std::string event_name {event_types[prof_info->event_type]};
+    std::string device_name {device_types[prof_info->driver_type]};
+    std::stringstream info;
+
+    bool enter = true;
+    switch(  prof_info->event_type ) {
+        case starpu_prof_tool_event_end_cpu_exec:
+        case starpu_prof_tool_event_end_gpu_exec:
+            break;
+        case starpu_prof_tool_event_start_cpu_exec:
+        case starpu_prof_tool_event_start_gpu_exec:
+            info << ": " << device_name.c_str(); // << ":" << prof_info->device_number  << "}]";
+            info << " : UNRESOLVED ADDR " << std::hex << prof_info->fun_ptr;
+            event_name = event_name + info.str();
+            break;
+        default:
+            std::cout <<  "Unknown callback " <<  prof_info->event_type << std::endl;
+            break;
+    }
+
+    static thread_local std::stack<std::shared_ptr<apex::task_wrapper> > my_stack;
+    if (enter) {
+        auto t = apex::new_task(event_name);
+        apex::start(t);
+        my_stack.push(t);
+    } else {
+        if (my_stack.size() == 0) {
+            std::cerr << "APEX Timer stack is empty, bug in StarPU support! "
+                << event_name
+                << std::endl;
+            return;
+        }
+        auto t = my_stack.top();
+        apex::stop(t);
+        my_stack.pop();
+    }
+    }
 
     void xferfunction_cb( struct starpu_prof_tool_info* prof_info,
         union starpu_prof_tool_event_info* event_info,
@@ -294,7 +321,7 @@ void starpu_prof_tool_library_register(starpu_prof_tool_entry_register_func reg,
        Otherwise the counters might not be ready yet */
     //reg( starpu_prof_tool_event_init_end, &init_counters, info );
     /* This one must be called at the end, but I don't know precisely when yet */
-    //reg( starpu_prof_tool_event_terminate, &finalize_counters, info );
+    reg( starpu_prof_tool_event_terminate, &finalize_counters, info );
 
     device_types[starpu_prof_tool_driver_cpu] = "CPU";
     device_types[starpu_prof_tool_driver_gpu] = "GPU";
@@ -304,8 +331,8 @@ void starpu_prof_tool_library_register(starpu_prof_tool_entry_register_func reg,
     event_types[starpu_prof_tool_event_terminate] = "StarPU";
     event_types[starpu_prof_tool_event_init_begin] = "StarPU init";
     event_types[starpu_prof_tool_event_init_end] = "StarPU init";
-    event_types[starpu_prof_tool_event_driver_init] = "StarPU driver ";
-    event_types[starpu_prof_tool_event_driver_deinit] = "StarPU driver ";
+    event_types[starpu_prof_tool_event_driver_init] = "StarPU driver";
+    event_types[starpu_prof_tool_event_driver_deinit] = "StarPU driver";
     event_types[starpu_prof_tool_event_driver_init_start] = "StarPU driver init ";
     event_types[starpu_prof_tool_event_driver_init_end] = "StarPU driver init ";
     event_types[starpu_prof_tool_event_start_cpu_exec] = "StarPU exec ";
@@ -317,18 +344,20 @@ void starpu_prof_tool_library_register(starpu_prof_tool_entry_register_func reg,
     event_types[starpu_prof_tool_event_user_start] = "StarPU user event ";
     event_types[starpu_prof_tool_event_user_end] = "StarPU user event ";
 
-    reg( starpu_prof_tool_event_init_begin, &myfunction_cb, info );
-    reg( starpu_prof_tool_event_init_end, &myfunction_cb, info );
-    reg( starpu_prof_tool_event_init, &myfunction_cb, info );
-    reg( starpu_prof_tool_event_terminate, &myfunction_cb, info );
-    reg( starpu_prof_tool_event_driver_init, &myfunction_cb, info );
-    reg( starpu_prof_tool_event_driver_deinit, &myfunction_cb, info );
-    reg( starpu_prof_tool_event_driver_init_start, &myfunction_cb, info );
-    reg( starpu_prof_tool_event_driver_init_end, &myfunction_cb, info );
+    reg( starpu_prof_tool_event_init_begin, &initfunction_cb, info );
+    reg( starpu_prof_tool_event_init_end, &initfunction_cb, info );
+    //reg( starpu_prof_tool_event_init, &initfunction_cb, info );
+    //reg( starpu_prof_tool_event_terminate, &initfunction_cb, info );
+    reg( starpu_prof_tool_event_driver_init, &initfunction_cb, info );
+    reg( starpu_prof_tool_event_driver_deinit, &initfunction_cb, info );
+    reg( starpu_prof_tool_event_driver_init_start, &initfunction_cb, info );
+    reg( starpu_prof_tool_event_driver_init_end, &initfunction_cb, info );
+
     reg( starpu_prof_tool_event_start_cpu_exec, &myfunction_cb, info );
     reg( starpu_prof_tool_event_end_cpu_exec, &myfunction_cb, info );
     reg( starpu_prof_tool_event_start_gpu_exec, &myfunction_cb, info );
     reg( starpu_prof_tool_event_end_gpu_exec, &myfunction_cb, info );
+
     reg( starpu_prof_tool_event_start_transfer, &xferfunction_cb, info );
     reg( starpu_prof_tool_event_end_transfer, &xferfunction_cb, info );
     }
