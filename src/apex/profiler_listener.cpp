@@ -1025,18 +1025,46 @@ std::unordered_set<profile*> free_profiles;
     myfile << " splines = true;\n";
     myfile << " rankdir = \"LR\";\n";
     myfile << " node [shape=box];\n";
+    /* First, write out APEX MAIN and its children - if we write
+     * it first then graphviz will make a better graph since it's
+     * the root node of the graph. */
+    std::string pthread_wrapper{"APEX Pthread Wrapper"};
+    std::string preload_main{"apex_preload_main"};
     for(auto dep = task_dependencies.begin();
         dep != task_dependencies.end(); dep++) {
         task_identifier parent = dep->first;
-        auto children = dep->second;
         string parent_name = parent.get_tree_name();
-        for(auto offspring = children->begin();
-            offspring != children->end(); offspring++) {
-            task_identifier child = offspring->first;
-            int count = offspring->second;
-            string child_name = child.get_tree_name();
-            myfile << "  \"" << parent_name << "\" -> \"" << child_name << "\"";
-            myfile << " [ label=\"  count: " << count << "\" ]; " << std::endl;
+        if (parent_name.compare("APEX MAIN") == 0 ||
+            parent_name.substr(0, pthread_wrapper.size()) == pthread_wrapper ||
+            parent_name.substr(0, preload_main.size()) == preload_main) {
+            auto children = dep->second;
+            for(auto offspring = children->begin();
+                offspring != children->end(); offspring++) {
+                task_identifier child = offspring->first;
+                int count = offspring->second;
+                string child_name = child.get_tree_name();
+                myfile << "  \"" << parent_name << "\" -> \"" << child_name << "\"";
+                myfile << " [ label=\"  count: " << count << "\" ]; " << std::endl;
+            }
+        }
+    }
+    /* Now write all the dependencies that aren't APEX MAIN */
+    for(auto dep = task_dependencies.begin();
+        dep != task_dependencies.end(); dep++) {
+        task_identifier parent = dep->first;
+        string parent_name = parent.get_tree_name();
+        if (parent_name.compare("APEX MAIN") != 0 &&
+            parent_name.substr(0, pthread_wrapper.size()) != pthread_wrapper &&
+            parent_name.substr(0, preload_main.size()) != preload_main) {
+            auto children = dep->second;
+            for(auto offspring = children->begin();
+                offspring != children->end(); offspring++) {
+                task_identifier child = offspring->first;
+                int count = offspring->second;
+                string child_name = child.get_tree_name();
+                myfile << "  \"" << parent_name << "\" -> \"" << child_name << "\"";
+                myfile << " [ label=\"  count: " << count << "\" ]; " << std::endl;
+            }
         }
     }
     // delete the dependency graph

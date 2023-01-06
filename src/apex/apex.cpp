@@ -1691,16 +1691,16 @@ void finalize()
     if (apex_options::disable() == true) { return; }
     FUNCTION_ENTER
     // FIRST FIRST, check if we have orphaned threads...
-    //printf("\n\n*********** Thread count: %lu!\n\n\n", instance->known_threads.size());
+    // See apex::register_thread and apex::exit_thread for more info.
     {
-        read_lock_type l(instance->listener_mutex);
+        std::unique_lock<std::mutex> l(instance->thread_instance_mutex);
         if (!instance->known_threads.empty()) {
-            thread_instance& ti = thread_instance::instance();
-            //printf("\n\n*********** Orphaned children!\n\n\n");
-            //printf("I am thread: %p\n", &ti);
             for (thread_instance* t : instance->known_threads) {
-                    //printf("\tThread: %p\n", t);
-                t->clear_all_profilers();
+                // make sure it hasn't been erased!
+                if (instance->erased_threads.find(t) ==
+                    instance->erased_threads.end()) {
+                    t->clear_all_profilers();
+                }
             }
         }
     }
@@ -1875,8 +1875,16 @@ void register_thread(const std::string &name,
         //printf("New thread: %p\n", &(*twp));
         thread_instance::set_top_level_timer(twp);
     }
-    {
-        write_lock_type l(instance->listener_mutex);
+    /* What is this about? Well, the pthread_create wrapper in APEX can
+     * capture pthreads that are spawned from libraries before main is
+     * executed! If that is the case, then we want to (dangerously)
+     * store the thread_instance pointer (which is a thread_local variable)
+     * and at exit, if the thread hasn't been exited we want to stop
+     * its timers (because likely it will exit when the library's destructor
+     * is called. So we store any threads that are seen by the wrapper. */
+    std::string prefix{"APEX pthread wrapper"};
+    if (name.substr(0, prefix.size()) == prefix) {
+        std::unique_lock<std::mutex> l{instance->thread_instance_mutex};
         instance->known_threads.insert(&ti);
     }
 }
@@ -1893,9 +1901,15 @@ void exit_thread(void)
     if (_exiting) return;
     _exiting = true;
     {
+        /* What's this about? see what happens when threads are registered.
+         * When threads exit, we want to remove them from the known_thread
+         * set, if we saved them. */
         thread_instance& ti = thread_instance::instance(false);
-        write_lock_type l(instance->listener_mutex);
-        instance->known_threads.erase(&ti);
+        std::unique_lock<std::mutex> l{instance->thread_instance_mutex};
+        if (instance->known_threads.find(&ti) != instance->known_threads.end()) {
+            instance->erased_threads.insert(&ti);
+            instance->known_threads.erase(&ti);
+        }
     }
     auto tmp = thread_instance::get_top_level_timer();
     // tell the timer cleanup that we are exiting
