@@ -50,11 +50,8 @@
 #include <thread>
 #include <future>
 
-#if defined(APEX_THROTTLE)
 #include "apex_cxx_shared_lock.hpp"
 apex::shared_mutex_type throttled_event_set_mutex;
-#define APEX_THROTTLE_CALLS 1000
-#endif
 
 #if APEX_HAVE_PAPI
 #include "papi.h"
@@ -159,19 +156,19 @@ std::unordered_set<profile*> free_profiles;
     std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
     for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
       profile * p = it2->second;
-#if defined(APEX_THROTTLE)
-      if (!apex_options::use_tau()) {
-        task_identifier id = it2->first;
-        unordered_set<task_identifier>::const_iterator it4;
-        {
-              read_lock_type l(throttled_event_set_mutex);
-              it4 = throttled_tasks.find(id);
-        }
-        if (it4!= throttled_tasks.end()) {
-            continue;
+      if (apex_options::throttle_timers()) {
+        if (!apex_options::use_tau()) {
+            task_identifier id = it2->first;
+            unordered_set<task_identifier>::const_iterator it4;
+            {
+                read_lock_type l(throttled_event_set_mutex);
+                it4 = throttled_tasks.find(id);
+            }
+            if (it4!= throttled_tasks.end()) {
+                continue;
+            }
         }
       }
-#endif
       if (p->get_type() == APEX_TIMER) {
         non_idle_time += p->get_accumulated();
       }
@@ -311,38 +308,41 @@ std::unordered_set<profile*> free_profiles;
                     values, p.is_resume, p.thread_id);
             }
         }
-#if defined(APEX_THROTTLE)
-        if (!apex_options::use_tau()) {
-          // Is this a lightweight task? If so, we shouldn't measure it any more,
-          // in order to reduce overhead.
-          if (theprofile->get_calls() > APEX_THROTTLE_CALLS &&
-              theprofile->get_mean() < APEX_THROTTLE_PERCALL) {
-              unordered_set<task_identifier>::const_iterator it2;
-              {
-                  read_lock_type l(throttled_event_set_mutex);
-                it2 = throttled_tasks.find(*(p.get_task_id()));
-              }
-              if (it2 == throttled_tasks.end()) {
-                  // lock the set for insert
-                  {
+        if (apex_options::throttle_timers()) {
+            if (!apex_options::use_tau()) {
+            // Is this a lightweight task? If so, we shouldn't measure it any more,
+            // in order to reduce overhead.
+            if (theprofile->get_calls() > apex_options::throttle_timers_calls() &&
+                theprofile->get_mean_useconds() < apex_options::throttle_timers_percall()) {
+                // set the profile to throttled for output reasons
+                theprofile->set_throttled();
+                // add the task_identifier to the list of throttled events
+                unordered_set<task_identifier>::const_iterator it2;
+                {
+                    read_lock_type l(throttled_event_set_mutex);
+                    it2 = throttled_tasks.find(*(p.get_task_id()));
+                }
+                if (it2 == throttled_tasks.end()) {
+                    // lock the set for insert
+                    {
                         write_lock_type l(throttled_event_set_mutex);
-                      // was it inserted when we were waiting?
-                      it2 = throttled_tasks.find(*(p.get_task_id()));
-                      // no? OK - insert it.
-                      if (it2 == throttled_tasks.end()) {
-                          throttled_tasks.insert(*(p.get_task_id()));
-                      }
-                  }
-                  if (apex_options::use_verbose()) {
-                      cout << "APEX: disabling lightweight timer "
-                           << p.get_task_id()->get_name()
-                            << endl;
-                      fflush(stdout);
-                  }
-              }
-          }
+                        // was it inserted when we were waiting?
+                        it2 = throttled_tasks.find(*(p.get_task_id()));
+                        // no? OK - insert it.
+                        if (it2 == throttled_tasks.end()) {
+                            throttled_tasks.insert(*(p.get_task_id()));
+                        }
+                    }
+                    if (apex_options::use_verbose()) {
+                        cout << "APEX: disabling lightweight timer "
+                            << p.get_task_id()->get_name()
+                                << endl;
+                        fflush(stdout);
+                    }
+                }
+            }
+            }
         }
-#endif
       } else {
         // Create a new profile for this name.
         if ((apex_options::track_cpu_memory() ||
@@ -504,22 +504,17 @@ std::unordered_set<profile*> free_profiles;
       }
       //screen_output << "\"" << shorter << "\", " ;
       screen_output << string_format("%52s", shorter.c_str()) << " : ";
-#if defined(APEX_THROTTLE)
-      if (!apex_options::use_tau()) {
-        // if this profile was throttled, don't output the measurements.
-        // they are limited and bogus, anyway.
-        unordered_set<task_identifier>::const_iterator it4;
-        {
-              read_lock_type l(throttled_event_set_mutex);
-            it4 = throttled_tasks.find(task_id);
-          }
-        if (it4!= throttled_tasks.end()) {
-            screen_output << "DISABLED (high frequency, short duration)"
-                << endl;
-            return;
+      if (apex_options::throttle_timers()) {
+        if (!apex_options::use_tau()) {
+            // if this profile was throttled, don't output the measurements.
+            // they are limited and bogus, anyway.
+            if (p->get_throttled()) {
+                screen_output << "DISABLED (high frequency, short duration)"
+                    << endl;
+                return;
+            }
         }
       }
-#endif
       if(p->get_calls() == 0 && p->get_times_reset() > 0) {
             screen_output << "Not called since reset." << endl;
             return;
@@ -1876,25 +1871,25 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
     &tt_ptr, bool is_resume) {
     //std::cout << "Starting " << tt_ptr->get_task_id()->get_name() << std::endl;
     if (!_done) {
-#if defined(APEX_THROTTLE)
-      if (!apex_options::use_tau()) {
-        // if this timer is throttled, return without doing anything
-        unordered_set<task_identifier>::const_iterator it;
-        {
-              read_lock_type l(throttled_event_set_mutex);
-            it = throttled_tasks.find(*tt_ptr->get_task_id());
-        }
-        if (it != throttled_tasks.end()) {
-            /*
-            * The throw is removed, because it is a performance penalty on some
-            * systems on_start now returns a boolean
-            */
-            // to be caught by apex::start/resume
-            //throw disabled_profiler_exception();
-            return false;
+      if (apex_options::throttle_timers()) {
+        if (!apex_options::use_tau()) {
+            // if this timer is throttled, return without doing anything
+            unordered_set<task_identifier>::const_iterator it;
+            {
+                read_lock_type l(throttled_event_set_mutex);
+                it = throttled_tasks.find(*tt_ptr->get_task_id());
+            }
+            if (it != throttled_tasks.end()) {
+                /*
+                * The throw is removed, because it is a performance penalty on some
+                * systems on_start now returns a boolean
+                */
+                // to be caught by apex::start/resume
+                //throw disabled_profiler_exception();
+                return false;
+            }
         }
       }
-#endif
       // start the profiler object, which starts our timers
       //std::shared_ptr<profiler> p = std::make_shared<profiler>(tt_ptr,
       //is_resume);

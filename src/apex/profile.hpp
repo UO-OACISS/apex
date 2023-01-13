@@ -64,6 +64,7 @@ public:
         _profile.bytes_allocated = 0;
         _profile.bytes_freed = 0;
         _profile.num_threads = 1;
+        _profile.throttled = false;
     };
     profile(double initial, int num_metrics, double * papi_metrics, bool
         yielded, double allocations, double frees, double bytes_allocated,
@@ -95,6 +96,7 @@ public:
         _profile.bytes_allocated = bytes_allocated;
         _profile.bytes_freed = bytes_freed;
         _profile.num_threads = 1;
+        _profile.throttled = false;
     };
     /* This constructor is so that we can create a dummy wrapper around profile
      * data after we've done a reduction across ranks. */
@@ -206,7 +208,8 @@ public:
     double get_bytes_freed() { return _profile.bytes_freed; }
     apex_profile_type get_type() { return _profile.type; }
     apex_profile * get_profile() { return &_profile; };
-
+    bool get_throttled() { return _profile.throttled; };
+    void set_throttled() { _profile.throttled = true; };
 };
 
 }

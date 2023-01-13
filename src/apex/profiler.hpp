@@ -37,7 +37,6 @@ class disabled_profiler_exception : public std::exception {
     }
 };
 
-#define APEX_THROTTLE_PERCALL 0.00001 // 10 microseconds.
 #define MYCLOCK std::chrono::system_clock
 
 class profiler {

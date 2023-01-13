@@ -137,9 +137,7 @@ private:
   dependency_queue_t * _construct_dependency_queue(void);
   dependency_queue_t * dependency_queue(void);
   //ConcurrentQueue<task_dependency*> dependency_queue;
-#if defined(APEX_THROTTLE)
   std::unordered_set<task_identifier> throttled_tasks;
-#endif
 #if APEX_HAVE_PAPI
   int num_papi_counters;
   std::vector<std::string> metric_names;

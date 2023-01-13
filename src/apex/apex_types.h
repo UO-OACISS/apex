@@ -205,6 +205,7 @@ typedef struct _profile
     double bytes_freed;     /*!< total bytes freed in this task */
     int times_reset;        /*!< How many times was this timer reset */
     size_t num_threads;     /*!< How many threads have seen this timer? */
+    bool throttled;         /*!< Is this timer throttled? */
 } apex_profile;
 
 /** Rather than use void pointers everywhere, be explicit about
@@ -296,6 +297,12 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_PROC_STAT_DETAILS, use_proc_stat_details, bool, false, "Periodically read detailed data from /proc/self/stat.") \
     macro (APEX_PROC_PERIOD, proc_period, int, 1000000, "/proc/* sampling period.") \
     macro (APEX_SORT_TIMERS_BY_NAME, sort_timers_by_name, bool, false, "Sort timer screen data by name.") \
+    macro (APEX_THROTTLE_TIMERS, throttle_timers, \
+        bool, false, "Enable throttling of short-lived timer events.") \
+    macro (APEX_THROTTLE_TIMERS_CALLS, throttle_timers_calls, \
+        int, 1000, "Minimum number of calls for timer throttling.") \
+    macro (APEX_THROTTLE_TIMERS_PERCALL, throttle_timers_percall, \
+        int, 10, "Minimum duration per call for timer throttling (microseconds).") \
     macro (APEX_THROTTLE_CONCURRENCY, throttle_concurrency, \
         bool, false, "Enable thread concurrency throttling.") \
     macro (APEX_THROTTLING_MAX_THREADS, throttling_max_threads, \
