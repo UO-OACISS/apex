@@ -764,6 +764,23 @@ if (APEX_WITH_STARPU)
 endif (APEX_WITH_STARPU)
 
 ###############################################################################
+# PhiProf configuration
+################################################################################
+
+if (APEX_WITH_PHIPROF)
+   find_package(PHIPROF REQUIRED)
+   if (PHIPROF_FOUND )
+      add_definitions(-DAPEX_WITH_PHIPROF)
+      message(INFO " Using PhiProf include: ${PHIPROF_INCLUDE_DIR}")
+      include_directories(${PHIPROF_INCLUDE_DIR})
+      # We need MPI
+      if (NOT MPI_CXX_FOUND)
+         message( FATAL_ERROR "MPI is required with PhiProf" )
+      endif (PHIPROF_FOUND)
+   endif (PHIPROF_FOUND)
+endif (APEX_WITH_PHIPROF)
+
+###############################################################################
 # MSR configuration
 ################################################################################
 
@@ -1111,6 +1128,7 @@ dump_cmake_variables("^OMPT")
 dump_cmake_variables("^OTF2")
 dump_cmake_variables("^PAPI")
 dump_cmake_variables("^STARPU")
+dump_cmake_variables("^PHIPROF")
 dump_cmake_variables("^HWLOC")
 MESSAGE(STATUS "Build type: " ${CMAKE_BUILD_TYPE})
 MESSAGE(STATUS "Libraries: " ${LIBS})

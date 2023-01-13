@@ -71,6 +71,10 @@ if (STARPU_FOUND)
 SET(STARPU_SOURCE apex_starpu.cpp)
 endif(STARPU_FOUND)
 
+if (APEX_WITH_PHIPROF)
+SET(PHIPROF_SOURCE apex_phiprof.cpp)
+endif (APEX_WITH_PHIPROF)
+
 if (OpenACC_CXX_FOUND AND OpenACCProfiling_FOUND)
     set(OpenACC_SOURCE apex_openacc.cpp)
 endif (OpenACC_CXX_FOUND AND OpenACCProfiling_FOUND)
@@ -110,6 +114,7 @@ ${OMPT_SOURCE}
 ${OpenACC_SOURCE}
 ${RAJA_SOURCE}
 ${STARPU_SOURCE}
+${PHIPROF_SOURCE}
 concurrency_handler.cpp
 dependency_tree.cpp
 event_listener.cpp
