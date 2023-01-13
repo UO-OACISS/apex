@@ -27,59 +27,62 @@ Usage:
 $(basename "$0") <APEX options> executable <executable options>
 
 where APEX options are zero or more of:
-    --apex:help             show this usage message
-    --apex:debug            run with APEX in debugger
-    --apex:verbose          enable verbose list of APEX environment variables
-    --apex:screen           enable screen text output (on by default)
-    --apex:quiet            disable screen text output
-    --apex:csv              enable csv text output
-    --apex:tau              enable tau profile output
-    --apex:taskgraph        enable taskgraph output
-                            (graphviz required for post-processing)
-    --apex:tasktree         enable tasktree output
-                            (graphviz required for post-processing)
-    --apex:otf2             enable OTF2 trace output
-    --apex:otf2path <value> specify location of OTF2 archive
-                            (default: ./OTF2_archive)
-    --apex:otf2name <value> specify name of OTF2 file (default: APEX)
-    --apex:gtrace           enable Google Trace Events output (deprecated)
-    --apex:pftrace          enable Perfetto Trace output
-    --apex:scatter          enable scatterplot output
-                            (python required for post-processing)
-    --apex:openacc          enable OpenACC support
-    --apex:kokkos           enable Kokkos support
-    --apex:kokkos_tuning    enable Kokkos runtime autotuning support
-    --apex:kokkos_fence     enable Kokkos fences for async kernels
-    --apex:raja             enable RAJA support
-    --apex:pthread          enable pthread wrapper support
-    --apex:gpu_memory       enable CPU memory wrapper support
-    --apex:cpu_memory       enable GPU memory wrapper support
-    --apex:untied           enable tasks to migrate cores/OS threads
-                            during execution (not compatible with trace output)
-    --apex:cuda             enable CUDA/CUPTI measurement (default: off)
-    --apex:cuda_counters    enable CUDA/CUPTI counter support (default: off)
-    --apex:cuda_driver      enable CUDA driver API callbacks (default: off)
-    --apex:cuda_details     enable per-kernel statistics where available (default: off)
-    --apex:hip              enable HIP/ROCTracer measurement (default: off)
-    --apex:hip_metrics      enable HIP/ROCProfiler metric support (default: off)
-    --apex:hip_counters     enable HIP/ROCTracer counter support (default: off)
-    --apex:hip_driver       enable HIP/ROCTracer KSA driver API callbacks (default: off)
-    --apex:hip_details      enable per-kernel statistics where available (default: off)
-    --apex:monitor_gpu      enable GPU monitoring services (CUDA NVML, ROCm SMI)
-    --apex:cpuinfo          enable sampling of /proc/cpuinfo (Linux only)
-    --apex:meminfo          enable sampling of /proc/meminfo (Linux only)
-    --apex:net              enable sampling of /proc/net/dev (Linux only)
-    --apex:status           enable sampling of /proc/self/status (Linux only)
-    --apex:io               enable sampling of /proc/self/io (Linux only)
-    --apex:period <value>   specify frequency of OS/HW sampling
-    --apex:ompt             enable OpenMP profiling (requires runtime support)
-    --apex:ompt_simple      only enable OpenMP Tools required events
-    --apex:ompt_details     enable all OpenMP Tools events
-    --apex:source           resolve function, file and line info for address lookups with binutils
-                            (default: function only)
-    --apex:preload <lib>    extra libraries to load with LD_PRELOAD _before_ APEX libraries
-                            (LD_PRELOAD value is added _after_ APEX libraries)
-    --apex:postprocess      run post-process scripts (graphviz, python) on output data after exit
+    --apex:help                   show this usage message
+    --apex:debug                  run with APEX in debugger
+    --apex:verbose                enable verbose list of APEX environment variables
+    --apex:screen                 enable screen text output (on by default)
+    --apex:quiet                  disable screen text output
+    --apex:csv                    enable csv text output
+    --apex:tau                    enable tau profile output
+    --apex:taskgraph              enable taskgraph output
+                                  (graphviz required for post-processing)
+    --apex:tasktree               enable tasktree output
+                                  (graphviz required for post-processing)
+    --apex:throttle               throttle short-lived timers to reduce overhead (default: off)
+    --apex:throttle_calls <value> minimum number of calls before throttling (default: 1000)
+    --apex:throttle_per <value>   minimum timer duration in microseconds (default: 10)
+    --apex:otf2                   enable OTF2 trace output
+    --apex:otf2path <value>       specify location of OTF2 archive
+                                  (default: ./OTF2_archive)
+    --apex:otf2name <value>       specify name of OTF2 file (default: APEX)
+    --apex:gtrace                 enable Google Trace Events output (deprecated)
+    --apex:pftrace                enable Perfetto Trace output
+    --apex:scatter                enable scatterplot output
+                                  (python required for post-processing)
+    --apex:openacc                enable OpenACC support
+    --apex:kokkos                 enable Kokkos support
+    --apex:kokkos_tuning          enable Kokkos runtime autotuning support
+    --apex:kokkos_fence           enable Kokkos fences for async kernels
+    --apex:raja                   enable RAJA support
+    --apex:pthread                enable pthread wrapper support
+    --apex:gpu_memory             enable CPU memory wrapper support
+    --apex:cpu_memory             enable GPU memory wrapper support
+    --apex:untied                 enable tasks to migrate cores/OS threads
+                                  during execution (not compatible with trace output)
+    --apex:cuda                   enable CUDA/CUPTI measurement (default: off)
+    --apex:cuda_counters          enable CUDA/CUPTI counter support (default: off)
+    --apex:cuda_driver            enable CUDA driver API callbacks (default: off)
+    --apex:cuda_details           enable per-kernel statistics where available (default: off)
+    --apex:hip                    enable HIP/ROCTracer measurement (default: off)
+    --apex:hip_metrics            enable HIP/ROCProfiler metric support (default: off)
+    --apex:hip_counters           enable HIP/ROCTracer counter support (default: off)
+    --apex:hip_driver             enable HIP/ROCTracer KSA driver API callbacks (default: off)
+    --apex:hip_details            enable per-kernel statistics where available (default: off)
+    --apex:monitor_gpu            enable GPU monitoring services (CUDA NVML, ROCm SMI)
+    --apex:cpuinfo                enable sampling of /proc/cpuinfo (Linux only)
+    --apex:meminfo                enable sampling of /proc/meminfo (Linux only)
+    --apex:net                    enable sampling of /proc/net/dev (Linux only)
+    --apex:status                 enable sampling of /proc/self/status (Linux only)
+    --apex:io                     enable sampling of /proc/self/io (Linux only)
+    --apex:period <value>         specify frequency of OS/HW sampling
+    --apex:ompt                   enable OpenMP profiling (requires runtime support)
+    --apex:ompt_simple            only enable OpenMP Tools required events
+    --apex:ompt_details           enable all OpenMP Tools events
+    --apex:source                 resolve function, file and line info for address lookups with binutils
+                                  (default: function only)
+    --apex:preload <lib>          extra libraries to load with LD_PRELOAD _before_ APEX libraries
+                                  (LD_PRELOAD value is added _after_ APEX libraries)
+    --apex:postprocess            run post-process scripts (graphviz, python) on output data after exit
     "
     echo "${message}"
     exit 1
@@ -127,6 +130,9 @@ preload=no
 verbose=no
 myrank="0"
 postprocess=no
+throttle=no
+throttle_calls=1000
+throttle_percall=10
 
 if [ $# -eq 0 ] ; then
     usage
@@ -177,6 +183,11 @@ while (( "$#" )); do
       cpu_memory=yes
       export APEX_TRACK_CPU_MEMORY=1
       export APEX_SOURCE_LOCATION=1
+      shift
+      ;;
+    --apex:throttle)
+      throttle=yes
+      export APEX_THROTTLE_TIMERS=1
       shift
       ;;
     --apex:otf2)
@@ -344,6 +355,24 @@ while (( "$#" )); do
     --apex:postprocess)
       postprocess=yes
       shift
+      ;;
+    --apex:throttle_calls)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        export APEX_THROTTLE_TIMERS_CALLS=$2
+        shift 2
+      else
+        echo "Error: Argument for $1 is missing" >&2
+        usage
+      fi
+      ;;
+    --apex:throttle_per)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        export APEX_THROTTLE_TIMERS_PERCALL=$2
+        shift 2
+      else
+        echo "Error: Argument for $1 is missing" >&2
+        usage
+      fi
       ;;
     --apex:otf2path)
       if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
