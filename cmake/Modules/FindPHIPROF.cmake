@@ -1,7 +1,7 @@
 # - Try to find PhiProf
 # Once done this will define
 #  PHIPROF_FOUND - System has PhiProf
-#  STARPU_INCLUDE_DIRS - The  include directories
+#  PHIPROF_INCLUDE_DIRS - The  include directories
 
 
 find_package(PkgConfig)
@@ -22,8 +22,7 @@ endif()
 
 message(INFO " will check ${PHIPROF_ROOT} for PHIPROF")
 set(CMAKE_PREFIX_PATH} "${CMAKE_PREFIX_PATH} ${PHIPROF_ROOT}")
-set(ENV{PKG_CONFIG_PATH} "${PHIPROF_ROOT}/libs/pkgconfig")
-pkg_check_modules(PHIPROF QUIET libstarpu)
+#set(ENV{PKG_CONFIG_PATH} "${PHIPROF_ROOT}/libs/pkgconfig")
 
 if(NOT PHIPROF_FOUND)
     find_path(PHIPROF_INCLUDE_DIR NAMES phiprof.hpp

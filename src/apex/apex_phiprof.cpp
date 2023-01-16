@@ -5,7 +5,7 @@
 #include "apex.hpp"
 #include <phiprof.hpp>
 
-#warning compiling phiprof
+//#warning compiling phiprof
 
 /* Correspondance between labels and ids */
 
