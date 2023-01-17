@@ -45,6 +45,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include "apex_cxx_shared_lock.hpp"
+#include "thread_instance.hpp"
 
 #ifdef APEX_HAVE_RCR
 #include "libenergy.h"
@@ -108,6 +109,7 @@ public:
     static bool& get_program_over();
     profiler_listener * the_profiler_listener;
     event_listener * the_trace_event_listener;
+    event_listener * the_perfetto_listener;
     event_listener * the_otf2_listener;
 #if APEX_HAVE_PROC
     proc_data_reader * pd_reader;
@@ -119,7 +121,10 @@ public:
     std::unordered_map<int, std::string> custom_event_names;
     shared_mutex_type custom_event_mutex;
     shared_mutex_type listener_mutex;
+    std::mutex thread_instance_mutex;
     std::list<apex_policy_handle*> apex_policy_handles;
+    std::set<thread_instance*> known_threads;
+    std::set<thread_instance*> erased_threads;
     static apex* instance(); // singleton instance
     static apex* instance(uint64_t comm_rank, uint64_t comm_size); // singleton instance
     static apex* __instance(); // special case - for cleanup only!
@@ -168,6 +173,7 @@ public:
     void stop_all_policy_handles(void);
     bool policy_handle_exists(apex_policy_handle* handle);
     void complete_task(std::shared_ptr<task_wrapper> task_wrapper_ptr);
+    static void stop_internal(profiler* p);
     ~apex();
 };
 

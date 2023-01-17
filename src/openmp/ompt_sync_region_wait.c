@@ -8,13 +8,12 @@
 */
 
 int main (int argc, char** argv) {
-	int   i, n, chunk;
+	int   i, n;
  	double a[100], b[100], result;
     apex_set_use_screen_output(1);
 
  	/* Some initializations */
  	n = 100;
- 	chunk = 10;
  	result = 0.0;
  	for (i=0; i < n; i++) {
    		a[i] = i * 1.0;

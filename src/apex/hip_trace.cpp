@@ -40,6 +40,9 @@ using namespace std;
 #include "address_resolution.hpp"
 #endif
 #include "async_thread_node.hpp"
+#if defined(APEX_WITH_PERFETTO)
+#include "perfetto_listener.hpp"
+#endif
 #include "trace_event_listener.hpp"
 #ifdef APEX_HAVE_OTF2
 #include "otf2_listener.hpp"
@@ -78,8 +81,10 @@ using namespace std;
 #include <sys/syscall.h>   /* For SYS_xxx definitions */
 #include <inttypes.h>
 
+#include "memory_wrapper.hpp"
+
 // Macro to check ROC-tracer calls status
-#define ROCTRACER_CALL(call)                                    \
+#define ROCTRACER_CALL_CHECK(call)                                    \
     do {                                                        \
         int err = call;                                         \
         if (err != 0) {                                         \
@@ -91,10 +96,11 @@ using namespace std;
 /* This class is necessary so we can clean up before our globals are destroyed at exit */
 class Globals{
 private:
-    Globals() : deltaTimestamp(0) {} // Disallow instantiation outside of the class.
+    Globals() : deltaTimestamp(0), bad_stacks(false) {} // Disallow instantiation outside of the class.
     // Timestamp at trace initialization time. Used to normalized other
     // timestamps
     int64_t deltaTimestamp;
+    bool bad_stacks;
     std::mutex correlation_map_mutex;
     std::unordered_map<uint32_t, std::shared_ptr<apex::task_wrapper>> timer_map;
     std::unordered_map<uint32_t, std::string> name_map;
@@ -106,6 +112,10 @@ public:
     Globals & operator=(Globals &&) = delete;
     // if our globals are destroyed before APEX can finalize, then finalize now! */
     ~Globals() {
+        if (bad_stacks) {
+            std::cerr << "Warning! APEX detected more timer stops than starts.\n";
+            std::cerr << "\tPlease confirm that you have correctly matched roctx push/pops.";
+        }
         apex::finalize();
     }
 
@@ -137,6 +147,11 @@ public:
         g.timer_map.erase(id);
         g.unlock();
         return timer;
+    }
+
+    static void report_bad_stacks() {
+        Globals& g = instance();
+        g.bad_stacks = true;
     }
 
     static void insert_name(uint32_t id, std::string& name) {
@@ -246,6 +261,9 @@ bool run_once() {
  * and stopped by another).
  */
 void handle_roctx(uint32_t domain, uint32_t cid, const void* callback_data, void* arg) {
+    // if APEX is disabled, do nothing.
+    // if APEX is suspended, do nothing.
+    if (apex::apex_options::disable() || apex::apex_options::suspend()) { return; }
     // prevent re-entry
     handler_lock hl;
     if (!hl.mine) { return; }
@@ -267,8 +285,10 @@ void handle_roctx(uint32_t domain, uint32_t cid, const void* callback_data, void
             }
         case ROCTX_API_ID_roctxRangePop:
             {
-                apex::stop(timer_stack.top());
-                timer_stack.pop();
+                if (!timer_stack.empty()) {
+                    apex::stop(timer_stack.top());
+                    timer_stack.pop();
+                } else { Globals::report_bad_stacks(); }
                 break;
             }
         case ROCTX_API_ID_roctxRangeStartA:
@@ -303,6 +323,9 @@ void handle_roctx(uint32_t domain, uint32_t cid, const void* callback_data, void
 #if defined(APEX_HAVE_ROCTRACER_KFD)
 /* This is the "low level" API - lots of events if interested. */
 void handle_roc_kfd(uint32_t domain, uint32_t cid, const void* callback_data, void* arg) {
+    // if APEX is disabled, do nothing.
+    // if APEX is suspended, do nothing.
+    if (apex::apex_options::disable() || apex::apex_options::suspend()) { return; }
     // ignore timestamp requests
     if (cid == KFD_API_ID_hsaKmtGetClockCounters) return;
     // prevent re-entry
@@ -325,7 +348,7 @@ void handle_roc_kfd(uint32_t domain, uint32_t cid, const void* callback_data, vo
             auto timer = timer_stack.top();
             apex::stop(timer);
             timer_stack.pop();
-        }
+        } else { Globals::report_bad_stacks(); }
     }
     return;
 }
@@ -334,6 +357,9 @@ void handle_roc_kfd(uint32_t domain, uint32_t cid, const void* callback_data, vo
 /* This is the "OpenMP" API - lots of events if interested. */
 #if defined(APEX_WITH_HSA)
 void handle_roc_hsa(uint32_t domain, uint32_t cid, const void* callback_data, void* arg) {
+    // if APEX is disabled, do nothing.
+    // if APEX is suspended, do nothing.
+    if (apex::apex_options::disable() || apex::apex_options::suspend()) { return; }
     // ignore timestamp requests
 #if defined(APEX_HAVE_ROCTRACER_KFD)
     if (cid == KFD_API_ID_hsaKmtGetClockCounters) return;
@@ -358,7 +384,7 @@ void handle_roc_hsa(uint32_t domain, uint32_t cid, const void* callback_data, vo
             auto timer = timer_stack.top();
             apex::stop(timer);
             timer_stack.pop();
-        }
+        } else { Globals::report_bad_stacks(); }
     }
     return;
 }
@@ -375,6 +401,7 @@ void store_sync_counter_data(const char * name, const std::string& context,
         std::stringstream ss;
         ss << "GPU: " << name;
         if (context.size() > 0 &&
+            !apex::apex_options::use_perfetto() &&
             !apex::apex_options::use_trace_event() &&
             !apex::apex_options::use_otf2()) {
             ss << ": " << context;
@@ -513,6 +540,7 @@ bool getBytesIfMalloc(uint32_t cid, const hip_api_data_t* data,
             hostTotalAllocated.fetch_sub(bytes, std::memory_order_relaxed);
             value = (double)(hostTotalAllocated);
             store_sync_counter_data(nullptr, "Total Bytes Occupied on Host", value, false);
+            apex::recordFree(ptr);
         } else {
             mapMutex.lock();
             if (memoryMap.count(ptr) > 0) {
@@ -528,6 +556,7 @@ bool getBytesIfMalloc(uint32_t cid, const hip_api_data_t* data,
             totalAllocated.fetch_sub(value, std::memory_order_relaxed);
             value = (double)(totalAllocated);
             store_sync_counter_data(nullptr, "Total Bytes Occupied on Device", value, false);
+            apex::recordFree(ptr, false);
         }
     // If we are in the exit of a function, and we are allocating memory,
     // then update and record the bytes allocated
@@ -543,6 +572,7 @@ bool getBytesIfMalloc(uint32_t cid, const hip_api_data_t* data,
             hostTotalAllocated.fetch_add(bytes, std::memory_order_relaxed);
             value = (double)(hostTotalAllocated);
             store_sync_counter_data(nullptr, "Total Bytes Occupied on Host", value, false);
+            apex::recordAlloc(bytes, ptr, apex::GPU_HOST_MALLOC);
             return true;
         } else {
             if (managed) {
@@ -556,6 +586,7 @@ bool getBytesIfMalloc(uint32_t cid, const hip_api_data_t* data,
             totalAllocated.fetch_add(bytes, std::memory_order_relaxed);
             value = (double)(totalAllocated);
             store_sync_counter_data(nullptr, "Total Bytes Occupied on Device", value, false);
+            apex::recordAlloc(bytes, ptr, apex::GPU_DEVICE_MALLOC, false);
         }
     }
     return true;
@@ -628,6 +659,9 @@ std::string lookup_kernel_name(const hipFunction_t f) {
  * the entry or exit event, and act accordingly.
  */
 void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* arg) {
+    // if APEX is disabled, do nothing.
+    // if APEX is suspended, do nothing.
+    if (apex::apex_options::disable() || apex::apex_options::suspend()) { return; }
     // prevent re-entry
     handler_lock hl;
     if (!hl.mine) { return; }
@@ -801,7 +835,7 @@ void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* 
                 Globals::insert_data(data->correlation_id, as_data);
             }
             timer_stack.pop();
-        }
+        } else { Globals::report_bad_stacks(); }
 
         switch (cid) {
             case HIP_API_ID_hipMallocPitch:
@@ -856,6 +890,15 @@ void store_profiler_data(const std::string &name, uint32_t correlationId,
     // fake out the profiler_listener
     instance->the_profiler_listener->push_profiler_public(prof);
     // Handle tracing, if necessary
+#if defined(APEX_WITH_PERFETTO)
+    if (apex::apex_options::use_perfetto()) {
+        apex::perfetto_listener * tel =
+            (apex::perfetto_listener*)instance->the_perfetto_listener;
+        as_data.cat = category;
+        as_data.reverse_flow = reverse_flow;
+        tel->on_async_event(node, prof, as_data);
+    }
+#endif
     if (apex::apex_options::use_trace_event()) {
         apex::trace_event_listener * tel =
             (apex::trace_event_listener*)instance->the_trace_event_listener;
@@ -897,6 +940,13 @@ void store_counter_data(const char * name, const std::string& ctx,
     // fake out the profiler_listener
     instance->the_profiler_listener->push_profiler_public(prof);
     // Handle tracing, if necessary
+#if defined(APEX_WITH_PERFETTO)
+    if (apex::apex_options::use_perfetto()) {
+        apex::perfetto_listener * tel =
+            (apex::perfetto_listener*)instance->the_perfetto_listener;
+        tel->on_async_metric(node, prof);
+    }
+#endif
     if (apex::apex_options::use_trace_event()) {
         apex::trace_event_listener * tel =
             (apex::trace_event_listener*)instance->the_trace_event_listener;
@@ -927,6 +977,15 @@ void process_hip_record(const roctracer_record_t* record) {
             break;
         }
         case HIP_OP_ID_COPY: {
+            /* Handle the "Unknown command type" object. This happens with a burst of activity
+               when using managed memory. Ignore the event for now. */
+            if (record->domain == 2 && record->kind == 1) {
+                break;
+            }
+            /*
+            if (strcmp(name, "Unknown command type") == 0) {
+                std::cerr << name << ":" << record->domain << ", COPY, " << record->kind << std::endl;
+            } */
             apex::hip_thread_node node(record->device_id, record->queue_id, APEX_ASYNC_MEMORY);
             bool reverse_flow = (std::string(name).find("DeviceToHost") != std::string::npos);
    	        store_profiler_data(name, record->correlation_id, record->begin_ns,
@@ -954,6 +1013,10 @@ void process_hip_record(const roctracer_record_t* record) {
 // Activity tracing callback
 void activity_callback(const char* begin, const char* end, void* arg) {
     APEX_UNUSED(arg);
+    // if APEX is disabled, do nothing.
+    // if APEX is suspended, do nothing.
+    if (apex::apex_options::disable() || apex::apex_options::suspend()) { return; }
+
     const roctracer_record_t* record = (const roctracer_record_t*)(begin);
     const roctracer_record_t* end_record = (const roctracer_record_t*)(end);
 
@@ -966,7 +1029,7 @@ void activity_callback(const char* begin, const char* end, void* arg) {
             abort();
         }
 
-        ROCTRACER_CALL(roctracer_next_record(record, &record));
+        ROCTRACER_CALL_CHECK(roctracer_next_record(record, &record));
     }
 }
 
@@ -988,37 +1051,37 @@ void init_hip_tracing() {
     memset(&properties, 0, sizeof(roctracer_properties_t));
     properties.buffer_size = 0x1000;
     properties.buffer_callback_fun = activity_callback;
-    ROCTRACER_CALL(roctracer_open_pool(&properties));
+    ROCTRACER_CALL_CHECK(roctracer_open_pool(&properties));
 
     // Enable HIP API callbacks
-    ROCTRACER_CALL(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_HIP_API, handle_hip, NULL));
+    ROCTRACER_CALL_CHECK(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_HIP_API, handle_hip, NULL));
     if (apex_options::use_hip_kfd_api()) {
 #if defined(APEX_HAVE_ROCTRACER_KFD)
         // Enable KFD API tracing
-        ROCTRACER_CALL(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_KFD_API, handle_roc_kfd, NULL));
+        ROCTRACER_CALL_CHECK(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_KFD_API, handle_roc_kfd, NULL));
 #endif
 #if defined(APEX_WITH_HSA)
         // Enable HIP HSA (OpenMP?) callbacks
-        ROCTRACER_CALL(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_HSA_API, handle_roc_hsa, NULL));
+        ROCTRACER_CALL_CHECK(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_HSA_API, handle_roc_hsa, NULL));
 #endif
     }
     // Enable rocTX
-    ROCTRACER_CALL(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_ROCTX, handle_roctx, NULL));
+    ROCTRACER_CALL_CHECK(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_ROCTX, handle_roctx, NULL));
 
     // Enable HIP activity tracing
-    //ROCTRACER_CALL(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_HIP_API));
+    //ROCTRACER_CALL_CHECK(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_HIP_API));
     // FYI, ACTIVITY_DOMAIN_HIP_OPS = ACTIVITY_DOMAIN_HCC_OPS = ACTIVITY_DOMAIN_HIP_VDI...
-    ROCTRACER_CALL(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_HIP_OPS));
+    ROCTRACER_CALL_CHECK(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_HIP_OPS));
     if (apex_options::use_hip_kfd_api()) {
 #if defined(APEX_WITH_HSA) // disabled for now to simplify compiling
-        ROCTRACER_CALL(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_HSA_OPS));
+        ROCTRACER_CALL_CHECK(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_HSA_OPS));
 #endif
 #if defined(APEX_HAVE_ROCTRACER_KFD)
-        ROCTRACER_CALL(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_KFD_API));
+        ROCTRACER_CALL_CHECK(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_KFD_API));
 #endif
     }
     // Enable PC sampling
-    //ROCTRACER_CALL(roctracer_enable_op_activity(ACTIVITY_DOMAIN_HSA_OPS, HSA_OP_ID_RESERVED1));
+    //ROCTRACER_CALL_CHECK(roctracer_enable_op_activity(ACTIVITY_DOMAIN_HSA_OPS, HSA_OP_ID_RESERVED1));
     roctracer_start();
     //std::cout << "RocTracer started" << std::endl;
 }
@@ -1026,38 +1089,38 @@ void init_hip_tracing() {
     // Stop tracing routine
     void flush_hip_trace() {
         if (!apex_options::use_hip()) { return; }
-        ROCTRACER_CALL(roctracer_flush_activity());
+        ROCTRACER_CALL_CHECK(roctracer_flush_activity());
     }
 
     void stop_hip_trace() {
         if (!apex_options::use_hip()) { return; }
         roctracer_stop();
         /* CAllbacks */
-        ROCTRACER_CALL(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_HIP_API));
+        ROCTRACER_CALL_CHECK(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_HIP_API));
         if (apex_options::use_hip_kfd_api()) {
 #if defined(APEX_WITH_HSA)
-            ROCTRACER_CALL(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_HSA_API));
+            ROCTRACER_CALL_CHECK(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_HSA_API));
 #endif
 #if defined(APEX_HAVE_ROCTRACER_KFD)
-            ROCTRACER_CALL(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_KFD_API));
+            ROCTRACER_CALL_CHECK(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_KFD_API));
 #endif
         }
-        ROCTRACER_CALL(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_ROCTX));
+        ROCTRACER_CALL_CHECK(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_ROCTX));
 
         /* Activity */
-        //ROCTRACER_CALL(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_HIP_API));
+        //ROCTRACER_CALL_CHECK(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_HIP_API));
         // FYI, ACTIVITY_DOMAIN_HIP_OPS = ACTIVITY_DOMAIN_HCC_OPS = ACTIVITY_DOMAIN_HIP_VDI...
-        ROCTRACER_CALL(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_HIP_OPS));
-        ROCTRACER_CALL(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_EXT_API));
+        ROCTRACER_CALL_CHECK(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_HIP_OPS));
+        ROCTRACER_CALL_CHECK(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_EXT_API));
         if (apex_options::use_hip_kfd_api()) {
 #if defined(APEX_WITH_HSA)
-            ROCTRACER_CALL(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_HSA_API));
+            ROCTRACER_CALL_CHECK(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_HSA_API));
 #endif
 #if defined(APEX_HAVE_ROCTRACER_KFD)
-            ROCTRACER_CALL(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_KFD_API));
+            ROCTRACER_CALL_CHECK(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_KFD_API));
 #endif
         }
-        ROCTRACER_CALL(roctracer_flush_activity());
+        ROCTRACER_CALL_CHECK(roctracer_flush_activity());
 #if defined(APEX_WITH_HSA)
         hsa_shut_down();
 #endif

@@ -7,7 +7,7 @@
 
 int func(int i) {
     char name[128];
-    sprintf(name, "func %d", i);
+    snprintf(name, 128, "func %d", i);
     apex_profiler_handle profiler = apex_start(APEX_NAME_STRING, name);
     int j = i * i;
     apex_stop(profiler);

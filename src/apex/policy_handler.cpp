@@ -72,7 +72,7 @@ namespace apex {
 #ifdef APEX_HAVE_HPX
     policy_handler::policy_handler (uint64_t period_microseconds) :
         handler(period_microseconds),
-        hpx_timer(hpx::util::bind(&policy_handler::_handler, this), _period,
+        hpx_timer(hpx::bind(&policy_handler::_handler, this), _period,
         "apex_internal_policy_handler")
     {
         _init();

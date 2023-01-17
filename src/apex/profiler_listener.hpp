@@ -63,6 +63,9 @@ using moodycamel::ConcurrentQueue;
 #endif // __APPLE__
 #endif // _MSC_VER
 #include <fcntl.h>
+#include <iostream>
+#include <iomanip>
+#include <ctime>
 
 #define INITIAL_NUM_THREADS 2
 
@@ -99,7 +102,7 @@ private:
                        std::stringstream &screen_output,
                        std::stringstream &csv_output,
                        double &total_accumulated,
-                       double &total_main, bool timer, bool include_stops,
+                       double &total_main, double &wall_main, bool include_stops,
                        bool include_papi);
   void finalize_profiles(dump_event_data &data, std::map<std::string, apex_profile*>& profiles);
   void write_taskgraph(void);
@@ -134,9 +137,7 @@ private:
   dependency_queue_t * _construct_dependency_queue(void);
   dependency_queue_t * dependency_queue(void);
   //ConcurrentQueue<task_dependency*> dependency_queue;
-#if defined(APEX_THROTTLE)
   std::unordered_set<task_identifier> throttled_tasks;
-#endif
 #if APEX_HAVE_PAPI
   int num_papi_counters;
   std::vector<std::string> metric_names;
@@ -150,6 +151,7 @@ private:
   std::ofstream _counter_scatterplot_sample_file;
   std::stringstream task_scatterplot_samples;
   std::stringstream counter_scatterplot_samples;
+  std::string timestamp_started;
 public:
   void set_node_id(int node_id, int node_count) {
     APEX_UNUSED(node_count);
@@ -168,6 +170,12 @@ public:
       if (apex_options::task_scatterplot()) {
         profiler::get_global_start();
       }
+      // get a timestamp for the start of execution
+      auto t = std::time(nullptr);
+      auto tm = *std::localtime(&t);
+      std::ostringstream oss;
+      oss << std::put_time(&tm, "%d/%m/%Y %H:%M:%S");
+      timestamp_started = oss.str();
   };
   ~profiler_listener (void);
   void async_thread_setup(void);

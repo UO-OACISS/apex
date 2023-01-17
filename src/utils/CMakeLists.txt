@@ -7,6 +7,7 @@ link_directories (${APEX_BINARY_DIR}/src/apex)
 
 set(util_programs
     apex_make_default_config
+    apex_environment_help
    )
 
 foreach(util_program ${util_programs})

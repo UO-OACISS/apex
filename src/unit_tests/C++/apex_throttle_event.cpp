@@ -10,7 +10,7 @@
 
 uint64_t func(uint64_t i) {
     char name[128];
-    sprintf(name, "func %lu", i);
+    snprintf(name, 128, "func %lu", i);
     apex::profiler* p = apex::start(std::string(name));
     uint64_t j = i * i;
     apex::stop(p);

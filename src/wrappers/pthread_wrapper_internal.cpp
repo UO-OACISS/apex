@@ -19,6 +19,23 @@
 #include <sys/resource.h>
 #include <memory>
 #include <atomic>
+#include "apex_error_handling.hpp"
+
+#include "global_constructor_destructor.h"
+#if defined(HAS_CONSTRUCTORS)
+DEFINE_CONSTRUCTOR(apex_init_static_void)
+DEFINE_DESTRUCTOR(apex_finalize_static_void)
+
+void apex_init_static_void() {
+    //printf("Here! %s\n",__func__);
+    apex::init("APEX Pthread Wrapper",0,1);
+}
+void apex_finalize_static_void() {
+    //printf("There! %s\n",__func__);
+    apex::finalize();
+}
+#endif // HAS_CONSTRUCTORS
+
 
 std::atomic<int64_t> task_id(-1);
 
@@ -31,7 +48,7 @@ struct apex_system_wrapper_t
 {
   bool initialized;
   apex_system_wrapper_t() : initialized(true) {
-    apex::init("APEX Pthread Wrapper",0,1);
+    //apex::init("APEX Pthread Wrapper",0,1);
     /*
      * Here we are limiting the stack size to whatever the user requests.
      * Do it after we initialized APEX, because APEX spawns two other threads
@@ -212,10 +229,13 @@ int apex_pthread_create_wrapper(pthread_create_p pthread_create_call,
     pthread_t * threadp, const pthread_attr_t * attr,
     start_routine_p start_routine, void * arg)
 {
+  //printf("Here!\n");
+  //apex_print_backtrace();
   // disable the memory wrapper
   apex::in_apex prevent_problems;
   std::shared_ptr<apex::task_wrapper> parent_task = apex::new_task("pthread_create");
-  apex::start(parent_task);
+  // can be null after finalize has started.
+  if (parent_task != nullptr) apex::start(parent_task);
   // JUST ONCE, create the key
   (void) pthread_once(&key_once, make_key);
   // get the thread-local variable
@@ -247,7 +267,8 @@ int apex_pthread_create_wrapper(pthread_create_p pthread_create_call,
     */
     wrapper->_wrapped = false;
   }
-  apex::stop(parent_task);
+  // can be null after finalize has started.
+  if (parent_task != nullptr) apex::stop(parent_task);
   return retval;
 }
 
@@ -276,6 +297,28 @@ int apex_pthread_join_wrapper(pthread_join_p pthread_join_call,
     apex::stop(p);
     // restart our timer around the parent task
     wrapper->restart();
+    wrapper->_wrapped = false;
+  }
+  return ret;
+}
+
+extern "C"
+int apex_pthread_detach_wrapper(pthread_detach_p pthread_detach_call,
+    pthread_t thread)
+{
+  // disable the memory wrapper
+  apex::in_apex prevent_problems;
+  apex_wrapper * wrapper = get_tl_wrapper();
+
+  int ret;
+  if(wrapper->_wrapped) {
+    // Another wrapper has already intercepted the call so just pass through
+    ret = pthread_detach_call(thread);
+  } else {
+    wrapper->_wrapped = true;
+    apex::profiler * p = apex::start("pthread_detach");
+    ret = pthread_detach_call(thread);
+    apex::stop(p);
     wrapper->_wrapped = false;
   }
   return ret;
@@ -345,6 +388,12 @@ extern "C"
 int apex_pthread_join(pthread_t thread, void ** retval)
 {
   return apex_pthread_join_wrapper(pthread_join, thread, retval);
+}
+
+extern "C"
+int apex_pthread_detach(pthread_t thread)
+{
+  return apex_pthread_detach_wrapper(pthread_detach, thread);
 }
 
 #if 0

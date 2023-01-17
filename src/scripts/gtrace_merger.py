@@ -44,7 +44,7 @@ for counter, infile in enumerate(sorted(glob.glob(myglob))):
     if args.strip:
         events = []
         for line in data['traceEvents']:
-            if line['ph'] != 'C':
+            if line['ph'] != 'C' and line['ph'] != 's' and line['ph'] != 'f':
                 events.append(line)
         data['traceEvents'] = events
     if (counter == 0):

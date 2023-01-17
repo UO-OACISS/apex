@@ -61,6 +61,7 @@ public:
     void* read_proc(void);
     proc_data_reader(void) : done(false) {
         worker_thread = std::thread(&proc_data_reader::read_proc, this);
+        worker_thread.detach();
     }
 
     void stop_reading(void) {
@@ -95,6 +96,8 @@ public:
   long power_cap;
   long startup;
   long version;
+  std::unordered_map<std::string,std::string> cray_power_units;
+  std::unordered_map<std::string,uint64_t> cray_power_values;
   std::unordered_map<std::string,std::string> cpuinfo;
   std::unordered_map<std::string,std::string> meminfo;
   std::unordered_map<std::string,double> netdev;
@@ -148,6 +151,10 @@ bool parse_sensor_data();
     macro(version,"/sys/cray/pm_counters/version") \
 
 #if defined(APEX_HAVE_CRAY_POWER)
+void read_cray_power(
+  std::unordered_map<std::string,std::string>& cray_power_units,
+  std::unordered_map<std::string,uint64_t>& cray_power_values);
+
 #define apex_macro(name,filename) \
 inline int read_##name (void) { \
   int tmpint; \
@@ -181,7 +188,7 @@ FOREACH_APEX_XC30_VALUE(apex_macro)
  *
  * This was a quick hack to get basic support for KNL.
  */
-inline long long read_package0 (void) {
+inline long long read_package0 (bool convert = true) {
   long long tmplong;
   FILE *fff;
   fff=fopen("/sys/class/powercap/intel-rapl/intel-rapl:0/energy_uj","r");
@@ -192,7 +199,11 @@ inline long long read_package0 (void) {
     fscanf(fff,"%lld",&tmplong);
     fclose(fff);
   }
-  return tmplong/1000000;
+  if (convert) {
+    return tmplong * 1e-6;
+  } else {
+    return tmplong;
+  }
 }
 
 inline long long  read_dram (void) {
@@ -209,7 +220,7 @@ inline long long  read_dram (void) {
     fscanf(fff,"%lld",&tmplong);
     fclose(fff);
   }
-  return tmplong/1000000;
+  return tmplong * 1e-6;
 }
 
 #endif

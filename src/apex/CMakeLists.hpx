@@ -18,7 +18,7 @@ endif()
 hpx_info("apex" "Will build APEX")
 
 set (APEX_VERSION_MAJOR 2)
-set (APEX_VERSION_MINOR 5)
+set (APEX_VERSION_MINOR 6)
 set (APEX_VERSION_PATCH 1)
 
 if (NOT APEX_ROOT)
@@ -155,8 +155,19 @@ IF("$ENV{CRAY_CPU_TARGET}" STREQUAL "mic-knl")
 endif()
 
 if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-  hpx_info("apex" "APEX is being built with a debug configuration")
+  hpx_info("apex" "APEX is being built with a Debug configuration")
   target_compile_definitions(apex_flags INTERFACE DEBUG)
+  target_compile_definitions(apex_flags INTERFACE -DCMAKE_BUILD_TYPE=3)
+endif()
+
+IF("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo")
+  hpx_info("apex" "APEX is being built with a RelWithDebInfo configuration")
+  target_compile_definitions(apex_flags INTERFACE -DCMAKE_BUILD_TYPE=2)
+endif()
+
+IF("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
+  hpx_info("apex" "APEX is being built with a Release configuration")
+  target_compile_definitions(apex_flags INTERFACE -DCMAKE_BUILD_TYPE=1)
 endif()
 
 
@@ -230,6 +241,7 @@ if((DEFINED BFD_ROOT) OR (APEX_WITH_BFD) OR (APEX_BUILD_BFD))
 #    include(APEX_SetupZlib)
 #	endif(NOT APEX_INTEL_MIC)
 else()
+    set(bfd_sources address_resolution.cpp)
 	add_custom_target(project_binutils)
 endif()
 
@@ -243,6 +255,13 @@ if(APEX_WITH_OTF2)
   set(otf2_sources otf2_listener.cpp otf2_listener_hpx.cpp otf2_listener_nompi.cpp)
 endif()
 
+if(APEX_WITH_PERFETTO)
+  set(perfetto_headers perfetto_listener.hpp perfetto_static.hpp)
+  set(perfetto_sources
+    perfetto_listener.cpp perfetto_static.cpp ../perfetto_sdk/perfetto.cc)
+  target_compile_definitions(apex_flags INTERFACE APEX_WITH_PERFETTO)
+endif()
+
 if(HPX_WITH_HPXMP)
   set(ompt_sources apex_ompt.cpp)
   include(APEX_SetupHPXMP)
@@ -253,6 +272,11 @@ endif(HPX_WITH_HPXMP)
 
 # Setup MPI
 include(APEX_SetupMPI)
+
+#if(HPX_WITH_PARCELPORT_MPI)
+  #set(apex_mpi_sources apex_mpi.cpp)
+#endif(HPX_WITH_PARCELPORT_MPI)
+
 
 # RPATH related stuff
 # APEX is always a shared object library with HPX now.
@@ -286,11 +310,13 @@ set(apex_headers
     exhaustive.hpp
     gzstream.hpp
     handler.hpp
+    memory_wrapper.hpp
     policy_handler.hpp
     profile.hpp
     profiler.hpp
     profile_reducer.hpp
     profiler_listener.hpp
+    random.hpp
     semaphore.hpp
     simulated_annealing.hpp
     thread_instance.hpp
@@ -298,6 +324,7 @@ set(apex_headers
     task_wrapper.hpp
     tau_listener.hpp
     utils.hpp
+    ${perfetto_headers}
     ${proc_headers}
     ${otf2_headers}
     )
@@ -305,9 +332,10 @@ set(apex_headers
 
 set(apex_sources
     apex.cpp
+    apex_error_handling.cpp
     apex_kokkos.cpp
     apex_kokkos_tuning.cpp
-    apex_mpi.cpp
+    ${apex_mpi_sources}
     apex_options.cpp
     apex_policies.cpp
     concurrency_handler.cpp
@@ -321,6 +349,7 @@ set(apex_sources
     policy_handler.cpp
     profile_reducer.cpp
     profiler_listener.cpp
+    random.cpp
     simulated_annealing.cpp
     task_identifier.cpp
     tau_listener.cpp
@@ -328,6 +357,7 @@ set(apex_sources
     thread_instance.cpp
     trace_event_listener.cpp
     utils.cpp
+    ${perfetto_sources}
     ${proc_sources}
     ${bfd_sources}
     ${sensor_sources}
@@ -339,6 +369,22 @@ set(apex_sources
     )
 
 include(GNUInstallDirs)
+
+if (WIN32 AND APEX_WITH_PERFETTO)
+# Enable standards-compliant mode when using the Visual Studio compiler.
+    if (MSVC)
+        SET_SOURCE_FILES_PROPERTIES( perfetto.cc PROPERTIES COMPILE_FLAGS
+            "/permissive- /bigobj -DWIN32_LEAN_AND_MEAN -DNOMINMAX" )
+    else (MSVC)
+        SET_SOURCE_FILES_PROPERTIES( perfetto.cc PROPERTIES COMPILE_FLAGS
+            "/bigobj -DWIN32_LEAN_AND_MEAN -DNOMINMAX" )
+    endif (MSVC)
+endif (WIN32)
+
+# Force C++11 with NVHPC, it crashes otherwise
+if (CMAKE_CXX_COMPILER_ID MATCHES NVHPC)
+    set(CMAKE_CXX_STANDARD 11)
+endif()
 
 # APEX has one dependency in HPX, just the main library.
 # Unless HPXMP is also used.
@@ -358,6 +404,7 @@ target_include_directories(apex PUBLIC
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
     $<BUILD_INTERFACE:${APEX_BINARY_DIR}>
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../perfetto_sdk>
     $<INSTALL_INTERFACE:include>)
 
 # To have the compile options and definitions
@@ -390,6 +437,15 @@ endif()
 configure_file (
   "${APEX_SOURCE_DIR}/apex_config.h.in"
   "${APEX_BINARY_DIR}/apex_config.h")
+
+# Needed to configure apex_exec
+set(APEX_LIBRARY_NAME libhpx_apex)
+CONFIGURE_FILE(${APEX_SOURCE_DIR}/../scripts/apex_exec
+	${APEX_BINARY_DIR}/apex_exec @ONLY)
+INSTALL(FILES ${APEX_BINARY_DIR}/apex_exec DESTINATION bin
+    PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ
+    GROUP_EXECUTE GROUP_READ
+    WORLD_EXECUTE WORLD_READ)
 
 install(FILES ${apex_headers} DESTINATION include)
 install(FILES "${APEX_BINARY_DIR}/apex_config.h" DESTINATION include)

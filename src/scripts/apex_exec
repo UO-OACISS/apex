@@ -15,6 +15,11 @@ fi
 SCRIPTPATH="$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 #echo $SCRIPTPATH
 BASEDIR="$(dirname $SCRIPTPATH)"
+BASEDIR=@CMAKE_INSTALL_PREFIX@
+LIBDIR=lib
+if [ ! -d ${BASEDIR}/${LIBDIR} ] ; then
+    LIBDIR=lib64
+fi
 
 usage() {
     message="
@@ -22,57 +27,63 @@ Usage:
 $(basename "$0") <APEX options> executable <executable options>
 
 where APEX options are zero or more of:
-    --apex:help             show this usage message
-    --apex:debug            run with APEX in debugger
-    --apex:verbose          enable verbose list of APEX environment variables
-    --apex:screen           enable screen text output (on by default)
-    --apex:quiet            disable screen text output
-    --apex:csv              enable csv text output
-    --apex:tau              enable tau profile output
-    --apex:taskgraph        enable taskgraph output
-                            (graphviz required for post-processing)
-    --apex:tasktree         enable tasktree output
-                            (graphviz required for post-processing)
-    --apex:otf2             enable OTF2 trace output
-    --apex:otf2path <value> specify location of OTF2 archive
-                            (default: ./OTF2_archive)
-    --apex:otf2name <value> specify name of OTF2 file (default: APEX)
-    --apex:gtrace           enable Google Trace Events output
-    --apex:scatter          enable scatterplot output
-                            (python required for post-processing)
-    --apex:openacc          enable OpenACC support
-    --apex:kokkos           enable Kokkos support
-    --apex:kokkos_tuning    enable Kokkos runtime autotuning support
-    --apex:kokkos_fence     enable Kokkos fences for async kernels
-    --apex:raja             enable RAJA support
-    --apex:pthread          enable pthread wrapper support
-    --apex:memory           enable memory wrapper support
-    --apex:untied           enable tasks to migrate cores/OS threads
-                            during execution (not compatible with trace output)
-    --apex:cuda             enable CUDA/CUPTI measurement (default: off)
-    --apex:cuda_counters    enable CUDA/CUPTI counter support (default: off)
-    --apex:cuda_driver      enable CUDA driver API callbacks (default: off)
-    --apex:cuda_details     enable per-kernel statistics where available (default: off)
-    --apex:hip              enable HIP/ROCTracer measurement (default: off)
-    --apex:hip_metrics      enable HIP/ROCProfiler metric support (default: off)
-    --apex:hip_counters     enable HIP/ROCTracer counter support (default: off)
-    --apex:hip_driver       enable HIP/ROCTracer KSA driver API callbacks (default: off)
-    --apex:hip_details      enable per-kernel statistics where available (default: off)
-    --apex:monitor_gpu      enable GPU monitoring services (CUDA NVML, ROCm SMI)
-    --apex:level0           enable OneAPI Level0 measurement (default: off)
-    --apex:cpuinfo          enable sampling of /proc/cpuinfo (Linux only)
-    --apex:meminfo          enable sampling of /proc/meminfo (Linux only)
-    --apex:net              enable sampling of /proc/net/dev (Linux only)
-    --apex:status           enable sampling of /proc/self/status (Linux only)
-    --apex:io               enable sampling of /proc/self/io (Linux only)
-    --apex:period <value>   specify frequency of OS/HW sampling
-    --apex:ompt             enable OpenMP profiling (requires runtime support)
-    --apex:ompt_simple      only enable OpenMP Tools required events
-    --apex:ompt_details     enable all OpenMP Tools events
-    --apex:source           resolve function, file and line info for address lookups with binutils
-                            (default: function only)
-    --apex:preload <lib>    extra libraries to load with LD_PRELOAD _before_ APEX libraries
-                            (LD_PRELOAD value is added _after_ APEX libraries)
+    --apex:help                   show this usage message
+    --apex:debug                  run with APEX in debugger
+    --apex:verbose                enable verbose list of APEX environment variables
+    --apex:screen                 enable screen text output (on by default)
+    --apex:quiet                  disable screen text output
+    --apex:csv                    enable csv text output
+    --apex:tau                    enable tau profile output
+    --apex:taskgraph              enable taskgraph output
+                                  (graphviz required for post-processing)
+    --apex:tasktree               enable tasktree output
+                                  (graphviz required for post-processing)
+    --apex:throttle               throttle short-lived timers to reduce overhead (default: off)
+    --apex:throttle_calls <value> minimum number of calls before throttling (default: 1000)
+    --apex:throttle_per <value>   minimum timer duration in microseconds (default: 10)
+    --apex:otf2                   enable OTF2 trace output
+    --apex:otf2path <value>       specify location of OTF2 archive
+                                  (default: ./OTF2_archive)
+    --apex:otf2name <value>       specify name of OTF2 file (default: APEX)
+    --apex:gtrace                 enable Google Trace Events output (deprecated)
+    --apex:pftrace                enable Perfetto Trace output
+    --apex:scatter                enable scatterplot output
+                                  (python required for post-processing)
+    --apex:openacc                enable OpenACC support
+    --apex:kokkos                 enable Kokkos support
+    --apex:kokkos_tuning          enable Kokkos runtime autotuning support
+    --apex:kokkos_fence           enable Kokkos fences for async kernels
+    --apex:raja                   enable RAJA support
+    --apex:pthread                enable pthread wrapper support
+    --apex:gpu_memory             enable CPU memory wrapper support
+    --apex:cpu_memory             enable GPU memory wrapper support
+    --apex:untied                 enable tasks to migrate cores/OS threads
+                                  during execution (not compatible with trace output)
+    --apex:cuda                   enable CUDA/CUPTI measurement (default: off)
+    --apex:cuda_counters          enable CUDA/CUPTI counter support (default: off)
+    --apex:cuda_driver            enable CUDA driver API callbacks (default: off)
+    --apex:cuda_details           enable per-kernel statistics where available (default: off)
+    --apex:hip                    enable HIP/ROCTracer measurement (default: off)
+    --apex:hip_metrics            enable HIP/ROCProfiler metric support (default: off)
+    --apex:hip_counters           enable HIP/ROCTracer counter support (default: off)
+    --apex:hip_driver             enable HIP/ROCTracer KSA driver API callbacks (default: off)
+    --apex:hip_details            enable per-kernel statistics where available (default: off)
+    --apex:monitor_gpu            enable GPU monitoring services (CUDA NVML, ROCm SMI)
+    --apex:level0                 enable OneAPI Level0 measurement (default: off)
+    --apex:cpuinfo                enable sampling of /proc/cpuinfo (Linux only)
+    --apex:meminfo                enable sampling of /proc/meminfo (Linux only)
+    --apex:net                    enable sampling of /proc/net/dev (Linux only)
+    --apex:status                 enable sampling of /proc/self/status (Linux only)
+    --apex:io                     enable sampling of /proc/self/io (Linux only)
+    --apex:period <value>         specify frequency of OS/HW sampling
+    --apex:ompt                   enable OpenMP profiling (requires runtime support)
+    --apex:ompt_simple            only enable OpenMP Tools required events
+    --apex:ompt_details           enable all OpenMP Tools events
+    --apex:source                 resolve function, file and line info for address lookups with binutils
+                                  (default: function only)
+    --apex:preload <lib>          extra libraries to load with LD_PRELOAD _before_ APEX libraries
+                                  (LD_PRELOAD value is added _after_ APEX libraries)
+    --apex:postprocess            run post-process scripts (graphviz, python) on output data after exit
     "
     echo "${message}"
     exit 1
@@ -85,6 +96,7 @@ kokkos_fence=no
 raja=no
 otf2=no
 gtrace=no
+pftrace=no
 scatter=no
 taskgraph=no
 tasktree=no
@@ -111,13 +123,18 @@ stat=no
 period=1000000
 io=no
 pthread=no
-memory=no
+gpu_memory=no
+cpu_memory=no
 policy=yes
 debugger=""
 prog=""
 preload=no
 verbose=no
 myrank="0"
+postprocess=no
+throttle=no
+throttle_calls=1000
+throttle_percall=10
 
 if [ $# -eq 0 ] ; then
     usage
@@ -158,10 +175,21 @@ while (( "$#" )); do
       export APEX_TIME_TOP_LEVEL_OS_THREADS=1
       shift
       ;;
-    --apex:memory)
-      memory=yes
-      export APEX_TRACK_MEMORY=1
+    --apex:gpu_memory)
+      gpu_memory=yes
+      export APEX_TRACK_GPU_MEMORY=1
       export APEX_SOURCE_LOCATION=1
+      shift
+      ;;
+    --apex:cpu_memory)
+      cpu_memory=yes
+      export APEX_TRACK_CPU_MEMORY=1
+      export APEX_SOURCE_LOCATION=1
+      shift
+      ;;
+    --apex:throttle)
+      throttle=yes
+      export APEX_THROTTLE_TIMERS=1
       shift
       ;;
     --apex:otf2)
@@ -177,6 +205,11 @@ while (( "$#" )); do
     --apex:gtrace)
       gtrace=yes
       export APEX_TRACE_EVENT=1
+      shift
+      ;;
+    --apex:pftrace)
+      pftrace=yes
+      export APEX_PERFETTO=1
       shift
       ;;
     --apex:scatter)
@@ -257,9 +290,9 @@ while (( "$#" )); do
       export ROCPROFILER_LOG=1
       export HSA_VEN_AMD_AQLPROFILE_LOG=1
       export AQLPROFILE_READ_API=1
-      export ROCP_METRICS=@ROCM_ROOT@/rocprofiler/lib/metrics.xml
-      export HSA_TOOLS_LIB=@ROCM_ROOT@/rocprofiler/lib/librocprofiler64.so
-      export LD_LIBRARY_PATH=@ROCM_ROOT@/rocprofiler/lib:$LD_LIBRARY_PATH
+      export ROCP_METRICS=@ROCPROFILER_XML_DIRS@/metrics.xml
+      export HSA_TOOLS_LIB=@ROCPROFILER_HSA_DIRS@/librocprofiler64.so
+      export LD_LIBRARY_PATH=@ROCPROFILER_HSA_DIRS@:$LD_LIBRARY_PATH
       shift
       ;;
     --apex:hip_driver)
@@ -326,6 +359,28 @@ while (( "$#" )); do
       export APEX_SOURCE_LOCATION=1
       shift
       ;;
+    --apex:postprocess)
+      postprocess=yes
+      shift
+      ;;
+    --apex:throttle_calls)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        export APEX_THROTTLE_TIMERS_CALLS=$2
+        shift 2
+      else
+        echo "Error: Argument for $1 is missing" >&2
+        usage
+      fi
+      ;;
+    --apex:throttle_per)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        export APEX_THROTTLE_TIMERS_PERCALL=$2
+        shift 2
+      else
+        echo "Error: Argument for $1 is missing" >&2
+        usage
+      fi
+      ;;
     --apex:otf2path)
       if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
         export APEX_OTF2_ARCHIVE_PATH=$2
@@ -381,6 +436,9 @@ eval set -- "${PARAMS}"
 
 export APEX_POLICY=1
 export HARMONY_HOME="@ACTIVEHARMONY_ROOT@"
+# So that we can use this standalone or with HPX
+export APEX_LIBRARY_NAME="@APEX_LIBRARY_NAME@"
+export PAPI_ROCM_ROOT=@ROCM_ROOT@
 
 # Detect our MPI rank!
 if [ ! -z ${PMI_RANK+x} ] ; then
@@ -424,24 +482,30 @@ fi
 echo_screen "Program to run : ${PARAMS}"
 
 if [ "x${LD_LIBRARY_PATH}" = "x" ] ; then
-  APEX_LD_LIBRARY_PATH=${BASEDIR}/lib
+  APEX_LD_LIBRARY_PATH=${BASEDIR}/${LIBDIR}
 else
-  APEX_LD_LIBRARY_PATH=${BASEDIR}/lib:${LD_LIBRARY_PATH}
+  APEX_LD_LIBRARY_PATH=${BASEDIR}/${LIBDIR}:${LD_LIBRARY_PATH}
 fi
 if [ $pthread = yes ]; then
-    PTHREAD_LIB=${BASEDIR}/lib/libapex_pthread_wrapper${SHLIBX}:
+    PTHREAD_LIB=${BASEDIR}/${LIBDIR}/libapex_pthread_wrapper${SHLIBX}:
 fi
 if [ $ompt = yes ]; then
     OMPT_LIB=@OMPT_LIBRARY@:
+    export OMP_TOOL=enabled
+    export OMP_TOOL_LIBRARIES=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}
+    export OMP_TOOL_VERBOSE_INIT=stdout
+    export OMP_DISPLAY_ENV=true
 fi
-if [ $memory = yes ]; then
-    MEMORY_LIB=${BASEDIR}/lib/libapex_memory_wrapper${SHLIBX}:
-    APEX_LD_AUDIT=${BASEDIR}/lib/libapex_dl_auditor${SHLIBX}
+if [ $cpu_memory = yes ]; then
+    MEMORY_LIB=${BASEDIR}/${LIBDIR}/libapex_memory_wrapper${SHLIBX}:
+    APEX_LD_AUDIT=${BASEDIR}/${LIBDIR}/libapex_dl_auditor${SHLIBX}
+    echo_screen "MEMORY_LIB: ${MEMORY_LIB}"
+    echo_screen "APEX_LD_AUDIT: ${APEX_LD_AUDIT}"
 fi
 if [ ${apple} = 1 ]; then
-    APEX_LD_PRELOAD=${USER_PRELOAD}${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/lib/libapex${SHLIBX}:${OMPT_LIB}
+    APEX_LD_PRELOAD=${USER_PRELOAD}${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}:${OMPT_LIB}
 else
-    APEX_LD_PRELOAD=${USER_PRELOAD}${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/lib/libapex${SHLIBX}:${OMPT_LIB}:${LD_PRELOAD}
+    APEX_LD_PRELOAD=${USER_PRELOAD}${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}:${OMPT_LIB}:${LD_PRELOAD}
 fi
 
 # remove spaces and double colons
@@ -462,6 +526,9 @@ if [ ! -x "${prog}" ] ; then
     echo "apex_exec: $1: command not found"
     exit
 fi
+
+echo_screen "APEX_LD_LIBRARY_PATH: ${APEX_LD_LIBRARY_PATH}"
+echo_screen "APEX_LD_PRELOAD: ${APEX_LD_PRELOAD}"
 
 if [ $apple = 1 ]; then
     export DYLD_LIBRARY_PATH=${APEX_LD_LIBRARY_PATH}
@@ -496,52 +563,94 @@ else
 fi
 
 if [ ${kokkos} = yes ] ; then
-    export KOKKOS_PROFILE_LIBRARY=${BASEDIR}/lib/libapex${SHLIBX}
+    export KOKKOS_PROFILE_LIBRARY=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}
+    export KOKKOS_TOOLS_LIBS=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}
 fi
 if [ ${kokkos_tuning} = yes ] ; then
     export APEX_KOKKOS_TUNING=1
 fi
 if [ ${raja} = yes ] ; then
-    export RAJA_PLUGINS=${BASEDIR}/lib/libapex${SHLIBX}
+    export RAJA_PLUGINS=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}
 fi
 if [ ${openacc} = yes ] ; then
-    export ACC_PROFLIB=${BASEDIR}/lib/libapex${SHLIBX}
+    export ACC_PROFLIB=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}
 fi
 
-${debugger} ${PARAMS}
-retval=$?
-unset LD_PRELOAD
-unset DYLD_INSERT_LIBRARIES
-rm -f ./.gdbcmds
+# OK! if the user requests "groups" of counters, split up the groups
+# and iterate over them, setting different output directories for each.
 
-if [ ${retval} != 0 ] ; then
-    exit ${retval}
+delim=";"
+long_metrics=${APEX_PAPI_METRICS}
+base_output_path="."
+if [ ! -z ${APEX_OUTPUT_FILE_PATH} ] ; then
+    base_output_path=${APEX_OUTPUT_FILE_PATH}
+fi
+if [[ "$long_metrics" == *"$delim"* ]]; then
+    unset APEX_PAPI_METRICS
+    export APEX_SCREEN_OUTPUT=0
+    # Save our preload settings, we don't want them just yet
+    unset LD_PRELOAD
+    # Unset metrics to prevent confusion
+    unset APEX_PAPI_METRICS
+    IFS=';' tokens=( ${long_metrics} )
+    let index=0
+    for raw_t in ${tokens[@]} ; do
+        # need this here to make sure ${params} is executed correctly
+        unset IFS
+        # Strip whitespace
+        t=`echo "${raw_t}" | xargs`
+        export APEX_PAPI_METRICS=${t}
+        export APEX_OUTPUT_FILE_PATH="${base_output_path}/METRIC_GROUP_${index}"
+        mkdir -p ${APEX_OUTPUT_FILE_PATH}
+        echo "Executing with metrics: \"${t}\", writing to ${APEX_OUTPUT_FILE_PATH}"
+        # Restore our preload settings
+        export LD_PRELOAD=${APEX_LD_PRELOAD}
+        ${PARAMS}
+        retval=$?
+        unset LD_PRELOAD
+        if [ ${retval} != 0 ] ; then
+            exit ${retval}
+        fi
+        let index=index+1
+    done
+    unset IFS
+else
+    ${debugger} ${PARAMS}
+    retval=$?
+    unset LD_PRELOAD
+    unset DYLD_INSERT_LIBRARIES
+    rm -f ./.gdbcmds
+    if [ ${retval} != 0 ] ; then
+        exit ${retval}
+    fi
 fi
 
-cd ${output_path}
+if [ ${postprocess} = yes ] ; then
+    cd ${output_path}
 
-if [ ${scatter} = yes ] ; then
-    ${SCRIPTPATH}/task_scatterplot.py
-    ${SCRIPTPATH}/counter_scatterplot.py
-fi
+    if [ ${scatter} = yes ] ; then
+        ${SCRIPTPATH}/task_scatterplot.py
+        ${SCRIPTPATH}/counter_scatterplot.py
+    fi
 
-if [ ${taskgraph} = yes ] ; then
-    echo_screen "Generating taskgraph with GraphViz..."
-    dot -Tpdf -O taskgraph.${myrank}.dot
-fi
+    if [ ${taskgraph} = yes ] ; then
+        echo_screen "Generating taskgraph with GraphViz..."
+        dot -Tpdf -O taskgraph.${myrank}.dot
+    fi
 
-if [ ${tasktree} = yes ] ; then
-    echo_screen "Generating tasktree with GraphViz..."
-    dot -Tpdf -O tasktree.${myrank}.dot
-    echo_screen "Human readable tree in tasktree.*.txt:"
-    if [ "${myrank}" == "0" ] ; then
-        if [ "${verbose}" == "yes" ] ; then
-            if [ "${screen}" == "yes" ] ; then
-                head tasktree.${myrank}.txt
+    if [ ${tasktree} = yes ] ; then
+        echo_screen "Generating tasktree with GraphViz..."
+        dot -Tpdf -O tasktree.${myrank}.dot
+        echo_screen "Human readable tree in tasktree.*.txt:"
+        if [ "${myrank}" == "0" ] ; then
+            if [ "${verbose}" == "yes" ] ; then
+                if [ "${screen}" == "yes" ] ; then
+                    head tasktree.${myrank}.txt
+                fi
             fi
         fi
+        echo_screen "..."
     fi
-    echo_screen "..."
+    cd -
 fi
 
-cd -

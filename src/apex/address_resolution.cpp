@@ -10,6 +10,10 @@
 #include <sstream>
 #include <iostream>
 #include <unordered_map>
+#include <execinfo.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <string.h>
 
 #ifdef __APPLE__
 #include <dlfcn.h>
@@ -17,9 +21,15 @@
 #if defined(TAU_HAVE_CORESYMBOLICATION)
 #include "CoreSymbolication.h"
 #endif
+#else
+// For PIE offset
+#include <elf.h>
+#include <link.h>
 #endif /* __APPLE__ */
 
 using namespace std;
+
+extern char _start;
 
 namespace apex {
 
@@ -28,8 +38,10 @@ namespace apex {
   shared_mutex_type address_resolution::_bfd_mutex;
 
   /* Map a function address to a name and/or source location */
-  string * lookup_address(uintptr_t ip, bool withFileInfo) {
+  string * lookup_address(uintptr_t ip_in, bool withFileInfo, bool forceSourceInfo) {
     address_resolution * ar = address_resolution::instance();
+    static uintptr_t base_addr = ar->getPieOffset();
+    uintptr_t ip = ip_in - base_addr;
     stringstream location;
     address_resolution::my_hash_node * node = nullptr;
     std::unordered_map<uintptr_t, address_resolution::my_hash_node*>::const_iterator it;
@@ -48,6 +60,11 @@ namespace apex {
       if (it2 == ar->my_hash_table.end()) {
         // ...no - so go get it!
         node = new address_resolution::my_hash_node();
+        node->info.filename = nullptr;
+        node->info.funcname = nullptr;
+        node->info.lineno = 0;
+        node->info.demangled = nullptr;
+        node->location = nullptr;
 #if defined(__APPLE__)
 #if defined(APEX_HAVE_CORESYMBOLICATION)
       static CSSymbolicatorRef symbolicator = CSSymbolicatorCreateWithPid(getpid());
@@ -69,24 +86,43 @@ namespace apex {
         node->info.probeAddr = ip;
         node->info.filename = strdup(info.dli_fname);
         node->info.funcname = strdup(info.dli_sname);
-        node->info.lineno = 0; // Apple doesn't give us line numbers.
+        // Apple doesn't give us line numbers.
       }
 #endif
 #else
+#ifdef APEX_HAVE_BFD
         Apex_bfd_resolveBfdInfo(ar->my_bfd_unit_handle, ip, node->info);
+#else
+        void * const buffer[1] = {(void *)ip};
+        char ** names = backtrace_symbols((void * const *)buffer, 1);
+        /* Split the backtrace strings into tokens, and get the 4th one */
+        std::vector<std::string> result;
+	    std::istringstream iss(names[0]);
+	    for (std::string s; iss >> s; ) {
+		    result.push_back(s);
+        }
+        node->info.probeAddr = ip;
+        node->info.filename = strdup("?");
+        node->info.funcname = strdup(result[3].c_str());
 #endif
+#endif
+        if (node->info.filename == nullptr) {
+            stringstream ss;
+            ss << "UNRESOLVED  ADDR 0x" << hex << ip;
+            node->info.funcname = strdup(ss.str().c_str());
+        }
 
         if (node->info.demangled) {
-          location << node->info.demangled ;
+            location << node->info.demangled ;
         } else if (node->info.funcname) {
-          std::string mangled(node->info.funcname);
-          std::string demangled = demangle(mangled);
-          location << demangled ;
+            std::string mangled(node->info.funcname);
+            std::string demangled = demangle(mangled);
+            location << demangled ;
         }
-        if (apex_options::use_source_location()) {
+        if (apex_options::use_source_location() || forceSourceInfo) {
             location << " [{" ;
             if (node->info.filename) {
-            location << node->info.filename ;
+                location << node->info.filename ;
             }
             location << "} {";
             if (node->info.lineno != 0) {
@@ -110,14 +146,32 @@ namespace apex {
     } else {
       node = it->second;
     }
+    if (node->info.demangled && (strlen(node->info.demangled) == 0)) {
+        node->info.demangled = nullptr;
+    }
     if (withFileInfo) {
       return node->location;
     } else {
-      if (node->info.funcname != nullptr) {
-        return new string(node->info.funcname);
-      } else {
-        return new string("<unknown>");
-      }
+      return new string(node->info.funcname);
     }
   }
+
+    // gives us the -pie offset in the executable.
+    uintptr_t address_resolution::getPieOffset() {
+#if defined(__APPLE__)
+        return 0UL;
+#else
+#if 1
+        uintptr_t entry_point = _r_debug.r_map->l_addr;
+        return entry_point;
+#else
+        Dl_info info;
+        void *extra = NULL;
+        dladdr1(&_start, &info, &extra, RTLD_DL_LINKMAP);
+        struct link_map *map = (struct link_map*)extra;
+        return (uintptr_t)(map->l_addr);
+#endif
+#endif
+    }
+
 }

@@ -82,26 +82,31 @@ std::string demangle(const std::string& timer_name) {
         free(realname);
     } else {
 #if defined(APEX_DEBUG)
-        switch (status) {
-            case 0:
-                printf("The demangling operation succeeded, but realname is NULL\n");
-                break;
-            case -1:
-                printf("The demangling operation failed:");
-                printf(" A memory allocation failiure occurred.\n");
-                break;
-            case -2:
-                printf("The demangling operation failed:");
-                printf(" '%s' is not a valid", timer_name.c_str());
-                printf(" name under the C++ ABI mangling rules.\n");
-                break;
-            case -3:
-                printf("The demangling operation failed: One of the");
-                printf(" arguments is invalid.\n");
-                break;
-            default:
-                printf("The demangling operation failed: Unknown error.\n");
-                break;
+        if (apex_options::use_verbose()) {
+            switch (status) {
+                case 0:
+                    fprintf(stderr, "The demangling operation succeeded, but realname is NULL\n");
+                    break;
+                case -1:
+                    fprintf(stderr, "The demangling operation failed:");
+                    fprintf(stderr, " A memory allocation failiure occurred.\n");
+                    break;
+                case -2:
+                    // Commenting out, this is a silly message.
+                    /*
+                    fprintf(stderr, "The demangling operation failed:");
+                    fprintf(stderr, " '%s' is not a valid", timer_name.c_str());
+                    fprintf(stderr, " name under the C++ ABI mangling rules.\n");
+                    */
+                    break;
+                case -3:
+                    fprintf(stderr, "The demangling operation failed: One of the");
+                    fprintf(stderr, " arguments is invalid.\n");
+                    break;
+                default:
+                    fprintf(stderr, "The demangling operation failed: Unknown error.\n");
+                    break;
+            }
         }
 #endif // defined(APEX_DEBUG)
     }
@@ -585,11 +590,36 @@ std::string activity_to_string(apex_async_activity_t activity) {
     }
 }
 
+bool isGPUTimer(std::string name) {
+    if (name.rfind("GPU:", 0) == 0) {
+        return true;
+    }
+    if (name.rfind("StarPU exec : GPU :", 0) == 0) {
+        return true;
+    }
+    if (name.rfind("StarPU driver init : GPU", 0) == 0) {
+        return true;
+    }
+    if (name.rfind("cuda", 0) == 0) {
+        return true;
+    }
+    if (name.rfind("hip", 0) == 0) {
+        return true;
+    }
+    if (name.rfind("OpenMP Target", 0) == 0) {
+        return true;
+    }
+    /*
+    */
+    return false;
+}
+
 /* The following code is from:
    http://stackoverflow.com/questions/7706339/
    grayscale-to-red-green-blue-matlab-jet-color-scale */
-node_color * get_node_color_visible(double v, double vmin, double vmax) {
+node_color * get_node_color_visible(double v, double vmin, double vmax, std::string name) {
    node_color * c = new node_color();
+   bool red = !isGPUTimer(name);
 
    if (v < vmin)
       v = vmin;
@@ -603,6 +633,11 @@ node_color * get_node_color_visible(double v, double vmin, double vmax) {
    c->blue = (1.0 * fraction);
    // green should increase as the fraction increases.
    c->green = (1.0 * fraction);
+   if (!red) {
+    auto tmp = c->red;
+    c->red = c->blue;
+    c->blue = tmp;
+   }
    return c;
 }
 

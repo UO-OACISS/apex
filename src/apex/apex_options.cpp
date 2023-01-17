@@ -56,7 +56,7 @@ namespace apex
 
         char* option = nullptr;
 // getenv is not thread-safe, but the constructor for this static singleton is.
-#define apex_macro(name, member_variable, type, default_value) \
+#define apex_macro(name, member_variable, type, default_value, description) \
     _##member_variable = default_value; \
     option = getenv(#name); \
     if (option != nullptr) { \
@@ -66,7 +66,7 @@ namespace apex
 #undef apex_macro
 
 // getenv is not thread-safe, but the constructor for this static singleton is.
-#define apex_macro(name, member_variable, type, default_value) \
+#define apex_macro(name, member_variable, type, default_value, description) \
     _##member_variable = default_value; \
     option = getenv(#name); \
     if (option != nullptr) { \
@@ -75,7 +75,7 @@ namespace apex
     FOREACH_APEX_FLOAT_OPTION(apex_macro)
 #undef apex_macro
 
-#define apex_macro(name, member_variable, type, default_value) \
+#define apex_macro(name, member_variable, type, default_value, description) \
     option = getenv(#name); \
     if (option == nullptr) { \
         _##member_variable = strdup(default_value); \
@@ -85,7 +85,7 @@ namespace apex
     FOREACH_APEX_STRING_OPTION(apex_macro)
 #undef apex_macro
 
-#define apex_macro(name, member_variable, type, default_value) \
+#define apex_macro(name, member_variable, type, default_value, description) \
     type _##member_variable; /* declare the local variable */ \
     option = getenv(#name); \
     if (option == nullptr) { \
@@ -105,14 +105,14 @@ namespace apex
 #endif
 
     // free the local varaibles
-#define apex_macro(name, member_variable, type, default_value) \
+#define apex_macro(name, member_variable, type, default_value, description) \
     free (_##member_variable);
     FOREACH_EXTERNAL_STRING_OPTION(apex_macro)
 #undef apex_macro
     }
 
     apex_options::~apex_options(void) {
-#define apex_macro(name, member_variable, type, default_value) \
+#define apex_macro(name, member_variable, type, default_value, description) \
         free (_##member_variable);
         FOREACH_APEX_STRING_OPTION(apex_macro)
 #undef apex_macro
@@ -137,7 +137,7 @@ namespace apex
         }
     }
 
-#define apex_macro(name, member_variable, type, default_value) \
+#define apex_macro(name, member_variable, type, default_value, description) \
     void apex_options::member_variable (type inval) { \
     instance()._##member_variable = inval; } \
     type apex_options::member_variable (void) { \
@@ -151,10 +151,10 @@ namespace apex
         apex* instance = apex::instance();
         if (instance->get_node_id() != 0) { return; }
         apex_options& options = apex_options::instance();
-#define apex_macro(name, member_variable, type, default_value) \
+#define apex_macro(name, member_variable, type, default_value, description) \
         std::cout << #name << " : " << options.member_variable() << std::endl;
         FOREACH_APEX_OPTION(apex_macro)
-    	FOREACH_APEX_FLOAT_OPTION(apex_macro)
+        FOREACH_APEX_FLOAT_OPTION(apex_macro)
         FOREACH_APEX_STRING_OPTION(apex_macro)
 #undef apex_macro
 #ifdef APEX_HAVE_PROC
@@ -172,15 +172,32 @@ namespace apex
         apex_options& options = apex_options::instance();
         std::ofstream conf_file(config_file_name, std::ofstream::out);
         if(conf_file.good()) {
-#define apex_macro(name, member_variable, type, default_value) \
+#define apex_macro(name, member_variable, type, default_value, description) \
             conf_file << #name << "=" << options.member_variable() << std::endl;
             FOREACH_APEX_OPTION(apex_macro)
-    	    FOREACH_APEX_FLOAT_OPTION(apex_macro)
+            FOREACH_APEX_FLOAT_OPTION(apex_macro)
             FOREACH_APEX_STRING_OPTION(apex_macro)
 #undef apex_macro
             conf_file.close();
             std::cout << "Default config written to : " << config_file_name << std::endl;
         }
+        return;
+    }
+
+    void apex_options::environment_help() {
+        apex* instance = apex::instance();
+        APEX_UNUSED(instance);
+        apex_options& options = apex_options::instance();
+        std::cout << "APEX environment variables:\n" <<
+                     "---------------------------";
+#define apex_macro(name, member_variable, type, default_value, description) \
+            std::cout << " " << #name << " - type: " << #type << ", default: " << \
+            options.member_variable() << "\n\tdescription: " << description << "\n";
+        std::cout << std::endl;
+        FOREACH_APEX_OPTION(apex_macro)
+        FOREACH_APEX_FLOAT_OPTION(apex_macro)
+        FOREACH_APEX_STRING_OPTION(apex_macro)
+#undef apex_macro
         return;
     }
 }
@@ -189,7 +206,7 @@ using namespace apex;
 
 extern "C" {
 
-#define apex_macro(name, member_variable, type, default_value) \
+#define apex_macro(name, member_variable, type, default_value, description) \
     void apex_set_##member_variable (type inval) { \
     apex_options::member_variable(inval); } \
     type apex_get_##member_variable (void) { \

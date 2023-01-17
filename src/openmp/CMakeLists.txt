@@ -5,8 +5,11 @@ include_directories (${APEX_SOURCE_DIR}/src/apex)
 link_directories (${APEX_BINARY_DIR}/src/apex)
 #link_directories (${APEX_BINARY_DIR}/src/apex_pthread_wrapper)
 
-set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+# Special handling for NVHPC, see below...
+if (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "NVHPC")
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+endif()
 
 set(OMPT_TARGET_TEST ompt_target ompt_target_matmult ompt_target_daxpy ompt_target_vector_add)
 
@@ -28,8 +31,17 @@ foreach(example_program ${example_programs})
     source_group("Source Files" FILES ${sources})
 
     add_executable(${example_program} ${sources})
-    target_link_libraries (${example_program} ${OMPT_LIBRARIES} apex ${LIBS} OpenMP::OpenMP_CXX stdc++ m)
-    target_compile_options(${example_program} PRIVATE "-finstrument-functions")
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+        target_compile_options(${example_program} PRIVATE "-finstrument-functions")
+    endif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "NVHPC")
+        # Use the tool-enabled OpenMP runtime
+        target_compile_options(${example_program} PRIVATE "-mp=ompt")
+        target_link_options(${example_program} PRIVATE "-mp=ompt")
+        target_link_libraries (${example_program} apex ${LIBS} stdc++ m)
+    else()
+        target_link_libraries (${example_program} ${OMPT_LIBRARIES} apex ${LIBS} OpenMP::OpenMP_CXX stdc++ m)
+    endif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "NVHPC")
     if (BUILD_STATIC_EXECUTABLES)
         set_target_properties(${example_program} PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
     endif()

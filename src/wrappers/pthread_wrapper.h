@@ -19,6 +19,7 @@
 typedef void * (*start_routine_p)(void *);
 typedef int (*pthread_create_p)(pthread_t *, const pthread_attr_t *, start_routine_p, void *arg);
 typedef int (*pthread_join_p)(pthread_t, void **);
+typedef int (*pthread_detach_p)(pthread_t);
 #if 0
 typedef void (*pthread_exit_p)(void *);
 #if defined(APEX_PTHREAD_BARRIER_AVAILABLE)
@@ -33,6 +34,7 @@ extern "C" {
 int apex_pthread_create_wrapper(pthread_create_p pthread_create_call,
     pthread_t * threadp, const pthread_attr_t * attr, start_routine_p, void * arg);
 int apex_pthread_join_wrapper(pthread_join_p pthread_join_call, pthread_t thread, void **retval);
+int apex_pthread_detach_wrapper(pthread_detach_p pthread_detach_call, pthread_t thread);
 #if 0
 void apex_pthread_exit_wrapper(pthread_exit_p pthread_exit_call, void * value_ptr);
 #if defined(APEX_PTHREAD_BARRIER_AVAILABLE)

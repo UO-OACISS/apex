@@ -162,15 +162,11 @@ int main(int argc, char **argv)
   pthread_barrier_init(&barrier, NULL, numthreads);
 #endif
   unsigned i;
-  int timed = 0;
-  int untimed = 0;
   for (i = 0 ; i < numthreads ; i++) {
     if (i % 2 == 0) {
       pthread_create(&(thread[i]), NULL, someUntimedThread, reinterpret_cast<void *>(static_cast<intptr_t>(i)));
-      untimed++;
     } else {
       pthread_create(&(thread[i]), NULL, someThread, reinterpret_cast<void *>(static_cast<intptr_t>(i)));
-      timed++;
     }
   }
   for (i = 0 ; i < numthreads ; i++) {

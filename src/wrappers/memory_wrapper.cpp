@@ -17,6 +17,7 @@
 #include <sys/types.h>
 #include <memory_wrapper.h>
 #include "apex_api.hpp"
+#include "memory_wrapper.hpp"
 
 #ifdef _MSC_VER
 /* define these functions as non-intrinsic */
@@ -56,11 +57,7 @@ void apex_memory_initialized() {
 extern "C"
 void apex_memory_lights_out() {
     apex_ready() = false;
-    static bool once{false};
-    if (!once) {
-        apex_report_leaks();
-        once = true;
-    }
+    apex::apex_report_leaks();
 }
 
 extern "C"
@@ -81,7 +78,7 @@ char bootstrap_heap[BOOTSTRAP_HEAP_SIZE];
 char * bootstrap_base = bootstrap_heap;
 
 uintptr_t reportHeapLocation() {
-    printf("Bootstrap heap located at: %p\n", &bootstrap_heap[0]);
+    printf("Bootstrap heap located at: %p\n", (void*)(&bootstrap_heap[0]));
     return (uintptr_t)&bootstrap_heap[0];
 }
 

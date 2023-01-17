@@ -76,18 +76,32 @@ void Node::writeNode(std::ofstream& outfile, double total) {
 
     double acc = (data == task_identifier::get_main_task_id() || accumulated == 0.0) ?
         total : accumulated;
-    node_color * c = get_node_color_visible(acc, 0.0, total);
+    node_color * c = get_node_color_visible(acc, 0.0, total, data->get_tree_name());
     double ncalls = (calls == 0) ? 1 : calls;
 
+    std::string decoration;
+    std::string font;
+    // if the node is dark, make the font white for readability
+    if (acc > 0.5 * total) {
+        font = "; fontcolor=white";
+    } else {
+        font = "; fontcolor=black";
+    }
+    // if the node is GPU related, make the box dark blue
+    if (isGPUTimer(data->get_tree_name())) {
+        decoration = "shape=box; color=blue; style=filled" + font + "; fillcolor=\"#";
+    } else {
+        decoration = "shape=box; color=firebrick; style=filled" + font + "; fillcolor=\"#";
+    }
     // write out the nodes
     outfile << "  \"" << getIndex() <<
-            "\" [shape=box; style=filled; fillcolor=\"#" <<
+            "\" [" << decoration <<
             std::setfill('0') << std::setw(2) << std::hex << c->convert(c->red) <<
             std::setfill('0') << std::setw(2) << std::hex << c->convert(c->green) <<
             std::setfill('0') << std::setw(2) << std::hex << c->convert(c->blue) <<
             "\"; depth=" << std::dec << depth <<
             "; time=" << std::fixed << acc << "; label=\"" << data->get_tree_name() <<
-            "\\l calls: " << ncalls << "\\l time: " <<
+            "\\lcalls: " << ncalls << "\\ltime: " <<
             std::defaultfloat << acc << "\\l\" ];" << std::endl;
 
     // do all the children
@@ -104,6 +118,7 @@ bool cmp(std::pair<task_identifier, Node*>& a, std::pair<task_identifier, Node*>
 
 double Node::writeNodeASCII(std::ofstream& outfile, double total, size_t indent) {
     APEX_ASSERT(total > 0.0);
+    constexpr int precision{3};
     for (size_t i = 0 ; i < indent ; i++) {
         outfile << "| ";
     }
@@ -113,18 +128,19 @@ double Node::writeNodeASCII(std::ofstream& outfile, double total, size_t indent)
     double acc = (data == task_identifier::get_main_task_id() || accumulated == 0.0) ?
         total : accumulated;
     double percentage = (accumulated / total) * 100.0;
-    outfile << std::fixed << std::setprecision(5) << acc << " - "
-            << std::fixed << std::setprecision(4) << percentage << "% [";
+    outfile << std::fixed << std::setprecision(precision) << acc << " - "
+            << std::fixed << std::setprecision(precision) << percentage << "% [";
     // write the number of calls
     double ncalls = (calls == 0) ? 1 : calls;
     outfile << std::fixed << std::setprecision(0) << ncalls << "]";
     // write other stats - min, max, stddev
     double mean = acc / ncalls;
-    double variance = ((sumsqr / ncalls) - (mean * mean));
+    // avoid -0.0 which will cause a -nan for stddev
+    double variance = std::max(0.0,((sumsqr / ncalls) - (mean * mean)));
     double stddev = sqrt(variance);
-    outfile << " {min=" << std::fixed << std::setprecision(4) << min << ", max=" << max
+    outfile << " {min=" << std::fixed << std::setprecision(precision) << min << ", max=" << max
             << ", mean=" << mean << ", var=" << variance
-            << ", std dev=" << stddev << "} ";
+            << ", std dev=" << stddev << ", threads=" << thread_ids.size() << "} ";
     // Write out the name
     outfile << data->get_tree_name() << " ";
     // end the line
@@ -187,7 +203,9 @@ double Node::writeNodeJSON(std::ofstream& outfile, double total, size_t indent) 
     if (data->get_tree_name().find("Synchronize") != std::string::npos) acc = 0.0;
     double ncalls = (calls == 0) ? 1 : calls;
     outfile << "\"metrics\": {\"time\": " << excl
-            << ", \"time (inc)\": " << acc
+            << ", \"total time (inc)\": " << acc
+            << ", \"time (inc)\": " << (acc / (double)(thread_ids.size()))
+            << ", \"num threads\": " << thread_ids.size()
             << ", \"min (inc)\": " << min
             << ", \"max (inc)\": " << max
             << ", \"sumsqr (inc)\": " << sumsqr
@@ -291,7 +309,7 @@ void Node::writeTAUCallpath(std::ofstream& outfile, std::string prefix) {
     return;
 }
 
-void Node::addAccumulated(double value, bool is_resume) {
+void Node::addAccumulated(double value, bool is_resume, uint64_t thread_id) {
     static std::mutex m;
     m.lock();
     if (!is_resume) { calls+=1; }
@@ -299,6 +317,7 @@ void Node::addAccumulated(double value, bool is_resume) {
     if (min == 0.0 || value < min) { min = value; }
     if (value > max) { max = value; }
     sumsqr = sumsqr + (value*value);
+    thread_ids.insert(thread_id);
     m.unlock();
 }
 

@@ -69,6 +69,17 @@ public:
         *((const char**)(value)) = svalues[best_index].c_str();
         return svalues[best_index];
     }
+    std::string toString() {
+        if (vtype == VariableType::doubletype) {
+            return std::to_string(dvalues[current_index]);
+        }
+        else if (vtype == VariableType::longtype) {
+            return std::to_string(lvalues[current_index]);
+        }
+        //else if (vtype == VariableType::stringtype) {
+        return svalues[current_index];
+        //}
+    }
 };
 
 class Exhaustive {
@@ -78,8 +89,8 @@ private:
     size_t kmax;
     size_t k;
     std::map<std::string, Variable> vars;
-    const size_t max_iterations{1000};
-    const size_t min_iterations{100};
+    //const size_t max_iterations{1000};
+    //const size_t min_iterations{100};
 public:
     void evaluate(double new_cost);
     Exhaustive() :

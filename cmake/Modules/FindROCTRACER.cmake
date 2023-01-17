@@ -22,7 +22,7 @@ if (NOT DEFINED $ROCM_ROOT)
 endif()
 
 find_path(ROCTRACER_INCLUDE_DIR NAMES roctracer.h
-	HINTS ${ROCTRACER_ROOT}/include ${ROCM_ROOT}/include/roctracer)
+	HINTS ${ROCM_ROOT}/include/roctracer ${ROCTRACER_ROOT}/include)
 
 find_path(HSA_INCLUDE_DIR NAMES hsa.h
 	HINTS ${ROCM_ROOT}/include/hsa)
@@ -31,7 +31,7 @@ find_path(HIP_INCLUDE_DIR NAMES hip/hip_runtime_api.h
 	HINTS ${ROCM_ROOT}/hip/include)
 
 find_library(ROCTRACER_LIBRARY NAMES roctracer64
-    HINTS ${ROCTRACER_ROOT}/lib64 ${ROCTRACER_ROOT}/lib ${ROCM_ROOT}/roctracer/lib64 ${ROCM_ROOT}/roctracer/lib)
+    HINTS ${ROCTRACER_ROOT}/lib ${ROCM_ROOT}/roctracer/lib64 ${ROCM_ROOT}/roctracer/lib ${ROCTRACER_ROOT}/lib64)
 
 #find_library(ROCTRACER_LIBRARY_KFD NAMES kfdwrapper64
     #HINTS ${ROCTRACER_ROOT}/lib64 ${ROCTRACER_ROOT}/lib ${ROCM_ROOT}/roctracer/lib64 ${ROCM_ROOT}/roctracer/lib)

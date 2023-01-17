@@ -17,7 +17,7 @@ namespace simulated_annealing {
 
 enum class VariableType { doubletype, longtype, stringtype } ;
 
-/* Original, wored at one point
+/* Original, worked at one point
 int inline myrandn() {
     static std::default_random_engine generator;
     static std::normal_distribution<double> distribution(0.0,2.0);
@@ -113,6 +113,17 @@ public:
         //else if (vtype == VariableType::stringtype) {
         *((const char**)(value)) = svalues[best_index].c_str();
         return svalues[best_index];
+    }
+    std::string toString() {
+        if (vtype == VariableType::doubletype) {
+            return std::to_string(dvalues[current_index]);
+        }
+        else if (vtype == VariableType::longtype) {
+            return std::to_string(lvalues[current_index]);
+        }
+        //else if (vtype == VariableType::stringtype) {
+        return svalues[current_index];
+        //}
     }
 };
 

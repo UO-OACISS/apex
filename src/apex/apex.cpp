@@ -43,6 +43,9 @@
 #include "tau_listener.hpp"
 #include "profiler_listener.hpp"
 #include "trace_event_listener.hpp"
+#if defined(APEX_WITH_PERFETTO)
+#include "perfetto_listener.hpp"
+#endif
 #if defined(APEX_DEBUG) || defined(APEX_ERROR_HANDLING)
 // #define APEX_DEBUG_disabled
 #include "apex_error_handling.hpp"
@@ -61,6 +64,8 @@
 #include "proc_read.h"
 #endif
 
+#include "memory_wrapper.hpp"
+
 #ifdef APEX_HAVE_HPX
 #include <boost/assign.hpp>
 #include <cstdint>
@@ -72,22 +77,27 @@
 #else // without HPX!
 #include "global_constructor_destructor.h"
 #if defined(HAS_CONSTRUCTORS)
+/*
 extern "C" {
 DEFINE_CONSTRUCTOR(apex_init_static_void)
 DEFINE_DESTRUCTOR(apex_finalize_static_void)
 }
+*/
 #endif // HAS_CONSTRUCTORS
 #endif // APEX_HAVE_HPX
 
 #ifdef APEX_HAVE_TCMALLOC
 #include "tcmalloc_hooks.hpp"
 #endif
+#include "banner.hpp"
 
 #if APEX_DEBUG
-#define FUNCTION_ENTER printf("enter %lu *** %s:%d!\n", \
-thread_instance::get_id(), __func__, __LINE__); fflush(stdout);
-#define FUNCTION_EXIT  printf("exit  %lu *** %s:%d!\n", \
-thread_instance::get_id(), __func__, __LINE__); fflush(stdout);
+#define FUNCTION_ENTER if (apex_options::use_verbose()) { \
+    fprintf(stderr, "enter %lu *** %s:%d!\n", \
+    thread_instance::get_id(), __APEX_FUNCTION__, __LINE__); fflush(stdout); }
+#define FUNCTION_EXIT if (apex_options::use_verbose()) { \
+    fprintf(stderr, "exit  %lu *** %s:%d!\n", \
+    thread_instance::get_id(), __APEX_FUNCTION__, __LINE__); fflush(stdout); }
 #else
 #define FUNCTION_ENTER
 #define FUNCTION_EXIT
@@ -233,35 +243,42 @@ void apex::_initialize()
 #if defined (GIT_BRANCH)
     tmp << "-" << GIT_BRANCH ;
 #endif
-    tmp << std::endl << "Built on: " << __TIME__ << " " << __DATE__;
-    tmp << std::endl << "C++ Language Standard version : " << __cplusplus;
+    tmp << "\nBuilt on: " << __TIME__ << " " << __DATE__;
+#if CMAKE_BUILD_TYPE == 1
+    tmp << " (Release)";
+#elif CMAKE_BUILD_TYPE == 2
+    tmp << " (RelWithDebInfo)";
+#else
+    tmp << " (Debug)";
+#endif
+    tmp << "\nC++ Language Standard version : " << __cplusplus;
 #if defined(__clang__)
     /* Clang/LLVM. ---------------------------------------------- */
-    tmp << std::endl << "Clang Compiler version : " << __VERSION__;
+    tmp << "\nClang Compiler version : " << __VERSION__;
 #elif defined(__ICC) || defined(__INTEL_COMPILER)
     /* Intel ICC/ICPC. ------------------------------------------ */
-    tmp << std::endl << "Intel Compiler version : " << __VERSION__;
+    tmp << "\nIntel Compiler version : " << __VERSION__;
 #elif defined(__GNUC__) || defined(__GNUG__)
     /* GNU GCC/G++. --------------------------------------------- */
-    tmp << std::endl << "GCC Compiler version : " << __VERSION__;
+    tmp << "\nGCC Compiler version : " << __VERSION__;
 #elif defined(__HP_cc) || defined(__HP_aCC)
     /* Hewlett-Packard C/aC++. ---------------------------------- */
-    tmp << std::endl << "HP Compiler version : " << __HP_aCC;
+    tmp << "\nHP Compiler version : " << __HP_aCC;
 #elif defined(__IBMC__) || defined(__IBMCPP__)
     /* IBM XL C/C++. -------------------------------------------- */
-    tmp << std::endl << "IBM Compiler version : " << __xlC__;
+    tmp << "\nIBM Compiler version : " << __xlC__;
 #elif defined(_MSC_VER)
     /* Microsoft Visual Studio. --------------------------------- */
-    tmp << std::endl << "Microsoft Compiler version : " << _MSC_FULL_VER;
+    tmp << "\nMicrosoft Compiler version : " << _MSC_FULL_VER;
 #elif defined(__PGI)
     /* Portland Group PGCC/PGCPP. ------------------------------- */
-    tmp << std::endl << "PGI Compiler version : " << __VERSION__;
+    tmp << "\nPGI Compiler version : " << __VERSION__;
 #elif defined(__SUNPRO_CC)
     /* Oracle Solaris Studio. ----------------------------------- */
-    tmp << std::endl << "Oracle Compiler version : " << __SUNPRO_CC;
+    tmp << "\nOracle Compiler version : " << __SUNPRO_CC;
 #endif
 
-    this->version_string = std::string(tmp.str().c_str());
+    this->version_string = std::string(tmp.str());
 #ifdef APEX_HAVE_HPX
     this->m_hpx_runtime = nullptr;
     hpx::register_startup_function(init_hpx_runtime_ptr);
@@ -298,8 +315,13 @@ void apex::_initialize()
             listeners.push_back(the_otf2_listener);
         }
 #endif
-        if (apex_options::use_trace_event())
-        {
+#if defined(APEX_WITH_PERFETTO)
+        if (apex_options::use_perfetto()) {
+            the_perfetto_listener = new perfetto_listener();
+            listeners.push_back(the_perfetto_listener);
+        }
+#endif
+        if (apex_options::use_trace_event()) {
             the_trace_event_listener = new trace_event_listener();
             listeners.push_back(the_trace_event_listener);
         }
@@ -390,6 +412,11 @@ void init_cupti_tracing(void);
 void init_hip_tracing(void);
 #endif
 
+void do_atexit(void) {
+    finalize();
+    cleanup();
+}
+
 uint64_t init(const char * thread_name, uint64_t comm_rank,
     uint64_t comm_size) {
     FUNCTION_ENTER
@@ -418,7 +445,7 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
         }
     }
     /* register the finalization function, for program exit */
-    std::atexit(cleanup);
+    std::atexit(do_atexit);
     //thread_instance::set_worker(true);
     _registered = true;
     apex* instance = apex::instance(); // get/create the Apex static instance
@@ -461,6 +488,10 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
         instance->pd_reader = new proc_data_reader();
     }
 #endif
+    /* for the next section, we need to check if we are suspended,
+     * and if so, don't be suspended long enough to enable the main timer. */
+    bool suspended = apex_options::suspend();
+    apex_options::suspend(false);
     /* For the main thread, we should always start a top level timer.
      * The reason is that if the program calls "exit", our atexit() processing
      * will stop this timer, effectively stopping all of its children as well,
@@ -484,6 +515,8 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
         start(twp);
         thread_instance::set_top_level_timer(twp);
     }
+    /* restore the suspended bit */
+    apex_options::suspend(suspended);
     if (apex_options::use_verbose() && instance->get_node_id() == 0) {
       std::cout << version() << std::endl;
       apex_options::print_options();
@@ -521,6 +554,10 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
     const char * preload = getenv("LD_PRELOAD");
     if (preload != nullptr) {
         unsetenv("LD_PRELOAD");
+    }
+    if (comm_rank == 0) {
+        printf("%s", apex_banner);
+        printf("APEX Version: %s\n", instance->version_string.c_str());
     }
     FUNCTION_EXIT
     return APEX_NOERROR;
@@ -632,7 +669,7 @@ profiler* start(const std::string &timer_name)
         task_identifier * id = task_identifier::get_task_id(timer_name);
         tt_ptr = _new_task(id, UINTMAX_MAX, null_task_wrapper, instance);
 #if defined(APEX_DEBUG)//_disabled)
-    debug_print("Start", tt_ptr);
+        if (apex_options::use_verbose()) { debug_print("Start", tt_ptr); }
 #endif
         APEX_UTIL_REF_COUNT_TASK_WRAPPER
         //read_lock_type l(instance->listener_mutex);
@@ -699,7 +736,7 @@ profiler* start(const apex_function_address function_address) {
         task_identifier * id = task_identifier::get_task_id(function_address);
         tt_ptr = _new_task(id, UINTMAX_MAX, null_task_wrapper, instance);
 #if defined(APEX_DEBUG)//_disabled)
-    debug_print("Start", tt_ptr);
+        if (apex_options::use_verbose()) { debug_print("Start", tt_ptr); }
 #endif
         APEX_UTIL_REF_COUNT_TASK_WRAPPER
         /*
@@ -737,7 +774,7 @@ profiler* start(const apex_function_address function_address) {
 void start(std::shared_ptr<task_wrapper> tt_ptr) {
     in_apex prevent_deadlocks;
 #if defined(APEX_DEBUG)//_disabled)
-    debug_print("Start", tt_ptr);
+    if (apex_options::use_verbose()) { debug_print("Start", tt_ptr); }
 #endif
     if (tt_ptr == nullptr) {
         APEX_UTIL_REF_COUNT_APEX_INTERNAL_START
@@ -988,6 +1025,54 @@ void apex::complete_task(std::shared_ptr<task_wrapper> task_wrapper_ptr) {
     }
 }
 
+void apex::stop_internal(profiler* the_profiler) {
+    in_apex prevent_deadlocks;
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) {
+        APEX_UTIL_REF_COUNT_DISABLED_STOP
+        return;
+    }
+    if (the_profiler == profiler::get_disabled_profiler()) {
+        APEX_UTIL_REF_COUNT_DISABLED_STOP
+        return; // profiler was throttled.
+    }
+    if (the_profiler == nullptr) {
+        APEX_UTIL_REF_COUNT_NULL_STOP
+        return;
+    }
+    if (the_profiler->stopped) {
+        APEX_UTIL_REF_COUNT_DOUBLE_STOP
+        return;
+    }
+#if defined(APEX_DEBUG)//_disabled)
+    if (apex_options::use_verbose()) { debug_print("Stop", the_profiler->tt_ptr); }
+#endif
+    apex* instance = apex::instance(); // get the Apex static instance
+    // protect against calls after finalization
+    if (!instance || _exited || _measurement_stopped) {
+        APEX_UTIL_REF_COUNT_STOP_AFTER_FINALIZE
+        return;
+    }
+    std::shared_ptr<profiler> p{the_profiler};
+    if (_notify_listeners) {
+        //read_lock_type l(instance->listener_mutex);
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            instance->listeners[i]->on_stop(p);
+        }
+    }
+#if defined(APEX_DEBUG)
+    const std::string apex_process_profile_str("apex::process_profiles");
+    if (p->tt_ptr->get_task_id()->get_name(false).compare(apex_process_profile_str)
+        == 0) {
+        APEX_UTIL_REF_COUNT_APEX_INTERNAL_STOP
+    } else {
+        APEX_UTIL_REF_COUNT_STOP
+    }
+#endif
+    instance->complete_task(p->tt_ptr);
+    p->tt_ptr = nullptr;
+}
+
 void stop(profiler* the_profiler, bool cleanup) {
     in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
@@ -1008,7 +1093,7 @@ void stop(profiler* the_profiler, bool cleanup) {
         return;
     }
 #if defined(APEX_DEBUG)//_disabled)
-    debug_print("Stop", the_profiler->tt_ptr);
+    if (apex_options::use_verbose()) { debug_print("Stop", the_profiler->tt_ptr); }
 #endif
     thread_instance::instance().clear_current_profiler(the_profiler, false,
         null_task_wrapper);
@@ -1051,7 +1136,7 @@ void stop(profiler* the_profiler, bool cleanup) {
 void stop(std::shared_ptr<task_wrapper> tt_ptr) {
     in_apex prevent_deadlocks;
 #if defined(APEX_DEBUG)//_disabled)
-    debug_print("Stop", tt_ptr);
+    if (apex_options::use_verbose()) { debug_print("Stop", tt_ptr); }
 #endif
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) {
@@ -1157,7 +1242,7 @@ void yield(std::shared_ptr<task_wrapper> tt_ptr)
 {
     in_apex prevent_deadlocks;
 #if defined(APEX_DEBUG)//_disabled)
-    debug_print("Yield", tt_ptr);
+    if (apex_options::use_verbose()) { debug_print("Yield", tt_ptr); }
 #endif
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) {
@@ -1259,9 +1344,15 @@ std::shared_ptr<task_wrapper> new_task(
 {
     in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { return nullptr; }
+    if (apex_options::disable() == true) {
+        APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER
+        return nullptr;
+    }
     // if APEX is suspended, do nothing.
-    if (apex_options::suspend() == true) { return nullptr; }
+    if (apex_options::suspend() == true) {
+        APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER
+        return nullptr;
+    }
     const std::string apex_internal("apex_internal");
     if (starts_with(name, apex_internal)) {
         APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER
@@ -1286,13 +1377,19 @@ std::shared_ptr<task_wrapper> new_task(
     const std::shared_ptr<task_wrapper> parent_task) {
     in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { return nullptr; }
+    if (apex_options::disable() == true) {
+        APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER
+        return nullptr; }
     // if APEX is suspended, do nothing.
-    if (apex_options::suspend() == true) { return nullptr; }
+    if (apex_options::suspend() == true) {
+        APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER
+        return nullptr; }
     // get the Apex static instance
     apex* instance = apex::instance();
     // protect against calls after finalization
-    if (!instance || _exited) { return nullptr; }
+    if (!instance || _exited) {
+        APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER
+        return nullptr; }
     task_identifier * id = task_identifier::get_task_id(function_address);
     std::shared_ptr<task_wrapper>
         tt_ptr(_new_task(id, task_id, parent_task, instance));
@@ -1304,9 +1401,13 @@ std::shared_ptr<task_wrapper> update_task(
     const std::string &timer_name) {
     in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { return nullptr; }
+    if (apex_options::disable() == true) {
+        APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER
+        return nullptr; }
     // if APEX is suspended, do nothing.
-    if (apex_options::suspend() == true) { return nullptr; }
+    if (apex_options::suspend() == true) {
+        APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER
+        return nullptr; }
     if (wrapper == nullptr) {
         // get the Apex static instance
         apex* instance = apex::instance();
@@ -1344,9 +1445,13 @@ std::shared_ptr<task_wrapper> update_task(
     const apex_function_address function_address) {
     in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { return nullptr; }
+    if (apex_options::disable() == true) {
+        APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER
+        return nullptr; }
     // if APEX is suspended, do nothing.
-    if (apex_options::suspend() == true) { return nullptr; }
+    if (apex_options::suspend() == true) {
+        APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER
+        return nullptr; }
     if (wrapper == nullptr) {
         // get the Apex static instance
         apex* instance = apex::instance();
@@ -1585,6 +1690,20 @@ void finalize()
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
     FUNCTION_ENTER
+    // FIRST FIRST, check if we have orphaned threads...
+    // See apex::register_thread and apex::exit_thread for more info.
+    {
+        std::unique_lock<std::mutex> l(instance->thread_instance_mutex);
+        if (!instance->known_threads.empty()) {
+            for (thread_instance* t : instance->known_threads) {
+                // make sure it hasn't been erased!
+                if (instance->erased_threads.find(t) ==
+                    instance->erased_threads.end()) {
+                    t->clear_all_profilers();
+                }
+            }
+        }
+    }
     // FIRST, stop the top level timer, while the infrastructure is still
     // functioning.
     auto tmp = thread_instance::get_top_level_timer();
@@ -1650,6 +1769,7 @@ void finalize()
     //tcmalloc::destroy_hook();
 #endif
     disable_memory_wrapper();
+    apex_report_leaks();
 #if APEX_HAVE_BFD
     address_resolution::delete_instance();
 #endif
@@ -1717,7 +1837,7 @@ void register_thread(const std::string &name,
     if (_registered) return;
     _registered = true;
     // FIRST! make sure APEX thinks this is a worker thread
-    thread_instance::instance(true);
+    auto& ti = thread_instance::instance(true);
     thread_instance::set_name(name);
     instance->resize_state(thread_instance::get_id());
     instance->set_state(thread_instance::get_id(), APEX_BUSY);
@@ -1755,6 +1875,18 @@ void register_thread(const std::string &name,
         //printf("New thread: %p\n", &(*twp));
         thread_instance::set_top_level_timer(twp);
     }
+    /* What is this about? Well, the pthread_create wrapper in APEX can
+     * capture pthreads that are spawned from libraries before main is
+     * executed! If that is the case, then we want to (dangerously)
+     * store the thread_instance pointer (which is a thread_local variable)
+     * and at exit, if the thread hasn't been exited we want to stop
+     * its timers (because likely it will exit when the library's destructor
+     * is called. So we store any threads that are seen by the wrapper. */
+    std::string prefix{"APEX pthread wrapper"};
+    if (name.substr(0, prefix.size()) == prefix) {
+        std::unique_lock<std::mutex> l{instance->thread_instance_mutex};
+        instance->known_threads.insert(&ti);
+    }
 }
 
 void exit_thread(void)
@@ -1768,6 +1900,17 @@ void exit_thread(void)
     static APEX_NATIVE_TLS bool _exiting = false;
     if (_exiting) return;
     _exiting = true;
+    {
+        /* What's this about? see what happens when threads are registered.
+         * When threads exit, we want to remove them from the known_thread
+         * set, if we saved them. */
+        thread_instance& ti = thread_instance::instance(false);
+        std::unique_lock<std::mutex> l{instance->thread_instance_mutex};
+        if (instance->known_threads.find(&ti) != instance->known_threads.end()) {
+            instance->erased_threads.insert(&ti);
+            instance->known_threads.erase(&ti);
+        }
+    }
     auto tmp = thread_instance::get_top_level_timer();
     // tell the timer cleanup that we are exiting
     thread_instance::exiting();
@@ -2044,13 +2187,30 @@ double current_power_high(void) {
 #elif APEX_HAVE_MSR
     power = msr_current_power_high();
     //std::cout << "Read power from MSR: " << power << std::endl;
+#elif APEX_HAVE_POWERCAP_POWER
+    static long long lpower = 0LL;
+    long long tpower = 0LL;
+    static long long diff = 0LL;
+    tpower = read_package0(false);
+    /* Check for overflow */
+    if (lpower > 0 && tpower > lpower) {
+        diff = tpower-lpower;
+    } else {
+        diff = 0;
+    }
+    power = (double)diff;
+    lpower = tpower;
+    // convert from microjoules to joules
+    power = power * 1.0e-6;
+    // get the right joules per second
+    power = power * (1.0e6 / (double)apex_options::concurrency_period());
+    //std::cout << "Read power from Powercap: " << tpower << " " << lpower << " " << diff << " " << power << std::endl;
 #elif APEX_HAVE_PROC
     power = (double)read_power();
     //std::cout << "Read power from Cray Power Monitoring and Management: " <<
-    //power << std::endl;
 #else
-    //std::cout << "NO POWER READING! Did you configure with RCR, MSR or Cray?"
-    //<< std::endl;
+    std::cout << "NO POWER READING! Did you configure with RCR, MSR or Cray?"
+    << std::endl;
 #endif
     return power;
 }
@@ -2144,12 +2304,6 @@ extern "C" {
         return init("FORTRAN thread", comm_rank, comm_size);
     }
 
-    static void apex_init_static_void(void) {
-        if (!apex_options::use_otf2()) {
-            init("APEX main thread", 0, 1);
-        }
-    }
-
     void apex_cleanup() {
         cleanup();
     }
@@ -2160,12 +2314,6 @@ extern "C" {
 
     void apex_finalize(void) {
         finalize();
-    }
-
-    static void apex_finalize_static_void(void) {
-#if !defined(APEX_HAVE_MPI)
-        finalize();
-#endif
     }
 
     void apex_finalize_() { finalize(); }

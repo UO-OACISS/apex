@@ -1,5 +1,7 @@
 #include "exhaustive.hpp"
 #include <algorithm>
+#include <iostream>
+#include <fstream>
 
 namespace apex {
 
@@ -34,7 +36,31 @@ size_t Exhaustive::get_max_iterations() {
     return max_iter;
 }
 
+class log_wrapper {
+    private:
+        std::ofstream myfile;
+    public:
+        log_wrapper(const std::map<std::string, Variable>& vars) {
+            myfile.open("tuning.csv");
+            myfile << "iter,";
+            for (auto& v : vars) { myfile << v.first << ","; }
+            myfile << "time" << std::endl;
+        }
+        ~log_wrapper() {
+            myfile.close();
+        }
+        std::ofstream& getstream() {
+            return myfile;
+        }
+};
+
 void Exhaustive::evaluate(double new_cost) {
+    static log_wrapper log(vars);
+    static size_t count{0};
+    if (++count % 10000 == 0) { std::cout << count << std::endl; }
+    log.getstream() << count << ",";
+    for (auto& v : vars) { log.getstream() << v.second.toString() << ","; }
+    log.getstream() << new_cost << std::endl;
     if (new_cost < cost) {
         if (new_cost < best_cost) {
             best_cost = new_cost;
