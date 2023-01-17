@@ -1,146 +1,182 @@
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  <meta name="author" content="Kevin Huck (khuck@cs.uoregon.edu)">
-  <link rel="shortcut icon" href="../img/favicon.ico">
-  <title>Usage - APEX</title>
-  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
-
-  <link rel="stylesheet" href="../css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../css/theme_extra.css" type="text/css" />
-  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css">
-  
-  <script>
-    // Current page data
-    var mkdocs_page_name = "Usage";
-    var mkdocs_page_input_path = "usage.md";
-    var mkdocs_page_url = "/xpress-apex/usage/";
-  </script>
-  
-  <script src="../js/jquery-2.1.1.min.js" defer></script>
-  <script src="../js/modernizr-2.8.3.min.js" defer></script>
-  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
-  <script>hljs.initHighlightingOnLoad();</script> 
-  
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="author" content="Kevin Huck (khuck@cs.uoregon.edu)" /><link rel="canonical" href="http://khuck.github.io/xpress-apex/usage/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Usage - APEX</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Usage";
+        var mkdocs_page_input_path = "usage.md";
+        var mkdocs_page_url = "/xpress-apex/usage/";
+      </script>
+    
+    <script src="../js/jquery-3.6.0.min.js" defer></script>
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+      <script>hljs.initHighlightingOnLoad();</script> 
 </head>
 
 <body class="wy-body-for-nav" role="document">
 
   <div class="wy-grid-for-nav">
-
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
       <div class="wy-side-nav-search">
-        <a href=".." class="icon icon-home"> APEX</a>
-        <div role="search">
+          <a href=".." class="icon icon-home"> APEX
+        </a><div role="search">
   <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
   </form>
 </div>
       </div>
 
-      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-	<ul class="current">
-	  
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="..">Home</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../quickstarthpx/">Quick Start (HPX)</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../quickstart/">Quick Start (standalone)</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../feature/">Feature Overview</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../install/">Installation</a>
-	    </li>
-          
-            <li class="toctree-l1 current">
-		
-    <a class="current" href="./">Usage</a>
-    <ul class="subnav">
-            
-    <li class="toctree-l2"><a href="#usage">Usage</a></li>
-    
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../quickstarthpx/">Quick Start (HPX)</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../quickstart/">Quick Start (standalone)</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../feature/">Feature Overview</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../install/">Installation</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="./">Usage</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#supported_runtime_systems">Supported Runtime Systems</a>
         <ul>
-        
-            <li><a class="toctree-l3" href="#supported_runtime_systems">Supported Runtime Systems</a></li>
-        
-            <li><a class="toctree-l3" href="#performance_measurement_features">Performance Measurement Features</a></li>
-        
+    <li class="toctree-l3"><a class="reference internal" href="#hpx_louisiana_state_university">HPX (Louisiana State University)</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#configuring_hpx_with_apex">Configuring HPX with APEX</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#running_hpx_with_apex">Running HPX with APEX</a>
+    </li>
         </ul>
-    
-
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#openmp">OpenMP</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#configuring_apex_for_openmp_ompt_support">Configuring APEX for OpenMP OMPT support</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#running_openmp_applications_with_apex">Running OpenMP applications with APEX</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#openacc">OpenACC</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#configuring_apex_for_openacc_support">Configuring APEX for OpenACC support</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#running_openacc_programs_with_apex">Running OpenACC programs with APEX</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#cuda">CUDA</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#configuring_apex_for_cuda_support">Configuring APEX for CUDA support</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#running_cuda_programs_with_apex">Running CUDA programs with APEX</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#kokkos">Kokkos</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#configuring_apex_for_kokkos_support">Configuring APEX for Kokkos support</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#running_kokkos_programs_with_apex">Running Kokkos programs with APEX</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#configuring_apex_for_raja_support">Configuring APEX for RAJA support</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#running_raja_programs_with_apex">Running RAJA programs with APEX</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#c_threads">C++ Threads</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#configuring_apex_for_c_thread_support">Configuring APEX for C++ Thread support</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#running_c_thread_programs_with_apex">Running C++ Thread programs with APEX</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#other_runtime_systems">Other Runtime Systems</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#performance_measurement_features">Performance Measurement Features</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#profiling">Profiling</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#profiling_with_csv_output">Profiling with CSV output</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#profiling_with_tau_profile_output">Profiling with TAU profile output</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#profiling_with_taskgraph_output">Profiling with Taskgraph output</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#profiling_with_scatterplot_output">Profiling with Scatterplot output</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#profiling_with_otf2_trace_output">Profiling with OTF2 Trace output</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#profiling_with_google_trace_events_format_output">Profiling with Google Trace Events Format output</a>
+    </li>
+        </ul>
+    </li>
     </ul>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../environment/">Useful Environment Variables</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../spec/">API Specification</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../refman/">API Doxygen Reference</a>
-	    </li>
-          
-        </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../environment/">Useful Environment Variables</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../spec/">API Specification</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../refman/">API Doxygen Reference</a>
+                </li>
+              </ul>
       </div>
-      &nbsp;
+    </div>
     </nav>
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
-        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-        <a href="..">APEX</a>
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">APEX</a>
+        
       </nav>
-
-      
       <div class="wy-nav-content">
-        <div class="rst-content">
-          <div role="navigation" aria-label="breadcrumbs navigation">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
   <ul class="wy-breadcrumbs">
-    <li><a href="..">Docs</a> &raquo;</li>
-    
-      
-    
-    <li>Usage</li>
+    <li><a href=".." class="icon icon-home" alt="Docs"></a> &raquo;</li>
+      <li>Usage</li>
     <li class="wy-breadcrumbs-aside">
-      
-        <a href="http://github.com/khuck/xpress-apex/edit/master/docs/usage.md"
-          class="icon icon-github"> Edit on GitHub</a>
-      
+          <a href="http://github.com/khuck/xpress-apex/edit/master/docs/usage.md" class="icon icon-github"> Edit on GitHub</a>
     </li>
   </ul>
   <hr/>
 </div>
-          <div role="main">
-            <div class="section">
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
               
                 <h1 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">&para;</a></h1>
 <h2 id="supported_runtime_systems">Supported Runtime Systems<a class="headerlink" href="#supported_runtime_systems" title="Permanent link">&para;</a></h2>
@@ -148,7 +184,7 @@
 <p>HPX (High Performance ParalleX) is the original implementation of the ParalleX
 model. Developed and maintained by the Ste||ar Group at Louisiana State
 University, HPX is implemented in C++. For more information, see
-<a href="http://stellar.cct.lsu.edu/projects/hpx/">http://stellar.cct.lsu.edu/projects/hpx/</a>.  For a tutorial on HPX with APEX
+<a href="http://stellar-group.org/projects/hpx/">http://stellar-group.org/projects/hpx/</a>.  For a tutorial on HPX with APEX
 (presented at SC'15, Austin TX) see
 <a href="https://github.com/khuck/SC15_APEX_tutorial">https://github.com/khuck/SC15_APEX_tutorial</a> (somewhat outdated).</p>
 <p>APEX is configured and built as part of HPX. In fact, you don't even need to
@@ -166,7 +202,6 @@ Cmake options to the HPX configuration step.</p>
 <p>APEX uses Binutils to resolve the OpenMP outlined regions from instruction addresses to human-readable names, so also configure APEX with <code>-DUSE_BFD=TRUE</code> (see <a href="../install/#other_cmake_settings_depending_on_your_needswants">Other CMake Settings</a>).  The following example was configured and run with Intel 20 compilers.  The CMake configuration for this example was:</p>
 <pre><code>cmake -DCMAKE_C_COMPILER=`which icc` -DCMAKE_CXX_COMPILER=`which icpc` -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=../install -DBUILD_TESTS=TRUE -DUSE_BFD=TRUE -DBFD_ROOT=/usr/local/packages/binutils/2.34 -DUSE_OMPT=TRUE ..
 </code></pre>
-
 <h4 id="running_openmp_applications_with_apex">Running OpenMP applications with APEX<a class="headerlink" href="#running_openmp_applications_with_apex" title="Permanent link">&para;</a></h4>
 <p>Using the <code>apex_exec</code> wrapper script, execute the OpenMP program as normal:</p>
 <pre><code>[khuck@delphi xpress-apex]$ ./install/bin/apex_exec --apex:screen --apex:taskgraph build/src/unit_tests/C++/apex_openmp_cpp
@@ -221,7 +256,6 @@ OpenMP Work Single Other: L__Z7my_initPd_39__par_... :      141      0.001      
 ------------------------------------------------------------------------------------------------
                                         Total timers : 433
 </code></pre>
-
 <p>If GraphViz is installed on your system, the <code>dot</code> program will generate a taskgraph image based on the taskgraph.0.dot file that was generated by APEX:</p>
 <p><img alt="OpenMP task graph" src="../img/openmp_taskgraph.png" /></p>
 <h3 id="openacc">OpenACC<a class="headerlink" href="#openacc" title="Permanent link">&para;</a></h3>
@@ -230,7 +264,6 @@ OpenMP Work Single Other: L__Z7my_initPd_39__par_... :      141      0.001      
 <p>In this example, APEX was configured with GCC 10.0.0:</p>
 <pre><code>cmake -DCMAKE_C_COMPILER=`which gcc` -DCMAKE_CXX_COMPILER=`which g++` -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=../install -DBUILD_TESTS=TRUE -DUSE_BFD=FALSE -DBFD_ROOT=/usr/local/packages/binutils/2.34 ..
 </code></pre>
-
 <h4 id="running_openacc_programs_with_apex">Running OpenACC programs with APEX<a class="headerlink" href="#running_openacc_programs_with_apex" title="Permanent link">&para;</a></h4>
 <p>Enabling OpenACC support requires setting the <code>ACC_PROFLIB</code> environment variable with the path to <code>libapex.so</code>, or by using the <code>apex_exec</code> script with the <code>--apex:openacc</code> flag:</p>
 <pre><code>[khuck@gorgon xpress-apex]$ ./install/bin/apex_exec --apex:screen --apex:taskgraph --apex:openacc ./build/src/unit_tests/C/apex_openacc
@@ -287,14 +320,12 @@ OpenACC enqueue launch: main$_omp_fn$1 (implicit)... :      100      0.000      
 ------------------------------------------------------------------------------------------------
                                         Total timers : 1003
 </code></pre>
-
 <p><img alt="OpenACC task graph" src="../img/openacc_taskgraph.png" /></p>
 <h3 id="cuda">CUDA<a class="headerlink" href="#cuda" title="Permanent link">&para;</a></h3>
 <h4 id="configuring_apex_for_cuda_support">Configuring APEX for CUDA support<a class="headerlink" href="#configuring_apex_for_cuda_support" title="Permanent link">&para;</a></h4>
 <p>Enabling CUDA support in APEX requires the <code>-DAPEX_WITH_CUDA=TRUE</code> flag and the <code>-DCUDA_ROOT=/path/to/cuda</code> CMake variables at configuration time.  CMake will look for the CUPTI and NVML libraries in the installation, and if found the support will be enabled.</p>
 <pre><code>cmake -DCMAKE_C_COMPILER=`which gcc` -DCMAKE_CXX_COMPILER=`which g++` -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=../install -DBUILD_TESTS=TRUE -DUSE_BFD=TRUE -DAPEX_WITH_CUDA=TRUE -DCUDA_ROOT=/usr/local/packages/cuda/10.2 -DBFD_ROOT=/usr/local/packages/binutils/2.34 ..
 </code></pre>
-
 <h4 id="running_cuda_programs_with_apex">Running CUDA programs with APEX<a class="headerlink" href="#running_cuda_programs_with_apex" title="Permanent link">&para;</a></h4>
 <p>Enabling CUDA support only requires using the <code>apex_exec</code> wrapper script.</p>
 <pre><code>[khuck@gorgon xpress-apex]$ ./install/bin/apex_exec --apex:screen --apex:taskgraph ./build/src/unit_tests/CUDA/apex_cuda_cu
@@ -361,7 +392,6 @@ launch [/home/users/khuck/src/xpress-apex/src/uni... :        4      0.001      
                                         Total timers : 22
 
 </code></pre>
-
 <p>To get additional information you can also enable the <code>--apex:cuda_driver</code> flag to see CUDA driver API calls, or enable the <code>--apex:cuda_counters</code> flag to enable CUDA counters.</p>
 <pre><code>[khuck@gorgon xpress-apex]$ ./install/bin/apex_exec --apex:screen --apex:taskgraph --apex:cuda_counters --apex:cuda_driver ./build/src/unit_tests/CUDA/apex_cuda_cu
 Program to run :  ./build/src/unit_tests/CUDA/apex_cuda_cu
@@ -453,7 +483,6 @@ launch [/home/users/khuck/src/xpress-apex/src/uni... :        4      0.000      
 ------------------------------------------------------------------------------------------------
                                         Total timers : 433
 </code></pre>
-
 <p><img alt="CUDA task graph" src="../img/cuda_taskgraph.png" /></p>
 <h3 id="kokkos">Kokkos<a class="headerlink" href="#kokkos" title="Permanent link">&para;</a></h3>
 <h4 id="configuring_apex_for_kokkos_support">Configuring APEX for Kokkos support<a class="headerlink" href="#configuring_apex_for_kokkos_support" title="Permanent link">&para;</a></h4>
@@ -488,7 +517,6 @@ Timer                                                : #calls  |    mean  |   to
 ------------------------------------------------------------------------------------------------
                                         Total timers : 177
 </code></pre>
-
 <p>Note that APEX detected 178 total OS threads.  That is because some C++ thread implementations (GCC, Clang, others) implement <em>every</em> <code>std::async()</code> call as a new OS thread, resulting in a <code>pthread_create()</code> call.</p>
 <h3 id="other_runtime_systems">Other Runtime Systems<a class="headerlink" href="#other_runtime_systems" title="Permanent link">&para;</a></h3>
 <p>We are currently evaluating support for TBB, OpenCL, SYCL/DPC++/OneAPI, among others.</p>
@@ -496,8 +524,8 @@ Timer                                                : #calls  |    mean  |   to
 <p>For all the following examples, we will use a simple CUDA program that is in the APEX unit tests.</p>
 <h3 id="profiling">Profiling<a class="headerlink" href="#profiling" title="Permanent link">&para;</a></h3>
 <p>Profiling with APEX is the usual and most simple mode of operation.  In order to profile an application and get a report at the end of execution, enable screen output (see <a href="/environment">Environment Variables</a> for details) and run an application linked with the APEX library or with the <code>apex_exec --apex:screen</code> flag (enabled by default).  The output should look like examples shown previously.</p>
-<pre><code class="bash">[khuck@cyclops xpress-apex]$ export APEX_SCREEN_OUTPUT=1
-[khuck@cyclops xpress-apex]$ ./build/src/unit_tests/CUDA/apex_cuda_cu 
+<pre><code class="language-bash">[khuck@cyclops xpress-apex]$ export APEX_SCREEN_OUTPUT=1
+[khuck@cyclops xpress-apex]$ ./build/src/unit_tests/CUDA/apex_cuda_cu
 Found 4 total devices
 On device: name=hello, value=10
 On device: name=dello, value=11
@@ -510,43 +538,43 @@ Cores detected: 160
 Worker Threads observed: 1
 Available CPU time: 0.46147 seconds
 
-Counter                                   : #samples | minimum |    mean  |  maximum |  stddev 
+Counter                                   : #samples | minimum |    mean  |  maximum |  stddev
 ------------------------------------------------------------------------------------------------
-                    1 Minute Load average :        1     13.320     13.320     13.320      0.000   
-          Device 0 GPU Clock Memory (MHz) :        1    877.000    877.000    877.000      0.000   
-              Device 0 GPU Clock SM (MHz) :        1   1530.000   1530.000   1530.000      0.000   
-            Device 0 GPU Memory Free (MB) :        1   1.34e+04   1.34e+04   1.34e+04      0.000   
-            Device 0 GPU Memory Used (MB) :        1   2.07e+04   2.07e+04   2.07e+04      0.000   
-        Device 0 GPU Memory Utilization % :        1     48.000     48.000     48.000      0.000   
-           Device 0 GPU NvLink Link Count :        1      6.000      6.000      6.000      0.000   
-           Device 0 GPU NvLink Speed MB/s :        1   2.58e+04   2.58e+04   2.58e+04      0.000   
-       Device 0 GPU NvLink Utilization C0 :        1      0.000      0.000      0.000      0.000   
-       Device 0 GPU NvLink Utilization C1 :        1      0.000      0.000      0.000      0.000   
-                   Device 0 GPU Power (W) :        1    240.573    240.573    240.573      0.000   
-             Device 0 GPU Temperature (C) :        1     73.000     73.000     73.000      0.000   
-               Device 0 GPU Utilization % :        1     95.000     95.000     95.000      0.000   
-       Device 0 PCIe RX Throughput (MB/s) :        1      5.000      5.000      5.000      0.000   
-       Device 0 PCIe TX Throughput (MB/s) :        1      0.000      0.000      0.000      0.000   
-                     GPU: Bytes Allocated :        2      6.000     11.000     16.000      5.000   
-                           status:Threads :        1      7.000      7.000      7.000      0.000   
-                            status:VmData :        1   2.77e+05   2.77e+05   2.77e+05      0.000   
-                             status:VmExe :        1     64.000     64.000     64.000      0.000   
-                             status:VmHWM :        1   2.19e+05   2.19e+05   2.19e+05      0.000   
-                             status:VmLck :        1      0.000      0.000      0.000      0.000   
-                             status:VmLib :        1   8.74e+04   8.74e+04   8.74e+04      0.000   
-                             status:VmPMD :        1     16.000     16.000     16.000      0.000   
-                             status:VmPTE :        1     35.000     35.000     35.000      0.000   
-                            status:VmPeak :        1   7.17e+05   7.17e+05   7.17e+05      0.000   
-                             status:VmPin :        1   1.67e+05   1.67e+05   1.67e+05      0.000   
-                             status:VmRSS :        1   2.19e+05   2.19e+05   2.19e+05      0.000   
-                            status:VmSize :        1   6.52e+05   6.52e+05   6.52e+05      0.000   
-                             status:VmStk :        1    192.000    192.000    192.000      0.000   
-                            status:VmSwap :        1      0.000      0.000      0.000      0.000   
-        status:nonvoluntary_ctxt_switches :        1      9.000      9.000      9.000      0.000   
-           status:voluntary_ctxt_switches :        1   1331.000   1331.000   1331.000      0.000   
+                    1 Minute Load average :        1     13.320     13.320     13.320      0.000
+          Device 0 GPU Clock Memory (MHz) :        1    877.000    877.000    877.000      0.000
+              Device 0 GPU Clock SM (MHz) :        1   1530.000   1530.000   1530.000      0.000
+            Device 0 GPU Memory Free (MB) :        1   1.34e+04   1.34e+04   1.34e+04      0.000
+            Device 0 GPU Memory Used (MB) :        1   2.07e+04   2.07e+04   2.07e+04      0.000
+        Device 0 GPU Memory Utilization % :        1     48.000     48.000     48.000      0.000
+           Device 0 GPU NvLink Link Count :        1      6.000      6.000      6.000      0.000
+           Device 0 GPU NvLink Speed MB/s :        1   2.58e+04   2.58e+04   2.58e+04      0.000
+       Device 0 GPU NvLink Utilization C0 :        1      0.000      0.000      0.000      0.000
+       Device 0 GPU NvLink Utilization C1 :        1      0.000      0.000      0.000      0.000
+                   Device 0 GPU Power (W) :        1    240.573    240.573    240.573      0.000
+             Device 0 GPU Temperature (C) :        1     73.000     73.000     73.000      0.000
+               Device 0 GPU Utilization % :        1     95.000     95.000     95.000      0.000
+       Device 0 PCIe RX Throughput (MB/s) :        1      5.000      5.000      5.000      0.000
+       Device 0 PCIe TX Throughput (MB/s) :        1      0.000      0.000      0.000      0.000
+                     GPU: Bytes Allocated :        2      6.000     11.000     16.000      5.000
+                           status:Threads :        1      7.000      7.000      7.000      0.000
+                            status:VmData :        1   2.77e+05   2.77e+05   2.77e+05      0.000
+                             status:VmExe :        1     64.000     64.000     64.000      0.000
+                             status:VmHWM :        1   2.19e+05   2.19e+05   2.19e+05      0.000
+                             status:VmLck :        1      0.000      0.000      0.000      0.000
+                             status:VmLib :        1   8.74e+04   8.74e+04   8.74e+04      0.000
+                             status:VmPMD :        1     16.000     16.000     16.000      0.000
+                             status:VmPTE :        1     35.000     35.000     35.000      0.000
+                            status:VmPeak :        1   7.17e+05   7.17e+05   7.17e+05      0.000
+                             status:VmPin :        1   1.67e+05   1.67e+05   1.67e+05      0.000
+                             status:VmRSS :        1   2.19e+05   2.19e+05   2.19e+05      0.000
+                            status:VmSize :        1   6.52e+05   6.52e+05   6.52e+05      0.000
+                             status:VmStk :        1    192.000    192.000    192.000      0.000
+                            status:VmSwap :        1      0.000      0.000      0.000      0.000
+        status:nonvoluntary_ctxt_switches :        1      9.000      9.000      9.000      0.000
+           status:voluntary_ctxt_switches :        1   1331.000   1331.000   1331.000      0.000
 ------------------------------------------------------------------------------------------------
 
-Timer                                                : #calls  |    mean  |   total  |  % total  
+Timer                                                : #calls  |    mean  |   total  |  % total
 ------------------------------------------------------------------------------------------------
                                            APEX MAIN :        1      0.461      0.461    100.000
                             GPU: Unified Memcpy DTOH :        1      0.000      0.000      0.001
@@ -561,11 +589,10 @@ launch [/home/users/khuck/src/xpress-apex/src/uni... :        4      0.028      
 ------------------------------------------------------------------------------------------------
                                         Total timers : 22
 </code></pre>
-
 <h3 id="profiling_with_csv_output">Profiling with CSV output<a class="headerlink" href="#profiling_with_csv_output" title="Permanent link">&para;</a></h3>
 <p>To enable CSV output, use one of the methods described in the <a href="/environment">Environment Variables</a> page, and run as the previous example.</p>
-<pre><code class="bash">[khuck@cyclops xpress-apex]$ export APEX_CSV_OUTPUT=1
-[khuck@cyclops xpress-apex]$ ./build/src/unit_tests/CUDA/apex_cuda_cu 
+<pre><code class="language-bash">[khuck@cyclops xpress-apex]$ export APEX_CSV_OUTPUT=1
+[khuck@cyclops xpress-apex]$ ./build/src/unit_tests/CUDA/apex_cuda_cu
 Found 4 total devices
 On device: name=hello, value=10
 On device: name=dello, value=11
@@ -573,7 +600,7 @@ On device: name=dello, value=12
 On device: name=dello, value=13
 On host: name=dello, value=14
 
-[khuck@cyclops xpress-apex]$ cat apex.0.csv 
+[khuck@cyclops xpress-apex]$ cat apex.0.csv
 &quot;counter&quot;,&quot;num samples&quot;,&quot;minimum&quot;,&quot;mean&quot;&quot;maximum&quot;,&quot;stddev&quot;
 &quot;1 Minute Load average&quot;,1,22,22,22,0
 &quot;Device 0 GPU Clock Memory (MHz)&quot;,1,877,877,877,0
@@ -620,11 +647,10 @@ On host: name=dello, value=14
 &quot;cudaMallocManaged&quot;,2,0,194367
 &quot;launch [/home/users/khuck/src/xpress-apex/src/unit_tests/CUDA/apex_cuda.cu:35]&quot;,4,0,164490
 </code></pre>
-
 <h3 id="profiling_with_tau_profile_output">Profiling with TAU profile output<a class="headerlink" href="#profiling_with_tau_profile_output" title="Permanent link">&para;</a></h3>
 <p>To enable TAU profile output, use one of the methods described in the <a href="/environment">Environment Variables</a> page, and run as the previous example.  The output can be summarized with the TAU <code>pprof</code> command, which is installed with the TAU software.</p>
-<pre><code class="bash">[khuck@cyclops xpress-apex]$ export APEX_CSV_OUTPUT=1
-[khuck@cyclops xpress-apex]$ ./build/src/unit_tests/CUDA/apex_cuda_cu 
+<pre><code class="language-bash">[khuck@cyclops xpress-apex]$ export APEX_CSV_OUTPUT=1
+[khuck@cyclops xpress-apex]$ ./build/src/unit_tests/CUDA/apex_cuda_cu
 Found 4 total devices
 On device: name=hello, value=10
 On device: name=dello, value=11
@@ -632,53 +658,53 @@ On device: name=dello, value=12
 On device: name=dello, value=13
 On host: name=dello, value=14
 
-[khuck@cyclops xpress-apex]$ cat profile.0.0.0 
+[khuck@cyclops xpress-apex]$ cat profile.0.0.0
 9 templated_functions_MULTI_TIME
 # Name Calls Subrs Excl Incl ProfileCalls #
-&quot;GPU: Unified Memcpy DTOH&quot; 1 0 2.656 2.656 0 GROUP=&quot;TAU_USER&quot; 
-&quot;cudaFree&quot; 2 0 193.18 193.18 0 GROUP=&quot;TAU_USER&quot; 
-&quot;cudaMallocManaged&quot; 2 0 184435 184435 0 GROUP=&quot;TAU_USER&quot; 
-&quot;GPU: Unified Memcpy HTOD&quot; 1 0 4.64 4.64 0 GROUP=&quot;TAU_USER&quot; 
-&quot;GPU: Kernel(DataElement*)&quot; 4 0 355.293 355.293 0 GROUP=&quot;TAU_USER&quot; 
-&quot;cudaLaunchKernel&quot; 4 0 67.4 67.4 0 GROUP=&quot;TAU_USER&quot; 
-&quot;cudaDeviceSynchronize&quot; 4 0 811.244 811.244 0 GROUP=&quot;TAU_USER&quot; 
-&quot;launch [/home/users/khuck/src/xpress-apex/src/unit_tests/CUDA/apex_cuda.cu:35]&quot; 4 0 100327 100327 0 GROUP=&quot;TAU_USER&quot; 
-&quot;APEX MAIN&quot; 1 0 67830.2 354026 0 GROUP=&quot;TAU_USER&quot; 
+&quot;GPU: Unified Memcpy DTOH&quot; 1 0 2.656 2.656 0 GROUP=&quot;TAU_USER&quot;
+&quot;cudaFree&quot; 2 0 193.18 193.18 0 GROUP=&quot;TAU_USER&quot;
+&quot;cudaMallocManaged&quot; 2 0 184435 184435 0 GROUP=&quot;TAU_USER&quot;
+&quot;GPU: Unified Memcpy HTOD&quot; 1 0 4.64 4.64 0 GROUP=&quot;TAU_USER&quot;
+&quot;GPU: Kernel(DataElement*)&quot; 4 0 355.293 355.293 0 GROUP=&quot;TAU_USER&quot;
+&quot;cudaLaunchKernel&quot; 4 0 67.4 67.4 0 GROUP=&quot;TAU_USER&quot;
+&quot;cudaDeviceSynchronize&quot; 4 0 811.244 811.244 0 GROUP=&quot;TAU_USER&quot;
+&quot;launch [/home/users/khuck/src/xpress-apex/src/unit_tests/CUDA/apex_cuda.cu:35]&quot; 4 0 100327 100327 0 GROUP=&quot;TAU_USER&quot;
+&quot;APEX MAIN&quot; 1 0 67830.2 354026 0 GROUP=&quot;TAU_USER&quot;
 0 aggregates
 32 userevents
 # eventname numevents max min mean sumsqr
-&quot;status:VmSwap&quot; 1 0 0 0 0 
-&quot;status:VmSize&quot; 1 652032 652032 652032 4.25146e+11 
-&quot;status:Threads&quot; 1 7 7 7 49 
-&quot;status:VmPeak&quot; 1 717248 717248 717248 5.14445e+11 
-&quot;Device 0 GPU Power (W)&quot; 1 224.057 224.057 224.057 50201.5 
-&quot;Device 0 GPU NvLink Speed MB/s&quot; 1 25781 25781 25781 6.6466e+08 
-&quot;status:VmExe&quot; 1 64 64 64 4096 
-&quot;status:nonvoluntary_ctxt_switches&quot; 1 12 12 12 144 
-&quot;Device 0 GPU Memory Utilization %&quot; 1 73 73 73 5329 
-&quot;status:VmStk&quot; 1 192 192 192 36864 
-&quot;status:VmData&quot; 1 277120 277120 277120 7.67955e+10 
-&quot;status:VmLck&quot; 1 0 0 0 0 
-&quot;status:VmPin&quot; 1 166528 166528 166528 2.77316e+10 
-&quot;status:VmPTE&quot; 1 35 35 35 1225 
-&quot;Device 0 GPU NvLink Utilization C1&quot; 1 0 0 0 0 
-&quot;status:VmHWM&quot; 1 219008 219008 219008 4.79645e+10 
-&quot;status:VmRSS&quot; 1 219008 219008 219008 4.79645e+10 
-&quot;GPU: Bytes Allocated&quot; 2 16 6 11 292 
-&quot;status:VmLib&quot; 1 87424 87424 87424 7.64296e+09 
-&quot;Device 0 GPU Utilization %&quot; 1 99 99 99 9801 
-&quot;status:voluntary_ctxt_switches&quot; 1 1320 1320 1320 1.7424e+06 
-&quot;Device 0 GPU Clock SM (MHz)&quot; 1 1530 1530 1530 2.3409e+06 
-&quot;status:VmPMD&quot; 1 20 20 20 400 
-&quot;1 Minute Load average&quot; 1 16.43 16.43 16.43 269.945 
-&quot;Device 0 GPU Clock Memory (MHz)&quot; 1 877 877 877 769129 
-&quot;Device 0 PCIe TX Throughput (MB/s)&quot; 1 2 2 2 4 
-&quot;Device 0 GPU Temperature (C)&quot; 1 73 73 73 5329 
-&quot;Device 0 PCIe RX Throughput (MB/s)&quot; 1 6 6 6 36 
-&quot;Device 0 GPU Memory Used (MB)&quot; 1 20679.1 20679.1 20679.1 4.27625e+08 
-&quot;Device 0 GPU NvLink Utilization C0&quot; 1 0 0 0 0 
-&quot;Device 0 GPU NvLink Link Count&quot; 1 6 6 6 36 
-&quot;Device 0 GPU Memory Free (MB)&quot; 1 13410.6 13410.6 13410.6 1.79845e+08 
+&quot;status:VmSwap&quot; 1 0 0 0 0
+&quot;status:VmSize&quot; 1 652032 652032 652032 4.25146e+11
+&quot;status:Threads&quot; 1 7 7 7 49
+&quot;status:VmPeak&quot; 1 717248 717248 717248 5.14445e+11
+&quot;Device 0 GPU Power (W)&quot; 1 224.057 224.057 224.057 50201.5
+&quot;Device 0 GPU NvLink Speed MB/s&quot; 1 25781 25781 25781 6.6466e+08
+&quot;status:VmExe&quot; 1 64 64 64 4096
+&quot;status:nonvoluntary_ctxt_switches&quot; 1 12 12 12 144
+&quot;Device 0 GPU Memory Utilization %&quot; 1 73 73 73 5329
+&quot;status:VmStk&quot; 1 192 192 192 36864
+&quot;status:VmData&quot; 1 277120 277120 277120 7.67955e+10
+&quot;status:VmLck&quot; 1 0 0 0 0
+&quot;status:VmPin&quot; 1 166528 166528 166528 2.77316e+10
+&quot;status:VmPTE&quot; 1 35 35 35 1225
+&quot;Device 0 GPU NvLink Utilization C1&quot; 1 0 0 0 0
+&quot;status:VmHWM&quot; 1 219008 219008 219008 4.79645e+10
+&quot;status:VmRSS&quot; 1 219008 219008 219008 4.79645e+10
+&quot;GPU: Bytes Allocated&quot; 2 16 6 11 292
+&quot;status:VmLib&quot; 1 87424 87424 87424 7.64296e+09
+&quot;Device 0 GPU Utilization %&quot; 1 99 99 99 9801
+&quot;status:voluntary_ctxt_switches&quot; 1 1320 1320 1320 1.7424e+06
+&quot;Device 0 GPU Clock SM (MHz)&quot; 1 1530 1530 1530 2.3409e+06
+&quot;status:VmPMD&quot; 1 20 20 20 400
+&quot;1 Minute Load average&quot; 1 16.43 16.43 16.43 269.945
+&quot;Device 0 GPU Clock Memory (MHz)&quot; 1 877 877 877 769129
+&quot;Device 0 PCIe TX Throughput (MB/s)&quot; 1 2 2 2 4
+&quot;Device 0 GPU Temperature (C)&quot; 1 73 73 73 5329
+&quot;Device 0 PCIe RX Throughput (MB/s)&quot; 1 6 6 6 36
+&quot;Device 0 GPU Memory Used (MB)&quot; 1 20679.1 20679.1 20679.1 4.27625e+08
+&quot;Device 0 GPU NvLink Utilization C0&quot; 1 0 0 0 0
+&quot;Device 0 GPU NvLink Link Count&quot; 1 6 6 6 36
+&quot;Device 0 GPU Memory Free (MB)&quot; 1 13410.6 13410.6 13410.6 1.79845e+08
 
 [khuck@cyclops xpress-apex]$ which pprof
 ~/src/tau2/ibm64linux/bin/pprof
@@ -688,7 +714,7 @@ Reading Profile files in profile.*
 NODE 0;CONTEXT 0;THREAD 0:
 ---------------------------------------------------------------------------------------
 %Time    Exclusive    Inclusive       #Call      #Subrs  Inclusive Name
-              msec   total msec                          usec/call 
+              msec   total msec                          usec/call
 ---------------------------------------------------------------------------------------
 100.0           67          354           1           0     354026 APEX MAIN
  52.1          184          184           2           0      92218 cudaMallocManaged
@@ -739,33 +765,30 @@ NumSamples   MaxValue   MinValue  MeanValue  Std. Dev.  Event Name
          1       1320       1320       1320          0  status:voluntary_ctxt_switches
 ---------------------------------------------------------------------------------------
 </code></pre>
-
 <h3 id="profiling_with_taskgraph_output">Profiling with Taskgraph output<a class="headerlink" href="#profiling_with_taskgraph_output" title="Permanent link">&para;</a></h3>
 <p>APEX can capture the task dependency graph from the application, and output it as a GraphViz graph.  The graph represents summarized task "type" dependencies, not a full dependency graph/tree with every task instance.</p>
-<pre><code class="bash">[khuck@cyclops xpress-apex]$ export APEX_TASKGRAPH_OUTPUT=1
+<pre><code class="language-bash">[khuck@cyclops xpress-apex]$ export APEX_TASKGRAPH_OUTPUT=1
 [khuck@cyclops xpress-apex]$ export APEX_CUDA_DRIVER_API=1
-[khuck@cyclops xpress-apex]$ ./build/src/unit_tests/CUDA/apex_cuda_cu 
+[khuck@cyclops xpress-apex]$ ./build/src/unit_tests/CUDA/apex_cuda_cu
 [khuck@cyclops xpress-apex]$ dot -Tpdf -O taskgraph.0.dot
 </code></pre>
-
 <p><img alt="CUDA task graph" src="../img/cuda_taskgraph.png" /></p>
 <h3 id="profiling_with_scatterplot_output">Profiling with Scatterplot output<a class="headerlink" href="#profiling_with_scatterplot_output" title="Permanent link">&para;</a></h3>
-<p>For this example, we are using an HPX quickstart example, the <code>fibonacci</code> example.  After execution, APEX writes a sample data file to disk, <code>apex_task_samples.csv</code>.  That file is post-processed with the APEX python script <code>task_scatterplot.py</code>. </p>
-<pre><code class="bash">[khuck@cyclops xpress-apex]$ export APEX_TASK_SCATTERPLOT=1
+<p>For this example, we are using an HPX quickstart example, the <code>fibonacci</code> example.  After execution, APEX writes a sample data file to disk, <code>apex_task_samples.csv</code>.  That file is post-processed with the APEX python script <code>task_scatterplot.py</code>.</p>
+<pre><code class="language-bash">[khuck@cyclops xpress-apex]$ export APEX_TASK_SCATTERPLOT=1
 [khuck@cyclops build]$ ./bin/fibonacci --n-value=20
-[khuck@cyclops build]$ /home/users/khuck/src/xpress-apex/install/bin/task_scatterplot.py 
+[khuck@cyclops build]$ /home/users/khuck/src/xpress-apex/install/bin/task_scatterplot.py
 Parsed 2362 samples
 Plotting async_launch_policy_dispatch
 Plotting async_launch_policy_dispatch::call
 Plotting async
 Rendering...
 </code></pre>
-
 <p><img alt="HPX task scatterplot" src="../img/fibonacci_scatterplot.png" /></p>
 <h3 id="profiling_with_otf2_trace_output">Profiling with OTF2 Trace output<a class="headerlink" href="#profiling_with_otf2_trace_output" title="Permanent link">&para;</a></h3>
 <p>For this example, we are using an APEX unit test that computes the value of PI.  OTF2 is the "Open Trace Format v2", used for tracing large scale HPC applications. For more information on OTF2 and associated tools, see <a href="https://www.vi-hps.org/projects/score-p/index.html">The VI-HPS Score-P web site</a>.  Vampir is a commercial trace viewer that can be used to visualize and analyze OTF2 trace data.  Traveler is an open source tool that can be used to visualize and analyze APEX OTF2 trace data.</p>
-<pre><code class="bash">[khuck@cyclops xpress-apex]$ export APEX_OTF2=1
-[khuck@cyclops xpress-apex]$ ./build/src/unit_tests/CUDA/pi_cu 
+<pre><code class="language-bash">[khuck@cyclops xpress-apex]$ export APEX_OTF2=1
+[khuck@cyclops xpress-apex]$ ./build/src/unit_tests/CUDA/pi_cu
 Found 4 total devices
 134217728
 num streams 4
@@ -786,42 +809,31 @@ done.
 [khuck@eagle xpress-apex]$ module load vampir
 [khuck@eagle xpress-apex]$ vampir OTF2_archive/APEX.otf2
 </code></pre>
-
 <p><img alt="CUDA OTF2 trace in Vampir" src="../img/pi_cu_trace.png" /></p>
 <h3 id="profiling_with_google_trace_events_format_output">Profiling with Google Trace Events Format output<a class="headerlink" href="#profiling_with_google_trace_events_format_output" title="Permanent link">&para;</a></h3>
 <p>For this example, we are using an APEX unit test that computes the value of PI.  Google Trace Events is a format developed by Google for tracing activity on devices, but is free and open and JSON based. For more information on Google Trace Events and associated tools, see <a href="https://www.google.com/url?sa=t&amp;rct=j&amp;q=&amp;esrc=s&amp;source=web&amp;cd=&amp;cad=rja&amp;uact=8&amp;ved=2ahUKEwiQ5uai8vrrAhV2JTQIHeTWDWcQFjAAegQIBRAB&amp;url=https%3A%2F%2Fdocs.google.com%2Fdocument%2Fd%2F1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKchNAySU%2Fpreview&amp;usg=AOvVaw0tBFlVbDVBikdzLqgrWK3g">the Google Trace Event Format document</a>.  The Google Chrome Web Browser can be used to visualize and analyze GTE trace data.</p>
 <pre><code>[khuck@cyclops xpress-apex]$ export APEX_TRACE_EVENT=1
-[khuck@cyclops xpress-apex]$ ./build/src/unit_tests/CUDA/pi_cu 
+[khuck@cyclops xpress-apex]$ ./build/src/unit_tests/CUDA/pi_cu
 </code></pre>
-
 <p><img alt="CUDA Google trace in Chrome" src="../img/pi_cu_gte.png" /></p>
               
             </div>
-          </div>
-          <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../install/" class="btn btn-neutral float-left" title="Installation"><span class="icon icon-circle-arrow-left"></span> Previous</a>
         <a href="../environment/" class="btn btn-neutral float-right" title="Useful Environment Variables">Next <span class="icon icon-circle-arrow-right"></span></a>
-      
-      
-        <a href="../install/" class="btn btn-neutral" title="Installation"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-      
     </div>
-  
 
   <hr/>
 
   <div role="contentinfo">
     <!-- Copyright etc -->
-    
       <p>(C) 2014-2021 University of Oregon, All Rights Reserved</p>
-    
   </div>
 
-  Built with <a href="http://www.mkdocs.org">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 </footer>
-      
+          
         </div>
       </div>
 
@@ -829,22 +841,30 @@ done.
 
   </div>
 
-  <div class="rst-versions" role="note" style="cursor: pointer">
-    <span class="rst-current-version" data-toggle="rst-current-version">
-      
-          <a href="http://github.com/khuck/xpress-apex/" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
-      
-      
-        <span><a href="../install/" style="color: #fcfcfc;">&laquo; Previous</a></span>
-      
-      
-        <span style="margin-left: 15px"><a href="../environment/" style="color: #fcfcfc">Next &raquo;</a></span>
-      
-    </span>
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="http://github.com/khuck/xpress-apex" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+      <span><a href="../install/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../environment/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
 </div>
     <script>var base_url = '..';</script>
+    <script src="../js/theme_extra.js" defer></script>
     <script src="../js/theme.js" defer></script>
       <script src="../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
 
 </body>
 </html>

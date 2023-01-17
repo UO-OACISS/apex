@@ -1,153 +1,124 @@
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  <meta name="author" content="Kevin Huck (khuck@cs.uoregon.edu)">
-  <link rel="shortcut icon" href="../img/favicon.ico">
-  <title>Installation - APEX</title>
-  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
-
-  <link rel="stylesheet" href="../css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../css/theme_extra.css" type="text/css" />
-  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css">
-  
-  <script>
-    // Current page data
-    var mkdocs_page_name = "Installation";
-    var mkdocs_page_input_path = "install.md";
-    var mkdocs_page_url = "/xpress-apex/install/";
-  </script>
-  
-  <script src="../js/jquery-2.1.1.min.js" defer></script>
-  <script src="../js/modernizr-2.8.3.min.js" defer></script>
-  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
-  <script>hljs.initHighlightingOnLoad();</script> 
-  
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="author" content="Kevin Huck (khuck@cs.uoregon.edu)" /><link rel="canonical" href="http://khuck.github.io/xpress-apex/install/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Installation - APEX</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Installation";
+        var mkdocs_page_input_path = "install.md";
+        var mkdocs_page_url = "/xpress-apex/install/";
+      </script>
+    
+    <script src="../js/jquery-3.6.0.min.js" defer></script>
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+      <script>hljs.initHighlightingOnLoad();</script> 
 </head>
 
 <body class="wy-body-for-nav" role="document">
 
   <div class="wy-grid-for-nav">
-
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
       <div class="wy-side-nav-search">
-        <a href=".." class="icon icon-home"> APEX</a>
-        <div role="search">
+          <a href=".." class="icon icon-home"> APEX
+        </a><div role="search">
   <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
   </form>
 </div>
       </div>
 
-      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-	<ul class="current">
-	  
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="..">Home</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../quickstarthpx/">Quick Start (HPX)</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../quickstart/">Quick Start (standalone)</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../feature/">Feature Overview</a>
-	    </li>
-          
-            <li class="toctree-l1 current">
-		
-    <a class="current" href="./">Installation</a>
-    <ul class="subnav">
-            
-    <li class="toctree-l2"><a href="#installing_apex">Installing APEX</a></li>
-    
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../quickstarthpx/">Quick Start (HPX)</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../quickstart/">Quick Start (standalone)</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../feature/">Feature Overview</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="./">Installation</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#installation_with_hpx">Installation with HPX</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#standalone_installation">Standalone Installation</a>
         <ul>
-        
-            <li><a class="toctree-l3" href="#installation_with_hpx">Installation with HPX</a></li>
-        
-            <li><a class="toctree-l3" href="#standalone_installation">Standalone Installation</a></li>
-        
+    <li class="toctree-l3"><a class="reference internal" href="#configuring_and_building_apex_with_cmake">Configuring and building APEX with CMake</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#other_cmake_settings_depending_on_your_needswants">Other CMake settings, depending on your needs/wants</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#other_cmake_variables_of_interest">Other CMake variables of interest</a>
+    </li>
         </ul>
-    
-
+    </li>
     </ul>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../usage/">Usage</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../environment/">Useful Environment Variables</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../spec/">API Specification</a>
-	    </li>
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="../refman/">API Doxygen Reference</a>
-	    </li>
-          
-        </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../usage/">Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../environment/">Useful Environment Variables</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../spec/">API Specification</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../refman/">API Doxygen Reference</a>
+                </li>
+              </ul>
       </div>
-      &nbsp;
+    </div>
     </nav>
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
-        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-        <a href="..">APEX</a>
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">APEX</a>
+        
       </nav>
-
-      
       <div class="wy-nav-content">
-        <div class="rst-content">
-          <div role="navigation" aria-label="breadcrumbs navigation">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
   <ul class="wy-breadcrumbs">
-    <li><a href="..">Docs</a> &raquo;</li>
-    
-      
-    
-    <li>Installation</li>
+    <li><a href=".." class="icon icon-home" alt="Docs"></a> &raquo;</li>
+      <li>Installation</li>
     <li class="wy-breadcrumbs-aside">
-      
-        <a href="http://github.com/khuck/xpress-apex/edit/master/docs/install.md"
-          class="icon icon-github"> Edit on GitHub</a>
-      
+          <a href="http://github.com/khuck/xpress-apex/edit/master/docs/install.md" class="icon icon-github"> Edit on GitHub</a>
     </li>
   </ul>
   <hr/>
 </div>
-          <div role="main">
-            <div class="section">
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
               
                 <h1 id="installing_apex">Installing APEX<a class="headerlink" href="#installing_apex" title="Permanent link">&para;</a></h1>
 <h2 id="installation_with_hpx">Installation with HPX<a class="headerlink" href="#installation_with_hpx" title="Permanent link">&para;</a></h2>
 <p>APEX is integrated into the <a href="https://hpx.stellar-group.org">HPX runtime</a>, and is integrated into the HPX build system.  To enable APEX measurement with HPX, enable the following CMake flags:</p>
 <pre><code>-DHPX_WITH_APEX=TRUE
 </code></pre>
-
 <p>The <code>-DHPX_WITH_APEX_TAG=develop</code> can be used to indicate a specific release version of APEX, or to use a specific GitHub branch of APEX.  We recommend using the default configured version that comes with HPX (currently <code>v2.3.1</code>) or the <code>develop</code> branch.  Additional CMake flags include:</p>
 <ul>
 <li><code>-DAPEX_WITH_LM_SENSORS=TRUE</code> to enable <a href="https://hwmon.wiki.kernel.org/lm_sensors">LM sensors</a> support (assumed to be installed in default system paths)</li>
@@ -162,16 +133,14 @@
 <h2 id="standalone_installation">Standalone Installation<a class="headerlink" href="#standalone_installation" title="Permanent link">&para;</a></h2>
 <p>APEX is open source, and available on Github at <a href="http://github.com/khuck/xpress-apex">http://github.com/khuck/xpress-apex</a>.</p>
 <p>For stability, most users will want to download the most recent release of APEX (for example, v2.3.1):</p>
-<pre><code class="bash">wget https://github.com/khuck/xpress-apex/archive/v2.3.1.tar.gz
+<pre><code class="language-bash">wget https://github.com/khuck/xpress-apex/archive/v2.3.1.tar.gz
 tar -xvzf v2.3.1.tar.gz
 cd xpress-apex-2.3.1
 </code></pre>
-
 <p>Other users may want to work with the most recent code available, in which case you can clone the git repo:</p>
-<pre><code class="bash">git clone https://github.com/khuck/xpress-apex.git
+<pre><code class="language-bash">git clone https://github.com/khuck/xpress-apex.git
 cd xpress-apex
 </code></pre>
-
 <h3 id="configuring_and_building_apex_with_cmake">Configuring and building APEX with CMake<a class="headerlink" href="#configuring_and_building_apex_with_cmake" title="Permanent link">&para;</a></h3>
 <p>APEX is built with CMake. The minimum CMake settings needed for APEX are:</p>
 <ul>
@@ -186,28 +155,24 @@ cd xpress-apex
 <p>The process for building APEX is:</p>
 <p>1) Get the code (see above)</p>
 <p>2) Enter the repo directory, make a build directory:</p>
-<pre><code class="bash">cd xpress-apex-2.3.1
+<pre><code class="language-bash">cd xpress-apex-2.3.1
 mkdir build
 cd build
 </code></pre>
-
 <p>3) configure using CMake:</p>
-<pre><code class="bash">cmake -DCMAKE_INSTALL_PREFIX=&lt;installation-path&gt; -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
+<pre><code class="language-bash">cmake -DCMAKE_INSTALL_PREFIX=&lt;installation-path&gt; -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 </code></pre>
-
 <p>If Boost is required (Intel Phi <strong>only</strong>):</p>
-<pre><code class="bash">cmake -DBOOST_ROOT=&lt;path-to-boost&gt; -DCMAKE_INSTALL_PREFIX=&lt;installation-path&gt; -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
+<pre><code class="language-bash">cmake -DBOOST_ROOT=&lt;path-to-boost&gt; -DCMAKE_INSTALL_PREFIX=&lt;installation-path&gt; -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 </code></pre>
-
 <p>4) build with make:</p>
-<pre><code class="bash">make
+<pre><code class="language-bash">make
 make test
 make doc
 make install
 </code></pre>
-
 <h3 id="other_cmake_settings_depending_on_your_needswants">Other CMake settings, depending on your needs/wants<a class="headerlink" href="#other_cmake_settings_depending_on_your_needswants" title="Permanent link">&para;</a></h3>
-<p><strong>Note 1:</strong> <em>The <strong>recommended</strong> packages include:</em></p>
+<p><strong>Note 1:</strong> <em>The </em><em>recommended</em><em> packages include:</em></p>
 <ul>
 <li><strong>Active Harmony</strong> - for autotuning policies</li>
 <li><strong>OMPT</strong> - if OpenMP support is required (<a href="../usecases/#openmp-example">See the OpenMP use case</a> for an example)</li>
@@ -216,7 +181,7 @@ make install
 <li><strong>JEMalloc/TCMalloc</strong> - if your application is not already using a heap manager - see Note 2, below</li>
 <li><strong>CUDA</strong> - if your application uses CUDA, APEX will use CUPTI/NVML to measure GPU activity</li>
 </ul>
-<p><strong>Note 2:</strong> <em>TCMalloc or JEMalloc will potentially speed up memory allocations <strong>significantly</strong> in APEX (and in your application). HOWEVER, If your application already uses TCMalloc, JEMalloc or TBBMalloc, <strong>DO NOT</strong> configure APEX with TCMalloc or JEMalloc. They will be included at application link time, and may conflict with the version detected by and linked into APEX.</em></p>
+<p><strong>Note 2:</strong> <em>TCMalloc or JEMalloc will potentially speed up memory allocations </em><em>significantly</em><em> in APEX (and in your application). HOWEVER, If your application already uses TCMalloc, JEMalloc or TBBMalloc, </em><em>DO NOT</em><em> configure APEX with TCMalloc or JEMalloc. They will be included at application link time, and may conflict with the version detected by and linked into APEX.</em></p>
 <p>There are several utility libraries that provide additional functionality in APEX. Not all libraries are required, but some are recommended.  For the following options, the default values are in <em>italics</em>.</p>
 <ul>
 <li><code>-DAPEX_WITH_ACTIVEHARMONY=</code>
@@ -271,31 +236,22 @@ make install
 </ul>
               
             </div>
-          </div>
-          <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../feature/" class="btn btn-neutral float-left" title="Feature Overview"><span class="icon icon-circle-arrow-left"></span> Previous</a>
         <a href="../usage/" class="btn btn-neutral float-right" title="Usage">Next <span class="icon icon-circle-arrow-right"></span></a>
-      
-      
-        <a href="../feature/" class="btn btn-neutral" title="Feature Overview"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-      
     </div>
-  
 
   <hr/>
 
   <div role="contentinfo">
     <!-- Copyright etc -->
-    
       <p>(C) 2014-2021 University of Oregon, All Rights Reserved</p>
-    
   </div>
 
-  Built with <a href="http://www.mkdocs.org">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 </footer>
-      
+          
         </div>
       </div>
 
@@ -303,22 +259,30 @@ make install
 
   </div>
 
-  <div class="rst-versions" role="note" style="cursor: pointer">
-    <span class="rst-current-version" data-toggle="rst-current-version">
-      
-          <a href="http://github.com/khuck/xpress-apex/" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
-      
-      
-        <span><a href="../feature/" style="color: #fcfcfc;">&laquo; Previous</a></span>
-      
-      
-        <span style="margin-left: 15px"><a href="../usage/" style="color: #fcfcfc">Next &raquo;</a></span>
-      
-    </span>
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="http://github.com/khuck/xpress-apex" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+      <span><a href="../feature/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../usage/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
 </div>
     <script>var base_url = '..';</script>
+    <script src="../js/theme_extra.js" defer></script>
     <script src="../js/theme.js" defer></script>
       <script src="../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
 
 </body>
 </html>
