@@ -7,7 +7,7 @@
 HPX (High Performance ParalleX) is the original implementation of the ParalleX
 model. Developed and maintained by the Ste||ar Group at Louisiana State
 University, HPX is implemented in C++. For more information, see
-<http://stellar.cct.lsu.edu/projects/hpx/>.  For a tutorial on HPX with APEX
+<http://stellar-group.org/projects/hpx/>.  For a tutorial on HPX with APEX
 (presented at SC'15, Austin TX) see
 <https://github.com/khuck/SC15_APEX_tutorial> (somewhat outdated).
 
@@ -415,7 +415,7 @@ Profiling with APEX is the usual and most simple mode of operation.  In order to
 
 ```bash
 [khuck@cyclops xpress-apex]$ export APEX_SCREEN_OUTPUT=1
-[khuck@cyclops xpress-apex]$ ./build/src/unit_tests/CUDA/apex_cuda_cu 
+[khuck@cyclops xpress-apex]$ ./build/src/unit_tests/CUDA/apex_cuda_cu
 Found 4 total devices
 On device: name=hello, value=10
 On device: name=dello, value=11
@@ -428,43 +428,43 @@ Cores detected: 160
 Worker Threads observed: 1
 Available CPU time: 0.46147 seconds
 
-Counter                                   : #samples | minimum |    mean  |  maximum |  stddev 
+Counter                                   : #samples | minimum |    mean  |  maximum |  stddev
 ------------------------------------------------------------------------------------------------
-                    1 Minute Load average :        1     13.320     13.320     13.320      0.000   
-          Device 0 GPU Clock Memory (MHz) :        1    877.000    877.000    877.000      0.000   
-              Device 0 GPU Clock SM (MHz) :        1   1530.000   1530.000   1530.000      0.000   
-            Device 0 GPU Memory Free (MB) :        1   1.34e+04   1.34e+04   1.34e+04      0.000   
-            Device 0 GPU Memory Used (MB) :        1   2.07e+04   2.07e+04   2.07e+04      0.000   
-        Device 0 GPU Memory Utilization % :        1     48.000     48.000     48.000      0.000   
-           Device 0 GPU NvLink Link Count :        1      6.000      6.000      6.000      0.000   
-           Device 0 GPU NvLink Speed MB/s :        1   2.58e+04   2.58e+04   2.58e+04      0.000   
-       Device 0 GPU NvLink Utilization C0 :        1      0.000      0.000      0.000      0.000   
-       Device 0 GPU NvLink Utilization C1 :        1      0.000      0.000      0.000      0.000   
-                   Device 0 GPU Power (W) :        1    240.573    240.573    240.573      0.000   
-             Device 0 GPU Temperature (C) :        1     73.000     73.000     73.000      0.000   
-               Device 0 GPU Utilization % :        1     95.000     95.000     95.000      0.000   
-       Device 0 PCIe RX Throughput (MB/s) :        1      5.000      5.000      5.000      0.000   
-       Device 0 PCIe TX Throughput (MB/s) :        1      0.000      0.000      0.000      0.000   
-                     GPU: Bytes Allocated :        2      6.000     11.000     16.000      5.000   
-                           status:Threads :        1      7.000      7.000      7.000      0.000   
-                            status:VmData :        1   2.77e+05   2.77e+05   2.77e+05      0.000   
-                             status:VmExe :        1     64.000     64.000     64.000      0.000   
-                             status:VmHWM :        1   2.19e+05   2.19e+05   2.19e+05      0.000   
-                             status:VmLck :        1      0.000      0.000      0.000      0.000   
-                             status:VmLib :        1   8.74e+04   8.74e+04   8.74e+04      0.000   
-                             status:VmPMD :        1     16.000     16.000     16.000      0.000   
-                             status:VmPTE :        1     35.000     35.000     35.000      0.000   
-                            status:VmPeak :        1   7.17e+05   7.17e+05   7.17e+05      0.000   
-                             status:VmPin :        1   1.67e+05   1.67e+05   1.67e+05      0.000   
-                             status:VmRSS :        1   2.19e+05   2.19e+05   2.19e+05      0.000   
-                            status:VmSize :        1   6.52e+05   6.52e+05   6.52e+05      0.000   
-                             status:VmStk :        1    192.000    192.000    192.000      0.000   
-                            status:VmSwap :        1      0.000      0.000      0.000      0.000   
-        status:nonvoluntary_ctxt_switches :        1      9.000      9.000      9.000      0.000   
-           status:voluntary_ctxt_switches :        1   1331.000   1331.000   1331.000      0.000   
+                    1 Minute Load average :        1     13.320     13.320     13.320      0.000
+          Device 0 GPU Clock Memory (MHz) :        1    877.000    877.000    877.000      0.000
+              Device 0 GPU Clock SM (MHz) :        1   1530.000   1530.000   1530.000      0.000
+            Device 0 GPU Memory Free (MB) :        1   1.34e+04   1.34e+04   1.34e+04      0.000
+            Device 0 GPU Memory Used (MB) :        1   2.07e+04   2.07e+04   2.07e+04      0.000
+        Device 0 GPU Memory Utilization % :        1     48.000     48.000     48.000      0.000
+           Device 0 GPU NvLink Link Count :        1      6.000      6.000      6.000      0.000
+           Device 0 GPU NvLink Speed MB/s :        1   2.58e+04   2.58e+04   2.58e+04      0.000
+       Device 0 GPU NvLink Utilization C0 :        1      0.000      0.000      0.000      0.000
+       Device 0 GPU NvLink Utilization C1 :        1      0.000      0.000      0.000      0.000
+                   Device 0 GPU Power (W) :        1    240.573    240.573    240.573      0.000
+             Device 0 GPU Temperature (C) :        1     73.000     73.000     73.000      0.000
+               Device 0 GPU Utilization % :        1     95.000     95.000     95.000      0.000
+       Device 0 PCIe RX Throughput (MB/s) :        1      5.000      5.000      5.000      0.000
+       Device 0 PCIe TX Throughput (MB/s) :        1      0.000      0.000      0.000      0.000
+                     GPU: Bytes Allocated :        2      6.000     11.000     16.000      5.000
+                           status:Threads :        1      7.000      7.000      7.000      0.000
+                            status:VmData :        1   2.77e+05   2.77e+05   2.77e+05      0.000
+                             status:VmExe :        1     64.000     64.000     64.000      0.000
+                             status:VmHWM :        1   2.19e+05   2.19e+05   2.19e+05      0.000
+                             status:VmLck :        1      0.000      0.000      0.000      0.000
+                             status:VmLib :        1   8.74e+04   8.74e+04   8.74e+04      0.000
+                             status:VmPMD :        1     16.000     16.000     16.000      0.000
+                             status:VmPTE :        1     35.000     35.000     35.000      0.000
+                            status:VmPeak :        1   7.17e+05   7.17e+05   7.17e+05      0.000
+                             status:VmPin :        1   1.67e+05   1.67e+05   1.67e+05      0.000
+                             status:VmRSS :        1   2.19e+05   2.19e+05   2.19e+05      0.000
+                            status:VmSize :        1   6.52e+05   6.52e+05   6.52e+05      0.000
+                             status:VmStk :        1    192.000    192.000    192.000      0.000
+                            status:VmSwap :        1      0.000      0.000      0.000      0.000
+        status:nonvoluntary_ctxt_switches :        1      9.000      9.000      9.000      0.000
+           status:voluntary_ctxt_switches :        1   1331.000   1331.000   1331.000      0.000
 ------------------------------------------------------------------------------------------------
 
-Timer                                                : #calls  |    mean  |   total  |  % total  
+Timer                                                : #calls  |    mean  |   total  |  % total
 ------------------------------------------------------------------------------------------------
                                            APEX MAIN :        1      0.461      0.461    100.000
                             GPU: Unified Memcpy DTOH :        1      0.000      0.000      0.001
@@ -486,7 +486,7 @@ To enable CSV output, use one of the methods described in the [Environment Varia
 
 ```bash
 [khuck@cyclops xpress-apex]$ export APEX_CSV_OUTPUT=1
-[khuck@cyclops xpress-apex]$ ./build/src/unit_tests/CUDA/apex_cuda_cu 
+[khuck@cyclops xpress-apex]$ ./build/src/unit_tests/CUDA/apex_cuda_cu
 Found 4 total devices
 On device: name=hello, value=10
 On device: name=dello, value=11
@@ -494,7 +494,7 @@ On device: name=dello, value=12
 On device: name=dello, value=13
 On host: name=dello, value=14
 
-[khuck@cyclops xpress-apex]$ cat apex.0.csv 
+[khuck@cyclops xpress-apex]$ cat apex.0.csv
 "counter","num samples","minimum","mean""maximum","stddev"
 "1 Minute Load average",1,22,22,22,0
 "Device 0 GPU Clock Memory (MHz)",1,877,877,877,0
@@ -541,14 +541,14 @@ On host: name=dello, value=14
 "cudaMallocManaged",2,0,194367
 "launch [/home/users/khuck/src/xpress-apex/src/unit_tests/CUDA/apex_cuda.cu:35]",4,0,164490
 ```
- 
+
 ### Profiling with TAU profile output
 
 To enable TAU profile output, use one of the methods described in the [Environment Variables](/environment) page, and run as the previous example.  The output can be summarized with the TAU `pprof` command, which is installed with the TAU software.
 
 ```bash
 [khuck@cyclops xpress-apex]$ export APEX_CSV_OUTPUT=1
-[khuck@cyclops xpress-apex]$ ./build/src/unit_tests/CUDA/apex_cuda_cu 
+[khuck@cyclops xpress-apex]$ ./build/src/unit_tests/CUDA/apex_cuda_cu
 Found 4 total devices
 On device: name=hello, value=10
 On device: name=dello, value=11
@@ -556,53 +556,53 @@ On device: name=dello, value=12
 On device: name=dello, value=13
 On host: name=dello, value=14
 
-[khuck@cyclops xpress-apex]$ cat profile.0.0.0 
+[khuck@cyclops xpress-apex]$ cat profile.0.0.0
 9 templated_functions_MULTI_TIME
 # Name Calls Subrs Excl Incl ProfileCalls #
-"GPU: Unified Memcpy DTOH" 1 0 2.656 2.656 0 GROUP="TAU_USER" 
-"cudaFree" 2 0 193.18 193.18 0 GROUP="TAU_USER" 
-"cudaMallocManaged" 2 0 184435 184435 0 GROUP="TAU_USER" 
-"GPU: Unified Memcpy HTOD" 1 0 4.64 4.64 0 GROUP="TAU_USER" 
-"GPU: Kernel(DataElement*)" 4 0 355.293 355.293 0 GROUP="TAU_USER" 
-"cudaLaunchKernel" 4 0 67.4 67.4 0 GROUP="TAU_USER" 
-"cudaDeviceSynchronize" 4 0 811.244 811.244 0 GROUP="TAU_USER" 
-"launch [/home/users/khuck/src/xpress-apex/src/unit_tests/CUDA/apex_cuda.cu:35]" 4 0 100327 100327 0 GROUP="TAU_USER" 
-"APEX MAIN" 1 0 67830.2 354026 0 GROUP="TAU_USER" 
+"GPU: Unified Memcpy DTOH" 1 0 2.656 2.656 0 GROUP="TAU_USER"
+"cudaFree" 2 0 193.18 193.18 0 GROUP="TAU_USER"
+"cudaMallocManaged" 2 0 184435 184435 0 GROUP="TAU_USER"
+"GPU: Unified Memcpy HTOD" 1 0 4.64 4.64 0 GROUP="TAU_USER"
+"GPU: Kernel(DataElement*)" 4 0 355.293 355.293 0 GROUP="TAU_USER"
+"cudaLaunchKernel" 4 0 67.4 67.4 0 GROUP="TAU_USER"
+"cudaDeviceSynchronize" 4 0 811.244 811.244 0 GROUP="TAU_USER"
+"launch [/home/users/khuck/src/xpress-apex/src/unit_tests/CUDA/apex_cuda.cu:35]" 4 0 100327 100327 0 GROUP="TAU_USER"
+"APEX MAIN" 1 0 67830.2 354026 0 GROUP="TAU_USER"
 0 aggregates
 32 userevents
 # eventname numevents max min mean sumsqr
-"status:VmSwap" 1 0 0 0 0 
-"status:VmSize" 1 652032 652032 652032 4.25146e+11 
-"status:Threads" 1 7 7 7 49 
-"status:VmPeak" 1 717248 717248 717248 5.14445e+11 
-"Device 0 GPU Power (W)" 1 224.057 224.057 224.057 50201.5 
-"Device 0 GPU NvLink Speed MB/s" 1 25781 25781 25781 6.6466e+08 
-"status:VmExe" 1 64 64 64 4096 
-"status:nonvoluntary_ctxt_switches" 1 12 12 12 144 
-"Device 0 GPU Memory Utilization %" 1 73 73 73 5329 
-"status:VmStk" 1 192 192 192 36864 
-"status:VmData" 1 277120 277120 277120 7.67955e+10 
-"status:VmLck" 1 0 0 0 0 
-"status:VmPin" 1 166528 166528 166528 2.77316e+10 
-"status:VmPTE" 1 35 35 35 1225 
-"Device 0 GPU NvLink Utilization C1" 1 0 0 0 0 
-"status:VmHWM" 1 219008 219008 219008 4.79645e+10 
-"status:VmRSS" 1 219008 219008 219008 4.79645e+10 
-"GPU: Bytes Allocated" 2 16 6 11 292 
-"status:VmLib" 1 87424 87424 87424 7.64296e+09 
-"Device 0 GPU Utilization %" 1 99 99 99 9801 
-"status:voluntary_ctxt_switches" 1 1320 1320 1320 1.7424e+06 
-"Device 0 GPU Clock SM (MHz)" 1 1530 1530 1530 2.3409e+06 
-"status:VmPMD" 1 20 20 20 400 
-"1 Minute Load average" 1 16.43 16.43 16.43 269.945 
-"Device 0 GPU Clock Memory (MHz)" 1 877 877 877 769129 
-"Device 0 PCIe TX Throughput (MB/s)" 1 2 2 2 4 
-"Device 0 GPU Temperature (C)" 1 73 73 73 5329 
-"Device 0 PCIe RX Throughput (MB/s)" 1 6 6 6 36 
-"Device 0 GPU Memory Used (MB)" 1 20679.1 20679.1 20679.1 4.27625e+08 
-"Device 0 GPU NvLink Utilization C0" 1 0 0 0 0 
-"Device 0 GPU NvLink Link Count" 1 6 6 6 36 
-"Device 0 GPU Memory Free (MB)" 1 13410.6 13410.6 13410.6 1.79845e+08 
+"status:VmSwap" 1 0 0 0 0
+"status:VmSize" 1 652032 652032 652032 4.25146e+11
+"status:Threads" 1 7 7 7 49
+"status:VmPeak" 1 717248 717248 717248 5.14445e+11
+"Device 0 GPU Power (W)" 1 224.057 224.057 224.057 50201.5
+"Device 0 GPU NvLink Speed MB/s" 1 25781 25781 25781 6.6466e+08
+"status:VmExe" 1 64 64 64 4096
+"status:nonvoluntary_ctxt_switches" 1 12 12 12 144
+"Device 0 GPU Memory Utilization %" 1 73 73 73 5329
+"status:VmStk" 1 192 192 192 36864
+"status:VmData" 1 277120 277120 277120 7.67955e+10
+"status:VmLck" 1 0 0 0 0
+"status:VmPin" 1 166528 166528 166528 2.77316e+10
+"status:VmPTE" 1 35 35 35 1225
+"Device 0 GPU NvLink Utilization C1" 1 0 0 0 0
+"status:VmHWM" 1 219008 219008 219008 4.79645e+10
+"status:VmRSS" 1 219008 219008 219008 4.79645e+10
+"GPU: Bytes Allocated" 2 16 6 11 292
+"status:VmLib" 1 87424 87424 87424 7.64296e+09
+"Device 0 GPU Utilization %" 1 99 99 99 9801
+"status:voluntary_ctxt_switches" 1 1320 1320 1320 1.7424e+06
+"Device 0 GPU Clock SM (MHz)" 1 1530 1530 1530 2.3409e+06
+"status:VmPMD" 1 20 20 20 400
+"1 Minute Load average" 1 16.43 16.43 16.43 269.945
+"Device 0 GPU Clock Memory (MHz)" 1 877 877 877 769129
+"Device 0 PCIe TX Throughput (MB/s)" 1 2 2 2 4
+"Device 0 GPU Temperature (C)" 1 73 73 73 5329
+"Device 0 PCIe RX Throughput (MB/s)" 1 6 6 6 36
+"Device 0 GPU Memory Used (MB)" 1 20679.1 20679.1 20679.1 4.27625e+08
+"Device 0 GPU NvLink Utilization C0" 1 0 0 0 0
+"Device 0 GPU NvLink Link Count" 1 6 6 6 36
+"Device 0 GPU Memory Free (MB)" 1 13410.6 13410.6 13410.6 1.79845e+08
 
 [khuck@cyclops xpress-apex]$ which pprof
 ~/src/tau2/ibm64linux/bin/pprof
@@ -612,7 +612,7 @@ Reading Profile files in profile.*
 NODE 0;CONTEXT 0;THREAD 0:
 ---------------------------------------------------------------------------------------
 %Time    Exclusive    Inclusive       #Call      #Subrs  Inclusive Name
-              msec   total msec                          usec/call 
+              msec   total msec                          usec/call
 ---------------------------------------------------------------------------------------
 100.0           67          354           1           0     354026 APEX MAIN
  52.1          184          184           2           0      92218 cudaMallocManaged
@@ -671,7 +671,7 @@ APEX can capture the task dependency graph from the application, and output it a
 ```bash
 [khuck@cyclops xpress-apex]$ export APEX_TASKGRAPH_OUTPUT=1
 [khuck@cyclops xpress-apex]$ export APEX_CUDA_DRIVER_API=1
-[khuck@cyclops xpress-apex]$ ./build/src/unit_tests/CUDA/apex_cuda_cu 
+[khuck@cyclops xpress-apex]$ ./build/src/unit_tests/CUDA/apex_cuda_cu
 [khuck@cyclops xpress-apex]$ dot -Tpdf -O taskgraph.0.dot
 ```
 ![CUDA task graph](img/cuda_taskgraph.png)
@@ -679,12 +679,12 @@ APEX can capture the task dependency graph from the application, and output it a
 
 ### Profiling with Scatterplot output
 
-For this example, we are using an HPX quickstart example, the `fibonacci` example.  After execution, APEX writes a sample data file to disk, `apex_task_samples.csv`.  That file is post-processed with the APEX python script `task_scatterplot.py`. 
+For this example, we are using an HPX quickstart example, the `fibonacci` example.  After execution, APEX writes a sample data file to disk, `apex_task_samples.csv`.  That file is post-processed with the APEX python script `task_scatterplot.py`.
 
 ```bash
 [khuck@cyclops xpress-apex]$ export APEX_TASK_SCATTERPLOT=1
 [khuck@cyclops build]$ ./bin/fibonacci --n-value=20
-[khuck@cyclops build]$ /home/users/khuck/src/xpress-apex/install/bin/task_scatterplot.py 
+[khuck@cyclops build]$ /home/users/khuck/src/xpress-apex/install/bin/task_scatterplot.py
 Parsed 2362 samples
 Plotting async_launch_policy_dispatch
 Plotting async_launch_policy_dispatch::call
@@ -700,7 +700,7 @@ For this example, we are using an APEX unit test that computes the value of PI. 
 
 ```bash
 [khuck@cyclops xpress-apex]$ export APEX_OTF2=1
-[khuck@cyclops xpress-apex]$ ./build/src/unit_tests/CUDA/pi_cu 
+[khuck@cyclops xpress-apex]$ ./build/src/unit_tests/CUDA/pi_cu
 Found 4 total devices
 134217728
 num streams 4
@@ -729,7 +729,7 @@ For this example, we are using an APEX unit test that computes the value of PI. 
 
 ```
 [khuck@cyclops xpress-apex]$ export APEX_TRACE_EVENT=1
-[khuck@cyclops xpress-apex]$ ./build/src/unit_tests/CUDA/pi_cu 
+[khuck@cyclops xpress-apex]$ ./build/src/unit_tests/CUDA/pi_cu
 ```
 
 ![CUDA Google trace in Chrome](img/pi_cu_gte.png)
