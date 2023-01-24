@@ -23,6 +23,7 @@ struct task_wrapper;
 #include <string>
 #include <unordered_set>
 #include "dependency_tree.hpp"
+#include "apex_clock.hpp"
 
 namespace apex {
 
@@ -74,9 +75,9 @@ struct task_wrapper {
   */
     long unsigned int thread_id;
 /**
-  \brief Time (in microseconds) when this task was started, if started
+  \brief Time (in microseconds) when this task was created
   */
-    double start_time;
+    uint64_t start_ns;
 /**
   \brief Whether this event requires separate start/end events in gtrace
   */
@@ -93,7 +94,7 @@ struct task_wrapper {
         tree_node(nullptr),
         alias(nullptr),
         thread_id(0UL),
-        start_time(0),
+        start_ns(our_clock::now_ns()),
         explicit_trace_start(false)
     { }
 /**
@@ -132,6 +133,9 @@ struct task_wrapper {
     void update_heritage() {
         // make/find a node for ourselves
         tree_node = parent->tree_node->replaceChild(task_id, alias);
+    }
+    uint64_t get_start_ns() {
+        return start_ns;
     }
 }; // struct task_wrapper
 

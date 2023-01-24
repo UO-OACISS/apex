@@ -86,6 +86,10 @@ DEFINE_DESTRUCTOR(apex_finalize_static_void)
 #endif // HAS_CONSTRUCTORS
 #endif // APEX_HAVE_HPX
 
+#ifdef APEX_WITH_LEVEL0
+#include "apex_level0.hpp"
+#endif
+
 #ifdef APEX_HAVE_TCMALLOC
 #include "tcmalloc_hooks.hpp"
 #endif
@@ -547,6 +551,9 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
 #ifdef APEX_WITH_HIP
     init_hip_tracing();
 #endif
+#ifdef APEX_WITH_LEVEL0
+    level0::EnableProfiling();
+#endif
 
     // Unset the LD_PRELOAD variable, because Active Harmony is going to
     // fork/execv a new session-core process, and we don't want APEX in
@@ -689,8 +696,6 @@ profiler* start(const std::string &timer_name)
                 return profiler::get_disabled_profiler();
             }
         }
-        // save the start of the task, in case we need to make a flow event for tracing
-        tt_ptr->start_time = tt_ptr->prof->get_start_us();
         // If we are allowing untied timers, clear the timer stack on this thread
         if (apex_options::untied_timers() == true) {
             new_profiler = thread_instance::instance().get_current_profiler();
@@ -756,8 +761,6 @@ profiler* start(const apex_function_address function_address) {
                 return profiler::get_disabled_profiler();
             }
         }
-        // save the start of the task, in case we need to make a flow event for tracing
-        tt_ptr->start_time = tt_ptr->prof->get_start_us();
         // If we are allowing untied timers, clear the timer stack on this thread
         if (apex_options::untied_timers() == true) {
             new_profiler = thread_instance::instance().get_current_profiler();
@@ -826,8 +829,6 @@ void start(std::shared_ptr<task_wrapper> tt_ptr) {
                 return;
             }
         }
-        // save the start of the task, in case we need to make a flow event for tracing
-        tt_ptr->start_time = tt_ptr->prof->get_start_us();
         // If we are allowing untied timers, clear the timer stack on this thread
         if (apex_options::untied_timers() == true) {
             thread_instance::instance().clear_current_profiler();
@@ -1644,6 +1645,9 @@ std::string dump(bool reset) {
 #endif
 #ifdef APEX_WITH_HIP
     flush_hip_trace();
+#endif
+#ifdef APEX_WITH_LEVEL0
+    level0::DisableProfiling();
 #endif
     if (_notify_listeners) {
         dump_event_data data(instance->get_node_id(),

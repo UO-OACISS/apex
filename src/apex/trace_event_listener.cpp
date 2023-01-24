@@ -187,7 +187,7 @@ inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
         if (p->tt_ptr->parent != nullptr && p->tt_ptr->parent->thread_id != tid) {
             //std::cout << "FLOWING!" << std::endl;
             uint64_t flow_id = get_flow_id();
-            write_flow_event(ss, p->tt_ptr->parent->start_time, 's', "ControlFlow", flow_id,
+            write_flow_event(ss, p->tt_ptr->parent->get_start_ns(), 's', "ControlFlow", flow_id,
                 saved_node_id, p->tt_ptr->parent->thread_id, p->tt_ptr->parent->task_id->get_name());
             write_flow_event(ss, p->get_start_us(), 'f', "ControlFlow", flow_id,
                 saved_node_id, tid, p->tt_ptr->parent->task_id->get_name());

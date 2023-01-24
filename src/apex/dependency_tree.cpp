@@ -100,7 +100,9 @@ void Node::writeNode(std::ofstream& outfile, double total) {
             std::setfill('0') << std::setw(2) << std::hex << c->convert(c->green) <<
             std::setfill('0') << std::setw(2) << std::hex << c->convert(c->blue) <<
             "\"; depth=" << std::dec << depth <<
-            "; time=" << std::fixed << acc << "; label=\"" << data->get_tree_name() <<
+            "; time=" << std::fixed << acc <<
+            "; inclusive=" << std::fixed << inclusive <<
+            "; label=\"" << data->get_tree_name() <<
             "\\lcalls: " << ncalls << "\\ltime: " <<
             std::defaultfloat << acc << "\\l\" ];" << std::endl;
 
@@ -140,7 +142,9 @@ double Node::writeNodeASCII(std::ofstream& outfile, double total, size_t indent)
     double stddev = sqrt(variance);
     outfile << " {min=" << std::fixed << std::setprecision(precision) << min << ", max=" << max
             << ", mean=" << mean << ", var=" << variance
-            << ", std dev=" << stddev << ", threads=" << thread_ids.size() << "} ";
+            << ", std dev=" << stddev
+            << ", inclusive=" << inclusive
+            << ", threads=" << thread_ids.size() << "} ";
     // Write out the name
     outfile << data->get_tree_name() << " ";
     // end the line
@@ -204,7 +208,8 @@ double Node::writeNodeJSON(std::ofstream& outfile, double total, size_t indent) 
     double ncalls = (calls == 0) ? 1 : calls;
     outfile << "\"metrics\": {\"time\": " << excl
             << ", \"total time (inc)\": " << acc
-            << ", \"time (inc)\": " << (acc / (double)(thread_ids.size()))
+            << ", \"time (inc cpu)\": " << (acc / (double)(thread_ids.size()))
+            << ", \"time (inc wall)\": " << inclusive
             << ", \"num threads\": " << thread_ids.size()
             << ", \"min (inc)\": " << min
             << ", \"max (inc)\": " << max
@@ -288,7 +293,8 @@ void Node::writeTAUCallpath(std::ofstream& outfile, std::string prefix) {
         // write out exclusive
         outfile << std::fixed << std::setprecision(3) << remainder << " ";
         // write out inclusive
-        outfile << std::fixed << std::setprecision(3) << acc << " ";
+        //outfile << std::fixed << std::setprecision(3) << acc << " ";
+        outfile << std::fixed << std::setprecision(3) << inclusive << " ";
         // write out profilecalls and group
         outfile << "0 GROUP=\"" << data->get_group() << " | TAU_CALLPATH\" ";
         // end the line
@@ -309,10 +315,13 @@ void Node::writeTAUCallpath(std::ofstream& outfile, std::string prefix) {
     return;
 }
 
-void Node::addAccumulated(double value, bool is_resume, uint64_t thread_id) {
+void Node::addAccumulated(double value, double incl, bool is_resume, uint64_t thread_id) {
     static std::mutex m;
     m.lock();
-    if (!is_resume) { calls+=1; }
+    if (!is_resume) {
+        calls+=1;
+        inclusive = inclusive + incl;
+    }
     accumulated = accumulated + value;
     if (min == 0.0 || value < min) { min = value; }
     if (value > max) { max = value; }

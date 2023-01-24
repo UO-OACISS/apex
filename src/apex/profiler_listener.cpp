@@ -187,7 +187,7 @@ std::unordered_set<profile*> free_profiles;
                 fmin(hardware_concurrency(), num_worker_threads);
     double elapsed = total_main - non_idle_time;
     elapsed = elapsed > 0.0 ? elapsed : 0.0;
-    profile * theprofile = new profile(elapsed, 0, nullptr, false);
+    profile * theprofile = new profile(elapsed, 0, 0, nullptr, false);
     {
         std::unique_lock<std::mutex> l(free_profile_set_mutex);
         free_profiles.insert(theprofile);
@@ -206,7 +206,7 @@ std::unordered_set<profile*> free_profiles;
                 fmin(hardware_concurrency(), num_worker_threads);
     double elapsed = total_main - non_idle_time;
     double rate = elapsed > 0.0 ? ((elapsed/total_main)) : 0.0;
-    profile * theprofile = new profile(rate, 0, nullptr, false);
+    profile * theprofile = new profile(rate, 0, 0, nullptr, false);
     {
         std::unique_lock<std::mutex> l(free_profile_set_mutex);
         free_profiles.insert(theprofile);
@@ -231,7 +231,7 @@ std::unordered_set<profile*> free_profiles;
     } else if (id.name == string(APEX_IDLE_TIME)) {
         return get_idle_time();
     } else if (id.name == string(APEX_NON_IDLE_TIME)) {
-        profile * theprofile = new profile(get_non_idle_time(), 0, nullptr, false);
+        profile * theprofile = new profile(get_non_idle_time(), 0, 0, nullptr, false);
         {
             std::unique_lock<std::mutex> l(free_profile_set_mutex);
             free_profiles.insert(theprofile);
@@ -300,11 +300,11 @@ std::unordered_set<profile*> free_profiles;
             theprofile->reset();
         } else {
             if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
-                theprofile->increment(p.elapsed(), tmp_num_counters,
+                theprofile->increment(p.elapsed(), p.inclusive(), tmp_num_counters,
                     values, p.allocations, p.frees, p.bytes_allocated,
                     p.bytes_freed, p.is_resume, p.thread_id);
             } else {
-                theprofile->increment(p.elapsed(), tmp_num_counters,
+                theprofile->increment(p.elapsed(), p.inclusive(), tmp_num_counters,
                     values, p.is_resume, p.thread_id);
             }
         }
@@ -348,14 +348,14 @@ std::unordered_set<profile*> free_profiles;
         if ((apex_options::track_cpu_memory() ||
              apex_options::track_gpu_memory()) && !p.is_counter) {
             theprofile = new profile(p.is_reset ==
-                reset_type::CURRENT ? 0.0 : p.elapsed(),
+                reset_type::CURRENT ? 0.0 : p.elapsed(), p.inclusive(),
                 tmp_num_counters, values, p.is_resume,
                 p.allocations, p.frees, p.bytes_allocated,
                 p.bytes_freed);
             task_map[*(p.get_task_id())] = theprofile;
         } else {
             theprofile = new profile(p.is_reset ==
-                reset_type::CURRENT ? 0.0 : p.elapsed(),
+                reset_type::CURRENT ? 0.0 : p.elapsed(), p.inclusive(),
                 tmp_num_counters, values, p.is_resume,
                 p.is_counter ? APEX_COUNTER : APEX_TIMER);
             task_map[*(p.get_task_id())] = theprofile;
@@ -422,7 +422,7 @@ std::unordered_set<profile*> free_profiles;
 	}
       }
     if (apex_options::use_tasktree_output() && !p.is_counter && p.tt_ptr != nullptr) {
-        p.tt_ptr->tree_node->addAccumulated(p.elapsed_seconds(), p.is_resume, p.thread_id);
+        p.tt_ptr->tree_node->addAccumulated(p.elapsed_seconds(), p.inclusive_seconds(), p.is_resume, p.thread_id);
     }
     return 1;
   }
@@ -548,6 +548,7 @@ std::unordered_set<profile*> free_profiles;
         csv_output << std::llround(p->get_maximum()) << ",";
         csv_output << std::llround(p->get_stddev()) << ",";
         csv_output << std::llround(p->get_accumulated_useconds()) << ",";
+        csv_output << std::llround(p->get_inclusive_accumulated_useconds()) << ",";
         csv_output << std::llround(p->get_num_threads()) << ",";
         csv_output << std::llround(p->get_accumulated_useconds()/p->get_num_threads());
         //screen_output << " --n/a--   " ;
@@ -668,7 +669,7 @@ std::unordered_set<profile*> free_profiles;
         csv_output << std::llround(p->get_maximum()) << ",";
         csv_output << std::llround(p->get_stddev()) << ",";
         // add all the extra columns for timer data
-        csv_output << "0,0,0"; // accumulated seconds, threads, per thread - meaningless
+        csv_output << "0,0,0,0"; // accumulated seconds, inclusive, threads, per thread - meaningless
 #if APEX_HAVE_PAPI
         for (int i = 0 ; i < num_papi_counters ; i++) {
             csv_output << ",0";
@@ -777,7 +778,7 @@ std::unordered_set<profile*> free_profiles;
         }
     }
     csv_output << "\"name\",\"type\",\"num samples/calls\",\"minimum\",\"mean\","
-        << "\"maximum\",\"stddev\",\"total microseconds\",\"num threads\",\"total per thread\"";
+        << "\"maximum\",\"stddev\",\"total microseconds\",\"inclusive microseconds\",\"num threads\",\"total per thread\"";
 #if APEX_HAVE_PAPI
     for (int i = 0 ; i < num_papi_counters ; i++) {
        csv_output << ",\"" << metric_names[i] << "\"";
@@ -1116,6 +1117,7 @@ std::unordered_set<profile*> free_profiles;
             "\"; label=\"" << task_id.get_tree_name() <<
             "\\lcalls: " << p->get_calls() <<
             "\\ltime: " << accumulated <<
+            "s\\linclusive: " << p->get_inclusive_accumulated_seconds() <<
             "s\\l" << divided_label << accumulated/divisor <<
             "s\\l\" ];" << std::endl;
         delete(c);
@@ -1137,7 +1139,7 @@ std::unordered_set<profile*> free_profiles;
   void format_line(ofstream &myfile, profile * p, task_identifier& task_id) {
     myfile << p->get_calls() << " ";
     myfile << 0 << " ";
-    myfile << ((p->get_accumulated_useconds())) << " ";
+    myfile << ((p->get_inclusive_accumulated_useconds())) << " ";
     myfile << ((p->get_accumulated_useconds())) << " ";
     myfile << 0 << " ";
     myfile << get_TAU_group(task_id);

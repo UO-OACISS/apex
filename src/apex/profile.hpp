@@ -34,7 +34,7 @@ private:
     std::mutex _mtx;
     std::set<uint64_t> thread_ids;
 public:
-    profile(double initial, int num_metrics, double * papi_metrics, bool
+    profile(double initial, double inclusive, int num_metrics, double * papi_metrics, bool
         yielded = false, apex_profile_type type = APEX_TIMER) {
         memset(&(this->_profile), 0, sizeof(apex_profile));
         _profile.type = type;
@@ -45,6 +45,7 @@ public:
         }
         _profile.stops = 1.0;
         _profile.accumulated = initial;
+        _profile.inclusive_accumulated = inclusive;
 #if APEX_HAVE_PAPI
         for (int i = 0 ; i < num_metrics ; i++) {
             _profile.papi_metrics[i] = papi_metrics[i];
@@ -66,7 +67,7 @@ public:
         _profile.num_threads = 1;
         _profile.throttled = false;
     };
-    profile(double initial, int num_metrics, double * papi_metrics, bool
+    profile(double initial, double inclusive, int num_metrics, double * papi_metrics, bool
         yielded, double allocations, double frees, double bytes_allocated,
         double bytes_freed) {
         _profile.type = APEX_TIMER;
@@ -77,6 +78,7 @@ public:
         }
         _profile.stops = 1.0;
         _profile.accumulated = initial;
+        _profile.inclusive_accumulated = inclusive;
 #if APEX_HAVE_PAPI
         for (int i = 0 ; i < num_metrics ; i++) {
             _profile.papi_metrics[i] = papi_metrics[i];
@@ -103,10 +105,11 @@ public:
     profile(apex_profile * values) {
         memcpy(&_profile, values, sizeof(apex_profile));
     }
-    void increment(double increase, int num_metrics, double * papi_metrics,
+    void increment(double increase, double inclusive, int num_metrics, double * papi_metrics,
         bool yielded, uint64_t thread_id) {
         _mtx.lock();
         _profile.accumulated += increase;
+        _profile.inclusive_accumulated += inclusive;
         _profile.stops = _profile.stops + 1.0;
 #if APEX_HAVE_PAPI
         for (int i = 0 ; i < num_metrics ; i++) {
@@ -129,10 +132,10 @@ public:
         _profile.num_threads = thread_ids.size();
         _mtx.unlock();
     }
-    void increment(double increase, int num_metrics, double * papi_metrics,
+    void increment(double increase, double inclusive, int num_metrics, double * papi_metrics,
         double allocations, double frees, double bytes_allocated, double bytes_freed,
         bool yielded, uint64_t thread_id) {
-        increment(increase, num_metrics, papi_metrics, yielded, thread_id);
+        increment(increase, inclusive, num_metrics, papi_metrics, yielded, thread_id);
         _mtx.lock();
         _profile.allocations += allocations;
         _profile.frees += frees;
@@ -173,6 +176,9 @@ public:
     double get_accumulated() {
         return _profile.accumulated;
     }
+    double get_inclusive_accumulated() {
+        return std::max<double>(_profile.accumulated,_profile.inclusive_accumulated);
+    }
     double get_accumulated_mean_threads() {
         return (_profile.accumulated / (double)(_profile.num_threads));
     }
@@ -182,9 +188,20 @@ public:
     double get_accumulated_seconds() {
         return (get_accumulated() * 1.0e-9);
     }
+    double get_inclusive_accumulated_useconds() {
+        return (get_inclusive_accumulated() * 1.0e-3);
+    }
+    double get_inclusive_accumulated_seconds() {
+        return (get_inclusive_accumulated() * 1.0e-9);
+    }
     double * get_papi_metrics() { return (_profile.papi_metrics); }
     double get_minimum() {
-        return (_profile.minimum);
+        if (_profile.times_reset > 0) {
+            if (_profile.minimum == std::numeric_limits<double>::max()) {
+                return 0.0;
+            }
+        }
+        return (std::max<double>(_profile.minimum, 0.0));
     }
     double get_maximum() {
         return (_profile.maximum);

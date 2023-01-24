@@ -15,10 +15,10 @@
 #include <limits>
 #include <inttypes.h>
 
-/* 10 values per timer/counter by default
+/* 11 values per timer/counter by default
  * 4 values related to memory allocation tracking
  * 8 values (up to) when PAPI enabled */
-constexpr size_t num_fields{22};
+constexpr size_t num_fields{23};
 
 #if !defined(HPX_HAVE_NETWORKING) && defined(APEX_HAVE_MPI)
 #include "mpi.h"
@@ -163,6 +163,7 @@ std::map<std::string, apex_profile*> reduce_profiles() {
             dptr[i++] = p->calls == 0.0 ? 1 : p->calls;
             dptr[i++] = p->stops == 0.0 ? 1 : p->stops;
             dptr[i++] = p->accumulated;
+            dptr[i++] = p->inclusive_accumulated;
             dptr[i++] = p->sum_squares;
             dptr[i++] = p->minimum;
             dptr[i++] = p->maximum;
@@ -224,6 +225,7 @@ std::map<std::string, apex_profile*> reduce_profiles() {
             p->calls += dptr[index++];
             p->stops += dptr[index++];
             p->accumulated += dptr[index++];
+            p->inclusive_accumulated += dptr[index++];
             p->sum_squares += dptr[index++];
             p->minimum = dptr[index] < p->minimum ? dptr[index] : p->minimum;
             index++;

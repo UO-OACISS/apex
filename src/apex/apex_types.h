@@ -193,6 +193,7 @@ typedef struct _profile
                                  of samples collected for a counter */
     double stops;           /*!< Number of times a timer was yielded */
     double accumulated;     /*!< Accumulated values for all calls/samples */
+    double inclusive_accumulated; /*!< Accumulated values task lifetimes */
     double sum_squares;     /*!< Running sum of squares calculation for all
                                  calls/samples */
     double minimum;         /*!< Minimum value seen by the timer or counter */

@@ -26,6 +26,7 @@ class Node {
         size_t count;
         double calls;
         double accumulated;
+        double inclusive;
         double min;
         double max;
         double sumsqr;
@@ -37,7 +38,7 @@ class Node {
     public:
         Node(task_identifier* id, Node* p) :
             data(id), parent(p), count(1), calls(0), accumulated(0),
-            min(0), max(0), sumsqr(0),
+            inclusive(0), min(0), max(0), sumsqr(0),
             index(nodeCount.fetch_add(1, std::memory_order_relaxed)) {
         }
         ~Node() {
@@ -54,7 +55,7 @@ class Node {
         size_t getCount() { return count; }
         size_t getCalls() { return calls; }
         double getAccumulated() { return accumulated; }
-        void addAccumulated(double value, bool is_resume, uint64_t thread_id);
+        void addAccumulated(double value, double incl, bool is_resume, uint64_t thread_id);
         size_t getIndex() { return index; };
         std::string getName() { return data->get_name(); };
         void writeNode(std::ofstream& outfile, double total);
