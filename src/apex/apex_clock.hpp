@@ -9,7 +9,11 @@
 #pragma once
 
 #include <chrono>
+#if defined(APEX_WITH_LEVEL0) // needed to map to GPU time
+#define MYCLOCK std::chrono::steady_clock
+#else
 #define MYCLOCK std::chrono::system_clock
+#endif
 
 namespace apex {
 

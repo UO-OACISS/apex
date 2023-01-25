@@ -18,6 +18,7 @@
 #include <cstring>
 #include <fstream>
 #include <regex>
+#include <unistd.h>
 #include <L0/utils.h>
 #include <L0/ze_kernel_collector.h>
 #include <L0/ze_api_collector.h>
@@ -34,15 +35,12 @@ using namespace apex;
 static ZeApiCollector* api_collector = nullptr;
 static ZeKernelCollector* kernel_collector = nullptr;
 static chrono::steady_clock::time_point start_time;
-static int gpu_task_id = 0;
-static int host_api_task_id = 0;
-static uint64_t first_clock_timestamp;
-static uint64_t first_cpu_timestamp;
-static uint64_t first_gpu_timestamp;
 static uint64_t cpu_delta = 0L;
 static uint64_t gpu_delta = 0L;
 static uint64_t last_gpu_timestamp = 0L;
 static uint64_t gpu_offset = 0L;
+static uint64_t device_resolution{0L};
+static uint64_t device_mask{0L};
 
 // External Tool Interface ////////////////////////////////////////////////////
 
@@ -77,97 +75,70 @@ void SetToolEnv() {
 namespace apex {
 namespace level0 {
 
-static void PrintResults() {
-  chrono::steady_clock::time_point end = chrono::steady_clock::now();
-  chrono::duration<uint64_t, nano> time = end - start_time;
+/*
+taken from: https://github.com/intel/pti-gpu/blob/master/chapters/device_activity_tracing/LevelZero.md
+Time Correlation
 
-  PTI_ASSERT(kernel_collector != nullptr);
-  const ZeKernelInfoMap& kernel_info_map = kernel_collector->GetKernelInfoMap();
-  if (kernel_info_map.size() == 0) {
-    return;
-  }
+Common problem while kernel timestamps collection is to map these timestamps
+to general CPU timeline. Since Level Zero provides kernel timestamps in GPU
+clocks, one may need to convert them to some CPU time. Starting from Level
+Zero 1.1, new function zeDeviceGetGlobalTimestamps is available. Using this
+function, one can get correlated host (CPU) and device (GPU) timestamps for
+any particular device:
 
-  uint64_t total_duration = 0;
-  for (auto& value : kernel_info_map) {
-    total_duration += value.second.total_time;
-  }
+    uint64_t host_timestamp = 0, device_timestamp = 0;
+    ze_result_t status = zeDeviceGetGlobalTimestamps(
+        device, &host_timestamp, &device_timestamp);
+    assert(status == ZE_RESULT_SUCCESS);
 
-  cerr << endl;
-  cerr << "=== Device Timing Results: ===" << endl;
-  cerr << endl;
-  cerr << "Total Execution Time (ns): " << time.count() << endl;
-  cerr << "Total Device Time (ns): " << total_duration << endl;
-  cerr << endl;
+Host timestamp value corresponds to CLOCK_MONOTONIC_RAW on Linux or
+QueryPerformanceCounter on Windows, while device timestamp for GPU is
+collected in raw GPU cycles.
 
-  if (total_duration > 0) {
-    ZeKernelCollector::PrintKernelsTable(kernel_info_map);
-  }
+Note that the number of valid bits for the device timestamp returned by
+zeDeviceGetGlobalTimestamps is timestampValidBits, while the global kernel
+timastamp returned by zeEventQueryKernelTimestamp has kernelTimestampValidBits
+(both values are fields of ze_device_properties_t). And currently
+kernelTimestampValidBits is less then timestampValidBits, so to map kernels
+into CPU timeline one may need to truncate device timestamp to
+kernelTimestampValidBits:
 
-  cerr << endl;
-}
+    ze_device_properties_t props{ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES_1_2, };
+    ze_result_t status = zeDeviceGetProperties(device, &props);
+    assert(status == ZE_RESULT_SUCCESS);
+    uint64_t mask = (1ull << props.kernelTimestampValidBits) - 1ull;
+    uint64_t kernel_timestamp = (device_timestamp & mask);
 
-// Internal Tool Functionality ////////////////////////////////////////////////
+To convert GPU cycles into seconds one may use timerResolution field from
+ze_device_properties_t structure, that represents cycles per second starting
+from Level Zero 1.2:
 
-static void APIPrintResults() {
-  chrono::steady_clock::time_point end = chrono::steady_clock::now();
-  chrono::duration<uint64_t, nano> time = end - start_time;
+    ze_device_properties_t props{ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES_1_2, };
+    ze_result_t status = zeDeviceGetProperties(device, &props);
+    assert(status == ZE_RESULT_SUCCESS);
+    const uint64_t NSEC_IN_SEC = 1000000000;
+    uint64_t device_timestamp_ns = NSEC_IN_SEC * device_timestamp / props.timerResolution;
 
-  PTI_ASSERT(api_collector != nullptr);
-  const ZeFunctionInfoMap& function_info_map = api_collector->GetFunctionInfoMap();
-  if (function_info_map.size() == 0) {
-    return;
-  }
+*/
 
-  uint64_t total_duration = 0;
-  for (auto& value : function_info_map) {
-    total_duration += value.second.total_time;
-  }
+/* That said, all the timestamps are converted for us in ze_kernel_collector.h.
+   However, we need to apply a delta.
+   */
 
-  cerr << endl;
-  cerr << "=== API Timing Results: ===" << endl;
-  cerr << endl;
-  cerr << "Total Execution Time (ns): " << time.count() << endl;
-  cerr << "Total API Time (ns): " << total_duration << endl;
-  cerr << endl;
-
-  if (total_duration > 0) {
-    ZeApiCollector::PrintFunctionsTable(function_info_map);
-  }
-
-  std::cerr << std::endl;
-}
-
-uint64_t TAUTranslateGPUTimestamp(uint64_t gpu_ts) {
-  // gpu_ts is in nanoseconds.
-  uint64_t new_ts = gpu_ts + gpu_delta;
-  return new_ts;
-}
-
-uint64_t TAUTranslateCPUTimestamp(uint64_t cpu_ts) {
-  // cpu_ts is in nanoseconds.
-  uint64_t new_ts = cpu_ts + cpu_delta;
-  return new_ts;
-}
-
-void TAUOnAPIFinishCallback(void *data, const std::string& name, uint64_t started, uint64_t ended) {
+void OnAPIFinishCallback(void *data, const std::string& name, uint64_t started, uint64_t ended) {
   uint64_t taskid;
 
   taskid = *((uint64_t *) data);
-  uint64_t started_translated = TAUTranslateCPUTimestamp(started);
-  uint64_t ended_translated = TAUTranslateCPUTimestamp(ended);
-  DEBUG_PRINT("APEX: OnAPIFinishCallback: (raw) name: %s started: %lu ended: %lu task id=%lu\n",
-		  name.c_str(), started, ended, taskid);
-  DEBUG_PRINT("APEX: OnAPIFinishCallback: (translated) name: %s started: %lu ended: %lu task id=%lu\n",
-		  name.c_str(), started_translated, ended_translated, taskid);
-  // We now need to start a timer on a task at the started_translated time and end at ended_translated
+  DEBUG_PRINT("APEX: OnAPIFinishCallback:        (raw) name: %s started: %lu ended: %lu at: %lu task id=%lu\n",
+		  name.c_str(), started, ended, profiler::now_ns(), taskid);
 
     // create a task_wrapper, as a child of the current timer
     auto tt = new_task(name, UINT64_MAX, nullptr);
     // create an APEX profiler to store this data - we can't start
     // then stop because we have timestamps already.
     auto prof = std::make_shared<profiler>(tt);
-    prof->set_start(started_translated);
-    prof->set_end(ended_translated);
+    prof->set_start(started);
+    prof->set_end(ended);
     // important!  Otherwise we might get the wrong end timestamp.
     prof->stopped = true;
     // Get the singleton APEX instance
@@ -244,16 +215,20 @@ void store_profiler_data(const std::string &name,
 }
 
 
-void TAUOnKernelFinishCallback(void *data, const std::string& name, uint64_t started, uint64_t ended) {
+void OnKernelFinishCallback(void *data, const std::string& name, uint64_t started, uint64_t ended) {
 
   int taskid;
   taskid = *((int *) data);
-  uint64_t started_translated = TAUTranslateGPUTimestamp(started);
-  uint64_t ended_translated = TAUTranslateGPUTimestamp(ended);
-  DEBUG_PRINT("APEX: <kernel>: (raw) name: %s  started: %lu ended: %lu task id=%d\n",
-		  name.c_str(), started, ended, taskid);
-  DEBUG_PRINT("APEX: <kernel>: (raw) name: %s started: %lu ended: %lu task id=%d\n",
-    name.c_str(),  started_translated, ended_translated, taskid);
+  /* We get a start and stop timestamp from the API in nanoseconds - but they
+     only make sense relative to each other. however, we're getting a callback
+     at exactly the time the kernel finishes, so we can assume the end time is
+     now, and then take a delta from now for the start time. */
+  uint64_t ended_translated = profiler::now_ns();
+  uint64_t started_translated = ended_translated - (ended - started);
+  DEBUG_PRINT("APEX: <kernel>: (raw) name: %s started: %20lu ended: %20lu at: %20lu task id=%d\n",
+		  name.substr(0,10).c_str(), started, ended, profiler::now_ns(), taskid);
+  DEBUG_PRINT("APEX: <kernel>: (raw) name: %s started: %20lu ended: %20lu at: %20lu task id=%d\n",
+    name.substr(0,10).c_str(),  started_translated, ended_translated, profiler::now_ns(), taskid);
 
   last_gpu_timestamp = ended;
   int device_num = 0;
@@ -289,58 +264,18 @@ void EnableProfiling() {
     return;
   }
 
+    // register a callback for Kernel calls
   uint64_t *kernel_taskid = new uint64_t;
-  //TAU_CREATE_TASK(*kernel_taskid);
   void *pk = (void *) kernel_taskid;
-  gpu_task_id = *kernel_taskid;
-  uint64_t *api_taskid  = new uint64_t;
-  //*host_taskid = RtsLayer::myThread();
-  //TAU_CREATE_TASK(*api_taskid);
-  host_api_task_id = *api_taskid;
   kernel_collector = ZeKernelCollector::Create(driver,
-                  TAUOnKernelFinishCallback, pk);
-  /*
-  //uint64_t gpu_ts = utils::i915::GetGpuTimestamp() & 0x0FFFFFFFF;
-  uint64_t gpu_ts = utils::i915::GetGpuTimestamp() ;
-  std::cout <<"TAU: Earliest GPU timestamp "<<gpu_ts<<std::endl;
-  */
-  first_cpu_timestamp = 0L;
-  first_gpu_timestamp = 0L;
-  utils::ze::GetDeviceTimestamps(device, &first_cpu_timestamp, &first_gpu_timestamp);
-  first_clock_timestamp = profiler::now_ns();
-  cpu_delta = first_clock_timestamp - first_cpu_timestamp;
-  gpu_delta = first_clock_timestamp - first_gpu_timestamp;
-  DEBUG_PRINT("APEX: First CPU timestamp= %ld \n",first_cpu_timestamp);
-  DEBUG_PRINT("APEX: First GPU timestamp= %ld \n",first_gpu_timestamp);
-  DEBUG_PRINT("APEX: Real CPU timestamp= %ld \n",first_clock_timestamp);
-  DEBUG_PRINT("APEX: CPU delta= %ld \n",cpu_delta);
-  DEBUG_PRINT("APEX: GPU delta= %ld \n",gpu_delta);
-  utils::ze::GetDeviceTimestamps(device, &first_cpu_timestamp, &first_gpu_timestamp);
-  first_clock_timestamp = profiler::now_ns();
-  DEBUG_PRINT("APEX: Second CPU timestamp= %ld \n",first_cpu_timestamp);
-  DEBUG_PRINT("APEX: Second GPU timestamp= %ld \n",first_gpu_timestamp);
-  DEBUG_PRINT("APEX: Real CPU timestamp= %ld \n",first_clock_timestamp);
-  utils::ze::GetDeviceTimestamps(device, &first_cpu_timestamp, &first_gpu_timestamp);
-  first_clock_timestamp = profiler::now_ns();
-  DEBUG_PRINT("APEX: Third CPU timestamp= %ld \n",first_cpu_timestamp);
-  DEBUG_PRINT("APEX: Third GPU timestamp= %ld \n",first_gpu_timestamp);
-  DEBUG_PRINT("APEX: Real CPU timestamp= %ld \n",first_clock_timestamp);
-  utils::ze::GetDeviceTimestamps(device, &first_cpu_timestamp, &first_gpu_timestamp);
-  first_clock_timestamp = profiler::now_ns();
-  DEBUG_PRINT("APEX: Fourth CPU timestamp= %ld \n",first_cpu_timestamp);
-  DEBUG_PRINT("APEX: Fourth GPU timestamp= %ld \n",first_gpu_timestamp);
-  DEBUG_PRINT("APEX: Real CPU timestamp= %ld \n",first_clock_timestamp);
-  utils::ze::GetDeviceTimestamps(device, &first_cpu_timestamp, &first_gpu_timestamp);
-  first_clock_timestamp = profiler::now_ns();
-  DEBUG_PRINT("APEX: Fifth CPU timestamp= %ld \n",first_cpu_timestamp);
-  DEBUG_PRINT("APEX: Fifth GPU timestamp= %ld \n",first_gpu_timestamp);
-  DEBUG_PRINT("APEX: Real CPU timestamp= %ld \n",first_clock_timestamp);
+                  OnKernelFinishCallback, pk);
 
   // For API calls, we create a new task and trigger the start/stop based on its
   // timestamps.
 
+  uint64_t *api_taskid  = new uint64_t;
   void *ph = (void *) api_taskid;
-  api_collector = ZeApiCollector::Create(driver, TAUOnAPIFinishCallback, ph);
+  api_collector = ZeApiCollector::Create(driver, OnAPIFinishCallback, ph);
 
   start_time = std::chrono::steady_clock::now();
 }
@@ -351,36 +286,12 @@ void DisableProfiling() {
   once = true;
   if (kernel_collector != nullptr) {
     kernel_collector->DisableTracing();
-    //if (TauEnv_get_verbose())
-      //PrintResults();
     delete kernel_collector;
   }
   if (api_collector != nullptr) {
     api_collector->DisableTracing();
-    //if (TauEnv_get_verbose())
-      //APIPrintResults();
     delete api_collector;
   }
-  //uint64_t gpu_end_ts = utils::i915::GetGpuTimestamp() & 0x0FFFFFFFF;
-  /*
-  uint64_t gpu_end_ts = utils::i915::GetGpuTimestamp();
-  std::cout <<"APEX: Latest GPU timestamp "<<gpu_end_ts<<std::endl;
-  */
-  int taskid = gpu_task_id;  // GPU task id is 1;
-  uint64_t last_gpu_translated = TAUTranslateGPUTimestamp(last_gpu_timestamp);
-  DEBUG_PRINT("APEX: Latest GPU timestamp (raw) =%ld\n", last_gpu_timestamp);
-  DEBUG_PRINT("APEX: Latest GPU timestamp (translated) =%ld\n",last_gpu_translated);
-  uint64_t cpu_end_ts = profiler::now_ns();
-  // metric_set_gpu_timestamp(taskid, last_gpu_translated);
-  //Tau_stop_top_level_timer_if_necessary_task(taskid);
-
-  // metric_set_gpu_timestamp(host_api_task_id, cpu_end_ts);
-  //Tau_create_top_level_timer_if_necessary_task(host_api_task_id);
-
-  DEBUG_PRINT("APEX: Latest CPU timestamp =%ld\n", cpu_end_ts);
-  std::chrono::steady_clock::time_point chrono_end = std::chrono::steady_clock::now();
-  std::chrono::duration<uint64_t, std::nano> chrono_dt = chrono_end - start_time;
-  DEBUG_PRINT("APEX: Diff (chrono) =%ld \n", chrono_dt.count());
 }
 
 } // namespace level0

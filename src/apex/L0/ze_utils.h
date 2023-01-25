@@ -96,7 +96,7 @@ namespace utils {
 
             for (auto driver : GetDriverList()) {
                 for (auto device : GetDeviceList(driver)) {
-                    ze_device_properties_t props{ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES, };
+                    ze_device_properties_t props{ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES, nullptr};
                     ze_result_t status = zeDeviceGetProperties(device, &props);
                     PTI_ASSERT(status == ZE_RESULT_SUCCESS);
                     if (props.type == ZE_DEVICE_TYPE_GPU) {
@@ -120,7 +120,7 @@ namespace utils {
 
             for (auto driver : GetDriverList()) {
                 for (auto device : GetDeviceList(driver)) {
-                    ze_device_properties_t props{ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES, };
+                    ze_device_properties_t props{ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES, nullptr};
                     ze_result_t status = zeDeviceGetProperties(device, &props);
                     PTI_ASSERT(status == ZE_RESULT_SUCCESS);
                     if (props.type == ZE_DEVICE_TYPE_GPU) {
@@ -169,7 +169,7 @@ namespace utils {
         inline std::string GetDeviceName(ze_device_handle_t device) {
             PTI_ASSERT(device != nullptr);
             ze_result_t status = ZE_RESULT_SUCCESS;
-            ze_device_properties_t props{ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES, };
+            ze_device_properties_t props{ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES, nullptr};
             status = zeDeviceGetProperties(device, &props);
             PTI_ASSERT(status == ZE_RESULT_SUCCESS);
             return props.name;
@@ -336,7 +336,7 @@ namespace utils {
 
         inline uint64_t GetDeviceTimerFrequency(ze_device_handle_t device) {
             PTI_ASSERT(device != nullptr);
-            ze_device_properties_t props{ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES_1_2, };
+            ze_device_properties_t props{ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES_1_2, nullptr};
             ze_result_t status = zeDeviceGetProperties(device, &props);
             PTI_ASSERT(status == ZE_RESULT_SUCCESS);
             return props.timerResolution;
@@ -344,7 +344,7 @@ namespace utils {
 
         inline uint64_t GetMetricTimerFrequency(ze_device_handle_t device) {
             PTI_ASSERT(device != nullptr);
-            ze_device_properties_t props{ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES_1_2, };
+            ze_device_properties_t props{ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES_1_2, nullptr};
             ze_result_t status = zeDeviceGetProperties(device, &props);
             PTI_ASSERT(status == ZE_RESULT_SUCCESS);
             return props.timerResolution;
@@ -352,7 +352,7 @@ namespace utils {
 
         inline uint64_t GetDeviceTimestampMask(ze_device_handle_t device) {
             PTI_ASSERT(device != nullptr);
-            ze_device_properties_t props{ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES_1_2, };
+            ze_device_properties_t props{ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES_1_2, nullptr};
             ze_result_t status = zeDeviceGetProperties(device, &props);
             PTI_ASSERT(status == ZE_RESULT_SUCCESS);
             return (1ull << props.kernelTimestampValidBits) - 1ull;
@@ -362,7 +362,7 @@ namespace utils {
 #ifdef PTI_OA_TIMESTAMP_VALID_BITS
             return (1ull << PTI_OA_TIMESTAMP_VALID_BITS) - 1ull;
 #else
-            ze_device_properties_t props{ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES_1_2, };
+            ze_device_properties_t props{ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES_1_2, nullptr};
             ze_result_t status = zeDeviceGetProperties(device, &props);
             PTI_ASSERT(status == ZE_RESULT_SUCCESS);
             return (1ull << props.kernelTimestampValidBits) - 1ull;
