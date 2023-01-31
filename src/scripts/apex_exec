@@ -494,7 +494,10 @@ if [ $ompt = yes ]; then
     export OMP_TOOL=enabled
     export OMP_TOOL_LIBRARIES=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}
     export OMP_TOOL_VERBOSE_INIT=stdout
-    export OMP_DISPLAY_ENV=true
+    OMPT_LIB=@OMPT_LIBRARY@:
+    if [ $verbose = yes ]; then
+        export OMP_DISPLAY_ENV=true
+    fi
 fi
 if [ $cpu_memory = yes ]; then
     MEMORY_LIB=${BASEDIR}/${LIBDIR}/libapex_memory_wrapper${SHLIBX}:

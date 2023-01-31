@@ -968,6 +968,17 @@ void store_counter_data(const char * name, const std::string& ctx,
 
 void process_hip_record(const roctracer_record_t* record) {
     const char * name = roctracer_op_string(record->domain, record->op, record->kind);
+    if (!apex::apex_options::use_hip_kernel_details()) {
+        if (strncmp(name, "Marker", 6) == 0) {
+            // if there's a correlation ID, clear it from the maps
+            if (record->correlation_id > 0) {
+                Globals::find_timer(record->correlation_id);
+                Globals::find_data(record->correlation_id);
+            }
+            // do nothing, this event is annoying.
+            return;
+        }
+    }
     switch(record->op) {
         case HIP_OP_ID_DISPATCH: {
             std::string name = Globals::find_name(record->correlation_id);
