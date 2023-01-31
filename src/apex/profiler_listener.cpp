@@ -416,6 +416,8 @@ std::unordered_set<profile*> free_profiles;
                 int loc0 = task_scatterplot_samples.tellp();
                 if (loc0 > 32768) {
                     counter_scatterplot_sample_file() << counter_scatterplot_samples.rdbuf();
+                    // flush the buffer, in case we crash
+                    counter_scatterplot_sample_file().flush();
                     // reset the stringstream
                     counter_scatterplot_samples.str("");
                 }

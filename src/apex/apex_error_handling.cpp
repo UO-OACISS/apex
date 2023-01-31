@@ -11,6 +11,8 @@
 #include <signal.h>
 #include <stdio.h>
 #include <execinfo.h>
+#include <unistd.h>
+#include <sys/ucontext.h>
 #include "thread_instance.hpp"
 #include "address_resolution.hpp"
 #include <errno.h>
@@ -62,9 +64,9 @@ static void apex_custom_signal_handler(int sig) {
   //std::unique_lock<std::mutex> l(output_mutex);
   fflush(stderr);
   std::cerr << std::endl;
-  std::cerr << "********* Thread " << apex::thread_instance::get_id() << " " <<
-  strsignal(sig) << " *********";
-  std::cerr << std::endl;
+  std::cerr << "********* Node " << apex::apex::instance()->get_node_id() <<
+               ", Thread " << apex::thread_instance::get_id() << " " <<
+               strsignal(sig) << " *********" << std::endl;
   std::cerr << std::endl;
   if(errnum) {
     std::cerr << "Value of errno: " << errno << std::endl;
@@ -83,16 +85,53 @@ static void apex_custom_signal_handler(int sig) {
   _exit(-1);
 }
 
+std::map<int, struct sigaction> other_handlers;
+
+static void apex_custom_signal_handler_advanced(int sig, siginfo_t * info, void * context) {
+    apex_custom_signal_handler(sig);
+    // call the old handler
+    other_handlers[sig].sa_sigaction(sig, info, context);
+}
+
 int apex_register_signal_handler() {
+  if (apex::test_for_MPI_comm_rank(0) == 0) {
+    std::cout << "APEX signal handler registering..." << std::endl;
+  }
   struct sigaction act;
+  struct sigaction old;
+  memset(&act, 0, sizeof(act));
+  memset(&old, 0, sizeof(old));
+
   sigemptyset(&act.sa_mask);
-  act.sa_flags = 0;
-  act.sa_handler = apex_custom_signal_handler;
-  sigaction( SIGILL, &act, nullptr);
-  sigaction( SIGABRT, &act, nullptr);
-  sigaction( SIGFPE, &act, nullptr);
-  sigaction( SIGSEGV, &act, nullptr);
-  sigaction( SIGBUS, &act, nullptr);
+  std::array<int,15> mysignals = {
+    SIGHUP,
+    SIGINT,
+    SIGQUIT,
+    SIGILL,
+    //SIGTRAP,
+    SIGIOT,
+    SIGBUS,
+    SIGFPE,
+    SIGKILL,
+    SIGSEGV,
+    SIGABRT,
+    SIGTERM,
+    SIGSTKFLT,
+    SIGXCPU,
+    SIGXFSZ,
+    SIGPWR
+  };
+  //act.sa_flags = 0;
+  //act.sa_handler = apex_custom_signal_handler;
+  act.sa_flags = SA_RESTART | SA_SIGINFO;
+  act.sa_sigaction = apex_custom_signal_handler_advanced;
+  for (auto s : mysignals) {
+    sigaction(s, &act, &old);
+    other_handlers[s] = old;
+  }
+  if (apex::test_for_MPI_comm_rank(0) == 0) {
+    std::cout << "APEX signal handler registered!" << std::endl;
+  }
   return 0;
 }
 
