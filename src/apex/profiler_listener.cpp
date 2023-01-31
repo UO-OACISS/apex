@@ -1117,22 +1117,26 @@ std::unordered_set<profile*> free_profiles;
     /* before calling parent.get_name(), make sure we create
      * a thread_instance object that is NOT a worker. */
     thread_instance::instance(false);
-    ofstream myfile;
-    stringstream dotname;
-    dotname << apex_options::output_file_path();
-    dotname << filesystem_separator() << "tasktree." << node_id << ".dot";
-    myfile.open(dotname.str().c_str());
+    auto root = task_wrapper::get_apex_main_wrapper();
 
     // our TOTAL available time is the elapsed * the number of threads, or cores
-    int num_worker_threads = thread_instance::get_num_workers();
     auto main_id = task_identifier::get_main_task_id();
     profile * total_time = get_profile(*main_id);
     double wall_clock_main = total_time->get_accumulated_seconds();
+
+#if 0
+    int num_worker_threads = thread_instance::get_num_workers();
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
 #endif
     double total_main = wall_clock_main * fmin(hardware_concurrency(),
         num_worker_threads);
+
+    ofstream myfile;
+    stringstream dotname;
+    dotname << apex_options::output_file_path();
+    dotname << filesystem_separator() << "tasktree." << node_id << ".dot";
+    myfile.open(dotname.str().c_str());
 
     myfile << "digraph prof {\n";
     myfile << " label = \"Start Date/Time: " << timestamp_started;
@@ -1147,7 +1151,6 @@ std::unordered_set<profile*> free_profiles;
     myfile << " splines = true;\n";
     myfile << " rankdir = \"LR\";\n";
     myfile << " node [shape=box];\n";
-    auto root = task_wrapper::get_apex_main_wrapper();
     // recursively write out the tree
     root->tree_node->writeNode(myfile, wall_clock_main);
     myfile << "}\n";
@@ -1166,6 +1169,18 @@ std::unordered_set<profile*> free_profiles;
     myfile.open(txtname2.str().c_str());
     root->tree_node->writeNodeJSON(myfile, wall_clock_main, 0);
     myfile.close();
+#endif
+    // write to a single file!
+    stringstream tree_stream;
+    if (node_id == 0) {
+        tree_stream << "\"process rank\",\"node index\",\"parent index\",\"depth\",";
+        tree_stream << "\"name\",\"calls\",\"threads\",\"accumulated\",";
+        tree_stream << "\"minimum\",\"mean\",\"maximum\",";
+        tree_stream << "\"sumsqr\"\n";
+    }
+    root->tree_node->writeNodeCSV(tree_stream, wall_clock_main, node_id);
+    std::string filename{"apex_tasktree.csv"};
+    reduce_profiles(tree_stream, filename);
   }
 
   /* Write TAU profiles from the collected data. */

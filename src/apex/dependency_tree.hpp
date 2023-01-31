@@ -13,6 +13,7 @@
 #include <fstream>
 #include <atomic>
 #include <set>
+#include "apex_types.h"
 #include "task_identifier.hpp"
 
 namespace apex {
@@ -24,12 +25,13 @@ class Node {
         task_identifier* data;
         Node* parent;
         size_t count;
-        double calls;
-        double accumulated;
+        apex_profile prof;
+        //double calls;
+        //double accumulated;
+        //double min;
+        //double max;
+        //double sumsqr;
         double inclusive;
-        double min;
-        double max;
-        double sumsqr;
         size_t index;
         std::set<uint64_t> thread_ids;
         std::unordered_map<task_identifier, Node*> children;
@@ -37,9 +39,13 @@ class Node {
         static std::atomic<size_t> nodeCount;
     public:
         Node(task_identifier* id, Node* p) :
-            data(id), parent(p), count(1), calls(0), accumulated(0),
-            inclusive(0), min(0), max(0), sumsqr(0),
+            data(id), parent(p), count(1), inclusive(0),
             index(nodeCount.fetch_add(1, std::memory_order_relaxed)) {
+            prof.calls = 0.0;
+            prof.accumulated = 0.0;
+            prof.minimum = 0.0;
+            prof.maximum = 0.0;
+            prof.sum_squares = 0.0;
         }
         ~Node() {
             treeMutex.lock();
@@ -53,13 +59,17 @@ class Node {
         task_identifier* getData() { return data; }
         Node* getParent() { return parent; }
         size_t getCount() { return count; }
-        size_t getCalls() { return calls; }
-        double getAccumulated() { return accumulated; }
+        inline double& getCalls() { return prof.calls; }
+        inline double& getAccumulated() { return prof.accumulated; }
+        inline double& getMinimum() { return prof.minimum; }
+        inline double& getMaximum() { return prof.maximum; }
+        inline double& getSumSquares() { return prof.sum_squares; }
         void addAccumulated(double value, double incl, bool is_resume, uint64_t thread_id);
         size_t getIndex() { return index; };
         std::string getName() { return data->get_name(); };
         void writeNode(std::ofstream& outfile, double total);
         double writeNodeASCII(std::ofstream& outfile, double total, size_t indent);
+        double writeNodeCSV(std::stringstream& outfile, double total, int node_id);
         double writeNodeJSON(std::ofstream& outfile, double total, size_t indent);
         void writeTAUCallpath(std::ofstream& outfile, std::string prefix);
         static size_t getNodeCount() {

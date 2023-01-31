@@ -300,21 +300,30 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
         // the second string without a null character (zero).
         max_length = max_length + 1;
 #endif
+        // allocate the send buffer
+        char * sbuf = (char*)calloc(max_length, sizeof(char));
+        // copy into the send buffer
+        strncpy(sbuf, csv_output.str().c_str(), length);
         // allocate the memory to hold all output
         char * rbuf = nullptr;
         if (commrank == 0) {
+#if !defined(HPX_HAVE_NETWORKING) && defined(APEX_HAVE_MPI)
             rbuf = (char*)calloc(max_length * commsize, sizeof(char));
+#else
+            rbuf = sbuf;
+#endif
         }
-        char * sbuf = (char*)calloc(max_length, sizeof(char));
-        strncpy(sbuf, csv_output.str().c_str(), length);
+
+#if !defined(HPX_HAVE_NETWORKING) && defined(APEX_HAVE_MPI)
         MPI_Gather(sbuf, max_length, MPI_CHAR, rbuf, max_length, MPI_CHAR, 0, MPI_COMM_WORLD);
+#endif
 
         if (commrank == 0) {
             std::ofstream csvfile;
             std::stringstream csvname;
             csvname << apex_options::output_file_path();
             csvname << filesystem_separator() << filename;
-            std::cout << "Writing: " << csvname.str() << std::endl;
+            std::cout << "Writing: " << csvname.str();
             csvfile.open(csvname.str(), std::ios::out);
             char * index = rbuf;
             for (auto i = 0 ; i < commsize ; i++) {
@@ -324,6 +333,7 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
                 csvfile.flush();
             }
             csvfile.close();
+            std::cout << "...done." << std::endl;
         }
         free(sbuf);
         free(rbuf);
@@ -385,7 +395,7 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
             }
             csv_output << std::endl;
         }
-        reduce_profiles(csv_output, "apex_flat_profiles.csv");
+        reduce_profiles(csv_output, "apex_profiles.csv");
     }
 
 } // namespace
