@@ -177,7 +177,9 @@ public:
         return _profile.accumulated;
     }
     double get_inclusive_accumulated() {
-        return std::max<double>(_profile.accumulated,_profile.inclusive_accumulated);
+        if (_profile.type == APEX_TIMER)
+            return std::max<double>(_profile.accumulated,_profile.inclusive_accumulated);
+        return 0.0;
     }
     double get_accumulated_mean_threads() {
         return (_profile.accumulated / (double)(_profile.num_threads));

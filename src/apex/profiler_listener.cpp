@@ -488,7 +488,7 @@ std::unordered_set<profile*> free_profiles;
 
   void profiler_listener::write_one_timer(std::string &action_name,
           profile * p, stringstream &screen_output,
-          stringstream &csv_output, double &total_accumulated,
+          double &total_accumulated,
           double &total_main, double &wall_main, bool include_stops = false,
           bool include_papi = false) {
 #ifndef APEX_HAVE_PAPI
@@ -540,17 +540,6 @@ std::unordered_set<profile*> free_profiles;
         }
       }
       if (p->get_type() == APEX_TIMER) {
-        csv_output << "\"" << action_name << "\",\"timer\",";
-        csv_output << llround(p->get_calls()) << ",";
-        // add all the extra columns for counter data
-        csv_output << std::llround(p->get_minimum()) << ",";
-        csv_output << std::llround(p->get_mean()) << ",";
-        csv_output << std::llround(p->get_maximum()) << ",";
-        csv_output << std::llround(p->get_stddev()) << ",";
-        csv_output << std::llround(p->get_accumulated_useconds()) << ",";
-        csv_output << std::llround(p->get_inclusive_accumulated_useconds()) << ",";
-        csv_output << std::llround(p->get_num_threads()) << ",";
-        csv_output << std::llround(p->get_accumulated_useconds()/p->get_num_threads());
         //screen_output << " --n/a--   " ;
         if (include_stops) {
             if (p->get_num_threads() > 10000) {
@@ -613,7 +602,6 @@ std::unordered_set<profile*> free_profiles;
             for (int i = 0 ; i < num_papi_counters ; i++) {
                 screen_output  << "   " << string_format(FORMAT_SCIENTIFIC,
                     (p->get_papi_metrics()[i]));
-                csv_output << "," << std::llround(p->get_papi_metrics()[i]);
             }
         }
 #endif
@@ -626,7 +614,6 @@ std::unordered_set<profile*> free_profiles;
                 screen_output  << "   " << string_format(PAD_WITH_SPACES,
                     to_string(std::llround(p->get_allocations())).c_str());
             }
-            csv_output << "," << p->get_allocations();
 
             if (p->get_bytes_allocated() > 999999) {
                 screen_output  << "   " << string_format(FORMAT_SCIENTIFIC,
@@ -635,7 +622,6 @@ std::unordered_set<profile*> free_profiles;
                 screen_output  << "   " << string_format(PAD_WITH_SPACES,
                     to_string(std::llround(p->get_bytes_allocated())).c_str());
             }
-            csv_output << "," << p->get_bytes_allocated();
 
             if (p->get_frees() > 999999) {
                 screen_output  << "   " << string_format(FORMAT_SCIENTIFIC,
@@ -644,7 +630,6 @@ std::unordered_set<profile*> free_profiles;
                 screen_output  << "   " << string_format(PAD_WITH_SPACES,
                     to_string(std::llround(p->get_frees())).c_str());
             }
-            csv_output << "," << p->get_frees();
 
             if (p->get_bytes_freed() > 999999) {
                 screen_output  << "   " << string_format(FORMAT_SCIENTIFIC,
@@ -653,33 +638,10 @@ std::unordered_set<profile*> free_profiles;
                 screen_output  << "   " << string_format(PAD_WITH_SPACES,
                     to_string(std::llround(p->get_bytes_freed())).c_str());
             }
-            csv_output << "," << p->get_bytes_freed();
         }
-        //} else {
-            //csv_output << ",0,0,0,0";
         }
         screen_output << endl;
-        csv_output << endl;
       } else {
-        /* Do CSV output */
-        csv_output << "\"" << action_name << "\",\"counter\",";
-        csv_output << llround(p->get_calls()) << ",";
-        csv_output << std::llround(p->get_minimum()) << ",";
-        csv_output << std::llround(p->get_mean()) << ",";
-        csv_output << std::llround(p->get_maximum()) << ",";
-        csv_output << std::llround(p->get_stddev()) << ",";
-        // add all the extra columns for timer data
-        csv_output << "0,0,0,0"; // accumulated seconds, inclusive, threads, per thread - meaningless
-#if APEX_HAVE_PAPI
-        for (int i = 0 ; i < num_papi_counters ; i++) {
-            csv_output << ",0";
-        }
-        if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
-            csv_output << std::string( 4, ',' );
-        }
-#endif
-        csv_output << endl;
-
         /* Do Screen output */
         if (action_name.find('%') == string::npos && p->get_minimum() > 10000) {
           screen_output << string_format(FORMAT_SCIENTIFIC, p->get_minimum()) << "   " ;
@@ -744,9 +706,6 @@ std::unordered_set<profile*> free_profiles;
     // create a stringstream to hold all the screen output - we may not
     // want to write it out
     stringstream screen_output;
-    // create a stringstream to hold all the CSV output - we may not
-    // want to write it out
-    stringstream csv_output;
     // iterate over the profiles in the address map
     screen_output << endl << "Start Date/Time: " << timestamp_started;
     screen_output << endl << "Elapsed time: " << wall_clock_main
@@ -777,17 +736,6 @@ std::unordered_set<profile*> free_profiles;
             }
         }
     }
-    csv_output << "\"name\",\"type\",\"num samples/calls\",\"minimum\",\"mean\","
-        << "\"maximum\",\"stddev\",\"total microseconds\",\"inclusive microseconds\",\"num threads\",\"total per thread\"";
-#if APEX_HAVE_PAPI
-    for (int i = 0 ; i < num_papi_counters ; i++) {
-       csv_output << ",\"" << metric_names[i] << "\"";
-    }
-#endif
-    if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
-       csv_output << ",\"allocations\", \"bytes allocated\", \"frees\", \"bytes freed\"";
-    }
-    csv_output << endl;
     if (id_vector.size() > 0) {
         screen_output << "Counter                                              : "
         << " #samp | minimum |    mean  |  maximum |  stddev " << endl;
@@ -801,7 +749,7 @@ std::unordered_set<profile*> free_profiles;
             auto p = all_profiles.find(name);
             if (p != all_profiles.end()) {
                 profile tmp(p->second);
-                write_one_timer(name, &tmp, screen_output, csv_output,
+                write_one_timer(name, &tmp, screen_output,
                     total_accumulated, divisor, wall_clock_main);
             }
         }
@@ -866,7 +814,7 @@ std::unordered_set<profile*> free_profiles;
             auto p = all_profiles.find(name);
             if (p != all_profiles.end()) {
                 profile tmp(p->second);
-                write_one_timer(name, &tmp, screen_output, csv_output,
+                write_one_timer(name, &tmp, screen_output,
                     total_accumulated, divisor, wall_clock_main);
                 if (name.compare(APEX_MAIN_STR) != 0) {
                     total_hpx_threads = total_hpx_threads + tmp.get_calls();
@@ -901,7 +849,7 @@ std::unordered_set<profile*> free_profiles;
 
     // write the main timer
     std::string tmp_main(APEX_MAIN_STR);
-    write_one_timer(tmp_main, total_time, screen_output, csv_output,
+    write_one_timer(tmp_main, total_time, screen_output,
         total_accumulated, divisor, wall_clock_main, true, true);
     // iterate over the timers
     for(auto& pair_itr : timer_vector) {
@@ -910,7 +858,7 @@ std::unordered_set<profile*> free_profiles;
         auto p = all_profiles.find(name);
         if (p != all_profiles.end()) {
             profile tmp(p->second);
-            write_one_timer(name, &tmp, screen_output, csv_output,
+            write_one_timer(name, &tmp, screen_output,
                 total_accumulated, divisor, wall_clock_main, true, true);
             if (name.compare(APEX_MAIN_STR) != 0) {
                 total_hpx_threads = total_hpx_threads + tmp.get_calls();
@@ -961,14 +909,7 @@ std::unordered_set<profile*> free_profiles;
     }
 
     if (apex_options::use_csv_output()) {
-        ofstream csvfile;
-        stringstream csvname;
-        csvname << apex_options::output_file_path();
-        csvname << filesystem_separator() << "apex." << node_id << ".csv";
-        // std::cout << "Writing: " << csvname.str() << std::endl;
-        csvfile.open(csvname.str(), ios::out);
-        csvfile << csv_output.str();
-        csvfile.close();
+        reduce_flat_profiles(node_id, num_papi_counters, metric_names, this);
     }
     if (apex_options::use_tau()) {
       tau_listener::Tau_stop_wrapper("profiler_listener::finalize_profiles");
@@ -1781,7 +1722,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       if (apex_options::use_screen_output() ||
           apex_options::use_csv_output()) {
         // reduce/gather all profiles from all ranks
-        auto reduced = reduce_profiles();
+        auto reduced = reduce_profiles_for_screen();
         if (apex_options::process_async_state()) {
             finalize_profiles(data, reduced);
         }

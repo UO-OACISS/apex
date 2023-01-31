@@ -22,7 +22,7 @@
 #include "mpi.h"
 #endif
 
-#define MPI_START_TIMER static auto p = apex::new_task(__APEX_FUNCTION__); apex::start(p);
+#define MPI_START_TIMER auto p = apex::new_task(__APEX_FUNCTION__); apex::start(p);
 #define MPI_STOP_TIMER apex::stop(p);
 
 /* Implementation of the C API */
@@ -277,7 +277,7 @@ void  _symbol( void * buf, MPI_Fint * count, MPI_Fint * datatype, MPI_Fint * sou
     inline int apex_measure_mpi_sync(MPI_Comm comm, const char * name, std::shared_ptr<apex::task_wrapper> parent) {
         APEX_UNUSED(name);
         //auto _p = start(std::string(name)+" (sync)");
-        static auto _p = new_task("MPI Collective Sync", UINTMAX_MAX, parent);
+        auto _p = new_task("MPI Collective Sync", UINTMAX_MAX, parent);
 	    start(_p);
         int _retval = PMPI_Barrier(comm);
         stop(_p);
@@ -600,7 +600,7 @@ void _symbol(MPI_Fint * request, MPI_Fint * status, MPI_Fint * ierr) { \
 
     int MPI_Barrier(MPI_Comm comm) {
         MPI_START_TIMER
-        static auto _p = apex::new_task("MPI Collective Sync");
+        auto _p = apex::new_task("MPI Collective Sync");
 	    apex::start(_p);
         int retval = PMPI_Barrier(comm);
 	    apex::stop(_p);

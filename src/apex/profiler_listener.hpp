@@ -100,7 +100,6 @@ private:
   std::shared_ptr<profiler> main_timer;
   void write_one_timer(std::string &name, profile * p,
                        std::stringstream &screen_output,
-                       std::stringstream &csv_output,
                        double &total_accumulated,
                        double &total_main, double &wall_main, bool include_stops,
                        bool include_papi);

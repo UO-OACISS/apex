@@ -13,6 +13,7 @@
 #include <iostream>
 #include <map>
 #include <limits>
+#include <vector>
 #include <inttypes.h>
 
 /* 11 values per timer/counter by default
@@ -42,7 +43,7 @@ constexpr size_t num_fields{23};
 
 namespace apex {
 
-std::map<std::string, apex_profile*> reduce_profiles() {
+std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
     int commrank = 0;
     int commsize = 1;
 #if !defined(HPX_HAVE_NETWORKING) && defined(APEX_HAVE_MPI)
@@ -263,5 +264,129 @@ std::map<std::string, apex_profile*> reduce_profiles() {
     return (all_profiles);
 }
 
-}
+    void reduce_profiles(std::stringstream& csv_output, std::string filename) {
+        int commrank = 0;
+        int commsize = 1;
+#if !defined(HPX_HAVE_NETWORKING) && defined(APEX_HAVE_MPI)
+        int mpi_initialized = 0;
+        MPI_CALL(MPI_Initialized( &mpi_initialized ));
+        if (mpi_initialized) {
+            MPI_CALL(PMPI_Comm_rank(MPI_COMM_WORLD, &commrank));
+            MPI_CALL(PMPI_Comm_size(MPI_COMM_WORLD, &commsize));
+        }
+#endif
+        // if nothing to reduce, just write the data.
+        if (commsize == 1) {
+            std::ofstream csvfile;
+            std::stringstream csvname;
+            csvname << apex_options::output_file_path();
+            csvname << filesystem_separator() << filename;
+            std::cout << "Writing: " << csvname.str() << std::endl;
+            csvfile.open(csvname.str(), std::ios::out);
+            csvfile << csv_output.str();
+            csvfile.close();
+            return;
+        }
+
+        size_t length{csv_output.str().size()};
+        size_t max_length{length};
+        // get the longest string from all ranks
+#if !defined(HPX_HAVE_NETWORKING) && defined(APEX_HAVE_MPI)
+        if (mpi_initialized && commsize > 1) {
+            MPI_CALL(PMPI_Allreduce(&length, &max_length, 1,
+                MPI_UINT64_T, MPI_MAX, MPI_COMM_WORLD));
+        }
+        // so we don't have to specially handle the first string which will append
+        // the second string without a null character (zero).
+        max_length = max_length + 1;
+#endif
+        // allocate the memory to hold all output
+        char * rbuf = nullptr;
+        if (commrank == 0) {
+            rbuf = (char*)calloc(max_length * commsize, sizeof(char));
+        }
+        char * sbuf = (char*)calloc(max_length, sizeof(char));
+        strncpy(sbuf, csv_output.str().c_str(), length);
+        MPI_Gather(sbuf, max_length, MPI_CHAR, rbuf, max_length, MPI_CHAR, 0, MPI_COMM_WORLD);
+
+        if (commrank == 0) {
+            std::ofstream csvfile;
+            std::stringstream csvname;
+            csvname << apex_options::output_file_path();
+            csvname << filesystem_separator() << filename;
+            std::cout << "Writing: " << csvname.str() << std::endl;
+            csvfile.open(csvname.str(), std::ios::out);
+            char * index = rbuf;
+            for (auto i = 0 ; i < commsize ; i++) {
+                index = rbuf+(i*max_length);
+                std::string tmpstr{index};
+                csvfile << tmpstr;
+                csvfile.flush();
+            }
+            csvfile.close();
+        }
+        free(sbuf);
+        free(rbuf);
+    }
+
+    void reduce_flat_profiles(int node_id, int num_papi_counters,
+        std::vector<std::string> metric_names, profiler_listener* listener) {
+
+        std::stringstream csv_output;
+        if (node_id == 0) {
+            csv_output << "\"rank\",\"name\",\"type\",\"num samples/calls\",\"minimum\",\"mean\","
+                << "\"maximum\",\"stddev\",\"total\",\"inclusive (ns)\",\"num threads\",\"total per thread\"";
+#if APEX_HAVE_PAPI
+            for (int i = 0 ; i < num_papi_counters ; i++) {
+                csv_output << ",\"" << metric_names[i] << "\"";
+            }
+#endif
+            if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
+                csv_output << ",\"allocations\", \"bytes allocated\", \"frees\", \"bytes freed\"";
+            }
+            csv_output << std::endl;
+        }
+
+        /* Get a list of all profile names */
+        std::vector<task_identifier>& tids = get_available_profiles();
+        for (auto tid : tids) {
+            std::string name{tid.get_name()};
+            auto p = listener->get_profile(tid);
+            csv_output << node_id << ",\"" << name << "\",";
+            if (p->get_type() == APEX_TIMER) {
+                csv_output << "\"timer\",";
+            } else {
+                csv_output << "\"counter\",";
+            }
+            csv_output << llround(p->get_calls()) << ",";
+            // add all the extra columns for counter and timer data
+            csv_output << std::llround(p->get_minimum()) << ",";
+            csv_output << std::llround(p->get_mean()) << ",";
+            csv_output << std::llround(p->get_maximum()) << ",";
+            csv_output << std::llround(p->get_stddev()) << ",";
+            csv_output << std::llround(p->get_accumulated()) << ",";
+            if (p->get_type() == APEX_TIMER) {
+                csv_output << std::llround(p->get_inclusive_accumulated()) << ",";
+            } else {
+                csv_output << std::llround(0.0) << ",";
+            }
+            csv_output << std::llround(p->get_num_threads()) << ",";
+            csv_output << std::llround(p->get_accumulated()/p->get_num_threads());
+#if APEX_HAVE_PAPI
+            for (int i = 0 ; i < num_papi_counters ; i++) {
+                csv_output << "," << std::llround(p->get_papi_metrics()[i]);
+            }
+#endif
+            if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
+                csv_output << "," << p->get_allocations();
+                csv_output << "," << p->get_bytes_allocated();
+                csv_output << "," << p->get_frees();
+                csv_output << "," << p->get_bytes_freed();
+            }
+            csv_output << std::endl;
+        }
+        reduce_profiles(csv_output, "apex_flat_profiles.csv");
+    }
+
+} // namespace
 
