@@ -389,7 +389,6 @@ double Node::writeNodeCSV(std::stringstream& outfile, double total, int node_id)
 void Node::addMetrics(std::map<std::string, double>& _metric_map) {
     static std::mutex m;
     for (auto& x: _metric_map) {
-        std::cout << x.first << " => " << x.second << '\n';
         if (known_metrics.find(x.first) == known_metrics.end()) {
             m.lock();
             known_metrics.insert(x.first);
