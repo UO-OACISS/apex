@@ -17,6 +17,7 @@ class profiler;
 #include <sstream>
 #include <math.h>
 #include <memory>
+#include <map>
 #include "apex_options.hpp"
 #include "apex_types.h"
 #include "apex_assert.h"
@@ -61,6 +62,7 @@ public:
     bool stopped;
     // needed for correct Hatchet output
     uint64_t thread_id;
+    std::map<std::string, double> metric_map;
     task_identifier * get_task_id(void) {
         return task_id;
     }

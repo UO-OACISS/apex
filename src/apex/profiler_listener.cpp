@@ -425,6 +425,7 @@ std::unordered_set<profile*> free_profiles;
       }
     if (apex_options::use_tasktree_output() && !p.is_counter && p.tt_ptr != nullptr) {
         p.tt_ptr->tree_node->addAccumulated(p.elapsed_seconds(), p.inclusive_seconds(), p.is_resume, p.thread_id);
+        p.tt_ptr->tree_node->addMetrics(p.metric_map);
     }
     return 1;
   }
@@ -1176,7 +1177,11 @@ std::unordered_set<profile*> free_profiles;
         tree_stream << "\"process rank\",\"node index\",\"parent index\",\"depth\",";
         tree_stream << "\"name\",\"calls\",\"threads\",\"accumulated\",";
         tree_stream << "\"minimum\",\"mean\",\"maximum\",";
-        tree_stream << "\"sumsqr\"\n";
+        tree_stream << "\"sumsqr\"";
+        for (auto& x : dependency::Node::getKnownMetrics()) {
+            tree_stream << ",\"" << x << "\"";
+        }
+        tree_stream << "\n";
     }
     root->tree_node->writeNodeCSV(tree_stream, wall_clock_main, node_id);
     std::string filename{"apex_tasktree.csv"};

@@ -13,6 +13,7 @@
 #include <fstream>
 #include <atomic>
 #include <set>
+#include <map>
 #include "apex_types.h"
 #include "task_identifier.hpp"
 
@@ -35,8 +36,11 @@ class Node {
         size_t index;
         std::set<uint64_t> thread_ids;
         std::unordered_map<task_identifier, Node*> children;
+        // map for arbitrary metrics
+        std::map<std::string, double> metric_map;
         static std::mutex treeMutex;
         static std::atomic<size_t> nodeCount;
+        static std::set<std::string> known_metrics;
     public:
         Node(task_identifier* id, Node* p) :
             data(id), parent(p), count(1), inclusive(0),
@@ -74,6 +78,10 @@ class Node {
         void writeTAUCallpath(std::ofstream& outfile, std::string prefix);
         static size_t getNodeCount() {
             return nodeCount;
+        }
+        void addMetrics(std::map<std::string, double>& metric_map);
+        static std::set<std::string>& getKnownMetrics() {
+            return known_metrics;
         }
 };
 

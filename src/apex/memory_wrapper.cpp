@@ -162,6 +162,14 @@ void recordFree(void* ptr, bool cpu) {
     if (cpu) sample_value("Memory: Total Bytes Occupied", value);
 }
 
+/* This doesn't belong here, but whatevs */
+void recordMetric(std::string name, double value) {
+    profiler * p = thread_instance::instance().get_current_profiler();
+    if (p != nullptr) {
+        p->metric_map[name] = value;
+    }
+}
+
 // Comparator function to sort pairs descending, according to second value
 bool cmp(std::pair<void*, record_t>& a,
         std::pair<void*, record_t>& b)

@@ -21,6 +21,7 @@ namespace dependency {
 // declare an instance of the statics
 std::mutex Node::treeMutex;
 std::atomic<size_t> Node::nodeCount{0};
+std::set<std::string> Node::known_metrics;
 
 Node* Node::appendChild(task_identifier* c) {
     treeMutex.lock();
@@ -356,6 +357,14 @@ double Node::writeNodeCSV(std::stringstream& outfile, double total, int node_id)
     double variance = std::max(0.0,((getSumSquares() / ncalls) - (mean * mean)));
     double stddev = sqrt(variance);
     outfile << stddev;
+    // write any available metrics
+    for (auto& x : known_metrics) {
+        if (metric_map.find(x) == metric_map.end()) {
+            outfile << ",0";
+        } else {
+            outfile << "," << metric_map[x];
+        }
+    }
     // end the line
     outfile << std::endl;
 
@@ -375,6 +384,25 @@ double Node::writeNodeCSV(std::stringstream& outfile, double total, int node_id)
     }
     depth--;
     return acc;
+}
+
+void Node::addMetrics(std::map<std::string, double>& _metric_map) {
+    static std::mutex m;
+    for (auto& x: _metric_map) {
+        std::cout << x.first << " => " << x.second << '\n';
+        if (known_metrics.find(x.first) == known_metrics.end()) {
+            m.lock();
+            known_metrics.insert(x.first);
+            m.unlock();
+        }
+        m.lock();
+        if (metric_map.find(x.first) == metric_map.end()) {
+            metric_map[x.first] = x.second;
+        } else {
+            metric_map[x.first] += x.second;
+        }
+        m.unlock();
+    }
 }
 
 } // dependency_tree
