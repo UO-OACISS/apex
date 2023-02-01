@@ -66,6 +66,10 @@ using namespace std;
 
 namespace apex {
 
+#ifdef APEX_WITH_HIP
+rsmi::monitor * global_rsmi_reader = nullptr;
+#endif
+
     void get_popen_data(char *cmnd) {
         FILE *pf;
         string command;
@@ -834,6 +838,7 @@ namespace apex {
         // If PAPI support is lacking, use our own support
         if (apex_options::monitor_gpu()) {
             rsmi_reader = new rsmi::monitor();
+            global_rsmi_reader = rsmi_reader;
             rsmi_reader->query();
         }
         rocprofiler::monitor * rocprof_reader;
@@ -991,6 +996,35 @@ namespace apex {
         }
         return line;
     }
+
+std::array<double,2> getAvailableMemory() {
+    std::array<double,2> values{0,0};
+    /* Get the CPU memory */
+        FILE *f = fopen("/proc/meminfo", "r");
+        if (f) {
+            char line[4096] = {0};
+            while ( fgets( line, 4096, f)) {
+                string tmp(line);
+                const REGEX_NAMESPACE::regex separator(":");
+                REGEX_NAMESPACE::sregex_token_iterator token(tmp.begin(), tmp.end(),
+                        separator, -1);
+                REGEX_NAMESPACE::sregex_token_iterator end;
+                string name = *token++;
+                if (token != end && name.find("MemFree") != name.npos) {
+                    string value = *token;
+                    char* pEnd;
+                    double d1 = strtod (value.c_str(), &pEnd);
+                    if (pEnd) { values[0] =  d1; }
+                    break;
+                }
+            }
+            fclose(f);
+        }
+        if (global_rsmi_reader != nullptr) {
+            values[1] = global_rsmi_reader->getAvailableMemory();
+        }
+    return values;
+}
 
 } // namespace
 

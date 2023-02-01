@@ -355,9 +355,11 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_START_DELAY_SECONDS, start_delay_seconds, int, 0, "Delay collection of APEX data for N seconds.") \
     macro (APEX_MAX_DURATION_SECONDS, max_duration_seconds, int, 0, "Collect APEX data for only N seconds.") \
     macro (APEX_USE_SHORT_TASK_NAMES, use_short_task_names, bool, false, "") \
+    macro (APEX_VALIDATE_MPI_MEMORY_USAGE, validate_mpi_memory_usage, bool, false, "") \
 
 #define FOREACH_APEX_FLOAT_OPTION(macro) \
     macro (APEX_SCATTERPLOT_FRACTION, scatterplot_fraction, double, 0.01, "Fraction of kernel executions to include on scatterplot.") \
+    macro (APEX_VALIDATE_MPI_MEMORY_USAGE_FRACTION, validate_mpi_memory_usage_fraction, double, 1.0, "") \
 
 #define FOREACH_APEX_STRING_OPTION(macro) \
     macro (APEX_PAPI_METRICS, papi_metrics, char*, "", "PAPI metrics requested, separated by spaces.") \
