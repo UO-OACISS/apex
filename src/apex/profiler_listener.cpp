@@ -1175,11 +1175,17 @@ std::unordered_set<profile*> free_profiles;
     stringstream tree_stream;
     if (node_id == 0) {
         tree_stream << "\"process rank\",\"node index\",\"parent index\",\"depth\",";
-        tree_stream << "\"name\",\"calls\",\"threads\",\"accumulated\",";
-        tree_stream << "\"minimum\",\"mean\",\"maximum\",";
-        tree_stream << "\"sumsqr\"";
+        tree_stream << "\"name\",\"calls\",\"threads\",\"total time(ns)\",";
+        tree_stream << "\"minimum time(ns)\",\"mean time(ns)\",\"maximum time(ns)\",";
+        tree_stream << "\"stddev time(ns)\"";
         for (auto& x : dependency::Node::getKnownMetrics()) {
-            tree_stream << ",\"" << x << "\"";
+            tree_stream << ",\"total " << x << "\"";
+            tree_stream << ",\"minimum " << x << "\"";
+            tree_stream << ",\"mean " << x << "\"";
+            tree_stream << ",\"maximum " << x << "\"";
+            tree_stream << ",\"stddev " << x << "\"";
+            tree_stream << ",\"median " << x << "\"";
+            tree_stream << ",\"mode " << x << "\"";
         }
         tree_stream << "\n";
     }

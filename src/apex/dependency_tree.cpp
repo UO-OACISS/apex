@@ -360,9 +360,39 @@ double Node::writeNodeCSV(std::stringstream& outfile, double total, int node_id)
     // write any available metrics
     for (auto& x : known_metrics) {
         if (metric_map.find(x) == metric_map.end()) {
-            outfile << ",0";
+            outfile << ",,,,,,,";
         } else {
-            outfile << "," << metric_map[x];
+            const auto& value = metric_map.find(x);
+            const auto& p = value->second.prof;
+            outfile << "," << p.accumulated;
+            outfile << "," << p.minimum;
+            double mean = p.accumulated/ncalls;
+            outfile << "," << mean;
+            outfile << "," << p.maximum;
+            // compute the standard deviation
+            double t1 = p.sum_squares / ncalls;
+            double t2 = mean * mean;
+            double t3 = t1 - t2;
+            variance = std::max(0.0,(t3));
+            stddev = sqrt(variance);
+            outfile << "," << stddev;
+            // find the median
+            auto& d = value->second.distribution;
+            // how many do we have?
+            size_t total = 0;
+            double mode = 0;
+            double median = 0;
+            size_t half = (size_t)(ncalls/2.0);
+            size_t most = 0;
+            for (auto& node : d) {
+                total += node.second;
+                if (total >= half) { median = node.first; break; }
+            }
+            for (auto& node : d) {
+                if (node.second > most) { mode = node.first; }
+            }
+            outfile << "," << median;
+            outfile << "," << mode;
         }
     }
     // end the line
@@ -389,16 +419,20 @@ double Node::writeNodeCSV(std::stringstream& outfile, double total, int node_id)
 void Node::addMetrics(std::map<std::string, double>& _metric_map) {
     static std::mutex m;
     for (auto& x: _metric_map) {
-        if (known_metrics.find(x.first) == known_metrics.end()) {
+        std::string name{x.first};
+        double value{x.second};
+        if (known_metrics.find(name) == known_metrics.end()) {
             m.lock();
-            known_metrics.insert(x.first);
+            known_metrics.insert(name);
             m.unlock();
         }
         m.lock();
-        if (metric_map.find(x.first) == metric_map.end()) {
-            metric_map[x.first] = x.second;
+        if (metric_map.find(name) == metric_map.end()) {
+            metricStorage newval(value);
+            metric_map.emplace(name, std::move(newval));
         } else {
-            metric_map[x.first] += x.second;
+            auto element = metric_map.find(name);
+            element->second.increment(value);
         }
         m.unlock();
     }

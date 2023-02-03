@@ -21,6 +21,30 @@ namespace apex {
 
 namespace dependency {
 
+class metricStorage {
+public:
+    apex_profile prof;
+    std::map<double, size_t> distribution;
+    metricStorage(double value) {
+        prof.accumulated = value;
+        prof.maximum = value;
+        prof.minimum = value;
+        prof.sum_squares = value*value;
+        distribution[value] = 1;
+    }
+    void increment(double value) {
+        prof.accumulated += value;
+        prof.maximum = std::max<double>(prof.maximum, value);
+        prof.minimum = std::min<double>(prof.minimum, value);
+        prof.sum_squares += value*value;
+        if (distribution.find(value) == distribution.end()) {
+            distribution[value] = 1;
+        } else {
+            distribution[value] += 1;
+        }
+    }
+};
+
 class Node {
     private:
         task_identifier* data;
@@ -37,7 +61,7 @@ class Node {
         std::set<uint64_t> thread_ids;
         std::unordered_map<task_identifier, Node*> children;
         // map for arbitrary metrics
-        std::map<std::string, double> metric_map;
+        std::map<std::string, metricStorage> metric_map;
         static std::mutex treeMutex;
         static std::atomic<size_t> nodeCount;
         static std::set<std::string> known_metrics;
