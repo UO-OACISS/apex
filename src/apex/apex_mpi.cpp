@@ -226,7 +226,7 @@ void  _symbol( MPI_Fint *ierr ) { \
         int retval = PMPI_Isend(buf, count, datatype, dest, tag, comm, request);
         MPI_STOP_TIMER
         /* record the bandwidth */
-        getBandwidth(bytes, p, "MPI_Isend");
+        //getBandwidth(bytes, p, "MPI_Isend");
         return retval;
     }
 #define APEX_MPI_ISEND_TEMPLATE(_symbol) \
@@ -256,7 +256,7 @@ void  _symbol( void * buf, MPI_Fint * count, MPI_Fint * datatype, MPI_Fint * des
             request);
         MPI_STOP_TIMER
         /* record the bandwidth */
-        getBandwidth(bytes, p, "MPI_Irecv");
+        //getBandwidth(bytes, p, "MPI_Irecv");
         return retval;
     }
 #define APEX_MPI_IRECV_TEMPLATE(_symbol) \
@@ -287,7 +287,7 @@ void  _symbol( void * buf, MPI_Fint * count, MPI_Fint * datatype, MPI_Fint * sou
         int retval = PMPI_Send(buf, count, datatype, dest, tag, comm);
         MPI_STOP_TIMER
         /* record the bandwidth */
-        getBandwidth(bytes, p, "MPI_Send");
+        //getBandwidth(bytes, p, "MPI_Send");
         return retval;
     }
 #define APEX_MPI_SEND_TEMPLATE(_symbol) \
@@ -314,7 +314,7 @@ void  _symbol( void * buf, MPI_Fint * count, MPI_Fint * datatype, MPI_Fint * des
         int retval = PMPI_Recv(buf, count, datatype, source, tag, comm, status);
         MPI_STOP_TIMER
         /* record the bandwidth */
-        getBandwidth(bytes, p, "MPI_Recv");
+        //getBandwidth(bytes, p, "MPI_Recv");
         return retval;
     }
 #define APEX_MPI_RECV_TEMPLATE(_symbol) \
