@@ -62,6 +62,7 @@ public:
     void query();
     void stop();
     void activateDeviceIndex(uint32_t index);
+    double getAvailableMemory();
 private:
     bool success;
     uint32_t deviceCount;

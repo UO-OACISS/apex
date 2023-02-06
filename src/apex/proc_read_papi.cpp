@@ -8,6 +8,7 @@
 
 #include "papi.h"
 #define MAX_EVENTS_PER_EVENTSET 1024
+#include <iterator>
 
 namespace apex {
 

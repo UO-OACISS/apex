@@ -16,11 +16,12 @@ class profiler;
 #include <iostream>
 #include <sstream>
 #include <math.h>
+#include <memory>
+#include <map>
 #include "apex_options.hpp"
 #include "apex_types.h"
-// #include "apex_assert.h"
-#include <chrono>
-#include <memory>
+#include "apex_assert.h"
+#include "apex_clock.hpp"
 #include "task_wrapper.hpp"
 
 namespace apex {
@@ -36,8 +37,6 @@ class disabled_profiler_exception : public std::exception {
       return "Disabled profiler.";
     }
 };
-
-#define MYCLOCK std::chrono::system_clock
 
 class profiler {
 private:
@@ -63,6 +62,7 @@ public:
     bool stopped;
     // needed for correct Hatchet output
     uint64_t thread_id;
+    std::map<std::string, double> metric_map;
     task_identifier * get_task_id(void) {
         return task_id;
     }
@@ -75,7 +75,7 @@ public:
              reset_type reset = reset_type::NONE) :
         task_id(task->get_task_id()),
         tt_ptr(task),
-        start_ns(now_ns()),
+        start_ns(our_clock::now_ns()),
 #if APEX_HAVE_PAPI
         papi_start_values{0,0,0,0,0,0,0,0},
         papi_stop_values{0,0,0,0,0,0,0,0},
@@ -93,7 +93,7 @@ public:
              reset_type reset = reset_type::NONE) :
         task_id(id),
         tt_ptr(nullptr),
-        start_ns(now_ns()),
+        start_ns(our_clock::now_ns()),
 #if APEX_HAVE_PAPI
         papi_start_values{0,0,0,0,0,0,0,0},
         papi_stop_values{0,0,0,0,0,0,0,0},
@@ -109,7 +109,7 @@ public:
     profiler(task_identifier * id, double value_) :
         task_id(id),
         tt_ptr(nullptr),
-        start_ns(now_ns()),
+        start_ns(our_clock::now_ns()),
 #if APEX_HAVE_PAPI
         papi_start_values{0,0,0,0,0,0,0,0},
         papi_stop_values{0,0,0,0,0,0,0,0},
@@ -157,16 +157,16 @@ public:
     }
     void stop(bool is_resume) {
         this->is_resume = is_resume;
-        end_ns = now_ns();
+        end_ns = our_clock::now_ns();
         stopped = true;
     };
     void stop() {
-        end_ns = now_ns();
+        end_ns = our_clock::now_ns();
         stopped = true;
     };
     void restart() {
         this->is_resume = true;
-        start_ns = now_ns();
+        start_ns = our_clock::now_ns();
     };
     uint64_t get_start_ns() {
         return start_ns;
@@ -187,11 +187,11 @@ public:
         return end_ns*1.0e-6;
     }
     static double now_us( void ) {
-        double stamp = (double)now_ns();
+        double stamp = (double)our_clock::now_ns();
         return stamp*1.0e-3;
     }
     static double now_ms( void ) {
-        double stamp = (double)now_ns();
+        double stamp = (double)our_clock::now_ns();
         return stamp*1.0e-6;
     }
     double elapsed() {
@@ -199,10 +199,32 @@ public:
             return value;
         } else {
             if (!stopped) {
-                end_ns = now_ns();
+                end_ns = our_clock::now_ns();
             }
             return ((double)(end_ns-start_ns));
         }
+    }
+    double inclusive() {
+        if(is_counter) { return 0.0; }
+        /* The task isn't done yet. */
+        if (is_resume) {
+            return (0.0);
+        } else {
+            /* Is this an asynchronous event? if so, the task lifetime
+             * will be after the profiler lifetime. So check for that. */
+            double d_incl_start = (double)(
+                start_ns < tt_ptr->get_start_ns() ?
+                start_ns : tt_ptr->get_start_ns());
+            double d_end = (double)(end_ns);
+            if (!stopped) {
+                d_end = (double)our_clock::now_ns();
+            }
+            double incl = d_end - d_incl_start;
+            return (incl);
+        }
+    }
+    double inclusive_seconds() {
+        return inclusive() * 1.0e-9;
     }
     double elapsed_us() {
         return elapsed() * 1.0e-3;
@@ -217,14 +239,8 @@ public:
         return elapsed() - children_value;
     }
 
-    static uint64_t time_point_to_nanoseconds(std::chrono::time_point<MYCLOCK> tp) {
-        auto value = tp.time_since_epoch();
-        uint64_t duration =
-            std::chrono::duration_cast<std::chrono::nanoseconds>(value).count();
-        return duration;
-    }
     static uint64_t now_ns() {
-        return time_point_to_nanoseconds(MYCLOCK::now());
+        return our_clock::now_ns();
     }
 
     static profiler* get_disabled_profiler(void) {
@@ -239,16 +255,16 @@ public:
      * We want a timestamp for the start of the trace.
      * We will also need one for the end of the trace. */
     static uint64_t get_global_start(void) {
-        static uint64_t global_now = now_ns();
+        static uint64_t global_now = our_clock::now_ns();
         return global_now;
     }
     /* this is for getting the endpoint of the trace. */
     static uint64_t get_global_end(void) {
-        return now_ns();
+        return our_clock::now_ns();
     }
     double normalized_timestamp(void) {
         if(is_counter) {
-            return now_ns() - get_global_start();
+            return our_clock::now_ns() - get_global_start();
         } else {
             return start_ns - get_global_start();
         }

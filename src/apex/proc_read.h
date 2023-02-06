@@ -236,6 +236,8 @@ void apex_finalize_msr(void);
 double msr_current_power_high(void);
 #endif
 
+std::array<double,2> getAvailableMemory();
+
 }
 
 #endif

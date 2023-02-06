@@ -176,6 +176,20 @@ if(APEX_WITH_HIP)
     endif()
 endif(APEX_WITH_HIP)
 
+if(APEX_WITH_LEVEL0)
+    find_package(LEVEL0 REQUIRED)
+    if (LEVEL0_FOUND)
+        include_directories(${LEVEL0_INCLUDE_DIRS})
+        add_definitions(-DAPEX_WITH_LEVEL0)
+        set(LIBS ${LIBS} ${LEVEL0_LIBRARIES})
+        if (NOT BUILD_STATIC_EXECUTABLES)
+            set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_RPATH} ${LEVEL0_LIBRARY_DIR})
+        endif()
+        set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-parameter -Rno-debug-disables-optimization")
+        set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter -Rno-debug-disables-optimization")
+    endif()
+endif(APEX_WITH_LEVEL0)
+
 # set(APEX_BUILD_TYPE "${CMAKE_BUILD_TYPE}" CACHE STRING "Configuration type (one of Debug, RelWithDebInfo, Release, MinSizeRel)" FORCE)
 
 # Always force CMAKE_CONFIGURATION_TYPES to be the same as CMAKE_BUILD_TYPE
@@ -279,6 +293,10 @@ endif (DEFINED APEX_SANITIZE_THREAD AND APEX_SANITIZE_THREAD)
 # set debug options
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${APEX_SANITIZE_OPTIONS} -DAPEX_ERROR_HANDLING")
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${APEX_SANITIZE_OPTIONS} -DAPEX_ERROR_HANDLING")
+
+if (DEFINED APEX_ERROR_HANDLING AND APEX_ERROR_HANDLING)
+    add_definitions(-DAPEX_ERROR_HANDLING)
+endif (DEFINED APEX_ERROR_HANDLING AND APEX_ERROR_HANDLING)
 
 # ---------------------------------------------------
 # Set pedantic error flags if available

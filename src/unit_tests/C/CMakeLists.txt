@@ -38,6 +38,7 @@ set(example_programs
     apex_get_thread_cap
     apex_shutdown_throttling
     apex_disable
+    crasher
     ${APEX_OPENACC_TEST}
    )
 #    apex_setup_power_cap_throttling

@@ -63,6 +63,7 @@ book_t& getBook(void);
 void printBacktrace(void);
 void recordAlloc(size_t bytes, void* ptr, allocator_t alloc, bool cpu = true);
 void recordFree(void* ptr, bool cpu = false);
+void recordMetric(std::string name, double value);
 
 }; // apex namespace
 

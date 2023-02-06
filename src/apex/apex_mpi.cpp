@@ -16,13 +16,15 @@
 #endif
 
 #include "apex_api.hpp"
+#include "memory_wrapper.hpp"
 #include "apex_error_handling.hpp"
+#include "proc_read.h"
 #if defined(APEX_HAVE_MPI) || \
     (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
 #include "mpi.h"
 #endif
 
-#define MPI_START_TIMER static auto p = apex::new_task(__APEX_FUNCTION__); apex::start(p);
+#define MPI_START_TIMER auto p = apex::new_task(__APEX_FUNCTION__); apex::start(p);
 #define MPI_STOP_TIMER apex::stop(p);
 
 /* Implementation of the C API */
@@ -161,6 +163,46 @@ void  _symbol( MPI_Fint *ierr ) { \
         apex::sample_value(name, bytes);
         return bytes;
     }
+    inline double getBytesTransferred2(const int count, MPI_Datatype datatype, MPI_Comm comm, const char * function) {
+        int typesize = 0;
+        int commsize = 0;
+        PMPI_Type_size( datatype, &typesize );
+        PMPI_Comm_size( comm, &commsize );
+        double bytes = (double)(typesize) * (double)(count) * (double)commsize;
+        std::string name("Bytes : ");
+        name.append(function);
+        apex::sample_value(name, bytes);
+        return bytes;
+    }
+    inline double getBytesTransferred3(const int * count, MPI_Datatype datatype, MPI_Comm comm, const char * function) {
+        int typesize = 0;
+        int commsize = 0;
+        PMPI_Type_size( datatype, &typesize );
+        PMPI_Comm_size( comm, &commsize );
+        double bytes = 0;
+        for(int i = 0 ; i < commsize ; i++) {
+            bytes += ((double)(typesize) * (double)(count[i]));
+        }
+        std::string name("Bytes : ");
+        name.append(function);
+        apex::sample_value(name, bytes);
+        return bytes;
+    }
+    inline bool checkAvailableMemory(double bytes_requested) {
+        std::array<double,2> available{apex::getAvailableMemory()};
+        //std::cout << "Available: " << available[0] << ", " << available[1];
+        //std::cout << " Requested: " << bytes_requested << std::endl;
+        if (bytes_requested >
+            (apex::apex_options::validate_mpi_memory_usage_fraction()*available[0]) ||
+            bytes_requested >
+            (apex::apex_options::validate_mpi_memory_usage_fraction()*available[1])) {
+            std::cerr << "Warning! Requesting too much memory!" << std::endl;
+            std::cerr << "Expect a failure! Here's a backtrace:" << std::endl;
+            apex_print_backtrace();
+            return false;
+        }
+        return true;
+    }
     inline void getBandwidth(double bytes, std::shared_ptr<apex::task_wrapper> task, const char * function) {
         if ((task != nullptr) && (task->prof != nullptr)) {
             std::string name("BW (Bytes/second) : ");
@@ -174,13 +216,17 @@ void  _symbol( MPI_Fint *ierr ) { \
         int tag, MPI_Comm comm, MPI_Request *request) {
         /* Get the byte count */
         double bytes = getBytesTransferred(count, datatype, "MPI_Isend");
+        if (apex::apex_options::validate_mpi_memory_usage()) {
+            checkAvailableMemory(bytes);
+        }
         /* start the timer */
         MPI_START_TIMER
+        apex::recordMetric("Send Bytes", bytes);
         /* sample the bytes */
         int retval = PMPI_Isend(buf, count, datatype, dest, tag, comm, request);
         MPI_STOP_TIMER
         /* record the bandwidth */
-        getBandwidth(bytes, p, "MPI_Isend");
+        //getBandwidth(bytes, p, "MPI_Isend");
         return retval;
     }
 #define APEX_MPI_ISEND_TEMPLATE(_symbol) \
@@ -202,11 +248,15 @@ void  _symbol( void * buf, MPI_Fint * count, MPI_Fint * datatype, MPI_Fint * des
         /* Get the byte count */
         double bytes = getBytesTransferred(count, datatype, "MPI_Irecv");
         MPI_START_TIMER
+        if (apex::apex_options::validate_mpi_memory_usage()) {
+            checkAvailableMemory(bytes);
+        }
+        apex::recordMetric("Recv Bytes", bytes);
         int retval = PMPI_Irecv(buf, count, datatype, source, tag, comm,
             request);
         MPI_STOP_TIMER
         /* record the bandwidth */
-        getBandwidth(bytes, p, "MPI_Irecv");
+        //getBandwidth(bytes, p, "MPI_Irecv");
         return retval;
     }
 #define APEX_MPI_IRECV_TEMPLATE(_symbol) \
@@ -227,13 +277,17 @@ void  _symbol( void * buf, MPI_Fint * count, MPI_Fint * datatype, MPI_Fint * sou
         int tag, MPI_Comm comm){
         /* Get the byte count */
         double bytes = getBytesTransferred(count, datatype, "MPI_Send");
+        if (apex::apex_options::validate_mpi_memory_usage()) {
+            checkAvailableMemory(bytes);
+        }
         /* start the timer */
         MPI_START_TIMER
+        apex::recordMetric("Send Bytes", bytes);
         /* sample the bytes */
         int retval = PMPI_Send(buf, count, datatype, dest, tag, comm);
         MPI_STOP_TIMER
         /* record the bandwidth */
-        getBandwidth(bytes, p, "MPI_Send");
+        //getBandwidth(bytes, p, "MPI_Send");
         return retval;
     }
 #define APEX_MPI_SEND_TEMPLATE(_symbol) \
@@ -252,11 +306,15 @@ void  _symbol( void * buf, MPI_Fint * count, MPI_Fint * datatype, MPI_Fint * des
         int source, int tag, MPI_Comm comm, MPI_Status *status){
         /* Get the byte count */
         double bytes = getBytesTransferred(count, datatype, "MPI_Recv");
+        if (apex::apex_options::validate_mpi_memory_usage()) {
+            checkAvailableMemory(bytes);
+        }
         MPI_START_TIMER
+        apex::recordMetric("Recv Bytes", bytes);
         int retval = PMPI_Recv(buf, count, datatype, source, tag, comm, status);
         MPI_STOP_TIMER
         /* record the bandwidth */
-        getBandwidth(bytes, p, "MPI_Recv");
+        //getBandwidth(bytes, p, "MPI_Recv");
         return retval;
     }
 #define APEX_MPI_RECV_TEMPLATE(_symbol) \
@@ -277,7 +335,7 @@ void  _symbol( void * buf, MPI_Fint * count, MPI_Fint * datatype, MPI_Fint * sou
     inline int apex_measure_mpi_sync(MPI_Comm comm, const char * name, std::shared_ptr<apex::task_wrapper> parent) {
         APEX_UNUSED(name);
         //auto _p = start(std::string(name)+" (sync)");
-        static auto _p = new_task("MPI Collective Sync", UINTMAX_MAX, parent);
+        auto _p = new_task("MPI Collective Sync", UINTMAX_MAX, parent);
 	    start(_p);
         int _retval = PMPI_Barrier(comm);
         stop(_p);
@@ -285,7 +343,15 @@ void  _symbol( void * buf, MPI_Fint * count, MPI_Fint * datatype, MPI_Fint * sou
     }
     int MPI_Gather(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
         void *recvbuf, int recvcount, MPI_Datatype recvtype, int root, MPI_Comm comm) {
+        /* Get the byte count */
+        double sbytes = getBytesTransferred(sendcount, sendtype, "MPI_Gather sendbuf");
+        double rbytes = getBytesTransferred2(recvcount, recvtype, comm, "MPI_Gather recvbuf");
+        if (apex::apex_options::validate_mpi_memory_usage()) {
+            checkAvailableMemory(sbytes+rbytes);
+        }
         MPI_START_TIMER
+        apex::recordMetric("Send Bytes", sbytes);
+        apex::recordMetric("Recv Bytes", rbytes);
         apex_measure_mpi_sync(comm, __APEX_FUNCTION__, p);
         int retval = PMPI_Gather(sendbuf, sendcount, sendtype, recvbuf,
             recvcount, recvtype, root, comm);
@@ -311,7 +377,15 @@ void _symbol(void * sendbuf, MPI_Fint *sendcnt, MPI_Fint *sendtype, void * recvb
 
     int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
                   MPI_Datatype datatype, MPI_Op op, MPI_Comm comm) {
+        /* Get the byte count */
+        double sbytes = getBytesTransferred(count, datatype, "MPI_Allreduce sendbuf");
+        double rbytes = getBytesTransferred2(count, datatype, comm, "MPI_Allreduce recvbuf");
+        if (apex::apex_options::validate_mpi_memory_usage()) {
+            checkAvailableMemory(sbytes+rbytes);
+        }
         MPI_START_TIMER
+        apex::recordMetric("Send Bytes", sbytes);
+        apex::recordMetric("Recv Bytes", rbytes);
         apex_measure_mpi_sync(comm, __APEX_FUNCTION__, p);
         int retval = PMPI_Allreduce(sendbuf, recvbuf, count, datatype, op, comm);
         MPI_STOP_TIMER
@@ -335,7 +409,15 @@ void _symbol(void * sendbuf, void * recvbuf, MPI_Fint *count, MPI_Fint *datatype
 
     int MPI_Reduce(const void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype,
         MPI_Op op, int root, MPI_Comm comm) {
+        /* Get the byte count */
+        double sbytes = getBytesTransferred(count, datatype, "MPI_Reduce sendbuf");
+        double rbytes = getBytesTransferred2(count, datatype, comm, "MPI_Reduce recvbuf");
+        if (apex::apex_options::validate_mpi_memory_usage()) {
+            checkAvailableMemory(sbytes+rbytes);
+        }
         MPI_START_TIMER
+        apex::recordMetric("Send Bytes", sbytes);
+        apex::recordMetric("Recv Bytes", rbytes);
         apex_measure_mpi_sync(comm, __APEX_FUNCTION__, p);
         int retval = PMPI_Reduce(sendbuf, recvbuf, count, datatype, op, root, comm);
         MPI_STOP_TIMER
@@ -360,7 +442,19 @@ void _symbol(void * sendbuf, void * recvbuf, MPI_Fint *count, MPI_Fint *datatype
 
     int MPI_Bcast( void *buffer, int count, MPI_Datatype datatype, int root,
         MPI_Comm comm ) {
+        //int commrank;
+        //PMPI_Comm_rank(comm, &commrank);
+        /* Get the byte count */
+        double sbytes = getBytesTransferred(count, datatype, "MPI_Bcast");
+        if (apex::apex_options::validate_mpi_memory_usage()) {
+            checkAvailableMemory(sbytes);
+        }
         MPI_START_TIMER
+        //if (root == commrank) {
+            apex::recordMetric("Send Bytes", sbytes);
+        //} else {
+            //apex::recordMetric("Recv Bytes", sbytes);
+        //}
         apex_measure_mpi_sync(comm, __APEX_FUNCTION__, p);
         int retval = PMPI_Bcast(buffer, count, datatype, root, comm );
         MPI_STOP_TIMER
@@ -409,7 +503,15 @@ void _symbol(MPI_Fint *count, MPI_Fint * array_of_requests, MPI_Fint *ierr) { \
 
     int MPI_Alltoall(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
         void *recvbuf, int recvcount, MPI_Datatype recvtype, MPI_Comm comm) {
+        /* Get the byte count */
+        double sbytes = getBytesTransferred(sendcount, sendtype, "MPI_Alltoall sendbuf");
+        double rbytes = getBytesTransferred2(recvcount, recvtype, comm, "MPI_Alltoall recvbuf");
+        if (apex::apex_options::validate_mpi_memory_usage()) {
+            checkAvailableMemory(sbytes+rbytes);
+        }
         MPI_START_TIMER
+        apex::recordMetric("Send Bytes", sbytes);
+        apex::recordMetric("Recv Bytes", rbytes);
         apex_measure_mpi_sync(comm, __APEX_FUNCTION__, p);
         int retval = PMPI_Alltoall(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm);
         MPI_STOP_TIMER
@@ -434,7 +536,15 @@ MPI_Fint *recvcnt, MPI_Fint *recvtype, MPI_Fint *comm, MPI_Fint *ierr) { \
 
     int MPI_Allgather(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
         void *recvbuf, int recvcount, MPI_Datatype recvtype, MPI_Comm comm) {
+        /* Get the byte count */
+        double sbytes = getBytesTransferred(sendcount, sendtype, "MPI_Allgather sendbuf");
+        double rbytes = getBytesTransferred2(recvcount, recvtype, comm, "MPI_Allgather recvbuf");
+        if (apex::apex_options::validate_mpi_memory_usage()) {
+            checkAvailableMemory(sbytes+rbytes);
+        }
         MPI_START_TIMER
+        apex::recordMetric("Send Bytes", sbytes);
+        apex::recordMetric("Recv Bytes", rbytes);
         apex_measure_mpi_sync(comm, __APEX_FUNCTION__, p);
         int retval = PMPI_Allgather(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm);
         MPI_STOP_TIMER
@@ -461,7 +571,15 @@ void _symbol(void * sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype, void * rec
     int MPI_Allgatherv(const void* buffer_send, int count_send, MPI_Datatype datatype_send,
         void* buffer_recv, const int* counts_recv, const int* displacements,
         MPI_Datatype datatype_recv, MPI_Comm communicator) {
+        /* Get the byte count */
+        double sbytes = getBytesTransferred(count_send, datatype_send, "MPI_Allgatherv sendbuf");
+        double rbytes = getBytesTransferred3(counts_recv, datatype_recv, communicator, "MPI_Allgatherv recvbuf");
+        if (apex::apex_options::validate_mpi_memory_usage()) {
+            checkAvailableMemory(sbytes+rbytes);
+        }
         MPI_START_TIMER
+        apex::recordMetric("Send Bytes", sbytes);
+        apex::recordMetric("Recv Bytes", rbytes);
         apex_measure_mpi_sync(communicator, __APEX_FUNCTION__, p);
         int retval = PMPI_Allgatherv(buffer_send, count_send, datatype_send,
             buffer_recv, counts_recv, displacements, datatype_recv, communicator);
@@ -488,7 +606,15 @@ void _symbol(void * sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype, void * rec
     int MPI_Gatherv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
         void *recvbuf, const int *recvcounts, const int *displs,
         MPI_Datatype recvtype, int root, MPI_Comm comm) {
+        /* Get the byte count */
+        double sbytes = getBytesTransferred(sendcount, sendtype, "MPI_Gatherv sendbuf");
+        double rbytes = getBytesTransferred3(recvcounts, recvtype, comm, "MPI_Gatherv recvbuf");
+        if (apex::apex_options::validate_mpi_memory_usage()) {
+            checkAvailableMemory(sbytes+rbytes);
+        }
         MPI_START_TIMER
+        apex::recordMetric("Send Bytes", sbytes);
+        apex::recordMetric("Recv Bytes", rbytes);
         apex_measure_mpi_sync(comm, __APEX_FUNCTION__, p);
         int retval = PMPI_Gatherv(sendbuf, sendcount, sendtype, recvbuf, recvcounts, displs, recvtype, root, comm);
         MPI_STOP_TIMER
@@ -514,7 +640,15 @@ void _symbol(void * sendbuf, MPI_Fint *sendcnt, MPI_Fint *sendtype, void * recvb
   int MPI_Sendrecv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
         int dest, int sendtag, void *recvbuf, int recvcount, MPI_Datatype recvtype,
         int source, int recvtag, MPI_Comm comm, MPI_Status * status) {
+        /* Get the byte count */
+        double sbytes = getBytesTransferred(sendcount, sendtype, "MPI_Sendrecv sendbuf");
+        double rbytes = getBytesTransferred(recvcount, recvtype, "MPI_Sendrecv recvbuf");
+        if (apex::apex_options::validate_mpi_memory_usage()) {
+            checkAvailableMemory(sbytes+rbytes);
+        }
         MPI_START_TIMER
+        apex::recordMetric("Send Bytes", sbytes);
+        apex::recordMetric("Recv Bytes", rbytes);
         apex_measure_mpi_sync(comm, __APEX_FUNCTION__, p);
         int retval = PMPI_Sendrecv(sendbuf, sendcount, sendtype, dest, sendtag, recvbuf, recvcount, recvtype,
                  source, recvtag, comm, status);
@@ -600,7 +734,7 @@ void _symbol(MPI_Fint * request, MPI_Fint * status, MPI_Fint * ierr) { \
 
     int MPI_Barrier(MPI_Comm comm) {
         MPI_START_TIMER
-        static auto _p = apex::new_task("MPI Collective Sync");
+        auto _p = apex::new_task("MPI Collective Sync");
 	    apex::start(_p);
         int retval = PMPI_Barrier(comm);
 	    apex::stop(_p);

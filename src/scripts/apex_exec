@@ -69,6 +69,7 @@ where APEX options are zero or more of:
     --apex:hip_driver             enable HIP/ROCTracer KSA driver API callbacks (default: off)
     --apex:hip_details            enable per-kernel statistics where available (default: off)
     --apex:monitor_gpu            enable GPU monitoring services (CUDA NVML, ROCm SMI)
+    --apex:level0                 enable OneAPI Level0 measurement (default: off)
     --apex:cpuinfo                enable sampling of /proc/cpuinfo (Linux only)
     --apex:meminfo                enable sampling of /proc/meminfo (Linux only)
     --apex:net                    enable sampling of /proc/net/dev (Linux only)
@@ -111,6 +112,7 @@ hip=no
 hip_counters=no
 hip_driver=no
 hip_details=no
+level0=no
 monitor_gpu=no
 untied=no
 cpuinfo=no
@@ -267,6 +269,11 @@ while (( "$#" )); do
       ;;
     --apex:hip)
       export APEX_ENABLE_HIP=1
+      shift
+      ;;
+    --apex:level0)
+      export APEX_ENABLE_LEVEL0=1
+      export ZE_ENABLE_TRACING_LAYER=1
       shift
       ;;
     --apex:hip_counters)
@@ -487,7 +494,10 @@ if [ $ompt = yes ]; then
     export OMP_TOOL=enabled
     export OMP_TOOL_LIBRARIES=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}
     export OMP_TOOL_VERBOSE_INIT=stdout
-    export OMP_DISPLAY_ENV=true
+    OMPT_LIB=@OMPT_LIBRARY@:
+    if [ $verbose = yes ]; then
+        export OMP_DISPLAY_ENV=true
+    fi
 fi
 if [ $cpu_memory = yes ]; then
     MEMORY_LIB=${BASEDIR}/${LIBDIR}/libapex_memory_wrapper${SHLIBX}:

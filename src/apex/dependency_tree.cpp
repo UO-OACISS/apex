@@ -21,6 +21,7 @@ namespace dependency {
 // declare an instance of the statics
 std::mutex Node::treeMutex;
 std::atomic<size_t> Node::nodeCount{0};
+std::set<std::string> Node::known_metrics;
 
 Node* Node::appendChild(task_identifier* c) {
     treeMutex.lock();
@@ -74,10 +75,10 @@ void Node::writeNode(std::ofstream& outfile, double total) {
         outfile << std::endl;
     }
 
-    double acc = (data == task_identifier::get_main_task_id() || accumulated == 0.0) ?
-        total : accumulated;
+    double acc = (data == task_identifier::get_main_task_id() || getAccumulated() == 0.0) ?
+        total : getAccumulated();
     node_color * c = get_node_color_visible(acc, 0.0, total, data->get_tree_name());
-    double ncalls = (calls == 0) ? 1 : calls;
+    double ncalls = (getCalls() == 0) ? 1 : getCalls();
 
     std::string decoration;
     std::string font;
@@ -100,7 +101,9 @@ void Node::writeNode(std::ofstream& outfile, double total) {
             std::setfill('0') << std::setw(2) << std::hex << c->convert(c->green) <<
             std::setfill('0') << std::setw(2) << std::hex << c->convert(c->blue) <<
             "\"; depth=" << std::dec << depth <<
-            "; time=" << std::fixed << acc << "; label=\"" << data->get_tree_name() <<
+            "; time=" << std::fixed << acc <<
+            "; inclusive=" << std::fixed << inclusive <<
+            "; label=\"" << data->get_tree_name() <<
             "\\lcalls: " << ncalls << "\\ltime: " <<
             std::defaultfloat << acc << "\\l\" ];" << std::endl;
 
@@ -125,22 +128,24 @@ double Node::writeNodeASCII(std::ofstream& outfile, double total, size_t indent)
     outfile << "|-> ";
     indent++;
     // write out the inclusive and percent of total
-    double acc = (data == task_identifier::get_main_task_id() || accumulated == 0.0) ?
-        total : accumulated;
-    double percentage = (accumulated / total) * 100.0;
+    double acc = (data == task_identifier::get_main_task_id() || getAccumulated() == 0.0) ?
+        total : getAccumulated();
+    double percentage = (getAccumulated() / total) * 100.0;
     outfile << std::fixed << std::setprecision(precision) << acc << " - "
             << std::fixed << std::setprecision(precision) << percentage << "% [";
     // write the number of calls
-    double ncalls = (calls == 0) ? 1 : calls;
+    double ncalls = (getCalls() == 0) ? 1 : getCalls();
     outfile << std::fixed << std::setprecision(0) << ncalls << "]";
     // write other stats - min, max, stddev
     double mean = acc / ncalls;
     // avoid -0.0 which will cause a -nan for stddev
-    double variance = std::max(0.0,((sumsqr / ncalls) - (mean * mean)));
+    double variance = std::max(0.0,((getSumSquares() / ncalls) - (mean * mean)));
     double stddev = sqrt(variance);
-    outfile << " {min=" << std::fixed << std::setprecision(precision) << min << ", max=" << max
+    outfile << " {min=" << std::fixed << std::setprecision(precision) << getMinimum() << ", max=" << getMaximum()
             << ", mean=" << mean << ", var=" << variance
-            << ", std dev=" << stddev << ", threads=" << thread_ids.size() << "} ";
+            << ", std dev=" << stddev
+            << ", inclusive=" << inclusive
+            << ", threads=" << thread_ids.size() << "} ";
     // Write out the name
     outfile << data->get_tree_name() << " ";
     // end the line
@@ -187,13 +192,13 @@ double Node::writeNodeJSON(std::ofstream& outfile, double total, size_t indent) 
             << "\", \"type\": \"function\", \"rank\": "
             << apex::instance()->get_node_id() << "}, ";
     // write out the inclusive
-    double acc = (data == task_identifier::get_main_task_id() || accumulated == 0.0) ?
-        total : std::min(total, accumulated);
+    double acc = (data == task_identifier::get_main_task_id() || getAccumulated() == 0.0) ?
+        total : std::min(total, getAccumulated());
 
     // solve for the exclusive
     double excl = acc;
     for (auto c : children) {
-        excl = excl - c.second->accumulated;
+        excl = excl - c.second->getAccumulated();
     }
     if (excl < 0.0) {
         excl = 0.0;
@@ -201,14 +206,15 @@ double Node::writeNodeJSON(std::ofstream& outfile, double total, size_t indent) 
 
     // Don't write out synchronization events! They confuse the graph.
     if (data->get_tree_name().find("Synchronize") != std::string::npos) acc = 0.0;
-    double ncalls = (calls == 0) ? 1 : calls;
+    double ncalls = (getCalls() == 0) ? 1 : getCalls();
     outfile << "\"metrics\": {\"time\": " << excl
             << ", \"total time (inc)\": " << acc
-            << ", \"time (inc)\": " << (acc / (double)(thread_ids.size()))
+            << ", \"time (inc cpu)\": " << (acc / (double)(thread_ids.size()))
+            << ", \"time (inc wall)\": " << inclusive
             << ", \"num threads\": " << thread_ids.size()
-            << ", \"min (inc)\": " << min
-            << ", \"max (inc)\": " << max
-            << ", \"sumsqr (inc)\": " << sumsqr
+            << ", \"min (inc)\": " << getMinimum()
+            << ", \"max (inc)\": " << getMaximum()
+            << ", \"sumsqr (inc)\": " << getSumSquares()
             << ", \"calls\": " << ncalls << "}";
 
     // if no children, we are done
@@ -246,7 +252,7 @@ void Node::writeTAUCallpath(std::ofstream& outfile, std::string prefix) {
     if (prefix.size() == 0 && children.size() == 0) { return ; }
 
     // get the inclusive amount for this timer
-    double acc = accumulated * 1000000; // stored in seconds, we need to convert to microseconds
+    double acc = getAccumulated() * 1000000; // stored in seconds, we need to convert to microseconds
 
     // update the prefix
     if (data->get_name().compare(APEX_MAIN_STR) == 0) {
@@ -281,14 +287,15 @@ void Node::writeTAUCallpath(std::ofstream& outfile, std::string prefix) {
         // otherwise, write out this node
         outfile << "\"" << prefix << "\" ";
         // write the number of calls
-        double ncalls = (calls == 0) ? 1 : calls;
+        double ncalls = (getCalls() == 0) ? 1 : getCalls();
         outfile << std::fixed << std::setprecision(0) << ncalls << " ";
         // write out subroutines
         outfile << child_calls << " ";
         // write out exclusive
         outfile << std::fixed << std::setprecision(3) << remainder << " ";
         // write out inclusive
-        outfile << std::fixed << std::setprecision(3) << acc << " ";
+        //outfile << std::fixed << std::setprecision(3) << acc << " ";
+        outfile << std::fixed << std::setprecision(3) << inclusive << " ";
         // write out profilecalls and group
         outfile << "0 GROUP=\"" << data->get_group() << " | TAU_CALLPATH\" ";
         // end the line
@@ -309,16 +316,126 @@ void Node::writeTAUCallpath(std::ofstream& outfile, std::string prefix) {
     return;
 }
 
-void Node::addAccumulated(double value, bool is_resume, uint64_t thread_id) {
+void Node::addAccumulated(double value, double incl, bool is_resume, uint64_t thread_id) {
     static std::mutex m;
     m.lock();
-    if (!is_resume) { calls+=1; }
-    accumulated = accumulated + value;
-    if (min == 0.0 || value < min) { min = value; }
-    if (value > max) { max = value; }
-    sumsqr = sumsqr + (value*value);
+    if (!is_resume) {
+        getCalls()+=1;
+        inclusive = inclusive + incl;
+    }
+    getAccumulated() = getAccumulated() + value;
+    if (getMinimum() == 0.0 || value < getMinimum()) { getMinimum() = value; }
+    if (value > getMaximum()) { getMaximum() = value; }
+    getSumSquares() = getSumSquares() + (value*value);
     thread_ids.insert(thread_id);
     m.unlock();
+}
+
+double Node::writeNodeCSV(std::stringstream& outfile, double total, int node_id) {
+    static size_t depth = 0;
+    APEX_ASSERT(total > 0.0);
+    // write out the node id and graph node index and the name
+    outfile << node_id << "," << index << ",";
+    outfile << ((parent == nullptr) ? 0 : parent->index) << ",";
+    outfile << depth << ",\"";
+    outfile << data->get_tree_name() << "\",";
+    // write out the inclusive
+    double acc = (data == task_identifier::get_main_task_id() || getAccumulated() == 0.0) ?
+        total : getAccumulated();
+    // write the number of calls
+    double ncalls = (getCalls() == 0) ? 1 : getCalls();
+    outfile << std::fixed << std::setprecision(0) << ncalls << ",";
+    outfile << thread_ids.size() << ",";
+    // write other stats - min, max, stddev
+    double mean = acc / ncalls;
+    outfile << std::setprecision(9);
+    outfile << acc << ",";
+    outfile << getMinimum() << ",";
+    outfile << mean << ",";
+    outfile << getMaximum() << ",";
+    // avoid -0.0 which will cause a -nan for stddev
+    double variance = std::max(0.0,((getSumSquares() / ncalls) - (mean * mean)));
+    double stddev = sqrt(variance);
+    outfile << stddev;
+    // write any available metrics
+    for (auto& x : known_metrics) {
+        if (metric_map.find(x) == metric_map.end()) {
+            outfile << ",,,,,,,";
+        } else {
+            const auto& value = metric_map.find(x);
+            const auto& p = value->second.prof;
+            outfile << "," << p.accumulated;
+            outfile << "," << p.minimum;
+            double mean = p.accumulated/ncalls;
+            outfile << "," << mean;
+            outfile << "," << p.maximum;
+            // compute the standard deviation
+            double t1 = p.sum_squares / ncalls;
+            double t2 = mean * mean;
+            double t3 = t1 - t2;
+            variance = std::max(0.0,(t3));
+            stddev = sqrt(variance);
+            outfile << "," << stddev;
+            // find the median
+            auto& d = value->second.distribution;
+            // how many do we have?
+            size_t total = 0;
+            double mode = 0;
+            double median = 0;
+            size_t half = (size_t)(ncalls/2.0);
+            size_t most = 0;
+            for (auto& node : d) {
+                total += node.second;
+                if (total >= half) { median = node.first; break; }
+            }
+            for (auto& node : d) {
+                if (node.second > most) { mode = node.first; }
+            }
+            outfile << "," << median;
+            outfile << "," << mode;
+        }
+    }
+    // end the line
+    outfile << std::endl;
+
+    // sort the children by accumulated time
+    std::vector<std::pair<task_identifier, Node*> > sorted;
+    for (auto& it : children) {
+        sorted.push_back(it);
+    }
+    sort(sorted.begin(), sorted.end(), cmp);
+
+    // do all the children
+    double remainder = acc;
+    depth++;
+    for (auto c : sorted) {
+        double tmp = c.second->writeNodeCSV(outfile, total, node_id);
+        remainder = remainder - tmp;
+    }
+    depth--;
+    return acc;
+}
+
+void Node::addMetrics(std::map<std::string, double>& _metric_map) {
+    static std::mutex m;
+    for (auto& x: _metric_map) {
+        std::string name{x.first};
+        double value{x.second};
+        if (known_metrics.find(name) == known_metrics.end()) {
+            m.lock();
+            known_metrics.insert(name);
+            m.unlock();
+        }
+        m.lock();
+        if (metric_map.find(name) == metric_map.end()) {
+            metricStorage newval(value);
+            metric_map.emplace(name, std::move(newval));
+        } else {
+            auto element = metric_map.find(name);
+            element->second.increment(value);
+        }
+        m.unlock();
+    }
 }
 
 } // dependency_tree

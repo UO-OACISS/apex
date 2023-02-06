@@ -63,12 +63,14 @@ monitor::monitor (void) {
     RSMI_CALL(rsmi_num_monitor_devices(&deviceCount));
     rsmi_version_t version;
     RSMI_CALL(rsmi_version_get(&version));
-    std::cout << "RSMI Version "
-              << version.major << "."
-              << version.minor << "."
-              << version.patch << " build "
-              << version.build << ", Found "
-              << deviceCount << " total devices" << std::endl;
+    if (apex_options::use_verbose()) {
+        std::cout << "RSMI Version "
+                << version.major << "."
+                << version.minor << "."
+                << version.patch << " build "
+                << version.build << ", Found "
+                << deviceCount << " total devices" << std::endl;
+    }
 
     //devices.reserve(deviceCount);
     // get the unit handles
@@ -131,7 +133,9 @@ void monitor::query(void) {
 		APEX_UNUSED(timestamp);
 
         if (!queried_once[d]) {
-            std::cout << deviceInfos[d].to_string() << std::endl;
+            if (apex_options::use_verbose()) {
+                std::cout << deviceInfos[d].to_string() << std::endl;
+            }
         }
 
         // power, in microwatts
@@ -347,6 +351,25 @@ void monitor::activateDeviceIndex(uint32_t index) {
     indexMutex.lock();
     activeDeviceIndices.insert(index);
     indexMutex.unlock();
+}
+
+double monitor::getAvailableMemory() {
+    double avail{0};
+    indexMutex.lock();
+    // use the copy constructor to get the set of active indices
+    std::set<uint32_t> indexSet{activeDeviceIndices};
+    indexMutex.unlock();
+    /* just check the first known device for now, assume 1 */
+    for (uint32_t d : indexSet) {
+        uint64_t memory_total;
+        RSMI_CALL(rsmi_dev_memory_total_get(d, RSMI_MEM_TYPE_VRAM, &memory_total));
+        uint64_t memory_usage;
+        RSMI_CALL(rsmi_dev_memory_usage_get(d, RSMI_MEM_TYPE_VRAM, &memory_usage));
+        avail = (double)(memory_total - memory_usage);
+        break;
+    }
+
+    return avail;
 }
 
 } // namespace rsmi

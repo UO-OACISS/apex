@@ -54,16 +54,24 @@ int apex_example_policy_func(apex_context const context) {
   double one_worker = (1.0/__active_threads)*0.51;
   if (((mytimer/outvalues[1]) > ((__active_threads/outvalues[0]) + one_worker))
       && (__active_threads < apex::apex_options::throttling_max_threads())) {
+      /*
     std::cout << __myrank << ": " << one_worker << " timer: " << (mytimer/outvalues[1])
 	  << " thread: " << (__active_threads/outvalues[0]) << std::endl;
+      */
     __active_threads++;
+    /*
     std::cout << __myrank << ": New thread count: " << __active_threads << std::endl;
+    */
   } else if (((mytimer/outvalues[1]) < ((__active_threads/outvalues[0]) - one_worker))
       && (__active_threads > apex::apex_options::throttling_min_threads())) {
+    /*
     std::cout << __myrank << ": " << one_worker << " timer: " << (mytimer/outvalues[1])
 	  << " thread: " << (__active_threads/outvalues[0]) << std::endl;
+    */
     __active_threads--;
+    /*
     std::cout << __myrank << ": New thread count: " << __active_threads << std::endl;
+    */
   }
   return APEX_NOERROR;
 }
