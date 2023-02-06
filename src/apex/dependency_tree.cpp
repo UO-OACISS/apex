@@ -339,7 +339,7 @@ double Node::writeNodeCSV(std::stringstream& outfile, double total, int node_id)
     outfile << ((parent == nullptr) ? 0 : parent->index) << ",";
     outfile << depth << ",\"";
     outfile << data->get_tree_name() << "\",";
-    // write out the inclusive
+    // write out the accumulated
     double acc = (data == task_identifier::get_main_task_id() || getAccumulated() == 0.0) ?
         total : getAccumulated();
     // write the number of calls
@@ -350,6 +350,7 @@ double Node::writeNodeCSV(std::stringstream& outfile, double total, int node_id)
     double mean = acc / ncalls;
     outfile << std::setprecision(9);
     outfile << acc << ",";
+    outfile << inclusive << ",";
     outfile << getMinimum() << ",";
     outfile << mean << ",";
     outfile << getMaximum() << ",";
