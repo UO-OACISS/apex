@@ -1,6 +1,5 @@
 #include <signal.h>
 #include <stdio.h>
-#include <malloc.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/mman.h>
@@ -21,7 +20,11 @@ int main(int argc, char *argv[])
     /* Allocate a buffer aligned on a page boundary;
        initial protection is PROT_READ | PROT_WRITE */
 
+#ifdef __APPLE__
+    buffer = valloc(4 * pagesize);
+#else
     buffer = memalign(pagesize, 4 * pagesize);
+#endif
     if (buffer == NULL)
         handle_error("memalign");
 
@@ -49,7 +52,7 @@ int main(int argc, char *argv[])
         printf("Now i can read the memory\n");
 
     }
-/*  for (p = buffer;p<=buffer+4*pagesize ;p++ ) 
+/*  for (p = buffer;p<=buffer+4*pagesize ;p++ )
     {
         //a = *(p);
         *(p) = 'a';

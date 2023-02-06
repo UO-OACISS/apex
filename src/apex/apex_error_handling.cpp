@@ -103,7 +103,7 @@ int apex_register_signal_handler() {
   memset(&old, 0, sizeof(old));
 
   sigemptyset(&act.sa_mask);
-  std::array<int,15> mysignals = {
+  std::array<int,13> mysignals = {
     SIGHUP,
     SIGINT,
     SIGQUIT,
@@ -116,10 +116,8 @@ int apex_register_signal_handler() {
     SIGSEGV,
     SIGABRT,
     SIGTERM,
-    SIGSTKFLT,
     SIGXCPU,
-    SIGXFSZ,
-    SIGPWR
+    SIGXFSZ
   };
   //act.sa_flags = 0;
   //act.sa_handler = apex_custom_signal_handler;

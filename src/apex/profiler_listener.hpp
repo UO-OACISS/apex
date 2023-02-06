@@ -137,9 +137,9 @@ private:
   dependency_queue_t * dependency_queue(void);
   //ConcurrentQueue<task_dependency*> dependency_queue;
   std::unordered_set<task_identifier> throttled_tasks;
-#if APEX_HAVE_PAPI
   int num_papi_counters;
   std::vector<std::string> metric_names;
+#if APEX_HAVE_PAPI
   void initialize_PAPI(bool first_time);
 #endif
 #ifndef APEX_HAVE_HPX
@@ -157,15 +157,9 @@ public:
     this->node_id = node_id;
   }
   profiler_listener (void) : _initialized(false), _main_timer_stopped(false), _done(false),
-                             node_id(0), task_map()
-#if APEX_HAVE_PAPI
-                             , num_papi_counters(0),
+                             node_id(0), task_map() , num_papi_counters(0),
                              metric_names(0)
-#endif
   {
-#if APEX_HAVE_PAPI
-      num_papi_counters = 0;
-#endif
       if (apex_options::task_scatterplot()) {
         profiler::get_global_start();
       }

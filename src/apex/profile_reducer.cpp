@@ -341,7 +341,10 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
 
     void reduce_flat_profiles(int node_id, int num_papi_counters,
         std::vector<std::string> metric_names, profiler_listener* listener) {
-
+#ifndef APEX_HAVE_PAPI // prevent compiler warnings
+        APEX_UNUSED(num_papi_counters);
+        APEX_UNUSED(metric_names);
+#endif
         std::stringstream csv_output;
         if (node_id == 0) {
             csv_output << "\"rank\",\"name\",\"type\",\"num samples/calls\",\"minimum\",\"mean\","
