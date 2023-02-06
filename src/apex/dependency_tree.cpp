@@ -398,18 +398,18 @@ double Node::writeNodeCSV(std::stringstream& outfile, double total, int node_id)
     // end the line
     outfile << std::endl;
 
-    // sort the children by accumulated time
-    std::vector<std::pair<task_identifier, Node*> > sorted;
+    // sort the children by name to make tree merging easier (I hope)
+    std::vector<Node*> sorted;
     for (auto& it : children) {
-        sorted.push_back(it);
+        sorted.push_back(it.second);
     }
-    sort(sorted.begin(), sorted.end(), cmp);
+    sort(sorted.begin(), sorted.end(), Node::compareNodeByParentName);
 
     // do all the children
     double remainder = acc;
     depth++;
     for (auto c : sorted) {
-        double tmp = c.second->writeNodeCSV(outfile, total, node_id);
+        double tmp = c->writeNodeCSV(outfile, total, node_id);
         remainder = remainder - tmp;
     }
     depth--;
