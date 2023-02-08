@@ -357,7 +357,7 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
 #endif
         std::stringstream csv_output;
         if (node_id == 0) {
-            csv_output << "\"rank\",\"name\",\"type\",\"num samples/calls\",\"minimum\",\"mean\","
+            csv_output << "\"rank\",\"name\",\"type\",\"num samples/calls\",\"yields\",\"minimum\",\"mean\","
                 << "\"maximum\",\"stddev\",\"total\",\"inclusive (ns)\",\"num threads\",\"total per thread\"";
 #if APEX_HAVE_PAPI
             for (int i = 0 ; i < num_papi_counters ; i++) {
@@ -382,6 +382,7 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
                 csv_output << "\"counter\",";
             }
             csv_output << llround(p->get_calls()) << ",";
+            csv_output << llround(p->get_stops() - p->get_calls()) << ",";
             // add all the extra columns for counter and timer data
             csv_output << std::llround(p->get_minimum()) << ",";
             csv_output << std::llround(p->get_mean()) << ",";
