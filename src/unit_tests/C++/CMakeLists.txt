@@ -46,6 +46,7 @@ set(example_programs
     apex_non_worker_thread
     apex_swap_threads
     apex_malloc
+    apex_std_thread
     ${APEX_OPENMP_TEST}
    )
     #apex_set_thread_cap
