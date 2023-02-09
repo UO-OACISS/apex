@@ -268,6 +268,7 @@ while (( "$#" )); do
       shift
       ;;
     --apex:hip)
+      hip=yes
       export APEX_ENABLE_HIP=1
       shift
       ;;
@@ -277,12 +278,14 @@ while (( "$#" )); do
       shift
       ;;
     --apex:hip_counters)
+      hip=yes
       hip_counters=yes
       export APEX_ENABLE_HIP=1
       export APEX_HIP_COUNTERS=1
       shift
       ;;
     --apex:hip_metrics)
+      hip=yes
       hip_metrics=yes
       export APEX_ENABLE_HIP=1
       export APEX_HIP_PROFILER=1
@@ -296,12 +299,14 @@ while (( "$#" )); do
       shift
       ;;
     --apex:hip_driver)
+      hip=yes
       hip_driver=yes
       export APEX_ENABLE_HIP=1
       export APEX_HIP_KFD_API=1
       shift
       ;;
     --apex:hip_details)
+      hip=yes
       hip_details=yes
       export APEX_ENABLE_HIP=1
       export APEX_HIP_KERNEL_DETAILS=1
@@ -555,7 +560,11 @@ else
         echo "set env LD_LIBRARY_PATH=${APEX_LD_LIBRARY_PATH}" >> ./.gdbcmds
         echo "set env LD_PRELOAD=${APEX_LD_PRELOAD}" >> ./.gdbcmds
         #echo "set env LD_AUDIT=${APEX_LD_AUDIT}" >> ./.gdbcmds
-        debugger="gdb -x ./.gdbcmds --args"
+        if [ $hip = yes ] ; then
+            debugger="rocgdb -x ./.gdbcmds --args"
+        else
+            debugger="gdb -x ./.gdbcmds --args"
+        fi
     fi
 fi
 

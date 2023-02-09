@@ -109,10 +109,10 @@ class Node {
         }
         // required for using this class as a key in a map, vector, etc.
         static bool compareNodeByParentName (const Node* lhs, const Node* rhs) {
-            if (lhs->parent < rhs->parent) {
+            if (lhs->parent->index < rhs->parent->index) {
                 return true;
             }
-            if (lhs->getName().compare(lhs->getName()) < 0) {
+            if (lhs->getName().compare(rhs->getName()) < 0) {
                 return true;
             }
             return false;
