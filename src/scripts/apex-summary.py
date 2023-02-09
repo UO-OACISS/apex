@@ -16,6 +16,8 @@ def parseArgs():
         help='Print the counter data (default: false)', default=False)
     parser.add_argument('--timers', dest='timers', action='store_true',
         help='Print the timer data (default: false)', default=False)
+    parser.add_argument('--tau', dest='tau', action='store_true',
+        help='Convert to TAU profiles (default: false)', default=False)
     parser.add_argument('--other', dest='other', action='store_true',
         help='Aggregate all other timers and show value (default: false)', default=False)
     parser.add_argument('--limit', dest='timer_limit', type=int, default=30, required=False,
@@ -25,7 +27,7 @@ def parseArgs():
     parser.add_argument('--sort', dest='sort_by', type=str, default='tot/thr', required=False,
         metavar='C', help='Column to sort timers (default: tot/thr)')
     args = parser.parse_args()
-    if not args.timers and not args.counters:
+    if not args.tau and args.timers and not args.counters:
         args.timers = True
         args.counters = True
     return args
@@ -73,6 +75,63 @@ def showMeans(timers, args):
     print(topN[['total', 'calls', 'tot/call', 'yields', 'threads', 'tot/thr','%total','%wall']])
     print()
 
+def writeTAUProfile(rank, timers, counters, args):
+    # write the profile
+    print('.', end='', flush=True)
+    filename = 'profile.' + str(rank) + '.0.0'
+    ntimers = len(timers.index)
+    f = open(filename, "w")
+    """
+    78963 templated_functions_MULTI_TIME
+    # Name Calls Subrs Excl Incl ProfileCalls #
+    """
+    f.write(str(ntimers) + ' templated_functions_TIME\n')
+    f.write('# Name Calls Subrs Excl Incl ProfileCalls #\n')
+    for index, row in timers.iterrows():
+        f.write('"' + row['name'] + '" ')
+        f.write(str(int(row['num samples/calls'])) + ' ')
+        f.write('0 ')
+        f.write(str(int(row['total'])*1e-3) + ' ')
+        f.write(str(int(row['inclusive (ns)'])*1e-3) + ' ')
+        f.write('0 ')
+        f.write('"TAU_USER"')
+        f.write('\n')
+    f.write('0 aggregates\n')
+    # revert to sumsquares
+    compute_sumsqr = False
+    if 'sumsqr' not in counters:
+        compute_sumsqr = True
+    ncounters = len(counters.index)
+    f.write(str(ncounters) + ' userevents\n')
+    f.write('# eventname numevents max min mean sumsqr\n')
+    for index, row in counters.iterrows():
+        f.write('"' + row['name'] + '" ')
+        f.write(str(float(row['num samples/calls'])) + ' ')
+        f.write(str(float(row['maximum'])) + ' ')
+        f.write(str(float(row['minimum'])) + ' ')
+        f.write(str(float(row['mean'])) + ' ')
+        if compute_sumsqr:
+            stddev = float(row['stddev'])
+            mean = float(row['mean'])
+            calls = float(row['num samples/calls'])
+            sumsqr = ((stddev * stddev) + (mean * mean)) * calls
+            f.write(str(float(sumsqr)) + ' ')
+        else:
+            f.write(str(float(row['sumsqr'])) + ' ')
+        f.write('\n')
+    f.close()
+
+def convertToTAU(counters, timers, args):
+    print('converting to TAU')
+    # Get the max rank value
+    maxrank = timers['rank'].max()
+    # Get the number of timers
+    for rank in range(maxrank+1):
+        current_timers = timers[timers['rank'] == rank].copy()
+        current_counters = counters[counters['rank'] == rank].copy()
+        writeTAUProfile(rank, current_timers, current_counters, args)
+    print('')
+
 def main():
     args = parseArgs()
     #print('Reading profiles...')
@@ -87,6 +146,10 @@ def main():
         timers = df[df['type'] == 'timer']
         # Get the means
         showMeans(timers, args)
+    if (args.tau):
+        counters = df[df['type'] == 'counter']
+        timers = df[df['type'] == 'timer']
+        convertToTAU(counters, timers, args)
     #print('done.')
 
 if __name__ == '__main__':
