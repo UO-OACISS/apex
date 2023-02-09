@@ -1020,9 +1020,11 @@ std::array<double,2> getAvailableMemory() {
             }
             fclose(f);
         }
+#ifdef APEX_WITH_HIP
         if (global_rsmi_reader != nullptr) {
             values[1] = global_rsmi_reader->getAvailableMemory();
         }
+#endif
     return values;
 }
 

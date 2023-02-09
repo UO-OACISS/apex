@@ -21,7 +21,8 @@
  * 8 values (up to) when PAPI enabled */
 constexpr size_t num_fields{23};
 
-#if !defined(HPX_HAVE_NETWORKING) && defined(APEX_HAVE_MPI)
+#if defined(APEX_HAVE_MPI) || \
+    (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
 #include "mpi.h"
 #endif
 
@@ -46,7 +47,8 @@ namespace apex {
 std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
     int commrank = 0;
     int commsize = 1;
-#if !defined(HPX_HAVE_NETWORKING) && defined(APEX_HAVE_MPI)
+#if defined(APEX_HAVE_MPI) || \
+    (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
     int mpi_initialized = 0;
     MPI_CALL(MPI_Initialized( &mpi_initialized ));
     if (mpi_initialized) {
@@ -94,7 +96,8 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
     length[1] = length[1] + 1;
 
     /* AllReduce all profile name counts */
-#if !defined(HPX_HAVE_NETWORKING) && defined(APEX_HAVE_MPI)
+#if defined(APEX_HAVE_MPI) || \
+    (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
     if (mpi_initialized && commsize > 1) {
         MPI_CALL(PMPI_Allreduce(&length, &max_length, 2,
             MPI_UINT64_T, MPI_MAX, MPI_COMM_WORLD));
@@ -119,7 +122,8 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
         strncpy(ptr, name.c_str(), max_length[1]);
         ptr = ptr + max_length[1];
     }
-#if !defined(HPX_HAVE_NETWORKING) && defined(APEX_HAVE_MPI)
+#if defined(APEX_HAVE_MPI) || \
+    (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
     if (mpi_initialized && commsize > 1) {
         MPI_CALL(PMPI_Allgather(sbuf, sbuf_length, MPI_CHAR,
             rbuf, sbuf_length, MPI_CHAR, MPI_COMM_WORLD));
@@ -192,7 +196,8 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
     }
 
     /* Reduce the data */
-#if !defined(HPX_HAVE_NETWORKING) && defined(APEX_HAVE_MPI)
+#if defined(APEX_HAVE_MPI) || \
+    (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
     if (mpi_initialized && commsize > 1) {
         MPI_CALL(PMPI_Gather(s_pdata, sbuf_length, MPI_DOUBLE,
             r_pdata, sbuf_length, MPI_DOUBLE, 0, MPI_COMM_WORLD));
@@ -256,7 +261,8 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
     }
 
     }
-#if !defined(HPX_HAVE_NETWORKING) && defined(APEX_HAVE_MPI)
+#if defined(APEX_HAVE_MPI) || \
+    (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
     if (mpi_initialized && commsize > 1) {
         MPI_CALL(PMPI_Barrier(MPI_COMM_WORLD));
     }
@@ -267,7 +273,8 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
     void reduce_profiles(std::stringstream& csv_output, std::string filename) {
         int commrank = 0;
         int commsize = 1;
-#if !defined(HPX_HAVE_NETWORKING) && defined(APEX_HAVE_MPI)
+#if defined(APEX_HAVE_MPI) || \
+    (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
         int mpi_initialized = 0;
         MPI_CALL(MPI_Initialized( &mpi_initialized ));
         if (mpi_initialized) {
@@ -291,7 +298,8 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
         size_t length{csv_output.str().size()};
         size_t max_length{length};
         // get the longest string from all ranks
-#if !defined(HPX_HAVE_NETWORKING) && defined(APEX_HAVE_MPI)
+#if defined(APEX_HAVE_MPI) || \
+    (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
         if (mpi_initialized && commsize > 1) {
             MPI_CALL(PMPI_Allreduce(&length, &max_length, 1,
                 MPI_UINT64_T, MPI_MAX, MPI_COMM_WORLD));
@@ -307,14 +315,16 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
         // allocate the memory to hold all output
         char * rbuf = nullptr;
         if (commrank == 0) {
-#if !defined(HPX_HAVE_NETWORKING) && defined(APEX_HAVE_MPI)
+#if defined(APEX_HAVE_MPI) || \
+    (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
             rbuf = (char*)calloc(max_length * commsize, sizeof(char));
 #else
             rbuf = sbuf;
 #endif
         }
 
-#if !defined(HPX_HAVE_NETWORKING) && defined(APEX_HAVE_MPI)
+#if defined(APEX_HAVE_MPI) || \
+    (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
         MPI_Gather(sbuf, max_length, MPI_CHAR, rbuf, max_length, MPI_CHAR, 0, MPI_COMM_WORLD);
 #endif
 

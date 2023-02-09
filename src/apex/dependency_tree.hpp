@@ -94,7 +94,7 @@ class Node {
         inline double& getSumSquares() { return prof.sum_squares; }
         void addAccumulated(double value, double incl, bool is_resume, uint64_t thread_id);
         size_t getIndex() { return index; };
-        std::string getName() { return data->get_name(); };
+        std::string getName() const { return data->get_name(); };
         void writeNode(std::ofstream& outfile, double total);
         double writeNodeASCII(std::ofstream& outfile, double total, size_t indent);
         double writeNodeCSV(std::stringstream& outfile, double total, int node_id);
@@ -107,6 +107,17 @@ class Node {
         static std::set<std::string>& getKnownMetrics() {
             return known_metrics;
         }
+        // required for using this class as a key in a map, vector, etc.
+        static bool compareNodeByParentName (const Node* lhs, const Node* rhs) {
+            if (lhs->parent < rhs->parent) {
+                return true;
+            }
+            if (lhs->getName().compare(lhs->getName()) < 0) {
+                return true;
+            }
+            return false;
+        }
+
 };
 
 } // dependency_tree
