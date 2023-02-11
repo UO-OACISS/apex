@@ -34,13 +34,19 @@ def parseArgs():
     parser.add_argument('--dot', dest='dot', action='store_true',
         help='Generate DOT file for graphviz (default: false)', default=False)
     parser.add_argument('--ascii', dest='ascii', action='store_true',
-        help='Output ASCII tree output (default: true)', default=True)
+        help='Output ASCII tree output (default: true)', default=False)
     parser.add_argument('--limit', dest='limit', type=float, default=0.0, required=False,
         metavar='N', help='Limit timers to those with value over N (default: 0)')
+    parser.add_argument('--dlimit', dest='dlimit', type=float, default=0, required=False,
+        metavar='d', help='Limit tree to depth of d (default: none)')
     parser.add_argument('--qlimit', dest='qlimit', type=float, default=0.9, required=False,
         metavar='Q', help='Limit timers to those in the Q quantile (default: 0.9)')
     parser.add_argument('--rlimit', dest='rlimit', type=float, default=0, required=False,
         metavar='R', help='Limit data to those in the first R ranks (default: all ranks)')
+    parser.add_argument('--keep', dest='keep', type=str, default='APEX MAIN', required=False,
+        metavar='K', help='Keep only subtree starting at K (default: "APEX MAIN")')
+    parser.add_argument('--drop', dest='drop', type=str, default='', required=False,
+        metavar='D', help='Drop subtree starting at D (default: drop nothing)')
     parser.add_argument('--agg', dest='timer_agg', type=str, default='mean', required=False,
         metavar='A', help=agghelp)
     parser.add_argument('--sort', dest='sort_by', type=str, default='tot/thr', required=False,
@@ -71,12 +77,20 @@ class TreeNode:
             self.children[child.name] = child
             df['node index'] = child.index
             df['parent index'] = self.index
+        else:
+            tmpdf = df.copy()
+            tmpdf['node index'] = child.index
+            tmpdf['parent index'] = self.index
+            dfs = [child.df, tmpdf]
+            child.df = pd.concat(dfs)
         return child
-    def print(self, depth, total):
+    def print(self, depth, total, maxranks):
         tmpstr = str()
         acc_mean = 0.0
         if not self.df.empty:
             metric = 'total time(s)'
+            rows = str(len(self.df.index))
+            tmpstr = tmpstr + rows.rjust(len(str(maxranks)), ' ')
             acc_mean = self.df[metric].mean() # get min
             if total == None:
                 total = acc_mean
@@ -86,7 +100,7 @@ class TreeNode:
             acc_threads = self.df['threads'].sum() # get sum
             acc_calls = self.df['calls'].mean() # get sum
             acc_mean_per_call = acc_mean / acc_calls
-            tmpstr = ' |'*depth
+            tmpstr += ' |'*depth
             tmpstr = tmpstr + '-> ' + '%.3f' % acc_mean
             tmpstr = tmpstr + ' - ' + '%.3f' % acc_percent
             tmpstr = tmpstr + '% [' + str(int(acc_calls))
@@ -98,14 +112,14 @@ class TreeNode:
         totals = {}
         strings = {}
         for key in self.children:
-            value, childstr = self.children[key].print(depth+1, total)
+            value, childstr = self.children[key].print(depth+1, total, maxranks)
             totals[key] = value
             strings[key] = childstr
         sorted_by_value = dict(sorted(totals.items(), key=lambda x:x[1], reverse=True))
         for key in sorted_by_value:
             tmpstr = tmpstr + strings[key]
         if depth == 0:
-            tmpstr = tmpstr + str(nodeIndex) + 'total graph nodes'
+            tmpstr = tmpstr + str(nodeIndex) + ' total graph nodes\n'
         return acc_mean, tmpstr
     def getMergedDF(self):
         # The root node has NO dataframe, so only concatentate all children.
@@ -115,6 +129,13 @@ class TreeNode:
         for key in self.children:
             dfs.append(self.children[key].getMergedDF())
         return pd.concat(dfs)
+    def findKeepers(self, keeplist, rootlist):
+        if self.name in keeplist:
+            rootlist.append(self)
+            self.df['parent index'] = self.index
+        for key in self.children:
+            self.children[key].findKeepers(keeplist, rootlist)
+
 
 def get_node_color_visible(v, vmin, vmax):
     if v > vmax:
@@ -131,14 +152,17 @@ def get_node_color_visible(v, vmin, vmax):
     return red, blue, green
 
 def get_node_color_visible_one(v, vmin, vmax):
-    if math.isnan(v) or  math.isnan(vmin) or  math.isnan(vmax):
+    if math.isnan(v) or  math.isnan(vmin) or  math.isnan(vmax) or vmax == vmin or \
+       math.isinf(v) or  math.isinf(vmin) or  math.isinf(vmax) or vmax == vmin:
         return 255
     if v > vmax:
         v = vmax
     dv = vmax - vmin
-    if dv == 0:
-        dv = 1
+    if dv <= 0.0:
+        dv = 1.0
     frac = 1.0 - ((v-vmin)/dv)
+    if math.isnan(frac):
+        frac = 1.0
     intensity = int(frac * 255)
     return intensity
 
@@ -151,6 +175,7 @@ def drawDOT(df):
         df['total Recv Bytes'] = 0
     df['total bytes'] = df['total Send Bytes'] + df['total Recv Bytes']
     df['bytes per call'] = df['total bytes'] / df['calls']
+    df.loc[df['calls'] == 0, 'bytes per call'] = df['total bytes']
     metric = 'bytes per call'
     # Make a new dataframe from rank 0
     f = open('tasktree.0.dot', 'w')
@@ -175,19 +200,19 @@ def drawDOT(df):
         name = df['name'][ind]
         node_index = df['node index'][ind]
         parent_index = df['parent index'][ind]
+        """
         if 'INIT' in name:
             ignored.add(node_index)
             continue
         if parent_index in ignored:
             ignored.add(node_index)
             continue
-        """
         if df[metric][ind] < limit:
             ignored.add(node_index)
             continue
         """
         # Remember, the root node is bogus. so skip it.
-        if node_index > 0 and parent_index > 0:
+        if node_index != parent_index:
             f.write('  "' + str(parent_index) + '" -> "' + str(node_index) + '";\n')
         f.write('  "' + str(node_index) + '" [shape=box; ')
         f.write('style=filled; ')
@@ -227,7 +252,7 @@ def drawDOT(df):
             f.write('mean recv bytes: ' + str(df['mean Recv Bytes'][ind]) + '\\l')
             f.write('mode recv bytes: ' + str(df['mode Recv Bytes'][ind]) + '\\l')
         if (df['bytes per call'][ind] > 0):
-            f.write('bytes per call: ' + str(int(df['bytes per call'][ind])) + '\\l')
+            f.write('bytes per call: ' + str(df['bytes per call'][ind]) + '\\l')
         f.write('time: ' + str(acc) + '\\l"; ')
 
         f.write('];\n')
@@ -235,10 +260,13 @@ def drawDOT(df):
     f.close()
     print('done.')
 
-def graphRank(index, df, parentNode):
+def graphRank(index, df, parentNode, droplist):
     # get the name of this node
     childDF = df[df['node index'] == index].copy()#.reset_index()
     name = childDF['name'].iloc[0]
+    # should we skip this subtree?
+    if name in droplist:
+        return
     #name = df.loc[df['node index'] == index, 'name'].iloc[0]
     childNode = parentNode.addChild(name, childDF)
 
@@ -248,7 +276,7 @@ def graphRank(index, df, parentNode):
     for child in children['node index'].unique():
         if child == index:
             continue
-        graphRank(child, df, childNode)
+        graphRank(child, df, childNode, droplist)
 
 def main():
     args = parseArgs()
@@ -259,17 +287,23 @@ def main():
     print('Reading tasktree...')
     df = pd.read_csv(args.filename) #, index_col=[0,1])
     df = df.fillna(0)
+    print('Read', len(df.index), 'rows')
 
     # ONLY merge the top 10%
     pd.set_option('display.expand_frame_repr', False)
-    # Get the max rank value
-    # Only keep the first 4
+    # Only keep the first N
     if args.rlimit > 0:
         print('Ignoring any ranks over ', args.rlimit)
         df = df[~(df['process rank'] >= args.rlimit)]
+        print('Kept', len(df.index), 'rows')
 
+    if args.dlimit > 0:
+        print('Dropping all tree nodes with depth > ', args.dlimit)
+        df = df[~(df['depth'] > args.dlimit)]
+        print('Kept', len(df.index), 'rows')
+
+    # Get the max rank value
     maxrank = df['process rank'].max()
-    # maxindex = df[metric].idxmax()
     maxindex = df['node index'].max()
     maxdepth = df['depth'].max()
     print('Found', maxrank, 'ranks, with max graph node index of', maxindex, 'and depth of', maxdepth)
@@ -280,6 +314,12 @@ def main():
         threshold = args.limit
     print('Ignoring any tree nodes with less than', threshold, 'accumulated time...')
     df = df[~(df[metric] <= threshold)].reset_index()
+    print('Kept', len(df.index), 'rows')
+
+    # are there nodes to drop?
+    droplist = []
+    if len(args.drop) > 0:
+        droplist = args.drop.split(',')
 
     pd.set_option('display.max_rows', None)
     #print(df[['process rank','node index','parent index','name']])
@@ -291,18 +331,25 @@ def main():
         # slice out this rank's data
         rank = df[df['process rank'] == x]
         # build a tree of this rank's data
-        graphRank(0, rank, root)
-    if args.ascii:
-        value, treestr = root.print(0, None)
-        print(treestr)
+        graphRank(0, rank, root, droplist)
 
-    merged = root.getMergedDF().reset_index()
-    # remove the bogus root node
-    merged = merged[~(merged['name'] == 'apex tree base')]
+    roots = [root]
+    if len(args.keep) > 0:
+        roots = []
+        keeplist = args.keep.split(',')
+        root.findKeepers(keeplist, roots)
+
+    if args.ascii:
+        for root in roots:
+            value, treestr = root.print(0, None, maxrank)
+            print(treestr)
 
     if args.dot:
-        mean = merged.groupby(['node index','parent index','name']).agg(args.timer_agg, numeric_only=False).reset_index()
-        drawDOT(mean)
+        for root in roots:
+            merged = root.getMergedDF().reset_index()
+            # remove the bogus root node
+            mean = merged.groupby(['node index','parent index','name']).agg(args.timer_agg, numeric_only=False).reset_index()
+            drawDOT(mean)
 
 if __name__ == '__main__':
     main()
