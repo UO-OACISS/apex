@@ -35,7 +35,7 @@ def parseArgs():
         help='Generate DOT file for graphviz (default: false)', default=False)
     parser.add_argument('--ascii', dest='ascii', action='store_true',
         help='Output ASCII tree output (default: true)', default=False)
-    parser.add_argument('--limit', dest='limit', type=float, default=0.0, required=False,
+    parser.add_argument('--tlimit', dest='tlimit', type=float, default=0.0, required=False,
         metavar='N', help='Limit timers to those with value over N (default: 0)')
     parser.add_argument('--dlimit', dest='dlimit', type=float, default=0, required=False,
         metavar='d', help='Limit tree to depth of d (default: none)')
@@ -178,9 +178,9 @@ def drawDOT(df):
     df.loc[df['calls'] == 0, 'bytes per call'] = df['total bytes']
     metric = 'bytes per call'
     # Make a new dataframe from rank 0
-    f = open('tasktree.0.dot', 'w')
+    f = open('tasktree.dot', 'w')
     f.write('digraph prof {\n')
-    f.write(' label = "(get this from metadata file output!)";\n')
+    f.write(' label = "(get this from metadata file output - or, generate it from apex-treesummary.py!)";\n')
     f.write(' labelloc = "t";\n')
     f.write(' labeljust = "l";\n')
     f.write(' overlap = false;\n')
@@ -310,8 +310,8 @@ def main():
 
     metric = 'total time(s)'
     threshold = df[metric].quantile(args.qlimit) # get 90th percentile
-    if args.limit > 0.0:
-        threshold = args.limit
+    if args.tlimit > 0.0:
+        threshold = args.tlimit
     print('Ignoring any tree nodes with less than', threshold, 'accumulated time...')
     df = df[~(df[metric] <= threshold)].reset_index()
     print('Kept', len(df.index), 'rows')
