@@ -342,7 +342,11 @@ def main():
     if args.ascii:
         for root in roots:
             value, treestr = root.print(0, None, maxrank)
+            f = open('tasktree.txt', 'w')
+            f.write(treestr)
+            f.close()
             print(treestr)
+            print('Task tree also written to tasktree.txt.')
 
     if args.dot:
         for root in roots:
