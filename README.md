@@ -4,6 +4,7 @@ Please Note:
 ===========
 *All documentation has been recently updated.  Thanks for your patience!*
 
+<!--
 Build Status:
 ===========
 The [Buildbot](http://omega.nic.uoregon.edu:8010/#/grid) continuous integration
@@ -32,6 +33,7 @@ service tracks the current build status on several platforms and compilers:
 [![otf-debug](http://omega.nic.uoregon.edu:8010/badges/I-otf-debug.svg?left_text=otf-debug)](http://omega.nic.uoregon.edu:8010/#/)
 [![install-debug](http://omega.nic.uoregon.edu:8010/badges/J-install-debug.svg?left_text=install-debug)](http://omega.nic.uoregon.edu:8010/#/)
 [![hpx-debug](http://omega.nic.uoregon.edu:8010/badges/K-hpx-debug.svg?left_text=hpx-debug)](http://omega.nic.uoregon.edu:8010/#/)
+-->
 
 Overview:
 =========
