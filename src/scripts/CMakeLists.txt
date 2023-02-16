@@ -8,6 +8,7 @@ set(APEX_SCRIPTS
     counter_scatterplot.py
     gtrace_merger.py
     roofline_stats.py
+    apex-treesummary.py
     apex-summary.py)
 
 if (BUILD_STATIC_EXECUTABLES)

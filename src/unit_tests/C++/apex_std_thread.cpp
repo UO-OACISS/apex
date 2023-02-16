@@ -7,30 +7,30 @@
 
 constexpr size_t nthreads{3};
 
-void doWork(int scale = 1) {
-    auto task = apex::scoped_timer(__func__);
+void doWork(int scale = 1, std::shared_ptr<apex::task_wrapper> parent = nullptr) {
+    auto task = apex::scoped_timer(__func__, parent);
     constexpr size_t sleep_us{100000};
     usleep(sleep_us * scale);
 }
 
-int foo(int tid) {
-    auto task = apex::scoped_timer(__func__);
+int foo(int tid, std::shared_ptr<apex::task_wrapper> parent) {
+    auto task = apex::scoped_timer(__func__, parent);
     // "do some work"
-    doWork(tid);
+    doWork(tid, task.get_task_wrapper());
     return 1;
 }
 
-void someThread(int tid)
+void someThread(int tid, std::shared_ptr<apex::task_wrapper> parent)
 {
     // register the new thread with apex
     std::string name{"worker-thread"+std::to_string(tid)};
     apex::register_thread(name);
     // create a scoped timer
-    auto task = apex::scoped_timer(__func__);
+    auto task = apex::scoped_timer(__func__, parent);
     // "do some work"
     doWork();
     // call child function
-    auto t = std::async(std::launch::async, foo, tid+1);
+    auto t = std::async(std::launch::async, foo, tid+1, task.get_task_wrapper());
     // stop timer while waiting on worker
     task.yield();
     int result = t.get();
@@ -61,7 +61,7 @@ int main (int argc, char** argv) {
     // create threads to work asynchronously
     std::vector<std::thread> threads;
     for (size_t i = 0 ; i < nthreads ; i++) {
-        threads.push_back(std::thread(someThread,i));
+        threads.push_back(std::thread(someThread,i,task));
     }
     // yield the timer for this task, while we wait on workers
     apex::yield(task);

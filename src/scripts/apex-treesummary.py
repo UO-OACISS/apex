@@ -39,8 +39,8 @@ def parseArgs():
         metavar='N', help='Limit timers to those with value over N (default: 0)')
     parser.add_argument('--dlimit', dest='dlimit', type=float, default=0, required=False,
         metavar='d', help='Limit tree to depth of d (default: none)')
-    parser.add_argument('--qlimit', dest='qlimit', type=float, default=0.9, required=False,
-        metavar='Q', help='Limit timers to those in the Q quantile (default: 0.9)')
+    parser.add_argument('--qlimit', dest='qlimit', type=float, default=0.0, required=False,
+        metavar='Q', help='Limit timers to those in the Q quantile (default: None)')
     parser.add_argument('--rlimit', dest='rlimit', type=float, default=0, required=False,
         metavar='R', help='Limit data to those in the first R ranks (default: all ranks)')
     parser.add_argument('--keep', dest='keep', type=str, default='APEX MAIN', required=False,
@@ -309,12 +309,16 @@ def main():
     print('Found', maxrank, 'ranks, with max graph node index of', maxindex, 'and depth of', maxdepth)
 
     metric = 'total time(s)'
-    threshold = df[metric].quantile(args.qlimit) # get 90th percentile
+    threshold = 0.0
+    if args.dlimit > 0:
+        threshold = df[metric].quantile(args.qlimit) # get 90th percentile
     if args.tlimit > 0.0:
         threshold = args.tlimit
-    print('Ignoring any tree nodes with less than', threshold, 'accumulated time...')
-    df = df[~(df[metric] <= threshold)].reset_index()
-    print('Kept', len(df.index), 'rows')
+
+    if threshold > 0.0:
+        print('Ignoring any tree nodes with less than', threshold, 'accumulated time...')
+        df = df[~(df[metric] <= threshold)].reset_index()
+        print('Kept', len(df.index), 'rows')
 
     # are there nodes to drop?
     droplist = []
