@@ -297,6 +297,8 @@ set(apex_headers
     apex.h
     apex.hpp
     apex_api.hpp
+    apex_assert.h
+    apex_clock.hpp
     apex_cxx_shared_lock.hpp
     apex_export.h
     apex_api.hpp
