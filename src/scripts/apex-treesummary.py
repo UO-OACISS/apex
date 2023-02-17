@@ -5,6 +5,7 @@ import numpy as np
 import argparse
 from argparse import RawTextHelpFormatter
 import math
+import os
 
 # "process rank","node index","parent index","depth","name","calls","threads","total time(s)","inclusive time(s)","minimum time(s)","mean time(s)","maximum time(s)","stddev time(s)","total Recv Bytes","minimum Recv Bytes","mean Recv Bytes","maximum Recv Bytes","stddev Recv Bytes","median Recv Bytes","mode Recv Bytes","total Send Bytes","minimum Send Bytes","mean Send Bytes","maximum Send Bytes","stddev Send Bytes","median Send Bytes","mode Send Bytes"
 endchar='\r'
@@ -52,6 +53,9 @@ def parseArgs():
     parser.add_argument('--sort', dest='sort_by', type=str, default='tot/thr', required=False,
         metavar='C', help='Column to sort timers (default: tot/thr)')
     args = parser.parse_args()
+    if not os.path.isfile(args.filename):
+        parser.print_usage()
+        parser.exit()
     return args
 
 nodeIndex = 0
@@ -336,6 +340,7 @@ def main():
         rank = df[df['process rank'] == x]
         # build a tree of this rank's data
         graphRank(0, rank, root, droplist)
+    print() # write a newline
 
     roots = [root]
     if len(args.keep) > 0:

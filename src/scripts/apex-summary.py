@@ -4,6 +4,7 @@
 import pandas as pd
 import numpy as np
 import argparse
+import os
 
 # The output header looks like this:
 #"rank","name","type","num samples/calls","minimum","mean","maximum","stddev","total","inclusive (ns)","num threads","total per thread"
@@ -27,6 +28,9 @@ def parseArgs():
     parser.add_argument('--sort', dest='sort_by', type=str, default='tot/thr', required=False,
         metavar='C', help='Column to sort timers (default: tot/thr)')
     args = parser.parse_args()
+    if not os.path.isfile(args.filename):
+        parser.print_usage()
+        parser.exit()
     if not args.tau and args.timers and not args.counters:
         args.timers = True
         args.counters = True
