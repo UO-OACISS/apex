@@ -1696,6 +1696,10 @@ void finalize()
     FUNCTION_ENTER
     // FIRST FIRST, check if we have orphaned threads...
     // See apex::register_thread and apex::exit_thread for more info.
+    /* this causes problems with APPLE, but that's ok because it's mostly
+     * a problem with linux threaded runtimes when the main thread exits
+     * before the worker threads have finished */
+#if !defined(__APPLE__)
     {
         std::unique_lock<std::mutex> l(instance->thread_instance_mutex);
         if (!instance->known_threads.empty()) {
@@ -1708,6 +1712,7 @@ void finalize()
             }
         }
     }
+#endif
     // FIRST, stop the top level timer, while the infrastructure is still
     // functioning.
     auto tmp = thread_instance::get_top_level_timer();

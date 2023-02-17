@@ -168,18 +168,13 @@ uint64_t get_flow_id() {
 
 void write_flow_event(std::stringstream& ss, double ts, char ph,
     std::string cat, uint64_t id, uint64_t pid, uint64_t tid, std::string name) {
-    std::stringstream _ss;
-    _ss.precision(3);
-    _ss << fixed;
-    _ss << "{\"ts\":" << ts
+    ss << "{\"ts\":" << ts
        << ",\"ph\":\"" << ph
        << "\",\"cat\":\"" << cat
        << "\",\"id\":" << id
        << ",\"pid\":" << pid
        << ",\"tid\":" << tid
        << ",\"name\":\"" << name << "\"},\n";
-    std::cout << _ss.str() << std::endl;
-    ss << _ss.rdbuf();
 }
 
 inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
