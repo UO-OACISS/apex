@@ -501,6 +501,10 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
      * will stop this timer, effectively stopping all of its children as well,
      * so we will get an accurate measurement for abnormal termination. */
     auto main = task_wrapper::get_apex_main_wrapper();
+    // make sure the tracing support puts APEX MAIN on the right thread
+    // when tracing HPX - the finalization will almost assuredly not
+    // be stopped on the thread that is calling apex::init. You've been warned.
+    main->explicit_trace_start = true;
     start(main);
     main_timer() = main;
     if (apex_options::top_level_os_threads()) {
@@ -1696,6 +1700,10 @@ void finalize()
     FUNCTION_ENTER
     // FIRST FIRST, check if we have orphaned threads...
     // See apex::register_thread and apex::exit_thread for more info.
+    /* this causes problems with APPLE, but that's ok because it's mostly
+     * a problem with linux threaded runtimes when the main thread exits
+     * before the worker threads have finished */
+#if !defined(__APPLE__)
     {
         std::unique_lock<std::mutex> l(instance->thread_instance_mutex);
         if (!instance->known_threads.empty()) {
@@ -1708,6 +1716,7 @@ void finalize()
             }
         }
     }
+#endif
     // FIRST, stop the top level timer, while the infrastructure is still
     // functioning.
     auto tmp = thread_instance::get_top_level_timer();

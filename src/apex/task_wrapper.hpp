@@ -138,20 +138,20 @@ struct task_wrapper {
         // make/find a node for ourselves
         tree_node = parent->tree_node->replaceChild(task_id, alias);
     }
-    uint64_t get_create_us() {
-        return create_ns * 1.0e-3;
+    double get_create_us() {
+        return double(create_ns) * 1.0e-3;
     }
     uint64_t get_create_ns() {
         return create_ns;
     }
-    uint64_t get_start_us() {
-        return start_ns * 1.0e-3;
+    double get_start_us() {
+        return double(start_ns) * 1.0e-3;
     }
     uint64_t get_start_ns() {
         return start_ns;
     }
-    uint64_t get_flow_us() {
-        return get_flow_ns() * 1.0e-3;
+    double get_flow_us() {
+        return double(start_ns) * 1.0e-3;
     }
     uint64_t get_flow_ns() {
         return start_ns+1;

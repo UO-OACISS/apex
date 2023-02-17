@@ -47,11 +47,11 @@ void apex_print_backtrace() {
 #ifdef APEX_HAVE_BFD
    std::cerr << *(apex::lookup_address((uintptr_t)trace[i], true, true)) << std::endl;
 #else
-   char syscom[1024];
 #ifndef __APPLE__
+   char syscom[1024] = {0};
    sprintf(syscom,"addr2line -f -i -e %s %p", exe, trace[i]);
-#endif
    system(syscom);
+#endif
 #endif
   }
 }

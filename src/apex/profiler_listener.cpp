@@ -1866,6 +1866,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       //is_resume);
       // get the right task identifier, based on whether there are aliases
       profiler * p = new profiler(tt_ptr, is_resume);
+      p->thread_id = _pls.my_tid;
       p->guid = tt_ptr->guid;
       thread_instance::instance().set_current_profiler(p);
 #if APEX_HAVE_PAPI
@@ -1950,7 +1951,8 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
             }
         }
 #endif
-        p->thread_id = _pls.my_tid;
+        // moved this to _common_start
+        //p->thread_id = _pls.my_tid;
 #ifdef APEX_SYNCHRONOUS_PROCESSING
         push_profiler(_pls.my_tid, *p);
 #else // APEX_SYNCHRONOUS_PROCESSING
