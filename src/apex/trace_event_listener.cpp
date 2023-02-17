@@ -39,6 +39,7 @@ void trace_event_listener::on_startup(startup_event_data &data) {
     APEX_UNUSED(data);
     saved_node_id = apex::instance()->get_node_id();
     std::stringstream ss;
+    ss.precision(3);
     ss << fixed
        << "{\"name\":\"APEX Trace Begin\""
        << ",\"ph\":\"R\",\"pid\":"
@@ -95,6 +96,7 @@ inline void trace_event_listener::_common_start(std::shared_ptr<task_wrapper> &t
     static APEX_NATIVE_TLS long unsigned int tid = get_thread_id_metadata();
     if (!_terminate) {
         std::stringstream ss;
+        ss.precision(3);
         ss << fixed;
         uint64_t pguid = 0;
         if (tt_ptr->parent != nullptr) {
@@ -144,6 +146,7 @@ long unsigned int trace_event_listener::get_thread_id_metadata() {
     int tid = thread_instance::get_id();
     saved_node_id = apex::instance()->get_node_id();
     std::stringstream ss;
+    ss.precision(3);
     ss << fixed
        << "{\"name\":\"thread_name\""
        << ",\"ph\":\"M\",\"pid\":" << saved_node_id
@@ -165,19 +168,25 @@ uint64_t get_flow_id() {
 
 void write_flow_event(std::stringstream& ss, double ts, char ph,
     std::string cat, uint64_t id, uint64_t pid, uint64_t tid, std::string name) {
-    ss << "{\"ts\":" << ts
+    std::stringstream _ss;
+    _ss.precision(3);
+    _ss << fixed;
+    _ss << "{\"ts\":" << ts
        << ",\"ph\":\"" << ph
        << "\",\"cat\":\"" << cat
        << "\",\"id\":" << id
        << ",\"pid\":" << pid
        << ",\"tid\":" << tid
        << ",\"name\":\"" << name << "\"},\n";
+    std::cout << _ss.str() << std::endl;
+    ss << _ss.rdbuf();
 }
 
 inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
     static APEX_NATIVE_TLS long unsigned int tid = get_thread_id_metadata();
     if (!_terminate) {
         std::stringstream ss;
+        ss.precision(3);
         ss << fixed;
         uint64_t pguid = 0;
         if (p->tt_ptr != nullptr && p->tt_ptr->parent != nullptr) {
@@ -187,7 +196,7 @@ inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
         if (p->tt_ptr->parent != nullptr && p->tt_ptr->parent->thread_id != tid) {
             //std::cout << "FLOWING!" << std::endl;
             uint64_t flow_id = get_flow_id();
-            write_flow_event(ss, p->tt_ptr->parent->get_start_ns(), 's', "ControlFlow", flow_id,
+            write_flow_event(ss, p->tt_ptr->parent->get_flow_us(), 's', "ControlFlow", flow_id,
                 saved_node_id, p->tt_ptr->parent->thread_id, p->tt_ptr->parent->task_id->get_name());
             write_flow_event(ss, p->get_start_us(), 'f', "ControlFlow", flow_id,
                 saved_node_id, tid, p->tt_ptr->parent->task_id->get_name());
@@ -242,6 +251,7 @@ void trace_event_listener::on_yield(std::shared_ptr<profiler> &p) {
 void trace_event_listener::on_sample_value(sample_value_event_data &data) {
     if (!_terminate) {
         std::stringstream ss;
+        ss.precision(3);
         ss << fixed;
         ss << "{\"name\":\"" << *(data.counter_name)
               << "\",\"cat\":\"CPU\""
@@ -287,6 +297,7 @@ std::string trace_event_listener::make_tid (base_thread_node &node) {
         uint32_t id_shifted = node.sortable_tid();
         vthread_map.insert(std::pair<base_thread_node, size_t>(node,id_shifted));
         std::stringstream ss;
+        ss.precision(3);
         ss << fixed;
         ss << "{\"name\":\"thread_name\""
            << ",\"ph\":\"M\",\"pid\":" << saved_node_id
@@ -315,6 +326,7 @@ void trace_event_listener::on_async_event(base_thread_node &node,
     std::shared_ptr<profiler> &p, const async_event_data& data) {
     if (!_terminate) {
         std::stringstream ss;
+        ss.precision(3);
         ss << fixed;
         std::string tid{make_tid(node)};
         uint64_t pguid = 0;
@@ -353,6 +365,7 @@ void trace_event_listener::on_async_metric(base_thread_node &node,
     std::shared_ptr<profiler> &p) {
     if (!_terminate) {
         std::stringstream ss;
+        ss.precision(3);
         ss << fixed;
         std::string tid{make_tid(node)};
         ss << "{\"name\": \"" << p->get_task_id()->get_name()
@@ -502,6 +515,7 @@ void trace_event_listener::close_trace(void) {
     if (closed) return;
     auto& trace_file = get_trace_file();
     std::stringstream ss;
+    ss.precision(3);
     ss << fixed;
     ss << "{\"name\":\"APEX Trace End\""
        << ", \"ph\":\"R\",\"pid\":"

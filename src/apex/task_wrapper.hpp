@@ -77,6 +77,10 @@ struct task_wrapper {
 /**
   \brief Time (in microseconds) when this task was created
   */
+    uint64_t create_ns;
+/**
+  \brief Time (in microseconds) when this task was started
+  */
     uint64_t start_ns;
 /**
   \brief Whether this event requires separate start/end events in gtrace
@@ -94,7 +98,7 @@ struct task_wrapper {
         tree_node(nullptr),
         alias(nullptr),
         thread_id(0UL),
-        start_ns(our_clock::now_ns()),
+        create_ns(our_clock::now_ns()),
         explicit_trace_start(false)
     { }
 /**
@@ -134,8 +138,23 @@ struct task_wrapper {
         // make/find a node for ourselves
         tree_node = parent->tree_node->replaceChild(task_id, alias);
     }
+    uint64_t get_create_us() {
+        return create_ns * 1.0e-3;
+    }
+    uint64_t get_create_ns() {
+        return create_ns;
+    }
+    uint64_t get_start_us() {
+        return start_ns * 1.0e-3;
+    }
     uint64_t get_start_ns() {
         return start_ns;
+    }
+    uint64_t get_flow_us() {
+        return get_flow_ns() * 1.0e-3;
+    }
+    uint64_t get_flow_ns() {
+        return start_ns+1;
     }
 }; // struct task_wrapper
 
