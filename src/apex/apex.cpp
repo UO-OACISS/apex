@@ -501,6 +501,10 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
      * will stop this timer, effectively stopping all of its children as well,
      * so we will get an accurate measurement for abnormal termination. */
     auto main = task_wrapper::get_apex_main_wrapper();
+    // make sure the tracing support puts APEX MAIN on the right thread
+    // when tracing HPX - the finalization will almost assuredly not
+    // be stopped on the thread that is calling apex::init. You've been warned.
+    main->explicit_trace_start = true;
     start(main);
     main_timer() = main;
     if (apex_options::top_level_os_threads()) {

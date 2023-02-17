@@ -179,6 +179,11 @@ void write_flow_event(std::stringstream& ss, double ts, char ph,
 
 inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
     static APEX_NATIVE_TLS long unsigned int tid = get_thread_id_metadata();
+    // With HPX, the APEX MAIN timer will be stopped on a different thread
+    // than the one that started it. So... make sure we get the right TID
+    // But don't worry, the thread metadata will have been written at the
+    // event start.
+    long unsigned int _tid = (p->tt_ptr->explicit_trace_start ? p->thread_id : tid);
     if (!_terminate) {
         std::stringstream ss;
         ss.precision(3);
@@ -188,26 +193,30 @@ inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
             pguid = p->tt_ptr->parent->guid;
         }
         // if the parent tid is not the same, create a flow event BEFORE the single event
-        if (p->tt_ptr->parent != nullptr && p->tt_ptr->parent->thread_id != tid) {
+        if (p->tt_ptr->parent != nullptr
+#ifndef APEX_HAVE_HPX // ...except for HPX - make the flow event regardless
+            && p->tt_ptr->parent->thread_id != _tid
+#endif
+            ) {
             //std::cout << "FLOWING!" << std::endl;
             uint64_t flow_id = get_flow_id();
             write_flow_event(ss, p->tt_ptr->parent->get_flow_us(), 's', "ControlFlow", flow_id,
                 saved_node_id, p->tt_ptr->parent->thread_id, p->tt_ptr->parent->task_id->get_name());
             write_flow_event(ss, p->get_start_us(), 'f', "ControlFlow", flow_id,
-                saved_node_id, tid, p->tt_ptr->parent->task_id->get_name());
+                saved_node_id, _tid, p->tt_ptr->parent->task_id->get_name());
         }
         if (p->tt_ptr->explicit_trace_start) {
             ss << "{\"name\":\"" << p->get_task_id()->get_name()
               << "\",\"cat\":\"CPU\""
               << ",\"ph\":\"E\",\"pid\":"
-              << saved_node_id << ",\"tid\":" << tid
+              << saved_node_id << ",\"tid\":" << _tid
               << ",\"ts\":" << p->get_stop_us()
               << "},\n";
         } else {
             ss << "{\"name\":\"" << p->get_task_id()->get_name()
               << "\",\"cat\":\"CPU\""
               << ",\"ph\":\"X\",\"pid\":"
-              << saved_node_id << ",\"tid\":" << tid
+              << saved_node_id << ",\"tid\":" << _tid
               << ",\"ts\":" << p->get_start_us() << ",\"dur\":"
               << p->get_stop_us() - p->get_start_us()
               << ",\"args\":{\"GUID\":" << p->guid << ",\"Parent GUID\":" << pguid << "}},\n";
