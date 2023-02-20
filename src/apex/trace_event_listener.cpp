@@ -13,6 +13,8 @@
 #include <fstream>
 #include <memory>
 #include <iomanip>
+#include <future>
+#include <thread>
 
 using namespace std;
 
@@ -70,7 +72,7 @@ void trace_event_listener::on_shutdown(shutdown_event_data &data) {
     APEX_UNUSED(data);
     if (!_terminate) {
         end_trace_time();
-        flush_trace();
+        flush_trace(this);
         close_trace();
         _terminate = true;
     }
@@ -125,8 +127,8 @@ inline void trace_event_listener::_common_start(std::shared_ptr<task_wrapper> &t
         }
 #endif
         write_to_trace(ss);
-        flush_trace_if_necessary();
     }
+    flush_trace_if_necessary();
     return;
 }
 
@@ -239,8 +241,8 @@ inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
         }
 #endif
         write_to_trace(ss);
-        flush_trace_if_necessary();
     }
+    flush_trace_if_necessary();
     return;
 }
 
@@ -264,8 +266,8 @@ void trace_event_listener::on_sample_value(sample_value_event_data &data) {
               << ",\"args\":{\"value\":" << data.counter_value
               << "}},\n";
         write_to_trace(ss);
-        flush_trace_if_necessary();
     }
+    flush_trace_if_necessary();
     return;
 }
 
@@ -361,8 +363,8 @@ void trace_event_listener::on_async_event(base_thread_node &node,
         }
         }
         write_to_trace(ss);
-        flush_trace_if_necessary();
     }
+    //flush_trace_if_necessary();
 }
 
 void trace_event_listener::on_async_metric(base_thread_node &node,
@@ -379,8 +381,8 @@ void trace_event_listener::on_async_metric(base_thread_node &node,
               << ",\"args\":{\"value\":" << p->value
               << "}},\n";
         write_to_trace(ss);
-        flush_trace_if_necessary();
     }
+    //flush_trace_if_necessary();
 }
 
 size_t trace_event_listener::get_thread_index(void) {
@@ -391,7 +393,8 @@ size_t trace_event_listener::get_thread_index(void) {
     return tmpval;
 }
 
-#define SERIAL 0
+// Do we have just one stream, or a stream per thread?
+#define SERIAL 1
 
 std::mutex* trace_event_listener::get_thread_mutex(size_t index) {
 #ifdef SERIAL
@@ -478,24 +481,28 @@ std::ofstream& trace_event_listener::get_trace_file() {
 }
 #endif
 
-void trace_event_listener::flush_trace(void) {
-    //auto p = scoped_timer("APEX: Buffer Flush");
-    auto& trace_file = get_trace_file();
+void trace_event_listener::flush_trace(trace_event_listener* listener) {
+    std::cout << "**** FLUSHING TRACE BUFFER ****" << std::endl;
+    auto p = scoped_timer("APEX: Trace Buffer Flush");
+    auto& trace_file = listener->get_trace_file();
 #ifdef SERIAL
     // flush the trace
-    _vthread_mutex.lock();
-    trace_file << trace.rdbuf() << std::flush;
+    listener->_vthread_mutex.lock();
+    trace_file << listener->trace.rdbuf();
     // reset the buffer
-    trace.str("");
-    _vthread_mutex.unlock();
+    listener->trace.str("");
+    listener->_vthread_mutex.unlock();
+    // flush the trace
+    trace_file << std::flush;
 #else
-    _vthread_mutex.lock();
-    size_t count = streams.size();
-    _vthread_mutex.unlock();
+    listener->_vthread_mutex.lock();
+    size_t count = listener->streams.size();
+    listener->_vthread_mutex.unlock();
     std::stringstream ss;
     for (size_t index = 0 ; index < count ; index++) {
-        std::mutex * mtx = get_thread_mutex(index);
-        std::stringstream * strm = get_thread_stream(index);
+        auto p2 = scoped_timer("APEX: " + to_string(index) + " thread flush");
+        std::mutex * mtx = listener->get_thread_mutex(index);
+        std::stringstream * strm = listener->get_thread_stream(index);
         mtx->lock();
         ss << strm->rdbuf();
         strm->str("");
@@ -509,8 +516,10 @@ void trace_event_listener::flush_trace(void) {
 void trace_event_listener::flush_trace_if_necessary(void) {
     auto tmp = ++num_events;
     /* flush after every 100k events */
-    if (tmp % 100000 == 0) {
-        flush_trace();
+    if (tmp % 1000000 == 0) {
+        //flush_trace(this);
+        //std::async(std::launch::async, flush_trace, this);
+        std::thread(flush_trace, this).detach();
     }
 }
 
@@ -528,7 +537,7 @@ void trace_event_listener::close_trace(void) {
     ss << "]\n";
     ss << "}\n" << std::endl;
     write_to_trace(ss);
-    flush_trace();
+    flush_trace(this);
     //printf("Closing trace...\n"); fflush(stdout);
     trace_file.close();
     closed = true;

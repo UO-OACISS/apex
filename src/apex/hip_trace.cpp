@@ -1031,6 +1031,8 @@ void activity_callback(const char* begin, const char* end, void* arg) {
     const roctracer_record_t* record = (const roctracer_record_t*)(begin);
     const roctracer_record_t* end_record = (const roctracer_record_t*)(end);
 
+    //auto p = apex::scoped_timer("APEX: HIP Activity Buffer Flush");
+    //std::cout << "**** FLUSHING ACTIVITY BUFFER ****" << std::endl;
     while (record < end_record) {
         // FYI, ACTIVITY_DOMAIN_HIP_OPS = ACTIVITY_DOMAIN_HCC_OPS = ACTIVITY_DOMAIN_HIP_VDI...
         if (record->domain == ACTIVITY_DOMAIN_HIP_OPS) {

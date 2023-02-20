@@ -61,7 +61,7 @@ public:
 private:
   	void _init(void);
   	bool _terminate;
-    void flush_trace(void);
+    static void flush_trace(trace_event_listener* listener);
     void close_trace(void);
     void flush_trace_if_necessary(void);
   	void _common_start(std::shared_ptr<task_wrapper> &tt_ptr);
