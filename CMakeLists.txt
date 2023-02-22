@@ -1021,6 +1021,10 @@ CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/pkgconfig/apex.pc.in
 	${PROJECT_BINARY_DIR}/pkgconfig/apex.pc @ONLY)
 INSTALL_FILES(/lib/pkgconfig FILES pkgconfig/apex.pc)
 
+if (APEX_USE_STATIC_GLOBAL_CONSTRUCTOR OR APPLE)
+    add_definitions(-DAPEX_USE_STATIC_GLOBAL_CONSTRUCTOR)
+endif()
+
 if (APEX_USE_WEAK_SYMBOLS)
     add_definitions(-DAPEX_USE_WEAK_SYMBOLS)
 else()

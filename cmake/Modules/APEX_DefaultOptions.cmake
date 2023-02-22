@@ -28,6 +28,8 @@ option (APEX_BUILD_BFD "Build Binutils library if not found" FALSE)
 option (APEX_BUILD_OMPT "Build OpenMP runtime with OMPT if support not found" FALSE)
 option (APEX_BUILD_OTF2 "Build OTF2 library if not found" FALSE)
 option (APEX_USE_PEDANTIC "Enable pedantic compiler flags" FALSE)
+option (APEX_USE_STATIC_GLOBAL_CONSTRUCTOR
+    "Enable static global constructor for APEX library load (when __libc_start_main can't be wrapped)" FALSE)
 
 # Provide some backwards compatability
 if(DEFINED USE_ACTIVEHARMONY)

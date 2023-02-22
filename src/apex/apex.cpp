@@ -75,15 +75,15 @@
 #include <hpx/lcos_local/composable_guard.hpp>
 #include "global_constructor_destructor.h"
 #else // without HPX!
+#ifdef APEX_USE_STATIC_GLOBAL_CONSTRUCTOR
 #include "global_constructor_destructor.h"
 #if defined(HAS_CONSTRUCTORS)
 extern "C" {
 DEFINE_CONSTRUCTOR(apex_init_static_void)
 DEFINE_DESTRUCTOR(apex_finalize)
 }
-/*
-*/
 #endif // HAS_CONSTRUCTORS
+#endif // APEX_USE_STATIC_GLOBAL_CONSTRUCTOR
 #endif // APEX_HAVE_HPX
 
 #ifdef APEX_WITH_LEVEL0
@@ -2310,10 +2310,12 @@ extern "C" {
         return init(thread_name, comm_rank, comm_size);
     }
 
+#ifdef APEX_USE_STATIC_GLOBAL_CONSTRUCTOR
     void apex_init_static_void() {
         init("APEX static constructor", 0, 1);
         return;
     }
+#endif
 
     int apex_init_(const uint64_t comm_rank, const uint64_t comm_size) {
         return init("FORTRAN thread", comm_rank, comm_size);

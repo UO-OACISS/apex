@@ -39,7 +39,7 @@
 #define __APEX_FUNCTION__ __func__
 #endif
 
-#if 0
+#if 1
 
 extern "C" {
 
