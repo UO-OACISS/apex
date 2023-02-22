@@ -9,6 +9,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include "apex_api.hpp"
+#include "apex.hpp"
 #include "pthread_wrapper.h"
 #include <iostream>
 #include <new>
@@ -230,7 +231,13 @@ int apex_pthread_create_wrapper(pthread_create_p pthread_create_call,
     start_routine_p start_routine, void * arg)
 {
   //printf("Here!\n");
-  //apex_print_backtrace();
+  static std::atomic<size_t> limit{0};
+  /*
+  if (++limit > 55) {
+    apex_print_backtrace();
+    abort();
+  }
+  */
   // disable the memory wrapper
   apex::in_apex prevent_problems;
   std::shared_ptr<apex::task_wrapper> parent_task = apex::new_task("pthread_create");
@@ -241,7 +248,8 @@ int apex_pthread_create_wrapper(pthread_create_p pthread_create_call,
   // get the thread-local variable
   apex_wrapper * wrapper = get_tl_wrapper();
   int retval;
-  if(wrapper->_wrapped) {
+  apex::apex* instance = apex::apex::instance(); // get the Apex static instance
+  if(wrapper->_wrapped || !instance || instance->finalizing) {
     // Another wrapper has already intercepted the call so just pass through
     retval = pthread_create_call(threadp, attr, start_routine, arg);
   } else {

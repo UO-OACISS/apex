@@ -77,11 +77,11 @@
 #else // without HPX!
 #include "global_constructor_destructor.h"
 #if defined(HAS_CONSTRUCTORS)
-/*
 extern "C" {
 DEFINE_CONSTRUCTOR(apex_init_static_void)
-DEFINE_DESTRUCTOR(apex_finalize_static_void)
+DEFINE_DESTRUCTOR(apex_finalize)
 }
+/*
 */
 #endif // HAS_CONSTRUCTORS
 #endif // APEX_HAVE_HPX
@@ -1698,6 +1698,7 @@ void finalize()
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
     FUNCTION_ENTER
+    instance->finalizing = true; // don't measure any new pthreads from pthread_create!
     // FIRST FIRST, check if we have orphaned threads...
     // See apex::register_thread and apex::exit_thread for more info.
     /* this causes problems with APPLE, but that's ok because it's mostly
@@ -2307,6 +2308,11 @@ extern "C" {
     int apex_init(const char * thread_name, const uint64_t comm_rank,
         const uint64_t comm_size) {
         return init(thread_name, comm_rank, comm_size);
+    }
+
+    void apex_init_static_void() {
+        init("APEX static constructor", 0, 1);
+        return;
     }
 
     int apex_init_(const uint64_t comm_rank, const uint64_t comm_size) {

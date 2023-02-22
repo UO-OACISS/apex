@@ -28,27 +28,6 @@ void perfetto_listener::get_file_name() {
 }
 
 perfetto_listener::perfetto_listener (void) {
-    perfetto::TracingInitArgs args;
-    // The backends determine where trace events are recorded. For this example we
-    // are going to use the in-process tracing service, which only includes in-app
-    // events.
-    args.backends = perfetto::kInProcessBackend;
-
-    perfetto::Tracing::Initialize(args);
-    perfetto::TrackEvent::Register();
-
-    // The trace config defines which types of data sources are enabled for
-    // recording. In this example we just need the "track_event" data source,
-    // which corresponds to the TRACE_EVENT trace points.
-    perfetto::TraceConfig cfg;
-    cfg.add_buffers()->set_size_kb(2048);
-    auto* ds_cfg = cfg.add_data_sources()->mutable_config();
-    ds_cfg->set_name("track_event");
-    tracing_session = perfetto::Tracing::NewTrace();
-    get_file_name();
-    int file_descriptor = open(filename.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0600);
-    tracing_session->Setup(cfg, file_descriptor);
-    tracing_session->StartBlocking();
 }
 
 void perfetto_listener::close_trace() {
@@ -84,6 +63,27 @@ perfetto_listener::~perfetto_listener (void) {
 
 void perfetto_listener::on_startup(startup_event_data &data) {
     APEX_UNUSED(data);
+    perfetto::TracingInitArgs args;
+    // The backends determine where trace events are recorded. For this example we
+    // are going to use the in-process tracing service, which only includes in-app
+    // events.
+    args.backends = perfetto::kInProcessBackend;
+
+    perfetto::Tracing::Initialize(args);
+    perfetto::TrackEvent::Register();
+
+    // The trace config defines which types of data sources are enabled for
+    // recording. In this example we just need the "track_event" data source,
+    // which corresponds to the TRACE_EVENT trace points.
+    perfetto::TraceConfig cfg;
+    cfg.add_buffers()->set_size_kb(2048);
+    auto* ds_cfg = cfg.add_data_sources()->mutable_config();
+    ds_cfg->set_name("track_event");
+    tracing_session = perfetto::Tracing::NewTrace();
+    get_file_name();
+    int file_descriptor = open(filename.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0600);
+    tracing_session->Setup(cfg, file_descriptor);
+    tracing_session->StartBlocking();
     // Give a custom name for the traced process.
     perfetto::ProcessTrack process_track = perfetto::ProcessTrack::Current();
     perfetto::protos::gen::TrackDescriptor desc = process_track.Serialize();

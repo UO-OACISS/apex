@@ -39,6 +39,8 @@
 #define __APEX_FUNCTION__ __func__
 #endif
 
+#if 0
+
 extern "C" {
 
 // Trampoline for the real main()
@@ -96,3 +98,5 @@ __libc_start_main(int (*_main)(int, char**, char**), int _argc, char** _argv,
 }
 
 } // extern "C"
+
+#endif

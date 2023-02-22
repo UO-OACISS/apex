@@ -745,6 +745,7 @@ void _symbol(MPI_Fint * request, MPI_Fint * status, MPI_Fint * ierr) { \
 void _symbol(MPI_Fint *comm, MPI_Fint * ierr) { \
     *ierr = MPI_Barrier( MPI_Comm_f2c(*comm) ); \
 }
+#if 0
     APEX_MPI_BARRIER_TEMPLATE(mpi_barrier)
     APEX_MPI_BARRIER_TEMPLATE(mpi_barrier_)
     APEX_MPI_BARRIER_TEMPLATE(mpi_barrier__)
@@ -801,7 +802,7 @@ void _symbol(MPI_Fint *count, MPI_Fint * array_of_requests, MPI_Fint * index, \
     APEX_MPI_TESTANY_TEMPLATE(MPI_TESTANY)
     APEX_MPI_TESTANY_TEMPLATE(MPI_TESTANY_)
     APEX_MPI_TESTANY_TEMPLATE(MPI_TESTANY__)
-
+#endif
 #endif
 
 } // extern "C"

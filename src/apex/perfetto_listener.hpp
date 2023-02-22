@@ -55,7 +55,6 @@ private:
     int file_descriptor;
     std::mutex _vthread_mutex;
     std::map<base_thread_node, size_t> vthread_map;
-
 };
 
 }
