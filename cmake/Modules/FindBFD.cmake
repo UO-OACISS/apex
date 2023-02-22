@@ -21,7 +21,7 @@ find_path(BFD_INCLUDE_DIR bfd.h
           HINTS ${BFD_ROOT}/include
           ${PC_BFD_INCLUDEDIR}
           ${PC_BFD_INCLUDE_DIRS}
-          ${CMAKE_INSTALL_PREFIX}/binutils/include
+          ${CMAKE_INSTALL_PREFIX}/include
           PATH_SUFFIXES BFD )
 
 set(TMP_PATH $ENV{LD_LIBRARY_PATH})
@@ -32,8 +32,8 @@ find_library(BFD_LIBRARY NAMES bfd
              HINTS ${BFD_ROOT}/lib ${BFD_ROOT}/lib64
              ${PC_BFD_LIBDIR}
              ${PC_BFD_LIBRARY_DIRS}
-             ${CMAKE_INSTALL_PREFIX}/binutils/lib
-             ${CMAKE_INSTALL_PREFIX}/binutils/lib64
+             ${CMAKE_INSTALL_PREFIX}/lib
+             ${CMAKE_INSTALL_PREFIX}/lib64
              ${LD_LIBRARY_PATH_STR})
 
 include(FindPackageHandleStandardArgs)
@@ -46,7 +46,7 @@ mark_as_advanced(BFD_INCLUDE_DIR BFD_LIBRARY)
 
 # --------- DOWNLOAD AND BUILD THE EXTERNAL PROJECT! ------------ #
 if((APEX_BUILD_BFD OR (NOT BFD_FOUND)) AND NOT APPLE)
-  set(BFD_ROOT ${CMAKE_INSTALL_PREFIX}/binutils CACHE STRING "Binutils Root directory" FORCE)
+  set(BFD_ROOT ${CMAKE_INSTALL_PREFIX} CACHE STRING "Binutils Root directory" FORCE)
   message("Attention: Downloading and Building binutils as external project!")
   message(INFO " A working internet connection is required!")
   include(ExternalProject)
@@ -56,7 +56,7 @@ if((APEX_BUILD_BFD OR (NOT BFD_FOUND)) AND NOT APPLE)
   ExternalProject_Add(project_binutils
     URL "http://ftp.gnu.org/gnu/binutils/binutils-2.37.tar.bz2"
     URL_HASH SHA256=67fc1a4030d08ee877a4867d3dcab35828148f87e1fd05da6db585ed5a166bd4
-    CONFIGURE_COMMAND <SOURCE_DIR>/configure CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} CFLAGS=${TMP_C_FLAGS} CXXFLAGS=${TMP_CXX_FLAGS} LDFLAGS=${TMP_LINKER_FLAGS} --prefix=${CMAKE_INSTALL_PREFIX}/binutils --disable-dependency-tracking --enable-interwork --disable-multilib --enable-shared --enable-64-bit-bfd --target=${TARGET_ARCH} --enable-install-libiberty --disable-gold --program-prefix=g --disable-nls --disable-ld --disable-lto --disable-gas
+    CONFIGURE_COMMAND <SOURCE_DIR>/configure CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} CFLAGS=${TMP_C_FLAGS} CXXFLAGS=${TMP_CXX_FLAGS} LDFLAGS=${TMP_LINKER_FLAGS} --prefix=${CMAKE_INSTALL_PREFIX} --disable-dependency-tracking --enable-interwork --disable-multilib --enable-shared --enable-64-bit-bfd --target=${TARGET_ARCH} --enable-install-libiberty --disable-gold --program-prefix=g --disable-nls --disable-ld --disable-lto --disable-gas
     BUILD_COMMAND make MAKEINFO=true -j${MAKEJOBS}
     INSTALL_COMMAND make MAKEINFO=true install
     LOG_DOWNLOAD 1
@@ -66,13 +66,13 @@ if((APEX_BUILD_BFD OR (NOT BFD_FOUND)) AND NOT APPLE)
   )
   ExternalProject_Add_Step(project_binutils extra_headers
     DEPENDEES install
-    COMMAND cp <SOURCE_DIR>/include/demangle.h ${CMAKE_INSTALL_PREFIX}/binutils/include/.
+    COMMAND cp <SOURCE_DIR>/include/demangle.h ${CMAKE_INSTALL_PREFIX}/include/.
     COMMENT "Copying additional headers"
   )
   ExternalProject_Add_Step(
     project_binutils symlink
     DEPENDEES install
- 	COMMAND ${PROJECT_SOURCE_DIR}/src/scripts/fix_binutils_path.sh ${CMAKE_INSTALL_PREFIX}/binutils
+ 	COMMAND ${PROJECT_SOURCE_DIR}/src/scripts/fix_binutils_path.sh ${CMAKE_INSTALL_PREFIX}
     COMMENT "Adding lib64 simlink"
   )
 
