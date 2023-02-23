@@ -231,8 +231,8 @@ int apex_pthread_create_wrapper(pthread_create_p pthread_create_call,
     start_routine_p start_routine, void * arg)
 {
   //printf("Here!\n");
-  static std::atomic<size_t> limit{0};
   /*
+  static std::atomic<size_t> limit{0};
   if (++limit > 55) {
     apex_print_backtrace();
     abort();

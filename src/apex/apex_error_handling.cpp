@@ -85,12 +85,19 @@ static void apex_custom_signal_handler(int sig) {
   _exit(-1);
 }
 
+#ifdef APEX_BE_GOOD_CITIZEN
 std::map<int, struct sigaction> other_handlers;
+#endif
 
 static void apex_custom_signal_handler_advanced(int sig, siginfo_t * info, void * context) {
     apex_custom_signal_handler(sig);
+#ifdef APEX_BE_GOOD_CITIZEN
     // call the old handler
     other_handlers[sig].sa_sigaction(sig, info, context);
+#else
+    APEX_UNUSED(info);
+    APEX_UNUSED(context);
+#endif
 }
 
 int apex_register_signal_handler() {
@@ -119,13 +126,14 @@ int apex_register_signal_handler() {
     SIGXCPU,
     SIGXFSZ
   };
-  //act.sa_flags = 0;
   //act.sa_handler = apex_custom_signal_handler;
   act.sa_flags = SA_RESTART | SA_SIGINFO;
   act.sa_sigaction = apex_custom_signal_handler_advanced;
   for (auto s : mysignals) {
     sigaction(s, &act, &old);
+#ifdef APEX_BE_GOOD_CITIZEN
     other_handlers[s] = old;
+#endif
   }
   if (apex::test_for_MPI_comm_rank(0) == 0) {
     std::cout << "APEX signal handler registered!" << std::endl;
