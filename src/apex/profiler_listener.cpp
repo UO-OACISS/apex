@@ -653,10 +653,12 @@ std::unordered_set<profile*> free_profiles;
         screen_output << endl;
       } else {
         /* Do Screen output */
-        if (action_name.find('%') == string::npos && p->get_minimum() > 10000) {
-          screen_output << string_format(FORMAT_SCIENTIFIC, p->get_minimum()) << spaces ;
-        } else {
-          screen_output << string_format(FORMAT_FLOAT, p->get_minimum()) << spaces ;
+        if (apex_options::use_screen_output_detail()) {
+            if (action_name.find('%') == string::npos && p->get_minimum() > 10000) {
+                screen_output << string_format(FORMAT_SCIENTIFIC, p->get_minimum()) << spaces ;
+            } else {
+                screen_output << string_format(FORMAT_FLOAT, p->get_minimum()) << spaces ;
+            }
         }
         if (action_name.find('%') == string::npos && p->get_mean() > 10000) {
           screen_output << string_format(FORMAT_SCIENTIFIC, p->get_mean()) << spaces ;
@@ -668,10 +670,12 @@ std::unordered_set<profile*> free_profiles;
         } else {
           screen_output << string_format(FORMAT_FLOAT, p->get_maximum()) << spaces ;
         }
-        if (action_name.find('%') == string::npos && p->get_stddev() > 10000) {
-          screen_output << string_format(FORMAT_SCIENTIFIC, p->get_stddev()) << spaces ;
-        } else {
-          screen_output << string_format(FORMAT_FLOAT, p->get_stddev()) << spaces ;
+        if (apex_options::use_screen_output_detail()) {
+            if (action_name.find('%') == string::npos && p->get_stddev() > 10000) {
+                screen_output << string_format(FORMAT_SCIENTIFIC, p->get_stddev()) << spaces ;
+            } else {
+                screen_output << string_format(FORMAT_FLOAT, p->get_stddev()) << spaces ;
+            }
         }
         screen_output << endl;
       }
@@ -747,12 +751,17 @@ std::unordered_set<profile*> free_profiles;
         }
     }
     if (id_vector.size() > 0) {
-        screen_output << "Counter                                              : "
-        << " #samp | minimum |    mean  |  maximum |  stddev " << endl;
+        screen_output << "Counter                                              : ";
+        int ndash = 80;
+        if (apex_options::use_screen_output_detail()) {
+            screen_output << " #samp | minimum |    mean  |  maximum |  stddev " << endl;
+            ndash = 105;
+        } else {
+            screen_output << " #samp |   mean  |  max" << endl;
+        }
         //screen_output << "Counter                        : #samples | "
         //<< "minimum |    mean  |  maximum |   total  |  stddev " << endl;
-        screen_output << "---------------------------------------------------"
-        << "------------------------------------------------------" << endl;
+        screen_output << std::string(ndash, '-') << endl;
         std::sort(id_vector.begin(), id_vector.end());
         // iterate over the counters
         for(auto name : id_vector) {
@@ -763,9 +772,7 @@ std::unordered_set<profile*> free_profiles;
                     total_accumulated, divisor, wall_clock_main);
             }
         }
-        screen_output << "-----------------------------------------------------"
-            << "----------------------------------------------------\n";
-        screen_output << endl;
+        screen_output << std::string(ndash, '-') << "\n" << endl;
     }
     std::string re("PAPI_");
     std::string tmpstr(apex_options::papi_metrics());
@@ -813,7 +820,7 @@ std::unordered_set<profile*> free_profiles;
             screen_output << "#calls|     mean |    total | %total | %wall ";
             dashes = 100;
         } else {
-            screen_output << "#calls|     mean |    total";
+            screen_output << "#calls|   mean |  total";
         }
         if (apex_options::track_gpu_memory()) {
             screen_output << "|  allocs |  (bytes) |    frees |   (bytes) ";
