@@ -518,6 +518,11 @@ std::unordered_set<profile*> free_profiles;
             }
         }
       }
+      int nspaces = 1;
+      if (apex_options::use_screen_output_detail()) {
+        nspaces = 3;
+      }
+      std::string spaces(nspaces, ' ');
       if(p->get_calls() == 0 && p->get_times_reset() > 0) {
             screen_output << "Not called since reset." << endl;
             return;
@@ -527,118 +532,120 @@ std::unordered_set<profile*> free_profiles;
       }
       if (p->get_calls() < 999999) {
           screen_output << string_format(PAD_WITH_SPACES,
-            to_string((int)p->get_calls()).c_str()) << "   " ;
+            to_string((int)p->get_calls()).c_str()) << spaces ;
       } else {
           screen_output << string_format(FORMAT_SCIENTIFIC, p->get_calls())
-            << "   " ;
+            << spaces ;
       }
-      if (include_stops) {
+      if (apex_options::use_screen_output_detail() && include_stops) {
         auto stops = std::max<double>(0.0, (p->get_stops() - p->get_calls()));
         if (stops < 999999) {
             screen_output << string_format(PAD_WITH_SPACES,
-                to_string((int)stops).c_str()) << "   " ;
+                to_string((int)stops).c_str()) << spaces ;
         } else {
             screen_output << string_format(FORMAT_SCIENTIFIC, stops)
-                << "   " ;
+                << spaces ;
         }
       }
       if (p->get_type() == APEX_TIMER) {
         //screen_output << " --n/a--   " ;
-        if (include_stops) {
+        if (apex_options::use_screen_output_detail() && include_stops) {
             if (p->get_num_threads() > 10000) {
                 screen_output << string_format(FORMAT_SCIENTIFIC,
-                    (p->get_num_threads())) << "   " ;
+                    (p->get_num_threads())) << spaces ;
             } else {
                 auto t = std::max<int>(1, (p->get_num_threads()));
                 screen_output << string_format(PAD_WITH_SPACES,
-                    to_string(t).c_str()) << "   " ;
+                    to_string(t).c_str()) << spaces ;
             }
         }
         if (p->get_mean_seconds() > 10000) {
             screen_output << string_format(FORMAT_SCIENTIFIC,
-                (p->get_mean_seconds())) << "   " ;
+                (p->get_mean_seconds())) << spaces ;
         } else {
             screen_output << string_format(FORMAT_FLOAT,
-                (p->get_mean_seconds())) << "   " ;
+                (p->get_mean_seconds())) << spaces ;
         }
         //screen_output << " --n/a--   " ;
         if (p->get_accumulated_seconds() > 10000) {
             screen_output << string_format(FORMAT_SCIENTIFIC,
-                (p->get_accumulated_seconds())) << "   " ;
-            if (include_stops) {
+                (p->get_accumulated_seconds())) << spaces ;
+            if (apex_options::use_screen_output_detail() && include_stops) {
                 screen_output << string_format(FORMAT_SCIENTIFIC,
-                    (p->get_accumulated_seconds()/p->get_num_threads())) << "   " ;
+                    (p->get_accumulated_seconds()/p->get_num_threads())) << spaces ;
             }
         } else {
             screen_output << string_format(FORMAT_FLOAT,
-                (p->get_accumulated_seconds())) << "   " ;
-            if (include_stops) {
+                (p->get_accumulated_seconds())) << spaces ;
+            if (apex_options::use_screen_output_detail() && include_stops) {
                 screen_output << string_format(FORMAT_FLOAT,
-                    (p->get_accumulated_seconds()/p->get_num_threads())) << "   " ;
+                    (p->get_accumulated_seconds()/p->get_num_threads())) << spaces ;
             }
         }
-        //screen_output << " --n/a--   " ;
-        if (action_name.compare(APEX_MAIN_STR) == 0) {
-            screen_output << string_format(FORMAT_PERCENT, 100.0);
-            screen_output << "   ";
-            screen_output << string_format(FORMAT_PERCENT, 100.0);
-        } else {
-            total_accumulated += p->get_accumulated_seconds();
-            double tmp = ((p->get_accumulated_seconds())
-                /total_main)*100.0;
-            if (tmp > 100.0) {
-                screen_output << "-n/a-" ;
+        if (apex_options::use_screen_output_detail()) {
+            //screen_output << " --n/a--   " ;
+            if (action_name.compare(APEX_MAIN_STR) == 0) {
+                screen_output << string_format(FORMAT_PERCENT, 100.0);
+                screen_output << spaces;
+                screen_output << string_format(FORMAT_PERCENT, 100.0);
             } else {
-                screen_output << string_format(FORMAT_PERCENT, tmp);
+                total_accumulated += p->get_accumulated_seconds();
+                double tmp = ((p->get_accumulated_seconds())
+                    /total_main)*100.0;
+                if (tmp > 100.0) {
+                    screen_output << "-n/a-" ;
+                } else {
+                    screen_output << string_format(FORMAT_PERCENT, tmp);
+                }
+                screen_output << spaces;
+                tmp = ((p->get_accumulated_seconds()/p->get_num_threads())
+                    /wall_main)*100.0;
+                if (tmp > 100.0) {
+                    screen_output << "-n/a-" ;
+                } else {
+                    screen_output << string_format(FORMAT_PERCENT, tmp);
+                }
             }
-            screen_output << "   ";
-            tmp = ((p->get_accumulated_seconds()/p->get_num_threads())
-                /wall_main)*100.0;
-            if (tmp > 100.0) {
-                screen_output << "-n/a-" ;
-            } else {
-                screen_output << string_format(FORMAT_PERCENT, tmp);
-            }
-        }
 #if APEX_HAVE_PAPI
         if (include_papi) {
             for (int i = 0 ; i < num_papi_counters ; i++) {
-                screen_output  << "   " << string_format(FORMAT_SCIENTIFIC,
+                screen_output  << spaces << string_format(FORMAT_SCIENTIFIC,
                     (p->get_papi_metrics()[i]));
             }
         }
 #endif
+        }
         if (include_stops) {
         if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
             if (p->get_allocations() > 999999) {
-                screen_output  << "   " << string_format(FORMAT_SCIENTIFIC,
+                screen_output  << spaces << string_format(FORMAT_SCIENTIFIC,
                     (p->get_allocations()));
             } else {
-                screen_output  << "   " << string_format(PAD_WITH_SPACES,
+                screen_output  << spaces << string_format(PAD_WITH_SPACES,
                     to_string(std::llround(p->get_allocations())).c_str());
             }
 
             if (p->get_bytes_allocated() > 999999) {
-                screen_output  << "   " << string_format(FORMAT_SCIENTIFIC,
+                screen_output  << spaces << string_format(FORMAT_SCIENTIFIC,
                     (p->get_bytes_allocated()));
             } else {
-                screen_output  << "   " << string_format(PAD_WITH_SPACES,
+                screen_output  << spaces << string_format(PAD_WITH_SPACES,
                     to_string(std::llround(p->get_bytes_allocated())).c_str());
             }
 
             if (p->get_frees() > 999999) {
-                screen_output  << "   " << string_format(FORMAT_SCIENTIFIC,
+                screen_output  << spaces << string_format(FORMAT_SCIENTIFIC,
                     (p->get_frees()));
             } else {
-                screen_output  << "   " << string_format(PAD_WITH_SPACES,
+                screen_output  << spaces << string_format(PAD_WITH_SPACES,
                     to_string(std::llround(p->get_frees())).c_str());
             }
 
             if (p->get_bytes_freed() > 999999) {
-                screen_output  << "   " << string_format(FORMAT_SCIENTIFIC,
+                screen_output  << spaces << string_format(FORMAT_SCIENTIFIC,
                     (p->get_bytes_freed()));
             } else {
-                screen_output  << "   " << string_format(PAD_WITH_SPACES,
+                screen_output  << spaces << string_format(PAD_WITH_SPACES,
                     to_string(std::llround(p->get_bytes_freed())).c_str());
             }
         }
@@ -647,24 +654,24 @@ std::unordered_set<profile*> free_profiles;
       } else {
         /* Do Screen output */
         if (action_name.find('%') == string::npos && p->get_minimum() > 10000) {
-          screen_output << string_format(FORMAT_SCIENTIFIC, p->get_minimum()) << "   " ;
+          screen_output << string_format(FORMAT_SCIENTIFIC, p->get_minimum()) << spaces ;
         } else {
-          screen_output << string_format(FORMAT_FLOAT, p->get_minimum()) << "   " ;
+          screen_output << string_format(FORMAT_FLOAT, p->get_minimum()) << spaces ;
         }
         if (action_name.find('%') == string::npos && p->get_mean() > 10000) {
-          screen_output << string_format(FORMAT_SCIENTIFIC, p->get_mean()) << "   " ;
+          screen_output << string_format(FORMAT_SCIENTIFIC, p->get_mean()) << spaces ;
         } else {
-          screen_output << string_format(FORMAT_FLOAT, p->get_mean()) << "   " ;
+          screen_output << string_format(FORMAT_FLOAT, p->get_mean()) << spaces ;
         }
         if (action_name.find('%') == string::npos && p->get_maximum() > 10000) {
-          screen_output << string_format(FORMAT_SCIENTIFIC, p->get_maximum()) << "   " ;
+          screen_output << string_format(FORMAT_SCIENTIFIC, p->get_maximum()) << spaces ;
         } else {
-          screen_output << string_format(FORMAT_FLOAT, p->get_maximum()) << "   " ;
+          screen_output << string_format(FORMAT_FLOAT, p->get_maximum()) << spaces ;
         }
         if (action_name.find('%') == string::npos && p->get_stddev() > 10000) {
-          screen_output << string_format(FORMAT_SCIENTIFIC, p->get_stddev()) << "   " ;
+          screen_output << string_format(FORMAT_SCIENTIFIC, p->get_stddev()) << spaces ;
         } else {
-          screen_output << string_format(FORMAT_FLOAT, p->get_stddev()) << "   " ;
+          screen_output << string_format(FORMAT_FLOAT, p->get_stddev()) << spaces ;
         }
         screen_output << endl;
       }
@@ -800,14 +807,20 @@ std::unordered_set<profile*> free_profiles;
     }
 
     if (have_gpu) {
-        screen_output << "GPU Timers                                           : "
-            << "#calls|     mean |    total | %total | %wall ";
+        int dashes = 80;
+        screen_output << "GPU Timers                                           : ";
+        if (apex_options::use_screen_output_detail()) {
+            screen_output << "#calls|     mean |    total | %total | %wall ";
+            dashes = 100;
+        } else {
+            screen_output << "#calls|     mean |    total";
+        }
         if (apex_options::track_gpu_memory()) {
             screen_output << "|  allocs |  (bytes) |    frees |   (bytes) ";
+            dashes += 37;
         }
         screen_output << endl;
-        screen_output << "--------------------------------------------------"
-                      << "-------------------------------------------------";
+        screen_output << std::string(dashes, '-');
         screen_output << endl;
 
         // iterate over the timers
@@ -825,29 +838,25 @@ std::unordered_set<profile*> free_profiles;
             }
         }
 
-        screen_output << "------------------------------------------------"
-            << "---------------------------------------------------";
-        /*
-        if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
-            screen_output << "--------------------------------------------";
-        }
-        */
+        screen_output << std::string(dashes, '-');
         screen_output << endl;
         screen_output << endl;
     }
 
-    screen_output << "CPU Timers                                           : "
-        << "#calls| #yields| #thread|     mean |    total |  tot/thr | %total | %wall "
-        << tmpstr;
+    screen_output << "CPU Timers                                           : ";
+    int dashes = 80;
+    if (apex_options::use_screen_output_detail()) {
+        screen_output << "#calls| #yields| #thread|     mean |    total |  tot/thr | %total | %wall " << tmpstr;
+        dashes = 128;
+    } else {
+        screen_output << "#calls|   mean |   total";
+    }
     if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
        screen_output << "| allocs| (bytes)|  frees | (bytes) ";
+        dashes += 37;
     }
     screen_output << endl;
-    screen_output << "--------------------------------------------------------------"
-        << "------------------------------------------------------------------";
-    if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
-        screen_output << "-------------------------------------";
-    }
+    screen_output << std::string(dashes, '-');
     screen_output << endl;
 
     // write the main timer
@@ -868,17 +877,13 @@ std::unordered_set<profile*> free_profiles;
             }
         }
     }
-    screen_output << "--------------------------------------------------------------"
-        << "------------------------------------------------------------------";
-    if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
-        screen_output << "------------------------------------";
-    }
+    screen_output << std::string(dashes, '-');
     screen_output << endl;
     screen_output << endl;
 
     double all_total_main = total_main * apex::instance()->get_num_ranks();
     double idle_rate = all_total_main - total_accumulated;
-    if (idle_rate >= 0.0) {
+    if (idle_rate >= 0.0 && apex_options::use_screen_output_detail()) {
       screen_output << string_format("%52s", APEX_IDLE_TIME) << " : ";
       // pad with spaces for #calls, mean
       screen_output << "                      ";
@@ -888,13 +893,9 @@ std::unordered_set<profile*> free_profiles;
         screen_output << string_format(FORMAT_FLOAT, idle_rate) << "   " ;
       }
       screen_output << string_format(FORMAT_PERCENT,
-        ((idle_rate/all_total_main)*100)) << endl;
+          ((idle_rate/all_total_main)*100)) << endl;
     }
-    screen_output << "--------------------------------------------------"
-        << "----------------------------------------------";
-    if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
-        screen_output << "--------------------------------------------";
-    }
+    screen_output << endl << std::string(dashes, '-');
     screen_output << endl;
 
     screen_output << string_format("%52s", "Total timers") << " : ";

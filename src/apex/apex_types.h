@@ -281,6 +281,7 @@ inline unsigned int sc_nprocessors_onln()
     macro (APEX_MEASURE_CONCURRENCY_MAX_TIMERS, concurrency_max_timers, int, 5, "Maximum number of timers in the concurrency report.") \
     macro (APEX_MEASURE_CONCURRENCY_PERIOD, concurrency_period, int, 1000000, "Thread concurrency sampling period, in microseconds.") \
     macro (APEX_SCREEN_OUTPUT, use_screen_output, bool, false, "Output APEX performance summary at exit.") \
+    macro (APEX_SCREEN_OUTPUT_DETAIL, use_screen_output_detail, bool, false, "Output detailed APEX performance summary at exit.") \
     macro (APEX_VERBOSE, use_verbose, bool, false, "Output APEX options at entry.") \
     macro (APEX_PROFILE_OUTPUT, use_profile_output, int, false, "Output TAU profile of performance summary (profile.* files).") \
     macro (APEX_CSV_OUTPUT, use_csv_output, int, false, "Output CSV profile of performance summary.") \
