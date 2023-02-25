@@ -80,7 +80,7 @@
 #if defined(HAS_CONSTRUCTORS)
 extern "C" {
 DEFINE_CONSTRUCTOR(apex_init_static_void)
-DEFINE_DESTRUCTOR(apex_finalize)
+DEFINE_DESTRUCTOR(apex_finalize_static_void)
 }
 #endif // HAS_CONSTRUCTORS
 #endif // APEX_USE_STATIC_GLOBAL_CONSTRUCTOR
@@ -2314,6 +2314,10 @@ extern "C" {
     void apex_init_static_void() {
         init("APEX static constructor", 0, 1);
         return;
+    }
+
+    void apex_finalize_static_void(void) {
+        finalize();
     }
 #endif
 

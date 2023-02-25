@@ -12,6 +12,8 @@ parser.add_argument('--compressed', dest='compressed', action='store_true',
                     help='Merge trace_events.*.json.gz files (default: merge trace_events.*.json files)')
 parser.add_argument('--strip', dest='strip', action='store_true',
                     help='Strip counters from the data (save timers only)')
+parser.add_argument('--nothread', dest='nothread', action='store_true',
+                    help='Strip thread data (save main thread only)')
 
 args = parser.parse_args()
 
@@ -41,12 +43,14 @@ for counter, infile in enumerate(sorted(glob.glob(myglob))):
     else:
         jsonfile = open(infile, 'r')
     data = json.load(jsonfile)
-    if args.strip:
-        events = []
-        for line in data['traceEvents']:
-            if line['ph'] != 'C' and line['ph'] != 's' and line['ph'] != 'f':
-                events.append(line)
-        data['traceEvents'] = events
+    events = []
+    for line in data['traceEvents']:
+        if args.nothread and 'tid' in line and int(line['tid']) != 0:
+            continue;
+        if args.strip and (line['ph'] == 'C' or line['ph'] == 's' or line['ph'] == 'f'):
+            continue;
+        events.append(line)
+    data['traceEvents'] = events
     if (counter == 0):
         all_data = data
     else:
