@@ -314,7 +314,9 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
 
   switch (rec->type) {
   case ompt_callback_target:
+#if defined(ompt_callback_target_emi)
   case ompt_callback_target_emi:
+#endif
     {
       ompt_record_target_t target_rec = rec->record.target;
       DEBUG_PRINT("\tRecord Target: kind=%d endpoint=%d device=%d task_id=%lu target_id=%lu codeptr=%p\n",
@@ -358,7 +360,9 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
       break;
     }
   case ompt_callback_target_data_op:
+#if defined(ompt_callback_target_data_op_emi)
   case ompt_callback_target_data_op_emi:
+#endif
     {
       ompt_record_target_data_op_t target_data_op_rec = rec->record.target_data_op;
       DEBUG_PRINT("\tRecord DataOp: host_op_id=%lu optype=%d src_addr=%p src_device=%d "
@@ -396,22 +400,30 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
                     ss << " Disassociate";
                     break;
                 }
+#if defined(ompt_target_data_alloc_async)
                 case ompt_target_data_alloc_async: {
                     ss << " Alloc";
                     break;
                 }
+#endif
+#if defined(ompt_target_data_transfer_to_device_async)
                 case ompt_target_data_transfer_to_device_async: {
                     ss << " Xfer to Dev Async";
                     break;
                 }
+#endif
+#if defined(ompt_target_data_transfer_from_device_async)
                 case ompt_target_data_transfer_from_device_async: {
                     ss << " Xfer from Dev Async";
                     break;
                 }
+#endif
+#if defined(ompt_target_data_delete_async)
                 case ompt_target_data_delete_async: {
                     ss << " Delete Async";
                     break;
                 }
+#endif
             }
             std::shared_ptr<apex::task_wrapper> tt;
             const void* codeptr_ra;
@@ -438,7 +450,9 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
       break;
     }
   case ompt_callback_target_submit:
+#if defined(ompt_callback_target_submit_emi)
   case ompt_callback_target_submit_emi:
+#endif
     {
       ompt_record_target_kernel_t target_kernel_rec = rec->record.target_kernel;
       DEBUG_PRINT("\tRecord Submit: host_op_id=%lu requested_num_teams=%u granted_num_teams=%u "
@@ -946,24 +960,31 @@ extern "C" void apex_target_data_op (
             apex::sample_value("GPU: OpenMP Target Data Disassociate",bytes);
             break;
         }
+#if defined(ompt_target_data_alloc_async)
         case ompt_target_data_alloc_async: {
             apex::sample_value("GPU: OpenMP Target Data Alloc Async",bytes);
             std::unique_lock<std::mutex> l(allocation_lock);
             allocations[src_addr] = bytes;
             break;
         }
+#endif
+#if defined(ompt_target_data_transfer_to_device_async)
         case ompt_target_data_transfer_to_device_async: {
             apex::sample_value("GPU: OpenMP Target Data Transfer to Device Async",bytes);
             std::unique_lock<std::mutex> l(allocation_lock);
             allocations[dest_addr] = bytes;
             break;
         }
+#endif
+#if defined(ompt_target_data_transfer_from_device_async)
         case ompt_target_data_transfer_from_device_async: {
             apex::sample_value("GPU: OpenMP Target Data Transfer from Device Async",bytes);
             std::unique_lock<std::mutex> l(allocation_lock);
             allocations[dest_addr] = bytes;
             break;
         }
+#endif
+#if defined(ompt_target_data_delete_async)
         case ompt_target_data_delete_async: {
             size_t mybytes;
             {
@@ -974,6 +995,7 @@ extern "C" void apex_target_data_op (
             apex::sample_value("GPU: OpenMP Target Data Delete Async",mybytes);
             break;
         }
+#endif
         default:
             break;
     }
@@ -1175,15 +1197,21 @@ extern "C" void apex_sync_region_wait (
         case ompt_sync_region_reduction:
             tmp_str = const_cast<char*>(reduction_str);
             break;
+#if defined(ompt_sync_region_barrier_implicit_workshare)
         case ompt_sync_region_barrier_implicit_workshare:
             tmp_str = const_cast<char*>(barrier_implicit_workshare_str);
             break;
+#endif
+#if defined(ompt_sync_region_barrier_implicit_parallel)
         case ompt_sync_region_barrier_implicit_parallel:
             tmp_str = const_cast<char*>(barrier_implicit_parallel_str);
             break;
+#endif
+#if defined (ompt_sync_region_barrier_teams)
         case ompt_sync_region_barrier_teams:
             tmp_str = const_cast<char*>(barrier_teams_str);
             break;
+#endif
         default:
             tmp_str = const_cast<char*>(unknown_str);
             break;
@@ -1377,15 +1405,21 @@ extern "C" void apex_ompt_sync_region (
         case ompt_sync_region_reduction:
             tmp_str = const_cast<char*>(reduction_str);
             break;
+#if defined(ompt_sync_region_barrier_implicit_workshare)
         case ompt_sync_region_barrier_implicit_workshare:
             tmp_str = const_cast<char*>(barrier_implicit_workshare_str);
             break;
+#endif
+#if defined(ompt_sync_region_barrier_implicit_parallel)
         case ompt_sync_region_barrier_implicit_parallel:
             tmp_str = const_cast<char*>(barrier_implicit_parallel_str);
             break;
+#endif
+#if defined (ompt_sync_region_barrier_teams)
         case ompt_sync_region_barrier_teams:
             tmp_str = const_cast<char*>(barrier_teams_str);
             break;
+#endif
         default:
             tmp_str = const_cast<char*>(unknown_str);
             break;
