@@ -103,7 +103,13 @@ namespace apex {
         }
         node->info.probeAddr = ip;
         node->info.filename = strdup("?");
-        node->info.funcname = strdup(result[3].c_str());
+        if (result.size() > 3) {
+            node->info.funcname = strdup(result[3].c_str());
+        } else {
+            stringstream ss;
+            ss << "UNRESOLVED  ADDR 0x" << hex << ip;
+            node->info.funcname = strdup(ss.str().c_str());
+        }
 #endif
 #endif
         if (node->info.filename == nullptr) {
