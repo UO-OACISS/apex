@@ -5,10 +5,10 @@ git fetch origin
 git fetch github
 
 # checkout origin/develop from git.nic.uoregon.edu
-git checkout thread_stats
+git checkout develop
 
 # merge the github PR request changes
-git merge github/thread_stats
+git merge github/develop
 
 # push to origin
-git push origin thread_stats
+git push origin develop

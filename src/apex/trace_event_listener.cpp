@@ -482,7 +482,10 @@ std::ofstream& trace_event_listener::get_trace_file() {
 #endif
 
 void trace_event_listener::flush_trace(trace_event_listener* listener) {
-    std::cout << "**** FLUSHING TRACE BUFFER ****" << std::endl;
+    static atomic<bool> flushing{false};
+    while (flushing) {} // wait for asynchronous flushing, if it's happening
+    flushing = true;
+    //std::cout << "**** FLUSHING TRACE BUFFER ****" << std::endl;
     auto p = scoped_timer("APEX: Trace Buffer Flush");
     auto& trace_file = listener->get_trace_file();
 #ifdef SERIAL
@@ -511,6 +514,7 @@ void trace_event_listener::flush_trace(trace_event_listener* listener) {
     // flush the trace
     trace_file << ss.rdbuf() << std::flush;
 #endif
+    flushing = false;
 }
 
 void trace_event_listener::flush_trace_if_necessary(void) {
