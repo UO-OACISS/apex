@@ -787,14 +787,14 @@ endif (APEX_WITH_STARPU)
 
 if (APEX_WITH_PHIPROF)
    find_package(PHIPROF REQUIRED)
-   if (PHIPROF_FOUND )
+   if (PHIPROF_FOUND)
       add_definitions(-DAPEX_WITH_PHIPROF)
       message(INFO " Using PhiProf include: ${PHIPROF_INCLUDE_DIR}")
       include_directories(${PHIPROF_INCLUDE_DIR})
       # We need MPI
       if (NOT MPI_CXX_FOUND)
          message( FATAL_ERROR "MPI is required with PhiProf" )
-      endif (PHIPROF_FOUND)
+      endif (NOT MPI_CXX_FOUND)
    endif (PHIPROF_FOUND)
 endif (APEX_WITH_PHIPROF)
 
