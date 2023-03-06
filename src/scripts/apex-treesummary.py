@@ -184,7 +184,7 @@ def drawDOT(df):
     # Make a new dataframe from rank 0
     f = open('tasktree.dot', 'w')
     f.write('digraph prof {\n')
-    f.write(' label = "(get this from metadata file output - or, generate it from apex-treesummary.py!)";\n')
+    #f.write(' label = "(get this from metadata file output - or, generate it from apex-treesummary.py!)";\n')
     f.write(' labelloc = "t";\n')
     f.write(' labeljust = "l";\n')
     f.write(' overlap = false;\n')
