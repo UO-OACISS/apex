@@ -124,10 +124,11 @@ if(APEX_WITH_CUDA)
                 set (CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler -std=c++11")
             endif ()
         endif ()
-        if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND
-            CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 9)
-            message(INFO " Building CUPTI support, but GCC is too new for CUDA tests")
-        elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" AND
+	#        if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND
+	#    CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 9)
+	#    message(INFO " Building CUPTI support, but GCC is too new for CUDA tests")
+	#elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" AND
+        if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" AND
             CMAKE_CXX_COMPILER_VERSION VERSION_LESS 11)
             message(INFO " Building CUPTI support, but Clang < 11 can't build CUDA tests")
         else()
