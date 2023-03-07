@@ -34,6 +34,8 @@ def parseArgs():
         help='Convert to TAU profiles (default: false)', default=False)
     parser.add_argument('--dot', dest='dot', action='store_true',
         help='Generate DOT file for graphviz (default: false)', default=False)
+    parser.add_argument('--dot_show', dest='dot_show', action='store_true',
+        help='Show DOT file for graphviz (default: false)', default=False)
     parser.add_argument('--ascii', dest='ascii', action='store_true',
         help='Output ASCII tree output (default: true)', default=False)
     parser.add_argument('--tlimit', dest='tlimit', type=float, default=0.0, required=False,
@@ -170,7 +172,7 @@ def get_node_color_visible_one(v, vmin, vmax):
     intensity = int(frac * 255)
     return intensity
 
-def drawDOT(df):
+def drawDOT(df, args):
     # computing new stats
     print('Computing new stats...')
     if 'total Send Bytes' not in df:
@@ -262,6 +264,12 @@ def drawDOT(df):
         f.write('];\n')
     f.write('}')
     f.close()
+    if args.dot_show:
+        from graphviz import Source
+        path = './tasktree.dot'
+        s = Source.from_file(path)
+        s.view()
+        os.wait()
     print('done.')
 
 def graphRank(index, df, parentNode, droplist):
@@ -357,12 +365,12 @@ def main():
             print(treestr)
             print('Task tree also written to tasktree.txt.')
 
-    if args.dot:
+    if args.dot or args.dot_show:
         for root in roots:
             merged = root.getMergedDF().reset_index()
             # remove the bogus root node
             mean = merged.groupby(['node index','parent index','name']).agg(args.timer_agg, numeric_only=False).reset_index()
-            drawDOT(mean)
+            drawDOT(mean, args)
 
 if __name__ == '__main__':
     main()
