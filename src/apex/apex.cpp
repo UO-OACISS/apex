@@ -281,7 +281,7 @@ void apex::_initialize()
     /* Oracle Solaris Studio. ----------------------------------- */
     tmp << "\nOracle Compiler version : " << __SUNPRO_CC;
 #endif
-    tmp << "\nSupported features: Pthread";
+    tmp << "\nConfigured features: Pthread";
 #ifdef APEX_WITH_ACTIVEHARMONY
     tmp << ", AH";
 #endif
