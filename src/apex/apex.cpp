@@ -281,6 +281,56 @@ void apex::_initialize()
     /* Oracle Solaris Studio. ----------------------------------- */
     tmp << "\nOracle Compiler version : " << __SUNPRO_CC;
 #endif
+    tmp << "\nSupported features: Pthread";
+#ifdef APEX_WITH_ACTIVEHARMONY
+    tmp << ", AH";
+#endif
+#ifdef APEX_WITH_BFD
+    tmp << ", BFD";
+#endif
+#ifdef APEX_WITH_CUDA
+    tmp << ", CUDA";
+#endif
+#ifdef APEX_WITH_HIP
+    tmp << ", HIP";
+#endif
+#ifdef APEX_WITH_LEVEL0
+    tmp << ", L0";
+#endif
+#ifdef APEX_WITH_MPI
+    tmp << ", MPI";
+#endif
+#ifdef APEX_WITH_OMPT
+    tmp << ", OMPT";
+#endif
+#ifdef APEX_WITH_OTF2
+    tmp << ", OTF2";
+#endif
+#ifdef APEX_WITH_PAPI
+    tmp << ", PAPI";
+#endif
+#ifdef APEX_WITH_PLUGINS
+    tmp << ", PLUGINS";
+#endif
+#ifdef APEX_WITH_STARPU
+    tmp << ", StarPU";
+#endif
+#ifdef APEX_WITH_PHIPROF
+    tmp << ", PhiProf";
+#endif
+#ifdef APEX_WITH_TCMALLOC
+    tmp << ", TCMalloc";
+#endif
+#ifdef APEX_WITH_JEMALLOC
+    tmp << ", JEMalloc";
+#endif
+#ifdef APEX_WITH_LM_SENSORS
+    tmp << ", LM Sensors";
+#endif
+#ifdef APEX_WITH_PERFETTO
+    tmp << ", Perfetto";
+#endif
+    tmp << "\n";
 
     this->version_string = std::string(tmp.str());
 #ifdef APEX_HAVE_HPX

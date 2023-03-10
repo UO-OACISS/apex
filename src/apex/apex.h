@@ -84,7 +84,7 @@ APEX_EXPORT const char * apex_dump(bool reset);
  \return No return value.
  \sa @ref apex_init
  */
-APEX_EXPORT void apex_finalize();
+APEX_EXPORT void apex_finalize(void);
 
 /**
  \brief Cleanup APEX.
@@ -98,7 +98,7 @@ APEX_EXPORT void apex_finalize();
  \return No return value.
  \sa @ref apex_finalize
  */
-APEX_EXPORT void apex_cleanup();
+APEX_EXPORT void apex_cleanup(void);
 
 /*
  * Functions for starting, stopping timers

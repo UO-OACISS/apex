@@ -249,7 +249,7 @@ typedef uint32_t apex_tuning_session_handle;
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
-inline unsigned int sc_nprocessors_onln()
+inline unsigned int sc_nprocessors_onln(void)
 {
 #if !defined(_MSC_VER)
     return sysconf( _SC_NPROCESSORS_ONLN );
