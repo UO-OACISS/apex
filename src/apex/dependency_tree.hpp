@@ -89,6 +89,7 @@ class Node {
         size_t getCount() { return count; }
         inline double& getCalls() { return prof.calls; }
         inline double& getAccumulated() { return prof.accumulated; }
+        inline double getThreads() { return (double)thread_ids.size(); }
         inline double& getMinimum() { return prof.minimum; }
         inline double& getMaximum() { return prof.maximum; }
         inline double& getSumSquares() { return prof.sum_squares; }

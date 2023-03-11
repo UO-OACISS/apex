@@ -37,7 +37,9 @@ def parseArgs():
     parser.add_argument('--dot_show', dest='dot_show', action='store_true',
         help='Show DOT file for graphviz (default: false)', default=False)
     parser.add_argument('--ascii', dest='ascii', action='store_true',
-        help='Output ASCII tree output (default: true)', default=False)
+        help='Output ASCII tree output (default: false)', default=False)
+    parser.add_argument('--shorten', dest='shorten', action='store_true',
+        help='Shorten timer names (default: false)', default=False)
     parser.add_argument('--tlimit', dest='tlimit', type=float, default=0.0, required=False,
         metavar='N', help='Limit timers to those with value over N (default: 0)')
     parser.add_argument('--dlimit', dest='dlimit', type=float, default=0, required=False,
@@ -142,6 +144,25 @@ class TreeNode:
         for key in self.children:
             self.children[key].findKeepers(keeplist, rootlist)
 
+def shorten_name(name):
+    tmp = name
+    # remove arguments in function name, if they exist
+    leftparen = tmp.find('(')
+    rightparen = tmp.rfind(')')
+    if leftparen > 0 and rightparen > 0:
+        tokens1 = tmp.split('(')
+        tokens2 = tmp.split(')')
+        tmp = tokens1[0] + '(...)' + tokens2[len(tokens2)-1]
+    # remove template arguments in function name, if they exist
+    leftparen = tmp.find('<')
+    rightparen = tmp.rfind('>')
+    if leftparen > 0 and rightparen > 0:
+        tokens1 = tmp.split('<')
+        tokens2 = tmp.split('>')
+        tmp = tokens1[0] + '<...>' + tokens2[len(tokens2)-1]
+    # otherwise, just take the first 64 characters.
+    short = (tmp[:67] + '...') if len(tmp) > 67 else tmp
+    return short
 
 def get_node_color_visible(v, vmin, vmax):
     if v > vmax:
@@ -206,17 +227,8 @@ def drawDOT(df, args):
         name = df['name'][ind]
         node_index = df['node index'][ind]
         parent_index = df['parent index'][ind]
-        """
-        if 'INIT' in name:
-            ignored.add(node_index)
-            continue
-        if parent_index in ignored:
-            ignored.add(node_index)
-            continue
-        if df[metric][ind] < limit:
-            ignored.add(node_index)
-            continue
-        """
+        if args.shorten:
+            name = shorten_name(name)
         # Remember, the root node is bogus. so skip it.
         if node_index != parent_index:
             f.write('  "' + str(parent_index) + '" -> "' + str(node_index) + '";\n')

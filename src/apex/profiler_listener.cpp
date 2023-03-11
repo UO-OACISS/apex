@@ -1107,7 +1107,7 @@ std::unordered_set<profile*> free_profiles;
         - not_main),0.0)) << " ";
     myfile << ((p->get_accumulated_useconds())) << " ";
     myfile << 0 << " ";
-    myfile << "GROUP=\"TAU_USER\" ";
+    myfile << "GROUP=\"TAU_DEFAULT\" ";
     myfile << endl;
   }
 

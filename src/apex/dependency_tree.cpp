@@ -252,7 +252,7 @@ void Node::writeTAUCallpath(std::ofstream& outfile, std::string prefix) {
     if (prefix.size() == 0 && children.size() == 0) { return ; }
 
     // get the inclusive amount for this timer
-    double acc = getAccumulated() * 1000000; // stored in seconds, we need to convert to microseconds
+    double acc = (getAccumulated() * 1000000) / getThreads(); // stored in seconds, we need to convert to microseconds
 
     // update the prefix
     if (data->get_name().compare(APEX_MAIN_STR) == 0) {
@@ -267,9 +267,9 @@ void Node::writeTAUCallpath(std::ofstream& outfile, std::string prefix) {
         double child_time = 0;
         double child_calls = 0;
         for (auto c : children) {
-            double tmp = c.second->getAccumulated() * 1000000;
+            double tmp = (c.second->getAccumulated() * 1000000) / c.second->getThreads();
             child_time = child_time + tmp;
-            tmp = c.second->getCalls();
+            tmp = c.second->getCalls() / c.second->getThreads();
             child_calls = child_calls + tmp;
         }
         double remainder = 0;
@@ -287,17 +287,17 @@ void Node::writeTAUCallpath(std::ofstream& outfile, std::string prefix) {
         // otherwise, write out this node
         outfile << "\"" << prefix << "\" ";
         // write the number of calls
-        double ncalls = (getCalls() == 0) ? 1 : getCalls();
+        double ncalls = (getCalls() == 0) ? 1 : (getCalls() / getThreads());
         outfile << std::fixed << std::setprecision(0) << ncalls << " ";
         // write out subroutines
         outfile << child_calls << " ";
         // write out exclusive
         outfile << std::fixed << std::setprecision(3) << remainder << " ";
         // write out inclusive
-        //outfile << std::fixed << std::setprecision(3) << acc << " ";
-        outfile << std::fixed << std::setprecision(3) << inclusive << " ";
+        outfile << std::fixed << std::setprecision(3) << acc << " ";
+        //outfile << std::fixed << std::setprecision(3) << inclusive << " ";
         // write out profilecalls and group
-        outfile << "0 GROUP=\"" << data->get_group() << " | TAU_CALLPATH\" ";
+        outfile << "0 GROUP=\"TAU_CALLPATH|" << data->get_group() << "\" ";
         // end the line
         outfile << std::endl;
     }
