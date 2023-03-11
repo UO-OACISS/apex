@@ -182,3 +182,15 @@ void monitor::query(void) {
 
 } // namespace rocprofiler
 } // namespace apex
+
+extern "C" void apex_rocprofiler_monitor_query(void) {
+    auto& instance = apex::rocprofiler::monitor::instance();
+    instance.query();
+}
+
+extern "C" void apex_rocprofiler_monitor_stop(void) {
+    auto& instance = apex::rocprofiler::monitor::instance();
+    instance.stop();
+}
+
+

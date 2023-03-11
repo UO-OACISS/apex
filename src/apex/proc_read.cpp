@@ -51,11 +51,6 @@
 #include "apex_nvml.hpp"
 #endif
 
-#ifdef APEX_WITH_HIP
-#include "apex_rocm_smi.hpp"
-#include "hip_profiler.hpp"
-#endif
-
 using namespace std;
 
 #if defined(APEX_HAVE_PAPI)
@@ -65,10 +60,6 @@ using namespace std;
 #include <dirent.h>
 
 namespace apex {
-
-#ifdef APEX_WITH_HIP
-rsmi::monitor * global_rsmi_reader = nullptr;
-#endif
 
     void get_popen_data(char *cmnd) {
         FILE *pf;
@@ -833,21 +824,13 @@ rsmi::monitor * global_rsmi_reader = nullptr;
             nvml_reader->query();
         }
 #endif
-#ifdef APEX_WITH_HIP
-        rsmi::monitor * rsmi_reader;
-        // If PAPI support is lacking, use our own support
+
         if (apex_options::monitor_gpu()) {
-            rsmi_reader = new rsmi::monitor();
-            global_rsmi_reader = rsmi_reader;
-            rsmi_reader->query();
+            dynamic::rsmi::query();
         }
-        rocprofiler::monitor * rocprof_reader;
-        // If PAPI support is lacking, use our own support
         if (apex_options::use_hip_profiler()) {
-            rocprof_reader = new rocprofiler::monitor();
-            rocprof_reader->query();
+            dynamic::rocprofiler::query();
         }
-#endif
         // release the main thread to continue
         while(!done /*&& ptw->wait()*/) {
             //usleep(apex_options::proc_period());
@@ -892,14 +875,12 @@ rsmi::monitor * global_rsmi_reader = nullptr;
                 nvml_reader->query();
             }
 #endif
-#ifdef APEX_WITH_HIP
             if (apex_options::monitor_gpu()) {
-                rsmi_reader->query();
+                dynamic::rsmi::query();
             }
             if (apex_options::use_hip_profiler()) {
-                rocprof_reader->query();
+                dynamic::rocprofiler::query();
             }
-#endif
             if (apex_options::use_tau()) {
                 tau_listener::Tau_stop_wrapper("proc_data_reader::read_proc: main loop");
             }
@@ -913,14 +894,12 @@ rsmi::monitor * global_rsmi_reader = nullptr;
             nvml_reader->stop();
         }
 #endif
-#ifdef APEX_WITH_HIP
         if (apex_options::monitor_gpu()) {
-            rsmi_reader->stop();
+            dynamic::rsmi::stop();
         }
         if (apex_options::use_hip_profiler()) {
-            rocprof_reader->stop();
+            dynamic::rocprofiler::stop();
         }
-#endif
         if (apex_options::use_tau()) {
             tau_listener::Tau_stop_wrapper("proc_data_reader::read_proc");
         }
@@ -1020,11 +999,9 @@ std::array<double,2> getAvailableMemory() {
             }
             fclose(f);
         }
-#ifdef APEX_WITH_HIP
-        if (global_rsmi_reader != nullptr) {
-            values[1] = global_rsmi_reader->getAvailableMemory();
+        if (apex_options::monitor_gpu()) {
+            dynamic::rsmi::getAvailableMemory();
         }
-#endif
     return values;
 }
 

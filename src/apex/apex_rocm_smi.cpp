@@ -372,5 +372,28 @@ double monitor::getAvailableMemory() {
     return avail;
 }
 
+event_filter& monitor::instance(void) {
+    static monitor _instance;
+    return _instance;
+}
+
 } // namespace rsmi
 } // namespace apex
+
+extern "C" void apex_rsmi_monitor_query(void) {
+    auto& instance = apex::rsmi::monitor::instance();
+    instance.query();
+}
+
+extern "C" void apex_rsmi_monitor_stop(void) {
+    auto& instance = apex::rsmi::monitor::instance();
+    instance.stop();
+}
+
+extern "C" double apex_rsmi_monitor_getAvailableMemory(void) {
+    auto& instance = apex::rsmi::monitor::instance();
+    return instance.getAvailableMemory();
+}
+
+
+

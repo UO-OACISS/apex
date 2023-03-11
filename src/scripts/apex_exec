@@ -504,10 +504,13 @@ if [ $ompt = yes ]; then
     export OMP_TOOL=enabled
     export OMP_TOOL_LIBRARIES=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}_ompt${SHLIBX}
     export OMP_TOOL_VERBOSE_INIT=stdout
-    OMPT_LIB=${BASEDIR}/${LIBDIR}/libapex_ompt${SHLIBX}:
+    OMPT_LIB=${BASEDIR}/${LIBDIR}/libapex_ompt${SHLIBX}
     if [ $verbose = yes ]; then
         export OMP_DISPLAY_ENV=true
     fi
+fi
+if [ $hip = yes ]; then
+    export HIP_LIB=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}_hip${SHLIBX}
 fi
 if [ $cpu_memory = yes ]; then
     MEMORY_LIB=${BASEDIR}/${LIBDIR}/libapex_memory_wrapper${SHLIBX}:
@@ -516,9 +519,9 @@ if [ $cpu_memory = yes ]; then
     echo_screen "APEX_LD_AUDIT: ${APEX_LD_AUDIT}"
 fi
 if [ ${apple} = 1 ]; then
-    APEX_LD_PRELOAD=${USER_PRELOAD}${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}:${OMPT_LIB}
+    APEX_LD_PRELOAD=${USER_PRELOAD}${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}:${OMPT_LIB}:${HIP_LIB}
 else
-    APEX_LD_PRELOAD=${USER_PRELOAD}${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}:${OMPT_LIB}:${LD_PRELOAD}
+    APEX_LD_PRELOAD=${USER_PRELOAD}${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}:${OMPT_LIB}:${HIP_LIB}:${LD_PRELOAD}
 fi
 
 # remove spaces and double colons

@@ -462,11 +462,6 @@ hpx::runtime * apex::get_hpx_runtime(void) {
 void init_cupti_tracing(void);
 #endif
 
-/* Need to forward declare the HIP tracing static constructor */
-#ifdef APEX_WITH_HIP
-void init_hip_tracing(void);
-#endif
-
 void do_atexit(void) {
     finalize();
     cleanup();
@@ -603,9 +598,7 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
 #ifdef APEX_WITH_CUDA
     init_cupti_tracing();
 #endif
-#ifdef APEX_WITH_HIP
-    init_hip_tracing();
-#endif
+    dynamic::roctracer::init();
 #ifdef APEX_WITH_LEVEL0
     level0::EnableProfiling();
 #endif
@@ -1676,10 +1669,6 @@ void finalize_plugins(void) {
 void flushTrace(void);
 void finalizeCuda(void);
 #endif
-#ifdef APEX_WITH_HIP
-void flush_hip_trace(void);
-void stop_hip_trace(void);
-#endif
 
 std::string dump(bool reset) {
     in_apex prevent_deadlocks;
@@ -1698,9 +1687,7 @@ std::string dump(bool reset) {
 #ifdef APEX_WITH_CUDA
     flushTrace();
 #endif
-#ifdef APEX_WITH_HIP
-    flush_hip_trace();
-#endif
+    dynamic::roctracer::flush();
 #ifdef APEX_WITH_LEVEL0
     level0::DisableProfiling();
 #endif
@@ -1795,10 +1782,8 @@ void finalize()
     flushTrace();
     finalizeCuda();
 #endif
-#ifdef APEX_WITH_HIP
-    flush_hip_trace();
-    stop_hip_trace();
-#endif
+    dynamic::roctracer::flush();
+    dynamic::roctracer::stop();
     apex_options::suspend(true);
     // now, process all output
     dump(false);

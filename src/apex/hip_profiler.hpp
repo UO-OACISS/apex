@@ -16,11 +16,16 @@ namespace apex { namespace rocprofiler {
 
 class monitor {
 public:
-    monitor (void);
-    ~monitor (void);
     void query();
     void stop();
 private:
+    /* declare the constructor, only used by the "instance" method.
+     * it is defined in the cpp file. */
+    monitor (void);
+    ~monitor (void);
+    /* Disable the copy and assign methods. */
+    monitor(monitor const&)    = delete;
+    void operator=(monitor const&)  = delete;
     bool enabled;
     // HSA status
     hsa_status_t status;

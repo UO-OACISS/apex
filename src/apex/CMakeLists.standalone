@@ -37,21 +37,9 @@ if (LEVEL0_FOUND)
 SET(LEVEL0_SOURCE apex_level0.cpp)
 endif(LEVEL0_FOUND)
 
-if (ROCTRACER_FOUND)
-SET(ROCTRACER_SOURCE hip_trace.cpp)
-endif(ROCTRACER_FOUND)
-
-if (ROCPROFILER_FOUND)
-SET(ROCPROFILER_SOURCE hip_profiler.cpp ctrl/test_hsa.cpp util/hsa_rsrc_factory.cpp util/perf_timer.cpp)
-endif(ROCPROFILER_FOUND)
-
 if (NVML_FOUND)
 SET(NVML_SOURCE apex_nvml.cpp)
 endif(NVML_FOUND)
-
-if (RSMI_FOUND)
-SET(RSMI_SOURCE apex_rocm_smi.cpp)
-endif(RSMI_FOUND)
 
 if (ZLIB_FOUND)
 SET(ZLIB_SOURCE gzstream.cpp)
@@ -96,10 +84,7 @@ apex_preload.cpp
 apex_dynamic.cpp
 ${CUPTI_SOURCE}
 ${LEVEL0_SOURCE}
-${ROCPROFILER_SOURCE}
-${ROCTRACER_SOURCE}
 ${NVML_SOURCE}
-${RSMI_SOURCE}
 apex.cpp
 apex_error_handling.cpp
 apex_kokkos.cpp
@@ -140,9 +125,10 @@ ${ZLIB_SOURCE}
 )
 
 add_library (apex ${all_SOURCE})
+
 if (OMPT_FOUND)
-    SET(OMPT_SOURCE apex_ompt.cpp)
     add_definitions(-DAPEX_WITH_OMPT)
+    SET(OMPT_SOURCE apex_ompt.cpp)
     add_library (apex_ompt ${OMPT_SOURCE})
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "NVHPC")
         # Use the tool-enabled OpenMP runtime
@@ -153,8 +139,29 @@ if (OMPT_FOUND)
     endif()
     add_dependencies (apex_ompt apex)
 endif (OMPT_FOUND)
+
 add_library (taudummy tau_dummy.cpp)
 add_dependencies (apex taudummy ${perfetto_target})
+
+if (APEX_WITH_HIP)
+    add_definitions(-DAPEX_WITH_HIP)
+    if (ROCTRACER_FOUND)
+        SET(ROCTRACER_SOURCE hip_trace.cpp)
+    endif(ROCTRACER_FOUND)
+    if (ROCPROFILER_FOUND)
+        SET(ROCPROFILER_SOURCE
+            hip_profiler.cpp
+            ctrl/test_hsa.cpp
+            util/hsa_rsrc_factory.cpp
+            util/perf_timer.cpp)
+    endif(ROCPROFILER_FOUND)
+    if (RSMI_FOUND)
+        SET(RSMI_SOURCE apex_rocm_smi.cpp)
+    endif(RSMI_FOUND)
+    add_library (apex_hip ${ROCTRACER_SOURCE ${ROCPROFILER_SOURCE}} ${RSMI_SOURCE})
+    #target_link_libraries (apex_ompt OpenMP::OpenMP_CXX)
+    add_dependencies (apex_hip apex)
+endif (APEX_WITH_HIP)
 
 if(ACTIVEHARMONY_FOUND)
     add_dependencies (apex project_activeharmony)

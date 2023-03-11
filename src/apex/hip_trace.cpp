@@ -1046,7 +1046,7 @@ void activity_callback(const char* begin, const char* end, void* arg) {
     }
 }
 
-namespace apex {
+extern "C" {
 // Init tracing routine
 void init_hip_tracing() {
     if (!apex_options::use_hip()) { return; }
@@ -1100,12 +1100,12 @@ void init_hip_tracing() {
 }
 
     // Stop tracing routine
-    void flush_hip_trace() {
+    void flush_hip_tracing() {
         if (!apex_options::use_hip()) { return; }
         ROCTRACER_CALL_CHECK(roctracer_flush_activity());
     }
 
-    void stop_hip_trace() {
+    void stop_hip_tracing() {
         if (!apex_options::use_hip()) { return; }
         roctracer_stop();
         /* CAllbacks */
@@ -1138,6 +1138,6 @@ void init_hip_tracing() {
         hsa_shut_down();
 #endif
     }
-} // namespace apex
+} // extern "C"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
