@@ -244,7 +244,12 @@ void OnKernelFinishCallback(void *data, const std::string& name, uint64_t starte
 
 // Internal Tool Interface ////////////////////////////////////////////////////
 
-void EnableProfiling() {
+} // namespace level0
+} // namespace apex
+
+extern "C" {
+
+void apex_init_level0_tracing(void) {
   if (getenv("ZE_ENABLE_TRACING_LAYER") == NULL) {
     // tau_exec -level_zero was not called. Perhaps it is using -opencl
     DEBUG_PRINT("APEX: Disabling Level Zero support as ZE_ENABLE_TRACING_LAYER was not set from tau_exec -l0\n");
@@ -280,7 +285,10 @@ void EnableProfiling() {
   start_time = std::chrono::steady_clock::now();
 }
 
-void DisableProfiling() {
+void apex_flush_level0_tracing(void) {
+}
+
+void apex_stop_level0_tracing(void) {
   static bool once{false};
   if (once) return;
   once = true;
@@ -294,7 +302,6 @@ void DisableProfiling() {
   }
 }
 
-} // namespace level0
-} // namespace apex
+} // extern "C"
 
 

@@ -86,10 +86,6 @@ DEFINE_DESTRUCTOR(apex_finalize_static_void)
 #endif // APEX_USE_STATIC_GLOBAL_CONSTRUCTOR
 #endif // APEX_HAVE_HPX
 
-#ifdef APEX_WITH_LEVEL0
-#include "apex_level0.hpp"
-#endif
-
 #ifdef APEX_HAVE_TCMALLOC
 #include "tcmalloc_hooks.hpp"
 #endif
@@ -593,9 +589,7 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
     // It's now safe to initialize CUDA and/or HIP and/or Level0
     dynamic::cuda::init();
     dynamic::roctracer::init();
-#ifdef APEX_WITH_LEVEL0
-    level0::EnableProfiling();
-#endif
+    dynamic::level0::init();
 
     // Unset the LD_PRELOAD variable, because Active Harmony is going to
     // fork/execv a new session-core process, and we don't want APEX in
@@ -1674,9 +1668,7 @@ std::string dump(bool reset) {
     if (!instance) { FUNCTION_EXIT return(std::string("")); }
     dynamic::cuda::flush();
     dynamic::roctracer::flush();
-#ifdef APEX_WITH_LEVEL0
-    level0::DisableProfiling();
-#endif
+    dynamic::level0::flush();
     if (_notify_listeners) {
         dump_event_data data(instance->get_node_id(),
             thread_instance::get_id(), reset);
@@ -1762,13 +1754,18 @@ void finalize()
     }
     //instance->the_profiler_listener->stop_main_timer();
     stop_all_async_threads(); // stop OS/HW monitoring, including PAPI
-    // stop processing new timers/counters/messages/tasks/etc.
+
     /* This could take a while */
     dynamic::cuda::flush();
-    dynamic::cuda::stop();
     dynamic::roctracer::flush();
+    dynamic::level0::flush();
+
+    // stop processing new timers/counters/messages/tasks/etc.
+    dynamic::cuda::stop();
     dynamic::roctracer::stop();
+    dynamic::level0::stop();
     apex_options::suspend(true);
+
     // now, process all output
     dump(false);
     exit_thread();

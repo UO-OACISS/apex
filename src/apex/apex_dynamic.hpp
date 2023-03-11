@@ -45,6 +45,12 @@ namespace rocprof {
     void stop(void);
 };  // namespace apex::dynamic::rocprof
 
+namespace level0 {
+    void init(void);
+    void flush(void);
+    void stop(void);
+};  // namespace apex::dynamic::level0
+
 }; }; // namespace apex::dynamic
 
 

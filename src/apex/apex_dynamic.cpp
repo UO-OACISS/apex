@@ -215,6 +215,57 @@ namespace roctracer {
 
 }; // namespace apex::dynamic::roctracer
 
+namespace level0 {
+    void apex_init_level0_tracing(void);
+    void apex_flush_level0_tracing(void);
+    void apex_stop_level0_tracing(void);
+    typedef void (*apex_init_level0_tracing_t)(void);
+    typedef void (*apex_flush_level0_tracing_t)(void);
+    typedef void (*apex_stop_level0_tracing_t)(void);
+    void init(void) {
+        // do this once
+        static apex_init_level0_tracing_t apex_init_level0_tracing =
+            (apex_init_level0_tracing_t)dlsym(RTLD_DEFAULT,
+                "apex_init_level0_tracing");
+        // sanity check
+        APEX_ASSERT(apex_init_level0_tracing != nullptr);
+        // shouldn't be necessary,
+        // but the assertion doesn't happen with release builds
+        if (apex_init_level0_tracing != nullptr) {
+            apex_init_level0_tracing();
+        }
+    }
+
+    void flush(void) {
+        // do this once
+        static apex_flush_level0_tracing_t apex_flush_level0_tracing =
+            (apex_flush_level0_tracing_t)dlsym(RTLD_DEFAULT,
+                "apex_flush_level0_tracing");
+        // sanity check
+        APEX_ASSERT(apex_flush_level0_tracing != nullptr);
+        // shouldn't be necessary,
+        // but the assertion doesn't happen with release builds
+        if (apex_flush_level0_tracing != nullptr) {
+            apex_flush_level0_tracing();
+        }
+    }
+
+    void stop(void) {
+        // do this once
+        static apex_stop_level0_tracing_t apex_stop_level0_tracing =
+            (apex_stop_level0_tracing_t)dlsym(RTLD_DEFAULT,
+                "apex_stop_level0_tracing");
+        // sanity check
+        APEX_ASSERT(apex_stop_level0_tracing != nullptr);
+        // shouldn't be necessary,
+        // but the assertion doesn't happen with release builds
+        if (apex_stop_level0_tracing != nullptr) {
+            apex_stop_level0_tracing();
+        }
+    }
+
+}; // namespace apex::dynamic::level0
+
 }; }; // namespace apex::dynamic
 
 

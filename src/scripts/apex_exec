@@ -252,22 +252,26 @@ while (( "$#" )); do
       shift
       ;;
     --apex:cuda)
+      cuda=yes
       export APEX_ENABLE_CUDA=1
       shift
       ;;
     --apex:cuda_counters)
+      cuda=yes
       cuda_counters=yes
       export APEX_ENABLE_CUDA=1
       export APEX_CUDA_COUNTERS=1
       shift
       ;;
     --apex:cuda_driver)
+      cuda=yes
       cuda_driver=yes
       export APEX_ENABLE_CUDA=1
       export APEX_CUDA_DRIVER_API=1
       shift
       ;;
     --apex:cuda_details)
+      cuda=yes
       cuda_details=yes
       export APEX_ENABLE_CUDA=1
       export APEX_CUDA_KERNEL_DETAILS=1
@@ -279,6 +283,7 @@ while (( "$#" )); do
       shift
       ;;
     --apex:level0)
+      level0=yes
       export APEX_ENABLE_LEVEL0=1
       export ZE_ENABLE_TRACING_LAYER=1
       shift
@@ -492,6 +497,9 @@ fi
 
 echo_screen "Program to run : ${PARAMS}"
 
+# Setup all the library paths, and library preloads to support what was requested
+# NOTE: we add the ":" to each library name, becuase stupid APPLE isn't smart enough
+# to handle an empty library name and tries to load a library named '' :(
 if [ "x${LD_LIBRARY_PATH}" = "x" ] ; then
   APEX_LD_LIBRARY_PATH=${BASEDIR}/${LIBDIR}
 else
@@ -504,13 +512,19 @@ if [ $ompt = yes ]; then
     export OMP_TOOL=enabled
     export OMP_TOOL_LIBRARIES=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}_ompt${SHLIBX}
     export OMP_TOOL_VERBOSE_INIT=stdout
-    OMPT_LIB=${BASEDIR}/${LIBDIR}/libapex_ompt${SHLIBX}
+    OMPT_LIB=:${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}_ompt${SHLIBX}
     if [ $verbose = yes ]; then
         export OMP_DISPLAY_ENV=true
     fi
 fi
+if [ $cuda = yes ]; then
+    export CUDA_LIB=:${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}_cuda${SHLIBX}
+fi
 if [ $hip = yes ]; then
-    export HIP_LIB=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}_hip${SHLIBX}
+    export HIP_LIB=:${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}_hip${SHLIBX}
+fi
+if [ $level0 = yes ]; then
+    export LEVEL0_LIB=:${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}_level0${SHLIBX}
 fi
 if [ $cpu_memory = yes ]; then
     MEMORY_LIB=${BASEDIR}/${LIBDIR}/libapex_memory_wrapper${SHLIBX}:
@@ -519,9 +533,9 @@ if [ $cpu_memory = yes ]; then
     echo_screen "APEX_LD_AUDIT: ${APEX_LD_AUDIT}"
 fi
 if [ ${apple} = 1 ]; then
-    APEX_LD_PRELOAD=${USER_PRELOAD}${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}:${OMPT_LIB}:${HIP_LIB}
+    APEX_LD_PRELOAD=${USER_PRELOAD}${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}${OMPT_LIB}${CUDA_LIB}${HIP_LIB}${LEVEL0_LIB}
 else
-    APEX_LD_PRELOAD=${USER_PRELOAD}${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}:${OMPT_LIB}:${HIP_LIB}:${LD_PRELOAD}
+    APEX_LD_PRELOAD=${USER_PRELOAD}${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}${OMPT_LIB}${CUDA_LIB}${HIP_LIB}${LEVEL0_LIB}:${LD_PRELOAD}
 fi
 
 # remove spaces and double colons
