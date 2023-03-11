@@ -31,6 +31,7 @@ where APEX options are zero or more of:
     --apex:debug                  run with APEX in debugger
     --apex:verbose                enable verbose list of APEX environment variables
     --apex:screen                 enable screen text output (on by default)
+    --apex:screen_detail          enable detailed text output (off by default)
     --apex:quiet                  disable screen text output
     --apex:csv                    enable csv text output
     --apex:tau                    enable tau profile output
@@ -228,7 +229,12 @@ while (( "$#" )); do
       shift
       ;;
     --apex:screen)
+      # on by default
+      shift
+      ;;
+    --apex:screen_details)
       screen=yes
+      export APEX_SCREEN_OUTPUT_DETAIL=1
       shift
       ;;
     --apex:quiet)
