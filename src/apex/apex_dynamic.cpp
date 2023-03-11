@@ -7,23 +7,76 @@
  * However, we do need to connect to a finalize function. */
 namespace apex { namespace dynamic {
 namespace ompt {
-    void ompt_force_shutdown(void);
-    typedef void (*ompt_force_shutdown_t)(void);
+    void apex_ompt_force_shutdown(void);
+    typedef void (*apex_ompt_force_shutdown_t)(void);
     void do_shutdown(void) {
         // do this once
-        static ompt_force_shutdown_t ompt_force_shutdown =
-            (ompt_force_shutdown_t)dlsym(RTLD_DEFAULT,
-                "ompt_force_shutdown");
+        static apex_ompt_force_shutdown_t apex_ompt_force_shutdown =
+            (apex_ompt_force_shutdown_t)dlsym(RTLD_DEFAULT,
+                "apex_ompt_force_shutdown");
         // sanity check
-        APEX_ASSERT(ompt_force_shutdown != nullptr);
+        APEX_ASSERT(apex_ompt_force_shutdown != nullptr);
         // shouldn't be necessary,
         // but the assertion doesn't happen with release builds
-        if (ompt_force_shutdown != nullptr) {
-            ompt_force_shutdown();
+        if (apex_ompt_force_shutdown != nullptr) {
+            apex_ompt_force_shutdown();
         }
     }
 
 }; // namespace apex::dynamic::ompt
+
+/* CUDA will need a few functions. */
+
+namespace cuda {
+    void apex_init_cuda_tracing(void);
+    void apex_flush_cuda_tracing(void);
+    void apex_stop_cuda_tracing(void);
+    typedef void (*apex_init_cuda_tracing_t)(void);
+    typedef void (*apex_flush_cuda_tracing_t)(void);
+    typedef void (*apex_stop_cuda_tracing_t)(void);
+    void init(void) {
+        // do this once
+        static apex_init_cuda_tracing_t apex_init_cuda_tracing =
+            (apex_init_cuda_tracing_t)dlsym(RTLD_DEFAULT,
+                "apex_init_cuda_tracing");
+        // sanity check
+        APEX_ASSERT(apex_init_cuda_tracing != nullptr);
+        // shouldn't be necessary,
+        // but the assertion doesn't happen with release builds
+        if (apex_init_cuda_tracing != nullptr) {
+            apex_init_cuda_tracing();
+        }
+    }
+
+    void flush(void) {
+        // do this once
+        static apex_flush_cuda_tracing_t apex_flush_cuda_tracing =
+            (apex_flush_cuda_tracing_t)dlsym(RTLD_DEFAULT,
+                "apex_flush_cuda_tracing");
+        // sanity check
+        APEX_ASSERT(apex_flush_cuda_tracing != nullptr);
+        // shouldn't be necessary,
+        // but the assertion doesn't happen with release builds
+        if (apex_flush_cuda_tracing != nullptr) {
+            apex_flush_cuda_tracing();
+        }
+    }
+
+    void stop(void) {
+        // do this once
+        static apex_stop_cuda_tracing_t apex_stop_cuda_tracing =
+            (apex_stop_cuda_tracing_t)dlsym(RTLD_DEFAULT,
+                "apex_stop_cuda_tracing");
+        // sanity check
+        APEX_ASSERT(apex_stop_cuda_tracing != nullptr);
+        // shouldn't be necessary,
+        // but the assertion doesn't happen with release builds
+        if (apex_stop_cuda_tracing != nullptr) {
+            apex_stop_cuda_tracing();
+        }
+    }
+
+}; // namespace apex::dynamic::cuda
 
 /* HIP will need several functions. */
 
@@ -112,51 +165,51 @@ namespace rocprofiler {
 }
 
 namespace roctracer {
-    void init_hip_tracing(void);
-    void flush_hip_tracing(void);
-    void stop_hip_tracing(void);
-    typedef void (*init_hip_tracing_t)(void);
-    typedef void (*flush_hip_tracing_t)(void);
-    typedef void (*stop_hip_tracing_t)(void);
+    void apex_init_hip_tracing(void);
+    void apex_flush_hip_tracing(void);
+    void apex_stop_hip_tracing(void);
+    typedef void (*apex_init_hip_tracing_t)(void);
+    typedef void (*apex_flush_hip_tracing_t)(void);
+    typedef void (*apex_stop_hip_tracing_t)(void);
     void init(void) {
         // do this once
-        static init_hip_tracing_t init_hip_tracing =
-            (init_hip_tracing_t)dlsym(RTLD_DEFAULT,
-                "init_hip_tracing");
+        static apex_init_hip_tracing_t apex_init_hip_tracing =
+            (apex_init_hip_tracing_t)dlsym(RTLD_DEFAULT,
+                "apex_apex_init_hip_tracing");
         // sanity check
-        APEX_ASSERT(init_hip_tracing != nullptr);
+        APEX_ASSERT(apex_init_hip_tracing != nullptr);
         // shouldn't be necessary,
         // but the assertion doesn't happen with release builds
-        if (init_hip_tracing != nullptr) {
-            init_hip_tracing();
+        if (apex_init_hip_tracing != nullptr) {
+            apex_init_hip_tracing();
         }
     }
 
     void flush(void) {
         // do this once
-        static flush_hip_tracing_t flush_hip_tracing =
-            (flush_hip_tracing_t)dlsym(RTLD_DEFAULT,
-                "flush_hip_tracing");
+        static apex_flush_hip_tracing_t apex_flush_hip_tracing =
+            (apex_flush_hip_tracing_t)dlsym(RTLD_DEFAULT,
+                "apex_flush_hip_tracing");
         // sanity check
-        APEX_ASSERT(flush_hip_tracing != nullptr);
+        APEX_ASSERT(apex_flush_hip_tracing != nullptr);
         // shouldn't be necessary,
         // but the assertion doesn't happen with release builds
-        if (flush_hip_tracing != nullptr) {
-            flush_hip_tracing();
+        if (apex_flush_hip_tracing != nullptr) {
+            apex_flush_hip_tracing();
         }
     }
 
     void stop(void) {
         // do this once
-        static stop_hip_tracing_t stop_hip_tracing =
-            (stop_hip_tracing_t)dlsym(RTLD_DEFAULT,
-                "stop_hip_tracing");
+        static apex_stop_hip_tracing_t apex_stop_hip_tracing =
+            (apex_stop_hip_tracing_t)dlsym(RTLD_DEFAULT,
+                "apex_stop_hip_tracing");
         // sanity check
-        APEX_ASSERT(stop_hip_tracing != nullptr);
+        APEX_ASSERT(apex_stop_hip_tracing != nullptr);
         // shouldn't be necessary,
         // but the assertion doesn't happen with release builds
-        if (stop_hip_tracing != nullptr) {
-            stop_hip_tracing();
+        if (apex_stop_hip_tracing != nullptr) {
+            apex_stop_hip_tracing();
         }
     }
 

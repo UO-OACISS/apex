@@ -6,9 +6,9 @@
 
 
 if(HPX_WITH_APEX)
-    include(${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.hpx)
+    include(${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists_hpx.cmake)
     return()
 else()
-    include(${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.standalone)
+    include(${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists_standalone.cmake)
     return()
 endif()

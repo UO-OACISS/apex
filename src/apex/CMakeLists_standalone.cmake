@@ -29,17 +29,9 @@ if (OTF2_FOUND)
 SET(OTF2_SOURCE otf2_listener.cpp otf2_listener_mpi.cpp otf2_listener_nompi.cpp)
 endif(OTF2_FOUND)
 
-if (CUPTI_FOUND)
-SET(CUPTI_SOURCE cupti_trace.cpp)
-endif(CUPTI_FOUND)
-
 if (LEVEL0_FOUND)
 SET(LEVEL0_SOURCE apex_level0.cpp)
 endif(LEVEL0_FOUND)
-
-if (NVML_FOUND)
-SET(NVML_SOURCE apex_nvml.cpp)
-endif(NVML_FOUND)
 
 if (ZLIB_FOUND)
 SET(ZLIB_SOURCE gzstream.cpp)
@@ -137,11 +129,30 @@ if (OMPT_FOUND)
     else()
         target_link_libraries (apex_ompt OpenMP::OpenMP_CXX)
     endif()
+    target_link_libraries (apex_ompt apex)
     add_dependencies (apex_ompt apex)
 endif (OMPT_FOUND)
 
 add_library (taudummy tau_dummy.cpp)
 add_dependencies (apex taudummy ${perfetto_target})
+
+if (APEX_WITH_CUDA)
+    add_definitions(-DAPEX_WITH_CUDA)
+    include_directories (${CUDAToolkit_INCLUDE_DIR})
+    if (CUPTI_FOUND)
+        SET(CUPTI_SOURCE cupti_trace.cpp)
+    endif(CUPTI_FOUND)
+    if (NVML_FOUND)
+        SET(NVML_SOURCE apex_nvml.cpp)
+    endif(NVML_FOUND)
+    add_library (apex_cuda
+        ${CUPTI_SOURCE}
+        ${NVML_SOURCE})
+    target_link_libraries (apex_cuda apex
+        ${CUPTI_LIBRARIES}
+        ${NVML_LIBRARIES})
+    add_dependencies (apex_cuda apex)
+endif (APEX_WITH_CUDA)
 
 if (APEX_WITH_HIP)
     add_definitions(-DAPEX_WITH_HIP)
@@ -158,8 +169,15 @@ if (APEX_WITH_HIP)
     if (RSMI_FOUND)
         SET(RSMI_SOURCE apex_rocm_smi.cpp)
     endif(RSMI_FOUND)
-    add_library (apex_hip ${ROCTRACER_SOURCE ${ROCPROFILER_SOURCE}} ${RSMI_SOURCE})
-    #target_link_libraries (apex_ompt OpenMP::OpenMP_CXX)
+    add_library (apex_hip
+        ${ROCTRACER_SOURCE}
+        ${ROCPROFILER_SOURCE}
+        ${RSMI_SOURCE})
+    target_link_libraries (apex_hip apex
+        ${ROCTRACER_LIBRARIES}
+        ${ROCPROFILER_LIBRARIES}
+        ${ROCTX_LIBRARIES}
+        ${RSMI_LIBRARIES})
     add_dependencies (apex_hip apex)
 endif (APEX_WITH_HIP)
 
@@ -190,10 +208,6 @@ endif(MPI_CXX_FOUND)
 if (MPI_Fortran_FOUND)
   include_directories (${MPI_Fortran_INCLUDE_PATH})
 endif(MPI_Fortran_FOUND)
-
-if (APEX_WITH_CUDA)
-  include_directories (${CUDAToolkit_INCLUDE_DIR})
-endif(APEX_WITH_CUDA)
 
 # If we are building libapex.so, we want to include all the other libraries,
 # so that we can LD_PRELOAD this library with all requirements met.

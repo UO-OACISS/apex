@@ -217,9 +217,9 @@ void apex_report_leaks() {
 
     if (book.saved_node_id == 0) {
         std::cout << "Aggregating leaks by task and writing report..." << std::endl;
-#ifdef APEX_WITH_CUDA
-        std::cout << "Ignoring known leaks in CUDA/CUPTI..." << std::endl;
-#endif
+        if (!apex_options::use_cuda()) {
+            std::cout << "Ignoring known leaks in CUDA/CUPTI..." << std::endl;
+        }
     }
     size_t actual_leaks{0};
     // Print the sorted value

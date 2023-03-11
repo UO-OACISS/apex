@@ -1048,7 +1048,7 @@ void activity_callback(const char* begin, const char* end, void* arg) {
 
 extern "C" {
 // Init tracing routine
-void init_hip_tracing() {
+void apex_init_hip_tracing() {
     if (!apex_options::use_hip()) { return; }
 #if defined(APEX_WITH_HSA)
     /* now safe to initialize hsa - needed to get GPU counter offset */
@@ -1100,12 +1100,12 @@ void init_hip_tracing() {
 }
 
     // Stop tracing routine
-    void flush_hip_tracing() {
+    void apex_flush_hip_tracing() {
         if (!apex_options::use_hip()) { return; }
         ROCTRACER_CALL_CHECK(roctracer_flush_activity());
     }
 
-    void stop_hip_tracing() {
+    void apex_stop_hip_tracing() {
         if (!apex_options::use_hip()) { return; }
         roctracer_stop();
         /* CAllbacks */

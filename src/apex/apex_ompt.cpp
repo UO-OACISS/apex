@@ -532,7 +532,7 @@ namespace apex {
  * OMPT events.  This is when apex::finalize() happens before ompt_finalize().
  * It is called from apex::finalize().
  */
-void ompt_force_shutdown(void) {
+void apex_ompt_force_shutdown(void) {
     DEBUG_PRINT("Forcing shutdown of OpenMP Tools API\n");
     /* The Intel generated code has some odd destructor race conditions, so
      * don't force the runtime to shut down. */

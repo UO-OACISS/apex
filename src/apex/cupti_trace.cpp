@@ -42,13 +42,6 @@
 #include <generated_nvtx_meta.h>
 #include <dlfcn.h>
 
-/* Not necessary, because HPX will call APEX init, which will initialize this. */
-//#ifndef APEX_HAVE_HPX
-//#include "global_constructor_destructor.h"
-//DEFINE_CONSTRUCTOR(apex_cupti_init_tracing);
-//DEFINE_DESTRUCTOR(flushTrace);
-//#endif
-
 /* Fun!  CUPTI doesn't do callbacks for end or push events.  Wheeeeee
  * So, what we'll do is wrap the functions instead of having callbacks. */
 #define APEX_BROKEN_CUPTI_NVTX_PUSH_POP 1
@@ -1977,9 +1970,9 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
     }
 }
 
-namespace apex {
+extern "C" {
 
-void init_cupti_tracing() {
+void apex_init_cupti_tracing() {
     if (!apex_options::use_cuda()) { return; }
     // disable memory management tracking in APEX during this initialization
     in_apex prevent_deadlocks;
@@ -2053,7 +2046,7 @@ void init_cupti_tracing() {
 /* This is the global "shutdown" method for flushing the buffer.  This is
  * called from apex::finalize().  It's the only function in the CUDA support
  * that APEX will call directly. */
-    void flushTrace(void) {
+    void apex_cuda_flush_trace(void) {
         if (!apex_options::use_cuda()) { return; }
         if ((num_buffers_processed + 10) < num_buffers) {
             if (apex::instance()->get_node_id() == 0) {
@@ -2069,7 +2062,7 @@ void init_cupti_tracing() {
         }
     }
 
-    void finalizeCuda(void) {
+    void apex_cuda_stop_trace(void) {
         if (!apex_options::use_cuda()) { return; }
         flushTrace();
         CUPTI_CALL(cuptiUnsubscribe(subscriber));
@@ -2078,4 +2071,4 @@ void init_cupti_tracing() {
 	//std::cout << "* * * * * * * * EXITING CUPTI SUPPORT * * * * * * * * * *" << std::endl;
     	allGood = false;
     }
-}
+} // extern "C"

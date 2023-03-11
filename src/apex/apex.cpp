@@ -458,10 +458,6 @@ hpx::runtime * apex::get_hpx_runtime(void) {
 }
 #endif
 
-#if defined (APEX_WITH_CUDA)
-void init_cupti_tracing(void);
-#endif
-
 void do_atexit(void) {
     finalize();
     cleanup();
@@ -594,10 +590,8 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
     enable_memory_wrapper();
 #endif
 
-    // It's now safe to initialize CUDA and/or HIP
-#ifdef APEX_WITH_CUDA
-    init_cupti_tracing();
-#endif
+    // It's now safe to initialize CUDA and/or HIP and/or Level0
+    dynamic::cuda::init();
     dynamic::roctracer::init();
 #ifdef APEX_WITH_LEVEL0
     level0::EnableProfiling();
@@ -1664,12 +1658,6 @@ void finalize_plugins(void) {
 #endif
 }
 
-// forward declare CUPTI buffer flushing
-#ifdef APEX_WITH_CUDA
-void flushTrace(void);
-void finalizeCuda(void);
-#endif
-
 std::string dump(bool reset) {
     in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
@@ -1684,9 +1672,7 @@ std::string dump(bool reset) {
     apex* instance = apex::instance();
     // protect against calls after finalization
     if (!instance) { FUNCTION_EXIT return(std::string("")); }
-#ifdef APEX_WITH_CUDA
-    flushTrace();
-#endif
+    dynamic::cuda::flush();
     dynamic::roctracer::flush();
 #ifdef APEX_WITH_LEVEL0
     level0::DisableProfiling();
@@ -1778,10 +1764,8 @@ void finalize()
     stop_all_async_threads(); // stop OS/HW monitoring, including PAPI
     // stop processing new timers/counters/messages/tasks/etc.
     /* This could take a while */
-#ifdef APEX_WITH_CUDA
-    flushTrace();
-    finalizeCuda();
-#endif
+    dynamic::cuda::flush();
+    dynamic::cuda::stop();
     dynamic::roctracer::flush();
     dynamic::roctracer::stop();
     apex_options::suspend(true);

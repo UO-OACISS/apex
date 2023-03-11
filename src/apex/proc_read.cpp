@@ -47,10 +47,6 @@
 #include <msr/msr_rapl.h>
 #endif
 
-#ifdef APEX_WITH_CUDA
-#include "apex_nvml.hpp"
-#endif
-
 using namespace std;
 
 #if defined(APEX_HAVE_PAPI)
@@ -816,15 +812,9 @@ namespace apex {
 #endif
         ProcData *newData = nullptr;
         ProcData *periodData = nullptr;
-#ifdef APEX_WITH_CUDA
-        // monitoring option is checked in the constructor
-        nvml::monitor * nvml_reader = nullptr;
         if (apex_options::monitor_gpu()) {
-            nvml_reader = new nvml::monitor();
-            nvml_reader->query();
+            dynamic::cuda::query();
         }
-#endif
-
         if (apex_options::monitor_gpu()) {
             dynamic::rsmi::query();
         }
@@ -870,12 +860,8 @@ namespace apex {
                 mysensors->read_sensors();
             }
 #endif
-#ifdef APEX_WITH_CUDA
-            if (nvml_reader != nullptr) {
-                nvml_reader->query();
-            }
-#endif
             if (apex_options::monitor_gpu()) {
+                dynamic::cuda::query();
                 dynamic::rsmi::query();
             }
             if (apex_options::use_hip_profiler()) {
@@ -889,12 +875,8 @@ namespace apex {
         delete(mysensors);
 #endif
 
-#ifdef APEX_WITH_CUDA
-        if (nvml_reader != nullptr) {
-            nvml_reader->stop();
-        }
-#endif
         if (apex_options::monitor_gpu()) {
+            dynamic::cuda::stop();
             dynamic::rsmi::stop();
         }
         if (apex_options::use_hip_profiler()) {

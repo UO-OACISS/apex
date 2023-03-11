@@ -1,3 +1,10 @@
+/* Why does this collection of namespaces (not classes) exist?
+ * Well, it exists because we want to have ONE configuration of APEX
+ * on a given system, and by not having explicit dependencies on OpenMP,
+ * HIP, CUDA, Level0, etc. we can load them dynamically at runtime and
+ * provide the support the user is requesting.
+ */
+
 #pragma once
 
 /* OMPT will be automatically initialized by the OpenMP runtime,
@@ -8,6 +15,18 @@ namespace apex { namespace dynamic {
 namespace ompt {
     void do_shutdown(void);
 };  // namespace apex::dynamic::ompt
+
+namespace cuda {
+    void init(void);
+    void flush(void);
+    void stop(void);
+};  // namespace apex::dynamic::cuda
+
+namespace nvml {
+    void query(void);
+    void stop(void);
+    double getAvailableMemory(void);
+};  // namespace apex::dynamic::rsmi
 
 namespace roctracer {
     void init(void);
