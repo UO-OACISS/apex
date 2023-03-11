@@ -1957,10 +1957,8 @@ namespace apex {
                 uint64_t idx = i.second;
                 reduced_region_map[id.get_name()] = idx;
             }
-            int comm_size = 0;
             // iterate over the other ranks in the index files
             for (int i = 1 ; i < my_saved_node_count ; i++) {
-                comm_size++;
                 rank_region_map[i] = 0;
                 std::string region_file_string(rbuf+(max_length * i),
                     max_length);
@@ -2102,10 +2100,8 @@ namespace apex {
                 uint64_t idx = i.second;
                 reduced_metric_map[id.get_name()] = idx;
             }
-            int comm_size = 0;
             // iterate over the other ranks in the index files
             for (int i = 1 ; i < my_saved_node_count ; i++) {
-                comm_size++;
                 rank_metric_map[i] = 0;
                 std::string metric_file_string(rbuf+(max_length * i),
                     max_length);
@@ -2371,10 +2367,8 @@ namespace apex {
             uint64_t idx = i.second;
             reduced_region_map[id.get_name()] = idx;
         }
-        int comm_size = 0;
         // iterate over the other ranks in the index files
         for (int i = 0 ; i < my_saved_node_count ; i++) {
-            comm_size++;
             // skip myself
             if (i == 0) continue;
             rank_region_map[i] = 0;

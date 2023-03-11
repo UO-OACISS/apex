@@ -314,7 +314,7 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
 
   switch (rec->type) {
   case ompt_callback_target:
-#if defined(ompt_callback_target_emi)
+#if defined(APEX_HAVE_OMPT_5_1)
   case ompt_callback_target_emi:
 #endif
     {
@@ -360,7 +360,7 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
       break;
     }
   case ompt_callback_target_data_op:
-#if defined(ompt_callback_target_data_op_emi)
+#if defined(APEX_HAVE_OMPT_5_1)
   case ompt_callback_target_data_op_emi:
 #endif
     {
@@ -400,25 +400,19 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
                     ss << " Disassociate";
                     break;
                 }
-#if defined(ompt_target_data_alloc_async)
+#if defined(APEX_HAVE_OMPT_5_1)
                 case ompt_target_data_alloc_async: {
                     ss << " Alloc";
                     break;
                 }
-#endif
-#if defined(ompt_target_data_transfer_to_device_async)
                 case ompt_target_data_transfer_to_device_async: {
                     ss << " Xfer to Dev Async";
                     break;
                 }
-#endif
-#if defined(ompt_target_data_transfer_from_device_async)
                 case ompt_target_data_transfer_from_device_async: {
                     ss << " Xfer from Dev Async";
                     break;
                 }
-#endif
-#if defined(ompt_target_data_delete_async)
                 case ompt_target_data_delete_async: {
                     ss << " Delete Async";
                     break;
@@ -450,7 +444,7 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
       break;
     }
   case ompt_callback_target_submit:
-#if defined(ompt_callback_target_submit_emi)
+#if defined(APEX_HAVE_OMPT_5_1)
   case ompt_callback_target_submit_emi:
 #endif
     {
@@ -666,7 +660,7 @@ static void apex_parallel_region_begin (
     APEX_UNUSED(requested_team_size);
     APEX_UNUSED(flags);
     char regionIDstr[128] = {0};
-    sprintf(regionIDstr, "OpenMP Parallel Region: UNRESOLVED ADDR %p", codeptr_ra);
+    snprintf(regionIDstr, 128, "OpenMP Parallel Region: UNRESOLVED ADDR %p", codeptr_ra);
     apex_ompt_start(regionIDstr, parallel_data, encountering_task_data, true, codeptr_ra, true);
     DEBUG_PRINT("%" PRId64 ": Parallel Region Begin parent: %p, apex_parent: %p, region: %p, apex_region: %p, %s\n", apex_threadid, (void*)encountering_task_data, encountering_task_data->ptr, (void*)parallel_data, parallel_data->ptr, regionIDstr);
 }
@@ -741,7 +735,7 @@ extern "C" void apex_task_create (
 
     if (codeptr_ra != nullptr) {
         char regionIDstr[128] = {0};
-        sprintf(regionIDstr, "%s: UNRESOLVED ADDR %p", type_str, codeptr_ra);
+        snprintf(regionIDstr, 128, "%s: UNRESOLVED ADDR %p", type_str, codeptr_ra);
         apex_ompt_start(regionIDstr, new_task_data, encountering_task_data,
         false, codeptr_ra);
     } else {
@@ -866,11 +860,11 @@ extern "C" void apex_target (
         }
         char regionIDstr[128] = {0};
         if (codeptr_ra != nullptr) {
-            sprintf(regionIDstr, "OpenMP Target: UNRESOLVED ADDR %p",
+            snprintf(regionIDstr, 128, "OpenMP Target: UNRESOLVED ADDR %p",
             codeptr_ra);
             apex_ompt_start(regionIDstr, task_data, nullptr, true, codeptr_ra);
         } else {
-            sprintf(regionIDstr, "OpenMP Target");
+            snprintf(regionIDstr, 128, "OpenMP Target");
             apex_ompt_start(regionIDstr, task_data, nullptr, true);
         }
         target_map[target_id] = task_data;
@@ -960,31 +954,25 @@ extern "C" void apex_target_data_op (
             apex::sample_value("GPU: OpenMP Target Data Disassociate",bytes);
             break;
         }
-#if defined(ompt_target_data_alloc_async)
+#if defined(APEX_HAVE_OMPT_5_1)
         case ompt_target_data_alloc_async: {
             apex::sample_value("GPU: OpenMP Target Data Alloc Async",bytes);
             std::unique_lock<std::mutex> l(allocation_lock);
             allocations[src_addr] = bytes;
             break;
         }
-#endif
-#if defined(ompt_target_data_transfer_to_device_async)
         case ompt_target_data_transfer_to_device_async: {
             apex::sample_value("GPU: OpenMP Target Data Transfer to Device Async",bytes);
             std::unique_lock<std::mutex> l(allocation_lock);
             allocations[dest_addr] = bytes;
             break;
         }
-#endif
-#if defined(ompt_target_data_transfer_from_device_async)
         case ompt_target_data_transfer_from_device_async: {
             apex::sample_value("GPU: OpenMP Target Data Transfer from Device Async",bytes);
             std::unique_lock<std::mutex> l(allocation_lock);
             allocations[dest_addr] = bytes;
             break;
         }
-#endif
-#if defined(ompt_target_data_delete_async)
         case ompt_target_data_delete_async: {
             size_t mybytes;
             {
@@ -997,6 +985,7 @@ extern "C" void apex_target_data_op (
         }
 #endif
         default:
+            apex::sample_value("GPU: OpenMP Target Data other",bytes);
             break;
     }
 }
@@ -1197,17 +1186,13 @@ extern "C" void apex_sync_region_wait (
         case ompt_sync_region_reduction:
             tmp_str = const_cast<char*>(reduction_str);
             break;
-#if defined(ompt_sync_region_barrier_implicit_workshare)
+#if defined(APEX_HAVE_OMPT_5_1)
         case ompt_sync_region_barrier_implicit_workshare:
             tmp_str = const_cast<char*>(barrier_implicit_workshare_str);
             break;
-#endif
-#if defined(ompt_sync_region_barrier_implicit_parallel)
         case ompt_sync_region_barrier_implicit_parallel:
             tmp_str = const_cast<char*>(barrier_implicit_parallel_str);
             break;
-#endif
-#if defined (ompt_sync_region_barrier_teams)
         case ompt_sync_region_barrier_teams:
             tmp_str = const_cast<char*>(barrier_teams_str);
             break;
@@ -1237,12 +1222,12 @@ extern "C" void apex_sync_region_wait (
         }
         char regionIDstr[128] = {0};
         if (local_codeptr != nullptr) {
-            sprintf(regionIDstr, "OpenMP %s: UNRESOLVED ADDR %p", tmp_str,
+            snprintf(regionIDstr, 128, "OpenMP %s: UNRESOLVED ADDR %p", tmp_str,
                 local_codeptr);
             apex_ompt_start(regionIDstr, task_data, parallel_data, true,
                 local_codeptr);
         } else {
-            sprintf(regionIDstr, "OpenMP %s", tmp_str);
+            snprintf(regionIDstr, 128, "OpenMP %s", tmp_str);
             apex_ompt_start(regionIDstr, task_data, parallel_data, true);
         }
     } else {
@@ -1319,11 +1304,11 @@ extern "C" void apex_ompt_work (
         DEBUG_PRINT("%" PRId64 ": %s Begin task: %p, region: %p\n", apex_threadid,
         tmp_str, (void*)task_data, (void*)parallel_data);
         if (codeptr_ra != nullptr) {
-            sprintf(regionIDstr, "OpenMP Work %s: UNRESOLVED ADDR %p", tmp_str,
+            snprintf(regionIDstr, 128, "OpenMP Work %s: UNRESOLVED ADDR %p", tmp_str,
             codeptr_ra);
             apex_ompt_start(regionIDstr, task_data, parallel_data, true, codeptr_ra);
         } else {
-            sprintf(regionIDstr, "OpenMP Work %s", tmp_str);
+            snprintf(regionIDstr, 128, "OpenMP Work %s", tmp_str);
             apex_ompt_start(regionIDstr, task_data, parallel_data, true);
         }
         if (apex::apex_options::ompt_high_overhead_events()) {
@@ -1352,7 +1337,7 @@ extern "C" void apex_ompt_master (
     if (endpoint == ompt_scope_begin) {
         if (codeptr_ra != nullptr) {
             char regionIDstr[128] = {0};
-            sprintf(regionIDstr, "OpenMP Master: UNRESOLVED ADDR %p",
+            snprintf(regionIDstr, 128, "OpenMP Master: UNRESOLVED ADDR %p",
             codeptr_ra);
             apex_ompt_start(regionIDstr, task_data, parallel_data, true, codeptr_ra);
         } else {
@@ -1405,17 +1390,13 @@ extern "C" void apex_ompt_sync_region (
         case ompt_sync_region_reduction:
             tmp_str = const_cast<char*>(reduction_str);
             break;
-#if defined(ompt_sync_region_barrier_implicit_workshare)
+#if defined(APEX_HAVE_OMPT_5_1)
         case ompt_sync_region_barrier_implicit_workshare:
             tmp_str = const_cast<char*>(barrier_implicit_workshare_str);
             break;
-#endif
-#if defined(ompt_sync_region_barrier_implicit_parallel)
         case ompt_sync_region_barrier_implicit_parallel:
             tmp_str = const_cast<char*>(barrier_implicit_parallel_str);
             break;
-#endif
-#if defined (ompt_sync_region_barrier_teams)
         case ompt_sync_region_barrier_teams:
             tmp_str = const_cast<char*>(barrier_teams_str);
             break;
@@ -1446,12 +1427,12 @@ extern "C" void apex_ompt_sync_region (
 #endif
         char regionIDstr[128] = {0};
         if (local_codeptr != nullptr) {
-            sprintf(regionIDstr, "OpenMP %s: UNRESOLVED ADDR %p", tmp_str,
+            snprintf(regionIDstr, 128, "OpenMP %s: UNRESOLVED ADDR %p", tmp_str,
                 local_codeptr);
             apex_ompt_start(regionIDstr, task_data, parallel_data, true,
                 local_codeptr);
         } else {
-            sprintf(regionIDstr, "OpenMP %s", tmp_str);
+            snprintf(regionIDstr, 128, "OpenMP %s", tmp_str);
             apex_ompt_start(regionIDstr, task_data, parallel_data, true);
         }
     } else {
@@ -1468,7 +1449,7 @@ extern "C" void apex_ompt_flush (
     APEX_UNUSED(thread_data);
     if (codeptr_ra != nullptr) {
         char regionIDstr[128] = {0};
-        sprintf(regionIDstr, "OpenMP Flush: UNRESOLVED ADDR %p", codeptr_ra);
+        snprintf(regionIDstr, 128, "OpenMP Flush: UNRESOLVED ADDR %p", codeptr_ra);
         apex::sample_value(regionIDstr, 1);
     } else {
         apex::sample_value(std::string("OpenMP Flush"),1);
@@ -1485,7 +1466,7 @@ extern "C" void apex_ompt_cancel (
     char regionIDstr[128] = {0};
     if (flags & ompt_cancel_parallel) {
         if (codeptr_ra != nullptr) {
-            sprintf(regionIDstr, "OpenMP Cancel Parallel: UNRESOLVED ADDR %p",
+            snprintf(regionIDstr, 128, "OpenMP Cancel Parallel: UNRESOLVED ADDR %p",
             codeptr_ra);
             apex::sample_value(std::string(regionIDstr),1);
         } else {
@@ -1494,7 +1475,7 @@ extern "C" void apex_ompt_cancel (
     }
     if (flags & ompt_cancel_sections) {
         if (codeptr_ra != nullptr) {
-            sprintf(regionIDstr, "OpenMP Cancel Sections: UNRESOLVED ADDR %p",
+            snprintf(regionIDstr, 128, "OpenMP Cancel Sections: UNRESOLVED ADDR %p",
             codeptr_ra);
             apex::sample_value(std::string(regionIDstr),1);
         } else {
@@ -1503,7 +1484,7 @@ extern "C" void apex_ompt_cancel (
     }
     if (flags & ompt_cancel_loop) {
         if (codeptr_ra != nullptr) {
-            sprintf(regionIDstr, "OpenMP Cancel Do: UNRESOLVED ADDR %p",
+            snprintf(regionIDstr, 128, "OpenMP Cancel Do: UNRESOLVED ADDR %p",
             codeptr_ra);
             apex::sample_value(std::string(regionIDstr),1);
         } else {
@@ -1512,7 +1493,7 @@ extern "C" void apex_ompt_cancel (
     }
     if (flags & ompt_cancel_taskgroup) {
         if (codeptr_ra != nullptr) {
-            sprintf(regionIDstr, "OpenMP Cancel Taskgroup: UNRESOLVED ADDR %p",
+            snprintf(regionIDstr, 128, "OpenMP Cancel Taskgroup: UNRESOLVED ADDR %p",
             codeptr_ra);
             apex::sample_value(std::string(regionIDstr),1);
         } else {
@@ -1521,7 +1502,7 @@ extern "C" void apex_ompt_cancel (
     }
     if (flags & ompt_cancel_activated) {
         if (codeptr_ra != nullptr) {
-            sprintf(regionIDstr, "OpenMP Cancel Activated: UNRESOLVED ADDR %p",
+            snprintf(regionIDstr, 128, "OpenMP Cancel Activated: UNRESOLVED ADDR %p",
             codeptr_ra);
             apex::sample_value(std::string(regionIDstr),1);
         } else {
@@ -1530,7 +1511,7 @@ extern "C" void apex_ompt_cancel (
     }
     if (flags & ompt_cancel_detected) {
         if (codeptr_ra != nullptr) {
-            sprintf(regionIDstr, "OpenMP Cancel Detected: UNRESOLVED ADDR %p",
+            snprintf(regionIDstr, 128, "OpenMP Cancel Detected: UNRESOLVED ADDR %p",
             codeptr_ra);
             apex::sample_value(std::string(regionIDstr),1);
         } else {
@@ -1539,7 +1520,7 @@ extern "C" void apex_ompt_cancel (
     }
     if (flags & ompt_cancel_discarded_task) {
         if (codeptr_ra != nullptr) {
-            sprintf(regionIDstr,
+            snprintf(regionIDstr, 128,
             "OpenMP Cancel Discarded Task: UNRESOLVED ADDR %p", codeptr_ra);
             apex::sample_value(std::string(regionIDstr),1);
         } else {

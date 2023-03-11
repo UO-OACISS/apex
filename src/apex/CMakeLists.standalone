@@ -93,6 +93,7 @@ endif()
 # Try to keep this in alphabetical order
 SET(all_SOURCE
 apex_preload.cpp
+apex_dynamic.cpp
 ${CUPTI_SOURCE}
 ${LEVEL0_SOURCE}
 ${ROCPROFILER_SOURCE}
