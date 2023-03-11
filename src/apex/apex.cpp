@@ -94,6 +94,7 @@ DEFINE_DESTRUCTOR(apex_finalize_static_void)
 #include "tcmalloc_hooks.hpp"
 #endif
 #include "banner.hpp"
+#include "apex_dynamic.hpp"
 
 #if APEX_DEBUG
 #define FUNCTION_ENTER if (apex_options::use_verbose()) { \
@@ -1720,11 +1721,6 @@ std::string dump(bool reset) {
     return(std::string(""));
 }
 
-// forward declare OMPT runtime shutdown
-#ifdef APEX_WITH_OMPT
-void ompt_force_shutdown(void);
-#endif
-
 void finalize()
 {
     in_apex prevent_deadlocks;
@@ -1784,11 +1780,9 @@ void finalize()
     }
     // if not done already...
     shutdown_throttling(); // stop thread scheduler policies
-#ifdef APEX_WITH_OMPT
     /* Do this before OTF2 grabs a final timestamp - we might have
      * to terminate some OMPT events. */
-    ompt_force_shutdown();
-#endif
+    dynamic::ompt::do_shutdown();
     // notify all listeners that we are going to stop soon
     for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
         instance->listeners[i]->on_pre_shutdown();

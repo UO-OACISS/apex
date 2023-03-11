@@ -495,11 +495,10 @@ if [ $pthread = yes ]; then
     PTHREAD_LIB=${BASEDIR}/${LIBDIR}/libapex_pthread_wrapper${SHLIBX}:
 fi
 if [ $ompt = yes ]; then
-    OMPT_LIB=@OMPT_LIBRARY@:
     export OMP_TOOL=enabled
-    export OMP_TOOL_LIBRARIES=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}
+    export OMP_TOOL_LIBRARIES=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}_ompt${SHLIBX}
     export OMP_TOOL_VERBOSE_INIT=stdout
-    OMPT_LIB=@OMPT_LIBRARY@:
+    OMPT_LIB=${BASEDIR}/${LIBDIR}/libapex_ompt${SHLIBX}:
     if [ $verbose = yes ]; then
         export OMP_DISPLAY_ENV=true
     fi

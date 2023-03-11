@@ -21,12 +21,6 @@ if (APEX_HAVE_PROC)
 SET(PROC_SOURCE proc_read.cpp)
 endif(APEX_HAVE_PROC)
 
-if (OMPT_FOUND)
-SET(OMPT_SOURCE apex_ompt.cpp)
-add_definitions(-DAPEX_WITH_OMPT)
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-endif(OMPT_FOUND)
-
 if (LM_SENSORS_FOUND)
 SET(SENSOR_SOURCE sensor_data.cpp)
 endif(LM_SENSORS_FOUND)
@@ -115,7 +109,6 @@ apex_options.cpp
 event_filter.cpp
 apex_policies.cpp
 ${bfd_SOURCE}
-${OMPT_SOURCE}
 ${OpenACC_SOURCE}
 ${RAJA_SOURCE}
 ${STARPU_SOURCE}
@@ -146,6 +139,19 @@ ${ZLIB_SOURCE}
 )
 
 add_library (apex ${all_SOURCE})
+if (OMPT_FOUND)
+    SET(OMPT_SOURCE apex_ompt.cpp)
+    add_definitions(-DAPEX_WITH_OMPT)
+    add_library (apex_ompt ${OMPT_SOURCE})
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "NVHPC")
+        # Use the tool-enabled OpenMP runtime
+        target_compile_options(apex_ompt PRIVATE "-mp=ompt")
+        target_link_options(apex_ompt PRIVATE "-mp=ompt")
+    else()
+        target_link_libraries (apex_ompt OpenMP::OpenMP_CXX)
+    endif()
+    add_dependencies (apex_ompt apex)
+endif (OMPT_FOUND)
 add_library (taudummy tau_dummy.cpp)
 add_dependencies (apex taudummy ${perfetto_target})
 
@@ -227,5 +233,6 @@ INSTALL(FILES apex.h
     DESTINATION include)
 
 INSTALL(TARGETS apex RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
+INSTALL(TARGETS apex_ompt RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
 INSTALL(TARGETS taudummy RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
 
