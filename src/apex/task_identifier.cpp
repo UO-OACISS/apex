@@ -15,7 +15,7 @@
 #include <utility>
 #include <regex>
 
-#if APEX_HAVE_BFD
+#if defined(APEX_HAVE_BFD) || defined(__APPLE__)
 #include "address_resolution.hpp"
 #ifdef __MIC__
 #include <boost/regex.hpp>
@@ -143,7 +143,7 @@ std::mutex bfd_mutex;
         } else {
             std::string retval(name);
             if (resolve) {
-#ifdef APEX_HAVE_BFD
+#if defined(APEX_HAVE_BFD) || defined(__APPLE__)
                 const std::string addrstr("UNRESOLVED ADDR");
                 if (retval.find(addrstr) != std::string::npos) {
                     REGEX_NAMESPACE::regex rx (".*UNRESOLVED ADDR (.*)");
