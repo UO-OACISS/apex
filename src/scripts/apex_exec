@@ -557,6 +557,11 @@ if [ ! -x "${prog}" ] ; then
     exit
 fi
 
+if [ ! -f "${prog}" ] ; then
+    echo "apex_exec: $prog: not a file"
+    exit
+fi
+
 echo_screen "APEX_LD_LIBRARY_PATH: ${APEX_LD_LIBRARY_PATH}"
 echo_screen "APEX_LD_PRELOAD: ${APEX_LD_PRELOAD}"
 
