@@ -302,7 +302,7 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
   if (rec == NULL) return;
 
   DEBUG_PRINT("rec=%p type=%d time=%lu thread_id=%lu target_id=%lu\n",
-	 rec, rec->type, rec->time, rec->thread_id, rec->target_id);
+	 (void*)rec, rec->type, rec->time, rec->thread_id, rec->target_id);
 
   static std::unordered_map<ompt_id_t,const void*> active_target_addrs;
   static std::unordered_map<ompt_id_t,int> active_target_devices;
@@ -1039,7 +1039,7 @@ extern "C" void apex_device_initialize (
     if (!enabled) { return; }
     DEBUG_PRINT("%s\n", __APEX_FUNCTION__);
   DEBUG_PRINT("Init: device_num=%d type=%s device=%p lookup=%p doc=%p\n",
-	 device_num, type, device, lookup, documentation);
+	 device_num, type, device, (void*)lookup, (void*)documentation);
   if (!lookup) {
     DEBUG_PRINT("Trace collection disabled on device %d\n", device_num);
     return;

@@ -517,14 +517,23 @@ if [ $ompt = yes ]; then
         export OMP_DISPLAY_ENV=true
     fi
 fi
-if [ $cuda = yes ]; then
-    export CUDA_LIB=:${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}_cuda${SHLIBX}
+if [ $cuda = yes ] || [ $monitor_gpu = yes ]; then
+    testme=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}_cuda${SHLIBX}
+    if [ -f ${testme} ]; then
+        export CUDA_LIB=:${testme}
+    fi
 fi
-if [ $hip = yes ]; then
-    export HIP_LIB=:${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}_hip${SHLIBX}
+if [ $hip = yes ] || [ $monitor_gpu = yes ]; then
+    testme=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}_hip${SHLIBX}
+    if [ -f ${testme} ]; then
+        export HIP_LIB=:${testme}
+    fi
 fi
 if [ $level0 = yes ]; then
-    export LEVEL0_LIB=:${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}_level0${SHLIBX}
+    testme=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}_level0${SHLIBX}
+    if [ -f ${testme} ]; then
+        export LEVEL0_LIB=:${testme}
+    fi
 fi
 if [ $cpu_memory = yes ]; then
     MEMORY_LIB=${BASEDIR}/${LIBDIR}/libapex_memory_wrapper${SHLIBX}:

@@ -1048,8 +1048,8 @@ void activity_callback(const char* begin, const char* end, void* arg) {
 
 extern "C" {
 // Init tracing routine
-void apex_init_hip_tracing() {
-    if (!apex_options::use_hip()) { return; }
+void apex_init_hip_tracing(void) {
+    if (!apex::apex_options::use_hip()) { return; }
 #if defined(APEX_WITH_HSA)
     /* now safe to initialize hsa - needed to get GPU counter offset */
     hsa_init();
@@ -1068,7 +1068,7 @@ void apex_init_hip_tracing() {
 
     // Enable HIP API callbacks
     ROCTRACER_CALL_CHECK(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_HIP_API, handle_hip, NULL));
-    if (apex_options::use_hip_kfd_api()) {
+    if (apex::apex_options::use_hip_kfd_api()) {
 #if defined(APEX_HAVE_ROCTRACER_KFD)
         // Enable KFD API tracing
         ROCTRACER_CALL_CHECK(roctracer_enable_domain_callback(ACTIVITY_DOMAIN_KFD_API, handle_roc_kfd, NULL));
@@ -1085,7 +1085,7 @@ void apex_init_hip_tracing() {
     //ROCTRACER_CALL_CHECK(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_HIP_API));
     // FYI, ACTIVITY_DOMAIN_HIP_OPS = ACTIVITY_DOMAIN_HCC_OPS = ACTIVITY_DOMAIN_HIP_VDI...
     ROCTRACER_CALL_CHECK(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_HIP_OPS));
-    if (apex_options::use_hip_kfd_api()) {
+    if (apex::apex_options::use_hip_kfd_api()) {
 #if defined(APEX_WITH_HSA) // disabled for now to simplify compiling
         ROCTRACER_CALL_CHECK(roctracer_enable_domain_activity(ACTIVITY_DOMAIN_HSA_OPS));
 #endif
@@ -1100,17 +1100,17 @@ void apex_init_hip_tracing() {
 }
 
     // Stop tracing routine
-    void apex_flush_hip_tracing() {
-        if (!apex_options::use_hip()) { return; }
+    void apex_flush_hip_tracing(void) {
+        if (!apex::apex_options::use_hip()) { return; }
         ROCTRACER_CALL_CHECK(roctracer_flush_activity());
     }
 
-    void apex_stop_hip_tracing() {
-        if (!apex_options::use_hip()) { return; }
+    void apex_stop_hip_tracing(void) {
+        if (!apex::apex_options::use_hip()) { return; }
         roctracer_stop();
         /* CAllbacks */
         ROCTRACER_CALL_CHECK(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_HIP_API));
-        if (apex_options::use_hip_kfd_api()) {
+        if (apex::apex_options::use_hip_kfd_api()) {
 #if defined(APEX_WITH_HSA)
             ROCTRACER_CALL_CHECK(roctracer_disable_domain_callback(ACTIVITY_DOMAIN_HSA_API));
 #endif
@@ -1125,7 +1125,7 @@ void apex_init_hip_tracing() {
         // FYI, ACTIVITY_DOMAIN_HIP_OPS = ACTIVITY_DOMAIN_HCC_OPS = ACTIVITY_DOMAIN_HIP_VDI...
         ROCTRACER_CALL_CHECK(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_HIP_OPS));
         ROCTRACER_CALL_CHECK(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_EXT_API));
-        if (apex_options::use_hip_kfd_api()) {
+        if (apex::apex_options::use_hip_kfd_api()) {
 #if defined(APEX_WITH_HSA)
             ROCTRACER_CALL_CHECK(roctracer_disable_domain_activity(ACTIVITY_DOMAIN_HSA_API));
 #endif

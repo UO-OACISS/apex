@@ -180,6 +180,11 @@ void monitor::query(void) {
     //std::cout << "done" << std::endl;
 }
 
+monitor& monitor::instance(void) {
+    static monitor _monitor;
+    return _monitor;
+}
+
 } // namespace rocprofiler
 } // namespace apex
 

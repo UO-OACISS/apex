@@ -61,7 +61,7 @@ public:
     void stop();
     void activateDeviceIndex(uint32_t index);
     double getAvailableMemory();
-    monitor& instance();
+    static monitor& instance();
 private:
     /* declare the constructor, only used by the "instance" method.
      * it is defined in the cpp file. */

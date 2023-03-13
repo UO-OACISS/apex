@@ -25,7 +25,6 @@ namespace cuda {
 namespace nvml {
     void query(void);
     void stop(void);
-    double getAvailableMemory(void);
 };  // namespace apex::dynamic::rsmi
 
 namespace roctracer {
@@ -40,7 +39,7 @@ namespace rsmi {
     double getAvailableMemory(void);
 };  // namespace apex::dynamic::rsmi
 
-namespace rocprof {
+namespace rocprofiler {
     void query(void);
     void stop(void);
 };  // namespace apex::dynamic::rocprof

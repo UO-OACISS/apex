@@ -372,7 +372,7 @@ double monitor::getAvailableMemory() {
     return avail;
 }
 
-event_filter& monitor::instance(void) {
+monitor& monitor::instance(void) {
     static monitor _instance;
     return _instance;
 }

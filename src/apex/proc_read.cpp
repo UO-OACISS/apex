@@ -37,6 +37,7 @@
 #define DATA_SIZE 512
 
 #include "tau_listener.hpp"
+#include "apex_dynamic.hpp"
 
 #ifdef APEX_HAVE_LM_SENSORS
 #include "sensor_data.hpp"
@@ -813,7 +814,7 @@ namespace apex {
         ProcData *newData = nullptr;
         ProcData *periodData = nullptr;
         if (apex_options::monitor_gpu()) {
-            dynamic::cuda::query();
+            dynamic::nvml::query();
         }
         if (apex_options::monitor_gpu()) {
             dynamic::rsmi::query();
@@ -861,7 +862,7 @@ namespace apex {
             }
 #endif
             if (apex_options::monitor_gpu()) {
-                dynamic::cuda::query();
+                dynamic::nvml::query();
                 dynamic::rsmi::query();
             }
             if (apex_options::use_hip_profiler()) {

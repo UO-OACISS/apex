@@ -346,6 +346,7 @@ inline unsigned int sc_nprocessors_onln(void)
     macro (APEX_HIP_MEMORY_ACTIVITY, use_hip_memory_activity, bool, true, "") \
     macro (APEX_HIP_KERNEL_ACTIVITY, use_hip_kernel_activity, bool, true, "") \
     macro (APEX_HIP_PROFILER, use_hip_profiler, bool, false, "Enable Rocprofiler support to periodically measure ROCm counters (see /opt/rocm/rocprofiler/lib/metrics.xml).") \
+    macro (APEX_ENABLE_LEVEL0, use_level0, int, false, "Enable Level0 measurement with Intel OneAPI support.") \
     macro (APEX_MONITOR_GPU, monitor_gpu, bool, false, "Periodically monitor the GPU using vendor-provided SMI support.") \
     macro (APEX_JUPYTER_SUPPORT, use_jupyter_support, int, false, "Internal use only.") \
     macro (APEX_KOKKOS_VERBOSE, use_kokkos_verbose, bool, false, "Enable verbose Kokkos autotuning and profiling messages.") \

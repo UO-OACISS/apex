@@ -29,10 +29,6 @@ if (OTF2_FOUND)
 SET(OTF2_SOURCE otf2_listener.cpp otf2_listener_mpi.cpp otf2_listener_nompi.cpp)
 endif(OTF2_FOUND)
 
-if (LEVEL0_FOUND)
-SET(LEVEL0_SOURCE apex_level0.cpp)
-endif(LEVEL0_FOUND)
-
 if (ZLIB_FOUND)
 SET(ZLIB_SOURCE gzstream.cpp)
 endif(ZLIB_FOUND)
@@ -74,9 +70,6 @@ endif()
 SET(all_SOURCE
 apex_preload.cpp
 apex_dynamic.cpp
-${CUPTI_SOURCE}
-${LEVEL0_SOURCE}
-${NVML_SOURCE}
 apex.cpp
 apex_error_handling.cpp
 apex_kokkos.cpp
@@ -129,7 +122,7 @@ if (OMPT_FOUND)
     else()
         target_link_libraries (apex_ompt OpenMP::OpenMP_CXX)
     endif()
-    target_link_libraries (apex_ompt apex)
+    target_link_libraries (apex_ompt apex ${LIBS})
     add_dependencies (apex_ompt apex)
 endif (OMPT_FOUND)
 
@@ -148,7 +141,7 @@ if (APEX_WITH_CUDA)
     add_library (apex_cuda
         ${CUPTI_SOURCE}
         ${NVML_SOURCE})
-    target_link_libraries (apex_cuda apex
+    target_link_libraries (apex_cuda apex ${LIBS}
         ${CUPTI_LIBRARIES}
         ${NVML_LIBRARIES})
     add_dependencies (apex_cuda apex)
@@ -173,13 +166,23 @@ if (APEX_WITH_HIP)
         ${ROCTRACER_SOURCE}
         ${ROCPROFILER_SOURCE}
         ${RSMI_SOURCE})
-    target_link_libraries (apex_hip apex
+    target_link_libraries (apex_hip apex ${LIBS}
         ${ROCTRACER_LIBRARIES}
         ${ROCPROFILER_LIBRARIES}
         ${ROCTX_LIBRARIES}
         ${RSMI_LIBRARIES})
     add_dependencies (apex_hip apex)
 endif (APEX_WITH_HIP)
+
+if (APEX_WITH_LEVEL0)
+    SET(LEVEL0_SOURCE apex_level0.cpp)
+    add_definitions(-DAPEX_WITH_LEVEL0)
+    add_library (apex_level0
+        ${LEVEL0_SOURCE})
+    target_link_libraries (apex_level0 apex ${LIBS}
+        ${LEVEL0_LIBRARIES})
+    add_dependencies (apex_level0 apex)
+endif (APEX_WITH_LEVEL0)
 
 if(ACTIVEHARMONY_FOUND)
     add_dependencies (apex project_activeharmony)
@@ -255,6 +258,17 @@ INSTALL(FILES apex.h
     DESTINATION include)
 
 INSTALL(TARGETS apex RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
+if (APEX_WITH_OMPT)
 INSTALL(TARGETS apex_ompt RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
+endif (APEX_WITH_OMPT)
+if (APEX_WITH_HIP)
+INSTALL(TARGETS apex_hip RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
+endif (APEX_WITH_HIP)
+if (APEX_WITH_CUDA)
+INSTALL(TARGETS apex_cuda RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
+endif (APEX_WITH_CUDA)
+if (APEX_WITH_LEVEL0)
+INSTALL(TARGETS apex_level0 RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
+endif (APEX_WITH_LEVEL0)
 INSTALL(TARGETS taudummy RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
 

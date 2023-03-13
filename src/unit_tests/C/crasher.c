@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/mman.h>
+#include <malloc.h>
 
 #define handle_error(msg) \
     do { perror(msg); exit(EXIT_FAILURE); } while (0)
