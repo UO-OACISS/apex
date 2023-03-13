@@ -10,7 +10,7 @@ set (APEX_DESCRIPTION "Autonomic Performance Environment for eXascale" CACHE STR
 set (APEX_VERSION_MAJOR 2 CACHE STRING "APEX Major Version")
 set (APEX_VERSION_MINOR 6 CACHE STRING "APEX Minor Version")
 set (APEX_VERSION_PATCH 1 CACHE STRING "APEX Patch Version")
-set (APEX_HOMEPAGE_URL "http://github.com/khuck/xpress-apex" CACHE STRING "APEX homepage URL")
+set (APEX_HOMEPAGE_URL "http://github.com/UO-OACISS/apex" CACHE STRING "APEX homepage URL")
 
 cmake_minimum_required (VERSION 2.8.12 FATAL_ERROR)
 cmake_policy(VERSION 2.8.12)
