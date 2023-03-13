@@ -528,25 +528,6 @@ static ompt_data_t * the_initial_task = nullptr;
 
 namespace apex {
 
-/* This function is used by APEX to tell the OpenMP runtime to stop sending
- * OMPT events.  This is when apex::finalize() happens before ompt_finalize().
- * It is called from apex::finalize().
- */
-void apex_ompt_force_shutdown(void) {
-    DEBUG_PRINT("Forcing shutdown of OpenMP Tools API\n");
-    /* The Intel generated code has some odd destructor race conditions, so
-     * don't force the runtime to shut down. */
-    /* OpenMP might not have been used... */
-    if (the_initial_task != nullptr) {
-        apex_ompt_stop(the_initial_task);
-        the_initial_task = nullptr;
-    }
-    enabled = false;
-    if (ompt_finalize_tool) {
-        ompt_finalize_tool();
-    }
-}
-
 } // end apex namespace
 
 /* These methods are some helper functions for starting/stopping timers */
@@ -1873,6 +1854,25 @@ ompt_start_tool_result_t * ompt_start_tool(
     result.tool_data.value = 0L;
     result.tool_data.ptr = nullptr;
     return &result;
+}
+
+/* This function is used by APEX to tell the OpenMP runtime to stop sending
+ * OMPT events.  This is when apex::finalize() happens before ompt_finalize().
+ * It is called from apex::finalize().
+ */
+void apex_ompt_force_shutdown(void) {
+    DEBUG_PRINT("Forcing shutdown of OpenMP Tools API\n");
+    /* The Intel generated code has some odd destructor race conditions, so
+     * don't force the runtime to shut down. */
+    /* OpenMP might not have been used... */
+    if (the_initial_task != nullptr) {
+        apex_ompt_stop(the_initial_task);
+        the_initial_task = nullptr;
+    }
+    enabled = false;
+    if (ompt_finalize_tool) {
+        ompt_finalize_tool();
+    }
 }
 
 } // extern "C"

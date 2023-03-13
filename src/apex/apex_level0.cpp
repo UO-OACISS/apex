@@ -273,14 +273,14 @@ void apex_init_level0_tracing(void) {
   uint64_t *kernel_taskid = new uint64_t;
   void *pk = (void *) kernel_taskid;
   kernel_collector = ZeKernelCollector::Create(driver,
-                  OnKernelFinishCallback, pk);
+                  ::apex::level0::OnKernelFinishCallback, pk);
 
   // For API calls, we create a new task and trigger the start/stop based on its
   // timestamps.
 
   uint64_t *api_taskid  = new uint64_t;
   void *ph = (void *) api_taskid;
-  api_collector = ZeApiCollector::Create(driver, OnAPIFinishCallback, ph);
+  api_collector = ZeApiCollector::Create(driver, ::apex::level0::OnAPIFinishCallback, ph);
 
   start_time = std::chrono::steady_clock::now();
 }
