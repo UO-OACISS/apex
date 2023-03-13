@@ -129,8 +129,10 @@ void OnAPIFinishCallback(void *data, const std::string& name, uint64_t started, 
   uint64_t taskid;
 
   taskid = *((uint64_t *) data);
+  /*
   DEBUG_PRINT("APEX: OnAPIFinishCallback:        (raw) name: %s started: %lu ended: %lu at: %lu task id=%lu\n",
 		  name.c_str(), started, ended, profiler::now_ns(), taskid);
+          */
 
     // create a task_wrapper, as a child of the current timer
     auto tt = new_task(name, UINT64_MAX, nullptr);
@@ -225,10 +227,12 @@ void OnKernelFinishCallback(void *data, const std::string& name, uint64_t starte
      now, and then take a delta from now for the start time. */
   uint64_t ended_translated = profiler::now_ns();
   uint64_t started_translated = ended_translated - (ended - started);
+  /*
   DEBUG_PRINT("APEX: <kernel>: (raw) name: %s started: %20lu ended: %20lu at: %20lu task id=%d\n",
 		  name.substr(0,10).c_str(), started, ended, profiler::now_ns(), taskid);
   DEBUG_PRINT("APEX: <kernel>: (raw) name: %s started: %20lu ended: %20lu at: %20lu task id=%d\n",
     name.substr(0,10).c_str(),  started_translated, ended_translated, profiler::now_ns(), taskid);
+    */
 
   last_gpu_timestamp = ended;
   int device_num = 0;
