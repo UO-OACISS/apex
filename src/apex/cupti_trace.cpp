@@ -1972,10 +1972,10 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
 
 extern "C" {
 
-void apex_init_cupti_tracing() {
-    if (!apex_options::use_cuda()) { return; }
+void apex_init_cuda_tracing() {
+    if (!apex::apex_options::use_cuda()) { return; }
     // disable memory management tracking in APEX during this initialization
-    in_apex prevent_deadlocks;
+    apex::in_apex prevent_deadlocks;
     // make sure APEX doesn't re-register this thread
     bool& registered = get_registered();
     registered = true;
@@ -2007,13 +2007,13 @@ void apex_init_cupti_tracing() {
     CUPTI_CALL(cuptiSubscribe(&subscriber,
                 (CUpti_CallbackFunc)apex_cupti_callback_dispatch, NULL));
     // get device callbacks
-    if (apex_options::use_cuda_runtime_api()) {
+    if (apex::apex_options::use_cuda_runtime_api()) {
         CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_RUNTIME_API));
     }
-    if (apex_options::use_cuda_driver_api()) {
+    if (apex::apex_options::use_cuda_driver_api()) {
         CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_DRIVER_API));
     }
-    if (apex_options::use_cuda_kernel_details()) {
+    if (apex::apex_options::use_cuda_kernel_details()) {
         uint8_t enable = 1;
         CUPTI_CALL(cuptiActivityEnableLatencyTimestamps(enable));
     }
@@ -2030,9 +2030,9 @@ void apex_init_cupti_tracing() {
     // We'll take a CPU timestamp before and after taking a GPU timestmp, then
     // take the average of those two, hoping that it's roughly at the same time
     // as the GPU timestamp.
-    startTimestampCPU = profiler::now_ns();
+    startTimestampCPU = apex::profiler::now_ns();
     cuptiGetTimestamp(&startTimestampGPU);
-    startTimestampCPU += profiler::now_ns();
+    startTimestampCPU += apex::profiler::now_ns();
     startTimestampCPU = startTimestampCPU / 2;
 
     // assume CPU timestamp is greater than GPU
@@ -2046,10 +2046,10 @@ void apex_init_cupti_tracing() {
 /* This is the global "shutdown" method for flushing the buffer.  This is
  * called from apex::finalize().  It's the only function in the CUDA support
  * that APEX will call directly. */
-    void apex_cuda_flush_trace(void) {
-        if (!apex_options::use_cuda()) { return; }
+    void apex_flush_cuda_tracing(void) {
+        if (!apex::apex_options::use_cuda()) { return; }
         if ((num_buffers_processed + 10) < num_buffers) {
-            if (apex::instance()->get_node_id() == 0) {
+            if (apex::apex::instance()->get_node_id() == 0) {
                 flushing = true;
                 std::cout << "Flushing remaining " << std::fixed
                     << num_buffers-num_buffers_processed << " of " << num_buffers
@@ -2062,9 +2062,9 @@ void apex_init_cupti_tracing() {
         }
     }
 
-    void apex_cuda_stop_trace(void) {
-        if (!apex_options::use_cuda()) { return; }
-        flushTrace();
+    void apex_stop_cuda_tracing(void) {
+        if (!apex::apex_options::use_cuda()) { return; }
+        apex_flush_cuda_tracing();
         CUPTI_CALL(cuptiUnsubscribe(subscriber));
         CUPTI_CALL(cuptiFinalize());
         // get_range_map().clear();

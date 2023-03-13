@@ -17,12 +17,18 @@ namespace apex { namespace nvml {
 
 class monitor {
 public:
-    monitor (void);
-    ~monitor (void);
     void query();
     void stop();
     static void activateDeviceIndex(uint32_t index);
+    static monitor& instance();
 private:
+    /* declare the constructor, only used by the "instance" method.
+     * it is defined in the cpp file. */
+    monitor (void);
+    ~monitor (void);
+    /* Disable the copy and assign methods. */
+    monitor(monitor const&)    = delete;
+    void operator=(monitor const&)  = delete;
     bool success;
     uint32_t deviceCount;
     std::vector<nvmlDevice_t> devices;

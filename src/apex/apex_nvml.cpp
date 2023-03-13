@@ -58,6 +58,11 @@ monitor::monitor (void) {
     activateDeviceIndex(0);
 }
 
+monitor::~monitor (void) {
+    if (!success) return;
+    stop();
+}
+
 void monitor::stop (void) {
     if (success) {
         NVML_CALL(nvmlShutdown());
@@ -362,5 +367,21 @@ void monitor::activateDeviceIndex(uint32_t index) {
     indexMutex.unlock();
 }
 
+monitor& monitor::instance(void) {
+    static monitor _instance;
+    return _instance;
+}
+
 } // namespace nvml
 } // namespace apex
+
+extern "C" void apex_nvml_monitor_query(void) {
+    auto& instance = apex::nvml::monitor::instance();
+    instance.query();
+}
+
+extern "C" void apex_nvml_monitor_stop(void) {
+    auto& instance = apex::nvml::monitor::instance();
+    instance.stop();
+}
+
