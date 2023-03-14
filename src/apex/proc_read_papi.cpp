@@ -12,7 +12,7 @@
 
 namespace apex {
 
-    static bool papi_initialized = false;
+    //static bool papi_initialized = false;
 
     struct PAPIStats {
         std::vector<std::string> active_components;
