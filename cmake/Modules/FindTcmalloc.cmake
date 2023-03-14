@@ -43,6 +43,11 @@ if((APEX_BUILD_Tcmalloc OR (NOT Tcmalloc_FOUND)) AND NOT APPLE)
     BUILD_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/gperftools-2.9.1/src/project_gperftools && make -j${MAKEJOBS}
     INSTALL_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/gperftools-2.9.1/src/project_gperftools && make install
     INSTALL_DIR ${Tcmalloc_ROOT}
+    LOG_DOWNLOAD 1
+    LOG_CONFIGURE 1
+    LOG_BUILD 1
+    LOG_INSTALL 1
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
   )
   add_library(tcmalloc STATIC IMPORTED)
   set_property(TARGET tcmalloc PROPERTY IMPORTED_LOCATION ${Tcmalloc_ROOT}/lib/libtcmalloc.so)

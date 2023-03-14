@@ -37,13 +37,15 @@ if((APEX_BUILD_ACTIVEHARMONY AND (NOT ACTIVEHARMONY_FOUND)) AND NOT APPLE)
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/activeharmony-4.6.0
     PATCH_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/activeharmony-4.6.0/src/project_activeharmony && patch -p0 code-server/code_generator.cxx < ${PROJECT_SOURCE_DIR}/cmake/Modules/ActiveHarmony.patch
     CONFIGURE_COMMAND ""
-    BUILD_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/activeharmony-4.6.0/src/project_activeharmony && make -j${MAKEJOBS} MPICC=mpicc_disabled CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} CFLAGS=${CMAKE_C_FLAGS} CXXFLAGS=${CMAKE_CXX_FLAGS} LDFLAGS=${CMAKE_C_FLAGS}
-    INSTALL_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/activeharmony-4.6.0/src/project_activeharmony && make MPICC=mpicc_disabled CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} CFLAGS=${CMAKE_C_FLAGS} CXXFLAGS=${CMAKE_CXX_FLAGS} LDFLAGS=${CMAKE_C_FLAGS} install prefix=${ACTIVEHARMONY_ROOT}
+    #BUILD_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/activeharmony-4.6.0/src/project_activeharmony && make -j${MAKEJOBS} MPICC=mpicc_disabled CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} CFLAGS=${CMAKE_C_FLAGS} CXXFLAGS=${CMAKE_CXX_FLAGS} LDFLAGS=${CMAKE_C_FLAGS}
+    BUILD_COMMAND make -C ${CMAKE_CURRENT_BINARY_DIR}/activeharmony-4.6.0/src/project_activeharmony -j${MAKEJOBS} MPICC=mpicc_disabled CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} CFLAGS=${CMAKE_C_FLAGS} CXXFLAGS=${CMAKE_CXX_FLAGS} LDFLAGS=${CMAKE_C_FLAGS}
+    #INSTALL_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/activeharmony-4.6.0/src/project_activeharmony && make MPICC=mpicc_disabled CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} CFLAGS=${CMAKE_C_FLAGS} CXXFLAGS=${CMAKE_CXX_FLAGS} LDFLAGS=${CMAKE_C_FLAGS} install prefix=${ACTIVEHARMONY_ROOT}
+    INSTALL_COMMAND make -C ${CMAKE_CURRENT_BINARY_DIR}/activeharmony-4.6.0/src/project_activeharmony MPICC=mpicc_disabled CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} CFLAGS=${CMAKE_C_FLAGS} CXXFLAGS=${CMAKE_CXX_FLAGS} LDFLAGS=${CMAKE_C_FLAGS} install prefix=${ACTIVEHARMONY_ROOT}
     INSTALL_DIR ${ACTIVEHARMONY_ROOT}
-    # LOG_DOWNLOAD 1
+    LOG_DOWNLOAD 1
     # LOG_CONFIGURE 1
-    # LOG_BUILD 1
-    # LOG_INSTALL 1
+    LOG_BUILD 1
+    LOG_INSTALL 1
   )
   #ExternalProject_Get_Property(project_activeharmony install_dir)
   add_library(harmony STATIC IMPORTED)

@@ -63,6 +63,7 @@ if((APEX_BUILD_BFD OR (NOT BFD_FOUND)) AND NOT APPLE)
     LOG_CONFIGURE 1
     LOG_BUILD 1
     LOG_INSTALL 1
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
   )
   ExternalProject_Add_Step(project_binutils extra_headers
     DEPENDEES install

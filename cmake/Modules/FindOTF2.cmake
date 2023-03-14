@@ -48,9 +48,10 @@ if(APEX_BUILD_OTF2 AND (NOT OTF2_FOUND))
     INSTALL_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/otf2-2.3/src/project_otf2 && make install
     INSTALL_DIR ${OTF2_ROOT}
     LOG_DOWNLOAD 1
-    # LOG_CONFIGURE 1
-    # LOG_BUILD 1
-    # LOG_INSTALL 1
+    LOG_CONFIGURE 1
+    LOG_BUILD 1
+    LOG_INSTALL 1
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
   )
   #ExternalProject_Get_Property(project_otf2 install_dir)
   add_library(otf2 STATIC IMPORTED)
