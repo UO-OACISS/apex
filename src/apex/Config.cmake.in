@@ -1,0 +1,17 @@
+# - Config file for the APEX package
+# It defines the following variables
+#  APEX_INCLUDE_DIRS - include directories for APEX
+#  APEX_LIBRARIES    - libraries to link against
+#  APEX_EXECUTABLE   - the executables
+
+# Compute paths
+get_filename_component(APEX_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+set(APEX_INCLUDE_DIRS "@CONF_INCLUDE_DIRS@")
+
+# Our library dependencies (contains definitions for IMPORTED targets)
+if(NOT TARGET apex AND NOT apex_BINARY_DIR)
+  include("${APEX_CMAKE_DIR}/APEXTargets.cmake")
+endif()
+
+# These are IMPORTED targets created by MyLibTargets.cmake
+set(APEX_LIBRARIES apex)
