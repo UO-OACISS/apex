@@ -92,10 +92,11 @@ if(APEX_BUILD_OMPT OR (NOT OMPT_FOUND))
     BUILD_COMMAND make libomp-needed-headers all -j${MAKEJOBS}
     INSTALL_COMMAND make install
     INSTALL_DIR ${OMPT_ROOT}
-    #LOG_DOWNLOAD 1
-    #LOG_CONFIGURE 1
-    #LOG_BUILD 1
-    #LOG_INSTALL 1
+    LOG_DOWNLOAD 1
+    LOG_CONFIGURE 1
+    LOG_BUILD 1
+    LOG_INSTALL 1
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
   )
   #ExternalProject_Get_Property(project_ompt install_dir)
   add_library(omp SHARED IMPORTED)
