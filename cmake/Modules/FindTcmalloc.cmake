@@ -40,8 +40,8 @@ if((APEX_BUILD_Tcmalloc OR (NOT Tcmalloc_FOUND)) AND NOT APPLE)
     URL https://github.com/gperftools/gperftools/releases/download/gperftools-2.9.1/gperftools-2.9.1.tar.gz
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/gperftools-2.9.1
     CONFIGURE_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/gperftools-2.9.1/src/project_gperftools && ./configure --enable-shared --prefix=${Tcmalloc_ROOT}
-    BUILD_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/gperftools-2.9.1/src/project_gperftools && make -j${MAKEJOBS}
-    INSTALL_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/gperftools-2.9.1/src/project_gperftools && make install
+    BUILD_COMMAND make -C ${CMAKE_CURRENT_BINARY_DIR}/gperftools-2.9.1/src/project_gperftools -j${MAKEJOBS}
+    INSTALL_COMMAND make -C ${CMAKE_CURRENT_BINARY_DIR}/gperftools-2.9.1/src/project_gperftools install
     INSTALL_DIR ${Tcmalloc_ROOT}
     LOG_DOWNLOAD 1
     LOG_CONFIGURE 1

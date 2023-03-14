@@ -44,11 +44,11 @@ if(APEX_BUILD_OTF2 AND (NOT OTF2_FOUND))
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/otf2-2.3
     PATCH_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/otf2-2.3/src/project_otf2 && patch -p0 src/otf2_archive_int.c < ${PROJECT_SOURCE_DIR}/cmake/Modules/otf2_collective_callbacks.patch
     CONFIGURE_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/otf2-2.3/src/project_otf2 && ./configure CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} CFLAGS=${CMAKE_C_FLAGS} CXXFLAGS=${CMAKE_CXX_FLAGS} LDFLAGS=${CMAKE_EXE_LINKER_FLAGS} --prefix=${OTF2_ROOT} --enable-shared
-    BUILD_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/otf2-2.3/src/project_otf2 && make -j${MAKEJOBS}
-    INSTALL_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/otf2-2.3/src/project_otf2 && make install
+    BUILD_COMMAND make -C ${CMAKE_CURRENT_BINARY_DIR}/otf2-2.3/src/project_otf2 -j${MAKEJOBS}
+    INSTALL_COMMAND make -C ${CMAKE_CURRENT_BINARY_DIR}/otf2-2.3/src/project_otf2 install
     INSTALL_DIR ${OTF2_ROOT}
     LOG_DOWNLOAD 1
-    LOG_CONFIGURE 1
+    #LOG_CONFIGURE 1
     LOG_BUILD 1
     LOG_INSTALL 1
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
