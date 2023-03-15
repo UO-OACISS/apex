@@ -74,6 +74,7 @@ foreach(example_program ${example_programs})
     add_dependencies (${example_program} apex)
     add_dependencies (tests ${example_program})
     add_test ("test_${example_program}" ${example_program})
+    set_tests_properties("test_${example_program}" PROPERTIES TIMEOUT 30)
     # install(TARGETS ${example_program} RUNTIME DESTINATION "bin/apex_unit_tests" OPTIONAL)
 endforeach()
 
@@ -83,4 +84,5 @@ if(OpenACC_C_FOUND AND OpenACCProfiling_FOUND)
 endif(OpenACC_C_FOUND AND OpenACCProfiling_FOUND)
 
 set_tests_properties(test_apex_disable PROPERTIES ENVIRONMENT "APEX_DISABLE=1")
+set_tests_properties(test_crasher PROPERTIES WILL_FAIL TRUE)
 

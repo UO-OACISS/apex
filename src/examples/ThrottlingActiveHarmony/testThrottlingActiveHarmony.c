@@ -73,6 +73,9 @@ int main(int argc, char **argv)
 {
   apex_init(argv[0], 0, 1);
   num_threads = apex_hardware_concurrency();
+  if (num_threads > 64) {
+    num_threads = 64;
+  }
   total_iterations = num_threads * ITERATIONS;
   apex_set_throttle_concurrency(true);
   apex_set_throttle_energy(true);

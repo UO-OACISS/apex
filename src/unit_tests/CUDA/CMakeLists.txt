@@ -46,6 +46,7 @@ foreach(example_program ${example_programs})
   add_dependencies ("${example_program}_cu" apex)
   add_dependencies (tests "${example_program}_cu")
   add_test ("test_${example_program}_cu" "${example_program}_cu")
+  set_tests_properties("test_${example_program}_cu" PROPERTIES TIMEOUT 30)
   # install(TARGETS "${example_program}_cu" RUNTIME DESTINATION "bin/apex_unit_tests" OPTIONAL)
   set_tests_properties("test_${example_program}_cu" PROPERTIES ENVIRONMENT "APEX_ENABLE_CUDA=1;APEX_CUDA_KERNEL_DETAILS=1;APEX_CUDA_COUNTERS=1;APEX_CUDA_DRIVER_API=1")
 

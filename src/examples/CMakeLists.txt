@@ -52,55 +52,68 @@ endif()
 
 # does the application run
 add_test (ExampleDemoC DemoC/apexCDemo)
+set_tests_properties(ExampleDemoC PROPERTIES TIMEOUT 30)
 set_tests_properties(ExampleDemoC PROPERTIES PASS_REGULAR_EXPRESSION "APEX Version : ")
 add_test (ExampleDemoCpp DemoCpp/apexCppDemo)
+set_tests_properties(ExampleDemoCpp PROPERTIES TIMEOUT 30)
 set_tests_properties(ExampleDemoCpp PROPERTIES PASS_REGULAR_EXPRESSION "APEX Version : ")
 
 # Run the test program which actually uses the CPU
 add_test (ExampleMatmult Matmult/matmult)
+set_tests_properties(ExampleMatmult PROPERTIES TIMEOUT 30)
 set_tests_properties(ExampleMatmult PROPERTIES PASS_REGULAR_EXPRESSION "Done.")
 
 # Run the test program which tests the ITT interface
 # add_test (ExampleTestITT TestITT/testITT)
+# set_tests_properties(ExampleTestITT PROPERTIES TIMEOUT 30)
 # set_tests_properties(ExampleTestITT PROPERTIES PASS_REGULAR_EXPRESSION "ITT demo.")
 
 # Run the test program which tests the threads interface
 add_test (ExampleTestThreads TestThreads/testThreads)
+set_tests_properties(ExampleTestThreads PROPERTIES TIMEOUT 30)
 set_tests_properties(ExampleTestThreads PROPERTIES PASS_REGULAR_EXPRESSION "The ID of this thread is:")
 
 # Run the test program which tests the yielding
 add_test (ExampleCountCalls CountCalls/count_calls)
+set_tests_properties(ExampleCountCalls PROPERTIES TIMEOUT 30)
 set_tests_properties(ExampleCountCalls PROPERTIES PASS_REGULAR_EXPRESSION
 "Test passed.")
 
 # Run the test program which tests the overhead in the threads interface
 add_test (ExampleOverhead Overhead/testOverhead)
+set_tests_properties(ExampleOverhead PROPERTIES TIMEOUT 30)
 set_tests_properties(ExampleOverhead PROPERTIES PASS_REGULAR_EXPRESSION "Estimated overhead per timer")
 
 # TEst the policy engine support
 add_test (ExamplePolicyUnitTest PolicyUnitTest/policyUnitTest)
+set_tests_properties(ExamplePolicyUnitTest PROPERTIES TIMEOUT 30)
 set_tests_properties(ExamplePolicyUnitTest PROPERTIES ENVIRONMENT "APEX_POLICY=1")
 set_tests_properties(ExamplePolicyUnitTest PROPERTIES FAIL_REGULAR_EXPRESSION "Warning: registered policy function failed!")
 
 # TEst the policy engine support
 add_test (ExamplePolicyEngineExample PolicyEngineExample/testPolicyEngine)
+set_tests_properties(ExamplePolicyEngineExample PROPERTIES TIMEOUT 30)
 set_tests_properties(ExamplePolicyEngineExample PROPERTIES ENVIRONMENT "APEX_POLICY=1")
 set_tests_properties(ExamplePolicyEngineExample PROPERTIES FAIL_REGULAR_EXPRESSION "Warning: registered policy function failed!")
 
 add_test (ExamplePolicyEngineCppExample PolicyEngineCppExample/testCppPolicyEngine)
+set_tests_properties(ExamplePolicyEngineCppExample PROPERTIES TIMEOUT 30)
 set_tests_properties(ExamplePolicyEngineCppExample PROPERTIES ENVIRONMENT "APEX_POLICY=1")
 set_tests_properties(ExamplePolicyEngineCppExample PROPERTIES FAIL_REGULAR_EXPRESSION "Warning: registered policy function failed!")
 
 # Test the resetting of counters and timers
 add_test (ExampleReset TestReset/testReset)
+set_tests_properties(ExampleReset PROPERTIES TIMEOUT 30)
 set_tests_properties(ExampleReset PROPERTIES PASS_REGULAR_EXPRESSION "Test passed.")
 
 # Test the power/energy support
 add_test (ExampleGetPower TestGetPower/testpower)
+set_tests_properties(ExampleGetPower PROPERTIES TIMEOUT 30)
 set_tests_properties(ExampleGetPower PROPERTIES PASS_REGULAR_EXPRESSION "Power at end:")
 
 # Test the throttling support
 add_test (ExampleThrottling Throttling/testThrottling)
+set_tests_properties(ExampleThrottling PROPERTIES TIMEOUT 120)
 set_tests_properties(ExampleThrottling PROPERTIES PASS_REGULAR_EXPRESSION
 "Test passed.")
 set_property(TEST ExampleThrottling PROPERTY ENVIRONMENT "APEX_POLICY=1")
@@ -108,6 +121,7 @@ set_property(TEST ExampleThrottling APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_C
 set_property(TEST ExampleThrottling APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_ENERGY=1")
 
 add_test (ExampleThrottlingCpp ThrottlingCpp/testThrottlingCpp)
+set_tests_properties(ExampleThrottlingCpp PROPERTIES TIMEOUT 120)
 set_tests_properties(ExampleThrottlingCpp PROPERTIES PASS_REGULAR_EXPRESSION
 "Test passed.")
 set_property(TEST ExampleThrottlingCpp PROPERTY ENVIRONMENT "APEX_POLICY=1")
@@ -116,6 +130,7 @@ set_property(TEST ExampleThrottling APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_E
 
 if (ACTIVEHARMONY_FOUND)
 add_test (ExampleThrottlingActiveHarmony ThrottlingActiveHarmony/testThrottlingActiveHarmony)
+set_tests_properties(ExampleThrottlingActiveHarmony PROPERTIES TIMEOUT 120)
 set_tests_properties(ExampleThrottlingActiveHarmony PROPERTIES
 PASS_REGULAR_EXPRESSION "Test passed.")
 set_property(TEST ExampleThrottlingActiveHarmony PROPERTY ENVIRONMENT "APEX_POLICY=1")
@@ -124,12 +139,14 @@ set_property(TEST ExampleThrottlingActiveHarmony APPEND PROPERTY ENVIRONMENT "AP
 set_property(TEST ExampleThrottlingActiveHarmony APPEND PROPERTY ENVIRONMENT "HARMONY_HOME=${ACTIVEHARMONY_ROOT}")
 
 add_test (ExampleCustomTuning CustomTuning/custom_tuning)
+set_tests_properties(ExampleCustomTuning PROPERTIES TIMEOUT 120)
 set_tests_properties(ExampleCustomTuning PROPERTIES
 PASS_REGULAR_EXPRESSION "Test passed.")
 set_property(TEST ExampleCustomTuning PROPERTY ENVIRONMENT "APEX_POLICY=1")
 set_property(TEST ExampleCustomTuning APPEND PROPERTY ENVIRONMENT "HARMONY_HOME=${ACTIVEHARMONY_ROOT}")
 
 add_test (ExampleTuningRequest TuningRequest/tuning_request)
+set_tests_properties(ExampleTuningRequest PROPERTIES TIMEOUT 120)
 set_tests_properties(ExampleTuningRequest PROPERTIES
 PASS_REGULAR_EXPRESSION "Test passed.")
 set_property(TEST ExampleTuningRequest PROPERTY ENVIRONMENT "APEX_POLICY=1")
@@ -139,29 +156,35 @@ endif()
 
 if(MPI_CXX_FOUND)
 # Run the test program which tests the mpi interface
-  add_test (ExampleMPITest ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
-    ${MPIEXEC_PREFLAGS} MPITest/mpi_test ${MPIEXEC_POSTFLAGS})
+  add_test (NAME ExampleMPITest COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
+    ${MPIEXEC_PREFLAGS} ${CMAKE_BINARY_DIR}/src/examples/MPITest/mpi_test ${MPIEXEC_POSTFLAGS})
+  set_tests_properties(ExampleMPITest PROPERTIES TIMEOUT 30)
   set_tests_properties(ExampleMPITest PROPERTIES ENVIRONMENT "APEX_POLICY=1")
   string(TIMESTAMP VERSION "%Y-%m-%d_%H.%M.%S")
   set_property(TEST ExampleMPITest APPEND PROPERTY ENVIRONMENT "APEX_OTF2_ARCHIVE_PATH=OTF2_archive_mpi_test_${VERSION}")
   add_test (ExampleMPIGlobalTest ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
   ${MPIEXEC_PREFLAGS} MPIGlobalTest/mpi_global_test ${MPIEXEC_POSTFLAGS})
+set_tests_properties(ExampleMPIGlobalTest PROPERTIES TIMEOUT 30)
   set_tests_properties(ExampleMPIGlobalTest PROPERTIES ENVIRONMENT "APEX_POLICY=1")
   set_property(TEST ExampleMPIGlobalTest APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_ENERGY=1")
   set_property(TEST ExampleMPIGlobalTest APPEND PROPERTY ENVIRONMENT "APEX_THROTTLE_CONCURRENCY=1")
 #  add_test (ExampleLuleshMPI ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 8
 #    ${MPIEXEC_PREFLAGS} LuleshMPI/lulesh_MPI_2.0 -s 15 ${MPIEXEC_POSTFLAGS})
+#  set_tests_properties(ExampleLuleshMPI PROPERTIES TIMEOUT 30)
   if(OPENMP_FOUND)
 #    add_test (ExampleLuleshMPIOpenMP ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 8
 #      ${MPIEXEC_PREFLAGS} LuleshMPIOpenMP/lulesh_MPI_OpenMP_2.0
 #      -s 15 ${MPIEXEC_POSTFLAGS})
+#    set_tests_properties(ExampleLuleshMPIOpenMP PROPERTIES TIMEOUT 30)
     add_test (ExampleMPIImbalancePolicy ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
         ${MPIEXEC_PREFLAGS} MPIImbalancePolicy/mpi_imbalance_test ${MPIEXEC_POSTFLAGS})
+    set_tests_properties(ExampleMPIImbalancePolicy PROPERTIES TIMEOUT 120)
     set_tests_properties(ExampleMPIImbalancePolicy PROPERTIES ENVIRONMENT "APEX_POLICY=1")
     string(TIMESTAMP VERSION "%Y-%m-%d_%H.%M.%S")
     set_property(TEST ExampleMPIImbalancePolicy APPEND PROPERTY ENVIRONMENT "APEX_OTF2_ARCHIVE_PATH=OTF2_archive_mpi_imbalance_test_${VERSION}")
     add_test (ExampleMPIAutoBalance ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
       ${MPIEXEC_PREFLAGS} MPIAutoBalance/mpi_auto_balance ${MPIEXEC_POSTFLAGS})
+    set_tests_properties(ExampleMPIAutoBalance PROPERTIES TIMEOUT 30)
       if (PROCESSOR_COUNT)
         set_tests_properties(ExampleMPIAutoBalance PROPERTIES
 		PASS_REGULAR_EXPRESSION "Test passed.")
@@ -176,8 +199,10 @@ endif()
 
 if(OPENMP_FOUND)
 #  add_test (ExampleLuleshOpenMP LuleshOpenMP/lulesh_OpenMP_2.0 -s 15)
+#  set_tests_properties(ExampleLuleshOpenMP PROPERTIES TIMEOUT 30)
   if(OMPT_FOUND)
       add_test (ExampleOpenMPSharing TestOpenMP/openmp_test)
+      set_tests_properties(ExampleOpenMPSharing PROPERTIES TIMEOUT 30)
       if (PROCESSOR_COUNT)
         set_property (TEST ExampleOpenMPSharing
            APPEND PROPERTY ENVIRONMENT "OMP_NUM_THREADS=${PROCESSOR_COUNT}")
@@ -185,6 +210,7 @@ if(OPENMP_FOUND)
     if (PROCESSOR_COUNT)
       if(PROCESSOR_COUNT LESS 16)
         add_test (ExampleOpenMPStencil OpenMP_1D_stencil/1d_stencil)
+        set_tests_properties(ExampleOpenMPStencil PROPERTIES TIMEOUT 30)
         if (ACTIVEHARMONY_FOUND)
           set_tests_properties(ExampleOpenMPStencil PROPERTIES PASS_REGULAR_EXPRESSION "Test passed.")
           set_property(TEST ExampleOpenMPStencil PROPERTY ENVIRONMENT "APEX_POLICY=1")
@@ -197,6 +223,7 @@ if(OPENMP_FOUND)
 	  endif()
       if (NOT BUILD_STATIC_EXECUTABLES AND APEX_WITH_PLUGINS)
         add_test (ExampleOpenMP_Policy OpenMP_Policy/policy_test)
+        set_tests_properties(ExampleOpenMP_Policy PROPERTIES TIMEOUT 120)
         set_property (TEST ExampleOpenMP_Policy
            APPEND PROPERTY ENVIRONMENT "OMP_NUM_THREADS=${PROCESSOR_COUNT}")
         set_property(TEST ExampleOpenMP_Policy APPEND PROPERTY ENVIRONMENT "APEX_OPENMP_VERBOSE=1")
@@ -213,6 +240,7 @@ endif()
 
 if (NOT BUILD_STATIC_EXECUTABLES AND APEX_WITH_PLUGINS)
   add_test (ExamplePeriodicPlugin PeriodicPlugin/periodic_policy_test)
+  set_tests_properties(ExamplePeriodicPlugin PROPERTIES TIMEOUT 30)
   set_property(TEST ExamplePeriodicPlugin APPEND PROPERTY ENVIRONMENT "APEX_POLICY=1")
   set_property(TEST ExamplePeriodicPlugin APPEND PROPERTY ENVIRONMENT "APEX_SCREEN_OUTPUT=1")
   set_property(TEST ExamplePeriodicPlugin APPEND PROPERTY ENVIRONMENT "APEX_PLUGINS_PATH=${PROJECT_BINARY_DIR}/src/examples/PeriodicPlugin")

@@ -12,6 +12,8 @@
  * However, we do need to connect to a finalize function. */
 namespace apex { namespace dynamic {
 
+void * get_symbol(const char * module, const char * symbol);
+
 namespace ompt {
     void do_shutdown(void);
 };  // namespace apex::dynamic::ompt

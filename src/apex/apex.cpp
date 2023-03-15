@@ -1686,7 +1686,7 @@ std::string dump(bool reset) {
     return(std::string(""));
 }
 
-void finalize()
+void finalize(void)
 {
     in_apex prevent_deadlocks;
     if (!_initialized) { return; } // protect against finalization without initialization

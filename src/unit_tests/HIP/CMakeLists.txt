@@ -35,6 +35,7 @@ foreach(example_program ${example_programs})
   target_compile_definitions("${example_program}_hip" PUBLIC AMD_INTERNAL_BUILD)
   target_compile_definitions("${example_program}_hip" PUBLIC __HIP_PLATFORM_HCC__)
   add_test ("test_${example_program}_hip" "${example_program}_hip")
+  set_tests_properties("test_${example_program}_hip" PROPERTIES TIMEOUT 30)
 endforeach()
 
 foreach(example_program ${example_programs2})
@@ -51,6 +52,7 @@ foreach(example_program ${example_programs2})
   target_compile_definitions("${example_program}_managed_hip" PUBLIC __HIP_PLATFORM_HCC__)
   target_compile_definitions("${example_program}_managed_hip" PUBLIC MANAGED)
   add_test ("test_${example_program}_managed_hip" "${example_program}_managed_hip")
+  set_tests_properties("test_${example_program}_managed_hip" PROPERTIES TIMEOUT 30)
 endforeach()
 
 # Make sure the linker can find the Apex library once it is built.

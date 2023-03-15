@@ -110,10 +110,11 @@ main(int argc, char *argv[])
   DRIVER_API_CALL(cuInit(0));
 
   RUNTIME_API_CALL(cudaGetDeviceCount(&devCount));
+  printf("%d Devices found:\n", devCount);
   for (deviceNum=0; deviceNum<devCount; deviceNum++) {
       DRIVER_API_CALL(cuDeviceGet(&device, deviceNum));
       DRIVER_API_CALL(cuDeviceGetName(deviceName, 32, device));
-      printf("Device Name: %s\n", deviceName);
+      printf("Device %d Name: %s\n", deviceNum, deviceName);
 
       RUNTIME_API_CALL(cudaSetDevice(deviceNum));
       // do pass default stream
@@ -126,7 +127,7 @@ main(int argc, char *argv[])
 
       cudaDeviceSynchronize();
 
-      cudaDeviceReset();
+      //cudaDeviceReset();
   }
   apex::finalize();
   apex::cleanup();
