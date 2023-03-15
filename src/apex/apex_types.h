@@ -319,6 +319,7 @@ inline unsigned int sc_nprocessors_onln(void)
     macro (APEX_PTHREAD_WRAPPER_STACK_SIZE, pthread_wrapper_stack_size, \
         int, 0, "When wrapping pthread_create, use this size for the stack (0 = use default).") \
     macro (APEX_ENABLE_OMPT, use_ompt, bool, false, "Enable OpenMP Tools support.") \
+    macro (APEX_ENABLE_MPI, use_mpi, bool, false, "Enable MPI measurement support.") \
     macro (APEX_OMPT_REQUIRED_EVENTS_ONLY, ompt_required_events_only, \
         bool, false, "Disable moderate-frequency, moderate-overhead OMPT events.") \
     macro (APEX_OMPT_HIGH_OVERHEAD_EVENTS, ompt_high_overhead_events, \

@@ -33,14 +33,6 @@ if (ZLIB_FOUND)
 SET(ZLIB_SOURCE gzstream.cpp)
 endif(ZLIB_FOUND)
 
-if (APEX_WITH_MPI)
-SET(MPI_SOURCE apex_mpi.cpp)
-endif (APEX_WITH_MPI)
-
-if (MPI_Fortran_FOUND)
-SET(MPIF_SOURCE apex_mpif.F90)
-endif (MPI_Fortran_FOUND)
-
 if (STARPU_FOUND)
 SET(STARPU_SOURCE apex_starpu.cpp)
 endif(STARPU_FOUND)
@@ -74,8 +66,6 @@ apex.cpp
 apex_error_handling.cpp
 apex_kokkos.cpp
 apex_kokkos_tuning.cpp
-${MPI_SOURCE}
-${MPIF_SOURCE}
 apex_options.cpp
 event_filter.cpp
 apex_policies.cpp
@@ -135,6 +125,21 @@ endif (OMPT_FOUND)
 
 add_library (taudummy tau_dummy.cpp)
 add_dependencies (apex taudummy ${perfetto_target})
+
+if (APEX_WITH_MPI)
+    add_definitions(-DAPEX_WITH_MPI)
+    if (APEX_WITH_MPI)
+        SET(MPI_SOURCE apex_mpi.cpp)
+    endif (APEX_WITH_MPI)
+    if (MPI_Fortran_FOUND)
+        SET(MPIF_SOURCE apex_mpif.F90)
+    endif (MPI_Fortran_FOUND)
+    add_library (apex_mpi
+        ${MPI_SOURCE}
+        ${MPIF_SOURCE})
+    target_link_libraries (apex_mpi apex ${LIBS})
+    add_dependencies (apex_mpi apex)
+endif (APEX_WITH_MPI)
 
 if (APEX_WITH_CUDA)
     add_definitions(-DAPEX_WITH_CUDA)
@@ -266,22 +271,69 @@ SET(APEX_PUBLIC_HEADERS apex.h
 INSTALL(FILES ${APEX_PUBLIC_HEADERS} DESTINATION include)
 #set_target_properties(apex PROPERTIES PUBLIC_HEADER apex.h)
 
-INSTALL(TARGETS apex EXPORT APEXTargets RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib INCLUDES DESTINATION include)
-if (APEX_WITH_OMPT)
-INSTALL(TARGETS apex_ompt EXPORT APEXTargets RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib INCLUDES DESTINATION include)
-endif (APEX_WITH_OMPT)
-if (APEX_WITH_HIP)
-INSTALL(TARGETS apex_hip EXPORT APEXTargets RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib INCLUDES DESTINATION include)
-endif (APEX_WITH_HIP)
-if (APEX_WITH_CUDA)
-INSTALL(TARGETS apex_cuda EXPORT APEXTargets RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib INCLUDES DESTINATION include)
-endif (APEX_WITH_CUDA)
-if (APEX_WITH_LEVEL0)
-INSTALL(TARGETS apex_level0 EXPORT APEXTargets RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib INCLUDES DESTINATION include)
-endif (APEX_WITH_LEVEL0)
-INSTALL(TARGETS taudummy EXPORT APEXTargets RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib INCLUDES DESTINATION include)
+INSTALL(TARGETS apex
+        EXPORT APEXTargets
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+        INCLUDES DESTINATION include)
 
-install(EXPORT APEXTargets FILE APEXTargets.cmake NAMESPACE APEX:: DESTINATION lib/cmake/APEX)
+INSTALL(TARGETS taudummy
+        EXPORT APEXTargets
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+        INCLUDES DESTINATION include)
+
+if (APEX_WITH_OMPT)
+    INSTALL(TARGETS apex_ompt
+            EXPORT APEXTargets
+            RUNTIME DESTINATION bin
+            LIBRARY DESTINATION lib
+            ARCHIVE DESTINATION lib
+            INCLUDES DESTINATION include)
+endif (APEX_WITH_OMPT)
+
+if (APEX_WITH_MPI)
+    INSTALL(TARGETS apex_mpi
+            EXPORT APEXTargets
+            RUNTIME DESTINATION bin
+            LIBRARY DESTINATION lib
+            ARCHIVE DESTINATION lib
+            INCLUDES DESTINATION include)
+endif (APEX_WITH_MPI)
+
+if (APEX_WITH_HIP)
+    INSTALL(TARGETS apex_hip
+            EXPORT APEXTargets
+            RUNTIME DESTINATION bin
+            LIBRARY DESTINATION lib
+            ARCHIVE DESTINATION lib
+            INCLUDES DESTINATION include)
+endif (APEX_WITH_HIP)
+
+if (APEX_WITH_CUDA)
+    INSTALL(TARGETS apex_cuda
+            EXPORT APEXTargets
+            RUNTIME DESTINATION bin
+            LIBRARY DESTINATION lib
+            ARCHIVE DESTINATION lib
+            INCLUDES DESTINATION include)
+endif (APEX_WITH_CUDA)
+
+if (APEX_WITH_LEVEL0)
+    INSTALL(TARGETS apex_level0
+            EXPORT APEXTargets
+            RUNTIME DESTINATION bin
+            LIBRARY DESTINATION lib
+            ARCHIVE DESTINATION lib
+            INCLUDES DESTINATION include)
+endif (APEX_WITH_LEVEL0)
+
+install(EXPORT APEXTargets
+        FILE APEXTargets.cmake
+        NAMESPACE APEX::
+        DESTINATION lib/cmake/APEX)
 include(CMakePackageConfigHelpers)
 configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake.in
     ${CMAKE_CURRENT_BINARY_DIR}/APEXConfig.cmake

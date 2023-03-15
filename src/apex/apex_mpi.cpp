@@ -19,7 +19,7 @@
 #include "memory_wrapper.hpp"
 #include "apex_error_handling.hpp"
 #include "proc_read.h"
-#if defined(APEX_HAVE_MPI) || \
+#if defined(APEX_WITH_MPI) || \
     (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
 #include "mpi.h"
 #endif
@@ -130,7 +130,25 @@ void  mpi_abort_( MPI_Fint *comm, MPI_Fint *errorcode, MPI_Fint *ierr) {
  * execution) we need to finalize APEX before MPI_Finalize() is called, so
  * that we can use MPI for the wrap-up.  We can override the weak MPI
  * implementation of Finalize, and do what we need to. */
-#if defined(APEX_HAVE_MPI) && !defined(HPX_HAVE_NETWORKING)
+#if defined(APEX_WITH_MPI) && !defined(HPX_HAVE_NETWORKING)
+    int MPI_Init(int *argc, char ***argv) {
+        int retval = PMPI_Init(argc, argv);
+        int rank{0};
+        int size{0};
+        PMPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        PMPI_Comm_size(MPI_COMM_WORLD, &size);
+        apex::init("APEX MPI", rank, size);
+        return retval;
+    }
+    int MPI_Init_thread( int *argc, char ***argv, int required, int *provided ) {
+        int retval = PMPI_Init_thread(argc, argv, required, provided);
+        int rank{0};
+        int size{0};
+        PMPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        PMPI_Comm_size(MPI_COMM_WORLD, &size);
+        apex::init("APEX MPI", rank, size);
+        return retval;
+    }
     int MPI_Finalize(void) {
         apex::finalize();
         int retval = PMPI_Finalize();
@@ -150,7 +168,7 @@ void  _symbol( MPI_Fint *ierr ) { \
     APEX_MPI_FINALIZE_TEMPLATE(MPI_FINALIZE__)
 #endif
 
-#if defined(APEX_HAVE_MPI) || \
+#if defined(APEX_WITH_MPI) || \
     (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
     /* Get the total bytes transferred, record it, and return it
        to be used for bandwidth calculation */

@@ -3,23 +3,23 @@
 #  cmake_policy(SET CMP0004 OLD)
 #endif()
 
-# Make sure the compiler can find include files from our Apex library. 
-include_directories (${APEX_SOURCE_DIR}/src/apex ${APEX_SOURCE_DIR}/src/comm ${MPI_CXX_INCLUDE_PATH}) 
+# Make sure the compiler can find include files from our Apex library.
+include_directories (${APEX_SOURCE_DIR}/src/apex ${APEX_SOURCE_DIR}/src/comm ${MPI_CXX_INCLUDE_PATH})
 
-# Make sure the linker can find the Apex library once it is built. 
-link_directories (${APEX_BINARY_DIR}/src/apex ${APEX_BINARY_DIR}/src/comm/mpi) 
+# Make sure the linker can find the Apex library once it is built.
+link_directories (${APEX_BINARY_DIR}/src/apex ${APEX_BINARY_DIR}/src/comm/mpi)
 
 # Add executable called "lulesh_MPI_2.0" that is built from the source file
-# "lulesh.cc". The extensions are automatically found. 
+# "lulesh.cc". The extensions are automatically found.
 add_executable (lulesh_MPI_2.0 lulesh.cc lulesh-comm.cc lulesh-init.cc lulesh-util.cc lulesh-viz.cc)
 add_dependencies (lulesh_MPI_2.0 apex)
 add_dependencies (examples lulesh_MPI_2.0)
 
-set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -DAPEX_WITH_MPI=1")
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -DAPEX_WITH_MPI=1")
+set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -DAPEX_ENABLE_MPI=1")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -DAPEX_ENABLE_MPI=1")
 
-# Link the executable to the Apex library. 
-target_link_libraries (lulesh_MPI_2.0 apex apex_mpi
+# Link the executable to the Apex library.
+target_link_libraries (lulesh_MPI_2.0 apex apex_mpi apex_global_mpi
 ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES} ${LIBS} stdc++ m)
 if (BUILD_STATIC_EXECUTABLES)
     set_target_properties(lulesh_MPI_2.0 PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)

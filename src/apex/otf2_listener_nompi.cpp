@@ -16,7 +16,7 @@
 #include <hpx/hpx.hpp>
 #endif
 
-#if !defined(HPX_HAVE_NETWORKING) && !defined(APEX_HAVE_MPI)
+#if !defined(HPX_HAVE_NETWORKING) && !defined(APEX_WITH_MPI)
 
 #include "otf2_listener.hpp"
 

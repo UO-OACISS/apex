@@ -11,7 +11,7 @@
 */
 
 // only compile this file if we have MPI support (but not HPX!)
-#if !defined(HPX_HAVE_NETWORKING) && defined(APEX_HAVE_MPI)
+#if !defined(HPX_HAVE_NETWORKING) && defined(APEX_WITH_MPI)
 
 #include "otf2_listener.hpp"
 #include "mpi.h"

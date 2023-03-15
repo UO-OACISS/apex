@@ -1,7 +1,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "apex_api.hpp"
-#if defined(APEX_HAVE_MPI)
+#if defined(APEX_WITH_MPI)
 #include "mpi.h"
 #endif
 
@@ -100,7 +100,7 @@ void launch(DataElement *elem) {
 
 int main(int argc, char * argv[])
 {
-#if defined(APEX_HAVE_MPI)
+#if defined(APEX_WITH_MPI)
   MPI_Init(&argc, &argv);
   int rank, size;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -152,7 +152,7 @@ int main(int argc, char * argv[])
   nvtxRangeEnd(rid2);
   nvtxDomainDestroy(domain);
   nvtxRangePop();
-#if defined(APEX_HAVE_MPI)
+#if defined(APEX_WITH_MPI)
   MPI_Finalize();
 #endif
   apex::finalize();

@@ -4,7 +4,7 @@
 #include <curand.h>
 #include <omp.h>
 #include "apex_api.hpp"
-#if defined(APEX_HAVE_MPI)
+#if defined(APEX_WITH_MPI)
 #include "mpi.h"
 #endif
 
@@ -29,7 +29,7 @@ __global__ void montecarlo(float* pt1, float* pt2, int* result, int total_thread
 }
 
 int main(int argc, char * argv[]) {
-#if defined(APEX_HAVE_MPI)
+#if defined(APEX_WITH_MPI)
   MPI_Init(&argc, &argv);
   int rank, size;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -174,7 +174,7 @@ int main(int argc, char * argv[]) {
     free(results_host[i]);
   }
   free(results_host);
-#if defined(APEX_HAVE_MPI)
+#if defined(APEX_WITH_MPI)
   MPI_Finalize();
 #endif
   apex::finalize();

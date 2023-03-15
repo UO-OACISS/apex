@@ -42,7 +42,7 @@ where APEX options are zero or more of:
     --apex:throttle               throttle short-lived timers to reduce overhead (default: off)
     --apex:throttle_calls <value> minimum number of calls before throttling (default: 1000)
     --apex:throttle_per <value>   minimum timer duration in microseconds (default: 10)
-    --apex:otf2                   enable OTF2 trace output
+    --apex:otf2                   enable OTF2 trace output (requries --apex:mpi with MPI configurations)
     --apex:otf2path <value>       specify location of OTF2 archive
                                   (default: ./OTF2_archive)
     --apex:otf2name <value>       specify name of OTF2 file (default: APEX)
@@ -77,6 +77,7 @@ where APEX options are zero or more of:
     --apex:status                 enable sampling of /proc/self/status (Linux only)
     --apex:io                     enable sampling of /proc/self/io (Linux only)
     --apex:period <value>         specify frequency of OS/HW sampling
+    --apex:mpi                    enable MPI profiling (required for OTF2 support with MPI configurations)
     --apex:ompt                   enable OpenMP profiling (requires runtime support)
     --apex:ompt_simple            only enable OpenMP Tools required events
     --apex:ompt_details           enable all OpenMP Tools events
@@ -119,6 +120,7 @@ untied=no
 cpuinfo=no
 meminfo=no
 ompt=no
+mpi=no
 net=no
 stat=no
 period=1000000
@@ -358,6 +360,11 @@ while (( "$#" )); do
       export APEX_UNTIED_TIMERS=1
       shift
       ;;
+    --apex:mpi)
+      mpi=yes
+      export APEX_ENABLE_MPI=1
+      shift
+      ;;
     --apex:ompt)
       ompt=yes
       export APEX_ENABLE_OMPT=1
@@ -517,6 +524,12 @@ if [ $ompt = yes ]; then
         export OMP_DISPLAY_ENV=true
     fi
 fi
+if [ $mpi = yes ]; then
+    testme=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}_mpi${SHLIBX}
+    if [ -f ${testme} ]; then
+        export MPI_LIB=:${testme}
+    fi
+fi
 if [ $cuda = yes ] || [ $monitor_gpu = yes ]; then
     testme=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}_cuda${SHLIBX}
     if [ -f ${testme} ]; then
@@ -542,9 +555,9 @@ if [ $cpu_memory = yes ]; then
     echo_screen "APEX_LD_AUDIT: ${APEX_LD_AUDIT}"
 fi
 if [ ${apple} = 1 ]; then
-    APEX_LD_PRELOAD=${USER_PRELOAD}${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}${OMPT_LIB}${CUDA_LIB}${HIP_LIB}${LEVEL0_LIB}
+    APEX_LD_PRELOAD=${USER_PRELOAD}${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}${OMPT_LIB}${MPI_LIB}${CUDA_LIB}${HIP_LIB}${LEVEL0_LIB}
 else
-    APEX_LD_PRELOAD=${USER_PRELOAD}${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}${OMPT_LIB}${CUDA_LIB}${HIP_LIB}${LEVEL0_LIB}:${LD_PRELOAD}
+    APEX_LD_PRELOAD=${USER_PRELOAD}${PTHREAD_LIB}${MEMORY_LIB}${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}${OMPT_LIB}${MPI_LIB}${CUDA_LIB}${HIP_LIB}${LEVEL0_LIB}:${LD_PRELOAD}
 fi
 
 # remove spaces and double colons
@@ -626,6 +639,15 @@ fi
 
 # OK! if the user requests "groups" of counters, split up the groups
 # and iterate over them, setting different output directories for each.
+
+# Print out all APEX environment variables that have been set.
+env | while IFS= read -r line; do
+  value=${line#*=}
+  name=${line%%=*}
+  if [[ $value == APEX* ]] ; then
+    echo "$value: $name"
+  fi
+done
 
 delim=";"
 long_metrics=${APEX_PAPI_METRICS}

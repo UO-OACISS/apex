@@ -31,7 +31,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/file.h>
-#if !defined(HPX_HAVE_NETWORKING) && defined(APEX_HAVE_MPI)
+#if !defined(HPX_HAVE_NETWORKING) && defined(APEX_WITH_MPI)
 #include <mpi.h>
 #include "otf2/OTF2_MPI_Collectives.h"
 #endif
@@ -489,6 +489,7 @@ namespace apex {
     }
 
     bool otf2_listener::create_archive(void) {
+        printf("Enter %s\n", __func__);
         /* only one thread per process allowed in here, ever! */
         write_lock_type lock(_archive_mutex);
         /* only open once! */
@@ -515,9 +516,16 @@ namespace apex {
         stringstream tmp;
         tmp << "APEX version " << version();
         OTF2_EC(OTF2_Archive_SetCreator(archive, tmp.str().c_str()));
-#if defined(APEX_HAVE_MPI)
-        OTF2_MPI_Archive_SetCollectiveCallbacks(archive,
-            MPI_COMM_WORLD, MPI_COMM_NULL);
+#if defined(APEX_WITH_MPI)
+        int initialized{0};
+        MPI_Initialized(&initialized);
+        if (initialized) {
+            OTF2_MPI_Archive_SetCollectiveCallbacks(archive,
+                MPI_COMM_WORLD, MPI_COMM_NULL);
+        } else {
+            OTF2_EC(OTF2_Archive_SetCollectiveCallbacks(archive,
+                get_collective_callbacks(), nullptr, nullptr, nullptr));
+        }
 #else
         /* we should implement something for HPX, too... */
         /* we have no collective callbacks. */
@@ -527,6 +535,7 @@ namespace apex {
         /* open the event files for this archive */
         OTF2_EC(OTF2_Archive_OpenEvtFiles( archive ));
         created = true;
+        printf("Exit %s\n", __func__);
         return created;
      }
 
@@ -1844,7 +1853,7 @@ namespace apex {
         }
      }
 
-#elif defined(APEX_HAVE_MPI)
+#elif defined(APEX_WITH_MPI)
 
     /* MPI implementations */
 
