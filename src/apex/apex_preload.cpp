@@ -55,11 +55,8 @@ int apex_preload_main(int argc, char** argv, char** envp) {
     int ret{0};
     /* If we're using OTF2, make sure we don't initialize until after MPI_Init */
     if (apex::apex_options::use_otf2() && apex::apex_options::use_mpi()) {
-        printf("NOT initializing APEX!\n");
         ret = main_real(argc, argv, envp);
-        printf("Done: NOT initializing APEX!\n");
     } else {
-        printf("Initializing APEX!\n");
         apex::init("APEX Preload", 0, 1);
         auto t = apex::new_task(__APEX_FUNCTION__);
         apex::start(t);
@@ -70,7 +67,6 @@ int apex_preload_main(int argc, char** argv, char** envp) {
             apex::dump(false);
         }
         apex::cleanup();
-        printf("Done: Initializing APEX!\n");
     }
     return ret;
 }
