@@ -330,6 +330,15 @@ if (APEX_WITH_LEVEL0)
             INCLUDES DESTINATION include)
 endif (APEX_WITH_LEVEL0)
 
+if(APEX_WITH_PERFETTO)
+    INSTALL(TARGETS perfetto
+            EXPORT APEXTargets
+            RUNTIME DESTINATION bin
+            LIBRARY DESTINATION lib
+            ARCHIVE DESTINATION lib
+            INCLUDES DESTINATION include)
+endif(APEX_WITH_PERFETTO)
+
 install(EXPORT APEXTargets
         FILE APEXTargets.cmake
         NAMESPACE APEX::
