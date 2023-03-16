@@ -877,7 +877,6 @@ namespace apex {
 #endif
 
         if (apex_options::monitor_gpu()) {
-            dynamic::cuda::stop();
             dynamic::rsmi::stop();
         }
         if (apex_options::use_hip_profiler()) {
