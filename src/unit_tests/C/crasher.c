@@ -3,7 +3,9 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/mman.h>
+#if !defined(__APPLE__)
 #include <malloc.h>
+#endif
 
 #define handle_error(msg) \
     do { perror(msg); exit(EXIT_FAILURE); } while (0)
