@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <unistd.h>
 #include <sys/mman.h>
 #if !defined(__APPLE__)
 #include <malloc.h>
@@ -18,7 +19,12 @@ int main(int argc, char *argv[])
     char *p; char a;
     int pagesize;
 
-    pagesize=4096;
+#if defined(getpagesize)
+    pagesize=getpagesize();
+#else
+    pagesize=sysconf(_SC_PAGESIZE);
+#endif
+    printf("Pagesize: %d\n", pagesize);
 
     /* Allocate a buffer aligned on a page boundary;
        initial protection is PROT_READ | PROT_WRITE */
@@ -35,11 +41,9 @@ int main(int argc, char *argv[])
     printf("Start of region:        0x%lx\n", (long) buffer+pagesize);
     printf("Start of region:        0x%lx\n", (long) buffer+2*pagesize);
     printf("Start of region:        0x%lx\n", (long) buffer+3*pagesize);
-    //if (mprotect(buffer + pagesize * 0, pagesize,PROT_NONE) == -1)
     if (mprotect(buffer + pagesize * 0, pagesize,PROT_NONE) == -1)
         handle_error("mprotect");
 
-    //for (p = buffer ; ; )
     if(flag==0)
     {
         p = buffer+pagesize/2;

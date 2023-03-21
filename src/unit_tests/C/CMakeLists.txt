@@ -9,6 +9,10 @@ if(OpenACC_C_FOUND AND OpenACCProfiling_FOUND)
     set(APEX_OPENACC_TEST apex_openacc)
 endif(OpenACC_C_FOUND AND OpenACCProfiling_FOUND)
 
+if(APEX_ERROR_HANDLING)
+    set(APEX_CRASH_TEST crasher)
+endif()
+
 set(example_programs
     apex_init
     apex_init_args
@@ -38,7 +42,7 @@ set(example_programs
     apex_get_thread_cap
     apex_shutdown_throttling
     apex_disable
-    crasher
+    ${APEX_CRASH_TEST}
     ${APEX_OPENACC_TEST}
    )
 #    apex_setup_power_cap_throttling
@@ -84,5 +88,7 @@ if(OpenACC_C_FOUND AND OpenACCProfiling_FOUND)
 endif(OpenACC_C_FOUND AND OpenACCProfiling_FOUND)
 
 set_tests_properties(test_apex_disable PROPERTIES ENVIRONMENT "APEX_DISABLE=1")
-set_tests_properties(test_crasher PROPERTIES WILL_FAIL TRUE)
+if(APEX_ERROR_HANDLING)
+    set_tests_properties(test_crasher PROPERTIES WILL_FAIL TRUE)
+endif(APEX_ERROR_HANDLING)
 

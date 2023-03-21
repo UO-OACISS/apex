@@ -20,6 +20,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+// Don't use this method if we are using static constructor/destructors
+// on platforms like Apple, PPC64le, etc.
+#ifndef APEX_USE_STATIC_GLOBAL_CONSTRUCTOR
+
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
@@ -38,8 +42,6 @@
 #else
 #define __APEX_FUNCTION__ __func__
 #endif
-
-#if 1
 
 extern "C" {
 
@@ -105,4 +107,4 @@ __libc_start_main(int (*_main)(int, char**, char**), int _argc, char** _argv,
 
 } // extern "C"
 
-#endif
+#endif // #ifndef APEX_USE_STATIC_GLOBAL_CONSTRUCTOR

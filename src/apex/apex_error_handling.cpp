@@ -31,7 +31,7 @@ void apex_print_backtrace() {
   strings = backtrace_symbols( trace, size );
 
   std::cerr << std::endl;
-  std::cerr << "BACKTRACE:";
+  std::cerr << "BACKTRACE (backtrace_symbols):";
   std::cerr << std::endl;
   std::cerr << std::endl;
 
@@ -43,15 +43,22 @@ void apex_print_backtrace() {
 
   // skip the first frame, it is this handler
   for( i = 1; i < size; i++ ){
-   std::cerr << apex::demangle(strings[i]) << std::endl;
-#ifdef APEX_HAVE_BFD
+   std::cerr << strings[i] << std::endl;
+  }
+
+  std::cerr << std::endl;
+  std::cerr << "BACKTRACE (binutils):";
+  std::cerr << std::endl;
+  std::cerr << std::endl;
+
+  // skip the first frame, it is this handler
+  for( i = 1; i < size; i++ ){
+#if defined(APEX_HAVE_BFD) || defined(__APPLE__)
    std::cerr << *(apex::lookup_address((uintptr_t)trace[i], true, true)) << std::endl;
 #else
-#ifndef __APPLE__
    char syscom[1024] = {0};
    sprintf(syscom,"addr2line -f -i -e %s %p", exe, trace[i]);
    system(syscom);
-#endif
 #endif
   }
 }
@@ -64,25 +71,27 @@ static void apex_custom_signal_handler(int sig) {
   //std::unique_lock<std::mutex> l(output_mutex);
   fflush(stderr);
   std::cerr << std::endl;
-  std::cerr << "********* Node " << apex::apex::instance()->get_node_id() <<
-               ", Thread " << apex::thread_instance::get_id() << " " <<
-               strsignal(sig) << " *********" << std::endl;
+  apex_print_backtrace();
   std::cerr << std::endl;
-  if(errnum) {
-    std::cerr << "Value of errno: " << errno << std::endl;
-    perror("Error printed by perror");
-    std::cerr << "Error string: " << strerror( errnum ) << std::endl;
+
+  if (apex::apex::instance() != nullptr) {
+    std::cerr << "********* Node " << apex::apex::instance()->get_node_id() <<
+                ", Thread " << apex::thread_instance::get_id() << " " <<
+                strsignal(sig) << " *********" << std::endl;
+    std::cerr << std::endl;
+    if(errnum) {
+        std::cerr << "Value of errno: " << errno << std::endl;
+        perror("Error printed by perror");
+        std::cerr << "Error string: " << strerror( errnum ) << std::endl;
+    }
   }
 
-  apex_print_backtrace();
-
-  std::cerr << std::endl;
   std::cerr << "***************************************";
   std::cerr << std::endl;
   std::cerr << std::endl;
   fflush(stderr);
   //apex::finalize();
-  _exit(-1);
+    exit(sig);
 }
 
 #ifdef APEX_BE_GOOD_CITIZEN
