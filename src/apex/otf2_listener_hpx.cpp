@@ -16,6 +16,8 @@
 #include <hpx/hpx.hpp>
 #endif
 
+#if defined(HPX_HAVE_NETWORKING)
+
 #if 0 // defined(HPX_HAVE_NETWORKING)
 #include <hpx/include/lcos.hpp>
 #include "otf2_listener.hpp"
@@ -109,4 +111,6 @@ int otf2_listener::getCommSize() {
 
 } // namespace apex
 
-#endif
+#endif // #if 0
+
+#endif // #if !defined(HPX_HAVE_NETWORKING) && !defined(APEX_WITH_MPI)

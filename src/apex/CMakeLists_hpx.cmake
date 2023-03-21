@@ -334,6 +334,7 @@ set(apex_headers
 
 set(apex_sources
     apex.cpp
+    apex_dynamic.cpp
     apex_error_handling.cpp
     apex_kokkos.cpp
     apex_kokkos_tuning.cpp
