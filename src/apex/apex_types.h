@@ -298,6 +298,7 @@ inline unsigned int sc_nprocessors_onln(void)
     macro (APEX_LM_SENSORS, use_lm_sensors, bool, false, "Periodically sample data from lm-sensors (requires CMake configuration option).") \
     macro (APEX_PROC_STAT_DETAILS, use_proc_stat_details, bool, false, "Periodically read detailed data from /proc/self/stat.") \
     macro (APEX_PROC_PERIOD, proc_period, int, 1000000, "/proc/* sampling period.") \
+    macro (APEX_PROC_PERIOD_FLUSH, proc_period_flush, bool, false, "Flush trace/profile data after data is sampled (useful when debugging a crash)") \
     macro (APEX_SORT_TIMERS_BY_NAME, sort_timers_by_name, bool, false, "Sort timer screen data by name.") \
     macro (APEX_THROTTLE_TIMERS, throttle_timers, \
         bool, false, "Enable throttling of short-lived timer events.") \

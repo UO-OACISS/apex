@@ -680,7 +680,7 @@ add_dependencies (project_otf2 project_activeharmony)
 # ZLIB configuration
 ################################################################################
 
-find_package(ZLIB)
+#find_package(ZLIB)
 if(ZLIB_FOUND)
     set(LIBS ${LIBS} ${ZLIB_LIBRARIES})
     add_definitions(-DAPEX_HAVE_ZLIB)

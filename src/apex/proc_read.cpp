@@ -785,6 +785,7 @@ namespace apex {
             initialize_worker_thread_for_tau();
             _initialized = true;
         }
+        auto p = scoped_timer("apex::proc_data_reader::read_proc");
         if (apex_options::use_tau()) {
             tau_listener::Tau_start_wrapper("proc_data_reader::read_proc");
         }
@@ -832,6 +833,7 @@ namespace apex {
                break;
             }
             if (done) break;
+            auto loop = scoped_timer("apex::proc_data_reader::read_proc: main_loop");
             if (apex_options::use_tau()) {
                 tau_listener::Tau_start_wrapper("proc_data_reader::read_proc: main loop");
             }
@@ -871,7 +873,12 @@ namespace apex {
             if (apex_options::use_tau()) {
                 tau_listener::Tau_stop_wrapper("proc_data_reader::read_proc: main loop");
             }
+            if (apex_options::proc_period_flush()) {
+                dump(false);
+            }
+
         }
+        p.stop();
 #ifdef APEX_HAVE_LM_SENSORS
         delete(mysensors);
 #endif

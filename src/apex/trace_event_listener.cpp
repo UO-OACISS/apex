@@ -61,6 +61,8 @@ void trace_event_listener::on_startup(startup_event_data &data) {
 
 void trace_event_listener::on_dump(dump_event_data &data) {
     APEX_UNUSED(data);
+    //std::thread(flush_trace, this).detach();
+    flush_trace(this);
     return;
 }
 
@@ -514,6 +516,7 @@ void trace_event_listener::flush_trace(trace_event_listener* listener) {
     // flush the trace
     trace_file << ss.rdbuf() << std::flush;
 #endif
+    trace_file.flush();
     flushing = false;
 }
 
