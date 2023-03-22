@@ -56,8 +56,8 @@ where APEX options are zero or more of:
     --apex:kokkos_fence           enable Kokkos fences for async kernels
     --apex:raja                   enable RAJA support
     --apex:pthread                enable pthread wrapper support
-    --apex:gpu_memory             enable CPU memory wrapper support
-    --apex:cpu_memory             enable GPU memory wrapper support
+    --apex:gpu_memory             enable GPU memory wrapper support
+    --apex:cpu_memory             enable CPU memory wrapper support
     --apex:untied                 enable tasks to migrate cores/OS threads
                                   during execution (not compatible with trace output)
     --apex:cuda                   enable CUDA/CUPTI measurement (default: off)
