@@ -266,9 +266,9 @@ while (( "$#" )); do
       shift
       ;;
     --apex:cuda_driver)
-      cuda=yes
+      #cuda=yes
       cuda_driver=yes
-      export APEX_ENABLE_CUDA=1
+      #export APEX_ENABLE_CUDA=1
       export APEX_CUDA_DRIVER_API=1
       shift
       ;;

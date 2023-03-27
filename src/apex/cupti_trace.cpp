@@ -1263,6 +1263,7 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
     bool onHost = false;
     bool managed = false;
     void* ptr = nullptr;
+    bool ismallocfree{true};
     static std::atomic<size_t> totalAllocated{0};
     static std::unordered_map<void*,size_t> memoryMap;
     std::mutex mapMutex;
@@ -1362,7 +1363,8 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
                 break;
             }
             default: {
-                // return false;
+                // Neither a malloc or a free
+                ismallocfree = false;
                 break;
             }
         }
@@ -1444,10 +1446,12 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
                 break;
             }
             default: {
-                return false;
+                // Neither a malloc or a free
+                ismallocfree = false;
             }
         }
     }
+    if (!ismallocfree) { return false; }
     // If we are in the enter of a function, and we are freeing memory,
     // then update and record the bytes allocated
     if (free && isEnter) {
@@ -1460,7 +1464,7 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
                 hostMemoryMap.erase(ptr);
             } else {
                 hostMapMutex.unlock();
-                return false;
+                return true;
             }
             hostMapMutex.unlock();
             value = (double)(bytes);
@@ -1476,7 +1480,7 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
                 memoryMap.erase(ptr);
             } else {
                 mapMutex.unlock();
-                return false;
+                return true;
             }
             mapMutex.unlock();
             value = (double)(bytes);
@@ -1493,7 +1497,7 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
     // If we are in the exit of a function, and we are allocating memory,
     // then update and record the bytes allocated
     } else if (!free && !isEnter) {
-        if (bytes == 0) return false;
+        if (bytes == 0) return true;
         double value = (double)(bytes);
         //std::cout << "Allocating " << value << " bytes at " << ptr << std::endl;
         if (onHost) {
@@ -1858,7 +1862,7 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
 
     /* Check for exit */
     if (!allGood) {
-	return;
+        return;
     }
 
     /* Check for a new context */
@@ -1869,10 +1873,12 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
         //return;
     }
 
-    /* Check for user-level instrumentation */
-    if (domain == CUPTI_CB_DOMAIN_NVTX) {
-        handle_nvtx_callback(id, params);
-        return;
+    if (apex::apex_options::use_cuda()) {
+        /* Check for user-level instrumentation */
+        if (domain == CUPTI_CB_DOMAIN_NVTX) {
+            handle_nvtx_callback(id, params);
+            return;
+        }
     }
 
     CUpti_CallbackData * cbdata = (CUpti_CallbackData*)(params);
@@ -1893,26 +1899,30 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
             }
         }
         std::string tmp(ss.str());
-        /*
-           std::string tmp(cbdata->functionName);
-           */
-        auto timer = apex::new_task(tmp);
-	if (timer == nullptr) {
+        bool ismem = getBytesIfMalloc(id, cbdata->functionParams, tmp, true);
+
+        if (apex::apex_options::use_cuda() ||
+            (apex::apex_options::track_gpu_memory() && ismem)) {
+            /*
+            std::string tmp(cbdata->functionName);
+             */
+            auto timer = apex::new_task(tmp);
+            if (timer == nullptr) {
             /* This happens when we've hit finalize but there are still some
-	     * CUDA calls that come in. Ignore it.
-	     */
-            return;
-	}
-        apex::start(timer);
-        timer_stack.push(timer);
-        apex::async_event_data as_data(timer->prof->get_start_us(),
-            "OtherFlow", cbdata->correlationId,
-            apex::thread_instance::get_id(), cbdata->functionName);
-        map_mutex.lock();
-        correlation_map[cbdata->correlationId] = timer;
-        correlation_kernel_data_map[cbdata->correlationId] = as_data;
-        map_mutex.unlock();
-        getBytesIfMalloc(id, cbdata->functionParams, tmp, true);
+            * CUDA calls that come in. Ignore it.
+            */
+                return;
+            }
+            apex::start(timer);
+            timer_stack.push(timer);
+            apex::async_event_data as_data(timer->prof->get_start_us(),
+                "OtherFlow", cbdata->correlationId,
+                apex::thread_instance::get_id(), cbdata->functionName);
+            map_mutex.lock();
+            correlation_map[cbdata->correlationId] = timer;
+            correlation_kernel_data_map[cbdata->correlationId] = as_data;
+            map_mutex.unlock();
+        }
     } else if (cbdata->callbackSite == CUPTI_API_EXIT) {
         /* Not sure how to use this yet... if this is a kernel launch, we can
          * run a function on the host, launched from the stream.  That gives us
@@ -1940,17 +1950,18 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
         }
 
         if (!timer_stack.empty()) {
-        auto timer = timer_stack.top();
-        apex::stop(timer);
+            auto timer = timer_stack.top();
+            apex::stop(timer);
 
-        map_mutex.lock();
-        apex::async_event_data as_data =
-            correlation_kernel_data_map[cbdata->correlationId];
-        as_data.parent_ts_stop = timer->prof->get_stop_us();
-        correlation_kernel_data_map[cbdata->correlationId] = as_data;
-        map_mutex.unlock();
+            map_mutex.lock();
+            apex::async_event_data as_data =
+                correlation_kernel_data_map[cbdata->correlationId];
+            as_data.parent_ts_stop = timer->prof->get_stop_us();
+            correlation_kernel_data_map[cbdata->correlationId] = as_data;
+            map_mutex.unlock();
 
-        timer_stack.pop();
+            timer_stack.pop();
+        }
 
         /* Check for SetDevice call! */
         if (id == CUPTI_RUNTIME_TRACE_CBID_cudaSetDevice_v3020 ||
@@ -1966,42 +1977,42 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
             context_map[context] = device;
             map_mutex.unlock();
         }
-        }
     }
 }
 
 extern "C" {
 
 void apex_init_cuda_tracing() {
-    if (!apex::apex_options::use_cuda()) { return; }
     // disable memory management tracking in APEX during this initialization
     apex::in_apex prevent_deadlocks;
     // make sure APEX doesn't re-register this thread
     bool& registered = get_registered();
     registered = true;
 
-    // Register callbacks for buffer requests and for buffers completed by CUPTI.
-    CUPTI_CALL(cuptiActivityRegisterCallbacks(bufferRequested, bufferCompleted));
+    if (apex::apex_options::use_cuda()) {
+        // Register callbacks for buffer requests and for buffers completed by CUPTI.
+        CUPTI_CALL(cuptiActivityRegisterCallbacks(bufferRequested, bufferCompleted));
 
-    // Get and set activity attributes.
-    // Attributes can be set by the CUPTI client to change behavior of the activity API.
-    // Some attributes require to be set before any CUDA context is created to be effective,
-    // e.g. to be applied to all device buffer allocations (see documentation).
-    size_t attrValue = 0, attrValueSize = sizeof(size_t);
-    CUPTI_CALL(cuptiActivityGetAttribute(
-                CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_SIZE, &attrValueSize, &attrValue));
-    //attrValue = attrValue / 4;
-    attrValue = BUF_SIZE;
-    CUPTI_CALL(cuptiActivitySetAttribute(
-                CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_SIZE, &attrValueSize, &attrValue));
+        // Get and set activity attributes.
+        // Attributes can be set by the CUPTI client to change behavior of the activity API.
+        // Some attributes require to be set before any CUDA context is created to be effective,
+        // e.g. to be applied to all device buffer allocations (see documentation).
+        size_t attrValue = 0, attrValueSize = sizeof(size_t);
+        CUPTI_CALL(cuptiActivityGetAttribute(
+                    CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_SIZE, &attrValueSize, &attrValue));
+        //attrValue = attrValue / 4;
+        attrValue = BUF_SIZE;
+        CUPTI_CALL(cuptiActivitySetAttribute(
+                    CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_SIZE, &attrValueSize, &attrValue));
 
-    /*
-    CUPTI_CALL(cuptiActivityGetAttribute(
-                CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_POOL_LIMIT, &attrValueSize, &attrValue));
-    attrValue = attrValue * 4;
-    CUPTI_CALL(cuptiActivitySetAttribute(
-                CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_POOL_LIMIT, &attrValueSize, &attrValue));
-    */
+        /*
+        CUPTI_CALL(cuptiActivityGetAttribute(
+                    CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_POOL_LIMIT, &attrValueSize, &attrValue));
+        attrValue = attrValue * 4;
+        CUPTI_CALL(cuptiActivitySetAttribute(
+                    CUPTI_ACTIVITY_ATTR_DEVICE_BUFFER_POOL_LIMIT, &attrValueSize, &attrValue));
+        */
+    }
 
     /* now that the activity is configured, subscribe to callback support, too. */
     CUPTI_CALL(cuptiSubscribe(&subscriber,
@@ -2018,10 +2029,12 @@ void apex_init_cuda_tracing() {
         CUPTI_CALL(cuptiActivityEnableLatencyTimestamps(enable));
     }
 
-    // get user-added instrumentation
-    CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_NVTX));
-    // Make sure we see CUPTI_CBID_RESOURCE_CONTEXT_CREATED events!
-    CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_RESOURCE));
+    if (apex::apex_options::use_cuda()) {
+        // get user-added instrumentation
+        CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_NVTX));
+        // Make sure we see CUPTI_CBID_RESOURCE_CONTEXT_CREATED events!
+        CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_RESOURCE));
+    }
 
     /* These events aren't begin/end callbacks, so no need to support them. */
     //CUPTI_CALL(cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_SYNCHRONIZE));
@@ -2047,7 +2060,6 @@ void apex_init_cuda_tracing() {
  * called from apex::finalize().  It's the only function in the CUDA support
  * that APEX will call directly. */
     void apex_flush_cuda_tracing(void) {
-        if (!apex::apex_options::use_cuda()) { return; }
         if ((num_buffers_processed + 10) < num_buffers) {
             if (apex::apex::instance()->get_node_id() == 0) {
                 flushing = true;
@@ -2063,12 +2075,11 @@ void apex_init_cuda_tracing() {
     }
 
     void apex_stop_cuda_tracing(void) {
-        if (!apex::apex_options::use_cuda()) { return; }
         apex_flush_cuda_tracing();
         CUPTI_CALL(cuptiUnsubscribe(subscriber));
         CUPTI_CALL(cuptiFinalize());
         // get_range_map().clear();
-	//std::cout << "* * * * * * * * EXITING CUPTI SUPPORT * * * * * * * * * *" << std::endl;
-    	allGood = false;
+        //std::cout << "* * * * * * * * EXITING CUPTI SUPPORT * * * * * * * * * *" << std::endl;
+        allGood = false;
     }
 } // extern "C"

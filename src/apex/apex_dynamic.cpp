@@ -82,7 +82,7 @@ void * get_symbol(const char * module, const char * symbol) {
         typedef void (*apex_flush_cuda_tracing_t)(void);
         typedef void (*apex_stop_cuda_tracing_t)(void);
         void init(void) {
-            if (apex_options::use_cuda()) {
+            if (apex_options::use_cuda() || apex_options::track_gpu_memory()) {
                 // do this once
                 static apex_init_cuda_tracing_t apex_init_cuda_tracing =
                     (apex_init_cuda_tracing_t)get_symbol("cuda",
@@ -96,7 +96,7 @@ void * get_symbol(const char * module, const char * symbol) {
         }
 
         void flush(void) {
-            if (apex_options::use_cuda()) {
+            if (apex_options::use_cuda() || apex_options::track_gpu_memory()) {
                 // do this once
                 static apex_flush_cuda_tracing_t apex_flush_cuda_tracing =
                     (apex_flush_cuda_tracing_t)get_symbol("cuda",
@@ -110,7 +110,7 @@ void * get_symbol(const char * module, const char * symbol) {
         }
 
         void stop(void) {
-            if (apex_options::use_cuda()) {
+            if (apex_options::use_cuda() || apex_options::track_gpu_memory()) {
                 // do this once
                 static apex_stop_cuda_tracing_t apex_stop_cuda_tracing =
                     (apex_stop_cuda_tracing_t)get_symbol("cuda",
