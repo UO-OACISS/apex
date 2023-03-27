@@ -29,6 +29,11 @@ book_t& getBook() {
     return book;
 }
 
+book_t& getLargestBook() {
+    static book_t book;
+    return book;
+}
+
 void enable_memory_wrapper() {
   if (!apex_options::track_cpu_memory()) { return; }
   typedef void (*apex_memory_initialized_t)();
@@ -102,6 +107,7 @@ void printBacktrace() {
 
 void recordAlloc(size_t bytes, void* ptr, allocator_t alloc, bool cpu) {
     static book_t& book = getBook();
+    static book_t& largestbook = getLargestBook();
     double value = (double)(bytes);
     if (cpu) sample_value("Memory: Bytes Allocated", value, true);
     profiler * p = thread_instance::instance().get_current_profiler();
@@ -113,6 +119,7 @@ void recordAlloc(size_t bytes, void* ptr, allocator_t alloc, bool cpu) {
     book.mapMutex.lock();
     //book.memoryMap[ptr] = value;
     book.memoryMap.insert(std::pair<void*,record_t>(ptr, tmp));
+    largestbook.memoryMap.insert(std::pair<void*,record_t>(ptr, tmp));
     book.mapMutex.unlock();
     book.totalAllocated.fetch_add(bytes, std::memory_order_relaxed);
     if (p == nullptr) {
@@ -192,12 +199,14 @@ void apex_report_leaks() {
     if (once) return;
     once = true;
     static book_t& book = getBook();
+    static book_t& largestbook = getLargestBook();
     std::stringstream ss;
     ss << "memory_report." << book.saved_node_id << ".txt";
     std::string tmp{ss.str()};
     std::ofstream report (tmp);
     // Declare vector of pairs
     std::vector<std::pair<void*, record_t> > sorted;
+    std::vector<std::pair<void*, record_t> > sorted2;
 
     if (book.saved_node_id == 0) {
         std::cout << "APEX Memory Report: (see " << tmp << ")" << std::endl;
@@ -209,9 +218,13 @@ void apex_report_leaks() {
     for (auto& it : book.memoryMap) {
         sorted.push_back(it);
     }
+    for (auto& it : largestbook.memoryMap) {
+        sorted2.push_back(it);
+    }
 
     // Sort using comparator function
     sort(sorted.begin(), sorted.end(), cmp);
+    sort(sorted2.begin(), sorted2.end(), cmp);
 
     //std::unordered_map<std::string, size_t> locations;
 
@@ -280,6 +293,30 @@ void apex_report_leaks() {
         */
         report << ss.str();
         actual_leaks++;
+    }
+    // Print the sorted list of all allocations, max 250
+    constexpr int maxreport = 250;
+    int index = 0;
+    for (auto& it : sorted2) {
+        if (++index > maxreport) { break; }
+        std::stringstream ss;
+        ss << it.second.bytes << " bytes allocated at " << std::hex << it.first << std::dec << " from task ";
+        std::string name{"(no timer)"};
+        bool nameless{true};
+        if (it.second.id != nullptr) {
+            name = it.second.id->get_name();
+            nameless = false;
+        }
+        ss << name << " on tid " << it.second.tid << " with backtrace: " << std::endl;
+        ss << "\t" << allocator_strings[it.second.alloc] << std::endl;
+        char** strings = backtrace_symbols( it.second.backtrace.data(), it.second.size );
+        for(size_t i = 3; i < it.second.size; i++ ){
+            std::string tmp{strings[i]};
+            std::string* tmp2{lookup_address(((uintptr_t)it.second.backtrace[i]), true)};
+            ss << "\t" << *tmp2 << std::endl;
+        }
+        ss << std::endl;
+        report << ss.str();
     }
     report.close();
     std::cout << "Reported " << actual_leaks << " 'actual' leaks.\nExpect false positives if memory was freed after exit." << std::endl;

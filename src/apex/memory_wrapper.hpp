@@ -60,6 +60,7 @@ public:
 };
 
 book_t& getBook(void);
+book_t& getLargestBook(void);
 void printBacktrace(void);
 void recordAlloc(size_t bytes, void* ptr, allocator_t alloc, bool cpu = true);
 void recordFree(void* ptr, bool cpu = false);
