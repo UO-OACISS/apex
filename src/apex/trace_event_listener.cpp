@@ -445,21 +445,21 @@ void trace_event_listener::write_to_trace(std::stringstream& events) {
     mtx->unlock();
 }
 
-std::string trace_event_listener::get_file_name() {
+std::string trace_event_listener::get_file_name(bool zipped) {
     saved_node_id = apex::instance()->get_node_id();
     std::stringstream ss;
     ss << apex_options::output_file_path() << "/";
     ss << "trace_events." << saved_node_id << ".json";
-#ifdef APEX_HAVE_ZLIB
-    ss << ".gz";
-#endif
+    if (zipped) {
+        ss << ".gz";
+    }
     std::string tmp{ss.str()};
     return tmp;
 }
 
 #ifdef APEX_HAVE_ZLIB
-io::gzofstream& trace_event_listener::get_trace_file() {
-    static io::gzofstream _trace_file(get_file_name());
+io::gzofstream& trace_event_listener::get_trace_file_gz() {
+    static io::gzofstream _trace_file(get_file_name(true));
     // automatically opens
     static bool header{false};
     if (!header) {
@@ -470,44 +470,39 @@ io::gzofstream& trace_event_listener::get_trace_file() {
     }
     return _trace_file;
 }
-#else
+#endif
+
 std::ofstream& trace_event_listener::get_trace_file() {
     static std::ofstream _trace_file;
     if (!_trace_file.is_open()) {
-        _trace_file.open(get_file_name());
+        _trace_file.open(get_file_name(false));
         _trace_file << fixed << "{\n";
-        _trace_file << "\"displayTimeUnit\": \"ms\",\n";
+        //_trace_file << "\"displayTimeUnit\": \"ms\",\n";
         _trace_file << "\"traceEvents\": [\n";
     }
     return _trace_file;
 }
-#endif
 
-void trace_event_listener::flush_trace(trace_event_listener* listener) {
-    static atomic<bool> flushing{false};
-    while (flushing) {} // wait for asynchronous flushing, if it's happening
-    flushing = true;
-    //std::cout << "**** FLUSHING TRACE BUFFER ****" << std::endl;
-    auto p = scoped_timer("APEX: Trace Buffer Flush");
-    auto& trace_file = listener->get_trace_file();
+template<typename T>
+void trace_event_listener::flush_trace_internal(T& trace_file) {
 #ifdef SERIAL
     // flush the trace
-    listener->_vthread_mutex.lock();
-    trace_file << listener->trace.rdbuf();
+    _vthread_mutex.lock();
+    trace_file << trace.rdbuf();
     // reset the buffer
-    listener->trace.str("");
-    listener->_vthread_mutex.unlock();
+    trace.str("");
+    _vthread_mutex.unlock();
     // flush the trace
     trace_file << std::flush;
 #else
-    listener->_vthread_mutex.lock();
-    size_t count = listener->streams.size();
-    listener->_vthread_mutex.unlock();
+    _vthread_mutex.lock();
+    size_t count = streams.size();
+    _vthread_mutex.unlock();
     std::stringstream ss;
     for (size_t index = 0 ; index < count ; index++) {
         auto p2 = scoped_timer("APEX: " + to_string(index) + " thread flush");
-        std::mutex * mtx = listener->get_thread_mutex(index);
-        std::stringstream * strm = listener->get_thread_stream(index);
+        std::mutex * mtx = get_thread_mutex(index);
+        std::stringstream * strm = get_thread_stream(index);
         mtx->lock();
         ss << strm->rdbuf();
         strm->str("");
@@ -517,6 +512,26 @@ void trace_event_listener::flush_trace(trace_event_listener* listener) {
     trace_file << ss.rdbuf() << std::flush;
 #endif
     trace_file.flush();
+}
+
+void trace_event_listener::flush_trace(trace_event_listener* listener) {
+    static atomic<bool> flushing{false};
+    while (flushing) {} // wait for asynchronous flushing, if it's happening
+    flushing = true;
+    //std::cout << "**** FLUSHING TRACE BUFFER ****" << std::endl;
+    auto p = scoped_timer("APEX: Trace Buffer Flush");
+#ifdef APEX_HAVE_ZLIB
+    if (apex_options::proc_period_flush()) {
+        auto& trace_file = listener->get_trace_file();
+        listener->flush_trace_internal(trace_file);
+    } else {
+        auto& trace_file = listener->get_trace_file_gz();
+        listener->flush_trace_internal(trace_file);
+    }
+#else
+    auto& trace_file = listener->get_trace_file();
+    listener->flush_trace_internal(trace_file);
+#endif
     flushing = false;
 }
 
@@ -533,7 +548,6 @@ void trace_event_listener::flush_trace_if_necessary(void) {
 void trace_event_listener::close_trace(void) {
     static bool closed{false};
     if (closed) return;
-    auto& trace_file = get_trace_file();
     std::stringstream ss;
     ss.precision(3);
     ss << fixed;
@@ -546,7 +560,15 @@ void trace_event_listener::close_trace(void) {
     write_to_trace(ss);
     flush_trace(this);
     //printf("Closing trace...\n"); fflush(stdout);
-    trace_file.close();
+#ifdef APEX_HAVE_ZLIB
+    if (apex_options::proc_period_flush()) {
+        get_trace_file().close();
+    } else {
+        get_trace_file_gz().close();
+    }
+#else
+    get_trace_file().close();
+#endif
     closed = true;
 }
 

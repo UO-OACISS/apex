@@ -61,6 +61,8 @@ public:
 private:
   	void _init(void);
   	bool _terminate;
+    template<typename T>
+        void flush_trace_internal(T& trace_file);
     static void flush_trace(trace_event_listener* listener);
     void close_trace(void);
     void flush_trace_if_necessary(void);
@@ -75,12 +77,11 @@ private:
     void write_to_trace(std::stringstream& events);
     int saved_node_id;
     std::atomic<size_t> num_events;
-    std::string get_file_name();
+    std::string get_file_name(bool zipped = false);
 #ifdef APEX_HAVE_ZLIB
-  	io::gzofstream& get_trace_file();
-#else
-  	std::ofstream& get_trace_file();
+  	io::gzofstream& get_trace_file_gz();
 #endif
+  	std::ofstream& get_trace_file();
   	std::stringstream trace;
     std::map<size_t, std::mutex*> mutexes;
     std::map<size_t, std::stringstream*> streams;
