@@ -38,7 +38,8 @@ jobs:
     # Specify the execution environment. You can specify an image from Docker Hub or use one of our convenience images from CircleCI's Developer Hub.
     # See: https://circleci.com/docs/configuration-reference/#executor-job
     machine:
-      image: ubuntu-2004-cuda-11.4:202110-01
+      image: ubuntu-2004-cuda-11.4:current
+    resource_class: "gpu.nvidia.small"
 
     # Add steps to the job
     # See: https://circleci.com/docs/configuration-reference/#steps
