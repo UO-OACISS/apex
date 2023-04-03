@@ -9,7 +9,7 @@ executors:
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/configuration-reference/#jobs
 jobs:
-  build:
+  build-and-test:
     # Specify the execution environment. You can specify an image from Docker Hub or use one of our convenience images from CircleCI's Developer Hub.
     # See: https://circleci.com/docs/configuration-reference/#executor-job
     executor: exectr
@@ -23,33 +23,22 @@ jobs:
           command: |
             mkdir -p build/Tests
       - run:
-          name: "Setup CMake and build artifacts"
+          name: "Setup CMake"
           command: |
             cmake -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DAPEX_BUILD_TESTS=TRUE
+      - run:
+          name: "Build"
+          command: |
             cmake --build build -j4
-      - persist_to_workspace:
-          root: .
-          paths:
-            - "build"
-  test:
-    executor: exectr
-    steps:
-      - attach_workspace:
-          at: .
       - run:
           name: Create test directory
           command: |
-            ctest --test-dir build --no-compress-output -T build/Test || true
-      - store_test_results:
-          path: build/Test
+            ctest --test-dir build
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows
 workflows:
   build-and-test:
     jobs:
-      - build
-      - test:
-          requires:
-            - build
+      - build-and-test
           
