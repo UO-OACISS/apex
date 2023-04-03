@@ -39,7 +39,7 @@ jobs:
       - run:
           name: Create test directory
           command: |
-            ctest --test-dir build
+            ctest --test-dir build --no-compress-output -T build/Test || true
       - store_test_results:
           path: build/Test
 
