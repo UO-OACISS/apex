@@ -1,6 +1,6 @@
 ![Lame APEX logo](doc/logo-cropped.png)
 
-Current CI status: [![CircleCI](https://circleci.com/gh/UO-OACISS/apex.svg?style=svg)](https://circleci.com/gh/UO-OACISS/apex)
+Current CI status on develop branch : [![CircleCI](https://circleci.com/gh/UO-OACISS/apex.svg?style=svg)](https://circleci.com/gh/UO-OACISS/apex)
 
 Please Note:
 ===========
