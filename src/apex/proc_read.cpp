@@ -115,6 +115,7 @@ namespace apex {
                     size_t len = 0;
                     ssize_t nread;
                     while ((nread = getline(&line, &len, fp)) != -1) {
+                        if (nread == -1) break;
                         std::istringstream iline{line};
                         while (iline >> tmpint >> tmpstr) {
                             cray_power_units[name] = tmpstr;
