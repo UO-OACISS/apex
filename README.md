@@ -1,5 +1,7 @@
 ![Lame APEX logo](doc/logo-cropped.png)
 
+Current CI status: [![CircleCI](https://circleci.com/gh/UO-OACISS/apex.svg?style=svg)](https://circleci.com/gh/UO-OACISS/apex)
+
 Please Note:
 ===========
 *All documentation has been recently updated.  Thanks for your patience!*
