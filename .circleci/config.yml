@@ -2,17 +2,20 @@
 # See: https://circleci.com/docs/configuration-reference
 version: 2.1
 executors:
-  exectr:
+  vanilla:
     docker:
       - image: cimg/base:current
+  cuda:
+    docker:
+      - image: ubuntu-2004-cuda-11.4:202110-01
 
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/configuration-reference/#jobs
 jobs:
-  build-and-test:
+  vanilla-job:
     # Specify the execution environment. You can specify an image from Docker Hub or use one of our convenience images from CircleCI's Developer Hub.
     # See: https://circleci.com/docs/configuration-reference/#executor-job
-    executor: exectr
+    executor: vanilla
 
     # Add steps to the job
     # See: https://circleci.com/docs/configuration-reference/#steps
@@ -21,9 +24,9 @@ jobs:
       - run:
           name: Create build directories
           command: |
-            mkdir -p build/Tests
+            mkdir -p build
       - run:
-          name: "Setup CMake"
+          name: "Configure"
           command: |
             cmake -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DAPEX_BUILD_TESTS=TRUE
       - run:
@@ -31,7 +34,32 @@ jobs:
           command: |
             cmake --build build -j4
       - run:
-          name: Create test directory
+          name: "Test"
+          command: |
+            ctest --test-dir build
+  cuda-job:
+    # Specify the execution environment. You can specify an image from Docker Hub or use one of our convenience images from CircleCI's Developer Hub.
+    # See: https://circleci.com/docs/configuration-reference/#executor-job
+    executor: cuda
+
+    # Add steps to the job
+    # See: https://circleci.com/docs/configuration-reference/#steps
+    steps:
+      - checkout
+      - run:
+          name: Create build directories
+          command: |
+            mkdir -p build
+      - run:
+          name: "Configure"
+          command: |
+            cmake -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DAPEX_BUILD_TESTS=TRUE -DAPEX_WITH_CUDA=TRUE -DCMAKE_C_COMPILER=`which nvc` -DCMAKE_CXX_COMPILER=`which nvc++`
+      - run:
+          name: "Build"
+          command: |
+            cmake --build build -j4
+      - run:
+          name: "Test"
           command: |
             ctest --test-dir build
 
@@ -40,5 +68,6 @@ jobs:
 workflows:
   build-and-test:
     jobs:
-      - build-and-test
+      - vanilla-job
+      - cuda-job
           
