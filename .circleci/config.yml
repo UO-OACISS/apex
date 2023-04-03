@@ -5,9 +5,6 @@ executors:
   vanilla:
     docker:
       - image: cimg/base:current
-  cuda:
-    docker:
-      - image: ubuntu-2004-cuda-11.4:202110-01
 
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/configuration-reference/#jobs
@@ -40,7 +37,8 @@ jobs:
   cuda-job:
     # Specify the execution environment. You can specify an image from Docker Hub or use one of our convenience images from CircleCI's Developer Hub.
     # See: https://circleci.com/docs/configuration-reference/#executor-job
-    executor: cuda
+    machine:
+      image: ubuntu-2004-cuda-11.4:202110-01
 
     # Add steps to the job
     # See: https://circleci.com/docs/configuration-reference/#steps
