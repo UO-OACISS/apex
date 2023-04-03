@@ -173,7 +173,7 @@ get_system_function_handle(char const * name, T caller)
 }
 
 extern "C"
-void* malloc (size_t size) {
+void* malloc (size_t size) __THROW __attribute_malloc__ __wur {
     static malloc_p _malloc = NULL;
     static bool initializing = false;
     static bool bootstrapped = false;
@@ -197,7 +197,7 @@ void* malloc (size_t size) {
 }
 
 extern "C"
-void free (void* ptr) {
+void free (void* ptr) THROW__ {
     static free_p _free = NULL;
     static bool initializing = false;
     static bool bootstrapped = false;
@@ -248,7 +248,7 @@ int puts (const char* s) {
 }
 
 extern "C"
-void* calloc (size_t nmemb, size_t size) {
+void* calloc (size_t nmemb, size_t size) __THROW __attribute_malloc__ __wur {
     static calloc_p _calloc = NULL;
     static bool initializing = false;
     static bool bootstrapped = false;
@@ -272,7 +272,7 @@ void* calloc (size_t nmemb, size_t size) {
 }
 
 extern "C"
-void* realloc (void* ptr, size_t size) {
+void* realloc (void* ptr, size_t size) __THROW __attribute_malloc__ __wur {
     static realloc_p _realloc = NULL;
     static bool initializing = false;
     static bool bootstrapped = false;
