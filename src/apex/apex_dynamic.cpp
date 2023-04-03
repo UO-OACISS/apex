@@ -34,10 +34,10 @@ void * get_symbol(const char * module, const char * symbol) {
     }
     APEX_ASSERT(handle != nullptr);
     if (handle == nullptr) {
-        return nullptr;
         if (apex_options::use_verbose() && apex::instance()->get_node_id() == 0) {
             std::cerr << "Unable to load library " << libname << std::endl;
         }
+        return nullptr;
     }
     func = dlsym(handle, symbol);
     // sanity check
