@@ -6,6 +6,7 @@ import argparse
 from argparse import RawTextHelpFormatter
 import math
 import os
+import re
 
 # "process rank","node index","parent index","depth","name","calls","threads","total time(s)","inclusive time(s)","minimum time(s)","mean time(s)","maximum time(s)","stddev time(s)","total Recv Bytes","minimum Recv Bytes","mean Recv Bytes","maximum Recv Bytes","stddev Recv Bytes","median Recv Bytes","mode Recv Bytes","total Send Bytes","minimum Send Bytes","mean Send Bytes","maximum Send Bytes","stddev Send Bytes","median Send Bytes","mode Send Bytes"
 endchar='\r'
@@ -141,6 +142,13 @@ class TreeNode:
         if self.name in keeplist:
             rootlist.append(self)
             self.df['parent index'] = self.index
+            print('Keeping: \'', self.name, '\'', sep='')
+        for keeper in keeplist:
+            p = re.compile(keeper)
+            if p.match(self.name):
+                rootlist.append(self)
+                self.df['parent index'] = self.index
+                print('Keeping: \'', self.name, '\'', sep='')
         for key in self.children:
             self.children[key].findKeepers(keeplist, rootlist)
 
@@ -290,7 +298,14 @@ def graphRank(index, df, parentNode, droplist):
     name = childDF['name'].iloc[0]
     # should we skip this subtree?
     if name in droplist:
+        print('Dropping: \'', name, '\'', sep='')
         return
+    for dropped in droplist:
+        p = re.compile(dropped)
+        if p.match(name):
+            print('Dropping: \'', name, '\'', sep='')
+            return
+
     #name = df.loc[df['node index'] == index, 'name'].iloc[0]
     childNode = parentNode.addChild(name, childDF)
 

@@ -139,7 +139,7 @@ def convertToTAU(counters, timers, args):
 def main():
     args = parseArgs()
     #print('Reading profiles...')
-    df = pd.read_csv('apex_profiles.csv') #, index_col=[0,1])
+    df = pd.read_csv(args.filename) #, index_col=[0,1])
     df = df.fillna(0)
     print()
     if (args.counters):
