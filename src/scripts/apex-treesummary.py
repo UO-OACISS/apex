@@ -207,7 +207,7 @@ def get_node_color_visible_one(v, vmin, vmax):
     intensity = int(frac * 255)
     return intensity
 
-def drawDOT(df, args):
+def drawDOT(df, args, name):
     # computing new stats
     if args.verbose:
         print('Computing new stats...')
@@ -220,7 +220,8 @@ def drawDOT(df, args):
     df.loc[df['calls'] == 0, 'bytes per call'] = df['total bytes']
     metric = 'bytes per call'
     # Make a new dataframe from rank 0
-    f = open('tasktree.dot', 'w')
+    filename = name + 'tasktree.dot';
+    f = open(filename, 'w')
     f.write('digraph prof {\n')
     #f.write(' label = "(get this from metadata file output - or, generate it from apex-treesummary.py!)";\n')
     f.write(' labelloc = "t";\n')
@@ -294,8 +295,7 @@ def drawDOT(df, args):
     f.close()
     if args.dot_show:
         from graphviz import Source
-        path = './tasktree.dot'
-        s = Source.from_file(path)
+        s = Source.from_file(filename)
         s.view()
         os.wait()
     if args.verbose:
@@ -417,7 +417,7 @@ def main():
             merged = root.getMergedDF().reset_index()
             # remove the bogus root node
             mean = merged.groupby(['node index','parent index','name']).agg(args.timer_agg, numeric_only=False).reset_index()
-            drawDOT(mean, args)
+            drawDOT(mean, args, root.name)
 
 if __name__ == '__main__':
     main()
