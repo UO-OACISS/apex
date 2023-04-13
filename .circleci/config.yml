@@ -33,7 +33,7 @@ jobs:
       - run:
           name: "Test"
           command: |
-            ctest --test-dir build
+            ctest --test-dir build --rerun-failed --output-on-failure
   kitchen-sink-job:
     # Specify the execution environment. You can specify an image from Docker Hub or use one of our convenience images from CircleCI's Developer Hub.
     # See: https://circleci.com/docs/configuration-reference/#executor-job
@@ -95,4 +95,4 @@ workflows:
       - vanilla-job
       - kitchen-sink-job
     #  - cuda-job
-          
+
