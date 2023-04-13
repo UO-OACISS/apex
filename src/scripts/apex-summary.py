@@ -31,7 +31,7 @@ def parseArgs():
     if not os.path.isfile(args.filename):
         parser.print_usage()
         parser.exit()
-    if not args.tau and args.timers and not args.counters:
+    if (not args.tau) and (not args.timers) and (not args.counters):
         args.timers = True
         args.counters = True
     return args
