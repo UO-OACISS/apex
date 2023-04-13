@@ -176,7 +176,7 @@ static void worker(void) {
     /* Check the tag of the received message. */
 
     if (status.MPI_TAG == DIETAG) {
-      return;
+      break;
     }
 
     /* Do the work */

@@ -58,7 +58,9 @@ void apex_print_backtrace() {
 #else
    char syscom[1024] = {0};
    sprintf(syscom,"addr2line -f -i -e %s %p", exe, trace[i]);
-   system(syscom);
+   int retval = system(syscom);
+   // do nothing, we're exiting anyway
+   if (retval != 0) { continue; }
 #endif
   }
 }
