@@ -7,6 +7,7 @@ from argparse import RawTextHelpFormatter
 import math
 import os
 import re
+import multiprocessing as mp
 
 # "process rank","node index","parent index","depth","name","calls","threads","total time(s)","inclusive time(s)","minimum time(s)","mean time(s)","maximum time(s)","stddev time(s)","total Recv Bytes","minimum Recv Bytes","mean Recv Bytes","maximum Recv Bytes","stddev Recv Bytes","median Recv Bytes","mode Recv Bytes","total Send Bytes","minimum Send Bytes","mean Send Bytes","maximum Send Bytes","stddev Send Bytes","median Send Bytes","mode Send Bytes"
 endchar='\r'
@@ -41,6 +42,8 @@ def parseArgs():
         help='Output ASCII tree output (default: false)', default=False)
     parser.add_argument('--shorten', dest='shorten', action='store_true',
         help='Shorten timer names (default: false)', default=False)
+    parser.add_argument('--verbose', dest='verbose', action='store_true',
+        help='Verbose output (default: false)', default=False)
     parser.add_argument('--tlimit', dest='tlimit', type=float, default=0.0, required=False,
         metavar='N', help='Limit timers to those with value over N (default: 0)')
     parser.add_argument('--dlimit', dest='dlimit', type=float, default=0, required=False,
@@ -138,19 +141,22 @@ class TreeNode:
         for key in self.children:
             dfs.append(self.children[key].getMergedDF())
         return pd.concat(dfs)
-    def findKeepers(self, keeplist, rootlist):
+    def findKeepers(self, keeplist, rootlist, args):
         if self.name in keeplist:
             rootlist.append(self)
             self.df['parent index'] = self.index
-            print('Keeping: \'', self.name, '\'', sep='')
-        for keeper in keeplist:
-            p = re.compile(keeper)
-            if p.match(self.name):
-                rootlist.append(self)
-                self.df['parent index'] = self.index
+            if args.verbose:
                 print('Keeping: \'', self.name, '\'', sep='')
+        else:
+            for keeper in keeplist:
+                p = re.compile(keeper)
+                if p.match(self.name):
+                    rootlist.append(self)
+                    self.df['parent index'] = self.index
+                    if args.verbose:
+                        print('Keeping: \'', self.name, '\'', sep='')
         for key in self.children:
-            self.children[key].findKeepers(keeplist, rootlist)
+            self.children[key].findKeepers(keeplist, rootlist, args)
 
 def shorten_name(name):
     tmp = name
@@ -203,7 +209,8 @@ def get_node_color_visible_one(v, vmin, vmax):
 
 def drawDOT(df, args):
     # computing new stats
-    print('Computing new stats...')
+    if args.verbose:
+        print('Computing new stats...')
     if 'total Send Bytes' not in df:
         df['total Send Bytes'] = 0
     if 'total Recv Bytes' not in df:
@@ -230,7 +237,8 @@ def drawDOT(df, args):
     bpc_maximum = 0
     bpc_minimum = min(filter(lambda x: x > 0, df['bytes per call']), default=1)
     bpc_maximum = df['bytes per call'].max() # get max
-    print('Building dot file')
+    if args.verbose:
+        print('Building dot file')
     for ind in df.index:
         name = df['name'][ind]
         node_index = df['node index'][ind]
@@ -290,20 +298,23 @@ def drawDOT(df, args):
         s = Source.from_file(path)
         s.view()
         os.wait()
-    print('done.')
+    if args.verbose:
+        print('done.')
 
-def graphRank(index, df, parentNode, droplist):
+def graphRank(index, df, parentNode, droplist, args):
     # get the name of this node
     childDF = df[df['node index'] == index].copy()#.reset_index()
     name = childDF['name'].iloc[0]
     # should we skip this subtree?
     if name in droplist:
-        print('Dropping: \'', name, '\'', sep='')
+        if args.verbose:
+            print('Dropping: \'', name, '\'', sep='')
         return
     for dropped in droplist:
         p = re.compile(dropped)
         if p.match(name):
-            print('Dropping: \'', name, '\'', sep='')
+            if args.verbose:
+                print('Dropping: \'', name, '\'', sep='')
             return
 
     #name = df.loc[df['node index'] == index, 'name'].iloc[0]
@@ -315,7 +326,7 @@ def graphRank(index, df, parentNode, droplist):
     for child in children['node index'].unique():
         if child == index:
             continue
-        graphRank(child, df, childNode, droplist)
+        graphRank(child, df, childNode, droplist, args)
 
 def main():
     args = parseArgs()
@@ -323,29 +334,36 @@ def main():
         print('TAU conversion coming soon.')
         quit()
 
-    print('Reading tasktree...')
+    if args.verbose:
+        print('Reading tasktree...')
     df = pd.read_csv(args.filename) #, index_col=[0,1])
     df = df.fillna(0)
-    print('Read', len(df.index), 'rows')
+    if args.verbose:
+        print('Read', len(df.index), 'rows')
 
     # ONLY merge the top 10%
     pd.set_option('display.expand_frame_repr', False)
     # Only keep the first N
     if args.rlimit > 0:
-        print('Ignoring any ranks over ', args.rlimit)
+        if args.verbose:
+            print('Ignoring any ranks over ', args.rlimit)
         df = df[~(df['process rank'] >= args.rlimit)]
-        print('Kept', len(df.index), 'rows')
+        if args.verbose:
+            print('Kept', len(df.index), 'rows')
 
     if args.dlimit > 0:
-        print('Dropping all tree nodes with depth > ', args.dlimit)
+        if args.verbose:
+            print('Dropping all tree nodes with depth > ', args.dlimit)
         df = df[~(df['depth'] > args.dlimit)]
-        print('Kept', len(df.index), 'rows')
+        if args.verbose:
+            print('Kept', len(df.index), 'rows')
 
     # Get the max rank value
     maxrank = df['process rank'].max()
     maxindex = df['node index'].max()
     maxdepth = df['depth'].max()
-    print('Found', maxrank, 'ranks, with max graph node index of', maxindex, 'and depth of', maxdepth)
+    if args.verbose:
+        print('Found', maxrank, 'ranks, with max graph node index of', maxindex, 'and depth of', maxdepth)
 
     metric = 'total time(s)'
     threshold = 0.0
@@ -355,9 +373,11 @@ def main():
         threshold = args.tlimit
 
     if threshold > 0.0:
-        print('Ignoring any tree nodes with less than', threshold, 'accumulated time...')
+        if args.verbose:
+            print('Ignoring any tree nodes with less than', threshold, 'accumulated time...')
         df = df[~(df[metric] <= threshold)].reset_index()
-        print('Kept', len(df.index), 'rows')
+        if args.verbose:
+            print('Kept', len(df.index), 'rows')
 
     # are there nodes to drop?
     droplist = []
@@ -374,14 +394,14 @@ def main():
         # slice out this rank's data
         rank = df[df['process rank'] == x]
         # build a tree of this rank's data
-        graphRank(0, rank, root, droplist)
+        graphRank(0, rank, root, droplist, args)
     print() # write a newline
 
     roots = [root]
     if len(args.keep) > 0:
         roots = []
         keeplist = args.keep.split(',')
-        root.findKeepers(keeplist, roots)
+        root.findKeepers(keeplist, roots, args)
 
     if args.ascii:
         for root in roots:
