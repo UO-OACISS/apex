@@ -7,7 +7,6 @@ from argparse import RawTextHelpFormatter
 import math
 import os
 import re
-import multiprocessing as mp
 
 # "process rank","node index","parent index","depth","name","calls","threads","total time(s)","inclusive time(s)","minimum time(s)","mean time(s)","maximum time(s)","stddev time(s)","total Recv Bytes","minimum Recv Bytes","mean Recv Bytes","maximum Recv Bytes","stddev Recv Bytes","median Recv Bytes","mode Recv Bytes","total Send Bytes","minimum Send Bytes","mean Send Bytes","maximum Send Bytes","stddev Send Bytes","median Send Bytes","mode Send Bytes"
 endchar='\r'

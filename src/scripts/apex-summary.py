@@ -40,6 +40,9 @@ def showCounters(counters, args):
     counters = counters.rename(columns={'name': 'Counter', 'num samples/calls': 'samples' })
     df = counters.groupby('Counter').agg(args.timer_agg, numeric_only=True)
     pd.set_option('display.float_format', lambda x: '%.2f' % x)
+    pd.set_option('display.max_columns', None)
+    pd.set_option('display.max_colwidth', 40)
+    pd.set_option('display.expand_frame_repr', False)
     print('-'*100)
     print('APEX Counters aggregated by', args.timer_agg)
     print('-'*100)
@@ -73,6 +76,9 @@ def showMeans(timers, args):
     topN['tot/call'] = topN['tot/call'] * 1.0e-9
     topN['tot/thr'] = topN['tot/thr'] * 1.0e-9
     pd.set_option('display.float_format', lambda x: '%.2f' % x)
+    pd.set_option('display.max_columns', None)
+    pd.set_option('display.max_colwidth', 40)
+    pd.set_option('display.expand_frame_repr', False)
     print('-'*100)
     print('Top',args.timer_limit,'APEX Timers sorted by',args.sort_by, 'aggregated by', args.timer_agg)
     print('-'*100)
