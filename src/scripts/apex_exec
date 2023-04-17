@@ -38,7 +38,9 @@ where APEX options are zero or more of:
     --apex:taskgraph              enable taskgraph output
                                   (graphviz required for post-processing)
     --apex:tasktree               enable tasktree output
-                                  (graphviz required for post-processing)
+                                  (python3 with Pandas required for post-processing)
+    --apex:hatchet                enable Hatchet tasktree output
+                                  (python3 with Hatchet required for post-processing)
     --apex:throttle               throttle short-lived timers to reduce overhead (default: off)
     --apex:throttle_calls <value> minimum number of calls before throttling (default: 1000)
     --apex:throttle_per <value>   minimum timer duration in microseconds (default: 10)
@@ -102,6 +104,7 @@ pftrace=no
 scatter=no
 taskgraph=no
 tasktree=no
+hatchet=no
 screen=yes
 csv=no
 tau=no
@@ -228,6 +231,11 @@ while (( "$#" )); do
     --apex:tasktree)
       tasktree=yes
       export APEX_TASKTREE_OUTPUT=1
+      shift
+      ;;
+    --apex:hatchet)
+      hatchet=yes
+      export APEX_HATCHET_OUTPUT=1
       shift
       ;;
     --apex:screen)

@@ -644,7 +644,7 @@ inline std::shared_ptr<task_wrapper> _new_task(
             tt_ptr->parent = task_wrapper::get_apex_main_wrapper();
         }
     }
-    if (apex_options::use_tasktree_output()) {
+    if (apex_options::use_tasktree_output() || apex_options::use_hatchet_output()) {
         tt_ptr->assign_heritage();
     }
     if (task_id == UINTMAX_MAX) {
@@ -1465,7 +1465,7 @@ std::shared_ptr<task_wrapper> update_task(
             } else {
                 wrapper->alias = id;
             }
-            if (apex_options::use_tasktree_output()) {
+            if (apex_options::use_tasktree_output() || apex_options::use_hatchet_output()) {
                 wrapper->update_heritage();
             }
         /*
@@ -1508,7 +1508,7 @@ std::shared_ptr<task_wrapper> update_task(
             } else {
                 wrapper->alias = id;
             }
-            if (apex_options::use_tasktree_output()) {
+            if (apex_options::use_tasktree_output() || apex_options::use_hatchet_output()) {
                 wrapper->update_heritage();
             }
         }

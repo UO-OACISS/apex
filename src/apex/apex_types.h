@@ -286,7 +286,8 @@ inline unsigned int sc_nprocessors_onln(void)
     macro (APEX_PROFILE_OUTPUT, use_profile_output, int, false, "Output TAU profile of performance summary (profile.* files).") \
     macro (APEX_CSV_OUTPUT, use_csv_output, int, false, "Output CSV profile of performance summary.") \
     macro (APEX_TASKGRAPH_OUTPUT, use_taskgraph_output, bool, false, "Output graphviz reduced taskgraph.") \
-    macro (APEX_TASKTREE_OUTPUT, use_tasktree_output, bool, false, "Output graphviz/text/json task tree (no cycles, unique callpaths).") \
+    macro (APEX_TASKTREE_OUTPUT, use_tasktree_output, bool, false, "Output CSV task tree (no cycles, unique callpaths).") \
+    macro (APEX_HATCHET_OUTPUT, use_hatchet_output, bool, false, "Output json/Hatchet task tree (no cycles, unique callpaths).") \
     macro (APEX_SOURCE_LOCATION, use_source_location, bool, false, "When resolving instruction addresses with binutils, include filename and line number.") \
     macro (APEX_PROC_CPUINFO, use_proc_cpuinfo, bool, false, "Periodically sample data from /proc/cpuinfo.") \
     macro (APEX_PROC_LOADAVG, use_proc_loadavg, bool, true, "Periodically sample data from /proc/loadavg.") \

@@ -423,7 +423,7 @@ std::unordered_set<profile*> free_profiles;
                 }
 	}
       }
-    if (apex_options::use_tasktree_output() && !p.is_counter && p.tt_ptr != nullptr) {
+    if ((apex_options::use_tasktree_output() || apex_options::use_hatchet_output()) && !p.is_counter && p.tt_ptr != nullptr) {
         p.tt_ptr->tree_node->addAccumulated(p.elapsed_seconds(), p.inclusive_seconds(), p.is_resume, p.thread_id);
         p.tt_ptr->tree_node->addMetrics(p.metric_map);
     }
@@ -1171,35 +1171,40 @@ std::unordered_set<profile*> free_profiles;
     myfile.open(txtname.str().c_str());
     root->tree_node->writeNodeASCII(myfile, wall_clock_main, 0);
     myfile.close();
-    // dump the tree to an icicle/sunburst/hatchet file
-    stringstream txtname2;
-    txtname2 << apex_options::output_file_path();
-    txtname2 << filesystem_separator() << "tasktree." << node_id << ".json";
-    myfile.open(txtname2.str().c_str());
-    root->tree_node->writeNodeJSON(myfile, wall_clock_main, 0);
-    myfile.close();
 #endif
-    // write to a single file!
-    stringstream tree_stream;
-    if (node_id == 0) {
-        tree_stream << "\"process rank\",\"node index\",\"parent index\",\"depth\",";
-        tree_stream << "\"name\",\"calls\",\"threads\",\"total time(s)\",\"inclusive time(s)\",";
-        tree_stream << "\"minimum time(s)\",\"mean time(s)\",\"maximum time(s)\",";
-        tree_stream << "\"stddev time(s)\"";
-        for (auto& x : dependency::Node::getKnownMetrics()) {
-            tree_stream << ",\"total " << x << "\"";
-            tree_stream << ",\"minimum " << x << "\"";
-            tree_stream << ",\"mean " << x << "\"";
-            tree_stream << ",\"maximum " << x << "\"";
-            tree_stream << ",\"stddev " << x << "\"";
-            tree_stream << ",\"median " << x << "\"";
-            tree_stream << ",\"mode " << x << "\"";
-        }
-        tree_stream << "\n";
+    if (apex_options::use_hatchet_output()) {
+        // dump the tree to an icicle/sunburst/hatchet file
+        ofstream myfile;
+        stringstream txtname2;
+        txtname2 << apex_options::output_file_path();
+        txtname2 << filesystem_separator() << "tasktree." << node_id << ".json";
+        myfile.open(txtname2.str().c_str());
+        root->tree_node->writeNodeJSON(myfile, wall_clock_main, 0);
+        myfile.close();
     }
-    root->tree_node->writeNodeCSV(tree_stream, wall_clock_main, node_id);
-    std::string filename{"apex_tasktree.csv"};
-    reduce_profiles(tree_stream, filename);
+    if (apex_options::use_tasktree_output()) {
+        // write to a single file!
+        stringstream tree_stream;
+        if (node_id == 0) {
+            tree_stream << "\"process rank\",\"node index\",\"parent index\",\"depth\",";
+            tree_stream << "\"name\",\"calls\",\"threads\",\"total time(s)\",\"inclusive time(s)\",";
+            tree_stream << "\"minimum time(s)\",\"mean time(s)\",\"maximum time(s)\",";
+            tree_stream << "\"stddev time(s)\"";
+            for (auto& x : dependency::Node::getKnownMetrics()) {
+                tree_stream << ",\"total " << x << "\"";
+                tree_stream << ",\"minimum " << x << "\"";
+                tree_stream << ",\"mean " << x << "\"";
+                tree_stream << ",\"maximum " << x << "\"";
+                tree_stream << ",\"stddev " << x << "\"";
+                tree_stream << ",\"median " << x << "\"";
+                tree_stream << ",\"mode " << x << "\"";
+            }
+            tree_stream << "\n";
+        }
+        root->tree_node->writeNodeCSV(tree_stream, wall_clock_main, node_id);
+        std::string filename{"apex_tasktree.csv"};
+        reduce_profiles(tree_stream, filename);
+    }
   }
 
   /* Write TAU profiles from the collected data. */
@@ -1228,7 +1233,7 @@ std::unordered_set<profile*> free_profiles;
         }
     }
     size_t function_count = task_map.size() - counter_events;
-    if (apex_options::use_tasktree_output()) {
+    if (apex_options::use_tasktree_output() || apex_options::use_hatchet_output()) {
         auto root = task_wrapper::get_apex_main_wrapper();
         function_count += (root->tree_node->getNodeCount() - 1);
     }
@@ -1267,7 +1272,7 @@ std::unordered_set<profile*> free_profiles;
     }
 
     // If we maintained the tasktree, we can write out the callpath.
-    if (apex_options::use_tasktree_output()) {
+    if (apex_options::use_tasktree_output() || apex_options::use_hatchet_output()) {
         auto root = task_wrapper::get_apex_main_wrapper();
         std::string prefix{""};
         root->tree_node->writeTAUCallpath(myfile, prefix);
@@ -1712,6 +1717,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       if (apex_options::use_screen_output() ||
           apex_options::use_taskgraph_output() ||
           apex_options::use_tasktree_output() ||
+          apex_options::use_hatchet_output() ||
           apex_options::use_csv_output())
       {
         size_t ignored = 0;
@@ -1767,7 +1773,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       {
         write_taskgraph();
       }
-      else if (apex_options::use_tasktree_output())
+      else if (apex_options::use_tasktree_output() || apex_options::use_hatchet_output())
       {
         write_tasktree();
       }
