@@ -40,6 +40,7 @@ void trace_event_listener::end_trace_time(void) {
 void trace_event_listener::on_startup(startup_event_data &data) {
     APEX_UNUSED(data);
     saved_node_id = apex::instance()->get_node_id();
+    reversed_node_id = ((uint64_t)(simple_reverse((uint32_t)saved_node_id))) << 32;
     std::stringstream ss;
     ss.precision(3);
     ss << fixed
@@ -164,7 +165,7 @@ long unsigned int trace_event_listener::get_thread_id_metadata() {
 }
 
 uint64_t get_flow_id() {
-    static uint64_t flow_id = 0;
+    static atomic<uint64_t> flow_id{0};
     return ++flow_id;
 }
 
@@ -201,7 +202,7 @@ inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
 #endif
             ) {
             //std::cout << "FLOWING!" << std::endl;
-            uint64_t flow_id = get_flow_id();
+            uint64_t flow_id = reversed_node_id + get_flow_id();
             write_flow_event(ss, p->tt_ptr->parent->get_flow_us(), 's', "ControlFlow", flow_id,
                 saved_node_id, p->tt_ptr->parent->thread_id, p->tt_ptr->parent->task_id->get_name());
             write_flow_event(ss, p->get_start_us(), 'f', "ControlFlow", flow_id,
@@ -349,7 +350,7 @@ void trace_event_listener::on_async_event(base_thread_node &node,
         // write a flow event pair!
         // make sure the start of the flow is before the end of the flow, ideally the middle of the parent
         if (data.flow) {
-            uint64_t flow_id = get_flow_id();
+            uint64_t flow_id = reversed_node_id + get_flow_id();
         if (data.reverse_flow) {
             double begin_ts = (p->get_stop_us() + p->get_start_us()) * 0.5;
             double end_ts = std::min(p->get_stop_us(), data.parent_ts_stop);

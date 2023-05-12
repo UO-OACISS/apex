@@ -74,6 +74,7 @@ private:
     std::stringstream * get_thread_stream(size_t index);
     void write_to_trace(std::stringstream& events);
     int saved_node_id;
+    uint64_t reversed_node_id;
     std::atomic<size_t> num_events;
     std::string get_file_name();
 #ifdef APEX_HAVE_ZLIB
