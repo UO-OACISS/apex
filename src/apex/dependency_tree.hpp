@@ -74,6 +74,7 @@ class Node {
             prof.minimum = 0.0;
             prof.maximum = 0.0;
             prof.sum_squares = 0.0;
+            memset(prof.papi_metrics, 0, sizeof(double)*8);
         }
         ~Node() {
             treeMutex.lock();
@@ -93,12 +94,13 @@ class Node {
         inline double& getMinimum() { return prof.minimum; }
         inline double& getMaximum() { return prof.maximum; }
         inline double& getSumSquares() { return prof.sum_squares; }
-        void addAccumulated(double value, double incl, bool is_resume, uint64_t thread_id);
+        void addAccumulated(double value, double incl, bool is_resume, uint64_t thread_id,
+            double values[8], int num_papi_counters);
         size_t getIndex() { return index; };
         std::string getName() const { return data->get_name(); };
         void writeNode(std::ofstream& outfile, double total);
         double writeNodeASCII(std::ofstream& outfile, double total, size_t indent);
-        double writeNodeCSV(std::stringstream& outfile, double total, int node_id);
+        double writeNodeCSV(std::stringstream& outfile, double total, int node_id, int num_papi_counters);
         double writeNodeJSON(std::ofstream& outfile, double total, size_t indent);
         void writeTAUCallpath(std::ofstream& outfile, std::string prefix);
         static size_t getNodeCount() {

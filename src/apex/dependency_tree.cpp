@@ -316,7 +316,8 @@ void Node::writeTAUCallpath(std::ofstream& outfile, std::string prefix) {
     return;
 }
 
-void Node::addAccumulated(double value, double incl, bool is_resume, uint64_t thread_id) {
+void Node::addAccumulated(double value, double incl, bool is_resume, uint64_t thread_id,
+    double values[8], int num_papi_counters) {
     static std::mutex m;
     m.lock();
     if (!is_resume) {
@@ -328,10 +329,15 @@ void Node::addAccumulated(double value, double incl, bool is_resume, uint64_t th
     if (value > getMaximum()) { getMaximum() = value; }
     getSumSquares() = getSumSquares() + (value*value);
     thread_ids.insert(thread_id);
+    /* Add the papi measurements */
+    for (int i = 0 ; i < num_papi_counters ; i++) {
+        prof.papi_metrics[i] += values[i];
+    }
+
     m.unlock();
 }
 
-double Node::writeNodeCSV(std::stringstream& outfile, double total, int node_id) {
+double Node::writeNodeCSV(std::stringstream& outfile, double total, int node_id, int num_papi_counters) {
     static size_t depth = 0;
     APEX_ASSERT(total > 0.0);
     // write out the node id and graph node index and the name
@@ -358,6 +364,11 @@ double Node::writeNodeCSV(std::stringstream& outfile, double total, int node_id)
     double variance = std::max(0.0,((getSumSquares() / ncalls) - (mean * mean)));
     double stddev = sqrt(variance);
     outfile << stddev;
+    // write the papi metrics
+    for (int m = 0 ; m < num_papi_counters ; m++) {
+        outfile << "," << prof.papi_metrics[m];
+    }
+
     // write any available metrics
     for (auto& x : known_metrics) {
         if (metric_map.find(x) == metric_map.end()) {
@@ -410,7 +421,7 @@ double Node::writeNodeCSV(std::stringstream& outfile, double total, int node_id)
     double remainder = acc;
     depth++;
     for (auto c : sorted) {
-        double tmp = c->writeNodeCSV(outfile, total, node_id);
+        double tmp = c->writeNodeCSV(outfile, total, node_id, num_papi_counters);
         remainder = remainder - tmp;
     }
     depth--;

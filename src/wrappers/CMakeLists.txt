@@ -20,9 +20,10 @@ target_link_libraries (apex_memory_wrapper apex)
 
 if(NOT APPLE)
     # Add library called "apex_dl_auditor" that is built from the source file
-    add_library (apex_dl_auditor dl_auditor.c)
-    target_link_libraries (apex_dl_auditor dl)
-    INSTALL(TARGETS apex_pthread_wrapper apex_memory_wrapper apex_dl_auditor
+    #add_library (apex_dl_auditor dl_auditor.c)
+    #target_link_libraries (apex_dl_auditor dl)
+    #INSTALL(TARGETS apex_pthread_wrapper apex_memory_wrapper apex_dl_auditor
+    INSTALL(TARGETS apex_pthread_wrapper apex_memory_wrapper
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib

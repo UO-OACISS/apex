@@ -424,7 +424,7 @@ std::unordered_set<profile*> free_profiles;
 	}
       }
     if ((apex_options::use_tasktree_output() || apex_options::use_hatchet_output()) && !p.is_counter && p.tt_ptr != nullptr) {
-        p.tt_ptr->tree_node->addAccumulated(p.elapsed_seconds(), p.inclusive_seconds(), p.is_resume, p.thread_id);
+        p.tt_ptr->tree_node->addAccumulated(p.elapsed_seconds(), p.inclusive_seconds(), p.is_resume, p.thread_id, values, num_papi_counters);
         p.tt_ptr->tree_node->addMetrics(p.metric_map);
     }
     return 1;
@@ -1199,9 +1199,19 @@ std::unordered_set<profile*> free_profiles;
                 tree_stream << ",\"median " << x << "\"";
                 tree_stream << ",\"mode " << x << "\"";
             }
+            /* First, we need to tokenize the list of metrics */
+            std::stringstream tmpstr(apex_options::papi_metrics());
+            // use stream iterators to copy the stream to the vector as whitespace
+            // separated strings
+            std::istream_iterator<std::string> tmpstr_it(tmpstr);
+            std::istream_iterator<std::string> tmpstr_end;
+            std::vector<std::string> tmpstr_results(tmpstr_it, tmpstr_end);
+            for (auto m : tmpstr_results) {
+                tree_stream << ",\"" << m << "\"";
+            }
             tree_stream << "\n";
         }
-        root->tree_node->writeNodeCSV(tree_stream, wall_clock_main, node_id);
+        root->tree_node->writeNodeCSV(tree_stream, wall_clock_main, node_id, num_papi_counters);
         std::string filename{"apex_tasktree.csv"};
         reduce_profiles(tree_stream, filename);
     }
