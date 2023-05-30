@@ -112,6 +112,8 @@ static void apex_custom_signal_handler_advanced(int sig, siginfo_t * info, void 
 }
 
 int apex_register_signal_handler() {
+    static bool doOnce{false};
+    if (doOnce) return 0;
   if (apex::test_for_MPI_comm_rank(0) == 0) {
     std::cout << "APEX signal handler registering..." << std::endl;
   }
@@ -149,6 +151,7 @@ int apex_register_signal_handler() {
   if (apex::test_for_MPI_comm_rank(0) == 0) {
     std::cout << "APEX signal handler registered!" << std::endl;
   }
+  doOnce = true;
   return 0;
 }
 

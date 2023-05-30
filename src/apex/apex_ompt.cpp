@@ -107,6 +107,7 @@ public:
     static void insert_timer(uint32_t id, std::shared_ptr<apex::task_wrapper> timer) {
         instance().correlation_map_mutex.lock();
         instance().timer_map[id] = timer;
+        //std::cerr << "adding parent task_wrapper: " << id << std::endl;
         instance().correlation_map_mutex.unlock();
     }
 
@@ -117,6 +118,8 @@ public:
         auto iter = g.timer_map.find(id);
         if (iter != g.timer_map.end()) {
             timer = iter->second;
+        } else {
+            //std::cerr << "parent task_wrapper not found: " << id << std::endl;
         }
         g.timer_map.erase(id);
         g.unlock();
@@ -136,6 +139,8 @@ public:
         auto iter = g.data_map.find(id);
         if (iter != g.data_map.end()) {
             as_data = iter->second;
+        } else {
+            //std::cerr << "target data not found: " << id << std::endl;
         }
         g.data_map.erase(id);
         g.unlock();
@@ -325,6 +330,7 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
          if (target_rec.endpoint == ompt_scope_begin) {
             std::stringstream ss;
             ss << "GPU: OpenMP Target";
+            if(rec->type == ompt_callback_target_emi) ss << " EMI";
             if (target_rec.codeptr_ra != nullptr) {
                 ss << ": UNRESOLVED ADDR " << target_rec.codeptr_ra;
             }
@@ -375,6 +381,7 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
 	     target_data_op_rec.codeptr_ra);
             std::stringstream ss;
             ss << "GPU: OpenMP Target DataOp";
+            if(rec->type == ompt_callback_target_data_op_emi) ss << " EMI";
             switch (target_data_op_rec.optype) {
                 case ompt_target_data_alloc: {
                     ss << " Alloc";
@@ -456,6 +463,7 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
 	     target_kernel_rec.end_time - rec->time);
             std::stringstream ss;
             ss << "GPU: OpenMP Target Submit";
+            if(rec->type == ompt_callback_target_submit_emi) ss << " EMI";
             int device_num;
             std::shared_ptr<apex::task_wrapper> tt;
             const void* codeptr_ra;
@@ -827,6 +835,7 @@ extern "C" void apex_target (
     APEX_UNUSED(device_num);
     APEX_UNUSED(target_id);
     if (!enabled) { return; }
+    static std::mutex target_lock;
     static std::unordered_map<ompt_id_t, ompt_data_t*> target_map;
     DEBUG_PRINT("Callback Target:\n"
         "\ttarget_id=%lu kind=%d endpoint=%d device_num=%d code=%p,\n"
@@ -848,23 +857,29 @@ extern "C" void apex_target (
             snprintf(regionIDstr, 128, "OpenMP Target");
             apex_ompt_start(regionIDstr, task_data, nullptr, true);
         }
-        target_map[target_id] = task_data;
-    } else {
-        if (task_data == nullptr) {
-            task_data = target_map[target_id];
-            target_map.erase(target_id);
+        {
+            std::unique_lock<std::mutex> l(target_lock);
+            target_map[target_id] = task_data;
         }
-        // save a copy of the task wrapper
-        std::shared_ptr<apex::task_wrapper> tw = ((linked_timer*)(task_data->ptr))->tw;
-        Globals::insert_timer(target_id, tw);
-        // stop the timer
-        apex_ompt_stop(task_data);
         // save the timer data to make flow events
+        std::shared_ptr<apex::task_wrapper> tw = ((linked_timer*)(task_data->ptr))->tw;
         apex::async_event_data as_data(
                 tw->prof->get_start_us(),
                 "ControlFlow", target_id,
                 apex::thread_instance::get_id(), "OpenMP Target");
         Globals::insert_data(target_id, as_data);
+        // save a copy of the task wrapper
+        Globals::insert_timer(target_id, tw);
+    } else {
+        {
+            std::unique_lock<std::mutex> l(target_lock);
+            if (task_data == nullptr) {
+                task_data = target_map[target_id];
+            }
+            target_map.erase(target_id);
+        }
+        // stop the timer
+        apex_ompt_stop(task_data);
     }
 }
 
