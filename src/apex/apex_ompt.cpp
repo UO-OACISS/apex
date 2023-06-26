@@ -993,6 +993,7 @@ extern "C" void apex_target (
         // save a copy of the task wrapper
         Globals::insert_timer(target_id, tw);
         static bool doOnce{Globals::set_delta_base()};
+        APEX_UNUSED(doOnce);
     } else {
         {
             std::unique_lock<std::mutex> l(target_lock);
@@ -1193,6 +1194,7 @@ static uint64_t apex_ompt_translate_time(int index, ompt_device_time_t time) {
             /* oh no. we can't get a timestamp. */
             /* take an offset from the first host-side GPU call */
             static bool doOnce{Globals::set_delta(time)};
+            APEX_UNUSED(doOnce);
             return (uint64_t)(time + Globals::delta());
         }
         static std::map<int, int64_t> deltas;
@@ -1415,7 +1417,7 @@ extern "C" void apex_ompt_work (
     static const char * sections_type = "Sections";
     static const char * units_type = "Units of Work";
     static const char * single_type = "Single";
-    char * count_type = const_cast<char*>(iterations_type);
+    //char * count_type = const_cast<char*>(iterations_type);
 
     switch(wstype) {
         case ompt_work_loop:
@@ -1423,26 +1425,26 @@ extern "C" void apex_ompt_work (
             break;
         case ompt_work_sections:
             tmp_str = const_cast<char*>(sections_str);
-            count_type = const_cast<char*>(sections_type);
+            //count_type = const_cast<char*>(sections_type);
             break;
         case ompt_work_single_executor:
             tmp_str = const_cast<char*>(single_executor_str);
-            count_type = const_cast<char*>(single_type);
+            //count_type = const_cast<char*>(single_type);
             break;
         case ompt_work_single_other:
             tmp_str = const_cast<char*>(single_other_str);
-            count_type = const_cast<char*>(single_type);
+            //count_type = const_cast<char*>(single_type);
             break;
         case ompt_work_workshare:
             tmp_str = const_cast<char*>(workshare_str);
-            count_type = const_cast<char*>(units_type);
+            //count_type = const_cast<char*>(units_type);
             break;
         case ompt_work_distribute:
             tmp_str = const_cast<char*>(distribute_str);
             break;
         case ompt_work_taskloop:
             tmp_str = const_cast<char*>(taskloop_str);
-            count_type = const_cast<char*>(collapsed_type);
+            //count_type = const_cast<char*>(collapsed_type);
             break;
         default:
             tmp_str = const_cast<char*>(unknown_str);
