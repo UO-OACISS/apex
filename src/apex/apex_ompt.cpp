@@ -80,9 +80,11 @@ private:
     // Timestamp at trace initialization time. Used to normalized other
     // timestamps
     int64_t deltaTimestamp;
+    uint64_t cpuTimestamp;
     std::mutex correlation_map_mutex;
     std::unordered_map<uint32_t, std::shared_ptr<apex::task_wrapper>> timer_map;
     std::unordered_map<uint32_t, apex::async_event_data> data_map;
+    std::unordered_map<int, ompt_device_t*> device_map;
 public:
     Globals(const Globals&) = delete;
     Globals& operator=(const Globals &) = delete;
@@ -100,7 +102,14 @@ public:
     static int64_t& delta() {
         return instance().deltaTimestamp;
     }
-
+    static bool set_delta_base() {
+        instance().cpuTimestamp = apex::profiler::now_ns();
+        return true;
+    }
+    static bool set_delta(uint64_t gpu) {
+        instance().deltaTimestamp = instance().cpuTimestamp - gpu;
+        return true;
+    }
     void lock() { correlation_map_mutex.lock(); }
     void unlock() { correlation_map_mutex.unlock(); }
 
@@ -121,15 +130,32 @@ public:
         } else {
             //std::cerr << "parent task_wrapper not found: " << id << std::endl;
         }
-        g.timer_map.erase(id);
         g.unlock();
         return timer;
+    }
+
+    static void erase_timer(uint32_t id) {
+        Globals& g = instance();
+        g.lock();
+        g.timer_map.erase(id);
+        g.unlock();
     }
 
     static void insert_data(uint32_t id, apex::async_event_data& data) {
         instance().correlation_map_mutex.lock();
         instance().data_map[id] = data;
         instance().correlation_map_mutex.unlock();
+    }
+
+    static void update_data(uint32_t id) {
+        Globals& g = instance();
+        g.lock();
+        auto iter = g.data_map.find(id);
+        if (iter != g.data_map.end()) {
+            iter->second.parent_ts_stop = apex::profiler::now_ns();
+            std::cout << "Updated " << id << std::endl;
+        }
+        g.unlock();
     }
 
     static apex::async_event_data find_data(uint32_t id) {
@@ -147,7 +173,22 @@ public:
         return as_data;
     }
 
+    static void insert_device(int index, ompt_device_t *device) {
+        instance().lock();
+        instance().device_map.insert(std::pair<int, ompt_device_t*>(index, device));
+        instance().unlock();
+    }
+
+    static ompt_device_t* get_device(int index) {
+        instance().lock();
+        auto d = instance().device_map[index];
+        instance().unlock();
+        return d;
+    }
 };
+
+// forward declaration
+static uint64_t apex_ompt_translate_time(int index, ompt_device_time_t time);
 
 std::shared_ptr<apex::task_wrapper> start_async_task(const std::string &name, uint32_t correlationId, long unsigned int& parent_thread) {
     apex::in_apex prevent_deadlocks;
@@ -166,22 +207,32 @@ std::shared_ptr<apex::task_wrapper> start_async_task(const std::string &name, ui
 
 void stop_async_task(std::shared_ptr<apex::task_wrapper> tt, uint64_t start, uint64_t end,
     uint32_t correlationId, apex::ompt_thread_node &node) {
+    // Handle tracing, if necessary
+    apex::async_event_data as_data;
+    if (correlationId > 0) {
+        as_data = Globals::find_data(correlationId);
+    }
     // create an APEX profiler to store this data - we can't start
     // then stop because we have timestamps already.
     auto prof = std::make_shared<apex::profiler>(tt);
-    prof->set_start(start + Globals::delta());
-    prof->set_end(end + Globals::delta());
+    bool do_trace{true};
+    if (start == 0 || end == 0) {
+        prof->set_start(as_data.parent_ts_start);
+        prof->set_end(as_data.parent_ts_stop);
+        do_trace = false;
+    } else {
+        prof->set_start(start);
+        prof->set_end(end);
+    }
+    std::cout << "Parent prof " << correlationId << ": " << (uint64_t)as_data.parent_ts_start << " " << (uint64_t)as_data.parent_ts_stop << std::endl;
+    std::cout << "Final prof " << correlationId << ": " << prof->get_start_ns() << " " << prof->get_stop_ns() << std::endl;
     // important!  Otherwise we might get the wrong end timestamp.
     prof->stopped = true;
     // Get the singleton APEX instance
     static apex::apex* instance = apex::apex::instance();
     // fake out the profiler_listener
     instance->the_profiler_listener->push_profiler_public(prof);
-    // Handle tracing, if necessary
-    apex::async_event_data as_data;
-    if (correlationId > 0) {
-        as_data = Globals::find_data(correlationId);
-    }
+    if (do_trace) {
 #if defined(APEX_WITH_PERFETTO)
     if (apex::apex_options::use_perfetto()) {
         apex::perfetto_listener * tel =
@@ -205,6 +256,7 @@ void stop_async_task(std::shared_ptr<apex::task_wrapper> tt, uint64_t start, uin
         tol->on_async_event(node, prof);
     }
 #endif
+    }
     // have the listeners handle the end of this task
     instance->complete_task(tt);
 }
@@ -220,8 +272,8 @@ void store_profiler_data(const std::string &name,
     // create an APEX profiler to store this data - we can't start
     // then stop because we have timestamps already.
     auto prof = std::make_shared<apex::profiler>(tt);
-    prof->set_start(start + Globals::delta());
-    prof->set_end(end + Globals::delta());
+    prof->set_start(start);
+    prof->set_end(end);
     // important!  Otherwise we might get the wrong end timestamp.
     prof->stopped = true;
     // Get the singleton APEX instance
@@ -269,7 +321,7 @@ void store_counter_data(const char * name, const std::string& ctx,
     std::shared_ptr<apex::profiler> prof =
         std::make_shared<apex::profiler>(task_id, value);
     prof->is_counter = true;
-    prof->set_end(end + Globals::delta());
+    prof->set_end(end);
     // Get the singleton APEX instance
     static apex::apex* instance = apex::apex::instance();
     // fake out the profiler_listener
@@ -307,12 +359,13 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
   if (rec == NULL) return;
 
   DEBUG_PRINT("rec=%p type=%d time=%lu thread_id=%lu target_id=%lu\n",
-	 (void*)rec, rec->type, rec->time, rec->thread_id, rec->target_id);
+     (void*)rec, rec->type, rec->time, rec->thread_id, rec->target_id);
 
   static std::unordered_map<ompt_id_t,const void*> active_target_addrs;
   static std::unordered_map<ompt_id_t,int> active_target_devices;
   static std::unordered_map<uint32_t, std::shared_ptr<apex::task_wrapper>> target_map;
   static std::unordered_map<uint32_t, uint64_t> target_start_times;
+  static std::unordered_map<uint32_t, uint64_t> target_end_times;
   static std::unordered_map<uint32_t, uint64_t> target_parent_thread_ids;
   static std::mutex target_lock;
   long unsigned int parent_thread = 0;
@@ -325,19 +378,23 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
     {
       ompt_record_target_t target_rec = rec->record.target;
       DEBUG_PRINT("\tRecord Target: kind=%d endpoint=%d device=%d task_id=%lu target_id=%lu codeptr=%p\n",
-	     target_rec.kind, target_rec.endpoint, target_rec.device_num,
-	     target_rec.task_id, target_rec.target_id, target_rec.codeptr_ra);
+         target_rec.kind, target_rec.endpoint, target_rec.device_num,
+         target_rec.task_id, target_rec.target_id, target_rec.codeptr_ra);
          if (target_rec.endpoint == ompt_scope_begin) {
             std::stringstream ss;
             ss << "GPU: OpenMP Target";
+#if defined(APEX_HAVE_OMPT_5_1)
             if(rec->type == ompt_callback_target_emi) ss << " EMI";
+#endif
             if (target_rec.codeptr_ra != nullptr) {
                 ss << ": UNRESOLVED ADDR " << target_rec.codeptr_ra;
             }
             std::string name{ss.str()};
-   	        auto tt = start_async_task(name, rec->target_id, parent_thread);
+               auto tt = start_async_task(name, rec->target_id, parent_thread);
             std::unique_lock<std::mutex> l(target_lock);
-            target_map[rec->target_id] = tt;
+            //if (rec->time > 0) {
+                target_map[rec->target_id] = tt;
+            //}
             target_start_times[rec->target_id] = rec->time;
             active_target_addrs[rec->target_id] = target_rec.codeptr_ra;
             active_target_devices[rec->target_id] = target_rec.device_num;
@@ -345,22 +402,40 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
          } else if (target_rec.endpoint == ompt_scope_end) {
             std::shared_ptr<apex::task_wrapper> tt;
             uint64_t start;
+            uint64_t end;
             {
                 std::unique_lock<std::mutex> l(target_lock);
                 tt = target_map[rec->target_id];
+                // the AMD runtime no longer (versions 5.1-5.5) gives times for the
+                // target event. So, we'll use the times from the inner events
+                // as the start/stop time for this event in case it's needed.
                 start = target_start_times[rec->target_id];
+                end = rec->time;
+                if (end == 0) {
+                    if (target_end_times.count(rec->target_id) > 0) {
+                        end = target_end_times[rec->target_id] + 1000;
+                    }
+                }
+                std::cout << "Target " << rec->target_id << ": " << start << " - " << end << std::endl;
                 parent_thread = target_parent_thread_ids[rec->target_id];
                 active_target_addrs.erase(rec->target_id);
                 active_target_devices.erase(rec->target_id);
                 target_map.erase(rec->target_id);
                 target_start_times.erase(rec->target_id);
+                target_end_times.erase(rec->target_id);
                 target_parent_thread_ids.erase(rec->target_id);
             }
             /* If we have a target region with a device id of -1, we might not get
                a target region start event - so ignore this end event for now. */
             if (tt != nullptr) {
                 apex::ompt_thread_node node(target_rec.device_num, parent_thread, APEX_ASYNC_KERNEL);
-   	            stop_async_task(tt, start, rec->time, rec->target_id, node);
+                if (start > 0 && end > 0) {
+                       stop_async_task(tt,
+                        apex_ompt_translate_time(target_rec.device_num, start),
+                        apex_ompt_translate_time(target_rec.device_num, end),
+                        rec->target_id, node);
+                }
+                Globals::erase_timer(rec->target_id);
             }
          }
       break;
@@ -372,16 +447,19 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
     {
       ompt_record_target_data_op_t target_data_op_rec = rec->record.target_data_op;
       DEBUG_PRINT("\tRecord DataOp: host_op_id=%lu optype=%d src_addr=%p src_device=%d "
-	     "dest_addr=%p dest_device=%d bytes=%lu end_time=%lu duration=%lu ns codeptr=%p\n",
-	     target_data_op_rec.host_op_id, target_data_op_rec.optype,
-	     target_data_op_rec.src_addr, target_data_op_rec.src_device_num,
-	     target_data_op_rec.dest_addr, target_data_op_rec.dest_device_num,
-	     target_data_op_rec.bytes, target_data_op_rec.end_time,
-	     target_data_op_rec.end_time - rec->time,
-	     target_data_op_rec.codeptr_ra);
+         "dest_addr=%p dest_device=%d bytes=%lu end_time=%lu duration=%lu ns codeptr=%p\n",
+         target_data_op_rec.host_op_id, target_data_op_rec.optype,
+         target_data_op_rec.src_addr, target_data_op_rec.src_device_num,
+         target_data_op_rec.dest_addr, target_data_op_rec.dest_device_num,
+         target_data_op_rec.bytes, target_data_op_rec.end_time,
+         target_data_op_rec.end_time - rec->time,
+         target_data_op_rec.codeptr_ra);
+        int time_index = target_data_op_rec.dest_device_num;
             std::stringstream ss;
             ss << "GPU: OpenMP Target DataOp";
+#if defined(APEX_HAVE_OMPT_5_1)
             if(rec->type == ompt_callback_target_data_op_emi) ss << " EMI";
+#endif
             switch (target_data_op_rec.optype) {
                 case ompt_target_data_alloc: {
                     ss << " Alloc";
@@ -393,6 +471,7 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
                 }
                 case ompt_target_data_transfer_from_device: {
                     ss << " Xfer from Dev";
+                    time_index = target_data_op_rec.src_device_num;
                     break;
                 }
                 case ompt_target_data_delete: {
@@ -418,6 +497,7 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
                 }
                 case ompt_target_data_transfer_from_device_async: {
                     ss << " Xfer from Dev Async";
+                    time_index = target_data_op_rec.src_device_num;
                     break;
                 }
                 case ompt_target_data_delete_async: {
@@ -427,12 +507,27 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
 #endif
             }
             std::shared_ptr<apex::task_wrapper> tt;
+
             const void* codeptr_ra;
             {
                 std::unique_lock<std::mutex> l(target_lock);
-                tt = target_map[rec->target_id];
+                // if we have a legit GPU target event, use it
+                if (target_map.count(rec->target_id) > 0) {
+                    tt = target_map[rec->target_id];
+                    // otherwise, use the host side target call
+                } else {
+                    tt = Globals::find_timer(rec->target_id);
+                }
                 codeptr_ra = active_target_addrs[rec->target_id];
                 parent_thread = target_parent_thread_ids[rec->target_id];
+                // the AMD runtime no longer gives times for the
+                // target event. So, we'll use this time, and save
+                // the stop time for this event in case it's needed.
+                if (target_start_times[rec->target_id] == 0) {
+                    target_start_times[rec->target_id] = rec->time - 1000;
+                }
+                target_end_times[rec->target_id] = target_data_op_rec.end_time;
+                std::cout << "Updated Target " << rec->target_id << ": " << target_start_times[rec->target_id] << " - " << target_end_times[rec->target_id] << std::endl;
             }
             if (codeptr_ra != nullptr) {
                 ss << ": UNRESOLVED ADDR " << codeptr_ra;
@@ -440,13 +535,17 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
             std::string name{ss.str()};
             apex::ompt_thread_node node(target_data_op_rec.dest_device_num,
                 parent_thread, APEX_ASYNC_MEMORY);
-   	        store_profiler_data(name, rec->time,
-                target_data_op_rec.end_time, node, tt);
-            store_counter_data("OpenMP Target DataOp", "Bytes", target_data_op_rec.end_time,
+            store_profiler_data(name,
+                apex_ompt_translate_time(time_index, rec->time),
+                apex_ompt_translate_time(time_index, target_data_op_rec.end_time),
+                node, tt);
+            store_counter_data("OpenMP Target DataOp", "Bytes",
+                apex_ompt_translate_time(time_index, target_data_op_rec.end_time),
                 target_data_op_rec.bytes, node);
             // converting from B/us to MB/s
             double bw = (target_data_op_rec.bytes) / (target_data_op_rec.end_time - rec->time);
-            store_counter_data("OpenMP Target DataOp", "BW (MB/s)", target_data_op_rec.end_time,
+            store_counter_data("OpenMP Target DataOp", "BW (MB/s)",
+                apex_ompt_translate_time(time_index, target_data_op_rec.end_time),
                 bw, node);
       break;
     }
@@ -457,22 +556,35 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
     {
       ompt_record_target_kernel_t target_kernel_rec = rec->record.target_kernel;
       DEBUG_PRINT("\tRecord Submit: host_op_id=%lu requested_num_teams=%u granted_num_teams=%u "
-	     "end_time=%lu duration=%lu ns\n",
-	     target_kernel_rec.host_op_id, target_kernel_rec.requested_num_teams,
-	     target_kernel_rec.granted_num_teams, target_kernel_rec.end_time,
-	     target_kernel_rec.end_time - rec->time);
+         "end_time=%lu duration=%lu ns\n",
+         target_kernel_rec.host_op_id, target_kernel_rec.requested_num_teams,
+         target_kernel_rec.granted_num_teams, target_kernel_rec.end_time,
+         target_kernel_rec.end_time - rec->time);
             std::stringstream ss;
             ss << "GPU: OpenMP Target Submit";
+#if defined(APEX_HAVE_OMPT_5_1)
             if(rec->type == ompt_callback_target_submit_emi) ss << " EMI";
+#endif
             int device_num;
             std::shared_ptr<apex::task_wrapper> tt;
             const void* codeptr_ra;
             {
                 std::unique_lock<std::mutex> l(target_lock);
-                tt = target_map[rec->target_id];
+                // if we have a legit GPU target event, use it
+                if (target_map.count(rec->target_id) > 0) {
+                    tt = target_map[rec->target_id];
+                    // otherwise, use the host side target call
+                } else {
+                    tt = Globals::find_timer(rec->target_id);
+                }
                 codeptr_ra = active_target_addrs[rec->target_id];
                 device_num = active_target_devices[rec->target_id];
                 parent_thread = target_parent_thread_ids[rec->target_id];
+                if (target_start_times[rec->target_id] == 0) {
+                    target_start_times[rec->target_id] = rec->time - 1000;
+                }
+                target_end_times[rec->target_id] = target_kernel_rec.end_time;
+                std::cout << "Updated Target " << rec->target_id << ": " << target_start_times[rec->target_id] << " - " << target_end_times[rec->target_id] << std::endl;
             }
             if (codeptr_ra != nullptr) {
                 ss << ": UNRESOLVED ADDR " << codeptr_ra;
@@ -480,8 +592,10 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
             std::string name{ss.str()};
             apex::ompt_thread_node node(device_num, parent_thread,
                 APEX_ASYNC_KERNEL);
-   	        store_profiler_data(name, rec->time,
-                target_kernel_rec.end_time, node, tt);
+            store_profiler_data(name,
+                apex_ompt_translate_time(device_num, rec->time),
+                apex_ompt_translate_time(device_num, target_kernel_rec.end_time),
+                node, tt);
     break;
     }
   default:
@@ -522,12 +636,20 @@ static ompt_get_num_devices_t ompt_get_num_devices;
 static ompt_get_unique_id_t ompt_get_unique_id;
 static ompt_function_lookup_t ompt_function_lookup;
 */
+//static ompt_get_device_num_procs_t ompt_get_device_num_procs = nullptr;
+static ompt_get_device_time_t ompt_get_device_time = nullptr;
+static ompt_translate_time_t ompt_translate_time = nullptr;
 static ompt_set_trace_ompt_t ompt_set_trace_ompt = nullptr;
+//static ompt_set_trace_native_t
 static ompt_start_trace_t ompt_start_trace = nullptr;
+//static ompt_pause_trace_t
 static ompt_flush_trace_t ompt_flush_trace = nullptr;
 static ompt_stop_trace_t ompt_stop_trace = nullptr;
 static ompt_get_record_ompt_t ompt_get_record_ompt = nullptr;
 static ompt_advance_buffer_cursor_t ompt_advance_buffer_cursor = nullptr;
+//static ompt_get_record_type = nullptr;
+//static ompt_get_record_native = nullptr;
+//static ompt_get_record_abstract = nullptr;
 
 // forward declare so we can stop the initial task when forced to shut down
 void apex_ompt_stop(ompt_data_t * ompt_data);
@@ -864,12 +986,13 @@ extern "C" void apex_target (
         // save the timer data to make flow events
         std::shared_ptr<apex::task_wrapper> tw = ((linked_timer*)(task_data->ptr))->tw;
         apex::async_event_data as_data(
-                tw->prof->get_start_us(),
+                tw->prof->get_start_ns(),
                 "ControlFlow", target_id,
                 apex::thread_instance::get_id(), "OpenMP Target");
         Globals::insert_data(target_id, as_data);
         // save a copy of the task wrapper
         Globals::insert_timer(target_id, tw);
+        static bool doOnce{Globals::set_delta_base()};
     } else {
         {
             std::unique_lock<std::mutex> l(target_lock);
@@ -880,6 +1003,7 @@ extern "C" void apex_target (
         }
         // stop the timer
         apex_ompt_stop(task_data);
+        Globals::update_data(target_id);
     }
 }
 
@@ -910,8 +1034,8 @@ extern "C" void apex_target_data_op (
     DEBUG_PRINT("Callback DataOp:\n"
         "\ttarget_id=%lu host_op_id=%lu optype=%d src=%p\n"
         "\tsrc_device_num=%d dest=%p dest_device_num=%d bytes=%lu code=%p\n",
-	    target_id, host_op_id, optype, src_addr, src_device_num,
-	    dest_addr, dest_device_num, bytes, codeptr_ra);
+        target_id, host_op_id, optype, src_addr, src_device_num,
+        dest_addr, dest_device_num, bytes, codeptr_ra);
     // get the address and save the bytes transferred
     switch (optype) {
         case ompt_target_data_alloc: {
@@ -1034,30 +1158,59 @@ extern "C" void apex_device_initialize (
     APEX_UNUSED(documentation);
     if (!enabled) { return; }
     DEBUG_PRINT("%s\n", __APEX_FUNCTION__);
-  DEBUG_PRINT("Init: device_num=%d type=%s device=%p lookup=%p doc=%p\n",
-	 device_num, type, device, (void*)lookup, (void*)documentation);
-  if (!lookup) {
-    DEBUG_PRINT("Trace collection disabled on device %d\n", device_num);
-    return;
-  }
+    DEBUG_PRINT("Init: device_num=%d type=%s device=%p lookup=%p doc=%p\n",
+        device_num, type, device, (void*)lookup, (void*)documentation);
+    if (!lookup) {
+        DEBUG_PRINT("Trace collection disabled on device %d\n", device_num);
+        return;
+    }
 
-  ompt_set_trace_ompt = (ompt_set_trace_ompt_t) lookup("ompt_set_trace_ompt");
-  ompt_start_trace = (ompt_start_trace_t) lookup("ompt_start_trace");
-  ompt_flush_trace = (ompt_flush_trace_t) lookup("ompt_flush_trace");
-  ompt_stop_trace = (ompt_stop_trace_t) lookup("ompt_stop_trace");
-  ompt_get_record_ompt = (ompt_get_record_ompt_t) lookup("ompt_get_record_ompt");
-  ompt_advance_buffer_cursor = (ompt_advance_buffer_cursor_t) lookup("ompt_advance_buffer_cursor");
+    ompt_get_device_time = (ompt_get_device_time_t) lookup("ompt_get_device_time");
+    ompt_translate_time = (ompt_translate_time_t) lookup("ompt_translate_time");
+    ompt_set_trace_ompt = (ompt_set_trace_ompt_t) lookup("ompt_set_trace_ompt");
+    ompt_start_trace = (ompt_start_trace_t) lookup("ompt_start_trace");
+    ompt_flush_trace = (ompt_flush_trace_t) lookup("ompt_flush_trace");
+    ompt_stop_trace = (ompt_stop_trace_t) lookup("ompt_stop_trace");
+    ompt_get_record_ompt = (ompt_get_record_ompt_t) lookup("ompt_get_record_ompt");
+    ompt_advance_buffer_cursor = (ompt_advance_buffer_cursor_t) lookup("ompt_advance_buffer_cursor");
 
-  apex_set_trace_ompt();
+    apex_set_trace_ompt();
 
-  // In many scenarios, this will be a good place to start the
-  // trace. If start_trace is called from the main program before this
-  // callback is dispatched, the start_trace handle will be null. This
-  // is because this device_init callback is invoked during the first
-  // target construct implementation.
+    // In many scenarios, this will be a good place to start the
+    // trace. If start_trace is called from the main program before this
+    // callback is dispatched, the start_trace handle will be null. This
+    // is because this device_init callback is invoked during the first
+    // target construct implementation.
 
-  apex_ompt_start_trace();
+    apex_ompt_start_trace();
 }
+
+static uint64_t apex_ompt_translate_time(int index, ompt_device_time_t time) {
+    ompt_device_t* device = Globals::get_device(index);
+    if (ompt_translate_time == nullptr) {
+        /* runtime doesn't provide a time conversion function... */
+        if (ompt_get_device_time == nullptr) {
+            /* oh no. we can't get a timestamp. */
+            /* take an offset from the first host-side GPU call */
+            static bool doOnce{Globals::set_delta(time)};
+            return (uint64_t)(time + Globals::delta());
+        }
+        static std::map<int, int64_t> deltas;
+        if (deltas.count(index) == 0) {
+            // get a timestamp
+            auto gpu = ompt_get_device_time(device);
+            // get a timestamp
+            auto cpu = apex::profiler::now_ns();
+            // get a delta
+            int64_t delta = gpu - cpu;
+            deltas.insert(std::pair<int, int64_t>(index,delta));
+        }
+        return (uint64_t)(time + deltas[index]);
+    }
+    // the time gets returned as seconds, so convert to nanoseconds
+    return (uint64_t)(ompt_translate_time(device, time) * 1.0e9);
+}
+
 
 static int apex_ompt_flush_trace();
 static int apex_ompt_stop_trace();
@@ -1576,7 +1729,7 @@ static void on_ompt_callback_buffer_complete (
 ) {
     APEX_UNUSED(device_num);
   DEBUG_PRINT("Executing buffer complete callback: %d %p %lu %p %d\n",
-	 device_num, buffer, bytes, (void*)begin, buffer_owned);
+     device_num, buffer, bytes, (void*)begin, buffer_owned);
 
   int status = 1;
   ompt_buffer_cursor_t current = begin;
@@ -1584,10 +1737,10 @@ static void on_ompt_callback_buffer_complete (
     ompt_record_ompt_t *rec = ompt_get_record_ompt(buffer, current);
     print_record_ompt(rec);
     status = ompt_advance_buffer_cursor(NULL, /* TODO device */
-					buffer,
-					bytes,
-					current,
-					&current);
+                    buffer,
+                    bytes,
+                    current,
+                    &current);
   }
   if (buffer_owned) delete_buffer_ompt(buffer);
 }
@@ -1606,7 +1759,7 @@ static ompt_set_result_t apex_set_trace_ompt() {
 static int apex_ompt_start_trace() {
   if (!ompt_start_trace) return 0;
   return ompt_start_trace(0, &on_ompt_callback_buffer_request,
-			  &on_ompt_callback_buffer_complete);
+              &on_ompt_callback_buffer_complete);
 }
 
 static int apex_ompt_flush_trace() {
