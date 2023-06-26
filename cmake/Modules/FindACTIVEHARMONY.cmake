@@ -32,8 +32,10 @@ if((APEX_BUILD_ACTIVEHARMONY AND (NOT ACTIVEHARMONY_FOUND)) AND NOT APPLE)
   message(INFO " A working internet connection is required!")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
   include(ExternalProject)
+  #set(AHDL "http://www.dyninst.org/sites/default/files/downloads/harmony/ah-4.6.0.tar.gz")
+  set(AHDL "https://github.com/ActiveHarmony/harmony/archive/refs/tags/v4.6.0.tar.gz")
   ExternalProject_Add(project_activeharmony
-    URL http://www.dyninst.org/sites/default/files/downloads/harmony/ah-4.6.0.tar.gz
+    URL ${AHDL}
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/activeharmony-4.6.0
     PATCH_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/activeharmony-4.6.0/src/project_activeharmony && patch -p0 code-server/code_generator.cxx < ${PROJECT_SOURCE_DIR}/cmake/Modules/ActiveHarmony.patch
     CONFIGURE_COMMAND ""
