@@ -421,7 +421,9 @@ double Node::writeNodeCSV(std::stringstream& outfile, double total, int node_id,
     double remainder = acc;
     depth++;
     for (auto c : sorted) {
-        double tmp = c->writeNodeCSV(outfile, total, node_id, num_papi_counters);
+        //double tmp = c->writeNodeCSV(outfile, total, node_id, num_papi_counters);
+        /* OMPT target handling with 0 length events is giving me headaches... */
+        double tmp = c->writeNodeCSV(outfile, acc, node_id, num_papi_counters);
         remainder = remainder - tmp;
     }
     depth--;

@@ -1112,6 +1112,11 @@ void apex::stop_internal(profiler* the_profiler) {
 
 void stop(profiler* the_profiler, bool cleanup) {
     in_apex prevent_deadlocks;
+    // protect against calls after finalization
+    if (_exited || _measurement_stopped) {
+        APEX_UTIL_REF_COUNT_STOP_AFTER_FINALIZE
+        return;
+    }
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) {
         APEX_UTIL_REF_COUNT_DISABLED_STOP
@@ -1172,6 +1177,11 @@ void stop(profiler* the_profiler, bool cleanup) {
 
 void stop(std::shared_ptr<task_wrapper> tt_ptr) {
     in_apex prevent_deadlocks;
+    // protect against calls after finalization
+    if (_exited || _measurement_stopped) {
+        APEX_UTIL_REF_COUNT_STOP_AFTER_FINALIZE
+        return;
+    }
 #if defined(APEX_DEBUG)//_disabled)
     if (apex_options::use_verbose()) { debug_print("Stop", tt_ptr); }
 #endif
