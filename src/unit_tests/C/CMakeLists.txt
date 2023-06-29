@@ -71,7 +71,7 @@ foreach(example_program ${example_programs})
     source_group("Source Files" FILES ${sources})
 
     add_executable(${example_program} ${sources})
-    target_link_libraries (${example_program} apex ${LIBS} stdc++ m)
+    target_link_libraries (${example_program} apex ${LIBS} ${APEX_STDCXX_LIB} m)
     if (BUILD_STATIC_EXECUTABLES)
         set_target_properties(${example_program} PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
     endif()

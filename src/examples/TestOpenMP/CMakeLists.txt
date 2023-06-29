@@ -13,7 +13,7 @@ add_dependencies (examples openmp_test)
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 
 # Link the executable to the Apex library.
-target_link_libraries (openmp_test apex ${LIBS} ${OMPT_LIBRARIES} stdc++)
+target_link_libraries (openmp_test apex ${LIBS} ${OMPT_LIBRARIES} ${APEX_STDCXX_LIB})
 if (BUILD_STATIC_EXECUTABLES)
     set_target_properties(openmp_test PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
 endif()

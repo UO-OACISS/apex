@@ -17,6 +17,7 @@
 #include "apex.hpp"
 #include <execinfo.h>
 #include "address_resolution.hpp"
+#include <stdio.h>
 
 namespace apex {
 
@@ -192,15 +193,16 @@ void apex_report_leaks() {
     if (once) return;
     once = true;
     static book_t& book = getBook();
+    book.saved_node_id = apex::apex::instance()->get_node_id();
     std::stringstream ss;
     ss << "memory_report." << book.saved_node_id << ".txt";
-    std::string tmp{ss.str()};
-    std::ofstream report (tmp);
+    std::string outfile{ss.str()};
+    std::ofstream report (outfile);
     // Declare vector of pairs
     std::vector<std::pair<void*, record_t> > sorted;
 
     if (book.saved_node_id == 0) {
-        std::cout << "APEX Memory Report: (see " << tmp << ")" << std::endl;
+        std::cout << "APEX Memory Report: (see " << outfile << ")" << std::endl;
         std::cout << "sorting " << book.memoryMap.size() << " leaks by size..." << std::endl;
     }
 
@@ -217,9 +219,10 @@ void apex_report_leaks() {
 
     if (book.saved_node_id == 0) {
         std::cout << "Aggregating leaks by task and writing report..." << std::endl;
-        if (!apex_options::use_cuda()) {
+        if (apex_options::use_cuda()) {
             std::cout << "Ignoring known leaks in CUDA/CUPTI..." << std::endl;
         }
+        std::cout << "If there are no leaks, there won't be a file..." << std::endl;
     }
     size_t actual_leaks{0};
     // Print the sorted value
@@ -282,7 +285,12 @@ void apex_report_leaks() {
         actual_leaks++;
     }
     report.close();
-    std::cout << "Reported " << actual_leaks << " 'actual' leaks.\nExpect false positives if memory was freed after exit." << std::endl;
+    if (book.saved_node_id == 0) {
+        std::cout << "Reported " << actual_leaks << " 'actual' leaks.\nExpect false positives if memory was freed after exit." << std::endl;
+    }
+    if (actual_leaks == 0) {
+        remove(outfile.c_str());
+    }
 
 /*
     std::cout << "sorting task leaks by size..." << std::endl;

@@ -135,7 +135,7 @@ add_dependencies (apex_hpx_annotated_functions_mpi apex)
 add_dependencies (examples apex_hpx_annotated_functions_mpi)
 
 # Link the executable to the Apex library.
-target_link_libraries (apex_hpx_annotated_functions_mpi apex ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES} ${LIBS} stdc++ m)
+target_link_libraries (apex_hpx_annotated_functions_mpi apex ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES} ${LIBS} ${APEX_STDCXX_LIB} m)
 if (BUILD_STATIC_EXECUTABLES)
     set_target_properties(apex_hpx_annotated_functions_mpi PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
 endif()

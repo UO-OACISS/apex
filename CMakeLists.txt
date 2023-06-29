@@ -342,6 +342,13 @@ if (APEX_USE_PEDANTIC)
     endif(APEX_WITH_CUDA)
 endif (APEX_USE_PEDANTIC)
 
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "IntelLLVM")
+    set(APEX_STDCXX_LIB "" CACHE STRING "C++ library for linking")
+    message("IntelLLVM compiler detected, no stdc++ library needed")
+else()
+    set(APEX_STDCXX_LIB stdc++ CACHE STRING "C++ library for linking")
+endif()
+
 # PGI and Intel don't like the concurrentqueue code.
 if (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "PGI")
     if (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")

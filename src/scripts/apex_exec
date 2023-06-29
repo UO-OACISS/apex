@@ -649,6 +649,8 @@ fi
 # and iterate over them, setting different output directories for each.
 
 # Print out all APEX environment variables that have been set.
+APEX_SAVE_LD_PRELOAD=${LD_PRELOAD}
+unset LD_PRELOAD
 env | while IFS= read -r line; do
   value=${line#*=}
   name=${line%%=*}
@@ -656,6 +658,7 @@ env | while IFS= read -r line; do
     echo "$value: $name"
   fi
 done
+export LD_PRELOAD=${APEX_SAVE_LD_PRELOAD}
 
 delim=";"
 long_metrics=${APEX_PAPI_METRICS}
