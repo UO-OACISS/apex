@@ -172,8 +172,16 @@ get_system_function_handle(char const * name, T caller)
     return handle;
 }
 
+// __THROW is defined by gcc extensions to allow C and C++
+// compilers to build with the same headers. If it isn't 
+// defined, make sure we define it.
+
+#ifndef __THROW
+#define __THROW
+#endif
+
 extern "C"
-void* malloc (size_t size) {
+void* malloc (size_t size) __THROW {
     static malloc_p _malloc = NULL;
     static bool initializing = false;
     static bool bootstrapped = false;
@@ -197,7 +205,7 @@ void* malloc (size_t size) {
 }
 
 extern "C"
-void free (void* ptr) {
+void free (void* ptr) __THROW {
     static free_p _free = NULL;
     static bool initializing = false;
     static bool bootstrapped = false;
@@ -248,7 +256,7 @@ int puts (const char* s) {
 }
 
 extern "C"
-void* calloc (size_t nmemb, size_t size) {
+void* calloc (size_t nmemb, size_t size) __THROW {
     static calloc_p _calloc = NULL;
     static bool initializing = false;
     static bool bootstrapped = false;
@@ -272,7 +280,7 @@ void* calloc (size_t nmemb, size_t size) {
 }
 
 extern "C"
-void* realloc (void* ptr, size_t size) {
+void* realloc (void* ptr, size_t size) __THROW {
     static realloc_p _realloc = NULL;
     static bool initializing = false;
     static bool bootstrapped = false;

@@ -1412,12 +1412,14 @@ extern "C" void apex_ompt_work (
     static const char * taskloop_str = "Taskloop";
     static const char * unknown_str = "Unknown";
 
+    /*
     static const char * iterations_type = "Iterations";
     static const char * collapsed_type = "Iterations (collapsed)";
     static const char * sections_type = "Sections";
     static const char * units_type = "Units of Work";
     static const char * single_type = "Single";
-    //char * count_type = const_cast<char*>(iterations_type);
+    char * count_type = const_cast<char*>(iterations_type);
+    */
 
     switch(wstype) {
         case ompt_work_loop:
