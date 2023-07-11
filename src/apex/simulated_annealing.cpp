@@ -32,7 +32,7 @@ size_t SimulatedAnnealing::get_max_iterations() {
     }
     //return max_iter / vars.size();
     //return max_iter * vars.size() *vars.size();
-    return std::min(max_iterations, (std::max(min_iterations, max_iter)));
+    return std::min(max_iterations, (std::max(min_iterations, max_iter*max_iter)));
 }
 
 double SimulatedAnnealing::acceptance_probability(double new_cost) {

@@ -187,7 +187,7 @@ public:
         vars.insert(std::make_pair(name, var));
         kmax = get_max_iterations();
         /* get max iterations */
-        //std::cout << "Max iterations : " << kmax << std::endl;
+        //std::cout << vars.size() << " Vars, Max iterations : " << kmax << std::endl;
         restart = kmax / 10;
     }
 };
