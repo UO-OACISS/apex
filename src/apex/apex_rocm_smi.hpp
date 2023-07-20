@@ -62,6 +62,7 @@ public:
     void activateDeviceIndex(uint32_t index);
     double getAvailableMemory();
     static monitor& instance();
+    void explicitMemCheck (void);
 private:
     /* declare the constructor, only used by the "instance" method.
      * it is defined in the cpp file. */

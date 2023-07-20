@@ -119,6 +119,24 @@ void monitor::stop (void) {
     if (!success) return;
 }
 
+void monitor::explicitMemCheck (void) {
+    if (!success) return;
+    indexMutex.lock();
+    // use the copy constructor to get the set of active indices
+    std::set<uint32_t> indexSet{activeDeviceIndices};
+    indexMutex.unlock();
+
+    for (uint32_t d : indexSet) {
+        uint64_t memory_usage = 0;
+        RSMI_CALL(rsmi_dev_memory_usage_get(d, RSMI_MEM_TYPE_VRAM, &memory_usage));
+        std::stringstream ss;
+        ss << "GPU: Device " << d << " Triggered Memory Used, VRAM (GB)";
+        std::string tmp = ss.str();
+        double value = (double)(memory_usage) * BILLIONTH;
+        sample_value(tmp, value);
+    }
+}
+
 void monitor::query(void) {
     if (!success) return;
     indexMutex.lock();
