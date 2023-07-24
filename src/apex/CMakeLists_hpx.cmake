@@ -373,7 +373,7 @@ set(apex_sources
 
 include(GNUInstallDirs)
 
-if (WIN32 AND APEX_WITH_PERFETTO)
+if (WIN32)
 # Enable standards-compliant mode when using the Visual Studio compiler.
     if (MSVC)
         SET_SOURCE_FILES_PROPERTIES( perfetto.cc PROPERTIES COMPILE_FLAGS
