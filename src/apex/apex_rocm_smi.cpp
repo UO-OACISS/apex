@@ -37,7 +37,7 @@ do {                                                                         \
 } while (0);
 
 #define MILLIONTH 1.0e-6 // scale to MB
-#define BILLIONTH 1.0e-9 // scale to GB
+#define BILLIONTH 1.0/(1024.0*1024.0*1024.0) // scale to GB
 #define PCIE_THROUGHPUT 1.0e-3  // to scale KB to MB
 #define NVLINK_BW 1.0e-3  // to scale MB/s to GB/s
 #define WATTS 1.0e-6  // scale uW to W
@@ -119,6 +119,10 @@ void monitor::stop (void) {
     if (!success) return;
 }
 
+/* Forward declaration to avoid including hip headers */
+extern "C" int hipMemGetInfo(size_t* free, size_t* total);
+extern "C" const char* hipGetErrorString(int hipError);
+
 void monitor::explicitMemCheck (void) {
     if (!success) return;
     indexMutex.lock();
@@ -133,6 +137,24 @@ void monitor::explicitMemCheck (void) {
         ss << "GPU: Device " << d << " Triggered Memory Used, VRAM (GB)";
         std::string tmp = ss.str();
         double value = (double)(memory_usage) * BILLIONTH;
+        sample_value(tmp, value);
+    }
+    size_t free_byte, total_byte;
+    auto hip_status = hipMemGetInfo(&free_byte, &total_byte);
+    if (0 != hip_status){
+        fprintf(stderr, "Error: hipMemGetInfo fails, %s \n",
+            hipGetErrorString(hip_status));
+    } else {
+        std::stringstream ss;
+        ss << "GPU: hipMemGetInfo free (GB)";
+        std::string tmp = ss.str();
+        double value = (double)(free_byte) * BILLIONTH;
+        sample_value(tmp, value);
+        ss.str("");
+        ss.clear();
+        ss << "GPU: hipMemGetInfo used (GB)";
+        tmp = ss.str();
+        value = (double)(total_byte - free_byte) * BILLIONTH;
         sample_value(tmp, value);
     }
 }
@@ -386,7 +408,6 @@ double monitor::getAvailableMemory() {
         avail = (double)(memory_total - memory_usage);
         break;
     }
-
     return avail;
 }
 

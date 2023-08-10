@@ -526,9 +526,9 @@ fi
 if [ $ompt = yes ]; then
     export OMP_TOOL=enabled
     export OMP_TOOL_LIBRARIES=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}_ompt${SHLIBX}
-    export OMP_TOOL_VERBOSE_INIT=stdout
     OMPT_LIB=:${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}_ompt${SHLIBX}
     if [ $verbose = yes ]; then
+        export OMP_TOOL_VERBOSE_INIT=stdout
         export OMP_DISPLAY_ENV=true
     fi
 fi

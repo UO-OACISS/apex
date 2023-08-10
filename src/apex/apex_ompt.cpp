@@ -30,6 +30,8 @@
 #ifdef APEX_HAVE_OTF2
 #include "otf2_listener.hpp"
 #endif
+#include "apex_rocm_smi.hpp"
+
 
 std::mutex apex_apex_threadid_mutex;
 std::atomic<uint64_t> apex_numthreads{0};
@@ -153,7 +155,7 @@ public:
         auto iter = g.data_map.find(id);
         if (iter != g.data_map.end()) {
             iter->second.parent_ts_stop = apex::profiler::now_ns();
-            std::cout << "Updated " << id << std::endl;
+            // std::cout << "Updated " << id << std::endl;
         }
         g.unlock();
     }
@@ -224,8 +226,8 @@ void stop_async_task(std::shared_ptr<apex::task_wrapper> tt, uint64_t start, uin
         prof->set_start(start);
         prof->set_end(end);
     }
-    std::cout << "Parent prof " << correlationId << ": " << (uint64_t)as_data.parent_ts_start << " " << (uint64_t)as_data.parent_ts_stop << std::endl;
-    std::cout << "Final prof " << correlationId << ": " << prof->get_start_ns() << " " << prof->get_stop_ns() << std::endl;
+    //std::cout << "Parent prof " << correlationId << ": " << (uint64_t)as_data.parent_ts_start << " " << (uint64_t)as_data.parent_ts_stop << std::endl;
+    //std::cout << "Final prof " << correlationId << ": " << prof->get_start_ns() << " " << prof->get_stop_ns() << std::endl;
     // important!  Otherwise we might get the wrong end timestamp.
     prof->stopped = true;
     // Get the singleton APEX instance
@@ -416,7 +418,7 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
                         end = target_end_times[rec->target_id] + 1000;
                     }
                 }
-                std::cout << "Target " << rec->target_id << ": " << start << " - " << end << std::endl;
+                // std::cout << "Target " << rec->target_id << ": " << start << " - " << end << std::endl;
                 parent_thread = target_parent_thread_ids[rec->target_id];
                 active_target_addrs.erase(rec->target_id);
                 active_target_devices.erase(rec->target_id);
@@ -527,7 +529,7 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
                     target_start_times[rec->target_id] = rec->time - 1000;
                 }
                 target_end_times[rec->target_id] = target_data_op_rec.end_time;
-                std::cout << "Updated Target " << rec->target_id << ": " << target_start_times[rec->target_id] << " - " << target_end_times[rec->target_id] << std::endl;
+                //std::cout << "Updated Target " << rec->target_id << ": " << target_start_times[rec->target_id] << " - " << target_end_times[rec->target_id] << std::endl;
             }
             if (codeptr_ra != nullptr) {
                 ss << ": UNRESOLVED ADDR " << codeptr_ra;
@@ -584,7 +586,7 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
                     target_start_times[rec->target_id] = rec->time - 1000;
                 }
                 target_end_times[rec->target_id] = target_kernel_rec.end_time;
-                std::cout << "Updated Target " << rec->target_id << ": " << target_start_times[rec->target_id] << " - " << target_end_times[rec->target_id] << std::endl;
+                //std::cout << "Updated Target " << rec->target_id << ": " << target_start_times[rec->target_id] << " - " << target_end_times[rec->target_id] << std::endl;
             }
             if (codeptr_ra != nullptr) {
                 ss << ": UNRESOLVED ADDR " << codeptr_ra;
@@ -1043,6 +1045,7 @@ extern "C" void apex_target_data_op (
             apex::sample_value("GPU: OpenMP Target Data Alloc",bytes);
             std::unique_lock<std::mutex> l(allocation_lock);
             allocations[src_addr] = bytes;
+            apex::rsmi::monitor::instance().explicitMemCheck();
             break;
         }
         case ompt_target_data_transfer_to_device: {
@@ -1065,6 +1068,7 @@ extern "C" void apex_target_data_op (
                 allocations.erase(src_addr);
             }
             apex::sample_value("GPU: OpenMP Target Data Delete",mybytes);
+            apex::rsmi::monitor::instance().explicitMemCheck();
             break;
         }
         case ompt_target_data_associate: {
@@ -1080,6 +1084,7 @@ extern "C" void apex_target_data_op (
             apex::sample_value("GPU: OpenMP Target Data Alloc Async",bytes);
             std::unique_lock<std::mutex> l(allocation_lock);
             allocations[src_addr] = bytes;
+            apex::rsmi::monitor::instance().explicitMemCheck();
             break;
         }
         case ompt_target_data_transfer_to_device_async: {
@@ -1102,6 +1107,7 @@ extern "C" void apex_target_data_op (
                 allocations.erase(src_addr);
             }
             apex::sample_value("GPU: OpenMP Target Data Delete Async",mybytes);
+            apex::rsmi::monitor::instance().explicitMemCheck();
             break;
         }
 #endif
