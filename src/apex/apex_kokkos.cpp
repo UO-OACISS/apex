@@ -177,8 +177,8 @@ void kokkosp_begin_parallel_for(const char* name,
     ss << "Kokkos::parallel_for ["
        << devicestring_from_type(space_id.type);
     if (space_id.type != DeviceType::Serial &&
-        space_id.type != DeviceType::OpenMP && 
-        space_id.type != DeviceType::HPX && 
+        space_id.type != DeviceType::OpenMP &&
+        space_id.type != DeviceType::HPX &&
         space_id.type != DeviceType::Threads) {
        ss << ", Dev:" << space_id.device_id;
     }
@@ -198,8 +198,8 @@ void kokkosp_begin_parallel_reduce(const char* name,
     ss << "Kokkos::parallel_reduce ["
        << devicestring_from_type(space_id.type);
     if (space_id.type != DeviceType::Serial &&
-        space_id.type != DeviceType::OpenMP && 
-        space_id.type != DeviceType::HPX && 
+        space_id.type != DeviceType::OpenMP &&
+        space_id.type != DeviceType::HPX &&
         space_id.type != DeviceType::Threads) {
        ss << ", Dev:" << space_id.device_id;
     }
@@ -219,8 +219,8 @@ void kokkosp_begin_parallel_scan(const char* name,
     ss << "Kokkos::parallel_scan ["
        << devicestring_from_type(space_id.type);
     if (space_id.type != DeviceType::Serial &&
-        space_id.type != DeviceType::OpenMP && 
-        space_id.type != DeviceType::HPX && 
+        space_id.type != DeviceType::OpenMP &&
+        space_id.type != DeviceType::HPX &&
         space_id.type != DeviceType::Threads) {
        ss << ", Dev:" << space_id.device_id;
     }

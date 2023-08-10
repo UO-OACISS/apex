@@ -664,6 +664,24 @@ if((DEFINED PAPI_ROOT) OR (APEX_WITH_PAPI))
 endif()
 
 ################################################################################
+# Kokkos configuration
+################################################################################
+
+if(APEX_WITH_KOKKOS)
+    message(INFO " Checking for Kokkos installation in $KOKKOS_ROOT...")
+    find_package(Kokkos)
+    if (Kokkos_FOUND)
+        message(INFO " Using Kokkos include: ${Kokkos_INCLUDE_DIRS}/impl")
+        include_directories(${Kokkos_INCLUDE_DIRS}/impl)
+    else()
+        message(INFO " Kokkos not found, cloning submodule to get required headers.")
+        include(cmake/Modules/AddGitSubmodule.cmake)
+        add_git_submodule(kokkos FALSE)
+        include_directories(${PROJECT_SOURCE_DIR}/kokkos/core/src/impl)
+    endif()
+endif()
+
+################################################################################
 # OTF2 configuration
 ################################################################################
 
