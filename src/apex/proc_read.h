@@ -196,7 +196,9 @@ inline long long read_package0 (bool convert = true) {
     //std::cerr << "Error opening package0!" << std::endl;
     tmplong = 0LL;
   } else {
-    fscanf(fff,"%lld",&tmplong);
+    if (fscanf(fff,"%lld",&tmplong) == EOF) {
+        std::cerr << "Error reading package0!" << std::endl;
+    }
     fclose(fff);
   }
   if (convert) {
@@ -217,7 +219,9 @@ inline long long  read_dram (void) {
     //std::cerr << "Error opening dram!" << std::endl;
     tmplong = 0LL;
   } else {
-    fscanf(fff,"%lld",&tmplong);
+    if (fscanf(fff,"%lld",&tmplong) == EOF) {
+        std::cerr << "Error reading dram!" << std::endl;
+    }
     fclose(fff);
   }
   return tmplong * 1e-6;
