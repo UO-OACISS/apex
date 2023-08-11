@@ -186,6 +186,9 @@ if(APEX_WITH_HIP)
     set(hip_sources hip_trace.cpp apex_rocm_smi.cpp hip_profiler.cpp ctrl/test_hsa.cpp util/hsa_rsrc_factory.cpp util/perf_timer.cpp)
 endif(APEX_WITH_HIP)
 
+# Setup Kokkos
+include(APEX_SetupKokkos)
+
 # Setup PAPI
 include(APEX_SetupPAPI)
 
