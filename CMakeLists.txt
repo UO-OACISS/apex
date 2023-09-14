@@ -668,7 +668,7 @@ endif()
 ################################################################################
 
 if(APEX_WITH_KOKKOS)
-    message(INFO " Checking for Kokkos installation in $KOKKOS_ROOT...")
+    message(INFO " Checking for Kokkos installation in $Kokkos_ROOT...")
     find_package(Kokkos)
     if (Kokkos_FOUND)
         message(INFO " Using Kokkos include: ${Kokkos_INCLUDE_DIRS}/impl")
