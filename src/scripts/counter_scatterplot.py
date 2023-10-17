@@ -101,7 +101,7 @@ for key in sorted(dictionary, key=lambda key: len(dictionary[key]), reverse=True
     pl.yticks(fontsize=18)
     print ("Rendering...")
     pl.tight_layout()
-    name = name.replace(" ", "_")
+    name = key.replace(" ", "_")
     name = ''.join([c for c in name if c in safechars])
     pl.savefig(name+extension)
     pl.close()

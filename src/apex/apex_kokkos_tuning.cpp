@@ -757,7 +757,9 @@ std::string hashContext(size_t numVars,
         }
         d = ",";
     }
-    ss << ",tree_node:" << tree_node << "]";
+    if(tree_node.size() > 0) {
+        ss << ",tree_node:" << tree_node << "]";
+    }
     std::string tmp{ss.str()};
     return tmp;
 }
@@ -816,12 +818,12 @@ void set_params(std::shared_ptr<apex_tuning_request> request,
             if (var->info.type == kokkos_value_double) {
                 values[i].value.double_value = std::stod(param->get_value());
                 std::string tmp(request->get_name()+":"+var->name);
-                if (!request->has_converged())
+                //if (!request->has_converged())
                     apex::sample_value(tmp, values[i].value.double_value);
             } else if (var->info.type == kokkos_value_int64) {
                 values[i].value.int_value = std::stol(param->get_value());
                 std::string tmp(request->get_name()+":"+var->name);
-                if (!request->has_converged())
+                //if (!request->has_converged())
                     apex::sample_value(tmp, values[i].value.int_value);
             } else if (var->info.type == kokkos_value_string) {
                 strncpy(values[i].value.string_value, param->get_value().c_str(), KOKKOS_TOOLS_TUNING_STRING_LENGTH);
@@ -832,14 +834,14 @@ void set_params(std::shared_ptr<apex_tuning_request> request,
                     request->get_param(var->name));
                 values[i].value.double_value = param->get_value();
                 std::string tmp(request->get_name()+":"+var->name);
-                if (!request->has_converged())
+                //if (!request->has_converged())
                     apex::sample_value(tmp, values[i].value.double_value);
             } else if (var->info.type == kokkos_value_int64) {
                 auto param = std::static_pointer_cast<apex_param_long>(
                     request->get_param(var->name));
                 values[i].value.int_value = param->get_value();
                 std::string tmp(request->get_name()+":"+var->name);
-                if (!request->has_converged())
+                //if (!request->has_converged())
                     apex::sample_value(tmp, values[i].value.int_value);
             }
         }
@@ -1089,11 +1091,11 @@ void kokkosp_request_values(
             // throw away the time spent setting up tuning
             //session.context_starts[contextId] = session.context_starts[contextId] + delta;
         }
-        if (!converged) {
+        //if (!converged) {
             // add this name to our map of active contexts
             session.active_requests.insert(
                 std::pair<uint32_t, std::string>(contextId, name));
-        }
+        //}
     }
     if (session.verbose) {
         std::cout << std::string(getDepth(), ' ');
