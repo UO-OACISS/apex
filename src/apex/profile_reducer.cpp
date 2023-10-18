@@ -15,6 +15,12 @@
 #include <limits>
 #include <vector>
 #include <inttypes.h>
+#include "csv_parser.h"
+#include "tree.h"
+#include "threadpool.h"
+#include <chrono>
+using namespace std::chrono;
+
 
 /* 11 values per timer/counter by default
  * 4 values related to memory allocation tracking
@@ -270,7 +276,7 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
     return (all_profiles);
 }
 
-    void reduce_profiles(std::stringstream& csv_output, std::string filename) {
+    void reduce_profiles(std::stringstream& header, std::stringstream& csv_output, std::string filename, bool flat) {
         int commrank = 0;
         int commsize = 1;
 #if defined(APEX_WITH_MPI) || \
@@ -328,13 +334,25 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
         MPI_Gather(sbuf, max_length, MPI_CHAR, rbuf, max_length, MPI_CHAR, 0, MPI_COMM_WORLD);
 #endif
 
-        if (commrank == 0) {
+        /* OK, we have one big blob of character data. Split it into ranks... */
+        /*
+        char * index = rbuf;
+        for (auto i = 0 ; i < commsize ; i++) {
+            index = rbuf+(i*max_length);
+            std::string tmpstr{index};
+
+        }
+        */
+
+        /* Write to /dev/shm/apex.tmpfile.csv */
+        if (commrank == 0 && flat) {
             std::ofstream csvfile;
             std::stringstream csvname;
             csvname << apex_options::output_file_path();
             csvname << filesystem_separator() << filename;
             std::cout << "Writing: " << csvname.str();
             csvfile.open(csvname.str(), std::ios::out);
+            csvfile << header.rdbuf();
             char * index = rbuf;
             for (auto i = 0 ; i < commsize ; i++) {
                 index = rbuf+(i*max_length);
@@ -344,9 +362,67 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
             }
             csvfile.close();
             std::cout << "...done." << std::endl;
+            free(sbuf);
+            free(rbuf);
+        } else if (commrank == 0 && !flat) {
+            std::vector<std::vector<std::vector<std::string>>*> ranks;
+            std::vector<std::vector<std::string>> *rows = new std::vector<std::vector<std::string>>{};
+            treemerge::ThreadPool pool{};
+            pool.Start();
+            treemerge::node * root{nullptr};
+            std::cout << "Merging common tree for all ranks... ";
+            auto start = high_resolution_clock::now();
+
+            char * index = rbuf;
+            for (auto i = 0 ; i < commsize ; i++) {
+                index = rbuf+(i*max_length);
+                std::string tmpstr{index};
+                std::istringstream iss{tmpstr};
+                while (iss.good()) {
+                    std::vector<std::string> row = treemerge::csv_read_row(iss, ',');
+                    rows->push_back(row);
+                }
+                //std::cout << "Read " << rows->size() << " rows for rank " << ranks.size() << std::endl;
+                ranks.push_back(rows);
+                rows = new std::vector<std::vector<std::string>>{};
+                // if this is the root node, synchronously start the common tree
+                if (i == 0) {
+                    root = treemerge::node::buildTree(*(ranks[i]), root);
+                } else {
+                    //std::cout << "Queueing " << i << std::endl;
+                    pool.QueueJob([&ranks,i,&root]() {
+                        treemerge::node::buildTree(*(ranks[i]), root);
+                    });
+                }
+            }
+            free(sbuf);
+            free(rbuf);
+            while(pool.busy()) {} // wait for jobs to complete
+            pool.Stop();
+            auto stop = high_resolution_clock::now();
+            auto duration = duration_cast<microseconds>(stop - start);
+            std::cout << "done in " << duration.count() << " ms with "
+                << pool.getNthreads() << " threads." << std::endl;
+            std::cout << "Common task tree has " << root->getSize()
+                << " nodes." << std::endl;
+            delete(root);
+
+            /* now write the common tree! */
+            std::ofstream csvfile;
+            std::stringstream csvname;
+            csvname << apex_options::output_file_path();
+            csvname << filesystem_separator() << filename;
+            std::cout << "Writing: " << csvname.str() << std::endl;
+            std::istringstream iss{header.str()};
+            std::vector<std::string> header2 = treemerge::csv_read_row(iss, ',');
+            treemerge::csv_write(header2, ranks, csvname.str());
+            for (auto r : ranks) {
+                delete(r);
+            }
+        } else {
+            free(sbuf);
+            free(rbuf);
         }
-        free(sbuf);
-        free(rbuf);
     }
 
     void reduce_flat_profiles(int node_id, int num_papi_counters,
@@ -355,20 +431,21 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
         APEX_UNUSED(num_papi_counters);
         APEX_UNUSED(metric_names);
 #endif
-        std::stringstream csv_output;
+        std::stringstream header;
         if (node_id == 0) {
-            csv_output << "\"rank\",\"name\",\"type\",\"num samples/calls\",\"yields\",\"minimum\",\"mean\","
+            header << "\"rank\",\"name\",\"type\",\"num samples/calls\",\"yields\",\"minimum\",\"mean\","
                 << "\"maximum\",\"stddev\",\"total\",\"inclusive (ns)\",\"num threads\",\"total per thread\"";
 #if APEX_HAVE_PAPI
             for (int i = 0 ; i < num_papi_counters ; i++) {
-                csv_output << ",\"" << metric_names[i] << "\"";
+                header << ",\"" << metric_names[i] << "\"";
             }
 #endif
             if (apex_options::track_cpu_memory() || apex_options::track_gpu_memory()) {
-                csv_output << ",\"allocations\", \"bytes allocated\", \"frees\", \"bytes freed\"";
+                header << ",\"allocations\", \"bytes allocated\", \"frees\", \"bytes freed\"";
             }
-            csv_output << std::endl;
+            header << std::endl;
         }
+        std::stringstream csv_output;
 
         /* Get a list of all profile names */
         std::vector<task_identifier>& tids = get_available_profiles();
@@ -409,7 +486,7 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
             }
             csv_output << std::endl;
         }
-        reduce_profiles(csv_output, "apex_profiles.csv");
+        reduce_profiles(header, csv_output, "apex_profiles.csv", true);
     }
 
 } // namespace

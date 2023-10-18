@@ -63,6 +63,7 @@ void apex_print_backtrace() {
    if (retval != 0) { continue; }
 #endif
   }
+  sleep(30); // wait for debugger to connect?
 }
 
 static void apex_custom_signal_handler(int sig) {
