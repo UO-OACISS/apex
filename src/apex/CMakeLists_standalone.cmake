@@ -75,6 +75,7 @@ ${RAJA_SOURCE}
 ${STARPU_SOURCE}
 ${PHIPROF_SOURCE}
 concurrency_handler.cpp
+csv_parser.cpp
 dependency_tree.cpp
 event_listener.cpp
 exhaustive.cpp
@@ -94,7 +95,9 @@ task_identifier.cpp
 tcmalloc_hooks.cpp
 ${tau_SOURCE}
 thread_instance.cpp
+threadpool.cpp
 trace_event_listener.cpp
+tree.cpp
 utils.cpp
 ${ZLIB_SOURCE}
 )
