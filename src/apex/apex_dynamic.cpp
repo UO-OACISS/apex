@@ -229,7 +229,7 @@ void * get_symbol(const char * module, const char * symbol) {
         typedef void (*apex_rocprofiler_monitor_query_t)(void);
         typedef void (*apex_rocprofiler_monitor_stop_t)(void);
         void query(void) {
-#ifdef APEX_WITH_HIP
+#ifdef APEX_WITH_ROCPROFILER
             if (apex_options::monitor_gpu()) {
                 // do this once
                 static apex_rocprofiler_monitor_query_t apex_rocprofiler_monitor_query =
@@ -244,7 +244,7 @@ void * get_symbol(const char * module, const char * symbol) {
 #endif
         }
         void stop(void) {
-#ifdef APEX_WITH_HIP
+#ifdef APEX_WITH_ROCPROFILER
             if (apex_options::monitor_gpu()) {
                 // do this once
                 static apex_rocprofiler_monitor_stop_t apex_rocprofiler_monitor_stop =
