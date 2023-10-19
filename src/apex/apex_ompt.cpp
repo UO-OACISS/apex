@@ -30,7 +30,7 @@
 #ifdef APEX_HAVE_OTF2
 #include "otf2_listener.hpp"
 #endif
-#include "apex_rocm_smi.hpp"
+//#include "apex_rocm_smi.hpp"
 
 
 std::mutex apex_apex_threadid_mutex;
@@ -1045,7 +1045,7 @@ extern "C" void apex_target_data_op (
             apex::sample_value("GPU: OpenMP Target Data Alloc",bytes);
             std::unique_lock<std::mutex> l(allocation_lock);
             allocations[src_addr] = bytes;
-            apex::rsmi::monitor::instance().explicitMemCheck();
+            //apex::rsmi::monitor::instance().explicitMemCheck();
             break;
         }
         case ompt_target_data_transfer_to_device: {
@@ -1068,7 +1068,7 @@ extern "C" void apex_target_data_op (
                 allocations.erase(src_addr);
             }
             apex::sample_value("GPU: OpenMP Target Data Delete",mybytes);
-            apex::rsmi::monitor::instance().explicitMemCheck();
+            //apex::rsmi::monitor::instance().explicitMemCheck();
             break;
         }
         case ompt_target_data_associate: {
@@ -1084,7 +1084,7 @@ extern "C" void apex_target_data_op (
             apex::sample_value("GPU: OpenMP Target Data Alloc Async",bytes);
             std::unique_lock<std::mutex> l(allocation_lock);
             allocations[src_addr] = bytes;
-            apex::rsmi::monitor::instance().explicitMemCheck();
+            //apex::rsmi::monitor::instance().explicitMemCheck();
             break;
         }
         case ompt_target_data_transfer_to_device_async: {
@@ -1107,7 +1107,7 @@ extern "C" void apex_target_data_op (
                 allocations.erase(src_addr);
             }
             apex::sample_value("GPU: OpenMP Target Data Delete Async",mybytes);
-            apex::rsmi::monitor::instance().explicitMemCheck();
+            //apex::rsmi::monitor::instance().explicitMemCheck();
             break;
         }
 #endif
