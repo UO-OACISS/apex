@@ -279,52 +279,52 @@ void apex::_initialize()
     tmp << "\nOracle Compiler version : " << __SUNPRO_CC;
 #endif
     tmp << "\nConfigured features: Pthread";
-#ifdef APEX_WITH_ACTIVEHARMONY
+#if defined(APEX_WITH_ACTIVEHARMONY) || defined(APEX_HAVE_ACTIVEHARMONY)
     tmp << ", AH";
 #endif
-#ifdef APEX_WITH_BFD
+#if defined(APEX_WITH_BFD) || defined(APEX_HAVE_BFD)
     tmp << ", BFD";
 #endif
-#ifdef APEX_WITH_CUDA
+#if defined(APEX_WITH_CUDA) || defined(APEX_HAVE_CUDA)
     tmp << ", CUDA";
 #endif
-#ifdef APEX_WITH_HIP
+#if defined(APEX_WITH_HIP) || defined(APEX_HAVE_HIP)
     tmp << ", HIP";
 #endif
-#ifdef APEX_WITH_LEVEL0
+#if defined(APEX_WITH_LEVEL0) || defined(APEX_HAVE_LEVEL0)
     tmp << ", L0";
 #endif
-#ifdef APEX_WITH_MPI
+#if defined(APEX_WITH_MPI) || defined(APEX_HAVE_MPI)
     tmp << ", MPI";
 #endif
-#ifdef APEX_WITH_OMPT
+#if defined(APEX_WITH_OMPT) || defined(APEX_HAVE_OMPT)
     tmp << ", OMPT";
 #endif
-#ifdef APEX_WITH_OTF2
+#if defined(APEX_WITH_OTF2) || defined(APEX_HAVE_OTF2)
     tmp << ", OTF2";
 #endif
-#ifdef APEX_WITH_PAPI
+#if defined(APEX_WITH_PAPI) || defined(APEX_HAVE_PAPI)
     tmp << ", PAPI";
 #endif
-#ifdef APEX_WITH_PLUGINS
+#if defined(APEX_WITH_PLUGINS) || defined(APEX_HAVE_PLUGINS)
     tmp << ", PLUGINS";
 #endif
-#ifdef APEX_WITH_STARPU
+#if defined(APEX_WITH_STARPU) || defined(APEX_HAVE_STARPU)
     tmp << ", StarPU";
 #endif
-#ifdef APEX_WITH_PHIPROF
+#if defined(APEX_WITH_PHIPROF) || defined(APEX_HAVE_PHIPROF)
     tmp << ", PhiProf";
 #endif
-#ifdef APEX_WITH_TCMALLOC
+#if defined(APEX_WITH_TCMALLOC) || defined(APEX_HAVE_TCMALLOC)
     tmp << ", TCMalloc";
 #endif
-#ifdef APEX_WITH_JEMALLOC
+#if defined(APEX_WITH_JEMALLOC) || defined(APEX_HAVE_JEMALLOC)
     tmp << ", JEMalloc";
 #endif
-#ifdef APEX_WITH_LM_SENSORS
+#if defined(APEX_WITH_LM_SENSORS) || defined(APEX_HAVE_LM_SENSORS)
     tmp << ", LM Sensors";
 #endif
-#ifdef APEX_WITH_PERFETTO
+#if defined(APEX_WITH_PERFETTO) || defined(APEX_HAVE_PERFETTO)
     tmp << ", Perfetto";
 #endif
     tmp << "\n";
