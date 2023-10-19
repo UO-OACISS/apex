@@ -419,7 +419,8 @@ apex* apex::instance()
  */
 void apex::async_thread_setup() {
     apex* instance = apex::instance();
-    instance->the_profiler_listener->async_thread_setup();
+    if (instance != nullptr && instance->the_profiler_listener != nullptr)
+        instance->the_profiler_listener->async_thread_setup();
 }
 
 // special case - for cleanup only!
