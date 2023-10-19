@@ -183,7 +183,15 @@ endif(APEX_WITH_CUDA)
 
 include(APEX_SetupHIP)
 if(APEX_WITH_HIP)
-    set(hip_sources hip_trace.cpp apex_rocm_smi.cpp hip_profiler.cpp ctrl/test_hsa.cpp util/hsa_rsrc_factory.cpp util/perf_timer.cpp)
+    if (ROCPROFILER_FOUND)
+    SET(ROCPROFILER_SOURCE
+        hip_profiler.cpp
+        ctrl/test_hsa.cpp
+        util/hsa_rsrc_factory.cpp
+        util/perf_timer.cpp)
+    endif(ROCPROFILER_FOUND)
+
+    set(hip_sources hip_trace.cpp apex_rocm_smi.cpp ${ROCPROFILER_SOURCE})
 endif(APEX_WITH_HIP)
 
 # Setup Kokkos
