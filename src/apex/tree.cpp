@@ -15,7 +15,7 @@ std::atomic<size_t> node::count{0};
 node * node::buildTree(std::vector<std::vector<std::string>>& rows,
     node * root) {
     if(rows.size() == 0) return root;
-    size_t rank = stol(rows[0][0]);
+    //size_t rank = stol(rows[0][0]);
     size_t index = stol(rows[0][1]);
     size_t pindex = stol(rows[0][2]);
     //size_t depth = stol(rows[0][3]);
