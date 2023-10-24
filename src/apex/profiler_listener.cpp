@@ -1185,7 +1185,7 @@ std::unordered_set<profile*> free_profiles;
     if (apex_options::use_tasktree_output()) {
         // write to a single file!
         stringstream header_stream;
-        if (node_id == 0) {
+        //if (node_id == 0) {
             header_stream << "\"process rank\",\"node index\",\"parent index\",\"depth\",";
             header_stream << "\"name\",\"calls\",\"threads\",\"total time(s)\",\"inclusive time(s)\",";
             header_stream << "\"minimum time(s)\",\"mean time(s)\",\"maximum time(s)\",";
@@ -1210,7 +1210,7 @@ std::unordered_set<profile*> free_profiles;
                 header_stream << ",\"" << m << "\"";
             }
             header_stream << "\n";
-        }
+        //}
         stringstream tree_stream;
         root->tree_node->writeNodeCSV(tree_stream, wall_clock_main, node_id, num_papi_counters);
         std::string filename{"apex_tasktree.csv"};
