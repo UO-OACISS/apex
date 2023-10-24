@@ -296,7 +296,8 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
             csvname << filesystem_separator() << filename;
             std::cout << "Writing: " << csvname.str() << std::endl;
             csvfile.open(csvname.str(), std::ios::out);
-            csvfile << csv_output.str();
+            csvfile << header.rdbuf();
+            csvfile << csv_output.rdbuf();
             csvfile.close();
             return;
         }
