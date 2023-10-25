@@ -58,6 +58,10 @@ if(APEX_WITH_PERFETTO)
     include_directories(${APEX_SOURCE_DIR}/src/perfetto_sdk)
 endif()
 
+if(APEX_WITH_TCMALLOC)
+    set(TCMALLOC_SOURCE tcmalloc_hooks.cpp)
+endif(APEX_WITH_TCMALLOC)
+
 # Try to keep this in alphabetical order
 SET(all_SOURCE
 apex_preload.cpp
@@ -92,7 +96,7 @@ random.cpp
 ${SENSOR_SOURCE}
 simulated_annealing.cpp
 task_identifier.cpp
-tcmalloc_hooks.cpp
+${TCMALLOC_SOURCE}
 ${tau_SOURCE}
 thread_instance.cpp
 threadpool.cpp

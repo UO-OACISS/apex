@@ -536,6 +536,7 @@ if [ $mpi = yes ]; then
     testme=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}_mpi${SHLIBX}
     if [ -f ${testme} ]; then
         export MPI_LIB=:${testme}
+        export MPI_LIB2=${testme}
     fi
 fi
 if [ $cuda = yes ] || [ $monitor_gpu = yes ]; then
@@ -702,6 +703,12 @@ else
     unset DYLD_INSERT_LIBRARIES
     rm -f ./.gdbcmds
     if [ ${retval} != 0 ] ; then
+        echo "Error ${retval}!"
+        count=`ldd ${MPI_LIB2} | grep -c tcmalloc`
+        if [ ${count} -eq 1 ] ; then
+            preloadme=`ldd ${MPI_LIB2} | grep tcmalloc | awk '{ print $3 }'`
+            echo "If you got some kind of tcmalloc error, please preload the dependent tcmalloc shared object library with '--apex:preload ${preloadme}'"
+        fi
         exit ${retval}
     fi
 fi
