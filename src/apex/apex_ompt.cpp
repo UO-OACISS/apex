@@ -1827,6 +1827,7 @@ int ompt_initialize(ompt_function_lookup_t lookup, int initial_device_num,
     APEX_UNUSED(initial_device_num);
     APEX_UNUSED(tool_data);
     if (!apex::apex_options::use_ompt()) { return 0; }
+    if (enabled) { printf("Re-initializing OMPT!\n"); return 1; }
     {
         std::unique_lock<std::mutex> l(apex_apex_threadid_mutex);
         apex_threadid = apex_numthreads++;
