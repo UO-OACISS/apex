@@ -207,10 +207,6 @@ if(ACTIVEHARMONY_FOUND)
     add_dependencies (apex project_activeharmony)
 endif(ACTIVEHARMONY_FOUND)
 
-if(OMPT_FOUND)
-    add_dependencies (apex_ompt project_ompt)
-endif(OMPT_FOUND)
-
 if(BFD_FOUND)
     add_dependencies (apex project_binutils)
 endif(BFD_FOUND)
