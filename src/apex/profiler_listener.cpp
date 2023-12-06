@@ -1184,20 +1184,20 @@ std::unordered_set<profile*> free_profiles;
     }
     if (apex_options::use_tasktree_output()) {
         // write to a single file!
-        stringstream tree_stream;
-        if (node_id == 0) {
-            tree_stream << "\"process rank\",\"node index\",\"parent index\",\"depth\",";
-            tree_stream << "\"name\",\"calls\",\"threads\",\"total time(s)\",\"inclusive time(s)\",";
-            tree_stream << "\"minimum time(s)\",\"mean time(s)\",\"maximum time(s)\",";
-            tree_stream << "\"stddev time(s)\"";
+        stringstream header_stream;
+        //if (node_id == 0) {
+            header_stream << "\"process rank\",\"node index\",\"parent index\",\"depth\",";
+            header_stream << "\"name\",\"calls\",\"threads\",\"total time(s)\",\"inclusive time(s)\",";
+            header_stream << "\"minimum time(s)\",\"mean time(s)\",\"maximum time(s)\",";
+            header_stream << "\"stddev time(s)\"";
             for (auto& x : dependency::Node::getKnownMetrics()) {
-                tree_stream << ",\"total " << x << "\"";
-                tree_stream << ",\"minimum " << x << "\"";
-                tree_stream << ",\"mean " << x << "\"";
-                tree_stream << ",\"maximum " << x << "\"";
-                tree_stream << ",\"stddev " << x << "\"";
-                tree_stream << ",\"median " << x << "\"";
-                tree_stream << ",\"mode " << x << "\"";
+                header_stream << ",\"total " << x << "\"";
+                header_stream << ",\"minimum " << x << "\"";
+                header_stream << ",\"mean " << x << "\"";
+                header_stream << ",\"maximum " << x << "\"";
+                header_stream << ",\"stddev " << x << "\"";
+                header_stream << ",\"median " << x << "\"";
+                header_stream << ",\"mode " << x << "\"";
             }
             /* First, we need to tokenize the list of metrics */
             std::stringstream tmpstr(apex_options::papi_metrics());
@@ -1207,13 +1207,14 @@ std::unordered_set<profile*> free_profiles;
             std::istream_iterator<std::string> tmpstr_end;
             std::vector<std::string> tmpstr_results(tmpstr_it, tmpstr_end);
             for (auto m : tmpstr_results) {
-                tree_stream << ",\"" << m << "\"";
+                header_stream << ",\"" << m << "\"";
             }
-            tree_stream << "\n";
-        }
+            header_stream << "\n";
+        //}
+        stringstream tree_stream;
         root->tree_node->writeNodeCSV(tree_stream, wall_clock_main, node_id, num_papi_counters);
         std::string filename{"apex_tasktree.csv"};
-        reduce_profiles(tree_stream, filename);
+        reduce_profiles(header_stream, tree_stream, filename, false);
     }
   }
 

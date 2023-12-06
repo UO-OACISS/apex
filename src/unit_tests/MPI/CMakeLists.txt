@@ -9,14 +9,18 @@ link_directories (${APEX_BINARY_DIR}/src/apex)
 # "mpi_cpi.c". The extensions are automatically found.
 add_executable (mpi_cpi mpi_cpi.c)
 add_dependencies (mpi_cpi apex)
-add_dependencies (tests mpi_cpi)
+add_executable (mpi_divergent mpi_divergent.c)
+add_dependencies (mpi_divergent apex)
+add_dependencies (tests mpi_cpi mpi_divergent)
 
 # Link the executable to the Apex library.
-target_link_libraries (mpi_cpi apex ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES} ${LIBS} ${APEX_STDCXX_LIB} m)
+target_link_libraries (mpi_cpi apex apex_mpi ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES} ${LIBS} ${APEX_STDCXX_LIB} m)
+target_link_libraries (mpi_divergent apex apex_mpi ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES} ${LIBS} ${APEX_STDCXX_LIB} m)
 if (BUILD_STATIC_EXECUTABLES)
     set_target_properties(mpi_cpi PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
+    set_target_properties(mpi_divergent PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
 endif()
 
-INSTALL(TARGETS mpi_cpi
+INSTALL(TARGETS mpi_cpi mpi_divergent
   RUNTIME DESTINATION bin OPTIONAL
 )

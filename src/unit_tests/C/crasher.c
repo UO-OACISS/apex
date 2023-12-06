@@ -66,6 +66,7 @@ int main(int argc, char *argv[])
         printf("Writing at address %p\n",p);
 
     }*/
+    raise(SIGSEGV);
 
     printf("Loop completed\n");     /* Should never happen */
     exit(EXIT_SUCCESS);

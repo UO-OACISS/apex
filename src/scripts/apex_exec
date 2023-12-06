@@ -31,7 +31,7 @@ where APEX options are zero or more of:
     --apex:debug                  run with APEX in debugger
     --apex:verbose                enable verbose list of APEX environment variables
     --apex:screen                 enable screen text output (on by default)
-    --apex:screen_detail          enable detailed text output (off by default)
+    --apex:screen-detail          enable detailed text output (off by default)
     --apex:quiet                  disable screen text output
     --apex:csv                    enable csv text output
     --apex:tau                    enable tau profile output
@@ -41,9 +41,13 @@ where APEX options are zero or more of:
                                   (python3 with Pandas required for post-processing)
     --apex:hatchet                enable Hatchet tasktree output
                                   (python3 with Hatchet required for post-processing)
+    --apex:concur                 Periodically sample thread activity (default: off)
+    --apex:concur-max             Max timers to track with concurrency activity (default: 5)
+    --apex:concur-period <value>  Frequency of concurrency sampling, in microseconds
+                                  (default: 1000000)
     --apex:throttle               throttle short-lived timers to reduce overhead (default: off)
-    --apex:throttle_calls <value> minimum number of calls before throttling (default: 1000)
-    --apex:throttle_per <value>   minimum timer duration in microseconds (default: 10)
+    --apex:throttle-calls <value> minimum number of calls before throttling (default: 1000)
+    --apex:throttle-per <value>   minimum timer duration in microseconds (default: 10)
     --apex:otf2                   enable OTF2 trace output (requries --apex:mpi with MPI configurations)
     --apex:otf2path <value>       specify location of OTF2 archive
                                   (default: ./OTF2_archive)
@@ -54,24 +58,24 @@ where APEX options are zero or more of:
                                   (python required for post-processing)
     --apex:openacc                enable OpenACC support
     --apex:kokkos                 enable Kokkos support
-    --apex:kokkos_tuning          enable Kokkos runtime autotuning support
-    --apex:kokkos_fence           enable Kokkos fences for async kernels
+    --apex:kokkos-tuning          enable Kokkos runtime autotuning support
+    --apex:kokkos-fence           enable Kokkos fences for async kernels
     --apex:raja                   enable RAJA support
     --apex:pthread                enable pthread wrapper support
-    --apex:gpu_memory             enable GPU memory wrapper support
-    --apex:cpu_memory             enable CPU memory wrapper support
+    --apex:gpu-memory             enable GPU memory wrapper support
+    --apex:cpu-memory             enable CPU memory wrapper support
     --apex:untied                 enable tasks to migrate cores/OS threads
                                   during execution (not compatible with trace output)
     --apex:cuda                   enable CUDA/CUPTI measurement (default: off)
-    --apex:cuda_counters          enable CUDA/CUPTI counter support (default: off)
-    --apex:cuda_driver            enable CUDA driver API callbacks (default: off)
-    --apex:cuda_details           enable per-kernel statistics where available (default: off)
+    --apex:cuda-counters          enable CUDA/CUPTI counter support (default: off)
+    --apex:cuda-driver            enable CUDA driver API callbacks (default: off)
+    --apex:cuda-details           enable per-kernel statistics where available (default: off)
     --apex:hip                    enable HIP/ROCTracer measurement (default: off)
-    --apex:hip_metrics            enable HIP/ROCProfiler metric support (default: off)
-    --apex:hip_counters           enable HIP/ROCTracer counter support (default: off)
-    --apex:hip_driver             enable HIP/ROCTracer KSA driver API callbacks (default: off)
-    --apex:hip_details            enable per-kernel statistics where available (default: off)
-    --apex:monitor_gpu            enable GPU monitoring services (CUDA NVML, ROCm SMI)
+    --apex:hip-metrics            enable HIP/ROCProfiler metric support (default: off)
+    --apex:hip-counters           enable HIP/ROCTracer counter support (default: off)
+    --apex:hip-driver             enable HIP/ROCTracer KSA driver API callbacks (default: off)
+    --apex:hip-details            enable per-kernel statistics where available (default: off)
+    --apex:monitor-gpu            enable GPU monitoring services (CUDA NVML, ROCm SMI)
     --apex:level0                 enable OneAPI Level0 measurement (default: off)
     --apex:cpuinfo                enable sampling of /proc/cpuinfo (Linux only)
     --apex:meminfo                enable sampling of /proc/meminfo (Linux only)
@@ -81,8 +85,8 @@ where APEX options are zero or more of:
     --apex:period <value>         specify frequency of OS/HW sampling
     --apex:mpi                    enable MPI profiling (required for OTF2 support with MPI configurations)
     --apex:ompt                   enable OpenMP profiling (requires runtime support)
-    --apex:ompt_simple            only enable OpenMP Tools required events
-    --apex:ompt_details           enable all OpenMP Tools events
+    --apex:ompt-simple            only enable OpenMP Tools required events
+    --apex:ompt-details           enable all OpenMP Tools events
     --apex:source                 resolve function, file and line info for address lookups with binutils
                                   (default: function only)
     --apex:preload <lib>          extra libraries to load with LD_PRELOAD _before_ APEX libraries
@@ -105,6 +109,7 @@ scatter=no
 taskgraph=no
 tasktree=no
 hatchet=no
+concurrency=no
 screen=yes
 csv=no
 tau=no
@@ -157,12 +162,12 @@ while (( "$#" )); do
       kokkos=yes
       shift
       ;;
-    --apex:kokkos_tuning)
+    --apex:kokkos_tuning|--apex:kokkos-tuning)
       kokkos=yes
       kokkos_tuning=yes
       shift
       ;;
-    --apex:kokkos_fence)
+    --apex:kokkos_fence|--apex:kokkos-fence)
       kokkos=yes
       kokkos_fence=yes
       export APEX_KOKKOS_PROFILING_FENCES=1
@@ -181,13 +186,13 @@ while (( "$#" )); do
       export APEX_TIME_TOP_LEVEL_OS_THREADS=1
       shift
       ;;
-    --apex:gpu_memory)
+    --apex:gpu_memory|--apex:gpu-memory)
       gpu_memory=yes
       export APEX_TRACK_GPU_MEMORY=1
       export APEX_SOURCE_LOCATION=1
       shift
       ;;
-    --apex:cpu_memory)
+    --apex:cpu_memory|--apex:cpu-memory)
       cpu_memory=yes
       export APEX_TRACK_CPU_MEMORY=1
       export APEX_SOURCE_LOCATION=1
@@ -238,11 +243,16 @@ while (( "$#" )); do
       export APEX_HATCHET_OUTPUT=1
       shift
       ;;
+    --apex:concur)
+      concurrency=yes
+      export APEX_MEASURE_CONCURRENCY=1
+      shift
+      ;;
     --apex:screen)
       # on by default
       shift
       ;;
-    --apex:screen_details)
+    --apex:screen_details|--apex:screen-details)
       screen=yes
       export APEX_SCREEN_OUTPUT_DETAIL=1
       shift
@@ -266,21 +276,21 @@ while (( "$#" )); do
       export APEX_ENABLE_CUDA=1
       shift
       ;;
-    --apex:cuda_counters)
+    --apex:cuda_counters|--apex:cuda-counters)
       cuda=yes
       cuda_counters=yes
       export APEX_ENABLE_CUDA=1
       export APEX_CUDA_COUNTERS=1
       shift
       ;;
-    --apex:cuda_driver)
+    --apex:cuda_driver|--apex:cuda-driver)
       cuda=yes
       cuda_driver=yes
       export APEX_ENABLE_CUDA=1
       export APEX_CUDA_DRIVER_API=1
       shift
       ;;
-    --apex:cuda_details)
+    --apex:cuda_details|--apex:cuda-details)
       cuda=yes
       cuda_details=yes
       export APEX_ENABLE_CUDA=1
@@ -298,14 +308,14 @@ while (( "$#" )); do
       export ZE_ENABLE_TRACING_LAYER=1
       shift
       ;;
-    --apex:hip_counters)
+    --apex:hip_counters|--apex:hip-counters)
       hip=yes
       hip_counters=yes
       export APEX_ENABLE_HIP=1
       export APEX_HIP_COUNTERS=1
       shift
       ;;
-    --apex:hip_metrics)
+    --apex:hip_metrics|--apex:hip-metrics)
       hip=yes
       hip_metrics=yes
       export APEX_ENABLE_HIP=1
@@ -319,21 +329,21 @@ while (( "$#" )); do
       export LD_LIBRARY_PATH=@ROCPROFILER_HSA_DIRS@:$LD_LIBRARY_PATH
       shift
       ;;
-    --apex:hip_driver)
+    --apex:hip_driver|--apex:hip-driver)
       hip=yes
       hip_driver=yes
       export APEX_ENABLE_HIP=1
       export APEX_HIP_KFD_API=1
       shift
       ;;
-    --apex:hip_details)
+    --apex:hip_details|--apex:hip-details)
       hip=yes
       hip_details=yes
       export APEX_ENABLE_HIP=1
       export APEX_HIP_KERNEL_DETAILS=1
       shift
       ;;
-    --apex:monitor_gpu)
+    --apex:monitor_gpu|--apex:monitor-gpu)
       monitor_gpu=yes
       export APEX_MONITOR_GPU=1
       shift
@@ -378,11 +388,11 @@ while (( "$#" )); do
       export APEX_ENABLE_OMPT=1
       shift
       ;;
-    --apex:ompt_simple)
+    --apex:ompt_simple|--apex:ompt-simple)
       export APEX_OMPT_REQUIRED_EVENTS_ONLY=1
       shift
       ;;
-    --apex:ompt_details)
+    --apex:ompt_details|--apex:ompt-details)
       export APEX_OMPT_HIGH_OVERHEAD_EVENTS=1
       shift
       ;;
@@ -394,7 +404,29 @@ while (( "$#" )); do
       postprocess=yes
       shift
       ;;
-    --apex:throttle_calls)
+    --apex:concur_max|--apex:concur-max)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        export APEX_MEASURE_CONCURRENCY_MAX_TIMERS=$2
+        concurrency=yes
+        export APEX_MEASURE_CONCURRENCY=1
+        shift 2
+      else
+        echo "Error: Argument for $1 is missing" >&2
+        usage
+      fi
+      ;;
+    --apex:concur_period|--apex:concur-period)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        export APEX_MEASURE_CONCURRENCY_PERIOD=$2
+        concurrency=yes
+        export APEX_MEASURE_CONCURRENCY=1
+        shift 2
+      else
+        echo "Error: Argument for $1 is missing" >&2
+        usage
+      fi
+      ;;
+    --apex:throttle_calls|--apex:throttle-calls)
       if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
         export APEX_THROTTLE_TIMERS_CALLS=$2
         shift 2
@@ -403,7 +435,7 @@ while (( "$#" )); do
         usage
       fi
       ;;
-    --apex:throttle_per)
+    --apex:throttle_per|--apex:throttle-per)
       if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
         export APEX_THROTTLE_TIMERS_PERCALL=$2
         shift 2
@@ -526,9 +558,9 @@ fi
 if [ $ompt = yes ]; then
     export OMP_TOOL=enabled
     export OMP_TOOL_LIBRARIES=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}_ompt${SHLIBX}
-    export OMP_TOOL_VERBOSE_INIT=stdout
     OMPT_LIB=:${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}_ompt${SHLIBX}
     if [ $verbose = yes ]; then
+        export OMP_TOOL_VERBOSE_INIT=stdout
         export OMP_DISPLAY_ENV=true
     fi
 fi
@@ -536,6 +568,7 @@ if [ $mpi = yes ]; then
     testme=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}_mpi${SHLIBX}
     if [ -f ${testme} ]; then
         export MPI_LIB=:${testme}
+        export MPI_LIB2=${testme}
     fi
 fi
 if [ $cuda = yes ] || [ $monitor_gpu = yes ]; then
@@ -702,6 +735,12 @@ else
     unset DYLD_INSERT_LIBRARIES
     rm -f ./.gdbcmds
     if [ ${retval} != 0 ] ; then
+        echo "Error ${retval}!"
+        count=`ldd ${MPI_LIB2} | grep -c tcmalloc`
+        if [ ${count} -eq 1 ] ; then
+            preloadme=`ldd ${MPI_LIB2} | grep tcmalloc | awk '{ print $3 }'`
+            echo "If you got some kind of tcmalloc error, please preload the dependent tcmalloc shared object library with '--apex:preload ${preloadme}'"
+        fi
         exit ${retval}
     fi
 fi

@@ -50,6 +50,7 @@ using namespace std;
 #include <stack>
 #include <mutex>
 #include <map>
+#include "apex_rocm_smi.hpp"
 
 #include "global_constructor_destructor.h"
 /* NO!  Now called directly from APEX initialization, to make sure that PAPI
@@ -588,6 +589,12 @@ bool getBytesIfMalloc(uint32_t cid, const hip_api_data_t* data,
             store_sync_counter_data(nullptr, "Total Bytes Occupied on Device", value, false);
             apex::recordAlloc(bytes, ptr, apex::GPU_DEVICE_MALLOC, false);
         }
+        // how much memory does SMI think we have?
+        apex::rsmi::monitor::instance().explicitMemCheck();
+    } else if (free && !isEnter) {
+        // if we are freeing and we are exiting the free...
+        // how much memory does SMI think we have?
+        apex::rsmi::monitor::instance().explicitMemCheck();
     }
     return true;
 }

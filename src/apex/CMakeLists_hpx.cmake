@@ -183,7 +183,15 @@ endif(APEX_WITH_CUDA)
 
 include(APEX_SetupHIP)
 if(APEX_WITH_HIP)
-    set(hip_sources hip_trace.cpp apex_rocm_smi.cpp hip_profiler.cpp ctrl/test_hsa.cpp util/hsa_rsrc_factory.cpp util/perf_timer.cpp)
+    if (ROCPROFILER_FOUND)
+    SET(ROCPROFILER_SOURCE
+        hip_profiler.cpp
+        ctrl/test_hsa.cpp
+        util/hsa_rsrc_factory.cpp
+        util/perf_timer.cpp)
+    endif(ROCPROFILER_FOUND)
+
+    set(hip_sources hip_trace.cpp apex_rocm_smi.cpp ${ROCPROFILER_SOURCE})
 endif(APEX_WITH_HIP)
 
 # Setup Kokkos
@@ -310,6 +318,7 @@ set(apex_headers
     apex_policies.hpp
     apex_types.h
     concurrency_handler.hpp
+    csv_parser.h
     dependency_tree.hpp
     event_listener.hpp
     exhaustive.hpp
@@ -325,9 +334,11 @@ set(apex_headers
     semaphore.hpp
     simulated_annealing.hpp
     thread_instance.hpp
+    threadpool.h
     task_identifier.hpp
     task_wrapper.hpp
     tau_listener.hpp
+    tree.h
     utils.hpp
     ${perfetto_headers}
     ${proc_headers}
@@ -345,6 +356,7 @@ set(apex_sources
     apex_options.cpp
     apex_policies.cpp
     concurrency_handler.cpp
+    csv_parser.cpp
     dependency_tree.cpp
     event_listener.cpp
     event_filter.cpp
@@ -361,7 +373,9 @@ set(apex_sources
     tau_listener.cpp
     tau_dummy.cpp
     thread_instance.cpp
+    threadpool.cpp
     trace_event_listener.cpp
+    tree.cpp
     utils.cpp
     ${perfetto_sources}
     ${proc_sources}

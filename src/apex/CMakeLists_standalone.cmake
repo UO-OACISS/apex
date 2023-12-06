@@ -58,6 +58,10 @@ if(APEX_WITH_PERFETTO)
     include_directories(${APEX_SOURCE_DIR}/src/perfetto_sdk)
 endif()
 
+if(APEX_WITH_TCMALLOC)
+    set(TCMALLOC_SOURCE tcmalloc_hooks.cpp)
+endif(APEX_WITH_TCMALLOC)
+
 # Try to keep this in alphabetical order
 SET(all_SOURCE
 apex_preload.cpp
@@ -75,6 +79,7 @@ ${RAJA_SOURCE}
 ${STARPU_SOURCE}
 ${PHIPROF_SOURCE}
 concurrency_handler.cpp
+csv_parser.cpp
 dependency_tree.cpp
 event_listener.cpp
 exhaustive.cpp
@@ -91,10 +96,12 @@ random.cpp
 ${SENSOR_SOURCE}
 simulated_annealing.cpp
 task_identifier.cpp
-tcmalloc_hooks.cpp
+${TCMALLOC_SOURCE}
 ${tau_SOURCE}
 thread_instance.cpp
+threadpool.cpp
 trace_event_listener.cpp
+tree.cpp
 utils.cpp
 ${ZLIB_SOURCE}
 )
@@ -199,10 +206,6 @@ endif (APEX_WITH_LEVEL0)
 if(ACTIVEHARMONY_FOUND)
     add_dependencies (apex project_activeharmony)
 endif(ACTIVEHARMONY_FOUND)
-
-if(OMPT_FOUND)
-    add_dependencies (apex_ompt project_ompt)
-endif(OMPT_FOUND)
 
 if(BFD_FOUND)
     add_dependencies (apex project_binutils)
