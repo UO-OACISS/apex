@@ -327,6 +327,33 @@ def graphRank(index, df, parentNode, droplist, args):
             continue
         graphRank(child, df, childNode, droplist, args)
 
+def graphRank2(index, df, parentNode, droplist, args):
+    # get the name of this node
+    childDF = df[df['node index'] == index].copy()#.reset_index()
+    name = childDF['name'].iloc[0]
+    # should we skip this subtree?
+    if name in droplist:
+        if args.verbose:
+            print('Dropping: \'', name, '\'', sep='')
+        return
+    for dropped in droplist:
+        p = re.compile(dropped)
+        if p.match(name):
+            if args.verbose:
+                print('Dropping: \'', name, '\'', sep='')
+            return
+
+    #name = df.loc[df['node index'] == index, 'name'].iloc[0]
+    childNode = parentNode.addChild(name, childDF)
+
+    # slice out the children from the dataframe
+    children = df[df['parent index'] == index]
+    # Iterate over the children indexes and add to our node
+    for child in children['node index'].unique():
+        if child == index:
+            continue
+        graphRank2(child, df, childNode, droplist, args)
+
 def main():
     args = parseArgs()
     if (args.tau):
@@ -388,6 +415,7 @@ def main():
     # FIRST, build a master graph with all nodes from all ranks.
     print('building common tree...')
     root = TreeNode('apex tree base', pd.DataFrame())
+    """
     for x in range(maxrank+1):
         print('Rank', x, '...', end=endchar, flush=True)
         # slice out this rank's data
@@ -395,6 +423,9 @@ def main():
         # build a tree of this rank's data
         graphRank(0, rank, root, droplist, args)
     print() # write a newline
+    """
+    #unique = df.drop_duplicates(subset=["node index", "parent index", "name"], keep='first')
+    graphRank2(0, df, root, droplist, args)
 
     roots = [root]
     if len(args.keep) > 0:
