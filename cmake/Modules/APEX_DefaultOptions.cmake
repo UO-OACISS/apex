@@ -104,7 +104,7 @@ option (APEX_BUILD_TESTS "Build APEX tests (for 'make test')" FALSE)
 option (APEX_BUILD_EXAMPLES "Build APEX examples" FALSE)
 option (APEX_BUILD_ACTIVEHARMONY "Build ActiveHarmony library if not found" FALSE)
 option (APEX_BUILD_BFD "Build Binutils library if not found" FALSE)
-option (APEX_BUILD_OMPT "Build OpenMP runtime with OMPT if support not found" FALSE)
+#option (APEX_BUILD_OMPT "Build OpenMP runtime with OMPT if support not found" FALSE)
 option (APEX_BUILD_OTF2 "Build OTF2 library if not found" FALSE)
 option (APEX_CUDA_TESTS "Build APEX CUDA tests (for 'make test')" FALSE)
 option (APEX_HIP_TESTS "Build APEX HIP tests (for 'make test')" FALSE)
@@ -129,3 +129,4 @@ option (APEX_WITH_TCMALLOC "Enable TCMalloc heap management" FALSE)
 option (APEX_USE_PEDANTIC "Enable pedantic compiler flags" FALSE)
 option (APEX_USE_STATIC_GLOBAL_CONSTRUCTOR
     "Enable static global constructor for APEX library load (when __libc_start_main can't be wrapped)" FALSE)
+
