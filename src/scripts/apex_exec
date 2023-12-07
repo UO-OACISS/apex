@@ -628,33 +628,60 @@ fi
 echo_screen "APEX_LD_LIBRARY_PATH: ${APEX_LD_LIBRARY_PATH}"
 echo_screen "APEX_LD_PRELOAD: ${APEX_LD_PRELOAD}"
 
+if [ $debug = yes ] ; then
+    if [ "${myrank}" == "0" ] ; then
+        rm -f ./.gdbcmds
+    fi
+fi
+
 if [ $apple = 1 ]; then
-    export DYLD_LIBRARY_PATH=${APEX_LD_LIBRARY_PATH}
-    export DYLD_INSERT_LIBRARIES=${APEX_LD_PRELOAD}
-    export DYLD_FORCE_FLAT_NAMESPACE=1
     if [ $debug = yes ] ; then
-        echo "_regexp-env DYLD_LIBRARY_PATH=${APEX_LD_LIBRARY_PATH}" >> ./.gdbcmds
-        echo "_regexp-env DYLD_INSERT_LIBRARIES=${APEX_LD_PRELOAD}" >> ./.gdbcmds
-        echo "_regexp-env DYLD_FORCE_FLAT_NAMESPACE=1" >> ./.gdbcmds
-        debugger="lldb -s ./.gdbcmds --"
+        if [ "${myrank}" == "0" ] ; then
+            echo "_regexp-env DYLD_LIBRARY_PATH=${APEX_LD_LIBRARY_PATH}" >> ./.gdbcmds
+            echo "_regexp-env DYLD_INSERT_LIBRARIES=${APEX_LD_PRELOAD}" >> ./.gdbcmds
+            echo "_regexp-env DYLD_FORCE_FLAT_NAMESPACE=1" >> ./.gdbcmds
         if [ $# -gt 1 ] ; then
             echo "settings set target.run-args ${*:2}" >> .gdb_commands
         fi
+        else
+            # Give rank 0 enough time to write the .gdbcmds file
+            until [ -f ./.gdbcmds ] ; do
+                sleep 1
+            done
+        fi
+        debugger="lldb -s ./.gdbcmds --"
+    else
+        export DYLD_LIBRARY_PATH=${APEX_LD_LIBRARY_PATH}
+        export DYLD_INSERT_LIBRARIES=${APEX_LD_PRELOAD}
+        export DYLD_FORCE_FLAT_NAMESPACE=1
     fi
 else
-    export LD_LIBRARY_PATH=${APEX_LD_LIBRARY_PATH}
-    export LD_PRELOAD=${APEX_LD_PRELOAD}
-    # Not sure if the DL auditor is necessary
-    #export LD_AUDIT=${APEX_LD_AUDIT}
     if [ $debug = yes ] ; then
+        if [ "${myrank}" == "0" ] ; then
         echo "set env LD_LIBRARY_PATH=${APEX_LD_LIBRARY_PATH}" >> ./.gdbcmds
         echo "set env LD_PRELOAD=${APEX_LD_PRELOAD}" >> ./.gdbcmds
+        if [ $mpi = yes ]; then
+            echo "run" >> ./.gdbcmds
+            #echo "bt" >> ./.gdbcmds
+            echo "quit" >> ./.gdbcmds
+        fi
+        else
+            # Give rank 0 enough time to write the .gdbcmds file
+            until [ -f ./.gdbcmds ] ; do
+                sleep 1
+            done
+        fi
         #echo "set env LD_AUDIT=${APEX_LD_AUDIT}" >> ./.gdbcmds
         if [ $hip = yes ] ; then
             debugger="rocgdb -x ./.gdbcmds --args"
         else
             debugger="gdb -x ./.gdbcmds --args"
         fi
+    else
+        export LD_LIBRARY_PATH=${APEX_LD_LIBRARY_PATH}
+        export LD_PRELOAD=${APEX_LD_PRELOAD}
+        # Not sure if the DL auditor is necessary
+        #export LD_AUDIT=${APEX_LD_AUDIT}
     fi
 fi
 
@@ -733,7 +760,9 @@ else
     retval=$?
     unset LD_PRELOAD
     unset DYLD_INSERT_LIBRARIES
-    rm -f ./.gdbcmds
+    if [ "${myrank}" == "0" ] ; then
+        rm -f ./.gdbcmds
+    fi
     if [ ${retval} != 0 ] ; then
         echo "Error ${retval}!"
         count=`ldd ${MPI_LIB2} | grep -c tcmalloc`
