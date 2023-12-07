@@ -657,13 +657,15 @@ if [ $apple = 1 ]; then
     fi
 else
     if [ $debug = yes ] ; then
+        gdbargs=""
         if [ "${myrank}" == "0" ] ; then
         echo "set env LD_LIBRARY_PATH=${APEX_LD_LIBRARY_PATH}" >> ./.gdbcmds
         echo "set env LD_PRELOAD=${APEX_LD_PRELOAD}" >> ./.gdbcmds
         if [ $mpi = yes ]; then
             echo "run" >> ./.gdbcmds
-            #echo "bt" >> ./.gdbcmds
+            echo "bt" >> ./.gdbcmds
             echo "quit" >> ./.gdbcmds
+                gdbargs="-batch -q"
         fi
         else
             # Give rank 0 enough time to write the .gdbcmds file
@@ -673,9 +675,9 @@ else
         fi
         #echo "set env LD_AUDIT=${APEX_LD_AUDIT}" >> ./.gdbcmds
         if [ $hip = yes ] ; then
-            debugger="rocgdb -x ./.gdbcmds --args"
+            debugger="rocgdb ${gdbargs} -x ./.gdbcmds --args"
         else
-            debugger="gdb -x ./.gdbcmds --args"
+            debugger="gdb ${gdbargs} -x ./.gdbcmds --args"
         fi
     else
         export LD_LIBRARY_PATH=${APEX_LD_LIBRARY_PATH}
