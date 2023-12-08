@@ -49,7 +49,8 @@ class node {
             return children.at(cname);
         }
         static node * buildTree(std::vector<std::vector<std::string>>& rows, node * root);
-        static size_t getSize() { return count; }
+        static size_t getSize(void) { return count; }
+        static void reset(void) { count = 0; }
 };
 
 } // namespace treemerge
