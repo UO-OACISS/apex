@@ -692,6 +692,79 @@ void rank0_print(const char * fmt, ...) {
         va_end(args);
 }
 
+std::string getCpusAllowed(const char * filename) {
+    //std::cout << std::endl << filename << std::endl;
+    FILE *f = fopen(filename, "r");
+    std::string allowed_string{""};
+    if (!f) { return(allowed_string); }
+    const std::string allowed("Cpus_allowed_list");
+    char line[4097] = {0};
+    while ( fgets( line, 4096, f)) {
+        std::string tmp(line);
+        //std::cout << tmp << std::flush;
+        if (!tmp.compare(0,allowed.size(),allowed)) {
+            const std::regex separator(":");
+            std::sregex_token_iterator token(tmp.begin(),
+                    tmp.end(), separator, -1);
+            std::sregex_token_iterator end;
+            std::string name = *token++;
+            if (token != end) {
+                allowed_string = *token;
+                allowed_string.erase(
+                    std::remove_if(
+                        allowed_string.begin(), allowed_string.end(),
+                        ::isspace),
+                    allowed_string.end());
+            }
+        }
+    }
+    fclose(f);
+    return(allowed_string);
+}
+
+std::vector<uint32_t> parseDiscreteValues(std::string inputString) {
+    std::vector<uint32_t> result;
+
+    // Split the input string by comma
+    size_t pos = 0;
+    std::string token;
+    while ((pos = inputString.find(',')) != std::string::npos) {
+        token = inputString.substr(0, pos);
+
+        // Split each token by hyphen
+        size_t hyphenPos = token.find('-');
+        if (hyphenPos != std::string::npos) {
+            int start = std::stoi(token.substr(0, hyphenPos));
+            int end = std::stoi(token.substr(hyphenPos + 1));
+            for (int i = start; i <= end; ++i) {
+                result.push_back(i);
+            }
+        } else {
+            result.push_back(std::stoi(token));
+        }
+
+        // Trim the processed token from the input string
+        inputString.erase(0, (pos + 1));
+    }
+
+    // Process the last token after the last comma
+    if (!inputString.empty()) {
+        size_t hyphenPos = inputString.find('-');
+        if (hyphenPos != std::string::npos) {
+            int start = std::stoi(inputString.substr(0, hyphenPos));
+            int end = std::stoi(inputString.substr(hyphenPos + 1));
+            for (int i = start; i <= end; ++i) {
+                result.push_back(i);
+            }
+        } else {
+            result.push_back(std::stoi(inputString));
+        }
+    }
+
+    return result;
+}
+
+
 } // namespace apex
 
 extern "C" void __cyg_profile_func_enter(void *this_fn, void *call_site) __attribute__((no_instrument_function));

@@ -22,6 +22,7 @@
 #include <cxxabi.h>
 #endif
 #include <atomic>
+#include <regex>
 
 #include "apex_types.h"
 #include "apex_options.hpp"
@@ -231,13 +232,21 @@ class reference_counter {
 #define APEX_UTIL_REPORT_STATS
 #endif
 
+std::vector<uint32_t> parseDiscreteValues(std::string inputString);
+std::string getCpusAllowed(const char * filename);
+
 inline unsigned int my_hardware_concurrency()
 {
 #if defined(_MSC_VER)
     return std::thread::hardware_concurrency();
 #else
+/*
     unsigned int cores = std::thread::hardware_concurrency();
     return cores ? cores : sysconf(_SC_NPROCESSORS_ONLN);
+*/
+    static std::vector<uint32_t>
+        cores{parseDiscreteValues(getCpusAllowed("/proc/self/status"))};
+    return cores.size();
 #endif
 }
 
