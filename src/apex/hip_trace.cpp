@@ -95,9 +95,9 @@ using namespace std;
     } while (0)
 
 /* This class is necessary so we can clean up before our globals are destroyed at exit */
-class Globals{
+class HipGlobals{
 private:
-    Globals() : deltaTimestamp(0), bad_stacks(false) {} // Disallow instantiation outside of the class.
+    HipGlobals() : deltaTimestamp(0), bad_stacks(false) {} // Disallow instantiation outside of the class.
     // Timestamp at trace initialization time. Used to normalized other
     // timestamps
     int64_t deltaTimestamp;
@@ -107,12 +107,12 @@ private:
     std::unordered_map<uint32_t, std::string> name_map;
     std::unordered_map<uint32_t, apex::async_event_data> data_map;
 public:
-    Globals(const Globals&) = delete;
-    Globals& operator=(const Globals &) = delete;
-    Globals(Globals &&) = delete;
-    Globals & operator=(Globals &&) = delete;
+    HipGlobals(const HipGlobals&) = delete;
+    HipGlobals& operator=(const HipGlobals &) = delete;
+    HipGlobals(HipGlobals &&) = delete;
+    HipGlobals & operator=(HipGlobals &&) = delete;
     // if our globals are destroyed before APEX can finalize, then finalize now! */
-    ~Globals() {
+    ~HipGlobals() {
         if (bad_stacks) {
             std::cerr << "Warning! APEX detected more timer stops than starts.\n";
             std::cerr << "\tPlease confirm that you have correctly matched roctx push/pops.";
@@ -121,7 +121,7 @@ public:
     }
 
     static auto& instance(){
-        static Globals test;
+        static HipGlobals test;
         return test;
     }
     static int64_t& delta() {
@@ -139,7 +139,7 @@ public:
 
     static std::shared_ptr<apex::task_wrapper> find_timer(uint32_t id) {
         std::shared_ptr<apex::task_wrapper> timer = nullptr;
-        Globals& g = instance();
+        HipGlobals& g = instance();
         g.lock();
         auto iter = g.timer_map.find(id);
         if (iter != g.timer_map.end()) {
@@ -151,7 +151,7 @@ public:
     }
 
     static void report_bad_stacks() {
-        Globals& g = instance();
+        HipGlobals& g = instance();
         g.bad_stacks = true;
     }
 
@@ -162,7 +162,7 @@ public:
     }
 
     static std::string find_name(uint32_t id) {
-        Globals& g = instance();
+        HipGlobals& g = instance();
         std::string name;
         g.lock();
         auto iter = g.name_map.find(id);
@@ -184,7 +184,7 @@ public:
 
     static apex::async_event_data find_data(uint32_t id) {
         apex::async_event_data as_data;
-        Globals& g = instance();
+        HipGlobals& g = instance();
         g.lock();
         auto iter = g.data_map.find(id);
         if (iter != g.data_map.end()) {
@@ -248,10 +248,10 @@ bool run_once() {
     }
 
     // assume CPU timestamp is greater than GPU
-    Globals::delta() = ((int64_t)(startTimestampCPU[my_min]) - (int64_t)(startTimestampGPU[my_min]));
+    HipGlobals::delta() = ((int64_t)(startTimestampCPU[my_min]) - (int64_t)(startTimestampGPU[my_min]));
     //printf("HIP timestamp:      %" PRIu64 "\n", startTimestampGPU[my_min]);
     //printf("CPU timestamp:      %" PRIu64 "\n", startTimestampCPU[my_min]);
-    //printf("HIP delta timestamp: %" PRId64 "\n", Globals::delta());
+    //printf("HIP delta timestamp: %" PRId64 "\n", HipGlobals::delta());
     once = true;
     return once;
 }
@@ -289,7 +289,7 @@ void handle_roctx(uint32_t domain, uint32_t cid, const void* callback_data, void
                 if (!timer_stack.empty()) {
                     apex::stop(timer_stack.top());
                     timer_stack.pop();
-                } else { Globals::report_bad_stacks(); }
+                } else { HipGlobals::report_bad_stacks(); }
                 break;
             }
         case ROCTX_API_ID_roctxRangeStartA:
@@ -343,13 +343,13 @@ void handle_roc_kfd(uint32_t domain, uint32_t cid, const void* callback_data, vo
 			roctracer_op_string(ACTIVITY_DOMAIN_KFD_API, cid, 0));
         apex::start(timer);
         timer_stack.push(timer);
-        Globals::insert_timer(data->correlation_id, timer);
+        HipGlobals::insert_timer(data->correlation_id, timer);
     } else {
         if (!timer_stack.empty()) {
             auto timer = timer_stack.top();
             apex::stop(timer);
             timer_stack.pop();
-        } else { Globals::report_bad_stacks(); }
+        } else { HipGlobals::report_bad_stacks(); }
     }
     return;
 }
@@ -379,13 +379,13 @@ void handle_roc_hsa(uint32_t domain, uint32_t cid, const void* callback_data, vo
 			roctracer_op_string(ACTIVITY_DOMAIN_HSA_API, cid, 0));
         apex::start(timer);
         timer_stack.push(timer);
-        Globals::insert_timer(data->correlation_id, timer);
+        HipGlobals::insert_timer(data->correlation_id, timer);
     } else {
         if (!timer_stack.empty()) {
             auto timer = timer_stack.top();
             apex::stop(timer);
             timer_stack.pop();
-        } else { Globals::report_bad_stacks(); }
+        } else { HipGlobals::report_bad_stacks(); }
     }
     return;
 }
@@ -688,7 +688,7 @@ void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* 
         auto timer = apex::new_task(context);
         apex::start(timer);
         timer_stack.push(timer);
-        Globals::insert_timer(data->correlation_id, timer);
+        HipGlobals::insert_timer(data->correlation_id, timer);
 
         switch (cid) {
             case HIP_API_ID_hipMallocPitch:
@@ -713,7 +713,7 @@ void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* 
                 std::string name{lookup_kernel_name_ptr(
                         data->args.hipLaunchKernel.function_address,
                         data->args.hipLaunchKernel.stream)};
-                Globals::insert_name(data->correlation_id, name);
+                HipGlobals::insert_name(data->correlation_id, name);
                 if (apex::apex_options::use_hip_kernel_details()) {
                     store_sync_counter_data("numBlocks.X", name,
                         data->args.hipLaunchKernel.numBlocks.x, true);
@@ -735,7 +735,7 @@ void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* 
             case HIP_API_ID_hipModuleLaunchKernel:
             {
                 std::string name {lookup_kernel_name(data->args.hipModuleLaunchKernel.f)};
-                Globals::insert_name(data->correlation_id, name);
+                HipGlobals::insert_name(data->correlation_id, name);
                 if (apex::apex_options::use_hip_kernel_details()) {
                     store_sync_counter_data("blockDim.X", name,
                         data->args.hipModuleLaunchKernel.blockDimX, true);
@@ -758,7 +758,7 @@ void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* 
             {
                 std::string name =
                     lookup_kernel_name(data->args.hipHccModuleLaunchKernel.f);
-                Globals::insert_name(data->correlation_id, name);
+                HipGlobals::insert_name(data->correlation_id, name);
                 if (apex::apex_options::use_hip_kernel_details()) {
                     store_sync_counter_data("blockDim.X", name,
                         data->args.hipHccModuleLaunchKernel.blockDimX, true);
@@ -781,7 +781,7 @@ void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* 
             {
                 std::string name =
                     lookup_kernel_name(data->args.hipExtModuleLaunchKernel.f);
-                Globals::insert_name(data->correlation_id, name);
+                HipGlobals::insert_name(data->correlation_id, name);
                 if (apex::apex_options::use_hip_kernel_details()) {
                     store_sync_counter_data("globalWorkSize.X", name,
                         data->args.hipExtModuleLaunchKernel.globalWorkSizeX, true);
@@ -806,7 +806,7 @@ void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* 
                     lookup_kernel_name_ptr(
                         data->args.hipExtLaunchKernel.function_address,
                         data->args.hipExtLaunchKernel.stream);
-                Globals::insert_name(data->correlation_id, name);
+                HipGlobals::insert_name(data->correlation_id, name);
                 if (apex::apex_options::use_hip_kernel_details()) {
                     store_sync_counter_data("numBlocks.X", name,
                         data->args.hipExtLaunchKernel.numBlocks.x, true);
@@ -839,10 +839,10 @@ void handle_hip(uint32_t domain, uint32_t cid, const void* callback_data, void* 
                     apex::thread_instance::get_id(), context);
                 as_data.parent_ts_stop = apex::profiler::now_us();
                 apex::stop(timer);
-                Globals::insert_data(data->correlation_id, as_data);
+                HipGlobals::insert_data(data->correlation_id, as_data);
             }
             timer_stack.pop();
-        } else { Globals::report_bad_stacks(); }
+        } else { HipGlobals::report_bad_stacks(); }
 
         switch (cid) {
             case HIP_API_ID_hipMallocPitch:
@@ -878,8 +878,8 @@ void store_profiler_data(const std::string &name, uint32_t correlationId,
     std::shared_ptr<apex::task_wrapper> parent = nullptr;
     apex::async_event_data as_data;
     if (correlationId > 0) {
-        parent = Globals::find_timer(correlationId);
-        as_data = Globals::find_data(correlationId);
+        parent = HipGlobals::find_timer(correlationId);
+        as_data = HipGlobals::find_data(correlationId);
     }
     // Build the name
     std::stringstream ss;
@@ -890,8 +890,8 @@ void store_profiler_data(const std::string &name, uint32_t correlationId,
     // create an APEX profiler to store this data - we can't start
     // then stop because we have timestamps already.
     auto prof = std::make_shared<apex::profiler>(tt);
-    prof->set_start(start + Globals::delta());
-    prof->set_end(end + Globals::delta());
+    prof->set_start(start + HipGlobals::delta());
+    prof->set_end(end + HipGlobals::delta());
     // important!  Otherwise we might get the wrong end timestamp.
     prof->stopped = true;
     // fake out the profiler_listener
@@ -941,7 +941,7 @@ void store_counter_data(const char * name, const std::string& ctx,
     std::shared_ptr<apex::profiler> prof =
         std::make_shared<apex::profiler>(task_id, value);
     prof->is_counter = true;
-    prof->set_end(end + Globals::delta());
+    prof->set_end(end + HipGlobals::delta());
     // Get the singleton APEX instance
     static apex::apex* instance = apex::apex::instance();
     // fake out the profiler_listener
@@ -979,8 +979,8 @@ void process_hip_record(const roctracer_record_t* record) {
         if (strncmp(name, "Marker", 6) == 0) {
             // if there's a correlation ID, clear it from the maps
             if (record->correlation_id > 0) {
-                Globals::find_timer(record->correlation_id);
-                Globals::find_data(record->correlation_id);
+                HipGlobals::find_timer(record->correlation_id);
+                HipGlobals::find_data(record->correlation_id);
             }
             // do nothing, this event is annoying.
             return;
@@ -988,7 +988,7 @@ void process_hip_record(const roctracer_record_t* record) {
     }
     switch(record->op) {
         case HIP_OP_ID_DISPATCH: {
-            std::string name = Globals::find_name(record->correlation_id);
+            std::string name = HipGlobals::find_name(record->correlation_id);
             apex::hip_thread_node node(record->device_id, record->queue_id, APEX_ASYNC_KERNEL);
    	        store_profiler_data(name, record->correlation_id, record->begin_ns,
                 record->end_ns, "ControlFlow", node);
