@@ -64,8 +64,12 @@ class linked_timer {
             } else {
                 tw = apex::new_task(name, task_id, parent);
             }
-            if (is_par_reg) { tw->explicit_trace_start = true; }
-            if (auto_start) { this->start(); }
+            if (tw != nullptr) {
+                if (is_par_reg) { tw->explicit_trace_start = true; }
+                if (auto_start) { this->start(); }
+            } else {
+                timing = false;
+            }
         }
         /* destructor */
         ~linked_timer() {
