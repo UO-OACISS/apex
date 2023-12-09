@@ -88,10 +88,11 @@ APEX_EXPORT uint64_t init(const char * thread_name,
  - write a profile to disk (if requested)
  - output all other visualization data
  \param reset   Whether to reset all statistics
+ \param reset   Whether this is the final dump at shutdown
  \return a string containing the output
  \sa @ref apex::finalize
  */
-APEX_EXPORT std::string dump(bool reset);
+APEX_EXPORT std::string dump(bool reset, bool finalizing = false);
 
 /**
  \brief Finalize APEX.

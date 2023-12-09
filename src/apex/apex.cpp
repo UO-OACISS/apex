@@ -130,11 +130,6 @@ std::shared_ptr<task_wrapper>& top_level_timer() {
 }
 */
 
-std::shared_ptr<task_wrapper>& main_timer() {
-    static std::shared_ptr<task_wrapper> main_timer = nullptr;
-    return main_timer;
-}
-
 /*
  * The destructor will request power data from RCRToolkit
  */
@@ -545,7 +540,6 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
     // be stopped on the thread that is calling apex::init. You've been warned.
     main->explicit_trace_start = true;
     start(main);
-    main_timer() = main;
     if (apex_options::top_level_os_threads()) {
         // start top-level timer for main thread, it will get automatically
         // stopped when the main wrapper timer is stopped.
@@ -1663,10 +1657,12 @@ void finalize_plugins(void) {
 #endif
 }
 
-std::string dump(bool reset) {
+std::string dump(bool reset, bool finalizing) {
     in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) { return(std::string("")); }
+    if (apex_options::disable() == true ||
+        (!finalizing && apex_options::use_final_output_only()))
+            { return(std::string("")); }
     bool old_screen_output = apex_options::use_screen_output();
     if (apex_options::use_jupyter_support()) {
         // force output in the Jupyter notebook
@@ -1749,11 +1745,7 @@ void finalize(void)
     }
     // Second, stop the main timer, while the infrastructure is still
     // functioning.
-    tmp = main_timer();
-    if (tmp != nullptr) {
-        stop(tmp);
-        main_timer() = nullptr;
-    }
+    instance->the_profiler_listener->stop_main_timer();
     // if not done already...
     shutdown_throttling(); // stop thread scheduler policies
     /* Do this before OTF2 grabs a final timestamp - we might have
@@ -1763,7 +1755,6 @@ void finalize(void)
     for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
         instance->listeners[i]->on_pre_shutdown();
     }
-    //instance->the_profiler_listener->stop_main_timer();
     stop_all_async_threads(); // stop OS/HW monitoring, including PAPI
 
     /* This could take a while */
@@ -1778,7 +1769,7 @@ void finalize(void)
     apex_options::suspend(true);
 
     // now, process all output
-    dump(false);
+    dump(false, true);
     exit_thread();
     if (!_measurement_stopped)
     {
@@ -1905,7 +1896,7 @@ void register_thread(const std::string &name,
         // spawned by the main timer.
         std::shared_ptr<task_wrapper> twp =
             new_task(task_name, UINTMAX_MAX,
-            (parent == nullptr ? main_timer() : parent));
+            (parent == nullptr ? task_wrapper::get_apex_main_wrapper() : parent));
         start(twp);
         //printf("New thread: %p\n", &(*twp));
         thread_instance::set_top_level_timer(twp);

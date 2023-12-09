@@ -121,7 +121,7 @@ struct task_wrapper {
         if (tt_ptr.get() == nullptr) {
             mtx.lock();
             if (tt_ptr.get() == nullptr) {
-                const std::string apex_main_str("APEX MAIN");
+                const std::string apex_main_str(APEX_MAIN_STR);
                 tt_ptr = std::make_shared<task_wrapper>();
                 tt_ptr->task_id = task_identifier::get_task_id(apex_main_str);
                 tt_ptr->tree_node = new dependency::Node(tt_ptr->task_id, nullptr);
