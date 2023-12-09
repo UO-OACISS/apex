@@ -148,7 +148,9 @@ void kokkosp_init_library(int loadseq, uint64_t version,
  */
 void kokkosp_finalize_library() {
 #ifndef APEX_HAVE_HPX
-    apex::finalize();
+    if (!apex::apex_options::use_mpi()) {
+        apex::finalize();
+    }
 #endif
 }
 

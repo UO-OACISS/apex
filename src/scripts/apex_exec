@@ -33,6 +33,7 @@ where APEX options are zero or more of:
     --apex:screen                 enable screen text output (on by default)
     --apex:screen-detail          enable detailed text output (off by default)
     --apex:quiet                  disable screen text output
+    --apex:final-output-only      only output performance data at exit (ignore intermediate dump calls)
     --apex:csv                    enable csv text output
     --apex:tau                    enable tau profile output
     --apex:taskgraph              enable taskgraph output
@@ -97,6 +98,7 @@ where APEX options are zero or more of:
     exit 1
 }
 
+apex_opts=yes
 openacc=no
 kokkos=no
 kokkos_tuning=no
@@ -250,6 +252,10 @@ while (( "$#" )); do
       ;;
     --apex:screen)
       # on by default
+      shift
+      ;;
+    --apex:final-output-only)
+      export APEX_FINAL_OUTPUT_ONLY=1
       shift
       ;;
     --apex:screen_details|--apex:screen-details)
@@ -481,11 +487,20 @@ while (( "$#" )); do
         usage
       fi
       ;;
+    --apex:help|--help|-h)
+      if [ $apex_opts = yes ] ; then
+        usage
+      fi
+      # Could be a program argument!
+      PARAMS="$PARAMS $1"
+      shift
+      ;;
     --apex:*) # unsupported flags
       echo "Error: Unsupported flag $1" >&2
       usage
       ;;
     *) # preserve positional arguments
+      apex_opts=no
       if [ "$prog" = "" ] ; then
         prog=$1
       fi

@@ -370,6 +370,7 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
             std::vector<std::vector<std::string>> *rows = new std::vector<std::vector<std::string>>{};
             treemerge::ThreadPool pool{};
             pool.Start();
+            treemerge::node::reset();
             treemerge::node * root{nullptr};
             std::cout << "Merging common tree for all ranks... ";
             auto start = high_resolution_clock::now();

@@ -710,7 +710,7 @@ std::unordered_set<profile*> free_profiles;
         total_time = get_profile(main_id);
     }
 #endif  // APEX_SYNCHRONOUS_PROCESSING
-    double wall_clock_main = total_time->get_accumulated_seconds();
+    double wall_clock_main = (total_time != nullptr) ? total_time->get_accumulated_seconds() : 0.0;
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
 #endif
@@ -953,7 +953,7 @@ std::unordered_set<profile*> free_profiles;
     int num_worker_threads = thread_instance::get_num_workers();
     auto main_id = task_identifier::get_main_task_id();
     profile * total_time = get_profile(*main_id);
-    double wall_clock_main = total_time->get_accumulated_seconds();
+    double wall_clock_main = (total_time != nullptr) ? total_time->get_accumulated_seconds() : 0.0;
 #ifdef APEX_HAVE_HPX
     num_worker_threads = num_worker_threads - num_non_worker_threads_registered;
 #endif
@@ -982,7 +982,7 @@ std::unordered_set<profile*> free_profiles;
         dep != task_dependencies.end(); dep++) {
         task_identifier parent = dep->first;
         string parent_name = parent.get_tree_name();
-        if (parent_name.compare("APEX MAIN") == 0 ||
+        if (parent_name.compare(APEX_MAIN_STR) == 0 ||
             parent_name.substr(0, pthread_wrapper.size()) == pthread_wrapper ||
             parent_name.substr(0, preload_main.size()) == preload_main) {
             auto children = dep->second;
@@ -1001,7 +1001,7 @@ std::unordered_set<profile*> free_profiles;
         dep != task_dependencies.end(); dep++) {
         task_identifier parent = dep->first;
         string parent_name = parent.get_tree_name();
-        if (parent_name.compare("APEX MAIN") != 0 &&
+        if (parent_name.compare(APEX_MAIN_STR) != 0 &&
             parent_name.substr(0, pthread_wrapper.size()) != pthread_wrapper &&
             parent_name.substr(0, preload_main.size()) != preload_main) {
             auto children = dep->second;
@@ -1131,7 +1131,7 @@ std::unordered_set<profile*> free_profiles;
     // our TOTAL available time is the elapsed * the number of threads, or cores
     auto main_id = task_identifier::get_main_task_id();
     profile * total_time = get_profile(*main_id);
-    double wall_clock_main = total_time->get_accumulated_seconds();
+    double wall_clock_main = (total_time != nullptr) ? total_time->get_accumulated_seconds() : 0.0;
 
 #if 0
     int num_worker_threads = thread_instance::get_num_workers();
@@ -2171,6 +2171,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
 
   void profiler_listener::on_pre_shutdown(void) {
     stop_main_timer();
+    push_profiler((unsigned int)thread_instance::get_id(), *main_timer);
   }
 
   void profiler_listener::push_profiler_public(std::shared_ptr<profiler> &p) {
