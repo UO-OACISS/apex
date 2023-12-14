@@ -6,13 +6,14 @@
 #include <functional>
 #include <mutex>
 #include <condition_variable>
+#include "utils.hpp"
 
 namespace apex {
 namespace treemerge {
 
 class ThreadPool {
 public:
-    ThreadPool(uint32_t size = std::thread::hardware_concurrency()) :
+    ThreadPool(uint32_t size = my_hardware_concurrency()) :
         nthreads(size) {};
     void Start(void);
     void QueueJob(const std::function<void()>& job);

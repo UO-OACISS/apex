@@ -1,10 +1,10 @@
 site_name: APEX
-site_url: http://khuck.github.io/xpress-apex
-repo_url: http://github.com/khuck/xpress-apex
+site_url: http://UO-OACISS.github.io/apex
+repo_url: http://github.com/UO-OACISS/apex
 repo_name: GitHub
-site_description: APEX - Autonomic Performance Environment for eXascale v2.3.1
+site_description: APEX - Autonomic Performance Environment for eXascale v2.6.3
 site_author: Kevin Huck (khuck@cs.uoregon.edu)
-copyright: (C) 2014-2021 University of Oregon, All Rights Reserved
+copyright: (C) 2014-2023 University of Oregon, All Rights Reserved
 nav:
     - Home: index.md
     - Quick Start (HPX): quickstarthpx.md

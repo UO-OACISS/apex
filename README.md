@@ -4,7 +4,7 @@ Current CI status on develop branch : [![CircleCI](https://circleci.com/gh/UO-OA
 
 Please Note:
 ===========
-*All documentation has been recently updated.  Thanks for your patience!*
+*~~All documentation has been recently updated.~~ Documentation has gotten stale. We're working to update it again, thanks for your patience!*
 
 <!--
 Build Status:

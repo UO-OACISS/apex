@@ -280,6 +280,7 @@ inline unsigned int sc_nprocessors_onln(void)
     macro (APEX_MEASURE_CONCURRENCY, use_concurrency, int, 0, "Periodically sample thread activity and output report at exit.") \
     macro (APEX_MEASURE_CONCURRENCY_MAX_TIMERS, concurrency_max_timers, int, 5, "Maximum number of timers in the concurrency report.") \
     macro (APEX_MEASURE_CONCURRENCY_PERIOD, concurrency_period, int, 1000000, "Thread concurrency sampling period, in microseconds.") \
+    macro (APEX_FINAL_OUTPUT_ONLY, use_final_output_only, bool, false, "Output APEX performance log files only at exit (ignore intermediate dump calls).") \
     macro (APEX_SCREEN_OUTPUT, use_screen_output, bool, false, "Output APEX performance summary at exit.") \
     macro (APEX_SCREEN_OUTPUT_DETAIL, use_screen_output_detail, bool, false, "Output detailed APEX performance summary at exit.") \
     macro (APEX_VERBOSE, use_verbose, bool, false, "Output APEX options at entry.") \

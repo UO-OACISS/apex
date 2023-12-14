@@ -64,8 +64,12 @@ class linked_timer {
             } else {
                 tw = apex::new_task(name, task_id, parent);
             }
-            if (is_par_reg) { tw->explicit_trace_start = true; }
-            if (auto_start) { this->start(); }
+            if (tw != nullptr) {
+                if (is_par_reg) { tw->explicit_trace_start = true; }
+                if (auto_start) { this->start(); }
+            } else {
+                timing = false;
+            }
         }
         /* destructor */
         ~linked_timer() {
@@ -76,9 +80,9 @@ class linked_timer {
 };
 
 /* This class is necessary so we can clean up before our globals are destroyed at exit */
-class Globals{
+class OmptGlobals{
 private:
-    Globals() : deltaTimestamp(0) {} // Disallow instantiation outside of the class.
+    OmptGlobals() : deltaTimestamp(0) {} // Disallow instantiation outside of the class.
     // Timestamp at trace initialization time. Used to normalized other
     // timestamps
     int64_t deltaTimestamp;
@@ -88,17 +92,17 @@ private:
     std::unordered_map<uint32_t, apex::async_event_data> data_map;
     std::unordered_map<int, ompt_device_t*> device_map;
 public:
-    Globals(const Globals&) = delete;
-    Globals& operator=(const Globals &) = delete;
-    Globals(Globals &&) = delete;
-    Globals & operator=(Globals &&) = delete;
+    OmptGlobals(const OmptGlobals&) = delete;
+    OmptGlobals& operator=(const OmptGlobals &) = delete;
+    OmptGlobals(OmptGlobals &&) = delete;
+    OmptGlobals & operator=(OmptGlobals &&) = delete;
     // if our globals are destroyed before APEX can finalize, then finalize now! */
-    ~Globals() {
+    ~OmptGlobals() {
         apex::finalize();
     }
 
     static auto& instance(){
-        static Globals test;
+        static OmptGlobals test;
         return test;
     }
     static int64_t& delta() {
@@ -124,7 +128,7 @@ public:
 
     static std::shared_ptr<apex::task_wrapper> find_timer(uint32_t id) {
         std::shared_ptr<apex::task_wrapper> timer = nullptr;
-        Globals& g = instance();
+        OmptGlobals& g = instance();
         g.lock();
         auto iter = g.timer_map.find(id);
         if (iter != g.timer_map.end()) {
@@ -137,7 +141,7 @@ public:
     }
 
     static void erase_timer(uint32_t id) {
-        Globals& g = instance();
+        OmptGlobals& g = instance();
         g.lock();
         g.timer_map.erase(id);
         g.unlock();
@@ -150,7 +154,7 @@ public:
     }
 
     static void update_data(uint32_t id) {
-        Globals& g = instance();
+        OmptGlobals& g = instance();
         g.lock();
         auto iter = g.data_map.find(id);
         if (iter != g.data_map.end()) {
@@ -162,7 +166,7 @@ public:
 
     static apex::async_event_data find_data(uint32_t id) {
         apex::async_event_data as_data;
-        Globals& g = instance();
+        OmptGlobals& g = instance();
         g.lock();
         auto iter = g.data_map.find(id);
         if (iter != g.data_map.end()) {
@@ -197,7 +201,7 @@ std::shared_ptr<apex::task_wrapper> start_async_task(const std::string &name, ui
     // get the parent GUID, then erase the correlation from the map
     std::shared_ptr<apex::task_wrapper> parent = nullptr;
     if (correlationId > 0) {
-        parent = Globals::find_timer(correlationId);
+        parent = OmptGlobals::find_timer(correlationId);
         if (parent != nullptr) {
             parent_thread = parent->thread_id;
         }
@@ -212,7 +216,7 @@ void stop_async_task(std::shared_ptr<apex::task_wrapper> tt, uint64_t start, uin
     // Handle tracing, if necessary
     apex::async_event_data as_data;
     if (correlationId > 0) {
-        as_data = Globals::find_data(correlationId);
+        as_data = OmptGlobals::find_data(correlationId);
     }
     // create an APEX profiler to store this data - we can't start
     // then stop because we have timestamps already.
@@ -437,7 +441,7 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
                         apex_ompt_translate_time(target_rec.device_num, end),
                         rec->target_id, node);
                 }
-                Globals::erase_timer(rec->target_id);
+                OmptGlobals::erase_timer(rec->target_id);
             }
          }
       break;
@@ -518,7 +522,7 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
                     tt = target_map[rec->target_id];
                     // otherwise, use the host side target call
                 } else {
-                    tt = Globals::find_timer(rec->target_id);
+                    tt = OmptGlobals::find_timer(rec->target_id);
                 }
                 codeptr_ra = active_target_addrs[rec->target_id];
                 parent_thread = target_parent_thread_ids[rec->target_id];
@@ -577,7 +581,7 @@ static void print_record_ompt(ompt_record_ompt_t *rec) {
                     tt = target_map[rec->target_id];
                     // otherwise, use the host side target call
                 } else {
-                    tt = Globals::find_timer(rec->target_id);
+                    tt = OmptGlobals::find_timer(rec->target_id);
                 }
                 codeptr_ra = active_target_addrs[rec->target_id];
                 device_num = active_target_devices[rec->target_id];
@@ -991,10 +995,10 @@ extern "C" void apex_target (
                 tw->prof->get_start_ns(),
                 "ControlFlow", target_id,
                 apex::thread_instance::get_id(), "OpenMP Target");
-        Globals::insert_data(target_id, as_data);
+        OmptGlobals::insert_data(target_id, as_data);
         // save a copy of the task wrapper
-        Globals::insert_timer(target_id, tw);
-        static bool doOnce{Globals::set_delta_base()};
+        OmptGlobals::insert_timer(target_id, tw);
+        static bool doOnce{OmptGlobals::set_delta_base()};
         APEX_UNUSED(doOnce);
     } else {
         {
@@ -1006,7 +1010,7 @@ extern "C" void apex_target (
         }
         // stop the timer
         apex_ompt_stop(task_data);
-        Globals::update_data(target_id);
+        OmptGlobals::update_data(target_id);
     }
 }
 
@@ -1193,15 +1197,15 @@ extern "C" void apex_device_initialize (
 }
 
 static uint64_t apex_ompt_translate_time(int index, ompt_device_time_t time) {
-    ompt_device_t* device = Globals::get_device(index);
+    ompt_device_t* device = OmptGlobals::get_device(index);
     if (ompt_translate_time == nullptr) {
         /* runtime doesn't provide a time conversion function... */
         if (ompt_get_device_time == nullptr) {
             /* oh no. we can't get a timestamp. */
             /* take an offset from the first host-side GPU call */
-            static bool doOnce{Globals::set_delta(time)};
+            static bool doOnce{OmptGlobals::set_delta(time)};
             APEX_UNUSED(doOnce);
-            return (uint64_t)(time + Globals::delta());
+            return (uint64_t)(time + OmptGlobals::delta());
         }
         static std::map<int, int64_t> deltas;
         if (deltas.count(index) == 0) {
@@ -1827,6 +1831,7 @@ int ompt_initialize(ompt_function_lookup_t lookup, int initial_device_num,
     APEX_UNUSED(initial_device_num);
     APEX_UNUSED(tool_data);
     if (!apex::apex_options::use_ompt()) { return 0; }
+    if (enabled) { printf("Re-initializing OMPT!\n"); return 1; }
     {
         std::unique_lock<std::mutex> l(apex_apex_threadid_mutex);
         apex_threadid = apex_numthreads++;

@@ -126,6 +126,16 @@ void  mpi_abort_( MPI_Fint *comm, MPI_Fint *errorcode, MPI_Fint *ierr) {
   *ierr = MPI_Abort( MPI_Comm_f2c(*comm), *errorcode );
 }
 
+bool amIroot(MPI_Comm comm, int root) {
+    static std::map<MPI_Comm, int> theMap;
+    if (theMap.count(comm) == 0) {
+        int rank{0};
+        PMPI_Comm_rank(comm, &rank);
+        theMap.insert(std::pair<MPI_Comm, int>(comm, rank));
+    }
+    return (theMap[comm] == root);
+}
+
 /* When running with MPI and OTF (or other event unification at the end of
  * execution) we need to finalize APEX before MPI_Finalize() is called, so
  * that we can use MPI for the wrap-up.  We can override the weak MPI
@@ -363,7 +373,7 @@ void  _symbol( void * buf, MPI_Fint * count, MPI_Fint * datatype, MPI_Fint * sou
         void *recvbuf, int recvcount, MPI_Datatype recvtype, int root, MPI_Comm comm) {
         /* Get the byte count */
         double sbytes = getBytesTransferred(sendcount, sendtype, "MPI_Gather sendbuf");
-        double rbytes = getBytesTransferred2(recvcount, recvtype, comm, "MPI_Gather recvbuf");
+        double rbytes = amIroot(comm, root) ? getBytesTransferred2(recvcount, recvtype, comm, "MPI_Gather recvbuf") : 0.0;
         if (apex::apex_options::validate_mpi_memory_usage()) {
             checkAvailableMemory(sbytes+rbytes);
         }
@@ -429,7 +439,7 @@ void _symbol(void * sendbuf, void * recvbuf, MPI_Fint *count, MPI_Fint *datatype
         MPI_Op op, int root, MPI_Comm comm) {
         /* Get the byte count */
         double sbytes = getBytesTransferred(count, datatype, "MPI_Reduce sendbuf");
-        double rbytes = getBytesTransferred2(count, datatype, comm, "MPI_Reduce recvbuf");
+        double rbytes = amIroot(comm, root) ? getBytesTransferred2(count, datatype, comm, "MPI_Reduce recvbuf") : 0.0;
         if (apex::apex_options::validate_mpi_memory_usage()) {
             checkAvailableMemory(sbytes+rbytes);
         }
@@ -626,7 +636,7 @@ void _symbol(void * sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype, void * rec
         MPI_Datatype recvtype, int root, MPI_Comm comm) {
         /* Get the byte count */
         double sbytes = getBytesTransferred(sendcount, sendtype, "MPI_Gatherv sendbuf");
-        double rbytes = getBytesTransferred3(recvcounts, recvtype, comm, "MPI_Gatherv recvbuf");
+        double rbytes = amIroot(comm, root) ? getBytesTransferred3(recvcounts, recvtype, comm, "MPI_Gatherv recvbuf") : 0;
         if (apex::apex_options::validate_mpi_memory_usage()) {
             checkAvailableMemory(sbytes+rbytes);
         }
