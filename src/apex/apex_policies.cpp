@@ -1469,7 +1469,7 @@ inline int __sa_setup(shared_ptr<apex_tuning_session>
               do {
                   v.lvalues.push_back(lvalue);
                   lvalue = lvalue + param_long->step;
-              } while (lvalue < param_long->max);
+              } while (lvalue <= param_long->max);
               v.set_init();
               tuning_session->sa_session.add_var(param_name, std::move(v));
           }
@@ -1482,7 +1482,7 @@ inline int __sa_setup(shared_ptr<apex_tuning_session>
               do {
                   v.dvalues.push_back(dvalue);
                   dvalue = dvalue + param_double->step;
-              } while (dvalue < param_double->max);
+              } while (dvalue <= param_double->max);
               v.set_init();
               tuning_session->sa_session.add_var(param_name, std::move(v));
           }
@@ -1530,7 +1530,7 @@ inline int __exhaustive_setup(shared_ptr<apex_tuning_session>
               do {
                   v.lvalues.push_back(lvalue);
                   lvalue = lvalue + param_long->step;
-              } while (lvalue < param_long->max);
+              } while (lvalue <= param_long->max);
               v.set_init();
               tuning_session->exhaustive_session.add_var(param_name, std::move(v));
           }
@@ -1543,7 +1543,7 @@ inline int __exhaustive_setup(shared_ptr<apex_tuning_session>
               do {
                   v.dvalues.push_back(dvalue);
                   dvalue = dvalue + param_double->step;
-              } while (dvalue < param_double->max);
+              } while (dvalue <= param_double->max);
               v.set_init();
               tuning_session->exhaustive_session.add_var(param_name, std::move(v));
           }
@@ -1591,7 +1591,7 @@ inline int __random_setup(shared_ptr<apex_tuning_session>
               do {
                   v.lvalues.push_back(lvalue);
                   lvalue = lvalue + param_long->step;
-              } while (lvalue < param_long->max);
+              } while (lvalue <= param_long->max);
               v.set_init();
               tuning_session->random_session.add_var(param_name, std::move(v));
           }
@@ -1604,7 +1604,7 @@ inline int __random_setup(shared_ptr<apex_tuning_session>
               do {
                   v.dvalues.push_back(dvalue);
                   dvalue = dvalue + param_double->step;
-              } while (dvalue < param_double->max);
+              } while (dvalue <= param_double->max);
               v.set_init();
               tuning_session->random_session.add_var(param_name, std::move(v));
           }

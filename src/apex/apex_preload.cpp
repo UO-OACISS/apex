@@ -51,15 +51,15 @@ static int (*main_real)(int, char**, char**);
 int apex_preload_main(int argc, char** argv, char** envp) {
     // FIRST! check to see if this is a bash script. if so, DO NOTHING
     size_t len{strlen(argv[0])};
-    if (len > 4 && strncmp(argv[0] + (len - 4), "bash", 4)) {
+    if (len > 4 && strncmp(argv[0] + (len - 4), "bash", 4) == 0) {
         return main_real(argc, argv, envp);
     }
     // FIRST! check to see if this is a [t]csh script. if so, DO NOTHING
-    if (len > 3 && strncmp(argv[0] + (len - 3), "csh", 3)) {
+    if (len > 3 && strncmp(argv[0] + (len - 3), "csh", 3) == 0) {
         return main_real(argc, argv, envp);
     }
     // FIRST! check to see if this is gdb. if so, DO NOTHING (should get caught by the apex_exec script though)
-    if (len > 3 && strncmp(argv[0] + (len - 3), "gdb", 3)) {
+    if (len > 3 && strncmp(argv[0] + (len - 3), "gdb", 3) == 0) {
         return main_real(argc, argv, envp);
     }
     // prevent re-entry

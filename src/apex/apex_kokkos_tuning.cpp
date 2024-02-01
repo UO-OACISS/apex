@@ -672,20 +672,28 @@ void Variable::makeSpace(void) {
                     dstep = info.candidates.range.step.double_value;
                     dmin = info.candidates.range.lower.double_value;
                     dmax = info.candidates.range.upper.double_value;
-                    if (info.candidates.range.openLower == 0) {
+                    /*
+                     * [] and () denote whether the range is inclusive/exclusive of the endpoint:
+                     * [ includes the endpoint
+                     * ( excludes the endpoint
+                     * [] = 'Closed', includes both endpoints
+                     * () = 'Open', excludes both endpoints
+                     * [) and (] are both 'half-open', and include only one endpoint
+                     */
+                    if (info.candidates.range.openLower) {
                         dmin = dmin + dstep;
                     }
-                    if (info.candidates.range.openUpper == 0) {
+                    if (info.candidates.range.openUpper) {
                         dmax = dmax - dstep;
                     }
                 } else if (info.type == kokkos_value_int64) {
                     lstep = info.candidates.range.step.int_value;
                     lmin = info.candidates.range.lower.int_value;
                     lmax = info.candidates.range.upper.int_value;
-                    if (info.candidates.range.openLower == 0) {
+                    if (info.candidates.range.openLower) {
                         lmin = lmin + lstep;
                     }
-                    if (info.candidates.range.openUpper == 0) {
+                    if (info.candidates.range.openUpper) {
                         lmax = lmax - lstep;
                     }
                 }
@@ -942,11 +950,12 @@ bool handle_start(const std::string & name, const size_t vars,
             }
         }
 
+        // Start the tuning session.
+        apex::setup_custom_tuning(*request);
+
         // Set OpenMP runtime parameters to initial values.
         set_params(request, vars, values);
 
-        // Start the tuning session.
-        apex::setup_custom_tuning(*request);
         newSearch = true;
         // measure how long it took us to set this up
         delta = apex::profiler::now_ns() - delta;
