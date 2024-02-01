@@ -26,10 +26,10 @@ public:
     size_t current_index;
     size_t best_index;
     void * value; // for the client to get the values
-    size_t maxlen;
+    size_t max_index;
     Variable () = delete;
     Variable (VariableType vtype, void * ptr) : vtype(vtype), current_index(0),
-        best_index(0), value(ptr), maxlen(0) { }
+        best_index(0), value(ptr), max_index(0) { }
     void set_current_value() {
         if (vtype == VariableType::doubletype) {
             *((double*)(value)) = dvalues[current_index];
@@ -43,7 +43,7 @@ public:
     }
     size_t get_next_neighbor() {
         current_index++;
-        if (current_index >= maxlen) {
+        if (current_index > max_index) {
             current_index = 0;
         }
         set_current_value();
@@ -51,9 +51,9 @@ public:
     }
     void save_best() { best_index = current_index; }
     void set_init() {
-        maxlen = (std::max(std::max(dvalues.size(),
+        max_index = (std::max(std::max(dvalues.size(),
             lvalues.size()), svalues.size())) - 1;
-        current_index = 0;
+        current_index = max_index;
         set_current_value();
     }
     std::string getBest() {
@@ -100,7 +100,7 @@ public:
         //std::cout << "New Session!" << std::endl;
     }
     double getEnergy() { return best_cost; }
-    bool converged() { return (k > kmax); }
+    bool converged() { return (k >= kmax); }
     void getNewSettings() {
         /*   Increment neighbour */
         for (auto& v : vars) {

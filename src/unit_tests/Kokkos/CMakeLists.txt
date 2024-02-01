@@ -1,5 +1,6 @@
 # Make sure the compiler can find include files from our Apex library.
 include_directories (${APEX_SOURCE_DIR}/src/apex)
+include_directories (${APEX_SOURCE_DIR}/src/unit_tests/Kokkos)
 #include_directories(${Kokkos_INCLUDE_DIRS_RET})
 
 # Make sure the linker can find the Apex library once it is built.
@@ -8,6 +9,7 @@ link_directories (${APEX_BINARY_DIR}/src/apex)
 
 set(example_programs
     simple
+    two_var
    )
 
 foreach(example_program ${example_programs})
