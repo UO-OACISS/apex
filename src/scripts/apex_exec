@@ -167,12 +167,13 @@ while (( "$#" )); do
     --apex:kokkos_tuning|--apex:kokkos-tuning)
       kokkos=yes
       kokkos_tuning=yes
+      # Fencing is required for accurate tuning
+      kokkos_fence=yes
       shift
       ;;
     --apex:kokkos_fence|--apex:kokkos-fence)
       kokkos=yes
       kokkos_fence=yes
-      export APEX_KOKKOS_PROFILING_FENCES=1
       shift
       ;;
     --apex:raja)
@@ -711,6 +712,9 @@ fi
 if [ ${kokkos} = yes ] ; then
     #export KOKKOS_PROFILE_LIBRARY=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}
     export KOKKOS_TOOLS_LIBS=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}
+fi
+if [ ${kokkos_fence} = yes ] ; then
+    export APEX_KOKKOS_PROFILING_FENCES=1
 fi
 if [ ${kokkos_tuning} = yes ] ; then
     export APEX_KOKKOS_TUNING=1
