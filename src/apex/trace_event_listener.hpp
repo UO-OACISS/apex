@@ -63,7 +63,7 @@ private:
   	bool _terminate;
     static void flush_trace(trace_event_listener* listener);
     void close_trace(void);
-    void flush_trace_if_necessary(void);
+    void flush_trace_if_necessary(bool force = false);
   	void _common_start(std::shared_ptr<task_wrapper> &tt_ptr);
   	void _common_stop(std::shared_ptr<profiler> &p);
     std::string make_tid (base_thread_node &node);
