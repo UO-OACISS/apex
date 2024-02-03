@@ -28,7 +28,11 @@ trace_event_listener::trace_event_listener (void) : _terminate(false),
 }
 
 trace_event_listener::~trace_event_listener (void) {
-    close_trace();
+    if (!_terminate) {
+        end_trace_time();
+        close_trace();
+        _terminate = true;
+    }
 }
 
 void trace_event_listener::end_trace_time(void) {
@@ -62,6 +66,8 @@ void trace_event_listener::on_startup(startup_event_data &data) {
 
 void trace_event_listener::on_dump(dump_event_data &data) {
     APEX_UNUSED(data);
+    // force a flush
+    flush_trace_if_necessary(true);
     return;
 }
 
@@ -73,7 +79,6 @@ void trace_event_listener::on_shutdown(shutdown_event_data &data) {
     APEX_UNUSED(data);
     if (!_terminate) {
         end_trace_time();
-        flush_trace(this);
         close_trace();
         _terminate = true;
     }
@@ -475,7 +480,7 @@ std::ofstream& trace_event_listener::get_trace_file() {
     if (!_trace_file.is_open()) {
         _trace_file.open(get_file_name());
         _trace_file << fixed << "{\n";
-        _trace_file << "\"displayTimeUnit\": \"ms\",\n";
+        //_trace_file << "\"displayTimeUnit\": \"ms\",\n";
         _trace_file << "\"traceEvents\": [\n";
     }
     return _trace_file;
@@ -496,8 +501,6 @@ void trace_event_listener::flush_trace(trace_event_listener* listener) {
     // reset the buffer
     listener->trace.str("");
     listener->_vthread_mutex.unlock();
-    // flush the trace
-    trace_file << std::flush;
 #else
     listener->_vthread_mutex.lock();
     size_t count = listener->streams.size();
@@ -515,15 +518,18 @@ void trace_event_listener::flush_trace(trace_event_listener* listener) {
     // flush the trace
     trace_file << ss.rdbuf() << std::flush;
 #endif
+    // flush the trace
+    trace_file << std::flush;
     flushing = false;
 }
 
-void trace_event_listener::flush_trace_if_necessary(void) {
+void trace_event_listener::flush_trace_if_necessary(bool force) {
     auto tmp = ++num_events;
     /* flush after every 100k events */
-    if (tmp % 1000000 == 0) {
+    if (tmp % 1000000 == 0 || force) {
         //flush_trace(this);
         //std::async(std::launch::async, flush_trace, this);
+        std::cout << "Flushing APEX trace..." << std::endl;
         std::thread(flush_trace, this).detach();
     }
 }
@@ -531,6 +537,7 @@ void trace_event_listener::flush_trace_if_necessary(void) {
 void trace_event_listener::close_trace(void) {
     static bool closed{false};
     if (closed) return;
+    flush_trace(this);
     auto& trace_file = get_trace_file();
     std::stringstream ss;
     ss.precision(3);
@@ -542,7 +549,6 @@ void trace_event_listener::close_trace(void) {
     ss << "]\n";
     ss << "}\n" << std::endl;
     write_to_trace(ss);
-    flush_trace(this);
     //printf("Closing trace...\n"); fflush(stdout);
     trace_file.close();
     closed = true;
