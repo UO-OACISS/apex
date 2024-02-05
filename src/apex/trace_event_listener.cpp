@@ -537,7 +537,6 @@ void trace_event_listener::flush_trace_if_necessary(bool force) {
 void trace_event_listener::close_trace(void) {
     static bool closed{false};
     if (closed) return;
-    flush_trace(this);
     auto& trace_file = get_trace_file();
     std::stringstream ss;
     ss.precision(3);
@@ -549,6 +548,7 @@ void trace_event_listener::close_trace(void) {
     ss << "]\n";
     ss << "}\n" << std::endl;
     write_to_trace(ss);
+    flush_trace(this);
     //printf("Closing trace...\n"); fflush(stdout);
     trace_file.close();
     closed = true;
