@@ -3,26 +3,25 @@
 <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="author" content="Kevin Huck (khuck@cs.uoregon.edu)" /><link rel="canonical" href="http://khuck.github.io/xpress-apex/quickstart/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="author" content="Kevin Huck (khuck@cs.uoregon.edu)" /><link rel="canonical" href="http://UO-OACISS.github.io/apex/quickstart/" />
       <link rel="shortcut icon" href="../img/favicon.ico" />
     <title>Quick Start (standalone) - APEX</title>
     <link rel="stylesheet" href="../css/theme.css" />
     <link rel="stylesheet" href="../css/theme_extra.css" />
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
     
       <script>
         // Current page data
         var mkdocs_page_name = "Quick Start (standalone)";
         var mkdocs_page_input_path = "quickstart.md";
-        var mkdocs_page_url = "/xpress-apex/quickstart/";
+        var mkdocs_page_url = "/apex/quickstart/";
       </script>
     
-    <script src="../js/jquery-3.6.0.min.js" defer></script>
     <!--[if lt IE 9]>
       <script src="../js/html5shiv.min.js"></script>
     <![endif]-->
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
-      <script>hljs.initHighlightingOnLoad();</script> 
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
 </head>
 
 <body class="wy-body-for-nav" role="document">
@@ -34,7 +33,7 @@
           <a href=".." class="icon icon-home"> APEX
         </a><div role="search">
   <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
-      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
   </form>
 </div>
       </div>
@@ -95,10 +94,10 @@
       <div class="wy-nav-content">
         <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
   <ul class="wy-breadcrumbs">
-    <li><a href=".." class="icon icon-home" alt="Docs"></a> &raquo;</li>
-      <li>Quick Start (standalone)</li>
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Quick Start (standalone)</li>
     <li class="wy-breadcrumbs-aside">
-          <a href="http://github.com/khuck/xpress-apex/edit/master/docs/quickstart.md" class="icon icon-github"> Edit on GitHub</a>
+          <a href="http://github.com/UO-OACISS/apex/edit/master/docs/quickstart.md" class="icon icon-github"> Edit on GitHub</a>
     </li>
   </ul>
   <hr/>
@@ -176,7 +175,7 @@ Timer                                                : #calls  |    mean  |   to
 
   <div role="contentinfo">
     <!-- Copyright etc -->
-      <p>(C) 2014-2021 University of Oregon, All Rights Reserved</p>
+      <p>(C) 2014-2023 University of Oregon, All Rights Reserved</p>
   </div>
 
   Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
@@ -193,7 +192,7 @@ Timer                                                : #calls  |    mean  |   to
   <span class="rst-current-version" data-toggle="rst-current-version">
     
         <span>
-          <a href="http://github.com/khuck/xpress-apex" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+          <a href="http://github.com/UO-OACISS/apex" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
         </span>
     
     
@@ -204,14 +203,15 @@ Timer                                                : #calls  |    mean  |   to
     
   </span>
 </div>
-    <script>var base_url = '..';</script>
-    <script src="../js/theme_extra.js" defer></script>
-    <script src="../js/theme.js" defer></script>
-      <script src="../search/main.js" defer></script>
-    <script defer>
-        window.onload = function () {
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
             SphinxRtdTheme.Navigation.enable(true);
-        };
+        });
     </script>
 
 </body>

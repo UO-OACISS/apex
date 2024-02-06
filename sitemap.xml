@@ -1,63 +1,63 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-         <loc>http://khuck.github.io/xpress-apex/</loc>
-         <lastmod>2023-01-17</lastmod>
+         <loc>http://UO-OACISS.github.io/apex/</loc>
+         <lastmod>2024-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>http://khuck.github.io/xpress-apex/environment/</loc>
-         <lastmod>2023-01-17</lastmod>
+         <loc>http://UO-OACISS.github.io/apex/environment/</loc>
+         <lastmod>2024-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>http://khuck.github.io/xpress-apex/examples/</loc>
-         <lastmod>2023-01-17</lastmod>
+         <loc>http://UO-OACISS.github.io/apex/examples/</loc>
+         <lastmod>2024-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>http://khuck.github.io/xpress-apex/feature/</loc>
-         <lastmod>2023-01-17</lastmod>
+         <loc>http://UO-OACISS.github.io/apex/feature/</loc>
+         <lastmod>2024-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>http://khuck.github.io/xpress-apex/hpx5/</loc>
-         <lastmod>2023-01-17</lastmod>
+         <loc>http://UO-OACISS.github.io/apex/hpx5/</loc>
+         <lastmod>2024-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>http://khuck.github.io/xpress-apex/install/</loc>
-         <lastmod>2023-01-17</lastmod>
+         <loc>http://UO-OACISS.github.io/apex/install/</loc>
+         <lastmod>2024-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>http://khuck.github.io/xpress-apex/quickstart/</loc>
-         <lastmod>2023-01-17</lastmod>
+         <loc>http://UO-OACISS.github.io/apex/quickstart/</loc>
+         <lastmod>2024-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>http://khuck.github.io/xpress-apex/quickstarthpx/</loc>
-         <lastmod>2023-01-17</lastmod>
+         <loc>http://UO-OACISS.github.io/apex/quickstarthpx/</loc>
+         <lastmod>2024-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>http://khuck.github.io/xpress-apex/refman/</loc>
-         <lastmod>2023-01-17</lastmod>
+         <loc>http://UO-OACISS.github.io/apex/refman/</loc>
+         <lastmod>2024-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>http://khuck.github.io/xpress-apex/spec/</loc>
-         <lastmod>2023-01-17</lastmod>
+         <loc>http://UO-OACISS.github.io/apex/spec/</loc>
+         <lastmod>2024-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>http://khuck.github.io/xpress-apex/usage/</loc>
-         <lastmod>2023-01-17</lastmod>
+         <loc>http://UO-OACISS.github.io/apex/usage/</loc>
+         <lastmod>2024-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>http://khuck.github.io/xpress-apex/usecases/</loc>
-         <lastmod>2023-01-17</lastmod>
+         <loc>http://UO-OACISS.github.io/apex/usecases/</loc>
+         <lastmod>2024-02-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
 </urlset>
