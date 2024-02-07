@@ -1,5 +1,9 @@
 # Usage
 
+## Tutorial
+
+For an APEX tutorial, please see <https://github.com/khuck/apex-tutorial>.
+
 ## Supported Runtime Systems
 
 ### HPX (Louisiana State University)
@@ -30,7 +34,7 @@ The OpenMP API supports multi-platform shared-memory parallel programming in C/C
 
 #### Configuring APEX for OpenMP OMPT support
 
-The CMake process will automatically detect whether your compiler has OpenMP support.  If you configure APEX with `-DUSE_OMPT=TRUE` and have a compiler with full OpenMP 5.0 OMPT support, APEX will detect the support.  If your compiler is GCC, Intel or Clang and does *not* have native OMPT support, APEX can build and use the open source LLVM OpenMP runtime as a drop-in replacement for the compiler's native runtime library.
+The CMake process will automatically detect whether your compiler has OpenMP support.  If you configure APEX with `-DUSE_OMPT=TRUE` and have a compiler with full OpenMP 5.0 OMPT support, APEX will detect the support.  If your compiler is GCC, Intel or Clang and does *not* have native OMPT support, APEX can build and use the open source LLVM OpenMP runtime as a drop-in replacement for the compiler's native runtime library, but this is no longer recommended and is deprecated.
 
 APEX uses Binutils to resolve the OpenMP outlined regions from instruction addresses to human-readable names, so also configure APEX with `-DUSE_BFD=TRUE` (see [Other CMake Settings](install.md#other_cmake_settings_depending_on_your_needswants)).  The following example was configured and run with Intel 20 compilers.  The CMake configuration for this example was:
 
@@ -43,7 +47,7 @@ cmake -DCMAKE_C_COMPILER=`which icc` -DCMAKE_CXX_COMPILER=`which icpc` -DCMAKE_B
 Using the `apex_exec` wrapper script, execute the OpenMP program as normal:
 
 ```
-[khuck@delphi xpress-apex]$ ./install/bin/apex_exec --apex:screen --apex:taskgraph build/src/unit_tests/C++/apex_openmp_cpp
+[khuck@delphi apex]$ ./install/bin/apex_exec --apex:screen --apex:taskgraph --apex:ompt build/src/unit_tests/C++/apex_openmp_cpp
 Program to run :  build/src/unit_tests/C++/apex_openmp_cpp
 Initializing...
 No Sharing...
@@ -117,7 +121,7 @@ cmake -DCMAKE_C_COMPILER=`which gcc` -DCMAKE_CXX_COMPILER=`which g++` -DCMAKE_BU
 Enabling OpenACC support requires setting the `ACC_PROFLIB` environment variable with the path to `libapex.so`, or by using the `apex_exec` script with the `--apex:openacc` flag:
 
 ```
-[khuck@gorgon xpress-apex]$ ./install/bin/apex_exec --apex:screen --apex:taskgraph --apex:openacc ./build/src/unit_tests/C/apex_openacc
+[khuck@gorgon apex]$ ./install/bin/apex_exec --apex:screen --apex:taskgraph --apex:openacc ./build/src/unit_tests/C/apex_openacc
 Program to run :  ./build/src/unit_tests/C/apex_openacc
 Jacobi relaxation Calculation: 128 x 128 mesh
 Device API: none Device type: default Device vendor: -1
@@ -189,7 +193,7 @@ cmake -DCMAKE_C_COMPILER=`which gcc` -DCMAKE_CXX_COMPILER=`which g++` -DCMAKE_BU
 Enabling CUDA support only requires using the `apex_exec` wrapper script.
 
 ```
-[khuck@gorgon xpress-apex]$ ./install/bin/apex_exec --apex:screen --apex:taskgraph ./build/src/unit_tests/CUDA/apex_cuda_cu
+[khuck@gorgon apex]$ ./install/bin/apex_exec --apex:screen --apex:taskgraph --apex:cuda ./build/src/unit_tests/CUDA/apex_cuda_cu
 Program to run :  ./build/src/unit_tests/CUDA/apex_cuda_cu
 On device: name=hello, value=10
 On device: name=dello, value=11
@@ -247,7 +251,7 @@ Timer                                                : #calls  |    mean  |   to
                                             cudaFree :        2      0.000      0.000      0.045
                                     cudaLaunchKernel :        4      0.000      0.000      0.007
                                    cudaMallocManaged :        2      0.104      0.208     50.601
-launch [/home/users/khuck/src/xpress-apex/src/uni... :        4      0.001      0.003      0.798
+launch [/home/users/khuck/src/apex/src/unit_tests... :        4      0.001      0.003      0.798
                                            APEX Idle :                          0.199     48.371
 ------------------------------------------------------------------------------------------------
                                         Total timers : 22
@@ -257,7 +261,7 @@ launch [/home/users/khuck/src/xpress-apex/src/uni... :        4      0.001      
 To get additional information you can also enable the `--apex:cuda_driver` flag to see CUDA driver API calls, or enable the `--apex:cuda_counters` flag to enable CUDA counters.
 
 ```
-[khuck@gorgon xpress-apex]$ ./install/bin/apex_exec --apex:screen --apex:taskgraph --apex:cuda_counters --apex:cuda_driver ./build/src/unit_tests/CUDA/apex_cuda_cu
+[khuck@gorgon apex]$ ./install/bin/apex_exec --apex:screen --apex:taskgraph --apex:cuda --apex:cuda_counters --apex:cuda_driver ./build/src/unit_tests/CUDA/apex_cuda_cu
 Program to run :  ./build/src/unit_tests/CUDA/apex_cuda_cu
 On device: name=hello, value=10
 On device: name=dello, value=11
@@ -342,13 +346,45 @@ Timer                                                : #calls  |    mean  |   to
                                             cudaFree :        2      0.000      0.000      0.057
                                     cudaLaunchKernel :        4      0.000      0.000      0.051
                                    cudaMallocManaged :        2      0.060      0.120     38.773
-launch [/home/users/khuck/src/xpress-apex/src/uni... :        4      0.000      0.001      0.442
+launch [/home/users/khuck/src/apex/src/unit_tests... :        4      0.000      0.001      0.442
                                            APEX Idle :                          0.041     13.195
 ------------------------------------------------------------------------------------------------
                                         Total timers : 433
 ```
 
 ![CUDA task graph](img/cuda_taskgraph.png)
+
+The following flags will enable different types of CUDA support:
+```
+    --apex:cuda                   enable CUDA/CUPTI measurement (default: off)
+    --apex:cuda-counters          enable CUDA/CUPTI counter support (default: off)
+    --apex:cuda-driver            enable CUDA driver API callbacks (default: off)
+    --apex:cuda-details           enable per-kernel statistics where available (default: off)
+    --apex:monitor-gpu            enable GPU monitoring services (CUDA NVML, ROCm SMI)
+```
+
+### HIP/ROCm
+
+APEX suports HIP measurement using the Roc* libraries provided by AMD.
+
+#### Configuring APEX for HIP support
+
+Enabling HIP support in APEX requires the `-DAPEX_WITH_HIP=TRUE` flag and the `-DROCM_ROOT=/path/to/rocm` CMake variables at configuration time.  CMake will look for the profile/trace and smi libraries in the installation, and if found the support will be enabled.
+
+```
+cmake -B build -DCMAKE_C_COMPILER=`which clang` -DCMAKE_CXX_COMPILER=`which hipcc` -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./install -DBUILD_TESTS=TRUE -DUSE_BFD=TRUE -DAPEX_WITH_HIP=TRUE -DROCM_ROOT=/opt/rocm-5.7.1 -DBFD_ROOT=/usr/local/packages/binutils/2.34 ..
+```
+
+#### Running HIP programs with APEX
+Enabling CUDA support only requires using the `apex_exec` wrapper script. The following flags will enable additional support:
+```
+    --apex:hip                    enable HIP/ROCTracer measurement (default: off)
+    --apex:hip-metrics            enable HIP/ROCProfiler metric support (default: off)
+    --apex:hip-counters           enable HIP/ROCTracer counter support (default: off)
+    --apex:hip-driver             enable HIP/ROCTracer KSA driver API callbacks (default: off)
+    --apex:hip-details            enable per-kernel statistics where available (default: off)
+    --apex:monitor-gpu            enable GPU monitoring services (CUDA NVML, ROCm SMI)
+```
 
 ### Kokkos
 
@@ -358,7 +394,7 @@ Like OpenACC, nothing special needs to be done to enable Kokkos support.
 
 #### Running Kokkos programs with APEX
 
-Enabling Kokkos support requires setting the `KOKKOS_PROFILE_LIBRARY` environment variable with the path to `libapex.so`, or by using the `apex_exec` script with the `--apex:kokkos` flag.
+Enabling Kokkos support requires setting the `KOKKOS_PROFILE_LIBRARY` environment variable with the path to `libapex.so`, or by using the `apex_exec` script with the `--apex:kokkos` flag. We also recommend using the `--apex:kokkos-fence` option which will time the full kernel execution time, not just the time to launch a kernel if the back-end activity is not measured by some other method (OMPT, CUDA, HIP, SYCL, OpenACC). APEX also has experimental autotuning support for Kokkos kernels, see <https://github.com/UO-OACISS/apex/wiki/Using-APEX-with-Kokkos#autotuning-support>.
 
 #### Configuring APEX for RAJA support
 
@@ -367,6 +403,12 @@ Like OpenACC, nothing special needs to be done to enable RAJA support.
 #### Running RAJA programs with APEX
 
 Enabling RAJA support requires setting the `RAJA_PLUGINS` environment variable with the path to `libapex.so`, or by using the `apex_exec` script with the `--apex:raja` flag.
+The following flags will enable different types of Kokkos support:
+```
+    --apex:kokkos                 enable Kokkos support
+    --apex:kokkos-tuning          enable Kokkos runtime autotuning support
+    --apex:kokkos-fence           enable Kokkos fences for async kernels
+```
 
 ### C++ Threads
 
@@ -414,8 +456,8 @@ For all the following examples, we will use a simple CUDA program that is in the
 Profiling with APEX is the usual and most simple mode of operation.  In order to profile an application and get a report at the end of execution, enable screen output (see [Environment Variables](/environment) for details) and run an application linked with the APEX library or with the `apex_exec --apex:screen` flag (enabled by default).  The output should look like examples shown previously.
 
 ```bash
-[khuck@cyclops xpress-apex]$ export APEX_SCREEN_OUTPUT=1
-[khuck@cyclops xpress-apex]$ ./build/src/unit_tests/CUDA/apex_cuda_cu
+[khuck@cyclops apex]$ export APEX_SCREEN_OUTPUT=1
+[khuck@cyclops apex]$ ./build/src/unit_tests/CUDA/apex_cuda_cu
 Found 4 total devices
 On device: name=hello, value=10
 On device: name=dello, value=11
@@ -474,7 +516,7 @@ Timer                                                : #calls  |    mean  |   to
                                             cudaFree :        2      0.000      0.000      0.052
                                     cudaLaunchKernel :        4      0.000      0.000      0.021
                                    cudaMallocManaged :        2      0.135      0.269     58.397
-launch [/home/users/khuck/src/xpress-apex/src/uni... :        4      0.028      0.110     23.870
+launch [/home/users/khuck/src/apex/src/unit_tests... :        4      0.028      0.110     23.870
                                            APEX Idle :                          0.080     17.403
 ------------------------------------------------------------------------------------------------
                                         Total timers : 22
@@ -485,8 +527,8 @@ launch [/home/users/khuck/src/xpress-apex/src/uni... :        4      0.028      
 To enable CSV output, use one of the methods described in the [Environment Variables](/environment) page, and run as the previous example.
 
 ```bash
-[khuck@cyclops xpress-apex]$ export APEX_CSV_OUTPUT=1
-[khuck@cyclops xpress-apex]$ ./build/src/unit_tests/CUDA/apex_cuda_cu
+[khuck@cyclops apex]$ export APEX_CSV_OUTPUT=1
+[khuck@cyclops apex]$ ./build/src/unit_tests/CUDA/apex_cuda_cu
 Found 4 total devices
 On device: name=hello, value=10
 On device: name=dello, value=11
@@ -494,7 +536,7 @@ On device: name=dello, value=12
 On device: name=dello, value=13
 On host: name=dello, value=14
 
-[khuck@cyclops xpress-apex]$ cat apex.0.csv
+[khuck@cyclops apex]$ cat apex.0.csv
 "counter","num samples","minimum","mean""maximum","stddev"
 "1 Minute Load average",1,22,22,22,0
 "Device 0 GPU Clock Memory (MHz)",1,877,877,877,0
@@ -539,7 +581,7 @@ On host: name=dello, value=14
 "cudaFree",2,0,172
 "cudaLaunchKernel",4,0,66
 "cudaMallocManaged",2,0,194367
-"launch [/home/users/khuck/src/xpress-apex/src/unit_tests/CUDA/apex_cuda.cu:35]",4,0,164490
+"launch [/home/users/khuck/src/apex/src/unit_tests/CUDA/apex_cuda.cu:35]",4,0,164490
 ```
 
 ### Profiling with TAU profile output
@@ -547,8 +589,8 @@ On host: name=dello, value=14
 To enable TAU profile output, use one of the methods described in the [Environment Variables](/environment) page, and run as the previous example.  The output can be summarized with the TAU `pprof` command, which is installed with the TAU software.
 
 ```bash
-[khuck@cyclops xpress-apex]$ export APEX_CSV_OUTPUT=1
-[khuck@cyclops xpress-apex]$ ./build/src/unit_tests/CUDA/apex_cuda_cu
+[khuck@cyclops apex]$ export APEX_CSV_OUTPUT=1
+[khuck@cyclops apex]$ ./build/src/unit_tests/CUDA/apex_cuda_cu
 Found 4 total devices
 On device: name=hello, value=10
 On device: name=dello, value=11
@@ -556,7 +598,7 @@ On device: name=dello, value=12
 On device: name=dello, value=13
 On host: name=dello, value=14
 
-[khuck@cyclops xpress-apex]$ cat profile.0.0.0
+[khuck@cyclops apex]$ cat profile.0.0.0
 9 templated_functions_MULTI_TIME
 # Name Calls Subrs Excl Incl ProfileCalls #
 "GPU: Unified Memcpy DTOH" 1 0 2.656 2.656 0 GROUP="TAU_USER"
@@ -566,7 +608,7 @@ On host: name=dello, value=14
 "GPU: Kernel(DataElement*)" 4 0 355.293 355.293 0 GROUP="TAU_USER"
 "cudaLaunchKernel" 4 0 67.4 67.4 0 GROUP="TAU_USER"
 "cudaDeviceSynchronize" 4 0 811.244 811.244 0 GROUP="TAU_USER"
-"launch [/home/users/khuck/src/xpress-apex/src/unit_tests/CUDA/apex_cuda.cu:35]" 4 0 100327 100327 0 GROUP="TAU_USER"
+"launch [/home/users/khuck/src/apex/src/unit_tests/CUDA/apex_cuda.cu:35]" 4 0 100327 100327 0 GROUP="TAU_USER"
 "APEX MAIN" 1 0 67830.2 354026 0 GROUP="TAU_USER"
 0 aggregates
 32 userevents
@@ -604,9 +646,9 @@ On host: name=dello, value=14
 "Device 0 GPU NvLink Link Count" 1 6 6 6 36
 "Device 0 GPU Memory Free (MB)" 1 13410.6 13410.6 13410.6 1.79845e+08
 
-[khuck@cyclops xpress-apex]$ which pprof
+[khuck@cyclops apex]$ which pprof
 ~/src/tau2/ibm64linux/bin/pprof
-[khuck@cyclops xpress-apex]$ pprof
+[khuck@cyclops apex]$ pprof
 Reading Profile files in profile.*
 
 NODE 0;CONTEXT 0;THREAD 0:
@@ -616,7 +658,7 @@ NODE 0;CONTEXT 0;THREAD 0:
 ---------------------------------------------------------------------------------------
 100.0           67          354           1           0     354026 APEX MAIN
  52.1          184          184           2           0      92218 cudaMallocManaged
- 28.3          100          100           4           0      25082 launch [/home/users/khuck/src/xpress-apex/src/unit_tests/CUDA/apex_cuda.cu:35]
+ 28.3          100          100           4           0      25082 launch [/home/users/khuck/src/apex/src/unit_tests/CUDA/apex_cuda.cu:35]
   0.2        0.811        0.811           4           0        203 cudaDeviceSynchronize
   0.1        0.355        0.355           4           0         89 GPU: Kernel(DataElement*)
   0.1        0.193        0.193           2           0         97 cudaFree
@@ -669,10 +711,18 @@ NumSamples   MaxValue   MinValue  MeanValue  Std. Dev.  Event Name
 APEX can capture the task dependency graph from the application, and output it as a GraphViz graph.  The graph represents summarized task "type" dependencies, not a full dependency graph/tree with every task instance.
 
 ```bash
-[khuck@cyclops xpress-apex]$ export APEX_TASKGRAPH_OUTPUT=1
-[khuck@cyclops xpress-apex]$ export APEX_CUDA_DRIVER_API=1
-[khuck@cyclops xpress-apex]$ ./build/src/unit_tests/CUDA/apex_cuda_cu
-[khuck@cyclops xpress-apex]$ dot -Tpdf -O taskgraph.0.dot
+[khuck@cyclops apex]$ apex_exec --apex:taskgraph --apex:cuda ./build/src/unit_tests/CUDA/apex_cuda_cu
+[khuck@cyclops apex]$ dot -Tpdf -O taskgraph.0.dot
+```
+![CUDA task graph](img/cuda_taskgraph.png)
+
+### Profiling with Tasktree output
+
+APEX can capture the task dependency tree from the application, and output it as a GraphViz graph or ASCII.  The graph represents summarized task "type" dependencies, not a full dependency graph/tree with every task instance. The difference between the graph and the tree is that in the tree, there are no cycles and child tasks have only one parent.
+
+```bash
+[khuck@cyclops apex]$ apex_exec --apex:tasktree --apex:cuda ./build/src/unit_tests/CUDA/apex_cuda_cu
+[khuck@cyclops apex]$ apex-treesummary.py apex_tasktree.csv
 ```
 ![CUDA task graph](img/cuda_taskgraph.png)
 
@@ -682,9 +732,9 @@ APEX can capture the task dependency graph from the application, and output it a
 For this example, we are using an HPX quickstart example, the `fibonacci` example.  After execution, APEX writes a sample data file to disk, `apex_task_samples.csv`.  That file is post-processed with the APEX python script `task_scatterplot.py`.
 
 ```bash
-[khuck@cyclops xpress-apex]$ export APEX_TASK_SCATTERPLOT=1
+[khuck@cyclops apex]$ export APEX_TASK_SCATTERPLOT=1
 [khuck@cyclops build]$ ./bin/fibonacci --n-value=20
-[khuck@cyclops build]$ /home/users/khuck/src/xpress-apex/install/bin/task_scatterplot.py
+[khuck@cyclops build]$ /home/users/khuck/src/apex/install/bin/task_scatterplot.py
 Parsed 2362 samples
 Plotting async_launch_policy_dispatch
 Plotting async_launch_policy_dispatch::call
@@ -699,8 +749,8 @@ Rendering...
 For this example, we are using an APEX unit test that computes the value of PI.  OTF2 is the "Open Trace Format v2", used for tracing large scale HPC applications. For more information on OTF2 and associated tools, see [The VI-HPS Score-P web site](https://www.vi-hps.org/projects/score-p/index.html).  Vampir is a commercial trace viewer that can be used to visualize and analyze OTF2 trace data.  Traveler is an open source tool that can be used to visualize and analyze APEX OTF2 trace data.
 
 ```bash
-[khuck@cyclops xpress-apex]$ export APEX_OTF2=1
-[khuck@cyclops xpress-apex]$ ./build/src/unit_tests/CUDA/pi_cu
+[khuck@cyclops apex]$ export APEX_OTF2=1
+[khuck@cyclops apex]$ ./build/src/unit_tests/CUDA/pi_cu
 Found 4 total devices
 134217728
 num streams 4
@@ -718,8 +768,8 @@ Writing OTF2 Communicators...
 Closing the archive...
 done.
 
-[khuck@eagle xpress-apex]$ module load vampir
-[khuck@eagle xpress-apex]$ vampir OTF2_archive/APEX.otf2
+[khuck@eagle apex]$ module load vampir
+[khuck@eagle apex]$ vampir OTF2_archive/APEX.otf2
 ```
 ![CUDA OTF2 trace in Vampir](img/pi_cu_trace.png)
 
@@ -728,8 +778,8 @@ done.
 For this example, we are using an APEX unit test that computes the value of PI.  Google Trace Events is a format developed by Google for tracing activity on devices, but is free and open and JSON based. For more information on Google Trace Events and associated tools, see [the Google Trace Event Format document](https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&cad=rja&uact=8&ved=2ahUKEwiQ5uai8vrrAhV2JTQIHeTWDWcQFjAAegQIBRAB&url=https%3A%2F%2Fdocs.google.com%2Fdocument%2Fd%2F1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKchNAySU%2Fpreview&usg=AOvVaw0tBFlVbDVBikdzLqgrWK3g).  The Google Chrome Web Browser can be used to visualize and analyze GTE trace data.
 
 ```
-[khuck@cyclops xpress-apex]$ export APEX_TRACE_EVENT=1
-[khuck@cyclops xpress-apex]$ ./build/src/unit_tests/CUDA/pi_cu
+[khuck@cyclops apex]$ export APEX_TRACE_EVENT=1
+[khuck@cyclops apex]$ ./build/src/unit_tests/CUDA/pi_cu
 ```
 
 ![CUDA Google trace in Chrome](img/pi_cu_gte.png)

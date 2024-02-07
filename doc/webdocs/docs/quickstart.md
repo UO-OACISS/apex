@@ -1,5 +1,9 @@
 # APEX Quickstart
 
+## Tutorial
+
+For an APEX tutorial, please see <https://github.com/khuck/apex-tutorial>.
+
 ## Installation
 
 For detailed instructions and information on dependencies, see [build instructions](install.md#standalone_installation)
@@ -7,12 +11,10 @@ For detailed instructions and information on dependencies, see [build instructio
 To build APEX stand-alone (to use with OpenMP, OpenACC, CUDA, Kokkos, TBB, C++ threads, etc.) do the following:
 
 ```
-git clone https://github.com/khuck/xpress-apex.git
-cd xpress-apex
-mkdir build
-cd build
-cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_EXAMPLES=TRUE ..
-make -j
+git clone https://github.com/UO-OACISS/apex.git
+cd apex
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_EXAMPLES=TRUE .
+cmake --build build --parallel
 ```
 
 ## Runtime
@@ -20,7 +22,7 @@ make -j
 To run an example (since `-DBUILD_EXAMPLES=TRUE` was set), just run the Matmult example and you should get similar output:
 
 ```
-[khuck@eagle xpress-apex]$ ./build/src/examples/Matmult/matmult
+[khuck@eagle apex]$ ./build/src/examples/Matmult/matmult
 Spawned thread 1...
 Spawned thread 2...
 Spawned thread 3...
@@ -65,3 +67,7 @@ Timer                                                : #calls  |    mean  |   to
                                         Total timers : 49
 
 ```
+
+## Using `apex_exec`
+
+The wrapper script `apex_exec` can be used to measure applications that don't have APEX linked in. For details, see [`apex_exec` usage](environment.md#apex_exec_flags).

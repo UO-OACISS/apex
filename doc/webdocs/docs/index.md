@@ -1,5 +1,5 @@
 ![image](img/logo-cropped.png "APEX")
-<!--![image](https://github.com/khuck/xpress-apex/raw/master/doc/logo-cropped.png "APEX") -->
+<!--![image](https://github.com/UO-OACISS/apex/raw/master/doc/logo-cropped.png "APEX") -->
 
 # APEX: Autonomic Performance Environment for eXascale
 
@@ -11,7 +11,10 @@ In short, APEX is an introspection and runtime adaptation library for asynchrono
 APEX provides an API for measuring actions within a runtime. The API includes methods for timer start/stop, as well as sampled counter values. APEX is designed to be integrated into a runtime, library and/or application and provide performance introspection for the purpose of runtime adaptation. While APEX *can* provide rudimentary post-mortem performance analysis measurement, there are many other performance measurement tools that perform that task more robustly (such as TAU <http://tau.uoregon.edu>).  That said, APEX includes an event listener that integrates with the TAU measurement system, so APEX events can be forwarded to TAU and collected in a TAU profile and/or trace to be used for post-mortem performance anlaysis.
 
 ## Runtime Adaptation
-APEX provides a mechanism for dynamic runtime behavior, either for autotuning or adaptation to changing environment.  The infrastruture that provides the adaptation is the *Policy Engine*, which executes policies either periodically or triggered by events. The policies have access to the performance state as observed by the APEX introspection API. APEX is integrated with Active Harmony <http://www.dyninst.org/harmony> to provide dynamic search for autotuning.
+APEX provides a mechanism for dynamic runtime behavior, either for autotuning or adaptation to changing environment.  The infrastruture that provides the adaptation is the *Policy Engine*, which executes policies either periodically or triggered by events. The policies have access to the performance state as observed by the APEX introspection API. APEX has several built in search strategies, including exhaustive, random, simulated annealing, and hill climibing. APEX is also integrated with Active Harmony <http://www.dyninst.org/harmony> to provide dynamic search using the Nelder Mead algorithm.
+
+## Citing APEX
+Please use the following citation: <https://doi.org/10.1109/ESPM256814.2022.00008>
 
 ## References & APEX-related Publications
 1. <a name="fn1"></a> Thomas Sterling, Daniel Kogler, Matthew Anderson, and Maciej Brodowicz. "SLOWER: A performance model for Exascale computing". *Supercomputing Frontiers and Innovations*, 1:42–57, September 2014. <http://superfri.org/superfri/article/view/10>
