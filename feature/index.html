@@ -186,14 +186,20 @@
 <li><strong>Kokkos</strong> - Using the Kokkos profiling interface, APEX can capture performance data related to Kokkos parallel abstractions.</li>
 <li><strong>RAJA</strong> - Using the RAJA profiling interface, APEX can capture performance data related to RAJA parallel abstractions.  Unlike Kokkos, RAJA doesn't give any details, so don't expect much.</li>
 <li><strong>CUDA</strong> - Using the NVIDIA CUPTI and NVML libraries, APEX can capture runtime and driver API calls as well as memory transfers and kernels executed on a device, and monitor GPU utilization.</li>
-<li><strong>Distributed Execution over MPI</strong> - While APEX doesn't measure MPI function calls, it is "MPI-aware", and can detect when used in a distributed run so that each process can write separate or aggregated performance data.</li>
+<li><strong>HIP</strong> - Using the AMD Roctracer, Rocprofiler and ROCM-SMI libraries, APEX can capture runtime and driver API calls as well as memory transfers and kernels executed on a device, and monitor GPU utilization.</li>
+<li><strong>Intel SYCL</strong> - Using the Intel Level0 libraries, APEX can capture runtime and driver API calls as well as memory transfers and kernels executed on a device, and monitor GPU utilization.</li>
+<li><strong>PhiProf</strong> - APEX is integrated with support to intercept PhiProf profiling data. See <a href="https://github.com/fmihpc/phiprof">https://github.com/fmihpc/phiprof</a>.</li>
+<li><strong>StarPU</strong> - APEX is integrated with support to profile StarPU. See <a href="https://starpu.gitlabpages.inria.fr">https://starpu.gitlabpages.inria.fr</a>.</li>
+<li><strong>Distributed Execution over MPI</strong> - While APEX doesn't measure all MPI function calls, it is "MPI-aware", and can detect when used in a distributed run so that each process can write separate or aggregated performance data. APEX provides rudimentary support for measuring point-to-point and collectives.</li>
 </ul>
 <h2 id="parallel_models_with_experimental_support_in_development_wish_list">Parallel Models with Experimental Support / In Development / Wish List<a class="headerlink" href="#parallel_models_with_experimental_support_in_development_wish_list" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Argobots</strong> - APEX has been used to instrument services based on Argobots, but it is not integrated into the runtime.</li>
 <li><strong>TBB</strong> - The APEX team is evaluating integrated TBB support.</li>
-<li><strong>Legion</strong> - No plans at this time, but open to exploring it.</li>
+<li><strong>Legion</strong> - No plans at this time.</li>
 <li><strong>Charm++</strong> - No plans at this time.</li>
+<li><strong>Iris</strong> - Plans are afoot. Stay tuned.</li>
+<li><strong>YAKL</strong> - Plans are afoot. Stay tuned.</li>
 </ul>
 <h2 id="introspection">Introspection<a class="headerlink" href="#introspection" title="Permanent link">&para;</a></h2>
 <p>APEX collects data through <em>inspectors</em>. The synchronous data collection uses an event API and event <em>listeners</em>. The API includes events for:</p>
@@ -257,7 +263,7 @@
 <h3 id="otf2_tracing">OTF2 Tracing<a class="headerlink" href="#otf2_tracing" title="Permanent link">&para;</a></h3>
 <p>The <strong>OTF2 listener</strong> will construct a full event trace and write the events out to an <a href="https://www.vi-hps.org/projects/score-p/">OTF2</a> archive.  OTF2 files can be visualized with tools like <a href="https://tu-dresden.de/zih/forschung/projekte/vampir/index?set_language=en">Vampir</a> or <a href="https://github.com/hdc-arizona/traveler-integrated">Traveler</a>.  Due to the constraints of OTF2 trace collection, tasks that start on one OS thread and end on another OS thread are not supported.  Similarly, tasks/functions that are not perfectly nested are not supported by OTF2 tracing.  For those types of tasks, we recommend the Trace Event listener.</p>
 <h3 id="google_trace_event_listener">Google Trace Event Listener<a class="headerlink" href="#google_trace_event_listener" title="Permanent link">&para;</a></h3>
-<p>The <strong>Trace Event listener</strong> will construct a full event trace and write the events to one or more <a href="https://docs.google.com/document/d/1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKchNAySU/edit#">Google Trace Event</a> trace files.  The files can be visualized with the Google Chrome web browser, by navigating to the <code>chrome://tracing</code> URL.  Other tools can be used to visualize or analyze traces, like <a href="https://chromium.googlesource.com/catapult">Catapult</a>.</p>
+<p>The <strong>Trace Event listener</strong> will construct a full event trace and write the events to one or more <a href="https://docs.google.com/document/d/1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKchNAySU/edit#">Google Trace Event</a> trace files.  The files can be visualized with the Google Chrome web browser, by navigating to the <a href="https://ui.perfetto.dev">https://ui.perfetto.dev</a> URL. <!-- Other tools can be used to visualize or analyze traces, like <a href="https://chromium.googlesource.com/catapult">Catapult</a>. --></p>
 <h2 id="policy_listener">Policy Listener<a class="headerlink" href="#policy_listener" title="Permanent link">&para;</a></h2>
 <p>Policies are rules that decide on outcomes based on observed state.
 Triggered policies are invoked by introspection API events.
@@ -282,7 +288,7 @@ Callback functions define the policy rules - “If x &lt; y then...(take some ac
 
   <div role="contentinfo">
     <!-- Copyright etc -->
-      <p>(C) 2014-2023 University of Oregon, All Rights Reserved</p>
+      <p>(C) 2014-2024 University of Oregon, All Rights Reserved</p>
   </div>
 
   Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.

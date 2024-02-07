@@ -102,17 +102,17 @@
                 <h1 id="before_you_start">Before you start<a class="headerlink" href="#before_you_start" title="Permanent link">&para;</a></h1>
 <p>All examples on this page assume you have downloaded, configured and built APEX.  <a href="../install/">See the Getting Started page</a> for instructions on how to do that.</p>
 <h1 id="simple_example">Simple example<a class="headerlink" href="#simple_example" title="Permanent link">&para;</a></h1>
-<p>In the APEX installation directory, there is a bin directory. In the bin directory are a number of examples, one of which is a simple matrix multiplication example, <em>matmult</em>. </p>
+<p>In the APEX installation directory, there is a bin directory. In the bin directory are a number of examples, one of which is a simple matrix multiplication example, <em>matmult</em>.</p>
 <p>To run the matmult example, simply type 'matmult'.  The output should be something like this:</p>
-<pre><code class="language-bash">khuck@ktau:~/src/xpress-apex/install/bin$ ./matmult
+<pre><code class="language-bash">khuck@ktau:~/src/apex/install/bin$ ./matmult
 Spawned thread 1...
 Spawned thread 2...
 Spawned thread 3...
 Done.
 </code></pre>
 <p>Not very interesting, eh? To see what APEX measured, set the APEX_SCREEN_OUTPUT environment variable to 1, and run it again:</p>
-<pre><code class="language-bash">khuck@ktau:~/src/xpress-apex/install/bin$ export APEX_SCREEN_OUTPUT=1
-khuck@ktau:~/src/xpress-apex/install/bin$ ./matmult
+<pre><code class="language-bash">khuck@ktau:~/src/apex/install/bin$ export APEX_SCREEN_OUTPUT=1
+khuck@ktau:~/src/apex/install/bin$ ./matmult
 v0.1-e050e17-master
 Built on: 14:38:56 Dec 22 2015
 C++ Language Standard version : 201402
@@ -137,7 +137,7 @@ APEX_THROTTLE_ENERGY : 0
 APEX_THROTTLING_MAX_WATTS : 300
 APEX_THROTTLING_MIN_WATTS : 150
 APEX_PTHREAD_WRAPPER_STACK_SIZE : 0
-APEX_PAPI_METRICS : 
+APEX_PAPI_METRICS :
 Spawned thread 1...
 Spawned thread 2...
 Spawned thread 3...
@@ -147,7 +147,7 @@ Elapsed time: 0.966516
 Cores detected: 8
 Worker Threads observed: 4
 Available CPU time: 3.86607
-Action                         :  #calls  |  minimum |    mean  |  maximum |   total  |  stddev  |  % total  
+Action                         :  #calls  |  minimum |    mean  |  maximum |   total  |  stddev  |  % total
 ------------------------------------------------------------------------------------------------------------
                 allocateMatrix :       12    --n/a--   1.94e-02    --n/a--   2.33e-01    --n/a--      6.014
                        compute :        4    --n/a--   6.89e-01    --n/a--   2.76e+00    --n/a--     71.279
@@ -156,13 +156,13 @@ Action                         :  #calls  |  minimum |    mean  |  maximum |   t
                     freeMatrix :       12    --n/a--   2.36e-04    --n/a--   2.83e-03    --n/a--      0.073
                     initialize :       12    --n/a--   3.56e-03    --n/a--   4.27e-02    --n/a--      1.104
                           main :        1    --n/a--   9.66e-01    --n/a--   9.66e-01    --n/a--     24.983
-                     APEX Idle :  --n/a--    --n/a--    --n/a--    --n/a--    --n/a--    --n/a--    --n/a--   
+                     APEX Idle :  --n/a--    --n/a--    --n/a--    --n/a--    --n/a--    --n/a--    --n/a--
 ------------------------------------------------------------------------------------------------------------
 </code></pre>
 <p>In this output, we see the status of all of the environment variables (as read by APEX at initialization), the regular program output, and then a summary from APEX at the end. Because APEX captures timestamps using the low-overhead rdtsc function call (where available), the measurements are done in cycles. APEX estimates the Hz rating of the CPU to convert to seconds for output. APEX reports the elapsed wall-clock time, the number of cores detected, the number of worker threads observed, as well as the total available CPU time (wall-clock times workers).</p>
 <h1 id="openmp_example">OpenMP example<a class="headerlink" href="#openmp_example" title="Permanent link">&para;</a></h1>
 <p>In the APEX installation directory, there is a bin directory. In the bin directory are a number of examples, one of which is the OpenMP implementation of LULESH (for details, <a href="https://codesign.llnl.gov/lulesh.php">see the LLNL explanation of LULESH</a>).  When APEX is configured with OpenMP OMPT support (using the -DBUILD_OMPT=TRUE or equivalent CMake configuration settings) it will measure OpenMP events. Executing the LULESH example (with APEX_SCREEN_OUTPUT=1) gives the following output:</p>
-<pre><code class="language-bash">khuck@ktau:~/src/xpress-apex$ ./install/bin/lulesh_OpenMP_2.0 
+<pre><code class="language-bash">khuck@ktau:~/src/apex$ ./install/bin/lulesh_OpenMP_2.0
 v0.1-e050e17-master
 Built on: 14:38:56 Dec 22 2015
 C++ Language Standard version : 201402
@@ -187,7 +187,7 @@ APEX_THROTTLE_ENERGY : 0
 APEX_THROTTLING_MAX_WATTS : 300
 APEX_THROTTLING_MIN_WATTS : 150
 APEX_PTHREAD_WRAPPER_STACK_SIZE : 0
-APEX_PAPI_METRICS : 
+APEX_PAPI_METRICS :
 Running problem size 30^3 per domain until completion
 Num processors: 1
 Registering OMPT events...done.
@@ -224,11 +224,11 @@ APEX: disabling lightweight timer OpenMP_BARRIER: CalcLagrang...
 APEX: disabling lightweight timer OpenMP_BARRIER: UpdateVolum...
 APEX: disabling lightweight timer OpenMP_BARRIER: ApplyAccele...
 APEX: disabling lightweight timer OpenMP_BARRIER: CalcForceFo...
-Run completed:  
-   Problem size        =  30 
-   MPI tasks           =  1 
-   Iteration count     =  932 
-   Final Origin Energy = 2.025075e+05 
+Run completed:
+   Problem size        =  30
+   MPI tasks           =  1
+   Iteration count     =  932
+   Final Origin Energy = 2.025075e+05
    Testing Plane 0 of Energy Array on rank 0:
         MaxAbsDiff   = 6.548362e-11
         TotalAbsDiff = 8.615093e-10
@@ -244,17 +244,17 @@ Elapsed time: 55.0085
 Cores detected: 8
 Worker Threads observed: 8
 Available CPU time: 440.068
-Action                         :  #calls  |  minimum |    mean  |  maximum |   total  |  stddev  |  % total  
+Action                         :  #calls  |  minimum |    mean  |  maximum |   total  |  stddev  |  % total
 ------------------------------------------------------------------------------------------------------------
-                   CPU Guest % :       54      0.000      0.000      0.000      0.000      0.000    --n/a-- 
-                CPU I/O Wait % :       54      0.000      0.040      0.714      2.143      0.133    --n/a-- 
-                     CPU IRQ % :       54      0.000      0.000      0.000      0.000      0.000    --n/a-- 
-                    CPU Idle % :       54      0.857      1.384      4.857     74.714      0.763    --n/a-- 
-                    CPU Nice % :       54      0.000      0.000      0.000      0.000      0.000    --n/a-- 
-                   CPU Steal % :       54      0.000      0.000      0.000      0.000      0.000    --n/a-- 
-                  CPU System % :       54     15.286     23.339     26.714   1260.286      2.301    --n/a-- 
-                    CPU User % :       54     84.143     88.373     97.143   4772.143      2.268    --n/a-- 
-                CPU soft IRQ % :       54      0.000      0.026      0.286      1.429      0.068    --n/a-- 
+                   CPU Guest % :       54      0.000      0.000      0.000      0.000      0.000    --n/a--
+                CPU I/O Wait % :       54      0.000      0.040      0.714      2.143      0.133    --n/a--
+                     CPU IRQ % :       54      0.000      0.000      0.000      0.000      0.000    --n/a--
+                    CPU Idle % :       54      0.857      1.384      4.857     74.714      0.763    --n/a--
+                    CPU Nice % :       54      0.000      0.000      0.000      0.000      0.000    --n/a--
+                   CPU Steal % :       54      0.000      0.000      0.000      0.000      0.000    --n/a--
+                  CPU System % :       54     15.286     23.339     26.714   1260.286      2.301    --n/a--
+                    CPU User % :       54     84.143     88.373     97.143   4772.143      2.268    --n/a--
+                CPU soft IRQ % :       54      0.000      0.026      0.286      1.429      0.068    --n/a--
 OpenMP_BARRIER: ApplyAccele... : DISABLED (high frequency, short duration)
 OpenMP_BARRIER: ApplyMateri... :    14912    --n/a--   3.96e-05    --n/a--   5.91e-01    --n/a--      0.134
 OpenMP_BARRIER: CalcAcceler... : DISABLED (high frequency, short duration)
@@ -321,10 +321,10 @@ OpenMP_PARALLEL_REGION: Upd... :      932    --n/a--   1.34e-04    --n/a--   1.2
 <p>There are several lightweight events that APEX elects to ignore. The other events are timed by APEX and reported at exit, along with the /proc/stat data (CPU % counters).</p>
 <h1 id="with_papi">With PAPI<a class="headerlink" href="#with_papi" title="Permanent link">&para;</a></h1>
 <p>When APEX is configured with PAPI support (using -DPAPI_ROOT=/path/to/papi and -DUSE_PAPI=TRUE), hardware counter data can also be collected by APEX. To specify hardware counters of interest, use the APEX_PAPI_METRICS environment variable:</p>
-<pre><code class="language-bash">khuck@ktau:~/src/xpress-apex$ export APEX_PAPI_METRICS=&quot;PAPI_TOT_INS PAPI_L2_TCM&quot;
+<pre><code class="language-bash">khuck@ktau:~/src/apex$ export APEX_PAPI_METRICS=&quot;PAPI_TOT_INS PAPI_L2_TCM&quot;
 </code></pre>
 <p>...and then execute as normal:</p>
-<pre><code class="language-bash">khuck@ktau:~/src/xpress-apex$ ./install/bin/matmult 
+<pre><code class="language-bash">khuck@ktau:~/src/apex$ ./install/bin/matmult
 v0.1-e050e17-master
 Built on: 14:38:56 Dec 22 2015
 C++ Language Standard version : 201402
@@ -368,12 +368,12 @@ Action                         :  #calls  |  minimum |    mean  |  maximum |   t
                     freeMatrix :       12    --n/a--   2.07e-04    --n/a--   2.49e-03    --n/a--      0.065   1.13e+06   6.30e+03
                     initialize :       12    --n/a--   3.58e-03    --n/a--   4.29e-02    --n/a--      1.124   2.21e+07   3.80e+05
                           main :        1    --n/a--   9.54e-01    --n/a--   9.54e-01    --n/a--     24.978   2.03e+09   7.66e+05
-                     APEX Idle :  --n/a--    --n/a--    --n/a--    --n/a--    --n/a--    --n/a--    --n/a--   
+                     APEX Idle :  --n/a--    --n/a--    --n/a--    --n/a--    --n/a--    --n/a--    --n/a--
 ------------------------------------------------------------------------------------------------------------
 </code></pre>
 <h1 id="csv_output">CSV output<a class="headerlink" href="#csv_output" title="Permanent link">&para;</a></h1>
 <p>While APEX is not designed for post-mortem performance analysis, you can export the data that APEX collected.  If you set the APEX_CSV_OUTPUT environment variable to 1, APEX will also dump the timer statistics as a CSV file:</p>
-<pre><code class="language-bash">khuck@ktau:~/src/xpress-apex$ cat apex.0.csv 
+<pre><code class="language-bash">khuck@ktau:~/src/apex$ cat apex.0.csv
 &quot;task&quot;,&quot;num calls&quot;,&quot;total cycles&quot;,&quot;total microseconds&quot;,&quot;PAPI_TOT_INS&quot;,&quot;PAPI_L2_TCM&quot;
 &quot;allocateMatrix&quot;,12,704195504,264717,1615804,9100
 &quot;compute&quot;,4,7290209200,2740489,4306522734,1709040
@@ -411,7 +411,7 @@ make install
 </code></pre>
 <p>After configuring, building and installing TAU and then configuring, building and installing APEX, the TAU profiling is enabled by setting the environment variable "APEX_TAU=1".  After executing an example (say 'matmult'), there should be profile.* files in the working directory:</p>
 <pre><code class="language-bash">khuck@ktau:~/src/xpress-apex$ export APEX_TAU=1
-khuck@ktau:~/src/xpress-apex$ ./install/bin/matmult 
+khuck@ktau:~/src/xpress-apex$ ./install/bin/matmult
 Spawned thread 1...
 Spawned thread 2...
 Spawned thread 3...
@@ -428,7 +428,7 @@ profile.0.0.0  profile.0.0.1  profile.0.0.2  profile.0.0.3  profile.0.0.4  profi
 <p>If you want to collect a TAU trace, you would enable the appropriate TAU environment variable (TAU_TRACE=1), and then re-run the example.  After the execution, the trace files need to be merged (using tau_treemerge.pl) and then converted (with tau2slog2) to be viewed with the Jumpshot trace viewer (included with TAU):</p>
 <pre><code class="language-bash">khuck@ktau:~/src/xpress-apex$ export APEX_TAU=1
 khuck@ktau:~/src/xpress-apex$ export TAU_TRACE=1
-khuck@ktau:~/src/xpress-apex$ ./install/bin/matmult 
+khuck@ktau:~/src/xpress-apex$ ./install/bin/matmult
 Spawned thread 1...
 Spawned thread 2...
 Spawned thread 3...
@@ -438,7 +438,7 @@ events.0.edf        tautrace.0.0.1.trc  tautrace.0.0.3.trc  tautrace.0.0.5.trc
 tautrace.0.0.0.trc  tautrace.0.0.2.trc  tautrace.0.0.4.trc
 
 # merge the trace
-khuck@ktau:~/src/xpress-apex$ tau_treemerge.pl 
+khuck@ktau:~/src/xpress-apex$ tau_treemerge.pl
 /home/khuck/src/tau2/x86_64/bin/tau_merge -m tau.edf -e events.0.edf events.0.edf events.0.edf events.0.edf events.0.edf events.0.edf tautrace.0.0.0.trc tautrace.0.0.1.trc tautrace.0.0.2.trc tautrace.0.0.3.trc tautrace.0.0.4.trc tautrace.0.0.5.trc tau.trc
 tautrace.0.0.0.trc: 34 records read.
 tautrace.0.0.1.trc: 8 records read.
@@ -564,7 +564,7 @@ khuck@ktau:~/src/xpress-apex$ jumpshot tau.slog2
 
   <div role="contentinfo">
     <!-- Copyright etc -->
-      <p>(C) 2014-2023 University of Oregon, All Rights Reserved</p>
+      <p>(C) 2014-2024 University of Oregon, All Rights Reserved</p>
   </div>
 
   Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.

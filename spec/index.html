@@ -198,7 +198,7 @@
             <div class="section" itemprop="articleBody">
               
                 <h1 id="apex_specification_draft">APEX Specification <em>(DRAFT)</em><a class="headerlink" href="#apex_specification_draft" title="Permanent link">&para;</a></h1>
-<p>*...to be fully implemented in a future release.  While the following 
+<p>*...to be fully implemented in a future release.  While the following
 specification is slightly different than the current implementation,
 the differences are minor. When in doubt, the current implementation
 is documented by Doxygen, and is available here:
@@ -207,30 +207,28 @@ is documented by Doxygen, and is available here:
 *</p>
 <h2 id="read_me_first">READ ME FIRST!<a class="headerlink" href="#read_me_first" title="Permanent link">&para;</a></h2>
 <p>The API specification is provided for users who wish to instrument their
-own applications, or who wish to instrument a runtime. Please note that 
-the <a href="../usage/#hpx-louisiana-state-university">HPX</a>,
-<a href="../usage/#hpx-5-indiana-university">HPX-5</a> and
-<a href="../usecases/#openmp-example">OpenMP</a> (using the LLVM OpenMP implementation
-with draft OMPT support) runtimes have already been instrumented,
+own applications, or who wish to instrument a runtime. Please note that
+most runtimes have already been instrumented (or provide callbacks),
 and that users typically do not have to make any calls to the APEX API, other
-than to add application level timers or to write custom policy rules.</p>
+than to add application level timers or to write custom policy rules.
+If that is you, please see the tutorial with lots of up-to-date examples, <a href="https://github.com/khuck/apex-tutorial">https://github.com/khuck/apex-tutorial</a>.</p>
 <h2 id="introduction">Introduction<a class="headerlink" href="#introduction" title="Permanent link">&para;</a></h2>
 <p>This page contains the API specification for APEX. The API specification
 provides a high-level overview of the API and its functionality. The
 implementation has Doxygen comments inserted, so for full implementation
-details, please see the <a href="../refman/">API Reference Manual</a>.  </p>
+details, please see the <a href="../refman/">API Reference Manual</a>.</p>
 <h3 id="a_note_about_c">A note about C++<a class="headerlink" href="#a_note_about_c" title="Permanent link">&para;</a></h3>
 <p>The following specification contains both the C and the the C++ API. Typically,
 the C++ names use overloading for different argument lists, and will replace
-the <code>apex_</code> prefix with the <code>apex::</code> namespace. Because both APIs return 
-handles to internal APEX objects, the type definitions of these objects 
+the <code>apex_</code> prefix with the <code>apex::</code> namespace. Because both APIs return
+handles to internal APEX objects, the type definitions of these objects
 use the C naming convention.</p>
 <p>In addition to the simple API presented below, the C++ API includes scoped
 timers and threads.  See <a href="http://www.nic.uoregon.edu/~khuck/apex_docs/doc/html/namespaceapex.html">http://www.nic.uoregon.edu/~khuck/apex_docs/doc/html/namespaceapex.html</a>
 for details.</p>
 <h3 id="terminology">Terminology<a class="headerlink" href="#terminology" title="Permanent link">&para;</a></h3>
 <p>Unfortunately, many terms in Computer Science are overloaded. The following definitions are in use in this document:</p>
-<p><strong>Thread</strong>: an operating system (OS) thread of execution. For example, Posix threads (pthreads).  </p>
+<p><strong>Thread</strong>: an operating system (OS) thread of execution. For example, Posix threads (pthreads).</p>
 <p><strong>Task</strong>: a scheduled unit of work, such as an OpenMP task or an HPX thread. APEX timers are typically used to measure tasks.</p>
 <h3 id="c_example">C example<a class="headerlink" href="#c_example" title="Permanent link">&para;</a></h3>
 <p>The following is a very small C program that uses the APEX API. For more
@@ -388,8 +386,8 @@ typedef enum _event_type {
   APEX_UNUSED_EVENT = APEX_MAX_EVENTS // can't have more custom events than this
 } apex_event_type;
 
-/** 
- * Typedef for enumerating the OS thread states. 
+/**
+ * Typedef for enumerating the OS thread states.
  */
 typedef enum _thread_state {
     APEX_IDLE,          /*!&lt; Thread is idle */
@@ -425,7 +423,7 @@ typedef enum {APEX_SIMPLE_HYSTERESIS,      /*!&lt; optimize using sliding window
 } apex_optimization_method_t;
 
 /** The type of a profiler object
- * 
+ *
  */
 typedef enum _profile_type {
   APEX_TIMER,        /*!&lt; This profile is a instrumented timer */
@@ -435,8 +433,8 @@ typedef enum _profile_type {
 
 </code></pre>
 <h2 id="data_structures_and_classes">Data structures and classes<a class="headerlink" href="#data_structures_and_classes" title="Permanent link">&para;</a></h2>
-<pre><code class="language-c">/** 
- * The APEX context when an event occurs. This context will be passed to 
+<pre><code class="language-c">/**
+ * The APEX context when an event occurs. This context will be passed to
  * any policies registered for this event.
  */
 typedef struct _context {
@@ -449,7 +447,7 @@ typedef struct _context {
 } apex_context;
 
 /**
- * The profile object for a timer in APEX. 
+ * The profile object for a timer in APEX.
  * Returned by the apex_get_profile() call.
  */
 typedef struct _profile {
@@ -490,7 +488,7 @@ typedef struct _apex_tuning_request {
 <h2 id="environment_variables">Environment variables<a class="headerlink" href="#environment_variables" title="Permanent link">&para;</a></h2>
 <p>Please see the <a href="../environment/">environment variables</a> section of the
 documentation. Please note that all environment variables can also be
-queried or set at runtime with associated API calls. For example, the 
+queried or set at runtime with associated API calls. For example, the
 APEX_CSV_OUTPUT variable can also be set/queried with:</p>
 <pre><code class="language-c">void apex_set_csv_output (int);
 int apex_get_csv_output (void);
@@ -519,7 +517,7 @@ void apex_finalize (void);
 profile, etc.) and terminate all APEX helper threads. No memory is freed at
 this point - that is done by the <code>apex_cleanup()</code> call.  The reason for this is
 that applications may want to perform reporting after finalization, so the
-performance state of the application should still exist. </p>
+performance state of the application should still exist.</p>
 <h3 id="cleanup">Cleanup<a class="headerlink" href="#cleanup" title="Permanent link">&para;</a></h3>
 <pre><code class="language-c++">/* C++ */
 void apex::cleanup (void);
@@ -527,7 +525,7 @@ void apex::cleanup (void);
 <pre><code class="language-c">/* C */
 void apex_cleanup (void);
 </code></pre>
-<p>APEX cleanup frees all memory associated with APEX. </p>
+<p>APEX cleanup frees all memory associated with APEX.</p>
 <h3 id="setting_node_id">Setting node ID<a class="headerlink" href="#setting_node_id" title="Permanent link">&para;</a></h3>
 <pre><code class="language-c++">/* C++ */
 void apex::set_node_id (const uint64_t id);
@@ -536,7 +534,7 @@ void apex::set_node_id (const uint64_t id);
 void apex_set_node_id (const uint64_t id);
 </code></pre>
 <p>When running in distributed environments, assign the specified id number as the
-APEX node ID. This can be an MPI rank or an HPX locality, for example. </p>
+APEX node ID. This can be an MPI rank or an HPX locality, for example.</p>
 <h3 id="registering_threads">Registering threads<a class="headerlink" href="#registering_threads" title="Permanent link">&para;</a></h3>
 <pre><code class="language-c++">/* C++ */
 void apex::register_thread (const std::string &amp;name);
@@ -556,7 +554,7 @@ void apex_exit_thread (void);
 </code></pre>
 <p>Before any thread other than the main thread of execution exits, notify APEX
 that the thread is exiting. The main thread should not call this function, but
-apex_finalize instead. Exiting the thread will trigger an event in APEX, so 
+apex_finalize instead. Exiting the thread will trigger an event in APEX, so
 any policies associated with a thread exit will be executed.</p>
 <h3 id="getting_the_apex_version">Getting the APEX version<a class="headerlink" href="#getting_the_apex_version" title="Permanent link">&para;</a></h3>
 <pre><code class="language-c++">/* C++ */
@@ -627,7 +625,7 @@ containing an identifier that APEX uses to stop the timer.  The profiler is
 flagged as <em>NOT a new task</em>, so that when it is stopped by apex_stop the call
 count for this particular timer will not be incremented. Apex_resume is intended
 for situations when the completion state of a task is NOT known when control
-is returned to the task scheduler, but is known when an interrupted task is 
+is returned to the task scheduler, but is known when an interrupted task is
 resumed.</p>
 <h3 id="creating_a_new_task_dependency">Creating a new task dependency<a class="headerlink" href="#creating_a_new_task_dependency" title="Permanent link">&para;</a></h3>
 <pre><code class="language-c++">/* C++ */
@@ -771,7 +769,7 @@ void apex_set_thread_cap (int new_cap);
 <h2 id="event-based_api_ocr_legion_support_-_tbd">Event-based API (OCR, Legion support - <em>TBD</em>)<a class="headerlink" href="#event-based_api_ocr_legion_support_-_tbd" title="Permanent link">&para;</a></h2>
 <p>The OCR and Legion runtimes teams have met to propose a common API for
 measuring asynchronous task-based runtimes.
-For more details, see <a href="https://github.com/khuck/xpress-apex/issues/37">https://github.com/khuck/xpress-apex/issues/37</a>.</p>
+For more details, see <a href="https://github.com/UO-OACISS/apex/issues/37">https://github.com/UO-OACISS/apex/issues/37</a>.</p>
 <pre><code class="language-c++">/* C++ */
 apex::task_create (uint64_t parent_id)
 apex::dependency_reached (uint64_t event_id, uint64_t data_id, uint64_t task_id, uint64_t parent_id, ?)
@@ -804,7 +802,7 @@ apex::event_destroy (uint64_t event_id)
 
   <div role="contentinfo">
     <!-- Copyright etc -->
-      <p>(C) 2014-2023 University of Oregon, All Rights Reserved</p>
+      <p>(C) 2014-2024 University of Oregon, All Rights Reserved</p>
   </div>
 
   Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.

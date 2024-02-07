@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="description" content="APEX - Autonomic Performance Environment for eXascale v2.6.3" /><meta name="author" content="Kevin Huck (khuck@cs.uoregon.edu)" /><link rel="canonical" href="http://UO-OACISS.github.io/apex/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="description" content="APEX - Autonomic Performance Environment for eXascale v2.6.4" /><meta name="author" content="Kevin Huck (khuck@cs.uoregon.edu)" /><link rel="canonical" href="http://UO-OACISS.github.io/apex/" />
       <link rel="shortcut icon" href="img/favicon.ico" />
     <title>APEX</title>
     <link rel="stylesheet" href="css/theme.css" />
@@ -45,6 +45,8 @@
     <li class="toctree-l2"><a class="reference internal" href="#introspection">Introspection</a>
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#runtime_adaptation">Runtime Adaptation</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#citing_apex">Citing APEX</a>
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#references_apex-related_publications">References &amp; APEX-related Publications</a>
     </li>
@@ -108,7 +110,7 @@
             <div class="section" itemprop="articleBody">
               
                 <p><img alt="image" src="img/logo-cropped.png" title="APEX" /></p>
-<!--![image](https://github.com/khuck/xpress-apex/raw/master/doc/logo-cropped.png "APEX") -->
+<!--![image](https://github.com/UO-OACISS/apex/raw/master/doc/logo-cropped.png "APEX") -->
 
 <h1 id="apex_autonomic_performance_environment_for_exascale">APEX: Autonomic Performance Environment for eXascale<a class="headerlink" href="#apex_autonomic_performance_environment_for_exascale" title="Permanent link">&para;</a></h1>
 <p>One of the key components of the US Department of Energy funded <em>XPRESS</em> project was a new approach to performance observation, measurement, analysis and runtime decision making in order to optimize performance. The particular challenges of accurately measuring the performance characteristics of ParalleX <a href="#fn1">[1]</a> (e.g. HPX) applications (as well as other asynchronous multitasking runtime architectures) requires a new approach to parallel performance observation. The traditional model of multiple operating system processes and threads observing themselves in a first-person manner while writing out performance profiles or traces for offline analysis will not adequately capture the full execution context, nor provide opportunities for runtime adaptation. The approach taken in the completed XPRESS project was a new performance measurement system, called (Autonomic Performance Environment for eXascale). APEX includes methods for information sharing between the layers of the software stack, from the hardware through operating and runtime systems, all the way to domain specific or legacy applications. The performance measurement components incorporate relevant information across stack layers, with merging of third-person performance observation of node-level and global resources, remote processes, and both operating and runtime system threads.  For a complete design description of APEX, see the publication "APEX: An Autonomic Performance Environment for eXascale" <a href="#References">[3]</a>.  Since it's original project, APEX has been extended to support many popular runtime systems <a href="#References">[11]</a>.</p>
@@ -116,7 +118,9 @@
 <h2 id="introspection">Introspection<a class="headerlink" href="#introspection" title="Permanent link">&para;</a></h2>
 <p>APEX provides an API for measuring actions within a runtime. The API includes methods for timer start/stop, as well as sampled counter values. APEX is designed to be integrated into a runtime, library and/or application and provide performance introspection for the purpose of runtime adaptation. While APEX <em>can</em> provide rudimentary post-mortem performance analysis measurement, there are many other performance measurement tools that perform that task more robustly (such as TAU <a href="http://tau.uoregon.edu">http://tau.uoregon.edu</a>).  That said, APEX includes an event listener that integrates with the TAU measurement system, so APEX events can be forwarded to TAU and collected in a TAU profile and/or trace to be used for post-mortem performance anlaysis.</p>
 <h2 id="runtime_adaptation">Runtime Adaptation<a class="headerlink" href="#runtime_adaptation" title="Permanent link">&para;</a></h2>
-<p>APEX provides a mechanism for dynamic runtime behavior, either for autotuning or adaptation to changing environment.  The infrastruture that provides the adaptation is the <em>Policy Engine</em>, which executes policies either periodically or triggered by events. The policies have access to the performance state as observed by the APEX introspection API. APEX is integrated with Active Harmony <a href="http://www.dyninst.org/harmony">http://www.dyninst.org/harmony</a> to provide dynamic search for autotuning.</p>
+<p>APEX provides a mechanism for dynamic runtime behavior, either for autotuning or adaptation to changing environment.  The infrastruture that provides the adaptation is the <em>Policy Engine</em>, which executes policies either periodically or triggered by events. The policies have access to the performance state as observed by the APEX introspection API. APEX has several built in search strategies, including exhaustive, random, simulated annealing, and hill climibing. APEX is also integrated with Active Harmony <a href="http://www.dyninst.org/harmony">http://www.dyninst.org/harmony</a> to provide dynamic search using the Nelder Mead algorithm.</p>
+<h2 id="citing_apex">Citing APEX<a class="headerlink" href="#citing_apex" title="Permanent link">&para;</a></h2>
+<p>Please use the following citation: <a href="https://doi.org/10.1109/ESPM256814.2022.00008">https://doi.org/10.1109/ESPM256814.2022.00008</a></p>
 <h2 id="references_apex-related_publications">References &amp; APEX-related Publications<a class="headerlink" href="#references_apex-related_publications" title="Permanent link">&para;</a></h2>
 <ol>
 <li><a name="fn1"></a> Thomas Sterling, Daniel Kogler, Matthew Anderson, and Maciej Brodowicz. "SLOWER: A performance model for Exascale computing". <em>Supercomputing Frontiers and Innovations</em>, 1:42–57, September 2014. <a href="http://superfri.org/superfri/article/view/10">http://superfri.org/superfri/article/view/10</a></li>
@@ -142,7 +146,7 @@
 
   <div role="contentinfo">
     <!-- Copyright etc -->
-      <p>(C) 2014-2023 University of Oregon, All Rights Reserved</p>
+      <p>(C) 2014-2024 University of Oregon, All Rights Reserved</p>
   </div>
 
   Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
@@ -184,5 +188,5 @@
 
 <!--
 MkDocs version : 1.5.3
-Build Date UTC : 2024-02-06 22:24:11.179950+00:00
+Build Date UTC : 2024-02-07 00:12:00.173010+00:00
 -->

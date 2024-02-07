@@ -115,7 +115,8 @@ current execution directory.  The format of the configuration file is:</p>
 APEX_VARIABLE2=value
 ...
 </code></pre>
-<p>To generate a default APEX configuration file in the current working directory, run the <code>./install/bin/apex_make_default_config</code> program.</p>
+<p>To generate a default APEX configuration file in the current working directory, run the <code>./install/bin/apex_make_default_config</code> program.
+To get a list of all known environment variables, run the <code>./install/bin/apex_environment_help</code> program.</p>
 <table>
 <thead>
 <tr>
@@ -410,39 +411,72 @@ APEX_VARIABLE2=value
 apex_exec &lt;APEX options&gt; executable &lt;executable options&gt;
 
 where APEX options are zero or more of:
-    --apex:help            show this usage message
-    --apex:debug           run with APEX in debugger
-    --apex:verbose         enable verbose list of APEX environment variables
-    --apex:screen          enable screen text output (on by default)
-    --apex:quiet           disable screen text output
-    --apex:csv             enable csv text output
-    --apex:tau             enable tau profile output
-    --apex:taskgraph       enable taskgraph output
-                           (graphviz required for post-processing)
-    --apex:otf2            enable OTF2 trace output
-    --apex:otf2path        specify location of OTF2 archive
-                           (default: ./OTF2_archive)
-    --apex:otf2name        specify name of OTF2 file (default: APEX)
-    --apex:gtrace          enable Google Trace Events output
-    --apex:scatter         enable scatterplot output
-                           (python required for post-processing)
-    --apex:openacc         enable OpenACC support
-    --apex:kokkos          enable Kokkos support
-    --apex:raja            enable RAJA support
-    --apex:pthread         enable pthread wrapper support
-    --apex:untied          enable tasks to migrate cores/OS threads
-                           during execution (not compatible with trace output)
-    --apex:cuda_counters   enable CUDA/CUPTI counter support
-    --apex:cuda_driver     enable CUDA driver API callbacks
-    --apex:cuda_details    enable per-kernel statistics where available
-    --apex:cpuinfo         enable sampling of /proc/cpuinfo (Linux only)
-    --apex:meminfo         enable sampling of /proc/meminfo (Linux only)
-    --apex:net             enable sampling of /proc/net/dev (Linux only)
-    --apex:status          enable sampling of /proc/self/status (Linux only)
-    --apex:io              enable sampling of /proc/self/io (Linux only)
-    --apex:period          specify frequency of OS/HW sampling
-    --apex:ompt_simple     only enable OpenMP Tools required events
-    --apex:ompt_details    enable all OpenMP Tools events
+    --apex:help                   show this usage message
+    --apex:debug                  run with APEX in debugger
+    --apex:verbose                enable verbose list of APEX environment variables
+    --apex:screen                 enable screen text output (on by default)
+    --apex:screen-detail          enable detailed text output (off by default)
+    --apex:quiet                  disable screen text output
+    --apex:final-output-only      only output performance data at exit (ignore intermediate dump calls)
+    --apex:csv                    enable csv text output
+    --apex:tau                    enable tau profile output
+    --apex:taskgraph              enable taskgraph output
+                                  (graphviz required for post-processing)
+    --apex:tasktree               enable tasktree output
+                                  (python3 with Pandas required for post-processing)
+    --apex:hatchet                enable Hatchet tasktree output
+                                  (python3 with Hatchet required for post-processing)
+    --apex:concur                 Periodically sample thread activity (default: off)
+    --apex:concur-max             Max timers to track with concurrency activity (default: 5)
+    --apex:concur-period &lt;value&gt;  Frequency of concurrency sampling, in microseconds
+                                  (default: 1000000)
+    --apex:throttle               throttle short-lived timers to reduce overhead (default: off)
+    --apex:throttle-calls &lt;value&gt; minimum number of calls before throttling (default: 1000)
+    --apex:throttle-per &lt;value&gt;   minimum timer duration in microseconds (default: 10)
+    --apex:otf2                   enable OTF2 trace output (requries --apex:mpi with MPI configurations)
+    --apex:otf2path &lt;value&gt;       specify location of OTF2 archive
+                                  (default: ./OTF2_archive)
+    --apex:otf2name &lt;value&gt;       specify name of OTF2 file (default: APEX)
+    --apex:gtrace                 enable Google Trace Events output (deprecated)
+    --apex:pftrace                enable Perfetto Trace output
+    --apex:scatter                enable scatterplot output
+                                  (python required for post-processing)
+    --apex:openacc                enable OpenACC support
+    --apex:kokkos                 enable Kokkos support
+    --apex:kokkos-tuning          enable Kokkos runtime autotuning support
+    --apex:kokkos-fence           enable Kokkos fences for async kernels
+    --apex:raja                   enable RAJA support
+    --apex:pthread                enable pthread wrapper support
+    --apex:gpu-memory             enable GPU memory wrapper support
+    --apex:cpu-memory             enable CPU memory wrapper support
+    --apex:untied                 enable tasks to migrate cores/OS threads
+                                  during execution (not compatible with trace output)
+    --apex:cuda                   enable CUDA/CUPTI measurement (default: off)
+    --apex:cuda-counters          enable CUDA/CUPTI counter support (default: off)
+    --apex:cuda-driver            enable CUDA driver API callbacks (default: off)
+    --apex:cuda-details           enable per-kernel statistics where available (default: off)
+    --apex:hip                    enable HIP/ROCTracer measurement (default: off)
+    --apex:hip-metrics            enable HIP/ROCProfiler metric support (default: off)
+    --apex:hip-counters           enable HIP/ROCTracer counter support (default: off)
+    --apex:hip-driver             enable HIP/ROCTracer KSA driver API callbacks (default: off)
+    --apex:hip-details            enable per-kernel statistics where available (default: off)
+    --apex:monitor-gpu            enable GPU monitoring services (CUDA NVML, ROCm SMI)
+    --apex:level0                 enable OneAPI Level0 measurement (default: off)
+    --apex:cpuinfo                enable sampling of /proc/cpuinfo (Linux only)
+    --apex:meminfo                enable sampling of /proc/meminfo (Linux only)
+    --apex:net                    enable sampling of /proc/net/dev (Linux only)
+    --apex:status                 enable sampling of /proc/self/status (Linux only)
+    --apex:io                     enable sampling of /proc/self/io (Linux only)
+    --apex:period &lt;value&gt;         specify frequency of OS/HW sampling
+    --apex:mpi                    enable MPI profiling (required for OTF2 support with MPI configurations)
+    --apex:ompt                   enable OpenMP profiling (requires runtime support)
+    --apex:ompt-simple            only enable OpenMP Tools required events
+    --apex:ompt-details           enable all OpenMP Tools events
+    --apex:source                 resolve function, file and line info for address lookups with binutils
+                                  (default: function only)
+    --apex:preload &lt;lib&gt;          extra libraries to load with LD_PRELOAD _before_ APEX libraries
+                                  (LD_PRELOAD value is added _after_ APEX libraries)
+    --apex:postprocess            run post-process scripts (graphviz, python) on output data after exit
 </code></pre>
               
             </div>
@@ -456,7 +490,7 @@ where APEX options are zero or more of:
 
   <div role="contentinfo">
     <!-- Copyright etc -->
-      <p>(C) 2014-2023 University of Oregon, All Rights Reserved</p>
+      <p>(C) 2014-2024 University of Oregon, All Rights Reserved</p>
   </div>
 
   Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
