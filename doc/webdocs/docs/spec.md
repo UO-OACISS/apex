@@ -1,6 +1,6 @@
 # APEX Specification *(DRAFT)*
 
-*...to be fully implemented in a future release.  While the following 
+*...to be fully implemented in a future release.  While the following
 specification is slightly different than the current implementation,
 the differences are minor. When in doubt, the current implementation
 is documented by Doxygen, and is available here:
@@ -11,27 +11,25 @@ is documented by Doxygen, and is available here:
 ## READ ME FIRST!
 
 The API specification is provided for users who wish to instrument their
-own applications, or who wish to instrument a runtime. Please note that 
-the [HPX](usage.md#hpx-louisiana-state-university),
-[HPX-5](usage.md#hpx-5-indiana-university) and
-[OpenMP](usecases.md#openmp-example) (using the LLVM OpenMP implementation
-with draft OMPT support) runtimes have already been instrumented,
+own applications, or who wish to instrument a runtime. Please note that
+most runtimes have already been instrumented (or provide callbacks),
 and that users typically do not have to make any calls to the APEX API, other
 than to add application level timers or to write custom policy rules.
+If that is you, please see the tutorial with lots of up-to-date examples, <https://github.com/khuck/apex-tutorial>.
 
 ## Introduction
 
 This page contains the API specification for APEX. The API specification
 provides a high-level overview of the API and its functionality. The
 implementation has Doxygen comments inserted, so for full implementation
-details, please see the [API Reference Manual](refman.md).  
+details, please see the [API Reference Manual](refman.md).
 
 ### A note about C++
 
 The following specification contains both the C and the the C++ API. Typically,
 the C++ names use overloading for different argument lists, and will replace
-the `apex_` prefix with the `apex::` namespace. Because both APIs return 
-handles to internal APEX objects, the type definitions of these objects 
+the `apex_` prefix with the `apex::` namespace. Because both APIs return
+handles to internal APEX objects, the type definitions of these objects
 use the C naming convention.
 
 In addition to the simple API presented below, the C++ API includes scoped
@@ -42,7 +40,7 @@ for details.
 
 Unfortunately, many terms in Computer Science are overloaded. The following definitions are in use in this document:
 
-**Thread**: an operating system (OS) thread of execution. For example, Posix threads (pthreads).  
+**Thread**: an operating system (OS) thread of execution. For example, Posix threads (pthreads).
 
 **Task**: a scheduled unit of work, such as an OpenMP task or an HPX thread. APEX timers are typically used to measure tasks.
 
@@ -219,8 +217,8 @@ typedef enum _event_type {
   APEX_UNUSED_EVENT = APEX_MAX_EVENTS // can't have more custom events than this
 } apex_event_type;
 
-/** 
- * Typedef for enumerating the OS thread states. 
+/**
+ * Typedef for enumerating the OS thread states.
  */
 typedef enum _thread_state {
     APEX_IDLE,          /*!< Thread is idle */
@@ -256,7 +254,7 @@ typedef enum {APEX_SIMPLE_HYSTERESIS,      /*!< optimize using sliding window of
 } apex_optimization_method_t;
 
 /** The type of a profiler object
- * 
+ *
  */
 typedef enum _profile_type {
   APEX_TIMER,        /*!< This profile is a instrumented timer */
@@ -269,8 +267,8 @@ typedef enum _profile_type {
 ## Data structures and classes
 
 ``` c
-/** 
- * The APEX context when an event occurs. This context will be passed to 
+/**
+ * The APEX context when an event occurs. This context will be passed to
  * any policies registered for this event.
  */
 typedef struct _context {
@@ -283,7 +281,7 @@ typedef struct _context {
 } apex_context;
 
 /**
- * The profile object for a timer in APEX. 
+ * The profile object for a timer in APEX.
  * Returned by the apex_get_profile() call.
  */
 typedef struct _profile {
@@ -326,7 +324,7 @@ typedef struct _apex_tuning_request {
 
 Please see the [environment variables](environment.md) section of the
 documentation. Please note that all environment variables can also be
-queried or set at runtime with associated API calls. For example, the 
+queried or set at runtime with associated API calls. For example, the
 APEX_CSV_OUTPUT variable can also be set/queried with:
 
 ``` c
@@ -368,7 +366,7 @@ APEX finalization is required to format any desired output (screen, csv,
 profile, etc.) and terminate all APEX helper threads. No memory is freed at
 this point - that is done by the `apex_cleanup()` call.  The reason for this is
 that applications may want to perform reporting after finalization, so the
-performance state of the application should still exist. 
+performance state of the application should still exist.
 
 ### Cleanup
 
@@ -381,7 +379,7 @@ void apex::cleanup (void);
 void apex_cleanup (void);
 ```
 
-APEX cleanup frees all memory associated with APEX. 
+APEX cleanup frees all memory associated with APEX.
 
 ### Setting node ID
 
@@ -395,7 +393,7 @@ void apex_set_node_id (const uint64_t id);
 ```
 
 When running in distributed environments, assign the specified id number as the
-APEX node ID. This can be an MPI rank or an HPX locality, for example. 
+APEX node ID. This can be an MPI rank or an HPX locality, for example.
 
 ### Registering threads
 
@@ -425,7 +423,7 @@ void apex_exit_thread (void);
 
 Before any thread other than the main thread of execution exits, notify APEX
 that the thread is exiting. The main thread should not call this function, but
-apex_finalize instead. Exiting the thread will trigger an event in APEX, so 
+apex_finalize instead. Exiting the thread will trigger an event in APEX, so
 any policies associated with a thread exit will be executed.
 
 ### Getting the APEX version
@@ -527,7 +525,7 @@ containing an identifier that APEX uses to stop the timer.  The profiler is
 flagged as *NOT a new task*, so that when it is stopped by apex_stop the call
 count for this particular timer will not be incremented. Apex_resume is intended
 for situations when the completion state of a task is NOT known when control
-is returned to the task scheduler, but is known when an interrupted task is 
+is returned to the task scheduler, but is known when an interrupted task is
 resumed.
 
 ### Creating a new task dependency
@@ -636,7 +634,7 @@ freed.
 /* C++ */
 apex_event_type apex::register_custom_event (const std::string & name);
 ```
-``` c 
+``` c
 /* C */
 apex_event_type apex_register_custom_event (const char * name);
 ```
@@ -660,7 +658,7 @@ event. Policy functions will be passed the custom event name in the event
 context.  The event data pointer is to be used to pass memory to the policy
 function from the code that triggered the event.
 
-### Request a profile from APEX 
+### Request a profile from APEX
 
 ``` c++
 /* C++ */
@@ -740,7 +738,7 @@ This function will set the current thread cap based on an external throttling po
 
 The OCR and Legion runtimes teams have met to propose a common API for
 measuring asynchronous task-based runtimes.
-For more details, see <https://github.com/khuck/xpress-apex/issues/37>.
+For more details, see <https://github.com/UO-OACISS/apex/issues/37>.
 
 ``` c++
 /* C++ */

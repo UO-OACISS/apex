@@ -4,12 +4,12 @@ All examples on this page assume you have downloaded, configured and built APEX.
 
 # Simple example
 
-In the APEX installation directory, there is a bin directory. In the bin directory are a number of examples, one of which is a simple matrix multiplication example, *matmult*. 
+In the APEX installation directory, there is a bin directory. In the bin directory are a number of examples, one of which is a simple matrix multiplication example, *matmult*.
 
 To run the matmult example, simply type 'matmult'.  The output should be something like this:
 
 ```bash
-khuck@ktau:~/src/xpress-apex/install/bin$ ./matmult
+khuck@ktau:~/src/apex/install/bin$ ./matmult
 Spawned thread 1...
 Spawned thread 2...
 Spawned thread 3...
@@ -19,8 +19,8 @@ Done.
 Not very interesting, eh? To see what APEX measured, set the APEX_SCREEN_OUTPUT environment variable to 1, and run it again:
 
 ```bash
-khuck@ktau:~/src/xpress-apex/install/bin$ export APEX_SCREEN_OUTPUT=1
-khuck@ktau:~/src/xpress-apex/install/bin$ ./matmult
+khuck@ktau:~/src/apex/install/bin$ export APEX_SCREEN_OUTPUT=1
+khuck@ktau:~/src/apex/install/bin$ ./matmult
 v0.1-e050e17-master
 Built on: 14:38:56 Dec 22 2015
 C++ Language Standard version : 201402
@@ -45,7 +45,7 @@ APEX_THROTTLE_ENERGY : 0
 APEX_THROTTLING_MAX_WATTS : 300
 APEX_THROTTLING_MIN_WATTS : 150
 APEX_PTHREAD_WRAPPER_STACK_SIZE : 0
-APEX_PAPI_METRICS : 
+APEX_PAPI_METRICS :
 Spawned thread 1...
 Spawned thread 2...
 Spawned thread 3...
@@ -55,7 +55,7 @@ Elapsed time: 0.966516
 Cores detected: 8
 Worker Threads observed: 4
 Available CPU time: 3.86607
-Action                         :  #calls  |  minimum |    mean  |  maximum |   total  |  stddev  |  % total  
+Action                         :  #calls  |  minimum |    mean  |  maximum |   total  |  stddev  |  % total
 ------------------------------------------------------------------------------------------------------------
                 allocateMatrix :       12    --n/a--   1.94e-02    --n/a--   2.33e-01    --n/a--      6.014
                        compute :        4    --n/a--   6.89e-01    --n/a--   2.76e+00    --n/a--     71.279
@@ -64,7 +64,7 @@ Action                         :  #calls  |  minimum |    mean  |  maximum |   t
                     freeMatrix :       12    --n/a--   2.36e-04    --n/a--   2.83e-03    --n/a--      0.073
                     initialize :       12    --n/a--   3.56e-03    --n/a--   4.27e-02    --n/a--      1.104
                           main :        1    --n/a--   9.66e-01    --n/a--   9.66e-01    --n/a--     24.983
-                     APEX Idle :  --n/a--    --n/a--    --n/a--    --n/a--    --n/a--    --n/a--    --n/a--   
+                     APEX Idle :  --n/a--    --n/a--    --n/a--    --n/a--    --n/a--    --n/a--    --n/a--
 ------------------------------------------------------------------------------------------------------------
 ```
 
@@ -75,7 +75,7 @@ In this output, we see the status of all of the environment variables (as read b
 In the APEX installation directory, there is a bin directory. In the bin directory are a number of examples, one of which is the OpenMP implementation of LULESH (for details, [see the LLNL explanation of LULESH](https://codesign.llnl.gov/lulesh.php)).  When APEX is configured with OpenMP OMPT support (using the -DBUILD_OMPT=TRUE or equivalent CMake configuration settings) it will measure OpenMP events. Executing the LULESH example (with APEX_SCREEN_OUTPUT=1) gives the following output:
 
 ```bash
-khuck@ktau:~/src/xpress-apex$ ./install/bin/lulesh_OpenMP_2.0 
+khuck@ktau:~/src/apex$ ./install/bin/lulesh_OpenMP_2.0
 v0.1-e050e17-master
 Built on: 14:38:56 Dec 22 2015
 C++ Language Standard version : 201402
@@ -100,7 +100,7 @@ APEX_THROTTLE_ENERGY : 0
 APEX_THROTTLING_MAX_WATTS : 300
 APEX_THROTTLING_MIN_WATTS : 150
 APEX_PTHREAD_WRAPPER_STACK_SIZE : 0
-APEX_PAPI_METRICS : 
+APEX_PAPI_METRICS :
 Running problem size 30^3 per domain until completion
 Num processors: 1
 Registering OMPT events...done.
@@ -137,11 +137,11 @@ APEX: disabling lightweight timer OpenMP_BARRIER: CalcLagrang...
 APEX: disabling lightweight timer OpenMP_BARRIER: UpdateVolum...
 APEX: disabling lightweight timer OpenMP_BARRIER: ApplyAccele...
 APEX: disabling lightweight timer OpenMP_BARRIER: CalcForceFo...
-Run completed:  
-   Problem size        =  30 
-   MPI tasks           =  1 
-   Iteration count     =  932 
-   Final Origin Energy = 2.025075e+05 
+Run completed:
+   Problem size        =  30
+   MPI tasks           =  1
+   Iteration count     =  932
+   Final Origin Energy = 2.025075e+05
    Testing Plane 0 of Energy Array on rank 0:
         MaxAbsDiff   = 6.548362e-11
         TotalAbsDiff = 8.615093e-10
@@ -157,17 +157,17 @@ Elapsed time: 55.0085
 Cores detected: 8
 Worker Threads observed: 8
 Available CPU time: 440.068
-Action                         :  #calls  |  minimum |    mean  |  maximum |   total  |  stddev  |  % total  
+Action                         :  #calls  |  minimum |    mean  |  maximum |   total  |  stddev  |  % total
 ------------------------------------------------------------------------------------------------------------
-                   CPU Guest % :       54      0.000      0.000      0.000      0.000      0.000    --n/a-- 
-                CPU I/O Wait % :       54      0.000      0.040      0.714      2.143      0.133    --n/a-- 
-                     CPU IRQ % :       54      0.000      0.000      0.000      0.000      0.000    --n/a-- 
-                    CPU Idle % :       54      0.857      1.384      4.857     74.714      0.763    --n/a-- 
-                    CPU Nice % :       54      0.000      0.000      0.000      0.000      0.000    --n/a-- 
-                   CPU Steal % :       54      0.000      0.000      0.000      0.000      0.000    --n/a-- 
-                  CPU System % :       54     15.286     23.339     26.714   1260.286      2.301    --n/a-- 
-                    CPU User % :       54     84.143     88.373     97.143   4772.143      2.268    --n/a-- 
-                CPU soft IRQ % :       54      0.000      0.026      0.286      1.429      0.068    --n/a-- 
+                   CPU Guest % :       54      0.000      0.000      0.000      0.000      0.000    --n/a--
+                CPU I/O Wait % :       54      0.000      0.040      0.714      2.143      0.133    --n/a--
+                     CPU IRQ % :       54      0.000      0.000      0.000      0.000      0.000    --n/a--
+                    CPU Idle % :       54      0.857      1.384      4.857     74.714      0.763    --n/a--
+                    CPU Nice % :       54      0.000      0.000      0.000      0.000      0.000    --n/a--
+                   CPU Steal % :       54      0.000      0.000      0.000      0.000      0.000    --n/a--
+                  CPU System % :       54     15.286     23.339     26.714   1260.286      2.301    --n/a--
+                    CPU User % :       54     84.143     88.373     97.143   4772.143      2.268    --n/a--
+                CPU soft IRQ % :       54      0.000      0.026      0.286      1.429      0.068    --n/a--
 OpenMP_BARRIER: ApplyAccele... : DISABLED (high frequency, short duration)
 OpenMP_BARRIER: ApplyMateri... :    14912    --n/a--   3.96e-05    --n/a--   5.91e-01    --n/a--      0.134
 OpenMP_BARRIER: CalcAcceler... : DISABLED (high frequency, short duration)
@@ -239,13 +239,13 @@ There are several lightweight events that APEX elects to ignore. The other event
 When APEX is configured with PAPI support (using -DPAPI_ROOT=/path/to/papi and -DUSE_PAPI=TRUE), hardware counter data can also be collected by APEX. To specify hardware counters of interest, use the APEX_PAPI_METRICS environment variable:
 
 ```bash
-khuck@ktau:~/src/xpress-apex$ export APEX_PAPI_METRICS="PAPI_TOT_INS PAPI_L2_TCM"
+khuck@ktau:~/src/apex$ export APEX_PAPI_METRICS="PAPI_TOT_INS PAPI_L2_TCM"
 ```
 
 ...and then execute as normal:
 
 ```bash
-khuck@ktau:~/src/xpress-apex$ ./install/bin/matmult 
+khuck@ktau:~/src/apex$ ./install/bin/matmult
 v0.1-e050e17-master
 Built on: 14:38:56 Dec 22 2015
 C++ Language Standard version : 201402
@@ -289,7 +289,7 @@ Action                         :  #calls  |  minimum |    mean  |  maximum |   t
                     freeMatrix :       12    --n/a--   2.07e-04    --n/a--   2.49e-03    --n/a--      0.065   1.13e+06   6.30e+03
                     initialize :       12    --n/a--   3.58e-03    --n/a--   4.29e-02    --n/a--      1.124   2.21e+07   3.80e+05
                           main :        1    --n/a--   9.54e-01    --n/a--   9.54e-01    --n/a--     24.978   2.03e+09   7.66e+05
-                     APEX Idle :  --n/a--    --n/a--    --n/a--    --n/a--    --n/a--    --n/a--    --n/a--   
+                     APEX Idle :  --n/a--    --n/a--    --n/a--    --n/a--    --n/a--    --n/a--    --n/a--
 ------------------------------------------------------------------------------------------------------------
 ```
 
@@ -298,7 +298,7 @@ Action                         :  #calls  |  minimum |    mean  |  maximum |   t
 While APEX is not designed for post-mortem performance analysis, you can export the data that APEX collected.  If you set the APEX_CSV_OUTPUT environment variable to 1, APEX will also dump the timer statistics as a CSV file:
 
 ```bash
-khuck@ktau:~/src/xpress-apex$ cat apex.0.csv 
+khuck@ktau:~/src/apex$ cat apex.0.csv
 "task","num calls","total cycles","total microseconds","PAPI_TOT_INS","PAPI_L2_TCM"
 "allocateMatrix",12,704195504,264717,1615804,9100
 "compute",4,7290209200,2740489,4306522734,1709040
@@ -349,7 +349,7 @@ After configuring, building and installing TAU and then configuring, building an
 
 ```bash
 khuck@ktau:~/src/xpress-apex$ export APEX_TAU=1
-khuck@ktau:~/src/xpress-apex$ ./install/bin/matmult 
+khuck@ktau:~/src/xpress-apex$ ./install/bin/matmult
 Spawned thread 1...
 Spawned thread 2...
 Spawned thread 3...
@@ -374,7 +374,7 @@ If you want to collect a TAU trace, you would enable the appropriate TAU environ
 ```bash
 khuck@ktau:~/src/xpress-apex$ export APEX_TAU=1
 khuck@ktau:~/src/xpress-apex$ export TAU_TRACE=1
-khuck@ktau:~/src/xpress-apex$ ./install/bin/matmult 
+khuck@ktau:~/src/xpress-apex$ ./install/bin/matmult
 Spawned thread 1...
 Spawned thread 2...
 Spawned thread 3...
@@ -384,7 +384,7 @@ events.0.edf        tautrace.0.0.1.trc  tautrace.0.0.3.trc  tautrace.0.0.5.trc
 tautrace.0.0.0.trc  tautrace.0.0.2.trc  tautrace.0.0.4.trc
 
 # merge the trace
-khuck@ktau:~/src/xpress-apex$ tau_treemerge.pl 
+khuck@ktau:~/src/xpress-apex$ tau_treemerge.pl
 /home/khuck/src/tau2/x86_64/bin/tau_merge -m tau.edf -e events.0.edf events.0.edf events.0.edf events.0.edf events.0.edf events.0.edf tautrace.0.0.0.trc tautrace.0.0.1.trc tautrace.0.0.2.trc tautrace.0.0.3.trc tautrace.0.0.4.trc tautrace.0.0.5.trc tau.trc
 tautrace.0.0.0.trc: 34 records read.
 tautrace.0.0.1.trc: 8 records read.
@@ -501,7 +501,7 @@ khuck@ktau:~/src/xpress-apex$ jumpshot tau.slog2
 ![Screenshot](img/jumpshot1.tiff)
 ![Screenshot](img/jumpshot2.tiff)
 
-# Policy Rules and Runtime Adaptation 
+# Policy Rules and Runtime Adaptation
 
 *...Coming soon!*
 

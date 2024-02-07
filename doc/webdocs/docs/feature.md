@@ -49,14 +49,20 @@ APEX provides both *performance awareness* and *performance adaptation*.
 * **Kokkos** - Using the Kokkos profiling interface, APEX can capture performance data related to Kokkos parallel abstractions.
 * **RAJA** - Using the RAJA profiling interface, APEX can capture performance data related to RAJA parallel abstractions.  Unlike Kokkos, RAJA doesn't give any details, so don't expect much.
 * **CUDA** - Using the NVIDIA CUPTI and NVML libraries, APEX can capture runtime and driver API calls as well as memory transfers and kernels executed on a device, and monitor GPU utilization.
-* **Distributed Execution over MPI** - While APEX doesn't measure MPI function calls, it is "MPI-aware", and can detect when used in a distributed run so that each process can write separate or aggregated performance data.
+* **HIP** - Using the AMD Roctracer, Rocprofiler and ROCM-SMI libraries, APEX can capture runtime and driver API calls as well as memory transfers and kernels executed on a device, and monitor GPU utilization.
+* **Intel SYCL** - Using the Intel Level0 libraries, APEX can capture runtime and driver API calls as well as memory transfers and kernels executed on a device, and monitor GPU utilization.
+* **PhiProf** - APEX is integrated with support to intercept PhiProf profiling data. See <https://github.com/fmihpc/phiprof>.
+* **StarPU** - APEX is integrated with support to profile StarPU. See <https://starpu.gitlabpages.inria.fr>.
+* **Distributed Execution over MPI** - While APEX doesn't measure all MPI function calls, it is "MPI-aware", and can detect when used in a distributed run so that each process can write separate or aggregated performance data. APEX provides rudimentary support for measuring point-to-point and collectives.
 
 ## Parallel Models with Experimental Support / In Development / Wish List
 
 * **Argobots** - APEX has been used to instrument services based on Argobots, but it is not integrated into the runtime.
 * **TBB** - The APEX team is evaluating integrated TBB support.
-* **Legion** - No plans at this time, but open to exploring it.
+* **Legion** - No plans at this time.
 * **Charm++** - No plans at this time.
+* **Iris** - Plans are afoot. Stay tuned.
+* **YAKL** - Plans are afoot. Stay tuned.
 
 ## Introspection
 
@@ -123,7 +129,7 @@ The **OTF2 listener** will construct a full event trace and write the events out
 
 ### Google Trace Event Listener
 
-The **Trace Event listener** will construct a full event trace and write the events to one or more [Google Trace Event](https://docs.google.com/document/d/1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKchNAySU/edit#) trace files.  The files can be visualized with the Google Chrome web browser, by navigating to the `chrome://tracing` URL.  Other tools can be used to visualize or analyze traces, like [Catapult](https://chromium.googlesource.com/catapult).
+The **Trace Event listener** will construct a full event trace and write the events to one or more [Google Trace Event](https://docs.google.com/document/d/1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKchNAySU/edit#) trace files.  The files can be visualized with the Google Chrome web browser, by navigating to the <https://ui.perfetto.dev> URL. <!-- Other tools can be used to visualize or analyze traces, like [Catapult](https://chromium.googlesource.com/catapult). -->
 
 ## Policy Listener
 
