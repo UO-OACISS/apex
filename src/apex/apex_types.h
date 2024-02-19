@@ -329,6 +329,8 @@ inline unsigned int sc_nprocessors_onln(void)
     macro (APEX_PIN_APEX_THREADS, pin_apex_threads, bool, true, "Pin APEX asynchronous threads to the last core/PU on the system.") \
     macro (APEX_TRACK_CPU_MEMORY, track_cpu_memory, bool, false, "Track all malloc/free/new/delete calls to CPU memory and report leaks.") \
     macro (APEX_TRACK_GPU_MEMORY, track_gpu_memory, bool, false, "Track all malloc/free/new/delete calls to GPU memory and report leaks.") \
+    macro (APEX_DELAY_MEMORY_TRACKING, delay_memory_tracking, bool, false, "Delay memory tracking until explicitly enabled.") \
+    macro (APEX_DELAY_MEMORY_ITERATIONS, delay_memory_iterations, int, 1, "Delay memory tracking until after N calls to apex::dump().") \
     macro (APEX_TASK_SCATTERPLOT, task_scatterplot, bool, false, "Periodically sample APEX tasks, generating a scatterplot of time distributions.") \
     macro (APEX_TIME_TOP_LEVEL_OS_THREADS, top_level_os_threads, bool, false, "When registering threads, measure their lifetimes.") \
     macro (APEX_POLICY_DRAIN_TIMEOUT, policy_drain_timeout, int, 1000, "Internal usage only.") \

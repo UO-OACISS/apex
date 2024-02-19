@@ -30,6 +30,15 @@ book_t& getBook() {
     return book;
 }
 
+static bool& recording(void) {
+    static bool _recording{true};
+    return _recording;
+}
+
+void controlMemoryWrapper(bool enabled) {
+    recording() = enabled;
+}
+
 void enable_memory_wrapper() {
   if (!apex_options::track_cpu_memory()) { return; }
   typedef void (*apex_memory_initialized_t)();
@@ -102,6 +111,7 @@ void printBacktrace() {
 }
 
 void recordAlloc(size_t bytes, void* ptr, allocator_t alloc, bool cpu) {
+    if (!recording()) return;
     static book_t& book = getBook();
     double value = (double)(bytes);
     if (cpu) sample_value("Memory: Bytes Allocated", value, true);
@@ -131,6 +141,7 @@ void recordAlloc(size_t bytes, void* ptr, allocator_t alloc, bool cpu) {
 }
 
 void recordFree(void* ptr, bool cpu) {
+    if (!recording()) return;
     static book_t& book = getBook();
     size_t bytes;
     book.mapMutex.lock();
@@ -165,6 +176,7 @@ void recordFree(void* ptr, bool cpu) {
 
 /* This doesn't belong here, but whatevs */
 void recordMetric(std::string name, double value) {
+    in_apex prevent_memory_tracking;
     profiler * p = thread_instance::instance().get_current_profiler();
     if (p != nullptr) {
         p->metric_map[name] = value;

@@ -68,6 +68,7 @@ private:
   	void _common_stop(std::shared_ptr<profiler> &p);
     std::string make_tid (base_thread_node &node);
     long unsigned int get_thread_id_metadata();
+    long unsigned int get_thread_id_metadata_internal();
   	static bool _initialized;
     size_t get_thread_index(void);
     std::mutex * get_thread_mutex(size_t index);
@@ -82,7 +83,7 @@ private:
 #else
   	std::ofstream& get_trace_file();
 #endif
-  	std::stringstream trace;
+  	std::stringstream* trace;
     std::map<size_t, std::mutex*> mutexes;
     std::map<size_t, std::stringstream*> streams;
     std::mutex _vthread_mutex;
