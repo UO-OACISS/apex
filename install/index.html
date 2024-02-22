@@ -120,7 +120,7 @@
 <p>APEX is integrated into the <a href="https://hpx.stellar-group.org">HPX runtime</a>, and is integrated into the HPX build system.  To enable APEX measurement with HPX, enable the following CMake flags:</p>
 <pre><code>-DHPX_WITH_APEX=TRUE
 </code></pre>
-<p>The <code>-DHPX_WITH_APEX_TAG=develop</code> can be used to indicate a specific release version of APEX, or to use a specific GitHub branch of APEX.  We recommend using the default configured version that comes with HPX (currently <code>v2.6.4</code>) or the <code>develop</code> branch.  Additional CMake flags include:</p>
+<p>The <code>-DHPX_WITH_APEX_TAG=develop</code> can be used to indicate a specific release version of APEX, or to use a specific GitHub branch of APEX.  We recommend using the default configured version that comes with HPX (currently <code>v2.6.5</code>) or the <code>develop</code> branch.  Additional CMake flags include:</p>
 <ul>
 <li><code>-DAPEX_WITH_LM_SENSORS=TRUE</code> to enable <a href="https://hwmon.wiki.kernel.org/lm_sensors">LM sensors</a> support (assumed to be installed in default system paths)</li>
 <li><code>-DAPEX_WITH_PAPI=TRUE</code> and <code>-DPAPI_ROOT=...</code> to enable <a href="https://icl.utk.edu/papi/">PAPI</a> support</li>
@@ -133,10 +133,10 @@
 </ul>
 <h2 id="standalone_installation">Standalone Installation<a class="headerlink" href="#standalone_installation" title="Permanent link">&para;</a></h2>
 <p>APEX is open source, and available on Github at <a href="http://github.com/UO-OACISS/apex">http://github.com/UO-OACISS/apex</a>.</p>
-<p>For stability, most users will want to download <a href="https://github.com/UO-OACISS/apex/releases">the most recent release</a> of APEX (for example, v2.6.4):</p>
-<pre><code class="language-bash">wget https://github.com/UO-OACISS/apex/archive/refs/tags/v2.6.4.tar.gz
-tar -xvzf v2.6.4.tar.gz
-cd apex-2.6.4
+<p>For stability, most users will want to download <a href="https://github.com/UO-OACISS/apex/releases">the most recent release</a> of APEX (for example, v2.6.5):</p>
+<pre><code class="language-bash">wget https://github.com/UO-OACISS/apex/archive/refs/tags/v2.6.5.tar.gz
+tar -xvzf v2.6.5.tar.gz
+cd apex-2.6.5
 </code></pre>
 <p>Other users may want to work with the most recent code available, in which case you can clone the git repo:</p>
 <pre><code class="language-bash">git clone https://github.com/UO-OACISS/apex.git
@@ -248,7 +248,7 @@ Boost is **NOT** required to install APEX.  When building on Intel Phi, Boost is
 <p>The process for building APEX is:</p>
 <p>1) Get the code (see above)</p>
 <p>2) Enter the repo directory:</p>
-<pre><code class="language-bash">cd apex-2.6.4
+<pre><code class="language-bash">cd apex-2.6.5
 </code></pre>
 <p>3) configure using CMake:</p>
 <pre><code class="language-bash">cmake -B build -DCMAKE_INSTALL_PREFIX=&lt;installation-path&gt; -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
