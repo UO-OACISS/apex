@@ -19,7 +19,7 @@ hpx_info("apex" "Will build APEX")
 
 set (APEX_VERSION_MAJOR 2)
 set (APEX_VERSION_MINOR 6)
-set (APEX_VERSION_PATCH 4)
+set (APEX_VERSION_PATCH 5)
 
 if (NOT APEX_ROOT)
   if (EXISTS ${HPX_SOURCE_DIR}/apex)

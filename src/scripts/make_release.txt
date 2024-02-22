@@ -1,6 +1,6 @@
 0) Update develop and master, merge develop into master
 
-update the version number in CMakeLists.txt, src/apex/CMakeLists.hpx and doc/Doxyfile.in
+update the version number in CMakeLists.txt, src/apex/CMakeLists.hpx and doc/Doxyfile.in and docs/webdocs/install.md
 
 git checkout develop
 git pull
