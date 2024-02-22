@@ -87,9 +87,8 @@ if(DEFINED BUILD_BFD)
 endif()
 
 # Provide some backwards compatability
-if(DEFINED BUILD_OMPT)
-    message(WARNING "BUILD_OMPT is deprecated - please use APEX_BUILD_OMPT")
-    set(APEX_BUILD_OMPT ${BUILD_OMPT} CACHE BOOL "")
+if(DEFINED BUILD_OMPT OR DEFINED APEX_BUILD_OMPT)
+    message(FATAL_ERROR "APEX_BUILD_OMPT is disabled. If OpenMP support is needed, use a compiler with compliant Tool support.")
 endif()
 
 # Provide some backwards compatability
@@ -97,7 +96,6 @@ if(DEFINED BUILD_OTF2)
     message(WARNING "BUILD_OTF2 is deprecated - please use APEX_BUILD_OTF2")
     set(APEX_BUILD_OTF2 ${BUILD_OTF2} CACHE BOOL "")
 endif()
-
 
 # All CMAKE options for the APEX project...
 option (APEX_BUILD_TESTS "Build APEX tests (for 'make test')" FALSE)

@@ -65,6 +65,7 @@ where APEX options are zero or more of:
     --apex:pthread                enable pthread wrapper support
     --apex:gpu-memory             enable GPU memory wrapper support
     --apex:cpu-memory             enable CPU memory wrapper support
+    --apex:delay-memory           delay memory wrapper support until explicitly enabled
     --apex:untied                 enable tasks to migrate cores/OS threads
                                   during execution (not compatible with trace output)
     --apex:cuda                   enable CUDA/CUPTI measurement (default: off)
@@ -138,6 +139,7 @@ io=no
 pthread=no
 gpu_memory=no
 cpu_memory=no
+delay_memory=no
 policy=yes
 debugger=""
 prog=""
@@ -199,6 +201,11 @@ while (( "$#" )); do
       cpu_memory=yes
       export APEX_TRACK_CPU_MEMORY=1
       export APEX_SOURCE_LOCATION=1
+      shift
+      ;;
+    --apex:delay_memory|--apex:delay-memory)
+      delay_memory=yes
+      export APEX_DELAY_MEMORY_TRACKING=1
       shift
       ;;
     --apex:throttle)

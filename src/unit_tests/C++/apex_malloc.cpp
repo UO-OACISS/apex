@@ -3,13 +3,21 @@
 #include "apex_api.hpp"
 
 void bar(char* data) {
-    apex::scoped_timer(__func__);
+    apex::scoped_timer((uint64_t)&bar);
     auto s = strlen(data);
     std::cout << "Size: " << s << std::endl;
 }
 
-void test_malloc() {
-    apex::scoped_timer(__func__);
+void test_leak(void) {
+    apex::scoped_timer((uint64_t)&test_leak);
+    auto foo = (char*)(malloc(42 * sizeof(char)));
+    memset(foo, 'a', 41);
+    foo[41] = 0;
+    bar(foo);
+}
+
+void test_malloc(void) {
+    apex::scoped_timer((uint64_t)&test_malloc);
     auto foo = (char*)(malloc(42 * sizeof(char)));
     memset(foo, 'a', 41);
     foo[41] = 0;
@@ -17,16 +25,16 @@ void test_malloc() {
     free(foo);
 }
 
-void test_calloc() {
-    apex::scoped_timer(__func__);
+void test_calloc(void) {
+    apex::scoped_timer((uint64_t)&test_calloc);
     auto foo = (char*)(calloc(42, sizeof(char)));
     memset(foo, 'a', 41);
     bar(foo);
     free(foo);
 }
 
-void test_realloc() {
-    apex::scoped_timer(__func__);
+void test_realloc(void) {
+    apex::scoped_timer((uint64_t)&test_realloc);
     auto foo = (char*)(malloc(42 * sizeof(char)));
     memset(foo, 'a', 41);
     foo[41] = 0;
@@ -42,6 +50,7 @@ void test_all(void) {
   test_malloc();
   test_calloc();
   test_realloc();
+  test_leak();
 }
 
 void apex_enable_memory_wrapper(void);

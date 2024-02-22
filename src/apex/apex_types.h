@@ -329,6 +329,8 @@ inline unsigned int sc_nprocessors_onln(void)
     macro (APEX_PIN_APEX_THREADS, pin_apex_threads, bool, true, "Pin APEX asynchronous threads to the last core/PU on the system.") \
     macro (APEX_TRACK_CPU_MEMORY, track_cpu_memory, bool, false, "Track all malloc/free/new/delete calls to CPU memory and report leaks.") \
     macro (APEX_TRACK_GPU_MEMORY, track_gpu_memory, bool, false, "Track all malloc/free/new/delete calls to GPU memory and report leaks.") \
+    macro (APEX_DELAY_MEMORY_TRACKING, delay_memory_tracking, bool, false, "Delay memory tracking until explicitly enabled.") \
+    macro (APEX_DELAY_MEMORY_ITERATIONS, delay_memory_iterations, int, 1, "Delay memory tracking until after N calls to apex::dump().") \
     macro (APEX_TASK_SCATTERPLOT, task_scatterplot, bool, false, "Periodically sample APEX tasks, generating a scatterplot of time distributions.") \
     macro (APEX_TIME_TOP_LEVEL_OS_THREADS, top_level_os_threads, bool, false, "When registering threads, measure their lifetimes.") \
     macro (APEX_POLICY_DRAIN_TIMEOUT, policy_drain_timeout, int, 1000, "Internal usage only.") \
@@ -354,7 +356,7 @@ inline unsigned int sc_nprocessors_onln(void)
     macro (APEX_JUPYTER_SUPPORT, use_jupyter_support, int, false, "Internal use only.") \
     macro (APEX_KOKKOS_VERBOSE, use_kokkos_verbose, bool, false, "Enable verbose Kokkos autotuning and profiling messages.") \
     macro (APEX_KOKKOS_COUNTERS, use_kokkos_counters, bool, false, "Enable Kokkos counters.") \
-    macro (APEX_KOKKOS_TUNING, use_kokkos_tuning, bool, true, "Enable Kokkos autotuning.") \
+    macro (APEX_KOKKOS_TUNING, use_kokkos_tuning, bool, false, "Enable Kokkos autotuning.") \
     macro (APEX_KOKKOS_TUNING_WINDOW, kokkos_tuning_window, int, 5, "Minimum number of tests per candidate while autotuning.") \
     macro (APEX_KOKKOS_PROFILING_FENCES, use_kokkos_profiling_fences, bool, false, "Force Kokkos to fence after all Kokkos kernel launches (recommended, but not required).") \
     macro (APEX_START_DELAY_SECONDS, start_delay_seconds, int, 0, "Delay collection of APEX data for N seconds.") \

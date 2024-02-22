@@ -32,9 +32,6 @@
 #define PACKAGE_VERSION
 #endif
 #include <bfd.h>
-#if APEX_BFD >= 022300
-#include <elf-bfd.h>
-#endif
 #include <dirent.h>
 #include <stdint.h>
 #include <cctype>
@@ -135,7 +132,7 @@ struct ApexBfdModule
       return (bfdOpen = false);
     }
 
-#if APEX_BFD >= 022200
+#if defined(BFD_DECOMPRESS)
     // Decompress sections
     bfdImage->flags |= BFD_DECOMPRESS;
 #endif
@@ -1025,7 +1022,7 @@ void Apex_bfd_internal_locateAddress(bfd * bfdptr,
   // ApexBfdInfo fields without an extra copy.  This also means
   // that the pointers in ApexBfdInfo must never be deleted
   // since they point directly into the module's BFD.
-#if (APEX_BFD >= 022200)
+#if defined(bfd_find_nearest_line_discriminator)
   data.found = bfd_find_nearest_line_discriminator(bfdptr, section,
       data.module->syms, (data.info.probeAddr - vma),
       &data.info.filename, &data.info.funcname,

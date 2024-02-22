@@ -54,8 +54,8 @@ if((APEX_BUILD_BFD OR (NOT BFD_FOUND)) AND NOT APPLE)
   set(TMP_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
   set(TMP_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fPIC")
   ExternalProject_Add(project_binutils
-    URL "http://ftp.gnu.org/gnu/binutils/binutils-2.37.tar.bz2"
-    URL_HASH SHA256=67fc1a4030d08ee877a4867d3dcab35828148f87e1fd05da6db585ed5a166bd4
+    URL "http://ftp.gnu.org/gnu/binutils/binutils-2.42.tar.bz2"
+    URL_HASH SHA256=aa54850ebda5064c72cd4ec2d9b056c294252991486350d9a97ab2a6dfdfaf12
     CONFIGURE_COMMAND <SOURCE_DIR>/configure CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} CFLAGS=${TMP_C_FLAGS} CXXFLAGS=${TMP_CXX_FLAGS} LDFLAGS=${TMP_LINKER_FLAGS} --prefix=${CMAKE_INSTALL_PREFIX} --disable-dependency-tracking --enable-interwork --disable-multilib --enable-shared --enable-64-bit-bfd --target=${TARGET_ARCH} --enable-install-libiberty --disable-gold --program-prefix=g --disable-nls --disable-ld --disable-lto --disable-gas
     BUILD_COMMAND make MAKEINFO=true -j${MAKEJOBS}
     INSTALL_COMMAND make MAKEINFO=true install

@@ -8,7 +8,7 @@ APEX is integrated into the [HPX runtime](https://hpx.stellar-group.org), and is
 -DHPX_WITH_APEX=TRUE
 ```
 
-The `-DHPX_WITH_APEX_TAG=develop` can be used to indicate a specific release version of APEX, or to use a specific GitHub branch of APEX.  We recommend using the default configured version that comes with HPX (currently `v2.6.4`) or the `develop` branch.  Additional CMake flags include:
+The `-DHPX_WITH_APEX_TAG=develop` can be used to indicate a specific release version of APEX, or to use a specific GitHub branch of APEX.  We recommend using the default configured version that comes with HPX (currently `v2.6.5`) or the `develop` branch.  Additional CMake flags include:
 
 * `-DAPEX_WITH_LM_SENSORS=TRUE` to enable [LM sensors](https://hwmon.wiki.kernel.org/lm_sensors) support (assumed to be installed in default system paths)
 * `-DAPEX_WITH_PAPI=TRUE` and `-DPAPI_ROOT=...` to enable [PAPI](https://icl.utk.edu/papi/) support
@@ -23,12 +23,12 @@ The `-DHPX_WITH_APEX_TAG=develop` can be used to indicate a specific release ver
 
 APEX is open source, and available on Github at <http://github.com/UO-OACISS/apex>.
 
-For stability, most users will want to download [the most recent release](https://github.com/UO-OACISS/apex/releases) of APEX (for example, v2.6.4):
+For stability, most users will want to download [the most recent release](https://github.com/UO-OACISS/apex/releases) of APEX (for example, v2.6.5):
 
 ```bash
-wget https://github.com/UO-OACISS/apex/archive/refs/tags/v2.6.4.tar.gz
-tar -xvzf v2.6.4.tar.gz
-cd apex-2.6.4
+wget https://github.com/UO-OACISS/apex/archive/refs/tags/v2.6.5.tar.gz
+tar -xvzf v2.6.5.tar.gz
+cd apex-2.6.5
 ```
 
 Other users may want to work with the most recent code available, in which case you can clone the git repo:
@@ -153,7 +153,7 @@ The process for building APEX is:
 2) Enter the repo directory:
 
 ```bash
-cd apex-2.6.4
+cd apex-2.6.5
 ```
 
 3) configure using CMake:

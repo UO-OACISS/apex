@@ -25,6 +25,8 @@ bool trace_event_listener::_initialized(false);
 trace_event_listener::trace_event_listener (void) : _terminate(false),
     num_events(0), _end_time(0.0) {
     _initialized = true;
+    // set up our swappable buffer to prevent blocking at flush time
+    trace = new std::stringstream();
 }
 
 trace_event_listener::~trace_event_listener (void) {
@@ -33,6 +35,7 @@ trace_event_listener::~trace_event_listener (void) {
         close_trace();
         _terminate = true;
     }
+    delete trace;
 }
 
 void trace_event_listener::end_trace_time(void) {
@@ -150,7 +153,14 @@ bool trace_event_listener::on_resume(std::shared_ptr<task_wrapper> &tt_ptr) {
     return true;
 }
 
+// we need a wrapper, because we have static tid in both _common_start and _common_stop
+// and call this from both.
 long unsigned int trace_event_listener::get_thread_id_metadata() {
+    static APEX_NATIVE_TLS long unsigned int tid = get_thread_id_metadata_internal();
+    return tid;
+}
+
+long unsigned int trace_event_listener::get_thread_id_metadata_internal() {
     int tid = thread_instance::get_id();
     saved_node_id = apex::instance()->get_node_id();
     std::stringstream ss;
@@ -424,7 +434,7 @@ std::mutex* trace_event_listener::get_thread_mutex(size_t index) {
 std::stringstream* trace_event_listener::get_thread_stream(size_t index) {
 #ifdef SERIAL
     APEX_UNUSED(index);
-    return &trace;
+    return trace;
 #else
     std::stringstream * tmp;
     // control access to the map of stringstream objects
@@ -489,18 +499,30 @@ std::ofstream& trace_event_listener::get_trace_file() {
 
 void trace_event_listener::flush_trace(trace_event_listener* listener) {
     static atomic<bool> flushing{false};
+    // don't track memory in this new thread/function.
+    in_apex prevent_memory_tracking;
     while (flushing) {} // wait for asynchronous flushing, if it's happening
     flushing = true;
-    //std::cout << "**** FLUSHING TRACE BUFFER ****" << std::endl;
-    auto p = scoped_timer("APEX: Trace Buffer Flush");
     auto& trace_file = listener->get_trace_file();
 #ifdef SERIAL
     // flush the trace
     listener->_vthread_mutex.lock();
-    trace_file << listener->trace.rdbuf();
+    trace_file << listener->trace->rdbuf();
     // reset the buffer
-    listener->trace.str("");
+    listener->trace->str("");
     listener->_vthread_mutex.unlock();
+    /*
+    // save the stringstream pointer
+    std::stringstream* tmp = listener->trace;
+    // make to new stringstream
+    listener->trace = new std::stringstream{};
+    // unlock and continue
+    listener->_vthread_mutex.unlock();
+    // flush the old stream to disk
+    trace_file << tmp->rdbuf();
+    // delete the flushed stringstream
+    delete tmp;
+    */
 #else
     listener->_vthread_mutex.lock();
     size_t count = listener->streams.size();
@@ -529,7 +551,7 @@ void trace_event_listener::flush_trace_if_necessary(bool force) {
     if (tmp % 1000000 == 0 || force) {
         //flush_trace(this);
         //std::async(std::launch::async, flush_trace, this);
-        std::cout << "Flushing APEX trace..." << std::endl;
+        //std::cout << "Flushing APEX trace..." << std::endl;
         std::thread(flush_trace, this).detach();
     }
 }

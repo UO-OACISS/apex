@@ -580,6 +580,17 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
 #else
     enable_memory_wrapper();
 #endif
+    if (apex_options::delay_memory_tracking()) {
+        if (instance->get_node_id() == 0) {
+            std::cout << "Pausing memory tracking until further notice..." << std::endl;
+        }
+        controlMemoryWrapper(false);
+    } else {
+        if (instance->get_node_id() == 0) {
+            std::cout << "Enabling memory tracking!" << std::endl;
+        }
+        controlMemoryWrapper(true);
+    }
 
     // It's now safe to initialize CUDA and/or HIP and/or Level0
     dynamic::cuda::init();
@@ -1659,6 +1670,7 @@ void finalize_plugins(void) {
 
 std::string dump(bool reset, bool finalizing) {
     in_apex prevent_deadlocks;
+    static size_t index{0};
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true ||
         (!finalizing && apex_options::use_final_output_only()))
@@ -1676,6 +1688,15 @@ std::string dump(bool reset, bool finalizing) {
     dynamic::cuda::flush();
     dynamic::roctracer::flush();
     dynamic::level0::flush();
+    /* only track after N calls to apex::dump() */
+    index = index + 1;
+    if (apex_options::delay_memory_tracking() &&
+        index > apex_options::delay_memory_iterations()) {
+        if (instance->get_node_id() == 0) {
+            std::cout << "Enabling memory tracking!" << std::endl;
+        }
+        controlMemoryWrapper(true);
+    } 
     if (_notify_listeners) {
         dump_event_data data(instance->get_node_id(),
             thread_instance::get_id(), reset);
