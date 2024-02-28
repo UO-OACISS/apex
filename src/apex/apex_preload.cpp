@@ -75,7 +75,8 @@ int apex_preload_main(int argc, char** argv, char** envp) {
         ret = main_real(argc, argv, envp);
     } else {
         apex::init("APEX Preload", 0, 1);
-        auto t = apex::new_task(__APEX_FUNCTION__);
+        const std::string timerName{__APEX_FUNCTION__};
+        auto t = apex::new_task(timerName);
         apex::start(t);
         ret = main_real(argc, argv, envp);
         apex::stop(t);

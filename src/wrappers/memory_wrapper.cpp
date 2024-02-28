@@ -29,34 +29,34 @@
  * has finished initialization and is about to launch main.
  * So we use 2 flags to accomlpish this. */
 
-bool& apex_ready() {
+bool& apex_memory_ready() {
     static bool _ready = false;
     return _ready;
 }
 
-bool& dl_ready() {
+bool& apex_dl_ready() {
     static bool _ready = true;
     return _ready;
 }
 
-bool& enabled() {
+bool& apex_memory_enabled() {
     static bool _enabled = true;
     return _enabled;
 }
 
-bool all_clear() {
-    return apex_ready() && dl_ready() && enabled();
+bool apex_memory_all_clear() {
+    return apex_memory_ready() && apex_dl_ready() && apex_memory_enabled();
 }
 
 extern "C"
 void apex_memory_initialized() {
     apex_memory_wrapper_init();
-    apex_ready() = true;
+    apex_memory_ready() = true;
 }
 
 extern "C"
 void apex_memory_lights_out() {
-    apex_ready() = false;
+    apex_memory_ready() = false;
     apex::apex_report_leaks();
 }
 
@@ -67,28 +67,30 @@ void apex_memory_finalized() {
 
 extern "C"
 void apex_memory_dl_initialized() {
-    dl_ready() = true;
+    apex_dl_ready() = true;
 }
 
 /* During startup, we need to do some memory management in case
  * malloc/free is called during the startup process. */
 
 // Memory for bootstrapping.  must not be static!
-char bootstrap_heap[BOOTSTRAP_HEAP_SIZE];
-char * bootstrap_base = bootstrap_heap;
+char apex_memory_bootstrap_heap[BOOTSTRAP_HEAP_SIZE];
+char * apex_memory_bootstrap_base = apex_memory_bootstrap_heap;
 
-uintptr_t reportHeapLocation() {
-    printf("Bootstrap heap located at: %p\n", (void*)(&bootstrap_heap[0]));
-    return (uintptr_t)&bootstrap_heap[0];
+/*
+uintptr_t apex_memory_reportHeapLocation() {
+    printf("Bootstrap heap located at: %p\n", (void*)(&apex_memory_bootstrap_heap[0]));
+    return (uintptr_t)&apex_memory_bootstrap_heap[0];
 }
+*/
 
-static inline int is_bootstrap(void * ptr) {
+static inline int apex_memory_is_bootstrap(void * ptr) {
     char const * const p = (char*)ptr;
-    return (p < bootstrap_heap + BOOTSTRAP_HEAP_SIZE) && (bootstrap_heap < p);
+    return (p < apex_memory_bootstrap_heap + BOOTSTRAP_HEAP_SIZE) && (apex_memory_bootstrap_heap < p);
 }
 
-static void * bootstrap_alloc(size_t align, size_t size) {
-    //static uintptr_t dummy = reportHeapLocation();
+static void * apex_memory_bootstrap_alloc(size_t align, size_t size) {
+    //static uintptr_t dummy = apex_memory_reportHeapLocation();
     //APEX_UNUSED(dummy);
     char * ptr;
 
@@ -106,11 +108,11 @@ static void * bootstrap_alloc(size_t align, size_t size) {
     }
 
     // Calculate address
-    ptr = (char*)(((size_t)bootstrap_base + (align-1)) & ~(align-1));
-    bootstrap_base = ptr + size;
+    ptr = (char*)(((size_t)apex_memory_bootstrap_base + (align-1)) & ~(align-1));
+    apex_memory_bootstrap_base = ptr + size;
 
     // Check for overflow
-    if (bootstrap_base >= (bootstrap_heap + BOOTSTRAP_HEAP_SIZE)) {
+    if (apex_memory_bootstrap_base >= (apex_memory_bootstrap_heap + BOOTSTRAP_HEAP_SIZE)) {
         // These calls are unsafe, but we're about to die anyway.
         printf("APEX bootstreap heap exceeded.  Increase BOOTSTRAP_HEAP_SIZE in " __FILE__ " and try again.\n");
         fflush(stdout);
@@ -120,7 +122,7 @@ static void * bootstrap_alloc(size_t align, size_t size) {
     return (void*)ptr;
 }
 
-static inline void bootstrap_free(void * ptr) {
+static inline void apex_memory_bootstrap_free(void * ptr) {
     // Do nothing: bootstrap memory is deallocated on program exit
     APEX_UNUSED(ptr);
 }
@@ -142,7 +144,7 @@ static inline void bootstrap_free(void * ptr) {
 }
 
 template<class T> T
-get_system_function_handle(char const * name, T caller)
+apex_get_system_function_handle(char const * name, T caller)
 {
     T handle;
 
@@ -188,17 +190,17 @@ void* malloc (size_t size) __THROW {
     if (!bootstrapped) {
         if (!initializing) {
             initializing = true;
-            _malloc = get_system_function_handle<malloc_p>("malloc", &malloc);
+            _malloc = apex_get_system_function_handle<malloc_p>("malloc", &malloc);
         }
         if (!_malloc) {
-            return bootstrap_alloc(0, size);
+            return apex_memory_bootstrap_alloc(0, size);
         }
-        if (!all_clear()) {
+        if (!apex_memory_all_clear()) {
             return _malloc(size);
         }
         bootstrapped = true;
     }
-    if (all_clear()) {
+    if (apex_memory_all_clear()) {
         return apex_malloc_wrapper(_malloc, size);
     }
     return _malloc(size);
@@ -209,25 +211,25 @@ void free (void* ptr) __THROW {
     static free_p _free = NULL;
     static bool initializing = false;
     static bool bootstrapped = false;
-    if (is_bootstrap(ptr)) {
+    if (apex_memory_is_bootstrap(ptr)) {
         // do nothing, effectively
-        return bootstrap_free(ptr);
+        return apex_memory_bootstrap_free(ptr);
     }
     if (!bootstrapped) {
         if (!initializing) {
             initializing = true;
-            _free = get_system_function_handle<free_p>("free", &free);
+            _free = apex_get_system_function_handle<free_p>("free", &free);
         }
         if (!_free) {
             // do nothing, effectively
-            return bootstrap_free(ptr);
+            return apex_memory_bootstrap_free(ptr);
         }
-        if (!all_clear()) {
+        if (!apex_memory_all_clear()) {
             return _free(ptr);
         }
         bootstrapped = true;
     }
-    if (all_clear()) {
+    if (apex_memory_all_clear()) {
         return apex_free_wrapper(_free, ptr);
     }
     return _free(ptr);
@@ -241,7 +243,7 @@ int puts (const char* s) {
     if (!bootstrapped) {
         if (!initializing) {
             initializing = true;
-            _puts = get_system_function_handle<puts_p>("puts", &puts);
+            _puts = apex_get_system_function_handle<puts_p>("puts", &puts);
         }
         if (!_puts) {
             // do nothing, effectively
@@ -249,9 +251,9 @@ int puts (const char* s) {
         }
         bootstrapped = true;
     }
-    enabled() = false;
-    auto r = _puts(s);
-    enabled() = true;
+    apex_memory_enabled() = false;
+    int r = _puts(s);
+    apex_memory_enabled() = true;
     return r;
 }
 
@@ -263,17 +265,17 @@ void* calloc (size_t nmemb, size_t size) __THROW {
     if (!bootstrapped) {
         if (!initializing) {
             initializing = true;
-            _calloc = get_system_function_handle<calloc_p>("calloc", &calloc);
+            _calloc = apex_get_system_function_handle<calloc_p>("calloc", &calloc);
         }
         if (!_calloc) {
-            return bootstrap_alloc(0, (nmemb*size));
+            return apex_memory_bootstrap_alloc(0, (nmemb*size));
         }
-        if (!all_clear()) {
+        if (!apex_memory_all_clear()) {
             return _calloc(nmemb, size);
         }
         bootstrapped = true;
     }
-    if (all_clear()) {
+    if (apex_memory_all_clear()) {
         return apex_calloc_wrapper(_calloc, nmemb, size);
     }
     return _calloc(nmemb, size);
@@ -287,17 +289,17 @@ void* realloc (void* ptr, size_t size) __THROW {
     if (!bootstrapped) {
         if (!initializing) {
             initializing = true;
-            _realloc = get_system_function_handle<realloc_p>("realloc", &realloc);
+            _realloc = apex_get_system_function_handle<realloc_p>("realloc", &realloc);
         }
         if (!_realloc) {
-            return bootstrap_alloc(0, size);
+            return apex_memory_bootstrap_alloc(0, size);
         }
-        if (!all_clear()) {
+        if (!apex_memory_all_clear()) {
             return _realloc(ptr, size);
         }
         bootstrapped = true;
     }
-    if (all_clear()) {
+    if (apex_memory_all_clear()) {
         return apex_realloc_wrapper(_realloc, ptr, size);
     }
     return _realloc(ptr, size);
@@ -308,7 +310,7 @@ void* realloc (void* ptr, size_t size) __THROW {
 void* memalign (size_t alignment, size_t size) {
     static memalign_p _memalign = NULL;
     if (!_memalign) {
-        _memalign = get_system_function_handle<memalign_p>("memalign", &memalign);
+        _memalign = apex_get_system_function_handle<memalign_p>("memalign", &memalign);
     }
     return apex_memalign_wrapper(_memalign, alignment, size);
 }
@@ -318,7 +320,7 @@ void* memalign (size_t alignment, size_t size) {
 void* reallocarray (void* ptr, size_t nmemb, size_t size) {
     static reallocarray_p _reallocarray = NULL;
     if (!_reallocarray) {
-        _reallocarray = get_system_function_handle<reallocarray_p>("reallocarray", &reallocarray);
+        _reallocarray = apex_get_system_function_handle<reallocarray_p>("reallocarray", &reallocarray);
     }
     return apex_reallocarray_wrapper(_reallocarray, ptr, nmemb, size);
 }
@@ -328,7 +330,7 @@ void* reallocarray (void* ptr, size_t nmemb, size_t size) {
 void* reallocf (void* ptr, size_t size) {
     static reallocf_p _reallocf = NULL;
     if (!_reallocf) {
-        _reallocf = get_system_function_handle<reallocf_p>("reallocf", &reallocf);
+        _reallocf = apex_get_system_function_handle<reallocf_p>("reallocf", &reallocf);
     }
     return apex_reallocf_wrapper(_reallocf, ptr, size);
 }
@@ -338,7 +340,7 @@ void* reallocf (void* ptr, size_t size) {
 void* valloc (size_t size) {
     static valloc_p _valloc = NULL;
     if (!_valloc) {
-        _valloc = get_system_function_handle<valloc_p>("valloc", &valloc);
+        _valloc = apex_get_system_function_handle<valloc_p>("valloc", &valloc);
     }
     return apex_valloc_wrapper(_valloc, size);
 }
@@ -348,71 +350,11 @@ void* valloc (size_t size) {
 size_t malloc_usable_size (void* ptr) {
     static malloc_usable_size_p _malloc_usable_size = NULL;
     if (!_malloc_usable_size) {
-        _malloc_usable_size = get_system_function_handle<malloc_usable_size_p>("malloc_usable_size", &malloc_usable_size);
+        _malloc_usable_size = apex_get_system_function_handle<malloc_usable_size_p>("malloc_usable_size", &malloc_usable_size);
     }
     return apex_malloc_usable_size_wrapper(_malloc_usable_size, ptr);
 }
 #endif
 
-#endif
-
-#else // Wrap via the the link line.
-
-void* __real_malloc(size_t);
-void* __wrap_malloc(size_t size) {
-    return apex_malloc_wrapper(__real_malloc, size);
-}
-
-void __real_free(void*);
-void __wrap_free(void* ptr) {
-    return apex_free_wrapper(__real_free, ptr);
-}
-
-void* __real_calloc(size_t, size_t);
-void* __wrap_calloc(size_t nmemb, size_t size) {
-    return apex_calloc_wrapper(__real_calloc, nmemb, size);
-}
-
-void* __real_realloc(void*, size_t);
-void* __wrap_realloc(void* ptr, size_t size) {
-    return apex_realloc_wrapper(__real_realloc, ptr, size);
-}
-
-#if 0
-#if defined(memalign)
-void* __real_memalign(size_t, size_t);
-void* __wrap_memalign(size_t alignment, size_t size) {
-    return apex_memalign_wrapper(__real_memalign, alignment, size);
-}
-#endif
-
-#if defined(reallocarray)
-void* __real_reallocarray(void*, size_t, size_t);
-void* __wrap_reallocarray(void* ptr, size_t nmemb, size_t size) {
-    return apex_reallocarray_wrapper(__real_reallocarray, ptr, nmemb, size);
-}
-#endif
-
-#if defined(reallocf)
-void* __real_reallocf(void*, size_t);
-void* __wrap_reallocf(void* ptr, size_t size) {
-    return apex_reallocf_wrapper(__real_reallocf, ptr, size);
-}
-#endif
-
-#if defined(valloc)
-void* __real_valloc(size_t);
-void* __wrap_valloc(size_t size) {
-    return apex_valloc_wrapper(__vallocllocf, size);
-}
-#endif
-
-#if defined(malloc_usable_size)
-size_t __real_malloc_usable_size(void*);
-size_t __wrap_malloc_usable_size(void* ptr) {
-    return apex_malloc_usable_size_wrapper(__malloc_usable_size, ptr);
-}
-#endif
-#endif
-
+#endif // if 0
 #endif //APEX_PRELOAD_LIB

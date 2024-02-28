@@ -59,11 +59,11 @@ typedef size_t (*valloc_p)(void*);
 extern "C" {
 #endif
 
-void* apex_malloc_wrapper(malloc_p malloc_call, size_t size);
-void  apex_free_wrapper(free_p free_call, void* ptr);
+void* apex_malloc_wrapper(const malloc_p malloc_call, const size_t size);
+void  apex_free_wrapper(const free_p free_call, const void* ptr);
 int   apex_puts_wrapper(const char* s);
-void* apex_calloc_wrapper(calloc_p calloc_call, size_t nmemb, size_t size);
-void* apex_realloc_wrapper(realloc_p realloc_call, void* ptr, size_t size);
+void* apex_calloc_wrapper(const calloc_p calloc_call, const size_t nmemb, const size_t size);
+void* apex_realloc_wrapper(const realloc_p realloc_call, const void* ptr, const size_t size);
 void  apex_memory_wrapper_init(void);
 void  apex_memory_lights_out(void);
 #if 0

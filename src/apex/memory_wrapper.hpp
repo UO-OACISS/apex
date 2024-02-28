@@ -14,29 +14,33 @@
 #pragma once
 #include <apex.hpp>
 
+typedef enum apex_allocator {
+    APEX_MALLOC = 0,
+    APEX_CALLOC,
+    APEX_REALLOC,
+    APEX_GPU_HOST_MALLOC,
+    APEX_GPU_DEVICE_MALLOC,
+    APEX_FREE
+} apex_allocator_t;
+
 namespace apex {
 
 void apex_report_leaks();
-
-typedef enum allocator {
-    MALLOC = 0,
-    CALLOC,
-    REALLOC,
-    GPU_HOST_MALLOC,
-    GPU_DEVICE_MALLOC
-} allocator_t;
+void apex_get_leak_symbols();
 
 class record_t {
 public:
     size_t bytes;
     task_identifier * id;
     size_t tid;
-    allocator_t alloc;
-    record_t() : bytes(0), id(nullptr), tid(0), alloc(MALLOC), cpu(true) {}
-    record_t(size_t b, size_t t, allocator_t a, bool on_cpu) :
-        bytes(b), id(nullptr), tid(t), alloc(a), cpu(on_cpu) {}
+    apex_allocator_t alloc;
+    record_t() : bytes(0), id(nullptr), tid(0), alloc(APEX_MALLOC), resolved(false), cpu(true) {}
+    record_t(size_t b, size_t t, apex_allocator_t a, bool on_cpu) :
+        bytes(b), id(nullptr), tid(t), alloc(a), resolved(false), cpu(on_cpu) {}
     //std::vector<uintptr_t> backtrace;
-    std::array<void*,32> backtrace;
+    std::array<void*,64> backtrace;
+    std::array<std::string,64> symbols;
+    bool resolved;
     size_t size;
     bool cpu;
 };
@@ -45,25 +49,19 @@ class book_t {
 public:
     size_t saved_node_id;
     std::atomic<size_t> totalAllocated{0};
-    std::unordered_map<void*,record_t> memoryMap;
+    std::unordered_map<const void*,record_t> memoryMap;
     std::mutex mapMutex;
     ~book_t() {
         apex_report_leaks();
     }
 };
 
-class backtrace_record_t {
-public:
-    size_t skip;
-    std::vector<uintptr_t>& _stack;
-    backtrace_record_t(size_t s, std::vector<uintptr_t>& _s) : skip(s), _stack(_s) {}
-};
-
 book_t& getBook(void);
 void controlMemoryWrapper(bool enabled);
 void printBacktrace(void);
-void recordAlloc(size_t bytes, void* ptr, allocator_t alloc, bool cpu = true);
-void recordFree(void* ptr, bool cpu = true);
+void recordAlloc(const size_t bytes, const void* ptr,
+    const apex_allocator_t alloc, const bool cpu = true);
+void recordFree(const void* ptr, const bool cpu = true);
 void recordMetric(std::string name, double value);
 
 }; // apex namespace
