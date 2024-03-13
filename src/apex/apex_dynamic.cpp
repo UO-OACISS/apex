@@ -125,6 +125,30 @@ void * get_symbol(const char * module, const char * symbol) {
 
     }; // namespace apex::dynamic::cuda
 
+    namespace nvtx {
+        typedef int (*apex_nvtx_range_push_t)(const char *);
+        typedef int (*apex_nvtx_range_pop_t)(void);
+        void push(const char * message) {
+            // do this once
+            static apex_nvtx_range_push_t apex_nvtx_range_push =
+                (apex_nvtx_range_push_t)get_symbol("nvtx", "nvtxRangePushA");
+            // shouldn't be necessary,
+            // but the assertion doesn't happen with release builds
+            if (apex_nvtx_range_push != nullptr) {
+                apex_nvtx_range_push(message);
+            }
+        }
+        void pop(void) {
+            static apex_nvtx_range_pop_t apex_nvtx_range_pop =
+                (apex_nvtx_range_pop_t)get_symbol("nvtx", "nvtxRangePop");
+            // shouldn't be necessary,
+            // but the assertion doesn't happen with release builds
+            if (apex_nvtx_range_pop != nullptr) {
+                apex_nvtx_range_pop();
+            }
+        }
+    } // namespace apex::dynamic::nvtx
+
     namespace nvml {
         void apex_nvml_monitor_query(void);
         void apex_nvml_monitor_stop(void);

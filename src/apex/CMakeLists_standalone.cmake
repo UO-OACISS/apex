@@ -85,6 +85,7 @@ event_listener.cpp
 exhaustive.cpp
 handler.cpp
 memory_wrapper.cpp
+nvtx_listener.cpp
 ${OTF2_SOURCE}
 ${perfetto_sources}
 perftool_implementation.cpp

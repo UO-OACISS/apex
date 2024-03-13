@@ -364,6 +364,7 @@ set(apex_sources
     gzstream.cpp
     handler.cpp
     memory_wrapper.cpp
+    nvtx_listener.cpp
     policy_handler.cpp
     profile_reducer.cpp
     profiler_listener.cpp

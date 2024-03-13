@@ -42,6 +42,7 @@
 
 #include "tau_listener.hpp"
 #include "profiler_listener.hpp"
+#include "nvtx_listener.hpp"
 #include "trace_event_listener.hpp"
 #if defined(APEX_WITH_PERFETTO)
 #include "perfetto_listener.hpp"
@@ -350,6 +351,9 @@ void apex::_initialize()
         this->the_profiler_listener = new profiler_listener();
         // this is always the first listener!
         listeners.push_back(the_profiler_listener);
+        if (apex_options::use_nvtx_handoff() && !apex_options::use_cuda()) {
+            listeners.push_back(new nvtx_listener());
+        }
         if (apex_options::use_tau() && tau_loaded)
         {
             listeners.push_back(new tau_listener());
@@ -1696,7 +1700,7 @@ std::string dump(bool reset, bool finalizing) {
             std::cout << "Enabling memory tracking!" << std::endl;
         }
         controlMemoryWrapper(true);
-    } 
+    }
     if (_notify_listeners) {
         dump_event_data data(instance->get_node_id(),
             thread_instance::get_id(), reset);

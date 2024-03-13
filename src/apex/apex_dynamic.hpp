@@ -29,6 +29,11 @@ namespace nvml {
     void stop(void);
 };  // namespace apex::dynamic::rsmi
 
+namespace nvtx {
+    void push(const char* message);
+    void pop(void);
+};  // namespace apex::dynamic::nvtx
+
 namespace roctracer {
     void init(void);
     void flush(void);

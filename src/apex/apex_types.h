@@ -335,6 +335,7 @@ inline unsigned int sc_nprocessors_onln(void)
     macro (APEX_TIME_TOP_LEVEL_OS_THREADS, top_level_os_threads, bool, false, "When registering threads, measure their lifetimes.") \
     macro (APEX_POLICY_DRAIN_TIMEOUT, policy_drain_timeout, int, 1000, "Internal usage only.") \
     macro (APEX_ENABLE_CUDA, use_cuda, int, false, "Enable CUDA measurement with CUPTI support.") \
+    macro (APEX_ENABLE_NVTX_HANDOFF, use_nvtx_handoff, int, false, "Enable NVTX listener, to pass APEX timers as NVIDIA NVTX ranges.") \
     macro (APEX_CUDA_COUNTERS, use_cuda_counters, int, false, "Enable CUDA CUPTI counter measurement.") \
     macro (APEX_CUDA_KERNEL_DETAILS, use_cuda_kernel_details, int, false, "Enable Context information for CUDA CUPTI counter measurement and CUDA CUPTI API callback timers.") \
     macro (APEX_CUDA_RUNTIME_API, use_cuda_runtime_api, bool, true, "Enable callbacks for the CUDA Runtime API (cuda*() functions).") \
