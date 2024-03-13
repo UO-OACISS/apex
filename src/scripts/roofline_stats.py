@@ -2,9 +2,9 @@
 import pandas as pd
 import glob
 
-print('Reading METRIC_GROUP_0/apex.0.csv')
-df = pd.read_csv('METRIC_GROUP_0/apex.0.csv')
-for file_name in glob.glob('METRIC_GROUP_[1-9]*/apex.0.csv'):
+print('Reading METRIC_GROUP_0/apex_profiles.csv')
+df = pd.read_csv('METRIC_GROUP_0/apex_profiles.csv')
+for file_name in glob.glob('METRIC_GROUP_[1-9]*/apex_profiles.csv'):
     print("Reading", file_name)
     x = pd.read_csv(file_name)
     for column in x:

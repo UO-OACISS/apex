@@ -43,12 +43,12 @@ void apex_memory_wrapper_init() {
     APEX_UNUSED(book);
 }
 
-bool& inWrapper() {
+static bool& inWrapper() {
     thread_local static bool _inWrapper = false;
     return _inWrapper;
 }
 
-void* apex_malloc_wrapper(malloc_p malloc_call, size_t size) {
+void* apex_malloc_wrapper(const malloc_p malloc_call, const size_t size) {
     if(inWrapper() || apex::in_apex::get() > 0) {
         // Another wrapper has already intercepted the call so just pass through
         return malloc_call(size);
@@ -57,26 +57,26 @@ void* apex_malloc_wrapper(malloc_p malloc_call, size_t size) {
     // do the allocation
     auto retval = malloc_call(size);
     // record the state
-    apex::recordAlloc(size, retval, apex::MALLOC);
+    apex::recordAlloc(size, retval, APEX_MALLOC);
     inWrapper() = false;
     return retval;
 }
 
-void apex_free_wrapper(free_p free_call, void* ptr) {
+void apex_free_wrapper(const free_p free_call, const void* ptr) {
     if(inWrapper() || apex::in_apex::get() > 0) {
         // Another wrapper has already intercepted the call so just pass through
-        return free_call(ptr);
+        return free_call((void*)ptr);
     }
     inWrapper() = true;
     // record the state
     if (ptr != nullptr) { apex::recordFree(ptr); }
     // do the allocation
-    free_call(ptr);
+    free_call((void*)ptr);
     inWrapper() = false;
     return;
 }
 
-void* apex_calloc_wrapper(calloc_p calloc_call, size_t nmemb, size_t size) {
+void* apex_calloc_wrapper(const calloc_p calloc_call, const size_t nmemb, const size_t size) {
     if(inWrapper() || apex::in_apex::get() > 0) {
         // Another wrapper has already intercepted the call so just pass through
         return calloc_call(nmemb, size);
@@ -85,23 +85,23 @@ void* apex_calloc_wrapper(calloc_p calloc_call, size_t nmemb, size_t size) {
     // do the allocation
     auto retval = calloc_call(nmemb, size);
     // record the state
-    apex::recordAlloc(size, retval, apex::CALLOC);
+    apex::recordAlloc(size, retval, APEX_CALLOC);
     inWrapper() = false;
     return retval;
 }
 
-void* apex_realloc_wrapper(realloc_p realloc_call, void* ptr, size_t size) {
+void* apex_realloc_wrapper(const realloc_p realloc_call, const void* ptr, const size_t size) {
     if(inWrapper() || apex::in_apex::get() > 0) {
         // Another wrapper has already intercepted the call so just pass through
-        return realloc_call(ptr, size);
+        return realloc_call((void*)ptr, size);
     }
     inWrapper() = true;
     // record the state
     if (ptr != nullptr) { apex::recordFree(ptr); }
     // do the allocation
-    auto retval = realloc_call(ptr, size);
+    auto retval = realloc_call((void*)ptr, size);
     // record the state
-    apex::recordAlloc(size, retval, apex::REALLOC);
+    apex::recordAlloc(size, retval, APEX_REALLOC);
     inWrapper() = false;
     return retval;
 }
@@ -117,7 +117,7 @@ void* apex_memalign_wrapper(memalign_p memalign_call, size_t nmemb, size_t size)
         inWrapper() = true;
 
         // do the allocation
-        auto retval = memalign_call(nmemb, size);
+        void* retval = memalign_call(nmemb, size);
 
         inWrapper() = false;
         return retval;
@@ -135,7 +135,7 @@ void* apex_reallocarray_wrapper(reallocarray_p reallocarray_call, void* ptr, siz
         inWrapper() = true;
 
         // do the allocation
-        auto retval = reallocarray_call(ptr, nmemb, size);
+        void* retval = reallocarray_call(ptr, nmemb, size);
 
         inWrapper() = false;
         return retval;
@@ -153,7 +153,7 @@ void* apex_reallocf_wrapper(reallocf_p reallocf_call, void* ptr, size_t size) {
         inWrapper() = true;
 
         // do the allocation
-        auto retval = reallocf_call(ptr, size);
+        void* retval = reallocf_call(ptr, size);
 
         inWrapper() = false;
         return retval;
@@ -171,7 +171,7 @@ void* apex_valloc_wrapper(valloc_p valloc_call, size_t size) {
         inWrapper() = true;
 
         // do the allocation
-        auto retval = valloc_call(size);
+        void* retval = valloc_call(size);
 
         inWrapper() = false;
         return retval;
@@ -189,7 +189,7 @@ size_t apex_malloc_usable_size_wrapper(malloc_usable_size_p malloc_usable_size_c
         inWrapper() = true;
 
         // do the allocation
-        auto retval = malloc_usable_size_call(ptr);
+        void* retval = malloc_usable_size_call(ptr);
 
         inWrapper() = false;
         return retval;
@@ -197,55 +197,5 @@ size_t apex_malloc_usable_size_wrapper(malloc_usable_size_p malloc_usable_size_c
 }
 #endif
 
-#endif
-
-extern "C" void* apex_malloc(size_t size) {
-  return apex_malloc_wrapper(malloc, size);
-}
-
-extern "C" void apex_free(void* ptr) {
-  return apex_free_wrapper(free, ptr);
-}
-
-extern "C" void* apex_calloc(size_t nmemb, size_t size) {
-  return apex_calloc_wrapper(calloc, nmemb, size);
-}
-
-extern "C" void* apex_realloc(void* ptr, size_t size) {
-  return apex_realloc_wrapper(realloc, ptr, size);
-}
-
-#if 0
-#if defined(memalign)
-extern "C" void* apex_memalign(size_t nmemb, size_t size) {
-  return apex_memalign_wrapper(memalign, nmemb, size);
-}
-#endif
-
-#if defined(reallocarray)
-extern "C" void* apex_reallocarray(void* ptr, size_t nmemb, size_t size) {
-  return apex_reallocarray_wrapper(reallocarray, ptr, nmemb, size);
-}
-#endif
-
-#if defined(reallocf)
-extern "C" void* apex_reallocf(void* ptr, size_t size) {
-  return apex_reallocf_wrapper(reallocf, ptr, size);
-}
-#endif
-
-#if defined(valloc)
-extern "C" void* apex_valloc(size_t size) {
-  return apex_valloc_wrapper(valloc, size);
-}
-#endif
-
-#if defined(malloc_usable_size)
-extern "C" void* apex_malloc_usable_size(void* ptr) {
-  return apex_malloc_usable_size_wrapper(malloc_usable_size, ptr);
-}
-#endif
-
-#endif
-
+#endif // if 0
 

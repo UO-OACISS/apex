@@ -630,6 +630,7 @@ inline std::shared_ptr<task_wrapper> _new_task(
     task_identifier * id,
     const uint64_t task_id,
     const std::shared_ptr<task_wrapper> parent_task, apex* instance) {
+    in_apex prevent_deadlocks;
     APEX_UNUSED(instance);
     std::shared_ptr<task_wrapper> tt_ptr = make_shared<task_wrapper>();
     tt_ptr->task_id = id;
@@ -1674,7 +1675,7 @@ void finalize_plugins(void) {
 
 std::string dump(bool reset, bool finalizing) {
     in_apex prevent_deadlocks;
-    static size_t index{0};
+    static int index{0};
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true ||
         (!finalizing && apex_options::use_final_output_only()))
@@ -1702,6 +1703,7 @@ std::string dump(bool reset, bool finalizing) {
         controlMemoryWrapper(true);
     }
     if (_notify_listeners) {
+        //apex_get_leak_symbols();
         dump_event_data data(instance->get_node_id(),
             thread_instance::get_id(), reset);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {

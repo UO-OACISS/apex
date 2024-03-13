@@ -29,13 +29,12 @@
 #include "apex.hpp"
 #include "Kokkos_Profiling_C_Interface.h"
 
-/*
 static std::mutex memory_mtx;
-static std::unordered_map<void*,apex::profiler*>& memory_map() {
-    static std::unordered_map<void*,apex::profiler*> themap;
+static std::unordered_map<void*,std::string>& memory_map() {
+    static std::unordered_map<void*,std::string> themap;
     return themap;
 }
-*/
+
 static std::stack<apex::profiler*>& timer_stack() {
     static APEX_NATIVE_TLS std::stack<apex::profiler*> thestack;
     return thestack;
@@ -147,9 +146,21 @@ void kokkosp_init_library(int loadseq, uint64_t version,
  * profiling hooks.
  */
 void kokkosp_finalize_library() {
+    memory_mtx.lock();
+    if (memory_map().size() == 0) {
+        if (apex::apex::instance()->get_node_id() == 0) {
+            std::cout << "No Kokkos allocation Leaks on rank 0!" << std::endl;
+        }
+    } else {
+        for (auto it : memory_map()) {
+            std::cerr << "Rank: " << apex::apex::instance()->get_node_id()
+                      << ", Kokkos allocation Leak: " << it.second << std::endl;
+        }
+    }
+    memory_mtx.unlock();
 #ifndef APEX_HAVE_HPX
     if (!apex::apex_options::use_mpi()) {
-        apex::finalize();
+        //apex::finalize();
     }
 #endif
 }
@@ -174,6 +185,7 @@ void kokkosp_request_tool_settings(int num_actions,
  */
 void kokkosp_begin_parallel_for(const char* name,
     uint32_t devid, uint64_t* kernid) {
+    apex::in_apex prevent_memory_tracking;
     std::stringstream ss;
     ExecutionSpaceIdentifier space_id = identifier_from_devid(devid);
     ss << "Kokkos::parallel_for ["
@@ -195,6 +207,7 @@ void kokkosp_begin_parallel_for(const char* name,
 
 void kokkosp_begin_parallel_reduce(const char* name,
     uint32_t devid, uint64_t* kernid) {
+    apex::in_apex prevent_memory_tracking;
     std::stringstream ss;
     ExecutionSpaceIdentifier space_id = identifier_from_devid(devid);
     ss << "Kokkos::parallel_reduce ["
@@ -216,6 +229,7 @@ void kokkosp_begin_parallel_reduce(const char* name,
 
 void kokkosp_begin_parallel_scan(const char* name,
     uint32_t devid, uint64_t* kernid) {
+    apex::in_apex prevent_memory_tracking;
     std::stringstream ss;
     ExecutionSpaceIdentifier space_id = identifier_from_devid(devid);
     ss << "Kokkos::parallel_scan ["
@@ -263,6 +277,7 @@ void kokkosp_end_parallel_scan(uint64_t kernid) {
  * user.
  */
 void kokkosp_push_profile_region(const char* name) {
+    apex::in_apex prevent_memory_tracking;
     std::stringstream ss;
     ss << "Kokkos region, " << name;
     std::string tmp{ss.str()};
@@ -292,18 +307,15 @@ void kokkosp_pop_profile_region() {
  */
 void kokkosp_allocate_data(SpaceHandle_t handle, const char* name,
     void* ptr, uint64_t size) {
+    apex::in_apex prevent_memory_tracking;
     APEX_UNUSED(ptr);
     std::stringstream ss;
     ss << "Kokkos " << handle.name << " data, " << name;
-    /*
-    std::string tmp{ss.str()};
-    auto p = apex::start(tmp);
-    memory_mtx.lock();
-    memory_map().insert(std::pair<void*,apex::profiler*>(ptr, p));
-    memory_mtx.unlock();
-    */
-    ss << ": Bytes";
     std::string tmp2{ss.str()};
+    memory_mtx.lock();
+    memory_map().insert(std::pair<void*,std::string>(ptr, tmp2));
+    memory_mtx.unlock();
+    ss << ": Bytes";
     double bytes = (double)(size);
     if (apex::apex_options::use_kokkos_counters()) {
         apex::sample_value(tmp2, bytes);
@@ -321,13 +333,9 @@ void kokkosp_deallocate_data(SpaceHandle handle, const char* name,
     APEX_UNUSED(name);
     APEX_UNUSED(ptr);
     APEX_UNUSED(size);
-    /*
     memory_mtx.lock();
-    auto p = memory_map()[ptr];
     memory_map().erase(ptr);
     memory_mtx.unlock();
-    apex::stop(p);
-    */
 }
 
 /* This function will be called whenever a Kokkos::deep_copy function is
@@ -342,6 +350,7 @@ void kokkosp_begin_deep_copy(
     SpaceHandle dst_handle, const char* dst_name, const void* dst_ptr,
     SpaceHandle src_handle, const char* src_name, const void* src_ptr,
     uint64_t size) {
+    apex::in_apex prevent_memory_tracking;
     std::stringstream ss;
     ss << "Kokkos deep copy: " << src_handle.name << " " << src_name
        << " -> " << dst_handle.name << " " << dst_name;

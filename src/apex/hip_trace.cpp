@@ -573,7 +573,7 @@ bool getBytesIfMalloc(uint32_t cid, const hip_api_data_t* data,
             hostTotalAllocated.fetch_add(bytes, std::memory_order_relaxed);
             value = (double)(hostTotalAllocated);
             store_sync_counter_data(nullptr, "Total Bytes Occupied on Host", value, false);
-            apex::recordAlloc(bytes, ptr, apex::GPU_HOST_MALLOC);
+            apex::recordAlloc(bytes, ptr, APEX_GPU_HOST_MALLOC);
             return true;
         } else {
             if (managed) {
@@ -587,7 +587,7 @@ bool getBytesIfMalloc(uint32_t cid, const hip_api_data_t* data,
             totalAllocated.fetch_add(bytes, std::memory_order_relaxed);
             value = (double)(totalAllocated);
             store_sync_counter_data(nullptr, "Total Bytes Occupied on Device", value, false);
-            apex::recordAlloc(bytes, ptr, apex::GPU_DEVICE_MALLOC, false);
+            apex::recordAlloc(bytes, ptr, APEX_GPU_DEVICE_MALLOC, false);
         }
         // how much memory does SMI think we have?
         apex::rsmi::monitor::instance().explicitMemCheck();

@@ -22,7 +22,7 @@
 namespace apex {
 
 static const char * allocator_strings[] = {
-    "malloc", "calloc", "realloc", "gpu_host_malloc", "gpu_device_malloc"
+    "malloc", "calloc", "realloc", "gpu_host_malloc", "gpu_device_malloc", "free"
 };
 
 book_t& getBook() {
@@ -98,10 +98,10 @@ void disable_memory_wrapper() {
 }
 
 void printBacktrace() {
-    void *trace[32];
+    void *trace[64];
     size_t size, i;
     char **strings;
-    size    = backtrace( trace, 32 );
+    size    = backtrace( trace, 64 );
     strings = backtrace_symbols( trace, size );
     std::cerr << std::endl;
     // skip the first frame, it is this handler
@@ -110,7 +110,8 @@ void printBacktrace() {
     }
 }
 
-void recordAlloc(size_t bytes, void* ptr, allocator_t alloc, bool cpu) {
+void recordAlloc(const size_t bytes, const void* ptr,
+    const apex_allocator_t alloc, const bool cpu) {
     if (!recording()) return;
     static book_t& book = getBook();
     double value = (double)(bytes);
@@ -123,7 +124,7 @@ void recordAlloc(size_t bytes, void* ptr, allocator_t alloc, bool cpu) {
     tmp.size = backtrace(tmp.backtrace.data(), tmp.backtrace.size());
     book.mapMutex.lock();
     //book.memoryMap[ptr] = value;
-    book.memoryMap.insert(std::pair<void*,record_t>(ptr, tmp));
+    book.memoryMap.insert(std::pair<const void*,record_t>(ptr, tmp));
     book.mapMutex.unlock();
     book.totalAllocated.fetch_add(bytes, std::memory_order_relaxed);
     if (p == nullptr) {
@@ -140,7 +141,7 @@ void recordAlloc(size_t bytes, void* ptr, allocator_t alloc, bool cpu) {
     if (cpu) sample_value("Memory: Total Bytes Occupied", value);
 }
 
-void recordFree(void* ptr, bool cpu) {
+void recordFree(const void* ptr, const bool cpu) {
     if (!recording()) return;
     static book_t& book = getBook();
     size_t bytes;
@@ -184,8 +185,8 @@ void recordMetric(std::string name, double value) {
 }
 
 // Comparator function to sort pairs descending, according to second value
-bool cmp(std::pair<void*, record_t>& a,
-        std::pair<void*, record_t>& b)
+bool cmp(std::pair<const void*, record_t>& a,
+        std::pair<const void*, record_t>& b)
 {
     return a.second.bytes > b.second.bytes;
 }
@@ -195,6 +196,22 @@ bool cmp2(std::pair<std::string, size_t>& a,
         std::pair<std::string, size_t>& b)
 {
     return a.second > b.second;
+}
+
+void apex_get_leak_symbols() {
+    in_apex prevent_memory_tracking;
+    if (!apex_options::track_cpu_memory()) { return; }
+    if (!recording()) return;
+    static book_t& book = getBook();
+    for (auto& it : book.memoryMap) {
+        for(size_t i = 0; i < it.second.size; i++ ){
+            std::string* tmp2{lookup_address(((uintptr_t)it.second.backtrace[i]), true)};
+            it.second.symbols[i] = *tmp2;
+            //delete tmp2;
+        }
+        it.second.resolved = true;
+    }
+
 }
 
 void apex_report_leaks() {
@@ -211,7 +228,7 @@ void apex_report_leaks() {
     std::string outfile{ss.str()};
     std::ofstream report (outfile);
     // Declare vector of pairs
-    std::vector<std::pair<void*, record_t> > sorted;
+    std::vector<std::pair<const void*, record_t> > sorted;
 
     if (book.saved_node_id == 0) {
         std::cout << "APEX Memory Report: (see " << outfile << ")" << std::endl;
@@ -238,6 +255,7 @@ void apex_report_leaks() {
     }
     size_t actual_leaks{0};
     // Print the sorted value
+    size_t actual_bytes{0};
     for (auto& it : sorted) {
         std::stringstream ss;
         //if (it.second.bytes > 1000) {
@@ -266,13 +284,27 @@ void apex_report_leaks() {
                 if (tmp.find("pthread_once", 0) != std::string::npos) { skip = true; break; }
                 if (tmp.find("atexit", 0) != std::string::npos) { skip = true; break; }
                 if (tmp.find("apex_pthread_function", 0) != std::string::npos) { skip = true; break; }
+                if (tmp.find("hipFuncGetAttributes", 0) != std::string::npos) { skip = true; break; }
                 if (nameless) {
                     if (tmp.find("libcuda", 0) != std::string::npos) { skip = true; break; }
                     if (tmp.find("GOMP_parallel", 0) != std::string::npos) { skip = true; break; }
                 }
             }
-            std::string* tmp2{lookup_address(((uintptr_t)it.second.backtrace[i]), true)};
-            ss << "\t" << *tmp2 << std::endl;
+            const std::string unknown{"{(unknown)}"};
+            if (it.second.resolved) {
+                if (it.second.symbols[i].find(unknown) == std::string::npos) {
+                    ss << "\t" << it.second.symbols[i] << std::endl;
+                } else {
+                    ss << "\t" << tmp << std::endl;
+                }
+            } else {
+                std::string* tmp2{lookup_address(((uintptr_t)it.second.backtrace[i]), true)};
+                if (tmp2->find(unknown) == std::string::npos) {
+                    ss << "\t" << *tmp2 << std::endl;
+                } else {
+                    ss << "\t" << tmp << std::endl;
+                }
+            }
         }
         if (skip) { continue; }
 
@@ -295,10 +327,14 @@ void apex_report_leaks() {
         */
         report << ss.str();
         actual_leaks++;
+        actual_bytes+=it.second.bytes;
     }
     report.close();
     if (book.saved_node_id == 0) {
-        std::cout << "Reported " << actual_leaks << " 'actual' leaks.\nExpect false positives if memory was freed after exit." << std::endl;
+        std::cout << "Reported " << actual_leaks << " 'actual' leaks of "
+                  << actual_bytes
+                  << " bytes.\nExpect false positives if memory was freed after exit."
+                  << std::endl;
     }
     if (actual_leaks == 0) {
         remove(outfile.c_str());
