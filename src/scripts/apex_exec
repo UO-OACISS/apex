@@ -339,7 +339,7 @@ while (( "$#" )); do
       export HSA_VEN_AMD_AQLPROFILE_LOG=1
       export AQLPROFILE_READ_API=1
       export ROCP_METRICS=@ROCPROFILER_XML_DIRS@/metrics.xml
-      export HSA_TOOLS_LIB=@ROCPROFILER_HSA_DIRS@/librocprofiler64.so
+      export HSA_TOOLS_LIB=@ROCPROFILER_HSA_DIRS@/librocprofiler64${SHLIBX}
       export LD_LIBRARY_PATH=@ROCPROFILER_HSA_DIRS@:$LD_LIBRARY_PATH
       shift
       ;;

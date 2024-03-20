@@ -35,7 +35,11 @@ void la_preinit(uintptr_t *cookie)
   static apex_memory_dl_initialized_t apex_memory_dl_initialized = NULL;
   void * memory_so;
 
+#if defined(__APPLE__)
+  memory_so = dlmopen(LM_ID_BASE, "libapex_memory_wrapper.dylib", RTLD_NOW);
+#else
   memory_so = dlmopen(LM_ID_BASE, "libapex_memory_wrapper.so", RTLD_NOW);
+#endif
 
   if (memory_so) {
     char const * err;

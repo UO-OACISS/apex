@@ -45,7 +45,11 @@ void enable_memory_wrapper() {
   static apex_memory_initialized_t apex_memory_initialized = NULL;
   void * memory_so;
 
+#if defined(__APPLE__)
+  memory_so = dlopen("libapex_memory_wrapper.dylib", RTLD_NOW);
+#else
   memory_so = dlopen("libapex_memory_wrapper.so", RTLD_NOW);
+#endif
 
   if (memory_so) {
     char const * err;
@@ -74,7 +78,11 @@ void disable_memory_wrapper() {
   static apex_memory_finalized_t apex_memory_finalized = NULL;
   void * memory_so;
 
+#if defined(__APPLE__)
+  memory_so = dlopen("libapex_memory_wrapper.dylib", RTLD_NOW);
+#else
   memory_so = dlopen("libapex_memory_wrapper.so", RTLD_NOW);
+#endif
 
   if (memory_so) {
     char const * err;

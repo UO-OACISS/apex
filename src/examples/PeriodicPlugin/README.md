@@ -13,7 +13,7 @@ export BUILDROOT=/path/to/build/directory
 export APEX_PLUGINS_PATH=${BUILDROOT}/src/examples/PeriodicPlugin
 export APEX_PLUGINS=libapex_periodic_policy
 export DYLD_LIBRARY_PATH=${BUILDROOT}/src/apex
-export DYLD_INSERT_LIBRARIES=${BUILDROOT}/src/apex/libapex.so:${BUILDROOT}/src/wrappers/libapex_pthread_wrapper.so
+export DYLD_INSERT_LIBRARIES=${BUILDROOT}/src/apex/libapex.dylib:${BUILDROOT}/src/wrappers/libapex_pthread_wrapper.dylib
 export DYLD_FORCE_FLAT_NAMESPACE=1
 ```
 

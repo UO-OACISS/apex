@@ -115,7 +115,7 @@ endif (OPENMP_FOUND)
 
 
 set_property (TEST test_apex_malloc_cpp APPEND PROPERTY ENVIRONMENT
-    "LD_PRELOAD=${APEX_BINARY_DIR}/src/wrappers/libapex_memory_wrapper.so")
+    "LD_PRELOAD=${APEX_BINARY_DIR}/src/wrappers/libapex_memory_wrapper${CMAKE_SHARED_LIBRARY_SUFFIX}")
 set_property (TEST test_apex_malloc_cpp APPEND PROPERTY ENVIRONMENT
     "APEX_PROC_STAT=0")
 set_property (TEST test_apex_malloc_cpp APPEND PROPERTY ENVIRONMENT
