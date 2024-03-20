@@ -62,14 +62,18 @@ if(APEX_WITH_TCMALLOC)
     set(TCMALLOC_SOURCE tcmalloc_hooks.cpp)
 endif(APEX_WITH_TCMALLOC)
 
+if(APEX_WITH_KOKKOS)
+    message(INFO " Adding Kokkos support source files")
+    SET(APEX_KOKKOS_SOURCE apex_kokkos.cpp apex_kokkos_tuning.cpp)
+endif(APEX_WITH_KOKKOS)
+
 # Try to keep this in alphabetical order
 SET(all_SOURCE
 apex_preload.cpp
 apex_dynamic.cpp
 apex.cpp
 apex_error_handling.cpp
-apex_kokkos.cpp
-apex_kokkos_tuning.cpp
+${APEX_KOKKOS_SOURCE}
 apex_options.cpp
 event_filter.cpp
 apex_policies.cpp

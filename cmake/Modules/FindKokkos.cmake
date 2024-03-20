@@ -16,12 +16,14 @@ message("Kokkos_ROOT is defined as ${Kokkos_ROOT}")
 
 find_path(Kokkos_INCLUDE_DIR NAMES Kokkos_Core.hpp
 	HINTS ${Kokkos_ROOT}/include $ENV{Kokkos_ROOT}/include)
+find_library(Kokkos_LIBRARY NAMES kokkoscore
+        HINTS ${Kokkos_ROOT}/* $ENV{Kokkos_ROOT}/*)
 
 include(FindPackageHandleStandardArgs)
 # handle the QUIETLY and REQUIRED arguments and set Kokkos_FOUND to TRUE
 # if all listed variables are TRUE
 find_package_handle_standard_args(Kokkos  DEFAULT_MSG
-                                  Kokkos_INCLUDE_DIR)
+                                  Kokkos_LIBRARY Kokkos_INCLUDE_DIR)
 
 mark_as_advanced(Kokkos_INCLUDE_DIR Kokkos_LIBRARY)
 
