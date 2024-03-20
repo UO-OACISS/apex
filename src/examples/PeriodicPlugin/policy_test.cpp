@@ -23,7 +23,7 @@ void foo(int i) {
 
 int main (int argc, char *argv[]) {
 
-    int iters = 100;
+    int iters = 50;
     int nthreads = 4;
 
 	if (argc == 1) {

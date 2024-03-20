@@ -239,11 +239,10 @@ inline unsigned int my_hardware_concurrency()
 {
 #if defined(_MSC_VER)
     return std::thread::hardware_concurrency();
-#else
-/*
+#elif defined(__APPLE__)
     unsigned int cores = std::thread::hardware_concurrency();
     return cores ? cores : sysconf(_SC_NPROCESSORS_ONLN);
-*/
+#else
     static std::vector<uint32_t>
         cores{parseDiscreteValues(getCpusAllowed("/proc/self/status"))};
     return cores.size();
