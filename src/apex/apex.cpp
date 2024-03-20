@@ -585,12 +585,12 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
     enable_memory_wrapper();
 #endif
     if (apex_options::delay_memory_tracking()) {
-        if (instance->get_node_id() == 0) {
+        if (instance->get_node_id() == 0 && apex_options::use_verbose()) {
             std::cout << "Pausing memory tracking until further notice..." << std::endl;
         }
         controlMemoryWrapper(false);
     } else {
-        if (instance->get_node_id() == 0) {
+        if (instance->get_node_id() == 0 && apex_options::use_verbose()) {
             std::cout << "Enabling memory tracking!" << std::endl;
         }
         controlMemoryWrapper(true);
@@ -1697,7 +1697,7 @@ std::string dump(bool reset, bool finalizing) {
     index = index + 1;
     if (apex_options::delay_memory_tracking() &&
         index > apex_options::delay_memory_iterations()) {
-        if (instance->get_node_id() == 0) {
+        if (instance->get_node_id() == 0 && apex_options::use_verbose()) {
             std::cout << "Enabling memory tracking!" << std::endl;
         }
         controlMemoryWrapper(true);
