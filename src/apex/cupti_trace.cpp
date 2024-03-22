@@ -1504,7 +1504,7 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
             hostTotalAllocated.fetch_add(bytes, std::memory_order_relaxed);
             value = (double)(hostTotalAllocated);
             store_sync_counter_data("GPU: Total Bytes Occupied on Host", context, value, false, false);
-            apex::recordAlloc(bytes, ptr, apex::GPU_DEVICE_MALLOC);
+            apex::recordAlloc(bytes, ptr, APEX_GPU_DEVICE_MALLOC);
             return true;
         } else {
             if (managed) {
@@ -1518,7 +1518,7 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
             totalAllocated.fetch_add(bytes, std::memory_order_relaxed);
             value = (double)(totalAllocated);
             store_sync_counter_data("GPU: Total Bytes Occupied on Device", context, value, false, false);
-            apex::recordAlloc(bytes, ptr, apex::GPU_DEVICE_MALLOC, false);
+            apex::recordAlloc(bytes, ptr, APEX_GPU_DEVICE_MALLOC, false);
         }
     }
     return true;
