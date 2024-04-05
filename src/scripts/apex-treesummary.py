@@ -107,7 +107,10 @@ class TreeNode:
                 total = acc_mean
             acc_percent = (acc_mean / total) * 100.0
             acc_minimum = self.df[metric].min() # get min
+            acc_minimum_rank = self.df.loc[self.df[metric].idxmin()]['process rank']
             acc_maximum = self.df[metric].max() # get max
+            acc_maximum_rank = self.df.loc[self.df[metric].idxmax()]['process rank']
+            acc_median = self.df[metric].median() # get median
             acc_threads = self.df['threads'].sum() # get sum
             acc_calls = self.df['calls'].mean() # get sum
             acc_mean_per_call = acc_mean / acc_calls
@@ -116,7 +119,10 @@ class TreeNode:
             tmpstr = tmpstr + ' - ' + '%.3f' % acc_percent
             tmpstr = tmpstr + '% [' + str(int(acc_calls))
             tmpstr = tmpstr + '] {min=' + '%.3f' % acc_minimum
+            tmpstr = tmpstr + ' (' + '%d' % acc_minimum + ')'
             tmpstr = tmpstr + ', max=' + '%.3f' % acc_maximum
+            tmpstr = tmpstr + ' (' + '%d' % acc_maximum + ')'
+            tmpstr = tmpstr + ', median=' + '%.3f' % acc_median
             tmpstr = tmpstr + ', mean=' + '%.3f' % acc_mean_per_call
             tmpstr = tmpstr + ', threads=' + str(int(acc_threads))
             tmpstr = tmpstr + '} ' + self.name + '\n'

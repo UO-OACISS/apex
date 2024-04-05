@@ -199,7 +199,7 @@ public:
         ss << filesystem_separator();
         ss << task_scatterplot_sample_filename << node_id << ".csv";
         // open the file
-        _task_scatterplot_sample_file.open(ss.str(), std::ofstream::out);
+        _task_scatterplot_sample_file.open(ss.str(), std::ofstream::out | std::ofstream::app);
         if (!_task_scatterplot_sample_file.is_open()) {
             perror("opening scatterplot sample file");
         }
@@ -214,7 +214,7 @@ public:
         ss << filesystem_separator();
         ss << counter_scatterplot_sample_filename << node_id << ".csv";
         // open the file
-        _counter_scatterplot_sample_file.open(ss.str(), std::ofstream::out);
+        _counter_scatterplot_sample_file.open(ss.str(), std::ofstream::out | std::ofstream::app);
         if (!_counter_scatterplot_sample_file.is_open()) {
             perror("opening scatterplot sample file");
         }

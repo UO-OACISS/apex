@@ -825,6 +825,7 @@ namespace apex {
         }
         // release the main thread to continue
         while(!done /*&& ptw->wait()*/) {
+            incrementPeriod();
             //usleep(apex_options::proc_period());
             std::unique_lock<std::mutex> lk(proc_data_reader::cv_m);
             // if we've been interrupted by the main thread, break and exit
@@ -958,6 +959,9 @@ namespace apex {
         }
         return line;
     }
+
+    std::atomic<uint64_t> proc_data_reader::sample_period{0};
+
 
 std::array<double,2> getAvailableMemory() {
     std::array<double,2> values{0,0};

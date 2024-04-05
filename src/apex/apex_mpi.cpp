@@ -142,7 +142,25 @@ bool amIroot(MPI_Comm comm, int root) {
  * implementation of Finalize, and do what we need to. */
 #if defined(APEX_WITH_MPI) && !defined(HPX_HAVE_NETWORKING)
     int MPI_Init(int *argc, char ***argv) {
-        int retval = PMPI_Init(argc, argv);
+        int retval = 0;
+        /* If the user passed in null, we can still extract the
+           command line arguments (why? because we can...) */
+        if (argc == NULL || argv == NULL) {
+            int _argc = 0;
+            char* _argv[256];
+            std::stringstream ss(apex::proc_data_reader::get_command_line());
+            std::string token;
+            while(getline(ss, token, ' ')) {
+                _argv[_argc] = strdup(token.c_str());
+                _argc++;
+            } 
+            retval = PMPI_Init(&_argc, (char***)(&_argv));
+            for (int i = 0; i < _argc ; i++) {
+                free(_argv[i]);
+            }
+        } else {
+            retval = PMPI_Init(argc, argv);
+        }
         int rank{0};
         int size{0};
         PMPI_Comm_rank(MPI_COMM_WORLD, &rank);
