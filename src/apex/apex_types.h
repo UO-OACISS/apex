@@ -383,7 +383,8 @@ inline unsigned int sc_nprocessors_onln(void)
     macro (APEX_EVENT_FILTER_FILE, task_event_filter_file, char*, "", "File containing names of timers to include/exclude during data collection.") \
     macro (APEX_KOKKOS_TUNING_CACHE, kokkos_tuning_cache, char*, "", "Filename contining Kokkos autotuned results, tuned offline.") \
     macro (APEX_KOKKOS_TUNING_POLICY, kokkos_tuning_policy, char*, "simulated_annealing", "Kokkos autotuning policy: random, exhaustive, simulated_annealing, nelder_mead.") \
-    macro (APEX_ROCPROF_METRICS, rocprof_metrics, char*, "", "List of metrics to periodically sample with the Rocprofiler library (see /opt/rocm/rocprofiler/lib/metrics.xml).")
+    macro (APEX_ROCPROF_METRICS, rocprof_metrics, char*, "", "List of metrics to periodically sample with the Rocprofiler library (see /opt/rocm/rocprofiler/lib/metrics.xml).") \
+    macro (APEX_NVTX_LIBRARY, nvtx_library, char*, "libnvToolsExt.so", "With NVTX listener, specify the location of libnvToolsExt.so.")
     // macro (APEX_ROCPROF_METRICS, rocprof_metrics, char*, "MemUnitBusy,MemUnitStalled,VALUUtilization,VALUBusy,SALUBusy,L2CacheHit,WriteUnitStalled,ALUStalledByLDS,LDSBankConflict", "")
 
 #if defined(_WIN32) || defined(_WIN64)
