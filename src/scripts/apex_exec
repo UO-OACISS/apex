@@ -332,8 +332,7 @@ while (( "$#" )); do
     --apex:hip_metrics|--apex:hip-metrics)
       hip=yes
       hip_metrics=yes
-      export APEX_ENABLE_HIP=1
-      export APEX_HIP_PROFILER=1
+      #export APEX_ENABLE_HIP=1
       export APEX_HIP_PROFILER=1
       export ROCPROFILER_LOG=1
       export HSA_VEN_AMD_AQLPROFILE_LOG=1
@@ -651,26 +650,17 @@ fi
 echo_screen "APEX_LD_LIBRARY_PATH: ${APEX_LD_LIBRARY_PATH}"
 echo_screen "APEX_LD_PRELOAD: ${APEX_LD_PRELOAD}"
 
-if [ $debug = yes ] ; then
-    if [ "${myrank}" == "0" ] ; then
-        rm -f ./.gdbcmds
-    fi
-fi
+printf -v myrank_padded "%04g" $myrank
+gdbcmds=/tmp/gdbcmds.${myrank}
+rm -f ${gdbcmds}
 
 if [ $apple = 1 ]; then
     if [ $debug = yes ] ; then
-        if [ "${myrank}" == "0" ] ; then
-            echo "_regexp-env DYLD_LIBRARY_PATH=${APEX_LD_LIBRARY_PATH}" >> ./.gdbcmds
-            echo "_regexp-env DYLD_INSERT_LIBRARIES=${APEX_LD_PRELOAD}" >> ./.gdbcmds
-            echo "_regexp-env DYLD_FORCE_FLAT_NAMESPACE=1" >> ./.gdbcmds
+        echo "_regexp-env DYLD_LIBRARY_PATH=${APEX_LD_LIBRARY_PATH}" >> ${gdbcmds}
+        echo "_regexp-env DYLD_INSERT_LIBRARIES=${APEX_LD_PRELOAD}" >> ${gdbcmds}
+        echo "_regexp-env DYLD_FORCE_FLAT_NAMESPACE=1" >> ${gdbcmds}
         if [ $# -gt 1 ] ; then
-            echo "settings set target.run-args ${*:2}" >> .gdb_commands
-        fi
-        else
-            # Give rank 0 enough time to write the .gdbcmds file
-            until [ -f ./.gdbcmds ] ; do
-                sleep 1
-            done
+            echo "settings set target.run-args ${*:2}" >> ${gdbcmds}
         fi
         debugger="lldb -s ./.gdbcmds --"
     else
@@ -681,26 +671,44 @@ if [ $apple = 1 ]; then
 else
     if [ $debug = yes ] ; then
         gdbargs=""
-        if [ "${myrank}" == "0" ] ; then
-        echo "set env LD_LIBRARY_PATH=${APEX_LD_LIBRARY_PATH}" >> ./.gdbcmds
-        echo "set env LD_PRELOAD=${APEX_LD_PRELOAD}" >> ./.gdbcmds
+        echo "set env LD_LIBRARY_PATH=${APEX_LD_LIBRARY_PATH}" >> ${gdbcmds}
+        echo "set env LD_PRELOAD=${APEX_LD_PRELOAD}" >> ${gdbcmds}
         if [ $mpi = yes ]; then
-            echo "run" >> ./.gdbcmds
-            echo "bt" >> ./.gdbcmds
-            echo "quit" >> ./.gdbcmds
-                gdbargs="-batch -q"
-        fi
-        else
-            # Give rank 0 enough time to write the .gdbcmds file
-            until [ -f ./.gdbcmds ] ; do
-                sleep 1
-            done
+            # Set up logging
+            echo "set pagination off" >> ${gdbcmds}
+            echo "set height 0" >> ${gdbcmds}
+            echo "set logging overwrite on" >> ${gdbcmds}
+            echo "set logging redirect on" >> ${gdbcmds}
+            echo "set logging file zsgdb.${myrank_padded}.log" >> ${gdbcmds}
+            echo "set logging enabled on" >> ${gdbcmds}
+
+            # Run the executable
+            echo "run" >> ${gdbcmds}
+
+            # If non-zero exit, do the following:
+            echo "echo \n\nBacktrace:\n\n" >> ${gdbcmds}
+            echo "backtrace" >> ${gdbcmds}
+            echo "echo \n\nMain thread Backtrace:\n\n" >> ${gdbcmds}
+            echo "thread 1" >> ${gdbcmds}
+            echo "backtrace" >> ${gdbcmds}
+            #echo "echo \n\nRegisters:\n\n" >> ${gdbcmds}
+            #echo "info registers" >> ${gdbcmds}
+            #echo "echo \n\nCurrent instructions:\n\n" >> ${gdbcmds}
+            #echo "x/16i \$pc" >> ${gdbcmds}
+            echo "echo \n\nThreads:\n\n" >> ${gdbcmds}
+            echo "info threads" >> ${gdbcmds}
+            echo "echo \n\nThread Backtrace:\n\n" >> ${gdbcmds}
+            echo "thread apply all bt" >> ${gdbcmds}
+
+            # exit gdb
+            echo "quit" >> ${gdbcmds}
+            gdbargs="-batch -q"
         fi
         #echo "set env LD_AUDIT=${APEX_LD_AUDIT}" >> ./.gdbcmds
         if [ $hip = yes ] ; then
-            debugger="rocgdb ${gdbargs} -x ./.gdbcmds --args"
+            debugger="rocgdb -x ${gdbcmds} ${gdbargs} --args"
         else
-            debugger="gdb ${gdbargs} -x ./.gdbcmds --args"
+            debugger="gdb -x ${gdbcmds} ${gdbargs} --args"
         fi
     else
         export LD_LIBRARY_PATH=${APEX_LD_LIBRARY_PATH}
@@ -746,6 +754,12 @@ env | while IFS= read -r line; do
     echo "$value: $name"
   fi
 done
+# For now, only collect ROCM metrics on device 0. Any other device fails.
+if [[ ${APEX_PAPI_METRICS} == *":device="* ]]; then
+    if [ "${ROCR_VISIBLE_DEVICES}" != "0" ] ; then
+        export APEX_PAPI_METRICS=""
+    fi
+fi
 export LD_PRELOAD=${APEX_SAVE_LD_PRELOAD}
 
 delim=";"
@@ -771,7 +785,7 @@ if [[ "$long_metrics" == *"$delim"* ]]; then
         export APEX_PAPI_METRICS=${t}
         export APEX_OUTPUT_FILE_PATH="${base_output_path}/METRIC_GROUP_${index}"
         mkdir -p ${APEX_OUTPUT_FILE_PATH}
-        echo "Executing with metrics: \"${t}\", writing to ${APEX_OUTPUT_FILE_PATH}"
+        #echo "${myrank} Executing with metrics: ${APEX_PAPI_METRICS}, writing to ${APEX_OUTPUT_FILE_PATH}"
         # Restore our preload settings
         export LD_PRELOAD=${APEX_LD_PRELOAD}
         ${PARAMS}
@@ -784,12 +798,13 @@ if [[ "$long_metrics" == *"$delim"* ]]; then
     done
     unset IFS
 else
+    #echo "${myrank} Executing with metrics: \"${APEX_PAPI_METRICS}\", writing to ${APEX_OUTPUT_FILE_PATH}"
     ${debugger} ${PARAMS}
     retval=$?
     unset LD_PRELOAD
     unset DYLD_INSERT_LIBRARIES
     if [ "${myrank}" == "0" ] ; then
-        rm -f ./.gdbcmds
+        rm -f ${gdbcmds}
     fi
     if [ ${retval} != 0 ] ; then
         echo "Error ${retval}!"

@@ -243,8 +243,17 @@ inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
         int i = 0;
         for (auto metric :
             apex::instance()->the_profiler_listener->get_metric_names()) {
-            //double start = p->papi_start_values[i];
             double stop = p->papi_stop_values[i++];
+            /* this would be a good idea, but Perfetto allows us to visualize
+               as a delta or a rate, so not needed. It also confuses things for
+               nested timers, so for now, just allow monotonically increasing
+               counters to increase. */
+            /*
+            double start = p->papi_start_values[i];
+            if (!p->tt_ptr->explicit_trace_start) {
+                stop = stop - start;
+            }
+            */
             // write our counter into the event stream
             ss << fixed;
             ss << "{\"name\":\"" << metric

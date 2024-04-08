@@ -18,7 +18,7 @@
 #include "util/hsa_rsrc_factory.h"
 #include "util/test_assert.h"
 
-#define ROCPROFILER_CALL(call)                                                      \
+#define APEX_ROCPROFILER_CALL(call)                                                      \
 do {                                                                         \
     hsa_status_t _status = call;                                            \
     if (_status != HSA_STATUS_SUCCESS) {                                    \
@@ -31,7 +31,7 @@ do {                                                                         \
     }                                                                        \
 } while (0);
 
-#define ROCPROFILER_CALL_NOEXIT(call)                                               \
+#define APEX_ROCPROFILER_CALL_NOEXIT(call)                                               \
 do {                                                                         \
     hsa_status_t _status = call;                                            \
     if (_status != HSA_STATUS_SUCCESS) {                                    \
@@ -111,10 +111,10 @@ monitor::~monitor (void) {
     }
   // Finishing cleanup
   // Deleting profiling context will delete all allocated resources
-  std::cout << "close..." << std::endl;
-  //status = rocprofiler_close(context);
-  //TEST_STATUS(status == HSA_STATUS_SUCCESS);
-  std::cout << "done." << std::endl;
+  //std::cout << "close..." << std::endl;
+  status = rocprofiler_close(context);
+  TEST_STATUS(status == HSA_STATUS_SUCCESS);
+  //std::cout << "done." << std::endl;
 }
 
 // print profiler features

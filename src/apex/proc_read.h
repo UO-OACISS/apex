@@ -11,6 +11,7 @@
 #if APEX_HAVE_PROC
 
 #include <stdio.h>
+#include <unistd.h>
 #include <vector>
 #include <iostream>
 #include <fstream>
@@ -50,6 +51,7 @@ private:
     std::thread worker_thread;
     std::condition_variable cv;
     std::mutex cv_m;
+    static std::atomic<uint64_t> sample_period;
 public:
     /*
     static void* read_proc(void * _pdr);
@@ -71,6 +73,8 @@ public:
         if (worker_thread.joinable()) {
             worker_thread.join();
         }
+        // this is helpful if we are sampling frequently
+        usleep(apex_options::proc_period());
     }
 
     ~proc_data_reader(void) {
@@ -78,6 +82,8 @@ public:
         //delete worker_thread;
     }
     static std::string get_command_line(void);
+    static uint64_t getPeriod() { return sample_period; }
+    static void incrementPeriod() { sample_period++; }
 };
 
 class ProcData {
