@@ -48,6 +48,7 @@ class proc_data_reader {
 private:
     //pthread_wrapper * worker_thread;
     std::atomic<bool> done;
+    std::atomic<bool> reading;
     std::thread worker_thread;
     std::condition_variable cv;
     std::mutex cv_m;
@@ -61,7 +62,7 @@ public:
     };
     */
     void* read_proc(void);
-    proc_data_reader(void) : done(false) {
+    proc_data_reader(void) : done(false), reading(false) {
         worker_thread = std::thread(&proc_data_reader::read_proc, this);
         worker_thread.detach();
     }
@@ -73,8 +74,10 @@ public:
         if (worker_thread.joinable()) {
             worker_thread.join();
         }
-        // this is helpful if we are sampling frequently
-        usleep(apex_options::proc_period());
+        if(reading) {
+            // this is helpful if we are sampling frequently
+            usleep(apex_options::proc_period());
+        }
     }
 
     ~proc_data_reader(void) {

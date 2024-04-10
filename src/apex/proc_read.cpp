@@ -834,6 +834,7 @@ namespace apex {
                break;
             }
             if (done) break;
+            reading = true;
             if (apex_options::use_tau()) {
                 tau_listener::Tau_start_wrapper("proc_data_reader::read_proc: main loop");
             }
@@ -873,7 +874,10 @@ namespace apex {
             if (apex_options::use_tau()) {
                 tau_listener::Tau_stop_wrapper("proc_data_reader::read_proc: main loop");
             }
+            reading = false;
         }
+        // in case we broke from while loop
+        reading = false;
 #ifdef APEX_HAVE_LM_SENSORS
         delete(mysensors);
 #endif
