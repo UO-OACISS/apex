@@ -5,7 +5,6 @@
 int main (int argc, char** argv) {
   apex_init("apex_version unit test", 0, 1);
   printf("APEX Version : %s\n", apex_version());
-  sleep(1);
   apex_finalize();
   apex_cleanup();
   return 0;

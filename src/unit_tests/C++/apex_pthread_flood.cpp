@@ -60,7 +60,6 @@ int main(int argc, char **argv)
     test_numthreads = strtoul(argv[1],NULL,0);
   }
   apex::apex_options::use_screen_output(true);
-  sleep(1); // if we don't sleep, the proc_read thread won't have time to read anything.
 
   apex::scoped_timer proxy(__func__);
   printf("PID of this process: %d\n", getpid());
