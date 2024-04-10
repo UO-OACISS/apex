@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
+#include <dlfcn.h>
 
 #ifdef __APPLE__
 #include <dlfcn.h>
@@ -89,13 +90,14 @@ namespace apex {
         // Apple doesn't give us line numbers.
       }
 #endif
-#else
+#else // not __APPLE__
 #ifdef APEX_HAVE_BFD
         Apex_bfd_resolveBfdInfo(ar->my_bfd_unit_handle, ip, node->info);
 #else
+        /*
         void * const buffer[1] = {(void *)ip};
         char ** names = backtrace_symbols((void * const *)buffer, 1);
-        /* Split the backtrace strings into tokens, and get the 4th one */
+        // Split the backtrace strings into tokens, and get the 4th one
         std::vector<std::string> result;
 	    std::istringstream iss(names[0]);
 	    for (std::string s; iss >> s; ) {
@@ -110,8 +112,17 @@ namespace apex {
             ss << "UNRESOLVED  ADDR 0x" << hex << ip;
             node->info.funcname = strdup(ss.str().c_str());
         }
-#endif
-#endif
+        */
+        Dl_info info;
+        int rc = dladdr((const void *)ip, &info);
+        if (rc == 0) {
+        } else {
+            node->info.probeAddr = ip;
+            node->info.filename = strdup(info.dli_fname);
+            node->info.funcname = strdup(info.dli_sname);
+        }
+#endif // no APEX_HAVE_BFD
+#endif // no __APPLE__
         if (node->info.filename == nullptr) {
             stringstream ss;
             ss << "UNRESOLVED  ADDR 0x" << hex << ip;
