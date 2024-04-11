@@ -53,6 +53,11 @@ int main(int argc, char * argv[]) {
   float* rand_dev1;
   float* rand_dev2;
 
+  std::shared_ptr<apex::task_wrapper> tt_ptr = apex::new_task(__func__);
+  const char * new_label = "compute_region";
+  apex::update_task(tt_ptr, new_label);
+  apex::start(tt_ptr);
+
   rand_host = (float**) malloc(Nx*sizeof(float*));
   for (int i = 0; i < Nx; i++) {
     rand_host[i] = (float*) malloc(N*sizeof(float));
@@ -101,6 +106,13 @@ int main(int argc, char * argv[]) {
   }
 
   printf("starting compute\n");
+  // and another one
+  std::shared_ptr<apex::task_wrapper> tt_ptr2 = apex::new_task("asdlkjdf");
+  apex::start(tt_ptr2);
+  // rename after start?
+  const char * new_label2 = "monte carlo";
+  apex::update_task(tt_ptr2, new_label2);
+
   for (int n = 0; n < Nx; n +=2) {
     printf("n is %d\n", n);
     #pragma omp parallel for num_threads(2)
@@ -130,6 +142,7 @@ int main(int argc, char * argv[]) {
   }
 
   cudaDeviceSynchronize();
+  apex::stop(tt_ptr2);
 
   // sum results
 
@@ -177,6 +190,7 @@ int main(int argc, char * argv[]) {
 #if defined(APEX_WITH_MPI)
   MPI_Finalize();
 #endif
+  apex::stop(tt_ptr);
   apex::finalize();
   apex::cleanup();
 }

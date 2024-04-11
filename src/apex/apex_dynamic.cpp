@@ -137,14 +137,79 @@ void * get_symbol(const char * module, const char * symbol) {
 #endif
         typedef int (*apex_nvtx_range_push_t)(const char *);
         typedef int (*apex_nvtx_range_pop_t)(void);
+        const uint32_t colors[] = { 0xff008800, 0xff000088, 0xff888800, 0xff880088, 0xff008888, 0xff880000, 0xff888888,
+                                                            0xff88ff00, 0xff8800ff, 0xff0088ff,
+                                                            0xffff8800, 0xffff0088, 0xff00ff88,
+                                                                                                            0xffff8888,
+                                                                                                            0xffffff88,
+                                                                                                            0xff88ff88,
+                                                                                                            0xff88ffff,
+                                                                                                            0xff8888ff,
+                                    0xff00ff00, 0xff0000ff, 0xffffff00, 0xffff00ff, 0xff00ffff, 0xffff0000, 0xffffffff};
+        const uint32_t num_colors = 25;
+        uint32_t getColor(const char * message) {
+            static std::unordered_map<std::string, uint32_t> theMap;
+            std::string tmp{message};
+            if (theMap.count(tmp) == 0) {
+                size_t index = theMap.size();
+                uint32_t color_index = index % num_colors;
+                theMap.insert(std::pair<std::string, uint32_t>(tmp, color_index));
+                return color_index;
+            }
+            return theMap[tmp];
+        }
+        // these values are from nvToolsExt.h, cuda 12.3.2
+        const int16_t NVTX_VERSION = 2;
+        const int32_t NVTX_COLOR_ARGB = 1;
+        const int32_t NVTX_MESSAGE_TYPE_ASCII = 1;
+        typedef union nvtxMessageValue_t {
+            const char* ascii;
+            const wchar_t* unicode;
+            /* NVTX_VERSION_2 */
+            // nvtxStringHandle_t registered;
+        } nvtxMessageValue_t;
+        typedef struct nvtxEventAttributes_v2 {
+            uint16_t version;
+            uint16_t size;
+            uint32_t category;
+            int32_t colorType;              /* nvtxColorType_t */
+            uint32_t color;
+            int32_t payloadType;            /* nvtxPayloadType_t */
+            int32_t reserved0;
+            union payload_t {
+                uint64_t ullValue;
+                int64_t llValue;
+                double dValue;
+                /* NVTX_VERSION_2 */
+                uint32_t uiValue;
+                int32_t iValue;
+                float fValue;
+            } payload;
+            int32_t messageType;            /* nvtxMessageType_t */
+            nvtxMessageValue_t message;
+        } nvtxEventAttributes_v2;
+        typedef struct nvtxEventAttributes_v2 nvtxEventAttributes_t;
+        typedef int (*apex_nvtx_range_push_ex_t)(const nvtxEventAttributes_t* eventAttrib);
         void push(const char * message) {
             // do this once
-            static apex_nvtx_range_push_t apex_nvtx_range_push =
-                (apex_nvtx_range_push_t)get_symbol(module, "nvtxRangePushA");
+            //static apex_nvtx_range_push_t apex_nvtx_range_push =
+                //(apex_nvtx_range_push_t)get_symbol(module, "nvtxRangePushA");
+            static apex_nvtx_range_push_ex_t apex_nvtx_range_push =
+                (apex_nvtx_range_push_ex_t)get_symbol(module, "nvtxRangePushEx");
             // shouldn't be necessary,
             // but the assertion doesn't happen with release builds
             if (apex_nvtx_range_push != nullptr) {
-                apex_nvtx_range_push(message);
+                //apex_nvtx_range_push(message);
+                auto color_id = getColor(message);
+                nvtxEventAttributes_t eventAttrib;
+                memset(&eventAttrib, 0, sizeof(nvtxEventAttributes_t));
+                eventAttrib.version = NVTX_VERSION;
+                eventAttrib.size = (uint16_t)sizeof(nvtxEventAttributes_t);
+                eventAttrib.colorType = NVTX_COLOR_ARGB;
+                eventAttrib.color = colors[color_id];
+                eventAttrib.messageType = NVTX_MESSAGE_TYPE_ASCII;
+                eventAttrib.message.ascii = message;
+                apex_nvtx_range_push(&eventAttrib);
             }
         }
         void pop(void) {
