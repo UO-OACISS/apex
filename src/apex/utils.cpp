@@ -39,6 +39,10 @@
 #include <chrono>
 #include <cstdarg>
 
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
+
 namespace apex {
 
 /* Idea borrowed from:
@@ -764,6 +768,21 @@ std::vector<uint32_t> parseDiscreteValues(std::string inputString) {
     return result;
 }
 
+std::string getCommandLine(void) {
+#ifdef __APPLE__
+    char path[1024];
+    uint32_t size = sizeof(path);
+    if (_NSGetExecutablePath(path, &size) == 0) {
+        std::string tmp{path};
+        return tmp;
+    }
+#else
+    return proc_data_reader::get_command_line();
+#endif
+    // just in case things failed
+    std::string tmp{"unknown"};
+    return tmp;
+}
 
 } // namespace apex
 

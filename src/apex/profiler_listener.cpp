@@ -410,8 +410,11 @@ std::unordered_set<profile*> free_profiles;
                 thread_instance::instance(false);
                 std::unique_lock<std::mutex> task_map_lock(_mtx);
                 counter_scatterplot_samples << std::fixed
-                    << std::setprecision(0) << proc_data_reader::getPeriod()
-                    << " " << p.normalized_timestamp()
+                    << std::setprecision(0)
+#ifdef APEX_HAVE_PROC
+                    << proc_data_reader::getPeriod() << " "
+#endif
+                    << p.normalized_timestamp()
                     << " " << std::setprecision(6) << p.elapsed() << " "
                     << "'" << p.get_task_id()->get_name() << "'" << endl;
                 int loc0 = task_scatterplot_samples.tellp();
@@ -722,7 +725,7 @@ std::unordered_set<profile*> free_profiles;
     // want to write it out
     stringstream screen_output;
     // iterate over the profiles in the address map
-    screen_output << endl << "Command line: " << proc_data_reader::get_command_line();
+    screen_output << endl << "Command line: " << getCommandLine();
     screen_output << endl << "Start Date/Time: " << timestamp_started;
     screen_output << endl << "Elapsed time: " << wall_clock_main
         << " seconds" << endl;

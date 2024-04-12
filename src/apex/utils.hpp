@@ -306,6 +306,8 @@ class in_apex {
 
 void rank0_print(const char * fmt, ...);
 
+std::string getCommandLine(void);
+
 }
 
 template <typename I>

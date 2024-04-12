@@ -611,7 +611,7 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
     if (comm_rank == 0) {
         printf("%s", apex_banner);
         printf("APEX Version: %s\n", instance->version_string.c_str());
-        printf("Executing command line: %s\n", proc_data_reader::get_command_line().c_str());
+        printf("Executing command line: %s\n", getCommandLine().c_str());
     }
     FUNCTION_EXIT
     return APEX_NOERROR;
