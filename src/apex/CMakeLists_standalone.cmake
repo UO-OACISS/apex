@@ -87,6 +87,7 @@ csv_parser.cpp
 dependency_tree.cpp
 event_listener.cpp
 exhaustive.cpp
+genetic_search.cpp
 handler.cpp
 memory_wrapper.cpp
 nvtx_listener.cpp
@@ -266,6 +267,7 @@ SET(APEX_PUBLIC_HEADERS apex.h
     apex_policies.hpp
     exhaustive.hpp
     dependency_tree.hpp
+    genetic_search.hpp
     handler.hpp
     memory_wrapper.hpp
     profile.hpp

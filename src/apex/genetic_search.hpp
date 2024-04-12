@@ -14,7 +14,7 @@
 
 namespace apex {
 
-namespace random {
+namespace genetic {
 
 enum class VariableType { doubletype, longtype, stringtype } ;
 
@@ -81,6 +81,11 @@ public:
     }
 };
 
+struct individual {
+    std::vector<size_t> indexes;
+    double cost;
+};
+
 class GeneticSearch {
 private:
     double cost;
@@ -90,6 +95,11 @@ private:
     std::map<std::string, Variable> vars;
     const size_t max_iterations{1000};
     const size_t min_iterations{100};
+    const size_t population_size{16};
+    const size_t crossover{8}; // half population
+    const size_t parent_ratio{50};
+    const size_t mutate_probability{5};
+    std::vector<individual> population;
 public:
     void evaluate(double new_cost);
     GeneticSearch() :
@@ -102,10 +112,7 @@ public:
     }
     double getEnergy() { return best_cost; }
     bool converged() { return (k > kmax); }
-    void getNewSettings() {
-        /*   Increment neighbour */
-        for (auto& v : vars) { v.second.get_next_neighbor(); }
-    }
+    void getNewSettings();
     void saveBestSettings() {
         for (auto& v : vars) { v.second.getBest(); }
     }
@@ -127,6 +134,6 @@ public:
     }
 };
 
-} // random
+} // genetic
 
 } // apex
