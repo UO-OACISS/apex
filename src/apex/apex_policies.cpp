@@ -1817,7 +1817,7 @@ inline int __common_setup_custom_tuning(shared_ptr<apex_tuning_session>
             }
             );
         }
-    } else if (request.strategy == apex_ah_tuning_strategy::APEX_GENETIC) {
+    } else if (request.strategy == apex_ah_tuning_strategy::GENETIC_SEARCH) {
         status = __genetic_setup(tuning_session, request);
         if(status == APEX_NOERROR) {
             apex::register_policy(

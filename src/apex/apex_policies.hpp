@@ -41,7 +41,7 @@ enum class apex_ah_tuning_strategy : int {
     EXHAUSTIVE, RANDOM, NELDER_MEAD,
     PARALLEL_RANK_ORDER, SIMULATED_ANNEALING,
     APEX_EXHAUSTIVE, APEX_RANDOM,
-    APEX_GENETIC};
+    GENETIC_SEARCH};
 
 struct apex_tuning_session;
 class apex_tuning_request;

@@ -87,10 +87,15 @@ auto get_random_number(const std::size_t min, const std::size_t max)
 void GeneticSearch::getNewSettings() {
     static bool bootstrapping{true};
     if (bootstrapping) {
-        // we are still bootstrapping, so just get a random selection.
-        for (auto& v : vars) { v.second.get_next_neighbor(); }
-        return;
+        if (population.size() >= population_size) {
+            bootstrapping = false;
+        } else {
+            // we are still bootstrapping, so just get a random selection.
+            for (auto& v : vars) { v.second.get_next_neighbor(); }
+            return;
+        }
     }
+    std::cout << "Have population of " << population.size() << " to evaluate!" << std::endl;
     // time to cull the herd?
     if (population.size() >= population_size) {
         std::cout << "Have population of " << population.size() << " to evaluate!" << std::endl;
@@ -102,13 +107,12 @@ void GeneticSearch::getNewSettings() {
         // ...then drop half of them - the "weakest" ones.
         population.erase(population.cbegin() + crossover, population.cend());
         std::cout << "Now have population of " << population.size() << std::endl;
-        bootstrapping = false;
     }
     // We want to generate a new individual using two "high quality" parents.
     // choose parent A
-    individual& A = population[get_random_number(0,crossover)];
+    individual& A = population[get_random_number(0,crossover-1)];
     // choose parent B
-    individual& B = population[get_random_number(0,crossover)];
+    individual& B = population[get_random_number(0,crossover-1)];
     // blend their variables into a new individual and maybe mutate?
     size_t i = 0;
     for (auto& v : vars) {
