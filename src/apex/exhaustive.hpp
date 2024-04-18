@@ -99,7 +99,6 @@ public:
         best_cost = cost;
         //std::cout << "New Session!" << std::endl;
     }
-    double getEnergy() { return best_cost; }
     bool converged() { return (k >= kmax); }
     void getNewSettings() {
         /*   Increment neighbour */

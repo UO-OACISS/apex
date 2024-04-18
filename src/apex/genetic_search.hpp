@@ -51,7 +51,7 @@ public:
     void save_best() { best_index = current_index; }
     void set_init() {
         maxlen = (std::max(std::max(dvalues.size(),
-            lvalues.size()), svalues.size())) - 1;
+            lvalues.size()), svalues.size()));
         current_index = 0;
         set_current_value();
     }
@@ -94,24 +94,35 @@ private:
     size_t k;
     std::map<std::string, Variable> vars;
     const size_t max_iterations{1000};
-    const size_t min_iterations{100};
-    const size_t population_size{16};
-    const size_t crossover{8}; // half population
+    const size_t min_iterations{16};
+    const size_t population_size{32};
+    const size_t crossover{16}; // half population
     const size_t parent_ratio{50};
-    const size_t mutate_probability{5};
+    const size_t mutate_probability{15};
+    const size_t max_stable_generations{5};
+    size_t num_stable_generations;
     std::vector<individual> population;
+    bool bootstrapping;
+    double best_generation_cost;
 public:
     void evaluate(double new_cost);
     GeneticSearch() :
-        kmax(0), k(1) {
+        kmax(0), k(1), num_stable_generations(0), bootstrapping(true),
+        best_generation_cost(0.0) {
         cost = std::numeric_limits<double>::max();
         best_cost = cost;
         //std::cout << "New Session!" << std::endl;
         //srand (1);
         srand (time(NULL));
     }
-    double getEnergy() { return best_cost; }
-    bool converged() { return (k > kmax); }
+    bool converged() {
+        // if we haven't improved for X generations, quit
+        if (num_stable_generations >= max_stable_generations) {
+            return true;
+        }
+        // otherwise, just quit when we hit max iterations
+        return (k > kmax);
+    }
     void getNewSettings();
     void saveBestSettings() {
         for (auto& v : vars) { v.second.getBest(); }

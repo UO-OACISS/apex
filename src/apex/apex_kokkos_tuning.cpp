@@ -252,6 +252,7 @@ public:
     std::unordered_map<std::string, std::vector<int>> var_ids;
     std::map<size_t, Variable*> inputs;
     std::map<size_t, Variable*> outputs;
+    std::map<size_t, Variable*> all_vars;
     apex_policy_handle * start_policy_handle;
     apex_policy_handle * stop_policy_handle;
     std::unordered_map<size_t, std::string> active_requests;
@@ -300,30 +301,12 @@ bool KokkosSession::checkForCache() {
 void KokkosSession::saveInputVar(size_t id, Variable * var) {
     // insert the id given to us
     inputs.insert(std::make_pair(id, var));
-    // get a count of how many input variables we have seen
-    size_t count = inputs.size();
-    // if the id is equal to the size, there was a mingling of input and output ids.
-    // this might burn us later, so also insert the missing ID.
-    // For example, if the input ID is 4, and the new size is 3.
-    if (id > count) {
-        inputs.insert(std::make_pair(count, var));
-    }
-    /*
-    if (!use_history) {
-        cachedResults << "Input_" << id << ":" << std::endl;
-        cachedResults << var->toString();
-    }
-    */
+    all_vars.insert(std::make_pair(id, var));
 }
 
 void KokkosSession::saveOutputVar(size_t id, Variable * var) {
     outputs.insert(std::make_pair(id, var));
-    /*
-    if (!use_history) {
-        cachedResults << "Output_" << id << ":" << std::endl;
-        cachedResults << var->toString();
-    }
-    */
+    all_vars.insert(std::make_pair(id, var));
 }
 
 void KokkosSession::writeCache(void) {
@@ -741,27 +724,41 @@ std::string hashContext(size_t numVars,
     std::map<size_t, Variable*>& varmap, std::string tree_node) {
     std::stringstream ss;
     std::string d{"["};
+    /* This is REALLY annoying. sometimes the order of the variables
+     * can change, not sure how Kokkos is doing that but it may be a
+     * side effect of using an unordered map. regardless, we have to
+     * sort the variables by ID to make sure we generate the hash
+     * consistently. */
+    std::vector<std::pair<size_t,size_t>> reindex;
     for (size_t i = 0 ; i < numVars ; i++) {
-        auto id = values[i].type_id;
+        reindex.push_back(std::pair<size_t,size_t>(i,values[i].type_id));
+    }
+    sort(reindex.begin(), reindex.end(),
+            [](const auto& lhs, const auto& rhs) {
+                return lhs.second < rhs.second;
+            });
+    for (size_t i = 0 ; i < numVars ; i++) {
+        size_t ri = reindex[i].first;
+        auto id = values[ri].type_id;
         ss << d << id << ":";
         Variable* var{varmap[id]};
         switch (var->info.type) {
             case kokkos_value_double:
                 if (var->info.valueQuantity == kokkos_value_unbounded) {
-                    ss << var->getBin(values[i].value.double_value);
+                    ss << var->getBin(values[ri].value.double_value);
                 } else {
-                    ss << values[i].value.double_value;
+                    ss << values[ri].value.double_value;
                 }
                 break;
             case kokkos_value_int64:
                 if (var->info.valueQuantity == kokkos_value_unbounded) {
-                    ss << var->getBin(values[i].value.int_value);
+                    ss << var->getBin(values[ri].value.int_value);
                 } else {
-                    ss << values[i].value.int_value;
+                    ss << values[ri].value.int_value;
                 }
                 break;
             case kokkos_value_string:
-                ss << values[i].value.string_value;
+                ss << values[ri].value.string_value;
                 break;
             default:
                 break;
@@ -769,8 +766,9 @@ std::string hashContext(size_t numVars,
         d = ",";
     }
     if(tree_node.size() > 0) {
-        ss << ",tree_node:" << tree_node << "]";
+        ss << ",tree_node:" << tree_node;
     }
+    ss << "]";
     std::string tmp{ss.str()};
     return tmp;
 }
@@ -1082,7 +1080,7 @@ void kokkosp_request_values(
     KokkosSession& session = KokkosSession::getSession();
     // create a unique name for this combination of input vars
     std::string name{hashContext(numContextVariables, contextVariableValues,
-        session.inputs, tree_node)};
+        session.all_vars, tree_node)};
     if (session.verbose) {
         std::cout << std::string(getDepth(), ' ');
         std::cout << __APEX_FUNCTION__ << " ctx: " << contextId << std::endl;

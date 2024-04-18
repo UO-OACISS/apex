@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <cmath>
 
 namespace apex {
 
@@ -78,27 +79,42 @@ class log_wrapper {
         crossover
 */
 
-auto get_random_number(const std::size_t min, const std::size_t max)
-{
+auto get_random_number(const std::size_t min, const std::size_t max) {
     const std::size_t values_count = max - min + 1;
     return rand() % values_count + min;
 }
 
+auto get_rank_order(const std::size_t min, const std::size_t max) {
+    // get 2^max minus 1
+    size_t powmax = pow(2,max);
+    size_t rando = get_random_number(min,powmax);
+    size_t index = 0;
+    for (size_t i = pow(2,max-1) ; i > min ; i = i / 2) {
+        if (rando > i) { break; }
+        index++;
+    }
+    return index;
+}
+
 void GeneticSearch::getNewSettings() {
-    static bool bootstrapping{true};
     if (bootstrapping) {
         if (population.size() >= population_size) {
             bootstrapping = false;
         } else {
             // we are still bootstrapping, so just get a random selection.
             for (auto& v : vars) { v.second.get_next_neighbor(); }
+            best_generation_cost = best_cost;
             return;
         }
     }
-    std::cout << "Have population of " << population.size() << " to evaluate!" << std::endl;
+    //std::cout << "Have population of " << population.size() << " to evaluate!" << std::endl;
     // time to cull the herd?
     if (population.size() >= population_size) {
-        std::cout << "Have population of " << population.size() << " to evaluate!" << std::endl;
+        if (best_cost < best_generation_cost) {
+            best_generation_cost = best_cost;
+        } else {
+            num_stable_generations++;
+        }
         // we need to sort the population...
         sort(population.begin(), population.end(),
             [](const individual& lhs, const individual& rhs) {
@@ -106,13 +122,25 @@ void GeneticSearch::getNewSettings() {
             });
         // ...then drop half of them - the "weakest" ones.
         population.erase(population.cbegin() + crossover, population.cend());
-        std::cout << "Now have population of " << population.size() << std::endl;
+        //std::cout << "Now have population of " << population.size() << std::endl;
     }
     // We want to generate a new individual using two "high quality" parents.
     // choose parent A
-    individual& A = population[get_random_number(0,crossover-1)];
+    auto indexA = get_rank_order(0,crossover-1);
+    individual& A = population[indexA];
+    /*
+    std::cout << "A: " << indexA;
+    for (auto& i : A.indexes) { std::cout << "," << i; }
+    std::cout << ", " << A.cost << std::endl;
+    */
     // choose parent B
-    individual& B = population[get_random_number(0,crossover-1)];
+    auto indexB = get_rank_order(0,crossover-1);
+    individual& B = population[indexB];
+    /*
+    std::cout << "B: " << indexB;
+    for (auto& i : B.indexes) { std::cout << "," << i; }
+    std::cout << ", " << B.cost << std::endl;
+    */
     // blend their variables into a new individual and maybe mutate?
     size_t i = 0;
     for (auto& v : vars) {
@@ -131,9 +159,7 @@ void GeneticSearch::getNewSettings() {
 
 void GeneticSearch::evaluate(double new_cost) {
     static log_wrapper log(vars);
-    static size_t count{0};
-    if (++count % 10000 == 0) { std::cout << count << std::endl; }
-    log.getstream() << count << ",";
+    log.getstream() << k << ",";
     for (auto& v : vars) { log.getstream() << v.second.toString() << ","; }
     log.getstream() << new_cost << std::endl;
     if (new_cost < cost) {
@@ -145,14 +171,18 @@ void GeneticSearch::evaluate(double new_cost) {
             std::cout << std::endl;
         }
         cost = new_cost;
+        /*
+    } else {
+        std::cout << "          " << new_cost << " k: " << k;
+        for (auto& v : vars) { std::cout  << ", value: " << v.second.toString(); }
+        std::cout << std::endl;
+        */
     }
     /* save our individual in the population */
     individual i;
     i.cost = new_cost;
     for (auto& v : vars) { i.indexes.push_back(v.second.current_index); }
     population.push_back(i);
-
-    //for (auto& v : vars) { v.second.choose_neighbor(); }
     k++;
     return;
 }

@@ -51,7 +51,7 @@ public:
     void save_best() { best_index = current_index; }
     void set_init() {
         maxlen = (std::max(std::max(dvalues.size(),
-            lvalues.size()), svalues.size())) - 1;
+            lvalues.size()), svalues.size()));
         current_index = 0;
         set_current_value();
     }
@@ -100,7 +100,6 @@ public:
         //srand (1);
         srand (time(NULL));
     }
-    double getEnergy() { return best_cost; }
     bool converged() { return (k > kmax); }
     void getNewSettings() {
         /*   Increment neighbour */
