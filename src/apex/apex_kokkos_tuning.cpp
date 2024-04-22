@@ -267,8 +267,12 @@ public:
     void parseContextCache(std::ifstream& results);
     //std::stringstream cachedResults;
     std::string cacheFilename;
-    std::map<size_t, struct Kokkos_Tools_VariableInfo> cachedVariables;
+    // Map from cached variables to variable values
+    std::map<std::string, struct Kokkos_Tools_VariableInfo> cachedVariables;
+    // map from cached variable IDs to cached variable names
     std::map<size_t, std::string> cachedVariableNames;
+    // map from cached variable names to cached variable IDs
+    std::map<std::string, size_t> cachedVariableIDs;
     std::map<std::string, std::map<size_t, struct Kokkos_Tools_VariableValue> > cachedTunings;
 };
 
@@ -419,8 +423,12 @@ void KokkosSession::parseVariableCache(std::ifstream& results) {
     std::getline(results, line);
     std::string candidates = line.substr(line.find(delimiter)+2);
     // ...eh, who cares.  We don't need the candidate values.
-    cachedVariables.insert(std::make_pair(id, std::move(info)));
+    // map the name to the variable
+    cachedVariables.insert(std::make_pair(name, std::move(info)));
+    // map the old id to the name
     cachedVariableNames.insert(std::make_pair(id, name));
+    // map the name to the old id
+    cachedVariableIDs.insert(std::make_pair(name, id));
     /*
     if (candidates.find("unbounded") != std::string::npos) {
         info.candidates = kokkos_value_unbounded;
@@ -469,7 +477,10 @@ void KokkosSession::parseContextCache(std::ifstream& results) {
             // value
             std::getline(results, line);
             std::string value = line.substr(line.find(delimiter)+2);
-            auto info = cachedVariables.find(id);
+            // get the variable name
+            std::string varName = cachedVariableNames.find(id)->second;
+            // look it up in the cached variables
+            auto info = cachedVariables.find(varName);
             if (info->second.type == kokkos_value_double) {
                 var.value.double_value = atof(value.c_str());
             } else if (info->second.type == kokkos_value_int64) {
@@ -740,8 +751,8 @@ std::string hashContext(size_t numVars,
     for (size_t i = 0 ; i < numVars ; i++) {
         size_t ri = reindex[i].first;
         auto id = values[ri].type_id;
-        ss << d << id << ":";
         Variable* var{varmap[id]};
+        ss << d << var->name << ":";
         switch (var->info.type) {
             case kokkos_value_double:
                 if (var->info.valueQuantity == kokkos_value_unbounded) {
@@ -794,12 +805,18 @@ bool getCachedTunings(std::string name,
     if (result == session.cachedTunings.end()) { return false; }
     for (size_t i = 0 ; i < vars ; i++) {
         auto id = values[i].type_id;
-        auto variter = result->second.find(id);
-        auto nameiter = session.cachedVariableNames.find(id);
+        // look up the variable in the outputs, by id - may not match the cached ID
+        auto outputVar = session.outputs.find(id);
+        // look up the variable in the cache, by name - the name will always match
+        std::string varname{outputVar->second->name};
+        // look up the cached ID (it might not match the current variable id from Kokkos)
+        size_t varID = session.cachedVariableIDs.find(varname)->second;
+        auto variter = result->second.find(varID);
+        //auto nameiter = session.cachedVariableNames.find(id);
         if (variter == result->second.end()) { return false; }
-        if (nameiter == session.cachedVariableNames.end()) { return false; }
+        //if (nameiter == session.cachedVariableNames.end()) { return false; }
         auto var = variter->second;
-        auto varname = nameiter->second;
+        //auto varname = nameiter->second;
         if (var.metadata->type == kokkos_value_double) {
             values[i].value.double_value = var.value.double_value;
             std::string tmp(name+":"+varname);
