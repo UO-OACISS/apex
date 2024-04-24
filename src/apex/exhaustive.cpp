@@ -33,6 +33,7 @@ size_t Exhaustive::get_max_iterations() {
         }
     }
     // want to see multiple values of each one
+    //std::cout << "Max iterations: " << max_iter << std::endl;
     return max_iter;
 }
 

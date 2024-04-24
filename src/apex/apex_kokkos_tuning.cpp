@@ -207,6 +207,46 @@ public:
     }
 };
 
+/* this class helps us with nested contexts. We don't want to
+ * stop searching a higher level branch until all of the subtrees
+ * have also converged - the global optimum might be at the bottom
+ * of a branch with many options, but we won't get there if we
+ * have found local minimum in a simpler branch. */
+class TreeNode {
+    static std::map<std::string,TreeNode*> allContexts;
+public:
+    TreeNode(std::string _name) :
+        name(_name), _hasConverged(false) {}
+    static TreeNode* find(std::string name, TreeNode* parent) {
+        auto node = allContexts.find(name);
+        if (node == allContexts.end()) {
+            TreeNode *tmp = new TreeNode(name);
+            if (parent != nullptr) {
+                parent->children.insert(tmp);
+            }
+            allContexts.insert(std::pair<std::string, TreeNode*>(name,tmp));
+            return tmp;
+        }
+        return node->second;
+    }
+    std::string name;
+    std::set<TreeNode*> children;
+    bool _hasConverged;
+    bool haveChildren(void) {
+        return (children.size() > 0);
+    }
+    bool childrenConverged(void) {
+        // yes children? have they all converged?
+        for (auto child : children) {
+            if (!child->childrenConverged()) { return false; }
+            if (!child->_hasConverged) { return false; }
+        }
+        return true;
+    }
+};
+
+std::map<std::string,TreeNode*> TreeNode::allContexts;
+
 class KokkosSession {
 private:
 // EXHAUSTIVE, RANDOM, NELDER_MEAD, PARALLEL_RANK_ORDER
@@ -258,6 +298,7 @@ public:
     std::unordered_map<size_t, std::string> active_requests;
     std::set<size_t> used_history;
     std::unordered_map<size_t, uint64_t> context_starts;
+    std::stack<TreeNode*> contextStack;
     void writeCache();
     bool checkForCache();
     void readCache();
@@ -989,6 +1030,9 @@ bool handle_start(const std::string & name, const size_t vars,
 void handle_stop(const std::string & name) {
     KokkosSession& session = KokkosSession::getSession();
     auto search = session.requests.find(name);
+    /* We want to check if this search context has child contexts, and if so,
+     * have they converged? If not converged, we want to pass in false. */
+    bool childrenConverged = TreeNode::find(name, nullptr)->childrenConverged();
     if(search == session.requests.end()) {
         std::cerr << "ERROR: No data for " << name << std::endl;
     } else {
@@ -998,8 +1042,11 @@ void handle_stop(const std::string & name) {
             profile->calls >= session.window)) {
             //std::cout << "Num calls: " << profile->calls << std::endl;
             std::shared_ptr<apex_tuning_request> request = search->second;
+            /* If we are in a nested context, and this is the outermost
+             * context, we want to not allow it to converge until all of
+             * the inner contexts have also converged! */
             // Evaluate the results
-            apex::custom_event(request->get_trigger(), NULL);
+            apex::custom_event(request->get_trigger(), &childrenConverged);
             // Reset counter so each measurement is fresh.
             apex::reset(name);
         }
@@ -1104,6 +1151,12 @@ void kokkosp_request_values(
         std::cout << std::string(getDepth(), ' ');
         printContext(numContextVariables, name);
     }
+    // push our context on the stack
+    if(session.contextStack.size() > 0) {
+        session.contextStack.push(TreeNode::find(name, session.contextStack.top()));
+    } else {
+        session.contextStack.push(TreeNode::find(name, nullptr));
+    }
     // check if we have a cached result
     bool success{false};
     if (session.use_history) {
@@ -1117,6 +1170,9 @@ void kokkosp_request_values(
         if (handle_start(name, numTuningVariables, tuningVariableValues, delta, converged)) {
             // throw away the time spent setting up tuning
             //session.context_starts[contextId] = session.context_starts[contextId] + delta;
+        }
+        if(converged) {
+            TreeNode::find(name, nullptr)->_hasConverged = true;
         }
         //if (!converged) {
             // add this name to our map of active contexts
@@ -1178,6 +1234,9 @@ void kokkosp_end_context(const size_t contextId) {
         session.active_requests.erase(contextId);
     }
     session.context_starts.erase(contextId);
+    if (session.contextStack.size() > 0) {
+        session.contextStack.pop();
+    }
 }
 
 } // extern "C"

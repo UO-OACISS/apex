@@ -93,7 +93,7 @@ private:
     size_t kmax;
     size_t k;
     std::map<std::string, Variable> vars;
-    const size_t max_iterations{1000};
+    const size_t max_iterations{500};
     const size_t min_iterations{16};
     const size_t population_size{32};
     const size_t crossover{16}; // half population

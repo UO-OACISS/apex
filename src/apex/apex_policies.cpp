@@ -883,7 +883,14 @@ int apex_sa_policy(shared_ptr<apex_tuning_session> tuning_session,
     APEX_UNUSED(context);
     if (apex_final) return APEX_NOERROR; // we terminated
     std::unique_lock<std::mutex> l{shutdown_mutex};
-    if (tuning_session->sa_session.converged()) {
+    /* If we are doing nested search contexts, allow us to keep searching
+     * on outer contexts until all inner contexts have converged! */
+    bool force{true};
+    if (context.data != nullptr) {
+        // the context data is a pointer to a boolean value
+        force = *((bool*)(context.data));
+    }
+    if (tuning_session->sa_session.converged() && force) {
         if (!tuning_session->converged_message) {
             tuning_session->converged_message = true;
             cout << "APEX: Tuning has converged for session " << tuning_session->id
@@ -912,7 +919,14 @@ int apex_genetic_policy(shared_ptr<apex_tuning_session> tuning_session,
     APEX_UNUSED(context);
     if (apex_final) return APEX_NOERROR; // we terminated
     std::unique_lock<std::mutex> l{shutdown_mutex};
-    if (tuning_session->genetic_session.converged()) {
+    /* If we are doing nested search contexts, allow us to keep searching
+     * on outer contexts until all inner contexts have converged! */
+    bool force{true};
+    if (context.data != nullptr) {
+        // the context data is a pointer to a boolean value
+        force = *((bool*)(context.data));
+    }
+    if (tuning_session->genetic_session.converged() && force) {
         if (!tuning_session->converged_message) {
             tuning_session->converged_message = true;
             cout << "APEX: Tuning has converged for session " << tuning_session->id
@@ -941,7 +955,14 @@ int apex_exhaustive_policy(shared_ptr<apex_tuning_session> tuning_session,
     APEX_UNUSED(context);
     if (apex_final) return APEX_NOERROR; // we terminated
     std::unique_lock<std::mutex> l{shutdown_mutex};
-    if (tuning_session->exhaustive_session.converged()) {
+    /* If we are doing nested search contexts, allow us to keep searching
+     * on outer contexts until all inner contexts have converged! */
+    bool force{true};
+    if (context.data != nullptr) {
+        // the context data is a pointer to a boolean value
+        force = *((bool*)(context.data));
+    }
+    if (tuning_session->exhaustive_session.converged() && force) {
         if (!tuning_session->converged_message) {
             tuning_session->converged_message = true;
             cout << "APEX: Tuning has converged for session " << tuning_session->id
@@ -970,7 +991,14 @@ int apex_random_policy(shared_ptr<apex_tuning_session> tuning_session,
     APEX_UNUSED(context);
     if (apex_final) return APEX_NOERROR; // we terminated
     std::unique_lock<std::mutex> l{shutdown_mutex};
-    if (tuning_session->random_session.converged()) {
+    /* If we are doing nested search contexts, allow us to keep searching
+     * on outer contexts until all inner contexts have converged! */
+    bool force{true};
+    if (context.data != nullptr) {
+        // the context data is a pointer to a boolean value
+        force = *((bool*)(context.data));
+    }
+    if (tuning_session->random_session.converged() && force) {
         if (!tuning_session->converged_message) {
             tuning_session->converged_message = true;
             cout << "APEX: Tuning has converged for session " << tuning_session->id
