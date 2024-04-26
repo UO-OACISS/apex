@@ -158,16 +158,18 @@ void GeneticSearch::getNewSettings() {
 }
 
 void GeneticSearch::evaluate(double new_cost) {
+    /*
     static log_wrapper log(vars);
     log.getstream() << k << ",";
     for (auto& v : vars) { log.getstream() << v.second.toString() << ","; }
     log.getstream() << new_cost << std::endl;
+    */
     if (new_cost < cost) {
         if (new_cost < best_cost) {
             best_cost = new_cost;
             std::cout << "New best! " << new_cost << " k: " << k;
             for (auto& v : vars) { v.second.save_best(); }
-            for (auto& v : vars) { std::cout  << ", value: " << v.second.toString(); }
+            for (auto& v : vars) { std::cout  << ", " << v.first << ": " << v.second.toString(); }
             std::cout << std::endl;
         }
         cost = new_cost;

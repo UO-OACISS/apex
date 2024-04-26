@@ -55,7 +55,7 @@ void SimulatedAnnealing::evaluate(double new_cost) {
             best_cost = new_cost;
             std::cout << "New best! " << new_cost << " k: " << k << " temp: " << temp;
             for (auto& v : vars) { v.second.save_best(); }
-            for (auto& v : vars) { std::cout  << ", value: " << v.second.toString(); }
+            for (auto& v : vars) { std::cout  << ", " << v.first << ": " << v.second.toString(); }
             std::cout << std::endl;
             since_restart = 1;
         }
