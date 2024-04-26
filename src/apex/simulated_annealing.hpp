@@ -188,7 +188,12 @@ public:
         kmax = get_max_iterations();
         /* get max iterations */
         //std::cout << vars.size() << " Vars, Max iterations : " << kmax << std::endl;
-        restart = kmax / 10;
+        // prevent restart getting set to 0
+        if (kmax < 10) {
+            restart = kmax;
+        } else {
+            restart = kmax / 10;
+        }
     }
 };
 

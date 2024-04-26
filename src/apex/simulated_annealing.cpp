@@ -32,7 +32,12 @@ size_t SimulatedAnnealing::get_max_iterations() {
     }
     //return max_iter / vars.size();
     //return max_iter * vars.size() *vars.size();
-    auto foo = std::min(max_iterations, (std::max(min_iterations, max_iter*vars.size())));
+    auto foo = max_iter;
+    if (vars.size() == 1) {
+        foo = max_iter * max_iter;
+    } else {
+        foo = std::min(max_iterations, (std::max(min_iterations, max_iter)));
+    }
     //std::cout << "Max iterations: " << foo << std::endl;
     return foo;
 }
