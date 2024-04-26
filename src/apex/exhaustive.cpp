@@ -67,7 +67,7 @@ void Exhaustive::evaluate(double new_cost) {
             best_cost = new_cost;
             std::cout << "New best! " << new_cost << " k: " << k;
             for (auto& v : vars) { v.second.save_best(); }
-            for (auto& v : vars) { std::cout  << ", index: " << v.second.current_index; }
+            for (auto& v : vars) { std::cout  << ", value: " << v.second.toString(); }
             std::cout << std::endl;
         }
         cost = new_cost;
