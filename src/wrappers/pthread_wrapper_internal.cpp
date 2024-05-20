@@ -108,6 +108,7 @@ public:
     apex::register_thread("APEX pthread wrapper", parent);
     //_twp = apex::new_task((apex_function_address)func, UINTMAX_MAX, parent);
     _twp = apex::new_task((apex_function_address)func);
+    _twp->explicit_trace_start = true;
   }
   ~apex_wrapper() {
     this->stop();

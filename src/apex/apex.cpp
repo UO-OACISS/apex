@@ -1925,6 +1925,7 @@ void register_thread(const std::string &name,
         std::shared_ptr<task_wrapper> twp =
             new_task(task_name, UINTMAX_MAX,
             (parent == nullptr ? task_wrapper::get_apex_main_wrapper() : parent));
+        twp->explicit_trace_start = true;
         start(twp);
         //printf("New thread: %p\n", &(*twp));
         thread_instance::set_top_level_timer(twp);
