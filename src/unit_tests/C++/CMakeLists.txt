@@ -121,6 +121,8 @@ set_property (TEST test_apex_malloc_cpp APPEND PROPERTY ENVIRONMENT
 set_property (TEST test_apex_malloc_cpp APPEND PROPERTY ENVIRONMENT
     "APEX_TRACK_CPU_MEMORY=1")
 
+set_tests_properties(test_apex_version_cpp PROPERTIES ENVIRONMENT "APEX_PROC_SELF_STATUS=0;APEX_PROC_STAT=0")
+
 # Make sure the compiler can find include files from our Apex library.
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MPI_COMPILE_FLAGS}")
 include_directories (. ${APEX_SOURCE_DIR}/src/apex ${MPI_CXX_INCLUDE_PATH})

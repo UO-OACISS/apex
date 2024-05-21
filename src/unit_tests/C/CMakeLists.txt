@@ -88,6 +88,7 @@ if(OpenACC_C_FOUND AND OpenACCProfiling_FOUND)
 endif(OpenACC_C_FOUND AND OpenACCProfiling_FOUND)
 
 set_tests_properties(test_apex_disable PROPERTIES ENVIRONMENT "APEX_DISABLE=1")
+set_tests_properties(test_apex_version PROPERTIES ENVIRONMENT "APEX_PROC_SELF_STATUS=0;APEX_PROC_STAT=0")
 if(APEX_ERROR_HANDLING)
     set_tests_properties(test_crasher PROPERTIES WILL_FAIL TRUE)
 endif(APEX_ERROR_HANDLING)
