@@ -62,7 +62,8 @@ where APEX options are zero or more of:
     --apex:kokkos-tuning          enable Kokkos runtime autotuning support
     --apex:kokkos-fence           enable Kokkos fences for async kernels
     --apex:raja                   enable RAJA support
-    --apex:pthread                enable pthread wrapper support
+    --apex:pthread                enable pthread wrapper support (default: off)
+    --apex:track-pthread          track pthread lifetime (forces --apex:pthread on)
     --apex:gpu-memory             enable GPU memory wrapper support
     --apex:cpu-memory             enable CPU memory wrapper support
     --apex:delay-memory           delay memory wrapper support until explicitly enabled
@@ -187,6 +188,10 @@ while (( "$#" )); do
       shift
       ;;
     --apex:pthread)
+      pthread=yes
+      shift
+      ;;
+    --apex:track-pthread)
       pthread=yes
       export APEX_TIME_TOP_LEVEL_OS_THREADS=1
       shift

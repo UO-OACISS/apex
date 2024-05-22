@@ -106,8 +106,14 @@ public:
   apex_wrapper(start_routine_p func, std::shared_ptr<apex::task_wrapper> parent) :
     _wrapped(false), _twp(nullptr), _timing(false) {
     apex::register_thread("APEX pthread wrapper", parent);
-    //_twp = apex::new_task((apex_function_address)func, UINTMAX_MAX, parent);
-    _twp = apex::new_task((apex_function_address)func);
+    // if we are tracking thread lifetimes, the top level timer for the thread
+    // will have the flow event/parent of the pthread_create call, from the
+    // register_thread timer, above.
+    if (apex::apex_options::top_level_os_threads()) {
+        _twp = apex::new_task((apex_function_address)func);
+    } else {
+        _twp = apex::new_task((apex_function_address)func, UINTMAX_MAX, parent);
+    }
     _twp->explicit_trace_start = true;
   }
   ~apex_wrapper() {

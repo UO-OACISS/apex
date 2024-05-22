@@ -185,14 +185,15 @@ uint64_t get_flow_id() {
 }
 
 void write_flow_event(std::stringstream& ss, double ts, char ph,
-    std::string cat, uint64_t id, uint64_t pid, uint64_t tid, std::string name) {
+    std::string cat, uint64_t id, uint64_t pid, uint64_t tid, std::string parent_name,
+    std::string child_name) {
     ss << "{\"ts\":" << ts
        << ",\"ph\":\"" << ph
        << "\",\"cat\":\"" << cat
        << "\",\"id\":" << id
        << ",\"pid\":" << pid
        << ",\"tid\":" << tid
-       << ",\"name\":\"" << name << "\"},\n";
+       << ",\"name\":\"" << parent_name << " -> " << child_name << "\"},\n";
 }
 
 inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
@@ -218,10 +219,10 @@ inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
             ) {
             //std::cout << "FLOWING!" << std::endl;
             uint64_t flow_id = reversed_node_id + get_flow_id();
-            write_flow_event(ss, p->tt_ptr->parent->get_flow_us()+0.250, 's', "ControlFlow", flow_id,
-                saved_node_id, p->tt_ptr->parent->thread_id, p->tt_ptr->parent->task_id->get_name());
-            write_flow_event(ss, p->get_start_us(), 'f', "ControlFlow", flow_id,
-                saved_node_id, _tid, p->tt_ptr->parent->task_id->get_name());
+            write_flow_event(ss, p->tt_ptr->parent->get_flow_us()+0.25, 's', "ControlFlow", flow_id,
+                saved_node_id, p->tt_ptr->parent->thread_id, p->tt_ptr->parent->task_id->get_name(), p->get_task_id()->get_name());
+            write_flow_event(ss, p->get_start_us()-0.25, 'f', "ControlFlow", flow_id,
+                saved_node_id, _tid, p->tt_ptr->parent->task_id->get_name(), p->get_task_id()->get_name());
         }
         if (p->tt_ptr->explicit_trace_start) {
             ss << "{\"name\":\"" << p->get_task_id()->get_name()
@@ -378,13 +379,13 @@ void trace_event_listener::on_async_event(base_thread_node &node,
         if (data.reverse_flow) {
             double begin_ts = (p->get_stop_us() + p->get_start_us()) * 0.5;
             double end_ts = std::min(p->get_stop_us(), data.parent_ts_stop);
-            write_flow_event(ss, begin_ts, 's', data.cat, flow_id, saved_node_id, atol(tid.c_str()), data.name);
-            write_flow_event(ss, end_ts, 't', data.cat, flow_id, saved_node_id, data.parent_tid, data.name);
+            write_flow_event(ss, begin_ts, 's', data.cat, flow_id, saved_node_id, atol(tid.c_str()), data.name, p->get_task_id()->get_name());
+            write_flow_event(ss, end_ts, 't', data.cat, flow_id, saved_node_id, data.parent_tid, data.name, p->get_task_id()->get_name());
         } else {
             double begin_ts = std::min(p->get_start_us(), ((data.parent_ts_stop + data.parent_ts_start) * 0.5));
             double end_ts = p->get_start_us();
-            write_flow_event(ss, begin_ts, 's', data.cat, flow_id, saved_node_id, data.parent_tid, data.name);
-            write_flow_event(ss, end_ts, 't', data.cat, flow_id, saved_node_id, atol(tid.c_str()), data.name);
+            write_flow_event(ss, begin_ts, 's', data.cat, flow_id, saved_node_id, data.parent_tid, data.name, p->get_task_id()->get_name());
+            write_flow_event(ss, end_ts, 't', data.cat, flow_id, saved_node_id, atol(tid.c_str()), data.name, p->get_task_id()->get_name());
         }
         }
         write_to_trace(ss);
