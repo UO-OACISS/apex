@@ -950,6 +950,25 @@ else()
             "Try manually check out https://github.com/khuck/perfstubs.git to ${PROJECT_SOURCE_DIR}")
 endif()
 
+### Set up taskStubs stuff
+git_external(taskStubs
+    https://github.com/khuck/taskStubs.git
+    main
+    VERBOSE)
+
+find_file(
+    TASKSTUBS_HEADER
+    NAMES timer_plugin/tool_api.h
+    PATHS ${PROJECT_SOURCE_DIR}/taskStubs)
+
+if(TASKSTUBS_HEADER)
+    message(INFO " Found taskStubs at ${PROJECT_SOURCE_DIR}/taskStubs")
+    include_directories(${PROJECT_SOURCE_DIR}/taskStubs)
+else()
+    message(FATAL_ERROR " taskStubs not found. This should have been checked out automatically. "
+            "Try manually check out https://github.com/khuck/taskStubs.git to ${PROJECT_SOURCE_DIR}")
+endif()
+
 if(APEX_WITH_PLUGINS)
     message(INFO " apex will be built with plugin support.")
     set(LIBS ${LIBS} ${CMAKE_DL_LIBS})

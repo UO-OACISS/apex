@@ -94,6 +94,7 @@ nvtx_listener.cpp
 ${OTF2_SOURCE}
 ${perfetto_sources}
 perftool_implementation.cpp
+taskstubs_implementation.cpp
 policy_handler.cpp
 ${PROC_SOURCE}
 profile_reducer.cpp
