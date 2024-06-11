@@ -198,11 +198,13 @@ void write_flow_event(std::stringstream& ss, double ts, char ph,
 
 inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
     static APEX_NATIVE_TLS long unsigned int tid = get_thread_id_metadata();
+    static auto main_wrapper = task_wrapper::get_apex_main_wrapper();
     // With HPX, the APEX MAIN timer will be stopped on a different thread
     // than the one that started it. So... make sure we get the right TID
     // But don't worry, the thread metadata will have been written at the
     // event start.
-    long unsigned int _tid = (p->tt_ptr->explicit_trace_start ? p->thread_id : tid);
+    //long unsigned int _tid = (p->tt_ptr->explicit_trace_start ? p->thread_id : tid);
+    long unsigned int _tid = p->thread_id;
     if (!_terminate) {
         std::stringstream ss;
         ss.precision(3);
@@ -212,7 +214,8 @@ inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
             pguid = p->tt_ptr->parent->guid;
         }
         // if the parent tid is not the same, create a flow event BEFORE the single event
-        if (p->tt_ptr->parent != nullptr
+        if (p->tt_ptr->parent != nullptr &&
+            p->tt_ptr->parent != main_wrapper
 #ifndef APEX_HAVE_HPX // ...except for HPX - make the flow event regardless
             && p->tt_ptr->parent->thread_id != _tid
 #endif
