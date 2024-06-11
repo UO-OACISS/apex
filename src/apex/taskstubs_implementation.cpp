@@ -74,6 +74,8 @@ extern "C" {
         const tasktimer_guid_t timer_guid,
         const tasktimer_guid_t* parent_guids,
         const uint64_t parent_count) {
+        static bool& over = apex::get_program_over();
+        if (over) return nullptr;
         // TODO: need to handle multiple parents!
         // need to look up the parent shared pointers?
         std::vector<std::shared_ptr<apex::task_wrapper>> parent_tasks;
@@ -110,6 +112,8 @@ extern "C" {
         tasktimer_timer_t timer,
         tasktimer_argument_value_p arguments,
         uint64_t argument_count) {
+        static bool& over = apex::get_program_over();
+        if (over) return;
         // TODO: handle the schedule event, somehow
         APEX_UNUSED(timer);
         APEX_UNUSED(arguments);
@@ -117,6 +121,8 @@ extern "C" {
     }
 
 #define MAP_TASK(_timer, _apex_timer) \
+    static bool& over_{apex::get_program_over()}; \
+    if (over_) return; \
     uint64_t _tmp = (uint64_t)(_timer); \
     auto _apex_timer = safeLookup(_tmp);
 
@@ -129,6 +135,8 @@ extern "C" {
     }
     void tasktimer_yield_impl(
         tasktimer_timer_t timer) {
+        static bool& over = apex::get_program_over();
+        if (over) return;
         MAP_TASK(timer, apex_timer);
         apex::yield(apex_timer);
     }
@@ -170,5 +178,46 @@ extern "C" {
         APEX_UNUSED(children);
         APEX_UNUSED(child_count);
     }
+
+    void timerStack(
+        std::shared_ptr<apex::task_wrapper> apex_timer,
+        bool start) {
+        static thread_local std::stack<std::shared_ptr<apex::task_wrapper>> theStack;
+        if (start) {
+            apex::start(apex_timer);
+            theStack.push(apex_timer);
+        } else {
+            auto timer = theStack.top();
+            apex::stop(timer);
+            theStack.pop();
+        }
+    }
+
+    void tasktimer_data_transfer_start_impl(
+        tasktimer_guid_t guid,
+        tasktimer_execution_space_p source_type,
+        const char* source_name,
+        const void* source_ptr,
+        tasktimer_execution_space_p dest_type,
+        const char* dest_name,
+        const void* dest_ptr) {
+        std::shared_ptr<apex::task_wrapper> parent = safeLookup(guid);
+        auto task = apex::new_task("data xfer", 0, parent);
+        timerStack(task, true);
+    }
+
+    void tasktimer_data_transfer_stop_impl(tasktimer_guid_t guid) {
+        timerStack(nullptr, false);
+    }
+
+    void tasktimer_command_start_impl(const char* type_name) {
+        auto task = apex::new_task(type_name);
+        timerStack(task, true);
+    }
+
+    void tasktimer_command_stop_impl(void) {
+        timerStack(nullptr, false);
+    }
+
 }
 

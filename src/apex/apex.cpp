@@ -114,7 +114,7 @@ using namespace std;
 namespace apex
 {
 
-bool& apex::get_program_over() {
+bool& get_program_over() {
     static bool _program_over{false};
     return _program_over;
 }
@@ -671,7 +671,7 @@ inline std::shared_ptr<task_wrapper> _new_task(
 }
 
 void debug_print(const char * event, std::shared_ptr<task_wrapper> tt_ptr) {
-    if (apex::get_program_over()) return;
+    if (get_program_over()) return;
     static std::mutex this_mutex;
     std::unique_lock<std::mutex> l(this_mutex);
     std::stringstream ss;
@@ -877,6 +877,7 @@ void start(std::shared_ptr<task_wrapper> tt_ptr) {
                 return;
             }
         }
+        tt_ptr->prof->thread_id = thread_instance::instance().get_id();
         // If we are allowing untied timers, clear the timer stack on this thread
         if (apex_options::untied_timers() == true) {
             thread_instance::instance().clear_current_profiler();
@@ -1833,7 +1834,7 @@ void finalize(void)
 void cleanup(void) {
     in_apex prevent_deadlocks;
     FUNCTION_ENTER
-    apex::get_program_over() = true;
+    get_program_over() = true;
 #ifdef APEX_HAVE_HPX
     // prevent crash at shutdown.
     return;

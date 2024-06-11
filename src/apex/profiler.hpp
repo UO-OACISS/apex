@@ -86,7 +86,8 @@ public:
         guid(task->guid),
         is_counter(false),
         is_resume(resume),
-        is_reset(reset), stopped(false) {
+        is_reset(reset), stopped(false),
+        thread_id(task->thread_id) {
             task->prof = this;
             task->start_ns = start_ns;
         }

@@ -88,7 +88,7 @@ thread_instance::~thread_instance(void) {
         }
         std::cout << "thread " << _id << " exiting... " << __APEX_FUNCTION__ << std::endl;
     }
-    if (apex::get_program_over()) { return; }
+    if (get_program_over()) { return; }
     if (_top_level_timer != nullptr) {
         stop(_top_level_timer);
         _top_level_timer = nullptr;
