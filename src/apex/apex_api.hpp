@@ -359,7 +359,7 @@ APEX_EXPORT std::shared_ptr<task_wrapper> new_task(
 
 APEX_EXPORT std::shared_ptr<task_wrapper> new_task(
     const std::string &name,
-    const uint64_t task_id = UINTMAX_MAX,
+    const uint64_t task_id,
     const std::vector<std::shared_ptr<apex::task_wrapper>> parent_tasks);
 
 /**
@@ -379,6 +379,11 @@ APEX_EXPORT std::shared_ptr<task_wrapper> new_task(
     const apex_function_address function_address,
     const uint64_t task_id = UINTMAX_MAX,
     const std::shared_ptr<apex::task_wrapper> parent_task = null_task_wrapper);
+
+APEX_EXPORT std::shared_ptr<task_wrapper> new_task(
+    const apex_function_address function_address,
+    const uint64_t task_id,
+    const std::vector<std::shared_ptr<apex::task_wrapper>> parent_tasks);
 
 /**
  \brief Update a task (dependency).

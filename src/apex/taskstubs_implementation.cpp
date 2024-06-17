@@ -88,11 +88,10 @@ extern "C" {
         }
         // if no name, use address
         if (timer_name == nullptr || strlen(timer_name) == 0) {
-            // TODO: need to handle multiple parents!
-            if (parent_tasks.size() > 0) {
+            if (parent_count > 0) {
                 auto task = apex::new_task(
                                 (apex_function_address)function_address,
-                                timer_guid, parent_tasks[0]);
+                                timer_guid, parent_tasks);
                 safeInsert(timer_guid, task);
             } else {
                 auto task = apex::new_task(
@@ -101,9 +100,8 @@ extern "C" {
                 safeInsert(timer_guid, task);
             }
         } else {
-            // TODO: need to handle multiple parents!
-            if (parent_tasks.size() > 0) {
-                auto task = apex::new_task(timer_name, timer_guid, parent_tasks[0]);
+            if (parent_count > 0) {
+                auto task = apex::new_task(timer_name, timer_guid, parent_tasks);
                 safeInsert(timer_guid, task);
             } else {
                 auto task = apex::new_task(timer_name, timer_guid);
@@ -215,7 +213,8 @@ extern "C" {
     }
 
     void tasktimer_command_start_impl(const char* type_name) {
-        auto task = apex::new_task(type_name);
+        std::string tmpstr{type_name};
+        auto task = apex::new_task(tmpstr);
         timerStack(task, true);
     }
 

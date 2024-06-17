@@ -129,7 +129,7 @@ inline bool perfetto_listener::_common_start(std::shared_ptr<task_wrapper> &tt_p
         //perfetto::ProcessTrack::Current(),
         (uint64_t)tt_ptr->prof->get_start_ns(),
         _guid, tt_ptr->guid,
-        _pguid, tt_ptr->parent_guid);
+        _pguid, tt_ptr->parent_guid[0]);
     return true;
 }
 

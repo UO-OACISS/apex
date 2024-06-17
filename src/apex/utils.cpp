@@ -779,9 +779,6 @@ std::string getCommandLine(void) {
 #else
     return proc_data_reader::get_command_line();
 #endif
-    // just in case things failed
-    std::string tmp{"unknown"};
-    return tmp;
 }
 
 } // namespace apex
