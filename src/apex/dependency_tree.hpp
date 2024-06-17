@@ -48,7 +48,7 @@ public:
 class Node {
     private:
         task_identifier* data;
-        Node* parent;
+        std::vector<Node*> parents;
         size_t count;
         apex_profile prof;
         //double calls;
@@ -67,8 +67,9 @@ class Node {
         static std::set<std::string> known_metrics;
     public:
         Node(task_identifier* id, Node* p) :
-            data(id), parent(p), count(1), inclusive(0),
+            data(id), count(1), inclusive(0),
             index(nodeCount.fetch_add(1, std::memory_order_relaxed)) {
+            parents.push_back(p);
             prof.calls = 0.0;
             prof.accumulated = 0.0;
             prof.minimum = 0.0;
@@ -83,10 +84,9 @@ class Node {
             }
             treeMutex.unlock();
         }
-        Node* appendChild(task_identifier* c);
+        Node* appendChild(task_identifier* c, Node* existing);
         Node* replaceChild(task_identifier* old_child, task_identifier* new_child);
         task_identifier* getData() { return data; }
-        Node* getParent() { return parent; }
         size_t getCount() { return count; }
         inline double& getCalls() { return prof.calls; }
         inline double& getAccumulated() { return prof.accumulated; }
@@ -112,7 +112,7 @@ class Node {
         }
         // required for using this class as a key in a map, vector, etc.
         static bool compareNodeByParentName (const Node* lhs, const Node* rhs) {
-            if (lhs->parent->index < rhs->parent->index) {
+            if (lhs->parents[0]->index < rhs->parents[0]->index) {
                 return true;
             }
             if (lhs->getName().compare(rhs->getName()) < 0) {

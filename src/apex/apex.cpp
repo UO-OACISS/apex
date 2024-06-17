@@ -630,7 +630,8 @@ string& version() {
 inline std::shared_ptr<task_wrapper> _new_task(
     task_identifier * id,
     const uint64_t task_id,
-    const std::shared_ptr<task_wrapper> parent_task, apex* instance) {
+    const std::vector<std::shared_ptr<task_wrapper>> parent_tasks,
+    apex* instance) {
     in_apex prevent_deadlocks;
     APEX_UNUSED(instance);
     std::shared_ptr<task_wrapper> tt_ptr = make_shared<task_wrapper>();
@@ -643,17 +644,15 @@ inline std::shared_ptr<task_wrapper> _new_task(
          !apex_options::use_otf2()) {
         tt_ptr->parent = task_wrapper::get_apex_main_wrapper();
     // was a parent passed in?
-    } else */ if (parent_task != nullptr) {
-        tt_ptr->parent_guid = parent_task->guid;
-        tt_ptr->parent = parent_task;
+    } else */ if (parent_tasks.size() > 0) {
+        tt_ptr->parents = parent_tasks;
     // if not, is there a current timer?
     } else {
         profiler * p = thread_instance::instance().get_current_profiler();
         if (p != nullptr) {
-            tt_ptr->parent_guid = p->guid;
-            tt_ptr->parent = p->tt_ptr;
+            tt_ptr->parents.push_back(p->tt_ptr);
         } else {
-            tt_ptr->parent = task_wrapper::get_apex_main_wrapper();
+            tt_ptr->parents.push_back(task_wrapper::get_apex_main_wrapper());
         }
     }
     if (apex_options::use_tasktree_output() || apex_options::use_hatchet_output()) {
@@ -722,7 +721,7 @@ profiler* start(const std::string &timer_name)
     if (_notify_listeners) {
         bool success = true;
         task_identifier * id = task_identifier::get_task_id(timer_name);
-        tt_ptr = _new_task(id, UINTMAX_MAX, null_task_wrapper, instance);
+        tt_ptr = _new_task(id, UINTMAX_MAX, {}, instance);
 #if defined(APEX_DEBUG)//_disabled)
         if (apex_options::use_verbose()) { debug_print("Start", tt_ptr); }
 #endif
@@ -787,7 +786,7 @@ profiler* start(const apex_function_address function_address) {
     if (_notify_listeners) {
         bool success = true;
         task_identifier * id = task_identifier::get_task_id(function_address);
-        tt_ptr = _new_task(id, UINTMAX_MAX, null_task_wrapper, instance);
+        tt_ptr = _new_task(id, UINTMAX_MAX, {}, instance);
 #if defined(APEX_DEBUG)//_disabled)
         if (apex_options::use_verbose()) { debug_print("Start", tt_ptr); }
 #endif
@@ -918,7 +917,7 @@ profiler* resume(const std::string &timer_name) {
     std::shared_ptr<task_wrapper> tt_ptr(nullptr);
     if (_notify_listeners) {
         task_identifier * id = task_identifier::get_task_id(timer_name);
-        tt_ptr = _new_task(id, UINTMAX_MAX, null_task_wrapper, instance);
+        tt_ptr = _new_task(id, UINTMAX_MAX, {}, instance);
         APEX_UTIL_REF_COUNT_TASK_WRAPPER
         try {
             //read_lock_type l(instance->listener_mutex);
@@ -962,7 +961,7 @@ profiler* resume(const apex_function_address function_address) {
     std::shared_ptr<task_wrapper> tt_ptr(nullptr);
     if (_notify_listeners) {
         task_identifier * id = task_identifier::get_task_id(function_address);
-        tt_ptr = _new_task(id, UINTMAX_MAX, null_task_wrapper, instance);
+        tt_ptr = _new_task(id, UINTMAX_MAX, {}, instance);
         APEX_UTIL_REF_COUNT_TASK_WRAPPER
         try {
             //read_lock_type l(instance->listener_mutex);
@@ -1397,36 +1396,68 @@ void sample_value(const std::string &name, double value, bool threaded)
     }
 }
 
+#define APEX_CHECK_DISABLE \
+    /* if APEX is disabled, do nothing. */ \
+    if (apex_options::disable() == true) { \
+        APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER \
+        return nullptr; \
+    }
+#define APEX_CHECK_SUSPEND \
+    /* if APEX is suspended, do nothing. */ \
+    if (apex_options::suspend() == true) { \
+        APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER \
+        return nullptr; \
+    }
+#define APEX_CHECK_INTERNAL \
+    const std::string apex_internal("apex_internal"); \
+    if (starts_with(name, apex_internal)) { \
+        APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER \
+        /* don't process our own events - queue scrubbing tasks. */ \
+        return nullptr; \
+    }
+#define APEX_CHECK_INSTANCE \
+    /* get the Apex static instance */ \
+    apex* instance = apex::instance(); \
+    /* protect against calls after finalization */ \
+    if (!instance || _exited) { \
+        APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER \
+        return nullptr; \
+    }
+
 std::shared_ptr<task_wrapper> new_task(
     const std::string &name,
     const uint64_t task_id,
     const std::shared_ptr<task_wrapper> parent_task)
 {
     in_apex prevent_deadlocks;
-    // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) {
-        APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER
-        return nullptr;
+    APEX_CHECK_DISABLE
+    APEX_CHECK_SUSPEND
+    APEX_CHECK_INTERNAL
+    APEX_CHECK_INSTANCE
+    task_identifier * id = task_identifier::get_task_id(name);
+    std::vector<std::shared_ptr<task_wrapper>> parents{};
+    if (parent_task != null_task_wrapper) {
+        parents.push_back(parent_task);
     }
-    // if APEX is suspended, do nothing.
-    if (apex_options::suspend() == true) {
-        APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER
-        return nullptr;
-    }
-    const std::string apex_internal("apex_internal");
-    if (starts_with(name, apex_internal)) {
-        APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER
-        // don't process our own events - queue scrubbing tasks.
-        return nullptr;
-    }
-    apex* instance = apex::instance(); // get the Apex static instance
-    if (!instance || _exited) {
-        APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER
-        return nullptr;
-    } // protect against calls after finalization
+    std::shared_ptr<task_wrapper>
+        tt_ptr(_new_task(id, task_id, parents, instance));
+    APEX_UTIL_REF_COUNT_TASK_WRAPPER
+    return tt_ptr;
+}
+
+std::shared_ptr<task_wrapper> new_task(
+    const std::string &name,
+    const uint64_t task_id,
+    const std::vector<std::shared_ptr<task_wrapper>> parent_tasks)
+{
+    in_apex prevent_deadlocks;
+    APEX_CHECK_DISABLE
+    APEX_CHECK_SUSPEND
+    APEX_CHECK_INTERNAL
+    APEX_CHECK_INSTANCE
     task_identifier * id = task_identifier::get_task_id(name);
     std::shared_ptr<task_wrapper>
-        tt_ptr(_new_task(id, task_id, parent_task, instance));
+        tt_ptr(_new_task(id, task_id, parent_tasks, instance));
     APEX_UTIL_REF_COUNT_TASK_WRAPPER
     return tt_ptr;
 }
@@ -1436,23 +1467,32 @@ std::shared_ptr<task_wrapper> new_task(
     const uint64_t task_id,
     const std::shared_ptr<task_wrapper> parent_task) {
     in_apex prevent_deadlocks;
-    // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) {
-        APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER
-        return nullptr; }
-    // if APEX is suspended, do nothing.
-    if (apex_options::suspend() == true) {
-        APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER
-        return nullptr; }
-    // get the Apex static instance
-    apex* instance = apex::instance();
-    // protect against calls after finalization
-    if (!instance || _exited) {
-        APEX_UTIL_REF_COUNT_NULL_TASK_WRAPPER
-        return nullptr; }
+    APEX_CHECK_DISABLE
+    APEX_CHECK_SUSPEND
+    APEX_CHECK_INSTANCE
+    task_identifier * id = task_identifier::get_task_id(function_address);
+    std::vector<std::shared_ptr<task_wrapper>> parents{};
+    if (parent_task != null_task_wrapper) {
+        parents.push_back(parent_task);
+    }
+    std::shared_ptr<task_wrapper>
+        tt_ptr(_new_task(id, task_id, parents, instance));
+    APEX_UTIL_REF_COUNT_TASK_WRAPPER
+    return tt_ptr;
+}
+
+std::shared_ptr<task_wrapper> new_task(
+    const apex_function_address function_address,
+    const uint64_t task_id,
+    const std::vector<std::shared_ptr<task_wrapper>> parent_tasks) {
+    in_apex prevent_deadlocks;
+    APEX_CHECK_DISABLE
+    APEX_CHECK_SUSPEND
+    APEX_CHECK_INSTANCE
     task_identifier * id = task_identifier::get_task_id(function_address);
     std::shared_ptr<task_wrapper>
-        tt_ptr(_new_task(id, task_id, parent_task, instance));
+        tt_ptr(_new_task(id, task_id, parent_tasks, instance));
+    APEX_UTIL_REF_COUNT_TASK_WRAPPER
     return tt_ptr;
 }
 
@@ -1474,7 +1514,7 @@ std::shared_ptr<task_wrapper> update_task(
         // protect against calls after finalization
         if (!instance || _exited) { return nullptr; }
         task_identifier * id = task_identifier::get_task_id(timer_name);
-        wrapper = _new_task(id, UINTMAX_MAX, null_task_wrapper, instance);
+        wrapper = _new_task(id, UINTMAX_MAX, {}, instance);
     } else {
         task_identifier * id = task_identifier::get_task_id(timer_name);
         // only have to do something if the ID has changed
@@ -1518,7 +1558,7 @@ std::shared_ptr<task_wrapper> update_task(
         // protect against calls after finalization
         if (!instance || _exited) { return nullptr; }
         task_identifier * id = task_identifier::get_task_id(function_address);
-        wrapper = _new_task(id, UINTMAX_MAX, null_task_wrapper, instance);
+        wrapper = _new_task(id, UINTMAX_MAX, {}, instance);
     } else {
         task_identifier * id = task_identifier::get_task_id(function_address);
         // only have to do something if the ID has changed

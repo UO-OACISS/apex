@@ -2053,8 +2053,8 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
     // get the right task identifier, based on whether there are aliases
     task_identifier * id = tt_ptr->get_task_id();
     // if the parent task is not null, use it (obviously)
-    if (tt_ptr->parent != nullptr) {
-        task_identifier * pid = tt_ptr->parent->get_task_id();
+    for (auto& parent : tt_ptr->parents) {
+        task_identifier * pid = parent->get_task_id();
         dependency_queue()->enqueue(new task_dependency(pid, id));
         return;
     }

@@ -48,13 +48,9 @@ struct task_wrapper {
   */
     uint64_t guid;
 /**
-  \brief An internally generated GUID for the parent task of this task.
-  */
-    uint64_t parent_guid;
-/**
   \brief A managed pointer to the parent task_wrapper for this task.
   */
-    std::shared_ptr<task_wrapper> parent;
+    std::vector<std::shared_ptr<task_wrapper>> parents;
 /**
   \brief A node in the task tree representing this task type
   */
@@ -93,8 +89,7 @@ struct task_wrapper {
         task_id(nullptr),
         prof(nullptr),
         guid(0ull),
-        parent_guid(0ull),
-        parent(nullptr),
+        parents({}),
         tree_node(nullptr),
         alias(nullptr),
         thread_id(0UL),
@@ -132,11 +127,17 @@ struct task_wrapper {
     }
     void assign_heritage() {
         // make/find a node for ourselves
-        tree_node = parent->tree_node->appendChild(task_id);
+        //tree_node = parents[0]->tree_node->appendChild(task_id);
+        for(auto& parent : parents) {
+            tree_node = parent->tree_node->appendChild(task_id, tree_node);
+        }
     }
     void update_heritage() {
         // make/find a node for ourselves
-        tree_node = parent->tree_node->replaceChild(task_id, alias);
+        //tree_node = parents[0]->tree_node->replaceChild(task_id, alias);
+        for(auto& parent : parents) {
+            tree_node = parent->tree_node->replaceChild(task_id, alias);
+        }
     }
     double get_create_us() {
         return double(create_ns) * 1.0e-3;

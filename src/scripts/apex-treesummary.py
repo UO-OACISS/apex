@@ -66,11 +66,15 @@ def parseArgs():
     return args
 
 nodeIndex = 0
+printedIndexes = set()
 class TreeNode:
     def __init__(self, name, df):
         global nodeIndex
         self.name = name
-        self.index = nodeIndex
+        if df.empty:
+            self.index = None #nodeIndex
+        else:
+            self.index = df['node index'].iloc[0] #nodeIndex
         nodeIndex = nodeIndex + 1
         self.children = {}
         self.df = df
@@ -98,7 +102,7 @@ class TreeNode:
     def print(self, depth, total, maxranks):
         tmpstr = str()
         acc_mean = 0.0
-        if not self.df.empty:
+        if (not self.df.empty) and (not self.index in printedIndexes):
             metric = 'total time(s)'
             rows = str(len(self.df.index))
             tmpstr = tmpstr + rows.rjust(len(str(maxranks)), ' ')
@@ -126,12 +130,13 @@ class TreeNode:
             tmpstr = tmpstr + ', mean=' + '%.3f' % acc_mean_per_call
             tmpstr = tmpstr + ', threads=' + str(int(acc_threads))
             tmpstr = tmpstr + '} ' + self.name + '\n'
+            printedIndexes.add(self.index)
         totals = {}
         strings = {}
         for key in self.children:
-            value, childstr = self.children[key].print(depth+1, total, maxranks)
-            totals[key] = value
-            strings[key] = childstr
+                value, childstr = self.children[key].print(depth+1, total, maxranks)
+                totals[key] = value
+                strings[key] = childstr
         sorted_by_value = dict(sorted(totals.items(), key=lambda x:x[1], reverse=True))
         for key in sorted_by_value:
             tmpstr = tmpstr + strings[key]
@@ -245,6 +250,7 @@ def drawDOT(df, args, name):
     bpc_maximum = df['bytes per call'].max() # get max
     if args.verbose:
         print('Building dot file')
+    graphedIndexes = set()
     for ind in df.index:
         name = df['name'][ind]
         node_index = df['node index'][ind]
@@ -254,6 +260,8 @@ def drawDOT(df, args, name):
         # Remember, the root node is bogus. so skip it.
         if node_index != parent_index:
             f.write('  "' + str(parent_index) + '" -> "' + str(node_index) + '";\n')
+        if node_index in graphedIndexes:
+            continue
         f.write('  "' + str(node_index) + '" [shape=box; ')
         f.write('style=filled; ')
         acc = df['total time(s)'][ind]
@@ -296,6 +304,7 @@ def drawDOT(df, args, name):
         f.write('time: ' + str(acc) + '\\l"; ')
 
         f.write('];\n')
+        graphedIndexes.add(node_index)
     f.write('}')
     f.close()
     if args.dot_show:
@@ -306,36 +315,11 @@ def drawDOT(df, args, name):
     if args.verbose:
         print('done.')
 
-def graphRank(index, df, parentNode, droplist, args):
-    # get the name of this node
-    childDF = df[df['node index'] == index].copy()#.reset_index()
-    name = childDF['name'].iloc[0]
-    # should we skip this subtree?
-    if name in droplist:
-        if args.verbose:
-            print('Dropping: \'', name, '\'', sep='')
-        return
-    for dropped in droplist:
-        p = re.compile(dropped)
-        if p.match(name):
-            if args.verbose:
-                print('Dropping: \'', name, '\'', sep='')
-            return
-
-    #name = df.loc[df['node index'] == index, 'name'].iloc[0]
-    childNode = parentNode.addChild(name, childDF)
-
-    # slice out the children from the dataframe
-    children = df[df['parent index'] == index]
-    # Iterate over the children indexes and add to our node
-    for child in children['node index'].unique():
-        if child == index:
-            continue
-        graphRank(child, df, childNode, droplist, args)
-
 def graphRank2(index, df, parentNode, droplist, args):
     # get the name of this node
     childDF = df[df['node index'] == index].copy()#.reset_index()
+    if childDF.shape[0] > 1:
+        childDF = childDF[childDF['parent index'] == parentNode.index]#.reset_index()
     name = childDF['name'].iloc[0]
     # should we skip this subtree?
     if name in droplist:
@@ -360,6 +344,8 @@ def graphRank2(index, df, parentNode, droplist, args):
             continue
         graphRank2(child, df, childNode, droplist, args)
 
+import ast
+
 def main():
     args = parseArgs()
     if (args.tau):
@@ -370,6 +356,14 @@ def main():
         print('Reading tasktree...')
     df = pd.read_csv(args.filename) #, index_col=[0,1])
     df = df.fillna(0)
+    print(df)
+    # Convert the string representation of the list of parents to a list
+    df.loc[:, "parent index"] = df["parent index"].apply(ast.literal_eval)
+    df = df.explode('parent index')
+    df = df.fillna(-1)
+    print(df)
+    print(df)
+
     if args.verbose:
         print('Read', len(df.index), 'rows')
 
@@ -421,15 +415,6 @@ def main():
     # FIRST, build a master graph with all nodes from all ranks.
     print('building common tree...')
     root = TreeNode('apex tree base', pd.DataFrame())
-    """
-    for x in range(maxrank+1):
-        print('Rank', x, '...', end=endchar, flush=True)
-        # slice out this rank's data
-        rank = df[df['process rank'] == x]
-        # build a tree of this rank's data
-        graphRank(0, rank, root, droplist, args)
-    print() # write a newline
-    """
     #unique = df.drop_duplicates(subset=["node index", "parent index", "name"], keep='first')
     graphRank2(0, df, root, droplist, args)
 

@@ -23,15 +23,22 @@ std::mutex Node::treeMutex;
 std::atomic<size_t> Node::nodeCount{0};
 std::set<std::string> Node::known_metrics;
 
-Node* Node::appendChild(task_identifier* c) {
+Node* Node::appendChild(task_identifier* c, Node* existing) {
     treeMutex.lock();
     auto iter = children.find(*c);
     if (iter == children.end()) {
-        auto n = new Node(c,this);
-        //std::cout << "Inserting " << c->get_name() << std::endl;
-        children.insert(std::make_pair(*c,n));
-        treeMutex.unlock();
-        return n;
+        if (existing != nullptr) {
+            existing->parents.push_back(this);
+            children.insert(std::make_pair(*c,existing));
+            treeMutex.unlock();
+            return existing;
+        } else {
+            auto n = new Node(c,this);
+            //std::cout << "Inserting " << c->get_name() << std::endl;
+            children.insert(std::make_pair(*c,n));
+            treeMutex.unlock();
+            return n;
+        }
     }
     iter->second->count++;
     treeMutex.unlock();
@@ -68,11 +75,16 @@ Node* Node::replaceChild(task_identifier* old_child, task_identifier* new_child)
 }
 
 void Node::writeNode(std::ofstream& outfile, double total) {
+    static std::set<Node*> processed;
+    if (processed.count(this)) return;
+    processed.insert(this);
     static size_t depth = 0;
     // Write out the relationships
-    if (parent != nullptr) {
-        outfile << "  \"" << parent->getIndex() << "\" -> \"" << getIndex() << "\";";
-        outfile << std::endl;
+    for(auto& parent : parents) {
+        if (parent != nullptr) {
+            outfile << "  \"" << parent->getIndex() << "\" -> \"" << getIndex() << "\";";
+            outfile << std::endl;
+        }
     }
 
     double acc = (data == task_identifier::get_main_task_id() || getAccumulated() == 0.0) ?
@@ -339,11 +351,20 @@ void Node::addAccumulated(double value, double incl, bool is_resume, uint64_t th
 
 double Node::writeNodeCSV(std::stringstream& outfile, double total, int node_id, int num_papi_counters) {
     static size_t depth = 0;
+    static std::set<Node*> processed;
+    if (processed.count(this)) return getAccumulated();
+    processed.insert(this);
     APEX_ASSERT(total > 0.0);
     // write out the node id and graph node index and the name
-    outfile << node_id << "," << index << ",";
-    outfile << ((parent == nullptr) ? 0 : parent->index) << ",";
-    outfile << depth << ",\"";
+    outfile << node_id << "," << index << ",\"[";
+    std::string delim("");
+    for (auto& parent : parents) {
+        if (parent != nullptr) {
+            outfile << delim << parent->index;
+            delim = ",";
+        }
+    }
+    outfile << "]\"," << depth << ",\"";
     outfile << data->get_tree_name() << "\",";
     // write out the accumulated
     double acc = (data == task_identifier::get_main_task_id() || getAccumulated() == 0.0) ?
