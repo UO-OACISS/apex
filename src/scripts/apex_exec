@@ -29,6 +29,7 @@ $(basename "$0") <APEX options> executable <executable options>
 where APEX options are zero or more of:
     --apex:help                   show this usage message
     --apex:debug                  run with APEX in debugger
+    --apex:debugger               debugger executable name (default: gdb)
     --apex:verbose                enable verbose list of APEX environment variables
     --apex:screen                 enable screen text output (on by default)
     --apex:screen-detail          enable detailed text output (off by default)
@@ -185,6 +186,9 @@ while (( "$#" )); do
       ;;
     --apex:debug)
       debug=yes
+      if [ "$debugger" == "" ] ; then
+        debugger=gdb
+      fi
       shift
       ;;
     --apex:pthread)
@@ -421,6 +425,16 @@ while (( "$#" )); do
     --apex:postprocess)
       postprocess=yes
       shift
+      ;;
+    --apex:debugger)
+      debug=yes
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        debugger=$2
+        shift 2
+      else
+        echo "Error: Argument for $1 is missing" >&2
+        usage
+      fi
       ;;
     --apex:concur_max|--apex:concur-max)
       if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
@@ -710,11 +724,7 @@ else
             gdbargs="-batch -q"
         fi
         #echo "set env LD_AUDIT=${APEX_LD_AUDIT}" >> ./.gdbcmds
-        if [ $hip = yes ] ; then
-            debugger="rocgdb -x ${gdbcmds} ${gdbargs} --args"
-        else
-            debugger="gdb -x ${gdbcmds} ${gdbargs} --args"
-        fi
+        debugger="${debugger} -x ${gdbcmds} ${gdbargs} --args"
     else
         export LD_LIBRARY_PATH=${APEX_LD_LIBRARY_PATH}
         export LD_PRELOAD=${APEX_LD_PRELOAD}
