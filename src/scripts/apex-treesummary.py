@@ -230,7 +230,7 @@ def drawDOT(df, args, name):
     df.loc[df['calls'] == 0, 'bytes per call'] = df['total bytes']
     metric = 'bytes per call'
     # Make a new dataframe from rank 0
-    filename = name + 'tasktree.dot';
+    filename = name.replace(' ', '-') + '-tasktree.dot';
     f = open(filename, 'w')
     f.write('digraph prof {\n')
     #f.write(' label = "(get this from metadata file output - or, generate it from apex-treesummary.py!)";\n')

@@ -209,8 +209,10 @@ extern "C" {
     }
 
     void tasktimer_command_start_impl(const char* type_name) {
+        // we need to create a unique GUID for the command
+        static tasktimer_guid_t guid{UINT64_MAX/2};
         std::string tmpstr{type_name};
-        auto task = apex::new_task(tmpstr);
+        auto task = apex::new_task(tmpstr, guid++);
         timerStack(task, true);
     }
 
