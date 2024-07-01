@@ -150,9 +150,9 @@ if(APEX_WITH_MPI)
         set_target_properties(apex_hpx_annotated_functions_mpi PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
         set_target_properties(apex_multiple_parents_mpi PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
     endif()
+
+    INSTALL(TARGETS apex_hpx_annotated_functions_mpi apex_multiple_parents_mpi
+        RUNTIME DESTINATION bin OPTIONAL
+    )
+
 endif()
-
-INSTALL(TARGETS apex_hpx_annotated_functions_mpi
-  RUNTIME DESTINATION bin OPTIONAL
-)
-
