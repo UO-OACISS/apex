@@ -45,6 +45,9 @@ std::shared_ptr<apex::task_wrapper> safeLookup(
         mtx.lock();
         task = getCommonMap().find(guid);
         mtx.unlock();
+        if (task == getCommonMap().end()) {
+            return nullptr;
+        }
         getMyMap()[guid] = task->second;
     }
     return task->second;
@@ -129,14 +132,18 @@ extern "C" {
         tasktimer_execution_space_p) {
         // TODO: capture the execution space, somehow...a new task?
         MAP_TASK(timer, apex_timer);
+        if (apex_timer != nullptr) {
         apex::start(apex_timer);
+        }
     }
     void tasktimer_yield_impl(
         tasktimer_timer_t timer) {
         static bool& over = apex::get_program_over();
         if (over) return;
         MAP_TASK(timer, apex_timer);
+        if (apex_timer != nullptr) {
         apex::yield(apex_timer);
+        }
     }
     void tasktimer_resume_impl(
         tasktimer_timer_t timer,
@@ -144,26 +151,34 @@ extern "C" {
         // TODO: capture the execution space, somehow...a new task?
         MAP_TASK(timer, apex_timer);
         // TODO: why no resume function for task_wrapper objects?
+        if (apex_timer != nullptr) {
         apex::start(apex_timer);
+        }
     }
     void tasktimer_stop_impl(
         tasktimer_timer_t timer) {
         MAP_TASK(timer, apex_timer);
+        if (apex_timer != nullptr) {
         apex::stop(apex_timer);
+        }
     }
     void tasktimer_destroy_impl(
         tasktimer_timer_t timer) {
         MAP_TASK(timer, apex_timer);
+        if (apex_timer != nullptr) {
         // TODO: need to handle the destroy event somehow.
         // definitely need to remove it from the local map.
         safeErase(apex_timer->guid);
+        }
     }
     void tasktimer_add_parents_impl (
         tasktimer_timer_t timer,
         const tasktimer_guid_t* parents, const uint64_t parent_count) {
         // TODO: need to handle the add parents event
         MAP_TASK(timer, apex_timer);
+        if (apex_timer != nullptr) {
         APEX_UNUSED(apex_timer);
+        }
         APEX_UNUSED(parents);
         APEX_UNUSED(parent_count);
     }
@@ -172,7 +187,9 @@ extern "C" {
         const tasktimer_guid_t* children, const uint64_t child_count) {
         // TODO: need to handle the add children event
         MAP_TASK(timer, apex_timer);
+        if (apex_timer != nullptr) {
         APEX_UNUSED(apex_timer);
+        }
         APEX_UNUSED(children);
         APEX_UNUSED(child_count);
     }

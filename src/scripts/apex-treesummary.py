@@ -356,13 +356,12 @@ def main():
         print('Reading tasktree...')
     df = pd.read_csv(args.filename) #, index_col=[0,1])
     df = df.fillna(0)
-    print(df)
+    #print(df)
     # Convert the string representation of the list of parents to a list
     df.loc[:, "parent index"] = df["parent index"].apply(ast.literal_eval)
     df = df.explode('parent index')
     df = df.fillna(-1)
-    print(df)
-    print(df)
+    #print(df)
 
     if args.verbose:
         print('Read', len(df.index), 'rows')
@@ -415,6 +414,7 @@ def main():
     # FIRST, build a master graph with all nodes from all ranks.
     print('building common tree...')
     root = TreeNode('apex tree base', pd.DataFrame())
+    root.index = -1
     #unique = df.drop_duplicates(subset=["node index", "parent index", "name"], keep='first')
     graphRank2(0, df, root, droplist, args)
 

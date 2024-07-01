@@ -818,9 +818,9 @@ else
     retval=$?
     unset LD_PRELOAD
     unset DYLD_INSERT_LIBRARIES
-    if [ "${myrank}" == "0" ] ; then
-        rm -f ${gdbcmds}
-    fi
+    #if [ "${myrank}" == "0" ] ; then
+        #rm -f ${gdbcmds}
+    #fi
     if [ ${retval} != 0 ] ; then
         echo "Error ${retval}!"
         count=`ldd ${MPI_LIB2} | grep -c tcmalloc`

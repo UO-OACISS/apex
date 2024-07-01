@@ -4,6 +4,9 @@
 #include <stdlib.h>
 #include "apex_api.hpp"
 #include <atomic>
+#ifdef APEX_ENABLE_MPI
+#include "mpi.h"
+#endif
 
 int parent (int in, std::shared_ptr< apex::task_wrapper > this_task) {
     apex::start(this_task);
@@ -22,7 +25,15 @@ int child (int in, std::shared_ptr< apex::task_wrapper > this_task) {
 }
 
 int main(int argc, char *argv[]) {
-    apex::init("apex_multiple_parents_cpp unit test", 0, 1);
+    int comm_rank = 0;
+    int comm_size = 1;
+#ifdef APEX_ENABLE_MPI
+    MPI_Init(&argc, &argv);
+    MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
+    std::cout << "APP: rank " << comm_rank << " of " << comm_size << std::endl;
+#endif
+    apex::init("apex_multiple_parents_cpp unit test", comm_rank, comm_size);
     apex::scoped_timer foo(__func__);
 
     int task_id{0};
@@ -51,6 +62,10 @@ int main(int argc, char *argv[]) {
     std::cout << "sum is " << result << " (valid value: 6)" << std::endl;
 	foo.stop();
     //apex::finalize();
+#ifdef APEX_ENABLE_MPI
+    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Finalize();
+#endif
     return 0;
 }
 

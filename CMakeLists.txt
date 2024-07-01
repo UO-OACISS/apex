@@ -90,7 +90,7 @@ IF("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
   endif(NOT DEFINED APEX_BUILD_EXAMPLES)
   add_definitions(-DDEBUG)
   add_definitions(-DCMAKE_BUILD_TYPE=3)
-  set(APEX_ERROR_HANDLING TRUE)
+  #set(APEX_ERROR_HANDLING TRUE)
 endif()
 
 IF("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo")

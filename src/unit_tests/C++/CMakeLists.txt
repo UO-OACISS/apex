@@ -131,16 +131,25 @@ include_directories (. ${APEX_SOURCE_DIR}/src/apex ${MPI_CXX_INCLUDE_PATH})
 # Make sure the linker can find the Apex library once it is built.
 link_directories (${APEX_BINARY_DIR}/src/apex)
 
-# Add executable called "apex_hpx_annotated_functions_mpi" that is built from the source file
-# "apex_hpx_annotated_functions.cpp". The extensions are automatically found.
-add_executable (apex_hpx_annotated_functions_mpi apex_hpx_annotated_functions.cpp)
-add_dependencies (apex_hpx_annotated_functions_mpi apex)
-add_dependencies (examples apex_hpx_annotated_functions_mpi)
+if(APEX_WITH_MPI)
+    # Add executable called "apex_hpx_annotated_functions_mpi" that is built from the source file
+    # "apex_hpx_annotated_functions.cpp". The extensions are automatically found.
+    add_executable (apex_hpx_annotated_functions_mpi apex_hpx_annotated_functions.cpp)
+    target_compile_definitions(apex_hpx_annotated_functions_mpi PUBLIC -DAPEX_ENABLE_MPI)
+    add_dependencies (apex_hpx_annotated_functions_mpi apex)
+    add_dependencies (examples apex_hpx_annotated_functions_mpi)
+    add_executable (apex_multiple_parents_mpi apex_multiple_parents.cpp)
+    target_compile_definitions(apex_multiple_parents_mpi PUBLIC -DAPEX_ENABLE_MPI)
+    add_dependencies (apex_multiple_parents_mpi apex)
+    add_dependencies (examples apex_multiple_parents_mpi)
 
-# Link the executable to the Apex library.
-target_link_libraries (apex_hpx_annotated_functions_mpi apex ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES} ${LIBS} ${APEX_STDCXX_LIB} m)
-if (BUILD_STATIC_EXECUTABLES)
-    set_target_properties(apex_hpx_annotated_functions_mpi PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
+    # Link the executable to the Apex library.
+    target_link_libraries (apex_hpx_annotated_functions_mpi apex ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES} ${LIBS} ${APEX_STDCXX_LIB} m)
+    target_link_libraries (apex_multiple_parents_mpi apex ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES} ${LIBS} ${APEX_STDCXX_LIB} m)
+    if (BUILD_STATIC_EXECUTABLES)
+        set_target_properties(apex_hpx_annotated_functions_mpi PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
+        set_target_properties(apex_multiple_parents_mpi PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
+    endif()
 endif()
 
 INSTALL(TARGETS apex_hpx_annotated_functions_mpi
