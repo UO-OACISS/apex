@@ -5,7 +5,7 @@
 #include <time.h>
 #include <stdint.h>
 #include "apex_api.hpp"
-#if defined(APEX_WITH_MPI)
+#if defined(APEX_ENABLE_MPI)
 #include <mpi.h>
 #endif
 
@@ -98,7 +98,7 @@ void* someThread(void* tmp)
 
 int main (int argc, char** argv) {
     /* initialize APEX */
-    #if defined(APEX_WITH_MPI)
+    #if defined(APEX_ENABLE_MPI)
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
@@ -153,7 +153,7 @@ int main (int argc, char** argv) {
     	}
   	}
   	apex::cleanup();
-    #if defined(APEX_WITH_MPI)
+    #if defined(APEX_ENABLE_MPI)
     MPI_Finalize();
     #endif
     return 0;
