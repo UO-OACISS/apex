@@ -29,18 +29,18 @@ for counter, infile in enumerate(glob.glob('apex_counter_samples.*.csv')):
         index = 0
         for row in spamreader:
             index = index + 1
-            if len(row) == 3 and not row[0].strip().startswith("#"):
+            if len(row) == 4 and not row[1].strip().startswith("#"):
                 try:
-                    mytup = (float(row[0])/1000000000.0,float(row[1]),counter)
+                    mytup = (float(row[1])/1000000000.0,float(row[2]),counter)
                 except ValueError as e:
                     print(index, " Bad row: ", row)
                     continue
-                if float(row[0]) > max_timestamp:
-                    max_timestamp = float(row[0])
-                if row[2] not in dictionary:
-                    dictionary[row[2]] = [mytup]
+                if float(row[1]) > max_timestamp:
+                    max_timestamp = float(row[1])
+                if row[3] not in dictionary:
+                    dictionary[row[3]] = [mytup]
                 else:
-                    dictionary[row[2]].append(mytup)
+                    dictionary[row[3]].append(mytup)
             if (index % 100000 == 0):
                 print (index, 'rows parsed...', end='\r', flush=True)
         print ("Parsed", index, "samples")
