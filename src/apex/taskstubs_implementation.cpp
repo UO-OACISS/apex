@@ -42,9 +42,11 @@ std::shared_ptr<apex::task_wrapper> safeLookup(
     auto task = getMyMap().find(guid);
     if (task == getMyMap().end()) {
         // in the common map?
-        mtx.lock();
+        std::scoped_lock lock{mtx};
         task = getCommonMap().find(guid);
-        mtx.unlock();
+        if (task == getCommonMap().end()) {
+            return nullptr;
+        }
         getMyMap()[guid] = task->second;
     }
     return task->second;
@@ -78,12 +80,14 @@ extern "C" {
         // need to look up the parent shared pointers?
         std::vector<std::shared_ptr<apex::task_wrapper>> parent_tasks;
         for (uint64_t i = 0 ; i < parent_count ; i++) {
-            parent_tasks.push_back(safeLookup(parent_guids[i]));
+            auto tmp = safeLookup(parent_guids[i]);
+            if (tmp != nullptr)
+                parent_tasks.push_back(tmp);
         }
         // if no name, use address
         if (timer_name == nullptr || strlen(timer_name) == 0) {
             // TODO: need to handle multiple parents!
-            if (parent_count > 0) {
+            if (parent_tasks.size() > 0) {
                 auto task = apex::new_task(
                                 (apex_function_address)function_address,
                                 timer_guid, parent_tasks[0]);
@@ -96,7 +100,7 @@ extern "C" {
             }
         } else {
             // TODO: need to handle multiple parents!
-            if (parent_count > 0) {
+            if (parent_tasks.size() > 0) {
                 auto task = apex::new_task(timer_name, timer_guid, parent_tasks[0]);
                 safeInsert(timer_guid, task);
             } else {
