@@ -27,6 +27,12 @@ maptype& getMyMap(void) {
     return theMap;
 }
 
+void safePrint(const char * format, tasktimer_guid_t guid) {
+    return;
+    std::scoped_lock lock{mtx};
+    printf("%lu %s GUID %lu\n", apex::thread_instance::get_id(), format, guid);
+}
+
 void safeInsert(
     tasktimer_guid_t guid,
     std::shared_ptr<apex::task_wrapper> task) {
@@ -34,6 +40,7 @@ void safeInsert(
     getCommonMap()[guid] = task;
     mtx.unlock();
     getMyMap()[guid] = task;
+    //safePrint("Inserted", guid);
 }
 
 std::shared_ptr<apex::task_wrapper> safeLookup(
@@ -46,19 +53,25 @@ std::shared_ptr<apex::task_wrapper> safeLookup(
         task = getCommonMap().find(guid);
         mtx.unlock();
         if (task == getCommonMap().end()) {
+            safePrint("Not found", guid);
             return nullptr;
         }
         getMyMap()[guid] = task->second;
     }
+    //safePrint("Found", guid);
     return task->second;
 }
 
 void safeErase(
     tasktimer_guid_t guid) {
+    return;
+    /*
     getMyMap().erase(guid);
     mtx.lock();
     getCommonMap().erase(guid);
     mtx.unlock();
+    //safePrint("Destroyed", guid);
+    */
 }
 
 extern "C" {
@@ -101,11 +114,15 @@ extern "C" {
                 safeInsert(timer_guid, task);
             }
         } else {
-            if (parent_count > 0) {
-                auto task = apex::new_task(timer_name, timer_guid, parent_tasks);
+            std::string tmpname{timer_name};
+            //tmpname += std::string(" ");
+            //tmpname += std::to_string(timer_guid);
+            // TODO: need to handle multiple parents!
+            if (parent_tasks.size() > 0) {
+                auto task = apex::new_task(tmpname, timer_guid, parent_tasks);
                 safeInsert(timer_guid, task);
             } else {
-                auto task = apex::new_task(timer_name, timer_guid);
+                auto task = apex::new_task(tmpname, timer_guid);
                 safeInsert(timer_guid, task);
             }
         }
