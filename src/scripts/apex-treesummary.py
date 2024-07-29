@@ -336,6 +336,10 @@ def graphRank2(index, df, parentNode, droplist, args):
     #name = df.loc[df['node index'] == index, 'name'].iloc[0]
     childNode = parentNode.addChild(name, childDF)
 
+    # If we have visited this tree before, we are done.
+    if childDF['visited'].item():
+        return
+
     # slice out the children from the dataframe
     children = df[df['parent index'] == index]
     # Iterate over the children indexes and add to our node
@@ -343,7 +347,7 @@ def graphRank2(index, df, parentNode, droplist, args):
         if child == index:
             continue
         graphRank2(child, df, childNode, droplist, args)
-
+    df.loc[df['node index'] == index,'visited'] = True
 import ast
 
 def main():
@@ -416,6 +420,7 @@ def main():
     root = TreeNode('apex tree base', pd.DataFrame())
     root.index = -1
     #unique = df.drop_duplicates(subset=["node index", "parent index", "name"], keep='first')
+    df['visited'] = False
     graphRank2(0, df, root, droplist, args)
 
     roots = [root]
