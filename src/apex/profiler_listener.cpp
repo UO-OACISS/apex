@@ -711,7 +711,7 @@ std::unordered_set<profile*> free_profiles;
 #endif
         // wait for profiles to update
         std::this_thread::sleep_for(std::chrono::microseconds(100));
-        total_time = get_profile(main_id);
+        total_time = get_profile(*main_id);
     }
 #endif  // APEX_SYNCHRONOUS_PROCESSING
     double wall_clock_main = (total_time != nullptr) ? total_time->get_accumulated_seconds() : 0.0;
@@ -1239,6 +1239,7 @@ std::unordered_set<profile*> free_profiles;
     // Determine number of counter events, as these need to be
     // excluded from the number of normal timers
     unordered_map<task_identifier, profile*>::const_iterator it2;
+    size_t function_count = 0;
     {
         std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
         for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
@@ -1247,11 +1248,11 @@ std::unordered_set<profile*> free_profiles;
                 counter_events++;
             }
         }
-    }
-    size_t function_count = task_map.size() - counter_events;
-    if (apex_options::use_tasktree_output() || apex_options::use_hatchet_output()) {
-        auto root = task_wrapper::get_apex_main_wrapper();
-        function_count += (root->tree_node->getNodeCount() - 1);
+        function_count = task_map.size() - counter_events;
+        if (apex_options::use_tasktree_output() || apex_options::use_hatchet_output()) {
+            auto root = task_wrapper::get_apex_main_wrapper();
+            function_count += (root->tree_node->getNodeCount() - 1);
+        }
     }
 
     // Print the normal timers to the profile file
@@ -1301,6 +1302,7 @@ std::unordered_set<profile*> free_profiles;
     if(counter_events > 0) {
       myfile << counter_events << " userevents" << endl;
       myfile << "# eventname numevents max min mean sumsqr" << endl;
+      std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
       for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
         profile * p = it2->second;
         if(p->get_type() == APEX_COUNTER) {

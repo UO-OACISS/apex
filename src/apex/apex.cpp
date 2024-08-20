@@ -855,6 +855,10 @@ void start(std::shared_ptr<task_wrapper> tt_ptr) {
         return;
     }
     // get the thread id that is running this task
+    if (tt_ptr->thread_id != thread_instance::instance().get_id()) {
+        printf("Task %s created by %lu started by %lu\n", tt_ptr->task_id->get_name().c_str(),
+            tt_ptr->thread_id, thread_instance::instance().get_id());
+    }
     tt_ptr->thread_id = thread_instance::instance().get_id();
     if (_notify_listeners) {
         bool success = true;
@@ -1215,6 +1219,12 @@ void stop(std::shared_ptr<task_wrapper> tt_ptr) {
     if (tt_ptr->prof->stopped) {
         APEX_UTIL_REF_COUNT_DOUBLE_STOP
         return;
+    }
+    // get the thread id that is running this task
+    if (tt_ptr->prof->thread_id != thread_instance::instance().get_id()) {
+        printf("Task %s started by %lu stopped by %lu\n", tt_ptr->task_id->get_name().c_str(),
+            tt_ptr->prof->thread_id, thread_instance::instance().get_id());
+        APEX_ASSERT(tt_ptr->prof->thread_id == thread_instance::instance().get_id());
     }
     thread_instance::instance().clear_current_profiler(tt_ptr->prof, false,
         null_task_wrapper);
