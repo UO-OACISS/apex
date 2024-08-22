@@ -12,6 +12,7 @@
 #include "thread_instance.hpp"
 #include <mutex>
 #include <unordered_map>
+#include <stack>
 
 using maptype = std::unordered_map<tasktimer_guid_t,
                                    std::shared_ptr<apex::task_wrapper>>;
