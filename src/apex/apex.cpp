@@ -93,7 +93,7 @@ DEFINE_DESTRUCTOR(apex_finalize_static_void)
 #include "banner.hpp"
 #include "apex_dynamic.hpp"
 
-#if APEX_DEBUG
+#ifdef APEX_DEBUG
 #define FUNCTION_ENTER if (apex_options::use_verbose()) { \
     fprintf(stderr, "enter %lu *** %s:%d!\n", \
     thread_instance::get_id(), __APEX_FUNCTION__, __LINE__); fflush(stdout); }
@@ -650,6 +650,7 @@ inline std::shared_ptr<task_wrapper> _new_task(
     } else {
         profiler * p = thread_instance::instance().get_current_profiler();
         if (p != nullptr) {
+            //printf("Extracting parent: %s\n", p->tt_ptr->task_id->get_name().c_str());
             tt_ptr->parents.push_back(p->tt_ptr);
         } else {
             tt_ptr->parents.push_back(task_wrapper::get_apex_main_wrapper());
@@ -1153,8 +1154,12 @@ void stop(profiler* the_profiler, bool cleanup) {
 #if defined(APEX_DEBUG)//_disabled)
     if (apex_options::use_verbose()) { debug_print("Stop", the_profiler->tt_ptr); }
 #endif
-    thread_instance::instance().clear_current_profiler(the_profiler, false,
-        null_task_wrapper);
+    if (apex_options::untied_timers() == true) {
+        thread_instance::instance().clear_untied_current_profiler();
+    } else {
+        thread_instance::instance().clear_current_profiler(the_profiler, false,
+            null_task_wrapper);
+    }
     apex* instance = apex::instance(); // get the Apex static instance
     // protect against calls after finalization
     if (!instance || _exited || _measurement_stopped) {
@@ -1221,13 +1226,18 @@ void stop(std::shared_ptr<task_wrapper> tt_ptr) {
         return;
     }
     // get the thread id that is running this task
-    if (tt_ptr->prof->thread_id != thread_instance::instance().get_id()) {
+    if (tt_ptr->prof->thread_id != thread_instance::instance().get_id() &&
+        !apex_options::untied_timers()) {
         printf("Task %s started by %lu stopped by %lu\n", tt_ptr->task_id->get_name().c_str(),
             tt_ptr->prof->thread_id, thread_instance::instance().get_id());
         APEX_ASSERT(tt_ptr->prof->thread_id == thread_instance::instance().get_id());
     }
-    thread_instance::instance().clear_current_profiler(tt_ptr->prof, false,
-        null_task_wrapper);
+    if (apex_options::untied_timers()) {
+        thread_instance::instance().clear_untied_current_profiler();
+    } else {
+        thread_instance::instance().clear_current_profiler(tt_ptr->prof, false,
+            null_task_wrapper);
+    }
     // protect against calls after finalization
     if (!instance || _exited || _measurement_stopped) {
         APEX_UTIL_REF_COUNT_STOP_AFTER_FINALIZE
@@ -1285,8 +1295,12 @@ void yield(profiler* the_profiler)
         APEX_UTIL_REF_COUNT_DOUBLE_YIELD
         return;
     }
-    thread_instance::instance().clear_current_profiler(the_profiler, false,
-        null_task_wrapper);
+    if (apex_options::untied_timers() == true) {
+        thread_instance::instance().clear_untied_current_profiler();
+    } else {
+        thread_instance::instance().clear_current_profiler(the_profiler, false,
+            null_task_wrapper);
+    }
     std::shared_ptr<profiler> p{the_profiler};
     if (_notify_listeners) {
         //read_lock_type l(instance->listener_mutex);
@@ -1336,8 +1350,12 @@ void yield(std::shared_ptr<task_wrapper> tt_ptr)
         APEX_UTIL_REF_COUNT_DOUBLE_YIELD
         return;
     }
-    thread_instance::instance().clear_current_profiler(tt_ptr->prof,
-        true, tt_ptr);
+    if (apex_options::untied_timers() == true) {
+        thread_instance::instance().clear_untied_current_profiler();
+    } else {
+        thread_instance::instance().clear_current_profiler(tt_ptr->prof, true,
+            tt_ptr);
+    }
     std::shared_ptr<profiler> p{tt_ptr->prof};
     if (_notify_listeners) {
         //read_lock_type l(instance->listener_mutex);
@@ -1815,16 +1833,25 @@ void finalize(void)
         }
     }
 #endif
-    // FIRST, stop the top level timer, while the infrastructure is still
-    // functioning.
-    auto tmp = thread_instance::get_top_level_timer();
-    if (tmp != nullptr) {
-        stop(tmp);
-        thread_instance::clear_top_level_timer();
-    }
-    // Second, stop the main timer, while the infrastructure is still
-    // functioning.
-    instance->the_profiler_listener->stop_main_timer();
+    //if (apex_options::untied_timers() == true) {
+        profiler * top_profiler = thread_instance::instance().get_current_profiler();
+        while (top_profiler != nullptr) {
+            stop(top_profiler);
+            top_profiler = thread_instance::instance().get_current_profiler();
+        }
+        /*
+    } else {
+        // FIRST, stop the top level timer, while the infrastructure is still
+        // functioning.
+        auto tmp = thread_instance::get_top_level_timer();
+        if (tmp != nullptr) {
+            stop(tmp);
+            thread_instance::clear_top_level_timer();
+        }
+        // Second, stop the main timer, while the infrastructure is still
+        // functioning.
+        instance->the_profiler_listener->stop_main_timer();
+    } */
     // if not done already...
     shutdown_throttling(); // stop thread scheduler policies
     /* Do this before OTF2 grabs a final timestamp - we might have
@@ -2017,14 +2044,26 @@ void exit_thread(void)
             instance->known_threads.erase(&ti);
         }
     }
-    auto tmp = thread_instance::get_top_level_timer();
-    // tell the timer cleanup that we are exiting
-    thread_instance::exiting();
-    //printf("Old thread: %p\n", &(*tmp));
-    if (tmp != nullptr) {
-        stop(tmp);
-        thread_instance::clear_top_level_timer();
+    //if (apex_options::untied_timers() == true) {
+        profiler * top_profiler = thread_instance::instance().get_current_profiler();
+        // tell the timer cleanup that we are exiting
+        thread_instance::exiting();
+        while (top_profiler != nullptr) {
+            stop(top_profiler);
+            top_profiler = thread_instance::instance().get_current_profiler();
+        }
+        /*
+    } else {
+        auto tmp = thread_instance::get_top_level_timer();
+        // tell the timer cleanup that we are exiting
+        thread_instance::exiting();
+        //printf("Old thread: %p\n", &(*tmp));
+        if (tmp != nullptr) {
+            stop(tmp);
+            thread_instance::clear_top_level_timer();
+        }
     }
+    */
     // ok to set this now - we need everything still running
     _exited = true;
     event_data data;

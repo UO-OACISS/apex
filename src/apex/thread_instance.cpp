@@ -246,6 +246,12 @@ string thread_instance::map_addr_to_name(apex_function_address function_address)
 }
 
 void thread_instance::set_current_profiler(profiler * the_profiler) {
+    if (apex_options::untied_timers() == true) {
+        // make the previous profiler on the "stack" the parent of this profiler
+        the_profiler->untied_parent = instance().untied_current_profiler;
+        // make this profiler the new top of the "stack"
+        instance().untied_current_profiler = the_profiler->tt_ptr;
+    }
     instance().current_profilers.push_back(the_profiler);
     //printf("%lu pushing %s\n", get_id(), the_profiler->get_task_id()->get_short_name().c_str());
 }
@@ -275,6 +281,7 @@ profiler * thread_instance::restore_children_profilers(
 void thread_instance::clear_all_profilers() {
     // nothing to do?
     if (current_profilers.empty() || !_is_worker) return;
+    if (apex_options::untied_timers() == true) { return; }
     // copy the stack
     auto the_stack(current_profilers);
     auto tmp = the_stack.back();
@@ -369,7 +376,13 @@ void thread_instance::clear_current_profiler(profiler * the_profiler,
 }
 
 profiler * thread_instance::get_current_profiler(void) {
-    if (instance().current_profilers.empty()) { return nullptr; }
+    if (apex_options::untied_timers() == true) {
+        if (instance().untied_current_profiler == nullptr) {
+            return nullptr;
+        }
+        return instance().untied_current_profiler->prof;
+    }
+    else if (instance().current_profilers.empty()) { return nullptr; }
     return instance().current_profilers.back();
 }
 

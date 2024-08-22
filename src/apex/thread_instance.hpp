@@ -94,7 +94,8 @@ private:
   thread_instance (bool is_worker) :
         _id(-1), _id_reversed(UINTMAX_MAX), _runtime_id(-1),
         _top_level_timer_name(), _is_worker(is_worker), _task_count(0),
-        _top_level_timer(nullptr), _exiting(false) {
+        _top_level_timer(nullptr), _exiting(false),
+        untied_current_profiler(nullptr) {
     /* Even do this for non-workers, because for CUPTI processing we need to
      * generate GUIDs for the activity events! */
     _id = common()._num_threads++;
@@ -124,6 +125,7 @@ private:
   // map from function address to name - unique to all threads to avoid locking
   std::map<apex_function_address, std::string> _function_map;
   std::vector<profiler*> current_profilers;
+  std::shared_ptr<task_wrapper> untied_current_profiler;
   uint64_t _get_guid(void) {
       // start at 1, because 0 means nullptr which means "no parent"
       _task_count++;
@@ -160,6 +162,11 @@ public:
         bool save_children, std::shared_ptr<task_wrapper> &tt_ptr);
   static void clear_current_profiler() {
     instance().current_profilers.pop_back();
+  }
+  static void clear_untied_current_profiler() {
+    auto tmp = instance().untied_current_profiler;
+    if (tmp == nullptr) return;
+    instance().untied_current_profiler = tmp->prof->untied_parent;
   }
   static const char * program_path(void);
   static bool is_worker() { return instance()._is_worker; }

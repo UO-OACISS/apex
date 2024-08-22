@@ -43,6 +43,7 @@ private:
     task_identifier * task_id; // for counters, timers
 public:
     std::shared_ptr<task_wrapper> tt_ptr;     // for timers
+    std::shared_ptr<task_wrapper> untied_parent; // for timer stack handling with untied timers
     uint64_t start_ns;
     uint64_t end_ns;
 #if APEX_HAVE_PAPI
@@ -75,6 +76,7 @@ public:
              reset_type reset = reset_type::NONE) :
         task_id(task->get_task_id()),
         tt_ptr(task),
+        untied_parent(nullptr),
         start_ns(our_clock::now_ns()),
 #if APEX_HAVE_PAPI
         papi_start_values{0,0,0,0,0,0,0,0},
@@ -97,6 +99,7 @@ public:
              reset_type reset = reset_type::NONE) :
         task_id(id),
         tt_ptr(nullptr),
+        untied_parent(nullptr),
         start_ns(our_clock::now_ns()),
 #if APEX_HAVE_PAPI
         papi_start_values{0,0,0,0,0,0,0,0},
