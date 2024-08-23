@@ -51,15 +51,31 @@ static int (*main_real)(int, char**, char**);
 int apex_preload_main(int argc, char** argv, char** envp) {
     // FIRST! check to see if this is a bash script. if so, DO NOTHING
     size_t len{strlen(argv[0])};
-    if (len > 4 && strncmp(argv[0] + (len - 4), "bash", 4) == 0) {
+    // little lambda for making sure we wrap the right executable
+    const auto validate_argv0 = [&](const char * needle){
+        size_t needle_len{strlen(needle)};
+        if (len > needle_len &&
+            (strncmp(argv[0] + (len - needle_len), needle, needle_len)) == 0) {
+            fputs("zs: skipping ", stderr);
+            fputs(argv[0], stderr);
+            fputs("!\n", stderr);
+            return true;
+        }
+        return false;
+    };
+    if (validate_argv0("bash")) {
         return main_real(argc, argv, envp);
     }
-    // FIRST! check to see if this is a [t]csh script. if so, DO NOTHING
-    if (len > 3 && strncmp(argv[0] + (len - 3), "csh", 3) == 0) {
+    // Next! check to see if this is a [t]csh script. if so, DO NOTHING
+    else if (validate_argv0("csh")) {
         return main_real(argc, argv, envp);
     }
-    // FIRST! check to see if this is gdb. if so, DO NOTHING (should get caught by the apex_exec script though)
-    if (len > 3 && strncmp(argv[0] + (len - 3), "gdb", 3) == 0) {
+    // Then! check to see if this is gdb. if so, DO NOTHING (should get caught by the apex_exec script though)
+    else if (validate_argv0("gdb")) {
+        return main_real(argc, argv, envp);
+    }
+    // finally! check for a fork from cuda-gdb
+    else if (validate_argv0("NvDebugAgent")) {
         return main_real(argc, argv, envp);
     }
     // prevent re-entry

@@ -969,6 +969,13 @@ else()
             "Try manually check out https://github.com/khuck/taskStubs.git to ${PROJECT_SOURCE_DIR}")
 endif()
 
+if(APEX_BUILD_TESTS)
+    # Include path needed for example in src/unit_tests/C++
+    include_directories(${PROJECT_SOURCE_DIR}/taskStubs/timer_plugin)
+    # Build the taskstubs library for testing purposes
+    add_subdirectory (taskStubs)
+endif(APEX_BUILD_TESTS)
+
 if(APEX_WITH_PLUGINS)
     message(INFO " apex will be built with plugin support.")
     set(LIBS ${LIBS} ${CMAKE_DL_LIBS})

@@ -124,7 +124,9 @@ namespace apex {
                 node->info.filename = strdup(info.dli_fname);
             }
             if (info.dli_sname == nullptr) {
-                node->info.funcname = strdup("unknown");
+                stringstream ss;
+                ss << "UNRESOLVED  ADDR 0x" << hex << ip;
+                node->info.funcname = strdup(ss.str().c_str());
             } else {
                 node->info.funcname = strdup(info.dli_sname);
             }

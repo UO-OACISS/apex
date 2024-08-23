@@ -29,9 +29,9 @@ maptype& getMyMap(void) {
 }
 
 void safePrint(const char * format, tasktimer_guid_t guid) {
-    return;
     std::scoped_lock lock{mtx};
     printf("%lu %s GUID %lu\n", apex::thread_instance::get_id(), format, guid);
+    return;
 }
 
 void safeInsert(
@@ -93,7 +93,6 @@ extern "C" {
         const uint64_t parent_count) {
         static bool& over = apex::get_program_over();
         if (over) return nullptr;
-        // TODO: need to handle multiple parents!
         // need to look up the parent shared pointers?
         std::vector<std::shared_ptr<apex::task_wrapper>> parent_tasks;
         for (uint64_t i = 0 ; i < parent_count ; i++) {
@@ -103,6 +102,7 @@ extern "C" {
         }
         // if no name, use address
         if (timer_name == nullptr || strlen(timer_name) == 0) {
+            printf("Null name for timer: %p\n", function_address);
             if (parent_count > 0) {
                 auto task = apex::new_task(
                                 (apex_function_address)function_address,
@@ -153,7 +153,7 @@ extern "C" {
         // TODO: capture the execution space, somehow...a new task?
         MAP_TASK(timer, apex_timer);
         if (apex_timer != nullptr) {
-        apex::start(apex_timer);
+            apex::start(apex_timer);
         }
     }
     void tasktimer_yield_impl(
@@ -162,7 +162,7 @@ extern "C" {
         if (over) return;
         MAP_TASK(timer, apex_timer);
         if (apex_timer != nullptr) {
-        apex::yield(apex_timer);
+            apex::yield(apex_timer);
         }
     }
     void tasktimer_resume_impl(
@@ -172,23 +172,23 @@ extern "C" {
         MAP_TASK(timer, apex_timer);
         // TODO: why no resume function for task_wrapper objects?
         if (apex_timer != nullptr) {
-        apex::start(apex_timer);
+            apex::start(apex_timer);
         }
     }
     void tasktimer_stop_impl(
         tasktimer_timer_t timer) {
         MAP_TASK(timer, apex_timer);
         if (apex_timer != nullptr) {
-        apex::stop(apex_timer);
+            apex::stop(apex_timer);
         }
     }
     void tasktimer_destroy_impl(
         tasktimer_timer_t timer) {
         MAP_TASK(timer, apex_timer);
         if (apex_timer != nullptr) {
-        // TODO: need to handle the destroy event somehow.
-        // definitely need to remove it from the local map.
-        safeErase(apex_timer->guid);
+            // TODO: need to handle the destroy event somehow.
+            // definitely need to remove it from the local map.
+            safeErase(apex_timer->guid);
         }
     }
     void tasktimer_add_parents_impl (
@@ -197,10 +197,19 @@ extern "C" {
         // TODO: need to handle the add parents event
         MAP_TASK(timer, apex_timer);
         if (apex_timer != nullptr) {
-        APEX_UNUSED(apex_timer);
+            for (uint64_t i = 0 ; i < parent_count ; i++) {
+                auto tmp = safeLookup(parents[i]);
+                if (tmp != nullptr) {
+                    // add the parent to the child
+                    apex_timer->parents.push_back(tmp);
+                }
+            }
+            // update the child tree
+            if (apex::apex_options::use_tasktree_output() ||
+                apex::apex_options::use_hatchet_output()) {
+                apex_timer->assign_heritage();
+            }
         }
-        APEX_UNUSED(parents);
-        APEX_UNUSED(parent_count);
     }
     void tasktimer_add_children_impl(
         tasktimer_timer_t timer,
@@ -208,10 +217,19 @@ extern "C" {
         // TODO: need to handle the add children event
         MAP_TASK(timer, apex_timer);
         if (apex_timer != nullptr) {
-        APEX_UNUSED(apex_timer);
+            for (uint64_t i = 0 ; i < child_count ; i++) {
+                auto tmp = safeLookup(children[i]);
+                if (tmp != nullptr) {
+                    // add the parent to the child
+                    tmp->parents.push_back(apex_timer);
+                    // update the child tree
+                    if (apex::apex_options::use_tasktree_output() ||
+                        apex::apex_options::use_hatchet_output()) {
+                        tmp->assign_heritage();
+                    }
+                }
+            }
         }
-        APEX_UNUSED(children);
-        APEX_UNUSED(child_count);
     }
 
     void timerStack(

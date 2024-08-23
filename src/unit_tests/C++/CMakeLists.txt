@@ -48,6 +48,7 @@ set(example_programs
     apex_malloc
     apex_std_thread
     apex_multiple_parents
+    apex_taskstubs
     ${APEX_OPENMP_TEST}
    )
     #apex_set_thread_cap
@@ -83,10 +84,12 @@ foreach(example_program ${example_programs})
   set(sources ${example_program}.cpp)
   source_group("Source Files" FILES ${sources})
   add_executable("${example_program}_cpp" ${sources})
-  target_link_libraries ("${example_program}_cpp" apex ${LIBS})
+  target_link_libraries ("${example_program}_cpp" apex ${LIBS} timer_plugin)
     if (BUILD_STATIC_EXECUTABLES)
         set_target_properties("${example_program}_cpp" PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
     endif()
+  # This is needed to make sure local symbols are exported and we can dladdr them
+  set_property(TARGET "${example_program}_cpp" PROPERTY ENABLE_EXPORTS ON)
   add_dependencies ("${example_program}_cpp" apex)
   add_dependencies (tests "${example_program}_cpp")
   add_test ("test_${example_program}_cpp" "${example_program}_cpp")

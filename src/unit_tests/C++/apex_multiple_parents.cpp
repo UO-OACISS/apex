@@ -24,7 +24,7 @@ int child (int in, std::shared_ptr< apex::task_wrapper > this_task) {
     return in;
 }
 
-int main(int argc, char *argv[]) {
+int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
     int comm_rank = 0;
     int comm_size = 1;
 #ifdef APEX_ENABLE_MPI
