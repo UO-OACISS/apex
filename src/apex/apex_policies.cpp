@@ -968,8 +968,8 @@ int apex_exhaustive_policy(shared_ptr<apex_tuning_session> tuning_session,
 
     if (tuning_session->exhaustive_session.converged() && force) {
         /* Report the performance we've just measured. */
-        tuning_session->exhaustive_session.evaluate(new_value);
         if (!tuning_session->converged_message) {
+            tuning_session->exhaustive_session.evaluate(new_value);
             tuning_session->converged_message = true;
             cout << "APEX: Tuning has converged for session " << tuning_session->id
             << "." << endl;
