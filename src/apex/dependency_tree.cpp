@@ -23,17 +23,17 @@ std::mutex Node::treeMutex;
 std::atomic<size_t> Node::nodeCount{0};
 std::set<std::string> Node::known_metrics;
 
-Node* Node::appendChild(task_identifier* c, Node* existing) {
+std::shared_ptr<Node> Node::appendChild(task_identifier* c, std::shared_ptr<Node> existing) {
     treeMutex.lock();
     auto iter = children.find(*c);
     if (iter == children.end()) {
         if (existing != nullptr) {
-            existing->parents.push_back(this);
+            existing->parents.push_back(shared_from_this());
             children.insert(std::make_pair(*c,existing));
             treeMutex.unlock();
             return existing;
         } else {
-            auto n = new Node(c,this);
+            auto n = std::make_shared<Node>(c,shared_from_this());
             //std::cout << "Inserting " << c->get_name() << std::endl;
             children.insert(std::make_pair(*c,n));
             treeMutex.unlock();
@@ -45,12 +45,12 @@ Node* Node::appendChild(task_identifier* c, Node* existing) {
     return iter->second;
 }
 
-Node* Node::replaceChild(task_identifier* old_child, task_identifier* new_child) {
+std::shared_ptr<Node> Node::replaceChild(task_identifier* old_child, task_identifier* new_child) {
     treeMutex.lock();
     auto olditer = children.find(*old_child);
     // not found? shouldn't happen...
     if (olditer == children.end()) {
-        auto n = new Node(new_child,this);
+        auto n = std::make_shared<Node>(new_child,shared_from_this());
         //std::cout << "Inserting " << new_child->get_name() << std::endl;
         children.insert(std::make_pair(*new_child,n));
         treeMutex.unlock();
@@ -64,7 +64,7 @@ Node* Node::replaceChild(task_identifier* old_child, task_identifier* new_child)
     auto newiter = children.find(*new_child);
     // not found? shouldn't happen...
     if (newiter == children.end()) {
-        auto n = new Node(new_child,this);
+        auto n = std::make_shared<Node>(new_child,shared_from_this());
         //std::cout << "Inserting " << new_child->get_name() << std::endl;
         children.insert(std::make_pair(*new_child,n));
         treeMutex.unlock();
@@ -75,9 +75,9 @@ Node* Node::replaceChild(task_identifier* old_child, task_identifier* new_child)
 }
 
 void Node::writeNode(std::ofstream& outfile, double total) {
-    static std::set<Node*> processed;
-    if (processed.count(this)) return;
-    processed.insert(this);
+    static std::set<std::shared_ptr<Node>> processed;
+    if (processed.count(shared_from_this())) return;
+    processed.insert(shared_from_this());
     static size_t depth = 0;
     // Write out the relationships
     for(auto& parent : parents) {
@@ -127,7 +127,7 @@ void Node::writeNode(std::ofstream& outfile, double total) {
     depth--;
 }
 
-bool cmp(std::pair<task_identifier, Node*>& a, std::pair<task_identifier, Node*>& b) {
+bool cmp(std::pair<task_identifier, std::shared_ptr<Node>>& a, std::pair<task_identifier, std::shared_ptr<Node>>& b) {
     return a.second->getAccumulated() > b.second->getAccumulated();
 }
 
@@ -164,7 +164,7 @@ double Node::writeNodeASCII(std::ofstream& outfile, double total, size_t indent)
     outfile << std::endl;
 
     // sort the children by accumulated time
-    std::vector<std::pair<task_identifier, Node*> > sorted;
+    std::vector<std::pair<task_identifier, std::shared_ptr<Node>> > sorted;
     for (auto& it : children) {
         sorted.push_back(it);
     }
@@ -351,9 +351,9 @@ void Node::addAccumulated(double value, double incl, bool is_resume, uint64_t th
 
 double Node::writeNodeCSV(std::stringstream& outfile, double total, int node_id, int num_papi_counters) {
     static size_t depth = 0;
-    static std::set<Node*> processed;
-    if (processed.count(this)) return getAccumulated();
-    processed.insert(this);
+    static std::set<std::shared_ptr<Node>> processed;
+    if (processed.count(shared_from_this())) return getAccumulated();
+    processed.insert(shared_from_this());
     APEX_ASSERT(total > 0.0);
     // write out the node id and graph node index and the name
     outfile << node_id << "," << index << ",\"[";
@@ -432,7 +432,7 @@ double Node::writeNodeCSV(std::stringstream& outfile, double total, int node_id,
     outfile << std::endl;
 
     // sort the children by name to make tree merging easier (I hope)
-    std::vector<Node*> sorted;
+    std::vector<std::shared_ptr<Node>> sorted;
     for (auto& it : children) {
         sorted.push_back(it.second);
     }

@@ -54,7 +54,7 @@ struct task_wrapper {
 /**
   \brief A node in the task tree representing this task type
   */
-    dependency::Node* tree_node;
+    std::shared_ptr<dependency::Node> tree_node;
 /**
   \brief Internal usage, used to manage HPX direct actions when their
          parent task is yielded by the runtime.
@@ -97,6 +97,14 @@ struct task_wrapper {
         explicit_trace_start(false)
     { }
 /**
+  \brief Destructor.
+  */
+    ~task_wrapper(void) {
+        //if (tree_node != nullptr) { delete tree_node; }
+        if (alias != nullptr) { delete alias; }
+    }
+
+/**
   \brief Get the task_identifier for this task_wrapper.
   \returns A pointer to the task_identifier
   */
@@ -119,7 +127,8 @@ struct task_wrapper {
                 const std::string apex_main_str(APEX_MAIN_STR);
                 tt_ptr = std::make_shared<task_wrapper>();
                 tt_ptr->task_id = task_identifier::get_task_id(apex_main_str);
-                tt_ptr->tree_node = new dependency::Node(tt_ptr->task_id, nullptr);
+                std::shared_ptr<dependency::Node> tmp(new dependency::Node(tt_ptr->task_id, nullptr));
+                tt_ptr->tree_node = tmp;
             }
             mtx.unlock();
         }

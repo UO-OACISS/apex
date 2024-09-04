@@ -534,16 +534,8 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
      * and if so, don't be suspended long enough to enable the main timer. */
     bool suspended = apex_options::suspend();
     apex_options::suspend(false);
-    /* For the main thread, we should always start a top level timer.
-     * The reason is that if the program calls "exit", our atexit() processing
-     * will stop this timer, effectively stopping all of its children as well,
-     * so we will get an accurate measurement for abnormal termination. */
-    auto main = task_wrapper::get_apex_main_wrapper();
-    // make sure the tracing support puts APEX MAIN on the right thread
-    // when tracing HPX - the finalization will almost assuredly not
-    // be stopped on the thread that is calling apex::init. You've been warned.
-    main->explicit_trace_start = true;
-    start(main);
+    /* No need to start a top level timer here, it happens
+       in the profiler listener. */
     if (apex_options::top_level_os_threads()) {
         // start top-level timer for main thread, it will get automatically
         // stopped when the main wrapper timer is stopped.
@@ -556,7 +548,7 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
             task_name = "Main Thread";
         }
         std::shared_ptr<task_wrapper> twp =
-            new_task(task_name, UINTMAX_MAX, main);
+            new_task(task_name, UINTMAX_MAX, task_wrapper::get_apex_main_wrapper());
         start(twp);
         thread_instance::set_top_level_timer(twp);
     }

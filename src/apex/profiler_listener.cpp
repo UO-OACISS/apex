@@ -1786,6 +1786,10 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
         if (apex_options::process_async_state()) {
             finalize_profiles(data, reduced);
         }
+        for (auto itr : reduced) {
+            free(itr.second);
+        }
+        reduced.clear();
       }
       if (apex_options::use_taskgraph_output())
       {
@@ -2167,18 +2171,18 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
   }
 
   void profiler_listener::stop_main_timer(void) {
-    if (!_main_timer_stopped) {
+    if (!_main_timer_stopped && !main_timer->stopped) {
         APEX_ASSERT(main_timer != nullptr);
         main_timer->stop(true);
         //_common_stop(main_timer, false);
         //on_task_complete(main_timer->tt_ptr);
         _main_timer_stopped = true;
+        push_profiler((unsigned int)thread_instance::get_id(), *main_timer);
     }
   }
 
   void profiler_listener::on_pre_shutdown(void) {
     stop_main_timer();
-    push_profiler((unsigned int)thread_instance::get_id(), *main_timer);
   }
 
   void profiler_listener::push_profiler_public(std::shared_ptr<profiler> &p) {

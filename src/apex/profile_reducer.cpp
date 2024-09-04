@@ -133,10 +133,12 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
     if (mpi_initialized && commsize > 1) {
         MPI_CALL(PMPI_Allgather(sbuf, sbuf_length, MPI_CHAR,
             rbuf, sbuf_length, MPI_CHAR, MPI_COMM_WORLD));
+        free(sbuf);
     } else {
 #else
     if (true) {
 #endif
+        // free the unused receive buffer
         free(rbuf);
         rbuf = sbuf;
     }
@@ -149,6 +151,7 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
             //DEBUG_PRINT("%d Inserting: %s\n", commrank, tmp.c_str());
         }
     }
+    free(rbuf);
     // the set is already sorted?...
     //sort(all_names.begin(), all_names.end());
 
@@ -207,11 +210,15 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
     if (mpi_initialized && commsize > 1) {
         MPI_CALL(PMPI_Gather(s_pdata, sbuf_length, MPI_DOUBLE,
             r_pdata, sbuf_length, MPI_DOUBLE, 0, MPI_COMM_WORLD));
+        // free the send buffer
+        free(s_pdata);
     } else {
 #else
     if (true) {
 #endif
+        // free the unused "receive" buffer
         free(r_pdata);
+        // point to the send buffer
         r_pdata = s_pdata;
     }
 
@@ -265,6 +272,8 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
             dptr = &(dptr[num_fields]);
         }
     }
+    // free the buffer, receive buffer if MPI, send if not
+    free (r_pdata);
 
     }
 #if defined(APEX_WITH_MPI) || \

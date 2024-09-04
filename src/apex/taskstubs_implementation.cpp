@@ -16,7 +16,11 @@
 
 using maptype = std::unordered_map<tasktimer_guid_t,
                                    std::shared_ptr<apex::task_wrapper>>;
-std::mutex mtx;
+
+std::mutex& mtx(void) {
+    static std::mutex mtx;
+    return mtx;
+}
 
 maptype& getCommonMap(void) {
     static maptype theMap;
@@ -29,7 +33,7 @@ maptype& getMyMap(void) {
 }
 
 void safePrint(const char * format, tasktimer_guid_t guid) {
-    std::scoped_lock lock{mtx};
+    std::scoped_lock lock{mtx()};
     printf("%lu %s GUID %lu\n", apex::thread_instance::get_id(), format, guid);
     return;
 }
@@ -37,9 +41,10 @@ void safePrint(const char * format, tasktimer_guid_t guid) {
 void safeInsert(
     tasktimer_guid_t guid,
     std::shared_ptr<apex::task_wrapper> task) {
-    mtx.lock();
-    getCommonMap()[guid] = task;
-    mtx.unlock();
+    {
+        std::scoped_lock lock{mtx()};
+        getCommonMap()[guid] = task;
+    }
     getMyMap()[guid] = task;
     //safePrint("Inserted", guid);
 }
@@ -50,9 +55,10 @@ std::shared_ptr<apex::task_wrapper> safeLookup(
     auto task = getMyMap().find(guid);
     if (task == getMyMap().end()) {
         // in the common map?
-        std::scoped_lock lock{mtx};
-        task = getCommonMap().find(guid);
-        mtx.unlock();
+        {
+            std::scoped_lock lock{mtx()};
+            task = getCommonMap().find(guid);
+        }
         if (task == getCommonMap().end()) {
             safePrint("Not found", guid);
             return nullptr;
@@ -68,9 +74,10 @@ void safeErase(
     return;
     /*
     getMyMap().erase(guid);
-    mtx.lock();
-    getCommonMap().erase(guid);
-    mtx.unlock();
+    {
+        std::scoped_lock lock{mtx()};
+        getCommonMap().erase(guid);
+    }
     //safePrint("Destroyed", guid);
     */
 }

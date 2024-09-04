@@ -45,10 +45,10 @@ public:
     }
 };
 
-class Node {
+class Node : public std::enable_shared_from_this<Node> {
     private:
         task_identifier* data;
-        std::vector<Node*> parents;
+        std::vector<std::shared_ptr<Node>> parents;
         size_t count;
         apex_profile prof;
         //double calls;
@@ -59,14 +59,14 @@ class Node {
         double inclusive;
         size_t index;
         std::set<uint64_t> thread_ids;
-        std::unordered_map<task_identifier, Node*> children;
+        std::unordered_map<task_identifier, std::shared_ptr<Node>> children;
         // map for arbitrary metrics
         std::map<std::string, metricStorage> metric_map;
         static std::mutex treeMutex;
         static std::atomic<size_t> nodeCount;
         static std::set<std::string> known_metrics;
     public:
-        Node(task_identifier* id, Node* p) :
+        Node(task_identifier* id, std::shared_ptr<Node> p) :
             data(id), count(1), inclusive(0),
             index(nodeCount.fetch_add(1, std::memory_order_relaxed)) {
             parents.push_back(p);
@@ -77,15 +77,10 @@ class Node {
             prof.sum_squares = 0.0;
             memset(prof.papi_metrics, 0, sizeof(double)*8);
         }
-        ~Node() {
-            treeMutex.lock();
-            for (auto c : children) {
-                delete c.second;
-            }
-            treeMutex.unlock();
-        }
-        Node* appendChild(task_identifier* c, Node* existing);
-        Node* replaceChild(task_identifier* old_child, task_identifier* new_child);
+        // nothing to destruct? because we used smart pointers for parents/children...
+        ~Node() { }
+        std::shared_ptr<Node> appendChild(task_identifier* c, std::shared_ptr<Node> existing);
+        std::shared_ptr<Node> replaceChild(task_identifier* old_child, task_identifier* new_child);
         task_identifier* getData() { return data; }
         size_t getCount() { return count; }
         inline double& getCalls() { return prof.calls; }
@@ -111,7 +106,7 @@ class Node {
             return known_metrics;
         }
         // required for using this class as a key in a map, vector, etc.
-        static bool compareNodeByParentName (const Node* lhs, const Node* rhs) {
+        static bool compareNodeByParentName (const std::shared_ptr<Node> lhs, const std::shared_ptr<Node> rhs) {
             if (lhs->parents[0]->index < rhs->parents[0]->index) {
                 return true;
             }
