@@ -5,6 +5,7 @@ import numpy as np
 import argparse
 from argparse import RawTextHelpFormatter
 import math
+import matplotlib as mp
 import os
 import re
 
@@ -188,35 +189,6 @@ def shorten_name(name):
     short = (tmp[:67] + '...') if len(tmp) > 67 else tmp
     return short
 
-def get_node_color_visible(v, vmin, vmax):
-    if v > vmax:
-        v = vmax
-    dv = vmax - vmin
-    if dv == 0:
-        dv = 1
-    frac = 1.0 - ((v-vmin)/dv)
-    # red is full on
-    red = 255
-    # blue should grow proportionally
-    blue = int(frac * 255)
-    green = int(frac * 255)
-    return red, blue, green
-
-def get_node_color_visible_one(v, vmin, vmax):
-    if math.isnan(v) or  math.isnan(vmin) or  math.isnan(vmax) or vmax == vmin or \
-       math.isinf(v) or  math.isinf(vmin) or  math.isinf(vmax) or vmax == vmin:
-        return 255
-    if v > vmax:
-        v = vmax
-    dv = vmax - vmin
-    if dv <= 0.0:
-        dv = 1.0
-    frac = 1.0 - ((v-vmin)/dv)
-    if math.isnan(frac):
-        frac = 1.0
-    intensity = int(frac * 255)
-    return intensity
-
 def drawDOT(df, args, name):
     # computing new stats
     if args.verbose:
@@ -266,21 +238,18 @@ def drawDOT(df, args, name):
         f.write('style=filled; ')
         acc = df['total time(s)'][ind]
         bpc = df['bytes per call'][ind]
+        frac = acc / (acc_maximum - acc_minimum)
         if "MPI" in name and bpc > 0:
-            red = int(255)
-            green = get_node_color_visible_one(bpc, bpc_minimum, bpc_maximum)
-            blue = get_node_color_visible_one(acc, acc_minimum, acc_maximum)
-            if blue > red:
-                red = green
-                blue = int(255)
-            else:
-                blue = green
+            cmap = mp.colormaps.get_cmap('Reds')
         else:
-            red = get_node_color_visible_one(acc, acc_minimum, acc_maximum)
-            green = red
-            blue = int(255)
+            cmap = mp.colormaps.get_cmap('Blues')
+        rgba = cmap(frac)
+        rgba = tuple(int((255*x)) for x in rgba[0:3])
+        red = rgba[0]
+        green = rgba[1]
+        blue = rgba[2]
         f.write('color=black; ')
-        if (acc > 0.5 * acc_maximum):
+        if (frac > 0.5):
             f.write('fontcolor=white; ')
         else:
             f.write('fontcolor=black; ')
