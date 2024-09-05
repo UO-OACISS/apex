@@ -100,8 +100,7 @@ struct task_wrapper {
   \brief Destructor.
   */
     ~task_wrapper(void) {
-        //if (tree_node != nullptr) { delete tree_node; }
-        if (alias != nullptr) { delete alias; }
+        // don't delete the alias, because task_identifier objects never go away
     }
 
 /**

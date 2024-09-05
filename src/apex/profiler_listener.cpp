@@ -153,7 +153,7 @@ std::unordered_set<profile*> free_profiles;
     double non_idle_time = 0.0;
     /* Iterate over all timers and accumulate the time spent in them */
     unordered_map<task_identifier, profile*>::const_iterator it2;
-    std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
+    std::lock_guard<std::mutex> task_map_lock(_task_map_mutex);
     for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
       profile * p = it2->second;
       if (apex_options::throttle_timers()) {
@@ -238,7 +238,7 @@ std::unordered_set<profile*> free_profiles;
         }
         return theprofile;
     }
-    std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
+    std::lock_guard<std::mutex> task_map_lock(_task_map_mutex);
     unordered_map<task_identifier, profile*>::const_iterator it = task_map.find(id);
     if (it != task_map.end()) {
       return (*it).second;
@@ -247,7 +247,7 @@ std::unordered_set<profile*> free_profiles;
   }
 
   void profiler_listener::reset_all(void) {
-    std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
+    std::lock_guard<std::mutex> task_map_lock(_task_map_mutex);
     for(auto &it : task_map) {
         it.second->reset();
     }
@@ -289,13 +289,13 @@ std::unordered_set<profile*> free_profiles;
         }
     }
 #endif
-    std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
+    _task_map_mutex.lock();
     unordered_map<task_identifier, profile*>::const_iterator it =
         task_map.find(*(p.get_task_id()));
     if (it != task_map.end()) {
           // A profile for this ID already exists.
         theprofile = (*it).second;
-        task_map_lock.unlock();
+        _task_map_mutex.unlock();
         if(p.is_reset == reset_type::CURRENT) {
             theprofile->reset();
         } else {
@@ -360,7 +360,7 @@ std::unordered_set<profile*> free_profiles;
                 p.is_counter ? APEX_COUNTER : APEX_TIMER);
             task_map[*(p.get_task_id())] = theprofile;
         }
-        task_map_lock.unlock();
+        _task_map_mutex.unlock();
 #ifdef APEX_HAVE_HPX
 #ifdef APEX_REGISTER_HPX3_COUNTERS
         if(!_done) {
@@ -394,7 +394,7 @@ std::unordered_set<profile*> free_profiles;
                 /* before calling p.get_task_id()->get_name(), make sure we create
                  * a thread_instance object that is NOT a worker. */
                 thread_instance::instance(false);
-                std::unique_lock<std::mutex> task_map_lock(_mtx);
+                std::lock_guard<std::mutex> task_map_lock(_mtx);
                 task_scatterplot_samples << std::fixed
                     << std::setprecision(0) << p.normalized_timestamp()
                     << " " << p.elapsed() << " "
@@ -408,7 +408,7 @@ std::unordered_set<profile*> free_profiles;
             }
         } else {
                 thread_instance::instance(false);
-                std::unique_lock<std::mutex> task_map_lock(_mtx);
+                std::lock_guard<std::mutex> task_map_lock(_mtx);
                 counter_scatterplot_samples << std::fixed
                     << std::setprecision(0)
 #ifdef APEX_HAVE_PROC
@@ -468,7 +468,7 @@ std::unordered_set<profile*> free_profiles;
   void profiler_listener::delete_profiles(void) {
     // iterate over the map and free the objects in the map
     unordered_map<task_identifier, profile*>::const_iterator it;
-    std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
+    std::lock_guard<std::mutex> task_map_lock(_task_map_mutex);
     for(it = task_map.begin(); it != task_map.end(); it++) {
       delete it->second;
     }
@@ -746,7 +746,7 @@ std::unordered_set<profile*> free_profiles;
     std::vector<std::string> id_vector;
     // iterate over the counters, and sort their names
     {
-        std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
+        std::lock_guard<std::mutex> task_map_lock(_task_map_mutex);
         for(auto it2 : all_profiles) {
             std::string name = it2.first;
             apex_profile * p = it2.second;
@@ -1031,7 +1031,7 @@ std::unordered_set<profile*> free_profiles;
 
     // output nodes with  "main" [shape=box; style=filled; fillcolor="#ff0000" ];
     unordered_map<task_identifier, profile*>::const_iterator it;
-    std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
+    std::lock_guard<std::mutex> task_map_lock(_task_map_mutex);
     for(it = task_map.begin(); it != task_map.end(); it++) {
       profile * p = it->second;
       // shouldn't happen, but?
@@ -1241,7 +1241,7 @@ std::unordered_set<profile*> free_profiles;
     unordered_map<task_identifier, profile*>::const_iterator it2;
     size_t function_count = 0;
     {
-        std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
+        std::lock_guard<std::mutex> task_map_lock(_task_map_mutex);
         for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
             profile * p = it2->second;
             if(p->get_type() == APEX_COUNTER) {
@@ -1267,7 +1267,7 @@ std::unordered_set<profile*> free_profiles;
     profile * mainp = nullptr;
     double not_main = 0.0;
     {
-        std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
+        std::lock_guard<std::mutex> task_map_lock(_task_map_mutex);
         for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
             profile * p = it2->second;
             task_identifier task_id = it2->first;
@@ -1302,7 +1302,7 @@ std::unordered_set<profile*> free_profiles;
     if(counter_events > 0) {
       myfile << counter_events << " userevents" << endl;
       myfile << "# eventname numevents max min mean sumsqr" << endl;
-      std::unique_lock<std::mutex> task_map_lock(_task_map_mutex);
+      std::lock_guard<std::mutex> task_map_lock(_task_map_mutex);
       for(it2 = task_map.begin(); it2 != task_map.end(); it2++) {
         profile * p = it2->second;
         if(p->get_type() == APEX_COUNTER) {
