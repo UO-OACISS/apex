@@ -35,6 +35,12 @@ struct task_wrapper : public hpx::util::external_timer::task_wrapper {
 #else
 struct task_wrapper {
 #endif
+    typedef enum e_task_state {
+        CREATED,
+        RUNNING,
+        YIELDED,
+        STOPPED
+    } task_state_t;
 /**
   \brief A pointer to the task_identifier for this task_wrapper.
   */
@@ -82,6 +88,7 @@ struct task_wrapper {
   \brief Whether this event requires separate start/end events in gtrace
   */
     bool explicit_trace_start;
+    task_state_t state;
 /**
   \brief Constructor.
   */
@@ -94,7 +101,8 @@ struct task_wrapper {
         alias(nullptr),
         thread_id(0UL),
         create_ns(our_clock::now_ns()),
-        explicit_trace_start(false)
+        explicit_trace_start(false),
+        state(CREATED)
     { }
 /**
   \brief Destructor.

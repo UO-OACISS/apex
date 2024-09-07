@@ -159,3 +159,84 @@ void apex_test_signal_handler() {
   apex_custom_signal_handler(1);
 }
 
+std::vector<apex::profiler*>& profilers_to_exit(void) {
+    static std::vector<apex::profiler*> _thevector;
+    return _thevector;
+}
+
+std::atomic<size_t> threads_to_exit_count{0};
+
+//static void apex_custom_signal_handler_thread_exit([[maybe_unused]] int sig) {
+static void apex_custom_signal_handler_thread_exit(
+    [[maybe_unused]] int sig,
+    [[maybe_unused]] siginfo_t * info,
+    [[maybe_unused]] void * context) {
+    APEX_ASSERT(sig == SIGUSR2);
+    if (apex::apex_options::untied_timers()) {
+        auto p = apex::thread_instance::get_current_profiler();
+        apex::profiler* parent = nullptr;
+        while(p != nullptr) {
+            if (p->untied_parent == nullptr || p->untied_parent->state != apex::task_wrapper::RUNNING) {
+                parent = nullptr;
+            } else {
+                parent = p->untied_parent->prof;
+            }
+            // only push profilers that were started on THIS thread...
+            if (p != nullptr && p->thread_id == apex::thread_instance::instance().get_id()) {
+                profilers_to_exit().push_back(p);
+            }
+            p = parent;
+        }
+    } else {
+        // get the timer stack, in reverse order
+        auto& stack = apex::thread_instance::get_current_profilers();
+        if (stack.size() > 0) {
+            for (size_t i = stack.size() ; i > 0 ; i--) {
+                profilers_to_exit().push_back(stack[i-1]);
+            }
+        }
+    }
+    threads_to_exit_count--;
+    return;
+}
+
+int apex_register_thread_cleanup(void) {
+    static bool doOnce{false};
+    if (doOnce) return 0;
+    struct sigaction act;
+    struct sigaction old;
+    memset(&act, 0, sizeof(act));
+    memset(&old, 0, sizeof(old));
+    sigemptyset(&act.sa_mask);
+    std::array<int,1> mysignals = { SIGUSR2 };
+    act.sa_flags = SA_RESTART | SA_SIGINFO;
+    act.sa_sigaction = apex_custom_signal_handler_thread_exit;
+    for (auto s : mysignals) {
+        sigaction(s, &act, &old);
+#ifdef APEX_BE_GOOD_CITIZEN
+        other_handlers[s] = old;
+#endif
+    }
+    doOnce = true;
+    return 0;
+}
+
+void apex_signal_all_threads(void) {
+    auto tids = apex::thread_instance::gettids();
+    pthread_t me = pthread_self();
+    // generous...but not a hard limit. Trying not to allocate memory during the signal handler, above.
+    profilers_to_exit().reserve(tids.size() * 10);
+    // don't include myself
+    threads_to_exit_count = tids.size() - 1;
+    for (auto t : tids) {
+        if (t != me) {
+            pthread_kill(t,SIGUSR2);
+        }
+    }
+    while(threads_to_exit_count > 0) { //wait!
+    }
+    for (auto p : profilers_to_exit()) {
+        apex::stop(p);
+    }
+    profilers_to_exit().clear();
+}

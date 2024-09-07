@@ -42,6 +42,7 @@ class common_data {
 public:
   // map from name to thread id - common to all threads
   std::map<std::string, int> _name_map;
+  std::set<pthread_t> _tids;
   std::mutex _name_map_mutex;
   shared_mutex_type _function_map_mutex;
   // map from thread id to is_worker
@@ -115,6 +116,8 @@ private:
         }
         std::cout << "thread " << _id << " starting... " << __APEX_FUNCTION__ << std::endl;
     }
+    std::lock_guard<std::mutex> l{common()._name_map_mutex};
+    common()._tids.insert(pthread_self());
   };
   // private default constructor
   thread_instance () = delete;
@@ -163,9 +166,11 @@ public:
   static void clear_current_profiler() {
     instance().current_profilers.pop_back();
   }
+  static std::vector<profiler*>& get_current_profilers(void) { return instance().current_profilers; }
   static void clear_untied_current_profiler() {
     auto tmp = instance().untied_current_profiler;
-    if (tmp == nullptr) return;
+    //APEX_ASSERT(tmp != nullptr && tmp->prof != nullptr);
+    if (tmp == nullptr || tmp->prof == nullptr) return;
     instance().untied_current_profiler = tmp->prof->untied_parent;
   }
   static const char * program_path(void);
@@ -184,6 +189,10 @@ public:
     instance(false)._exiting = true;
   }
   void clear_all_profilers(void);
+  static std::set<pthread_t> gettids(void) {
+    std::lock_guard<std::mutex> l{common()._name_map_mutex};
+    return common()._tids;
+  }
 
 #ifdef APEX_DEBUG
   static std::mutex _open_profiler_mutex;

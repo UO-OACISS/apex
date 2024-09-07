@@ -33,7 +33,8 @@ maptype& getMyMap(void) {
 }
 
 void safePrint(const char * format, tasktimer_guid_t guid) {
-    std::scoped_lock lock{mtx()};
+    static std::mutex local_mtx;
+    std::scoped_lock lock{local_mtx};
     printf("%lu %s GUID %lu\n", apex::thread_instance::get_id(), format, guid);
     return;
 }
@@ -41,16 +42,22 @@ void safePrint(const char * format, tasktimer_guid_t guid) {
 void safeInsert(
     tasktimer_guid_t guid,
     std::shared_ptr<apex::task_wrapper> task) {
+#if 0
     {
         std::scoped_lock lock{mtx()};
         getCommonMap()[guid] = task;
     }
     getMyMap()[guid] = task;
+#else
+    std::scoped_lock lock{mtx()};
+    getCommonMap()[guid] = task;
+#endif
     //safePrint("Inserted", guid);
 }
 
 std::shared_ptr<apex::task_wrapper> safeLookup(
     tasktimer_guid_t guid) {
+#if 0
     // in the thread local map?
     auto task = getMyMap().find(guid);
     if (task == getMyMap().end()) {
@@ -61,10 +68,20 @@ std::shared_ptr<apex::task_wrapper> safeLookup(
         }
         if (task == getCommonMap().end()) {
             safePrint("Not found", guid);
+            APEX_ASSERT(false);
             return nullptr;
         }
         getMyMap()[guid] = task->second;
     }
+#else
+    std::scoped_lock lock{mtx()};
+    auto task = getCommonMap().find(guid);
+    if (task == getCommonMap().end()) {
+        safePrint("Not found", guid);
+        //APEX_ASSERT(false);
+        return nullptr;
+    }
+ #endif
     //safePrint("Found", guid);
     return task->second;
 }
@@ -109,7 +126,7 @@ extern "C" {
         }
         // if no name, use address
         if (timer_name == nullptr || strlen(timer_name) == 0) {
-            printf("Null name for timer: %p\n", function_address);
+            //printf("Null name for timer: %p\n", function_address);
             if (parent_count > 0) {
                 auto task = apex::new_task(
                                 (apex_function_address)function_address,
@@ -159,32 +176,42 @@ extern "C" {
         tasktimer_execution_space_p) {
         // TODO: capture the execution space, somehow...a new task?
         MAP_TASK(timer, apex_timer);
+        //printf("%lu TS: Starting: %lu\n", apex::thread_instance::get_id(), timer);
         if (apex_timer != nullptr) {
             apex::start(apex_timer);
         }
     }
     void tasktimer_yield_impl(
         tasktimer_timer_t timer) {
+#if 1
         static bool& over = apex::get_program_over();
         if (over) return;
         MAP_TASK(timer, apex_timer);
+        //printf("%lu TS: Yielding: %lu\n", apex::thread_instance::get_id(), timer);
         if (apex_timer != nullptr) {
             apex::yield(apex_timer);
         }
+#endif
     }
     void tasktimer_resume_impl(
         tasktimer_timer_t timer,
         tasktimer_execution_space_p) {
+#if 1
         // TODO: capture the execution space, somehow...a new task?
         MAP_TASK(timer, apex_timer);
+        //printf("%lu TS: Resuming: %lu\n", apex::thread_instance::get_id(), timer);
         // TODO: why no resume function for task_wrapper objects?
         if (apex_timer != nullptr) {
-            apex::start(apex_timer);
+            apex::resume(apex_timer);
+        } else {
+            APEX_ASSERT(false);
         }
+#endif
     }
     void tasktimer_stop_impl(
         tasktimer_timer_t timer) {
         MAP_TASK(timer, apex_timer);
+        //printf("%lu TS: Stopping: %lu\n", apex::thread_instance::get_id(), timer);
         if (apex_timer != nullptr) {
             apex::stop(apex_timer);
         }

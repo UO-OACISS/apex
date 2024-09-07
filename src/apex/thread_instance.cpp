@@ -247,6 +247,7 @@ string thread_instance::map_addr_to_name(apex_function_address function_address)
 
 void thread_instance::set_current_profiler(profiler * the_profiler) {
     if (apex_options::untied_timers() == true) {
+        APEX_ASSERT(the_profiler != nullptr && the_profiler->tt_ptr != nullptr);
         // make the previous profiler on the "stack" the parent of this profiler
         the_profiler->untied_parent = instance().untied_current_profiler;
         // make this profiler the new top of the "stack"
@@ -377,6 +378,8 @@ void thread_instance::clear_current_profiler(profiler * the_profiler,
 
 profiler * thread_instance::get_current_profiler(void) {
     if (apex_options::untied_timers() == true) {
+        //APEX_ASSERT(instance().untied_current_profiler != nullptr);
+        //APEX_ASSERT(instance().untied_current_profiler->prof != nullptr);
         if (instance().untied_current_profiler == nullptr) {
             return nullptr;
         }

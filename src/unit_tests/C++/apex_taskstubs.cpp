@@ -39,7 +39,7 @@ void C(uint64_t, uint64_t);
 void D(void);
 void E(void);
 void F(void);
-void xfer(void);
+void xfer(uint64_t parent);
 
 void A(uint64_t parent) {
     uint64_t parents[] = {parent};
@@ -96,9 +96,9 @@ void C(uint64_t parent1, uint64_t parent2) {
     resource.instance_id = _my_gettid();
     TASKTIMER_START(tt_C, &resource);
     D();
-    xfer();
+    xfer(myguid);
     E();
-    xfer();
+    xfer(myguid);
     F();
     TASKTIMER_STOP(tt_C);
 }
@@ -118,7 +118,7 @@ void F(void) {
     TASKTIMER_COMMAND_STOP();
 }
 
-void xfer(void) {
+void xfer(uint64_t parent) {
     constexpr uint64_t maxlen = 1024;
     std::array<uint64_t, maxlen> source{1};
     std::array<uint64_t, maxlen> dest{0};
@@ -131,9 +131,9 @@ void xfer(void) {
     dest_info.type = TASKTIMER_DEVICE_CPU;
     dest_info.device_id = 0;
     dest_info.instance_id = 0;
-    TASKTIMER_DATA_TRANSFER_START(100, sip, "source", source.data(), dip, "dest", dest.data());
+    TASKTIMER_DATA_TRANSFER_START(parent, sip, "source", source.data(), dip, "dest", dest.data());
     std::copy(std::begin(source), std::end(source), std::begin(dest));
-    TASKTIMER_DATA_TRANSFER_STOP(100);
+    TASKTIMER_DATA_TRANSFER_STOP(parent);
 }
 
 tasktimer_execution_space_t make_resource(void){

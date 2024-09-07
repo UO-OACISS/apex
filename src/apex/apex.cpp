@@ -47,10 +47,8 @@
 #if defined(APEX_WITH_PERFETTO)
 #include "perfetto_listener.hpp"
 #endif
-#if defined(APEX_DEBUG) || defined(APEX_ERROR_HANDLING)
 // #define APEX_DEBUG_disabled
 #include "apex_error_handling.hpp"
-#endif
 #include "address_resolution.hpp"
 
 #ifdef APEX_HAVE_OTF2
@@ -618,6 +616,53 @@ string& version() {
     return instance->version_string;
 }
 
+class GUIDset : public std::set<uint64_t> {
+public:
+    ~GUIDset() {
+        for (auto& g : *this) {
+            printf("Orphaned timer: %lu\n", g);
+        }
+    }
+};
+
+void debug_print(const char * event, std::shared_ptr<task_wrapper> tt_ptr) {
+    if (get_program_over()) return;
+    static std::mutex this_mutex;
+    static GUIDset guids;
+    std::unique_lock<std::mutex> l(this_mutex);
+    std::stringstream ss;
+    if (tt_ptr == nullptr) {
+        ss << thread_instance::get_id() << " " << event << " : (null) : (null)"
+            << endl;
+        cout << ss.str(); fflush(stdout);
+        //APEX_ASSERT(false);
+        return;
+    } else {
+        ss << thread_instance::get_id() << " " << event << " : " <<
+            tt_ptr->guid << " : " << tt_ptr->get_task_id()->get_name() << " parents: ";
+        for (auto& p : tt_ptr->parents) {
+            ss << p->get_task_id()->get_name() << ", ";
+        }
+        ss << endl;
+        cout << ss.str(); fflush(stdout);
+    }
+    const std::string _start{"Start"};
+    const std::string _yield{"Yield"};
+    const std::string _stop{"Stop"};
+    const std::string _resume{"Resume"};
+    if (_start.compare(event) == 0) {
+        guids.insert(tt_ptr->guid);
+    } else {
+        guids.erase(tt_ptr->guid);
+    }
+}
+
+#if defined(APEX_DEBUG)//_disabled)
+#define LOCAL_DEBUG_PRINT(_event_, _tt_ptr_) if (apex_options::use_verbose()) { debug_print(_event_, _tt_ptr_); }
+#else
+#define LOCAL_DEBUG_PRINT(_event_, _tt_ptr_)
+#endif
+
 /* Populate the new task_wrapper object, and notify listeners. */
 inline std::shared_ptr<task_wrapper> _new_task(
     task_identifier * id,
@@ -659,23 +704,8 @@ inline std::shared_ptr<task_wrapper> _new_task(
         tt_ptr->guid = task_id;
     }
     //instance->active_task_wrappers.insert(tt_ptr);
+    LOCAL_DEBUG_PRINT("Create", tt_ptr);
     return tt_ptr;
-}
-
-void debug_print(const char * event, std::shared_ptr<task_wrapper> tt_ptr) {
-    if (get_program_over()) return;
-    static std::mutex this_mutex;
-    std::unique_lock<std::mutex> l(this_mutex);
-    std::stringstream ss;
-    if (tt_ptr == nullptr) {
-        ss << thread_instance::get_id() << " " << event << " : (null) : (null)"
-            << endl;
-        cout << ss.str(); fflush(stdout);
-    } else {
-        ss << thread_instance::get_id() << " " << event << " : " <<
-            tt_ptr->guid << " : " << tt_ptr->get_task_id()->get_name() << endl;
-        cout << ss.str(); fflush(stdout);
-    }
 }
 
 profiler* start(const std::string &timer_name)
@@ -715,9 +745,9 @@ profiler* start(const std::string &timer_name)
         bool success = true;
         task_identifier * id = task_identifier::get_task_id(timer_name);
         tt_ptr = _new_task(id, UINTMAX_MAX, {}, instance);
-#if defined(APEX_DEBUG)//_disabled)
-        if (apex_options::use_verbose()) { debug_print("Start", tt_ptr); }
-#endif
+        APEX_ASSERT(tt_ptr->state == task_wrapper::CREATED);
+        tt_ptr->state = task_wrapper::RUNNING;
+        LOCAL_DEBUG_PRINT("Start", tt_ptr);
         APEX_UTIL_REF_COUNT_TASK_WRAPPER
         //read_lock_type l(instance->listener_mutex);
         /*
@@ -780,9 +810,9 @@ profiler* start(const apex_function_address function_address) {
         bool success = true;
         task_identifier * id = task_identifier::get_task_id(function_address);
         tt_ptr = _new_task(id, UINTMAX_MAX, {}, instance);
-#if defined(APEX_DEBUG)//_disabled)
-        if (apex_options::use_verbose()) { debug_print("Start", tt_ptr); }
-#endif
+        APEX_ASSERT(tt_ptr->state == task_wrapper::CREATED);
+        tt_ptr->state = task_wrapper::RUNNING;
+        LOCAL_DEBUG_PRINT("Start", tt_ptr);
         APEX_UTIL_REF_COUNT_TASK_WRAPPER
         /*
         std::stringstream dbg;
@@ -816,9 +846,7 @@ profiler* start(const apex_function_address function_address) {
 
 void start(std::shared_ptr<task_wrapper> tt_ptr) {
     in_apex prevent_deadlocks;
-#if defined(APEX_DEBUG)//_disabled)
-    if (apex_options::use_verbose()) { debug_print("Start", tt_ptr); }
-#endif
+    LOCAL_DEBUG_PRINT("Start", tt_ptr);
     if (tt_ptr == nullptr) {
         APEX_UTIL_REF_COUNT_APEX_INTERNAL_START
         return;
@@ -852,7 +880,9 @@ void start(std::shared_ptr<task_wrapper> tt_ptr) {
         printf("Task %s created by %lu started by %lu\n", tt_ptr->task_id->get_name().c_str(),
             tt_ptr->thread_id, thread_instance::instance().get_id());
     }
-    tt_ptr->thread_id = thread_instance::instance().get_id();
+    //tt_ptr->thread_id = thread_instance::instance().get_id();
+    APEX_ASSERT(tt_ptr->state == task_wrapper::CREATED || tt_ptr->state == task_wrapper::YIELDED);
+    tt_ptr->state = task_wrapper::RUNNING;
     if (_notify_listeners) {
         bool success = true;
         /*
@@ -873,7 +903,7 @@ void start(std::shared_ptr<task_wrapper> tt_ptr) {
                 return;
             }
         }
-        tt_ptr->prof->thread_id = thread_instance::instance().get_id();
+        //tt_ptr->prof->thread_id = thread_instance::instance().get_id();
         // If we are allowing untied timers, clear the timer stack on this thread
         if (apex_options::untied_timers() == true) {
             thread_instance::instance().clear_current_profiler();
@@ -881,6 +911,55 @@ void start(std::shared_ptr<task_wrapper> tt_ptr) {
     }
     APEX_UTIL_REF_COUNT_START
     thread_instance::instance().restore_children_profilers(tt_ptr);
+    return;
+}
+
+void resume(std::shared_ptr<task_wrapper> tt_ptr) {
+    in_apex prevent_deadlocks;
+    LOCAL_DEBUG_PRINT("Resume", tt_ptr);
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) {
+        APEX_UTIL_REF_COUNT_DISABLED_RESUME
+        return;
+    }
+    // if APEX is suspended, do nothing.
+    if (apex_options::suspend() == true) {
+        APEX_UTIL_REF_COUNT_SUSPENDED_RESUME
+        return;
+    }
+    apex* instance = apex::instance(); // get the Apex static instance
+    // protect against calls after finalization
+    if (!instance || _exited) {
+        APEX_UTIL_REF_COUNT_RESUME_AFTER_FINALIZE
+        return;
+    }
+    //APEX_ASSERT(tt_ptr->state == task_wrapper::YIELDED);
+    tt_ptr->state = task_wrapper::RUNNING;
+    if (_notify_listeners) {
+        APEX_UTIL_REF_COUNT_TASK_WRAPPER
+        try {
+            //read_lock_type l(instance->listener_mutex);
+            for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+                instance->listeners[i]->on_resume(tt_ptr);
+            }
+        } catch (disabled_profiler_exception &e) {
+            APEX_UTIL_REF_COUNT_FAILED_RESUME
+            return;
+        }
+        // If we are allowing untied timers, clear the timer stack on this thread
+        if (apex_options::untied_timers() == true) {
+            thread_instance::instance().clear_current_profiler();
+        }
+    }
+#if defined(APEX_DEBUG)
+    const std::string apex_process_profile_str("apex::process_profiles");
+    if (tt_ptr->get_task_id()->get_name(false).compare(apex_process_profile_str)
+        == 0) {
+        APEX_UTIL_REF_COUNT_APEX_INTERNAL_RESUME
+    } else {
+        APEX_UTIL_REF_COUNT_RESUME
+    }
+#endif
     return;
 }
 
@@ -911,29 +990,9 @@ profiler* resume(const std::string &timer_name) {
         APEX_UTIL_REF_COUNT_RESUME_AFTER_FINALIZE
         return nullptr;
     }
-    std::shared_ptr<task_wrapper> tt_ptr(nullptr);
-    if (_notify_listeners) {
-        task_identifier * id = task_identifier::get_task_id(timer_name);
-        tt_ptr = _new_task(id, UINTMAX_MAX, {}, instance);
-        APEX_UTIL_REF_COUNT_TASK_WRAPPER
-        try {
-            //read_lock_type l(instance->listener_mutex);
-            for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-                instance->listeners[i]->on_resume(tt_ptr);
-            }
-        } catch (disabled_profiler_exception &e) {
-            APEX_UTIL_REF_COUNT_FAILED_RESUME
-            return profiler::get_disabled_profiler();
-        }
-    }
-#if defined(APEX_DEBUG)
-    const std::string apex_process_profile_str("apex::process_profiles");
-    if (timer_name.compare(apex_process_profile_str) == 0) {
-        APEX_UTIL_REF_COUNT_APEX_INTERNAL_RESUME
-    } else {
-        APEX_UTIL_REF_COUNT_RESUME
-    }
-#endif
+    task_identifier * id = task_identifier::get_task_id(timer_name);
+    std::shared_ptr<task_wrapper> tt_ptr = _new_task(id, UINTMAX_MAX, {}, instance);
+    resume(tt_ptr);
     return thread_instance::instance().restore_children_profilers(tt_ptr);
 }
 
@@ -955,27 +1014,15 @@ profiler* resume(const apex_function_address function_address) {
         APEX_UTIL_REF_COUNT_RESUME_AFTER_FINALIZE
         return nullptr;
     }
-    std::shared_ptr<task_wrapper> tt_ptr(nullptr);
-    if (_notify_listeners) {
-        task_identifier * id = task_identifier::get_task_id(function_address);
-        tt_ptr = _new_task(id, UINTMAX_MAX, {}, instance);
-        APEX_UTIL_REF_COUNT_TASK_WRAPPER
-        try {
-            //read_lock_type l(instance->listener_mutex);
-            for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-                instance->listeners[i]->on_resume(tt_ptr);
-            }
-        } catch (disabled_profiler_exception &e) {
-            APEX_UTIL_REF_COUNT_FAILED_RESUME
-            return profiler::get_disabled_profiler();
-        }
-    }
-    APEX_UTIL_REF_COUNT_RESUME
+    task_identifier * id = task_identifier::get_task_id(function_address);
+    std::shared_ptr<task_wrapper> tt_ptr = _new_task(id, UINTMAX_MAX, {}, instance);
+    resume(tt_ptr);
     return thread_instance::instance().restore_children_profilers(tt_ptr);
 }
 
 profiler* resume(profiler * p) {
     in_apex prevent_deadlocks;
+    LOCAL_DEBUG_PRINT("Resume", p->tt_ptr);
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) {
         APEX_UTIL_REF_COUNT_DISABLED_RESUME
@@ -988,6 +1035,7 @@ profiler* resume(profiler * p) {
     }
     if (p->stopped) {
         APEX_UTIL_REF_COUNT_DOUBLE_STOP
+        LOCAL_DEBUG_PRINT("Double Stop resume?", p->tt_ptr);
         return profiler::get_disabled_profiler();
     }
     apex* instance = apex::instance(); // get the Apex static instance
@@ -997,6 +1045,8 @@ profiler* resume(profiler * p) {
         return nullptr;
     }
     p->restart();
+    APEX_ASSERT(p->tt_ptr->state == task_wrapper::STOPPED);
+    p->tt_ptr->state = task_wrapper::RUNNING;
     if (_notify_listeners) {
         try {
             // skip the profiler_listener - we are restoring a child timer
@@ -1009,15 +1059,6 @@ profiler* resume(profiler * p) {
             return profiler::get_disabled_profiler();
         }
     }
-#if defined(APEX_DEBUG)
-    const std::string apex_process_profile_str("apex::process_profiles");
-    if (p->tt_ptr->get_task_id()->get_name(false).compare(apex_process_profile_str)
-        == 0) {
-        APEX_UTIL_REF_COUNT_APEX_INTERNAL_RESUME
-    } else {
-        APEX_UTIL_REF_COUNT_RESUME
-    }
-#endif
     return p;
 }
 
@@ -1084,15 +1125,15 @@ void apex::stop_internal(profiler* the_profiler) {
     }
     if (the_profiler == nullptr) {
         APEX_UTIL_REF_COUNT_NULL_STOP
+        LOCAL_DEBUG_PRINT("Stop profiler", nullptr);
         return;
     }
     if (the_profiler->stopped) {
+        LOCAL_DEBUG_PRINT("Double Stop internal", the_profiler->tt_ptr);
         APEX_UTIL_REF_COUNT_DOUBLE_STOP
         return;
     }
-#if defined(APEX_DEBUG)//_disabled)
-    if (apex_options::use_verbose()) { debug_print("Stop", the_profiler->tt_ptr); }
-#endif
+    LOCAL_DEBUG_PRINT("Stop", the_profiler->tt_ptr);
     apex* instance = apex::instance(); // get the Apex static instance
     // protect against calls after finalization
     if (!instance || _exited || _measurement_stopped) {
@@ -1100,6 +1141,8 @@ void apex::stop_internal(profiler* the_profiler) {
         return;
     }
     std::shared_ptr<profiler> p{the_profiler};
+    APEX_ASSERT(p->tt_ptr->state == task_wrapper::RUNNING);
+    p->tt_ptr->state = task_wrapper::STOPPED;
     if (_notify_listeners) {
         //read_lock_type l(instance->listener_mutex);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -1137,15 +1180,15 @@ void stop(profiler* the_profiler, bool cleanup) {
     }
     if (the_profiler == nullptr) {
         APEX_UTIL_REF_COUNT_NULL_STOP
+        LOCAL_DEBUG_PRINT("Stop profiler cleanup", nullptr);
         return;
     }
     if (the_profiler->stopped) {
         APEX_UTIL_REF_COUNT_DOUBLE_STOP
+        LOCAL_DEBUG_PRINT("Double Stop cleanup", nullptr);
         return;
     }
-#if defined(APEX_DEBUG)//_disabled)
-    if (apex_options::use_verbose()) { debug_print("Stop", the_profiler->tt_ptr); }
-#endif
+    LOCAL_DEBUG_PRINT("Stop", the_profiler->tt_ptr);
     if (apex_options::untied_timers() == true) {
         thread_instance::instance().clear_untied_current_profiler();
     } else {
@@ -1159,6 +1202,8 @@ void stop(profiler* the_profiler, bool cleanup) {
         return;
     }
     std::shared_ptr<profiler> p{the_profiler};
+    APEX_ASSERT(p->tt_ptr->state == task_wrapper::RUNNING);
+    p->tt_ptr->state = task_wrapper::STOPPED;
     if (_notify_listeners) {
         //read_lock_type l(instance->listener_mutex);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -1195,9 +1240,7 @@ void stop(std::shared_ptr<task_wrapper> tt_ptr) {
         APEX_UTIL_REF_COUNT_STOP_AFTER_FINALIZE
         return;
     }
-#if defined(APEX_DEBUG)//_disabled)
-    if (apex_options::use_verbose()) { debug_print("Stop", tt_ptr); }
-#endif
+    LOCAL_DEBUG_PRINT("Stop", tt_ptr);
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) {
         APEX_UTIL_REF_COUNT_DISABLED_STOP
@@ -1206,6 +1249,7 @@ void stop(std::shared_ptr<task_wrapper> tt_ptr) {
     }
     if (tt_ptr == nullptr || tt_ptr->prof == nullptr) {
         APEX_UTIL_REF_COUNT_NULL_STOP
+        LOCAL_DEBUG_PRINT("Stop tt_ptr", nullptr);
         return;
     }
     apex* instance = apex::instance(); // get the Apex static instance
@@ -1215,6 +1259,7 @@ void stop(std::shared_ptr<task_wrapper> tt_ptr) {
     }
     if (tt_ptr->prof->stopped) {
         APEX_UTIL_REF_COUNT_DOUBLE_STOP
+        LOCAL_DEBUG_PRINT("Double Stop tt_ptr", tt_ptr);
         return;
     }
     // get the thread id that is running this task
@@ -1222,7 +1267,7 @@ void stop(std::shared_ptr<task_wrapper> tt_ptr) {
         !apex_options::untied_timers()) {
         printf("Task %s started by %lu stopped by %lu\n", tt_ptr->task_id->get_name().c_str(),
             tt_ptr->prof->thread_id, thread_instance::instance().get_id());
-        APEX_ASSERT(tt_ptr->prof->thread_id == thread_instance::instance().get_id());
+        //APEX_ASSERT(tt_ptr->prof->thread_id == thread_instance::instance().get_id());
     }
     if (apex_options::untied_timers()) {
         thread_instance::instance().clear_untied_current_profiler();
@@ -1235,13 +1280,20 @@ void stop(std::shared_ptr<task_wrapper> tt_ptr) {
         APEX_UTIL_REF_COUNT_STOP_AFTER_FINALIZE
         return;
     }
-    std::shared_ptr<profiler> p{tt_ptr->prof};
-    if (_notify_listeners) {
-        //read_lock_type l(instance->listener_mutex);
-        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_stop(p);
-        }
+    // how did this happen?
+    if (tt_ptr->state == task_wrapper::YIELDED) {
+        resume(tt_ptr);
     }
+    APEX_ASSERT(tt_ptr->state == task_wrapper::RUNNING);
+    tt_ptr->state = task_wrapper::STOPPED;
+    if (tt_ptr->prof != nullptr) {
+        std::shared_ptr<profiler> p{tt_ptr->prof};
+        if (_notify_listeners) {
+            //read_lock_type l(instance->listener_mutex);
+            for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+                instance->listeners[i]->on_stop(p);
+            }
+        }
     /*
     std::stringstream dbg;
     dbg << thread_instance::get_id() << "->" << tt_ptr->thread_id << " Stop : " <<
@@ -1250,19 +1302,19 @@ void stop(std::shared_ptr<task_wrapper> tt_ptr) {
     fflush(stdout);
     */
 #if defined(APEX_DEBUG)
-    const std::string apex_process_profile_str("apex::process_profiles");
-    if (p->tt_ptr->get_task_id()->get_name(false).compare(apex_process_profile_str)
-        == 0) {
-        APEX_UTIL_REF_COUNT_APEX_INTERNAL_STOP
-    } else {
-        APEX_UTIL_REF_COUNT_STOP
-    }
+        const std::string apex_process_profile_str("apex::process_profiles");
+        if (p->tt_ptr->get_task_id()->get_name(false).compare(apex_process_profile_str)
+            == 0) {
+            APEX_UTIL_REF_COUNT_APEX_INTERNAL_STOP
+        } else {
+            APEX_UTIL_REF_COUNT_STOP
+        }
 #endif
+    }
     instance->complete_task(tt_ptr);
 }
 
-void yield(profiler* the_profiler)
-{
+void yield(profiler* the_profiler) {
     in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) {
@@ -1287,6 +1339,7 @@ void yield(profiler* the_profiler)
         APEX_UTIL_REF_COUNT_DOUBLE_YIELD
         return;
     }
+    LOCAL_DEBUG_PRINT("Yield", the_profiler->tt_ptr);
     if (apex_options::untied_timers() == true) {
         thread_instance::instance().clear_untied_current_profiler();
     } else {
@@ -1294,6 +1347,8 @@ void yield(profiler* the_profiler)
             null_task_wrapper);
     }
     std::shared_ptr<profiler> p{the_profiler};
+    APEX_ASSERT(p->tt_ptr->state == task_wrapper::RUNNING);
+    p->tt_ptr->state = task_wrapper::YIELDED;
     if (_notify_listeners) {
         //read_lock_type l(instance->listener_mutex);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -1313,12 +1368,9 @@ void yield(profiler* the_profiler)
 #endif
 }
 
-void yield(std::shared_ptr<task_wrapper> tt_ptr)
-{
+void yield(std::shared_ptr<task_wrapper> tt_ptr) {
     in_apex prevent_deadlocks;
-#if defined(APEX_DEBUG)//_disabled)
-    if (apex_options::use_verbose()) { debug_print("Yield", tt_ptr); }
-#endif
+    LOCAL_DEBUG_PRINT("Yield", tt_ptr);
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) {
         APEX_UTIL_REF_COUNT_DISABLED_YIELD
@@ -1349,6 +1401,8 @@ void yield(std::shared_ptr<task_wrapper> tt_ptr)
             tt_ptr);
     }
     std::shared_ptr<profiler> p{tt_ptr->prof};
+    APEX_ASSERT(tt_ptr->state == task_wrapper::RUNNING);
+    tt_ptr->state = task_wrapper::YIELDED;
     if (_notify_listeners) {
         //read_lock_type l(instance->listener_mutex);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
@@ -1784,6 +1838,7 @@ std::string dump(bool reset, bool finalizing) {
 
 void finalize(void)
 {
+    FUNCTION_ENTER
     in_apex prevent_deadlocks;
     if (!_initialized) { return; } // protect against finalization without initialization
     // prevent re-entry, be extra strict about race conditions - it is
@@ -1804,7 +1859,6 @@ void finalize(void)
     }
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { return; }
-    FUNCTION_ENTER
     instance->finalizing = true; // don't measure any new pthreads from pthread_create!
     // FIRST FIRST, check if we have orphaned threads...
     // See apex::register_thread and apex::exit_thread for more info.
@@ -1829,6 +1883,7 @@ void finalize(void)
         profiler * top_profiler = thread_instance::instance().get_current_profiler();
         while (top_profiler != nullptr) {
             stop(top_profiler);
+            if (top_profiler->untied_parent == nullptr) { break; }
             top_profiler = thread_instance::instance().get_current_profiler();
         }
         /*
@@ -1844,6 +1899,10 @@ void finalize(void)
         // functioning.
         instance->the_profiler_listener->stop_main_timer();
     } */
+    /* Signal the other threads that have open profiles to exit */
+    if (apex_options::top_level_os_threads()) {
+        //apex_signal_all_threads();
+    }
     // if not done already...
     shutdown_throttling(); // stop thread scheduler policies
     /* Do this before OTF2 grabs a final timestamp - we might have
@@ -2012,6 +2071,7 @@ void register_thread(const std::string &name,
         std::unique_lock<std::mutex> l{instance->thread_instance_mutex};
         instance->known_threads.insert(&ti);
     }
+    apex_register_thread_cleanup();
 }
 
 void exit_thread(void)
