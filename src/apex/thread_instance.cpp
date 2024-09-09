@@ -249,7 +249,12 @@ void thread_instance::set_current_profiler(profiler * the_profiler) {
     if (apex_options::untied_timers() == true) {
         APEX_ASSERT(the_profiler != nullptr && the_profiler->tt_ptr != nullptr);
         // make the previous profiler on the "stack" the parent of this profiler
-        the_profiler->untied_parent = instance().untied_current_profiler;
+        if (instance().untied_current_profiler == nullptr) {
+            //the_profiler->untied_parent = task_wrapper::get_apex_main_wrapper();
+            the_profiler->untied_parent = instance().get_top_level_timer();
+        } else {
+            the_profiler->untied_parent = instance().untied_current_profiler;
+        }
         // make this profiler the new top of the "stack"
         instance().untied_current_profiler = the_profiler->tt_ptr;
     }
@@ -297,6 +302,64 @@ void thread_instance::clear_all_profilers() {
         // get the new top of the stack
         tmp = the_stack.back();
     }
+}
+
+void thread_instance::clear_current_profiler_untied(profiler * the_profiler,
+    bool save_children, std::shared_ptr<task_wrapper> &tt_ptr) {
+    static APEX_NATIVE_TLS bool fixing_stack = false;
+    // check for recursion
+    if (fixing_stack) {return;}
+    // get the current profiler
+    auto tmp = instance().untied_current_profiler;
+    if (tmp == nullptr) {
+        // nothing to do? This thread has no other running timers.
+        return;
+    }
+    printf("%lu popping %s\n", get_id(), tmp->get_task_id()->get_short_name().c_str());
+    /* Uh-oh! Someone has caused the dreaded "overlapping timer" problem to
+     * happen! No problem - stop the child timer.
+     * Keep the children around, along with a reference to the parent's
+     * guid so that if/when we see this parent again, we can restart
+     * the children timers. */
+    if (tmp->prof != the_profiler) {
+        fixing_stack = true;
+        // if the data pointer location isn't available, we can't support this runtime.
+        // create a vector to store the children
+        if (save_children == true) {
+            APEX_ASSERT(tt_ptr != nullptr);
+        }
+        while (tmp->prof != the_profiler) {
+            if (save_children == true) {
+                // if we are yielding, we need to stop the children
+                /* Make a copy of the profiler object on the top of the stack. */
+                profiler * profiler_copy = new profiler(*tmp->prof);
+                tt_ptr->data_ptr.push_back(tmp->prof);
+                /* Stop the copy. The original will get reset when the
+                parent resumes. */
+                stop(profiler_copy, false);  // we better be re-entrant safe!
+            } else {
+                // since we aren't yielding, just stop the children.
+                stop(tmp->prof);  // we better be re-entrant safe!
+            }
+            // this is a serious problem...
+            if (tmp->prof->untied_parent == nullptr) {
+                // unless...we happen to be exiting.  Bets are off.
+                if (apex_options::suspend() == true) { return; }
+                // if we've already cleared the stack on this thread, we're fine
+                if (instance()._exiting) { return; }
+                std::cerr << "Warning! empty profiler stack!\n";
+                APEX_ASSERT(false);
+                //abort();
+                return;
+            }
+            // get the new top of the stack
+            tmp = tmp->prof->untied_parent;
+            printf("%lu popping? %s\n", get_id(), tmp->get_task_id()->get_short_name().c_str());
+        }
+        // done with the stack, allow proper recursion again.
+        fixing_stack = false;
+    }
+    instance().untied_current_profiler = tmp->prof->untied_parent;
 }
 
 void thread_instance::clear_current_profiler(profiler * the_profiler,

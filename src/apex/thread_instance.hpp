@@ -163,6 +163,8 @@ public:
   static profiler * get_current_profiler(void);
   static void clear_current_profiler(profiler * the_profiler,
         bool save_children, std::shared_ptr<task_wrapper> &tt_ptr);
+  static void clear_current_profiler_untied(profiler * the_profiler,
+        bool save_children, std::shared_ptr<task_wrapper> &tt_ptr);
   static void clear_current_profiler() {
     instance().current_profilers.pop_back();
   }

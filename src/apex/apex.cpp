@@ -463,6 +463,11 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
     in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { FUNCTION_EXIT; return APEX_ERROR; }
+    // if we are configured with HPX, disable untied timers so we can handle
+    // direct actions correctly.
+#ifdef APEX_HAVE_HPX
+    apex_options::untied_timers(false);
+#endif
     // FIRST! make sure APEX thinks this is a worker thread (the main thread
     // is always a worker thread)
     thread_instance::instance(true);
@@ -548,6 +553,7 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
         std::shared_ptr<task_wrapper> twp =
             new_task(task_name, UINTMAX_MAX, task_wrapper::get_apex_main_wrapper());
         start(twp);
+        APEX_ASSERT(twp->state == task_wrapper::RUNNING);
         thread_instance::set_top_level_timer(twp);
     }
     /* restore the suspended bit */
@@ -639,7 +645,7 @@ void debug_print(const char * event, std::shared_ptr<task_wrapper> tt_ptr) {
         return;
     } else {
         ss << thread_instance::get_id() << " " << event << " : " <<
-            tt_ptr->guid << " : " << tt_ptr->get_task_id()->get_name() << " parents: ";
+            tt_ptr->guid << " : " << tt_ptr->get_task_id()->get_name() << " - parents: ";
         for (auto& p : tt_ptr->parents) {
             ss << p->get_task_id()->get_name() << ", ";
         }
@@ -780,9 +786,11 @@ profiler* start(const std::string &timer_name)
         APEX_UTIL_REF_COUNT_START
     }
 #endif
+/*
     if (apex_options::untied_timers() == true) {
         return new_profiler;
     }
+    */
     return thread_instance::instance().restore_children_profilers(tt_ptr);
 }
 
@@ -838,9 +846,11 @@ profiler* start(const apex_function_address function_address) {
         }
     }
     APEX_UTIL_REF_COUNT_START
+    /*
     if (apex_options::untied_timers() == true) {
         return new_profiler;
     }
+    */
     return thread_instance::instance().restore_children_profilers(tt_ptr);
 }
 
@@ -1190,7 +1200,9 @@ void stop(profiler* the_profiler, bool cleanup) {
     }
     LOCAL_DEBUG_PRINT("Stop", the_profiler->tt_ptr);
     if (apex_options::untied_timers() == true) {
-        thread_instance::instance().clear_untied_current_profiler();
+        //thread_instance::instance().clear_untied_current_profiler();
+        thread_instance::instance().clear_current_profiler_untied(the_profiler, false,
+            null_task_wrapper);
     } else {
         thread_instance::instance().clear_current_profiler(the_profiler, false,
             null_task_wrapper);
@@ -1270,7 +1282,9 @@ void stop(std::shared_ptr<task_wrapper> tt_ptr) {
         //APEX_ASSERT(tt_ptr->prof->thread_id == thread_instance::instance().get_id());
     }
     if (apex_options::untied_timers()) {
-        thread_instance::instance().clear_untied_current_profiler();
+        //thread_instance::instance().clear_untied_current_profiler();
+        thread_instance::instance().clear_current_profiler_untied(tt_ptr->prof, false,
+            null_task_wrapper);
     } else {
         thread_instance::instance().clear_current_profiler(tt_ptr->prof, false,
             null_task_wrapper);
@@ -1341,7 +1355,9 @@ void yield(profiler* the_profiler) {
     }
     LOCAL_DEBUG_PRINT("Yield", the_profiler->tt_ptr);
     if (apex_options::untied_timers() == true) {
-        thread_instance::instance().clear_untied_current_profiler();
+        //thread_instance::instance().clear_untied_current_profiler();
+        thread_instance::instance().clear_current_profiler_untied(the_profiler, false,
+            null_task_wrapper);
     } else {
         thread_instance::instance().clear_current_profiler(the_profiler, false,
             null_task_wrapper);
@@ -1395,7 +1411,9 @@ void yield(std::shared_ptr<task_wrapper> tt_ptr) {
         return;
     }
     if (apex_options::untied_timers() == true) {
-        thread_instance::instance().clear_untied_current_profiler();
+        //thread_instance::instance().clear_untied_current_profiler();
+        thread_instance::instance().clear_current_profiler_untied(tt_ptr->prof, true,
+            tt_ptr);
     } else {
         thread_instance::instance().clear_current_profiler(tt_ptr->prof, true,
             tt_ptr);
