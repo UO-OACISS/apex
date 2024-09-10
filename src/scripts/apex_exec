@@ -640,13 +640,13 @@ if [ $mpi = yes ]; then
         export MPI_LIB2=${testme}
     fi
 fi
-if [ $cuda = yes ] || [ $monitor_gpu = yes ]; then
+if [ $cuda = yes ] && [ $monitor_gpu = yes ]; then
     testme=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}_cuda${SHLIBX}
     if [ -f ${testme} ]; then
         export CUDA_LIB=:${testme}
     fi
 fi
-if [ $hip = yes ] || [ $monitor_gpu = yes ]; then
+if [ $hip = yes ] && [ $monitor_gpu = yes ]; then
     testme=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}_hip${SHLIBX}
     if [ -f ${testme} ]; then
         export HIP_LIB=:${testme}

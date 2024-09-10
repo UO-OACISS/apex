@@ -962,8 +962,14 @@ int apex_exhaustive_policy(shared_ptr<apex_tuning_session> tuning_session,
         // the context data is a pointer to a boolean value
         force = *((bool*)(context.data));
     }
+
+    // get a measurement of our current setting - before we check for convergence!
+    double new_value = tuning_session->metric_of_interest();
+
     if (tuning_session->exhaustive_session.converged() && force) {
+        /* Report the performance we've just measured. */
         if (!tuning_session->converged_message) {
+            tuning_session->exhaustive_session.evaluate(new_value);
             tuning_session->converged_message = true;
             cout << "APEX: Tuning has converged for session " << tuning_session->id
             << "." << endl;
@@ -973,9 +979,6 @@ int apex_exhaustive_policy(shared_ptr<apex_tuning_session> tuning_session,
         tuning_session->exhaustive_session.saveBestSettings();
         return APEX_NOERROR;
     }
-
-    // get a measurement of our current setting
-    double new_value = tuning_session->metric_of_interest();
 
     /* Report the performance we've just measured. */
     tuning_session->exhaustive_session.evaluate(new_value);
