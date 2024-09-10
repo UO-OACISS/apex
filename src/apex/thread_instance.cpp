@@ -315,7 +315,7 @@ void thread_instance::clear_current_profiler_untied(profiler * the_profiler,
         // nothing to do? This thread has no other running timers.
         return;
     }
-    printf("%lu popping %s\n", get_id(), tmp->get_task_id()->get_short_name().c_str());
+    //printf("%lu popping %s\n", get_id(), tmp->get_task_id()->get_short_name().c_str());
     /* Uh-oh! Someone has caused the dreaded "overlapping timer" problem to
      * happen! No problem - stop the child timer.
      * Keep the children around, along with a reference to the parent's
@@ -354,7 +354,7 @@ void thread_instance::clear_current_profiler_untied(profiler * the_profiler,
             }
             // get the new top of the stack
             tmp = tmp->prof->untied_parent;
-            printf("%lu popping? %s\n", get_id(), tmp->get_task_id()->get_short_name().c_str());
+            //printf("%lu popping? %s\n", get_id(), tmp->get_task_id()->get_short_name().c_str());
         }
         // done with the stack, allow proper recursion again.
         fixing_stack = false;
