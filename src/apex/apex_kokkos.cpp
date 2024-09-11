@@ -311,11 +311,11 @@ void kokkosp_allocate_data(SpaceHandle_t handle, const char* name,
     APEX_UNUSED(ptr);
     std::stringstream ss;
     ss << "Kokkos " << handle.name << " data, " << name;
+    ss << ": Bytes";
     std::string tmp2{ss.str()};
     memory_mtx.lock();
     memory_map().insert(std::pair<void*,std::string>(ptr, tmp2));
     memory_mtx.unlock();
-    ss << ": Bytes";
     double bytes = (double)(size);
     if (apex::apex_options::use_kokkos_counters()) {
         apex::sample_value(tmp2, bytes);
