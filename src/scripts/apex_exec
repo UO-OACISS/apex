@@ -54,8 +54,8 @@ where APEX options are zero or more of:
     --apex:otf2path <value>       specify location of OTF2 archive
                                   (default: ./OTF2_archive)
     --apex:otf2name <value>       specify name of OTF2 file (default: APEX)
-    --apex:gtrace                 enable Google Trace Events output (deprecated)
-    --apex:pftrace                enable Perfetto Trace output
+    --apex:gtrace                 enable Google Trace Events output
+    --apex:pftrace                enable Perfetto Trace output (if enabled...gtrace is a better option)
     --apex:scatter                enable scatterplot output
                                   (python required for post-processing)
     --apex:openacc                enable OpenACC support
