@@ -90,6 +90,7 @@ exhaustive.cpp
 genetic_search.cpp
 handler.cpp
 memory_wrapper.cpp
+nelder_mead.cpp
 nvtx_listener.cpp
 ${OTF2_SOURCE}
 ${perfetto_sources}

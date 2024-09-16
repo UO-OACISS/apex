@@ -270,6 +270,9 @@ private:
             } else if (strncmp(apex::apex_options::kokkos_tuning_policy(),
                     "genetic_search", strlen("genetic_search")) == 0) {
                 strategy = apex_ah_tuning_strategy::GENETIC_SEARCH;
+            } else if (strncmp(apex::apex_options::kokkos_tuning_policy(),
+                    "nelder_mead", strlen("nelder_mead")) == 0) {
+                strategy = apex_ah_tuning_strategy::NELDER_MEAD_INTERNAL;
             } else {
                 strategy = apex_ah_tuning_strategy::NELDER_MEAD;
             }
