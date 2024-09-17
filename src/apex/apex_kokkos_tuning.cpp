@@ -273,8 +273,11 @@ private:
             } else if (strncmp(apex::apex_options::kokkos_tuning_policy(),
                     "nelder_mead", strlen("nelder_mead")) == 0) {
                 strategy = apex_ah_tuning_strategy::NELDER_MEAD_INTERNAL;
+            } else if (strncmp(apex::apex_options::kokkos_tuning_policy(),
+                    "automatic", strlen("automatic")) == 0) {
+                strategy = apex_ah_tuning_strategy::AUTOMATIC;
             } else {
-                strategy = apex_ah_tuning_strategy::NELDER_MEAD;
+                strategy = apex_ah_tuning_strategy::AUTOMATIC;
             }
     }
 public:
@@ -357,6 +360,25 @@ void KokkosSession::saveOutputVar(size_t id, Variable * var) {
     all_vars.insert(std::make_pair(id, var));
 }
 
+std::string strategy_to_string(std::shared_ptr<apex_tuning_request> request) {
+    if (request->get_strategy() == apex_ah_tuning_strategy::APEX_RANDOM) {
+        return std::string("random");
+    }
+    if (request->get_strategy() == apex_ah_tuning_strategy::APEX_EXHAUSTIVE) {
+        return std::string("exhaustive");
+    }
+    if (request->get_strategy() == apex_ah_tuning_strategy::SIMULATED_ANNEALING) {
+        return std::string("simulated annealing");
+    }
+    if (request->get_strategy() == apex_ah_tuning_strategy::GENETIC_SEARCH) {
+        return std::string("genetic search");
+    }
+    if (request->get_strategy() == apex_ah_tuning_strategy::NELDER_MEAD_INTERNAL) {
+        return std::string("nelder mead");
+    }
+    return "unknown?";
+}
+
 void KokkosSession::writeCache(void) {
     if(use_history) { return; }
     if(!saveCache) { return; }
@@ -388,6 +410,12 @@ void KokkosSession::writeCache(void) {
         // always write the random search out
         bool converged = request->has_converged() ||
             strategy == apex_ah_tuning_strategy::APEX_RANDOM;
+        results << "  Strategy: \"" <<
+            strategy_to_string(request);
+        if (strategy == apex_ah_tuning_strategy::AUTOMATIC) {
+            results << " (auto)";
+        }
+        results << "\"" << std::endl;
         results << "  Converged: " <<
             (converged ? "true" : "false") << std::endl;
         if (converged) {
@@ -501,6 +529,8 @@ void KokkosSession::parseContextCache(std::ifstream& results) {
     std::getline(results, line);
     std::string name = line.substr(line.find(delimiter)+2);
     name.erase(std::remove(name.begin(),name.end(),'\"'),name.end());
+    // strategy
+    std::getline(results, line);
     // converged?
     std::getline(results, line);
     std::string converged = line.substr(line.find(delimiter)+2);
@@ -968,8 +998,52 @@ bool handle_start(const std::string & name, const size_t vars,
         };
         request->set_metric(metric);
 
-        // Set apex_openmp_policy_tuning_strategy
-        request->set_strategy(session.strategy);
+        // Set apex tuning strategy
+        if (session.strategy == apex_ah_tuning_strategy::AUTOMATIC) {
+            // just one variable?
+            if (vars == 1) {
+                auto id = values[0].type_id;
+                Variable* var{session.outputs[id]};
+                // and it's a small set of candidate values?
+                if (var->info.valueQuantity == kokkos_value_set &&
+                    var->info.candidates.set.size < 4) {
+                    request->set_strategy(apex_ah_tuning_strategy::APEX_EXHAUSTIVE);
+                // if integer, use simulated annealing
+                } else if (var->info.type == kokkos_value_int64) {
+                    request->set_strategy(apex_ah_tuning_strategy::SIMULATED_ANNEALING);
+                // if double, use nelder mead
+                } else if (var->info.type == kokkos_value_double) {
+                    request->set_strategy(apex_ah_tuning_strategy::NELDER_MEAD_INTERNAL);
+                }
+            // more than one variable...
+            } else {
+                // are any of them categorical?
+                bool haveSet = false;
+                bool allDouble = true;
+                for (size_t i = 0 ; i < vars ; i++) {
+                    auto id = values[i].type_id;
+                    Variable* var{session.outputs[id]};
+                    if (var->info.valueQuantity == kokkos_value_set) {
+                        haveSet = true;
+                        allDouble = false;
+                    } else if (var->info.type == kokkos_value_int64) {
+                        allDouble = false;
+                    }
+                }
+                // if have a categorical set, use genetic search
+                if (haveSet) {
+                    request->set_strategy(apex_ah_tuning_strategy::GENETIC_SEARCH);
+                // if all double values, use nelder mead
+                } else if (allDouble) {
+                    request->set_strategy(apex_ah_tuning_strategy::NELDER_MEAD_INTERNAL);
+                // as default, use simulated annealing
+                } else {
+                    request->set_strategy(apex_ah_tuning_strategy::SIMULATED_ANNEALING);
+                }
+            }
+        } else {
+            request->set_strategy(session.strategy);
+        }
         request->set_radius(0.5);
         request->set_aggregation_times(3);
         // min, max, mean

@@ -42,8 +42,7 @@ enum class apex_param_type : int {NONE, LONG, DOUBLE, ENUM};
 enum class apex_ah_tuning_strategy : int {
     EXHAUSTIVE, RANDOM, NELDER_MEAD, NELDER_MEAD_INTERNAL,
     PARALLEL_RANK_ORDER, SIMULATED_ANNEALING,
-    APEX_EXHAUSTIVE, APEX_RANDOM,
-    GENETIC_SEARCH};
+    APEX_EXHAUSTIVE, APEX_RANDOM, GENETIC_SEARCH, AUTOMATIC};
 
 struct apex_tuning_session;
 class apex_tuning_request;
