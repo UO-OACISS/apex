@@ -33,7 +33,7 @@ public:
     void * value; // for the client to get the values
     size_t maxlen;
     Variable () = delete;
-    Variable (VariableType vtype, void * ptr) : vtype(vtype), current_index(0),
+    Variable (VariableType vtype, void * ptr) : limits({0.0,0.0}), vtype(vtype), current_index(0),
         best_index(0), current_value(0), best_value(0), value(ptr), maxlen(0) { }
     void set_current_value() {
         if (vtype == VariableType::continuous) {

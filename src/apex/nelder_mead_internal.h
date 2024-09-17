@@ -279,7 +279,6 @@ template <typename T = double> class Searcher {
         case SIMPLEX: {
             // return the next simplex point
             return simplex[current_simplex_index].vec();
-            break;
         }
         case REFLECTION: {
             // Calculate the reflection point
@@ -291,7 +290,6 @@ template <typename T = double> class Searcher {
                 x_r.enforce_max(maximum_limits);
             // return the reflection point
             return x_r.vec();
-            break;
         }
         case EXPANSION: {
             // Calculate the Expansion point
@@ -303,7 +301,6 @@ template <typename T = double> class Searcher {
                 x_e.enforce_max(maximum_limits);
             // return the expansion point
             return x_e.vec();
-            break;
         }
         case CONTRACTION: {
             // Compute the contraction point
@@ -320,7 +317,6 @@ template <typename T = double> class Searcher {
             }
             // return the contraction point
             return x_c.vec();
-            break;
         }
         default: {
             assert(false);
