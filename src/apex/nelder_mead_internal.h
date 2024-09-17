@@ -329,6 +329,8 @@ template <typename T = double> class Searcher {
         return res;
     }
     void report(T val) {
+        if (converged())
+            return;
         switch (stage) {
         case SIMPLEX:
             evaluate_simplex(val);
