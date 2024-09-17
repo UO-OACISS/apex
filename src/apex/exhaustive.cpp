@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <iostream>
 #include <fstream>
+#include "apex_options.hpp"
 
 namespace apex {
 
@@ -31,6 +32,12 @@ size_t Exhaustive::get_max_iterations() {
                 break;
             }
         }
+    }
+    // if we are only chosing between a couple of items, then
+    // increase our number of iterations so that we ensure good
+    // coverage.
+    if (vars.size() == 1 || max_iter < 10) {
+        max_iter = max_iter * std::max(10, apex_options::kokkos_tuning_window()+1);
     }
     // want to see multiple values of each one
     //std::cout << "Max iterations: " << max_iter << std::endl;
@@ -67,10 +74,12 @@ void Exhaustive::evaluate(double new_cost) {
     if (new_cost < cost) {
         if (new_cost < best_cost) {
             best_cost = new_cost;
-            std::cout << "New best! " << new_cost << " k: " << k
+            std::cout << "Exhaustive search: New best! " << new_cost << " k: " << k
                       << " kmax: " << kmax;
-            for (auto& v : vars) { v.second.save_best(); }
-            for (auto& v : vars) { std::cout  << ", " << v.first << ": " << v.second.toString(); }
+            for (auto& v : vars) {
+                std::cout  << ", " << v.first << ": " << v.second.toString();
+                v.second.save_best();
+            }
             std::cout << std::endl;
         }
         cost = new_cost;

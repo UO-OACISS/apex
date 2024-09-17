@@ -208,8 +208,8 @@ template <typename T = double> class Searcher {
              const std::vector<std::vector<T>> &initial_simplex = {},
              const std::vector<T> &_minimum_limits = {},
              const std::vector<T> &_maximum_limits = {}, bool _adaptive = true)
-        : adaptive(_adaptive), tol_fun(1e-8), tol_x(1e-8), max_iter(100000),
-          max_fun_evals(100000), current_simplex_index(0),
+        : adaptive(_adaptive), tol_fun(1e-8), tol_x(1e-8), max_iter(1000),
+          max_fun_evals(2000), current_simplex_index(0),
           minimum_limits(_minimum_limits), maximum_limits(_maximum_limits),
           _converged(false), verbose(false) {
         initialize(initial_point, initial_simplex);
@@ -435,7 +435,7 @@ template <typename T = double> class Searcher {
         }
         // have we converged? either by being within tolerance of the best -
         // worst or by being within the tolerance of a point distance?
-        if ((max_val_diff <= tol_fun or max_point_diff <= tol_x) or
+        if ((max_val_diff <= tol_fun and max_point_diff <= tol_x) or
             (func_evals_count >= max_fun_evals) or (niter >= max_iter)) {
             res = simplex[smallest_idx].vec();
             std::cout << "Converged after " << niter << " iterations."

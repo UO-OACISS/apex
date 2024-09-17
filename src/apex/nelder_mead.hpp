@@ -129,10 +129,11 @@ private:
     const size_t max_iterations{500};
     const size_t min_iterations{16};
     internal::nelder_mead::Searcher<double>* searcher;
+    bool hasDiscrete;
 public:
     void evaluate(double new_cost);
     NelderMead() :
-        kmax(0), k(1), searcher(nullptr) {
+        kmax(0), k(1), searcher(nullptr), hasDiscrete(false) {
         cost = std::numeric_limits<double>::max();
         best_cost = cost;
     }
@@ -160,6 +161,10 @@ public:
     std::map<std::string, Variable>& get_vars() { return vars; }
     void add_var(std::string name, Variable var) {
         vars.insert(std::make_pair(name, var));
+        if (var.vtype == VariableType::longtype ||
+            var.vtype == VariableType::stringtype) {
+            hasDiscrete = true;
+        }
     }
     void start(void);
 };
