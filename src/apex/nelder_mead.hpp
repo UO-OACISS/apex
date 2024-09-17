@@ -24,7 +24,7 @@ public:
     std::vector<double> dvalues;
     std::vector<long> lvalues;
     std::vector<std::string> svalues;
-    std::array<double,2> limits;
+    std::vector<double> limits;
     VariableType vtype;
     size_t current_index;
     size_t best_index;
@@ -33,7 +33,7 @@ public:
     void * value; // for the client to get the values
     size_t maxlen;
     Variable () = delete;
-    Variable (VariableType vtype, void * ptr) : limits({0.0,0.0}), vtype(vtype), current_index(0),
+    Variable (VariableType vtype, void * ptr) : vtype(vtype), current_index(0),
         best_index(0), current_value(0), best_value(0), value(ptr), maxlen(0) { }
     void set_current_value() {
         if (vtype == VariableType::continuous) {
@@ -102,7 +102,8 @@ public:
         //return ((double)maxlen / 2.0);
         return 0.5;
     }
-    const std::array<double,2>& get_limits(void) {
+    const std::vector<double>& get_limits(void) {
+        limits.reserve(2);
         // if our variable is continuous, we have been initialized with
         // two values, the min and the max
         if (vtype == VariableType::continuous) {
