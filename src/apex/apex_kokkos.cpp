@@ -148,7 +148,7 @@ void kokkosp_init_library(int loadseq, uint64_t version,
 void kokkosp_finalize_library() {
     memory_mtx.lock();
     if (memory_map().size() == 0) {
-        if (apex::apex::instance()->get_node_id() == 0) {
+        if (apex::apex::instance()->get_node_id() == 0 && apex::apex_options::use_verbose()) {
             std::cout << "No Kokkos allocation Leaks on rank 0!" << std::endl;
         }
     } else {
