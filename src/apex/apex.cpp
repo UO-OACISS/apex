@@ -593,9 +593,9 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
     }
 
     // It's now safe to initialize CUDA and/or HIP and/or Level0
-    dynamic::cuda::init();
-    dynamic::roctracer::init();
-    dynamic::level0::init();
+    if (apex_options::use_cuda()) { dynamic::cuda::init(); }
+    if (apex_options::use_hip()) { dynamic::roctracer::init(); }
+    if (apex_options::use_level0()) { dynamic::level0::init(); }
 
     // Unset the LD_PRELOAD variable, because Active Harmony is going to
     // fork/execv a new session-core process, and we don't want APEX in
@@ -1824,9 +1824,9 @@ std::string dump(bool reset, bool finalizing) {
     apex* instance = apex::instance();
     // protect against calls after finalization
     if (!instance) { FUNCTION_EXIT return(std::string("")); }
-    dynamic::cuda::flush();
-    dynamic::roctracer::flush();
-    dynamic::level0::flush();
+    if (apex_options::use_cuda()) { dynamic::cuda::flush(); }
+    if (apex_options::use_hip()) { dynamic::roctracer::flush(); }
+    if (apex_options::use_level0()) { dynamic::level0::flush(); }
     /* only track after N calls to apex::dump() */
     index = index + 1;
     if (apex_options::delay_memory_tracking() &&
@@ -1933,14 +1933,20 @@ void finalize(void)
     stop_all_async_threads(); // stop OS/HW monitoring, including PAPI
 
     /* This could take a while */
-    dynamic::cuda::flush();
-    dynamic::roctracer::flush();
-    dynamic::level0::flush();
+    if (apex_options::use_cuda()) {
+        dynamic::cuda::flush();
+        dynamic::cuda::stop();
+    }
+    if (apex_options::use_hip()) {
+        dynamic::roctracer::flush();
+        dynamic::roctracer::stop();
+    }
+    if (apex_options::use_level0()) {
+        dynamic::level0::flush();
+        dynamic::level0::stop();
+    }
 
     // stop processing new timers/counters/messages/tasks/etc.
-    dynamic::cuda::stop();
-    dynamic::roctracer::stop();
-    dynamic::level0::stop();
     apex_options::suspend(true);
 
     // now, process all output
