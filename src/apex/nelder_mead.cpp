@@ -30,8 +30,12 @@ void NelderMead::start(void) {
         for (auto& v : vars) {
             double r = ((double) std::rand() / (RAND_MAX));
             auto& limits = v.second.get_limits();
-            tmp.push_back(r * ((limits[1] + limits[0]) / 2.0));
+            double range = limits[1] - limits[0];
+            double sample_in_range = range * r;
+            tmp.push_back(limits[0] + sample_in_range);
         }
+        //std::cout << "range: [" << lower_limit[i] << "," << upper_limit[i] << "] value: ["
+            //<< tmp[0] << "," << tmp[1] << "]" << std::endl;
         init_simplex.push_back(tmp);
     }
     searcher = new apex::internal::nelder_mead::Searcher<double>(init_point, init_simplex, lower_limit, upper_limit, true);
@@ -91,7 +95,7 @@ void NelderMead::evaluate(double new_cost) {
         cost = new_cost;
         // if the function evaluation takes a long time (in nanoseconds, remember), increase our tolerance.
         auto tmp = std::max((new_cost / 50.0), 1000.0);
-        std::cout << "new function tolerance: " << tmp << std::endl;
+        //std::cout << "new function tolerance: " << tmp << std::endl;
         searcher->function_tolerance(tmp);
     }
     k++;

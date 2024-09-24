@@ -237,8 +237,8 @@ template <typename T = double> class Searcher {
             gamma = 0.5;
             delta = 0.5;
         }
-        std::cout << alpha << " " << beta << " " << gamma << " " << delta
-                  << std::endl;
+        //std::cout << alpha << " " << beta << " " << gamma << " " << delta
+                  //<< std::endl;
         simplex.resize(dimension + 1);
         if (initial_simplex.empty()) {
             // Generate initial simplex

@@ -107,12 +107,14 @@ public:
         // if our variable is continuous, we have been initialized with
         // two values, the min and the max
         if (vtype == VariableType::continuous) {
+            //std::cout << "Not continuous" << std::endl;
             limits[0] = dvalues[0];
             limits[1] = dvalues[1];
         // if our variable is discrete, we will use the range from 0 to 1,
         // and scale that value to the number of descrete values we have to get
         // an index.
         } else {
+            //std::cout << "Continuous" << std::endl;
             limits[0] = 0.0;
             limits[1] = 1.0;
         }
