@@ -92,14 +92,17 @@ public:
     void save_best() { best_index = current_index; }
     void restore_best() { current_index = best_index; }
     /* For initializing in the center of the space */
-    void set_init() {
-        maxlen = (std::max(std::max(dvalues.size(),
-            lvalues.size()), svalues.size())) - 1;
-        half = maxlen/2;
-        // we need a minimum value of 2 to get movement at all
-        quarter = (double)(std::max((half/2), size_t(2)));
-        current_index = neighbor_index = best_index = half;
-        //std::cout << "Initialized to " << current_index << std::endl;
+    void set_init(double init_value) {
+        auto it = std::find(dvalues.begin(), dvalues.end(), init_value);
+        current_index = distance(dvalues.begin(), it);
+    }
+    void set_init(long init_value) {
+        auto it = std::find(lvalues.begin(), lvalues.end(), init_value);
+        current_index = distance(lvalues.begin(), it);
+    }
+    void set_init(std::string init_value) {
+        auto it = std::find(svalues.begin(), svalues.end(), init_value);
+        current_index = distance(svalues.begin(), it);
     }
     std::string getBest() {
         if (vtype == VariableType::doubletype) {

@@ -1566,7 +1566,7 @@ inline int __sa_setup(shared_ptr<apex_tuning_session>
                   v.lvalues.push_back(lvalue);
                   lvalue = lvalue + param_long->step;
               } while (lvalue <= param_long->max);
-              v.set_init();
+              v.set_init(param_long->init);
               tuning_session->sa_session.add_var(param_name, std::move(v));
           }
           break;
@@ -1579,7 +1579,7 @@ inline int __sa_setup(shared_ptr<apex_tuning_session>
                   v.dvalues.push_back(dvalue);
                   dvalue = dvalue + param_double->step;
               } while (dvalue <= param_double->max);
-              v.set_init();
+              v.set_init(param_double->init);
               tuning_session->sa_session.add_var(param_name, std::move(v));
           }
           break;
@@ -1591,7 +1591,7 @@ inline int __sa_setup(shared_ptr<apex_tuning_session>
                              param_enum->possible_values) {
                   v.svalues.push_back(possible_value);
               }
-              v.set_init();
+              v.set_init(param_enum->init_value);
               tuning_session->sa_session.add_var(param_name, std::move(v));
           }
           break;
@@ -1627,7 +1627,7 @@ inline int __nelder_mead_setup(shared_ptr<apex_tuning_session>
                   v.lvalues.push_back(lvalue);
                   lvalue = lvalue + param_long->step;
               } while (lvalue <= param_long->max);
-              v.set_init();
+              v.set_init(param_long->init);
               tuning_session->nelder_mead_session.add_var(param_name, std::move(v));
           }
           break;
@@ -1640,7 +1640,7 @@ inline int __nelder_mead_setup(shared_ptr<apex_tuning_session>
                   v.dvalues.push_back(dvalue);
                   dvalue = dvalue + param_double->step;
               } while (dvalue <= param_double->max);
-              v.set_init();
+              v.set_init(param_double->init);
               tuning_session->nelder_mead_session.add_var(param_name, std::move(v));
           }
           break;
@@ -1652,7 +1652,7 @@ inline int __nelder_mead_setup(shared_ptr<apex_tuning_session>
                              param_enum->possible_values) {
                   v.svalues.push_back(possible_value);
               }
-              v.set_init();
+              v.set_init(param_enum->init_value);
               tuning_session->nelder_mead_session.add_var(param_name, std::move(v));
           }
           break;
@@ -1688,7 +1688,7 @@ inline int __genetic_setup(shared_ptr<apex_tuning_session>
                   v.lvalues.push_back(lvalue);
                   lvalue = lvalue + param_long->step;
               } while (lvalue <= param_long->max);
-              v.set_init();
+              v.set_init(param_long->init);
               tuning_session->genetic_session.add_var(param_name, std::move(v));
           }
           break;
@@ -1701,7 +1701,7 @@ inline int __genetic_setup(shared_ptr<apex_tuning_session>
                   v.dvalues.push_back(dvalue);
                   dvalue = dvalue + param_double->step;
               } while (dvalue <= param_double->max);
-              v.set_init();
+              v.set_init(param_double->init);
               tuning_session->genetic_session.add_var(param_name, std::move(v));
           }
           break;
@@ -1713,7 +1713,7 @@ inline int __genetic_setup(shared_ptr<apex_tuning_session>
                              param_enum->possible_values) {
                   v.svalues.push_back(possible_value);
               }
-              v.set_init();
+              v.set_init(param_enum->init_value);
               tuning_session->genetic_session.add_var(param_name, std::move(v));
           }
           break;
@@ -1810,7 +1810,7 @@ inline int __random_setup(shared_ptr<apex_tuning_session>
                   v.lvalues.push_back(lvalue);
                   lvalue = lvalue + param_long->step;
               } while (lvalue <= param_long->max);
-              v.set_init();
+              v.set_init(param_long->init);
               tuning_session->random_session.add_var(param_name, std::move(v));
           }
           break;
@@ -1823,7 +1823,7 @@ inline int __random_setup(shared_ptr<apex_tuning_session>
                   v.dvalues.push_back(dvalue);
                   dvalue = dvalue + param_double->step;
               } while (dvalue <= param_double->max);
-              v.set_init();
+              v.set_init(param_double->init);
               tuning_session->random_session.add_var(param_name, std::move(v));
           }
           break;
@@ -1835,7 +1835,7 @@ inline int __random_setup(shared_ptr<apex_tuning_session>
                              param_enum->possible_values) {
                   v.svalues.push_back(possible_value);
               }
-              v.set_init();
+              v.set_init(param_enum->init_value);
               tuning_session->random_session.add_var(param_name, std::move(v));
           }
           break;

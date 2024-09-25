@@ -7,10 +7,14 @@ include_directories (${APEX_SOURCE_DIR}/src/unit_tests/Kokkos)
 link_directories (${APEX_BINARY_DIR}/src/apex)
 #link_directories (${APEX_BINARY_DIR}/src/apex_pthread_wrapper)
 
+if(NOT APPLE)
+    set(openmp_programs mm2d_tiling)
+endif(NOT APPLE)
+
 set(example_programs
     simple
     two_var
-    mm2d_tiling
+    ${openmp_programs}
    )
 
 foreach(example_program ${example_programs})
