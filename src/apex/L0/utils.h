@@ -21,6 +21,12 @@
 
 #include "pti_assert.h"
 
+#ifdef _WIN32
+#define PTI_EXPORT __declspec(dllexport)
+#else
+#define PTI_EXPORT __attribute__ ((visibility ("default")))
+#endif
+
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
 
@@ -35,6 +41,18 @@
 
 namespace utils {
 
+struct DeviceUUID {
+  uint16_t vendorID;
+  uint16_t deviceID;
+  uint16_t revisionID;
+  uint16_t pciDomain;
+  uint8_t pciBus;
+  uint8_t pciDevice;
+  uint8_t pciFunction;
+  uint8_t reserved[4];
+  uint8_t subDeviceId;
+};
+
     struct Comparator {
         template<typename T>
             bool operator()(const T& left, const T& right) const {
@@ -44,6 +62,19 @@ namespace utils {
                 return left.first > right.first;
             }
     };
+
+template<typename T>
+struct ComparatorPciAddress {
+  bool operator()(const T& left, const T& right) const {
+    if (left.BusNumber != right.BusNumber) {
+        return (left.BusNumber < right.BusNumber);
+    }
+    if (left.DeviceNumber != right.DeviceNumber) {
+        return (left.DeviceNumber < right.DeviceNumber);
+    }
+    return left.FunctionNumber < right.FunctionNumber;
+  }
+};
 
 #if defined(__gnu_linux__)
 
@@ -167,7 +198,7 @@ namespace utils {
         return GetCurrentThreadId();
 #else
 #ifdef SYS_gettid
-        return syscall(SYS_gettid);
+        return (uint32_t)syscall(SYS_gettid);
 #else
 #error "SYS_gettid is unavailable on this system"
 #endif
