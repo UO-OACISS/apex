@@ -51,7 +51,7 @@ double SimulatedAnnealing::acceptance_probability(double new_cost) {
 
 void SimulatedAnnealing::evaluate(double new_cost) {
     /*   T <- temperature( (k+1)/kmax ) */
-    temp = (double)(k)/(double)(kmax);
+    temp = std::min((double)(k)/(double)(kmax), 1.0);
     /*   If P(E(s), E(snew), T) ≥ random(0, 1): */
     /*     s <- snew */
     if (new_cost < cost) {
