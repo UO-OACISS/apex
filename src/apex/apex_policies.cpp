@@ -1619,6 +1619,7 @@ inline int __nelder_mead_setup(shared_ptr<apex_tuning_session>
       const char * param_name = param->get_name().c_str();
       switch(param->get_type()) {
           case apex_param_type::LONG: {
+              //std::cout << "Type long" << std::endl;
               auto param_long =
               std::static_pointer_cast<apex_param_long>(param);
               Variable v(VariableType::longtype, param_long->value.get());
@@ -1632,6 +1633,7 @@ inline int __nelder_mead_setup(shared_ptr<apex_tuning_session>
           }
           break;
           case apex_param_type::DOUBLE: {
+              //std::cout << "Type double" << std::endl;
               auto param_double =
               std::static_pointer_cast<apex_param_double>(param);
               Variable v(VariableType::doubletype, param_double->value.get());
@@ -1645,6 +1647,7 @@ inline int __nelder_mead_setup(shared_ptr<apex_tuning_session>
           }
           break;
           case apex_param_type::ENUM: {
+              //std::cout << "Type enum" << std::endl;
               auto param_enum =
               std::static_pointer_cast<apex_param_enum>(param);
               Variable v(VariableType::stringtype, param_enum->value.get());

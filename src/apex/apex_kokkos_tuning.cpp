@@ -186,11 +186,11 @@ public:
     double dmin;
     double dmax;
     double dstep;
-    uint64_t lmin;
-    uint64_t lmax;
-    uint64_t lstep;
-    uint64_t lvar;
-    uint64_t numValues;
+    int64_t lmin;
+    int64_t lmax;
+    int64_t lstep;
+    int64_t lvar;
+    int64_t numValues;
     void makeSpace(void);
     std::vector<Bin*> bins;
     std::string getBin(double value) {
@@ -1064,24 +1064,36 @@ bool handle_start(const std::string & name, const size_t vars,
                 } else if (var->info.type == kokkos_value_int64) {
                     front = std::string(values[i].value.string_value);
                 }
-                //printf("Initial value: %s\n", front.c_str()); fflush(stdout);
+                //printf("Initial string value: %s\n", front.c_str()); fflush(stdout);
                 auto tmp = request->add_param_enum(
                     session.outputs[id]->name, front, space);
             } else {
                 if (var->info.type == kokkos_value_double) {
+                    double tval = values[i].value.double_value;
+                    if (tval < session.outputs[id]->dmin ||
+                        tval > session.outputs[id]->dmax) {
+                        tval = session.outputs[id]->dmin;
+                    }
                     auto tmp = request->add_param_double(
                         session.outputs[id]->name,
                         values[i].value.double_value,
                         session.outputs[id]->dmin,
                         session.outputs[id]->dmax,
                         session.outputs[id]->dstep);
+                    //printf("Initial double value: %f\n", tval); fflush(stdout);
                 } else if (var->info.type == kokkos_value_int64) {
+                    int64_t tval = values[i].value.int_value;
+                    if (tval < session.outputs[id]->lmin ||
+                        tval > session.outputs[id]->lmax) {
+                        tval = session.outputs[id]->lmin;
+                    }
                     auto tmp = request->add_param_long(
                         session.outputs[id]->name,
-                        values[i].value.int_value,
+                        tval,
                         session.outputs[id]->lmin,
                         session.outputs[id]->lmax,
                         session.outputs[id]->lstep);
+                    //printf("Initial long value: %ld\n", tval); fflush(stdout);
                 }
             }
         }

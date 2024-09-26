@@ -93,16 +93,31 @@ public:
     void restore_best() { current_index = best_index; }
     /* For initializing in the center of the space */
     void set_init(double init_value) {
+        maxlen = dvalues.size();
         auto it = std::find(dvalues.begin(), dvalues.end(), init_value);
-        current_index = distance(dvalues.begin(), it);
+        if (it == dvalues.end()) {
+            current_index = 0;
+        } else {
+            current_index = distance(dvalues.begin(), it);
+        }
     }
     void set_init(long init_value) {
+        maxlen = lvalues.size();
         auto it = std::find(lvalues.begin(), lvalues.end(), init_value);
-        current_index = distance(lvalues.begin(), it);
+        if (it == lvalues.end()) {
+            current_index = 0;
+        } else {
+            current_index = distance(lvalues.begin(), it);
+        }
     }
     void set_init(std::string init_value) {
+        maxlen = svalues.size();
         auto it = std::find(svalues.begin(), svalues.end(), init_value);
-        current_index = distance(svalues.begin(), it);
+        if (it == svalues.end()) {
+            current_index = 0;
+        } else {
+            current_index = distance(svalues.begin(), it);
+        }
     }
     std::string getBest() {
         if (vtype == VariableType::doubletype) {
