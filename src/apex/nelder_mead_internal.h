@@ -5,6 +5,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <vector>
+#include "apex_options.hpp"
 
 namespace apex {
 namespace internal {
@@ -211,7 +212,7 @@ template <typename T = double> class Searcher {
         : adaptive(_adaptive), tol_fun(1e-8), tol_x(1e-8), max_iter(1000),
           max_fun_evals(2000), current_simplex_index(0),
           minimum_limits(_minimum_limits), maximum_limits(_maximum_limits),
-          _converged(false), verbose(false) {
+          _converged(false), verbose(apex_options::use_verbose()) {
         initialize(initial_point, initial_simplex);
     }
     void function_tolerance(T tol) {

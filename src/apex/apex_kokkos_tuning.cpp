@@ -990,9 +990,10 @@ bool handle_start(const std::string & name, const size_t vars,
             }
             double result = profile->minimum;
             if (result == 0.0) result = profile->accumulated/profile->calls;
+            result = result * 1.0e-9; // convert to seconds to help search math
             if(verbose) {
                 std::cout << std::string(getDepth(), ' ');
-                std::cout << "querying time per call: " << (double)(result)/1000000000.0 << "s" << std::endl;
+                std::cout << "querying time per call: " << result << "s" << std::endl;
             }
             return result;
         };
@@ -1314,7 +1315,7 @@ void kokkosp_end_context(const size_t contextId) {
         start != session.context_starts.end()) {
         if (session.verbose) {
             std::cout << std::string(getDepth(), ' ');
-            std::cout << name->second << "\t" << (end-(start->second)) << std::endl;
+            std::cout << name->second << "\t" << (end-(start->second)) << " sec." << std::endl;
         }
         if (session.used_history.count(contextId) == 0) {
             apex::sample_value(name->second, (double)(end-(start->second)));

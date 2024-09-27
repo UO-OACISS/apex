@@ -56,7 +56,7 @@ void NelderMead::start(void) {
         init_simplex.push_back(tmp2);
     }
     searcher = new apex::internal::nelder_mead::Searcher<double>(init_point, init_simplex, lower_limit, upper_limit, false);
-    searcher->function_tolerance(10000);
+    searcher->function_tolerance(1.0e-4);
     if (hasDiscrete) {
         searcher->point_tolerance(1.0);
     } else {
@@ -110,10 +110,6 @@ void NelderMead::evaluate(double new_cost) {
             std::cout << std::endl;
         }
         cost = new_cost;
-        // if the function evaluation takes a long time (in nanoseconds, remember), increase our tolerance.
-        auto tmp = std::max((new_cost / 50.0), 1000.0);
-        //std::cout << "new function tolerance: " << tmp << std::endl;
-        searcher->function_tolerance(tmp);
     }
     k++;
     return;
