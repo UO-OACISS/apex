@@ -322,9 +322,11 @@ set(apex_headers
     dependency_tree.hpp
     event_listener.hpp
     exhaustive.hpp
+    genetic_search.hpp
     gzstream.hpp
     handler.hpp
     memory_wrapper.hpp
+    nelder_mead.hpp
     policy_handler.hpp
     profile.hpp
     profiler.hpp
@@ -361,9 +363,11 @@ set(apex_sources
     event_listener.cpp
     event_filter.cpp
     exhaustive.cpp
+    genetic_search.cpp
     gzstream.cpp
     handler.cpp
     memory_wrapper.cpp
+    nelder_mead.cpp
     nvtx_listener.cpp
     policy_handler.cpp
     profile_reducer.cpp

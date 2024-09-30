@@ -35,13 +35,14 @@
 #include "random.hpp"
 // include the genetic_search class
 #include "genetic_search.hpp"
+// include the nelder_mead class
+#include "nelder_mead.hpp"
 
 enum class apex_param_type : int {NONE, LONG, DOUBLE, ENUM};
 enum class apex_ah_tuning_strategy : int {
-    EXHAUSTIVE, RANDOM, NELDER_MEAD,
+    EXHAUSTIVE, RANDOM, NELDER_MEAD, NELDER_MEAD_INTERNAL,
     PARALLEL_RANK_ORDER, SIMULATED_ANNEALING,
-    APEX_EXHAUSTIVE, APEX_RANDOM,
-    GENETIC_SEARCH};
+    APEX_EXHAUSTIVE, APEX_RANDOM, GENETIC_SEARCH, AUTOMATIC};
 
 struct apex_tuning_session;
 class apex_tuning_request;
@@ -82,6 +83,8 @@ class apex_param {
             tuning_session, apex_tuning_request & request);
         friend int __genetic_setup(std::shared_ptr<apex_tuning_session>
             tuning_session, apex_tuning_request & request);
+        friend int __nelder_mead_setup(std::shared_ptr<apex_tuning_session>
+            tuning_session, apex_tuning_request & request);
 };
 
 class apex_param_long : public apex_param {
@@ -120,6 +123,8 @@ class apex_param_long : public apex_param {
         friend int __random_setup(std::shared_ptr<apex_tuning_session>
             tuning_session, apex_tuning_request & request);
         friend int __genetic_setup(std::shared_ptr<apex_tuning_session>
+            tuning_session, apex_tuning_request & request);
+        friend int __nelder_mead_setup(std::shared_ptr<apex_tuning_session>
             tuning_session, apex_tuning_request & request);
 };
 
@@ -160,6 +165,8 @@ class apex_param_double : public apex_param {
             tuning_session, apex_tuning_request & request);
         friend int __genetic_setup(std::shared_ptr<apex_tuning_session>
             tuning_session, apex_tuning_request & request);
+        friend int __nelder_mead_setup(std::shared_ptr<apex_tuning_session>
+            tuning_session, apex_tuning_request & request);
 };
 
 class apex_param_enum : public apex_param {
@@ -197,6 +204,8 @@ class apex_param_enum : public apex_param {
         friend int __random_setup(std::shared_ptr<apex_tuning_session>
             tuning_session, apex_tuning_request & request);
         friend int __genetic_setup(std::shared_ptr<apex_tuning_session>
+            tuning_session, apex_tuning_request & request);
+        friend int __nelder_mead_setup(std::shared_ptr<apex_tuning_session>
             tuning_session, apex_tuning_request & request);
 };
 
@@ -340,6 +349,8 @@ class apex_tuning_request {
             tuning_session, apex_tuning_request & request);
         friend int __genetic_setup(std::shared_ptr<apex_tuning_session>
             tuning_session, apex_tuning_request & request);
+        friend int __nelder_mead_setup(std::shared_ptr<apex_tuning_session>
+            tuning_session, apex_tuning_request & request);
 };
 
 
@@ -368,6 +379,8 @@ struct apex_tuning_session {
     apex::random::Random random_session;
     // if using genetic, this is the request.
     apex::genetic::GeneticSearch genetic_session;
+    // if using nelder mead, this is the request.
+    apex::nelder_mead::NelderMead nelder_mead_session;
     bool converged_message = false;
 
     // variables related to power throttling

@@ -54,14 +54,15 @@ where APEX options are zero or more of:
     --apex:otf2path <value>       specify location of OTF2 archive
                                   (default: ./OTF2_archive)
     --apex:otf2name <value>       specify name of OTF2 file (default: APEX)
-    --apex:gtrace                 enable Google Trace Events output (deprecated)
-    --apex:pftrace                enable Perfetto Trace output
+    --apex:gtrace                 enable Google Trace Events output
+    --apex:pftrace                enable Perfetto Trace output (if enabled...gtrace is a better option)
     --apex:scatter                enable scatterplot output
                                   (python required for post-processing)
     --apex:openacc                enable OpenACC support
     --apex:kokkos                 enable Kokkos support
     --apex:kokkos-tuning          enable Kokkos runtime autotuning support
     --apex:kokkos-fence           enable Kokkos fences for async kernels
+    --apex:kokkos-counters        enable Kokkos counters for allocations and data transfers
     --apex:raja                   enable RAJA support
     --apex:pthread                enable pthread wrapper support (default: off)
     --apex:track-pthread          track pthread lifetime (forces --apex:pthread on)
@@ -116,6 +117,7 @@ openacc=no
 kokkos=no
 kokkos_tuning=no
 kokkos_fence=no
+kokkos_counters=no
 raja=no
 otf2=no
 gtrace=no
@@ -183,6 +185,11 @@ while (( "$#" )); do
       kokkos_tuning=yes
       # Fencing is required for accurate tuning
       kokkos_fence=yes
+      shift
+      ;;
+    --apex:kokkos-counters)
+      kokkos=yes
+      kokkos_counters=yes
       shift
       ;;
     --apex:kokkos_fence|--apex:kokkos-fence)
@@ -775,6 +782,9 @@ if [ ${kokkos_fence} = yes ] ; then
 fi
 if [ ${kokkos_tuning} = yes ] ; then
     export APEX_KOKKOS_TUNING=1
+fi
+if [ ${kokkos_counters} = yes ] ; then
+    export APEX_KOKKOS_COUNTERS=1
 fi
 if [ ${raja} = yes ] ; then
     export RAJA_PLUGINS=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}

@@ -10,6 +10,7 @@ link_directories (${APEX_BINARY_DIR}/src/apex)
 set(example_programs
     simple
     two_var
+    mm2d_tiling
    )
 
 foreach(example_program ${example_programs})

@@ -3,8 +3,11 @@
 
 #include<Kokkos_Core.hpp>
 #include<unordered_map>
+#include<iostream>
 
 namespace Impl {
+
+constexpr const int max_iterations{1000};
 
 struct empty {};
 
@@ -40,12 +43,10 @@ auto setup_helper(const Setup &setup, int num_iters, std::true_type) {
 
 template<typename Setup, typename Tunable>
 void tuned_kernel(int argc, char* argv[], Setup setup, Tunable tunable){
-  int num_iters = 100000;
-  bool tuned_internals;
-  bool found_tuning_tool;
-  bool print_progress;
+  int num_iters = 1000;
   Kokkos::initialize(argc, argv);
   {
+    Kokkos::print_configuration(std::cout, false);
     using emptiness =
         typename std::is_same<decltype(setup(num_iters)), void>::type;
     auto kernel_data = Impl::setup_helper(setup, num_iters, emptiness{});
@@ -74,7 +75,7 @@ size_t create_categorical_int_tuner(std::string name, size_t num_options){
   info.type = ValueType::kokkos_value_int64;
   info.valueQuantity = CandidateValueType::kokkos_value_set;
   std::vector<int64_t> options;
-  for(int x=0;x<num_options;++x){
+  for(size_t x=0;x<num_options;++x){
     options.push_back(x);
   }
   info.candidates = make_candidate_set(options.size(), options.data());
@@ -97,7 +98,7 @@ size_t create_fastest_implementation_id(){
 }
 
 template<typename ... Implementations>
-void fastest_of(const std::string& label, Implementations... implementations){
+void fastest_of(const std::string& label, const size_t count, Implementations... implementations){
     using namespace Kokkos::Tools::Experimental;
     auto tuner_iter = [&]() {
       auto my_tuner = ids_for_kernels.find(label);
@@ -111,11 +112,19 @@ void fastest_of(const std::string& label, Implementations... implementations){
     auto input_id = create_fastest_implementation_id();
     VariableValue picked_implementation = make_variable_value(var_id,int64_t(0));
     VariableValue which_kernel = make_variable_value(var_id,label.c_str());
+    which_kernel.value.int_value = -1;
     auto context_id = get_new_context_id();
     begin_context(context_id);
-    set_input_values(context_id, 1, &which_kernel);
-    request_output_values(context_id, 1, &picked_implementation);
-    fastest_of_helper(picked_implementation.value.int_value, implementations...);
+    set_input_values(context_id, 1, &picked_implementation);
+    request_output_values(context_id, 1, &which_kernel);
+    // if we didn't get a prediction, just alternate between methods.
+    if (which_kernel.value.int_value < 0) {
+        static int flipper{0};
+        fastest_of_helper(flipper, implementations...);
+        flipper = (flipper + 1) % count;
+    } else {
+        fastest_of_helper(which_kernel.value.int_value, implementations...);
+    }
     end_context(context_id);
 }
 
