@@ -435,6 +435,10 @@ template <typename T = double> class Searcher {
         if ((max_val_diff <= tol_fun and max_point_diff <= tol_x) or
             (func_evals_count >= max_fun_evals) or (niter >= max_iter)) {
             res = simplex[smallest_idx].vec();
+            std::cout << "Converged: " << max_val_diff << " value difference."
+                      << std::endl;
+            std::cout << "Converged: " << max_point_diff << " point difference."
+                      << std::endl;
             std::cout << "Converged after " << niter << " iterations."
                       << std::endl;
             std::cout << "Total func evaluations: " << func_evals_count
