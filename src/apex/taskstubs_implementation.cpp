@@ -13,6 +13,8 @@
 #include <mutex>
 #include <unordered_map>
 #include <stack>
+#include <stdarg.h>
+
 
 using maptype = std::unordered_map<tasktimer_guid_t,
                                    std::shared_ptr<apex::task_wrapper>>;
@@ -32,10 +34,22 @@ maptype& getMyMap(void) {
     return theMap;
 }
 
-void safePrint(const char * format, tasktimer_guid_t guid) {
+int verbosePrint(int priority, const char *format, ...)
+{
     static std::mutex local_mtx;
     std::scoped_lock lock{local_mtx};
-    printf("%lu %s GUID %lu\n", apex::thread_instance::get_id(), format, guid);
+    va_list args;
+    va_start(args, format);
+    vprintf(format, args);
+    va_end(args);
+}
+
+#define VERBOSE_PRINTF(...) if (apex::apex_options::use_verbose()) { printf(__VA_ARGS__); }
+
+void safePrint(const char * format, tasktimer_guid_t guid, const char * event) {
+    //static std::mutex local_mtx;
+    //std::scoped_lock lock{local_mtx};
+    VERBOSE_PRINTF("%lu TS: %s: GUID %lu %s\n", apex::thread_instance::get_id(), format, guid, event);
     return;
 }
 
@@ -56,7 +70,7 @@ void safeInsert(
 }
 
 std::shared_ptr<apex::task_wrapper> safeLookup(
-    tasktimer_guid_t guid) {
+    tasktimer_guid_t guid, const char * event) {
 #if 0
     // in the thread local map?
     auto task = getMyMap().find(guid);
@@ -77,7 +91,7 @@ std::shared_ptr<apex::task_wrapper> safeLookup(
     std::scoped_lock lock{mtx()};
     auto task = getCommonMap().find(guid);
     if (task == getCommonMap().end()) {
-        safePrint("Not found", guid);
+        safePrint("Not found", guid, event);
         //APEX_ASSERT(false);
         return nullptr;
     }
@@ -106,7 +120,7 @@ extern "C" {
     }
     void tasktimer_finalize_impl(void) {
         /* Debatable whether we want to do this finalize */
-        apex::finalize();
+        //apex::finalize();
     }
     // measurement function declarations
     tasktimer_timer_t tasktimer_create_impl(
@@ -117,16 +131,18 @@ extern "C" {
         const uint64_t parent_count) {
         static bool& over = apex::get_program_over();
         if (over) return nullptr;
+        safePrint("Creating", timer_guid, timer_name);
+
         // need to look up the parent shared pointers?
         std::vector<std::shared_ptr<apex::task_wrapper>> parent_tasks;
         for (uint64_t i = 0 ; i < parent_count ; i++) {
-            auto tmp = safeLookup(parent_guids[i]);
+            auto tmp = safeLookup(parent_guids[i], "parent lookup");
             if (tmp != nullptr)
                 parent_tasks.push_back(tmp);
         }
         // if no name, use address
         if (timer_name == nullptr || strlen(timer_name) == 0) {
-            //printf("Null name for timer: %p\n", function_address);
+            //VERBOSE_PRINTF("Null name for timer: %p\n", function_address);
             if (parent_count > 0) {
                 auto task = apex::new_task(
                                 (apex_function_address)function_address,
@@ -153,10 +169,20 @@ extern "C" {
         }
         return (tasktimer_timer_t)(timer_guid);
     }
+
+#define MAP_TASK(_timer, _apex_timer, _event) \
+    static bool& over_{apex::get_program_over()}; \
+    if (over_) return; \
+    uint64_t _tmp = (uint64_t)(_timer); \
+    auto _apex_timer = safeLookup(_tmp, _event);
+
     void tasktimer_schedule_impl(
         tasktimer_timer_t timer,
         tasktimer_argument_value_p arguments,
         uint64_t argument_count) {
+        MAP_TASK(timer, apex_timer, "schedule");
+        VERBOSE_PRINTF("%lu TS: Scheduling: %lu %s\n", apex::thread_instance::get_id(), timer,
+            apex_timer == nullptr ? "unknown" : apex_timer->task_id->get_name().c_str());
         static bool& over = apex::get_program_over();
         if (over) return;
         // TODO: handle the schedule event, somehow
@@ -165,18 +191,13 @@ extern "C" {
         APEX_UNUSED(argument_count);
     }
 
-#define MAP_TASK(_timer, _apex_timer) \
-    static bool& over_{apex::get_program_over()}; \
-    if (over_) return; \
-    uint64_t _tmp = (uint64_t)(_timer); \
-    auto _apex_timer = safeLookup(_tmp);
-
     void tasktimer_start_impl(
         tasktimer_timer_t timer,
         tasktimer_execution_space_p) {
         // TODO: capture the execution space, somehow...a new task?
-        MAP_TASK(timer, apex_timer);
-        //printf("%lu TS: Starting: %lu\n", apex::thread_instance::get_id(), timer);
+        MAP_TASK(timer, apex_timer, "start");
+        VERBOSE_PRINTF("%lu TS: Starting: %lu %s\n", apex::thread_instance::get_id(), timer,
+            apex_timer == nullptr ? "unknown" : apex_timer->task_id->get_name().c_str());
         if (apex_timer != nullptr) {
             apex::start(apex_timer);
         }
@@ -186,8 +207,9 @@ extern "C" {
 #if 1
         static bool& over = apex::get_program_over();
         if (over) return;
-        MAP_TASK(timer, apex_timer);
-        //printf("%lu TS: Yielding: %lu\n", apex::thread_instance::get_id(), timer);
+        MAP_TASK(timer, apex_timer, "yield");
+        VERBOSE_PRINTF("%lu TS: Yielding: %lu %s\n", apex::thread_instance::get_id(), timer,
+            apex_timer == nullptr ? "unknown" : apex_timer->task_id->get_name().c_str());
         if (apex_timer != nullptr) {
             apex::yield(apex_timer);
         }
@@ -198,8 +220,9 @@ extern "C" {
         tasktimer_execution_space_p) {
 #if 1
         // TODO: capture the execution space, somehow...a new task?
-        MAP_TASK(timer, apex_timer);
-        //printf("%lu TS: Resuming: %lu\n", apex::thread_instance::get_id(), timer);
+        MAP_TASK(timer, apex_timer, "resume");
+        VERBOSE_PRINTF("%lu TS: Resuming: %lu %s\n", apex::thread_instance::get_id(), timer,
+            apex_timer == nullptr ? "unknown" : apex_timer->task_id->get_name().c_str());
         // TODO: why no resume function for task_wrapper objects?
         if (apex_timer != nullptr) {
             apex::resume(apex_timer);
@@ -210,15 +233,28 @@ extern "C" {
     }
     void tasktimer_stop_impl(
         tasktimer_timer_t timer) {
-        MAP_TASK(timer, apex_timer);
-        //printf("%lu TS: Stopping: %lu\n", apex::thread_instance::get_id(), timer);
+        static std::set<tasktimer_timer_t> stopped;
+        static std::mutex local_mtx;
+        MAP_TASK(timer, apex_timer, "stop");
+        VERBOSE_PRINTF("%lu TS: Stopping: %lu %s\n", apex::thread_instance::get_id(), timer,
+            apex_timer == nullptr ? "unknown" : apex_timer->task_id->get_name().c_str());
         if (apex_timer != nullptr) {
+            {
+                std::scoped_lock lock{local_mtx};
+                if (stopped.count(timer) > 0) {
+                    VERBOSE_PRINTF("%lu TS: ERROR! TIMER STOPPED TWICE! : %lu\n", apex::thread_instance::get_id(), timer);
+                    return;
+                }
+                stopped.insert(timer);
+            }
             apex::stop(apex_timer);
         }
     }
     void tasktimer_destroy_impl(
         tasktimer_timer_t timer) {
-        MAP_TASK(timer, apex_timer);
+        MAP_TASK(timer, apex_timer, "destroy");
+        VERBOSE_PRINTF("%lu TS: Destroying: %lu %s\n", apex::thread_instance::get_id(), timer,
+            apex_timer == nullptr ? "unknown" : apex_timer->task_id->get_name().c_str());
         if (apex_timer != nullptr) {
             // TODO: need to handle the destroy event somehow.
             // definitely need to remove it from the local map.
@@ -229,10 +265,12 @@ extern "C" {
         tasktimer_timer_t timer,
         const tasktimer_guid_t* parents, const uint64_t parent_count) {
         // TODO: need to handle the add parents event
-        MAP_TASK(timer, apex_timer);
+        MAP_TASK(timer, apex_timer, "add parents");
+        VERBOSE_PRINTF("%lu TS: Adding parents: %lu %s\n", apex::thread_instance::get_id(), timer,
+            apex_timer == nullptr ? "unknown" : apex_timer->task_id->get_name().c_str());
         if (apex_timer != nullptr) {
             for (uint64_t i = 0 ; i < parent_count ; i++) {
-                auto tmp = safeLookup(parents[i]);
+                auto tmp = safeLookup(parents[i], "parent lookup");
                 if (tmp != nullptr) {
                     // add the parent to the child
                     apex_timer->parents.push_back(tmp);
@@ -249,10 +287,12 @@ extern "C" {
         tasktimer_timer_t timer,
         const tasktimer_guid_t* children, const uint64_t child_count) {
         // TODO: need to handle the add children event
-        MAP_TASK(timer, apex_timer);
+        MAP_TASK(timer, apex_timer, "add children");
+        VERBOSE_PRINTF("%lu TS: Adding children: %lu %s\n", apex::thread_instance::get_id(), timer,
+            apex_timer == nullptr ? "unknown" : apex_timer->task_id->get_name().c_str());
         if (apex_timer != nullptr) {
             for (uint64_t i = 0 ; i < child_count ; i++) {
-                auto tmp = safeLookup(children[i]);
+                auto tmp = safeLookup(children[i], "child lookup");
                 if (tmp != nullptr) {
                     // add the parent to the child
                     tmp->parents.push_back(apex_timer);
@@ -288,7 +328,7 @@ extern "C" {
         tasktimer_execution_space_p dest_type,
         const char* dest_name,
         const void* dest_ptr) {
-        std::shared_ptr<apex::task_wrapper> parent = safeLookup(guid);
+        std::shared_ptr<apex::task_wrapper> parent = safeLookup(guid, "data transfer");
         auto task = apex::new_task("data xfer", 0, parent);
         timerStack(task, true);
     }

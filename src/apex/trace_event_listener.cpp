@@ -125,6 +125,7 @@ inline std::string parents_to_string(std::shared_ptr<task_wrapper> tt_ptr) {
 
 inline void trace_event_listener::_common_start(std::shared_ptr<task_wrapper> &tt_ptr) {
     static APEX_NATIVE_TLS long unsigned int tid = get_thread_id_metadata();
+    long unsigned int _tid = tt_ptr->prof->thread_id;
     if (!_terminate) {
         std::stringstream ss;
         ss.precision(3);
@@ -236,9 +237,9 @@ inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
                 //std::cout << "FLOWING!" << std::endl;
                 uint64_t flow_id = reversed_node_id + get_flow_id();
                 write_flow_event(ss, parent->get_flow_us()+0.25, 's', "ControlFlow", flow_id,
-                    saved_node_id, parent->thread_id, parent->task_id->get_name(), p->get_task_id()->get_name());
+                    saved_node_id, parent->thread_id, "", ""); //parent->task_id->get_name(), p->get_task_id()->get_name());
                 write_flow_event(ss, p->get_start_us()-0.25, 'f', "ControlFlow", flow_id,
-                    saved_node_id, _tid, parent->task_id->get_name(), p->get_task_id()->get_name());
+                    saved_node_id, _tid, "", ""); //parent->task_id->get_name(), p->get_task_id()->get_name());
             }
         }
         if (p->tt_ptr->explicit_trace_start) {

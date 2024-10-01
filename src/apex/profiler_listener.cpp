@@ -1903,6 +1903,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       // get the right task identifier, based on whether there are aliases
       profiler * p = new profiler(tt_ptr, is_resume);
       p->thread_id = _pls.my_tid;
+      APEX_ASSERT(p->thread_id == (unsigned int)thread_instance::get_id());
       p->guid = tt_ptr->guid;
       thread_instance::instance().set_current_profiler(p);
 #if APEX_HAVE_PAPI

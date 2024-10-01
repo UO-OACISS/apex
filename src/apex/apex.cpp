@@ -714,6 +714,17 @@ inline std::shared_ptr<task_wrapper> _new_task(
     return tt_ptr;
 }
 
+/* This function helps because it's possible that the user could call the
+ * API from a new thread without registering the thread. So, make sure it
+ * got registered.
+ */
+bool register_thread_helper(void) {
+    if (!_registered) {
+        register_thread("Worker Thread", nullptr);
+    }
+    return true;
+}
+
 profiler* start(const std::string &timer_name)
 {
     in_apex prevent_deadlocks;
@@ -745,6 +756,8 @@ profiler* start(const std::string &timer_name)
         APEX_UTIL_REF_COUNT_SUSPENDED_START
         return profiler::get_disabled_profiler();
     }
+    // make sure APEX knows about this worker thread!
+    [[maybe_unused]] thread_local static bool _helper = register_thread_helper();
     std::shared_ptr<task_wrapper> tt_ptr(nullptr);
     profiler * new_profiler = nullptr;
     if (_notify_listeners) {
@@ -812,6 +825,8 @@ profiler* start(const apex_function_address function_address) {
         APEX_UTIL_REF_COUNT_SUSPENDED_START
         return profiler::get_disabled_profiler();
     }
+    // make sure APEX knows about this worker thread!
+    [[maybe_unused]] thread_local static bool _helper = register_thread_helper();
     std::shared_ptr<task_wrapper> tt_ptr(nullptr);
     profiler * new_profiler = nullptr;
     if (_notify_listeners) {
@@ -885,6 +900,8 @@ void start(std::shared_ptr<task_wrapper> tt_ptr) {
         tt_ptr->prof = profiler::get_disabled_profiler();
         return;
     }
+    // make sure APEX knows about this worker thread!
+    [[maybe_unused]] thread_local static bool _helper = register_thread_helper();
     // get the thread id that is running this task
     if (tt_ptr->thread_id != thread_instance::instance().get_id()) {
         printf("Task %s created by %lu started by %lu\n", tt_ptr->task_id->get_name().c_str(),
@@ -943,6 +960,8 @@ void resume(std::shared_ptr<task_wrapper> tt_ptr) {
         APEX_UTIL_REF_COUNT_RESUME_AFTER_FINALIZE
         return;
     }
+    // make sure APEX knows about this worker thread!
+    [[maybe_unused]] thread_local static bool _helper = register_thread_helper();
     //APEX_ASSERT(tt_ptr->state == task_wrapper::YIELDED);
     tt_ptr->state = task_wrapper::RUNNING;
     if (_notify_listeners) {
@@ -1054,6 +1073,8 @@ profiler* resume(profiler * p) {
         APEX_UTIL_REF_COUNT_RESUME_AFTER_FINALIZE
         return nullptr;
     }
+    // make sure APEX knows about this worker thread!
+    [[maybe_unused]] thread_local static bool _helper = register_thread_helper();
     p->restart();
     APEX_ASSERT(p->tt_ptr->state == task_wrapper::STOPPED);
     p->tt_ptr->state = task_wrapper::RUNNING;
@@ -1150,6 +1171,8 @@ void apex::stop_internal(profiler* the_profiler) {
         APEX_UTIL_REF_COUNT_STOP_AFTER_FINALIZE
         return;
     }
+    // make sure APEX knows about this worker thread!
+    [[maybe_unused]] thread_local static bool _helper = register_thread_helper();
     std::shared_ptr<profiler> p{the_profiler};
     APEX_ASSERT(p->tt_ptr->state == task_wrapper::RUNNING);
     p->tt_ptr->state = task_wrapper::STOPPED;
@@ -1213,6 +1236,8 @@ void stop(profiler* the_profiler, bool cleanup) {
         APEX_UTIL_REF_COUNT_STOP_AFTER_FINALIZE
         return;
     }
+    // make sure APEX knows about this worker thread!
+    [[maybe_unused]] thread_local static bool _helper = register_thread_helper();
     std::shared_ptr<profiler> p{the_profiler};
     APEX_ASSERT(p->tt_ptr->state == task_wrapper::RUNNING);
     p->tt_ptr->state = task_wrapper::STOPPED;
@@ -1298,6 +1323,8 @@ void stop(std::shared_ptr<task_wrapper> tt_ptr) {
     if (tt_ptr->state == task_wrapper::YIELDED) {
         resume(tt_ptr);
     }
+    // make sure APEX knows about this worker thread!
+    [[maybe_unused]] thread_local static bool _helper = register_thread_helper();
     APEX_ASSERT(tt_ptr->state == task_wrapper::RUNNING);
     tt_ptr->state = task_wrapper::STOPPED;
     if (tt_ptr->prof != nullptr) {
@@ -1362,6 +1389,8 @@ void yield(profiler* the_profiler) {
         thread_instance::instance().clear_current_profiler(the_profiler, false,
             null_task_wrapper);
     }
+    // make sure APEX knows about this worker thread!
+    [[maybe_unused]] thread_local static bool _helper = register_thread_helper();
     std::shared_ptr<profiler> p{the_profiler};
     APEX_ASSERT(p->tt_ptr->state == task_wrapper::RUNNING);
     p->tt_ptr->state = task_wrapper::YIELDED;
@@ -1418,6 +1447,8 @@ void yield(std::shared_ptr<task_wrapper> tt_ptr) {
         thread_instance::instance().clear_current_profiler(tt_ptr->prof, true,
             tt_ptr);
     }
+    // make sure APEX knows about this worker thread!
+    [[maybe_unused]] thread_local static bool _helper = register_thread_helper();
     std::shared_ptr<profiler> p{tt_ptr->prof};
     APEX_ASSERT(tt_ptr->state == task_wrapper::RUNNING);
     tt_ptr->state = task_wrapper::YIELDED;
@@ -1454,6 +1485,8 @@ void sample_value(const std::string &name, double value, bool threaded)
     if (apex_options::suspend() == true) { return; }
     apex* instance = apex::instance(); // get the Apex static instance
     if (!instance) return; // protect against calls after finalization
+    // make sure APEX knows about this worker thread!
+    [[maybe_unused]] thread_local static bool _helper = register_thread_helper();
     // parse the counter name
     // either /threadqueue{locality#0/total}/length
     // or     /threadqueue{locality#0/worker-thread#0}/length
@@ -2459,6 +2492,8 @@ void send (uint64_t tag, uint64_t size, uint64_t target) {
     apex* instance = apex::instance();
     // protect against calls after finalization
     if (!instance || _exited) { return ; }
+    // make sure APEX knows about this worker thread!
+    [[maybe_unused]] thread_local static bool _helper = register_thread_helper();
 
     if (_notify_listeners) {
         // eventually, we want to use the thread id, but for now, just use 0.
@@ -2488,6 +2523,8 @@ void recv (uint64_t tag, uint64_t size, uint64_t source_rank, uint64_t
     apex* instance = apex::instance();
     // protect against calls after finalization
     if (!instance || _exited) { return ; }
+    // make sure APEX knows about this worker thread!
+    [[maybe_unused]] thread_local static bool _helper = register_thread_helper();
 
     if (_notify_listeners) {
         // eventually, we want to use the thread id, but for now, just use 0.

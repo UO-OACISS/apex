@@ -341,15 +341,17 @@ void thread_instance::clear_current_profiler_untied(profiler * the_profiler,
                 // since we aren't yielding, just stop the children.
                 stop(tmp->prof);  // we better be re-entrant safe!
             }
-            // this is a serious problem...
+            // this is a serious problem...or is it? no!
             if (tmp->prof->untied_parent == nullptr) {
+            /*
                 // unless...we happen to be exiting.  Bets are off.
                 if (apex_options::suspend() == true) { return; }
                 // if we've already cleared the stack on this thread, we're fine
                 if (instance()._exiting) { return; }
-                std::cerr << "Warning! empty profiler stack!\n";
+                std::cerr << "Warning! empty profiler stack!" << __LINE__ << "\n";
                 APEX_ASSERT(false);
                 //abort();
+                */
                 return;
             }
             // get the new top of the stack
@@ -423,7 +425,7 @@ void thread_instance::clear_current_profiler(profiler * the_profiler,
                 if (apex_options::suspend() == true) { return; }
                 // if we've already cleared the stack on this thread, we're fine
                 if (instance()._exiting) { return; }
-                std::cerr << "Warning! empty profiler stack!\n";
+                std::cerr << "Warning! empty profiler stack!" << __LINE__ << "\n";
                 APEX_ASSERT(false);
                 //abort();
                 return;
