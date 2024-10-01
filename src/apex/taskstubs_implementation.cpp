@@ -49,7 +49,7 @@ int verbosePrint(const char *format, ...)
 void safePrint(const char * format, tasktimer_guid_t guid, const char * event) {
     //static std::mutex local_mtx;
     //std::scoped_lock lock{local_mtx};
-    VERBOSE_PRINTF("%lu TS: %s: GUID %lu %s\n", apex::thread_instance::get_id(), format, guid, event);
+    VERBOSE_PRINTF("%lu TS: %s: GUID %p %s\n", apex::thread_instance::get_id(), format, guid, event);
     return;
 }
 
@@ -181,7 +181,7 @@ extern "C" {
         tasktimer_argument_value_p arguments,
         uint64_t argument_count) {
         MAP_TASK(timer, apex_timer, "schedule");
-        VERBOSE_PRINTF("%lu TS: Scheduling: %lu %s\n", apex::thread_instance::get_id(), timer,
+        VERBOSE_PRINTF("%lu TS: Scheduling: %p %s\n", apex::thread_instance::get_id(), timer,
             apex_timer == nullptr ? "unknown" : apex_timer->task_id->get_name().c_str());
         static bool& over = apex::get_program_over();
         if (over) return;
@@ -196,7 +196,7 @@ extern "C" {
         tasktimer_execution_space_p) {
         // TODO: capture the execution space, somehow...a new task?
         MAP_TASK(timer, apex_timer, "start");
-        VERBOSE_PRINTF("%lu TS: Starting: %lu %s\n", apex::thread_instance::get_id(), timer,
+        VERBOSE_PRINTF("%lu TS: Starting: %p %s\n", apex::thread_instance::get_id(), timer,
             apex_timer == nullptr ? "unknown" : apex_timer->task_id->get_name().c_str());
         if (apex_timer != nullptr) {
             apex::start(apex_timer);
@@ -208,7 +208,7 @@ extern "C" {
         static bool& over = apex::get_program_over();
         if (over) return;
         MAP_TASK(timer, apex_timer, "yield");
-        VERBOSE_PRINTF("%lu TS: Yielding: %lu %s\n", apex::thread_instance::get_id(), timer,
+        VERBOSE_PRINTF("%lu TS: Yielding: %p %s\n", apex::thread_instance::get_id(), timer,
             apex_timer == nullptr ? "unknown" : apex_timer->task_id->get_name().c_str());
         if (apex_timer != nullptr) {
             apex::yield(apex_timer);
@@ -221,7 +221,7 @@ extern "C" {
 #if 1
         // TODO: capture the execution space, somehow...a new task?
         MAP_TASK(timer, apex_timer, "resume");
-        VERBOSE_PRINTF("%lu TS: Resuming: %lu %s\n", apex::thread_instance::get_id(), timer,
+        VERBOSE_PRINTF("%lu TS: Resuming: %p %s\n", apex::thread_instance::get_id(), timer,
             apex_timer == nullptr ? "unknown" : apex_timer->task_id->get_name().c_str());
         // TODO: why no resume function for task_wrapper objects?
         if (apex_timer != nullptr) {
@@ -236,13 +236,13 @@ extern "C" {
         static std::set<tasktimer_timer_t> stopped;
         static std::mutex local_mtx;
         MAP_TASK(timer, apex_timer, "stop");
-        VERBOSE_PRINTF("%lu TS: Stopping: %lu %s\n", apex::thread_instance::get_id(), timer,
+        VERBOSE_PRINTF("%lu TS: Stopping: %p %s\n", apex::thread_instance::get_id(), timer,
             apex_timer == nullptr ? "unknown" : apex_timer->task_id->get_name().c_str());
         if (apex_timer != nullptr) {
             {
                 std::scoped_lock lock{local_mtx};
                 if (stopped.count(timer) > 0) {
-                    VERBOSE_PRINTF("%lu TS: ERROR! TIMER STOPPED TWICE! : %lu\n", apex::thread_instance::get_id(), timer);
+                    VERBOSE_PRINTF("%lu TS: ERROR! TIMER STOPPED TWICE! : %p\n", apex::thread_instance::get_id(), timer);
                     return;
                 }
                 stopped.insert(timer);
@@ -253,9 +253,10 @@ extern "C" {
     void tasktimer_destroy_impl(
         tasktimer_timer_t timer) {
         MAP_TASK(timer, apex_timer, "destroy");
-        VERBOSE_PRINTF("%lu TS: Destroying: %lu %s\n", apex::thread_instance::get_id(), timer,
+        VERBOSE_PRINTF("%lu TS: Destroying: %p %s\n", apex::thread_instance::get_id(), timer,
             apex_timer == nullptr ? "unknown" : apex_timer->task_id->get_name().c_str());
         if (apex_timer != nullptr) {
+            //if (apex_timer->state == apex::task_wrapper::RUNNING) { apex::stop(apex_timer); }
             // TODO: need to handle the destroy event somehow.
             // definitely need to remove it from the local map.
             safeErase(apex_timer->guid);
@@ -266,7 +267,7 @@ extern "C" {
         const tasktimer_guid_t* parents, const uint64_t parent_count) {
         // TODO: need to handle the add parents event
         MAP_TASK(timer, apex_timer, "add parents");
-        VERBOSE_PRINTF("%lu TS: Adding parents: %lu %s\n", apex::thread_instance::get_id(), timer,
+        VERBOSE_PRINTF("%lu TS: Adding parents: %p %s\n", apex::thread_instance::get_id(), timer,
             apex_timer == nullptr ? "unknown" : apex_timer->task_id->get_name().c_str());
         if (apex_timer != nullptr) {
             for (uint64_t i = 0 ; i < parent_count ; i++) {
@@ -288,7 +289,7 @@ extern "C" {
         const tasktimer_guid_t* children, const uint64_t child_count) {
         // TODO: need to handle the add children event
         MAP_TASK(timer, apex_timer, "add children");
-        VERBOSE_PRINTF("%lu TS: Adding children: %lu %s\n", apex::thread_instance::get_id(), timer,
+        VERBOSE_PRINTF("%lu TS: Adding children: %p %s\n", apex::thread_instance::get_id(), timer,
             apex_timer == nullptr ? "unknown" : apex_timer->task_id->get_name().c_str());
         if (apex_timer != nullptr) {
             for (uint64_t i = 0 ; i < child_count ; i++) {
