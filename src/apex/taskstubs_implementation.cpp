@@ -34,7 +34,7 @@ maptype& getMyMap(void) {
     return theMap;
 }
 
-int verbosePrint(int priority, const char *format, ...)
+int verbosePrint(const char *format, ...)
 {
     static std::mutex local_mtx;
     std::scoped_lock lock{local_mtx};
@@ -44,7 +44,7 @@ int verbosePrint(int priority, const char *format, ...)
     va_end(args);
 }
 
-#define VERBOSE_PRINTF(...) if (apex::apex_options::use_verbose()) { printf(__VA_ARGS__); }
+#define VERBOSE_PRINTF(...) if (apex::apex_options::use_verbose()) { verbosePrint(__VA_ARGS__); }
 
 void safePrint(const char * format, tasktimer_guid_t guid, const char * event) {
     //static std::mutex local_mtx;
