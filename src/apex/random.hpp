@@ -49,10 +49,34 @@ public:
         return current_index;
     }
     void save_best() { best_index = current_index; }
-    void set_init() {
-        maxlen = (std::max(std::max(dvalues.size(),
-            lvalues.size()), svalues.size()));
-        current_index = 0;
+    void set_init(double init_value) {
+        maxlen = dvalues.size();
+        auto it = std::find(dvalues.begin(), dvalues.end(), init_value);
+        if (it == dvalues.end()) {
+            current_index = 0;
+        } else {
+            current_index = distance(dvalues.begin(), it);
+        }
+        set_current_value();
+    }
+    void set_init(long init_value) {
+        maxlen = lvalues.size();
+        auto it = std::find(lvalues.begin(), lvalues.end(), init_value);
+        if (it == lvalues.end()) {
+            current_index = 0;
+        } else {
+            current_index = distance(lvalues.begin(), it);
+        }
+        set_current_value();
+    }
+    void set_init(std::string init_value) {
+        maxlen = svalues.size();
+        auto it = std::find(svalues.begin(), svalues.end(), init_value);
+        if (it == svalues.end()) {
+            current_index = 0;
+        } else {
+            current_index = distance(svalues.begin(), it);
+        }
         set_current_value();
     }
     std::string getBest() {

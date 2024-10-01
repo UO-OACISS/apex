@@ -1,7 +1,5 @@
 #include <tuning_playground.hpp>
 
-#include <omp.h>
-
 #include <chrono>
 #include <cmath> // cbrt
 #include <cstdlib>

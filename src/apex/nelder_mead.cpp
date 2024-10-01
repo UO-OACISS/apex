@@ -10,36 +10,58 @@ namespace apex {
 namespace nelder_mead {
 
 void NelderMead::start(void) {
-    // create a starting point
-    std::vector<double> init_point;
-    for (auto& v : vars) {
-        init_point.push_back(v.second.get_init());
-    }
-    // create a lower limit
+    // find a lower and upper limit, and create a starting point
     std::vector<double> lower_limit;
     std::vector<double> upper_limit;
+    std::vector<double> init_point;
     for (auto& v : vars) {
         auto& limits = v.second.get_limits();
         lower_limit.push_back(limits[0]);
         upper_limit.push_back(limits[1]);
+        //init_point.push_back(v.second.get_init());
+        //std::cout << "NM: init_point: " << v.second.get_init() << std::endl;
+        auto tmp = (limits[0] + limits[1]) * 0.5;
+        //std::cout << "NM: init_point: " << tmp << std::endl;
+        init_point.push_back(tmp);
     }
     // create a starting simplex - random values in the space, nvars+1 of them
     std::vector<std::vector<double>> init_simplex;
-    for (size_t i = 0 ; i < (vars.size() + 1) ; i++) {
-        std::vector<double> tmp;
-        for (auto& v : vars) {
-            double r = ((double) std::rand() / (RAND_MAX));
-            auto& limits = v.second.get_limits();
-            tmp.push_back(r * ((limits[1] + limits[0]) / 2.0));
-        }
-        init_simplex.push_back(tmp);
+    // first, create a point that is 0.25 of the range for all variables.
+    std::vector<double> tmp;
+    for (auto& v : vars) {
+        // get the limits
+        auto& limits = v.second.get_limits();
+        // get the range
+        double range = (limits[1] - limits[0]);
+        // get a point either 1/4 less than or 1/4 greater than the midpoint
+        double sample_in_range = range * 0.25;
+        tmp.push_back(limits[0] + sample_in_range);
     }
-    searcher = new apex::internal::nelder_mead::Searcher<double>(init_point, init_simplex, lower_limit, upper_limit, true);
-    searcher->function_tolerance(10000);
+    init_simplex.push_back(tmp);
+    for (size_t i = 0 ; i < vars.size() ; i++) {
+        std::vector<double> tmp2;
+        size_t j = 0;
+        for (auto& v : vars) {
+            // get the limits
+            auto& limits = v.second.get_limits();
+            // get the range
+            double range = (limits[1] - limits[0]);
+            // get a point either 1/4 less than or 1/4 greater than the midpoint
+            double sample_in_range = range * (j == i ? 0.75 : 0.25);
+            tmp2.push_back(limits[0] + sample_in_range);
+            j++;
+        }
+        //std::cout << "range: [" << lower_limit[i] << "," << upper_limit[i] << "] value: ["
+            //<< tmp2[0] << "," << tmp2[1] << "]" << std::endl;
+        init_simplex.push_back(tmp2);
+    }
+    searcher = new apex::internal::nelder_mead::Searcher<double>(init_point, init_simplex, lower_limit, upper_limit, false);
     if (hasDiscrete) {
-        searcher->point_tolerance(1.0);
+        searcher->point_tolerance(1.0e-4);
+        searcher->function_tolerance(1.0e-5);
     } else {
-        searcher->point_tolerance(0.01);
+        searcher->point_tolerance(1.0e-4);
+        searcher->function_tolerance(1.0e-4);
     }
 }
 
@@ -89,9 +111,9 @@ void NelderMead::evaluate(double new_cost) {
             std::cout << std::endl;
         }
         cost = new_cost;
-        // if the function evaluation takes a long time (in nanoseconds, remember), increase our tolerance.
-        auto tmp = std::max((new_cost / 50.0), 1000.0);
-        std::cout << "new function tolerance: " << tmp << std::endl;
+        // if the function evaluation takes a long time (in seconds, remember), increase our tolerance.
+        auto tmp = std::max((new_cost / 50.0), 1.0e-6); // no smaller than 1 microsecond
+        //std::cout << "new function tolerance: " << tmp << std::endl;
         searcher->function_tolerance(tmp);
     }
     k++;

@@ -5,6 +5,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <vector>
+#include "apex_options.hpp"
 
 namespace apex {
 namespace internal {
@@ -211,7 +212,7 @@ template <typename T = double> class Searcher {
         : adaptive(_adaptive), tol_fun(1e-8), tol_x(1e-8), max_iter(1000),
           max_fun_evals(2000), current_simplex_index(0),
           minimum_limits(_minimum_limits), maximum_limits(_maximum_limits),
-          _converged(false), verbose(false) {
+          _converged(false), verbose(apex_options::use_verbose()) {
         initialize(initial_point, initial_simplex);
     }
     void function_tolerance(T tol) {
@@ -227,18 +228,18 @@ template <typename T = double> class Searcher {
         // Setting parameters
         if (adaptive) {
             // Using the results of doi:10.1007/s10589-010-9329-3
-            alpha = 1;
-            beta  = 1 + 2 / dimension;
-            gamma = 0.75 - 1 / (2 * dimension);
-            delta = 1 - 1 / dimension;
+            alpha = 1.0;
+            beta  = 1.0 + (2.0 / dimension);
+            gamma = 0.75 - (1.0 / (2.0 * dimension));
+            delta = 1 - (1.0 / dimension);
         } else {
-            alpha = 1;
-            beta  = 2;
+            alpha = 1.0;
+            beta  = 2.0;
             gamma = 0.5;
             delta = 0.5;
         }
-        std::cout << alpha << " " << beta << " " << gamma << " " << delta
-                  << std::endl;
+        //std::cout << alpha << " " << beta << " " << gamma << " " << delta
+                  //<< std::endl;
         simplex.resize(dimension + 1);
         if (initial_simplex.empty()) {
             // Generate initial simplex
@@ -434,19 +435,21 @@ template <typename T = double> class Searcher {
         if ((max_val_diff <= tol_fun and max_point_diff <= tol_x) or
             (func_evals_count >= max_fun_evals) or (niter >= max_iter)) {
             res = simplex[smallest_idx].vec();
+            std::cout << "Converged: " << max_val_diff << " value difference."
+                      << std::endl;
+            std::cout << "Converged: " << max_point_diff << " point difference."
+                      << std::endl;
             std::cout << "Converged after " << niter << " iterations."
                       << std::endl;
             std::cout << "Total func evaluations: " << func_evals_count
                       << std::endl;
             _converged = true;
             return;
-            /*
-        } else {
+        } else if (verbose) {
             std::cout << "Not converged: " << max_val_diff << " value difference."
                       << std::endl;
             std::cout << "Not converged: " << max_point_diff << " point difference."
                       << std::endl;
-                      */
         }
 
         // not converged?
@@ -534,7 +537,7 @@ template <typename T = double> class Searcher {
         } else {
             // Shrinking
             if (verbose) {
-                std::cout << "shrinking" << std::endl;
+                std::cout << "shrinking, smallest index = " << smallest_idx << std::endl;
             }
             // we take the whole simplex, and move every point towards the
             // current best candidate

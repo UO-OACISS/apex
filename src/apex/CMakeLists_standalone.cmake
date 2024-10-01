@@ -206,6 +206,7 @@ endif (APEX_WITH_HIP)
 if (APEX_WITH_LEVEL0)
     SET(LEVEL0_SOURCE apex_level0.cpp)
     add_definitions(-DAPEX_WITH_LEVEL0)
+    add_definitions(-DPTI_LEVEL_ZERO=1)
     add_library (apex_level0
         ${LEVEL0_SOURCE})
     target_link_libraries (apex_level0 apex ${LIBS}

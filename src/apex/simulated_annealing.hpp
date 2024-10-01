@@ -66,40 +66,70 @@ public:
         if (delta < 0 && (current_index < (size_t)(abs(delta)))) {
             // do nothing
             //neighbor_index = 0;
-        } else if (delta > 0 && ((current_index + delta) > maxlen)) {
+        } else if (delta > 0 && ((current_index + delta) >= maxlen)) {
             // do nothing
             //neighbor_index = maxlen;
         } else {
             neighbor_index = current_index + delta;
         }
-        if (vtype == VariableType::doubletype) {
-            *((double*)(value)) = dvalues[neighbor_index];
-        }
-        else if (vtype == VariableType::longtype) {
-            *((long*)(value)) = lvalues[neighbor_index];
-        }
-        else {
-            *((const char**)(value)) = svalues[neighbor_index].c_str();
-        }
-/*      std::cout << "scope: " << scope
+        /*
+        std::cout << "scope: " << scope
                   << " quarter: " << quarter
                   << " delta: " << delta
                   << " current_index: " << delta
                   << " neighbor_index: " << delta
-                  << std::endl; */
+                  << std::endl; 
+                  */
+        if (vtype == VariableType::doubletype) {
+            *((double*)(value)) = dvalues[neighbor_index];
+            //std::cout << "next value : " << *((double*)(value)) << std::endl;
+        }
+        else if (vtype == VariableType::longtype) {
+            *((long*)(value)) = lvalues[neighbor_index];
+            //std::cout << "next value : " << *((long*)(value)) << std::endl;
+        }
+        else {
+            *((const char**)(value)) = svalues[neighbor_index].c_str();
+            //std::cout << "next value : " << *((const char**)(value)) << std::endl;
+        }
     }
     void choose_neighbor() { current_index = neighbor_index; }
     void save_best() { best_index = current_index; }
     void restore_best() { current_index = best_index; }
     /* For initializing in the center of the space */
-    void set_init() {
-        maxlen = (std::max(std::max(dvalues.size(),
-            lvalues.size()), svalues.size())) - 1;
+    void set_init(void) {
         half = maxlen/2;
-        // we need a minimum value of 2 to get movement at all
-        quarter = (double)(std::max((half/2), size_t(2)));
-        current_index = neighbor_index = best_index = half;
-        //std::cout << "Initialized to " << current_index << std::endl;
+        quarter = (double)half/2;
+    }
+    void set_init(double init_value) {
+        maxlen = dvalues.size();
+        set_init();
+        auto it = std::find(dvalues.begin(), dvalues.end(), init_value);
+        if (it == dvalues.end()) {
+            current_index = 0;
+        } else {
+            current_index = distance(dvalues.begin(), it);
+        }
+    }
+    void set_init(long init_value) {
+        maxlen = lvalues.size();
+        set_init();
+        auto it = std::find(lvalues.begin(), lvalues.end(), init_value);
+        if (it == lvalues.end()) {
+            current_index = 0;
+        } else {
+            current_index = distance(lvalues.begin(), it);
+        }
+    }
+    void set_init(std::string init_value) {
+        maxlen = svalues.size();
+        set_init();
+        auto it = std::find(svalues.begin(), svalues.end(), init_value);
+        if (it == svalues.end()) {
+            current_index = 0;
+        } else {
+            current_index = distance(svalues.begin(), it);
+        }
     }
     std::string getBest() {
         if (vtype == VariableType::doubletype) {

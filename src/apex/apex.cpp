@@ -247,11 +247,8 @@ void apex::_initialize()
     tmp << " (Debug)";
 #endif
     tmp << "\nC++ Language Standard version : " << __cplusplus;
-#if defined(__clang__)
-    /* Clang/LLVM. ---------------------------------------------- */
-    tmp << "\nClang Compiler version : " << __VERSION__;
-#elif defined(__ICC) || defined(__INTEL_COMPILER)
-    /* Intel ICC/ICPC. ------------------------------------------ */
+#if defined(__ICC) || defined(__INTEL_COMPILER) || defined(__INTEL_CLANG_COMPILER) || defined(__INTEL_LLVM_COMPILER)
+    /* Intel ICC/ICPC/ICX/ICPX. --------------------------------- */
     tmp << "\nIntel Compiler version : " << __VERSION__;
 #elif defined(__GNUC__) || defined(__GNUG__)
     /* GNU GCC/G++. --------------------------------------------- */
@@ -271,6 +268,9 @@ void apex::_initialize()
 #elif defined(__SUNPRO_CC)
     /* Oracle Solaris Studio. ----------------------------------- */
     tmp << "\nOracle Compiler version : " << __SUNPRO_CC;
+#elif defined(__clang__)
+    /* Clang/LLVM. ---------------------------------------------- */
+    tmp << "\nClang Compiler version : " << __VERSION__;
 #endif
     tmp << "\nConfigured features: Pthread";
 #if defined(APEX_WITH_ACTIVEHARMONY) || defined(APEX_HAVE_ACTIVEHARMONY)
@@ -605,9 +605,22 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
         unsetenv("LD_PRELOAD");
     }
     if (comm_rank == 0) {
-        printf("%s", apex_banner);
-        printf("APEX Version: %s\n", instance->version_string.c_str());
-        printf("Executing command line: %s\n", getCommandLine().c_str());
+        //printf("%s", apex_banner);
+        //printf("APEX Version: %s\n", instance->version_string.c_str());
+        //printf("Executing command line: %s\n", getCommandLine().c_str());
+        std::stringstream ss;
+        //ss << apex_banner << "\n";
+        ss << "  ___  ______ _______   __\n";
+        ss << " / _ \\ | ___ \\  ___\\ \\ / /\n";
+        ss << "/ /_\\ \\| |_/ / |__  \\ V /\n";
+        ss << "|  _  ||  __/|  __| /   \\\n";
+        ss << "| | | || |   | |___/ /^\\ \\\n";
+        ss << "\\_| |_/\\_|   \\____/\\/   \\/\n";
+        ss << "APEX Version: " << instance->version_string << "\n";
+        ss << "Executing command line: " << getCommandLine() << "\n" << std::endl;
+        std::string tmp{ss.str()};
+        fputs(tmp.c_str(), stdout);
+
     }
     FUNCTION_EXIT
     return APEX_NOERROR;
