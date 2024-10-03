@@ -463,11 +463,6 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
     in_apex prevent_deadlocks;
     // if APEX is disabled, do nothing.
     if (apex_options::disable() == true) { FUNCTION_EXIT; return APEX_ERROR; }
-    // if we are configured with HPX, disable untied timers so we can handle
-    // direct actions correctly.
-#ifdef APEX_HAVE_HPX
-    apex_options::untied_timers(false);
-#endif
     // FIRST! make sure APEX thinks this is a worker thread (the main thread
     // is always a worker thread)
     thread_instance::instance(true);
@@ -609,18 +604,11 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
         //printf("APEX Version: %s\n", instance->version_string.c_str());
         //printf("Executing command line: %s\n", getCommandLine().c_str());
         std::stringstream ss;
-        //ss << apex_banner << "\n";
-        ss << "  ___  ______ _______   __\n";
-        ss << " / _ \\ | ___ \\  ___\\ \\ / /\n";
-        ss << "/ /_\\ \\| |_/ / |__  \\ V /\n";
-        ss << "|  _  ||  __/|  __| /   \\\n";
-        ss << "| | | || |   | |___/ /^\\ \\\n";
-        ss << "\\_| |_/\\_|   \\____/\\/   \\/\n";
+        ss << apex_banner << "\n";
         ss << "APEX Version: " << instance->version_string << "\n";
         ss << "Executing command line: " << getCommandLine() << "\n" << std::endl;
         std::string tmp{ss.str()};
         fputs(tmp.c_str(), stdout);
-
     }
     FUNCTION_EXIT
     return APEX_NOERROR;
@@ -639,7 +627,7 @@ class GUIDset : public std::set<uint64_t> {
 public:
     ~GUIDset() {
         for (auto& g : *this) {
-            printf("Orphaned timer: %lu\n", g);
+            std::cout << "Orphaned timer: " << std::hex << g << std::endl;
         }
     }
 };
@@ -657,7 +645,7 @@ void debug_print(const char * event, std::shared_ptr<task_wrapper> tt_ptr) {
         //APEX_ASSERT(false);
         return;
     } else {
-        ss << thread_instance::get_id() << " " << event << " : " <<
+        ss << thread_instance::get_id() << " APEX: " << event << " : " << std::hex <<
             tt_ptr->guid << " : " << tt_ptr->get_task_id()->get_name() << " - parents: ";
         for (auto& p : tt_ptr->parents) {
             ss << p->get_task_id()->get_name() << ", ";
@@ -688,6 +676,7 @@ inline std::shared_ptr<task_wrapper> _new_task(
     const uint64_t task_id,
     const std::vector<std::shared_ptr<task_wrapper>> parent_tasks,
     apex* instance) {
+    //printf("%s Current profiler: %s\n", __func__, thread_instance::instance().get_current_profiler() == nullptr ? "nullptr" : thread_instance::instance().get_current_profiler()->tt_ptr->task_id->get_name().c_str());
     in_apex prevent_deadlocks;
     APEX_UNUSED(instance);
     std::shared_ptr<task_wrapper> tt_ptr = make_shared<task_wrapper>();
@@ -704,7 +693,7 @@ inline std::shared_ptr<task_wrapper> _new_task(
         tt_ptr->parents = parent_tasks;
     // if not, is there a current timer?
     } else {
-        profiler * p = thread_instance::instance().get_current_profiler();
+        auto p = thread_instance::instance().get_current_profiler();
         if (p != nullptr) {
             //printf("Extracting parent: %s\n", p->tt_ptr->task_id->get_name().c_str());
             tt_ptr->parents.push_back(p->tt_ptr);
@@ -771,53 +760,11 @@ profiler* start(const std::string &timer_name)
     }
     // make sure APEX knows about this worker thread!
     [[maybe_unused]] thread_local static bool _helper = register_thread_helper();
-    std::shared_ptr<task_wrapper> tt_ptr(nullptr);
-    profiler * new_profiler = nullptr;
-    if (_notify_listeners) {
-        bool success = true;
-        task_identifier * id = task_identifier::get_task_id(timer_name);
-        tt_ptr = _new_task(id, UINTMAX_MAX, {}, instance);
-        APEX_ASSERT(tt_ptr->state == task_wrapper::CREATED);
-        tt_ptr->state = task_wrapper::RUNNING;
-        LOCAL_DEBUG_PRINT("Start", tt_ptr);
-        APEX_UTIL_REF_COUNT_TASK_WRAPPER
-        //read_lock_type l(instance->listener_mutex);
-        /*
-        std::stringstream dbg;
-        dbg << thread_instance::get_id() << " Start : " << id->get_name() << endl;
-            printf("%s\n",dbg.str().c_str());
-        fflush(stdout);
-        */
-        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            success = instance->listeners[i]->on_start(tt_ptr);
-            tt_ptr->prof = thread_instance::instance().get_current_profiler();
-            if (!success && i == 0) {
-                //cout << thread_instance::get_id() << " *** Not success! " <<
-                //id->get_name() << endl; fflush(stdout);
-                APEX_UTIL_REF_COUNT_FAILED_START
-                return profiler::get_disabled_profiler();
-            }
-        }
-        // If we are allowing untied timers, clear the timer stack on this thread
-        if (apex_options::untied_timers() == true) {
-            new_profiler = thread_instance::instance().get_current_profiler();
-            thread_instance::instance().clear_current_profiler();
-        }
-    }
-#if defined(APEX_DEBUG)
-    const std::string apex_process_profile_str("apex::process_profiles");
-    if (timer_name.compare(apex_process_profile_str) == 0) {
-        APEX_UTIL_REF_COUNT_APEX_INTERNAL_START
-    } else {
-        APEX_UTIL_REF_COUNT_START
-    }
-#endif
-/*
-    if (apex_options::untied_timers() == true) {
-        return new_profiler;
-    }
-    */
-    return thread_instance::instance().restore_children_profilers(tt_ptr);
+    task_identifier * id = task_identifier::get_task_id(timer_name);
+    auto tt_ptr = _new_task(id, UINTMAX_MAX, {}, instance);
+    APEX_ASSERT(tt_ptr->state == task_wrapper::CREATED);
+    start(tt_ptr);
+    return thread_instance::instance().get_current_profiler();
 }
 
 profiler* start(const apex_function_address function_address) {
@@ -840,46 +787,10 @@ profiler* start(const apex_function_address function_address) {
     }
     // make sure APEX knows about this worker thread!
     [[maybe_unused]] thread_local static bool _helper = register_thread_helper();
-    std::shared_ptr<task_wrapper> tt_ptr(nullptr);
-    profiler * new_profiler = nullptr;
-    if (_notify_listeners) {
-        bool success = true;
-        task_identifier * id = task_identifier::get_task_id(function_address);
-        tt_ptr = _new_task(id, UINTMAX_MAX, {}, instance);
-        APEX_ASSERT(tt_ptr->state == task_wrapper::CREATED);
-        tt_ptr->state = task_wrapper::RUNNING;
-        LOCAL_DEBUG_PRINT("Start", tt_ptr);
-        APEX_UTIL_REF_COUNT_TASK_WRAPPER
-        /*
-        std::stringstream dbg;
-        dbg << thread_instance::get_id() << " Start : " << id->get_name() << endl;
-            printf("%s\n",dbg.str().c_str());
-        fflush(stdout);
-        */
-        //read_lock_type l(instance->listener_mutex);
-        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            success = instance->listeners[i]->on_start(tt_ptr);
-            tt_ptr->prof = thread_instance::instance().get_current_profiler();
-            if (!success && i == 0) {
-                //cout << thread_instance::get_id() << " *** Not success! " <<
-                //id->get_name() << endl; fflush(stdout);
-                APEX_UTIL_REF_COUNT_FAILED_START
-                return profiler::get_disabled_profiler();
-            }
-        }
-        // If we are allowing untied timers, clear the timer stack on this thread
-        if (apex_options::untied_timers() == true) {
-            new_profiler = thread_instance::instance().get_current_profiler();
-            thread_instance::instance().clear_current_profiler();
-        }
-    }
-    APEX_UTIL_REF_COUNT_START
-    /*
-    if (apex_options::untied_timers() == true) {
-        return new_profiler;
-    }
-    */
-    return thread_instance::instance().restore_children_profilers(tt_ptr);
+    task_identifier * id = task_identifier::get_task_id(function_address);
+    auto tt_ptr = _new_task(id, UINTMAX_MAX, {}, instance);
+    start(tt_ptr);
+    return thread_instance::instance().get_current_profiler();
 }
 
 void start(std::shared_ptr<task_wrapper> tt_ptr) {
@@ -920,33 +831,17 @@ void start(std::shared_ptr<task_wrapper> tt_ptr) {
         printf("Task %s created by %lu started by %lu\n", tt_ptr->task_id->get_name().c_str(),
             tt_ptr->thread_id, thread_instance::instance().get_id());
     }
-    //tt_ptr->thread_id = thread_instance::instance().get_id();
     APEX_ASSERT(tt_ptr->state == task_wrapper::CREATED || tt_ptr->state == task_wrapper::YIELDED);
     tt_ptr->state = task_wrapper::RUNNING;
     if (_notify_listeners) {
         bool success = true;
-        /*
-        std::stringstream dbg;
-        dbg << thread_instance::get_id() << " Start : " << tt_ptr->task_id->get_name() << endl;
-        printf("%s\n",dbg.str().c_str());
-        fflush(stdout);
-        */
-        //read_lock_type l(instance->listener_mutex);
         for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
             success = instance->listeners[i]->on_start(tt_ptr);
-            tt_ptr->prof = thread_instance::instance().get_current_profiler();
             if (!success && i == 0) {
-                //cout << thread_instance::get_id() << " *** Not success! " <<
-                //id->get_name() << endl; fflush(stdout);
                 APEX_UTIL_REF_COUNT_FAILED_START
                 tt_ptr->prof = profiler::get_disabled_profiler();
                 return;
             }
-        }
-        //tt_ptr->prof->thread_id = thread_instance::instance().get_id();
-        // If we are allowing untied timers, clear the timer stack on this thread
-        if (apex_options::untied_timers() == true) {
-            thread_instance::instance().clear_current_profiler();
         }
     }
     APEX_UTIL_REF_COUNT_START
@@ -975,33 +870,29 @@ void resume(std::shared_ptr<task_wrapper> tt_ptr) {
     }
     // make sure APEX knows about this worker thread!
     [[maybe_unused]] thread_local static bool _helper = register_thread_helper();
-    //APEX_ASSERT(tt_ptr->state == task_wrapper::YIELDED);
+    APEX_ASSERT(tt_ptr->state == task_wrapper::YIELDED ||
+                tt_ptr->state == task_wrapper::CREATED);
     tt_ptr->state = task_wrapper::RUNNING;
     if (_notify_listeners) {
         APEX_UTIL_REF_COUNT_TASK_WRAPPER
+        bool success = true;
         try {
-            //read_lock_type l(instance->listener_mutex);
             for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-                instance->listeners[i]->on_resume(tt_ptr);
+                success = instance->listeners[i]->on_resume(tt_ptr);
+                if (!success && i == 0) {
+                    APEX_UTIL_REF_COUNT_FAILED_RESUME
+                    tt_ptr->prof = profiler::get_disabled_profiler();
+                    return;
+                }
             }
         } catch (disabled_profiler_exception &e) {
             APEX_UTIL_REF_COUNT_FAILED_RESUME
+            tt_ptr->prof = profiler::get_disabled_profiler();
             return;
         }
-        // If we are allowing untied timers, clear the timer stack on this thread
-        if (apex_options::untied_timers() == true) {
-            thread_instance::instance().clear_current_profiler();
-        }
     }
-#if defined(APEX_DEBUG)
-    const std::string apex_process_profile_str("apex::process_profiles");
-    if (tt_ptr->get_task_id()->get_name(false).compare(apex_process_profile_str)
-        == 0) {
-        APEX_UTIL_REF_COUNT_APEX_INTERNAL_RESUME
-    } else {
-        APEX_UTIL_REF_COUNT_RESUME
-    }
-#endif
+    APEX_UTIL_REF_COUNT_RESUME
+    thread_instance::instance().restore_children_profilers(tt_ptr);
     return;
 }
 
@@ -1035,7 +926,7 @@ profiler* resume(const std::string &timer_name) {
     task_identifier * id = task_identifier::get_task_id(timer_name);
     std::shared_ptr<task_wrapper> tt_ptr = _new_task(id, UINTMAX_MAX, {}, instance);
     resume(tt_ptr);
-    return thread_instance::instance().restore_children_profilers(tt_ptr);
+    return thread_instance::instance().get_current_profiler();
 }
 
 profiler* resume(const apex_function_address function_address) {
@@ -1059,7 +950,7 @@ profiler* resume(const apex_function_address function_address) {
     task_identifier * id = task_identifier::get_task_id(function_address);
     std::shared_ptr<task_wrapper> tt_ptr = _new_task(id, UINTMAX_MAX, {}, instance);
     resume(tt_ptr);
-    return thread_instance::instance().restore_children_profilers(tt_ptr);
+    return thread_instance::instance().get_current_profiler();
 }
 
 profiler* resume(profiler * p) {
@@ -1088,22 +979,8 @@ profiler* resume(profiler * p) {
     }
     // make sure APEX knows about this worker thread!
     [[maybe_unused]] thread_local static bool _helper = register_thread_helper();
-    p->restart();
-    APEX_ASSERT(p->tt_ptr->state == task_wrapper::STOPPED);
-    p->tt_ptr->state = task_wrapper::RUNNING;
-    if (_notify_listeners) {
-        try {
-            // skip the profiler_listener - we are restoring a child timer
-            // for a parent that was yielded.
-            for (unsigned int i = 1 ; i < instance->listeners.size() ; i++) {
-                instance->listeners[i]->on_resume(p->tt_ptr);
-            }
-        } catch (disabled_profiler_exception &e) {
-            APEX_UTIL_REF_COUNT_FAILED_RESUME
-            return profiler::get_disabled_profiler();
-        }
-    }
-    return p;
+    resume(p->tt_ptr);
+    return thread_instance::instance().get_current_profiler();
 }
 
 void reset(const std::string &timer_name) {
@@ -1156,58 +1033,6 @@ void apex::complete_task(std::shared_ptr<task_wrapper> task_wrapper_ptr) {
     }
 }
 
-void apex::stop_internal(profiler* the_profiler) {
-    in_apex prevent_deadlocks;
-    // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) {
-        APEX_UTIL_REF_COUNT_DISABLED_STOP
-        return;
-    }
-    if (the_profiler == profiler::get_disabled_profiler()) {
-        APEX_UTIL_REF_COUNT_DISABLED_STOP
-        return; // profiler was throttled.
-    }
-    if (the_profiler == nullptr) {
-        APEX_UTIL_REF_COUNT_NULL_STOP
-        LOCAL_DEBUG_PRINT("Stop profiler", nullptr);
-        return;
-    }
-    if (the_profiler->stopped) {
-        LOCAL_DEBUG_PRINT("Double Stop internal", the_profiler->tt_ptr);
-        APEX_UTIL_REF_COUNT_DOUBLE_STOP
-        return;
-    }
-    LOCAL_DEBUG_PRINT("Stop", the_profiler->tt_ptr);
-    apex* instance = apex::instance(); // get the Apex static instance
-    // protect against calls after finalization
-    if (!instance || _exited || _measurement_stopped) {
-        APEX_UTIL_REF_COUNT_STOP_AFTER_FINALIZE
-        return;
-    }
-    // make sure APEX knows about this worker thread!
-    [[maybe_unused]] thread_local static bool _helper = register_thread_helper();
-    std::shared_ptr<profiler> p{the_profiler};
-    APEX_ASSERT(p->tt_ptr->state == task_wrapper::RUNNING);
-    p->tt_ptr->state = task_wrapper::STOPPED;
-    if (_notify_listeners) {
-        //read_lock_type l(instance->listener_mutex);
-        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
-            instance->listeners[i]->on_stop(p);
-        }
-    }
-#if defined(APEX_DEBUG)
-    const std::string apex_process_profile_str("apex::process_profiles");
-    if (p->tt_ptr->get_task_id()->get_name(false).compare(apex_process_profile_str)
-        == 0) {
-        APEX_UTIL_REF_COUNT_APEX_INTERNAL_STOP
-    } else {
-        APEX_UTIL_REF_COUNT_STOP
-    }
-#endif
-    instance->complete_task(p->tt_ptr);
-    p->tt_ptr = nullptr;
-}
-
 void stop(profiler* the_profiler, bool cleanup) {
     in_apex prevent_deadlocks;
     // protect against calls after finalization
@@ -1235,14 +1060,8 @@ void stop(profiler* the_profiler, bool cleanup) {
         return;
     }
     LOCAL_DEBUG_PRINT("Stop", the_profiler->tt_ptr);
-    if (apex_options::untied_timers() == true) {
-        //thread_instance::instance().clear_untied_current_profiler();
-        thread_instance::instance().clear_current_profiler_untied(the_profiler, false,
-            null_task_wrapper);
-    } else {
-        thread_instance::instance().clear_current_profiler(the_profiler, false,
-            null_task_wrapper);
-    }
+    thread_instance::instance().clear_current_profiler(false,
+        the_profiler->tt_ptr);
     apex* instance = apex::instance(); // get the Apex static instance
     // protect against calls after finalization
     if (!instance || _exited || _measurement_stopped) {
@@ -1251,7 +1070,8 @@ void stop(profiler* the_profiler, bool cleanup) {
     }
     // make sure APEX knows about this worker thread!
     [[maybe_unused]] thread_local static bool _helper = register_thread_helper();
-    std::shared_ptr<profiler> p{the_profiler};
+    std::shared_ptr<profiler> p = std::make_shared<profiler>(*the_profiler);
+    //std::shared_ptr<profiler> p = the_profiler->Get();
     APEX_ASSERT(p->tt_ptr->state == task_wrapper::RUNNING);
     p->tt_ptr->state = task_wrapper::STOPPED;
     if (_notify_listeners) {
@@ -1281,6 +1101,7 @@ void stop(profiler* the_profiler, bool cleanup) {
         //instance->active_task_wrappers.erase(p->tt_ptr);
         p->tt_ptr = nullptr;
     }
+    delete (the_profiler);
 }
 
 void stop(std::shared_ptr<task_wrapper> tt_ptr) {
@@ -1314,19 +1135,12 @@ void stop(std::shared_ptr<task_wrapper> tt_ptr) {
     }
     // get the thread id that is running this task
     if (tt_ptr->prof->thread_id != thread_instance::instance().get_id() &&
-        !apex_options::untied_timers()) {
+        apex_options::use_verbose()) {
         printf("Task %s started by %lu stopped by %lu\n", tt_ptr->task_id->get_name().c_str(),
             tt_ptr->prof->thread_id, thread_instance::instance().get_id());
         //APEX_ASSERT(tt_ptr->prof->thread_id == thread_instance::instance().get_id());
     }
-    if (apex_options::untied_timers()) {
-        //thread_instance::instance().clear_untied_current_profiler();
-        thread_instance::instance().clear_current_profiler_untied(tt_ptr->prof, false,
-            null_task_wrapper);
-    } else {
-        thread_instance::instance().clear_current_profiler(tt_ptr->prof, false,
-            null_task_wrapper);
-    }
+    thread_instance::instance().clear_current_profiler(false, tt_ptr);
     // protect against calls after finalization
     if (!instance || _exited || _measurement_stopped) {
         APEX_UTIL_REF_COUNT_STOP_AFTER_FINALIZE
@@ -1394,17 +1208,12 @@ void yield(profiler* the_profiler) {
         return;
     }
     LOCAL_DEBUG_PRINT("Yield", the_profiler->tt_ptr);
-    if (apex_options::untied_timers() == true) {
-        //thread_instance::instance().clear_untied_current_profiler();
-        thread_instance::instance().clear_current_profiler_untied(the_profiler, false,
-            null_task_wrapper);
-    } else {
-        thread_instance::instance().clear_current_profiler(the_profiler, false,
-            null_task_wrapper);
-    }
+    thread_instance::instance().clear_current_profiler(false,
+        the_profiler->tt_ptr);
     // make sure APEX knows about this worker thread!
     [[maybe_unused]] thread_local static bool _helper = register_thread_helper();
-    std::shared_ptr<profiler> p{the_profiler};
+    std::shared_ptr<profiler> p = std::make_shared<profiler>(*the_profiler);
+    //std::shared_ptr<profiler> p = the_profiler->Get();
     APEX_ASSERT(p->tt_ptr->state == task_wrapper::RUNNING);
     p->tt_ptr->state = task_wrapper::YIELDED;
     if (_notify_listeners) {
@@ -1424,6 +1233,7 @@ void yield(profiler* the_profiler) {
         APEX_UTIL_REF_COUNT_YIELD
     }
 #endif
+    delete (the_profiler);
 }
 
 void yield(std::shared_ptr<task_wrapper> tt_ptr) {
@@ -1452,14 +1262,7 @@ void yield(std::shared_ptr<task_wrapper> tt_ptr) {
         APEX_UTIL_REF_COUNT_DOUBLE_YIELD
         return;
     }
-    if (apex_options::untied_timers() == true) {
-        //thread_instance::instance().clear_untied_current_profiler();
-        thread_instance::instance().clear_current_profiler_untied(tt_ptr->prof, true,
-            tt_ptr);
-    } else {
-        thread_instance::instance().clear_current_profiler(tt_ptr->prof, true,
-            tt_ptr);
-    }
+    thread_instance::instance().clear_current_profiler(true, tt_ptr);
     // make sure APEX knows about this worker thread!
     [[maybe_unused]] thread_local static bool _helper = register_thread_helper();
     std::shared_ptr<profiler> p{tt_ptr->prof};
@@ -1937,32 +1740,24 @@ void finalize(void)
                 // make sure it hasn't been erased!
                 if (instance->erased_threads.find(t) ==
                     instance->erased_threads.end()) {
-                    t->clear_all_profilers();
+                    //t->clear_all_profilers();
+                    auto top_profiler = t->get_current_profiler();
+                    while (top_profiler != nullptr) {
+                        stop(top_profiler);
+                        if (top_profiler->untied_parent == nullptr) { break; }
+                        top_profiler = t->get_current_profiler();
+                    }
                 }
             }
         }
     }
 #endif
-    //if (apex_options::untied_timers() == true) {
-        profiler * top_profiler = thread_instance::instance().get_current_profiler();
-        while (top_profiler != nullptr) {
-            stop(top_profiler);
-            if (top_profiler->untied_parent == nullptr) { break; }
-            top_profiler = thread_instance::instance().get_current_profiler();
-        }
-        /*
-    } else {
-        // FIRST, stop the top level timer, while the infrastructure is still
-        // functioning.
-        auto tmp = thread_instance::get_top_level_timer();
-        if (tmp != nullptr) {
-            stop(tmp);
-            thread_instance::clear_top_level_timer();
-        }
-        // Second, stop the main timer, while the infrastructure is still
-        // functioning.
-        instance->the_profiler_listener->stop_main_timer();
-    } */
+    auto top_profiler = thread_instance::instance().get_current_profiler();
+    while (top_profiler != nullptr) {
+        stop(top_profiler);
+        if (top_profiler->untied_parent == nullptr) { break; }
+        top_profiler = thread_instance::instance().get_current_profiler();
+    }
     /* Signal the other threads that have open profiles to exit */
     if (apex_options::top_level_os_threads()) {
         //apex_signal_all_threads();
@@ -2166,26 +1961,13 @@ void exit_thread(void)
             instance->known_threads.erase(&ti);
         }
     }
-    //if (apex_options::untied_timers() == true) {
-        profiler * top_profiler = thread_instance::instance().get_current_profiler();
-        // tell the timer cleanup that we are exiting
-        thread_instance::exiting();
-        while (top_profiler != nullptr) {
-            stop(top_profiler);
-            top_profiler = thread_instance::instance().get_current_profiler();
-        }
-        /*
-    } else {
-        auto tmp = thread_instance::get_top_level_timer();
-        // tell the timer cleanup that we are exiting
-        thread_instance::exiting();
-        //printf("Old thread: %p\n", &(*tmp));
-        if (tmp != nullptr) {
-            stop(tmp);
-            thread_instance::clear_top_level_timer();
-        }
+    auto top_profiler = thread_instance::instance().get_current_profiler();
+    // tell the timer cleanup that we are exiting
+    thread_instance::exiting();
+    while (top_profiler != nullptr) {
+        stop(top_profiler);
+        top_profiler = thread_instance::instance().get_current_profiler();
     }
-    */
     // ok to set this now - we need everything still running
     _exited = true;
     event_data data;

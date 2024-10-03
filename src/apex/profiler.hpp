@@ -38,12 +38,12 @@ class disabled_profiler_exception : public std::exception {
     }
 };
 
-class profiler {
+class profiler : public std::enable_shared_from_this<profiler> {
 private:
     task_identifier * task_id; // for counters, timers
 public:
     std::shared_ptr<task_wrapper> tt_ptr;     // for timers
-    std::shared_ptr<task_wrapper> untied_parent; // for timer stack handling with untied timers
+    profiler* untied_parent; // for timer stack handling with untied timers
     uint64_t start_ns;
     uint64_t end_ns;
 #if APEX_HAVE_PAPI
@@ -62,7 +62,7 @@ public:
     reset_type is_reset;
     bool stopped;
     // needed for correct Hatchet output
-    uint64_t thread_id;
+    uint64_t thread_id; // saved at timer start
     std::map<std::string, double> metric_map;
     task_identifier * get_task_id(void) {
         return task_id;
@@ -90,6 +90,7 @@ public:
         is_resume(resume),
         is_reset(reset), stopped(false),
         thread_id(task->thread_id) {
+            //printf("constructor! %p\n", this); fflush(stdout);
             task->prof = this;
             task->start_ns = start_ns;
         }
@@ -129,6 +130,7 @@ public:
         is_reset(reset_type::NONE), stopped(true) { };
     //copy constructor
     profiler(const profiler& in) :
+        std::enable_shared_from_this<profiler>(in),
         task_id(in.task_id),
         tt_ptr(in.tt_ptr),
         start_ns(in.start_ns),
@@ -146,7 +148,7 @@ public:
         stopped(in.stopped),
         thread_id(in.thread_id)
     {
-        //printf("COPY!\n"); fflush(stdout);
+        //printf("COPY! %p -> %p\n", &in, this); fflush(stdout);
 #if APEX_HAVE_PAPI
         for (int i = 0 ; i < 8 ; i++) {
             papi_start_values[i] = in.papi_start_values[i];
@@ -154,7 +156,9 @@ public:
         }
 #endif
     }
-    ~profiler(void) { /* not much to do here. */ };
+    ~profiler(void) { /* not much to do here. */
+        //printf("destructor! %p\n", this); fflush(stdout);
+    };
     // for "yield" support
     void set_start(uint64_t timestamp) {
         start_ns = timestamp;
@@ -276,6 +280,7 @@ public:
             return start_ns - get_global_start();
         }
     }
+    std::shared_ptr<profiler> Get() {return shared_from_this();}
 };
 
 }

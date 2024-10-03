@@ -34,7 +34,7 @@ maptype& getMyMap(void) {
     return theMap;
 }
 
-int verbosePrint(const char *format, ...)
+void verbosePrint(const char *format, ...)
 {
     static std::mutex local_mtx;
     std::scoped_lock lock{local_mtx};

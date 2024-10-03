@@ -107,6 +107,8 @@ class Node : public std::enable_shared_from_this<Node> {
         }
         // required for using this class as a key in a map, vector, etc.
         static bool compareNodeByParentName (const std::shared_ptr<Node> lhs, const std::shared_ptr<Node> rhs) {
+            if (lhs == nullptr) return true;
+            if (rhs == nullptr) return false;
             if (lhs->parents[0]->index < rhs->parents[0]->index) {
                 return true;
             }

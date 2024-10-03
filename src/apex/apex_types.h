@@ -270,7 +270,6 @@ inline unsigned int sc_nprocessors_onln(void)
     macro (APEX_SUSPEND, suspend, bool, false, "Suspend APEX timers and counters during the application execution") \
     macro (APEX_PAPI_SUSPEND, papi_suspend, bool, false, "Suspend PAPI counters during the application execution") \
     macro (APEX_PROCESS_ASYNC_STATE, process_async_state, bool, true, "Enable/disable asynchronous processing of statistics (useful when only collecting trace data)") \
-    macro (APEX_UNTIED_TIMERS, untied_timers, bool, true, "Disable callstack state maintenance for specific OS threads. This allows APEX timers to start on one thread and stop on another. This is not compatible with OTF2 tracing.") \
     macro (APEX_TAU, use_tau, bool, false, "Enable TAU profiling (if application is executed with tau_exec).") \
     macro (APEX_OTF2, use_otf2, bool, false, "Enable OTF2 trace output.") \
     macro (APEX_OTF2_COLLECTIVE_SIZE, otf2_collective_size, int, 1, "") \

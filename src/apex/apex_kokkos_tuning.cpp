@@ -1225,7 +1225,7 @@ void kokkosp_request_values(
     if (!apex::apex_options::use_kokkos_tuning()) { return; }
     // first, get the current timer node in the task tree
     //auto tlt = apex::thread_instance::get_top_level_timer();
-    auto tlt = apex::thread_instance::get_current_profiler();
+    auto tlt = apex::thread_instance::instance().get_current_profiler();
     std::string tree_node{"default"};
     if (tlt != nullptr) {
         //tree_node = tlt->tt_ptr->tree_node->getName();

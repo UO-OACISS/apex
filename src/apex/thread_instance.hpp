@@ -52,7 +52,6 @@ public:
   std::atomic_int _num_workers;
   std::atomic_int _active_threads;
   std::string * _program_path;
-  std::unordered_map<uint64_t, std::vector<profiler*>* > _children_to_resume;
 };
 
 class thread_instance {
@@ -89,14 +88,13 @@ private:
   static std::atomic_int _num_workers;
   static std::atomic_int _active_threads;
   static std::string * _program_path;
-  static std::unordered_map<uint64_t, std::vector<profiler*>* > _children_to_resume;
   */
   // constructor
   thread_instance (bool is_worker) :
         _id(-1), _id_reversed(UINTMAX_MAX), _runtime_id(-1),
         _top_level_timer_name(), _is_worker(is_worker), _task_count(0),
         _top_level_timer(nullptr), _exiting(false),
-        untied_current_profiler(nullptr) {
+        current_profiler(nullptr) {
     /* Even do this for non-workers, because for CUPTI processing we need to
      * generate GUIDs for the activity events! */
     _id = common()._num_threads++;
@@ -127,8 +125,7 @@ private:
   thread_instance& operator=(thread_instance const&)= delete;
   // map from function address to name - unique to all threads to avoid locking
   std::map<apex_function_address, std::string> _function_map;
-  std::vector<profiler*> current_profilers;
-  std::shared_ptr<task_wrapper> untied_current_profiler;
+  profiler* current_profiler;
   uint64_t _get_guid(void) {
       // start at 1, because 0 means nullptr which means "no parent"
       _task_count++;
@@ -158,23 +155,16 @@ public:
   static int get_num_threads(void) { return common()._num_threads; };
   static int get_num_workers(void) { return common()._num_workers; };
   std::string map_addr_to_name(apex_function_address function_address);
-  static profiler * restore_children_profilers(std::shared_ptr<task_wrapper> &tt_ptr);
-  static void set_current_profiler(profiler * the_profiler);
-  static profiler * get_current_profiler(void);
-  static void clear_current_profiler(profiler * the_profiler,
-        bool save_children, std::shared_ptr<task_wrapper> &tt_ptr);
-  static void clear_current_profiler_untied(profiler * the_profiler,
-        bool save_children, std::shared_ptr<task_wrapper> &tt_ptr);
-  static void clear_current_profiler() {
-    instance().current_profilers.pop_back();
+  static profiler* restore_children_profilers(std::shared_ptr<task_wrapper> &tt_ptr);
+  void set_current_profiler(profiler* the_profiler) {
+    //printf("%s Setting current profiler from %s to %s\n", __func__, current_profiler == nullptr ? "nullptr" : current_profiler->tt_ptr->task_id->get_name().c_str(), the_profiler->tt_ptr->task_id->get_name().c_str());
+    the_profiler->untied_parent = current_profiler;
+    current_profiler = the_profiler;
   }
-  static std::vector<profiler*>& get_current_profilers(void) { return instance().current_profilers; }
-  static void clear_untied_current_profiler() {
-    auto tmp = instance().untied_current_profiler;
-    //APEX_ASSERT(tmp != nullptr && tmp->prof != nullptr);
-    if (tmp == nullptr || tmp->prof == nullptr) return;
-    instance().untied_current_profiler = tmp->prof->untied_parent;
+  profiler* get_current_profiler(void) {
+    return current_profiler;
   }
+  static void clear_current_profiler(bool save_children, std::shared_ptr<task_wrapper> &tt_ptr);
   static const char * program_path(void);
   static bool is_worker() { return instance()._is_worker; }
   static uint64_t get_guid() { return instance()._get_guid(); }

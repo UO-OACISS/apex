@@ -56,13 +56,19 @@ int apex_preload_main(int argc, char** argv, char** envp) {
         size_t needle_len{strlen(needle)};
         if (len > needle_len &&
             (strncmp(argv[0] + (len - needle_len), needle, needle_len)) == 0) {
-            fputs("zs: skipping ", stderr);
+            fputs("apex: skipping ", stderr);
             fputs(argv[0], stderr);
             fputs("!\n", stderr);
             return true;
         }
+        fputs("apex: executing ", stderr);
+        fputs(argv[0], stderr);
+        fputs("!\n", stderr);
         return false;
     };
+    if (validate_argv0("tclsh8.6")) {
+        return main_real(argc, argv, envp);
+    }
     if (validate_argv0("bash")) {
         return main_real(argc, argv, envp);
     }

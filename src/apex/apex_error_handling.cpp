@@ -172,29 +172,19 @@ static void apex_custom_signal_handler_thread_exit(
     [[maybe_unused]] siginfo_t * info,
     [[maybe_unused]] void * context) {
     APEX_ASSERT(sig == SIGUSR2);
-    if (apex::apex_options::untied_timers()) {
-        auto p = apex::thread_instance::get_current_profiler();
-        apex::profiler* parent = nullptr;
-        while(p != nullptr) {
-            if (p->untied_parent == nullptr || p->untied_parent->state != apex::task_wrapper::RUNNING) {
-                parent = nullptr;
-            } else {
-                parent = p->untied_parent->prof;
-            }
-            // only push profilers that were started on THIS thread...
-            if (p != nullptr && p->thread_id == apex::thread_instance::instance().get_id()) {
-                profilers_to_exit().push_back(p);
-            }
-            p = parent;
+    auto p = apex::thread_instance::instance().get_current_profiler();
+    apex::profiler* parent = nullptr;
+    while(p != nullptr) {
+        if (p->untied_parent == nullptr || p->untied_parent->tt_ptr->state != apex::task_wrapper::RUNNING) {
+            parent = nullptr;
+        } else {
+            parent = p->untied_parent;
         }
-    } else {
-        // get the timer stack, in reverse order
-        auto& stack = apex::thread_instance::get_current_profilers();
-        if (stack.size() > 0) {
-            for (size_t i = stack.size() ; i > 0 ; i--) {
-                profilers_to_exit().push_back(stack[i-1]);
-            }
+        // only push profilers that were started on THIS thread...
+        if (p != nullptr && p->thread_id == apex::thread_instance::instance().get_id()) {
+            profilers_to_exit().push_back(p);
         }
+        p = parent;
     }
     threads_to_exit_count--;
     return;

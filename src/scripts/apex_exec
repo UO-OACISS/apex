@@ -69,8 +69,6 @@ where APEX options are zero or more of:
     --apex:gpu-memory             enable GPU memory wrapper support
     --apex:cpu-memory             enable CPU memory wrapper support
     --apex:delay-memory           delay memory wrapper support until explicitly enabled
-    --apex:untied                 enable tasks to migrate cores/OS threads
-                                  during execution (not compatible with trace output)
     --apex:cuda                   enable CUDA/CUPTI measurement (default: off)
     --apex:cuda-counters          enable CUDA/CUPTI counter support (default: off)
     --apex:cuda-driver            enable CUDA driver API callbacks (default: off)
@@ -141,7 +139,6 @@ hip_driver=no
 hip_details=no
 level0=no
 monitor_gpu=no
-untied=no
 cpuinfo=no
 meminfo=no
 ompt=no
@@ -410,11 +407,6 @@ while (( "$#" )); do
     --apex:io)
       io=yes
       export APEX_PROC_SELF_IO=1
-      shift
-      ;;
-    --apex:untied)
-      untied=yes
-      export APEX_UNTIED_TIMERS=1
       shift
       ;;
     --apex:mpi)

@@ -1901,7 +1901,8 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
       //std::shared_ptr<profiler> p = std::make_shared<profiler>(tt_ptr,
       //is_resume);
       // get the right task identifier, based on whether there are aliases
-      profiler * p = new profiler(tt_ptr, is_resume);
+      profiler* p = new profiler(tt_ptr, is_resume);
+      //std::shared_ptr<profiler> p = std::make_shared<profiler>(p_prime);
       p->thread_id = _pls.my_tid;
       APEX_ASSERT(p->thread_id == (unsigned int)thread_instance::get_id());
       p->guid = tt_ptr->guid;

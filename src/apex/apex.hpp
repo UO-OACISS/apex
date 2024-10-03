@@ -174,7 +174,6 @@ public:
     void stop_all_policy_handles(void);
     bool policy_handle_exists(apex_policy_handle* handle);
     void complete_task(std::shared_ptr<task_wrapper> task_wrapper_ptr);
-    static void stop_internal(profiler* p);
     ~apex();
     std::atomic<bool> finalizing;
 };
