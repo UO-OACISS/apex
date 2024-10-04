@@ -1217,7 +1217,7 @@ std::unordered_set<profile*> free_profiles;
             header_stream << "\n";
         //}
         stringstream tree_stream;
-        root->tree_node->writeNodeCSV(tree_stream, wall_clock_main, node_id, num_papi_counters);
+        root->tree_node->writeNodeCSV(tree_stream, wall_clock_main, node_id, num_papi_counters, true);
         std::string filename{"apex_tasktree.csv"};
         reduce_profiles(header_stream, tree_stream, filename, false);
     }

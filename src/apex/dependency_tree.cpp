@@ -349,9 +349,12 @@ void Node::addAccumulated(double value, double incl, bool is_resume, uint64_t th
     m.unlock();
 }
 
-double Node::writeNodeCSV(std::stringstream& outfile, double total, int node_id, int num_papi_counters) {
+double Node::writeNodeCSV(std::stringstream& outfile, double total, int node_id, int num_papi_counters, bool topLevel) {
     static size_t depth = 0;
     static std::set<std::shared_ptr<Node>> processed;
+    // because dump can get called multiple times during execution, we need
+    // to reset the set of processed nodes.
+    if (topLevel) { processed.clear(); }
     if (processed.count(shared_from_this())) return getAccumulated();
     processed.insert(shared_from_this());
     APEX_ASSERT(total > 0.0);
