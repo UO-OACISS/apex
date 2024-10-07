@@ -82,6 +82,8 @@ where APEX options are zero or more of:
     --apex:hip-details            enable per-kernel statistics where available (default: off)
     --apex:monitor-gpu            enable GPU monitoring services (CUDA NVML, ROCm SMI)
     --apex:level0                 enable OneAPI Level0 measurement (default: off)
+    --apex:python                 enable Python profiling support (requires configuration support)
+    --apex:python-filter <filename> enable Python profiling support of Python internals
     --apex:cpuinfo                enable sampling of /proc/cpuinfo (Linux only)
     --apex:meminfo                enable sampling of /proc/meminfo (Linux only)
     --apex:net                    enable sampling of /proc/net/dev (Linux only)
@@ -112,6 +114,8 @@ raja=no
 otf2=no
 gtrace=no
 pftrace=no
+python=no
+python_internals=no
 scatter=no
 taskgraph=no
 tasktree=no
@@ -190,6 +194,21 @@ while (( "$#" )); do
     --apex:raja)
       raja=yes
       shift
+      ;;
+    --apex:python)
+      python=yes
+      shift
+      ;;
+    --apex:python-filter)
+      python=yes
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        filter_file=$2
+        export PERFSTUBS_PYTHON_FILTER_FILENAME=${filter_file}
+        shift 2
+      else
+        echo "Error: Argument for $1 is missing" >&2
+        usage
+      fi
       ;;
     --apex:debug)
       debug=yes
@@ -761,6 +780,15 @@ if [ ${kokkos_counters} = yes ] ; then
 fi
 if [ ${raja} = yes ] ; then
     export RAJA_PLUGINS=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}
+fi
+if [ ${python} = yes ] ; then
+    export PYTHONPATH=${BASEDIR}/${LIBDIR}:${PYTHONPATH}
+    # kind of abusing this label, maybe rename it to "wrapper executable?"
+    if [ ${debug} = yes ] ; then
+        debugger="python3 -m pdb -m pstubs"
+    else
+        debugger="python3 -m pstubs"
+    fi
 fi
 if [ ${openacc} = yes ] ; then
     export ACC_PROFLIB=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}

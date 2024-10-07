@@ -903,24 +903,49 @@ else()
             "Try manually check out https://github.com/cameron314/concurrentqueue.git to ${PROJECT_SOURCE_DIR}")
 endif()
 
-### Set up perfstubs stuff
-git_external(perfstubs
-    https://github.com/khuck/perfstubs.git
+### Set up rapidjson stuff - before perfstubs, it is a dependency there, too
+git_external(rapidjson
+    https://github.com/miloyip/rapidjson.git
     master
     VERBOSE)
 
-find_file(
-    PERFSTUBS_HEADER
-    NAMES perfstubs_api/tool.h
-    PATHS ${PROJECT_SOURCE_DIR}/perfstubs)
+find_path(
+    RAPIDJSON_INCLUDE_DIR
+    NAMES rapidjson
+    PATHS ${PROJECT_SOURCE_DIR}/rapidjson/include)
 
-if(PERFSTUBS_HEADER)
-    message(INFO " Found perfstubs at ${PROJECT_SOURCE_DIR}/perfstubs")
-    include_directories(${PROJECT_SOURCE_DIR}/perfstubs)
+if(RAPIDJSON_INCLUDE_DIR)
+    message(INFO " Found rapidjson at ${RAPIDJSON_INCLUDE_DIR}")
+    include_directories(${RAPIDJSON_INCLUDE_DIR})
 else()
-    message(FATAL_ERROR " perfstubs not found. This should have been checked out automatically. "
-            "Try manually check out https://github.com/khuck/perfstubs.git to ${PROJECT_SOURCE_DIR}")
+    message(FATAL_ERROR " rapidjson not found. This should have been checked out automatically. "
+        "Try manually check out https://github.com/miloyip/rapidjson.git to ${PROJECT_SOURCE_DIR}")
 endif()
+
+### Set up perfstubs stuff
+git_external(perfstubs
+    https://github.com/khuck/perfstubs.git
+    python-3.12
+    VERBOSE)
+
+if(APEX_WITH_PYTHON)
+    set(PERFSTUBS_WITH_PYTHON ON CACHE BOOL "Enable Python Support" FORCE)
+    add_subdirectory(perfstubs)
+    include_directories(${PROJECT_SOURCE_DIR}/perfstubs)
+else(APEX_WITH_PYTHON)
+    find_file(
+        PERFSTUBS_HEADER
+        NAMES perfstubs_api/tool.h
+        PATHS ${PROJECT_SOURCE_DIR}/perfstubs)
+
+    if(PERFSTUBS_HEADER)
+        message(INFO " Found perfstubs at ${PROJECT_SOURCE_DIR}/perfstubs")
+        include_directories(${PROJECT_SOURCE_DIR}/perfstubs)
+    else()
+        message(FATAL_ERROR " perfstubs not found. This should have been checked out automatically. "
+                "Try manually check out https://github.com/khuck/perfstubs.git to ${PROJECT_SOURCE_DIR}")
+    endif()
+endif(APEX_WITH_PYTHON)
 
 ### Set up taskStubs stuff
 git_external(taskStubs
@@ -945,24 +970,6 @@ if(APEX_WITH_PLUGINS)
     message(INFO " apex will be built with plugin support.")
     set(LIBS ${LIBS} ${CMAKE_DL_LIBS})
     add_definitions("-DAPEX_WITH_PLUGINS")
-endif()
-
-git_external(rapidjson
-    https://github.com/miloyip/rapidjson.git
-    master
-    VERBOSE)
-
-find_path(
-    RAPIDJSON_INCLUDE_DIR
-    NAMES rapidjson
-    PATHS ${PROJECT_SOURCE_DIR}/rapidjson/include)
-
-if(RAPIDJSON_INCLUDE_DIR)
-    message(INFO " Found rapidjson at ${RAPIDJSON_INCLUDE_DIR}")
-    include_directories(${RAPIDJSON_INCLUDE_DIR})
-else()
-    message(FATAL_ERROR " rapidjson not found. This should have been checked out automatically. "
-        "Try manually check out https://github.com/miloyip/rapidjson.git to ${PROJECT_SOURCE_DIR}")
 endif()
 
 ################################################################################
