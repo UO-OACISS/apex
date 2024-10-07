@@ -231,7 +231,7 @@ inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
         for (auto& parent : p->tt_ptr->parents) {
             if (parent != nullptr && parent != main_wrapper
 #ifndef APEX_HAVE_HPX // ...except for HPX - make the flow event regardless
-            && (parent->thread_id != _tid)
+            && (parent->thread_id != _tid || apex_options::use_thread_flow())
 #endif
             ) {
                 //std::cout << "FLOWING!" << std::endl;

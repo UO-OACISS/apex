@@ -117,6 +117,7 @@ extern "C" {
     // library function declarations
     void tasktimer_initialize_impl(void) {
         apex::init("PerfStubs API", 0, 1);
+        apex::apex_options::use_thread_flow(true);
     }
     void tasktimer_finalize_impl(void) {
         /* Debatable whether we want to do this finalize */
