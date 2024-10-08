@@ -678,18 +678,27 @@ else
   APEX_LDD=ldd
 fi
 
+saveprog=${prog}
+if [ ! -x "${prog}" ] && [ ${python} = no ] ; then
+    prog=`which ${prog} 2>/dev/null`
+    if [ "${prog}" == "" ] ; then
+        echo "apex_exec: ${saveprog}: file does not exist"
+        exit
+    fi
+fi
+
 if [ ! -e "${prog}" ] ; then
-    echo "apex_exec: ${prog}: file does not exist"
+    echo "apex_exec: ${saveprog}: file does not exist"
     exit
 fi
 
 if [ ! -x "${prog}" ] && [ ${python} = no ] ; then
-    echo "apex_exec: ${prog}: command not an executable file"
+    echo "apex_exec: ${saveprog}: command not an executable file"
     exit
 fi
 
 if [ ! -f "${prog}" ] ; then
-    echo "apex_exec: $prog: not a file"
+    echo "apex_exec: $saveprog: not a file"
     exit
 fi
 
@@ -782,8 +791,9 @@ fi
 if [ ${raja} = yes ] ; then
     export RAJA_PLUGINS=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}
 fi
+# Set this pythonpath regardless, it helps with debugging
+export PYTHONPATH=${BASEDIR}/${LIBDIR}:${PYTHONPATH}
 if [ ${python} = yes ] ; then
-    export PYTHONPATH=${BASEDIR}/${LIBDIR}:${PYTHONPATH}
     # kind of abusing this label, maybe rename it to "wrapper executable?"
     if [ ${debug} = yes ] ; then
         debugger="python3 -m pdb -m pstubs"
@@ -853,6 +863,7 @@ if [[ "$long_metrics" == *"$delim"* ]]; then
     unset IFS
 else
     #echo "${myrank} Executing with metrics: \"${APEX_PAPI_METRICS}\", writing to ${APEX_OUTPUT_FILE_PATH}"
+    #echo "apex_exec executing: ${debugger} ${PARAMS}"
     ${debugger} ${PARAMS}
     retval=$?
     unset LD_PRELOAD
