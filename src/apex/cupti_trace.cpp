@@ -2066,7 +2066,14 @@ void apex_init_cuda_tracing() {
         if (!apex::apex_options::use_cuda()) { return; }
         apex_flush_cuda_tracing();
         CUPTI_CALL(cuptiUnsubscribe(subscriber));
-        CUPTI_CALL(cuptiFinalize());
+        uint32_t version{0};
+        CUPTI_CALL(cuptiGetVersion(&version));
+        // cupti 12 introduced a bug that was fixed in version 12.4.
+        // see https://forums.developer.nvidia.com/t/cuda-profiler-tools-interface-cupti-for-cuda-toolkit-12-4-is-now-available/279799
+        //printf("Cupti version: %d\n", version);
+        if (version < 18 || version > 21) {
+            CUPTI_CALL(cuptiFinalize());
+        }
         // get_range_map().clear();
 	//std::cout << "* * * * * * * * EXITING CUPTI SUPPORT * * * * * * * * * *" << std::endl;
     	allGood = false;

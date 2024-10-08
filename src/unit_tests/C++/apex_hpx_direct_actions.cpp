@@ -19,6 +19,8 @@ const int num_iterations = 10;
 pthread_barrier_t barrier;
 #endif
 
+std::atomic<uint64_t> guid{32};
+
 int nsleep(long miliseconds, int tid)
 {
    struct timespec req, rem;
@@ -47,7 +49,7 @@ int nsleep(long miliseconds, int tid)
 }
 
 void innerLoop(int *tid) {
-    std::shared_ptr<apex::task_wrapper> tt_ptr = apex::new_task(__func__);
+    std::shared_ptr<apex::task_wrapper> tt_ptr = apex::new_task(__func__, guid++);
 #ifdef __DEBUG_PRINT__
     std::stringstream buf;
     buf << "APP: " << *tid << ": Starting thread " << tt_ptr->guid << "\n"; std::cout << buf.str();
@@ -65,7 +67,7 @@ void innerLoop(int *tid) {
 #endif
 
 	/* Start a timer like an "direct_action" */
-    std::shared_ptr<apex::task_wrapper> af = apex::new_task("direct_action", UINTMAX_MAX, tt_ptr);
+    std::shared_ptr<apex::task_wrapper> af = apex::new_task("direct_action", guid++, tt_ptr);
 #ifdef __DEBUG_PRINT__
     buf.str(""); buf.clear();
     buf << "APP: " << *tid << ": Starting direct_action " << af->guid << "\n"; std::cout << buf.str();
@@ -126,11 +128,12 @@ void* someThread(void* tmp)
 #endif
     apex::register_thread(name);
 
-    apex::profiler* p = apex::start(__func__);
+    auto task = apex::new_task(__func__, guid++);
+    apex::start(task);
     for (int i = 0 ; i < num_iterations ; i++) {
         innerLoop(tid);
     }
-    apex::stop(p);
+    apex::stop(task);
 
     /* tell APEX that this thread is exiting */
     apex::exit_thread();
@@ -142,8 +145,11 @@ int main (int argc, char** argv) {
     apex::init("apex::start unit test", 0, 1);
 	/* important, to make sure we get correct profiles at the end */
     apex::apex_options::use_screen_output(true);
+    /* disable untied timers! not yet supported with direct actions. */
+    //apex::apex_options::untied_timers(false);
     /* start a timer */
-    apex::profiler* p = apex::start("main");
+    auto task = apex::new_task("main", guid);
+    apex::start(task);
     /* Spawn X threads */
     if (argc > 1) {
         test_numthreads = strtoul(argv[1],NULL,0);
@@ -169,7 +175,7 @@ int main (int argc, char** argv) {
     free(tids);
     free(thread);
     /* stop our main timer */
-    apex::stop(p);
+    apex::stop(task);
     /* finalize APEX */
     apex::finalize();
   	apex_profile * profile1 = apex::get_profile("direct_action");

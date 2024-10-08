@@ -23,27 +23,34 @@ std::mutex Node::treeMutex;
 std::atomic<size_t> Node::nodeCount{0};
 std::set<std::string> Node::known_metrics;
 
-Node* Node::appendChild(task_identifier* c) {
+std::shared_ptr<Node> Node::appendChild(task_identifier* c, std::shared_ptr<Node> existing) {
     treeMutex.lock();
     auto iter = children.find(*c);
     if (iter == children.end()) {
-        auto n = new Node(c,this);
-        //std::cout << "Inserting " << c->get_name() << std::endl;
-        children.insert(std::make_pair(*c,n));
-        treeMutex.unlock();
-        return n;
+        if (existing != nullptr) {
+            existing->parents.push_back(shared_from_this());
+            children.insert(std::make_pair(*c,existing));
+            treeMutex.unlock();
+            return existing;
+        } else {
+            auto n = std::make_shared<Node>(c,shared_from_this());
+            //std::cout << "Inserting " << c->get_name() << std::endl;
+            children.insert(std::make_pair(*c,n));
+            treeMutex.unlock();
+            return n;
+        }
     }
     iter->second->count++;
     treeMutex.unlock();
     return iter->second;
 }
 
-Node* Node::replaceChild(task_identifier* old_child, task_identifier* new_child) {
+std::shared_ptr<Node> Node::replaceChild(task_identifier* old_child, task_identifier* new_child) {
     treeMutex.lock();
     auto olditer = children.find(*old_child);
     // not found? shouldn't happen...
     if (olditer == children.end()) {
-        auto n = new Node(new_child,this);
+        auto n = std::make_shared<Node>(new_child,shared_from_this());
         //std::cout << "Inserting " << new_child->get_name() << std::endl;
         children.insert(std::make_pair(*new_child,n));
         treeMutex.unlock();
@@ -57,7 +64,7 @@ Node* Node::replaceChild(task_identifier* old_child, task_identifier* new_child)
     auto newiter = children.find(*new_child);
     // not found? shouldn't happen...
     if (newiter == children.end()) {
-        auto n = new Node(new_child,this);
+        auto n = std::make_shared<Node>(new_child,shared_from_this());
         //std::cout << "Inserting " << new_child->get_name() << std::endl;
         children.insert(std::make_pair(*new_child,n));
         treeMutex.unlock();
@@ -68,11 +75,16 @@ Node* Node::replaceChild(task_identifier* old_child, task_identifier* new_child)
 }
 
 void Node::writeNode(std::ofstream& outfile, double total) {
+    static std::set<std::shared_ptr<Node>> processed;
+    if (processed.count(shared_from_this())) return;
+    processed.insert(shared_from_this());
     static size_t depth = 0;
     // Write out the relationships
-    if (parent != nullptr) {
-        outfile << "  \"" << parent->getIndex() << "\" -> \"" << getIndex() << "\";";
-        outfile << std::endl;
+    for(auto& parent : parents) {
+        if (parent != nullptr) {
+            outfile << "  \"" << parent->getIndex() << "\" -> \"" << getIndex() << "\";";
+            outfile << std::endl;
+        }
     }
 
     double acc = (data == task_identifier::get_main_task_id() || getAccumulated() == 0.0) ?
@@ -115,7 +127,7 @@ void Node::writeNode(std::ofstream& outfile, double total) {
     depth--;
 }
 
-bool cmp(std::pair<task_identifier, Node*>& a, std::pair<task_identifier, Node*>& b) {
+bool cmp(std::pair<task_identifier, std::shared_ptr<Node>>& a, std::pair<task_identifier, std::shared_ptr<Node>>& b) {
     return a.second->getAccumulated() > b.second->getAccumulated();
 }
 
@@ -152,7 +164,7 @@ double Node::writeNodeASCII(std::ofstream& outfile, double total, size_t indent)
     outfile << std::endl;
 
     // sort the children by accumulated time
-    std::vector<std::pair<task_identifier, Node*> > sorted;
+    std::vector<std::pair<task_identifier, std::shared_ptr<Node>> > sorted;
     for (auto& it : children) {
         sorted.push_back(it);
     }
@@ -337,13 +349,25 @@ void Node::addAccumulated(double value, double incl, bool is_resume, uint64_t th
     m.unlock();
 }
 
-double Node::writeNodeCSV(std::stringstream& outfile, double total, int node_id, int num_papi_counters) {
+double Node::writeNodeCSV(std::stringstream& outfile, double total, int node_id, int num_papi_counters, bool topLevel) {
     static size_t depth = 0;
+    static std::set<std::shared_ptr<Node>> processed;
+    // because dump can get called multiple times during execution, we need
+    // to reset the set of processed nodes.
+    if (topLevel) { processed.clear(); }
+    if (processed.count(shared_from_this())) return getAccumulated();
+    processed.insert(shared_from_this());
     APEX_ASSERT(total > 0.0);
     // write out the node id and graph node index and the name
-    outfile << node_id << "," << index << ",";
-    outfile << ((parent == nullptr) ? 0 : parent->index) << ",";
-    outfile << depth << ",\"";
+    outfile << node_id << "," << index << ",\"[";
+    std::string delim("");
+    for (auto& parent : parents) {
+        if (parent != nullptr) {
+            outfile << delim << parent->index;
+            delim = ",";
+        }
+    }
+    outfile << "]\"," << depth << ",\"";
     outfile << data->get_tree_name() << "\",";
     // write out the accumulated
     double acc = (data == task_identifier::get_main_task_id() || getAccumulated() == 0.0) ?
@@ -411,7 +435,7 @@ double Node::writeNodeCSV(std::stringstream& outfile, double total, int node_id,
     outfile << std::endl;
 
     // sort the children by name to make tree merging easier (I hope)
-    std::vector<Node*> sorted;
+    std::vector<std::shared_ptr<Node>> sorted;
     for (auto& it : children) {
         sorted.push_back(it.second);
     }

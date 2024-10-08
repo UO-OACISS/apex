@@ -90,7 +90,7 @@ IF("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
   endif(NOT DEFINED APEX_BUILD_EXAMPLES)
   add_definitions(-DDEBUG)
   add_definitions(-DCMAKE_BUILD_TYPE=3)
-  set(APEX_ERROR_HANDLING TRUE)
+  #set(APEX_ERROR_HANDLING TRUE)
 endif()
 
 IF("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo")
@@ -963,6 +963,13 @@ else()
     message(FATAL_ERROR " taskStubs not found. This should have been checked out automatically. "
             "Try manually check out https://github.com/khuck/taskStubs.git to ${PROJECT_SOURCE_DIR}")
 endif()
+
+if(APEX_BUILD_TESTS)
+    # Include path needed for example in src/unit_tests/C++
+    include_directories(${PROJECT_SOURCE_DIR}/taskStubs/timer_plugin)
+    # Build the taskstubs library for testing purposes
+    add_subdirectory (taskStubs)
+endif(APEX_BUILD_TESTS)
 
 if(APEX_WITH_PLUGINS)
     message(INFO " apex will be built with plugin support.")

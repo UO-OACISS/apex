@@ -27,7 +27,6 @@ int main (int argc, char** argv) {
   APEX_UNUSED(argv);
   init("apex::swap thread unit test", 0, 1);
   cout << "APEX Version : " << version() << endl;
-  apex_options::untied_timers(true);
   apex_options::use_screen_output(true);
   apex_options::print_options();
   pthread_t thread[2];

@@ -35,6 +35,12 @@ struct task_wrapper : public hpx::util::external_timer::task_wrapper {
 #else
 struct task_wrapper {
 #endif
+    typedef enum e_task_state {
+        CREATED,
+        RUNNING,
+        YIELDED,
+        STOPPED
+    } task_state_t;
 /**
   \brief A pointer to the task_identifier for this task_wrapper.
   */
@@ -48,17 +54,13 @@ struct task_wrapper {
   */
     uint64_t guid;
 /**
-  \brief An internally generated GUID for the parent task of this task.
-  */
-    uint64_t parent_guid;
-/**
   \brief A managed pointer to the parent task_wrapper for this task.
   */
-    std::shared_ptr<task_wrapper> parent;
+    std::vector<std::shared_ptr<task_wrapper>> parents;
 /**
   \brief A node in the task tree representing this task type
   */
-    dependency::Node* tree_node;
+    std::shared_ptr<dependency::Node> tree_node;
 /**
   \brief Internal usage, used to manage HPX direct actions when their
          parent task is yielded by the runtime.
@@ -86,6 +88,7 @@ struct task_wrapper {
   \brief Whether this event requires separate start/end events in gtrace
   */
     bool explicit_trace_start;
+    task_state_t state;
 /**
   \brief Constructor.
   */
@@ -93,14 +96,21 @@ struct task_wrapper {
         task_id(nullptr),
         prof(nullptr),
         guid(0ull),
-        parent_guid(0ull),
-        parent(nullptr),
+        parents({}),
         tree_node(nullptr),
         alias(nullptr),
         thread_id(0UL),
         create_ns(our_clock::now_ns()),
-        explicit_trace_start(false)
+        explicit_trace_start(false),
+        state(CREATED)
     { }
+/**
+  \brief Destructor.
+  */
+    ~task_wrapper(void) {
+        // don't delete the alias, because task_identifier objects never go away
+    }
+
 /**
   \brief Get the task_identifier for this task_wrapper.
   \returns A pointer to the task_identifier
@@ -124,7 +134,8 @@ struct task_wrapper {
                 const std::string apex_main_str(APEX_MAIN_STR);
                 tt_ptr = std::make_shared<task_wrapper>();
                 tt_ptr->task_id = task_identifier::get_task_id(apex_main_str);
-                tt_ptr->tree_node = new dependency::Node(tt_ptr->task_id, nullptr);
+                std::shared_ptr<dependency::Node> tmp(new dependency::Node(tt_ptr->task_id, nullptr));
+                tt_ptr->tree_node = tmp;
             }
             mtx.unlock();
         }
@@ -132,11 +143,17 @@ struct task_wrapper {
     }
     void assign_heritage() {
         // make/find a node for ourselves
-        tree_node = parent->tree_node->appendChild(task_id);
+        //tree_node = parents[0]->tree_node->appendChild(task_id);
+        for(auto& parent : parents) {
+            tree_node = parent->tree_node->appendChild(task_id, tree_node);
+        }
     }
     void update_heritage() {
         // make/find a node for ourselves
-        tree_node = parent->tree_node->replaceChild(task_id, alias);
+        //tree_node = parents[0]->tree_node->replaceChild(task_id, alias);
+        for(auto& parent : parents) {
+            tree_node = parent->tree_node->replaceChild(task_id, alias);
+        }
     }
     double get_create_us() {
         return double(create_ns) * 1.0e-3;

@@ -124,7 +124,7 @@ void recordAlloc(const size_t bytes, const void* ptr,
     static book_t& book = getBook();
     double value = (double)(bytes);
     if (cpu) sample_value("Memory: Bytes Allocated", value, true);
-    profiler * p = thread_instance::instance().get_current_profiler();
+    auto p = thread_instance::instance().get_current_profiler();
     record_t tmp(value, thread_instance::instance().get_id(), alloc, cpu);
     if (p != nullptr) { tmp.id = p->get_task_id(); }
     //backtrace_record_t rec(3,tmp.backtrace);
@@ -168,7 +168,7 @@ void recordFree(const void* ptr, const bool cpu) {
     double value = (double)(bytes);
     if (cpu) sample_value("Memory: Bytes Freed", value, true);
     book.totalAllocated.fetch_sub(bytes, std::memory_order_relaxed);
-    profiler * p = thread_instance::instance().get_current_profiler();
+    auto p = thread_instance::instance().get_current_profiler();
     if (p == nullptr) {
         auto i = apex::instance();
         // might be after finalization, so double-check!
@@ -186,7 +186,7 @@ void recordFree(const void* ptr, const bool cpu) {
 /* This doesn't belong here, but whatevs */
 void recordMetric(std::string name, double value) {
     in_apex prevent_memory_tracking;
-    profiler * p = thread_instance::instance().get_current_profiler();
+    auto p = thread_instance::instance().get_current_profiler();
     if (p != nullptr) {
         p->metric_map[name] = value;
     }

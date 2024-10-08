@@ -1228,7 +1228,9 @@ namespace apex {
             OTF2_AttributeList * al = OTF2_AttributeList_New();
             // create an attribute
             OTF2_AttributeList_AddUint64( al, 0, tt_ptr->guid );
-            OTF2_AttributeList_AddUint64( al, 1, tt_ptr->parent_guid );
+            for (auto& parent : tt_ptr->parents) {
+                OTF2_AttributeList_AddUint64( al, 1, parent->guid );
+            }
             uint64_t idx = get_region_index(id);
             uint64_t stamp = 0L;
             if (thread_instance::get_id() == 0) {
@@ -1283,7 +1285,9 @@ namespace apex {
             OTF2_AttributeList * al = OTF2_AttributeList_New();
             // create an attribute
             OTF2_AttributeList_AddUint64( al, 0, p->tt_ptr->guid );
-            OTF2_AttributeList_AddUint64( al, 1, p->tt_ptr->parent_guid );
+            for (auto& parent : p->tt_ptr->parents) {
+                OTF2_AttributeList_AddUint64( al, 1, parent->guid );
+            }
             // unfortunately, we can't use the timestamp from the
             // profiler object. bummer. it has to be taken after
             // the lock is acquired, so that events happen on
@@ -2744,7 +2748,9 @@ namespace apex {
             OTF2_AttributeList * al = OTF2_AttributeList_New();
             // create an attribute
             OTF2_AttributeList_AddUint64( al, 0, p->tt_ptr->guid );
-            OTF2_AttributeList_AddUint64( al, 1, p->tt_ptr->parent_guid );
+            for (auto& parent : p->tt_ptr->parents) {
+                OTF2_AttributeList_AddUint64( al, 1, parent->guid );
+            }
             OTF2_EC(OTF2_EvtWriter_Enter( local_evt_writer, al,
                 stamp, idx /* region */ ));
             stamp = p->get_stop_ns() - globalOffset;

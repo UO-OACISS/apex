@@ -118,8 +118,18 @@ namespace apex {
         if (rc == 0) {
         } else {
             node->info.probeAddr = ip;
-            node->info.filename = strdup(info.dli_fname);
-            node->info.funcname = strdup(info.dli_sname);
+            if (info.dli_fname == nullptr) {
+                node->info.filename = strdup("unknown");
+            } else {
+                node->info.filename = strdup(info.dli_fname);
+            }
+            if (info.dli_sname == nullptr) {
+                stringstream ss;
+                ss << "UNRESOLVED  ADDR 0x" << hex << ip;
+                node->info.funcname = strdup(ss.str().c_str());
+            } else {
+                node->info.funcname = strdup(info.dli_sname);
+            }
         }
 #endif // no APEX_HAVE_BFD
 #endif // no __APPLE__

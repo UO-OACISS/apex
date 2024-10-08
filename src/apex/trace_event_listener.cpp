@@ -103,16 +103,34 @@ void trace_event_listener::on_exit_thread(event_data &data) {
     return;
 }
 
+inline std::string parents_to_string(std::shared_ptr<task_wrapper> tt_ptr) {
+    if (tt_ptr->parents.size() == 0) {
+        return std::string("0");
+    }
+    if (tt_ptr->parents.size() == 1) {
+        APEX_ASSERT (tt_ptr->parents[0] != nullptr);
+        return std::to_string(tt_ptr->parents[0]->guid);
+    }
+    std::string parents{""};
+    std::string delimiter{"["};
+    for (auto& parent : tt_ptr->parents) {
+        if (parent != nullptr) {
+            parents += delimiter + std::to_string(parent->guid);
+            delimiter = ",";
+        }
+    }
+    parents += "]";
+    return parents;
+}
+
 inline void trace_event_listener::_common_start(std::shared_ptr<task_wrapper> &tt_ptr) {
     static APEX_NATIVE_TLS long unsigned int tid = get_thread_id_metadata();
+    long unsigned int _tid = tt_ptr->prof->thread_id;
     if (!_terminate) {
         std::stringstream ss;
         ss.precision(3);
         ss << fixed;
-        uint64_t pguid = 0;
-        if (tt_ptr->parent != nullptr) {
-            pguid = tt_ptr->parent->guid;
-        }
+        std::string pguid = parents_to_string(tt_ptr);
         ss << "{\"name\":\"" << tt_ptr->get_task_id()->get_name()
               << "\",\"cat\":\"CPU\""
               << ",\"ph\":\"B\",\"pid\":"
@@ -198,31 +216,31 @@ void write_flow_event(std::stringstream& ss, double ts, char ph,
 
 inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
     static APEX_NATIVE_TLS long unsigned int tid = get_thread_id_metadata();
+    static auto main_wrapper = task_wrapper::get_apex_main_wrapper();
     // With HPX, the APEX MAIN timer will be stopped on a different thread
     // than the one that started it. So... make sure we get the right TID
     // But don't worry, the thread metadata will have been written at the
     // event start.
-    long unsigned int _tid = (p->tt_ptr->explicit_trace_start ? p->thread_id : tid);
+    //long unsigned int _tid = (p->tt_ptr->explicit_trace_start ? p->thread_id : tid);
+    long unsigned int _tid = p->thread_id;
     if (!_terminate) {
         std::stringstream ss;
         ss.precision(3);
         ss << fixed;
-        uint64_t pguid = 0;
-        if (p->tt_ptr != nullptr && p->tt_ptr->parent != nullptr) {
-            pguid = p->tt_ptr->parent->guid;
-        }
         // if the parent tid is not the same, create a flow event BEFORE the single event
-        if (p->tt_ptr->parent != nullptr
+        for (auto& parent : p->tt_ptr->parents) {
+            if (parent != nullptr && parent != main_wrapper
 #ifndef APEX_HAVE_HPX // ...except for HPX - make the flow event regardless
-            && p->tt_ptr->parent->thread_id != _tid
+            && (parent->thread_id != _tid || apex_options::use_thread_flow())
 #endif
             ) {
-            //std::cout << "FLOWING!" << std::endl;
-            uint64_t flow_id = reversed_node_id + get_flow_id();
-            write_flow_event(ss, p->tt_ptr->parent->get_flow_us()+0.25, 's', "ControlFlow", flow_id,
-                saved_node_id, p->tt_ptr->parent->thread_id, p->tt_ptr->parent->task_id->get_name(), p->get_task_id()->get_name());
-            write_flow_event(ss, p->get_start_us()-0.25, 'f', "ControlFlow", flow_id,
-                saved_node_id, _tid, p->tt_ptr->parent->task_id->get_name(), p->get_task_id()->get_name());
+                //std::cout << "FLOWING!" << std::endl;
+                uint64_t flow_id = reversed_node_id + get_flow_id();
+                write_flow_event(ss, parent->get_flow_us()+0.25, 's', "ControlFlow", flow_id,
+                    saved_node_id, parent->thread_id, "", ""); //parent->task_id->get_name(), p->get_task_id()->get_name());
+                write_flow_event(ss, p->get_start_us()-0.25, 'f', "ControlFlow", flow_id,
+                    saved_node_id, _tid, "", ""); //parent->task_id->get_name(), p->get_task_id()->get_name());
+            }
         }
         if (p->tt_ptr->explicit_trace_start) {
             ss << "{\"name\":\"" << p->get_task_id()->get_name()
@@ -232,6 +250,7 @@ inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
               << ",\"ts\":" << p->get_stop_us()
               << "},\n";
         } else {
+            std::string pguid = parents_to_string(p->tt_ptr);
             ss << "{\"name\":\"" << p->get_task_id()->get_name()
               << "\",\"cat\":\"CPU\""
               << ",\"ph\":\"X\",\"pid\":"
@@ -361,10 +380,7 @@ void trace_event_listener::on_async_event(base_thread_node &node,
         ss.precision(3);
         ss << fixed;
         std::string tid{make_tid(node)};
-        uint64_t pguid = 0;
-        if (p->tt_ptr != nullptr && p->tt_ptr->parent != nullptr) {
-            pguid = p->tt_ptr->parent->guid;
-        }
+        std::string pguid = parents_to_string(p->tt_ptr);
         ss << "{\"name\":\"" << p->get_task_id()->get_name()
               << "\",\"cat\":\"GPU\""
               << ",\"ph\":\"X\",\"pid\":"

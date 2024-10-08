@@ -230,14 +230,13 @@ public:
   profile * get_idle_rate(void);
   std::vector<task_identifier>& get_available_profiles() {
     static std::vector<task_identifier> ids;
-    _task_map_mutex.lock();
+    std::lock_guard<std::mutex> lock(_task_map_mutex);
     if (task_map.size() > ids.size()) {
         ids.clear();
         for (auto kv : task_map) {
            ids.push_back(kv.first);
         }
     }
-    _task_map_mutex.unlock();
     return ids;
   }
   void process_profiles(void);

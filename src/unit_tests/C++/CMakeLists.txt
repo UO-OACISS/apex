@@ -47,6 +47,8 @@ set(example_programs
     apex_swap_threads
     apex_malloc
     apex_std_thread
+    apex_multiple_parents
+    apex_taskstubs
     ${APEX_OPENMP_TEST}
    )
     #apex_set_thread_cap
@@ -82,10 +84,12 @@ foreach(example_program ${example_programs})
   set(sources ${example_program}.cpp)
   source_group("Source Files" FILES ${sources})
   add_executable("${example_program}_cpp" ${sources})
-  target_link_libraries ("${example_program}_cpp" apex ${LIBS})
+  target_link_libraries ("${example_program}_cpp" apex ${LIBS} timer_plugin)
     if (BUILD_STATIC_EXECUTABLES)
         set_target_properties("${example_program}_cpp" PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
     endif()
+  # This is needed to make sure local symbols are exported and we can dladdr them
+  set_property(TARGET "${example_program}_cpp" PROPERTY ENABLE_EXPORTS ON)
   add_dependencies ("${example_program}_cpp" apex)
   add_dependencies (tests "${example_program}_cpp")
   add_test ("test_${example_program}_cpp" "${example_program}_cpp")
@@ -130,19 +134,28 @@ include_directories (. ${APEX_SOURCE_DIR}/src/apex ${MPI_CXX_INCLUDE_PATH})
 # Make sure the linker can find the Apex library once it is built.
 link_directories (${APEX_BINARY_DIR}/src/apex)
 
-# Add executable called "apex_hpx_annotated_functions_mpi" that is built from the source file
-# "apex_hpx_annotated_functions.cpp". The extensions are automatically found.
-add_executable (apex_hpx_annotated_functions_mpi apex_hpx_annotated_functions.cpp)
-add_dependencies (apex_hpx_annotated_functions_mpi apex)
-add_dependencies (examples apex_hpx_annotated_functions_mpi)
+if(APEX_WITH_MPI)
+    # Add executable called "apex_hpx_annotated_functions_mpi" that is built from the source file
+    # "apex_hpx_annotated_functions.cpp". The extensions are automatically found.
+    add_executable (apex_hpx_annotated_functions_mpi apex_hpx_annotated_functions.cpp)
+    target_compile_definitions(apex_hpx_annotated_functions_mpi PUBLIC -DAPEX_ENABLE_MPI)
+    add_dependencies (apex_hpx_annotated_functions_mpi apex)
+    add_dependencies (examples apex_hpx_annotated_functions_mpi)
+    add_executable (apex_multiple_parents_mpi apex_multiple_parents.cpp)
+    target_compile_definitions(apex_multiple_parents_mpi PUBLIC -DAPEX_ENABLE_MPI)
+    add_dependencies (apex_multiple_parents_mpi apex)
+    add_dependencies (examples apex_multiple_parents_mpi)
 
-# Link the executable to the Apex library.
-target_link_libraries (apex_hpx_annotated_functions_mpi apex ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES} ${LIBS} ${APEX_STDCXX_LIB} m)
-if (BUILD_STATIC_EXECUTABLES)
-    set_target_properties(apex_hpx_annotated_functions_mpi PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
+    # Link the executable to the Apex library.
+    target_link_libraries (apex_hpx_annotated_functions_mpi apex ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES} ${LIBS} ${APEX_STDCXX_LIB} m)
+    target_link_libraries (apex_multiple_parents_mpi apex ${MPI_CXX_LINK_FLAGS} ${MPI_CXX_LIBRARIES} ${LIBS} ${APEX_STDCXX_LIB} m)
+    if (BUILD_STATIC_EXECUTABLES)
+        set_target_properties(apex_hpx_annotated_functions_mpi PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
+        set_target_properties(apex_multiple_parents_mpi PROPERTIES LINK_SEARCH_START_STATIC 1 LINK_SEARCH_END_STATIC 1)
+    endif()
+
+    INSTALL(TARGETS apex_hpx_annotated_functions_mpi apex_multiple_parents_mpi
+        RUNTIME DESTINATION bin OPTIONAL
+    )
+
 endif()
-
-INSTALL(TARGETS apex_hpx_annotated_functions_mpi
-  RUNTIME DESTINATION bin OPTIONAL
-)
-

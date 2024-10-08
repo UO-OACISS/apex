@@ -147,6 +147,8 @@ int main (int argc, char** argv) {
     apex::init("apex::start unit test", 0, 1);
 	/* important, to make sure we get correct profiles at the end */
     apex::apex_options::use_screen_output(true);
+    /* disable untied timers! not yet supported with direct actions. */
+    //apex::apex_options::untied_timers(false);
     /* start a timer */
     apex::profiler* p = apex::start("main");
     /* Spawn X threads */

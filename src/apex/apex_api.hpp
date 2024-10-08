@@ -357,6 +357,11 @@ APEX_EXPORT std::shared_ptr<task_wrapper> new_task(
     const uint64_t task_id = UINTMAX_MAX,
     const std::shared_ptr<apex::task_wrapper> parent_task = null_task_wrapper);
 
+APEX_EXPORT std::shared_ptr<task_wrapper> new_task(
+    const std::string &name,
+    const uint64_t task_id,
+    const std::vector<std::shared_ptr<apex::task_wrapper>> parent_tasks);
+
 /**
  \brief Create a new task (dependency).
 
@@ -374,6 +379,11 @@ APEX_EXPORT std::shared_ptr<task_wrapper> new_task(
     const apex_function_address function_address,
     const uint64_t task_id = UINTMAX_MAX,
     const std::shared_ptr<apex::task_wrapper> parent_task = null_task_wrapper);
+
+APEX_EXPORT std::shared_ptr<task_wrapper> new_task(
+    const apex_function_address function_address,
+    const uint64_t task_id,
+    const std::vector<std::shared_ptr<apex::task_wrapper>> parent_tasks);
 
 /**
  \brief Update a task (dependency).
@@ -855,6 +865,8 @@ APEX_EXPORT void send (uint64_t tag, uint64_t size, uint64_t target);
  */
 APEX_EXPORT void recv (uint64_t tag, uint64_t size,
     uint64_t source_rank, uint64_t source_thread);
+
+APEX_EXPORT bool& get_program_over(void);
 
 /**
  \brief A convenience class for using APEX in C++ applications.

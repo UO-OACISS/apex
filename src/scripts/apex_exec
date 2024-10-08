@@ -69,8 +69,6 @@ where APEX options are zero or more of:
     --apex:gpu-memory             enable GPU memory wrapper support
     --apex:cpu-memory             enable CPU memory wrapper support
     --apex:delay-memory           delay memory wrapper support until explicitly enabled
-    --apex:untied                 enable tasks to migrate cores/OS threads
-                                  during execution (not compatible with trace output)
     --apex:cuda                   enable CUDA/CUPTI measurement (default: off)
     --apex:cuda-counters          enable CUDA/CUPTI counter support (default: off)
     --apex:cuda-driver            enable CUDA driver API callbacks (default: off)
@@ -100,6 +98,16 @@ where APEX options are zero or more of:
                                   (LD_PRELOAD value is added _after_ APEX libraries)
     --apex:postprocess            run post-process scripts (graphviz, python) on output data after exit
     "
+    # Disable the async thread, and run the header program
+    export APEX_PROC_CPUINFO=0
+    export APEX_PROC_LOADAVG=0
+    export APEX_PROC_MEMINFO=0
+    export APEX_PROC_NET_DEV=0
+    export APEX_PROC_SELF_STATUS=0
+    export APEX_PROC_SELF_IO=0
+    export APEX_PROC_STAT=0
+    export APEX_PROC_STAT_DETAILS=0
+    ${SCRIPTPATH}/apex_header
     echo "${message}"
     exit 1
 }
@@ -135,7 +143,6 @@ hip_driver=no
 hip_details=no
 level0=no
 monitor_gpu=no
-untied=no
 cpuinfo=no
 meminfo=no
 ompt=no
@@ -421,11 +428,6 @@ while (( "$#" )); do
       export APEX_PROC_SELF_IO=1
       shift
       ;;
-    --apex:untied)
-      untied=yes
-      export APEX_UNTIED_TIMERS=1
-      shift
-      ;;
     --apex:mpi)
       mpi=yes
       export APEX_ENABLE_MPI=1
@@ -538,6 +540,24 @@ while (( "$#" )); do
         echo "Error: Argument for $1 is missing" >&2
         usage
       fi
+      ;;
+# begin internal use only
+    --apex:gprofiler)
+      export USER_PRELOAD="@GPERFTOOLS_ROOT@/lib/libprofiler.so:"
+      export CPUPROFILE_PPROF="@GPERFTOOLS_ROOT@/bin/pprof"
+      export CPUPROFILE=/tmp/prof.out
+      shift
+      ;;
+    --apex:no-async-counters)
+      export APEX_PROC_CPUINFO=0
+      export APEX_PROC_LOADAVG=0
+      export APEX_PROC_MEMINFO=0
+      export APEX_PROC_NET_DEV=0
+      export APEX_PROC_SELF_STATUS=0
+      export APEX_PROC_SELF_IO=0
+      export APEX_PROC_STAT=0
+      export APEX_PROC_STAT_DETAILS=0
+      shift
       ;;
     --apex:help|--help|-h)
       if [ $apex_opts = yes ] ; then
@@ -670,7 +690,6 @@ fi
 
 # remove spaces and double colons
 APEX_LD_PRELOAD=`echo ${APEX_LD_PRELOAD} | sed -e "s/ /:/g" -e "s/::/:/g" -e "s/:$//"`
-export CPUPROFILE=two_vars.prof
 
 if [ ${apple} = 1 ]; then
   APEX_LDD='otool -L'
@@ -868,9 +887,9 @@ else
     retval=$?
     unset LD_PRELOAD
     unset DYLD_INSERT_LIBRARIES
-    if [ "${myrank}" == "0" ] ; then
-        rm -f ${gdbcmds}
-    fi
+    #if [ "${myrank}" == "0" ] ; then
+        #rm -f ${gdbcmds}
+    #fi
     if [ ${retval} != 0 ] ; then
         echo "Error ${retval}!"
         count=`ldd ${MPI_LIB2} | grep -c tcmalloc`
@@ -878,7 +897,17 @@ else
             preloadme=`ldd ${MPI_LIB2} | grep tcmalloc | awk '{ print $3 }'`
             echo "If you got some kind of tcmalloc error, please preload the dependent tcmalloc shared object library with '--apex:preload ${preloadme}'"
         fi
-        exit ${retval}
+        if [ -z ${CPUPROFILE_PPROF} ] ; then
+            exit ${retval}
+        fi
+    fi
+fi
+
+if [ ! -z ${CPUPROFILE_PPROF} ] ; then
+    if [ -f ${CPUPROFILE} ] ; then
+        set -x
+        ${CPUPROFILE_PPROF} --text ${prog} ${CPUPROFILE}
+        set +x
     fi
 fi
 

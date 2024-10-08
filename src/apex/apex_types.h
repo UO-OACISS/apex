@@ -270,12 +270,12 @@ inline unsigned int sc_nprocessors_onln(void)
     macro (APEX_SUSPEND, suspend, bool, false, "Suspend APEX timers and counters during the application execution") \
     macro (APEX_PAPI_SUSPEND, papi_suspend, bool, false, "Suspend PAPI counters during the application execution") \
     macro (APEX_PROCESS_ASYNC_STATE, process_async_state, bool, true, "Enable/disable asynchronous processing of statistics (useful when only collecting trace data)") \
-    macro (APEX_UNTIED_TIMERS, untied_timers, bool, false, "Disable callstack state maintenance for specific OS threads. This allows APEX timers to start on one thread and stop on another. This is not compatible with tracing.") \
     macro (APEX_TAU, use_tau, bool, false, "Enable TAU profiling (if application is executed with tau_exec).") \
     macro (APEX_OTF2, use_otf2, bool, false, "Enable OTF2 trace output.") \
     macro (APEX_OTF2_COLLECTIVE_SIZE, otf2_collective_size, int, 1, "") \
-    macro (APEX_TRACE_EVENT, use_trace_event, bool, false, "Enable Google Trace Event output. (deprecated, please use APEX_PERFETTO)") \
-    macro (APEX_PERFETTO, use_perfetto, bool, false, "Enable Perfetto Trace output.") \
+    macro (APEX_TRACE_EVENT, use_trace_event, bool, false, "Enable Google Trace Event output.") \
+    macro (APEX_TRACE_THREAD_FLOW, use_thread_flow, bool, false, "Enable flow events between tasks on same thread.") \
+    macro (APEX_PERFETTO, use_perfetto, bool, false, "Enable Perfetto Trace output (not recommended, use Google Trace Event instead).") \
     macro (APEX_POLICY, use_policy, bool, true, "Enable APEX policy listener and execute registered policies.") \
     macro (APEX_MEASURE_CONCURRENCY, use_concurrency, int, 0, "Periodically sample thread activity and output report at exit.") \
     macro (APEX_MEASURE_CONCURRENCY_MAX_TIMERS, concurrency_max_timers, int, 5, "Maximum number of timers in the concurrency report.") \

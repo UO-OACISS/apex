@@ -124,12 +124,16 @@ void perfetto_listener::on_exit_thread(event_data &data) {
 
 inline bool perfetto_listener::_common_start(std::shared_ptr<task_wrapper> &tt_ptr) {
     APEX_UNUSED(tt_ptr);
+    uint64_t pguid = tt_ptr->guid;
+    if (tt_ptr->parents[0] != nullptr) {
+        pguid = tt_ptr->parents[0]->guid;
+    }
     TRACE_EVENT_BEGIN(_category,
         perfetto::DynamicString{tt_ptr->get_task_id()->get_name()},
         //perfetto::ProcessTrack::Current(),
         (uint64_t)tt_ptr->prof->get_start_ns(),
         _guid, tt_ptr->guid,
-        _pguid, tt_ptr->parent_guid);
+        _pguid, pguid);
     return true;
 }
 
@@ -202,8 +206,8 @@ void perfetto_listener::on_async_event(base_thread_node &node,
     std::shared_ptr<profiler> &p, const async_event_data& data) {
     const size_t tid{make_tid(node)};
     uint64_t pguid = 0;
-    if (p->tt_ptr != nullptr && p->tt_ptr->parent != nullptr) {
-        pguid = p->tt_ptr->parent->guid;
+    if (p->tt_ptr != nullptr && p->tt_ptr->parents[0] != nullptr) {
+        pguid = p->tt_ptr->parents[0]->guid;
     }
     TRACE_EVENT_BEGIN(_category,
         perfetto::DynamicString{p->get_task_id()->get_name()},
