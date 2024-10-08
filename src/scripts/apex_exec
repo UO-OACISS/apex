@@ -678,12 +678,13 @@ else
   APEX_LDD=ldd
 fi
 
-if [ ! -x "${prog}" ] ; then
-    prog=`which ${prog} 2>/dev/null`
+if [ ! -e "${prog}" ] ; then
+    echo "apex_exec: ${prog}: file does not exist"
+    exit
 fi
 
-if [ ! -x "${prog}" ] ; then
-    echo "apex_exec: $1: command not found"
+if [ ! -x "${prog}" ] && [ ${python} = no ] ; then
+    echo "apex_exec: ${prog}: command not an executable file"
     exit
 fi
 
