@@ -909,10 +909,8 @@ git_external(rapidjson
     master
     VERBOSE)
 
-find_path(
-    RAPIDJSON_INCLUDE_DIR
-    NAMES rapidjson
-    PATHS ${PROJECT_SOURCE_DIR}/rapidjson/include)
+# no reason to search, just set the include path for the header-only library.
+set(RAPIDJSON_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/rapidjson/include)
 
 if(RAPIDJSON_INCLUDE_DIR)
     message(INFO " Found rapidjson at ${RAPIDJSON_INCLUDE_DIR}")
