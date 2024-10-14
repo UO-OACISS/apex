@@ -61,9 +61,6 @@ int apex_preload_main(int argc, char** argv, char** envp) {
             fputs("!\n", stderr);
             return true;
         }
-        fputs("apex: executing ", stderr);
-        fputs(argv[0], stderr);
-        fputs("!\n", stderr);
         return false;
     };
     if (validate_argv0("tclsh8.6")) {
@@ -96,6 +93,9 @@ int apex_preload_main(int argc, char** argv, char** envp) {
     if (apex::apex_options::use_otf2() && apex::apex_options::use_mpi()) {
         ret = main_real(argc, argv, envp);
     } else {
+        fputs("apex: executing ", stderr);
+        fputs(argv[0], stderr);
+        fputs("!\n", stderr);
         apex::init("APEX Preload", 0, 1);
         const std::string timerName{__APEX_FUNCTION__};
         auto t = apex::new_task(timerName);
