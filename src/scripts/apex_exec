@@ -735,7 +735,7 @@ if [ $apple = 1 ]; then
         if [ $# -gt 1 ] ; then
             echo "settings set target.run-args ${*:2}" >> ${gdbcmds}
         fi
-        debugger="lldb -s ./.gdbcmds --"
+        debugger="lldb -s ${gdbcmds} --"
     else
         export DYLD_LIBRARY_PATH=${APEX_LD_LIBRARY_PATH}
         export DYLD_INSERT_LIBRARIES=${APEX_LD_PRELOAD}
@@ -882,6 +882,10 @@ if [[ "$long_metrics" == *"$delim"* ]]; then
 else
     #echo "${myrank} Executing with metrics: \"${APEX_PAPI_METRICS}\", writing to ${APEX_OUTPUT_FILE_PATH}"
     #echo "apex_exec executing: ${debugger} ${PARAMS}"
+    if [ "${verbose}" == "yes" ] ; then
+        echo "${gdbcmds}:"
+        cat ${gdbcmds}
+    fi
     ${debugger} ${PARAMS}
     retval=$?
     unset LD_PRELOAD
