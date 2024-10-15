@@ -81,7 +81,7 @@ where APEX options are zero or more of:
     --apex:monitor-gpu            enable GPU monitoring services (CUDA NVML, ROCm SMI)
     --apex:level0                 enable OneAPI Level0 measurement (default: off)
     --apex:python                 enable Python profiling support (requires configuration support)
-    --apex:python-filter <filename> enable Python profiling support of Python internals
+    --apex:python-filter <filename> enable Python profiling filtering of Python functions/files
     --apex:cpuinfo                enable sampling of /proc/cpuinfo (Linux only)
     --apex:meminfo                enable sampling of /proc/meminfo (Linux only)
     --apex:net                    enable sampling of /proc/net/dev (Linux only)
@@ -123,7 +123,6 @@ otf2=no
 gtrace=no
 pftrace=no
 python=no
-python_internals=no
 scatter=no
 taskgraph=no
 tasktree=no
