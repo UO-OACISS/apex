@@ -6,7 +6,9 @@
  * file LICENSE)
  */
 
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <sys/syscall.h>
 #include <unistd.h>
 #include <stddef.h>
@@ -49,6 +51,7 @@ void A(uint64_t parent) {
     tasktimer_argument_value_t args[1];
     args[0].type = TASKTIMER_LONG_INTEGER_TYPE;
     args[0].l_value = parent;
+    args[0].name = "parent";
     TASKTIMER_SCHEDULE(tt_A, args, 1);
     tasktimer_execution_space_t resource;
     resource.type = TASKTIMER_DEVICE_CPU;
@@ -68,8 +71,10 @@ void B(uint64_t parent1, uint64_t parent2) {
     tasktimer_argument_value_t args[2];
     args[0].type = TASKTIMER_LONG_INTEGER_TYPE;
     args[0].l_value = parent1;
+    args[0].name = "parent1";
     args[1].type = TASKTIMER_LONG_INTEGER_TYPE;
     args[1].l_value = parent2;
+    args[1].name = "parent2";
     TASKTIMER_SCHEDULE(tt_B, args, 2);
     tasktimer_execution_space_t resource;
     resource.type = TASKTIMER_DEVICE_CPU;
@@ -87,8 +92,10 @@ void C(uint64_t parent1, uint64_t parent2) {
     tasktimer_argument_value_t args[2];
     args[0].type = TASKTIMER_LONG_INTEGER_TYPE;
     args[0].l_value = parent1;
+    args[0].name = "parent1";
     args[1].type = TASKTIMER_LONG_INTEGER_TYPE;
     args[1].l_value = parent2;
+    args[1].name = "parent2";
     TASKTIMER_SCHEDULE(tt_C, args, 2);
     tasktimer_execution_space_t resource;
     resource.type = TASKTIMER_DEVICE_CPU;
@@ -180,7 +187,7 @@ void add_child_test(tasktimer_timer_t parent) {
     TASKTIMER_STOP(tt_add_child_test);
 }
 
-int main(int argc, char * argv[]) {
+int main([[maybe_unused]] int argc, [[maybe_unused]] char * argv[]) {
     // initialize the timer plugin
     TASKTIMER_INITIALIZE();
     uint64_t myguid = guid++;
