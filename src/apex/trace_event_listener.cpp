@@ -252,12 +252,38 @@ inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
         } else {
             std::string pguid = parents_to_string(p->tt_ptr);
             ss << "{\"name\":\"" << p->get_task_id()->get_name()
-              << "\",\"cat\":\"CPU\""
-              << ",\"ph\":\"X\",\"pid\":"
-              << saved_node_id << ",\"tid\":" << _tid
-              << ",\"ts\":" << p->get_start_us() << ",\"dur\":"
-              << p->get_stop_us() - p->get_start_us()
-              << ",\"args\":{\"GUID\":" << p->guid << ",\"Parent GUID\":" << pguid << "}},\n";
+               << "\",\"cat\":\"CPU\""
+               << ",\"ph\":\"X\",\"pid\":"
+               << saved_node_id << ",\"tid\":" << _tid
+               << ",\"ts\":" << p->get_start_us() << ",\"dur\":"
+               << p->get_stop_us() - p->get_start_us()
+               << ",\"args\":{\"GUID\":" << p->guid << ",\"Parent GUID\":" << pguid;
+            for (size_t a = 0 ; a < p->tt_ptr->arguments.size() ; a++) {
+                auto& arg = p->tt_ptr->arguments[a];
+                switch (p->tt_ptr->argument_types[a]) {
+                    case APEX_LONG_INTEGER_TYPE: {
+                        ss << ",\"" << p->tt_ptr->argument_names[a] << "\":\"" << std::get<long>(arg) << "\"";
+                        break;
+                    }
+                    case APEX_DOUBLE_TYPE: {
+                        ss << ",\"" << p->tt_ptr->argument_names[a] << "\":\"" << std::get<double>(arg) << "\"";
+                        break;
+                    }
+                    case APEX_STRING_TYPE: {
+                        ss << ",\"" << p->tt_ptr->argument_names[a] << "\":\"" << std::get<std::string>(arg) << "\"";
+                        break;
+                    }
+                    case APEX_POINTER_TYPE:
+                    case APEX_ARRAY_TYPE: {
+                        ss << ",\"" << p->tt_ptr->argument_names[a] << "\":\"" << std::hex << std::get<void*>(arg) << "\"";
+                        break;
+                    }
+                    default: {
+                        break;
+                    }
+                }
+            }
+            ss << "}},\n";
         }
 #if APEX_HAVE_PAPI
         int i = 0;

@@ -102,15 +102,17 @@ std::shared_ptr<apex::task_wrapper> safeLookup(
 
 void safeErase(
     tasktimer_guid_t guid) {
+    APEX_UNUSED(guid);
     return;
     /*
     getMyMap().erase(guid);
+    */
     {
         std::scoped_lock lock{mtx()};
         getCommonMap().erase(guid);
     }
     //safePrint("Destroyed", guid);
-    */
+    return;
 }
 
 extern "C" {
@@ -186,10 +188,56 @@ extern "C" {
             apex_timer == nullptr ? "unknown" : apex_timer->task_id->get_name().c_str());
         static bool& over = apex::get_program_over();
         if (over) return;
-        // TODO: handle the schedule event, somehow
-        APEX_UNUSED(timer);
-        APEX_UNUSED(arguments);
-        APEX_UNUSED(argument_count);
+        for (uint64_t i = 0 ; i < argument_count ; i++) {
+            switch (arguments[i].type) {
+                case TASKTIMER_LONG_INTEGER_TYPE: {
+                    apex::task_wrapper::argument tmp = (int64_t)arguments[i].l_value;
+                    apex_timer->arguments.push_back(tmp);
+                    apex_timer->argument_types.push_back(APEX_LONG_INTEGER_TYPE);
+                    break;
+                }
+                case TASKTIMER_UNSIGNED_LONG_INTEGER_TYPE: {
+                    apex::task_wrapper::argument tmp = (uint64_t)arguments[i].u_value;
+                    apex_timer->arguments.push_back(tmp);
+                    apex_timer->argument_types.push_back(APEX_UNSIGNED_LONG_INTEGER_TYPE);
+                    break;
+                }
+                case TASKTIMER_DOUBLE_TYPE: {
+                    apex::task_wrapper::argument tmp = arguments[i].d_value;
+                    apex_timer->arguments.push_back(tmp);
+                    apex_timer->argument_types.push_back(APEX_DOUBLE_TYPE);
+                    break;
+                }
+                case TASKTIMER_STRING_TYPE: {
+                    apex::task_wrapper::argument tmp = std::string(arguments[i].c_value);
+                    apex_timer->arguments.push_back(tmp);
+                    apex_timer->argument_types.push_back(APEX_STRING_TYPE);
+                    break;
+                }
+                case TASKTIMER_POINTER_TYPE: {
+                    apex::task_wrapper::argument tmp = arguments[i].p_value;
+                    apex_timer->arguments.push_back(tmp);
+                    apex_timer->argument_types.push_back(APEX_POINTER_TYPE);
+                    break;
+                }
+                case TASKTIMER_ARRAY_TYPE: {
+                    apex::task_wrapper::argument tmp = arguments[i].a_value;
+                    apex_timer->arguments.push_back(tmp);
+                    apex_timer->argument_types.push_back(APEX_ARRAY_TYPE);
+                    break;
+                }
+                default:
+                    break;
+            }
+            if (arguments[i].name != nullptr) {
+                apex_timer->argument_names.push_back(std::string(arguments[i].name));
+            } else {
+                std::string tmpname{"arg["};
+                tmpname = tmpname + std::to_string(i+2); // add two, because GUID and parent GUID are 0,1
+                tmpname = tmpname + "]";
+                apex_timer->argument_names.push_back(tmpname);
+            }
+        }
     }
 
     void tasktimer_start_impl(
@@ -332,10 +380,41 @@ extern "C" {
         const void* dest_ptr) {
         std::shared_ptr<apex::task_wrapper> parent = safeLookup(guid, "data transfer");
         auto task = apex::new_task("data xfer", 0, parent);
+        const auto getspace = [](tasktimer_execution_space_p& space) {
+            std::stringstream ss;
+            ss << (space->type == TASKTIMER_DEVICE_CPU ? "CPU " : "GPU ");
+            ss << space->device_id << "," << space->instance_id;
+            return ss.str();
+        };
+        /* source_type */
+        task->arguments.push_back(apex::task_wrapper::argument(std::string(getspace(source_type))));
+        task->argument_types.push_back(APEX_STRING_TYPE);
+        task->argument_names.push_back("source_type");
+        /* source_name */
+        task->arguments.push_back(apex::task_wrapper::argument(std::string(source_name)));
+        task->argument_types.push_back(APEX_STRING_TYPE);
+        task->argument_names.push_back("source_name");
+        /* source_ptr */
+        task->arguments.push_back(apex::task_wrapper::argument((void*)source_ptr));
+        task->argument_types.push_back(APEX_POINTER_TYPE);
+        task->argument_names.push_back("source_ptr");
+        /* dest_type */
+        task->arguments.push_back(apex::task_wrapper::argument(std::string(getspace(dest_type))));
+        task->argument_types.push_back(APEX_STRING_TYPE);
+        task->argument_names.push_back("dest_type");
+        /* dest_name */
+        task->arguments.push_back(apex::task_wrapper::argument(std::string(dest_name)));
+        task->argument_types.push_back(APEX_STRING_TYPE);
+        task->argument_names.push_back("dest_name");
+        /* dest_ptr */
+        task->arguments.push_back(apex::task_wrapper::argument((void*)dest_ptr));
+        task->argument_types.push_back(APEX_POINTER_TYPE);
+        task->argument_names.push_back("dest_ptr");
         timerStack(task, true);
     }
 
     void tasktimer_data_transfer_stop_impl(tasktimer_guid_t guid) {
+        APEX_UNUSED(guid);
         timerStack(nullptr, false);
     }
 

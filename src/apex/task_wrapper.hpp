@@ -24,6 +24,7 @@ struct task_wrapper;
 #include <unordered_set>
 #include "dependency_tree.hpp"
 #include "apex_clock.hpp"
+#include <variant>
 
 namespace apex {
 
@@ -89,6 +90,14 @@ struct task_wrapper {
   */
     bool explicit_trace_start;
     task_state_t state;
+/**
+    \brief Vector of arguments to the task, optional data from taskStubs implementation
+           only used by the google trace events format output.
+  */
+    using argument = std::variant<uint64_t,int64_t,double,std::string,void*>;
+    std::vector<apex_argument_type_t> argument_types;
+    std::vector<argument> arguments;
+    std::vector<std::string> argument_names;
 /**
   \brief Constructor.
   */

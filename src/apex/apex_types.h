@@ -184,6 +184,18 @@ typedef enum _profile_type {
   APEX_COUNTER       /*!< This profile is a sampled counter */
 } apex_profile_type;
 
+/** The type of task_wrapper argument
+ *
+ */
+typedef enum _argument_type {
+    APEX_LONG_INTEGER_TYPE = 0,
+    APEX_UNSIGNED_LONG_INTEGER_TYPE = 0,
+    APEX_DOUBLE_TYPE,
+    APEX_STRING_TYPE,
+    APEX_POINTER_TYPE,
+    APEX_ARRAY_TYPE
+} apex_argument_type_t;
+
 /**
  * The profile object for a timer in APEX.
  */
