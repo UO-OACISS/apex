@@ -229,12 +229,11 @@ extern "C" {
                 default:
                     break;
             }
-            if (arguments[i].name != nullptr) {
+            if (false) { // arguments[i].name != nullptr) {
                 apex_timer->argument_names.push_back(std::string(arguments[i].name));
             } else {
-                std::string tmpname{"arg["};
+                std::string tmpname{"arg_"};
                 tmpname = tmpname + std::to_string(i+2); // add two, because GUID and parent GUID are 0,1
-                tmpname = tmpname + "]";
                 apex_timer->argument_names.push_back(tmpname);
             }
         }
