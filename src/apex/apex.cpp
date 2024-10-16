@@ -827,10 +827,12 @@ void start(std::shared_ptr<task_wrapper> tt_ptr) {
     // make sure APEX knows about this worker thread!
     [[maybe_unused]] thread_local static bool _helper = register_thread_helper();
     // get the thread id that is running this task
+    /*
     if (tt_ptr->thread_id != thread_instance::instance().get_id()) {
         printf("Task %s created by %lu started by %lu\n", tt_ptr->task_id->get_name().c_str(),
             tt_ptr->thread_id, thread_instance::instance().get_id());
     }
+    */
     APEX_ASSERT(tt_ptr->state == task_wrapper::CREATED || tt_ptr->state == task_wrapper::YIELDED);
     tt_ptr->state = task_wrapper::RUNNING;
     if (_notify_listeners) {
