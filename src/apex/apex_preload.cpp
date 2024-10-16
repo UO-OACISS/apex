@@ -56,9 +56,11 @@ int apex_preload_main(int argc, char** argv, char** envp) {
         size_t needle_len{strlen(needle)};
         if (len > needle_len &&
             (strncmp(argv[0] + (len - needle_len), needle, needle_len)) == 0) {
-            fputs("apex: skipping ", stderr);
-            fputs(argv[0], stderr);
-            fputs("!\n", stderr);
+            if (apex::apex_options::use_verbose()) {
+                fputs("apex: skipping ", stderr);
+                fputs(argv[0], stderr);
+                fputs("\n", stderr);
+            }
             return true;
         }
         return false;
@@ -93,9 +95,11 @@ int apex_preload_main(int argc, char** argv, char** envp) {
     if (apex::apex_options::use_otf2() && apex::apex_options::use_mpi()) {
         ret = main_real(argc, argv, envp);
     } else {
-        fputs("apex: executing ", stderr);
-        fputs(argv[0], stderr);
-        fputs("\n", stderr);
+        if (apex::apex_options::use_verbose()) {
+            fputs("apex: executing ", stderr);
+            fputs(argv[0], stderr);
+            fputs("\n", stderr);
+        }
         apex::init("APEX Preload", 0, 1);
         const std::string timerName{__APEX_FUNCTION__};
         auto t = apex::new_task(timerName);
