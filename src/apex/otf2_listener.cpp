@@ -489,7 +489,7 @@ namespace apex {
     }
 
     bool otf2_listener::create_archive(void) {
-        printf("Enter %s\n", __func__);
+        //printf("Enter %s\n", __func__);
         /* only one thread per process allowed in here, ever! */
         write_lock_type lock(_archive_mutex);
         /* only open once! */
@@ -535,7 +535,7 @@ namespace apex {
         /* open the event files for this archive */
         OTF2_EC(OTF2_Archive_OpenEvtFiles( archive ));
         created = true;
-        printf("Exit %s\n", __func__);
+        //printf("Exit %s\n", __func__);
         return created;
      }
 
