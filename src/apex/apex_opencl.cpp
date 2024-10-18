@@ -660,51 +660,75 @@ clGetProgramBuildInfo(cl_program            program,
     return function_ptr(program, device, param_name, param_value_size, param_value, param_value_size_ret);
 }
 
-#if 0
+/////////////
 /* Kernel Object APIs */
 extern CL_API_ENTRY cl_kernel CL_API_CALL
 clCreateKernel(cl_program      program,
                const char *    kernel_name,
-               cl_int *        errcode_ret) CL_API_SUFFIX__VERSION_1_0;
+               cl_int *        errcode_ret) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL_TIMER(clCreateKernel);
+    return function_ptr(program, kernel_name, errcode_ret);
+}
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clCreateKernelsInProgram(cl_program     program,
                          cl_uint        num_kernels,
                          cl_kernel *    kernels,
-                         cl_uint *      num_kernels_ret) CL_API_SUFFIX__VERSION_1_0;
+                         cl_uint *      num_kernels_ret) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL_TIMER(clCreateKernelsInProgram);
+    return function_ptr(program, num_kernels, kernels, num_kernels_ret);
+}
 
 #ifdef CL_VERSION_2_1
 
 extern CL_API_ENTRY cl_kernel CL_API_CALL
 clCloneKernel(cl_kernel     source_kernel,
-              cl_int*       errcode_ret) CL_API_SUFFIX__VERSION_2_1;
+              cl_int*       errcode_ret) CL_API_SUFFIX__VERSION_2_1 {
+    GET_SYMBOL_TIMER(clCloneKernel);
+    return function_ptr(source_kernel, errcode_ret);
+}
 
 #endif
 
 extern CL_API_ENTRY cl_int CL_API_CALL
-clRetainKernel(cl_kernel    kernel) CL_API_SUFFIX__VERSION_1_0;
+clRetainKernel(cl_kernel    kernel) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL_TIMER(clRetainKernel);
+    return function_ptr(kernel);
+}
 
 extern CL_API_ENTRY cl_int CL_API_CALL
-clReleaseKernel(cl_kernel   kernel) CL_API_SUFFIX__VERSION_1_0;
+clReleaseKernel(cl_kernel   kernel) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL_TIMER(clReleaseKernel);
+    return function_ptr(kernel);
+}
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clSetKernelArg(cl_kernel    kernel,
                cl_uint      arg_index,
                size_t       arg_size,
-               const void * arg_value) CL_API_SUFFIX__VERSION_1_0;
+               const void * arg_value) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL_TIMER(clSetKernelArg);
+    return function_ptr(kernel, arg_index, arg_size, arg_value);
+}
 
 #ifdef CL_VERSION_2_0
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clSetKernelArgSVMPointer(cl_kernel    kernel,
                          cl_uint      arg_index,
-                         const void * arg_value) CL_API_SUFFIX__VERSION_2_0;
+                         const void * arg_value) CL_API_SUFFIX__VERSION_2_0 {
+    GET_SYMBOL_TIMER(clSetKernelArgSVMPointer);
+    return function_ptr(kernel, arg_index, arg_value);
+}
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clSetKernelExecInfo(cl_kernel            kernel,
                     cl_kernel_exec_info  param_name,
                     size_t               param_value_size,
-                    const void *         param_value) CL_API_SUFFIX__VERSION_2_0;
+                    const void *         param_value) CL_API_SUFFIX__VERSION_2_0 {
+    GET_SYMBOL_TIMER(clSetKernelExecInfo);
+    return function_ptr(kernel, param_name, param_value_size, param_value);
+}
 
 #endif
 
@@ -713,17 +737,23 @@ clGetKernelInfo(cl_kernel       kernel,
                 cl_kernel_info  param_name,
                 size_t          param_value_size,
                 void *          param_value,
-                size_t *        param_value_size_ret) CL_API_SUFFIX__VERSION_1_0;
+                size_t *        param_value_size_ret) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL_TIMER(clGetKernelInfo);
+    return function_ptr(kernel, param_name, param_value_size, param_value, param_value_size_ret);
+}
 
 #ifdef CL_VERSION_1_2
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clGetKernelArgInfo(cl_kernel       kernel,
-                   cl_uint         arg_indx,
+                   cl_uint         arg_index,
                    cl_kernel_arg_info  param_name,
                    size_t          param_value_size,
                    void *          param_value,
-                   size_t *        param_value_size_ret) CL_API_SUFFIX__VERSION_1_2;
+                   size_t *        param_value_size_ret) CL_API_SUFFIX__VERSION_1_2 {
+    GET_SYMBOL_TIMER(clGetKernelArgInfo);
+    return function_ptr(kernel, arg_index, param_name, param_value_size, param_value, param_value_size_ret);
+}
 
 #endif
 
@@ -733,7 +763,10 @@ clGetKernelWorkGroupInfo(cl_kernel                  kernel,
                          cl_kernel_work_group_info  param_name,
                          size_t                     param_value_size,
                          void *                     param_value,
-                         size_t *                   param_value_size_ret) CL_API_SUFFIX__VERSION_1_0;
+                         size_t *                   param_value_size_ret) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL_TIMER(clGetKernelWorkGroupInfo);
+    return function_ptr(kernel, device, param_name, param_value_size, param_value, param_value_size_ret);
+}
 
 #ifdef CL_VERSION_2_1
 
@@ -745,41 +778,63 @@ clGetKernelSubGroupInfo(cl_kernel                   kernel,
                         const void*                 input_value,
                         size_t                      param_value_size,
                         void*                       param_value,
-                        size_t*                     param_value_size_ret) CL_API_SUFFIX__VERSION_2_1;
+                        size_t*                     param_value_size_ret) CL_API_SUFFIX__VERSION_2_1 {
+    GET_SYMBOL_TIMER(clGetKernelSubGroupInfo);
+    return function_ptr(kernel, device, param_name, input_value_size, input_value, param_value_size, param_value, param_value_size_ret);
+}
 
 #endif
 
+////////////////
 /* Event Object APIs */
 extern CL_API_ENTRY cl_int CL_API_CALL
 clWaitForEvents(cl_uint             num_events,
-                const cl_event *    event_list) CL_API_SUFFIX__VERSION_1_0;
+                const cl_event *    event_list) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL_TIMER(clWaitForEvents);
+    return function_ptr(num_events, event_list);
+}
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clGetEventInfo(cl_event         event,
                cl_event_info    param_name,
                size_t           param_value_size,
                void *           param_value,
-               size_t *         param_value_size_ret) CL_API_SUFFIX__VERSION_1_0;
+               size_t *         param_value_size_ret) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL_TIMER(clGetEventInfo);
+    return function_ptr(event, param_name, param_value_size, param_value, param_value_size_ret);
+}
 
 #ifdef CL_VERSION_1_1
 
 extern CL_API_ENTRY cl_event CL_API_CALL
 clCreateUserEvent(cl_context    context,
-                  cl_int *      errcode_ret) CL_API_SUFFIX__VERSION_1_1;
+                  cl_int *      errcode_ret) CL_API_SUFFIX__VERSION_1_1 {
+    GET_SYMBOL_TIMER(clCreateUserEvent);
+    return function_ptr(context, errcode_ret);
+}
 
 #endif
 
 extern CL_API_ENTRY cl_int CL_API_CALL
-clRetainEvent(cl_event event) CL_API_SUFFIX__VERSION_1_0;
+clRetainEvent(cl_event event) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL_TIMER(clRetainEvent);
+    return function_ptr(event);
+}
 
 extern CL_API_ENTRY cl_int CL_API_CALL
-clReleaseEvent(cl_event event) CL_API_SUFFIX__VERSION_1_0;
+clReleaseEvent(cl_event event) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL_TIMER(clReleaseEvent);
+    return function_ptr(event);
+}
 
 #ifdef CL_VERSION_1_1
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clSetUserEventStatus(cl_event   event,
-                     cl_int     execution_status) CL_API_SUFFIX__VERSION_1_1;
+                     cl_int     execution_status) CL_API_SUFFIX__VERSION_1_1 {
+    GET_SYMBOL_TIMER(clSetUserEventStatus);
+    return function_ptr(event, execution_status);
+}
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clSetEventCallback(cl_event    event,
@@ -787,10 +842,14 @@ clSetEventCallback(cl_event    event,
                    void (CL_CALLBACK * pfn_notify)(cl_event event,
                                                    cl_int   event_command_status,
                                                    void *   user_data),
-                   void *      user_data) CL_API_SUFFIX__VERSION_1_1;
+                   void *      user_data) CL_API_SUFFIX__VERSION_1_1 {
+    GET_SYMBOL_TIMER(clSetEventCallback);
+    return function_ptr(event, command_exec_callback_type, pfn_notify, user_data);
+}
 
 #endif
 
+#if 0
 /* Profiling APIs */
 extern CL_API_ENTRY cl_int CL_API_CALL
 clGetEventProfilingInfo(cl_event            event,
@@ -798,14 +857,23 @@ clGetEventProfilingInfo(cl_event            event,
                         size_t              param_value_size,
                         void *              param_value,
                         size_t *            param_value_size_ret) CL_API_SUFFIX__VERSION_1_0;
+#endif
 
+//////////
 /* Flush and Finish APIs */
 extern CL_API_ENTRY cl_int CL_API_CALL
-clFlush(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_0;
+clFlush(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL_TIMER(clFlush);
+    return function_ptr(command_queue);
+}
 
 extern CL_API_ENTRY cl_int CL_API_CALL
-clFinish(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_0;
+clFinish(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL_TIMER(clFinish);
+    return function_ptr(command_queue);
+}
 
+/////////
 /* Enqueued Commands APIs */
 extern CL_API_ENTRY cl_int CL_API_CALL
 clEnqueueReadBuffer(cl_command_queue    command_queue,
@@ -816,7 +884,10 @@ clEnqueueReadBuffer(cl_command_queue    command_queue,
                     void *              ptr,
                     cl_uint             num_events_in_wait_list,
                     const cl_event *    event_wait_list,
-                    cl_event *          event) CL_API_SUFFIX__VERSION_1_0;
+                    cl_event *          event) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL_TIMER(clEnqueueReadBuffer);
+    return function_ptr(command_queue, buffer, blocking_read, offset, size, ptr, num_events_in_wait_list, event_wait_list, event);
+}
 
 #ifdef CL_VERSION_1_1
 
@@ -834,7 +905,10 @@ clEnqueueReadBufferRect(cl_command_queue    command_queue,
                         void *              ptr,
                         cl_uint             num_events_in_wait_list,
                         const cl_event *    event_wait_list,
-                        cl_event *          event) CL_API_SUFFIX__VERSION_1_1;
+                        cl_event *          event) CL_API_SUFFIX__VERSION_1_1 {
+    GET_SYMBOL_TIMER(clEnqueueReadBufferRect);
+    return function_ptr(command_queue, buffer, blocking_read, buffer_origin, host_origin, region, buffer_row_pitch, buffer_slice_pitch, host_row_pitch, host_slice_pitch, ptr, num_events_in_wait_list, event_wait_list, event);
+}
 
 #endif
 
@@ -847,7 +921,10 @@ clEnqueueWriteBuffer(cl_command_queue   command_queue,
                      const void *       ptr,
                      cl_uint            num_events_in_wait_list,
                      const cl_event *   event_wait_list,
-                     cl_event *         event) CL_API_SUFFIX__VERSION_1_0;
+                     cl_event *         event) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL_TIMER(clEnqueueWriteBuffer);
+    return function_ptr(command_queue, buffer, blocking_write, offset, size, ptr, num_events_in_wait_list, event_wait_list, event);
+}
 
 #ifdef CL_VERSION_1_1
 
@@ -865,7 +942,10 @@ clEnqueueWriteBufferRect(cl_command_queue    command_queue,
                          const void *        ptr,
                          cl_uint             num_events_in_wait_list,
                          const cl_event *    event_wait_list,
-                         cl_event *          event) CL_API_SUFFIX__VERSION_1_1;
+                         cl_event *          event) CL_API_SUFFIX__VERSION_1_1 {
+    GET_SYMBOL_TIMER(clEnqueueWriteBufferRect);
+    return function_ptr(command_queue, buffer, blocking_write, buffer_origin, host_origin, region, buffer_row_pitch, buffer_slice_pitch, host_row_pitch, host_slice_pitch, ptr, num_events_in_wait_list, event_wait_list, event);
+}
 
 #endif
 
@@ -880,7 +960,10 @@ clEnqueueFillBuffer(cl_command_queue   command_queue,
                     size_t             size,
                     cl_uint            num_events_in_wait_list,
                     const cl_event *   event_wait_list,
-                    cl_event *         event) CL_API_SUFFIX__VERSION_1_2;
+                    cl_event *         event) CL_API_SUFFIX__VERSION_1_2 {
+    GET_SYMBOL_TIMER(clEnqueueFillBuffer);
+    return function_ptr(command_queue, buffer, pattern, pattern_size, offset, size, num_events_in_wait_list, event_wait_list, event);
+}
 
 #endif
 
@@ -893,7 +976,10 @@ clEnqueueCopyBuffer(cl_command_queue    command_queue,
                     size_t              size,
                     cl_uint             num_events_in_wait_list,
                     const cl_event *    event_wait_list,
-                    cl_event *          event) CL_API_SUFFIX__VERSION_1_0;
+                    cl_event *          event) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL_TIMER(clEnqueueCopyBuffer);
+    return function_ptr(command_queue, src_buffer, dst_buffer, src_offset, dst_offset, size, num_events_in_wait_list, event_wait_list, event);
+}
 
 #ifdef CL_VERSION_1_1
 
@@ -910,7 +996,10 @@ clEnqueueCopyBufferRect(cl_command_queue    command_queue,
                         size_t              dst_slice_pitch,
                         cl_uint             num_events_in_wait_list,
                         const cl_event *    event_wait_list,
-                        cl_event *          event) CL_API_SUFFIX__VERSION_1_1;
+                        cl_event *          event) CL_API_SUFFIX__VERSION_1_1 {
+    GET_SYMBOL_TIMER(clEnqueueCopyBufferRect);
+    return function_ptr(command_queue, src_buffer, dst_buffer, src_origin, dst_origin, region, src_row_pitch, src_slice_pitch, dst_row_pitch, dst_slice_pitch, num_events_in_wait_list, event_wait_list, event);
+}
 
 #endif
 
@@ -925,7 +1014,10 @@ clEnqueueReadImage(cl_command_queue     command_queue,
                    void *               ptr,
                    cl_uint              num_events_in_wait_list,
                    const cl_event *     event_wait_list,
-                   cl_event *           event) CL_API_SUFFIX__VERSION_1_0;
+                   cl_event *           event) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL_TIMER(clEnqueueReadImage);
+    return function_ptr(command_queue, image, blocking_read, origin, region, row_pitch, slice_pitch, ptr, num_events_in_wait_list, event_wait_list, event);
+}
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clEnqueueWriteImage(cl_command_queue    command_queue,
@@ -938,7 +1030,10 @@ clEnqueueWriteImage(cl_command_queue    command_queue,
                     const void *        ptr,
                     cl_uint             num_events_in_wait_list,
                     const cl_event *    event_wait_list,
-                    cl_event *          event) CL_API_SUFFIX__VERSION_1_0;
+                    cl_event *          event) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL_TIMER(clEnqueueWriteImage);
+    return function_ptr(command_queue, image, blocking_write, origin, region, input_row_pitch, input_slice_pitch, ptr, num_events_in_wait_list, event_wait_list, event);
+}
 
 #ifdef CL_VERSION_1_2
 
@@ -950,7 +1045,10 @@ clEnqueueFillImage(cl_command_queue   command_queue,
                    const size_t *     region,
                    cl_uint            num_events_in_wait_list,
                    const cl_event *   event_wait_list,
-                   cl_event *         event) CL_API_SUFFIX__VERSION_1_2;
+                   cl_event *         event) CL_API_SUFFIX__VERSION_1_2 {
+    GET_SYMBOL_TIMER(clEnqueueFillImage);
+    return function_ptr(command_queue, image, fill_color, origin, region, num_events_in_wait_list, event_wait_list, event);
+}
 
 #endif
 
@@ -963,7 +1061,10 @@ clEnqueueCopyImage(cl_command_queue     command_queue,
                    const size_t *       region,
                    cl_uint              num_events_in_wait_list,
                    const cl_event *     event_wait_list,
-                   cl_event *           event) CL_API_SUFFIX__VERSION_1_0;
+                   cl_event *           event) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL_TIMER(clEnqueueCopyImage);
+    return function_ptr(command_queue, src_image, dst_image, src_origin, dst_origin, region, num_events_in_wait_list, event_wait_list, event);
+}
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clEnqueueCopyImageToBuffer(cl_command_queue command_queue,
@@ -974,7 +1075,10 @@ clEnqueueCopyImageToBuffer(cl_command_queue command_queue,
                            size_t           dst_offset,
                            cl_uint          num_events_in_wait_list,
                            const cl_event * event_wait_list,
-                           cl_event *       event) CL_API_SUFFIX__VERSION_1_0;
+                           cl_event *       event) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL_TIMER(clEnqueueCopyImageToBuffer);
+    return function_ptr(command_queue, src_image, dst_buffer, src_origin, region, dst_offset, num_events_in_wait_list, event_wait_list, event);
+}
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clEnqueueCopyBufferToImage(cl_command_queue command_queue,
@@ -985,7 +1089,10 @@ clEnqueueCopyBufferToImage(cl_command_queue command_queue,
                            const size_t *   region,
                            cl_uint          num_events_in_wait_list,
                            const cl_event * event_wait_list,
-                           cl_event *       event) CL_API_SUFFIX__VERSION_1_0;
+                           cl_event *       event) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL_TIMER(clEnqueueCopyBufferToImage);
+    return function_ptr(command_queue, src_buffer, dst_image, src_offset, dst_origin, region, num_events_in_wait_list, event_wait_list, event);
+}
 
 extern CL_API_ENTRY void * CL_API_CALL
 clEnqueueMapBuffer(cl_command_queue command_queue,
@@ -997,7 +1104,10 @@ clEnqueueMapBuffer(cl_command_queue command_queue,
                    cl_uint          num_events_in_wait_list,
                    const cl_event * event_wait_list,
                    cl_event *       event,
-                   cl_int *         errcode_ret) CL_API_SUFFIX__VERSION_1_0;
+                   cl_int *         errcode_ret) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL_TIMER(clEnqueueMapBuffer);
+    return function_ptr(command_queue, buffer, blocking_map, map_flags, offset, size, num_events_in_wait_list, event_wait_list, event, errcode_ret);
+}
 
 extern CL_API_ENTRY void * CL_API_CALL
 clEnqueueMapImage(cl_command_queue  command_queue,
@@ -1011,7 +1121,10 @@ clEnqueueMapImage(cl_command_queue  command_queue,
                   cl_uint           num_events_in_wait_list,
                   const cl_event *  event_wait_list,
                   cl_event *        event,
-                  cl_int *          errcode_ret) CL_API_SUFFIX__VERSION_1_0;
+                  cl_int *          errcode_ret) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL_TIMER(clEnqueueMapImage);
+    return function_ptr(command_queue, image, blocking_map, map_flags, origin, region, image_row_pitch, image_slice_pitch, num_events_in_wait_list, event_wait_list, event, errcode_ret);
+}
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clEnqueueUnmapMemObject(cl_command_queue command_queue,
@@ -1019,7 +1132,10 @@ clEnqueueUnmapMemObject(cl_command_queue command_queue,
                         void *           mapped_ptr,
                         cl_uint          num_events_in_wait_list,
                         const cl_event * event_wait_list,
-                        cl_event *       event) CL_API_SUFFIX__VERSION_1_0;
+                        cl_event *       event) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL_TIMER(clEnqueueUnmapMemObject);
+    return function_ptr(command_queue, memobj, mapped_ptr, num_events_in_wait_list, event_wait_list, event);
+}
 
 #ifdef CL_VERSION_1_2
 
@@ -1030,7 +1146,10 @@ clEnqueueMigrateMemObjects(cl_command_queue       command_queue,
                            cl_mem_migration_flags flags,
                            cl_uint                num_events_in_wait_list,
                            const cl_event *       event_wait_list,
-                           cl_event *             event) CL_API_SUFFIX__VERSION_1_2;
+                           cl_event *             event) CL_API_SUFFIX__VERSION_1_2 {
+    GET_SYMBOL_TIMER(clEnqueueMigrateMemObjects);
+    return function_ptr(command_queue, num_mem_objects, mem_objects, flags, num_events_in_wait_list, event_wait_list, event);
+}
 
 #endif
 
@@ -1043,7 +1162,10 @@ clEnqueueNDRangeKernel(cl_command_queue command_queue,
                        const size_t *   local_work_size,
                        cl_uint          num_events_in_wait_list,
                        const cl_event * event_wait_list,
-                       cl_event *       event) CL_API_SUFFIX__VERSION_1_0;
+                       cl_event *       event) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL_TIMER(clEnqueueNDRangeKernel);
+    return function_ptr(command_queue, kernel, work_dim, global_work_offset, global_work_size, local_work_size, num_events_in_wait_list, event_wait_list, event);
+}
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clEnqueueNativeKernel(cl_command_queue  command_queue,
@@ -1055,7 +1177,10 @@ clEnqueueNativeKernel(cl_command_queue  command_queue,
                       const void **     args_mem_loc,
                       cl_uint           num_events_in_wait_list,
                       const cl_event *  event_wait_list,
-                      cl_event *        event) CL_API_SUFFIX__VERSION_1_0;
+                      cl_event *        event) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL_TIMER(clEnqueueNativeKernel);
+    return function_ptr(command_queue, user_func, args, cb_args, num_mem_objects, mem_list, args_mem_loc, num_events_in_wait_list, event_wait_list, event);
+}
 
 #ifdef CL_VERSION_1_2
 
@@ -1063,13 +1188,19 @@ extern CL_API_ENTRY cl_int CL_API_CALL
 clEnqueueMarkerWithWaitList(cl_command_queue  command_queue,
                             cl_uint           num_events_in_wait_list,
                             const cl_event *  event_wait_list,
-                            cl_event *        event) CL_API_SUFFIX__VERSION_1_2;
+                            cl_event *        event) CL_API_SUFFIX__VERSION_1_2 {
+    GET_SYMBOL_TIMER(clEnqueueMarkerWithWaitList);
+    return function_ptr(command_queue, num_events_in_wait_list, event_wait_list, event);
+}
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clEnqueueBarrierWithWaitList(cl_command_queue  command_queue,
                              cl_uint           num_events_in_wait_list,
                              const cl_event *  event_wait_list,
-                             cl_event *        event) CL_API_SUFFIX__VERSION_1_2;
+                             cl_event *        event) CL_API_SUFFIX__VERSION_1_2 {
+    GET_SYMBOL_TIMER(clEnqueueBarrierWithWaitList);
+    return function_ptr(command_queue, num_events_in_wait_list, event_wait_list, event);
+}
 
 #endif
 
@@ -1086,7 +1217,10 @@ clEnqueueSVMFree(cl_command_queue  command_queue,
                  void *            user_data,
                  cl_uint           num_events_in_wait_list,
                  const cl_event *  event_wait_list,
-                 cl_event *        event) CL_API_SUFFIX__VERSION_2_0;
+                 cl_event *        event) CL_API_SUFFIX__VERSION_2_0 {
+    GET_SYMBOL_TIMER(clEnqueueSVMFree);
+    return function_ptr(command_queue, num_svm_pointers, svm_pointers, pfn_free_func, user_data, num_events_in_wait_list, event_wait_list, event);
+}
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clEnqueueSVMMemcpy(cl_command_queue  command_queue,
@@ -1096,7 +1230,10 @@ clEnqueueSVMMemcpy(cl_command_queue  command_queue,
                    size_t            size,
                    cl_uint           num_events_in_wait_list,
                    const cl_event *  event_wait_list,
-                   cl_event *        event) CL_API_SUFFIX__VERSION_2_0;
+                   cl_event *        event) CL_API_SUFFIX__VERSION_2_0 {
+    GET_SYMBOL_TIMER(clEnqueueSVMMemcpy);
+    return function_ptr(command_queue, blocking_copy, dst_ptr, src_ptr, size, num_events_in_wait_list, event_wait_list, event);
+}
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clEnqueueSVMMemFill(cl_command_queue  command_queue,
@@ -1106,7 +1243,10 @@ clEnqueueSVMMemFill(cl_command_queue  command_queue,
                     size_t            size,
                     cl_uint           num_events_in_wait_list,
                     const cl_event *  event_wait_list,
-                    cl_event *        event) CL_API_SUFFIX__VERSION_2_0;
+                    cl_event *        event) CL_API_SUFFIX__VERSION_2_0 {
+    GET_SYMBOL_TIMER(clEnqueueSVMMemFill);
+    return function_ptr(command_queue, svm_ptr, pattern, pattern_size, size, num_events_in_wait_list, event_wait_list, event);
+}
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clEnqueueSVMMap(cl_command_queue  command_queue,
@@ -1116,14 +1256,20 @@ clEnqueueSVMMap(cl_command_queue  command_queue,
                 size_t            size,
                 cl_uint           num_events_in_wait_list,
                 const cl_event *  event_wait_list,
-                cl_event *        event) CL_API_SUFFIX__VERSION_2_0;
+                cl_event *        event) CL_API_SUFFIX__VERSION_2_0 {
+    GET_SYMBOL_TIMER(clEnqueueSVMMap);
+    return function_ptr(command_queue, blocking_map, flags, svm_ptr, size, num_events_in_wait_list, event_wait_list, event);
+}
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clEnqueueSVMUnmap(cl_command_queue  command_queue,
                   void *            svm_ptr,
                   cl_uint           num_events_in_wait_list,
                   const cl_event *  event_wait_list,
-                  cl_event *        event) CL_API_SUFFIX__VERSION_2_0;
+                  cl_event *        event) CL_API_SUFFIX__VERSION_2_0 {
+    GET_SYMBOL_TIMER(clEnqueueSVMUnmap);
+    return function_ptr(command_queue, svm_ptr, num_events_in_wait_list, event_wait_list, event);
+}
 
 #endif
 
@@ -1137,7 +1283,10 @@ clEnqueueSVMMigrateMem(cl_command_queue         command_queue,
                        cl_mem_migration_flags   flags,
                        cl_uint                  num_events_in_wait_list,
                        const cl_event *         event_wait_list,
-                       cl_event *               event) CL_API_SUFFIX__VERSION_2_1;
+                       cl_event *               event) CL_API_SUFFIX__VERSION_2_1 {
+    GET_SYMBOL_TIMER(clEnqueueSVMMigrateMem);
+    return function_ptr(command_queue, num_svm_pointers, svm_pointers, sizes, flags, num_events_in_wait_list, event_wait_list, event);
+}
 
 #endif
 
@@ -1152,7 +1301,10 @@ clEnqueueSVMMigrateMem(cl_command_queue         command_queue,
  */
 extern CL_API_ENTRY void * CL_API_CALL
 clGetExtensionFunctionAddressForPlatform(cl_platform_id platform,
-                                         const char *   func_name) CL_API_SUFFIX__VERSION_1_2;
+                                         const char *   func_name) CL_API_SUFFIX__VERSION_1_2 {
+    GET_SYMBOL_TIMER(clGetExtensionFunctionAddressForPlatform);
+    return function_ptr(platform, func_name);
+}
 
 #endif
 
@@ -1171,7 +1323,10 @@ clGetExtensionFunctionAddressForPlatform(cl_platform_id platform,
     clSetCommandQueueProperty(cl_command_queue              command_queue,
                               cl_command_queue_properties   properties,
                               cl_bool                       enable,
-                              cl_command_queue_properties * old_properties) CL_API_SUFFIX__VERSION_1_0_DEPRECATED;
+                              cl_command_queue_properties * old_properties) CL_API_SUFFIX__VERSION_1_0_DEPRECATED {
+    GET_SYMBOL_TIMER(clSetCommandQueueProperty);
+    return function_ptr(command_queue, properties, enable, old_properties);
+}
 #endif /* CL_USE_DEPRECATED_OPENCL_1_0_APIS */
 
 /* Deprecated OpenCL 1.1 APIs */
@@ -1183,7 +1338,10 @@ clCreateImage2D(cl_context              context,
                 size_t                  image_height,
                 size_t                  image_row_pitch,
                 void *                  host_ptr,
-                cl_int *                errcode_ret) CL_API_SUFFIX__VERSION_1_1_DEPRECATED;
+                cl_int *                errcode_ret) CL_API_SUFFIX__VERSION_1_1_DEPRECATED {
+    GET_SYMBOL_TIMER(clCreateImage2D);
+    return function_ptr(context, flags, image_format, image_width, image_height, image_row_pitch, host_ptr, errcode_ret);
+}
 
 extern CL_API_ENTRY CL_API_PREFIX__VERSION_1_1_DEPRECATED cl_mem CL_API_CALL
 clCreateImage3D(cl_context              context,
@@ -1195,48 +1353,73 @@ clCreateImage3D(cl_context              context,
                 size_t                  image_row_pitch,
                 size_t                  image_slice_pitch,
                 void *                  host_ptr,
-                cl_int *                errcode_ret) CL_API_SUFFIX__VERSION_1_1_DEPRECATED;
+                cl_int *                errcode_ret) CL_API_SUFFIX__VERSION_1_1_DEPRECATED {
+    GET_SYMBOL_TIMER(clCreateImage3D);
+    return function_ptr(context, flags, image_format, image_width, image_height, image_depth, image_row_pitch, image_slice_pitch, host_ptr, errcode_ret);
+}
 
 extern CL_API_ENTRY CL_API_PREFIX__VERSION_1_1_DEPRECATED cl_int CL_API_CALL
 clEnqueueMarker(cl_command_queue    command_queue,
-                cl_event *          event) CL_API_SUFFIX__VERSION_1_1_DEPRECATED;
+                cl_event *          event) CL_API_SUFFIX__VERSION_1_1_DEPRECATED {
+    GET_SYMBOL_TIMER(clEnqueueMarker);
+    return function_ptr(command_queue, event);
+}
 
 extern CL_API_ENTRY CL_API_PREFIX__VERSION_1_1_DEPRECATED cl_int CL_API_CALL
 clEnqueueWaitForEvents(cl_command_queue  command_queue,
                         cl_uint          num_events,
-                        const cl_event * event_list) CL_API_SUFFIX__VERSION_1_1_DEPRECATED;
+                        const cl_event * event_list) CL_API_SUFFIX__VERSION_1_1_DEPRECATED {
+    GET_SYMBOL_TIMER(clEnqueueWaitForEvents);
+    return function_ptr(command_queue, num_events, event_list);
+}
 
 extern CL_API_ENTRY CL_API_PREFIX__VERSION_1_1_DEPRECATED cl_int CL_API_CALL
-clEnqueueBarrier(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_1_DEPRECATED;
+clEnqueueBarrier(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_1_DEPRECATED {
+    GET_SYMBOL_TIMER(clEnqueueBarrier);
+    return function_ptr(command_queue);
+}
 
 extern CL_API_ENTRY CL_API_PREFIX__VERSION_1_1_DEPRECATED cl_int CL_API_CALL
-clUnloadCompiler(void) CL_API_SUFFIX__VERSION_1_1_DEPRECATED;
+clUnloadCompiler(void) CL_API_SUFFIX__VERSION_1_1_DEPRECATED {
+    GET_SYMBOL_TIMER(clUnloadCompiler);
+    return function_ptr();
+}
 
 extern CL_API_ENTRY CL_API_PREFIX__VERSION_1_1_DEPRECATED void * CL_API_CALL
-clGetExtensionFunctionAddress(const char * func_name) CL_API_SUFFIX__VERSION_1_1_DEPRECATED;
+clGetExtensionFunctionAddress(const char * func_name) CL_API_SUFFIX__VERSION_1_1_DEPRECATED {
+    GET_SYMBOL_TIMER(clGetExtensionFunctionAddress);
+    return function_ptr(func_name);
+}
 
 /* Deprecated OpenCL 2.0 APIs */
 extern CL_API_ENTRY CL_API_PREFIX__VERSION_1_2_DEPRECATED cl_command_queue CL_API_CALL
 clCreateCommandQueue(cl_context                     context,
                      cl_device_id                   device,
                      cl_command_queue_properties    properties,
-                     cl_int *                       errcode_ret) CL_API_SUFFIX__VERSION_1_2_DEPRECATED;
+                     cl_int *                       errcode_ret) CL_API_SUFFIX__VERSION_1_2_DEPRECATED {
+    GET_SYMBOL_TIMER(clCreateCommandQueue);
+    return function_ptr(context, device, properties, errcode_ret);
+}
 
 extern CL_API_ENTRY CL_API_PREFIX__VERSION_1_2_DEPRECATED cl_sampler CL_API_CALL
 clCreateSampler(cl_context          context,
                 cl_bool             normalized_coords,
                 cl_addressing_mode  addressing_mode,
                 cl_filter_mode      filter_mode,
-                cl_int *            errcode_ret) CL_API_SUFFIX__VERSION_1_2_DEPRECATED;
+                cl_int *            errcode_ret) CL_API_SUFFIX__VERSION_1_2_DEPRECATED {
+    GET_SYMBOL_TIMER(clCreateSampler);
+    return function_ptr(context, normalized_coords, addressing_mode, filter_mode, errcode_ret);
+}
 
 extern CL_API_ENTRY CL_API_PREFIX__VERSION_1_2_DEPRECATED cl_int CL_API_CALL
 clEnqueueTask(cl_command_queue  command_queue,
               cl_kernel         kernel,
               cl_uint           num_events_in_wait_list,
               const cl_event *  event_wait_list,
-              cl_event *        event) CL_API_SUFFIX__VERSION_1_2_DEPRECATED;
-
-#endif
+              cl_event *        event) CL_API_SUFFIX__VERSION_1_2_DEPRECATED {
+    GET_SYMBOL_TIMER(clEnqueueTask);
+    return function_ptr(command_queue, kernel, num_events_in_wait_list, event_wait_list, event);
+}
 
 }
 
