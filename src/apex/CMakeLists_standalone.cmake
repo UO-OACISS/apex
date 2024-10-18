@@ -45,6 +45,12 @@ if (OpenACC_CXX_FOUND AND OpenACCProfiling_FOUND)
     set(OpenACC_SOURCE apex_openacc.cpp)
 endif (OpenACC_CXX_FOUND AND OpenACCProfiling_FOUND)
 
+if (OpenCL_FOUND)
+    set(OpenCL_SOURCE apex_opencl.cpp)
+    include_directories(${OpenCL_INCLUDE_DIR})
+    add_definitions(-DCL_TARGET_OPENCL_VERSION=${OpenCL_VERSION_MAJOR}${OpenCL_VERSION_MINOR}0)
+endif (OpenCL_FOUND)
+
 if (APEX_WITH_RAJA AND RAJA_FOUND)
     set(RAJA_SOURCE apex_raja.cpp)
 endif (APEX_WITH_RAJA AND RAJA_FOUND)
@@ -79,6 +85,7 @@ event_filter.cpp
 apex_policies.cpp
 ${bfd_SOURCE}
 ${OpenACC_SOURCE}
+${OpenCL_SOURCE}
 ${RAJA_SOURCE}
 ${STARPU_SOURCE}
 ${PHIPROF_SOURCE}
