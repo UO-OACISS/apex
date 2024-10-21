@@ -261,7 +261,31 @@ clCreateCommandQueueWithProperties(cl_context               context,
                                    cl_int *                 errcode_ret) CL_API_SUFFIX__VERSION_2_0 {
     GET_SYMBOL_TIMER(clCreateCommandQueueWithProperties);
     /* todo - add profiling request! */
-    return function_ptr(context, device, properties, errcode_ret);
+    cl_queue_properties static_properties[] = {CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE, 0};
+    cl_queue_properties blank_properties[] = {0,0,0,0,0,0,0,0,0}; // 9 zeros
+    cl_queue_properties* new_properties;
+    if (properties == NULL) {
+        new_properties = static_properties;
+    } else {
+        // iterate over the properties, and add what we need
+        size_t index = 0;
+        bool foundit = false;
+        while (properties[index] != 0) {
+            blank_properties[index] = properties[index];
+            blank_properties[index+1] = properties[index+1];
+            if (properties[index] == CL_QUEUE_PROPERTIES) {
+                foundit = true;
+                blank_properties[index+1] |= CL_QUEUE_PROFILING_ENABLE;
+            }
+            index += 2;
+        }
+        if (!foundit) {
+            blank_properties[index] = CL_QUEUE_PROPERTIES;
+            blank_properties[index+1] = CL_QUEUE_PROFILING_ENABLE;
+        }
+        new_properties = blank_properties;
+    }
+    return function_ptr(context, device, new_properties, errcode_ret);
 }
 
 #endif
@@ -1398,7 +1422,9 @@ clCreateCommandQueue(cl_context                     context,
                      cl_command_queue_properties    properties,
                      cl_int *                       errcode_ret) CL_API_SUFFIX__VERSION_1_2_DEPRECATED {
     GET_SYMBOL_TIMER(clCreateCommandQueue);
-    return function_ptr(context, device, properties, errcode_ret);
+    // add profiling support!
+    auto new_properties = properties | CL_QUEUE_PROFILING_ENABLE;
+    return function_ptr(context, device, new_properties, errcode_ret);
 }
 
 extern CL_API_ENTRY CL_API_PREFIX__VERSION_1_2_DEPRECATED cl_sampler CL_API_CALL
