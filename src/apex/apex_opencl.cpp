@@ -14,7 +14,24 @@
  * limitations under the License.
  ******************************************************************************/
 
+#ifdef __APPLE__
+#include <OpenCL/opencl.h>
+#ifndef CL_API_PREFIX__VERSION_1_1_DEPRECATED
+#define CL_API_PREFIX__VERSION_1_1_DEPRECATED
+#endif
+#ifndef CL_API_SUFFIX__VERSION_1_1_DEPRECATED
+#define CL_API_SUFFIX__VERSION_1_1_DEPRECATED
+#endif
+#ifndef CL_API_PREFIX__VERSION_1_2_DEPRECATED
+#define CL_API_PREFIX__VERSION_1_2_DEPRECATED
+#endif
+#ifndef CL_API_SUFFIX__VERSION_1_2_DEPRECATED
+#define CL_API_SUFFIX__VERSION_1_2_DEPRECATED
+#endif
+#else
 #include <CL/cl.h>
+#endif
+
 #include <type_traits>
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
