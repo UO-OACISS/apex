@@ -261,8 +261,12 @@ inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
             for (size_t a = 0 ; a < p->tt_ptr->arguments.size() ; a++) {
                 auto& arg = p->tt_ptr->arguments[a];
                 switch (p->tt_ptr->argument_types[a]) {
+                    case APEX_UNSIGNED_LONG_INTEGER_TYPE: {
+                        ss << ",\"" << p->tt_ptr->argument_names[a] << "\":\"" << std::get<uint64_t>(arg) << "\"";
+                        break;
+                    }
                     case APEX_LONG_INTEGER_TYPE: {
-                        ss << ",\"" << p->tt_ptr->argument_names[a] << "\":\"" << std::get<long>(arg) << "\"";
+                        ss << ",\"" << p->tt_ptr->argument_names[a] << "\":\"" << std::get<int64_t>(arg) << "\"";
                         break;
                     }
                     case APEX_DOUBLE_TYPE: {

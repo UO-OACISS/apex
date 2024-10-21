@@ -189,7 +189,7 @@ typedef enum _profile_type {
  */
 typedef enum _argument_type {
     APEX_LONG_INTEGER_TYPE = 0,
-    APEX_UNSIGNED_LONG_INTEGER_TYPE = 0,
+    APEX_UNSIGNED_LONG_INTEGER_TYPE,
     APEX_DOUBLE_TYPE,
     APEX_STRING_TYPE,
     APEX_POINTER_TYPE,
