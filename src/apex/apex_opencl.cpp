@@ -30,6 +30,22 @@
 #endif
 #else
 #include <CL/cl.h>
+#ifdef CL_API_PREFIX__VERSION_1_1_DEPRECATED
+#undef CL_API_PREFIX__VERSION_1_1_DEPRECATED
+#define CL_API_PREFIX__VERSION_1_1_DEPRECATED
+#endif
+#ifdef CL_API_SUFFIX__VERSION_1_1_DEPRECATED
+#undef CL_API_SUFFIX__VERSION_1_1_DEPRECATED
+#define CL_API_SUFFIX__VERSION_1_1_DEPRECATED
+#endif
+#ifdef CL_API_PREFIX__VERSION_1_2_DEPRECATED
+#undef CL_API_PREFIX__VERSION_1_2_DEPRECATED
+#define CL_API_PREFIX__VERSION_1_2_DEPRECATED
+#endif
+#ifdef CL_API_SUFFIX__VERSION_1_2_DEPRECATED
+#undef CL_API_SUFFIX__VERSION_1_2_DEPRECATED
+#define CL_API_SUFFIX__VERSION_1_2_DEPRECATED
+#endif
 #endif
 
 #include <type_traits>
@@ -40,6 +56,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "apex_api.hpp"
+#include "apex.hpp"
+#include "utils.hpp"
+#include "trace_event_listener.hpp"
+#include "async_thread_node.hpp"
+#include <map>
+#include <deque>
 
 namespace apex {
 namespace opencl {
@@ -94,6 +116,66 @@ template<typename T>
 T* getsym(const char * name) {
     T* p = reinterpret_cast<T*>(get_symbol(name));
     return p;
+}
+
+class asyncEvent {
+    public:
+        asyncEvent(
+            std::shared_ptr<task_wrapper> tt_ptr,
+            cl_command_queue queue,
+            std::string name, int type) :
+            _tt_ptr(tt_ptr), _queue(queue), _name(name), _type(type),
+            _event(nullptr) { }
+        std::shared_ptr<task_wrapper> _tt_ptr;
+        cl_command_queue _queue;
+        std::string _name;
+        int _type;
+        cl_event _event;
+};
+
+std::deque<asyncEvent*>& getMap(cl_command_queue queue) {
+    static std::map<cl_command_queue, std::deque<asyncEvent*>> theMap;
+    if (theMap.count(queue) == 0) {
+        std::deque<asyncEvent*> newDeque;
+        theMap[queue] = newDeque;
+    }
+    return theMap[queue];
+}
+
+asyncEvent* new_gpu_event(scoped_timer& timer,
+    cl_command_queue queue, std::string name, int type) {
+    asyncEvent* tmp = new asyncEvent(timer.get_task_wrapper(), queue, name, type);
+    std::cout << "new event " << name << std::endl;
+    return tmp;
+}
+
+void enqueue_event(asyncEvent* event) {
+    auto& map = getMap(event->_queue);
+    map.push_back(event);
+    std::cout << "queued event " << event->_tt_ptr->task_id->get_name() << std::endl;
+}
+
+/* forward declaration, defined at end because it uses OpenCL API calls */
+void register_sync_event(cl_command_queue queue);
+
+auto& deviceMap() {
+    static std::map<cl_device_id, uint32_t> theMap;
+    return theMap;
+}
+
+auto& contextMap() {
+    static std::map<cl_context, uint32_t> theMap;
+    return theMap;
+}
+
+auto& queueMap() {
+    static std::map<cl_command_queue, uint32_t> theMap;
+    return theMap;
+}
+
+auto& queueContextDeviceMap() {
+    static std::map<cl_command_queue, std::array<uint32_t,3>> theMap;
+    return theMap;
 }
 
 } // namespace opencl
@@ -302,7 +384,21 @@ clCreateCommandQueueWithProperties(cl_context               context,
         }
         new_properties = blank_properties;
     }
-    return function_ptr(context, device, new_properties, errcode_ret);
+    auto queue = function_ptr(context, device, new_properties, errcode_ret);
+    /* save the queue and context and device */
+    if (apex::opencl::deviceMap().count(device) == 0) {
+        apex::opencl::deviceMap()[device] = apex::opencl::deviceMap().size();
+    }
+    if (apex::opencl::contextMap().count(context) == 0) {
+        apex::opencl::contextMap()[context] = apex::opencl::contextMap().size();
+    }
+    if (apex::opencl::queueMap().count(queue) == 0) {
+        apex::opencl::queueMap()[queue] = apex::opencl::queueMap().size();
+    }
+    std::array<uint32_t,3> ids{apex::opencl::deviceMap()[device],
+        apex::opencl::contextMap()[context], apex::opencl::queueMap()[queue]};
+    apex::opencl::queueContextDeviceMap()[queue] = ids;
+    return queue;
 }
 
 #endif
@@ -337,6 +433,18 @@ clCreateBuffer(cl_context   context,
                void *       host_ptr,
                cl_int *     errcode_ret) CL_API_SUFFIX__VERSION_1_0 {
     GET_SYMBOL_TIMER(clCreateBuffer);
+    auto rc = function_ptr(context, flags, size, host_ptr, errcode_ret);
+    apex::sample_value("OpenCL:Create Buffer Bytes", size);
+    return rc;
+}
+
+extern CL_API_ENTRY cl_mem CL_API_CALL
+clCreateBuffer_noinst(cl_context   context,
+               cl_mem_flags flags,
+               size_t       size,
+               void *       host_ptr,
+               cl_int *     errcode_ret) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL(clCreateBuffer);
     return function_ptr(context, flags, size, host_ptr, errcode_ret);
 }
 
@@ -394,7 +502,9 @@ clCreateBufferWithProperties(cl_context                context,
                              void *                    host_ptr,
                              cl_int *                  errcode_ret) CL_API_SUFFIX__VERSION_3_0 {
     GET_SYMBOL_TIMER(clCreateBufferWithProperties);
-    return function_ptr(context, properties, flags, size, host_prt, errcode_ret);
+    auto rc = function_ptr(context, properties, flags, size, host_prt, errcode_ret);
+    apex::sample_value("OpenCL:Create Buffer Bytes", size);
+    return rc;
 }
 
 extern CL_API_ENTRY cl_mem CL_API_CALL
@@ -491,7 +601,9 @@ clSVMAlloc(cl_context       context,
            size_t           size,
            cl_uint          alignment) CL_API_SUFFIX__VERSION_2_0 {
     GET_SYMBOL_TIMER(clSVMAlloc);
-    return function_ptr(context, flags, size, alignment);
+    auto rc = function_ptr(context, flags, size, alignment);
+    apex::sample_value("OpenCL:SVM Alloc size", size);
+    return rc;
 }
 
 extern CL_API_ENTRY void CL_API_CALL
@@ -836,6 +948,16 @@ clWaitForEvents(cl_uint             num_events,
 }
 
 extern CL_API_ENTRY cl_int CL_API_CALL
+clGetEventInfo_noinst(cl_event         event,
+               cl_event_info    param_name,
+               size_t           param_value_size,
+               void *           param_value,
+               size_t *         param_value_size_ret) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL(clGetEventInfo);
+    return function_ptr(event, param_name, param_value_size, param_value, param_value_size_ret);
+}
+
+extern CL_API_ENTRY cl_int CL_API_CALL
 clGetEventInfo(cl_event         event,
                cl_event_info    param_name,
                size_t           param_value_size,
@@ -859,6 +981,12 @@ clCreateUserEvent(cl_context    context,
 extern CL_API_ENTRY cl_int CL_API_CALL
 clRetainEvent(cl_event event) CL_API_SUFFIX__VERSION_1_0 {
     GET_SYMBOL_TIMER(clRetainEvent);
+    return function_ptr(event);
+}
+
+extern CL_API_ENTRY cl_int CL_API_CALL
+clReleaseEvent_noinst(cl_event event) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL(clReleaseEvent);
     return function_ptr(event);
 }
 
@@ -890,21 +1018,34 @@ clSetEventCallback(cl_event    event,
 
 #endif
 
-#if 0
 /* Profiling APIs */
 extern CL_API_ENTRY cl_int CL_API_CALL
-clGetEventProfilingInfo(cl_event            event,
+clGetEventProfilingInfo_noinst(cl_event            event,
                         cl_profiling_info   param_name,
                         size_t              param_value_size,
                         void *              param_value,
-                        size_t *            param_value_size_ret) CL_API_SUFFIX__VERSION_1_0;
-#endif
+                        size_t *            param_value_size_ret) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL(clGetEventProfilingInfo);
+    return function_ptr(event, param_name, param_value_size, param_value, param_value_size_ret);
+}
 
 //////////
 /* Flush and Finish APIs */
 extern CL_API_ENTRY cl_int CL_API_CALL
+clFlush_noinst(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL(clFlush);
+    return function_ptr(command_queue);
+}
+
+extern CL_API_ENTRY cl_int CL_API_CALL
 clFlush(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_0 {
     GET_SYMBOL_TIMER(clFlush);
+    return function_ptr(command_queue);
+}
+
+extern CL_API_ENTRY cl_int CL_API_CALL
+clFinish_noinst(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL(clFinish);
     return function_ptr(command_queue);
 }
 
@@ -927,7 +1068,20 @@ clEnqueueReadBuffer(cl_command_queue    command_queue,
                     const cl_event *    event_wait_list,
                     cl_event *          event) CL_API_SUFFIX__VERSION_1_0 {
     GET_SYMBOL_TIMER(clEnqueueReadBuffer);
-    return function_ptr(command_queue, buffer, blocking_read, offset, size, ptr, num_events_in_wait_list, event_wait_list, event);
+    apex::opencl::asyncEvent* myEvent =
+        apex::opencl::new_gpu_event(timer, command_queue, "Read Buffer", 0);
+    if (event == nullptr) {
+        event = &(myEvent->_event);
+    }
+    auto rc = function_ptr(command_queue, buffer, blocking_read, offset, size, ptr, num_events_in_wait_list, event_wait_list, event);
+    apex::sample_value("OpenCL:Bytes copied from Device to Host", size);
+    if (myEvent->_event == nullptr) {
+        myEvent->_event = *event;
+        clRetainEvent(myEvent->_event);
+    }
+    apex::opencl::enqueue_event(myEvent);
+    apex::opencl::register_sync_event(command_queue);
+    return rc;
 }
 
 #ifdef CL_VERSION_1_1
@@ -954,6 +1108,20 @@ clEnqueueReadBufferRect(cl_command_queue    command_queue,
 #endif
 
 extern CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueWriteBuffer_noinst(cl_command_queue   command_queue,
+                     cl_mem             buffer,
+                     cl_bool            blocking_write,
+                     size_t             offset,
+                     size_t             size,
+                     const void *       ptr,
+                     cl_uint            num_events_in_wait_list,
+                     const cl_event *   event_wait_list,
+                     cl_event *         event) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL(clEnqueueWriteBuffer);
+    return function_ptr(command_queue, buffer, blocking_write, offset, size, ptr, num_events_in_wait_list, event_wait_list, event);
+}
+
+extern CL_API_ENTRY cl_int CL_API_CALL
 clEnqueueWriteBuffer(cl_command_queue   command_queue,
                      cl_mem             buffer,
                      cl_bool            blocking_write,
@@ -964,7 +1132,20 @@ clEnqueueWriteBuffer(cl_command_queue   command_queue,
                      const cl_event *   event_wait_list,
                      cl_event *         event) CL_API_SUFFIX__VERSION_1_0 {
     GET_SYMBOL_TIMER(clEnqueueWriteBuffer);
-    return function_ptr(command_queue, buffer, blocking_write, offset, size, ptr, num_events_in_wait_list, event_wait_list, event);
+    apex::opencl::asyncEvent* myEvent =
+        apex::opencl::new_gpu_event(timer, command_queue, "Write Buffer", 0);
+    if (event == nullptr) {
+        event = &(myEvent->_event);
+    }
+    auto rc = function_ptr(command_queue, buffer, blocking_write, offset, size, ptr, num_events_in_wait_list, event_wait_list, event);
+    apex::sample_value("OpenCL:Bytes copied from Host to Device", size);
+    if (myEvent->_event == nullptr) {
+        myEvent->_event = *event;
+        clRetainEvent(myEvent->_event);
+    }
+    apex::opencl::enqueue_event(myEvent);
+    apex::opencl::register_sync_event(command_queue);
+    return rc;
 }
 
 #ifdef CL_VERSION_1_1
@@ -1003,7 +1184,9 @@ clEnqueueFillBuffer(cl_command_queue   command_queue,
                     const cl_event *   event_wait_list,
                     cl_event *         event) CL_API_SUFFIX__VERSION_1_2 {
     GET_SYMBOL_TIMER(clEnqueueFillBuffer);
-    return function_ptr(command_queue, buffer, pattern, pattern_size, offset, size, num_events_in_wait_list, event_wait_list, event);
+    auto rc = function_ptr(command_queue, buffer, pattern, pattern_size, offset, size, num_events_in_wait_list, event_wait_list, event);
+    apex::sample_value("OpenCL:Fill buffer size", size);
+    return rc;
 }
 
 #endif
@@ -1019,7 +1202,20 @@ clEnqueueCopyBuffer(cl_command_queue    command_queue,
                     const cl_event *    event_wait_list,
                     cl_event *          event) CL_API_SUFFIX__VERSION_1_0 {
     GET_SYMBOL_TIMER(clEnqueueCopyBuffer);
-    return function_ptr(command_queue, src_buffer, dst_buffer, src_offset, dst_offset, size, num_events_in_wait_list, event_wait_list, event);
+    apex::opencl::asyncEvent* myEvent =
+            apex::opencl::new_gpu_event(timer, command_queue, "Copy Buffer", 0);
+    if (event == nullptr) {
+        event = &(myEvent->_event);
+    }
+    auto rc = function_ptr(command_queue, src_buffer, dst_buffer, src_offset, dst_offset, size, num_events_in_wait_list, event_wait_list, event);
+    apex::sample_value("OpenCL:Bytes copied Device to Device", size);
+    if (myEvent->_event == nullptr) {
+        myEvent->_event = *event;
+        clRetainEvent(myEvent->_event);
+    }
+    apex::opencl::enqueue_event(myEvent);
+    apex::opencl::register_sync_event(command_queue);
+    return rc;
 }
 
 #ifdef CL_VERSION_1_1
@@ -1147,7 +1343,20 @@ clEnqueueMapBuffer(cl_command_queue command_queue,
                    cl_event *       event,
                    cl_int *         errcode_ret) CL_API_SUFFIX__VERSION_1_0 {
     GET_SYMBOL_TIMER(clEnqueueMapBuffer);
-    return function_ptr(command_queue, buffer, blocking_map, map_flags, offset, size, num_events_in_wait_list, event_wait_list, event, errcode_ret);
+    apex::opencl::asyncEvent* myEvent =
+            apex::opencl::new_gpu_event(timer, command_queue, "Map Buffer", 0);
+    if (event == nullptr) {
+        event = &(myEvent->_event);
+    }
+    auto rc = function_ptr(command_queue, buffer, blocking_map, map_flags, offset, size, num_events_in_wait_list, event_wait_list, event, errcode_ret);
+    apex::sample_value("OpenCL:Bytes copied from Host to Device", size);
+    if (myEvent->_event == nullptr) {
+        myEvent->_event = *event;
+        clRetainEvent(myEvent->_event);
+    }
+    apex::opencl::enqueue_event(myEvent);
+    apex::opencl::register_sync_event(command_queue);
+    return rc;
 }
 
 extern CL_API_ENTRY void * CL_API_CALL
@@ -1175,7 +1384,20 @@ clEnqueueUnmapMemObject(cl_command_queue command_queue,
                         const cl_event * event_wait_list,
                         cl_event *       event) CL_API_SUFFIX__VERSION_1_0 {
     GET_SYMBOL_TIMER(clEnqueueUnmapMemObject);
-    return function_ptr(command_queue, memobj, mapped_ptr, num_events_in_wait_list, event_wait_list, event);
+    apex::opencl::asyncEvent* myEvent =
+            apex::opencl::new_gpu_event(timer, command_queue, "Unmap Buffer", 0);
+    if (event == nullptr) {
+        event = &(myEvent->_event);
+    }
+    auto rc = function_ptr(command_queue, memobj, mapped_ptr, num_events_in_wait_list, event_wait_list, event);
+    apex::sample_value("OpenCL:Bytes copied from Device to Host", 0);
+    if (myEvent->_event == nullptr) {
+        myEvent->_event = *event;
+        clRetainEvent(myEvent->_event);
+    }
+    apex::opencl::enqueue_event(myEvent);
+    apex::opencl::register_sync_event(command_queue);
+    return rc;
 }
 
 #ifdef CL_VERSION_1_2
@@ -1205,7 +1427,30 @@ clEnqueueNDRangeKernel(cl_command_queue command_queue,
                        const cl_event * event_wait_list,
                        cl_event *       event) CL_API_SUFFIX__VERSION_1_0 {
     GET_SYMBOL_TIMER(clEnqueueNDRangeKernel);
-    return function_ptr(command_queue, kernel, work_dim, global_work_offset, global_work_size, local_work_size, num_events_in_wait_list, event_wait_list, event);
+    constexpr size_t size{4096};
+    char buf[size] = {0};
+    size_t len;
+    char const * name;
+    cl_int err = clGetKernelInfo(kernel, CL_KERNEL_FUNCTION_NAME, size, buf, &len);
+    if (err != CL_SUCCESS) {
+      name = "unknown";
+    } else {
+      name = buf;
+    }
+    std::string dem_name = apex::demangle(name);
+    apex::opencl::asyncEvent* myEvent =
+            apex::opencl::new_gpu_event(timer, command_queue, name, 0);
+    if (event == nullptr) {
+        event = &(myEvent->_event);
+    }
+    auto rc = function_ptr(command_queue, kernel, work_dim, global_work_offset, global_work_size, local_work_size, num_events_in_wait_list, event_wait_list, event);
+    if (myEvent->_event == nullptr) {
+        myEvent->_event = *event;
+        clRetainEvent(myEvent->_event);
+    }
+    apex::opencl::enqueue_event(myEvent);
+    apex::opencl::register_sync_event(command_queue);
+    return rc;
 }
 
 extern CL_API_ENTRY cl_int CL_API_CALL
@@ -1273,7 +1518,9 @@ clEnqueueSVMMemcpy(cl_command_queue  command_queue,
                    const cl_event *  event_wait_list,
                    cl_event *        event) CL_API_SUFFIX__VERSION_2_0 {
     GET_SYMBOL_TIMER(clEnqueueSVMMemcpy);
-    return function_ptr(command_queue, blocking_copy, dst_ptr, src_ptr, size, num_events_in_wait_list, event_wait_list, event);
+    auto rc = function_ptr(command_queue, blocking_copy, dst_ptr, src_ptr, size, num_events_in_wait_list, event_wait_list, event);
+    apex::sample_value("OpenCL:SVM Copy size", size);
+    return rc;
 }
 
 extern CL_API_ENTRY cl_int CL_API_CALL
@@ -1286,7 +1533,9 @@ clEnqueueSVMMemFill(cl_command_queue  command_queue,
                     const cl_event *  event_wait_list,
                     cl_event *        event) CL_API_SUFFIX__VERSION_2_0 {
     GET_SYMBOL_TIMER(clEnqueueSVMMemFill);
-    return function_ptr(command_queue, svm_ptr, pattern, pattern_size, size, num_events_in_wait_list, event_wait_list, event);
+    auto rc = function_ptr(command_queue, svm_ptr, pattern, pattern_size, size, num_events_in_wait_list, event_wait_list, event);
+    apex::sample_value("OpenCL:SVM Fill size", size);
+    return rc;
 }
 
 extern CL_API_ENTRY cl_int CL_API_CALL
@@ -1299,7 +1548,9 @@ clEnqueueSVMMap(cl_command_queue  command_queue,
                 const cl_event *  event_wait_list,
                 cl_event *        event) CL_API_SUFFIX__VERSION_2_0 {
     GET_SYMBOL_TIMER(clEnqueueSVMMap);
-    return function_ptr(command_queue, blocking_map, flags, svm_ptr, size, num_events_in_wait_list, event_wait_list, event);
+    auto rc = function_ptr(command_queue, blocking_map, flags, svm_ptr, size, num_events_in_wait_list, event_wait_list, event);
+    apex::sample_value("OpenCL:SVM Map size", size);
+    return rc;
 }
 
 extern CL_API_ENTRY cl_int CL_API_CALL
@@ -1466,3 +1717,110 @@ clEnqueueTask(cl_command_queue  command_queue,
 
 }
 
+namespace apex {
+namespace opencl {
+
+void store_profiler_data(asyncEvent* event, cl_ulong start, cl_ulong end, opencl_thread_node& node) {
+    in_apex prevent_deadlocks;
+    // Get the singleton APEX instance
+    static apex* instance = apex::instance();
+    std::string category{"ControlFlow"};
+    bool reverseFlow = false;
+    // get the parent GUID, then erase the correlation from the map
+    std::shared_ptr<task_wrapper> parent = event->_tt_ptr;
+    async_event_data as_data;
+    // Build the name
+    std::stringstream ss;
+    ss << "GPU: " << std::string(event->_name);
+    std::string tmp{ss.str()};
+    // create a task_wrapper, as a GPU child of the parent on the CPU side
+    auto tt = new_task(tmp, UINT64_MAX, parent);
+    // create an APEX profiler to store this data - we can't start
+    // then stop because we have timestamps already.
+    auto prof = std::make_shared<profiler>(tt);
+    prof->set_start(start); // + deltaTimestamp);
+    prof->set_end(end); // + deltaTimestamp);
+    // important!  Otherwise we might get the wrong end timestamp.
+    prof->stopped = true;
+    // fake out the profiler_listener
+    instance->the_profiler_listener->push_profiler_public(prof);
+    // Handle tracing, if necessary
+#if defined(APEX_WITH_PERFETTO)
+    if (apex_options::use_perfetto()) {
+        perfetto_listener * tel =
+            (perfetto_listener*)instance->the_perfetto_listener;
+        as_data.cat = category;
+        as_data.reverse_flow = reverseFlow;
+        tel->on_async_event(node, prof, as_data);
+    }
+#endif
+    if (apex_options::use_trace_event()) {
+        trace_event_listener * tel =
+            (trace_event_listener*)instance->the_trace_event_listener;
+        as_data.cat = category;
+        as_data.reverse_flow = reverseFlow;
+        tel->on_async_event(node, prof, as_data);
+    }
+#ifdef APEX_HAVE_OTF2
+    if (apex_options::use_otf2()) {
+        otf2_listener * tol =
+            (otf2_listener*)instance->the_otf2_listener;
+        tol->on_async_event(node, prof);
+    }
+#endif
+    // have the listeners handle the end of this task
+    instance->complete_task(tt);
+}
+
+void register_sync_event(cl_command_queue queue) {
+    auto& event_queue = getMap(queue);
+    while(!event_queue.empty())
+    {
+        cl_int err = CL_SUCCESS;
+        cl_ulong startTime, endTime, queuedTime, submitTime;
+        asyncEvent* kernel_data = event_queue.front();
+        const auto checkError = [=](const char * msg) {
+            if (err != CL_SUCCESS) {
+                printf("%s", msg);
+                abort();
+            }
+        };
+
+        cl_int status;
+        err = clGetEventInfo_noinst(kernel_data->_event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(cl_int), &status, NULL);
+        checkError("Fatal error: calling clGetEventInfo, exiting.\n");
+        if (status != CL_COMPLETE) continue;
+
+        err = clGetEventProfilingInfo_noinst(kernel_data->_event, CL_PROFILING_COMMAND_QUEUED,
+            sizeof(cl_ulong), &queuedTime, NULL);
+        checkError("Cannot get queued time for Kernel event.\n");
+        err = clGetEventProfilingInfo_noinst(kernel_data->_event, CL_PROFILING_COMMAND_SUBMIT,
+            sizeof(cl_ulong), &submitTime, NULL);
+        checkError("Cannot get submit time for Kernel event.\n");
+        err = clGetEventProfilingInfo_noinst(kernel_data->_event, CL_PROFILING_COMMAND_START,
+            sizeof(cl_ulong), &startTime, NULL);
+        checkError("Cannot get start time for Kernel event.\n");
+        err = clGetEventProfilingInfo_noinst(kernel_data->_event, CL_PROFILING_COMMAND_END,
+            sizeof(cl_ulong), &endTime, NULL);
+        checkError("Cannot get end time for Kernel event.\n");
+
+        sample_value("Time in Queue (us)", (startTime - queuedTime)/1e3);
+        sample_value("Time in Submitted (us)", (startTime - submitTime)/1e3);
+        /*
+        if (kernel_data->isMemcpy()) {
+            Tau_opencl_register_memcpy_event(kernel_data, (double)startTime, (double)endTime,
+                TAU_GPU_UNKNOWN_TRANSFER_SIZE, kernel_data->memcpy_type);
+        } else {
+            Tau_opencl_register_gpu_event(kernel_data, (double)startTime, (double)endTime);
+        }
+        */
+        std::array<uint32_t, 3> ids = queueContextDeviceMap().find(kernel_data->_queue)->second;
+        opencl_thread_node node(ids[0], ids[1], ids[2], APEX_ASYNC_MEMORY);
+        store_profiler_data(kernel_data, startTime, endTime, node);
+        event_queue.pop_front();
+        clReleaseEvent_noinst(kernel_data->_event);
+    }
+}
+
+} // namespace opencl;
+} // namespace apex;

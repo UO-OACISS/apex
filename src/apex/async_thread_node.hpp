@@ -142,6 +142,26 @@ namespace apex {
         }
     };
 
+    /* The opencl node has device, command_queue */
+    class opencl_thread_node : public base_thread_node {
+    public:
+        opencl_thread_node(uint32_t device, uint32_t context, uint32_t queue,
+            apex_async_activity_t activity) :
+            base_thread_node(device, context, queue, activity) { }
+        virtual std::string name () {
+            std::stringstream ss;
+            ss << "GPU [" << _device << ":" << _context << ":" << _stream << "]";
+            std::string tmp{ss.str()};
+            return tmp;
+        }
+        virtual uint32_t sortable_tid () {
+            uint32_t tid = ((_device+1) << 28);
+            tid = tid + (_context << 22);
+            tid = tid + _stream;
+            return tid;
+        }
+    };
+
 
 }
 

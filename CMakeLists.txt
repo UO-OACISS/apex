@@ -25,6 +25,12 @@ if (${CMAKE_MAJOR_VERSION} GREATER 2)
     endif()
 endif()
 
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "IntelLLVM")
+    # Tell the Intel compiler to be quiet
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Rno-debug-disables-optimization")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Rno-debug-disables-optimization")
+endif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "IntelLLVM")
+
 set (CMAKE_CXX_EXTENSIONS_COMPUTED_DEFAULT OFF)
 set (CMAKE_CXX_STANDARD_COMPUTED_DEFAULT 17)
 
