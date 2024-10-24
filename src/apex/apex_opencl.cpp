@@ -1887,12 +1887,12 @@ void register_sync_event(cl_command_queue queue) {
 }
 
 double sync_clocks(queueData& qData) {
+    cl_int err{CL_SUCCESS};
 #ifdef CL_VERSION_2_1
+/*
     // Provided by CL_VERSION_2_1
     cl_ulong device_timestamp;
     cl_ulong host_timestamp;
-    cl_int err{CL_SUCCESS};
-/*
     err = clGetDeviceAndHostTimer_noinst(qData.device,
         &device_timestamp, &host_timestamp);
     if (err == CL_SUCCESS) {
@@ -1917,14 +1917,11 @@ double sync_clocks(queueData& qData) {
     buffer = clCreateBuffer_noinst(qData.context, CL_MEM_READ_WRITE|CL_MEM_ALLOC_HOST_PTR, sizeof(void*), NULL, &err);
     checkError("Cannot Create Sync Buffer.\n");
     double cpu_timestamp;
-    struct timeval tp;
     cl_ulong gpu_timestamp;
-
     cl_event sync_event;
     err = clEnqueueWriteBuffer_noinst(qData.queue, buffer, CL_TRUE, 0, sizeof(void*), data,  0, NULL, &sync_event);
     checkError("Cannot Enqueue Sync Kernel.\n");
     //get CPU timestamp.
-    gettimeofday(&tp, 0);
     cpu_timestamp = ((double)profiler::now_ns());
     //get GPU timestamp for finish.
     clFinish_noinst(qData.queue);
