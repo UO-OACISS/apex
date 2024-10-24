@@ -1791,7 +1791,6 @@ void store_profiler_data(asyncEvent* event, cl_ulong start, cl_ulong end, opencl
     std::string category{(event->_type == APEX_ASYNC_MEMORY ? "DataFlow" : "ControlFlow")};
     // get the parent GUID, then erase the correlation from the map
     std::shared_ptr<task_wrapper> parent = event->_tt_ptr;
-    async_event_data as_data;
     // Build the name
     std::stringstream ss;
     ss << "GPU: " << std::string(event->_name);
@@ -1808,11 +1807,14 @@ void store_profiler_data(asyncEvent* event, cl_ulong start, cl_ulong end, opencl
     // fake out the profiler_listener
     instance->the_profiler_listener->push_profiler_public(prof);
     // Handle tracing, if necessary
+    async_event_data as_data(parent->prof->get_start_us(),
+        category, 0L, thread_instance::get_id(), tmp);
 #if defined(APEX_WITH_PERFETTO)
     if (apex_options::use_perfetto()) {
         perfetto_listener * tel =
             (perfetto_listener*)instance->the_perfetto_listener;
         as_data.cat = category;
+        as_data.flow = true;
         as_data.reverse_flow = event->_reverseFlow;
         tel->on_async_event(node, prof, as_data);
     }
@@ -1821,6 +1823,7 @@ void store_profiler_data(asyncEvent* event, cl_ulong start, cl_ulong end, opencl
         trace_event_listener * tel =
             (trace_event_listener*)instance->the_trace_event_listener;
         as_data.cat = category;
+        as_data.flow = true;
         as_data.reverse_flow = event->_reverseFlow;
         tel->on_async_event(node, prof, as_data);
     }
