@@ -123,14 +123,15 @@ class asyncEvent {
         asyncEvent(
             std::shared_ptr<task_wrapper> tt_ptr,
             cl_command_queue queue,
-            std::string name, int type) :
+            std::string name, apex_async_activity_t type) :
             _tt_ptr(tt_ptr), _queue(queue), _name(name), _type(type),
-            _event(nullptr) { }
+            _event(nullptr), _reverseFlow(false) { }
         std::shared_ptr<task_wrapper> _tt_ptr;
         cl_command_queue _queue;
         std::string _name;
-        int _type;
+        apex_async_activity_t _type;
         cl_event _event;
+        bool _reverseFlow;
 };
 
 std::deque<asyncEvent*>& getMap(cl_command_queue queue) {
@@ -143,7 +144,7 @@ std::deque<asyncEvent*>& getMap(cl_command_queue queue) {
 }
 
 asyncEvent* new_gpu_event(scoped_timer& timer,
-    cl_command_queue queue, std::string name, int type) {
+    cl_command_queue queue, std::string name, apex_async_activity_t type) {
     asyncEvent* tmp = new asyncEvent(timer.get_task_wrapper(), queue, name, type);
     std::cout << "new event " << name << std::endl;
     return tmp;
@@ -1067,13 +1068,17 @@ clEnqueueReadBuffer(cl_command_queue    command_queue,
                     cl_uint             num_events_in_wait_list,
                     const cl_event *    event_wait_list,
                     cl_event *          event) CL_API_SUFFIX__VERSION_1_0 {
-    GET_SYMBOL_TIMER(clEnqueueReadBuffer);
-    apex::opencl::asyncEvent* myEvent =
-        apex::opencl::new_gpu_event(timer, command_queue, "Read Buffer", 0);
+    cl_int rc = CL_SUCCESS;
+    apex::opencl::asyncEvent* myEvent = nullptr;
+    {
+        GET_SYMBOL_TIMER(clEnqueueReadBuffer);
+        rc = function_ptr(command_queue, buffer, blocking_read, offset, size, ptr, num_events_in_wait_list, event_wait_list, event);
+        myEvent = apex::opencl::new_gpu_event(timer, command_queue, "Read Buffer", APEX_ASYNC_MEMORY);
+    }
+    myEvent->_reverseFlow = true;
     if (event == nullptr) {
         event = &(myEvent->_event);
     }
-    auto rc = function_ptr(command_queue, buffer, blocking_read, offset, size, ptr, num_events_in_wait_list, event_wait_list, event);
     apex::sample_value("OpenCL:Bytes copied from Device to Host", size);
     if (myEvent->_event == nullptr) {
         myEvent->_event = *event;
@@ -1131,13 +1136,16 @@ clEnqueueWriteBuffer(cl_command_queue   command_queue,
                      cl_uint            num_events_in_wait_list,
                      const cl_event *   event_wait_list,
                      cl_event *         event) CL_API_SUFFIX__VERSION_1_0 {
-    GET_SYMBOL_TIMER(clEnqueueWriteBuffer);
-    apex::opencl::asyncEvent* myEvent =
-        apex::opencl::new_gpu_event(timer, command_queue, "Write Buffer", 0);
+    cl_int rc = CL_SUCCESS;
+    apex::opencl::asyncEvent* myEvent = nullptr;
+    {
+        GET_SYMBOL_TIMER(clEnqueueWriteBuffer);
+        myEvent = apex::opencl::new_gpu_event(timer, command_queue, "Write Buffer", APEX_ASYNC_MEMORY);
+        rc = function_ptr(command_queue, buffer, blocking_write, offset, size, ptr, num_events_in_wait_list, event_wait_list, event);
+    }
     if (event == nullptr) {
         event = &(myEvent->_event);
     }
-    auto rc = function_ptr(command_queue, buffer, blocking_write, offset, size, ptr, num_events_in_wait_list, event_wait_list, event);
     apex::sample_value("OpenCL:Bytes copied from Host to Device", size);
     if (myEvent->_event == nullptr) {
         myEvent->_event = *event;
@@ -1201,13 +1209,16 @@ clEnqueueCopyBuffer(cl_command_queue    command_queue,
                     cl_uint             num_events_in_wait_list,
                     const cl_event *    event_wait_list,
                     cl_event *          event) CL_API_SUFFIX__VERSION_1_0 {
-    GET_SYMBOL_TIMER(clEnqueueCopyBuffer);
-    apex::opencl::asyncEvent* myEvent =
-            apex::opencl::new_gpu_event(timer, command_queue, "Copy Buffer", 0);
+    cl_int rc = CL_SUCCESS;
+    apex::opencl::asyncEvent* myEvent = nullptr;
+    {
+        GET_SYMBOL_TIMER(clEnqueueCopyBuffer);
+        myEvent = apex::opencl::new_gpu_event(timer, command_queue, "Copy Buffer", APEX_ASYNC_MEMORY);
+        rc = function_ptr(command_queue, src_buffer, dst_buffer, src_offset, dst_offset, size, num_events_in_wait_list, event_wait_list, event);
+    }
     if (event == nullptr) {
         event = &(myEvent->_event);
     }
-    auto rc = function_ptr(command_queue, src_buffer, dst_buffer, src_offset, dst_offset, size, num_events_in_wait_list, event_wait_list, event);
     apex::sample_value("OpenCL:Bytes copied Device to Device", size);
     if (myEvent->_event == nullptr) {
         myEvent->_event = *event;
@@ -1342,13 +1353,16 @@ clEnqueueMapBuffer(cl_command_queue command_queue,
                    const cl_event * event_wait_list,
                    cl_event *       event,
                    cl_int *         errcode_ret) CL_API_SUFFIX__VERSION_1_0 {
-    GET_SYMBOL_TIMER(clEnqueueMapBuffer);
-    apex::opencl::asyncEvent* myEvent =
-            apex::opencl::new_gpu_event(timer, command_queue, "Map Buffer", 0);
+    void * rc = nullptr;
+    apex::opencl::asyncEvent* myEvent = nullptr;
+    {
+        GET_SYMBOL_TIMER(clEnqueueMapBuffer);
+        myEvent = apex::opencl::new_gpu_event(timer, command_queue, "Map Buffer", APEX_ASYNC_MEMORY);
+        rc = function_ptr(command_queue, buffer, blocking_map, map_flags, offset, size, num_events_in_wait_list, event_wait_list, event, errcode_ret);
+    }
     if (event == nullptr) {
         event = &(myEvent->_event);
     }
-    auto rc = function_ptr(command_queue, buffer, blocking_map, map_flags, offset, size, num_events_in_wait_list, event_wait_list, event, errcode_ret);
     apex::sample_value("OpenCL:Bytes copied from Host to Device", size);
     if (myEvent->_event == nullptr) {
         myEvent->_event = *event;
@@ -1383,13 +1397,17 @@ clEnqueueUnmapMemObject(cl_command_queue command_queue,
                         cl_uint          num_events_in_wait_list,
                         const cl_event * event_wait_list,
                         cl_event *       event) CL_API_SUFFIX__VERSION_1_0 {
-    GET_SYMBOL_TIMER(clEnqueueUnmapMemObject);
-    apex::opencl::asyncEvent* myEvent =
-            apex::opencl::new_gpu_event(timer, command_queue, "Unmap Buffer", 0);
+    cl_int rc = CL_SUCCESS;
+    apex::opencl::asyncEvent* myEvent = nullptr;
+    {
+        GET_SYMBOL_TIMER(clEnqueueUnmapMemObject);
+        myEvent = apex::opencl::new_gpu_event(timer, command_queue, "Unmap Buffer", APEX_ASYNC_MEMORY);
+        rc = function_ptr(command_queue, memobj, mapped_ptr, num_events_in_wait_list, event_wait_list, event);
+    }
+    myEvent->_reverseFlow = true;
     if (event == nullptr) {
         event = &(myEvent->_event);
     }
-    auto rc = function_ptr(command_queue, memobj, mapped_ptr, num_events_in_wait_list, event_wait_list, event);
     apex::sample_value("OpenCL:Bytes copied from Device to Host", 0);
     if (myEvent->_event == nullptr) {
         myEvent->_event = *event;
@@ -1426,7 +1444,6 @@ clEnqueueNDRangeKernel(cl_command_queue command_queue,
                        cl_uint          num_events_in_wait_list,
                        const cl_event * event_wait_list,
                        cl_event *       event) CL_API_SUFFIX__VERSION_1_0 {
-    GET_SYMBOL_TIMER(clEnqueueNDRangeKernel);
     constexpr size_t size{4096};
     char buf[size] = {0};
     size_t len;
@@ -1438,12 +1455,16 @@ clEnqueueNDRangeKernel(cl_command_queue command_queue,
       name = buf;
     }
     std::string dem_name = apex::demangle(name);
-    apex::opencl::asyncEvent* myEvent =
-            apex::opencl::new_gpu_event(timer, command_queue, name, 0);
+    cl_int rc = CL_SUCCESS;
+    apex::opencl::asyncEvent* myEvent = nullptr;
+    {
+        GET_SYMBOL_TIMER(clEnqueueNDRangeKernel);
+        myEvent = apex::opencl::new_gpu_event(timer, command_queue, name, APEX_ASYNC_KERNEL);
+        rc = function_ptr(command_queue, kernel, work_dim, global_work_offset, global_work_size, local_work_size, num_events_in_wait_list, event_wait_list, event);
+    }
     if (event == nullptr) {
         event = &(myEvent->_event);
     }
-    auto rc = function_ptr(command_queue, kernel, work_dim, global_work_offset, global_work_size, local_work_size, num_events_in_wait_list, event_wait_list, event);
     if (myEvent->_event == nullptr) {
         myEvent->_event = *event;
         clRetainEvent(myEvent->_event);
@@ -1724,8 +1745,7 @@ void store_profiler_data(asyncEvent* event, cl_ulong start, cl_ulong end, opencl
     in_apex prevent_deadlocks;
     // Get the singleton APEX instance
     static apex* instance = apex::instance();
-    std::string category{"ControlFlow"};
-    bool reverseFlow = false;
+    std::string category{(event->_type == APEX_ASYNC_MEMORY ? "DataFlow" : "ControlFlow")};
     // get the parent GUID, then erase the correlation from the map
     std::shared_ptr<task_wrapper> parent = event->_tt_ptr;
     async_event_data as_data;
@@ -1750,7 +1770,7 @@ void store_profiler_data(asyncEvent* event, cl_ulong start, cl_ulong end, opencl
         perfetto_listener * tel =
             (perfetto_listener*)instance->the_perfetto_listener;
         as_data.cat = category;
-        as_data.reverse_flow = reverseFlow;
+        as_data.reverse_flow = event->_reverseFlow;
         tel->on_async_event(node, prof, as_data);
     }
 #endif
@@ -1758,7 +1778,7 @@ void store_profiler_data(asyncEvent* event, cl_ulong start, cl_ulong end, opencl
         trace_event_listener * tel =
             (trace_event_listener*)instance->the_trace_event_listener;
         as_data.cat = category;
-        as_data.reverse_flow = reverseFlow;
+        as_data.reverse_flow = event->_reverseFlow;
         tel->on_async_event(node, prof, as_data);
     }
 #ifdef APEX_HAVE_OTF2
