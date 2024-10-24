@@ -174,10 +174,21 @@ auto& queueMap() {
     return theMap;
 }
 
+class queueData {
+public:
+    std::array<uint32_t,3> ids;
+    cl_command_queue queue;
+    cl_context context;
+    cl_device_id device;
+    double offset;
+};
+
 auto& queueContextDeviceMap() {
-    static std::map<cl_command_queue, std::array<uint32_t,3>> theMap;
+    static std::map<cl_command_queue, queueData> theMap;
     return theMap;
 }
+
+double sync_clocks(queueData& qData);
 
 } // namespace opencl
 } // namespace apex
@@ -222,7 +233,6 @@ clGetDeviceIDs(cl_platform_id   platform,
     return function_ptr(platform, device_type, num_entries, devices, num_devices);
 }
 
-
 extern CL_API_ENTRY cl_int CL_API_CALL
 clGetDeviceInfo(cl_device_id    device,
                 cl_device_info  param_name,
@@ -230,6 +240,16 @@ clGetDeviceInfo(cl_device_id    device,
                 void *          param_value,
                 size_t *        param_value_size_ret) CL_API_SUFFIX__VERSION_1_0 {
     GET_SYMBOL_TIMER(clGetDeviceInfo);
+    return function_ptr(device, param_name, param_value_size, param_value, param_value_size_ret);
+}
+
+extern CL_API_ENTRY cl_int CL_API_CALL
+clGetDeviceInfo_noinst(cl_device_id    device,
+                cl_device_info  param_name,
+                size_t          param_value_size,
+                void *          param_value,
+                size_t *        param_value_size_ret) CL_API_SUFFIX__VERSION_1_0 {
+    GET_SYMBOL(clGetDeviceInfo);
     return function_ptr(device, param_name, param_value_size, param_value, param_value_size_ret);
 }
 
@@ -271,11 +291,26 @@ clSetDefaultDeviceCommandQueue(cl_context           context,
 }
 
 extern CL_API_ENTRY cl_int CL_API_CALL
+clGetDeviceAndHostTimer_noinst(cl_device_id    device,
+                        cl_ulong*       device_timestamp,
+                        cl_ulong*       host_timestamp) CL_API_SUFFIX__VERSION_2_1 {
+    GET_SYMBOL(clGetDeviceAndHostTimer);
+    return function_ptr(device, device_timestamp, host_timestamp);
+}
+
+extern CL_API_ENTRY cl_int CL_API_CALL
 clGetDeviceAndHostTimer(cl_device_id    device,
                         cl_ulong*       device_timestamp,
                         cl_ulong*       host_timestamp) CL_API_SUFFIX__VERSION_2_1 {
     GET_SYMBOL_TIMER(clGetDeviceAndHostTimer);
     return function_ptr(device, device_timestamp, host_timestamp);
+}
+
+extern CL_API_ENTRY cl_int CL_API_CALL
+clGetHostTimer_noinst(cl_device_id device,
+               cl_ulong *   host_timestamp) CL_API_SUFFIX__VERSION_2_1 {
+    GET_SYMBOL(clGetHostTimer);
+    return function_ptr(device, host_timestamp);
 }
 
 extern CL_API_ENTRY cl_int CL_API_CALL
@@ -359,7 +394,6 @@ clCreateCommandQueueWithProperties(cl_context               context,
                                    cl_device_id             device,
                                    const cl_queue_properties *    properties,
                                    cl_int *                 errcode_ret) CL_API_SUFFIX__VERSION_2_0 {
-    GET_SYMBOL_TIMER(clCreateCommandQueueWithProperties);
     /* todo - add profiling request! */
     cl_queue_properties static_properties[] = {CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE, 0};
     cl_queue_properties blank_properties[] = {0,0,0,0,0,0,0,0,0}; // 9 zeros
@@ -385,7 +419,11 @@ clCreateCommandQueueWithProperties(cl_context               context,
         }
         new_properties = blank_properties;
     }
-    auto queue = function_ptr(context, device, new_properties, errcode_ret);
+    cl_command_queue queue;
+    {
+        GET_SYMBOL_TIMER(clCreateCommandQueueWithProperties);
+        queue = function_ptr(context, device, new_properties, errcode_ret);
+    }
     /* save the queue and context and device */
     if (apex::opencl::deviceMap().count(device) == 0) {
         apex::opencl::deviceMap()[device] = apex::opencl::deviceMap().size();
@@ -396,9 +434,14 @@ clCreateCommandQueueWithProperties(cl_context               context,
     if (apex::opencl::queueMap().count(queue) == 0) {
         apex::opencl::queueMap()[queue] = apex::opencl::queueMap().size();
     }
-    std::array<uint32_t,3> ids{apex::opencl::deviceMap()[device],
+    apex::opencl::queueData data;
+    data.queue = queue;
+    data.context = context;
+    data.device = device;
+    data.ids = {apex::opencl::deviceMap()[device],
         apex::opencl::contextMap()[context], apex::opencl::queueMap()[queue]};
-    apex::opencl::queueContextDeviceMap()[queue] = ids;
+    apex::opencl::sync_clocks(data);
+    apex::opencl::queueContextDeviceMap()[queue] = data;
     return queue;
 }
 
@@ -1826,20 +1869,68 @@ void register_sync_event(cl_command_queue queue) {
 
         sample_value("Time in Queue (us)", (startTime - queuedTime)/1e3);
         sample_value("Time in Submitted (us)", (startTime - submitTime)/1e3);
-        /*
-        if (kernel_data->isMemcpy()) {
-            Tau_opencl_register_memcpy_event(kernel_data, (double)startTime, (double)endTime,
-                TAU_GPU_UNKNOWN_TRANSFER_SIZE, kernel_data->memcpy_type);
-        } else {
-            Tau_opencl_register_gpu_event(kernel_data, (double)startTime, (double)endTime);
-        }
-        */
-        std::array<uint32_t, 3> ids = queueContextDeviceMap().find(kernel_data->_queue)->second;
-        opencl_thread_node node(ids[0], ids[1], ids[2], APEX_ASYNC_MEMORY);
-        store_profiler_data(kernel_data, startTime, endTime, node);
+        queueData data = queueContextDeviceMap().find(kernel_data->_queue)->second;
+        opencl_thread_node node(data.ids[0], data.ids[1], data.ids[2], kernel_data->_type);
+        double start_d = ((double)startTime);
+        double end_d = ((double)endTime);
+        printf("SYNC: start= %f offset= %f, corrected = %f.\n", start_d, data.offset,
+            start_d + data.offset);
+        printf("SYNC: end= %f offset= %f, corrected = %f.\n", end_d, data.offset,
+            end_d + data.offset);
+        store_profiler_data(kernel_data, start_d + data.offset, end_d + data.offset, node);
         event_queue.pop_front();
         clReleaseEvent_noinst(kernel_data->_event);
     }
+}
+
+double sync_clocks(queueData& qData) {
+#ifdef CL_VERSION_2_1
+    // Provided by CL_VERSION_2_1
+    cl_ulong device_timestamp;
+    cl_ulong host_timestamp;
+    cl_int err{CL_SUCCESS};
+/*
+    err = clGetDeviceAndHostTimer_noinst(qData.device,
+        &device_timestamp, &host_timestamp);
+    if (err == CL_SUCCESS) {
+        return ((double)(host_timestamp)) - ((double)device_timestamp);
+    }
+    */
+#endif
+    int d = 0;
+    void *data = &d;
+    cl_mem buffer;
+    const auto checkError = [=](const char * msg) {
+        if (err != CL_SUCCESS) {
+            printf("%s", msg);
+            //printf("%s\n", clGetErrorString(err));
+            abort();
+        }
+    };
+    size_t resolution;
+    err = clGetDeviceInfo_noinst(qData.device, CL_DEVICE_PROFILING_TIMER_RESOLUTION, sizeof(size_t), &resolution, NULL);
+    std::cout << "Resolution: " << resolution << std::endl;
+    checkError("Error getting device info.\n");
+    buffer = clCreateBuffer_noinst(qData.context, CL_MEM_READ_WRITE|CL_MEM_ALLOC_HOST_PTR, sizeof(void*), NULL, &err);
+    checkError("Cannot Create Sync Buffer.\n");
+    double cpu_timestamp;
+    struct timeval tp;
+    cl_ulong gpu_timestamp;
+
+    cl_event sync_event;
+    err = clEnqueueWriteBuffer_noinst(qData.queue, buffer, CL_TRUE, 0, sizeof(void*), data,  0, NULL, &sync_event);
+    checkError("Cannot Enqueue Sync Kernel.\n");
+    //get CPU timestamp.
+    gettimeofday(&tp, 0);
+    cpu_timestamp = ((double)profiler::now_ns());
+    //get GPU timestamp for finish.
+    clFinish_noinst(qData.queue);
+    err = clGetEventProfilingInfo_noinst(sync_event, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &gpu_timestamp, NULL);
+    checkError("Cannot get end time for Sync event.\n");
+    qData.offset = cpu_timestamp - (((double)gpu_timestamp));
+    printf("SYNC: CPU= %f GPU= %f, diff = %f.\n", cpu_timestamp, ((double)gpu_timestamp),
+        qData.offset);
+    return qData.offset;
 }
 
 } // namespace opencl;
