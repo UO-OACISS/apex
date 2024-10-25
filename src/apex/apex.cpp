@@ -102,6 +102,9 @@ DEFINE_DESTRUCTOR(apex_finalize_static_void)
 #define FUNCTION_ENTER
 #define FUNCTION_EXIT
 #endif
+#ifdef APEX_WITH_OPENCL
+#include "apex_opencl.hpp"
+#endif
 
 APEX_NATIVE_TLS bool _registered = false;
 APEX_NATIVE_TLS bool _exited = false;
@@ -1788,6 +1791,9 @@ void finalize(void)
         dynamic::level0::flush();
         dynamic::level0::stop();
     }
+#ifdef APEX_WITH_OPENCL
+    opencl::shutdown();
+#endif
 
     // stop processing new timers/counters/messages/tasks/etc.
     apex_options::suspend(true);
