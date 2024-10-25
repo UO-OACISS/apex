@@ -1878,9 +1878,57 @@ void store_profiler_data(asyncEvent* event, cl_ulong start, cl_ulong end, opencl
     instance->complete_task(tt);
 }
 
-void process_queue(void) {
+void process_queue(cl_command_queue queue) {
+    auto& event_queue = getMap(queue);
+    while(!event_queue.empty()) {
+        cl_int err = CL_SUCCESS;
+        cl_ulong startTime, endTime, queuedTime, submitTime;
+        const auto checkError = [=](const char * msg) {
+            if (err != CL_SUCCESS) {
+                printf("%s", msg);
+                abort();
+            }
+        };
+
+        asyncEvent* kernel_data = event_queue.front();
+        cl_int status;
+        err = clGetEventInfo_noinst(kernel_data->_event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(cl_int), &status, NULL);
+        checkError("Fatal error: calling clGetEventInfo, exiting.\n");
+        if (status != CL_COMPLETE) {
+            continue;
+        }
+
+        err = clGetEventProfilingInfo_noinst(kernel_data->_event, CL_PROFILING_COMMAND_QUEUED,
+            sizeof(cl_ulong), &queuedTime, NULL);
+        checkError("Cannot get queued time for Kernel event.\n");
+        err = clGetEventProfilingInfo_noinst(kernel_data->_event, CL_PROFILING_COMMAND_SUBMIT,
+            sizeof(cl_ulong), &submitTime, NULL);
+        checkError("Cannot get submit time for Kernel event.\n");
+        err = clGetEventProfilingInfo_noinst(kernel_data->_event, CL_PROFILING_COMMAND_START,
+            sizeof(cl_ulong), &startTime, NULL);
+        checkError("Cannot get start time for Kernel event.\n");
+        err = clGetEventProfilingInfo_noinst(kernel_data->_event, CL_PROFILING_COMMAND_END,
+            sizeof(cl_ulong), &endTime, NULL);
+        checkError("Cannot get end time for Kernel event.\n");
+
+        sample_value("Time in Queue (us)", (startTime - queuedTime)/1e3);
+        sample_value("Time in Submitted (us)", (startTime - submitTime)/1e3);
+        queueData data = queueContextDeviceMap().find(kernel_data->_queue)->second;
+        opencl_thread_node node(data.ids[0], data.ids[1], data.ids[2], kernel_data->_type);
+        double start_d = ((double)startTime);
+        double end_d = ((double)endTime);
+        //printf("SYNC: start= %f offset= %f, corrected = %f.\n", start_d, data.offset, start_d + data.offset);
+        //printf("SYNC: end= %f offset= %f, corrected = %f.\n", end_d, data.offset, end_d + data.offset);
+        store_profiler_data(kernel_data, start_d + data.offset, end_d + data.offset, node);
+        event_queue.pop_front();
+        clReleaseEvent_noinst(kernel_data->_event);
+    }
+    //std::cout << " * * * * * Queue empty * * * * *" << std::endl;
+}
+
+void process_queue_threaded(void) {
     // waiting for timeout after 1 seconds
-    std::chrono::seconds timeoutPeriod{1};
+    std::chrono::milliseconds timeoutPeriod{100};
     auto timePoint = std::chrono::system_clock::now() + timeoutPeriod;
     std::unique_lock<std::mutex> uLock(signalMutex());
     while(working()) {
@@ -1890,61 +1938,16 @@ void process_queue(void) {
         }
 
         for (auto queue : activeQueues()) {
-        auto& event_queue = getMap(queue);
-        while(!event_queue.empty()) {
-            cl_int err = CL_SUCCESS;
-            cl_ulong startTime, endTime, queuedTime, submitTime;
-            const auto checkError = [=](const char * msg) {
-                if (err != CL_SUCCESS) {
-                    printf("%s", msg);
-                    abort();
-                }
-            };
-
-            asyncEvent* kernel_data = event_queue.front();
-            cl_int status;
-            err = clGetEventInfo_noinst(kernel_data->_event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(cl_int), &status, NULL);
-            checkError("Fatal error: calling clGetEventInfo, exiting.\n");
-            if (status != CL_COMPLETE) {
-                break;
-            }
-
-            err = clGetEventProfilingInfo_noinst(kernel_data->_event, CL_PROFILING_COMMAND_QUEUED,
-                sizeof(cl_ulong), &queuedTime, NULL);
-            checkError("Cannot get queued time for Kernel event.\n");
-            err = clGetEventProfilingInfo_noinst(kernel_data->_event, CL_PROFILING_COMMAND_SUBMIT,
-                sizeof(cl_ulong), &submitTime, NULL);
-            checkError("Cannot get submit time for Kernel event.\n");
-            err = clGetEventProfilingInfo_noinst(kernel_data->_event, CL_PROFILING_COMMAND_START,
-                sizeof(cl_ulong), &startTime, NULL);
-            checkError("Cannot get start time for Kernel event.\n");
-            err = clGetEventProfilingInfo_noinst(kernel_data->_event, CL_PROFILING_COMMAND_END,
-                sizeof(cl_ulong), &endTime, NULL);
-            checkError("Cannot get end time for Kernel event.\n");
-
-            sample_value("Time in Queue (us)", (startTime - queuedTime)/1e3);
-            sample_value("Time in Submitted (us)", (startTime - submitTime)/1e3);
-            queueData data = queueContextDeviceMap().find(kernel_data->_queue)->second;
-            opencl_thread_node node(data.ids[0], data.ids[1], data.ids[2], kernel_data->_type);
-            double start_d = ((double)startTime);
-            double end_d = ((double)endTime);
-            //printf("SYNC: start= %f offset= %f, corrected = %f.\n", start_d, data.offset, start_d + data.offset);
-            //printf("SYNC: end= %f offset= %f, corrected = %f.\n", end_d, data.offset, end_d + data.offset);
-            store_profiler_data(kernel_data, start_d + data.offset, end_d + data.offset, node);
-            event_queue.pop_front();
-            clReleaseEvent_noinst(kernel_data->_event);
-        }
-        //std::cout << " * * * * * Queue empty * * * * *" << std::endl;
+            process_queue(queue);
         }
     }
-    std::cout << "********* Exiting worker *********" << std::endl;
 }
 
 void register_sync_event(cl_command_queue queue) {
+/*
     const auto getThread = [](void) {
-        std::shared_ptr<std::thread> t = std::make_shared<std::thread>(process_queue);
+        std::shared_ptr<std::thread> t = std::make_shared<std::thread>(process_queue_threaded);
         t->detach();
-        std::cout << "new thread" << std::endl;
         return t;
     };
     static auto worker = getThread();
@@ -1953,6 +1956,8 @@ void register_sync_event(cl_command_queue queue) {
         activeQueues().insert(queue);
     }
     signalVar().notify_one();
+    */
+    process_queue(queue);
 }
 
 double sync_clocks(queueData& qData) {
