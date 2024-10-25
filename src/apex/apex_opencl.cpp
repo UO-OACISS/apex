@@ -1189,8 +1189,27 @@ clEnqueueReadBufferRect(cl_command_queue    command_queue,
                         cl_uint             num_events_in_wait_list,
                         const cl_event *    event_wait_list,
                         cl_event *          event) CL_API_SUFFIX__VERSION_1_1 {
-    GET_SYMBOL_TIMER(clEnqueueReadBufferRect);
-    return function_ptr(command_queue, buffer, blocking_read, buffer_origin, host_origin, region, buffer_row_pitch, buffer_slice_pitch, host_row_pitch, host_slice_pitch, ptr, num_events_in_wait_list, event_wait_list, event);
+    cl_int rc = CL_SUCCESS;
+    apex::opencl::asyncEvent* myEvent = nullptr;
+    {
+        GET_SYMBOL_TIMER(clEnqueueReadBufferRect);
+        rc = function_ptr(command_queue, buffer, blocking_read, buffer_origin, host_origin, region, buffer_row_pitch, buffer_slice_pitch, host_row_pitch, host_slice_pitch, ptr, num_events_in_wait_list, event_wait_list, event);
+        myEvent = apex::opencl::new_gpu_event(timer, command_queue, "Read Buffer Rect", APEX_ASYNC_MEMORY);
+    }
+    myEvent->_reverseFlow = true;
+    if (event == nullptr) {
+        event = &(myEvent->_event);
+    }
+    size_t size = (host_row_pitch == 0 ? region[0] : host_row_pitch) *
+                  (host_slice_pitch == 0 ? region[1] : host_slice_pitch);
+    apex::sample_value("OpenCL:Bytes copied from Device to Host", size);
+    if (myEvent->_event == nullptr) {
+        myEvent->_event = *event;
+        clRetainEvent(myEvent->_event);
+    }
+    apex::opencl::enqueue_event(myEvent);
+    apex::opencl::register_sync_event(command_queue);
+    return rc;
 }
 
 #endif
@@ -1256,8 +1275,26 @@ clEnqueueWriteBufferRect(cl_command_queue    command_queue,
                          cl_uint             num_events_in_wait_list,
                          const cl_event *    event_wait_list,
                          cl_event *          event) CL_API_SUFFIX__VERSION_1_1 {
-    GET_SYMBOL_TIMER(clEnqueueWriteBufferRect);
-    return function_ptr(command_queue, buffer, blocking_write, buffer_origin, host_origin, region, buffer_row_pitch, buffer_slice_pitch, host_row_pitch, host_slice_pitch, ptr, num_events_in_wait_list, event_wait_list, event);
+    cl_int rc = CL_SUCCESS;
+    apex::opencl::asyncEvent* myEvent = nullptr;
+    {
+        GET_SYMBOL_TIMER(clEnqueueWriteBufferRect);
+        rc = function_ptr(command_queue, buffer, blocking_write, buffer_origin, host_origin, region, buffer_row_pitch, buffer_slice_pitch, host_row_pitch, host_slice_pitch, ptr, num_events_in_wait_list, event_wait_list, event);
+        myEvent = apex::opencl::new_gpu_event(timer, command_queue, "Write Buffer Rect", APEX_ASYNC_MEMORY);
+    }
+    if (event == nullptr) {
+        event = &(myEvent->_event);
+    }
+    size_t size = (host_row_pitch == 0 ? region[0] : host_row_pitch) *
+                  (host_slice_pitch == 0 ? region[1] : host_slice_pitch);
+    apex::sample_value("OpenCL:Bytes copied from Host to Device", size);
+    if (myEvent->_event == nullptr) {
+        myEvent->_event = *event;
+        clRetainEvent(myEvent->_event);
+    }
+    apex::opencl::enqueue_event(myEvent);
+    apex::opencl::register_sync_event(command_queue);
+    return rc;
 }
 
 #endif
@@ -1274,9 +1311,23 @@ clEnqueueFillBuffer(cl_command_queue   command_queue,
                     cl_uint            num_events_in_wait_list,
                     const cl_event *   event_wait_list,
                     cl_event *         event) CL_API_SUFFIX__VERSION_1_2 {
-    GET_SYMBOL_TIMER(clEnqueueFillBuffer);
-    auto rc = function_ptr(command_queue, buffer, pattern, pattern_size, offset, size, num_events_in_wait_list, event_wait_list, event);
+    cl_int rc = CL_SUCCESS;
+    apex::opencl::asyncEvent* myEvent = nullptr;
+    {
+        GET_SYMBOL_TIMER(clEnqueueFillBuffer);
+        rc = function_ptr(command_queue, buffer, pattern, pattern_size, offset, size, num_events_in_wait_list, event_wait_list, event);
+        myEvent = apex::opencl::new_gpu_event(timer, command_queue, "Fill Buffer", APEX_ASYNC_MEMORY);
+    }
+    if (event == nullptr) {
+        event = &(myEvent->_event);
+    }
     apex::sample_value("OpenCL:Fill buffer size", size);
+    if (myEvent->_event == nullptr) {
+        myEvent->_event = *event;
+        clRetainEvent(myEvent->_event);
+    }
+    apex::opencl::enqueue_event(myEvent);
+    apex::opencl::register_sync_event(command_queue);
     return rc;
 }
 
