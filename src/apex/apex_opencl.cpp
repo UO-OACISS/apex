@@ -2037,7 +2037,7 @@ double sync_clocks(queueData& qData) {
     };
     size_t resolution;
     err = clGetDeviceInfo_noinst(qData.device, CL_DEVICE_PROFILING_TIMER_RESOLUTION, sizeof(size_t), &resolution, NULL);
-    std::cout << "Resolution: " << resolution << std::endl;
+    //std::cout << "Resolution: " << resolution << std::endl;
     checkError("Error getting device info.\n");
     buffer = clCreateBuffer_noinst(qData.context, CL_MEM_READ_WRITE|CL_MEM_ALLOC_HOST_PTR, sizeof(void*), NULL, &err);
     checkError("Cannot Create Sync Buffer.\n");
