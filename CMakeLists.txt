@@ -933,7 +933,7 @@ endif()
 ### Set up perfstubs stuff
 git_external(perfstubs
     https://github.com/khuck/perfstubs.git
-    python-3.12
+    master
     VERBOSE)
 
 if(APEX_WITH_PYTHON)

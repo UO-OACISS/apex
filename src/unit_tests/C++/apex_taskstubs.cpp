@@ -16,6 +16,7 @@
 #include <array>
 #include <algorithm>
 #include <iterator>
+#include <thread>
 #include <string.h>
 #include "timer_plugin/tasktimer.h"
 
@@ -203,14 +204,17 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char * argv[]) {
     TASKTIMER_START(tt, &resource);
     // yield the task
     TASKTIMER_YIELD(tt);
-    // run a "child" task
-    A(myguid);
+    // run a "child" task - as a thread just for fun
+    std::thread ta(A,myguid);
     // test the "add_parent" feature
     add_parent_test(myguid);
     // test the "add_child" feature
     add_child_test(tt);
     // resume the task
     TASKTIMER_RESUME(tt, &resource);
+    if (ta.joinable()) {
+        ta.join();
+    }
     // stop the task
     TASKTIMER_STOP(tt);
     // finalize the timer plugin
