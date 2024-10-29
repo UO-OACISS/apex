@@ -19,7 +19,6 @@
 #else
 #include <CL/cl.h>
 #endif
-#endif
 
 #include <type_traits>
 #ifndef _GNU_SOURCE
@@ -555,7 +554,7 @@ clCreateBufferWithProperties(cl_context                context,
                              void *                    host_ptr,
                              cl_int *                  errcode_ret) CL_API_SUFFIX__VERSION_3_0 {
     GET_SYMBOL_TIMER(clCreateBufferWithProperties);
-    auto rc = function_ptr(context, properties, flags, size, host_prt, errcode_ret);
+    auto rc = function_ptr(context, properties, flags, size, host_ptr, errcode_ret);
     apex::sample_value("OpenCL:Create Buffer Bytes", size);
     return rc;
 }
