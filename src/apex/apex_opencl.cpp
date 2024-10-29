@@ -16,35 +16,8 @@
 
 #ifdef __APPLE__
 #include <OpenCL/opencl.h>
-#ifndef CL_API_PREFIX__VERSION_1_1_DEPRECATED
-#define CL_API_PREFIX__VERSION_1_1_DEPRECATED
-#endif
-#ifndef CL_API_SUFFIX__VERSION_1_1_DEPRECATED
-#define CL_API_SUFFIX__VERSION_1_1_DEPRECATED
-#endif
-#ifndef CL_API_PREFIX__VERSION_1_2_DEPRECATED
-#define CL_API_PREFIX__VERSION_1_2_DEPRECATED
-#endif
-#ifndef CL_API_SUFFIX__VERSION_1_2_DEPRECATED
-#define CL_API_SUFFIX__VERSION_1_2_DEPRECATED
-#endif
 #else
 #include <CL/cl.h>
-#ifdef CL_API_PREFIX__VERSION_1_1_DEPRECATED
-#undef CL_API_PREFIX__VERSION_1_1_DEPRECATED
-#define CL_API_PREFIX__VERSION_1_1_DEPRECATED
-#endif
-#ifdef CL_API_SUFFIX__VERSION_1_1_DEPRECATED
-#undef CL_API_SUFFIX__VERSION_1_1_DEPRECATED
-#define CL_API_SUFFIX__VERSION_1_1_DEPRECATED
-#endif
-#ifdef CL_API_PREFIX__VERSION_1_2_DEPRECATED
-#undef CL_API_PREFIX__VERSION_1_2_DEPRECATED
-#define CL_API_PREFIX__VERSION_1_2_DEPRECATED
-#endif
-#ifdef CL_API_SUFFIX__VERSION_1_2_DEPRECATED
-#undef CL_API_SUFFIX__VERSION_1_2_DEPRECATED
-#define CL_API_SUFFIX__VERSION_1_2_DEPRECATED
 #endif
 #endif
 
@@ -842,11 +815,11 @@ clLinkProgram(cl_context           context,
 
 #ifdef CL_VERSION_2_2
 
-extern CL_API_ENTRY CL_API_PREFIX__VERSION_2_2_DEPRECATED cl_int CL_API_CALL
+extern CL_API_ENTRY cl_int CL_API_CALL
 clSetProgramReleaseCallback(cl_program          program,
                             void (CL_CALLBACK * pfn_notify)(cl_program program,
                                                             void * user_data),
-                            void *              user_data) CL_API_SUFFIX__VERSION_2_2_DEPRECATED {
+                            void *              user_data) {
     GET_SYMBOL_TIMER(clSetProgramReleaseCallback);
     return function_ptr(program, pfn_notify, user_data);
 }
@@ -1770,14 +1743,14 @@ clGetExtensionFunctionAddressForPlatform(cl_platform_id platform,
     clSetCommandQueueProperty(cl_command_queue              command_queue,
                               cl_command_queue_properties   properties,
                               cl_bool                       enable,
-                              cl_command_queue_properties * old_properties) CL_API_SUFFIX__VERSION_1_0_DEPRECATED {
+                              cl_command_queue_properties * old_properties) {
     GET_SYMBOL_TIMER(clSetCommandQueueProperty);
     return function_ptr(command_queue, properties, enable, old_properties);
 }
 #endif /* CL_USE_DEPRECATED_OPENCL_1_0_APIS */
 
 /* Deprecated OpenCL 1.1 APIs */
-extern CL_API_ENTRY CL_API_PREFIX__VERSION_1_1_DEPRECATED cl_mem CL_API_CALL
+extern CL_API_ENTRY cl_mem CL_API_CALL
 clCreateImage2D(cl_context              context,
                 cl_mem_flags            flags,
                 const cl_image_format * image_format,
@@ -1785,12 +1758,12 @@ clCreateImage2D(cl_context              context,
                 size_t                  image_height,
                 size_t                  image_row_pitch,
                 void *                  host_ptr,
-                cl_int *                errcode_ret) CL_API_SUFFIX__VERSION_1_1_DEPRECATED {
+                cl_int *                errcode_ret) {
     GET_SYMBOL_TIMER(clCreateImage2D);
     return function_ptr(context, flags, image_format, image_width, image_height, image_row_pitch, host_ptr, errcode_ret);
 }
 
-extern CL_API_ENTRY CL_API_PREFIX__VERSION_1_1_DEPRECATED cl_mem CL_API_CALL
+extern CL_API_ENTRY cl_mem CL_API_CALL
 clCreateImage3D(cl_context              context,
                 cl_mem_flags            flags,
                 const cl_image_format * image_format,
@@ -1800,72 +1773,72 @@ clCreateImage3D(cl_context              context,
                 size_t                  image_row_pitch,
                 size_t                  image_slice_pitch,
                 void *                  host_ptr,
-                cl_int *                errcode_ret) CL_API_SUFFIX__VERSION_1_1_DEPRECATED {
+                cl_int *                errcode_ret) {
     GET_SYMBOL_TIMER(clCreateImage3D);
     return function_ptr(context, flags, image_format, image_width, image_height, image_depth, image_row_pitch, image_slice_pitch, host_ptr, errcode_ret);
 }
 
-extern CL_API_ENTRY CL_API_PREFIX__VERSION_1_1_DEPRECATED cl_int CL_API_CALL
+extern CL_API_ENTRY cl_int CL_API_CALL
 clEnqueueMarker(cl_command_queue    command_queue,
-                cl_event *          event) CL_API_SUFFIX__VERSION_1_1_DEPRECATED {
+                cl_event *          event) {
     GET_SYMBOL_TIMER(clEnqueueMarker);
     return function_ptr(command_queue, event);
 }
 
-extern CL_API_ENTRY CL_API_PREFIX__VERSION_1_1_DEPRECATED cl_int CL_API_CALL
+extern CL_API_ENTRY cl_int CL_API_CALL
 clEnqueueWaitForEvents(cl_command_queue  command_queue,
                         cl_uint          num_events,
-                        const cl_event * event_list) CL_API_SUFFIX__VERSION_1_1_DEPRECATED {
+                        const cl_event * event_list) {
     GET_SYMBOL_TIMER(clEnqueueWaitForEvents);
     return function_ptr(command_queue, num_events, event_list);
 }
 
-extern CL_API_ENTRY CL_API_PREFIX__VERSION_1_1_DEPRECATED cl_int CL_API_CALL
-clEnqueueBarrier(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_1_DEPRECATED {
+extern CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueBarrier(cl_command_queue command_queue) {
     GET_SYMBOL_TIMER(clEnqueueBarrier);
     return function_ptr(command_queue);
 }
 
-extern CL_API_ENTRY CL_API_PREFIX__VERSION_1_1_DEPRECATED cl_int CL_API_CALL
-clUnloadCompiler(void) CL_API_SUFFIX__VERSION_1_1_DEPRECATED {
+extern CL_API_ENTRY cl_int CL_API_CALL
+clUnloadCompiler(void) {
     GET_SYMBOL_TIMER(clUnloadCompiler);
     return function_ptr();
 }
 
-extern CL_API_ENTRY CL_API_PREFIX__VERSION_1_1_DEPRECATED void * CL_API_CALL
-clGetExtensionFunctionAddress(const char * func_name) CL_API_SUFFIX__VERSION_1_1_DEPRECATED {
+extern CL_API_ENTRY void * CL_API_CALL
+clGetExtensionFunctionAddress(const char * func_name) {
     GET_SYMBOL_TIMER(clGetExtensionFunctionAddress);
     return function_ptr(func_name);
 }
 
 /* Deprecated OpenCL 2.0 APIs */
-extern CL_API_ENTRY CL_API_PREFIX__VERSION_1_2_DEPRECATED cl_command_queue CL_API_CALL
+extern CL_API_ENTRY cl_command_queue CL_API_CALL
 clCreateCommandQueue(cl_context                     context,
                      cl_device_id                   device,
                      cl_command_queue_properties    properties,
-                     cl_int *                       errcode_ret) CL_API_SUFFIX__VERSION_1_2_DEPRECATED {
+                     cl_int *                       errcode_ret) {
     GET_SYMBOL_TIMER(clCreateCommandQueue);
     // add profiling support!
     auto new_properties = properties | CL_QUEUE_PROFILING_ENABLE;
     return function_ptr(context, device, new_properties, errcode_ret);
 }
 
-extern CL_API_ENTRY CL_API_PREFIX__VERSION_1_2_DEPRECATED cl_sampler CL_API_CALL
+extern CL_API_ENTRY cl_sampler CL_API_CALL
 clCreateSampler(cl_context          context,
                 cl_bool             normalized_coords,
                 cl_addressing_mode  addressing_mode,
                 cl_filter_mode      filter_mode,
-                cl_int *            errcode_ret) CL_API_SUFFIX__VERSION_1_2_DEPRECATED {
+                cl_int *            errcode_ret) {
     GET_SYMBOL_TIMER(clCreateSampler);
     return function_ptr(context, normalized_coords, addressing_mode, filter_mode, errcode_ret);
 }
 
-extern CL_API_ENTRY CL_API_PREFIX__VERSION_1_2_DEPRECATED cl_int CL_API_CALL
+extern CL_API_ENTRY cl_int CL_API_CALL
 clEnqueueTask(cl_command_queue  command_queue,
               cl_kernel         kernel,
               cl_uint           num_events_in_wait_list,
               const cl_event *  event_wait_list,
-              cl_event *        event) CL_API_SUFFIX__VERSION_1_2_DEPRECATED {
+              cl_event *        event) {
     GET_SYMBOL_TIMER(clEnqueueTask);
     return function_ptr(command_queue, kernel, num_events_in_wait_list, event_wait_list, event);
 }
