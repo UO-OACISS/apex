@@ -318,9 +318,9 @@ void store_counter_data(const char * name, const std::string& ctx,
     apex::in_apex prevent_deadlocks;
     std::stringstream ss;
     if (name == nullptr) {
-        ss << "GPU: " << ctx;
+        ss << "GPU: OpenMP " << ctx;
     } else {
-        ss << "GPU: " << name << " " << ctx;
+        ss << "GPU: OpenMP " << name << " " << ctx;
     }
     std::string tmp{ss.str()};
     auto task_id = apex::task_identifier::get_task_id(tmp);

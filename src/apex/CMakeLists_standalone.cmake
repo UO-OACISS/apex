@@ -49,6 +49,7 @@ if (OpenCL_FOUND)
     set(OpenCL_SOURCE apex_opencl.cpp)
     include_directories(${OpenCL_INCLUDE_DIR})
     add_definitions(-DCL_TARGET_OPENCL_VERSION=${OpenCL_VERSION_MAJOR}${OpenCL_VERSION_MINOR}0)
+    add_definitions(-DAPEX_WITH_OPENCL)
 endif (OpenCL_FOUND)
 
 if (APEX_WITH_RAJA AND RAJA_FOUND)

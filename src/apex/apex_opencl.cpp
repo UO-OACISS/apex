@@ -1856,7 +1856,7 @@ void store_profiler_data(asyncEvent* event, cl_ulong start, cl_ulong end, opencl
     std::shared_ptr<task_wrapper> parent = event->_tt_ptr;
     // Build the name
     std::stringstream ss;
-    ss << "GPU: " << std::string(event->_name);
+    ss << "GPU: OpenCL " << std::string(event->_name);
     std::string tmp{ss.str()};
     // create a task_wrapper, as a GPU child of the parent on the CPU side
     auto tt = new_task(tmp, UINT64_MAX, parent);

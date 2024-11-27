@@ -134,7 +134,7 @@ void monitor::explicitMemCheck (void) {
         uint64_t memory_usage = 0;
         RSMI_CALL(rsmi_dev_memory_usage_get(d, RSMI_MEM_TYPE_VRAM, &memory_usage));
         std::stringstream ss;
-        ss << "GPU: Device " << d << " Triggered Memory Used, VRAM (GB)";
+        ss << "GPU: [RSMI] Device " << d << " Triggered Memory Used, VRAM (GB)";
         std::string tmp = ss.str();
         double value = (double)(memory_usage) * BILLIONTH;
         sample_value(tmp, value);
@@ -146,13 +146,13 @@ void monitor::explicitMemCheck (void) {
             hipGetErrorString(hip_status));
     } else {
         std::stringstream ss;
-        ss << "GPU: hipMemGetInfo free (GB)";
+        ss << "GPU: [RSMI] hipMemGetInfo free (GB)";
         std::string tmp = ss.str();
         double value = (double)(free_byte) * BILLIONTH;
         sample_value(tmp, value);
         ss.str("");
         ss.clear();
-        ss << "GPU: hipMemGetInfo used (GB)";
+        ss << "GPU: [RSMI] hipMemGetInfo used (GB)";
         tmp = ss.str();
         value = (double)(total_byte - free_byte) * BILLIONTH;
         sample_value(tmp, value);
@@ -181,7 +181,7 @@ void monitor::query(void) {
         // power, in microwatts
         RSMI_CALL(rsmi_dev_power_ave_get(d, sensor_index, &power));
         std::stringstream ss;
-        ss << "GPU: Device " << d << " Power (W)";
+        ss << "GPU: [RSMI] Device " << d << " Power (W)";
         std::string tmp{ss.str()};
         double value = (double)(power) * WATTS;
         sample_value(tmp, value);
@@ -193,7 +193,7 @@ void monitor::query(void) {
         uint64_t energy = 0;
         float counter_resolution = 0;
         RSMI_CALL(rsmi_dev_energy_count_get(d, &energy, &counter_resolution, &timestamp));
-        ss << "GPU: Device " << d << " Energy (J)";
+        ss << "GPU: [RSMI] Device " << d << " Energy (J)";
         tmp = ss.str();
         value = (double)(energy) * WATTS;
         sample_value(tmp, value);
@@ -204,19 +204,19 @@ void monitor::query(void) {
         if (!queried_once[d]) {
         	uint64_t memory_total;
             RSMI_CALL(rsmi_dev_memory_total_get(d, RSMI_MEM_TYPE_VRAM, &memory_total));
-            ss << "GPU: Device " << d << " Memory Total, VRAM (GB)";
+            ss << "GPU: [RSMI] Device " << d << " Memory Total, VRAM (GB)";
             tmp = ss.str();
             value = (double)(memory_total) * BILLIONTH;
             sample_value(tmp, value);
             ss.str("");
             RSMI_CALL(rsmi_dev_memory_total_get(d, RSMI_MEM_TYPE_VIS_VRAM, &memory_total));
-            ss << "GPU: Device " << d << " Memory Total, Vis. VRAM (GB)";
+            ss << "GPU: [RSMI] Device " << d << " Memory Total, Vis. VRAM (GB)";
             tmp = ss.str();
             value = (double)(memory_total) * BILLIONTH;
             sample_value(tmp, value);
             ss.str("");
             RSMI_CALL(rsmi_dev_memory_total_get(d, RSMI_MEM_TYPE_GTT, &memory_total));
-            ss << "GPU: Device " << d << " Memory Total, GTT (GB)";
+            ss << "GPU: [RSMI] Device " << d << " Memory Total, GTT (GB)";
             tmp = ss.str();
             value = (double)(memory_total) * BILLIONTH;
             sample_value(tmp, value);
@@ -226,19 +226,19 @@ void monitor::query(void) {
 
         uint64_t memory_usage = 0;
         RSMI_CALL(rsmi_dev_memory_usage_get(d, RSMI_MEM_TYPE_VRAM, &memory_usage));
-        ss << "GPU: Device " << d << " Memory Used, VRAM (GB)";
+        ss << "GPU: [RSMI] Device " << d << " Memory Used, VRAM (GB)";
         tmp = ss.str();
         value = (double)(memory_usage) * BILLIONTH;
         sample_value(tmp, value);
         ss.str("");
         RSMI_CALL(rsmi_dev_memory_usage_get(d, RSMI_MEM_TYPE_VIS_VRAM, &memory_usage));
-        ss << "GPU: Device " << d << " Memory Used, Vis. VRAM (GB)";
+        ss << "GPU: [RSMI] Device " << d << " Memory Used, Vis. VRAM (GB)";
         tmp = ss.str();
         value = (double)(memory_usage) * BILLIONTH;
         sample_value(tmp, value);
         ss.str("");
         RSMI_CALL(rsmi_dev_memory_usage_get(d, RSMI_MEM_TYPE_GTT, &memory_usage));
-        ss << "GPU: Device " << d << " Memory Used, GTT (GB)";
+        ss << "GPU: [RSMI] Device " << d << " Memory Used, GTT (GB)";
         tmp = ss.str();
         value = (double)(memory_usage) * BILLIONTH;
         sample_value(tmp, value);
@@ -246,7 +246,7 @@ void monitor::query(void) {
 
         uint32_t memory_busy_percent = 0;
         RSMI_CALL(rsmi_dev_memory_busy_percent_get(d, &memory_busy_percent));
-        ss << "GPU: Device " << d << " Memory Busy (%)";
+        ss << "GPU: [RSMI] Device " << d << " Memory Busy (%)";
         tmp = ss.str();
         value = (double)(memory_busy_percent);
         sample_value(tmp, value);
@@ -254,7 +254,7 @@ void monitor::query(void) {
 
         uint32_t memory_pages = 0;
         RSMI_CALL(rsmi_dev_memory_reserved_pages_get(d, &memory_pages, NULL));
-        ss << "GPU: Device " << d << " Memory Reserved Pages";
+        ss << "GPU: [RSMI] Device " << d << " Memory Reserved Pages";
         tmp = ss.str();
         value = (double)(memory_pages);
         sample_value(tmp, value);
@@ -270,7 +270,7 @@ void monitor::query(void) {
 		    uint64_t max_speed = 0;
 		    RSMI_CALL_NOEXIT(rsmi_dev_fan_speed_max_get (d, sensor_index, &max_speed));
 		    double speed_percent = (speed == 0) ? 0.0 : (double)(speed) / (double)(max_speed);
-            ss << "GPU: Device " << d << " Fan Speed (%)";
+            ss << "GPU: [RSMI] Device " << d << " Fan Speed (%)";
             tmp = ss.str();
             value = speed_percent * PERCENT;
             sample_value(tmp, value);
@@ -281,7 +281,7 @@ void monitor::query(void) {
 		// Get the temperature metric value for the specified metric, from the specified temperature sensor on the specified
 		int64_t temperature = 0;
 		RSMI_CALL(rsmi_dev_temp_metric_get(d, sensor_index, RSMI_TEMP_CURRENT, &temperature));
-        ss << "GPU: Device " << d << " Temperature (C)";
+        ss << "GPU: [RSMI] Device " << d << " Temperature (C)";
         tmp = ss.str();
         value = (double)(temperature) * CELCIUS;
         sample_value(tmp, value);
@@ -290,7 +290,7 @@ void monitor::query(void) {
 		// Get the voltage metric value for the specified metric, from the specified voltage sensor on the specified device.
 		int64_t voltage = 0;
 		RSMI_CALL(rsmi_dev_volt_metric_get (d, RSMI_VOLT_TYPE_VDDGFX, RSMI_VOLT_CURRENT, &voltage));
-        ss << "GPU: Device " << d << " Voltage (V)";
+        ss << "GPU: [RSMI] Device " << d << " Voltage (V)";
         tmp = ss.str();
         value = (double)(voltage) * VOLTAGE;
         sample_value(tmp, value);
@@ -299,7 +299,7 @@ void monitor::query(void) {
 		// Get percentage of time device is busy doing any processing.
 		uint32_t busy_percent = 0;
 		RSMI_CALL(rsmi_dev_busy_percent_get (d, &busy_percent));
-        ss << "GPU: Device " << d << " Device Busy (%)";
+        ss << "GPU: [RSMI] Device " << d << " Device Busy (%)";
         tmp = ss.str();
         value = (double)(busy_percent);
         sample_value(tmp, value);
@@ -309,12 +309,12 @@ void monitor::query(void) {
 		// Get coarse grain utilization counter of the specified device.
 		rsmi_utilization_counter_t utilization_counters[2] = {RSMI_UTILIZATION_COUNTER_FIRST,RSMI_COARSE_GRAIN_MEM_ACTIVITY};
 		RSMI_CALL(rsmi_utilization_count_get (d, utilization_counters, 2, &timestamp));
-        ss << "GPU: Device " << d << " GFX Activity (%)";
+        ss << "GPU: [RSMI] Device " << d << " GFX Activity (%)";
         tmp = ss.str();
         value = (double)(utilization_counters[0]);
         sample_value(tmp, value);
         ss.str("");
-        ss << "GPU: Device " << d << " Memory Activity (%)";
+        ss << "GPU: [RSMI] Device " << d << " Memory Activity (%)";
         tmp = ss.str();
         value = (double)(utilization_counters[2]);
         sample_value(tmp, value);
@@ -326,32 +326,32 @@ void monitor::query(void) {
 		rsmi_gpu_metrics_t pgpu_metrics;
         memset(&pgpu_metrics, 0, sizeof(rsmi_gpu_metrics_t));
 		RSMI_CALL(rsmi_dev_gpu_metrics_info_get (d, &pgpu_metrics));
-        ss << "GPU: Device " << d << " Clock Frequency, GLX (MHz)";
+        ss << "GPU: [RSMI] Device " << d << " Clock Frequency, GLX (MHz)";
         tmp = ss.str();
         value = (double)(pgpu_metrics.current_gfxclk);
         sample_value(tmp, value);
         ss.str("");
-        ss << "GPU: Device " << d << " Clock Frequency, SOC (MHz)";
+        ss << "GPU: [RSMI] Device " << d << " Clock Frequency, SOC (MHz)";
         tmp = ss.str();
         value = (double)(pgpu_metrics.current_socclk);
         sample_value(tmp, value);
         ss.str("");
-        ss << "GPU: Device " << d << " GFX Activity";
+        ss << "GPU: [RSMI] Device " << d << " GFX Activity";
         tmp = ss.str();
         value = (double)(pgpu_metrics.average_gfx_activity);
         sample_value(tmp, value);
         ss.str("");
-        ss << "GPU: Device " << d << " Memory Controller Activity";
+        ss << "GPU: [RSMI] Device " << d << " Memory Controller Activity";
         tmp = ss.str();
         value = (double)(pgpu_metrics.average_umc_activity);
         sample_value(tmp, value);
         ss.str("");
-        ss << "GPU: Device " << d << " UVD|VCN Activity";
+        ss << "GPU: [RSMI] Device " << d << " UVD|VCN Activity";
         tmp = ss.str();
         value = (double)(pgpu_metrics.average_mm_activity);
         sample_value(tmp, value);
         ss.str("");
-        ss << "GPU: Device " << d << " Throttle Status";
+        ss << "GPU: [RSMI] Device " << d << " Throttle Status";
         tmp = ss.str();
         value = (double)(pgpu_metrics.throttle_status);
         sample_value(tmp, value);

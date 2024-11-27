@@ -83,14 +83,14 @@ void monitor::query(void) {
         NVML_CALL(nvmlDeviceGetUtilizationRates(dev, &utilization));
         {
             std::stringstream ss;
-            ss << "GPU: Device " << d << " Utilization %";
+            ss << "GPU: [NVML] Device " << d << " Utilization %";
             std::string tmp{ss.str()};
             double value = (double)(utilization.gpu);
             sample_value(tmp, value);
         }
         {
             std::stringstream ss;
-            ss << "GPU: Device " << d << " Memory Utilization %";
+            ss << "GPU: [NVML] Device " << d << " Memory Utilization %";
             std::string tmp{ss.str()};
             double value = (double)(utilization.memory);
             sample_value(tmp, value);
@@ -102,21 +102,21 @@ void monitor::query(void) {
         if (!queried_once[d])
         {
             std::stringstream ss;
-            ss << "GPU: Device " << d << " Memory Total (GB)";
+            ss << "GPU: [NVML] Device " << d << " Memory Total (GB)";
             std::string tmp{ss.str()};
             double value = (double)(memory.total) * BILLIONTH;
             sample_value(tmp, value);
         }
         {
             std::stringstream ss;
-            ss << "GPU: Device " << d << " Memory Free (GB)";
+            ss << "GPU: [NVML] Device " << d << " Memory Free (GB)";
             std::string tmp{ss.str()};
             double value = (double)(memory.free) * BILLIONTH;
             sample_value(tmp, value);
         }
         {
             std::stringstream ss;
-            ss << "GPU: Device " << d << " Memory Used (GB)";
+            ss << "GPU: [NVML] Device " << d << " Memory Used (GB)";
             std::string tmp{ss.str()};
             double value = (double)(memory.used) * BILLIONTH;
             sample_value(tmp, value);
@@ -128,7 +128,7 @@ void monitor::query(void) {
             NVML_CLOCK_ID_CURRENT, &clock));
         {
             std::stringstream ss;
-            ss << "GPU: Device " << d << " Clock SM (MHz)";
+            ss << "GPU: [NVML] Device " << d << " Clock SM (MHz)";
             std::string tmp{ss.str()};
             double value = (double)(clock);
             sample_value(tmp, value);
@@ -137,7 +137,7 @@ void monitor::query(void) {
             NVML_CLOCK_ID_CURRENT, &clock));
         {
             std::stringstream ss;
-            ss << "GPU: Device " << d << " Clock Memory (MHz)";
+            ss << "GPU: [NVML] Device " << d << " Clock Memory (MHz)";
             std::string tmp{ss.str()};
             double value = (double)(clock);
             sample_value(tmp, value);
@@ -150,43 +150,43 @@ void monitor::query(void) {
             &reasons));
         if (reasons && nvmlClocksThrottleReasonGpuIdle) {
             std::stringstream ss;
-            ss << "GPU: Device " << d << " Throttle Idle";
+            ss << "GPU: [NVML] Device " << d << " Throttle Idle";
             std::string tmp{ss.str()};
             sample_value(tmp, 1);
         }
         if (reasons && nvmlClocksThrottleReasonHwPowerBrakeSlowdown) {
             std::stringstream ss;
-            ss << "GPU: Device " << d << " Throttle Power Break Slowdown";
+            ss << "GPU: [NVML] Device " << d << " Throttle Power Break Slowdown";
             std::string tmp{ss.str()};
             sample_value(tmp, 1);
         }
         if (reasons && nvmlClocksThrottleReasonHwSlowdown) {
             std::stringstream ss;
-            ss << "GPU: Device " << d << " Throttle HW Break Slowdown";
+            ss << "GPU: [NVML] Device " << d << " Throttle HW Break Slowdown";
             std::string tmp{ss.str()};
             sample_value(tmp, 1);
         }
         if (reasons && nvmlClocksThrottleReasonHwThermalSlowdown) {
             std::stringstream ss;
-            ss << "GPU: Device " << d << " Throttle HW Thermal Slowdown";
+            ss << "GPU: [NVML] Device " << d << " Throttle HW Thermal Slowdown";
             std::string tmp{ss.str()};
             sample_value(tmp, 1);
         }
         if (reasons && nvmlClocksThrottleReasonSwPowerCap) {
             std::stringstream ss;
-            ss << "GPU: Device " << d << " Throttle SW Power Cap Slowdown";
+            ss << "GPU: [NVML] Device " << d << " Throttle SW Power Cap Slowdown";
             std::string tmp{ss.str()};
             sample_value(tmp, 1);
         }
         if (reasons && nvmlClocksThrottleReasonSwThermalSlowdown) {
             std::stringstream ss;
-            ss << "GPU: Device " << d << " Throttle SW Thermal Slowdown";
+            ss << "GPU: [NVML] Device " << d << " Throttle SW Thermal Slowdown";
             std::string tmp{ss.str()};
             sample_value(tmp, 1);
         }
         if (reasons && nvmlClocksThrottleReasonSyncBoost) {
             std::stringstream ss;
-            ss << "GPU: Device " << d << " Throttle Sync Boost";
+            ss << "GPU: [NVML] Device " << d << " Throttle Sync Boost";
             std::string tmp{ss.str()};
             sample_value(tmp, 1);
         }
@@ -198,7 +198,7 @@ void monitor::query(void) {
         NVML_CALL(nvmlDeviceGetFanSpeed_v2(devices[d], 0, &speed));
         {
             std::stringstream ss;
-            ss << "GPU: Device " << d << " Fan Speed %";
+            ss << "GPU: [NVML] Device " << d << " Fan Speed %";
             std::string tmp{ss.str()};
             double value = (double)(clock);
             sample_value(tmp, value);
@@ -211,7 +211,7 @@ void monitor::query(void) {
             NVML_PCIE_UTIL_TX_BYTES, &throughput));
         {
             std::stringstream ss;
-            ss << "GPU: Device " << d << " PCIe TX Throughput (MB/s)";
+            ss << "GPU: [NVML] Device " << d << " PCIe TX Throughput (MB/s)";
             std::string tmp{ss.str()};
             double value = (double)(throughput) * PCIE_THROUGHPUT;
             sample_value(tmp, value);
@@ -220,7 +220,7 @@ void monitor::query(void) {
             NVML_PCIE_UTIL_RX_BYTES, &throughput));
         {
             std::stringstream ss;
-            ss << "GPU: Device " << d << " PCIe RX Throughput (MB/s)";
+            ss << "GPU: [NVML] Device " << d << " PCIe RX Throughput (MB/s)";
             std::string tmp{ss.str()};
             double value = (double)(throughput) * PCIE_THROUGHPUT;
             sample_value(tmp, value);
@@ -230,7 +230,7 @@ void monitor::query(void) {
         NVML_CALL(nvmlDeviceGetPowerUsage(devices[d], &power));
         {
             std::stringstream ss;
-            ss << "GPU: Device " << d << " Power (W)";
+            ss << "GPU: [NVML] Device " << d << " Power (W)";
             std::string tmp{ss.str()};
             double value = (double)(power) * WATTS;
             sample_value(tmp, value);
@@ -241,7 +241,7 @@ void monitor::query(void) {
             &temperature));
         {
             std::stringstream ss;
-            ss << "GPU: Device " << d << " Temperature (C)";
+            ss << "GPU: [NVML] Device " << d << " Temperature (C)";
             std::string tmp{ss.str()};
             double value = (double)(temperature);
             sample_value(tmp, value);
@@ -257,7 +257,7 @@ void monitor::query(void) {
             if (values[0].nvmlReturn == NVML_SUCCESS)
                 {
                     std::stringstream ss;
-                    ss << "GPU: Device " << d << " NvLink Speed (GB/s)";
+                    ss << "GPU: [NVML] Device " << d << " NvLink Speed (GB/s)";
                     std::string tmp{ss.str()};
                     double value = convertValue(values[0]) * NVLINK_BW;
                     sample_value(tmp, value);
@@ -265,7 +265,7 @@ void monitor::query(void) {
             if (values[1].nvmlReturn == NVML_SUCCESS)
                 {
                     std::stringstream ss;
-                    ss << "GPU: Device " << d << " NvLink Link Count";
+                    ss << "GPU: [NVML] Device " << d << " NvLink Link Count";
                     std::string tmp{ss.str()};
                     double value = convertValue(values[1]);
                     sample_value(tmp, value);
@@ -295,7 +295,7 @@ void monitor::query(void) {
         if (values[0].nvmlReturn == NVML_SUCCESS)
             {
                 std::stringstream ss;
-                ss << "GPU: Device " << d << " NvLink Bandwidth C0 Total";
+                ss << "GPU: [NVML] Device " << d << " NvLink Bandwidth C0 Total";
                 std::string tmp{ss.str()};
                 double value = convertValue(values[0]);
                 sample_value(tmp, value);
@@ -303,7 +303,7 @@ void monitor::query(void) {
         if (values[1].nvmlReturn == NVML_SUCCESS)
             {
                 std::stringstream ss;
-                ss << "GPU: Device " << d << " NvLink Bandwidth C1 Total";
+                ss << "GPU: [NVML] Device " << d << " NvLink Bandwidth C1 Total";
                 std::string tmp{ss.str()};
                 double value = convertValue(values[1]);
                 sample_value(tmp, value);
@@ -312,7 +312,7 @@ void monitor::query(void) {
         if (values[2].nvmlReturn == NVML_SUCCESS)
             {
                 std::stringstream ss;
-                ss << "GPU: Device " << d << " NvLink Throughput Data TX";
+                ss << "GPU: [NVML] Device " << d << " NvLink Throughput Data TX";
                 std::string tmp{ss.str()};
                 double value = convertValue(values[2]);
                 sample_value(tmp, value);
@@ -320,7 +320,7 @@ void monitor::query(void) {
         if (values[3].nvmlReturn == NVML_SUCCESS)
             {
                 std::stringstream ss;
-                ss << "GPU: Device " << d << " NvLink Throughput Data RX";
+                ss << "GPU: [NVML] Device " << d << " NvLink Throughput Data RX";
                 std::string tmp{ss.str()};
                 double value = convertValue(values[3]);
                 sample_value(tmp, value);
@@ -328,7 +328,7 @@ void monitor::query(void) {
         if (values[4].nvmlReturn == NVML_SUCCESS)
             {
                 std::stringstream ss;
-                ss << "GPU: Device " << d << " NvLink Throughput Raw TX";
+                ss << "GPU: [NVML] Device " << d << " NvLink Throughput Raw TX";
                 std::string tmp{ss.str()};
                 double value = convertValue(values[4]);
                 sample_value(tmp, value);
@@ -336,7 +336,7 @@ void monitor::query(void) {
         if (values[5].nvmlReturn == NVML_SUCCESS)
             {
                 std::stringstream ss;
-                ss << "GPU: Device " << d << " NvLink Throughput Raw RX";
+                ss << "GPU: [NVML] Device " << d << " NvLink Throughput Raw RX";
                 std::string tmp{ss.str()};
                 double value = convertValue(values[5]);
                 sample_value(tmp, value);

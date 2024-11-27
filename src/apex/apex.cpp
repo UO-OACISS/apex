@@ -297,6 +297,9 @@ void apex::_initialize()
 #if defined(APEX_WITH_OMPT) || defined(APEX_HAVE_OMPT)
     tmp << ", OMPT";
 #endif
+#if defined(APEX_WITH_OPENCL) || defined(APEX_HAVE_OPENCL)
+    tmp << ", OPENCL";
+#endif
 #if defined(APEX_WITH_OTF2) || defined(APEX_HAVE_OTF2)
     tmp << ", OTF2";
 #endif
@@ -529,6 +532,8 @@ uint64_t init(const char * thread_name, uint64_t comm_rank,
         apex_options::use_proc_stat() ||
         strlen(apex_options::papi_components()) > 0) {
         instance->pd_reader = new proc_data_reader();
+        // wait for the thread to be ready
+        while(!instance->pd_reader->ready) { }
     }
 #endif
     /* for the next section, we need to check if we are suspended,

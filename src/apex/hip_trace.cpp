@@ -396,11 +396,11 @@ void store_sync_counter_data(const char * name, const std::string& context,
     double value, bool threaded) {
     if (name == nullptr) {
         std::stringstream ss;
-        ss << "GPU: " << context;
+        ss << "GPU: [HIP] " << context;
         apex::sample_value(ss.str(), value, threaded);
     } else {
         std::stringstream ss;
-        ss << "GPU: " << name;
+        ss << "GPU: [HIP] " << name;
         if (context.size() > 0 &&
             !apex::apex_options::use_perfetto() &&
             !apex::apex_options::use_trace_event() &&
@@ -883,7 +883,7 @@ void store_profiler_data(const std::string &name, uint32_t correlationId,
     }
     // Build the name
     std::stringstream ss;
-    ss << "GPU: " << std::string(name);
+    ss << "GPU: [HIP] " << std::string(name);
     std::string tmp{ss.str()};
     // create a task_wrapper, as a GPU child of the parent on the CPU side
     auto tt = apex::new_task(tmp, UINT64_MAX, parent);
@@ -932,9 +932,9 @@ void store_counter_data(const char * name, const std::string& ctx,
     apex::in_apex prevent_deadlocks;
     std::stringstream ss;
     if (name == nullptr) {
-        ss << "GPU: " << ctx;
+        ss << "GPU: [HIP] " << ctx;
     } else {
-        ss << "GPU: " << name << " " << ctx;
+        ss << "GPU: [HIP] " << name << " " << ctx;
     }
     std::string tmp{ss.str()};
     auto task_id = apex::task_identifier::get_task_id(tmp);

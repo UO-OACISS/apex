@@ -54,6 +54,7 @@ private:
     std::mutex cv_m;
     static std::atomic<uint64_t> sample_period;
 public:
+    std::atomic<bool> ready;
     /*
     static void* read_proc(void * _pdr);
     proc_data_reader(void) {
@@ -62,7 +63,7 @@ public:
     };
     */
     void* read_proc(void);
-    proc_data_reader(void) : done(false), reading(false) {
+    proc_data_reader(void) : done(false), reading(false), ready(false) {
         worker_thread = std::thread(&proc_data_reader::read_proc, this);
         worker_thread.detach();
     }

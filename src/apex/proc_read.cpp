@@ -824,6 +824,7 @@ namespace apex {
             dynamic::rocprofiler::query();
         }
         // release the main thread to continue
+        ready = true;
         while(!done /*&& ptw->wait()*/) {
             incrementPeriod();
             //usleep(apex_options::proc_period());

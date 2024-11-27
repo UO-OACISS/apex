@@ -506,7 +506,7 @@ void store_profiler_data(const std::string &name, uint32_t correlationId,
     }
     // Build the name
     std::stringstream ss;
-    ss << "GPU: " << std::string(name);
+    ss << "GPU: [CUDA] " << std::string(name);
     std::string tmp{ss.str()};
     // create a task_wrapper, as a GPU child of the parent on the CPU side
     auto tt = apex::new_task(tmp, UINT64_MAX, parent);
@@ -793,7 +793,7 @@ static void memcpyActivity2(CUpti_Activity *record) {
             memcpy->end, node, "DataFlow",
             memcpy->copyKind == CUPTI_ACTIVITY_MEMCPY_KIND_DTOH);
     if (apex::apex_options::use_cuda_counters()) {
-        store_counter_data("GPU: Bytes", name, memcpy->end,
+        store_counter_data("GPU: [CUDA] Bytes", name, memcpy->end,
             memcpy->bytes, node, true);
         // (1024 * 1024 * 1024) / 1,000,000,000
         // constexpr double GIGABYTES{1.073741824};
@@ -801,7 +801,7 @@ static void memcpyActivity2(CUpti_Activity *record) {
         double gbytes = (double)(memcpy->bytes); // / GIGABYTES;
         // dividing bytes by nanoseconds should give us GB/s
         double bandwidth = gbytes / duration;
-        store_counter_data("GPU: Bandwidth (GB/s)", name,
+        store_counter_data("GPU: [CUDA] Bandwidth (GB/s)", name,
             memcpy->end, bandwidth, node, true);
     }
 }
@@ -818,7 +818,7 @@ static void memcpyActivity(CUpti_Activity *record) {
             memcpy->end, node, "DataFlow",
             memcpy->copyKind == CUPTI_ACTIVITY_MEMCPY_KIND_DTOH);
     if (apex::apex_options::use_cuda_counters()) {
-        store_counter_data("GPU: Bytes", name, memcpy->end,
+        store_counter_data("GPU: [CUDA] Bytes", name, memcpy->end,
             memcpy->bytes, node, true);
         // (1024 * 1024 * 1024) / 1,000,000,000
         // constexpr double GIGABYTES{1.073741824};
@@ -826,7 +826,7 @@ static void memcpyActivity(CUpti_Activity *record) {
         double gbytes = (double)(memcpy->bytes); // / GIGABYTES;
         // dividing bytes by nanoseconds should give us GB/s
         double bandwidth = gbytes / duration;
-        store_counter_data("GPU: Bandwidth (GB/s)", name,
+        store_counter_data("GPU: [CUDA] Bandwidth (GB/s)", name,
             memcpy->end, bandwidth, node, true);
     }
 }
@@ -847,7 +847,7 @@ static void unifiedMemoryActivity(CUpti_Activity *record) {
         // (per CUPTI documentation)
         store_profiler_data(name, 0, memcpy->start, memcpy->end, node, "DataFlow");
         if (apex::apex_options::use_cuda_counters()) {
-            store_counter_data("GPU: Bytes", name, memcpy->end,
+            store_counter_data("GPU: [CUDA] Bytes", name, memcpy->end,
                     memcpy->value, node, true);
             // (1024 * 1024 * 1024) / 1,000,000,000
             constexpr double GIGABYTES{1.073741824};
@@ -855,7 +855,7 @@ static void unifiedMemoryActivity(CUpti_Activity *record) {
             double gbytes = (double)(memcpy->value) / GIGABYTES;
             // dividing bytes by nanoseconds should give us GB/s
             double bandwidth = gbytes / duration;
-            store_counter_data("GPU: Bandwidth (GB/s)", name,
+            store_counter_data("GPU: [CUDA] Bandwidth (GB/s)", name,
                     memcpy->end, bandwidth, node, true);
         }
     } else if (memcpy->counterKind ==
@@ -895,39 +895,39 @@ static void kernelActivity(CUpti_Activity *record) {
             kernel->end, node, "ControlFlow");
     if (apex::apex_options::use_cuda_counters()) {
         std::string demangled = apex::demangle(kernel->name);
-        store_counter_data("GPU: Dynamic Shared Memory (B)",
+        store_counter_data("GPU: [CUDA] Dynamic Shared Memory (B)",
                 demangled, kernel->end, kernel->dynamicSharedMemory, node);
-        store_counter_data("GPU: Local Memory Per Thread (B)",
+        store_counter_data("GPU: [CUDA] Local Memory Per Thread (B)",
                 demangled, kernel->end, kernel->localMemoryPerThread, node);
-        store_counter_data("GPU: Local Memory Total (B)",
+        store_counter_data("GPU: [CUDA] Local Memory Total (B)",
                 demangled, kernel->end, kernel->localMemoryTotal, node);
-        store_counter_data("GPU: Registers Per Thread",
+        store_counter_data("GPU: [CUDA] Registers Per Thread",
                 demangled, kernel->end, kernel->registersPerThread, node);
-        store_counter_data("GPU: Shared Memory Size (B)",
+        store_counter_data("GPU: [CUDA] Shared Memory Size (B)",
                 demangled, kernel->end, kernel->sharedMemoryExecuted, node);
-        store_counter_data("GPU: Static Shared Memory (B)",
+        store_counter_data("GPU: [CUDA] Static Shared Memory (B)",
                 demangled, kernel->end, kernel->staticSharedMemory, node);
         /* Get grid and block values */
         if (apex::apex_options::use_cuda_kernel_details()) {
-            store_counter_data("GPU: blockX",
+            store_counter_data("GPU: [CUDA] blockX",
                 demangled, kernel->end, kernel->blockX, node);
-            store_counter_data("GPU: blockY",
+            store_counter_data("GPU: [CUDA] blockY",
                 demangled, kernel->end, kernel->blockY, node);
-            store_counter_data("GPU: blockZ",
+            store_counter_data("GPU: [CUDA] blockZ",
                 demangled, kernel->end, kernel->blockZ, node);
-            store_counter_data("GPU: gridX",
+            store_counter_data("GPU: [CUDA] gridX",
                 demangled, kernel->end, kernel->gridX, node);
-            store_counter_data("GPU: gridY",
+            store_counter_data("GPU: [CUDA] gridY",
                 demangled, kernel->end, kernel->gridY, node);
-            store_counter_data("GPU: gridZ",
+            store_counter_data("GPU: [CUDA] gridZ",
                 demangled, kernel->end, kernel->gridZ, node);
             if (kernel->queued != CUPTI_TIMESTAMP_UNKNOWN) {
-                store_counter_data("GPU: queue delay (us)",
+                store_counter_data("GPU: [CUDA] queue delay (us)",
                     demangled, kernel->end,
                     (kernel->start - kernel->queued)*1.0e-3, node);
             }
             if (kernel->submitted != CUPTI_TIMESTAMP_UNKNOWN) {
-                store_counter_data("GPU: submit delay (us)",
+                store_counter_data("GPU: [CUDA] submit delay (us)",
                     demangled, kernel->end,
                     (kernel->start - kernel->submitted)*1.0e-3, node);
             }
@@ -1467,7 +1467,7 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
             store_sync_counter_data("Host: Page-locked Bytes Freed", context, value);
             hostTotalAllocated.fetch_sub(bytes, std::memory_order_relaxed);
             value = (double)(hostTotalAllocated);
-            store_sync_counter_data("GPU: Total Bytes Occupied on Host", context, value, false, false);
+            store_sync_counter_data("GPU: [CUDA] Total Bytes Occupied on Host", context, value, false, false);
             apex::recordFree(ptr);
         } else {
             mapMutex.lock();
@@ -1481,13 +1481,13 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
             mapMutex.unlock();
             value = (double)(bytes);
             if (managed) {
-                store_sync_counter_data("GPU: Bytes Freed (Managed)", context, value);
+                store_sync_counter_data("GPU: [CUDA] Bytes Freed (Managed)", context, value);
             } else {
-                store_sync_counter_data("GPU: Bytes Freed", context, value);
+                store_sync_counter_data("GPU: [CUDA] Bytes Freed", context, value);
             }
             totalAllocated.fetch_sub(value, std::memory_order_relaxed);
             value = (double)(totalAllocated);
-            store_sync_counter_data("GPU: Total Bytes Occupied on Device", context, value, false, false);
+            store_sync_counter_data("GPU: [CUDA] Total Bytes Occupied on Device", context, value, false, false);
             apex::recordFree(ptr, false);
         }
     // If we are in the exit of a function, and we are allocating memory,
@@ -1503,21 +1503,21 @@ bool getBytesIfMalloc(CUpti_CallbackId id, const void* params, std::string conte
             hostMapMutex.unlock();
             hostTotalAllocated.fetch_add(bytes, std::memory_order_relaxed);
             value = (double)(hostTotalAllocated);
-            store_sync_counter_data("GPU: Total Bytes Occupied on Host", context, value, false, false);
+            store_sync_counter_data("GPU: [CUDA] Total Bytes Occupied on Host", context, value, false, false);
             apex::recordAlloc(bytes, ptr, APEX_GPU_DEVICE_MALLOC);
             return true;
         } else {
             if (managed) {
-                store_sync_counter_data("GPU: Bytes Allocated (Managed)", context, value);
+                store_sync_counter_data("GPU: [CUDA] Bytes Allocated (Managed)", context, value);
             } else {
-                store_sync_counter_data("GPU: Bytes Allocated", context, value);
+                store_sync_counter_data("GPU: [CUDA] Bytes Allocated", context, value);
             }
             mapMutex.lock();
             memoryMap[ptr] = value;
             mapMutex.unlock();
             totalAllocated.fetch_add(bytes, std::memory_order_relaxed);
             value = (double)(totalAllocated);
-            store_sync_counter_data("GPU: Total Bytes Occupied on Device", context, value, false, false);
+            store_sync_counter_data("GPU: [CUDA] Total Bytes Occupied on Device", context, value, false, false);
             apex::recordAlloc(bytes, ptr, APEX_GPU_DEVICE_MALLOC, false);
         }
     }
@@ -2037,8 +2037,8 @@ void apex_init_cuda_tracing() {
 
     // assume CPU timestamp is greater than GPU
     deltaTimestamp = (int64_t)(startTimestampCPU) - (int64_t)(startTimestampGPU);
-    //printf("CPU: %ld\n", startTimestampCPU);
-    //printf("GPU: %ld\n", startTimestampGPU);
+    //printf("CPU: [CUDA] %ld\n", startTimestampCPU);
+    //printf("GPU: [CUDA] %ld\n", startTimestampGPU);
     //printf("Delta computed to be: %ld\n", deltaTimestamp);
     allGood = true;
 }

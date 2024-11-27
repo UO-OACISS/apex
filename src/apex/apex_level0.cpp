@@ -238,7 +238,7 @@ void OnKernelFinishCallback(void *data, const std::string& name, uint64_t starte
   int device_num = 0;
   int parent_thread = 0;
   std::string demangled = demangle(name);
-  demangled = regex_replace(demangled, regex("typeinfo name for "), "GPU: ");
+  demangled = regex_replace(demangled, regex("typeinfo name for "), "GPU: [L0] ");
   level0_thread_node node(device_num, parent_thread, APEX_ASYNC_KERNEL);
   store_profiler_data(demangled, started_translated, ended_translated, node, nullptr);
 
