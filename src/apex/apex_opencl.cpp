@@ -36,6 +36,9 @@
 #include <deque>
 #include <mutex>
 #include <condition_variable>
+#ifdef APEX_HAVE_OTF2
+#include "otf2_listener.hpp"
+#endif
 
 namespace apex {
 namespace opencl {
