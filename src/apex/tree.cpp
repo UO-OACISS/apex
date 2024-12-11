@@ -58,7 +58,7 @@ node * node::buildTree(std::vector<std::vector<std::string>>& rows,
         }
     }
     std::mutex foo;
-    std::scoped_lock{foo};
+    std::scoped_lock l{foo};
     //std::cout << "rank " << rank << " done." << std::endl;
     return root;
 }
