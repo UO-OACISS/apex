@@ -154,7 +154,7 @@ extern "C" {
             } else {
                 auto task = apex::new_task(
                                 (apex_function_address)function_address,
-                                timer_guid);
+                                timer_guid, apex::task_wrapper::get_apex_main_wrapper());
                 safeInsert(timer_guid, task);
             }
         } else {
@@ -166,7 +166,7 @@ extern "C" {
                 auto task = apex::new_task(tmpname, timer_guid, parent_tasks);
                 safeInsert(timer_guid, task);
             } else {
-                auto task = apex::new_task(tmpname, timer_guid);
+                auto task = apex::new_task(tmpname, timer_guid, apex::task_wrapper::get_apex_main_wrapper());
                 safeInsert(timer_guid, task);
             }
         }
