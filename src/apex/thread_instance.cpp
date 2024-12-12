@@ -282,54 +282,42 @@ void thread_instance::clear_current_profiler(
         //printf("Doing nothing with current profiler\n");
         return;
     }
+    /* if we are doing a "stop", then just clear ourselves IF we are current. */
+    if (!save_children) {
+        if (tmp == the_profiler) {
+            instance().current_profiler = tmp->untied_parent;
+        }
+        // otherwise do nothing.
+        return;
+    }
     // if the current profiler isn't this profiler, is it in the "stack"?
     // we know the current profiler and the one we are stopping are
     // on the same thread. Assume we are handling a "direct action" that was
     // yielded.
-    if (tmp != the_profiler) {
+    if (save_children && (tmp != the_profiler)) {
         fixing_stack = true;
         // if the data pointer location isn't available, we can't support this runtime.
         // create a vector to store the children
-        if (save_children == true) {
-            APEX_ASSERT(tt_ptr != nullptr);
-        }
+        APEX_ASSERT(tt_ptr != nullptr);
         while (tmp != the_profiler) {
-            if (save_children == true) {
-                // if we are yielding, we need to stop the children
-                /* Make a copy of the profiler object on the top of the stack. */
-                profiler * profiler_copy = new profiler(*tmp);
-                tt_ptr->data_ptr.push_back(tmp);
-                /* yield the copy. The original will get reset when the
-                parent resumes. */
-                yield(profiler_copy);  // we better be re-entrant safe!
-            } else {
-                // since we aren't yielding, just stop the children.
-                stop(tmp);  // we better be re-entrant safe!
-            }
+            // if we are yielding, we need to stop the children
+            /* Make a copy of the profiler object on the top of the stack. */
+            profiler * profiler_copy = new profiler(*tmp);
+            tt_ptr->data_ptr.push_back(tmp);
+            /* yield the copy. The original will get reset when the
+            parent resumes. */
+            yield(profiler_copy);  // we better be re-entrant safe!
             // this is a serious problem...or is it? no!
             if (tmp->untied_parent == nullptr) {
-            /*
-                // unless...we happen to be exiting.  Bets are off.
-                if (apex_options::suspend() == true) { return; }
-                // if we've already cleared the stack on this thread, we're fine
-                if (instance()._exiting) { return; }
-                std::cerr << "Warning! empty profiler stack!" << __LINE__ << "\n";
-                APEX_ASSERT(false);
-                //abort();
-                */
                 instance().current_profiler = nullptr;
-                //printf("Setting current profiler to nullptr\n");
                 return;
             }
             // get the new top of the stack
             tmp = tmp->untied_parent;
-            //printf("%lu popping? %s\n", get_id(), tmp->get_task_id()->get_short_name().c_str());
         }
         // done with the stack, allow proper recursion again.
         fixing_stack = false;
     }
-    //printf("%s Setting current profiler from %s to %s\n", __func__, instance().current_profiler->tt_ptr->task_id->get_name().c_str(),
-        //tmp->untied_parent == nullptr ? "nullptr" : tmp->untied_parent->tt_ptr->task_id->get_name().c_str());
     instance().current_profiler = tmp->untied_parent;
 }
 

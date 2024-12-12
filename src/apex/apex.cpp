@@ -1218,7 +1218,7 @@ void yield(profiler* the_profiler) {
         return;
     }
     LOCAL_DEBUG_PRINT("Yield", the_profiler->tt_ptr);
-    thread_instance::instance().clear_current_profiler(false,
+    thread_instance::instance().clear_current_profiler(true,
         the_profiler->tt_ptr);
     // make sure APEX knows about this worker thread!
     [[maybe_unused]] thread_local static bool _helper = register_thread_helper();
@@ -1764,6 +1764,9 @@ void finalize(void)
 #endif
     auto top_profiler = thread_instance::instance().get_current_profiler();
     while (top_profiler != nullptr) {
+        if (top_profiler->tt_ptr->state == task_wrapper::STOPPED) {
+            break;
+        }
         stop(top_profiler);
         if (top_profiler->untied_parent == nullptr) { break; }
         top_profiler = thread_instance::instance().get_current_profiler();
@@ -1978,6 +1981,9 @@ void exit_thread(void)
     // tell the timer cleanup that we are exiting
     thread_instance::exiting();
     while (top_profiler != nullptr) {
+        if (top_profiler->tt_ptr->state == task_wrapper::STOPPED) {
+            break;
+        }
         stop(top_profiler);
         top_profiler = thread_instance::instance().get_current_profiler();
     }
