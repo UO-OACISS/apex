@@ -2008,7 +2008,7 @@ if (rc != 0) cout << "PAPI error! " << name << ": " << PAPI_strerror(rc) << endl
   /* This is just like starting a timer, but don't increment the number of calls
    * value. That is because we are restarting an existing timer. */
   bool profiler_listener::on_resume(std::shared_ptr<task_wrapper> &tt_ptr) {
-    return _common_start(tt_ptr, true);
+    return _common_start(tt_ptr, false);
   }
 
    /* Stop the timer */

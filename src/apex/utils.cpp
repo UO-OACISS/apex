@@ -776,6 +776,8 @@ std::string getCommandLine(void) {
         std::string tmp{path};
         return tmp;
     }
+    std::string tmp{""};
+    return tmp;
 #else
     return proc_data_reader::get_command_line();
 #endif

@@ -93,10 +93,10 @@ DEFINE_DESTRUCTOR(apex_finalize_static_void)
 
 #ifdef APEX_DEBUG
 #define FUNCTION_ENTER if (apex_options::use_verbose()) { \
-    fprintf(stderr, "enter %lu *** %s:%d!\n", \
+    fprintf(stdout, "enter %lu *** %s:%d!\n", \
     thread_instance::get_id(), __APEX_FUNCTION__, __LINE__); fflush(stdout); }
 #define FUNCTION_EXIT if (apex_options::use_verbose()) { \
-    fprintf(stderr, "exit  %lu *** %s:%d!\n", \
+    fprintf(stdout, "exit  %lu *** %s:%d!\n", \
     thread_instance::get_id(), __APEX_FUNCTION__, __LINE__); fflush(stdout); }
 #else
 #define FUNCTION_ENTER
@@ -653,7 +653,7 @@ void debug_print(const char * event, std::shared_ptr<task_wrapper> tt_ptr) {
         //APEX_ASSERT(false);
         return;
     } else {
-        ss << thread_instance::get_id() << " APEX: " << event << " : " << std::hex <<
+        ss << thread_instance::get_id() << " APEX: " << event << " : " << // std::hex <<
             tt_ptr->guid << " : " << tt_ptr->get_task_id()->get_name() << " - parents: ";
         for (auto& p : tt_ptr->parents) {
             ss << p->get_task_id()->get_name() << ", ";
@@ -859,19 +859,7 @@ void start(std::shared_ptr<task_wrapper> tt_ptr) {
     return;
 }
 
-void resume(std::shared_ptr<task_wrapper> tt_ptr) {
-    in_apex prevent_deadlocks;
-    LOCAL_DEBUG_PRINT("Resume", tt_ptr);
-    // if APEX is disabled, do nothing.
-    if (apex_options::disable() == true) {
-        APEX_UTIL_REF_COUNT_DISABLED_RESUME
-        return;
-    }
-    // if APEX is suspended, do nothing.
-    if (apex_options::suspend() == true) {
-        APEX_UTIL_REF_COUNT_SUSPENDED_RESUME
-        return;
-    }
+void resume_internal(std::shared_ptr<task_wrapper> tt_ptr, bool restore = true) {
     apex* instance = apex::instance(); // get the Apex static instance
     // protect against calls after finalization
     if (!instance || _exited) {
@@ -902,8 +890,26 @@ void resume(std::shared_ptr<task_wrapper> tt_ptr) {
         }
     }
     APEX_UTIL_REF_COUNT_RESUME
-    thread_instance::instance().restore_children_profilers(tt_ptr);
+    if (restore) {
+        thread_instance::instance().restore_children_profilers(tt_ptr);
+    }
     return;
+}
+
+void resume(std::shared_ptr<task_wrapper> tt_ptr) {
+    in_apex prevent_deadlocks;
+    LOCAL_DEBUG_PRINT("Resume", tt_ptr);
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) {
+        APEX_UTIL_REF_COUNT_DISABLED_RESUME
+        return;
+    }
+    // if APEX is suspended, do nothing.
+    if (apex_options::suspend() == true) {
+        APEX_UTIL_REF_COUNT_SUSPENDED_RESUME
+        return;
+    }
+    resume_internal(tt_ptr);
 }
 
 profiler* resume(const std::string &timer_name) {
@@ -935,7 +941,7 @@ profiler* resume(const std::string &timer_name) {
     }
     task_identifier * id = task_identifier::get_task_id(timer_name);
     std::shared_ptr<task_wrapper> tt_ptr = _new_task(id, UINTMAX_MAX, {}, instance);
-    resume(tt_ptr);
+    resume_internal(tt_ptr);
     return thread_instance::instance().get_current_profiler();
 }
 
@@ -959,7 +965,7 @@ profiler* resume(const apex_function_address function_address) {
     }
     task_identifier * id = task_identifier::get_task_id(function_address);
     std::shared_ptr<task_wrapper> tt_ptr = _new_task(id, UINTMAX_MAX, {}, instance);
-    resume(tt_ptr);
+    resume_internal(tt_ptr);
     return thread_instance::instance().get_current_profiler();
 }
 
@@ -989,7 +995,7 @@ profiler* resume(profiler * p) {
     }
     // make sure APEX knows about this worker thread!
     [[maybe_unused]] thread_local static bool _helper = register_thread_helper();
-    resume(p->tt_ptr);
+    resume_internal(p->tt_ptr);
     return thread_instance::instance().get_current_profiler();
 }
 
@@ -1146,7 +1152,7 @@ void stop(std::shared_ptr<task_wrapper> tt_ptr) {
     // get the thread id that is running this task
     if (tt_ptr->prof->thread_id != thread_instance::instance().get_id() &&
         apex_options::use_verbose()) {
-        printf("Task %s started by %lu stopped by %lu\n", tt_ptr->task_id->get_name().c_str(),
+        printf("Task %s started by %llu stopped by %lu\n", tt_ptr->task_id->get_name().c_str(),
             tt_ptr->prof->thread_id, thread_instance::instance().get_id());
         //APEX_ASSERT(tt_ptr->prof->thread_id == thread_instance::instance().get_id());
     }

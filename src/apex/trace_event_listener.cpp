@@ -126,6 +126,7 @@ inline std::string parents_to_string(std::shared_ptr<task_wrapper> tt_ptr) {
 inline void trace_event_listener::_common_start(std::shared_ptr<task_wrapper> &tt_ptr) {
     static APEX_NATIVE_TLS long unsigned int tid = get_thread_id_metadata();
     long unsigned int _tid = tt_ptr->prof->thread_id;
+    APEX_UNUSED(_tid); // what are we even doing with this?
     if (!_terminate) {
         std::stringstream ss;
         ss.precision(3);
@@ -216,6 +217,7 @@ void write_flow_event(std::stringstream& ss, double ts, char ph,
 
 inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
     static APEX_NATIVE_TLS long unsigned int tid = get_thread_id_metadata();
+    APEX_UNUSED(tid); // what are we even doing with this?
     static auto main_wrapper = task_wrapper::get_apex_main_wrapper();
     // With HPX, the APEX MAIN timer will be stopped on a different thread
     // than the one that started it. So... make sure we get the right TID
@@ -229,17 +231,25 @@ inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
         ss << fixed;
         // if the parent tid is not the same, create a flow event BEFORE the single event
         for (auto& parent : p->tt_ptr->parents) {
+            uint64_t ptid = parent->thread_id;
+            bool force{false};
+            // we can rely on the profiler task id as long as it is running and hasn't been stopped
+            if (parent != nullptr && parent->prof != nullptr &&
+                (parent->state == task_wrapper::RUNNING ||
+                 parent->state == task_wrapper::YIELDED)) {
+                ptid = parent->prof->thread_id;
+            } else { force = true; }
             if (parent != nullptr && parent != main_wrapper
 #ifndef APEX_HAVE_HPX // ...except for HPX - make the flow event regardless
-            && (parent->thread_id != _tid || apex_options::use_thread_flow())
+            && (ptid != _tid || apex_options::use_thread_flow() || force)
 #endif
             ) {
                 //std::cout << "FLOWING!" << std::endl;
                 uint64_t flow_id = reversed_node_id + get_flow_id();
                 write_flow_event(ss, parent->get_flow_us()+0.25, 's', "ControlFlow", flow_id,
-                    saved_node_id, parent->thread_id, "", ""); //parent->task_id->get_name(), p->get_task_id()->get_name());
+                    saved_node_id, ptid, /*"", ""); */parent->task_id->get_name(), p->get_task_id()->get_name());
                 write_flow_event(ss, p->get_start_us()-0.25, 'f', "ControlFlow", flow_id,
-                    saved_node_id, _tid, "", ""); //parent->task_id->get_name(), p->get_task_id()->get_name());
+                    saved_node_id, _tid, /*"", ""); */parent->task_id->get_name(), p->get_task_id()->get_name());
             }
         }
         if (p->tt_ptr->explicit_trace_start) {

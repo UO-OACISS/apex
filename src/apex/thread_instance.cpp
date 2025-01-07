@@ -255,7 +255,7 @@ profiler* thread_instance::restore_children_profilers(
         // make sure to set the current profiler - the profiler_listener
         // is bypassed by the resume method, above.  It's the listener that
         // sets the current profiler when a timer is started
-        //thread_instance::instance().set_current_profiler((*myprof));
+        thread_instance::instance().set_current_profiler((*myprof));
     }
     // clear the vector.
     myvec->clear();

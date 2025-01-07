@@ -49,6 +49,8 @@ set(example_programs
     apex_std_thread
     apex_multiple_parents
     apex_taskstubs
+    apex_untied_timer_stack
+    apex_untied_timer_stack_pooled
     ${APEX_OPENMP_TEST}
    )
     #apex_set_thread_cap
