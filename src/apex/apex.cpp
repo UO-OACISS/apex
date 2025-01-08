@@ -699,12 +699,14 @@ inline std::shared_ptr<task_wrapper> _new_task(
     // was a parent passed in?
     } else */ if (parent_tasks.size() > 0) {
         tt_ptr->parents = parent_tasks;
+        tt_ptr->implicit_parent = false;
     // if not, is there a current timer?
     } else {
         auto p = thread_instance::instance().get_current_profiler();
         if (p != nullptr) {
             //printf("Extracting parent: %s\n", p->tt_ptr->task_id->get_name().c_str());
             tt_ptr->parents.push_back(p->tt_ptr);
+            tt_ptr->previous_task = p->tt_ptr;
         } else {
             tt_ptr->parents.push_back(task_wrapper::get_apex_main_wrapper());
         }
@@ -772,7 +774,7 @@ profiler* start(const std::string &timer_name)
     auto tt_ptr = _new_task(id, UINTMAX_MAX, {}, instance);
     APEX_ASSERT(tt_ptr->state == task_wrapper::CREATED);
     start(tt_ptr);
-    return thread_instance::instance().get_current_profiler();
+    return tt_ptr->prof;
 }
 
 profiler* start(const apex_function_address function_address) {
@@ -798,7 +800,7 @@ profiler* start(const apex_function_address function_address) {
     task_identifier * id = task_identifier::get_task_id(function_address);
     auto tt_ptr = _new_task(id, UINTMAX_MAX, {}, instance);
     start(tt_ptr);
-    return thread_instance::instance().get_current_profiler();
+    return tt_ptr->prof;
 }
 
 void start(std::shared_ptr<task_wrapper> tt_ptr) {
@@ -859,12 +861,12 @@ void start(std::shared_ptr<task_wrapper> tt_ptr) {
     return;
 }
 
-void resume_internal(std::shared_ptr<task_wrapper> tt_ptr, bool restore = true) {
+profiler* resume_internal(std::shared_ptr<task_wrapper> tt_ptr, bool restore = true) {
     apex* instance = apex::instance(); // get the Apex static instance
     // protect against calls after finalization
     if (!instance || _exited) {
         APEX_UTIL_REF_COUNT_RESUME_AFTER_FINALIZE
-        return;
+        return nullptr;
     }
     // make sure APEX knows about this worker thread!
     [[maybe_unused]] thread_local static bool _helper = register_thread_helper();
@@ -880,20 +882,20 @@ void resume_internal(std::shared_ptr<task_wrapper> tt_ptr, bool restore = true) 
                 if (!success && i == 0) {
                     APEX_UTIL_REF_COUNT_FAILED_RESUME
                     tt_ptr->prof = profiler::get_disabled_profiler();
-                    return;
+                    return tt_ptr->prof;
                 }
             }
         } catch (disabled_profiler_exception &e) {
             APEX_UTIL_REF_COUNT_FAILED_RESUME
             tt_ptr->prof = profiler::get_disabled_profiler();
-            return;
+            return tt_ptr->prof;
         }
     }
     APEX_UTIL_REF_COUNT_RESUME
     if (restore) {
         thread_instance::instance().restore_children_profilers(tt_ptr);
     }
-    return;
+    return tt_ptr->prof;
 }
 
 void resume(std::shared_ptr<task_wrapper> tt_ptr) {
@@ -941,8 +943,7 @@ profiler* resume(const std::string &timer_name) {
     }
     task_identifier * id = task_identifier::get_task_id(timer_name);
     std::shared_ptr<task_wrapper> tt_ptr = _new_task(id, UINTMAX_MAX, {}, instance);
-    resume_internal(tt_ptr);
-    return thread_instance::instance().get_current_profiler();
+    return resume_internal(tt_ptr);
 }
 
 profiler* resume(const apex_function_address function_address) {
@@ -965,8 +966,7 @@ profiler* resume(const apex_function_address function_address) {
     }
     task_identifier * id = task_identifier::get_task_id(function_address);
     std::shared_ptr<task_wrapper> tt_ptr = _new_task(id, UINTMAX_MAX, {}, instance);
-    resume_internal(tt_ptr);
-    return thread_instance::instance().get_current_profiler();
+    return resume_internal(tt_ptr);
 }
 
 profiler* resume(profiler * p) {
@@ -995,8 +995,8 @@ profiler* resume(profiler * p) {
     }
     // make sure APEX knows about this worker thread!
     [[maybe_unused]] thread_local static bool _helper = register_thread_helper();
-    resume_internal(p->tt_ptr);
-    return thread_instance::instance().get_current_profiler();
+    auto tt_ptr = p->tt_ptr;
+    return resume_internal(tt_ptr);
 }
 
 void reset(const std::string &timer_name) {
@@ -1760,7 +1760,7 @@ void finalize(void)
                     auto top_profiler = t->get_current_profiler();
                     while (top_profiler != nullptr) {
                         stop(top_profiler);
-                        if (top_profiler->untied_parent == nullptr) { break; }
+                        if (top_profiler->tt_ptr->previous_task == nullptr) { break; }
                         top_profiler = t->get_current_profiler();
                     }
                 }
@@ -1774,7 +1774,8 @@ void finalize(void)
             break;
         }
         stop(top_profiler);
-        if (top_profiler->untied_parent == nullptr) { break; }
+        if (top_profiler->tt_ptr == nullptr) { break; }
+        if (top_profiler->tt_ptr->previous_task == nullptr) { break; }
         top_profiler = thread_instance::instance().get_current_profiler();
     }
     /* Signal the other threads that have open profiles to exit */

@@ -269,14 +269,11 @@ void thread_instance::clear_current_profiler(
     // check for recursion
     if (fixing_stack) {return;}
     // get the current profiler
-    profiler* tmp = instance().current_profiler;
+    profiler* tmp = instance().get_current_profiler();
+    // This thread has no running timers, do nothing.
+    if (tmp == nullptr) return;
     // get the task wrapper's profiler
     profiler* the_profiler = tt_ptr->prof;
-    // This thread has no running timers, do nothing.
-    if (tmp == nullptr) {
-        //printf("Setting current profiler to nullptr\n");
-        return;
-    }
     // if this profiler was started somewhere else, do nothing.
     if (the_profiler->thread_id != instance().get_id()) {
         //printf("Doing nothing with current profiler\n");
@@ -285,7 +282,7 @@ void thread_instance::clear_current_profiler(
     /* if we are doing a "stop", then just clear ourselves IF we are current. */
     if (!save_children) {
         if (tmp == the_profiler) {
-            instance().current_profiler = tmp->untied_parent;
+            instance().current_task = tt_ptr->previous_task;
         }
         // otherwise do nothing.
         return;
@@ -308,17 +305,17 @@ void thread_instance::clear_current_profiler(
             parent resumes. */
             yield(profiler_copy);  // we better be re-entrant safe!
             // this is a serious problem...or is it? no!
-            if (tmp->untied_parent == nullptr) {
-                instance().current_profiler = nullptr;
+            if (tmp->tt_ptr->previous_task == nullptr) {
+                instance().current_task = nullptr;
                 return;
             }
             // get the new top of the stack
-            tmp = tmp->untied_parent;
+            tmp = tmp->tt_ptr->previous_task->prof;
         }
         // done with the stack, allow proper recursion again.
         fixing_stack = false;
     }
-    instance().current_profiler = tmp->untied_parent;
+    instance().current_task = tmp->tt_ptr->previous_task;
 }
 
 }

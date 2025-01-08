@@ -90,6 +90,8 @@ struct task_wrapper {
   */
     bool explicit_trace_start;
     task_state_t state;
+    bool implicit_parent;
+    std::shared_ptr<task_wrapper> previous_task;
 /**
     \brief Vector of arguments to the task, optional data from taskStubs implementation
            only used by the google trace events format output.
@@ -111,7 +113,9 @@ struct task_wrapper {
         thread_id(0UL),
         create_ns(our_clock::now_ns()),
         explicit_trace_start(false),
-        state(CREATED)
+        state(CREATED),
+        implicit_parent(true),
+        previous_task(nullptr)
     { }
 /**
   \brief Destructor.
