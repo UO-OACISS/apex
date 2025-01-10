@@ -887,14 +887,13 @@ static void memsetActivity(CUpti_Activity *record) {
 static void kernelActivity(CUpti_Activity *record) {
     CUpti_ActivityKernel4 *kernel =
         (CUpti_ActivityKernel4 *) record;
-    std::string tmp = std::string(kernel->name);
+    std::string demangled = apex::demangle(kernel->name);
     //DEBUG_PRINT("Kernel CorrelationId: %u\n", kernel->correlationId);
     apex::cuda_thread_node node(kernel->deviceId, kernel->contextId,
             kernel->streamId, APEX_ASYNC_KERNEL);
-    store_profiler_data(tmp, kernel->correlationId, kernel->start,
+    store_profiler_data(demangled, kernel->correlationId, kernel->start,
             kernel->end, node, "ControlFlow");
     if (apex::apex_options::use_cuda_counters()) {
-        std::string demangled = apex::demangle(kernel->name);
         store_counter_data("GPU: [CUDA] Dynamic Shared Memory (B)",
                 demangled, kernel->end, kernel->dynamicSharedMemory, node);
         store_counter_data("GPU: [CUDA] Local Memory Per Thread (B)",

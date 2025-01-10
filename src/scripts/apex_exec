@@ -884,7 +884,7 @@ else
     #echo "apex_exec executing: ${debugger} ${PARAMS}"
     if [ "${verbose}" == "yes" ] ; then
         echo "${gdbcmds}:"
-        cat ${gdbcmds}
+        #cat ${gdbcmds}
     fi
     ${debugger} ${PARAMS}
     retval=$?

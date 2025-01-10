@@ -1152,7 +1152,7 @@ void stop(std::shared_ptr<task_wrapper> tt_ptr) {
     // get the thread id that is running this task
     if (tt_ptr->prof->thread_id != thread_instance::instance().get_id() &&
         apex_options::use_verbose()) {
-        printf("Task %s started by %llu stopped by %lu\n", tt_ptr->task_id->get_name().c_str(),
+        printf("Task %s started by %" PRIu64 " stopped by %lu\n", tt_ptr->task_id->get_name().c_str(),
             tt_ptr->prof->thread_id, thread_instance::instance().get_id());
         //APEX_ASSERT(tt_ptr->prof->thread_id == thread_instance::instance().get_id());
     }
