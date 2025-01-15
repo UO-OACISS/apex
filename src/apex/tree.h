@@ -38,7 +38,7 @@ class node {
         node* addChild(const std::string& cname) {
             if (!hasChild(cname)) {
                 // child not found, get lock
-                std::scoped_lock{mtx};
+                std::scoped_lock l{mtx};
                 // child may have appeared?
                 if (!hasChild(cname)) {
                     //std::cout << "Adding " << _name << " -> " << cname << std::endl;
