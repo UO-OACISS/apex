@@ -723,6 +723,12 @@ inline std::shared_ptr<task_wrapper> _new_task(
     }
     //instance->active_task_wrappers.insert(tt_ptr);
     LOCAL_DEBUG_PRINT("Create", tt_ptr);
+    if (_notify_listeners) {
+        //read_lock_type l(instance->listener_mutex);
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            instance->listeners[i]->on_create(tt_ptr);
+        }
+    }
     return tt_ptr;
 }
 
@@ -1302,6 +1308,59 @@ void yield(std::shared_ptr<task_wrapper> tt_ptr) {
     }
 #endif
     tt_ptr->prof = nullptr;
+}
+
+void schedule(std::shared_ptr<task_wrapper> tt_ptr) {
+    in_apex prevent_deadlocks;
+    LOCAL_DEBUG_PRINT("Schedule", tt_ptr);
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
+    if (tt_ptr == nullptr) { return; }
+    apex* instance = apex::instance(); // get the Apex static instance
+    // protect against calls after finalization
+    if (!instance || _exited || _measurement_stopped) {
+        return;
+    }
+    // make sure APEX knows about this worker thread!
+    [[maybe_unused]] thread_local static bool _helper = register_thread_helper();
+    APEX_ASSERT(tt_ptr->state == task_wrapper::CREATED);
+    if (_notify_listeners) {
+        //read_lock_type l(instance->listener_mutex);
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            instance->listeners[i]->on_schedule(tt_ptr);
+        }
+    }
+}
+
+void internal_destroy(task_wrapper * task_wrapper_ptr) {
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
+    if (task_wrapper_ptr == nullptr) { return; }
+    apex* instance = apex::instance(); // get the Apex static instance
+    // protect against calls after finalization
+    if (!instance || _exited || _measurement_stopped) {
+        return;
+    }
+    // make sure APEX knows about this worker thread!
+    [[maybe_unused]] thread_local static bool _helper = register_thread_helper();
+    APEX_ASSERT(task_wrapper_ptr->state == task_wrapper::STOPPED);
+    task_wrapper_ptr->state = task_wrapper::DESTROYED;
+    if (_notify_listeners) {
+        //read_lock_type l(instance->listener_mutex);
+        for (unsigned int i = 0 ; i < instance->listeners.size() ; i++) {
+            instance->listeners[i]->on_destroy(task_wrapper_ptr);
+        }
+    }
+}
+
+void destroy(std::shared_ptr<task_wrapper> tt_ptr) {
+    in_apex prevent_deadlocks;
+    LOCAL_DEBUG_PRINT("Destroy", tt_ptr);
+    // if APEX is disabled, do nothing.
+    if (apex_options::disable() == true) { return; }
+    if (tt_ptr == nullptr) { return; }
+    // have to destroy using the raw pointer
+    internal_destroy(tt_ptr.get());
 }
 
 void sample_value(const std::string &name, double value, bool threaded)

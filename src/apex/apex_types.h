@@ -287,6 +287,7 @@ inline unsigned int sc_nprocessors_onln(void)
     macro (APEX_OTF2_COLLECTIVE_SIZE, otf2_collective_size, int, 1, "") \
     macro (APEX_TRACE_EVENT, use_trace_event, bool, false, "Enable Google Trace Event output.") \
     macro (APEX_TRACE_THREAD_FLOW, use_thread_flow, bool, false, "Enable flow events between tasks on same thread.") \
+    macro (APEX_TRACE_EVENT_TASKS, use_trace_event_tasks, bool, false, "Enable Google Trace Event output, each task on its own resource line.") \
     macro (APEX_PERFETTO, use_perfetto, bool, false, "Enable Perfetto Trace output (not recommended, use Google Trace Event instead).") \
     macro (APEX_POLICY, use_policy, bool, true, "Enable APEX policy listener and execute registered policies.") \
     macro (APEX_MEASURE_CONCURRENCY, use_concurrency, int, 0, "Periodically sample thread activity and output report at exit.") \

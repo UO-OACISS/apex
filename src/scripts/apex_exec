@@ -55,6 +55,7 @@ where APEX options are zero or more of:
                                   (default: ./OTF2_archive)
     --apex:otf2name <value>       specify name of OTF2 file (default: APEX)
     --apex:gtrace                 enable Google Trace Events output
+    --apex:gtrace-tasks           enable Google Trace Events output, use resource lines for tasks, not OS threads / device streams
     --apex:pftrace                enable Perfetto Trace output (if enabled...gtrace is a better option)
     --apex:scatter                enable scatterplot output
                                   (python required for post-processing)
@@ -121,6 +122,7 @@ kokkos_counters=no
 raja=no
 otf2=no
 gtrace=no
+gtrace_tasks=no
 pftrace=no
 python=no
 scatter=no
@@ -267,6 +269,13 @@ while (( "$#" )); do
     --apex:gtrace)
       gtrace=yes
       export APEX_TRACE_EVENT=1
+      shift
+      ;;
+    --apex:gtrace-tasks)
+      gtrace=yes
+      gtrace_tasks=yes
+      export APEX_TRACE_EVENT=1
+      export APEX_TRACE_EVENT_TASKS=1
       shift
       ;;
     --apex:pftrace)

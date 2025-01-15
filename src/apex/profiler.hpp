@@ -90,7 +90,7 @@ public:
         thread_id(task->thread_id) {
             //printf("constructor! %p\n", this); fflush(stdout);
             task->prof = this;
-            task->start_ns = start_ns;
+            task->assign_start_ns(start_ns);
         }
     // this constructor is for resetting profile values
     profiler(task_identifier * id,

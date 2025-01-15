@@ -131,7 +131,7 @@ private:
 };
 
 uint64_t getid() {
-    static std::atomic<uint64_t> id{0};
+    static std::atomic<uint64_t> id{1};
     uint64_t tmp = ++id;
     return tmp;
 }
@@ -154,7 +154,8 @@ ThreadPool& pool() {
 
 #define TIMER_STOP \
     std::cout << "Stopping " << __func__ << std::endl; \
-    apex::stop(_tw);
+    apex::stop(_tw); \
+    apex::destroy(_tw);
 
 void simple_subroutine_1(void) {
     TIMER_START
@@ -171,6 +172,7 @@ void simple_task(std::shared_ptr<apex::task_wrapper> tw) {
     TIMER_START
     simple_subroutine_1();
     apex::yield(tw);
+    std::this_thread::sleep_for(std::chrono::microseconds(1));
     apex::resume(tw);
     simple_subroutine_2();
     TIMER_STOP
@@ -183,6 +185,7 @@ void simple_task_with_parent(std::shared_ptr<apex::task_wrapper> tw) {
     TIMER_START_PARENT
     simple_subroutine_1();
     apex::yield(tw);
+    std::this_thread::sleep_for(std::chrono::microseconds(1));
     apex::resume(tw);
     simple_subroutine_2();
     TIMER_STOP
@@ -200,7 +203,7 @@ void transient_task_start(std::shared_ptr<apex::task_wrapper> tw) {
 
 void transient_task_stop(std::shared_ptr<apex::task_wrapper> tw) {
     apex::start(tw);
-    TIMER_START_PARENT
+    TIMER_START
     simple_subroutine_2();
     TIMER_STOP
     APEX_ASSERT(tw->prof != nullptr);
@@ -218,18 +221,31 @@ void simple_transient_task_stop(std::shared_ptr<apex::task_wrapper> tw) {
 
 void loop_it(std::shared_ptr<apex::task_wrapper> tw) {
     TIMER_START_PARENT
+    #if 1
     pool().enqueue([=] {
         auto tw2 = apex::new_task("task that is on one thread", getid(), _tw);
+        apex::schedule(tw2);
         simple_task(tw2);
+        apex::destroy(tw2);
     });
+    #endif
     auto tw5 = apex::new_task("task that is spread over two threads", getid(), _tw);
-    pool().enqueue([=] { transient_task_start(tw5); });
+    pool().enqueue([=] {
+        apex::schedule(tw5);
+        transient_task_start(tw5);
+    });
+    #if 1
     pool().enqueue([=] {
         auto tw3 = apex::new_task("task that is on one thread with parent", getid(), _tw);
+        apex::schedule(tw3);
         simple_task_with_parent(tw3);
+        apex::destroy(tw3);
     });
     auto tw4 = apex::new_task("task that is (possibly) stopped elsewhere", getid(), _tw);
-    pool().enqueue([=] { transient_task_start(tw4); });
+    pool().enqueue([=] {
+        apex::schedule(tw4);
+        transient_task_start(tw4);
+    });
     pool().enqueue([=] {
         // wait for the task to yield...
         while(tw4->state != apex::task_wrapper::YIELDED) {
@@ -240,7 +256,9 @@ void loop_it(std::shared_ptr<apex::task_wrapper> tw) {
             std::this_thread::sleep_for(std::chrono::microseconds(1));
         }
         transient_task_stop(tw4);
+        apex::destroy(tw4);
     });
+    #endif
     pool().enqueue([=] {
         // wait for the task to yield...
         while(tw5->state != apex::task_wrapper::YIELDED) {
@@ -251,6 +269,7 @@ void loop_it(std::shared_ptr<apex::task_wrapper> tw) {
             std::this_thread::sleep_for(std::chrono::microseconds(1));
         }
         transient_task_stop(tw5);
+        apex::destroy(tw5);
     });
     TIMER_STOP
 }
