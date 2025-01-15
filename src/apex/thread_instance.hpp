@@ -94,7 +94,7 @@ private:
         _id(-1), _id_reversed(UINTMAX_MAX), _runtime_id(-1),
         _top_level_timer_name(), _is_worker(is_worker), _task_count(0),
         _top_level_timer(nullptr), _exiting(false),
-        current_profiler(nullptr) {
+        current_task(nullptr) {
     /* Even do this for non-workers, because for CUPTI processing we need to
      * generate GUIDs for the activity events! */
     _id = common()._num_threads++;
@@ -125,7 +125,7 @@ private:
   thread_instance& operator=(thread_instance const&)= delete;
   // map from function address to name - unique to all threads to avoid locking
   std::map<apex_function_address, std::string> _function_map;
-  profiler* current_profiler;
+  std::shared_ptr<task_wrapper> current_task;
   uint64_t _get_guid(void) {
       // start at 1, because 0 means nullptr which means "no parent"
       _task_count++;
@@ -157,12 +157,17 @@ public:
   std::string map_addr_to_name(apex_function_address function_address);
   static profiler* restore_children_profilers(std::shared_ptr<task_wrapper> &tt_ptr);
   void set_current_profiler(profiler* the_profiler) {
-    //printf("%s Setting current profiler from %s to %s\n", __func__, current_profiler == nullptr ? "nullptr" : current_profiler->tt_ptr->task_id->get_name().c_str(), the_profiler->tt_ptr->task_id->get_name().c_str());
-    the_profiler->untied_parent = current_profiler;
-    current_profiler = the_profiler;
+    //printf("%s Setting current profiler from %s to %s\n", __func__, current_task == nullptr ? "nullptr" : current_task->task_id->get_name().c_str(), the_profiler->tt_ptr->task_id->get_name().c_str());
+    the_profiler->tt_ptr->previous_task = current_task;
+    current_task = the_profiler->tt_ptr;
   }
   profiler* get_current_profiler(void) {
-    return current_profiler;
+    if ((current_task == nullptr) ||
+        (current_task->state != task_wrapper::RUNNING)) {
+        return nullptr;
+    }
+    // else
+    return current_task->prof;
   }
   static void clear_current_profiler(bool save_children, std::shared_ptr<task_wrapper> &tt_ptr);
   static const char * program_path(void);

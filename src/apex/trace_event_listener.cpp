@@ -15,6 +15,7 @@
 #include <iomanip>
 #include <future>
 #include <thread>
+#include <queue>
 
 using namespace std;
 
@@ -43,6 +44,68 @@ void trace_event_listener::end_trace_time(void) {
         _end_time = profiler::now_us();
     }
 }
+
+/* For some tasking systems, put each task on a different resource
+   line, instead of the OS thread that executed it. */
+uint64_t trace_event_listener::resource_id(
+    uint64_t tid, task_wrapper * tt_ptr, bool create, bool destroy) {
+    // Perfetto doesn't like 64 bit thread IDs...
+    static std::unordered_map<uint64_t,size_t> guid_map;
+    static std::set<size_t> active_set;
+    static std::queue<uint64_t> free_resources;
+    static std::mutex map_lock;
+    if (apex_options::use_trace_event_tasks()) {
+        /* If this is an explicit parent, use the parent thread (guid) */
+        if ((tt_ptr->implicit_parent || tt_ptr->is_async) && tt_ptr->parents.size() > 0) {
+            tt_ptr->trace_tid = tt_ptr->parents[0]->trace_tid;
+            return tt_ptr->trace_tid;
+        }
+        auto guid = tt_ptr->guid;
+        if (create) {
+            size_t new_id;
+            {
+                std::lock_guard<std::mutex> lock(map_lock);
+                if (free_resources.size()) {
+                    new_id = free_resources.front();
+                    free_resources.pop();
+                } else {
+                    new_id = active_set.size();
+                }
+                guid_map[guid] = new_id;
+                active_set.insert(new_id);
+            }
+            saved_node_id = apex::instance()->get_node_id();
+            std::stringstream ss;
+            ss.precision(3);
+            ss << fixed
+               << "{\"name\":\"thread_name\""
+               << ",\"ph\":\"M\",\"pid\":" << saved_node_id
+               << ",\"tid\":" << new_id
+               << ",\"args\":{\"name\":"
+               << "\"Active Task" << "\"}},\n";
+               /*
+            ss << "{\"name\":\"thread_sort_index\""
+               << ",\"ph\":\"M\",\"pid\":" << saved_node_id
+               << ",\"tid\":" << new_id
+               << ",\"args\":{\"sort_index\":\"" << setw(5) << setfill('0') << new_id << "\"}},\n";
+               */
+            write_to_trace(ss);
+            tt_ptr->trace_tid = new_id;
+            return new_id;
+        } else if (destroy) {
+            std::lock_guard<std::mutex> lock(map_lock);
+            size_t resource = guid_map[guid];
+            free_resources.push(resource);
+            active_set.erase(resource);
+            return resource;
+        } else {
+            std::lock_guard<std::mutex> lock(map_lock);
+            return guid_map[guid];
+        }
+    }
+    return tid;
+}
+
 
 void trace_event_listener::on_startup(startup_event_data &data) {
     APEX_UNUSED(data);
@@ -124,7 +187,9 @@ inline std::string parents_to_string(std::shared_ptr<task_wrapper> tt_ptr) {
 }
 
 inline void trace_event_listener::_common_start(std::shared_ptr<task_wrapper> &tt_ptr) {
+    /* will construct a resource entry for this OS thread */
     static APEX_NATIVE_TLS long unsigned int tid = get_thread_id_metadata();
+    /* However, we want to use the tid of the thread that started this timer */
     long unsigned int _tid = tt_ptr->prof->thread_id;
     APEX_UNUSED(_tid); // what are we even doing with this?
     if (!_terminate) {
@@ -135,7 +200,8 @@ inline void trace_event_listener::_common_start(std::shared_ptr<task_wrapper> &t
         ss << "{\"name\":\"" << tt_ptr->get_task_id()->get_name()
               << "\",\"cat\":\"CPU\""
               << ",\"ph\":\"B\",\"pid\":"
-              << saved_node_id << ",\"tid\":" << tid
+              << saved_node_id << ",\"tid\":" <<
+              resource_id(tid, tt_ptr.get())
               << ",\"ts\":" << tt_ptr->prof->get_start_us()
               << ",\"args\":{\"GUID\":" << tt_ptr->prof->guid << ",\"Parent GUID\":" << pguid << "}},\n";
 /* Only write the counter at the end, it's less data! */
@@ -161,15 +227,66 @@ inline void trace_event_listener::_common_start(std::shared_ptr<task_wrapper> &t
 }
 
 bool trace_event_listener::on_start(std::shared_ptr<task_wrapper> &tt_ptr) {
-    APEX_UNUSED(tt_ptr);
     if (tt_ptr->explicit_trace_start) _common_start(tt_ptr);
     return true;
 }
 
 bool trace_event_listener::on_resume(std::shared_ptr<task_wrapper> &tt_ptr) {
-    APEX_UNUSED(tt_ptr);
     if (tt_ptr->explicit_trace_start) _common_start(tt_ptr);
     return true;
+}
+
+void trace_event_listener::on_create(std::shared_ptr<task_wrapper> &tt_ptr) {
+    // if this is a GPU event, do nothing...
+    if (tt_ptr->get_task_id()->get_name().compare(0, 5, "GPU: ") == 0) {
+        tt_ptr->is_async = true;
+        return;
+    }
+    saved_node_id = apex::instance()->get_node_id();
+    std::stringstream ss;
+    ss.precision(3);
+    ss << fixed
+       << "{\"name\":\"Task Creation\""
+       << ",\"ph\":\"R\",\"pid\":"
+       << saved_node_id << ",\"tid\":"
+       << resource_id(tt_ptr->thread_id, tt_ptr.get(), true) << ",\"ts\":"
+       << profiler::now_us() << ",\"args\":{\"GUID\":"
+       << tt_ptr->guid << ",\"name\":\""
+       << tt_ptr->get_task_id()->get_name() << "\"}},\n";
+    write_to_trace(ss);
+    return;
+}
+
+void trace_event_listener::on_schedule(std::shared_ptr<task_wrapper> &tt_ptr) {
+    saved_node_id = apex::instance()->get_node_id();
+    std::stringstream ss;
+    ss.precision(3);
+    ss << fixed
+       << "{\"name\":\"Task Schedule\""
+       << ",\"ph\":\"R\",\"pid\":"
+       << saved_node_id << ",\"tid\":"
+       << resource_id(tt_ptr->thread_id, tt_ptr.get()) << ",\"ts\":"
+       << profiler::now_us() << ",\"args\":{\"GUID\":"
+       << tt_ptr->guid << ",\"name\":\""
+       << tt_ptr->get_task_id()->get_name() << "\"}},\n";
+    write_to_trace(ss);
+    return;
+}
+
+void trace_event_listener::on_destroy(task_wrapper * tt_ptr) {
+    saved_node_id = apex::instance()->get_node_id();
+    std::stringstream ss;
+    ss.precision(3);
+    ss << fixed
+       << "{\"name\":\"Task Destroy\""
+       << ",\"ph\":\"R\",\"pid\":"
+       << saved_node_id << ",\"tid\":"
+       << resource_id(tt_ptr->thread_id, tt_ptr, false, true) << ",\"ts\":"
+       << profiler::now_us() << ",\"args\":{\"GUID\":"
+       << tt_ptr->guid << ",\"name\":\""
+       << tt_ptr->get_task_id()->get_name() << "\"}},\n";
+    write_to_trace(ss);
+    return;
 }
 
 // we need a wrapper, because we have static tid in both _common_start and _common_stop
@@ -189,12 +306,15 @@ long unsigned int trace_event_listener::get_thread_id_metadata_internal() {
        << ",\"ph\":\"M\",\"pid\":" << saved_node_id
        << ",\"tid\":" << tid
        << ",\"args\":{\"name\":"
-       << "\"CPU Thread " << tid << "\"}},\n";
+       << "\"CPU Thread\"}},\n";
+       //<< "\"CPU Thread " << tid << "\"}},\n";
     ss << "{\"name\":\"thread_sort_index\""
        << ",\"ph\":\"M\",\"pid\":" << saved_node_id
        << ",\"tid\":" << tid
        << ",\"args\":{\"sort_index\":\"" << setw(5) << setfill('0') << tid << "\"}},\n";
-    write_to_trace(ss);
+    if (!apex_options::use_trace_event_tasks()) {
+        write_to_trace(ss);
+    }
     return tid;
 }
 
@@ -229,9 +349,12 @@ inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
         std::stringstream ss;
         ss.precision(3);
         ss << fixed;
+        if (!p->tt_ptr->implicit_parent) {
         // if the parent tid is not the same, create a flow event BEFORE the single event
         for (auto& parent : p->tt_ptr->parents) {
             uint64_t ptid = parent->thread_id;
+            // if each task is its own thread, then force flow events.
+            //bool force{apex_options::use_trace_event_tasks()};
             bool force{false};
             // we can rely on the profiler task id as long as it is running and hasn't been stopped
             if (parent != nullptr && parent->prof != nullptr &&
@@ -246,17 +369,18 @@ inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
             ) {
                 //std::cout << "FLOWING!" << std::endl;
                 uint64_t flow_id = reversed_node_id + get_flow_id();
-                write_flow_event(ss, parent->get_flow_us()+0.25, 's', "ControlFlow", flow_id,
-                    saved_node_id, ptid, /*"", ""); */parent->task_id->get_name(), p->get_task_id()->get_name());
+                write_flow_event(ss, parent->get_flow_us(p->get_start_ns())+0.25, 's', "ControlFlow", flow_id,
+                    saved_node_id, resource_id(ptid, parent.get()), parent->task_id->get_name(), p->get_task_id()->get_name());
                 write_flow_event(ss, p->get_start_us()-0.25, 'f', "ControlFlow", flow_id,
-                    saved_node_id, _tid, /*"", ""); */parent->task_id->get_name(), p->get_task_id()->get_name());
+                    saved_node_id, resource_id(_tid, p->tt_ptr.get()), parent->task_id->get_name(), p->get_task_id()->get_name());
             }
-        }
+        } // for
+        } // if
         if (p->tt_ptr->explicit_trace_start) {
             ss << "{\"name\":\"" << p->get_task_id()->get_name()
               << "\",\"cat\":\"CPU\""
               << ",\"ph\":\"E\",\"pid\":"
-              << saved_node_id << ",\"tid\":" << _tid
+              << saved_node_id << ",\"tid\":" << resource_id(_tid, p->tt_ptr.get())
               << ",\"ts\":" << p->get_stop_us()
               << "},\n";
         } else {
@@ -264,7 +388,7 @@ inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
             ss << "{\"name\":\"" << p->get_task_id()->get_name()
                << "\",\"cat\":\"CPU\""
                << ",\"ph\":\"X\",\"pid\":"
-               << saved_node_id << ",\"tid\":" << _tid
+               << saved_node_id << ",\"tid\":" << resource_id(_tid, p->tt_ptr.get())
                << ",\"ts\":" << p->get_start_us() << ",\"dur\":"
                << p->get_stop_us() - p->get_start_us()
                << ",\"args\":{\"GUID\":" << p->guid << ",\"Parent GUID\":" << pguid;
@@ -325,6 +449,7 @@ inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
             //std::cout << p->get_task_id()->get_name() << "." << metric << ": " << start << " -> " << stop << " = " << stop-start << std::endl;
         }
 #endif
+        //std::cout << ss.str() << std::endl;
         write_to_trace(ss);
     }
     flush_trace_if_necessary();
@@ -380,7 +505,7 @@ void trace_event_listener::set_metadata(const char * name, const char * value) {
     APEX_UNUSED(value);
 }
 
-std::string trace_event_listener::make_tid (base_thread_node &node) {
+uint64_t trace_event_listener::make_tid (base_thread_node &node) {
     size_t tid;
     /* There is a potential for overlap here, but not a high potential.  The CPU and the GPU
      * would BOTH have to spawn 64k+ threads/streams for this to happen. */
@@ -410,7 +535,7 @@ std::string trace_event_listener::make_tid (base_thread_node &node) {
     std::stringstream ss;
     ss << tid;
     std::string label{ss.str()};
-    return label;
+    return atol(label.c_str());
 }
 
 void trace_event_listener::on_async_event(base_thread_node &node,
@@ -419,30 +544,32 @@ void trace_event_listener::on_async_event(base_thread_node &node,
         std::stringstream ss;
         ss.precision(3);
         ss << fixed;
-        std::string tid{make_tid(node)};
+        uint64_t tid{make_tid(node)};
         std::string pguid = parents_to_string(p->tt_ptr);
         ss << "{\"name\":\"" << p->get_task_id()->get_name()
               << "\",\"cat\":\"GPU\""
               << ",\"ph\":\"X\",\"pid\":"
-              << saved_node_id << ",\"tid\":" << tid
+              << saved_node_id << ",\"tid\":" << resource_id(tid, p->tt_ptr.get())
               << ",\"ts\":" << p->get_start_us() << ",\"dur\":"
               << p->get_stop_us() - p->get_start_us()
               << ",\"args\":{\"GUID\":" << p->guid << ",\"Parent GUID\":" << pguid << "}},\n";
         // write a flow event pair!
         // make sure the start of the flow is before the end of the flow, ideally the middle of the parent
-        if (data.flow) {
-            uint64_t flow_id = reversed_node_id + get_flow_id();
-        if (data.reverse_flow) {
-            double begin_ts = (p->get_stop_us() + p->get_start_us()) * 0.5;
-            double end_ts = std::min(p->get_stop_us(), data.parent_ts_stop);
-            write_flow_event(ss, begin_ts, 's', data.cat, flow_id, saved_node_id, atol(tid.c_str()), data.name, p->get_task_id()->get_name());
-            write_flow_event(ss, end_ts, 't', data.cat, flow_id, saved_node_id, data.parent_tid, data.name, p->get_task_id()->get_name());
-        } else {
-            double begin_ts = std::min(p->get_start_us(), ((data.parent_ts_stop + data.parent_ts_start) * 0.5));
-            double end_ts = p->get_start_us();
-            write_flow_event(ss, begin_ts, 's', data.cat, flow_id, saved_node_id, data.parent_tid, data.name, p->get_task_id()->get_name());
-            write_flow_event(ss, end_ts, 't', data.cat, flow_id, saved_node_id, atol(tid.c_str()), data.name, p->get_task_id()->get_name());
-        }
+        if (!apex_options::use_trace_event_tasks()) {
+            if (data.flow) {
+                uint64_t flow_id = reversed_node_id + get_flow_id();
+                if (data.reverse_flow) {
+                    double begin_ts = (p->get_stop_us() + p->get_start_us()) * 0.5;
+                    double end_ts = std::min(p->get_stop_us(), data.parent_ts_stop);
+                    write_flow_event(ss, begin_ts, 's', data.cat, flow_id, saved_node_id, resource_id(tid, p->tt_ptr.get()), data.name, p->get_task_id()->get_name());
+                    write_flow_event(ss, end_ts, 't', data.cat, flow_id, saved_node_id, resource_id(data.parent_tid, p->tt_ptr->parents[0].get()), data.name, p->get_task_id()->get_name());
+                } else {
+                    double begin_ts = std::min(p->get_start_us(), ((data.parent_ts_stop + data.parent_ts_start) * 0.5));
+                    double end_ts = p->get_start_us();
+                    write_flow_event(ss, begin_ts, 's', data.cat, flow_id, saved_node_id, resource_id(data.parent_tid, p->tt_ptr->parents[0].get()), data.name, p->get_task_id()->get_name());
+                    write_flow_event(ss, end_ts, 't', data.cat, flow_id, saved_node_id, resource_id(tid, p->tt_ptr.get()), data.name, p->get_task_id()->get_name());
+                }
+            }
         }
         write_to_trace(ss);
     }
@@ -455,7 +582,8 @@ void trace_event_listener::on_async_metric(base_thread_node &node,
         std::stringstream ss;
         ss.precision(3);
         ss << fixed;
-        std::string tid{make_tid(node)};
+        uint64_t tid{make_tid(node)};
+        APEX_UNUSED(tid);
         ss << "{\"name\": \"" << p->get_task_id()->get_name()
               << "\",\"cat\":\"GPU\""
               << ",\"ph\":\"C\",\"pid\": " << saved_node_id

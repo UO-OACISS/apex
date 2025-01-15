@@ -124,6 +124,32 @@ APEX_EXPORT void cleanup(void);
  */
 
 /**
+ \brief Schedule a task.
+
+ This function will create a marker event in an APEX trace.
+
+ \param task_wrapper_ptr A pointer to an apex::task_wrapper created
+         by apex::new_task.
+ \return No return value.
+ \sa @ref apex::start, @ref apex::stop, @ref apex::yield, @ref apex::resume @ref apex::new_task
+ */
+APEX_EXPORT void schedule(std::shared_ptr<task_wrapper> task_wrapper_ptr);
+
+/**
+ \brief Destroy a task
+
+ This function will create a marker event in an APEX trace. The task wrapper is not explicitly
+ destroyed, that will happen when all task_wrapper pointer references go out of scope. This
+ event is just to place a marker in the trace record.
+
+ \param task_wrapper_ptr A pointer to an apex::task_wrapper created
+         by apex::new_task.
+ \return No return value.
+ \sa @ref apex::start, @ref apex::stop, @ref apex::yield, @ref apex::resume @ref apex::new_task
+ */
+APEX_EXPORT void destroy(std::shared_ptr<task_wrapper> task_wrapper_ptr);
+
+/**
  \brief Start a timer.
 
  This function will create a profiler object in APEX, and return a
@@ -319,6 +345,7 @@ APEX_EXPORT void reset(apex_function_address function_address);
  \return No return value.
  */
 APEX_EXPORT void set_state(apex_thread_state state);
+
 
 /*
  * Function for sampling a counter value

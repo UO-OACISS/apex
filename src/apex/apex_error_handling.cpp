@@ -175,10 +175,10 @@ static void apex_custom_signal_handler_thread_exit(
     auto p = apex::thread_instance::instance().get_current_profiler();
     apex::profiler* parent = nullptr;
     while(p != nullptr) {
-        if (p->untied_parent == nullptr || p->untied_parent->tt_ptr->state != apex::task_wrapper::RUNNING) {
+        if (p->tt_ptr->previous_task == nullptr || p->tt_ptr->previous_task->state != apex::task_wrapper::RUNNING) {
             parent = nullptr;
         } else {
-            parent = p->untied_parent;
+            parent = p->tt_ptr->previous_task->prof;
         }
         // only push profilers that were started on THIS thread...
         if (p != nullptr && p->thread_id == apex::thread_instance::instance().get_id()) {

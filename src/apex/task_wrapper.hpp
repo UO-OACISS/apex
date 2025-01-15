@@ -26,21 +26,29 @@ struct task_wrapper;
 #include "apex_clock.hpp"
 #include <variant>
 
+// forward declaration...
+namespace apex {
+APEX_EXPORT void internal_destroy(task_wrapper * tt_ptr);
+}
+
 namespace apex {
 
 /**
   \brief A wrapper around APEX tasks.
   */
 #ifdef APEX_HAVE_HPX_CONFIG
-struct task_wrapper : public hpx::util::external_timer::task_wrapper {
+struct task_wrapper : public hpx::util::external_timer::task_wrapper,
 #else
-struct task_wrapper {
+struct task_wrapper :
 #endif
+public std::enable_shared_from_this<task_wrapper>
+{
     typedef enum e_task_state {
         CREATED,
         RUNNING,
         YIELDED,
-        STOPPED
+        STOPPED,
+        DESTROYED
     } task_state_t;
 /**
   \brief A pointer to the task_identifier for this task_wrapper.
@@ -82,14 +90,18 @@ struct task_wrapper {
   */
     uint64_t create_ns;
 /**
-  \brief Time (in microseconds) when this task was started
+  \brief Time (in microseconds) when this task was _first_ started
   */
-    uint64_t start_ns;
+  private:
+    std::vector<uint64_t> start_ns;
+    public:
 /**
   \brief Whether this event requires separate start/end events in gtrace
   */
     bool explicit_trace_start;
     task_state_t state;
+    bool implicit_parent;
+    std::shared_ptr<task_wrapper> previous_task;
 /**
     \brief Vector of arguments to the task, optional data from taskStubs implementation
            only used by the google trace events format output.
@@ -98,6 +110,9 @@ struct task_wrapper {
     std::vector<apex_argument_type_t> argument_types;
     std::vector<argument> arguments;
     std::vector<std::string> argument_names;
+    uint64_t trace_tid;
+    uint64_t is_async;
+    bool destroying;
 /**
   \brief Constructor.
   */
@@ -111,13 +126,28 @@ struct task_wrapper {
         thread_id(0UL),
         create_ns(our_clock::now_ns()),
         explicit_trace_start(false),
-        state(CREATED)
+        state(CREATED),
+        implicit_parent(true),
+        previous_task(nullptr),
+        is_async(false),
+        destroying(false)
     { }
 /**
   \brief Destructor.
   */
     ~task_wrapper(void) {
         // don't delete the alias, because task_identifier objects never go away
+        /*
+        if (this->state == STOPPED && !this->destroying) {
+            destroying = true;
+            internal_destroy(this);
+        }
+        */
+    }
+
+    std::shared_ptr<task_wrapper> not_dangerous()
+    {
+        return shared_from_this();
     }
 
 /**
@@ -164,6 +194,24 @@ struct task_wrapper {
             tree_node = parent->tree_node->replaceChild(task_id, alias);
         }
     }
+    bool is_parent(std::shared_ptr<task_wrapper> candidate) {
+        for (auto& p : parents) {
+            /*printf("is '%s' parent of '%s'?...\n",
+            candidate->task_id->get_name().c_str(),
+            this->task_id->get_name().c_str());*/
+            if (p == candidate) return true;
+        }
+        return false;
+    }
+    bool is_ancestor(std::shared_ptr<task_wrapper> candidate) {
+        // am I the parent of the candidate?
+        if (is_parent(candidate)) return true;
+        // are one of my parents an ancestor of the candidate?
+        for (auto& p : parents) {
+            if (p->is_ancestor(candidate)) return true;
+        }
+        return false;
+    }
     double get_create_us() {
         return double(create_ns) * 1.0e-3;
     }
@@ -171,16 +219,26 @@ struct task_wrapper {
         return create_ns;
     }
     double get_start_us() {
-        return double(start_ns) * 1.0e-3;
+        return double(get_start_ns()) * 1.0e-3;
     }
     uint64_t get_start_ns() {
-        return start_ns;
+        return start_ns.back();
     }
-    double get_flow_us() {
-        return double(start_ns) * 1.0e-3;
+    double get_flow_us(uint64_t ts) {
+        return double(get_flow_ns(ts)) * 1.0e-3;
     }
-    uint64_t get_flow_ns() {
-        return start_ns+1;
+    double get_flow_ns(uint64_t ts) {
+        uint64_t prior = start_ns.front();
+        for (auto start : start_ns) {
+            if (ts < start) {
+                break;
+            }
+            prior = start+1;
+        }
+        return (double)prior;
+    }
+    void assign_start_ns(double start) {
+        start_ns.push_back(start);
     }
 }; // struct task_wrapper
 

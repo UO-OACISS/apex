@@ -269,56 +269,67 @@ void thread_instance::clear_current_profiler(
     // check for recursion
     if (fixing_stack) {return;}
     // get the current profiler
-    profiler* tmp = instance().current_profiler;
+    profiler* tmp = instance().get_current_profiler();
+    // This thread has no running timers, do nothing.
+    if (tmp == nullptr) return;
     // get the task wrapper's profiler
     profiler* the_profiler = tt_ptr->prof;
-    // This thread has no running timers, do nothing.
-    if (tmp == nullptr) {
-        //printf("Setting current profiler to nullptr\n");
-        return;
-    }
     // if this profiler was started somewhere else, do nothing.
     if (the_profiler->thread_id != instance().get_id()) {
         //printf("Doing nothing with current profiler\n");
         return;
-    }
-    /* if we are doing a "stop", then just clear ourselves IF we are current. */
-    if (!save_children) {
+    } else {
+        /* if we are doing a "stop", then just clear ourselves IF we are current. */
         if (tmp == the_profiler) {
-            instance().current_profiler = tmp->untied_parent;
+            //printf("All good! using current profiler's parent as new top of the stack\n");
+            instance().current_task = tt_ptr->previous_task;
+            return;
         }
-        // otherwise do nothing.
-        return;
     }
+    // save the current "top" of the stack
+    auto old_top = tmp->tt_ptr;
     // if the current profiler isn't this profiler, is it in the "stack"?
     // we know the current profiler and the one we are stopping are
     // on the same thread. Assume we are handling a "direct action" that was
     // yielded.
-    if (save_children && (tmp != the_profiler)) {
+    //if (instance().get_id() == the_profiler->thread_id && (tmp != the_profiler)) {
+    //printf("NOT good! fixing new top of the stack\n");
         fixing_stack = true;
         // if the data pointer location isn't available, we can't support this runtime.
         // create a vector to store the children
         APEX_ASSERT(tt_ptr != nullptr);
         while (tmp != the_profiler) {
-            // if we are yielding, we need to stop the children
-            /* Make a copy of the profiler object on the top of the stack. */
-            profiler * profiler_copy = new profiler(*tmp);
-            tt_ptr->data_ptr.push_back(tmp);
-            /* yield the copy. The original will get reset when the
-            parent resumes. */
-            yield(profiler_copy);  // we better be re-entrant safe!
-            // this is a serious problem...or is it? no!
-            if (tmp->untied_parent == nullptr) {
-                instance().current_profiler = nullptr;
-                return;
+            // only stop the timer if it is implicitly a child of its parent
+            if ((tmp->tt_ptr->implicit_parent ||
+                 (the_profiler->thread_id == tmp->thread_id &&
+                  tmp->tt_ptr->is_ancestor(tt_ptr))) &&
+                tmp->tt_ptr->state == task_wrapper::RUNNING) {
+                // if we are yielding, we need to stop the children
+                /* Make a copy of the profiler object on the top of the stack. */
+                profiler * profiler_copy = new profiler(*tmp);
+                tt_ptr->data_ptr.push_back(tmp);
+                /* yield the copy. The original will get reset when the
+                parent resumes. */
+                if (save_children) {
+                    yield(profiler_copy);  // we better be re-entrant safe!
+                } else {
+                    stop(profiler_copy);  // we better be re-entrant safe!
+                }
+                // this is a serious problem...or is it? no!
+                if (tmp->tt_ptr->previous_task == nullptr) {
+                    instance().current_task = nullptr;
+                    return;
+                }
             }
             // get the new top of the stack
-            tmp = tmp->untied_parent;
+            tmp = tmp->tt_ptr->previous_task->prof;
         }
         // done with the stack, allow proper recursion again.
         fixing_stack = false;
-    }
-    instance().current_profiler = tmp->untied_parent;
+        instance().current_task = old_top;
+    //} else {
+        //instance().current_task = tmp->tt_ptr->previous_task;
+    //}
 }
 
 }

@@ -157,6 +157,10 @@ public:
   virtual void on_send(message_event_data &data) = 0;
   virtual void on_recv(message_event_data &data) = 0;
   virtual void set_node_id(int node_id, int node_count) = 0;
+  // new events for PaRSEC, Iris, StarPU
+  virtual void on_create(std::shared_ptr<task_wrapper> &tt_ptr) = 0;
+  virtual void on_schedule(std::shared_ptr<task_wrapper> &tt_ptr) = 0;
+  virtual void on_destroy(task_wrapper * tt_ptr) = 0;
 };
 
 }

@@ -237,6 +237,7 @@ extern "C" {
                 apex_timer->argument_names.push_back(tmpname);
             }
         }
+        apex::schedule(apex_timer);
     }
 
     void tasktimer_start_impl(
@@ -304,6 +305,7 @@ extern "C" {
         VERBOSE_PRINTF("%lu TS: Destroying: %p %s\n", apex::thread_instance::get_id(), timer,
             apex_timer == nullptr ? "unknown" : apex_timer->task_id->get_name().c_str());
         if (apex_timer != nullptr) {
+            apex::destroy(apex_timer);
             //if (apex_timer->state == apex::task_wrapper::RUNNING) { apex::stop(apex_timer); }
             // TODO: need to handle the destroy event somehow.
             // definitely need to remove it from the local map.

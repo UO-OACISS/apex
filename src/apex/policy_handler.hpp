@@ -105,6 +105,9 @@ public:
     void on_stop(std::shared_ptr<profiler> &p);
     void on_yield(std::shared_ptr<profiler> &p);
     bool on_resume(std::shared_ptr<task_wrapper> &tt_ptr);
+    void on_create(std::shared_ptr<task_wrapper> &tt_ptr) { APEX_UNUSED(tt_ptr); };
+    void on_schedule(std::shared_ptr<task_wrapper> &tt_ptr) { APEX_UNUSED(tt_ptr); };
+    void on_destroy(task_wrapper * tt_ptr) { APEX_UNUSED(tt_ptr); };
     void on_task_complete(std::shared_ptr<task_wrapper> &tt_ptr) {
         APEX_UNUSED(tt_ptr);
     };
