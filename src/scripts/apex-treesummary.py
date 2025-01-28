@@ -390,7 +390,11 @@ def main():
     root.index = -1
     #unique = df.drop_duplicates(subset=["node index", "parent index", "name"], keep='first')
     df['visited'] = False
-    graphRank2(0, df, root, droplist, args)
+    #graphRank2(0, df, root, droplist, args)
+    # This is crap
+    for i in range(df['process rank'].max()):
+        df_view = df.loc[df['process rank'] == i]
+        graphRank2(0, df_view, root, droplist, args)
 
     roots = [root]
     if len(args.keep) > 0:
