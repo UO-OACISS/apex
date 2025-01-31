@@ -125,6 +125,7 @@ option (APEX_WITH_PLUGINS "Enable APEX policy plugin support" TRUE)
 option (APEX_WITH_PYTHON "Enable APEX Python support through perfstubs module" FALSE)
 option (APEX_WITH_STARPU "Enable APEX StarPU support" FALSE)
 option (APEX_WITH_TCMALLOC "Enable TCMalloc heap management" FALSE)
+option (APEX_WITH_ZEROMQ "Enable ZeroMQ for asynchronous communication" TRUE)
 option (APEX_USE_PEDANTIC "Enable pedantic compiler flags" FALSE)
 option (APEX_USE_STATIC_GLOBAL_CONSTRUCTOR
     "Enable static global constructor for APEX library load (when __libc_start_main can't be wrapped)" FALSE)

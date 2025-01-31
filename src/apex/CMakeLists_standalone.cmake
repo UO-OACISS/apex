@@ -71,7 +71,7 @@ endif(APEX_WITH_TCMALLOC)
 
 if(APEX_WITH_KOKKOS)
     message(INFO " Adding Kokkos support source files")
-    SET(APEX_KOKKOS_SOURCE apex_kokkos.cpp apex_kokkos_tuning.cpp)
+    SET(APEX_KOKKOS_SOURCE apex_kokkos.cpp apex_kokkos_tuning.cpp apex_zmq.cpp)
 endif(APEX_WITH_KOKKOS)
 
 # Try to keep this in alphabetical order
@@ -256,6 +256,10 @@ if (NOT BUILD_STATIC_EXECUTABLES)
         target_link_libraries(apex ${LIBS} ${perfetto_target} taudummy)
     endif(APPLE)
 endif()
+
+if(APEX_WITH_ZEROMQ)
+    target_link_libraries(apex cppzmq libzmq)
+endif(APEX_WITH_ZEROMQ)
 
 if (APEX_WITH_HIP)
     include_directories(${ROCM_ROOT}/include ${ROCM_ROOT}/include/hsa)
