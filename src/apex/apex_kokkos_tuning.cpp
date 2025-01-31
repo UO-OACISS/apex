@@ -160,6 +160,7 @@ public:
     void deepCopy(Kokkos_Tools_VariableInfo& _info);
     std::string toString() {
         std::stringstream ss;
+        ss << "  hash: " << hashValue << std::endl;
         ss << "  name: " << name << std::endl;
         ss << "  id: " << id << std::endl;
         ss << "  info.type: " << pVT(info.type) << std::endl;
@@ -181,6 +182,7 @@ public:
     }
     size_t id;
     std::string name;
+    std::string hashValue;
     Kokkos_Tools_VariableInfo info;
     std::list<std::string> space; // enum space
     double dmin;
@@ -279,6 +281,7 @@ private:
             } else {
                 strategy = apex_ah_tuning_strategy::AUTOMATIC;
             }
+            saved_node_id = apex::apex::instance()->get_node_id();
     }
 public:
     ~KokkosSession() {
@@ -312,6 +315,7 @@ public:
     void saveOutputVar(size_t id, Variable * var);
     void parseVariableCache(std::ifstream& results);
     void parseContextCache(std::ifstream& results);
+    std::string makeCacheFileName(void);
     //std::stringstream cachedResults;
     std::string cacheFilename;
     // Map from cached variables to variable values
@@ -321,7 +325,15 @@ public:
     // map from cached variable names to cached variable IDs
     std::map<std::string, size_t> cachedVariableIDs;
     std::map<std::string, std::map<size_t, struct Kokkos_Tools_VariableValue> > cachedTunings;
+    int saved_node_id;
 };
+
+std::string KokkosSession::makeCacheFileName(void) {
+    std::string filename{"./apex_converged_tuning."};
+    filename += std::to_string(saved_node_id);
+    filename += std::string{".yaml"};
+    return filename;
+}
 
 /* If we've cached values, we can bypass a lot. */
 bool KokkosSession::checkForCache() {
@@ -332,7 +344,7 @@ bool KokkosSession::checkForCache() {
     if (strlen(apex::apex_options::kokkos_tuning_cache()) > 0) {
         cacheFilename = std::string(apex::apex_options::kokkos_tuning_cache());
     } else {
-        cacheFilename = std::string("./apex_converged_tuning.yaml");
+        cacheFilename = makeCacheFileName();
     }
     std::ifstream f(cacheFilename);
     if (f.good()) {
@@ -381,12 +393,12 @@ std::string strategy_to_string(std::shared_ptr<apex_tuning_request> request) {
 
 void KokkosSession::writeCache(void) {
     if(use_history) { return; }
-    if(!saveCache) { return; }
+    //if(!saveCache) { return; }
     // did the user specify a file?
     if (strlen(apex::apex_options::kokkos_tuning_cache()) > 0) {
         cacheFilename = std::string(apex::apex_options::kokkos_tuning_cache());
     } else {
-        cacheFilename = std::string("./apex_converged_tuning.yaml");
+        cacheFilename = makeCacheFileName();
     }
     std::ofstream results(cacheFilename);
     std::cout << "Writing cache of Kokkos tuning results to: '" << cacheFilename << "'" << std::endl;
@@ -704,6 +716,10 @@ void Variable::deepCopy(Kokkos_Tools_VariableInfo& _info) {
 Variable::Variable(size_t _id, std::string _name,
     Kokkos_Tools_VariableInfo& _info) : id(_id), name(_name) {
         deepCopy(_info);
+        // Create a hash object for strings
+        std::hash<std::string> hasher;
+        // Calculate the hash value of the string
+        hashValue = std::to_string(hasher(name));
     /*
     if (KokkosSession::getSession().verbose) {
         std::cout << toString();
