@@ -3,3 +3,6 @@
 	url = https://github.com/kokkos/kokkos
 [submodule "perfstubs"]
 	branch = python-3.12
+[submodule "libzmq"]
+	path = libzmq
+	url = https://github.com/zeromq/libzmq.git

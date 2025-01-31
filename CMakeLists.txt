@@ -677,6 +677,27 @@ if(APEX_WITH_KOKKOS)
 endif()
 
 ################################################################################
+# Zeromq configuration
+################################################################################
+
+if(APEX_WITH_ZEROMQ)
+    message(INFO " Checking for ZeroMQ installation in $ZeroMQ_ROOT...")
+    find_package(libzmq)
+    if (libzmq_FOUND)
+        message(INFO " Using ZeroMQ include: ${ZeroMQ_INCLUDE_DIRS}/impl")
+        include_directories(${ZeroMQ_INCLUDE_DIRS})
+        include_directories(${ZeroMQ_INCLUDE_DIRS}/impl)
+        # Can only build ZeroMQ test with an installed ZeroMQ.
+    else()
+        message(INFO " ZeroMQ not found, cloning submodule to get required headers.")
+        include(cmake/Modules/AddGitSubmodule.cmake)
+        add_git_submodule(libzmq FALSE)
+    endif()
+    add_definitions(-DAPEX_WITH_ZEROMQ)
+    add_git_submodule(cppzmq)
+endif()
+
+################################################################################
 # OTF2 configuration
 ################################################################################
 
