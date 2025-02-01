@@ -30,6 +30,7 @@
 #include "Kokkos_Profiling_C_Interface.h"
 #include "apex_api.hpp"
 #include "apex_policies.hpp"
+#include "apex_zmq.h"
 
 std::string pVT(Kokkos_Tools_VariableInfo_ValueType t) {
     if (t == kokkos_value_double) {
@@ -393,6 +394,7 @@ std::string strategy_to_string(std::shared_ptr<apex_tuning_request> request) {
 
 void KokkosSession::writeCache(void) {
     if(use_history) { return; }
+    apex::ZmqSession share_it(saved_node_id);
     //if(!saveCache) { return; }
     // did the user specify a file?
     if (strlen(apex::apex_options::kokkos_tuning_cache()) > 0) {

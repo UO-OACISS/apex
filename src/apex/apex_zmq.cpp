@@ -1,8 +1,8 @@
-#include "apex_zmq.h"
 #include <string>
 #include <iostream>
-#include <chrono>
 #include <thread>
+#include <zmq.hpp>
+#include "apex_zmq.h"
 
 namespace apex {
 
@@ -20,6 +20,7 @@ int test_for_MPI_local_rank(int commrank) {
             // printf("Changing PMI rank to %lu\n", commrank);
             return true;
         }
+        return false;
     };
     if (helper("PMI_LOCAL_RANK")) return commrank;
     if (helper("PALS_LOCAL_RANKID")) return commrank;
@@ -39,60 +40,68 @@ ZmqSession::ZmqSession(int commrank) :
     }
 }
 
-void ZmqSession::runServer() {
-    using namespace std::chrono_literals;
+ZmqSession::~ZmqSession(void) {}
 
+void ZmqSession::runServer(void) {
     // initialize the zmq context with a single IO thread
     zmq::context_t context{1};
 
     // construct a REP (reply) socket and bind to interface
     zmq::socket_t socket{context, zmq::socket_type::rep};
     //socket.bind("tcp://*:5555");
-    socket.bind("ipc:///tmp/apex/feeds/0");
+    socket.bind(ipc_location);
 
     // prepare some static data for responses
-    const std::string data{"World"};
+    std::string data{"World from "};
+    data += std::to_string(global_rank);
 
-    for (;;)
+    for (int i = 0; i < 3; i++)
     {
         zmq::message_t request;
 
         // receive a request from client
-        socket.recv(request, zmq::recv_flags::none);
+        zmq::recv_result_t ret(socket.recv(request, zmq::recv_flags::none));
+        if (ret.has_value() && (EAGAIN == ret.value()))
+        {
+            // msocket had nothing to read and recv() timed out
+            std::cout << "Not Received " << request.to_string() << std::endl;
+        }
         std::cout << "Received " << request.to_string() << std::endl;
-
-        // simulate work
-        std::this_thread::sleep_for(1s);
 
         // send the reply to the client
         socket.send(zmq::buffer(data), zmq::send_flags::none);
     }
 }
 
-void ZmqSession::runClient() {
+void ZmqSession::runClient(void) {
     // initialize the zmq context with a single IO thread
     zmq::context_t context{1};
 
     // construct a REQ (request) socket and connect to interface
     zmq::socket_t socket{context, zmq::socket_type::req};
     //socket.connect("tcp://localhost:5555");
-    socket.bind("ipc:///tmp/apex/feeds/0");
+    socket.connect(ipc_location);
 
     // set up some static data to send
-    const std::string data{"Hello"};
+    std::string data{"Hello from "};
+    data += std::to_string(global_rank);
 
-    for (auto request_num = 0; request_num < 10; ++request_num)
+    for (auto request_num = 0; request_num < 1; ++request_num)
     {
         // send the request message
-        std::cout << "Sending Hello " << request_num << "..." << std::endl;
+        std::cout << "Sending Hello from " << global_rank << "..." << std::endl;
         socket.send(zmq::buffer(data), zmq::send_flags::none);
 
         // wait for reply from server
         zmq::message_t reply{};
-        socket.recv(reply, zmq::recv_flags::none);
+        zmq::recv_result_t ret(socket.recv(reply, zmq::recv_flags::none));
+        if (ret.has_value() && (EAGAIN == ret.value()))
+        {
+            // msocket had nothing to read and recv() timed out
+            std::cout << "Not Received " << reply.to_string() << std::endl;
+        }
 
         std::cout << "Received " << reply.to_string();
-        std::cout << " (" << request_num << ")";
         std::cout << std::endl;
     }
 }
