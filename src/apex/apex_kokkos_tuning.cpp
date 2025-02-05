@@ -1298,8 +1298,11 @@ void kokkosp_request_values(
     // construct the tree_node hash
     std::string tree_node{"default"};
     if (tlt != nullptr) {
-        tree_node = tlt->tt_ptr->tree_node->getTaskgraphName();
-        //tree_node = tlt->tt_ptr->task_id->get_name();
+        if (apex::apex_options::use_tasktree_output()) {
+            tree_node = tlt->tt_ptr->tree_node->getTaskgraphName();
+        } else {
+            tree_node = tlt->tt_ptr->task_id->get_name();
+        }
     }
     /*
     // Create a hash object for strings
