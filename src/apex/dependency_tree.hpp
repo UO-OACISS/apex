@@ -49,6 +49,8 @@ class Node : public std::enable_shared_from_this<Node> {
     private:
         task_identifier* data;
         std::vector<std::shared_ptr<Node>> parents;
+        // full task graph string for this task, can be long - necessary for kokkos tuning
+        std::string taskgraph_name;
         size_t count;
         apex_profile prof;
         //double calls;
@@ -70,6 +72,9 @@ class Node : public std::enable_shared_from_this<Node> {
             data(id), count(1), inclusive(0),
             index(nodeCount.fetch_add(1, std::memory_order_relaxed)) {
             parents.push_back(p);
+            taskgraph_name = (p == nullptr) ?
+                data->get_name() :
+                p->getTaskgraphName() + data->get_name();
             prof.calls = 0.0;
             prof.accumulated = 0.0;
             prof.minimum = 0.0;
@@ -93,6 +98,7 @@ class Node : public std::enable_shared_from_this<Node> {
             double values[8], int num_papi_counters);
         size_t getIndex() { return index; };
         std::string getName() const { return data->get_name(); };
+        std::string getTaskgraphName() const { return taskgraph_name; };
         void writeNode(std::ofstream& outfile, double total);
         double writeNodeASCII(std::ofstream& outfile, double total, size_t indent);
         double writeNodeCSV(std::stringstream& outfile, double total, int node_id, int num_papi_counters, bool topLevel = false);

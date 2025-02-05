@@ -14,23 +14,6 @@
 
 namespace apex {
 
-event_filter::event_filter() : have_filter(false) {
-    try {
-        std::ifstream cfg(apex_options::task_event_filter_file());
-        if (!cfg.good()) {
-            // fail silently, nothing to do but use defaults
-            return;
-        }
-        rapidjson::IStreamWrapper file_wrapper(cfg);
-        configuration.ParseStream(file_wrapper);
-        cfg.close();
-        have_filter = true;
-    } catch (...) {
-        // fail silently, nothing to do but use defaults
-        return;
-    }
-}
-
 void handle_error(std::regex_error& e) {
     switch (e.code()) {
         case std::regex_constants::error_collate:
@@ -78,7 +61,21 @@ void handle_error(std::regex_error& e) {
     }
 }
 
-bool event_filter::_exclude(const std::string &name) {
+event_filter::event_filter(std::string filename) : have_filter(false) {
+    try {
+        std::ifstream cfg(filename);
+        if (!cfg.good()) {
+            // fail silently, nothing to do but use defaults
+            return;
+        }
+        rapidjson::IStreamWrapper file_wrapper(cfg);
+        configuration.ParseStream(file_wrapper);
+        cfg.close();
+    } catch (...) {
+        // fail silently, nothing to do but use defaults
+        return;
+    }
+    have_filter = true;
     // check if this timer should be explicitly ignored
     if (configuration.HasMember("exclude")) {
         auto & exclude_filter = configuration["exclude"];
@@ -86,52 +83,51 @@ bool event_filter::_exclude(const std::string &name) {
             std::string needle(itr->GetString());
             needle.erase(std::remove(needle.begin(),needle.end(),'\"'),needle.end());
             try {
-                std::regex re(needle);
-                std::string haystack(name);
-                if (std::regex_search(haystack, re)) {
-                    return true;
-                }
+                exclude_names.push_back(std::regex(needle));
             } catch (std::regex_error& e) {
                 std::cerr << "Error: '" << e.what() << "' in regular expression: "
                           << needle << std::endl;
                 handle_error(e);
             }
         }
-        // not found in the exclude filters
-        // ...but don't assume anything yet - check for include list
     }
     // check if this timer should be implicitly ignored
     if (configuration.HasMember("include")) {
+        have_include_names = true;
         auto & include_filter = configuration["include"];
         for(auto itr = include_filter.Begin(); itr != include_filter.End(); ++itr) {
             std::string needle(itr->GetString());
             needle.erase(std::remove(needle.begin(),needle.end(),'\"'),needle.end());
             try {
-                std::regex re(needle);
-                std::string haystack(name);
-                if (std::regex_search(haystack, re)) {
-                    return false;
-                }
+                include_names.push_back(std::regex(needle));
             } catch (std::regex_error& e) {
                 std::cerr << "Error: '" << e.what() << "' in regular expression: "
                           << needle << std::endl;
                 handle_error(e);
             }
         }
-        // not found in the whitelist
-        return true;
     }
-    return false; // no filters
 }
 
 bool event_filter::exclude(const std::string &name) {
-    return instance()._exclude(name);
+    // check if this timer should be explicitly ignored
+    for(auto re : exclude_names) {
+        if (std::regex_search(name, re)) {
+            return true;
+        }
+    }
+    // not found in the exclude filters
+    // ...but don't assume anything yet - check for include list
+    // check if this timer should be implicitly ignored
+    if (have_include_names) {
+        for(auto re : include_names) {
+            if (std::regex_search(name, re)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    return false;
 }
-
-event_filter& event_filter::instance(void) {
-    static event_filter _instance;
-    return _instance;
-}
-
 
 } // namespace apex

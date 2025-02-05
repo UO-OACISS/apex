@@ -458,6 +458,11 @@ hpx::runtime * apex::get_hpx_runtime(void) {
 }
 #endif
 
+event_filter& getEventFilter(void) {
+    static event_filter filter(apex_options::task_event_filter_file());
+    return filter;
+}
+
 void do_atexit(void) {
     finalize();
     cleanup();
@@ -759,15 +764,15 @@ profiler* start(const std::string &timer_name)
         // don't process our own events - queue scrubbing tasks.
         return profiler::get_disabled_profiler();
     }
-    // don't time filtered events
-    if (event_filter::instance().have_filter && event_filter::exclude(timer_name)) {
-        return profiler::get_disabled_profiler();
-    }
     apex* instance = apex::instance(); // get the Apex static instance
     // protect against calls after finalization
     if (!instance || _exited) {
         APEX_UTIL_REF_COUNT_START_AFTER_FINALIZE
         return nullptr;
+    }
+    // don't time filtered events
+    if (getEventFilter().have_filter && getEventFilter().exclude(timer_name)) {
+        return profiler::get_disabled_profiler();
     }
     // if APEX is suspended, do nothing.
     if (apex_options::suspend() == true) {
@@ -822,15 +827,15 @@ void start(std::shared_ptr<task_wrapper> tt_ptr) {
         tt_ptr->prof = nullptr;
         return;
     }
-    // don't time filtered events
-    if (event_filter::instance().have_filter && event_filter::exclude(tt_ptr->task_id->get_name())) {
-        tt_ptr->prof = nullptr;
-        return;
-    }
     apex* instance = apex::instance(); // get the Apex static instance
     // protect against calls after finalization
     if (!instance || _exited) {
         APEX_UTIL_REF_COUNT_START_AFTER_FINALIZE
+        tt_ptr->prof = nullptr;
+        return;
+    }
+    // don't time filtered events
+    if (getEventFilter().have_filter && getEventFilter().exclude(tt_ptr->task_id->get_name())) {
         tt_ptr->prof = nullptr;
         return;
     }
@@ -937,15 +942,15 @@ profiler* resume(const std::string &timer_name) {
         APEX_UTIL_REF_COUNT_APEX_INTERNAL_RESUME
         return profiler::get_disabled_profiler();
     }
-    // don't time filtered events
-    if (event_filter::instance().have_filter && event_filter::exclude(timer_name)) {
-        return profiler::get_disabled_profiler();
-    }
     apex* instance = apex::instance(); // get the Apex static instance
     // protect against calls after finalization
     if (!instance || _exited) {
         APEX_UTIL_REF_COUNT_RESUME_AFTER_FINALIZE
         return nullptr;
+    }
+    // don't time filtered events
+    if (getEventFilter().have_filter && getEventFilter().exclude(timer_name)) {
+        return profiler::get_disabled_profiler();
     }
     task_identifier * id = task_identifier::get_task_id(timer_name);
     std::shared_ptr<task_wrapper> tt_ptr = _new_task(id, UINTMAX_MAX, {}, instance);

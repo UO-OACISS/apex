@@ -1,3 +1,4 @@
+#include "apex.hpp"
 #include "simulated_annealing.hpp"
 #include <algorithm>
 
@@ -58,13 +59,15 @@ void SimulatedAnnealing::evaluate(double new_cost) {
         for (auto& v : vars) { v.second.choose_neighbor(); }
         if (new_cost < best_cost) {
             best_cost = new_cost;
-            std::cout << "Simulated Annealing: New best! " << new_cost << " k: " << k
-                      << " kmax: " << kmax << " temp: " << temp;
-            for (auto& v : vars) {
-                std::cout  << ", " << v.first << ": " << v.second.toString();
-                v.second.save_best();
+            if (apex_options::use_verbose()) {
+                std::cout << "Simulated Annealing: New best! " << new_cost << " k: " << k
+                          << " kmax: " << kmax << " temp: " << temp;
+                for (auto& v : vars) {
+                    std::cout  << ", " << v.first << ": " << v.second.toString();
+                    v.second.save_best();
+                }
+                std::cout << std::endl;
             }
-            std::cout << std::endl;
             since_restart = 1;
         }
         cost = new_cost;

@@ -394,6 +394,7 @@ inline unsigned int sc_nprocessors_onln(void)
     macro (APEX_OTF2_ARCHIVE_NAME, otf2_archive_name, char*, \
         APEX_DEFAULT_OTF2_ARCHIVE_NAME, "OTF2 trace filename.") \
     macro (APEX_EVENT_FILTER_FILE, task_event_filter_file, char*, "", "File containing names of timers to include/exclude during data collection.") \
+    macro (APEX_KOKKOS_TUNING_FILTER_FILE, kokkos_tuning_filter_file, char*, "", "File containing names of contexts to include/exclude during Kokkos tuning.") \
     macro (APEX_KOKKOS_TUNING_CACHE, kokkos_tuning_cache, char*, "", "Filename contining Kokkos autotuned results, tuned offline.") \
     macro (APEX_KOKKOS_TUNING_POLICY, kokkos_tuning_policy, char*, "simulated_annealing", "Kokkos autotuning policy: random, exhaustive, simulated_annealing, nelder_mead, automatic.") \
     macro (APEX_ROCPROF_METRICS, rocprof_metrics, char*, "", "List of metrics to periodically sample with the Rocprofiler library (see /opt/rocm/rocprofiler/lib/metrics.xml).") \

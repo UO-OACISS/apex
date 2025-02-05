@@ -103,12 +103,14 @@ void NelderMead::evaluate(double new_cost) {
     if (new_cost < cost) {
         if (new_cost < best_cost) {
             best_cost = new_cost;
-            std::cout << "Nelder Mead: New best! " << new_cost << " k: " << k;
-            for (auto& v : vars) {
-                std::cout  << ", " << v.first << ": " << v.second.toString();
-                v.second.save_best();
+            if (apex_options::use_verbose()) {
+                std::cout << "Nelder Mead: New best! " << new_cost << " k: " << k;
+                for (auto& v : vars) {
+                    std::cout  << ", " << v.first << ": " << v.second.toString();
+                    v.second.save_best();
+                }
+                std::cout << std::endl;
             }
-            std::cout << std::endl;
         }
         cost = new_cost;
         // if the function evaluation takes a long time (in seconds, remember), increase our tolerance.

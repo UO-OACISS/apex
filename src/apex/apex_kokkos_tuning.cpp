@@ -30,7 +30,10 @@
 #include "Kokkos_Profiling_C_Interface.h"
 #include "apex_api.hpp"
 #include "apex_policies.hpp"
+#ifdef APEX_WITH_ZEROMQ
 #include "apex_zmq.h"
+#endif
+#include "event_filter.hpp"
 
 std::string pVT(Kokkos_Tools_VariableInfo_ValueType t) {
     if (t == kokkos_value_double) {
@@ -394,7 +397,9 @@ std::string strategy_to_string(std::shared_ptr<apex_tuning_request> request) {
 
 void KokkosSession::writeCache(void) {
     if(use_history) { return; }
+#ifdef APEX_WITH_ZEROMQ
     apex::ZmqSession share_it(saved_node_id);
+#endif
     //if(!saveCache) { return; }
     // did the user specify a file?
     if (strlen(apex::apex_options::kokkos_tuning_cache()) > 0) {
@@ -410,11 +415,21 @@ void KokkosSession::writeCache(void) {
         results << "Input_" << id << ":" << std::endl;
         results << v->toString();
     }
+    /* Which output variables were actually used in non-excluded contexts? */
+    std::set<size_t> usedIds;
+    for (const auto &req : requests) {
+        std::shared_ptr<apex_tuning_request> request = req.second;
+        for (const auto &id : var_ids[req.first]) {
+            usedIds.insert(id);
+        }
+    }
     for (auto o : outputs) {
         size_t id = o.first;
-        Variable* v = o.second;
-        results << "Output_" << id << ":" << std::endl;
-        results << v->toString();
+        if (usedIds.count(id) > 0) {
+            Variable* v = o.second;
+            results << "Output_" << id << ":" << std::endl;
+            results << v->toString();
+        }
     }
     size_t count = 0;
     for (const auto &req : requests) {
@@ -432,7 +447,7 @@ void KokkosSession::writeCache(void) {
         results << "\"" << std::endl;
         results << "  Converged: " <<
             (converged ? "true" : "false") << std::endl;
-        if (converged) {
+        //if (converged) {
             results << "  Results:" << std::endl;
             results << "    NumVars: " << var_ids[req.first].size() << std::endl;
             for (const auto &id : var_ids[req.first]) {
@@ -454,7 +469,7 @@ void KokkosSession::writeCache(void) {
                     }
                 }
             }
-        }
+        //}
         // if not converged, need to get the "best so far" values for the parameters.
     }
     results.close();
@@ -826,7 +841,7 @@ std::string hashContext(size_t numVars,
     const Kokkos_Tools_VariableValue* values,
     std::map<size_t, Variable*>& varmap, std::string tree_node) {
     std::stringstream ss;
-    std::string d{"["};
+    std::string d{""};
     /* This is REALLY annoying. sometimes the order of the variables
      * can change, not sure how Kokkos is doing that but it may be a
      * side effect of using an unordered map. regardless, we have to
@@ -871,7 +886,7 @@ std::string hashContext(size_t numVars,
     if(tree_node.size() > 0) {
         ss << ",tree_node:" << tree_node;
     }
-    ss << "]";
+    //ss << "]";
     std::string tmp{ss.str()};
     return tmp;
 }
@@ -1214,6 +1229,40 @@ void kokkosp_declare_input_type(const char* name, const size_t id,
     session.saveInputVar(id, input);
 }
 
+/* simple, but reproducable, hash function for tree nodes
+   source: https://www.reddit.com/r/ProgrammingLanguages/comments/r3ectb/hashing_function_names_to_integer_value_for/?rdt=42592
+   */
+uint64_t simpleHash(std::string instr) {
+    uint64_t hash_sum;
+
+    if (instr.size() == 0) return 0;
+
+    hash_sum = static_cast<uint64_t>(instr[0]);
+
+    for (size_t i = 1; i < instr.length(); i++) {
+        hash_sum = (hash_sum<<4) - hash_sum + static_cast<uint64_t>(instr[i]);
+    }
+    return (hash_sum<<5) - hash_sum;
+}
+
+std::set<size_t>& getExcludedContexts() {
+    static std::set<size_t> theSet;
+    return theSet;
+}
+
+bool isContextExcluded(size_t id) {
+    if (getExcludedContexts().count(id) > 0) {
+        std::cout << "Skipping context " << id << std::endl;
+        return true;
+    }
+    return false;
+}
+
+apex::event_filter& getEventFilter(void) {
+    static apex::event_filter filter(apex::apex_options::kokkos_tuning_filter_file());
+    return filter;
+}
+
 /* Here Kokkos is requesting the values of tuning variables, and most
  * of the meat is here. The contextId tells us the scope across which
  * these variables were used.
@@ -1241,14 +1290,25 @@ void kokkosp_request_values(
     const size_t numTuningVariables,
     Kokkos_Tools_VariableValue* tuningVariableValues) {
     if (!apex::apex_options::use_kokkos_tuning()) { return; }
+    //if (isContextExcluded(contextId)) { return; }
     // first, get the current timer node in the task tree
     //auto tlt = apex::thread_instance::get_top_level_timer();
     auto tlt = apex::thread_instance::instance().get_current_profiler();
+
+    // construct the tree_node hash
     std::string tree_node{"default"};
     if (tlt != nullptr) {
-        //tree_node = tlt->tt_ptr->tree_node->getName();
-        tree_node = tlt->tt_ptr->task_id->get_name();
+        tree_node = tlt->tt_ptr->tree_node->getTaskgraphName();
+        //tree_node = tlt->tt_ptr->task_id->get_name();
     }
+    /*
+    // Create a hash object for strings
+    std::hash<std::string> hasher;
+    // Calculate the hash value of the string
+    tree_node = std::to_string(hasher(tree_node));
+    */
+    tree_node = std::to_string(simpleHash(tree_node));
+
     // don't track memory in this function.
     apex::in_apex prevent_memory_tracking;
     KokkosSession& session = KokkosSession::getSession();
@@ -1260,6 +1320,12 @@ void kokkosp_request_values(
         std::cout << __APEX_FUNCTION__ << " ctx: " << contextId << std::endl;
         std::cout << std::string(getDepth(), ' ');
         printContext(numContextVariables, name);
+    }
+    if (getEventFilter().have_filter && getEventFilter().exclude(name)) {
+        //std::cout << "Excluding " << contextId << " " << name << std::endl;
+        /* Can't do this, because Kokkos reuses context Ids. :( */
+        //getExcludedContexts().insert(contextId);
+        return;
     }
     // push our context on the stack
     if(session.contextStack.size() > 0) {
@@ -1302,6 +1368,7 @@ void kokkosp_request_values(
  */
 void kokkosp_begin_context(size_t contextId) {
     if (!apex::apex_options::use_kokkos_tuning()) { return; }
+    //if (isContextExcluded(contextId)) { return; }
     // don't track memory in this function.
     apex::in_apex prevent_memory_tracking;
     KokkosSession& session = KokkosSession::getSession();
@@ -1319,6 +1386,7 @@ void kokkosp_begin_context(size_t contextId) {
  */
 void kokkosp_end_context(const size_t contextId) {
     if (!apex::apex_options::use_kokkos_tuning()) { return; }
+    //if (isContextExcluded(contextId)) { return; }
     // don't track memory in this function.
     apex::in_apex prevent_memory_tracking;
     KokkosSession& session = KokkosSession::getSession();

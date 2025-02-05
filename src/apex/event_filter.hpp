@@ -12,24 +12,23 @@
 #include "apex_options.hpp"
 #include <rapidjson/document.h>
 #include <rapidjson/istreamwrapper.h>
+#include <regex>
+#include <vector>
 
 namespace apex {
 
 class event_filter {
 public:
-    static bool exclude(const std::string &name);
-    static event_filter& instance(void);
+    bool exclude(const std::string &name);
     bool have_filter;
-private:
+    std::vector<std::regex> exclude_names;
+    std::vector<std::regex> include_names;
+    bool have_include_names;
     /* Declare the constructor, only used by the "instance" method.
      * it is defined in the cpp file. */
-    event_filter(void);
+    event_filter(std::string filename);
     ~event_filter(void) {};
-    /* Disable the copy and assign methods. */
-    event_filter(event_filter const&)    = delete;
-    void operator=(event_filter const&)  = delete;
-    bool _exclude(const std::string &name);
-    static event_filter * _instance;
+private:
     rapidjson::Document configuration;
 };
 

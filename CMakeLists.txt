@@ -682,9 +682,11 @@ endif()
 
 if(APEX_WITH_ZEROMQ)
     message(INFO " Cloning cppzmq submodule to get required headers.")
-    add_git_submodule(cppzmq TRUE)
     #set(CPPZMQ_BUILD_TESTS OFF CACHE BOOL "Build the tests for CPPZMQ")
-    set(CPPZMQ_BUILD_TESTS OFF)
+    set(CPPZMQ_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    add_git_submodule(cppzmq TRUE)
+    set_target_properties(cppzmq PROPERTIES CPPZMQ_BUILD_TESTS OFF)
+    #FetchContent_MakeAvailable(cppzmq)
     message(INFO " Checking for ZeroMQ installation in $ZeroMQ_ROOT...")
     find_package(ZeroMQ QUIET)
     # libzmq autotools install: fallback to pkg-config
