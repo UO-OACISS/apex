@@ -191,38 +191,38 @@ extern "C" {
         for (uint64_t i = 0 ; i < argument_count ; i++) {
             switch (arguments[i].type) {
                 case TASKTIMER_LONG_INTEGER_TYPE: {
-                    apex::task_wrapper::argument tmp = (int64_t)arguments[i].l_value;
-                    apex_timer->arguments.push_back(tmp);
+                    apex::task_wrapper::argument tmp{(int64_t)arguments[i].l_value};
+                    apex_timer->arguments.push_back(std::move(tmp));
                     apex_timer->argument_types.push_back(APEX_LONG_INTEGER_TYPE);
                     break;
                 }
                 case TASKTIMER_UNSIGNED_LONG_INTEGER_TYPE: {
-                    apex::task_wrapper::argument tmp = (uint64_t)arguments[i].u_value;
-                    apex_timer->arguments.push_back(tmp);
+                    apex::task_wrapper::argument tmp{(uint64_t)arguments[i].u_value};
+                    apex_timer->arguments.push_back(std::move(tmp));
                     apex_timer->argument_types.push_back(APEX_UNSIGNED_LONG_INTEGER_TYPE);
                     break;
                 }
                 case TASKTIMER_DOUBLE_TYPE: {
-                    apex::task_wrapper::argument tmp = arguments[i].d_value;
-                    apex_timer->arguments.push_back(tmp);
+                    apex::task_wrapper::argument tmp{arguments[i].d_value};
+                    apex_timer->arguments.push_back(std::move(tmp));
                     apex_timer->argument_types.push_back(APEX_DOUBLE_TYPE);
                     break;
                 }
                 case TASKTIMER_STRING_TYPE: {
-                    apex::task_wrapper::argument tmp = std::string(arguments[i].c_value);
-                    apex_timer->arguments.push_back(tmp);
+                    apex::task_wrapper::argument tmp{std::string(arguments[i].c_value)};
+                    apex_timer->arguments.push_back(std::move(tmp));
                     apex_timer->argument_types.push_back(APEX_STRING_TYPE);
                     break;
                 }
                 case TASKTIMER_POINTER_TYPE: {
-                    apex::task_wrapper::argument tmp = arguments[i].p_value;
-                    apex_timer->arguments.push_back(tmp);
+                    apex::task_wrapper::argument tmp{arguments[i].p_value};
+                    apex_timer->arguments.push_back(std::move(tmp));
                     apex_timer->argument_types.push_back(APEX_POINTER_TYPE);
                     break;
                 }
                 case TASKTIMER_ARRAY_TYPE: {
-                    apex::task_wrapper::argument tmp = arguments[i].a_value;
-                    apex_timer->arguments.push_back(tmp);
+                    apex::task_wrapper::argument tmp{arguments[i].a_value};
+                    apex_timer->arguments.push_back(std::move(tmp));
                     apex_timer->argument_types.push_back(APEX_ARRAY_TYPE);
                     break;
                 }
