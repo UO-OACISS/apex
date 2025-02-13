@@ -391,8 +391,7 @@ def main():
     #unique = df.drop_duplicates(subset=["node index", "parent index", "name"], keep='first')
     df['visited'] = False
     #graphRank2(0, df, root, droplist, args)
-    # This is crap
-    for i in range(df['process rank'].max()):
+    for i in range(df['process rank'].max()+1):
         df_view = df.loc[df['process rank'] == i]
         graphRank2(0, df_view, root, droplist, args)
 
