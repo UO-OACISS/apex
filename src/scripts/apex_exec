@@ -596,6 +596,8 @@ export APEX_POLICY=1
 export HARMONY_HOME="@ACTIVEHARMONY_ROOT@"
 # So that we can use this standalone or with HPX
 export APEX_LIBRARY_NAME="@APEX_LIBRARY_NAME@"
+# Detected by cmake, can be vendor dependent
+export APEX_OPENCL_LIBRARY="@OpenCL_LIBRARY@"
 export PAPI_ROCM_ROOT=@ROCM_ROOT@
 
 # Detect our MPI rank!
