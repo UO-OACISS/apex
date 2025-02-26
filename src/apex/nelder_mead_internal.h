@@ -363,11 +363,13 @@ template <typename T = double> class Searcher {
             // assign the value to the current simplex point
             value_cache[current_simplex_index].first  = true;
             value_cache[current_simplex_index].second = in_val;
+            /*
             if (verbose) {
                 std::cout << "simplex " << current_simplex_index << " "
                           << simplex[current_simplex_index].to_string() << " = "
                           << in_val << std::endl;
             }
+            */
             current_simplex_index++;
             if (current_simplex_index < value_cache.size()) {
                 return;
@@ -469,10 +471,12 @@ template <typename T = double> class Searcher {
     }
     void evaluate_reflection(void) {
         niter++;
+        /*
         if (verbose) {
             std::cout << "reflection = " << x_r.to_string() << " "
                       << reflection_val << std::endl;
         }
+        */
         // is it better than our current best?
         if (reflection_val < smallest_val) {
             stage = EXPANSION;
@@ -494,10 +498,12 @@ template <typename T = double> class Searcher {
     }
     void evaluate_expansion(void) {
         // evaluate the expansion point
+        /*
         if (verbose) {
             std::cout << "expansion = " << x_e.to_string() << " "
                       << expansion_val << std::endl;
         }
+        */
         // is the expansion point better than the reflection point?
         if (expansion_val < reflection_val) {
             // replace the worst simplex point with our new expansion point
@@ -521,10 +527,12 @@ template <typename T = double> class Searcher {
     }
     void evaluate_contraction(void) {
         // evaluate the contraction point
+        /*
         if (verbose) {
             std::cout << "contraction = " << x_c.to_string() << " "
                       << contraction_val << std::endl;
         }
+        */
         // is the contraction better than the reflection or the known worst?
         if ((outside and contraction_val <= reflection_val) or
             (not outside and contraction_val <= biggest_val)) {
@@ -536,9 +544,11 @@ template <typename T = double> class Searcher {
             stage = REFLECTION;
         } else {
             // Shrinking
+            /*
             if (verbose) {
                 std::cout << "shrinking, smallest index = " << smallest_idx << std::endl;
             }
+            */
             // we take the whole simplex, and move every point towards the
             // current best candidate
             for (unsigned int i = 0; i < dimension; i++) {

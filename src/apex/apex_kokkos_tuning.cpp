@@ -480,6 +480,9 @@ void KokkosSession::parseVariableCache(std::ifstream& results) {
     std::string delimiter = ": ";
     struct Kokkos_Tools_VariableInfo info;
     memset(&info, 0, sizeof(struct Kokkos_Tools_VariableInfo));
+    // hash
+    std::getline(results, line);
+    std::string nash = line.substr(line.find(delimiter)+2);
     // name
     std::getline(results, line);
     std::string name = line.substr(line.find(delimiter)+2);
@@ -530,6 +533,7 @@ void KokkosSession::parseVariableCache(std::ifstream& results) {
     cachedVariableNames.insert(std::make_pair(id, name));
     // map the name to the old id
     cachedVariableIDs.insert(std::make_pair(name, id));
+    //std::cout << "Cached variable " << name << " has id " << id << std::endl;
     /*
     if (candidates.find("unbounded") != std::string::npos) {
         info.candidates = kokkos_value_unbounded;
@@ -916,6 +920,7 @@ bool getCachedTunings(std::string name,
         auto outputVar = session.outputs.find(id);
         // look up the variable in the cache, by name - the name will always match
         std::string varname{outputVar->second->name};
+        //std::cout << "looking for: " << name << " - " << varname << std::endl;
         // look up the cached ID (it might not match the current variable id from Kokkos)
         size_t varID = session.cachedVariableIDs.find(varname)->second;
         auto variter = result->second.find(varID);
@@ -1343,6 +1348,7 @@ void kokkosp_request_values(
     }
     if (success) {
         session.used_history.insert(contextId);
+        //std::cout << "Using cache for " << name << std::endl;
     } else {
         uint64_t delta = 0;
         bool converged = false;
