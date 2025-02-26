@@ -298,6 +298,7 @@ void thread_instance::clear_current_profiler(
         // if the data pointer location isn't available, we can't support this runtime.
         // create a vector to store the children
         APEX_ASSERT(tt_ptr != nullptr);
+#if 0
         while (tmp != the_profiler) {
             // only stop the timer if it is implicitly a child of its parent
             if ((tmp->tt_ptr->implicit_parent ||
@@ -324,6 +325,7 @@ void thread_instance::clear_current_profiler(
             // get the new top of the stack
             tmp = tmp->tt_ptr->previous_task->prof;
         }
+#endif
         // done with the stack, allow proper recursion again.
         fixing_stack = false;
         instance().current_task = old_top;

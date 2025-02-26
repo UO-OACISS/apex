@@ -777,8 +777,32 @@ endif (APEX_WITH_CUDA)
 ################################################################################
 
 if (APEX_WITH_HIP)
+    # Check for ROCM_ROOT or ROCM_PATH
+    if (NOT DEFINED $ROCM_ROOT)
+        if(DEFINED $ROCM_PATH)
+            set(ROCM_ROOT ${ROCM_PATH})
+        else()
+            if(DEFINED ENV{ROCM_ROOT})
+                set(ROCM_ROOT $ENV{ROCM_ROOT})
+            else()
+                if(DEFINED ENV{ROCM_PATH})
+                    set(ROCM_ROOT $ENV{ROCM_PATH})
+                endif()
+            endif()
+        endif()
+    endif()
+
+    # Check for ROCTRACER_ROOT
+    if(NOT DEFINED ROCTRACER_ROOT)
+        set (ROCTRACER_ROOT ${ROCM_ROOT} CACHE STRING "ROCm Tracer Path")
+    endif()
     find_package(ROCTRACER REQUIRED)
+
+    # Check for ROCPROFILER_ROOT
     # As of 5.7.0, librocprofiler64.so is not found.
+    if(NOT DEFINED ROCPROFILER_ROOT)
+        set (ROCPROFILER_ROOT ${ROCM_ROOT} CACHE STRING "ROCm Profiler Path")
+    endif()
     find_package(ROCPROFILER)
     if(ROCPROFILER_FOUND)
         message(INFO " ROCPROFILER found!")
@@ -786,7 +810,17 @@ if (APEX_WITH_HIP)
     else(ROCPROFILER_FOUND)
         message(INFO " ROCPROFILER not found!")
     endif(ROCPROFILER_FOUND)
+
+    # Check for ROCTX_ROOT
+    if(NOT DEFINED ROCTX_ROOT)
+        set (ROCTX_ROOT ${ROCM_ROOT} CACHE STRING "ROCTX Path")
+    endif()
     find_package(ROCTX REQUIRED)
+
+    # Check for RSMI_ROOT
+    if(NOT DEFINED RSMI_ROOT)
+        set (RSMI_ROOT ${ROCM_ROOT} CACHE STRING "ROCm SMI Path")
+    endif()
     find_package(RSMI REQUIRED)
     add_definitions(-DAPEX_WITH_HIP)
     # add_definitions(-DAPEX_WITH_HSA)

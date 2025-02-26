@@ -53,7 +53,7 @@ void* get_library(void) {
 #ifdef __APPLE__
     char const * libname = "/System/Library/Frameworks/OpenCL.framework/OpenCL";
 #else
-    char const * libname = "libOpenCL.so";
+    char const * libname = apex_options::opencl_library();
 #endif /* __APPLE__ */
 
     /* Check to see if we've already loaded it */
@@ -190,12 +190,20 @@ double sync_clocks(queueData& qData);
 } // namespace opencl
 } // namespace apex
 
+#if defined(__GNUC__) && defined(__cplusplus)
+#define __APEX_FUNCTION__ __PRETTY_FUNCTION__
+#else
+#define __APEX_FUNCTION__ __func__
+#endif
+
 #define GET_SYMBOL(name) static decltype(name)* function_ptr = \
     apex::opencl::getsym<decltype(name)>(#name);
 
 #define GET_SYMBOL_TIMER(name) static decltype(name)* function_ptr = \
     apex::opencl::getsym<decltype(name)>(#name); \
-    apex::scoped_timer timer((uint64_t)function_ptr);
+    apex::scoped_timer timer(std::string(__func__));
+    //apex::scoped_timer timer(std::string(__APEX_FUNCTION__));
+    //apex::scoped_timer timer((uint64_t)function_ptr);
 
 extern "C" {
 
