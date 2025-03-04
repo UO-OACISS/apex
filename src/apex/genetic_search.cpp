@@ -176,6 +176,10 @@ void GeneticSearch::evaluate(double new_cost) {
                     v.second.save_best();
                 }
                 std::cout << std::endl;
+            } else {
+                for (auto& v : vars) {
+                    v.second.save_best();
+                }
             }
         }
         cost = new_cost;

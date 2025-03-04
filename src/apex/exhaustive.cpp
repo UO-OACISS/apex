@@ -81,7 +81,11 @@ void Exhaustive::evaluate(double new_cost) {
                     std::cout  << ", " << v.first << ": " << v.second.toString();
                     v.second.save_best();
                 }
-            std::cout << std::endl;
+                std::cout << std::endl;
+            } else {
+                for (auto& v : vars) {
+                    v.second.save_best();
+                }
             }
         }
         cost = new_cost;
