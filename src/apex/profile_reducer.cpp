@@ -56,10 +56,14 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
 #if defined(APEX_WITH_MPI) || \
     (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
     int mpi_initialized = 0;
+    int mpi_finalized = 0;
     MPI_CALL(MPI_Initialized( &mpi_initialized ));
-    if (mpi_initialized) {
+    MPI_CALL(MPI_Finalized( &mpi_finalized ));
+    if (apex_options::use_mpi() && mpi_initialized && (!mpi_finalized)) {
         MPI_CALL(PMPI_Comm_rank(MPI_COMM_WORLD, &commrank));
         MPI_CALL(PMPI_Comm_size(MPI_COMM_WORLD, &commsize));
+    } else {
+        std::cerr << "Error in MPI Sequencing - was MPI_Initialize/MPI_Finalize not wrapped?" << std::endl;
     }
 #endif
 
@@ -104,10 +108,11 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
     /* AllReduce all profile name counts */
 #if defined(APEX_WITH_MPI) || \
     (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
-    if (mpi_initialized && commsize > 1) {
+    if (apex_options::use_mpi() && mpi_initialized && (!mpi_finalized) && commsize > 1) {
         MPI_CALL(PMPI_Allreduce(&length, &max_length, 2,
             MPI_UINT64_T, MPI_MAX, MPI_COMM_WORLD));
     } else {
+        std::cerr << "Error in MPI Sequencing - was MPI_Initialize/MPI_Finalize not wrapped?" << std::endl;
 #else
     if (true) {
 #endif
@@ -130,11 +135,12 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
     }
 #if defined(APEX_WITH_MPI) || \
     (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
-    if (mpi_initialized && commsize > 1) {
+    if (apex_options::use_mpi() && mpi_initialized && (!mpi_finalized) && commsize > 1) {
         MPI_CALL(PMPI_Allgather(sbuf, sbuf_length, MPI_CHAR,
             rbuf, sbuf_length, MPI_CHAR, MPI_COMM_WORLD));
         free(sbuf);
     } else {
+        std::cerr << "Error in MPI Sequencing - was MPI_Initialize/MPI_Finalize not wrapped?" << std::endl;
 #else
     if (true) {
 #endif
@@ -207,12 +213,13 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
     /* Reduce the data */
 #if defined(APEX_WITH_MPI) || \
     (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
-    if (mpi_initialized && commsize > 1) {
+    if (apex_options::use_mpi() && mpi_initialized && (!mpi_finalized) && commsize > 1) {
         MPI_CALL(PMPI_Gather(s_pdata, sbuf_length, MPI_DOUBLE,
             r_pdata, sbuf_length, MPI_DOUBLE, 0, MPI_COMM_WORLD));
         // free the send buffer
         free(s_pdata);
     } else {
+        std::cerr << "Error in MPI Sequencing - was MPI_Initialize/MPI_Finalize not wrapped?" << std::endl;
 #else
     if (true) {
 #endif
@@ -278,7 +285,7 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
     }
 #if defined(APEX_WITH_MPI) || \
     (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
-    if (mpi_initialized && commsize > 1) {
+    if (apex_options::use_mpi() && mpi_initialized && (!mpi_finalized) && commsize > 1) {
         MPI_CALL(PMPI_Barrier(MPI_COMM_WORLD));
     }
 #endif
@@ -291,10 +298,14 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
 #if defined(APEX_WITH_MPI) || \
     (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
         int mpi_initialized = 0;
+        int mpi_finalized = 0;
         MPI_CALL(MPI_Initialized( &mpi_initialized ));
-        if (mpi_initialized) {
+        MPI_CALL(MPI_Finalized( &mpi_finalized ));
+        if (apex_options::use_mpi() && mpi_initialized && (!mpi_finalized)) {
             MPI_CALL(PMPI_Comm_rank(MPI_COMM_WORLD, &commrank));
             MPI_CALL(PMPI_Comm_size(MPI_COMM_WORLD, &commsize));
+        } else {
+            std::cerr << "Error in MPI Sequencing - was MPI_Initialize/MPI_Finalize not wrapped?" << std::endl;
         }
 #endif
         // if nothing to reduce, just write the data.
@@ -316,9 +327,11 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
         // get the longest string from all ranks
 #if defined(APEX_WITH_MPI) || \
     (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
-        if (mpi_initialized && commsize > 1) {
+        if (apex_options::use_mpi() && mpi_initialized && (!mpi_finalized) && commsize > 1) {
             MPI_CALL(PMPI_Allreduce(&length, &max_length, 1,
                 MPI_UINT64_T, MPI_MAX, MPI_COMM_WORLD));
+        } else {
+            std::cerr << "Error in MPI Sequencing - was MPI_Initialize/MPI_Finalize not wrapped?" << std::endl;
         }
         // so we don't have to specially handle the first string which will append
         // the second string without a null character (zero).

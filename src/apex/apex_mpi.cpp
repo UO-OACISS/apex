@@ -165,6 +165,9 @@ bool amIroot(MPI_Comm comm, int root) {
         int size{0};
         PMPI_Comm_rank(MPI_COMM_WORLD, &rank);
         PMPI_Comm_size(MPI_COMM_WORLD, &size);
+        if (apex::apex_options::use_verbose() && rank == 0) {
+            std::cout << "Inside MPI_Init() wrapper for APEX" << std::endl;
+        }
         apex::init("APEX MPI", rank, size);
         return retval;
     }
@@ -174,10 +177,18 @@ bool amIroot(MPI_Comm comm, int root) {
         int size{0};
         PMPI_Comm_rank(MPI_COMM_WORLD, &rank);
         PMPI_Comm_size(MPI_COMM_WORLD, &size);
+        if (apex::apex_options::use_verbose() && rank == 0) {
+            std::cout << "Inside MPI_Init_thread() wrapper for APEX" << std::endl;
+        }
         apex::init("APEX MPI", rank, size);
         return retval;
     }
     int MPI_Finalize(void) {
+        int rank{0};
+        PMPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        if (apex::apex_options::use_verbose() && rank == 0) {
+            std::cout << "Inside MPI_Finalize() wrapper for APEX" << std::endl;
+        }
         apex::finalize();
         int retval = PMPI_Finalize();
         apex::cleanup();
