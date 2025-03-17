@@ -461,7 +461,7 @@ uint64_t test_for_MPI_comm_rank(uint64_t commrank) {
         return commrank;
     }
     // PBS/Torque
-    tmpvar = getenv("PBS_TASKNUM");
+    tmpvar = getenv("PBS_NODENUM");
     if (tmpvar != NULL) {
         commrank = atol(tmpvar);
         return commrank;
