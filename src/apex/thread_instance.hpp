@@ -26,6 +26,8 @@
 #include <unordered_set>
 #endif
 #include <unordered_map>
+#include <set>
+#include <unordered_set>
 #include "apex_cxx_shared_lock.hpp"
 
 namespace apex {
@@ -132,6 +134,7 @@ private:
       uint64_t guid = _id_reversed + _task_count;
       return guid;
   }
+  std::unordered_set<std::shared_ptr<task_wrapper>> known_tasks;
 public:
   ~thread_instance(void);
   // HPX has lots of extra threads. Some of the helper threads make calls into APEX.
@@ -190,6 +193,15 @@ public:
     std::lock_guard<std::mutex> l{common()._name_map_mutex};
     return common()._tids;
   }
+  void add_known_task(std::shared_ptr<task_wrapper> task) {
+    known_tasks.insert(task);
+  }
+  void remove_known_task(std::shared_ptr<task_wrapper> task) {
+    if (known_tasks.find(task) != known_tasks.end()) {
+        known_tasks.erase(task);
+    }
+  }
+  void clear_known_tasks(void);
 
 #ifdef APEX_DEBUG
   static std::mutex _open_profiler_mutex;

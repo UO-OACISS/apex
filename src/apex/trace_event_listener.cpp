@@ -52,13 +52,19 @@ uint64_t trace_event_listener::resource_id(
     // Perfetto doesn't like 64 bit thread IDs...
     static std::unordered_map<uint64_t,size_t> guid_map;
     static std::set<size_t> active_set;
-    static std::queue<uint64_t> free_resources;
+    static std::set<uint64_t> free_resources;
+    // reserve thread 0 for the "main" thread
+    active_set.insert(0);
     static std::mutex map_lock;
     if (apex_options::use_trace_event_tasks()) {
         /* If this is an explicit parent, use the parent thread (guid) */
         if ((tt_ptr->implicit_parent || tt_ptr->is_async) && tt_ptr->parents.size() > 0) {
-            tt_ptr->trace_tid = tt_ptr->parents[0]->trace_tid;
-            return tt_ptr->trace_tid;
+            if (tt_ptr->parents[0]->guid == 0) {
+                // fall through instead
+            } else {
+                tt_ptr->trace_tid = tt_ptr->parents[0]->trace_tid;
+                return tt_ptr->trace_tid;
+            }
         }
         auto guid = tt_ptr->guid;
         if (create) {
@@ -66,8 +72,8 @@ uint64_t trace_event_listener::resource_id(
             {
                 std::lock_guard<std::mutex> lock(map_lock);
                 if (free_resources.size()) {
-                    new_id = free_resources.front();
-                    free_resources.pop();
+                    new_id = *(free_resources.begin());
+                    free_resources.erase(new_id);
                 } else {
                     new_id = active_set.size();
                 }
@@ -95,7 +101,7 @@ uint64_t trace_event_listener::resource_id(
         } else if (destroy) {
             std::lock_guard<std::mutex> lock(map_lock);
             size_t resource = guid_map[guid];
-            free_resources.push(resource);
+            free_resources.insert(resource);
             active_set.erase(resource);
             return resource;
         } else {
@@ -242,6 +248,11 @@ void trace_event_listener::on_create(std::shared_ptr<task_wrapper> &tt_ptr) {
         tt_ptr->is_async = true;
         return;
     }
+    // if this is an implicit task, skip it
+    if (tt_ptr->implicit_parent) {
+        return;
+    }
+
     saved_node_id = apex::instance()->get_node_id();
     std::stringstream ss;
     ss.precision(3);

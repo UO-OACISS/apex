@@ -334,4 +334,14 @@ void thread_instance::clear_current_profiler(
     //}
 }
 
+    void thread_instance::clear_known_tasks(void) {
+        //std::cout << "Thread " << _id << " clearing " << known_tasks.size() << " tasks..." << std::endl;
+        for (auto task = known_tasks.begin() ; task != known_tasks.end() ; task++) {
+            if ((*task)->state == task_wrapper::RUNNING) {
+                stop((*task));
+            }
+        }
+    }
+
+
 }

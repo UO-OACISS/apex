@@ -862,6 +862,7 @@ void start(std::shared_ptr<task_wrapper> tt_ptr) {
             }
         }
     }
+    thread_instance::instance().add_known_task(tt_ptr);
     APEX_UTIL_REF_COUNT_START
     thread_instance::instance().restore_children_profilers(tt_ptr);
     return;
@@ -1102,6 +1103,7 @@ void stop(profiler* the_profiler, bool cleanup) {
             instance->listeners[i]->on_stop(p);
         }
     }
+    thread_instance::instance().remove_known_task(p->tt_ptr);
     /*
     std::stringstream dbg;
     dbg << thread_instance::get_id() << "->" << the_profiler->tt_ptr->thread_id << " Stop : " <<
@@ -1184,6 +1186,7 @@ void stop(std::shared_ptr<task_wrapper> tt_ptr) {
                 instance->listeners[i]->on_stop(p);
             }
         }
+        thread_instance::instance().remove_known_task(tt_ptr);
     /*
     std::stringstream dbg;
     dbg << thread_instance::get_id() << "->" << tt_ptr->thread_id << " Stop : " <<
@@ -1822,6 +1825,8 @@ void finalize(void)
                         if (top_profiler->tt_ptr->previous_task == nullptr) { break; }
                         top_profiler = t->get_current_profiler();
                     }
+                    // final cleanup
+                    t->clear_known_tasks();
                 }
             }
         }
@@ -1837,6 +1842,7 @@ void finalize(void)
         if (top_profiler->tt_ptr->previous_task == nullptr) { break; }
         top_profiler = thread_instance::instance().get_current_profiler();
     }
+    thread_instance::instance().clear_known_tasks();
     /* Signal the other threads that have open profiles to exit */
     if (apex_options::top_level_os_threads()) {
         //apex_signal_all_threads();

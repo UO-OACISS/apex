@@ -763,7 +763,7 @@ else
             echo "set height 0" >> ${gdbcmds}
             echo "set logging overwrite on" >> ${gdbcmds}
             echo "set logging redirect on" >> ${gdbcmds}
-            echo "set logging file zsgdb.${myrank_padded}.log" >> ${gdbcmds}
+            echo "set logging file apexgdb.${myrank_padded}.log" >> ${gdbcmds}
             echo "set logging enabled on" >> ${gdbcmds}
 
             # Run the executable
