@@ -966,7 +966,7 @@ endif()
 
 ### Set up perfstubs stuff
 git_external(perfstubs
-    https://github.com/khuck/perfstubs.git
+    https://github.com/UO-OACISS/perfstubs.git
     master
     VERBOSE)
 
@@ -985,34 +985,34 @@ else(APEX_WITH_PYTHON)
         include_directories(${PROJECT_SOURCE_DIR}/perfstubs)
     else()
         message(FATAL_ERROR " perfstubs not found. This should have been checked out automatically. "
-                "Try manually check out https://github.com/khuck/perfstubs.git to ${PROJECT_SOURCE_DIR}")
+                "Try manually check out https://github.com/UO-OACISS/perfstubs.git to ${PROJECT_SOURCE_DIR}")
     endif()
 endif(APEX_WITH_PYTHON)
 
-### Set up taskStubs stuff
-git_external(taskStubs
-    https://github.com/khuck/taskStubs.git
+### Set up taskstubs stuff
+git_external(taskstubs
+    https://github.com/UO-OACISS/taskstubs.git
     main
     VERBOSE)
 
 find_file(
     TASKSTUBS_HEADER
     NAMES timer_plugin/tool_api.h
-    PATHS ${PROJECT_SOURCE_DIR}/taskStubs)
+    PATHS ${PROJECT_SOURCE_DIR}/taskstubs)
 
 if(TASKSTUBS_HEADER)
-    message(INFO " Found taskStubs at ${PROJECT_SOURCE_DIR}/taskStubs")
-    include_directories(${PROJECT_SOURCE_DIR}/taskStubs)
+    message(INFO " Found taskstubs at ${PROJECT_SOURCE_DIR}/taskstubs")
+    include_directories(${PROJECT_SOURCE_DIR}/taskstubs)
 else()
-    message(FATAL_ERROR " taskStubs not found. This should have been checked out automatically. "
-            "Try manually check out https://github.com/khuck/taskStubs.git to ${PROJECT_SOURCE_DIR}")
+    message(FATAL_ERROR " taskstubs not found. This should have been checked out automatically. "
+            "Try manually check out https://github.com/UO-OACISS/taskstubs.git to ${PROJECT_SOURCE_DIR}")
 endif()
 
 if(APEX_BUILD_TESTS)
     # Include path needed for example in src/unit_tests/C++
-    include_directories(${PROJECT_SOURCE_DIR}/taskStubs/timer_plugin)
+    include_directories(${PROJECT_SOURCE_DIR}/taskstubs/timer_plugin)
     # Build the taskstubs library for testing purposes
-    add_subdirectory (taskStubs)
+    add_subdirectory (taskstubs)
 endif(APEX_BUILD_TESTS)
 
 if(APEX_WITH_PLUGINS)
