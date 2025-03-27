@@ -71,6 +71,7 @@ where APEX options are zero or more of:
     --apex:cpu-memory             enable CPU memory wrapper support
     --apex:delay-memory           delay memory wrapper support until explicitly enabled
     --apex:cuda                   enable CUDA/CUPTI measurement (default: off)
+    --apex:cuda-nvtx              enable CUDA/CUPTI NVTX measurement from cu* libraries (default: off)
     --apex:cuda-counters          enable CUDA/CUPTI counter support (default: off)
     --apex:cuda-driver            enable CUDA driver API callbacks (default: off)
     --apex:cuda-details           enable per-kernel statistics where available (default: off)
@@ -135,6 +136,7 @@ csv=no
 tau=no
 debug=no
 cuda=no
+cuda_nvtx=no
 cuda_counters=no
 cuda_driver=no
 cuda_details=no
@@ -337,6 +339,11 @@ while (( "$#" )); do
       ;;
     --apex:cuda)
       cuda=yes
+      export APEX_ENABLE_CUDA=1
+      shift
+      ;;
+    --apex:cuda-nvtx|--apex:cuda_nvtx)
+      cuda_nvtx=yes
       export APEX_ENABLE_CUDA=1
       shift
       ;;
@@ -806,6 +813,21 @@ else
     export APEX_SCREEN_OUTPUT=0
 fi
 
+if [ ${cuda_nvtx} = yes ] ; then
+    export NVTX_INJECTION64_PATH=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}_cuda${SHLIBX}
+    echo $NVTX_INJECTION64_PATH
+    export CUBLASXT_NVTX_LEVEL=2
+    export CUBLAS_NVTX_LEVEL=2
+    export CUCIM_NVTX_LEVEL=1
+    export CUDF_NVTX_LEVEL=1
+    export CUML_NVTX_LEVEL=1
+    export CUSOLVER_NVTX_LEVEL=1
+    export CUSPARSE_NVTX_LEVEL=1
+    export NCCL_NVTX_LEVEL=1
+    export NVSHMEM_NVTX_LEVEL=1
+    export OPTIX_NVTX_LEVEL=1
+    export TENSORRT_NVTX_LEVEL=1
+fi
 if [ ${kokkos} = yes ] ; then
     #export KOKKOS_PROFILE_LIBRARY=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}
     export KOKKOS_TOOLS_LIBS=${BASEDIR}/${LIBDIR}/${APEX_LIBRARY_NAME}${SHLIBX}
