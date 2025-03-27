@@ -56,6 +56,9 @@ void* get_library(void) {
     char const * libname = apex_options::opencl_library();
 #endif /* __APPLE__ */
 
+    if (apex_options::use_verbose()) {
+        printf("Opening OpenCL library: %s\n", libname);
+    }
     /* Check to see if we've already loaded it */
     void* handle = dlopen(libname, RTLD_NOLOAD | RTLD_NOW | RTLD_LOCAL);
     if (handle == nullptr) {
@@ -468,8 +471,10 @@ clReleaseCommandQueue(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_0
     apex::opencl::register_sync_event(command_queue);
     {
         std::unique_lock l(apex::opencl::signalMutex());
-        auto& event_queue = apex::opencl::getMap(command_queue);
-        std::cout << "events remaining: " << event_queue.size() << std::endl;
+        if (apex::apex_options::use_verbose()) {
+            auto& event_queue = apex::opencl::getMap(command_queue);
+            std::cout << "APEX: OpenCL events remaining: " << event_queue.size() << std::endl;
+        }
         //APEX_ASSERT(event_queue.empty());
         apex::opencl::activeQueues().erase(command_queue);
     }
@@ -1138,13 +1143,11 @@ clEnqueueReadBuffer(cl_command_queue    command_queue,
     apex::opencl::asyncEvent* myEvent = nullptr;
     {
         GET_SYMBOL_TIMER(clEnqueueReadBuffer);
-        rc = function_ptr(command_queue, buffer, blocking_read, offset, size, ptr, num_events_in_wait_list, event_wait_list, event);
         myEvent = apex::opencl::new_gpu_event(timer, command_queue, "Read Buffer", APEX_ASYNC_MEMORY);
+        if (event == nullptr) { event = &(myEvent->_event); }
+        rc = function_ptr(command_queue, buffer, blocking_read, offset, size, ptr, num_events_in_wait_list, event_wait_list, event);
     }
     myEvent->_reverseFlow = true;
-    if (event == nullptr) {
-        event = &(myEvent->_event);
-    }
     apex::sample_value("OpenCL:Bytes copied from Device to Host", size);
     if (myEvent->_event == nullptr) {
         myEvent->_event = *event;
@@ -1176,13 +1179,11 @@ clEnqueueReadBufferRect(cl_command_queue    command_queue,
     apex::opencl::asyncEvent* myEvent = nullptr;
     {
         GET_SYMBOL_TIMER(clEnqueueReadBufferRect);
-        rc = function_ptr(command_queue, buffer, blocking_read, buffer_origin, host_origin, region, buffer_row_pitch, buffer_slice_pitch, host_row_pitch, host_slice_pitch, ptr, num_events_in_wait_list, event_wait_list, event);
         myEvent = apex::opencl::new_gpu_event(timer, command_queue, "Read Buffer Rect", APEX_ASYNC_MEMORY);
+        if (event == nullptr) { event = &(myEvent->_event); }
+        rc = function_ptr(command_queue, buffer, blocking_read, buffer_origin, host_origin, region, buffer_row_pitch, buffer_slice_pitch, host_row_pitch, host_slice_pitch, ptr, num_events_in_wait_list, event_wait_list, event);
     }
     myEvent->_reverseFlow = true;
-    if (event == nullptr) {
-        event = &(myEvent->_event);
-    }
     size_t size = (host_row_pitch == 0 ? region[0] : host_row_pitch) *
                   (host_slice_pitch == 0 ? region[1] : host_slice_pitch);
     apex::sample_value("OpenCL:Bytes copied from Device to Host", size);
@@ -1226,11 +1227,10 @@ clEnqueueWriteBuffer(cl_command_queue   command_queue,
     {
         GET_SYMBOL_TIMER(clEnqueueWriteBuffer);
         myEvent = apex::opencl::new_gpu_event(timer, command_queue, "Write Buffer", APEX_ASYNC_MEMORY);
+        if (event == nullptr) { event = &(myEvent->_event); }
         rc = function_ptr(command_queue, buffer, blocking_write, offset, size, ptr, num_events_in_wait_list, event_wait_list, event);
     }
-    if (event == nullptr) {
-        event = &(myEvent->_event);
-    }
+    /* The user didn't pass in an event for this command, so create one */
     apex::sample_value("OpenCL:Bytes copied from Host to Device", size);
     if (myEvent->_event == nullptr) {
         myEvent->_event = *event;
@@ -1262,11 +1262,9 @@ clEnqueueWriteBufferRect(cl_command_queue    command_queue,
     apex::opencl::asyncEvent* myEvent = nullptr;
     {
         GET_SYMBOL_TIMER(clEnqueueWriteBufferRect);
-        rc = function_ptr(command_queue, buffer, blocking_write, buffer_origin, host_origin, region, buffer_row_pitch, buffer_slice_pitch, host_row_pitch, host_slice_pitch, ptr, num_events_in_wait_list, event_wait_list, event);
         myEvent = apex::opencl::new_gpu_event(timer, command_queue, "Write Buffer Rect", APEX_ASYNC_MEMORY);
-    }
-    if (event == nullptr) {
-        event = &(myEvent->_event);
+        if (event == nullptr) { event = &(myEvent->_event); }
+        rc = function_ptr(command_queue, buffer, blocking_write, buffer_origin, host_origin, region, buffer_row_pitch, buffer_slice_pitch, host_row_pitch, host_slice_pitch, ptr, num_events_in_wait_list, event_wait_list, event);
     }
     size_t size = (host_row_pitch == 0 ? region[0] : host_row_pitch) *
                   (host_slice_pitch == 0 ? region[1] : host_slice_pitch);
@@ -1298,11 +1296,9 @@ clEnqueueFillBuffer(cl_command_queue   command_queue,
     apex::opencl::asyncEvent* myEvent = nullptr;
     {
         GET_SYMBOL_TIMER(clEnqueueFillBuffer);
-        rc = function_ptr(command_queue, buffer, pattern, pattern_size, offset, size, num_events_in_wait_list, event_wait_list, event);
         myEvent = apex::opencl::new_gpu_event(timer, command_queue, "Fill Buffer", APEX_ASYNC_MEMORY);
-    }
-    if (event == nullptr) {
-        event = &(myEvent->_event);
+        if (event == nullptr) { event = &(myEvent->_event); }
+        rc = function_ptr(command_queue, buffer, pattern, pattern_size, offset, size, num_events_in_wait_list, event_wait_list, event);
     }
     apex::sample_value("OpenCL:Fill buffer size", size);
     if (myEvent->_event == nullptr) {
@@ -1331,10 +1327,8 @@ clEnqueueCopyBuffer(cl_command_queue    command_queue,
     {
         GET_SYMBOL_TIMER(clEnqueueCopyBuffer);
         myEvent = apex::opencl::new_gpu_event(timer, command_queue, "Copy Buffer", APEX_ASYNC_MEMORY);
+        if (event == nullptr) { event = &(myEvent->_event); }
         rc = function_ptr(command_queue, src_buffer, dst_buffer, src_offset, dst_offset, size, num_events_in_wait_list, event_wait_list, event);
-    }
-    if (event == nullptr) {
-        event = &(myEvent->_event);
     }
     apex::sample_value("OpenCL:Bytes copied Device to Device", size);
     if (myEvent->_event == nullptr) {
@@ -1475,10 +1469,8 @@ clEnqueueMapBuffer(cl_command_queue command_queue,
     {
         GET_SYMBOL_TIMER(clEnqueueMapBuffer);
         myEvent = apex::opencl::new_gpu_event(timer, command_queue, "Map Buffer", APEX_ASYNC_MEMORY);
+        if (event == nullptr) { event = &(myEvent->_event); }
         rc = function_ptr(command_queue, buffer, blocking_map, map_flags, offset, size, num_events_in_wait_list, event_wait_list, event, errcode_ret);
-    }
-    if (event == nullptr) {
-        event = &(myEvent->_event);
     }
     apex::sample_value("OpenCL:Bytes copied from Host to Device", size);
     if (myEvent->_event == nullptr) {
@@ -1519,12 +1511,10 @@ clEnqueueUnmapMemObject(cl_command_queue command_queue,
     {
         GET_SYMBOL_TIMER(clEnqueueUnmapMemObject);
         myEvent = apex::opencl::new_gpu_event(timer, command_queue, "Unmap Buffer", APEX_ASYNC_MEMORY);
+        if (event == nullptr) { event = &(myEvent->_event); }
         rc = function_ptr(command_queue, memobj, mapped_ptr, num_events_in_wait_list, event_wait_list, event);
     }
     myEvent->_reverseFlow = true;
-    if (event == nullptr) {
-        event = &(myEvent->_event);
-    }
     apex::sample_value("OpenCL:Bytes copied from Device to Host", 0);
     if (myEvent->_event == nullptr) {
         myEvent->_event = *event;
@@ -1577,10 +1567,8 @@ clEnqueueNDRangeKernel(cl_command_queue command_queue,
     {
         GET_SYMBOL_TIMER(clEnqueueNDRangeKernel);
         myEvent = apex::opencl::new_gpu_event(timer, command_queue, name, APEX_ASYNC_KERNEL);
+        if (event == nullptr) { event = &(myEvent->_event); }
         rc = function_ptr(command_queue, kernel, work_dim, global_work_offset, global_work_size, local_work_size, num_events_in_wait_list, event_wait_list, event);
-    }
-    if (event == nullptr) {
-        event = &(myEvent->_event);
     }
     if (myEvent->_event == nullptr) {
         myEvent->_event = *event;
@@ -1830,7 +1818,26 @@ clCreateCommandQueue(cl_context                     context,
     GET_SYMBOL_TIMER(clCreateCommandQueue);
     // add profiling support!
     auto new_properties = properties | CL_QUEUE_PROFILING_ENABLE;
-    return function_ptr(context, device, new_properties, errcode_ret);
+    cl_command_queue queue = function_ptr(context, device, new_properties, errcode_ret);
+    /* save the queue and context and device */
+    if (apex::opencl::deviceMap().count(device) == 0) {
+        apex::opencl::deviceMap()[device] = apex::opencl::deviceMap().size();
+    }
+    if (apex::opencl::contextMap().count(context) == 0) {
+        apex::opencl::contextMap()[context] = apex::opencl::contextMap().size();
+    }
+    if (apex::opencl::queueMap().count(queue) == 0) {
+        apex::opencl::queueMap()[queue] = apex::opencl::queueMap().size();
+    }
+    apex::opencl::queueData data;
+    data.queue = queue;
+    data.context = context;
+    data.device = device;
+    data.ids = {apex::opencl::deviceMap()[device],
+        apex::opencl::contextMap()[context], apex::opencl::queueMap()[queue]};
+    apex::opencl::sync_clocks(data);
+    apex::opencl::queueContextDeviceMap()[queue] = data;
+     return queue;
 }
 
 extern CL_API_ENTRY cl_sampler CL_API_CALL
@@ -1916,21 +1923,39 @@ void process_queue(cl_command_queue queue) {
     auto& event_queue = getMap(queue);
     while(!event_queue.empty()) {
         cl_int err = CL_SUCCESS;
-        cl_ulong startTime, endTime, queuedTime, submitTime;
+        cl_ulong startTime, endTime, queuedTime, submitTime, completeTime;
         const auto checkError = [=](const char * msg) {
             if (err != CL_SUCCESS) {
                 printf("%s", msg);
                 abort();
             }
         };
-
         asyncEvent* kernel_data = event_queue.front();
-        cl_int status;
+        cl_int status{CL_QUEUED};
+        APEX_ASSERT(kernel_data->_event != nullptr);
         err = clGetEventInfo_noinst(kernel_data->_event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(cl_int), &status, NULL);
         checkError("Fatal error: calling clGetEventInfo, exiting.\n");
         if (status != CL_COMPLETE) {
+#if 0
+            //printf("Kernel not complete!\n");
+            switch (status) {
+                case CL_QUEUED:
+                    printf("Kernel queued!\n");
+                    break;
+                case CL_SUBMITTED:
+                    printf("Kernel submitted!\n");
+                    break;
+                case CL_RUNNING:
+                    printf("Kernel running!\n");
+                    break;
+                default:
+                    printf("Kernel unknown!\n");
+                    break;
+            }
+#endif
             continue;
         }
+        //printf("Kernel complete!\n");
 
         err = clGetEventProfilingInfo_noinst(kernel_data->_event, CL_PROFILING_COMMAND_QUEUED,
             sizeof(cl_ulong), &queuedTime, NULL);
@@ -1944,16 +1969,35 @@ void process_queue(cl_command_queue queue) {
         err = clGetEventProfilingInfo_noinst(kernel_data->_event, CL_PROFILING_COMMAND_END,
             sizeof(cl_ulong), &endTime, NULL);
         checkError("Cannot get end time for Kernel event.\n");
-
+        err = clGetEventProfilingInfo_noinst(kernel_data->_event, CL_PROFILING_COMMAND_COMPLETE,
+            sizeof(cl_ulong), &completeTime, NULL);
+        checkError("Cannot get complete time for Kernel event.\n");
+        //printf("queued:    %lu\n", queuedTime);
+        //printf("Submit:    %lu\n", submitTime);
+        //printf("Start:     %lu\n", startTime);
+        //printf("End:       %lu\n", endTime);
+        //printf("Complete:  %lu\n", completeTime);
         sample_value("Time in Queue (us)", (startTime - queuedTime)/1e3);
         sample_value("Time in Submitted (us)", (startTime - submitTime)/1e3);
         queueData data = queueContextDeviceMap().find(kernel_data->_queue)->second;
+        //bool bogus{false};
+        if (startTime > endTime) {
+            //bogus = true;
+            //printf("bogus timestamps... fixing\n");
+            endTime = startTime + (startTime - endTime);
+            //printf("Fixed End: %lu\n", endTime);
+        }
         opencl_thread_node node(data.ids[0], data.ids[1], data.ids[2], kernel_data->_type);
         double start_d = ((double)startTime);
         double end_d = ((double)endTime);
+        //printf("Start_d:   %f\n", start_d);
+        //printf("End_d:     %f\n", end_d);
         //printf("SYNC: start= %f offset= %f, corrected = %f.\n", start_d, data.offset, start_d + data.offset);
-        //printf("SYNC: end= %f offset= %f, corrected = %f.\n", end_d, data.offset, end_d + data.offset);
-        store_profiler_data(kernel_data, start_d + data.offset, end_d + data.offset, node);
+        //printf("SYNC: end=   %f offset= %f, corrected = %f.\n", end_d, data.offset, end_d + data.offset);
+        start_d += data.offset;
+        end_d += data.offset;
+        //printf("SYNC: '%s' duration= %f.\n", kernel_data->_name.c_str(), end_d - start_d);
+        store_profiler_data(kernel_data, start_d, end_d, node);
         event_queue.pop_front();
         clReleaseEvent_noinst(kernel_data->_event);
     }
@@ -1978,7 +2022,7 @@ void process_queue_threaded(void) {
 }
 
 void register_sync_event(cl_command_queue queue) {
-/*
+#if 0
     const auto getThread = [](void) {
         std::shared_ptr<std::thread> t = std::make_shared<std::thread>(process_queue_threaded);
         t->detach();
@@ -1990,24 +2034,28 @@ void register_sync_event(cl_command_queue queue) {
         activeQueues().insert(queue);
     }
     signalVar().notify_one();
-    */
+#else
     process_queue(queue);
+#endif
 }
 
 double sync_clocks(queueData& qData) {
     cl_int err{CL_SUCCESS};
 #ifdef CL_VERSION_2_1
-/*
     // Provided by CL_VERSION_2_1
-    cl_ulong device_timestamp;
-    cl_ulong host_timestamp;
+    cl_ulong device_timestamp{0L};
+    cl_ulong host_timestamp{0L};
+    // this returns a bogus host timestamp on amd
     err = clGetDeviceAndHostTimer_noinst(qData.device,
         &device_timestamp, &host_timestamp);
     if (err == CL_SUCCESS) {
-        return ((double)(host_timestamp)) - ((double)device_timestamp);
+        qData.offset = ((double)(profiler::now_ns())) - ((double)device_timestamp);
+        return qData.offset;
+    //} else {
+        //APEX_ASSERT(false);
     }
-    */
-#endif
+    /* If this call fails, use the old method */
+#else
     int d = 0;
     void *data = &d;
     cl_mem buffer;
@@ -2019,24 +2067,27 @@ double sync_clocks(queueData& qData) {
         }
     };
     size_t resolution;
+    double host_timestamp = ((double)profiler::now_ns());
     err = clGetDeviceInfo_noinst(qData.device, CL_DEVICE_PROFILING_TIMER_RESOLUTION, sizeof(size_t), &resolution, NULL);
     //std::cout << "Resolution: " << resolution << std::endl;
     checkError("Error getting device info.\n");
     buffer = clCreateBuffer_noinst(qData.context, CL_MEM_READ_WRITE|CL_MEM_ALLOC_HOST_PTR, sizeof(void*), NULL, &err);
     checkError("Cannot Create Sync Buffer.\n");
-    double cpu_timestamp;
-    cl_ulong gpu_timestamp;
+    cl_ulong device_timestamp;
     cl_event sync_event;
     err = clEnqueueWriteBuffer_noinst(qData.queue, buffer, CL_TRUE, 0, sizeof(void*), data,  0, NULL, &sync_event);
     checkError("Cannot Enqueue Sync Kernel.\n");
     //get CPU timestamp.
-    cpu_timestamp = ((double)profiler::now_ns());
     //get GPU timestamp for finish.
     clFinish_noinst(qData.queue);
-    err = clGetEventProfilingInfo_noinst(sync_event, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &gpu_timestamp, NULL);
+    //double host_timestamp2 = ((double)profiler::now_ns());
+    //host_timestamp = (host_timestamp + host_timestamp2) / 2.0;
+    err = clGetEventProfilingInfo_noinst(sync_event, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &device_timestamp, NULL);
     checkError("Cannot get end time for Sync event.\n");
-    qData.offset = cpu_timestamp - (((double)gpu_timestamp));
-    //printf("SYNC: CPU= %f GPU= %f, diff = %f.\n", cpu_timestamp, ((double)gpu_timestamp), qData.offset);
+    host_timestamp = ((double)profiler::now_ns());
+    qData.offset = host_timestamp - (((double)device_timestamp));
+#endif
+    //printf("SYNC: CPU= %f GPU= %f, diff = %f.\n", ((double)host_timestamp), ((double)device_timestamp), qData.offset);
     return qData.offset;
 }
 
