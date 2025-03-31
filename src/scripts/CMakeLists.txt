@@ -7,6 +7,7 @@ set(APEX_SCRIPTS
     task_scatterplot.py
     counter_scatterplot.py
     gtrace_merger.py
+    gtrace_filter.py
     roofline_stats.py
     apex-treesummary.py
     apex-summary.py)

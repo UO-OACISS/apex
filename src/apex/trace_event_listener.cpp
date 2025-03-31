@@ -243,6 +243,7 @@ bool trace_event_listener::on_resume(std::shared_ptr<task_wrapper> &tt_ptr) {
 }
 
 void trace_event_listener::on_create(std::shared_ptr<task_wrapper> &tt_ptr) {
+    if (!apex_options::use_marker_events()) { return; }
     // if this is a GPU event, do nothing...
     if (tt_ptr->get_task_id()->get_name().compare(0, 5, "GPU: ") == 0) {
         tt_ptr->is_async = true;
@@ -269,6 +270,7 @@ void trace_event_listener::on_create(std::shared_ptr<task_wrapper> &tt_ptr) {
 }
 
 void trace_event_listener::on_schedule(std::shared_ptr<task_wrapper> &tt_ptr) {
+    if (!apex_options::use_marker_events()) { return; }
     saved_node_id = apex::instance()->get_node_id();
     std::stringstream ss;
     ss.precision(3);
@@ -285,6 +287,7 @@ void trace_event_listener::on_schedule(std::shared_ptr<task_wrapper> &tt_ptr) {
 }
 
 void trace_event_listener::on_destroy(task_wrapper * tt_ptr) {
+    if (!apex_options::use_marker_events()) { return; }
     saved_node_id = apex::instance()->get_node_id();
     std::stringstream ss;
     ss.precision(3);

@@ -86,6 +86,6 @@ for counter, infile in enumerate(sorted(glob.glob(myglob))):
 #json_str = json.dumps(all_data) + '\n'
 #json_bytes = json_str.encode('utf-8')
 
-print('Writing and compressing trace_events.json.gz...')
+print('Writing and compressing trace_events.filtered.json.gz...')
 with gzip.open('trace_events.filtered.json.gz', 'w') as fout:
     fout.write((json.dumps(all_data, indent=2, ensure_ascii=False) + '\n').encode('utf-8'))
