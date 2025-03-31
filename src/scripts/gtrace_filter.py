@@ -21,9 +21,12 @@ parser.add_argument('--nothread', dest='nothread', action='store_true',
                     help='Strip thread data (save main thread only)')
 parser.add_argument("--filename", dest="filename", default=None, required=False, type=str,
                     help="The filename to parse (default is trace_events.*.json.gz)")
-
+parser.add_argument("--outfile", dest="outfile", default="trace_events.filtered.json.gz", required=False, type=str,
+                    help="The filename to parse (default is trace_events.*.json.gz)")
 parser.add_argument("--strip-timers", dest="strip_timers", default=None, required=False, type=str,
                     help="A regluar expression of timers to strip")
+parser.add_argument('--force', dest='force', action='store_true',
+                    help='Overwrite output file (trace_events.filtered.json.gz) if it exists')
 
 args = parser.parse_args()
 
@@ -86,6 +89,9 @@ for counter, infile in enumerate(sorted(glob.glob(myglob))):
 #json_str = json.dumps(all_data) + '\n'
 #json_bytes = json_str.encode('utf-8')
 
-print('Writing and compressing trace_events.filtered.json.gz...')
-with gzip.open('trace_events.filtered.json.gz', 'w') as fout:
+print(f"Writing and compressing '{args.outfile}'...")
+if os.path.exists(args.outfile) and not args.force:
+    print(f"ERROR: File '{args.outfile}' already exists. Try the '--force' flag.")
+
+with gzip.open(args.outfile, 'w') as fout:
     fout.write((json.dumps(all_data, indent=2, ensure_ascii=False) + '\n').encode('utf-8'))
