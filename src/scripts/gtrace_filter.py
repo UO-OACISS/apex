@@ -20,7 +20,7 @@ parser.add_argument('--strip-flow', dest='strip_flow', action='store_true',
 parser.add_argument('--nothread', dest='nothread', action='store_true',
                     help='Strip thread data (save main thread only)')
 parser.add_argument("--filename", dest="filename", default=None, required=False, type=str,
-                    help="The filename to parse (default is trace_events.*.json.gz)")
+                    help="The filename(s) to parse (default is trace_events.*.json.gz)")
 parser.add_argument("--outfile", dest="outfile", default="trace_events.filtered.json.gz", required=False, type=str,
                     help="The filename to parse (default is trace_events.*.json.gz)")
 parser.add_argument("--strip-timers", dest="strip_timers", default=None, required=False, type=str,
