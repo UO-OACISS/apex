@@ -289,6 +289,9 @@ def graphRank2(index, df, parentNode, droplist, args):
     childDF = df[df['node index'] == index].copy()#.reset_index()
     if childDF.shape[0] > 1:
         childDF = childDF[childDF['parent index'] == parentNode.index]#.reset_index()
+    if childDF.shape[0] == 0:
+        return
+
     name = childDF['name'].iloc[0]
     # should we skip this subtree?
     if name in droplist:
