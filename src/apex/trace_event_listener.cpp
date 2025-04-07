@@ -59,7 +59,7 @@ uint64_t trace_event_listener::resource_id(
     if (apex_options::use_trace_event_tasks()) {
         /* If this is an explicit parent, use the parent thread (guid) */
         if ((tt_ptr->implicit_parent || tt_ptr->is_async) && tt_ptr->parents.size() > 0) {
-            if (tt_ptr->parents[0]->guid == 0) {
+            if (tt_ptr->parents[0]->guid == 0 && false) {
                 // fall through instead
             } else {
                 tt_ptr->trace_tid = tt_ptr->parents[0]->trace_tid;
@@ -71,31 +71,29 @@ uint64_t trace_event_listener::resource_id(
             size_t new_id;
             {
                 std::lock_guard<std::mutex> lock(map_lock);
-                if (free_resources.size()) {
+                if (free_resources.size() > 0) {
                     new_id = *(free_resources.begin());
                     free_resources.erase(new_id);
                 } else {
                     new_id = active_set.size();
+                    saved_node_id = apex::instance()->get_node_id();
+                    std::stringstream ss;
+                    ss.precision(3);
+                    ss << fixed
+                        << "{\"name\":\"thread_name\""
+                        << ",\"ph\":\"M\",\"pid\":" << saved_node_id
+                        << ",\"tid\":" << new_id
+                        << ",\"args\":{\"name\":"
+                        << "\"Active Task" << "\"}},\n";
+                    ss << "{\"name\":\"thread_sort_index\""
+                        << ",\"ph\":\"M\",\"pid\":" << saved_node_id
+                        << ",\"tid\":" << new_id
+                        << ",\"args\":{\"sort_index\":\"" << setw(5) << setfill('0') << new_id << "\"}},\n";
+                    write_to_trace(ss);
                 }
                 guid_map[guid] = new_id;
                 active_set.insert(new_id);
             }
-            saved_node_id = apex::instance()->get_node_id();
-            std::stringstream ss;
-            ss.precision(3);
-            ss << fixed
-               << "{\"name\":\"thread_name\""
-               << ",\"ph\":\"M\",\"pid\":" << saved_node_id
-               << ",\"tid\":" << new_id
-               << ",\"args\":{\"name\":"
-               << "\"Active Task" << "\"}},\n";
-               /*
-            ss << "{\"name\":\"thread_sort_index\""
-               << ",\"ph\":\"M\",\"pid\":" << saved_node_id
-               << ",\"tid\":" << new_id
-               << ",\"args\":{\"sort_index\":\"" << setw(5) << setfill('0') << new_id << "\"}},\n";
-               */
-            write_to_trace(ss);
             tt_ptr->trace_tid = new_id;
             return new_id;
         } else if (destroy) {
@@ -132,7 +130,22 @@ void trace_event_listener::on_startup(startup_event_data &data) {
        << ",\"ph\":\"M\",\"pid\":" << saved_node_id
        << ",\"args\":{\"sort_index\":\""
        << setw(8) << setfill('0') << saved_node_id << "\"}},\n";
+    if (apex_options::use_trace_event_tasks()) {
+       ss << fixed
+          << "{\"name\":\"thread_name\""
+          << ",\"ph\":\"M\",\"pid\":" << saved_node_id
+          << ",\"tid\":" << 0
+          << ",\"args\":{\"name\":"
+          << "\"Active Task" << "\"}},\n";
+       ss << "{\"name\":\"thread_sort_index\""
+          << ",\"ph\":\"M\",\"pid\":" << saved_node_id
+          << ",\"tid\":" << 0
+          << ",\"args\":{\"sort_index\":\"" << setw(5) << setfill('0') << 0 << "\"}},\n";
+    } else {
+        get_thread_id_metadata();
+    }
     write_to_trace(ss);
+
     return;
 }
 
@@ -209,7 +222,7 @@ inline void trace_event_listener::_common_start(std::shared_ptr<task_wrapper> &t
               << saved_node_id << ",\"tid\":" <<
               resource_id(tid, tt_ptr.get())
               << ",\"ts\":" << tt_ptr->prof->get_start_us()
-              << ",\"args\":{\"GUID\":" << tt_ptr->prof->guid << ",\"Parent GUID\":" << pguid << "}},\n";
+              << ",\"args\":{\"Implicit Parent\":" << (tt_ptr->implicit_parent ? "true" : "false") << ",\"GUID\":" << tt_ptr->prof->guid << ",\"Parent GUID\":" << pguid << "}},\n";
 /* Only write the counter at the end, it's less data! */
 #if APEX_HAVE_PAPI
         int i = 0;
@@ -243,7 +256,6 @@ bool trace_event_listener::on_resume(std::shared_ptr<task_wrapper> &tt_ptr) {
 }
 
 void trace_event_listener::on_create(std::shared_ptr<task_wrapper> &tt_ptr) {
-    if (!apex_options::use_marker_events()) { return; }
     // if this is a GPU event, do nothing...
     if (tt_ptr->get_task_id()->get_name().compare(0, 5, "GPU: ") == 0) {
         tt_ptr->is_async = true;
@@ -251,6 +263,13 @@ void trace_event_listener::on_create(std::shared_ptr<task_wrapper> &tt_ptr) {
     }
     // if this is an implicit task, skip it
     if (tt_ptr->implicit_parent) {
+        // need to get a resource id, even if we do nothing else here
+        resource_id(tt_ptr->thread_id, tt_ptr.get(), true);
+        return;
+    }
+    if (!apex_options::use_marker_events()) {
+        // need to get a resource id, even if we do nothing else here
+        resource_id(tt_ptr->thread_id, tt_ptr.get(), true);
         return;
     }
 
@@ -287,7 +306,19 @@ void trace_event_listener::on_schedule(std::shared_ptr<task_wrapper> &tt_ptr) {
 }
 
 void trace_event_listener::on_destroy(task_wrapper * tt_ptr) {
-    if (!apex_options::use_marker_events()) { return; }
+    // if this is a GPU event, do nothing...
+    if (tt_ptr->get_task_id()->get_name().compare(0, 5, "GPU: ") == 0) {
+        return;
+    }
+    // if this is an implicit task, skip it
+    if (tt_ptr->implicit_parent) {
+        return;
+    }
+    if (!apex_options::use_marker_events()) {
+        // at a minimum, free the trace resource associated with this task
+        resource_id(tt_ptr->thread_id, tt_ptr, false, true);
+        return;
+    }
     saved_node_id = apex::instance()->get_node_id();
     std::stringstream ss;
     ss.precision(3);
@@ -358,8 +389,8 @@ inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
     // But don't worry, the thread metadata will have been written at the
     // event start.
     //long unsigned int _tid = (p->tt_ptr->explicit_trace_start ? p->thread_id : tid);
-    long unsigned int _tid = p->thread_id;
     if (!_terminate) {
+        long unsigned int _tid = p->thread_id;
         std::stringstream ss;
         ss.precision(3);
         ss << fixed;
@@ -405,7 +436,7 @@ inline void trace_event_listener::_common_stop(std::shared_ptr<profiler> &p) {
                << saved_node_id << ",\"tid\":" << resource_id(_tid, p->tt_ptr.get())
                << ",\"ts\":" << p->get_start_us() << ",\"dur\":"
                << p->get_stop_us() - p->get_start_us()
-               << ",\"args\":{\"GUID\":" << p->guid << ",\"Parent GUID\":" << pguid;
+               << ",\"args\":{\"Implicit Parent\":" << (p->tt_ptr->implicit_parent ? "true" : "false") << ",\"GUID\":" << p->guid << ",\"Parent GUID\":" << pguid;
             for (size_t a = 0 ; a < p->tt_ptr->arguments.size() ; a++) {
                 auto& arg = p->tt_ptr->arguments[a];
                 switch (p->tt_ptr->argument_types[a]) {
@@ -555,10 +586,10 @@ uint64_t trace_event_listener::make_tid (base_thread_node &node) {
 void trace_event_listener::on_async_event(base_thread_node &node,
     std::shared_ptr<profiler> &p, const async_event_data& data) {
     if (!_terminate) {
+        uint64_t tid{make_tid(node)};
         std::stringstream ss;
         ss.precision(3);
         ss << fixed;
-        uint64_t tid{make_tid(node)};
         std::string pguid = parents_to_string(p->tt_ptr);
         ss << "{\"name\":\"" << p->get_task_id()->get_name()
               << "\",\"cat\":\"GPU\""
@@ -566,7 +597,7 @@ void trace_event_listener::on_async_event(base_thread_node &node,
               << saved_node_id << ",\"tid\":" << resource_id(tid, p->tt_ptr.get())
               << ",\"ts\":" << p->get_start_us() << ",\"dur\":"
               << p->get_stop_us() - p->get_start_us()
-              << ",\"args\":{\"GUID\":" << p->guid << ",\"Parent GUID\":" << pguid << "}},\n";
+              << ",\"args\":{\"Implicit Parent\":false" << ",\"GUID\":" << p->guid << ",\"Parent GUID\":" << pguid << "}},\n";
         // write a flow event pair!
         // make sure the start of the flow is before the end of the flow, ideally the middle of the parent
         if (!apex_options::use_trace_event_tasks()) {
@@ -596,8 +627,9 @@ void trace_event_listener::on_async_metric(base_thread_node &node,
         std::stringstream ss;
         ss.precision(3);
         ss << fixed;
-        uint64_t tid{make_tid(node)};
-        APEX_UNUSED(tid);
+        //uint64_t tid{make_tid(node)};
+        //APEX_UNUSED(tid);
+        APEX_UNUSED(node);
         ss << "{\"name\": \"" << p->get_task_id()->get_name()
               << "\",\"cat\":\"GPU\""
               << ",\"ph\":\"C\",\"pid\": " << saved_node_id
