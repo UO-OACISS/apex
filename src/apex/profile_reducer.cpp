@@ -56,8 +56,10 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
 #if defined(APEX_WITH_MPI) || \
     (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
     int mpi_initialized = 0;
+    int mpi_finalized = 0;
     MPI_CALL(MPI_Initialized( &mpi_initialized ));
-    if (mpi_initialized) {
+    MPI_CALL(MPI_Finalized( &mpi_finalized ));
+    if (mpi_initialized && !mpi_finalized) {
         MPI_CALL(PMPI_Comm_rank(MPI_COMM_WORLD, &commrank));
         MPI_CALL(PMPI_Comm_size(MPI_COMM_WORLD, &commsize));
     }
@@ -104,7 +106,7 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
     /* AllReduce all profile name counts */
 #if defined(APEX_WITH_MPI) || \
     (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
-    if (mpi_initialized && commsize > 1) {
+    if (mpi_initialized && (!mpi_finalized) && commsize > 1) {
         MPI_CALL(PMPI_Allreduce(&length, &max_length, 2,
             MPI_UINT64_T, MPI_MAX, MPI_COMM_WORLD));
     } else {
@@ -130,7 +132,7 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
     }
 #if defined(APEX_WITH_MPI) || \
     (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
-    if (mpi_initialized && commsize > 1) {
+    if (mpi_initialized && (!mpi_finalized) && commsize > 1) {
         MPI_CALL(PMPI_Allgather(sbuf, sbuf_length, MPI_CHAR,
             rbuf, sbuf_length, MPI_CHAR, MPI_COMM_WORLD));
         free(sbuf);
@@ -207,7 +209,7 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
     /* Reduce the data */
 #if defined(APEX_WITH_MPI) || \
     (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
-    if (mpi_initialized && commsize > 1) {
+    if (mpi_initialized && (!mpi_finalized) && commsize > 1) {
         MPI_CALL(PMPI_Gather(s_pdata, sbuf_length, MPI_DOUBLE,
             r_pdata, sbuf_length, MPI_DOUBLE, 0, MPI_COMM_WORLD));
         // free the send buffer
@@ -278,7 +280,7 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
     }
 #if defined(APEX_WITH_MPI) || \
     (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
-    if (mpi_initialized && commsize > 1) {
+    if (mpi_initialized && (!mpi_finalized) && commsize > 1) {
         MPI_CALL(PMPI_Barrier(MPI_COMM_WORLD));
     }
 #endif
@@ -291,8 +293,10 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
 #if defined(APEX_WITH_MPI) || \
     (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
         int mpi_initialized = 0;
+        int mpi_finalized = 0;
         MPI_CALL(MPI_Initialized( &mpi_initialized ));
-        if (mpi_initialized) {
+        MPI_CALL(MPI_Finalized( &mpi_finalized ));
+        if (mpi_initialized && !mpi_finalized) {
             MPI_CALL(PMPI_Comm_rank(MPI_COMM_WORLD, &commrank));
             MPI_CALL(PMPI_Comm_size(MPI_COMM_WORLD, &commsize));
         }
@@ -316,7 +320,7 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
         // get the longest string from all ranks
 #if defined(APEX_WITH_MPI) || \
     (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
-        if (mpi_initialized && commsize > 1) {
+        if (mpi_initialized && (!mpi_finalized) && commsize > 1) {
             MPI_CALL(PMPI_Allreduce(&length, &max_length, 1,
                 MPI_UINT64_T, MPI_MAX, MPI_COMM_WORLD));
         }
@@ -341,7 +345,9 @@ std::map<std::string, apex_profile*> reduce_profiles_for_screen() {
 
 #if defined(APEX_WITH_MPI) || \
     (defined(HPX_HAVE_NETWORKING) && defined(HPX_HAVE_PARCELPORT_MPI))
-        MPI_Gather(sbuf, max_length, MPI_CHAR, rbuf, max_length, MPI_CHAR, 0, MPI_COMM_WORLD);
+        if (mpi_initialized && (!mpi_finalized) && commsize > 1) {
+            MPI_Gather(sbuf, max_length, MPI_CHAR, rbuf, max_length, MPI_CHAR, 0, MPI_COMM_WORLD);
+        }
 #endif
 
         /* OK, we have one big blob of character data. Split it into ranks... */
