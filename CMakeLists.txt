@@ -1157,6 +1157,7 @@ enable_testing()
 # cause another cmake executable to run. The same process will walk through
 # the project's entire directory structure.
 if(APEX_WITH_PERFETTO)
+    message( FATAL_ERROR "Don't configure APEX with native Perfetto output, compressed JSON support is more robust and feature complete." )
     add_definitions("-DAPEX_WITH_PERFETTO")
     add_subdirectory (src/perfetto_sdk)
 else()
