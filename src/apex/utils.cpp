@@ -613,6 +613,17 @@ bool isGPUTimer(std::string name) {
     if (name.rfind("OpenMP Target", 0) == 0) {
         return true;
     }
+    if (name.rfind("OpenACC", 0) == 0) {
+        return true;
+    }
+    std::regex opencl("^cl[A-Z]+.*");
+    if (std::regex_match(name, opencl)) {
+        return true;
+    }
+    std::regex cudaDriver("^cu[A-Z]+.*");
+    if (std::regex_match(name, cudaDriver)) {
+        return true;
+    }
     /*
     */
     return false;
