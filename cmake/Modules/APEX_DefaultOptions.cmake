@@ -128,8 +128,8 @@ if(APEX_BUILD_OMPT)
     message(FATAL_ERROR "APEX_BUILD_OMPT is disabled. If OpenMP support is needed, use a compiler with compliant Tool support.")
 endif()
 
-if (APEX_BUILD_ACTIVEHARMONY)
-    message(WARNING "Deprecated option APEX_BUILD_ACTIVEHARMONY will be removed in a future version. You probably don't need it, as Nelder Mead search strategy is natively implemented in APEX.")
+if (APEX_BUILD_ACTIVEHARMONY OR APEX_WITH_ACTIVEHARMONY)
+    message(WARNING "Deprecated option APEX_WITH_ACTIVEHARMONY will be removed in a future version. You probably don't need it, as Nelder Mead search strategy is natively implemented in APEX.")
 endif()
 
 if (APEX_WITH_PERFETTO)
