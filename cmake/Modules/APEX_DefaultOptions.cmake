@@ -122,6 +122,7 @@ option (APEX_WITH_TCMALLOC "Enable TCMalloc heap management" FALSE)
 option (APEX_USE_PEDANTIC "Enable pedantic compiler flags" FALSE)
 option (APEX_USE_STATIC_GLOBAL_CONSTRUCTOR
     "Enable static global constructor for APEX library load (when __libc_start_main can't be wrapped)" FALSE)
+option (APEX_CMAKE_VERBOSE "Produce verbose CMake output" FALSE)
 
 # Do deprecation checks
 if(APEX_BUILD_OMPT)

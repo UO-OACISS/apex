@@ -118,10 +118,12 @@ void safeErase(
 extern "C" {
     // library function declarations
     void tasktimer_initialize_impl(void) {
+        safePrint("TaskStubs Init", 0, "");
         apex::init("PerfStubs API", 0, 1);
         apex::apex_options::use_thread_flow(true);
     }
     void tasktimer_finalize_impl(void) {
+        safePrint("TaskStubs finalize", 0, "");
         /* Debatable whether we want to do this finalize */
         //apex::finalize();
     }
