@@ -87,11 +87,6 @@ if(DEFINED BUILD_BFD)
 endif()
 
 # Provide some backwards compatability
-if(DEFINED BUILD_OMPT OR DEFINED APEX_BUILD_OMPT)
-    message(FATAL_ERROR "APEX_BUILD_OMPT is disabled. If OpenMP support is needed, use a compiler with compliant Tool support.")
-endif()
-
-# Provide some backwards compatability
 if(DEFINED BUILD_OTF2)
     message(WARNING "BUILD_OTF2 is deprecated - please use APEX_BUILD_OTF2")
     set(APEX_BUILD_OTF2 ${BUILD_OTF2} CACHE BOOL "")
@@ -102,7 +97,6 @@ option (APEX_BUILD_TESTS "Build APEX tests (for 'make test')" FALSE)
 option (APEX_BUILD_EXAMPLES "Build APEX examples" FALSE)
 option (APEX_BUILD_ACTIVEHARMONY "Build ActiveHarmony library if not found" FALSE)
 option (APEX_BUILD_BFD "Build Binutils library if not found" FALSE)
-#option (APEX_BUILD_OMPT "Build OpenMP runtime with OMPT if support not found" FALSE)
 option (APEX_BUILD_OTF2 "Build OTF2 library if not found" FALSE)
 option (APEX_CUDA_TESTS "Build APEX CUDA tests (for 'make test')" FALSE)
 option (APEX_HIP_TESTS "Build APEX HIP tests (for 'make test')" FALSE)
@@ -128,4 +122,17 @@ option (APEX_WITH_TCMALLOC "Enable TCMalloc heap management" FALSE)
 option (APEX_USE_PEDANTIC "Enable pedantic compiler flags" FALSE)
 option (APEX_USE_STATIC_GLOBAL_CONSTRUCTOR
     "Enable static global constructor for APEX library load (when __libc_start_main can't be wrapped)" FALSE)
+
+# Do deprecation checks
+if(APEX_BUILD_OMPT)
+    message(FATAL_ERROR "APEX_BUILD_OMPT is disabled. If OpenMP support is needed, use a compiler with compliant Tool support.")
+endif()
+
+if (APEX_BUILD_ACTIVEHARMONY)
+    message(WARNING "Deprecated option APEX_BUILD_ACTIVEHARMONY will be removed in a future version. You probably don't need it, as Nelder Mead search strategy is natively implemented in APEX.")
+endif()
+
+if (APEX_WITH_PERFETTO)
+    message(WARNING "Deprecated option APEX_WITH_PERFETTO will be removed in a future version. You don't need it, as Google Trace Event support is natively implemented in APEX.")
+endif()
 
