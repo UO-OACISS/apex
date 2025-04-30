@@ -7,7 +7,7 @@ if(APEX_WITH_CUDA)
   enable_language(CUDA)
   find_package(CUDAToolkit REQUIRED QUIET COMPONENTS CUPTI NVML)
   find_package(CUPTI REQUIRED QUIET COMPONENTS CUPTI)
-  find_package(NVML REQUIRED QUIET COMPONENTS NVML)
+  #find_package(NVML REQUIRED QUIET COMPONENTS NVML)
 
   # Add an imported target
   add_library(cuda INTERFACE IMPORTED)
@@ -21,10 +21,10 @@ if(APEX_WITH_CUDA)
   set_property(TARGET cupti PROPERTY
     INTERFACE_LINK_LIBRARIES ${CUPTI_LIBRARIES})
 
+#set_property(TARGET nvidia-ml PROPERTY
+#    INTERFACE_INCLUDE_DIRECTORIES ${NVML_INCLUDE_DIRS})
   set_property(TARGET nvidia-ml PROPERTY
-    INTERFACE_INCLUDE_DIRECTORIES ${NVML_INCLUDE_DIRS})
-  set_property(TARGET nvidia-ml PROPERTY
-    INTERFACE_LINK_LIBRARIES ${NVML_LIBRARIES})
+    INTERFACE_LINK_LIBRARIES CUDA::nvml)
 
   # Add the right definitions to the apex_flags target
   target_compile_definitions(apex_flags INTERFACE APEX_WITH_CUDA)
