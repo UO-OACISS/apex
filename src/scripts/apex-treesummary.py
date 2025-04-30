@@ -5,7 +5,6 @@ import numpy as np
 import argparse
 from argparse import RawTextHelpFormatter
 import math
-import matplotlib as mp
 import os
 import re
 
@@ -190,6 +189,7 @@ def shorten_name(name):
     return short
 
 def drawDOT(df, args, name):
+    import matplotlib as mp
     # computing new stats
     if args.verbose:
         print('Computing new stats...')

@@ -327,6 +327,9 @@ void apex::_initialize()
 #if defined(APEX_WITH_PERFETTO) || defined(APEX_HAVE_PERFETTO)
     tmp << ", Perfetto";
 #endif
+#if defined(APEX_WITH_RAJA) || defined(APEX_HAVE_RAJA)
+    tmp << ", RAJA";
+#endif
     tmp << "\n";
 
     this->version_string = std::string(tmp.str());
