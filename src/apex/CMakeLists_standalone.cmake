@@ -55,6 +55,7 @@ endif (OpenCL_FOUND)
 
 if (APEX_WITH_RAJA AND RAJA_FOUND)
     set(RAJA_SOURCE apex_raja.cpp)
+    set(RAJA_LIBS RAJA)
 endif (APEX_WITH_RAJA AND RAJA_FOUND)
 
 if(APEX_WITH_PERFETTO)
@@ -251,10 +252,10 @@ endif(MPI_Fortran_FOUND)
 # so that we can LD_PRELOAD this library with all requirements met.
 if (NOT BUILD_STATIC_EXECUTABLES)
     if(APPLE)
-        target_link_libraries(apex ${perfetto_target} ${LIBS})
+        target_link_libraries(apex ${perfetto_target} ${LIBS} ${RAJA_LIBS})
         set_target_properties(apex PROPERTIES LINK_FLAGS "${CMAKE_CURRENT_BINARY_DIR}/libtaudummy.dylib -flat_namespace")
     else(APPLE)
-        target_link_libraries(apex ${LIBS} ${perfetto_target} taudummy ${APEX_OPENCL_LIB})
+        target_link_libraries(apex ${LIBS} ${RAJA_LIBS} ${perfetto_target} taudummy ${APEX_OPENCL_LIB})
     endif(APPLE)
 endif()
 
