@@ -2165,7 +2165,7 @@ apex_policy_handle* register_periodic_policy(unsigned long period_microseconds,
 int apex::setup_runtime_counter(const std::string & counter_name) {
     bool messaged = false;
     if(get_hpx_runtime_ptr() != nullptr) {
-        using hpx::naming::id_type;
+        using hpx::id_type;
         using hpx::performance_counters::get_counter;
         using hpx::performance_counters::performance_counter;
         using hpx::performance_counters::counter_value;
@@ -2196,7 +2196,7 @@ int apex::setup_runtime_counter(const std::string & counter_name) {
 
 void apex::query_runtime_counters(void) {
     if (instance()->get_node_id() > 0) {return;}
-    using hpx::naming::id_type;
+    using hpx::id_type;
     using hpx::performance_counters::get_counter;
     using hpx::performance_counters::performance_counter;
     using hpx::performance_counters::counter_value;
@@ -2215,7 +2215,7 @@ apex_policy_handle * sample_runtime_counter(unsigned long period, const
     apex_policy_handle * handle = nullptr;
 #ifdef APEX_HAVE_HPX
     if(get_hpx_runtime_ptr() != nullptr) {
-        using hpx::naming::id_type;
+        using hpx::id_type;
         using hpx::performance_counters::get_counter;
         using hpx::performance_counters::performance_counter;
         using hpx::performance_counters::counter_value;
