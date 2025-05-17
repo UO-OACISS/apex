@@ -42,7 +42,7 @@ int64_t otf2_listener::synchronizeClocks(void) {
     std::uint32_t num_localities = hpx::get_num_localities(hpx::launch::sync);
     std::uint32_t this_locality = hpx::get_locality_id();
     // synchronize all ranks
-    //hpx::lcos::barrier barrier("apex_barrier_sync_1", num_localities, this_locality);
+    //hpx::distributed::barrier barrier("apex_barrier_sync_1", num_localities, this_locality);
 
     if (this_locality == 0) {
         /* If rank 0, do nothing. */
@@ -68,7 +68,7 @@ int64_t otf2_listener::synchronizeClocks(void) {
         offset = ref_ts - mytime;
     }
     // synchronize all ranks again
-    //hpx::lcos::barrier barrier2("apex_barrier_sync_2", num_localities, this_locality);
+    //hpx::distributed::barrier barrier2("apex_barrier_sync_2", num_localities, this_locality);
 
     return offset;
 }

@@ -1579,7 +1579,7 @@ namespace apex {
 
         std::vector<std::string> fullmap_vector;
         if (my_saved_node_count > 1) {
-            hpx::lcos::barrier barrier("apex1", my_saved_node_count, my_saved_node_id);
+            hpx::distributed::barrier barrier("apex1", my_saved_node_count, my_saved_node_id);
             barrier.wait();
             constexpr char const* bcast_basename = "/otf2/broadcast/regions/";
             using namespace hpx::collectives;
@@ -1733,7 +1733,7 @@ namespace apex {
 
         std::vector<std::string> fullmap_vector;
         if (my_saved_node_count > 1) {
-            hpx::lcos::barrier barrier("apex2", my_saved_node_count, my_saved_node_id);
+            hpx::distributed::barrier barrier("apex2", my_saved_node_count, my_saved_node_id);
             barrier.wait();
             constexpr char const* bcast_basename = "/otf2/broadcast/metrics/";
             using namespace hpx::collectives;
