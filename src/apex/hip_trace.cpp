@@ -1045,8 +1045,12 @@ void activity_callback(const char* begin, const char* end, void* arg) {
         if (record->domain == ACTIVITY_DOMAIN_HIP_OPS) {
             process_hip_record(record);
         } else {
-            fprintf(stderr, "Unsupported domain %d\n\n", record->domain);
-            abort();
+			static bool do_once{true};
+			// report once to the user that we encountered an unsupported domain.
+			if (do_once) {
+	            fprintf(stderr, "APEX: Unsupported domain in HIP callback %d\n\n", record->domain);
+				do_once = false;
+			}
         }
 
         ROCTRACER_CALL_CHECK(roctracer_next_record(record, &record));
