@@ -721,6 +721,8 @@ if (APEX_WITH_CUDA)
     if (NVML_FOUND)
         message(INFO " Using NVML include: ${NVML_INCLUDE_DIRS}")
         include_directories(${NVML_INCLUDE_DIRS})
+    else()
+        message(INFO " NVML not found, NVML-based GPU counters will be disabled")
     endif()
 endif (APEX_WITH_CUDA)
 
