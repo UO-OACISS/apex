@@ -170,11 +170,11 @@ if (APEX_WITH_CUDA)
     add_definitions(-DAPEX_WITH_CUDA)
     include_directories (${CUDAToolkit_INCLUDE_DIR})
     include_directories(${CUPTI_INCLUDE_DIRS})
-    include_directories(${NVML_INCLUDE_DIRS})
     if (CUPTI_FOUND)
         SET(CUPTI_SOURCE cupti_trace.cpp)
     endif(CUPTI_FOUND)
     if (NVML_FOUND)
+        include_directories(${NVML_INCLUDE_DIRS})
         SET(NVML_SOURCE apex_nvml.cpp)
     endif(NVML_FOUND)
     add_library (apex_cuda
@@ -378,4 +378,3 @@ install(FILES
     ${CMAKE_CURRENT_BINARY_DIR}/APEXConfig.cmake
     DESTINATION lib/cmake/APEX
     )
-
