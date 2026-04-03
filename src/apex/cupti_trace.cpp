@@ -28,7 +28,9 @@
 #include "perfetto_listener.hpp"
 #endif
 #include "trace_event_listener.hpp"
+#ifdef APEX_HAVE_NVML
 #include "apex_nvml.hpp"
+#endif
 #ifdef APEX_HAVE_OTF2
 #include "otf2_listener.hpp"
 #endif
@@ -1712,7 +1714,9 @@ void apex_cupti_callback_dispatch(void *ud, CUpti_CallbackDomain domain,
             uint32_t context{0};
             cuptiGetDeviceId(cbdata->context, &device);
             cuptiGetContextId(cbdata->context, &context);
+#ifdef APEX_HAVE_NVML
             apex::nvml::monitor::activateDeviceIndex(device);
+#endif
             map_mutex.lock();
             context_map[context] = device;
             map_mutex.unlock();

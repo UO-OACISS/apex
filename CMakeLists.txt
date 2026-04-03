@@ -714,12 +714,14 @@ endif(ZLIB_FOUND)
 
 if (APEX_WITH_CUDA)
     find_package(CUPTI REQUIRED)
-    #find_package(NVML REQUIRED)
+    find_package(NVML QUIET)
     add_definitions(-DAPEX_WITH_CUDA)
     message(INFO " Using CUPTI include: ${CUPTI_INCLUDE_DIRS}")
     include_directories(${CUPTI_INCLUDE_DIRS})
-    #message(INFO " Using NVML include: ${NVML_INCLUDE_DIRS}")
-    #include_directories(${NVML_INCLUDE_DIRS})
+    if (NVML_FOUND)
+        message(INFO " Using NVML include: ${NVML_INCLUDE_DIRS}")
+        include_directories(${NVML_INCLUDE_DIRS})
+    endif()
 endif (APEX_WITH_CUDA)
 
 ################################################################################
