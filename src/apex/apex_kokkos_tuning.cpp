@@ -25,6 +25,7 @@
 #include <vector>
 #include <set>
 #include <map>
+#include <numeric>
 #include <stdlib.h>
 #include "apex.hpp"
 #include "Kokkos_Profiling_C_Interface.h"
@@ -832,10 +833,8 @@ std::string hashContext(size_t numVars,
     /* Sort by the variable name, not the runtime-assigned ID. Kokkos can
      * reuse the same logical variables with different IDs across runs, and
      * cache replay depends on the context hash staying stable. */
-    std::vector<size_t> reindex;
-    for (size_t i = 0 ; i < numVars ; i++) {
-        reindex.push_back(i);
-    }
+    std::vector<size_t> reindex(numVars);
+    std::iota(reindex.begin(), reindex.end(), 0);
     sort(reindex.begin(), reindex.end(),
             [&](const auto& lhs, const auto& rhs) {
                 const auto lhs_id = values[lhs].type_id;
