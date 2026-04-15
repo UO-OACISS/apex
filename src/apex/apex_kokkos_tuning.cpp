@@ -463,8 +463,12 @@ void KokkosSession::parseVariableCache(std::ifstream& results) {
     std::string delimiter = ": ";
     struct Kokkos_Tools_VariableInfo info;
     memset(&info, 0, sizeof(struct Kokkos_Tools_VariableInfo));
-    // name
+    // hash (newer cache format) or name (older cache format)
     std::getline(results, line);
+    if (line.find("hash", 0) != std::string::npos) {
+        std::getline(results, line);
+    }
+    // name
     std::string name = line.substr(line.find(delimiter)+2);
     // id
     std::getline(results, line);
@@ -825,21 +829,32 @@ std::string hashContext(size_t numVars,
     std::map<size_t, Variable*>& varmap, std::string tree_node) {
     std::stringstream ss;
     std::string d{"["};
-    /* This is REALLY annoying. sometimes the order of the variables
-     * can change, not sure how Kokkos is doing that but it may be a
-     * side effect of using an unordered map. regardless, we have to
-     * sort the variables by ID to make sure we generate the hash
-     * consistently. */
-    std::vector<std::pair<size_t,size_t>> reindex;
+    /* Sort by the variable name, not the runtime-assigned ID. Kokkos can
+     * reuse the same logical variables with different IDs across runs, and
+     * cache replay depends on the context hash staying stable. */
+    std::vector<size_t> reindex;
     for (size_t i = 0 ; i < numVars ; i++) {
-        reindex.push_back(std::pair<size_t,size_t>(i,values[i].type_id));
+        reindex.push_back(i);
     }
     sort(reindex.begin(), reindex.end(),
-            [](const auto& lhs, const auto& rhs) {
-                return lhs.second < rhs.second;
+            [&](const auto& lhs, const auto& rhs) {
+                const auto lhs_id = values[lhs].type_id;
+                const auto rhs_id = values[rhs].type_id;
+                auto lhs_var = varmap.find(lhs_id);
+                auto rhs_var = varmap.find(rhs_id);
+                std::string lhs_name = (lhs_var != varmap.end() &&
+                    lhs_var->second != nullptr) ? lhs_var->second->name :
+                    std::to_string(lhs_id);
+                std::string rhs_name = (rhs_var != varmap.end() &&
+                    rhs_var->second != nullptr) ? rhs_var->second->name :
+                    std::to_string(rhs_id);
+                if (lhs_name == rhs_name) {
+                    return lhs_id < rhs_id;
+                }
+                return lhs_name < rhs_name;
             });
     for (size_t i = 0 ; i < numVars ; i++) {
-        size_t ri = reindex[i].first;
+        size_t ri = reindex[i];
         auto id = values[ri].type_id;
         Variable* var{varmap[id]};
         ss << d << var->name << ":";
@@ -893,20 +908,26 @@ bool getCachedTunings(std::string name,
     auto result = session.cachedTunings.find(name);
     // don't have a tuning for this context?
     if (result == session.cachedTunings.end()) { return false; }
+    std::map<std::string, const struct Kokkos_Tools_VariableValue*> cachedByName;
+    for (const auto &cachedVar : result->second) {
+        auto cachedName = session.cachedVariableNames.find(cachedVar.first);
+        if (cachedName == session.cachedVariableNames.end()) { return false; }
+        cachedByName.insert(std::make_pair(cachedName->second, &(cachedVar.second)));
+    }
     for (size_t i = 0 ; i < vars ; i++) {
         auto id = values[i].type_id;
         // look up the variable in the outputs, by id - may not match the cached ID
         auto outputVar = session.outputs.find(id);
-        // look up the variable in the cache, by name - the name will always match
+        if (outputVar == session.outputs.end() || outputVar->second == nullptr) {
+            return false;
+        }
+        // look up the variable in the cache by the stable variable name
         std::string varname{outputVar->second->name};
-        // look up the cached ID (it might not match the current variable id from Kokkos)
-        size_t varID = session.cachedVariableIDs.find(varname)->second;
-        auto variter = result->second.find(varID);
-        //auto nameiter = session.cachedVariableNames.find(id);
-        if (variter == result->second.end()) { return false; }
-        //if (nameiter == session.cachedVariableNames.end()) { return false; }
-        auto var = variter->second;
-        //auto varname = nameiter->second;
+        auto variter = cachedByName.find(varname);
+        if (variter == cachedByName.end() || variter->second == nullptr) {
+            return false;
+        }
+        const auto& var = *(variter->second);
         if (var.metadata->type == kokkos_value_double) {
             values[i].value.double_value = var.value.double_value;
             std::string tmp(name+":"+varname);
@@ -1348,4 +1369,3 @@ void kokkosp_end_context(const size_t contextId) {
 }
 
 } // extern "C"
-
