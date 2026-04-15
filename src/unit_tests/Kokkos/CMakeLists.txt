@@ -12,6 +12,7 @@ if(NOT APPLE)
 endif(NOT APPLE)
 
 set(example_programs
+    cache_replay
     simple
     two_var
     ${openmp_programs}
@@ -40,4 +41,3 @@ foreach(example_program ${example_programs})
   set_property(TEST "test_${example_program}_kokkos" APPEND PROPERTY ENVIRONMENT "OMP_NUM_THREADS=4")
 
 endforeach()
-
